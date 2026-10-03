@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hampton Estates Jersey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tenor+Sans&family=Montserrat:wght@300;400;500;600&display=swap">
+<style>
+/* Layout: Heider-style monochrome gallery — full-bleed imagery, uppercase display type, bronze used only for action and price. */
+:root{
+  --ink:#151515; --paper:#ffffff; --mist:#f4f3f0; --line:#e3e0da; --stone:#77736c; --bronze:#a56b3d; --bronze-dk:#86542d;
+  --ok:#2f6b4f; --display:"Tenor Sans","Gill Sans",Optima,sans-serif; --body:Montserrat,"Helvetica Neue",Arial,sans-serif;
+  --wrap:1240px; color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.65 var(--body)}
+img{max-width:100%;display:block}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
+.wrap{max-width:var(--wrap);margin:0 auto;padding-inline:clamp(16px,4vw,40px)}
+h1,h2,h3,.disp{font-family:var(--display);font-weight:400;text-transform:uppercase;letter-spacing:.06em;text-wrap:balance;margin:0}
+h2{font-size:clamp(24px,3vw,34px)}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--stone)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:13px 26px;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s,color .2s}
+.btn:hover{background:var(--bronze);border-color:var(--bronze)}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.ghost:hover{background:var(--ink);color:var(--paper)}
+.btn.light{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+.num{font-variant-numeric:tabular-nums}
+
+/* demo ribbon + header */
+.ribbon{background:var(--bronze);color:#fff;font-size:12px;text-align:center;padding:7px 16px;letter-spacing:.04em}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;height:72px}
+.logo{font-family:var(--display);font-size:19px;letter-spacing:.28em;text-decoration:none;white-space:nowrap}
+.logo small{display:block;font:500 9px/1 var(--body);letter-spacing:.42em;color:var(--stone);margin-top:4px}
+nav.main{display:flex;gap:28px;font-size:12px;font-weight:500;letter-spacing:.16em;text-transform:uppercase}
+nav.main a{text-decoration:none}
+nav.main a:hover{color:var(--bronze)}
+.tel{font-size:13px;font-weight:600;white-space:nowrap}
+@media (max-width:860px){nav.main{display:none}}
+@media (max-width:480px){.tel{display:none}}
+
+/* hero */
+.hero{position:relative;min-height:min(78vh,720px);display:grid;align-items:end;color:#fff;background:#222 center/cover no-repeat}
+.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 30%,rgba(0,0,0,.65))}
+.hero .wrap{position:relative;padding-block:64px;width:100%}
+.hero h1{font-size:clamp(34px,6vw,72px);line-height:1.05;max-width:14ch}
+.hero p{max-width:52ch;margin:18px 0 28px;font-size:16px;opacity:.92}
+.hero .eyebrow{color:#fff;opacity:.85}
+.search{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--paper);color:var(--ink);max-width:880px}
+.search label{display:grid;gap:2px;padding:12px 18px;border-right:1px solid var(--line);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
+.search select{border:0;background:transparent;padding:4px 0;font-size:14px;color:var(--ink);text-transform:none;letter-spacing:0}
+.search .btn{border:0}
+@media (max-width:700px){.search{grid-template-columns:1fr 1fr}.search label{border-bottom:1px solid var(--line)}}
+
+/* sections */
+section[id]{scroll-margin-top:72px}
+section.block{padding-block:clamp(56px,8vw,104px)}
+.head{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-bottom:36px}
+.head p{margin:8px 0 0;color:var(--stone);max-width:56ch}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:none;padding:9px 16px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* property cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:40px 28px}
+.card{text-decoration:none;display:grid;gap:14px;min-width:0}
+.card .ph{position:relative;aspect-ratio:4/3;overflow:hidden;background:var(--mist)}
+.card .ph img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
+.card:hover .ph img{transform:scale(1.04)}
+.pill{position:absolute;top:12px;left:12px;background:var(--paper);padding:5px 10px;font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+.pill.sold{background:var(--ink);color:var(--paper)}
+.pill.offer{background:var(--bronze);color:#fff}
+.pill.tour{left:auto;right:12px;background:var(--ink);color:#fff}
+.card h3{font-size:17px;line-height:1.3}
+.meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--stone);letter-spacing:.04em}
+.price{font-family:var(--display);font-size:20px;color:var(--bronze);letter-spacing:.02em}
+.empty{padding:48px;text-align:center;border:1px dashed var(--line);color:var(--stone)}
+
+/* feature band */
+.feature{display:grid;grid-template-columns:1.2fr 1fr;background:var(--mist)}
+.feature img{width:100%;height:100%;object-fit:cover;min-height:340px}
+.feature .txt{padding:clamp(28px,5vw,64px);display:grid;align-content:center;gap:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{border:1px solid var(--line);background:var(--paper);padding:6px 12px;font-size:12px}
+@media (max-width:820px){.feature{grid-template-columns:1fr}}
+
+/* team */
+.team{background:var(--ink);color:#f2efe9}
+.team .eyebrow{color:#a9a49b}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:2px;margin-top:40px}
+.agent{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);background:#1f1f1f;min-height:360px}
+.agent img{width:100%;height:100%;object-fit:cover;filter:grayscale(1);transition:filter .5s}
+.agent:hover img{filter:grayscale(0)}
+.agent .info{padding:28px;display:grid;align-content:space-between;gap:20px}
+.agent h3{font-size:22px;line-height:1.2}
+.agent .role{color:var(--bronze);font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;margin-top:6px}
+.agent p{margin:0;font-size:14px;color:#cfcac2}
+.agent .contact{display:grid;gap:4px;font-size:13px}
+.agent .btn{background:transparent;border-color:#f2efe9;color:#f2efe9}
+.agent .btn:hover{background:var(--bronze);border-color:var(--bronze)}
+@media (max-width:560px){.agent{grid-template-columns:1fr}.agent img{aspect-ratio:4/3}}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));border-top:1px solid #333;margin-top:48px}
+.facts div{padding:22px 0;display:grid;gap:4px}
+.facts b{font-family:var(--display);font-weight:400;font-size:26px;color:#fff}
+.facts span{font-size:12px;color:#a9a49b;letter-spacing:.06em}
+
+/* booking */
+.book{display:grid;grid-template-columns:1fr 1.4fr;gap:clamp(28px,5vw,72px)}
+@media (max-width:900px){.book{grid-template-columns:1fr}}
+form.tour{display:grid;gap:18px}
+.field{display:grid;gap:6px;min-width:0}
+.field>span,.legend{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
+.field input,.field select{border:1px solid var(--line);background:var(--paper);padding:12px 14px;width:100%}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts label{cursor:pointer}
+.opts input{position:absolute;opacity:0;pointer-events:none}
+.opts span{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);padding:9px 14px;font-size:13px}
+.opts span img{width:30px;height:30px;border-radius:50%;object-fit:cover}
+.opts input:checked+span{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.opts input:focus-visible+span{outline:2px solid var(--bronze);outline-offset:2px}
+.confirm{border:1px solid var(--ok);padding:28px;display:grid;gap:10px}
+.confirm h3{color:var(--ok);font-size:18px}
+.confirm dl{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;margin:6px 0 0;font-size:14px}
+.confirm dt{color:var(--stone)}
+.confirm dd{margin:0}
+.hint{font-size:12px;color:var(--stone)}
+
+/* detail page */
+.crumbs{font-size:12px;color:var(--stone);padding-block:20px;letter-spacing:.06em}
+.crumbs a{text-decoration:none}
+.media-tabs{display:flex;gap:0;border-bottom:1px solid var(--line);overflow-x:auto}
+.media-tabs button{border:0;background:none;padding:14px 20px;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.media-tabs button[aria-selected=true]{border-color:var(--bronze);color:var(--bronze)}
+.stage{position:relative;aspect-ratio:16/9;max-height:72vh;width:100%;background:#111;overflow:hidden}
+.stage>img,.stage iframe{width:100%;height:100%;object-fit:cover;border:0}
+.drone{position:absolute;inset:0}
+.drone img{width:100%;height:100%;object-fit:cover;animation:drift 40s ease-in-out infinite alternate}
+@keyframes drift{from{transform:scale(1.02)}to{transform:scale(1.1) translate(-1%,1%)}}
+@media (prefers-reduced-motion:reduce){.drone img{animation:none}}
+.drone svg{position:absolute;inset:0;width:100%;height:100%}
+.drone polygon{fill-opacity:.22;stroke-width:3;transition:fill-opacity .2s;cursor:pointer}
+.drone polygon:hover,.drone polygon.on{fill-opacity:.45}
+.drone text{font:600 15px var(--body);fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.65);stroke-width:4px;pointer-events:none}
+.drone .legend-box{position:absolute;left:16px;bottom:16px;background:rgba(15,15,15,.82);color:#fff;padding:14px 16px;display:grid;gap:6px;font-size:13px;min-width:220px}
+.drone .legend-box button{all:unset;display:flex;justify-content:space-between;gap:18px;cursor:pointer}
+.drone .legend-box i{display:inline-block;width:10px;height:10px;margin-right:8px}
+.drone .hud{position:absolute;top:14px;right:16px;color:#fff;font:600 11px var(--body);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 1px 3px #000;text-align:right}
+.drone .scale{position:absolute;right:16px;bottom:16px;color:#fff;font-size:11px;text-shadow:0 1px 2px #000}
+.drone .scale i{display:block;height:6px;border:2px solid #fff;border-top:0;margin-bottom:4px}
+.tour-cta{position:absolute;inset:0;display:grid;place-items:center;background:center/cover;color:#fff}
+.tour-cta::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.tour-cta>div{position:relative;text-align:center;display:grid;gap:14px;justify-items:center;padding:16px}
+@media (max-width:640px){.stage{aspect-ratio:4/3}.drone .legend-box{min-width:0;font-size:12px;padding:10px}}
+
+.detail{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:clamp(28px,5vw,64px);padding-block:40px 80px}
+@media (max-width:980px){.detail{grid-template-columns:1fr}}
+.title-row{display:flex;justify-content:space-between;align-items:start;gap:24px;flex-wrap:wrap;padding-bottom:24px;border-bottom:1px solid var(--line)}
+.title-row h1{font-size:clamp(26px,3.6vw,40px);line-height:1.15}
+.title-row .price{font-size:30px}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));border-bottom:1px solid var(--line)}
+.keys div{padding:20px 0;display:grid;gap:2px}
+.keys b{font-family:var(--display);font-weight:400;font-size:24px}
+.keys span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone)}
+.prose{max-width:68ch}
+.prose p{margin:0 0 12px}
+.sub{margin:48px 0 18px;font-size:20px}
+.specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:28px 40px}
+.specs h4{margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--bronze)}
+.specs dl{margin:0;display:grid}
+.specs dl div{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.specs dt{color:var(--stone)}
+.specs dd{margin:0;text-align:right}
+.note{font-size:12px;color:var(--stone);margin-top:14px}
+
+/* mortgage */
+.calc{background:var(--mist);padding:clamp(20px,3vw,32px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px}
+@media (max-width:720px){.calc{grid-template-columns:1fr}}
+.calc .field{margin-bottom:16px}
+.calc output{font-weight:600}
+.calc input[type=range]{width:100%;accent-color:var(--bronze);padding:0;border:0;background:none}
+.calc .lbl{display:flex;justify-content:space-between;font-size:13px}
+.result{display:grid;gap:14px;align-content:start}
+.result .big{font-family:var(--display);font-size:clamp(34px,4vw,46px);line-height:1}
+.bar{display:flex;height:10px;background:var(--line)}
+.bar i{display:block;height:100%}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px}
+.split div{display:grid}
+.split span{color:var(--stone);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+
+aside.side{display:grid;gap:20px;align-content:start}
+.sticky{position:sticky;top:96px;display:grid;gap:20px}
+.box{border:1px solid var(--line);padding:24px;display:grid;gap:14px}
+.box .agent-mini{display:flex;gap:14px;align-items:center}
+.box .agent-mini img{width:56px;height:56px;border-radius:50%;object-fit:cover;filter:grayscale(1)}
+
+footer{background:var(--mist);padding-block:48px;font-size:13px;color:var(--stone)}
+footer .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}
+footer b{color:var(--ink);font-family:var(--display);font-weight:400;letter-spacing:.2em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="ribbon">Demo prototype · listings scraped from hamptonestatesjersey.com · featured-home specs, aerial plot and 3D tour are illustrative</div>
+<header class="top"><div class="wrap">
+  <a class="logo" href="#/">HAMPTON ESTATES<small>JERSEY · SINCE 1982</small></a>
+  <nav class="main"><a href="#/">Home</a><a href="#portfolio">Properties</a><a href="#team">Our team</a><a href="#book">Book a viewing</a></nav>
+  <span class="tel num">01534 727582</span>
+</div></header>
+<main id="app"></main>
+<footer><div class="wrap">
+  <div><b>Hampton Estates</b><p>Property sales · Free valuations · Rentals.<br>No sale, no fee.</p></div>
+  <div><b>Visit</b><p>42 Bath Street, St Helier<br>Jersey JE2 4ST</p></div>
+  <div><b>Contact</b><p class="num">01534 727582 · 07797 718199<br>francopropertiesjersey@gmail.com</p></div>
+  <div><b>Demo</b><p>Aerial imagery © Esri World Imagery. 3D tour: Matterport sample space.</p></div>
+</div></footer>
+
+<script>
+// ---------- helpers ----------
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const gbp = n => "£" + Math.round(n).toLocaleString("en-GB");
+const wix = (url, w, h) => url ? `${url}/v1/fill/w_${w},h_${h},al_c,q_80/photo.jpg` : "";
+const M2_PER_PX = 0.195 ** 2; // Esri z19 at lat 49.2° ≈ 0.195 m/px
+const SQFT = 10.7639;
+
+// Monthly repayment for an amortising mortgage
+const pmt = (principal, annualRate, years) => {
+  const r = annualRate / 12, n = years * 12;
+  return r === 0 ? principal / n : principal * r / (1 - (1 + r) ** -n);
+};
+console.assert(Math.round(pmt(200000, 0.05, 25)) === 1169, "pmt self-check failed");
+
+const polyArea = pts => Math.abs(pts.reduce((a, [x, y], i) => {
+  const [x2, y2] = pts[(i + 1) % pts.length]; return a + x * y2 - x2 * y; }, 0)) / 2;
+
+// ---------- demo enrichment: invented from the listing photo (white detached villa, glazed sun room,
+// roof terrace, palm-lined front garden, tarmac drive + garage) and the listing text ----------
+const PLOT = [
+  {key:"plot", name:"Total plot", color:"#ffffff", pts:[[292,338],[392,298],[585,262],[628,300],[640,385],[560,425],[420,478],[330,470],[296,430]]},
+  {key:"house", name:"House & garage footprint", color:"#d9a066", pts:[[388,312],[498,296],[552,330],[552,366],[404,374],[388,350]]},
+  {key:"garden", name:"Garden & pool terrace", color:"#7fd1a1", pts:[[300,345],[384,322],[392,440],[334,458],[302,425]]},
+  {key:"drive", name:"Driveway (6 cars)", color:"#8ab4f8", pts:[[552,330],[590,262],[612,278],[576,350]]},
+];
+PLOT.forEach(z => z.m2 = Math.round(polyArea(z.pts) * M2_PER_PX));
+const DEMO = {
+  "9c0f9d02": {
+    tour: "https://my.matterport.com/show/?m=JGPnGQ6hosj&play=1&qs=1&brand=0",
+    interior: 465, floors: 2, year: 1994,
+    specs: {
+      "Interior": [["Bedrooms","4"],["Bathrooms","3 (2 en-suite)"],["Interior area",""],["Floors","2"],["Reception","Lounge/dining + glazed sun room"],["Kitchen","Modern fitted, island"],["Heating","Oil-fired central heating"],["Glazing","uPVC double glazing"]],
+      "Exterior": [["Plot",""],["Garden","Landscaped front, palms & flower beds"],["Pool","Outdoor pool + pool house"],["Terrace","First-floor roof terrace"],["Parking","Driveway for 6 cars"],["Garage","Large integral garage"]],
+      "Building": [["Type","Detached villa"],["Year built","1994"],["Construction","Rendered block, painted white"],["Roof","Pitched, concrete tile"],["Condition","Well maintained"]],
+      "Location & tenure": [["Parish","St Lawrence"],["Tenure","Freehold"],["Housing category","Qualified / Entitled"],["Current let","£33,000 p.a. (4-year lease)"],["Est. parish rates","£2,150 p.a."]],
+    },
+  },
+};
+
+// ---------- state ----------
+let PROPS = [], TEAM = [], filter = {cat:"all", beds:0, max:0}, showAll = false;
+const isSale = p => p.price && !/let|lease/i.test(p.status) && p.price > 20000;
+const pillCls = s => /sold/i.test(s) ? "sold" : /offer/i.test(s) ? "offer" : "";
+const CATS = {all:"All", residential:"Jersey", international:"International", commercial:"Commercial", rent:"To let"};
+
+function card(p) {
+  return `<a class="card" href="#/p/${p.id}">
+    <div class="ph"><img loading="lazy" src="${wix(p.image, 640, 480)}" alt="${esc(p.title)}">
+      <span class="pill ${pillCls(p.status)}">${esc(p.status)}</span>${DEMO[p.id] ? '<span class="pill tour">3D tour</span>' : ""}</div>
+    <div><div class="eyebrow">${esc(p.location)}</div><h3>${esc(p.title)}</h3></div>
+    <div class="meta">${p.beds ? `<span>${p.beds} bed</span>` : ""}${p.baths ? `<span>${p.baths} bath</span>` : ""}<span>${esc(CATS[p.category])}</span></div>
+    <div class="price num">${esc(p.priceText || "Price on application")}</div></a>`;
+}
+
+function matches(p) {
+  const f = filter;
+  if (f.cat === "rent" ? !/let|lease/i.test(p.status) : f.cat !== "all" && p.category !== f.cat) return false;
+  if (f.beds && (p.beds || 0) < f.beds) return false;
+  if (f.max && (!p.price || p.price > f.max)) return false;
+  return true;
+}
+
+// ---------- booking form (used on home + detail) ----------
+function bookingForm(pre = {}) {
+  const d = new Date(Date.now() + 864e5); if (d.getDay() === 0) d.setDate(d.getDate() + 1); // no Sunday viewings
+  const tomorrow = d.toISOString().slice(0, 10);
+  const opts = PROPS.filter(p => !/sold/i.test(p.status)).map(p =>
+    `<option value="${p.id}" ${p.id === pre.prop ? "selected" : ""}>${esc(p.title)} — ${esc(p.priceText || "POA")}</option>`).join("");
+  return `<form class="tour" novalidate>
+    <div class="field"><span>Property</span><select id="bk-prop" required><option value="">General enquiry / valuation</option>${opts}</select></div>
+    <div class="field"><span class="legend">Your agent</span><div class="opts">${TEAM.map((t, i) =>
+      `<label><input type="radio" name="agent" value="${i}" ${i === (pre.agent ?? 0) ? "checked" : ""}><span><img src="${wix(t.photo, 80, 80)}" alt="">${esc(t.name)}</span></label>`).join("")}</div></div>
+    <div class="field"><span class="legend">Viewing type</span><div class="opts">
+      <label><input type="radio" name="kind" value="In person" checked><span>In person</span></label>
+      <label><input type="radio" name="kind" value="Live video call"><span>Live video call</span></label>
+      <label><input type="radio" name="kind" value="Guided 3D tour"><span>Guided 3D tour</span></label></div></div>
+    <div class="row"><label class="field"><span>Date</span><input id="bk-date" type="date" min="${tomorrow}" value="${tomorrow}" required></label>
+      <div class="field"><span class="legend">Time</span><div class="opts">${["10:00","11:30","14:00","15:30","17:00"].map((t, i) =>
+        `<label><input type="radio" name="time" value="${t}" ${i === 1 ? "checked" : ""}><span class="num">${t}</span></label>`).join("")}</div></div></div>
+    <div class="row"><label class="field"><span>Full name</span><input id="bk-name" autocomplete="name" required placeholder="Jane Le Brocq"></label>
+      <label class="field"><span>Email</span><input id="bk-email" type="email" autocomplete="email" required placeholder="jane@example.je"></label>
+      <label class="field"><span>Phone</span><input id="bk-phone" type="tel" autocomplete="tel" placeholder="07797 000000"></label></div>
+    <div><button class="btn" type="submit">Request viewing</button> <span class="hint">Demo: no data is sent.</span></div>
+  </form>`;
+}
+
+function wireBooking(root) {
+  const form = $("form.tour", root);
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    if (!form.reportValidity()) return;
+    const v = n => form.querySelector(`[name=${n}]:checked`)?.value;
+    const agent = TEAM[+v("agent")], prop = PROPS.find(p => p.id === $("#bk-prop", form).value);
+    const date = new Date($("#bk-date", form).value + "T12:00").toLocaleDateString("en-GB", {weekday:"long", day:"numeric", month:"long"});
+    form.outerHTML = `<div class="confirm" role="status"><h3>Viewing requested</h3>
+      <p>${esc(agent.name)} will confirm by email within one working day.</p>
+      <dl><dt>Property</dt><dd>${esc(prop ? prop.title : "General enquiry")}</dd><dt>When</dt><dd>${esc(date)}, ${esc(v("time"))}</dd>
+      <dt>Type</dt><dd>${esc(v("kind"))}</dd><dt>Agent</dt><dd>${esc(agent.name)} · ${esc(agent.office)}</dd>
+      <dt>Name</dt><dd>${esc($("#bk-name", form).value)}</dd></dl>
+      <p class="hint">Demo only. In production this would create the calendar event and email both parties.</p></div>`;
+  });
+}
+
+// ---------- pages ----------
+function home() {
+  const feat = PROPS.find(p => DEMO[p.id]);
+  const bios = ["Founded Hampton Estates in 1982 and has guided generations of Jersey families through buying, selling and letting. Advice and valuations are always free.",
+                "Handles day-to-day sales and lettings, from first viewing to completion. Your first call for viewings, offers and rental enquiries."];
+  $("#app").innerHTML = `
+  <section class="hero" style="background-image:url('${wix(feat.image, 1800, 1000)}')"><div class="wrap">
+    <div class="eyebrow">Jersey · Channel Islands</div>
+    <h1>Homes across Jersey, since 1982</h1>
+    <p>Sales, lettings and free valuations from our St Helier office on Bath Street. Discreet, personal and on a no sale, no fee basis.</p>
+    <form class="search" id="quick">
+      <label>Market<select id="q-cat">${Object.entries(CATS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select></label>
+      <label>Bedrooms<select id="q-beds"><option value="0">Any</option><option value="2">2+</option><option value="3">3+</option><option value="4">4+</option></select></label>
+      <label>Max price<select id="q-max"><option value="0">No limit</option><option value="400000">£400k</option><option value="600000">£600k</option><option value="900000">£900k</option><option value="1500000">£1.5m</option></select></label>
+      <button class="btn" type="submit">Search</button>
+    </form>
+  </div></section>
+
+  <section class="block" id="portfolio"><div class="wrap">
+    <div class="head"><div><div class="eyebrow">Portfolio</div><h2>Properties for sale & to let</h2>
+      <p><span id="count" class="num"></span> listings from our current register.</p></div>
+      <div class="tabs" id="tabs">${Object.entries(CATS).map(([k, v]) => `<button type="button" data-cat="${k}" aria-pressed="${k === filter.cat}">${v}</button>`).join("")}</div></div>
+    <div class="grid" id="grid"></div>
+    <div style="text-align:center;margin-top:48px"><button class="btn ghost" type="button" id="more"></button></div>
+  </div></section>
+
+  <section class="feature"><img src="${wix(feat.image, 1200, 800)}" alt="${esc(feat.title)}">
+    <div class="txt"><div class="eyebrow">Featured · ${esc(feat.location)}</div><h2>${esc(feat.title)}</h2>
+      <p>Walk through the house in 3D, see the plot from above with every area measured, and work out your monthly repayment before you visit.</p>
+      <div class="chips"><span>3D walkthrough</span><span>Aerial plot in m²</span><span>Mortgage calculator</span><span>Book with an agent</span></div>
+      <div><a class="btn" href="#/p/${feat.id}">Explore the property</a></div></div>
+  </section>
+
+  <section class="block team" id="team"><div class="wrap">
+    <div class="eyebrow">Meet the team</div><h2>A family firm on Bath Street</h2>
+    <div class="team-grid">${TEAM.map((t, i) => `<article class="agent">
+      <img src="${wix(t.photo, 600, 760)}" alt="${esc(t.name)}">
+      <div class="info"><div><h3>${esc(t.name)}</h3><div class="role">${esc(t.role)}</div></div>
+        <p>${bios[i] || ""}</p>
+        <div class="contact num">${t.phone ? `<span>Mobile ${esc(t.phone)}</span>` : ""}<span>Office ${esc(t.office)}</span><span>francopropertiesjersey@gmail.com</span></div>
+        <div><button class="btn" type="button" data-agent="${i}">Book with ${esc(t.name.split(" ")[0])}</button></div></div></article>`).join("")}</div>
+    <div class="facts"><div><b class="num">1982</b><span>Established in St Helier</span></div><div><b>No sale</b><span>No fee, ever</span></div>
+      <div><b>Free</b><span>Local & international valuations</span></div><div><b class="num">${PROPS.length}</b><span>Properties on the register</span></div></div>
+  </div></section>
+
+  <section class="block" id="book"><div class="wrap book">
+    <div><div class="eyebrow">Book a viewing</div><h2>Choose an agent and a time</h2>
+      <p class="hint" style="font-size:14px;margin-top:14px">Pick the property, the agent you want to meet and a slot. Viewings run Monday to Saturday from our Bath Street office, or by live video call if you are buying from abroad.</p></div>
+    <div id="book-slot">${bookingForm()}</div>
+  </div></section>`;
+
+  const render = () => {
+    const list = PROPS.filter(matches), shown = showAll ? list : list.slice(0, 9);
+    $("#more").hidden = shown.length === list.length;
+    $("#more").textContent = `Show all ${list.length} properties`;
+    $("#grid").innerHTML = shown.map(card).join("") || `<div class="empty">No properties match these filters. Try a higher budget or fewer bedrooms.</div>`;
+    $("#count").textContent = list.length;
+    document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.cat === filter.cat));
+  };
+  $("#tabs").addEventListener("click", e => { const c = e.target.closest("button")?.dataset.cat; if (c) { filter.cat = c; showAll = false; render(); } });
+  $("#more").addEventListener("click", () => { showAll = true; render(); });
+  $("#quick").addEventListener("submit", e => {
+    e.preventDefault();
+    filter = {cat: $("#q-cat").value, beds: +$("#q-beds").value, max: +$("#q-max").value};
+    render(); $("#portfolio").scrollIntoView();
+  });
+  $("#team").addEventListener("click", e => {
+    const i = e.target.closest("[data-agent]")?.dataset.agent; if (i == null) return;
+    $(`#book-slot input[name=agent][value="${i}"]`).checked = true; $("#book").scrollIntoView();
+  });
+  wireBooking($("#book-slot"));
+  render();
+}
+
+function droneView() {
+  const z = PLOT.map(p => `<polygon data-k="${p.key}" points="${p.pts.join(" ")}" fill="${p.color}" stroke="${p.color}" ${p.key === "plot" ? 'stroke-dasharray="10 6" fill-opacity=".08"' : ""}></polygon>`).join("");
+  const labels = PLOT.filter(p => p.key !== "plot").map(p => {
+    const cx = p.pts.reduce((a, q) => a + q[0], 0) / p.pts.length, cy = p.pts.reduce((a, q) => a + q[1], 0) / p.pts.length;
+    return `<text x="${cx}" y="${cy}" text-anchor="middle">${p.m2} m²</text>`; }).join("");
+  return `<div class="drone"><img src="img/aerial-demo.jpg" alt="Aerial view of the plot with measured areas">
+    <svg viewBox="0 0 1024 768" preserveAspectRatio="xMidYMid slice">${z}${labels}
+      <text x="460" y="250" text-anchor="middle">Plot ${PLOT[0].m2.toLocaleString("en-GB")} m²</text></svg>
+    <div class="hud">Drone · 120 m · North up</div>
+    <div class="legend-box">${PLOT.map(p => `<button type="button" data-k="${p.key}"><span><i style="background:${p.color}"></i>${p.name}</span><b class="num">${p.m2.toLocaleString("en-GB")} m²</b></button>`).join("")}</div>
+    <div class="scale" style="width:${Math.round(20 / 0.195 / 1024 * 100)}%"><i></i>20 m</div></div>`;
+}
+
+function detail(id) {
+  const p = PROPS.find(x => x.id === id); if (!p) return home();
+  const d = DEMO[p.id], agent = TEAM[p.price > 1e6 ? 0 : 1] || TEAM[0];
+  const plotM2 = d ? PLOT[0].m2 : null;
+  const specs = d ? JSON.parse(JSON.stringify(d.specs)) : {
+    "Interior": [["Bedrooms", p.beds ?? "On request"], ["Bathrooms", p.baths ?? "On request"], ["Interior area", "On request"], ["Heating", "On request"]],
+    "Exterior": [["Plot", "On request"], ["Parking", "On request"]],
+    "Building": [["Type", /apartment|flat|penthouse/i.test(p.title + p.description.join(" ")) ? "Apartment" : p.category === "commercial" ? "Commercial" : "House"], ["Year built", "On request"]],
+    "Location & tenure": [["Location", p.location], ["Status", p.status], ["Tenure", /freehold/i.test(p.description.join(" ")) ? "Freehold" : "On request"]],
+  };
+  if (d) {
+    specs.Interior[2][1] = `${d.interior} m² (${Math.round(d.interior * SQFT).toLocaleString("en-GB")} sq ft)`;
+    specs.Exterior[0][1] = `${plotM2.toLocaleString("en-GB")} m² (${(plotM2 / 4047).toFixed(2)} acres)`;
+  }
+  const similar = isSale(p) ? PROPS.filter(x => x.id !== p.id && isSale(x) && !/sold/i.test(x.status))
+    .sort((a, b) => Math.abs(Math.log(a.price / p.price)) - Math.abs(Math.log(b.price / p.price))).slice(0, 3) : [];
+
+  $("#app").innerHTML = `<div class="wrap crumbs"><a href="#/">Home</a> / <a href="#portfolio" data-home>${esc(CATS[p.category])}</a> / ${esc(p.title)}</div>
+  <div class="wrap">
+    <div class="media-tabs" role="tablist">
+      <button role="tab" data-v="photo" aria-selected="true">Photos</button>
+      ${d ? `<button role="tab" data-v="tour" aria-selected="false">3D tour</button><button role="tab" data-v="drone" aria-selected="false">Aerial · m²</button>` : ""}
+    </div>
+    <div class="stage" id="stage"></div>
+  </div>
+  <div class="wrap detail">
+    <div style="min-width:0">
+      <div class="title-row"><div><div class="eyebrow">${esc(p.status)} · ${esc(p.location)}</div><h1>${esc(p.title)}</h1></div>
+        <div class="price num">${esc(p.priceText || "Price on application")}</div></div>
+      <div class="keys num">
+        ${p.beds ? `<div><b>${p.beds}</b><span>Bedrooms</span></div>` : ""}${p.baths ? `<div><b>${p.baths}</b><span>Bathrooms</span></div>` : ""}
+        ${d ? `<div><b>${d.interior}</b><span>m² interior</span></div><div><b>${plotM2.toLocaleString("en-GB")}</b><span>m² plot</span></div><div><b>${d.year}</b><span>Built</span></div>` : ""}
+      </div>
+      <h3 class="sub">About this property</h3>
+      <div class="prose">${p.description.map(l => `<p>${esc(l.replace(/^'?-\s*/, ""))}</p>`).join("") || "<p>Full particulars available from our office.</p>"}</div>
+      <h3 class="sub">Property facts</h3>
+      <div class="specs">${Object.entries(specs).map(([g, rows]) => `<div><h4>${g}</h4><dl>${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl></div>`).join("")}</div>
+      ${d ? `<p class="note">Facts for this featured home are illustrative for the demo, derived from the listing photo and description.</p>` : ""}
+      ${isSale(p) ? `<h3 class="sub" id="mortgage">Mortgage calculator</h3>
+      <div class="calc" id="calc">
+        <div>
+          <label class="field"><span>Purchase price</span><input id="c-price" type="number" min="10000" step="5000" value="${p.price}"></label>
+          <div class="field"><div class="lbl"><span>Deposit</span><output id="o-dep"></output></div><input id="c-dep" type="range" min="5" max="60" value="25"></div>
+          <div class="field"><div class="lbl"><span>Interest rate</span><output id="o-rate"></output></div><input id="c-rate" type="range" min="1" max="9" step="0.05" value="4.6"></div>
+          <div class="field"><div class="lbl"><span>Term</span><output id="o-term"></output></div><input id="c-term" type="range" min="5" max="35" value="25"></div>
+        </div>
+        <div class="result num"><div class="eyebrow">Estimated monthly repayment</div><div class="big" id="r-month"></div>
+          <div class="bar"><i id="b-p" style="background:var(--ink)"></i><i id="b-i" style="background:var(--bronze)"></i></div>
+          <div class="split"><div><span>Loan</span><b id="r-loan"></b></div><div><span>Total interest</span><b id="r-int"></b></div>
+            <div><span>Deposit</span><b id="r-dep"></b></div><div><span>Total repaid</span><b id="r-tot"></b></div></div>
+          <p class="hint">Capital-and-repayment estimate. Excludes stamp duty and lender fees; your lender's offer will differ.</p>
+          <div><a class="btn ghost" href="#detail-book">Talk to ${esc(agent.name.split(" ")[0])} about finance</a></div></div>
+      </div>` : ""}
+    </div>
+    <aside class="side"><div class="sticky">
+      <div class="box"><div class="agent-mini"><img src="${wix(agent.photo, 120, 120)}" alt=""><div><b>${esc(agent.name)}</b><div class="hint">${esc(agent.role)} · ${esc(agent.office)}</div></div></div>
+        ${d ? `<button class="btn" type="button" data-go="tour">Enter the 3D tour</button>` : ""}
+        <a class="btn ghost" href="#detail-book">Book a viewing</a></div>
+    </div></aside>
+  </div>
+  ${similar.length ? `<section class="block" style="background:var(--mist)"><div class="wrap">
+    <div class="head"><div><div class="eyebrow">Similar price</div><h2>Homes around ${gbp(p.price)}</h2>
+      <p>Other listings within the closest price range to this one, wherever they are on the island.</p></div></div>
+    <div class="grid">${similar.map(s => card(s).replace('<div class="price num">', `<div class="price num"><span class="hint" style="font-family:var(--body);margin-right:8px">${s.price >= p.price ? "+" : "−"}${Math.round(Math.abs(s.price / p.price - 1) * 100)}%</span>`)).join("")}</div>
+  </div></section>` : ""}
+  <section class="block" id="detail-book"><div class="wrap book">
+    <div><div class="eyebrow">Book a viewing</div><h2>See ${esc(p.title)}</h2><p class="hint" style="font-size:14px;margin-top:14px">Choose your agent, the type of viewing and a slot that suits you.</p></div>
+    <div>${bookingForm({prop: p.id, agent: TEAM.indexOf(agent)})}</div></div></section>`;
+
+  const stage = $("#stage");
+  const show = v => {
+    document.querySelectorAll(".media-tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.v === v));
+    if (v === "photo") stage.innerHTML = `<img src="${wix(p.image, 1600, 900)}" alt="${esc(p.title)}">`;
+    if (v === "tour") stage.innerHTML = `<div class="tour-cta" style="background-image:url('${wix(p.image, 1600, 900)}')"><div>
+        <div class="eyebrow" style="color:#fff">Matterport 3D walkthrough</div><h2 style="color:#fff">Step inside</h2>
+        <button class="btn light" type="button" id="enter">Enter 3D tour</button></div></div>`;
+    if (v === "drone") stage.innerHTML = droneView();
+  };
+  stage.addEventListener("click", e => {
+    if (e.target.id === "enter") stage.innerHTML = `<iframe src="${d.tour}" allow="fullscreen; xr-spatial-tracking" allowfullscreen title="3D tour"></iframe>`;
+    const k = e.target.closest("[data-k]")?.dataset.k;
+    if (k) stage.querySelectorAll("polygon").forEach(g => g.classList.toggle("on", g.dataset.k === k && !g.classList.contains("on")));
+  });
+  $(".media-tabs").addEventListener("click", e => { const v = e.target.dataset.v; if (v) show(v); });
+  $(".side").addEventListener("click", e => { if (e.target.dataset.go) { show("tour"); stage.scrollIntoView({block:"center"}); } });
+  $("[data-home]").addEventListener("click", () => { filter.cat = p.category; });
+  show("photo");
+
+  if (isSale(p)) {
+    const calc = () => {
+      const price = +$("#c-price").value || 0, dep = +$("#c-dep").value / 100, rate = +$("#c-rate").value / 100, yrs = +$("#c-term").value;
+      const loan = price * (1 - dep), m = pmt(loan, rate, yrs), tot = m * yrs * 12, int = tot - loan;
+      $("#o-dep").textContent = `${Math.round(dep * 100)}% · ${gbp(price * dep)}`;
+      $("#o-rate").textContent = `${rate * 100 % 1 ? (rate * 100).toFixed(2) : rate * 100}%`;
+      $("#o-term").textContent = `${yrs} years`;
+      $("#r-month").textContent = gbp(m); $("#r-loan").textContent = gbp(loan); $("#r-int").textContent = gbp(int);
+      $("#r-dep").textContent = gbp(price * dep); $("#r-tot").textContent = gbp(tot);
+      $("#b-p").style.width = `${loan / tot * 100}%`; $("#b-i").style.width = `${int / tot * 100}%`;
+    };
+    $("#calc").addEventListener("input", calc); calc();
+  }
+  document.querySelectorAll("form.tour").forEach(f => wireBooking(f.parentElement));
+  scrollTo(0, 0);
+}
+
+// ---------- router ----------
+const HOME_SECTIONS = ["portfolio", "team", "book"];
+const route = () => {
+  const h = location.hash, m = h.match(/^#\/p\/(\w+)/), sec = h.slice(1);
+  if (m) return detail(m[1]);
+  if (h && h !== "#/" && !HOME_SECTIONS.includes(sec)) return; // in-page anchor, e.g. #detail-book
+  if (!$("#portfolio")) home();
+  HOME_SECTIONS.includes(sec) ? $("#" + sec).scrollIntoView() : scrollTo(0, 0);
+};
+addEventListener("hashchange", route);
+Promise.all(["data/properties.json", "data/team.json"].map(u => fetch(u).then(r => r.json())))
+  .then(([p, t]) => { const order = {residential:0, commercial:1, international:2};
+    PROPS = p.sort((a, b) => order[a.category] - order[b.category]); TEAM = t; route(); })
+  .catch(() => { $("#app").innerHTML = `<div class="wrap empty" style="margin-block:80px">Could not load listings. Serve this folder over HTTP (python3 -m http.server) instead of opening the file directly.</div>`; });
+</script>
+</body>
+</html>
