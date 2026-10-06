@@ -42,8 +42,26 @@ nav.main{display:flex;gap:28px;font-size:12px;font-weight:500;letter-spacing:.16
 nav.main a{text-decoration:none}
 nav.main a:hover{color:var(--bronze)}
 .tel{font-size:13px;font-weight:600;white-space:nowrap}
-@media (max-width:860px){nav.main{display:none}}
-@media (max-width:480px){.tel{display:none}}
+.menu-btn{display:none;align-items:center;gap:10px;min-height:44px;border:1px solid var(--line);background:none;padding:0 14px;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+.menu-btn i,.menu-btn i::before,.menu-btn i::after{display:block;width:16px;height:1.5px;background:currentColor;position:relative}
+.menu-btn i::before,.menu-btn i::after{content:"";position:absolute;left:0}
+.menu-btn i::before{top:-5px}.menu-btn i::after{top:5px}
+.menu-btn[aria-expanded=true] i{background:transparent}
+.menu-btn[aria-expanded=true] i::before{top:0;transform:rotate(45deg)}
+.menu-btn[aria-expanded=true] i::after{top:0;transform:rotate(-45deg)}
+@media (max-width:860px){
+  .menu-btn{display:inline-flex}
+  nav.main{display:none;position:absolute;left:0;right:0;top:100%;flex-direction:column;gap:0;background:var(--paper);border-bottom:1px solid var(--line);padding:4px clamp(16px,4vw,40px) 12px;box-shadow:0 12px 24px rgba(0,0,0,.08)}
+  nav.main.open{display:flex}
+  nav.main a{padding:14px 0;border-bottom:1px solid var(--line)}
+  nav.main a:last-child{border-bottom:0}
+  header.top .wrap{gap:12px}
+  .tel{margin-left:auto}
+}
+@media (max-width:480px){.tel{display:none}.logo{font-size:16px;letter-spacing:.2em}}
+.skip{position:absolute;left:12px;top:-60px;z-index:50;background:var(--ink);color:var(--paper);padding:10px 16px;text-decoration:none}
+.skip:focus{top:12px}
+[tabindex="-1"]:focus{outline:none}
 
 /* hero */
 .hero{position:relative;min-height:min(78vh,720px);display:grid;align-items:end;color:#fff;background:#222 center/cover no-repeat}
@@ -52,11 +70,13 @@ nav.main a:hover{color:var(--bronze)}
 .hero h1{font-size:clamp(34px,6vw,72px);line-height:1.05;max-width:14ch}
 .hero p{max-width:52ch;margin:18px 0 28px;font-size:16px;opacity:.92}
 .hero .eyebrow{color:#fff;opacity:.85}
-.search{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--paper);color:var(--ink);max-width:880px}
+.search{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;background:var(--paper);color:var(--ink);max-width:980px}
 .search label{display:grid;gap:2px;padding:12px 18px;border-right:1px solid var(--line);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
 .search select{border:0;background:transparent;padding:4px 0;font-size:14px;color:var(--ink);text-transform:none;letter-spacing:0}
+.search select{width:100%;min-width:0}
+.search select:disabled{color:var(--stone)}
 .search .btn{border:0}
-@media (max-width:700px){.search{grid-template-columns:1fr 1fr}.search label{border-bottom:1px solid var(--line)}}
+@media (max-width:760px){.search{grid-template-columns:1fr 1fr}.search label{border-bottom:1px solid var(--line)}.search .btn{grid-column:span 2}}
 
 /* sections */
 section[id]{scroll-margin-top:72px}
@@ -66,6 +86,10 @@ section.block{padding-block:clamp(56px,8vw,104px)}
 .tabs{display:flex;gap:4px;flex-wrap:wrap}
 .tabs button{border:1px solid var(--line);background:none;padding:9px 16px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
 .tabs button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.filters{display:grid;gap:10px;justify-items:end}
+@media (max-width:760px){.filters{justify-items:start}}
+.active{margin:-20px 0 28px;font-size:13px;color:var(--stone)}
+.linkbtn{border:0;background:none;padding:4px 2px;margin-left:6px;text-decoration:underline;cursor:pointer;font-size:13px}
 
 /* property cards */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:40px 28px}
@@ -73,6 +97,9 @@ section.block{padding-block:clamp(56px,8vw,104px)}
 .card .ph{position:relative;aspect-ratio:4/3;overflow:hidden;background:var(--mist)}
 .card .ph img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
 .card:hover .ph img{transform:scale(1.04)}
+.noimg{position:relative}
+.noimg>img{visibility:hidden}
+.noimg::after{content:"Photo unavailable";position:absolute;inset:0;display:grid;place-items:center;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);background:var(--mist)}
 .pill{position:absolute;top:12px;left:12px;background:var(--paper);padding:5px 10px;font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
 .pill.sold{background:var(--ink);color:var(--paper)}
 .pill.offer{background:var(--bronze);color:#fff}
@@ -115,11 +142,12 @@ section.block{padding-block:clamp(56px,8vw,104px)}
 @media (max-width:900px){.book{grid-template-columns:1fr}}
 form.tour{display:grid;gap:18px}
 .field{display:grid;gap:6px;min-width:0}
-.field>span,.legend{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
+fieldset.field{border:0;margin:0;padding:0}
+.field>span,.field>legend{padding:0;font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
 .field input,.field select{border:1px solid var(--line);background:var(--paper);padding:12px 14px;width:100%}
 .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
 .opts{display:flex;flex-wrap:wrap;gap:8px}
-.opts label{cursor:pointer}
+.opts label{cursor:pointer;position:relative}
 .opts input{position:absolute;opacity:0;pointer-events:none}
 .opts span{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);padding:9px 14px;font-size:13px}
 .opts span img{width:30px;height:30px;border-radius:50%;object-fit:cover}
@@ -131,53 +159,68 @@ form.tour{display:grid;gap:18px}
 .confirm dt{color:var(--stone)}
 .confirm dd{margin:0}
 .hint{font-size:12px;color:var(--stone)}
+.cancelled{margin:0 0 18px;padding:12px 16px;border-left:3px solid var(--stone);background:var(--mist);font-size:14px}
+.confirm .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
 
 /* detail page */
-.crumbs{font-size:12px;color:var(--stone);padding-block:20px;letter-spacing:.06em}
+.crumbs{font-size:12px;color:var(--stone);padding-block:16px;letter-spacing:.06em}
 .crumbs a{text-decoration:none}
+.d-top{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:clamp(24px,3vw,40px);align-items:start}
+@media (max-width:980px){.d-top{grid-template-columns:1fr}}
 .media-tabs{display:flex;gap:0;border-bottom:1px solid var(--line);overflow-x:auto}
-.media-tabs button{border:0;background:none;padding:14px 20px;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.media-tabs button{border:0;background:none;padding:12px 20px;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
 .media-tabs button[aria-selected=true]{border-color:var(--bronze);color:var(--bronze)}
-.stage{position:relative;aspect-ratio:16/9;max-height:72vh;width:100%;background:#111;overflow:hidden}
-.stage>img,.stage iframe{width:100%;height:100%;object-fit:cover;border:0}
+.stage{position:relative;aspect-ratio:3/2;max-height:calc(100vh - 250px);min-height:240px;width:100%;background:#111;overflow:hidden}
+.stage>img,.stage iframe{width:100%;height:100%;object-fit:cover;border:0;display:block}
+.stage-note{margin:10px 0 0;font-size:12px;color:var(--stone);display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:space-between}
+.stage-note:empty{display:none}
+.stage-note b{font-weight:600;color:var(--ink)}
+.stage-msg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;background:rgba(17,17,17,.92);color:#fff}
+.stage-msg>div{display:grid;gap:14px;justify-items:center;max-width:42ch}
+.stage-msg a{color:#fff}
+/* aerial: one static layer, so the photo and its outlines can never drift apart */
 .drone{position:absolute;inset:0}
-.drone img{width:100%;height:100%;object-fit:cover;animation:drift 40s ease-in-out infinite alternate}
-@keyframes drift{from{transform:scale(1.02)}to{transform:scale(1.1) translate(-1%,1%)}}
-@media (prefers-reduced-motion:reduce){.drone img{animation:none}}
+.drone img{width:100%;height:100%;object-fit:cover}
 .drone svg{position:absolute;inset:0;width:100%;height:100%}
-.drone polygon{fill-opacity:.22;stroke-width:3;transition:fill-opacity .2s;cursor:pointer}
-.drone polygon:hover,.drone polygon.on{fill-opacity:.45}
+.drone polygon{fill-opacity:.22;stroke-width:3;transition:fill-opacity .2s}
+.drone polygon.on{fill-opacity:.45}
 .drone text{font:600 15px var(--body);fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.65);stroke-width:4px;pointer-events:none}
-.drone .legend-box{position:absolute;left:16px;bottom:16px;background:rgba(15,15,15,.82);color:#fff;padding:14px 16px;display:grid;gap:6px;font-size:13px;min-width:220px}
-.drone .legend-box button{all:unset;display:flex;justify-content:space-between;gap:18px;cursor:pointer}
+.drone .legend-box{position:absolute;left:16px;bottom:16px;background:rgba(15,15,15,.82);color:#fff;padding:12px 14px;display:grid;gap:4px;font-size:13px;min-width:220px}
+.drone .legend-box button{all:unset;display:flex;justify-content:space-between;gap:18px;cursor:pointer;padding:3px 0}
+.drone .legend-box button:focus-visible{outline:2px solid var(--bronze)}
 .drone .legend-box i{display:inline-block;width:10px;height:10px;margin-right:8px}
-.drone .hud{position:absolute;top:14px;right:16px;color:#fff;font:600 11px var(--body);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 1px 3px #000;text-align:right}
-.drone .scale{position:absolute;right:16px;bottom:16px;color:#fff;font-size:11px;text-shadow:0 1px 2px #000}
-.drone .scale i{display:block;height:6px;border:2px solid #fff;border-top:0;margin-bottom:4px}
-.tour-cta{position:absolute;inset:0;display:grid;place-items:center;background:center/cover;color:#fff}
-.tour-cta::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.45)}
-.tour-cta>div{position:relative;text-align:center;display:grid;gap:14px;justify-items:center;padding:16px}
-@media (max-width:640px){.stage{aspect-ratio:4/3}.drone .legend-box{min-width:0;font-size:12px;padding:10px}}
+.drone .hud{position:absolute;top:12px;right:12px;background:rgba(15,15,15,.82);color:#fff;font:600 10px var(--body);letter-spacing:.16em;text-transform:uppercase;padding:6px 10px}
+@media (max-width:640px){.stage{aspect-ratio:4/3;max-height:none}.drone .legend-box{min-width:0;left:0;right:0;bottom:0;grid-template-columns:1fr 1fr;gap:0 14px;font-size:10.5px;padding:6px 10px}.drone .legend-box button{padding:2px 0}.drone .hud{top:8px;right:8px}.drone text{font-size:20px}}
 
-.detail{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:clamp(28px,5vw,64px);padding-block:40px 80px}
-@media (max-width:980px){.detail{grid-template-columns:1fr}}
-.title-row{display:flex;justify-content:space-between;align-items:start;gap:24px;flex-wrap:wrap;padding-bottom:24px;border-bottom:1px solid var(--line)}
-.title-row h1{font-size:clamp(26px,3.6vw,40px);line-height:1.15}
-.title-row .price{font-size:30px}
-.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));border-bottom:1px solid var(--line)}
-.keys div{padding:20px 0;display:grid;gap:2px}
-.keys b{font-family:var(--display);font-weight:400;font-size:24px}
-.keys span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone)}
+.summary{display:grid;gap:16px;align-content:start}
+.summary h1{font-size:clamp(24px,2.6vw,32px);line-height:1.15}
+.summary .price{font-size:30px;line-height:1.1}
+.summary .price small{display:block;font:500 11px/1.4 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-top:6px}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));border-block:1px solid var(--line)}
+.keys div{padding:14px 0;display:grid;gap:2px}
+.keys b{font-family:var(--display);font-weight:400;font-size:20px;line-height:1.2}
+.keys span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone)}
+.agent-mini{display:flex;gap:14px;align-items:center}
+.agent-mini img{width:52px;height:52px;border-radius:50%;object-fit:cover;filter:grayscale(1)}
+.summary .btns{display:grid;gap:8px}
+.src{font-size:12px;color:var(--stone);margin:0}
+@media (max-width:980px){.summary .agent-mini{order:1}.summary .src{order:2}.crumbs{padding-block:10px}}
+@media (max-width:640px){.ribbon .wide{display:none}}
+
+.detail{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:clamp(28px,5vw,64px);padding-block:48px 8px}
+.detail>.full{grid-column:1/-1}
+@media (max-width:900px){.detail{grid-template-columns:1fr;padding-block:32px 8px}}
 .prose{max-width:68ch}
 .prose p{margin:0 0 12px}
-.sub{margin:48px 0 18px;font-size:20px}
-.specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:28px 40px}
+.sub{margin:0 0 16px;font-size:20px}
+.specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:24px 40px}
 .specs h4{margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--bronze)}
-.specs dl{margin:0;display:grid}
-.specs dl div{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
-.specs dt{color:var(--stone)}
-.specs dd{margin:0;text-align:right}
-.note{font-size:12px;color:var(--stone);margin-top:14px}
+dl.facts-list,.specs dl{margin:0;display:grid}
+dl.facts-list div,.specs dl div{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+dl.facts-list dt,.specs dt{color:var(--stone)}
+dl.facts-list dd,.specs dd{margin:0;text-align:right;min-width:0;overflow-wrap:anywhere}
+.note{font-size:12px;color:var(--stone);margin:12px 0 0}
+.tag{display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid var(--line);font:600 10px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--stone);vertical-align:middle}
 
 /* mortgage */
 .calc{background:var(--mist);padding:clamp(20px,3vw,32px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px}
@@ -194,25 +237,21 @@ form.tour{display:grid;gap:18px}
 .split div{display:grid}
 .split span{color:var(--stone);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
 
-aside.side{display:grid;gap:20px;align-content:start}
-.sticky{position:sticky;top:96px;display:grid;gap:20px}
-.box{border:1px solid var(--line);padding:24px;display:grid;gap:14px}
-.box .agent-mini{display:flex;gap:14px;align-items:center}
-.box .agent-mini img{width:56px;height:56px;border-radius:50%;object-fit:cover;filter:grayscale(1)}
-
 footer{background:var(--mist);padding-block:48px;font-size:13px;color:var(--stone)}
 footer .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}
 footer b{color:var(--ink);font-family:var(--display);font-weight:400;letter-spacing:.2em;text-transform:uppercase}
 </style>
 </head>
 <body>
-<div class="ribbon">Demo prototype · listings scraped from hamptonestatesjersey.com · featured-home specs, aerial plot and 3D tour are illustrative</div>
+<a class="skip" href="#app" data-scroll="app">Skip to content</a>
+<div class="ribbon">Demo prototype · listings captured from hamptonestatesjersey.com<span id="captured"></span>, not a live feed<span class="wide"> · 3D tour and aerial view are samples</span></div>
 <header class="top"><div class="wrap">
   <a class="logo" href="#/">HAMPTON ESTATES<small>JERSEY · SINCE 1982</small></a>
-  <nav class="main"><a href="#/">Home</a><a href="#portfolio">Properties</a><a href="#team">Our team</a><a href="#book">Book a viewing</a></nav>
+  <nav class="main" id="main-nav" aria-label="Main"><a href="#/">Home</a><a href="#portfolio">Properties</a><a href="#team">Our team</a><a href="#book">Book a viewing</a></nav>
   <span class="tel num">01534 727582</span>
+  <button class="menu-btn" type="button" aria-expanded="false" aria-controls="main-nav"><i aria-hidden="true"></i>Menu</button>
 </div></header>
-<main id="app"></main>
+<main id="app" tabindex="-1"></main>
 <footer><div class="wrap">
   <div><b>Hampton Estates</b><p>Property sales · Free valuations · Rentals.<br>No sale, no fee.</p></div>
   <div><b>Visit</b><p>42 Bath Street, St Helier<br>Jersey JE2 4ST</p></div>
@@ -220,27 +259,25 @@ footer b{color:var(--ink);font-family:var(--display);font-weight:400;letter-spac
   <div><b>Demo</b><p>Aerial imagery © Esri World Imagery. 3D tour: Matterport sample space.</p></div>
 </div></footer>
 
+<script src="lib.js"></script>
 <script>
-// ---------- helpers ----------
+// ---------- helpers (pure ones live in lib.js) ----------
 const $ = (s, el = document) => el.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const gbp = n => "£" + Math.round(n).toLocaleString("en-GB");
 const wix = (url, w, h) => url ? `${url}/v1/fill/w_${w},h_${h},al_c,q_80/photo.jpg` : "";
+const fmtDate = iso => new Date(iso + "T12:00").toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"});
+const localISO = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 const M2_PER_PX = 0.195 ** 2; // Esri z19 at lat 49.2° ≈ 0.195 m/px
 const SQFT = 10.7639;
-
-// Monthly repayment for an amortising mortgage
-const pmt = (principal, annualRate, years) => {
-  const r = annualRate / 12, n = years * 12;
-  return r === 0 ? principal / n : principal * r / (1 - (1 + r) ** -n);
-};
-console.assert(Math.round(pmt(200000, 0.05, 25)) === 1169, "pmt self-check failed");
+const REGIONS = {all: "All", jersey: "Jersey", uk: "UK", international: "International"};
+const OPS = {all: "All", sale: "For sale", rent: "To let", business: "Businesses"};
+const OP_ONE = {sale: "For sale", rent: "To let", business: "Business for sale"};
+const MAX = {sale: [400e3, 600e3, 900e3, 1.5e6], rent: [1500, 2500, 3500], business: [100e3, 250e3, 500e3]};
+const short = (n, op) => op === "rent" ? `£${n.toLocaleString("en-GB")} pcm` : n >= 1e6 ? `£${n / 1e6}m` : `£${n / 1e3}k`;
 
 const polyArea = pts => Math.abs(pts.reduce((a, [x, y], i) => {
   const [x2, y2] = pts[(i + 1) % pts.length]; return a + x * y2 - x2 * y; }, 0)) / 2;
 
-// ---------- demo enrichment: invented from the listing photo (white detached villa, glazed sun room,
-// roof terrace, palm-lined front garden, tarmac drive + garage) and the listing text ----------
+// ---------- demo enrichment: invented for the featured listing, always labelled as illustrative ----------
 const PLOT = [
   {key:"plot", name:"Total plot", color:"#ffffff", pts:[[292,338],[392,298],[585,262],[628,300],[640,385],[560,425],[420,478],[330,470],[296,430]]},
   {key:"house", name:"House & garage footprint", color:"#d9a066", pts:[[388,312],[498,296],[552,330],[552,366],[404,374],[388,350]]},
@@ -248,154 +285,180 @@ const PLOT = [
   {key:"drive", name:"Driveway (6 cars)", color:"#8ab4f8", pts:[[552,330],[590,262],[612,278],[576,350]]},
 ];
 PLOT.forEach(z => z.m2 = Math.round(polyArea(z.pts) * M2_PER_PX));
+// Matterport's public demo model (owner contact is the placeholder "Acme Realty"). ts = start the guided
+// highlight reel N s after loading, lp = loop it; the visitor takes over by dragging, as in any Showcase.
+const TOUR = "https://my.matterport.com/show/?m=JGPnGQ6hosj&play=1&qs=1&brand=0&ts=3&lp=1";
 const DEMO = {
   "9c0f9d02": {
-    tour: "https://my.matterport.com/show/?m=JGPnGQ6hosj&play=1&qs=1&brand=0",
-    interior: 465, floors: 2, year: 1994,
+    interior: 465,
     specs: {
-      "Interior": [["Bedrooms","4"],["Bathrooms","3 (2 en-suite)"],["Interior area",""],["Floors","2"],["Reception","Lounge/dining + glazed sun room"],["Kitchen","Modern fitted, island"],["Heating","Oil-fired central heating"],["Glazing","uPVC double glazing"]],
-      "Exterior": [["Plot",""],["Garden","Landscaped front, palms & flower beds"],["Pool","Outdoor pool + pool house"],["Terrace","First-floor roof terrace"],["Parking","Driveway for 6 cars"],["Garage","Large integral garage"]],
-      "Building": [["Type","Detached villa"],["Year built","1994"],["Construction","Rendered block, painted white"],["Roof","Pitched, concrete tile"],["Condition","Well maintained"]],
-      "Location & tenure": [["Parish","St Lawrence"],["Tenure","Freehold"],["Housing category","Qualified / Entitled"],["Current let","£33,000 p.a. (4-year lease)"],["Est. parish rates","£2,150 p.a."]],
+      "Interior": [["Interior area",""],["Floors","2"],["Reception","Lounge/dining + glazed sun room"],["Kitchen","Modern fitted, island"],["Heating","Oil-fired central heating"]],
+      "Exterior": [["Plot",""],["Garden","Landscaped front, palms & flower beds"],["Pool","Outdoor pool + pool house"],["Garage","Large integral garage"]],
+      "Building": [["Type","Detached villa"],["Year built","1994"],["Construction","Rendered block, painted white"],["Roof","Pitched, concrete tile"]],
     },
   },
 };
 
 // ---------- state ----------
-let PROPS = [], TEAM = [], filter = {cat:"all", beds:0, max:0}, showAll = false;
-const isSale = p => p.price && !/let|lease/i.test(p.status) && p.price > 20000;
+let PROPS = [], PUB = [], TEAM = [], filter = {region: "all", op: "all", beds: 0, max: 0}, showAll = false;
 const pillCls = s => /sold/i.test(s) ? "sold" : /offer/i.test(s) ? "offer" : "";
-const CATS = {all:"All", residential:"Jersey", international:"International", commercial:"Commercial", rent:"To let"};
+const agentFor = p => TEAM[(amount(p) ?? 0) > 1e6 ? 0 : 1] || TEAM[0] || null;
 
-function card(p) {
+function card(p, extra = "") {
   return `<a class="card" href="#/p/${p.id}">
-    <div class="ph"><img loading="lazy" src="${wix(p.image, 640, 480)}" alt="${esc(p.title)}">
+    <div class="ph"><img loading="lazy" src="${esc(wix(p.image, 640, 480))}" alt="${esc(p.title)}">
       <span class="pill ${pillCls(p.status)}">${esc(p.status)}</span>${DEMO[p.id] ? '<span class="pill tour">3D tour</span>' : ""}</div>
-    <div><div class="eyebrow">${esc(p.location)}</div><h3>${esc(p.title)}</h3></div>
-    <div class="meta">${p.beds ? `<span>${p.beds} bed</span>` : ""}${p.baths ? `<span>${p.baths} bath</span>` : ""}<span>${esc(CATS[p.category])}</span></div>
-    <div class="price num">${esc(p.priceText || "Price on application")}</div></a>`;
+    <div><div class="eyebrow">${esc(p.place)}</div><h3>${esc(p.title)}</h3></div>
+    <div class="meta">${p.beds ? `<span>${p.beds} bed</span>` : ""}${p.baths ? `<span>${p.baths} bath</span>` : ""}${p.type ? `<span>${esc(p.type)}</span>` : ""}${p.operation !== "sale" ? `<span>${OP_ONE[p.operation]}</span>` : ""}</div>
+    <div class="price num">${extra}${esc(priceLabel(p))}</div></a>`;
 }
 
-function matches(p) {
-  const f = filter;
-  if (f.cat === "rent" ? !/let|lease/i.test(p.status) : f.cat !== "all" && p.category !== f.cat) return false;
-  if (f.beds && (p.beds || 0) < f.beds) return false;
-  if (f.max && (!p.price || p.price > f.max)) return false;
-  return true;
-}
-
-// ---------- booking form (used on home + detail) ----------
+// ---------- booking form (home + detail). Demo only: nothing leaves the browser. ----------
 function bookingForm(pre = {}) {
   const d = new Date(Date.now() + 864e5); if (d.getDay() === 0) d.setDate(d.getDate() + 1); // no Sunday viewings
-  const tomorrow = d.toISOString().slice(0, 10);
-  const opts = PROPS.filter(p => !/sold/i.test(p.status)).map(p =>
-    `<option value="${p.id}" ${p.id === pre.prop ? "selected" : ""}>${esc(p.title)} — ${esc(p.priceText || "POA")}</option>`).join("");
-  return `<form class="tour" novalidate>
-    <div class="field"><span>Property</span><select id="bk-prop" required><option value="">General enquiry / valuation</option>${opts}</select></div>
-    <div class="field"><span class="legend">Your agent</span><div class="opts">${TEAM.map((t, i) =>
-      `<label><input type="radio" name="agent" value="${i}" ${i === (pre.agent ?? 0) ? "checked" : ""}><span><img src="${wix(t.photo, 80, 80)}" alt="">${esc(t.name)}</span></label>`).join("")}</div></div>
-    <div class="field"><span class="legend">Viewing type</span><div class="opts">
+  const tomorrow = localISO(d);
+  const opts = PUB.filter(p => !isSold(p)).map(p =>
+    `<option value="${p.id}" ${p.id === pre.prop ? "selected" : ""}>${esc(p.title)} — ${esc(priceLabel(p))}</option>`).join("");
+  const agents = TEAM.length ? `<div class="opts">${TEAM.map((t, i) =>
+      `<label><input type="radio" name="agent" value="${i}" ${i === (pre.agent ?? 0) ? "checked" : ""}><span>${t.photo ? `<img src="${esc(wix(t.photo, 80, 80))}" alt="">` : ""}${esc(t.name)}</span></label>`).join("")}</div>`
+    : `<p class="hint">Team details are unavailable right now; the first available agent will be assigned.</p>`;
+  return `${pre.msg ? `<p class="cancelled" role="status">${esc(pre.msg)}</p>` : ""}<form class="tour" novalidate>
+    <label class="field"><span>Property</span><select name="prop"><option value="">General enquiry / valuation</option>${opts}</select></label>
+    <fieldset class="field"><legend>Your agent</legend>${agents}</fieldset>
+    <fieldset class="field"><legend>Viewing type</legend><div class="opts">
       <label><input type="radio" name="kind" value="In person" checked><span>In person</span></label>
-      <label><input type="radio" name="kind" value="Live video call"><span>Live video call</span></label>
-      <label><input type="radio" name="kind" value="Guided 3D tour"><span>Guided 3D tour</span></label></div></div>
-    <div class="row"><label class="field"><span>Date</span><input id="bk-date" type="date" min="${tomorrow}" value="${tomorrow}" required></label>
-      <div class="field"><span class="legend">Time</span><div class="opts">${["10:00","11:30","14:00","15:30","17:00"].map((t, i) =>
-        `<label><input type="radio" name="time" value="${t}" ${i === 1 ? "checked" : ""}><span class="num">${t}</span></label>`).join("")}</div></div></div>
-    <div class="row"><label class="field"><span>Full name</span><input id="bk-name" autocomplete="name" required placeholder="Jane Le Brocq"></label>
-      <label class="field"><span>Email</span><input id="bk-email" type="email" autocomplete="email" required placeholder="jane@example.je"></label>
-      <label class="field"><span>Phone</span><input id="bk-phone" type="tel" autocomplete="tel" placeholder="07797 000000"></label></div>
-    <div><button class="btn" type="submit">Request viewing</button> <span class="hint">Demo: no data is sent.</span></div>
+      <label><input type="radio" name="kind" value="Live video call"><span>Live video call</span></label></div></fieldset>
+    <div class="row"><label class="field"><span>Date (Mon–Sat)</span><input name="date" type="date" min="${tomorrow}" value="${tomorrow}" required></label>
+      <fieldset class="field"><legend>Time</legend><div class="opts">${["10:00","11:30","14:00","15:30","17:00"].map((t, i) =>
+        `<label><input type="radio" name="time" value="${t}" ${i === 1 ? "checked" : ""}><span class="num">${t}</span></label>`).join("")}</div></fieldset></div>
+    <div class="row"><label class="field"><span>Full name</span><input name="name" autocomplete="name" required placeholder="Jane Le Brocq"></label>
+      <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="jane@example.je"></label>
+      <label class="field"><span>Phone (optional)</span><input name="phone" type="tel" autocomplete="tel" placeholder="07797 000000"></label></div>
+    <div><button class="btn" type="submit">Request viewing</button> <span class="hint">Demo: nothing is sent or booked.</span></div>
   </form>`;
 }
 
-function wireBooking(root) {
-  const form = $("form.tour", root);
+function mountBooking(slot, pre = {}) {
+  slot.innerHTML = bookingForm(pre);
+  const form = $("form", slot), el = form.elements;
+  const sunday = () => el.date.setCustomValidity(el.date.value && new Date(el.date.value + "T12:00").getDay() === 0
+    ? "Viewings run Monday to Saturday. Please choose another day." : "");
+  el.date.addEventListener("input", sunday);
   form.addEventListener("submit", e => {
-    e.preventDefault();
+    e.preventDefault(); sunday();
     if (!form.reportValidity()) return;
     const v = n => form.querySelector(`[name=${n}]:checked`)?.value;
-    const agent = TEAM[+v("agent")], prop = PROPS.find(p => p.id === $("#bk-prop", form).value);
-    const date = new Date($("#bk-date", form).value + "T12:00").toLocaleDateString("en-GB", {weekday:"long", day:"numeric", month:"long"});
-    form.outerHTML = `<div class="confirm" role="status"><h3>Viewing requested</h3>
-      <p>${esc(agent.name)} will confirm by email within one working day.</p>
-      <dl><dt>Property</dt><dd>${esc(prop ? prop.title : "General enquiry")}</dd><dt>When</dt><dd>${esc(date)}, ${esc(v("time"))}</dd>
-      <dt>Type</dt><dd>${esc(v("kind"))}</dd><dt>Agent</dt><dd>${esc(agent.name)} · ${esc(agent.office)}</dd>
-      <dt>Name</dt><dd>${esc($("#bk-name", form).value)}</dd></dl>
-      <p class="hint">Demo only. In production this would create the calendar event and email both parties.</p></div>`;
+    const agent = TEAM[+v("agent")] || null, prop = PUB.find(p => p.id === el.prop.value);
+    const when = new Date(el.date.value + "T12:00").toLocaleDateString("en-GB", {weekday: "long", day: "numeric", month: "long"});
+    const keep = {prop: el.prop.value, agent: agent ? TEAM.indexOf(agent) : 0};
+    slot.innerHTML = `<div class="confirm" role="status" tabindex="-1"><h3>Viewing requested (demo)</h3>
+      <p>${agent ? esc(agent.name) : "Our team"} would confirm by email within one working day.</p>
+      <dl><dt>Property</dt><dd>${esc(prop ? prop.title : "General enquiry / valuation")}</dd><dt>When</dt><dd>${esc(when)}, ${esc(v("time"))}</dd>
+      <dt>Type</dt><dd>${esc(v("kind"))}</dd><dt>Agent</dt><dd>${agent ? `${esc(agent.name)} · ${esc(agent.office)}` : "First available"}</dd>
+      <dt>Name</dt><dd>${esc(el.name.value)}</dd></dl>
+      <p class="hint">Demo only: no data was sent and no appointment exists.</p>
+      <div class="actions"><button class="btn" type="button" data-again>Book another viewing</button><button class="btn ghost" type="button" data-cancel>Cancel this request</button></div></div>`;
+    $(".confirm", slot).focus();
+    $("[data-again]", slot).addEventListener("click", () => { mountBooking(slot, keep); $("select", slot).focus(); });
+    $("[data-cancel]", slot).addEventListener("click", () => { mountBooking(slot, {...keep, msg: "Request cancelled. Nothing was sent."}); $("select", slot).focus(); });
   });
 }
 
 // ---------- pages ----------
 function home() {
-  const feat = PROPS.find(p => DEMO[p.id]);
+  const feat = PUB.find(p => DEMO[p.id]) || PUB[0];
   const bios = ["Founded Hampton Estates in 1982 and has guided generations of Jersey families through buying, selling and letting. Advice and valuations are always free.",
                 "Handles day-to-day sales and lettings, from first viewing to completion. Your first call for viewings, offers and rental enquiries."];
+  const sel = (id, obj, cur) => `<select id="${id}">${Object.entries(obj).map(([k, v]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${v}</option>`).join("")}</select>`;
   $("#app").innerHTML = `
-  <section class="hero" style="background-image:url('${wix(feat.image, 1800, 1000)}')"><div class="wrap">
+  <section class="hero" style="background-image:url('${esc(wix(feat.image, 1800, 1000))}')"><div class="wrap">
     <div class="eyebrow">Jersey · Channel Islands</div>
     <h1>Homes across Jersey, since 1982</h1>
     <p>Sales, lettings and free valuations from our St Helier office on Bath Street. Discreet, personal and on a no sale, no fee basis.</p>
     <form class="search" id="quick">
-      <label>Market<select id="q-cat">${Object.entries(CATS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select></label>
-      <label>Bedrooms<select id="q-beds"><option value="0">Any</option><option value="2">2+</option><option value="3">3+</option><option value="4">4+</option></select></label>
-      <label>Max price<select id="q-max"><option value="0">No limit</option><option value="400000">£400k</option><option value="600000">£600k</option><option value="900000">£900k</option><option value="1500000">£1.5m</option></select></label>
+      <label>Location${sel("q-region", {...REGIONS, all: "Anywhere"}, filter.region)}</label>
+      <label>Looking for${sel("q-op", {...OPS, all: "Any"}, filter.op)}</label>
+      <label>Bedrooms<select id="q-beds">${[0, 2, 3, 4].map(n => `<option value="${n}" ${n === filter.beds ? "selected" : ""}>${n ? n + "+" : "Any"}</option>`).join("")}</select></label>
+      <label>Max price<select id="q-max"></select></label>
       <button class="btn" type="submit">Search</button>
     </form>
   </div></section>
 
-  <section class="block" id="portfolio"><div class="wrap">
+  <section class="block" id="portfolio" tabindex="-1"><div class="wrap">
     <div class="head"><div><div class="eyebrow">Portfolio</div><h2>Properties for sale & to let</h2>
-      <p><span id="count" class="num"></span> listings from our current register.</p></div>
-      <div class="tabs" id="tabs">${Object.entries(CATS).map(([k, v]) => `<button type="button" data-cat="${k}" aria-pressed="${k === filter.cat}">${v}</button>`).join("")}</div></div>
+      <p><span id="count" class="num"></span> listings · snapshot of the Hampton website.</p></div>
+      <div class="filters">
+        <div class="tabs" id="tabs-region" role="group" aria-label="Location">${Object.entries(REGIONS).map(([k, v]) => `<button type="button" data-region="${k}">${v}</button>`).join("")}</div>
+        <div class="tabs" id="tabs-op" role="group" aria-label="Operation">${Object.entries(OPS).map(([k, v]) => `<button type="button" data-op="${k}">${v}</button>`).join("")}</div>
+      </div></div>
+    <p class="active" id="active" hidden></p>
     <div class="grid" id="grid"></div>
     <div style="text-align:center;margin-top:48px"><button class="btn ghost" type="button" id="more"></button></div>
   </div></section>
 
-  <section class="feature"><img src="${wix(feat.image, 1200, 800)}" alt="${esc(feat.title)}">
-    <div class="txt"><div class="eyebrow">Featured · ${esc(feat.location)}</div><h2>${esc(feat.title)}</h2>
-      <p>Walk through the house in 3D, see the plot from above with every area measured, and work out your monthly repayment before you visit.</p>
-      <div class="chips"><span>3D walkthrough</span><span>Aerial plot in m²</span><span>Mortgage calculator</span><span>Book with an agent</span></div>
+  ${DEMO[feat.id] ? `<section class="feature"><img src="${esc(wix(feat.image, 1200, 800))}" alt="${esc(feat.title)}">
+    <div class="txt"><div class="eyebrow">Featured · ${esc(feat.place)}</div><h2>${esc(feat.title)}</h2>
+      <p>Try the demo tools on this listing: a sample 3D walkthrough, an illustrative aerial plot view and a repayment calculator, then book a viewing.</p>
+      <div class="chips"><span>Sample 3D tour</span><span>Illustrative aerial</span><span>Mortgage calculator</span><span>Book with an agent</span></div>
       <div><a class="btn" href="#/p/${feat.id}">Explore the property</a></div></div>
-  </section>
+  </section>` : ""}
 
-  <section class="block team" id="team"><div class="wrap">
+  <section class="block team" id="team" tabindex="-1"><div class="wrap">
     <div class="eyebrow">Meet the team</div><h2>A family firm on Bath Street</h2>
-    <div class="team-grid">${TEAM.map((t, i) => `<article class="agent">
-      <img src="${wix(t.photo, 600, 760)}" alt="${esc(t.name)}">
+    ${TEAM.length ? `<div class="team-grid">${TEAM.map((t, i) => `<article class="agent">
+      <img src="${esc(wix(t.photo, 600, 760))}" alt="${esc(t.name)}">
       <div class="info"><div><h3>${esc(t.name)}</h3><div class="role">${esc(t.role)}</div></div>
         <p>${bios[i] || ""}</p>
         <div class="contact num">${t.phone ? `<span>Mobile ${esc(t.phone)}</span>` : ""}<span>Office ${esc(t.office)}</span><span>francopropertiesjersey@gmail.com</span></div>
-        <div><button class="btn" type="button" data-agent="${i}">Book with ${esc(t.name.split(" ")[0])}</button></div></div></article>`).join("")}</div>
+        <div><button class="btn" type="button" data-agent="${i}">Book with ${esc(t.name.split(" ")[0])}</button></div></div></article>`).join("")}</div>`
+      : `<p style="margin-top:24px;color:#cfcac2">Team details could not be loaded. Call the office on 01534 727582.</p>`}
     <div class="facts"><div><b class="num">1982</b><span>Established in St Helier</span></div><div><b>No sale</b><span>No fee, ever</span></div>
-      <div><b>Free</b><span>Local & international valuations</span></div><div><b class="num">${PROPS.length}</b><span>Properties on the register</span></div></div>
+      <div><b>Free</b><span>Local & international valuations</span></div><div><b class="num">${PUB.length}</b><span>Listings in this snapshot</span></div></div>
   </div></section>
 
-  <section class="block" id="book"><div class="wrap book">
+  <section class="block" id="book" tabindex="-1"><div class="wrap book">
     <div><div class="eyebrow">Book a viewing</div><h2>Choose an agent and a time</h2>
       <p class="hint" style="font-size:14px;margin-top:14px">Pick the property, the agent you want to meet and a slot. Viewings run Monday to Saturday from our Bath Street office, or by live video call if you are buying from abroad.</p></div>
-    <div id="book-slot">${bookingForm()}</div>
+    <div id="book-slot"></div>
   </div></section>`;
 
+  const fillMax = () => {
+    const op = $("#q-op").value, list = MAX[op] || [];
+    $("#q-max").innerHTML = `<option value="0">${list.length ? "No limit" : "Pick a type first"}</option>` +
+      list.map(n => `<option value="${n}" ${n === filter.max && op === filter.op ? "selected" : ""}>${short(n, op)}</option>`).join("");
+    $("#q-max").disabled = !list.length;
+  };
   const render = () => {
-    const list = PROPS.filter(matches), shown = showAll ? list : list.slice(0, 9);
+    const list = PUB.filter(p => matches(p, filter)), shown = showAll ? list : list.slice(0, 9);
     $("#more").hidden = shown.length === list.length;
     $("#more").textContent = `Show all ${list.length} properties`;
-    $("#grid").innerHTML = shown.map(card).join("") || `<div class="empty">No properties match these filters. Try a higher budget or fewer bedrooms.</div>`;
+    $("#grid").innerHTML = shown.map(p => card(p)).join("") || `<div class="empty">No properties match these filters. Try another location, a higher budget or fewer bedrooms.</div>`;
     $("#count").textContent = list.length;
-    document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.cat === filter.cat));
+    document.querySelectorAll("#tabs-region button").forEach(b => b.setAttribute("aria-pressed", b.dataset.region === filter.region));
+    document.querySelectorAll("#tabs-op button").forEach(b => b.setAttribute("aria-pressed", b.dataset.op === filter.op));
+    $("#q-region").value = filter.region; $("#q-op").value = filter.op; $("#q-beds").value = filter.beds; fillMax();
+    const extra = [filter.beds && `${filter.beds}+ bedrooms`, filter.max && filter.op !== "all" && `up to ${short(filter.max, filter.op)}`].filter(Boolean);
+    $("#active").hidden = !extra.length;
+    $("#active").innerHTML = extra.length ? `Also filtered by ${extra.join(" · ")}<button class="linkbtn" type="button" id="clear">Clear</button>` : "";
   };
-  $("#tabs").addEventListener("click", e => { const c = e.target.closest("button")?.dataset.cat; if (c) { filter.cat = c; showAll = false; render(); } });
+  const set = patch => { Object.assign(filter, patch); if ("op" in patch) filter.max = 0; showAll = false; render(); };
+  $("#q-op").addEventListener("change", fillMax); fillMax();
+  $("#tabs-region").addEventListener("click", e => { const r = e.target.closest("button")?.dataset.region; if (r) set({region: r}); });
+  $("#tabs-op").addEventListener("click", e => { const o = e.target.closest("button")?.dataset.op; if (o) set({op: o}); });
+  $("#active").addEventListener("click", e => { if (e.target.id === "clear") set({beds: 0, max: 0}); });
   $("#more").addEventListener("click", () => { showAll = true; render(); });
   $("#quick").addEventListener("submit", e => {
     e.preventDefault();
-    filter = {cat: $("#q-cat").value, beds: +$("#q-beds").value, max: +$("#q-max").value};
-    render(); $("#portfolio").scrollIntoView();
+    filter = {region: $("#q-region").value, op: $("#q-op").value, beds: +$("#q-beds").value, max: +$("#q-max").value};
+    showAll = false; render(); $("#portfolio").scrollIntoView();
   });
   $("#team").addEventListener("click", e => {
     const i = e.target.closest("[data-agent]")?.dataset.agent; if (i == null) return;
-    $(`#book-slot input[name=agent][value="${i}"]`).checked = true; $("#book").scrollIntoView();
+    const slot = $("#book-slot"), radio = $(`input[name=agent][value="${i}"]`, slot);
+    radio ? (radio.checked = true) : mountBooking(slot, {agent: +i});
+    $("#book").scrollIntoView(); $("select", slot).focus({preventScroll: true});
   });
-  wireBooking($("#book-slot"));
+  mountBooking($("#book-slot"));
   render();
 }
 
@@ -403,134 +466,205 @@ function droneView() {
   const z = PLOT.map(p => `<polygon data-k="${p.key}" points="${p.pts.join(" ")}" fill="${p.color}" stroke="${p.color}" ${p.key === "plot" ? 'stroke-dasharray="10 6" fill-opacity=".08"' : ""}></polygon>`).join("");
   const labels = PLOT.filter(p => p.key !== "plot").map(p => {
     const cx = p.pts.reduce((a, q) => a + q[0], 0) / p.pts.length, cy = p.pts.reduce((a, q) => a + q[1], 0) / p.pts.length;
-    return `<text x="${cx}" y="${cy}" text-anchor="middle">${p.m2} m²</text>`; }).join("");
-  return `<div class="drone"><img src="img/aerial-demo.jpg" alt="Aerial view of the plot with measured areas">
-    <svg viewBox="0 0 1024 768" preserveAspectRatio="xMidYMid slice">${z}${labels}
-      <text x="460" y="250" text-anchor="middle">Plot ${PLOT[0].m2.toLocaleString("en-GB")} m²</text></svg>
-    <div class="hud">Drone · 120 m · North up</div>
-    <div class="legend-box">${PLOT.map(p => `<button type="button" data-k="${p.key}"><span><i style="background:${p.color}"></i>${p.name}</span><b class="num">${p.m2.toLocaleString("en-GB")} m²</b></button>`).join("")}</div>
-    <div class="scale" style="width:${Math.round(20 / 0.195 / 1024 * 100)}%"><i></i>20 m</div></div>`;
+    return `<text x="${cx}" y="${cy}" text-anchor="middle">≈${p.m2} m²</text>`; }).join("");
+  // img (object-fit:cover) and svg (slice) share the 1024×768 frame and centre, so they stay aligned at any size.
+  return `<div class="drone"><img src="img/aerial-demo.jpg" alt="Satellite image of a sample rural plot with illustrative outlines">
+    <svg viewBox="0 0 1024 768" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${z}${labels}
+      <text x="460" y="250" text-anchor="middle">Plot ≈${PLOT[0].m2.toLocaleString("en-GB")} m²</text></svg>
+    <div class="hud">Illustrative · not a survey</div>
+    <div class="legend-box">${PLOT.map(p => `<button type="button" data-k="${p.key}" aria-pressed="false"><span><i style="background:${p.color}"></i>${p.name}</span><b class="num">≈${p.m2.toLocaleString("en-GB")} m²</b></button>`).join("")}</div></div>`;
 }
 
 function detail(id) {
-  const p = PROPS.find(x => x.id === id); if (!p) return home();
-  const d = DEMO[p.id], agent = TEAM[p.price > 1e6 ? 0 : 1] || TEAM[0];
-  const plotM2 = d ? PLOT[0].m2 : null;
-  const specs = d ? JSON.parse(JSON.stringify(d.specs)) : {
-    "Interior": [["Bedrooms", p.beds ?? "On request"], ["Bathrooms", p.baths ?? "On request"], ["Interior area", "On request"], ["Heating", "On request"]],
-    "Exterior": [["Plot", "On request"], ["Parking", "On request"]],
-    "Building": [["Type", /apartment|flat|penthouse/i.test(p.title + p.description.join(" ")) ? "Apartment" : p.category === "commercial" ? "Commercial" : "House"], ["Year built", "On request"]],
-    "Location & tenure": [["Location", p.location], ["Status", p.status], ["Tenure", /freehold/i.test(p.description.join(" ")) ? "Freehold" : "On request"]],
-  };
-  if (d) {
-    specs.Interior[2][1] = `${d.interior} m² (${Math.round(d.interior * SQFT).toLocaleString("en-GB")} sq ft)`;
-    specs.Exterior[0][1] = `${plotM2.toLocaleString("en-GB")} m² (${(plotM2 / 4047).toFixed(2)} acres)`;
-  }
-  const similar = isSale(p) ? PROPS.filter(x => x.id !== p.id && isSale(x) && !/sold/i.test(x.status))
-    .sort((a, b) => Math.abs(Math.log(a.price / p.price)) - Math.abs(Math.log(b.price / p.price))).slice(0, 3) : [];
+  const p = PUB.find(x => x.id === id); if (!p) { location.replace("#/"); return; }
+  const d = DEMO[p.id], agent = agentFor(p), plotM2 = PLOT[0].m2;
+  const canCalc = p.operation === "sale" && p.salePrice != null;
+  const cur = p.currency || "GBP", money0 = n => money(n, cur);
+  const desc = p.description.map(l => l.replace(/^'?-\s*/, "").trim()).filter(l => l && l.toLowerCase() !== p.title.toLowerCase());
+  const similar = comparables(p, PUB);
+  const facts = [["Type", p.type], ["Location", p.place], ["Market", REGIONS[p.region]], ["Operation", OP_ONE[p.operation]],
+    ["Price as listed", p.priceText || "Not published"], ["Tenure", p.tenure],
+    ["Source", p.source.url && `<a href="${esc(p.source.url)}" target="_blank" rel="noopener noreferrer">hamptonestatesjersey.com ↗</a>`],
+    ["Captured", p.source.retrieved && fmtDate(p.source.retrieved)]].filter(([, v]) => v);
+  const tabs = [["photo", "Photos"], ...(d ? [["tour", "3D tour"], ["drone", "Aerial"]] : [])];
 
-  $("#app").innerHTML = `<div class="wrap crumbs"><a href="#/">Home</a> / <a href="#portfolio" data-home>${esc(CATS[p.category])}</a> / ${esc(p.title)}</div>
-  <div class="wrap">
-    <div class="media-tabs" role="tablist">
-      <button role="tab" data-v="photo" aria-selected="true">Photos</button>
-      ${d ? `<button role="tab" data-v="tour" aria-selected="false">3D tour</button><button role="tab" data-v="drone" aria-selected="false">Aerial · m²</button>` : ""}
+  $("#app").innerHTML = `<div class="wrap crumbs"><a href="#/">Home</a> / <a href="#portfolio" data-region="${p.region}">${esc(REGIONS[p.region])}</a> / ${esc(p.title)}</div>
+  <div class="wrap d-top">
+    <div style="min-width:0">
+      ${tabs.length > 1 ? `<div class="media-tabs" role="tablist" aria-label="Media">${tabs.map(([v, t], i) =>
+        `<button role="tab" id="tab-${v}" data-v="${v}" aria-controls="stage" aria-selected="${!i}" tabindex="${i ? -1 : 0}">${t}</button>`).join("")}</div>` : ""}
+      <div class="stage" id="stage" ${tabs.length > 1 ? 'role="tabpanel" aria-labelledby="tab-photo"' : ""}></div>
+      <div class="stage-note" id="stage-note" aria-live="polite"></div>
     </div>
-    <div class="stage" id="stage"></div>
+    <aside class="summary" aria-label="Summary">
+      <div class="eyebrow">${esc(p.status)} · ${esc(p.place)}</div>
+      <h1>${esc(p.title)}</h1>
+      <div class="price num">${esc(priceLabel(p))}${p.operation === "business" ? "<small>Business, not freehold</small>" : ""}</div>
+      ${p.beds || p.baths || p.type ? `<div class="keys num">${p.beds ? `<div><b>${p.beds}</b><span>Bedrooms</span></div>` : ""}${p.baths ? `<div><b>${p.baths}</b><span>Bathrooms</span></div>` : ""}${p.type ? `<div><b>${esc(p.type)}</b><span>Type</span></div>` : ""}</div>` : ""}
+      ${agent ? `<div class="agent-mini">${agent.photo ? `<img src="${esc(wix(agent.photo, 120, 120))}" alt="">` : ""}<div><b>${esc(agent.name)}</b><div class="hint">${esc(agent.role)} · ${esc(agent.office)}</div></div></div>` : ""}
+      <div class="btns">${isSold(p) ? "" : `<a class="btn" href="#detail-book" data-scroll="detail-book">Book a viewing</a>`}
+        ${d ? `<button class="btn ghost" type="button" data-go="tour">Open the 3D tour</button>` : ""}</div>
+      ${p.source.retrieved ? `<p class="src">Listing snapshot captured ${esc(fmtDate(p.source.retrieved))}. Availability may have changed.</p>` : ""}
+    </aside>
   </div>
   <div class="wrap detail">
-    <div style="min-width:0">
-      <div class="title-row"><div><div class="eyebrow">${esc(p.status)} · ${esc(p.location)}</div><h1>${esc(p.title)}</h1></div>
-        <div class="price num">${esc(p.priceText || "Price on application")}</div></div>
-      <div class="keys num">
-        ${p.beds ? `<div><b>${p.beds}</b><span>Bedrooms</span></div>` : ""}${p.baths ? `<div><b>${p.baths}</b><span>Bathrooms</span></div>` : ""}
-        ${d ? `<div><b>${d.interior}</b><span>m² interior</span></div><div><b>${plotM2.toLocaleString("en-GB")}</b><span>m² plot</span></div><div><b>${d.year}</b><span>Built</span></div>` : ""}
-      </div>
-      <h3 class="sub">About this property</h3>
-      <div class="prose">${p.description.map(l => `<p>${esc(l.replace(/^'?-\s*/, ""))}</p>`).join("") || "<p>Full particulars available from our office.</p>"}</div>
-      <h3 class="sub">Property facts</h3>
-      <div class="specs">${Object.entries(specs).map(([g, rows]) => `<div><h4>${g}</h4><dl>${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl></div>`).join("")}</div>
-      ${d ? `<p class="note">Facts for this featured home are illustrative for the demo, derived from the listing photo and description.</p>` : ""}
-      ${isSale(p) ? `<h3 class="sub" id="mortgage">Mortgage calculator</h3>
+    <div><h2 class="sub">About this property</h2>
+      <div class="prose">${desc.map(l => `<p>${esc(l)}</p>`).join("") || "<p>Full particulars available from our office.</p>"}</div></div>
+    <div><h2 class="sub">Listing details</h2>
+      <dl class="facts-list">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${k === "Source" ? v : esc(v)}</dd></div>`).join("")}</dl>
+      ${p.notes.map(n => `<p class="note">Note: ${esc(n)}</p>`).join("")}</div>
+    ${d ? `<div class="full"><h2 class="sub">Example details <span class="tag">Illustrative</span></h2>
+      <div class="specs">${Object.entries(d.specs).map(([g, rows]) => `<div><h4>${g}</h4><dl>${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(
+        k === "Interior area" ? `≈${d.interior} m² (${Math.round(d.interior * SQFT).toLocaleString("en-GB")} sq ft)` : k === "Plot" ? `≈${plotM2.toLocaleString("en-GB")} m²` : v)}</dd></div>`).join("")}</dl></div>`).join("")}</div>
+      <p class="note">Invented for this demo to show how a full specification would look. Not taken from the listing.</p></div>` : ""}
+    ${canCalc ? `<div class="full"><h2 class="sub" id="mortgage">Mortgage calculator</h2>
       <div class="calc" id="calc">
         <div>
-          <label class="field"><span>Purchase price</span><input id="c-price" type="number" min="10000" step="5000" value="${p.price}"></label>
-          <div class="field"><div class="lbl"><span>Deposit</span><output id="o-dep"></output></div><input id="c-dep" type="range" min="5" max="60" value="25"></div>
-          <div class="field"><div class="lbl"><span>Interest rate</span><output id="o-rate"></output></div><input id="c-rate" type="range" min="1" max="9" step="0.05" value="4.6"></div>
-          <div class="field"><div class="lbl"><span>Term</span><output id="o-term"></output></div><input id="c-term" type="range" min="5" max="35" value="25"></div>
+          <label class="field"><span>Purchase price (${esc(cur)})</span><input id="c-price" type="number" min="10000" step="5000" value="${p.salePrice}"></label>
+          <div class="field"><div class="lbl"><label for="c-dep">Deposit</label><output id="o-dep" for="c-dep"></output></div><input id="c-dep" type="range" min="5" max="60" value="25"></div>
+          <div class="field"><div class="lbl"><label for="c-rate">Interest rate</label><output id="o-rate" for="c-rate"></output></div><input id="c-rate" type="range" min="1" max="9" step="0.05" value="4.6"></div>
+          <div class="field"><div class="lbl"><label for="c-term">Term</label><output id="o-term" for="c-term"></output></div><input id="c-term" type="range" min="5" max="35" value="25"></div>
         </div>
         <div class="result num"><div class="eyebrow">Estimated monthly repayment</div><div class="big" id="r-month"></div>
           <div class="bar"><i id="b-p" style="background:var(--ink)"></i><i id="b-i" style="background:var(--bronze)"></i></div>
           <div class="split"><div><span>Loan</span><b id="r-loan"></b></div><div><span>Total interest</span><b id="r-int"></b></div>
             <div><span>Deposit</span><b id="r-dep"></b></div><div><span>Total repaid</span><b id="r-tot"></b></div></div>
-          <p class="hint">Capital-and-repayment estimate. Excludes stamp duty and lender fees; your lender's offer will differ.</p>
-          <div><a class="btn ghost" href="#detail-book">Talk to ${esc(agent.name.split(" ")[0])} about finance</a></div></div>
-      </div>` : ""}
-    </div>
-    <aside class="side"><div class="sticky">
-      <div class="box"><div class="agent-mini"><img src="${wix(agent.photo, 120, 120)}" alt=""><div><b>${esc(agent.name)}</b><div class="hint">${esc(agent.role)} · ${esc(agent.office)}</div></div></div>
-        ${d ? `<button class="btn" type="button" data-go="tour">Enter the 3D tour</button>` : ""}
-        <a class="btn ghost" href="#detail-book">Book a viewing</a></div>
-    </div></aside>
+          <p class="hint">Indicative capital-and-repayment estimate. Excludes stamp duty and lender fees; your lender's offer will differ.</p>
+          ${agent && !isSold(p) ? `<div><a class="btn ghost" href="#detail-book" data-scroll="detail-book">Talk to ${esc(agent.name.split(" ")[0])} about finance</a></div>` : ""}</div>
+      </div></div>` : ""}
   </div>
   ${similar.length ? `<section class="block" style="background:var(--mist)"><div class="wrap">
-    <div class="head"><div><div class="eyebrow">Similar price</div><h2>Homes around ${gbp(p.price)}</h2>
-      <p>Other listings within the closest price range to this one, wherever they are on the island.</p></div></div>
-    <div class="grid">${similar.map(s => card(s).replace('<div class="price num">', `<div class="price num"><span class="hint" style="font-family:var(--body);margin-right:8px">${s.price >= p.price ? "+" : "−"}${Math.round(Math.abs(s.price / p.price - 1) * 100)}%</span>`)).join("")}</div>
+    <div class="head"><div><div class="eyebrow">${{sale: "Similar prices", rent: "Similar rents", business: "Similar businesses"}[p.operation]}</div><h2>Around ${esc(priceLabel(p))} in ${esc(REGIONS[p.region])}</h2>
+      <p>Compared only with other ${p.use} listings ${{sale: "for sale", rent: "to let", business: "offered as businesses"}[p.operation]} in the same market.</p></div></div>
+    <div class="grid">${similar.map(s => card(s, `<span class="hint" style="font-family:var(--body);margin-right:8px">${amount(s) >= amount(p) ? "+" : "−"}${Math.round(Math.abs(amount(s) / amount(p) - 1) * 100)}%</span>`)).join("")}</div>
   </div></section>` : ""}
-  <section class="block" id="detail-book"><div class="wrap book">
+  ${isSold(p) ? "" : `<section class="block" id="detail-book" tabindex="-1"><div class="wrap book">
     <div><div class="eyebrow">Book a viewing</div><h2>See ${esc(p.title)}</h2><p class="hint" style="font-size:14px;margin-top:14px">Choose your agent, the type of viewing and a slot that suits you.</p></div>
-    <div>${bookingForm({prop: p.id, agent: TEAM.indexOf(agent)})}</div></div></section>`;
+    <div id="detail-slot"></div></div></section>`}`;
 
-  const stage = $("#stage");
+  const stage = $("#stage"), note = $("#stage-note");
+  let timer;
+  const fail = (msg, retry) => {
+    stage.insertAdjacentHTML("beforeend", `<div class="stage-msg" role="alert"><div><p>${msg}</p>
+      <a href="${TOUR}" target="_blank" rel="noopener noreferrer">Open the sample tour on Matterport ↗</a>
+      ${retry ? `<button class="btn light" type="button" data-retry>Try again</button>` : ""}</div></div>`);
+  };
+  const webgl = () => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; } };
   const show = v => {
-    document.querySelectorAll(".media-tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.v === v));
-    if (v === "photo") stage.innerHTML = `<img src="${wix(p.image, 1600, 900)}" alt="${esc(p.title)}">`;
-    if (v === "tour") stage.innerHTML = `<div class="tour-cta" style="background-image:url('${wix(p.image, 1600, 900)}')"><div>
-        <div class="eyebrow" style="color:#fff">Matterport 3D walkthrough</div><h2 style="color:#fff">Step inside</h2>
-        <button class="btn light" type="button" id="enter">Enter 3D tour</button></div></div>`;
-    if (v === "drone") stage.innerHTML = droneView();
+    clearTimeout(timer); stage.classList.remove("noimg");
+    document.querySelectorAll(".media-tabs button").forEach(b => { const on = b.dataset.v === v; b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; });
+    if (tabs.length > 1) stage.setAttribute("aria-labelledby", `tab-${v}`);
+    if (v === "photo") {
+      stage.innerHTML = `<img src="${esc(wix(p.image, 1600, 1067))}" alt="${esc(p.title)}">`;
+      note.innerHTML = "";
+    }
+    if (v === "tour") {
+      note.innerHTML = `<span><b>Sample space, not this property.</b> Matterport demo model · drag to look around.</span><a href="${TOUR}" target="_blank" rel="noopener noreferrer">Open in Matterport ↗</a>`;
+      stage.innerHTML = "";
+      if (!webgl()) return fail("This browser can't show 3D content (WebGL is off or unsupported).");
+      if (!navigator.onLine) return fail("You appear to be offline. The 3D tour needs a connection.", true);
+      stage.innerHTML = `<iframe src="${TOUR}" title="3D tour of a sample property (Matterport)" allow="fullscreen; xr-spatial-tracking" allowfullscreen></iframe>`;
+      timer = setTimeout(() => fail("The 3D tour is taking longer than usual to load.", true), 20000);
+      $("iframe", stage).addEventListener("load", () => { clearTimeout(timer); $(".stage-msg", stage)?.remove(); });
+    }
+    if (v === "drone") {
+      stage.innerHTML = droneView();
+      note.innerHTML = `<span><b>Illustrative only:</b> satellite image of a sample plot (not this property). Outlines and areas are examples, not measurements.</span>`;
+    }
   };
   stage.addEventListener("click", e => {
-    if (e.target.id === "enter") stage.innerHTML = `<iframe src="${d.tour}" allow="fullscreen; xr-spatial-tracking" allowfullscreen title="3D tour"></iframe>`;
-    const k = e.target.closest("[data-k]")?.dataset.k;
-    if (k) stage.querySelectorAll("polygon").forEach(g => g.classList.toggle("on", g.dataset.k === k && !g.classList.contains("on")));
+    if (e.target.closest("[data-retry]")) return show("tour");
+    const btn = e.target.closest(".legend-box [data-k]"); if (!btn) return;
+    const on = btn.getAttribute("aria-pressed") !== "true";
+    stage.querySelectorAll(".legend-box [data-k]").forEach(b => b.setAttribute("aria-pressed", b === btn && on));
+    stage.querySelectorAll("polygon").forEach(g => g.classList.toggle("on", on && g.dataset.k === btn.dataset.k));
   });
-  $(".media-tabs").addEventListener("click", e => { const v = e.target.dataset.v; if (v) show(v); });
-  $(".side").addEventListener("click", e => { if (e.target.dataset.go) { show("tour"); stage.scrollIntoView({block:"center"}); } });
-  $("[data-home]").addEventListener("click", () => { filter.cat = p.category; });
+  const mt = $(".media-tabs");
+  if (mt) {
+    mt.addEventListener("click", e => { const v = e.target.closest("[data-v]")?.dataset.v; if (v) show(v); });
+    mt.addEventListener("keydown", e => {
+      const bs = [...mt.querySelectorAll("button")], i = bs.indexOf(document.activeElement);
+      const j = {ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: bs.length - 1}[e.key];
+      if (i < 0 || j == null) return;
+      e.preventDefault(); const b = bs[(j + bs.length) % bs.length]; b.focus(); show(b.dataset.v);
+    });
+  }
+  $(".summary").addEventListener("click", e => { if (e.target.closest("[data-go]")) { show("tour"); $("#tab-tour").focus(); stage.scrollIntoView({block: "center"}); } });
   show("photo");
 
-  if (isSale(p)) {
+  if (canCalc) {
     const calc = () => {
       const price = +$("#c-price").value || 0, dep = +$("#c-dep").value / 100, rate = +$("#c-rate").value / 100, yrs = +$("#c-term").value;
       const loan = price * (1 - dep), m = pmt(loan, rate, yrs), tot = m * yrs * 12, int = tot - loan;
-      $("#o-dep").textContent = `${Math.round(dep * 100)}% · ${gbp(price * dep)}`;
+      $("#o-dep").textContent = `${Math.round(dep * 100)}% · ${money0(price * dep)}`;
       $("#o-rate").textContent = `${rate * 100 % 1 ? (rate * 100).toFixed(2) : rate * 100}%`;
       $("#o-term").textContent = `${yrs} years`;
-      $("#r-month").textContent = gbp(m); $("#r-loan").textContent = gbp(loan); $("#r-int").textContent = gbp(int);
-      $("#r-dep").textContent = gbp(price * dep); $("#r-tot").textContent = gbp(tot);
-      $("#b-p").style.width = `${loan / tot * 100}%`; $("#b-i").style.width = `${int / tot * 100}%`;
+      $("#r-month").textContent = money0(m); $("#r-loan").textContent = money0(loan); $("#r-int").textContent = money0(int);
+      $("#r-dep").textContent = money0(price * dep); $("#r-tot").textContent = money0(tot);
+      $("#b-p").style.width = `${tot ? loan / tot * 100 : 0}%`; $("#b-i").style.width = `${tot ? int / tot * 100 : 0}%`;
     };
     $("#calc").addEventListener("input", calc); calc();
   }
-  document.querySelectorAll("form.tour").forEach(f => wireBooking(f.parentElement));
-  scrollTo(0, 0);
+  if (!isSold(p)) mountBooking($("#detail-slot"), {prop: p.id, agent: agent ? TEAM.indexOf(agent) : 0});
+  scrollTo({top: 0, behavior: "instant"});
 }
 
-// ---------- router ----------
+// ---------- navigation ----------
+const navBtn = $(".menu-btn"), nav = $("#main-nav");
+const setNav = open => { navBtn.setAttribute("aria-expanded", open); nav.classList.toggle("open", open); };
+navBtn.addEventListener("click", () => { const open = navBtn.getAttribute("aria-expanded") !== "true"; setNav(open); if (open) $("a", nav).focus(); });
+nav.addEventListener("click", e => { if (e.target.closest("a")) setNav(false); });
+addEventListener("keydown", e => { if (e.key === "Escape" && nav.classList.contains("open")) { setNav(false); navBtn.focus(); } });
+addEventListener("click", e => { if (nav.classList.contains("open") && !e.target.closest("header.top")) setNav(false); });
+matchMedia("(min-width:861px)").addEventListener("change", () => setNav(false));
+
+// In-page jumps that must not change the route (skip link, "Book a viewing" on a property page).
+addEventListener("click", e => {
+  const a = e.target.closest("[data-scroll]"); if (!a) return;
+  const t = document.getElementById(a.dataset.scroll); if (!t) return;
+  e.preventDefault(); t.scrollIntoView(); t.focus({preventScroll: true});
+});
+addEventListener("click", e => { if (e.target.closest('a[href="#/"]') && location.hash === "#/") scrollTo({top: 0}); });
+// Breadcrumb back to a market: preset the location tab before the home page renders.
+addEventListener("click", e => { const r = e.target.closest(".crumbs [data-region]")?.dataset.region; if (r) Object.assign(filter, {region: r, op: "all", beds: 0, max: 0}); });
+
 const HOME_SECTIONS = ["portfolio", "team", "book"];
 const route = () => {
-  const h = location.hash, m = h.match(/^#\/p\/(\w+)/), sec = h.slice(1);
+  const h = location.hash, m = h.match(/^#\/p\/([0-9a-f]{8})$/), sec = h.slice(1);
+  setNav(false);
   if (m) return detail(m[1]);
-  if (h && h !== "#/" && !HOME_SECTIONS.includes(sec)) return; // in-page anchor, e.g. #detail-book
   if (!$("#portfolio")) home();
-  HOME_SECTIONS.includes(sec) ? $("#" + sec).scrollIntoView() : scrollTo(0, 0);
+  HOME_SECTIONS.includes(sec) ? $("#" + sec).scrollIntoView() : scrollTo({top: 0, behavior: "instant"});
 };
 addEventListener("hashchange", route);
-Promise.all(["data/properties.json", "data/team.json"].map(u => fetch(u).then(r => r.json())))
-  .then(([p, t]) => { const order = {residential:0, commercial:1, international:2};
-    PROPS = p.sort((a, b) => order[a.category] - order[b.category]); TEAM = t; route(); })
-  .catch(() => { $("#app").innerHTML = `<div class="wrap empty" style="margin-block:80px">Could not load listings. Serve this folder over HTTP (python3 -m http.server) instead of opening the file directly.</div>`; });
+
+// ---------- data: validate before anything reaches the HTML ----------
+addEventListener("error", e => {
+  if (e.target.tagName !== "IMG") return;
+  const ph = e.target.closest(".ph, .stage"); ph ? ph.classList.add("noimg") : (e.target.style.visibility = "hidden");
+}, true);
+const getJSON = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); });
+Promise.allSettled([getJSON("data/properties.json"), getJSON("data/team.json")]).then(([p, t]) => {
+  if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
+  const order = {jersey: 0, uk: 1, international: 2};
+  PROPS = p.value.filter(x => x && /^[0-9a-f]{8}$/.test(x.id) && x.title && x.region in order && x.operation in OP_ONE)
+    .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "premium"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
+      use: x.use === "commercial" ? "commercial" : "residential", image: safeUrl(x.image, IMG_HOST), description: Array.isArray(x.description) ? x.description : [],
+      notes: Array.isArray(x.notes) ? x.notes : [], source: {...x.source, url: safeUrl(x.source?.url, SRC_HOST)}}))
+    .sort((a, b) => order[a.region] - order[b.region] || (a.use === "commercial") - (b.use === "commercial"));
+  PUB = PROPS.filter(x => x.public && x.image); // no real photo → kept in the data, left out of the public pages
+  TEAM = (t.status === "fulfilled" && Array.isArray(t.value) ? t.value : []).filter(a => a && a.name)
+    .map(a => ({...a, photo: safeUrl(a.photo, IMG_HOST)}));
+  const last = PROPS.map(x => x.source?.retrieved).filter(Boolean).sort().pop();
+  if (last) $("#captured").textContent = ` on ${fmtDate(last)}`;
+  if (!PUB.length) throw new Error("no listings");
+  route();
+}).catch(() => {
+  $("#app").innerHTML = `<div class="wrap empty" style="margin-block:80px" role="alert"><p>Listings could not be loaded right now.</p>
+    <button class="btn ghost" type="button" onclick="location.reload()">Try again</button>
+    <p class="hint">Opening the file directly? Serve this folder over HTTP instead (python3 -m http.server).</p></div>`;
+});
 </script>
+
 </body>
 </html>

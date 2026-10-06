@@ -23,7 +23,7 @@ def text(fragment):
 STATUSES = {"for sale", "under offer", "sold", "lease", "to let", "new"}
 
 
-def parse_listing(src, category):
+def parse_listing(src, category, page=""):
     # ponytail: Wix repeater -> cada componente lleva el sufijo __<uuid> del ítem; agrupamos por uuid
     marks = [(src.index(">", m.end()) + 1, m.group(1))
              for m in re.finditer(r'id="comp-[a-z0-9]+__([0-9a-f-]{36})"', src)]
@@ -54,24 +54,109 @@ def parse_listing(src, category):
             "baths": int(nums[1]) if len(nums) > 1 and nums[1].isdigit() else None,
             "priceText": price, "price": parse_price(price), "description": desc,
             "image": f"https://static.wixstatic.com/media/{it['img']}" if it["img"] else None,
+            "sourceUrl": BASE + page,
         })
     return out
 
 
 def parse_price(t):
-    m = re.search(r"£\s?([\d.,]+)\s*(m)?", t, re.I)
+    """Primer importe del texto, en su moneda: '£4.75m' -> (4750000, 'GBP'); sin importe -> (None, None)."""
+    m = re.search(r"([£€])\s?([\d.,]+)\s*(m\b)?", t, re.I)
     if not m:
-        return None
-    n = float(m.group(1).replace(",", ""))
-    return int(n * 1_000_000) if m.group(2) else int(n)
+        return None, None
+    n = float(m.group(2).replace(",", ""))
+    return (int(n * 1_000_000) if m.group(3) else int(n)), {"£": "GBP", "€": "EUR"}[m.group(1)]
+
+
+# Revisión manual de cada anuncio (geografía / tipo / operación / precio). Lo que no figura aquí se
+# clasifica por heurística y queda marcado para revisar. Nada de esto inventa precios ni conversiones.
+CURATION = {
+    "1fa44cf0": {"region": "international", "place": "Alentejo, Portugal"},
+    "7eefaf13": {"region": "international", "place": "Galicia, Spain"},
+    "9a8bdd7c": {"region": "international", "place": "Brittany, France", "type": "Manor house"},
+    "c320d961": {"region": "international", "place": "Madeira, Portugal", "type": "Apartment",
+                 "notes": ["Priced in euros. The listing also quotes £99,999; no conversion is made here."]},
+    "defec230": {"region": "international", "place": "Brittany, France", "type": "House"},
+    "edb3681e": {"region": "international", "place": "Lourinhã, Portugal", "type": "Villa"},
+    "f5c45914": {"region": "international", "place": "Brittany, France"},
+    "d8dacb1f": {"type": "House"},
+    "8c37b8d1": {"type": "Hotel", "use": "commercial"},
+    "cb6f6543": {"type": "House"},
+    "38b1444c": {"type": "Apartment"},
+    "743d6ad4": {"type": "Guest house", "use": "commercial"},
+    "ff11c070": {"type": "Apartment"},
+    "b1b43893": {"type": "Four apartments"},
+    "d1ca2d7c": {"type": "House"},
+    "7df76a63": {"type": "Apartment"},
+    "3ce6b5b2": {"type": "Apartment"},
+    "d5967950": {"type": "Cottage"},
+    "a23f0989": {"type": "House"},
+    "f2eb59e7": {"type": "Four apartments", "duplicateOf": "b1b43893",
+                 "notes": ["Same photo, price and text as 25 Roseville Street; hidden as a likely duplicate."]},
+    "41b0dabe": {"type": "House"},
+    "ce7687c1": {"type": "House", "notes": ["The description mentions 4/5 bedrooms; the listing field says 5."]},
+    "a52a7206": {"type": "Apartment", "place": "St Helier"},
+    "8c8bf11a": {"type": "Bungalow"},
+    "91c754ff": {"region": "uk", "place": "Streatham, London",
+                 "notes": ["Listed in Hampton's residential section, but the property is in London, not Jersey."]},
+    "8eb8ffab": {"type": "House", "notes": ["No price published on the source listing."]},
+    "9c0f9d02": {"type": "House", "place": "St Lawrence", "notes": ["Source spells the parish 'St Lawerence'."]},
+    "636168b1": {"type": "Café with accommodation", "place": "Location confidential",
+                 "notes": ["Location withheld and price 'Negotiable'; tenure (freehold or business only) not stated."]},
+    "6692ab51": {"type": "Shop (newsagent)", "operation": "rent", "place": "St Helier",
+                 "notes": ["Source status is 'Lease' with no rent or premium published; "
+                           "'Negotiable' appears where the location normally is."]},
+    "cc99defd": {"type": "Restaurant", "operation": "business", "place": "Halkett Street, St Helier",
+                 "notes": ["£90,000 appears to be for the business on a 9-year lease, not the freehold."]},
+    "758f504e": {"type": "Restaurant", "operation": "business", "place": "Kensington",
+                 "notes": ["Price basis (business, lease or freehold) not stated. Source spells the location 'Kensignton'."]},
+    "594966f9": {"type": "Restaurant", "place": "Town (St Helier)",
+                 "notes": ["Source says 'Freehold/Share Transfer'; the sale may be structured as a share transfer."]},
+    "9a7d10a6": {"type": "Apartment block"},
+}
+
+
+def classify(p, retrieved):
+    """Separa geografía, tipo y operación; precio de venta / renta / traspaso en campos distintos."""
+    c = CURATION.get(p["id"], {})
+    text = " ".join([p["status"], p["priceText"], *p["description"]])
+    amount, currency = parse_price(p["priceText"])
+    op = c.get("operation") or ("rent" if re.search(r"\blet\b|\blease\b", p["status"], re.I) else "sale")
+    period = (("month" if re.search(r"month|pcm|\bpm\b|\dpm", p["priceText"], re.I) else
+               "year" if re.search(r"p\.?a\.?\b|annum", p["priceText"], re.I) else None)
+              if op == "rent" and amount else None)
+    out = {
+        "id": p["id"], "title": p["title"], "status": p["status"],
+        "region": c.get("region") or ("international" if p["category"] == "international" else "jersey"),
+        "place": c.get("place") or p["location"],
+        "type": c.get("type"),
+        "use": c.get("use") or ("commercial" if p["category"] == "commercial" else "residential"),
+        "operation": op,
+        "currency": currency,
+        "salePrice": amount if op == "sale" else None,
+        "rent": amount if op == "rent" and period else None,
+        "rentPeriod": period,
+        "premium": amount if op == "business" else None,
+        "priceText": p["priceText"], "beds": p["beds"], "baths": p["baths"],
+        "tenure": "Freehold" if re.search(r"freehold", text, re.I) else None,
+        "description": p["description"], "image": p["image"],
+        "public": bool(p["image"]) and not c.get("duplicateOf"),
+        "source": {"page": p["category"], "url": p["sourceUrl"], "location": p["location"], "retrieved": retrieved},
+        "notes": list(c.get("notes", [])) if c else ["Classified automatically; review region, type and operation."],
+    }
+    if op == "rent" and amount and not period:
+        out["notes"].append("Rent amount published without a period; not used for comparisons.")
+    return out
 
 
 if __name__ == "__main__":
+    import datetime
+    today = datetime.date.today().isoformat()
     props, seen = [], set()
     for cat, path in PAGES.items():
-        for p in parse_listing(get(path), cat):
+        for p in parse_listing(get(path), cat, path):
             if p["id"] not in seen:
-                seen.add(p["id"]); props.append(p)
+                seen.add(p["id"]); props.append(classify(p, today))
     assert props and all(p["title"] for p in props), "scrape vacío: cambió el HTML de Wix"
     team = [{"name": "Gilberto Franco", "role": "Managing Director", "phone": "07797 718199",
              "office": "01534 727582"},
