@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { KIND, safeHref } from "./format.js";
 import { resizeImage } from "./image.js";
@@ -11,6 +11,7 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
   const [items, setItems] = useState(media), [cover, setCover] = useState(coverId);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [drag, setDrag] = useState(null), [over, setOver] = useState(false);
   const visual = items.filter(m => m.r2_key), links = items.filter(m => !m.r2_key);
+  const latest = useRef(); latest.current = { saved, coverId }; // read after awaits, so uploads/deletes never use stale lists
   const dirty = JSON.stringify(items.map(pick)) !== JSON.stringify(saved.map(pick)) || cover !== coverId;
 
   const move = (from, to) => {
@@ -50,10 +51,10 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
       } catch (e) { failed.push(`${file.name}: ${e.message}`); }
     }
     if (added.length) {
-      // New uploads are saved server-side; keep any unsaved local reorder on top of them.
-      setItems(list => [...list.filter(m => m.r2_key), ...added, ...list.filter(m => !m.r2_key)]);
-      setSaved(list => [...list, ...added]);
-      onChange([...saved, ...added], coverId);
+      // New uploads are saved server-side (last position, as here); any unsaved local reorder is kept.
+      const next = [...latest.current.saved, ...added];
+      setItems(list => [...list, ...added]); setSaved(next);
+      onChange(next, latest.current.coverId);
     }
     setMsg(failed.length ? { text: `Not uploaded: ${failed.join(" · ")}` } : { ok: true, text: `${added.length} photo(s) uploaded.` });
     setBusy(false);
@@ -63,16 +64,17 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
     if (!confirm(`Delete "${m.label || m.id}"? This can't be undone.`)) return;
     try {
       await api(`/admin/media/${m.id}`, { method: "DELETE" });
-      const keep = saved.filter(x => x.id !== m.id);
+      const { saved: s, coverId: c } = latest.current, keep = s.filter(x => x.id !== m.id);
       setItems(list => list.filter(x => x.id !== m.id)); setSaved(keep);
-      const c = cover === m.id ? null : cover; setCover(c); onChange(keep, c);
+      if (cover === m.id) setCover(null);
+      onChange(keep, c === m.id ? null : c); // an unsaved cover pick stays unsaved
     } catch (e) { setMsg({ text: e.message }); }
   };
 
   return <div className="media">
     <p className="muted">Drag to reorder (or use ↑ ↓). Only Hampton photos and photos uploaded here can appear on the website; external ones are a private reference.</p>
     <ol className="media-grid">{visual.map((m, i) => <li key={m.id} draggable
-      onDragStart={() => setDrag(i)} onDragOver={e => e.preventDefault()} onDrop={() => { move(drag, i); setDrag(null); }}
+      onDragStart={() => setDrag(i)} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (e.dataTransfer.files.length) { if (!busy) upload([...e.dataTransfer.files]); } else move(drag, i); setDrag(null); }}
       className={m.id === cover ? "is-cover" : undefined}>
       <div className="ph">
         {m.content_type === "application/pdf"
@@ -93,7 +95,7 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
       <details className="more"><summary>More<span className="sr"> for photo {i + 1}</span></summary><div className="ctl">
         <select aria-label={`Type of photo ${i + 1}`} value={m.kind} onChange={e => patch(m.id, { kind: e.target.value })}>
           {Object.entries(KIND).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
-        {m.origin === "upload" && <button type="button" className="btn ghost sm danger" onClick={() => remove(m)}>Delete</button>}
+        {m.origin === "upload" && <button type="button" className="btn ghost sm danger" disabled={busy} onClick={() => remove(m)}>Delete</button>}
       </div></details>
     </li>)}</ol>
 

@@ -615,7 +615,7 @@ function detail(id) {
   if (lb) {
     lb.addEventListener("click", e => { const a = e.target.closest("[data-lb]")?.dataset.lb; if (a === "close") lb.close(); else if (a) { step(+a); lbShow(); } });
     lb.addEventListener("keydown", e => { const d = {ArrowRight: 1, ArrowLeft: -1}[e.key]; if (d) { e.preventDefault(); step(d); lbShow(); } });
-    lb.addEventListener("close", () => show("photo")); // the page gallery follows the last photo seen
+    lb.addEventListener("close", () => { show("photo"); $("[data-all]", note)?.focus(); }); // the gallery follows the last photo seen
   }
   note.addEventListener("click", e => { if (e.target.closest("[data-all]")) openLb(); });
   stage.addEventListener("click", e => {

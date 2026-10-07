@@ -15,6 +15,7 @@ async function list({ request, env }) {
 
 async function update({ request, env, admin, params: [id] }) {
   const body = (await readJson(request)) ?? {}, patch = {};
+  if (typeof body !== "object" || Array.isArray(body)) fail(400, "Invalid format");
   if ("status" in body) { if (!STATUSES.includes(body.status)) fail(400, "Invalid status"); patch.status = body.status; }
   if ("notes" in body) {
     if (body.notes !== null && typeof body.notes !== "string") fail(400, "Notes must be text");

@@ -13,8 +13,8 @@ export default function Listings() {
   const [msg, setMsg] = useState(null);
   const load = () => api("/admin/listings").then(d => setRows(d.listings), e => setError(e.message));
   useEffect(() => { load(); }, []);
-  const act = async (l, action, done) => {
-    document.activeElement?.closest("details")?.removeAttribute("open");
+  const act = async (e, l, action, done) => {
+    e.currentTarget.closest("details")?.removeAttribute("open");
     if (action === "archive" && !confirm(`Archive "${l.title}"? It will leave the website; you can restore it later.`)) return;
     setMsg(null);
     try { await api(`/admin/listings/${l.id}/${action}`, { method: "POST" }); setMsg({ ok: true, text: `${l.title}: ${done}` }); await load(); }
@@ -62,10 +62,10 @@ export default function Listings() {
         <td><details className="more row-menu"><summary aria-label={`Actions for ${l.title}`}>…</summary><div className="menu">
           <a href={`#/p/${l.id}`}>Edit</a>
           {stateOf(l) === "published" && l.has_public_photo ? <a href={`/#/p/${l.id}`} target="_blank" rel="noopener">View on the website ↗</a> : null}
-          {stateOf(l) === "published" && <button type="button" onClick={() => act(l, "unpublish", "unpublished.")}>Unpublish</button>}
-          {stateOf(l) === "draft" && <button type="button" onClick={() => act(l, "publish", l.has_public_photo ? "published." : "published, but it needs a visible photo to appear.")}>Publish</button>}
-          {stateOf(l) !== "archived" ? <button type="button" onClick={() => act(l, "archive", "archived.")}>Archive</button>
-            : <button type="button" onClick={() => act(l, "restore", "restored as a draft.")}>Restore</button>}
+          {stateOf(l) === "published" && <button type="button" onClick={e => act(e, l, "unpublish", "unpublished.")}>Unpublish</button>}
+          {stateOf(l) === "draft" && <button type="button" onClick={e => act(e, l, "publish", l.has_public_photo ? "published." : "published, but it needs a visible photo to appear.")}>Publish</button>}
+          {stateOf(l) !== "archived" ? <button type="button" onClick={e => act(e, l, "archive", "archived.")}>Archive</button>
+            : <button type="button" onClick={e => act(e, l, "restore", "restored as a draft.")}>Restore</button>}
         </div></details></td>
       </tr>)}</tbody>
     </table> : <div className="empty card">{rows.length && (needle || use || region || avail)
