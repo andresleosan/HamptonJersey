@@ -49,13 +49,14 @@ export default function App() {
         <a href="#/solicitudes" aria-current={current === "solicitudes" ? "page" : undefined}>Solicitudes</a>
         <a href="#/usuarios" aria-current={current === "usuarios" ? "page" : undefined}>Usuarios</a>
       </nav>
+      <a href="/" className="home">Ver la web</a>
       <span className="who">{me}</span>
       <button type="button" className="btn ghost sm" onClick={logout}>Salir</button>
     </header>
     <main className="page">{page}</main>
     {/* Session expired mid-task: sign in again on top of the page so nothing typed is lost. */}
     {expired && <div className="modal" role="dialog" aria-modal="true" aria-label="Sesión caducada">
-      <Login title="Tu sesión ha caducado" note="Vuelve a entrar; lo que estabas editando sigue aquí." onSignedIn={signedIn} />
+      <Login title="Tu sesión ha caducado" note="Vuelve a entrar; lo que estabas editando sigue aquí." onSignedIn={signedIn} home={false} />
     </div>}
   </>;
 }

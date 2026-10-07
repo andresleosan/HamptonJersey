@@ -69,3 +69,5 @@ table.list{width:100%;border-collapse:collapse;background:var(--paper);border:1p
 .ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .check{display:flex;gap:6px;align-items:center;color:var(--ink);font-size:12px}
 .upload:focus-within{outline:2px solid var(--bronze);outline-offset:2px}
+.bar a.home{font-size:12px;opacity:.8} .bar a.home:hover{opacity:1}
+.login a.home{font-size:12px;color:var(--stone)}

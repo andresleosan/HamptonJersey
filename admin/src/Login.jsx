@@ -2,7 +2,7 @@ import { useState } from "react";
 import { googleIdToken, firebaseSignOut } from "./firebase.js";
 import { api } from "./api.js";
 
-export default function Login({ onSignedIn, title = "Panel de Hampton Estates", note = "Entra con tu cuenta de Google autorizada." }) {
+export default function Login({ onSignedIn, title = "Panel de Hampton Estates", note = "Entra con tu cuenta de Google autorizada.", home = true }) {
   const [state, setState] = useState({});
   const go = async () => {
     setState({ busy: true });
@@ -27,5 +27,6 @@ export default function Login({ onSignedIn, title = "Panel de Hampton Estates", 
       <button type="button" className="btn" onClick={go} disabled={state.busy}>{state.busy ? "Entrando…" : "Entrar con Google"}</button>
       {state.error && <p role="alert" className="err">{state.error}</p>}
     </>}
+    {home && <a href="/" className="home">← Volver a la web</a>}
   </section>;
 }

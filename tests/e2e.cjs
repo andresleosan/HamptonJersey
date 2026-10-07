@@ -28,6 +28,7 @@ async function publicSite(browser) {
   await page.goto(BASE);
   await page.waitForSelector("#grid .card");
   await shot(page, "home");
+  assert.equal(await page.getAttribute("footer a.staff", "href"), "/admin/", "discreet staff link in the footer");
   const body = await page.textContent("body");
   for (const word of ["Demo", "demo", "Illustrative", "snapshot", "Matterport sample"]) assert.ok(!body.includes(word), `no "${word}" on the public site`);
   const hrefs = await page.$$eval("#grid .card", cs => cs.map(c => c.getAttribute("href")));
@@ -82,9 +83,11 @@ async function admin(browser) {
   const page = await newPage(ctx, {width: 1280, height: 900});
   await page.goto(BASE + "admin/");
   await page.waitForSelector("text=Entrar con Google");
+  assert.equal(await page.getAttribute(".login a.home", "href"), "/", "login screen links back to the public site");
   await ctx.addCookies([{name: COOKIE, value: await signSession("luismadef45@gmail.com", secret), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: "Strict"}]);
   await page.reload();
   await page.waitForSelector("text=Propiedades");
+  assert.equal(await page.getAttribute("header.bar a.home", "href"), "/", "panel header links back to the public site");
   assert.match(await page.textContent(".seg"), /Publicadas4[\s\S]*Borradores1/);
   await shot(page, "admin-list");
 
