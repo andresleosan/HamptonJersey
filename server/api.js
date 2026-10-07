@@ -1,9 +1,14 @@
 import { json, fail, HttpError } from "./http.js";
 import { currentAdmin, sameOrigin } from "./auth.js";
 import publicRoutes from "./routes/public.js";
+import sessionRoutes from "./routes/session.js";
+import listingRoutes from "./routes/listings.js";
+import mediaRoutes from "./routes/media.js";
+import inboxRoutes from "./routes/inbox.js";
+import userRoutes from "./routes/users.js";
 
 // [method, path regex, handler, requiresAdmin]
-const ROUTES = [...publicRoutes];
+const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes];
 
 export async function handleApi(request, env, segments) {
   const path = "/" + segments.join("/"), method = request.method;
