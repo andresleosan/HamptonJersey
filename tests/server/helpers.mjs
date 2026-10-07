@@ -69,3 +69,20 @@ export const seedMedia = (env, over = {}) => insert(env, "media", {
   origin: "hampton", kind: "photo", label: "Kitchen.png", public: 1, position: 0, content_type: "image/jpeg",
   created_at: T0, ...over,
 });
+
+import { handleApi } from "../../server/api.js";
+import { signSession, COOKIE } from "../../server/auth.js";
+
+export const ORIGIN = "https://hampton.test";
+export async function call(env, method, path, { body, cookie, origin = ORIGIN, form } = {}) {
+  const headers = new Headers();
+  if (origin && method !== "GET") headers.set("origin", origin);
+  if (cookie) headers.set("cookie", cookie);
+  if (body !== undefined) headers.set("content-type", "application/json");
+  const req = new Request(ORIGIN + "/api" + path, {
+    method, headers, body: form ?? (body !== undefined ? JSON.stringify(body) : undefined) });
+  const segments = path.split("?")[0].slice(1).split("/").map(decodeURIComponent); // Pages hands decoded segments
+  const res = await handleApi(req, env, segments);
+  return { status: res.status, headers: res.headers, data: await res.json().catch(() => null) };
+}
+export const adminCookie = async (email = "luismadef45@gmail.com") => `${COOKIE}=${await signSession(email, SECRET)}`;
