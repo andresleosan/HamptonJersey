@@ -106,6 +106,13 @@ async function admin(browser) {
   await page.waitForSelector("text=Cambios guardados.");
   const pub = await (await page.request.get(BASE + "api/listings")).json();
   assert.equal(pub.find(p => p.id === "HE-R001").title, "Le Bernage (edited)");
+  // Field save → photo save → field save on the same listing: each must carry the fresh updated_at (no false 409).
+  await page.locator(".media-grid li").nth(1).getByLabel("Visible en la web").uncheck();
+  await page.getByRole("button", {name: "Guardar fotos"}).click();
+  await page.waitForSelector("text=Fotos guardadas.");
+  await page.fill("#f-title", "Le Bernage");
+  await page.getByRole("button", {name: "Guardar", exact: true}).click();
+  await page.waitForSelector("text=Cambios guardados.");
 
   // Review focus 1: a published listing with no public photo warns.
   await page.goto(BASE + "admin/#/p/HE-C001");

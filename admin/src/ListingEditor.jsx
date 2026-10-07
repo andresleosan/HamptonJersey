@@ -108,8 +108,10 @@ export default function ListingEditor({ id }) {
       </section>
 
       <section id="s-fotos" className="card" aria-labelledby="h-fotos"><h2 id="h-fotos">Fotos</h2>
-        <MediaManager listingId={id} media={data.media} coverId={l.cover_media_id}
-          onChange={(media, coverId) => setData(d => ({ ...d, media, listing: { ...d.listing, cover_media_id: coverId } }))} />
+        <MediaManager listingId={id} media={data.media} coverId={l.cover_media_id} updatedAt={l.updated_at}
+          onChange={(media, coverId, saved) => setData(d => ({ ...d, media, listing: saved
+            ? { ...d.listing, cover_media_id: saved.cover_media_id, updated_at: saved.updated_at, updated_by: saved.updated_by }
+            : { ...d.listing, cover_media_id: coverId } }))} />
       </section>
 
       <section id="s-tour" className="card" aria-labelledby="h-tour"><h2 id="h-tour">Tour y especificación</h2>

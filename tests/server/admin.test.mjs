@@ -88,17 +88,26 @@ test("archive → cannot publish → restore → delete only when archived and c
   assert.ok(r);
 });
 
-test("media: reorder, cover, kinds; external can never be made public", async () => {
+test("media: reorder, cover, kinds; external can never be made public; stale saves get 409", async () => {
   const { env, cookie } = await world();
   const items = [{ id: "A00002", position: 0, public: false, kind: "document", label: "Brochure" },
     { id: "A00001", position: 1, public: true, kind: "photo", label: "Kitchen" }];
-  const r = await call(env, "PUT", "/admin/listings/HE-R001/media", { cookie, body: { items, cover_media_id: "A00001" } });
+  const put = (body) => call(env, "PUT", "/admin/listings/HE-R001/media", { cookie, body });
+  assert.equal((await put({ items, cover_media_id: "A00001" })).status, 400);              // no updated_at
+  const r = await put({ items, cover_media_id: "A00001", updated_at: T0 });
   assert.equal(r.status, 200);
   assert.deepEqual(r.data.media.map(m => m.id), ["A00002", "A00001"]);
+  assert.notEqual(r.data.listing.updated_at, T0);
+  assert.equal(r.data.listing.cover_media_id, "A00001");
+  // Another admin, editor opened before that save: refused, nothing overwritten.
+  const stale = await put({ items: [{ ...items[1], public: false }], cover_media_id: null, updated_at: T0 });
+  assert.equal(stale.status, 409);
+  assert.equal((await env.DB.prepare("SELECT public FROM media WHERE id = 'A00001'").first()).public, 1);
+  const ts = r.data.listing.updated_at;
   items[0].public = true;
-  assert.match((await call(env, "PUT", "/admin/listings/HE-R001/media", { cookie, body: { items } })).data.error, /externas/);
-  assert.equal((await call(env, "PUT", "/admin/listings/HE-R001/media", { cookie, body: { items: [{ ...items[1], id: "ZZZ" }] } })).status, 400);
-  assert.equal((await call(env, "PUT", "/admin/listings/HE-R001/media", { cookie, body: { items: [items[1]], cover_media_id: "A00002" } })).status, 400);
+  assert.match((await put({ items, updated_at: ts })).data.error, /externas/);
+  assert.equal((await put({ items: [{ ...items[1], id: "ZZZ" }], updated_at: ts })).status, 400);
+  assert.equal((await put({ items: [items[1]], cover_media_id: "A00002", updated_at: ts })).status, 400);
 });
 
 test("upload accepts real images only; delete only removes uploads", async () => {

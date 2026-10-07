@@ -5,7 +5,7 @@ import { resizeImage } from "./image.js";
 
 const pick = m => ({ id: m.id, public: !!m.public, kind: m.kind, label: m.label ?? "" });
 
-export default function MediaManager({ listingId, media, coverId, onChange }) {
+export default function MediaManager({ listingId, media, coverId, updatedAt, onChange }) {
   const [saved, setSaved] = useState(media);         // last state the server confirmed
   const [items, setItems] = useState(media), [cover, setCover] = useState(coverId);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [drag, setDrag] = useState(null);
@@ -18,13 +18,15 @@ export default function MediaManager({ listingId, media, coverId, onChange }) {
     setItems([...v, ...links]);
   };
   const patch = (id, p) => setItems(list => list.map(m => (m.id === id ? { ...m, ...p } : m)));
-  const commit = (list, c) => { setSaved(list); setItems(list); onChange(list, c); };
+  const commit = (list, c, listing) => { setSaved(list); setItems(list); onChange(list, c, listing); };
 
   const save = async () => {
     setBusy(true); setMsg(null);
     try {
-      const body = { items: items.map((m, i) => ({ id: m.id, position: i, public: !!m.public, kind: m.kind, label: m.label ?? "" })), cover_media_id: cover ?? null };
-      commit((await api(`/admin/listings/${listingId}/media`, { method: "PUT", body })).media, cover ?? null);
+      const body = { items: items.map((m, i) => ({ id: m.id, position: i, public: !!m.public, kind: m.kind, label: m.label ?? "" })),
+        cover_media_id: cover ?? null, updated_at: updatedAt };
+      const r = await api(`/admin/listings/${listingId}/media`, { method: "PUT", body });
+      commit(r.media, cover ?? null, r.listing);
       setMsg({ ok: true, text: "Fotos guardadas." });
     } catch (e) { setMsg({ text: e.message }); } finally { setBusy(false); }
   };

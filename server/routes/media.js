@@ -14,10 +14,11 @@ export function sniff(buf) {
   return null;
 }
 
-async function save({ request, env, params: [id] }) {
+async function save({ request, env, admin, params: [id] }) {
   await loadListing(env, id);
-  const { items, cover_media_id = null } = (await readJson(request)) ?? {};
+  const { items, cover_media_id = null, updated_at } = (await readJson(request)) ?? {};
   if (!Array.isArray(items)) fail(400, "Formato no válido");
+  if (typeof updated_at !== "string") fail(400, "Falta updated_at: recarga la ficha");
   const { results } = await env.DB.prepare("SELECT id, origin, kind FROM media WHERE listing_id = ?").bind(id).all();
   const mine = new Map(results.map(m => [m.id, m]));
   const stmts = items.map(it => {
@@ -35,9 +36,13 @@ async function save({ request, env, params: [id] }) {
     const c = mine.get(cover_media_id);
     if (!c || c.origin === "external") fail(400, "La portada debe ser una foto propia de esta ficha");
   }
-  stmts.push(env.DB.prepare("UPDATE listings SET cover_media_id = ? WHERE id = ?").bind(cover_media_id, id));
-  await env.DB.batch(stmts);
-  return json({ media: (await ordered(env)(id)).results });
+  // Same optimistic lock as the listing fields: a stale editor gets 409 instead of overwriting.
+  const claimed = await env.DB.prepare(
+    "UPDATE listings SET cover_media_id = ?, updated_at = ?, updated_by = ? WHERE id = ? AND updated_at = ?")
+    .bind(cover_media_id, now(), admin, id, updated_at).run();
+  if (!claimed.meta.changes) fail(409, "Otra persona guardó cambios en esta ficha. Recarga para verlos (tus cambios no se han guardado).");
+  if (stmts.length) await env.DB.batch(stmts);
+  return json({ media: (await ordered(env)(id)).results, listing: await loadListing(env, id) });
 }
 
 async function upload({ request, env, admin, params: [id] }) {
