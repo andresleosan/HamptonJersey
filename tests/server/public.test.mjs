@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, seedListing, seedMedia, call, adminCookie, ORIGIN } from "./helpers.mjs";
 import { serveMedia } from "../../server/media.js";
+import { jerseyToday, EMAIL } from "../../server/viewings.js";
+import { verifyTurnstile } from "../../server/turnstile.js";
 
-const turnstile = ok => { globalThis.fetch = async () => new Response(JSON.stringify({ success: ok })); };
+const turnstile = ok => { globalThis.fetch = async () => new Response(JSON.stringify({ success: ok, hostname: "hampton.test" })); };
 const nextWeekday = () => { const d = new Date(Date.now() + 2 * 864e5); if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
 const nextSunday = () => { const d = new Date(Date.now() + 864e5); while (d.getUTCDay() !== 0) d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
 const booking = (o = {}) => ({ listing_id: "HE-R001", agent: "Gilberto Franco", kind: "In person", date: nextWeekday(),
@@ -82,3 +84,30 @@ test("cross-origin writes are blocked and unknown routes are JSON 404", async ()
   assert.equal(r.data.error, "Not found");
   assert.equal((await call(world(), "GET", "/listings%E0%A4")).status, 400); // malformed percent-encoding
 });
+
+test("M3: 'today' for viewings is the Jersey calendar day, not UTC", () => {
+  assert.equal(jerseyToday(new Date("2026-07-01T23:30:00Z")), "2026-07-02"); // BST: already tomorrow in Jersey
+  assert.equal(jerseyToday(new Date("2026-12-01T23:30:00Z")), "2026-12-01"); // GMT: same day
+});
+
+test("M4: field errors are returned without spending the Turnstile token", async () => {
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; return new Response(JSON.stringify({ success: true })); };
+  const r = await call(world(), "POST", "/viewings", { body: booking({ email: "nope" }) });
+  assert.equal(r.status, 400);
+  assert.ok(r.data.fields.email);
+  assert.equal(calls, 0);
+});
+
+test("M4: Turnstile answer must be for our hostname (test secrets exempt)", async () => {
+  const f = hostname => async () => new Response(JSON.stringify({ success: true, hostname }));
+  assert.equal(await verifyTurnstile("t", "real-secret", null, "hamptonjersey.pages.dev", f("evil.example")), false);
+  assert.equal(await verifyTurnstile("t", "real-secret", null, "hamptonjersey.pages.dev", f("hamptonjersey.pages.dev")), true);
+  assert.equal(await verifyTurnstile("t", "1x0000000000000000000000000000000AA", null, "localhost", f("example.com")), true);
+});
+
+test("M7: emails with URL metacharacters are rejected", () => {
+  for (const bad of ["a@x.com?bcc=b%40e.com", "a&b@x.com", "a@x.com/x", "a\"@x.com"]) assert.equal(EMAIL.test(bad), false, bad);
+  assert.equal(EMAIL.test("jane.le-brocq+view@example.je"), true);
+});
+

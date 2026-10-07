@@ -11,6 +11,13 @@ import userRoutes from "./routes/users.js";
 const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes];
 
 export async function handleApi(request, env, segments) {
+  const res = await route(request, env, segments);
+  // Admin and session answers carry personal data: never cache them anywhere.
+  if (/^(admin|me|session)$/.test(segments[0] ?? "")) res.headers.set("cache-control", "no-store");
+  return res;
+}
+
+async function route(request, env, segments) {
   const method = request.method;
   try {
     // Pages hands catch-all segments still percent-encoded (e.g. "x%40gmail.com").

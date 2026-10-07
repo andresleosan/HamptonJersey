@@ -166,7 +166,7 @@ test("a price needs its currency, and rent needs its period", async () => {
 
 test("a viewing request keeps its property reference after that listing is deleted", async () => {
   const { env, cookie } = await world();
-  globalThis.fetch = async () => new Response(JSON.stringify({ success: true }));
+  globalThis.fetch = async () => new Response(JSON.stringify({ success: true, hostname: "hampton.test" }));
   const d = new Date(Date.now() + 2 * 864e5); if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1);
   assert.equal((await call(env, "POST", "/viewings", { body: { listing_id: "HE-R001", kind: "In person", date: d.toISOString().slice(0, 10),
     time: "10:00", name: "Jane", email: "j@x.je", turnstile: "t" } })).status, 201);
@@ -176,5 +176,38 @@ test("a viewing request keeps its property reference after that listing is delet
   assert.equal(v.listing_id, null);
   assert.equal(v.listing_ref, "HE-R001");
   assert.equal(v.listing_title, "Le Bernage");
+});
+
+test("M8: two simultaneous creates both get an id (retry on id collision)", async () => {
+  const { env, cookie } = await world();
+  const prepare = env.DB.prepare.bind(env.DB);
+  let raced = false;
+  env.DB.prepare = sql => {
+    if (!raced && sql.startsWith("INSERT INTO listings")) {   // another admin grabs HE-R028 first
+      raced = true;
+      env.DB.raw.prepare("INSERT INTO listings (id, use, title, operation, availability, created_at, updated_at) VALUES ('HE-R028','residential','Other','sale','for_sale',?,?)").run(T0, T0);
+    }
+    return prepare(sql);
+  };
+  const r = await call(env, "POST", "/admin/listings", { cookie, body: { title: "Mine", use: "residential", operation: "sale", availability: "for_sale", country: "Jersey" } });
+  assert.equal(r.status, 201);
+  assert.equal(r.data.id, "HE-R029");
+});
+
+test("M9: admin responses are never cached", async () => {
+  const { env, cookie } = await world();
+  assert.equal((await call(env, "GET", "/admin/listings", { cookie })).headers.get("cache-control"), "no-store");
+  assert.equal((await call(env, "GET", "/me", { cookie })).headers.get("cache-control"), "no-store");
+  assert.equal((await call(env, "POST", "/session", { body: {} })).headers.get("cache-control"), "no-store");
+});
+
+test("M10: a failed media insert removes the files it just stored", async () => {
+  const { env, cookie } = await world();
+  const prepare = env.DB.prepare.bind(env.DB);
+  env.DB.prepare = sql => (sql.includes("INSERT INTO media") ? { bind: () => ({ run: async () => { throw new Error("D1 down"); } }) } : prepare(sql));
+  const f = new FormData(); f.append("file", new File([JPEG], "x")); f.append("thumb", new File([JPEG], "t"));
+  const before = env.MEDIA.store.size;
+  assert.equal((await call(env, "POST", "/admin/listings/HE-R001/media", { cookie, form: f })).status, 500);
+  assert.equal(env.MEDIA.store.size, before);
 });
 

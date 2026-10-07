@@ -63,10 +63,15 @@ async function upload({ request, env, admin, params: [id] }) {
   const pos = (await env.DB.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS p FROM media WHERE listing_id = ?").bind(id).first()).p;
   const int = v => (Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null);
   const label = String(form.get("label") || "").trim().slice(0, 200) || null;
-  await env.DB.prepare(`INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, label, public, position,
-      content_type, width, height, bytes, rights_status, created_at, created_by)
-    VALUES (?, ?, ?, ?, 'upload', ?, ?, 1, ?, ?, ?, ?, ?, 'uploaded_by_team', ?, ?)`)
-    .bind(mid, id, key, tkey, kind, label, pos, type[0], int(form.get("width")), int(form.get("height")), file.size, now(), admin).run();
+  try {
+    await env.DB.prepare(`INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, label, public, position,
+        content_type, width, height, bytes, rights_status, created_at, created_by)
+      VALUES (?, ?, ?, ?, 'upload', ?, ?, 1, ?, ?, ?, ?, ?, 'uploaded_by_team', ?, ?)`)
+      .bind(mid, id, key, tkey, kind, label, pos, type[0], int(form.get("width")), int(form.get("height")), file.size, now(), admin).run();
+  } catch (e) {
+    await env.MEDIA.delete([key, tkey]); // no orphan files when the row can't be written
+    throw e;
+  }
   return json({ media: await env.DB.prepare("SELECT * FROM media WHERE id = ?").bind(mid).first() }, 201);
 }
 

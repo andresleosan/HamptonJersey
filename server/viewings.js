@@ -1,11 +1,14 @@
 export const TIMES = ["10:00", "11:30", "14:00", "15:30", "17:00"];
 export const KINDS = ["In person", "Live video call"];
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// No URL metacharacters: the address ends up in mailto: links in the admin inbox.
+export const EMAIL = /^[^\s@?&%/\\<>"'#]+@[^\s@?&%/\\<>"'#]+\.[^\s@?&%/\\<>"'#]+$/;
+// The office is in Jersey: "today" is the Jersey calendar day (BST/GMT), not UTC.
+export const jerseyToday = (d = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Jersey" }).format(d);
 const text = (v, max) => (typeof v === "string" && v.trim() && v.trim().length <= max ? v.trim() : null);
 const realDate = s => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s)
   && new Date(s + "T12:00:00Z").toISOString().slice(0, 10) === s;
 
-// today = "YYYY-MM-DD" (UTC). Viewings: from tomorrow, within a year, Monday–Saturday.
+// today = "YYYY-MM-DD" (Jersey, see jerseyToday). Viewings: from tomorrow, within a year, Monday–Saturday.
 export function validateViewing(b, today) {
   const src = b && typeof b === "object" ? b : {};
   const errors = {}, value = {};

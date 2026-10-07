@@ -41,15 +41,24 @@ async function create({ request, env, admin }) {
   if (r.errors) return fieldErrors(r.errors);
   const priceErrors = checkPrice(r.value);
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
-  // Never reuse an id that research rows still point at.
-  const { results } = await env.DB.prepare("SELECT id FROM listings UNION SELECT property_id FROM research_properties UNION SELECT id FROM deleted_listings").all();
-  const id = nextId(results.map(x => x.id), idPrefix(r.value.use, r.value.country));
-  const ts = now();
-  const row = { ...r.value, id, published: 0, created_at: ts, updated_at: ts, updated_by: admin };
-  const cols = Object.keys(row); // whitelisted by validateListing
-  await env.DB.prepare(`INSERT INTO listings (${cols.join(", ")}) VALUES (${cols.map(() => "?").join(", ")})`)
-    .bind(...cols.map(c => row[c])).run();
-  return json({ id }, 201);
+  for (let attempt = 1; ; attempt++) {
+    // Never reuse an id that research rows or deleted listings still point at.
+    const { results } = await env.DB.prepare(
+      "SELECT id FROM listings UNION SELECT property_id FROM research_properties UNION SELECT id FROM deleted_listings").all();
+    const id = nextId(results.map(x => x.id), idPrefix(r.value.use, r.value.country));
+    const ts = now();
+    const row = { ...r.value, id, published: 0, created_at: ts, updated_at: ts, updated_by: admin };
+    const cols = Object.keys(row); // whitelisted by validateListing
+    try {
+      await env.DB.prepare(`INSERT INTO listings (${cols.join(", ")}) VALUES (${cols.map(() => "?").join(", ")})`)
+        .bind(...cols.map(c => row[c])).run();
+      return json({ id }, 201);
+    } catch (e) {
+      // Another admin created a listing with the same id at the same moment: take the next one.
+      if (attempt < 3 && /UNIQUE|PRIMARY KEY/i.test(String(e?.message))) continue;
+      throw e;
+    }
+  }
 }
 
 async function update({ request, env, admin, params: [id] }) {

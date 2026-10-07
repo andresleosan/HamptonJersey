@@ -1,6 +1,5 @@
 import { json, fail, readJson, now } from "../http.js";
-
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { EMAIL } from "../viewings.js";
 
 const list = async ({ env }) => json({ users: (await env.DB.prepare("SELECT * FROM admins ORDER BY email").all()).results });
 

@@ -1,6 +1,6 @@
 import { json, fail, readJson, now } from "../http.js";
 import { toPublic } from "../listing.js";
-import { validateViewing } from "../viewings.js";
+import { validateViewing, jerseyToday } from "../viewings.js";
 import { verifyTurnstile } from "../turnstile.js";
 
 export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
@@ -19,14 +19,15 @@ const config = ({ env }) => json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY }, 2
 
 async function createViewing({ request, env }) {
   const body = await readJson(request);
-  if (!(await verifyTurnstile(body?.turnstile, env.TURNSTILE_SECRET, request.headers.get("cf-connecting-ip"))))
-    fail(400, "The anti-spam check expired or failed. Please try again.");
-  const r = validateViewing(body, now().slice(0, 10));
+  // Cheap checks first: the single-use Turnstile token is only spent on an otherwise valid request.
+  const r = validateViewing(body, jerseyToday());
   if (r.errors) return json({ error: "Please check the highlighted fields.", fields: r.errors }, 400);
   const v = r.value;
   const listing = v.listing_id && await env.DB.prepare(
     "SELECT title FROM listings WHERE id = ? AND published = 1 AND archived_at IS NULL").bind(v.listing_id).first();
   if (v.listing_id && !listing) fail(400, "That property is no longer available. Choose another or send a general enquiry.");
+  if (!(await verifyTurnstile(body.turnstile, env.TURNSTILE_SECRET, request.headers.get("cf-connecting-ip"), new URL(request.url).hostname)))
+    fail(400, "The anti-spam check expired or failed. Please try again.");
   await env.DB.prepare(`INSERT INTO viewing_requests (listing_id, listing_ref, listing_title_snapshot, agent, kind, date, time,
       name, email, phone, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
     .bind(v.listing_id, v.listing_id, listing ? listing.title : null, v.agent, v.kind, v.date, v.time, v.name, v.email, v.phone, now()).run();
