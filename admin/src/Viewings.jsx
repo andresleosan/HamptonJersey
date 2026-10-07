@@ -24,7 +24,9 @@ export default function Viewings() {
         <thead><tr><th scope="col">Recibida</th><th scope="col">Propiedad</th><th scope="col">Visita</th><th scope="col">Contacto</th><th scope="col">Estado</th><th scope="col"><span className="sr">Acciones</span></th></tr></thead>
         <tbody>{data.viewings.map(v => <tr key={v.id}>
           <td className="muted">{fmtDate(v.created_at)}</td>
-          <td>{v.listing_id ? <a href={`#/p/${v.listing_id}`}>{v.listing_title || v.listing_id}</a> : "Consulta general / tasación"}</td>
+          <td>{v.listing_id ? <a href={`#/p/${v.listing_id}`}>{v.listing_title || v.listing_id}</a>
+            : v.listing_ref ? <>{v.listing_title || v.listing_ref} <span className="muted">({v.listing_ref}, ficha borrada)</span></>
+            : "Consulta general / tasación"}</td>
           <td className="num">{v.date} · {v.time}<div className="muted">{v.kind}{v.agent ? ` · con ${v.agent}` : ""}</div></td>
           <td>{v.name}<div><a href={`mailto:${v.email}`}>{v.email}</a>{v.phone && <> · <a href={`tel:${v.phone.replace(/[^\d+]/g, "")}`}>{v.phone}</a></>}</div></td>
           <td><select aria-label={`Estado de la solicitud de ${v.name}`} value={v.status} onChange={e => change(v, e.target.value)}>

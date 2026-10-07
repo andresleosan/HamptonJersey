@@ -6,7 +6,7 @@ async function list({ request, env }) {
   const status = new URL(request.url).searchParams.get("status");
   if (status && !STATUSES.includes(status)) fail(400, "Estado no válido");
   const { results: viewings } = await env.DB.prepare(
-    `SELECT v.*, l.title AS listing_title FROM viewing_requests v LEFT JOIN listings l ON l.id = v.listing_id
+    `SELECT v.*, COALESCE(l.title, v.listing_title_snapshot) AS listing_title FROM viewing_requests v LEFT JOIN listings l ON l.id = v.listing_id
      ${status ? "WHERE v.status = ?" : ""} ORDER BY v.created_at DESC LIMIT 500`).bind(...(status ? [status] : [])).all();
   const { results } = await env.DB.prepare("SELECT status, COUNT(*) AS n FROM viewing_requests GROUP BY status").all();
   const counts = Object.fromEntries(STATUSES.map(s => [s, results.find(r => r.status === s)?.n ?? 0]));

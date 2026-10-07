@@ -24,12 +24,12 @@ async function createViewing({ request, env }) {
   const r = validateViewing(body, now().slice(0, 10));
   if (r.errors) return json({ error: "Please check the highlighted fields.", fields: r.errors }, 400);
   const v = r.value;
-  if (v.listing_id && !(await env.DB.prepare(
-    "SELECT 1 FROM listings WHERE id = ? AND published = 1 AND archived_at IS NULL").bind(v.listing_id).first()))
-    fail(400, "That property is no longer available. Choose another or send a general enquiry.");
-  await env.DB.prepare(
-    "INSERT INTO viewing_requests (listing_id, agent, kind, date, time, name, email, phone, created_at) VALUES (?,?,?,?,?,?,?,?,?)")
-    .bind(v.listing_id, v.agent, v.kind, v.date, v.time, v.name, v.email, v.phone, now()).run();
+  const listing = v.listing_id && await env.DB.prepare(
+    "SELECT title FROM listings WHERE id = ? AND published = 1 AND archived_at IS NULL").bind(v.listing_id).first();
+  if (v.listing_id && !listing) fail(400, "That property is no longer available. Choose another or send a general enquiry.");
+  await env.DB.prepare(`INSERT INTO viewing_requests (listing_id, listing_ref, listing_title_snapshot, agent, kind, date, time,
+      name, email, phone, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+    .bind(v.listing_id, v.listing_id, listing ? listing.title : null, v.agent, v.kind, v.date, v.time, v.name, v.email, v.phone, now()).run();
   return json({ ok: true }, 201);
 }
 

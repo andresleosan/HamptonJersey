@@ -164,3 +164,17 @@ test("a price needs its currency, and rent needs its period", async () => {
   assert.equal((await call(env, "PUT", "/admin/listings/HE-R001", { cookie, body: { operation: "rent", rent: 1500, rent_period: "month", updated_at: T0 } })).status, 200);
 });
 
+test("a viewing request keeps its property reference after that listing is deleted", async () => {
+  const { env, cookie } = await world();
+  globalThis.fetch = async () => new Response(JSON.stringify({ success: true }));
+  const d = new Date(Date.now() + 2 * 864e5); if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1);
+  assert.equal((await call(env, "POST", "/viewings", { body: { listing_id: "HE-R001", kind: "In person", date: d.toISOString().slice(0, 10),
+    time: "10:00", name: "Jane", email: "j@x.je", turnstile: "t" } })).status, 201);
+  await call(env, "POST", "/admin/listings/HE-R001/archive", { cookie });
+  assert.equal((await call(env, "DELETE", "/admin/listings/HE-R001", { cookie, body: { confirm: "HE-R001" } })).status, 200);
+  const [v] = (await call(env, "GET", "/admin/viewings?status=new", { cookie })).data.viewings;
+  assert.equal(v.listing_id, null);
+  assert.equal(v.listing_ref, "HE-R001");
+  assert.equal(v.listing_title, "Le Bernage");
+});
+
