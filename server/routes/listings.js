@@ -12,7 +12,7 @@ const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availabi
 
 export async function loadListing(env, id) {
   const l = await env.DB.prepare("SELECT * FROM listings WHERE id = ?").bind(id).first();
-  if (!l) fail(404, "Propiedad no encontrada");
+  if (!l) fail(404, "Listing not found");
   return { ...l, specs: JSON.parse(l.specs || "[]") };
 }
 
@@ -36,7 +36,7 @@ async function detail({ env, params: [id] }) {
   return json({ listing, media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates });
 }
 
-const fieldErrors = errors => json({ error: "Revisa los campos marcados", fields: errors }, 400);
+const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
 
 async function create({ request, env, admin }) {
   const r = validateListing(await readJson(request));
@@ -65,11 +65,11 @@ async function create({ request, env, admin }) {
 
 async function update({ request, env, admin, params: [id] }) {
   const body = await readJson(request);
-  if (typeof body?.updated_at !== "string") fail(400, "Falta updated_at: recarga la ficha");
+  if (typeof body?.updated_at !== "string") fail(400, "Missing updated_at: reload the listing");
   const r = validateListing(body, { partial: true });
   if (r.errors) return fieldErrors(r.errors);
   const cols = Object.keys(r.value);
-  if (!cols.length) fail(400, "No hay cambios que guardar");
+  if (!cols.length) fail(400, "Nothing to save");
   const priceErrors = checkPrice({ ...(await loadListing(env, id)), ...r.value });
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
   const res = await env.DB.prepare(
@@ -77,16 +77,16 @@ async function update({ request, env, admin, params: [id] }) {
     .bind(...cols.map(c => r.value[c]), now(), admin, id, body.updated_at).run();
   if (!res.meta.changes) {
     await loadListing(env, id); // 404 if it no longer exists
-    fail(409, "Otra persona guardó cambios en esta ficha. Recarga para verlos (tus cambios no se han guardado).");
+    fail(409, "Someone else saved changes to this listing. Reload to see them (your changes were not saved).");
   }
   return json({ listing: await loadListing(env, id) });
 }
 
 async function setState({ env, admin, params: [id, action] }) {
   const l = await loadListing(env, id);
-  if (action === "publish" && l.archived_at) fail(400, "Restaura la ficha antes de publicarla");
-  if (action === "archive" && l.archived_at) fail(400, "La ficha ya está archivada");
-  if (action === "restore" && !l.archived_at) fail(400, "La ficha no está archivada");
+  if (action === "publish" && l.archived_at) fail(400, "Restore the listing before publishing it");
+  if (action === "archive" && l.archived_at) fail(400, "The listing is already archived");
+  if (action === "restore" && !l.archived_at) fail(400, "The listing isn't archived");
   const ts = now();
   const patch = { publish: { published: 1 }, unpublish: { published: 0 }, archive: { published: 0, archived_at: ts },
     restore: { archived_at: null } }[action];
@@ -98,8 +98,8 @@ async function setState({ env, admin, params: [id, action] }) {
 
 async function remove({ request, env, admin, params: [id] }) {
   const l = await loadListing(env, id);
-  if (!l.archived_at) fail(400, "Solo se pueden borrar fichas archivadas");
-  if ((await readJson(request))?.confirm !== id) fail(400, `Escribe ${id} para confirmar el borrado`);
+  if (!l.archived_at) fail(400, "Only archived listings can be deleted");
+  if ((await readJson(request))?.confirm !== id) fail(400, `Type ${id} to confirm deletion`);
   const { results } = await env.DB.prepare("SELECT r2_key, thumb_key FROM media WHERE listing_id = ? AND origin = 'upload'").bind(id).all();
   await env.DB.batch([
     env.DB.prepare("DELETE FROM media WHERE listing_id = ?").bind(id),

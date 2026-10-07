@@ -2,6 +2,6 @@
 export let unsaved = false;
 export const setUnsaved = v => { unsaved = v; };
 export const confirmLeave = e => {
-  if (unsaved && !confirm("Hay cambios sin guardar en la ficha. ¿Salir sin guardarlos?")) { e?.preventDefault(); return false; }
+  if (unsaved && !confirm("This listing has unsaved changes. Leave without saving them?")) { e?.preventDefault(); return false; }
   return true;
 };

@@ -18,11 +18,11 @@ test("create needs title, use, operation and availability", () => {
 test("partial update only touches the fields sent and ignores locked ones", () => {
   const r = validateListing({ title: " New ", published: 1, id: "HE-R999" }, { partial: true });
   assert.deepEqual(r.value, { title: "New" });
-  assert.equal(validateListing({ title: "" }, { partial: true }).errors.title, "Obligatorio");
+  assert.equal(validateListing({ title: "" }, { partial: true }).errors.title, "Required");
 });
 
 test("prices: positive or null, never zero; integers for rooms", () => {
-  assert.match(validateListing({ sale_price: 0 }, { partial: true }).errors.sale_price, /mayor que 0/);
+  assert.match(validateListing({ sale_price: 0 }, { partial: true }).errors.sale_price, /above 0/);
   assert.equal(validateListing({ sale_price: "" }, { partial: true }).value.sale_price, null);
   assert.ok(validateListing({ bedrooms: 2.5 }, { partial: true }).errors.bedrooms);
   assert.ok(validateListing({ currency: "USD" }, { partial: true }).errors.currency);

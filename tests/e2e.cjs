@@ -90,80 +90,80 @@ async function admin(browser) {
   const ctx = await browser.newContext();
   const page = await newPage(ctx, {width: 1280, height: 900});
   await page.goto(BASE + "admin/");
-  await page.waitForSelector("text=Entrar con Google");
+  await page.waitForSelector("text=Sign in with Google");
   assert.equal(await page.getAttribute(".login a.home", "href"), "/", "login screen links back to the public site");
   await ctx.addCookies([{name: COOKIE, value: await signSession("luismadef45@gmail.com", secret), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: "Strict"}]);
   await page.reload();
-  await page.waitForSelector("text=Propiedades");
+  await page.waitForSelector("text=Listings");
   assert.equal(await page.getAttribute("header.bar a.home", "href"), "/", "panel header links back to the public site");
-  assert.match(await page.textContent(".seg"), /Publicadas4[\s\S]*Borradores1/);
+  assert.match(await page.textContent(".seg"), /Published4[\s\S]*Drafts1/);
   await shot(page, "admin-list");
 
   await page.click('a[href="#/p/HE-R001"]');
   await page.waitForSelector("#f-title");
-  assert.ok(await page.isVisible("text=Privada · referencia"));
+  assert.ok(await page.isVisible("text=Private · reference"));
   await page.fill("#f-title", "Le Bernage (edited)");
   // Review focus 2: session lost mid-edit → login dialog, typed text kept.
   await ctx.clearCookies();
-  await page.getByRole("button", {name: "Guardar", exact: true}).click();
-  await page.waitForSelector('[role=dialog] >> text=Tu sesión ha caducado');
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector('[role=dialog] >> text=Your session has expired');
   assert.equal(await page.inputValue("#f-title"), "Le Bernage (edited)");
   // M11: focus moves into the dialog and the page behind it is inert.
-  assert.equal(await page.evaluate(() => document.activeElement.textContent), "Entrar con Google");
+  assert.equal(await page.evaluate(() => document.activeElement.textContent), "Sign in with Google");
   assert.equal(await page.getAttribute("main.page", "inert"), "");
   // Signing in again needs Google; simulate it with a fresh cookie and a reload.
   await ctx.addCookies([{name: COOKIE, value: await signSession("luismadef45@gmail.com", secret), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: "Strict"}]);
   await page.reload();
   await page.waitForSelector("#f-title");
   await page.fill("#f-title", "Le Bernage (edited)");
-  await page.getByRole("button", {name: "Guardar", exact: true}).click();
-  await page.waitForSelector("text=Cambios guardados.");
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector("text=Changes saved.");
   const pub = await (await page.request.get(BASE + "api/listings")).json();
   assert.equal(pub.find(p => p.id === "HE-R001").title, "Le Bernage (edited)");
   // Field save → photo save → field save on the same listing: each must carry the fresh updated_at (no false 409).
-  await page.locator(".media-grid li").nth(1).getByLabel("Visible en la web").uncheck();
-  await page.getByRole("button", {name: "Guardar fotos"}).click();
-  await page.waitForSelector("text=Fotos guardadas.");
+  await page.locator(".media-grid li").nth(1).getByLabel("Visible on the website").uncheck();
+  await page.getByRole("button", {name: "Save photos"}).click();
+  await page.waitForSelector("text=Photos saved.");
   await page.fill("#f-title", "Le Bernage");
-  await page.getByRole("button", {name: "Guardar", exact: true}).click();
-  await page.waitForSelector("text=Cambios guardados.");
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector("text=Changes saved.");
 
   // Review focus 1: a published listing with no public photo warns.
   await page.goto(BASE + "admin/#/p/HE-C001");
   await page.waitForSelector("#f-title");
-  await page.uncheck(".media-grid li >> text=Visible en la web");
-  await page.getByRole("button", {name: "Guardar fotos"}).click();
-  await page.waitForSelector("text=Fotos guardadas.");
+  await page.uncheck(".media-grid li >> text=Visible on the website");
+  await page.getByRole("button", {name: "Save photos"}).click();
+  await page.waitForSelector("text=Photos saved.");
   await page.reload();
-  await page.waitForSelector("text=sin foto pública");
+  await page.waitForSelector("text=no public photo");
   // M1: publishing it says it will NOT show, and the table marks it.
-  await page.getByRole("button", {name: "Despublicar", exact: true}).click();
-  await page.waitForSelector("text=Despublicada");
-  await page.getByRole("button", {name: "Publicar", exact: true}).click();
-  await page.waitForSelector("text=no aparecerá en la web");
+  await page.getByRole("button", {name: "Unpublish", exact: true}).click();
+  await page.waitForSelector("text=Unpublished");
+  await page.getByRole("button", {name: "Publish", exact: true}).click();
+  await page.waitForSelector("text=won't appear on the website");
   await page.goto(BASE + "admin/#/");
-  await page.waitForSelector('tr:has-text("HE-C001") >> text=sin foto');
+  await page.waitForSelector('tr:has-text("HE-C001") >> text=no photo');
 
   await page.goto(BASE + "admin/#/p/HE-R002");
   await page.waitForSelector("#f-title");
   page.once("dialog", d => d.accept());
-  await page.getByRole("button", {name: "Archivar", exact: true}).click();
-  await page.waitForSelector("text=Archivada.");
+  await page.getByRole("button", {name: "Archive", exact: true}).click();
+  await page.waitForSelector("text=Archived.");
   // M2: Restaurar can't silently drop typed edits; "Salir" asks first.
   await page.fill("#f-title", "Trinity rental (typing)");
-  assert.ok(await page.getByRole("button", {name: "Restaurar", exact: true}).isDisabled());
+  assert.ok(await page.getByRole("button", {name: "Restore", exact: true}).isDisabled());
   page.once("dialog", d => d.dismiss());
-  await page.getByRole("button", {name: "Salir", exact: true}).click();
+  await page.getByRole("button", {name: "Sign out", exact: true}).click();
   assert.equal(await page.inputValue("#f-title"), "Trinity rental (typing)", "still in the editor after cancelling Salir");
   await page.fill("#f-title", "Trinity rental");
   const after = await (await page.request.get(BASE + "api/listings")).json();
   assert.ok(!after.some(p => p.id === "HE-R002"), "archived listing leaves the public site");
-  await page.getByRole("button", {name: "Restaurar", exact: true}).click();
-  await page.waitForSelector("text=Restaurada como borrador.");
+  await page.getByRole("button", {name: "Restore", exact: true}).click();
+  await page.waitForSelector("text=Restored as a draft.");
 
-  await page.goto(BASE + "admin/#/solicitudes");
+  await page.goto(BASE + "admin/#/viewings");
   await page.waitForSelector("text=Jane Le Brocq");
-  await page.goto(BASE + "admin/#/usuarios");
+  await page.goto(BASE + "admin/#/users");
   await page.waitForSelector("text=andres.san1404@gmail.com");
   await shot(page, "admin-users");
   assert.deepEqual(page.errors, []);

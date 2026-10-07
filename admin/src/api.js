@@ -10,7 +10,7 @@ export async function api(path, { method = "GET", body, form } = {}) {
       headers: body !== undefined ? { "content-type": "application/json" } : undefined,
       body: form ?? (body !== undefined ? JSON.stringify(body) : undefined),
     });
-  } catch { throw new ApiError(0, "Sin conexión con el servidor. Revisa tu red e inténtalo de nuevo."); }
+  } catch { throw new ApiError(0, "Can't reach the server. Check your connection and try again."); }
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     if (res.status === 401 && path !== "/session") window.dispatchEvent(new Event("hs:signed-out"));

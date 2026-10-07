@@ -34,6 +34,7 @@ Sustituir el demo por el catálogo real de Hampton Estates. El equipo entra con 
 | D16 | Los tours y fotos de otras agencias (Vimeo HE-R001, spec.co HE-R018) no se publican; solo aparecen como referencia en el panel | Claude (por el README: derechos sin verificar) | Este documento |
 | D17 | Los 3 registros legacy (HE-X001–003) entran archivados; HE-R007/HE-R013 muestran aviso de posible duplicado | Claude, sección 2 aprobada | Sección 2 |
 | D18 | El otro proyecto Pages `hamptonestatesjersey` (repo `Hampton`) no se toca | Claude (supuesto avisado, sin objeción) | Mensaje de enfoques |
+| D19 | Todo en inglés: el panel `/admin` y los mensajes de la API de admin también (cambia lo que decía "panel en español") | Luis | "el idioma de la web debe ser ingles" (2026-10-07) |
 
 ## 3. Arquitectura
 

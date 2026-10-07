@@ -106,7 +106,7 @@ test("media: reorder, cover, kinds; external can never be made public; stale sav
   assert.equal((await env.DB.prepare("SELECT public FROM media WHERE id = 'A00001'").first()).public, 1);
   const ts = r.data.listing.updated_at;
   items[0].public = true;
-  assert.match((await put({ items, updated_at: ts })).data.error, /externas/);
+  assert.match((await put({ items, updated_at: ts })).data.error, /External photos/);
   assert.equal((await put({ items: [{ ...items[1], id: "ZZZ" }], updated_at: ts })).status, 400);
   assert.equal((await put({ items: [items[1]], cover_media_id: "A00002", updated_at: ts })).status, 400);
 });

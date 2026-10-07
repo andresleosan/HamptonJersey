@@ -18,29 +18,29 @@ const blank = v => v === null || v === undefined || (typeof v === "string" && v.
 const bad = msg => { throw new Error(msg); };
 
 function checkSpecs(v) {
-  if (!Array.isArray(v) || v.length > 60) bad("Máximo 60 filas");
+  if (!Array.isArray(v) || v.length > 60) bad("At most 60 rows");
   return v.map(s => {
     const [group, label, value] = ["group", "label", "value"].map(k => (typeof s?.[k] === "string" ? s[k].trim() : ""));
-    if (!label || !value) bad("Cada fila necesita dato y valor");
-    if (group.length > 60 || label.length > 100 || value.length > 300) bad("Fila demasiado larga");
+    if (!label || !value) bad("Each row needs a label and a value");
+    if (group.length > 60 || label.length > 100 || value.length > 300) bad("Row too long");
     return { group, label, value };
   });
 }
 
 function check(k, v) {
-  if (blank(v)) return REQUIRED.includes(k) ? bad("Obligatorio") : k === "specs" ? "[]" : null;
-  if (k in ENUMS) return ENUMS[k].includes(v) ? v : bad(`Valor no válido (${ENUMS[k].join(", ")})`);
+  if (blank(v)) return REQUIRED.includes(k) ? bad("Required") : k === "specs" ? "[]" : null;
+  if (k in ENUMS) return ENUMS[k].includes(v) ? v : bad(`Invalid value (${ENUMS[k].join(", ")})`);
   if (k in TEXT) {
-    if (typeof v !== "string") bad("Debe ser texto");
+    if (typeof v !== "string") bad("Must be text");
     const s = v.trim();
-    if (s.length > TEXT[k]) bad(`Máximo ${TEXT[k]} caracteres`);
-    if (k === "tour_url" && !/^https:\/\/\S+$/i.test(s)) bad("Debe empezar por https://");
+    if (s.length > TEXT[k]) bad(`At most ${TEXT[k]} characters`);
+    if (k === "tour_url" && !/^https:\/\/\S+$/i.test(s)) bad("Must start with https://");
     return s;
   }
-  if (INTS.includes(k)) return Number.isInteger(v) && v >= 0 && v <= 100 ? v : bad("Número entero entre 0 y 100");
+  if (INTS.includes(k)) return Number.isInteger(v) && v >= 0 && v <= 100 ? v : bad("Whole number from 0 to 100");
   if (MONEY.includes(k)) {
     return typeof v === "number" && Number.isFinite(v) && v > 0 && v < 1e10 ? v
-      : bad("Importe mayor que 0, o vacío si no se conoce");
+      : bad("Amount above 0, or leave blank if unknown");
   }
   return JSON.stringify(checkSpecs(v)); // specs
 }
@@ -50,7 +50,7 @@ export function validateListing(input, { partial = false } = {}) {
   const src = input && typeof input === "object" && !Array.isArray(input) ? input : {};
   const value = {}, errors = {};
   for (const k of EDITABLE) {
-    if (!(k in src)) { if (!partial && REQUIRED.includes(k)) errors[k] = "Obligatorio"; continue; }
+    if (!(k in src)) { if (!partial && REQUIRED.includes(k)) errors[k] = "Required"; continue; }
     try { value[k] = check(k, src[k]); } catch (e) { errors[k] = e.message; }
   }
   return Object.keys(errors).length ? { errors } : { value };
@@ -59,8 +59,8 @@ export function validateListing(input, { partial = false } = {}) {
 // Cross-field rules, checked on the full row (create, or stored row merged with an update).
 export function checkPrice(row) {
   const errors = {};
-  if (["sale_price", "rent", "premium"].some(k => row[k] != null) && !row.currency) errors.currency = "Elige la moneda del precio";
-  if (row.rent != null && !row.rent_period) errors.rent_period = "Indica si el alquiler es al mes o al año";
+  if (["sale_price", "rent", "premium"].some(k => row[k] != null) && !row.currency) errors.currency = "Choose the price currency";
+  if (row.rent != null && !row.rent_period) errors.rent_period = "Say whether the rent is per month or per year";
   return errors;
 }
 

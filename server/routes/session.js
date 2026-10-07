@@ -3,11 +3,11 @@ import { verifyFirebaseToken, signSession, sessionCookie, SESSION_HOURS } from "
 
 async function signIn({ request, env }) {
   const { idToken } = (await readJson(request)) ?? {};
-  if (typeof idToken !== "string" || !idToken) fail(400, "Falta el token de Google");
+  if (typeof idToken !== "string" || !idToken) fail(400, "Missing Google token");
   let email;
   try { email = await verifyFirebaseToken(idToken, env.FIREBASE_PROJECT_ID); }
-  catch { fail(401, "No se pudo verificar el acceso con Google. Inténtalo de nuevo."); }
-  if (!(await env.DB.prepare("SELECT 1 FROM admins WHERE email = ?").bind(email).first())) fail(403, "Esta cuenta no tiene acceso");
+  catch { fail(401, "Couldn't verify your Google sign-in. Please try again."); }
+  if (!(await env.DB.prepare("SELECT 1 FROM admins WHERE email = ?").bind(email).first())) fail(403, "This account doesn't have access");
   const value = await signSession(email, env.SESSION_SECRET);
   return json({ email }, 200, { "set-cookie": sessionCookie(value, SESSION_HOURS * 3600) });
 }

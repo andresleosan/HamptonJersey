@@ -30,13 +30,13 @@ export default function App() {
   }, []);
 
   const signedIn = email => { setMe(email); setExpired(false); };
-  if (me === undefined) return <p className="center">Cargando…</p>;
+  if (me === undefined) return <p className="center">Loading…</p>;
   if (me === null) return <main className="center"><Login onSignedIn={signedIn} /></main>;
 
   const [section, arg] = hash.replace(/^#\/?/, "").split("/");
   const page = section === "p" && arg ? <ListingEditor key={arg} id={decodeURIComponent(arg)} />
-    : section === "solicitudes" ? <Viewings /> : section === "usuarios" ? <Users me={me} /> : <Listings />;
-  const current = section === "solicitudes" || section === "usuarios" ? section : "";
+    : section === "viewings" ? <Viewings /> : section === "users" ? <Users me={me} /> : <Listings />;
+  const current = section === "viewings" || section === "users" ? section : "";
   const logout = async () => {
     if (!confirmLeave()) return;
     await api("/session", { method: "DELETE" }).catch(() => {});
@@ -45,20 +45,20 @@ export default function App() {
   };
   return <>
     <header className="bar" inert={expired} onClick={e => { if (e.target.closest("a")) confirmLeave(e); }}>
-      <a href="#/" className="brand">Hampton Estates · Panel</a>
-      <nav aria-label="Secciones">
-        <a href="#/" aria-current={current === "" ? "page" : undefined}>Propiedades</a>
-        <a href="#/solicitudes" aria-current={current === "solicitudes" ? "page" : undefined}>Solicitudes</a>
-        <a href="#/usuarios" aria-current={current === "usuarios" ? "page" : undefined}>Usuarios</a>
+      <a href="#/" className="brand">Hampton Estates · Admin</a>
+      <nav aria-label="Sections">
+        <a href="#/" aria-current={current === "" ? "page" : undefined}>Listings</a>
+        <a href="#/viewings" aria-current={current === "viewings" ? "page" : undefined}>Viewing requests</a>
+        <a href="#/users" aria-current={current === "users" ? "page" : undefined}>Users</a>
       </nav>
-      <a href="/" className="home">Ver la web</a>
+      <a href="/" className="home">View website</a>
       <span className="who">{me}</span>
-      <button type="button" className="btn ghost sm" onClick={logout}>Salir</button>
+      <button type="button" className="btn ghost sm" onClick={logout}>Sign out</button>
     </header>
     <main className="page" inert={expired}>{page}</main>
     {/* Session expired mid-task: sign in again on top of the page so nothing typed is lost. */}
-    {expired && <div className="modal" role="dialog" aria-modal="true" aria-label="Sesión caducada">
-      <Login title="Tu sesión ha caducado" note="Vuelve a entrar; lo que estabas editando sigue aquí." onSignedIn={signedIn} home={false} />
+    {expired && <div className="modal" role="dialog" aria-modal="true" aria-label="Session expired">
+      <Login title="Your session has expired" note="Sign in again; what you were editing is still here." onSignedIn={signedIn} home={false} />
     </div>}
   </>;
 }

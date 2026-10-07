@@ -10,18 +10,18 @@ const Table = ({ rows, cols, caption }) => rows.length ? <table className="list 
 
 export default function Research({ data }) {
   const r = data.research;
-  if (!r) return <p className="muted">Esta ficha no viene de la investigación.</p>;
-  const facts = [["Coincidencia", r.match_status], ["Confianza", r.match_confidence], ["Motivo", r.match_reason],
-    ["Evidencia publicitaria", r.advertising_evidence_class], ["Qué falta", r.missing_information], ["Siguiente acción", r.next_action],
-    ["Base de la evidencia", r.evidence_basis], ["Fecha de investigación", r.research_date]].filter(([, v]) => v);
+  if (!r) return <p className="muted">This listing has no research record.</p>;
+  const facts = [["Match", r.match_status], ["Confidence", r.match_confidence], ["Reason", r.match_reason],
+    ["Advertising evidence", r.advertising_evidence_class], ["Missing", r.missing_information], ["Next action", r.next_action],
+    ["Evidence basis", r.evidence_basis], ["Research date", r.research_date]].filter(([, v]) => v);
   return <div className="research">
     <dl className="kv">{facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
     {data.issues.length > 0 && <><h3>Issues ({data.issues.length})</h3><ul className="issues">{data.issues.map(i =>
       <li key={i.issue_id}><b>{i.severity}</b> · {i.field}: {i.issue}{i.proposed_action && <div className="muted">→ {i.proposed_action}</div>}</li>)}</ul></>}
-    <Table caption="Fuentes" rows={data.sources} cols={[["title", "Fuente"], ["origin", "Origen"], ["source_type", "Tipo"], ["observed_status", "Estado visto"], ["price_text", "Precio visto"], ["source_date", "Fecha"]]} />
-    <Table caption="Datos (facts)" rows={data.facts} cols={[["field", "Campo"], ["value", "Valor"], ["confidence", "Confianza"], ["origin", "Origen"]]} />
-    <Table caption="Términos financieros" rows={data.terms} cols={[["term_type", "Tipo"], ["amount", "Importe"], ["currency", "Moneda"], ["period", "Periodo"], ["qualifier", "Matiz"]]} />
-    <details><summary>Búsquedas realizadas ({data.searches.length})</summary>
-      <Table caption="Búsquedas" rows={data.searches} cols={[["date", "Fecha"], ["query", "Consulta"], ["outcome", "Resultado"]]} /></details>
+    <Table caption="Sources" rows={data.sources} cols={[["title", "Source"], ["origin", "Origin"], ["source_type", "Type"], ["observed_status", "Status seen"], ["price_text", "Price seen"], ["source_date", "Date"]]} />
+    <Table caption="Facts" rows={data.facts} cols={[["field", "Field"], ["value", "Value"], ["confidence", "Confidence"], ["origin", "Origin"]]} />
+    <Table caption="Financial terms" rows={data.terms} cols={[["term_type", "Type"], ["amount", "Amount"], ["currency", "Currency"], ["period", "Period"], ["qualifier", "Qualifier"]]} />
+    <details><summary>Searches made ({data.searches.length})</summary>
+      <Table caption="Searches" rows={data.searches} cols={[["date", "Date"], ["query", "Query"], ["outcome", "Outcome"]]} /></details>
   </div>;
 }

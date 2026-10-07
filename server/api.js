@@ -28,13 +28,13 @@ async function route(request, env, segments) {
       const hit = m === method && re.exec(path);
       if (!hit) continue;
       const admin = auth ? await currentAdmin(request, env) : null;
-      if (auth && !admin) fail(401, "Inicia sesión para continuar");
+      if (auth && !admin) fail(401, "Please sign in to continue");
       return await handler({ request, env, admin, params: hit.slice(1) });
     }
     fail(404, "Not found");
   } catch (e) {
     if (e instanceof HttpError) return json({ error: e.message }, e.status);
     console.error(e);
-    return json({ error: "Error del servidor. Inténtalo de nuevo." }, 500);
+    return json({ error: "Server error. Please try again." }, 500);
   }
 }

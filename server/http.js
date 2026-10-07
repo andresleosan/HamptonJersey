@@ -7,7 +7,7 @@ export class HttpError extends Error {
 export const fail = (status, message) => { throw new HttpError(status, message); };
 
 export async function readJson(request) {
-  try { return await request.json(); } catch { fail(400, "Cuerpo JSON no válido"); }
+  try { return await request.json(); } catch { fail(400, "Invalid JSON body"); }
 }
 
 export const now = () => new Date().toISOString();
