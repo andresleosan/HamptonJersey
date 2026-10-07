@@ -77,6 +77,9 @@ nav.main a:hover{color:var(--bronze)}
 .search select{width:100%;min-width:0}
 .search select:disabled{color:var(--stone)}
 .search .btn{border:0}
+.hero .cta{display:flex;flex-wrap:wrap;gap:12px}
+.hero .btn.ghost{color:#fff;border-color:#fff}
+.hero .btn.ghost:hover{background:#fff;color:var(--ink)}
 @media (max-width:760px){.search{grid-template-columns:1fr 1fr}.search label{border-bottom:1px solid var(--line)}.search .btn{grid-column:span 2}}
 
 /* sections */
@@ -360,14 +363,25 @@ function mountBooking(slot, pre = {}) {
 
 // ---------- pages ----------
 function home() {
+  // ponytail: with only a few listings the home is a showcase (no search or filters); they come back at FEW_MAX + 1.
+  const FEW_MAX = 5, few = PUB.length <= FEW_MAX;
   const feat = PUB.find(p => p.featured) || PUB.find(p => p.tourUrl || p.aerial) || PUB[0];
-  const featChips = [feat.tourUrl && "3D tour", feat.aerial && "Aerial view", feat.floorplans.length && "Floor plans",
-    feat.operation === "sale" && feat.salePrice != null && "Mortgage calculator", "Book with an agent"].filter(Boolean);
+  // In showcase mode the hero already presents `feat`, so the Featured block shows the next featured listing.
+  const spot = few ? PUB.find(p => p.featured && p !== feat) : feat;
+  const featChips = spot ? [spot.tourUrl && "3D tour", spot.aerial && "Aerial view", spot.floorplans.length && "Floor plans",
+    spot.operation === "sale" && spot.salePrice != null && "Mortgage calculator", "Book with an agent"].filter(Boolean) : [];
+  const n = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;
+  const keyFacts = p => [priceLabel(p), n(p.beds, "bedroom"), n(p.baths, "bathroom"), p.type].filter(Boolean).join(" · ");
   const bios = ["Founded Hampton Estates in 1982 and has guided generations of Jersey families through buying, selling and letting. Advice and valuations are always free.",
                 "Handles day-to-day sales and lettings, from first viewing to completion. Your first call for viewings, offers and rental enquiries."];
   const sel = (id, obj, cur) => `<select id="${id}">${Object.entries(obj).map(([k, v]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${v}</option>`).join("")}</select>`;
   $("#app").innerHTML = `
-  <section class="hero" style="background-image:url('${esc(feat.image)}')"><div class="wrap">
+  <section class="hero" style="background-image:url('${esc(feat.image)}')"><div class="wrap">${few ? `
+    <div class="eyebrow">Featured · ${esc(feat.place)}</div>
+    <h1>${esc(feat.title)}</h1>
+    <p class="num">${esc(keyFacts(feat))}</p>
+    <div class="cta"><a class="btn light" href="#/p/${feat.id}">Explore the property</a>
+      <button class="btn ghost" type="button" id="hero-book">Book a viewing</button></div>` : `
     <div class="eyebrow">Jersey · Channel Islands</div>
     <h1>Homes across Jersey, since 1982</h1>
     <p>Sales, lettings and free valuations from our St Helier office on Bath Street. Discreet, personal and on a no sale, no fee basis.</p>
@@ -377,26 +391,26 @@ function home() {
       <label>Bedrooms<select id="q-beds">${[0, 2, 3, 4].map(n => `<option value="${n}" ${n === filter.beds ? "selected" : ""}>${n ? n + "+" : "Any"}</option>`).join("")}</select></label>
       <label>Max price<select id="q-max"></select></label>
       <button class="btn" type="submit">Search</button>
-    </form>
+    </form>`}
   </div></section>
 
   <section class="block" id="portfolio" tabindex="-1"><div class="wrap">
-    <div class="head"><div><div class="eyebrow">Portfolio</div><h2>Properties for sale & to let</h2>
-      <p><span id="count" class="num"></span> listings.</p></div>
-      <div class="filters">
+    <div class="head"><div><div class="eyebrow">Portfolio</div><h2>${few ? "Our properties" : "Properties for sale & to let"}</h2>
+      ${few ? "" : `<p><span id="count" class="num"></span> listings.</p>`}</div>
+      ${few ? "" : `<div class="filters">
         <div class="tabs" id="tabs-region" role="group" aria-label="Location">${Object.entries(REGIONS).map(([k, v]) => `<button type="button" data-region="${k}">${v}</button>`).join("")}</div>
         <div class="tabs" id="tabs-op" role="group" aria-label="Operation">${Object.entries(OPS).map(([k, v]) => `<button type="button" data-op="${k}">${v}</button>`).join("")}</div>
-      </div></div>
+      </div>`}</div>
     <p class="active" id="active" hidden></p>
     <div class="grid" id="grid"></div>
-    <div style="text-align:center;margin-top:48px"><button class="btn ghost" type="button" id="more"></button></div>
+    ${few ? "" : `<div style="text-align:center;margin-top:48px"><button class="btn ghost" type="button" id="more"></button></div>`}
   </div></section>
 
-  ${feat.tourUrl || feat.aerial || feat.featured ? `<section class="feature"><img src="${esc(feat.image)}" alt="${esc(feat.title)}">
-    <div class="txt"><div class="eyebrow">Featured · ${esc(feat.place)}</div><h2>${esc(feat.title)}</h2>
+  ${spot && (spot.tourUrl || spot.aerial || spot.featured) ? `<section class="feature"><img src="${esc(spot.image)}" alt="${esc(spot.title)}">
+    <div class="txt"><div class="eyebrow">Featured · ${esc(spot.place)}</div><h2>${esc(spot.title)}</h2>
       <p>See more of this property before you visit, then book a viewing with our team.</p>
       <div class="chips">${featChips.map(c => `<span>${c}</span>`).join("")}</div>
-      <div><a class="btn" href="#/p/${feat.id}">Explore the property</a></div></div>
+      <div><a class="btn" href="#/p/${spot.id}">Explore the property</a></div></div>
   </section>` : ""}
 
   <section class="block team" id="team" tabindex="-1"><div class="wrap">
@@ -409,7 +423,7 @@ function home() {
         <div><button class="btn" type="button" data-agent="${i}">Book with ${esc(t.name.split(" ")[0])}</button></div></div></article>`).join("")}</div>`
       : `<p style="margin-top:24px;color:#cfcac2">Team details could not be loaded. Call the office on 01534 727582.</p>`}
     <div class="facts"><div><b class="num">1982</b><span>Established in St Helier</span></div><div><b>No sale</b><span>No fee, ever</span></div>
-      <div><b>Free</b><span>Local & international valuations</span></div><div><b class="num">${PUB.length}</b><span>Listings available now</span></div></div>
+      <div><b>Free</b><span>Local & international valuations</span></div>${PUB.length >= 10 ? `<div><b class="num">${PUB.length}</b><span>Listings available now</span></div>` : ""}</div>
   </div></section>
 
   <section class="block" id="book" tabindex="-1"><div class="wrap book">
@@ -418,6 +432,22 @@ function home() {
     <div id="book-slot"></div>
   </div></section>`;
 
+  $("#team").addEventListener("click", e => {
+    const i = e.target.closest("[data-agent]")?.dataset.agent; if (i == null) return;
+    const slot = $("#book-slot"), radio = $(`input[name=agent][value="${i}"]`, slot);
+    radio ? (radio.checked = true) : mountBooking(slot, {agent: +i});
+    $("#book").scrollIntoView(); $("select", slot).focus({preventScroll: true});
+  });
+  mountBooking($("#book-slot"));
+  if (few) {
+    $("#grid").innerHTML = PUB.map(p => card(p)).join("");
+    $("#hero-book").addEventListener("click", () => {
+      const prop = $("#book-slot select[name=prop]");
+      if (!isSold(feat)) prop.value = feat.id;
+      $("#book").scrollIntoView(); prop.focus({preventScroll: true});
+    });
+    return;
+  }
   const fillMax = () => {
     const op = $("#q-op").value, list = MAX[op] || [];
     $("#q-max").innerHTML = `<option value="0">${list.length ? "No limit" : "Pick a type first"}</option>` +
@@ -448,13 +478,6 @@ function home() {
     filter = {region: $("#q-region").value, op: $("#q-op").value, beds: +$("#q-beds").value, max: +$("#q-max").value};
     showAll = false; render(); $("#portfolio").scrollIntoView();
   });
-  $("#team").addEventListener("click", e => {
-    const i = e.target.closest("[data-agent]")?.dataset.agent; if (i == null) return;
-    const slot = $("#book-slot"), radio = $(`input[name=agent][value="${i}"]`, slot);
-    radio ? (radio.checked = true) : mountBooking(slot, {agent: +i});
-    $("#book").scrollIntoView(); $("select", slot).focus({preventScroll: true});
-  });
-  mountBooking($("#book-slot"));
   render();
 }
 

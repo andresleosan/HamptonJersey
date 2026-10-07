@@ -33,11 +33,14 @@ async function publicSite(browser) {
   for (const word of ["Demo", "demo", "Illustrative", "snapshot", "Matterport sample"]) assert.ok(!body.includes(word), `no "${word}" on the public site`);
   const hrefs = await page.$$eval("#grid .card", cs => cs.map(c => c.getAttribute("href")));
   assert.ok(!hrefs.includes("#/p/HE-R003"), "drafts are not public");
-  await page.click("#tabs-region [data-region=uk]");
-  assert.deepEqual(await page.$$eval("#grid .card", cs => cs.map(c => c.getAttribute("href"))), ["#/p/HE-R018"]);
-  await page.click("#tabs-region [data-region=all]");
-  await page.click("#tabs-op [data-op=rent]");
-  assert.match(await page.textContent("#grid .price"), /£1,900 pcm/);
+  // Few listings: a showcase home (hero presents one property, every card shown, no search or filters).
+  assert.deepEqual([...hrefs].sort(), ["#/p/HE-C001", "#/p/HE-R001", "#/p/HE-R002", "#/p/HE-R018"]);
+  assert.match(await page.textContent('#grid .card[href="#/p/HE-R002"] .price'), /£1,900 pcm/);
+  assert.equal(await page.$("#quick"), null, "no search form with few listings");
+  assert.equal(await page.$("#tabs-region"), null, "no filter tabs with few listings");
+  assert.match(await page.textContent(".hero h1"), /Le Bernage/);
+  await page.click("#hero-book");
+  assert.equal(await page.inputValue("#book-slot select[name=prop]"), "HE-R001", "hero booking preselects the property");
 
   await page.goto(BASE + "#/p/HE-R001");
   await page.waitForSelector(".summary h1");
@@ -173,7 +176,7 @@ async function admin(browser) {
   await home.goto(BASE);
   await home.waitForSelector("#grid .card");
   assert.equal(await home.getAttribute("#grid .card", "href"), "#/p/HE-R018", "featured listing comes first");
-  assert.match(await home.textContent(".feature h2"), /Pathfield/, "featured listing is in the Featured block");
+  assert.match(await home.textContent(".hero h1"), /Pathfield/, "featured listing leads the hero");
   await home.close();
 
   await page.goto(BASE + "admin/#/viewings");
