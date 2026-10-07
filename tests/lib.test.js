@@ -24,6 +24,7 @@ test("sale, rent and business premium are separate fields", () => {
   assert.equal(L.priceLabel(rent), "£1,900 pcm");
   assert.equal(L.priceLabel(biz), "£90,000");
   assert.equal(L.priceLabel(eur), "€110,000");
+  assert.equal(L.money(500000, null), "500,000", "unknown currency: no 'null ' prefix");
 });
 
 test("comparables never mix operations, uses, regions or currencies, and skip sold", () => {

@@ -1,5 +1,5 @@
 import { json, fail, readJson, now } from "../http.js";
-import { validateListing, idPrefix, nextId } from "../listing.js";
+import { validateListing, checkPrice, idPrefix, nextId } from "../listing.js";
 
 const ID = "(HE-[A-Z]\\d{3,})";
 const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availability, l.operation, l.sale_price, l.rent,
@@ -39,6 +39,8 @@ const fieldErrors = errors => json({ error: "Revisa los campos marcados", fields
 async function create({ request, env, admin }) {
   const r = validateListing(await readJson(request));
   if (r.errors) return fieldErrors(r.errors);
+  const priceErrors = checkPrice(r.value);
+  if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
   // Never reuse an id that research rows still point at.
   const { results } = await env.DB.prepare("SELECT id FROM listings UNION SELECT property_id FROM research_properties UNION SELECT id FROM deleted_listings").all();
   const id = nextId(results.map(x => x.id), idPrefix(r.value.use, r.value.country));
@@ -57,6 +59,8 @@ async function update({ request, env, admin, params: [id] }) {
   if (r.errors) return fieldErrors(r.errors);
   const cols = Object.keys(r.value);
   if (!cols.length) fail(400, "No hay cambios que guardar");
+  const priceErrors = checkPrice({ ...(await loadListing(env, id)), ...r.value });
+  if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
   const res = await env.DB.prepare(
     `UPDATE listings SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ? WHERE id = ? AND updated_at = ?`)
     .bind(...cols.map(c => r.value[c]), now(), admin, id, body.updated_at).run();

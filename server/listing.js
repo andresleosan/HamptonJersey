@@ -56,6 +56,14 @@ export function validateListing(input, { partial = false } = {}) {
   return Object.keys(errors).length ? { errors } : { value };
 }
 
+// Cross-field rules, checked on the full row (create, or stored row merged with an update).
+export function checkPrice(row) {
+  const errors = {};
+  if (["sale_price", "rent", "premium"].some(k => row[k] != null) && !row.currency) errors.currency = "Elige la moneda del precio";
+  if (row.rent != null && !row.rent_period) errors.rent_period = "Indica si el alquiler es al mes o al año";
+  return errors;
+}
+
 export const regionOf = country => (country === "Jersey" ? "jersey" : country === "United Kingdom" ? "uk" : "international");
 export const idPrefix = (use, country) =>
   regionOf(country) === "international" ? "HE-I" : use === "commercial" ? "HE-C" : "HE-R";

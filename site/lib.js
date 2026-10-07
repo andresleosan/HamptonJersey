@@ -16,7 +16,7 @@ const EMBED_HOSTS = ["my.matterport.com", "player.vimeo.com", "www.youtube-nocoo
 const embedUrl = u => { const s = safeHttps(u); return s && EMBED_HOSTS.includes(new URL(s).hostname) ? s : null; };
 
 const SYM = {GBP: "£", EUR: "€"};
-const money = (n, cur) => (SYM[cur] ?? `${cur} `) + Math.round(n).toLocaleString("en-GB");
+const money = (n, cur) => (SYM[cur] ?? (cur ? `${cur} ` : "")) + Math.round(n).toLocaleString("en-GB");
 
 // Sale price, rent and business premium are separate fields; unknown stays null (never 0).
 const amount = p => ({sale: p.salePrice, rent: p.rent, business: p.premium})[p.operation] ?? null;
