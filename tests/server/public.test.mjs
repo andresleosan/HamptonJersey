@@ -80,4 +80,5 @@ test("cross-origin writes are blocked and unknown routes are JSON 404", async ()
   const r = await call(world(), "GET", "/nope");
   assert.equal(r.status, 404);
   assert.equal(r.data.error, "Not found");
+  assert.equal((await call(world(), "GET", "/listings%E0%A4")).status, 400); // malformed percent-encoding
 });

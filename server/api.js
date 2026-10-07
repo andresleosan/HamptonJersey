@@ -11,8 +11,11 @@ import userRoutes from "./routes/users.js";
 const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes];
 
 export async function handleApi(request, env, segments) {
-  const path = "/" + segments.join("/"), method = request.method;
+  const method = request.method;
   try {
+    // Pages hands catch-all segments still percent-encoded (e.g. "x%40gmail.com").
+    let path;
+    try { path = "/" + segments.map(decodeURIComponent).join("/"); } catch { fail(400, "Bad URL encoding"); }
     if (method !== "GET" && method !== "HEAD" && !sameOrigin(request)) fail(403, "Cross-origin request blocked");
     for (const [m, re, handler, auth] of ROUTES) {
       const hit = m === method && re.exec(path);

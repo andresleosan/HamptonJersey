@@ -81,7 +81,7 @@ export async function call(env, method, path, { body, cookie, origin = ORIGIN, f
   if (body !== undefined) headers.set("content-type", "application/json");
   const req = new Request(ORIGIN + "/api" + path, {
     method, headers, body: form ?? (body !== undefined ? JSON.stringify(body) : undefined) });
-  const segments = path.split("?")[0].slice(1).split("/").map(decodeURIComponent); // Pages hands decoded segments
+  const segments = path.split("?")[0].slice(1).split("/"); // like Pages: raw, still percent-encoded
   const res = await handleApi(req, env, segments);
   return { status: res.status, headers: res.headers, data: await res.json().catch(() => null) };
 }
