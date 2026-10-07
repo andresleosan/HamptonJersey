@@ -37,6 +37,14 @@ test("tour must be https and specs need label and value", () => {
     '[{"group":"Interior","label":"Heating","value":"Oil"}]');
 });
 
+test("featured rank: 1 to 99 or blank", () => {
+  assert.equal(validateListing({ featured_rank: 2 }, { partial: true }).value.featured_rank, 2);
+  assert.equal(validateListing({ featured_rank: null }, { partial: true }).value.featured_rank, null);
+  for (const v of [0, 100, 1.5, "1"]) assert.ok(validateListing({ featured_rank: v }, { partial: true }).errors.featured_rank);
+  assert.equal(toPublic({ ...L, featured_rank: 1 }, []).featured, 1);
+  assert.equal(toPublic(L, []).featured, null);
+});
+
 test("non-object bodies are treated as empty", () => {
   assert.ok(validateListing(null).errors.title);
   assert.ok(validateListing([1, 2]).errors.title);

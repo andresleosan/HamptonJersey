@@ -358,7 +358,7 @@ function mountBooking(slot, pre = {}) {
 
 // ---------- pages ----------
 function home() {
-  const feat = PUB.find(p => FEATURED.includes(p.id)) || PUB.find(p => p.tourUrl || p.aerial) || PUB[0];
+  const feat = PUB.find(p => p.featured) || PUB.find(p => p.tourUrl || p.aerial) || PUB[0];
   const featChips = [feat.tourUrl && "3D tour", feat.aerial && "Aerial view", feat.floorplans.length && "Floor plans",
     feat.operation === "sale" && feat.salePrice != null && "Mortgage calculator", "Book with an agent"].filter(Boolean);
   const bios = ["Founded Hampton Estates in 1982 and has guided generations of Jersey families through buying, selling and letting. Advice and valuations are always free.",
@@ -390,7 +390,7 @@ function home() {
     <div style="text-align:center;margin-top:48px"><button class="btn ghost" type="button" id="more"></button></div>
   </div></section>
 
-  ${feat.tourUrl || feat.aerial || FEATURED.includes(feat.id) ? `<section class="feature"><img src="${esc(feat.image)}" alt="${esc(feat.title)}">
+  ${feat.tourUrl || feat.aerial || feat.featured ? `<section class="feature"><img src="${esc(feat.image)}" alt="${esc(feat.title)}">
     <div class="txt"><div class="eyebrow">Featured · ${esc(feat.place)}</div><h2>${esc(feat.title)}</h2>
       <p>See more of this property before you visit, then book a viewing with our team.</p>
       <div class="chips">${featChips.map(c => `<span>${c}</span>`).join("")}</div>
@@ -631,22 +631,20 @@ addEventListener("error", e => {
 }, true);
 const getJSON = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); });
 const arr = v => (Array.isArray(v) ? v.filter(x => typeof x === "string") : []);
-// ponytail: hand-picked listings shown first and in the hero; a `featured` column + panel toggle if staff need to change it.
-const FEATURED = ["HE-R027", "HE-R001", "HE-R003"]; // Château La Chaire, Le Bernage, Playa D'Or
-const rank = id => FEATURED.includes(id) ? FEATURED.indexOf(id) : FEATURED.length;
+const rank = p => p.featured ?? 100; // featured_rank from the panel (1..99); the rest keep the usual order
 Promise.allSettled([getJSON("/api/listings"), getJSON("data/team.json"), getJSON("/api/config")]).then(([p, t, c]) => {
   if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
   TS_KEY = c.status === "fulfilled" && typeof c.value?.turnstileSiteKey === "string" ? c.value.turnstileSiteKey : null;
   const order = {jersey: 0, uk: 1, international: 2};
   PROPS = p.value.filter(x => x && /^HE-[A-Z]\d{3,}$/.test(x.id) && x.title && x.region in order && x.operation in OP_ONE)
-    .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "premium"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
+    .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "premium", "featured"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
       use: x.use === "commercial" ? "commercial" : "residential", image: safeMedia(x.image), thumb: safeMedia(x.thumb),
       photos: (Array.isArray(x.photos) ? x.photos : []).filter(f => safeMedia(f?.src) && safeMedia(f?.thumb)),
       floorplans: (Array.isArray(x.floorplans) ? x.floorplans : []).filter(f => safeMedia(f?.src)),
       aerial: x.aerial && safeMedia(x.aerial.src) ? x.aerial : null, tourUrl: safeHttps(x.tourUrl),
       specs: (Array.isArray(x.specs) ? x.specs : []).filter(s => s && typeof s.label === "string" && typeof s.value === "string"),
       summary: arr(x.summary), description: arr(x.description)}))
-    .sort((a, b) => rank(a.id) - rank(b.id) || order[a.region] - order[b.region] || (a.use === "commercial") - (b.use === "commercial"));
+    .sort((a, b) => rank(a) - rank(b) || order[a.region] - order[b.region] || (a.use === "commercial") - (b.use === "commercial"));
   PUB = PROPS.filter(x => x.image); // without a public photo a listing stays out of the public pages
   TEAM = (t.status === "fulfilled" && Array.isArray(t.value) ? t.value : []).filter(a => a && a.name)
     .map(a => ({...a, photo: safeUrl(a.photo, IMG_HOST)}));

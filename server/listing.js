@@ -12,7 +12,7 @@ const TEXT = { title: 200, property_type: 100, country: 100, location: 200, road
 const INTS = ["bedrooms", "bathrooms"];
 const MONEY = ["sale_price", "rent", "premium"];
 const REQUIRED = ["title", "use", "operation", "availability"];
-export const EDITABLE = [...Object.keys(ENUMS), ...Object.keys(TEXT), ...INTS, ...MONEY, "specs"];
+export const EDITABLE = [...Object.keys(ENUMS), ...Object.keys(TEXT), ...INTS, ...MONEY, "featured_rank", "specs"];
 
 const blank = v => v === null || v === undefined || (typeof v === "string" && v.trim() === "");
 const bad = msg => { throw new Error(msg); };
@@ -37,6 +37,7 @@ function check(k, v) {
     if (k === "tour_url" && !/^https:\/\/\S+$/i.test(s)) bad("Must start with https://");
     return s;
   }
+  if (k === "featured_rank") return Number.isInteger(v) && v >= 1 && v <= 99 ? v : bad("Whole number from 1 to 99, or blank");
   if (INTS.includes(k)) return Number.isInteger(v) && v >= 0 && v <= 100 ? v : bad("Whole number from 0 to 100");
   if (MONEY.includes(k)) {
     return typeof v === "number" && Number.isFinite(v) && v > 0 && v < 1e10 ? v
@@ -94,6 +95,6 @@ export function toPublic(l, media) {
     photos: photos.map(m => ({ src: src(m), thumb: src(m, true), alt: alt(m, l.title) })),
     floorplans: pub.filter(m => m.kind === "floorplan").map(m => ({ src: src(m), alt: alt(m, "Floor plan") })),
     aerial: aerial ? { src: src(aerial), alt: alt(aerial, "Aerial view") } : null,
-    tourUrl: l.tour_url, specs: JSON.parse(l.specs || "[]"),
+    tourUrl: l.tour_url, specs: JSON.parse(l.specs || "[]"), featured: l.featured_rank ?? null,
   };
 }

@@ -41,7 +41,7 @@ export default function Listings() {
         <th scope="col">Price</th><th scope="col">Availability</th><th scope="col">Visibility</th><th scope="col">Last edited</th></tr></thead>
       <tbody>{shown.map(l => <tr key={l.id}>
         <td>{l.cover_id ? <img className="thumb" src={`/media/${l.cover_id}?thumb`} alt="" loading="lazy" /> : <span className="thumb" />}</td>
-        <td><a href={`#/p/${l.id}`}>{l.title}</a><div className="muted">{l.id} · {OPERATION[l.operation]}</div></td>
+        <td><a href={`#/p/${l.id}`}>{l.title}</a><div className="muted">{l.id} · {OPERATION[l.operation]}{l.featured_rank != null && ` · ★ Featured #${l.featured_rank}`}</div></td>
         <td>{l.location || l.country || "—"}</td>
         <td className="num">{priceText(l)}</td>
         <td>{AVAILABILITY[l.availability]}</td>

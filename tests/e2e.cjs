@@ -161,6 +161,21 @@ async function admin(browser) {
   await page.getByRole("button", {name: "Restore", exact: true}).click();
   await page.waitForSelector("text=Restored as a draft.");
 
+  // Featured: set in the panel, shown first and in the hero on the public site.
+  await page.goto(BASE + "admin/#/p/HE-R018");
+  await page.waitForSelector("#f-featured_rank");
+  await page.fill("#f-featured_rank", "1");
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector("text=Changes saved.");
+  await page.goto(BASE + "admin/#/");
+  await page.waitForSelector('tr:has-text("HE-R018") >> text=Featured #1');
+  const home = await ctx.newPage();
+  await home.goto(BASE);
+  await home.waitForSelector("#grid .card");
+  assert.equal(await home.getAttribute("#grid .card", "href"), "#/p/HE-R018", "featured listing comes first");
+  assert.match(await home.textContent(".feature h2"), /Pathfield/, "featured listing is in the Featured block");
+  await home.close();
+
   await page.goto(BASE + "admin/#/viewings");
   await page.waitForSelector("text=Jane Le Brocq");
   await page.goto(BASE + "admin/#/users");

@@ -7,8 +7,8 @@ import { setUnsaved } from "./unsaved.js";
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "sale_price", "rent", "rent_period", "premium", "currency", "price_text", "summary", "description",
-  "tour_url", "specs"];
-const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium"];
+  "tour_url", "featured_rank", "specs"];
+const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium", "featured_rank"];
 const toForm = l => Object.fromEntries(FIELDS.map(k => [k, k === "specs" ? l.specs : l[k] ?? ""]));
 const toBody = f => Object.fromEntries(FIELDS.map(k => [k,
   NUMERIC.includes(k) ? (f[k] === "" ? null : Number(f[k]))
@@ -96,6 +96,8 @@ export default function ListingEditor({ id }) {
         {field("road_name", "Road", <input {...ctl("road_name")} maxLength={200} />)}
         {field("bedrooms", "Bedrooms", <input {...ctl("bedrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
         {field("bathrooms", "Bathrooms", <input {...ctl("bathrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
+        {field("featured_rank", "Featured on the homepage (1 = first and in the hero; blank = not featured)",
+          <input {...ctl("featured_rank")} type="number" min="1" max="99" step="1" inputMode="numeric" />)}
       </div></section>
 
       <section id="s-price" className="card" aria-labelledby="h-price"><h2 id="h-price">Price</h2>
