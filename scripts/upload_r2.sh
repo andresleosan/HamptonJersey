@@ -12,13 +12,15 @@ mkdir -p build
 failed=build/upload_errors.log
 : > "$failed"
 n=0
-# ponytail: batches of 8 with `wait`; a slow upload holds its batch. Use a job pool if this gets too slow.
+# Local R2 (one SQLite file) fails on concurrent writes, so --local goes one at a time.
+par=8; [[ "$mode" == "--local" ]] && par=1
+# ponytail: batches of $par with `wait`; a slow upload holds its batch. Use a job pool if this gets too slow.
 while IFS=$'\t' read -r key file type; do
   [[ -n "$key" ]] || continue
   ( npx wrangler r2 object put "hampton-media/$key" --file "$file" --content-type "$type" "$mode" "${extra[@]}" >/dev/null 2>&1 \
       || echo "$key" >> "$failed" ) &
   n=$((n + 1))
-  if (( n % 8 == 0 )); then wait; fi
+  if (( n % par == 0 )); then wait; fi
 done < "$tsv"
 wait
 if [[ -s "$failed" ]]; then echo "$(wc -l < "$failed") of $n uploads failed; keys in $failed" >&2; exit 1; fi

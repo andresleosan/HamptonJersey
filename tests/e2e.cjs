@@ -1,223 +1,142 @@
-// Browser smoke test for the demo flows. Needs playwright-core and a Chrome/Chromium binary:
-//   (cd site && python3 -m http.server 8765 --bind 127.0.0.1) &
-//   PW=<path to playwright-core> CHROME=/opt/google/chrome/chrome node tests/e2e.cjs [screenshot-dir]
-// Matterport is never contacted: its requests are aborted, so the test only checks our side of the embed.
+// End-to-end check against `wrangler pages dev` with the fixture database (see Task 13 of the plan):
+//   npx wrangler pages dev --port 8788 --persist-to .wrangler/e2e     (terminal A)
+//   PW=<playwright-core> CHROME=<chrome> node tests/e2e.cjs [screenshot-dir]   (terminal B)
+// Matterport is never contacted: its requests are aborted.
 const {chromium} = require(process.env.PW || "playwright-core");
 const assert = require("node:assert/strict");
-const BASE = process.env.BASE || "http://127.0.0.1:8765/";
+const {execFileSync} = require("node:child_process");
+const {readFileSync} = require("node:fs");
+const BASE = process.env.BASE || "http://localhost:8788/";
 const SHOTS = process.argv[2];
-const MAGNOLIA = "9c0f9d02", TRINITY = "d5967950", PATHFIELD = "91c754ff", SOLD = "b1b43893", NOPRICE = "8eb8ffab";
+const shot = (page, name) => SHOTS && page.screenshot({path: `${SHOTS}/${name}.png`, fullPage: true});
+const secret = readFileSync(".dev.vars", "utf8").match(/^SESSION_SECRET=(.+)$/m)[1].trim();
+const d1 = sql => execFileSync("npx", ["wrangler", "d1", "execute", "hampton", "--local", "--persist-to", ".wrangler/e2e", "--json", "--command", sql], {encoding: "utf8"});
 
-async function newPage(browser, viewport, opts = {}) {
-  const page = await browser.newPage({viewport});
-  const errors = [];
-  page.on("pageerror", e => errors.push(e.message));
-  page.on("console", m => m.type() === "error" && !/Failed to load resource/.test(m.text()) && errors.push(m.text()));
+async function newPage(ctx, viewport) {
+  const page = await ctx.newPage();
+  await page.setViewportSize(viewport);
+  page.errors = [];
+  page.on("pageerror", e => page.errors.push(e.message));
+  page.on("console", m => m.type() === "error" && !/Failed to load resource|turnstile|challenges/i.test(m.text()) && page.errors.push(m.text()));
   await page.route(/matterport\.com/, r => r.abort());
-  if (opts.route) await opts.route(page);
-  if (opts.init) await page.addInitScript(opts.init);
-  page.errors = errors;
   return page;
 }
-const shot = (page, name) => SHOTS && page.screenshot({path: `${SHOTS}/${name}.png`});
-const fill = async (scope, page) => {
-  await page.fill(`${scope} input[name=name]`, "Jane Le Brocq");
-  await page.fill(`${scope} input[name=email]`, "jane@example.je");
-};
 
-async function desktop(browser) {
-  const page = await newPage(browser, {width: 1280, height: 800});
+async function publicSite(browser) {
+  const ctx = await browser.newContext();
+  const page = await newPage(ctx, {width: 1280, height: 800});
   await page.goto(BASE);
   await page.waitForSelector("#grid .card");
-  await shot(page, "d-home");
-
-  // Geography is its own dimension: London only under UK.
+  await shot(page, "home");
+  const body = await page.textContent("body");
+  for (const word of ["Demo", "demo", "Illustrative", "snapshot", "Matterport sample"]) assert.ok(!body.includes(word), `no "${word}" on the public site`);
+  const hrefs = await page.$$eval("#grid .card", cs => cs.map(c => c.getAttribute("href")));
+  assert.ok(!hrefs.includes("#/p/HE-R003"), "drafts are not public");
   await page.click("#tabs-region [data-region=uk]");
-  assert.deepEqual(await page.$$eval("#grid .card", cs => cs.map(c => c.getAttribute("href"))), [`#/p/${PATHFIELD}`]);
-  await page.click("#tabs-region [data-region=jersey]");
-  assert.equal(await page.$(`#grid [href="#/p/${PATHFIELD}"]`), null);
-  assert.equal(await page.inputValue("#q-region"), "jersey", "hero search follows the tabs");
+  assert.deepEqual(await page.$$eval("#grid .card", cs => cs.map(c => c.getAttribute("href"))), ["#/p/HE-R018"]);
+  await page.click("#tabs-region [data-region=all]");
+  await page.click("#tabs-op [data-op=rent]");
+  assert.match(await page.textContent("#grid .price"), /£1,900 pcm/);
 
-  // Hero search: rentals with a monthly limit return rentals only.
-  await page.selectOption("#q-region", "jersey");
-  await page.selectOption("#q-op", "rent");
-  await page.selectOption("#q-max", "2500");
-  await page.click("#quick button[type=submit]");
-  assert.deepEqual(await page.$$eval("#grid .card", cs => cs.map(c => c.getAttribute("href"))), [`#/p/${TRINITY}`]);
-  assert.match(await page.textContent("#grid .price"), /pcm/);
-  await page.click("#clear");
-
-  // General enquiry (empty property option) submits; then book again, cancel, and switch agent from the team section.
-  await fill("#book-slot", page);
-  await page.click("#book-slot button[type=submit]");
-  await page.waitForSelector("#book-slot .confirm");
-  assert.match(await page.textContent("#book-slot .confirm"), /General enquiry/);
-  await page.click("#team [data-agent='1']");
-  assert.ok(await page.isChecked("#book-slot input[name=agent][value='1']"), "team button re-opens the form after a confirmation");
-  await fill("#book-slot", page);
-  await page.selectOption("#book-slot select[name=prop]", TRINITY);
-  await page.click("#book-slot button[type=submit]");
-  assert.match(await page.textContent("#book-slot .confirm"), /Trinity rental[\s\S]*Joshua/);
-  await page.click("#book-slot [data-cancel]");
-  assert.match(await page.textContent("#book-slot .cancelled"), /cancelled/);
-  assert.equal(await page.inputValue("#book-slot select[name=prop]"), TRINITY);
-  await page.click("#team [data-agent='0']");
-  assert.ok(await page.isChecked("#book-slot input[name=agent][value='0']"));
-
-  // Detail: first screen holds photo, price, key facts and the booking call.
-  await page.goto(`${BASE}#/p/${MAGNOLIA}`);
-  await page.waitForSelector(".summary");
-  assert.equal(await page.evaluate(() => scrollY), 0, "new page starts at the top");
-  for (const sel of ["#stage img", ".summary .price", ".summary .keys", ".summary .btns .btn"]) {
-    const b = await page.locator(sel).first().boundingBox();
-    assert.ok(b && b.y >= 0 && b.y + b.height <= 800, `${sel} visible without scrolling`);
-  }
-  await shot(page, "d-detail");
-
-  // One click on the 3D button loads the viewer itself (no intermediate poster).
-  await page.click("[data-go=tour]");
-  assert.match(await page.getAttribute("#stage iframe", "src"), /matterport\.com\/show\/\?m=JGPnGQ6hosj.*ts=\d/);
-  assert.match(await page.textContent("#stage-note"), /not this property/);
-
-  // Aerial: no animation, and photo + outlines share the same box at any size.
-  await page.click("#tab-drone");
-  const aligned = () => page.evaluate(() => {
-    const img = document.querySelector(".drone img"), svg = document.querySelector(".drone svg");
-    const a = img.getBoundingClientRect(), b = svg.getBoundingClientRect();
-    return {same: ["x", "y", "width", "height"].every(k => Math.abs(a[k] - b[k]) < 0.5),
-      anim: getComputedStyle(img).animationName + getComputedStyle(svg).animationName, transform: getComputedStyle(img).transform};
-  });
-  assert.deepEqual(await aligned(), {same: true, anim: "nonenone", transform: "none"});
-  await shot(page, "d-aerial");
-  await page.setViewportSize({width: 700, height: 900});
-  assert.equal((await aligned()).same, true);
-  await page.setViewportSize({width: 1280, height: 800});
-  assert.match(await page.textContent("#stage-note"), /Illustrative/);
-
-  // Keyboard on media tabs.
-  await page.focus("#tab-drone");
-  await page.keyboard.press("ArrowRight");
-  assert.equal(await page.getAttribute("#tab-photo", "aria-selected"), "true");
-
-  // Calculator and comparables.
-  await page.fill("#c-price", "500000");
-  assert.match(await page.textContent("#r-month"), /^£[\d,]+$/);
-  const cmp = await page.$$eval(".block .grid .card", cs => cs.map(c => c.getAttribute("href")));
-  assert.ok(!cmp.includes(`#/p/${TRINITY}`) && !cmp.includes("#/p/8c37b8d1"), "no rentals or hotels next to a house for sale");
-
-  // Detail booking: "Book a viewing" keeps the route, then switch property from the form.
-  await page.click(".summary [data-scroll=detail-book]");
-  assert.equal(new URL(page.url()).hash, `#/p/${MAGNOLIA}`);
-  await fill("#detail-slot", page);
-  await page.selectOption("#detail-slot select[name=prop]", "38b1444c");
-  await page.click("#detail-slot button[type=submit]");
-  assert.match(await page.textContent("#detail-slot .confirm"), /Victoria Street/);
-  await page.click("#detail-slot [data-again]");
-  assert.equal(await page.inputValue("#detail-slot select[name=prop]"), "38b1444c");
-
-  // Sold: no booking. Unknown price: no calculator, no "similar price".
-  await page.goto(`${BASE}#/p/${SOLD}`);
-  await page.waitForSelector(".summary");
-  assert.equal(await page.$("#detail-book"), null);
-  await page.goto(`${BASE}#/p/${NOPRICE}`);
-  await page.waitForSelector(".summary");
-  assert.equal(await page.$("#calc"), null);
-  assert.match(await page.textContent(".summary .price"), /Price not published/);
-  // Hidden duplicate is not reachable publicly.
-  await page.goto(`${BASE}#/p/f2eb59e7`);
-  await page.waitForSelector("#portfolio");
-
-  assert.deepEqual(page.errors, []);
-  await page.close();
-}
-
-async function mobile(browser) {
-  const page = await newPage(browser, {width: 390, height: 844});
-  await page.goto(BASE);
-  await page.waitForSelector("#grid .card");
-  assert.ok(await page.isVisible(".menu-btn") && !(await page.isVisible("#main-nav")));
-  await shot(page, "m-home");
-  await page.click(".menu-btn");
-  assert.equal(await page.getAttribute(".menu-btn", "aria-expanded"), "true");
-  await shot(page, "m-menu");
-  await page.keyboard.press("Escape");
-  assert.ok(!(await page.isVisible("#main-nav")));
-  assert.ok(await page.evaluate(() => document.activeElement.classList.contains("menu-btn")), "focus returns to the button");
-  await page.click(".menu-btn");
-  await page.click("#main-nav a[href='#team']");
-  assert.ok(!(await page.isVisible("#main-nav")));
-  await page.waitForFunction(() => Math.abs(document.querySelector("#team").getBoundingClientRect().top) < 120);
-
-  const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-  assert.equal(await overflow(), 0, "no horizontal scroll on home");
-  await page.goto(`${BASE}#/p/${MAGNOLIA}`);
-  await page.waitForSelector(".summary");
-  await shot(page, "m-detail");
-  const price = await page.locator(".summary .price").boundingBox();
-  assert.ok(price.y >= 0 && price.y < 844, "price on the first mobile screen");
-  const cta = await page.locator(".summary .btns .btn").first().boundingBox();
-  assert.ok(cta.y + cta.height <= 844, "booking button on the first mobile screen");
-  await page.click("#tab-drone");
-  await shot(page, "m-aerial");
-  assert.equal(await overflow(), 0, "no horizontal scroll on detail");
+  await page.goto(BASE + "#/p/HE-R001");
+  await page.waitForSelector(".summary h1");
+  assert.deepEqual(await page.$$eval(".media-tabs button", bs => bs.map(b => b.textContent)), ["Photos", "3D tour", "Aerial"]);
+  assert.equal(await page.$$eval("#thumbs button", b => b.length), 2, "two public photos; external one hidden");
+  await page.click('#thumbs [data-i="1"]');
+  assert.match(await page.getAttribute("#stage img", "src"), /\/media\/A00002$/);
+  assert.equal(await page.getAttribute("#stage img", "alt"), "Kitchen");
   await page.click("#tab-tour");
-  assert.ok(await page.$("#stage iframe"));
-  await page.evaluate(() => scrollTo(0, document.body.scrollHeight));
-  await shot(page, "m-detail-bottom");
+  assert.match(await page.getAttribute("#stage iframe", "src"), /my\.matterport\.com\/show\/\?m=TEST/);
+  await page.click("#tab-aerial");
+  assert.match(await page.getAttribute("#stage img", "src"), /A00003/);
+  assert.match(await page.textContent(".detail"), /Property details[\s\S]*Oil-fired[\s\S]*Floor plans/);
+  assert.ok(await page.$("#calc"));
+  assert.equal((await page.request.get(BASE + "media/A00005")).status(), 404, "external photo is private");
+  assert.equal((await page.request.get(BASE + "media/A00009")).status(), 404, "draft photo is private");
+  await page.goto(BASE + "#/p/HE-R003");
+  await page.waitForFunction(() => location.hash === "#/");
+
+  // Booking: real request, Turnstile test key passes automatically.
+  await page.goto(BASE + "#/p/HE-R002");
+  await page.waitForSelector("#detail-slot form");
+  await page.waitForFunction(() => document.querySelector('#detail-slot [name="cf-turnstile-response"]')?.value, null, {timeout: 20000});
+  await page.fill("#detail-slot input[name=name]", "Jane Le Brocq");
+  await page.fill("#detail-slot input[name=email]", "jane@example.je");
+  await page.click("#detail-slot button[type=submit]");
+  await page.waitForSelector("#detail-slot .confirm");
+  assert.match(await page.textContent("#detail-slot .confirm"), /Request received[\s\S]*Trinity rental/);
+  assert.match(d1("SELECT name, listing_id FROM viewing_requests"), /Jane Le Brocq[\s\S]*HE-R002/);
   assert.deepEqual(page.errors, []);
-  await page.close();
+
+  const m = await newPage(ctx, {width: 390, height: 844});
+  await m.goto(BASE + "#/p/HE-R001");
+  await m.waitForSelector(".summary h1");
+  assert.equal(await m.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, "no horizontal scroll on mobile");
+  await shot(m, "detail-mobile");
+  await ctx.close();
 }
 
-async function failures(browser) {
-  // No WebGL → clear message and a link, no iframe.
-  let page = await newPage(browser, {width: 1280, height: 800}, {init: () => {
-    const g = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function (t, ...a) { return /webgl/.test(t) ? null : g.call(this, t, ...a); };
-  }});
-  await page.goto(`${BASE}#/p/${MAGNOLIA}`);
-  await page.click("[data-go=tour]");
-  assert.match(await page.textContent("#stage .stage-msg"), /WebGL/);
-  assert.equal(await page.$("#stage iframe"), null);
-  assert.ok(await page.$("#stage .stage-msg a[href*='matterport.com']"));
-  await page.close();
+async function admin(browser) {
+  const {signSession, COOKIE} = await import("../server/auth.js");
+  const ctx = await browser.newContext();
+  const page = await newPage(ctx, {width: 1280, height: 900});
+  await page.goto(BASE + "admin/");
+  await page.waitForSelector("text=Entrar con Google");
+  await ctx.addCookies([{name: COOKIE, value: await signSession("luismadef45@gmail.com", secret), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: "Strict"}]);
+  await page.reload();
+  await page.waitForSelector("text=Propiedades");
+  assert.match(await page.textContent(".seg"), /Publicadas4[\s\S]*Borradores1/);
+  await shot(page, "admin-list");
 
-  // Offline: the listing photo fails, then the tour fallback must still be readable (not under "Photo unavailable").
-  page = await newPage(browser, {width: 1280, height: 800}, {route: p => p.route(/wixstatic\.com/, r => r.abort())});
-  await page.goto(`${BASE}#/p/${MAGNOLIA}`);
-  await page.waitForSelector("#stage.noimg");
-  await page.context().setOffline(true);
-  await page.click("[data-go=tour]");
-  assert.ok(await page.isVisible("#stage .stage-msg"));
-  assert.ok(!(await page.$eval("#stage", s => s.classList.contains("noimg"))), "photo overlay cleared");
-  await page.context().setOffline(false);
-  await page.close();
+  await page.click('a[href="#/p/HE-R001"]');
+  await page.waitForSelector("#f-title");
+  assert.ok(await page.isVisible("text=Privada · referencia"));
+  await page.fill("#f-title", "Le Bernage (edited)");
+  // Review focus 2: session lost mid-edit → login dialog, typed text kept.
+  await ctx.clearCookies();
+  await page.getByRole("button", {name: "Guardar", exact: true}).click();
+  await page.waitForSelector('[role=dialog] >> text=Tu sesión ha caducado');
+  assert.equal(await page.inputValue("#f-title"), "Le Bernage (edited)");
+  // Signing in again needs Google; simulate it with a fresh cookie and a reload.
+  await ctx.addCookies([{name: COOKIE, value: await signSession("luismadef45@gmail.com", secret), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: "Strict"}]);
+  await page.reload();
+  await page.waitForSelector("#f-title");
+  await page.fill("#f-title", "Le Bernage (edited)");
+  await page.getByRole("button", {name: "Guardar", exact: true}).click();
+  await page.waitForSelector("text=Cambios guardados.");
+  const pub = await (await page.request.get(BASE + "api/listings")).json();
+  assert.equal(pub.find(p => p.id === "HE-R001").title, "Le Bernage (edited)");
 
-  // Listings JSON fails → error state with retry.
-  page = await newPage(browser, {width: 1280, height: 800}, {route: p => p.route("**/data/properties.json", r => r.fulfill({status: 500}))});
-  await page.goto(BASE);
-  await page.waitForSelector("#app [role=alert]");
-  await page.close();
+  // Review focus 1: a published listing with no public photo warns.
+  await page.goto(BASE + "admin/#/p/HE-C001");
+  await page.waitForSelector("#f-title");
+  await page.uncheck(".media-grid li >> text=Visible en la web");
+  await page.getByRole("button", {name: "Guardar fotos"}).click();
+  await page.waitForSelector("text=Fotos guardadas.");
+  await page.reload();
+  await page.waitForSelector("text=sin foto pública");
 
-  // Team JSON and listing images fail → page still works, booking assigns "first available".
-  page = await newPage(browser, {width: 1280, height: 800}, {route: async p => {
-    await p.route("**/data/team.json", r => r.fulfill({status: 404}));
-    await p.route(/wixstatic\.com/, r => r.abort());
-  }});
-  await page.goto(BASE);
-  await page.waitForSelector("#grid .card");
-  await page.waitForSelector("#grid .ph.noimg");
-  assert.match(await page.textContent("#book-slot"), /Team details are unavailable/);
-  await fill("#book-slot", page);
-  await page.click("#book-slot button[type=submit]");
-  assert.match(await page.textContent("#book-slot .confirm"), /First available/);
-  await shot(page, "f-noimg");
+  await page.goto(BASE + "admin/#/p/HE-R002");
+  await page.waitForSelector("#f-title");
+  page.once("dialog", d => d.accept());
+  await page.getByRole("button", {name: "Archivar", exact: true}).click();
+  await page.waitForSelector("text=Archivada.");
+  const after = await (await page.request.get(BASE + "api/listings")).json();
+  assert.ok(!after.some(p => p.id === "HE-R002"), "archived listing leaves the public site");
+  await page.getByRole("button", {name: "Restaurar", exact: true}).click();
+  await page.waitForSelector("text=Restaurada como borrador.");
+
+  await page.goto(BASE + "admin/#/solicitudes");
+  await page.waitForSelector("text=Jane Le Brocq");
+  await page.goto(BASE + "admin/#/usuarios");
+  await page.waitForSelector("text=andres.san1404@gmail.com");
+  await shot(page, "admin-users");
   assert.deepEqual(page.errors, []);
-  await page.close();
+  await ctx.close();
 }
 
 (async () => {
-  const browser = await chromium.launch({executablePath: process.env.CHROME, args: ["--no-sandbox"]});
-  try {
-    for (const t of [desktop, mobile, failures]) { await t(browser); console.log("ok", t.name); }
-  } finally { await browser.close(); }
+  const browser = await chromium.launch({executablePath: process.env.CHROME});
+  try { await publicSite(browser); await admin(browser); console.log("e2e OK"); }
+  finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });
