@@ -40,7 +40,7 @@ async function create({ request, env, admin }) {
   const r = validateListing(await readJson(request));
   if (r.errors) return fieldErrors(r.errors);
   // Never reuse an id that research rows still point at.
-  const { results } = await env.DB.prepare("SELECT id FROM listings UNION SELECT property_id FROM research_properties").all();
+  const { results } = await env.DB.prepare("SELECT id FROM listings UNION SELECT property_id FROM research_properties UNION SELECT id FROM deleted_listings").all();
   const id = nextId(results.map(x => x.id), idPrefix(r.value.use, r.value.country));
   const ts = now();
   const row = { ...r.value, id, published: 0, created_at: ts, updated_at: ts, updated_by: admin };
@@ -81,7 +81,7 @@ async function setState({ env, admin, params: [id, action] }) {
   return json({ listing: await loadListing(env, id) });
 }
 
-async function remove({ request, env, params: [id] }) {
+async function remove({ request, env, admin, params: [id] }) {
   const l = await loadListing(env, id);
   if (!l.archived_at) fail(400, "Solo se pueden borrar fichas archivadas");
   if ((await readJson(request))?.confirm !== id) fail(400, `Escribe ${id} para confirmar el borrado`);
@@ -89,6 +89,7 @@ async function remove({ request, env, params: [id] }) {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM media WHERE listing_id = ?").bind(id),
     env.DB.prepare("DELETE FROM listings WHERE id = ?").bind(id),
+    env.DB.prepare("INSERT INTO deleted_listings (id, deleted_at, deleted_by) VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING").bind(id, now(), admin),
   ]);
   // Imported files stay in R2 (they also live in /root/Hampton_Database); research rows are kept.
   const keys = results.flatMap(m => [m.r2_key, m.thumb_key]).filter(Boolean);

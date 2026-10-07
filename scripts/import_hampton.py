@@ -117,8 +117,12 @@ def map_media(r, position, today):
 
 
 def insert(table, row, key):
+    """Never overwrites panel edits (ON CONFLICT DO NOTHING) and never resurrects a listing
+    that was deleted for good in the panel (deleted_listings tombstone)."""
     cols = list(row)
-    return (f"INSERT INTO {table} ({', '.join(cols)}) VALUES ({', '.join(q(row[c]) for c in cols)}) "
+    listing_id = row["listing_id"] if table == "media" else row["id"]
+    return (f"INSERT INTO {table} ({', '.join(cols)}) SELECT {', '.join(q(row[c]) for c in cols)} "
+            f"WHERE NOT EXISTS (SELECT 1 FROM deleted_listings WHERE id = {q(listing_id)}) "
             f"ON CONFLICT({key}) DO NOTHING;")
 
 

@@ -81,6 +81,7 @@ test("archive → cannot publish → restore → delete only when archived and c
   assert.equal((await call(env, "DELETE", "/admin/listings/HE-R001", { cookie, body: { confirm: "nope" } })).status, 400);
   assert.equal((await call(env, "DELETE", "/admin/listings/HE-R001", { cookie, body: { confirm: "HE-R001" } })).status, 200);
   assert.equal(await env.DB.prepare("SELECT 1 FROM listings WHERE id = 'HE-R001'").first(), null);
+  assert.equal((await env.DB.prepare("SELECT deleted_by FROM deleted_listings WHERE id = 'HE-R001'").first()).deleted_by, "luismadef45@gmail.com");
   assert.equal(env.MEDIA.store.has(up.data.media.r2_key), false);
   const r = await call(env, "POST", "/admin/listings/HE-R026/archive", { cookie });
   assert.equal((await call(env, "POST", "/admin/listings/HE-R026/restore", { cookie })).data.listing.archived_at, null);

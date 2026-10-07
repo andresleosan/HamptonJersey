@@ -72,17 +72,35 @@ class SqlQuoting(unittest.TestCase):
     def test_literals(self):
         self.assertEqual([ih.q(None), ih.q(3.0), ih.q(2.5), ih.q("O'Neil")], ["NULL", "3", "2.5", "'O''Neil'"])
 
+def schema_db():
+    db = sqlite3.connect(":memory:")
+    db.execute("PRAGMA foreign_keys = ON")
+    mig = os.path.join(os.path.dirname(__file__), "..", "migrations")
+    for f in sorted(os.listdir(mig)):
+        with open(os.path.join(mig, f)) as fh:
+            db.executescript(fh.read())
+    return db
+
 class Rerun(unittest.TestCase):
     def test_rerun_never_overwrites_panel_edits(self):
-        with open(os.path.join(os.path.dirname(__file__), "..", "migrations", "0001_init.sql")) as fh:
-            schema = fh.read()
-        db = sqlite3.connect(":memory:"); db.executescript(schema)
+        db = schema_db()
         row = ih.map_listing(prop(), None, TODAY); row["cover_media_id"] = None
         sql = ih.insert("listings", row, "id")
         db.execute(sql)
         db.execute("UPDATE listings SET title = 'Edited in panel' WHERE id = 'HE-R001'")
         db.execute(sql)
         self.assertEqual(db.execute("SELECT title FROM listings").fetchone()[0], "Edited in panel")
+
+    def test_rerun_does_not_resurrect_deleted_listings(self):
+        db = schema_db()
+        row = ih.map_listing(prop(), None, TODAY); row["cover_media_id"] = None
+        media = ih.map_media(asset(), 0, TODAY)
+        db.execute(ih.insert("listings", row, "id")); db.execute(ih.insert("media", media, "id"))
+        db.execute("DELETE FROM media"); db.execute("DELETE FROM listings")
+        db.execute("INSERT INTO deleted_listings (id, deleted_at, deleted_by) VALUES ('HE-R001', 'now', 'luis')")
+        db.execute(ih.insert("listings", row, "id")); db.execute(ih.insert("media", media, "id"))
+        self.assertEqual(db.execute("SELECT COUNT(*) FROM listings").fetchone()[0], 0)
+        self.assertEqual(db.execute("SELECT COUNT(*) FROM media").fetchone()[0], 0)
 
 if __name__ == "__main__":
     unittest.main()
