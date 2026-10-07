@@ -4,8 +4,8 @@ compatibility_date = "2025-10-01"
 
 [vars]
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
-# Clave de prueba de Turnstile; la Tarea 14 la sustituye por la real antes del deploy.
-TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
+# Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
+TURNSTILE_SITE_KEY = "0x4AAAAAAFQB3xGjTWfMlGS5"
 
 [[d1_databases]]
 binding = "DB"
