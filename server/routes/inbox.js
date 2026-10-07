@@ -13,11 +13,19 @@ async function list({ request, env }) {
   return json({ viewings, counts });
 }
 
-async function setStatus({ request, env, admin, params: [id] }) {
-  const { status } = (await readJson(request)) ?? {};
-  if (!STATUSES.includes(status)) fail(400, "Invalid status");
-  const r = await env.DB.prepare("UPDATE viewing_requests SET status = ?, updated_at = ?, updated_by = ? WHERE id = ?")
-    .bind(status, now(), admin, Number(id)).run();
+async function update({ request, env, admin, params: [id] }) {
+  const body = (await readJson(request)) ?? {}, patch = {};
+  if ("status" in body) { if (!STATUSES.includes(body.status)) fail(400, "Invalid status"); patch.status = body.status; }
+  if ("notes" in body) {
+    if (body.notes !== null && typeof body.notes !== "string") fail(400, "Notes must be text");
+    const n = (body.notes ?? "").trim();
+    if (n.length > 4000) fail(400, "Notes can be at most 4000 characters");
+    patch.notes = n || null;
+  }
+  const cols = Object.keys(patch);
+  if (!cols.length) fail(400, "Nothing to update");
+  const r = await env.DB.prepare(`UPDATE viewing_requests SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ? WHERE id = ?`)
+    .bind(...cols.map(c => patch[c]), now(), admin, Number(id)).run();
   if (!r.meta.changes) fail(404, "Request not found");
   return json({ ok: true });
 }
@@ -30,6 +38,6 @@ async function remove({ env, params: [id] }) {
 
 export default [
   ["GET", /^\/admin\/viewings$/, list, true],
-  ["PUT", /^\/admin\/viewings\/(\d+)$/, setStatus, true],
+  ["PUT", /^\/admin\/viewings\/(\d+)$/, update, true],
   ["DELETE", /^\/admin\/viewings\/(\d+)$/, remove, true],
 ];

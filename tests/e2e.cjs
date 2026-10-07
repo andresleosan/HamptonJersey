@@ -188,6 +188,15 @@ async function admin(browser) {
 
   await page.goto(BASE + "admin/#/viewings");
   await page.waitForSelector("text=Jane Le Brocq");
+  // Inbox: the first request opens in the detail pane; notes and status are one click each.
+  await page.fill("#v-notes", "Called, prefers Saturday");
+  await page.getByRole("button", {name: "Save notes", exact: true}).click();
+  await page.waitForSelector("text=Notes saved.");
+  await page.getByRole("button", {name: "Mark contacted", exact: true}).click();
+  await page.waitForSelector("text=You're all caught up");
+  await page.getByRole("button", {name: /^Contacted/}).click();
+  assert.equal(await page.inputValue("#v-notes"), "Called, prefers Saturday", "notes are kept");
+  await shot(page, "admin-inbox");
   await page.goto(BASE + "admin/#/users");
   await page.waitForSelector("text=andres.san1404@gmail.com");
   await shot(page, "admin-users");

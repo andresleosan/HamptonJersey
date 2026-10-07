@@ -134,6 +134,12 @@ test("viewings inbox: list with counts, change status, delete", async () => {
   assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: { status: "bogus" } })).status, 400);
   assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: { status: "contacted" } })).status, 200);
   assert.equal((await call(env, "GET", "/admin/viewings?status=contacted", { cookie })).data.viewings.length, 1);
+  assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: { notes: "  Called, wants Saturday  " } })).status, 200);
+  const [noted] = (await call(env, "GET", "/admin/viewings?status=contacted", { cookie })).data.viewings;
+  assert.equal(noted.notes, "Called, wants Saturday");
+  assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: { notes: "x".repeat(4001) } })).status, 400);
+  assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: { notes: 5 } })).status, 400);
+  assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: {} })).status, 400);
   assert.equal((await call(env, "DELETE", "/admin/viewings/1", { cookie })).status, 200);
   assert.equal((await call(env, "DELETE", "/admin/viewings/1", { cookie })).status, 404);
 });
