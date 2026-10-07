@@ -32,8 +32,7 @@ h2{font-size:clamp(24px,3vw,34px)}
 .btn.light{background:var(--paper);color:var(--ink);border-color:var(--paper)}
 .num{font-variant-numeric:tabular-nums}
 
-/* demo ribbon + header */
-.ribbon{background:var(--bronze);color:#fff;font-size:12px;text-align:center;padding:7px 16px;letter-spacing:.04em}
+/* header */
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);border-bottom:1px solid var(--line)}
 header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;height:72px}
 .logo{font-family:var(--display);font-size:19px;letter-spacing:.28em;text-decoration:none;white-space:nowrap}
@@ -178,19 +177,7 @@ fieldset.field{border:0;margin:0;padding:0}
 .stage-msg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;background:rgba(17,17,17,.92);color:#fff}
 .stage-msg>div{display:grid;gap:14px;justify-items:center;max-width:42ch}
 .stage-msg a{color:#fff}
-/* aerial: one static layer, so the photo and its outlines can never drift apart */
-.drone{position:absolute;inset:0}
-.drone img{width:100%;height:100%;object-fit:cover}
-.drone svg{position:absolute;inset:0;width:100%;height:100%}
-.drone polygon{fill-opacity:.22;stroke-width:3;transition:fill-opacity .2s}
-.drone polygon.on{fill-opacity:.45}
-.drone text{font:600 15px var(--body);fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.65);stroke-width:4px;pointer-events:none}
-.drone .legend-box{position:absolute;left:16px;bottom:16px;background:rgba(15,15,15,.82);color:#fff;padding:12px 14px;display:grid;gap:4px;font-size:13px;min-width:220px}
-.drone .legend-box button{all:unset;display:flex;justify-content:space-between;gap:18px;cursor:pointer;padding:3px 0}
-.drone .legend-box button:focus-visible{outline:2px solid var(--bronze)}
-.drone .legend-box i{display:inline-block;width:10px;height:10px;margin-right:8px}
-.drone .hud{position:absolute;top:12px;right:12px;background:rgba(15,15,15,.82);color:#fff;font:600 10px var(--body);letter-spacing:.16em;text-transform:uppercase;padding:6px 10px}
-@media (max-width:640px){.stage{aspect-ratio:4/3;max-height:none}.drone .legend-box{min-width:0;left:0;right:0;bottom:0;grid-template-columns:1fr 1fr;gap:0 14px;font-size:10.5px;padding:6px 10px}.drone .legend-box button{padding:2px 0}.drone .hud{top:8px;right:8px}.drone text{font-size:20px}}
+@media (max-width:640px){.stage{aspect-ratio:4/3;max-height:none}}
 
 .summary{display:grid;gap:16px;align-content:start}
 .summary h1{font-size:clamp(24px,2.6vw,32px);line-height:1.15}
@@ -205,7 +192,6 @@ fieldset.field{border:0;margin:0;padding:0}
 .summary .btns{display:grid;gap:8px}
 .src{font-size:12px;color:var(--stone);margin:0}
 @media (max-width:980px){.summary .agent-mini{order:1}.summary .src{order:2}.crumbs{padding-block:10px}}
-@media (max-width:640px){.ribbon .wide{display:none}}
 
 .detail{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:clamp(28px,5vw,64px);padding-block:48px 8px}
 .detail>.full{grid-column:1/-1}
@@ -240,11 +226,19 @@ dl.facts-list dd,.specs dd{margin:0;text-align:right;min-width:0;overflow-wrap:a
 footer{background:var(--mist);padding-block:48px;font-size:13px;color:var(--stone)}
 footer .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}
 footer b{color:var(--ink);font-family:var(--display);font-weight:400;letter-spacing:.2em;text-transform:uppercase}
+.thumbs{display:flex;gap:8px;overflow-x:auto;padding-top:10px}
+.thumbs button{all:unset;cursor:pointer;flex:0 0 88px;aspect-ratio:4/3;outline-offset:2px}
+.thumbs button[aria-pressed=true]{outline:2px solid var(--bronze)}
+.thumbs button:focus-visible{outline:2px solid var(--ink)}
+.thumbs img{width:100%;height:100%;object-fit:cover}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.plans img{width:100%;background:#fff;border:1px solid var(--mist)}
+.bullets{margin:0 0 16px;padding-left:18px}
+.form-status{min-height:1.4em}
 </style>
 </head>
 <body>
 <a class="skip" href="#app" data-scroll="app">Skip to content</a>
-<div class="ribbon">Demo prototype · listings captured from hamptonestatesjersey.com<span id="captured"></span>, not a live feed<span class="wide"> · 3D tour and aerial view are samples</span></div>
 <header class="top"><div class="wrap">
   <a class="logo" href="#/">HAMPTON ESTATES<small>JERSEY · SINCE 1982</small></a>
   <nav class="main" id="main-nav" aria-label="Main"><a href="#/">Home</a><a href="#portfolio">Properties</a><a href="#team">Our team</a><a href="#book">Book a viewing</a></nav>
@@ -256,9 +250,9 @@ footer b{color:var(--ink);font-family:var(--display);font-weight:400;letter-spac
   <div><b>Hampton Estates</b><p>Property sales · Free valuations · Rentals.<br>No sale, no fee.</p></div>
   <div><b>Visit</b><p>42 Bath Street, St Helier<br>Jersey JE2 4ST</p></div>
   <div><b>Contact</b><p class="num">01534 727582 · 07797 718199<br>francopropertiesjersey@gmail.com</p></div>
-  <div><b>Demo</b><p>Aerial imagery © Esri World Imagery. 3D tour: Matterport sample space.</p></div>
 </div></footer>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstile" async defer></script>
 <script src="lib.js"></script>
 <script>
 // ---------- helpers (pure ones live in lib.js) ----------
@@ -266,38 +260,15 @@ const $ = (s, el = document) => el.querySelector(s);
 const wix = (url, w, h) => url ? `${url}/v1/fill/w_${w},h_${h},al_c,q_80/photo.jpg` : "";
 const fmtDate = iso => new Date(iso + "T12:00").toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"});
 const localISO = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
-const M2_PER_PX = 0.195 ** 2; // Esri z19 at lat 49.2° ≈ 0.195 m/px
-const SQFT = 10.7639;
 const REGIONS = {all: "All", jersey: "Jersey", uk: "UK", international: "International"};
 const OPS = {all: "All", sale: "For sale", rent: "To let", business: "Businesses"};
 const OP_ONE = {sale: "For sale", rent: "To let", business: "Business for sale"};
 const MAX = {sale: [400e3, 600e3, 900e3, 1.5e6], rent: [1500, 2500, 3500], business: [100e3, 250e3, 500e3]};
 const short = (n, op) => op === "rent" ? `£${n.toLocaleString("en-GB")} pcm` : n >= 1e6 ? `£${n / 1e6}m` : `£${n / 1e3}k`;
+// Turnstile loads async; forms render the widget once it is ready.
+let TS_KEY = null;
+const tsReady = new Promise(r => { window.onTurnstile = r; });
 
-const polyArea = pts => Math.abs(pts.reduce((a, [x, y], i) => {
-  const [x2, y2] = pts[(i + 1) % pts.length]; return a + x * y2 - x2 * y; }, 0)) / 2;
-
-// ---------- demo enrichment: invented for the featured listing, always labelled as illustrative ----------
-const PLOT = [
-  {key:"plot", name:"Total plot", color:"#ffffff", pts:[[292,338],[392,298],[585,262],[628,300],[640,385],[560,425],[420,478],[330,470],[296,430]]},
-  {key:"house", name:"House & garage footprint", color:"#d9a066", pts:[[388,312],[498,296],[552,330],[552,366],[404,374],[388,350]]},
-  {key:"garden", name:"Garden & pool terrace", color:"#7fd1a1", pts:[[300,345],[384,322],[392,440],[334,458],[302,425]]},
-  {key:"drive", name:"Driveway (6 cars)", color:"#8ab4f8", pts:[[552,330],[590,262],[612,278],[576,350]]},
-];
-PLOT.forEach(z => z.m2 = Math.round(polyArea(z.pts) * M2_PER_PX));
-// Matterport's public demo model (owner contact is the placeholder "Acme Realty"). ts = start the guided
-// highlight reel N s after loading, lp = loop it; the visitor takes over by dragging, as in any Showcase.
-const TOUR = "https://my.matterport.com/show/?m=JGPnGQ6hosj&play=1&qs=1&brand=0&ts=3&lp=1";
-const DEMO = {
-  "9c0f9d02": {
-    interior: 465,
-    specs: {
-      "Interior": [["Interior area",""],["Floors","2"],["Reception","Lounge/dining + glazed sun room"],["Kitchen","Modern fitted, island"],["Heating","Oil-fired central heating"]],
-      "Exterior": [["Plot",""],["Garden","Landscaped front, palms & flower beds"],["Pool","Outdoor pool + pool house"],["Garage","Large integral garage"]],
-      "Building": [["Type","Detached villa"],["Year built","1994"],["Construction","Rendered block, painted white"],["Roof","Pitched, concrete tile"]],
-    },
-  },
-};
 
 // ---------- state ----------
 let PROPS = [], PUB = [], TEAM = [], filter = {region: "all", op: "all", beds: 0, max: 0}, showAll = false;
@@ -306,14 +277,14 @@ const agentFor = p => TEAM[(amount(p) ?? 0) > 1e6 ? 0 : 1] || TEAM[0] || null;
 
 function card(p, extra = "") {
   return `<a class="card" href="#/p/${p.id}">
-    <div class="ph"><img loading="lazy" src="${esc(wix(p.image, 640, 480))}" alt="${esc(p.title)}">
-      <span class="pill ${pillCls(p.status)}">${esc(p.status)}</span>${DEMO[p.id] ? '<span class="pill tour">3D tour</span>' : ""}</div>
+    <div class="ph"><img loading="lazy" src="${esc(p.thumb || p.image)}" alt="${esc(p.title)}">
+      <span class="pill ${pillCls(p.status)}">${esc(p.status)}</span>${p.tourUrl ? '<span class="pill tour">3D tour</span>' : ""}</div>
     <div><div class="eyebrow">${esc(p.place)}</div><h3>${esc(p.title)}</h3></div>
     <div class="meta">${p.beds ? `<span>${p.beds} bed</span>` : ""}${p.baths ? `<span>${p.baths} bath</span>` : ""}${p.type ? `<span>${esc(p.type)}</span>` : ""}${p.operation !== "sale" ? `<span>${OP_ONE[p.operation]}</span>` : ""}</div>
     <div class="price num">${extra}${esc(priceLabel(p))}</div></a>`;
 }
 
-// ---------- booking form (home + detail). Demo only: nothing leaves the browser. ----------
+// ---------- booking form (home + detail): sends a viewing request to /api/viewings ----------
 function bookingForm(pre = {}) {
   const d = new Date(Date.now() + 864e5); if (d.getDay() === 0) d.setDate(d.getDate() + 1); // no Sunday viewings
   const tomorrow = localISO(d);
@@ -334,44 +305,62 @@ function bookingForm(pre = {}) {
     <div class="row"><label class="field"><span>Full name</span><input name="name" autocomplete="name" required placeholder="Jane Le Brocq"></label>
       <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="jane@example.je"></label>
       <label class="field"><span>Phone (optional)</span><input name="phone" type="tel" autocomplete="tel" placeholder="07797 000000"></label></div>
-    <div><button class="btn" type="submit">Request viewing</button> <span class="hint">Demo: nothing is sent or booked.</span></div>
+    ${TS_KEY ? `<div class="ts"></div>` : ""}
+    <div><button class="btn" type="submit" ${TS_KEY ? "" : "disabled"}>Request viewing</button>
+      <p class="hint form-status" role="status" aria-live="polite">${TS_KEY ? "" : "Online booking is unavailable right now. Please call 01534 727582."}</p></div>
   </form>`;
 }
 
 function mountBooking(slot, pre = {}) {
   slot.innerHTML = bookingForm(pre);
-  const form = $("form", slot), el = form.elements;
+  const form = $("form", slot), el = form.elements, status = $(".form-status", slot), btn = $("button[type=submit]", form);
+  let widget = null;
+  if (TS_KEY) tsReady.then(() => { if ($(".ts", slot)) widget = turnstile.render($(".ts", slot), {sitekey: TS_KEY}); });
   const sunday = () => el.date.setCustomValidity(el.date.value && new Date(el.date.value + "T12:00").getDay() === 0
     ? "Viewings run Monday to Saturday. Please choose another day." : "");
   el.date.addEventListener("input", sunday);
-  form.addEventListener("submit", e => {
+  form.addEventListener("submit", async e => {
     e.preventDefault(); sunday();
-    if (!form.reportValidity()) return;
+    if (!form.reportValidity() || btn.disabled) return;
     const v = n => form.querySelector(`[name=${n}]:checked`)?.value;
     const agent = TEAM[+v("agent")] || null, prop = PUB.find(p => p.id === el.prop.value);
+    const token = form.querySelector('[name="cf-turnstile-response"]')?.value;
+    if (!token) { status.textContent = "Please complete the anti-spam check above."; return; }
+    btn.disabled = true; status.textContent = "Sending…";
+    try {
+      const r = await fetch("/api/viewings", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({
+        listing_id: el.prop.value || null, agent: agent?.name || null, kind: v("kind"), date: el.date.value, time: v("time"),
+        name: el.name.value, email: el.email.value, phone: el.phone.value || null, turnstile: token})});
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.fields ? Object.values(data.fields).join(". ") + "." : data.error || "Something went wrong.");
+    } catch (err) {
+      status.textContent = `${err instanceof TypeError ? "We couldn't reach our server." : err.message} Your details are still here — please try again.`;
+      btn.disabled = false; if (widget != null) turnstile.reset(widget);
+      return;
+    }
     const when = new Date(el.date.value + "T12:00").toLocaleDateString("en-GB", {weekday: "long", day: "numeric", month: "long"});
     const keep = {prop: el.prop.value, agent: agent ? TEAM.indexOf(agent) : 0};
-    slot.innerHTML = `<div class="confirm" role="status" tabindex="-1"><h3>Viewing requested (demo)</h3>
-      <p>${agent ? esc(agent.name) : "Our team"} would confirm by email within one working day.</p>
+    slot.innerHTML = `<div class="confirm" role="status" tabindex="-1"><h3>Request received</h3>
+      <p>${agent ? esc(agent.name) : "Our team"} will contact you to confirm the viewing.</p>
       <dl><dt>Property</dt><dd>${esc(prop ? prop.title : "General enquiry / valuation")}</dd><dt>When</dt><dd>${esc(when)}, ${esc(v("time"))}</dd>
       <dt>Type</dt><dd>${esc(v("kind"))}</dd><dt>Agent</dt><dd>${agent ? `${esc(agent.name)} · ${esc(agent.office)}` : "First available"}</dd>
       <dt>Name</dt><dd>${esc(el.name.value)}</dd></dl>
-      <p class="hint">Demo only: no data was sent and no appointment exists.</p>
-      <div class="actions"><button class="btn" type="button" data-again>Book another viewing</button><button class="btn ghost" type="button" data-cancel>Cancel this request</button></div></div>`;
+      <div class="actions"><button class="btn" type="button" data-again>Book another viewing</button></div></div>`;
     $(".confirm", slot).focus();
     $("[data-again]", slot).addEventListener("click", () => { mountBooking(slot, keep); $("select", slot).focus(); });
-    $("[data-cancel]", slot).addEventListener("click", () => { mountBooking(slot, {...keep, msg: "Request cancelled. Nothing was sent."}); $("select", slot).focus(); });
   });
 }
 
 // ---------- pages ----------
 function home() {
-  const feat = PUB.find(p => DEMO[p.id]) || PUB[0];
+  const feat = PUB.find(p => p.tourUrl || p.aerial) || PUB[0];
+  const featChips = [feat.tourUrl && "3D tour", feat.aerial && "Aerial view", feat.floorplans.length && "Floor plans",
+    feat.operation === "sale" && feat.salePrice != null && "Mortgage calculator", "Book with an agent"].filter(Boolean);
   const bios = ["Founded Hampton Estates in 1982 and has guided generations of Jersey families through buying, selling and letting. Advice and valuations are always free.",
                 "Handles day-to-day sales and lettings, from first viewing to completion. Your first call for viewings, offers and rental enquiries."];
   const sel = (id, obj, cur) => `<select id="${id}">${Object.entries(obj).map(([k, v]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${v}</option>`).join("")}</select>`;
   $("#app").innerHTML = `
-  <section class="hero" style="background-image:url('${esc(wix(feat.image, 1800, 1000))}')"><div class="wrap">
+  <section class="hero" style="background-image:url('${esc(feat.image)}')"><div class="wrap">
     <div class="eyebrow">Jersey · Channel Islands</div>
     <h1>Homes across Jersey, since 1982</h1>
     <p>Sales, lettings and free valuations from our St Helier office on Bath Street. Discreet, personal and on a no sale, no fee basis.</p>
@@ -386,7 +375,7 @@ function home() {
 
   <section class="block" id="portfolio" tabindex="-1"><div class="wrap">
     <div class="head"><div><div class="eyebrow">Portfolio</div><h2>Properties for sale & to let</h2>
-      <p><span id="count" class="num"></span> listings · snapshot of the Hampton website.</p></div>
+      <p><span id="count" class="num"></span> listings.</p></div>
       <div class="filters">
         <div class="tabs" id="tabs-region" role="group" aria-label="Location">${Object.entries(REGIONS).map(([k, v]) => `<button type="button" data-region="${k}">${v}</button>`).join("")}</div>
         <div class="tabs" id="tabs-op" role="group" aria-label="Operation">${Object.entries(OPS).map(([k, v]) => `<button type="button" data-op="${k}">${v}</button>`).join("")}</div>
@@ -396,10 +385,10 @@ function home() {
     <div style="text-align:center;margin-top:48px"><button class="btn ghost" type="button" id="more"></button></div>
   </div></section>
 
-  ${DEMO[feat.id] ? `<section class="feature"><img src="${esc(wix(feat.image, 1200, 800))}" alt="${esc(feat.title)}">
+  ${feat.tourUrl || feat.aerial ? `<section class="feature"><img src="${esc(feat.image)}" alt="${esc(feat.title)}">
     <div class="txt"><div class="eyebrow">Featured · ${esc(feat.place)}</div><h2>${esc(feat.title)}</h2>
-      <p>Try the demo tools on this listing: a sample 3D walkthrough, an illustrative aerial plot view and a repayment calculator, then book a viewing.</p>
-      <div class="chips"><span>Sample 3D tour</span><span>Illustrative aerial</span><span>Mortgage calculator</span><span>Book with an agent</span></div>
+      <p>See more of this property before you visit, then book a viewing with our team.</p>
+      <div class="chips">${featChips.map(c => `<span>${c}</span>`).join("")}</div>
       <div><a class="btn" href="#/p/${feat.id}">Explore the property</a></div></div>
   </section>` : ""}
 
@@ -413,7 +402,7 @@ function home() {
         <div><button class="btn" type="button" data-agent="${i}">Book with ${esc(t.name.split(" ")[0])}</button></div></div></article>`).join("")}</div>`
       : `<p style="margin-top:24px;color:#cfcac2">Team details could not be loaded. Call the office on 01534 727582.</p>`}
     <div class="facts"><div><b class="num">1982</b><span>Established in St Helier</span></div><div><b>No sale</b><span>No fee, ever</span></div>
-      <div><b>Free</b><span>Local & international valuations</span></div><div><b class="num">${PUB.length}</b><span>Listings in this snapshot</span></div></div>
+      <div><b>Free</b><span>Local & international valuations</span></div><div><b class="num">${PUB.length}</b><span>Listings available now</span></div></div>
   </div></section>
 
   <section class="block" id="book" tabindex="-1"><div class="wrap book">
@@ -462,31 +451,18 @@ function home() {
   render();
 }
 
-function droneView() {
-  const z = PLOT.map(p => `<polygon data-k="${p.key}" points="${p.pts.join(" ")}" fill="${p.color}" stroke="${p.color}" ${p.key === "plot" ? 'stroke-dasharray="10 6" fill-opacity=".08"' : ""}></polygon>`).join("");
-  const labels = PLOT.filter(p => p.key !== "plot").map(p => {
-    const cx = p.pts.reduce((a, q) => a + q[0], 0) / p.pts.length, cy = p.pts.reduce((a, q) => a + q[1], 0) / p.pts.length;
-    return `<text x="${cx}" y="${cy}" text-anchor="middle">≈${p.m2} m²</text>`; }).join("");
-  // img (object-fit:cover) and svg (slice) share the 1024×768 frame and centre, so they stay aligned at any size.
-  return `<div class="drone"><img src="img/aerial-demo.jpg" alt="Satellite image of a sample rural plot with illustrative outlines">
-    <svg viewBox="0 0 1024 768" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${z}${labels}
-      <text x="460" y="250" text-anchor="middle">Plot ≈${PLOT[0].m2.toLocaleString("en-GB")} m²</text></svg>
-    <div class="hud">Illustrative · not a survey</div>
-    <div class="legend-box">${PLOT.map(p => `<button type="button" data-k="${p.key}" aria-pressed="false"><span><i style="background:${p.color}"></i>${p.name}</span><b class="num">≈${p.m2.toLocaleString("en-GB")} m²</b></button>`).join("")}</div></div>`;
-}
-
 function detail(id) {
   const p = PUB.find(x => x.id === id); if (!p) { location.replace("#/"); return; }
-  const d = DEMO[p.id], agent = agentFor(p), plotM2 = PLOT[0].m2;
+  const agent = agentFor(p);
   const canCalc = p.operation === "sale" && p.salePrice != null;
   const cur = p.currency || "GBP", money0 = n => money(n, cur);
-  const desc = p.description.map(l => l.replace(/^'?-\s*/, "").trim()).filter(l => l && l.toLowerCase() !== p.title.toLowerCase());
+  const desc = p.description.filter(l => l.toLowerCase() !== p.title.toLowerCase());
   const similar = comparables(p, PUB);
   const facts = [["Type", p.type], ["Location", p.place], ["Market", REGIONS[p.region]], ["Operation", OP_ONE[p.operation]],
-    ["Price as listed", p.priceText || "Not published"], ["Tenure", p.tenure],
-    ["Source", p.source.url && `<a href="${esc(p.source.url)}" target="_blank" rel="noopener noreferrer">hamptonestatesjersey.com ↗</a>`],
-    ["Captured", p.source.retrieved && fmtDate(p.source.retrieved)]].filter(([, v]) => v);
-  const tabs = [["photo", "Photos"], ...(d ? [["tour", "3D tour"], ["drone", "Aerial"]] : [])];
+    ["Price as listed", p.priceText || "Not published"], ["Tenure", p.tenure]].filter(([, v]) => v);
+  const tour = embedUrl(p.tourUrl);
+  const groups = p.specs.reduce((a, s) => ((a[s.group || "Details"] ||= []).push(s), a), {});
+  const tabs = [["photo", "Photos"], ...(p.tourUrl ? [["tour", "3D tour"]] : []), ...(p.aerial ? [["aerial", "Aerial"]] : [])];
 
   $("#app").innerHTML = `<div class="wrap crumbs"><a href="#/">Home</a> / <a href="#portfolio" data-region="${p.region}">${esc(REGIONS[p.region])}</a> / ${esc(p.title)}</div>
   <div class="wrap d-top">
@@ -495,6 +471,7 @@ function detail(id) {
         `<button role="tab" id="tab-${v}" data-v="${v}" aria-controls="stage" aria-selected="${!i}" tabindex="${i ? -1 : 0}">${t}</button>`).join("")}</div>` : ""}
       <div class="stage" id="stage" ${tabs.length > 1 ? 'role="tabpanel" aria-labelledby="tab-photo"' : ""}></div>
       <div class="stage-note" id="stage-note" aria-live="polite"></div>
+      <div class="thumbs" id="thumbs"></div>
     </div>
     <aside class="summary" aria-label="Summary">
       <div class="eyebrow">${esc(p.status)} · ${esc(p.place)}</div>
@@ -503,20 +480,20 @@ function detail(id) {
       ${p.beds || p.baths || p.type ? `<div class="keys num">${p.beds ? `<div><b>${p.beds}</b><span>Bedrooms</span></div>` : ""}${p.baths ? `<div><b>${p.baths}</b><span>Bathrooms</span></div>` : ""}${p.type ? `<div><b>${esc(p.type)}</b><span>Type</span></div>` : ""}</div>` : ""}
       ${agent ? `<div class="agent-mini">${agent.photo ? `<img src="${esc(wix(agent.photo, 120, 120))}" alt="">` : ""}<div><b>${esc(agent.name)}</b><div class="hint">${esc(agent.role)} · ${esc(agent.office)}</div></div></div>` : ""}
       <div class="btns">${isSold(p) ? "" : `<a class="btn" href="#detail-book" data-scroll="detail-book">Book a viewing</a>`}
-        ${d ? `<button class="btn ghost" type="button" data-go="tour">Open the 3D tour</button>` : ""}</div>
-      ${p.source.retrieved ? `<p class="src">Listing snapshot captured ${esc(fmtDate(p.source.retrieved))}. Availability may have changed.</p>` : ""}
+        ${p.tourUrl ? `<button class="btn ghost" type="button" data-go="tour">Open the 3D tour</button>` : ""}</div>
     </aside>
   </div>
   <div class="wrap detail">
     <div><h2 class="sub">About this property</h2>
-      <div class="prose">${desc.map(l => `<p>${esc(l)}</p>`).join("") || "<p>Full particulars available from our office.</p>"}</div></div>
+      <div class="prose">${p.summary.length ? `<ul class="bullets">${p.summary.map(l => `<li>${esc(l.replace(/^[-•]\s*/, ""))}</li>`).join("")}</ul>` : ""}
+        ${desc.map(l => `<p>${esc(l)}</p>`).join("") || (p.summary.length ? "" : "<p>Full particulars available from our office.</p>")}</div></div>
     <div><h2 class="sub">Listing details</h2>
-      <dl class="facts-list">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${k === "Source" ? v : esc(v)}</dd></div>`).join("")}</dl>
-      ${p.notes.map(n => `<p class="note">Note: ${esc(n)}</p>`).join("")}</div>
-    ${d ? `<div class="full"><h2 class="sub">Example details <span class="tag">Illustrative</span></h2>
-      <div class="specs">${Object.entries(d.specs).map(([g, rows]) => `<div><h4>${g}</h4><dl>${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(
-        k === "Interior area" ? `≈${d.interior} m² (${Math.round(d.interior * SQFT).toLocaleString("en-GB")} sq ft)` : k === "Plot" ? `≈${plotM2.toLocaleString("en-GB")} m²` : v)}</dd></div>`).join("")}</dl></div>`).join("")}</div>
-      <p class="note">Invented for this demo to show how a full specification would look. Not taken from the listing.</p></div>` : ""}
+      <dl class="facts-list">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
+    ${p.specs.length ? `<div class="full"><h2 class="sub">Property details</h2>
+      <div class="specs">${Object.entries(groups).map(([g, rows]) => `<div><h4>${esc(g)}</h4><dl>${rows.map(s =>
+        `<div><dt>${esc(s.label)}</dt><dd>${esc(s.value)}</dd></div>`).join("")}</dl></div>`).join("")}</div></div>` : ""}
+    ${p.floorplans.length ? `<div class="full"><h2 class="sub">Floor plans</h2><div class="plans">${p.floorplans.map(f =>
+      `<a href="${esc(f.src)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(f.src)}" alt="${esc(f.alt)}"></a>`).join("")}</div></div>` : ""}
     ${canCalc ? `<div class="full"><h2 class="sub" id="mortgage">Mortgage calculator</h2>
       <div class="calc" id="calc">
         <div>
@@ -543,10 +520,10 @@ function detail(id) {
     <div id="detail-slot"></div></div></section>`}`;
 
   const stage = $("#stage"), note = $("#stage-note");
-  let timer;
+  let timer, idx = 0;
   const fail = (msg, retry) => {
     stage.insertAdjacentHTML("beforeend", `<div class="stage-msg" role="alert"><div><p>${msg}</p>
-      <a href="${TOUR}" target="_blank" rel="noopener noreferrer">Open the sample tour on Matterport ↗</a>
+      <a href="${esc(p.tourUrl)}" target="_blank" rel="noopener noreferrer">Open the tour in a new tab ↗</a>
       ${retry ? `<button class="btn light" type="button" data-retry>Try again</button>` : ""}</div></div>`);
   };
   const webgl = () => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; } };
@@ -554,31 +531,35 @@ function detail(id) {
     clearTimeout(timer); stage.classList.remove("noimg");
     document.querySelectorAll(".media-tabs button").forEach(b => { const on = b.dataset.v === v; b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; });
     if (tabs.length > 1) stage.setAttribute("aria-labelledby", `tab-${v}`);
+    $("#thumbs").innerHTML = "";
     if (v === "photo") {
-      stage.innerHTML = `<img src="${esc(wix(p.image, 1600, 1067))}" alt="${esc(p.title)}">`;
-      note.innerHTML = "";
+      const ph = p.photos[idx] || {src: p.image, alt: p.title};
+      stage.innerHTML = `<img src="${esc(ph.src)}" alt="${esc(ph.alt)}">`;
+      note.innerHTML = p.photos.length > 1 ? `<span>Photo ${idx + 1} of ${p.photos.length}</span>` : "";
+      if (p.photos.length > 1) $("#thumbs").innerHTML = p.photos.map((f, i) =>
+        `<button type="button" data-i="${i}" aria-label="Show photo ${i + 1} of ${p.photos.length}" aria-pressed="${i === idx}"><img src="${esc(f.thumb)}" alt="" loading="lazy"></button>`).join("");
     }
     if (v === "tour") {
-      note.innerHTML = `<span><b>Sample space, not this property.</b> Matterport demo model · drag to look around.</span><a href="${TOUR}" target="_blank" rel="noopener noreferrer">Open in Matterport ↗</a>`;
+      note.innerHTML = `<span>3D tour · drag to look around.</span><a href="${esc(p.tourUrl)}" target="_blank" rel="noopener noreferrer">Open in a new tab ↗</a>`;
       stage.innerHTML = "";
+      if (!tour) return fail("This tour opens on the provider's website.");
       if (!webgl()) return fail("This browser can't show 3D content (WebGL is off or unsupported).");
       if (!navigator.onLine) return fail("You appear to be offline. The 3D tour needs a connection.", true);
-      stage.innerHTML = `<iframe src="${TOUR}" title="3D tour of a sample property (Matterport)" allow="fullscreen; xr-spatial-tracking" allowfullscreen></iframe>`;
+      stage.innerHTML = `<iframe src="${esc(tour)}" title="3D tour of ${esc(p.title)}" allow="fullscreen; xr-spatial-tracking" allowfullscreen></iframe>`;
       timer = setTimeout(() => fail("The 3D tour is taking longer than usual to load.", true), 20000);
       $("iframe", stage).addEventListener("load", () => { clearTimeout(timer); $(".stage-msg", stage)?.remove(); });
     }
-    if (v === "drone") {
-      stage.innerHTML = droneView();
-      note.innerHTML = `<span><b>Illustrative only:</b> satellite image of a sample plot (not this property). Outlines and areas are examples, not measurements.</span>`;
+    if (v === "aerial") {
+      stage.innerHTML = `<img src="${esc(p.aerial.src)}" alt="${esc(p.aerial.alt)}">`;
+      note.innerHTML = `<span>Aerial view</span>`;
     }
   };
-  stage.addEventListener("click", e => {
-    if (e.target.closest("[data-retry]")) return show("tour");
-    const btn = e.target.closest(".legend-box [data-k]"); if (!btn) return;
-    const on = btn.getAttribute("aria-pressed") !== "true";
-    stage.querySelectorAll(".legend-box [data-k]").forEach(b => b.setAttribute("aria-pressed", b === btn && on));
-    stage.querySelectorAll("polygon").forEach(g => g.classList.toggle("on", on && g.dataset.k === btn.dataset.k));
+  stage.addEventListener("click", e => { if (e.target.closest("[data-retry]")) show("tour"); });
+  $("#thumbs").addEventListener("click", e => {
+    const b = e.target.closest("[data-i]"); if (!b) return;
+    idx = +b.dataset.i; show("photo"); $(`#thumbs [data-i="${idx}"]`).focus();
   });
+
   const mt = $(".media-tabs");
   if (mt) {
     mt.addEventListener("click", e => { const v = e.target.closest("[data-v]")?.dataset.v; if (v) show(v); });
@@ -630,7 +611,7 @@ addEventListener("click", e => { const r = e.target.closest(".crumbs [data-regio
 
 const HOME_SECTIONS = ["portfolio", "team", "book"];
 const route = () => {
-  const h = location.hash, m = h.match(/^#\/p\/([0-9a-f]{8})$/), sec = h.slice(1);
+  const h = location.hash, m = h.match(/^#\/p\/(HE-[A-Z]\d{3,})$/), sec = h.slice(1);
   setNav(false);
   if (m) return detail(m[1]);
   if (!$("#portfolio")) home();
@@ -644,25 +625,28 @@ addEventListener("error", e => {
   const ph = e.target.closest(".ph, .stage"); ph ? ph.classList.add("noimg") : (e.target.style.visibility = "hidden");
 }, true);
 const getJSON = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); });
-Promise.allSettled([getJSON("data/properties.json"), getJSON("data/team.json")]).then(([p, t]) => {
+const arr = v => (Array.isArray(v) ? v.filter(x => typeof x === "string") : []);
+Promise.allSettled([getJSON("/api/listings"), getJSON("data/team.json"), getJSON("/api/config")]).then(([p, t, c]) => {
   if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
+  TS_KEY = c.status === "fulfilled" && typeof c.value?.turnstileSiteKey === "string" ? c.value.turnstileSiteKey : null;
   const order = {jersey: 0, uk: 1, international: 2};
-  PROPS = p.value.filter(x => x && /^[0-9a-f]{8}$/.test(x.id) && x.title && x.region in order && x.operation in OP_ONE)
+  PROPS = p.value.filter(x => x && /^HE-[A-Z]\d{3,}$/.test(x.id) && x.title && x.region in order && x.operation in OP_ONE)
     .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "premium"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
-      use: x.use === "commercial" ? "commercial" : "residential", image: safeUrl(x.image, IMG_HOST), description: Array.isArray(x.description) ? x.description : [],
-      notes: Array.isArray(x.notes) ? x.notes : [], source: {...x.source, url: safeUrl(x.source?.url, SRC_HOST)}}))
+      use: x.use === "commercial" ? "commercial" : "residential", image: safeMedia(x.image), thumb: safeMedia(x.thumb),
+      photos: (Array.isArray(x.photos) ? x.photos : []).filter(f => safeMedia(f?.src) && safeMedia(f?.thumb)),
+      floorplans: (Array.isArray(x.floorplans) ? x.floorplans : []).filter(f => safeMedia(f?.src)),
+      aerial: x.aerial && safeMedia(x.aerial.src) ? x.aerial : null, tourUrl: safeHttps(x.tourUrl),
+      specs: (Array.isArray(x.specs) ? x.specs : []).filter(s => s && typeof s.label === "string" && typeof s.value === "string"),
+      summary: arr(x.summary), description: arr(x.description)}))
     .sort((a, b) => order[a.region] - order[b.region] || (a.use === "commercial") - (b.use === "commercial"));
-  PUB = PROPS.filter(x => x.public && x.image); // no real photo → kept in the data, left out of the public pages
+  PUB = PROPS.filter(x => x.image); // without a public photo a listing stays out of the public pages
   TEAM = (t.status === "fulfilled" && Array.isArray(t.value) ? t.value : []).filter(a => a && a.name)
     .map(a => ({...a, photo: safeUrl(a.photo, IMG_HOST)}));
-  const last = PROPS.map(x => x.source?.retrieved).filter(Boolean).sort().pop();
-  if (last) $("#captured").textContent = ` on ${fmtDate(last)}`;
   if (!PUB.length) throw new Error("no listings");
   route();
 }).catch(() => {
-  $("#app").innerHTML = `<div class="wrap empty" style="margin-block:80px" role="alert"><p>Listings could not be loaded right now.</p>
-    <button class="btn ghost" type="button" onclick="location.reload()">Try again</button>
-    <p class="hint">Opening the file directly? Serve this folder over HTTP instead (python3 -m http.server).</p></div>`;
+  $("#app").innerHTML = `<div class="wrap empty" style="margin-block:80px" role="alert"><p>We couldn't load our properties right now.</p>
+    <button class="btn ghost" type="button" onclick="location.reload()">Try again</button></div>`;
 });
 </script>
 

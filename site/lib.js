@@ -1,13 +1,19 @@
 // Pure helpers (no DOM): loaded by index.html as a classic script and by tests/lib.test.js via require().
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-// Only https URLs under a known prefix are allowed into src/href attributes.
-const IMG_HOST = "https://static.wixstatic.com/media/", SRC_HOST = "https://www.hamptonestatesjersey.com/";
+// Only https URLs under a known prefix are allowed into src/href attributes (team photos on Wix).
+const IMG_HOST = "https://static.wixstatic.com/media/";
 const safeUrl = (u, prefix) => {
   // ' ( ) are percent-encoded too, so a URL can't break out of a CSS url('...') value.
   try { const x = new URL(u); return x.protocol === "https:" && x.href.startsWith(prefix) ? x.href.replace(/['()]/g, c => "%" + c.charCodeAt(0).toString(16)) : null; }
   catch { return null; }
 };
+// Listing media come from our own /media endpoint.
+const safeMedia = u => (typeof u === "string" && /^\/media\/[A-Za-z0-9]+(\?thumb)?$/.test(u) ? u : null);
+const safeHttps = u => { try { const x = new URL(u); return x.protocol === "https:" ? x.href : null; } catch { return null; } };
+// Tours we embed in an iframe; any other https tour is offered as a link.
+const EMBED_HOSTS = ["my.matterport.com", "player.vimeo.com", "www.youtube-nocookie.com"];
+const embedUrl = u => { const s = safeHttps(u); return s && EMBED_HOSTS.includes(new URL(s).hostname) ? s : null; };
 
 const SYM = {GBP: "£", EUR: "€"};
 const money = (n, cur) => (SYM[cur] ?? `${cur} `) + Math.round(n).toLocaleString("en-GB");
@@ -50,4 +56,4 @@ const pmt = (principal, annualRate, years) => {
   return r === 0 ? principal / n : principal * r / (1 - (1 + r) ** -n);
 };
 
-if (typeof module === "object") module.exports = {esc, safeUrl, IMG_HOST, SRC_HOST, money, amount, priceLabel, isSold, matches, comparables, pmt};
+if (typeof module === "object") module.exports = {esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, matches, comparables, pmt};
