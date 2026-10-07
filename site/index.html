@@ -518,7 +518,7 @@ function detail(id) {
       <div class="prose">${p.summary.length ? `<ul class="bullets">${p.summary.map(l => `<li>${esc(l.replace(/^[-•]\s*/, ""))}</li>`).join("")}</ul>` : ""}
         ${desc.map(l => `<p>${esc(l)}</p>`).join("") || (p.summary.length ? "" : "<p>Full particulars available from our office.</p>")}</div></div>
     <div><h2 class="sub">Listing details</h2>
-      <dl class="facts-list">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
+      <dl class="facts-list">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl></div>
     ${p.specs.length ? `<div class="full"><h2 class="sub">Property details</h2>
       <div class="specs">${Object.entries(groups).map(([g, rows]) => `<div><h4>${esc(g)}</h4><dl>${rows.map(s =>
         `<div><dt>${esc(s.label)}</dt><dd>${esc(s.value)}</dd></div>`).join("")}</dl></div>`).join("")}</div></div>` : ""}
