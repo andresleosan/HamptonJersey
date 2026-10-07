@@ -17,6 +17,13 @@ const embedUrl = u => { const s = safeHttps(u); return s && EMBED_HOSTS.includes
 
 // Viewings follow the office's calendar (Jersey), like the server: from tomorrow, never on Sunday.
 const jerseyToday = (d = new Date()) => new Intl.DateTimeFormat("en-CA", {timeZone: "Europe/Jersey"}).format(d);
+// "Open viewing: Saturday 10 October, 10:30 to 12:00" summary lines hide themselves once that day has passed (Jersey time).
+// ponytail: the year is taken from `today`, so a line typed in December for a January date hides early; add the year then.
+const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+const liveSummary = (lines, today) => lines.filter(l => {
+  const m = /^open viewing:.*?\b(\d{1,2})\s+([a-z]+)/i.exec(l), mi = m ? MONTHS.indexOf(m[2].toLowerCase()) : -1;
+  return mi < 0 || `${today.slice(0, 4)}-${String(mi + 1).padStart(2, "0")}-${m[1].padStart(2, "0")}` >= today;
+});
 const nextViewingDay = today => {
   const d = new Date(today + "T12:00:00Z");
   do d.setUTCDate(d.getUTCDate() + 1); while (d.getUTCDay() === 0);
@@ -64,4 +71,4 @@ const pmt = (principal, annualRate, years) => {
   return r === 0 ? principal / n : principal * r / (1 - (1 + r) ** -n);
 };
 
-if (typeof module === "object") module.exports = {jerseyToday, nextViewingDay, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, matches, comparables, pmt};
+if (typeof module === "object") module.exports = {jerseyToday, liveSummary, nextViewingDay, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, matches, comparables, pmt};

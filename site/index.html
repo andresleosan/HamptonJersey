@@ -706,7 +706,7 @@ Promise.allSettled([getJSON("/api/listings"), getJSON("data/team.json"), getJSON
       floorplans: (Array.isArray(x.floorplans) ? x.floorplans : []).filter(f => safeMedia(f?.src)),
       aerial: x.aerial && safeMedia(x.aerial.src) ? x.aerial : null, tourUrl: safeHttps(x.tourUrl),
       specs: (Array.isArray(x.specs) ? x.specs : []).filter(s => s && typeof s.label === "string" && typeof s.value === "string"),
-      summary: arr(x.summary), description: arr(x.description)}))
+      summary: liveSummary(arr(x.summary), jerseyToday()), description: arr(x.description)}))
     .sort((a, b) => rank(a) - rank(b) || order[a.region] - order[b.region] || (a.use === "commercial") - (b.use === "commercial"));
   PUB = PROPS.filter(x => x.image); // without a public photo a listing stays out of the public pages
   TEAM = (t.status === "fulfilled" && Array.isArray(t.value) ? t.value : []).filter(a => a && a.name)

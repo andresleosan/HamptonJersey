@@ -64,3 +64,10 @@ test("mortgage repayment", () => {
   assert.equal(Math.round(L.pmt(200000, 0.05, 25)), 1169);
   assert.equal(L.pmt(120000, 0, 10), 1000);
 });
+
+test("open viewing lines hide themselves after the day", () => {
+  const lines = ["Open viewing: Saturday 10 October, 10:30 to 12:00", "Three bedrooms"];
+  assert.deepEqual(L.liveSummary(lines, "2026-10-10"), lines, "still shown on the day");
+  assert.deepEqual(L.liveSummary(lines, "2026-10-11"), ["Three bedrooms"], "gone the day after");
+  assert.deepEqual(L.liveSummary(["Open viewing: by appointment", "x"], "2026-10-11"), ["Open viewing: by appointment", "x"], "no date, kept");
+});
