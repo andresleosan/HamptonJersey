@@ -130,20 +130,25 @@ async function admin(browser) {
   await page.waitForSelector("text=Changes saved.");
   const pub = await (await page.request.get(BASE + "api/listings")).json();
   assert.equal(pub.find(p => p.id === "HE-R001").title, "Le Bernage (edited)");
-  // Field save → photo save → field save on the same listing: each must carry the fresh updated_at (no false 409).
+  // One Save for a field and a photo change: the photo save must carry the fresh updated_at (no false 409).
   await page.locator(".media-grid li").nth(1).getByLabel("Visible on the website").uncheck();
-  await page.getByRole("button", {name: "Save photos"}).click();
-  await page.waitForSelector("text=Photos saved.");
   await page.fill("#f-title", "Le Bernage");
   await page.getByRole("button", {name: "Save", exact: true}).click();
   await page.waitForSelector("text=Changes saved.");
+  assert.equal(await page.$(".actionbar .unsaved"), null, "nothing left unsaved");
+  // Discard puts back both the fields and the photos.
+  await page.fill("#f-title", "Typing");
+  await page.locator(".media-grid li").nth(1).getByLabel("Visible on the website").check();
+  await page.getByRole("button", {name: "Discard", exact: true}).click();
+  assert.equal(await page.inputValue("#f-title"), "Le Bernage");
+  assert.ok(!(await page.locator(".media-grid li").nth(1).getByLabel("Visible on the website").isChecked()));
 
   // Review focus 1: a published listing with no public photo warns.
   await page.goto(BASE + "admin/#/p/HE-C001");
   await page.waitForSelector("#f-title");
   await page.uncheck(".media-grid li >> text=Visible on the website");
-  await page.getByRole("button", {name: "Save photos"}).click();
-  await page.waitForSelector("text=Photos saved.");
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector("text=Changes saved.");
   await page.reload();
   await page.waitForSelector("text=no public photo");
   // M1: publishing it says it will NOT show, and the table marks it.
@@ -185,6 +190,17 @@ async function admin(browser) {
   assert.equal(await home.getAttribute("#grid .card", "href"), "#/p/HE-R018", "featured listing comes first");
   assert.match(await home.textContent(".hero h1"), /Pathfield/, "featured listing leads the hero");
   await home.close();
+
+  // Row menu: publish state changes from the table without opening the editor.
+  await page.goto(BASE + "admin/#/");
+  await page.getByRole("group", {name: "Status"}).getByRole("button", {name: /^All/}).click();
+  await page.locator('tr:has-text("HE-R003") summary').click();
+  await page.locator('tr:has-text("HE-R003") .menu').getByRole("button", {name: "Publish", exact: true}).click();
+  await page.waitForSelector("text=HE-R003");
+  await page.waitForSelector('[role=status] >> text=published');
+  await page.locator('tr:has-text("HE-R003") summary').click();
+  await page.locator('tr:has-text("HE-R003") .menu').getByRole("button", {name: "Unpublish", exact: true}).click();
+  await page.waitForSelector('[role=status] >> text=unpublished.');
 
   await page.goto(BASE + "admin/#/viewings");
   await page.waitForSelector("text=Jane Le Brocq");

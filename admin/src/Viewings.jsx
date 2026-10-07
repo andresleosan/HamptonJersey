@@ -14,7 +14,7 @@ export default function Viewings() {
     setData(d); setCounts(d.counts);
     setSel(id => (d.viewings.some(v => v.id === id) ? id : d.viewings[0]?.id ?? null));
   }, e => setMsg(e.message));
-  useEffect(() => { setData(null); setSel(null); load(); }, [status]);
+  useEffect(() => { setData(null); setSel(null); setMsg(null); load(); }, [status]);
   const save = async (v, body, done) => {
     setMsg(null);
     try { await api(`/admin/viewings/${v.id}`, { method: "PUT", body }); setMsg({ ok: true, text: done }); await load(); }
@@ -52,7 +52,7 @@ function Detail({ v, save, remove }) {
       {v.updated_by && <> · last updated by {v.updated_by}</>}</p></div>
       <div className="inline">
         {v.status === "new" && <button type="button" className="btn" onClick={() => save(v, { status: "contacted" }, "Marked as contacted.")}>Mark contacted</button>}
-        {v.status !== "closed" && <button type="button" className="btn ghost" onClick={() => save(v, { status: "closed" }, "Request closed.")}>Close</button>}
+        {v.status !== "closed" && <button type="button" className="btn ghost" onClick={() => save(v, { status: "closed" }, "Request closed.")}>Close request</button>}
         {v.status === "closed" && <button type="button" className="btn ghost" onClick={() => save(v, { status: "new" }, "Request reopened.")}>Reopen</button>}
       </div></div>
     <dl className="kv">

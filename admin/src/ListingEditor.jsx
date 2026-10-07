@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, safeHref } from "./format.js";
 import MediaManager from "./MediaManager.jsx";
@@ -24,7 +24,9 @@ export default function ListingEditor({ id }) {
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [loadErr, setLoadErr] = useState(null), [confirmDel, setConfirmDel] = useState("");
   const load = () => api(`/admin/listings/${id}`).then(d => { setData(d); setForm(toForm(d.listing)); setErrors({}); }, e => setLoadErr(e.message));
   useEffect(() => { load(); }, [id]);
-  const dirty = !!data && !!form && JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing)));
+  const photos = useRef({ dirty: false }), [photosDirty, setPhotosDirty] = useState(false);
+  const fieldsDirty = !!data && !!form && JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing)));
+  const dirty = fieldsDirty || photosDirty;
   useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
   useEffect(() => {
     const f = e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } };
@@ -37,12 +39,22 @@ export default function ListingEditor({ id }) {
   const l = data.listing, state = stateOf(l);
   const setListing = listing => { setData(d => ({ ...d, listing })); setForm(toForm(listing)); setErrors({}); };
 
+  // One Save for fields and photos: fields first, then photos with the updated_at the fields save returned.
   const save = async () => {
     setBusy(true); setMsg(null);
-    try { setListing((await api(`/admin/listings/${id}`, { method: "PUT", body: { ...toBody(form), updated_at: l.updated_at } })).listing); setMsg({ ok: true, text: "Changes saved." }); }
+    try {
+      let at = l.updated_at;
+      if (fieldsDirty) {
+        const saved = (await api(`/admin/listings/${id}`, { method: "PUT", body: { ...toBody(form), updated_at: at } })).listing;
+        setListing(saved); at = saved.updated_at;
+      }
+      if (photos.current.dirty && !(await photos.current.save(at))) return setMsg({ text: "The photos weren't saved: see the message under Photos." });
+      setMsg({ ok: true, text: "Changes saved." });
+    }
     catch (e) { setErrors(e.data?.fields || {}); setMsg({ text: e.message }); }
     finally { setBusy(false); }
   };
+  const discard = () => { setForm(toForm(l)); setErrors({}); photos.current.discard?.(); setMsg(null); };
   const act = async action => {
     if (action === "archive" && !confirm("Archive this listing? It will leave the website; you can restore it later.")) return;
     setBusy(true); setMsg(null);
@@ -117,6 +129,7 @@ export default function ListingEditor({ id }) {
 
       <section id="s-photos" className="card" aria-labelledby="h-photos"><h2 id="h-photos">Photos</h2>
         <MediaManager listingId={id} media={data.media} coverId={l.cover_media_id} updatedAt={l.updated_at}
+          register={p => { photos.current = p; setPhotosDirty(p.dirty); }}
           onChange={(media, coverId, saved) => setData(d => ({ ...d, media, listing: saved
             ? { ...d.listing, cover_media_id: saved.cover_media_id, updated_at: saved.updated_at, updated_by: saved.updated_by }
             : { ...d.listing, cover_media_id: coverId } }))} />
@@ -140,7 +153,9 @@ export default function ListingEditor({ id }) {
 
     <div className="actionbar" role="region" aria-label="Actions">
       {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
+      {dirty && <span className="unsaved">Unsaved changes</span>}
       <button type="button" className="btn" onClick={save} disabled={!dirty || busy}>{busy ? "Saving…" : "Save"}</button>
+      {dirty && <button type="button" className="btn ghost" onClick={discard} disabled={busy}>Discard</button>}
       {state !== "archived" && <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Save first" : undefined}
         onClick={() => act(l.published ? "unpublish" : "publish")}>{l.published ? "Unpublish" : "Publish"}</button>}
       {state !== "archived" && <button type="button" className="btn ghost" disabled={dirty || busy} onClick={() => act("archive")}>Archive</button>}
@@ -149,7 +164,6 @@ export default function ListingEditor({ id }) {
         <label htmlFor="del-confirm">To delete permanently, type {l.id}</label>
         <input id="del-confirm" value={confirmDel} onChange={e => setConfirmDel(e.target.value)} autoComplete="off" />
         <button className="btn ghost danger" disabled={confirmDel !== l.id || busy}>Delete permanently</button></form>}
-      {dirty && <span className="muted">Unsaved changes</span>}
     </div>
   </div>;
 }

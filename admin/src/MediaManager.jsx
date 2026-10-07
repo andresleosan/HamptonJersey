@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { KIND, safeHref } from "./format.js";
 import { resizeImage } from "./image.js";
 
 const pick = m => ({ id: m.id, public: !!m.public, kind: m.kind, label: m.label ?? "" });
 
-export default function MediaManager({ listingId, media, coverId, updatedAt, onChange }) {
+// The editor's action bar saves photos together with the fields: `register` hands it { dirty, save, discard }.
+export default function MediaManager({ listingId, media, coverId, updatedAt, onChange, register }) {
   const [saved, setSaved] = useState(media);         // last state the server confirmed
   const [items, setItems] = useState(media), [cover, setCover] = useState(coverId);
-  const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [drag, setDrag] = useState(null);
+  const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [drag, setDrag] = useState(null), [over, setOver] = useState(false);
   const visual = items.filter(m => m.r2_key), links = items.filter(m => !m.r2_key);
   const dirty = JSON.stringify(items.map(pick)) !== JSON.stringify(saved.map(pick)) || cover !== coverId;
 
@@ -20,16 +21,19 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
   const patch = (id, p) => setItems(list => list.map(m => (m.id === id ? { ...m, ...p } : m)));
   const commit = (list, c, listing) => { setSaved(list); setItems(list); onChange(list, c, listing); };
 
-  const save = async () => {
+  // Returns true when saved; `at` is the listing's updated_at when the fields were saved just before.
+  const save = async (at = updatedAt) => {
     setBusy(true); setMsg(null);
     try {
       const body = { items: items.map((m, i) => ({ id: m.id, position: i, public: !!m.public, kind: m.kind, label: m.label ?? "" })),
-        cover_media_id: cover ?? null, updated_at: updatedAt };
+        cover_media_id: cover ?? null, updated_at: at };
       const r = await api(`/admin/listings/${listingId}/media`, { method: "PUT", body });
       commit(r.media, cover ?? null, r.listing);
-      setMsg({ ok: true, text: "Photos saved." });
-    } catch (e) { setMsg({ text: e.message }); } finally { setBusy(false); }
+      return true;
+    } catch (e) { setMsg({ text: `Photos: ${e.message}` }); return false; } finally { setBusy(false); }
   };
+  const discard = () => { setItems(saved); setCover(coverId); setMsg(null); };
+  useEffect(() => { register?.({ dirty, save, discard }); }, [dirty, items, cover, updatedAt, saved]);
 
   const upload = async files => {
     setBusy(true); setMsg(null);
@@ -81,26 +85,30 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
       <div className="ctl">
         <button type="button" className="btn ghost sm" onClick={() => move(i, i - 1)} disabled={i === 0} aria-label={`Move photo ${i + 1} earlier`}>↑</button>
         <button type="button" className="btn ghost sm" onClick={() => move(i, i + 1)} disabled={i === visual.length - 1} aria-label={`Move photo ${i + 1} later`}>↓</button>
-        <select aria-label={`Type of photo ${i + 1}`} value={m.kind} onChange={e => patch(m.id, { kind: e.target.value })}>
-          {Object.entries(KIND).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
       </div>
       <div className="ctl">
         {m.origin !== "external" && <label className="check"><input type="checkbox" checked={!!m.public} onChange={e => patch(m.id, { public: e.target.checked ? 1 : 0 })} /> Visible on the website</label>}
         {m.origin !== "external" && m.kind === "photo" && <label className="check"><input type="radio" name="cover" checked={m.id === cover} onChange={() => setCover(m.id)} /> Cover</label>}
-        {m.origin === "upload" && <button type="button" className="btn ghost sm danger" onClick={() => remove(m)}>Delete</button>}
       </div>
+      <details className="more"><summary>More<span className="sr"> for photo {i + 1}</span></summary><div className="ctl">
+        <select aria-label={`Type of photo ${i + 1}`} value={m.kind} onChange={e => patch(m.id, { kind: e.target.value })}>
+          {Object.entries(KIND).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+        {m.origin === "upload" && <button type="button" className="btn ghost sm danger" onClick={() => remove(m)}>Delete</button>}
+      </div></details>
     </li>)}</ol>
-    {!visual.length && <p className="empty">No photos yet.</p>}
+
     {links.length > 0 && <details><summary>{links.length} reference link(s), not downloaded</summary>
       <ul>{links.map(m => <li key={m.id}><a href={safeHref(m.source_url)} target="_blank" rel="noopener noreferrer">{m.label || m.source_url}</a> · {m.provider}</li>)}</ul></details>}
-    <div className="filters">
-      <button type="button" className="btn" onClick={save} disabled={!dirty || busy}>Save photos</button>
-      <label className="btn ghost upload">Upload photos
-        <input className="sr" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy}
-          onChange={e => { const f = [...e.target.files]; e.target.value = ""; if (f.length) upload(f); }} /></label>
+    <label className={`dropzone upload${over ? " over" : ""}`}
+      onDragOver={e => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setOver(true); } }}
+      onDragLeave={() => setOver(false)}
+      onDrop={e => { if (!e.dataTransfer.files.length) return; e.preventDefault(); setOver(false); if (!busy) upload([...e.dataTransfer.files]); }}>
+      <b>{visual.length ? "Add more photos" : "No photos yet"}</b>
+      <span>Drop JPG, PNG or WebP files here, or <u>browse your computer</u>. They upload straight away.</span>
+      <input className="sr" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy}
+        onChange={e => { const f = [...e.target.files]; e.target.value = ""; if (f.length) upload(f); }} />
       {busy && <span className="muted">Working…</span>}
-      {dirty && <span className="muted">Unsaved order or visibility</span>}
-    </div>
+    </label>
     {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
   </div>;
 }

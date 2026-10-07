@@ -10,7 +10,16 @@ export default function Listings() {
   const [rows, setRows] = useState(null), [error, setError] = useState(null), [creating, setCreating] = useState(false);
   const [tab, setTab] = useState("published"), [q, setQ] = useState(""), [use, setUse] = useState(""),
     [region, setRegion] = useState(""), [avail, setAvail] = useState("");
-  useEffect(() => { api("/admin/listings").then(d => setRows(d.listings), e => setError(e.message)); }, []);
+  const [msg, setMsg] = useState(null);
+  const load = () => api("/admin/listings").then(d => setRows(d.listings), e => setError(e.message));
+  useEffect(() => { load(); }, []);
+  const act = async (l, action, done) => {
+    document.activeElement?.closest("details")?.removeAttribute("open");
+    if (action === "archive" && !confirm(`Archive "${l.title}"? It will leave the website; you can restore it later.`)) return;
+    setMsg(null);
+    try { await api(`/admin/listings/${l.id}/${action}`, { method: "POST" }); setMsg({ ok: true, text: `${l.title}: ${done}` }); await load(); }
+    catch (e) { setMsg({ text: e.message }); }
+  };
   const counts = useMemo(() => Object.fromEntries(TABS.map(([k]) =>
     [k, (rows || []).filter(l => k === "all" || stateOf(l) === k).length])), [rows]);
   if (error) return <p role="alert" className="err">{error}</p>;
@@ -36,9 +45,11 @@ export default function Listings() {
         {Object.entries(AVAILABILITY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
     </div>
     <p className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? "listing" : "listings"}</p>
+    {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
     {shown.length ? <table className="list">
       <thead><tr><th scope="col"><span className="sr">Photo</span></th><th scope="col">Listing</th><th scope="col">Location</th>
-        <th scope="col">Price</th><th scope="col">Availability</th><th scope="col">Visibility</th><th scope="col">Last edited</th></tr></thead>
+        <th scope="col">Price</th><th scope="col">Availability</th><th scope="col">Visibility</th><th scope="col">Last edited</th>
+        <th scope="col"><span className="sr">Actions</span></th></tr></thead>
       <tbody>{shown.map(l => <tr key={l.id}>
         <td>{l.cover_id ? <img className="thumb" src={`/media/${l.cover_id}?thumb`} alt="" loading="lazy" /> : <span className="thumb" />}</td>
         <td><a href={`#/p/${l.id}`}>{l.title}</a><div className="muted">{l.id} · {OPERATION[l.operation]}{l.featured_rank != null && ` · ★ Featured #${l.featured_rank}`}</div></td>
@@ -48,8 +59,19 @@ export default function Listings() {
         <td><span className={`badge ${stateOf(l)}`}>{STATUS_LABEL[stateOf(l)]}</span>
           {stateOf(l) === "published" && !l.has_public_photo && <div className="muted" title="Not shown on the website until it has a visible photo">no photo · not visible</div>}</td>
         <td className="muted">{fmtDate(l.updated_at)}<br />{l.updated_by}</td>
+        <td><details className="more row-menu"><summary aria-label={`Actions for ${l.title}`}>…</summary><div className="menu">
+          <a href={`#/p/${l.id}`}>Edit</a>
+          {stateOf(l) === "published" && l.has_public_photo ? <a href={`/#/p/${l.id}`} target="_blank" rel="noopener">View on the website ↗</a> : null}
+          {stateOf(l) === "published" && <button type="button" onClick={() => act(l, "unpublish", "unpublished.")}>Unpublish</button>}
+          {stateOf(l) === "draft" && <button type="button" onClick={() => act(l, "publish", l.has_public_photo ? "published." : "published, but it needs a visible photo to appear.")}>Publish</button>}
+          {stateOf(l) !== "archived" ? <button type="button" onClick={() => act(l, "archive", "archived.")}>Archive</button>
+            : <button type="button" onClick={() => act(l, "restore", "restored as a draft.")}>Restore</button>}
+        </div></details></td>
       </tr>)}</tbody>
-    </table> : <p className="empty">No listings match these filters.</p>}
+    </table> : <div className="empty card">{rows.length && (needle || use || region || avail)
+      ? <><p>No listings match these filters.</p><button type="button" className="btn ghost sm" onClick={() => { setQ(""); setUse(""); setRegion(""); setAvail(""); }}>Clear filters</button></>
+      : <><p>No {TABS.find(([k]) => k === tab)[1].toLowerCase()} listings.</p>
+        {tab !== "archived" && <button type="button" className="btn sm" onClick={() => setCreating(true)}>New listing</button>}</>}</div>}
   </section>;
 }
 
