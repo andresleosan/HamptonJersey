@@ -50,6 +50,13 @@ async function publicSite(browser) {
   await page.click('#thumbs [data-i="1"]');
   assert.match(await page.getAttribute("#stage img", "src"), /\/media\/A00002$/);
   assert.equal(await page.getAttribute("#stage img", "alt"), "Kitchen");
+  await page.click("[data-all]");
+  assert.equal(await page.textContent("#lb-count"), "2 / 2", "full-screen viewer opens on the current photo");
+  await page.keyboard.press("ArrowRight");
+  assert.equal(await page.textContent("#lb-count"), "1 / 2");
+  await page.keyboard.press("Escape");
+  await page.click(".stage-nav.next");
+  assert.match(await page.textContent("#stage-note"), /Photo 2 of 2/);
   await page.click("#tab-tour");
   assert.match(await page.getAttribute("#stage iframe", "src"), /my\.matterport\.com\/show\/\?m=TEST/);
   await page.click("#tab-aerial");

@@ -236,6 +236,20 @@ footer b{color:var(--ink);font-family:var(--display);font-weight:400;letter-spac
 .thumbs button[aria-pressed=true]{outline:2px solid var(--bronze)}
 .thumbs button:focus-visible{outline:2px solid var(--ink)}
 .thumbs img{width:100%;height:100%;object-fit:cover}
+.stage>img{cursor:zoom-in}
+.stage-nav,.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border:0;background:rgba(255,255,255,.88);color:var(--ink);font-size:26px;line-height:1;cursor:pointer;display:grid;place-items:center}
+.stage-nav.prev,.lb-nav.prev{left:12px}.stage-nav.next,.lb-nav.next{right:12px}
+.lightbox{width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#0d0d0d;color:#fff}
+.lightbox[open]{display:grid;grid-template-rows:auto minmax(0,1fr)}
+.lightbox::backdrop{background:#0d0d0d}
+.lb-top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px clamp(16px,3vw,28px);font-size:13px;letter-spacing:.08em}
+.lb-close{border:1px solid #fff;background:none;color:#fff;padding:8px 16px;cursor:pointer;font:inherit;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.lb-stage{position:relative;min-height:0}
+.lb-stage img{width:100%;height:100%;object-fit:contain;display:block}
+body:has(dialog[open]){overflow:hidden}
+.mbar{display:none}
+@media (max-width:980px){.mbar{display:flex;position:sticky;bottom:0;z-index:15;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--paper);border-top:1px solid var(--line)}
+.mbar .price{font-family:var(--display);font-size:20px}}
 .plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
 .plans img{width:100%;background:#fff;border:1px solid var(--mist)}
 .bullets{margin:0 0 16px;padding-left:18px}
@@ -502,6 +516,12 @@ function detail(id) {
       <div class="stage" id="stage" ${tabs.length > 1 ? 'role="tabpanel" aria-labelledby="tab-photo"' : ""}></div>
       <div class="stage-note" id="stage-note" aria-live="polite"></div>
       <div class="thumbs" id="thumbs"></div>
+      ${p.photos.length > 1 ? `<dialog class="lightbox" id="lightbox" aria-label="Photos of ${esc(p.title)}">
+        <div class="lb-top"><span id="lb-count" class="num" aria-live="polite"></span><button type="button" class="lb-close" data-lb="close">Close</button></div>
+        <div class="lb-stage"><img id="lb-img" alt="">
+          <button type="button" class="lb-nav prev" data-lb="-1" aria-label="Previous photo">‹</button>
+          <button type="button" class="lb-nav next" data-lb="1" aria-label="Next photo">›</button></div>
+      </dialog>` : ""}
     </div>
     <aside class="summary" aria-label="Summary">
       <div class="eyebrow">${esc(p.status)} · ${esc(p.place)}</div>
@@ -545,6 +565,7 @@ function detail(id) {
       <p>Compared only with other ${p.use} listings ${{sale: "for sale", rent: "to let", business: "offered as businesses"}[p.operation]} in the same market.</p></div></div>
     <div class="grid">${similar.map(s => card(s, `<span class="hint" style="font-family:var(--body);margin-right:8px">${amount(s) >= amount(p) ? "+" : "−"}${Math.round(Math.abs(amount(s) / amount(p) - 1) * 100)}%</span>`)).join("")}</div>
   </div></section>` : ""}
+  ${isSold(p) ? "" : `<div class="mbar"><span class="price num">${esc(priceLabel(p))}</span><a class="btn" href="#detail-book" data-scroll="detail-book">Book a viewing</a></div>`}
   ${isSold(p) ? "" : `<section class="block" id="detail-book" tabindex="-1"><div class="wrap book">
     <div><div class="eyebrow">Book a viewing</div><h2>See ${esc(p.title)}</h2><p class="hint" style="font-size:14px;margin-top:14px">Choose your agent, the type of viewing and a slot that suits you.</p></div>
     <div id="detail-slot"></div></div></section>`}`;
@@ -564,8 +585,11 @@ function detail(id) {
     $("#thumbs").innerHTML = "";
     if (v === "photo") {
       const ph = p.photos[idx] || {src: p.image, alt: p.title};
-      stage.innerHTML = `<img src="${esc(ph.src)}" alt="${esc(ph.alt)}">`;
-      note.innerHTML = p.photos.length > 1 ? `<span>Photo ${idx + 1} of ${p.photos.length}</span>` : "";
+      const many = p.photos.length > 1;
+      stage.innerHTML = `<img src="${esc(ph.src)}" alt="${esc(ph.alt)}">` + (many ? `
+        <button type="button" class="stage-nav prev" data-step="-1" aria-label="Previous photo">‹</button>
+        <button type="button" class="stage-nav next" data-step="1" aria-label="Next photo">›</button>` : "");
+      note.innerHTML = many ? `<span>Photo ${idx + 1} of ${p.photos.length}</span><button type="button" class="linkbtn" data-all>View all ${p.photos.length} photos</button>` : "";
       if (p.photos.length > 1) $("#thumbs").innerHTML = p.photos.map((f, i) =>
         `<button type="button" data-i="${i}" aria-label="Show photo ${i + 1} of ${p.photos.length}" aria-pressed="${i === idx}"><img src="${esc(f.thumb)}" alt="" loading="lazy"></button>`).join("");
     }
@@ -584,7 +608,21 @@ function detail(id) {
       note.innerHTML = `<span>Aerial view</span>`;
     }
   };
-  stage.addEventListener("click", e => { if (e.target.closest("[data-retry]")) show("tour"); });
+  const lb = $("#lightbox");
+  const step = d => { idx = (idx + d + p.photos.length) % p.photos.length; };
+  const lbShow = () => { const f = p.photos[idx]; $("#lb-img").src = f.src; $("#lb-img").alt = f.alt; $("#lb-count").textContent = `${idx + 1} / ${p.photos.length}`; };
+  const openLb = () => { if (lb) { lbShow(); lb.showModal(); } };
+  if (lb) {
+    lb.addEventListener("click", e => { const a = e.target.closest("[data-lb]")?.dataset.lb; if (a === "close") lb.close(); else if (a) { step(+a); lbShow(); } });
+    lb.addEventListener("keydown", e => { const d = {ArrowRight: 1, ArrowLeft: -1}[e.key]; if (d) { e.preventDefault(); step(d); lbShow(); } });
+    lb.addEventListener("close", () => show("photo")); // the page gallery follows the last photo seen
+  }
+  note.addEventListener("click", e => { if (e.target.closest("[data-all]")) openLb(); });
+  stage.addEventListener("click", e => {
+    if (e.target.closest("[data-retry]")) return show("tour");
+    const s = e.target.closest("[data-step]"); if (s) { step(+s.dataset.step); show("photo"); return $(`.stage-nav.${s.classList[1]}`).focus(); }
+    if (e.target.matches("img") && $(".stage-nav")) openLb();
+  });
   $("#thumbs").addEventListener("click", e => {
     const b = e.target.closest("[data-i]"); if (!b) return;
     idx = +b.dataset.i; show("photo"); $(`#thumbs [data-i="${idx}"]`).focus();
