@@ -15,6 +15,14 @@ const safeHttps = u => { try { const x = new URL(u); return x.protocol === "http
 const EMBED_HOSTS = ["my.matterport.com", "player.vimeo.com", "www.youtube-nocookie.com"];
 const embedUrl = u => { const s = safeHttps(u); return s && EMBED_HOSTS.includes(new URL(s).hostname) ? s : null; };
 
+// Viewings follow the office's calendar (Jersey), like the server: from tomorrow, never on Sunday.
+const jerseyToday = (d = new Date()) => new Intl.DateTimeFormat("en-CA", {timeZone: "Europe/Jersey"}).format(d);
+const nextViewingDay = today => {
+  const d = new Date(today + "T12:00:00Z");
+  do d.setUTCDate(d.getUTCDate() + 1); while (d.getUTCDay() === 0);
+  return d.toISOString().slice(0, 10);
+};
+
 const SYM = {GBP: "£", EUR: "€"};
 const money = (n, cur) => (SYM[cur] ?? (cur ? `${cur} ` : "")) + Math.round(n).toLocaleString("en-GB");
 
@@ -56,4 +64,4 @@ const pmt = (principal, annualRate, years) => {
   return r === 0 ? principal / n : principal * r / (1 - (1 + r) ** -n);
 };
 
-if (typeof module === "object") module.exports = {esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, matches, comparables, pmt};
+if (typeof module === "object") module.exports = {jerseyToday, nextViewingDay, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, matches, comparables, pmt};

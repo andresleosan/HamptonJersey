@@ -24,7 +24,7 @@ export default function Login({ onSignedIn, title = "Panel de Hampton Estates", 
       <button type="button" className="btn" onClick={() => setState({})}>Salir</button>
     </> : <>
       <p>{note}</p>
-      <button type="button" className="btn" onClick={go} disabled={state.busy}>{state.busy ? "Entrando…" : "Entrar con Google"}</button>
+      <button type="button" className="btn" onClick={go} disabled={state.busy} autoFocus={!home}>{state.busy ? "Entrando…" : "Entrar con Google"}</button>
       {state.error && <p role="alert" className="err">{state.error}</p>}
     </>}
     {home && <a href="/" className="home">← Volver a la web</a>}

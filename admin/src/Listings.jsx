@@ -45,7 +45,8 @@ export default function Listings() {
         <td>{l.location || l.country || "—"}</td>
         <td className="num">{priceText(l)}</td>
         <td>{AVAILABILITY[l.availability]}</td>
-        <td><span className={`badge ${stateOf(l)}`}>{STATUS_LABEL[stateOf(l)]}</span></td>
+        <td><span className={`badge ${stateOf(l)}`}>{STATUS_LABEL[stateOf(l)]}</span>
+          {stateOf(l) === "published" && !l.has_public_photo && <div className="muted" title="No aparece en la web hasta que tenga una foto visible">sin foto · no visible</div>}</td>
         <td className="muted">{fmtDate(l.updated_at)}<br />{l.updated_by}</td>
       </tr>)}</tbody>
     </table> : <p className="empty">No hay propiedades con estos filtros.</p>}

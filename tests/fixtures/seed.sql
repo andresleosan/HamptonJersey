@@ -17,3 +17,4 @@ INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, label, publi
 ('A00007','HE-R018','media/hampton/p6.jpg','thumbs/hampton/p6.jpg','hampton','photo','London',1,0,'image/jpeg','2026-10-07T00:00:00.000Z'),
 ('A00008','HE-C001','media/hampton/p7.jpg','thumbs/hampton/p7.jpg','hampton','photo','Café',1,0,'image/jpeg','2026-10-07T00:00:00.000Z'),
 ('A00009','HE-R003','media/hampton/p8.jpg','thumbs/hampton/p8.jpg','hampton','photo','Draft photo',1,0,'image/jpeg','2026-10-07T00:00:00.000Z');
+UPDATE listings SET cover_media_id = 'A00002' WHERE id = 'HE-R001';

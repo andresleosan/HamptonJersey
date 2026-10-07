@@ -35,6 +35,7 @@ test("list and detail include cover, research, issues and duplicate warning", as
   const list = (await call(env, "GET", "/admin/listings", { cookie })).data.listings;
   assert.deepEqual(list.map(l => l.id), ["HE-R001", "HE-R026"]);
   assert.equal(list[0].cover_id, "A00001");
+  assert.deepEqual(list.map(l => l.has_public_photo), [1, 0]);   // M1: HE-R026 has no public photo
   const d = (await call(env, "GET", "/admin/listings/HE-R001", { cookie })).data;
   assert.deepEqual(d.media.map(m => m.id), ["A00001", "A00002"]);
   assert.equal(d.research.match_status, "exact_property");

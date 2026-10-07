@@ -6,6 +6,7 @@ import Listings from "./Listings.jsx";
 import ListingEditor from "./ListingEditor.jsx";
 import Viewings from "./Viewings.jsx";
 import Users from "./Users.jsx";
+import { confirmLeave } from "./unsaved.js";
 
 function useHash() {
   const [hash, setHash] = useState(location.hash);
@@ -37,12 +38,13 @@ export default function App() {
     : section === "solicitudes" ? <Viewings /> : section === "usuarios" ? <Users me={me} /> : <Listings />;
   const current = section === "solicitudes" || section === "usuarios" ? section : "";
   const logout = async () => {
+    if (!confirmLeave()) return;
     await api("/session", { method: "DELETE" }).catch(() => {});
     await firebaseSignOut().catch(() => {});
     setMe(null);
   };
   return <>
-    <header className="bar">
+    <header className="bar" inert={expired} onClick={e => { if (e.target.closest("a")) confirmLeave(e); }}>
       <a href="#/" className="brand">Hampton Estates · Panel</a>
       <nav aria-label="Secciones">
         <a href="#/" aria-current={current === "" ? "page" : undefined}>Propiedades</a>
@@ -53,7 +55,7 @@ export default function App() {
       <span className="who">{me}</span>
       <button type="button" className="btn ghost sm" onClick={logout}>Salir</button>
     </header>
-    <main className="page">{page}</main>
+    <main className="page" inert={expired}>{page}</main>
     {/* Session expired mid-task: sign in again on top of the page so nothing typed is lost. */}
     {expired && <div className="modal" role="dialog" aria-modal="true" aria-label="Sesión caducada">
       <Login title="Tu sesión ha caducado" note="Vuelve a entrar; lo que estabas editando sigue aquí." onSignedIn={signedIn} home={false} />

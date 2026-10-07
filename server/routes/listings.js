@@ -5,7 +5,9 @@ const ID = "(HE-[A-Z]\\d{3,})";
 const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availability, l.operation, l.sale_price, l.rent,
   l.rent_period, l.premium, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by,
   COALESCE(l.cover_media_id, (SELECT m.id FROM media m WHERE m.listing_id = l.id AND m.kind = 'photo'
-    AND m.r2_key IS NOT NULL ORDER BY m.position LIMIT 1)) AS cover_id
+    AND m.r2_key IS NOT NULL ORDER BY m.position LIMIT 1)) AS cover_id,
+  EXISTS (SELECT 1 FROM media m WHERE m.listing_id = l.id AND m.kind = 'photo' AND m.public = 1
+    AND m.origin <> 'external' AND m.r2_key IS NOT NULL) AS has_public_photo
   FROM listings l ORDER BY l.id`;
 
 export async function loadListing(env, id) {

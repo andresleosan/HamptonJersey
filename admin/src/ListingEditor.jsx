@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, safeHref } from "./format.js";
 import MediaManager from "./MediaManager.jsx";
 import Research from "./Research.jsx";
+import { setUnsaved } from "./unsaved.js";
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "sale_price", "rent", "rent_period", "premium", "currency", "price_text", "summary", "description",
@@ -24,6 +25,7 @@ export default function ListingEditor({ id }) {
   const load = () => api(`/admin/listings/${id}`).then(d => { setData(d); setForm(toForm(d.listing)); setErrors({}); }, e => setLoadErr(e.message));
   useEffect(() => { load(); }, [id]);
   const dirty = !!data && !!form && JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing)));
+  useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
   useEffect(() => {
     const f = e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } };
     addEventListener("beforeunload", f);
@@ -44,7 +46,11 @@ export default function ListingEditor({ id }) {
   const act = async action => {
     if (action === "archive" && !confirm("¿Archivar esta ficha? Saldrá de la web; podrás restaurarla.")) return;
     setBusy(true); setMsg(null);
-    try { setListing((await api(`/admin/listings/${id}/${action}`, { method: "POST" })).listing); setMsg({ ok: true, text: DONE[action] }); }
+    try {
+      setListing((await api(`/admin/listings/${id}/${action}`, { method: "POST" })).listing);
+      setMsg({ ok: true, text: action === "publish" && !publicPhoto
+        ? "Publicada, pero no aparecerá en la web hasta que tenga una foto visible." : DONE[action] });
+    }
     catch (e) { setMsg({ text: e.message }); }
     finally { setBusy(false); }
   };
@@ -136,7 +142,7 @@ export default function ListingEditor({ id }) {
       {state !== "archived" && <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Guarda primero" : undefined}
         onClick={() => act(l.published ? "unpublish" : "publish")}>{l.published ? "Despublicar" : "Publicar"}</button>}
       {state !== "archived" && <button type="button" className="btn ghost" disabled={dirty || busy} onClick={() => act("archive")}>Archivar</button>}
-      {state === "archived" && <button type="button" className="btn ghost" disabled={busy} onClick={() => act("restore")}>Restaurar</button>}
+      {state === "archived" && <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Guarda primero" : undefined} onClick={() => act("restore")}>Restaurar</button>}
       {state === "archived" && <form className="inline" onSubmit={destroy}>
         <label htmlFor="del-confirm">Para borrar para siempre, escribe {l.id}</label>
         <input id="del-confirm" value={confirmDel} onChange={e => setConfirmDel(e.target.value)} autoComplete="off" />

@@ -54,6 +54,12 @@ test("only safe URLs reach attributes", () => {
   assert.equal(L.esc(`"><img onerror=x>`), "&quot;&gt;&lt;img onerror=x&gt;");
 });
 
+test("M3: first bookable day follows Jersey's calendar and skips Sundays", () => {
+  assert.equal(L.jerseyToday(new Date("2026-07-01T23:30:00Z")), "2026-07-02");
+  assert.equal(L.nextViewingDay("2026-10-07"), "2026-10-08");   // Wed → Thu
+  assert.equal(L.nextViewingDay("2026-10-10"), "2026-10-12");   // Sat → Mon
+});
+
 test("mortgage repayment", () => {
   assert.equal(Math.round(L.pmt(200000, 0.05, 25)), 1169);
   assert.equal(L.pmt(120000, 0, 10), 1000);

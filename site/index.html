@@ -263,7 +263,6 @@ footer .staff:hover,footer .staff:focus-visible{opacity:1;text-decoration:underl
 const $ = (s, el = document) => el.querySelector(s);
 const wix = (url, w, h) => url ? `${url}/v1/fill/w_${w},h_${h},al_c,q_80/photo.jpg` : "";
 const fmtDate = iso => new Date(iso + "T12:00").toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"});
-const localISO = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 const REGIONS = {all: "All", jersey: "Jersey", uk: "UK", international: "International"};
 const OPS = {all: "All", sale: "For sale", rent: "To let", business: "Businesses"};
 const OP_ONE = {sale: "For sale", rent: "To let", business: "Business for sale"};
@@ -290,8 +289,7 @@ function card(p, extra = "") {
 
 // ---------- booking form (home + detail): sends a viewing request to /api/viewings ----------
 function bookingForm(pre = {}) {
-  const d = new Date(Date.now() + 864e5); if (d.getDay() === 0) d.setDate(d.getDate() + 1); // no Sunday viewings
-  const tomorrow = localISO(d);
+  const tomorrow = nextViewingDay(jerseyToday());
   const opts = PUB.filter(p => !isSold(p)).map(p =>
     `<option value="${p.id}" ${p.id === pre.prop ? "selected" : ""}>${esc(p.title)} — ${esc(priceLabel(p))}</option>`).join("");
   const agents = TEAM.length ? `<div class="opts">${TEAM.map((t, i) =>
@@ -320,6 +318,9 @@ function mountBooking(slot, pre = {}) {
   const form = $("form", slot), el = form.elements, status = $(".form-status", slot), btn = $("button[type=submit]", form);
   let widget = null;
   if (TS_KEY) tsReady.then(() => { if ($(".ts", slot)) widget = turnstile.render($(".ts", slot), {sitekey: TS_KEY}); });
+  // Script blocked (content blocker, network): don't leave the visitor at a check they can't complete.
+  if (TS_KEY) setTimeout(() => { if (widget == null && document.body.contains(form))
+    status.textContent = "Our anti-spam check didn't load. Please call us on 01534 727582 to book, or try again later."; }, 6000);
   const sunday = () => el.date.setCustomValidity(el.date.value && new Date(el.date.value + "T12:00").getDay() === 0
     ? "Viewings run Monday to Saturday. Please choose another day." : "");
   el.date.addEventListener("input", sunday);
@@ -524,7 +525,7 @@ function detail(id) {
     <div id="detail-slot"></div></div></section>`}`;
 
   const stage = $("#stage"), note = $("#stage-note");
-  let timer, idx = 0;
+  let timer, idx = Math.max(0, p.photos.findIndex(f => f.src === p.image)); // open on the chosen cover
   const fail = (msg, retry) => {
     stage.insertAdjacentHTML("beforeend", `<div class="stage-msg" role="alert"><div><p>${msg}</p>
       <a href="${esc(p.tourUrl)}" target="_blank" rel="noopener noreferrer">Open the tour in a new tab ↗</a>

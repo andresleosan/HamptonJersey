@@ -43,6 +43,7 @@ async function publicSite(browser) {
   await page.waitForSelector(".summary h1");
   assert.deepEqual(await page.$$eval(".media-tabs button", bs => bs.map(b => b.textContent)), ["Photos", "3D tour", "Aerial"]);
   assert.equal(await page.$$eval("#thumbs button", b => b.length), 2, "two public photos; external one hidden");
+  assert.match(await page.getAttribute("#stage img", "src"), /\/media\/A00002$/, "M6: detail opens on the chosen cover");
   await page.click('#thumbs [data-i="1"]');
   assert.match(await page.getAttribute("#stage img", "src"), /\/media\/A00002$/);
   assert.equal(await page.getAttribute("#stage img", "alt"), "Kitchen");
@@ -68,6 +69,13 @@ async function publicSite(browser) {
   assert.match(await page.textContent("#detail-slot .confirm"), /Request received[\s\S]*Trinity rental/);
   assert.match(d1("SELECT name, listing_id FROM viewing_requests"), /Jane Le Brocq[\s\S]*HE-R002/);
   assert.deepEqual(page.errors, []);
+
+  // M5: Turnstile blocked (content blocker) → the form offers the phone instead of a dead end.
+  const blocked = await newPage(ctx, {width: 1280, height: 800});
+  await blocked.route(/challenges\.cloudflare\.com/, r => r.abort());
+  await blocked.goto(BASE + "#/p/HE-R002");
+  await blocked.waitForSelector("#detail-slot >> text=01534 727582", {timeout: 15000});
+  await blocked.close();
 
   const m = await newPage(ctx, {width: 390, height: 844});
   await m.goto(BASE + "#/p/HE-R001");
@@ -100,6 +108,9 @@ async function admin(browser) {
   await page.getByRole("button", {name: "Guardar", exact: true}).click();
   await page.waitForSelector('[role=dialog] >> text=Tu sesión ha caducado');
   assert.equal(await page.inputValue("#f-title"), "Le Bernage (edited)");
+  // M11: focus moves into the dialog and the page behind it is inert.
+  assert.equal(await page.evaluate(() => document.activeElement.textContent), "Entrar con Google");
+  assert.equal(await page.getAttribute("main.page", "inert"), "");
   // Signing in again needs Google; simulate it with a fresh cookie and a reload.
   await ctx.addCookies([{name: COOKIE, value: await signSession("luismadef45@gmail.com", secret), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: "Strict"}]);
   await page.reload();
@@ -125,12 +136,26 @@ async function admin(browser) {
   await page.waitForSelector("text=Fotos guardadas.");
   await page.reload();
   await page.waitForSelector("text=sin foto pública");
+  // M1: publishing it says it will NOT show, and the table marks it.
+  await page.getByRole("button", {name: "Despublicar", exact: true}).click();
+  await page.waitForSelector("text=Despublicada");
+  await page.getByRole("button", {name: "Publicar", exact: true}).click();
+  await page.waitForSelector("text=no aparecerá en la web");
+  await page.goto(BASE + "admin/#/");
+  await page.waitForSelector('tr:has-text("HE-C001") >> text=sin foto');
 
   await page.goto(BASE + "admin/#/p/HE-R002");
   await page.waitForSelector("#f-title");
   page.once("dialog", d => d.accept());
   await page.getByRole("button", {name: "Archivar", exact: true}).click();
   await page.waitForSelector("text=Archivada.");
+  // M2: Restaurar can't silently drop typed edits; "Salir" asks first.
+  await page.fill("#f-title", "Trinity rental (typing)");
+  assert.ok(await page.getByRole("button", {name: "Restaurar", exact: true}).isDisabled());
+  page.once("dialog", d => d.dismiss());
+  await page.getByRole("button", {name: "Salir", exact: true}).click();
+  assert.equal(await page.inputValue("#f-title"), "Trinity rental (typing)", "still in the editor after cancelling Salir");
+  await page.fill("#f-title", "Trinity rental");
   const after = await (await page.request.get(BASE + "api/listings")).json();
   assert.ok(!after.some(p => p.id === "HE-R002"), "archived listing leaves the public site");
   await page.getByRole("button", {name: "Restaurar", exact: true}).click();
