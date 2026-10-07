@@ -1,0 +1,21 @@
+{
+  "name": "hampton-jersey",
+  "private": true,
+  "scripts": {
+    "build": "vite build --config admin/vite.config.mjs",
+    "build:watch": "vite build --config admin/vite.config.mjs --watch",
+    "dev": "wrangler pages dev --port 8788",
+    "test": "node --test tests/*.test.js tests/server/*.test.mjs && python3 -m unittest tests/test_import.py"
+  },
+  "dependencies": {
+    "firebase": "^12.19.0",
+    "jose": "^6.2.12",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.3",
+    "wrangler": "^4.148.0"
+  }
+}

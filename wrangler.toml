@@ -1,0 +1,18 @@
+name = "hamptonjersey"
+pages_build_output_dir = "site"
+compatibility_date = "2025-10-01"
+
+[vars]
+FIREBASE_PROJECT_ID = "hamptonestatesjersey"
+# Clave de prueba de Turnstile; la Tarea 14 la sustituye por la real antes del deploy.
+TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hampton"
+database_id = "1da41b63-c61f-4491-9f8d-3a9afde6e0fb"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "hampton-media"
