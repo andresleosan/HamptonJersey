@@ -14,7 +14,7 @@
 :root{
   --ink:#151515; --paper:#ffffff; --mist:#f4f3f0; --line:#e3e0da; --stone:#77736c; --bronze:#a56b3d; --bronze-dk:#86542d;
   --ok:#2f6b4f; --display:"Tenor Sans","Gill Sans",Optima,sans-serif; --body:Montserrat,"Helvetica Neue",Arial,sans-serif;
-  --wrap:1240px; color-scheme:light;
+  --wrap:1240px; color-scheme:light; --r:16px; --r-lg:24px; --shadow:0 24px 60px -30px rgba(21,21,21,.28);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -27,7 +27,8 @@ button,input,select{font:inherit;color:inherit}
 h1,h2,h3,.disp{font-family:var(--display);font-weight:400;text-transform:uppercase;letter-spacing:.06em;text-wrap:balance;margin:0}
 h2{font-size:clamp(24px,3vw,34px)}
 .eyebrow{font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--stone)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:13px 26px;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s,color .2s}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--ink);border-radius:999px;background:var(--ink);color:var(--paper);padding:13px 28px;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s,color .2s,transform .2s,box-shadow .2s}
+.btn:active{transform:scale(.98)}
 .btn:hover{background:var(--bronze);border-color:var(--bronze)}
 .btn.ghost{background:transparent;color:var(--ink)}
 .btn.ghost:hover{background:var(--ink);color:var(--paper)}
@@ -80,11 +81,14 @@ nav.main a:hover{color:var(--bronze)}
 .hero-pause{all:unset;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#fff;opacity:.85;padding:6px 0}
 .hero-pause:hover{opacity:1}
 @media (prefers-reduced-motion:reduce){.hero-bg{transition:none}#hero-txt>*{animation:none}}
+.rv{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.card,.card .ph,.opts span,.btn{transition:none}.card:hover{transform:none}}
 .hero h1{font-size:clamp(34px,6vw,72px);line-height:1.05;max-width:14ch}
 .hero p{max-width:52ch;margin:18px 0 28px;font-size:16px;opacity:.92}
 .hero .eyebrow{color:#fff;opacity:.85}
 .hero h1,.hero p,.hero .eyebrow{text-shadow:0 1px 14px rgba(0,0,0,.55)}
-.search{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;background:var(--paper);color:var(--ink);max-width:980px}
+.search{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;background:var(--paper);color:var(--ink);max-width:980px;border-radius:var(--r);overflow:hidden}
 .search label{display:grid;gap:2px;padding:12px 18px;border-right:1px solid var(--line);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
 .search select{border:0;background:transparent;padding:4px 0;font-size:14px;color:var(--ink);text-transform:none;letter-spacing:0}
 .search select{width:100%;min-width:0}
@@ -98,6 +102,8 @@ nav.main a:hover{color:var(--bronze)}
 /* sections */
 section[id]{scroll-margin-top:72px}
 section.block{padding-block:clamp(56px,8vw,104px)}
+section#team{padding-bottom:clamp(36px,4vw,56px)}
+section#book,section#detail-book{padding-top:clamp(40px,5vw,64px);background:var(--mist)}
 .head{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-bottom:36px}
 .head p{margin:8px 0 0;color:var(--stone);max-width:56ch}
 .tabs{display:flex;gap:4px;flex-wrap:wrap}
@@ -111,13 +117,16 @@ section.block{padding-block:clamp(56px,8vw,104px)}
 /* property cards */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:40px 28px}
 .card{text-decoration:none;display:grid;gap:14px;min-width:0}
-.card .ph{position:relative;aspect-ratio:4/3;overflow:hidden;background:var(--mist)}
+.card{transition:transform .35s ease}
+.card:hover{transform:translateY(-4px)}
+.card .ph{position:relative;aspect-ratio:4/3;overflow:hidden;background:var(--mist);border-radius:var(--r);transition:box-shadow .35s ease}
+.card:hover .ph{box-shadow:var(--shadow)}
 .card .ph img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
 .card:hover .ph img{transform:scale(1.04)}
 .noimg{position:relative}
 .noimg>img{visibility:hidden}
 .noimg::after{content:"Photo unavailable";position:absolute;inset:0;display:grid;place-items:center;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);background:var(--mist)}
-.pill{position:absolute;top:12px;left:12px;background:var(--paper);padding:5px 10px;font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+.pill{position:absolute;top:12px;left:12px;background:var(--paper);padding:5px 10px;font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;border-radius:999px}
 .pill.sold{background:var(--ink);color:var(--paper)}
 .pill.offer{background:var(--bronze);color:#fff}
 .pill.tour{left:auto;right:12px;background:var(--ink);color:#fff}
@@ -127,9 +136,8 @@ section.block{padding-block:clamp(56px,8vw,104px)}
 .empty{padding:48px;text-align:center;border:1px dashed var(--line);color:var(--stone)}
 
 /* feature band */
-.feature{display:grid;grid-template-columns:1.2fr 1fr;background:var(--mist)}
+.feature{display:grid;grid-template-columns:1.2fr 1fr;background:var(--mist);width:min(calc(100% - 2*clamp(16px,4vw,40px)),calc(var(--wrap) - 80px));margin:0 auto 24px;border-radius:var(--r-lg);overflow:hidden}
 .feature img{width:100%;height:100%;object-fit:cover;min-height:340px}
-.feature+.feature{border-top:1px solid var(--line)}
 @media (min-width:821px){.feature.flip{grid-template-columns:1fr 1.2fr}.feature.flip img{order:2}}
 .feature .txt{padding:clamp(28px,5vw,64px);display:grid;align-content:center;gap:18px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -139,8 +147,8 @@ section.block{padding-block:clamp(56px,8vw,104px)}
 /* team */
 .team{background:var(--ink);color:#f2efe9}
 .team .eyebrow{color:#a9a49b}
-.team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:2px;margin-top:40px}
-.agent{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);background:#1f1f1f;min-height:360px}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px;margin-top:40px}
+.agent{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);background:#1f1f1f;min-height:360px;border-radius:var(--r-lg);overflow:hidden;border:1px solid #2b2b2b}
 .agent img{width:100%;height:100%;object-fit:cover;filter:grayscale(1);transition:filter .5s}
 .agent:hover img{filter:grayscale(0)}
 .agent .info{padding:28px;display:grid;align-content:space-between;gap:20px}
@@ -159,20 +167,41 @@ section.block{padding-block:clamp(56px,8vw,104px)}
 /* booking */
 .book{display:grid;grid-template-columns:1fr 1.4fr;gap:clamp(28px,5vw,72px)}
 @media (max-width:900px){.book{grid-template-columns:1fr}}
-form.tour{display:grid;gap:18px}
+form.tour{display:grid;gap:22px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(20px,3vw,36px);box-shadow:var(--shadow)}
+form.tour .btn[type=submit]{width:100%;padding-block:16px}
+.field>legend i{font-style:normal;letter-spacing:.04em;text-transform:none;font-weight:500;margin-left:6px}
 .field{display:grid;gap:6px;min-width:0}
 fieldset.field{border:0;margin:0;padding:0}
 .field>span,.field>legend{padding:0;font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
-.field input,.field select{border:1px solid var(--line);background:var(--paper);padding:12px 14px;width:100%}
+.field input,.field select{border:1px solid var(--line);border-radius:12px;background:#fbfaf8;padding:13px 14px;width:100%;transition:border-color .2s,box-shadow .2s,background .2s}
+.field input:hover,.field select:hover{border-color:#cfcac2}
+.field input:focus,.field select:focus{outline:none;border-color:var(--bronze);background:#fff;box-shadow:0 0 0 3px rgba(165,107,61,.15)}
 .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
 .opts{display:flex;flex-wrap:wrap;gap:8px}
 .opts label{cursor:pointer;position:relative}
 .opts input{position:absolute;opacity:0;pointer-events:none}
-.opts span{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);padding:9px 14px;font-size:13px}
+.opts span{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:999px;padding:9px 18px;font-size:13px;background:#fff;transition:border-color .2s,background .2s,color .2s,box-shadow .2s,transform .15s}
+.opts label:hover span{border-color:#bdb7ad}
+.opts label:active span{transform:scale(.97)}
+.opts.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px}
+.opts .opt{position:relative;display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:2px;align-items:center;align-content:center;border-radius:var(--r);padding:12px 40px 12px 12px;width:100%;height:100%}
+.opt img,.opt svg{grid-row:span 2;width:46px;height:46px;border-radius:50%;object-fit:cover}
+.opt svg{padding:11px;background:var(--mist);color:var(--ink);overflow:visible}
+.opt b{font-weight:600;font-size:14px;line-height:1.3}
+.opt small{font-size:12px;line-height:1.35;color:var(--stone)}
+form.tour .form-status{margin:10px 0 0}
+form.tour .form-status:empty{margin:0}
+.opts input:checked+.opt{background:#fff;color:var(--ink);border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.opts input:checked+.opt::after{content:"";position:absolute;top:12px;right:12px;width:18px;height:18px;border-radius:50%;background:var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m6 12 4 4 8-8' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E") center/12px no-repeat}
+.opts.days{flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 8px;margin:-2px -2px 0;scrollbar-width:thin}
+.opts.days label{scroll-snap-align:start;flex:0 0 auto}
+.opts .day{flex-direction:column;gap:0;min-width:64px;padding:10px 8px;border-radius:14px;line-height:1.25}
+.day b{font-size:19px;font-weight:600}
+.day small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.75}
 .opts span img{width:30px;height:30px;border-radius:50%;object-fit:cover}
 .opts input:checked+span{border-color:var(--ink);background:var(--ink);color:var(--paper)}
 .opts input:focus-visible+span{outline:2px solid var(--bronze);outline-offset:2px}
-.confirm{border:1px solid var(--ok);padding:28px;display:grid;gap:10px}
+.confirm{border:1px solid var(--ok);border-radius:var(--r-lg);background:var(--paper);box-shadow:var(--shadow);padding:clamp(22px,3vw,36px);display:grid;gap:10px}
 .confirm h3{color:var(--ok);font-size:18px}
 .confirm dl{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;margin:6px 0 0;font-size:14px}
 .confirm dt{color:var(--stone)}
@@ -189,7 +218,7 @@ fieldset.field{border:0;margin:0;padding:0}
 .media-tabs{display:flex;gap:0;border-bottom:1px solid var(--line);overflow-x:auto}
 .media-tabs button{border:0;background:none;padding:12px 20px;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
 .media-tabs button[aria-selected=true]{border-color:var(--bronze);color:var(--bronze)}
-.stage{position:relative;aspect-ratio:3/2;max-height:calc(100vh - 250px);min-height:240px;width:100%;background:#111;overflow:hidden}
+.stage{position:relative;aspect-ratio:3/2;max-height:calc(100vh - 250px);min-height:240px;width:100%;background:#111;overflow:hidden;border-radius:var(--r)}
 .stage>img,.stage iframe{width:100%;height:100%;object-fit:cover;border:0;display:block}
 .stage-note{margin:10px 0 0;font-size:12px;color:var(--stone);display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:space-between}
 .stage-note:empty{display:none}
@@ -229,7 +258,7 @@ dl.facts-list dd,.specs dd{margin:0;text-align:right;min-width:0;overflow-wrap:a
 .tag{display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid var(--line);font:600 10px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--stone);vertical-align:middle}
 
 /* mortgage */
-.calc{background:var(--mist);padding:clamp(20px,3vw,32px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px}
+.calc{background:var(--mist);border-radius:var(--r-lg);padding:clamp(20px,3vw,32px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px}
 @media (max-width:720px){.calc{grid-template-columns:1fr}}
 .calc .field{margin-bottom:16px}
 .calc output{font-weight:600}
@@ -247,12 +276,12 @@ footer{background:var(--mist);padding-block:48px;font-size:13px;color:var(--ston
 footer .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}
 footer b{color:var(--ink);font-family:var(--display);font-weight:400;letter-spacing:.2em;text-transform:uppercase}
 .thumbs{display:flex;gap:8px;overflow-x:auto;padding-top:10px}
-.thumbs button{all:unset;cursor:pointer;flex:0 0 88px;aspect-ratio:4/3;outline-offset:2px}
+.thumbs button{all:unset;cursor:pointer;flex:0 0 88px;aspect-ratio:4/3;outline-offset:2px;border-radius:10px;overflow:hidden}
 .thumbs button[aria-pressed=true]{outline:2px solid var(--bronze)}
 .thumbs button:focus-visible{outline:2px solid var(--ink)}
 .thumbs img{width:100%;height:100%;object-fit:cover}
 .stage>img{cursor:zoom-in}
-.stage-nav,.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border:0;background:rgba(255,255,255,.88);color:var(--ink);font-size:26px;line-height:1;cursor:pointer;display:grid;place-items:center}
+.stage-nav,.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border:0;border-radius:50%;background:rgba(255,255,255,.88);color:var(--ink);font-size:26px;line-height:1;cursor:pointer;display:grid;place-items:center}
 .stage-nav.prev,.lb-nav.prev{left:12px}.stage-nav.next,.lb-nav.next{right:12px}
 .lightbox{width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#0d0d0d;color:#fff}
 .lightbox[open]{display:grid;grid-template-rows:auto minmax(0,1fr)}
@@ -326,18 +355,21 @@ function bookingForm(pre = {}) {
   const tomorrow = nextViewingDay(jerseyToday());
   const opts = PUB.filter(p => !isSold(p)).map(p =>
     `<option value="${p.id}" ${p.id === pre.prop ? "selected" : ""}>${esc(p.title)} — ${esc(priceLabel(p))}</option>`).join("");
-  const agents = TEAM.length ? `<div class="opts">${TEAM.map((t, i) =>
-      `<label><input type="radio" name="agent" value="${i}" ${i === (pre.agent ?? 0) ? "checked" : ""}><span>${t.photo ? `<img src="${esc(wix(t.photo, 80, 80))}" alt="">` : ""}${esc(t.name)}</span></label>`).join("")}</div>`
+  const days = [tomorrow]; while (days.length < 12) days.push(nextViewingDay(days[days.length - 1])); // Mon–Sat only
+  const dayPart = (d, o) => new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", {timeZone: "UTC", ...o});
+  const agents = TEAM.length ? `<div class="opts cards">${TEAM.map((t, i) =>
+      `<label><input type="radio" name="agent" value="${i}" ${i === (pre.agent ?? 0) ? "checked" : ""}><span class="opt">${t.photo ? `<img src="${esc(wix(t.photo, 96, 96))}" alt="">` : ""}<b>${esc(t.name)}</b><small>${esc(t.role || "")}</small></span></label>`).join("")}</div>`
     : `<p class="hint">Team details are unavailable right now; the first available agent will be assigned.</p>`;
   return `${pre.msg ? `<p class="cancelled" role="status">${esc(pre.msg)}</p>` : ""}<form class="tour" novalidate>
     <label class="field"><span>Property</span><select name="prop"><option value="">General enquiry / valuation</option>${opts}</select></label>
     <fieldset class="field"><legend>Your agent</legend>${agents}</fieldset>
-    <fieldset class="field"><legend>Viewing type</legend><div class="opts">
-      <label><input type="radio" name="kind" value="In person" checked><span>In person</span></label>
-      <label><input type="radio" name="kind" value="Live video call"><span>Live video call</span></label></div></fieldset>
-    <div class="row"><label class="field"><span>Date (Mon–Sat)</span><input name="date" type="date" min="${tomorrow}" value="${tomorrow}" required></label>
-      <fieldset class="field"><legend>Time</legend><div class="opts">${["10:00","11:30","14:00","15:30","17:00"].map((t, i) =>
-        `<label><input type="radio" name="time" value="${t}" ${i === 1 ? "checked" : ""}><span class="num">${t}</span></label>`).join("")}</div></fieldset></div>
+    <fieldset class="field"><legend>Viewing type</legend><div class="opts cards">
+      <label><input type="radio" name="kind" value="In person" checked><span class="opt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7M5 10v10h14V10M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><b>In person</b><small>At the property with your agent</small></span></label>
+      <label><input type="radio" name="kind" value="Live video call"><span class="opt"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m16 10 5-3v10l-5-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><b>Live video call</b><small>Ideal if you are buying from abroad</small></span></label></div></fieldset>
+    <fieldset class="field"><legend>Day <i>Monday to Saturday</i></legend><div class="opts days">${days.map((d, i) =>
+      `<label><input type="radio" name="date" value="${d}" ${i ? "" : "checked"} aria-label="${dayPart(d, {weekday: "long", day: "numeric", month: "long"})}"><span class="day"><small>${dayPart(d, {weekday: "short"})}</small><b class="num">${dayPart(d, {day: "numeric"})}</b><small>${dayPart(d, {month: "short"})}</small></span></label>`).join("")}</div></fieldset>
+    <fieldset class="field"><legend>Time</legend><div class="opts">${["10:00","11:30","14:00","15:30","17:00"].map((t, i) =>
+      `<label><input type="radio" name="time" value="${t}" ${i === 1 ? "checked" : ""}><span class="num">${t}</span></label>`).join("")}</div></fieldset>
     <div class="row"><label class="field"><span>Full name</span><input name="name" autocomplete="name" required placeholder="Jane Le Brocq"></label>
       <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="jane@example.je"></label>
       <label class="field"><span>Phone (optional)</span><input name="phone" type="tel" autocomplete="tel" placeholder="07797 000000"></label></div>
@@ -355,11 +387,8 @@ function mountBooking(slot, pre = {}) {
   // Script blocked (content blocker, network): don't leave the visitor at a check they can't complete.
   if (TS_KEY) setTimeout(() => { if (widget == null && document.body.contains(form))
     status.textContent = "Our anti-spam check didn't load. Please call us on 01534 727582 to book, or try again later."; }, 6000);
-  const sunday = () => el.date.setCustomValidity(el.date.value && new Date(el.date.value + "T12:00").getDay() === 0
-    ? "Viewings run Monday to Saturday. Please choose another day." : "");
-  el.date.addEventListener("input", sunday);
   form.addEventListener("submit", async e => {
-    e.preventDefault(); sunday();
+    e.preventDefault();
     if (!form.reportValidity() || btn.disabled) return;
     const v = n => form.querySelector(`[name=${n}]:checked`)?.value;
     const agent = TEAM[+v("agent")] || null, prop = PUB.find(p => p.id === el.prop.value);
@@ -718,11 +747,18 @@ addEventListener("click", e => { if (e.target.closest('a[href="#/"]') && locatio
 addEventListener("click", e => { const r = e.target.closest(".crumbs [data-region]")?.dataset.region; if (r) Object.assign(filter, {region: r, op: "all", beds: 0, max: 0}); });
 
 const HOME_SECTIONS = ["portfolio", "team", "book"];
+// Sections and cards fade up as they scroll into view; skipped with reduced motion or no IntersectionObserver.
+const io = "IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion: reduce)").matches
+  ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), {rootMargin: "0px 0px -6% 0px"}) : null;
+const reveal = () => io && document.querySelectorAll("#app .head, #app .card, #app .agent, #app .feature, #app .facts > div, #app .book > *, #app .detail > *")
+  .forEach(el => { if (el.classList.contains("rv")) return; el.classList.add("rv"); el.style.transitionDelay = `${([...el.parentElement.children].indexOf(el) % 4) * 80}ms`;
+    el.addEventListener("transitionend", () => { el.style.transitionDelay = ""; }, {once: true}); io.observe(el); });
 const route = () => {
   const h = location.hash, m = h.match(/^#\/p\/(HE-[A-Z]\d{3,})$/), sec = h.slice(1);
   setNav(false);
-  if (m) return detail(m[1]);
+  if (m) { detail(m[1]); return reveal(); }
   if (!$("#portfolio")) home();
+  reveal();
   HOME_SECTIONS.includes(sec) ? $("#" + sec).scrollIntoView() : scrollTo({top: 0, behavior: "instant"});
 };
 addEventListener("hashchange", route);
