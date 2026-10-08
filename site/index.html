@@ -66,11 +66,24 @@ nav.main a:hover{color:var(--bronze)}
 
 /* hero */
 .hero{position:relative;min-height:min(78vh,720px);display:grid;align-items:end;color:#fff;background:#222 center/cover no-repeat}
-.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 30%,rgba(0,0,0,.65))}
-.hero .wrap{position:relative;padding-block:64px;width:100%}
+.hero::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.4) 40%,rgba(0,0,0,.75))}
+.hero .wrap{position:relative;z-index:2;padding-block:64px;width:100%}
+.hero-bg{position:absolute;inset:0;background:#222 center/cover no-repeat;opacity:0;transition:opacity 1.2s ease}
+.hero-bg.on{opacity:1}
+#hero-txt>*{animation:heroIn .7s ease both}
+@keyframes heroIn{from{opacity:0;transform:translateY(10px)}}
+.hero-nav{display:flex;align-items:center;gap:18px;margin-top:28px}
+.dots{display:flex;gap:10px}
+.dots button{all:unset;cursor:pointer;width:32px;height:3px;padding:11px 0;background:rgba(255,255,255,.45);background-clip:content-box}
+.dots button[aria-current=true]{background-color:#fff}
+.dots button:focus-visible,.hero-pause:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.hero-pause{all:unset;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#fff;opacity:.85;padding:6px 0}
+.hero-pause:hover{opacity:1}
+@media (prefers-reduced-motion:reduce){.hero-bg{transition:none}#hero-txt>*{animation:none}}
 .hero h1{font-size:clamp(34px,6vw,72px);line-height:1.05;max-width:14ch}
 .hero p{max-width:52ch;margin:18px 0 28px;font-size:16px;opacity:.92}
 .hero .eyebrow{color:#fff;opacity:.85}
+.hero h1,.hero p,.hero .eyebrow{text-shadow:0 1px 14px rgba(0,0,0,.55)}
 .search{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;background:var(--paper);color:var(--ink);max-width:980px}
 .search label{display:grid;gap:2px;padding:12px 18px;border-right:1px solid var(--line);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
 .search select{border:0;background:transparent;padding:4px 0;font-size:14px;color:var(--ink);text-transform:none;letter-spacing:0}
@@ -385,17 +398,23 @@ function home() {
   const featChips = spot ? [spot.tourUrl && "3D tour", spot.aerial && "Aerial view", spot.floorplans.length && "Floor plans",
     spot.operation === "sale" && spot.salePrice != null && "Mortgage calculator", "Book with an agent"].filter(Boolean) : [];
   const n = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;
+  // Showcase hero: a carousel of the featured listings (or of every listing when fewer than two are featured).
+  const slides = few ? (PUB.filter(p => p.featured).length > 1 ? PUB.filter(p => p.featured) : PUB) : [feat];
+  const heroTxt = p => `<div class="eyebrow">Featured · ${esc(p.place)}</div><h1>${esc(p.title)}</h1><p class="num">${esc(keyFacts(p))}</p>`;
   const keyFacts = p => [priceLabel(p), n(p.beds, "bedroom"), n(p.baths, "bathroom"), p.type].filter(Boolean).join(" · ");
   const bios = ["Founded Hampton Estates in 1982 and has guided generations of Jersey families through buying, selling and letting. Advice and valuations are always free.",
                 "Handles day-to-day sales and lettings, from first viewing to completion. Your first call for viewings, offers and rental enquiries."];
   const sel = (id, obj, cur) => `<select id="${id}">${Object.entries(obj).map(([k, v]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${v}</option>`).join("")}</select>`;
   $("#app").innerHTML = `
-  <section class="hero" style="background-image:url('${esc(feat.image)}')"><div class="wrap">${few ? `
-    <div class="eyebrow">Featured · ${esc(feat.place)}</div>
-    <h1>${esc(feat.title)}</h1>
-    <p class="num">${esc(keyFacts(feat))}</p>
-    <div class="cta"><a class="btn light" href="#/p/${feat.id}">Explore the property</a>
-      <button class="btn ghost" type="button" id="hero-book">Book a viewing</button></div>` : `
+  <section class="hero" style="background-image:url('${esc(feat.image)}')" ${few ? 'aria-roledescription="carousel" aria-label="Featured properties"' : ""}>
+    ${few ? slides.map(p => `<div class="hero-bg${p === feat ? " on" : ""}" style="background-image:url('${esc(p.image)}')"></div>`).join("") : ""}
+    <div class="wrap">${few ? `
+    <div id="hero-txt">${heroTxt(feat)}</div>
+    <div class="cta"><a class="btn light" id="hero-explore" href="#/p/${feat.id}">Explore the property</a>
+      <button class="btn ghost" type="button" id="hero-book">Book a viewing</button></div>
+    ${slides.length > 1 ? `<div class="hero-nav"><div class="dots" role="group" aria-label="Choose a property">${slides.map((p, i) =>
+      `<button type="button" data-slide="${i}" aria-label="Show ${esc(p.title)}" aria-current="${p === feat}"></button>`).join("")}</div>
+      <button type="button" class="hero-pause">Pause</button></div>` : ""}` : `
     <div class="eyebrow">Jersey · Channel Islands</div>
     <h1>Homes across Jersey, since 1982</h1>
     <p>Sales, lettings and free valuations from our St Helier office on Bath Street. Discreet, personal advice from a family firm that has known the island since 1982.</p>
@@ -455,9 +474,28 @@ function home() {
   mountBooking($("#book-slot"));
   if (few) {
     $("#grid").innerHTML = PUB.map(p => card(p)).join("");
+    // ponytail: setInterval that stops itself once the home is gone; pauses on hover/focus, never auto-plays with reduced motion.
+    const hero = $(".hero"), bgs = [...hero.querySelectorAll(".hero-bg")], dots = [...hero.querySelectorAll("[data-slide]")], pb = $(".hero-pause");
+    let cur = slides.indexOf(feat), paused = matchMedia("(prefers-reduced-motion: reduce)").matches, hold = false;
+    const go = i => {
+      cur = (i + slides.length) % slides.length; const p = slides[cur];
+      bgs.forEach((b, j) => b.classList.toggle("on", j === cur)); dots.forEach((d, j) => d.setAttribute("aria-current", j === cur));
+      $("#hero-txt").innerHTML = heroTxt(p); $("#hero-explore").href = `#/p/${p.id}`;
+    };
+    if (slides.length > 1) {
+      const timer = setInterval(() => { if (!document.contains(hero)) return clearInterval(timer); if (!paused && !hold) go(cur + 1); }, 7000);
+      const setPaused = v => { paused = v; pb.textContent = v ? "Play" : "Pause"; };
+      setPaused(paused);
+      hero.addEventListener("mouseenter", () => { hold = true; });
+      hero.addEventListener("mouseleave", () => { hold = false; });
+      hero.addEventListener("focusin", () => { hold = true; });
+      hero.addEventListener("focusout", e => { hold = hero.contains(e.relatedTarget); });
+      $(".dots", hero).addEventListener("click", e => { const d = e.target.closest("[data-slide]"); if (d) go(+d.dataset.slide); });
+      pb.addEventListener("click", () => setPaused(!paused));
+    }
     $("#hero-book").addEventListener("click", () => {
-      const prop = $("#book-slot select[name=prop]");
-      if (!isSold(feat)) prop.value = feat.id;
+      const prop = $("#book-slot select[name=prop]"), now = slides[cur];
+      if (!isSold(now)) prop.value = now.id;
       $("#book").scrollIntoView(); prop.focus({preventScroll: true});
     });
     return;

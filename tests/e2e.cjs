@@ -39,6 +39,10 @@ async function publicSite(browser) {
   assert.equal(await page.$("#quick"), null, "no search form with few listings");
   assert.equal(await page.$("#tabs-region"), null, "no filter tabs with few listings");
   assert.match(await page.textContent(".hero h1"), /Le Bernage/);
+  assert.equal(await page.$$eval(".dots button", d => d.length), 4, "one dot per listing in the hero carousel");
+  await page.click('.dots [data-slide="1"]');
+  assert.doesNotMatch(await page.textContent(".hero h1"), /Le Bernage/, "dots change the hero listing");
+  await page.click('.dots [data-slide="0"]');
   await page.click("#hero-book");
   assert.equal(await page.inputValue("#book-slot select[name=prop]"), "HE-R001", "hero booking preselects the property");
 
