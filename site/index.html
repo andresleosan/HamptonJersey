@@ -527,15 +527,23 @@ function home() {
   if (t3) {
     const stage = $(".tour3d-stage", t3);
     let playing = false;
+    // Starts by itself: Matterport plays straight away and the mouse wheel can't zoom it (page scroll keeps the far view); YouTube/Vimeo start muted, as browsers require.
+    const auto = u => { const x = new URL(u), mp = x.hostname === "my.matterport.com";
+      Object.entries(mp ? {play: 1, qs: 1, wh: 0} : {autoplay: 1, mute: 1, muted: 1}).forEach(([k, v]) => x.searchParams.set(k, v)); return x.href; };
     const show = i => {
       const t = TOURS[i];
       $("figcaption", t3).innerHTML = `<b>${esc(t.title)}</b>${t.caption ? `<span>${esc(t.caption)}</span>` : ""}`;
-      stage.innerHTML = playing ? `<iframe src="${esc(t.url)}" title="3D tour: ${esc(t.title)}" allow="fullscreen; xr-spatial-tracking; autoplay" allowfullscreen></iframe>`
+      stage.innerHTML = playing ? `<iframe src="${esc(auto(t.url))}" title="3D tour: ${esc(t.title)}" allow="fullscreen; xr-spatial-tracking; autoplay" allowfullscreen></iframe>`
         : `<button type="button" class="tour3d-play" aria-label="Open the 3D tour: ${esc(t.title)}"><span class="ring"></span><span class="big">3D</span><small>Step inside</small></button>`;
     };
     stage.addEventListener("click", e => { if (e.target.closest(".tour3d-play")) { playing = true; show(+($("input:checked", t3)?.value ?? 0)); $("iframe", stage).focus(); } });
     t3.addEventListener("change", e => show(+e.target.value));
     show(0);
+    // Plays when the visitor reaches it (not with reduced motion: then the poster waits for a click).
+    if ("IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const ob = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { ob.disconnect(); if (!playing) { playing = true; show(+($("input:checked", t3)?.value ?? 0)); } } }, {threshold: .35});
+      ob.observe(stage);
+    }
   }
   if (few) {
     $("#grid").innerHTML = PUB.map(p => card(p)).join("");

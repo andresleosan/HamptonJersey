@@ -45,10 +45,11 @@ async function publicSite(browser) {
   await page.click('.dots [data-slide="0"]');
   await page.click("#hero-book");
   assert.equal(await page.inputValue("#book-slot select[name=prop]"), "HE-R001", "hero booking preselects the property");
-  // 3D tour beside the booking form: a poster first, the player only after a click.
-  assert.equal(await page.$("#tour3d iframe"), null, "the tour does not load until asked");
-  await page.click("#tour3d .tour3d-play");
-  assert.match(await page.getAttribute("#tour3d iframe", "src"), /my\.matterport\.com\/show\/\?m=JGPnGQ6hosj/);
+  // 3D tour beside the booking form: a poster until the visitor reaches it, then it plays by itself with wheel zoom off.
+  assert.equal(await page.$("#tour3d iframe"), null, "the tour does not load before it is reached");
+  await page.$eval("#tour3d", el => el.scrollIntoView({block: "center"}));
+  await page.waitForSelector("#tour3d iframe");
+  assert.match(await page.getAttribute("#tour3d iframe", "src"), /my\.matterport\.com\/show\/\?m=JGPnGQ6hosj.*play=1.*wh=0/);
   await shot(page, "home-tour");
 
   await page.goto(BASE + "#/p/HE-R001");
@@ -249,8 +250,9 @@ async function admin(browser) {
   await shot(page, "admin-tours");
   [hc, home] = await fresh();
   await home.waitForSelector("#tour3d");
-  await home.click("#tour3d .tour3d-play");
-  assert.match(await home.getAttribute("#tour3d iframe", "src"), /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/, "home shows only the visible tour");
+  await home.$eval("#tour3d", el => el.scrollIntoView({block: "center"}));
+  await home.waitForSelector("#tour3d iframe");
+  assert.match(await home.getAttribute("#tour3d iframe", "src"), /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ\?autoplay=1&mute=1/, "home shows only the visible tour");
   await hc.close();
   await page.goto(BASE + "admin/#/users");
   await page.waitForSelector("text=andres.san1404@gmail.com");
