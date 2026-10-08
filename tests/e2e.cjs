@@ -45,6 +45,11 @@ async function publicSite(browser) {
   await page.click('.dots [data-slide="0"]');
   await page.click("#hero-book");
   assert.equal(await page.inputValue("#book-slot select[name=prop]"), "HE-R001", "hero booking preselects the property");
+  // 3D tour beside the booking form: a poster first, the player only after a click.
+  assert.equal(await page.$("#tour3d iframe"), null, "the tour does not load until asked");
+  await page.click("#tour3d .tour3d-play");
+  assert.match(await page.getAttribute("#tour3d iframe", "src"), /my\.matterport\.com\/show\/\?m=JGPnGQ6hosj/);
+  await shot(page, "home-tour");
 
   await page.goto(BASE + "#/p/HE-R001");
   await page.waitForSelector(".summary h1");
@@ -228,6 +233,25 @@ async function admin(browser) {
   await page.getByRole("button", {name: /^Contacted/}).click();
   assert.equal(await page.inputValue("#v-notes"), "Called, prefers Saturday", "notes are kept");
   await shot(page, "admin-inbox");
+  // 3D tours: add one from a YouTube share link, hide the sample; the home page follows.
+  await page.goto(BASE + "admin/#/tours");
+  await page.waitForSelector("text=Sample 3D tour");
+  await page.getByRole("button", {name: "Add tour", exact: true}).first().click();
+  await page.fill("#tt-new", "Le Bernage walkthrough");
+  await page.fill("#tu-new", "https://evil.example/x");
+  await page.click("form.new button:has-text('Add tour')");
+  await page.waitForSelector(".err:has-text(\"Link: paste\")");
+  await page.fill("#tu-new", "https://youtu.be/dQw4w9WgXcQ");
+  await page.click("form.new button:has-text('Add tour')");
+  await page.waitForSelector("text=Tour added.");
+  await page.click('[role=switch][aria-label="Visible on the website: Sample 3D tour"]');
+  await page.waitForSelector("text=Tour hidden.");
+  await shot(page, "admin-tours");
+  [hc, home] = await fresh();
+  await home.waitForSelector("#tour3d");
+  await home.click("#tour3d .tour3d-play");
+  assert.match(await home.getAttribute("#tour3d iframe", "src"), /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/, "home shows only the visible tour");
+  await hc.close();
   await page.goto(BASE + "admin/#/users");
   await page.waitForSelector("text=andres.san1404@gmail.com");
   await shot(page, "admin-users");

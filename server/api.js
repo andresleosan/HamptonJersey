@@ -6,9 +6,10 @@ import listingRoutes from "./routes/listings.js";
 import mediaRoutes from "./routes/media.js";
 import inboxRoutes from "./routes/inbox.js";
 import userRoutes from "./routes/users.js";
+import tourRoutes from "./routes/tours.js";
 
 // [method, path regex, handler, requiresAdmin]
-const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes];
+const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes];
 
 export async function handleApi(request, env, segments) {
   const res = await route(request, env, segments);

@@ -167,6 +167,23 @@ section#book,section#detail-book{padding-top:clamp(40px,5vw,64px);background:var
 /* booking */
 .book{display:grid;grid-template-columns:1fr 1.4fr;gap:clamp(28px,5vw,72px)}
 @media (max-width:900px){.book{grid-template-columns:1fr}}
+.tour3d{margin:28px 0 0;display:grid;gap:12px}
+.tour3d-stage{position:relative;aspect-ratio:4/5;max-height:560px;border-radius:var(--r-lg);overflow:hidden;background:radial-gradient(120% 90% at 30% 20%,#3a342d,#151515 70%);box-shadow:var(--shadow)}
+@media (max-width:900px){.tour3d-stage{aspect-ratio:4/3}}
+.tour3d-stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.tour3d-play{all:unset;cursor:pointer;position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:18px;color:#fff;text-align:center}
+.tour3d-play:focus-visible{outline:2px solid var(--bronze);outline-offset:-6px;border-radius:var(--r-lg)}
+.tour3d-play .ring{width:84px;height:84px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85);position:relative;transition:transform .3s,background .3s}
+.tour3d-play .ring::before{content:"";position:absolute;inset:-1.5px;border-radius:50%;border:1.5px solid rgba(255,255,255,.5);animation:ping 2.4s ease-out infinite}
+.tour3d-play .ring::after{content:"";position:absolute;left:33px;top:26px;border-style:solid;border-width:16px 0 16px 25px;border-color:transparent transparent transparent #fff}
+.tour3d-play:hover .ring{transform:scale(1.07);background:rgba(255,255,255,.1)}
+.tour3d-play .big{font-family:var(--display);font-size:clamp(44px,6vw,64px);letter-spacing:.12em;line-height:1}
+.tour3d-play small{font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;opacity:.8}
+@keyframes ping{from{transform:scale(1);opacity:.9}to{transform:scale(1.6);opacity:0}}
+.tour3d figcaption{display:grid;gap:2px;font-size:13px;color:var(--stone)}
+.tour3d figcaption b{font-size:14px;font-weight:600;color:var(--ink)}
+.tour3d .opts span{padding:7px 16px;font-size:12px}
+@media (prefers-reduced-motion:reduce){.tour3d-play .ring::before{animation:none}}
 form.tour{display:grid;gap:22px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(20px,3vw,36px);box-shadow:var(--shadow)}
 form.tour .btn[type=submit]{width:100%;padding-block:16px}
 .field>legend i{font-style:normal;letter-spacing:.04em;text-transform:none;font-weight:500;margin-left:6px}
@@ -332,7 +349,7 @@ const OP_ONE = {sale: "For sale", rent: "To let", business: "Business for sale"}
 const MAX = {sale: [400e3, 600e3, 900e3, 1.5e6], rent: [1500, 2500, 3500], business: [100e3, 250e3, 500e3]};
 const short = (n, op) => op === "rent" ? `£${n.toLocaleString("en-GB")} pcm` : n >= 1e6 ? `£${n / 1e6}m` : `£${n / 1e3}k`;
 // Turnstile loads async; forms render the widget once it is ready.
-let TS_KEY = null;
+let TS_KEY = null, TOURS = [];
 const tsReady = new Promise(r => { window.onTurnstile = r; });
 
 
@@ -492,7 +509,9 @@ function home() {
 
   <section class="block" id="book" tabindex="-1"><div class="wrap book">
     <div><div class="eyebrow">Book a viewing</div><h2>Choose an agent and a time</h2>
-      <p class="hint" style="font-size:14px;margin-top:14px">Pick the property, the agent you want to meet and a slot. Viewings run Monday to Saturday from our Bath Street office, or by live video call if you are buying from abroad.</p></div>
+      <p class="hint" style="font-size:14px;margin-top:14px">Pick the property, the agent you want to meet and a slot. Viewings run Monday to Saturday from our Bath Street office, or by live video call if you are buying from abroad.</p>${TOURS.length ? `
+      <figure class="tour3d" id="tour3d"><div class="tour3d-stage"></div><figcaption></figcaption>
+        ${TOURS.length > 1 ? `<div class="opts" role="group" aria-label="3D tours">${TOURS.map((t, i) => `<label><input type="radio" name="tour3d" value="${i}"${i ? "" : " checked"}><span>${esc(t.title)}</span></label>`).join("")}</div>` : ""}</figure>` : ""}</div>
     <div id="book-slot"></div>
   </div></section>`;
 
@@ -503,6 +522,21 @@ function home() {
     $("#book").scrollIntoView(); $("select", slot).focus({preventScroll: true});
   });
   mountBooking($("#book-slot"));
+  // 3D tours from the panel: a poster first, the (heavy) player only loads on click.
+  const t3 = $("#tour3d");
+  if (t3) {
+    const stage = $(".tour3d-stage", t3);
+    let playing = false;
+    const show = i => {
+      const t = TOURS[i];
+      $("figcaption", t3).innerHTML = `<b>${esc(t.title)}</b>${t.caption ? `<span>${esc(t.caption)}</span>` : ""}`;
+      stage.innerHTML = playing ? `<iframe src="${esc(t.url)}" title="3D tour: ${esc(t.title)}" allow="fullscreen; xr-spatial-tracking; autoplay" allowfullscreen></iframe>`
+        : `<button type="button" class="tour3d-play" aria-label="Open the 3D tour: ${esc(t.title)}"><span class="ring"></span><span class="big">3D</span><small>Step inside</small></button>`;
+    };
+    stage.addEventListener("click", e => { if (e.target.closest(".tour3d-play")) { playing = true; show(+($("input:checked", t3)?.value ?? 0)); $("iframe", stage).focus(); } });
+    t3.addEventListener("change", e => show(+e.target.value));
+    show(0);
+  }
   if (few) {
     $("#grid").innerHTML = PUB.map(p => card(p)).join("");
     // ponytail: setInterval that stops itself once the home is gone; pauses on hover/focus, never auto-plays with reduced motion.
@@ -771,7 +805,7 @@ addEventListener("error", e => {
 const getJSON = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); });
 const arr = v => (Array.isArray(v) ? v.filter(x => typeof x === "string") : []);
 const rank = p => p.order ?? Infinity; // home_order, set by dragging rows in the panel; unordered listings keep the usual order after
-Promise.allSettled([getJSON("/api/listings"), getJSON("data/team.json"), getJSON("/api/config")]).then(([p, t, c]) => {
+Promise.allSettled([getJSON("/api/listings"), getJSON("data/team.json"), getJSON("/api/config"), getJSON("/api/tours")]).then(([p, t, c, tr]) => {
   if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
   TS_KEY = c.status === "fulfilled" && typeof c.value?.turnstileSiteKey === "string" ? c.value.turnstileSiteKey : null;
   const order = {jersey: 0, uk: 1, international: 2};
@@ -787,6 +821,8 @@ Promise.allSettled([getJSON("/api/listings"), getJSON("data/team.json"), getJSON
   PUB = PROPS.filter(x => x.image); // without a public photo a listing stays out of the public pages
   TEAM = (t.status === "fulfilled" && Array.isArray(t.value) ? t.value : []).filter(a => a && a.name)
     .map(a => ({...a, photo: safeUrl(a.photo, IMG_HOST)}));
+  TOURS = (tr.status === "fulfilled" && Array.isArray(tr.value) ? tr.value : []).filter(x => x && typeof x.title === "string" && embedUrl(x.url))
+    .map(x => ({title: x.title, url: embedUrl(x.url), caption: typeof x.caption === "string" ? x.caption : ""}));
   if (!PUB.length) throw new Error("no listings");
   route();
 }).catch(() => {

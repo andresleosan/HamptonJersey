@@ -6,6 +6,7 @@ import Listings from "./Listings.jsx";
 import ListingEditor from "./ListingEditor.jsx";
 import Viewings from "./Viewings.jsx";
 import Users from "./Users.jsx";
+import Tours from "./Tours.jsx";
 import { confirmLeave } from "./unsaved.js";
 
 function useHash() {
@@ -35,8 +36,8 @@ export default function App() {
 
   const [section, arg] = hash.replace(/^#\/?/, "").split("/");
   const page = section === "p" && arg ? <ListingEditor key={arg} id={decodeURIComponent(arg)} />
-    : section === "viewings" ? <Viewings /> : section === "users" ? <Users me={me} /> : <Listings />;
-  const current = section === "viewings" || section === "users" ? section : "";
+    : section === "viewings" ? <Viewings /> : section === "users" ? <Users me={me} /> : section === "tours" ? <Tours /> : <Listings />;
+  const current = ["viewings", "users", "tours"].includes(section) ? section : "";
   const logout = async () => {
     if (!confirmLeave()) return;
     await api("/session", { method: "DELETE" }).catch(() => {});
@@ -49,6 +50,7 @@ export default function App() {
       <nav aria-label="Sections">
         <a href="#/" aria-current={current === "" ? "page" : undefined}>Listings</a>
         <a href="#/viewings" aria-current={current === "viewings" ? "page" : undefined}>Viewing requests</a>
+        <a href="#/tours" aria-current={current === "tours" ? "page" : undefined}>3D tours</a>
         <a href="#/users" aria-current={current === "users" ? "page" : undefined}>Users</a>
       </nav>
       <a href="/" className="home">View website</a>
