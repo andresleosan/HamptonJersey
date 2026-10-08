@@ -183,28 +183,42 @@ async function admin(browser) {
   // Featured: set in the panel, shown first and in the hero on the public site.
   await page.goto(BASE + "admin/#/p/HE-R018");
   await page.waitForSelector("#f-featured_rank");
-  await page.fill("#f-featured_rank", "1");
+  await page.check("#f-featured_rank");
   await page.getByRole("button", {name: "Save", exact: true}).click();
   await page.waitForSelector("text=Changes saved.");
   await page.goto(BASE + "admin/#/");
-  await page.waitForSelector('tr:has-text("HE-R018") >> text=Featured #1');
-  const home = await ctx.newPage();
-  await home.goto(BASE);
-  await home.waitForSelector("#grid .card");
-  assert.equal(await home.getAttribute("#grid .card", "href"), "#/p/HE-R018", "featured listing comes first");
-  assert.match(await home.textContent(".hero h1"), /Pathfield/, "featured listing leads the hero");
-  await home.close();
+  await page.waitForSelector('tr:has-text("HE-R018") .star[aria-pressed=true]');
+  const fresh = async () => { const c = await browser.newContext(); const p = await c.newPage(); await p.goto(BASE); await p.waitForSelector("#grid .card"); return [c, p]; };
+  let [hc, home] = await fresh();
+  assert.deepEqual(await home.$$eval(".feature h2", h => h.map(x => x.textContent)), ["Pathfield Road"], "only starred listings get a Featured block");
+  await hc.close();
 
-  // Row menu: publish state changes from the table without opening the editor.
+  // Table: the visibility switch publishes/hides and the star adds a Featured block, without opening the editor.
   await page.goto(BASE + "admin/#/");
   await page.getByRole("group", {name: "Status"}).getByRole("button", {name: /^All/}).click();
-  await page.locator('tr:has-text("HE-R003") summary').click();
-  await page.locator('tr:has-text("HE-R003") .menu').getByRole("button", {name: "Publish", exact: true}).click();
-  await page.waitForSelector("text=HE-R003");
-  await page.waitForSelector('[role=status] >> text=published');
-  await page.locator('tr:has-text("HE-R003") summary').click();
-  await page.locator('tr:has-text("HE-R003") .menu').getByRole("button", {name: "Unpublish", exact: true}).click();
-  await page.waitForSelector('[role=status] >> text=unpublished.');
+  await page.click('tr:has-text("HE-R003") .switch');
+  await page.waitForSelector('tr:has-text("HE-R003") .switch[aria-checked=true]');
+  await page.click('tr:has-text("HE-R003") .switch');
+  await page.waitForSelector('tr:has-text("HE-R003") .switch[aria-checked=false]');
+  await page.click('tr:has-text("HE-R001") .star');
+  await page.waitForSelector('tr:has-text("HE-R001") .star[aria-pressed=true]');
+  [hc, home] = await fresh();
+  assert.equal(await home.$$eval(".feature", f => f.length), 2, "two stars, two Featured blocks");
+  await hc.close();
+  await page.click('tr:has-text("HE-R001") .star');
+  await page.waitForSelector('tr:has-text("HE-R001") .star[aria-pressed=false]');
+  // Drag a row to the top of Published: the home page follows that order.
+  await page.getByRole("group", {name: "Status"}).getByRole("button", {name: /^Published/}).click();
+  await page.dragAndDrop('tr:has-text("HE-R018")', "tbody tr:first-child");
+  await page.waitForSelector("text=Order saved.");
+  assert.match(await page.textContent("tbody tr:first-child"), /HE-R018/);
+  [hc, home] = await fresh();
+  assert.equal(await home.getAttribute("#grid .card", "href"), "#/p/HE-R018", "home follows the panel order");
+  assert.match(await home.textContent(".hero h1"), /Pathfield/, "and the carousel starts with it");
+  await hc.close();
+  await page.click('tr:has-text("HE-R018") [aria-label^="Move"][aria-label$="down"]');
+  await page.waitForSelector("text=Order saved.");
+  assert.doesNotMatch(await page.textContent("tbody tr:first-child"), /HE-R018/, "keyboard arrows move rows too");
 
   await page.goto(BASE + "admin/#/viewings");
   await page.waitForSelector("text=Jane Le Brocq");

@@ -20,6 +20,25 @@ export default function Listings() {
     try { await api(`/admin/listings/${l.id}/${action}`, { method: "POST" }); setMsg({ ok: true, text: `${l.title}: ${done}` }); await load(); }
     catch (e) { setMsg({ text: e.message }); }
   };
+  // Star = shown in the Featured blocks of the home page (featured_rank set); order among stars is the usual list order.
+  const star = async l => {
+    setMsg(null);
+    try {
+      await api(`/admin/listings/${l.id}`, { method: "PUT", body: { featured_rank: l.featured_rank == null ? 1 : null, updated_at: l.updated_at } });
+      setMsg({ ok: true, text: `${l.title}: ${l.featured_rank == null ? "now in the Featured section of the home page." : "removed from the Featured section."}` });
+    } catch (e) { setMsg({ text: e.message }); }
+    await load();
+  };
+  // Home page order: drag rows (or use ↑ ↓) in Published with no filters; saved at once, the site follows within a minute.
+  const [dragId, setDragId] = useState(null);
+  const reorder = async ids => {
+    setRows(rs => rs.map(r => (ids.includes(r.id) ? { ...r, home_order: ids.indexOf(r.id) + 1 } : r)));
+    setMsg(null);
+    try { await api("/admin/listings/order", { method: "PUT", body: { ids } }); setMsg({ ok: true, text: "Order saved. The home page shows it within a minute." }); }
+    catch (e) { setMsg({ text: e.message }); }
+    await load();
+  };
+  const moveTo = (list, id, to) => { const ids = list.map(l => l.id).filter(x => x !== id); ids.splice(to, 0, id); return ids; };
   const counts = useMemo(() => Object.fromEntries(TABS.map(([k]) =>
     [k, (rows || []).filter(l => k === "all" || stateOf(l) === k).length])), [rows]);
   if (error) return <p role="alert" className="err">{error}</p>;
@@ -27,7 +46,9 @@ export default function Listings() {
   const needle = q.trim().toLowerCase();
   const shown = rows.filter(l => (tab === "all" || stateOf(l) === tab) && (!use || l.use === use)
     && (!region || regionOf(l.country) === region) && (!avail || l.availability === avail)
-    && (!needle || `${l.id} ${l.title} ${l.location ?? ""}`.toLowerCase().includes(needle)));
+    && (!needle || `${l.id} ${l.title} ${l.location ?? ""}`.toLowerCase().includes(needle)))
+    .sort((a, b) => (tab === "published" ? ((a.home_order ?? Infinity) - (b.home_order ?? Infinity) || 0) : 0) || a.id.localeCompare(b.id));
+  const canDrag = tab === "published" && !needle && !use && !region && !avail && shown.length > 1;
 
   return <section aria-labelledby="t-props">
     <div className="head"><h1 id="t-props">Listings</h1>
@@ -44,26 +65,38 @@ export default function Listings() {
       <label>Availability<select value={avail} onChange={e => setAvail(e.target.value)}><option value="">All</option>
         {Object.entries(AVAILABILITY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
     </div>
-    <p className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? "listing" : "listings"}</p>
+    <p className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? "listing" : "listings"}
+      {canDrag ? " · drag ⠿ to set the order on the home page" : tab === "published" && shown.length > 1 ? " · clear the filters to change the order" : ""}</p>
     {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
     {shown.length ? <table className="list">
-      <thead><tr><th scope="col"><span className="sr">Photo</span></th><th scope="col">Listing</th><th scope="col">Location</th>
+      <thead><tr>{canDrag && <th scope="col"><span className="sr">Order</span></th>}<th scope="col"><span className="sr">Photo</span></th><th scope="col">Listing</th><th scope="col">Location</th>
         <th scope="col">Price</th><th scope="col">Availability</th><th scope="col">Visibility</th><th scope="col">Last edited</th>
         <th scope="col"><span className="sr">Actions</span></th></tr></thead>
-      <tbody>{shown.map(l => <tr key={l.id}>
+      <tbody>{shown.map((l, i) => <tr key={l.id} draggable={canDrag} className={dragId === l.id ? "dragging" : undefined}
+        onDragStart={e => { if (!canDrag) return; setDragId(l.id); e.dataTransfer.effectAllowed = "move"; }}
+        onDragOver={e => { if (canDrag && dragId) e.preventDefault(); }}
+        onDrop={e => { e.preventDefault(); if (dragId && dragId !== l.id) reorder(moveTo(shown, dragId, i)); setDragId(null); }}
+        onDragEnd={() => setDragId(null)}>
+        {canDrag && <td className="order"><span className="handle" aria-hidden="true" title="Drag to reorder">⠿</span>
+          <button type="button" className="nudge" disabled={i === 0} aria-label={`Move ${l.title} up`} onClick={() => reorder(moveTo(shown, l.id, i - 1))}>↑</button>
+          <button type="button" className="nudge" disabled={i === shown.length - 1} aria-label={`Move ${l.title} down`} onClick={() => reorder(moveTo(shown, l.id, i + 1))}>↓</button></td>}
         <td>{l.cover_id ? <img className="thumb" src={`/media/${l.cover_id}?thumb`} alt="" loading="lazy" /> : <span className="thumb" />}</td>
-        <td><a href={`#/p/${l.id}`}>{l.title}</a><div className="muted">{l.id} · {OPERATION[l.operation]}{l.featured_rank != null && ` · ★ Featured #${l.featured_rank}`}</div></td>
+        <td><div className="title-cell"><button type="button" className="star" aria-pressed={l.featured_rank != null} disabled={stateOf(l) === "archived"}
+          title={l.featured_rank != null ? "In the Featured section of the home page. Click to remove." : "Click to show in the Featured section of the home page."}
+          aria-label={`Featured on the home page: ${l.title}`} onClick={() => star(l)}>{l.featured_rank != null ? "★" : "☆"}</button>
+          <div><a href={`#/p/${l.id}`}>{l.title}</a><div className="muted">{l.id} · {OPERATION[l.operation]}</div></div></div></td>
         <td>{l.location || l.country || "—"}</td>
         <td className="num">{priceText(l)}</td>
         <td>{AVAILABILITY[l.availability]}</td>
-        <td><span className={`badge ${stateOf(l)}`}>{STATUS_LABEL[stateOf(l)]}</span>
+        <td>{stateOf(l) === "archived" ? <span className="badge archived">{STATUS_LABEL.archived}</span>
+          : <button type="button" role="switch" className="switch" aria-checked={stateOf(l) === "published"} aria-label={`Visible on the website: ${l.title}`}
+            onClick={e => act(e, l, l.published ? "unpublish" : "publish", l.published ? "hidden from the website." : l.has_public_photo ? "now visible on the website." : "published, but it needs a visible photo to appear.")}>
+            <span className="knob" aria-hidden="true" />{stateOf(l) === "published" ? "Visible" : "Hidden"}</button>}
           {stateOf(l) === "published" && !l.has_public_photo && <div className="muted" title="Not shown on the website until it has a visible photo">no photo · not visible</div>}</td>
-        <td className="muted">{fmtDate(l.updated_at)}<br />{l.updated_by}</td>
+        <td className="muted">{fmtDate(l.updated_at)}</td>
         <td><details className="more row-menu"><summary aria-label={`Actions for ${l.title}`}>…</summary><div className="menu">
           <a href={`#/p/${l.id}`}>Edit</a>
           {stateOf(l) === "published" && l.has_public_photo ? <a href={`/#/p/${l.id}`} target="_blank" rel="noopener">View on the website ↗</a> : null}
-          {stateOf(l) === "published" && <button type="button" onClick={e => act(e, l, "unpublish", "unpublished.")}>Unpublish</button>}
-          {stateOf(l) === "draft" && <button type="button" onClick={e => act(e, l, "publish", l.has_public_photo ? "published." : "published, but it needs a visible photo to appear.")}>Publish</button>}
           {stateOf(l) !== "archived" ? <button type="button" onClick={e => act(e, l, "archive", "archived.")}>Archive</button>
             : <button type="button" onClick={e => act(e, l, "restore", "restored as a draft.")}>Restore</button>}
         </div></details></td>

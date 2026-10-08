@@ -50,8 +50,7 @@ function Detail({ v, save, remove }) {
   const status = (s, done) => save(v, notes.trim() === (v.notes ?? "") ? { status: s } : { status: s, notes }, done);
   const subject = encodeURIComponent(`Your viewing request: ${listingOf(v)}`);
   return <article className="card inbox-detail" aria-labelledby="v-name">
-    <div className="head"><div><h2 id="v-name">{v.name}</h2><p className="muted">Received {fmtDate(v.created_at)}
-      {v.updated_by && <> · last updated by {v.updated_by}</>}</p></div>
+    <div className="head"><div><h2 id="v-name">{v.name}</h2><p className="muted">Received {fmtDate(v.created_at)}</p></div>
       <div className="inline">
         {v.status === "new" && <button type="button" className="btn" onClick={() => status("contacted", "Marked as contacted.")}>Mark contacted</button>}
         {v.status !== "closed" && <button type="button" className="btn ghost" onClick={() => status("closed", "Request closed.")}>Close request</button>}

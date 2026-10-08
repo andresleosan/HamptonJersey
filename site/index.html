@@ -129,6 +129,8 @@ section.block{padding-block:clamp(56px,8vw,104px)}
 /* feature band */
 .feature{display:grid;grid-template-columns:1.2fr 1fr;background:var(--mist)}
 .feature img{width:100%;height:100%;object-fit:cover;min-height:340px}
+.feature+.feature{border-top:1px solid var(--line)}
+@media (min-width:821px){.feature.flip{grid-template-columns:1fr 1.2fr}.feature.flip img{order:2}}
 .feature .txt{padding:clamp(28px,5vw,64px);display:grid;align-content:center;gap:18px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chips span{border:1px solid var(--line);background:var(--paper);padding:6px 12px;font-size:12px}
@@ -392,14 +394,14 @@ function mountBooking(slot, pre = {}) {
 function home() {
   // ponytail: with only a few listings the home is a showcase (no search or filters); they come back at FEW_MAX + 1.
   const FEW_MAX = 5, few = PUB.length <= FEW_MAX;
-  const feat = PUB.find(p => p.featured) || PUB.find(p => p.tourUrl || p.aerial) || PUB[0];
+  const feat = few ? PUB[0] : PUB.find(p => p.featured) || PUB.find(p => p.tourUrl || p.aerial) || PUB[0];
   // In showcase mode the hero already presents `feat`, so the Featured block shows the next featured listing.
-  const spot = few ? PUB.find(p => p.featured && p !== feat) : feat;
-  const featChips = spot ? [spot.tourUrl && "3D tour", spot.aerial && "Aerial view", spot.floorplans.length && "Floor plans",
-    spot.operation === "sale" && spot.salePrice != null && "Mortgage calculator", "Book with an agent"].filter(Boolean) : [];
+  // The star in the panel (featured_rank) picks the Featured blocks; the hero carousel shows every published listing.
+  const spots = PUB.filter(p => p.featured);
+  const featChips = p => [p.tourUrl && "3D tour", p.aerial && "Aerial view", p.floorplans.length && "Floor plans",
+    p.operation === "sale" && p.salePrice != null && "Mortgage calculator", "Book with an agent"].filter(Boolean);
   const n = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;
-  // Showcase hero: a carousel of the featured listings (or of every listing when fewer than two are featured).
-  const slides = few ? (PUB.filter(p => p.featured).length > 1 ? PUB.filter(p => p.featured) : PUB) : [feat];
+  const slides = few ? PUB : [feat]; // showcase hero: a carousel of every published listing, starred ones first
   const heroTxt = p => `<div class="eyebrow">Featured · ${esc(p.place)}</div><h1>${esc(p.title)}</h1><p class="num">${esc(keyFacts(p))}</p>`;
   const keyFacts = p => [priceLabel(p), n(p.beds, "bedroom"), n(p.baths, "bathroom"), p.type].filter(Boolean).join(" · ");
   const bios = ["Founded Hampton Estates in 1982 and has guided generations of Jersey families through buying, selling and letting. Advice and valuations are always free.",
@@ -439,12 +441,12 @@ function home() {
     ${few ? "" : `<div style="text-align:center;margin-top:48px"><button class="btn ghost" type="button" id="more"></button></div>`}
   </div></section>
 
-  ${spot && (spot.tourUrl || spot.aerial || spot.featured) ? `<section class="feature"><img src="${esc(spot.image)}" alt="${esc(spot.title)}">
-    <div class="txt"><div class="eyebrow">Featured · ${esc(spot.place)}</div><h2>${esc(spot.title)}</h2>
-      <p>See more of this property before you visit, then book a viewing with our team.</p>
-      <div class="chips">${featChips.map(c => `<span>${c}</span>`).join("")}</div>
-      <div><a class="btn" href="#/p/${spot.id}">Explore the property</a></div></div>
-  </section>` : ""}
+  ${spots.map((p, i) => `<section class="feature${i % 2 ? " flip" : ""}"><img src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy">
+    <div class="txt"><div class="eyebrow">Featured · ${esc(p.place)}</div><h2>${esc(p.title)}</h2>
+      <p class="num">${esc(keyFacts(p))}</p>
+      <div class="chips">${featChips(p).map(c => `<span>${c}</span>`).join("")}</div>
+      <div><a class="btn" href="#/p/${p.id}">Explore the property</a></div></div>
+  </section>`).join("")}
 
   <section class="block team" id="team" tabindex="-1"><div class="wrap">
     <div class="eyebrow">Meet the team</div><h2>A family firm on Bath Street</h2>
@@ -732,20 +734,20 @@ addEventListener("error", e => {
 }, true);
 const getJSON = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); });
 const arr = v => (Array.isArray(v) ? v.filter(x => typeof x === "string") : []);
-const rank = p => p.featured ?? 100; // featured_rank from the panel (1..99); the rest keep the usual order
+const rank = p => p.order ?? Infinity; // home_order, set by dragging rows in the panel; unordered listings keep the usual order after
 Promise.allSettled([getJSON("/api/listings"), getJSON("data/team.json"), getJSON("/api/config")]).then(([p, t, c]) => {
   if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
   TS_KEY = c.status === "fulfilled" && typeof c.value?.turnstileSiteKey === "string" ? c.value.turnstileSiteKey : null;
   const order = {jersey: 0, uk: 1, international: 2};
   PROPS = p.value.filter(x => x && /^HE-[A-Z]\d{3,}$/.test(x.id) && x.title && x.region in order && x.operation in OP_ONE)
-    .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "premium", "featured"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
+    .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "premium", "featured", "order"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
       use: x.use === "commercial" ? "commercial" : "residential", image: safeMedia(x.image), thumb: safeMedia(x.thumb),
       photos: (Array.isArray(x.photos) ? x.photos : []).filter(f => safeMedia(f?.src) && safeMedia(f?.thumb)),
       floorplans: (Array.isArray(x.floorplans) ? x.floorplans : []).filter(f => safeMedia(f?.src)),
       aerial: x.aerial && safeMedia(x.aerial.src) ? x.aerial : null, tourUrl: safeHttps(x.tourUrl),
       specs: (Array.isArray(x.specs) ? x.specs : []).filter(s => s && typeof s.label === "string" && typeof s.value === "string"),
       summary: liveSummary(arr(x.summary), jerseyToday()), description: arr(x.description)}))
-    .sort((a, b) => rank(a) - rank(b) || order[a.region] - order[b.region] || (a.use === "commercial") - (b.use === "commercial"));
+    .sort((a, b) => (rank(a) - rank(b) || 0) || order[a.region] - order[b.region] || (a.use === "commercial") - (b.use === "commercial"));
   PUB = PROPS.filter(x => x.image); // without a public photo a listing stays out of the public pages
   TEAM = (t.status === "fulfilled" && Array.isArray(t.value) ? t.value : []).filter(a => a && a.name)
     .map(a => ({...a, photo: safeUrl(a.photo, IMG_HOST)}));

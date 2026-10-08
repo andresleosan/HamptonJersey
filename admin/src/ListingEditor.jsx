@@ -8,7 +8,7 @@ import { setUnsaved } from "./unsaved.js";
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "sale_price", "rent", "rent_period", "premium", "currency", "price_text", "summary", "description",
   "tour_url", "featured_rank", "specs"];
-const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium", "featured_rank"];
+const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium", "featured_rank"]; // featured_rank: 1 = starred, blank = not
 const toForm = l => Object.fromEntries(FIELDS.map(k => [k, k === "specs" ? l.specs : l[k] ?? ""]));
 const toBody = f => Object.fromEntries(FIELDS.map(k => [k,
   NUMERIC.includes(k) ? (f[k] === "" ? null : Number(f[k]))
@@ -86,7 +86,7 @@ export default function ListingEditor({ id }) {
       {cover ? <img src={`/media/${cover.id}?thumb`} alt="" /> : <div className="thumb big" />}
       <h1>{l.title}</h1>
       <p className="muted">{l.id} · <span className={`badge ${state}`}>{STATUS_LABEL[state]}</span></p>
-      <p className="muted">Edited {fmtDate(l.updated_at)} by {l.updated_by}</p>
+      <p className="muted">Edited {fmtDate(l.updated_at)}</p>
       {l.published === 1 && !publicPhoto && <p className="warn" role="note">Published, but with no public photo: it won't appear on the website until it has one.</p>}
       {data.duplicates.length > 0 && <p className="warn" role="note">Possible duplicate of {data.duplicates.map((d, i) =>
         <span key={d}>{i ? ", " : ""}<a href={`#/p/${d}`}>{d}</a></span>)} according to the research.</p>}
@@ -108,8 +108,10 @@ export default function ListingEditor({ id }) {
         {field("road_name", "Road", <input {...ctl("road_name")} maxLength={200} />)}
         {field("bedrooms", "Bedrooms", <input {...ctl("bedrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
         {field("bathrooms", "Bathrooms", <input {...ctl("bathrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
-        {field("featured_rank", "Featured on the homepage (1 = first and in the hero; blank = not featured)",
-          <input {...ctl("featured_rank")} type="number" min="1" max="99" step="1" inputMode="numeric" />)}
+        <div className="field"><span className="lbl-like">Home page</span><label className="check">
+          <input id="f-featured_rank" type="checkbox" checked={form.featured_rank !== ""}
+            onChange={e => setForm(f => ({ ...f, featured_rank: e.target.checked ? 1 : "" }))} /> ★ Show in the Featured section</label>
+          {errors.featured_rank && <small className="err">{errors.featured_rank}</small>}</div>
       </div></section>
 
       <section id="s-price" className="card" aria-labelledby="h-price"><h2 id="h-price">Price</h2>

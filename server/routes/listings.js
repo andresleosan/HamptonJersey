@@ -3,7 +3,7 @@ import { validateListing, checkPrice, idPrefix, nextId } from "../listing.js";
 
 const ID = "(HE-[A-Z]\\d{3,})";
 const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availability, l.operation, l.sale_price, l.rent,
-  l.rent_period, l.premium, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by, l.featured_rank,
+  l.rent_period, l.premium, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by, l.featured_rank, l.home_order,
   COALESCE(l.cover_media_id, (SELECT m.id FROM media m WHERE m.listing_id = l.id AND m.kind = 'photo'
     AND m.r2_key IS NOT NULL ORDER BY m.position LIMIT 1)) AS cover_id,
   EXISTS (SELECT 1 FROM media m WHERE m.listing_id = l.id AND m.kind = 'photo' AND m.public = 1
@@ -82,6 +82,15 @@ async function update({ request, env, admin, params: [id] }) {
   return json({ listing: await loadListing(env, id) });
 }
 
+// Home page order from the panel's drag and drop. It is not a content edit, so updated_at is left alone (no false 409s).
+async function reorder({ request, env }) {
+  const ids = (await readJson(request))?.ids;
+  if (!Array.isArray(ids) || !ids.length || ids.length > 500 || new Set(ids).size !== ids.length
+    || !ids.every(id => typeof id === "string" && new RegExp(`^${ID}$`).test(id))) fail(400, "Send the listing ids in their new order");
+  await env.DB.batch(ids.map((id, i) => env.DB.prepare("UPDATE listings SET home_order = ? WHERE id = ?").bind(i + 1, id)));
+  return json({ ok: true });
+}
+
 async function setState({ env, admin, params: [id, action] }) {
   const l = await loadListing(env, id);
   if (action === "publish" && l.archived_at) fail(400, "Restore the listing before publishing it");
@@ -115,6 +124,7 @@ async function remove({ request, env, admin, params: [id] }) {
 export default [
   ["GET", /^\/admin\/listings$/, list, true],
   ["POST", /^\/admin\/listings$/, create, true],
+  ["PUT", /^\/admin\/listings\/order$/, reorder, true],
   ["GET", new RegExp(`^/admin/listings/${ID}$`), detail, true],
   ["PUT", new RegExp(`^/admin/listings/${ID}$`), update, true],
   ["DELETE", new RegExp(`^/admin/listings/${ID}$`), remove, true],

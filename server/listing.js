@@ -95,6 +95,6 @@ export function toPublic(l, media) {
     photos: photos.map(m => ({ src: src(m), thumb: src(m, true), alt: alt(m, l.title) })),
     floorplans: pub.filter(m => m.kind === "floorplan").map(m => ({ src: src(m), alt: alt(m, "Floor plan") })),
     aerial: aerial ? { src: src(aerial), alt: alt(aerial, "Aerial view") } : null,
-    tourUrl: l.tour_url, specs: JSON.parse(l.specs || "[]"), featured: l.featured_rank ?? null,
+    tourUrl: l.tour_url, specs: JSON.parse(l.specs || "[]"), featured: l.featured_rank ?? null, order: l.home_order ?? null,
   };
 }
