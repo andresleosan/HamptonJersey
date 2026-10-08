@@ -7,8 +7,8 @@ import { setUnsaved } from "./unsaved.js";
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "sale_price", "rent", "rent_period", "premium", "currency", "price_text", "summary", "description",
-  "tour_url", "featured_rank", "specs"];
-const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium", "featured_rank"]; // featured_rank: 1 = starred, blank = not
+  "tour_url", "specs"];
+const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium"];
 const toForm = l => Object.fromEntries(FIELDS.map(k => [k, k === "specs" ? l.specs : l[k] ?? ""]));
 const toBody = f => Object.fromEntries(FIELDS.map(k => [k,
   NUMERIC.includes(k) ? (f[k] === "" ? null : Number(f[k]))
@@ -108,10 +108,6 @@ export default function ListingEditor({ id }) {
         {field("road_name", "Road", <input {...ctl("road_name")} maxLength={200} />)}
         {field("bedrooms", "Bedrooms", <input {...ctl("bedrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
         {field("bathrooms", "Bathrooms", <input {...ctl("bathrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
-        <div className="field"><span className="lbl-like">Home page</span><label className="check">
-          <input id="f-featured_rank" type="checkbox" checked={form.featured_rank !== ""}
-            onChange={e => setForm(f => ({ ...f, featured_rank: e.target.checked ? 1 : "" }))} /> ★ Show in the Featured section</label>
-          {errors.featured_rank && <small className="err">{errors.featured_rank}</small>}</div>
       </div></section>
 
       <section id="s-price" className="card" aria-labelledby="h-price"><h2 id="h-price">Price</h2>

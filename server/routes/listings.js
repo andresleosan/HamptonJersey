@@ -91,6 +91,21 @@ async function reorder({ request, env }) {
   return json({ ok: true });
 }
 
+// Star for the home page's Featured section. Ranks stay 1..n in the order stars were given: a new star goes last,
+// removing one moves the later ones up. Like the order, it is not a content edit (updated_at untouched).
+async function setFeatured({ request, env, params: [id] }) {
+  const on = (await readJson(request))?.featured;
+  if (typeof on !== "boolean") fail(400, "Send featured: true or false");
+  const l = await loadListing(env, id);
+  if (on === (l.featured_rank != null)) return json({ ok: true });
+  if (on) await env.DB.prepare("UPDATE listings SET featured_rank = (SELECT COALESCE(MAX(featured_rank), 0) + 1 FROM listings) WHERE id = ?").bind(id).run();
+  else await env.DB.batch([
+    env.DB.prepare("UPDATE listings SET featured_rank = NULL WHERE id = ?").bind(id),
+    env.DB.prepare("UPDATE listings SET featured_rank = featured_rank - 1 WHERE featured_rank > ?").bind(l.featured_rank),
+  ]);
+  return json({ ok: true });
+}
+
 async function setState({ env, admin, params: [id, action] }) {
   const l = await loadListing(env, id);
   if (action === "publish" && l.archived_at) fail(400, "Restore the listing before publishing it");
@@ -129,4 +144,5 @@ export default [
   ["PUT", new RegExp(`^/admin/listings/${ID}$`), update, true],
   ["DELETE", new RegExp(`^/admin/listings/${ID}$`), remove, true],
   ["POST", new RegExp(`^/admin/listings/${ID}/(publish|unpublish|archive|restore)$`), setState, true],
+  ["PUT", new RegExp(`^/admin/listings/${ID}/featured$`), setFeatured, true],
 ];

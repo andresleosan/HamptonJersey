@@ -180,13 +180,9 @@ async function admin(browser) {
   await page.getByRole("button", {name: "Restore", exact: true}).click();
   await page.waitForSelector("text=Restored as a draft.");
 
-  // Featured: set in the panel, shown first and in the hero on the public site.
-  await page.goto(BASE + "admin/#/p/HE-R018");
-  await page.waitForSelector("#f-featured_rank");
-  await page.check("#f-featured_rank");
-  await page.getByRole("button", {name: "Save", exact: true}).click();
-  await page.waitForSelector("text=Changes saved.");
+  // Featured: the star in the table puts a listing in the home page's Featured section.
   await page.goto(BASE + "admin/#/");
+  await page.click('tr:has-text("HE-R018") .star');
   await page.waitForSelector('tr:has-text("HE-R018") .star[aria-pressed=true]');
   const fresh = async () => { const c = await browser.newContext(); const p = await c.newPage(); await p.goto(BASE); await p.waitForSelector("#grid .card"); return [c, p]; };
   let [hc, home] = await fresh();
@@ -202,7 +198,7 @@ async function admin(browser) {
   await page.waitForSelector('tr:has-text("HE-R003") .switch[aria-checked=false]');
   await page.click('tr:has-text("HE-R001") .star');
   await page.waitForSelector('tr:has-text("HE-R001") .star[aria-pressed=true]');
-  assert.equal(await page.textContent('tr:has-text("HE-R001") .star-no'), "1", "stars show their place in the Featured section");
+  assert.equal(await page.textContent('tr:has-text("HE-R001") .star-no'), "2", "a new star goes last in the Featured section");
   [hc, home] = await fresh();
   assert.equal(await home.$$eval(".feature", f => f.length), 2, "two stars, two Featured blocks");
   await hc.close();

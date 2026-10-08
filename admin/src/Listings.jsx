@@ -20,11 +20,11 @@ export default function Listings() {
     try { await api(`/admin/listings/${l.id}/${action}`, { method: "POST" }); setMsg({ ok: true, text: `${l.title}: ${done}` }); await load(); }
     catch (e) { setMsg({ text: e.message }); }
   };
-  // Star = shown in the Featured blocks of the home page (featured_rank set); order among stars is the usual list order.
+  // Star = shown in the home page's Featured section, in the order stars were given (a new star goes last).
   const star = async l => {
     setMsg(null);
     try {
-      await api(`/admin/listings/${l.id}`, { method: "PUT", body: { featured_rank: l.featured_rank == null ? 1 : null, updated_at: l.updated_at } });
+      await api(`/admin/listings/${l.id}/featured`, { method: "PUT", body: { featured: l.featured_rank == null } });
       setMsg({ ok: true, text: `${l.title}: ${l.featured_rank == null ? "now in the Featured section of the home page." : "removed from the Featured section."}` });
     } catch (e) { setMsg({ text: e.message }); }
     await load();
@@ -48,9 +48,9 @@ export default function Listings() {
     && (!region || regionOf(l.country) === region) && (!avail || l.availability === avail)
     && (!needle || `${l.id} ${l.title} ${l.location ?? ""}`.toLowerCase().includes(needle)))
     .sort((a, b) => (tab === "published" ? ((a.home_order ?? Infinity) - (b.home_order ?? Infinity) || 0) : 0) || a.id.localeCompare(b.id));
-  // Position of each starred listing in the home page's Featured section: published ones with a public photo, in home order.
+  // Position of each starred listing in the home page's Featured section: published ones with a public photo, in star order.
   const featNo = Object.fromEntries((rows || []).filter(l => stateOf(l) === "published" && l.has_public_photo && l.featured_rank != null)
-    .sort((a, b) => ((a.home_order ?? Infinity) - (b.home_order ?? Infinity) || 0) || a.id.localeCompare(b.id)).map((l, i) => [l.id, i + 1]));
+    .sort((a, b) => a.featured_rank - b.featured_rank).map((l, i) => [l.id, i + 1]));
   const canDrag = tab === "published" && !needle && !use && !region && !avail && shown.length > 1;
 
   return <section aria-labelledby="t-props">

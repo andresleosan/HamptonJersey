@@ -397,7 +397,7 @@ function home() {
   const feat = few ? PUB[0] : PUB.find(p => p.featured) || PUB.find(p => p.tourUrl || p.aerial) || PUB[0];
   // In showcase mode the hero already presents `feat`, so the Featured block shows the next featured listing.
   // The star in the panel (featured_rank) picks the Featured blocks; the hero carousel shows every published listing.
-  const spots = PUB.filter(p => p.featured);
+  const spots = PUB.filter(p => p.featured).sort((a, b) => a.featured - b.featured); // star order from the panel
   const featChips = p => [p.tourUrl && "3D tour", p.aerial && "Aerial view", p.floorplans.length && "Floor plans",
     p.operation === "sale" && p.salePrice != null && "Mortgage calculator", "Book with an agent"].filter(Boolean);
   const n = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;

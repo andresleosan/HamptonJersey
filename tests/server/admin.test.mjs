@@ -231,3 +231,20 @@ test("home order: set by id list, validated, leaves updated_at alone", async () 
     assert.equal((await put(bad)).status, 400);
   assert.equal((await call(env, "PUT", "/admin/listings/order", { body: { ids: ["HE-R001"] } })).status, 401, "admins only");
 });
+
+test("stars keep the order they were given; removing one moves the later ones up", async () => {
+  const { env, cookie } = await world();
+  seedListing(env, { id: "HE-R003", title: "Playa" });
+  const star = (id, featured) => call(env, "PUT", `/admin/listings/${id}/featured`, { cookie, body: { featured } });
+  const ranks = async () => Object.fromEntries((await call(env, "GET", "/admin/listings", { cookie })).data.listings.map(l => [l.id, l.featured_rank]));
+  for (const id of ["HE-R001", "HE-R003", "HE-R026"]) assert.equal((await star(id, true)).status, 200);
+  assert.deepEqual(await ranks(), { "HE-R001": 1, "HE-R003": 2, "HE-R026": 3 });
+  await star("HE-R003", false);
+  assert.deepEqual(await ranks(), { "HE-R001": 1, "HE-R003": null, "HE-R026": 2 });
+  await star("HE-R003", true);
+  assert.deepEqual(await ranks(), { "HE-R001": 1, "HE-R003": 3, "HE-R026": 2 }, "re-starred goes last");
+  await star("HE-R003", true);
+  assert.deepEqual(await ranks(), { "HE-R001": 1, "HE-R003": 3, "HE-R026": 2 }, "starring twice changes nothing");
+  assert.equal((await star("HE-R001", "yes")).status, 400);
+  assert.equal((await call(env, "PUT", "/admin/listings/HE-R001/featured", { body: { featured: false } })).status, 401);
+});
