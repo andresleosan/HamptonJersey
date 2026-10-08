@@ -26,6 +26,9 @@ AVAIL = {"available": None, "for sale": "for_sale", "new instruction": "for_sale
          "let": "withdrawn", "sold": "sold"}
 COMMERCIAL_TYPES = {"parking", "retail unit", "retail / commercial units"}
 COUNTRY = {"hunts-estates-68": "Barbados", "hunts-estates-1459399": "France"}
+# Only GBP/EUR are stored: the USD price is shown in pounds at GBP/USD 1.3199 (8 Oct 2026, Trading Economics).
+PRICE = {"hunts-estates-68": {"currency": "GBP", "sale_price": 3410000.0,
+                              "price_text": "Approx. £3,410,000 (US$4,500,000)"}}
 TENURE = {"freehold": "Freehold", "flying freehold": "Flying Freehold", "share transfer": "Share Transfer"}
 # Agencies, their staff and contact details are not repeated on Hampton's listings.
 NAMED = re.compile(r"Columbia Estates|Hunts? Estates|huntestates|Gill Hunt|Steven Hunt|David Voak|Red Properties|"
@@ -93,6 +96,7 @@ def map_listing(p, lid, ts):
         "currency": p.get("currency") if p.get("currency") in ("GBP", "EUR") else None,
         "price_text": cap(p.get("priceText"), 200), "summary": cap(scrub_lines(p.get("summary")), 5000),
         "description": cap(scrub_text(p.get("description")), 20000), "specs": json.dumps(specs),
+        **PRICE.get(p["record_key"], {}),
         "published": 0, "archived_at": ts, "created_at": ts, "updated_at": ts, "updated_by": "import",
     }
 
@@ -119,6 +123,9 @@ def main():
     ids_file = os.path.join(a.out, "ids.json")
     ids = json.load(open(ids_file)) if os.path.exists(ids_file) else {}
     taken |= set(ids.values())
+    # Optional hand-edited copy, {listing id: description}, from <out>/rewrite/out-*.json.
+    rewrites = {k: v for f in sorted(glob.glob(os.path.join(a.out, "rewrite", "out-*.json")))
+                for k, v in json.load(open(f)).items()}
     sql, uploads, n_media, problems = [], [], 0, []
 
     for pj in sorted(glob.glob(os.path.join(a.src, "*", "properties.json"))):
@@ -137,6 +144,7 @@ def main():
                 taken.add(ids[key])
             lid = ids[key]
             draft["id"] = lid
+            draft["description"] = cap(rewrites.get(lid, draft["description"]), 20000)
             media = []
             for pos, img in enumerate(sorted(p["images"], key=lambda i: i["sequence"])):
                 name = next((m for m in (img["relative_path"], img["relative_path"].removeprefix("images/"))
