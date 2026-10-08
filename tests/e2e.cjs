@@ -202,6 +202,7 @@ async function admin(browser) {
   await page.waitForSelector('tr:has-text("HE-R003") .switch[aria-checked=false]');
   await page.click('tr:has-text("HE-R001") .star');
   await page.waitForSelector('tr:has-text("HE-R001") .star[aria-pressed=true]');
+  assert.equal(await page.textContent('tr:has-text("HE-R001") .star-no'), "1", "stars show their place in the Featured section");
   [hc, home] = await fresh();
   assert.equal(await home.$$eval(".feature", f => f.length), 2, "two stars, two Featured blocks");
   await hc.close();

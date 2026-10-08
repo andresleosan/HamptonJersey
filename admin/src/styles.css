@@ -118,3 +118,5 @@ table.list{width:100%;border-collapse:collapse;background:var(--paper);border:1p
 .nudge:disabled{opacity:.3;cursor:not-allowed}
 .nudge:focus-visible{outline:2px solid var(--bronze)}
 @media (max-width:760px){.list td.order{grid-row:auto;grid-column:1/-1}.list td.order+td{grid-row:span 6}}
+.star{position:relative}
+.star-no{font:700 10px/1 var(--body);color:var(--bronze);margin-left:1px;vertical-align:top}

@@ -48,6 +48,9 @@ export default function Listings() {
     && (!region || regionOf(l.country) === region) && (!avail || l.availability === avail)
     && (!needle || `${l.id} ${l.title} ${l.location ?? ""}`.toLowerCase().includes(needle)))
     .sort((a, b) => (tab === "published" ? ((a.home_order ?? Infinity) - (b.home_order ?? Infinity) || 0) : 0) || a.id.localeCompare(b.id));
+  // Position of each starred listing in the home page's Featured section: published ones with a public photo, in home order.
+  const featNo = Object.fromEntries((rows || []).filter(l => stateOf(l) === "published" && l.has_public_photo && l.featured_rank != null)
+    .sort((a, b) => ((a.home_order ?? Infinity) - (b.home_order ?? Infinity) || 0) || a.id.localeCompare(b.id)).map((l, i) => [l.id, i + 1]));
   const canDrag = tab === "published" && !needle && !use && !region && !avail && shown.length > 1;
 
   return <section aria-labelledby="t-props">
@@ -83,7 +86,8 @@ export default function Listings() {
         <td>{l.cover_id ? <img className="thumb" src={`/media/${l.cover_id}?thumb`} alt="" loading="lazy" /> : <span className="thumb" />}</td>
         <td><div className="title-cell"><button type="button" className="star" aria-pressed={l.featured_rank != null} disabled={stateOf(l) === "archived"}
           title={l.featured_rank != null ? "In the Featured section of the home page. Click to remove." : "Click to show in the Featured section of the home page."}
-          aria-label={`Featured on the home page: ${l.title}`} onClick={() => star(l)}>{l.featured_rank != null ? "★" : "☆"}</button>
+          aria-label={`Featured on the home page: ${l.title}${featNo[l.id] ? `, number ${featNo[l.id]}` : ""}`} onClick={() => star(l)}>{l.featured_rank != null ? "★" : "☆"}
+          {featNo[l.id] && <sup className="star-no" aria-hidden="true">{featNo[l.id]}</sup>}</button>
           <div><a href={`#/p/${l.id}`}>{l.title}</a><div className="muted">{l.id} · {OPERATION[l.operation]}</div></div></div></td>
         <td>{l.location || l.country || "—"}</td>
         <td className="num">{priceText(l)}</td>
