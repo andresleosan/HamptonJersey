@@ -159,9 +159,9 @@ test("the value fits the contacts and applicants tables as they are", () => {
   const applicantCols = env.DB.raw.prepare("SELECT name FROM pragma_table_info('applicants')").all().map(r => r.name);
   const routeSet = ["id", "last_activity_at", "created_at", "updated_at", "updated_by"];
   assert.deepEqual(Object.keys(contact).sort(), contactCols.filter(c => !routeSet.includes(c)).sort());
-  // stage (DEFAULT 'new'), lost_reason and assigned_to belong to the workflow, not to the registration.
-  assert.deepEqual(Object.keys(applicant).sort(), applicantCols
-    .filter(c => ![...routeSet, "contact_id", "archived_at", "stage", "lost_reason", "assigned_to"].includes(c)).sort());
+  // stage (DEFAULT 'new'), lost_reason, assigned_to and first_reviewed_at belong to the workflow, not to the registration.
+  assert.deepEqual(Object.keys(applicant).sort(), applicantCols.filter(c =>
+    ![...routeSet, "contact_id", "archived_at", "stage", "lost_reason", "assigned_to", "first_reviewed_at"].includes(c)).sort());
   const { lastInsertRowid } = insert("contacts", { ...contact, last_activity_at: T0, created_at: T0, updated_at: T0 });
   insert("applicants", { ...applicant, contact_id: Number(lastInsertRowid), created_at: T0, updated_at: T0 });
   assert.equal(env.DB.raw.prepare("SELECT stage FROM applicants").get().stage, "new");
