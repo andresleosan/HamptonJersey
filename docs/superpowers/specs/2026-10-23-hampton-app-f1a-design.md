@@ -118,7 +118,7 @@ La fórmula exacta y sus pesos viven en un solo sitio con su prueba.
 - `PUT /admin/matches/:id {status, reject_reason?}`: revisa la coincidencia, escribe `match.reviewed` y cierra el aviso `matched` si ya no quedan `found`.
 - `GET /admin/review?after=<id>`: la siguiente coincidencia `found` en el orden de la cola, con el aplicante y la ficha.
 - `GET /admin/listings/:id` añade `matched_applicants`; `PUT /admin/listings/:id` acepta `parish` y recalcula.
-- Las altas y cambios de aplicante (panel y `POST /api/applicants`) y los cambios de ficha recalculan en la misma petición, después de guardar.
+- Las altas y cambios de aplicante desde el panel y los cambios de ficha recalculan en la misma petición, después de guardar. El alta pública (`POST /api/applicants`) recalcula con `waitUntil`, después de responder, para que una alta nueva y una duplicada tarden lo mismo (revisión de seguridad, 23-oct).
 
 ## 7. Despliegue
 
