@@ -1,6 +1,6 @@
 import { json, fail, readJson, now } from "../http.js";
 import { toPublic } from "../listing.js";
-import { validateViewing, jerseyToday } from "../viewings.js";
+import { validateViewing, jerseyToday, addMinutes, SLOT_MINUTES } from "../viewings.js";
 import { verifyTurnstile } from "../turnstile.js";
 import { logEvent } from "../events.js";
 import { validateApplicant, OPTIONS } from "../applicants.js";
@@ -23,7 +23,7 @@ const config = ({ env }) => json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY }, 2
 async function createViewing({ request, env }) {
   const body = await readJson(request);
   // Cheap checks first: the single-use Turnstile token is only spent on an otherwise valid request.
-  const r = validateViewing(body, jerseyToday());
+  const r = validateViewing(body, { today: jerseyToday() });
   if (r.errors) return json({ error: "Please check the highlighted fields.", fields: r.errors }, 400);
   const v = r.value;
   const listing = v.listing_id && await env.DB.prepare(
@@ -32,9 +32,12 @@ async function createViewing({ request, env }) {
   if (!(await verifyTurnstile(body.turnstile, env.TURNSTILE_SECRET, request.headers.get("cf-connecting-ip"), new URL(request.url).hostname)))
     fail(400, "The anti-spam check expired or failed. Please try again.");
   await env.DB.batch([
-    env.DB.prepare(`INSERT INTO viewing_requests (listing_id, listing_ref, listing_title_snapshot, agent, kind, date, time,
-        name, email, phone, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
-      .bind(v.listing_id, v.listing_id, listing ? listing.title : null, v.agent, v.kind, v.date, v.time, v.name, v.email, v.phone, now()),
+    // agent keeps the negotiator's name, as the text column the panel shows today.
+    env.DB.prepare(`INSERT INTO viewing_requests (listing_id, listing_ref, listing_title_snapshot, negotiator_id, agent, kind,
+        date, time, end_time, name, email, phone, created_at)
+        VALUES (?,?,?,?,(SELECT name FROM negotiators WHERE id = ?),?,?,?,?,?,?,?,?)`)
+      .bind(v.listing_id, v.listing_id, listing ? listing.title : null, v.negotiator_id, v.negotiator_id, v.kind, v.date, v.time,
+        addMinutes(v.time, SLOT_MINUTES), v.name, v.email, v.phone, now()),
     // Personal data stays in the request row; the event only says what was asked for.
     ...logEvent(env, { actor: "public", entity_type: "viewing", entity_id: null, type: "viewing.requested",
       data: { listing_id: v.listing_id, date: v.date, time: v.time, kind: v.kind } },

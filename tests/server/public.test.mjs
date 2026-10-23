@@ -8,7 +8,7 @@ import { verifyTurnstile } from "../../server/turnstile.js";
 const turnstile = ok => { globalThis.fetch = async () => new Response(JSON.stringify({ success: ok, hostname: "hampton.test" })); };
 const nextWeekday = () => { const d = new Date(Date.now() + 2 * 864e5); if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
 const nextSunday = () => { const d = new Date(Date.now() + 864e5); while (d.getUTCDay() !== 0) d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
-const booking = (o = {}) => ({ listing_id: "HE-R001", agent: "Gilberto Franco", kind: "In person", date: nextWeekday(),
+const booking = (o = {}) => ({ listing_id: "HE-R001", negotiator_id: 1, kind: "In person", date: nextWeekday(),
   time: "11:30", name: "Jane Le Brocq", email: "Jane@Example.je", phone: "", turnstile: "tok", ...o });
 
 function world() {
@@ -53,12 +53,17 @@ test("media: public photo is cacheable; private or draft media are 404 without a
 
 test("POST /viewings stores a valid request", async () => {
   const env = world(); turnstile(true);
-  const r = await call(env, "POST", "/viewings", { body: booking() });
+  const r = await call(env, "POST", "/viewings", { body: booking({ agent: "Someone else" }) });
   assert.equal(r.status, 201);
   const row = await env.DB.prepare("SELECT * FROM viewing_requests").first();
   assert.equal(row.email, "jane@example.je");
   assert.equal(row.status, "requested");
   assert.equal(row.phone, null);
+  // The negotiator comes from negotiator_id, never from a free-text agent; the viewing ends SLOT_MINUTES later.
+  assert.equal(row.negotiator_id, 1);
+  assert.equal(row.agent, "Gilberto Franco");
+  assert.equal(row.time, "11:30");
+  assert.equal(row.end_time, "12:00");
 });
 
 test("POST /viewings rejects failed Turnstile, Sundays, past dates, bad email and draft listings", async () => {
@@ -70,7 +75,7 @@ test("POST /viewings rejects failed Turnstile, Sundays, past dates, bad email an
   assert.ok((await call(env, "POST", "/viewings", { body: booking({ date: "2020-01-01" }) })).data.fields.date);
   assert.ok((await call(env, "POST", "/viewings", { body: booking({ date: "2026-02-30" }) })).data.fields.date);
   assert.ok((await call(env, "POST", "/viewings", { body: booking({ email: "nope" }) })).data.fields.email);
-  assert.ok((await call(env, "POST", "/viewings", { body: booking({ time: "03:00" }) })).data.fields.time);
+  assert.ok((await call(env, "POST", "/viewings", { body: booking({ time: "3pm" }) })).data.fields.time);
   assert.equal((await call(env, "POST", "/viewings", { body: booking({ listing_id: "HE-R002" }) })).status, 400);
   assert.equal((await call(env, "POST", "/viewings", { body: booking({ listing_id: null }) })).status, 201);
   assert.equal((await env.DB.prepare("SELECT COUNT(*) n FROM viewing_requests").first()).n, 1);

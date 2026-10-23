@@ -185,7 +185,7 @@ test("a viewing request keeps its property reference after that listing is delet
   const { env, cookie } = await world();
   globalThis.fetch = async () => new Response(JSON.stringify({ success: true, hostname: "hampton.test" }));
   const d = new Date(Date.now() + 2 * 864e5); if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1);
-  assert.equal((await call(env, "POST", "/viewings", { body: { listing_id: "HE-R001", kind: "In person", date: d.toISOString().slice(0, 10),
+  assert.equal((await call(env, "POST", "/viewings", { body: { listing_id: "HE-R001", negotiator_id: 2, kind: "In person", date: d.toISOString().slice(0, 10),
     time: "10:00", name: "Jane", email: "j@x.je", turnstile: "t" } })).status, 201);
   await call(env, "POST", "/admin/listings/HE-R001/archive", { cookie });
   assert.equal((await call(env, "DELETE", "/admin/listings/HE-R001", { cookie, body: { confirm: "HE-R001" } })).status, 200);
