@@ -2,8 +2,9 @@
 ALTER TABLE admins ADD COLUMN name TEXT;
 
 -- One person: at least an email or an international phone, each unique, plus consent and last activity (retention clock).
+-- AUTOINCREMENT (here and in applicants): a permanently deleted id is never reused, so its history never attaches to someone new.
 CREATE TABLE contacts (
-  id INTEGER PRIMARY KEY,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 120),
   email TEXT CHECK (email = lower(email) AND email <> '' AND email NOT GLOB '*[ ]*'),
   phone TEXT CHECK (phone GLOB '+[1-9]*' AND substr(phone, 2) NOT GLOB '*[^0-9]*'),
@@ -20,7 +21,7 @@ CREATE UNIQUE INDEX contacts_phone ON contacts(phone) WHERE phone IS NOT NULL;
 
 -- One search by a contact (to let or to buy); budgets in GBP, per month when renting. JSON lists are checked by the app.
 CREATE TABLE applicants (
-  id INTEGER PRIMARY KEY,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
   contact_id INTEGER NOT NULL REFERENCES contacts(id),
   operation TEXT NOT NULL CHECK (operation IN ('rent','buy')),
   stage TEXT NOT NULL DEFAULT 'new' CHECK (stage IN ('new','searching','viewing','offer','agreed','completed','paused','lost')),

@@ -447,6 +447,19 @@ test("permanent delete only from Archived, with the exact name, and wipes person
   assert.equal((await req(env, "GET", "/admin/notifications?box=feed")).status, 200, "the Inbox still reads the wiped events");
 });
 
+test("a permanently deleted search or contact never lends its id, or its history, to a new one", async () => {
+  const env = makeEnv();
+  const id = await create(env);
+  const contactId = row(env, "SELECT contact_id FROM applicants WHERE id = ?", id).contact_id;
+  assert.equal((await req(env, "POST", `/admin/applicants/${id}/archive`)).status, 200);
+  assert.equal((await req(env, "DELETE", `/admin/applicants/${id}`, { confirm: "Jane Le Brocq" })).status, 200);
+  const next = await create(env, { name: "Tom Vibert", email: "tom@example.je", phone: "07797 654321" });
+  assert.notEqual(next, id);
+  const d = await detail(env, next);
+  assert.notEqual(d.contact.id, contactId);
+  assert.deepEqual(d.events.map(e => e.type), ["applicant.created"], "only the new search's own history");
+});
+
 test("deleting one of two searches keeps the contact and its own history", async () => {
   const env = makeEnv();
   const first = await create(env);

@@ -182,10 +182,14 @@ export default function ApplicantDetail({ id, tab }) {
     } catch (e) { setNote({ text: e.message, stale: stale(e) }); }
     finally { setBusy(false); }
   };
+  // The strip goes away: the focus goes to the next strip's heading (the one before when it was the last), or the
+  // record's current tab when none is left. Those elements stay mounted, so they can take the focus at once.
   const dismiss = async dup => {
     setNote(null);
     try {
       await api(`/admin/notifications/${dup.id}`, { method: "PUT", body: { resolved: true } });
+      const list = data.duplicates, i = list.findIndex(x => x.id === dup.id), next = list[i + 1] ?? list[i - 1];
+      (next ? document.getElementById(`dup-${next.id}`) : tabs.current[cur])?.focus();
       setData(d => ({ ...d, duplicates: d.duplicates.filter(x => x.id !== dup.id) }));
       setNote({ ok: true, text: "Dismissed. The notice is in the Inbox Feed." });
     } catch (e) { setNote({ text: e.message }); }
