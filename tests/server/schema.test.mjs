@@ -190,3 +190,111 @@ test("0009: notifications rebuilt keep rows, indexes and accept matched", () => 
   assert.deepEqual(indexes, ["notifications_created", "notifications_event", "notifications_open"]);
   assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name = 'notifications_new'").get().n, 0);
 });
+
+const HOURS = '{"mon":["10:00","17:30"],"tue":["10:00","17:30"],"wed":["10:00","17:30"],"thu":["10:00","17:30"],' +
+  '"fri":["10:00","17:30"],"sat":["10:00","13:00"],"sun":null}';
+const OLD_COLS = "id, listing_id, agent, kind, date, time, name, email, phone, status, created_at, updated_at, updated_by, " +
+  "listing_ref, listing_title_snapshot, notes";
+
+test("0010: viewing requests keep ids and data and map their status", () => {
+  const { db, apply } = migratedUpTo("0010");
+  addRow(db, "listings", { id: "HE-R001", use: "residential", title: "Le Bernage", operation: "sale",
+    availability: "for_sale", created_at: T0, updated_at: T0 });
+  const viewing = (id, status, date, agent, over = {}) => addRow(db, "viewing_requests", { id, listing_id: null,
+    agent, kind: "In person", date, time: "11:30", name: `Person ${id}`, email: `p${id}@example.je`, status,
+    created_at: T0, ...over });
+  viewing(3, "new", "2026-11-02", "Joshua Franco", { listing_id: "HE-R001", listing_ref: "HE-R001",
+    listing_title_snapshot: "Le Bernage", phone: "07797 123456", notes: "Wants Saturday" });
+  viewing(5, "contacted", "2026-11-03", "Gilberto Franco", { updated_at: T0, updated_by: "luismadef45@gmail.com" });
+  viewing(8, "closed", "2020-01-06", "Joshua Franco", { time: "17:00" });
+  viewing(9, "closed", "2099-01-05", null);
+  viewing(12, "new", "2026-11-04", "Someone else", { time: "10:00" });
+  // A deleted request keeps its id retired: its events still name it.
+  viewing(15, "new", "2026-11-05", null);
+  db.prepare("DELETE FROM viewing_requests WHERE id = 15").run();
+  const before = db.prepare(`SELECT ${OLD_COLS} FROM viewing_requests ORDER BY id`).all();
+  apply();
+
+  const after = db.prepare(`SELECT ${OLD_COLS} FROM viewing_requests ORDER BY id`).all().map(r => ({ ...r }));
+  const status = { 3: "requested", 5: "confirmed", 8: "completed", 9: "cancelled", 12: "requested" };
+  assert.deepEqual(after, before.map(r => ({ ...r, status: status[r.id] })));
+  const nego = Object.fromEntries(db.prepare("SELECT name, id FROM negotiators").all().map(r => [r.name, r.id]));
+  const added = db.prepare("SELECT id, negotiator_id, end_time, outcome, outcome_note FROM viewing_requests ORDER BY id").all();
+  assert.deepEqual(added.map(r => ({ ...r })), [
+    { id: 3, negotiator_id: nego["Joshua Franco"], end_time: "12:00", outcome: null, outcome_note: null },
+    { id: 5, negotiator_id: nego["Gilberto Franco"], end_time: "12:00", outcome: null, outcome_note: null },
+    { id: 8, negotiator_id: nego["Joshua Franco"], end_time: "17:30", outcome: null, outcome_note: null },
+    { id: 9, negotiator_id: null, end_time: "12:00", outcome: null, outcome_note: null },
+    { id: 12, negotiator_id: null, end_time: "10:30", outcome: null, outcome_note: null },
+  ]);
+  const id = Number(addRow(db, "viewing_requests", { kind: "In person", date: "2026-11-06", time: "10:00",
+    name: "New", email: "n@example.je", created_at: T0 }).lastInsertRowid);
+  assert.equal(id, 16);
+  assert.equal(db.prepare("SELECT status FROM viewing_requests WHERE id = ?").get(id).status, "requested");
+  assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name = 'viewing_requests_new'").get().n, 0);
+});
+
+test("0010: a database with no viewing requests migrates too", () => {
+  const { db, apply } = migratedUpTo("0010");
+  apply();
+  assert.equal(Number(addRow(db, "viewing_requests", { kind: "In person", date: "2026-11-06", time: "10:00",
+    name: "New", email: "n@example.je", created_at: T0 }).lastInsertRowid), 1);
+});
+
+test("0010: negotiators are seeded and exceptions enforce their CHECKs", () => {
+  const db = makeEnv().DB.raw;
+  const seeded = db.prepare("SELECT id, name, role, active, hours, created_at, updated_at, updated_by FROM negotiators ORDER BY id").all();
+  assert.deepEqual(seeded.map(({ name, role, active, hours, updated_by }) => ({ name, role, active, hours, updated_by })), [
+    { name: "Gilberto Franco", role: "Managing Director", active: 1, hours: HOURS, updated_by: "setup" },
+    { name: "Joshua Franco", role: "Negotiator", active: 1, hours: HOURS, updated_by: "setup" },
+  ]);
+  assert.ok(seeded.every(n => n.created_at && n.updated_at));
+  const negotiator = over => addRow(db, "negotiators", { name: "Jane", hours: HOURS, created_at: T0, updated_at: T0, ...over });
+  assert.throws(() => negotiator({ name: "Joshua Franco" }), /UNIQUE/);
+  for (const over of [{ name: "" }, { name: "x".repeat(81) }, { role: "x".repeat(81) }, { active: 2 }])
+    assert.throws(() => negotiator(over), /CHECK/, JSON.stringify(over));
+  assert.throws(() => negotiator({ hours: null }), /NOT NULL/);
+
+  const [{ id }] = seeded;
+  const exception = over => addRow(db, "negotiator_exceptions", { negotiator_id: id, date: "2026-11-02", kind: "block",
+    created_at: T0, ...over });
+  exception({});
+  exception({ start_time: "12:00", end_time: "13:00", note: "Dentist" });
+  exception({ kind: "open", start_time: "14:00", end_time: "17:00" });
+  const bad = [{ kind: "open" }, { start_time: "12:00", end_time: "12:00" }, { start_time: "13:00", end_time: "12:00" },
+    { start_time: "12:00" }, { end_time: "12:00" }, { kind: "holiday" }, { note: "x".repeat(201) }];
+  for (const over of bad) assert.throws(() => exception(over), /CHECK/, JSON.stringify(over));
+  assert.throws(() => exception({ negotiator_id: 999 }), /FOREIGN KEY/);
+  db.prepare("DELETE FROM negotiators WHERE id = ?").run(id);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM negotiator_exceptions").get().n, 0);
+});
+
+test("0010: viewing requests refuse bad status, outcome outside completed and no contact", () => {
+  const db = makeEnv().DB.raw;
+  const negotiatorId = db.prepare("SELECT id FROM negotiators WHERE name = 'Joshua Franco'").get().id;
+  const viewing = over => addRow(db, "viewing_requests", { kind: "In person", date: "2026-11-02", time: "10:00",
+    end_time: "10:30", negotiator_id: negotiatorId, name: "Jane", email: "j@example.je", created_at: T0, ...over });
+  for (const status of ["requested", "confirmed", "no_show", "cancelled"]) viewing({ status });
+  for (const outcome of ["proceed", "more_info", "not_interested"])
+    viewing({ status: "completed", outcome, outcome_note: "x".repeat(500) });
+  viewing({ email: null, phone: "+447797123456" });
+  const bad = [{ status: "new" }, { status: "contacted" }, { status: "closed" }, { status: "confirmed", outcome: "proceed" },
+    { status: "completed", outcome: "maybe" }, { status: "completed", outcome: "proceed", outcome_note: "x".repeat(501) },
+    { email: null, phone: null }];
+  for (const over of bad) assert.throws(() => viewing(over), /CHECK/, JSON.stringify(over));
+  assert.throws(() => viewing({ negotiator_id: 999 }), /FOREIGN KEY/);
+  db.prepare("DELETE FROM negotiators WHERE id = ?").run(negotiatorId);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM viewing_requests WHERE negotiator_id IS NOT NULL").get().n, 0);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM viewing_requests").get().n, 8);
+});
+
+test("0010: viewing indexes exist", () => {
+  const db = makeEnv().DB.raw;
+  const names = table => db.prepare(`PRAGMA index_list(${table})`).all().map(r => r.name).sort();
+  assert.deepEqual(names("viewing_requests"), ["viewing_negotiator_day", "viewing_status"]);
+  assert.ok(names("negotiator_exceptions").includes("negotiator_exceptions_day"));
+  const cols = index => db.prepare(`PRAGMA index_info(${index})`).all().map(r => r.name);
+  assert.deepEqual(cols("viewing_status"), ["status", "created_at"]);
+  assert.deepEqual(cols("viewing_negotiator_day"), ["negotiator_id", "date"]);
+  assert.deepEqual(cols("negotiator_exceptions_day"), ["negotiator_id", "date"]);
+});

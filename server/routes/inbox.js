@@ -1,7 +1,7 @@
 import { json, fail, readJson, now } from "../http.js";
 import { resolveNotices } from "../events.js";
 
-const STATUSES = ["new", "contacted", "closed"];
+const STATUSES = ["requested", "confirmed", "completed", "no_show", "cancelled"];
 
 async function list({ request, env }) {
   const status = new URL(request.url).searchParams.get("status");
@@ -29,8 +29,8 @@ async function update({ request, env, admin, params: [id] }) {
   const [r] = await env.DB.batch([
     env.DB.prepare(`UPDATE viewing_requests SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ? WHERE id = ?`)
       .bind(...cols.map(c => patch[c]), now(), admin, Number(id)),
-    // Leaving 'new' means someone has picked it up: its Inbox notice is done.
-    ...(patch.status && patch.status !== "new"
+    // Leaving 'requested' means someone has picked it up: its Inbox notice is done.
+    ...(patch.status && patch.status !== "requested"
       ? [resolveNotices(env, { entity_type: "viewing", entity_id: String(Number(id)), category: "viewing" }, admin)] : []),
   ]);
   if (!r.meta.changes) fail(404, "Request not found");

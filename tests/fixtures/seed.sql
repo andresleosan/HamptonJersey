@@ -76,8 +76,8 @@ INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, b
 (3,3,'rent','searching','email','luismadef45@gmail.com',1500,2300,'["flat"]',2,0,'["balcony"]','yes','[{"kind":"none"}]',
  '["St Helier"]','["St Ouen"]','2026-11-15',12,'licensed',1,0,'2026-10-22T11:00:00.000Z','2026-10-22T11:00:00.000Z',
  'luismadef45@gmail.com');
-INSERT INTO viewing_requests (id, listing_id, listing_ref, listing_title_snapshot, agent, kind, date, time, name, email, phone, status, created_at) VALUES
-(1,'HE-R001','HE-R001','Le Bernage',NULL,'In person','2026-10-28','10:00','Tom Renouf','tom.renouf@example.je','07700 900321','new','2026-10-22T14:00:00.000Z');
+INSERT INTO viewing_requests (id, listing_id, listing_ref, listing_title_snapshot, agent, negotiator_id, kind, date, time, end_time, name, email, phone, status, created_at) VALUES
+(1,'HE-R001','HE-R001','Le Bernage','Joshua Franco',(SELECT id FROM negotiators WHERE name = 'Joshua Franco'),'In person','2026-10-28','10:00','10:30','Tom Renouf','tom.renouf@example.je','07700 900321','requested','2026-10-22T14:00:00.000Z');
 INSERT INTO events (id, at, actor, entity_type, entity_id, type, data) VALUES
 (1,'2026-10-20T09:00:00.000Z','public','applicant','1','applicant.created','{"operation":"rent","source":"web"}'),
 (2,'2026-10-21T10:00:00.000Z','luismadef45@gmail.com','applicant','2','applicant.created','{"operation":"buy","source":"phone"}'),

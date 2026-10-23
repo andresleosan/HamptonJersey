@@ -57,7 +57,7 @@ test("POST /viewings stores a valid request", async () => {
   assert.equal(r.status, 201);
   const row = await env.DB.prepare("SELECT * FROM viewing_requests").first();
   assert.equal(row.email, "jane@example.je");
-  assert.equal(row.status, "new");
+  assert.equal(row.status, "requested");
   assert.equal(row.phone, null);
 });
 
