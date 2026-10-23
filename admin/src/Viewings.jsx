@@ -107,7 +107,13 @@ export default function Viewings({ listing }) {
   const booked = async (id, text) => {
     setCreating(false);
     // Unsaved notes on the open viewing stay unless the person lets them go; the booking is in Upcoming either way.
-    if (tab !== "upcoming" && !leaveDetail()) { setMsg({ ok: true, text: `${text} It's in Upcoming.` }); return; }
+    // Kept: the open viewing stays (a reload keeps it selected) and the list and counters take in the booking.
+    if (!leaveDetail()) {
+      await load();
+      setMsg({ ok: true, text: `${text} It's in Upcoming.` });
+      requestAnimationFrame(() => newBtn.current?.focus());
+      return;
+    }
     pinned.current = null; setTab("upcoming"); setData(null); setSel(id); setLoadErr(null);
     const d = await load("upcoming");
     if (d && stillThere(d, id)) { setSel(id); setFocusTo({ to: "detail" }); } else setFocusTo({ to: "heading" });
