@@ -4,6 +4,7 @@ import { validateViewing, jerseyToday } from "../viewings.js";
 import { verifyTurnstile } from "../turnstile.js";
 import { logEvent } from "../events.js";
 import { validateApplicant, OPTIONS } from "../applicants.js";
+import { afterSave, recomputeForApplicant } from "../match-store.js";
 
 export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
 
@@ -64,7 +65,12 @@ async function createApplicant({ request, env }) {
     .bind(contact.email, contact.phone).all().then(x => x.results);
   let matches = await found();
   if (!matches.length) {
-    try { await env.DB.batch(newApplicant(env, contact, applicant, ts)); return json({ ok: true }, 201); } catch (e) {
+    try {
+      const results = await env.DB.batch(newApplicant(env, contact, applicant, ts));
+      // Only a new search is matched (afterSave never throws): a duplicate leaves the contact's searches as they are.
+      await afterSave(recomputeForApplicant, env, results[1].meta.last_row_id, "public");
+      return json({ ok: true }, 201);
+    } catch (e) {
       // The same person sent the form twice at once: the other request created the contact.
       if (!/UNIQUE/i.test(String(e?.message))) throw e;
       matches = await found();

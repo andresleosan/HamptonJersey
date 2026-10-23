@@ -1,4 +1,5 @@
 import { isPublicMedia } from "./visibility.js";
+import { OPTIONS } from "./applicants.js";
 
 export const ENUMS = {
   use: ["residential", "commercial"],
@@ -6,13 +7,15 @@ export const ENUMS = {
   availability: ["for_sale", "under_offer", "sold", "to_let", "lease", "not_stated", "withdrawn"],
   rent_period: ["month", "year"],
   currency: ["GBP", "EUR"],
+  parish: OPTIONS.parishes.map(([p]) => p), // blank = unknown
 };
 const TEXT = { title: 200, property_type: 100, country: 100, location: 200, road_name: 200, tenure: 100,
   price_text: 200, summary: 5000, description: 20000, tour_url: 500 };
 const INTS = ["bedrooms", "bathrooms"];
 const MONEY = ["sale_price", "rent", "premium"];
 const REQUIRED = ["title", "use", "operation", "availability"];
-export const EDITABLE = [...Object.keys(ENUMS), ...Object.keys(TEXT), ...INTS, ...MONEY, "featured_rank", "specs"];
+// matchable: whether the listing is offered to applicants (B9).
+export const EDITABLE = [...Object.keys(ENUMS), ...Object.keys(TEXT), ...INTS, ...MONEY, "featured_rank", "specs", "matchable"];
 
 const blank = v => v === null || v === undefined || (typeof v === "string" && v.trim() === "");
 const bad = msg => { throw new Error(msg); };
@@ -28,6 +31,7 @@ function checkSpecs(v) {
 }
 
 function check(k, v) {
+  if (k === "matchable") return v === 0 || v === 1 ? v : bad("0 or 1");
   if (blank(v)) return REQUIRED.includes(k) ? bad("Required") : k === "specs" ? "[]" : null;
   if (k in ENUMS) return ENUMS[k].includes(v) ? v : bad(`Invalid value (${ENUMS[k].join(", ")})`);
   if (k in TEXT) {

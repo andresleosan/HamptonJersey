@@ -1,6 +1,7 @@
 import { json, fail, readJson, now } from "../http.js";
 import { validateApplicant, normalizePhone, OPTIONS, activeSql } from "../applicants.js";
 import { logEvent, resolveNotices } from "../events.js";
+import { afterSave, recomputeForApplicant } from "../match-store.js";
 
 const STAGES = OPTIONS.stages.map(([v]) => v);
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
@@ -164,7 +165,9 @@ async function create({ request, env, admin }) {
     if (c) return taken(c);
     throw e;
   }
-  return json({ id: results[contact ? 0 : 1].meta.last_row_id }, 201);
+  const newId = results[contact ? 0 : 1].meta.last_row_id;
+  await afterSave(recomputeForApplicant, env, newId, admin);
+  return json({ id: newId }, 201);
 }
 
 async function update({ request, env, admin, params: [id] }) {
@@ -221,6 +224,7 @@ async function update({ request, env, admin, params: [id] }) {
     ...((keys.includes("assigned_to") && assigned_to) || leftNew
       ? [resolveNotices(env, { entity_type: "applicant", entity_id: String(cur.id), category: "new_applicant" }, admin)] : []),
   ], "applicant", cur.id, body.updated_at);
+  await afterSave(recomputeForApplicant, env, cur.id, admin);
   return json({ applicant: parsed(await loadApplicant(env, cur.id)) });
 }
 
@@ -282,6 +286,7 @@ async function setArchived({ env, admin, params: [id, action] }) {
     touch(env, cur.contact_id, ts),
     ...(action === "archive" ? [resolveNotices(env, ref, admin)] : []),
   ]);
+  await afterSave(recomputeForApplicant, env, cur.id, admin);
   return json({ applicant: parsed(await loadApplicant(env, cur.id)) });
 }
 

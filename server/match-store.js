@@ -93,6 +93,12 @@ function result(a, l) {
 
 const byListing = list => new Map(list.map(m => [m.listing_id, m]));
 
+// Runs a recompute once its save has committed. A failure is logged and leaves the save saved and its answer as
+// usual: the next save, or "Recalculate all", repairs the matches.
+export async function afterSave(recompute, ...args) {
+  try { await recompute(...args); } catch (e) { console.error("Match recompute failed", e); }
+}
+
 // After an applicant is saved. actor: an admin email, 'public' or 'system'.
 export async function recomputeForApplicant(env, applicantId, actor) {
   const a = await env.DB.prepare(`SELECT ${APPLICANT} WHERE a.id = ?`).bind(applicantId).first();

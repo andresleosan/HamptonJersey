@@ -1,14 +1,17 @@
 import { json, fail, readJson, now } from "../http.js";
-import { validateListing, checkPrice, idPrefix, nextId } from "../listing.js";
+import { validateListing, checkPrice, idPrefix, nextId, ENUMS } from "../listing.js";
+import { extractFeatures } from "../listing-features.js";
+import { afterSave, recomputeForListing } from "../match-store.js";
 
 const ID = "(HE-[A-Z]\\d{3,})";
 const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availability, l.operation, l.sale_price, l.rent,
   l.rent_period, l.premium, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by, l.featured_rank, l.home_order,
+  l.parish, l.matchable,
   COALESCE(l.cover_media_id, (SELECT m.id FROM media m WHERE m.listing_id = l.id AND m.kind = 'photo'
     AND m.r2_key IS NOT NULL ORDER BY m.position LIMIT 1)) AS cover_id,
   EXISTS (SELECT 1 FROM media m WHERE m.listing_id = l.id AND m.kind = 'photo' AND m.public = 1
     AND m.origin <> 'external' AND m.r2_key IS NOT NULL) AS has_public_photo
-  FROM listings l ORDER BY l.id`;
+  FROM listings l`;
 
 export async function loadListing(env, id) {
   const l = await env.DB.prepare("SELECT * FROM listings WHERE id = ?").bind(id).first();
@@ -16,12 +19,18 @@ export async function loadListing(env, id) {
   return { ...l, specs: JSON.parse(l.specs || "[]") };
 }
 
-const list = async ({ env }) => json({ listings: (await env.DB.prepare(LIST_SQL).all()).results });
+async function list({ request, env }) {
+  const parish = new URL(request.url).searchParams.get("parish") || null;
+  if (parish && !ENUMS.parish.includes(parish)) fail(400, "Invalid parish");
+  const { results } = await env.DB.prepare(`${LIST_SQL} ${parish ? "WHERE l.parish = ?" : ""} ORDER BY l.id`)
+    .bind(...(parish ? [parish] : [])).all();
+  return json({ listings: results });
+}
 
 async function detail({ env, params: [id] }) {
   const listing = await loadListing(env, id);
   const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
-  const [media, research, sources, facts, terms, issues, searches] = (await env.DB.batch([
+  const [media, research, sources, facts, terms, issues, searches, matched] = (await env.DB.batch([
     q("SELECT * FROM media WHERE listing_id = ? ORDER BY position, id", id),
     q("SELECT * FROM research_properties WHERE property_id = ?", id),
     q("SELECT * FROM research_sources WHERE property_id = ? ORDER BY source_id", id),
@@ -29,14 +38,26 @@ async function detail({ env, params: [id] }) {
     q("SELECT * FROM research_financial_terms WHERE property_id = ? ORDER BY term_id", id),
     q("SELECT * FROM research_issues WHERE property_ids LIKE ? ORDER BY severity, issue_id", `%${id}%`),
     q("SELECT * FROM research_search_log WHERE property_id = ? ORDER BY date, search_id", id),
+    q(`SELECT m.id AS match_id, m.applicant_id, c.name, a.operation, m.status, m.score
+       FROM matches m JOIN applicants a ON a.id = m.applicant_id JOIN contacts c ON c.id = a.contact_id
+       WHERE m.listing_id = ?
+       ORDER BY CASE m.status WHEN 'shortlisted' THEN 0 WHEN 'found' THEN 1 ELSE 2 END, m.score DESC, m.id`, id),
   ])).map(r => r.results);
   const group = research[0]?.duplicate_group;
   const duplicates = group ? (await q("SELECT property_id FROM research_properties WHERE duplicate_group = ? AND property_id <> ? ORDER BY property_id", group, id).all())
     .results.map(r => r.property_id) : [];
-  return json({ listing, media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates });
+  return json({ listing, media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates,
+    matched_applicants: matched });
 }
 
 const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
+
+// The features read from a listing's text (B10), for the row as it will be saved (specs as JSON text). The parish read
+// from it only fills an unknown one, and never one the request sets (null included): the team's parish wins (B3).
+function withFeatures(row, patch, ts) {
+  const { parish, ...features } = extractFeatures(row);
+  return { ...patch, ...features, features_at: ts, ...(row.parish == null && !("parish" in patch) ? { parish } : {}) };
+}
 
 // A listing at its maximum lengths (description, summary, spec rows, multi-byte text) passes 32 KB.
 const LISTING_BYTES = 256 * 1024;
@@ -52,11 +73,12 @@ async function create({ request, env, admin }) {
       "SELECT id FROM listings UNION SELECT property_id FROM research_properties UNION SELECT id FROM deleted_listings").all();
     const id = nextId(results.map(x => x.id), idPrefix(r.value.use, r.value.country));
     const ts = now();
-    const row = { ...r.value, id, published: 0, created_at: ts, updated_at: ts, updated_by: admin };
-    const cols = Object.keys(row); // whitelisted by validateListing
+    const row = withFeatures(r.value, { ...r.value, id, published: 0, created_at: ts, updated_at: ts, updated_by: admin }, ts);
+    const cols = Object.keys(row); // whitelisted by validateListing, plus the features
     try {
       await env.DB.prepare(`INSERT INTO listings (${cols.join(", ")}) VALUES (${cols.map(() => "?").join(", ")})`)
         .bind(...cols.map(c => row[c])).run();
+      await afterSave(recomputeForListing, env, id, admin);
       return json({ id }, 201);
     } catch (e) {
       // Another admin created a listing with the same id at the same moment: take the next one.
@@ -71,17 +93,21 @@ async function update({ request, env, admin, params: [id] }) {
   if (typeof body?.updated_at !== "string") fail(400, "Missing updated_at: reload the listing");
   const r = validateListing(body, { partial: true });
   if (r.errors) return fieldErrors(r.errors);
-  const cols = Object.keys(r.value);
-  if (!cols.length) fail(400, "Nothing to save");
-  const priceErrors = checkPrice({ ...(await loadListing(env, id)), ...r.value });
+  if (!Object.keys(r.value).length) fail(400, "Nothing to save");
+  const stored = await loadListing(env, id);
+  const merged = { ...stored, specs: JSON.stringify(stored.specs), ...r.value };
+  const priceErrors = checkPrice(merged);
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
+  // The lock on updated_at also guarantees the features were read from the row this save replaces.
+  const ts = now(), patch = withFeatures(merged, r.value, ts), cols = Object.keys(patch);
   const res = await env.DB.prepare(
     `UPDATE listings SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ? WHERE id = ? AND updated_at = ?`)
-    .bind(...cols.map(c => r.value[c]), now(), admin, id, body.updated_at).run();
+    .bind(...cols.map(c => patch[c]), ts, admin, id, body.updated_at).run();
   if (!res.meta.changes) {
     await loadListing(env, id); // 404 if it no longer exists
     fail(409, "Someone else saved changes to this listing. Reload to see them (your changes were not saved).");
   }
+  await afterSave(recomputeForListing, env, id, admin);
   return json({ listing: await loadListing(env, id) });
 }
 
@@ -115,11 +141,14 @@ async function setState({ env, admin, params: [id, action] }) {
   if (action === "archive" && l.archived_at) fail(400, "The listing is already archived");
   if (action === "restore" && !l.archived_at) fail(400, "The listing isn't archived");
   const ts = now();
-  const patch = { publish: { published: 1 }, unpublish: { published: 0 }, archive: { published: 0, archived_at: ts },
+  // Archived (sold, withdrawn) is no longer offered; restoring leaves the offer off, for the editor's switch (B9).
+  const patch = { publish: { published: 1 }, unpublish: { published: 0 }, archive: { published: 0, archived_at: ts, matchable: 0 },
     restore: { archived_at: null } }[action];
   const cols = Object.keys(patch);
   await env.DB.prepare(`UPDATE listings SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ? WHERE id = ?`)
     .bind(...cols.map(c => patch[c]), ts, admin, id).run();
+  // Publishing also counts: being on the website adds to the score.
+  await afterSave(recomputeForListing, env, id, admin);
   return json({ listing: await loadListing(env, id) });
 }
 
