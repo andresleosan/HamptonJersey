@@ -20,6 +20,7 @@ export default function Review() {
   const [msg, setMsg] = useState(null), [undo, setUndo] = useState(null);
   const [busy, setBusy] = useState(false), [rejecting, setRejecting] = useState(false);
   const working = useRef(false), refocus = useRef(true), headRef = useRef(null), againRef = useRef(null), retryRef = useRef(null);
+  const regionRef = useRef(null), reloadAfter = useRef(false); // reloadAfter: Recalculate all ended mid-review
 
   // The next match after `after` (a match id; null = from the top). Returns what is left, or null when it failed.
   const load = async after => {
@@ -39,10 +40,21 @@ export default function Review() {
     (failed ? retryRef.current : q.match ? document.getElementById(`match-${q.match.id}`) : againRef.current ?? headRef.current)?.focus();
   }, [q, failed]);
 
-  const run = async step => {
+  // When a step ends with the focus outside the queue (a removed Undo button leaves it on the page), it goes back to
+  // what the queue shows, so the keys keep working.
+  const keepFocus = () => {
+    if (regionRef.current?.contains(document.activeElement)) return;
+    (document.getElementById(`match-${q?.match?.id}`) ?? retryRef.current ?? againRef.current ?? headRef.current)?.focus();
+  };
+  // One step at a time; a new action (clear) ends the last one's Undo and message.
+  const run = async (step, clear = true) => {
     if (working.current) return;
-    working.current = true; setBusy(true); setMsg(null); setUndo(null);
-    try { await step(); } finally { working.current = false; setBusy(false); }
+    working.current = true; setBusy(true);
+    if (clear) { setMsg(null); setUndo(null); }
+    try { await step(); } finally {
+      working.current = false; setBusy(false);
+      if (reloadAfter.current) { reloadAfter.current = false; restart(); }
+    }
   };
 
   const act = (status, reason) => run(async () => {
@@ -60,7 +72,7 @@ export default function Review() {
       // 409: someone else reviewed it (or archived the search) first; 404: a recompute removed it. Either way, move on.
       if (e.status === 404) text = GONE;
       else if (e.status === 409) { text = firstSentence(e.message); ok = false; }
-      else { setMsg({ text: e.message }); return; } // nothing changed: stay on this match
+      else { setMsg({ text: e.message }); keepFocus(); return; } // nothing changed: stay on this match
     }
     const n = await load(match.id);
     setMsg({ ok, text: n == null ? text : `${text} ${n} left.` });
@@ -78,14 +90,18 @@ export default function Review() {
     if (u.skip) return back(u.match, q.remaining, "Back to the skipped match.");
     try {
       const r = await api(`/admin/matches/${u.match.id}`, { method: "PUT", body: { status: "found", from: u.status } });
-      if (!r.match) return setMsg(gone);
+      if (!r.match) { setMsg(gone); keepFocus(); return; }
       // Undo recomputes that search, which can add or drop other found matches: the count is read again.
       const n = await api(`/admin/review?after=${r.match.id}`).then(d => d.remaining, () => null);
       back(r.match, n, "Back in Found.");
-    } catch (e) { setMsg(e.status === 404 ? gone : { text: e.status === 409 ? firstSentence(e.message) : e.message }); }
+    } catch (e) {
+      setMsg(e.status === 404 ? gone : { text: e.status === 409 ? firstSentence(e.message) : e.message });
+      keepFocus();
+    }
   });
 
-  const restart = () => run(async () => { await load(null); });
+  // From the top; asked while a review is saving (Recalculate all ending), it runs once that review is done.
+  const restart = () => { if (working.current) reloadAfter.current = true; else run(async () => { await load(null); }); };
 
   const onKey = e => {
     if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.repeat || typing(e.target)) return;
@@ -107,14 +123,14 @@ export default function Review() {
         <p className="muted">{q && <span className="num">{q.remaining} left · </span>}One match at a time, the oldest search first.</p></div>
       <Recalculate onDone={restart} />
     </div>
-    <div className="review-queue" role="region" aria-label="Review queue" onKeyDown={onKey}>
+    <div ref={regionRef} className="review-queue" role="region" aria-label="Review queue" onKeyDown={onKey}>
       <p className="muted">While the focus is in the queue: <kbd>A</kbd> Shortlist · <kbd>R</kbd> Reject, then <kbd>1</kbd>–<kbd>5</kbd> for
         why · <kbd>S</kbd> Skip · <kbd>Esc</kbd> cancels.</p>
       <p role="status" className="ok review-msg">{msg?.ok && msg.text}
         {undo && <button type="button" className="btn ghost sm" onClick={undoLast}>Undo</button>}</p>
       {msg && !msg.ok && <p role="alert" className="err">{msg.text}</p>}
       {failed ? <p role="alert" className="err">{failed.text}{" "}
-        <button type="button" ref={retryRef} className="btn ghost sm" onClick={() => load(failed.after)}>Try again</button></p>
+        <button type="button" ref={retryRef} className="btn ghost sm" onClick={() => run(() => load(failed.after), false)}>Try again</button></p>
         : !q ? <p>Loading the queue…</p>
         : m ? <div className="review">
           <Summary a={q.applicant} />
@@ -156,6 +172,8 @@ function Summary({ a }) {
 function Recalculate({ onDone }) {
   const [running, setRunning] = useState(false), [progress, setProgress] = useState("");
   const [resume, setResume] = useState(null), [note, setNote] = useState(null);
+  const retryRef = useRef(null);
+  useEffect(() => { if (note && !note.ok) retryRef.current?.focus(); }, [note]);
   const go = async from => {
     let { phase, after, done } = from;
     setRunning(true); setNote(null); setResume(null); setProgress("Starting…");
@@ -173,7 +191,7 @@ function Recalculate({ onDone }) {
       onDone();
     } catch (e) {
       setResume({ phase, after, done });
-      setNote({ text: `Stopped after ${done} ${phase}. ${e.message}` });
+      setNote({ text: `Stopped after ${done} ${done === 1 ? phase.slice(0, -1) : phase}. ${e.message}` });
     } finally { setRunning(false); }
   };
   const start = () => {
@@ -184,6 +202,6 @@ function Recalculate({ onDone }) {
     <button type="button" className="btn ghost" disabled={running} onClick={start}>{running ? "Recalculating…" : "Recalculate all"}</button>
     <p role="status" className="muted num">{running ? progress : note?.ok ? note.text : ""}</p>
     {note && !note.ok && <p role="alert" className="err">{note.text}{" "}
-      <button type="button" className="btn ghost sm" onClick={() => go(resume)}>Retry</button></p>}
+      <button type="button" ref={retryRef} className="btn ghost sm" onClick={() => go(resume)}>Retry</button></p>}
   </div>;
 }
