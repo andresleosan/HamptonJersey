@@ -291,10 +291,11 @@ test("0010: viewing requests refuse bad status, outcome outside completed and no
 test("0010: viewing indexes exist", () => {
   const db = makeEnv().DB.raw;
   const names = table => db.prepare(`PRAGMA index_list(${table})`).all().map(r => r.name).sort();
-  assert.deepEqual(names("viewing_requests"), ["viewing_negotiator_day", "viewing_status"]);
+  assert.deepEqual(names("viewing_requests"), ["viewing_listing", "viewing_negotiator_day", "viewing_status"]);
   assert.ok(names("negotiator_exceptions").includes("negotiator_exceptions_day"));
   const cols = index => db.prepare(`PRAGMA index_info(${index})`).all().map(r => r.name);
   assert.deepEqual(cols("viewing_status"), ["status", "created_at"]);
   assert.deepEqual(cols("viewing_negotiator_day"), ["negotiator_id", "date"]);
+  assert.deepEqual(cols("viewing_listing"), ["listing_id", "date"]);
   assert.deepEqual(cols("negotiator_exceptions_day"), ["negotiator_id", "date"]);
 });

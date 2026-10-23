@@ -23,10 +23,13 @@ async function list({ request, env }) {
   const tab = TABS[q.get("tab")];
   if (listingId != null && !/^HE-[A-Z]\d{3,}$/.test(listingId)) fail(400, "Unknown property");
   const clock = jerseyNow(), only = listingId == null ? "" : " AND v.listing_id = ?", listing = listingId == null ? [] : [listingId];
+  // One listing's viewings are read through its (listing_id, date) index: the unary + keeps SQLite from taking the
+  // (status, created_at) one instead, which would read that status's rows of every listing.
+  const where = listingId == null ? tab[0] : tab[0].replaceAll("v.status", "+v.status");
   const [viewings, [counts]] = await env.DB.batch([
     env.DB.prepare(`SELECT v.*, COALESCE(l.title, v.listing_title_snapshot) AS listing_title, COALESCE(n.name, v.agent) AS negotiator_name
       FROM viewing_requests v LEFT JOIN listings l ON l.id = v.listing_id LEFT JOIN negotiators n ON n.id = v.negotiator_id
-      WHERE ${tab[0]}${only} ORDER BY ${tab[1]} LIMIT 500`).bind(...bindsOf(tab[0], clock), ...listing),
+      WHERE ${where}${only} ORDER BY ${tab[1]} LIMIT 500`).bind(...bindsOf(tab[0], clock), ...listing),
     env.DB.prepare(`SELECT ${Object.entries(TABS).map(([k, [cond]]) => `COALESCE(SUM(${cond}), 0) AS ${k}`).join(", ")}
       FROM viewing_requests v WHERE 1${only}`)
       .bind(...Object.values(TABS).flatMap(([cond]) => bindsOf(cond, clock)), ...listing),
@@ -73,6 +76,9 @@ async function create({ request, env, admin }) {
 // C7: the statuses each action leaves from, and where it goes (reschedule keeps the status).
 const FROM = { confirm: ["requested"], cancel: ACTIVE, reschedule: ACTIVE, complete: ["confirmed"], no_show: ["confirmed"] };
 const TO = { confirm: "confirmed", cancel: "cancelled", complete: "completed", no_show: "no_show" };
+// A status in the words of "This viewing is already …".
+const SAID = { requested: "requested", confirmed: "confirmed", completed: "completed", no_show: "marked as a no-show",
+  cancelled: "cancelled" };
 
 // The columns an action sets, its event data, and for a reschedule the clash its UPDATE must not have (C6).
 async function change(env, action, body, cur, clock) {
@@ -110,7 +116,7 @@ async function runAction({ env, admin, id, body }) {
   if (!Object.hasOwn(FROM, body.action)) fail(400, "Unknown action");
   const cur = await env.DB.prepare("SELECT * FROM viewing_requests WHERE id = ?").bind(id).first();
   if (!cur) fail(404, "Request not found");
-  if (!FROM[body.action].includes(cur.status)) fail(409, `This viewing is already ${cur.status}.`);
+  if (!FROM[body.action].includes(cur.status)) fail(409, `This viewing is already ${SAID[cur.status]}.`);
   if (cur.updated_at !== body.updated_at) fail(409, stale);
   const ch = await change(env, body.action, body, cur, jerseyNow());
   if (ch.errors) return fields(ch.errors);

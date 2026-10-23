@@ -145,11 +145,14 @@ test("refused transitions, stale versions and bad input change nothing", async t
     assert.equal(r.status, 400, JSON.stringify(extra));
     assert.ok(r.data.fields, JSON.stringify(extra));
   }
-  for (const [status, action] of [["completed", "cancel"], ["cancelled", "reschedule"], ["no_show", "complete"], ["cancelled", "confirm"]]) {
+  for (const [status, action, error] of [["completed", "cancel", "This viewing is already completed."],
+    ["cancelled", "reschedule", "This viewing is already cancelled."],
+    ["no_show", "complete", "This viewing is already marked as a no-show."],
+    ["cancelled", "confirm", "This viewing is already cancelled."]]) {
     const x = seedViewing(env, { status, date: day(-2), time: "16:00" });
     const r = await act(env, cookie, x, action, { outcome: "proceed", negotiator_id: 1, date: day(1), time: "15:00" });
     assert.equal(r.status, 409, `${action} from ${status}`);
-    assert.equal(r.data.error, `This viewing is already ${status}.`);
+    assert.equal(r.data.error, error);
   }
   assert.equal(row(env, c).status, "confirmed");
 });
@@ -308,4 +311,37 @@ test("active interest counts each person once: active from today on, proceed or 
   v({ email: null, phone: "07797 1", status: "completed", outcome: "more_info", date: day(-5) });
   v({ email: null, phone: "07797 1", status: "requested", date: day(2) });
   assert.equal(await interest(), 3, "proceed 30 days ago, and a phone-only person once");
+});
+
+// The SQL a request runs, with its binds, from the route itself.
+const captured = (env, match) => {
+  const seen = [], prepare = env.DB.prepare.bind(env.DB);
+  env.DB.prepare = sql => {
+    const st = prepare(sql), bind = st.bind;
+    if (match.test(sql)) seen.push({ sql, args: [] });
+    return match.test(sql) ? { ...st, bind: (...a) => { seen.at(-1).args = a; return bind(...a); } } : st;
+  };
+  return seen;
+};
+const plan = (env, { sql, args }) =>
+  env.DB.raw.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...args).map(r => r.detail).join("\n");
+
+test("active interest and a listing's viewings are read through the (listing_id, date) index, never a scan", async t => {
+  const { env, cookie } = await world(t);
+  const interest = captured(env, /COUNT\(DISTINCT/);
+  await call(env, "GET", "/admin/listings/HE-R001", { cookie });
+  assert.equal(interest.length, 1);
+  const p = plan(env, interest[0]);
+  assert.match(p, /SEARCH viewing_requests USING INDEX viewing_listing \(listing_id=\? AND date>\?\)/, p);
+  assert.doesNotMatch(p, /SCAN|viewing_status/, p);
+  for (const tab of Object.keys({ requests: 1, upcoming: 1, outcome: 1, past: 1 })) {
+    const q = captured(env, /FROM viewing_requests v/);
+    await call(env, "GET", `/admin/viewings?tab=${tab}&listing_id=HE-R001`, { cookie });
+    assert.equal(q.length, 2, tab);
+    for (const one of q) {
+      const p2 = plan(env, one);
+      assert.match(p2, /SEARCH v USING INDEX viewing_listing \(listing_id=\?/, `${tab}: ${p2}`);
+      assert.doesNotMatch(p2, /SCAN|viewing_status/, `${tab}: ${p2}`);
+    }
+  }
 });

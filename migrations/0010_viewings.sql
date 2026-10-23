@@ -65,3 +65,5 @@ ALTER TABLE viewing_requests_new RENAME TO viewing_requests;
 -- The 0001 index (dropped with the old table) and one for the slot calculation: a negotiator's viewings by date.
 CREATE INDEX viewing_status ON viewing_requests(status, created_at);
 CREATE INDEX viewing_negotiator_day ON viewing_requests(negotiator_id, date);
+-- A listing's viewings by date: its active interest (C10) and the panel's viewings of one listing.
+CREATE INDEX viewing_listing ON viewing_requests(listing_id, date);
