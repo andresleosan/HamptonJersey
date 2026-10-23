@@ -36,10 +36,15 @@ test("parish from location, aliases and localities", () => {
 test("pets, parking, furnished, outdoor and type from text", () => {
   const pets = s => feats({ description: s }).feat_pets;
   for (const s of ["No pets.", "Pets not permitted", "pets not allowed", "Pets not accepted",
-    "Regret no pets", "Smoking and pets are not permitted"]) assert.equal(pets(s), "no", s);
+    "Regret no pets", "Smoking and pets are not permitted", "No pets allowed", "Regret no pets accepted"])
+    assert.equal(pets(s), "no", s);
   for (const s of ["Pets considered", "pets allowed", "Pets welcome", "Pet friendly", "pet-friendly garden",
     "Pets are considered by arrangement"]) assert.equal(pets(s), "yes", s);
-  assert.equal(pets("Pets considered for the garden flat. No pets in the main house."), "no", "no wins over yes");
+  assert.equal(pets("There are no pets restrictions"), null, "no restriction is not a refusal");
+  assert.equal(pets("No pets restriction applies"), null);
+  const mixed = { description: "Pets considered for the garden flat. No pets in the main house." };
+  assert.equal(feats(mixed).feat_pets, null, "yes and no together say neither");
+  assert.equal(evidence(mixed).pets, "No pets in the main house");
   assert.equal(evidence({ summary: "Two bedrooms\nPets considered\nAllocated parking" }).pets, "Pets considered");
 
   const parking = (s, specs = "[]") => feats({ description: s, specs }).feat_parking;
@@ -60,7 +65,18 @@ test("pets, parking, furnished, outdoor and type from text", () => {
   assert.equal(furnished("Part furnished"), null);
   assert.equal(furnished("The apartment is part-furnished"), null);
   assert.equal(furnished("Available unfurnished or furnished"), null);
+  for (const s of ["Partly furnished", "Partially furnished", "Semi-furnished", "semi furnished"])
+    assert.equal(furnished(s), null, s);
   assert.equal(evidence({ description: "Fully furnished" }).furnished, "Fully furnished");
+
+  // A specs row whose label names the feature is read as a key and its value, not as prose.
+  const spec = (label, value) => feats({ specs: JSON.stringify([{ group: "", label, value }]) });
+  for (const [label, value, col, want] of [["Pets Allowed", "No", "feat_pets", "no"], ["Pets", "none", "feat_pets", "no"],
+    ["Pets", "Yes", "feat_pets", "yes"], ["Pets", "Allowed", "feat_pets", "yes"], ["Furnished", "No", "feat_furnished", "no"],
+    ["Furnished", "YES", "feat_furnished", "yes"], ["Garage", "No", "feat_parking", 0], ["Parking", "None", "feat_parking", 0],
+    ["Parking Spaces", "0", "feat_parking", 0], ["Parking", "Yes", "feat_parking", 1]])
+    assert.equal(spec(label, value)[col], want, `${label}: ${value}`);
+  assert.equal(JSON.parse(spec("Pets Allowed", "No").feat_evidence).pets, "Pets Allowed: No");
 
   const outdoor = s => feats({ description: s }).feat_outdoor;
   assert.equal(outdoor("South facing garden"), '["garden"]');

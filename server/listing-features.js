@@ -28,9 +28,10 @@ const onlyOne = parishes => (parishes.size === 1 ? [...parishes][0] : null);
 export const parseParish = text => onlyOne(parishesIn(text));
 
 // ---- Features -----------------------------------------------------------------------------------------------
-const PETS_NO = /\bno pets\b|\bpets? (?:are |is )?not (?:permitted|allowed|accepted)\b/i;
-const PETS_YES = new RegExp(String.raw`\bpets? (?:are |may be )?(?:considered|allowed|welcome|permitted|accepted`
-  + String.raw`|negotiable|by arrangement|by negotiation)\b|\bpet[- ]friendly\b`, "i");
+const PETS_NO = /\bno pets\b(?!\s+restrictions?)|\bpets? (?:are |is )?not (?:permitted|allowed|accepted)\b/i;
+// Not after "no": "no pets allowed" is a refusal, not a mixed signal.
+const PETS_YES = new RegExp(String.raw`(?<!\bno )\bpets? (?:are |may be )?(?:considered|allowed|welcome|permitted`
+  + String.raw`|accepted|negotiable|by arrangement|by negotiation)\b|\bpet[- ]friendly\b`, "i");
 
 const NUMBER_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
 const N = String.raw`(\d+|${Object.keys(NUMBER_WORDS).join("|")})`;
@@ -51,7 +52,7 @@ const SOME_PARKING = new RegExp(String.raw`\b(?<!(?:visitors?['’]?|residents['
   + String.raw`|public|on-street|permit) )(?:garages?|parking)\b`
   + String.raw`(?!(?: spaces?)? (?:is |are )?(?:available )?(?:nearby|close by))`, "i");
 
-const FURNISHED = /\b(?:(un|non[- ])|(part[- ]|semi[- ]))?furnished\b/gi;
+const FURNISHED = /\b(?:(un|non[- ])|(part(?:ly|ially)?[- ]|semi[- ]))?furnished\b/gi;
 
 // In OPTIONS.outdoor order; a patio counts as a terrace; an end-terrace house and a Juliet balcony do not count.
 const OUTDOOR = [
@@ -59,6 +60,12 @@ const OUTDOOR = [
   ["terrace", /\b(?<!(?:end|mid)[- ](?:of[- ])?)(?:terraces?|patios?)\b/i],
   ["balcony", /\b(?<!juliet(?:te)? )balcon(?:y|ies)\b/i],
 ];
+
+// A specs row naming a feature with a plain yes or no value ("Pets Allowed: No"): [key, label, no, yes].
+const SPEC_ROWS = [["pets", /\bpets?\b/i, "no", "yes"], ["furnished", /\bfurnish/i, "no", "yes"],
+  ["parking", /\b(?:parking|garag(?:es?|ing))\b/i, 0, 1]];
+const ROW_NO = /^(?:no|none|0)$/i;
+const ROW_YES = /^(?:yes|allowed)$/i;
 
 const TYPE = new RegExp(String.raw`\b(?:(apartments?|flats?|maisonettes?|penthouses?)`
   + String.raw`|(houses?|bungalows?|villas?|townhouses?|farmhouses?|ch[aâ]teaux?)|(cottages?)|(studios?))\b`, "i");
@@ -75,11 +82,11 @@ function phrase(text, m) {
 }
 const hit = (value, text, m) => ({ value, evidence: phrase(text, m) });
 
+// A yes and a no together say neither; the no phrase is kept as evidence.
 function pets(text) {
-  let m = PETS_NO.exec(text);
-  if (m) return hit("no", text, m);
-  m = PETS_YES.exec(text);
-  return m ? hit("yes", text, m) : null;
+  const no = PETS_NO.exec(text), yes = PETS_YES.exec(text);
+  if (no) return hit(yes ? null : "no", text, no);
+  return yes ? hit("yes", text, yes) : null;
 }
 
 function parking(text) {
@@ -123,16 +130,29 @@ function type(...sources) {
   return null;
 }
 
+// Splits the specs into the yes/no rows read as key and value ({pets, furnished, parking}) and the prose rest.
+function readSpecs(specs) {
+  const keyed = {}, prose = [];
+  for (const { label, value } of specs) {
+    const v = String(value).trim(), no = ROW_NO.test(v);
+    const row = (no || ROW_YES.test(v)) && SPEC_ROWS.find(([, re]) => re.test(label));
+    if (row) keyed[row[0]] ??= { value: no ? row[2] : row[3], evidence: `${label}: ${v}`.slice(0, EVIDENCE_MAX) };
+    else prose.push(`${label}: ${value}`);
+  }
+  return { keyed, prose };
+}
+
 // listing: a listings row (specs as JSON text). Returns the columns of migrations/0009_matches.sql.
 export function extractFeatures(listing) {
   let parishes = parishesIn(listing.location);
   if (!parishes.size) parishes = parishesIn(listing.road_name);
-  const specs = JSON.parse(listing.specs || "[]").map(s => `${s.label}: ${s.value}`);
-  const text = [...specs, listing.summary, listing.description].filter(Boolean).join("\n");
+  const { keyed, prose } = readSpecs(JSON.parse(listing.specs || "[]"));
+  const text = [...prose, listing.summary, listing.description].filter(Boolean).join("\n");
 
   const out = { parish: onlyOne(parishes) };
   const evidence = {};
-  for (const [key, result] of [["pets", pets(text)], ["parking", parking(text)], ["furnished", furnished(text)],
+  for (const [key, result] of [["pets", keyed.pets ?? pets(text)], ["parking", keyed.parking ?? parking(text)],
+    ["furnished", keyed.furnished ?? furnished(text)],
     ["outdoor", outdoor(text)], ["type", type(listing.property_type, listing.title)]]) {
     out[`feat_${key}`] = result?.value ?? null;
     if (result) evidence[key] = result.evidence;
