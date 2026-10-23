@@ -211,22 +211,24 @@ export default function ApplicantDetail({ id, tab }) {
     const group = data.matches.filter(x => x.status === m.status), i = group.findIndex(x => x.id === m.id);
     const next = group[i + 1] ?? group[i - 1], title = m.listing.title;
     setReviewing(true); setMatchMsg(null);
+    // A 404 is a match a recompute removed meanwhile: gone, like match null.
+    const gone = { ok: true, text: `${title} no longer fits this search, so it has left the list.` };
     let msg;
     try {
       const { match } = await api(`/admin/matches/${m.id}`, { method: "PUT",
         body: { status, from: m.status, ...(reject_reason && { reject_reason }) } });
-      msg = { ok: true, text: !match ? `${title} no longer fits this search, so it has left the list.`
-        : status === "shortlisted" ? `Shortlisted ${title}.` : status === "rejected" ? `Rejected ${title} · ${REASON_LABEL[reject_reason]}.`
-        : `${title} is back in Found.` };
-    } catch (e) { msg = { text: e.message, refused: e.status === 409 || e.status === 400 }; }
+      msg = !match ? gone : { ok: true, text: status === "shortlisted" ? `Shortlisted ${title}.`
+        : status === "rejected" ? `Rejected ${title} · ${REASON_LABEL[reject_reason]}.` : `${title} is back in Found.` };
+    } catch (e) { msg = e.status === 404 ? gone : { text: e.message, refused: e.status === 409 || e.status === 400 }; }
     // The message shows with the reloaded matches; a refused review's "Reload to see it" is done already.
     try {
       const d = await api(`/admin/applicants/${id}`);
       if (msg.refused) msg = { text: `${msg.text.split(". ")[0].replace(/\.?$/, ".")} The matches below are up to date.` };
-      if (msg.ok || !d.matches.some(x => x.id === m.id && x.status === m.status))
-        refocusMatch.current = next ? `match-${next.id}` : `group-${m.status}`;
+      const left = !d.matches.some(x => x.id === m.id && x.status === m.status);
+      if (msg.ok || left)
+        refocusMatch.current = next && d.matches.some(x => x.id === next.id && x.status === m.status) ? `match-${next.id}` : `group-${m.status}`;
       setData(x => ({ ...x, events: d.events, matches: d.matches }));
-    } catch (e) { msg = { ...msg, text: `${msg.text} ${e.message}` }; }
+    } catch (e) { msg = { text: `${msg.text} ${e.message}` }; } // shown as an error even when the review was saved
     finally { setMatchMsg(msg); setReviewing(false); }
   };
 

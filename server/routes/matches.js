@@ -1,11 +1,11 @@
 // Reviewing a match (B6), the keyboard review queue (spec §5 Review) and "Recalculate all" (B12).
 import { json, fail, readJson, now } from "../http.js";
-import { activeSql } from "../applicants.js";
+import { activeSql, REJECT_REASONS } from "../applicants.js";
 import { extractFeatures } from "../listing-features.js";
 import { afterSave, recomputeForApplicant, closeMatchedNoticeIfEmpty } from "../match-store.js";
 import { COVER_ID } from "./listings.js";
 
-const REASONS = ["price", "area", "size", "condition", "other"];
+const REASONS = REJECT_REASONS.map(([v]) => v);
 // The reviews a match in each status may get; back to found is Undo.
 const NEXT = { found: ["shortlisted", "rejected"], shortlisted: ["found"], rejected: ["found"] };
 const STALE = "Someone else reviewed this match. Reload to see it.";

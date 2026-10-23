@@ -26,6 +26,12 @@ export const OPTIONS = {
   sources: [["web", "Website"], ["phone", "Phone"], ["walk_in", "Walk-in"], ["email", "Email"]],
 };
 
+// Matching lists for the panel, kept out of OPTIONS (which the website reads from GET /api/applicants/options).
+// B13: the applicant's work queue, in precedence order; each label is also its value (GET /admin/applicants?queue=).
+export const QUEUES = ["New properties found", "Waiting for review", "In process", "No matches"];
+// Why a match is rejected (PUT /admin/matches/:id reject_reason); values match the CHECK in migrations/0009_matches.sql.
+export const REJECT_REASONS = [["price", "Price"], ["area", "Area"], ["size", "Size"], ["condition", "Condition"], ["other", "Other"]];
+
 // "Active search" (F0): not archived, lost or completed; a paused one is still active. The one rule, in SQL and JS.
 const CLOSED_STAGES = ["lost", "completed"];
 export const activeSql = alias =>

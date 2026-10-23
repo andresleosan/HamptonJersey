@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { AVAILABILITY, priceText } from "./format.js";
+import { REJECT_REASONS } from "../../server/applicants.js";
 
 // The checks of server/matching.js evaluate(), by key.
 export const CHECK_LABEL = { budget: "Budget", bedrooms: "Bedrooms", bathrooms: "Bathrooms", area: "Area", pets: "Pets",
   parking: "Parking", furnished: "Furnished", outdoor: "Outdoor", type: "Type" };
 const RESULT = { meets: "Meets", fails: "Fails", unknown: "Unknown" };
-// The reasons PUT /admin/matches/:id accepts for a rejection.
-export const REASONS = [["price", "Price"], ["area", "Area"], ["size", "Size"], ["condition", "Condition"], ["other", "Other"]];
-export const REASON_LABEL = Object.fromEntries(REASONS);
+export const REASON_LABEL = Object.fromEntries(REJECT_REASONS);
 const OFFERED = ["for_sale", "to_let", "lease"];
+// DESIGN.md "Badges de estado": a listing that is no longer offered.
+const AVAILABILITY_TONE = { under_offer: "attention", sold: "closed" };
 const many = (n, word) => (n == null ? null : `${n} ${word}${n === 1 ? "" : "s"}`);
 
 // One match as spec §5 shows it: the listing, its score, each check with what the listing says, and the reviews its
@@ -35,7 +36,7 @@ export default function MatchCard({ match, onReview, busy, disabled = false }) {
       <p className="muted">{meta.join(" · ")}</p>
       <p className="match-price"><span className="num">{priceText(l)}</span>
         {(!l.published || l.archived_at) && <span className="badge neutral">Not on website</span>}
-        {!OFFERED.includes(l.availability) && <span className="badge neutral">{AVAILABILITY[l.availability] ?? l.availability}</span>}</p>
+        {!OFFERED.includes(l.availability) && <span className={`badge ${AVAILABILITY_TONE[l.availability] ?? "neutral"}`}>{AVAILABILITY[l.availability] ?? l.availability}</span>}</p>
       <dl className="checks">{match.checks.map(c => <div key={c.key}>
         <dt>{CHECK_LABEL[c.key] ?? c.key}</dt>
         <dd><span className={`result ${c.result}`}>{RESULT[c.result] ?? c.result}</span>{c.evidence && <span className="muted"> · {c.evidence}</span>}</dd>
@@ -53,7 +54,7 @@ export default function MatchCard({ match, onReview, busy, disabled = false }) {
       {rejecting && match.status === "found" && <div className="inline reasons" role="group" aria-label={`Why reject ${title}?`}
         onKeyDown={e => { if (e.key === "Escape") { e.preventDefault(); cancel(); } }}>
         <span className="muted" aria-hidden="true">Why?</span>
-        {REASONS.map(([k, t], i) => <button key={k} type="button" ref={i ? undefined : firstReason} className="btn ghost sm"
+        {REJECT_REASONS.map(([k, t], i) => <button key={k} type="button" ref={i ? undefined : firstReason} className="btn ghost sm"
           onClick={() => review("rejected", k)}>{t}</button>)}
         <button type="button" className="linkish" onClick={cancel}>Cancel</button>
       </div>}

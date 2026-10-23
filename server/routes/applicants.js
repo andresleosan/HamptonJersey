@@ -1,5 +1,5 @@
 import { json, fail, readJson, now } from "../http.js";
-import { validateApplicant, normalizePhone, OPTIONS, activeSql } from "../applicants.js";
+import { validateApplicant, normalizePhone, OPTIONS, QUEUES, activeSql } from "../applicants.js";
 import { logEvent, resolveNotices } from "../events.js";
 import { afterSave, recomputeForApplicant } from "../match-store.js";
 import { MATCHES_SQL, matchCard } from "./matches.js";
@@ -61,7 +61,6 @@ const ACTIVE = activeSql("s");
 
 // B13: the applicant's work queue, one label in this order: New properties found (found ones created after the first
 // review), Waiting for review (found ones left), In process (shortlisted ones), No matches (everything else).
-const QUEUES = ["New properties found", "Waiting for review", "In process", "No matches"];
 const QUEUE = `CASE WHEN fresh THEN '${QUEUES[0]}' WHEN found > 0 THEN '${QUEUES[1]}' WHEN shortlisted > 0 THEN '${QUEUES[2]}'
   ELSE '${QUEUES[3]}' END`;
 // Per listed applicant, through the (status, applicant_id) index: rejected history is never read.

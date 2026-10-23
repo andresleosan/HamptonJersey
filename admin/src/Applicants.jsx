@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
 import { fmtDate } from "./format.js";
-import { OPTIONS } from "../../server/applicants.js";
+import { OPTIONS, QUEUES } from "../../server/applicants.js";
 
 const OPERATIONS = [["", "All"], ...OPTIONS.operation];
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
@@ -10,7 +10,7 @@ const STAGE_LABEL = Object.fromEntries(OPTIONS.stages);
 const TONE = { new: "attention", searching: "active", viewing: "active", offer: "active", agreed: "positive", completed: "positive",
   paused: "neutral", lost: "neutral" };
 const StageBadge = ({ stage }) => <span className={`badge ${TONE[stage]}`}>{STAGE_LABEL[stage]}</span>;
-// B13: the queue labels GET /admin/applicants returns and filters by (?queue=), in their order, with their tone.
+// DESIGN.md "Badges de estado": the tone of each queue (B13).
 const QUEUE_TONE = { "New properties found": "attention", "Waiting for review": "attention", "In process": "active",
   "No matches": "neutral" };
 const matchCounts = a => (a.found || a.shortlisted ? `${a.found} found · ${a.shortlisted} shortlisted` : null);
@@ -52,7 +52,7 @@ export default function Applicants() {
       <label>Stage<select value={stage} onChange={e => setStage(e.target.value)}><option value="">All</option>
         {OPTIONS.stages.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label>Queue<select value={queue} onChange={e => setQueue(e.target.value)}><option value="">All</option>
-        {Object.keys(QUEUE_TONE).map(k => <option key={k} value={k}>{k}</option>)}</select></label>
+        {QUEUES.map(k => <option key={k} value={k}>{k}</option>)}</select></label>
       <label>Assigned to<select value={assigned} onChange={e => setAssigned(e.target.value)}><option value="">Anyone</option>
         {users.map(u => <option key={u.email} value={u.email}>{u.name || u.email}</option>)}</select></label>
       <label>Order<select value={sort} onChange={e => setSort(e.target.value)}>
