@@ -3,6 +3,8 @@
   --display:"Tenor Sans",Georgia,serif;--body:Montserrat,system-ui,sans-serif;
   --r:14px;--r-sm:10px;--shadow:0 1px 2px rgba(20,20,20,.04),0 12px 32px -18px rgba(20,20,20,.22);--ease:cubic-bezier(.2,.7,.2,1)}
 *{box-sizing:border-box}
+/* Focus and anchors stop clear of the sticky bar (height set by App) and of a form's floating .actionbar. */
+html{scroll-padding:calc(var(--bar-h,64px) + 12px) 0 140px}
 body{margin:0;background:var(--mist);color:var(--ink);font:14px/1.5 var(--body)}
 h1,h2,h3{font-family:var(--display);font-weight:400;margin:0 0 12px}
 h1{font-size:26px} h2{font-size:19px}

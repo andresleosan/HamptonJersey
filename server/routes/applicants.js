@@ -84,7 +84,7 @@ async function list({ request, env }) {
   const dir = sort === "oldest" ? "ASC" : "DESC";
   // ponytail: no paging; the team has hundreds of applicants, not tens of thousands.
   const { results } = await env.DB.prepare(
-    `SELECT a.id, a.operation, a.stage, a.created_at, a.assigned_to, ad.name AS assigned_name, c.name, c.phone, c.email
+    `SELECT a.id, a.operation, a.stage, a.lost_reason, a.created_at, a.assigned_to, ad.name AS assigned_name, c.name, c.phone, c.email
      FROM applicants a JOIN contacts c ON c.id = a.contact_id LEFT JOIN admins ad ON ad.email = a.assigned_to
      WHERE ${where.join(" AND ")} ORDER BY a.created_at ${dir}, a.id ${dir}`).bind(...args).all();
   return json({ applicants: results });

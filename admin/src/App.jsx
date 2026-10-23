@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { firebaseSignOut } from "./firebase.js";
 import Login from "./Login.jsx";
@@ -39,6 +39,15 @@ export default function App() {
   const loadCounts = useCallback(() => api("/admin/notifications/counts").then(setCounts, () => {}), []);
   usePoll(loadCounts, me && !expired ? 30000 : null);
 
+  // The sticky bar's height (it wraps on phones) for `scroll-padding-top`: a focused field never lands under it.
+  const bar = useRef(null);
+  useEffect(() => {
+    if (!bar.current) return;
+    const ro = new ResizeObserver(([e]) => document.documentElement.style.setProperty("--bar-h", `${e.target.offsetHeight}px`));
+    ro.observe(bar.current);
+    return () => ro.disconnect();
+  }, [me]);
+
   const signedIn = email => { setMe(email); setExpired(false); };
   if (me === undefined) return <p className="center">Loading…</p>;
   if (me === null) return <main className="center"><Login onSignedIn={signedIn} /></main>;
@@ -59,7 +68,7 @@ export default function App() {
     setMe(null);
   };
   return <>
-    <header className="bar" inert={expired} onClick={e => { if (e.target.closest("a")) confirmLeave(e); }}>
+    <header ref={bar} className="bar" inert={expired} onClick={e => { if (e.target.closest("a")) confirmLeave(e); }}>
       <a href="#/" className="brand">Hampton Estates · Admin</a>
       <nav aria-label="Sections">
         <a href="#/" aria-current={current === "" ? "page" : undefined}>Inbox{counts.action > 0
