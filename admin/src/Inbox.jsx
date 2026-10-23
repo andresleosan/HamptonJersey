@@ -16,7 +16,7 @@ const EMPTY = {
     viewing: "No viewing request notices here yet." },
 };
 const isOpen = n => n.action_required === 1 && n.resolved_at == null;
-const openLabel = n => (n.entity_type === "viewing" ? "Open viewing requests"
+const openLabel = n => (n.entity_type === "viewing" ? "Open viewings"
   : n.link.startsWith("#/applicants/new") ? "Add a search for this contact" : n.category === "matched" ? "Review matches"
   : "Open applicant");
 

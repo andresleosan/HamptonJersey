@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { fmtAgo, fmtDate, firstSentence, blank, show, VIEWING_STATUS } from "./format.js";
+import { fmtAgo, fmtDate, fmtDay, firstSentence, blank, show, VIEWING_STATUS } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
 import { OPTIONS, normalizePhone, isActive } from "../../server/applicants.js";
 import ApplicantFields, { toForm, toBody } from "./ApplicantFields.jsx";
@@ -389,6 +389,6 @@ function Timeline({ events, viewings, matches, by, nameOf }) {
       <dd><span className="sr">from </span>{show(k, e.data.before?.[k], nameOf)} <span aria-hidden="true">→</span><span className="sr"> to</span> {show(k, e.data.after[k], nameOf)}</dd></div>)}</dl>}
   </li> : <li key={`v${v.id}`}>
     <p><strong>Viewing</strong> <span className="muted">{when(v.created_at)}</span></p>
-    <p>{v.listing_title || v.listing_ref || "General enquiry / valuation"} · {v.date} at {v.time} · {VIEWING_STATUS[v.status]?.[0] ?? v.status} · <a href={v.listing_id ? `#/viewings?listing=${v.listing_id}` : "#/viewings"}>Open viewings</a></p>
+    <p>{v.listing_title || v.listing_ref || "General enquiry / valuation"} · {fmtDay(v.date, true)} at {v.time} · {VIEWING_STATUS[v.status]?.[0] ?? v.status} · <a href={v.listing_id ? `#/viewings?listing=${v.listing_id}` : "#/viewings"}>Open viewings</a></p>
   </li>)}</ol>;
 }

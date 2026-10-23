@@ -27,7 +27,8 @@ export default function Viewings({ listing }) {
   const [tab, setTab] = useState("requests"), [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null);
   const [sel, setSel] = useState(null), [msg, setMsg] = useState(null), [creating, setCreating] = useState(false);
   const [title, setTitle] = useState(null), [focusTo, setFocusTo] = useState(null), [counts, setCounts] = useState({});
-  const [dirty, setDirty] = useState({ notes: false, form: false });
+  // notes: the open viewing's notes; step: its open outcome or reschedule form; form: New viewing.
+  const [dirty, setDirty] = useState({ notes: false, step: false, form: false });
   const seq = useRef(0), headRef = useRef(null), listRef = useRef(null), detailRef = useRef(null), newBtn = useRef(null);
   // A viewing that a refused action moved out of this tab while its notes were still unsaved: it stays open (as last
   // read) so the notes can be saved, instead of being dropped with it.
@@ -49,10 +50,12 @@ export default function Viewings({ listing }) {
     if (listing) api(`/admin/listings/${encodeURIComponent(listing)}/interest`).then(d => setTitle(d.title), () => {});
   }, [listing]);
   const onDirty = useCallback((k, b) => setDirty(d => (d[k] === b ? d : { ...d, [k]: b })), []);
-  useEffect(() => { setUnsaved(dirty.notes || dirty.form); }, [dirty]);
+  useEffect(() => { setUnsaved(dirty.notes || dirty.step || dirty.form); }, [dirty]);
   useEffect(() => () => setUnsaved(false), []);
-  // Typed notes go with the open viewing: switching to another one asks first (the New viewing form stays open).
-  const leaveDetail = () => !dirty.notes || confirm("You have unsaved notes. Leave without saving them?");
+  // Typed notes, a chosen outcome or new time go with the open viewing: switching to another one asks first (the New
+  // viewing form stays open).
+  const leaveDetail = () => !(dirty.notes || dirty.step)
+    || confirm(`You have ${dirty.step ? "unsaved changes to this viewing" : "unsaved notes"}. Leave without saving them?`);
   // focusTo: {to: "detail" | "list" | "heading"}, a new object each time, once the list it applies to is shown.
   useEffect(() => {
     if (!focusTo) return;
@@ -205,8 +208,8 @@ function Detail({ v, gone, ended, filtered, headRef, act, saveNotes, remove, onD
     {err && <p role="alert" className="err">{err}</p>}
     {gone && <p className="warn" role="note">This viewing has changed and is no longer in {gone}. Your notes aren't saved yet:
       save them below, then choose another viewing.</p>}
-    {active && open === "complete" && <OutcomeForm onSave={complete} onClose={close} />}
-    {active && open === "reschedule" && <RescheduleForm v={v} refresh={refresh} onSave={reschedule} onClose={close} />}
+    {active && open === "complete" && <OutcomeForm onSave={complete} onClose={close} onDirty={onDirty} />}
+    {active && open === "reschedule" && <RescheduleForm v={v} refresh={refresh} onSave={reschedule} onClose={close} onDirty={onDirty} />}
     <dl className="kv">
       <div><dt>Listing</dt><dd>{v.listing_id ? <a href={`#/p/${v.listing_id}`}>{listingOf(v)}</a>
         : v.listing_ref ? <>{listingOf(v)} <span className="muted">({v.listing_ref}, listing deleted)</span></> : listingOf(v)}</dd></div>
@@ -237,10 +240,17 @@ function Detail({ v, gone, ended, filtered, headRef, act, saveNotes, remove, onD
 }
 
 // C9: the team's outcome of a completed viewing, with an optional reason.
-function OutcomeForm({ onSave, onClose }) {
+// The open step's choice counts as unsaved, as notes do: once made, until saved or closed.
+const useStepDirty = (onDirty, dirty) => {
+  useEffect(() => { onDirty("step", dirty); }, [dirty]);
+  useEffect(() => () => onDirty("step", false), []);
+};
+
+function OutcomeForm({ onSave, onClose, onDirty }) {
   const [outcome, setOutcome] = useState(null), [note, setNote] = useState(""), [err, setErr] = useState(null);
   const head = useRef(null), first = useRef(null);
   useEffect(() => { head.current?.focus(); }, []);
+  useStepDirty(onDirty, !!outcome || !!note.trim());
   const submit = e => {
     e.preventDefault();
     if (!outcome) { setErr("Choose an outcome"); first.current?.focus(); return; }
@@ -259,11 +269,12 @@ function OutcomeForm({ onSave, onClose }) {
   </form>;
 }
 
-function RescheduleForm({ v, refresh, onSave, onClose }) {
+function RescheduleForm({ v, refresh, onSave, onClose, onDirty }) {
   const [slot, setSlot] = useState({ negotiator_id: v.negotiator_id, date: v.date >= jerseyToday() ? v.date : null, time: null });
   const [err, setErr] = useState(null);
   const head = useRef(null);
   useEffect(() => { head.current?.focus(); }, []);
+  useStepDirty(onDirty, !!slot.time);
   const submit = e => {
     e.preventDefault();
     if (!slot.time) return setErr("Choose a day and a time");
