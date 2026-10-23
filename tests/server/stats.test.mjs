@@ -38,7 +38,7 @@ test("stats: drafts, archived and unknown listings are not counted but answer 20
 test("stats: bad metric or id is 400", async () => {
   const env = world();
   const bad = [{ listing_id: "HE-R001", metric: "booking" }, { listing_id: "HE-R001" }, { listing_id: "R001", metric: "view" },
-    { listing_id: "HE-R01", metric: "view" }, { listing_id: 1, metric: "view" }, { metric: "view" }, null, []];
+    { listing_id: "HE-R01", metric: "view" }, { listing_id: 1, metric: "view" }, { listing_id: ["HE-R001"], metric: "view" },{ metric: "view" }, null, []];
   for (const body of bad) {
     const r = await call(env, "POST", "/stats", { body });
     assert.equal(r.status, 400, JSON.stringify(body));
