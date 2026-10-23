@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtAgo, fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
@@ -21,27 +21,39 @@ export default function Inbox({ paused, onCounts }) {
   const [box, setBox] = useState("action"), [cat, setCat] = useState("");
   const [data, setData] = useState(null), [counts, setCounts] = useState({});
   const [sel, setSel] = useState(null), [msg, setMsg] = useState(null), [loadErr, setLoadErr] = useState(null);
-  const seq = useRef(0);
+  const seq = useRef(0), listRef = useRef(null), headRef = useRef(null);
+  // Set by Done: once the list reloads, the focus goes to the selected notice (the next one), or the heading when none.
+  const refocus = useRef(false);
   const load = useCallback(() => {
     const n = ++seq.current;
     return api(`/admin/notifications?box=${box}${cat ? `&category=${cat}` : ""}`).then(d => {
       if (n !== seq.current) return; // a newer request (another tab, a later poll) has the fresher answer
       setData(d); setCounts(d.counts); onCounts(d.counts); setLoadErr(null);
       setSel(id => (d.notifications.some(x => x.id === id) ? id : d.notifications[0]?.id ?? null));
-    }, e => { if (n === seq.current) setLoadErr(e.message); });
+    }, e => { if (n === seq.current) { setLoadErr(e.message); refocus.current = false; } });
   }, [box, cat, onCounts]);
   // Every 30 s while the tab is visible; stopped while the session has expired.
   usePoll(load, paused ? null : 30000);
   const show = (b, c) => { if (b === box && c === cat) return; setBox(b); setCat(c); setData(null); setSel(null); setMsg(null); setLoadErr(null); };
+  useEffect(() => {
+    if (!refocus.current || !data) return;
+    refocus.current = false;
+    (listRef.current?.querySelector("[aria-current=true]") ?? headRef.current)?.focus();
+  }, [data]);
   const done = async n => {
     setMsg(null);
-    try { await api(`/admin/notifications/${n.id}`, { method: "PUT", body: { resolved: true } }); setMsg({ ok: true, text: "Marked as done. It's in the Feed now." }); await load(); }
-    catch (e) { setMsg({ text: e.message }); }
+    try {
+      await api(`/admin/notifications/${n.id}`, { method: "PUT", body: { resolved: true } });
+      // The next notice in the list (the one before when it was the last) is selected once n leaves it.
+      const list = data.notifications, i = list.findIndex(x => x.id === n.id);
+      setSel((list[i + 1] ?? list[i - 1])?.id ?? null);
+      setMsg({ ok: true, text: "Marked as done. It's in the Feed now." }); refocus.current = true; await load();
+    } catch (e) { setMsg({ text: e.message }); }
   };
   const n = data?.notifications.find(x => x.id === sel);
 
   return <section aria-labelledby="t-inbox">
-    <h1 id="t-inbox">Inbox</h1>
+    <h1 id="t-inbox" ref={headRef} tabIndex={-1}>Inbox</h1>
     <div className="inbox-tabs">
       <div className="seg" role="group" aria-label="Notices">{Object.entries(BOXES).map(([k, t]) =>
         <button key={k} type="button" aria-pressed={box === k} onClick={() => show(k, cat)}>{t}{k === "action" && <span className="count">{counts.action ?? ""}</span>}</button>)}</div>
@@ -53,7 +65,7 @@ export default function Inbox({ paused, onCounts }) {
     {loadErr && <p role="alert" className="err">{loadErr}</p>}
     {!data ? !loadErr && <p>Loading notices…</p> : !data.notifications.length ? <p className="empty card">{EMPTY[box][cat]}</p> :
       <div className="inbox">
-        <ul className="inbox-list" aria-label={`${BOXES[box]}: ${CATEGORIES[cat]}`}>{data.notifications.map(x => <li key={x.id}>
+        <ul ref={listRef} className="inbox-list" aria-label={`${BOXES[box]}: ${CATEGORIES[cat]}`}>{data.notifications.map(x => <li key={x.id}>
           <button type="button" aria-current={x.id === sel ? "true" : undefined} className={isOpen(x) ? "unread" : ""} onClick={() => setSel(x.id)}>
             <span className="who">{x.title}</span><time className="muted" dateTime={x.created_at}>{fmtAgo(x.created_at)}</time>
             <span className="what">{KIND[x.category]}</span>{box === "feed" && <span className="muted">{x.resolved_at ? "Done" : "For info"}</span>}

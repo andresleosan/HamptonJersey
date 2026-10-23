@@ -50,7 +50,7 @@ function NameForm({ user, onDone }) {
   };
   return <form className="inline name-form" onSubmit={save}>
     {/* Visible on phones, where the table header is hidden. */}
-    <label htmlFor={`name-${user.email}`} className="name-label">Name<span className="sr"> for {user.email}</span></label>
+    <label htmlFor={`name-${user.email}`} className="sr name-label">Name<span className="sr"> for {user.email}</span></label>
     <input id={`name-${user.email}`} value={name} maxLength={80} onChange={e => setName(e.target.value)} />
     <button className="btn ghost sm" disabled={!changed || busy}>Save</button>
   </form>;

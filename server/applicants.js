@@ -12,6 +12,7 @@ export const OPTIONS = {
   property_types: [["flat", "Flat"], ["house", "House"], ["cottage", "Cottage"], ["studio", "Studio"]],
   outdoor: [["garden", "Garden"], ["terrace", "Terrace"], ["balcony", "Balcony"]],
   furnished: [["yes", "Furnished"], ["no", "Unfurnished"], ["either", "Either"]],
+  parking: [[0, "None"], [1, "1"], [2, "2"], [3, "3+"]],
   pet_kinds: [["none", "No pets"], ["cat", "Cat"], ["dog", "Dog"], ["other", "Other"]],
   buyer_position: [["first_time", "First-time buyer"], ["nothing_to_sell", "Nothing to sell"],
     ["needs_to_sell", "Needs to sell"], ["cash", "Cash buyer"]],

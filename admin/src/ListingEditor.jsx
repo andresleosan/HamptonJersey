@@ -28,11 +28,6 @@ export default function ListingEditor({ id }) {
   const fieldsDirty = !!data && !!form && JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing)));
   const dirty = fieldsDirty || photosDirty;
   useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
-  useEffect(() => {
-    const f = e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } };
-    addEventListener("beforeunload", f);
-    return () => removeEventListener("beforeunload", f);
-  }, [dirty]);
 
   if (loadErr) return <p role="alert" className="err">{loadErr} · <a href="#/listings">Back to listings</a></p>;
   if (!data) return <p>Loading listing…</p>;

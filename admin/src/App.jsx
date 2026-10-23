@@ -36,9 +36,13 @@ export default function App() {
     return () => removeEventListener("hs:signed-out", f);
   }, []);
 
-  // The Inbox counter in the navigation: every 30 s while signed in and the tab is visible.
+  const [path, query] = hash.replace(/^#\/?/, "").split("?");
+  const [section, arg, sub] = path.split("/");
+  const current = section === "p" && arg ? "listings" : ["applicants", "listings", "viewings", "users", "tours"].includes(section) ? section : "";
+  // The Inbox counter in the navigation: every 30 s while signed in and the tab is visible. On the Inbox itself,
+  // the page's own poll brings the counts (onCounts).
   const loadCounts = useCallback(() => api("/admin/notifications/counts").then(setCounts, () => {}), []);
-  usePoll(loadCounts, me && !expired ? 30000 : null);
+  usePoll(loadCounts, me && !expired && current !== "" ? 30000 : null);
 
   // The sticky bar's height (it wraps on phones) for `scroll-padding-top`: a focused field never lands under it.
   const bar = useRef(null);
@@ -53,8 +57,6 @@ export default function App() {
   if (me === undefined) return <p className="center">Loading…</p>;
   if (me === null) return <main className="center"><Login onSignedIn={signedIn} /></main>;
 
-  const [path, query] = hash.replace(/^#\/?/, "").split("?");
-  const [section, arg, sub] = path.split("/");
   const page = section === "p" && arg ? <ListingEditor key={arg} id={decodeURIComponent(arg)} />
     : section === "applicants" && arg === "new"
       ? <NewApplicant key={query ?? ""} contactId={new URLSearchParams(query).get("contact")} />
@@ -62,7 +64,6 @@ export default function App() {
     : section === "applicants" ? <Applicants />
     : section === "listings" ? <Listings /> : section === "viewings" ? <Viewings /> : section === "users" ? <Users me={me} />
     : section === "tours" ? <Tours /> : <Inbox paused={expired} onCounts={setCounts} />;
-  const current = section === "p" && arg ? "listings" : ["applicants", "listings", "viewings", "users", "tours"].includes(section) ? section : "";
   const logout = async () => {
     if (!confirmLeave()) return;
     await api("/session", { method: "DELETE" }).catch(() => {});
@@ -85,7 +86,8 @@ export default function App() {
       <span className="who">{me}</span>
       <button type="button" className="btn ghost sm" onClick={logout}>Sign out</button>
     </header>
-    <main className="page" inert={expired}>{page}</main>
+    {/* Every link in the page, like those in the header, asks first when there are unsaved changes. */}
+    <main className="page" inert={expired} onClickCapture={e => { if (e.target.closest("a[href^='#']")) confirmLeave(e); }}>{page}</main>
     {/* Session expired mid-task: sign in again on top of the page so nothing typed is lost. */}
     {expired && <div className="modal" role="dialog" aria-modal="true" aria-label="Session expired">
       <Login title="Your session has expired" note="Sign in again; what you were editing is still here." onSignedIn={signedIn} home={false} />

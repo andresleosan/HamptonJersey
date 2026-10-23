@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtAgo, fmtDate } from "./format.js";
-import { setUnsaved, confirmLeave } from "./unsaved.js";
+import { setUnsaved } from "./unsaved.js";
 import { OPTIONS, normalizePhone } from "../../server/applicants.js";
 import ApplicantFields, { toForm, toBody } from "./ApplicantFields.jsx";
 
@@ -25,7 +25,7 @@ const LABEL = { operation: "To Let or To Buy", stage: "Stage", lost_reason: "Why
 const CHOICES = { operation: OPTIONS.operation, stage: OPTIONS.stages, source: OPTIONS.sources, furnished: OPTIONS.furnished,
   property_types: OPTIONS.property_types, outdoor: OPTIONS.outdoor, parishes_wanted: OPTIONS.parishes, parishes_excluded: OPTIONS.parishes,
   buyer_position: OPTIONS.buyer_position, mortgage_aip: OPTIONS.mortgage_aip, housing_status: OPTIONS.housing_status,
-  preferred_channel: OPTIONS.channels, parking_spaces: [[0, "None"], [1, "1"], [2, "2"], [3, "3+"]] };
+  preferred_channel: OPTIONS.channels, parking_spaces: OPTIONS.parking };
 const MONEY = ["budget_min", "budget_max", "budget_stretch"];
 const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requirements changed", "applicant.stage_changed": "Stage changed",
   "applicant.archived": "Archived", "applicant.restored": "Restored", "contact.updated": "Contact details changed",
@@ -83,11 +83,6 @@ export default function ApplicantDetail({ id, tab }) {
   const searchChanged = changed(SEARCH), contactChanged = changed(CONTACT);
   const dirty = searchChanged.length + contactChanged.length > 0;
   useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
-  useEffect(() => {
-    const f = e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } };
-    addEventListener("beforeunload", f);
-    return () => removeEventListener("beforeunload", f);
-  }, [dirty]);
   // After a refused save, the first highlighted field gets the focus (once its tab is showing).
   useEffect(() => {
     const el = focusError.current && cur === "requirements" && formRef.current?.querySelector("[aria-invalid=true]");
@@ -135,14 +130,22 @@ export default function ApplicantDetail({ id, tab }) {
   };
   const discard = () => { setForm(toForm(a, c)); setErrors({}); setMsg(null); };
 
+  // After Apply or Confirm: the record just saved ({applicant} or {contact}) and the fresh history. The other record
+  // keeps the version the form started from, so an edit someone else made there never shows up as this user's
+  // unsaved change (and a later Save cannot revert it); Save or Reload brings it in.
+  const refresh = async saved => {
+    setData(x => ({ ...x, ...saved }));
+    const d = await api(`/admin/applicants/${id}`);
+    setData(x => ({ ...x, events: d.events, viewings: d.viewings, duplicates: d.duplicates }));
+  };
   // Stage and Assigned to save on their own; unsaved requirements stay in the form. Input while saving is ignored,
   // never disabled, so the focus stays where it is.
   const putApplicant = async (key, patch, done, focus) => {
     if (busy) return;
     setBusy(true); setNote(null);
     try {
-      await api(`/admin/applicants/${id}`, { method: "PUT", body: { ...patch, updated_at: a.updated_at } });
-      await fetchDetail();
+      const { applicant } = await api(`/admin/applicants/${id}`, { method: "PUT", body: { ...patch, updated_at: a.updated_at } });
+      await refresh({ applicant });
       focus?.current?.focus(); setChoice(x => ({ ...x, [key]: null })); setLost(null); setNote({ ok: true, text: done });
     } catch (e) {
       setNote({ text: Object.values(e.data?.fields || {}).join(" ") || e.message, stale: stale(e) });
@@ -159,7 +162,7 @@ export default function ApplicantDetail({ id, tab }) {
     putApplicant("assigned_to", { assigned_to: owner || null }, owner ? `Assigned to ${nameOf(owner)}.` : "Now unassigned.", ownerRef);
   };
   const onEnter = apply => e => { if (e.key === "Enter") { e.preventDefault(); apply(); } };
-  const cancelLost = () => { setLost(null); setChoice(x => ({ ...x, stage: null })); };
+  const cancelLost = () => { setLost(null); setChoice(x => ({ ...x, stage: null })); stageRef.current?.focus(); };
 
   const copy = sent => {
     const from = toForm(sent, sent), keys = COPY.filter(k => !blank(sent[k]));
@@ -167,13 +170,15 @@ export default function ApplicantDetail({ id, tab }) {
     setMsg({ ok: true, text: "What they sent is in the form. Check it, then save." });
     if (cur !== "requirements") go("requirements");
   };
-  // §3.3: a marketing opt-in sent again from the website waits for the team to confirm it.
-  const confirmMarketing = async () => {
+  // §3.3: a marketing opt-in sent again from the website waits for the team to confirm it. Its button goes away, so
+  // the focus goes to the heading of the strip it was in.
+  const confirmMarketing = async dup => {
     if (busy) return;
     setBusy(true); setNote(null);
     try {
-      await api(`/admin/contacts/${c.id}`, { method: "PUT", body: { marketing: true, updated_at: c.updated_at } });
-      await fetchDetail(); setNote({ ok: true, text: "Marketing opt-in confirmed." });
+      const { contact } = await api(`/admin/contacts/${c.id}`, { method: "PUT", body: { marketing: true, updated_at: c.updated_at } });
+      await refresh({ contact });
+      document.getElementById(`dup-${dup.id}`)?.focus(); setNote({ ok: true, text: "Marketing opt-in confirmed." });
     } catch (e) { setNote({ text: e.message, stale: stale(e) }); }
     finally { setBusy(false); }
   };
@@ -214,7 +219,7 @@ export default function ApplicantDetail({ id, tab }) {
         {tel && <a className="btn ghost sm" href={`tel:${tel}`}>Call</a>}
         {tel && <a className="btn ghost sm" href={`https://wa.me/${tel.slice(1)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
         {c.email && <a className="btn ghost sm" href={`mailto:${c.email}`}>Email</a>}
-        <a href="#/applicants" onClick={confirmLeave}>← Back to applicants</a>
+        <a href="#/applicants">← Back to applicants</a>
       </div>
     </div>
     {archived && <p className="warn" role="note">Archived {fmtDate(a.archived_at)}. Restore it to work on it again, or delete it permanently from the bar below.</p>}
@@ -232,7 +237,7 @@ export default function ApplicantDetail({ id, tab }) {
           Apply<span className="sr"> assigned to</span></button>}</div>
       {a.stage === "lost" && lost === null && a.lost_reason && <p className="muted lost-reason">Lost: {a.lost_reason}</p>}
     </div>
-    {lost !== null && <form className="inline" onSubmit={e => { e.preventDefault(); if (lost.trim()) putApplicant("stage", { stage: "lost", lost_reason: lost.trim() }, "Marked as lost."); }}>
+    {lost !== null && <form className="inline" onSubmit={e => { e.preventDefault(); if (lost.trim()) putApplicant("stage", { stage: "lost", lost_reason: lost.trim() }, "Marked as lost.", stageRef); }}>
       <label htmlFor="lost-reason">Why was it lost?</label>
       <input id="lost-reason" ref={lostRef} value={lost} maxLength={200} onChange={e => setLost(e.target.value)} placeholder="Bought privately, stopped answering…" />
       <button className="btn sm" disabled={!lost.trim()}>Save as lost</button>
@@ -284,10 +289,12 @@ const Message = ({ m, onReload }) => m && <p role={m.ok ? "status" : "alert"} cl
 function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirmMarketing, onDismiss }) {
   const sent = dup.data ?? {};
   const differs = k => !blank(sent[k]) && !same(k, sent[k], stored[k]);
-  const keys = [...CONTACT, ...SEARCH].filter(differs), copyable = COPY.some(differs);
+  // Sent for the other operation: that is a second search, not changes to this one.
+  const keys = [...CONTACT, ...SEARCH].filter(differs);
+  const copyable = (sent.operation == null || sent.operation === stored.operation) && COPY.some(differs);
   const optIn = sent.marketing === true && stored.marketing_opt_in_at == null;
   return <section className="warn dup" aria-labelledby={`dup-${dup.id}`}>
-    <h2 id={`dup-${dup.id}`}>{dup.title}</h2>
+    <h2 id={`dup-${dup.id}`} tabIndex={-1}>{dup.title}</h2>
     <p className="muted">{fmtAgo(dup.created_at)} · {keys.length ? "What they sent that differs from what is saved:" : "What they sent matches what is saved."}</p>
     {sent.other_contact_id != null && <p>Their email and their phone number belong to two different contacts.</p>}
     {keys.length > 0 && <dl className="changes">{keys.map(k => <div key={k}><dt>{LABEL[k]}</dt>
@@ -295,8 +302,8 @@ function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirm
     {optIn && <p>They agreed to marketing this time. It only applies once you confirm it.</p>}
     <div className="inline">
       {copyable && <button type="button" className="btn sm" disabled={archived} onClick={() => onCopy(sent)}>Copy fields</button>}
-      {optIn && <button type="button" className="btn ghost sm" disabled={archived} onClick={onConfirmMarketing}>Confirm marketing opt-in</button>}
-      {dup.active_search_id == null && <a className="btn ghost sm" href={`#/applicants/new?contact=${contactId}`} onClick={confirmLeave}>Create second search</a>}
+      {optIn && <button type="button" className="btn ghost sm" disabled={archived} onClick={() => onConfirmMarketing(dup)}>Confirm marketing opt-in</button>}
+      {dup.active_search_id == null && <a className="btn ghost sm" href={`#/applicants/new?contact=${contactId}`}>Create second search</a>}
       <button type="button" className="btn ghost sm" onClick={() => onDismiss(dup)}>Dismiss</button>
     </div>
   </section>;

@@ -9,7 +9,7 @@ const STAGE_LABEL = Object.fromEntries(OPTIONS.stages);
 // DESIGN.md "Badges de estado": the tone of each stage.
 const TONE = { new: "attention", searching: "active", viewing: "active", offer: "active", agreed: "positive", completed: "positive",
   paused: "neutral", lost: "neutral" };
-export const StageBadge = ({ stage }) => <span className={`badge ${TONE[stage]}`}>{STAGE_LABEL[stage]}</span>;
+const StageBadge = ({ stage }) => <span className={`badge ${TONE[stage]}`}>{STAGE_LABEL[stage]}</span>;
 
 export default function Applicants() {
   const [rows, setRows] = useState(null), [error, setError] = useState(null), [users, setUsers] = useState([]);
@@ -63,8 +63,9 @@ export default function Applicants() {
         <td><a href={`#/applicants/${a.id}`}>{a.name}</a><div className="muted">{OPERATION_LABEL[a.operation]}{a.email && ` · ${a.email}`}</div></td>
         <td className="num" data-label="Phone">{a.phone || "—"}</td>
         <td className="muted" data-label="Applied"><time dateTime={a.created_at}>{fmtDate(a.created_at)}</time></td>
-        <td className="stage"><StageBadge stage={a.stage} />{a.stage === "lost" && a.lost_reason
-          && <span className="muted"> {a.lost_reason}</span>}</td>
+        {/* On phones a lost reason takes its own row, so it never squeezes the name. */}
+        <td className={a.stage === "lost" && a.lost_reason ? "stage lost" : "stage"}><StageBadge stage={a.stage} />{a.stage === "lost"
+          && a.lost_reason && <span className="muted"> {a.lost_reason}</span>}</td>
         <td data-label="Assigned to">{a.assigned_to ? a.assigned_name || a.assigned_to : <span className="muted">Unassigned</span>}</td>
       </tr>)}</tbody>
     </table> : <div className="empty card">{filtered

@@ -73,7 +73,7 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
         {count("bedrooms_min", "Bedrooms, at least")}
         {count("bedrooms_ideal", "Bedrooms, ideally")}
         {count("bathrooms_min", "Bathrooms, at least")}
-        {select("parking_spaces", "Parking", [["0", "None"], ["1", "1"], ["2", "2"], ["3", "3+"]])}
+        {select("parking_spaces", "Parking", OPTIONS.parking)}
         {rent && select("furnished", "Furnished", OPTIONS.furnished)}
       </div>
       {choices("outdoor", "Outdoor space", OPTIONS.outdoor)}
