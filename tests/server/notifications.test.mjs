@@ -12,7 +12,7 @@ const insert = (env, table, row) => {
   return Number(r.lastInsertRowid);
 };
 const contact = (env, o = {}) => insert(env, "contacts", {
-  name: "Jane Le Brocq", email: "jane@example.je", phone: "+447797123456", created_at: T0, updated_at: T0, ...o });
+  name: "Jane Le Brocq", email: "jane@example.je", phone: "+447797123456", last_activity_at: T0, created_at: T0, updated_at: T0, ...o });
 const applicant = (env, contact_id, o = {}) => insert(env, "applicants", {
   contact_id, operation: "rent", source: "web", created_at: T0, updated_at: T0, ...o });
 const viewing = (env, o = {}) => insert(env, "viewing_requests", {

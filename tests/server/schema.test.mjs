@@ -20,8 +20,8 @@ test("the database itself refuses public external media and zero prices", () => 
 });
 
 const addContact = (env, row) => env.DB.raw.prepare(
-  "INSERT INTO contacts (name, email, phone, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
-  .run(row.name ?? "Jane Le Brocq", row.email ?? null, row.phone ?? null, T0, T0);
+  "INSERT INTO contacts (name, email, phone, last_activity_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)")
+  .run(row.name ?? "Jane Le Brocq", row.email ?? null, row.phone ?? null, T0, T0, T0);
 
 test("0008: contacts need an email or a phone and refuse duplicates", () => {
   const env = makeEnv();

@@ -11,7 +11,7 @@ CREATE TABLE contacts (
   best_time TEXT,
   privacy_ack_at TEXT, marketing_opt_in_at TEXT,
   consent_source TEXT CHECK (consent_source IS NULL OR consent_source IN ('web','phone','walk_in','email')),
-  last_activity_at TEXT,
+  last_activity_at TEXT NOT NULL,
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL, updated_by TEXT,
   CHECK (email IS NOT NULL OR phone IS NOT NULL)
 );
