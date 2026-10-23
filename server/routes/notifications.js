@@ -1,11 +1,12 @@
 import { json, fail, readJson, now } from "../http.js";
 import { normalizePhone, activeSql } from "../applicants.js";
+import { QUEUE_COUNT_SQL } from "./matches.js";
 
 const BOXES = {
   action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id",
   feed: "NOT (n.action_required = 1 AND n.resolved_at IS NULL) ORDER BY n.created_at DESC, n.id DESC LIMIT 200",
 };
-const CATEGORIES = ["new_applicant", "viewing"];
+const CATEGORIES = ["new_applicant", "viewing", "matched"];
 
 // The entity comes from the notice's event. A duplicate points to its contact: its search is the active one
 // (not archived, lost or completed) with the submitted operation, else the most recent (§3.3).
@@ -22,17 +23,21 @@ const LIST_SQL = `
   LEFT JOIN contacts c ON e.entity_type = 'contact' AND c.id = e.entity_id
   LEFT JOIN viewing_requests v ON e.entity_type = 'viewing' AND v.id = e.entity_id`;
 
-function link({ entity_type, entity_id, search_id }) {
+function link({ category, entity_type, entity_id, search_id }) {
   if (entity_type === "viewing") return "#/viewings";
-  if (entity_type === "applicant") return `#/applicants/${entity_id}`;
+  if (entity_type === "applicant") return `#/applicants/${entity_id}${category === "matched" ? "/matches" : ""}`;
   return search_id != null ? `#/applicants/${search_id}` : `#/applicants/new?contact=${entity_id}`;
 }
 
+// Open notices needing action, by category; review: the found matches waiting in the Review queue.
 async function openCounts(env) {
-  const { results } = await env.DB.prepare(
-    "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category").all();
-  const by = Object.fromEntries(CATEGORIES.map(c => [c, results.find(r => r.category === c)?.n ?? 0]));
-  return { action: by.new_applicant + by.viewing, ...by };
+  const [open, [review]] = (await env.DB.batch([
+    env.DB.prepare(
+      "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category"),
+    env.DB.prepare(QUEUE_COUNT_SQL),
+  ])).map(r => r.results);
+  const by = Object.fromEntries(CATEGORIES.map(c => [c, open.find(r => r.category === c)?.n ?? 0]));
+  return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by, review: review.n };
 }
 
 async function list({ request, env }) {

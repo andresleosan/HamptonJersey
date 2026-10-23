@@ -59,7 +59,8 @@ test("create from the panel, then list filtered and sorted", async () => {
   assert.deepEqual((await list("?operation=rent")).map(x => x.id), [b, a], "newest is the default");
   assert.deepEqual((await list("")).map(x => x.id), [c, b, a]);
   assert.deepEqual(Object.keys((await list("?operation=buy"))[0]).sort(),
-    ["assigned_name", "assigned_to", "created_at", "email", "id", "lost_reason", "name", "operation", "phone", "stage"]);
+    ["assigned_name", "assigned_to", "created_at", "email", "found", "id", "lost_reason", "name", "operation", "phone", "queue",
+      "shortlisted", "stage"]);
   for (const q of ["jane", "JANE@example", "07797 123456", "7797123", "+447797123456"])
     assert.deepEqual((await list(`?q=${encodeURIComponent(q)}`)).map(x => x.id), [a], q);
   assert.deepEqual((await list("?q=0044%207700-900123")).map(x => x.id), [c]);
@@ -70,7 +71,8 @@ test("create from the panel, then list filtered and sorted", async () => {
     assigned_to: OTHER, stage: "searching" });
   const [tom] = await list(`?assigned=${encodeURIComponent(OTHER)}&stage=searching`);
   assert.deepEqual(tom, { id: b, operation: "rent", stage: "searching", created_at: "2026-10-02T09:00:00.000Z",
-    assigned_to: OTHER, assigned_name: "Andrés", lost_reason: null, name: "Tom Vibert", phone: null, email: "tom@example.je" });
+    assigned_to: OTHER, assigned_name: "Andrés", lost_reason: null, name: "Tom Vibert", phone: null, email: "tom@example.je",
+    queue: "No matches", found: 0, shortlisted: 0 });
   assert.deepEqual((await list("?stage=new")).map(x => x.id), [c, a]);
   // A lost search carries its reason, shown next to the badge.
   await req(env, "PUT", `/admin/applicants/${c}`, { updated_at: row(env, "SELECT updated_at FROM applicants WHERE id = ?", c).updated_at,
