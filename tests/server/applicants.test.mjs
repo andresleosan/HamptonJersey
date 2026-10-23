@@ -256,6 +256,34 @@ test("contact edits: stale saves and an email or phone of another contact are re
   assert.ok(none.data.fields.email);
 });
 
+test("the team confirms or withdraws marketing consent, logged as consent_changed", async () => {
+  const env = makeEnv();
+  const { contact } = await detail(env, await create(env));
+  const path = `/admin/contacts/${contact.id}`;
+  assert.equal(contact.marketing_opt_in_at, null);
+  assert.equal((await req(env, "PUT", path, { updated_at: contact.updated_at, marketing: "yes" })).status, 400);
+
+  const on = await req(env, "PUT", path, { updated_at: contact.updated_at, marketing: true });
+  assert.equal(on.status, 200, JSON.stringify(on.data));
+  const at = on.data.contact.marketing_opt_in_at;
+  assert.ok(at);
+  assert.equal(on.data.contact.updated_by, ADMIN);
+  const ev = rows(env, "SELECT * FROM events WHERE entity_type = 'contact' ORDER BY id");
+  assert.deepEqual(ev.map(e => e.type), ["contact.consent_changed"]);
+  assert.deepEqual(JSON.parse(ev[0].data), { before: { marketing_opt_in_at: null }, after: { marketing_opt_in_at: at } });
+
+  // Already opted in: nothing changes, the first date stays.
+  const again = await req(env, "PUT", path, { updated_at: on.data.contact.updated_at, marketing: true });
+  assert.equal(again.data.contact.marketing_opt_in_at, at);
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM events WHERE type = 'contact.consent_changed'").n, 1);
+
+  const off = await req(env, "PUT", path, { updated_at: on.data.contact.updated_at, marketing: false, best_time: "Evenings" });
+  assert.equal(off.status, 200, JSON.stringify(off.data));
+  assert.equal(off.data.contact.marketing_opt_in_at, null);
+  assert.deepEqual(rows(env, "SELECT type FROM events WHERE entity_type = 'contact' ORDER BY id").map(e => e.type),
+    ["contact.consent_changed", "contact.updated", "contact.consent_changed"]);
+});
+
 test("archive closes the open notices; restore brings it back to the list", async () => {
   const env = makeEnv();
   const id = await create(env);

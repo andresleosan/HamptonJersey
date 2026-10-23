@@ -49,7 +49,9 @@ function NameForm({ user, onDone }) {
     finally { setBusy(false); }
   };
   return <form className="inline name-form" onSubmit={save}>
-    <input aria-label={`Name for ${user.email}`} value={name} maxLength={80} onChange={e => setName(e.target.value)} />
+    {/* Visible on phones, where the table header is hidden. */}
+    <label htmlFor={`name-${user.email}`} className="name-label">Name<span className="sr"> for {user.email}</span></label>
+    <input id={`name-${user.email}`} value={name} maxLength={80} onChange={e => setName(e.target.value)} />
     <button className="btn ghost sm" disabled={!changed || busy}>Save</button>
   </form>;
 }

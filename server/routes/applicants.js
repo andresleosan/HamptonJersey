@@ -232,17 +232,26 @@ async function updateContact({ request, env, admin, params: [id] }) {
   if (r.errors) return fieldErrors(r.errors);
   const next = pick(r.value.contact, CONTACT_FIELDS);
   const { keys, data } = diff(cur, next);
-  if (!keys.length) return json({ contact: cur });
+  // §3.3: the team confirms a marketing opt-in sent again from the website (true), or records a withdrawal (false).
+  // An opt-in already on file keeps its first date.
+  const ts = now();
+  if (Object.hasOwn(body, "marketing") && typeof body.marketing !== "boolean") fail(400, "Send marketing as true or false");
+  const marketing = !Object.hasOwn(body, "marketing") ? cur.marketing_opt_in_at : body.marketing ? cur.marketing_opt_in_at ?? ts : null;
+  const consent = marketing !== cur.marketing_opt_in_at;
+  if (!keys.length && !consent) return json({ contact: cur });
 
   const taken = c => json({ error: "Another contact already uses this email or phone number", contact_id: c.id }, 409);
-  const other = await findContact(env, next, cur.id);
+  const other = keys.length && await findContact(env, next, cur.id);
   if (other) return taken(other);
-  const ts = now();
+  const sets = [...keys, ...(consent ? ["marketing_opt_in_at"] : [])], values = { ...next, marketing_opt_in_at: marketing };
+  const ref = { actor: admin, entity_type: "contact", entity_id: String(cur.id) };
   try {
     await saveVersioned(env, [
-      env.DB.prepare(`UPDATE contacts SET ${keys.map(k => `${k} = ?`).join(", ")}, last_activity_at = ?, updated_by = ?, ${LOCK} WHERE id = ?`)
-        .bind(...keys.map(k => next[k]), ts, admin, body.updated_at, ts, cur.id),
-      ...logEvent(env, { actor: admin, entity_type: "contact", entity_id: String(cur.id), type: "contact.updated", data }),
+      env.DB.prepare(`UPDATE contacts SET ${sets.map(k => `${k} = ?`).join(", ")}, last_activity_at = ?, updated_by = ?, ${LOCK} WHERE id = ?`)
+        .bind(...sets.map(k => values[k]), ts, admin, body.updated_at, ts, cur.id),
+      ...(keys.length ? logEvent(env, { ...ref, type: "contact.updated", data }) : []),
+      ...(consent ? logEvent(env, { ...ref, type: "contact.consent_changed",
+        data: { before: { marketing_opt_in_at: cur.marketing_opt_in_at }, after: { marketing_opt_in_at: marketing } } }) : []),
     ], "contact", cur.id, body.updated_at);
   } catch (e) {
     const c = /UNIQUE/i.test(String(e?.message)) && await findContact(env, next, cur.id);

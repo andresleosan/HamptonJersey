@@ -180,3 +180,7 @@ table.list{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .timeline strong{font-weight:600}
 @media (max-width:760px){.list.users tr{grid-template-columns:1fr}.list.users td:first-child{grid-row:auto;overflow-wrap:anywhere}
   .name-form input{width:auto;flex:1}}
+.apply{display:flex;gap:8px;align-items:end}
+fieldset.plain{border:0;padding:0;margin:0;min-width:0}
+.name-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:760px){.name-form{align-items:center}.name-label{position:static;width:auto;height:auto;overflow:visible;clip:auto;color:var(--stone)}}

@@ -8,8 +8,9 @@ import ApplicantFields, { toForm, toBody } from "./ApplicantFields.jsx";
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
 // Every form field that belongs to the search (the rest of the form is the contact).
 const SEARCH = Object.keys(toForm()).filter(k => !CONTACT.includes(k));
-// §3.3 Copy fields: the search's requirements and, from the contact, only these two.
-const COPY = [...SEARCH, "preferred_channel", "best_time"];
+// §3.3 Copy fields: the search's requirements (never its operation: that is a second search) and, from the contact,
+// only these two.
+const COPY = [...SEARCH.filter(k => k !== "operation"), "preferred_channel", "best_time"];
 const TABS = [["requirements", "Requirements"], ["timeline", "Timeline"]];
 
 const LABEL = { operation: "To Let or To Buy", stage: "Stage", lost_reason: "Why it was lost", assigned_to: "Assigned to",
@@ -64,7 +65,11 @@ export default function ApplicantDetail({ id, tab }) {
   // msg: Save, Copy fields, archive and delete (in the action bar). note: stage, owner and Dismiss (next to them).
   const [msg, setMsg] = useState(null), [note, setNote] = useState(null);
   const [lost, setLost] = useState(null), [confirmDel, setConfirmDel] = useState(""); // lost: the reason being typed
+  // Stage and Assigned to as chosen but not yet applied (null = as stored): a select saves only on Apply or Enter,
+  // so moving through its options with the arrow keys saves nothing.
+  const [choice, setChoice] = useState({ stage: null, assigned_to: null });
   const tabs = useRef({}), formRef = useRef(null), lostRef = useRef(null), focusError = useRef(false);
+  const stageRef = useRef(null), ownerRef = useRef(null);
   const cur = tab === "timeline" ? "timeline" : "requirements";
 
   const fetchDetail = () => api(`/admin/applicants/${id}`).then(d => { setData(d); return d; });
@@ -130,25 +135,47 @@ export default function ApplicantDetail({ id, tab }) {
   };
   const discard = () => { setForm(toForm(a, c)); setErrors({}); setMsg(null); };
 
-  // Stage and Assigned to save on their own; unsaved requirements stay in the form.
-  const putApplicant = async (patch, done) => {
+  // Stage and Assigned to save on their own; unsaved requirements stay in the form. Input while saving is ignored,
+  // never disabled, so the focus stays where it is.
+  const putApplicant = async (key, patch, done, focus) => {
+    if (busy) return;
     setBusy(true); setNote(null);
     try {
       await api(`/admin/applicants/${id}`, { method: "PUT", body: { ...patch, updated_at: a.updated_at } });
-      await fetchDetail(); setLost(null); setNote({ ok: true, text: done });
+      await fetchDetail();
+      focus?.current?.focus(); setChoice(x => ({ ...x, [key]: null })); setLost(null); setNote({ ok: true, text: done });
     } catch (e) {
       setNote({ text: Object.values(e.data?.fields || {}).join(" ") || e.message, stale: stale(e) });
     } finally { setBusy(false); }
   };
-  const chooseStage = v => (v === "lost" ? setLost("")
-    : putApplicant({ stage: v }, `Stage changed to ${show("stage", v)}.`));
-  const assign = v => putApplicant({ assigned_to: v || null }, v ? `Assigned to ${nameOf(v)}.` : "Now unassigned.");
+  const stage = choice.stage ?? a.stage, owner = choice.assigned_to ?? a.assigned_to ?? "";
+  const applyStage = () => {
+    if (busy || stage === a.stage) return;
+    if (stage === "lost") setLost("");
+    else putApplicant("stage", { stage }, `Stage changed to ${show("stage", stage)}.`, stageRef);
+  };
+  const applyOwner = () => {
+    if (busy || owner === (a.assigned_to ?? "")) return;
+    putApplicant("assigned_to", { assigned_to: owner || null }, owner ? `Assigned to ${nameOf(owner)}.` : "Now unassigned.", ownerRef);
+  };
+  const onEnter = apply => e => { if (e.key === "Enter") { e.preventDefault(); apply(); } };
+  const cancelLost = () => { setLost(null); setChoice(x => ({ ...x, stage: null })); };
 
   const copy = sent => {
     const from = toForm(sent, sent), keys = COPY.filter(k => !blank(sent[k]));
     setForm(f => ({ ...f, ...pick(from, keys) })); setErrors({});
     setMsg({ ok: true, text: "What they sent is in the form. Check it, then save." });
     if (cur !== "requirements") go("requirements");
+  };
+  // §3.3: a marketing opt-in sent again from the website waits for the team to confirm it.
+  const confirmMarketing = async () => {
+    if (busy) return;
+    setBusy(true); setNote(null);
+    try {
+      await api(`/admin/contacts/${c.id}`, { method: "PUT", body: { marketing: true, updated_at: c.updated_at } });
+      await fetchDetail(); setNote({ ok: true, text: "Marketing opt-in confirmed." });
+    } catch (e) { setNote({ text: e.message, stale: stale(e) }); }
+    finally { setBusy(false); }
   };
   const dismiss = async dup => {
     setNote(null);
@@ -193,30 +220,39 @@ export default function ApplicantDetail({ id, tab }) {
     {archived && <p className="warn" role="note">Archived {fmtDate(a.archived_at)}. Restore it to work on it again, or delete it permanently from the bar below.</p>}
 
     <div className="filters">
-      <label>Stage<select value={lost !== null ? "lost" : a.stage} disabled={busy} onChange={e => chooseStage(e.target.value)}>
+      <div className="apply"><label>Stage<select ref={stageRef} value={stage} disabled={archived} onKeyDown={onEnter(applyStage)}
+        onChange={e => { setChoice(x => ({ ...x, stage: e.target.value })); if (e.target.value !== "lost") setLost(null); }}>
         {OPTIONS.stages.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>
-      <label>Assigned to<select value={a.assigned_to ?? ""} disabled={busy} onChange={e => assign(e.target.value)}>
+        {!archived && <button type="button" className="btn ghost sm" disabled={stage === a.stage} onClick={applyStage}>
+          Apply<span className="sr"> stage</span></button>}</div>
+      <div className="apply"><label>Assigned to<select ref={ownerRef} value={owner} disabled={archived} onKeyDown={onEnter(applyOwner)}
+        onChange={e => setChoice(x => ({ ...x, assigned_to: e.target.value }))}>
         <option value="">Unassigned</option>{owners.map(u => <option key={u.email} value={u.email}>{u.name || u.email}</option>)}</select></label>
+        {!archived && <button type="button" className="btn ghost sm" disabled={owner === (a.assigned_to ?? "")} onClick={applyOwner}>
+          Apply<span className="sr"> assigned to</span></button>}</div>
       {a.stage === "lost" && lost === null && a.lost_reason && <p className="muted lost-reason">Lost: {a.lost_reason}</p>}
     </div>
-    {lost !== null && <form className="inline" onSubmit={e => { e.preventDefault(); putApplicant({ stage: "lost", lost_reason: lost.trim() }, "Marked as lost."); }}>
+    {lost !== null && <form className="inline" onSubmit={e => { e.preventDefault(); if (lost.trim()) putApplicant("stage", { stage: "lost", lost_reason: lost.trim() }, "Marked as lost."); }}>
       <label htmlFor="lost-reason">Why was it lost?</label>
       <input id="lost-reason" ref={lostRef} value={lost} maxLength={200} onChange={e => setLost(e.target.value)} placeholder="Bought privately, stopped answering…" />
-      <button className="btn sm" disabled={!lost.trim() || busy}>Save as lost</button>
-      <button type="button" className="btn ghost sm" onClick={() => setLost(null)}>Cancel</button>
+      <button className="btn sm" disabled={!lost.trim()}>Save as lost</button>
+      <button type="button" className="btn ghost sm" onClick={cancelLost}>Cancel</button>
     </form>}
     <Message m={note} onReload={load} />
 
     {data.duplicates.map(d => <Duplicate key={d.id} dup={d} stored={{ ...a, ...c }} contactId={c.id} nameOf={nameOf}
-      onCopy={copy} onDismiss={dismiss} />)}
+      archived={archived} onCopy={copy} onConfirmMarketing={confirmMarketing} onDismiss={dismiss} />)}
 
     <div className="seg" role="tablist" aria-label="Applicant record" onKeyDown={onTabKey}>{TABS.map(([k, t]) =>
       <button key={k} ref={el => { tabs.current[k] = el; }} type="button" role="tab" id={`tab-${k}`} aria-selected={cur === k}
         aria-controls={`panel-${k}`} tabIndex={cur === k ? 0 : -1} onClick={() => go(k)}>{t}</button>)}</div>
 
     <div role="tabpanel" id="panel-requirements" aria-labelledby="tab-requirements" hidden={cur !== "requirements"}>
-      <form ref={formRef} className="sections" noValidate onSubmit={e => { e.preventDefault(); if (dirty && !busy) save(); }}>
-        <ApplicantFields value={form} onChange={setForm} errors={errors} operation={form.operation} />
+      <form ref={formRef} noValidate onSubmit={e => { e.preventDefault(); if (dirty && !busy) save(); }}>
+        {/* Archived: read only until restored. */}
+        <fieldset className="sections plain" disabled={archived}>
+          <ApplicantFields value={form} onChange={setForm} errors={errors} operation={form.operation} />
+        </fieldset>
       </form>
     </div>
     <div role="tabpanel" id="panel-timeline" aria-labelledby="tab-timeline" hidden={cur !== "timeline"} tabIndex={0}>
@@ -245,18 +281,21 @@ const Message = ({ m, onReload }) => m && <p role={m.ok ? "status" : "alert"} cl
   {m.stale && <> <button type="button" className="btn ghost sm" onClick={onReload}>Reload</button></>}</p>;
 
 // §3.3: a pending "registered again" from the website. Shows what they sent that differs from what is saved.
-function Duplicate({ dup, stored, contactId, nameOf, onCopy, onDismiss }) {
+function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirmMarketing, onDismiss }) {
   const sent = dup.data ?? {};
   const differs = k => !blank(sent[k]) && !same(k, sent[k], stored[k]);
   const keys = [...CONTACT, ...SEARCH].filter(differs), copyable = COPY.some(differs);
+  const optIn = sent.marketing === true && stored.marketing_opt_in_at == null;
   return <section className="warn dup" aria-labelledby={`dup-${dup.id}`}>
     <h2 id={`dup-${dup.id}`}>{dup.title}</h2>
     <p className="muted">{fmtAgo(dup.created_at)} · {keys.length ? "What they sent that differs from what is saved:" : "What they sent matches what is saved."}</p>
     {sent.other_contact_id != null && <p>Their email and their phone number belong to two different contacts.</p>}
     {keys.length > 0 && <dl className="changes">{keys.map(k => <div key={k}><dt>{LABEL[k]}</dt>
       <dd><span className="muted">Saved:</span> {show(k, stored[k], nameOf)} <span className="muted">· Sent:</span> {show(k, sent[k], nameOf)}</dd></div>)}</dl>}
+    {optIn && <p>They agreed to marketing this time. It only applies once you confirm it.</p>}
     <div className="inline">
-      {copyable && <button type="button" className="btn sm" onClick={() => onCopy(sent)}>Copy fields</button>}
+      {copyable && <button type="button" className="btn sm" disabled={archived} onClick={() => onCopy(sent)}>Copy fields</button>}
+      {optIn && <button type="button" className="btn ghost sm" disabled={archived} onClick={onConfirmMarketing}>Confirm marketing opt-in</button>}
       {dup.active_search_id == null && <a className="btn ghost sm" href={`#/applicants/new?contact=${contactId}`} onClick={confirmLeave}>Create second search</a>}
       <button type="button" className="btn ghost sm" onClick={() => onDismiss(dup)}>Dismiss</button>
     </div>
