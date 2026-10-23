@@ -1,0 +1,1595 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arquitectura Hampton App</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Open+Sans:wdth,wght@75..100,400..800&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap">
+<style>
+/* Dossier de agencia: índice fijo a la izquierda, columna de lectura a la derecha y secciones
+   separadas por una regla gruesa, como unas "particulars" de propiedad.
+   Display: Open Sans condensado (la tipografía de la marca Hampton). Lectura: Source Serif 4.
+   Identificadores del sistema (estados, tablas, pantallas): IBM Plex Mono.
+   Acento único: el azul corporativo de Hampton (#2B6CA3). */
+:root {
+  --paper: #F4F6F8;
+  --surface: #FFFFFF;
+  --ink: #22303F;
+  --muted: #566476;
+  --line: #D3DAE2;
+  --accent: #2B6CA3;
+  --chip: #E8EFF6;
+  --mark: #FFE7A3;
+  --ok: #2E7356;
+  --warn: #8A5A00;
+  --f-display: "Open Sans", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-ui: "Open Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1720; --surface: #16202B; --ink: #E3E9EF; --muted: #9AA8B7; --line: #2A3847;
+    --accent: #6FA8DC; --chip: #182A3C; --mark: #5C4A12; --ok: #6CC3A0; --warn: #E0B256;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F1720; --surface: #16202B; --ink: #E3E9EF; --muted: #9AA8B7; --line: #2A3847;
+  --accent: #6FA8DC; --chip: #182A3C; --mark: #5C4A12; --ok: #6CC3A0; --warn: #E0B256;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1.0625rem/1.62 var(--f-body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+a { color: var(--accent); text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1200px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.brandbar { height: 6px; background: var(--accent); }
+
+.masthead .wrap { padding-block: 40px 26px; }
+.kicker { font: 600 0.8rem/1.4 var(--f-ui); color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin: 0; }
+h1 { font: 800 clamp(2.4rem, 7vw, 4.4rem)/0.95 var(--f-display); font-stretch: 75%; text-transform: uppercase; letter-spacing: 0.005em; margin: 10px 0 18px; text-wrap: balance; }
+.lead { max-width: 66ch; }
+.lead p { margin: 0 0 10px; font-size: 1.12rem; }
+.lead p:last-child { font: 0.86rem/1.5 var(--f-ui); color: var(--muted); }
+
+.toolbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-block: 1px solid var(--line); }
+.toolbar .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding-block: 10px; }
+.toolbar label { font: 600 0.85rem var(--f-ui); }
+.search { flex: 1 1 260px; min-width: 0; display: flex; align-items: center; gap: 10px; }
+input[type="search"] { flex: 1; min-width: 0; min-height: 44px; font: 1rem var(--f-ui); padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+#count { font: 0.82rem var(--f-ui); color: var(--muted); min-width: 9ch; }
+.btn { min-height: 44px; font: 600 0.85rem var(--f-ui); padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+
+.layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 56px; padding-block: 8px 72px; }
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 84px); align-self: start; max-height: calc(100vh - 100px); overflow: auto; font: 0.86rem/1.4 var(--f-ui); padding-top: 28px; }
+.toc summary { font: 700 0.78rem var(--f-ui); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); cursor: pointer; min-height: 32px; }
+.toc ul { list-style: none; margin: 0; padding: 0; }
+.toc > ul > li { margin: 10px 0 0; }
+.toc > ul > li > a { font-weight: 700; color: var(--ink); text-decoration: none; }
+.toc li ul { margin: 4px 0 0 12px; }
+.toc li ul a { color: var(--muted); text-decoration: none; display: block; padding: 2px 0; }
+.toc a:hover { color: var(--accent); text-decoration: underline; }
+
+main { min-width: 0; }
+h2 { font: 800 1.85rem/1.1 var(--f-display); font-stretch: 75%; text-transform: uppercase; letter-spacing: 0.01em; margin: 64px 0 16px; padding-top: 14px; border-top: 3px solid var(--ink); text-wrap: balance; scroll-margin-top: 90px; }
+.sec:first-child h2 { margin-top: 28px; }
+h3 { font: 700 1.3rem/1.2 var(--f-display); font-stretch: 85%; margin: 40px 0 10px; text-wrap: balance; scroll-margin-top: 90px; }
+.sec > p, .sec > ul, .sec > ol, .sec > h3 { max-width: 74ch; }
+p { margin: 0 0 14px; }
+ul, ol { padding-left: 1.3em; margin: 0 0 16px; }
+li { margin: 4px 0; }
+li > ul, li > ol { margin: 4px 0; }
+strong { font-weight: 650; }
+code { font: 500 0.82em/1.3 var(--f-mono); background: var(--chip); border: 1px solid var(--line); border-radius: 3px; padding: 0.05em 0.35em; overflow-wrap: anywhere; }
+pre { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+pre code { background: none; border: 0; padding: 0; }
+blockquote { margin: 16px 0; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; max-width: 74ch; }
+blockquote p:last-child { margin: 0; }
+
+p.tag > strong:first-child { font: 700 0.74rem/1 var(--f-ui); text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-right: 0.45em; }
+p.tag-done > strong:first-child { color: var(--ok); }
+
+.tw { overflow-x: auto; margin: 14px 0 26px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 34rem; font: 0.9rem/1.45 var(--f-ui); font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+th { background: var(--chip); font-weight: 700; }
+tbody tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; }
+
+.flow { display: grid; gap: 8px; margin: 12px 0 22px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.flow-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.chip { font: 500 0.78rem/1.3 var(--f-mono); padding: 5px 8px; border: 1px solid var(--accent); border-radius: 3px; background: var(--chip); color: var(--ink); }
+.chip code { font: inherit; background: none; border: 0; padding: 0; }
+.chip.exit { border-style: dashed; border-color: var(--muted); background: transparent; }
+.arrow { color: var(--accent); font: 700 0.9rem var(--f-ui); }
+.flow-label { font: 700 0.7rem var(--f-ui); text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-right: 4px; }
+
+.layers { margin: 14px 0 24px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.layer { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 10px 20px; padding: 14px 16px; border-top: 1px solid var(--line); }
+.layer:first-child { border-top: 0; }
+.layer-head strong { display: block; font: 800 1.02rem/1.15 var(--f-display); font-stretch: 75%; text-transform: uppercase; letter-spacing: 0.02em; }
+.layer-head span { font: 0.8rem/1.4 var(--f-ui); color: var(--muted); }
+.layer-items { display: flex; flex-wrap: wrap; gap: 6px; align-content: start; }
+
+mark.hl { background: var(--mark); color: inherit; border-radius: 2px; }
+#empty { font: 1rem var(--f-ui); padding: 32px 0; }
+footer { border-top: 1px solid var(--line); font: 0.82rem/1.5 var(--f-ui); color: var(--muted); }
+footer .wrap { padding-block: 20px 36px; }
+
+@media (max-width: 999px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .toc { position: static; max-height: none; padding: 14px 0 0; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+}
+#count:empty { display: none; }
+@media (max-width: 640px) {
+  .toolbar .wrap { flex-wrap: nowrap; }
+  .search { flex: 1 1 0; }
+  .toolbar label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .btn { padding-inline: 10px; }
+  .layer { grid-template-columns: minmax(0, 1fr); }
+  h2 { font-size: 1.55rem; margin-top: 52px; }
+  body { font-size: 1rem; }
+}
+</style>
+</head>
+<body>
+<div class="brandbar"></div>
+<header class="masthead">
+  <div class="wrap">
+    <p class="kicker">Hampton Estates · Bath Street, St Helier, Jersey</p>
+    <h1>Arquitectura Hampton App</h1>
+    <div class="lead"><p>Propuesta para convertir la web y el panel de Hampton Estates en el sistema de trabajo diario del equipo: aplicantes, propiedades, otras agencias, visitas, alquileres gestionados, publicación, mensajes, tours 3D y analítica. Parte del texto «Hampton APP» de Luis y crece sobre lo que ya está en producción en el repo HamptonJersey.</p>
+<p>Versión 1 · 23-oct-2026 · Preparada por Claude para Luis · Borrador: nada de esto está aprobado ni construido · Base: HamptonJersey en <code>ada40e3</code> (Cloudflare Pages + D1 + R2 + panel <code>/admin</code>)</p>
+</div>
+  </div>
+</header>
+<div class="toolbar">
+  <div class="wrap">
+    <div class="search" role="search">
+      <label for="q">Buscar</label>
+      <input id="q" type="search" placeholder="parroquia, WhatsApp, depósito, comisión…" autocomplete="off">
+      <span id="count" aria-live="polite"></span>
+    </div>
+    <button id="theme" class="btn" type="button">Tema: sistema</button>
+  </div>
+</div>
+<div class="wrap layout">
+  <details class="toc" id="toc" open>
+    <summary>Índice</summary>
+    <ul><li data-sec="0-lo-esencial"><a href="#0-lo-esencial">0. Lo esencial</a><ul></ul></li><li data-sec="1-punto-de-partida"><a href="#1-punto-de-partida">1. Punto de partida</a><ul><li><a href="#1-1-lo-que-ya-existe-y-se-reutiliza">1.1 Lo que ya existe y se reutiliza</a></li><li><a href="#1-2-supuestos-mios-a-confirmar">1.2 Supuestos (míos, a confirmar)</a></li><li><a href="#1-3-decisiones-ya-tomadas-que-se-respetan">1.3 Decisiones ya tomadas que se respetan</a></li></ul></li><li data-sec="2-mapa-del-sistema"><a href="#2-mapa-del-sistema">2. Mapa del sistema</a><ul><li><a href="#2-1-un-aplicante-de-punta-a-punta">2.1 Un aplicante de punta a punta</a></li></ul></li><li data-sec="3-modelo-de-datos"><a href="#3-modelo-de-datos">3. Modelo de datos</a><ul></ul></li><li data-sec="4-estados"><a href="#4-estados">4. Estados</a><ul><li><a href="#4-1-aplicante-etapa-y-cola-de-trabajo">4.1 Aplicante: etapa y cola de trabajo</a></li><li><a href="#4-2-match-aplicante-propiedad">4.2 Match: aplicante × propiedad</a></li><li><a href="#4-3-propiedad-del-inventario">4.3 Propiedad del inventario</a></li><li><a href="#4-4-ficha-propia-del-catalogo-de-hampton">4.4 Ficha propia del catálogo de Hampton</a></li><li><a href="#4-5-visita">4.5 Visita</a></li><li><a href="#4-6-alquiler-gestionado-y-cobros">4.6 Alquiler gestionado y cobros</a></li></ul></li><li data-sec="5-modulos"><a href="#5-modulos">5. Módulos</a><ul><li><a href="#5-1-notificaciones-action-inbox">5.1 Notificaciones: Action inbox</a></li><li><a href="#5-2-seguimiento-de-aplicantes">5.2 Seguimiento de aplicantes</a></li><li><a href="#5-3-seguimiento-de-propiedades">5.3 Seguimiento de propiedades</a></li><li><a href="#5-4-registro-de-aplicantes-paso-a-paso">5.4 Registro de aplicantes paso a paso</a></li><li><a href="#5-5-busqueda-de-propiedades-el-inventario-del-mercado">5.5 Búsqueda de propiedades: el inventario del mercado</a></li><li><a href="#5-6-matching-y-revision-humana">5.6 Matching y revisión humana</a></li><li><a href="#5-7-contacto-con-agencias-disponibilidad-y-comision">5.7 Contacto con agencias: disponibilidad y comisión</a></li><li><a href="#5-8-respuesta-del-aplicante-y-su-portal">5.8 Respuesta del aplicante y su portal</a></li><li><a href="#5-9-visitas-arrange-property-viewing">5.9 Visitas: Arrange Property Viewing</a></li><li><a href="#5-10-publicacion-de-propiedades-propias">5.10 Publicación de propiedades propias</a></li><li><a href="#5-11-gestion-de-alquileres">5.11 Gestión de alquileres</a></li><li><a href="#5-12-mensajes-facebook-instagram-whatsapp-web-y-email">5.12 Mensajes: Facebook, Instagram, WhatsApp, web y email</a></li><li><a href="#5-13-tour-3d-360-y-gaussian-splatting">5.13 Tour 3D: 360 y Gaussian Splatting</a></li><li><a href="#5-14-analitica-y-trazabilidad">5.14 Analítica y trazabilidad</a></li><li><a href="#5-15-ofertas-referencias-y-cierre">5.15 Ofertas, referencias y cierre</a></li></ul></li><li data-sec="6-automatizaciones-e-ia"><a href="#6-automatizaciones-e-ia">6. Automatizaciones e IA</a><ul><li><a href="#6-1-ficha-estandar-de-cada-automatizacion">6.1 Ficha estándar de cada automatización</a></li><li><a href="#6-2-pantalla-automations-del-panel">6.2 Pantalla Automations del panel</a></li><li><a href="#6-3-donde-corre-y-que-modelo-usa">6.3 Dónde corre y qué modelo usa</a></li><li><a href="#6-4-barandillas">6.4 Barandillas</a></li></ul></li><li data-sec="7-seguridad-privacidad-y-cumplimiento-en-jersey"><a href="#7-seguridad-privacidad-y-cumplimiento-en-jersey">7. Seguridad, privacidad y cumplimiento en Jersey</a><ul><li><a href="#7-1-acceso">7.1 Acceso</a></li><li><a href="#7-2-datos-personales">7.2 Datos personales</a></li><li><a href="#7-3-reglas-de-jersey-que-el-sistema-debe-respetar">7.3 Reglas de Jersey que el sistema debe respetar</a></li><li><a href="#7-4-copias-y-secretos">7.4 Copias y secretos</a></li><li><a href="#7-5-un-riesgo-que-ya-existe-en-produccion">7.5 Un riesgo que ya existe en producción</a></li></ul></li><li data-sec="8-lo-que-no-construiria"><a href="#8-lo-que-no-construiria">8. Lo que no construiría</a><ul></ul></li><li data-sec="9-hoja-de-ruta"><a href="#9-hoja-de-ruta">9. Hoja de ruta</a><ul></ul></li><li data-sec="10-decisiones-propuestas"><a href="#10-decisiones-propuestas">10. Decisiones propuestas</a><ul></ul></li><li data-sec="11-tu-texto-punto-por-punto"><a href="#11-tu-texto-punto-por-punto">11. Tu texto, punto por punto</a><ul></ul></li><li data-sec="12-preguntas-para-luis"><a href="#12-preguntas-para-luis">12. Preguntas para Luis</a><ul></ul></li></ul>
+  </details>
+  <main id="doc">
+    <section class="sec" data-sec="0-lo-esencial"><h2 id="0-lo-esencial">0. Lo esencial</h2>
+<p>Tu texto describe bien qué tiene que pasar. Le faltaba el cómo que evita trabajo repetido: dónde vive cada dato, quién cambia cada estado y qué ocurre cuando algo no llega. Estos son los ocho cambios de fondo:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Cambio</th>
+<th>Por qué</th>
+<th>Efecto en el día a día</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Un <strong>inventario único del mercado de Jersey</strong> en lugar de una investigación por aplicante</td>
+<td>El mercado es pequeño: Places.je muestra unos 1.640 anuncios en venta y 340 en alquiler, y Homely.je trabaja con 42 agencias (observado el 23-oct-2026). Leerlo una vez al día sirve a todos los aplicantes a la vez, y Places.je tiene una API pública para hacerlo con permiso</td>
+<td>Un aplicante nuevo ve coincidencias en minutos, sin coste de IA por aplicante y sin propiedades repetidas</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Separar <strong>Propiedad, Anuncio y Match</strong></td>
+<td>Tus «estados de propiedad» describen la relación propiedad × aplicante. Guardados en la propiedad, dos aplicantes para la misma casa se pisan</td>
+<td>Cada aplicante tiene su estado con cada casa; la disponibilidad se guarda una sola vez</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Preguntar a cada agencia <strong>una vez por casa</strong>, en un correo diario, con un <strong>acuerdo de comisión</strong> negociado una sola vez</td>
+<td>Con 3 aplicantes para la misma casa saldrían 3 correos y 3 negociaciones</td>
+<td>Una respuesta de la agencia actualiza a todos los aplicantes de esa casa</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Un <strong>registro de eventos</strong> como columna vertebral</td>
+<td>Avisos, historial, auditoría, analítica y disparadores necesitan lo mismo: qué pasó, cuándo y quién</td>
+<td>Una tabla en lugar de cinco sistemas; el historial de cada ficha sale solo</td>
+</tr>
+<tr>
+<td>5</td>
+<td>El aplicante <strong>se atiende solo</strong> desde un enlace personal</td>
+<td>«Waiting for applicant response» hoy significa llamar y esperar</td>
+<td>Sus clics (reservar, descartar, preguntar) cambian los estados sin que nadie teclee</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>IA solo donde el dato no tiene forma</strong>, por API y según la clase del dato</td>
+<td>Filtros, plazos y pagos son reglas exactas: SQL no se equivoca y no cuesta</td>
+<td>Menos errores, coste bajo y medible, datos sensibles fuera de la nube</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Autonomía graduable</strong> en cada automatización</td>
+<td>Una automatización nueva se equivoca al principio</td>
+<td>Borrador, luego aprobación con un clic, luego automático con muestreo</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Crecer sobre HamptonJersey</strong>, sin segundo backend</td>
+<td>Ya hay catálogo, panel con Google, bandeja de visitas, D1, R2 y Turnstile en producción</td>
+<td>Lo nuevo son tablas D1, rutas <code>/api</code>, pantallas del panel y un Worker con cron</td>
+</tr>
+</tbody></table></div>
+</section>
+<section class="sec" data-sec="1-punto-de-partida"><h2 id="1-punto-de-partida">1. Punto de partida</h2>
+<h3 id="1-1-lo-que-ya-existe-y-se-reutiliza">1.1 Lo que ya existe y se reutiliza</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Pieza</th>
+<th>Estado (fuente)</th>
+<th>Papel en esta arquitectura</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Web pública + panel <code>/admin</code> en Cloudflare Pages <code>hamptonjersey</code></td>
+<td>En producción; el push a <code>main</code> despliega (repo)</td>
+<td>Se amplía; no se rehace</td>
+</tr>
+<tr>
+<td>D1 <code>hampton</code>: <code>listings</code>, <code>media</code>, <code>viewing_requests</code>, <code>admins</code>, <code>tours</code>, <code>deleted_listings</code>, <code>research_*</code></td>
+<td>En producción (migraciones 0001–0007)</td>
+<td><code>listings</code> sigue siendo el catálogo propio; <code>viewing_requests</code> evoluciona a <code>viewings</code>; <code>admins</code> a <code>staff</code></td>
+</tr>
+<tr>
+<td>R2 <code>hampton-media</code>; el CHECK de la BD impide publicar fotos con <code>origin=&#39;external&#39;</code></td>
+<td>En producción</td>
+<td>La regla se extiende a todo lo que venga del mercado; hoy no cubre las fotos de los paquetes de agencias (§7.5)</td>
+</tr>
+<tr>
+<td>Login con Google (Firebase) + cookie HMAC de 8 h; un solo rol</td>
+<td>En producción</td>
+<td>Se añade el rol <code>owner</code> para lo sensible</td>
+</tr>
+<tr>
+<td>Reserva de visitas con Turnstile: 5 horas fijas (10:00, 11:30, 14:00, 15:30, 17:00), lunes a sábado, presencial o videollamada, agente como texto libre</td>
+<td>En producción (<code>server/viewings.js</code>); sin control de choques ni aviso por email</td>
+<td>Se sustituye por disponibilidad real por negociador (§5.9)</td>
+</tr>
+<tr>
+<td><code>Hampton_Database</code>: 47 registros, 135 fuentes, 896 hechos con confianza, 205 incidencias, 239 búsquedas hechas con dos sistemas</td>
+<td>Instantánea del 5-oct (README y SQLite)</td>
+<td>Su modelo «fuente → hecho → confianza → incidencia» es el que necesita la búsqueda para aplicantes</td>
+</tr>
+<tr>
+<td>Paquetes de 9 agencias recogidos de sus webs públicas el 8-oct (5 con datos: 264 fichas importadas como archivadas; 3 bloquearon la recogida con robots.txt o un 403)</td>
+<td>8-oct (cerebro y README de los paquetes)</td>
+<td>Son inventario de mercado, no stock propio ni prueba de un acuerdo; qué hacer con ellos lo decide la pregunta 1 del §12</td>
+</tr>
+<tr>
+<td>Directorio <code>jersey-scout</code>: 97 empresas de Jersey, 58 con email y 76 con web</td>
+<td>Export del 9-jun</td>
+<td>Contactos iniciales de agencias</td>
+</tr>
+<tr>
+<td>faster-whisper y ollama (gemma4:12b) en el VPS de Optimyze</td>
+<td>En el VPS</td>
+<td>Carril privado para notas de voz y datos sensibles</td>
+</tr>
+</tbody></table></div>
+<p>El proyecto SDD de <code>/root/Hampton</code> (Astro, specs 001–009, sin publicar) sigue aparte y esta propuesta no lo toca. Una restricción práctica: el contenedor donde trabaja Claude no tiene cron ni systemd, así que todo lo programado vive en Cloudflare y no depende de que haya una sesión abierta.</p>
+<h3 id="1-2-supuestos-mios-a-confirmar">1.2 Supuestos (míos, a confirmar)</h3>
+<ul>
+<li><strong>S1.</strong> Hampton busca casas para sus aplicantes también entre los anuncios de otras agencias y cobra repartiendo comisión (lo dice tu texto).</li>
+<li><strong>S2.</strong> El equipo es pequeño (en la web aparecen dos personas). El sistema tiene que funcionar sin alguien dedicado a operarlo.</li>
+<li><strong>S3.</strong> Hampton quiere ofrecer gestión de alquileres. No sé si ya la ofrece ni para cuántas propiedades.</li>
+<li><strong>S4.</strong> Optimyze construye y opera el sistema; los datos son de Hampton.</li>
+<li><strong>S5.</strong> Hampton no usa hoy un CRM inmobiliario. Si lo usa, conviene integrarse con él en vez de duplicarlo.</li>
+</ul>
+<h3 id="1-3-decisiones-ya-tomadas-que-se-respetan">1.3 Decisiones ya tomadas que se respetan</h3>
+<ul>
+<li><strong>D6</strong> un solo rol (propongo añadir <code>owner</code>, ver P-12) · <strong>D9</strong> borrar = archivar · <strong>D15</strong> las visitas se guardan en D1 con Turnstile · <strong>D16</strong> fotos y tours de otras agencias nunca públicos (hoy el CHECK solo lo garantiza para <code>origin=&#39;external&#39;</code>, ver §7.5) · <strong>D19</strong> todo en inglés: web, panel y mensajes de la API.</li>
+<li>El push a <code>main</code> despliega producción: solo con el sí explícito de Luis, y las migraciones se aplican en remoto antes del push.</li>
+<li>Por D19, los nombres de pantallas, estados y botones van en inglés en este documento; la explicación va en español.</li>
+</ul>
+</section>
+<section class="sec" data-sec="2-mapa-del-sistema"><h2 id="2-mapa-del-sistema">2. Mapa del sistema</h2>
+<div class="layers"><div class="layer"><div class="layer-head"><strong>Público</strong><span>internet</span></div><div class="layer-items"><span class="chip">Web y fichas</span><span class="chip">Registro de aplicantes</span><span class="chip">Portal del aplicante</span><span class="chip">Reserva de visitas</span><span class="chip">Valoración y «List your property»</span><span class="chip">Chat web</span></div></div><div class="layer"><div class="layer-head"><strong>Panel del equipo</strong><span>/admin</span></div><div class="layer-items"><span class="chip">Action inbox</span><span class="chip">Applicants</span><span class="chip">Properties</span><span class="chip">Agencies</span><span class="chip">Viewings</span><span class="chip">Listings</span><span class="chip">Lettings</span><span class="chip">Messages</span><span class="chip">3D tours</span><span class="chip">Insights</span><span class="chip">Automations</span></div></div><div class="layer"><div class="layer-head"><strong>Motor</strong><span>Cloudflare</span></div><div class="layer-items"><span class="chip">D1 (fuente de verdad)</span><span class="chip">Tabla events</span><span class="chip">Matching en SQL</span><span class="chip">Worker de tareas (cron cada 10 min)</span><span class="chip">R2 (fotos, vídeos, tours)</span><span class="chip">AI Gateway</span></div></div><div class="layer"><div class="layer-head"><strong>Carril privado</strong><span>VPS de Optimyze</span></div><div class="layer-items"><span class="chip">Modelos locales para datos sensibles</span><span class="chip">Transcripción de notas de voz</span><span class="chip">Preparación de tours 3D</span><span class="chip">El VPS pide trabajo; no abre puertos</span></div></div><div class="layer"><div class="layer-head"><strong>Servicios externos</strong></div><div class="layer-items"><span class="chip">API de Places.je</span><span class="chip">Correo de Hampton</span><span class="chip">WhatsApp Business</span><span class="chip">Meta (Facebook, Instagram)</span><span class="chip">Google o Outlook Calendar</span><span class="chip">Banco (CSV)</span><span class="chip">Firma electrónica</span><span class="chip">GPU por horas</span></div></div></div>
+<p>Cómo encaja con lo que hay:</p>
+<ul>
+<li><strong>Pages sigue sirviendo</strong> la web, el panel y <code>/api</code>. Un Worker hermano, <code>hampton-jobs</code>, comparte la misma D1 y hace lo que Pages no puede: tareas programadas (Cron Triggers), recepción de correos (Email Workers) y colas si algún día hacen falta.</li>
+<li><strong>Un solo reloj.</strong> El Worker corre cada 10 minutos y ejecuta consultas de «lo que venció»: seguimientos a agencias, recordatorios, pagos atrasados, fichas por confirmar. El estado vive en D1, así que si una ejecución falla, la siguiente lo recoge. No hace falta un motor de flujos.</li>
+<li><strong>Carril privado sin puertos.</strong> Cuando una tarea debe hacerse con modelos locales, la API la deja en la tabla <code>jobs</code>; un proceso del VPS pregunta cada minuto por HTTPS con un token de servicio, la hace y devuelve el resultado. El VPS sale hacia Cloudflare; nadie entra al VPS. Encaja con la postura de solo Tailnet.</li>
+<li><strong>AI Gateway</strong> de Cloudflare es la puerta única a los modelos: registra cada llamada con su coste y la automatización que la hizo, y permite cambiar de modelo sin desplegar.</li>
+</ul>
+<h3 id="2-1-un-aplicante-de-punta-a-punta">2.1 Un aplicante de punta a punta</h3>
+<div class="flow"><div class="flow-row"><span class="chip">Se registra en la web</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Matching contra el inventario</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Revisión del equipo</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Correo a la agencia</span><span class="arrow" aria-hidden="true">→</span><span class="chip">La IA lee la respuesta</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Aviso al aplicante</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Reserva desde su enlace</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Recordatorios</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Visita</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Feedback</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Offer / Application</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Agreed</span></div></div>
+<p>Lo que hace una persona en ese recorrido: revisar coincidencias (o aprobarlas en lote), resolver las respuestas de agencias que la IA no entendió con seguridad, hacer la visita y negociar. El resto lo mueve el sistema.</p>
+</section>
+<section class="sec" data-sec="3-modelo-de-datos"><h2 id="3-modelo-de-datos">3. Modelo de datos</h2>
+<p>Todo en D1; los archivos en R2. La columna Fase indica cuándo se crea cada tabla (§9).</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Tabla</th>
+<th>Qué guarda</th>
+<th>Campos clave</th>
+<th>Fase</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>contacts</code></td>
+<td>Cualquier persona: aplicante, propietario, inquilino</td>
+<td>nombre, email, móvil en formato internacional, canal preferido, idioma, consentimientos con fecha y origen, fecha de borrado prevista</td>
+<td>F0</td>
+</tr>
+<tr>
+<td><code>applicants</code></td>
+<td>Una búsqueda de un contacto (una persona puede tener dos: alquilar ya y comprar después)</td>
+<td>operación, presupuesto y flexibilidad, dormitorios, baños, tipo, parroquias deseadas y excluidas, mascotas, plazas de parking, exterior, amueblado, fecha de entrada, duración, estatus de vivienda, situación de compra, requisitos libres + etiquetas, etapa, origen, responsable</td>
+<td>F0</td>
+</tr>
+<tr>
+<td><code>staff</code> (evoluciona de <code>admins</code>)</td>
+<td>El equipo</td>
+<td>email, nombre, rol (<code>owner</code> o <code>staff</code>), móvil, foto, calendario, si enseña casas</td>
+<td>F0</td>
+</tr>
+<tr>
+<td><code>events</code></td>
+<td>Todo lo que pasa</td>
+<td>cuándo, quién (persona, sistema, aplicante, agencia), entidad, tipo, datos</td>
+<td>F0</td>
+</tr>
+<tr>
+<td><code>notifications</code></td>
+<td>Lo que cada persona debe ver o hacer</td>
+<td>evento, destinatario, categoría, <code>action_required</code>, <code>due_at</code>, <code>resolved_at</code>, leída</td>
+<td>F0</td>
+</tr>
+<tr>
+<td><code>properties</code></td>
+<td>La casa física, una sola vez aunque la anuncien tres agencias</td>
+<td>dirección normalizada, parroquia, código postal, tipo, dormitorios, baños, parking, mascotas (sí, no, desconocido), categoría de vivienda, tenencia, estado, <code>last_verified_at</code></td>
+<td>F1</td>
+</tr>
+<tr>
+<td><code>market_listings</code></td>
+<td>Cada anuncio visto en cada fuente</td>
+<td>fuente, URL, referencia externa, precio normalizado, datos extraídos y su confianza, <code>first_seen</code>, <code>last_seen</code>, <code>removed_at</code>, huella de la foto principal, <code>property_id</code></td>
+<td>F1</td>
+</tr>
+<tr>
+<td><code>listings</code> (existe)</td>
+<td>El catálogo propio publicado</td>
+<td>+ <code>property_id</code>, campos de Jersey (§5.10), <code>review_due_at</code></td>
+<td>F1 y F4</td>
+</tr>
+<tr>
+<td><code>matches</code></td>
+<td>Aplicante × propiedad</td>
+<td>puntuación, lista de requisitos ✅ ❌ ❓ con evidencia, estado, motivo de descarte, <code>introduced_at</code></td>
+<td>F1</td>
+</tr>
+<tr>
+<td><code>agencies</code></td>
+<td>Otras agencias</td>
+<td>web, emails de ventas y alquileres, teléfonos, acuerdo de comisión (estado, condiciones, vigencia, documento), permiso para enseñar fotos, tiempo medio de respuesta</td>
+<td>F2</td>
+</tr>
+<tr>
+<td><code>outreach</code></td>
+<td>Cada consulta a una agencia sobre una casa</td>
+<td>preguntas hechas, envío, hilo del correo, respuesta interpretada (JSON), seguimientos, estado</td>
+<td>F2</td>
+</tr>
+<tr>
+<td><code>availability_snapshots</code></td>
+<td>Copia congelada de la ficha y de la respuesta cuando se confirma la disponibilidad</td>
+<td>propiedad, fecha, datos, texto de la respuesta</td>
+<td>F2</td>
+</tr>
+<tr>
+<td><code>viewings</code> (evoluciona de <code>viewing_requests</code>)</td>
+<td>Visitas</td>
+<td>propiedad, aplicante, negociador, inicio y fin, tipo, estado, confirmaciones, feedback de ambos lados, resultado</td>
+<td>F3</td>
+</tr>
+<tr>
+<td><code>availability_rules</code>, <code>availability_exceptions</code></td>
+<td>Horario de cada negociador</td>
+<td>plantilla semanal, excepciones por fecha, duración de visita, margen entre visitas</td>
+<td>F3</td>
+</tr>
+<tr>
+<td><code>offers</code>, <code>sales</code></td>
+<td>Ofertas y expedientes de venta</td>
+<td>casa, aplicante, importe, condiciones, estado · comprador, vendedor, abogados, hitos con fecha prevista y real</td>
+<td>F3</td>
+</tr>
+<tr>
+<td><code>social_posts</code></td>
+<td>Publicaciones en redes</td>
+<td>ficha, canal, id de la publicación, estado</td>
+<td>F4</td>
+</tr>
+<tr>
+<td><code>tenant_applications</code></td>
+<td>Solicitudes de alquiler</td>
+<td>solicitante, empleo e ingresos (C3), referencias, avalista, estado</td>
+<td>F5</td>
+</tr>
+<tr>
+<td><code>tenancies</code>, <code>charges</code>, <code>payments</code></td>
+<td>Contratos, cobros previstos y pagos recibidos</td>
+<td>partes, fechas, renta, depósito y su registro, referencia de pago única, régimen legal (ley de 2011 o de 2025), última subida de renta · vencimiento, importe, estado · fecha, importe, referencia, cobro conciliado</td>
+<td>F5</td>
+</tr>
+<tr>
+<td><code>compliance_items</code>, <code>maintenance_jobs</code></td>
+<td>Obligaciones con caducidad y reparaciones</td>
+<td>tipo, caduca el, documento · urgencia, categoría, proveedor, coste, aprobación del propietario</td>
+<td>F5</td>
+</tr>
+<tr>
+<td><code>messages</code></td>
+<td>Conversaciones de todos los canales</td>
+<td>canal, hilo, contacto, dirección, texto, adjuntos, borrador de IA, enviado por</td>
+<td>F6</td>
+</tr>
+<tr>
+<td><code>daily_stats</code></td>
+<td>Contadores por ficha y día</td>
+<td>ficha, día, métrica, valor</td>
+<td>F7</td>
+</tr>
+<tr>
+<td><code>capture_jobs</code></td>
+<td>Tours 3D</td>
+<td>ficha, archivos de entrada en R2, estado por etapa, resultados, coste</td>
+<td>F8</td>
+</tr>
+<tr>
+<td><code>jobs</code></td>
+<td>Trabajo para el carril privado del VPS</td>
+<td>tipo, entrada, estado, intentos, resultado</td>
+<td>Cuando haga falta</td>
+</tr>
+</tbody></table></div>
+<p>Reglas para todas las tablas: precios siempre con moneda y periodo (como ya exige <code>listings</code>); un dato desconocido es <code>NULL</code>, nunca 0; nada se borra de verdad sin pasar por archivado (D9); cada cambio de estado escribe un evento.</p>
+<p><strong>Pendiente de la pregunta 1 (§12).</strong> Si Hampton también anuncia casas cuyo encargo tiene otra agencia, hace falta una tercera categoría además de «propia» y «de mercado»: <code>listings.instruction = &#39;co_listed&#39;</code>, con la agencia, el reparto acordado y el permiso de fotos. Esas casas siguen pasando por la confirmación de la agencia (§5.7), no suben en la puntuación como las propias y solo enseñan fotos con permiso. Si en cambio las 264 fichas son inventario de mercado, F1 empieza migrándolas a <code>properties</code> y <code>market_listings</code>, y los datos de Places.je las sustituyen.</p>
+</section>
+<section class="sec" data-sec="4-estados"><h2 id="4-estados">4. Estados</h2>
+<h3 id="4-1-aplicante-etapa-y-cola-de-trabajo">4.1 Aplicante: etapa y cola de trabajo</h3>
+<p>Tu texto da cuatro estados de aplicante. El problema: un aplicante puede estar «In process» con una casa y tener «New properties found» con otras a la vez, y un solo campo no puede expresarlo. Propuesta en dos capas.</p>
+<p><strong>Etapa</strong> (se guarda; una a la vez):</p>
+<div class="flow"><div class="flow-row"><span class="chip">New</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Searching</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Viewing</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Offer / Application</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Agreed</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Completed</span></div><div class="flow-row exits"><span class="flow-label">salidas</span><span class="chip exit">Paused</span><span class="chip exit">Lost (con motivo)</span><span class="chip exit">Archived</span></div></div>
+<p><strong>Cola de trabajo</strong> (se calcula a partir de sus matches; puede tener varias etiquetas a la vez). Conserva tus nombres con la ortografía corregida:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Etiqueta</th>
+<th>Significa</th>
+<th>Se calcula como</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Waiting for investigation</code></td>
+<td>Registrado; la primera búsqueda está en cola</td>
+<td>Sin búsqueda completada. Con el inventario dura minutos</td>
+</tr>
+<tr>
+<td><code>Waiting for review</code> (era «Waiting for reviewing»)</td>
+<td>Hay resultados y falta la revisión humana</td>
+<td>Matches <code>Found</code> de la primera búsqueda sin revisar</td>
+</tr>
+<tr>
+<td><code>New properties found</code> (era «New Properties Founded»)</td>
+<td>Búsquedas posteriores encontraron casas nuevas</td>
+<td>Matches <code>Found</code> creados después de la primera revisión</td>
+</tr>
+<tr>
+<td><code>In process</code></td>
+<td>Al menos una casa espera a la agencia o al aplicante</td>
+<td>Matches en <code>Waiting for agent confirmation</code> o <code>Waiting for applicant response</code></td>
+</tr>
+<tr>
+<td><code>Viewing booked</code> (nueva)</td>
+<td>Tiene una visita próxima</td>
+<td>Visita confirmada en el futuro</td>
+</tr>
+<tr>
+<td><code>No matches</code> (nueva)</td>
+<td>7 días sin coincidencias</td>
+<td>El sistema propone ampliar criterios</td>
+</tr>
+<tr>
+<td><code>Gone quiet</code> (nueva)</td>
+<td>14 días sin responder</td>
+<td>Mensaje automático «Are you still looking?»</td>
+</tr>
+</tbody></table></div>
+<h3 id="4-2-match-aplicante-propiedad">4.2 Match: aplicante × propiedad</h3>
+<p>Aquí van tus «estados de propiedad», que en realidad son de la pareja:</p>
+<div class="flow"><div class="flow-row"><span class="chip">Found</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Shortlisted</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Waiting for agent confirmation</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Waiting for applicant response</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Interested</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Viewing booked</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Viewed</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Offer / Application</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Agreed</span></div><div class="flow-row exits"><span class="flow-label">salidas</span><span class="chip exit">Rejected by staff (motivo)</span><span class="chip exit">Not available</span><span class="chip exit">Not interested (motivo)</span><span class="chip exit">No response</span></div></div>
+<ul>
+<li><code>Waiting for agent confirmation</code> se salta si la casa es de Hampton: su disponibilidad ya se conoce.</li>
+<li><code>Waiting for applicant response</code> se pone solo cuando la agencia confirma, como pedías.</li>
+<li><code>Not available</code> es un hecho de la <strong>propiedad</strong>. Al marcarla, a mano o por la respuesta de una agencia, se cierran a la vez todos sus matches abiertos.</li>
+<li><code>Not interested</code> (era «Not intereses») es de la <strong>pareja</strong>. Lo marca el aplicante con un clic o el equipo, siempre con motivo: precio, zona, tamaño, estado u otro. Los motivos alimentan la puntuación.</li>
+</ul>
+<h3 id="4-3-propiedad-del-inventario">4.3 Propiedad del inventario</h3>
+<div class="flow"><div class="flow-row"><span class="chip">Detected</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Active</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Availability confirmed</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Under offer / Let agreed</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Sold / Let</span></div><div class="flow-row exits"><span class="flow-label">salidas</span><span class="chip exit">Gone (no aparece en la fuente dos pasadas seguidas)</span><span class="chip exit">Not available</span></div></div>
+<p>Una casa está <code>Stale</code> si su última verificación tiene más de 7 días (alquiler) o 30 (venta): hay que volver a confirmarla antes de mandarla a un aplicante. Al confirmar la disponibilidad se guarda un <code>availability_snapshot</code> con la ficha completa y la respuesta de la agencia tal como estaban ese día. Es lo que pedías: los detalles enteros en el momento en que se confirmó la disponibilidad.</p>
+<h3 id="4-4-ficha-propia-del-catalogo-de-hampton">4.4 Ficha propia del catálogo de Hampton</h3>
+<div class="flow"><div class="flow-row"><span class="chip">Draft</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Ready for review</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Published</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Under offer / Let agreed</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Sold / Let</span></div><div class="flow-row exits"><span class="flow-label">salidas</span><span class="chip exit">Withdrawn</span><span class="chip exit">To confirm</span></div></div>
+<p><code>To confirm</code> es tu «por confirmar»: una ficha publicada sin cambios en 90 días si es venta, o 30 si es alquiler (configurable). Crea una tarea para llamar al propietario. Se guarda como <code>review_due_at</code> y una bandera, sin tocar el campo <code>availability</code> que ya existe.</p>
+<h3 id="4-5-visita">4.5 Visita</h3>
+<div class="flow"><div class="flow-row"><span class="chip">Requested</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Confirmed</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Reminded</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Completed</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Feedback received</span></div><div class="flow-row exits"><span class="flow-label">salidas</span><span class="chip exit">Cancelled</span><span class="chip exit">No-show</span><span class="chip exit">Rescheduled</span></div></div>
+<p>Migración desde lo actual: <code>new</code> pasa a Requested, <code>contacted</code> a Confirmed y <code>closed</code> a Completed o Cancelled según sus notas.</p>
+<h3 id="4-6-alquiler-gestionado-y-cobros">4.6 Alquiler gestionado y cobros</h3>
+<div class="flow"><div class="flow-row"><span class="chip">Offer accepted</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Referencing</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Contract signed</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Deposit protected</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Active</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Renewal due</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Renewed</span></div><div class="flow-row exits"><span class="flow-label">salidas</span><span class="chip exit">Notice given → Ended (inventario de salida y devolución del depósito)</span></div></div>
+<div class="flow"><div class="flow-row"><span class="chip">Scheduled</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Due</span><span class="arrow" aria-hidden="true">→</span><span class="chip">Paid</span></div><div class="flow-row exits"><span class="flow-label">salidas</span><span class="chip exit">Part paid</span><span class="chip exit">Overdue (pasado el margen) → In arrears → Resolved / Written off</span></div></div>
+</section>
+<section class="sec" data-sec="5-modulos"><h2 id="5-modulos">5. Módulos</h2>
+<p>Cada módulo sigue el mismo orden: lo que pediste, lo que propongo y cuándo está hecho.</p>
+<h3 id="5-1-notificaciones-action-inbox">5.1 Notificaciones: Action inbox</h3>
+<p class="tag tag-asked"><strong>Pediste:</strong> pestañas All, New applicants, Matched y Missing payments; los pagos con fecha límite de cobro.</p>
+<p class="tag tag-proposal"><strong>Propuesta:</strong> dos bandejas.</p>
+<ul>
+<li><strong>Needs action</strong>: cosas con dueño y plazo (revisar matches, una respuesta de agencia dudosa, confirmar una visita, llamar por un pago atrasado, una ficha <code>To confirm</code>). No desaparecen hasta resolverse.</li>
+<li><strong>Feed</strong>: lo informativo (aplicante nuevo, agencia que confirmó, visita reservada).</li>
+<li>Pestañas por categoría: All · New applicants · Matched · Agency replies · Viewings · Missing payments · Messages · Compliance.</li>
+<li>Cada aviso trae su acción en un clic: Approve, Reply, Call (muestra el número), Snooze, Done.</li>
+<li><strong>Tiempo real sin complicarse</strong>: el panel consulta cada 30 segundos y el navegador muestra una notificación para lo urgente. Para un equipo de 2 a 4 personas basta.</li>
+<li><strong>Menos ruido</strong>: avisos agrupados («5 new matches for this applicant»), resumen por email a las 8:00 de Jersey, preferencias por persona.</li>
+<li><strong>Missing payments con fecha límite</strong>: cada cobro tiene <code>due_date</code> y un margen (<code>grace_days</code>, 3 por defecto). Pasado el margen sin pago conciliado, aparece aquí. Incluye también las comisiones que otras agencias deben a Hampton.</li>
+</ul>
+<p class="tag tag-done"><strong>Hecho cuando:</strong> cada tipo de evento genera su aviso en menos de un minuto, y un aviso de Needs action solo se va al resolverlo.</p>
+<h3 id="5-2-seguimiento-de-aplicantes">5.2 Seguimiento de aplicantes</h3>
+<ul>
+<li><strong>Lista</strong>: filtro To Let / To Buy, como pediste; orden por fecha de solicitud, de la más nueva a la más antigua o al revés; columnas Name, Phone, Applied, Stage, cola de trabajo, Matches (encontradas · confirmadas · disponibles), Last contact y Assigned to.</li>
+<li><strong>Filtros extra</strong>: necesita revisión, presupuesto, parroquia, responsable y origen.</li>
+<li><strong>La tarjeta se entiende sin abrirla</strong>: «Searching · no matches yet (last search 2 h ago)» o «12 found · 3 confirmed · 2 available».</li>
+<li><strong>Ficha</strong> con pestañas: Requirements (editable; al cambiar se recalcula el matching), Matches (Found, Shortlisted, Confirmed y Available, con la lista ✅ ❌ ❓ de cada casa), Timeline, Messages y Viewings.</li>
+<li><strong>Acciones rápidas</strong>: Send shortlist, Book viewing, Pause search y Widen criteria (enseña cuántas casas más saldrían con un 10 % más de presupuesto o una parroquia más).</li>
+</ul>
+<h3 id="5-3-seguimiento-de-propiedades">5.3 Seguimiento de propiedades</h3>
+<ul>
+<li><strong>Tarjeta</strong>: estado, precio con su periodo, dirección (calle y parroquia), dormitorios, baños y fecha de disponibilidad, como pediste; además la fuente (Hampton o agencia), «checked 2 days ago», aplicantes con match e interesados.</li>
+<li><strong>Ficha</strong>: Overview, History (todos los eventos), Availability snapshots, Matched applicants con su estado, Photos (las externas, privadas), Adverts (todos los anuncios de esa casa en todas las fuentes, con su precio, así se ven las bajadas), Viewings y Notes.</li>
+<li><strong>Filtros</strong>: To Buy / To Let, dormitorios, parroquia (las doce), rango de precio, estado, fuente y «cambió en los últimos 7 días».</li>
+</ul>
+<h3 id="5-4-registro-de-aplicantes-paso-a-paso">5.4 Registro de aplicantes paso a paso</h3>
+<p>Principios: móvil primero, una pregunta por pantalla con opciones que se tocan, unos dos minutos en total, guarda el avance, Turnstile y consentimiento explícito. El mismo asistente sirve dentro del panel para registrar a quien llama o entra en la oficina (<code>source: phone</code> o <code>walk-in</code>).</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Paso</th>
+<th>Pregunta</th>
+<th>Campos</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>What are you looking for?</td>
+<td>To Let / To Buy (Commercial más adelante)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Where?</td>
+<td>Parroquias deseadas (las doce como fichas), parroquias o zonas que no quiere, «near…» (trabajo, colegio) en texto</td>
+</tr>
+<tr>
+<td>3</td>
+<td>What kind of home?</td>
+<td>Tipo (flat, house, cottage, studio), dormitorios mínimos e ideales, baños mínimos, plazas de parking (0, 1, 2, 3+), exterior (jardín, terraza, balcón), amueblado (alquiler), mascotas (ninguna, gato, perro, otra, y cuántas)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Budget and timing</td>
+<td>Máximo (y mínimo); «I can stretch to…»; alquiler en £ al mes; fecha de entrada; duración del contrato. Compra: situación (primera vivienda, nada que vender, necesita vender, al contado) e hipoteca aprobada en principio (sí, no, en trámite)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Eligibility in Jersey</td>
+<td>Estatus de vivienda (Permanent Entitled, Entitled, Licensed, Licensed for Lease Only, Entitled for Work Only, Standard, Not sure) con una línea que explica por qué se pregunta (§7.3); si compra, si es su primera vivienda; quiénes vivirán (adultos, niños)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>About you</td>
+<td>Nombre, email, móvil, canal preferido (WhatsApp, llamada, email), mejor hora, idioma, «Anything else that matters?» en texto libre, consentimientos</td>
+</tr>
+</tbody></table></div>
+<ul>
+<li><strong>Resultado inmediato</strong>: al enviar ve «We found 7 homes that match right now. We will confirm availability and contact you within X hours», con el enlace a su portal. Hampton fija la X.</li>
+<li><strong>Requisitos libres a etiquetas</strong>: la IA convierte el texto en imprescindibles y deseables («quiet street», «near Victoria College»); el equipo las confirma en la ficha.</li>
+<li><strong>Duplicados</strong>: mismo email o móvil es el mismo contacto; si la operación es otra, se crea otra búsqueda.</li>
+<li><strong>Lo que no se pide aquí</strong>: ingresos, empleador o documentos de identidad. Eso pertenece a las referencias de un alquiler concreto, con más protección (clase C3, §6.3).</li>
+<li><strong>Alertas para visitantes</strong>: «Save this search» con solo email y criterios. Usa el mismo motor y convierte visitantes en aplicantes.</li>
+</ul>
+<p>Tus nueve campos están todos: nombre, email, móvil, presupuesto, dormitorios y baños, zona ideal y no deseada, mascotas, parking con número de plazas y requisitos personalizados. Añado operación, tipo, exterior, amueblado, fechas, situación de compra, estatus de vivienda, hogar, canal e idioma porque sin ellos el matching propone casas que el aplicante no puede o no quiere.</p>
+<h3 id="5-5-busqueda-de-propiedades-el-inventario-del-mercado">5.5 Búsqueda de propiedades: el inventario del mercado</h3>
+<p class="tag tag-asked"><strong>Pediste:</strong> una «Deep Research» la primera vez; después una búsqueda diaria con modelos baratos y dos investigaciones con modelos distintos para comparar, sin repetir lo que ya está en la base.</p>
+<p class="tag tag-proposal"><strong>Propuesta:</strong> darle la vuelta. En vez de buscar para cada aplicante, el sistema lee el mercado una vez al día y cruza a todos los aplicantes contra él.</p>
+<ol>
+<li><strong>Fuentes, de mejor a peor</strong> (detalle y términos en §7.3):<ul>
+<li><strong>La API pública de Places.je</strong>: anuncios de muchas agencias ya estructurados (agencia, precio, dormitorios, parroquia, estado, <code>property_key</code>), con permiso y sin leer HTML. Unos 2.000 anuncios disponibles caben en unas 20 peticiones. Exige clave desde el 2-nov-2026: hay que pedirla ya. Su directorio de agencias y agentes alimenta <code>agencies</code>, y su historial de transacciones da comparables para las valoraciones (§5.10).</li>
+<li>Exportaciones o feeds que las agencias acepten mandar, para lo que no esté en Places.je. Los propios README de los paquetes de octubre lo concluyen: las agencias que bloquean la recogida automática solo entran con un export o feed autorizado. Pedirlo dentro del acuerdo de comisión es un trato justo, porque Hampton les trae compradores e inquilinos.</li>
+<li>Webs de agencias, solo si sus términos lo permiten, con baja frecuencia, respetando <code>robots.txt</code> y con un user-agent identificado.</li>
+<li>Otros portales, solo con permiso escrito. Homely.je lo prohíbe expresamente.</li>
+</ul>
+</li>
+<li><strong>Pasada diaria</strong> a las 06:00 de Jersey y otra a mediodía para alquileres: descargar, extraer, normalizar, deduplicar, comparar con ayer y cruzar.</li>
+<li><strong>Extracción</strong>: lo que llega por API o feed ya viene estructurado. Para páginas web, un lector específico por fuente cuando la página es estable (gratis y exacto); si no, IA barata con un esquema JSON fijo. Solo se procesan las páginas que cambiaron, comparando una huella del contenido.</li>
+<li><strong>Normalización</strong>: precio a libras al mes o total; parroquia desde la dirección o el código postal; dormitorios y baños como números; mascotas, parking y amueblado como sí, no o desconocido.</li>
+<li><strong>Deduplicación</strong>: primero la <code>property_key</code> de Places.je cuando exista; después dirección normalizada + parroquia + dormitorios + precio ±10 % + huella de la primera foto. Las agencias suelen usar las mismas fotos del propietario, así que la huella de imagen detecta la misma casa aunque cambie el texto.</li>
+<li><strong>Comparación con ayer</strong>: casa nueva, cambio de precio o desaparecida, cada una como evento. Dos pasadas sin verla la marcan <code>Gone</code> y sus matches se cierran solos como <code>Not available</code>.</li>
+<li><strong>Cruce</strong> con todos los aplicantes activos (§5.6). Un aplicante nuevo se cruza en el momento contra el inventario que ya existe.</li>
+</ol>
+<p><strong>Verificación</strong>: nada entra sin una página descargada que lo respalde (URL y fecha). La IA solo extrae de páginas reales, así que no puede «encontrar» casas que no existen. Los valores fuera de rango o con baja confianza quedan marcados para revisión.</p>
+<p><strong>Dónde sí uso dos modelos</strong>: en la extracción, si dos modelos baratos no coinciden en precio o dormitorios, el dato queda en «needs review» en lugar de adivinar. En la Deep Research, la unión de dos sistemas encuentra más resultados, y cada uno se verifica contra su página. Dos modelos pueden coincidir y estar equivocados a la vez; la referencia es la página descargada.</p>
+<p><strong>Cuándo usar Deep Research</strong>: si el inventario da menos de 3 casas, si el requisito es raro (caballerizas, cocina industrial, local con licencia) o para compras fuera del mercado. Lo que encuentre entra al inventario con su fuente y sirve también a los demás aplicantes. El modelo de evidencia de <code>Hampton_Database</code> (fuente, hecho, confianza, incidencia y registro de búsquedas) es justo este patrón y ya está probado.</p>
+<p class="tag tag-done"><strong>Hecho cuando:</strong> la pasada diaria termina sola y registra, por fuente, cuántos anuncios leyó y cuántos son nuevos, cambiados o desaparecidos; y un aplicante nuevo ve coincidencias en menos de 5 minutos.</p>
+<h3 id="5-6-matching-y-revision-humana">5.6 Matching y revisión humana</h3>
+<ul>
+<li><strong>Filtros duros (SQL)</strong>: operación; precio menor o igual que el máximo por (1 + flexibilidad); dormitorios y baños mínimos; fuera de las parroquias excluidas; categoría de vivienda compatible con su estatus (§7.3); mascotas (si la ficha dice «no pets» y el aplicante tiene perro, queda fuera; si no lo dice, sigue con ❓); parking y fecha de disponibilidad, con la misma lógica.</li>
+<li><strong>Puntuación de 0 a 100</strong>: parroquia preferida, dormitorios ideales, exterior, amueblado, posición del precio dentro del presupuesto, frescura del anuncio y requisitos libres (la IA compara la descripción con las etiquetas y cita la frase que lo prueba). Las casas de Hampton suben, porque no hay comisión que repartir.</li>
+<li><strong>Lista ✅ ❌ ❓ por casa</strong>: es tu «indicar si no posee alguno de los requisitos», con evidencia («Pets: the advert says &quot;no pets&quot;» → ❌).</li>
+<li><strong>Los ❓ se convierten en preguntas</strong> del correo a la agencia («Are pets allowed? Is parking included?»).</li>
+<li><strong>Cola de revisión rápida</strong>: ordenada por puntuación; teclas A para aprobar, R para descartar (motivo en un toque) y S para saltar; aprobación en lote por encima de un umbral.</li>
+<li><strong>De manual a automático</strong>: el sistema mide cuántas aprueba el equipo por tramo de puntuación. Si, por ejemplo, el 95 % de las de 85 o más se aprueban, propone aprobarlas solas. El equipo decide.</li>
+<li><strong>Ampliar criterios</strong>: con menos de 3 coincidencias calcula alternativas (10 % más de presupuesto, una parroquia más, un dormitorio menos) y las sugiere al equipo o al aplicante.</li>
+</ul>
+<h3 id="5-7-contacto-con-agencias-disponibilidad-y-comision">5.7 Contacto con agencias: disponibilidad y comisión</h3>
+<p class="tag tag-asked"><strong>Pediste:</strong> un correo automático al agente que administra la propiedad para saber si sigue disponible y si comparte la comisión.</p>
+<ul>
+<li><strong>Disparador</strong>: matches aprobados de una casa que no es de Hampton. Sale una sola consulta por casa, con independencia de cuántos aplicantes haya; el correo dice «we have N qualified applicants», lo que además da fuerza para negociar.</li>
+<li><strong>Según el acuerdo con esa agencia</strong> (<code>agencies.fee_agreement</code>):<ul>
+<li><code>agreed</code>: solo pregunta disponibilidad, los ❓ y horarios de visita.</li>
+<li><code>none</code>: primer contacto con presentación, aplicantes interesados, disponibilidad, propuesta de reparto con las condiciones estándar de Hampton y permiso para enseñar datos y fotos al aplicante. Se negocia una vez y queda guardado.</li>
+<li><code>declined</code>: preguntar o no la disponibilidad es una decisión de negocio, configurable en el panel.</li>
+</ul>
+</li>
+<li><strong>Agrupado</strong>: envíos a horas fijas (por ejemplo, 09:00 y 14:00), un correo por agencia con todas sus casas pendientes, desde el buzón real de Hampton y con una referencia en el asunto (<code>[HE-OUT-1234]</code>) para enlazar la respuesta. Dos envíos al día porque en alquiler una casa puede irse en horas.</li>
+<li><strong>Lectura de la respuesta</strong>: la IA devuelve un JSON fijo con disponible (sí, no, no lo dice), desde cuándo, respuestas a los ❓, horarios de visita ofrecidos, comisión (acepta, rechaza o contraoferta, con condiciones), si necesita una persona (contraoferta, queja, tema legal o ambigüedad) y su confianza.<ul>
+<li>Confianza alta: se aplica sola. La propiedad pasa a <code>Availability confirmed</code>, sus matches a <code>Waiting for applicant response</code> y se guarda el snapshot.</li>
+<li>Confianza baja: crea una tarea con la interpretación ya rellenada; el empleado confirma con un clic o corrige.</li>
+</ul>
+</li>
+<li><strong>Seguimiento</strong>: sin respuesta en 2 días laborables, recordatorio amable automático; tras dos recordatorios, tarea «Call agency» con su teléfono. El panel muestra por agencia la tasa y el tiempo medio de respuesta.</li>
+<li><strong>Prueba de presentación</strong>: cada consulta y cada respuesta quedan guardadas con fecha («Hampton introduced N applicants for this property on date D»). Es la base para reclamar una comisión si hay disputa.</li>
+<li><strong>Riesgo de que el aplicante vaya directo</strong>: la lista que recibe no muestra la agencia ni el enlace original hasta que la comisión esté acordada o la visita organizada. Es una política configurable que conviene revisar con un abogado (§7.3).</li>
+</ul>
+<p class="tag tag-done"><strong>Hecho cuando:</strong> una respuesta típica de agencia actualiza la casa y avisa a sus aplicantes sin que nadie teclee, y la lectura acierta en al menos 27 de 30 respuestas reales etiquetadas antes de pasar a automático.</p>
+<h3 id="5-8-respuesta-del-aplicante-y-su-portal">5.8 Respuesta del aplicante y su portal</h3>
+<ul>
+<li>Cuando un match pasa a <code>Waiting for applicant response</code>, el aplicante recibe un mensaje por su canal (WhatsApp con plantilla aprobada, o email) con su enlace: «3 homes confirmed for you».</li>
+<li><strong>Portal</strong> con enlace personal sin contraseña (token aleatorio guardado con hash, caduca a los 30 días, revocable): tarjetas con fotos (las de Hampton o las que la agencia permita), precio, parroquia, dormitorios y la lista ✅ ❓, con tres botones: <strong>Book a viewing</strong>, <strong>Not for me</strong> (motivo en un toque) y <strong>Ask a question</strong>. Desde ahí también puede cambiar sus criterios, pausar la búsqueda o borrar sus datos.</li>
+<li>Recordatorios a las 24 y 72 horas si no hace nada. A los 7 días el match pasa a <code>No response</code> y se le pregunta si sigue buscando; a los 30 días sin actividad, la búsqueda queda en <code>Paused</code>.</li>
+<li>Cada clic es un evento que cambia el estado. Al equipo solo le llega un aviso si hay algo que hacer.</li>
+</ul>
+<h3 id="5-9-visitas-arrange-property-viewing">5.9 Visitas: Arrange Property Viewing</h3>
+<p class="tag tag-asked"><strong>Pediste:</strong> ver los horarios libres de los negociadores, que el usuario elija día y hora, que vea si otro usuario ya tiene cita ese día (sin sus datos) para animarle a decidir, y que cada negociador marque los días y horas en que está y no está disponible.</p>
+<ul>
+<li><strong>Disponibilidad</strong>: cada negociador tiene una plantilla semanal (por ejemplo, lunes a viernes de 09:30 a 17:30 y sábado de 10:00 a 13:00) y excepciones por fecha (vacaciones, horas bloqueadas o un hueco extra). Duración por visita (30 minutos por defecto), margen entre casas (15 minutos, más si cambia de parroquia) y máximo de visitas por día.</li>
+<li><strong>Restricciones de cada casa</strong>: si está ocupada por un inquilino, aviso previo mínimo (por ejemplo, 24 horas) y aviso automático al inquilino; quién tiene las llaves; qué negociadores pueden enseñarla.</li>
+<li><strong>Página de reserva</strong>: solo huecos reales (disponibilidad del negociador y restricciones de la casa). Los ocupados aparecen como «Booked», sin datos de nadie. Opcional: «2 viewings booked this week», solo con números reales que caducan a los 14 días. Inventar urgencia es una práctica engañosa, así que el contador nunca se infla.</li>
+<li><strong>Sin dobles reservas</strong>: la reserva se guarda con una sola sentencia SQL que solo inserta si no se solapa con otra cita del mismo negociador (en SQLite es atómica). Si dos personas pulsan a la vez, la segunda ve el hueco ya tomado.</li>
+<li><strong>Calendario</strong>: la cita se escribe en el Google o Outlook Calendar del negociador, y se leen sus horas ocupadas para no chocar con su agenda personal. El aplicante recibe una invitación de calendario.</li>
+<li><strong>Recordatorios</strong> a las 24 y 2 horas con botones Confirm, Reschedule y Cancel. Si a 2 horas de la visita sigue sin confirmar, se avisa al negociador.</li>
+<li><strong>Visitas en bloque</strong>: si varias personas quieren la misma casa, el sistema propone huecos seguidos o una «open viewing» (las fichas ya tienen la línea «Open viewing: fecha»). Ahorra viajes.</li>
+<li><strong>Después de la visita</strong>: a la hora, el aplicante recibe un formulario con las tres opciones de tu texto: <strong>Proceed</strong> (oferta o solicitud), <strong>Need more information</strong> y <strong>Not interested</strong> (con motivo). El negociador deja una nota de voz desde el móvil; se transcribe en el VPS con faster-whisper (puede contener datos personales) y queda resumida en el historial.</li>
+<li><strong>Contador de interesados</strong>, como pediste: por casa, cuántas personas tienen interés activo (visita reservada o hecha, «Proceed» o «Need more information»). El equipo puede quitar a alguien, con motivo, y el interés caduca solo. La web lo muestra solo si es 2 o más y es real.</li>
+<li><strong>Informe para el propietario</strong>: resumen semanal automático con vistas, consultas, visitas y temas del feedback. Evita la llamada de «¿cómo va?».</li>
+<li><strong>Casas de otras agencias</strong>: la visita la organiza la agencia; el sistema le propone tres horarios en los que el aplicante puede.</li>
+<li><strong>De lo actual a lo nuevo</strong>: el formulario actual se mantiene; las 5 horas fijas (<code>TIMES</code>) se sustituyen por <code>/api/slots</code> y el texto libre <code>agent</code> por el negociador real.</li>
+</ul>
+<h3 id="5-10-publicacion-de-propiedades-propias">5.10 Publicación de propiedades propias</h3>
+<p class="tag tag-asked"><strong>Pediste:</strong> recoger todos los datos de una propiedad nueva y, al tenerlos, publicarla sola en la web y en redes, con seis familias de datos.</p>
+<ul>
+<li><strong>Captación</strong>: el formulario público «Book a valuation» crea un contacto propietario y una cita en el mismo calendario de §5.9. Para preparar la valoración, el historial de transacciones de Places.je da comparables reales, y los datos de demanda de §5.14 ayudan a convencer al propietario.</li>
+<li><strong>Alta desde el móvil durante la valoración</strong> («New instruction» en el panel): secciones por familia de datos, subida de fotos con control de calidad (resolución, desenfoque, oscuridad, líneas torcidas), plano y documentos.</li>
+<li><strong>Campos obligatorios según la operación</strong> y porcentaje completado. Con menos del 100 % de lo obligatorio no se puede publicar.</li>
+<li><strong>Tus seis familias, adaptadas a Jersey</strong>. La lista original era de España: IBI, comunidad, fianza, Idealista o Fotocasa no aplican aquí.</li>
+</ul>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Familia</th>
+<th>Campos</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1. Identificación y ubicación</td>
+<td>Dirección, parroquia, código postal JE, referencia HE-…, operación (venta, alquiler, traspaso de negocio), estado (obra nueva, segunda mano, a reformar), promotor si es obra nueva</td>
+</tr>
+<tr>
+<td>2. Características</td>
+<td>Superficie interior en pies² y m², dormitorios, baños, aseos, salones, parking (plazas, garaje), trastero, planta y plantas del edificio, ascensor, año, estado de conservación, calefacción (gasoil, gas, eléctrica, bomba de calor, GLP), doble acristalamiento, exterior (jardín, terraza, balcón, patio), comodidades (piscina, gimnasio, zonas comunes), amueblado y mascotas en alquiler</td>
+</tr>
+<tr>
+<td>3. Económicos</td>
+<td>Precio de venta, renta mensual, o premium más renta si es un negocio; precio por pie² calculado; depósito (alquiler); parish rates si se publican; service charge (pisos); suministros incluidos; fecha de disponibilidad</td>
+</tr>
+<tr>
+<td>4. Legal y técnico</td>
+<td>Tenencia (freehold, flying freehold, share transfer, leasehold), categoría de vivienda (§7.3), licencia de vivienda en alquiler si aplica, certificado energético si existe, ocupación (vacía, alquilada), abogado del vendedor</td>
+</tr>
+<tr>
+<td>5. Marketing</td>
+<td>Título, descripción en inglés, galería, vídeo, tour 360 o 3D, plano, destacada (<code>featured_rank</code> ya existe), etiquetas (renovated, sea view, town centre…), textos para redes</td>
+</tr>
+<tr>
+<td>6. Estado y trazabilidad</td>
+<td>Estado, IDs en portales, vistas, consultas, visitas, guardados, fecha de publicación, <code>review_due_at</code>, motivo de retirada</td>
+</tr>
+</tbody></table></div>
+<ul>
+<li><strong>Ayuda de IA</strong>: con los campos y las fotos redacta título, descripción, puntos fuertes, textos para redes y textos alternativos, y etiqueta cada foto por estancia. Una persona aprueba. Regla: no inventa datos y marca cualquier frase que no salga de un campo.</li>
+<li><strong>Fotos</strong>: se pueden quitar objetos temporales (personas, trípode, desorden); nunca defectos permanentes. Esconder una grieta o tapar una vista es describir mal la casa.</li>
+<li><strong>Idioma</strong>: inglés, por D19. Las traducciones (por ejemplo, al portugués) solo si Hampton las pide y revisadas por una persona.</li>
+<li><strong>Un botón Publish</strong>: la web al momento (ya existe), sitemap y datos estructurados para buscadores y asistentes de IA, Facebook e Instagram por la API de Meta (carrusel, texto y enlace) y, opcionalmente, un vídeo vertical generado con las fotos. Portales por feed donde Hampton tenga cuenta.</li>
+<li><strong>Los cambios de estado se propagan</strong>: <code>Under offer</code> y <code>Let agreed</code> cambian la etiqueta en la web y pueden generar la publicación «Let agreed».</li>
+<li><strong>Tu regla de los 3 meses</strong> queda como <code>To confirm</code> (§4.4). Para las casas de otras agencias no hace falta: el inventario detecta solo cuándo desaparecen (§5.5).</li>
+<li><strong>Salud de la ficha</strong>: muchas vistas y pocas consultas sugieren revisar el precio o las fotos; el sistema avisa al equipo.</li>
+</ul>
+<h3 id="5-11-gestion-de-alquileres">5.11 Gestión de alquileres</h3>
+<p class="tag tag-asked"><strong>Pediste:</strong> un protocolo para seguir las propiedades con servicio de administración de inquilinos, que cada nuevo Lease Agreement quede en la base de datos y que se envíen notificaciones. Los mensajes de redes pasan a §5.12 y la regla de los 3 meses a §5.10.</p>
+<ul>
+<li><strong>Alta de una propiedad gestionada</strong>: propietario, condiciones (porcentaje de gestión), documentos de cumplimiento, llaves y datos bancarios para liquidar (acceso solo para <code>owner</code>).</li>
+<li><strong>Nuevo contrato</strong>, desde <code>Let agreed</code>: partes, fechas, renta y día de pago, depósito (importe, esquema, fecha de registro y referencia), contrato firmado con firma electrónica, inventario con fotos y lecturas de contadores. El calendario de cobros se genera solo.</li>
+<li><strong>Cobros y Missing payments</strong>:<ul>
+<li>Cada contrato tiene una <strong>referencia de pago única</strong> (por ejemplo, <code>HE-T0042</code>) que el inquilino pone en su transferencia.</li>
+<li>Se importa el extracto del banco en CSV (a diario o cuando se suba) y se concilia por referencia e importe; lo que no casa va a la cola «Unmatched payment».</li>
+<li>Secuencia de atraso configurable: día +1 recordatorio amable, +5 recordatorio firme, +7 tarea de llamada, +10 aviso al propietario y +14 carta formal con plantilla.</li>
+<li>Liquidación mensual al propietario (rentas menos honorarios y reparaciones) en PDF, enviada sola al cerrar el mes.</li>
+</ul>
+</li>
+<li><strong>Calendario de cumplimiento por propiedad</strong>: cada obligación con caducidad avisa a 60, 30 y 7 días, y si vence aparece en rojo en la bandeja. La lista concreta para Jersey está en §7.3.</li>
+<li><strong>Reparaciones</strong>: el inquilino avisa desde su portal o por WhatsApp con fotos; la IA clasifica urgencia (emergencia, urgente, rutina) y tipo; una emergencia (fuga, sin calefacción en invierno, cerradura) avisa al equipo al instante; se asigna un proveedor del directorio; el propietario aprueba si se supera un importe; la factura pasa a la liquidación.</li>
+<li><strong>Inspecciones</strong> cada 6 meses, programadas solas, con una lista en el móvil, fotos e informe al propietario.</li>
+<li><strong>Renovación</strong> a 90 días del fin: pregunta al propietario (renovar, revisar la renta) y al inquilino (quedarse) con botones. Si el inquilino se va, se crea un borrador de ficha copiando la anterior para anunciarla antes de que quede vacía.</li>
+<li><strong>Asistente de revisión de renta</strong>: calcula la subida máxima legal (tope RPI, una vez cada 12 meses) y la primera fecha posible con 2 meses de aviso, y prepara la carta. Tiene en cuenta si el contrato sigue con la ley de 2011 o con la de 2025 (§7.3).</li>
+<li><strong>Salida</strong>: inventario de salida contra el de entrada, propuesta de deducciones y devolución del depósito a través del esquema.</li>
+<li>Los plazos legales (registro del depósito, preavisos, licencias) son <strong>parámetros</strong>, no código, y los valida un abogado de Jersey.</li>
+</ul>
+<h3 id="5-12-mensajes-facebook-instagram-whatsapp-web-y-email">5.12 Mensajes: Facebook, Instagram, WhatsApp, web y email</h3>
+<ul>
+<li><strong>Una bandeja</strong> para Messenger e Instagram (webhooks de la API de Meta), WhatsApp Business (Cloud API), el chat web y el email general. Cada conversación queda unida a un contacto.</li>
+<li><strong>Asistente</strong>: responde solo lo que puede apoyar en datos (disponibilidad, precio y características de las fichas publicadas, horario, cómo reservar una visita con el enlace, cómo registrarse con el asistente). Lo demás lo deja como borrador con un resumen para una persona. Siempre dice que es automático y pasa a una persona si se lo piden.</li>
+<li><strong>Modos</strong>: empieza en borrador; después responde solo a una lista blanca de intenciones (horario, enlace de reserva, registro) y se amplía según el acierto medido.</li>
+<li><strong>Reglas de Meta</strong> (verificar al implementar): las respuestas automáticas van dentro de la ventana de 24 horas desde el último mensaje del cliente; fuera de ella, en WhatsApp, solo con plantillas aprobadas. Publicar y responder en nombre de la página exige una app de Meta verificada con permisos aprobados. Es el trámite más lento de todo el proyecto, conviene empezarlo pronto.</li>
+<li><strong>De conversación a aplicante</strong>: botón Create applicant con los campos ya rellenados por la IA a partir del chat.</li>
+<li><strong>Objetivo de servicio</strong>: primera respuesta automática en menos de 5 minutos en horario de oficina; respuesta humana en menos de 2 horas.</li>
+</ul>
+<h3 id="5-13-tour-3d-360-y-gaussian-splatting">5.13 Tour 3D: 360 y Gaussian Splatting</h3>
+<p class="tag tag-asked"><strong>Pediste:</strong> una carpeta por propiedad con dos subcarpetas (vídeos 360 y fotos 360); un LLM con MCP y computer use que limpie las fotos, corrija el color y saque con After Effects los fotogramas (6 a 10 por segundo) para entrenar el splat.</p>
+<ul>
+<li><strong>Sin computer use para esto.</strong> Manejar Photoshop y After Effects a través de la pantalla es lento, frágil y caro para un proceso que se repite igual cada vez. Los mismos pasos por línea de comandos corren solos y dan siempre el mismo resultado:<ul>
+<li><code>ffmpeg</code> extrae los fotogramas a la tasa que se quiera (6 a 10 por segundo caminando despacio es un buen punto de partida; lo importante es que dos fotogramas seguidos se solapen mucho) y convierte el vídeo 360 en vistas normales con su filtro <code>v360</code>.</li>
+<li>Un filtro de nitidez descarta los fotogramas borrosos.</li>
+<li><strong>Una sola corrección de color</strong> (una LUT) aplicada igual a todos los fotogramas. Retocar cada foto por separado, con IA o a mano, hace que el splat parpadee y aparezcan «floaters».</li>
+<li>En lugar de borrar objetos foto a foto, <strong>máscaras automáticas</strong> de personas, operador y trípode, que el entrenamiento ignora.</li>
+</ul>
+</li>
+<li><strong>El protocolo de captura importa más que la edición</strong>: ordenar antes de grabar, todas las luces encendidas, exposición y balance de blancos bloqueados, caminar despacio en bucles, cámara en monopié a la altura del pecho, operador fuera de plano, cada estancia y cada paso entre estancias, cuidado con espejos y ventanas. Va como checklist en el panel.</li>
+<li><strong>Carpetas</strong> con la referencia de Hampton delante: <code>HE-R027_Chateau-La-Chaire/videos_360</code>, <code>/fotos_360</code> y <code>/_output</code>. Mejor aún: subir desde el panel a R2, lo que crea el trabajo y muestra su estado.</li>
+<li><strong>Dos productos de la misma visita</strong>: un <strong>tour 360 de fotos</strong> (rápido, robusto, funciona en cualquier móvil) y el <strong>splat</strong> como versión premium.</li>
+<li><strong>Etapas del splat</strong>: fotogramas, posiciones de cámara (COLMAP o GLOMAP), entrenamiento (gsplat o Nerfstudio, Postshot o Brush) en una GPU alquilada por horas porque el VPS no tiene GPU, limpieza (SuperSplat), compresión (SPZ o SOG), R2 y visor en la ficha, con el tour 360 como respaldo en móviles lentos.</li>
+<li><strong>Revisión humana antes de publicar</strong>: floaters y privacidad (fotos familiares, documentos o caras reflejadas, que se difuminan).</li>
+<li><strong>Encaje con lo actual</strong>: la sección «3D tours» del panel solo acepta Matterport, YouTube y Vimeo. Para tours propios hay que servirlos desde R2 y ajustar la CSP.</li>
+<li><strong>Comprar en vez de construir</strong>: con pocas fichas al mes, Matterport o una app de captura puede salir más barato que mantener la cadena propia. Se decide con el volumen real (pregunta 8).</li>
+</ul>
+<h3 id="5-14-analitica-y-trazabilidad">5.14 Analítica y trazabilidad</h3>
+<p class="tag tag-asked"><strong>Pediste:</strong> que la dirección vea la actividad de cada usuario en la web, las propiedades más vistas y el tráfico, para entender tendencias y ofrecer lo que se demanda.</p>
+<ul>
+<li><strong>Qué medir</strong>: por ficha (vistas, fotos abiertas, tour abierto, reservas, guardados); búsquedas y filtros usados en la web, que son demanda declarada; búsquedas sin resultados, que son demanda sin cubrir; origen de las visitas (campañas, publicaciones en redes); el embudo visita, consulta, aplicante, visita, oferta y cierre; tiempos del equipo (primer contacto, primera lista enviada, visitas por semana) y de las agencias (tiempo de respuesta).</li>
+<li><strong>Demanda contra oferta</strong>: los requisitos de los aplicantes (presupuesto, dormitorios, parroquia) contra el inventario. Si hay muchos aplicantes para un tipo de casa y pocas casas, ese dato sirve para captar propietarios («we have tenants waiting for a home like yours»). Así la base de aplicantes trae fichas nuevas.</li>
+<li><strong>Actividad por persona</strong>: anónima por defecto. Se une a una persona solo cuando se registra o entra en su portal y ha aceptado el aviso de privacidad.</li>
+<li><strong>Herramientas</strong>: Cloudflare Web Analytics para el tráfico, sin cookies; los eventos de negocio salen de la tabla <code>events</code>; las vistas por ficha se cuentan en <code>daily_stats</code> (una fila por ficha, día y métrica que se incrementa, en lugar de una fila por visita).</li>
+<li><strong>Pantalla Insights</strong>: fichas más vistas, mapa de demanda (parroquia × dormitorios × presupuesto), embudo, tiempos de respuesta y un resumen semanal por email.</li>
+</ul>
+<h3 id="5-15-ofertas-referencias-y-cierre">5.15 Ofertas, referencias y cierre</h3>
+<p>No estaba en tu texto y es donde una agencia pequeña pierde más horas: entre «la visita fue bien» y «firmado» hay que perseguir abogados, documentos y respuestas. Se resuelve con hitos y recordatorios automáticos.</p>
+<ul>
+<li><strong>Ofertas de compra</strong>: el aplicante la hace desde su portal o la registra el negociador; llega al propietario con un clic; aceptar, rechazar o contraofertar queda en el historial; varias ofertas por la misma casa se ven juntas.</li>
+<li><strong>Venta acordada</strong>: se abre un expediente con comprador, vendedor, abogados de ambas partes, precio y condiciones, y una lista de hitos con fecha prevista y real (los de Jersey en §7.3). Cada semana sale un correo automático a los abogados pidiendo el estado de lo pendiente, y comprador y vendedor reciben un resumen sin tener que llamar.</li>
+<li><strong>Comprobaciones del cliente</strong> en ventas: las que exija la normativa contra el blanqueo (§7.3), con los documentos en almacenamiento restringido (clase C3, sin IA en la nube).</li>
+<li><strong>Solicitud de alquiler</strong>: el inquilino rellena su solicitud en el portal (empleo, ingresos, referencias, avalista si hace falta, estatus de vivienda); una regla configurable comprueba la asequibilidad; las referencias se piden por email con un enlace para responder; el contrato sale de una plantilla y se firma electrónicamente. Al firmar nace el contrato de §5.11.</li>
+<li><strong>Comisiones</strong>: al cerrar una operación con otra agencia se genera la factura de la parte acordada, que pasa a Missing payments si no se cobra a tiempo (§5.1).</li>
+</ul>
+</section>
+<section class="sec" data-sec="6-automatizaciones-e-ia"><h2 id="6-automatizaciones-e-ia">6. Automatizaciones e IA</h2>
+<h3 id="6-1-ficha-estandar-de-cada-automatizacion">6.1 Ficha estándar de cada automatización</h3>
+<p>Cada automatización nueva se define con esta ficha antes de construirla:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Ejemplo: leer respuestas de agencias</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Objetivo</td>
+<td>Quitar al equipo el trabajo de leer cada respuesta y actualizar estados</td>
+</tr>
+<tr>
+<td>Disparador</td>
+<td>Correo nuevo con <code>[HE-OUT-…]</code> en el asunto</td>
+</tr>
+<tr>
+<td>Entradas</td>
+<td>Texto del correo, preguntas que se hicieron, casas incluidas</td>
+</tr>
+<tr>
+<td>Pasos</td>
+<td>Clasificar, validar el JSON, aplicar si la confianza supera el umbral; si no, crear una tarea</td>
+</tr>
+<tr>
+<td>Modelo y clase de dato</td>
+<td>Modelo barato por API · clase C1</td>
+</tr>
+<tr>
+<td>Punto humano y modo</td>
+<td>Tarea si la confianza es baja · modo inicial Draft</td>
+</tr>
+<tr>
+<td>Salidas</td>
+<td>Estado de la propiedad y de sus matches, snapshot, avisos</td>
+</tr>
+<tr>
+<td>Si falla</td>
+<td>Reintento con espera; al tercer fallo, aviso a Luis; nunca aplica dos veces lo mismo</td>
+</tr>
+<tr>
+<td>Tope de coste</td>
+<td>Un importe mensual; al llegar, pasa a Draft</td>
+</tr>
+<tr>
+<td>Pruebas</td>
+<td>30 respuestas reales etiquetadas, que se repiten al cambiar de modelo</td>
+</tr>
+<tr>
+<td>Hecho cuando</td>
+<td>27 de 30 aciertos en las pruebas y una semana en Draft sin correcciones graves</td>
+</tr>
+</tbody></table></div>
+<h3 id="6-2-pantalla-automations-del-panel">6.2 Pantalla Automations del panel</h3>
+<p>Para el equipo de Hampton, la «interfaz fácil de usar» es un tablero para controlar lo que ya existe:</p>
+<ul>
+<li>Lista de automatizaciones con interruptor, modo (<strong>Draft</strong>: propone y una persona aprueba · <strong>Approve</strong>: aprobación en lote · <strong>Auto</strong>: actúa sola y se revisa una muestra), última ejecución, porcentaje de éxito, pendientes de aprobar y coste del mes.</li>
+<li>Plantillas editables (correos y WhatsApp) y parámetros (días, umbrales, horarios).</li>
+<li>Registro de cada ejecución con su entrada y su salida, con los datos sensibles ocultos.</li>
+<li>Un botón general <strong>Pause all outbound</strong> que detiene cualquier envío a clientes y agencias.</li>
+</ul>
+<p>Para construir y probar automatizaciones nuevas, Luis puede seguir usando n8n en el VPS. Lo que pasa a producción para Hampton vive en el código de la app, con pruebas.</p>
+<h3 id="6-3-donde-corre-y-que-modelo-usa">6.3 Dónde corre y qué modelo usa</h3>
+<p><strong>Tu regla, afinada:</strong></p>
+<ul>
+<li>Automatizaciones internas de Optimyze: en el VPS, con puerto solo por Tailnet, como ahora.</li>
+<li>Automatizaciones para un cliente como Hampton: dentro de su app y en su cuenta de Cloudflare. Lo único público es lo que usa el público (web, registro, portal, reservas y webhooks), cada pieza con Turnstile, firma verificada o límite de peticiones.</li>
+<li>Lo que necesite modelos locales: en el carril privado del VPS, que pide trabajo y no abre puertos.</li>
+</ul>
+<p><strong>La clase del dato decide el modelo</strong>, no si la automatización es interna o de un cliente:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Clase</th>
+<th>Ejemplos</th>
+<th>Qué se permite</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C0 Público</td>
+<td>Fichas, anuncios del mercado, textos publicados</td>
+<td>Cualquier modelo por API; el más barato que pase las pruebas</td>
+</tr>
+<tr>
+<td>C1 Contacto profesional</td>
+<td>Correos de agencias, nombres de empresas</td>
+<td>API con condiciones de empresa: sin entrenar con tus datos y con acuerdo de tratamiento</td>
+</tr>
+<tr>
+<td>C2 Personal básico</td>
+<td>Nombre, teléfono y requisitos del aplicante; chats</td>
+<td>API con acuerdo de tratamiento, enviando solo lo necesario (los requisitos sin nombre ni teléfono) y en región UE o Reino Unido si se ofrece</td>
+</tr>
+<tr>
+<td>C3 Sensible</td>
+<td>Documentos de identidad, extractos, ingresos, referencias, atrasos y disputas, datos bancarios</td>
+<td>Modelo local en el VPS o sin IA; nunca apps de chat de consumo</td>
+</tr>
+</tbody></table></div>
+<p><strong>Suscripciones o API.</strong> Las suscripciones de ChatGPT o Gemini están pensadas para personas trabajando en una ventana: sus límites cambian sin aviso, no garantizan servicio y sus términos pueden no permitir usarlas como motor de un servicio para un cliente. Las automatizaciones deben ir por API, con pago por uso, condiciones de empresa y registro de cada llamada. Con modelos pequeños, casi todas estas tareas cuestan céntimos. Las suscripciones siguen siendo útiles para que Luis prototipe.</p>
+<p><strong>AI Gateway</strong> de Cloudflare como puerta única: cada llamada queda registrada con su coste y su automatización, lo repetido se puede cachear, se ponen límites y se cambia de proveedor sin desplegar.</p>
+<h3 id="6-4-barandillas">6.4 Barandillas</h3>
+<ul>
+<li>Clave de idempotencia en cada envío (plantilla + entidad + versión): un mensaje no sale dos veces aunque una tarea se repita.</li>
+<li>Topes diarios por canal y por agencia.</li>
+<li>Horas de silencio: nada de WhatsApp ni SMS entre las 21:00 y las 08:00 de Jersey.</li>
+<li>Interruptor por automatización y el general Pause all outbound.</li>
+<li>Cada automatización con IA tiene su batería de pruebas, que se repite al cambiar de modelo.</li>
+</ul>
+</section>
+<section class="sec" data-sec="7-seguridad-privacidad-y-cumplimiento-en-jersey"><h2 id="7-seguridad-privacidad-y-cumplimiento-en-jersey">7. Seguridad, privacidad y cumplimiento en Jersey</h2>
+<h3 id="7-1-acceso">7.1 Acceso</h3>
+<ul>
+<li>Hoy hay un solo rol (D6). Propuesta: <code>owner</code> (usuarios, pagos, datos bancarios, borrados definitivos y ajustes) y <code>staff</code> (todo lo demás). Más roles solo si aparecen personas con tareas distintas.</li>
+<li>Se mantiene el login con Google y la cookie HMAC. Se exige verificación en dos pasos en esas cuentas de Google. Opcional: Cloudflare Access delante de <code>/admin</code> y <code>/api/admin</code> como segunda puerta.</li>
+<li>Los enlaces del portal son aleatorios, se guardan con hash, caducan y se pueden revocar.</li>
+<li>Los webhooks de Meta y WhatsApp verifican la firma de cada llamada.</li>
+</ul>
+<h3 id="7-2-datos-personales">7.2 Datos personales</h3>
+<ul>
+<li><strong>Registro en la JOIC</strong>: obligatorio para los responsables del tratamiento establecidos en Jersey (Data Protection Authority (Jersey) Law 2018, art. 17); no registrarse es delito. Con menos de 10 empleados equivalentes cuesta 70 £, más un recargo de 50 £ para quien está registrado en la JFSC como agencia inmobiliaria, y se renueva entre el 1 de enero y el final de febrero. Comprobar que Hampton está al día y, si Optimyze trata datos por cuenta de Hampton, revisar también su caso.</li>
+<li><strong>Aviso y base legal</strong>: aviso de privacidad en el registro y en el portal; cada uso con su base legal (contrato o interés legítimo para gestionar la búsqueda, consentimiento para marketing).</li>
+<li><strong>Marketing directo</strong> (Data Protection (Jersey) Law 2018, art. 36): el derecho a oponerse se comunica de forma explícita y separada en el primer contacto o antes, y si alguien se opone se deja de enviar. Va en el registro, en el primer WhatsApp o email y en el pie de los correos a agencias. Jersey no tiene un equivalente de la PECR británica y no encontré reglas propias para email, SMS o WhatsApp: que lo confirme un abogado.</li>
+<li><strong>Cookies</strong>: la guía de la JOIC pide consentimiento afirmativo para las no esenciales. Cloudflare Web Analytics no usa cookies; si algún día se añade algo que las use, banner con opción real de rechazar.</li>
+<li><strong>Conservación</strong>: aplicantes inactivos borrados o anonimizados a los 12 meses con aviso previo (propuesta; Hampton fija el plazo). El aplicante puede descargar o borrar sus datos desde su portal.</li>
+<li><strong>Proveedores</strong>: acuerdos de tratamiento con Cloudflare, Google, Meta, el proveedor de IA y Optimyze si opera el sistema.</li>
+</ul>
+<h3 id="7-3-reglas-de-jersey-que-el-sistema-debe-respetar">7.3 Reglas de Jersey que el sistema debe respetar</h3>
+<p>Verificado el 23-oct-2026 en gov.je, jerseylaw.je, la JFSC, la JOIC y despachos de Jersey. Varias reglas cambiaron este año. Todas entran como parámetros revisables y un abogado de Jersey las valida antes de automatizar nada.</p>
+<p><strong>Estatus de vivienda</strong> (Control of Housing and Work Law). Desde el 14-sep-2026 hay seis estatus y «Standard» sustituye a «Registered» sin cambiar su contenido. El estatus decide qué casas puede proponer el matching:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Estatus</th>
+<th>Alquilar</th>
+<th>Comprar</th>
+<th>Regla para el matching</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Permanent Entitled, Entitled</td>
+<td>Cualquier vivienda</td>
+<td>Cualquier vivienda</td>
+<td>Sin filtro</td>
+</tr>
+<tr>
+<td>Licensed</td>
+<td>Casi todo salvo first-time buyer restricted y vivienda social; una sola vivienda, como residencia</td>
+<td>Igual, una sola</td>
+<td>Excluir FTB restricted y social</td>
+</tr>
+<tr>
+<td>Licensed for Lease Only (nuevo)</td>
+<td>Registered y Qualified con contrato de menos de 9 años; una sola vivienda</td>
+<td>No consta</td>
+<td>Solo alquiler y plazo menor de 9 años</td>
+</tr>
+<tr>
+<td>Entitled for Work Only</td>
+<td>Una vivienda Registered</td>
+<td>Solo junto a una pareja Permanent Entitled, Entitled o Licensed</td>
+<td>Solo Registered</td>
+</tr>
+<tr>
+<td>Standard (antes Registered)</td>
+<td>Una vivienda Registered, lodgings o alojamiento turístico</td>
+<td>No; puede adquirir acciones de share transfer, pero ocupar la vivienda requiere consentimiento</td>
+<td>Solo Registered; compra marcada para revisión</td>
+</tr>
+</tbody></table></div>
+<p>Una vivienda Qualified exige tarjeta Permanent Entitled, Entitled, Licensed o Licensed for Lease Only. Una Registered admite cualquier estatus.</p>
+<p><strong>Alquiler</strong> (Residential Tenancy (Jersey) Amendment Law 2025, en vigor desde el 15-abr-2026). Los contratos de plazo fijo firmados antes siguen con la ley de 2011 hasta que vencen, así que cada contrato guarda bajo qué régimen está.</p>
+<ul>
+<li>Contrato escrito y firmado, obligatorio.</li>
+<li>Inventario (condition report) al inicio y al final, en 7 días; multa de hasta 10.000 £.</li>
+<li>Depósito protegido en <strong>mydeposits Jersey</strong>, el único esquema, en los <strong>30 días</strong> siguientes a recibirlo y con el aviso de datos prescritos. No encontré un tope legal al importe.</li>
+<li><strong>Subidas de renta</strong>: una cada 12 meses, con al menos 2 meses de aviso por escrito y tope en el RPI de Jersey, salvo excepciones (mejoras para el inquilino o renta muy por debajo del mercado). El inquilino puede recurrir al Rent Tribunal. El asistente de renovación (§5.11) calcula la subida máxima y la primera fecha posible y prepara la carta.</li>
+<li><strong>Preavisos</strong>: el inquilino periódico da 1 mes. El casero, sin causa, al menos 1 año en contratos periódicos; con causa, de 7 días a 6 meses según el motivo. Solo un plazo fijo inicial, de hasta 3 años.</li>
+<li>Prohibido cobrar premium o «key money» u obligar a comprar muebles. No hay una prohibición general de honorarios al inquilino, pero el límite entre un «admin fee» y un premium no está claro: consultar a un abogado antes de cobrar algo al inquilino.</li>
+</ul>
+<p><strong>Licencia de vivienda en alquiler</strong> (desde el 1-may-2024; alquilar sin ella es infracción desde el 1-ago-2024): una por vivienda, a nombre del propietario, válida 2 años, 61,50 £ desde enero de 2026 y renovación con un enlace que llega por email. Calendario de cumplimiento para §5.11:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Obligación</th>
+<th>Plazo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Licencia de la vivienda</td>
+<td>Cada 2 años; copia al inquilino con la vía de quejas en 28 días; cambios notificados en 28 días</td>
+</tr>
+<tr>
+<td>Instalación eléctrica (EICR)</td>
+<td>Cada 5 años, con copia al inquilino en 28 días; checklist anual o al cambiar de inquilino</td>
+</tr>
+<tr>
+<td>Gas</td>
+<td>Revisión anual por un técnico Gas Safe</td>
+</tr>
+<tr>
+<td>Alarmas</td>
+<td>Humo (EN 14604) en cada planta; CO (EN 50291) donde haya un aparato de combustión</td>
+</tr>
+<tr>
+<td>Riesgos</td>
+<td>Los 29 riesgos prescritos por la Order de 2018</td>
+</tr>
+<tr>
+<td>Depósito</td>
+<td>En mydeposits Jersey en 30 días</td>
+</tr>
+<tr>
+<td>Inventario</td>
+<td>Al inicio y al final, en 7 días</td>
+</tr>
+</tbody></table></div>
+<p><strong>Ventas y blanqueo de capitales</strong>: la agencia inmobiliaria (compraventa de freehold, flying freehold, leasehold y acciones con derecho de ocupación) es negocio del Schedule 2 de la Proceeds of Crime (Jersey) Law 1999. Exige registro en la JFSC y diligencia debida sobre compradores y vendedores (Handbook de la JFSC, sección 18). Además, cobrar rentas o depósitos en una cuenta propia cuenta como administrar fondos y también exige registro (confianza media): confirmarlo antes de F5.</p>
+<p><strong>Compraventa</strong>: freehold y flying freehold se «pasan» ante la Royal Court el viernes por la tarde y pagan Stamp Duty; share transfer es una compra de acciones, sin Royal Court, y paga Land Transaction Tax. Hitos para el expediente de §5.15: oferta, abogados, estatus de vivienda y diligencia debida, cuestionario del vendedor, búsquedas (título, planning), tasación e hipoteca, contrato acordado, fondos en el abogado, passing day o completion, pago al vendedor e impuestos.</p>
+<p><strong>Datos de la ficha</strong>: no encontré obligación legal de publicar categoría, tenencia o service charge, pero es lo habitual en Jersey. Los parish rates son dos, foncier (propietario) y occupier (ocupante), y los paga quien posee u ocupa la vivienda el 1 de enero; en un alquiler amueblado el occupier rate lo paga el casero. El certificado energético no es obligatorio: su entrada, prevista para el 1-ene-2026, se aplazó sin fecha.</p>
+<p><strong>Portales y fuentes del inventario</strong> (observado el 23-oct-2026):</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Fuente</th>
+<th>Qué ofrece</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Places.je</td>
+<td>API REST pública de solo lectura: anuncios con agencia, precio, dormitorios, parroquia, estado y <code>property_key</code>; directorio de agencias y agentes; historial de transacciones por propiedad. Clave obligatoria desde el 2-nov-2026; 60 peticiones por minuto. Unos 1.640 anuncios en venta y 340 en alquiler disponibles</td>
+<td>Fuente principal. Pedir la clave ya</td>
+</tr>
+<tr>
+<td>Homely.je</td>
+<td>Alertas por email dos veces al día; sin API. Sus términos prohíben extraer datos, crear una base competidora y usar sus datos para contactar a las agencias</td>
+<td>No usar</td>
+</tr>
+<tr>
+<td>Properties.je</td>
+<td>Sin API ni alertas por ahora; sus términos no hablan del scraping</td>
+<td>Solo con permiso escrito</td>
+</tr>
+<tr>
+<td>JEP property, OnTheMarket, Rightmove</td>
+<td>Más volumen, con mucho solapamiento; Rightmove casi sin alquileres</td>
+<td>Revisar sus términos antes de usarlos</td>
+</tr>
+</tbody></table></div>
+<p><strong>Direcciones</strong>: el gazetteer oficial (JLPI, más de 90.000 direcciones) se licencia a través de Digimap Jersey, sin precio público. Para empezar basta con asignar la parroquia desde el texto de la dirección y el código postal; el gazetteer queda como mejora si la deduplicación lo pide.</p>
+<p><strong>Fuentes</strong> (consultadas el 23-oct-2026; comprobar de nuevo antes de decidir):</p>
+<ul>
+<li>Estatus de vivienda: <a href="https://www.gov.je/residentialstatus">gov.je, residential status</a> · <a href="https://www.walkersglobal.com/en/Insights/2026/09/Jerseys-Control-of-Housing-and-Work-law-what-employers-need-to-know">Walkers, sep-2026</a> · <a href="https://www.mourant.com/guides/share-transfer-residential-property-in-jersey/">Mourant, share transfer</a></li>
+<li>Alquiler: <a href="https://jerseylaw.je/laws/current/l_31_2011">Residential Tenancy (Jersey) Law, versión vigente</a> · <a href="https://www.gov.je/news/2026/pages/ResidentialTenancyChanges.aspx">gov.je, cambios de 2026</a> · <a href="https://www.applebyglobal.com/publications/major-changes-to-jerseys-residential-tenancy-law/">Appleby</a></li>
+<li>Depósitos: <a href="https://www.jerseylaw.je/laws/current/ro_103_2014">Deposit Scheme Regulations 2014</a> · <a href="https://www.gov.je/Home/RentingBuying/OtherRentalOptions/pages/depositprotectionrentedaccommodation.aspx">gov.je, deposit protection</a></li>
+<li>Licencia de vivienda en alquiler: <a href="https://www.gov.je/Home/RentingBuying/OtherRentalOptions/Pages/RentedDwellings.aspx">gov.je, rented dwellings</a></li>
+<li>Blanqueo: <a href="https://jerseylaw.je/laws/current/l_8_1999">Proceeds of Crime (Jersey) Law 1999</a> · <a href="https://www.jerseyfsc.org/media/fmvb1zqt/handbook-section-18-real-estate-agents.pdf">JFSC Handbook, sección 18</a></li>
+<li>Datos personales: <a href="https://www.jerseyoic.org/guidance/data-protection/registration">JOIC, registro</a> · <a href="https://jerseylaw.je/laws/current/l_3_2018">Data Protection (Jersey) Law 2018</a></li>
+<li>Compraventa: <a href="https://www.mourant.com/guides/buying-and-selling-freehold-property-in-jersey/">Mourant, freehold</a> · <a href="https://www.gov.je/Home/Parish/Pages/Rates.aspx">gov.je, parish rates</a> · <a href="https://www.gov.je/News/2023/Pages/TimetableForEnergyPerformanceCertificates.aspx">gov.je, certificados energéticos</a></li>
+<li>Portales: <a href="https://places.je/developers">Places.je, API para desarrolladores</a> · <a href="https://homely.je/legal/terms">Homely.je, términos</a> · <a href="https://gov.je/PlanningBuilding/JerseyMappingService/Pages/Digital.aspx">gov.je, cartografía digital</a></li>
+</ul>
+<h3 id="7-4-copias-y-secretos">7.4 Copias y secretos</h3>
+<ul>
+<li>D1 permite restaurar a un punto en el tiempo (Time Travel; comprobar el plazo según el plan). Además, una exportación semanal cifrada a un destino privado.</li>
+<li>Los secretos viven solo en las variables de Cloudflare, nunca en el repo.</li>
+<li>La tabla <code>events</code> es también la auditoría: quién hizo qué y cuándo.</li>
+</ul>
+<h3 id="7-5-un-riesgo-que-ya-existe-en-produccion">7.5 Un riesgo que ya existe en producción</h3>
+<p>Lo encontró la lectura en frío del documento y lo comprobé en el código (<code>scripts/import_agencies.py</code>, líneas 171 a 176). Las 6.221 fotos de los paquetes de agencias se guardaron con <code>origin=&#39;upload&#39;</code> y <code>public=1</code>, apoyadas en el permiso que declaraste el 8-oct (los README dicen que no se verificó por separado). El CHECK de la base de datos solo impide publicar fotos con <code>origin=&#39;external&#39;</code>. Hoy no se ven porque esas 264 fichas están archivadas, pero si alguien restaura y publica una desde el panel, sus fotos pasan a ser públicas. Los mismos README dicen que los datos se recogieron de las webs públicas de las agencias y que no se escribió a ninguna, así que no consta un permiso de la agencia.</p>
+<p><strong>Propuesta, sin aplicar porque necesita tu sí:</strong> marcar esas fotos como no públicas, o darles un origen propio (por ejemplo <code>agency</code>) que el CHECK trate como <code>external</code>, y publicarlas solo cuando el acuerdo con esa agencia incluya el permiso de fotos.</p>
+</section>
+<section class="sec" data-sec="8-lo-que-no-construiria"><h2 id="8-lo-que-no-construiria">8. Lo que no construiría</h2>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>En vez de…</th>
+<th>Usaría…</th>
+<th>Por qué</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Investigación diaria por aplicante con dos modelos</td>
+<td>Inventario único y matching en SQL</td>
+<td>Más completo, más barato y sin duplicados</td>
+</tr>
+<tr>
+<td>Computer use sobre Photoshop y After Effects</td>
+<td><code>ffmpeg</code>, herramientas de línea de comandos y un protocolo de captura</td>
+<td>Repetible, sin pantalla y sin coste por clic</td>
+</tr>
+<tr>
+<td>Un sistema de notificaciones aparte</td>
+<td>La tabla <code>events</code> y unas reglas</td>
+<td>Una sola fuente de verdad</td>
+</tr>
+<tr>
+<td>Un motor de flujos para esperas y recordatorios</td>
+<td>Un cron cada 10 minutos y consultas de lo vencido</td>
+<td>El estado ya está en D1</td>
+</tr>
+<tr>
+<td>Un calendario propio</td>
+<td>Reglas de disponibilidad y Google u Outlook</td>
+<td>Los negociadores ya viven en su calendario</td>
+</tr>
+<tr>
+<td>Pasarela de pagos o contabilidad propia</td>
+<td>Referencia única, extracto CSV y exportación a su contabilidad</td>
+<td>Conciliar solo exige casar referencias</td>
+</tr>
+<tr>
+<td>Firma electrónica propia</td>
+<td>Un servicio existente</td>
+<td>Validez legal y registro de auditoría resueltos</td>
+</tr>
+<tr>
+<td>Analítica de tráfico propia</td>
+<td>Cloudflare Web Analytics y eventos propios</td>
+<td>Sin cookies y sin coste</td>
+</tr>
+<tr>
+<td>Traducción automática en la web</td>
+<td>Inglés (D19) y traducciones revisadas si se piden</td>
+<td>Una mala traducción describe mal la casa</td>
+</tr>
+<tr>
+<td>Un segundo backend (Supabase, Postgres)</td>
+<td>Seguir en D1</td>
+<td>Jersey es pequeño: miles de filas, no millones</td>
+</tr>
+<tr>
+<td>Un CRM nuevo si Hampton ya tiene uno</td>
+<td>Integrarse con el suyo</td>
+<td>No duplicar el trabajo del equipo</td>
+</tr>
+</tbody></table></div>
+</section>
+<section class="sec" data-sec="9-hoja-de-ruta"><h2 id="9-hoja-de-ruta">9. Hoja de ruta</h2>
+<p>Antes de construir nada, cuatro acciones que no esperan:</p>
+<ol>
+<li><strong>Pedir la clave de la API de Places.je</strong> en <code>places.je/developers/request-access</code>. Desde el 2-nov-2026 las llamadas sin clave reciben 401.</li>
+<li><strong>Empezar el trámite de Meta</strong> (verificación del negocio y app con permisos) si se quiere publicar en redes o responder mensajes. Es lo más lento.</li>
+<li><strong>Confirmar los registros de Hampton</strong> en la JFSC (Schedule 2) y en la JOIC (§7.2, §7.3).</li>
+<li><strong>Medir cómo se trabaja hoy</strong>: cuánto tarda la primera lista que recibe un aplicante y cuántas horas por semana se buscan casas a mano, para poder comparar después.</li>
+</ol>
+<p>La hoja de ruta está ordenada por el trabajo que quita y por dependencias. No pongo plazos hasta resolver las preguntas del §12.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Fase</th>
+<th>Qué incluye</th>
+<th>Hecho cuando</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>F0 Cimientos</td>
+<td><code>contacts</code>, <code>applicants</code>, <code>events</code>, <code>notifications</code> y <code>staff</code> con roles; Worker <code>hampton-jobs</code> con cron; registro paso a paso en la web y en el panel; lista y ficha de aplicantes; Action inbox básico; el camino del público hacia la app según la pregunta 2 (dominio propio o enlaces desde Wix)</td>
+<td>Un registro desde la web pública aparece en el panel con su aviso en menos de un minuto, y los duplicados por email o móvil se unen</td>
+</tr>
+<tr>
+<td>F1 Inventario y matching</td>
+<td><code>properties</code>, <code>market_listings</code> y <code>matches</code>; fuentes empezando por la API de Places.je; destino de las 264 fichas de agencias según la pregunta 1; extracción, deduplicación, matching, cola de revisión y lista ✅ ❌ ❓</td>
+<td>La pasada diaria corre sola, un aplicante nuevo ve coincidencias en menos de 5 minutos y el equipo revisa 20 casas en menos de 5 minutos</td>
+</tr>
+<tr>
+<td>F2 Agencias y portal</td>
+<td><code>agencies</code>, <code>outreach</code> y snapshots; correos agrupados, lectura de respuestas y seguimientos; portal del aplicante con sus tres botones</td>
+<td>Una respuesta de agencia cambia estados y avisa al aplicante sin teclear, con 27 de 30 aciertos en las pruebas</td>
+</tr>
+<tr>
+<td>F3 Visitas y ofertas</td>
+<td>Disponibilidad por negociador, huecos reales, reservas sin choques, calendario, recordatorios, feedback, contador de interesados, informe al propietario; ofertas y expediente de venta con hitos</td>
+<td>Cero dobles reservas, recordatorios enviados, feedback en la ficha, y una oferta aceptada abre su expediente con hitos</td>
+</tr>
+<tr>
+<td>F4 Publicación</td>
+<td>Alta de ficha con campos de Jersey, ayuda de IA, Publish a la web y a Meta, KPIs y <code>To confirm</code></td>
+<td>Una ficha completa sale en la web y en redes con un botón</td>
+</tr>
+<tr>
+<td>F5 Alquileres gestionados</td>
+<td>Solicitud y referencias del inquilino, contratos, cobros, conciliación, atrasos, cumplimiento, reparaciones y renovaciones</td>
+<td>Un pago atrasado aparece en Missing payments el día que toca y sigue su secuencia</td>
+</tr>
+<tr>
+<td>F6 Mensajes</td>
+<td>Bandeja unificada y asistente</td>
+<td>Primera respuesta automática en menos de 5 minutos en horario</td>
+</tr>
+<tr>
+<td>F7 Insights</td>
+<td>Contadores, demanda contra oferta y resumen semanal</td>
+<td>La dirección ve la demanda sin cubrir por parroquia</td>
+</tr>
+<tr>
+<td>F8 Tours 3D</td>
+<td>Primero el tour 360; después el splat</td>
+<td>Un tour propio se ve en la ficha desde R2</td>
+</tr>
+</tbody></table></div>
+<p>Si la gestión de alquileres es hoy el negocio principal de Hampton, F5 puede adelantarse a F3.</p>
+</section>
+<section class="sec" data-sec="10-decisiones-propuestas"><h2 id="10-decisiones-propuestas">10. Decisiones propuestas</h2>
+<p>Todas son propuestas mías; ninguna está aprobada.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Propuesta</th>
+<th>Por qué</th>
+<th>Alternativa descartada</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>P-01</td>
+<td>Inventario del mercado (con la API de Places.je como fuente principal) y matching en SQL como motor</td>
+<td>Sirve a todos los aplicantes a la vez, no repite casas y usa una fuente con permiso</td>
+<td>Deep Research diaria por aplicante</td>
+</tr>
+<tr>
+<td>P-02</td>
+<td>Separar <code>properties</code>, <code>market_listings</code> y <code>matches</code></td>
+<td>La disponibilidad es de la casa; el interés, de la pareja</td>
+<td>Estados guardados en la propiedad</td>
+</tr>
+<tr>
+<td>P-03</td>
+<td>Una consulta por casa y un correo diario por agencia</td>
+<td>Menos correos y más fuerza para negociar</td>
+<td>Un correo por aplicante</td>
+</tr>
+<tr>
+<td>P-04</td>
+<td>Acuerdo de comisión por agencia, negociado una vez</td>
+<td>Evita negociar en cada correo</td>
+<td>Preguntar la comisión cada vez</td>
+</tr>
+<tr>
+<td>P-05</td>
+<td>Tabla <code>events</code> como base de avisos, historial, auditoría y analítica</td>
+<td>Una sola fuente de verdad</td>
+<td>Sistemas separados</td>
+</tr>
+<tr>
+<td>P-06</td>
+<td>Estado del aplicante en dos capas: etapa guardada y cola calculada</td>
+<td>Un aplicante puede estar en varias situaciones a la vez</td>
+<td>Un único estado manual</td>
+</tr>
+<tr>
+<td>P-07</td>
+<td>Portal del aplicante con enlace sin contraseña</td>
+<td>Sus clics cambian estados sin trabajo del equipo</td>
+<td>Llamadas y correos manuales</td>
+</tr>
+<tr>
+<td>P-08</td>
+<td>Worker <code>hampton-jobs</code> con cron cada 10 minutos junto a Pages</td>
+<td>Pages no programa tareas, y así no se toca la web en producción</td>
+<td>Migrar ya de Pages a Workers</td>
+</tr>
+<tr>
+<td>P-09</td>
+<td>IA según la clase del dato (C0 a C3), por API y a través de AI Gateway</td>
+<td>Coste medible y control de los datos</td>
+<td>Suscripciones de consumo</td>
+</tr>
+<tr>
+<td>P-10</td>
+<td>Modos Draft, Approve y Auto en cada automatización</td>
+<td>La confianza se gana con datos</td>
+<td>Automático desde el primer día</td>
+</tr>
+<tr>
+<td>P-11</td>
+<td>Disponibilidad por negociador con plantilla y excepciones, sincronizada con su calendario</td>
+<td>Huecos reales sin choques</td>
+<td>Horas fijas para todos</td>
+</tr>
+<tr>
+<td>P-12</td>
+<td>Roles <code>owner</code> y <code>staff</code></td>
+<td>Pagos, datos bancarios y borrados solo para <code>owner</code></td>
+<td>Un solo rol</td>
+</tr>
+<tr>
+<td>P-13</td>
+<td>Campos de Jersey en fichas y registro (parroquia, tenencia, categoría de vivienda, estatus)</td>
+<td>Sin ellos el matching propone casas que no valen</td>
+<td>La lista genérica de España</td>
+</tr>
+<tr>
+<td>P-14</td>
+<td>Tours 3D por línea de comandos y con protocolo de captura</td>
+<td>Repetible y sin pantalla</td>
+<td>Computer use sobre Adobe</td>
+</tr>
+<tr>
+<td>P-15</td>
+<td>La lista del aplicante no revela la agencia hasta acordar comisión o visita</td>
+<td>Protege la comisión</td>
+<td>Enlazar el anuncio original</td>
+</tr>
+<tr>
+<td>P-16</td>
+<td>Expediente de venta con hitos y recordatorios automáticos a los abogados</td>
+<td>Es donde más horas se pierden y no estaba en el texto</td>
+<td>Seguimiento por teléfono y memoria</td>
+</tr>
+</tbody></table></div>
+</section>
+<section class="sec" data-sec="11-tu-texto-punto-por-punto"><h2 id="11-tu-texto-punto-por-punto">11. Tu texto, punto por punto</h2>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Tu punto</th>
+<th>Qué pasa</th>
+<th>Dónde</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Notificaciones: All, New applicants, Matched, Missing payments</td>
+<td>Se mantienen y se añaden Agency replies, Viewings, Messages y Compliance, en dos bandejas</td>
+<td>§5.1</td>
+</tr>
+<tr>
+<td>Pagos con fecha límite de cobro</td>
+<td><code>due_date</code> con margen configurable; incluye comisiones de agencias</td>
+<td>§5.1, §5.11</td>
+</tr>
+<tr>
+<td>Aplicante sin match: mostrar el estado de la investigación</td>
+<td>Cola <code>Waiting for investigation</code> o <code>No matches</code>, con la hora de la última búsqueda</td>
+<td>§4.1, §5.2</td>
+</tr>
+<tr>
+<td>Aplicante con match: cuántas y cuántas confirmadas</td>
+<td>Contadores en la tarjeta: encontradas, confirmadas y disponibles</td>
+<td>§5.2</td>
+</tr>
+<tr>
+<td>Ficha del aplicante: encontradas y confirmadas disponibles</td>
+<td>Pestaña Matches con sus estados</td>
+<td>§5.2</td>
+</tr>
+<tr>
+<td>Ficha de propiedad: estado, precio, dirección, habitaciones, baños y disponibilidad</td>
+<td>Igual, más la fuente y la última verificación</td>
+<td>§5.3</td>
+</tr>
+<tr>
+<td>Historial, detalles al confirmar disponibilidad, aplicantes con match, álbum</td>
+<td>Timeline de eventos, snapshots, matches y fotos</td>
+<td>§5.3, §4.3</td>
+</tr>
+<tr>
+<td>Filtros To Buy / To Let, habitaciones y parroquia</td>
+<td>Igual, más precio, estado y fuente</td>
+<td>§5.3</td>
+</tr>
+<tr>
+<td>Al aplicar, investigar; luego correo al agente por disponibilidad y comisión</td>
+<td>Inventario, una consulta por casa y acuerdo por agencia (cambia)</td>
+<td>§5.5, §5.7</td>
+</tr>
+<tr>
+<td>Contar interesados al pedir visita, poder quitarlos y mostrarlo en la web</td>
+<td>Contador real con caducidad; el equipo quita con motivo; la web lo muestra desde 2</td>
+<td>§5.9</td>
+</tr>
+<tr>
+<td>Tras la visita: más información, comprar o sin interés</td>
+<td>Formulario Proceed, Need more information y Not interested</td>
+<td>§5.9</td>
+</tr>
+<tr>
+<td>Calendario de negociadores; elegir día y hora; ver citas de otros sin sus datos</td>
+<td>Huecos reales; los ocupados aparecen como «Booked»</td>
+<td>§5.9</td>
+</tr>
+<tr>
+<td>Cada negociador marca días y horas disponibles y no disponibles</td>
+<td>Plantilla semanal y excepciones</td>
+<td>§5.9</td>
+</tr>
+<tr>
+<td>Automatizaciones con interfaz fácil</td>
+<td>Pantalla Automations y ficha estándar</td>
+<td>§6.1, §6.2</td>
+</tr>
+<tr>
+<td>Interna en puerto privado del VPS; de cliente, en una página web</td>
+<td>Se mantiene, con carril privado sin puertos para modelos locales</td>
+<td>§6.3</td>
+</tr>
+<tr>
+<td>Bajo riesgo con suscripciones; datos sensibles con modelos locales</td>
+<td>Clases C0 a C3; API en lugar de suscripciones; C3 en local (cambia)</td>
+<td>§6.3</td>
+</tr>
+<tr>
+<td>Deep Research la primera vez</td>
+<td>Solo para casos raros; el inventario da el resultado inicial (cambia)</td>
+<td>§5.5</td>
+</tr>
+<tr>
+<td>Base de datos de propiedades encontradas con valor, habitaciones y requisitos que no cumple</td>
+<td><code>market_listings</code> y lista ✅ ❌ ❓ con evidencia</td>
+<td>§5.5, §5.6</td>
+</tr>
+<tr>
+<td>Nueva búsqueda a las 24 horas sin repetir</td>
+<td>Pasada diaria con comparación y deduplicación</td>
+<td>§5.5</td>
+</tr>
+<tr>
+<td>Búsquedas diarias con modelos baratos y dos modelos para comparar</td>
+<td>Modelos baratos en la extracción; dos modelos solo donde aportan (cambia)</td>
+<td>§5.5</td>
+</tr>
+<tr>
+<td>Interfaz con filtro To Let / To Buy, nombre, teléfono y fecha; orden por antigüedad</td>
+<td>Igual</td>
+<td>§5.2</td>
+</tr>
+<tr>
+<td>Cuatro estados de aplicante</td>
+<td>Se mantienen como cola calculada, con ortografía corregida</td>
+<td>§4.1</td>
+</tr>
+<tr>
+<td>Cuatro estados de propiedad</td>
+<td>Pasan al match, y <code>Not available</code> a la propiedad, que lo propaga (cambia)</td>
+<td>§4.2</td>
+</tr>
+<tr>
+<td>Registro paso a paso con nueve campos</td>
+<td>Los nueve, más operación, tipo, fechas, estatus de vivienda y otros</td>
+<td>§5.4</td>
+</tr>
+<tr>
+<td>Protocolo de propiedades gestionadas; cada Lease Agreement a la base de datos; notificaciones</td>
+<td>Contratos, cobros, cumplimiento, reparaciones y renovaciones</td>
+<td>§5.11</td>
+</tr>
+<tr>
+<td>Responder mensajes de Facebook, Instagram y la web</td>
+<td>Bandeja unificada con asistente (se mueve)</td>
+<td>§5.12</td>
+</tr>
+<tr>
+<td>Tres meses sin cambios: «por confirmar»</td>
+<td><code>To confirm</code> en fichas propias; las externas se detectan solas</td>
+<td>§4.4, §5.10</td>
+</tr>
+<tr>
+<td>Recoger los datos de una propiedad y publicarla sola en la web y en redes</td>
+<td>Alta guiada y botón Publish</td>
+<td>§5.10</td>
+</tr>
+<tr>
+<td>Familias de datos 1 a 6</td>
+<td>Adaptadas a Jersey (cambia)</td>
+<td>§5.10</td>
+</tr>
+<tr>
+<td>Carpeta con dos subcarpetas; limpieza, color y fotogramas a 6–10 fps</td>
+<td>Línea de comandos, protocolo de captura, tour 360 y splat (cambia)</td>
+<td>§5.13</td>
+</tr>
+<tr>
+<td>Actividad de cada usuario, propiedades más vistas, tráfico y tendencias</td>
+<td>Insights y demanda contra oferta, con privacidad</td>
+<td>§5.14</td>
+</tr>
+</tbody></table></div>
+<p>Lo que añadí porque faltaba para cubrir el recorrido completo:</p>
+<ul>
+<li>Ofertas, expediente de venta con hitos, solicitud y referencias de alquiler, y facturas de comisión (§5.15).</li>
+<li>Portal del aplicante con enlace sin contraseña (§5.8).</li>
+<li>Directorio de agencias con acuerdo de comisión, prueba de presentación y estadísticas de respuesta (§5.7).</li>
+<li>Captación de propietarios con «Book a valuation» (§5.10) e informe semanal al propietario (§5.9).</li>
+<li>Alertas «Save this search» para visitantes de la web (§5.4).</li>
+<li>Demanda contra oferta como herramienta de captación (§5.14).</li>
+<li>Campos y reglas de Jersey: parroquias, tenencia, categoría de vivienda y estatus del aplicante (§5.4, §5.10, §7.3).</li>
+<li>Barandillas de envío, pruebas de cada IA y modos de autonomía (§6).</li>
+</ul>
+</section>
+<section class="sec" data-sec="12-preguntas-para-luis"><h2 id="12-preguntas-para-luis">12. Preguntas para Luis</h2>
+<p>Ordenadas por cuánto cambian lo que se construye. Las tres primeras salieron de la lectura en frío del documento:</p>
+<ol>
+<li><strong>¿Qué son las 264 fichas de agencias, y Hampton anuncia casas cuyo encargo tiene otra agencia?</strong> Según el cerebro (8-oct), las tres fichas públicas (Château La Chaire, 23 Le Bernage, Playa D&#39;Or) usan datos y fotos sacados de los portales de otras agencias. Si es inventario de mercado, se migra y Places.je lo sustituye; si Hampton las comercializa, hace falta la categoría <code>co_listed</code> (§3) y el permiso de fotos por agencia (§7.5).</li>
+<li><strong>¿Qué web usará el público, y cuándo?</strong> <code>www.hamptonestatesjersey.com</code> sigue en Wix (comprobado el 23-oct) y esta app vive en <code>hamptonjersey.pages.dev</code>; el proyecto Astro de <code>/root/Hampton</code> es un tercer candidato. Si el dominio pasa a esta app, F0 incluye DNS, redirecciones desde las URL de Wix, dar de alta el dominio en Firebase, Turnstile y Meta, y dejar de mantener fichas en Wix. Si Wix se queda, los formularios se enlazan o se incrustan en un iframe (un script incrustado chocaría con la comprobación de origen de la API) y la analítica mediría muy poco.</li>
+<li><strong>¿Aceptas los cambios marcados «cambia» en §11, sobre todo P-01?</strong> Si prefieres mantener una Deep Research por aplicante con dos modelos comparados, F1 es otro sistema: coste de IA por aplicante, deduplicación entre ejecuciones y otros criterios de «hecho». Los demás cambios (API en lugar de suscripciones, línea de comandos en lugar de computer use) afectan a piezas más pequeñas.</li>
+<li>¿Hampton usa hoy algún programa para aplicantes o alquileres (un CRM inmobiliario, hojas de cálculo)? Decide entre integrar y construir.</li>
+<li>¿Qué pesa más hoy en Hampton: alquileres, ventas, gestión de alquileres o comercial? Decide el orden de las fases.</li>
+<li>¿Hay acuerdos de comisión con otras agencias y con qué condiciones? Define el primer correo y el permiso para enseñar fotos.</li>
+<li>¿El correo de Hampton es Google Workspace, Microsoft 365 u otro? ¿Su dominio está o puede estar en Cloudflare? Decide cómo se envían y se leen los correos con agencias.</li>
+<li>¿Usan WhatsApp con clientes? ¿Tienen un número que pueda pasar a WhatsApp Business?</li>
+<li>¿Cuántos aplicantes nuevos llegan al mes y cuántas propiedades gestionan? Dimensiona costes y límites.</li>
+<li>¿Cómo pagan hoy los inquilinos (transferencia, orden permanente) y en qué banco? ¿Se puede exportar el extracto en CSV?</li>
+<li>¿Qué cámara 360 tienen y cuántos tours harían al mes? ¿Hay un PC con GPU NVIDIA? Decide entre construir o comprar el 3D.</li>
+<li>¿Optimyze opera el sistema para Hampton? Hace falta un acuerdo de tratamiento de datos y decidir a nombre de quién van las cuentas (Cloudflare ya está en la de AndresLeoSan).</li>
+<li>¿Hampton está registrada en la JFSC y en la JOIC? ¿Cobra rentas o depósitos en una cuenta propia? Decide qué controles de blanqueo y qué cuenta de clientes necesita la gestión de alquileres (F5).</li>
+</ol>
+</section>
+    <p id="empty" hidden></p>
+  </main>
+</div>
+<footer>
+  <div class="wrap">Documento generado desde <code>docs/roadmap/2026-10-23-arquitectura-hampton-app.md</code> del repo HamptonJersey. El .md es la fuente; este HTML funciona sin conexión.</div>
+</footer>
+<script>
+(() => {
+  const root = document.documentElement, btn = document.getElementById("theme"), KEY = "hampton-arq-theme";
+  const NAMES = { "": "sistema", light: "claro", dark: "oscuro" }, NEXT = { "": "dark", dark: "light", light: "" };
+  const apply = v => {
+    if (v) root.dataset.theme = v; else delete root.dataset.theme;
+    btn.textContent = "Tema: " + NAMES[v];
+  };
+  let theme = "";
+  try { theme = localStorage.getItem(KEY) || ""; } catch (e) {}
+  if (!(theme in NAMES)) theme = "";
+  apply(theme);
+  btn.addEventListener("click", () => {
+    theme = NEXT[theme];
+    apply(theme);
+    try { localStorage.setItem(KEY, theme); } catch (e) {}
+  });
+
+  const toc = document.getElementById("toc");
+  if (window.matchMedia("(max-width: 999px)").matches) toc.open = false;
+
+  // Búsqueda sin tildes ni mayúsculas: oculta las secciones sin coincidencias y resalta las demás.
+  const q = document.getElementById("q"), count = document.getElementById("count"), empty = document.getElementById("empty");
+  const secs = [...document.querySelectorAll("main .sec")];
+  const navItems = new Map([...toc.querySelectorAll("[data-sec]")].map(li => [li.dataset.sec, li]));
+  const fold = s => s.split("").map(c => (c.normalize("NFD")[0] || c).toLowerCase()[0]).join("");
+  const clear = () => document.querySelectorAll("mark.hl").forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  const highlight = (el, f) => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (const node of nodes) {
+      let i = fold(node.data).indexOf(f), cur = node;
+      while (i !== -1) {
+        const hit = cur.splitText(i), rest = hit.splitText(f.length), mark = document.createElement("mark");
+        mark.className = "hl";
+        hit.parentNode.replaceChild(mark, hit);
+        mark.appendChild(hit);
+        cur = rest;
+        i = fold(cur.data).indexOf(f);
+      }
+    }
+  };
+  let timer;
+  q.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(run, 150); });
+  q.addEventListener("keydown", e => {
+    if (e.key === "Enter") document.querySelector("mark.hl")?.scrollIntoView({ block: "center" });
+    if (e.key === "Escape") { q.value = ""; run(); }
+  });
+  function run() {
+    clear();
+    const f = fold(q.value.trim());
+    let shown = 0;
+    for (const s of secs) {
+      const hit = f.length < 2 || fold(s.textContent).includes(f);
+      s.hidden = !hit;
+      const li = navItems.get(s.dataset.sec);
+      if (li) li.hidden = !hit;
+      if (hit) { shown++; if (f.length >= 2) highlight(s, f); }
+    }
+    count.textContent = f.length < 2 ? "" : shown + (shown === 1 ? " sección" : " secciones");
+    empty.hidden = shown > 0;
+    empty.textContent = shown ? "" : "Nada coincide con «" + q.value.trim() + "». Prueba con otra palabra o pulsa Esc para ver todo.";
+  }
+})();
+</script>
+
+</body>
+</html>
