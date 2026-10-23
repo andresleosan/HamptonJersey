@@ -168,3 +168,15 @@ table.list{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .choices{display:flex;flex-wrap:wrap;gap:8px 16px}
 .choices .check{font-size:14px;min-height:32px} .choices input{accent-color:var(--bronze)}
 .pet{display:inline-flex;gap:8px;align-items:center} .pet-count{width:72px}
+.seg [role=tab][aria-selected=true]{background:var(--ink);color:#fff}
+.record .head p{margin:0} .record h1{overflow-wrap:anywhere} .record .lost-reason{margin:0 0 10px}
+.dup{display:grid;gap:8px;margin-bottom:12px} .dup h2{font-size:17px;margin:0;overflow-wrap:anywhere} .dup p,.dup .inline{margin:0}
+.changes{display:grid;gap:4px;margin:0} .changes div{display:grid;grid-template-columns:minmax(120px,200px) 1fr;gap:12px}
+.changes dt{color:var(--stone);font-size:12px} .changes dd{margin:0;overflow-wrap:anywhere}
+.timeline{list-style:none;margin:0;padding:0 24px} .timeline li{display:grid;gap:4px;padding:14px 0;border-bottom:1px solid var(--line)}
+.timeline li:last-child{border-bottom:0} .timeline p{margin:0;overflow-wrap:anywhere}
+.name-form{margin:0;flex-wrap:nowrap} .name-form input{width:180px}
+@media (max-width:760px){.changes div{grid-template-columns:1fr;gap:0}}
+.timeline strong{font-weight:600}
+@media (max-width:760px){.list.users tr{grid-template-columns:1fr}.list.users td:first-child{grid-row:auto;overflow-wrap:anywhere}
+  .name-form input{width:auto;flex:1}}

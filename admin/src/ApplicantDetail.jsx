@@ -1,0 +1,282 @@
+import { useEffect, useRef, useState } from "react";
+import { api } from "./api.js";
+import { fmtAgo, fmtDate } from "./format.js";
+import { setUnsaved, confirmLeave } from "./unsaved.js";
+import { OPTIONS, normalizePhone } from "../../server/applicants.js";
+import ApplicantFields, { toForm, toBody } from "./ApplicantFields.jsx";
+
+const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
+// Every form field that belongs to the search (the rest of the form is the contact).
+const SEARCH = Object.keys(toForm()).filter(k => !CONTACT.includes(k));
+// §3.3 Copy fields: the search's requirements and, from the contact, only these two.
+const COPY = [...SEARCH, "preferred_channel", "best_time"];
+const TABS = [["requirements", "Requirements"], ["timeline", "Timeline"]];
+
+const LABEL = { operation: "To Let or To Buy", stage: "Stage", lost_reason: "Why it was lost", assigned_to: "Assigned to",
+  source: "Source", budget_max: "Maximum budget", budget_min: "Minimum budget", budget_stretch: "Can stretch to",
+  property_types: "Type", bedrooms_min: "Bedrooms, at least", bedrooms_ideal: "Bedrooms, ideally", bathrooms_min: "Bathrooms, at least",
+  parking_spaces: "Parking", furnished: "Furnished", outdoor: "Outdoor space", pets: "Pets", parishes_wanted: "Parishes they want",
+  parishes_excluded: "Parishes they don't want", near: "Near", move_in_date: "Move-in date", lease_term_months: "Lease length (months)",
+  buyer_position: "Buying position", mortgage_aip: "Mortgage agreed in principle", housing_status: "Housing status",
+  household_adults: "Adults", household_children: "Children", requirements: "Anything else that matters?", name: "Name",
+  email: "Email", phone: "Phone", preferred_channel: "Preferred channel", best_time: "Best time to contact",
+  privacy_ack_at: "Privacy notice accepted", marketing_opt_in_at: "Agreed to marketing" };
+const CHOICES = { operation: OPTIONS.operation, stage: OPTIONS.stages, source: OPTIONS.sources, furnished: OPTIONS.furnished,
+  property_types: OPTIONS.property_types, outdoor: OPTIONS.outdoor, parishes_wanted: OPTIONS.parishes, parishes_excluded: OPTIONS.parishes,
+  buyer_position: OPTIONS.buyer_position, mortgage_aip: OPTIONS.mortgage_aip, housing_status: OPTIONS.housing_status,
+  preferred_channel: OPTIONS.channels, parking_spaces: [[0, "None"], [1, "1"], [2, "2"], [3, "3+"]] };
+const MONEY = ["budget_min", "budget_max", "budget_stretch"];
+const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requirements changed", "applicant.stage_changed": "Stage changed",
+  "applicant.archived": "Archived", "applicant.restored": "Restored", "contact.updated": "Contact details changed",
+  "contact.consent_changed": "Consent changed", "applicant.duplicate_submitted": "Registered again on the website" };
+const VIEWING_STATUS = Object.fromEntries([["new", "New"], ["contacted", "Contacted"], ["closed", "Closed"]]);
+const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation), SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
+
+const blank = v => v == null || v === "" || (Array.isArray(v) && !v.length);
+const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
+// A stored or submitted value as text: option labels, £ amounts, lists in the form's order. Never HTML.
+function show(k, v, nameOf) {
+  if (k === "assigned_to") return v ? nameOf(v) : "Unassigned";
+  if (blank(v)) return "—";
+  if (k === "pets") return OPTIONS.pet_kinds.filter(([p]) => v.some(x => x.kind === p)).map(([p, t]) => {
+    const n = v.find(x => x.kind === p).count;
+    return p === "none" || blank(n) ? t : `${t} (${n})`;
+  }).join(", ");
+  const list = CHOICES[k], text = x => list?.find(([o]) => String(o) === String(x))?.[1] ?? String(x);
+  if (Array.isArray(v)) return (list ? [...v].sort((a, b) => list.findIndex(([o]) => o === a) - list.findIndex(([o]) => o === b)) : v)
+    .map(text).join(", ");
+  if (MONEY.includes(k) && Number.isFinite(Number(v))) return `£${Number(v).toLocaleString("en-GB")}`;
+  if (k.endsWith("_at")) return fmtDate(v);
+  return text(v);
+}
+// What the duplicate strip compares: an email or phone written another way is the same one.
+const same = (k, a, b) => {
+  const norm = v => (k === "email" && typeof v === "string" ? v.trim().toLowerCase()
+    : k === "phone" && typeof v === "string" ? normalizePhone(v) ?? v : show(k, v, String));
+  return norm(a) === norm(b);
+};
+
+// The record of one search (#/applicants/<id>, #/applicants/<id>/timeline): its contact, stage and owner, the
+// requirements form and the history. tab: the part of the hash after the id.
+export default function ApplicantDetail({ id, tab }) {
+  const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [users, setUsers] = useState([]);
+  const [form, setForm] = useState(null), [errors, setErrors] = useState({}), [busy, setBusy] = useState(false);
+  // msg: Save, Copy fields, archive and delete (in the action bar). note: stage, owner and Dismiss (next to them).
+  const [msg, setMsg] = useState(null), [note, setNote] = useState(null);
+  const [lost, setLost] = useState(null), [confirmDel, setConfirmDel] = useState(""); // lost: the reason being typed
+  const tabs = useRef({}), formRef = useRef(null), lostRef = useRef(null), focusError = useRef(false);
+  const cur = tab === "timeline" ? "timeline" : "requirements";
+
+  const fetchDetail = () => api(`/admin/applicants/${id}`).then(d => { setData(d); return d; });
+  const load = () => fetchDetail().then(d => {
+    setForm(toForm(d.applicant, d.contact)); setErrors({}); setMsg(null); setNote(null); setLost(null); setLoadErr(null);
+  }, e => { setLoadErr(e.message); setNote({ text: e.message }); }); // a failed Reload keeps the page and says why
+  useEffect(() => { load(); api("/admin/users").then(d => setUsers(d.users), () => {}); }, []);
+
+  const body = form && toBody(form), saved = data && toBody(toForm(data.applicant, data.contact));
+  const changed = keys => (data && form ? keys.filter(k => JSON.stringify(body[k]) !== JSON.stringify(saved[k])) : []);
+  const searchChanged = changed(SEARCH), contactChanged = changed(CONTACT);
+  const dirty = searchChanged.length + contactChanged.length > 0;
+  useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
+  useEffect(() => {
+    const f = e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } };
+    addEventListener("beforeunload", f);
+    return () => removeEventListener("beforeunload", f);
+  }, [dirty]);
+  // After a refused save, the first highlighted field gets the focus (once its tab is showing).
+  useEffect(() => {
+    const el = focusError.current && cur === "requirements" && formRef.current?.querySelector("[aria-invalid=true]");
+    if (el) { el.focus(); focusError.current = false; }
+  }, [errors, cur]);
+  useEffect(() => { if (lost === "") lostRef.current?.focus(); }, [lost]);
+
+  if (loadErr && !data) return <p role="alert" className="err">{loadErr} · <a href="#/applicants">Back to applicants</a></p>;
+  if (!data || !form) return <p>Loading applicant…</p>;
+  const a = data.applicant, c = data.contact, archived = !!a.archived_at;
+  const nameOf = email => users.find(u => u.email === email)?.name || email;
+  const by = actor => (actor === "public" ? "Website" : actor === "system" ? "System" : nameOf(actor));
+  const stale = e => e.status === 409 && !e.data?.contact_id;
+  const go = (k, focus) => {
+    location.hash = `#/applicants/${id}${k === "timeline" ? "/timeline" : ""}`;
+    if (focus) tabs.current[k].focus();
+  };
+  const onTabKey = e => {
+    const i = TABS.findIndex(([k]) => k === cur), j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: TABS.length - 1 }[e.key];
+    if (j == null) return;
+    e.preventDefault(); go(TABS[(j + TABS.length) % TABS.length][0], true);
+  };
+
+  // Requirements and contact are saved apart (two records); whatever is still unsaved stays in the form.
+  const save = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      if (searchChanged.length) {
+        const { applicant } = await api(`/admin/applicants/${id}`, { method: "PUT",
+          body: { ...pick(body, searchChanged), updated_at: a.updated_at } });
+        setData(d => ({ ...d, applicant })); setForm(f => ({ ...f, ...pick(toForm(applicant), SEARCH) }));
+      }
+      if (contactChanged.length) {
+        const { contact } = await api(`/admin/contacts/${c.id}`, { method: "PUT",
+          body: { ...pick(body, contactChanged), updated_at: c.updated_at } });
+        setData(d => ({ ...d, contact })); setForm(f => ({ ...f, ...pick(toForm({}, contact), CONTACT) }));
+      }
+      const d = await fetchDetail();
+      setForm(toForm(d.applicant, d.contact)); setErrors({}); setMsg({ ok: true, text: "Changes saved." });
+    } catch (e) {
+      const fields = e.data?.fields || {};
+      setErrors(fields); setMsg({ text: e.message, stale: stale(e) });
+      if (Object.keys(fields).length) { focusError.current = true; if (cur !== "requirements") go("requirements"); }
+    } finally { setBusy(false); }
+  };
+  const discard = () => { setForm(toForm(a, c)); setErrors({}); setMsg(null); };
+
+  // Stage and Assigned to save on their own; unsaved requirements stay in the form.
+  const putApplicant = async (patch, done) => {
+    setBusy(true); setNote(null);
+    try {
+      await api(`/admin/applicants/${id}`, { method: "PUT", body: { ...patch, updated_at: a.updated_at } });
+      await fetchDetail(); setLost(null); setNote({ ok: true, text: done });
+    } catch (e) {
+      setNote({ text: Object.values(e.data?.fields || {}).join(" ") || e.message, stale: stale(e) });
+    } finally { setBusy(false); }
+  };
+  const chooseStage = v => (v === "lost" ? setLost("")
+    : putApplicant({ stage: v }, `Stage changed to ${show("stage", v)}.`));
+  const assign = v => putApplicant({ assigned_to: v || null }, v ? `Assigned to ${nameOf(v)}.` : "Now unassigned.");
+
+  const copy = sent => {
+    const from = toForm(sent, sent), keys = COPY.filter(k => !blank(sent[k]));
+    setForm(f => ({ ...f, ...pick(from, keys) })); setErrors({});
+    setMsg({ ok: true, text: "What they sent is in the form. Check it, then save." });
+    if (cur !== "requirements") go("requirements");
+  };
+  const dismiss = async dup => {
+    setNote(null);
+    try {
+      await api(`/admin/notifications/${dup.id}`, { method: "PUT", body: { resolved: true } });
+      setData(d => ({ ...d, duplicates: d.duplicates.filter(x => x.id !== dup.id) }));
+      setNote({ ok: true, text: "Dismissed. The notice is in the Inbox Feed." });
+    } catch (e) { setNote({ text: e.message }); }
+  };
+
+  const act = async action => {
+    if (action === "archive" && !confirm(`Archive this search for ${c.name}? You can restore it from Archived.`)) return;
+    setBusy(true); setMsg(null);
+    try {
+      await api(`/admin/applicants/${id}/${action}`, { method: "POST" });
+      const d = await fetchDetail(); setForm(toForm(d.applicant, d.contact));
+      setMsg({ ok: true, text: action === "archive" ? "Archived. You can restore it from Archived." : "Restored." });
+    } catch (e) { setMsg({ text: e.message }); }
+    finally { setBusy(false); }
+  };
+  const destroy = async e => {
+    e.preventDefault(); setBusy(true);
+    try { await api(`/admin/applicants/${id}`, { method: "DELETE", body: { confirm: confirmDel } }); setUnsaved(false); location.hash = "#/applicants"; }
+    catch (x) { setMsg({ text: x.message }); setBusy(false); }
+  };
+
+  const tel = /^\+\d{8,15}$/.test(c.phone ?? "") ? c.phone : null;
+  const owners = users.some(u => u.email === a.assigned_to) || !a.assigned_to ? users : [...users, { email: a.assigned_to }];
+
+  // A div, not a section: the entrance animation of `.page>section` would make it the box the fixed action bar sits in.
+  return <div className="record">
+    <div className="head">
+      <div><h1 id="t-applicant">{c.name}</h1>
+        <p className="muted">{OPERATION_LABEL[a.operation]} · {SOURCE_LABEL[a.source]} · Applied {fmtDate(a.created_at)}</p></div>
+      <div className="inline">
+        {tel && <a className="btn ghost sm" href={`tel:${tel}`}>Call</a>}
+        {tel && <a className="btn ghost sm" href={`https://wa.me/${tel.slice(1)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
+        {c.email && <a className="btn ghost sm" href={`mailto:${c.email}`}>Email</a>}
+        <a href="#/applicants" onClick={confirmLeave}>← Back to applicants</a>
+      </div>
+    </div>
+    {archived && <p className="warn" role="note">Archived {fmtDate(a.archived_at)}. Restore it to work on it again, or delete it permanently from the bar below.</p>}
+
+    <div className="filters">
+      <label>Stage<select value={lost !== null ? "lost" : a.stage} disabled={busy} onChange={e => chooseStage(e.target.value)}>
+        {OPTIONS.stages.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>
+      <label>Assigned to<select value={a.assigned_to ?? ""} disabled={busy} onChange={e => assign(e.target.value)}>
+        <option value="">Unassigned</option>{owners.map(u => <option key={u.email} value={u.email}>{u.name || u.email}</option>)}</select></label>
+      {a.stage === "lost" && lost === null && a.lost_reason && <p className="muted lost-reason">Lost: {a.lost_reason}</p>}
+    </div>
+    {lost !== null && <form className="inline" onSubmit={e => { e.preventDefault(); putApplicant({ stage: "lost", lost_reason: lost.trim() }, "Marked as lost."); }}>
+      <label htmlFor="lost-reason">Why was it lost?</label>
+      <input id="lost-reason" ref={lostRef} value={lost} maxLength={200} onChange={e => setLost(e.target.value)} placeholder="Bought privately, stopped answering…" />
+      <button className="btn sm" disabled={!lost.trim() || busy}>Save as lost</button>
+      <button type="button" className="btn ghost sm" onClick={() => setLost(null)}>Cancel</button>
+    </form>}
+    <Message m={note} onReload={load} />
+
+    {data.duplicates.map(d => <Duplicate key={d.id} dup={d} stored={{ ...a, ...c }} contactId={c.id} nameOf={nameOf}
+      onCopy={copy} onDismiss={dismiss} />)}
+
+    <div className="seg" role="tablist" aria-label="Applicant record" onKeyDown={onTabKey}>{TABS.map(([k, t]) =>
+      <button key={k} ref={el => { tabs.current[k] = el; }} type="button" role="tab" id={`tab-${k}`} aria-selected={cur === k}
+        aria-controls={`panel-${k}`} tabIndex={cur === k ? 0 : -1} onClick={() => go(k)}>{t}</button>)}</div>
+
+    <div role="tabpanel" id="panel-requirements" aria-labelledby="tab-requirements" hidden={cur !== "requirements"}>
+      <form ref={formRef} className="sections" noValidate onSubmit={e => { e.preventDefault(); if (dirty && !busy) save(); }}>
+        <ApplicantFields value={form} onChange={setForm} errors={errors} operation={form.operation} />
+      </form>
+    </div>
+    <div role="tabpanel" id="panel-timeline" aria-labelledby="tab-timeline" hidden={cur !== "timeline"} tabIndex={0}>
+      <Timeline events={data.events} viewings={data.viewings} by={by} nameOf={nameOf} />
+    </div>
+
+    <div className="actionbar" role="region" aria-label="Actions">
+      <Message m={msg} onReload={load} />
+      {dirty && <span className="unsaved">Unsaved changes</span>}
+      <button type="button" className="btn" onClick={save} disabled={!dirty || busy}>{busy ? "Saving…" : "Save"}</button>
+      {dirty && <button type="button" className="btn ghost" onClick={discard} disabled={busy}>Discard</button>}
+      {!archived && <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Save first" : undefined}
+        onClick={() => act("archive")}>Archive</button>}
+      {archived && <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Save first" : undefined}
+        onClick={() => act("restore")}>Restore</button>}
+      {archived && <form className="inline" onSubmit={destroy}>
+        <label htmlFor="del-confirm">To delete permanently, type {c.name}</label>
+        <input id="del-confirm" value={confirmDel} onChange={e => setConfirmDel(e.target.value)} autoComplete="off" />
+        <button className="btn ghost danger" disabled={confirmDel !== c.name || busy}>Delete permanently</button></form>}
+    </div>
+  </div>;
+}
+
+// A save refused because someone else saved first (409) offers to load their version.
+const Message = ({ m, onReload }) => m && <p role={m.ok ? "status" : "alert"} className={m.ok ? "ok" : "err"}>{m.text}
+  {m.stale && <> <button type="button" className="btn ghost sm" onClick={onReload}>Reload</button></>}</p>;
+
+// §3.3: a pending "registered again" from the website. Shows what they sent that differs from what is saved.
+function Duplicate({ dup, stored, contactId, nameOf, onCopy, onDismiss }) {
+  const sent = dup.data ?? {};
+  const differs = k => !blank(sent[k]) && !same(k, sent[k], stored[k]);
+  const keys = [...CONTACT, ...SEARCH].filter(differs), copyable = COPY.some(differs);
+  return <section className="warn dup" aria-labelledby={`dup-${dup.id}`}>
+    <h2 id={`dup-${dup.id}`}>{dup.title}</h2>
+    <p className="muted">{fmtAgo(dup.created_at)} · {keys.length ? "What they sent that differs from what is saved:" : "What they sent matches what is saved."}</p>
+    {sent.other_contact_id != null && <p>Their email and their phone number belong to two different contacts.</p>}
+    {keys.length > 0 && <dl className="changes">{keys.map(k => <div key={k}><dt>{LABEL[k]}</dt>
+      <dd><span className="muted">Saved:</span> {show(k, stored[k], nameOf)} <span className="muted">· Sent:</span> {show(k, sent[k], nameOf)}</dd></div>)}</dl>}
+    <div className="inline">
+      {copyable && <button type="button" className="btn sm" onClick={() => onCopy(sent)}>Copy fields</button>}
+      {dup.active_search_id == null && <a className="btn ghost sm" href={`#/applicants/new?contact=${contactId}`} onClick={confirmLeave}>Create second search</a>}
+      <button type="button" className="btn ghost sm" onClick={() => onDismiss(dup)}>Dismiss</button>
+    </div>
+  </section>;
+}
+
+// The history, newest first: events with who and what changed, and the website's viewing requests from the same
+// email or phone (G4).
+function Timeline({ events, viewings, by, nameOf }) {
+  const items = [...events.map(e => ({ at: e.at, e })), ...viewings.map(v => ({ at: v.created_at, v }))]
+    .sort((x, y) => y.at.localeCompare(x.at));
+  if (!items.length) return <p className="empty card">Nothing has happened yet.</p>;
+  const when = at => <time dateTime={at} title={fmtDate(at)}>{fmtAgo(at)}</time>;
+  return <ol className="timeline card">{items.map(({ e, v }) => e ? <li key={`e${e.id}`}>
+    <p><strong>{EVENT[e.type] ?? e.type}</strong> <span className="muted">{by(e.actor)} · {when(e.at)}</span></p>
+    {e.type === "applicant.created" && e.data && <p className="muted">{show("operation", e.data.operation)} · {show("source", e.data.source)}</p>}
+    {e.data?.after && <dl className="changes">{Object.keys(e.data.after).map(k => <div key={k}><dt>{LABEL[k] ?? k}</dt>
+      <dd><span className="sr">from </span>{show(k, e.data.before?.[k], nameOf)} <span aria-hidden="true">→</span><span className="sr"> to</span> {show(k, e.data.after[k], nameOf)}</dd></div>)}</dl>}
+  </li> : <li key={`v${v.id}`}>
+    <p><strong>Viewing request</strong> <span className="muted">Website · {when(v.created_at)}</span></p>
+    <p>{v.listing_title || v.listing_ref || "General enquiry / valuation"} · {v.date} at {v.time} · {VIEWING_STATUS[v.status] ?? v.status} · <a href="#/viewings">Open viewing requests</a></p>
+  </li>)}</ol>;
+}

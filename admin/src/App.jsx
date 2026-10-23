@@ -5,6 +5,7 @@ import Login from "./Login.jsx";
 import Inbox from "./Inbox.jsx";
 import Applicants from "./Applicants.jsx";
 import NewApplicant from "./NewApplicant.jsx";
+import ApplicantDetail from "./ApplicantDetail.jsx";
 import Listings from "./Listings.jsx";
 import ListingEditor from "./ListingEditor.jsx";
 import Viewings from "./Viewings.jsx";
@@ -53,10 +54,11 @@ export default function App() {
   if (me === null) return <main className="center"><Login onSignedIn={signedIn} /></main>;
 
   const [path, query] = hash.replace(/^#\/?/, "").split("?");
-  const [section, arg] = path.split("/");
+  const [section, arg, sub] = path.split("/");
   const page = section === "p" && arg ? <ListingEditor key={arg} id={decodeURIComponent(arg)} />
     : section === "applicants" && arg === "new"
       ? <NewApplicant key={query ?? ""} contactId={new URLSearchParams(query).get("contact")} />
+    : section === "applicants" && /^\d+$/.test(arg) ? <ApplicantDetail key={arg} id={arg} tab={sub} />
     : section === "applicants" ? <Applicants />
     : section === "listings" ? <Listings /> : section === "viewings" ? <Viewings /> : section === "users" ? <Users me={me} />
     : section === "tours" ? <Tours /> : <Inbox paused={expired} onCounts={setCounts} />;
