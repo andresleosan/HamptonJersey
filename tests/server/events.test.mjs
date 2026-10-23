@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, seedListing, call, adminCookie } from "./helpers.mjs";
+import { logEvent } from "../../server/events.js";
 
 const turnstile = ok => { globalThis.fetch = async () => new Response(JSON.stringify({ success: ok, hostname: "hampton.test" })); };
 const nextWeekday = () => { const d = new Date(Date.now() + 2 * 864e5); if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
@@ -72,4 +73,10 @@ test("deleting a request closes its notice", async () => {
   const [n] = notices(env);
   assert.ok(n.resolved_at);
   assert.equal(n.resolved_by, ADMIN);
+});
+
+test("data: null is stored as SQL NULL", async () => {
+  const env = makeEnv();
+  await env.DB.batch(logEvent(env, { actor: "system", entity_type: "admin", entity_id: "x", type: "t", data: null }));
+  assert.equal(events(env)[0].data, null);
 });
