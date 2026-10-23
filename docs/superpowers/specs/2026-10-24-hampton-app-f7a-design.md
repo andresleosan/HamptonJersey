@@ -9,7 +9,7 @@ Hoy nadie en Hampton sabe qué fichas mira la gente, qué piden los aplicantes q
 
 - **Demanda sin cubrir**: qué buscan los aplicantes activos (operación, parroquia, dormitorios, presupuesto) frente a las casas disponibles. Sirve para captar propietarios: «we have tenants waiting for a home like yours».
 - **Fichas más vistas**: la web empieza a contar, sin cookies ni datos personales, cuántas veces se abre cada ficha, su galería y su tour 3D. Conviene que cuente cuanto antes: cada día sin contar es un día de datos perdido.
-- **Embudo**: de los aplicantes que llegaron en el periodo, cuántos se revisaron, llegaron a visita, a oferta, a acuerdo y a cierre.
+- **Embudo**: de los aplicantes que llegaron en el periodo, cuántos llegaron a visita, a oferta, a acuerdo y a cierre.
 - **Tiempos del equipo**: cuánto tarda en atender a un aplicante nuevo, en contestar una petición de visita y en revisar la primera lista de casas.
 
 F7-B añadirá lo que necesita servicios externos: el resumen semanal por email y el tráfico de Cloudflare Web Analytics dentro del panel.
