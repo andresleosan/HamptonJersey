@@ -319,9 +319,11 @@ async function admin(browser) {
   const r001 = views(`${recent} AND listing_id = 'HE-R001'`);
   assert.ok(r001 > 12 && views90 > views30, "this run's views are on top of the seed's");
   const figure = label => page.$$eval(".figures div", (ds, l) => ds.find(d => d.querySelector("dt").textContent === l)?.querySelector("dd").textContent, label);
-  const rows = name => page.getByRole("table", {name, exact: true}).locator("tbody tr").evaluateAll(rs => rs.map(r => [...r.cells].map(c => c.textContent)));
+  const rows = within => within.locator("tbody tr").evaluateAll(rs => rs.map(r => [...r.cells].map(c => c.textContent)));
+  const table = name => page.getByRole("table", {name, exact: true}), byListing = page.getByRole("region", {name: "Views by listing"});
   await page.goto(BASE + "admin/#/insights");
   await page.waitForSelector(".figures");
+  await page.evaluate(() => document.fonts.ready);
   const bar = await page.$$eval("header.bar > :not(.who), header.bar nav a", es => es.map(e => [e.textContent, Math.round(e.getBoundingClientRect().top + e.offsetHeight / 2)]));
   assert.ok(bar.findIndex(([t]) => t === "Insights") === bar.findIndex(([t]) => t === "Viewings") + 1, "Insights comes after Viewings");
   assert.ok(Math.max(...bar.map(([, y]) => y)) - Math.min(...bar.map(([, y]) => y)) < 8, "the bar stays on one line at 1280px");
@@ -329,12 +331,12 @@ async function admin(browser) {
   assert.equal(await figure("Listing views"), views30.toLocaleString("en-GB"));
   for (const l of ["Viewing requests", "New applicants", "Viewings completed"]) assert.match(await figure(l), /^\d[\d,]*$/, l);
   // Unmet demand: Sarah and Claire both want St Helier to rent; Tom wants St Brelade to buy.
-  assert.equal((await rows("Rent")).find(r => r[0] === "St Helier")?.[1], "2");
-  assert.equal((await rows("Buy")).find(r => r[0] === "St Brelade")?.[1], "1");
+  assert.equal((await rows(table("Rent"))).find(r => r[0] === "St Helier")?.[1], "2");
+  assert.equal((await rows(table("Buy"))).find(r => r[0] === "St Brelade")?.[1], "1");
   // Most viewed: Le Bernage with the seed's views and those opened earlier in this run.
-  const viewed = await rows("Most viewed listings");
+  const viewed = await rows(byListing);
   assert.equal(viewed.find(r => r[0].includes("HE-R001"))?.[1], String(r001));
-  assert.equal(await page.getByRole("table", {name: "Most viewed listings"}).locator('a[href="#/p/HE-R001"]').count(), 1, "the listing links to its editor");
+  assert.equal(await byListing.locator('a[href="#/p/HE-R001"]').count(), 1, "the listing links to its editor");
   await shot(page, "admin-insights");
   await page.getByRole("button", {name: "90 days", exact: true}).click();
   await page.waitForFunction(n => [...document.querySelectorAll(".figures div")].find(d => d.querySelector("dt").textContent === "Listing views")

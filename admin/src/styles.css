@@ -272,9 +272,15 @@ textarea.short{min-height:72px}
 .figures dd.num{font:400 30px/1.25 var(--display);margin-top:4px}
 .figures.times{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))} .figures.times dt{font-size:14px;letter-spacing:0;text-transform:none;color:var(--ink)}
 .figures.times dd.muted{margin-top:4px}
-.table-scroll{overflow-x:auto;margin-bottom:12px;border-radius:var(--r)}
-.table-scroll .list{min-width:560px}
-.insights .list caption{padding-top:0}
+/* A shadow on each edge with more columns behind it: the paper-coloured covers scroll with the table and hide the
+   shadow once that edge is reached (so the table itself is transparent). */
+.table-scroll{overflow-x:auto;margin-bottom:12px;border-radius:var(--r);background:
+  linear-gradient(90deg,var(--paper) 40%,rgba(255,255,255,0)) left/32px 100% no-repeat local,
+  linear-gradient(270deg,var(--paper) 40%,rgba(255,255,255,0)) right/32px 100% no-repeat local,
+  linear-gradient(90deg,rgba(21,21,21,.24),rgba(21,21,21,0)) left/18px 100% no-repeat,
+  linear-gradient(270deg,rgba(21,21,21,.24),rgba(21,21,21,0)) right/18px 100% no-repeat,var(--paper)}
+.table-scroll .list{min-width:560px;background:transparent}
+.insights .report[aria-busy=true]{opacity:.5;transition:opacity .2s}
 .insights .list .num{text-align:right}
 .insights .list tbody th{text-align:left;font-size:14px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink);padding:10px 12px;border-bottom:1px solid var(--line)}
 .insights .list tbody tr:last-child th{border-bottom:0}

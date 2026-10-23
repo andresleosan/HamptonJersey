@@ -23,10 +23,12 @@ const duration = h => (h == null ? "—" : h < 48 ? plural(h, "hour") : `${(h / 
 export default function Insights() {
   const [days, setDays] = useState(30), [data, setData] = useState(null), [error, setError] = useState(null);
   const [attempt, setAttempt] = useState(0); // Retry reads the same period again
+  const [busy, setBusy] = useState(true); // the previous report stays, dimmed, while another period loads
   useEffect(() => {
     let stale = false;
-    setData(null); setError(null);
-    api(`/admin/insights?days=${days}`).then(d => { if (!stale) setData(d); }, e => { if (!stale) setError(e.message); });
+    setBusy(true); setError(null);
+    api(`/admin/insights?days=${days}`).then(d => { if (!stale) { setData(d); setBusy(false); } },
+      e => { if (!stale) { setError(e.message); setBusy(false); } });
     return () => { stale = true; };
   }, [days, attempt]);
 
@@ -37,7 +39,7 @@ export default function Insights() {
       <button key={p} type="button" aria-pressed={days === p} onClick={() => setDays(p)}>{p} days</button>)}</div>
     {error ? <p role="alert" className="err">{error}{" "}
       <button type="button" className="btn ghost sm" onClick={() => setAttempt(a => a + 1)}>Retry</button></p>
-      : !data ? <p>Loading insights…</p> : <Report d={data} />}
+      : !data ? <p>Loading insights…</p> : <div className="report" aria-busy={busy}><Report d={data} /></div>}
   </section>;
 }
 
@@ -58,10 +60,9 @@ function Report({ d }) {
       <h2 id="h-demand">Unmet demand</h2>
       <p className="muted">Today's active applicants, whatever the period, and the listings available to match them. Without a
         match: no found or shortlisted match on an available listing. Someone who wants several parishes counts in each.</p>
-      {OPERATIONS.map(([op, t, offered]) => demand[op].length
-        ? <div key={op} className="table-scroll" role="region" aria-label={`${t} demand`} tabIndex={0}>
-          <table className="list">
-            <caption>{t}</caption>
+      {OPERATIONS.map(([op, t, offered]) => <div key={op}><h3 id={`h-${op}`}>{t}</h3>{demand[op].length
+        ? <div className="table-scroll" role="region" aria-label={`${t} demand`} tabIndex={0}>
+          <table className="list" aria-labelledby={`h-${op}`}>
             <thead><tr><th scope="col">Parish</th><th scope="col" className="num">Active applicants</th>
               <th scope="col" className="num">Without a match</th><th scope="col" className="num">Median budget</th>
               <th scope="col" className="num">Available listings</th></tr></thead>
@@ -69,8 +70,7 @@ function Report({ d }) {
               <td className="num">{n(r.applicants)}</td><td className="num">{n(r.unmatched)}</td>
               <td className="num">{budget(r.median_budget, op)}</td><td className="num">{n(r.listings)}</td></tr>)}</tbody>
           </table></div>
-        : <div key={op}><h3>{t}</h3>
-          <p className="empty card">No active {t.toLowerCase()} applicants and no listings {offered} to match them.</p></div>)}
+        : <p className="empty card">No active {t.toLowerCase()} applicants and no listings {offered} to match them.</p>}</div>)}
       <h3>Top unmet requests</h3>
       <p className="muted">Active applicants without a match, by what they ask for, most asked first. The rows don't add up:
         someone who wants several parishes is in each.</p>
@@ -88,8 +88,8 @@ function Report({ d }) {
         page load. Viewing requests: created in the period for that listing, from any origin.
         {counted && views.first_day > period.from && ` ${counted}`}</p>
       <p><strong className="num">{plural(totals.views, "view")}</strong> in {these}.</p>
-      {views.rows.length ? <div className="table-scroll" role="region" aria-labelledby="h-views" tabIndex={0}>
-        <table className="list" aria-labelledby="h-views">
+      {views.rows.length ? <div className="table-scroll" role="region" aria-label="Views by listing" tabIndex={0}>
+        <table className="list">
           <thead><tr><th scope="col">Listing</th><th scope="col" className="num">Views</th><th scope="col" className="num">Gallery</th>
             <th scope="col" className="num">3D tour</th><th scope="col" className="num">Viewing requests</th></tr></thead>
           <tbody>{views.rows.map(r => <tr key={r.listing_id}>
