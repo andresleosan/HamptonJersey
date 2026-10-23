@@ -1,5 +1,5 @@
 import { json, fail, readJson, now } from "../http.js";
-import { normalizePhone } from "../applicants.js";
+import { normalizePhone, activeSql } from "../applicants.js";
 
 const BOXES = {
   action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id",
@@ -13,7 +13,7 @@ const LIST_SQL = `
   SELECT n.id, n.category, n.title, n.created_at, n.action_required, n.resolved_at, e.entity_type, e.entity_id,
     COALESCE(c.phone, ac.phone, v.phone) AS raw_phone,
     CASE WHEN e.entity_type = 'contact' THEN (SELECT s.id FROM applicants s WHERE s.contact_id = c.id
-      ORDER BY (s.archived_at IS NULL AND s.stage NOT IN ('lost', 'completed')
+      ORDER BY (${activeSql("s")}
         AND s.operation IS json_extract(e.data, '$.operation')) DESC, s.created_at DESC, s.id DESC LIMIT 1) END AS search_id
   FROM notifications n JOIN events e ON e.id = n.event_id
   -- No CAST: comparing with the INTEGER id gives entity_id numeric affinity, so each join is a primary-key lookup.

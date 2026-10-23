@@ -292,3 +292,31 @@ test("recomputeForListing updates the pair for every active applicant", async ()
   // A listing that does not exist does nothing.
   await recomputeForListing(env, "HE-R999", ADMIN);
 });
+
+test("stores what evaluate() returns for the full rows", async () => {
+  // Every column evaluate() reads is set, so a column left out of the narrow reads changes the stored checks.
+  const env = makeEnv();
+  const id = seedApplicant(env, "Ana Le Gros", { operation: "rent", budget_min: 1500, budget_max: 2500,
+    budget_stretch: 2600, property_types: json(["house"]), bedrooms_min: 2, bedrooms_ideal: 3, bathrooms_min: 1,
+    parking_spaces: 1, outdoor: json(["garden"]), furnished: "yes", pets: json([{ kind: "dog", count: 1 }]),
+    parishes_wanted: json(["St Saviour"]), parishes_excluded: json(["St Helier"]) });
+  const evidence = json({ pets: "Pets considered", parking: "Garage", furnished: "Fully furnished",
+    outdoor: "Large garden", type: "Detached house" });
+  // £2,550 a month: within the stretch only.
+  const rent = { operation: "rent", availability: "to_let", sale_price: null, rent: 30600, rent_period: "year",
+    feat_pets: "yes", feat_parking: 1, feat_furnished: "yes", feat_type: "house", feat_evidence: evidence };
+  listing(env, "HE-R001", rent);
+  // £1,530 a month: in the band from budget_min, under it from 60 % of the stretch.
+  listing(env, "HE-R002", { ...rent, rent: 18360, bedrooms: 2, archived_at: T0, feat_furnished: "no", feat_type: "flat" });
+  listing(env, "HE-R003", { ...rent, parish: "St Helier" }); // excluded
+  await recomputeForListing(env, "HE-R001", ADMIN);
+  await recomputeForApplicant(env, id, ADMIN);
+
+  const a = env.DB.raw.prepare("SELECT * FROM applicants WHERE id = ?").get(id);
+  const stored = matches(env, id);
+  assert.equal(stored.length, 2);
+  for (const m of stored) {
+    const r = evaluate(a, env.DB.raw.prepare("SELECT * FROM listings WHERE id = ?").get(m.listing_id));
+    assert.deepEqual([m.score, JSON.parse(m.checks)], [r.score, r.checks]);
+  }
+});

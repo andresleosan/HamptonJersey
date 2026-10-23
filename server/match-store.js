@@ -3,6 +3,7 @@
 // with the applicant.matched event and the applicant's matched Inbox notice, in one batch.
 import { now } from "./http.js";
 import { logEvent } from "./events.js";
+import { activeSql, isActive } from "./applicants.js";
 import { evaluate, MIN_SCORE, MAX_FOUND } from "./matching.js";
 
 // Listings that may be offered (B2): archived ones too. The applicant's operation is evaluate()'s first filter.
@@ -10,13 +11,20 @@ export const CANDIDATES_SQL = `matchable = 1 AND use = 'residential' AND availab
   AND operation IN ('sale','rent') AND (country IS NULL OR country = 'Jersey') AND (currency IS NULL OR currency = 'GBP')`;
 const LISTING_OPERATION = { rent: "rent", buy: "sale" };
 
-// "Active search" (same rule as routes/applicants.js): not archived, lost or completed; a paused one is still active.
-const isActive = a => a.archived_at == null && a.stage !== "lost" && a.stage !== "completed";
-const ACTIVE = "a.archived_at IS NULL AND a.stage NOT IN ('lost', 'completed')";
+// Only the columns evaluate() reads (never the listing's text: B10), plus whether the listing is a candidate.
+const LISTING = `id, operation, archived_at, bedrooms, bathrooms, parish, published, sale_price, rent, rent_period,
+  feat_pets, feat_parking, feat_furnished, feat_outdoor, feat_type, feat_evidence, (${CANDIDATES_SQL}) AS candidate`;
+// The applicant's search as evaluate() reads it, whether it is active, and the contact's name for the notice.
+const APPLICANT = `a.id, a.archived_at, a.stage, a.operation, a.budget_min, a.budget_max, a.budget_stretch,
+  a.property_types, a.bedrooms_min, a.bedrooms_ideal, a.bathrooms_min, a.parking_spaces, a.outdoor, a.furnished, a.pets,
+  a.parishes_wanted, a.parishes_excluded, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id`;
 
 // The applicant's open matched notice; notices find their applicant through their event. Bind: the applicant id.
 const OPEN_NOTICE = `resolved_at IS NULL AND category = 'matched'
   AND event_id IN (SELECT id FROM events WHERE entity_type = 'applicant' AND entity_id = ?)`;
+// "<N> new matches for <name>" with N the found matches stored now (B14). Bind: the applicant id, the name.
+const TITLE = `(SELECT COUNT(*) || CASE WHEN COUNT(*) = 1 THEN ' new match for ' ELSE ' new matches for ' END
+  FROM matches WHERE applicant_id = ? AND status = 'found') || ?`;
 
 // Resolves the applicant's open matched notice once none of its matches is found any more (B14).
 export const closeMatchedNoticeIfEmpty = (env, applicantId, by) => env.DB.prepare(
@@ -24,9 +32,7 @@ export const closeMatchedNoticeIfEmpty = (env, applicantId, by) => env.DB.prepar
    AND NOT EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found')`)
   .bind(now(), by, String(applicantId), applicantId);
 
-const title = (n, name) => `${n} new match${n === 1 ? "" : "es"} for ${name}`;
-
-// The writes for one applicant (a: applicants row + contact name).
+// The writes for one applicant (a: an APPLICANT row).
 // results: the listings evaluated now, [{ listing_id, score, checks (JSON text), passing }].
 // stored: Map listing_id → this applicant's match for those listings (or all of its matches when all were evaluated:
 //   a found one without a result then no longer passes).
@@ -66,14 +72,15 @@ function writesFor(env, a, results, stored, others, actor, ts) {
 
   // B14: the event when there are new ones; one open notice, created on its event when none is open, titled with the
   // total found now; closed at zero found.
-  const found = Math.min(pool.length, MAX_FOUND), id = String(a.id);
+  const id = String(a.id);
   if (created) stmts.push(
     ...logEvent(env, { actor, entity_type: "applicant", entity_id: id, type: "applicant.matched", data: { new: created } }),
     env.DB.prepare(`INSERT INTO notifications (event_id, category, title, action_required, created_at)
-      SELECT last_insert_rowid(), 'matched', ?, 1, ? WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE ${OPEN_NOTICE})`)
-      .bind(title(found, a.name), ts, id));
-  if (found) stmts.push(env.DB.prepare(`UPDATE notifications SET title = ? WHERE ${OPEN_NOTICE}`).bind(title(found, a.name), id));
-  stmts.push(closeMatchedNoticeIfEmpty(env, a.id, actor));
+      SELECT last_insert_rowid(), 'matched', ${TITLE}, 1, ? WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE ${OPEN_NOTICE})`)
+      .bind(a.id, a.name, ts, id));
+  stmts.push(env.DB.prepare(`UPDATE notifications SET title = ${TITLE} WHERE ${OPEN_NOTICE}
+    AND EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found')`).bind(a.id, a.name, id, a.id),
+  closeMatchedNoticeIfEmpty(env, a.id, actor));
   return { stmts, created };
 }
 
@@ -88,8 +95,7 @@ const byListing = list => new Map(list.map(m => [m.listing_id, m]));
 
 // After an applicant is saved. actor: an admin email, 'public' or 'system'.
 export async function recomputeForApplicant(env, applicantId, actor) {
-  const a = await env.DB.prepare("SELECT a.*, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id WHERE a.id = ?")
-    .bind(applicantId).first();
+  const a = await env.DB.prepare(`SELECT ${APPLICANT} WHERE a.id = ?`).bind(applicantId).first();
   if (!a) return { created: 0 };
   if (!isActive(a)) {
     await env.DB.batch([env.DB.prepare("DELETE FROM matches WHERE applicant_id = ? AND status = 'found'").bind(a.id),
@@ -98,7 +104,7 @@ export async function recomputeForApplicant(env, applicantId, actor) {
   }
   // The candidates, and the shortlisted ones that left them (their checks still show what fails now).
   const [listings, stored] = (await env.DB.batch([
-    env.DB.prepare(`SELECT *, (${CANDIDATES_SQL}) AS candidate FROM listings WHERE (${CANDIDATES_SQL} AND operation = ?)
+    env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE (${CANDIDATES_SQL} AND operation = ?)
       OR id IN (SELECT listing_id FROM matches WHERE applicant_id = ? AND status = 'shortlisted')`)
       .bind(LISTING_OPERATION[a.operation], a.id),
     env.DB.prepare("SELECT id, listing_id, status, score, checks FROM matches WHERE applicant_id = ?").bind(a.id),
@@ -110,25 +116,34 @@ export async function recomputeForApplicant(env, applicantId, actor) {
 
 // After a listing is saved, archived or restored: its pair with every active applicant, in one batch.
 export async function recomputeForListing(env, listingId, actor) {
-  const [[l], applicants, stored, others] = (await env.DB.batch([
-    env.DB.prepare(`SELECT *, (${CANDIDATES_SQL}) AS candidate FROM listings WHERE id = ?`).bind(listingId),
-    env.DB.prepare(`SELECT a.*, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id WHERE ${ACTIVE}`),
-    env.DB.prepare("SELECT id, applicant_id, listing_id, status, score, checks FROM matches WHERE listing_id = ?").bind(listingId),
-    // The other found matches of active applicants, to keep each one's best MAX_FOUND.
-    env.DB.prepare(`SELECT m.id, m.applicant_id, m.listing_id, m.score FROM matches m JOIN applicants a ON a.id = m.applicant_id
-      WHERE m.status = 'found' AND m.listing_id <> ? AND ${ACTIVE}`).bind(listingId),
-  ])).map(r => r.results);
+  const l = await env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE id = ?`).bind(listingId).first();
   if (!l) return;
-  const group = list => {
-    const g = new Map();
-    for (const m of list) g.has(m.applicant_id) ? g.get(m.applicant_id).push(m) : g.set(m.applicant_id, [m]);
-    return g;
-  };
-  const mine = group(stored), theirs = group(others);
-  // ponytail: one JS loop over every active applicant and one batch; with hundreds that is a few hundred
-  // evaluate() calls. At tens of thousands of applicants this moves to a queue, in batches.
+  // A listing that is not offered only concerns the applicants already matched with it.
+  const [applicants, stored] = (await env.DB.batch([
+    env.DB.prepare(`SELECT ${APPLICANT} WHERE ${activeSql("a")}
+      ${l.candidate ? "" : "AND a.id IN (SELECT applicant_id FROM matches WHERE listing_id = ?)"}`)
+      .bind(...(l.candidate ? [] : [listingId])),
+    env.DB.prepare("SELECT id, applicant_id, listing_id, status, score, checks FROM matches WHERE listing_id = ?")
+      .bind(listingId),
+  ])).map(r => r.results);
+  const mine = new Map(stored.map(m => [m.applicant_id, m]));
+  const results = new Map(applicants.map(a => [a.id, result(a, l)]));
+  // Where it passes, the applicant's other found matches decide whether it is among the best MAX_FOUND.
+  const passing = applicants.filter(a => results.get(a.id).passing).map(a => a.id);
+  const others = new Map();
+  if (passing.length) {
+    const { results: rows } = await env.DB.prepare(`SELECT id, applicant_id, listing_id, score FROM matches
+      WHERE status = 'found' AND listing_id <> ? AND applicant_id IN (SELECT value FROM json_each(?))`)
+      .bind(listingId, JSON.stringify(passing)).all();
+    for (const m of rows) others.has(m.applicant_id) ? others.get(m.applicant_id).push(m) : others.set(m.applicant_id, [m]);
+  }
+  // ponytail: an offered listing is evaluated against every active applicant in one JS loop and one batch, and the
+  // others read holds up to MAX_FOUND rows per passing applicant. Fine for hundreds of applicants; at tens of
+  // thousands this moves to a queue, in batches.
   const ts = now(), stmts = [];
-  for (const a of applicants)
-    stmts.push(...writesFor(env, a, [result(a, l)], byListing(mine.get(a.id) ?? []), theirs.get(a.id) ?? [], actor, ts).stmts);
+  for (const a of applicants) {
+    const m = mine.get(a.id);
+    stmts.push(...writesFor(env, a, [results.get(a.id)], byListing(m ? [m] : []), others.get(a.id) ?? [], actor, ts).stmts);
+  }
   if (stmts.length) await env.DB.batch(stmts);
 }

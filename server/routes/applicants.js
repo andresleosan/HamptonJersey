@@ -1,5 +1,5 @@
 import { json, fail, readJson, now } from "../http.js";
-import { validateApplicant, normalizePhone, OPTIONS } from "../applicants.js";
+import { validateApplicant, normalizePhone, OPTIONS, activeSql } from "../applicants.js";
 import { logEvent, resolveNotices } from "../events.js";
 
 const STAGES = OPTIONS.stages.map(([v]) => v);
@@ -55,8 +55,7 @@ async function saveVersioned(env, stmts, entity, id, seen) {
   if (!results[0].meta.changes) fail(404, missing);
 }
 
-// "Active search" (same rule as notifications.js): not archived, lost or completed; a paused one is still active.
-const ACTIVE = "s.archived_at IS NULL AND s.stage NOT IN ('lost', 'completed')";
+const ACTIVE = activeSql("s");
 
 // before/after with only the changed fields; JSON lists as lists.
 function diff(cur, next) {

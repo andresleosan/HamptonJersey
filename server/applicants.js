@@ -25,6 +25,13 @@ export const OPTIONS = {
     ["agreed", "Agreed"], ["completed", "Completed"], ["paused", "Paused"], ["lost", "Lost"]],
   sources: [["web", "Website"], ["phone", "Phone"], ["walk_in", "Walk-in"], ["email", "Email"]],
 };
+
+// "Active search" (F0): not archived, lost or completed; a paused one is still active. The one rule, in SQL and JS.
+const CLOSED_STAGES = ["lost", "completed"];
+export const activeSql = alias =>
+  `${alias}.archived_at IS NULL AND ${alias}.stage NOT IN (${CLOSED_STAGES.map(s => `'${s}'`).join(", ")})`;
+export const isActive = a => a.archived_at == null && !CLOSED_STAGES.includes(a.stage);
+
 const values = list => OPTIONS[list].map(([v]) => v);
 
 // Budgets in GBP; renting is per month.
