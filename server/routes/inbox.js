@@ -1,4 +1,5 @@
 import { json, fail, readJson, now } from "../http.js";
+import { resolveNotices } from "../events.js";
 
 const STATUSES = ["new", "contacted", "closed"];
 
@@ -25,14 +26,22 @@ async function update({ request, env, admin, params: [id] }) {
   }
   const cols = Object.keys(patch);
   if (!cols.length) fail(400, "Nothing to update");
-  const r = await env.DB.prepare(`UPDATE viewing_requests SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ? WHERE id = ?`)
-    .bind(...cols.map(c => patch[c]), now(), admin, Number(id)).run();
+  const [r] = await env.DB.batch([
+    env.DB.prepare(`UPDATE viewing_requests SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ? WHERE id = ?`)
+      .bind(...cols.map(c => patch[c]), now(), admin, Number(id)),
+    // Leaving 'new' means someone has picked it up: its Inbox notice is done.
+    ...(patch.status && patch.status !== "new"
+      ? [resolveNotices(env, { entity_type: "viewing", entity_id: String(Number(id)), category: "viewing" }, admin)] : []),
+  ]);
   if (!r.meta.changes) fail(404, "Request not found");
   return json({ ok: true });
 }
 
-async function remove({ env, params: [id] }) {
-  const r = await env.DB.prepare("DELETE FROM viewing_requests WHERE id = ?").bind(Number(id)).run();
+async function remove({ env, admin, params: [id] }) {
+  const [r] = await env.DB.batch([
+    env.DB.prepare("DELETE FROM viewing_requests WHERE id = ?").bind(Number(id)),
+    resolveNotices(env, { entity_type: "viewing", entity_id: String(Number(id)) }, admin),
+  ]);
   if (!r.meta.changes) fail(404, "Request not found");
   return json({ ok: true });
 }

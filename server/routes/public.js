@@ -2,6 +2,7 @@ import { json, fail, readJson, now } from "../http.js";
 import { toPublic } from "../listing.js";
 import { validateViewing, jerseyToday } from "../viewings.js";
 import { verifyTurnstile } from "../turnstile.js";
+import { logEvent } from "../events.js";
 
 export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
 
@@ -28,9 +29,15 @@ async function createViewing({ request, env }) {
   if (v.listing_id && !listing) fail(400, "That property is no longer available. Choose another or send a general enquiry.");
   if (!(await verifyTurnstile(body.turnstile, env.TURNSTILE_SECRET, request.headers.get("cf-connecting-ip"), new URL(request.url).hostname)))
     fail(400, "The anti-spam check expired or failed. Please try again.");
-  await env.DB.prepare(`INSERT INTO viewing_requests (listing_id, listing_ref, listing_title_snapshot, agent, kind, date, time,
-      name, email, phone, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
-    .bind(v.listing_id, v.listing_id, listing ? listing.title : null, v.agent, v.kind, v.date, v.time, v.name, v.email, v.phone, now()).run();
+  await env.DB.batch([
+    env.DB.prepare(`INSERT INTO viewing_requests (listing_id, listing_ref, listing_title_snapshot, agent, kind, date, time,
+        name, email, phone, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+      .bind(v.listing_id, v.listing_id, listing ? listing.title : null, v.agent, v.kind, v.date, v.time, v.name, v.email, v.phone, now()),
+    // Personal data stays in the request row; the event only says what was asked for.
+    ...logEvent(env, { actor: "public", entity_type: "viewing", entity_id: null, type: "viewing.requested",
+      data: { listing_id: v.listing_id, date: v.date, time: v.time, kind: v.kind } },
+    { category: "viewing", title: `Viewing request: ${v.name}`, action_required: true }),
+  ]);
   return json({ ok: true }, 201);
 }
 
