@@ -4,18 +4,21 @@ import { fmtAgo, fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
 
 const BOXES = { action: "Needs action", feed: "Feed" };
-const CATEGORIES = { "": "All", new_applicant: "New applicants", viewing: "Viewings" };
-const KIND = { new_applicant: "New applicant", viewing: "Viewing request" };
+const CATEGORIES = { "": "All", new_applicant: "New applicants", matched: "Matched", viewing: "Viewings" };
+const KIND = { new_applicant: "New applicant", matched: "New matches", viewing: "Viewing request" };
 const EMPTY = {
-  action: { "": "You're all caught up. New applicants and viewing requests that need a reply appear here.",
+  action: { "": "You're all caught up. New applicants, new matches and viewing requests that need a reply appear here.",
     new_applicant: "You're all caught up. New applicants from the website appear here.",
+    matched: "You're all caught up. When listings fit an applicant's search, the notice appears here until they are reviewed.",
     viewing: "You're all caught up. Viewing requests from the website appear here." },
   feed: { "": "Nothing here yet. Notices marked done and updates for your information appear here.",
-    new_applicant: "No applicant notices here yet.", viewing: "No viewing request notices here yet." },
+    new_applicant: "No applicant notices here yet.", matched: "No match notices here yet.",
+    viewing: "No viewing request notices here yet." },
 };
 const isOpen = n => n.action_required === 1 && n.resolved_at == null;
 const openLabel = n => (n.entity_type === "viewing" ? "Open viewing requests"
-  : n.link.startsWith("#/applicants/new") ? "Add a search for this contact" : "Open applicant");
+  : n.link.startsWith("#/applicants/new") ? "Add a search for this contact" : n.category === "matched" ? "Review matches"
+  : "Open applicant");
 
 export default function Inbox({ paused, onCounts }) {
   const [box, setBox] = useState("action"), [cat, setCat] = useState("");

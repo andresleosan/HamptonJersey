@@ -4,6 +4,7 @@ import { fmtAgo, fmtDate } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
 import { OPTIONS, normalizePhone } from "../../server/applicants.js";
 import ApplicantFields, { toForm, toBody } from "./ApplicantFields.jsx";
+import MatchCard, { REASON_LABEL } from "./MatchCard.jsx";
 
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
 // Every form field that belongs to the search (the rest of the form is the contact).
@@ -11,7 +12,8 @@ const SEARCH = Object.keys(toForm()).filter(k => !CONTACT.includes(k));
 // §3.3 Copy fields: the search's requirements (never its operation: that is a second search) and, from the contact,
 // only these two.
 const COPY = [...SEARCH.filter(k => k !== "operation"), "preferred_channel", "best_time"];
-const TABS = [["requirements", "Requirements"], ["timeline", "Timeline"]];
+const TABS = [["requirements", "Requirements"], ["matches", "Matches"], ["timeline", "Timeline"]];
+const GROUPS = [["found", "Found"], ["shortlisted", "Shortlisted"], ["rejected", "Rejected"]];
 
 const LABEL = { operation: "To Let or To Buy", stage: "Stage", lost_reason: "Why it was lost", assigned_to: "Assigned to",
   source: "Source", budget_max: "Maximum budget", budget_min: "Minimum budget", budget_stretch: "Can stretch to",
@@ -29,7 +31,8 @@ const CHOICES = { operation: OPTIONS.operation, stage: OPTIONS.stages, source: O
 const MONEY = ["budget_min", "budget_max", "budget_stretch"];
 const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requirements changed", "applicant.stage_changed": "Stage changed",
   "applicant.archived": "Archived", "applicant.restored": "Restored", "contact.updated": "Contact details changed",
-  "contact.consent_changed": "Consent changed", "applicant.duplicate_submitted": "Registered again on the website" };
+  "contact.consent_changed": "Consent changed", "applicant.duplicate_submitted": "Registered again on the website",
+  "applicant.matched": "New matches found" };
 const VIEWING_STATUS = Object.fromEntries([["new", "New"], ["contacted", "Contacted"], ["closed", "Closed"]]);
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation), SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
 
@@ -57,8 +60,8 @@ const same = (k, a, b) => {
   return norm(a) === norm(b);
 };
 
-// The record of one search (#/applicants/<id>, #/applicants/<id>/timeline): its contact, stage and owner, the
-// requirements form and the history. tab: the part of the hash after the id.
+// The record of one search (#/applicants/<id>, #/applicants/<id>/matches, #/applicants/<id>/timeline): its contact,
+// stage and owner, the requirements form, its matches and the history. tab: the part of the hash after the id.
 export default function ApplicantDetail({ id, tab }) {
   const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [users, setUsers] = useState([]);
   const [form, setForm] = useState(null), [errors, setErrors] = useState({}), [busy, setBusy] = useState(false);
@@ -70,7 +73,9 @@ export default function ApplicantDetail({ id, tab }) {
   const [choice, setChoice] = useState({ stage: null, assigned_to: null });
   const tabs = useRef({}), formRef = useRef(null), lostRef = useRef(null), focusError = useRef(false);
   const stageRef = useRef(null), ownerRef = useRef(null);
-  const cur = tab === "timeline" ? "timeline" : "requirements";
+  // matchMsg: the last review, in the Matches tab. refocusMatch: the id to focus once the reviewed matches are shown.
+  const [matchMsg, setMatchMsg] = useState(null), [reviewing, setReviewing] = useState(false), refocusMatch = useRef(null);
+  const cur = TABS.some(([k]) => k === tab) ? tab : "requirements";
 
   const fetchDetail = () => api(`/admin/applicants/${id}`).then(d => { setData(d); return d; });
   const load = () => fetchDetail().then(d => {
@@ -89,6 +94,9 @@ export default function ApplicantDetail({ id, tab }) {
     if (el) { el.focus(); focusError.current = false; }
   }, [errors, cur]);
   useEffect(() => { if (lost === "") lostRef.current?.focus(); }, [lost]);
+  useEffect(() => {
+    if (refocusMatch.current) { document.getElementById(refocusMatch.current)?.focus(); refocusMatch.current = null; }
+  }, [data]);
 
   if (loadErr && !data) return <p role="alert" className="err">{loadErr} · <a href="#/applicants">Back to applicants</a></p>;
   if (!data || !form) return <p>Loading applicant…</p>;
@@ -97,7 +105,7 @@ export default function ApplicantDetail({ id, tab }) {
   const by = actor => (actor === "public" ? "Website" : actor === "system" ? "System" : nameOf(actor));
   const stale = e => e.status === 409 && !e.data?.contact_id;
   const go = (k, focus) => {
-    location.hash = `#/applicants/${id}${k === "timeline" ? "/timeline" : ""}`;
+    location.hash = `#/applicants/${id}${k === "requirements" ? "" : `/${k}`}`;
     if (focus) tabs.current[k].focus();
   };
   const onTabKey = e => {
@@ -195,6 +203,33 @@ export default function ApplicantDetail({ id, tab }) {
     } catch (e) { setNote({ text: e.message }); }
   };
 
+  // A review moves the match to another group; the focus goes to the next card of the group it left (the one before
+  // when it was the last), or that group's heading when none is left. A 409 (someone else reviewed it, or the search
+  // is archived) or a 400 says why; either way the matches are loaded again.
+  const reviewMatch = async (m, { status, reject_reason }) => {
+    if (reviewing) return;
+    const group = data.matches.filter(x => x.status === m.status), i = group.findIndex(x => x.id === m.id);
+    const next = group[i + 1] ?? group[i - 1], title = m.listing.title;
+    setReviewing(true); setMatchMsg(null);
+    let msg;
+    try {
+      const { match } = await api(`/admin/matches/${m.id}`, { method: "PUT",
+        body: { status, from: m.status, ...(reject_reason && { reject_reason }) } });
+      msg = { ok: true, text: !match ? `${title} no longer fits this search, so it has left the list.`
+        : status === "shortlisted" ? `Shortlisted ${title}.` : status === "rejected" ? `Rejected ${title} · ${REASON_LABEL[reject_reason]}.`
+        : `${title} is back in Found.` };
+    } catch (e) { msg = { text: e.message, refused: e.status === 409 || e.status === 400 }; }
+    // The message shows with the reloaded matches; a refused review's "Reload to see it" is done already.
+    try {
+      const d = await api(`/admin/applicants/${id}`);
+      if (msg.refused) msg = { text: `${msg.text.split(". ")[0].replace(/\.?$/, ".")} The matches below are up to date.` };
+      if (msg.ok || !d.matches.some(x => x.id === m.id && x.status === m.status))
+        refocusMatch.current = next ? `match-${next.id}` : `group-${m.status}`;
+      setData(x => ({ ...x, events: d.events, matches: d.matches }));
+    } catch (e) { msg = { ...msg, text: `${msg.text} ${e.message}` }; }
+    finally { setMatchMsg(msg); setReviewing(false); }
+  };
+
   const act = async action => {
     if (action === "archive" && !confirm(`Archive this search for ${c.name}? You can restore it from Archived.`)) return;
     setBusy(true); setMsg(null);
@@ -264,8 +299,11 @@ export default function ApplicantDetail({ id, tab }) {
         </fieldset>
       </form>
     </div>
+    <div role="tabpanel" id="panel-matches" aria-labelledby="tab-matches" hidden={cur !== "matches"} tabIndex={0}>
+      <Matches matches={data.matches} applicant={a} msg={matchMsg} busy={reviewing} onReview={reviewMatch} />
+    </div>
     <div role="tabpanel" id="panel-timeline" aria-labelledby="tab-timeline" hidden={cur !== "timeline"} tabIndex={0}>
-      <Timeline events={data.events} viewings={data.viewings} by={by} nameOf={nameOf} />
+      <Timeline events={data.events} viewings={data.viewings} matches={data.matches} by={by} nameOf={nameOf} />
     </div>
 
     <div className="actionbar" role="region" aria-label="Actions">
@@ -313,15 +351,53 @@ function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirm
   </section>;
 }
 
+// Spec §5: Found, Shortlisted and Rejected, each best first (as the API orders them). Each empty group says why.
+function Matches({ matches, applicant: a, msg, busy, onReview }) {
+  const archived = !!a.archived_at, closed = ["lost", "completed"].includes(a.stage);
+  const reviewed = matches.some(m => m.status !== "found");
+  const empty = {
+    found: archived ? "Archived searches get no new matches. Restore it to look again."
+      : closed ? `Searches marked ${show("stage", a.stage)} get no new matches.`
+      : reviewed ? "Nothing left to review. Listings that fit this search appear here when they are added or change."
+      : "No listing fits this search right now. Listings that fit appear here when they are added or change. Check the requirements if you expected some.",
+    shortlisted: "Nothing shortlisted yet.",
+    rejected: "Nothing rejected.",
+  };
+  return <div className="matches">
+    {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
+    {GROUPS.map(([k, t]) => {
+      const list = matches.filter(m => m.status === k);
+      return <section key={k} className="match-group" aria-labelledby={`group-${k}`}>
+        <h2 id={`group-${k}`} tabIndex={-1}>{t} <span className="count">{list.length}</span></h2>
+        {list.length ? <ul className="match-list">{list.map(m => <li key={m.id}>
+          <MatchCard match={m} busy={busy} disabled={archived} onReview={r => onReview(m, r)} /></li>)}</ul>
+          : <p className="empty card">{empty[k]}</p>}
+      </section>;
+    })}
+  </div>;
+}
+
+// What a match.reviewed event did, with the listing's title when its match is still stored.
+function reviewed(e, matches) {
+  const d = e.data ?? {}, title = matches.find(m => m.listing.id === d.listing_id)?.listing.title ?? d.listing_id;
+  if (d.to === "shortlisted") return [`Shortlisted ${title}`];
+  if (d.to === "rejected") return [`Rejected ${title} · ${REASON_LABEL[d.reason] ?? d.reason}`];
+  return ["Moved back to Found", title];
+}
+const headline = (e, matches) => (e.type === "match.reviewed" ? reviewed(e, matches)
+  : e.type === "applicant.matched" && e.data?.new != null ? [`${e.data.new} new ${e.data.new === 1 ? "match" : "matches"} found`]
+  : [EVENT[e.type] ?? e.type]);
+
 // The history, newest first: events with who and what changed, and the website's viewing requests from the same
 // email or phone (G4).
-function Timeline({ events, viewings, by, nameOf }) {
-  const items = [...events.map(e => ({ at: e.at, e })), ...viewings.map(v => ({ at: v.created_at, v }))]
+function Timeline({ events, viewings, matches, by, nameOf }) {
+  const items = [...events.map(e => ({ at: e.at, e, h: headline(e, matches) })), ...viewings.map(v => ({ at: v.created_at, v }))]
     .sort((x, y) => y.at.localeCompare(x.at));
   if (!items.length) return <p className="empty card">Nothing has happened yet.</p>;
   const when = at => <time dateTime={at} title={fmtDate(at)}>{fmtAgo(at)}</time>;
-  return <ol className="timeline card">{items.map(({ e, v }) => e ? <li key={`e${e.id}`}>
-    <p><strong>{EVENT[e.type] ?? e.type}</strong> <span className="muted">{by(e.actor)} · {when(e.at)}</span></p>
+  return <ol className="timeline card">{items.map(({ e, h, v }) => e ? <li key={`e${e.id}`}>
+    <p><strong>{h[0]}</strong> <span className="muted">{by(e.actor)} · {when(e.at)}</span></p>
+    {h[1] && <p>{h[1]}</p>}
     {e.type === "applicant.created" && e.data && <p className="muted">{show("operation", e.data.operation)} · {show("source", e.data.source)}</p>}
     {e.data?.after && <dl className="changes">{Object.keys(e.data.after).map(k => <div key={k}><dt>{LABEL[k] ?? k}</dt>
       <dd><span className="sr">from </span>{show(k, e.data.before?.[k], nameOf)} <span aria-hidden="true">→</span><span className="sr"> to</span> {show(k, e.data.after[k], nameOf)}</dd></div>)}</dl>}

@@ -10,21 +10,25 @@ const STAGE_LABEL = Object.fromEntries(OPTIONS.stages);
 const TONE = { new: "attention", searching: "active", viewing: "active", offer: "active", agreed: "positive", completed: "positive",
   paused: "neutral", lost: "neutral" };
 const StageBadge = ({ stage }) => <span className={`badge ${TONE[stage]}`}>{STAGE_LABEL[stage]}</span>;
+// B13: the queue labels GET /admin/applicants returns and filters by (?queue=), in their order, with their tone.
+const QUEUE_TONE = { "New properties found": "attention", "Waiting for review": "attention", "In process": "active",
+  "No matches": "neutral" };
+const matchCounts = a => (a.found || a.shortlisted ? `${a.found} found · ${a.shortlisted} shortlisted` : null);
 
 export default function Applicants() {
   const [rows, setRows] = useState(null), [error, setError] = useState(null), [users, setUsers] = useState([]);
   const [archived, setArchived] = useState(false), [op, setOp] = useState(""), [sort, setSort] = useState("newest");
-  const [q, setQ] = useState(""), [stage, setStage] = useState(""), [assigned, setAssigned] = useState("");
+  const [q, setQ] = useState(""), [stage, setStage] = useState(""), [assigned, setAssigned] = useState(""), [queue, setQueue] = useState("");
   useEffect(() => { api("/admin/users").then(d => setUsers(d.users), () => {}); }, []);
   // The server filters and sorts; To Let / To Buy is split here so each tab can show its count.
   useEffect(() => {
     let stale = false;
-    const p = new URLSearchParams({ sort, ...(stage && { stage }), ...(assigned && { assigned }), ...(q.trim() && { q: q.trim() }),
-      ...(archived && { archived: "1" }) });
+    const p = new URLSearchParams({ sort, ...(stage && { stage }), ...(assigned && { assigned }), ...(queue && { queue }),
+      ...(q.trim() && { q: q.trim() }), ...(archived && { archived: "1" }) });
     const t = setTimeout(() => api(`/admin/applicants?${p}`).then(d => { if (!stale) { setRows(d.applicants); setError(null); } },
       e => { if (!stale) setError(e.message); }), 200);
     return () => { stale = true; clearTimeout(t); };
-  }, [archived, sort, stage, assigned, q]);
+  }, [archived, sort, stage, assigned, queue, q]);
   const counts = useMemo(() => Object.fromEntries(OPERATIONS.map(([k]) =>
     [k, (rows || []).filter(a => !k || a.operation === k).length])), [rows]);
 
@@ -32,8 +36,8 @@ export default function Applicants() {
   if (!rows) return <section aria-labelledby="t-applicants">{head}
     {error ? <p role="alert" className="err">{error}</p> : <p>Loading applicants…</p>}</section>;
   const shown = rows.filter(a => !op || a.operation === op);
-  const filtered = !!(q.trim() || stage || assigned);
-  const clear = () => { setQ(""); setStage(""); setAssigned(""); };
+  const filtered = !!(q.trim() || stage || assigned || queue);
+  const clear = () => { setQ(""); setStage(""); setAssigned(""); setQueue(""); };
   const toggleSort = () => setSort(s => (s === "newest" ? "oldest" : "newest"));
 
   return <section aria-labelledby="t-applicants">{head}
@@ -47,6 +51,8 @@ export default function Applicants() {
       <label>Search<input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Name, email or phone" /></label>
       <label>Stage<select value={stage} onChange={e => setStage(e.target.value)}><option value="">All</option>
         {OPTIONS.stages.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+      <label>Queue<select value={queue} onChange={e => setQueue(e.target.value)}><option value="">All</option>
+        {Object.keys(QUEUE_TONE).map(k => <option key={k} value={k}>{k}</option>)}</select></label>
       <label>Assigned to<select value={assigned} onChange={e => setAssigned(e.target.value)}><option value="">Anyone</option>
         {users.map(u => <option key={u.email} value={u.email}>{u.name || u.email}</option>)}</select></label>
       <label>Order<select value={sort} onChange={e => setSort(e.target.value)}>
@@ -58,7 +64,7 @@ export default function Applicants() {
       <thead><tr><th scope="col">Name</th><th scope="col">Phone</th>
         <th scope="col" aria-sort={sort === "newest" ? "descending" : "ascending"}>
           <button type="button" className="sort" onClick={toggleSort}>Applied<span aria-hidden="true">{sort === "newest" ? " ↓" : " ↑"}</span></button></th>
-        <th scope="col">Stage</th><th scope="col">Assigned to</th></tr></thead>
+        <th scope="col">Stage</th><th scope="col">Queue</th><th scope="col">Matches</th><th scope="col">Assigned to</th></tr></thead>
       <tbody>{shown.map(a => <tr key={a.id}>
         <td><a href={`#/applicants/${a.id}`}>{a.name}</a><div className="muted">{OPERATION_LABEL[a.operation]}{a.email && ` · ${a.email}`}</div></td>
         <td className="num" data-label="Phone">{a.phone || "—"}</td>
@@ -66,6 +72,9 @@ export default function Applicants() {
         {/* On phones a lost reason takes its own row, so it never squeezes the name. */}
         <td className={a.stage === "lost" && a.lost_reason ? "stage lost" : "stage"}><StageBadge stage={a.stage} />{a.stage === "lost"
           && a.lost_reason && <span className="muted"> {a.lost_reason}</span>}</td>
+        <td data-label="Queue"><span className={`badge ${QUEUE_TONE[a.queue] ?? "neutral"}`}>{a.queue}</span></td>
+        <td className="num" data-label="Matches">{matchCounts(a)
+          ? <a href={`#/applicants/${a.id}/matches`}>{matchCounts(a)}<span className="sr"> for {a.name}</span></a> : <span className="muted">—</span>}</td>
         <td data-label="Assigned to">{a.assigned_to ? a.assigned_name || a.assigned_to : <span className="muted">Unassigned</span>}</td>
       </tr>)}</tbody>
     </table> : <div className="empty card">{filtered

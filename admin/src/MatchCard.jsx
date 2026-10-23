@@ -1,0 +1,62 @@
+import { useEffect, useRef, useState } from "react";
+import { AVAILABILITY, priceText } from "./format.js";
+
+// The checks of server/matching.js evaluate(), by key.
+export const CHECK_LABEL = { budget: "Budget", bedrooms: "Bedrooms", bathrooms: "Bathrooms", area: "Area", pets: "Pets",
+  parking: "Parking", furnished: "Furnished", outdoor: "Outdoor", type: "Type" };
+const RESULT = { meets: "Meets", fails: "Fails", unknown: "Unknown" };
+// The reasons PUT /admin/matches/:id accepts for a rejection.
+export const REASONS = [["price", "Price"], ["area", "Area"], ["size", "Size"], ["condition", "Condition"], ["other", "Other"]];
+export const REASON_LABEL = Object.fromEntries(REASONS);
+const OFFERED = ["for_sale", "to_let", "lease"];
+const many = (n, word) => (n == null ? null : `${n} ${word}${n === 1 ? "" : "s"}`);
+
+// One match as spec §5 shows it: the listing, its score, each check with what the listing says, and the reviews its
+// status allows. onReview({ status, reject_reason }) gets the review chosen. busy: input is ignored, never disabled,
+// so the focus stays where it is. disabled: read only (an archived search). The heading (id match-<id>) takes the focus.
+export default function MatchCard({ match, onReview, busy, disabled = false }) {
+  const l = match.listing, title = l.title;
+  const [rejecting, setRejecting] = useState(false);
+  const rejectRef = useRef(null), firstReason = useRef(null);
+  useEffect(() => { if (rejecting) firstReason.current?.focus(); }, [rejecting]);
+  const review = (status, reject_reason) => { if (!busy) onReview({ status, ...(reject_reason && { reject_reason }) }); };
+  const cancel = () => { setRejecting(false); rejectRef.current?.focus(); };
+  const meta = [l.id, l.parish ?? "Parish unknown", many(l.bedrooms, "bedroom"), many(l.bathrooms, "bathroom")].filter(Boolean);
+  const why = disabled ? "Restore this search to review its matches" : undefined;
+
+  return <article className="card match" aria-labelledby={`match-${match.id}`}>
+    <div className="match-photo">{l.cover_id ? <img src={`/media/${l.cover_id}?thumb`} alt="" loading="lazy" />
+      : <span className="muted">No photo</span>}</div>
+    <div className="match-body">
+      <div className="match-head">
+        <h3 id={`match-${match.id}`} tabIndex={-1}><a href={`#/p/${l.id}`}>{title}</a></h3>
+        <span className="score num">Score {match.score}</span>
+      </div>
+      <p className="muted">{meta.join(" · ")}</p>
+      <p className="match-price"><span className="num">{priceText(l)}</span>
+        {(!l.published || l.archived_at) && <span className="badge neutral">Not on website</span>}
+        {!OFFERED.includes(l.availability) && <span className="badge neutral">{AVAILABILITY[l.availability] ?? l.availability}</span>}</p>
+      <dl className="checks">{match.checks.map(c => <div key={c.key}>
+        <dt>{CHECK_LABEL[c.key] ?? c.key}</dt>
+        <dd><span className={`result ${c.result}`}>{RESULT[c.result] ?? c.result}</span>{c.evidence && <span className="muted"> · {c.evidence}</span>}</dd>
+      </div>)}</dl>
+      {match.status === "rejected" && <p className="muted">Rejected · {REASON_LABEL[match.reject_reason] ?? match.reject_reason}</p>}
+      <div className="inline match-actions">
+        {match.status === "found" ? <>
+          <button type="button" className="btn sm" disabled={disabled} title={why} onClick={() => review("shortlisted")}>
+            Shortlist<span className="sr"> {title}</span></button>
+          <button type="button" ref={rejectRef} className="btn ghost sm" disabled={disabled} title={why} aria-expanded={rejecting}
+            onClick={() => (rejecting ? cancel() : setRejecting(true))}>Reject<span className="sr"> {title}</span></button>
+        </> : <button type="button" className="btn ghost sm" disabled={disabled} title={why} onClick={() => review("found")}>
+          Undo<span className="sr"> · move {title} back to Found</span></button>}
+      </div>
+      {rejecting && match.status === "found" && <div className="inline reasons" role="group" aria-label={`Why reject ${title}?`}
+        onKeyDown={e => { if (e.key === "Escape") { e.preventDefault(); cancel(); } }}>
+        <span className="muted" aria-hidden="true">Why?</span>
+        {REASONS.map(([k, t], i) => <button key={k} type="button" ref={i ? undefined : firstReason} className="btn ghost sm"
+          onClick={() => review("rejected", k)}>{t}</button>)}
+        <button type="button" className="linkish" onClick={cancel}>Cancel</button>
+      </div>}
+    </div>
+  </article>;
+}
