@@ -104,6 +104,8 @@ export default function ListingEditor({ id }) {
       <h1>{l.title}</h1>
       <p className="muted">{l.id} · <span className={`badge ${state}`}>{STATUS_LABEL[state]}</span></p>
       <p className="muted">Edited {fmtDate(l.updated_at)}</p>
+      {/* C10: people with a viewing coming up, or one in the last 30 days that went well; the link lists them. */}
+      <p className="muted">Active interest: <a href={`#/viewings?listing=${l.id}`}>{data.active_interest} {data.active_interest === 1 ? "person" : "people"}</a></p>
       {l.published === 1 && !publicPhoto && <p className="warn" role="note">Published, but with no public photo: it won't appear on the website until it has one.</p>}
       {data.duplicates.length > 0 && <p className="warn" role="note">Possible duplicate of {data.duplicates.map((d, i) =>
         <span key={d}>{i ? ", " : ""}<a href={`#/p/${d}`}>{d}</a></span>)} according to the research.</p>}

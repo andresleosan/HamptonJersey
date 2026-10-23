@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { fmtAgo, fmtDate, firstSentence, blank, show } from "./format.js";
+import { fmtAgo, fmtDate, firstSentence, blank, show, VIEWING_STATUS } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
 import { OPTIONS, normalizePhone, isActive } from "../../server/applicants.js";
 import ApplicantFields, { toForm, toBody } from "./ApplicantFields.jsx";
@@ -28,7 +28,6 @@ const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requi
   "applicant.archived": "Archived", "applicant.restored": "Restored", "contact.updated": "Contact details changed",
   "contact.consent_changed": "Consent changed", "applicant.duplicate_submitted": "Registered again on the website",
   "applicant.matched": "New matches found" };
-const VIEWING_STATUS = Object.fromEntries([["new", "New"], ["contacted", "Contacted"], ["closed", "Closed"]]);
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation), SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
 
 const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
@@ -375,8 +374,8 @@ const headline = (e, matches) => (e.type === "match.reviewed" ? reviewed(e, matc
   : e.type === "applicant.matched" && e.data?.new != null ? [`${e.data.new} new ${e.data.new === 1 ? "match" : "matches"} found`]
   : [EVENT[e.type] ?? e.type]);
 
-// The history, newest first: events with who and what changed, and the website's viewing requests from the same
-// email or phone (G4).
+// The history, newest first: events with who and what changed, and the viewings (website requests and the team's
+// bookings) from the same email or phone (G4).
 function Timeline({ events, viewings, matches, by, nameOf }) {
   const items = [...events.map(e => ({ at: e.at, e, h: headline(e, matches) })), ...viewings.map(v => ({ at: v.created_at, v }))]
     .sort((x, y) => y.at.localeCompare(x.at));
@@ -389,7 +388,7 @@ function Timeline({ events, viewings, matches, by, nameOf }) {
     {e.data?.after && <dl className="changes">{Object.keys(e.data.after).map(k => <div key={k}><dt>{LABEL[k] ?? k}</dt>
       <dd><span className="sr">from </span>{show(k, e.data.before?.[k], nameOf)} <span aria-hidden="true">→</span><span className="sr"> to</span> {show(k, e.data.after[k], nameOf)}</dd></div>)}</dl>}
   </li> : <li key={`v${v.id}`}>
-    <p><strong>Viewing request</strong> <span className="muted">Website · {when(v.created_at)}</span></p>
-    <p>{v.listing_title || v.listing_ref || "General enquiry / valuation"} · {v.date} at {v.time} · {VIEWING_STATUS[v.status] ?? v.status} · <a href="#/viewings">Open viewing requests</a></p>
+    <p><strong>Viewing</strong> <span className="muted">{when(v.created_at)}</span></p>
+    <p>{v.listing_title || v.listing_ref || "General enquiry / valuation"} · {v.date} at {v.time} · {VIEWING_STATUS[v.status]?.[0] ?? v.status} · <a href={v.listing_id ? `#/viewings?listing=${v.listing_id}` : "#/viewings"}>Open viewings</a></p>
   </li>)}</ol>;
 }

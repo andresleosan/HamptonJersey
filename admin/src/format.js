@@ -1,4 +1,5 @@
 import { OPTIONS } from "../../server/applicants.js";
+import { jerseyToday } from "../../server/viewings.js";
 
 export const AVAILABILITY = { for_sale: "For sale", under_offer: "Under offer", sold: "Sold", to_let: "To let",
   lease: "Lease", not_stated: "Not stated", withdrawn: "Withdrawn" };
@@ -17,6 +18,14 @@ export function priceText(l) {
 }
 export const fmtDate = iso => (iso ? new Date(iso).toLocaleString("en-GB",
   { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
+// A viewing's status and its badge tone (DESIGN.md: Requested attention, Confirmed ok, the closed ones neutral).
+export const VIEWING_STATUS = { requested: ["Requested", "attention"], confirmed: ["Confirmed", "positive"],
+  completed: ["Completed", "neutral"], no_show: ["No-show", "neutral"], cancelled: ["Cancelled", "neutral"] };
+export const OUTCOME = { proceed: "Proceed", more_info: "Need more information", not_interested: "Not interested" };
+// A Jersey calendar day (YYYY-MM-DD) as text: "Mon 26 Oct", or long "Monday 26 October"; the year only when it isn't this one.
+export const fmtDay = (d, long = false) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: long ? "long" : "short",
+  day: "numeric", month: long ? "long" : "short", timeZone: "UTC",
+  ...(d.slice(0, 4) !== jerseyToday().slice(0, 4) ? { year: "numeric" } : {}) }).replace(",", "");
 export const safeHref = u => (/^https?:\/\//i.test(u || "") ? u : undefined);
 const AGO = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 const STEPS = [["year", 31536000], ["month", 2592000], ["week", 604800], ["day", 86400], ["hour", 3600], ["minute", 60]];

@@ -226,19 +226,18 @@ async function admin(browser) {
   assert.doesNotMatch(await page.textContent("tbody tr:first-child"), /HE-R018/, "keyboard arrows move rows too");
 
   await page.goto(BASE + "admin/#/viewings");
-  await page.waitForSelector("text=Jane Le Brocq");
-  // Inbox: the first request opens in the detail pane; notes and status are one click each.
+  await page.waitForSelector("text=Tom Renouf");
+  // Requests, oldest first: the seed's request (Tom Renouf) opens in the detail pane. Typed notes go with Confirm.
+  await page.click('.inbox-list button:has-text("Tom Renouf")');
   await page.fill("#v-notes", "Called, prefers Saturday");
-  await page.getByRole("button", {name: "Save notes", exact: true}).click();
-  await page.waitForSelector("text=Notes saved.");
-  await page.getByRole("button", {name: "Mark contacted", exact: true}).click();
-  await page.waitForSelector("text=Marked as contacted.");
-  // The seed's own new request (Tom Renouf) stays in New.
-  await page.waitForFunction(() => !document.querySelector(".inbox-list").textContent.includes("Jane Le Brocq"));
-  assert.match(await page.textContent(".inbox-list"), /Tom Renouf/);
-  await page.getByRole("button", {name: /^Contacted/}).click();
-  await page.waitForSelector('.inbox-list[aria-label="Contacted requests"] >> text=Jane Le Brocq');
+  await page.getByRole("button", {name: "Confirm", exact: true}).click();
+  await page.waitForSelector("text=Confirmed. It's in Upcoming now.");
+  await page.waitForFunction(() => !document.querySelector(".inbox-list")?.textContent.includes("Tom Renouf"));
+  await page.getByRole("group", {name: "Viewings"}).getByRole("button", {name: /^Upcoming/}).click();
+  await page.waitForSelector('.inbox-list >> text=Tom Renouf');
+  await page.click('.inbox-list button:has-text("Tom Renouf")');
   assert.equal(await page.inputValue("#v-notes"), "Called, prefers Saturday", "notes are kept");
+  assert.match(await page.textContent(".inbox-detail .badge"), /Confirmed/);
   await shot(page, "admin-inbox");
   // 3D tours: add one from a YouTube share link, hide the sample; the home page follows.
   await page.goto(BASE + "admin/#/tours");

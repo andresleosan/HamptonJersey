@@ -64,7 +64,8 @@ export default function App() {
       ? <NewApplicant key={query ?? ""} contactId={new URLSearchParams(query).get("contact")} />
     : section === "applicants" && /^\d+$/.test(arg) ? <ApplicantDetail key={arg} id={arg} tab={sub} />
     : section === "applicants" ? <Applicants /> : section === "review" ? <Review />
-    : section === "listings" ? <Listings /> : section === "viewings" ? <Viewings />
+    : section === "listings" ? <Listings /> : section === "viewings"
+      ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} />
     : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "tours" ? <Tours /> : <Inbox paused={expired} onCounts={setCounts} />;
   const logout = async () => {
@@ -82,14 +83,14 @@ export default function App() {
         <a href="#/applicants" aria-current={current === "applicants" ? "page" : undefined}>Applicants</a>
         <a href="#/review" aria-current={current === "review" ? "page" : undefined}>Review</a>
         <a href="#/listings" aria-current={current === "listings" ? "page" : undefined}>Listings</a>
-        <a href="#/viewings" aria-current={current === "viewings" ? "page" : undefined}>Viewing requests</a>
+        <a href="#/viewings" aria-current={current === "viewings" ? "page" : undefined}>Viewings</a>
         <a href="#/availability" aria-current={current === "availability" ? "page" : undefined}>Availability</a>
         <a href="#/tours" aria-current={current === "tours" ? "page" : undefined}>3D tours</a>
         <a href="#/users" aria-current={current === "users" ? "page" : undefined}>Users</a>
       </nav>
       <a href="/" className="home">View website</a>
       <span className="who">{me}</span>
-      <button type="button" className="btn ghost sm" onClick={logout}>Sign out</button>
+      <button type="button" className="btn ghost sm" title={`Signed in as ${me}`} onClick={logout}>Sign out</button>
     </header>
     {/* Every link in the page, like those in the header, asks first when there are unsaved changes. */}
     <main className="page" inert={expired} onClickCapture={e => { if (e.target.closest("a[href^='#']")) confirmLeave(e); }}>{page}</main>
