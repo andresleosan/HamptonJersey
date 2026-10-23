@@ -10,6 +10,7 @@ import Review from "./Review.jsx";
 import Listings from "./Listings.jsx";
 import ListingEditor from "./ListingEditor.jsx";
 import Viewings from "./Viewings.jsx";
+import Insights from "./Insights.jsx";
 import Availability from "./Availability.jsx";
 import Users from "./Users.jsx";
 import Tours from "./Tours.jsx";
@@ -40,7 +41,7 @@ export default function App() {
 
   const [path, query] = hash.replace(/^#\/?/, "").split("?");
   const [section, arg, sub] = path.split("/");
-  const current = section === "p" && arg ? "listings" : ["applicants", "review", "listings", "viewings", "availability", "users", "tours"].includes(section) ? section : "";
+  const current = section === "p" && arg ? "listings" : ["applicants", "review", "listings", "viewings", "insights", "availability", "users", "tours"].includes(section) ? section : "";
   // The Inbox counter in the navigation: every 30 s while signed in and the tab is visible. On the Inbox itself,
   // the page's own poll brings the counts (onCounts).
   const loadCounts = useCallback(() => api("/admin/notifications/counts").then(setCounts, () => {}), []);
@@ -66,7 +67,7 @@ export default function App() {
     : section === "applicants" ? <Applicants /> : section === "review" ? <Review />
     : section === "listings" ? <Listings /> : section === "viewings"
       ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} />
-    : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
+    : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "tours" ? <Tours /> : <Inbox paused={expired} onCounts={setCounts} />;
   const logout = async () => {
     if (!confirmLeave()) return;
@@ -84,6 +85,7 @@ export default function App() {
         <a href="#/review" aria-current={current === "review" ? "page" : undefined}>Review</a>
         <a href="#/listings" aria-current={current === "listings" ? "page" : undefined}>Listings</a>
         <a href="#/viewings" aria-current={current === "viewings" ? "page" : undefined}>Viewings</a>
+        <a href="#/insights" aria-current={current === "insights" ? "page" : undefined}>Insights</a>
         <a href="#/availability" aria-current={current === "availability" ? "page" : undefined}>Availability</a>
         <a href="#/tours" aria-current={current === "tours" ? "page" : undefined}>3D tours</a>
         <a href="#/users" aria-current={current === "users" ? "page" : undefined}>Users</a>

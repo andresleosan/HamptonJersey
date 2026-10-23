@@ -12,9 +12,9 @@ a{color:var(--ink)} a:hover{color:var(--bronze-dk)}
 :focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .center{min-height:100vh;display:grid;place-items:center;padding:16px}
-.bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;padding:12px 24px;background:rgba(20,20,20,.94);backdrop-filter:blur(8px);color:#fff}
+.bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:12px 24px;background:rgba(20,20,20,.94);backdrop-filter:blur(8px);color:#fff}
 .bar a{color:#fff;text-decoration:none} .bar .brand{font-family:var(--display);letter-spacing:.12em;text-transform:uppercase;margin-right:auto}
-.bar nav{display:flex;flex-wrap:wrap;gap:4px} .bar nav a{padding:6px 12px;border-radius:999px;transition:background .2s}
+.bar nav{display:flex;flex-wrap:wrap;gap:2px} .bar nav a{padding:6px 10px;border-radius:999px;transition:background .2s}
 .bar nav a:hover{background:rgba(255,255,255,.1)} .bar nav a[aria-current=page]{background:#fff;color:var(--ink)}
 .bar .who{opacity:.75;font-size:12px}
 .page{max-width:1240px;margin:0 auto;padding:24px 16px 120px}
@@ -262,4 +262,31 @@ textarea.short{min-height:72px}
 .pager{display:flex;gap:8px;margin-top:8px}
 /* The bar on one line down to 1280px: the signed-in email is only shown on wider screens (screen readers and the Sign out
    button's tooltip still give it). */
-@media (max-width:1439px){.bar .who{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
+@media (max-width:1535px){.bar .who{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
+/* Insights: figures as cards, tables that scroll inside their box on phones (not turned into cards), funnel bars whose
+   length (--share of Registered, set by Insights.jsx) sits beside the number in text. */
+.insights .block{margin-top:32px} .insights h3{font-size:16px;margin:16px 0 8px} .insights p{margin:0 0 8px}
+.figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:8px 0}
+.figures .card{padding:16px 20px;min-width:0} .figures dd{margin:0}
+.figures dt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
+.figures dd.num{font:400 30px/1.25 var(--display);margin-top:4px}
+.figures.times{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))} .figures.times dt{font-size:14px;letter-spacing:0;text-transform:none;color:var(--ink)}
+.figures.times dd.muted{margin-top:4px}
+.table-scroll{overflow-x:auto;margin-bottom:12px;border-radius:var(--r)}
+.table-scroll .list{min-width:560px}
+.insights .list caption{padding-top:0}
+.insights .list .num{text-align:right}
+.insights .list tbody th{text-align:left;font-size:14px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink);padding:10px 12px;border-bottom:1px solid var(--line)}
+.insights .list tbody tr:last-child th{border-bottom:0}
+.unmet{margin:0 0 8px;padding:0;list-style:none;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.unmet li{padding:10px 16px;border-bottom:1px solid var(--line)} .unmet li:last-child{border-bottom:0} .unmet strong{font-weight:600}
+.funnel ol,.funnel ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.funnel ul{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.funnel li{display:grid;grid-template-columns:110px minmax(0,1fr) 56px;gap:12px;align-items:center}
+.funnel .track{height:12px;border-radius:999px;background:var(--mist)}
+.funnel .fill{display:block;height:100%;width:calc(var(--share,0) * 100%);border-radius:999px;background:var(--ink)}
+.funnel ul .fill{background:var(--stone)}
+.funnel li .num{text-align:right}
+@media (max-width:760px){.table-scroll .list thead{display:table-header-group}.table-scroll .list tr{display:table-row}
+  .table-scroll .list td{padding:10px 12px;border-bottom:1px solid var(--line)}
+  .funnel li{grid-template-columns:88px minmax(0,1fr) 44px;gap:8px}}

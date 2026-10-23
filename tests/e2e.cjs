@@ -312,6 +312,34 @@ async function admin(browser) {
   await home.waitForSelector("#tour3d iframe");
   assert.match(await home.getAttribute("#tour3d iframe", "src"), /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ\?autoplay=1&mute=1/, "home shows only the visible tour");
   await hc.close();
+  // F7-A Insights. The seed's website opens are a day and forty days old and this run's are today's, so 30 days holds
+  // the first and the last, 90 days all of them (the -20 days bound keeps clear of the UTC/Jersey date edge).
+  const views = where => JSON.parse(d1(`SELECT COALESCE(SUM(n), 0) AS n FROM daily_stats WHERE metric = 'view'${where}`))[0].results[0].n;
+  const recent = " AND day >= date('now','-20 day')", views30 = views(recent), views90 = views("");
+  const r001 = views(`${recent} AND listing_id = 'HE-R001'`);
+  assert.ok(r001 > 12 && views90 > views30, "this run's views are on top of the seed's");
+  const figure = label => page.$$eval(".figures div", (ds, l) => ds.find(d => d.querySelector("dt").textContent === l)?.querySelector("dd").textContent, label);
+  const rows = name => page.getByRole("table", {name, exact: true}).locator("tbody tr").evaluateAll(rs => rs.map(r => [...r.cells].map(c => c.textContent)));
+  await page.goto(BASE + "admin/#/insights");
+  await page.waitForSelector(".figures");
+  const bar = await page.$$eval("header.bar > :not(.who), header.bar nav a", es => es.map(e => [e.textContent, Math.round(e.getBoundingClientRect().top + e.offsetHeight / 2)]));
+  assert.ok(bar.findIndex(([t]) => t === "Insights") === bar.findIndex(([t]) => t === "Viewings") + 1, "Insights comes after Viewings");
+  assert.ok(Math.max(...bar.map(([, y]) => y)) - Math.min(...bar.map(([, y]) => y)) < 8, "the bar stays on one line at 1280px");
+  assert.equal(await page.textContent(".seg button[aria-pressed=true]"), "30 days", "30 days by default");
+  assert.equal(await figure("Listing views"), views30.toLocaleString("en-GB"));
+  for (const l of ["Viewing requests", "New applicants", "Viewings completed"]) assert.match(await figure(l), /^\d[\d,]*$/, l);
+  // Unmet demand: Sarah and Claire both want St Helier to rent; Tom wants St Brelade to buy.
+  assert.equal((await rows("Rent")).find(r => r[0] === "St Helier")?.[1], "2");
+  assert.equal((await rows("Buy")).find(r => r[0] === "St Brelade")?.[1], "1");
+  // Most viewed: Le Bernage with the seed's views and those opened earlier in this run.
+  const viewed = await rows("Most viewed listings");
+  assert.equal(viewed.find(r => r[0].includes("HE-R001"))?.[1], String(r001));
+  assert.equal(await page.getByRole("table", {name: "Most viewed listings"}).locator('a[href="#/p/HE-R001"]').count(), 1, "the listing links to its editor");
+  await shot(page, "admin-insights");
+  await page.getByRole("button", {name: "90 days", exact: true}).click();
+  await page.waitForFunction(n => [...document.querySelectorAll(".figures div")].find(d => d.querySelector("dt").textContent === "Listing views")
+    ?.querySelector("dd").textContent === n, views90.toLocaleString("en-GB"));
+  assert.equal(await page.textContent(".seg button[aria-pressed=true]"), "90 days");
   await page.goto(BASE + "admin/#/users");
   await page.waitForSelector("text=andres.san1404@gmail.com");
   await shot(page, "admin-users");
