@@ -21,13 +21,19 @@ async function listPublic({ env }) {
 
 const config = ({ env }) => json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY }, 200, { "cache-control": "public, max-age=300" });
 
-// C12: the website's slots, from tomorrow, Monday to Saturday. Only "booked" says a viewing exists, never whose.
-async function availability({ request, env }) {
-  const q = new URL(request.url).searchParams, clock = jerseyNow();
-  const from = q.get("from") ?? plusDays(clock.date, 1), days = q.get("days") ?? String(PUBLIC_DAYS);
+// ?from=YYYY-MM-DD&days=N of an availability request, shared with the panel's (which starts from today).
+export function availabilityRange(q, defaultFrom) {
+  const from = q.get("from") ?? defaultFrom, days = q.get("days") ?? String(PUBLIC_DAYS);
   if (!realDate(from) || !/^\d+$/.test(days) || +days < 1 || +days > MAX_DAYS)
     fail(400, `Choose a date (YYYY-MM-DD) and 1 to ${MAX_DAYS} days`);
-  const a = await loadAvailability(env, { from, days: +days, now: clock, fromTomorrow: true });
+  return { from, days: +days };
+}
+
+// C12: the website's slots, from tomorrow, Monday to Saturday. Only "booked" says a viewing exists, never whose.
+async function availability({ request, env }) {
+  const clock = jerseyNow();
+  const a = await loadAvailability(env, { ...availabilityRange(new URL(request.url).searchParams, plusDays(clock.date, 1)),
+    now: clock, fromTomorrow: true });
   return json({ slot_minutes: SLOT_MINUTES, negotiators: a.negotiators.map(({ id, name, role }) => ({ id, name, role })),
     days: a.days }, 200, { "cache-control": "no-store" });
 }
