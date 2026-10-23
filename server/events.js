@@ -15,8 +15,10 @@ export function logEvent(env, { actor, entity_type, entity_id, type, data }, not
   return stmts;
 }
 
-// Closes the open notices of an entity (optionally only one category).
-export const resolveNotices = (env, { entity_type, entity_id, category }, by) => env.DB.prepare(
+// Closes the open notices of an entity (optionally only one category). ifLogged: only if the statement just before
+// (logEvent's, with ifInserted) wrote its event, so a change that did not happen closes nothing either.
+export const resolveNotices = (env, { entity_type, entity_id, category }, by, { ifLogged = false } = {}) => env.DB.prepare(
   `UPDATE notifications SET resolved_at = ?, resolved_by = ? WHERE resolved_at IS NULL
-   AND event_id IN (SELECT id FROM events WHERE entity_type = ? AND entity_id = ?)${category ? " AND category = ?" : ""}`)
+   AND event_id IN (SELECT id FROM events WHERE entity_type = ? AND entity_id = ?)${category ? " AND category = ?" : ""}${
+  ifLogged ? " AND changes() = 1" : ""}`)
   .bind(now(), by, entity_type, entity_id, ...(category ? [category] : []));

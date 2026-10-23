@@ -38,14 +38,15 @@ test("a viewing request writes its event and an open notice", async () => {
   assert.equal(n.resolved_at, null);
 });
 
-test("the notice closes when the request leaves requested", async () => {
+test("the notice closes when the request is confirmed", async () => {
   const { env, id } = await requested();
   const cookie = await adminCookie();
   assert.equal((await call(env, "PUT", `/admin/viewings/${id}`, { cookie, body: { notes: "Left a message" } })).status, 200);
   assert.equal(notices(env)[0].resolved_at, null, "a notes-only change keeps it open");
-  assert.equal((await call(env, "PUT", `/admin/viewings/${id}`, { cookie, body: { status: "requested" } })).status, 200);
-  assert.equal(notices(env)[0].resolved_at, null, "staying requested keeps it open");
-  assert.equal((await call(env, "PUT", `/admin/viewings/${id}`, { cookie, body: { status: "confirmed" } })).status, 200);
+  const { updated_at } = await env.DB.prepare("SELECT updated_at FROM viewing_requests WHERE id = ?").bind(id).first();
+  assert.equal((await call(env, "PUT", `/admin/viewings/${id}`, { cookie, body: { action: "complete", outcome: "proceed", updated_at } })).status, 409);
+  assert.equal(notices(env)[0].resolved_at, null, "a refused action keeps it open");
+  assert.equal((await call(env, "PUT", `/admin/viewings/${id}`, { cookie, body: { action: "confirm", updated_at } })).status, 200);
   const [n] = notices(env);
   assert.ok(n.resolved_at);
   assert.equal(n.resolved_by, ADMIN);
@@ -54,7 +55,7 @@ test("the notice closes when the request leaves requested", async () => {
 test("a missing request is 404 and leaves other notices open", async () => {
   const { env, id } = await requested();
   const cookie = await adminCookie();
-  assert.equal((await call(env, "PUT", `/admin/viewings/${id + 1}`, { cookie, body: { status: "confirmed" } })).status, 404);
+  assert.equal((await call(env, "PUT", `/admin/viewings/${id + 1}`, { cookie, body: { action: "confirm", updated_at: null } })).status, 404);
   assert.equal(notices(env)[0].resolved_at, null);
 });
 

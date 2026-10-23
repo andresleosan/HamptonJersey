@@ -2,6 +2,7 @@ import { json, fail, readJson, now } from "../http.js";
 import { validateListing, checkPrice, idPrefix, nextId, ENUMS } from "../listing.js";
 import { extractFeatures } from "../listing-features.js";
 import { afterSave, recomputeForListing } from "../match-store.js";
+import { jerseyNow, plusDays } from "../viewings.js";
 
 const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -32,7 +33,8 @@ async function list({ request, env }) {
 async function detail({ env, params: [id] }) {
   const listing = await loadListing(env, id);
   const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
-  const [media, research, sources, facts, terms, issues, searches, matched] = (await env.DB.batch([
+  const today = jerseyNow().date;
+  const [media, research, sources, facts, terms, issues, searches, matched, [interest]] = (await env.DB.batch([
     q("SELECT * FROM media WHERE listing_id = ? ORDER BY position, id", id),
     q("SELECT * FROM research_properties WHERE property_id = ?", id),
     q("SELECT * FROM research_sources WHERE property_id = ? ORDER BY source_id", id),
@@ -44,12 +46,17 @@ async function detail({ env, params: [id] }) {
        FROM matches m JOIN applicants a ON a.id = m.applicant_id JOIN contacts c ON c.id = a.contact_id
        WHERE m.listing_id = ?
        ORDER BY CASE m.status WHEN 'shortlisted' THEN 0 WHEN 'found' THEN 1 ELSE 2 END, m.score DESC, m.id`, id),
+    // C10: people with an active viewing from today on, or a completed one of the last 30 days that went well. Each
+    // person once: by email, or by phone when there is none.
+    q(`SELECT COUNT(DISTINCT COALESCE(lower(email), phone)) AS n FROM viewing_requests WHERE listing_id = ?
+       AND ((status IN ('requested', 'confirmed') AND date >= ?)
+         OR (status = 'completed' AND outcome IN ('proceed', 'more_info') AND date >= ?))`, id, today, plusDays(today, -30)),
   ])).map(r => r.results);
   const group = research[0]?.duplicate_group;
   const duplicates = group ? (await q("SELECT property_id FROM research_properties WHERE duplicate_group = ? AND property_id <> ? ORDER BY property_id", group, id).all())
     .results.map(r => r.property_id) : [];
   return json({ listing, media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates,
-    matched_applicants: matched });
+    matched_applicants: matched, active_interest: interest.n });
 }
 
 const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);

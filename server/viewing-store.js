@@ -42,15 +42,15 @@ export function clash({ negotiator_id, date, time }, excludeId) {
   };
 }
 
-// The booking (v: validateViewing's value), inserted only if its slot is still free: run it in a batch followed by
+// The booking (v: validateViewing's value, plus the panel's notes), inserted only if its slot is still free: run it in a batch followed by
 // logEvent(…, { ifInserted: true }) and read meta.changes (0 = taken meanwhile). agent and the listing title are
 // copied from their rows, as the text the panel shows.
 export function bookStatement(env, v, { status, excludeId }) {
   const c = clash(v, excludeId);
   return env.DB.prepare(`INSERT INTO viewing_requests (listing_id, listing_ref, listing_title_snapshot, negotiator_id, agent,
-      kind, date, time, end_time, name, email, phone, status, created_at)
-    SELECT ?, ?, (SELECT title FROM listings WHERE id = ?), ?, (SELECT name FROM negotiators WHERE id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?
+      kind, date, time, end_time, name, email, phone, notes, status, created_at)
+    SELECT ?, ?, (SELECT title FROM listings WHERE id = ?), ?, (SELECT name FROM negotiators WHERE id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     WHERE NOT ${c.sql}`)
     .bind(v.listing_id, v.listing_id, v.listing_id, v.negotiator_id, v.negotiator_id, v.kind, v.date, v.time,
-      addMinutes(v.time, SLOT_MINUTES), v.name, v.email, v.phone, status, stamp(), ...c.binds);
+      addMinutes(v.time, SLOT_MINUTES), v.name, v.email, v.phone, v.notes ?? null, status, stamp(), ...c.binds);
 }

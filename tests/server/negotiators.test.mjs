@@ -96,7 +96,7 @@ test("a deactivated negotiator leaves the website but keeps their viewings, and 
   const pub = await call(env, "GET", `/availability?from=${date}&days=1`);
   assert.deepEqual(pub.data.negotiators.map(n => n.id), [1]);
   assert.deepEqual(Object.keys(pub.data.days[0].slots), ["1"]);
-  const inbox = await call(env, "GET", "/admin/viewings?status=requested", { cookie });
+  const inbox = await call(env, "GET", "/admin/viewings?tab=requests", { cookie });
   assert.deepEqual(inbox.data.viewings.map(v => [v.negotiator_id, v.name]), [[2, "Sam Buyer"]]);
   // The panel's general view lists active negotiators; asking for one by id includes them even when inactive.
   const all = await call(env, "GET", `/admin/availability?from=${date}&days=1`, { cookie });

@@ -134,17 +134,17 @@ test("upload accepts real images only; delete only removes uploads", async () =>
   assert.equal(env.MEDIA.store.has(m.r2_key), false);
 });
 
-test("viewings inbox: list with counts, change status, delete", async () => {
+test("viewings inbox: list with counts, confirm, notes, delete", async () => {
   const { env, cookie } = await world();
-  env.DB.raw.prepare("INSERT INTO viewing_requests (listing_id, kind, date, time, name, email, created_at) VALUES ('HE-R001', 'In person', '2030-01-02', '10:00', 'Jane', 'j@x.je', ?)").run(T0);
-  const l = (await call(env, "GET", "/admin/viewings?status=requested", { cookie })).data;
+  env.DB.raw.prepare("INSERT INTO viewing_requests (listing_id, kind, date, time, end_time, name, email, created_at) VALUES ('HE-R001', 'In person', '2030-01-02', '10:00', '10:30', 'Jane', 'j@x.je', ?)").run(T0);
+  const l = (await call(env, "GET", "/admin/viewings?tab=requests", { cookie })).data;
   assert.equal(l.viewings[0].listing_title, "Le Bernage");
-  assert.deepEqual(l.counts, { requested: 1, confirmed: 0, completed: 0, no_show: 0, cancelled: 0 });
-  assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: { status: "bogus" } })).status, 400);
-  assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: { status: "confirmed" } })).status, 200);
-  assert.equal((await call(env, "GET", "/admin/viewings?status=confirmed", { cookie })).data.viewings.length, 1);
+  assert.deepEqual(l.counts, { requests: 1, upcoming: 0, outcome: 0, past: 0 });
+  assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: { action: "bogus", updated_at: null } })).status, 400);
+  assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: { action: "confirm", updated_at: null } })).status, 200);
+  assert.equal((await call(env, "GET", "/admin/viewings?tab=upcoming", { cookie })).data.viewings.length, 1);
   assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: { notes: "  Called, wants Saturday  " } })).status, 200);
-  const [noted] = (await call(env, "GET", "/admin/viewings?status=confirmed", { cookie })).data.viewings;
+  const [noted] = (await call(env, "GET", "/admin/viewings?tab=upcoming", { cookie })).data.viewings;
   assert.equal(noted.notes, "Called, wants Saturday");
   assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: { notes: "x".repeat(4001) } })).status, 400);
   assert.equal((await call(env, "PUT", "/admin/viewings/1", { cookie, body: { notes: 5 } })).status, 400);
@@ -189,7 +189,7 @@ test("a viewing request keeps its property reference after that listing is delet
     time: "10:00", name: "Jane", email: "j@x.je", turnstile: "t" } })).status, 201);
   await call(env, "POST", "/admin/listings/HE-R001/archive", { cookie });
   assert.equal((await call(env, "DELETE", "/admin/listings/HE-R001", { cookie, body: { confirm: "HE-R001" } })).status, 200);
-  const [v] = (await call(env, "GET", "/admin/viewings?status=requested", { cookie })).data.viewings;
+  const [v] = (await call(env, "GET", "/admin/viewings?tab=requests", { cookie })).data.viewings;
   assert.equal(v.listing_id, null);
   assert.equal(v.listing_ref, "HE-R001");
   assert.equal(v.listing_title, "Le Bernage");
