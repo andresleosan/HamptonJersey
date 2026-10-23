@@ -69,6 +69,15 @@ test("update: validates, ignores locked fields, and refuses stale saves with 409
   assert.equal((await call(env, "PUT", "/admin/listings/HE-R001", { cookie, body: { title: "x" } })).status, 400);
 });
 
+test("a listing at its maximum lengths, in multi-byte text, is not refused as too large", async () => {
+  const { env, cookie } = await world();
+  const body = { description: "£".repeat(20000), summary: "£".repeat(5000), updated_at: T0 };
+  assert.ok(new TextEncoder().encode(JSON.stringify(body)).length > 32768);
+  const r = await call(env, "PUT", "/admin/listings/HE-R001", { cookie, body });
+  assert.equal(r.status, 200);
+  assert.equal(r.data.listing.description.length, 20000);
+});
+
 test("archive → cannot publish → restore → delete only when archived and confirmed", async () => {
   const { env, cookie } = await world();
   const fd = new FormData();

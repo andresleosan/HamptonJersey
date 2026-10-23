@@ -113,12 +113,14 @@ test("panel form needs only name, one contact route, operation and source", () =
   const ok = validateApplicant(panel(), { publicForm: false }, NOW);
   assert.equal(ok.errors, undefined);
   assert.equal(ok.value.contact.email, null);
-  assert.equal(ok.value.contact.consent_source, "phone");
   assert.equal(ok.value.contact.privacy_ack_at, null);
+  assert.equal(ok.value.contact.marketing_opt_in_at, null);
+  assert.equal(ok.value.contact.consent_source, null, "no consent, no consent source");
   assert.equal(ok.value.applicant.source, "phone");
   assert.equal(ok.value.applicant.bedrooms_min, null);
-  assert.equal(validateApplicant(panel({ phone: "", email: "tom@example.je", source: "walk_in" }), { publicForm: false }, NOW)
-    .value.contact.consent_source, "walk_in");
+  assert.equal(validateApplicant(panel({ phone: "", email: "tom@example.je", source: "walk_in", privacy: true }),
+    { publicForm: false }, NOW).value.contact.consent_source, "walk_in");
+  assert.equal(validateApplicant(panel({ marketing: true }), { publicForm: false }, NOW).value.contact.consent_source, "phone");
   assert.deepEqual(Object.keys(errorsOf({}, false)).sort(), ["email", "name", "operation", "phone", "source"]);
   assert.ok(errorsOf(panel({ source: "web" }), false).source, "the panel cannot claim a web registration");
   const consent = validateApplicant(panel({ privacy: true, marketing: true }), { publicForm: false }, NOW).value.contact;
@@ -174,4 +176,30 @@ test("readJson refuses bodies over the limit and keeps the 400 for bad JSON", as
   assert.equal((await readJson(req(big), 65536)).a.length, 32768);
   await assert.rejects(readJson(req("{")), e => e.status === 400 && e.message === "Invalid JSON body");
   await assert.rejects(readJson(req("")), e => e.status === 400);
+});
+
+test("readJson stops at the limit whatever Content-Length says", async () => {
+  const LIMIT = "Request too large";
+  const stream = (n, onCancel) => {
+    let sent = 0;
+    return new ReadableStream({
+      pull(c) { if (sent >= n) return c.close(); sent += 1024; c.enqueue(new TextEncoder().encode("x".repeat(1024))); },
+      cancel: onCancel,
+    });
+  };
+  // A lying-small Content-Length: the stream is cut off and cancelled, not read to the end.
+  let cancelled = false;
+  const lying = { headers: new Headers({ "content-length": "10" }), body: stream(10 * 1024 * 1024, () => { cancelled = true; }) };
+  await assert.rejects(readJson(lying), e => e.status === 413 && e.message === LIMIT);
+  assert.ok(cancelled, "the reader is cancelled");
+  // No Content-Length at all (streamed upload).
+  const absent = new Request("https://hampton.test/api/x", { method: "POST", body: stream(64 * 1024), duplex: "half" });
+  assert.equal(absent.headers.get("content-length"), null);
+  await assert.rejects(readJson(absent), e => e.status === 413);
+  // A Content-Length above the limit is refused before the body is touched.
+  const announced = { headers: new Headers({ "content-length": "40000" }), get body() { throw new Error("body was read"); } };
+  await assert.rejects(readJson(announced), e => e.status === 413 && e.message === LIMIT);
+  // A normal body still parses, multi-byte text included.
+  const ok = new Request("https://hampton.test/api/x", { method: "POST", body: JSON.stringify({ rent: "£1,500" }) });
+  assert.deepEqual(await readJson(ok), { rent: "£1,500" });
 });

@@ -168,7 +168,8 @@ export function validateApplicant(body, { publicForm }, now = new Date().toISOSt
     best_time: str("best_time", 200),
     privacy_ack_at: b.privacy === true ? now : null,
     marketing_opt_in_at: b.marketing === true ? now : null,
-    consent_source: source,
   };
+  // Where a consent came from: with no consent there is no source.
+  contact.consent_source = contact.privacy_ack_at || contact.marketing_opt_in_at ? source : null;
   return Object.keys(errors).length ? { errors } : { value: { contact, applicant } };
 }

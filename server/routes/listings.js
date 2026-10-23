@@ -38,8 +38,11 @@ async function detail({ env, params: [id] }) {
 
 const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
 
+// A listing at its maximum lengths (description, summary, spec rows, multi-byte text) passes 32 KB.
+const LISTING_BYTES = 256 * 1024;
+
 async function create({ request, env, admin }) {
-  const r = validateListing(await readJson(request));
+  const r = validateListing(await readJson(request, LISTING_BYTES));
   if (r.errors) return fieldErrors(r.errors);
   const priceErrors = checkPrice(r.value);
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
@@ -64,7 +67,7 @@ async function create({ request, env, admin }) {
 }
 
 async function update({ request, env, admin, params: [id] }) {
-  const body = await readJson(request);
+  const body = await readJson(request, LISTING_BYTES);
   if (typeof body?.updated_at !== "string") fail(400, "Missing updated_at: reload the listing");
   const r = validateListing(body, { partial: true });
   if (r.errors) return fieldErrors(r.errors);
