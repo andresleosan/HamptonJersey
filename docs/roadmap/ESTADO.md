@@ -1,6 +1,6 @@
 # Estado de Hampton App
 
-Actualizado el 23-oct-2026. Qué incluye cada fase y cuándo se da por hecha: [arquitectura, §9 Hoja de ruta](2026-10-23-arquitectura-hampton-app.md).
+Actualizado el 24-oct-2026. Qué incluye cada fase y cuándo se da por hecha: [arquitectura, §9 Hoja de ruta](2026-10-23-arquitectura-hampton-app.md).
 
 | Fase | Estado | Spec | Plan | Pendiente |
 |---|---|---|---|---|
@@ -12,5 +12,5 @@ Actualizado el 23-oct-2026. Qué incluye cada fase y cuándo se da por hecha: [a
 | F4 Publicación | Sin empezar | — | — | Trámite de Meta para publicar en redes |
 | F5 Alquileres gestionados | Sin empezar | — | — | Puede adelantarse a F3 si los alquileres son hoy el negocio principal |
 | F6 Mensajes | Sin empezar | — | — | Trámite de Meta |
-| F7 Insights | Sin empezar | — | — | — |
+| F7 Insights | **F7-A construida** (pantalla Insights: demanda sin cubrir por parroquia, fichas más vistas, embudo y tiempos del equipo; la web cuenta las aperturas de cada ficha sin cookies ni datos personales); sale junto con la Entrega 2; F7-B pendiente de servicio de correo | [spec F7-A](../superpowers/specs/2026-10-24-hampton-app-f7a-design.md) | [plan F7-A](../superpowers/plans/2026-10-24-hampton-app-f7a.md), tareas 1–5 | Al desplegar: migración `0011_daily_stats.sql` en remoto después de la `0010` y antes del push. La regla de límite de peticiones de Cloudflare WAF pendiente debe incluir `POST /api/stats`. F7-B: resumen semanal por email (necesita servicio de correo) y el tráfico de Cloudflare Web Analytics, que Luis puede activar ya en el panel de Cloudflare sin código |
 | F8 Tours 3D | Sin empezar | — | — | — |
