@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, call, adminCookie, T0 } from "./helpers.mjs";
+import { makeEnv, seedListing, call, adminCookie, T0, ORIGIN } from "./helpers.mjs";
+import { handleApi } from "../../server/api.js";
 
 const ADMIN = "luismadef45@gmail.com";
 const req = async (env, method, path, body) => call(env, method, path, { body, cookie: await adminCookie() });
@@ -184,11 +185,17 @@ test("listing detail lists its matched applicants; the list shows parish and fil
   assert.equal((await req(env, "GET", "/admin/listings?parish=Narnia")).status, 400);
 });
 
-test("a new web registration creates its matches; a duplicate one recomputes nothing", async () => {
-  const env = world();
+const web = { operation: "rent", name: "Jane Le Brocq", email: "jane@example.je", phone: "+447797123456",
+  budget_max: 2500, bedrooms_min: 2, privacy: true, marketing: false, turnstile: "tok" };
+// Turnstile answers ok while fn runs.
+async function withTurnstile(fn) {
+  const fetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({ success: true, hostname: "hampton.test" }));
-  const web = { operation: "rent", name: "Jane Le Brocq", email: "jane@example.je", phone: "+447797123456",
-    budget_max: 2500, bedrooms_min: 2, privacy: true, marketing: false, turnstile: "tok" };
+  try { await fn(); } finally { globalThis.fetch = fetch; }
+}
+
+test("a new web registration creates its matches; a duplicate one recomputes nothing", () => withTurnstile(async () => {
+  const env = world();
   assert.equal((await call(env, "POST", "/applicants", { body: web })).status, 201);
   const [a] = rows(env, "SELECT id FROM applicants");
   assert.deepEqual(found(env, a.id), ["HE-R001", "HE-R002"]);
@@ -200,6 +207,44 @@ test("a new web registration creates its matches; a duplicate one recomputes not
     rent_period: "month", bedrooms: 2, matchable: 1 });
   assert.equal((await call(env, "POST", "/applicants", { body: web })).status, 201);
   assert.deepEqual(found(env, a.id), ["HE-R001", "HE-R002"]);
+}));
+
+test("a new web registration answers before its matching finishes, so it takes as long as a duplicate", () =>
+  withTurnstile(async () => {
+    const env = world();
+    // Hold the recompute on its first read of the applicant until released.
+    let release;
+    const gate = new Promise(r => { release = r; });
+    const prepare = env.DB.prepare;
+    env.DB.prepare = sql => {
+      const stmt = prepare(sql);
+      if (!sql.startsWith("SELECT a.id, a.archived_at")) return stmt;
+      return { ...stmt, bind: (...a) => ({ ...stmt.bind(...a), first: async () => (await gate, stmt.bind(...a).first()) }) };
+    };
+    const pending = [];
+    const req = new Request(`${ORIGIN}/api/applicants`, { method: "POST", body: JSON.stringify(web),
+      headers: { origin: ORIGIN, "content-type": "application/json" } });
+    const res = await handleApi(req, env, ["applicants"], p => pending.push(p));
+    assert.equal(res.status, 201);
+    assert.deepEqual(await res.json(), { ok: true });
+    assert.equal(pending.length, 1);
+    const [a] = rows(env, "SELECT id FROM applicants");
+    assert.deepEqual(found(env, a.id), []); // answered while the matching is still held
+
+    release();
+    await Promise.all(pending);
+    assert.deepEqual(found(env, a.id), ["HE-R001", "HE-R002"]);
+  }));
+
+test("features come from the stored spec rows when a save does not send specs", async () => {
+  const env = world();
+  seedListing(env, { id: "HE-R003", specs: JSON.stringify([{ group: "Features", label: "Pets Allowed", value: "No" }]),
+    description: "Pets considered." });
+  const r = await putListing(env, "HE-R003", { title: "Renamed" });
+  assert.equal(r.status, 200);
+  assert.equal(r.data.listing.feat_pets, "no");
+  assert.equal(JSON.parse(r.data.listing.feat_evidence).pets, "Pets Allowed: No");
+  assert.deepEqual(r.data.listing.specs, [{ group: "Features", label: "Pets Allowed", value: "No" }]);
 });
 
 test("a recompute that fails leaves the save saved and answers as usual", async () => {

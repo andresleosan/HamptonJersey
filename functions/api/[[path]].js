@@ -1,3 +1,4 @@
 import { handleApi } from "../../server/api.js";
 
-export const onRequest = ({ request, env, params }) => handleApi(request, env, params.path ?? []);
+// waitUntil: work that may finish after the response is sent.
+export const onRequest = ({ request, env, params, waitUntil }) => handleApi(request, env, params.path ?? [], waitUntil);

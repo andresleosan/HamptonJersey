@@ -82,7 +82,10 @@ export async function call(env, method, path, { body, cookie, origin = ORIGIN, f
   const req = new Request(ORIGIN + "/api" + path, {
     method, headers, body: form ?? (body !== undefined ? JSON.stringify(body) : undefined) });
   const segments = path.split("?")[0].slice(1).split("/"); // like Pages: raw, still percent-encoded
-  const res = await handleApi(req, env, segments);
+  // Like Pages' waitUntil, but awaited before returning so tests see its effects.
+  const pending = [];
+  const res = await handleApi(req, env, segments, p => pending.push(p));
+  await Promise.all(pending);
   return { status: res.status, headers: res.headers, data: await res.json().catch(() => null) };
 }
 export const adminCookie = async (email = "luismadef45@gmail.com") => `${COOKIE}=${await signSession(email, SECRET)}`;

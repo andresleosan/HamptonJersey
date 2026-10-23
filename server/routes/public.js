@@ -51,7 +51,7 @@ const JSON_FIELDS = ["property_types", "outdoor", "pets", "parishes_wanted", "pa
 // The wizard's registration (§3.3). New email and phone: contact + search. Either on file: the existing contact and
 // its searches stay as they are; the submission goes into an event for the team, apart from the consent exception.
 // Both answer the same 201 {ok:true}, each with one lookup and one batch, so nothing tells whether someone is on file.
-async function createApplicant({ request, env }) {
+async function createApplicant({ request, env, waitUntil }) {
   const body = await readJson(request);
   const ts = now();
   // As in createViewing: the single-use Turnstile token is only spent on an otherwise valid request.
@@ -67,8 +67,9 @@ async function createApplicant({ request, env }) {
   if (!matches.length) {
     try {
       const results = await env.DB.batch(newApplicant(env, contact, applicant, ts));
-      // Only a new search is matched (afterSave never throws): a duplicate leaves the contact's searches as they are.
-      await afterSave(recomputeForApplicant, env, results[1].meta.last_row_id, "public");
+      // Only a new search is matched; a duplicate leaves the contact's searches as they are. The matching runs after
+      // the answer is sent, so a new registration takes as long as a duplicate (afterSave never rejects).
+      waitUntil(afterSave(recomputeForApplicant, env, results[1].meta.last_row_id, "public"));
       return json({ ok: true }, 201);
     } catch (e) {
       // The same person sent the form twice at once: the other request created the contact.

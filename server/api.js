@@ -13,14 +13,16 @@ import applicantRoutes from "./routes/applicants.js";
 // [method, path regex, handler, requiresAdmin]
 const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...applicantRoutes];
 
-export async function handleApi(request, env, segments) {
-  const res = await route(request, env, segments);
+// waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
+// promise still runs, unawaited; pass only promises that never reject.
+export async function handleApi(request, env, segments, waitUntil = () => {}) {
+  const res = await route(request, env, segments, waitUntil);
   // Admin and session answers carry personal data: never cache them anywhere.
   if (/^(admin|me|session)$/.test(segments[0] ?? "")) res.headers.set("cache-control", "no-store");
   return res;
 }
 
-async function route(request, env, segments) {
+async function route(request, env, segments, waitUntil) {
   const method = request.method;
   try {
     // Pages hands catch-all segments still percent-encoded (e.g. "x%40gmail.com").
@@ -32,7 +34,7 @@ async function route(request, env, segments) {
       if (!hit) continue;
       const admin = auth ? await currentAdmin(request, env) : null;
       if (auth && !admin) fail(401, "Please sign in to continue");
-      return await handler({ request, env, admin, params: hit.slice(1) });
+      return await handler({ request, env, admin, params: hit.slice(1), waitUntil });
     }
     fail(404, "Not found");
   } catch (e) {
