@@ -174,27 +174,26 @@ test("a duplicate without marketing withdraws the opt-in; with marketing it does
   assert.equal(events(env).filter(e => e.type === "contact.consent_changed").length, 1);
   assert.equal(events(env).filter(e => e.type === "applicant.duplicate_submitted").at(-1).data.marketing, true);
 
-  // A contact entered by the team without a privacy acknowledgement gets it, with the web as its source.
+  // An unverified submission never records a privacy acknowledgement or a consent source on an existing contact:
+  // they stay in the event only. The withdrawal still applies.
   const tom = panelContact(env, { name: "Tom Renouf", phone: "+447700900321", marketing_opt_in_at: T0, consent_source: null });
   await register(env, form({ name: "Tom Renouf", email: "tom@example.je", phone: "07700 900321" }));
   const t = contacts(env).find(x => x.id === tom);
-  assert.ok(t.privacy_ack_at);
-  assert.equal(t.consent_source, "web");
+  assert.equal(t.privacy_ack_at, null);
+  assert.equal(t.consent_source, null);
   assert.equal(t.marketing_opt_in_at, null);
   assert.equal(t.email, null, "the contact's details stay as they were");
+  assert.ok(t.last_activity_at > T0);
   consent = events(env).filter(e => e.type === "contact.consent_changed" && e.entity_id === String(tom));
-  assert.deepEqual(consent.map(e => e.data), [
-    { before: { marketing_opt_in_at: T0 }, after: { marketing_opt_in_at: null } },
-    { before: { privacy_ack_at: null }, after: { privacy_ack_at: t.privacy_ack_at } },
-  ]);
-  assert.equal(t.last_activity_at, t.privacy_ack_at);
+  assert.deepEqual(consent.map(e => e.data), [{ before: { marketing_opt_in_at: T0 }, after: { marketing_opt_in_at: null } }]);
+  assert.equal(events(env).filter(e => e.type === "applicant.duplicate_submitted").at(-1).data.privacy, true);
 
-  // A consent source already on file stays.
+  // No acknowledgement and nothing to withdraw: the contact keeps its consent as it was, with no consent event.
   const ann = panelContact(env, { name: "Ann", email: "ann@example.je", consent_source: "phone", marketing_opt_in_at: T0 });
   await register(env, form({ name: "Ann", email: "ann@example.je", phone: "+447700123123", marketing: true }));
   const an = contacts(env).find(x => x.id === ann);
-  assert.equal(an.consent_source, "phone");
-  assert.equal(an.marketing_opt_in_at, T0);
+  assert.deepEqual([an.privacy_ack_at, an.consent_source, an.marketing_opt_in_at, an.updated_at], [null, "phone", T0, T0]);
+  assert.equal(events(env).filter(e => e.type === "contact.consent_changed" && e.entity_id === String(ann)).length, 0);
 });
 
 test("invalid input spends no Turnstile token", async () => {

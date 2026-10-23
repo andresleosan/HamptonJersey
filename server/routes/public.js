@@ -60,7 +60,7 @@ async function createApplicant({ request, env }) {
     fail(400, "The anti-spam check expired or failed. Please try again.");
   const { contact, applicant } = r.value;
   const found = () => env.DB.prepare(
-    "SELECT id, name, privacy_ack_at, marketing_opt_in_at FROM contacts WHERE email = ? OR phone = ? ORDER BY id")
+    "SELECT id, name, marketing_opt_in_at FROM contacts WHERE email = ? OR phone = ? ORDER BY id")
     .bind(contact.email, contact.phone).all().then(x => x.results);
   let matches = await found();
   if (!matches.length) {
@@ -71,7 +71,7 @@ async function createApplicant({ request, env }) {
       if (!matches.length) throw e;
     }
   }
-  await env.DB.batch(duplicate(env, matches, contact, applicant, body.marketing === true, ts));
+  await env.DB.batch(duplicate(env, matches, contact, applicant, ts));
   return json({ ok: true }, 201);
 }
 
@@ -90,29 +90,23 @@ function newApplicant(env, contact, applicant, ts) {
 }
 
 // matches: the contacts with that email or phone, oldest first (two when each points to a different one).
-function duplicate(env, [c, other], contact, applicant, marketing, ts) {
-  const { source, ...search } = applicant;
+function duplicate(env, [c, other], contact, applicant, ts) {
+  const { source, ...search } = applicant, marketing = contact.marketing_opt_in_at != null;
   // Flat, with the form's field names and lists as lists: what the panel's duplicate strip compares and copies.
   const sent = Object.fromEntries(Object.entries({ operation: search.operation, name: contact.name, email: contact.email,
     phone: contact.phone, preferred_channel: contact.preferred_channel, best_time: contact.best_time, ...search,
     privacy: true, marketing, other_contact_id: other?.id })
     .filter(([, v]) => v != null).map(([k, v]) => [k, JSON_FIELDS.includes(k) ? JSON.parse(v) : v]));
   const ref = { actor: "public", entity_type: "contact", entity_id: String(c.id) };
-  // §3.3 consent exception: a withdrawal applies at once, a missing privacy acknowledgement is filled in; a new
-  // marketing opt-in only stays in the event until the team confirms it.
-  const changes = [
-    ...(!marketing && c.marketing_opt_in_at ? [["marketing_opt_in_at", c.marketing_opt_in_at, null]] : []),
-    ...(!c.privacy_ack_at ? [["privacy_ack_at", null, ts]] : []),
-  ];
-  const sets = changes.map(([k]) => `${k} = ?`);
-  if (!c.privacy_ack_at) sets.push("consent_source = COALESCE(consent_source, 'web')");
-  // A consent change is a change to the contact (a stale panel save then gets its 409); the retention clock always restarts.
-  if (changes.length) sets.push("updated_at = ?", "updated_by = 'public'");
+  // §3.3 consent exception: an objection to marketing applies at once (a forged one only stops marketing). Nothing
+  // else unverified reaches the contact: a new opt-in or a privacy acknowledgement stays in the event, for the team.
+  const withdrawn = !marketing && c.marketing_opt_in_at != null;
   return [
-    env.DB.prepare(`UPDATE contacts SET ${[...sets, "last_activity_at = ?"].join(", ")} WHERE id = ?`)
-      .bind(...changes.map(([, , v]) => v), ...(changes.length ? [ts] : []), ts, c.id),
-    ...changes.flatMap(([k, before, after]) => logEvent(env, { ...ref, type: "contact.consent_changed",
-      data: { before: { [k]: before }, after: { [k]: after } } })),
+    // A withdrawal is a change to the contact (a stale panel save then gets its 409); the retention clock always restarts.
+    env.DB.prepare(`UPDATE contacts SET ${withdrawn ? "marketing_opt_in_at = NULL, updated_at = ?, updated_by = 'public', " : ""}
+      last_activity_at = ? WHERE id = ?`).bind(...(withdrawn ? [ts] : []), ts, c.id),
+    ...(withdrawn ? logEvent(env, { ...ref, type: "contact.consent_changed",
+      data: { before: { marketing_opt_in_at: c.marketing_opt_in_at }, after: { marketing_opt_in_at: null } } }) : []),
     ...logEvent(env, { ...ref, type: "applicant.duplicate_submitted", data: sent },
       { category: "new_applicant", title: `${c.name} registered again`, action_required: true }),
     // Deleted from the panel (§3.4) since the lookup: these events keep no personal data either, as the delete did.
