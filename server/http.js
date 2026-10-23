@@ -6,8 +6,10 @@ export class HttpError extends Error {
 }
 export const fail = (status, message) => { throw new HttpError(status, message); };
 
-export async function readJson(request) {
-  try { return await request.json(); } catch { fail(400, "Invalid JSON body"); }
+export async function readJson(request, maxBytes = 32768) {
+  const body = await request.text();
+  if (new TextEncoder().encode(body).length > maxBytes) fail(413, "Request too large");
+  try { return JSON.parse(body); } catch { fail(400, "Invalid JSON body"); }
 }
 
 export const now = () => new Date().toISOString();
