@@ -303,7 +303,7 @@ function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirm
     {sent.other_contact_id != null && <p>Their email and their phone number belong to two different contacts.</p>}
     {keys.length > 0 && <dl className="changes">{keys.map(k => <div key={k}><dt>{LABEL[k]}</dt>
       <dd><span className="muted">Saved:</span> {show(k, stored[k], nameOf)} <span className="muted">· Sent:</span> {show(k, sent[k], nameOf)}</dd></div>)}</dl>}
-    {optIn && <p>They agreed to marketing this time. It only applies once you confirm it.</p>}
+    {optIn && <p>They agreed to marketing this time. The website doesn't check who sent this. Confirm with them before you record it.</p>}
     <div className="inline">
       {copyable && <button type="button" className="btn sm" disabled={archived} onClick={() => onCopy(sent)}>Copy fields</button>}
       {optIn && <button type="button" className="btn ghost sm" disabled={archived} onClick={() => onConfirmMarketing(dup)}>Confirm marketing opt-in</button>}
