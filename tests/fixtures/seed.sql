@@ -76,12 +76,32 @@ INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, b
 (3,3,'rent','searching','email','luismadef45@gmail.com',1500,2300,'["flat"]',2,0,'["balcony"]','yes','[{"kind":"none"}]',
  '["St Helier"]','["St Ouen"]','2026-11-15',12,'licensed',1,0,'2026-10-22T11:00:00.000Z','2026-10-22T11:00:00.000Z',
  'luismadef45@gmail.com');
-INSERT INTO viewing_requests (id, listing_id, listing_ref, listing_title_snapshot, agent, negotiator_id, kind, date, time, end_time, name, email, phone, status, created_at) VALUES
-(1,'HE-R001','HE-R001','Le Bernage','Joshua Franco',(SELECT id FROM negotiators WHERE name = 'Joshua Franco'),'In person','2026-10-28','10:00','10:30','Tom Renouf','tom.renouf@example.je','07700 900321','requested','2026-10-22T14:00:00.000Z');
+-- F3-A: a viewing in each state, dated from the day the seed is loaded so they never go stale. Upcoming ones fall on a
+-- weekday (inside the seeded hours) at least two days ahead; 'weekday N' is the next such day (Tue 2 … Fri 5).
+INSERT INTO viewing_requests (id, listing_id, listing_ref, listing_title_snapshot, agent, negotiator_id, kind, date, time, end_time,
+  name, email, phone, status, outcome, outcome_note, created_at) VALUES
+(1,'HE-R001','HE-R001','Le Bernage','Joshua Franco',(SELECT id FROM negotiators WHERE name = 'Joshua Franco'),'In person',
+ date('now','+2 days','weekday 2'),'10:00','10:30','Tom Renouf','tom.renouf@example.je','07700 900321','requested',NULL,NULL,'2026-10-22T14:00:00.000Z'),
+(2,'HE-C001','HE-C001','Café and Accommodation','Gilberto Franco',(SELECT id FROM negotiators WHERE name = 'Gilberto Franco'),'In person',
+ date('now','+2 days','weekday 3'),'11:00','11:30','Paul Le Feuvre','paul.lefeuvre@example.je',NULL,'confirmed',NULL,NULL,'2026-10-21T09:30:00.000Z'),
+(3,'HE-R002','HE-R002','Trinity rental','Gilberto Franco',(SELECT id FROM negotiators WHERE name = 'Gilberto Franco'),'Live video call',
+ date('now','-1 day'),'14:00','14:30','Ann Mourant',NULL,'07797 400500','confirmed',NULL,NULL,'2026-10-19T16:00:00.000Z'),
+(4,'HE-R001','HE-R001','Le Bernage','Joshua Franco',(SELECT id FROM negotiators WHERE name = 'Joshua Franco'),'In person',
+ date('now','-3 days'),'11:00','11:30','Mark Querée','mark.queree@example.je',NULL,'completed','proceed',
+ 'Wants a second viewing with their partner','2026-10-15T10:00:00.000Z'),
+(5,'HE-R002','HE-R002','Trinity rental','Joshua Franco',(SELECT id FROM negotiators WHERE name = 'Joshua Franco'),'In person',
+ date('now','-4 days'),'15:00','15:30','Lucy Bisson','lucy.bisson@example.je',NULL,'no_show',NULL,NULL,'2026-10-14T12:00:00.000Z'),
+(6,'HE-R018','HE-R018','Pathfield Road','Joshua Franco',(SELECT id FROM negotiators WHERE name = 'Joshua Franco'),'Live video call',
+ date('now','+2 days','weekday 4'),'10:00','10:30','Ben Gallichan','ben.gallichan@example.je',NULL,'cancelled',NULL,NULL,'2026-10-18T08:00:00.000Z');
+-- Gilberto is away one day: no website times that date.
+INSERT INTO negotiator_exceptions (negotiator_id, date, kind, note, created_at, created_by) VALUES
+((SELECT id FROM negotiators WHERE name = 'Gilberto Franco'),date('now','+2 days','weekday 5'),'block','Holiday',
+ '2026-10-22T09:00:00.000Z','luismadef45@gmail.com');
 INSERT INTO events (id, at, actor, entity_type, entity_id, type, data) VALUES
 (1,'2026-10-20T09:00:00.000Z','public','applicant','1','applicant.created','{"operation":"rent","source":"web"}'),
 (2,'2026-10-21T10:00:00.000Z','luismadef45@gmail.com','applicant','2','applicant.created','{"operation":"buy","source":"phone"}'),
-(3,'2026-10-22T14:00:00.000Z','public','viewing','1','viewing.requested','{"listing_id":"HE-R001","date":"2026-10-28","time":"10:00","kind":"In person"}'),
+(3,'2026-10-22T14:00:00.000Z','public','viewing','1','viewing.requested',
+ '{"listing_id":"HE-R001","date":"' || date('now','+2 days','weekday 2') || '","time":"10:00","kind":"In person"}'),
 (4,'2026-10-22T18:30:00.000Z','public','contact','2','applicant.duplicate_submitted',
  '{"operation":"buy","name":"Tom Renouf","email":"tom.renouf@example.je","phone":"+447700900321","preferred_channel":"whatsapp","best_time":"Weekday mornings","budget_max":800000,"property_types":["house","cottage"],"bedrooms_min":4,"parking_spaces":2,"outdoor":["garden"],"parishes_wanted":["St Brelade","St Lawrence","St Peter"],"buyer_position":"needs_to_sell","mortgage_aip":"yes","housing_status":"entitled","requirements":"Quiet road, room for a home office","privacy":true,"marketing":true}'),
 (5,'2026-10-22T11:00:00.000Z','luismadef45@gmail.com','applicant','3','applicant.created','{"operation":"rent","source":"email"}');
