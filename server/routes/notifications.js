@@ -1,6 +1,5 @@
 import { json, fail, readJson, now } from "../http.js";
 import { normalizePhone, activeSql } from "../applicants.js";
-import { QUEUE_COUNT_SQL } from "./matches.js";
 
 const BOXES = {
   action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id",
@@ -29,15 +28,11 @@ function link({ category, entity_type, entity_id, search_id }) {
   return search_id != null ? `#/applicants/${search_id}` : `#/applicants/new?contact=${entity_id}`;
 }
 
-// Open notices needing action, by category; review: the found matches waiting in the Review queue.
 async function openCounts(env) {
-  const [open, [review]] = (await env.DB.batch([
-    env.DB.prepare(
-      "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category"),
-    env.DB.prepare(QUEUE_COUNT_SQL),
-  ])).map(r => r.results);
-  const by = Object.fromEntries(CATEGORIES.map(c => [c, open.find(r => r.category === c)?.n ?? 0]));
-  return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by, review: review.n };
+  const { results } = await env.DB.prepare(
+    "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category").all();
+  const by = Object.fromEntries(CATEGORIES.map(c => [c, results.find(r => r.category === c)?.n ?? 0]));
+  return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by };
 }
 
 async function list({ request, env }) {

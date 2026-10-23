@@ -286,14 +286,22 @@ test("the list's queue follows B13's order, with found and shortlisted counts an
   seedMatch(env, fresh, "HE-R001", { status: "shortlisted", minute: 5 });
   seedMatch(env, fresh, "HE-R002", { minute: 5 });
   seedMatch(env, fresh, "HE-R003", { minute: 11 });
-  // Waiting for review: found ones and nothing ever reviewed.
+  // Waiting for review: found ones left, nothing ever reviewed…
   const waiting = seedApplicant(env, "Waiting", { minute: 2 });
   seedMatch(env, waiting, "HE-R001");
   seedMatch(env, waiting, "HE-R002");
-  // In process: a shortlisted one; an Undo back to found keeps the first review, so its found is not new.
+  // …or reviewed before: an older found one left beats a shortlisted one (an Undo keeps the first review, so it is not new)…
+  const undone = seedApplicant(env, "Undone", { minute: 3, first_reviewed_at: at(10) });
+  seedMatch(env, undone, "HE-R001", { status: "shortlisted", minute: 5 });
+  seedMatch(env, undone, "HE-R002", { minute: 5 });
+  // …or one rejected and the others skipped, nothing shortlisted.
+  const skipped = seedApplicant(env, "Skipped", { minute: 3, first_reviewed_at: at(10) });
+  seedMatch(env, skipped, "HE-R001", { status: "rejected", reason: "area", minute: 5 });
+  seedMatch(env, skipped, "HE-R002", { minute: 5 });
+  // In process: shortlisted ones and no found left.
   const inProcess = seedApplicant(env, "In process", { minute: 3, first_reviewed_at: at(10) });
   seedMatch(env, inProcess, "HE-R001", { status: "shortlisted", minute: 5 });
-  seedMatch(env, inProcess, "HE-R002", { minute: 5 });
+  seedMatch(env, inProcess, "HE-R002", { status: "rejected", reason: "size", minute: 5 });
   // No matches: all rejected, or none at all.
   const rejected = seedApplicant(env, "Rejected", { minute: 4, first_reviewed_at: at(10) });
   seedMatch(env, rejected, "HE-R001", { status: "rejected", reason: "price", minute: 5 });
@@ -305,11 +313,14 @@ test("the list's queue follows B13's order, with found and shortlisted counts an
     return r.data.applicants;
   };
   assert.deepEqual((await list("")).map(x => [x.id, x.queue, x.found, x.shortlisted]), [
-    [fresh, "New properties found", 2, 1], [waiting, "Waiting for review", 2, 0], [inProcess, "In process", 1, 1],
-    [rejected, "No matches", 0, 0], [none, "No matches", 0, 0]]);
-  for (const [queue, ids] of [["New properties found", [fresh]], ["Waiting for review", [waiting]], ["In process", [inProcess]],
-    ["No matches", [rejected, none]]])
+    [fresh, "New properties found", 2, 1], [waiting, "Waiting for review", 2, 0], [undone, "Waiting for review", 1, 1],
+    [skipped, "Waiting for review", 1, 0], [inProcess, "In process", 0, 1], [rejected, "No matches", 0, 0],
+    [none, "No matches", 0, 0]]);
+  for (const [queue, ids] of [["New properties found", [fresh]], ["Waiting for review", [waiting, undone, skipped]],
+    ["In process", [inProcess]], ["No matches", [rejected, none]]])
     assert.deepEqual((await list(`&queue=${encodeURIComponent(queue)}`)).map(x => x.id), ids, queue);
+  assert.deepEqual((await list("&queue=In%20process&operation=rent")), [], "the queue filter adds to the others");
+  assert.equal((await req(env, "GET", "/admin/applicants?queue=Done")).status, 400);
   assert.equal((await req(env, "GET", "/admin/applicants?queue=Done")).status, 400);
 });
 
@@ -342,22 +353,41 @@ test("the applicant record lists its matches with the listing card, found first"
     [24000, "year", null]);
 });
 
-test("matched notices: their own category and count, linking to the Matches tab; review counts active found matches", async () => {
+test("matched notices: their own category and count, linking to the Matches tab", async () => {
   const env = makeEnv();
   listing(env, "HE-R001");
   listing(env, "HE-R002", { sale_price: 800000 });
   const a = seedApplicant(env);
   await recomputeForApplicant(env, a, "system");
-  const lost = seedApplicant(env, "Lost One", { stage: "lost" });
-  seedMatch(env, lost, "HE-R001"); // left over: not in the queue
-
   const box = (await req(env, "GET", "/admin/notifications?box=action&category=matched")).data;
   assert.deepEqual(box.notifications.map(n => [n.category, n.title, n.link]),
     [["matched", "2 new matches for Ana Le Gros", `#/applicants/${a}/matches`]]);
-  const counts = { action: 1, new_applicant: 0, viewing: 0, matched: 1, review: 2 };
+  const counts = { action: 1, new_applicant: 0, viewing: 0, matched: 1 };
   assert.deepEqual(box.counts, counts);
-  assert.deepEqual((await req(env, "GET", "/admin/notifications/counts")).data, counts);
+  assert.deepEqual((await req(env, "GET", "/admin/notifications/counts")).data, counts, "no review count: the queue tells its size");
+});
 
-  await put(env, matchId(env, a, "HE-R001"), { status: "shortlisted", from: "found" });
-  assert.equal((await req(env, "GET", "/admin/notifications/counts")).data.review, 1);
+test("Undo brings a match back only while it still is one: an archived listing's match stays out", async () => {
+  const env = makeEnv();
+  listing(env, "HE-R001");
+  listing(env, "HE-R002", { sale_price: 800000 });
+  const a = seedApplicant(env);
+  await recomputeForApplicant(env, a, "system");
+  const sold = matchId(env, a, "HE-R001"), kept = matchId(env, a, "HE-R002");
+  assert.equal((await put(env, sold, { status: "rejected", reject_reason: "condition", from: "found" })).status, 200);
+  assert.equal((await put(env, kept, { status: "rejected", reject_reason: "price", from: "found" })).status, 200);
+  // Sold meanwhile.
+  assert.equal((await req(env, "POST", "/admin/listings/HE-R001/archive")).status, 200);
+
+  const r = await put(env, sold, { status: "found", from: "rejected" });
+  assert.equal(r.status, 200);
+  assert.equal(r.data.match, null, "no longer proposed");
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM matches WHERE id = ?", sold).n, 0);
+  assert.equal(rows(env, "SELECT 1 FROM events WHERE type = 'match.reviewed'").length, 3, "the Undo is still recorded");
+  // A listing still offered comes back as found, with today's checks.
+  run(env, "UPDATE matches SET checks = '[]', score = 36 WHERE id = ?", kept);
+  const k = await put(env, kept, { status: "found", from: "rejected" });
+  assert.equal(k.data.match.status, "found");
+  assert.notDeepEqual(k.data.match.checks, []);
+  assert.notEqual(k.data.match.score, 36);
 });

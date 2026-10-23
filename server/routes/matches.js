@@ -2,7 +2,7 @@
 import { json, fail, readJson, now } from "../http.js";
 import { activeSql } from "../applicants.js";
 import { extractFeatures } from "../listing-features.js";
-import { recomputeForApplicant, closeMatchedNoticeIfEmpty } from "../match-store.js";
+import { afterSave, recomputeForApplicant, closeMatchedNoticeIfEmpty } from "../match-store.js";
 import { COVER_ID } from "./listings.js";
 
 const REASONS = ["price", "area", "size", "condition", "other"];
@@ -20,7 +20,7 @@ export const matchCard = m => ({ ...m, checks: JSON.parse(m.checks), listing: JS
 
 // The review queue: the found matches of active searches (spec §5), from matches m JOIN applicants a.
 const QUEUED = `m.status = 'found' AND ${activeSql("a")}`;
-export const QUEUE_COUNT_SQL = `SELECT COUNT(*) AS n FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE ${QUEUED}`;
+const QUEUE_COUNT_SQL = `SELECT COUNT(*) AS n FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE ${QUEUED}`;
 // The search shown next to the match, its JSON lists as lists; from applicants a JOIN contacts c.
 const LISTS = ["property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"];
 const APPLICANT = object("a", ["id", "operation", "stage", "budget_min", "budget_max", "budget_stretch", "bedrooms_min",
@@ -72,7 +72,12 @@ async function review({ request, env, admin, params: [id] }) {
     throw e;
   }
   if (!results[0].meta.changes) fail(409, "This match is no longer proposed. Reload to see the current matches.");
-  return json({ match: matchCard(await env.DB.prepare(`${MATCHES_SQL} WHERE m.id = ?`).bind(m.id).first()) });
+  // Undo puts the match back as found; the recompute then decides whether it still is one (listing archived or no longer
+  // offered, the 25 best, today's checks), as for any other found match. Its failure leaves the review done.
+  if (!reviewed) await afterSave(recomputeForApplicant, env, m.applicant_id, admin);
+  // match null: the match is no longer proposed.
+  const row = await env.DB.prepare(`${MATCHES_SQL} WHERE m.id = ?`).bind(m.id).first();
+  return json({ match: row && matchCard(row) });
 }
 
 // The next found match of the queue after `after` (a match id), with its search and listing; remaining counts the whole

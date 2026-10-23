@@ -59,14 +59,15 @@ async function saveVersioned(env, stmts, entity, id, seen) {
 
 const ACTIVE = activeSql("s");
 
-// B13: the applicant's work queue, one label in this order, from its match counts (mt) and first review.
-// New properties found: found ones created after the first review; Waiting for review: found ones, none ever reviewed.
+// B13: the applicant's work queue, one label in this order: New properties found (found ones created after the first
+// review), Waiting for review (found ones left), In process (shortlisted ones), No matches (everything else).
 const QUEUES = ["New properties found", "Waiting for review", "In process", "No matches"];
-const QUEUE = `CASE WHEN mt.found > 0 AND mt.newest_found > a.first_reviewed_at THEN '${QUEUES[0]}'
-  WHEN mt.found > 0 AND a.first_reviewed_at IS NULL THEN '${QUEUES[1]}' WHEN mt.shortlisted > 0 THEN '${QUEUES[2]}'
+const QUEUE = `CASE WHEN fresh THEN '${QUEUES[0]}' WHEN found > 0 THEN '${QUEUES[1]}' WHEN shortlisted > 0 THEN '${QUEUES[2]}'
   ELSE '${QUEUES[3]}' END`;
-const MATCH_COUNTS = `LEFT JOIN (SELECT applicant_id, SUM(status = 'found') AS found, SUM(status = 'shortlisted') AS shortlisted,
-  MAX(CASE WHEN status = 'found' THEN created_at END) AS newest_found FROM matches GROUP BY applicant_id) mt ON mt.applicant_id = a.id`;
+// Per listed applicant, through the (status, applicant_id) index: rejected history is never read.
+const count = status => `(SELECT COUNT(*) FROM matches m WHERE m.status = '${status}' AND m.applicant_id = a.id)`;
+const MATCH_COUNTS = `${count("found")} AS found, ${count("shortlisted")} AS shortlisted,
+  EXISTS (SELECT 1 FROM matches m WHERE m.status = 'found' AND m.applicant_id = a.id AND m.created_at > a.first_reviewed_at) AS fresh`;
 
 // before/after with only the changed fields; JSON lists as lists.
 function diff(cur, next) {
@@ -91,7 +92,6 @@ async function list({ request, env }) {
   if (operation) { where.push("a.operation = ?"); args.push(operation); }
   if (stage) { where.push("a.stage = ?"); args.push(stage); }
   if (assigned) { where.push("a.assigned_to = ?"); args.push(assigned); }
-  if (queue) { where.push(`${QUEUE} = ?`); args.push(queue); }
   if (q) {
     const like = s => `%${s.replace(/[\\%_]/g, "\\$&")}%`;
     // A phone in any format ("07797 123 456") is found by its stored form; part of a number by its digits.
@@ -102,10 +102,14 @@ async function list({ request, env }) {
   const dir = sort === "oldest" ? "ASC" : "DESC";
   // ponytail: no paging; the team has hundreds of applicants, not tens of thousands.
   const { results } = await env.DB.prepare(
-    `SELECT a.id, a.operation, a.stage, a.lost_reason, a.created_at, a.assigned_to, ad.name AS assigned_name, c.name, c.phone, c.email,
-       ${QUEUE} AS queue, COALESCE(mt.found, 0) AS found, COALESCE(mt.shortlisted, 0) AS shortlisted
-     FROM applicants a JOIN contacts c ON c.id = a.contact_id LEFT JOIN admins ad ON ad.email = a.assigned_to ${MATCH_COUNTS}
-     WHERE ${where.join(" AND ")} ORDER BY a.created_at ${dir}, a.id ${dir}`).bind(...args).all();
+    // Materialized: each listed applicant's counts are read once, not once per use in QUEUE.
+    `WITH listed AS MATERIALIZED (SELECT a.id, a.operation, a.stage, a.lost_reason, a.created_at, a.assigned_to,
+       ad.name AS assigned_name, c.name, c.phone, c.email, ${MATCH_COUNTS}
+       FROM applicants a JOIN contacts c ON c.id = a.contact_id LEFT JOIN admins ad ON ad.email = a.assigned_to
+       WHERE ${where.join(" AND ")})
+     SELECT id, operation, stage, lost_reason, created_at, assigned_to, assigned_name, name, phone, email, ${QUEUE} AS queue,
+       found, shortlisted FROM listed ${queue ? `WHERE ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
+    .bind(...args, ...(queue ? [queue] : [])).all();
   return json({ applicants: results });
 }
 
