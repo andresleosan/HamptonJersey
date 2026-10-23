@@ -137,24 +137,36 @@ test("a duplicate links to the contact's active search with the event's operatio
   assert.equal(n.link, `#/applicants/${buy}`);
 });
 
-test("a duplicate with no search of that operation links to the most recent search", async () => {
+test("a duplicate with no active search of that operation links to the most recent search, archived included", async () => {
   const env = makeEnv();
   const c = contact(env);
   applicant(env, c, { operation: "rent", created_at: at(0) });
-  const latest = applicant(env, c, { operation: "rent", created_at: at(1) });
+  const latest = applicant(env, c, { operation: "rent", created_at: at(1), archived_at: at(2) });
   notice(env, { entity_type: "contact", entity_id: c, type: "applicant.duplicate_submitted", data: { operation: "buy" } });
   assert.equal((await get(env, "?box=action")).data.notifications[0].link, `#/applicants/${latest}`);
 });
 
-test("a duplicate prefers an open search over a newer archived one, even without an operation", async () => {
+test("an active search of that operation beats a newer archived one; without an operation the most recent wins", async () => {
   const env = makeEnv();
   const c = contact(env);
-  const open = applicant(env, c, { operation: "rent", created_at: at(0) });
-  applicant(env, c, { operation: "rent", created_at: at(1), archived_at: at(2) });
+  const active = applicant(env, c, { operation: "rent", created_at: at(0) });
+  const archived = applicant(env, c, { operation: "rent", created_at: at(1), archived_at: at(2) });
   notice(env, { entity_type: "contact", entity_id: c, type: "applicant.duplicate_submitted", data: { operation: "rent" }, minute: 1 });
   notice(env, { entity_type: "contact", entity_id: c, type: "applicant.duplicate_submitted", minute: 2 });
   assert.deepEqual((await get(env, "?box=action")).data.notifications.map(n => n.link),
-    [`#/applicants/${open}`, `#/applicants/${open}`]);
+    [`#/applicants/${active}`, `#/applicants/${archived}`]);
+});
+
+test("a lost or completed search is not active; a paused one is", async () => {
+  for (const [stage, picked] of [["lost", "recent"], ["completed", "recent"], ["paused", "same"]]) {
+    const env = makeEnv();
+    const c = contact(env);
+    const same = applicant(env, c, { operation: "buy", stage, created_at: at(0) });
+    const recent = applicant(env, c, { operation: "rent", created_at: at(1) });
+    notice(env, { entity_type: "contact", entity_id: c, type: "applicant.duplicate_submitted", data: { operation: "buy" } });
+    assert.equal((await get(env, "?box=action")).data.notifications[0].link,
+      `#/applicants/${picked === "same" ? same : recent}`, stage);
+  }
 });
 
 test("a duplicate for a contact with no search links to New applicant for that contact", async () => {

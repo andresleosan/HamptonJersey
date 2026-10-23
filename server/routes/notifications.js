@@ -7,19 +7,20 @@ const BOXES = {
 };
 const CATEGORIES = ["new_applicant", "viewing"];
 
-// The entity comes from the notice's event. A duplicate points to its contact: its search is the open one
-// with the submitted operation, else the open one, else the most recent.
+// The entity comes from the notice's event. A duplicate points to its contact: its search is the active one
+// (not archived, lost or completed) with the submitted operation, else the most recent (§3.3).
 const LIST_SQL = `
   SELECT n.id, n.category, n.title, n.created_at, n.action_required, n.resolved_at, e.entity_type, e.entity_id,
-    COALESCE(c.phone, v.phone) AS raw_phone,
+    COALESCE(c.phone, ac.phone, v.phone) AS raw_phone,
     CASE WHEN e.entity_type = 'contact' THEN (SELECT s.id FROM applicants s WHERE s.contact_id = c.id
-      ORDER BY (s.archived_at IS NULL AND s.operation IS json_extract(e.data, '$.operation')) DESC,
-        s.archived_at IS NULL DESC, s.created_at DESC, s.id DESC LIMIT 1) END AS search_id
+      ORDER BY (s.archived_at IS NULL AND s.stage NOT IN ('lost', 'completed')
+        AND s.operation IS json_extract(e.data, '$.operation')) DESC, s.created_at DESC, s.id DESC LIMIT 1) END AS search_id
   FROM notifications n JOIN events e ON e.id = n.event_id
-  LEFT JOIN applicants a ON e.entity_type = 'applicant' AND CAST(a.id AS TEXT) = e.entity_id
-  LEFT JOIN contacts c ON (e.entity_type = 'contact' AND CAST(c.id AS TEXT) = e.entity_id)
-    OR (e.entity_type = 'applicant' AND c.id = a.contact_id)
-  LEFT JOIN viewing_requests v ON e.entity_type = 'viewing' AND CAST(v.id AS TEXT) = e.entity_id`;
+  -- No CAST: comparing with the INTEGER id gives entity_id numeric affinity, so each join is a primary-key lookup.
+  LEFT JOIN applicants a ON e.entity_type = 'applicant' AND a.id = e.entity_id
+  LEFT JOIN contacts ac ON ac.id = a.contact_id
+  LEFT JOIN contacts c ON e.entity_type = 'contact' AND c.id = e.entity_id
+  LEFT JOIN viewing_requests v ON e.entity_type = 'viewing' AND v.id = e.entity_id`;
 
 function link({ entity_type, entity_id, search_id }) {
   if (entity_type === "viewing") return "#/viewings";
