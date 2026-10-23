@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, seedListing, seedMedia, call, adminCookie, ORIGIN } from "./helpers.mjs";
 import { serveMedia } from "../../server/media.js";
-import { jerseyToday, EMAIL } from "../../server/viewings.js";
+import { jerseyToday, EMAIL, addMinutes } from "../../server/viewings.js";
 import { verifyTurnstile } from "../../server/turnstile.js";
 
 const turnstile = ok => { globalThis.fetch = async () => new Response(JSON.stringify({ success: ok, hostname: "hampton.test" })); };
@@ -10,6 +10,18 @@ const nextWeekday = () => { const d = new Date(Date.now() + 2 * 864e5); if (d.ge
 const nextSunday = () => { const d = new Date(Date.now() + 864e5); while (d.getUTCDay() !== 0) d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
 const booking = (o = {}) => ({ listing_id: "HE-R001", negotiator_id: 1, kind: "In person", date: nextWeekday(),
   time: "11:30", name: "Jane Le Brocq", email: "Jane@Example.je", phone: "", turnstile: "tok", ...o });
+
+// An existing viewing, straight into the table: Sam's details must never reach the website.
+const seedViewing = (env, o = {}) => {
+  const row = { negotiator_id: 1, agent: "Gilberto Franco", kind: "In person", date: nextWeekday(), time: "11:30",
+    name: "Sam Secret", email: "sam@secret.je", phone: "07797 123456", status: "requested", created_at: "2026-10-07T10:00:00.000Z", ...o };
+  row.end_time ??= addMinutes(row.time, 30);
+  const cols = Object.keys(row);
+  env.DB.raw.prepare(`INSERT INTO viewing_requests (${cols}) VALUES (${cols.map(() => "?")})`).run(...Object.values(row));
+};
+const count = (env, sql) => env.DB.raw.prepare(`SELECT COUNT(*) n FROM ${sql}`).get().n;
+const writes = env => [count(env, "viewing_requests"), count(env, "events WHERE type = 'viewing.requested'"), count(env, "notifications")];
+const TAKEN = { error: "That time was just booked. Please choose another." };
 
 function world() {
   const env = makeEnv();
@@ -64,6 +76,99 @@ test("POST /viewings stores a valid request", async () => {
   assert.equal(row.agent, "Gilberto Franco");
   assert.equal(row.time, "11:30");
   assert.equal(row.end_time, "12:00");
+  assert.equal(row.listing_title_snapshot, "Le Bernage");
+});
+
+test("availability lists active negotiators and their slots with booked flags and no personal data", async () => {
+  const env = world(), date = nextWeekday();
+  env.DB.raw.prepare("UPDATE negotiators SET active = 0 WHERE id = 2").run();
+  seedViewing(env, { date, time: "11:30" });
+  const r = await call(env, "GET", `/availability?from=${date}&days=1`);
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get("cache-control"), "no-store");
+  assert.equal(r.data.slot_minutes, 30);
+  assert.deepEqual(r.data.negotiators, [{ id: 1, name: "Gilberto Franco", role: "Managing Director" }]);
+  assert.deepEqual(r.data.days.map(d => d.date), [date]);
+  assert.deepEqual(Object.keys(r.data.days[0].slots), ["1"]);
+  const booked = Object.fromEntries(r.data.days[0].slots[1].map(s => [s.time, s.booked]));
+  // 11:30–12:00 with 15 minutes either side: 11:00, 11:30 and 12:00 are taken, 10:30 and 12:30 are not.
+  assert.deepEqual([booked["10:30"], booked["11:00"], booked["11:30"], booked["12:00"], booked["12:30"]],
+    [false, true, true, true, false]);
+  assert.doesNotMatch(JSON.stringify(r.data), /Sam|secret|07797/i);
+});
+
+test("availability rejects bad from/days and starts tomorrow by default", async () => {
+  const env = world();
+  for (const q of ["?from=2026-02-30", "?from=tomorrow", "?from=", "?days=0", "?days=15", "?days=1.5", "?days=x"])
+    assert.equal((await call(env, "GET", "/availability" + q)).status, 400, q);
+  // The website runs Monday to Saturday: an open Sunday is for the panel, never offered here.
+  env.DB.raw.prepare(`INSERT INTO negotiator_exceptions (negotiator_id, date, kind, start_time, end_time, created_at)
+    VALUES (1, ?, 'open', '10:00', '12:00', ?)`).run(nextSunday(), "2026-10-07T10:00:00.000Z");
+  const r = await call(env, "GET", "/availability");
+  assert.equal(r.status, 200);
+  const plus = (d, n) => new Date(Date.parse(d + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
+  const sunday = d => new Date(d + "T12:00:00Z").getUTCDay() === 0;
+  const tomorrow = plus(jerseyToday(), 1);
+  assert.equal(r.data.days[0].date, sunday(tomorrow) ? plus(tomorrow, 1) : tomorrow);
+  assert.equal(r.data.days.length, 12);
+  assert.equal(r.data.days.filter(d => sunday(d.date)).length, 0);
+  assert.ok(r.data.days.every(d => Object.keys(d.slots).join() === "1,2"));
+  assert.equal((await call(env, "GET", "/availability?days=14")).data.days.length, 14);
+});
+
+test("a booking takes a free slot once; the second gets 409 and writes nothing", async () => {
+  const env = world(); turnstile(true);
+  assert.equal((await call(env, "POST", "/viewings", { body: booking() })).status, 201);
+  const second = await call(env, "POST", "/viewings", { body: booking({ name: "Other", email: "other@example.je" }) });
+  assert.equal(second.status, 409);
+  assert.deepEqual(second.data, TAKEN);
+  assert.deepEqual(writes(env), [1, 1, 1]);
+  // The race itself: another booking lands between the check and the write. The insert sees it (with its margins)
+  // and neither the event nor the notice is written, though last_insert_rowid() then names the other row.
+  for (const [over, status] of [[{ time: "10:30" }, 201], [{ time: "11:00" }, 409], [{ time: "12:00" }, 409],
+    [{ time: "12:30" }, 201], [{ time: "11:30", negotiator_id: 2 }, 201], [{ time: "11:30", status: "cancelled" }, 201]]) {
+    const race = world(), batch = race.DB.batch.bind(race.DB);
+    race.DB.batch = stmts => {
+      if (stmts.some(s => s.sql.includes("INSERT INTO viewing_requests"))) seedViewing(race, over);
+      return batch(stmts);
+    };
+    const r = await call(race, "POST", "/viewings", { body: booking() });
+    assert.equal(r.status, status, JSON.stringify(over));
+    assert.deepEqual(writes(race), status === 201 ? [2, 1, 1] : [1, 0, 0], JSON.stringify(over));
+    if (status === 409) assert.deepEqual(r.data, TAKEN);
+  }
+});
+
+test("a booking for an inactive negotiator, a non-grid time or a booked time is refused before Turnstile", async () => {
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; return new Response(JSON.stringify({ success: true, hostname: "hampton.test" })); };
+  const env = world();
+  env.DB.raw.prepare("UPDATE negotiators SET active = 0 WHERE id = 2").run();
+  seedViewing(env, { time: "10:00" });
+  for (const id of [2, 99]) {
+    const r = await call(env, "POST", "/viewings", { body: booking({ negotiator_id: id }) });
+    assert.equal(r.status, 400, `negotiator ${id}`);
+    assert.ok(r.data.fields.negotiator_id);
+  }
+  for (const time of ["10:15", "18:00", "08:00"]) {
+    const r = await call(env, "POST", "/viewings", { body: booking({ time }) });
+    assert.equal(r.status, 400, time);
+    assert.ok(r.data.fields.time);
+  }
+  const booked = await call(env, "POST", "/viewings", { body: booking({ time: "10:30" }) });   // inside 10:00's margin
+  assert.equal(booked.status, 409);
+  assert.deepEqual(booked.data, TAKEN);
+  assert.equal(calls, 0);
+  assert.deepEqual(writes(env), [1, 0, 0]);
+});
+
+test("a cancelled viewing frees its slot", async () => {
+  const env = world(), date = nextWeekday(); turnstile(true);
+  seedViewing(env, { date, time: "11:30", status: "cancelled" });
+  const slots = (await call(env, "GET", `/availability?from=${date}&days=1`)).data.days[0].slots[1];
+  assert.equal(slots.find(s => s.time === "11:30").booked, false);
+  assert.equal((await call(env, "POST", "/viewings", { body: booking() })).status, 201);
+  assert.equal(count(env, "viewing_requests WHERE status = 'requested'"), 1);
 });
 
 test("POST /viewings rejects failed Turnstile, Sundays, past dates, bad email and draft listings", async () => {

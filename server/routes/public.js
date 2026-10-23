@@ -1,6 +1,7 @@
 import { json, fail, readJson, now } from "../http.js";
 import { toPublic } from "../listing.js";
-import { validateViewing, jerseyToday, addMinutes, SLOT_MINUTES } from "../viewings.js";
+import { validateViewing, jerseyNow, isFree, realDate, plusDays, SLOT_MINUTES, PUBLIC_DAYS, MAX_DAYS } from "../viewings.js";
+import { loadAvailability, bookStatement } from "../viewing-store.js";
 import { verifyTurnstile } from "../turnstile.js";
 import { logEvent } from "../events.js";
 import { validateApplicant, OPTIONS } from "../applicants.js";
@@ -20,30 +21,47 @@ async function listPublic({ env }) {
 
 const config = ({ env }) => json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY }, 200, { "cache-control": "public, max-age=300" });
 
+// C12: the website's slots, from tomorrow, Monday to Saturday. Only "booked" says a viewing exists, never whose.
+async function availability({ request, env }) {
+  const q = new URL(request.url).searchParams, clock = jerseyNow();
+  const from = q.get("from") ?? plusDays(clock.date, 1), days = q.get("days") ?? String(PUBLIC_DAYS);
+  if (!realDate(from) || !/^\d+$/.test(days) || +days < 1 || +days > MAX_DAYS)
+    fail(400, `Choose a date (YYYY-MM-DD) and 1 to ${MAX_DAYS} days`);
+  const a = await loadAvailability(env, { from, days: +days, now: clock, fromTomorrow: true });
+  return json({ slot_minutes: SLOT_MINUTES, negotiators: a.negotiators.map(({ id, name, role }) => ({ id, name, role })),
+    days: a.days }, 200, { "cache-control": "no-store" });
+}
+
+const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
+const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
+
 async function createViewing({ request, env }) {
   const body = await readJson(request);
+  const clock = jerseyNow();
   // Cheap checks first: the single-use Turnstile token is only spent on an otherwise valid request.
-  const r = validateViewing(body, { today: jerseyToday() });
-  if (r.errors) return json({ error: "Please check the highlighted fields.", fields: r.errors }, 400);
+  const r = validateViewing(body, { today: clock.date });
+  if (r.errors) return fields(r.errors);
   const v = r.value;
   const listing = v.listing_id && await env.DB.prepare(
-    "SELECT title FROM listings WHERE id = ? AND published = 1 AND archived_at IS NULL").bind(v.listing_id).first();
+    "SELECT 1 FROM listings WHERE id = ? AND published = 1 AND archived_at IS NULL").bind(v.listing_id).first();
   if (v.listing_id && !listing) fail(400, "That property is no longer available. Choose another or send a general enquiry.");
+  // The slot must be one the website offers (§4.6): an active negotiator, on the grid, inside their hours, not booked.
+  const a = await loadAvailability(env, { from: v.date, days: 1, now: clock, fromTomorrow: true, negotiatorId: v.negotiator_id });
+  if (!a.negotiators.length) return fields({ negotiator_id: "Choose who will show you round" });
+  const slots = a.days[0].slots[v.negotiator_id];
+  if (!isFree(slots, v.time))
+    return slots.some(s => s.time === v.time) ? taken() : fields({ time: "That time is not available. Please choose another." });
   if (!(await verifyTurnstile(body.turnstile, env.TURNSTILE_SECRET, request.headers.get("cf-connecting-ip"), new URL(request.url).hostname)))
     fail(400, "The anti-spam check expired or failed. Please try again.");
-  await env.DB.batch([
-    // agent keeps the negotiator's name, as the text column the panel shows today.
-    env.DB.prepare(`INSERT INTO viewing_requests (listing_id, listing_ref, listing_title_snapshot, negotiator_id, agent, kind,
-        date, time, end_time, name, email, phone, created_at)
-        VALUES (?,?,?,?,(SELECT name FROM negotiators WHERE id = ?),?,?,?,?,?,?,?,?)`)
-      .bind(v.listing_id, v.listing_id, listing ? listing.title : null, v.negotiator_id, v.negotiator_id, v.kind, v.date, v.time,
-        addMinutes(v.time, SLOT_MINUTES), v.name, v.email, v.phone, now()),
+  // C6: the insert re-checks the slot itself; if another booking took it since the check, nothing at all is written.
+  const [booked] = await env.DB.batch([
+    bookStatement(env, v, { status: "requested" }),
     // Personal data stays in the request row; the event only says what was asked for.
     ...logEvent(env, { actor: "public", entity_type: "viewing", entity_id: null, type: "viewing.requested",
       data: { listing_id: v.listing_id, date: v.date, time: v.time, kind: v.kind } },
-    { category: "viewing", title: `Viewing request: ${v.name}`, action_required: true }),
+    { category: "viewing", title: `Viewing request: ${v.name}`, action_required: true }, { ifInserted: true }),
   ]);
-  return json({ ok: true }, 201);
+  return booked.meta.changes ? json({ ok: true }, 201) : taken();
 }
 
 const options = () => json(OPTIONS, 200, { "cache-control": "public, max-age=86400" });
@@ -131,6 +149,7 @@ function duplicate(env, [c, other], contact, applicant, ts) {
 export default [
   ["GET", /^\/listings$/, listPublic],
   ["GET", /^\/config$/, config],
+  ["GET", /^\/availability$/, availability],
   ["POST", /^\/viewings$/, createViewing],
   ["GET", /^\/applicants\/options$/, options],
   ["POST", /^\/applicants$/, createApplicant],

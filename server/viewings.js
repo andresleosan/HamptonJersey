@@ -29,10 +29,10 @@ export function addMinutes(t, n) {
   return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
 }
 const text = (v, max) => (typeof v === "string" && v.trim() && v.trim().length <= max ? v.trim() : null);
-const realDate = s => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s)
+export const realDate = s => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s)
   && new Date(s + "T12:00:00Z").toISOString().slice(0, 10) === s;
-const plusDays = (date, n) => new Date(Date.parse(date + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
-const weekday = date => WEEKDAYS[(new Date(date + "T12:00:00Z").getUTCDay() + 6) % 7];
+export const plusDays = (date, n) => new Date(Date.parse(date + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
+export const weekday = date => WEEKDAYS[(new Date(date + "T12:00:00Z").getUTCDay() + 6) % 7];
 // Same-width HH:MM text compares like the clock: [a1, a2) and [b1, b2) overlap.
 const overlaps = (a1, a2, b1, b2) => a1 < b2 && a2 > b1;
 
