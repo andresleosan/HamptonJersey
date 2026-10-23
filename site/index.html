@@ -504,11 +504,15 @@ function mountBooking(slot, pre = {}) {
         listing_id: el.prop.value || null, negotiator_id: n.id, kind: v("kind"), date, time,
         name: el.name.value, email: el.email.value, phone: el.phone.value || null, turnstile: token})});
       const data = await r.json().catch(() => ({}));
-      if (r.status === 409) {
-        // Taken since the form opened: fresh slots, the same day if it still has a free time, and no time chosen.
-        if (widget != null) turnstile.reset(widget);
+      // 400: the time or the agent is no longer offered (hours or exceptions changed, agent made inactive).
+      const gone = r.status === 400 && (data.fields?.time || data.fields?.negotiator_id);
+      if (r.status === 409 || gone) {
+        // Taken or gone since the form opened: fresh slots, the same day if it still has a free time, and no time chosen.
+        // A 400 is refused before the anti-spam check, so its token is still good.
+        if (r.status === 409 && widget != null) turnstile.reset(widget);
         await load({date, time});
-        if (A) status.textContent = `${data.error || "That time was just booked. Please choose another."} Your details are still here.`;
+        const why = gone ? gone.replace(/\.?$/, ".") : data.error || "That time was just booked. Please choose another.";
+        if (A) status.textContent = `${why} Your details are still here.`;
         return;
       }
       if (!r.ok) throw new Error(data.fields ? Object.values(data.fields).join(". ") + "." : data.error || "Something went wrong.");
