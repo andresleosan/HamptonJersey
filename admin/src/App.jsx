@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.js";
 import { firebaseSignOut } from "./firebase.js";
 import Login from "./Login.jsx";
+import Inbox from "./Inbox.jsx";
 import Listings from "./Listings.jsx";
 import ListingEditor from "./ListingEditor.jsx";
 import Viewings from "./Viewings.jsx";
 import Users from "./Users.jsx";
 import Tours from "./Tours.jsx";
 import { confirmLeave } from "./unsaved.js";
+import { usePoll } from "./poll.js";
 
 function useHash() {
   const [hash, setHash] = useState(location.hash);
@@ -22,6 +24,7 @@ function useHash() {
 export default function App() {
   const [me, setMe] = useState(undefined); // undefined = checking, null = signed out
   const [expired, setExpired] = useState(false);
+  const [counts, setCounts] = useState({});
   const hash = useHash();
   useEffect(() => {
     api("/me").then(d => setMe(d.email), () => setMe(null));
@@ -30,14 +33,19 @@ export default function App() {
     return () => removeEventListener("hs:signed-out", f);
   }, []);
 
+  // The Inbox counter in the navigation: every 30 s while signed in and the tab is visible.
+  const loadCounts = useCallback(() => api("/admin/notifications/counts").then(setCounts, () => {}), []);
+  usePoll(loadCounts, me && !expired ? 30000 : null);
+
   const signedIn = email => { setMe(email); setExpired(false); };
   if (me === undefined) return <p className="center">Loading…</p>;
   if (me === null) return <main className="center"><Login onSignedIn={signedIn} /></main>;
 
   const [section, arg] = hash.replace(/^#\/?/, "").split("/");
   const page = section === "p" && arg ? <ListingEditor key={arg} id={decodeURIComponent(arg)} />
-    : section === "viewings" ? <Viewings /> : section === "users" ? <Users me={me} /> : section === "tours" ? <Tours /> : <Listings />;
-  const current = ["viewings", "users", "tours"].includes(section) ? section : "";
+    : section === "listings" ? <Listings /> : section === "viewings" ? <Viewings /> : section === "users" ? <Users me={me} />
+    : section === "tours" ? <Tours /> : <Inbox paused={expired} onCounts={setCounts} />;
+  const current = section === "p" && arg ? "listings" : ["listings", "viewings", "users", "tours"].includes(section) ? section : "";
   const logout = async () => {
     if (!confirmLeave()) return;
     await api("/session", { method: "DELETE" }).catch(() => {});
@@ -48,7 +56,9 @@ export default function App() {
     <header className="bar" inert={expired} onClick={e => { if (e.target.closest("a")) confirmLeave(e); }}>
       <a href="#/" className="brand">Hampton Estates · Admin</a>
       <nav aria-label="Sections">
-        <a href="#/" aria-current={current === "" ? "page" : undefined}>Listings</a>
+        <a href="#/" aria-current={current === "" ? "page" : undefined}>Inbox{counts.action > 0
+          && <span className="count">{counts.action}<span className="sr"> need action</span></span>}</a>
+        <a href="#/listings" aria-current={current === "listings" ? "page" : undefined}>Listings</a>
         <a href="#/viewings" aria-current={current === "viewings" ? "page" : undefined}>Viewing requests</a>
         <a href="#/tours" aria-current={current === "tours" ? "page" : undefined}>3D tours</a>
         <a href="#/users" aria-current={current === "users" ? "page" : undefined}>Users</a>

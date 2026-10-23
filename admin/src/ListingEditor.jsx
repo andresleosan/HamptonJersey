@@ -34,7 +34,7 @@ export default function ListingEditor({ id }) {
     return () => removeEventListener("beforeunload", f);
   }, [dirty]);
 
-  if (loadErr) return <p role="alert" className="err">{loadErr} · <a href="#/">Back to listings</a></p>;
+  if (loadErr) return <p role="alert" className="err">{loadErr} · <a href="#/listings">Back to listings</a></p>;
   if (!data) return <p>Loading listing…</p>;
   const l = data.listing, state = stateOf(l);
   const setListing = listing => { setData(d => ({ ...d, listing })); setForm(toForm(listing)); setErrors({}); };
@@ -68,7 +68,7 @@ export default function ListingEditor({ id }) {
   };
   const destroy = async e => {
     e.preventDefault(); setBusy(true);
-    try { await api(`/admin/listings/${id}`, { method: "DELETE", body: { confirm: confirmDel } }); location.hash = "#/"; }
+    try { await api(`/admin/listings/${id}`, { method: "DELETE", body: { confirm: confirmDel } }); location.hash = "#/listings"; }
     catch (x) { setMsg({ text: x.message }); setBusy(false); }
   };
 
@@ -92,7 +92,7 @@ export default function ListingEditor({ id }) {
         <span key={d}>{i ? ", " : ""}<a href={`#/p/${d}`}>{d}</a></span>)} according to the research.</p>}
       <nav aria-label="Listing sections">{SECTIONS.map(([k, t]) =>
         <button key={k} type="button" className="linkish" onClick={() => document.getElementById(`s-${k}`).scrollIntoView({ behavior: "smooth" })}>{t}</button>)}</nav>
-      <a href="#/">← Back to listings</a>
+      <a href="#/listings">← Back to listings</a>
     </aside>
 
     <div className="sections">

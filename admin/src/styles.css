@@ -154,3 +154,5 @@ table.list{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .tour-form.new{margin-bottom:16px;max-width:640px}
 .spacer{flex:1}
 @media (max-width:760px){.tour-list>li{grid-template-columns:1fr}}
+.inbox-tabs{display:flex;flex-wrap:wrap;column-gap:12px}
+.bar nav .count{margin-left:6px;padding:0 7px;border:1px solid currentColor;border-radius:999px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums}

@@ -114,8 +114,10 @@ async function admin(browser) {
   assert.equal(await page.getAttribute(".login a.home", "href"), "/", "login screen links back to the public site");
   await ctx.addCookies([{name: COOKIE, value: await signSession("luismadef45@gmail.com", secret), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: "Strict"}]);
   await page.reload();
-  await page.waitForSelector("text=Listings");
+  await page.waitForSelector("#t-inbox");
   assert.equal(await page.getAttribute("header.bar a.home", "href"), "/", "panel header links back to the public site");
+  await page.goto(BASE + "admin/#/listings");
+  await page.waitForSelector("#t-props");
   assert.match(await page.textContent(".seg"), /Published4[\s\S]*Drafts1/);
   await shot(page, "admin-list");
 
@@ -166,7 +168,7 @@ async function admin(browser) {
   await page.waitForSelector("text=Unpublished");
   await page.getByRole("button", {name: "Publish", exact: true}).click();
   await page.waitForSelector("text=won't appear on the website");
-  await page.goto(BASE + "admin/#/");
+  await page.goto(BASE + "admin/#/listings");
   await page.waitForSelector('tr:has-text("HE-C001") >> text=no photo');
 
   await page.goto(BASE + "admin/#/p/HE-R002");
@@ -187,7 +189,7 @@ async function admin(browser) {
   await page.waitForSelector("text=Restored as a draft.");
 
   // Featured: the star in the table puts a listing in the home page's Featured section.
-  await page.goto(BASE + "admin/#/");
+  await page.goto(BASE + "admin/#/listings");
   await page.click('tr:has-text("HE-R018") .star');
   await page.waitForSelector('tr:has-text("HE-R018") .star[aria-pressed=true]');
   const fresh = async () => { const c = await browser.newContext(); const p = await c.newPage(); await p.goto(BASE); await p.waitForSelector("#grid .card"); return [c, p]; };
@@ -196,7 +198,7 @@ async function admin(browser) {
   await hc.close();
 
   // Table: the visibility switch publishes/hides and the star adds a Featured block, without opening the editor.
-  await page.goto(BASE + "admin/#/");
+  await page.goto(BASE + "admin/#/listings");
   await page.getByRole("group", {name: "Status"}).getByRole("button", {name: /^All/}).click();
   await page.click('tr:has-text("HE-R003") .switch');
   await page.waitForSelector('tr:has-text("HE-R003") .switch[aria-checked=true]');

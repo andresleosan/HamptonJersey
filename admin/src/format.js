@@ -16,3 +16,12 @@ export function priceText(l) {
 export const fmtDate = iso => (iso ? new Date(iso).toLocaleString("en-GB",
   { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
 export const safeHref = u => (/^https?:\/\//i.test(u || "") ? u : undefined);
+const AGO = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+const STEPS = [["year", 31536000], ["month", 2592000], ["week", 604800], ["day", 86400], ["hour", 3600], ["minute", 60]];
+// "3 hours ago", "yesterday", "now": whole units, never rounded up; never in the future (clock skew).
+export function fmtAgo(iso) {
+  if (!iso) return "—";
+  const s = Math.min(0, (new Date(iso) - Date.now()) / 1000);
+  const [unit, size] = STEPS.find(([, n]) => Math.abs(s) >= n) ?? ["second", 1];
+  return AGO.format(Math.trunc(s / size) || 0, unit);
+}
