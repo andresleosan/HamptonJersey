@@ -63,8 +63,10 @@ const OUTDOOR = [
 
 // A specs row naming a feature with a plain yes or no value ("Pets Allowed: No"): [key, label, no, yes].
 // Pets only when the label states permission: "Pet Deposit: 0" or "Pet Restrictions: None" is not a refusal.
-const SPEC_ROWS = [["pets", /^\s*pets?(?:\s+(?:allowed|permitted|accepted|considered))?\s*$/i, "no", "yes"],
+const SPEC_ROWS = [["pets", new RegExp(String.raw`^\s*pets?(?:[\s-]+(?:allowed|permitted|accepted|considered|friendly`
+  + String.raw`|welcome|negotiable))?\s*$`, "i"), "no", "yes"],
   ["furnished", /\bfurnish/i, "no", "yes"], ["parking", /\b(?:parking|garag(?:es?|ing))\b/i, 0, 1]];
+const MENTIONS_PETS = /\bpets?\b/i;
 const ROW_NO = /^(?:no|none|0)$/i;
 const ROW_YES = /^(?:yes|allowed)$/i;
 
@@ -141,7 +143,11 @@ function readSpecs(specs) {
   for (const { label, value } of specs) {
     const v = String(value).trim(), no = ROW_NO.test(v);
     const row = (no || ROW_YES.test(v)) && SPEC_ROWS.find(([, re]) => re.test(label));
-    if (!row) { prose.push(`${label}: ${value}`); continue; }
+    if (!row) {
+      // "Pets Allowed Indoors: No" as prose would read "Pets Allowed" as a yes; such a row is left unread.
+      if (!(no && MENTIONS_PETS.test(label))) prose.push(`${label}: ${value}`);
+      continue;
+    }
     const [key, , ifNo, ifYes] = row, read = keyedRow(no ? ifNo : ifYes, label, v);
     keyed[key] = key === "parking" ? most(keyed.parking, read) : keyed[key] ?? read;
   }

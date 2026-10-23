@@ -81,6 +81,13 @@ test("pets, parking, furnished, outdoor and type from text", () => {
   for (const [label, value] of [["Pet Restrictions", "None"], ["Pets Restrictions", "No"], ["Pet Deposit", "0"],
     ["Pet Deposit", "None"]]) assert.equal(spec(label, value).feat_pets, null, `${label}: ${value}`);
   for (const label of ["pets permitted", " Pet Accepted ", "Pets Considered"]) assert.equal(spec(label, "No").feat_pets, "no", label);
+  for (const label of ["Pet Friendly", "Pet-Friendly", "Pets Welcome", "Pets Negotiable"]) {
+    assert.equal(spec(label, "No").feat_pets, "no", `${label}: No`);
+    assert.equal(spec(label, "Yes").feat_pets, "yes", `${label}: Yes`);
+  }
+  // A pets row answered no is never read as prose, where its label words would say yes.
+  assert.equal(spec("Pets Allowed Indoors", "No").feat_pets, null);
+  assert.equal(spec("Pets Allowed Indoors", "Yes").feat_pets, "yes");
   // A keyed no never hides a count stated elsewhere: the most spaces said wins.
   const rows = (...r) => JSON.stringify(r.map(([label, value]) => ({ group: "", label, value })));
   assert.equal(feats({ specs: rows(["Garage", "No"], ["Parking Spaces", "2"]) }).feat_parking, 2);
