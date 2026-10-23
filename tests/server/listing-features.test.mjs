@@ -77,6 +77,16 @@ test("pets, parking, furnished, outdoor and type from text", () => {
     ["Parking Spaces", "0", "feat_parking", 0], ["Parking", "Yes", "feat_parking", 1]])
     assert.equal(spec(label, value)[col], want, `${label}: ${value}`);
   assert.equal(JSON.parse(spec("Pets Allowed", "No").feat_evidence).pets, "Pets Allowed: No");
+  // Only a label that states permission is a pets answer; "Pet Deposit: 0" says nothing about whether pets may come.
+  for (const [label, value] of [["Pet Restrictions", "None"], ["Pets Restrictions", "No"], ["Pet Deposit", "0"],
+    ["Pet Deposit", "None"]]) assert.equal(spec(label, value).feat_pets, null, `${label}: ${value}`);
+  for (const label of ["pets permitted", " Pet Accepted ", "Pets Considered"]) assert.equal(spec(label, "No").feat_pets, "no", label);
+  // A keyed no never hides a count stated elsewhere: the most spaces said wins.
+  const rows = (...r) => JSON.stringify(r.map(([label, value]) => ({ group: "", label, value })));
+  assert.equal(feats({ specs: rows(["Garage", "No"], ["Parking Spaces", "2"]) }).feat_parking, 2);
+  assert.equal(feats({ specs: rows(["Garage", "No"]), description: "Parking for 2 cars" }).feat_parking, 2);
+  assert.equal(feats({ specs: rows(["Garage", "No"], ["Parking", "Yes"]) }).feat_parking, 1);
+  assert.equal(feats({ specs: rows(["Garage", "No"]), description: "Sea views" }).feat_parking, 0);
 
   const outdoor = s => feats({ description: s }).feat_outdoor;
   assert.equal(outdoor("South facing garden"), '["garden"]');

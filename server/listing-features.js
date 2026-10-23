@@ -62,8 +62,9 @@ const OUTDOOR = [
 ];
 
 // A specs row naming a feature with a plain yes or no value ("Pets Allowed: No"): [key, label, no, yes].
-const SPEC_ROWS = [["pets", /\bpets?\b/i, "no", "yes"], ["furnished", /\bfurnish/i, "no", "yes"],
-  ["parking", /\b(?:parking|garag(?:es?|ing))\b/i, 0, 1]];
+// Pets only when the label states permission: "Pet Deposit: 0" or "Pet Restrictions: None" is not a refusal.
+const SPEC_ROWS = [["pets", /^\s*pets?(?:\s+(?:allowed|permitted|accepted|considered))?\s*$/i, "no", "yes"],
+  ["furnished", /\bfurnish/i, "no", "yes"], ["parking", /\b(?:parking|garag(?:es?|ing))\b/i, 0, 1]];
 const ROW_NO = /^(?:no|none|0)$/i;
 const ROW_YES = /^(?:yes|allowed)$/i;
 
@@ -130,14 +131,19 @@ function type(...sources) {
   return null;
 }
 
+const keyedRow = (value, label, v) => ({ value, evidence: `${label}: ${v}`.slice(0, EVIDENCE_MAX) });
+// The reading with the most parking spaces, so a "Garage: No" row never hides "Parking for 2 cars".
+const most = (a, b) => (!a || (b && b.value > a.value) ? b : a);
+
 // Splits the specs into the yes/no rows read as key and value ({pets, furnished, parking}) and the prose rest.
 function readSpecs(specs) {
   const keyed = {}, prose = [];
   for (const { label, value } of specs) {
     const v = String(value).trim(), no = ROW_NO.test(v);
     const row = (no || ROW_YES.test(v)) && SPEC_ROWS.find(([, re]) => re.test(label));
-    if (row) keyed[row[0]] ??= { value: no ? row[2] : row[3], evidence: `${label}: ${v}`.slice(0, EVIDENCE_MAX) };
-    else prose.push(`${label}: ${value}`);
+    if (!row) { prose.push(`${label}: ${value}`); continue; }
+    const [key, , ifNo, ifYes] = row, read = keyedRow(no ? ifNo : ifYes, label, v);
+    keyed[key] = key === "parking" ? most(keyed.parking, read) : keyed[key] ?? read;
   }
   return { keyed, prose };
 }
@@ -151,7 +157,7 @@ export function extractFeatures(listing) {
 
   const out = { parish: onlyOne(parishes) };
   const evidence = {};
-  for (const [key, result] of [["pets", keyed.pets ?? pets(text)], ["parking", keyed.parking ?? parking(text)],
+  for (const [key, result] of [["pets", keyed.pets ?? pets(text)], ["parking", most(keyed.parking, parking(text))],
     ["furnished", keyed.furnished ?? furnished(text)],
     ["outdoor", outdoor(text)], ["type", type(listing.property_type, listing.title)]]) {
     out[`feat_${key}`] = result?.value ?? null;
