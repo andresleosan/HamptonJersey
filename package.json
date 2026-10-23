@@ -2,10 +2,10 @@
   "name": "hampton-jersey",
   "private": true,
   "scripts": {
-    "build": "vite build --config admin/vite.config.mjs",
+    "build": "node scripts/check-release.mjs && vite build --config admin/vite.config.mjs",
     "build:watch": "vite build --config admin/vite.config.mjs --watch",
     "dev": "wrangler pages dev --port 8788",
-    "check:release": "node scripts/check-release.mjs",
+    "check:release": "node scripts/check-release.mjs --strict",
     "test": "node --test tests/*.test.js tests/server/*.test.mjs && python3 -m unittest tests/test_import.py"
   },
   "dependencies": {
