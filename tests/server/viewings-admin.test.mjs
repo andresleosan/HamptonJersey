@@ -345,3 +345,43 @@ test("active interest and a listing's viewings are read through the (listing_id,
     }
   }
 });
+
+test("availability with exclude leaves the moving viewing out: its own and neighbouring slots are free", async t => {
+  const { env, cookie } = await world(t);
+  const own = seedViewing(env, { status: "confirmed", date: day(1), time: "10:30" });
+  seedViewing(env, { date: day(1), time: "12:00", name: "Other", email: "o@x.je" });
+  const slots = async q => Object.fromEntries((await call(env, "GET", `/admin/availability?from=${day(1)}&days=1${q}`, { cookie }))
+    .data.days[0].slots[1].map(s => [s.time, s.booked]));
+  const before = await slots("");
+  assert.deepEqual([before["10:00"], before["10:30"], before["11:00"], before["11:30"]], [true, true, true, true]);
+  const after = await slots(`&exclude=${own}`);
+  assert.deepEqual([after["10:00"], after["10:30"], after["11:00"]], [false, false, false], "own slot and its neighbours");
+  assert.deepEqual([after["11:30"], after["12:00"], after["12:30"]], [true, true, true], "the other viewing still blocks");
+  for (const q of ["&exclude=x", "&exclude=0"])
+    assert.equal((await call(env, "GET", `/admin/availability?from=${day(1)}${q}`, { cookie })).status, 400, q);
+});
+
+test("the interest route gives the title and the same count as the listing detail, through the index", async t => {
+  const { env, cookie } = await world(t);
+  seedViewing(env, { email: "ann@x.je", status: "requested", date: day(1) });
+  seedViewing(env, { email: null, phone: "07797 1", status: "completed", outcome: "proceed", date: day(-2) });
+  const q = captured(env, /COUNT\(DISTINCT/);
+  const r = await call(env, "GET", "/admin/listings/HE-R001/interest", { cookie });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.data, { title: "Le Bernage", active_interest: 2 });
+  assert.equal((await call(env, "GET", "/admin/listings/HE-R001", { cookie })).data.active_interest, 2);
+  const p = plan(env, q[0]);
+  assert.match(p, /SEARCH viewing_requests USING INDEX viewing_listing \(listing_id=\? AND date>\?\)/, p);
+  assert.equal((await call(env, "GET", "/admin/listings/HE-Z999/interest", { cookie })).status, 404);
+  assert.equal((await call(env, "GET", "/admin/listings/HE-R001/interest")).status, 401);
+});
+
+test("the slim listing list names every listing without reading media", async t => {
+  const { env, cookie } = await world(t);
+  const media = captured(env, /FROM media/);
+  const r = await call(env, "GET", "/admin/listings?slim=1", { cookie });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.data.listings.map(l => Object.keys(l).sort().join()), ["archived_at,id,published,title", "archived_at,id,published,title"]);
+  assert.deepEqual(r.data.listings.map(l => [l.id, l.published]), [["HE-R001", 1], ["HE-R002", 0]]);
+  assert.equal(media.length, 0);
+});

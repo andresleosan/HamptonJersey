@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtDate, fmtDay, firstSentence, VIEWING_STATUS, OUTCOME } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
-import { KINDS, OUTCOMES } from "../../server/viewings.js";
+import { KINDS, OUTCOMES, jerseyToday } from "../../server/viewings.js";
 import SlotPicker from "./SlotPicker.jsx";
 
 // Spec §5: a viewing from the request to its outcome, and the team's own bookings (C14).
@@ -26,9 +26,12 @@ const stillThere = (d, id) => !!d?.viewings.some(x => x.id === id);
 export default function Viewings({ listing }) {
   const [tab, setTab] = useState("requests"), [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null);
   const [sel, setSel] = useState(null), [msg, setMsg] = useState(null), [creating, setCreating] = useState(false);
-  const [title, setTitle] = useState(null), [focusTo, setFocusTo] = useState(null);
+  const [title, setTitle] = useState(null), [focusTo, setFocusTo] = useState(null), [counts, setCounts] = useState({});
   const [dirty, setDirty] = useState({ notes: false, form: false });
   const seq = useRef(0), headRef = useRef(null), listRef = useRef(null), detailRef = useRef(null), newBtn = useRef(null);
+  // A viewing that a refused action moved out of this tab while its notes were still unsaved: it stays open (as last
+  // read) so the notes can be saved, instead of being dropped with it.
+  const pinned = useRef(null);
   const filter = listing ? `&listing_id=${encodeURIComponent(listing)}` : "";
 
   // Resolves to the list read (undefined when it failed or a newer read superseded it).
@@ -36,14 +39,14 @@ export default function Viewings({ listing }) {
     const n = ++seq.current;
     return api(`/admin/viewings?tab=${t}${filter}`).then(d => {
       if (n !== seq.current) return;
-      setData(d); setLoadErr(null);
-      setSel(id => (stillThere(d, id) ? id : d.viewings[0]?.id ?? null));
+      setData(d); setCounts(d.counts); setLoadErr(null);
+      setSel(id => (stillThere(d, id) || id === pinned.current?.id ? id : d.viewings[0]?.id ?? null));
       return d;
     }, e => { if (n === seq.current) setLoadErr(e.message); });
   };
   useEffect(() => { load(); }, []);
   useEffect(() => {
-    if (listing) api(`/admin/listings/${encodeURIComponent(listing)}`).then(d => setTitle(d.listing.title), () => {});
+    if (listing) api(`/admin/listings/${encodeURIComponent(listing)}/interest`).then(d => setTitle(d.title), () => {});
   }, [listing]);
   const onDirty = useCallback((k, b) => setDirty(d => (d[k] === b ? d : { ...d, [k]: b })), []);
   useEffect(() => { setUnsaved(dirty.notes || dirty.form); }, [dirty]);
@@ -59,21 +62,29 @@ export default function Viewings({ listing }) {
 
   const show = t => {
     if (t === tab || !leaveDetail()) return;
-    setTab(t); setData(null); setSel(null); setMsg(null); setLoadErr(null); load(t);
+    pinned.current = null; setTab(t); setData(null); setSel(null); setMsg(null); setLoadErr(null); load(t);
   };
-  const pick = id => { if (id !== sel && leaveDetail()) setSel(id); };
+  const pick = id => { if (id !== sel && leaveDetail()) { pinned.current = null; setSel(id); } };
 
   // One change to viewing v (an action, notes or the delete), then the list again. The focus follows the viewing when it
   // is still in this tab, else the next one in the list. Resolves to the error text, or null.
+  // A refusal that leaves v out of the reloaded tab (someone else confirmed or cancelled it meanwhile) keeps v open when
+  // it has unsaved notes (the detail says why); otherwise the message shows above the list, which takes the focus.
   const send = async (v, call, { done, notes, refocus = true }) => {
     const list = data.viewings, i = list.findIndex(x => x.id === v.id), next = (list[i + 1] ?? list[i - 1])?.id ?? null;
     setMsg(null);
     try { await call(); }
     catch (e) {
-      const text = refusal(e), d = await load();
-      if (d && !stillThere(d, v.id)) setMsg({ text });
+      const text = refusal(e);
+      if (notes !== undefined) pinned.current = v;
+      const d = await load();
+      if (d && !stillThere(d, v.id)) {
+        if (notes !== undefined) { setSel(v.id); setFocusTo({ to: "detail" }); }
+        else { pinned.current = null; setMsg({ text }); setFocusTo({ to: "list" }); }
+      } else pinned.current = null;
       return text;
     }
+    pinned.current = null;
     // The typed notes, saved after the action (the action itself would drop them).
     let m = { ok: true, text: done };
     if (notes !== undefined) await api(`/admin/viewings/${v.id}`, { method: "PUT", body: { notes } })
@@ -82,7 +93,7 @@ export default function Viewings({ listing }) {
     if (d) {
       const stays = stillThere(d, v.id);
       setSel(stays ? v.id : stillThere(d, next) ? next : d.viewings[0]?.id ?? null);
-      if (refocus) setFocusTo({ to: stays ? "detail" : "list" });
+      if (refocus || !stays) setFocusTo({ to: stays ? "detail" : "list" });
     }
     setMsg(m);
     return null;
@@ -94,13 +105,16 @@ export default function Viewings({ listing }) {
     && send(v, () => api(`/admin/viewings/${v.id}`, { method: "DELETE" }), { done: "Viewing deleted." });
 
   const booked = async (id, text) => {
-    setCreating(false); setTab("upcoming"); setData(null); setSel(id); setLoadErr(null);
+    setCreating(false);
+    // Unsaved notes on the open viewing stay unless the person lets them go; the booking is in Upcoming either way.
+    if (tab !== "upcoming" && !leaveDetail()) { setMsg({ ok: true, text: `${text} It's in Upcoming.` }); return; }
+    pinned.current = null; setTab("upcoming"); setData(null); setSel(id); setLoadErr(null);
     const d = await load("upcoming");
     if (d && stillThere(d, id)) { setSel(id); setFocusTo({ to: "detail" }); } else setFocusTo({ to: "heading" });
     setMsg({ ok: true, text });
   };
   const closeForm = () => { setCreating(false); setFocusTo(null); requestAnimationFrame(() => newBtn.current?.focus()); };
-  const v = data?.viewings.find(x => x.id === sel);
+  const v = data?.viewings.find(x => x.id === sel) ?? (data && pinned.current?.id === sel ? pinned.current : null);
   const groups = !data ? [] : tab !== "upcoming" ? [[null, data.viewings]]
     : Object.entries(data.viewings.reduce((a, x) => ((a[x.date] ||= []).push(x), a), {}));
 
@@ -111,14 +125,14 @@ export default function Viewings({ listing }) {
       <a href="#/viewings">Show all viewings</a></p>}
     {creating && <NewViewing listing={listing} onBooked={booked} onClose={closeForm} onDirty={onDirty} />}
     <div className="seg" role="group" aria-label="Viewings">{Object.entries(TABS).map(([k, t]) =>
-      <button key={k} type="button" aria-pressed={tab === k} onClick={() => show(k)}>{t}<span className="count">{data?.counts[k] ?? ""}</span></button>)}</div>
+      <button key={k} type="button" aria-pressed={tab === k} onClick={() => show(k)}>{t}<span className="count">{counts[k] ?? ""}</span></button>)}</div>
     <Msg m={msg} />
     {loadErr && <p role="alert" className="err">{loadErr} <button type="button" className="linkish" onClick={() => load()}>Try again</button></p>}
     {!data ? !loadErr && <p>Loading viewings…</p>
-      : !data.viewings.length ? <p className="empty card">{listing ? `No viewings of this listing in ${TABS[tab]}.` : EMPTY[tab]}</p>
+      : !data.viewings.length && !v ? <p className="empty card">{listing ? `No viewings of this listing in ${TABS[tab]}.` : EMPTY[tab]}</p>
       : <div className="inbox">
         <div ref={listRef} className="inbox-list">{groups.map(([date, rows]) => <div key={date ?? "all"}>
-          {date && <h3 className="day-head" id={`d-${date}`}>{fmtDay(date, true)}</h3>}
+          {date && <h2 className="day-head" id={`d-${date}`}>{fmtDay(date, true)}</h2>}
           <ul {...(date ? { "aria-labelledby": `d-${date}` } : { "aria-label": `${TABS[tab]} viewings` })}>{rows.map(x => <li key={x.id}>
             <button type="button" aria-current={x.id === sel ? "true" : undefined} onClick={() => pick(x.id)}>
               <span className="who">{x.name}</span>
@@ -127,13 +141,14 @@ export default function Viewings({ listing }) {
               {tab === "past" ? <Badge status={x.status} /> : <span className="muted">{x.negotiator_name ?? "No negotiator"}</span>}
             </button></li>)}</ul>
         </div>)}</div>
-        {v && <Detail key={v.id} v={v} ended={tab === "outcome"} filtered={listing === v.listing_id} headRef={detailRef}
+        {v && <Detail key={v.id} v={v} gone={!stillThere(data, v.id) ? TABS[tab] : null} ended={tab === "outcome"} filtered={listing === v.listing_id} headRef={detailRef}
           act={act} saveNotes={saveNotes} remove={remove} onDirty={onDirty} />}
       </div>}
   </section>;
 }
 
-function Detail({ v, ended, filtered, headRef, act, saveNotes, remove, onDirty }) {
+// gone: the tab v has just left (see send); only its notes can still be saved.
+function Detail({ v, gone, ended, filtered, headRef, act, saveNotes, remove, onDirty }) {
   const [notes, setNotes] = useState(v.notes ?? ""), [open, setOpen] = useState(null); // open: "complete" | "reschedule"
   const [err, setErr] = useState(null), [interest, setInterest] = useState(null), [refresh, setRefresh] = useState(0);
   const busy = useRef(false), notesRef = useRef(null), opener = useRef(null);
@@ -144,7 +159,7 @@ function Detail({ v, ended, filtered, headRef, act, saveNotes, remove, onDirty }
   useEffect(() => {
     if (!v.listing_id) return;
     let live = true;
-    api(`/admin/listings/${v.listing_id}`).then(d => live && setInterest(d.active_interest), () => {});
+    api(`/admin/listings/${v.listing_id}/interest`).then(d => live && setInterest(d.active_interest), () => {});
     return () => { live = false; };
   }, [v.listing_id, v.updated_at, v.status]);
 
@@ -169,21 +184,23 @@ function Detail({ v, ended, filtered, headRef, act, saveNotes, remove, onDirty }
 
   const subject = encodeURIComponent(`Your viewing: ${listingOf(v)}`);
   const n = interest;
-  const active = v.status === "requested" || v.status === "confirmed";
+  const active = !gone && (v.status === "requested" || v.status === "confirmed");
   return <article className="card inbox-detail" aria-labelledby="v-name">
     <div className="head"><div>
       <h2 id="v-name" ref={headRef} tabIndex={-1}>{v.name} <Badge status={v.status} /></h2>
       <p className="muted">Added {fmtDate(v.created_at)}</p></div>
       <div className="inline">
-        {v.status === "requested" && <button type="button" className="btn" onClick={confirmIt}>Confirm</button>}
-        {v.status === "confirmed" && ended && <>
+        {active && v.status === "requested" && <button type="button" className="btn" onClick={confirmIt}>Confirm</button>}
+        {active && v.status === "confirmed" && ended && <>
           <button type="button" className="btn" aria-expanded={open === "complete"} onClick={e => toggle("complete", e)}>Mark completed</button>
           <button type="button" className="btn ghost" onClick={noShow}>No-show</button></>}
         {active && <button type="button" className="btn ghost" aria-expanded={open === "reschedule"} onClick={e => toggle("reschedule", e)}>Reschedule</button>}
       </div></div>
     {err && <p role="alert" className="err">{err}</p>}
-    {open === "complete" && <OutcomeForm onSave={complete} onClose={close} />}
-    {open === "reschedule" && <RescheduleForm v={v} refresh={refresh} onSave={reschedule} onClose={close} />}
+    {gone && <p className="warn" role="note">This viewing has changed and is no longer in {gone}. Your notes aren't saved yet:
+      save them below, then choose another viewing.</p>}
+    {active && open === "complete" && <OutcomeForm onSave={complete} onClose={close} />}
+    {active && open === "reschedule" && <RescheduleForm v={v} refresh={refresh} onSave={reschedule} onClose={close} />}
     <dl className="kv">
       <div><dt>Listing</dt><dd>{v.listing_id ? <a href={`#/p/${v.listing_id}`}>{listingOf(v)}</a>
         : v.listing_ref ? <>{listingOf(v)} <span className="muted">({v.listing_ref}, listing deleted)</span></> : listingOf(v)}</dd></div>
@@ -203,13 +220,13 @@ function Detail({ v, ended, filtered, headRef, act, saveNotes, remove, onDirty }
       <textarea id="v-notes" ref={notesRef} value={notes} maxLength={4000} onChange={e => setNotes(e.target.value)} placeholder="e.g. Called on Tuesday, prefers Saturday morning" />
       <div className="inline"><button type="button" className="btn sm" disabled={!notesDirty}
         onClick={() => run(() => saveNotes(v, notes), () => notesRef.current?.focus())}>Save notes</button></div></div>
-    <details className="more"><summary>More</summary><div className="inline">
-      {v.status === "confirmed" && !ended && <>
+    {!gone && <details className="more"><summary>More</summary><div className="inline">
+      {active && v.status === "confirmed" && !ended && <>
         <button type="button" className="btn ghost sm" aria-expanded={open === "complete"} onClick={e => toggle("complete", e)}>Mark completed</button>
         <button type="button" className="btn ghost sm" onClick={noShow}>No-show</button></>}
       {active && <button type="button" className="btn ghost sm danger" onClick={cancel}>Cancel viewing</button>}
       <button type="button" className="btn ghost sm danger" onClick={() => run(() => remove(v) || null)}>Delete viewing</button>
-    </div></details>
+    </div></details>}
   </article>;
 }
 
@@ -237,7 +254,8 @@ function OutcomeForm({ onSave, onClose }) {
 }
 
 function RescheduleForm({ v, refresh, onSave, onClose }) {
-  const [slot, setSlot] = useState({ negotiator_id: v.negotiator_id, date: v.date, time: null }), [err, setErr] = useState(null);
+  const [slot, setSlot] = useState({ negotiator_id: v.negotiator_id, date: v.date >= jerseyToday() ? v.date : null, time: null });
+  const [err, setErr] = useState(null);
   const head = useRef(null);
   useEffect(() => { head.current?.focus(); }, []);
   const submit = e => {
@@ -259,7 +277,7 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
   const [slot, setSlot] = useState({ negotiator_id: null, date: null, time: null }), [listings, setListings] = useState(null);
   const [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [refresh, setRefresh] = useState(0);
   const head = useRef(null), form = useRef(null), focusErr = useRef(false);
-  useEffect(() => { head.current?.focus(); api("/admin/listings").then(d => setListings(d.listings), e => setMsg({ text: e.message })); }, []);
+  useEffect(() => { head.current?.focus(); api("/admin/listings?slim=1").then(d => setListings(d.listings), e => setMsg({ text: e.message })); }, []);
   const dirty = !!(f.name.trim() || f.email.trim() || f.phone.trim() || f.notes.trim() || slot.time);
   useEffect(() => { onDirty("form", dirty); }, [dirty]);
   useEffect(() => () => onDirty("form", false), []);

@@ -6,7 +6,8 @@ const ACTIVE_SQL = ACTIVE.map(s => `'${s}'`).join(", ");
 // The slots of `days` days from `from` (website, fromTomorrow: Monday to Saturday only, C11), per negotiator.
 // Three queries in one batch; exceptions and viewings are read through the (negotiator_id, date) indexes (the unary +
 // keeps SQLite from picking the (status, created_at) index instead, which would read every active viewing ever).
-export async function loadAvailability(env, { from, days, now, fromTomorrow, includeInactive = false, negotiatorId }) {
+// excludeId: a viewing being rescheduled, left out of the bookings so its own and neighbouring slots show as free.
+export async function loadAvailability(env, { from, days, now, fromTomorrow, includeInactive = false, negotiatorId, excludeId }) {
   const dates = [];
   for (let d = from; dates.length < days; d = plusDays(d, 1)) if (!fromTomorrow || weekday(d) !== "sun") dates.push(d);
   const who = [includeInactive ? "1" : "active = 1", ...(negotiatorId == null ? [] : ["id = ?"])].join(" AND ");
@@ -16,8 +17,9 @@ export async function loadAvailability(env, { from, days, now, fromTomorrow, inc
     env.DB.prepare(`SELECT negotiator_id, date, kind, start_time, end_time FROM negotiator_exceptions
       WHERE negotiator_id IN (SELECT id FROM negotiators WHERE ${who}) AND date BETWEEN ? AND ?`).bind(...args, ...range),
     env.DB.prepare(`SELECT negotiator_id, date, time, end_time FROM viewing_requests
-      WHERE negotiator_id IN (SELECT id FROM negotiators WHERE ${who}) AND date BETWEEN ? AND ? AND +status IN (${ACTIVE_SQL})`)
-      .bind(...args, ...range),
+      WHERE negotiator_id IN (SELECT id FROM negotiators WHERE ${who}) AND date BETWEEN ? AND ? AND +status IN (${ACTIVE_SQL})${
+        excludeId == null ? "" : " AND id <> ?"}`)
+      .bind(...args, ...range, ...(excludeId == null ? [] : [excludeId])),
   ]).then(r => r.map(x => x.results));
   const byDay = rows => rows.reduce((a, r) => ((a[`${r.negotiator_id} ${r.date}`] ||= []).push(r), a), {});
   const ex = byDay(exceptions), booked = byDay(bookings);

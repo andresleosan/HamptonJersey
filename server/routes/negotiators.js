@@ -91,12 +91,14 @@ async function removeException({ env, params: [id, eid] }) {
 }
 
 // The website's slots with today's still to come (C11). Asking for one negotiator includes them even when inactive,
-// so their viewings can be moved to someone else.
+// so their viewings can be moved to someone else. exclude=<viewing id>: the viewing being rescheduled, which never
+// blocks its own slot or the ones next to it (as clash(…, excludeId) when it is saved).
 async function availability({ request, env }) {
-  const q = new URL(request.url).searchParams, clock = jerseyNow(), id = q.get("negotiator_id");
+  const q = new URL(request.url).searchParams, clock = jerseyNow(), id = q.get("negotiator_id"), exclude = q.get("exclude");
   if (id != null && !ID.test(id)) fail(400, "Unknown negotiator");
+  if (exclude != null && !ID.test(exclude)) fail(400, "Unknown viewing");
   const a = await loadAvailability(env, { ...availabilityRange(q, clock.date), now: clock, fromTomorrow: false,
-    includeInactive: id != null, negotiatorId: id == null ? null : Number(id) });
+    includeInactive: id != null, negotiatorId: id == null ? null : Number(id), excludeId: exclude == null ? null : Number(exclude) });
   if (id != null && !a.negotiators.length) fail(404, "Unknown negotiator");
   return json({ slot_minutes: SLOT_MINUTES, ...a });
 }

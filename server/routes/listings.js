@@ -22,8 +22,23 @@ export async function loadListing(env, id) {
   return { ...l, specs: JSON.parse(l.specs || "[]") };
 }
 
+// C10: people with an active viewing from today on, or a completed one of the last 30 days that went well. Each person
+// once: by email, or by phone when there is none. Read through the (listing_id, date) index.
+const interestStatement = (env, id) => {
+  const today = jerseyNow().date;
+  return env.DB.prepare(`SELECT COUNT(DISTINCT COALESCE(lower(email), phone)) AS n FROM viewing_requests WHERE listing_id = ?
+    AND ((status IN ('requested', 'confirmed') AND date >= ?)
+      OR (status = 'completed' AND outcome IN ('proceed', 'more_info') AND date >= ?))`).bind(id, today, plusDays(today, -30));
+};
+
 async function list({ request, env }) {
-  const parish = new URL(request.url).searchParams.get("parish") || null;
+  const q = new URL(request.url).searchParams;
+  // slim=1: just enough to name and choose a listing (the panel's New viewing), without the per-listing media lookups.
+  if (q.get("slim") === "1") {
+    const { results } = await env.DB.prepare("SELECT id, title, published, archived_at FROM listings ORDER BY id").all();
+    return json({ listings: results });
+  }
+  const parish = q.get("parish") || null;
   if (parish && !ENUMS.parish.includes(parish)) fail(400, "Invalid parish");
   const { results } = await env.DB.prepare(`${LIST_SQL} ${parish ? "WHERE l.parish = ?" : ""} ORDER BY l.id`)
     .bind(...(parish ? [parish] : [])).all();
@@ -33,7 +48,6 @@ async function list({ request, env }) {
 async function detail({ env, params: [id] }) {
   const listing = await loadListing(env, id);
   const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
-  const today = jerseyNow().date;
   const [media, research, sources, facts, terms, issues, searches, matched, [interest]] = (await env.DB.batch([
     q("SELECT * FROM media WHERE listing_id = ? ORDER BY position, id", id),
     q("SELECT * FROM research_properties WHERE property_id = ?", id),
@@ -46,17 +60,21 @@ async function detail({ env, params: [id] }) {
        FROM matches m JOIN applicants a ON a.id = m.applicant_id JOIN contacts c ON c.id = a.contact_id
        WHERE m.listing_id = ?
        ORDER BY CASE m.status WHEN 'shortlisted' THEN 0 WHEN 'found' THEN 1 ELSE 2 END, m.score DESC, m.id`, id),
-    // C10: people with an active viewing from today on, or a completed one of the last 30 days that went well. Each
-    // person once: by email, or by phone when there is none.
-    q(`SELECT COUNT(DISTINCT COALESCE(lower(email), phone)) AS n FROM viewing_requests WHERE listing_id = ?
-       AND ((status IN ('requested', 'confirmed') AND date >= ?)
-         OR (status = 'completed' AND outcome IN ('proceed', 'more_info') AND date >= ?))`, id, today, plusDays(today, -30)),
+    interestStatement(env, id),
   ])).map(r => r.results);
   const group = research[0]?.duplicate_group;
   const duplicates = group ? (await q("SELECT property_id FROM research_properties WHERE duplicate_group = ? AND property_id <> ? ORDER BY property_id", group, id).all())
     .results.map(r => r.property_id) : [];
   return json({ listing, media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates,
     matched_applicants: matched, active_interest: interest.n });
+}
+
+// The listing's title and active interest alone (the panel's Viewings screen), without the editor's full read.
+async function interest({ env, params: [id] }) {
+  const [[l], [n]] = (await env.DB.batch([env.DB.prepare("SELECT title FROM listings WHERE id = ?").bind(id),
+    interestStatement(env, id)])).map(r => r.results);
+  if (!l) fail(404, "Listing not found");
+  return json({ title: l.title, active_interest: n.n });
 }
 
 const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
@@ -184,6 +202,7 @@ export default [
   ["POST", /^\/admin\/listings$/, create, true],
   ["PUT", /^\/admin\/listings\/order$/, reorder, true],
   ["GET", new RegExp(`^/admin/listings/${ID}$`), detail, true],
+  ["GET", new RegExp(`^/admin/listings/${ID}/interest$`), interest, true],
   ["PUT", new RegExp(`^/admin/listings/${ID}$`), update, true],
   ["DELETE", new RegExp(`^/admin/listings/${ID}$`), remove, true],
   ["POST", new RegExp(`^/admin/listings/${ID}/(publish|unpublish|archive|restore)$`), setState, true],
