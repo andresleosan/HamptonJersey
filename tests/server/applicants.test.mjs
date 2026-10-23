@@ -386,3 +386,65 @@ test("users can carry a display name", async () => {
   assert.equal((await req(env, "POST", "/admin/users", { email: "new@hampton.je", name: "x".repeat(81) })).status, 400);
   assert.equal((await req(env, "PUT", "/admin/users/nobody%40hampton.je", { name: "Nobody" })).status, 404);
 });
+
+test("each pending duplicate says whether the contact already has an active search of that operation", async () => {
+  // The contact has an open buy search, plus (or not) a rent search in the given stage; the duplicate asks to rent.
+  for (const [rentStage, expectRent] of [[null, false], ["searching", true], ["lost", false]]) {
+    const env = makeEnv();
+    const buy = await create(env, { operation: "buy", budget_max: 450000 });
+    const contactId = row(env, "SELECT contact_id FROM applicants WHERE id = ?", buy).contact_id;
+    let rent = null;
+    if (rentStage) {
+      rent = (await req(env, "POST", "/admin/applicants", form({ contact_id: contactId }))).data.id;
+      env.DB.raw.prepare("UPDATE applicants SET stage = ?, lost_reason = ? WHERE id = ?")
+        .run(rentStage, rentStage === "lost" ? "Found elsewhere" : null, rent);
+    }
+    env.DB.raw.prepare("INSERT INTO events (at, actor, entity_type, entity_id, type, data) VALUES (?, 'public', 'contact', ?, 'applicant.duplicate_submitted', ?)")
+      .run(T0, String(contactId), JSON.stringify({ operation: "rent" }));
+    env.DB.raw.prepare("INSERT INTO notifications (event_id, category, title, action_required, created_at) VALUES (last_insert_rowid(), 'new_applicant', 'Jane Le Brocq registered again', 1, ?)").run(T0);
+    const [dup] = (await detail(env, buy)).duplicates;
+    assert.equal(dup.active_search_id, expectRent ? rent : null, String(rentStage));
+  }
+});
+
+test("a new search for a contact with an active search of that operation is refused", async () => {
+  const env = makeEnv();
+  const rent = await create(env);
+  const contactId = row(env, "SELECT contact_id FROM applicants WHERE id = ?", rent).contact_id;
+  const counts = () => [row(env, "SELECT COUNT(*) AS n FROM applicants").n, row(env, "SELECT COUNT(*) AS n FROM events").n,
+    row(env, "SELECT last_activity_at FROM contacts WHERE id = ?", contactId).last_activity_at];
+  const before = counts();
+  const r = await req(env, "POST", "/admin/applicants", form({ contact_id: contactId }));
+  assert.equal(r.status, 409);
+  assert.deepEqual(r.data, { error: "Jane Le Brocq already has an active To Let search.", applicant_id: rent });
+  assert.deepEqual(counts(), before, "nothing written");
+
+  env.DB.raw.prepare("UPDATE applicants SET stage = 'completed' WHERE id = ?").run(rent);
+  assert.equal((await req(env, "POST", "/admin/applicants", form({ contact_id: contactId }))).status, 201, "a completed search is over");
+});
+
+test("a stale save is 409 whatever the database error says", async () => {
+  const env = makeEnv();
+  const id = await create(env);
+  const { applicant, contact } = await detail(env, id);
+  const batch = env.DB.batch.bind(env.DB);
+  const racing = table => async stmts => {
+    env.DB.raw.prepare(`UPDATE ${table} SET updated_at = ? WHERE id = ?`).run("2026-10-23T12:00:00.000Z", table === "applicants" ? id : contact.id);
+    try { return await batch(stmts); } catch { throw new Error("D1_ERROR: something else entirely"); }
+  };
+  env.DB.batch = racing("applicants");
+  const a = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: applicant.updated_at, stage: "searching" });
+  assert.equal(a.status, 409);
+  assert.equal(a.data.error, STALE);
+  env.DB.batch = racing("contacts");
+  const c = await req(env, "PUT", `/admin/contacts/${contact.id}`, { updated_at: contact.updated_at, best_time: "Evenings" });
+  assert.equal(c.status, 409);
+  assert.equal(c.data.error, "Someone else saved changes to this contact. Reload to see them (your changes were not saved).");
+
+  // Not a version problem: the error is passed on (500).
+  env.DB.batch = async () => { throw new Error("D1 down"); };
+  const fresh = row(env, "SELECT updated_at FROM applicants WHERE id = ?", id).updated_at;
+  const orig = console.error; console.error = () => {};
+  try { assert.equal((await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: fresh, stage: "viewing" })).status, 500); }
+  finally { console.error = orig; }
+});

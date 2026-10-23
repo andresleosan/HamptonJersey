@@ -40,12 +40,18 @@ const touch = (env, contactId, ts) =>
 // whole batch (events included) rolls back, even when another save lands between our check and our write.
 // Bind: the updated_at the client saw, then the new one.
 const LOCK = "updated_at = CASE WHEN updated_at = ? THEN ? END";
-async function saveVersioned(env, stmts, entity) {
+// Whatever the error says, the row tells what happened: gone (404), saved by someone else (409), or neither (rethrow).
+async function saveVersioned(env, stmts, entity, id, seen) {
   try { await env.DB.batch(stmts); } catch (e) {
-    if (String(e?.message).includes(`NOT NULL constraint failed: ${entity}s.updated_at`)) fail(409, STALE[entity]);
+    const row = await env.DB.prepare(`SELECT updated_at FROM ${entity}s WHERE id = ?`).bind(id).first();
+    if (!row) fail(404, `${entity[0].toUpperCase()}${entity.slice(1)} not found`);
+    if (row.updated_at !== seen) fail(409, STALE[entity]);
     throw e;
   }
 }
+
+// "Active search" (same rule as notifications.js): not archived, lost or completed; a paused one is still active.
+const ACTIVE = "s.archived_at IS NULL AND s.stage NOT IN ('lost', 'completed')";
 
 // before/after with only the changed fields; JSON lists as lists.
 function diff(cur, next) {
@@ -99,9 +105,13 @@ async function detail({ env, params: [id] }) {
        FROM viewing_requests v LEFT JOIN listings l ON l.id = v.listing_id
        WHERE lower(v.email) = ? OR (? IS NOT NULL AND replace(replace(replace(replace(v.phone, ' ', ''), '-', ''), '(', ''), ')', '') LIKE '%' || ?)
        ORDER BY v.created_at DESC, v.id DESC`, contact.email, last9, last9),
-    q(`SELECT n.id, n.title, n.created_at, e.id AS event_id, e.data FROM notifications n JOIN events e ON e.id = n.event_id
+    // active_search_id: the contact's active search with the submitted operation; null = "Create second search" applies.
+    q(`SELECT n.id, n.title, n.created_at, e.id AS event_id, e.data,
+         (SELECT s.id FROM applicants s WHERE s.contact_id = ? AND ${ACTIVE} AND s.operation IS json_extract(e.data, '$.operation')
+          ORDER BY s.created_at DESC, s.id DESC LIMIT 1) AS active_search_id
+       FROM notifications n JOIN events e ON e.id = n.event_id
        WHERE n.resolved_at IS NULL AND e.entity_type = 'contact' AND e.entity_id = ? AND e.type = 'applicant.duplicate_submitted'
-       ORDER BY n.created_at DESC, n.id DESC`, String(contact.id)),
+       ORDER BY n.created_at DESC, n.id DESC`, contact.id, String(contact.id)),
   ])).map(r => r.results);
   return json({ applicant: parsed(applicant), contact, events: events.map(withData), viewings, duplicates: duplicates.map(withData) });
 }
@@ -120,6 +130,13 @@ async function create({ request, env, admin }) {
   if (r.errors) return fieldErrors(r.errors);
   const taken = c => json({ error: `${c.name} is already a contact`, contact_id: c.id }, 409);
   if (!contact) { const c = await findContact(env, r.value.contact); if (c) return taken(c); }
+  else {
+    // One active search per operation: a second one would split the contact's history (§3.3 "Create second search").
+    const s = await env.DB.prepare(`SELECT s.id FROM applicants s WHERE s.contact_id = ? AND s.operation = ? AND ${ACTIVE}
+      ORDER BY s.created_at DESC, s.id DESC LIMIT 1`).bind(contact.id, r.value.applicant.operation).first();
+    if (s) return json({ error: `${contact.name} already has an active ${OPERATION_LABEL[r.value.applicant.operation]} search.`,
+      applicant_id: s.id }, 409);
+  }
 
   const stamps = { created_at: ts, updated_at: ts, updated_by: admin };
   const person = { ...r.value.contact, last_activity_at: ts, ...stamps }, a = { ...r.value.applicant, ...stamps };
@@ -197,7 +214,7 @@ async function update({ request, env, admin, params: [id] }) {
     // Someone has picked it up: the new-applicant notice is done (§3.2).
     ...((keys.includes("assigned_to") && assigned_to) || leftNew
       ? [resolveNotices(env, { entity_type: "applicant", entity_id: String(cur.id), category: "new_applicant" }, admin)] : []),
-  ], "applicant");
+  ], "applicant", cur.id, body.updated_at);
   return json({ applicant: parsed(await loadApplicant(env, cur.id)) });
 }
 
@@ -223,7 +240,7 @@ async function updateContact({ request, env, admin, params: [id] }) {
       env.DB.prepare(`UPDATE contacts SET ${keys.map(k => `${k} = ?`).join(", ")}, last_activity_at = ?, updated_by = ?, ${LOCK} WHERE id = ?`)
         .bind(...keys.map(k => next[k]), ts, admin, body.updated_at, ts, cur.id),
       ...logEvent(env, { actor: admin, entity_type: "contact", entity_id: String(cur.id), type: "contact.updated", data }),
-    ], "contact");
+    ], "contact", cur.id, body.updated_at);
   } catch (e) {
     const c = /UNIQUE/i.test(String(e?.message)) && await findContact(env, next, cur.id);
     if (c) return taken(c);
