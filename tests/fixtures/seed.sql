@@ -18,6 +18,36 @@ INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, label, publi
 ('A00008','HE-C001','media/hampton/p7.jpg','thumbs/hampton/p7.jpg','hampton','photo','Café',1,0,'image/jpeg','2026-10-07T00:00:00.000Z'),
 ('A00009','HE-R003','media/hampton/p8.jpg','thumbs/hampton/p8.jpg','hampton','photo','Draft photo',1,0,'image/jpeg','2026-10-07T00:00:00.000Z');
 UPDATE listings SET cover_media_id = 'A00002' WHERE id = 'HE-R001';
+-- F1-A inventory to match, as right after migration 0009: parish and features still unread (features_at NULL), so
+-- "Recalculate all" reads them from the text. Four drafts made in the panel (offered by default) and one agency
+-- listing archived on 7-oct but still co-listed, so still offered. The text exercises the features: a furnished rent with
+-- a balcony (St Helier through Havre des Pas), a yearly rent that says no pets, a house with parking for 2 (St Brelade
+-- through St Aubin), a pet-friendly cottage whose place is no parish (Gorey: area Unknown) and a specs row for parking.
+INSERT INTO listings (id, use, title, property_type, operation, availability, country, location, bedrooms, bathrooms,
+  sale_price, rent, rent_period, currency, price_text, summary, description, specs, published, matchable, archived_at,
+  created_at, updated_at, updated_by) VALUES
+('HE-R004','residential','Havre des Pas apartment','Apartment','rent','to_let','Jersey','Havre des Pas',2,1,NULL,2100,'month',
+ 'GBP','£2,100 pcm','Fully furnished, sea views','Fully furnished two-bedroom apartment on the seafront with a balcony.'
+ || char(10) || 'Pets considered. One allocated parking space.','[]',0,1,NULL,
+ '2026-10-22T09:00:00.000Z','2026-10-22T09:00:00.000Z','luismadef45@gmail.com'),
+('HE-R005','residential','Town flat near the Parade','Flat','rent','to_let','Jersey','St Helier',2,1,NULL,21600,'year',
+ 'GBP','£21,600 per annum',NULL,'Unfurnished two-bedroom flat close to town, with a communal garden. No pets.','[]',0,1,NULL,
+ '2026-10-22T09:10:00.000Z','2026-10-22T09:10:00.000Z','luismadef45@gmail.com'),
+('HE-R006','residential','St Aubin family house','House','sale','for_sale','Jersey','St Aubin',4,2,695000,NULL,NULL,
+ 'GBP','£695,000','Detached, four bedrooms','Detached family house with a south-facing garden and parking for 2 cars.','[]',0,1,NULL,
+ '2026-10-22T09:20:00.000Z','2026-10-22T09:20:00.000Z','luismadef45@gmail.com'),
+('HE-R007','residential','Gorey harbour cottage','Cottage','rent','to_let','Jersey','Gorey',3,1,NULL,1950,'month',
+ 'GBP','£1,950 pcm',NULL,'Pet friendly cottage a short walk from the harbour. Garage.','[]',0,1,NULL,
+ '2026-10-22T09:30:00.000Z','2026-10-22T09:30:00.000Z','luismadef45@gmail.com'),
+('HE-R040','residential','Millbrook stone cottage','Cottage','sale','for_sale','Jersey','Millbrook',3,1,640000,NULL,NULL,
+ 'GBP','£640,000',NULL,'Granite cottage with a sunny patio, marketed jointly with another agency.',
+ '[{"group":"Outside","label":"Parking Spaces","value":"2"}]',0,1,'2026-10-07T00:00:00.000Z',
+ '2026-10-07T00:00:00.000Z','2026-10-07T00:00:00.000Z','import');
+INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, label, public, position, content_type, created_at) VALUES
+('A00010','HE-R004','media/hampton/p5.jpg','thumbs/hampton/p5.jpg','hampton','photo','Living room',1,0,'image/jpeg','2026-10-22T09:00:00.000Z'),
+('A00011','HE-R040','media/hampton/p6.jpg','thumbs/hampton/p6.jpg','hampton','photo','Front',1,0,'image/jpeg','2026-10-07T00:00:00.000Z');
+-- Migration 0009 offers every published listing (B9).
+UPDATE listings SET matchable = 1 WHERE published = 1;
 -- F0 applicants: one To Let from the website (open "New applicant" notice), one To Buy entered by the team (Feed only),
 -- a pending "registered again" from the To Buy contact (flat submission, as the public API receives it) and a new
 -- viewing request from the same contact, so it shows in the Inbox and on his Timeline.
@@ -35,6 +65,17 @@ INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, b
 (2,2,'buy','searching','phone','luismadef45@gmail.com',500000,750000,'["house"]',3,2,'["garden"]',NULL,NULL,'["St Brelade","St Lawrence"]',
  NULL,NULL,'needs_to_sell','in_progress','entitled',2,1,'Quiet road, room for a home office','2026-10-21T10:00:00.000Z',
  '2026-10-21T10:00:00.000Z','luismadef45@gmail.com');
+-- F1-A: a To Let search with no pets that wants a furnished flat with a balcony in St Helier and never St Ouen.
+INSERT INTO contacts (id, name, email, phone, preferred_channel, best_time, privacy_ack_at, marketing_opt_in_at, consent_source,
+  last_activity_at, created_at, updated_at, updated_by) VALUES
+(3,'Claire Le Sueur','claire.lesueur@example.je',NULL,'email',NULL,'2026-10-22T11:00:00.000Z',NULL,'email',
+ '2026-10-22T11:00:00.000Z','2026-10-22T11:00:00.000Z','2026-10-22T11:00:00.000Z','luismadef45@gmail.com');
+INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, budget_min, budget_max, property_types, bedrooms_min,
+  parking_spaces, outdoor, furnished, pets, parishes_wanted, parishes_excluded, move_in_date, lease_term_months, housing_status,
+  household_adults, household_children, created_at, updated_at, updated_by) VALUES
+(3,3,'rent','searching','email','luismadef45@gmail.com',1500,2300,'["flat"]',2,0,'["balcony"]','yes','[{"kind":"none"}]',
+ '["St Helier"]','["St Ouen"]','2026-11-15',12,'licensed',1,0,'2026-10-22T11:00:00.000Z','2026-10-22T11:00:00.000Z',
+ 'luismadef45@gmail.com');
 INSERT INTO viewing_requests (id, listing_id, listing_ref, listing_title_snapshot, agent, kind, date, time, name, email, phone, status, created_at) VALUES
 (1,'HE-R001','HE-R001','Le Bernage',NULL,'In person','2026-10-28','10:00','Tom Renouf','tom.renouf@example.je','07700 900321','new','2026-10-22T14:00:00.000Z');
 INSERT INTO events (id, at, actor, entity_type, entity_id, type, data) VALUES
@@ -42,9 +83,11 @@ INSERT INTO events (id, at, actor, entity_type, entity_id, type, data) VALUES
 (2,'2026-10-21T10:00:00.000Z','luismadef45@gmail.com','applicant','2','applicant.created','{"operation":"buy","source":"phone"}'),
 (3,'2026-10-22T14:00:00.000Z','public','viewing','1','viewing.requested','{"listing_id":"HE-R001","date":"2026-10-28","time":"10:00","kind":"In person"}'),
 (4,'2026-10-22T18:30:00.000Z','public','contact','2','applicant.duplicate_submitted',
- '{"operation":"buy","name":"Tom Renouf","email":"tom.renouf@example.je","phone":"+447700900321","preferred_channel":"whatsapp","best_time":"Weekday mornings","budget_max":800000,"property_types":["house","cottage"],"bedrooms_min":4,"parking_spaces":2,"outdoor":["garden"],"parishes_wanted":["St Brelade","St Lawrence","St Peter"],"buyer_position":"needs_to_sell","mortgage_aip":"yes","housing_status":"entitled","requirements":"Quiet road, room for a home office","privacy":true,"marketing":true}');
+ '{"operation":"buy","name":"Tom Renouf","email":"tom.renouf@example.je","phone":"+447700900321","preferred_channel":"whatsapp","best_time":"Weekday mornings","budget_max":800000,"property_types":["house","cottage"],"bedrooms_min":4,"parking_spaces":2,"outdoor":["garden"],"parishes_wanted":["St Brelade","St Lawrence","St Peter"],"buyer_position":"needs_to_sell","mortgage_aip":"yes","housing_status":"entitled","requirements":"Quiet road, room for a home office","privacy":true,"marketing":true}'),
+(5,'2026-10-22T11:00:00.000Z','luismadef45@gmail.com','applicant','3','applicant.created','{"operation":"rent","source":"email"}');
 INSERT INTO notifications (id, event_id, category, title, action_required, created_at) VALUES
 (1,1,'new_applicant','New applicant: Sarah Vibert · To Let',1,'2026-10-20T09:00:00.000Z'),
 (2,2,'new_applicant','New applicant: Tom Renouf · To Buy',0,'2026-10-21T10:00:00.000Z'),
 (3,3,'viewing','Viewing request: Tom Renouf',1,'2026-10-22T14:00:00.000Z'),
-(4,4,'new_applicant','Tom Renouf registered again',1,'2026-10-22T18:30:00.000Z');
+(4,4,'new_applicant','Tom Renouf registered again',1,'2026-10-22T18:30:00.000Z'),
+(5,5,'new_applicant','New applicant: Claire Le Sueur · To Let',0,'2026-10-22T11:00:00.000Z');

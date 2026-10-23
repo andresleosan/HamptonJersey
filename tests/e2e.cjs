@@ -118,7 +118,7 @@ async function admin(browser) {
   assert.equal(await page.getAttribute("header.bar a.home", "href"), "/", "panel header links back to the public site");
   await page.goto(BASE + "admin/#/listings");
   await page.waitForSelector("#t-props");
-  assert.match(await page.textContent(".seg"), /Published4[\s\S]*Drafts1/);
+  assert.match(await page.textContent(".seg"), /Published4[\s\S]*Drafts5/);
   await shot(page, "admin-list");
 
   await page.click('a[href="#/p/HE-R001"]');
