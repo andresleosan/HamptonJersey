@@ -108,6 +108,7 @@ test("validateViewing needs a negotiator and an HH:MM time, and email or phone i
   assert.equal(byPhone.email, null);
   assert.equal(byPhone.phone, "07797 123456");
   assert.ok(panel({ email: "", phone: "" }).errors.email);
+  assert.deepEqual(panel({ email: "", phone: "   " }).errors, { email: "Enter an email address or a phone number" });
   assert.ok(panel({ email: "nope", phone: "07797 123456" }).errors.email);
 });
 

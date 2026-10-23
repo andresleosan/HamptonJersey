@@ -136,7 +136,8 @@ test("refused transitions, stale versions and bad input change nothing", async t
   for (const body of [{ action: "confirm" }, { action: "approve", updated_at: null }, { action: "confirm", updated_at: 5 }])
     assert.equal((await put(env, cookie, id, body)).status, 400, JSON.stringify(body));
   assert.deepEqual(before(), start, "the request and its open notice are as they were");
-  assert.equal((await put(env, cookie, 999, { action: "confirm", updated_at: null })).status, 404);
+  for (const r of [await put(env, cookie, 999, { action: "confirm", updated_at: null }), await put(env, cookie, 999, { notes: "x" }),
+    await call(env, "DELETE", "/admin/viewings/999", { cookie })]) assert.deepEqual([r.status, r.data.error], [404, "Viewing not found"]);
 
   const c = seedViewing(env, { status: "confirmed", date: day(-1) });
   assert.equal((await act(env, cookie, c, "confirm")).data.error, "This viewing is already confirmed.");
@@ -168,6 +169,28 @@ test("a confirm racing another save is 409: no status change, no event, and the 
   assert.equal(row(env, id).status, "requested");
   assert.equal(events(env).length, n);
   assert.equal(notices(env)[0].resolved_at, null);
+});
+
+test("an action on a viewing deleted between its check and its write is 404", async t => {
+  const { env, cookie } = await world(t);
+  const id = await requested(env);
+  raceOn(env, "UPDATE viewing_requests SET status", () =>
+    env.DB.raw.prepare("DELETE FROM viewing_requests WHERE id = ?").run(id));
+  const r = await act(env, cookie, id, "confirm");
+  assert.deepEqual([r.status, r.data.error], [404, "Viewing not found"]);
+});
+
+test("cancelling a confirmed viewing writes its event and frees its slot", async t => {
+  const { env, cookie } = await world(t);
+  const id = seedViewing(env, { status: "confirmed", time: "10:00" });
+  const booked = async () => (await call(env, "GET", `/admin/availability?from=${day(1)}&days=1`, { cookie }))
+    .data.days[0].slots[1].find(s => s.time === "10:00").booked;
+  assert.equal(await booked(), true);
+  assert.equal((await act(env, cookie, id, "cancel")).status, 200);
+  assert.equal(row(env, id).status, "cancelled");
+  const e = events(env).at(-1);
+  assert.deepEqual([e.type, e.actor, e.entity_id], ["viewing.cancelled", ADMIN, String(id)]);
+  assert.equal(await booked(), false);
 });
 
 test("notes still save on their own, without an action", async t => {
@@ -378,10 +401,13 @@ test("the interest route gives the title and the same count as the listing detai
 
 test("the slim listing list names every listing without reading media", async t => {
   const { env, cookie } = await world(t);
+  seedListing(env, { id: "HE-R000", title: "Old import", published: 1, archived_at: T0 });
+  seedListing(env, { id: "HE-R003", title: "Second live" });
   const media = captured(env, /FROM media/);
   const r = await call(env, "GET", "/admin/listings?slim=1", { cookie });
   assert.equal(r.status, 200);
-  assert.deepEqual(r.data.listings.map(l => Object.keys(l).sort().join()), ["archived_at,id,published,title", "archived_at,id,published,title"]);
-  assert.deepEqual(r.data.listings.map(l => [l.id, l.published]), [["HE-R001", 1], ["HE-R002", 0]]);
+  assert.deepEqual(new Set(r.data.listings.map(l => Object.keys(l).sort().join())), new Set(["archived_at,id,published,title"]));
+  // Published first, then drafts, then the archived ones (most of them agency imports).
+  assert.deepEqual(r.data.listings.map(l => l.id), ["HE-R001", "HE-R003", "HE-R002", "HE-R000"]);
   assert.equal(media.length, 0);
 });

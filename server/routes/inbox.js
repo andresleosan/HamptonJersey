@@ -76,9 +76,6 @@ async function create({ request, env, admin }) {
 // C7: the statuses each action leaves from, and where it goes (reschedule keeps the status).
 const FROM = { confirm: ["requested"], cancel: ACTIVE, reschedule: ACTIVE, complete: ["confirmed"], no_show: ["confirmed"] };
 const TO = { confirm: "confirmed", cancel: "cancelled", complete: "completed", no_show: "no_show" };
-// A status in the words of "This viewing is already …".
-const SAID = { requested: "requested", confirmed: "confirmed", completed: "completed", no_show: "marked as a no-show",
-  cancelled: "cancelled" };
 
 // The columns an action sets, its event data, and for a reschedule the clash its UPDATE must not have (C6).
 async function change(env, action, body, cur, clock) {
@@ -115,8 +112,8 @@ async function runAction({ env, admin, id, body }) {
     fail(400, "Missing updated_at: reload the viewing");
   if (!Object.hasOwn(FROM, body.action)) fail(400, "Unknown action");
   const cur = await env.DB.prepare("SELECT * FROM viewing_requests WHERE id = ?").bind(id).first();
-  if (!cur) fail(404, "Request not found");
-  if (!FROM[body.action].includes(cur.status)) fail(409, `This viewing is already ${SAID[cur.status]}.`);
+  if (!cur) fail(404, "Viewing not found");
+  if (!FROM[body.action].includes(cur.status)) fail(409, `This viewing is already ${cur.status === "no_show" ? "marked as a no-show" : cur.status}.`);
   if (cur.updated_at !== body.updated_at) fail(409, stale);
   const ch = await change(env, body.action, body, cur, jerseyNow());
   if (ch.errors) return fields(ch.errors);
@@ -134,7 +131,7 @@ async function runAction({ env, admin, id, body }) {
   if (r.meta.changes) return json({ ok: true });
   // Nothing changed: the row went, someone else saved it, or (the lock held) the new slot was taken meanwhile.
   const after = await env.DB.prepare("SELECT updated_at FROM viewing_requests WHERE id = ?").bind(id).first();
-  if (!after) fail(404, "Request not found");
+  if (!after) fail(404, "Viewing not found");
   if (after.updated_at !== body.updated_at) fail(409, stale);
   return taken();
 }
@@ -146,7 +143,7 @@ async function update({ request, env, admin, params: [id] }) {
   if (!("notes" in body)) fail(400, "Nothing to update");
   const r = await env.DB.prepare("UPDATE viewing_requests SET notes = ?, updated_at = ?, updated_by = ? WHERE id = ?")
     .bind(readNotes(body), now(), admin, Number(id)).run();
-  if (!r.meta.changes) fail(404, "Request not found");
+  if (!r.meta.changes) fail(404, "Viewing not found");
   return json({ ok: true });
 }
 
@@ -160,7 +157,7 @@ async function remove({ env, admin, params: [id] }) {
       WHERE event_id IN (SELECT id FROM events WHERE entity_type = ? AND entity_id = ?)`).bind(ref.entity_type, ref.entity_id),
     env.DB.prepare("UPDATE events SET data = NULL WHERE entity_type = ? AND entity_id = ?").bind(ref.entity_type, ref.entity_id),
   ]);
-  if (!r.meta.changes) fail(404, "Request not found");
+  if (!r.meta.changes) fail(404, "Viewing not found");
   return json({ ok: true });
 }
 

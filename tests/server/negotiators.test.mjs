@@ -142,7 +142,7 @@ test("exceptions: from–to blocks, an open span, a second open that day is 409,
   assert.deepEqual((await slotsOf(env, cookie, date)).map(s => s.time), ["14:00", "14:30", "15:30"]);
   const again = await add({ kind: "open", start_time: "10:00", end_time: "11:00" });
   assert.equal(again.status, 409);
-  assert.match(again.data.error, /already/);
+  assert.equal(again.data.error, "This day already has extra opening hours. Remove them first.");
   assert.equal((await add({ kind: "open", start_time: "10:00", end_time: "11:00" }, 2)).status, 201);   // another person
   assert.equal((await add({ kind: "open", start_time: "10:00", end_time: "11:00" }, 99)).status, 404);
   for (const body of [{ kind: "nap" }, { kind: "open" }, { kind: "block", start_time: "15:00" }, { kind: "block", start_time: "15:00", end_time: "14:00" },

@@ -35,7 +35,8 @@ async function list({ request, env }) {
   const q = new URL(request.url).searchParams;
   // slim=1: just enough to name and choose a listing (the panel's New viewing), without the per-listing media lookups.
   if (q.get("slim") === "1") {
-    const { results } = await env.DB.prepare("SELECT id, title, published, archived_at FROM listings ORDER BY id").all();
+    const { results } = await env.DB.prepare(`SELECT id, title, published, archived_at FROM listings
+      ORDER BY archived_at IS NOT NULL, published DESC, id`).all();
     return json({ listings: results });
   }
   const parish = q.get("parish") || null;

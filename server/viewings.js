@@ -4,7 +4,6 @@ export const EMAIL = /^[^\s@?&%/\\<>"'#]+@[^\s@?&%/\\<>"'#]+\.[^\s@?&%/\\<>"'#]+
 
 // C4, C11: the one place for the slot constants. A viewing lasts SLOT_MINUTES on a grid of the same step.
 export const SLOT_MINUTES = 30, BUFFER_MINUTES = 15, PUBLIC_DAYS = 12, MAX_DAYS = 14;
-export const STATUSES = ["requested", "confirmed", "completed", "no_show", "cancelled"];
 export const ACTIVE = ["requested", "confirmed"];
 export const OUTCOMES = ["proceed", "more_info", "not_interested"];
 export const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -98,10 +97,11 @@ export function validateViewing(b, { today, panel = false }) {
   if (!value.name) errors.name = "Enter your name";
   const email = typeof src.email === "string" ? src.email.trim().toLowerCase() : "";
   value.email = email || null;
-  value.phone = src.phone ? text(src.phone, 40) : null;
-  if (src.phone && !value.phone) errors.phone = "Phone number is too long";
+  const phone = typeof src.phone === "string" ? src.phone.trim() : src.phone;
+  value.phone = phone ? text(phone, 40) : null;
+  if (phone && !value.phone) errors.phone = "Phone number is too long";
   if (email ? email.length > 254 || !EMAIL.test(email) : !panel) errors.email = "Enter a valid email address";
-  else if (!email && !src.phone) errors.email = "Enter an email address or a phone number";
+  else if (!email && !phone) errors.email = "Enter an email address or a phone number";
   value.kind = KINDS.includes(src.kind) ? src.kind : (errors.kind = "Choose a viewing type", null);
   value.time = TIME.test(src.time) ? src.time : (errors.time = "Choose a time", null);
   const [min, max] = panel ? [today, plusDays(today, 365)] : [plusDays(today, 1), plusDays(today, 60)];

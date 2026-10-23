@@ -79,7 +79,7 @@ async function addException({ request, env, admin, params: [id] }) {
     SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE ? <> 'open' OR NOT EXISTS (SELECT 1 FROM negotiator_exceptions
       WHERE negotiator_id = ? AND date = ? AND kind = 'open')`)
     .bind(Number(id), v.date, v.kind, v.start_time, v.end_time, v.note, now(), admin, v.kind, Number(id), v.date).run();
-  if (!out.meta.changes) fail(409, "There is already an open span on that date. Delete it to set another.");
+  if (!out.meta.changes) fail(409, "This day already has extra opening hours. Remove them first.");
   return json({ id: out.meta.last_row_id }, 201);
 }
 
