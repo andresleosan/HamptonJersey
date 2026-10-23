@@ -10,9 +10,11 @@ const EVIDENCE_MAX = 120;
 const LOCALITIES = { "St Aubin": "St Brelade", "Red Houses": "St Brelade", "Les Quennevais": "St Brelade",
   "First Tower": "St Helier", "Havre des Pas": "St Helier", Millbrook: "St Lawrence", "Bel Royal": "St Lawrence",
   "Five Oaks": "St Saviour" };
-// "St" may be written "St.", "St" or "Saint"; "St Brelade's" is still St Brelade; "St Saviours Road" is a street.
+// "St" may be written "St.", "St" or "Saint"; "St Brelade's" is still St Brelade; "St Saviours Road" is a street, and
+// so is "La Route de St Aubin" or "La Grande Route de St Martin": a road named for where it leads.
 const STREET = String.raw`(?!(?:['’]?s)?\s+(?:road|rd|street|st|hill|lane|avenue|close)\b)`;
-const placePattern = name => new RegExp(String.raw`\b${name.replace(/^St /, String.raw`(?:saint\s+|st\.?\s+|st\.)`)
+const LEADS_TO = String.raw`(?<!\b(?:de|du)\s+)`;
+const placePattern = name => new RegExp(String.raw`${LEADS_TO}\b${name.replace(/^St /, String.raw`(?:saint\s+|st\.?\s+|st\.)`)
   .replace(/ /g, String.raw`\s+`)}(?:['’]?s)?\b${STREET}`, "i");
 const PLACES = [...OPTIONS.parishes.map(([p]) => [placePattern(p), p]),
   ...Object.entries(LOCALITIES).map(([place, p]) => [placePattern(place), p])];

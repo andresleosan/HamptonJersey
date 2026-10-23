@@ -140,20 +140,28 @@ test("saving a listing reads its features and parish; a parish set by hand is ne
   const c1 = await req(env, "POST", "/admin/listings", base);
   assert.equal(c1.status, 201);
   const n1 = row(env, "SELECT * FROM listings WHERE id = ?", c1.data.id);
-  assert.deepEqual([n1.parish, n1.feat_parking, n1.feat_furnished, n1.matchable], ["St Brelade", 2, "no", 0]);
+  // Offered unless the editor's switch says otherwise.
+  assert.deepEqual([n1.parish, n1.feat_parking, n1.feat_furnished, n1.matchable], ["St Brelade", 2, "no", 1]);
   assert.ok(n1.features_at);
-  const c2 = await req(env, "POST", "/admin/listings", { ...base, parish: "Grouville", matchable: 1 });
+  const c2 = await req(env, "POST", "/admin/listings", { ...base, parish: "Grouville", matchable: 0 });
   const n2 = row(env, "SELECT parish, matchable FROM listings WHERE id = ?", c2.data.id);
-  assert.deepEqual({ ...n2 }, { parish: "Grouville", matchable: 1 });
+  assert.deepEqual({ ...n2 }, { parish: "Grouville", matchable: 0 });
 });
 
-test("a listing created to let is matched in the same request", async () => {
+test("a listing created to let is matched in the same request, offered without sending matchable", async () => {
   const env = world();
   const a = await createApplicant(env);
+  // The panel's New listing body: no matchable.
   const c = await req(env, "POST", "/admin/listings", { title: "Flat", use: "residential", operation: "rent",
     availability: "to_let", country: "Jersey", location: "St Helier", rent: 2100, rent_period: "month", currency: "GBP",
-    bedrooms: 2, matchable: 1 });
+    bedrooms: 2 });
   assert.equal(c.status, 201);
+  assert.deepEqual(found(env, a), ["HE-R001", "HE-R002", c.data.id]);
+  // Switched off at creation: not offered.
+  const off = await req(env, "POST", "/admin/listings", { title: "Flat 2", use: "residential", operation: "rent",
+    availability: "to_let", country: "Jersey", location: "St Helier", rent: 2100, rent_period: "month", currency: "GBP",
+    bedrooms: 2, matchable: 0 });
+  assert.equal(off.status, 201);
   assert.deepEqual(found(env, a), ["HE-R001", "HE-R002", c.data.id]);
 });
 
@@ -166,12 +174,18 @@ test("listing detail lists its matched applicants; the list shows parish and fil
   run(env, "UPDATE matches SET score = 70, status = 'rejected', reject_reason = 'price' WHERE applicant_id = ? AND listing_id = 'HE-R001'", b);
   run(env, "UPDATE matches SET score = 50, status = 'shortlisted' WHERE applicant_id = ? AND listing_id = 'HE-R001'", c);
   const id = s => row(env, "SELECT id FROM matches WHERE applicant_id = ? AND listing_id = 'HE-R001'", s).id;
+  // Closed searches keep their reviewed matches, and the list says they are closed.
+  run(env, "UPDATE applicants SET stage = 'lost', lost_reason = 'Found elsewhere' WHERE id = ?", b);
+  run(env, "UPDATE applicants SET archived_at = ? WHERE id = ?", T0, c);
 
   const d = (await req(env, "GET", "/admin/listings/HE-R001")).data;
   assert.deepEqual(d.matched_applicants, [
-    { match_id: id(c), applicant_id: c, name: "Ann Renouf", operation: "rent", status: "shortlisted", score: 50 },
-    { match_id: id(a), applicant_id: a, name: "Jane Le Brocq", operation: "rent", status: "found", score: 60 },
-    { match_id: id(b), applicant_id: b, name: "Tom Vibert", operation: "rent", status: "rejected", score: 70 },
+    { match_id: id(c), applicant_id: c, name: "Ann Renouf", operation: "rent", stage: "new", archived_at: T0, status: "shortlisted",
+      score: 50 },
+    { match_id: id(a), applicant_id: a, name: "Jane Le Brocq", operation: "rent", stage: "new", archived_at: null, status: "found",
+      score: 60 },
+    { match_id: id(b), applicant_id: b, name: "Tom Vibert", operation: "rent", stage: "lost", archived_at: null, status: "rejected",
+      score: 70 },
   ]);
   assert.deepEqual((await req(env, "GET", "/admin/listings/HE-R002")).data.matched_applicants.map(m => m.applicant_id), [a, b, c]);
 

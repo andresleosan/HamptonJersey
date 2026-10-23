@@ -197,6 +197,31 @@ test("found matches that stop passing are removed; notice closes at zero found",
   assert.equal(n.resolved_by, "system");
 });
 
+test("a recompute that only refreshes scores and checks leaves the matched notice alone", async () => {
+  const env = makeEnv();
+  const id = seedApplicant(env);
+  listing(env, "HE-R001");
+  listing(env, "HE-R002", { bedrooms: 4 });
+  await recomputeForApplicant(env, id, ADMIN);
+  run(env, "UPDATE notifications SET title = 'as it was'");
+  const real = env.DB.batch.bind(env.DB), sent = [];
+  env.DB.batch = async stmts => { sent.push(...stmts.map(s => s.sql)); return real(stmts); };
+
+  // A new price changes the score of a match that still passes: an UPDATE of matches only.
+  run(env, "UPDATE listings SET sale_price = 600000 WHERE id = 'HE-R001'");
+  await recomputeForApplicant(env, id, ADMIN);
+  await recomputeForListing(env, "HE-R001", ADMIN);
+  const writes = sent.filter(q => !/^\s*SELECT/i.test(q));
+  assert.ok(writes.some(q => /UPDATE matches SET score/.test(q)), "the score was refreshed");
+  assert.deepEqual(writes.filter(q => /notifications/.test(q)), [], "no notice statement");
+  assert.equal(notices(env, id)[0].title, "as it was");
+
+  // One found match gone: the title tells the new total.
+  run(env, "UPDATE listings SET matchable = 0 WHERE id = 'HE-R002'");
+  await recomputeForListing(env, "HE-R002", ADMIN);
+  assert.equal(notices(env, id)[0].title, "1 new match for Ana Le Gros");
+});
+
 test("archived, lost or completed applicants keep no found matches", async () => {
   const env = makeEnv();
   listing(env, "HE-R001");

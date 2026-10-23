@@ -156,6 +156,30 @@ test("only found → shortlisted|rejected and back to found are allowed; bad req
   assert.equal(match(env, id).status, "shortlisted");
 });
 
+test("a lost or completed search is not reviewed: Undo is refused with 409 and the match keeps its status", async () => {
+  const env = makeEnv();
+  listing(env, "HE-R001");
+  listing(env, "HE-R002", { sale_price: 800000 });
+  const a = seedApplicant(env);
+  await recomputeForApplicant(env, a, "system");
+  const kept = matchId(env, a, "HE-R001"), other = matchId(env, a, "HE-R002");
+  assert.equal((await put(env, kept, { status: "shortlisted", from: "found" })).status, 200);
+  const stage = async body => (await req(env, "PUT", `/admin/applicants/${a}`,
+    { ...body, updated_at: row(env, "SELECT updated_at FROM applicants WHERE id = ?", a).updated_at })).status;
+  for (const body of [{ stage: "lost", lost_reason: "Found elsewhere" }, { stage: "completed" }]) {
+    assert.equal(await stage(body), 200);
+    const r = await put(env, kept, { status: "found", from: "shortlisted" });
+    assert.equal(r.status, 409, body.stage);
+    assert.equal(r.data.error, "Reopen this search to review its matches.");
+    assert.equal(match(env, kept).status, "shortlisted", "still shortlisted, not deleted");
+  }
+  assert.equal(match(env, other), undefined, "a closed search keeps no found matches");
+  assert.equal(rows(env, "SELECT 1 FROM events WHERE type = 'match.reviewed'").length, 1, "only the shortlist");
+  // Reopened: reviews work again.
+  assert.equal(await stage({ stage: "searching" }), 200);
+  assert.equal((await put(env, kept, { status: "found", from: "shortlisted" })).status, 200);
+});
+
 test("the matched notice closes when the last found match is reviewed", async () => {
   const env = makeEnv();
   listing(env, "HE-R001");
@@ -178,6 +202,8 @@ test("the review queue: oldest applicant first, best score first, after skips pa
   const newer = seedApplicant(env, "Tom Vibert", { minute: 5, budget_min: 400000, parishes_wanted: '["St Helier"]' });
   const older = seedApplicant(env, "Ana Le Gros", { minute: 1 });
   const closed = seedApplicant(env, "Lost One", { minute: 0, stage: "lost" });
+  const reviewed = seedApplicant(env, "All Reviewed", { minute: 0 }); // active, nothing found left: walked past
+  seedMatch(env, reviewed, "HE-R002", { score: 95, status: "rejected", reason: "price" });
   const o1 = seedMatch(env, older, "HE-R001", { score: 60 });
   const o2 = seedMatch(env, older, "HE-R002", { score: 80 });
   const o3 = seedMatch(env, older, "HE-R003", { score: 60 });
@@ -191,7 +217,7 @@ test("the review queue: oldest applicant first, best score first, after skips pa
     reviewed_at: null });
   assert.deepEqual(first.listing, { id: "HE-R002", title: "Le Bernage", operation: "sale", availability: "for_sale",
     price_text: null, sale_price: 900000, rent: null, rent_period: null, currency: "GBP", parish: "St Saviour", bedrooms: 3,
-    bathrooms: 2, cover_id: "A00001", published: 1, archived_at: null });
+    bathrooms: 2, cover_id: "A00001", has_public_photo: 1, published: 1, archived_at: null });
   assert.equal(first.applicant.id, older);
   assert.equal(first.applicant.name, "Ana Le Gros");
   assert.equal(first.applicant.operation, "buy");
@@ -202,15 +228,22 @@ test("the review queue: oldest applicant first, best score first, after skips pa
   const order = [o2];
   for (let d = first; (d = await next(order.at(-1))).match;) order.push(d.match.id);
   assert.deepEqual(order, [o2, o1, o3, n1]);
+  assert.equal((await next(o2)).listing.has_public_photo, 0, "HE-R001 has no photo: not on the website");
   const tom = await next(o3);
   assert.deepEqual(tom.applicant.parishes_wanted, ["St Helier"], "JSON lists come back as arrays");
   assert.equal(tom.applicant.budget_min, 400000);
   assert.deepEqual(await next(n1), { match: null, remaining: 4 }, "the skipped ones remain");
 
-  // After a match that was just reviewed: its place in the order still counts.
+  // After a match that was just reviewed: its place in the order still counts. The queue is counted only on a first
+  // call and at its end; in between the page counts down.
   run(env, "UPDATE matches SET status = 'shortlisted' WHERE id = ?", o1);
   assert.equal((await next(o1)).match.id, o3);
-  assert.equal((await next(o1)).remaining, 3);
+  assert.equal("remaining" in (await next(o1)), false);
+  assert.equal((await next()).remaining, 3);
+  // After a match whose search was closed meanwhile: the next search.
+  run(env, "UPDATE applicants SET stage = 'lost' WHERE id = ?", older);
+  assert.equal((await next(o2)).match.id, n1);
+  run(env, "UPDATE applicants SET stage = 'searching' WHERE id = ?", older);
   // After a match that no longer exists: from the start.
   assert.equal((await next(12345)).match.id, o2);
   assert.equal((await req(env, "GET", "/admin/review?after=x")).status, 400);
@@ -256,6 +289,8 @@ test("Recalculate all reads every listing in batches, then recomputes every acti
   const pairs = rows(env, "SELECT applicant_id, listing_id FROM matches WHERE status = 'found' ORDER BY applicant_id, listing_id");
   assert.deepEqual(pairs, actives.flatMap(a => ["HE-R001", "HE-R002"].map(listing_id => ({ applicant_id: a, listing_id }))));
   assert.equal(rows(env, "SELECT 1 FROM matches WHERE applicant_id = ?", lost).length, 0);
+  // A batch, not a person: its events and closed notices are the system's.
+  assert.deepEqual(rows(env, "SELECT DISTINCT actor FROM events WHERE type = 'applicant.matched'"), [{ actor: "system" }]);
 
   for (const body of [{}, { phase: "all" }, { phase: "listings", after: 5 }, { phase: "applicants", after: "HE-R001" }])
     assert.equal((await recalc(body)).status, 400, JSON.stringify(body));

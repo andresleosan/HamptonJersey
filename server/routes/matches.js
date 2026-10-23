@@ -1,9 +1,9 @@
 // Reviewing a match (B6), the keyboard review queue (spec §5 Review) and "Recalculate all" (B12).
 import { json, fail, readJson, now } from "../http.js";
-import { activeSql, REJECT_REASONS } from "../applicants.js";
+import { activeSql, isActive, REJECT_REASONS } from "../applicants.js";
 import { extractFeatures } from "../listing-features.js";
 import { afterSave, recomputeForApplicant, closeMatchedNoticeIfEmpty } from "../match-store.js";
-import { COVER_ID } from "./listings.js";
+import { COVER_ID, HAS_PUBLIC_PHOTO } from "./listings.js";
 
 const REASONS = REJECT_REASONS.map(([v]) => v);
 // The reviews a match in each status may get; back to found is Undo.
@@ -14,7 +14,7 @@ const object = (alias, keys, extra = []) => `json_object(${[...keys.map(k => `'$
 // A match as its card shows it (spec §5), with its listing; from matches m JOIN listings l.
 const CARD = `m.id, m.applicant_id, m.status, m.score, m.checks, m.reject_reason, m.reviewed_at, ${object("l", ["id", "title",
   "operation", "availability", "price_text", "sale_price", "rent", "rent_period", "currency", "parish", "bedrooms", "bathrooms",
-  "published", "archived_at"], [`'cover_id', ${COVER_ID}`])} AS listing`;
+  "published", "archived_at"], [`'cover_id', ${COVER_ID}`, `'has_public_photo', ${HAS_PUBLIC_PHOTO}`])} AS listing`;
 export const MATCHES_SQL = `SELECT ${CARD} FROM matches m JOIN listings l ON l.id = m.listing_id`;
 export const matchCard = m => ({ ...m, checks: JSON.parse(m.checks), listing: JSON.parse(m.listing) });
 
@@ -26,11 +26,21 @@ const LISTS = ["property_types", "outdoor", "pets", "parishes_wanted", "parishes
 const APPLICANT = object("a", ["id", "operation", "stage", "budget_min", "budget_max", "budget_stretch", "bedrooms_min",
   "bedrooms_ideal", "bathrooms_min", "parking_spaces", "furnished"],
   ["'name', c.name", ...LISTS.map(k => `'${k}', json(a.${k})`)]);
-// Queue order: the oldest search first, then its best matches, ties by id. Bind: the match to resume after, twice;
-// one that no longer exists starts the queue again.
-const ORDER = "a.created_at, a.id, m.score DESC, m.id";
-const AFTER = `AND (NOT EXISTS (SELECT 1 FROM matches WHERE id = ?) OR (a.created_at, a.id, -m.score, m.id) >
-  (SELECT pa.created_at, pa.id, -pm.score, pm.id FROM matches pm JOIN applicants pa ON pa.id = pm.applicant_id WHERE pm.id = ?))`;
+// Queue order: the oldest search first, then its best matches, ties by id. One search's found matches are read at a
+// time (matches_status), never the whole queue. Each query takes the match to resume after (0 = from the start).
+const QUEUE_ROW = `SELECT ${CARD}, ${APPLICANT} AS applicant FROM matches m JOIN listings l ON l.id = m.listing_id
+  JOIN applicants a ON a.id = m.applicant_id JOIN contacts c ON c.id = a.contact_id`;
+const BEST = "ORDER BY m.score DESC, m.id LIMIT 1";
+// The rest of that match's search. Bind: the match, twice.
+const SAME_SEARCH = `${QUEUE_ROW} WHERE ${QUEUED} AND m.applicant_id = (SELECT applicant_id FROM matches WHERE id = ?)
+  AND (-m.score, m.id) > (SELECT -score, id FROM matches WHERE id = ?) ${BEST}`;
+// The best match of the next search with any found, walking the active searches oldest first (applicants_queue) from
+// that match's search; from the first one when the match is 0 or no longer exists. Bind: the match.
+const NEXT_SEARCH = `${QUEUE_ROW} WHERE m.status = 'found' AND m.applicant_id = (SELECT q.id FROM applicants q
+  WHERE ${activeSql("q")} AND EXISTS (SELECT 1 FROM matches f WHERE f.status = 'found' AND f.applicant_id = q.id)
+  AND (q.created_at, q.id) > (SELECT COALESCE(MAX(pa.created_at), ''), COALESCE(MAX(pa.id), 0)
+    FROM matches pm JOIN applicants pa ON pa.id = pm.applicant_id WHERE pm.id = ?)
+  ORDER BY q.created_at, q.id LIMIT 1) ${BEST}`;
 
 async function review({ request, env, admin, params: [id] }) {
   const body = await readJson(request);
@@ -40,10 +50,12 @@ async function review({ request, env, admin, params: [id] }) {
   const reason = status === "rejected" ? body.reject_reason : null;
   if (status === "rejected" && !REASONS.includes(reason)) fail(400, "Choose why the match is rejected");
 
-  const m = await env.DB.prepare(`SELECT m.id, m.applicant_id, m.listing_id, m.status, a.archived_at
+  const m = await env.DB.prepare(`SELECT m.id, m.applicant_id, m.listing_id, m.status, a.archived_at, a.stage
     FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE m.id = ?`).bind(Number(id)).first();
   if (!m) fail(404, "Match not found");
+  // A closed search (archived, lost or completed) is not reviewed: an Undo's recompute would delete the match.
   if (m.archived_at) fail(409, "Restore this search to review its matches");
+  if (!isActive(m)) fail(409, "Reopen this search to review its matches.");
   if (m.status !== from) fail(409, STALE);
 
   const ts = now(), reviewed = status !== "found";
@@ -80,21 +92,24 @@ async function review({ request, env, admin, params: [id] }) {
   return json({ match: row && matchCard(row) });
 }
 
-// The next found match of the queue after `after` (a match id), with its search and listing; remaining counts the whole
-// queue, so a pass that skipped some ends with match null and remaining above 0.
+// The next found match of the queue after `after` (a match id), with its search and listing. remaining (the whole queue)
+// is counted on a first call and when the queue has nothing after `after`; between, the page counts down by itself. A
+// pass that skipped some ends with match null and remaining above 0.
 async function next({ request, env }) {
   const p = new URL(request.url).searchParams.get("after");
   if (p != null && !/^\d{1,15}$/.test(p)) fail(400, "Invalid match");
-  const after = p == null ? [] : [Number(p), Number(p)];
-  const [[row], [{ n }]] = (await env.DB.batch([
-    env.DB.prepare(`SELECT ${CARD}, ${APPLICANT} AS applicant FROM matches m JOIN listings l ON l.id = m.listing_id
-      JOIN applicants a ON a.id = m.applicant_id JOIN contacts c ON c.id = a.contact_id
-      WHERE ${QUEUED} ${after.length ? AFTER : ""} ORDER BY ${ORDER} LIMIT 1`).bind(...after),
-    env.DB.prepare(QUEUE_COUNT_SQL),
+  const after = p == null ? 0 : Number(p);
+  const [[same], [first], count] = (await env.DB.batch([
+    env.DB.prepare(SAME_SEARCH).bind(after, after),
+    env.DB.prepare(NEXT_SEARCH).bind(after),
+    ...(p == null ? [env.DB.prepare(QUEUE_COUNT_SQL)] : []),
   ])).map(r => r.results);
-  if (!row) return json({ match: null, remaining: n });
+  const row = same ?? first;
+  let remaining = count?.[0].n;
+  if (!row && remaining === undefined) remaining = (await env.DB.prepare(QUEUE_COUNT_SQL).first()).n;
+  if (!row) return json({ match: null, remaining });
   const { listing, applicant, ...match } = matchCard(row);
-  return json({ match, applicant: JSON.parse(applicant), listing, remaining: n });
+  return json({ match, applicant: JSON.parse(applicant), listing, remaining });
 }
 
 // "Recalculate all" (B12), one batch per call; the page calls again with `after: next` until next is null, listings
@@ -119,25 +134,25 @@ async function recalcListings(env, after) {
   return { next: page.length === RECALC_BATCH.listings ? page.at(-1).id : null, count: page.length, total: n };
 }
 
-// applicants: recomputes every active search against the listings as they are now.
-async function recalcApplicants(env, after, admin) {
+// applicants: recomputes every active search against the listings as they are now; like any batch, as 'system'.
+async function recalcApplicants(env, after) {
   const active = activeSql("a");
   const [page, [{ n }]] = (await env.DB.batch([
     env.DB.prepare(`SELECT a.id FROM applicants a WHERE ${active} AND a.id > ? ORDER BY a.id LIMIT ?`)
       .bind(after ?? 0, RECALC_BATCH.applicants),
     env.DB.prepare(`SELECT COUNT(*) AS n FROM applicants a WHERE ${active}`),
   ])).map(r => r.results);
-  for (const { id } of page) await recomputeForApplicant(env, id, admin);
+  for (const { id } of page) await recomputeForApplicant(env, id, "system");
   return { next: page.length === RECALC_BATCH.applicants ? page.at(-1).id : null, count: page.length, total: n };
 }
 
-async function recalculate({ request, env, admin }) {
+async function recalculate({ request, env }) {
   const body = await readJson(request);
   const { phase, after = null } = body && typeof body === "object" && !Array.isArray(body) ? body : {};
   if (phase === "listings" && (after === null || typeof after === "string"))
     return json({ phase, ...(await recalcListings(env, after)) });
   if (phase === "applicants" && (after === null || Number.isSafeInteger(after)))
-    return json({ phase, ...(await recalcApplicants(env, after, admin)) });
+    return json({ phase, ...(await recalcApplicants(env, after)) });
   fail(400, "Send phase: listings or applicants, and after: the next value of the previous call");
 }
 

@@ -31,6 +31,15 @@ test("parish from location, aliases and localities", () => {
   assert.equal(feats({ location: null, road_name: "La Rue de la Mare, St Martin" }).parish, "St Martin");
   assert.equal(feats({ location: "London", road_name: "Rue des Pres, Trinity" }).parish, "Trinity");
   assert.equal(feats({ location: "St Helier, St Lawrence", road_name: "Rue de Haut, St Lawrence" }).parish, null);
+  // A road named for where it leads ("de"/"du" + place) is not in that place: unknown unless something else says.
+  assert.equal(parseParish("La Route de St Aubin"), null);
+  assert.equal(parseParish("La Grande Route de St Martin"), null);
+  assert.equal(parseParish("La Route de Saint Aubin"), null);
+  assert.equal(parseParish("Le Mont du St Clement"), null);
+  assert.equal(feats({ location: null, road_name: "La Route de St Aubin" }).parish, null);
+  assert.equal(feats({ location: null, road_name: "La Grande Route de St Martin, St Saviour" }).parish, "St Saviour");
+  assert.equal(feats({ location: "St Lawrence", road_name: "La Route de St Aubin" }).parish, "St Lawrence");
+  assert.equal(feats({ location: "La Grande Route de St Martin", road_name: "Rue des Pres, Trinity" }).parish, "Trinity");
 });
 
 test("pets, parking, furnished, outdoor and type from text", () => {

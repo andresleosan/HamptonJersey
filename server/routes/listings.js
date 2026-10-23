@@ -7,11 +7,12 @@ const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
 export const COVER_ID = `COALESCE(l.cover_media_id, (SELECT cm.id FROM media cm WHERE cm.listing_id = l.id
   AND cm.kind = 'photo' AND cm.r2_key IS NOT NULL ORDER BY cm.position LIMIT 1))`;
+// Whether listing l has a photo the website shows (without one, a published listing is not on the website).
+export const HAS_PUBLIC_PHOTO = `EXISTS (SELECT 1 FROM media m WHERE m.listing_id = l.id AND m.kind = 'photo' AND m.public = 1
+    AND m.origin <> 'external' AND m.r2_key IS NOT NULL)`;
 const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availability, l.operation, l.sale_price, l.rent,
   l.rent_period, l.premium, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by, l.featured_rank, l.home_order,
-  l.parish, l.matchable, ${COVER_ID} AS cover_id,
-  EXISTS (SELECT 1 FROM media m WHERE m.listing_id = l.id AND m.kind = 'photo' AND m.public = 1
-    AND m.origin <> 'external' AND m.r2_key IS NOT NULL) AS has_public_photo
+  l.parish, l.matchable, ${COVER_ID} AS cover_id, ${HAS_PUBLIC_PHOTO} AS has_public_photo
   FROM listings l`;
 
 export async function loadListing(env, id) {
@@ -39,7 +40,7 @@ async function detail({ env, params: [id] }) {
     q("SELECT * FROM research_financial_terms WHERE property_id = ? ORDER BY term_id", id),
     q("SELECT * FROM research_issues WHERE property_ids LIKE ? ORDER BY severity, issue_id", `%${id}%`),
     q("SELECT * FROM research_search_log WHERE property_id = ? ORDER BY date, search_id", id),
-    q(`SELECT m.id AS match_id, m.applicant_id, c.name, a.operation, m.status, m.score
+    q(`SELECT m.id AS match_id, m.applicant_id, c.name, a.operation, a.stage, a.archived_at, m.status, m.score
        FROM matches m JOIN applicants a ON a.id = m.applicant_id JOIN contacts c ON c.id = a.contact_id
        WHERE m.listing_id = ?
        ORDER BY CASE m.status WHEN 'shortlisted' THEN 0 WHEN 'found' THEN 1 ELSE 2 END, m.score DESC, m.id`, id),
@@ -74,7 +75,9 @@ async function create({ request, env, admin }) {
       "SELECT id FROM listings UNION SELECT property_id FROM research_properties UNION SELECT id FROM deleted_listings").all();
     const id = nextId(results.map(x => x.id), idPrefix(r.value.use, r.value.country));
     const ts = now();
-    const row = withFeatures(r.value, { ...r.value, id, published: 0, created_at: ts, updated_at: ts, updated_by: admin }, ts);
+    // Hampton's own listings are offered to applicants unless the editor's switch turns that off (B9).
+    const row = withFeatures(r.value, { matchable: 1, ...r.value, id, published: 0, created_at: ts, updated_at: ts,
+      updated_by: admin }, ts);
     const cols = Object.keys(row); // whitelisted by validateListing, plus the features
     try {
       await env.DB.prepare(`INSERT INTO listings (${cols.join(", ")}) VALUES (${cols.map(() => "?").join(", ")})`)

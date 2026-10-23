@@ -19,9 +19,11 @@ const APPLICANT = `a.id, a.archived_at, a.stage, a.operation, a.budget_min, a.bu
   a.property_types, a.bedrooms_min, a.bedrooms_ideal, a.bathrooms_min, a.parking_spaces, a.outdoor, a.furnished, a.pets,
   a.parishes_wanted, a.parishes_excluded, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id`;
 
-// The applicant's open matched notice; notices find their applicant through their event. Bind: the applicant id.
-const OPEN_NOTICE = `resolved_at IS NULL AND category = 'matched'
-  AND event_id IN (SELECT id FROM events WHERE entity_type = 'applicant' AND entity_id = ?)`;
+// The applicant's open matched notice; notices find their applicant through their event, so the lookup starts from the
+// applicant's events (events_entity, then notifications_event), never from every open notice: CROSS JOIN keeps that
+// order in SQLite, which would otherwise start from notifications_open. Bind: the applicant id.
+const OPEN_NOTICE = `id IN (SELECT n.id FROM events e CROSS JOIN notifications n ON n.event_id = e.id
+  WHERE e.entity_type = 'applicant' AND e.entity_id = ? AND n.category = 'matched' AND n.resolved_at IS NULL)`;
 // "<N> new matches for <name>" with N the found matches stored now (B14). Bind: the applicant id, the name.
 const TITLE = `(SELECT COUNT(*) || CASE WHEN COUNT(*) = 1 THEN ' new match for ' ELSE ' new matches for ' END
   FROM matches WHERE applicant_id = ? AND status = 'found') || ?`;
@@ -39,7 +41,11 @@ export const closeMatchedNoticeIfEmpty = (env, applicantId, by) => env.DB.prepar
 // others: found matches left as they are but counted against MAX_FOUND, [{ id, listing_id, score }].
 function writesFor(env, a, results, stored, others, actor, ts) {
   const stmts = [], pool = [];
-  const del = m => stmts.push(env.DB.prepare("DELETE FROM matches WHERE id = ? AND status = 'found'").bind(m.id));
+  let deleted = 0; // del() only ever gets found matches
+  const del = m => {
+    deleted++;
+    stmts.push(env.DB.prepare("DELETE FROM matches WHERE id = ? AND status = 'found'").bind(m.id));
+  };
   const refresh = (m, r) => (m.score !== r.score || m.checks !== r.checks) && stmts.push(env.DB.prepare(
     "UPDATE matches SET score = ?, checks = ?, updated_at = ? WHERE id = ? AND status <> 'rejected'")
     .bind(r.score, r.checks, ts, m.id));
@@ -68,7 +74,8 @@ function writesFor(env, a, results, stored, others, actor, ts) {
         .bind(a.id, p.listing_id, p.score, p.checks, ts, ts));
     } else if (!p.kept) refresh(p.match, p);
   });
-  if (!stmts.length) return { stmts, created };
+  // Only a change in the found matches touches the notice; refreshing scores and checks leaves its count as it is.
+  if (!created && !deleted) return { stmts, created };
 
   // B14: the event when there are new ones; one open notice, created on its event when none is open, titled with the
   // total found now; closed at zero found.
@@ -144,8 +151,9 @@ export async function recomputeForListing(env, listingId, actor) {
     for (const m of rows) others.has(m.applicant_id) ? others.get(m.applicant_id).push(m) : others.set(m.applicant_id, [m]);
   }
   // ponytail: an offered listing is evaluated against every active applicant in one JS loop and one batch, and the
-  // others read holds up to MAX_FOUND rows per passing applicant. Fine for hundreds of applicants; at tens of
-  // thousands this moves to a queue, in batches.
+  // others read holds up to MAX_FOUND rows per passing applicant. Measured ceiling: ~500 active applicants (each with
+  // 25 found) fit the Workers free plan's 10 ms of CPU (about 6-8 ms of JS; 750 take 10-16 ms). Past that, this moves
+  // to a queue, in batches.
   const ts = now(), stmts = [];
   for (const a of applicants) {
     const m = mine.get(a.id);

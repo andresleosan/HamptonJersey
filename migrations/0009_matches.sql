@@ -19,6 +19,8 @@ UPDATE listings SET matchable = 1 WHERE published = 1 OR id BETWEEN 'HE-R028' AN
 
 -- When the team first reviewed one of this applicant's matches (B13); kept on Undo.
 ALTER TABLE applicants ADD COLUMN first_reviewed_at TEXT;
+-- The review queue walks the active searches (F0: not archived, lost or completed), oldest first.
+CREATE INDEX applicants_queue ON applicants(created_at) WHERE archived_at IS NULL AND stage NOT IN ('lost', 'completed');
 
 -- A listing proposed to an applicant; checks is the JSON list of requirements with their evidence. A reason only when rejected.
 CREATE TABLE matches (
