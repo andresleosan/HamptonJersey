@@ -240,9 +240,9 @@ test("Recalculate all reads every listing in batches, then recomputes every acti
     if (r.data.next == null && r.data.phase === "applicants") break;
     body = r.data.next == null ? { phase: "applicants" } : { phase: r.data.phase, after: r.data.next };
   }
-  assert.deepEqual(calls.map(c => [c.phase, c.next, c.total]), [
-    ["listings", `HE-R${String(RECALC_BATCH.listings).padStart(3, "0")}`, n], ["listings", null, n],
-    ["applicants", actives.at(-2), actives.length], ["applicants", null, actives.length]]);
+  assert.deepEqual(calls.map(c => [c.phase, c.next, c.count, c.total]), [
+    ["listings", `HE-R${String(RECALC_BATCH.listings).padStart(3, "0")}`, RECALC_BATCH.listings, n], ["listings", null, 3, n],
+    ["applicants", actives.at(-2), RECALC_BATCH.applicants, actives.length], ["applicants", null, 1, actives.length]]);
 
   const l = id => row(env, "SELECT parish, feat_pets, feat_parking, feat_outdoor, features_at, updated_at FROM listings WHERE id = ?", id);
   assert.equal(rows(env, "SELECT id FROM listings WHERE features_at IS NULL").length, 0, "every listing read");

@@ -98,8 +98,8 @@ async function next({ request, env }) {
 }
 
 // "Recalculate all" (B12), one batch per call; the page calls again with `after: next` until next is null, listings
-// first. Sized for the Workers free plan's 10 ms of CPU: reading 50 listings' text takes about 2 ms; recomputing one
-// applicant against ~300 listings about 1 ms, so 5 per call.
+// first, and shows its progress from count (how many this call handled). Sized for the Workers free plan's 10 ms of CPU:
+// reading 50 listings' text takes about 2 ms; recomputing one applicant against ~300 listings about 1 ms, so 5 per call.
 export const RECALC_BATCH = { listings: 50, applicants: 5 };
 
 // listings: reads the features and parish of every listing, offered or not (B10); a parish already set is never
@@ -116,7 +116,7 @@ async function recalcListings(env, after) {
     return env.DB.prepare(`UPDATE listings SET parish = COALESCE(parish, ?), ${cols.map(c => `${c} = ?`).join(", ")},
       features_at = ? WHERE id = ? AND updated_at = ?`).bind(parish, ...cols.map(c => features[c]), ts, l.id, l.updated_at);
   }));
-  return { next: page.length === RECALC_BATCH.listings ? page.at(-1).id : null, total: n };
+  return { next: page.length === RECALC_BATCH.listings ? page.at(-1).id : null, count: page.length, total: n };
 }
 
 // applicants: recomputes every active search against the listings as they are now.
@@ -128,7 +128,7 @@ async function recalcApplicants(env, after, admin) {
     env.DB.prepare(`SELECT COUNT(*) AS n FROM applicants a WHERE ${active}`),
   ])).map(r => r.results);
   for (const { id } of page) await recomputeForApplicant(env, id, admin);
-  return { next: page.length === RECALC_BATCH.applicants ? page.at(-1).id : null, total: n };
+  return { next: page.length === RECALC_BATCH.applicants ? page.at(-1).id : null, count: page.length, total: n };
 }
 
 async function recalculate({ request, env, admin }) {

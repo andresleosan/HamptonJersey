@@ -200,3 +200,11 @@ fieldset.plain{border:0;padding:0;margin:0;min-width:0}
 .result{font-weight:600} .result.meets{color:var(--ok)} .result.fails{color:var(--err)} .result.unknown{color:var(--stone)}
 .match-actions,.reasons{margin:4px 0 0;gap:8px;align-items:center}
 @media (max-width:600px){.match{grid-template-columns:1fr;padding:12px}.match-photo{aspect-ratio:2/1}}
+.review{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start}
+.review-who{padding:16px;display:grid;gap:8px} .review-who p,.review-who h2{margin:0} .review-who h2{overflow-wrap:anywhere}
+.review-who .kv{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.review-msg{margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.recalc{display:grid;gap:4px;justify-items:end;max-width:100%} .recalc p{margin:0;text-align:right}
+kbd{font:600 11px var(--body);letter-spacing:0;padding:0 5px;border:1px solid currentColor;border-radius:4px}
+.btn kbd{opacity:.75} .linkish kbd{margin-left:6px}
+@media (max-width:760px){.review{grid-template-columns:1fr}.recalc{justify-items:start}.recalc p{text-align:left}}

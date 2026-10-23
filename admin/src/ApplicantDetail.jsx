@@ -39,7 +39,7 @@ const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation), SOURCE_LABEL = Ob
 const blank = v => v == null || v === "" || (Array.isArray(v) && !v.length);
 const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
 // A stored or submitted value as text: option labels, £ amounts, lists in the form's order. Never HTML.
-function show(k, v, nameOf) {
+export function show(k, v, nameOf) {
   if (k === "assigned_to") return v ? nameOf(v) : "Unassigned";
   if (blank(v)) return "—";
   if (k === "pets") return OPTIONS.pet_kinds.filter(([p]) => v.some(x => x.kind === p)).map(([p, t]) => {
