@@ -398,11 +398,11 @@ const short = (n, op) => op === "rent" ? `£${n.toLocaleString("en-GB")} pcm` : 
 // Turnstile loads async; forms render the widget once it is ready.
 let TS_KEY = null, TOURS = [];
 const tsReady = new Promise(r => { window.onTurnstile = r; });
-// I3: one count per listing and metric until the page reloads; a failed count is ignored.
+// I3: one count per listing and metric until the page reloads, with no cookies; a failed count is ignored.
 const tracked = new Set();
 const track = (id, metric) => {
   if (tracked.has(id + metric)) return; tracked.add(id + metric);
-  fetch("/api/stats", {method: "POST", keepalive: true, headers: {"content-type": "application/json"}, body: JSON.stringify({listing_id: id, metric})}).catch(() => {});
+  fetch("/api/stats", {method: "POST", keepalive: true, credentials: "omit", headers: {"content-type": "application/json"}, body: JSON.stringify({listing_id: id, metric})}).catch(() => {});
 };
 
 

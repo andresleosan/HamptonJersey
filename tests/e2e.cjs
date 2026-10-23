@@ -28,8 +28,10 @@ async function newPage(ctx, viewport) {
 async function publicSite(browser) {
   const ctx = await browser.newContext();
   const page = await newPage(ctx, {width: 1280, height: 800});
-  const stats = [];
-  page.on("request", r => r.url().endsWith("/api/stats") && stats.push(r.postDataJSON()));
+  // Spec §1: the counter carries no cookies, even when the browser has one for the site (e.g. staff signed in).
+  await ctx.addCookies([{name: "probe", value: "1", url: BASE}]);
+  const stats = [], statsCookies = [];
+  page.on("request", r => r.url().endsWith("/api/stats") && stats.push(r.postDataJSON()) && statsCookies.push(r.allHeaders().then(h => h.cookie)));
   await page.goto(BASE);
   await page.waitForSelector("#grid .card");
   await shot(page, "home");
@@ -125,18 +127,21 @@ async function publicSite(browser) {
   await page.waitForSelector(`#detail-slot [name=time][value="${second.time}"][aria-label="${second.time}, booked"]:disabled`);
   assert.deepEqual(stats, [{listing_id: "HE-R001", metric: "view"}, {listing_id: "HE-R001", metric: "photos"},
     {listing_id: "HE-R001", metric: "tour"}, {listing_id: "HE-R002", metric: "view"}], "once per listing and metric");
+  assert.deepEqual(await Promise.all(statsCookies), [undefined, undefined, undefined, undefined], "no cookies on the counter");
   assert.deepEqual(page.errors, []);
 
-  // The counter failing never breaks the listing or leaves an uncaught error.
-  const off = await newPage(ctx, {width: 1280, height: 800});
-  await off.route(/\/api\/stats$/, r => r.abort());
-  const failed = off.waitForEvent("requestfailed", r => r.url().endsWith("/api/stats"));
-  await off.goto(BASE + "#/p/HE-R001");
-  await off.waitForSelector(".summary h1");
-  await failed;
-  await off.evaluate(() => new Promise(r => setTimeout(r)));
-  assert.deepEqual(off.errors, []);
-  await off.close();
+  // The counter failing (network down or a 500) never breaks the listing or leaves an uncaught error.
+  for (const [fail, done] of [[r => r.abort(), "requestfailed"], [r => r.fulfill({status: 500}), "response"]]) {
+    const off = await newPage(ctx, {width: 1280, height: 800});
+    await off.route(/\/api\/stats$/, fail);
+    const settled = off.waitForEvent(done, r => r.url().endsWith("/api/stats"));
+    await off.goto(BASE + "#/p/HE-R001");
+    await off.waitForSelector(".summary h1");
+    await settled;
+    await off.evaluate(() => new Promise(r => setTimeout(r)));
+    assert.deepEqual(off.errors, [], done);
+    await off.close();
+  }
 
   // M5: Turnstile blocked (content blocker) → the form offers the phone instead of a dead end.
   const blocked = await newPage(ctx, {width: 1280, height: 800});
