@@ -48,6 +48,7 @@ table.list{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .thumb{width:72px;height:54px;object-fit:cover;display:block;background:var(--mist);border-radius:8px}
 .badge{font-size:11px;padding:3px 10px;border:1px solid currentColor;border-radius:999px;white-space:nowrap}
 .badge.published{color:var(--ok)} .badge.draft{color:var(--stone)} .badge.archived{color:var(--stone)}
+.badge.neutral{color:var(--stone)} .badge.active{color:var(--ink)} .badge.attention{color:var(--bronze-dk)} .badge.positive{color:var(--ok)}
 .num{font-variant-numeric:tabular-nums}
 .empty{padding:32px;text-align:center;color:var(--stone)}
 .modal{position:fixed;inset:0;z-index:20;background:rgba(20,20,20,.55);display:grid;place-items:center;padding:16px}
@@ -154,5 +155,14 @@ table.list{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .tour-form.new{margin-bottom:16px;max-width:640px}
 .spacer{flex:1}
 @media (max-width:760px){.tour-list>li{grid-template-columns:1fr}}
-.inbox-tabs{display:flex;flex-wrap:wrap;column-gap:12px}
+.inbox-tabs,.seg-row{display:flex;flex-wrap:wrap;column-gap:12px}
 .bar nav .count{margin-left:6px;padding:0 7px;border:1px solid currentColor;border-radius:999px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums}
+.list th[aria-sort] .sort{all:unset;cursor:pointer;color:var(--ink)} .list th[aria-sort] .sort:focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
+@media (max-width:760px){.list.applicants tr{grid-template-columns:1fr auto;border-bottom:1px solid var(--line)}.list.applicants tr:last-child{border-bottom:0}.list.applicants td:first-child{grid-row:auto}
+  .list.applicants td.stage{grid-area:1/2;justify-self:end}.list.applicants td[data-label]{grid-column:1/-1}.list.applicants td[data-label]::before{content:attr(data-label) ": ";color:var(--stone);font-size:12px}}
+.fields-group{display:grid;gap:12px} .fields-group h2{margin:0} .fields-group .grid2{align-items:start}
+.choices-set{border:0;padding:0;margin:0;min-width:0;display:grid;gap:6px}
+.choices-set legend{padding:0;margin-bottom:6px;font-size:12px;color:var(--stone)}
+.choices{display:flex;flex-wrap:wrap;gap:8px 16px}
+.choices .check{font-size:14px;min-height:32px} .choices input{accent-color:var(--bronze)}
+.pet{display:inline-flex;gap:8px;align-items:center} .pet-count{width:72px}

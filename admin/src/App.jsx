@@ -3,6 +3,8 @@ import { api } from "./api.js";
 import { firebaseSignOut } from "./firebase.js";
 import Login from "./Login.jsx";
 import Inbox from "./Inbox.jsx";
+import Applicants from "./Applicants.jsx";
+import NewApplicant from "./NewApplicant.jsx";
 import Listings from "./Listings.jsx";
 import ListingEditor from "./ListingEditor.jsx";
 import Viewings from "./Viewings.jsx";
@@ -41,11 +43,15 @@ export default function App() {
   if (me === undefined) return <p className="center">Loading…</p>;
   if (me === null) return <main className="center"><Login onSignedIn={signedIn} /></main>;
 
-  const [section, arg] = hash.replace(/^#\/?/, "").split("/");
+  const [path, query] = hash.replace(/^#\/?/, "").split("?");
+  const [section, arg] = path.split("/");
   const page = section === "p" && arg ? <ListingEditor key={arg} id={decodeURIComponent(arg)} />
+    : section === "applicants" && arg === "new"
+      ? <NewApplicant key={query ?? ""} contactId={new URLSearchParams(query).get("contact")} />
+    : section === "applicants" ? <Applicants />
     : section === "listings" ? <Listings /> : section === "viewings" ? <Viewings /> : section === "users" ? <Users me={me} />
     : section === "tours" ? <Tours /> : <Inbox paused={expired} onCounts={setCounts} />;
-  const current = section === "p" && arg ? "listings" : ["listings", "viewings", "users", "tours"].includes(section) ? section : "";
+  const current = section === "p" && arg ? "listings" : ["applicants", "listings", "viewings", "users", "tours"].includes(section) ? section : "";
   const logout = async () => {
     if (!confirmLeave()) return;
     await api("/session", { method: "DELETE" }).catch(() => {});
@@ -58,6 +64,7 @@ export default function App() {
       <nav aria-label="Sections">
         <a href="#/" aria-current={current === "" ? "page" : undefined}>Inbox{counts.action > 0
           && <span className="count">{counts.action}<span className="sr"> need action</span></span>}</a>
+        <a href="#/applicants" aria-current={current === "applicants" ? "page" : undefined}>Applicants</a>
         <a href="#/listings" aria-current={current === "listings" ? "page" : undefined}>Listings</a>
         <a href="#/viewings" aria-current={current === "viewings" ? "page" : undefined}>Viewing requests</a>
         <a href="#/tours" aria-current={current === "tours" ? "page" : undefined}>3D tours</a>

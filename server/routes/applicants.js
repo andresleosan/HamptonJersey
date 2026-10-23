@@ -218,6 +218,9 @@ async function update({ request, env, admin, params: [id] }) {
   return json({ applicant: parsed(await loadApplicant(env, cur.id)) });
 }
 
+// "Add a new search for this contact" (#/applicants/new?contact=<id>) shows the contact it starts from.
+const contactDetail = async ({ env, params: [id] }) => json({ contact: await loadContact(env, id) });
+
 async function updateContact({ request, env, admin, params: [id] }) {
   const body = asObject(await readJson(request));
   if (typeof body.updated_at !== "string") fail(400, "Missing updated_at: reload the applicant");
@@ -297,5 +300,6 @@ export default [
   ["PUT", /^\/admin\/applicants\/(\d+)$/, update, true],
   ["DELETE", /^\/admin\/applicants\/(\d+)$/, remove, true],
   ["POST", /^\/admin\/applicants\/(\d+)\/(archive|restore)$/, setArchived, true],
+  ["GET", /^\/admin\/contacts\/(\d+)$/, contactDetail, true],
   ["PUT", /^\/admin\/contacts\/(\d+)$/, updateContact, true],
 ];

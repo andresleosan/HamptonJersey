@@ -26,7 +26,7 @@ test("every applicants route needs a session", async () => {
   const env = makeEnv();
   for (const [m, p] of [["GET", "/admin/applicants"], ["POST", "/admin/applicants"], ["GET", "/admin/applicants/1"],
     ["PUT", "/admin/applicants/1"], ["DELETE", "/admin/applicants/1"], ["POST", "/admin/applicants/1/archive"],
-    ["POST", "/admin/applicants/1/restore"], ["PUT", "/admin/contacts/1"], ["PUT", "/admin/users/x%40y.je"]])
+    ["POST", "/admin/applicants/1/restore"], ["GET", "/admin/contacts/1"], ["PUT", "/admin/contacts/1"], ["PUT", "/admin/users/x%40y.je"]])
     assert.equal((await call(env, m, p, { body: m === "GET" ? undefined : {} })).status, 401, `${m} ${p}`);
 });
 
@@ -447,4 +447,15 @@ test("a stale save is 409 whatever the database error says", async () => {
   const orig = console.error; console.error = () => {};
   try { assert.equal((await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: fresh, stage: "viewing" })).status, 500); }
   finally { console.error = orig; }
+});
+
+test("a contact can be read by its id, for a new search started from it", async () => {
+  const env = makeEnv();
+  const id = await create(env);
+  const contactId = row(env, "SELECT contact_id FROM applicants WHERE id = ?", id).contact_id;
+  const r = await req(env, "GET", `/admin/contacts/${contactId}`);
+  assert.equal(r.status, 200);
+  assert.deepEqual({ id: r.data.contact.id, name: r.data.contact.name, email: r.data.contact.email, phone: r.data.contact.phone },
+    { id: contactId, name: "Jane Le Brocq", email: "jane@example.je", phone: "+447797123456" });
+  assert.equal((await req(env, "GET", "/admin/contacts/999")).status, 404);
 });
