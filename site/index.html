@@ -870,8 +870,9 @@ const getJSON = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + " " + r
 const arr = v => (Array.isArray(v) ? v.filter(x => typeof x === "string") : []);
 const rank = p => p.order ?? Infinity; // home_order, set by dragging rows in the panel; unordered listings keep the usual order after
 Promise.allSettled([getJSON("/api/listings"), getJSON("data/team.json"), getJSON("/api/config"), getJSON("/api/tours")]).then(([p, t, c, tr]) => {
-  if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
+  // Before the listings check: Register your search still opens (with its anti-spam key) when they fail.
   TS_KEY = c.status === "fulfilled" && typeof c.value?.turnstileSiteKey === "string" ? c.value.turnstileSiteKey : null;
+  if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
   const order = {jersey: 0, uk: 1, international: 2};
   PROPS = p.value.filter(x => x && /^HE-[A-Z]\d{3,}$/.test(x.id) && x.title && x.region in order && x.operation in OP_ONE)
     .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "premium", "featured", "order"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
@@ -890,6 +891,7 @@ Promise.allSettled([getJSON("/api/listings"), getJSON("data/team.json"), getJSON
   if (!PUB.length) throw new Error("no listings");
   route();
 }).catch(() => {
+  if (SIDE_PAGES[location.hash]) return route(); // they don't need the listings
   $("#app").innerHTML = `<div class="wrap empty" style="margin-block:80px" role="alert"><p>We couldn't load our properties right now.</p>
     <button class="btn ghost" type="button" onclick="location.reload()">Try again</button></div>`;
 });
