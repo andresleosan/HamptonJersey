@@ -10,7 +10,8 @@ const STAGES = [["registered", "Registered"], ["viewing", "Viewing"], ["offer", 
 const TIMES = [
   ["attend", "New website applicant to the team's first attention", "A change of stage or details by the team, or the first review of their matches."],
   ["viewing_reply", "Website viewing request to its first reply", "Confirmed, cancelled or moved to another time."],
-  ["first_review", "New applicant to the first review of their matches", "Applicants from any source."],
+  ["first_review", "New applicant to the first review of their matches",
+    "Applicants from any source. Waiting: still active, with found matches on available listings to review."],
 ];
 const n = v => (v == null ? "—" : v.toLocaleString("en-GB"));
 const plural = (k, one) => `${n(k)} ${k === 1 ? one : `${one}s`}`;

@@ -28,10 +28,15 @@ export function reachedStages(currentStage, stageHistory) {
   return new Set(FUNNEL.slice(0, top + 1));
 }
 
+// A stored JSON list; NULL or malformed JSON is an empty one, so a bad row never fails the screen.
+const list = text => {
+  try { const v = JSON.parse(text); return Array.isArray(v) ? v : []; } catch { return []; }
+};
+
 // The parishes an applicant row wants (parishes_wanted as stored: JSON list or NULL); none is Anywhere.
 const wanted = a => {
-  const list = a.parishes_wanted ? JSON.parse(a.parishes_wanted) : [];
-  return list.length ? list : [ANYWHERE];
+  const parishes = list(a.parishes_wanted);
+  return parishes.length ? parishes : [ANYWHERE];
 };
 
 // I6. applicants: active rows {operation, parishes_wanted, budget_max, matched}; listings: available counts
@@ -72,7 +77,7 @@ export function topUnmet(applicants) {
 export function funnel(cohort) {
   const out = { registered: cohort.length, ...Object.fromEntries(FUNNEL.map(s => [s, 0])), lost: 0 };
   for (const a of cohort) {
-    for (const s of reachedStages(a.stage, JSON.parse(a.stages))) out[s]++;
+    for (const s of reachedStages(a.stage, list(a.stages))) out[s]++;
     if (a.stage === "lost") out.lost++;
   }
   return out;

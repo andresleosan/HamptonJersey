@@ -7,11 +7,12 @@ import { jerseyDayStart, groupDemand, topUnmet, funnel, responseTime, earliest }
 const DAYS = ["7", "30", "90"];
 // I8: offered to applicants and not archived; each query adds the operation.
 const AVAILABLE = `${CANDIDATES_SQL} AND archived_at IS NULL`;
-// I6: a found or shortlisted match on an available listing of the applicant's operation. The listing subquery takes
-// nothing from the applicant, so SQLite builds it once instead of scanning listings per match.
-const MATCHED = `EXISTS (SELECT 1 FROM matches m WHERE m.applicant_id = a.id AND m.status IN ('found', 'shortlisted')
+// A match in these statuses on an available listing of the applicant's operation. The listing subquery takes nothing
+// from the applicant, so SQLite builds it once instead of scanning listings per match.
+const matchIn = statuses => `EXISTS (SELECT 1 FROM matches m WHERE m.applicant_id = a.id AND m.status IN (${statuses})
   AND (m.listing_id, CASE a.operation WHEN 'rent' THEN 'rent' ELSE 'sale' END)
     IN (SELECT id, operation FROM listings WHERE ${AVAILABLE}))`;
+const MATCHED = matchIn("'found', 'shortlisted'"); // I6
 const OF_APPLICANT = "e.entity_type = 'applicant' AND e.entity_id = CAST(a.id AS TEXT)";
 const OF_VIEWING = "e.entity_type = 'viewing' AND e.entity_id = CAST(v.id AS TEXT)";
 
@@ -29,14 +30,16 @@ const VIEWED = `SELECT s.listing_id, l.title, SUM(CASE s.metric WHEN 'view' THEN
   SUM(CASE s.metric WHEN 'photos' THEN s.n ELSE 0 END) AS photos, SUM(CASE s.metric WHEN 'tour' THEN s.n ELSE 0 END) AS tour,
   (SELECT COUNT(*) FROM viewing_requests v WHERE v.listing_id = s.listing_id AND v.created_at >= ?) AS viewings
   FROM daily_stats s JOIN listings l ON l.id = s.listing_id WHERE s.day BETWEEN ? AND ?
-  GROUP BY s.listing_id ORDER BY views DESC, s.listing_id LIMIT 10`;
-// I10, I11 (a), (c): applicants created in the period and not archived, with the stages they were moved to and the
-// team's first change to them (applicant.matched comes from saving a listing: not attention).
+  GROUP BY s.listing_id HAVING views > 0 ORDER BY views DESC, s.listing_id LIMIT 10`;
+// I10, I11 (a), (c): applicants created in the period and not archived, with the stages they were moved to (malformed
+// event data skipped), the team's first change to them (applicant.matched comes from saving a listing: not attention)
+// and, ruling R7, whether they have matches to review (active, with a found match on an available listing).
 const COHORT = `SELECT a.source, a.stage, a.created_at, a.first_reviewed_at,
   (SELECT json_group_array(json_extract(e.data, '$.after.stage')) FROM events e
-    WHERE ${OF_APPLICANT} AND e.type = 'applicant.stage_changed') AS stages,
+    WHERE ${OF_APPLICANT} AND e.type = 'applicant.stage_changed' AND json_valid(e.data)) AS stages,
   (SELECT MIN(e.at) FROM events e WHERE ${OF_APPLICANT} AND e.type IN ('applicant.stage_changed', 'applicant.updated')
-    AND e.actor NOT IN ('public', 'system')) AS first_touch
+    AND e.actor NOT IN ('public', 'system')) AS first_touch,
+  ${activeSql("a")} AND ${matchIn("'found'")} AS to_review
   FROM applicants a WHERE a.archived_at IS NULL AND a.created_at >= ?`;
 // I11 (b): website requests of the period (requested by 'public') and their first answer.
 const WEB_VIEWINGS = `SELECT v.created_at, (SELECT MIN(e.at) FROM events e WHERE ${OF_VIEWING}
@@ -70,7 +73,9 @@ async function insights({ request, env }) {
       attend: responseTime(cohort.filter(a => a.source === "web")
         .map(a => [a.created_at, earliest(a.first_touch, a.first_reviewed_at)])),
       viewing_reply: responseTime(webViewings.map(v => [v.created_at, v.replied_at])),
-      first_review: responseTime(cohort.map(a => [a.created_at, a.first_reviewed_at])),
+      // R7: an unreviewed applicant waits only while there is something to review.
+      first_review: responseTime(cohort.filter(a => a.first_reviewed_at || a.to_review)
+        .map(a => [a.created_at, a.first_reviewed_at])),
     },
   });
 }

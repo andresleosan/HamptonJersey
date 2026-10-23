@@ -102,7 +102,8 @@ function world() {
   const a2 = applicant(env, { name: "Bruno Vibert", created_at: OLD, operation: "rent",
     parishes_wanted: ["St Helier"], bedrooms_min: 2, budget_max: 2000 });
   applicant(env, { name: "Carla Renouf", created_at: OLD, operation: "rent", parishes_wanted: ["St Helier"] });
-  const a4 = applicant(env, { name: "Dario Pallot", created_at: OLD, operation: "rent", budget_max: 1500 });
+  // Malformed JSON never fails the screen: Dario counts as Anywhere.
+  const a4 = applicant(env, { name: "Dario Pallot", created_at: OLD, operation: "rent", budget_max: 1500, parishes_wanted: "[St Helier" });
   const a5 = applicant(env, { name: "Elena Querée", created_at: OLD, operation: "rent",
     parishes_wanted: ["St Clement"], bedrooms_min: 1, budget_max: 1200 });
   applicant(env, { name: "Fabio Hamon", created_at: OLD, operation: "buy", parishes_wanted: ["St Brelade"],
@@ -123,11 +124,14 @@ function world() {
   stage(env, c1, "searching", "viewing", "2026-10-11T10:00:00.000Z");
   stage(env, c1, "viewing", "offer", "2026-10-12T10:00:00.000Z");
   stage(env, c1, "offer", "lost", "2026-10-13T10:00:00.000Z"); // Review Focus 2
-  applicant(env, { name: "Kim Completed", created_at: "2026-10-12T10:00:00.000Z", operation: "buy", stage: "completed" });
+  const c2 = applicant(env, { name: "Kim Completed", created_at: "2026-10-12T10:00:00.000Z", operation: "buy", stage: "completed" });
+  run(env, "INSERT INTO events (at, actor, entity_type, entity_id, type, data) VALUES (?, ?, 'applicant', ?, 'applicant.stage_changed', ?)",
+    "2026-10-12T12:00:00.000Z", ADMIN, String(c2), "{after: offer");
   const c3 = applicant(env, { name: "Leo Waiting", created_at: "2026-10-20T08:00:00.000Z", operation: "rent", stage: "new",
     source: "web", parishes_wanted: ["St Helier"], bedrooms_min: 2, budget_max: 2200 });
   event(env, "applicant", c3, "applicant.created", "2026-10-20T08:00:00.000Z", "public");
   event(env, "applicant", c3, "applicant.matched", "2026-10-20T09:00:00.000Z", ADMIN, { new: 1 }); // Review Focus 3
+  match(env, c3, "HE-R101", "found");
   const c4 = applicant(env, { name: "Mia Reviewed", created_at: "2026-10-21T10:00:00.000Z", operation: "buy", source: "web",
     parishes_wanted: ["St Brelade"], bedrooms_min: 3, budget_max: 800000, first_reviewed_at: "2026-10-21T12:00:00.000Z" });
   event(env, "applicant", c4, "applicant.updated", "2026-10-21T14:00:00.000Z");
@@ -138,7 +142,8 @@ function world() {
   stage(env, c5, "new", "viewing", "2026-10-23T10:00:00.000Z");
   match(env, c5, "HE-S104", "shortlisted");
   // 00:30 BST on 25 September is in the period; 23:30 BST on the 24th is not.
-  applicant(env, { name: "Olga Edge", created_at: "2026-09-24T23:30:00.000Z", operation: "rent", stage: "lost" });
+  const c6 = applicant(env, { name: "Olga Edge", created_at: "2026-09-24T23:30:00.000Z", operation: "rent", stage: "lost" });
+  match(env, c6, "HE-R101", "found");
   applicant(env, { name: "Pia Before", created_at: "2026-09-24T22:30:00.000Z", operation: "rent", stage: "lost" });
   applicant(env, { name: "Quin Archived", created_at: "2026-10-12T10:00:00.000Z", operation: "rent",
     archived_at: "2026-10-13T10:00:00.000Z" });
@@ -153,6 +158,9 @@ function world() {
   event(env, "viewing", v4, "viewing.rescheduled", "2026-09-01T14:00:00.000Z");
   event(env, "viewing", v4, "viewing.confirmed", "2026-09-01T16:00:00.000Z");
   viewing(env, { listing_id: "HE-R102", created_at: "2026-10-19T09:00:00.000Z", date: "2026-10-28", status: "requested", by: "system" });
+  const v6 = viewing(env, { listing_id: "HE-S105", created_at: "2026-09-24T23:30:00.000Z", date: "2026-09-30", status: "confirmed" });
+  event(env, "viewing", v6, "viewing.confirmed", "2026-09-25T00:30:00.000Z");
+  viewing(env, { listing_id: "HE-S105", created_at: "2026-09-24T22:30:00.000Z", date: "2026-09-29", status: "requested" });
 
   stat(env, "2026-10-24", "HE-R101", "view", 5);
   stat(env, "2026-10-24", "HE-R101", "photos", 2);
@@ -162,6 +170,7 @@ function world() {
   stat(env, "2026-10-20", "HE-S104", "view", 4);
   stat(env, "2026-10-20", "HE-S104", "tour", 2);
   stat(env, "2026-09-24", "HE-R102", "view", 7); // the day before the 30-day period
+  stat(env, "2026-10-10", "HE-R102", "tour", 1); // no views in 30 days: not a most viewed listing
   return env;
 }
 
@@ -184,13 +193,13 @@ test("insights: the 30-day figures, exactly", async t => {
   assert.deepEqual(await get(env, "?days=30").then(x => x.data), r.data);
   const d = r.data;
   assert.deepEqual(d.period, { days: 30, from: "2026-09-25", to: "2026-10-24" });
-  assert.deepEqual(d.totals, { views: 12, viewing_requests: 4, new_applicants: 6, viewings_completed: 1 });
+  assert.deepEqual(d.totals, { views: 12, viewing_requests: 5, new_applicants: 6, viewings_completed: 1 });
 
   // Ana wants St Helier and St Clement: she counts in both. Bruno's only match is on an archived listing: unmatched.
   assert.deepEqual(d.demand, {
     rent: [
       { parish: "St Clement", applicants: 2, unmatched: 1, median_budget: 1500, listings: 0 },
-      { parish: "St Helier", applicants: 4, unmatched: 3, median_budget: 2000, listings: 2 },
+      { parish: "St Helier", applicants: 4, unmatched: 2, median_budget: 2000, listings: 2 },
       { parish: "Anywhere", applicants: 1, unmatched: 0, median_budget: 1500, listings: null },
     ],
     buy: [
@@ -200,11 +209,11 @@ test("insights: the 30-day figures, exactly", async t => {
     ],
   });
   assert.deepEqual(d.unmet, [
-    { operation: "rent", parish: "St Helier", bedrooms_min: 2, applicants: 2, median_budget: 2100 },
     { operation: "buy", parish: "St Brelade", bedrooms_min: 3, applicants: 1, median_budget: 900000 },
     { operation: "buy", parish: "Anywhere", bedrooms_min: 3, applicants: 1, median_budget: 700000 },
     { operation: "rent", parish: "St Clement", bedrooms_min: 1, applicants: 1, median_budget: 1200 },
     { operation: "rent", parish: "St Helier", bedrooms_min: null, applicants: 1, median_budget: null },
+    { operation: "rent", parish: "St Helier", bedrooms_min: 2, applicants: 1, median_budget: 2000 },
   ]);
 
   assert.deepEqual(d.views, { first_day: "2026-08-01", rows: [
@@ -216,10 +225,12 @@ test("insights: the 30-day figures, exactly", async t => {
   assert.deepEqual(d.funnel, { registered: 6, viewing: 3, offer: 2, agreed: 1, completed: 1, lost: 2 });
 
   // (a) Mia 2 h (review before her edit), Ned 24 h; Leo still waits: saving a listing (applicant.matched) is no attention.
+  // (b) the request at 00:30 BST on the first day is in (1 h), the one at 23:30 the evening before is not.
+  // (c) only Leo waits: active with a found match on an available listing. Olga is lost, Kim completed.
   assert.deepEqual(d.times, {
     attend: { median_hours: 13, cases: 2, waiting: 1 },
-    viewing_reply: { median_hours: 3, cases: 1, waiting: 1 },
-    first_review: { median_hours: 10, cases: 3, waiting: 3 },
+    viewing_reply: { median_hours: 2, cases: 2, waiting: 1 },
+    first_review: { median_hours: 10, cases: 3, waiting: 1 },
   });
 
   const text = JSON.stringify(d);
@@ -237,10 +248,10 @@ test("insights: 7 and 90 days move every period figure", async t => {
 
   const quarter = (await get(env, "?days=90")).data;
   assert.deepEqual(quarter.period, { days: 90, from: "2026-07-27", to: "2026-10-24" });
-  assert.deepEqual(quarter.totals, { views: 29, viewing_requests: 5, new_applicants: 7, viewings_completed: 2 });
+  assert.deepEqual(quarter.totals, { views: 29, viewing_requests: 7, new_applicants: 7, viewings_completed: 2 });
   assert.deepEqual(quarter.views.rows.map(r => [r.listing_id, r.views, r.viewings]),
     [["HE-R101", 18, 3], ["HE-R102", 7, 1], ["HE-S104", 4, 1]]);
-  assert.deepEqual(quarter.times.viewing_reply, { median_hours: 4, cases: 2, waiting: 1 });
+  assert.deepEqual(quarter.times.viewing_reply, { median_hours: 3, cases: 3, waiting: 2 });
   assert.deepEqual(quarter.demand, (await get(env, "?days=7")).data.demand); // demand is today's picture
 });
 
