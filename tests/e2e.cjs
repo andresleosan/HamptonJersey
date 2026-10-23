@@ -1,4 +1,7 @@
-// End-to-end check against `wrangler pages dev` with the fixture database (see Task 13 of the plan):
+// End-to-end check against `wrangler pages dev` with the fixture database (see Task 13 of the plan).
+// The seed's viewing dates are relative to today, so reseed before each run: delete .wrangler/e2e/v3/d1, then
+//   npx wrangler d1 migrations apply hampton --local --persist-to .wrangler/e2e
+//   npx wrangler d1 execute hampton --local --persist-to .wrangler/e2e --file tests/fixtures/seed.sql
 //   npx wrangler pages dev --port 8788 --persist-to .wrangler/e2e     (terminal A)
 //   PW=<playwright-core> CHROME=<chrome> node tests/e2e.cjs [screenshot-dir]   (terminal B)
 // Matterport is never contacted: its requests are aborted.
