@@ -219,6 +219,11 @@ form.tour .form-status:empty{margin:0}
 .opts span img{width:30px;height:30px;border-radius:50%;object-fit:cover}
 .opts input:checked+span{border-color:var(--ink);background:var(--ink);color:var(--paper)}
 .opts input:focus-visible+span{outline:2px solid var(--bronze);outline-offset:2px}
+/* booking: a booked time or a day with no free time stays visible but can't be chosen */
+.opts label:has(input:disabled){cursor:default}
+.opts input:disabled+span,.opts label:hover input:disabled+span{border-color:var(--line);border-style:dashed;background:var(--mist);color:var(--stone);transform:none}
+.times small{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+form.tour .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-color:var(--ink)}
 .confirm{border:1px solid var(--ok);border-radius:var(--r-lg);background:var(--paper);box-shadow:var(--shadow);padding:clamp(22px,3vw,36px);display:grid;gap:10px}
 .confirm h3{color:var(--ok);font-size:18px}
 .confirm h2{color:var(--ok);font-size:20px;line-height:1.35;text-transform:none;letter-spacing:.02em}
@@ -409,68 +414,115 @@ function card(p, extra = "") {
     <div class="price num">${extra}${esc(priceLabel(p))}</div></a>`;
 }
 
-// ---------- booking form (home + detail): sends a viewing request to /api/viewings ----------
+// ---------- booking form (home + detail): real slots from /api/availability, a request to /api/viewings ----------
+const BOOKING_DOWN = "Online booking is unavailable right now. Please call 01534 727582.";
+const dayPart = (d, o) => new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", {timeZone: "UTC", ...o});
+const teamOf = n => TEAM.find(t => t.name === n.name); // photo, role and office from team.json when the names match
+
+// Agents, days and times are filled in by mountBooking once the availability arrives.
 function bookingForm(pre = {}) {
-  const tomorrow = nextViewingDay(jerseyToday());
   const opts = PUB.filter(p => !isSold(p)).map(p =>
     `<option value="${p.id}" ${p.id === pre.prop ? "selected" : ""}>${esc(p.title)} — ${esc(priceLabel(p))}</option>`).join("");
-  const days = [tomorrow]; while (days.length < 12) days.push(nextViewingDay(days[days.length - 1])); // Mon–Sat only
-  const dayPart = (d, o) => new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", {timeZone: "UTC", ...o});
-  const agents = TEAM.length ? `<div class="opts cards">${TEAM.map((t, i) =>
-      `<label><input type="radio" name="agent" value="${i}" ${i === (pre.agent ?? 0) ? "checked" : ""}><span class="opt">${t.photo ? `<img src="${esc(wix(t.photo, 96, 96))}" alt="">` : ""}<b>${esc(t.name)}</b><small>${esc(t.role || "")}</small></span></label>`).join("")}</div>`
-    : `<p class="hint">Team details are unavailable right now; the first available agent will be assigned.</p>`;
   return `${pre.msg ? `<p class="cancelled" role="status">${esc(pre.msg)}</p>` : ""}<form class="tour" novalidate>
     <label class="field"><span>Property</span><select name="prop"><option value="">General enquiry / valuation</option>${opts}</select></label>
-    <fieldset class="field"><legend>Your agent</legend>${agents}</fieldset>
+    <div class="agents"><p class="hint">Loading available times…</p></div>
     <fieldset class="field"><legend>Viewing type</legend><div class="opts cards">
       <label><input type="radio" name="kind" value="In person" checked><span class="opt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7M5 10v10h14V10M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><b>In person</b><small>At the property with your agent</small></span></label>
       <label><input type="radio" name="kind" value="Live video call"><span class="opt"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m16 10 5-3v10l-5-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><b>Live video call</b><small>Ideal if you are buying from abroad</small></span></label></div></fieldset>
-    <fieldset class="field"><legend>Day <i>Monday to Saturday</i></legend><div class="opts days">${days.map((d, i) =>
-      `<label><input type="radio" name="date" value="${d}" ${i ? "" : "checked"} aria-label="${dayPart(d, {weekday: "long", day: "numeric", month: "long"})}"><span class="day"><small>${dayPart(d, {weekday: "short"})}</small><b class="num">${dayPart(d, {day: "numeric"})}</b><small>${dayPart(d, {month: "short"})}</small></span></label>`).join("")}</div></fieldset>
-    <fieldset class="field"><legend>Time</legend><div class="opts">${["10:00","11:30","14:00","15:30","17:00"].map((t, i) =>
-      `<label><input type="radio" name="time" value="${t}" ${i === 1 ? "checked" : ""}><span class="num">${t}</span></label>`).join("")}</div></fieldset>
+    <div class="when"></div>
     <div class="row"><label class="field"><span>Full name</span><input name="name" autocomplete="name" required placeholder="Jane Le Brocq"></label>
       <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="jane@example.je"></label>
       <label class="field"><span>Phone (optional)</span><input name="phone" type="tel" autocomplete="tel" placeholder="07797 000000"></label></div>
     ${TS_KEY ? `<div class="ts"></div>` : ""}
-    <div><button class="btn" type="submit" ${TS_KEY ? "" : "disabled"}>Request viewing</button>
-      <p class="hint form-status" role="status" aria-live="polite">${TS_KEY ? "" : "Online booking is unavailable right now. Please call 01534 727582."}</p></div>
+    <div><button class="btn" type="submit" disabled>Request viewing</button>
+      <p class="hint form-status" role="status" aria-live="polite">${TS_KEY ? "" : BOOKING_DOWN}</p></div>
   </form>`;
 }
 
+// pre: {prop: listing id, agent: negotiator name, msg}. One availability request when the form opens, another after a 409.
 function mountBooking(slot, pre = {}) {
   slot.innerHTML = bookingForm(pre);
   const form = $("form", slot), el = form.elements, status = $(".form-status", slot), btn = $("button[type=submit]", form);
-  let widget = null;
+  const agents = $(".agents", form), when = $(".when", form);
+  const v = n => form.querySelector(`[name=${n}]:checked`)?.value;
+  let widget = null, A = null; // A: the availability, after parseAvailability
   if (TS_KEY) tsReady.then(() => { if ($(".ts", slot)) widget = turnstile.render($(".ts", slot), {sitekey: TS_KEY}); });
   // Script blocked (content blocker, network): don't leave the visitor at a check they can't complete.
   if (TS_KEY) setTimeout(() => { if (widget == null && document.body.contains(form))
     status.textContent = "Our anti-spam check didn't load. Please call us on 01534 727582 to book, or try again later."; }, 6000);
+
+  const negotiator = () => A.negotiators.find(n => n.id === +v("negotiator"));
+  // Days stay; a day with no free time for the chosen agent is disabled. Times are that agent's on the chosen day.
+  const paint = want => {
+    const n = negotiator(), pick = pickSlot(A.days, n.id, want);
+    for (const r of form.querySelectorAll("[name=date]")) {
+      const free = freeTimes(A.days.find(d => d.date === r.value), n.id).length > 0;
+      r.disabled = !free; r.checked = r.value === pick.date;
+      r.setAttribute("aria-label", dayPart(r.value, {weekday: "long", day: "numeric", month: "long"}) + (free ? "" : ", no free times"));
+    }
+    const slots = pick.date ? A.days.find(d => d.date === pick.date).slots[n.id] : [];
+    $(".times", form).innerHTML = pick.date ? `<div class="opts">${slots.map(s =>
+      `<label><input type="radio" name="time" value="${s.time}" required ${s.booked ? "disabled" : ""} ${s.time === pick.time ? "checked" : ""} aria-label="${s.time}${s.booked ? ", booked" : ""}"><span class="num">${s.time}${s.booked ? " <small>Booked</small>" : ""}</span></label>`).join("")}</div>`
+      : `<p class="hint">No free times with ${esc(n.name)} in the next two weeks. Choose another agent or call 01534 727582.</p>`;
+    btn.disabled = !TS_KEY || !pick.date;
+  };
+  const show = (keepId, want) => {
+    const pickN = A.negotiators.find(n => n.id === keepId) || A.negotiators.find(n => n.name === pre.agent) || A.negotiators[0];
+    agents.innerHTML = `<fieldset class="field"><legend>Your agent</legend><div class="opts cards">${A.negotiators.map(n => { const t = teamOf(n);
+      return `<label><input type="radio" name="negotiator" value="${n.id}" data-name="${esc(n.name)}" ${n === pickN ? "checked" : ""}><span class="opt">${t?.photo ? `<img src="${esc(wix(t.photo, 96, 96))}" alt="">` : ""}<b>${esc(n.name)}</b><small>${esc(t?.role || n.role || "")}</small></span></label>`; }).join("")}</div></fieldset>`;
+    when.innerHTML = `<fieldset class="field"><legend>Day <i>Monday to Saturday</i></legend><div class="opts days">${A.days.map(({date: d}) =>
+      `<label><input type="radio" name="date" value="${d}"><span class="day"><small>${dayPart(d, {weekday: "short"})}</small><b class="num">${dayPart(d, {day: "numeric"})}</b><small>${dayPart(d, {month: "short"})}</small></span></label>`).join("")}</div></fieldset>
+      <fieldset class="field"><legend>Time</legend><div class="times"></div></fieldset>`;
+    paint(want);
+  };
+  // want: the day and time to keep (see pickSlot). The agent stays the one chosen, while they are still offered.
+  const load = want => getJSON("/api/availability").then(x => {
+    if (!slot.contains(form)) return;
+    const keepId = A && +v("negotiator");
+    A = parseAvailability(x);
+    if (!A?.negotiators.length || !A.days.length) throw new Error("no availability");
+    show(keepId, want);
+  }).catch(() => {
+    if (!slot.contains(form)) return;
+    A = null; agents.innerHTML = when.innerHTML = ""; btn.disabled = true; status.textContent = BOOKING_DOWN;
+  });
+  load();
+  form.addEventListener("change", e => {
+    if (e.target.name === "negotiator") paint({date: v("date"), time: v("time") ?? null});
+    if (e.target.name === "date") paint({date: e.target.value, time: v("time") ?? null});
+  });
+
   form.addEventListener("submit", async e => {
     e.preventDefault();
-    if (!form.reportValidity() || btn.disabled) return;
-    const v = n => form.querySelector(`[name=${n}]:checked`)?.value;
-    const agent = TEAM[+v("agent")] || null, prop = PUB.find(p => p.id === el.prop.value);
+    if (!A || !form.reportValidity() || btn.disabled) return;
+    const n = negotiator(), t = teamOf(n), prop = PUB.find(p => p.id === el.prop.value), date = v("date"), time = v("time");
     const token = form.querySelector('[name="cf-turnstile-response"]')?.value;
     if (!token) { status.textContent = "Please complete the anti-spam check above."; return; }
     btn.disabled = true; status.textContent = "Sending…";
     try {
       const r = await fetch("/api/viewings", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({
-        listing_id: el.prop.value || null, agent: agent?.name || null, kind: v("kind"), date: el.date.value, time: v("time"),
+        listing_id: el.prop.value || null, negotiator_id: n.id, kind: v("kind"), date, time,
         name: el.name.value, email: el.email.value, phone: el.phone.value || null, turnstile: token})});
       const data = await r.json().catch(() => ({}));
+      if (r.status === 409) {
+        // Taken since the form opened: fresh slots, the same day if it still has a free time, and no time chosen.
+        if (widget != null) turnstile.reset(widget);
+        await load({date, time});
+        if (A) status.textContent = `${data.error || "That time was just booked. Please choose another."} Your details are still here.`;
+        return;
+      }
       if (!r.ok) throw new Error(data.fields ? Object.values(data.fields).join(". ") + "." : data.error || "Something went wrong.");
     } catch (err) {
       status.textContent = `${err instanceof TypeError ? "We couldn't reach our server." : err.message} Your details are still here — please try again.`;
       btn.disabled = false; if (widget != null) turnstile.reset(widget);
       return;
     }
-    const when = new Date(el.date.value + "T12:00").toLocaleDateString("en-GB", {weekday: "long", day: "numeric", month: "long"});
-    const keep = {prop: el.prop.value, agent: agent ? TEAM.indexOf(agent) : 0};
+    const whenText = new Date(date + "T12:00").toLocaleDateString("en-GB", {weekday: "long", day: "numeric", month: "long"});
+    const keep = {prop: el.prop.value, agent: n.name};
     slot.innerHTML = `<div class="confirm" role="status" tabindex="-1"><h3>Request received</h3>
-      <p>${agent ? esc(agent.name) : "Our team"} will contact you to confirm the viewing.</p>
-      <dl><dt>Property</dt><dd>${esc(prop ? prop.title : "General enquiry / valuation")}</dd><dt>When</dt><dd>${esc(when)}, ${esc(v("time"))}</dd>
-      <dt>Type</dt><dd>${esc(v("kind"))}</dd><dt>Agent</dt><dd>${agent ? `${esc(agent.name)} · ${esc(agent.office)}` : "First available"}</dd>
+      <p>${esc(n.name)} will contact you to confirm the viewing.</p>
+      <dl><dt>Property</dt><dd>${esc(prop ? prop.title : "General enquiry / valuation")}</dd><dt>When</dt><dd>${esc(whenText)}, ${esc(time)}</dd>
+      <dt>Type</dt><dd>${esc(v("kind"))}</dd><dt>Agent</dt><dd>${esc(n.name)}${t?.office ? ` · ${esc(t.office)}` : ""}</dd>
       <dt>Name</dt><dd>${esc(el.name.value)}</dd></dl>
       <div class="actions"><button class="btn" type="button" data-again>Book another viewing</button></div></div>`;
     $(".confirm", slot).focus();
@@ -561,8 +613,12 @@ function home() {
 
   $("#team").addEventListener("click", e => {
     const i = e.target.closest("[data-agent]")?.dataset.agent; if (i == null) return;
-    const slot = $("#book-slot"), radio = $(`input[name=agent][value="${i}"]`, slot);
-    radio ? (radio.checked = true) : mountBooking(slot, {agent: +i});
+    // The form's agents are the API's negotiators: the same person by name. No form agents yet (loading, unavailable,
+    // or the confirmation is showing): a fresh form for that person.
+    const slot = $("#book-slot"), name = TEAM[i].name, radios = [...slot.querySelectorAll("input[name=negotiator]")];
+    const radio = radios.find(r => r.dataset.name === name);
+    if (radio) { radio.checked = true; radio.dispatchEvent(new Event("change", {bubbles: true})); }
+    else if (!radios.length) mountBooking(slot, {agent: name});
     $("#book").scrollIntoView(); $("select", slot).focus({preventScroll: true});
   });
   mountBooking($("#book-slot"));
@@ -809,7 +865,7 @@ function detail(id) {
     };
     $("#calc").addEventListener("input", calc); calc();
   }
-  if (!isSold(p)) mountBooking($("#detail-slot"), {prop: p.id, agent: agent ? TEAM.indexOf(agent) : 0});
+  if (!isSold(p)) mountBooking($("#detail-slot"), {prop: p.id, agent: agent?.name});
   scrollTo({top: 0, behavior: "instant"});
 }
 

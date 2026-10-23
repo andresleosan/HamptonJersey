@@ -78,16 +78,39 @@ async function publicSite(browser) {
   await page.goto(BASE + "#/p/HE-R003");
   await page.waitForFunction(() => location.hash === "#/");
 
-  // Booking: real request, Turnstile test key passes automatically.
+  // Booking on real slots (C13); the Turnstile test key passes automatically. Trinity rental's agent is Joshua.
   await page.goto(BASE + "#/p/HE-R002");
-  await page.waitForSelector("#detail-slot form");
-  await page.waitForFunction(() => document.querySelector('#detail-slot [name="cf-turnstile-response"]')?.value, null, {timeout: 20000});
+  const token = () => page.waitForFunction(() => document.querySelector('#detail-slot [name="cf-turnstile-response"]')?.value
+    && !document.querySelector("#detail-slot button[type=submit]").disabled, null, {timeout: 20000});
+  await page.waitForSelector("#detail-slot [name=time]:checked");
+  await token();
+  const chosen = () => page.$eval("#detail-slot form", f => Object.fromEntries(["negotiator", "date", "time"].map(n => [n, f.querySelector(`[name=${n}]:checked`)?.value ?? null])));
+  const first = await chosen();
+  assert.equal(await page.$eval("#detail-slot [name=negotiator]:checked", r => r.dataset.name), "Joshua Franco", "the listing's agent is preselected");
+  assert.ok(first.date && first.time, "the first free day and time are chosen");
   await page.fill("#detail-slot input[name=name]", "Jane Le Brocq");
   await page.fill("#detail-slot input[name=email]", "jane@example.je");
+  // Someone else takes that time before Jane sends: 409, her details stay, the time shows as booked and none is chosen.
+  d1(`INSERT INTO viewing_requests (kind, date, time, end_time, name, email, status, created_at, negotiator_id)
+    VALUES ('In person', '${first.date}', '${first.time}', substr(time('${first.time}', '+30 minutes'), 1, 5), 'Quick Racer',
+      'racer@example.je', 'requested', '2026-10-23T00:00:00.000Z', ${first.negotiator})`);
+  await page.click("#detail-slot button[type=submit]");
+  await page.waitForSelector("#detail-slot .form-status >> text=That time was just booked");
+  assert.equal(await page.inputValue("#detail-slot input[name=name]"), "Jane Le Brocq");
+  assert.equal(await page.getAttribute(`#detail-slot [name=time][value="${first.time}"]`, "aria-label"), `${first.time}, booked`);
+  assert.equal((await chosen()).time, null);
+  await page.click("#detail-slot [name=time]:not(:disabled) + span");
+  const second = await chosen();
+  await token();
   await page.click("#detail-slot button[type=submit]");
   await page.waitForSelector("#detail-slot .confirm");
-  assert.match(await page.textContent("#detail-slot .confirm"), /Request received[\s\S]*Trinity rental/);
-  assert.match(d1("SELECT name, listing_id FROM viewing_requests"), /Jane Le Brocq[\s\S]*HE-R002/);
+  assert.match(await page.textContent("#detail-slot .confirm"), /Request received[\s\S]*Joshua Franco will contact you[\s\S]*Trinity rental/);
+  assert.deepEqual(JSON.parse(d1("SELECT listing_id, negotiator_id, date, time FROM viewing_requests WHERE name = 'Jane Le Brocq'"))[0].results,
+    [{listing_id: "HE-R002", negotiator_id: +second.negotiator, date: second.date, time: second.time}]);
+  // Booking another: the time Jane asked for shows as booked, with no one's details.
+  await page.click("#detail-slot [data-again]");
+  await page.click(`#detail-slot [name=date][value="${second.date}"] + span`);
+  await page.waitForSelector(`#detail-slot [name=time][value="${second.time}"][aria-label="${second.time}, booked"]:disabled`);
   assert.deepEqual(page.errors, []);
 
   // M5: Turnstile blocked (content blocker) → the form offers the phone instead of a dead end.
