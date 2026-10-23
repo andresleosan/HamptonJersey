@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { fmtAgo, fmtDate } from "./format.js";
+import { fmtAgo, fmtDate, firstSentence, blank, show } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
-import { OPTIONS, normalizePhone } from "../../server/applicants.js";
+import { OPTIONS, normalizePhone, isActive } from "../../server/applicants.js";
 import ApplicantFields, { toForm, toBody } from "./ApplicantFields.jsx";
 import MatchCard, { REASON_LABEL } from "./MatchCard.jsx";
 
@@ -24,11 +24,6 @@ const LABEL = { operation: "To Let or To Buy", stage: "Stage", lost_reason: "Why
   household_adults: "Adults", household_children: "Children", requirements: "Anything else that matters?", name: "Name",
   email: "Email", phone: "Phone", preferred_channel: "Preferred channel", best_time: "Best time to contact",
   privacy_ack_at: "Privacy notice accepted", marketing_opt_in_at: "Agreed to marketing" };
-const CHOICES = { operation: OPTIONS.operation, stage: OPTIONS.stages, source: OPTIONS.sources, furnished: OPTIONS.furnished,
-  property_types: OPTIONS.property_types, outdoor: OPTIONS.outdoor, parishes_wanted: OPTIONS.parishes, parishes_excluded: OPTIONS.parishes,
-  buyer_position: OPTIONS.buyer_position, mortgage_aip: OPTIONS.mortgage_aip, housing_status: OPTIONS.housing_status,
-  preferred_channel: OPTIONS.channels, parking_spaces: OPTIONS.parking };
-const MONEY = ["budget_min", "budget_max", "budget_stretch"];
 const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requirements changed", "applicant.stage_changed": "Stage changed",
   "applicant.archived": "Archived", "applicant.restored": "Restored", "contact.updated": "Contact details changed",
   "contact.consent_changed": "Consent changed", "applicant.duplicate_submitted": "Registered again on the website",
@@ -36,23 +31,7 @@ const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requi
 const VIEWING_STATUS = Object.fromEntries([["new", "New"], ["contacted", "Contacted"], ["closed", "Closed"]]);
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation), SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
 
-const blank = v => v == null || v === "" || (Array.isArray(v) && !v.length);
 const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
-// A stored or submitted value as text: option labels, £ amounts, lists in the form's order. Never HTML.
-export function show(k, v, nameOf) {
-  if (k === "assigned_to") return v ? nameOf(v) : "Unassigned";
-  if (blank(v)) return "—";
-  if (k === "pets") return OPTIONS.pet_kinds.filter(([p]) => v.some(x => x.kind === p)).map(([p, t]) => {
-    const n = v.find(x => x.kind === p).count;
-    return p === "none" || blank(n) ? t : `${t} (${n})`;
-  }).join(", ");
-  const list = CHOICES[k], text = x => list?.find(([o]) => String(o) === String(x))?.[1] ?? String(x);
-  if (Array.isArray(v)) return (list ? [...v].sort((a, b) => list.findIndex(([o]) => o === a) - list.findIndex(([o]) => o === b)) : v)
-    .map(text).join(", ");
-  if (MONEY.includes(k) && Number.isFinite(Number(v))) return `£${Number(v).toLocaleString("en-GB")}`;
-  if (k.endsWith("_at")) return fmtDate(v);
-  return text(v);
-}
 // What the duplicate strip compares: an email or phone written another way is the same one.
 const same = (k, a, b) => {
   const norm = v => (k === "email" && typeof v === "string" ? v.trim().toLowerCase()
@@ -144,7 +123,8 @@ export default function ApplicantDetail({ id, tab }) {
   const refresh = async saved => {
     setData(x => ({ ...x, ...saved }));
     const d = await api(`/admin/applicants/${id}`);
-    setData(x => ({ ...x, events: d.events, viewings: d.viewings, duplicates: d.duplicates }));
+    // A new stage can close or reopen the search, which recomputes its matches.
+    setData(x => ({ ...x, events: d.events, viewings: d.viewings, duplicates: d.duplicates, matches: d.matches }));
   };
   // Stage and Assigned to save on their own; unsaved requirements stay in the form. Input while saving is ignored,
   // never disabled, so the focus stays where it is.
@@ -223,7 +203,7 @@ export default function ApplicantDetail({ id, tab }) {
     // The message shows with the reloaded matches; a refused review's "Reload to see it" is done already.
     try {
       const d = await api(`/admin/applicants/${id}`);
-      if (msg.refused) msg = { text: `${msg.text.split(". ")[0].replace(/\.?$/, ".")} The matches below are up to date.` };
+      if (msg.refused) msg = { text: `${firstSentence(msg.text)} The matches below are up to date.` };
       const left = !d.matches.some(x => x.id === m.id && x.status === m.status);
       if (msg.ok || left)
         refocusMatch.current = next && d.matches.some(x => x.id === next.id && x.status === m.status) ? `match-${next.id}` : `group-${m.status}`;
@@ -354,8 +334,10 @@ function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirm
 }
 
 // Spec §5: Found, Shortlisted and Rejected, each best first (as the API orders them). Each empty group says why.
+// A closed search (archived, lost or completed) is read only: the server refuses its reviews (409).
 function Matches({ matches, applicant: a, msg, busy, onReview }) {
-  const archived = !!a.archived_at, closed = ["lost", "completed"].includes(a.stage);
+  const archived = !!a.archived_at, closed = !isActive(a) && !archived;
+  const readOnly = archived ? "Restore this search to review its matches" : closed ? "Reopen this search to review its matches" : null;
   const reviewed = matches.some(m => m.status !== "found");
   const empty = {
     found: archived ? "Archived searches get no new matches. Restore it to look again."
@@ -365,14 +347,17 @@ function Matches({ matches, applicant: a, msg, busy, onReview }) {
     shortlisted: "Nothing shortlisted yet.",
     rejected: "Nothing rejected.",
   };
+  // The status region stays mounted, so what it says next is announced (as in Review); an alert is announced on arrival.
   return <div className="matches">
-    {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
+    {readOnly && <p className="muted">{readOnly}.</p>}
+    <p role="status" className="ok">{msg?.ok && msg.text}</p>
+    {msg && !msg.ok && <p role="alert" className="err">{msg.text}</p>}
     {GROUPS.map(([k, t]) => {
       const list = matches.filter(m => m.status === k);
       return <section key={k} className="match-group" aria-labelledby={`group-${k}`}>
         <h2 id={`group-${k}`} tabIndex={-1}>{t} <span className="count">{list.length}</span></h2>
         {list.length ? <ul className="match-list">{list.map(m => <li key={m.id}>
-          <MatchCard match={m} busy={busy} disabled={archived} onReview={r => onReview(m, r)} /></li>)}</ul>
+          <MatchCard match={m} busy={busy} disabled={readOnly} onReview={r => onReview(m, r)} /></li>)}</ul>
           : <p className="empty card">{empty[k]}</p>}
       </section>;
     })}

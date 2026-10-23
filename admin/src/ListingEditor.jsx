@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, safeHref } from "./format.js";
+import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, safeHref, show } from "./format.js";
 import MediaManager from "./MediaManager.jsx";
 import Research from "./Research.jsx";
 import { setUnsaved } from "./unsaved.js";
-import { OPTIONS } from "../../server/applicants.js";
+import { OPTIONS, isActive } from "../../server/applicants.js";
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "sale_price", "rent", "rent_period", "premium", "currency", "price_text", "summary", "description",
@@ -199,7 +199,8 @@ export default function ListingEditor({ id }) {
   </div>;
 }
 
-// Spec §5: how many applicants match this listing and which, with their status. Best first, as the API orders them.
+// Spec §5: how many applicants match this listing and which, with their status. Best first, as the API orders them. A
+// closed search says so: its matches are kept but no longer reviewed.
 function MatchedApplicants({ rows, offered }) {
   const note = !offered && <p className="muted">This listing isn't offered to applicants.</p>;
   if (!rows.length) return note || <p className="muted">No applicants match this listing yet.</p>;
@@ -208,7 +209,8 @@ function MatchedApplicants({ rows, offered }) {
       <thead><tr><th scope="col">Applicant</th><th scope="col">Looking</th><th scope="col">Status</th><th scope="col">Score</th></tr></thead>
       <tbody>{rows.map(m => { const [label, tone] = MATCH_STATUS[m.status] ?? [m.status, "neutral"];
         return <tr key={m.match_id}>
-          <td><a href={`#/applicants/${m.applicant_id}/matches`}>{m.name}</a></td>
+          <td><a href={`#/applicants/${m.applicant_id}/matches`}>{m.name}</a>
+            {!isActive(m) && <span className="muted"> · {m.archived_at ? "Archived" : show("stage", m.stage)}</span>}</td>
           <td>{OPERATION_LABEL[m.operation] ?? m.operation ?? "—"}</td>
           <td><span className={`badge ${tone}`}>{label}</span></td>
           <td className="num">{m.score}</td>

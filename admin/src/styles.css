@@ -64,6 +64,7 @@ table.list{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .side nav .linkish{text-decoration:none;padding:7px 10px;border-radius:8px;transition:background .15s} .side nav .linkish:hover{background:var(--mist)}
 .side nav .linkish:focus-visible{outline:2px solid var(--bronze)}
 .linkish{all:unset;cursor:pointer;color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.linkish:focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
 .sections{display:grid;gap:16px}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .field{display:grid;gap:4px}
@@ -211,6 +212,6 @@ kbd{font:600 11px var(--body);letter-spacing:0;padding:0 5px;border:1px solid cu
 .offer{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-bottom:12px} .offer .muted{flex-basis:100%}
 .list.matched{margin:0}
 @media (max-width:760px){.list td.parish::before{content:attr(data-label) ": ";color:var(--stone);font-size:12px}
-  .list tr:has(td.parish)>td:first-child:not(.order),.list tr:has(td.parish) td.order+td{grid-row:span 7}
+  .list.listings td:first-child:not(.order),.list.listings td.order+td{grid-row:span 7}
   .list.matched tr{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;border-bottom:1px solid var(--line)}.list.matched tr:last-child{border-bottom:0}
   .list.matched td:first-child{flex-basis:100%;overflow-wrap:anywhere}.list.matched td.num::before{content:"Score ";color:var(--stone);font-size:12px}}

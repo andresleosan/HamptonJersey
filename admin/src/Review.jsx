@@ -2,11 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { REJECT_REASONS } from "../../server/applicants.js";
 import MatchCard, { REASON_LABEL } from "./MatchCard.jsx";
-import { show } from "./ApplicantDetail.jsx";
+import { show, firstSentence } from "./format.js";
 
 const GONE = "This match is no longer proposed, so it has left the queue.";
-// A server message's first sentence: its "Reload to see it" is done already, the queue moves on by itself.
-const firstSentence = t => t.split(". ")[0].replace(/\.?$/, ".");
 // DESIGN.md: a single-key shortcut never fires while typing (WCAG 2.1.4).
 const typing = el => el.closest("input, textarea, select, [contenteditable]:not([contenteditable=false])");
 const money = v => show("budget_max", v);
@@ -16,21 +14,23 @@ const money = v => show("budget_max", v);
 // is inside the queue. The last action can be undone until the next one.
 export default function Review() {
   const [q, setQ] = useState(null); // { match (its listing inside), applicant, remaining }; null while loading
-  const [failed, setFailed] = useState(null); // { after, text }: the next match didn't load
+  const [failed, setFailed] = useState(null); // { after, left, text }: the next match didn't load
   const [msg, setMsg] = useState(null), [undo, setUndo] = useState(null);
   const [busy, setBusy] = useState(false), [rejecting, setRejecting] = useState(false);
   const working = useRef(false), refocus = useRef(true), headRef = useRef(null), againRef = useRef(null), retryRef = useRef(null);
   const regionRef = useRef(null), reloadAfter = useRef(false); // reloadAfter: Recalculate all ended mid-review
 
-  // The next match after `after` (a match id; null = from the top). Returns what is left, or null when it failed.
-  const load = async after => {
+  // The next match after `after` (a match id; null = from the top). The server counts the queue from the top and at
+  // its end; in between, `left` is the page's own count. Returns what is left, or null when it failed.
+  const load = async (after, left) => {
     refocus.current = true; setRejecting(false);
     try {
       const d = await api(`/admin/review${after == null ? "" : `?after=${after}`}`);
-      setQ({ match: d.match && { ...d.match, listing: d.listing }, applicant: d.applicant ?? null, remaining: d.remaining });
+      const remaining = d.remaining ?? left;
+      setQ({ match: d.match && { ...d.match, listing: d.listing }, applicant: d.applicant ?? null, remaining });
       setFailed(null);
-      return d.remaining;
-    } catch (e) { setFailed({ after, text: e.message }); return null; }
+      return remaining;
+    } catch (e) { setFailed({ after, left, text: e.message }); return null; }
   };
   useEffect(() => { load(null); }, []);
   // After each step the focus goes to the card now shown (or what replaced it), so the next key works at once.
@@ -74,7 +74,8 @@ export default function Review() {
       else if (e.status === 409) { text = firstSentence(e.message); ok = false; }
       else { setMsg({ text: e.message }); keepFocus(); return; } // nothing changed: stay on this match
     }
-    const n = await load(match.id);
+    // Reviewed, gone or reviewed by someone else, it has left the queue; a skipped one is still in it.
+    const n = await load(match.id, status === "skip" ? q.remaining : Math.max(0, q.remaining - 1));
     setMsg({ ok, text: n == null ? text : `${text} ${n} left.` });
     setUndo(done);
   });
@@ -84,16 +85,15 @@ export default function Review() {
     // The undone match is shown again; the one that was next comes after it.
     const back = (match, remaining, text) => {
       refocus.current = true; setRejecting(false); setFailed(null);
-      setQ({ match, applicant: u.applicant, remaining: remaining ?? q.remaining + 1 });
-      setMsg({ ok: true, text: remaining == null ? text : `${text} ${remaining} left.` });
+      setQ({ match, applicant: u.applicant, remaining });
+      setMsg({ ok: true, text: `${text} ${remaining} left.` });
     };
+    // A skipped match never left the count; an undone review is one more to review.
     if (u.skip) return back(u.match, q.remaining, "Back to the skipped match.");
     try {
       const r = await api(`/admin/matches/${u.match.id}`, { method: "PUT", body: { status: "found", from: u.status } });
       if (!r.match) { setMsg(gone); keepFocus(); return; }
-      // Undo recomputes that search, which can add or drop other found matches: the count is read again.
-      const n = await api(`/admin/review?after=${r.match.id}`).then(d => d.remaining, () => null);
-      back(r.match, n, "Back in Found.");
+      back(r.match, q.remaining + 1, "Back in Found.");
     } catch (e) {
       setMsg(e.status === 404 ? gone : { text: e.status === 409 ? firstSentence(e.message) : e.message });
       keepFocus();
@@ -130,7 +130,7 @@ export default function Review() {
         {undo && <button type="button" className="btn ghost sm" onClick={undoLast}>Undo</button>}</p>
       {msg && !msg.ok && <p role="alert" className="err">{msg.text}</p>}
       {failed ? <p role="alert" className="err">{failed.text}{" "}
-        <button type="button" ref={retryRef} className="btn ghost sm" onClick={() => run(() => load(failed.after), false)}>Try again</button></p>
+        <button type="button" ref={retryRef} className="btn ghost sm" onClick={() => run(() => load(failed.after, failed.left), false)}>Try again</button></p>
         : !q ? <p>Loading the queue…</p>
         : m ? <div className="review">
           <Summary a={q.applicant} />
@@ -156,7 +156,10 @@ function Summary({ a }) {
   const range = lo != null && hi != null ? `${money(lo)}–${money(hi)}` : hi != null ? `Up to ${money(hi)}`
     : lo != null ? `From ${money(lo)}` : null;
   const budget = range ? `${range}${a.operation === "rent" ? " a month" : ""}${up != null ? `, can stretch to ${money(up)}` : ""}` : "—";
-  const rows = [["Looking", show("operation", a.operation)], ["Budget", budget], ["Bedrooms, at least", show("bedrooms_min", a.bedrooms_min)],
+  const rows = [["Looking", show("operation", a.operation)], ["Budget", budget], ["Type", show("property_types", a.property_types)],
+    ["Bedrooms, at least", show("bedrooms_min", a.bedrooms_min)], ["Bedrooms, ideally", show("bedrooms_ideal", a.bedrooms_ideal)],
+    ["Bathrooms, at least", show("bathrooms_min", a.bathrooms_min)], ["Parking", show("parking_spaces", a.parking_spaces)],
+    ["Furnished", show("furnished", a.furnished)], ["Outdoor space", show("outdoor", a.outdoor)],
     ["Parishes they want", a.parishes_wanted?.length ? show("parishes_wanted", a.parishes_wanted) : "Any"],
     ["Parishes they don't want", a.parishes_excluded?.length ? show("parishes_excluded", a.parishes_excluded) : "None"],
     ["Pets", show("pets", a.pets)]];
@@ -172,8 +175,10 @@ function Summary({ a }) {
 function Recalculate({ onDone }) {
   const [running, setRunning] = useState(false), [progress, setProgress] = useState("");
   const [resume, setResume] = useState(null), [note, setNote] = useState(null);
-  const retryRef = useRef(null);
-  useEffect(() => { if (note && !note.ok) retryRef.current?.focus(); }, [note]);
+  const retryRef = useRef(null), boxRef = useRef(null), mine = useRef(false); // mine: the focus was on these controls
+  // A failure takes the focus to Retry only from here (the button, disabled while running, leaves it on the page);
+  // someone reviewing meanwhile keeps their place.
+  useEffect(() => { if (note && !note.ok && mine.current) retryRef.current?.focus(); }, [note]);
   const go = async from => {
     let { phase, after, done } = from;
     setRunning(true); setNote(null); setResume(null); setProgress("Starting…");
@@ -190,6 +195,8 @@ function Recalculate({ onDone }) {
       setNote({ ok: true, text: "Done: every listing read again and every active search recomputed." });
       onDone();
     } catch (e) {
+      const at = document.activeElement;
+      mine.current = !at || at === document.body || !!boxRef.current?.contains(at);
       setResume({ phase, after, done });
       setNote({ text: `Stopped after ${done} ${done === 1 ? phase.slice(0, -1) : phase}. ${e.message}` });
     } finally { setRunning(false); }
@@ -198,7 +205,7 @@ function Recalculate({ onDone }) {
     if (confirm("Recalculate all? This reads every listing again (its parish and features) and then recomputes the matches "
       + "of every active search. Parishes set by hand stay. Keep this page open until it finishes.")) go({ phase: "listings", after: null, done: 0 });
   };
-  return <div className="recalc">
+  return <div className="recalc" ref={boxRef}>
     <button type="button" className="btn ghost" disabled={running} onClick={start}>{running ? "Recalculating…" : "Recalculate all"}</button>
     <p role="status" className="muted num">{running ? progress : note?.ok ? note.text : ""}</p>
     {note && !note.ok && <p role="alert" className="err">{note.text}{" "}

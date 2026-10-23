@@ -1,3 +1,5 @@
+import { OPTIONS } from "../../server/applicants.js";
+
 export const AVAILABILITY = { for_sale: "For sale", under_offer: "Under offer", sold: "Sold", to_let: "To let",
   lease: "Lease", not_stated: "Not stated", withdrawn: "Withdrawn" };
 export const OPERATION = { sale: "Sale", rent: "Rent", business: "Business" };
@@ -24,4 +26,29 @@ export function fmtAgo(iso) {
   const s = Math.min(0, (new Date(iso) - Date.now()) / 1000);
   const [unit, size] = STEPS.find(([, n]) => Math.abs(s) >= n) ?? ["second", 1];
   return AGO.format(Math.trunc(s / size) || 0, unit);
+}
+
+// A server message's first sentence: for when its "Reload to see it" has been done already.
+export const firstSentence = t => t.split(". ")[0].replace(/\.?$/, ".");
+
+export const blank = v => v == null || v === "" || (Array.isArray(v) && !v.length);
+const CHOICES = { operation: OPTIONS.operation, stage: OPTIONS.stages, source: OPTIONS.sources, furnished: OPTIONS.furnished,
+  property_types: OPTIONS.property_types, outdoor: OPTIONS.outdoor, parishes_wanted: OPTIONS.parishes, parishes_excluded: OPTIONS.parishes,
+  buyer_position: OPTIONS.buyer_position, mortgage_aip: OPTIONS.mortgage_aip, housing_status: OPTIONS.housing_status,
+  preferred_channel: OPTIONS.channels, parking_spaces: OPTIONS.parking };
+const MONEY = ["budget_min", "budget_max", "budget_stretch"];
+// An applicant's stored or submitted value as text: option labels, £ amounts, lists in the form's order. Never HTML.
+export function show(k, v, nameOf) {
+  if (k === "assigned_to") return v ? nameOf(v) : "Unassigned";
+  if (blank(v)) return "—";
+  if (k === "pets") return OPTIONS.pet_kinds.filter(([p]) => v.some(x => x.kind === p)).map(([p, t]) => {
+    const n = v.find(x => x.kind === p).count;
+    return p === "none" || blank(n) ? t : `${t} (${n})`;
+  }).join(", ");
+  const list = CHOICES[k], text = x => list?.find(([o]) => String(o) === String(x))?.[1] ?? String(x);
+  if (Array.isArray(v)) return (list ? [...v].sort((a, b) => list.findIndex(([o]) => o === a) - list.findIndex(([o]) => o === b)) : v)
+    .map(text).join(", ");
+  if (MONEY.includes(k) && Number.isFinite(Number(v))) return `£${Number(v).toLocaleString("en-GB")}`;
+  if (k.endsWith("_at")) return fmtDate(v);
+  return text(v);
 }

@@ -3,7 +3,7 @@ import { AVAILABILITY, priceText } from "./format.js";
 import { REJECT_REASONS } from "../../server/applicants.js";
 
 // The checks of server/matching.js evaluate(), by key.
-export const CHECK_LABEL = { budget: "Budget", bedrooms: "Bedrooms", bathrooms: "Bathrooms", area: "Area", pets: "Pets",
+const CHECK_LABEL = { budget: "Budget", bedrooms: "Bedrooms", bathrooms: "Bathrooms", area: "Area", pets: "Pets",
   parking: "Parking", furnished: "Furnished", outdoor: "Outdoor", type: "Type" };
 const RESULT = { meets: "Meets", fails: "Fails", unknown: "Unknown" };
 export const REASON_LABEL = Object.fromEntries(REJECT_REASONS);
@@ -14,10 +14,11 @@ const many = (n, word) => (n == null ? null : `${n} ${word}${n === 1 ? "" : "s"}
 
 // One match as spec §5 shows it: the listing, its score, each check with what the listing says, and the reviews its
 // status allows. onReview({ status, reject_reason }) gets the review chosen. busy: input is ignored, never disabled,
-// so the focus stays where it is. disabled: read only (an archived search). The heading (id match-<id>) takes the focus.
+// so the focus stays where it is. disabled: why the card is read only (a closed search), shown on its buttons; none =
+// reviews allowed. The heading (id match-<id>) takes the focus.
 // The Review queue also passes: shortcuts (shows each button's key, which the queue itself listens for), rejecting and
 // onRejecting (it opens the reasons on R), and children (more actions, after Reject).
-export default function MatchCard({ match, onReview, busy, disabled = false, shortcuts = false, rejecting: shown, onRejecting,
+export default function MatchCard({ match, onReview, busy, disabled = null, shortcuts = false, rejecting: shown, onRejecting,
   children }) {
   const l = match.listing, title = l.title;
   const [own, setOwn] = useState(false);
@@ -28,7 +29,9 @@ export default function MatchCard({ match, onReview, busy, disabled = false, sho
   const review = (status, reject_reason) => { if (!busy) onReview({ status, ...(reject_reason && { reject_reason }) }); };
   const cancel = () => { setRejecting(false); rejectRef.current?.focus(); };
   const meta = [l.id, l.parish ?? "Parish unknown", many(l.bedrooms, "bedroom"), many(l.bathrooms, "bathroom")].filter(Boolean);
-  const why = disabled ? "Restore this search to review its matches" : undefined;
+  const why = disabled || undefined, off = !!disabled;
+  // On the website only when published, not archived and with a photo it shows (as the Listings page says).
+  const offSite = !l.published || l.archived_at || !l.has_public_photo;
 
   return <article className="card match" aria-labelledby={`match-${match.id}`}>
     <div className="match-photo">{l.cover_id ? <img src={`/media/${l.cover_id}?thumb`} alt="" loading="lazy" />
@@ -40,7 +43,7 @@ export default function MatchCard({ match, onReview, busy, disabled = false, sho
       </div>
       <p className="muted">{meta.join(" · ")}</p>
       <p className="match-price"><span className="num">{priceText(l)}</span>
-        {(!l.published || l.archived_at) && <span className="badge neutral">Not on website</span>}
+        {offSite && <span className="badge neutral">Not on website</span>}
         {!OFFERED.includes(l.availability) && <span className={`badge ${AVAILABILITY_TONE[l.availability] ?? "neutral"}`}>{AVAILABILITY[l.availability] ?? l.availability}</span>}</p>
       <dl className="checks">{match.checks.map(c => <div key={c.key}>
         <dt>{CHECK_LABEL[c.key] ?? c.key}</dt>
@@ -49,13 +52,13 @@ export default function MatchCard({ match, onReview, busy, disabled = false, sho
       {match.status === "rejected" && <p className="muted">Rejected · {REASON_LABEL[match.reject_reason] ?? match.reject_reason}</p>}
       <div className="inline match-actions">
         {match.status === "found" ? <>
-          <button type="button" className="btn sm" disabled={disabled} title={why} aria-keyshortcuts={shortcuts ? "A" : undefined}
+          <button type="button" className="btn sm" disabled={off} title={why} aria-keyshortcuts={shortcuts ? "A" : undefined}
             onClick={() => review("shortlisted")}>Shortlist<span className="sr"> {title}</span>{hint("A")}</button>
-          <button type="button" ref={rejectRef} className="btn ghost sm" disabled={disabled} title={why} aria-expanded={rejecting}
+          <button type="button" ref={rejectRef} className="btn ghost sm" disabled={off} title={why} aria-expanded={rejecting}
             aria-keyshortcuts={shortcuts ? "R" : undefined}
             onClick={() => (rejecting ? cancel() : setRejecting(true))}>Reject<span className="sr"> {title}</span>{hint("R")}</button>
           {children}
-        </> : <button type="button" className="btn ghost sm" disabled={disabled} title={why} onClick={() => review("found")}>
+        </> : <button type="button" className="btn ghost sm" disabled={off} title={why} onClick={() => review("found")}>
           Undo<span className="sr"> · move {title} back to Found</span></button>}
       </div>
       {rejecting && match.status === "found" && <div className="inline reasons" role="group" aria-label={`Why reject ${title}?`}

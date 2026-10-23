@@ -5,6 +5,8 @@ import { OPTIONS } from "../../server/applicants.js";
 
 const TABS = [["published", "Published"], ["draft", "Drafts"], ["archived", "Archived"], ["all", "All"]];
 const REGIONS = { jersey: "Jersey", uk: "United Kingdom", international: "International" };
+// The Parish filter's value for listings whose parish is not known (no parish is called this).
+const UNKNOWN = "unknown";
 const regionOf = c => (c === "Jersey" ? "jersey" : c === "United Kingdom" ? "uk" : "international");
 
 export default function Listings() {
@@ -46,7 +48,8 @@ export default function Listings() {
   if (!rows) return <p>Loading listings…</p>;
   const needle = q.trim().toLowerCase();
   const shown = rows.filter(l => (tab === "all" || stateOf(l) === tab) && (!use || l.use === use)
-    && (!region || regionOf(l.country) === region) && (!avail || l.availability === avail) && (!parish || l.parish === parish)
+    && (!region || regionOf(l.country) === region) && (!avail || l.availability === avail)
+    && (!parish || (parish === UNKNOWN ? l.parish == null : l.parish === parish))
     && (!needle || `${l.id} ${l.title} ${l.location ?? ""}`.toLowerCase().includes(needle)))
     .sort((a, b) => (tab === "published" ? ((a.home_order ?? Infinity) - (b.home_order ?? Infinity) || 0) : 0) || a.id.localeCompare(b.id));
   // Position of each starred listing in the home page's Featured section: published ones with a public photo, in star order.
@@ -69,12 +72,12 @@ export default function Listings() {
       <label>Availability<select value={avail} onChange={e => setAvail(e.target.value)}><option value="">All</option>
         {Object.entries(AVAILABILITY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label>Parish<select value={parish} onChange={e => setParish(e.target.value)}><option value="">Any</option>
-        {OPTIONS.parishes.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+        {OPTIONS.parishes.map(([k, v]) => <option key={k} value={k}>{v}</option>)}<option value={UNKNOWN}>Unknown</option></select></label>
     </div>
     <p className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? "listing" : "listings"}
       {canDrag ? " · drag ⠿ to set the order on the home page" : tab === "published" && shown.length > 1 ? " · clear the filters to change the order" : ""}</p>
     {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
-    {shown.length ? <table className="list">
+    {shown.length ? <table className="list listings">
       <thead><tr>{canDrag && <th scope="col"><span className="sr">Order</span></th>}<th scope="col"><span className="sr">Photo</span></th><th scope="col">Listing</th><th scope="col">Location</th>
         <th scope="col">Parish</th><th scope="col">Price</th><th scope="col">Availability</th><th scope="col">Visibility</th><th scope="col">Last edited</th>
         <th scope="col"><span className="sr">Actions</span></th></tr></thead>
