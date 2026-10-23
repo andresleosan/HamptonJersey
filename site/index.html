@@ -52,7 +52,7 @@ nav.main a:hover{color:var(--bronze-dk)}
 .menu-btn[aria-expanded=true] i{background:transparent}
 .menu-btn[aria-expanded=true] i::before{top:0;transform:rotate(45deg)}
 .menu-btn[aria-expanded=true] i::after{top:0;transform:rotate(-45deg)}
-@media (max-width:860px){
+@media (max-width:900px){
   .menu-btn{display:inline-flex}
   nav.main{display:none;position:absolute;left:0;right:0;top:100%;flex-direction:column;gap:0;background:var(--paper);border-bottom:1px solid var(--line);padding:4px clamp(16px,4vw,40px) 12px;box-shadow:0 12px 24px rgba(0,0,0,.08)}
   nav.main.open{display:flex}
@@ -190,7 +190,7 @@ form.tour .btn[type=submit]{width:100%;padding-block:16px}
 .field>legend i{font-style:normal;letter-spacing:.04em;text-transform:none;font-weight:500;margin-left:6px}
 .field{display:grid;gap:6px;min-width:0}
 fieldset.field{border:0;margin:0;padding:0}
-.field>span,.field>legend{padding:0;font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
+.field>span,.field>legend,.field>label{padding:0;font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
 .field input,.field select{border:1px solid var(--field-line);border-radius:12px;background:#fbfaf8;padding:13px 14px;width:100%;transition:border-color .2s,box-shadow .2s,background .2s}
 .field input:hover,.field select:hover{border-color:var(--stone)}
 .field input:focus,.field select:focus{outline:none;border-color:var(--bronze);background:#fff;box-shadow:0 0 0 3px rgba(165,107,61,.15)}
@@ -221,6 +221,7 @@ form.tour .form-status:empty{margin:0}
 .opts input:focus-visible+span{outline:2px solid var(--bronze);outline-offset:2px}
 .confirm{border:1px solid var(--ok);border-radius:var(--r-lg);background:var(--paper);box-shadow:var(--shadow);padding:clamp(22px,3vw,36px);display:grid;gap:10px}
 .confirm h3{color:var(--ok);font-size:18px}
+.confirm h2{color:var(--ok);font-size:20px;line-height:1.35;text-transform:none;letter-spacing:.02em}
 .confirm dl{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;margin:6px 0 0;font-size:14px}
 .confirm dt{color:var(--stone)}
 .confirm dd{margin:0}
@@ -317,15 +318,55 @@ body:has(dialog[open]){overflow:hidden}
 .bullets{margin:0 0 16px;padding-left:18px}
 .form-status{min-height:1.4em}
 footer .staff-row{display:block;margin-top:28px}
+footer .privacy{display:inline-block;margin-right:24px;padding-block:8px}
 footer .staff{font-size:11px;color:var(--stone);text-decoration:none;opacity:.6}
 footer .staff:hover,footer .staff:focus-visible{opacity:1;text-decoration:underline}
+
+/* register your search and the privacy notice (both rendered by apply.js) */
+.reg-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;margin-top:48px;padding-top:32px;border-top:1px solid var(--line)}
+.reg-cta p{margin:0;color:var(--stone);max-width:52ch}
+@media (max-width:480px){.reg-cta .btn{width:100%;padding-inline:16px}}
+.apply .wrap,.legal{max-width:720px}
+.apply [hidden]{display:none}
+.apply-h1{font:600 11px/1.4 var(--body);letter-spacing:.22em;color:var(--stone);margin-bottom:8px}
+.apply-body>.hint{margin:0}
+.apply-body>.confirm{margin-top:24px}
+.apply-progress{display:grid;gap:8px;margin:24px 0 32px}
+.apply-progress p{margin:0;font-size:13px;color:var(--stone)}
+.pbar{height:2px}
+.pbar i{display:block;height:100%;width:calc(var(--step,1) / 6 * 100%);background:var(--bronze);transition:width .25s ease}
+fieldset.step{border:0;margin:0;padding:0;min-width:0;display:grid;gap:24px}
+fieldset.step>legend{padding:0;margin-bottom:24px}
+.step h2{scroll-margin-top:96px}
+.step .hint{margin:0}
+.apply .opts span{min-height:44px}
+.apply .field input{font-size:16px}
+.apply .field textarea{border:1px solid var(--field-line);border-radius:12px;background:#fbfaf8;padding:13px 14px;width:100%;font:inherit;font-size:16px;resize:vertical;transition:border-color .2s,box-shadow .2s,background .2s}
+.apply .field textarea:focus{outline:none;border-color:var(--bronze);background:#fff;box-shadow:0 0 0 3px rgba(165,107,61,.15)}
+.apply .field [aria-invalid=true]{border-color:var(--err)}
+.apply input,.apply textarea{scroll-margin:96px 0 120px}
+.field-err{font-size:13px;color:var(--err)}
+.consent{display:grid;gap:12px}
+.consent label{display:flex;gap:12px;align-items:flex-start;font-size:14px;cursor:pointer}
+.consent input{flex:none;width:20px;height:20px;margin:2px 0 0;accent-color:var(--ink)}
+.apply .form-status:empty{display:none}
+.apply .form-status{margin:24px 0 0;color:var(--err);font-size:14px}
+.apply-actions{position:sticky;bottom:0;z-index:15;display:flex;align-items:center;gap:12px;margin-top:24px;padding:12px 0 calc(12px + env(safe-area-inset-bottom,0px));background:var(--paper);border-top:1px solid var(--line)}
+.apply-actions .btn{flex:1}
+.apply-actions .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-color:var(--ink)}
+.apply-back{min-height:44px;border:0;background:none;padding:0 8px;font-size:13px;text-decoration:underline;cursor:pointer}
+@media (min-width:760px){.apply-actions{position:static;border-top:0;padding-bottom:0}.apply-actions .btn{flex:none;min-width:240px;margin-left:auto}}
+@media (prefers-reduced-motion:reduce){.pbar i,.apply .field textarea{transition:none}}
+.legal h1{font-size:clamp(28px,4vw,40px);margin-bottom:16px}
+.legal h2{font-size:18px;margin:32px 0 8px}
+.legal ul{padding-left:18px}
 </style>
 </head>
 <body>
 <a class="skip" href="#app" data-scroll="app">Skip to content</a>
 <header class="top"><div class="wrap">
   <a class="logo" href="#/">HAMPTON ESTATES<small>JERSEY · SINCE 1982</small></a>
-  <nav class="main" id="main-nav" aria-label="Main"><a href="#/">Home</a><a href="#portfolio">Properties</a><a href="#team">Our team</a><a href="#book">Book a viewing</a></nav>
+  <nav class="main" id="main-nav" aria-label="Main"><a href="#/">Home</a><a href="#portfolio">Properties</a><a href="#team">Our team</a><a href="#book">Book a viewing</a><a href="#/apply">Register</a></nav>
   <span class="tel num">01534 727582</span>
   <button class="menu-btn" type="button" aria-expanded="false" aria-controls="main-nav"><i aria-hidden="true"></i>Menu</button>
 </div></header>
@@ -335,7 +376,7 @@ footer .staff:hover,footer .staff:focus-visible{opacity:1;text-decoration:underl
   <div><b>Visit</b><p>42 Bath Street, St Helier<br>Jersey JE2 4ST</p></div>
   <div><b>Contact</b><p class="num">01534 727582 · 07797 718199<br>francopropertiesjersey@gmail.com</p></div>
 </div>
-  <div class="wrap staff-row"><a class="staff" href="/admin/">Staff login</a></div></footer>
+  <div class="wrap staff-row"><a class="privacy" href="#/privacy">Privacy</a><a class="staff" href="/admin/">Staff login</a></div></footer>
 
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstile" async defer></script>
 <script src="lib.js"></script>
@@ -486,6 +527,8 @@ function home() {
     <p class="active" id="active" hidden></p>
     <div class="grid" id="grid"></div>
     ${few ? "" : `<div style="text-align:center;margin-top:48px"><button class="btn ghost" type="button" id="more"></button></div>`}
+    <div class="reg-cta"><p>Not seeing the right home? Register your search and our team will be in touch.</p>
+      <a class="btn ghost" href="#/apply">Tell us what you're looking for</a></div>
   </div></section>
 
   ${spots.map((p, i) => `<section class="feature${i % 2 ? " flip" : ""}"><img src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy">
@@ -777,7 +820,7 @@ navBtn.addEventListener("click", () => { const open = navBtn.getAttribute("aria-
 nav.addEventListener("click", e => { if (e.target.closest("a")) setNav(false); });
 addEventListener("keydown", e => { if (e.key === "Escape" && nav.classList.contains("open")) { setNav(false); navBtn.focus(); } });
 addEventListener("click", e => { if (nav.classList.contains("open") && !e.target.closest("header.top")) setNav(false); });
-matchMedia("(min-width:861px)").addEventListener("change", () => setNav(false));
+matchMedia("(min-width:901px)").addEventListener("change", () => setNav(false));
 
 // In-page jumps that must not change the route (skip link, "Book a viewing" on a property page).
 addEventListener("click", e => {
@@ -786,6 +829,8 @@ addEventListener("click", e => {
   e.preventDefault(); t.scrollIntoView(); t.focus({preventScroll: true});
 });
 addEventListener("click", e => { if (e.target.closest('a[href="#/"]') && location.hash === "#/") scrollTo({top: 0}); });
+// After a registration the hash is still #/apply: "Register" then starts a new one (never while a form is open).
+addEventListener("click", e => { if (e.target.closest('a[href="#/apply"]') && location.hash === "#/apply" && !$("#app .apply form")) route(); });
 // Breadcrumb back to a market: preset the location tab before the home page renders.
 addEventListener("click", e => { const r = e.target.closest(".crumbs [data-region]")?.dataset.region; if (r) Object.assign(filter, {region: r, op: "all", beds: 0, max: 0}); });
 
@@ -796,9 +841,19 @@ const io = "IntersectionObserver" in window && !matchMedia("(prefers-reduced-mot
 const reveal = () => io && document.querySelectorAll("#app .head, #app .card, #app .agent, #app .feature, #app .facts > div, #app .book > *, #app .detail > *")
   .forEach(el => { if (el.classList.contains("rv")) return; el.classList.add("rv"); el.style.transitionDelay = `${([...el.parentElement.children].indexOf(el) % 4) * 80}ms`;
     el.addEventListener("transitionend", () => { el.style.transitionDelay = ""; }, {once: true}); io.observe(el); });
+// Register your search and the privacy notice live in apply.js, fetched only when one of them opens (spec §5).
+const SIDE_PAGES = {"#/apply": (m, root) => m.renderApply(root, {esc, tsKey: TS_KEY, tsReady}), "#/privacy": (m, root) => m.renderPrivacy(root)};
+const sidePage = h => import("./apply.js").then(m => { if (location.hash !== h) return; SIDE_PAGES[h](m, $("#app")); scrollTo({top: 0, behavior: "instant"}); })
+  .catch(() => {
+    if (location.hash !== h) return;
+    $("#app").innerHTML = `<section class="block"><div class="wrap empty" role="alert"><p>We couldn't load this page right now.</p>
+      <button class="btn ghost" type="button">Try again</button></div></section>`;
+    $("#app .empty button").addEventListener("click", () => location.reload());
+  });
 const route = () => {
   const h = location.hash, m = h.match(/^#\/p\/(HE-[A-Z]\d{3,})$/), sec = h.slice(1);
   setNav(false);
+  if (SIDE_PAGES[h]) return sidePage(h);
   if (m) { detail(m[1]); return reveal(); }
   if (!$("#portfolio")) home();
   reveal();
