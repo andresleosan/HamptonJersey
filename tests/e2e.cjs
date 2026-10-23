@@ -28,6 +28,8 @@ async function newPage(ctx, viewport) {
 async function publicSite(browser) {
   const ctx = await browser.newContext();
   const page = await newPage(ctx, {width: 1280, height: 800});
+  const stats = [];
+  page.on("request", r => r.url().endsWith("/api/stats") && stats.push(r.postDataJSON()));
   await page.goto(BASE);
   await page.waitForSelector("#grid .card");
   await shot(page, "home");
@@ -55,8 +57,11 @@ async function publicSite(browser) {
   assert.match(await page.getAttribute("#tour3d iframe", "src"), /my\.matterport\.com\/show\/\?m=JGPnGQ6hosj.*play=1.*wh=0/);
   await shot(page, "home-tour");
 
+  // I3: opening a listing counts a view; the counter answers 204 whether it counts or not.
+  const counted = page.waitForResponse(r => r.url().endsWith("/api/stats"));
   await page.goto(BASE + "#/p/HE-R001");
   await page.waitForSelector(".summary h1");
+  assert.equal((await counted).status(), 204);
   assert.deepEqual(await page.$$eval(".media-tabs button", bs => bs.map(b => b.textContent)), ["Photos", "3D tour", "Aerial"]);
   assert.equal(await page.$$eval("#thumbs button", b => b.length), 2, "two public photos; external one hidden");
   assert.match(await page.getAttribute("#stage img", "src"), /\/media\/A00002$/, "M6: detail opens on the chosen cover");
@@ -78,6 +83,10 @@ async function publicSite(browser) {
   assert.ok(await page.$("#calc"));
   assert.equal((await page.request.get(BASE + "media/A00005")).status(), 404, "external photo is private");
   assert.equal((await page.request.get(BASE + "media/A00009")).status(), 404, "draft photo is private");
+  // Back home and to the same listing without reloading: no second view.
+  await page.goto(BASE + "#/");
+  await page.goto(BASE + "#/p/HE-R001");
+  await page.waitForSelector(".summary h1");
   await page.goto(BASE + "#/p/HE-R003");
   await page.waitForFunction(() => location.hash === "#/");
 
@@ -114,7 +123,20 @@ async function publicSite(browser) {
   await page.click("#detail-slot [data-again]");
   await page.click(`#detail-slot [name=date][value="${second.date}"] + span`);
   await page.waitForSelector(`#detail-slot [name=time][value="${second.time}"][aria-label="${second.time}, booked"]:disabled`);
+  assert.deepEqual(stats, [{listing_id: "HE-R001", metric: "view"}, {listing_id: "HE-R001", metric: "photos"},
+    {listing_id: "HE-R001", metric: "tour"}, {listing_id: "HE-R002", metric: "view"}], "once per listing and metric");
   assert.deepEqual(page.errors, []);
+
+  // The counter failing never breaks the listing or leaves an uncaught error.
+  const off = await newPage(ctx, {width: 1280, height: 800});
+  await off.route(/\/api\/stats$/, r => r.abort());
+  const failed = off.waitForEvent("requestfailed", r => r.url().endsWith("/api/stats"));
+  await off.goto(BASE + "#/p/HE-R001");
+  await off.waitForSelector(".summary h1");
+  await failed;
+  await off.evaluate(() => new Promise(r => setTimeout(r)));
+  assert.deepEqual(off.errors, []);
+  await off.close();
 
   // M5: Turnstile blocked (content blocker) → the form offers the phone instead of a dead end.
   const blocked = await newPage(ctx, {width: 1280, height: 800});

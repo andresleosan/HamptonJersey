@@ -111,3 +111,8 @@ INSERT INTO notifications (id, event_id, category, title, action_required, creat
 (3,3,'viewing','Viewing request: Tom Renouf',1,'2026-10-22T14:00:00.000Z'),
 (4,4,'new_applicant','Tom Renouf registered again',1,'2026-10-22T18:30:00.000Z'),
 (5,5,'new_applicant','New applicant: Claire Le Sueur · To Let',0,'2026-10-22T11:00:00.000Z');
+-- F7-A: website opens a day ago and forty days ago, so 30 and 90 days differ.
+INSERT INTO daily_stats (day, listing_id, metric, n) VALUES
+(date('now','-1 day'),'HE-R001','view',12),(date('now','-1 day'),'HE-R001','photos',5),(date('now','-1 day'),'HE-R001','tour',3),
+(date('now','-1 day'),'HE-R002','view',4),(date('now','-1 day'),'HE-R002','photos',2),
+(date('now','-40 day'),'HE-R001','view',7),(date('now','-40 day'),'HE-R002','view',9),(date('now','-40 day'),'HE-R002','photos',1);
