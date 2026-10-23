@@ -60,3 +60,11 @@ test("stats: the day is Jersey's", async t => {
   await stat(env, "HE-R001");
   assert.deepEqual(rows(env).map(r => r.day), ["2026-07-02"]);
 });
+
+test("stats: past 20,000 opens in a Jersey day nothing more is written, still 204", async () => {
+  const env = world();
+  const day = jerseyToday();
+  env.DB.raw.prepare("INSERT INTO daily_stats (day, listing_id, metric, n) VALUES (?, 'HE-R001', 'view', 19999)").run(day);
+  for (const metric of ["view", "view", "photos"]) assert.equal((await stat(env, "HE-R001", metric)).status, 204);
+  assert.deepEqual(rows(env), [{ day, listing_id: "HE-R001", metric: "view", n: 20000 }]);
+});
