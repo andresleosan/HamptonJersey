@@ -18,3 +18,33 @@ INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, label, publi
 ('A00008','HE-C001','media/hampton/p7.jpg','thumbs/hampton/p7.jpg','hampton','photo','Café',1,0,'image/jpeg','2026-10-07T00:00:00.000Z'),
 ('A00009','HE-R003','media/hampton/p8.jpg','thumbs/hampton/p8.jpg','hampton','photo','Draft photo',1,0,'image/jpeg','2026-10-07T00:00:00.000Z');
 UPDATE listings SET cover_media_id = 'A00002' WHERE id = 'HE-R001';
+-- F0 applicants: one To Let from the website (open "New applicant" notice), one To Buy entered by the team (Feed only),
+-- a pending "registered again" from the To Buy contact (flat submission, as the public API receives it) and a new
+-- viewing request from the same contact, so it shows in the Inbox and on his Timeline.
+INSERT INTO contacts (id, name, email, phone, preferred_channel, best_time, privacy_ack_at, marketing_opt_in_at, consent_source,
+  last_activity_at, created_at, updated_at, updated_by) VALUES
+(1,'Sarah Vibert','sarah.vibert@example.je','+447797111222','whatsapp','After 6pm','2026-10-20T09:00:00.000Z',NULL,'web',
+ '2026-10-20T09:00:00.000Z','2026-10-20T09:00:00.000Z','2026-10-20T09:00:00.000Z','public'),
+(2,'Tom Renouf','tom.renouf@example.je','+447700900321','call',NULL,'2026-10-21T10:00:00.000Z',NULL,'phone',
+ '2026-10-22T18:30:00.000Z','2026-10-21T10:00:00.000Z','2026-10-21T10:00:00.000Z','luismadef45@gmail.com');
+INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, budget_min, budget_max, property_types, bedrooms_min,
+  parking_spaces, outdoor, furnished, pets, parishes_wanted, move_in_date, lease_term_months, buyer_position, mortgage_aip,
+  housing_status, household_adults, household_children, requirements, created_at, updated_at, updated_by) VALUES
+(1,1,'rent','new','web',NULL,NULL,2200,'["flat","house"]',2,1,NULL,'either','[{"kind":"dog","count":1}]','["St Helier","St Saviour"]',
+ '2026-12-01',12,NULL,NULL,'entitled',2,0,NULL,'2026-10-20T09:00:00.000Z','2026-10-20T09:00:00.000Z','public'),
+(2,2,'buy','searching','phone','luismadef45@gmail.com',500000,750000,'["house"]',3,2,'["garden"]',NULL,NULL,'["St Brelade","St Lawrence"]',
+ NULL,NULL,'needs_to_sell','in_progress','entitled',2,1,'Quiet road, room for a home office','2026-10-21T10:00:00.000Z',
+ '2026-10-21T10:00:00.000Z','luismadef45@gmail.com');
+INSERT INTO viewing_requests (id, listing_id, listing_ref, listing_title_snapshot, agent, kind, date, time, name, email, phone, status, created_at) VALUES
+(1,'HE-R001','HE-R001','Le Bernage',NULL,'In person','2026-10-28','10:00','Tom Renouf','tom.renouf@example.je','07700 900321','new','2026-10-22T14:00:00.000Z');
+INSERT INTO events (id, at, actor, entity_type, entity_id, type, data) VALUES
+(1,'2026-10-20T09:00:00.000Z','public','applicant','1','applicant.created','{"operation":"rent","source":"web"}'),
+(2,'2026-10-21T10:00:00.000Z','luismadef45@gmail.com','applicant','2','applicant.created','{"operation":"buy","source":"phone"}'),
+(3,'2026-10-22T14:00:00.000Z','public','viewing','1','viewing.requested','{"listing_id":"HE-R001","date":"2026-10-28","time":"10:00","kind":"In person"}'),
+(4,'2026-10-22T18:30:00.000Z','public','contact','2','applicant.duplicate_submitted',
+ '{"operation":"buy","name":"Tom Renouf","email":"tom.renouf@example.je","phone":"+447700900321","preferred_channel":"whatsapp","best_time":"Weekday mornings","budget_max":800000,"property_types":["house","cottage"],"bedrooms_min":4,"parking_spaces":2,"outdoor":["garden"],"parishes_wanted":["St Brelade","St Lawrence","St Peter"],"buyer_position":"needs_to_sell","mortgage_aip":"yes","housing_status":"entitled","requirements":"Quiet road, room for a home office","privacy":true,"marketing":true}');
+INSERT INTO notifications (id, event_id, category, title, action_required, created_at) VALUES
+(1,1,'new_applicant','New applicant: Sarah Vibert · To Let',1,'2026-10-20T09:00:00.000Z'),
+(2,2,'new_applicant','New applicant: Tom Renouf · To Buy',0,'2026-10-21T10:00:00.000Z'),
+(3,3,'viewing','Viewing request: Tom Renouf',1,'2026-10-22T14:00:00.000Z'),
+(4,4,'new_applicant','Tom Renouf registered again',1,'2026-10-22T18:30:00.000Z');

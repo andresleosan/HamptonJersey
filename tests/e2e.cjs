@@ -232,8 +232,12 @@ async function admin(browser) {
   await page.getByRole("button", {name: "Save notes", exact: true}).click();
   await page.waitForSelector("text=Notes saved.");
   await page.getByRole("button", {name: "Mark contacted", exact: true}).click();
-  await page.waitForSelector("text=You're all caught up");
+  await page.waitForSelector("text=Marked as contacted.");
+  // The seed's own new request (Tom Renouf) stays in New.
+  await page.waitForFunction(() => !document.querySelector(".inbox-list").textContent.includes("Jane Le Brocq"));
+  assert.match(await page.textContent(".inbox-list"), /Tom Renouf/);
   await page.getByRole("button", {name: /^Contacted/}).click();
+  await page.waitForSelector('.inbox-list[aria-label="Contacted requests"] >> text=Jane Le Brocq');
   assert.equal(await page.inputValue("#v-notes"), "Called, prefers Saturday", "notes are kept");
   await shot(page, "admin-inbox");
   // 3D tours: add one from a YouTube share link, hide the sample; the home page follows.
