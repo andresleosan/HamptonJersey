@@ -11,10 +11,7 @@ const SEARCH_FIELDS = ["operation", "budget_min", "budget_max", "budget_stretch"
   "near", "move_in_date", "lease_term_months", "buyer_position", "mortgage_aip", "housing_status", "household_adults",
   "household_children", "requirements"];
 const CONTACT_FIELDS = ["name", "email", "phone", "preferred_channel", "best_time"];
-const STALE = {
-  applicant: "Someone else saved changes to this applicant. Reload to see them (your changes were not saved).",
-  contact: "Someone else saved changes to this contact. Reload to see them (your changes were not saved).",
-};
+const stale = entity => `Someone else saved changes to this ${entity}. Reload to see them (your changes were not saved).`;
 
 const pick = (o, keys) => Object.fromEntries(keys.filter(k => Object.hasOwn(o, k)).map(k => [k, o[k]]));
 const parsed = row => ({ ...row, ...Object.fromEntries(JSON_FIELDS.filter(k => k in row)
@@ -41,13 +38,21 @@ const touch = (env, contactId, ts) =>
 // Bind: the updated_at the client saw, then the new one.
 const LOCK = "updated_at = CASE WHEN updated_at = ? THEN ? END";
 // Whatever the error says, the row tells what happened: gone (404), saved by someone else (409), or neither (rethrow).
+// stmts[0] is the UPDATE. A row deleted (§3.4) after our read matches nothing and fails nothing: the last statement then
+// wipes the data of the events this batch wrote, as the delete did for the earlier ones.
 async function saveVersioned(env, stmts, entity, id, seen) {
-  try { await env.DB.batch(stmts); } catch (e) {
+  const missing = `${entity[0].toUpperCase()}${entity.slice(1)} not found`;
+  let results;
+  try {
+    results = await env.DB.batch([...stmts, env.DB.prepare(`UPDATE events SET data = NULL WHERE entity_type = ? AND entity_id = ?
+      AND NOT EXISTS (SELECT 1 FROM ${entity}s WHERE id = ?)`).bind(entity, String(id), id)]);
+  } catch (e) {
     const row = await env.DB.prepare(`SELECT updated_at FROM ${entity}s WHERE id = ?`).bind(id).first();
-    if (!row) fail(404, `${entity[0].toUpperCase()}${entity.slice(1)} not found`);
-    if (row.updated_at !== seen) fail(409, STALE[entity]);
+    if (!row) fail(404, missing);
+    if (row.updated_at !== seen) fail(409, stale(entity));
     throw e;
   }
+  if (!results[0].meta.changes) fail(404, missing);
 }
 
 // "Active search" (same rule as notifications.js): not archived, lost or completed; a paused one is still active.
@@ -134,7 +139,7 @@ async function create({ request, env, admin }) {
     // One active search per operation: a second one would split the contact's history (§3.3 "Create second search").
     const s = await env.DB.prepare(`SELECT s.id FROM applicants s WHERE s.contact_id = ? AND s.operation = ? AND ${ACTIVE}
       ORDER BY s.created_at DESC, s.id DESC LIMIT 1`).bind(contact.id, r.value.applicant.operation).first();
-    if (s) return json({ error: `${contact.name} already has an active ${OPERATION_LABEL[r.value.applicant.operation]} search.`,
+    if (s) return json({ error: `${contact.name} already has an active ${OPERATION_LABEL[r.value.applicant.operation]} search`,
       applicant_id: s.id }, 409);
   }
 
@@ -167,7 +172,9 @@ async function update({ request, env, admin, params: [id] }) {
   const body = asObject(await readJson(request));
   if (typeof body.updated_at !== "string") fail(400, "Missing updated_at: reload the applicant");
   const cur = await loadApplicant(env, id);
-  if (body.updated_at !== cur.updated_at) fail(409, STALE.applicant);
+  if (body.updated_at !== cur.updated_at) fail(409, stale("applicant"));
+  // Archived searches are read only (D9); also keeps an edit from racing a permanent delete, which needs Archived.
+  if (cur.archived_at) fail(409, "Restore this search to edit it");
   const contact = await loadContact(env, cur.contact_id);
 
   // Fields left out of the body keep their stored value. A move-in date already saved may be in the past by now:
@@ -223,9 +230,9 @@ const contactDetail = async ({ env, params: [id] }) => json({ contact: await loa
 
 async function updateContact({ request, env, admin, params: [id] }) {
   const body = asObject(await readJson(request));
-  if (typeof body.updated_at !== "string") fail(400, "Missing updated_at: reload the applicant");
+  if (typeof body.updated_at !== "string") fail(400, "Missing updated_at: reload the contact");
   const cur = await loadContact(env, id);
-  if (body.updated_at !== cur.updated_at) fail(409, STALE.contact);
+  if (body.updated_at !== cur.updated_at) fail(409, stale("contact"));
   // Same shared check as the form; operation and source are only there to complete it.
   const r = validateApplicant({ ...pick(cur, CONTACT_FIELDS), ...pick(body, CONTACT_FIELDS), operation: "rent", source: "phone" },
     { publicForm: false });
@@ -239,11 +246,14 @@ async function updateContact({ request, env, admin, params: [id] }) {
   const marketing = !Object.hasOwn(body, "marketing") ? cur.marketing_opt_in_at : body.marketing ? cur.marketing_opt_in_at ?? ts : null;
   const consent = marketing !== cur.marketing_opt_in_at;
   if (!keys.length && !consent) return json({ contact: cur });
+  // The panel only confirms an opt-in the website sent again, so a consent with no source came from the web.
+  const consent_source = marketing && cur.consent_source == null ? "web" : cur.consent_source;
 
   const taken = c => json({ error: "Another contact already uses this email or phone number", contact_id: c.id }, 409);
   const other = keys.length && await findContact(env, next, cur.id);
   if (other) return taken(other);
-  const sets = [...keys, ...(consent ? ["marketing_opt_in_at"] : [])], values = { ...next, marketing_opt_in_at: marketing };
+  const sets = [...keys, ...(consent ? ["marketing_opt_in_at"] : []), ...(consent_source !== cur.consent_source ? ["consent_source"] : [])];
+  const values = { ...next, marketing_opt_in_at: marketing, consent_source };
   const ref = { actor: admin, entity_type: "contact", entity_id: String(cur.id) };
   try {
     await saveVersioned(env, [

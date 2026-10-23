@@ -34,6 +34,24 @@ test("0008: contacts need an email or a phone and refuse duplicates", () => {
   assert.throws(() => addContact(env, { phone: "07797123456" }), /CHECK/);
 });
 
+test("0008: an email or phone the app would never store is refused", () => {
+  const env = makeEnv();
+  for (const email of ["", " jane@example.je", "jane le@example.je"])
+    assert.throws(() => addContact(env, { email }), /CHECK/, JSON.stringify(email));
+  for (const phone of ["+1abc", "+44 7797 123456", "+44-7797123456"])
+    assert.throws(() => addContact(env, { phone }), /CHECK/, phone);
+});
+
+test("0008: the Feed reads notices newest first without sorting, and an event finds its notices by index", () => {
+  const env = makeEnv();
+  const plan = sql => env.DB.raw.prepare(`EXPLAIN QUERY PLAN ${sql}`).all().map(r => r.detail).join(" | ");
+  const feed = plan(`SELECT n.id FROM notifications n JOIN events e ON e.id = n.event_id
+    WHERE NOT (n.action_required = 1 AND n.resolved_at IS NULL) ORDER BY n.created_at DESC, n.id DESC LIMIT 200`);
+  assert.doesNotMatch(feed, /TEMP B-TREE/, feed);
+  const byEvent = plan("SELECT id FROM notifications WHERE event_id IN (SELECT id FROM events WHERE entity_type = 'viewing' AND entity_id = '1')");
+  assert.match(byEvent, /SEARCH notifications USING (COVERING )?INDEX \w+ \(event_id=\?\)/, byEvent);
+});
+
 test("0008: applicants refuse values outside the closed lists", () => {
   const env = makeEnv();
   const contactId = Number(addContact(env, { email: "jane@example.je" }).lastInsertRowid);

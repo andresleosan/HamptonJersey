@@ -251,6 +251,9 @@ test("contact edits: stale saves and an email or phone of another contact are re
     assert.equal(r.status, 409, JSON.stringify(taken));
     assert.ok(r.data.contact_id);
   }
+  const noVersion = await req(env, "PUT", path, { best_time: "Mornings" });
+  assert.equal(noVersion.status, 400);
+  assert.equal(noVersion.data.error, "Missing updated_at: reload the contact");
   const none = await req(env, "PUT", path, { updated_at: cur.updated_at, email: null, phone: "" });
   assert.equal(none.status, 400);
   assert.ok(none.data.fields.email);
@@ -267,6 +270,7 @@ test("the team confirms or withdraws marketing consent, logged as consent_change
   assert.equal(on.status, 200, JSON.stringify(on.data));
   const at = on.data.contact.marketing_opt_in_at;
   assert.ok(at);
+  assert.equal(on.data.contact.consent_source, "web", "a confirmed opt-in came from the website's second submission");
   assert.equal(on.data.contact.updated_by, ADMIN);
   const ev = rows(env, "SELECT * FROM events WHERE entity_type = 'contact' ORDER BY id");
   assert.deepEqual(ev.map(e => e.type), ["contact.consent_changed"]);
@@ -282,6 +286,66 @@ test("the team confirms or withdraws marketing consent, logged as consent_change
   assert.equal(off.data.contact.marketing_opt_in_at, null);
   assert.deepEqual(rows(env, "SELECT type FROM events WHERE entity_type = 'contact' ORDER BY id").map(e => e.type),
     ["contact.consent_changed", "contact.updated", "contact.consent_changed"]);
+});
+
+test("confirming an opt-in keeps a consent source already on file", async () => {
+  const env = makeEnv();
+  const { contact } = await detail(env, await create(env, { privacy: true }));
+  assert.equal(contact.consent_source, "phone");
+  const on = await req(env, "PUT", `/admin/contacts/${contact.id}`, { updated_at: contact.updated_at, marketing: true });
+  assert.equal(on.status, 200, JSON.stringify(on.data));
+  assert.ok(on.data.contact.marketing_opt_in_at);
+  assert.equal(on.data.contact.consent_source, "phone");
+});
+
+test("an archived search is read only until restored", async () => {
+  const env = makeEnv();
+  const id = await create(env);
+  assert.equal((await req(env, "POST", `/admin/applicants/${id}/archive`)).status, 200);
+  const { applicant } = await detail(env, id);
+  const events = row(env, "SELECT COUNT(*) AS n FROM events").n;
+  const r = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: applicant.updated_at, requirements: "Garden" });
+  assert.equal(r.status, 409);
+  assert.equal(r.data.error, "Restore this search to edit it");
+  assert.equal(row(env, "SELECT requirements FROM applicants WHERE id = ?", id).requirements, null);
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM events").n, events);
+});
+
+// Archive + permanent delete land between the route's read and its batch.
+const deletedMidFlight = (env, id, name = "Jane Le Brocq") => {
+  const batch = env.DB.batch.bind(env.DB);
+  env.DB.batch = async stmts => {
+    env.DB.batch = batch;
+    if (!row(env, "SELECT archived_at FROM applicants WHERE id = ?", id).archived_at)
+      assert.equal((await req(env, "POST", `/admin/applicants/${id}/archive`)).status, 200);
+    assert.equal((await req(env, "DELETE", `/admin/applicants/${id}`, { confirm: name })).status, 200);
+    return batch(stmts);
+  };
+};
+const dataLeft = env => rows(env, "SELECT type FROM events WHERE data IS NOT NULL AND entity_type IN ('applicant', 'contact')");
+
+test("a contact deleted while its edit is saving: 404 and no personal data left in the history", async () => {
+  const env = makeEnv();
+  const id = await create(env);
+  const { contact } = await detail(env, id);
+  deletedMidFlight(env, id);
+  const r = await req(env, "PUT", `/admin/contacts/${contact.id}`,
+    { updated_at: contact.updated_at, email: "jane.new@example.je", marketing: true });
+  assert.equal(r.status, 404);
+  assert.equal(r.data.error, "Contact not found");
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM contacts").n, 0);
+  assert.deepEqual(dataLeft(env), []);
+});
+
+test("an applicant deleted while its edit is saving: 404 and no data left in the history", async () => {
+  const env = makeEnv();
+  const id = await create(env);
+  const { applicant } = await detail(env, id);
+  deletedMidFlight(env, id);
+  const r = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: applicant.updated_at, requirements: "Near the school" });
+  assert.equal(r.status, 404);
+  assert.equal(r.data.error, "Applicant not found");
+  assert.deepEqual(dataLeft(env), []);
 });
 
 test("archive closes the open notices; restore brings it back to the list", async () => {
@@ -448,7 +512,7 @@ test("a new search for a contact with an active search of that operation is refu
   const before = counts();
   const r = await req(env, "POST", "/admin/applicants", form({ contact_id: contactId }));
   assert.equal(r.status, 409);
-  assert.deepEqual(r.data, { error: "Jane Le Brocq already has an active To Let search.", applicant_id: rent });
+  assert.deepEqual(r.data, { error: "Jane Le Brocq already has an active To Let search", applicant_id: rent });
   assert.deepEqual(counts(), before, "nothing written");
 
   env.DB.raw.prepare("UPDATE applicants SET stage = 'completed' WHERE id = ?").run(rent);

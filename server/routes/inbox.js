@@ -37,10 +37,15 @@ async function update({ request, env, admin, params: [id] }) {
   return json({ ok: true });
 }
 
+// The request's personal data goes with it: its notices lose the name, its events their data (NULL, never '').
 async function remove({ env, admin, params: [id] }) {
+  const ref = { entity_type: "viewing", entity_id: String(Number(id)) };
   const [r] = await env.DB.batch([
     env.DB.prepare("DELETE FROM viewing_requests WHERE id = ?").bind(Number(id)),
-    resolveNotices(env, { entity_type: "viewing", entity_id: String(Number(id)) }, admin),
+    resolveNotices(env, ref, admin),
+    env.DB.prepare(`UPDATE notifications SET title = 'Deleted viewing request'
+      WHERE event_id IN (SELECT id FROM events WHERE entity_type = ? AND entity_id = ?)`).bind(ref.entity_type, ref.entity_id),
+    env.DB.prepare("UPDATE events SET data = NULL WHERE entity_type = ? AND entity_id = ?").bind(ref.entity_type, ref.entity_id),
   ]);
   if (!r.meta.changes) fail(404, "Request not found");
   return json({ ok: true });

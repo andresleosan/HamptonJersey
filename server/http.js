@@ -14,7 +14,7 @@ export async function readJson(request, maxBytes = 32768) {
     size += r.value.byteLength;
     if (size > maxBytes) { await reader.cancel(); fail(413, "Request too large"); }
   }
-  const text = new TextDecoder().decode(await new Blob(chunks).arrayBuffer());
+  const text = await new Blob(chunks).text();
   try { return JSON.parse(text); } catch { fail(400, "Invalid JSON body"); }
 }
 

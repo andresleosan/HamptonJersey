@@ -75,6 +75,17 @@ test("deleting a request closes its notice", async () => {
   assert.equal(n.resolved_by, ADMIN);
 });
 
+test("deleting a request takes the name off its notice and the request off its history", async () => {
+  const { env, id } = await requested();
+  assert.equal((await call(env, "DELETE", `/admin/viewings/${id}`, { cookie: await adminCookie() })).status, 200);
+  const [n] = notices(env);
+  assert.equal(n.title, "Deleted viewing request");
+  const [e] = events(env);
+  assert.equal(e.type, "viewing.requested", "the history keeps what happened and when");
+  assert.equal(e.data, null);
+  assert.ok(!JSON.stringify(notices(env)).includes("Jane"), "the name is gone from every notice");
+});
+
 test("data: null is stored as SQL NULL", async () => {
   const env = makeEnv();
   await env.DB.batch(logEvent(env, { actor: "system", entity_type: "admin", entity_id: "x", type: "t", data: null }));

@@ -5,8 +5,8 @@ ALTER TABLE admins ADD COLUMN name TEXT;
 CREATE TABLE contacts (
   id INTEGER PRIMARY KEY,
   name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 120),
-  email TEXT CHECK (email = lower(email)),
-  phone TEXT CHECK (phone GLOB '+[1-9]*'),
+  email TEXT CHECK (email = lower(email) AND email <> '' AND email NOT GLOB '*[ ]*'),
+  phone TEXT CHECK (phone GLOB '+[1-9]*' AND substr(phone, 2) NOT GLOB '*[^0-9]*'),
   preferred_channel TEXT CHECK (preferred_channel IS NULL OR preferred_channel IN ('whatsapp','call','email')),
   best_time TEXT,
   privacy_ack_at TEXT, marketing_opt_in_at TEXT,
@@ -77,6 +77,9 @@ CREATE TABLE notifications (
   resolved_at TEXT, resolved_by TEXT
 );
 CREATE INDEX notifications_open ON notifications(resolved_at, category, created_at);
+-- The Feed reads newest first and stops at 200; closing an entity's notices finds them by event.
+CREATE INDEX notifications_created ON notifications(created_at);
+CREATE INDEX notifications_event ON notifications(event_id);
 
 -- Viewing requests still 'new' get their event and an open notice, so the Inbox does not start empty (A15).
 INSERT INTO events (at, actor, entity_type, entity_id, type)
