@@ -5,7 +5,8 @@
 const TEL = "01534 727582";
 const STORE = "hampton-apply";
 // Answers kept in this tab so a reload loses nothing; personal details and consents never are (DESIGN.md).
-const PRIVATE = ["name", "email", "phone", "requirements", "housing_status", "privacy", "marketing"];
+const PRIVATE = ["name", "email", "phone", "preferred_channel", "best_time", "requirements", "housing_status", "privacy",
+  "marketing"];
 const STEPS = [
   { title: "What are you looking for?", fields: ["operation"] },
   { title: "Where?", fields: ["parishes_wanted", "parishes_excluded", "near"] },
@@ -76,7 +77,6 @@ function checkStep(i, a) {
 }
 
 const $ = (s, el) => el.querySelector(s);
-const jerseyDay = (d = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Jersey" }).format(d);
 const ICONS = {
   rent: '<path d="M14.5 9.5a4 4 0 1 1-1.2-2.8M13.3 6.7 20 13.4v3.1h-2.6v-2.1h-2.1v-2.1h-2.1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
   buy: '<path d="M3 11 12 4l9 7M5 10v10h14V10M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
@@ -108,7 +108,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   const input = (name, label, attrs = "", only = "") => `<div class="field"${only ? ` data-only="${only}"` : ""}>
     <label for="f-${name}"${label.rent ? ` data-rent="${label.rent}" data-buy="${label.buy}"` : ""}>${label.rent || label}</label>
     <input id="f-${name}" name="${name}" ${attrs}>${err(name)}</div>`;
-  const today = jerseyDay(), inTwoYears = `${Number(today.slice(0, 4)) + 2}${today.slice(4)}`;
+  const today = jerseyToday(), inTwoYears = `${Number(today.slice(0, 4)) + 2}${today.slice(4)}`;
   const count = `inputmode="numeric" autocomplete="off"`;
   const pets = list("pet_kinds").filter(([v]) => v !== "none");
   const money = (rent, buy, optional = "") => ({ rent: `${rent}, £ per month${optional}`, buy: `${buy}, £${optional}` });
@@ -289,7 +289,8 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     else if (typeof v === "string") el.value = v;
   }
   sync();
-  go(Number.isInteger(saved?.step) && saved.step > 0 && saved.step <= last ? saved.step : 0, false);
+  // Opening (or starting again) puts focus on the step's heading, as each step change does (WCAG 2.4.3).
+  go(Number.isInteger(saved?.step) && saved.step > 0 && saved.step <= last ? saved.step : 0);
 }
 
 // DRAFT pending Hampton's approval (spec §5, G5): the confirmation markers below stay until Hampton gives the data,
@@ -335,8 +336,9 @@ export function renderPrivacy(root) {
       ask us to arrange a viewing or make an offer.</p>
 
     <h2>How long we keep it</h2>
-    <p>We keep your details for 12 months from your last contact with us. After that we delete them or make them
-      anonymous, so they no longer identify you.</p>
+    <p>We keep your details for 12 months from the last activity on your record: a new registration, a change you ask
+      for, or a conversation with us. After that we delete them or make them anonymous, so they no longer identify
+      you.</p>
 
     <h2>Your rights</h2>
     <ul>
