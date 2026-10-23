@@ -124,6 +124,7 @@ test("email and phone of two different contacts: duplicate of the first, and the
   assert.equal(e.entity_id, String(jane));
   assert.equal(e.data.other_contact_id, other);
   assert.equal(applicants(env).length, 0);
+  assert.deepEqual(notices(env).map(n => n.title), ["Jane Le Brocq registered again · email and phone match two contacts"]);
 });
 
 test("the same person sent twice at once: the second becomes a duplicate, with the same answer", async () => {

@@ -108,7 +108,8 @@ function duplicate(env, [c, other], contact, applicant, ts) {
     ...(withdrawn ? logEvent(env, { ...ref, type: "contact.consent_changed",
       data: { before: { marketing_opt_in_at: c.marketing_opt_in_at }, after: { marketing_opt_in_at: null } } }) : []),
     ...logEvent(env, { ...ref, type: "applicant.duplicate_submitted", data: sent },
-      { category: "new_applicant", title: `${c.name} registered again`, action_required: true }),
+      { category: "new_applicant", title: `${c.name} registered again${other ? " · email and phone match two contacts" : ""}`,
+        action_required: true }),
     // Deleted from the panel (§3.4) since the lookup: these events keep no personal data either, as the delete did.
     env.DB.prepare(`UPDATE notifications SET title = 'Deleted applicant' WHERE event_id IN (SELECT id FROM events
       WHERE entity_type = 'contact' AND entity_id = ?) AND NOT EXISTS (SELECT 1 FROM contacts WHERE id = ?)`).bind(ref.entity_id, c.id),
