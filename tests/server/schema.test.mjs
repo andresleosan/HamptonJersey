@@ -299,3 +299,18 @@ test("0010: viewing indexes exist", () => {
   assert.deepEqual(cols("viewing_listing"), ["listing_id", "date"]);
   assert.deepEqual(cols("negotiator_exceptions_day"), ["negotiator_id", "date"]);
 });
+
+test("0011: daily_stats refuses unknown metrics and negative counts", () => {
+  const env = makeEnv();
+  seedListing(env);
+  const db = env.DB.raw;
+  const add = over => addRow(db, "daily_stats", { day: "2026-10-24", listing_id: "HE-R001", metric: "view", n: 1, ...over });
+  for (const metric of ["view", "photos", "tour"]) add({ metric });
+  add({ day: "2026-10-25", n: 0 });
+  for (const over of [{ metric: "booking" }, { day: "2026-10-26", n: -1 }])
+    assert.throws(() => add(over), /CHECK/, JSON.stringify(over));
+  assert.throws(() => add({ day: "2026-10-26", listing_id: "HE-R999" }), /FOREIGN KEY/);
+  assert.throws(() => add({}), /UNIQUE|PRIMARY KEY/);
+  db.prepare("DELETE FROM listings WHERE id = 'HE-R001'").run();
+  assert.equal(db.prepare("SELECT count(*) AS n FROM daily_stats").get().n, 0);
+});
