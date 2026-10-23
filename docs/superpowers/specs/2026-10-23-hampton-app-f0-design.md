@@ -39,6 +39,12 @@ Hoy un aplicante que llama o escribe queda en la memoria o en notas sueltas del 
 | A13 | `DESIGN.md` (raíz del repo) se escribe antes, como tarea propia, y el plan de F0 lo da por existente | Claude | Revisión del constructor |
 | A14 | F0 sale en dos entregas: primero el panel (tablas, Inbox, Applicants, New applicant); después el asistente público, `#/privacy` y el enlace «Register», cuando Luis apruebe el aviso de privacidad y el plazo de respuesta | Claude | Revisión del constructor |
 | A16 | Primera tarea de F0: unificar la paleta de web y panel según la propuesta de `DESIGN.md` y arreglar los contrastes que fallan hoy en la web (bronce 4,40:1, gris sobre mist 4,25:1, bordes de campos) | Claude, aprobado por Luis | Chat 23-oct |
+| G1 | Los avisos de F0 solo se ven en el panel; el equipo de Hampton lo abre cada día laborable. El aviso por email llega en F2 | Luis | Grill-me 23-oct |
+| G2 | Conservación: 12 meses desde la última actividad del contacto. F0: el aviso de privacidad lo dice y el borrado es manual (§3.4). F1: el cron avisa por email a los 11 meses y anonimiza a los 12 | Luis | Grill-me 23-oct |
+| G3 | Sin columna `Queue` en F0: valdría lo mismo para todos (anti-objetivo 4). Llega con F1 | Claude | Grill-me 23-oct |
+| G4 | Las solicitudes de visita no crean contactos en F0; la ficha del aplicante muestra las que tienen su mismo email o móvil (consulta al leer). Se unen de verdad en F3 | Luis | Grill-me 23-oct |
+| G5 | El borrador del aviso de privacidad lleva `<TO CONFIRM>` en nombre legal, dirección, email de privacidad y registro JOIC (y Optimyze como encargado si aplica). Una prueba hace fallar la segunda entrega mientras quede algún `<TO CONFIRM>` en `site/` | Luis | Grill-me 23-oct |
+| G6 | Solo vivienda en F0. El paso 1 enlaza «Looking for commercial premises? Contact us» al formulario general de la web (`#book`, sin propiedad elegida) | Luis | Grill-me 23-oct |
 | A15 | La migración crea avisos para las solicitudes de visita que ya están en `new`, para que Inbox no empiece vacío | Claude | Revisión del constructor |
 
 Se mantienen D1–D19 del spec del panel (2026-10-07), en particular D9 (borrar = archivar) y D19 (todo en inglés en web, panel y API).
@@ -55,6 +61,7 @@ Reglas de la arquitectura: dato desconocido = `NULL`, nunca 0; precios con moned
 - `id` INTEGER PK; `name` (1–120); `email` (minúsculas, único si no es NULL); `phone` (formato internacional `+…`, único si no es NULL); al menos uno de los dos.
 - `preferred_channel` (`whatsapp` | `call` | `email`), `best_time` (texto corto).
 - `privacy_ack_at` (obligatorio en el alta pública), `marketing_opt_in_at` (NULL si no aceptó), `consent_source` (`web` | `phone` | `walk_in` | `email`).
+- `last_activity_at`: se actualiza con cada alta, cambio de un admin o envío duplicado del contacto o de sus búsquedas (base del plazo de G2).
 - `created_at`, `updated_at`, `updated_by`.
 
 **`applicants`**: una búsqueda de un contacto.
@@ -148,8 +155,8 @@ Mismo patrón que `server/routes/*.js`: tabla de rutas, `fail()`, consultas con 
 
 - **Navegación**: Inbox (con contador de pendientes) · Applicants · Listings · Viewing requests · 3D tours · Users. `#/` abre Inbox.
 - **Inbox**: dos bloques, **Needs action** y **Feed**; pestañas All · New applicants · Viewings (solo las categorías que existen en F0; Matched llega en F1 y Missing payments en F5). Cada aviso: título, hace cuánto, enlace a su ficha, **Call** (`tel:`) si hay móvil, **Done**. Se actualiza cada 30 s solo mientras la pestaña está visible.
-- **Applicants**: control segmentado All / To Let / To Buy; orden Newest / Oldest; búsqueda por nombre, email o móvil; filtros Stage y Assigned to; columnas Name, Phone, Applied, Stage, Queue, Assigned to. `Queue` en F0 vale `Waiting for investigation` para todo aplicante activo (la búsqueda llega en F1). Pestaña Archived.
-- **Ficha del aplicante**: cabecera con nombre, Call (`tel:`), WhatsApp (`https://wa.me/<número>`), Email (`mailto:`), etapa (selector) y Assigned to. Pestañas **Requirements** (editable, misma barra Save/Discard que el editor de fichas) y **Timeline** (eventos con su autor y diferencias). Si hay un envío duplicado pendiente, una franja arriba lo enseña con «Copy fields», «Create second search» o «Dismiss».
+- **Applicants**: control segmentado All / To Let / To Buy; orden Newest / Oldest; búsqueda por nombre, email o móvil; filtros Stage y Assigned to; columnas Name, Phone, Applied, Stage, Assigned to (G3). Pestaña Archived.
+- **Ficha del aplicante**: cabecera con nombre, Call (`tel:`), WhatsApp (`https://wa.me/<número>`), Email (`mailto:`), etapa (selector) y Assigned to. Pestañas **Requirements** (editable, misma barra Save/Discard que el editor de fichas) y **Timeline** (eventos con su autor y diferencias, más las solicitudes de visita con el mismo email o móvil, G4). Si hay un envío duplicado pendiente, una franja arriba lo enseña con «Copy fields», «Create second search» o «Dismiss».
 - **New applicant**: formulario de una página con los mismos campos y `source` (Phone, Walk-in, Email).
 - **Users**: columna Name editable.
 - Todo sigue `DESIGN.md`.
