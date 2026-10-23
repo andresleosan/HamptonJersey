@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, priceText, fmtDate } from "./format.js";
+import { OPTIONS } from "../../server/applicants.js";
 
 const TABS = [["published", "Published"], ["draft", "Drafts"], ["archived", "Archived"], ["all", "All"]];
 const REGIONS = { jersey: "Jersey", uk: "United Kingdom", international: "International" };
@@ -9,7 +10,7 @@ const regionOf = c => (c === "Jersey" ? "jersey" : c === "United Kingdom" ? "uk"
 export default function Listings() {
   const [rows, setRows] = useState(null), [error, setError] = useState(null), [creating, setCreating] = useState(false);
   const [tab, setTab] = useState("published"), [q, setQ] = useState(""), [use, setUse] = useState(""),
-    [region, setRegion] = useState(""), [avail, setAvail] = useState("");
+    [region, setRegion] = useState(""), [avail, setAvail] = useState(""), [parish, setParish] = useState("");
   const [msg, setMsg] = useState(null);
   const load = () => api("/admin/listings").then(d => setRows(d.listings), e => setError(e.message));
   useEffect(() => { load(); }, []);
@@ -45,13 +46,13 @@ export default function Listings() {
   if (!rows) return <p>Loading listings…</p>;
   const needle = q.trim().toLowerCase();
   const shown = rows.filter(l => (tab === "all" || stateOf(l) === tab) && (!use || l.use === use)
-    && (!region || regionOf(l.country) === region) && (!avail || l.availability === avail)
+    && (!region || regionOf(l.country) === region) && (!avail || l.availability === avail) && (!parish || l.parish === parish)
     && (!needle || `${l.id} ${l.title} ${l.location ?? ""}`.toLowerCase().includes(needle)))
     .sort((a, b) => (tab === "published" ? ((a.home_order ?? Infinity) - (b.home_order ?? Infinity) || 0) : 0) || a.id.localeCompare(b.id));
   // Position of each starred listing in the home page's Featured section: published ones with a public photo, in star order.
   const featNo = Object.fromEntries((rows || []).filter(l => stateOf(l) === "published" && l.has_public_photo && l.featured_rank != null)
     .sort((a, b) => a.featured_rank - b.featured_rank).map((l, i) => [l.id, i + 1]));
-  const canDrag = tab === "published" && !needle && !use && !region && !avail && shown.length > 1;
+  const canDrag = tab === "published" && !needle && !use && !region && !avail && !parish && shown.length > 1;
 
   return <section aria-labelledby="t-props">
     <div className="head"><h1 id="t-props">Listings</h1>
@@ -67,13 +68,15 @@ export default function Listings() {
         {Object.entries(REGIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label>Availability<select value={avail} onChange={e => setAvail(e.target.value)}><option value="">All</option>
         {Object.entries(AVAILABILITY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+      <label>Parish<select value={parish} onChange={e => setParish(e.target.value)}><option value="">Any</option>
+        {OPTIONS.parishes.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
     </div>
     <p className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? "listing" : "listings"}
       {canDrag ? " · drag ⠿ to set the order on the home page" : tab === "published" && shown.length > 1 ? " · clear the filters to change the order" : ""}</p>
     {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
     {shown.length ? <table className="list">
       <thead><tr>{canDrag && <th scope="col"><span className="sr">Order</span></th>}<th scope="col"><span className="sr">Photo</span></th><th scope="col">Listing</th><th scope="col">Location</th>
-        <th scope="col">Price</th><th scope="col">Availability</th><th scope="col">Visibility</th><th scope="col">Last edited</th>
+        <th scope="col">Parish</th><th scope="col">Price</th><th scope="col">Availability</th><th scope="col">Visibility</th><th scope="col">Last edited</th>
         <th scope="col"><span className="sr">Actions</span></th></tr></thead>
       <tbody>{shown.map((l, i) => <tr key={l.id} draggable={canDrag} className={dragId === l.id ? "dragging" : undefined}
         onDragStart={e => { if (!canDrag) return; setDragId(l.id); e.dataTransfer.effectAllowed = "move"; }}
@@ -90,6 +93,7 @@ export default function Listings() {
           {featNo[l.id] && <sup className="star-no" aria-hidden="true">{featNo[l.id]}</sup>}</button>
           <div><a href={`#/p/${l.id}`}>{l.title}</a><div className="muted">{l.id} · {OPERATION[l.operation]}</div></div></div></td>
         <td>{l.location || l.country || "—"}</td>
+        <td className="parish" data-label="Parish">{l.parish ?? "—"}</td>
         <td className="num">{priceText(l)}</td>
         <td>{AVAILABILITY[l.availability]}</td>
         <td>{stateOf(l) === "archived" ? <span className="badge archived">{STATUS_LABEL.archived}</span>
@@ -105,8 +109,8 @@ export default function Listings() {
             : <button type="button" onClick={e => act(e, l, "restore", "restored as a draft.")}>Restore</button>}
         </div></details></td>
       </tr>)}</tbody>
-    </table> : <div className="empty card">{rows.length && (needle || use || region || avail)
-      ? <><p>No listings match these filters.</p><button type="button" className="btn ghost sm" onClick={() => { setQ(""); setUse(""); setRegion(""); setAvail(""); }}>Clear filters</button></>
+    </table> : <div className="empty card">{rows.length && (needle || use || region || avail || parish)
+      ? <><p>No listings match these filters.</p><button type="button" className="btn ghost sm" onClick={() => { setQ(""); setUse(""); setRegion(""); setAvail(""); setParish(""); }}>Clear filters</button></>
       : <><p>No {TABS.find(([k]) => k === tab)[1].toLowerCase()} listings.</p>
         {tab !== "archived" && <button type="button" className="btn sm" onClick={() => setCreating(true)}>New listing</button>}</>}</div>}
   </section>;

@@ -4,6 +4,7 @@ import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, safeHref 
 import MediaManager from "./MediaManager.jsx";
 import Research from "./Research.jsx";
 import { setUnsaved } from "./unsaved.js";
+import { OPTIONS } from "../../server/applicants.js";
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "sale_price", "rent", "rent_period", "premium", "currency", "price_text", "summary", "description",
@@ -14,25 +15,40 @@ const toBody = f => Object.fromEntries(FIELDS.map(k => [k,
   NUMERIC.includes(k) ? (f[k] === "" ? null : Number(f[k]))
     : k === "specs" ? f.specs.filter(s => s.label.trim() || s.value.trim())
     : f[k] === "" ? null : f[k]]));
+// Sent only when changed in this edit: the server fills an unknown parish from the listing text only when a save leaves
+// parish out (B3), so sending the unchanged null on every save would stop that for good.
+const IF_CHANGED = ["parish", "matchable"];
+const toExtra = l => ({ parish: l.parish ?? "", matchable: l.matchable });
+const changedExtra = (f, l) => Object.fromEntries(IF_CHANGED.filter(k => f[k] !== toExtra(l)[k])
+  .map(k => [k, k === "parish" ? f.parish || null : f.matchable]));
 const SECTIONS = [["details", "Details"], ["price", "Price"], ["description", "Description"], ["photos", "Photos"],
-  ["tour", "Tour and specification"], ["research", "Research"]];
+  ["tour", "Tour and specification"], ["applicants", "Matched applicants"], ["research", "Research"]];
+const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
+// Match status, with its badge tone (DESIGN.md "Badges de estado").
+const MATCH_STATUS = { found: ["Found", "attention"], shortlisted: ["Shortlisted", "active"], rejected: ["Rejected", "neutral"] };
 const DONE = { publish: "Published: now on the website (may take a minute).", unpublish: "Unpublished: no longer on the website.",
   archive: "Archived. You can restore it from Archived.", restore: "Restored as a draft." };
 
 export default function ListingEditor({ id }) {
   const [data, setData] = useState(null), [form, setForm] = useState(null), [errors, setErrors] = useState({});
+  const [extra, setExtra] = useState(null), [matchesErr, setMatchesErr] = useState(null);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [loadErr, setLoadErr] = useState(null), [confirmDel, setConfirmDel] = useState("");
-  const load = () => api(`/admin/listings/${id}`).then(d => { setData(d); setForm(toForm(d.listing)); setErrors({}); }, e => setLoadErr(e.message));
+  const load = () => api(`/admin/listings/${id}`).then(d => { setData(d); setForm(toForm(d.listing)); setExtra(toExtra(d.listing)); setErrors({}); },
+    e => setLoadErr(e.message));
   useEffect(() => { load(); }, [id]);
   const photos = useRef({ dirty: false }), [photosDirty, setPhotosDirty] = useState(false);
-  const fieldsDirty = !!data && !!form && JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing)));
+  const fieldsDirty = !!data && !!form && (JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing)))
+    || Object.keys(changedExtra(extra, data.listing)).length > 0);
   const dirty = fieldsDirty || photosDirty;
   useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
 
   if (loadErr) return <p role="alert" className="err">{loadErr} · <a href="#/listings">Back to listings</a></p>;
   if (!data) return <p>Loading listing…</p>;
   const l = data.listing, state = stateOf(l);
-  const setListing = listing => { setData(d => ({ ...d, listing })); setForm(toForm(listing)); setErrors({}); };
+  const setListing = listing => { setData(d => ({ ...d, listing })); setForm(toForm(listing)); setExtra(toExtra(listing)); setErrors({}); };
+  // A save or a state change recomputes the listing's matches; only the detail read returns them.
+  const reloadMatches = () => api(`/admin/listings/${id}`).then(d => { setData(x => ({ ...x, matched_applicants: d.matched_applicants }));
+    setMatchesErr(null); }, e => setMatchesErr(`Couldn't reload the matched applicants: ${e.message}`));
 
   // One Save for fields and photos: fields first, then photos with the updated_at the fields save returned.
   const save = async () => {
@@ -40,8 +56,9 @@ export default function ListingEditor({ id }) {
     try {
       let at = l.updated_at;
       if (fieldsDirty) {
-        const saved = (await api(`/admin/listings/${id}`, { method: "PUT", body: { ...toBody(form), updated_at: at } })).listing;
-        setListing(saved); at = saved.updated_at;
+        const body = { ...toBody(form), ...changedExtra(extra, l), updated_at: at };
+        const saved = (await api(`/admin/listings/${id}`, { method: "PUT", body })).listing;
+        setListing(saved); at = saved.updated_at; reloadMatches();
       }
       if (photos.current.dirty && !(await photos.current.save(at))) return setMsg({ text: "The photos weren't saved: see the message under Photos." });
       setMsg({ ok: true, text: "Changes saved." });
@@ -49,12 +66,12 @@ export default function ListingEditor({ id }) {
     catch (e) { setErrors(e.data?.fields || {}); setMsg({ text: e.message }); }
     finally { setBusy(false); }
   };
-  const discard = () => { setForm(toForm(l)); setErrors({}); photos.current.discard?.(); setMsg(null); };
+  const discard = () => { setForm(toForm(l)); setExtra(toExtra(l)); setErrors({}); photos.current.discard?.(); setMsg(null); };
   const act = async action => {
     if (action === "archive" && !confirm("Archive this listing? It will leave the website; you can restore it later.")) return;
     setBusy(true); setMsg(null);
     try {
-      setListing((await api(`/admin/listings/${id}/${action}`, { method: "POST" })).listing);
+      setListing((await api(`/admin/listings/${id}/${action}`, { method: "POST" })).listing); reloadMatches();
       setMsg({ ok: true, text: action === "publish" && !publicPhoto
         ? "Published, but it won't appear on the website until it has a visible photo." : DONE[action] });
     }
@@ -101,6 +118,9 @@ export default function ListingEditor({ id }) {
         {field("country", "Country", <input {...ctl("country")} maxLength={100} />)}
         {field("location", "Location", <input {...ctl("location")} maxLength={200} />)}
         {field("road_name", "Road", <input {...ctl("road_name")} maxLength={200} />)}
+        {field("parish", "Parish", <select id="f-parish" value={extra.parish} aria-invalid={errors.parish ? true : undefined}
+          aria-describedby={errors.parish ? "e-parish" : undefined} onChange={e => setExtra(x => ({ ...x, parish: e.target.value }))}>
+          <option value="">Unknown</option>{OPTIONS.parishes.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>)}
         {field("bedrooms", "Bedrooms", <input {...ctl("bedrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
         {field("bathrooms", "Bathrooms", <input {...ctl("bathrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
       </div></section>
@@ -139,6 +159,18 @@ export default function ListingEditor({ id }) {
             <a href={safeHref(m.source_url)} target="_blank" rel="noopener noreferrer">{m.label || m.source_url}</a> · {m.provider}</li>)}</ul></details>}
       </section>
 
+      <section id="s-applicants" className="card" aria-labelledby="h-applicants">
+        <h2 id="h-applicants">Matched applicants <span className="muted">({data.matched_applicants.length})</span></h2>
+        <div className="offer"><span id="l-offer" className="lbl-like">Offer to applicants</span>
+          <button type="button" role="switch" className="switch" aria-checked={extra.matchable === 1} aria-labelledby="l-offer"
+            aria-describedby="d-offer" onClick={() => setExtra(x => ({ ...x, matchable: x.matchable === 1 ? 0 : 1 }))}>
+            <span className="knob" aria-hidden="true" />{extra.matchable === 1 ? "Offered" : "Not offered"}</button>
+          <span id="d-offer" className="muted">When on, active applicants' searches are matched with this listing. Turning it off removes its matches nobody has reviewed yet.</span></div>
+        {errors.matchable && <p className="err">{errors.matchable}</p>}
+        {matchesErr && <p role="alert" className="err">{matchesErr}</p>}
+        <MatchedApplicants rows={data.matched_applicants} offered={l.matchable === 1} />
+      </section>
+
       <section id="s-research" className="card" aria-labelledby="h-inv"><h2 id="h-inv">Research <span className="muted">(read only)</span></h2>
         <Research data={data} />
       </section>
@@ -159,6 +191,23 @@ export default function ListingEditor({ id }) {
         <button className="btn ghost danger" disabled={confirmDel !== l.id || busy}>Delete permanently</button></form>}
     </div>
   </div>;
+}
+
+// Spec §5: how many applicants match this listing and which, with their status. Best first, as the API orders them.
+function MatchedApplicants({ rows, offered }) {
+  const note = !offered && <p className="muted">This listing isn't offered to applicants.</p>;
+  if (!rows.length) return note || <p className="muted">No applicants match this listing yet.</p>;
+  return <>{note}
+    <table className="list small matched">
+      <thead><tr><th scope="col">Applicant</th><th scope="col">Looking</th><th scope="col">Status</th><th scope="col">Score</th></tr></thead>
+      <tbody>{rows.map(m => { const [label, tone] = MATCH_STATUS[m.status] ?? [m.status, "neutral"];
+        return <tr key={m.match_id}>
+          <td><a href={`#/applicants/${m.applicant_id}/matches`}>{m.name}</a></td>
+          <td>{OPERATION_LABEL[m.operation] ?? m.operation}</td>
+          <td><span className={`badge ${tone}`}>{label}</span></td>
+          <td className="num">{m.score}</td>
+        </tr>; })}</tbody>
+    </table></>;
 }
 
 function Specs({ value, onChange }) {

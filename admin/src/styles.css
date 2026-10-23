@@ -208,3 +208,9 @@ fieldset.plain{border:0;padding:0;margin:0;min-width:0}
 kbd{font:600 11px var(--body);letter-spacing:0;padding:0 5px;border:1px solid currentColor;border-radius:4px}
 .btn kbd{opacity:.75} .linkish kbd{margin-left:6px}
 @media (max-width:760px){.review{grid-template-columns:1fr}.recalc{justify-items:start}.recalc p{text-align:left}}
+.offer{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-bottom:12px} .offer .muted{flex-basis:100%}
+.list.matched{margin:0}
+@media (max-width:760px){.list td.parish::before{content:attr(data-label) ": ";color:var(--stone);font-size:12px}
+  .list tr:has(td.parish)>td:first-child:not(.order),.list tr:has(td.parish) td.order+td{grid-row:span 7}
+  .list.matched tr{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;border-bottom:1px solid var(--line)}.list.matched tr:last-child{border-bottom:0}
+  .list.matched td:first-child{flex-basis:100%;overflow-wrap:anywhere}.list.matched td.num::before{content:"Score ";color:var(--stone);font-size:12px}}
