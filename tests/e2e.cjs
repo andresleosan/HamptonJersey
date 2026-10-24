@@ -583,7 +583,8 @@ async function rentals(page, phone, noSideScroll) {
   dlg = page.getByRole("dialog", {name: "Assign payment"});
   await dlg.getByLabel("Tenancy", {exact: true}).fill("martin");
   await dlg.getByRole("radio", {name: /Sophie Martin/}).check();
-  await dlg.getByLabel("Kind").selectOption("deposit");
+  assert.deepEqual(await dlg.getByLabel("Kind").locator("option").allTextContents(), ["Deposit", "Other"], "a let-only tenancy takes no rent");
+  assert.equal(await dlg.getByLabel("Kind").inputValue(), "deposit");
   await dlg.getByRole("button", {name: "Assign payment"}).click();
   await page.waitForSelector("text=£1,900.00 assigned to Sophie Martin as a deposit.");
   await block("h-unmatched").getByText("Every payment is matched.").waitFor();

@@ -20,14 +20,15 @@ const IN_RANGE = `m.due_on < ${LIMIT} AND (t.ended_on IS NULL OR m.due_on < t.en
 // a service switch), on due_day of the month after its latest one: never two rent charges in a month, and only the
 // missing months are walked. Then due_day of each following month, all before ended_on (past a fixed end_on they go on
 // while the tenant stays). The opening balance is one charge on collect_from, made once. tenancyId: just that tenancy,
-// or "newest" for the one inserted earlier in the same batch.
-export function ensureCharges(env, today, tenancyId = null) {
+// or "newest" for the one inserted earlier in the same batch. staleBefore (all tenancies only): run just when the cached
+// rentals count is older than that, so the count's batch reads nothing more while its cache is fresh (P19).
+export function ensureCharges(env, today, tenancyId = null, staleBefore = null) {
   const id = tenancyId === "newest" ? NEW : "?2";
   return env.DB.prepare(`INSERT INTO charges (tenancy_id, due_on, amount, kind)
   WITH RECURSIVE s AS (SELECT t.id, t.collect_from, t.due_day, t.ended_on, t.rent, t.opening_balance,
       (SELECT MAX(c.due_on) FROM charges c WHERE c.tenancy_id = t.id AND c.kind = 'rent') AS last
       FROM tenancies t JOIN rentals r ON r.id = t.rental_id
-      WHERE r.service = 'full' AND t.collect_from IS NOT NULL AND (${id} IS NULL OR t.id = ${id})),
+      WHERE r.service = 'full' AND t.collect_from IS NOT NULL AND (${id} IS NULL OR t.id = ${id})${staleBefore ? ` AND ${STALE}` : ""}),
     t AS (SELECT *, CASE WHEN last >= date(collect_from, 'start of month')
       THEN date(last, 'start of month', '+1 month', '+' || (due_day - 1) || ' days') ELSE collect_from END AS first FROM s),
     m (id, n, due_on) AS (SELECT id, 0, first FROM t WHERE first < ${LIMIT} AND (ended_on IS NULL OR first < ended_on)
@@ -37,7 +38,7 @@ export function ensureCharges(env, today, tenancyId = null) {
   UNION ALL SELECT id, collect_from, opening_balance, 'opening' FROM t WHERE opening_balance > 0
     AND (ended_on IS NULL OR ended_on > first)
     AND NOT EXISTS (SELECT 1 FROM charges c WHERE c.tenancy_id = t.id AND c.kind = 'opening')
-  ON CONFLICT DO NOTHING`).bind(today, ...(tenancyId === "newest" ? [] : [tenancyId]));
+  ON CONFLICT DO NOTHING`).bind(today, ...(tenancyId === "newest" ? [] : [tenancyId]), ...(staleBefore ? [staleBefore] : []));
 }
 
 // R7, R8, R26, R27 (binds ?1 = Jersey today, ?2 = a tenancy id or NULL for all): CTEs ending in `arrears`, one row
@@ -87,10 +88,14 @@ const OPEN_REPAIR = "p.status NOT IN ('done', 'cancelled')"; // the repairs_open
 // R16: the nav's Rentals count: tenancies whose next arrears step is due, checks and tenancy deadlines overdue (a missing
 // check counts), renewals to decide, open emergencies and unmatched payments. P16: it is polled every 30 s, so it is
 // kept in app_settings as rentals_count {n, at} and worked out again only when older than COUNT_MS (which also covers
-// the day changing); any rental write drops it (the rental_events_count trigger), so the badge moves at once. One
-// statement for the counts batch: when the cache is fresh its WHERE fails first and nothing else is read.
+// the day changing); any rental write drops it (the rental_events_count trigger), so the badge moves at once. Two
+// statements for the counts batch: when the cache is fresh their WHEREs fail first and nothing else is read. P19: when it
+// is stale, the charges are brought up to date first, so a month nobody opened Rentals for still counts.
 const COUNT_MS = 10 * 60 * 1000;
-export const refreshRentalsCount = env => env.DB.prepare(`INSERT INTO app_settings (key, value, updated_at)
+const STALE = "NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'rentals_count' AND json_extract(value, '$.at') > ?3)";
+export const refreshRentalsCount = env => {
+  const today = jerseyToday(), staleBefore = new Date(Date.now() - COUNT_MS).toISOString();
+  return [ensureCharges(env, today, null, staleBefore), env.DB.prepare(`INSERT INTO app_settings (key, value, updated_at)
   WITH ${ARREARS_SQL} SELECT 'rentals_count', json_object('n',
     (SELECT COUNT(*) FROM arrears WHERE next_step IS NOT NULL)
     + (SELECT COUNT(*) ${CHECKS} AND (c.expires_on IS NULL OR c.expires_on < ?1))
@@ -101,7 +106,8 @@ export const refreshRentalsCount = env => env.DB.prepare(`INSERT INTO app_settin
     + (SELECT COUNT(*) FROM payments WHERE tenancy_id IS NULL), 'at', ?3), ?3
   WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'rentals_count' AND json_extract(value, '$.at') > ?4)
   ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
-  .bind(jerseyToday(), null, now(), new Date(Date.now() - COUNT_MS).toISOString());
+  .bind(today, null, now(), staleBefore)];
+};
 
 const TENANCY_SQL = "SELECT t.*, r.address, r.service FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE t.id = ?";
 const loadTenancy = async (env, id) =>
@@ -631,8 +637,24 @@ async function statement({ request, env }) {
     totals: { rent, fee, gst, repairs: cost, net: rent - fee - (gst ?? 0) - cost } });
 }
 
+// Assigning a payment (§4 Unmatched): tenancies by tenant, payment reference or address. Running ones (P4), and full ones
+// that ended in the last 12 months, since a former tenant may still be paying off a debt. At most 20, running first.
+async function findTenancies({ request, env }) {
+  const q = new URL(request.url).searchParams.get("q")?.trim();
+  if (!q) return json({ tenancies: [] });
+  const today = jerseyToday(), has = col => `${col} LIKE ?3 ESCAPE '\\'`;
+  const { results } = await env.DB.prepare(`SELECT t.id AS tenancy_id, t.tenant_name, t.payment_ref, t.ended_on, r.address, r.service
+    FROM tenancies t JOIN rentals r ON r.id = t.rental_id
+    WHERE (t.ended_on IS NULL OR t.ended_on > ?1 OR (r.service = 'full' AND t.ended_on >= ?2))
+    AND (${has("t.tenant_name")} OR ${has("t.payment_ref")} OR ${has("r.address")})
+    ORDER BY t.ended_on IS NOT NULL AND t.ended_on <= ?1, t.tenant_name COLLATE NOCASE, t.id LIMIT 20`)
+    .bind(today, addMonths(today, -12), `%${q.replace(/[\\%_]/g, "\\$&")}%`).all();
+  return json({ tenancies: results });
+}
+
 export default [
   ["GET", /^\/admin\/rentals$/, overview, true],
+  ["GET", /^\/admin\/tenancies$/, findTenancies, true],
   ["GET", /^\/admin\/statements$/, statement, true],
   ["POST", /^\/admin\/rentals\/(\d+)\/tenancies$/, createTenancy, true],
   ["GET", /^\/admin\/tenancies\/(\d+)$/, getTenancy, true],

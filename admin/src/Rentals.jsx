@@ -30,7 +30,8 @@ const Block = ({ id, title, rows, empty, head, children }) => <section className
 </section>;
 const checkState = c => c.status === "missing" ? <strong className="err">Not recorded</strong>
   : c.status === "overdue" ? <strong className="err">Overdue</strong>
-  : <span className={`badge ${c.status === "due7" ? "attention" : "neutral"}`}>In {daysTo(c.due_on)} days</span>;
+  : <span className={`badge ${c.status === "due7" ? "attention" : "neutral"}`}>{inDays(daysTo(c.due_on))}</span>;
+const inDays = n => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : `In ${n} days`);
 
 export default function Rentals({ onChange }) {
   const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [busy, setBusy] = useState(false);
@@ -184,8 +185,9 @@ function MarkStep({ row: a, onClose, onDone, onRefused }) {
   </Modal>;
 }
 
-// An unmatched payment goes to a tenancy, found by tenant, address or reference. Only rent counts towards balances
-// (R26), and let-only tenancies take deposits and other money only.
+// An unmatched payment goes to a tenancy, found by tenant, address or reference: a running one, or a full one that ended
+// in the last 12 months (a former tenant paying off a debt). Only rent counts towards balances (R26); let-only tenancies
+// take deposits and other money only, so for them the kind starts at Deposit.
 function Assign({ payment: p, onClose, onDone, onRefused }) {
   const [q, setQ] = useState(""), [found, setFound] = useState(null), [findErr, setFindErr] = useState(null);
   const [pick, setPick] = useState(null), [kind, setKind] = useState(p.kind);
@@ -194,8 +196,8 @@ function Assign({ payment: p, onClose, onDone, onRefused }) {
   useEffect(() => {
     if (!q.trim()) { setFound(null); setFindErr(null); return; }
     let live = true;
-    const t = setTimeout(() => api(`/admin/rentals?q=${encodeURIComponent(q.trim())}`)
-      .then(d => { if (live) { setFound(d.rentals.filter(r => r.tenancy_id)); setFindErr(null); } }, e => { if (live) setFindErr(e.message); }), 250);
+    const t = setTimeout(() => api(`/admin/tenancies?q=${encodeURIComponent(q.trim())}`)
+      .then(d => { if (live) { setFound(d.tenancies); setFindErr(null); } }, e => { if (live) setFindErr(e.message); }), 250);
     return () => { live = false; clearTimeout(t); };
   }, [q]);
   const shown = found && pick && !found.some(r => r.tenancy_id === pick.tenancy_id) ? [pick, ...found] : found ?? (pick ? [pick] : []);
@@ -214,17 +216,20 @@ function Assign({ payment: p, onClose, onDone, onRefused }) {
       <p>{pence(p.amount)} received {fmtDay(p.received_on)}{p.description && ` · ${p.description}`}</p>
       <label>Tenancy<input type="search" value={q} onChange={e => setQ(e.target.value)} autoComplete="off" aria-invalid={errors.tenancy_id ? true : undefined}
         aria-describedby={errors.tenancy_id ? "d-as-q e-as-tenancy_id" : "d-as-q"} /></label>
-      <small id="d-as-q" className="muted">Search by tenant, address or payment reference. Only current tenancies are listed.</small>
+      <small id="d-as-q" className="muted">Search by tenant, address or payment reference: current tenancies, and full management ones
+        that ended in the last 12 months.</small>
       {findErr && <p role="alert" className="err">{findErr}</p>}
       {shown.length > 0 && <fieldset className="choices-set"><legend>Matching tenancies</legend><div className="buyers">
         {shown.map(r => <label key={r.tenancy_id} className="check"><input type="radio" name="as-tenancy" checked={pick?.tenancy_id === r.tenancy_id}
-          onChange={() => { setPick(r); setErrors(({ tenancy_id, ...x }) => x); }} />
-          <span>{r.tenant_name} <span className="muted">{r.address} · {r.payment_ref} · {SERVICE[r.service]}</span></span></label>)}
+          onChange={() => { setPick(r); setKind(r.service === "let_only" && p.kind === "rent" ? "deposit" : p.kind); setErrors(({ tenancy_id, ...x }) => x); }} />
+          <span>{r.tenant_name}{r.ended_on && r.ended_on <= jerseyToday() && ` (ended ${fmtDay(r.ended_on)})`} <span className="muted">
+            {r.address} · {r.payment_ref} · {SERVICE[r.service]}</span></span></label>)}
       </div></fieldset>}
-      {found && !found.length && <p className="muted" role="status">No current tenancy matches “{q.trim()}”.</p>}
+      {found && !found.length && <p className="muted" role="status">No tenancy matches “{q.trim()}”.</p>}
       {error("tenancy_id")}
       <label>Kind<select value={kind} onChange={e => setKind(e.target.value)} aria-describedby="d-as-kind" {...invalid("kind")}>
-        {Object.entries(KIND).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>{error("kind")}</label>
+        {Object.entries(KIND).filter(([k]) => k !== "rent" || pick?.service !== "let_only").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+      </select>{error("kind")}</label>
       <small id="d-as-kind" className="muted">Only rent counts towards the balance and arrears. Let-only tenancies take deposits and other money, not rent.</small>
       {err && <p role="alert" className="err">{err}</p>}
       <div className="inline"><button className="btn">{busy ? "Assigning…" : "Assign payment"}</button>
@@ -238,11 +243,13 @@ const LANDLORD = ["name", "email", "phone", "approval_limit", "notes"];
 const toLandlordForm = l => Object.fromEntries(LANDLORD.map(k => [k, l?.[k] == null ? "" : k === "approval_limit" ? l[k].toLocaleString("en-GB") : String(l[k])]));
 const toLandlordBody = f => Object.fromEntries(LANDLORD.map(k => [k, k === "approval_limit" ? pounds(f[k]) : f[k].trim() || null]));
 function LandlordFields({ f, set, invalid, error, prefix, notes = true }) {
-  const input = (k, label, extra) => <label>{label}<input id={`${prefix}-${k}`} value={f[k]} onChange={set(k)} autoComplete="off"
-    maxLength={120} {...invalid(k)} {...extra} />{error(k)}</label>;
+  // A hint id and, when invalid, the error's id: both describe the field.
+  const input = (k, label, { hint, ...extra } = {}) => <label>{label}<input id={`${prefix}-${k}`} value={f[k]} onChange={set(k)}
+    autoComplete="off" maxLength={120} {...invalid(k)} {...extra}
+    aria-describedby={[hint, invalid(k)["aria-describedby"]].filter(Boolean).join(" ") || undefined} />{error(k)}</label>;
   return <>
     <div className="grid2">{input("name", "Name")}{input("email", "Email", { type: "email" })}{input("phone", "Phone", { type: "tel" })}
-      {input("approval_limit", "Approval limit (£, optional)", { inputMode: "numeric", "aria-describedby": `d-${prefix}-limit` })}</div>
+      {input("approval_limit", "Approval limit (£, optional)", { inputMode: "numeric", hint: `d-${prefix}-limit` })}</div>
     <small id={`d-${prefix}-limit`} className="muted">Repairs quoted above this wait for the landlord's approval. Blank: no limit.</small>
     {notes && <label>Notes (optional)<textarea className="short" value={f.notes} maxLength={2000} onChange={set("notes")} {...invalid("notes")} />
       {error("notes")}</label>}
@@ -275,7 +282,7 @@ function NewLandlord({ onClose, onDone }) {
 // Its legal checks start as Not recorded (R11).
 const RENTAL = { landlord: "", address: "", parish: "", service: "", fee_percent: "", has_gas: "", notes: "" };
 const GAS = [["yes", "Yes", true], ["no", "No", false], ["", "Not sure", null]];
-export function NewRental({ landlordId }) {
+export function NewRental({ landlordId, onChange }) {
   const [landlords, setLandlords] = useState(null), [listErr, setListErr] = useState(null);
   const blank = { ...RENTAL, landlord: landlordId ?? "" };
   const [f, setF] = useState(blank), [l, setL] = useState(toLandlordForm), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
@@ -306,6 +313,7 @@ export function NewRental({ landlordId }) {
         has_gas: GAS.find(([k]) => k === f.has_gas)[2], notes: f.notes.trim() || null } });
       setUnsaved(false);
       added = `Property added: ${rental.address}.`;
+      onChange(); // its checks start as Not recorded, so the Rentals count goes up
       location.hash = "#/rentals";
     } catch (x) {
       (step === "landlord" ? nl : r).setErrors(x.data?.fields || {});

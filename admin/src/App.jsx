@@ -43,6 +43,7 @@ function SettingsMenu({ current }) {
     addEventListener("keydown", key);
     return () => { removeEventListener("pointerdown", away); removeEventListener("keydown", key); };
   }, [open]);
+  useEffect(() => setOpen(false), [current]); // another page, however it was reached, closes it
   return <div className="settings" ref={box} onBlur={e => { if (e.relatedTarget && !box.current.contains(e.relatedTarget)) setOpen(false); }}>
     <button ref={button} type="button" aria-expanded={open} aria-controls="settings-menu"
       aria-current={SETTINGS.some(([k]) => k === current) ? "true" : undefined} onClick={() => setOpen(o => !o)}>Settings</button>
@@ -94,7 +95,7 @@ export default function App() {
     : section === "sales" && /^\d+$/.test(arg) ? <SaleDetail key={arg} id={arg} onChange={loadCounts} />
     : section === "sales" ? <Sales key={query ?? ""} buyer={new URLSearchParams(query).get("applicant")} onChange={loadCounts} />
     : section === "rentals" && arg === "new"
-      ? <NewRental key={query ?? ""} landlordId={new URLSearchParams(query).get("landlord")} />
+      ? <NewRental key={query ?? ""} landlordId={new URLSearchParams(query).get("landlord")} onChange={loadCounts} />
     : section === "rentals" && arg === "landlords" && /^\d+$/.test(sub) ? <Landlord key={sub} id={sub} />
     : section === "rentals" ? <Rentals onChange={loadCounts} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />

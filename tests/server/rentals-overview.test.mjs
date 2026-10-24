@@ -358,6 +358,43 @@ test("counts: the rentals count is cached for 10 minutes and any rental write dr
     ["action", "new_applicant", "viewing", "matched", "sales", "rentals"]);
 });
 
+test("tenancy search: running ones of either service and full ones ended in the last 12 months", async () => {
+  const env = makeEnv(), L = await landlord(env);
+  const find = async q => ok(await req(env, "GET", `/admin/tenancies?q=${encodeURIComponent(q)}`)).tenancies;
+  const running = await tenancy(env, await rental(env, L, { address: "1 Smith Lane" }), { tenant_name: "Ann Smith" });
+  const lately = await tenancy(env, await rental(env, L, { address: "2 Smith Lane" }), { tenant_name: "Bob Smith", start_on: ago(400) });
+  const long = await tenancy(env, await rental(env, L, { address: "3 Smith Lane" }), { tenant_name: "Cy Smith", start_on: ago(800) });
+  const letOnly = await tenancy(env, await rental(env, L, { address: "4 Smith Lane", ...LET_ONLY }), { tenant_name: "Di Smith", start_on: ago(400) });
+  const moving = await tenancy(env, await rental(env, L, { address: "5 Smith Lane", ...LET_ONLY }), { tenant_name: "Ed Smith" });
+  run(env, "UPDATE tenancies SET ended_on = ? WHERE id IN (?, ?)", ago(30), lately.id, letOnly.id);
+  run(env, "UPDATE tenancies SET ended_on = ? WHERE id = ?", ago(400), long.id);
+  run(env, "UPDATE tenancies SET ended_on = ? WHERE id = ?", ahead(20), moving.id);
+  assert.deepEqual((await find("smith")).map(t => [t.tenant_name, t.ended_on]),
+    [["Ann Smith", null], ["Ed Smith", ahead(20)], ["Bob Smith", ago(30)]], "running first; old and let-only ended ones left out");
+  assert.deepEqual(Object.keys((await find(running.payment_ref.toLowerCase()))[0]),
+    ["tenancy_id", "tenant_name", "payment_ref", "ended_on", "address", "service"]);
+  assert.equal((await find("2 smith"))[0].tenancy_id, lately.id, "by address");
+  assert.deepEqual(await find(" "), []);
+  assert.deepEqual(await find("%"), []);
+});
+
+test("counts: a stale cache brings the charges up to date first, a fresh one reads nothing (P19)", async () => {
+  const env = makeEnv();
+  const rentalsCount = async () => ok(await req(env, "GET", "/admin/notifications/counts")).rentals;
+  const charges = () => rows(env, "SELECT COUNT(*) AS n FROM charges")[0].n;
+  const setCache = (n, at) => run(env, `INSERT INTO app_settings (key, value, updated_at) VALUES ('rentals_count', ?, ?)
+    ON CONFLICT (key) DO UPDATE SET value = excluded.value`, JSON.stringify({ n, at }), at);
+  await tenancy(env, await rental(env, await landlord(env), { has_gas: false }), { start_on: ago(6), inventory_in_on: ago(6) });
+  // As if a new month began and nobody has opened Rentals since: the tenancy has no charges yet.
+  run(env, "DELETE FROM charges");
+  setCache(3, new Date().toISOString());
+  assert.equal(await rentalsCount(), 3);
+  assert.equal(charges(), 0, "a fresh cache generates nothing");
+  setCache(3, new Date(Date.now() - 11 * 60000).toISOString());
+  assert.equal(await rentalsCount(), 4, "three missing checks + the arrears of the charges made in the same batch");
+  assert.ok(charges() >= 2, "this month's charge and the next one");
+});
+
 test("overview: 300 tenancies with two years of charges in under 10 ms of handler CPU", async t => {
   const env = makeEnv(), db = env.DB.raw;
   const start = plusDays(T, -730), ts = new Date().toISOString();

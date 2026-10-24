@@ -32,9 +32,9 @@ function link({ category, entity_type, entity_id, search_id }) {
 
 // sales (V10) and rentals (R16, cached: P16) are their screens' own counts, not part of action.
 async function openCounts(env) {
-  const [{ results }, { results: [sales] }, , { results: [rentals] }] = await env.DB.batch([env.DB.prepare(
+  const [{ results }, { results: [sales] }, , , { results: [rentals] }] = await env.DB.batch([env.DB.prepare(
     "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category"),
-  salesCount(env), refreshRentalsCount(env),
+  salesCount(env), ...refreshRentalsCount(env),
   env.DB.prepare("SELECT json_extract(value, '$.n') AS n FROM app_settings WHERE key = 'rentals_count'")]);
   const by = Object.fromEntries(CATEGORIES.map(c => [c, results.find(r => r.category === c)?.n ?? 0]));
   return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by, sales: sales.n, rentals: rentals.n };

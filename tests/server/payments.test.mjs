@@ -289,6 +289,17 @@ test("import: a reference of a let_only or unknown tenancy is unmatched; assigni
   assert.equal((await req(env, "PUT", `/admin/payments/${a.id}`, { tenancy_id: "x" })).status, 400);
 });
 
+test("assign: an unmatched payment goes to a full tenancy that has ended, paying off its debt", async () => {
+  const env = makeEnv();
+  const id = await tenancy(env, { days: 40 });
+  run(env, "UPDATE tenancies SET ended_on = ? WHERE id = ?", ago(10), id);
+  const before = (await detail(env, id)).balance;
+  run(env, "INSERT INTO payments (received_on, amount, kind, source, created_at) VALUES (?, 50000, 'rent', 'import', ?)", T, T);
+  const r = await req(env, "PUT", `/admin/payments/${row(env, "SELECT MAX(id) AS id FROM payments").id}`, { tenancy_id: id, kind: "rent" });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.balance, before - 50000);
+});
+
 test("import: 501 rows is 400; a cell starting with = is stored as plain text", async () => {
   const env = makeEnv();
   const many = Array.from({ length: 501 }, (_, i) => ROW({ n: i + 1 }));

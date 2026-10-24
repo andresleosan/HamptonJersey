@@ -164,10 +164,5 @@ INSERT INTO tenancies (id, rental_id, payment_ref, tenant_name, tenant_email, te
 INSERT INTO rent_changes (tenancy_id, effective_on, rent, created_at, created_by) VALUES
 (1,date('now','-8 days','-1 month'),1250,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
 (2,date('now','+60 days','-1 year'),1900,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com');
--- The charges the panel generated when the tenancy was entered (the next month's comes when Rentals is read).
-INSERT INTO charges (tenancy_id, due_on, amount, kind) VALUES
-(1,date('now','-8 days','-1 month'),125000,'rent'),
-(1,date('now','-8 days','-1 month','start of month','+1 month',
- '+' || (min(CAST(strftime('%d',date('now','-8 days','-1 month')) AS INTEGER),28) - 1) || ' days'),125000,'rent');
 INSERT INTO payments (id, tenancy_id, received_on, amount, description, kind, source, created_at, created_by) VALUES
 (1,NULL,date('now','-2 days'),190000,'S MARTIN DEPOSIT FLAT 2 BATH ST','rent','import','2026-10-22T09:00:00.000Z','luismadef45@gmail.com');
