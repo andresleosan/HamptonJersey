@@ -160,6 +160,7 @@ async function publicSite(browser) {
 
 async function admin(browser) {
   const {signSession, COOKIE} = await import("../server/auth.js");
+  const {jerseyToday} = await import("../server/viewings.js");
   const ctx = await browser.newContext();
   const page = await newPage(ctx, {width: 1280, height: 900});
   await page.goto(BASE + "admin/");
@@ -424,14 +425,18 @@ async function admin(browser) {
   const inProgress = phone.getByRole("link", {name: "Sale in progress"});
   assert.equal(await inProgress.getAttribute("href"), saleUrl.slice(saleUrl.indexOf("#")));
   assert.equal(await phone.getByRole("link", {name: "0 open offers"}).getAttribute("href"), "#/sales");
+  assert.match(await phone.locator("#s-offers tbody").textContent(), /Helen Picot£820,000Countered £835,000Accepted/);
   await page.fill("#s-buyer_lawyer_firm", "Ogier");
   await page.fill("#s-buyer_lawyer_name", "Anna Le Cornu");
   await page.fill("#s-fee", "16,000");
   await page.getByRole("button", {name: "Save", exact: true}).click();
   await page.waitForSelector("text=Changes saved.");
+  const box = (p, sel) => p.$eval(sel, e => { const r = e.getBoundingClientRect(); return {top: r.top, left: r.left}; });
+  assert.ok((await box(page, "#h-steps")).left > (await box(page, "#h-agreement")).left, "at 1280px the data is on the left, the steps on the right");
   await noSideScroll(BASE + "admin/#/sales", ".sales .figures");
   assert.equal(await phone.locator('.sales tbody a[href^="#/sales/"]').count(), 1, "the sale in progress is listed");
   await noSideScroll(saleUrl, "#t-sale");
+  assert.ok((await box(phone, "#h-steps")).top < (await box(phone, "#h-agreement")).top, "on a phone the steps come before the sale's data");
   // A step planned for yesterday is overdue, here and in the bar's Sales count.
   const step = name => page.locator(".steps > li", {hasText: name});
   await step("Lawyers instructed").getByRole("button", {name: /^Update/}).click();
@@ -441,6 +446,7 @@ async function admin(browser) {
   await page.waitForFunction(() => document.querySelector('header.bar a[href="#/sales"] .count')?.firstChild.textContent === "1");
   await step("Passing contract (Royal Court)").getByRole("button", {name: /^Update/}).click();
   await page.getByRole("radio", {name: "Done"}).check();
+  assert.equal(await page.getAttribute("#st-done", "max"), jerseyToday(), "a step is done today or earlier");
   await page.getByRole("button", {name: "Save step"}).click();
   await page.waitForSelector('.steps > li:has-text("Passing contract") .step-state >> text=Done');
   await shot(page, "admin-sale");
@@ -484,6 +490,39 @@ async function admin(browser) {
   await page.goto(BASE + "admin/#/p/HE-R006");
   await page.getByRole("link", {name: "1 open offer", exact: true}).waitFor();
   assert.equal(await page.getByRole("link", {name: "Sale in progress"}).count(), 0);
+  // V5 on the real engine (workerd's SQLite, not the tests' double): two buyers' offers on one listing, both accepted at
+  // once. Its own unpublished listing and buyers, added last, so nothing above changes.
+  d1(`INSERT INTO listings (id, use, title, property_type, operation, availability, country, location, sale_price, currency, price_text,
+    specs, published, matchable, created_at, updated_at, updated_by) VALUES ('HE-R060','residential','Grouville cottage','Cottage','sale',
+    'for_sale','Jersey','Grouville',700000,'GBP','£700,000','[]',0,0,'2026-10-07T00:00:00.000Z','2026-10-07T00:00:00.000Z','import')`);
+  const post = (path, body) => page.evaluate(([path, body]) => fetch(`/api${path}`, {method: "POST", headers: {"content-type": "application/json"},
+    body: JSON.stringify(body)}).then(async r => ({status: r.status, data: await r.json()})), [path, body]);
+  const racers = [];
+  for (const [name, amount] of [["Paul Racine", 700000], ["Rose Racine", 705000]]) {
+    const a = await post("/admin/applicants", {name, email: `${name.split(" ")[0].toLowerCase()}@example.je`, source: "phone", operation: "buy", budget_max: 900000});
+    assert.equal(a.status, 201, JSON.stringify(a.data));
+    const o = await post("/admin/offers", {listing_id: "HE-R060", applicant_id: a.data.id, amount});
+    assert.equal(o.status, 201, JSON.stringify(o.data));
+    racers.push({applicant: a.data.id, offer: o.data.offer.id});
+  }
+  const accepts = await page.evaluate(ids => Promise.all(ids.map(id => fetch(`/api/admin/offers/${id}/accept`, {method: "POST",
+    headers: {"content-type": "application/json"}, body: "{}"}).then(r => r.status))), racers.map(r => r.offer));
+  assert.deepEqual([...accepts].sort(), [201, 409], "two accepts at once: one wins, the other is turned away");
+  const race = () => JSON.parse(d1(`SELECT (SELECT COUNT(*) FROM sales WHERE listing_id = 'HE-R060') AS sales,
+    (SELECT availability FROM listings WHERE id = 'HE-R060') AS availability,
+    (SELECT group_concat(status, ',') FROM (SELECT status FROM offers WHERE listing_id = 'HE-R060' ORDER BY id)) AS offers`))[0].results[0];
+  const loser = racers[accepts.indexOf(409)];
+  assert.deepEqual(race(), {sales: 1, availability: "under_offer",
+    offers: accepts.map(s => (s === 201 ? "accepted" : "pending")).join(",")}, "one sale, the listing under offer, the loser's offer untouched");
+  // The turned-away buyer raises their offer: the new one replaces their open one, which the editor keeps in its history.
+  assert.equal((await post("/admin/offers", {listing_id: "HE-R060", applicant_id: loser.applicant, amount: 720000})).status, 201);
+  await page.goto(BASE + "admin/#/p/HE-R060");
+  const history = page.locator("#s-offers tbody tr");
+  await history.first().waitFor();
+  assert.deepEqual(await history.evaluateAll(rs => rs.map(r => r.cells[2].textContent)),
+    ["Pending", ...[...racers].reverse().map(r => (r === loser ? "WithdrawnSuperseded by a new offer" : "Accepted"))], "newest first");
+  await page.locator("#s-offers").scrollIntoViewIfNeeded();
+  if (SHOTS) await page.locator("#s-offers").screenshot({path: `${SHOTS}/admin-listing-offers.png`});
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");

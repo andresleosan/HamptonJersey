@@ -122,6 +122,32 @@ test("offer: a paused or lost buyer keeps the stage", async () => {
   }
 });
 
+test("offer: a buyer's new offer on a listing withdraws their open one there, in the same batch, with its event", async () => {
+  const env = world();
+  const a = await buyer(env, { stage: "searching" }), b = await buyer(env, { stage: "searching" });
+  const first = await record(env, a), other = await record(env, a, "HE-R002"), rival = await record(env, b);
+  assert.equal((await req(env, "POST", `/admin/offers/${first}/counter`, { counter_amount: 790000 })).status, 200);
+  const before = events(env, a).length;
+  const second = await record(env, a, "HE-R001", 770000);
+  assert.deepEqual([offer(env, first).status, offer(env, first).note], ["withdrawn", "Superseded by a new offer"]);
+  assert.equal(offer(env, first).counter_amount, 790000); // V21: the counter stays in the history
+  // Only the buyer's offer on this listing: their offer elsewhere and another buyer's here stay open.
+  assert.deepEqual([offer(env, other).status, offer(env, rival).status, offer(env, second).status], ["pending", "pending", "pending"]);
+  assert.deepEqual(events(env, a).slice(before).map(e => [e.type, e.data]), [
+    ["offer.withdrawn", { offer_id: first, listing_id: "HE-R001", note: "Superseded by a new offer" }],
+    ["offer.recorded", { offer_id: second, listing_id: "HE-R001", amount: 770000, conditions: "Subject to mortgage" }],
+  ]);
+  // The listing archived between the checks and the write: the batch fails whole and supersedes nothing.
+  const batch = env.DB.batch.bind(env.DB), count = events(env, a).length;
+  env.DB.batch = async stmts => {
+    if (stmts.some(st => st.sql.includes("INSERT INTO offers"))) run(env, "UPDATE listings SET archived_at = updated_at WHERE id = 'HE-R001'");
+    return batch(stmts);
+  };
+  assert.equal((await req(env, "POST", "/admin/offers", { listing_id: "HE-R001", applicant_id: a, amount: 780000 })).status, 400);
+  assert.equal(offer(env, second).status, "pending");
+  assert.equal(events(env, a).length, count);
+});
+
 test("offer: counter, then accept uses the counter amount as the price", async () => {
   const env = world();
   const id = await buyer(env, { stage: "viewing" });

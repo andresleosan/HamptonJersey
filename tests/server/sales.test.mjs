@@ -137,6 +137,10 @@ test("sales list: an overdue milestone puts the sale first and counts in the nav
   assert.deepEqual([(await step(s2, "settled", { note: "x" })).status, (await step(s2, "settled", { note: "x" })).data.error],
     [404, "Step not found"]);
   assert.equal((await step(s2, "lawyers", { planned_on: "2026-02-30" })).status, 400);
+  // A step is not done tomorrow (Jersey's today is the limit); the stored day stays.
+  const later = await step(s2, "contract", { done_on: plusDays(today(), 1) });
+  assert.deepEqual([later.status, later.data.fields], [400, { done_on: "Use today or an earlier date" }]);
+  assert.equal(row(env, "SELECT done_on FROM sale_milestones WHERE sale_id = ? AND key = 'contract'", s2).done_on, null);
 });
 
 test("waiting: an offer untouched for three days counts; a backup offer on a listing with a sale does not", async () => {
@@ -222,8 +226,9 @@ test("complete: listing sold, buyer completed, backup offers rejected and the bu
   const a = await buyer(env), b = await buyer(env);
   const elsewhere = await record(env, a, "HE-R002");
   const backup = await record(env, b, "HE-R001", 760000);
-  const own = await record(env, a, "HE-R001", 740000);
   const id = await accepted(env, a, "HE-R001");
+  // An offer the buyer records on the listing while buying it is a backup of their own.
+  const own = await record(env, a, "HE-R001", 740000);
   const s = sale(env, id);
   const r = await complete(env, id);
   assert.deepEqual([r.data.sale.status, r.data.sale.id], ["completed", id]);
@@ -237,21 +242,23 @@ test("complete: listing sold, buyer completed, backup offers rejected and the bu
   assert.equal(offer(env, s.offer_id).status, "accepted");
   assert.deepEqual([offer(env, backup).status, offer(env, backup).note], ["rejected", "Property sold"]);
   assert.deepEqual([offer(env, elsewhere).status, offer(env, elsewhere).note], ["withdrawn", "Buyer completed elsewhere"]);
-  // The buyer's own other offer on the listing is theirs to withdraw, not a backup to reject.
-  assert.deepEqual([offer(env, own).status, offer(env, own).note], ["withdrawn", "Buyer completed elsewhere"]);
+  // The buyer's own other offer on the listing is theirs to withdraw, not a backup to reject, and not "elsewhere".
+  assert.deepEqual([offer(env, own).status, offer(env, own).note], ["withdrawn", "Buyer bought this property"]);
 
   const ref = { offer_id: s.offer_id, sale_id: id, listing_id: "HE-R001" };
   assert.deepEqual(events(env, b).at(-1), { type: "offer.rejected", actor: ADMIN,
     data: { offer_id: backup, sale_id: id, listing_id: "HE-R001", note: "Property sold" } });
-  const mine = events(env, a).slice(-5);
-  const withdrawn = (offer_id, listing_id) => ["offer.withdrawn", { offer_id, sale_id: id, listing_id, note: "Buyer completed elsewhere" }];
-  assert.deepEqual([mine[1], mine[2]].map(e => [e.type, e.data]).sort((x, y) => x[1].offer_id - y[1].offer_id),
-    [withdrawn(elsewhere, "HE-R002"), withdrawn(own, "HE-R001")]);
-  assert.deepEqual([mine[0], ...mine.slice(3)].map(e => [e.type, e.data]), [
+  const withdrawn = (offer_id, listing_id, note) => ["offer.withdrawn", { offer_id, sale_id: id, listing_id, note }];
+  assert.deepEqual(events(env, a).slice(-5).map(e => [e.type, e.data]), [
     ["sale.completed", ref],
+    withdrawn(own, "HE-R001", "Buyer bought this property"),
+    withdrawn(elsewhere, "HE-R002", "Buyer completed elsewhere"),
     ["listing.availability_changed", { ...ref, before: { availability: "under_offer" }, after: { availability: "sold" } }],
     ["applicant.stage_changed", { ...ref, before: { stage: "agreed" }, after: { stage: "completed" } }],
   ]);
+  // Their ids are integers, as in every other event (a bound JS number would be stored as 1.0).
+  for (const e of rows(env, "SELECT data FROM events WHERE type IN ('offer.rejected', 'offer.withdrawn')"))
+    assert.match(e.data, new RegExp(`"sale_id":${id},`));
 
   // The applicant's and the listing's own views.
   const mineView = await req(env, "GET", `/admin/applicants/${a}/offers`);
@@ -259,7 +266,14 @@ test("complete: listing sold, buyer completed, backup offers rejected and the bu
   assert.deepEqual(mineView.data.offers.map(o => [o.id, o.status, o.listing_title]).sort(),
     [[s.offer_id, "accepted", "Le Bernage"], [elsewhere, "withdrawn", "La Rocque"], [own, "withdrawn", "Le Bernage"]].sort());
   assert.deepEqual(mineView.data.sales.map(x => [x.id, x.status, x.listing_title]), [[id, "completed", "Le Bernage"]]);
-  assert.deepEqual((await req(env, "GET", "/admin/listings/HE-R001/offers")).data, { open: 0, sale: null });
+  const listingView = (await req(env, "GET", "/admin/listings/HE-R001/offers")).data;
+  assert.deepEqual([listingView.open, listingView.sale], [0, null]);
+  // Every offer on the listing, whatever its status, newest first, with its buyer.
+  assert.deepEqual(listingView.offers.map(o => [o.id, o.status, o.note, o.applicant_id]), [
+    [own, "withdrawn", "Buyer bought this property", a], [s.offer_id, "accepted", null, a], [backup, "rejected", "Property sold", b]]);
+  assert.deepEqual(Object.keys(listingView.offers[0]).sort(), ["amount", "applicant_id", "buyer_name", "counter_amount", "created_at",
+    "id", "note", "status", "updated_at"]);
+  assert.ok(listingView.offers.every(o => /^Buyer \d+$/.test(o.buyer_name)));
   assert.equal((await req(env, "GET", "/admin/applicants/999/offers")).status, 404);
   assert.equal((await req(env, "GET", "/admin/listings/HE-R999/offers")).status, 404);
 });
@@ -268,7 +282,9 @@ test("fall through: listing back to for_sale and buyer to searching; a listing w
   const env = world();
   const a = await buyer(env), b = await buyer(env);
   const id = await accepted(env, a, "HE-R001");
-  assert.deepEqual((await req(env, "GET", "/admin/listings/HE-R001/offers")).data, { open: 0, sale: { id, status: "in_progress" } });
+  const view = (await req(env, "GET", "/admin/listings/HE-R001/offers")).data;
+  assert.deepEqual([view.open, view.sale, view.offers.map(o => [o.id, o.status])],
+    [0, { id, status: "in_progress" }, [[sale(env, id).offer_id, "accepted"]]]);
   const bad = await req(env, "POST", `/admin/sales/${id}/fall-through`, { reason: "bored" });
   assert.equal(bad.status, 400);
   assert.ok(bad.data.fields.reason);
@@ -305,7 +321,8 @@ test("archive: a listing or applicant with an open offer or a sale in progress i
   const env = world();
   const a = await buyer(env), b = await buyer(env);
   const o = await record(env, a, "HE-R002");
-  assert.deepEqual((await req(env, "GET", "/admin/listings/HE-R002/offers")).data, { open: 1, sale: null });
+  const view = (await req(env, "GET", "/admin/listings/HE-R002/offers")).data;
+  assert.deepEqual([view.open, view.sale, view.offers.map(x => [x.id, x.status])], [1, null, [[o, "pending"]]]);
   const busy = { status: 409, error: "Close its offers and sale first" };
   const archive = async path => { const r = await req(env, "POST", `${path}/archive`); return { status: r.status, error: r.data.error }; };
   assert.deepEqual(await archive("/admin/listings/HE-R002"), busy);

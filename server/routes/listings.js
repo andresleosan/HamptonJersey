@@ -141,13 +141,17 @@ async function update({ request, env, admin, params: [id] }) {
   return json({ listing: await loadListing(env, id) });
 }
 
-// The editor's Offers block (F3-C): how many offers are open, and the sale in progress if any.
+// The editor's Offers block (F3-C): how many offers are open, the sale in progress if any, and every offer, newest first.
 async function offers({ env, params: [id] }) {
-  const r = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM offers WHERE listing_id = l.id AND status IN ('pending', 'countered'))
-    AS open, (SELECT id FROM sales WHERE listing_id = l.id AND status = 'in_progress') AS sale_id FROM listings l WHERE l.id = ?`)
-    .bind(id).first();
+  const [[r], list] = (await env.DB.batch([
+    env.DB.prepare(`SELECT (SELECT COUNT(*) FROM offers WHERE listing_id = l.id AND status IN ('pending', 'countered'))
+      AS open, (SELECT id FROM sales WHERE listing_id = l.id AND status = 'in_progress') AS sale_id FROM listings l WHERE l.id = ?`).bind(id),
+    env.DB.prepare(`SELECT o.id, o.applicant_id, c.name AS buyer_name, o.amount, o.counter_amount, o.status, o.note, o.created_at,
+      o.updated_at FROM offers o JOIN applicants a ON a.id = o.applicant_id JOIN contacts c ON c.id = a.contact_id
+      WHERE o.listing_id = ? ORDER BY o.created_at DESC, o.id DESC`).bind(id),
+  ])).map(x => x.results);
   if (!r) fail(404, "Listing not found");
-  return json({ open: r.open, sale: r.sale_id == null ? null : { id: r.sale_id, status: "in_progress" } });
+  return json({ open: r.open, sale: r.sale_id == null ? null : { id: r.sale_id, status: "in_progress" }, offers: list });
 }
 
 // Home page order from the panel's drag and drop. It is not a content edit, so updated_at is left alone (no false 409s).

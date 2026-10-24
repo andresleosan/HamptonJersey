@@ -5,6 +5,7 @@ import MediaManager from "./MediaManager.jsx";
 import Research from "./Research.jsx";
 import { setUnsaved } from "./unsaved.js";
 import { OPTIONS, isActive } from "../../server/applicants.js";
+import { BuyerOffers } from "./Sales.jsx";
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "sale_price", "rent", "rent_period", "premium", "currency", "price_text", "summary", "description",
@@ -22,7 +23,7 @@ const toMatchForm = l => ({ parish: l.parish ?? "", matchable: l.matchable });
 const changedMatchForm = (f, l) => Object.fromEntries(IF_CHANGED.filter(k => f[k] !== toMatchForm(l)[k])
   .map(k => [k, k === "parish" ? f.parish || null : f.matchable]));
 const SECTIONS = [["details", "Details"], ["price", "Price"], ["description", "Description"], ["photos", "Photos"],
-  ["tour", "Tour and specification"], ["applicants", "Matched applicants"], ["research", "Research"]];
+  ["tour", "Tour and specification"], ["offers", "Offers"], ["applicants", "Matched applicants"], ["research", "Research"]];
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
 // Match status, with its badge tone (DESIGN.md "Badges de estado": Found and Rejected neutral, Shortlisted active).
 const MATCH_STATUS = { found: ["Found", "neutral"], shortlisted: ["Shortlisted", "active"], rejected: ["Rejected", "neutral"] };
@@ -36,7 +37,8 @@ export default function ListingEditor({ id }) {
   const load = () => api(`/admin/listings/${id}`).then(d => { setData(d); setForm(toForm(d.listing)); setMatchForm(toMatchForm(d.listing)); setErrors({}); },
     e => setLoadErr(e.message));
   useEffect(() => { load(); }, [id]);
-  // F3-C: a listing for sale's open offers and sale in progress ({open, sale}, or {failed}), once the listing is loaded.
+  // F3-C: a listing for sale's open offers, sale in progress and every offer ({open, sale, offers}, or {failed}), once the
+  // listing is loaded.
   const [offers, setOffers] = useState(null), forSale = data?.listing.operation === "sale";
   useEffect(() => { if (forSale) api(`/admin/listings/${id}/offers`).then(setOffers, () => setOffers({ failed: true })); }, [forSale]);
   const matchesReq = useRef(0);
@@ -115,7 +117,7 @@ export default function ListingEditor({ id }) {
       {l.published === 1 && !publicPhoto && <p className="warn" role="note">Published, but with no public photo: it won't appear on the website until it has one.</p>}
       {data.duplicates.length > 0 && <p className="warn" role="note">Possible duplicate of {data.duplicates.map((d, i) =>
         <span key={d}>{i ? ", " : ""}<a href={`#/p/${d}`}>{d}</a></span>)} according to the research.</p>}
-      <nav aria-label="Listing sections">{SECTIONS.map(([k, t]) =>
+      <nav aria-label="Listing sections">{SECTIONS.filter(([k]) => forSale || k !== "offers").map(([k, t]) =>
         <button key={k} type="button" className="linkish" onClick={() => document.getElementById(`s-${k}`).scrollIntoView({ behavior: "smooth" })}>{t}</button>)}</nav>
       <a href="#/listings">← Back to listings</a>
     </aside>
@@ -171,6 +173,14 @@ export default function ListingEditor({ id }) {
           <ul>{data.media.filter(m => !m.r2_key && m.source_url).map(m => <li key={m.id}>
             <a href={safeHref(m.source_url)} target="_blank" rel="noopener noreferrer">{m.label || m.source_url}</a> · {m.provider}</li>)}</ul></details>}
       </section>
+
+      {/* Spec §1: every offer on the listing with what became of it, newest first; they are answered in Sales. */}
+      {forSale && <section id="s-offers" className="card" aria-labelledby="h-offers">
+        <h2 id="h-offers">Offers {offers?.offers && <span className="muted">({offers.offers.length})</span>}</h2>
+        {!offers ? <p>Loading offers…</p> : offers.failed ? <p className="muted">Offers couldn't be loaded</p>
+          : offers.offers.length ? <BuyerOffers rows={offers.offers} labelledBy="h-offers" />
+          : <p className="muted">No offers on this listing yet. Record one in <a href="#/sales">Sales</a>.</p>}
+      </section>}
 
       <section id="s-applicants" className="card" aria-labelledby="h-applicants">
         <h2 id="h-applicants">Matched applicants <span className="muted">({data.matched_applicants.length})</span></h2>

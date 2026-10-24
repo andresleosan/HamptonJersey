@@ -4,10 +4,11 @@ import { fmtDate, fmtDay } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
 import { milestoneLabel } from "../../server/sales.js";
 import { jerseyToday } from "../../server/viewings.js";
-import { Modal, OfferBadge, REASON, Received, money, pounds, useFieldErrors } from "./Sales.jsx";
+import { BuyerOffers, Modal, REASON, pounds, useFieldErrors } from "./Sales.jsx";
 
 // Spec §4 sale file (#/sales/<id>): its data (V7, V3) on the left, saved with the panel's Save bar, and the work on the
-// right: the Jersey steps (V8), then the listing's other offers. Completing it or recording that it fell through closes it.
+// right: the Jersey steps (V8), then the listing's other offers. The work comes first in the page, so on a phone (one
+// column) the steps are above the data, and the focus order follows. Completing it or recording that it fell through closes it.
 const MONEY = ["price", "fee", "shared_fee"];
 const FIELDS = [...MONEY, "route", "target_date", "notes", "seller_name", "seller_phone", "seller_email",
   "buyer_lawyer_firm", "buyer_lawyer_name", "buyer_lawyer_email", "buyer_lawyer_phone",
@@ -90,6 +91,32 @@ export default function SaleDetail({ id, onChange }) {
       {s.fell_through_note && ` · ${s.fell_through_note}`}</p>}
 
     <div className="sale">
+      <div className="sections">
+        <section className="card" aria-labelledby="h-steps"><h2 id="h-steps">Steps</h2>
+          <p role="status" className="ok">{stepMsg}</p>
+          <ol className="steps">{data.milestones.map(m => {
+            const label = milestoneLabel(m.key, s.route);
+            return <li key={m.key} className={m.overdue ? "overdue" : undefined}>
+              <div className="step-head"><span className="step-name">{label}</span>
+                <span className="step-state">{m.done_on ? <span className="ok">Done {fmtDay(m.done_on)}</span>
+                  : m.not_needed ? <span className="muted">Not needed</span>
+                  : m.overdue ? <strong className="err">Overdue · planned {fmtDay(m.planned_on)}</strong>
+                  : <span className="muted">{m.planned_on ? `Planned ${fmtDay(m.planned_on)}` : "No date yet"}</span>}</span>
+                {open && step !== m.key && <button type="button" className="btn ghost sm" ref={el => { stepButtons.current[m.key] = el; }}
+                  onClick={() => { if (!stepDirty || confirm("You have unsaved changes to a step. Leave without saving them?")) { setStepMsg(null); setStep(m.key); } }}>
+                  Update<span className="sr"> {label}</span></button>}</div>
+              {m.note && step !== m.key && <p className="muted">{m.note}</p>}
+              {open && step === m.key && <StepForm saleId={id} m={m} label={label} onSaved={stepSaved} onClose={() => closeStep(m.key)}
+                onDirty={setStepDirty} />}
+            </li>;
+          })}</ol>
+        </section>
+        <section className="card" aria-labelledby="h-others"><h2 id="h-others">Other offers on this listing</h2>
+          {data.offers.length ? <BuyerOffers rows={data.offers} labelledBy="h-others" /> : <p className="muted">No other offers on this listing.</p>}
+          {data.offers.some(o => o.status === "pending" || o.status === "countered") && <p><a href="#/sales">Answer open offers in Sales</a></p>}
+        </section>
+      </div>
+
       <form ref={formRef} noValidate onSubmit={e => { e.preventDefault(); if (dirty && !busy) save(); }}>
         <fieldset className="sections plain" disabled={!open}>
           <section className="card fields-group" aria-labelledby="h-agreement"><h2 id="h-agreement">Agreement</h2><div className="grid2">
@@ -113,41 +140,6 @@ export default function SaleDetail({ id, onChange }) {
             {ctl("shared_fee", "Other agency's share (£)", { inputMode: "numeric" })}</div></section>
         </fieldset>
       </form>
-
-      <div className="sections">
-        <section className="card" aria-labelledby="h-steps"><h2 id="h-steps">Steps</h2>
-          <p role="status" className="ok">{stepMsg}</p>
-          <ol className="steps">{data.milestones.map(m => {
-            const label = milestoneLabel(m.key, s.route);
-            return <li key={m.key} className={m.overdue ? "overdue" : undefined}>
-              <div className="step-head"><span className="step-name">{label}</span>
-                <span className="step-state">{m.done_on ? <span className="ok">Done {fmtDay(m.done_on)}</span>
-                  : m.not_needed ? <span className="muted">Not needed</span>
-                  : m.overdue ? <strong className="err">Overdue · planned {fmtDay(m.planned_on)}</strong>
-                  : <span className="muted">{m.planned_on ? `Planned ${fmtDay(m.planned_on)}` : "No date yet"}</span>}</span>
-                {open && step !== m.key && <button type="button" className="btn ghost sm" ref={el => { stepButtons.current[m.key] = el; }}
-                  onClick={() => { if (!stepDirty || confirm("You have unsaved changes to a step. Leave without saving them?")) { setStepMsg(null); setStep(m.key); } }}>
-                  Update<span className="sr"> {label}</span></button>}</div>
-              {m.note && step !== m.key && <p className="muted">{m.note}</p>}
-              {open && step === m.key && <StepForm saleId={id} m={m} label={label} onSaved={stepSaved} onClose={() => closeStep(m.key)}
-                onDirty={setStepDirty} />}
-            </li>;
-          })}</ol>
-        </section>
-        <section className="card" aria-labelledby="h-others"><h2 id="h-others">Other offers on this listing</h2>
-          {data.offers.length ? <div className="table-scroll" role="region" aria-labelledby="h-others" tabIndex={0}>
-            <table className="list small">
-              <thead><tr><th scope="col">Buyer</th><th scope="col">Offer</th><th scope="col">Status</th><th scope="col">Received</th></tr></thead>
-              <tbody>{data.offers.map(o => <tr key={o.id}>
-                <td><a href={`#/applicants/${o.applicant_id}`}>{o.buyer_name}</a></td>
-                <td className="num">{money(o.amount)}{o.counter_amount != null && <span className="muted cell-note">Countered {money(o.counter_amount)}</span>}</td>
-                <td><OfferBadge status={o.status} />{o.note && <span className="muted cell-note">{o.note}</span>}</td>
-                <td><Received at={o.created_at} /></td>
-              </tr>)}</tbody>
-            </table></div> : <p className="muted">No other offers on this listing.</p>}
-          {data.offers.some(o => o.status === "pending" || o.status === "countered") && <p><a href="#/sales">Answer open offers in Sales</a></p>}
-        </section>
-      </div>
     </div>
 
     {(open || msg) && <div className="actionbar" role="region" aria-label="Actions">
@@ -193,7 +185,7 @@ function StepForm({ saleId, m, label, onSaved, onClose, onDirty }) {
     <div className="grid2">
       <label>Planned for<input ref={first} id="st-planned" type="date" value={f.planned_on} onChange={set("planned_on")} {...invalid("planned_on")} />
         {error("planned_on")}</label>
-      {f.state === "done" && <label>Done on<input id="st-done" type="date" value={f.done_on} onChange={set("done_on")} {...invalid("done_on")} />
+      {f.state === "done" && <label>Done on<input id="st-done" type="date" value={f.done_on} max={jerseyToday()} onChange={set("done_on")} {...invalid("done_on")} />
         {error("done_on")}</label>}
     </div>
     <fieldset className="choices-set"><legend>Status</legend><div className="choices">

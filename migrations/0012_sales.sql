@@ -14,6 +14,8 @@ CREATE TABLE offers (
 );
 CREATE INDEX offers_listing ON offers(listing_id, status);
 CREATE INDEX offers_applicant ON offers(applicant_id);
+-- Open offers only, by last change: the Sales list and the nav's Waiting count read just these.
+CREATE INDEX offers_open ON offers(updated_at) WHERE status IN ('pending','countered');
 
 -- The sale opened by an accepted offer (V7, V3); no cascade: a listing or buyer with a sale is kept 5 years (V14, V16).
 CREATE TABLE sales (

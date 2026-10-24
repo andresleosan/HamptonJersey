@@ -14,6 +14,17 @@ export const OfferBadge = ({ status }) => { const [t, tone] = OFFER_STATUS[statu
 export const REASON = { buyer_withdrew: "Buyer withdrew", seller_withdrew: "Seller withdrew", finance: "Finance",
   survey: "Survey", chain: "Chain", other: "Other" };
 export const Received = ({ at }) => <time dateTime={at} title={fmtDate(at)}>{fmtAgo(at)}</time>;
+// Offers on one listing, by buyer, with what became of each (the sale file's other offers, the listing editor's history).
+export const BuyerOffers = ({ rows, labelledBy }) => <div className="table-scroll" role="region" aria-labelledby={labelledBy} tabIndex={0}>
+  <table className="list small">
+    <thead><tr><th scope="col">Buyer</th><th scope="col">Offer</th><th scope="col">Status</th><th scope="col">Received</th></tr></thead>
+    <tbody>{rows.map(o => <tr key={o.id}>
+      <td><a href={`#/applicants/${o.applicant_id}`}>{o.buyer_name}</a></td>
+      <td className="num">{money(o.amount)}{o.counter_amount != null && <span className="muted cell-note">Countered {money(o.counter_amount)}</span>}</td>
+      <td><OfferBadge status={o.status} />{o.note && <span className="muted cell-note">{o.note}</span>}</td>
+      <td><Received at={o.created_at} /></td>
+    </tr>)}</tbody>
+  </table></div>;
 const forSale = l => l.operation === "sale" && !l.archived_at && ["for_sale", "under_offer"].includes(l.availability);
 
 // A native modal dialog: the focus moves in and stays in (the page behind is inert), Escape closes it and the focus goes

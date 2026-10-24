@@ -343,6 +343,11 @@ test("0012: an offer refuses a zero amount, an unknown status and a counter amou
   const cols = index => db.prepare(`PRAGMA index_info(${index})`).all().map(r => r.name);
   assert.deepEqual(cols("offers_listing"), ["listing_id", "status"]);
   assert.deepEqual(cols("offers_applicant"), ["applicant_id"]);
+  // Open offers by last change (the Sales list and the nav's Waiting count), and the Waiting count reads through it.
+  assert.deepEqual(cols("offers_open"), ["updated_at"]);
+  const plan = db.prepare(`EXPLAIN QUERY PLAN SELECT COUNT(*) FROM offers o WHERE o.status IN ('pending', 'countered')
+    AND o.updated_at < ?`).all("2026-10-24").map(r => r.detail).join(" ");
+  assert.match(plan, /USING (COVERING )?INDEX offers_open/);
 });
 
 test("0012: two in-progress sales of one listing, or of one buyer, are refused by the database", () => {

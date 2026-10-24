@@ -87,9 +87,13 @@ async function create({ request, env, admin }) {
     updated_at: ts, updated_by: admin };
   // V6: an offer moves the buyer on; a paused or lost search keeps its stage.
   const stage = stageTo(env, ctx, applicant, "offer", ["new", "searching", "viewing"]);
+  // A buyer's new offer on a listing replaces their open one there.
+  const superseded = closeOffers(env, ctx, "listing_id = ? AND applicant_id = ?", [listing.id, applicant.id], "withdrawn",
+    "Superseded by a new offer");
   let results;
   try {
     results = await env.DB.batch([
+      ...superseded,
       env.DB.prepare(`INSERT INTO offers (${Object.keys(o).join(", ")}) SELECT ${Object.keys(o).map(() => "?").join(", ")}
         WHERE ${ELIGIBLE}`).bind(...Object.values(o), listing.id, applicant.id),
       ensureChanged(env),
@@ -103,7 +107,7 @@ async function create({ request, env, admin }) {
     throw e;
   }
   if (stage.length) await afterSave(recomputeForApplicant, env, applicant.id, admin);
-  return json({ offer: await loadOffer(env, results[0].meta.last_row_id) }, 201);
+  return json({ offer: await loadOffer(env, results[superseded.length].meta.last_row_id) }, 201);
 }
 
 // A change to the offer if it is still at one of `from` (V4), with its event; 409 when it no longer is.
@@ -364,24 +368,31 @@ async function closeSale(env, admin, { sale, listing, applicant }, completing, s
     await closable(env, sale.id, completing);
     throw e;
   }
+  // ponytail: both recomputes run inside this request (the single-listing one reads every active applicant, fine up to
+  // ~500); past that, move one to ctx.waitUntil.
   if (listingMove.length) await afterSave(recomputeForListing, env, listing.id, admin);
   if (stageMove.length) await afterSave(recomputeForApplicant, env, applicant.id, admin);
   return json({ sale: await loadSale(env, sale.id) });
 }
 
 // V18: closes the open offers matching `where` (binds `args`) with `status` and `note`, each with its event on its buyer
-// (written first, while the offers are still open).
-const closeOffers = (env, ctx, where, args, status, note) => [
-  env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
-    SELECT ?, ?, 'applicant', CAST(applicant_id AS TEXT), ?, json_object('offer_id', id, 'sale_id', ?, 'listing_id', listing_id, 'note', ?)
-    FROM offers WHERE ${where} AND status IN ${OPEN_SQL}`).bind(ctx.ts, ctx.admin, `offer.${status}`, ctx.data.sale_id, note, ...args),
-  env.DB.prepare(`UPDATE offers SET status = ?, note = ?, updated_at = ?, updated_by = ? WHERE ${where} AND status IN ${OPEN_SQL}`)
-    .bind(status, note, ctx.ts, ctx.admin, ...args),
-];
+// (written first, while the offers are still open), carrying ctx's sale_id when there is one. A JS number binds as a
+// REAL, so the id is cast back to an integer, as the other events store it.
+function closeOffers(env, ctx, where, args, status, note) {
+  const sale = ctx.data.sale_id == null ? [] : [ctx.data.sale_id];
+  return [
+    env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
+      SELECT ?, ?, 'applicant', CAST(applicant_id AS TEXT), ?, json_object('offer_id', id, ${sale.length ? "'sale_id', CAST(? AS INTEGER), " : ""}
+      'listing_id', listing_id, 'note', ?) FROM offers WHERE ${where} AND status IN ${OPEN_SQL}`)
+      .bind(ctx.ts, ctx.admin, `offer.${status}`, ...sale, note, ...args),
+    env.DB.prepare(`UPDATE offers SET status = ?, note = ?, updated_at = ?, updated_by = ? WHERE ${where} AND status IN ${OPEN_SQL}`)
+      .bind(status, note, ctx.ts, ctx.admin, ...args),
+  ];
+}
 const closeCtx = (admin, sale) => ({ admin, ts: now(), data: { offer_id: sale.offer_id, sale_id: sale.id, listing_id: sale.listing_id } });
 
 // V2, V6, V15, V18: one batch completes the sale, sells the listing, completes the buyer, rejects the listing's backup
-// offers and withdraws the buyer's open offers elsewhere. A completed sale is not undone from the panel.
+// offers and withdraws the buyer's own open offers, here and elsewhere. A completed sale is not undone from the panel.
 async function complete({ env, admin, params: [id] }) {
   const s = await closable(env, id, true), ctx = closeCtx(admin, s.sale);
   return closeSale(env, admin, s, true, [
@@ -392,7 +403,8 @@ async function complete({ env, admin, params: [id] }) {
     ...buyerEvent(env, ctx, s.applicant.id, "sale.completed"),
     // Other buyers' offers on the listing are backups; the buyer's own open offers, here or elsewhere, are withdrawn.
     ...closeOffers(env, ctx, "listing_id = ? AND applicant_id <> ?", [s.listing.id, s.applicant.id], "rejected", "Property sold"),
-    ...closeOffers(env, ctx, "applicant_id = ?", [s.applicant.id], "withdrawn", "Buyer completed elsewhere"),
+    ...closeOffers(env, ctx, "listing_id = ? AND applicant_id = ?", [s.listing.id, s.applicant.id], "withdrawn", "Buyer bought this property"),
+    ...closeOffers(env, ctx, "listing_id <> ? AND applicant_id = ?", [s.listing.id, s.applicant.id], "withdrawn", "Buyer completed elsewhere"),
   ], availabilityTo(env, ctx, s.listing, "sold", ENUMS.availability.filter(a => a !== "sold"), s.applicant.id),
   stageTo(env, ctx, s.applicant, "completed", ["new", "searching", "viewing", "offer", "agreed", "paused", "lost"]));
 }

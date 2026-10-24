@@ -49,6 +49,14 @@ test("validateMilestone: dates or null, done and not needed are exclusive", () =
   assert.ok(validateMilestone({ done_on: "2026-10-24", not_needed: true }).errors.not_needed);
 });
 
+test("validateMilestone: a step is done today or earlier, never tomorrow", () => {
+  assert.deepEqual(validateMilestone({ done_on: "2026-10-24" }, "2026-10-24"), { value: { done_on: "2026-10-24" } });
+  assert.deepEqual(validateMilestone({ done_on: "2026-10-23" }, "2026-10-24"), { value: { done_on: "2026-10-23" } });
+  assert.deepEqual(validateMilestone({ done_on: "2026-10-25" }, "2026-10-24"), { errors: { done_on: "Use today or an earlier date" } });
+  // Planned days may be in the future.
+  assert.deepEqual(validateMilestone({ planned_on: "2026-12-01" }, "2026-10-24"), { value: { planned_on: "2026-12-01" } });
+});
+
 test("isOverdue: planned yesterday and open is overdue; done, not needed or planned today is not", () => {
   const today = "2026-10-24", open = { planned_on: "2026-10-23", done_on: null, not_needed: 0 };
   assert.equal(isOverdue(open, today), true);

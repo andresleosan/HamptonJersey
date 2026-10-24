@@ -311,7 +311,8 @@ textarea.short{min-height:72px}
 .closed summary::before{content:"▸";color:var(--stone)} .closed[open] summary::before{content:"▾"}
 .closed summary h2{margin:0} .closed[open] summary{margin-bottom:12px}
 .sale,.sale .sections{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
-@media (min-width:960px){.sale{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+/* The steps come first in the page (a phone shows them above the data); two columns put the data back on the left. */
+@media (min-width:960px){.sale{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.sale>form{grid-area:1/1}.sale>.sections{grid-area:1/2}}
 .steps{list-style:none;margin:0;padding:0}
 .steps>li{display:grid;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)} .steps>li:last-child{border-bottom:0}
 .steps>li.overdue{box-shadow:inset 3px 0 0 var(--err);padding-left:12px}

@@ -1,5 +1,5 @@
 // Offer and sale rules (F3-C), shared by the API and the panel (through Vite). Pure ESM: no database, no env.
-import { EMAIL, realDate } from "./viewings.js";
+import { EMAIL, realDate, jerseyToday } from "./viewings.js";
 
 // V8: the steps of every sale, in order; sale_milestones.key holds these keys.
 export const MILESTONES = [["lawyers", "Lawyers instructed"], ["due_diligence", "Housing status and due diligence checked"],
@@ -70,13 +70,15 @@ export function validateSale(body) {
   return result(value, errors);
 }
 
-// One milestone (V8). Absent keys are left alone; done and "Not needed" cannot both be set.
-export function validateMilestone(body) {
+// One milestone (V8). Absent keys are left alone; done and "Not needed" cannot both be set; done is not after today
+// (Jersey, YYYY-MM-DD).
+export function validateMilestone(body, today = jerseyToday()) {
   const b = obj(body), errors = {}, value = {}, f = fields(b, errors);
   for (const k of ["planned_on", "done_on"]) if (k in b) value[k] = f.date(k);
   if ("not_needed" in b) value.not_needed = typeof b.not_needed === "boolean" ? Number(b.not_needed)
     : f.err("not_needed", "Choose yes or no");
   if ("note" in b) value.note = f.text("note", 300);
+  if (value.done_on > today) f.err("done_on", "Use today or an earlier date");
   if (value.done_on && value.not_needed) f.err("not_needed", "A step that is done cannot be marked not needed");
   return result(value, errors);
 }
