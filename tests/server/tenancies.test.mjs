@@ -290,7 +290,7 @@ test("tenancy: edit with lock and merged checks, notice, and the detail's deadli
   assert.equal(fixed.status, 400, "the merged row: fixed needs an end");
   assert.ok(fixed.data.fields.end_on);
   const cur = row(env, "SELECT * FROM tenancies WHERE id = ?", id);
-  const locked = { rent: 7, due_day: cur.due_day % 28 + 1, start_on: plusDays(start, 1), opening_balance: 7 };
+  const locked = { rent: 7, due_day: cur.due_day % 28 + 1, start_on: plusDays(start, 1) };
   for (const [k, v] of Object.entries(locked)) {
     const r = await put({ [k]: v });
     assert.equal(r.status, 400, k);
@@ -346,7 +346,7 @@ test("collect_from: moved later drops the earlier rent charges not corrected by 
 
   const earlier = await put({ collect_from: month(-1) });
   assert.equal(earlier.status, 400);
-  assert.deepEqual(earlier.data.fields, { collect_from: "Enter the earlier months as an opening balance" });
+  assert.deepEqual(earlier.data.fields, { collect_from: "Add the earlier months to the opening charge with Correct, under Charges" });
   assert.equal((await put({ collect_from: null })).data.fields.collect_from, "Enter the date Hampton starts collecting the rent");
 
   // Moved to a day that isn't the rent day: its month is charged on it (R23), as a new tenancy would be.
@@ -361,6 +361,29 @@ test("collect_from: moved later drops the earlier rent charges not corrected by 
   assert.deepEqual(loPut.data.fields, { collect_from: "Only full management tenancies collect rent" });
   assert.equal((await req(env, "POST", `/admin/tenancies/${mid}/end`, { ended_on: month(1) })).status, 200);
   assert.deepEqual((await putMid({ collect_from: month(1) })).data.fields, { collect_from: "Use a date before the move-out" });
+});
+
+test("opening balance: added later while there is no opening charge, made at once; then corrected on its charge", async () => {
+  const env = makeEnv();
+  const id = await tenancy(env, await rental(env), { start_on: month(-3), collect_from: M0, due_day: 1 });
+  const put = body => req(env, "PUT", `/admin/tenancies/${id}`, { updated_at: stamp(env, "tenancies", id), ...body });
+  assert.deepEqual((await put({ collect_from: month(-1) })).data.fields,
+    { collect_from: "Enter what was owed for the earlier months in Owed today" });
+  // A planned move-out right after the first rent charge: ensureCharges would not make the opening charge any more.
+  assert.equal((await req(env, "POST", `/admin/tenancies/${id}/end`, { ended_on: month(1) })).status, 200);
+  const ok = await put({ opening_balance: 300000 });
+  assert.equal(ok.status, 200, JSON.stringify(ok.data));
+  assert.deepEqual(charges(env, id), [[M0, 300000, "opening"], [M0, 150000, "rent"]]);
+  assert.equal(ok.data.balance, 450000);
+  assert.equal(ok.data.tenancy.has_opening, 1);
+  assert.deepEqual(events(env, "tenancy.updated").map(e => e.data), [{ before: { opening_balance: null }, after: { opening_balance: 300000 } }]);
+  const again = await put({ opening_balance: 1000 });
+  assert.deepEqual(again.data.fields, { opening_balance: "Its opening charge is already made: use Correct on that charge under Charges" });
+  assert.deepEqual((await put({ collect_from: month(-1) })).data.fields,
+    { collect_from: "Add the earlier months to the opening charge with Correct, under Charges" });
+  const lo = await tenancy(env, await rental(env, { service: "let_only", fee_percent: null }), { start_on: M0 });
+  const loPut = await req(env, "PUT", `/admin/tenancies/${lo}`, { updated_at: stamp(env, "tenancies", lo), opening_balance: 500 });
+  assert.deepEqual(loPut.data.fields, { opening_balance: "Only full management tenancies collect rent" });
 });
 
 test("move-out: a planned one moves (not before today) or is cancelled, and the charges come back (P22)", async () => {

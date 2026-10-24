@@ -357,6 +357,11 @@ test("payment edit: a manual payment's amount and date (P23); an imported one ke
   const refused = await req(env, "PUT", `/admin/payments/${imported}`, { amount: 6000 });
   assert.deepEqual([refused.status, refused.data.error], [400, "An imported payment keeps the bank's amount and date"]);
   assert.equal((await req(env, "PUT", `/admin/payments/${imported}`, { tenancy_id: null })).status, 200, "but it can be unassigned");
+  // A payment by hand that took a bank row's place (R25) is that bank line now: moved or unassigned, not edited.
+  await imp(env, [ROW({ date: ago(2), amount: 150000, description: `${ref} again` })]);
+  assert.ok(row(env, "SELECT import_hash FROM payments WHERE id = ?", manual).import_hash);
+  const merged = await put({ amount: 140000 });
+  assert.deepEqual([merged.status, merged.data.error], [409, "This payment was matched to a bank line; move or unassign it instead"]);
 });
 
 test("payment routes: signed out 401", async () => {

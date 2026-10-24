@@ -5,7 +5,7 @@ import { setUnsaved } from "./unsaved.js";
 import { Received, money, useFieldErrors } from "./Sales.jsx";
 import { Assign, GAS, KIND, MarkStep, REPAIR_STATUS, SERVICE, URGENCY, checkState, pence } from "./Rentals.jsx";
 import { CancelMoveOut, ChangeRent, CorrectCharge, DETAILS, EditPayment, EditTenancy, EndTenancy, NewTenancy, RecordNotice, RecordPayment,
-  Renew, RepairDialog, UnassignPayment, UpdateCheck, needsApproval, rentLine } from "./RentalDialogs.jsx";
+  Renew, RepairDialog, NEXT_DAY, UnassignPayment, UpdateCheck, needsApproval, rentLine } from "./RentalDialogs.jsx";
 import { OPTIONS } from "../../server/applicants.js";
 import { ARREARS_STEPS, COMPLIANCE, LEGAL } from "../../server/rentals.js";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
@@ -236,8 +236,7 @@ function Tenancy({ id, tick, note, open, next }) {
         <span className="muted cell-note">Due on day {t.due_day} of each month</span></dd></div>
       <div><dt>Deposit</dt><dd>{t.deposit != null ? money(t.deposit) : "—"}{t.deposit_ref && <span className="muted cell-note">{t.deposit_ref}</span>}</dd></div>
       {full && <div><dt>Collecting from</dt><dd>{t.collect_from ? fmtDay(t.collect_from) : "—"}
-        {t.collect_from && !ended && <> <button type="button" className="linkish" onClick={act("edit", { keys: ["collect_from"],
-          title: "Collect rent from", note: COLLECT_NOTE })}>Change<span className="sr"> the date rent is collected from</span></button></>}</dd></div>}
+        {t.collect_from && !ended && <> <button type="button" className="linkish" onClick={act("edit", collecting(t))}>Change<span className="sr"> the date rent is collected from</span></button></>}</dd></div>}
       {t.occupants && <div><dt>Other occupants</dt><dd>{t.occupants}</dd></div>}
     </dl>
     {full && <div className="owed">
@@ -291,7 +290,7 @@ function Tenancy({ id, tick, note, open, next }) {
             <td className="num">{fmtDay(p.received_on)}</td><td className="num">{pence(p.amount)}</td>
             <td>{KIND[p.kind]}<span className="muted cell-note">{p.source === "import" ? "Bank import" : "By hand"}</span></td>
             <td className="wrap">{p.description ?? "—"}</td>
-            <td><span className="ctl">{p.source === "manual" && <button type="button" className="btn ghost sm" onClick={act("editPayment", { p })}>Edit{what}</button>}
+            <td><span className="ctl">{p.source === "manual" && !p.import_hash && <button type="button" className="btn ghost sm" onClick={act("editPayment", { p })}>Edit{what}</button>}
               <button type="button" className="btn ghost sm" onClick={act("move", { p })}>Move{what}</button>
               <button type="button" className="btn ghost sm" onClick={act("unassign", { p })}>Unassign{what}</button></span></td></tr>;
         })}</tbody></table></div>
@@ -300,8 +299,12 @@ function Tenancy({ id, tick, note, open, next }) {
   </section>;
 }
 
-const COLLECT_NOTE = "Only a later date: the rent charges due before it are removed, except any corrected by hand and the opening "
-  + "balance. Rent owed for earlier months goes in as the opening balance when the tenancy is entered.";
+// P22: collect_from moved later, and while the tenancy has no opening charge, what was owed before it (one charge made
+// at once); the hint offers the opening balance only where it can still be entered.
+const collecting = t => ({ title: "Collect rent from", keys: ["collect_from", ...(t.has_opening ? [] : ["opening_balance"])],
+  note: "Only a later date: the rent charges due before it are removed, except any corrected by hand and the opening charge."
+    + (t.has_opening ? " Correct the opening charge for anything owed from before." : ""),
+  over: { collect_from: ["Collect rent from", { type: "date", hint: `${NEXT_DAY}${t.has_opening ? "." : " and enter what is owed today."}` }] } });
 
 // The history's lines (R18), from each event's data.
 const keys = o => Object.keys(o ?? {}).map(k => k.replaceAll("_", " ")).join(", ");

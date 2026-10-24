@@ -242,6 +242,7 @@ export function CorrectCharge({ d: { tenancy: t }, c, onClose, onDone, onRefused
   </Sheet>;
 }
 
+export const NEXT_DAY = "For tenancies already running, collect from the next rent day";
 // The tenancy's own fields, by key: [label, input props]. Dates are YYYY-MM-DD; money in whole pounds.
 const DATE = { type: "date" };
 const TENANCY_FIELDS = { tenant_name: ["Tenant's name", { maxLength: 120 }], tenant_email: ["Email (optional)", { type: "email", maxLength: 120 }],
@@ -251,20 +252,22 @@ const TENANCY_FIELDS = { tenant_name: ["Tenant's name", { maxLength: 120 }], ten
   deposit: ["Deposit (£, optional)", { inputMode: "numeric" }], deposit_received_on: ["Deposit received on", DATE],
   deposit_protected_on: ["Deposit protected on", DATE], deposit_ref: ["Deposit reference (optional)", { maxLength: 120 }],
   inventory_in_on: ["Check-in report done on", DATE], inventory_out_on: ["Check-out report done on", DATE],
-  collect_from: ["Collect rent from", { ...DATE, hint: "For tenancies already running, collect from the next rent day and enter what is owed today." }],
+  collect_from: ["Collect rent from", { ...DATE, hint: `${NEXT_DAY} and enter what is owed today.` }],
   opening_balance: ["Owed today (£, optional)", { inputMode: "decimal", hint: "Rent already owed when Hampton starts collecting. One charge, due on that date." }],
   notes: ["Notes (optional)", { textarea: true, maxLength: 2000 }] };
 const POUNDS = ["rent", "deposit"];
-const toTenancyForm = (t, keys) => Object.fromEntries(keys.map(k => [k, t?.[k] == null ? "" : POUNDS.includes(k) ? t[k].toLocaleString("en-GB") : String(t[k])]));
+// opening_balance is in pence; none (or 0) shows blank.
+const toTenancyForm = (t, keys) => Object.fromEntries(keys.map(k => [k, t?.[k] == null ? "" : POUNDS.includes(k) ? t[k].toLocaleString("en-GB")
+  : k === "opening_balance" ? (t[k] ? asPounds(t[k]) : "") : String(t[k])]));
 const toTenancyBody = (f, keys) => Object.fromEntries(keys.map(k => [k, POUNDS.includes(k) ? pounds(f[k])
   : k === "opening_balance" ? toPence(f[k], k) : f[k].trim() || null]));
 // over: [label, props] by key, in place of TENANCY_FIELDS.
 const fieldsOf = (a, keys, over = {}) => keys.map(k => <Fragment key={k}>{a.field(k, ...(over[k] ?? TENANCY_FIELDS[k]))}</Fragment>);
 
 // The tenancy's details (locked by updated_at), or one deadline's date (keys of one), or collect_from (P22). note: a line
-// under the tenant.
+// under the tenant; over: [label, props] by key in place of the usual ones.
 export const DETAILS = ["tenant_name", "tenant_email", "tenant_phone", "occupants", "deposit", "deposit_received_on", "deposit_ref", "notes"];
-export function EditTenancy({ d: { tenancy: t }, keys, title, note, onClose, onDone, onRefused }) {
+export function EditTenancy({ d: { tenancy: t }, keys, title, note, over, onClose, onDone, onRefused }) {
   const shown = t.kind === "fixed" && keys === DETAILS ? [...keys.slice(0, 4), "end_on", ...keys.slice(4)] : keys;
   const a = useForm("tf", toTenancyForm(t, shown), async f => {
     const body = toTenancyBody(f, shown), saved = toTenancyBody(toTenancyForm(t, shown), shown);
@@ -274,7 +277,7 @@ export function EditTenancy({ d: { tenancy: t }, keys, title, note, onClose, onD
     return changed.length ? `${title} saved.` : "Nothing changed.";
   }, onDone, onRefused);
   return <Sheet title={title} a={a} button="Save" onClose={onClose}>
-    <Who t={t} />{note && <p>{note}</p>}<div className="grid2">{fieldsOf(a, shown)}</div>
+    <Who t={t} />{note && <p>{note}</p>}<div className="grid2">{fieldsOf(a, shown, over)}</div>
   </Sheet>;
 }
 

@@ -834,6 +834,25 @@ async function property(page, phone, noSideScroll) {
   await page.click("#h-history");
   await page.locator(".timeline").getByText(/^Move-out of .* cancelled: the tenancy goes on$/).waitFor();
   await page.locator(".timeline").getByText(/^Move-out moved from .* to /).waitFor();
+  await page.click("#h-history");
+  await waitCount("7");
+
+  // An opening balance added after entry, while there is no opening charge: one charge at once, then only Correct.
+  const changeCollect = async () => {
+    await t3.getByRole("button", {name: "Change the date rent is collected from"}).click();
+    return page.getByRole("dialog", {name: "Collect rent from"});
+  };
+  dlg = await changeCollect();
+  await dlg.getByText("For tenancies already running, collect from the next rent day and enter what is owed today.").waitFor();
+  await dlg.getByLabel("Owed today (£, optional)").fill("150.00");
+  await dlg.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector("text=Collect rent from saved.");
+  await t3.locator(".balance", {hasText: "£2,250.00"}).waitFor();
+  assert.match(await t3.locator("#charges-3").textContent(), /£150\.00Owed when collection started/);
+  dlg = await changeCollect();
+  await dlg.getByText("For tenancies already running, collect from the next rent day.").waitFor();
+  assert.equal(await dlg.getByLabel("Owed today (£, optional)").count(), 0, "now corrected on its charge");
+  await dlg.getByRole("button", {name: "Cancel"}).click();
   await waitCount("7");
 }
 

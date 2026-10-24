@@ -115,7 +115,9 @@ export const refreshRentalsCount = env => {
   .bind(today, null, now(), staleBefore)];
 };
 
-const TENANCY_SQL = "SELECT t.*, r.address, r.service FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE t.id = ?";
+// has_opening: its opening charge is made (opening_balance can then only be corrected on that charge).
+const TENANCY_SQL = `SELECT t.*, r.address, r.service, EXISTS (SELECT 1 FROM charges c WHERE c.tenancy_id = t.id
+  AND c.kind = 'opening') AS has_opening FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE t.id = ?`;
 const loadTenancy = async (env, id) =>
   (await env.DB.prepare(TENANCY_SQL).bind(Number(id)).first()) ?? fail(404, "Tenancy not found");
 
@@ -212,11 +214,11 @@ async function createTenancy({ request, env, admin, params: [rid] }) {
   return json(await detail(env, res.meta.last_row_id), 201);
 }
 
-// Set when the tenancy is entered: the rent has its own action (R28); the charge dates and the opening balance shaped
-// the charges already made (R23). collect_from may only move later (P22).
+// Set when the tenancy is entered: the rent has its own action (R28); the charge dates shaped the charges already made
+// (R23). collect_from may only move later (P22); opening_balance may be added while it has no opening charge.
 const SET = "Set when the tenancy was entered";
-const LOCKED = { rent: "Use Change rent to change the rent", due_day: SET, start_on: SET,
-  opening_balance: `${SET}. Correct its charge instead` };
+const LOCKED = { rent: "Use Change rent to change the rent", due_day: SET, start_on: SET };
+const OPENING = "Its opening charge is already made: use Correct on that charge under Charges";
 
 // Inside a batch, after the rental_events row it adds to: data.removed = {count, amount} of the charges `where` (SQL
 // over charges, with its binds) selects, which the next statement deletes.
@@ -237,24 +239,33 @@ const firstCharge = (env, today, id) => env.DB.prepare(`INSERT INTO charges (ten
 // A form save (§3, lock). The stored row and the body are checked together (a fixed term needs its end, the end after
 // the start, …), so the database's CHECKs never answer; the keys in LOCKED stay as stored. P22: collect_from (full
 // service) moves only later: the rent charges due before it and not corrected by hand go (the event counts them; the
-// opening charge stays), and the series goes on from the new date. Earlier months are an opening balance instead.
+// opening charge stays), and the series goes on from the new date. Earlier months are an opening balance instead:
+// opening_balance (full service) may be set while there is no opening charge, which is then made on collect_from in
+// the same batch (not left to ensureCharges, which skips it for a move-out before the first rent charge).
 async function updateTenancy({ request, env, admin, params: [id] }) {
   const body = asObject(await readJson(request)), cur = await loadTenancy(env, id), today = jerseyToday();
-  const kept = Object.fromEntries(Object.keys(LOCKED).map(k => [k, cur[k]]));
+  const locked = { ...LOCKED, ...(cur.has_opening ? { opening_balance: OPENING } : {}) };
+  const kept = Object.fromEntries(Object.keys(locked).map(k => [k, cur[k]]));
   const sent = validateTenancy(body, { partial: true }), r = validateTenancy({ ...cur, ...body, ...kept });
-  const errors = { ...r.errors, ...sent.errors };
-  for (const [k, msg] of Object.entries(LOCKED)) if (sent.value && k in sent.value && sent.value[k] !== cur[k]) errors[k] = msg;
-  const to = sent.value?.collect_from, moved = !!sent.value && "collect_from" in sent.value && to !== cur.collect_from;
-  const why = !moved ? null : cur.service !== "full" || !cur.collect_from ? "Only full management tenancies collect rent"
-    : !to ? COLLECT : to < cur.collect_from ? "Enter the earlier months as an opening balance"
+  const errors = { ...r.errors, ...sent.errors }, changed = k => !!sent.value && k in sent.value && sent.value[k] !== cur[k];
+  for (const [k, msg] of Object.entries(locked)) if (changed(k)) errors[k] = msg;
+  const collects = cur.service === "full" && !!cur.collect_from, NOT_COLLECTED = "Only full management tenancies collect rent";
+  const to = sent.value?.collect_from, moved = changed("collect_from"), opening = changed("opening_balance");
+  const why = !moved ? null : !collects ? NOT_COLLECTED : !to ? COLLECT
+    : to < cur.collect_from ? cur.has_opening ? "Add the earlier months to the opening charge with Correct, under Charges"
+      : "Enter what was owed for the earlier months in Owed today"
     : cur.ended_on && to >= cur.ended_on ? "Use a date before the move-out" : null;
   if (why) errors.collect_from ??= why;
+  if (opening && !collects) errors.opening_balance ??= NOT_COLLECTED;
   if (Object.keys(errors).length) return fieldErrors(errors);
   const before = "tenancy_id = ? AND kind = 'rent' AND edited = 0 AND due_on < ?";
   await save(env, admin, "tenancies", cur, body, r.value, (keys, of) => [rentalEvent(env, { rental_id: cur.rental_id,
     tenancy_id: cur.id, actor: admin, type: "tenancy.updated", data: { before: of(cur), after: of(r.value) } }),
   ...(moved ? [removed(env, before, cur.id, to), env.DB.prepare(`DELETE FROM charges WHERE ${before}`).bind(cur.id, to),
-    firstCharge(env, today, cur.id), ensureCharges(env, today, cur.id)] : [])]);
+    firstCharge(env, today, cur.id), ensureCharges(env, today, cur.id)] : []),
+  ...(opening ? [env.DB.prepare(`INSERT INTO charges (tenancy_id, due_on, amount, kind) SELECT id, collect_from, opening_balance,
+    'opening' FROM tenancies WHERE id = ? AND opening_balance > 0 AND NOT EXISTS (SELECT 1 FROM charges
+    WHERE tenancy_id = tenancies.id AND kind = 'opening') ON CONFLICT DO NOTHING`).bind(cur.id)] : [])]);
   return json(await detail(env, cur.id));
 }
 
@@ -501,8 +512,9 @@ async function updatePayment({ request, env, admin, params: [id] }) {
   const cur = (await load()) ?? fail(404, "Payment not found");
   const after = { ...Object.fromEntries(EDITABLE.map(k => [k, r.value[k] ?? cur[k]])), ...(unassign ? { tenancy_id: null } : {}) };
   const keys = EDITABLE.filter(k => after[k] !== cur[k]), of = row => Object.fromEntries(keys.map(k => [k, row[k]]));
-  if (cur.source !== "manual" && keys.some(k => k === "amount" || k === "received_on"))
-    fail(400, "An imported payment keeps the bank's amount and date");
+  const dated = keys.some(k => k === "amount" || k === "received_on");
+  if (dated && cur.source !== "manual") fail(400, "An imported payment keeps the bank's amount and date");
+  if (dated && cur.import_hash) fail(409, "This payment was matched to a bank line; move or unassign it instead");
   const t = after.tenancy_id && await loadTenancy(env, after.tenancy_id), check = checkKind(after.kind);
   if (t) check(t);
   const was = cur.tenancy_id && await loadTenancy(env, cur.tenancy_id);
