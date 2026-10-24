@@ -221,3 +221,33 @@ export function parseBankDate(text, format) {
   const iso = m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` : format === "ISO" ? s : null;
   return realDate(iso) ? iso : null;
 }
+
+// R9: the bank's CSV as text. UTF-8 (TextDecoder drops a BOM), else Windows-1252, which older Windows exports use for "£".
+export function decodeCsv(bytes) {
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+  catch { return new TextDecoder("windows-1252").decode(bytes); }
+}
+
+// R9: RFC 4180 rows without dependencies: a quote opens only at the start of a cell (5" PIPE is text), "" inside quotes is a
+// quote, commas and line breaks inside quotes stay in the cell, CRLF or LF ends a row, blank lines are dropped. A quote left
+// open at the end throws, so a broken file imports nothing.
+export function parseCsv(text) {
+  const rows = [];
+  let row = [], cell = "", quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c !== '"') cell += c;
+      else if (text[i + 1] === '"') { cell += '"'; i++; }
+      else quoted = false;
+    } else if (c === '"' && cell === "") quoted = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      rows.push([...row, cell]); row = []; cell = "";
+    } else cell += c;
+  }
+  if (quoted) throw new Error(`The file has an unclosed quote near row ${rows.length + 1}. Nothing was imported.`);
+  rows.push([...row, cell]);
+  return rows.filter(r => r.some(c => c.trim()));
+}

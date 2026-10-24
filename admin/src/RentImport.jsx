@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtDay } from "./format.js";
 import { pence } from "./Rentals.jsx";
-import { cleanDescription, occurrences, parseBankDate, parseMoney } from "../../server/rentals.js";
+import { cleanDescription, decodeCsv, occurrences, parseBankDate, parseCsv, parseMoney } from "../../server/rentals.js";
 
 // Spec §4 Import (#/rentals/import), R9 and P13: the bank's CSV is read in this browser only (never stored), its columns
 // are chosen once per bank (remembered by the header's SHA-256), every row is checked by the server in a dry run and then
@@ -12,27 +12,8 @@ export const STATUS = { matched: "Matched to a tenancy", unmatched: "Unmatched",
   by_hand: "Already recorded by hand", ignored: "Ignored" };
 const TONE = { matched: "positive", unmatched: "attention", duplicate: "neutral", by_hand: "neutral", ignored: "neutral" };
 
-// RFC 4180 without dependencies: quoted cells with "" for a quote, commas and line breaks inside quotes, CRLF or LF.
-// Blank lines are dropped.
-function parseCsv(text) {
-  const rows = [];
-  let row = [], cell = "", quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (quoted) {
-      if (c !== '"') cell += c;
-      else if (text[i + 1] === '"') { cell += '"'; i++; }
-      else quoted = false;
-    } else if (c === '"') quoted = true;
-    else if (c === ",") { row.push(cell); cell = ""; }
-    else if (c === "\n" || c === "\r") {
-      if (c === "\r" && text[i + 1] === "\n") i++;
-      rows.push([...row, cell]); row = []; cell = "";
-    } else cell += c;
-  }
-  rows.push([...row, cell]);
-  return rows.filter(r => r.some(c => c.trim()));
-}
+// The server's reason for a date it can't read, in the terms of this page.
+const REASON = { "Enter a date as YYYY-MM-DD": "Not a date in the chosen format" };
 
 const sha256 = async text => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))]
   .map(b => b.toString(16).padStart(2, "0")).join("");
@@ -58,7 +39,8 @@ export default function RentImport({ onChange }) {
     setFile(null); setSummary(null); setDone(null); setErr(null); setProgress("");
     if (!f) return;
     if (f.size > MAX_BYTES) return setErr("This file is over 1 MB. Export a shorter period from the bank and choose it again.");
-    const [header, ...rows] = parseCsv((await f.text()).replace(/^﻿/, ""));
+    let header, rows;
+    try { [header, ...rows] = parseCsv(decodeCsv(await f.arrayBuffer())); } catch (x) { return setErr(x.message); }
     if (!rows.length) return setErr("This file has no rows under its first line (the column names).");
     if (rows.length > MAX_ROWS) return setErr(`This file has ${rows.length.toLocaleString("en-GB")} rows. Import up to 2,000 at a time: export a shorter period.`);
     const hash = await sha256(header.map(h => h.trim()).join(","));
@@ -94,9 +76,9 @@ export default function RentImport({ onChange }) {
     setBusy(true); setErr(null);
     try {
       const s = await send(false, "Importing");
-      setProgress(""); setSummary(s); setDone(s);
+      setProgress(""); setSummary(s); setDone(s); // the message shows in the status line
     } catch (e) {
-      const [ok, parts] = e.parts;
+      const [ok, parts] = e.parts ?? [0, 0];
       setProgress(""); setErr(`${e.message} ${ok ? `The first ${ok} of ${parts} parts (rows 1–${(ok * PART).toLocaleString("en-GB")}) were saved.`
         : "Nothing was saved."} Import the same file again to add the rest: rows already imported are skipped.`);
     } finally { setBusy(false); onChange(); }
@@ -137,7 +119,10 @@ export default function RentImport({ onChange }) {
           <tbody>{sample.map((r, i) => <tr key={i}>{cells(r)}</tr>)}</tbody></table></div>
       <div className="inline"><button type="button" className="btn" onClick={check} disabled={busy}>Check rows</button></div>
     </section>}
-    <p role="status" className="muted">{progress}</p>
+    {/* Always present, so screen readers announce the progress and the result. */}
+    <p role="status" className={done && !progress ? "ok" : "muted"}>{progress || done && <>Imported {plural(done.matched + done.unmatched, "payment")}:
+      {" "}{done.matched} matched, {done.unmatched} unmatched.{done.by_hand > 0 && ` ${done.by_hand} already recorded by hand.`}{" "}
+      {done.unmatched > 0 && <a href="#/rentals">Assign the unmatched payments in Rentals</a>}</>}</p>
     {err && <p role="alert" className="err">{err}</p>}
     {summary && <section className="card fields-group" aria-labelledby="h-summary">
       <h2 id="h-summary" ref={head} tabIndex={-1}>3. Summary</h2>
@@ -146,11 +131,8 @@ export default function RentImport({ onChange }) {
         <table className="list small" id="import-rows"><caption id="h-rows">Every row</caption>
           <thead><tr><th scope="col">Date</th><th scope="col">Description</th><th scope="col">Amount</th><th scope="col">Status</th></tr></thead>
           <tbody>{summary.rows.map((r, i) => <tr key={i}>{cells(r)}<td><span className={`badge ${TONE[r.status]}`}>{STATUS[r.status]}</span>
-            {(r.payment_ref || r.reason) && <span className="muted cell-note">{r.payment_ref || r.reason}</span>}</td></tr>)}</tbody></table></div>
-      {done ? <p role="status" className="ok">Imported {plural(writes, "payment")}: {done.matched} matched, {done.unmatched} unmatched.
-        {done.by_hand > 0 && ` ${done.by_hand} already recorded by hand.`}{" "}
-        {done.unmatched > 0 && <a href="#/rentals">Assign the unmatched payments in Rentals</a>}</p>
-        : writes ? <div className="inline"><button type="button" className="btn" onClick={run} disabled={busy}>Import {plural(writes, "payment")}</button></div>
+            {(r.payment_ref || r.reason) && <span className="muted cell-note">{r.payment_ref || REASON[r.reason] || r.reason}</span>}</td></tr>)}</tbody></table></div>
+      {done ? null : writes ? <div className="inline"><button type="button" className="btn" onClick={run} disabled={busy}>Import {plural(writes, "payment")}</button></div>
         : <p>Nothing new to import.</p>}
     </section>}
   </section>;

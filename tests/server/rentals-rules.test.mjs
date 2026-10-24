@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { LEGAL, ARREARS_STEPS, COMPLIANCE, paymentRef, REF_RE, addMonths, nextStep, complianceStatus, rentAssistant,
   earliestMoveOut, validateLandlord, validateRental, validateTenancy, validateRepair, validatePayment, parseMoney,
-  parseBankDate } from "../../server/rentals.js";
+  parseBankDate, parseCsv, decodeCsv } from "../../server/rentals.js";
 
 test("constants and the payment reference", () => {
   assert.deepEqual(LEGAL, { depositDays: 30, reportDays: 7, licenceYears: 2, eicrYears: 5, gasYears: 1, alarmsYears: 1,
@@ -157,4 +157,19 @@ test("validators: required fields, ranges, cross-field rules and partial edits",
   assert.deepEqual(Object.keys(p).sort(), ["amount", "description", "kind", "received_on", "tenancy_id"]);
   for (const amount of [0, -1, 100000001]) assert.ok(validatePayment({ amount }, { partial: true }).errors.amount);
   assert.deepEqual(validatePayment({ kind: "deposit" }, { partial: true }), { value: { kind: "deposit" } });
+});
+
+test("parseCsv: quotes, escaped quotes, commas and line breaks inside quotes, CRLF; a stray quote; an unclosed one", () => {
+  assert.deepEqual(parseCsv('Date,Description,Amount\r\n01/10/2026,"SMITH, J ""RENT""\r\nOCT",1.00\r\n\r\n02/10/2026,=SUM(A1),2\n'),
+    [["Date", "Description", "Amount"], ["01/10/2026", 'SMITH, J "RENT"\r\nOCT', "1.00"], ["02/10/2026", "=SUM(A1)", "2"]]);
+  assert.deepEqual(parseCsv('a,5" PIPE,b'), [["a", '5" PIPE', "b"]], "a quote inside an unquoted cell is text");
+  assert.deepEqual(parseCsv('a,"x"y'), [["a", "xy"]]);
+  assert.throws(() => parseCsv('Date,Description\n01/10/2026,"OPEN\n02/10/2026,X'), /unclosed quote near row 2/);
+});
+
+test("decodeCsv: UTF-8 without its BOM, else Windows-1252 (a pound sign from a Windows export)", () => {
+  assert.equal(decodeCsv(Uint8Array.from([0xef, 0xbb, 0xbf, 0xc2, 0xa3, 0x35])), "£5");
+  const text = decodeCsv(Uint8Array.from(Buffer.from('Paid in\r\n"\xa31,250.00"\r\n', "latin1")));
+  assert.equal(text, 'Paid in\r\n"£1,250.00"\r\n');
+  assert.equal(parseMoney(parseCsv(text)[1][0]), 125000);
 });

@@ -22,8 +22,11 @@ export default function Statement({ landlord, month }) {
       .values()].sort((a, b) => a.name.localeCompare(b.name))), e => setErr(e.message));
   }, []);
   useEffect(() => {
+    let live = true; // only the latest choice's answer shows
     setData(null); setErr(null);
-    if (landlord) api(`/admin/statements?landlord=${encodeURIComponent(landlord)}&month=${encodeURIComponent(m)}`).then(setData, e => setErr(e.message));
+    if (landlord) api(`/admin/statements?landlord=${encodeURIComponent(landlord)}&month=${encodeURIComponent(m)}`)
+      .then(d => live && setData(d), e => live && setErr(e.message));
+    return () => { live = false; };
   }, [landlord, m]);
 
   const go = (l, mm) => { location.hash = `#/rentals/statements?${new URLSearchParams(Object.entries({ landlord: l, month: mm }).filter(([, v]) => v))}`; };

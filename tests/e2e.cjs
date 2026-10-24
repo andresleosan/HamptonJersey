@@ -784,6 +784,9 @@ async function bankImport(page, phone, noSideScroll) {
   // A file over 1 MB is refused before it is read.
   await page.getByLabel("Bank statement (CSV)").setInputFiles({name: "big.csv", mimeType: "text/csv", buffer: Buffer.alloc(1024 * 1024 + 1, 97)});
   await page.getByText("This file is over 1 MB").waitFor();
+  // A quote left open breaks the file: nothing is read.
+  await page.getByLabel("Bank statement (CSV)").setInputFiles({name: "open.csv", mimeType: "text/csv", buffer: Buffer.from('Date,Description,Amount\n01/10/2026,"OPEN,1.00\n')});
+  await page.getByText("The file has an unclosed quote near row 2. Nothing was imported.").waitFor();
   // The columns are guessed from the header and can be chosen; the sample shows the first 5 rows as they will be read.
   await page.getByLabel("Bank statement (CSV)").setInputFiles(csv);
   await page.locator("#import-sample").waitFor();
