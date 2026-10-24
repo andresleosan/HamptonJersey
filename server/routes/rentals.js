@@ -4,11 +4,11 @@ import { fields, result } from "../sales.js";
 import { LOCK } from "./applicants.js";
 import { jerseyToday, realDate } from "../viewings.js";
 
-const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
-const asObject = body => (body && typeof body === "object" && !Array.isArray(body) ? body : fail(400, "Invalid format"));
+export const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
+export const asObject = body => (body && typeof body === "object" && !Array.isArray(body) ? body : fail(400, "Invalid format"));
 const STALE = "Someone else saved changes here. Reload to see them (your changes were not saved).";
 // A tenancy still running: no end, or a planned move-out still ahead (R24). Binds today.
-const ACTIVE = "(ended_on IS NULL OR ended_on > ?)";
+export const ACTIVE = "(ended_on IS NULL OR ended_on > ?)";
 
 // R18: one rental_events row. newest: {key: table} for rows inserted earlier in the same batch, read as the table's
 // MAX(id) (like logEvent): rental_id and tenancy_id fill those columns, and every key also lands in data.
@@ -22,7 +22,7 @@ export function rentalEvent(env, { rental_id = null, tenancy_id = null, actor, t
 }
 
 // Fails the whole batch (NOT NULL) when the statement just before changed no row, like ensureChanged in sales.js.
-const ensureChanged = env => env.DB.prepare("INSERT INTO landlords (name) SELECT NULL WHERE changes() = 0");
+export const ensureChanged = env => env.DB.prepare("INSERT INTO landlords (name) SELECT NULL WHERE changes() = 0");
 
 const RENTAL_SQL = "SELECT r.*, l.name AS landlord_name FROM rentals r JOIN landlords l ON l.id = r.landlord_id WHERE r.id = ?";
 const loadRental = async (env, id) =>
@@ -39,7 +39,7 @@ const guardLandlord = (env, id) => env.DB.prepare(`INSERT INTO landlords (name) 
 // A form save (§3): the row must still be the one the form read (409 otherwise), only the changed keys are written,
 // and extra(keys, of) adds the event and the rest to the same batch. LOCK fails it all if a save lands meanwhile.
 // Returns false when nothing changed.
-async function save(env, admin, table, cur, body, value, extra) {
+export async function save(env, admin, table, cur, body, value, extra) {
   if (typeof body.updated_at !== "string") fail(400, "Missing updated_at: reload the page");
   if (body.updated_at !== cur.updated_at) fail(409, STALE);
   const keys = Object.keys(value).filter(k => value[k] !== cur[k]);
