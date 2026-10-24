@@ -5,25 +5,39 @@ import { jerseyToday, plusDays } from "../viewings.js";
 import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE } from "./rentals.js";
 
 const MAX_POUNDS = 1000000, MAX_PENCE = 100 * MAX_POUNDS; // R20
-const ENDED = "This tenancy has ended";
+const ENDED = "This tenancy has ended", CHANGED = "This property changed meanwhile. Reload to see it";
 // The rent in force on `date` for tenancy `id` (SQL expressions), from its history (R6, R28).
 const rentOn = (id, date) => `(SELECT c.rent FROM rent_changes c WHERE c.tenancy_id = ${id} AND c.effective_on <= ${date}
   ORDER BY c.effective_on DESC LIMIT 1)`;
-const IN_RANGE = "m.due_on < date(?1, 'start of month', '+2 months') AND (t.ended_on IS NULL OR m.due_on < t.ended_on)";
+const NEW = "(SELECT MAX(id) FROM tenancies)";
+const LIMIT = "date(?1, 'start of month', '+2 months')";
+const IN_RANGE = `m.due_on < ${LIMIT} AND (t.ended_on IS NULL OR m.due_on < t.ended_on)`;
 
 // R6, R22–R24: one idempotent statement that adds the charges a full-service tenancy with collect_from still lacks, up
-// to the end of next month in Jersey (today). The first falls on collect_from, the next ones on due_day of each
-// following month, all before ended_on (past a fixed end_on they go on while the tenant stays), in pence at the rent
-// in force on the date. The opening balance is one charge on collect_from. tenancyId: just that tenancy.
-export const ensureCharges = (env, today, tenancyId = null) => env.DB.prepare(`INSERT INTO charges (tenancy_id, due_on, amount, kind)
-  WITH RECURSIVE t AS (SELECT t.id, t.collect_from, t.due_day, t.ended_on, t.rent, t.opening_balance FROM tenancies t
-      JOIN rentals r ON r.id = t.rental_id WHERE r.service = 'full' AND t.collect_from IS NOT NULL AND (?2 IS NULL OR t.id = ?2)),
-    m (id, n, due_on) AS (SELECT id, 0, collect_from FROM t UNION ALL
-      SELECT t.id, m.n + 1, date(t.collect_from, 'start of month', '+' || (m.n + 1) || ' months', '+' || (t.due_day - 1) || ' days')
+// to the end of next month in Jersey (today), in pence at the rent in force on each date. The series starts on
+// collect_from, or, when the tenancy already has a rent charge in collect_from's month or later (collect_from moved by
+// a service switch), on due_day of the month after its latest one: never two rent charges in a month, and only the
+// missing months are walked. Then due_day of each following month, all before ended_on (past a fixed end_on they go on
+// while the tenant stays). The opening balance is one charge on collect_from, made once. tenancyId: just that tenancy,
+// or "newest" for the one inserted earlier in the same batch.
+export function ensureCharges(env, today, tenancyId = null) {
+  const id = tenancyId === "newest" ? NEW : "?2";
+  return env.DB.prepare(`INSERT INTO charges (tenancy_id, due_on, amount, kind)
+  WITH RECURSIVE s AS (SELECT t.id, t.collect_from, t.due_day, t.ended_on, t.rent, t.opening_balance,
+      (SELECT MAX(c.due_on) FROM charges c WHERE c.tenancy_id = t.id AND c.kind = 'rent') AS last
+      FROM tenancies t JOIN rentals r ON r.id = t.rental_id
+      WHERE r.service = 'full' AND t.collect_from IS NOT NULL AND (${id} IS NULL OR t.id = ${id})),
+    t AS (SELECT *, CASE WHEN last >= date(collect_from, 'start of month')
+      THEN date(last, 'start of month', '+1 month', '+' || (due_day - 1) || ' days') ELSE collect_from END AS first FROM s),
+    m (id, n, due_on) AS (SELECT id, 0, first FROM t WHERE first < ${LIMIT} AND (ended_on IS NULL OR first < ended_on)
+      UNION ALL SELECT t.id, m.n + 1, date(t.first, 'start of month', '+' || (m.n + 1) || ' months', '+' || (t.due_day - 1) || ' days')
       FROM m JOIN t ON t.id = m.id WHERE ${IN_RANGE})
   SELECT m.id, m.due_on, 100 * COALESCE(${rentOn("m.id", "m.due_on")}, t.rent), 'rent' FROM m JOIN t ON t.id = m.id WHERE ${IN_RANGE}
   UNION ALL SELECT id, collect_from, opening_balance, 'opening' FROM t WHERE opening_balance > 0
-  ON CONFLICT DO NOTHING`).bind(today, tenancyId);
+    AND (ended_on IS NULL OR ended_on > first)
+    AND NOT EXISTS (SELECT 1 FROM charges c WHERE c.tenancy_id = t.id AND c.kind = 'opening')
+  ON CONFLICT DO NOTHING`).bind(today, ...(tenancyId === "newest" ? [] : [tenancyId]));
+}
 
 // R10, R13: the tenancy's own deadlines, from its dates (no rows): [key, label, from, days, done].
 const DEADLINES = [["deposit", "Deposit protected", "deposit_received_on", LEGAL.depositDays, "deposit_protected_on"],
@@ -88,29 +102,32 @@ async function createTenancy({ request, env, admin, params: [rid] }) {
   const s = (await state()) ?? fail(404, "Property not found");
   const check = st => {
     if (st.archived_at) fail(409, "This property is archived");
-    if (st.service !== s.service) fail(409, "This property changed meanwhile. Reload to see it");
+    if (st.service !== s.service) fail(409, CHANGED);
     if (st.open) fail(409, "This property already has a tenancy. End it first");
   };
   check(s);
   if (s.last > r.value.start_on) return fieldErrors({ start_on: `Start on ${s.last} or later, when the last tenancy ends` });
   const ts = now(), value = { ...r.value, collect_from: s.service === "full" ? r.value.collect_from ?? r.value.start_on : null };
   const row = { ...value, rental_id: s.id, created_at: ts, created_by: admin, updated_at: ts, updated_by: admin };
-  const NEW = "(SELECT MAX(id) FROM tenancies)";
   let res;
   try {
     [res] = await env.DB.batch([
       env.DB.prepare(`INSERT INTO tenancies (${Object.keys(row).join(", ")}) SELECT ${Object.keys(row).map(() => "?").join(", ")}
-        FROM rentals WHERE id = ? AND archived_at IS NULL AND service = ?`).bind(...Object.values(row), s.id, s.service),
+        FROM rentals WHERE id = ? AND archived_at IS NULL AND service = ?
+        AND NOT EXISTS (SELECT 1 FROM tenancies WHERE rental_id = ? AND ended_on > ?)`)
+        .bind(...Object.values(row), s.id, s.service, s.id, row.start_on),
       ensureChanged(env),
       env.DB.prepare(`UPDATE tenancies SET payment_ref = printf('HE-T%04d', id) WHERE id = ${NEW}`),
       env.DB.prepare(`INSERT INTO rent_changes (tenancy_id, effective_on, rent, created_at, created_by) VALUES (${NEW}, ?, ?, ?, ?)`)
         .bind(row.start_on, row.rent, ts, admin),
-      ensureCharges(env, jerseyToday()),
+      ensureCharges(env, jerseyToday(), "newest"),
       bump(env, admin, s.id, ts),
       rentalEvent(env, { rental_id: s.id, actor: admin, type: "tenancy.created", data: value }, { tenancy_id: "tenancies" }),
     ]);
   } catch (e) {
-    check((await state()) ?? fail(404, "Property not found"));
+    const st = (await state()) ?? fail(404, "Property not found");
+    check(st);
+    if (st.last > row.start_on) fail(409, CHANGED); // a tenancy ending after this start was entered meanwhile
     throw e;
   }
   return json(await detail(env, res.meta.last_row_id), 201);
@@ -167,7 +184,8 @@ function effectiveOn(f, today, t) {
 }
 
 // R6, R12, R28: the rent from effective_on (one change per date, so the same date replaces it), the tenancy's rent
-// (the latest agreed) and last change, and the charges from that date not edited by hand. Fails unless running.
+// (the latest agreed) and last change, and the charges from that date not yet due nor edited by hand. Fails unless
+// running.
 const rentChange = (env, admin, t, rent, effective_on, today, ts) => [
   env.DB.prepare(`INSERT INTO rent_changes (tenancy_id, effective_on, rent, created_at, created_by)
     SELECT id, ?, ?, ?, ? FROM tenancies WHERE id = ? AND ${ACTIVE} ON CONFLICT (tenancy_id, effective_on)
@@ -178,7 +196,7 @@ const rentChange = (env, admin, t, rent, effective_on, today, ts) => [
     last_rent_change_on = max(COALESCE(last_rent_change_on, ''), ?), updated_at = ?, updated_by = ? WHERE id = ?`)
     .bind(effective_on, ts, admin, t.id),
   env.DB.prepare(`UPDATE charges SET amount = 100 * ${rentOn("charges.tenancy_id", "charges.due_on")}
-    WHERE tenancy_id = ? AND kind = 'rent' AND edited = 0 AND due_on >= ?`).bind(t.id, effective_on),
+    WHERE tenancy_id = ? AND kind = 'rent' AND edited = 0 AND due_on >= ? AND due_on > ?`).bind(t.id, effective_on, today),
 ];
 
 async function changeRent({ request, env, admin, params: [id] }) {
@@ -241,7 +259,7 @@ async function notice({ request, env, admin, params: [id] }) {
 }
 
 // R13, R24: the move-out, maybe ahead. Charges stop there (any already made on or after it go) and the property is
-// free for the next tenancy.
+// free for the next tenancy. The event says which charges went (count, pence), so the history explains the balance.
 async function endTenancy({ request, env, admin, params: [id] }) {
   const cur = await loadTenancy(env, id);
   notEnded(cur);
@@ -254,9 +272,12 @@ async function endTenancy({ request, env, admin, params: [id] }) {
     env.DB.prepare("UPDATE tenancies SET ended_on = ?, updated_at = ?, updated_by = ? WHERE id = ? AND ended_on IS NULL")
       .bind(ended_on, ts, admin, cur.id),
     ensureChanged(env),
+    rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "tenancy.ended", data: { ended_on } }),
+    env.DB.prepare(`UPDATE rental_events SET data = json_set(data, '$.removed', (SELECT json_object('count', COUNT(*),
+      'amount', COALESCE(SUM(amount), 0)) FROM charges WHERE tenancy_id = ? AND kind = 'rent' AND due_on >= ?))
+      WHERE id = (SELECT MAX(id) FROM rental_events)`).bind(cur.id, ended_on),
     env.DB.prepare("DELETE FROM charges WHERE tenancy_id = ? AND kind = 'rent' AND due_on >= ?").bind(cur.id, ended_on),
     bump(env, admin, cur.rental_id, ts),
-    rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "tenancy.ended", data: { ended_on } }),
   ], notEnded);
   return json(await detail(env, cur.id));
 }

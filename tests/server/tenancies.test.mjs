@@ -123,6 +123,7 @@ test("charges: stop at ended_on; continue past end_on while the tenant stays", a
 
   assert.equal((await req(env, "POST", `/admin/tenancies/${id}/end`, { ended_on: plusDays(start, -1) })).status, 400);
   const ended_on = plusDays(T, 10), before = stamp(env, "rentals", rid);
+  const gone = rentDues(start, 15).filter(d => d >= ended_on);
   const end = await req(env, "POST", `/admin/tenancies/${id}/end`, { ended_on });
   assert.equal(end.status, 200, JSON.stringify(end.data));
   assert.equal(end.data.tenancy.ended_on, ended_on);
@@ -132,7 +133,8 @@ test("charges: stop at ended_on; continue past end_on while the tenant stays", a
   await ensureCharges(env, addMonths(T, 3), id).run();
   assert.deepEqual(charges(env, id).map(c => c[0]), dues, "and nothing generated after it");
   assert.notEqual(stamp(env, "rentals", rid), before);
-  assert.deepEqual(events(env, "tenancy.ended").map(e => [e.tenancy_id, e.data.ended_on]), [[id, ended_on]]);
+  assert.deepEqual(events(env, "tenancy.ended").map(e => [e.tenancy_id, e.data]),
+    [[id, { ended_on, removed: { count: gone.length, amount: 150000 * gone.length } }]], "the history explains the balance");
   assert.equal((await req(env, "POST", `/admin/tenancies/${id}/end`, { ended_on })).status, 409, "already ended");
 });
 
@@ -161,11 +163,12 @@ test("rent change: only future charges not edited by hand take the new rent; pas
   assert.deepEqual(charges(env, id).at(-1).slice(0, 2), [month(5), 110000], "new charges take the rent in force");
   assert.deepEqual(events(env, "rent.changed").map(e => [e.data.before, e.data.rent, e.data.effective_on]), [[1000, 1100, month(2)]]);
 
-  // A change effective on the start date replaces the starting rent (one rent change per date).
+  // A change effective on the start date replaces the starting rent (one rent change per date); a charge due today is
+  // already due and keeps its amount (R28), the next one takes the new rent.
   const fresh = await tenancy(env, await rental(env), { start_on: T, rent: 1000 });
   assert.equal((await req(env, "POST", `/admin/tenancies/${fresh}/rent`, { rent: 1050, effective_on: T })).status, 200);
   assert.deepEqual(rows(env, "SELECT effective_on, rent FROM rent_changes WHERE tenancy_id = ?", fresh).map(Object.values), [[T, 1050]]);
-  assert.deepEqual(charges(env, fresh)[0].slice(0, 2), [T, 105000]);
+  assert.deepEqual(charges(env, fresh).map(c => c.slice(0, 2)), [[T, 100000], [charges(env, fresh)[1][0], 105000]]);
 });
 
 test("renew: same reference, new end or periodic, regime 2025 after 15 April 2026", async () => {
@@ -194,6 +197,26 @@ test("renew: same reference, new end or periodic, regime 2025 after 15 April 202
   assert.equal(row(env, "SELECT COUNT(*) AS n FROM tenancies").n, 1, "the same tenancy");
 });
 
+test("charges: a service switch moving collect_from never charges a month or the opening balance twice", async () => {
+  const env = makeEnv();
+  const rid = await rental(env);
+  const start = `${month(-4).slice(0, 8)}15`;
+  const id = await tenancy(env, rid, { start_on: start, rent: 1000, opening_balance: 5000 });
+  const before = charges(env, id), balance = (await req(env, "GET", `/admin/tenancies/${id}`)).data.balance;
+  assert.equal(balance, 5000 + 100000 * rentDues(start, 15).filter(d => d <= T).length);
+  const putRental = body => req(env, "PUT", `/admin/rentals/${rid}`, { updated_at: stamp(env, "rentals", rid), ...body });
+  assert.equal((await putRental({ service: "let_only" })).status, 200);
+  const back = await putRental({ service: "full", collect_from: T });
+  assert.equal(back.status, 200, JSON.stringify(back.data));
+  const got = await req(env, "GET", `/admin/tenancies/${id}`);
+  await ensureCharges(env, addMonths(T, 2)).run();
+  const months = charges(env, id).filter(c => c[2] === "rent").map(c => c[0].slice(0, 7));
+  assert.equal(new Set(months).size, months.length, "one rent charge a month");
+  assert.equal(charges(env, id).filter(c => c[2] === "opening").length, 1, "one opening charge");
+  assert.deepEqual(charges(env, id).slice(0, before.length), before);
+  assert.equal(got.data.balance, balance);
+});
+
 test("let_only: no charges at all", async () => {
   const env = makeEnv();
   const rid = await rental(env, { service: "let_only", fee_percent: null });
@@ -219,21 +242,24 @@ test("second active tenancy on a property is 409; after a future ended_on the ne
   const next = await newTenancy(env, rid, { start_on: ended_on, tenant_name: "Nina Next" });
   assert.equal(next.status, 201, JSON.stringify(next.data));
 
-  // Another tenancy entered between the checks and the write: 409, nothing written.
-  const other = await rental(env), n = rows(env, "SELECT id FROM rental_events").length;
-  const batch = env.DB.batch.bind(env.DB);
-  env.DB.batch = async stmts => {
-    if (stmts[0].sql.includes("INSERT INTO tenancies")) {
-      env.DB.batch = batch;
-      run(env, `INSERT INTO tenancies (rental_id, tenant_name, kind, regime, start_on, rent, due_day, created_at, updated_at)
-        VALUES (?, 'Sneaky', 'periodic', '2025', '2026-01-01', 900, 1, 'x', 'x')`, other);
-    }
-    return batch(stmts);
-  };
-  const raced = await newTenancy(env, other);
-  assert.equal(raced.status, 409, JSON.stringify(raced.data));
-  assert.equal(row(env, "SELECT COUNT(*) AS n FROM tenancies WHERE rental_id = ?", other).n, 1);
-  assert.equal(rows(env, "SELECT id FROM rental_events").length, n);
+  // Another tenancy entered between the checks and the write, still open or ending after this start: 409, nothing
+  // written.
+  for (const sneakEnd of [null, addMonths(M0, 3)]) {
+    const other = await rental(env), n = rows(env, "SELECT id FROM rental_events").length;
+    const batch = env.DB.batch.bind(env.DB);
+    env.DB.batch = async stmts => {
+      if (stmts[0].sql.includes("INSERT INTO tenancies")) {
+        env.DB.batch = batch;
+        run(env, `INSERT INTO tenancies (rental_id, tenant_name, kind, regime, start_on, rent, due_day, ended_on, created_at,
+          updated_at) VALUES (?, 'Sneaky', 'periodic', '2025', '2026-01-01', 900, 1, ?, 'x', 'x')`, other, sneakEnd);
+      }
+      return batch(stmts);
+    };
+    const raced = await newTenancy(env, other);
+    assert.equal(raced.status, 409, JSON.stringify(raced.data));
+    assert.equal(row(env, "SELECT COUNT(*) AS n FROM tenancies WHERE rental_id = ?", other).n, 1);
+    assert.equal(rows(env, "SELECT id FROM rental_events").length, n);
+  }
 });
 
 test("tenancy: edit with lock and merged checks, notice, and the detail's deadlines and assistant", async () => {
