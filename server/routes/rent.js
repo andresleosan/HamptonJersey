@@ -84,16 +84,24 @@ const RENEWAL = `t.kind = 'fixed' AND t.ended_on IS NULL AND t.notice_given_on I
   AND t.end_on <= date(?1, '+${LEGAL.renewalDays} days')`;
 const OPEN_REPAIR = "p.status NOT IN ('done', 'cancelled')"; // the repairs_open index
 
-// R16: the nav's Rentals count (binds Jersey today): tenancies whose next arrears step is due, checks and tenancy
-// deadlines overdue (a missing check counts), renewals to decide, open emergencies and unmatched payments.
-export const rentalsCount = env => env.DB.prepare(`WITH ${ARREARS_SQL} SELECT
-  (SELECT COUNT(*) FROM arrears WHERE next_step IS NOT NULL)
-  + (SELECT COUNT(*) ${CHECKS} AND (c.expires_on IS NULL OR c.expires_on < ?1))
-  + (SELECT COALESCE(SUM(${pending("< ?1").join(" + ")}), 0) FROM tenancies t JOIN rentals r ON r.id = t.rental_id
-    WHERE r.archived_at IS NULL)
-  + (SELECT COUNT(*) FROM tenancies t WHERE ${RENEWAL})
-  + (SELECT COUNT(*) FROM repairs p WHERE p.urgency = 'emergency' AND ${OPEN_REPAIR})
-  + (SELECT COUNT(*) FROM payments WHERE tenancy_id IS NULL) AS n`).bind(jerseyToday(), null);
+// R16: the nav's Rentals count: tenancies whose next arrears step is due, checks and tenancy deadlines overdue (a missing
+// check counts), renewals to decide, open emergencies and unmatched payments. P16: it is polled every 30 s, so it is
+// kept in app_settings as rentals_count {n, at} and worked out again only when older than COUNT_MS (which also covers
+// the day changing); any rental write drops it (the rental_events_count trigger), so the badge moves at once. One
+// statement for the counts batch: when the cache is fresh its WHERE fails first and nothing else is read.
+const COUNT_MS = 10 * 60 * 1000;
+export const refreshRentalsCount = env => env.DB.prepare(`INSERT INTO app_settings (key, value, updated_at)
+  WITH ${ARREARS_SQL} SELECT 'rentals_count', json_object('n',
+    (SELECT COUNT(*) FROM arrears WHERE next_step IS NOT NULL)
+    + (SELECT COUNT(*) ${CHECKS} AND (c.expires_on IS NULL OR c.expires_on < ?1))
+    + (SELECT COALESCE(SUM(${pending("< ?1").join(" + ")}), 0) FROM tenancies t JOIN rentals r ON r.id = t.rental_id
+      WHERE r.archived_at IS NULL)
+    + (SELECT COUNT(*) FROM tenancies t WHERE ${RENEWAL})
+    + (SELECT COUNT(*) FROM repairs p WHERE p.urgency = 'emergency' AND ${OPEN_REPAIR})
+    + (SELECT COUNT(*) FROM payments WHERE tenancy_id IS NULL), 'at', ?3), ?3
+  WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'rentals_count' AND json_extract(value, '$.at') > ?4)
+  ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
+  .bind(jerseyToday(), null, now(), new Date(Date.now() - COUNT_MS).toISOString());
 
 const TENANCY_SQL = "SELECT t.*, r.address, r.service FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE t.id = ?";
 const loadTenancy = async (env, id) =>
@@ -610,7 +618,7 @@ async function statement({ request, env }) {
       AND p.charge_landlord = 1 AND p.done_on >= ?2 AND p.done_on < ?3 ORDER BY p.done_on, p.id`, id, from, to),
   ])).map(r => r.results);
   if (!landlord) fail(404, "Landlord not found");
-  // Percentages have two decimals: in basis points, so the pence are exact before rounding.
+  // Rounding: each property's fee is rounded half-up to the penny (basis points); GST is rounded once, on the total fee.
   const bp = pct => Math.round(pct * 100), gst_percent = setting ? JSON.parse(setting.value) : 0;
   const rentals = lines.map(({ id: rid, address, fee_percent, archived_at, rent_received, other_received }) => ({
     id: rid, address, archived_at, rent_received, fee: Math.round(rent_received * bp(fee_percent) / 10000),

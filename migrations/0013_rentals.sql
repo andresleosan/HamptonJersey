@@ -85,6 +85,8 @@ CREATE TABLE charges (
   edited INTEGER NOT NULL DEFAULT 0 CHECK (edited IN (0,1)),
   UNIQUE (tenancy_id, due_on, kind)
 );
+-- Covering: balances and the oldest unpaid charge (ARREARS_SQL) read only the index. The UNIQUE above stays for its rule.
+CREATE INDEX charges_cover ON charges(tenancy_id, due_on, kind, amount);
 
 -- Money received, in pence (R7, R9, R25, R26); tenancy_id NULL is Unmatched. No cascade: payments outlive mistakes (R19).
 CREATE TABLE payments (
@@ -98,7 +100,8 @@ CREATE TABLE payments (
   import_hash TEXT UNIQUE,
   created_at TEXT NOT NULL, created_by TEXT
 );
-CREATE INDEX payments_tenancy ON payments(tenancy_id, received_on);
+-- Covering: a tenancy's payments by date, and its rent paid (ARREARS_SQL), read only the index.
+CREATE INDEX payments_tenancy ON payments(tenancy_id, received_on, kind, amount);
 -- The Unmatched list and the nav count read just these.
 CREATE INDEX payments_unmatched ON payments(received_on) WHERE tenancy_id IS NULL;
 
@@ -157,9 +160,15 @@ CREATE TABLE rental_events (
 );
 CREATE INDEX rental_events_rental ON rental_events(rental_id, at);
 
--- Team settings as JSON (R9, R12, R29): rpi {percent, as_of}, gst_percent, csv_map:<header hash>.
+-- Team settings as JSON (R9, R12, R29): rpi {percent, as_of}, gst_percent, csv_map:<header hash>; rentals_count {n, at} is
+-- the nav count's cache (P16).
 CREATE TABLE app_settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL CHECK (json_valid(value)),
   updated_at TEXT NOT NULL, updated_by TEXT
 ) WITHOUT ROWID;
+
+-- P16: every rental write logs here in its own batch, so this drops the nav's cached Rentals count in the same transaction.
+CREATE TRIGGER rental_events_count AFTER INSERT ON rental_events BEGIN
+  DELETE FROM app_settings WHERE key = 'rentals_count';
+END;

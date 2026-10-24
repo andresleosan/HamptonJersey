@@ -1,7 +1,7 @@
 import { json, fail, readJson, now } from "../http.js";
 import { normalizePhone, activeSql } from "../applicants.js";
 import { salesCount } from "./sales.js";
-import { rentalsCount } from "./rent.js";
+import { refreshRentalsCount } from "./rent.js";
 
 const BOXES = {
   action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id",
@@ -30,11 +30,12 @@ function link({ category, entity_type, entity_id, search_id }) {
   return search_id != null ? `#/applicants/${search_id}` : `#/applicants/new?contact=${entity_id}`;
 }
 
-// sales (V10) and rentals (R16) are their screens' own counts, not part of action.
+// sales (V10) and rentals (R16, cached: P16) are their screens' own counts, not part of action.
 async function openCounts(env) {
-  const [{ results }, { results: [sales] }, { results: [rentals] }] = await env.DB.batch([env.DB.prepare(
+  const [{ results }, { results: [sales] }, , { results: [rentals] }] = await env.DB.batch([env.DB.prepare(
     "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category"),
-  salesCount(env), rentalsCount(env)]);
+  salesCount(env), refreshRentalsCount(env),
+  env.DB.prepare("SELECT json_extract(value, '$.n') AS n FROM app_settings WHERE key = 'rentals_count'")]);
   const by = Object.fromEntries(CATEGORIES.map(c => [c, results.find(r => r.category === c)?.n ?? 0]));
   return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by, sales: sales.n, rentals: rentals.n };
 }

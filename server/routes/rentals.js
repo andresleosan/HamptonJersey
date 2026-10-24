@@ -138,13 +138,20 @@ const item = ([kind, label, years], row, today) => ({ kind, label, years, done_o
   expires_on: row?.expires_on ?? null, note: row?.note ?? null, updated_at: row?.updated_at ?? null,
   updated_by: row?.updated_by ?? null, status: complianceStatus(row ?? {}, today) });
 
-// The property page: its data, its checks and its repairs (open ones first, then the newest).
+// The property page (P14): its data, its checks, its repairs (open ones first, then the newest), its tenancies (newest
+// first; charges and payments are on the tenancy's own GET) and its last 100 events.
 async function getRental({ env, params: [id] }) {
   const q = sql => env.DB.prepare(sql).bind(Number(id));
-  const [[rental], rows, repairs] = (await env.DB.batch([q(RENTAL_SQL), q("SELECT * FROM compliance_items WHERE rental_id = ?"),
-    q("SELECT * FROM repairs WHERE rental_id = ? ORDER BY status IN ('done', 'cancelled'), id DESC")])).map(r => r.results);
+  const [[rental], rows, repairs, tenancies, events] = (await env.DB.batch([q(RENTAL_SQL),
+    q("SELECT * FROM compliance_items WHERE rental_id = ?"),
+    q("SELECT * FROM repairs WHERE rental_id = ? ORDER BY status IN ('done', 'cancelled'), id DESC"),
+    q(`SELECT id, payment_ref, tenant_name, kind, regime, start_on, end_on, ended_on, rent, collect_from, notice_given_on,
+      notice_by FROM tenancies WHERE rental_id = ? ORDER BY start_on DESC, id DESC`),
+    q("SELECT id, tenancy_id, at, actor, type, data FROM rental_events WHERE rental_id = ? ORDER BY at DESC, id DESC LIMIT 100"),
+  ])).map(r => r.results);
   if (!rental) fail(404, "Property not found");
-  return json({ rental, compliance: checks(rental, rows, jerseyToday()), repairs });
+  return json({ rental, compliance: checks(rental, rows, jerseyToday()), repairs, tenancies,
+    events: events.map(e => ({ ...e, data: e.data == null ? null : JSON.parse(e.data) })) });
 }
 
 // R3, R11: the property and its empty checks ("Not recorded") in one batch, for a landlord not archived.
@@ -252,8 +259,9 @@ const loadRepair = async (env, id) =>
   (await env.DB.prepare("SELECT * FROM repairs WHERE id = ?").bind(Number(id)).first()) ?? fail(404, "Repair not found");
 
 // R14, on the merged row (never the database's CHECK): done needs its date and cost (400); the status moves only as
-// REPAIR_NEXT allows, and a quote above the landlord's approval_limit goes ahead only once they approved it (409). The
-// approval is stamped on awaiting_approval → approved, and dropped when asked again or when the quote goes up.
+// REPAIR_NEXT allows, and a quote or cost (the larger) above the landlord's approval_limit goes ahead only once they
+// approved it (409). The approval is stamped on awaiting_approval → approved, and dropped when asked again or when the
+// quote goes up.
 function repairRules(cur, next, limit, ts) {
   const errors = {};
   if (next.status === "done" && !next.done_on) errors.done_on = "Enter the date it was done";
@@ -264,8 +272,9 @@ function repairRules(cur, next, limit, ts) {
     fail(409, `A repair can't go from ${from.replace("_", " ")} to ${next.status.replace("_", " ")}`);
   if (next.status === "awaiting_approval" || (cur && next.quote > cur.quote)) next.approved_at = null;
   if (from === "awaiting_approval" && next.status === "approved") next.approved_at = ts;
-  if (["approved", "in_progress", "done"].includes(next.status) && limit != null && next.quote > limit && !next.approved_at)
-    fail(409, `The quote is above the landlord's approval limit of £${limit}: mark it Awaiting approval first`);
+  if (["approved", "in_progress", "done"].includes(next.status) && limit != null
+    && Math.max(next.quote ?? 0, next.cost ?? 0) > limit && !next.approved_at)
+    fail(409, `The quote or cost is above the landlord's approval limit of £${limit}: mark it Awaiting approval first`);
   return null;
 }
 

@@ -88,6 +88,41 @@ test("repair: a quote above the landlord's limit needs approval; done needs date
   assert.equal((await repair(env, gone, { title: "Leak", urgency: "urgent" })).status, 409);
 });
 
+test("repair: without a quote, a cost above the landlord's limit needs approval before done", async () => {
+  const env = makeEnv();
+  const id = await rental(env, await landlord(env, { approval_limit: 500 }));
+  assert.equal((await repair(env, id, { title: "Drain", urgency: "urgent", status: "done", done_on: T, cost: 600 })).status, 409);
+  let r = ok(await repair(env, id, { title: "Drain", urgency: "urgent" }), 201).repair;
+  assert.equal((await putRepair(env, r, { status: "done", done_on: T, cost: 600 })).status, 409);
+  r = ok(await putRepair(env, r, { status: "in_progress", cost: 500 })).repair; // at the limit: fine
+  assert.equal((await putRepair(env, r, { status: "done", done_on: T, cost: 600 })).status, 409);
+  r = ok(await putRepair(env, r, { status: "awaiting_approval", cost: 600 })).repair;
+  r = ok(await putRepair(env, r, { status: "approved" })).repair;
+  r = ok(await putRepair(env, r, { status: "done", done_on: T })).repair;
+  assert.deepEqual([r.status, r.cost, !!r.approved_at], ["done", 600, true]);
+});
+
+test("property page: its tenancies newest first and its last 100 events, newest first", async () => {
+  const env = makeEnv();
+  const id = await rental(env, await landlord(env), { address: "P14 House" });
+  const old = await tenancy(env, id, { tenant_name: "Old Tenant", start_on: ago(400) });
+  ok(await req(env, "POST", `/admin/tenancies/${old.id}/end`, { ended_on: ago(30) }));
+  const cur = await tenancy(env, id, { tenant_name: "New Tenant", start_on: ago(20) });
+  const page = ok(await req(env, "GET", `/admin/rentals/${id}`));
+  assert.deepEqual(page.tenancies.map(t => [t.id, t.tenant_name, t.ended_on]), [[cur.id, "New Tenant", null], [old.id, "Old Tenant", ago(30)]]);
+  assert.deepEqual(Object.keys(page.tenancies[0]), ["id", "payment_ref", "tenant_name", "kind", "regime", "start_on", "end_on",
+    "ended_on", "rent", "collect_from", "notice_given_on", "notice_by"]);
+  assert.deepEqual(page.events.map(e => e.type), ["tenancy.created", "tenancy.ended", "tenancy.created", "rental.created"]);
+  assert.deepEqual(page.events[1].data.ended_on, ago(30), "data comes parsed");
+  assert.deepEqual(Object.keys(page.events[0]), ["id", "tenancy_id", "at", "actor", "type", "data"]);
+  run(env, `INSERT INTO rental_events (rental_id, at, type) SELECT ?, '2000-01-01', 'old' FROM json_each(?)`, id,
+    JSON.stringify(Array(120).fill(0)));
+  const many = ok(await req(env, "GET", `/admin/rentals/${id}`)).events;
+  assert.equal(many.length, 100);
+  assert.equal(many[0].type, "tenancy.created");
+  assert.equal(many[0].data.tenant_name, "New Tenant");
+});
+
 test("statement: rent received in the Jersey month, fee, GST when set, repairs charged, net; deposits apart", async () => {
   const env = makeEnv();
   const L = await landlord(env, { name: "Sam Owner" });
@@ -290,6 +325,37 @@ test("counts: rentals adds overdue items and unmatched payments; action unchange
   ok(await req(env, "PUT", `/admin/tenancies/${late.id}/arrears/${ago(6)}/firm`, {}));
   assert.equal((await counts()).rentals, 8, "a marked step stops counting");
   assert.equal(ok(await req(env, "GET", "/admin/notifications?box=action")).counts.rentals, 8);
+});
+
+test("counts: the rentals count is cached for 10 minutes and any rental write drops it", async () => {
+  const env = makeEnv();
+  const rentalsCount = async () => ok(await req(env, "GET", "/admin/notifications/counts")).rentals;
+  const cache = () => rows(env, "SELECT value FROM app_settings WHERE key = 'rentals_count'").map(r => JSON.parse(r.value))[0];
+  const setCache = (n, at) => run(env, `INSERT INTO app_settings (key, value, updated_at) VALUES ('rentals_count', ?, ?)
+    ON CONFLICT (key) DO UPDATE SET value = excluded.value`, JSON.stringify({ n, at }), at);
+  const late = await tenancy(env, await rental(env, await landlord(env), { has_gas: false }), { start_on: ago(6), inventory_in_on: ago(6) });
+  assert.equal(await rentalsCount(), 4, "arrears + three missing checks");
+  const stored = cache();
+  assert.equal(stored.n, 4);
+  assert.ok(Date.now() - Date.parse(stored.at) < 60000);
+
+  // Fresh: the stored number is used as is, nothing worked out again.
+  const recent = new Date(Date.now() - 9 * 60000).toISOString();
+  setCache(42, recent);
+  assert.equal(await rentalsCount(), 42);
+  assert.deepEqual(cache(), { n: 42, at: recent });
+  // Stale (over 10 minutes): worked out again and stored.
+  setCache(42, new Date(Date.now() - 11 * 60000).toISOString());
+  assert.equal(await rentalsCount(), 4);
+  assert.ok(Date.now() - Date.parse(cache().at) < 60000);
+
+  // A payment drops the cache in its own batch: the next poll shows the arrears gone, well within 10 minutes.
+  setCache(4, new Date().toISOString());
+  ok(await req(env, "POST", "/admin/payments", { tenancy_id: late.id, received_on: T, amount: 150000 }), 201);
+  assert.equal(cache(), undefined);
+  assert.equal(await rentalsCount(), 3);
+  assert.deepEqual(Object.keys(ok(await req(env, "GET", "/admin/notifications/counts"))),
+    ["action", "new_applicant", "viewing", "matched", "sales", "rentals"]);
 });
 
 test("overview: 300 tenancies with two years of charges in under 10 ms of handler CPU", async t => {
