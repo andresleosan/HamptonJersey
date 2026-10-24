@@ -113,13 +113,13 @@ const TENANCY_SQL = "SELECT t.*, r.address, r.service FROM tenancies t JOIN rent
 const loadTenancy = async (env, id) =>
   (await env.DB.prepare(TENANCY_SQL).bind(Number(id)).first()) ?? fail(404, "Tenancy not found");
 
-// The tenancy page (P1): its charges brought up to date, charges and payments of the last 24 months, the balance (rent
+// The tenancy page (P1): the rent in force today, its charges brought up to date, charges and payments of the last 24 months, the balance (rent
 // charges due minus rent payments, R7, R26), the arrears (null without an unpaid charge due; steps done are those of
 // the oldest unpaid charge, R27), the rent assistant with the saved RPI (R12) and the deadlines.
 async function detail(env, id) {
   id = Number(id);
   const today = jerseyToday(), since = addMonths(today, -24), q = (sql, ...b) => env.DB.prepare(sql).bind(...b);
-  const [, [tenancy], charges, payments, [{ balance }], [setting], [late], steps] = (await env.DB.batch([
+  const [, [tenancy], charges, payments, [{ balance }], [setting], [late], steps, [now_]] = (await env.DB.batch([
     ensureCharges(env, today, id),
     q(TENANCY_SQL, id),
     q("SELECT id, due_on, amount, kind, edited FROM charges WHERE tenancy_id = ? AND due_on >= ? ORDER BY due_on DESC, kind",
@@ -130,6 +130,7 @@ async function detail(env, id) {
     q("SELECT value FROM app_settings WHERE key = 'rpi'"),
     q(`WITH ${ARREARS_SQL} SELECT * FROM arrears`, today, id),
     q("SELECT charge_due_on, step, done_at, done_by, note FROM arrears_steps WHERE tenancy_id = ? ORDER BY done_at", id),
+    q(`SELECT ${rentOn("?1", "?2")} AS rent`, id, today),
   ])).map(r => r.results);
   if (!tenancy) fail(404, "Tenancy not found");
   const arrears = late?.oldest_unpaid_on ? { oldest_unpaid_on: late.oldest_unpaid_on, days_late: late.days_late,
@@ -137,7 +138,8 @@ async function detail(env, id) {
     done: steps.filter(x => x.charge_due_on === late.oldest_unpaid_on).map(({ charge_due_on, ...x }) => x) } : null;
   const rpi = setting ? JSON.parse(setting.value) : null;
   const notice = tenancy.notice_given_on && { given_on: tenancy.notice_given_on, by: tenancy.notice_by };
-  return { tenancy, charges, payments, balance, arrears, assistant: { ...rentAssistant(tenancy, rpi, today), rpi },
+  // The rent in force today (tenancy.rent is the latest agreed, maybe from a later date); the starting rent before the start.
+  return { tenancy, current_rent: now_.rent ?? tenancy.rent, charges, payments, balance, arrears, assistant: { ...rentAssistant(tenancy, rpi, today), rpi },
     deadlines: deadlines(tenancy, today), earliest_move_out: notice ? earliestMoveOut(tenancy, notice) : null };
 }
 

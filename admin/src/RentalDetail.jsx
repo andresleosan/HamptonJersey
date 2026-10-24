@@ -5,7 +5,7 @@ import { setUnsaved } from "./unsaved.js";
 import { Received, money, useFieldErrors } from "./Sales.jsx";
 import { GAS, KIND, MarkStep, REPAIR_STATUS, SERVICE, URGENCY, checkState, pence } from "./Rentals.jsx";
 import { ChangeRent, CorrectCharge, DETAILS, EditTenancy, EndTenancy, NewTenancy, RecordNotice, RecordPayment, Renew, RepairDialog,
-  UpdateCheck, needsApproval } from "./RentalDialogs.jsx";
+  UpdateCheck, needsApproval, rentLine } from "./RentalDialogs.jsx";
 import { OPTIONS } from "../../server/applicants.js";
 import { ARREARS_STEPS, COMPLIANCE, LEGAL } from "../../server/rentals.js";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
@@ -79,8 +79,12 @@ export default function RentalDetail({ id, onChange }) {
     finally { setBusy(false); }
   };
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
-  const ctl = (k, label, extra = {}) => <label>{label}<input id={`rt-${k}`} value={form[k]} onChange={set(k)} autoComplete="off"
-    {...invalid(k)} {...extra} />{error(k)}</label>;
+  // hint: linked to the control, with the error when there is one.
+  const ctl = (k, label, extra = {}, hint) => {
+    const c = <label>{label}<input id={`rt-${k}`} value={form[k]} onChange={set(k)} autoComplete="off" {...invalid(k)} {...extra}
+      aria-describedby={[hint && `d-rt-${k}`, invalid(k)["aria-describedby"]].filter(Boolean).join(" ") || undefined} />{error(k)}</label>;
+    return hint ? <div className="field">{c}<small id={`d-rt-${k}`} className="muted">{hint}</small></div> : c;
+  };
   const radios = (k, legend, options, hint) => <fieldset className="choices-set"><legend>{legend}</legend>
     <div className="choices">{options.map(([v, t]) => <label key={v} className="check"><input type="radio" name={`rt-${k}`} value={v}
       checked={form[k] === v} onChange={set(k)} aria-invalid={errors[k] ? true : undefined} aria-describedby={errors[k] ? `e-rt-${k}` : undefined} />{t}</label>)}</div>
@@ -101,7 +105,7 @@ export default function RentalDetail({ id, onChange }) {
         {running.map(t => <Tenancy key={t.id} id={t.id} tick={tick} note={note(t.id)} open={(kind, props) => open(kind, props, t.id)} />)}
         {!running.some(t => !t.ended_on) && <section className="card" aria-labelledby="h-new-tenancy">
           <h2 id="h-new-tenancy">{running.length ? "Next tenancy" : "No tenancy"}</h2>
-          {adding ? <NewTenancy rental={r} onClose={() => setAdding(false)} onDirty={setAddDirty}
+          {adding ? <NewTenancy rental={r} onClose={() => setAdding(false)} onDirty={setAddDirty} onRefused={reload}
             onDone={t => { setAdding(false); finish(t.id)(`Tenancy added for ${t.tenant_name}. Payment reference ${t.payment_ref}.`); }} />
             : archived ? <p className="muted">Restore the property to add a tenancy.</p>
             : <div className="inline"><p className="muted">{running.length ? `The tenant moves out ${fmtDay(running[0].ended_on)}. Enter the next tenancy once it's agreed.`
@@ -148,8 +152,8 @@ export default function RentalDetail({ id, onChange }) {
               {OPTIONS.parishes.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select>{error("parish")}</label>
             {radios("service", "Service", Object.entries(SERVICE))}
             {form.service === "full" && <div className="fee">{ctl("fee_percent", "Management fee (%)", { inputMode: "decimal" })}</div>}
-            {switching && ctl("collect_from", "Collect rent from", { type: "date" })}
-            {switching && <small className="muted">Hampton starts collecting the running tenancy's rent on this date; nothing before it is charged.</small>}
+            {switching && ctl("collect_from", "Collect rent from", { type: "date" },
+              "Hampton starts collecting the running tenancy's rent on this date; nothing before it is charged.")}
             {radios("has_gas", "Gas supply", GAS.map(([k, t]) => [k, t]), "With gas, or when not sure, the property needs a yearly gas safety check.")}
             <label>Notes (optional)<textarea id="rt-notes" className="short" value={form.notes} maxLength={2000} onChange={set("notes")} {...invalid("notes")} />
               {error("notes")}</label>
@@ -223,7 +227,7 @@ function Tenancy({ id, tick, note, open }) {
       : t.notice_given_on && <p className="warn" role="note">Notice given by the {t.notice_by} on {fmtDay(t.notice_given_on)}. Earliest move-out:
         {" "}{fmtDay(d.earliest_move_out)}.</p>}
     <dl className="kv">
-      <div><dt>Rent</dt><dd>{money(t.rent)} pcm{t.last_rent_change_on > today && ` from ${fmtDay(t.last_rent_change_on)}`}
+      <div><dt>Rent</dt><dd className="rent">{rentLine(t, d.current_rent)}
         <span className="muted cell-note">Due on day {t.due_day} of each month</span></dd></div>
       <div><dt>Deposit</dt><dd>{t.deposit != null ? money(t.deposit) : "—"}{t.deposit_ref && <span className="muted cell-note">{t.deposit_ref}</span>}</dd></div>
       {full && <div><dt>Collecting from</dt><dd>{t.collect_from ? fmtDay(t.collect_from) : "—"}</dd></div>}

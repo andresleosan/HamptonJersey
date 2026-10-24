@@ -14,9 +14,16 @@ const fieldError = (k, msg) => Object.assign(new Error("Please check the highlig
 const toPence = (v, k) => {
   if (!v.trim()) return null;
   const n = parseMoney(v);
-  if (n == null || n < 0) throw fieldError(k, "Enter an amount in pounds, like 1,250.00");
+  if (n == null) throw fieldError(k, "Enter an amount in pounds, like 1,250.00");
+  if (n < 1) throw fieldError(k, "Enter an amount of at least £0.01");
   return n;
 };
+// The server checks pence; the fields here are in pounds (R20: up to £1,000,000).
+const inPounds = fields => Object.fromEntries(Object.entries(fields).map(([k, m]) => [k, /in pence/.test(m)
+  ? "Enter an amount from £0.01 to £1,000,000" : m]));
+// The rent in force today, and the change waiting for its date (tenancy.rent is the latest agreed, P5).
+export const rentLine = (t, current) => `${money(current)} pcm${t.last_rent_change_on > jerseyToday() && t.rent !== current
+  ? `, ${t.rent > current ? "rises" : "falls"} to ${money(t.rent)} from ${fmtDay(t.last_rent_change_on)}` : ""}`;
 const asPounds = p => (p / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 });
 const months = n => `${n} month${n === 1 ? "" : "s"}`;
 
@@ -32,7 +39,7 @@ export function useForm(prefix, init, send, onDone, onRefused) {
     if (busy) return;
     setBusy(true); setErr(null); fe.setErrors({});
     try { onDone(await send(f)); }
-    catch (x) { fe.setErrors(x.data?.fields || {}); setErr(x.message); setBusy(false); if (x.status === 409 || x.status === 404) onRefused?.(); }
+    catch (x) { fe.setErrors(inPounds(x.data?.fields || {})); setErr(x.message); setBusy(false); if (x.status === 409 || x.status === 404) onRefused?.(); }
   };
   // A control with its label, error and optional hint (both describe it). textarea: true for a text area.
   const field = (k, label, { hint, textarea, ...extra } = {}) => {
@@ -43,8 +50,9 @@ export function useForm(prefix, init, send, onDone, onRefused) {
     return hint ? <div className="field">{ctl}<small id={hid} className="muted">{hint}</small></div> : ctl;
   };
   const radios = (k, legend, options) => <fieldset className="choices-set" aria-describedby={fe.errors[k] ? `e-${prefix}-${k}` : undefined}>
-    <legend>{legend}</legend><div className="choices">{options.map(([v, t]) => <label key={v} className="check">
-      <input type="radio" name={`${prefix}-${k}`} value={v} checked={f[k] === v} onChange={set(k)} />{t}</label>)}</div>{fe.error(k)}</fieldset>;
+    <legend>{legend}</legend><div className="choices">{options.map(([v, t], i) => <label key={v} className="check">
+      <input type="radio" name={`${prefix}-${k}`} value={v} checked={f[k] === v} onChange={set(k)} {...(i ? {} : fe.invalid(k))} />{t}</label>)}</div>
+    {fe.error(k)}</fieldset>;
   return { f, setF, set, field, radios, submit, err, busy, ref, ...fe };
 }
 
@@ -72,7 +80,8 @@ export function RecordPayment({ d: { tenancy: t }, onClose, onDone, onRefused })
     <Who t={t} />
     <div className="grid2">{a.field("amount", "Amount (£)", { inputMode: "decimal" })}
       {a.field("received_on", "Received on", { type: "date", max: jerseyToday() })}</div>
-    <label>Kind<select value={a.f.kind} onChange={a.set("kind")} aria-describedby="d-rp-kind" {...a.invalid("kind")}>
+    <label>Kind<select value={a.f.kind} onChange={a.set("kind")} {...a.invalid("kind")}
+      aria-describedby={["d-rp-kind", a.invalid("kind")["aria-describedby"]].filter(Boolean).join(" ")}>
       {Object.entries(KIND).filter(([k]) => full || k !== "rent").map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>{a.error("kind")}</label>
     <small id="d-rp-kind" className="muted">Only rent counts towards the balance and arrears, oldest charge first.</small>
     {a.field("description", "Description (optional)", { maxLength: 300, placeholder: "e.g. Cash at the office" })}
@@ -81,7 +90,7 @@ export function RecordPayment({ d: { tenancy: t }, onClose, onDone, onRefused })
 
 // R12, R28, R30: the new rent from a date not before today. For the 2025 law the assistant gives the maximum (RPI, saved
 // here for everyone) and the earliest date; for the 2011 law, only its note. Neither stops the change: the law has exceptions.
-export function ChangeRent({ d: { tenancy: t, assistant }, onClose, onDone, onRefused }) {
+export function ChangeRent({ d: { tenancy: t, assistant, current_rent }, onClose, onDone, onRefused }) {
   const today = jerseyToday(), [rpi, setRpi] = useState(assistant.rpi), [editRpi, setEditRpi] = useState(!assistant.rpi);
   const help = rentAssistant(t, rpi, today);
   const a = useForm("cr", { rent: "", effective_on: "" }, async f => {
@@ -102,6 +111,7 @@ export function ChangeRent({ d: { tenancy: t, assistant }, onClose, onDone, onRe
       {r.err && <p role="alert" className="err">{r.err}</p>}</form>
       : <p>Jersey RPI: {rpi.percent}% as of {fmtDay(rpi.as_of)}{" "}
         <button type="button" className="linkish" onClick={() => setEditRpi(true)}>Edit RPI</button></p>}
+    {t.last_rent_change_on > today && <p className="muted">Based on the rent from {fmtDay(t.last_rent_change_on)}, the next change allowed.</p>}
     <dl className="kv"><div><dt>Maximum rent</dt><dd>{help.max_rent != null ? `${money(help.max_rent)} pcm` : "—"}</dd></div>
       <div><dt>Earliest date</dt><dd>{fmtDay(help.earliest_on)}</dd></div></dl>
     {help.notes.map(n => <p key={n} className="muted">{n}</p>)}
@@ -109,7 +119,7 @@ export function ChangeRent({ d: { tenancy: t, assistant }, onClose, onDone, onRe
       effective_on: help.earliest_on })}>Use {money(help.max_rent)} pcm from {fmtDay(help.earliest_on)}</button>}
   </section>;
   return <Sheet title="Change rent" a={a} button="Change rent" onClose={onClose}
-    lead={<><Who t={t} /><p>Rent {money(t.rent)} pcm{t.last_rent_change_on > today && ` from ${fmtDay(t.last_rent_change_on)}`}.</p>{lead || <p className="warn" role="note">{help.notes[0]}</p>}</>}>
+    lead={<><Who t={t} /><p>Rent {rentLine(t, current_rent)}.</p>{lead || <p className="warn" role="note">{help.notes[0]}</p>}</>}>
     <div className="grid2">{a.field("rent", "New rent (£ pcm)", { inputMode: "numeric" })}
       {a.field("effective_on", "Starts on", { type: "date", min: today })}</div>
     {help.applies && help.max_rent != null && rent > help.max_rent && <p className="warn" role="note">Above the maximum the RPI allows.
@@ -193,7 +203,7 @@ const TENANCY_FIELDS = { tenant_name: ["Tenant's name", { maxLength: 120 }], ten
   deposit: ["Deposit (£, optional)", { inputMode: "numeric" }], deposit_received_on: ["Deposit received on", DATE],
   deposit_protected_on: ["Deposit protected on", DATE], deposit_ref: ["Deposit reference (optional)", { maxLength: 120 }],
   inventory_in_on: ["Check-in report done on", DATE], inventory_out_on: ["Check-out report done on", DATE],
-  collect_from: ["Collect rent from", { ...DATE, hint: "For tenancies already running, collect from this month and enter what is owed today." }],
+  collect_from: ["Collect rent from", { ...DATE, hint: "For tenancies already running, collect from the next rent day and enter what is owed today." }],
   opening_balance: ["Owed today (£, optional)", { inputMode: "decimal", hint: "Rent already owed when Hampton starts collecting. One charge, due on that date." }],
   notes: ["Notes (optional)", { textarea: true, maxLength: 2000 }] };
 const POUNDS = ["rent", "deposit"];
@@ -248,8 +258,9 @@ export function RepairDialog({ rental, repair: p, onClose, onDone, onRefused }) 
     await api(p ? `/admin/repairs/${p.id}` : `/admin/rentals/${rental.id}/repairs`, { method: p ? "PUT" : "POST", body });
     return p ? "Repair saved." : `Repair added: ${body.title}.`;
   }, onDone, onRefused);
-  const f = a.f, above = needsApproval({ quote: Number(pounds(f.quote)) || 0, cost: f.status === "done" ? Number(pounds(f.cost)) || 0 : p?.cost,
-    approved_at: p?.approved_at }, rental.approval_limit);
+  // A higher quote asks the landlord again (the server drops the approval on save).
+  const f = a.f, quote = Number(pounds(f.quote)) || 0, approved = !(quote > (p?.quote ?? 0)) && p?.approved_at;
+  const above = needsApproval({ quote, cost: f.status === "done" ? Number(pounds(f.cost)) || 0 : p?.cost, approved_at: approved }, rental.approval_limit);
   return <Sheet title={p ? "Update repair" : "New repair"} a={a} button={p ? "Save repair" : "Add repair"} onClose={onClose}>
     <p>{rental.address}</p>
     {a.field("title", "Title", { maxLength: 120, placeholder: "e.g. Boiler not heating water" })}
@@ -263,7 +274,7 @@ export function RepairDialog({ rental, repair: p, onClose, onDone, onRefused }) 
       {a.field("done_on", "Done on", { type: "date", max: jerseyToday() })}</div>}
     {above && f.status !== "awaiting_approval" && <p className="warn" role="note">Above {rental.landlord_name}'s approval limit of {money(rental.approval_limit)}. Mark it
       Awaiting approval and ask them; once they agree, mark it Approved.</p>}
-    {p?.approved_at && <p className="muted">The landlord approved it {fmtDate(p.approved_at)}.</p>}
+    {approved && <p className="muted">The landlord approved it {fmtDate(p.approved_at)}.</p>}
     <label className="check"><input type="checkbox" checked={f.charge_landlord} onChange={a.set("charge_landlord")} />Charge the cost to the
       landlord (it goes on their statement the month it's done)</label>
   </Sheet>;
@@ -273,14 +284,14 @@ export function RepairDialog({ rental, repair: p, onClose, onDone, onRefused }) 
 // with what is owed that day as one opening charge; never anything before it.
 const NEW_KEYS = ["tenant_name", "tenant_email", "tenant_phone", "occupants", "start_on", "end_on", "rent", "due_day", "deposit",
   "deposit_received_on", "deposit_protected_on", "deposit_ref", "inventory_in_on", "collect_from", "opening_balance", "notes"];
-export function NewTenancy({ rental, onClose, onDone, onDirty }) {
+export function NewTenancy({ rental, onClose, onDone, onDirty, onRefused }) {
   const blank = { ...toTenancyForm(null, NEW_KEYS), kind: "", regime: "" }, full = rental.service === "full";
   const a = useForm("nt", blank, async f => {
     const keys = NEW_KEYS.filter(k => (f.kind === "fixed" || k !== "end_on") && (full || !["collect_from", "opening_balance"].includes(k)));
     const d = await api(`/admin/rentals/${rental.id}/tenancies`, { method: "POST",
       body: { ...toTenancyBody(f, keys), kind: f.kind || null, regime: f.regime || null } });
     return d.tenancy;
-  }, onDone);
+  }, onDone, onRefused);
   const dirty = JSON.stringify(a.f) !== JSON.stringify(blank);
   useEffect(() => { onDirty(dirty); }, [dirty]);
   useEffect(() => () => onDirty(false), []);

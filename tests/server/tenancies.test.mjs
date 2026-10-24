@@ -159,6 +159,7 @@ test("rent change: only future charges not edited by hand take the new rent; pas
     [month(3), 99950], [month(4), 110000]]);
   assert.equal(change.data.tenancy.rent, 1100);
   assert.equal(change.data.tenancy.last_rent_change_on, month(2));
+  assert.equal(change.data.current_rent, 1000, "the rent in force today, while the rise waits");
   await ensureCharges(env, month(4), id).run();
   assert.deepEqual(charges(env, id).at(-1).slice(0, 2), [month(5), 110000], "new charges take the rent in force");
   assert.deepEqual(events(env, "rent.changed").map(e => [e.data.before, e.data.rent, e.data.effective_on]), [[1000, 1100, month(2)]]);
@@ -168,6 +169,9 @@ test("rent change: only future charges not edited by hand take the new rent; pas
   const fresh = await tenancy(env, await rental(env), { start_on: T, rent: 1000 });
   assert.equal((await req(env, "POST", `/admin/tenancies/${fresh}/rent`, { rent: 1050, effective_on: T })).status, 200);
   assert.deepEqual(rows(env, "SELECT effective_on, rent FROM rent_changes WHERE tenancy_id = ?", fresh).map(Object.values), [[T, 1050]]);
+  assert.equal((await req(env, "GET", `/admin/tenancies/${fresh}`)).data.current_rent, 1050, "a change from today is in force today");
+  const ahead = await tenancy(env, await rental(env), { start_on: month(1), rent: 1200 });
+  assert.equal((await req(env, "GET", `/admin/tenancies/${ahead}`)).data.current_rent, 1200, "before the start: the starting rent");
   assert.deepEqual(charges(env, fresh).map(c => c.slice(0, 2)), [[T, 100000], [charges(env, fresh)[1][0], 105000]]);
 });
 

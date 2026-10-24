@@ -248,7 +248,7 @@
   - datos con Save/Discard;
   - el contrato con su referencia de pago bien visible, saldo, atraso con su paso, y cobros y pagos recientes (con corrección de un cobro);
   - los diálogos Record payment, Change rent con el asistente (R12, R30, y el RPI editable ahí), Renew, Record notice (con la salida más temprana) y End tenancy;
-  - New tenancy cuando no hay contrato activo, con `collect_from` y saldo inicial, explicados en una línea («For tenancies already running, collect from this month and enter what is owed today.»);
+  - New tenancy cuando no hay contrato activo, con `collect_from` y saldo inicial, explicados en una línea («For tenancies already running, collect from the next rent day and enter what is owed today.»);
   - obligaciones con Update y estado coloreado según `DESIGN.md`;
   - reparaciones con New repair y su ciclo;
   - contratos anteriores plegados e historial.

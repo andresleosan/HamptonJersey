@@ -698,7 +698,8 @@ async function property(page, phone, noSideScroll) {
   const start = JSON.parse(d1("SELECT start_on FROM tenancies WHERE id = 1"))[0].results[0].start_on;
   assert.deepEqual(JSON.parse(d1("SELECT effective_on, rent FROM rent_changes WHERE tenancy_id = 1 ORDER BY effective_on DESC LIMIT 1"))[0].results,
     [{effective_on: addMonths(start, 12), rent: 1290}], "the change starts on the earliest date the assistant gave");
-  assert.match(await t.textContent(), /£1,290 pcm from/);
+  assert.match(await t.locator(".rent").textContent(), /^£1,250 pcm, rises to £1,290 from \w{3} \d{1,2} \w+ \d{4}Due on day/,
+    "today's rent, then the rise and its date");
 
   // A repair quoted above the landlord's limit waits for their approval, then is done.
   await page.getByRole("button", {name: "New repair"}).click();
@@ -739,7 +740,7 @@ async function property(page, phone, noSideScroll) {
   await page.waitForSelector("#t-rental");
   await page.getByRole("button", {name: "New tenancy"}).click();
   const form = page.locator("#new-tenancy");
-  await form.getByText("For tenancies already running, collect from this month and enter what is owed today.").waitFor();
+  await form.getByText("For tenancies already running, collect from the next rent day and enter what is owed today.").waitFor();
   await form.getByLabel("Tenant's name").fill("Helen Le Cornu");
   await form.getByRole("radio", {name: "Periodic"}).check();
   await form.getByRole("radio", {name: "2011 law"}).check();
