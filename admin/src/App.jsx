@@ -13,6 +13,7 @@ import Viewings from "./Viewings.jsx";
 import Sales from "./Sales.jsx";
 import SaleDetail from "./SaleDetail.jsx";
 import Rentals, { Landlord, NewRental } from "./Rentals.jsx";
+import RentalDetail from "./RentalDetail.jsx";
 import Insights from "./Insights.jsx";
 import Availability from "./Availability.jsx";
 import Users from "./Users.jsx";
@@ -97,6 +98,7 @@ export default function App() {
     : section === "rentals" && arg === "new"
       ? <NewRental key={query ?? ""} landlordId={new URLSearchParams(query).get("landlord")} onChange={loadCounts} />
     : section === "rentals" && arg === "landlords" && /^\d+$/.test(sub) ? <Landlord key={sub} id={sub} />
+    : section === "rentals" && /^\d+$/.test(arg) ? <RentalDetail key={arg} id={arg} onChange={loadCounts} />
     : section === "rentals" ? <Rentals onChange={loadCounts} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "tours" ? <Tours /> : <Inbox paused={expired} onCounts={setCounts} />;

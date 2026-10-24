@@ -1,5 +1,5 @@
 import { json, fail, readJson, now } from "../http.js";
-import { validateLandlord, validateRental, validateRepair, COMPLIANCE, addMonths, complianceStatus } from "../rentals.js";
+import { validateLandlord, validateRental, validateRepair, COMPLIANCE, REPAIR_NEXT, addMonths, complianceStatus } from "../rentals.js";
 import { fields, result } from "../sales.js";
 import { LOCK } from "./applicants.js";
 import { jerseyToday, realDate } from "../viewings.js";
@@ -24,7 +24,8 @@ export function rentalEvent(env, { rental_id = null, tenancy_id = null, actor, t
 // Fails the whole batch (NOT NULL) when the statement just before changed no row, like ensureChanged in sales.js.
 export const ensureChanged = env => env.DB.prepare("INSERT INTO landlords (name) SELECT NULL WHERE changes() = 0");
 
-const RENTAL_SQL = "SELECT r.*, l.name AS landlord_name FROM rentals r JOIN landlords l ON l.id = r.landlord_id WHERE r.id = ?";
+const RENTAL_SQL = `SELECT r.*, l.name AS landlord_name, l.email AS landlord_email, l.phone AS landlord_phone,
+  l.approval_limit FROM rentals r JOIN landlords l ON l.id = r.landlord_id WHERE r.id = ?`;
 const loadRental = async (env, id) =>
   (await env.DB.prepare(RENTAL_SQL).bind(Number(id)).first()) ?? fail(404, "Property not found");
 const loadLandlord = async (env, id) =>
@@ -251,10 +252,6 @@ async function updateCompliance({ request, env, admin, params: [id, kind] }) {
   return json({ item: item(c, { ...after, updated_at: ts, updated_by: admin }, jerseyToday()) });
 }
 
-// R14: where a repair may go next; done and cancelled are final. Going back to awaiting_approval asks again (a larger quote).
-const REPAIR_NEXT = { reported: ["awaiting_approval", "approved", "in_progress", "done", "cancelled"],
-  awaiting_approval: ["approved", "cancelled"], approved: ["awaiting_approval", "in_progress", "done", "cancelled"],
-  in_progress: ["awaiting_approval", "done", "cancelled"], done: [], cancelled: [] };
 const loadRepair = async (env, id) =>
   (await env.DB.prepare("SELECT * FROM repairs WHERE id = ?").bind(Number(id)).first()) ?? fail(404, "Repair not found");
 

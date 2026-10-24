@@ -13,9 +13,10 @@ export const pence = p => (p / 100).toLocaleString("en-GB", { style: "currency",
 export const SERVICE = { full: "Full management", let_only: "Let only" };
 const MARK = { arrears: "Arrears", compliance: "Checks due", renewals: "Renewal", repairs: "Open repair" };
 const SHOW = { arrears: "With arrears", compliance: "With checks due", renewals: "With a renewal due", repairs: "With an open repair" };
-const URGENCY = { emergency: "Emergency", urgent: "Urgent", routine: "Routine" };
-const REPAIR_STATUS = { reported: "Reported", awaiting_approval: "Awaiting approval", approved: "Approved", in_progress: "In progress" };
-const KIND = { rent: "Rent", deposit: "Deposit", other: "Other" };
+export const URGENCY = { emergency: "Emergency", urgent: "Urgent", routine: "Routine" };
+export const REPAIR_STATUS = { reported: "Reported", awaiting_approval: "Awaiting approval", approved: "Approved", in_progress: "In progress",
+  done: "Done", cancelled: "Cancelled" };
+export const KIND = { rent: "Rent", deposit: "Deposit", other: "Other" };
 const AS = { rent: "rent", deposit: "a deposit", other: "other money" };
 const WARN = Math.max(...LEGAL.warnDays);
 const daysTo = d => Math.round((Date.parse(d) - Date.parse(jerseyToday())) / 864e5);
@@ -28,7 +29,10 @@ const Block = ({ id, title, rows, empty, head, children }) => <section className
     <table className="list"><thead><tr>{head.map(h => <th key={h} scope="col">{h || <span className="sr">Actions</span>}</th>)}</tr></thead><tbody>{children}</tbody></table></div>
     : <p className="empty card slim">{empty}</p>}
 </section>;
-const checkState = c => c.status === "missing" ? <strong className="err">Not recorded</strong>
+// A check or deadline: red when overdue or not recorded, a badge when it falls due soon, in date, or done (the property page).
+export const checkState = c => c.status === "done" ? <span className="badge positive">Done</span>
+  : c.status === "ok" ? <span className="badge positive">In date</span>
+  : c.status === "missing" ? <strong className="err">Not recorded</strong>
   : c.status === "overdue" ? <strong className="err">Overdue</strong>
   : <span className={`badge ${c.status === "due7" ? "attention" : "neutral"}`}>{inDays(daysTo(c.due_on))}</span>;
 const inDays = n => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : `In ${n} days`);
@@ -75,7 +79,7 @@ export default function Rentals({ onChange }) {
       <Block id="h-arrears" title="Arrears" rows={todo.arrears} empty="No tenant needs an arrears step today."
         head={["Property", "Owed", "Late", "Next step", ""]}>
         {todo.arrears.map(a => <tr key={a.tenancy_id} className="overdue">
-          <td>{a.address}<span className="muted cell-note">{a.tenant_name} · {a.payment_ref}</span></td>
+          <td><a href={`#/rentals/${a.rental_id}`}>{a.address}</a><span className="muted cell-note">{a.tenant_name} · {a.payment_ref}</span></td>
           <td className="num">{pence(a.balance)}</td>
           <td className="num">{a.days_late} days<span className="muted cell-note">Since {fmtDay(a.oldest_unpaid_on)}</span></td>
           <td>{a.next_step.label}</td>
@@ -85,7 +89,7 @@ export default function Rentals({ onChange }) {
       <Block id="h-checks" title="Checks and deadlines" rows={todo.compliance} head={["Property", "Check", "Due", "Status"]}
         empty={`Nothing falls due in the next ${WARN} days.`}>
         {todo.compliance.map(c => <tr key={`${c.rental_id}-${c.tenancy_id}-${c.kind}`} className={["overdue", "missing"].includes(c.status) ? "overdue" : undefined}>
-          <td>{c.address}</td>
+          <td><a href={`#/rentals/${c.rental_id}`}>{c.address}</a></td>
           <td>{c.label}{c.tenant_name && <span className="muted cell-note">{c.tenant_name}</span>}</td>
           <td className="num">{c.due_on ? fmtDay(c.due_on) : "—"}</td>
           <td>{checkState(c)}</td>
@@ -94,14 +98,14 @@ export default function Rentals({ onChange }) {
       <Block id="h-renewals" title="Renewals" rows={todo.renewals} head={["Property", "Tenant", "Fixed term ends", "Status"]}
         empty={`No fixed term ends in the next ${LEGAL.renewalDays} days.`}>
         {todo.renewals.map(r => <tr key={r.tenancy_id}>
-          <td>{r.address}</td><td>{r.tenant_name}</td><td className="num">{fmtDay(r.end_on)}</td>
+          <td><a href={`#/rentals/${r.rental_id}`}>{r.address}</a></td><td>{r.tenant_name}</td><td className="num">{fmtDay(r.end_on)}</td>
           <td>{r.end_on < jerseyToday() ? <strong className="err">{r.label}</strong> : <span className="badge attention">{r.label}</span>}</td>
         </tr>)}
       </Block>
       <Block id="h-repairs" title="Repairs" rows={todo.repairs} head={["Property", "Repair", "Urgency", "Status", "Reported"]}
         empty="No open repairs.">
         {todo.repairs.map(r => <tr key={r.id} className={r.urgency === "emergency" ? "overdue" : undefined}>
-          <td>{r.address}</td>
+          <td><a href={`#/rentals/${r.rental_id}`}>{r.address}</a></td>
           <td className="wrap">{r.title}{r.contractor && <span className="muted cell-note">{r.contractor}{r.quote != null && ` · quote ${money(r.quote)}`}</span>}</td>
           <td>{r.urgency === "emergency" ? <strong className="err">Emergency</strong>
             : <span className={`badge ${r.urgency === "urgent" ? "attention" : "neutral"}`}>{URGENCY[r.urgency]}</span>}</td>
@@ -135,7 +139,7 @@ export default function Rentals({ onChange }) {
             <thead><tr><th scope="col">Property</th><th scope="col">Landlord</th><th scope="col">Service</th><th scope="col">Tenant</th>
               <th scope="col">Rent</th><th scope="col">Balance</th><th scope="col">Needs</th></tr></thead>
             <tbody>{data.rentals.map(r => <tr key={r.id}>
-              <td>{r.address}<span className="muted cell-note">{r.parish}</span></td>
+              <td><a href={`#/rentals/${r.id}`}>{r.address}</a><span className="muted cell-note">{r.parish}</span></td>
               <td><a href={`#/rentals/landlords/${r.landlord_id}`}>{r.landlord_name}</a></td>
               <td>{SERVICE[r.service]}</td>
               <td>{r.tenant_name ?? <span className="muted">No tenancy</span>}{r.payment_ref && <span className="muted cell-note">{r.payment_ref}</span>}</td>
@@ -158,7 +162,7 @@ export default function Rentals({ onChange }) {
 }
 
 // R8, R27: the step is recorded as done, with a note; F5-A sends nothing.
-function MarkStep({ row: a, onClose, onDone, onRefused }) {
+export function MarkStep({ row: a, onClose, onDone, onRefused }) {
   const [note, setNote] = useState(""), [err, setErr] = useState(null), [busy, setBusy] = useState(false);
   const { errors, setErrors, invalid, error } = useFieldErrors("ms");
   const submit = async e => {
@@ -281,7 +285,7 @@ function NewLandlord({ onClose, onDone }) {
 // #/rentals/new[?landlord=<id>]: a property for a landlord already entered, or for a new one entered here (R1, R3).
 // Its legal checks start as Not recorded (R11).
 const RENTAL = { landlord: "", address: "", parish: "", service: "", fee_percent: "", has_gas: "", notes: "" };
-const GAS = [["yes", "Yes", true], ["no", "No", false], ["", "Not sure", null]];
+export const GAS = [["yes", "Yes", true], ["no", "No", false], ["", "Not sure", null]];
 export function NewRental({ landlordId, onChange }) {
   const [landlords, setLandlords] = useState(null), [listErr, setListErr] = useState(null);
   const blank = { ...RENTAL, landlord: landlordId ?? "" };
@@ -404,7 +408,7 @@ export function Landlord({ id }) {
       <section className="card" aria-labelledby="h-ll-rentals"><div className="head"><h2 id="h-ll-rentals">Properties</h2>
         {!ll.archived_at && <a className="btn ghost sm" href={`#/rentals/new?landlord=${ll.id}`}>Add a property</a>}</div>
         {data.rentals.length ? <ul className="plain-list" id="landlord-rentals">{data.rentals.map(r => <li key={r.id}>
-          <span>{r.address}<span className="muted cell-note">{r.parish} · {SERVICE[r.service]}</span></span>
+          <span><a href={`#/rentals/${r.id}`}>{r.address}</a><span className="muted cell-note">{r.parish} · {SERVICE[r.service]}</span></span>
           {r.archived_at && <span className="badge neutral">Archived</span>}</li>)}</ul>
           : <p className="muted" id="landlord-rentals">No properties yet.</p>}
       </section>

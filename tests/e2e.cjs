@@ -526,6 +526,7 @@ async function admin(browser) {
   await page.locator("#s-offers").scrollIntoViewIfNeeded();
   if (SHOTS) await page.locator("#s-offers").screenshot({path: `${SHOTS}/admin-listing-offers.png`});
   await rentals(page, phone, noSideScroll);
+  await property(page, phone, noSideScroll);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -616,7 +617,8 @@ async function rentals(page, phone, noSideScroll) {
   await page.waitForSelector("text=Landlord added: Clare Le Gresley.");
   await page.getByRole("link", {name: "Add a property for Clare Le Gresley"}).click();
   await page.waitForSelector("#t-new-rental");
-  assert.equal(await page.locator("#r-landlord option:checked").textContent(), "Clare Le Gresley", "the new landlord is chosen");
+  // The landlords load after the page: the new one is chosen once they're in.
+  await page.waitForFunction(() => document.querySelector("#r-landlord option:checked")?.textContent === "Clare Le Gresley");
   await page.getByLabel("Address").fill("La Hougue Farm, La Rue de la Hougue");
   await page.getByLabel("Parish").selectOption("St Peter");
   await page.getByRole("radio", {name: "Full management"}).check();
@@ -647,6 +649,113 @@ async function rentals(page, phone, noSideScroll) {
   assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0);
   await shot(phone, "admin-settings-mobile");
   assert.equal(await count(), "6");
+}
+
+// F5-A property page, on the seed after rentals(): James Vautier owes two months (the oldest one's Formal letter is done),
+// Margaret Le Brun approves repairs above £500, and La Hougue Farm has no tenancy.
+async function property(page, phone, noSideScroll) {
+  const {addMonths} = await import("../server/rentals.js");
+  const {jerseyToday} = await import("../server/viewings.js");
+  const today = jerseyToday();
+  const waitCount = n => page.waitForFunction(n => document.querySelector('header.bar a[href="#/rentals"] .count')?.firstChild.textContent === n, n);
+  await page.goto(BASE + "admin/#/rentals");
+  await page.locator("#rentals-list").getByRole("link", {name: "Rose Cottage, La Rue du Moulin"}).click();
+  await page.waitForSelector("#t-rental");
+  const t = page.locator("#tenancy-1"), late = t.locator(".late");
+  await t.locator(".balance").waitFor();
+  assert.match(await t.locator(".ref").textContent(), /HE-T0001/);
+  assert.match(await t.locator(".balance").textContent(), /£2,500\.00/);
+  assert.match(await late.textContent(), /\d+ days late[\s\S]*Formal letter done/);
+  const daysLate = async () => Number((await late.textContent()).match(/(\d+) days late/)[1]);
+  const before = await daysLate();
+  await shot(page, "admin-rental");
+
+  // A partial payment covers the oldest month: the balance goes down and the days late count from the next charge.
+  await t.getByRole("button", {name: "Record payment"}).click();
+  let dlg = page.getByRole("dialog", {name: "Record payment"});
+  await dlg.getByLabel("Amount (£)").fill("1,250.00");
+  await dlg.getByRole("button", {name: "Record payment"}).click();
+  await page.waitForSelector("text=Payment of £1,250.00 recorded.");
+  await t.locator(".balance", {hasText: "£1,250.00"}).waitFor();
+  const after = await daysLate();
+  assert.ok(after > 0 && after < before, `days late move to the next charge (${before} → ${after})`);
+  assert.match(await late.textContent(), /Next step/);
+  assert.match(await t.locator("#payments-1").textContent(), /£1,250\.00[\s\S]*Rent/);
+  await waitCount("7"); // the next charge's step is due
+
+  // Change rent with the assistant: the RPI is entered inside it, then the maximum rent and earliest date apply.
+  await t.getByRole("button", {name: "Change rent"}).click();
+  dlg = page.getByRole("dialog", {name: "Change rent"});
+  await dlg.getByText("Enter Jersey's RPI to work out the maximum rent.").waitFor();
+  await dlg.getByLabel("Jersey RPI (%)").fill("3.2");
+  await dlg.getByLabel("As of").fill(today);
+  await dlg.getByRole("button", {name: "Save RPI"}).click();
+  await dlg.locator(".assistant", {hasText: "£1,290 pcm"}).waitFor();
+  assert.match(await dlg.locator(".assistant").textContent(), /Jersey RPI: 3\.2% as of[\s\S]*Maximum rent£1,290 pcm[\s\S]*Earliest date/);
+  await dlg.getByRole("button", {name: /^Use £1,290 pcm from/}).click();
+  await dlg.getByRole("button", {name: "Change rent"}).click();
+  await page.waitForSelector("text=/Rent changes to £1,290 pcm from/");
+  const start = JSON.parse(d1("SELECT start_on FROM tenancies WHERE id = 1"))[0].results[0].start_on;
+  assert.deepEqual(JSON.parse(d1("SELECT effective_on, rent FROM rent_changes WHERE tenancy_id = 1 ORDER BY effective_on DESC LIMIT 1"))[0].results,
+    [{effective_on: addMonths(start, 12), rent: 1290}], "the change starts on the earliest date the assistant gave");
+  assert.match(await t.textContent(), /£1,290 pcm from/);
+
+  // A repair quoted above the landlord's limit waits for their approval, then is done.
+  await page.getByRole("button", {name: "New repair"}).click();
+  dlg = page.getByRole("dialog", {name: "New repair"});
+  await dlg.getByLabel("Title").fill("Replace the boiler");
+  await dlg.getByRole("radio", {name: "Urgent"}).check();
+  await dlg.getByLabel("Contractor (optional)").fill("Island Heating");
+  await dlg.getByLabel("Quote (£, optional)").fill("800");
+  await dlg.getByText("Above Margaret Le Brun's approval limit of £500").waitFor();
+  await dlg.getByRole("button", {name: "Add repair"}).click();
+  await page.waitForSelector("text=Repair added: Replace the boiler.");
+  const repair = page.locator("#repairs li", {hasText: "Replace the boiler"});
+  assert.match(await repair.textContent(), /Reported[\s\S]*Needs the landlord's approval/);
+  const update = async (status, done) => {
+    await repair.getByRole("button", {name: /^Update/}).click();
+    dlg = page.getByRole("dialog", {name: "Update repair"});
+    await dlg.getByLabel("Status").selectOption(status);
+    if (done) await done(dlg);
+    await dlg.getByRole("button", {name: "Save repair"}).click();
+  };
+  await update("approved");
+  await dlg.getByText(/mark it Awaiting approval first/).waitFor();
+  await dlg.getByRole("button", {name: "Cancel"}).click();
+  await update("awaiting_approval");
+  await repair.locator(".badge", {hasText: "Awaiting approval"}).waitFor();
+  await update("approved");
+  await repair.getByText(/The landlord approved it/).waitFor();
+  await update("done", d => d.getByLabel("Final cost (£)").fill("780"));
+  await repair.locator(".badge", {hasText: "Done"}).waitFor();
+  assert.match(await repair.textContent(), /Island Heating[\s\S]*£780/);
+  await noSideScroll(BASE + "admin/#/rentals/1", "#tenancy-1 .balance");
+  const y = sel => phone.locator(sel).first().evaluate(e => e.getBoundingClientRect().top);
+  assert.ok(await y("#tenancy-1") < await y("#h-details"), "on a phone the tenancy comes before the property's details");
+  await shot(phone, "admin-rental-mobile");
+
+  // A tenancy already running, entered today and collected from this month: nothing late.
+  await page.goto(BASE + "admin/#/rentals/3");
+  await page.waitForSelector("#t-rental");
+  await page.getByRole("button", {name: "New tenancy"}).click();
+  const form = page.locator("#new-tenancy");
+  await form.getByText("For tenancies already running, collect from this month and enter what is owed today.").waitFor();
+  await form.getByLabel("Tenant's name").fill("Helen Le Cornu");
+  await form.getByRole("radio", {name: "Periodic"}).check();
+  await form.getByRole("radio", {name: "2011 law"}).check();
+  await form.getByLabel("Start date").fill(addMonths(today, -24));
+  await form.getByLabel("Rent (£ pcm)").fill("2,100");
+  await form.getByLabel("Collect rent from").fill(today);
+  await form.getByLabel("Check-in report done on").fill(addMonths(today, -24));
+  await form.getByRole("button", {name: "Add tenancy"}).click();
+  await page.waitForSelector("text=Tenancy added for Helen Le Cornu. Payment reference HE-T0003.");
+  const t3 = page.locator("#tenancy-3");
+  await t3.locator(".balance").waitFor();
+  assert.doesNotMatch(await t3.locator(".late").textContent(), /days late/);
+  await page.goto(BASE + "admin/#/rentals");
+  await page.waitForSelector("#h-arrears");
+  assert.doesNotMatch(await page.locator("#h-arrears").locator("..").textContent(), /Helen Le Cornu/, "no arrears for the new tenancy");
+  await waitCount("7");
 }
 
 (async () => {

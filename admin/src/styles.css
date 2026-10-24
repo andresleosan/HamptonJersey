@@ -347,3 +347,18 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .fee input{max-width:160px}
 .plain-list{list-style:none;margin:0;padding:0} .plain-list li{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 .plain-list li:last-child{border-bottom:0}
+/* The property page: the work column (tenancy, checks, repairs) first, so a phone shows it above the details; two columns
+   from 1000px. The payment reference reads large, the balance and arrears sit together on a tinted strip. */
+.rental{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+@media (min-width:1000px){.rental{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}}
+.record>.block{margin-top:24px}
+.tenancy{display:grid;gap:12px} .tenancy h3{font-size:16px;margin:8px 0 0} .tenancy p{margin:0} .tenancy>.head{margin:0;align-items:flex-start}
+.tenancy .table-scroll{margin:0} .tenancy .table-scroll .list{min-width:480px;margin:0}
+.ref{display:grid;justify-items:end;gap:2px} .ref strong{font:400 22px/1.2 var(--display);letter-spacing:.06em}
+.owed{display:flex;flex-wrap:wrap;gap:12px 40px;align-items:flex-start;padding:12px 16px;background:var(--mist);border-radius:var(--r-sm)}
+.balance{display:grid;gap:2px} .balance strong{font:400 28px/1.2 var(--display)}
+.late{display:grid;gap:4px;align-content:start}
+.record .plain-list li{flex-wrap:wrap} .record .plain-list li>span:first-child{min-width:0;overflow-wrap:anywhere}
+.plain-list li.overdue{box-shadow:inset 3px 0 0 var(--err);padding-left:12px}
+.assistant{margin-bottom:12px} .assistant h3{margin:0;font-size:16px} .assistant .kv{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))} .assistant .inline{margin:0}
+@media (max-width:760px){.ref{justify-items:start}}

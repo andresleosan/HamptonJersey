@@ -69,6 +69,10 @@ const MAX_POUNDS = 1000000, MAX_PENCE = 100 * MAX_POUNDS; // R20
 const SERVICES = ["full", "let_only"], KINDS = ["fixed", "periodic"], REGIMES = ["2011", "2025"];
 const URGENCIES = ["emergency", "urgent", "routine"], PAYMENT_KINDS = ["rent", "deposit", "other"];
 const REPAIR_STATUSES = ["reported", "awaiting_approval", "approved", "in_progress", "done", "cancelled"];
+// R14: where a repair may go next; done and cancelled are final. Going back to awaiting_approval asks again (a larger quote).
+export const REPAIR_NEXT = { reported: ["awaiting_approval", "approved", "in_progress", "done", "cancelled"],
+  awaiting_approval: ["approved", "cancelled"], approved: ["awaiting_approval", "in_progress", "done", "cancelled"],
+  in_progress: ["awaiting_approval", "done", "cancelled"], done: [], cancelled: [] };
 
 // The sales field checkers plus what rentals need. has(k): every key on create, only the keys sent on an edit.
 function check(body, partial) {
