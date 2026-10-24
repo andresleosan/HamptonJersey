@@ -362,3 +362,15 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .plain-list li.overdue{box-shadow:inset 3px 0 0 var(--err);padding-left:12px}
 .assistant{margin-bottom:12px} .assistant h3{margin:0;font-size:16px} .assistant .kv{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))} .assistant .inline{margin:0}
 @media (max-width:760px){.ref{justify-items:start}}
+/* Bank import: three steps as cards, every row in a box that scrolls. Statement: label and amount lines, net in bold. */
+.rent-import>.card{margin-top:16px} .rent-import .kv{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.rent-import .table-scroll .list{min-width:520px} .rent-import td.num{white-space:nowrap} .rent-import .import-rows{max-height:440px;overflow-y:auto}
+.statement .card{display:grid;gap:20px;max-width:760px} .statement-head h2,.statement-head p{margin:0} .statement h3{font-size:16px;margin:0 0 4px}
+.lines{width:100%;border-collapse:collapse} .lines tr{border-bottom:1px solid var(--line)}
+.lines th{text-align:left;font-weight:400;padding:6px 12px 6px 0} .lines td{text-align:right;white-space:nowrap;vertical-align:top;padding:6px 0}
+.lines caption{text-align:left;font-family:var(--display);font-size:16px;padding-bottom:4px}
+.lines .net{border-bottom:0} .lines .net th,.lines .net td{font-weight:600}
+/* Printing (the statement): only the page's content, black on white, without the bar, buttons or form controls. */
+@media print{*{color:#000!important;background:transparent!important;box-shadow:none!important}
+  .bar,.btn,button,form,input,select,textarea{display:none!important}
+  .page{max-width:none;padding:0} .card{border:0;padding:0} .lines tr{border-color:#999}}

@@ -527,6 +527,7 @@ async function admin(browser) {
   if (SHOTS) await page.locator("#s-offers").screenshot({path: `${SHOTS}/admin-listing-offers.png`});
   await rentals(page, phone, noSideScroll);
   await property(page, phone, noSideScroll);
+  await bankImport(page, phone, noSideScroll);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -757,6 +758,99 @@ async function property(page, phone, noSideScroll) {
   await page.waitForSelector("#h-arrears");
   assert.doesNotMatch(await page.locator("#h-arrears").locator("..").textContent(), /Helen Le Cornu/, "no arrears for the new tenancy");
   await waitCount("7");
+}
+
+// F5-A bank import and statement, after property(): tests/fixtures/bank.csv (BOM, CRLF, quotes, a line break inside
+// quotes) dated today: Rose Cottage's rent by its reference, a payer with no reference, a charge (money out), the same
+// cash payment twice (two payments, n = 1 and 2) and a description starting with "=". Then Margaret Le Brun's statement
+// for this month: the £1,250 paid by hand and the £1,000 imported, the 10% fee and the £780 boiler repair.
+async function bankImport(page, phone, noSideScroll) {
+  const {jerseyToday} = await import("../server/viewings.js");
+  const today = jerseyToday(), [y, m, d] = today.split("-");
+  const csv = {name: "bank.csv", mimeType: "text/csv",
+    buffer: Buffer.from(readFileSync("tests/fixtures/bank.csv", "utf8").replaceAll("{today}", `${d}/${m}/${y}`))};
+  const imported = () => JSON.parse(d1("SELECT COUNT(*) AS n FROM payments WHERE source = 'import'"))[0].results[0].n;
+  const waitCount = n => page.waitForFunction(n => document.querySelector('header.bar a[href="#/rentals"] .count')?.firstChild.textContent === n, n);
+  const check = async p => {
+    await p.getByLabel("Bank statement (CSV)").setInputFiles(csv);
+    await p.getByRole("button", {name: "Check rows"}).click();
+    await p.waitForFunction(() => document.activeElement?.id === "h-summary");
+    return p.locator("#import-counts").textContent();
+  };
+  await page.goto(BASE + "admin/#/rentals");
+  await page.waitForSelector("#t-rentals");
+  await page.getByRole("link", {name: "Import bank CSV"}).click();
+  await page.waitForSelector("#t-import");
+  // A file over 1 MB is refused before it is read.
+  await page.getByLabel("Bank statement (CSV)").setInputFiles({name: "big.csv", mimeType: "text/csv", buffer: Buffer.alloc(1024 * 1024 + 1, 97)});
+  await page.getByText("This file is over 1 MB").waitFor();
+  // The columns are guessed from the header and can be chosen; the sample shows the first 5 rows as they will be read.
+  await page.getByLabel("Bank statement (CSV)").setInputFiles(csv);
+  await page.locator("#import-sample").waitFor();
+  assert.equal(await page.getByLabel("Date", {exact: true}).inputValue(), "0");
+  assert.equal(await page.getByLabel("Date format").inputValue(), "DMY");
+  await page.getByLabel("Amount (money in)").selectOption({label: "Amount"});
+  await page.getByLabel("Description").selectOption({label: "Description"});
+  assert.equal(await page.locator("#import-sample tbody tr").count(), 5);
+  assert.match(await page.locator("#import-sample").textContent(), /J VAUTIER RENT HE-T0001£1,000\.00[\s\S]*J SMITH RENT OCT£450\.00[\s\S]*-£85\.40/);
+  await shot(page, "admin-import-columns");
+  // The dry run: one row matched, four unmatched (the same cash payment twice counts as two), the charge ignored.
+  assert.match(await check(page), /Matched to a tenancy1[\s\S]*Unmatched4[\s\S]*Already imported0[\s\S]*Already recorded by hand0[\s\S]*Ignored1/);
+  const rows = page.locator("#import-rows tbody tr");
+  assert.equal(await rows.count(), 6);
+  assert.match(await rows.nth(0).textContent(), /J VAUTIER RENT HE-T0001[\s\S]*Matched[\s\S]*HE-T0001/);
+  assert.match(await rows.nth(2).textContent(), /JERSEY ELECTRICITY[\s\S]*Ignored[\s\S]*money in/);
+  assert.equal(await rows.nth(5).locator("td").nth(1).textContent(), '=HYPERLINK("https://example.com","Pay")', "a cell starting with = is text");
+  assert.equal(await page.locator("#import-rows a").count(), 0);
+  assert.equal(imported(), 1, "a dry run writes nothing");
+  await shot(page, "admin-import-summary");
+  // Import writes them; the bar's count gains the four unmatched payments and Rose Cottage's balance goes down.
+  await page.getByRole("button", {name: "Import 5 payments"}).click();
+  await page.waitForSelector("text=Imported 5 payments: 1 matched, 4 unmatched.");
+  assert.equal(imported(), 6);
+  await waitCount("11");
+  assert.match(JSON.parse(d1("SELECT key FROM app_settings WHERE key LIKE 'csv_map:%'"))[0].results[0].key, /^csv_map:[0-9a-f]{64}$/,
+    "the columns are remembered for this bank's header");
+  await page.getByRole("link", {name: "Assign the unmatched payments in Rentals"}).click();
+  await page.locator("#h-unmatched").locator("..").getByText("J SMITH RENT OCT").waitFor();
+  await page.goto(BASE + "admin/#/rentals/1");
+  await page.locator("#tenancy-1 .balance", {hasText: "£250.00"}).waitFor();
+  // The same file again adds nothing.
+  await page.goto(BASE + "admin/#/rentals/import");
+  await page.waitForSelector("#t-import");
+  assert.match(await check(page), /Matched to a tenancy0[\s\S]*Unmatched0[\s\S]*Already imported5[\s\S]*Ignored1/);
+  await page.getByText("Nothing new to import.").waitFor();
+  assert.equal(await page.getByRole("button", {name: /^Import \d/}).count(), 0);
+  assert.equal(imported(), 6);
+  await noSideScroll(BASE + "admin/#/rentals/import", "#t-import");
+  await check(phone);
+  assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, "no horizontal scroll on the summary");
+  await shot(phone, "admin-import-mobile");
+
+  // The statement: the previous month by default; this month for Margaret Le Brun shows the rent, the fee and the repair.
+  await page.goto(BASE + "admin/#/rentals");
+  await page.getByRole("link", {name: "Statements"}).click();
+  await page.waitForSelector("#t-statement");
+  const {addMonths} = await import("../server/rentals.js");
+  assert.equal(await page.getByLabel("Month").inputValue(), addMonths(`${y}-${m}-01`, -1).slice(0, 7));
+  await page.getByLabel("Landlord").selectOption({label: "Margaret Le Brun"});
+  await page.getByLabel("Month").selectOption(`${y}-${m}`);
+  await page.waitForFunction(m => location.hash === `#/rentals/statements?landlord=1&month=${m}`, `${y}-${m}`);
+  const st = page.locator("#statement");
+  await st.getByText("Replace the boiler").waitFor();
+  assert.match(await st.textContent(), /Rose Cottage, La Rue du Moulin[\s\S]*Rent received£2,250\.00[\s\S]*Management fee \(10%\)-£225\.00[\s\S]*Replace the boiler[\s\S]*-£780\.00/);
+  assert.match(await page.locator("#statement-totals").textContent(), /Rent received£2,250\.00[\s\S]*Fees-£225\.00[\s\S]*Repairs-£780\.00[\s\S]*Net to landlord£1,245\.00/);
+  assert.doesNotMatch(await st.textContent(), /GST/, "no GST line while gst_percent is 0");
+  await shot(page, "admin-statement");
+  // Printing leaves out the bar, the buttons and the selectors.
+  await page.emulateMedia({media: "print"});
+  for (const sel of ["header.bar", "#statement-form", "button:has-text('Print')"]) assert.ok(await page.locator(sel).isHidden(), `${sel} is not printed`);
+  assert.ok(await st.isVisible());
+  await shot(page, "admin-statement-print");
+  await page.emulateMedia({media: "screen"});
+  await noSideScroll(page.url().replace(/^.*?#/, BASE + "admin/#"), "#statement");
+  await phone.locator("#statement").getByText("Replace the boiler").waitFor();
+  await shot(phone, "admin-statement-mobile");
 }
 
 (async () => {

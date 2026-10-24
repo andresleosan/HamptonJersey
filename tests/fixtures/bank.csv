@@ -1,0 +1,8 @@
+﻿Date,Type,Description,Amount,Balance
+{today},FPI,J VAUTIER RENT HE-T0001,"1,000.00","6,000.00"
+{today},FPI,"J SMITH
+RENT OCT",450.00,"6,450.00"
+{today},DD,JERSEY ELECTRICITY,-85.40,"6,364.60"
+{today},BGC,"CASH PAID IN, ST HELIER",50.00,"6,414.60"
+{today},BGC,"CASH PAID IN, ST HELIER",50.00,"6,464.60"
+{today},FPI,"=HYPERLINK(""https://example.com"",""Pay"")",12.00,"6,476.60"

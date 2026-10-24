@@ -629,7 +629,7 @@ async function statement({ request, env }) {
   // Rounding: each property's fee is rounded half-up to the penny (basis points); GST is rounded once, on the total fee.
   const bp = pct => Math.round(pct * 100), gst_percent = setting ? JSON.parse(setting.value) : 0;
   const rentals = lines.map(({ id: rid, address, fee_percent, archived_at, rent_received, other_received }) => ({
-    id: rid, address, archived_at, rent_received, fee: Math.round(rent_received * bp(fee_percent) / 10000),
+    id: rid, address, fee_percent, archived_at, rent_received, fee: Math.round(rent_received * bp(fee_percent) / 10000),
     repairs: repairs.filter(x => x.rental_id === rid).map(({ rental_id, ...x }) => x), other_received,
   })).filter(r => !r.archived_at || r.rent_received || r.other_received || r.repairs.length); // archived: only with money
   const sum = f => rentals.reduce((t, r) => t + f(r), 0);

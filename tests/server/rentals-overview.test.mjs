@@ -157,8 +157,8 @@ test("statement: rent received in the Jersey month, fee, GST when set, repairs c
   assert.deepEqual(s.landlord.name, "Sam Owner");
   assert.equal(s.month, "2026-09");
   assert.equal(s.gst_percent, 0);
-  assert.deepEqual(s.rentals.map(r => [r.address, r.rent_received, r.fee, r.other_received]),
-    [["A House", 150000, 15000, 200000], ["B Flat", 33333, 4167, 1000]]);
+  assert.deepEqual(s.rentals.map(r => [r.address, r.fee_percent, r.rent_received, r.fee, r.other_received]),
+    [["A House", 10, 150000, 15000, 200000], ["B Flat", 12.5, 33333, 4167, 1000]]);
   assert.deepEqual(s.rentals[0].repairs.map(r => [r.title, r.done_on, r.cost]), [["Boiler", "2026-09-15", 30000]]);
   assert.deepEqual(s.rentals[1].repairs.map(r => [r.title, r.cost]), [["Leak", 12000]]);
   assert.deepEqual(s.totals, { rent: 183333, fee: 19167, gst: null, repairs: 42000, net: 183333 - 19167 - 42000 });

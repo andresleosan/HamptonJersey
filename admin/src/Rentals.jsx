@@ -68,6 +68,8 @@ export default function Rentals({ onChange }) {
   return <section className="rentals" aria-labelledby="t-rentals">
     <div className="head"><h1 id="t-rentals">Rentals</h1>
       <div className="ctl"><button type="button" className="btn ghost" onClick={open("landlord")}>New landlord</button>
+        <a className="btn ghost" href="#/rentals/import">Import bank CSV</a>
+        <a className="btn ghost" href="#/rentals/statements">Statements</a>
         <a className="btn" href="#/rentals/new">New property</a></div></div>
     {msg && <p role="status" className="ok">{msg.text}{msg.landlord && <> <a href={`#/rentals/new?landlord=${msg.landlord.id}`}>
       Add a property for {msg.landlord.name}</a></>}</p>}
