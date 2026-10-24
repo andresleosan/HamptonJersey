@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, call, adminCookie } from "./helpers.mjs";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
-import { paymentRef, nextStep } from "../../server/rentals.js";
+import { paymentRef, nextStep, occurrences } from "../../server/rentals.js";
 import { ARREARS_SQL } from "../../server/routes/rent.js";
 
 const req = async (env, method, path, body) => call(env, method, path, { body, cookie: await adminCookie() });
@@ -87,7 +87,10 @@ test("arrears: the next step is the latest due one; marking it done; a full paym
   assert.equal(r.status, 200, JSON.stringify(r.data));
   assert.equal(r.data.arrears.next_step, null);
   assert.deepEqual(r.data.arrears.done.map(s => [s.step, s.note, s.done_by]), [["firm", "Texted on Monday", "luismadef45@gmail.com"]]);
-  assert.equal((await mark(env, id, ago(6), "firm")).status, 409, "already done");
+  const again = await mark(env, id, ago(6), "firm", { note: "Twice" });
+  assert.equal(again.status, 200, "marking it again changes nothing");
+  assert.deepEqual(again.data.arrears, r.data.arrears);
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM arrears_steps").n, 1);
   const all = (await env.DB.prepare(`WITH ${ARREARS_SQL} SELECT next_step FROM arrears`).bind(T, id).all()).results;
   assert.deepEqual(all.map(a => a.next_step), [null]);
   assert.deepEqual(events(env, "arrears.step_done").map(e => [e.tenancy_id, e.data]),
@@ -127,11 +130,18 @@ test("deposit and other payments don't reduce arrears", async () => {
   assert.equal(bad.status, 400);
   assert.deepEqual(Object.keys(bad.data.fields).sort(), ["amount", "kind", "received_on"]);
   assert.equal((await req(env, "POST", "/admin/payments", { tenancy_id: 999, received_on: T, amount: 1 })).status, 404);
+  // P10: a let-only tenancy may hold a deposit or other money, never rent.
   const lo = await tenancy(env, { service: "let_only" });
   assert.equal((await req(env, "POST", "/admin/payments", { tenancy_id: lo, received_on: T, amount: 1 })).status, 409);
+  const loDeposit = await req(env, "POST", "/admin/payments", { tenancy_id: lo, received_on: T, amount: 90000, kind: "deposit" });
+  assert.equal(loDeposit.status, 201, JSON.stringify(loDeposit.data));
+  assert.deepEqual(loDeposit.data.payments.map(p => [p.kind, p.amount]), [["deposit", 90000]]);
+  assert.equal(loDeposit.data.arrears, null);
+  const loId = loDeposit.data.payments[0].id;
+  assert.equal((await req(env, "PUT", `/admin/payments/${loId}`, { kind: "rent" })).status, 409);
 
   // Corrected to rent, it counts (R26).
-  const deposit = row(env, "SELECT id FROM payments WHERE kind = 'deposit'").id;
+  const deposit = row(env, "SELECT id FROM payments WHERE kind = 'deposit' AND tenancy_id = ?", id).id;
   const r = await req(env, "PUT", `/admin/payments/${deposit}`, { kind: "rent" });
   assert.equal(r.status, 200, JSON.stringify(r.data));
   assert.equal(r.data.balance, 0);
@@ -155,17 +165,46 @@ test("import: dry run counts matched, unmatched, ignored without writing", async
     ROW({ amount: null, description: "Paid in blank" }),
     ROW({ date: "2026-02-30" }),
     ROW({ amount: 12.5 }),
+    ROW({ date: plusDays(T, 1) }),
   ];
   const r = await imp(env, input, true);
   assert.equal(r.status, 200, JSON.stringify(r.data));
   const { rows: out, ...counts } = r.data;
-  assert.deepEqual(counts, { matched: 1, unmatched: 2, duplicate: 0, by_hand: 0, ignored: 4 });
+  assert.deepEqual(counts, { matched: 1, unmatched: 2, duplicate: 0, by_hand: 0, ignored: 5 });
   assert.deepEqual(out.map(o => [o.status, o.payment_ref]),
-    [["matched", ref], ["unmatched", null], ["unmatched", null], ["ignored", null], ["ignored", null], ["ignored", null], ["ignored", null]]);
+    [["matched", ref], ["unmatched", null], ["unmatched", null], ["ignored", null], ["ignored", null], ["ignored", null],
+      ["ignored", null], ["ignored", null]]);
+  assert.equal(out.at(-1).reason, "Future date", "P11");
   assert.deepEqual(out[0], { ...input[0], status: "matched", payment_ref: ref });
   for (const o of out.filter(o => o.status === "ignored")) assert.ok(o.reason, JSON.stringify(o));
   assert.equal(payments(env).length, 0);
   assert.equal(events(env, "payments.imported").length, 0);
+
+  // Only false or no dry_run writes; anything else that isn't a boolean is refused.
+  for (const bad of ["yes", "false", 1, null]) assert.equal((await imp(env, input, bad)).status, 400, String(bad));
+  assert.equal(payments(env).length, 0);
+  assert.equal((await imp(env, input, undefined)).status, 200);
+  assert.equal(payments(env).length, 3);
+});
+
+test("import: occurrences() numbers rows by date, pence and tidied description; the hash uses the same", async () => {
+  const rowsIn = [ROW({ description: "Rent  HE-T0001 " }), ROW({ description: "Rent HE-T0001" }), ROW({ amount: 1 }),
+    ROW({ description: " Rent\tHE-T0001" })];
+  assert.deepEqual(occurrences(rowsIn).map(r => r.n), [1, 2, 1, 3]);
+  const strip = list => list.map(({ n, ...r }) => r);
+  assert.deepEqual(strip(occurrences(rowsIn)), strip(rowsIn), "the rows are otherwise unchanged");
+
+  const env = makeEnv();
+  const clash = await imp(env, [ROW({ description: "Rent  x" }), ROW({ description: "Rent x" })], true);
+  assert.equal(clash.status, 400, "two rows with the same key and n");
+  // A file sent in two chunks, numbered over the whole file: the second chunk's rows are new, not duplicates.
+  const file = occurrences([ROW(), ROW(), ROW({ description: "Rent " })]);
+  assert.equal((await imp(env, file.slice(0, 2))).data.unmatched, 2);
+  const second = await imp(env, file.slice(2));
+  assert.deepEqual([second.data.unmatched, second.data.duplicate], [1, 0]);
+  assert.deepEqual(payments(env).map(p => p.description), ["Rent", "Rent", "Rent"]);
+  const respaced = await imp(env, [ROW({ description: "  Rent ", n: 3 })], true);
+  assert.equal(respaced.data.duplicate, 1, "spacing doesn't change the hash");
 });
 
 test("import: the same file twice adds nothing; two identical rows in one file are two payments", async () => {
@@ -227,17 +266,35 @@ test("import: a reference of a let_only or unknown tenancy is unmatched; assigni
   assert.equal(put.status, 200, JSON.stringify(put.data));
   assert.equal(put.data.balance, 0);
   assert.equal(put.data.arrears, null);
-  assert.equal((await req(env, "PUT", `/admin/payments/${a.id}`, { tenancy_id: lo })).status, 409, "already assigned");
-  assert.deepEqual(events(env, "payment.updated").map(e => [e.tenancy_id, e.data.after]),
-    [[null, { tenancy_id: null, kind: "other" }], [id, { tenancy_id: id, kind: "rent" }]]);
+  assert.equal((await req(env, "PUT", `/admin/payments/${a.id}`, { tenancy_id: lo })).status, 409, "rent can't go to let_only");
+
+  // P9: moved to another full tenancy, then back to Unmatched; each move logged before/after.
+  const other = await tenancy(env, { days: 6 });
+  const moved = await req(env, "PUT", `/admin/payments/${a.id}`, { tenancy_id: other });
+  assert.equal(moved.status, 200, JSON.stringify(moved.data));
+  assert.equal(moved.data.tenancy.id, other);
+  assert.equal(moved.data.balance, 0);
+  assert.equal((await detail(env, id)).balance, 150000, "the first tenancy owes again");
+  const back = await req(env, "PUT", `/admin/payments/${a.id}`, { tenancy_id: null });
+  assert.equal(back.status, 200, JSON.stringify(back.data));
+  assert.equal(back.data.payment.tenancy_id, null);
+  assert.equal((await detail(env, other)).balance, 150000);
+  const otherRental = row(env, "SELECT rental_id FROM tenancies WHERE id = ?", other).rental_id;
+  assert.deepEqual(events(env, "payment.updated").map(e => [e.rental_id, e.tenancy_id, e.data.before, e.data.after]), [
+    [null, null, { tenancy_id: null, kind: "rent" }, { tenancy_id: null, kind: "other" }],
+    [row(env, "SELECT rental_id FROM tenancies WHERE id = ?", id).rental_id, id, { tenancy_id: null, kind: "rent" }, { tenancy_id: id, kind: "rent" }],
+    [otherRental, other, { tenancy_id: id, kind: "rent" }, { tenancy_id: other, kind: "rent" }],
+    [otherRental, other, { tenancy_id: other, kind: "rent" }, { tenancy_id: null, kind: "rent" }],
+  ]);
+  assert.equal((await req(env, "PUT", `/admin/payments/${a.id}`, { tenancy_id: "x" })).status, 400);
 });
 
-test("import: 2001 rows is 400; a cell starting with = is stored as plain text", async () => {
+test("import: 501 rows is 400; a cell starting with = is stored as plain text", async () => {
   const env = makeEnv();
-  const many = Array.from({ length: 2001 }, (_, i) => ROW({ n: i + 1 }));
+  const many = Array.from({ length: 501 }, (_, i) => ROW({ n: i + 1 }));
   const big = await imp(env, many, true);
   assert.equal(big.status, 400);
-  assert.equal((await imp(env, many.slice(0, 2000), true)).status, 200);
+  assert.equal((await imp(env, many.slice(0, 500), true)).status, 200);
   assert.equal((await imp(env, [ROW({ n: 0 })], true)).status, 400);
   assert.equal((await imp(env, "rows", true)).status, 400);
 

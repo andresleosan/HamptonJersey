@@ -1,6 +1,6 @@
 import { json, fail, readJson, now } from "../http.js";
 import { validateTenancy, validatePayment, rentAssistant, earliestMoveOut, complianceStatus, addMonths, LEGAL,
-  ARREARS_STEPS, REF_RE } from "../rentals.js";
+  ARREARS_STEPS, REF_RE, importKey, cleanDescription } from "../rentals.js";
 import { fields } from "../sales.js";
 import { jerseyToday, plusDays, realDate } from "../viewings.js";
 import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE } from "./rentals.js";
@@ -312,7 +312,7 @@ async function endTenancy({ request, env, admin, params: [id] }) {
 }
 
 // R8, R27: a step marked done (with a note) for the oldest unpaid charge, once due; earlier due steps may be marked
-// too. The INSERT checks all of it again, so a payment or the same mark meanwhile fails the batch (409).
+// too. Marking it again changes nothing (200). The INSERT checks all of it again, so a payment meanwhile is a 409.
 async function markStep({ request, env, admin, params: [id, due_on, step] }) {
   const s = Object.hasOwn(STEP, step) ? STEP[step] : fail(400, "Unknown arrears step");
   if (!realDate(due_on)) fail(400, "Invalid date");
@@ -326,9 +326,9 @@ async function markStep({ request, env, admin, params: [id, due_on, step] }) {
         .bind(cur.id, due_on, step)])).map(r => r.results);
     if (a?.oldest_unpaid_on !== due_on) fail(409, "This is not the oldest unpaid charge. Reload to see the arrears");
     if (a.days_late < s.days) fail(409, "This step is not due yet");
-    if (done) fail(409, "This step is already marked done");
+    return !!done;
   };
-  await check();
+  if (await check()) return json(await detail(env, cur.id));
   try {
     await env.DB.batch([
       env.DB.prepare(`INSERT INTO arrears_steps (tenancy_id, charge_due_on, step, done_at, done_by, note)
@@ -340,83 +340,96 @@ async function markStep({ request, env, admin, params: [id, due_on, step] }) {
         data: { charge_due_on: due_on, step, note } }),
     ]);
   } catch (e) {
-    await check();
-    throw e;
+    if (!(await check())) throw e;
   }
   return json(await detail(env, cur.id));
 }
 
-const NOT_FULL = "Only full management tenancies take payments";
+const NOT_FULL = "Only full management tenancies take rent payments";
 // A full-service tenancy's id (SQL) or NULL: the guard of every write that gives a payment a tenancy.
 const fullId = id => `(SELECT t.id FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE t.id = ${id} AND r.service = 'full')`;
-const checkFull = t => { if (t.service !== "full") fail(409, NOT_FULL); };
+// P10: rent only on full service; a let-only tenancy may hold a deposit or other money.
+const checkKind = kind => t => { if (t.service !== "full" && kind === "rent") fail(409, NOT_FULL); };
 
-// R7, R26: a payment recorded by hand, for a full-service tenancy (an ended one may still be paying off).
+// R7, R26: a payment recorded by hand (an ended tenancy may still be paying off).
 async function createPayment({ request, env, admin }) {
   const r = validatePayment(asObject(await readJson(request)));
   if (r.errors) return fieldErrors(r.errors);
   const t = await loadTenancy(env, r.value.tenancy_id), { received_on, amount, kind, description } = r.value;
-  checkFull(t);
+  const check = checkKind(kind);
+  check(t);
   await act(env, t.id, [
     env.DB.prepare(`INSERT INTO payments (tenancy_id, received_on, amount, kind, description, source, created_at, created_by)
       SELECT t.id, ?, ?, ?, ?, 'manual', ?, ? FROM tenancies t JOIN rentals r ON r.id = t.rental_id
-      WHERE t.id = ? AND r.service = 'full'`).bind(received_on, amount, kind, description, now(), admin, t.id),
+      WHERE t.id = ? AND (r.service = 'full' OR ? <> 'rent')`).bind(received_on, amount, kind, description, now(), admin, t.id, kind),
     ensureChanged(env),
     rentalEvent(env, { rental_id: t.rental_id, tenancy_id: t.id, actor: admin, type: "payment.recorded",
       data: { received_on, amount, kind, description } }, { payment_id: "payments" }),
-  ], checkFull);
+  ], check);
   return json(await detail(env, t.id), 201);
 }
 
-// R9, R26: an Unmatched payment assigned to a full-service tenancy, or any payment's kind corrected. The UPDATE is
-// guarded on the row as read, so a change meanwhile is a 409.
+// R9, R26, P9: a payment assigned to a tenancy, moved to another or back to Unmatched (tenancy_id null), or its kind
+// corrected. The UPDATE is guarded on the row as read, so a change meanwhile is a 409.
 async function updatePayment({ request, env, admin, params: [id] }) {
-  const body = asObject(await readJson(request));
-  const r = validatePayment(Object.fromEntries(["tenancy_id", "kind"].filter(k => k in body).map(k => [k, body[k]])),
-    { partial: true });
+  const body = asObject(await readJson(request)), unassign = body.tenancy_id === null;
+  const r = validatePayment(Object.fromEntries(["tenancy_id", "kind"].filter(k => k in body && !(k === "tenancy_id" && unassign))
+    .map(k => [k, body[k]])), { partial: true });
   if (r.errors) return fieldErrors(r.errors);
   const load = () => env.DB.prepare("SELECT * FROM payments WHERE id = ?").bind(Number(id)).first();
   const cur = (await load()) ?? fail(404, "Payment not found");
-  const after = { tenancy_id: r.value.tenancy_id ?? cur.tenancy_id, kind: r.value.kind ?? cur.kind };
-  if (cur.tenancy_id && after.tenancy_id !== cur.tenancy_id) fail(409, "This payment is already assigned to a tenancy");
-  const t = after.tenancy_id && await loadTenancy(env, after.tenancy_id);
-  if (t) checkFull(t);
+  const after = { tenancy_id: unassign ? null : r.value.tenancy_id ?? cur.tenancy_id, kind: r.value.kind ?? cur.kind };
+  const t = after.tenancy_id && await loadTenancy(env, after.tenancy_id), check = checkKind(after.kind);
+  if (t) check(t);
+  const was = !t && cur.tenancy_id ? await loadTenancy(env, cur.tenancy_id) : null; // the event's property on unassign
   if (after.tenancy_id !== cur.tenancy_id || after.kind !== cur.kind) try {
     await env.DB.batch([
-      env.DB.prepare(`UPDATE payments SET tenancy_id = ?, kind = ? WHERE id = ? AND tenancy_id IS ? AND kind = ?
-        AND (?6 IS NULL OR ${fullId("?6")} IS NOT NULL)`).bind(after.tenancy_id, after.kind, cur.id, cur.tenancy_id, cur.kind, after.tenancy_id),
+      env.DB.prepare(`UPDATE payments SET tenancy_id = ?1, kind = ?2 WHERE id = ?3 AND tenancy_id IS ?4 AND kind = ?5
+        AND (?1 IS NULL OR EXISTS (SELECT 1 FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE t.id = ?1
+        AND (r.service = 'full' OR ?2 <> 'rent')))`)
+        .bind(after.tenancy_id, after.kind, cur.id, cur.tenancy_id, cur.kind),
       ensureChanged(env),
-      rentalEvent(env, { rental_id: t?.rental_id ?? null, tenancy_id: after.tenancy_id, actor: admin, type: "payment.updated",
+      rentalEvent(env, { rental_id: (t || was)?.rental_id ?? null, tenancy_id: after.tenancy_id ?? cur.tenancy_id,
+        actor: admin, type: "payment.updated",
         data: { payment_id: cur.id, before: { tenancy_id: cur.tenancy_id, kind: cur.kind }, after } }),
     ]);
   } catch (e) {
     const p = await load();
     if (p.tenancy_id !== cur.tenancy_id || p.kind !== cur.kind) fail(409, "This payment changed meanwhile. Reload to see it");
-    if (t) checkFull(await loadTenancy(env, t.id));
+    if (t) check(await loadTenancy(env, t.id));
     throw e;
   }
   return json(t ? await detail(env, t.id) : { payment: await load() });
 }
 
-const IMPORT_BYTES = 2 * 1024 * 1024, MAX_ROWS = 2000, CHUNK = 500;
+// Per request (R9 says 2,000 a file): the panel sends a file in chunks of 500, numbered first with occurrences().
+const IMPORT_BYTES = 2 * 1024 * 1024, MAX_ROWS = 500;
 const sha256 = async text => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))]
   .map(b => b.toString(16).padStart(2, "0")).join("");
 const STATUSES = ["matched", "unmatched", "duplicate", "by_hand", "ignored"];
 
-// R9, R25: bank rows the panel already split ({date ISO, amount in pence, description, n = its occurrence among the
-// file's identical rows}), checked again here. Only money in; anything unreadable is "ignored" with a reason. Each
-// row's hash (SHA-256 of date|amount|description|n) is unique in payments, so a file imported twice adds nothing.
+// R9, R25: bank rows the panel already split ({date ISO, amount in pence, description, n = occurrences() over the
+// whole file}), checked again here. Only money in, not after today; anything unreadable is "ignored" with a reason.
+// Each row's hash (SHA-256 of importKey|n) is unique in payments, so a file imported twice adds nothing.
 // A reference HE-T… finds a full-service tenancy, else the row is Unmatched; that tenancy's manual payment of the same
 // amount, within 7 days and without a hash, takes the row's hash instead of a new payment. dry_run writes nothing;
 // otherwise one batch, with a summary event per tenancy and one for Unmatched.
 async function importPayments({ request, env, admin }) {
   const body = asObject(await readJson(request, IMPORT_BYTES));
   if (!Array.isArray(body.rows) || !body.rows.length) fail(400, "Send the rows to import");
-  if (body.rows.length > MAX_ROWS) fail(400, `Import up to ${MAX_ROWS.toLocaleString("en-GB")} rows at a time`);
-  const rows = await Promise.all(body.rows.map(async raw => {
-    const b = asObject(raw), errors = {}, f = fields(b, errors);
+  if (body.rows.length > MAX_ROWS) fail(400, `Import up to ${MAX_ROWS} rows at a time`);
+  if ("dry_run" in body && typeof body.dry_run !== "boolean") fail(400, "dry_run must be true or false");
+  const keys = body.rows.map(raw => {
+    const b = asObject(raw);
     if (!Number.isInteger(b.n) || b.n < 1) fail(400, "Invalid format");
-    const date = f.date("date") ?? f.err("date", "Enter a date as YYYY-MM-DD"), description = f.text("description", 300);
+    return `${importKey(b)}|${b.n}`;
+  });
+  if (new Set(keys).size < keys.length) fail(400, "Two rows have the same occurrence number");
+  const today = jerseyToday();
+  const rows = await Promise.all(body.rows.map(async (b, i) => {
+    const errors = {}, f = fields(b, errors), text = f.text("description", 300);
+    const date = f.date("date") ?? f.err("date", "Enter a date as YYYY-MM-DD"), description = text && cleanDescription(text);
+    if (date > today) f.err("date", "Future date");
     const amount = !Number.isInteger(b.amount) ? f.err("amount", "Not an amount")
       : b.amount < 1 ? f.err("amount", "Money out or zero: only money in is imported")
         : b.amount > MAX_PENCE ? f.err("amount", "Over £1,000,000") : b.amount;
@@ -424,7 +437,7 @@ async function importPayments({ request, env, admin }) {
     if (Object.keys(errors).length) return { out: { ...out, reason: Object.values(errors)[0] } };
     const ref = REF_RE.exec(description ?? "");
     return { out, date, amount, description, ref: ref && Number(ref[1]),
-      hash: await sha256(`${date}|${amount}|${description ?? ""}|${b.n}`) };
+      hash: await sha256(keys[i]) };
   }));
   const ok = rows.filter(r => r.hash), q = (sql, v) => env.DB.prepare(sql).bind(JSON.stringify(v));
   const [full, known, hand] = (await env.DB.batch([
@@ -449,22 +462,20 @@ async function importPayments({ request, env, admin }) {
       if (r.hand) used.add(r.hand);
       r.out.status = r.hand ? "by_hand" : "matched";
     }
-    seen.add(r.hash);
   });
   const add = ok.filter(r => ["matched", "unmatched"].includes(r.out.status)), byHand = ok.filter(r => r.hand);
-  if (body.dry_run !== true && (add.length || byHand.length)) {
-    const ts = now(), chunks = [];
-    for (let i = 0; i < add.length; i += CHUNK) chunks.push(add.slice(i, i + CHUNK));
+  if (!body.dry_run && (add.length || byHand.length)) {
+    const ts = now();
     await env.DB.batch([
       q(`UPDATE OR IGNORE payments SET import_hash = (SELECT json_extract(value, '$[1]') FROM json_each(?1)
         WHERE json_extract(value, '$[0]') = payments.id)
         WHERE import_hash IS NULL AND id IN (SELECT json_extract(value, '$[0]') FROM json_each(?1))`,
       byHand.map(r => [r.hand, r.hash])),
-      ...chunks.map(c => env.DB.prepare(`INSERT INTO payments (tenancy_id, received_on, amount, description, kind, source,
+      env.DB.prepare(`INSERT INTO payments (tenancy_id, received_on, amount, description, kind, source,
         import_hash, created_at, created_by) SELECT ${fullId("json_extract(value, '$[0]')")}, json_extract(value, '$[1]'),
         json_extract(value, '$[2]'), json_extract(value, '$[3]'), 'rent', 'import', json_extract(value, '$[4]'), ?2, ?3
         FROM json_each(?1) WHERE 1 ON CONFLICT (import_hash) DO NOTHING`)
-        .bind(JSON.stringify(c.map(r => [r.ref, r.date, r.amount, r.description, r.hash])), ts, admin)),
+        .bind(JSON.stringify(add.map(r => [r.ref, r.date, r.amount, r.description, r.hash])), ts, admin),
       // What this batch wrote, per tenancy (NULL: Unmatched): rows added (and their pence), manual payments matched.
       env.DB.prepare(`INSERT INTO rental_events (rental_id, tenancy_id, at, actor, type, data)
         SELECT t.rental_id, p.tenancy_id, ?2, ?3, 'payments.imported', json_object('added', SUM(p.source = 'import'),

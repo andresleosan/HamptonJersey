@@ -197,6 +197,20 @@ export function parseMoney(text) {
   return Math.round(Number(s.replace(/,/g, "")) * 100);
 }
 
+// R9: a bank row's identity: date, pence and the description trimmed with inner whitespace collapsed. With n (its
+// occurrence among the file's rows of the same key, from 1) it is what the import hashes.
+export const cleanDescription = d => String(d ?? "").trim().replace(/\s+/g, " ");
+export const importKey = r => `${r.date}|${r.amount}|${cleanDescription(r.description)}`;
+// R9: each row with n set, counted over the whole file (so a file sent in chunks keeps its numbers).
+export function occurrences(rows) {
+  const seen = new Map();
+  return rows.map(r => {
+    const k = importKey(r), n = (seen.get(k) ?? 0) + 1;
+    seen.set(k, n);
+    return { ...r, n };
+  });
+}
+
 // R9: DMY is DD/MM/YYYY (one-digit day or month allowed), ISO is YYYY-MM-DD; null unless a real date.
 export function parseBankDate(text, format) {
   const s = String(text ?? "").trim(), m = format === "DMY" && s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
