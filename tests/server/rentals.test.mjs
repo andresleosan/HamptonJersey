@@ -216,3 +216,30 @@ test("rentals routes: signed out 401, cross-origin 403", async () => {
   }
   assert.equal(row(env, "SELECT archived_at FROM rentals WHERE id = ?", id).archived_at, null);
 });
+
+test("rental: a save or a landlord archive landing between the read and the write is 409 and writes nothing", async () => {
+  const env = makeEnv();
+  const id = await rental(env), other = await landlord(env, { name: "Other Owner" });
+  const t = tenancy(env, id);
+  const before = row(env, "SELECT * FROM rentals WHERE id = ?", id), nEvents = () => rows(env, "SELECT id FROM rental_events").length;
+  const n = nEvents();
+  // Runs `sneak` just before the PUT's batch, after its reads.
+  const batch = env.DB.batch.bind(env.DB);
+  const meanwhile = sneak => { env.DB.batch = async stmts => {
+    if (stmts[0].sql.startsWith("UPDATE rentals SET")) { sneak(); env.DB.batch = batch; }
+    return batch(stmts);
+  }; };
+
+  meanwhile(() => run(env, "UPDATE rentals SET updated_at = '2026-10-24T09:00:00.000Z', notes = 'Saved meanwhile' WHERE id = ?", id));
+  const raced = await putRental(env, id, { service: "full", fee_percent: 10, collect_from: "2026-10-01" });
+  assert.equal(raced.status, 409, JSON.stringify(raced.data));
+  assert.equal(row(env, "SELECT collect_from FROM tenancies WHERE id = ?", t).collect_from, null);
+  assert.equal(row(env, "SELECT service FROM rentals WHERE id = ?", id).service, "let_only");
+  assert.equal(nEvents(), n);
+
+  meanwhile(() => run(env, "UPDATE landlords SET archived_at = '2026-10-24T09:00:00.000Z' WHERE id = ?", other));
+  const moved = await putRental(env, id, { landlord_id: other });
+  assert.equal(moved.status, 409, JSON.stringify(moved.data));
+  assert.equal(row(env, "SELECT landlord_id FROM rentals WHERE id = ?", id).landlord_id, before.landlord_id);
+  assert.equal(nEvents(), n);
+});

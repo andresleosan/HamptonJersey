@@ -32,6 +32,9 @@ const loadLandlord = async (env, id) =>
 const openLandlord = async (env, id) =>
   !!(await env.DB.prepare("SELECT 1 FROM landlords WHERE id = ? AND archived_at IS NULL").bind(id).first());
 const NO_LANDLORD = { landlord_id: "Choose a landlord" };
+// Inside a batch: fails it (NOT NULL) unless the landlord exists and is not archived.
+const guardLandlord = (env, id) => env.DB.prepare(`INSERT INTO landlords (name) SELECT NULL
+  WHERE NOT EXISTS (SELECT 1 FROM landlords WHERE id = ? AND archived_at IS NULL)`).bind(id);
 
 // A form save (§3): the row must still be the one the form read (409 otherwise), only the changed keys are written,
 // and extra(keys, of) adds the event and the rest to the same batch. LOCK fails it all if a save lands meanwhile.
@@ -182,8 +185,10 @@ async function updateRental({ request, env, admin, params: [id] }) {
   if (running.length && !collect_from) errors.collect_from ??= "Enter the date Hampton starts collecting the rent";
   if (running.some(t => collect_from < t.start_on)) errors.collect_from = "Collect from the start of the tenancy or later";
   if (Object.keys(errors).length) return fieldErrors(errors);
-  const ids = running.map(t => t.id), ts = now();
+  const ids = running.map(t => t.id), ts = now(), moving = next.landlord_id !== cur.landlord_id;
   await save(env, admin, "rentals", cur, body, r.value, (keys, of) => [
+    // The landlord read above may be archived meanwhile: checked again in the write.
+    ...(moving ? [guardLandlord(env, next.landlord_id)] : []),
     rentalEvent(env, { rental_id: cur.id, actor: admin, type: "rental.updated",
       data: { before: of(cur), after: of(next), ...(ids.length ? { collect_from, tenancy_ids: ids } : {}) } }),
     // R11: a property that may have gas gets its gas check row back.
@@ -192,7 +197,10 @@ async function updateRental({ request, env, admin, params: [id] }) {
     // updated_at moves too, so an open tenancy form gets 409 instead of writing over collect_from.
     ...(ids.length ? [env.DB.prepare(`UPDATE tenancies SET collect_from = ?, updated_at = ?, updated_by = ?
       WHERE id IN (${ids.map(() => "?").join(", ")})`).bind(collect_from, ts, admin, ...ids)] : []),
-  ]);
+  ]).catch(async e => {
+    if (moving && !(await openLandlord(env, next.landlord_id))) fail(409, "That landlord was archived meanwhile. Choose another");
+    throw e;
+  });
   return json({ rental: await loadRental(env, cur.id) });
 }
 
