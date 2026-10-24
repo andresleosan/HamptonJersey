@@ -31,8 +31,9 @@ async function rental(env, over = {}) {
   return r.data.rental.id;
 }
 const TENANCY = { tenant_name: "Tom Tenant", kind: "periodic", regime: "2025", rent: 1500 };
+// collect_from defaults to the start here (P22: the API asks for it when the start is before this month).
 const newTenancy = (env, rentalId, over = {}) => req(env, "POST", `/admin/rentals/${rentalId}/tenancies`,
-  { ...TENANCY, start_on: M0, ...over });
+  { ...TENANCY, start_on: M0, collect_from: over.start_on ?? M0, ...over });
 async function tenancy(env, rentalId, over) {
   const r = await newTenancy(env, rentalId, over);
   assert.equal(r.status, 201, JSON.stringify(r.data));
@@ -135,6 +136,10 @@ test("charges: stop at ended_on; continue past end_on while the tenant stays", a
   assert.notEqual(stamp(env, "rentals", rid), before);
   assert.deepEqual(events(env, "tenancy.ended").map(e => [e.tenancy_id, e.data]),
     [[id, { ended_on, removed: { count: gone.length, amount: 150000 * gone.length } }]], "the history explains the balance");
+  const again = await req(env, "POST", `/admin/tenancies/${id}/end`, { ended_on });
+  assert.equal(again.status, 200, "the same move-out again changes nothing");
+  assert.equal(events(env, "tenancy.ended").length, 1);
+  run(env, "UPDATE tenancies SET ended_on = ? WHERE id = ?", plusDays(T, -1), id);
   assert.equal((await req(env, "POST", `/admin/tenancies/${id}/end`, { ended_on })).status, 409, "already ended");
 });
 
@@ -285,8 +290,7 @@ test("tenancy: edit with lock and merged checks, notice, and the detail's deadli
   assert.equal(fixed.status, 400, "the merged row: fixed needs an end");
   assert.ok(fixed.data.fields.end_on);
   const cur = row(env, "SELECT * FROM tenancies WHERE id = ?", id);
-  const locked = { rent: 7, due_day: cur.due_day % 28 + 1, start_on: plusDays(start, 1), collect_from: plusDays(start, 1),
-    opening_balance: 7 };
+  const locked = { rent: 7, due_day: cur.due_day % 28 + 1, start_on: plusDays(start, 1), opening_balance: 7 };
   for (const [k, v] of Object.entries(locked)) {
     const r = await put({ [k]: v });
     assert.equal(r.status, 400, k);
@@ -308,6 +312,95 @@ test("tenancy: edit with lock and merged checks, notice, and the detail's deadli
   const end = await req(env, "POST", `/admin/tenancies/${id}/end`, { ended_on: T });
   assert.deepEqual(end.data.deadlines.at(-1), { key: "inventory_out", label: "Check-out report", due_on: plusDays(T, 7),
     done_on: null, status: "due7" });
+});
+
+test("collect_from: a start before this month needs it; this month or later defaults to the start (P22)", async () => {
+  const env = makeEnv();
+  const missing = await newTenancy(env, await rental(env), { start_on: month(-1), collect_from: undefined });
+  assert.equal(missing.status, 400);
+  assert.deepEqual(missing.data.fields, { collect_from: "Enter the date Hampton starts collecting the rent" });
+  assert.equal(rows(env, "SELECT id FROM tenancies").length, 0);
+  const now = await newTenancy(env, await rental(env), { start_on: M0, collect_from: undefined });
+  assert.equal(now.status, 201, JSON.stringify(now.data));
+  assert.equal(now.data.tenancy.collect_from, M0);
+  const letOnly = await newTenancy(env, await rental(env, { service: "let_only", fee_percent: null }),
+    { start_on: month(-6), collect_from: undefined });
+  assert.equal(letOnly.status, 201, "let only collects nothing");
+});
+
+test("collect_from: moved later drops the earlier rent charges not corrected by hand; earlier is 400 (P22)", async () => {
+  const env = makeEnv();
+  // Entered with the start as collect_from: 30 months charged that Hampton never collected.
+  const start = month(-30), id = await tenancy(env, await rental(env), { start_on: start, due_day: 1, opening_balance: 5000 });
+  run(env, "UPDATE charges SET amount = 100, edited = 1 WHERE tenancy_id = ? AND due_on = ? AND kind = 'rent'", id, month(-20));
+  const put = body => req(env, "PUT", `/admin/tenancies/${id}`, { updated_at: stamp(env, "tenancies", id), ...body });
+  const moved = await put({ collect_from: M0 });
+  assert.equal(moved.status, 200, JSON.stringify(moved.data));
+  assert.deepEqual(charges(env, id), [[start, 5000, "opening"], [month(-20), 100, "rent"], [M0, 150000, "rent"],
+    [month(1), 150000, "rent"]], "the opening charge and the corrected one stay");
+  assert.equal(moved.data.balance, 5000 + 100 + 150000);
+  assert.deepEqual(events(env, "tenancy.updated").map(e => e.data), [{ before: { collect_from: start }, after: { collect_from: M0 },
+    removed: { count: 29, amount: 29 * 150000 } }]);
+  await ensureCharges(env, addMonths(T, 2), id).run();
+  assert.deepEqual(charges(env, id).slice(2).map(c => c[0]), [M0, month(1), month(2), month(3)], "the series goes on");
+
+  const earlier = await put({ collect_from: month(-1) });
+  assert.equal(earlier.status, 400);
+  assert.deepEqual(earlier.data.fields, { collect_from: "Enter the earlier months as an opening balance" });
+  assert.equal((await put({ collect_from: null })).data.fields.collect_from, "Enter the date Hampton starts collecting the rent");
+
+  // Moved to a day that isn't the rent day: its month is charged on it (R23), as a new tenancy would be.
+  const mid = await tenancy(env, await rental(env), { start_on: month(-3), due_day: 1 });
+  const fifteenth = `${M0.slice(0, 8)}15`, putMid = body => req(env, "PUT", `/admin/tenancies/${mid}`,
+    { updated_at: stamp(env, "tenancies", mid), ...body });
+  assert.equal((await putMid({ collect_from: fifteenth })).status, 200);
+  assert.deepEqual(charges(env, mid).map(c => c[0]), [fifteenth, month(1)]);
+
+  const lo = await tenancy(env, await rental(env, { service: "let_only", fee_percent: null }), { start_on: M0 });
+  const loPut = await req(env, "PUT", `/admin/tenancies/${lo}`, { updated_at: stamp(env, "tenancies", lo), collect_from: month(1) });
+  assert.deepEqual(loPut.data.fields, { collect_from: "Only full management tenancies collect rent" });
+  assert.equal((await req(env, "POST", `/admin/tenancies/${mid}/end`, { ended_on: month(1) })).status, 200);
+  assert.deepEqual((await putMid({ collect_from: month(1) })).data.fields, { collect_from: "Use a date before the move-out" });
+});
+
+test("move-out: a planned one moves (not before today) or is cancelled, and the charges come back (P22)", async () => {
+  const env = makeEnv();
+  const rid = await rental(env), id = await tenancy(env, rid, { start_on: month(-2), due_day: 1 });
+  const end = ended_on => req(env, "POST", `/admin/tenancies/${id}/end`, { ended_on });
+  const cancel = () => req(env, "DELETE", `/admin/tenancies/${id}/end`);
+  assert.equal((await cancel()).status, 409, "no move-out to cancel");
+  assert.equal((await end(month(1))).status, 200);
+  assert.deepEqual(charges(env, id).map(c => c[0]), [month(-2), month(-1), M0]);
+  assert.deepEqual((await end(plusDays(T, -1))).data.fields, { ended_on: `Use ${T} or a later date` });
+  const later = await end(month(3));
+  assert.equal(later.status, 200, JSON.stringify(later.data));
+  assert.deepEqual(charges(env, id).map(c => c[0]), [month(-2), month(-1), M0, month(1)], "next month is charged again");
+  const back = await cancel();
+  assert.equal(back.status, 200, JSON.stringify(back.data));
+  assert.equal(back.data.tenancy.ended_on, null);
+  await ensureCharges(env, addMonths(T, 3), id).run();
+  assert.deepEqual(charges(env, id).map(c => c[0]), [-2, -1, 0, 1, 2, 3, 4].map(month), "no gap after the cancelled move-out");
+  assert.deepEqual([...events(env, "tenancy.ended"), ...events(env, "tenancy.end_cancelled")].map(e => e.data), [
+    { ended_on: month(1), removed: { count: 1, amount: 150000 } },
+    { ended_on: month(3), before: month(1), removed: { count: 0, amount: 0 } }, { before: month(3) }]);
+  assert.equal((await newTenancy(env, rid, { start_on: month(5) })).status, 409, "the property is taken again");
+
+  // With the next tenancy entered, the move-out can't be cancelled or moved past its start.
+  assert.equal((await end(month(2))).status, 200);
+  assert.equal((await newTenancy(env, rid, { start_on: month(2), tenant_name: "Nina Next" })).status, 201);
+  assert.equal((await cancel()).status, 409);
+  assert.deepEqual((await end(month(3))).data.fields, { ended_on: `The next tenancy starts on ${month(2)}: use that date or earlier` });
+  assert.equal((await end(month(1))).status, 200, "earlier is fine");
+  run(env, "UPDATE tenancies SET ended_on = ? WHERE id = ?", plusDays(T, -1), id);
+  assert.equal((await cancel()).status, 409, "already ended");
+});
+
+test("current rent: before the start it is the starting rent, not a later agreed one", async () => {
+  const env = makeEnv();
+  const id = await tenancy(env, await rental(env), { start_on: month(1), rent: 1000 });
+  assert.equal((await req(env, "POST", `/admin/tenancies/${id}/rent`, { rent: 1200, effective_on: month(3) })).status, 200);
+  const d = (await req(env, "GET", `/admin/tenancies/${id}`)).data;
+  assert.deepEqual([d.current_rent, d.tenancy.rent, d.tenancy.last_rent_change_on], [1000, 1200, month(3)]);
 });
 
 test("tenancy routes: signed out 401, cross-origin 403", async () => {

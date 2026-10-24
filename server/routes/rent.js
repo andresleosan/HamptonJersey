@@ -7,10 +7,13 @@ import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE } from 
 
 const MAX_POUNDS = 1000000, MAX_PENCE = 100 * MAX_POUNDS; // R20
 const ENDED = "This tenancy has ended", CHANGED = "This property changed meanwhile. Reload to see it";
+const COLLECT = "Enter the date Hampton starts collecting the rent";
 // The rent in force on `date` for tenancy `id` (SQL expressions), from its history (R6, R28).
 const rentOn = (id, date) => `(SELECT c.rent FROM rent_changes c WHERE c.tenancy_id = ${id} AND c.effective_on <= ${date}
   ORDER BY c.effective_on DESC LIMIT 1)`;
 const NEW = "(SELECT MAX(id) FROM tenancies)";
+// Tenancy t's rent on `today` (an SQL expression), or its starting rent before it starts (not the latest agreed).
+const rentNow = today => `COALESCE(${rentOn("t.id", `max(${today}, t.start_on)`)}, t.rent)`;
 const LIMIT = "date(?1, 'start of month', '+2 months')";
 const IN_RANGE = `m.due_on < ${LIMIT} AND (t.ended_on IS NULL OR m.due_on < t.ended_on)`;
 
@@ -21,14 +24,15 @@ const IN_RANGE = `m.due_on < ${LIMIT} AND (t.ended_on IS NULL OR m.due_on < t.en
 // missing months are walked. Then due_day of each following month, all before ended_on (past a fixed end_on they go on
 // while the tenant stays). The opening balance is one charge on collect_from, made once. tenancyId: just that tenancy,
 // or "newest" for the one inserted earlier in the same batch. staleBefore (all tenancies only): run just when the cached
-// rentals count is older than that, so the count's batch reads nothing more while its cache is fresh (P19).
+// rentals count is older than that (P19). The check is a one-row gate joined before the tenancies, so while the cache is
+// fresh the statement reads that one app_settings row and no tenancy.
 export function ensureCharges(env, today, tenancyId = null, staleBefore = null) {
   const id = tenancyId === "newest" ? NEW : "?2";
   return env.DB.prepare(`INSERT INTO charges (tenancy_id, due_on, amount, kind)
   WITH RECURSIVE s AS (SELECT t.id, t.collect_from, t.due_day, t.ended_on, t.rent, t.opening_balance,
       (SELECT MAX(c.due_on) FROM charges c WHERE c.tenancy_id = t.id AND c.kind = 'rent') AS last
-      FROM tenancies t JOIN rentals r ON r.id = t.rental_id
-      WHERE r.service = 'full' AND t.collect_from IS NOT NULL AND (${id} IS NULL OR t.id = ${id})${staleBefore ? ` AND ${STALE}` : ""}),
+      FROM ${staleBefore ? `(SELECT 1 WHERE ${STALE}) g CROSS JOIN ` : ""}tenancies t JOIN rentals r ON r.id = t.rental_id
+      WHERE r.service = 'full' AND t.collect_from IS NOT NULL AND (${id} IS NULL OR t.id = ${id})),
     t AS (SELECT *, CASE WHEN last >= date(collect_from, 'start of month')
       THEN date(last, 'start of month', '+1 month', '+' || (due_day - 1) || ' days') ELSE collect_from END AS first FROM s),
     m (id, n, due_on) AS (SELECT id, 0, first FROM t WHERE first < ${LIMIT} AND (ended_on IS NULL OR first < ended_on)
@@ -89,8 +93,10 @@ const OPEN_REPAIR = "p.status NOT IN ('done', 'cancelled')"; // the repairs_open
 // check counts), renewals to decide, open emergencies and unmatched payments. P16: it is polled every 30 s, so it is
 // kept in app_settings as rentals_count {n, at} and worked out again only when older than COUNT_MS (which also covers
 // the day changing); any rental write drops it (the rental_events_count trigger), so the badge moves at once. Two
-// statements for the counts batch: when the cache is fresh their WHEREs fail first and nothing else is read. P19: when it
-// is stale, the charges are brought up to date first, so a month nobody opened Rentals for still counts.
+// statements for the counts batch, each gated on the cache: ensureCharges joins a one-row gate before the tenancies, and
+// the count's INSERT has no FROM, so its WHERE is checked before the select list's subqueries run. While the cache is
+// fresh both read only the rentals_count row. P19: when it is stale, the charges are brought up to date first, so a
+// month nobody opened Rentals for still counts.
 const COUNT_MS = 10 * 60 * 1000;
 const STALE = "NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'rentals_count' AND json_extract(value, '$.at') > ?3)";
 export const refreshRentalsCount = env => {
@@ -130,7 +136,7 @@ async function detail(env, id) {
     q("SELECT value FROM app_settings WHERE key = 'rpi'"),
     q(`WITH ${ARREARS_SQL} SELECT * FROM arrears`, today, id),
     q("SELECT charge_due_on, step, done_at, done_by, note FROM arrears_steps WHERE tenancy_id = ? ORDER BY done_at", id),
-    q(`SELECT ${rentOn("?1", "?2")} AS rent`, id, today),
+    q(`SELECT ${rentNow("?2")} AS rent FROM tenancies t WHERE t.id = ?1`, id, today),
   ])).map(r => r.results);
   if (!tenancy) fail(404, "Tenancy not found");
   const arrears = late?.oldest_unpaid_on ? { oldest_unpaid_on: late.oldest_unpaid_on, days_late: late.days_late,
@@ -139,7 +145,7 @@ async function detail(env, id) {
   const rpi = setting ? JSON.parse(setting.value) : null;
   const notice = tenancy.notice_given_on && { given_on: tenancy.notice_given_on, by: tenancy.notice_by };
   // The rent in force today (tenancy.rent is the latest agreed, maybe from a later date); the starting rent before the start.
-  return { tenancy, current_rent: now_.rent ?? tenancy.rent, charges, payments, balance, arrears, assistant: { ...rentAssistant(tenancy, rpi, today), rpi },
+  return { tenancy, current_rent: now_.rent, charges, payments, balance, arrears, assistant: { ...rentAssistant(tenancy, rpi, today), rpi },
     deadlines: deadlines(tenancy, today), earliest_move_out: notice ? earliestMoveOut(tenancy, notice) : null };
 }
 
@@ -161,7 +167,9 @@ async function act(env, id, stmts, check) {
 }
 
 // R4, R5, R22: one tenancy without ended_on per property, not overlapping the last one, with its payment reference set
-// from the new id, its starting rent, and its charges (full service only: collect_from defaults to the start).
+// from the new id, its starting rent, and its charges (full service only: collect_from defaults to the start, but a
+// tenancy that started before this Jersey month must say from when Hampton collects, P22, or its past months would be
+// charged).
 async function createTenancy({ request, env, admin, params: [rid] }) {
   const r = validateTenancy(asObject(await readJson(request)));
   if (r.errors) return fieldErrors(r.errors);
@@ -176,6 +184,8 @@ async function createTenancy({ request, env, admin, params: [rid] }) {
   };
   check(s);
   if (s.last > r.value.start_on) return fieldErrors({ start_on: `Start on ${s.last} or later, when the last tenancy ends` });
+  if (s.service === "full" && !r.value.collect_from && r.value.start_on < `${jerseyToday().slice(0, 8)}01`)
+    return fieldErrors({ collect_from: COLLECT });
   const ts = now(), value = { ...r.value, collect_from: s.service === "full" ? r.value.collect_from ?? r.value.start_on : null };
   const row = { ...value, rental_id: s.id, created_at: ts, created_by: admin, updated_at: ts, updated_by: admin };
   let res;
@@ -203,22 +213,48 @@ async function createTenancy({ request, env, admin, params: [rid] }) {
 }
 
 // Set when the tenancy is entered: the rent has its own action (R28); the charge dates and the opening balance shaped
-// the charges already made (R23).
+// the charges already made (R23). collect_from may only move later (P22).
 const SET = "Set when the tenancy was entered";
-const LOCKED = { rent: "Use Change rent to change the rent", due_day: SET, start_on: SET, collect_from: SET,
+const LOCKED = { rent: "Use Change rent to change the rent", due_day: SET, start_on: SET,
   opening_balance: `${SET}. Correct its charge instead` };
 
+// Inside a batch, after the rental_events row it adds to: data.removed = {count, amount} of the charges `where` (SQL
+// over charges, with its binds) selects, which the next statement deletes.
+const removed = (env, where, ...b) => env.DB.prepare(`UPDATE rental_events SET data = json_set(data, '$.removed',
+  (SELECT json_object('count', COUNT(*), 'amount', COALESCE(SUM(amount), 0)) FROM charges WHERE ${where}))
+  WHERE id = (SELECT MAX(id) FROM rental_events)`).bind(...b);
+
+// R23, P22 (binds ?1 today, ?2 the tenancy): the rent charge on collect_from moved later, unless its month already has
+// one (never two rent charges in a month); ensureCharges then goes on after the latest one.
+const firstCharge = (env, today, id) => env.DB.prepare(`INSERT INTO charges (tenancy_id, due_on, amount, kind)
+  SELECT t.id, t.collect_from, 100 * COALESCE(${rentOn("t.id", "t.collect_from")}, t.rent), 'rent'
+  FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE t.id = ?2 AND r.service = 'full'
+  AND t.collect_from < ${LIMIT} AND (t.ended_on IS NULL OR t.collect_from < t.ended_on)
+  AND NOT EXISTS (SELECT 1 FROM charges c WHERE c.tenancy_id = t.id AND c.kind = 'rent'
+    AND c.due_on >= date(t.collect_from, 'start of month') AND c.due_on < date(t.collect_from, 'start of month', '+1 month'))
+  ON CONFLICT DO NOTHING`).bind(today, id);
+
 // A form save (§3, lock). The stored row and the body are checked together (a fixed term needs its end, the end after
-// the start, …), so the database's CHECKs never answer; the keys in LOCKED stay as stored.
+// the start, …), so the database's CHECKs never answer; the keys in LOCKED stay as stored. P22: collect_from (full
+// service) moves only later: the rent charges due before it and not corrected by hand go (the event counts them; the
+// opening charge stays), and the series goes on from the new date. Earlier months are an opening balance instead.
 async function updateTenancy({ request, env, admin, params: [id] }) {
-  const body = asObject(await readJson(request)), cur = await loadTenancy(env, id);
+  const body = asObject(await readJson(request)), cur = await loadTenancy(env, id), today = jerseyToday();
   const kept = Object.fromEntries(Object.keys(LOCKED).map(k => [k, cur[k]]));
   const sent = validateTenancy(body, { partial: true }), r = validateTenancy({ ...cur, ...body, ...kept });
   const errors = { ...r.errors, ...sent.errors };
   for (const [k, msg] of Object.entries(LOCKED)) if (sent.value && k in sent.value && sent.value[k] !== cur[k]) errors[k] = msg;
+  const to = sent.value?.collect_from, moved = !!sent.value && "collect_from" in sent.value && to !== cur.collect_from;
+  const why = !moved ? null : cur.service !== "full" || !cur.collect_from ? "Only full management tenancies collect rent"
+    : !to ? COLLECT : to < cur.collect_from ? "Enter the earlier months as an opening balance"
+    : cur.ended_on && to >= cur.ended_on ? "Use a date before the move-out" : null;
+  if (why) errors.collect_from ??= why;
   if (Object.keys(errors).length) return fieldErrors(errors);
+  const before = "tenancy_id = ? AND kind = 'rent' AND edited = 0 AND due_on < ?";
   await save(env, admin, "tenancies", cur, body, r.value, (keys, of) => [rentalEvent(env, { rental_id: cur.rental_id,
-    tenancy_id: cur.id, actor: admin, type: "tenancy.updated", data: { before: of(cur), after: of(r.value) } })]);
+    tenancy_id: cur.id, actor: admin, type: "tenancy.updated", data: { before: of(cur), after: of(r.value) } }),
+  ...(moved ? [removed(env, before, cur.id, to), env.DB.prepare(`DELETE FROM charges WHERE ${before}`).bind(cur.id, to),
+    firstCharge(env, today, cur.id), ensureCharges(env, today, cur.id)] : [])]);
   return json(await detail(env, cur.id));
 }
 
@@ -329,25 +365,68 @@ async function notice({ request, env, admin, params: [id] }) {
 
 // R13, R24: the move-out, maybe ahead. Charges stop there (any already made on or after it go) and the property is
 // free for the next tenancy. The event says which charges went (count, pence), so the history explains the balance.
+// P22: a planned move-out may move to another date not before today (nor after the start of a next tenancy already
+// entered); a later one brings the months up to it back (ensureCharges).
 async function endTenancy({ request, env, admin, params: [id] }) {
-  const cur = await loadTenancy(env, id);
-  notEnded(cur);
+  const cur = await loadTenancy(env, id), today = jerseyToday(), check = running(today);
+  check(cur);
   const errors = {}, f = fields(asObject(await readJson(request)), errors);
   const ended_on = f.date("ended_on") ?? f.err("ended_on", "Enter the move-out date");
+  const next = await nextStart(env, cur);
   if (ended_on && ended_on < cur.start_on) f.err("ended_on", "Use the start date or later");
+  else if (ended_on && cur.ended_on && ended_on < today) f.err("ended_on", `Use ${today} or a later date`);
+  else if (ended_on && next && ended_on > next) f.err("ended_on", `The next tenancy starts on ${next}: use that date or earlier`);
   if (Object.keys(errors).length) return fieldErrors(errors);
-  const ts = now();
-  await act(env, cur.id, [
-    env.DB.prepare("UPDATE tenancies SET ended_on = ?, updated_at = ?, updated_by = ? WHERE id = ? AND ended_on IS NULL")
-      .bind(ended_on, ts, admin, cur.id),
+  if (ended_on === cur.ended_on) return json(await detail(env, cur.id));
+  const ts = now(), from = "tenancy_id = ? AND kind = 'rent' AND due_on >= ?";
+  await moveOut(env, cur, today, next, [
+    env.DB.prepare(`UPDATE tenancies SET ended_on = ?1, updated_at = ?2, updated_by = ?3 WHERE id = ?4
+      AND (ended_on IS NULL OR ended_on > ?5) AND NOT EXISTS (SELECT 1 FROM tenancies x WHERE x.rental_id = tenancies.rental_id
+      AND x.id > tenancies.id AND x.start_on < ?1)`).bind(ended_on, ts, admin, cur.id, today),
     ensureChanged(env),
-    rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "tenancy.ended", data: { ended_on } }),
-    env.DB.prepare(`UPDATE rental_events SET data = json_set(data, '$.removed', (SELECT json_object('count', COUNT(*),
-      'amount', COALESCE(SUM(amount), 0)) FROM charges WHERE tenancy_id = ? AND kind = 'rent' AND due_on >= ?))
-      WHERE id = (SELECT MAX(id) FROM rental_events)`).bind(cur.id, ended_on),
-    env.DB.prepare("DELETE FROM charges WHERE tenancy_id = ? AND kind = 'rent' AND due_on >= ?").bind(cur.id, ended_on),
+    rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "tenancy.ended",
+      data: { ended_on, ...(cur.ended_on ? { before: cur.ended_on } : {}) } }),
+    removed(env, from, cur.id, ended_on),
+    env.DB.prepare(`DELETE FROM charges WHERE ${from}`).bind(cur.id, ended_on),
+    ensureCharges(env, today, cur.id),
     bump(env, admin, cur.rental_id, ts),
-  ], notEnded);
+  ]);
+  return json(await detail(env, cur.id));
+}
+
+// The start of the property's next tenancy, entered after this one (waiting for its planned move-out), or null.
+const nextStart = async (env, t) => (await env.DB.prepare("SELECT MIN(start_on) AS d FROM tenancies WHERE rental_id = ? AND id > ?")
+  .bind(t.rental_id, t.id).first()).d;
+
+// A move-out write; when it fails, a 409 says why if the tenancy moved on or a next tenancy was entered meanwhile.
+async function moveOut(env, cur, today, next, stmts) {
+  try {
+    await env.DB.batch(stmts);
+  } catch (e) {
+    const t = await loadTenancy(env, cur.id);
+    running(today)(t);
+    if (t.ended_on !== cur.ended_on || await nextStart(env, cur) !== next) fail(409, CHANGED);
+    throw e;
+  }
+}
+
+// P22: a planned move-out cancelled, while no next tenancy has been entered (it would overlap); the charges come back.
+async function cancelEnd({ env, admin, params: [id] }) {
+  const cur = await loadTenancy(env, id), today = jerseyToday();
+  if (!cur.ended_on) fail(409, "This tenancy has no move-out date");
+  running(today)(cur);
+  if (await nextStart(env, cur)) fail(409, "The next tenancy is already entered. Change the move-out date instead");
+  const ts = now();
+  await moveOut(env, cur, today, null, [
+    env.DB.prepare(`UPDATE tenancies SET ended_on = NULL, updated_at = ?, updated_by = ? WHERE id = ? AND ended_on > ?
+      AND NOT EXISTS (SELECT 1 FROM tenancies x WHERE x.rental_id = tenancies.rental_id AND x.id > tenancies.id)`)
+      .bind(ts, admin, cur.id, today),
+    ensureChanged(env),
+    rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "tenancy.end_cancelled",
+      data: { before: cur.ended_on } }),
+    ensureCharges(env, today, cur.id),
+    bump(env, admin, cur.rental_id, ts),
+  ]);
   return json(await detail(env, cur.id));
 }
 
@@ -409,33 +488,43 @@ async function createPayment({ request, env, admin }) {
   return json(await detail(env, t.id), 201);
 }
 
-// R9, R26, P9: a payment assigned to a tenancy, moved to another or back to Unmatched (tenancy_id null), or its kind
-// corrected. The UPDATE is guarded on the row as read, so a change meanwhile is a 409.
+// R9, R26, P9, P23: a payment assigned to a tenancy, moved to another or back to Unmatched (tenancy_id null), its kind
+// corrected, or, when recorded by hand, its amount or date (an imported one keeps the bank's). The UPDATE is guarded on
+// the row as read, so a change meanwhile is a 409. A payment moved between tenancies is logged on both properties.
+const EDITABLE = ["tenancy_id", "kind", "amount", "received_on"];
 async function updatePayment({ request, env, admin, params: [id] }) {
   const body = asObject(await readJson(request)), unassign = body.tenancy_id === null;
-  const r = validatePayment(Object.fromEntries(["tenancy_id", "kind"].filter(k => k in body && !(k === "tenancy_id" && unassign))
+  const r = validatePayment(Object.fromEntries(EDITABLE.filter(k => k in body && !(k === "tenancy_id" && unassign))
     .map(k => [k, body[k]])), { partial: true });
   if (r.errors) return fieldErrors(r.errors);
   const load = () => env.DB.prepare("SELECT * FROM payments WHERE id = ?").bind(Number(id)).first();
   const cur = (await load()) ?? fail(404, "Payment not found");
-  const after = { tenancy_id: unassign ? null : r.value.tenancy_id ?? cur.tenancy_id, kind: r.value.kind ?? cur.kind };
+  const after = { ...Object.fromEntries(EDITABLE.map(k => [k, r.value[k] ?? cur[k]])), ...(unassign ? { tenancy_id: null } : {}) };
+  const keys = EDITABLE.filter(k => after[k] !== cur[k]), of = row => Object.fromEntries(keys.map(k => [k, row[k]]));
+  if (cur.source !== "manual" && keys.some(k => k === "amount" || k === "received_on"))
+    fail(400, "An imported payment keeps the bank's amount and date");
   const t = after.tenancy_id && await loadTenancy(env, after.tenancy_id), check = checkKind(after.kind);
   if (t) check(t);
-  const was = !t && cur.tenancy_id ? await loadTenancy(env, cur.tenancy_id) : null; // the event's property on unassign
-  if (after.tenancy_id !== cur.tenancy_id || after.kind !== cur.kind) try {
+  const was = cur.tenancy_id && await loadTenancy(env, cur.tenancy_id);
+  const data = { payment_id: cur.id, amount: cur.amount, before: of(cur), after: of(after), ...(keys.includes("tenancy_id")
+    ? { from: was?.payment_ref ?? null, to: t?.payment_ref ?? null } : {}) };
+  // One event where the payment is now (or was, when unassigned), and one where it was when it moved between tenancies.
+  const event = x => rentalEvent(env, { rental_id: x.rental_id, tenancy_id: x.id, actor: admin, type: "payment.updated", data });
+  if (keys.length) try {
     await env.DB.batch([
-      env.DB.prepare(`UPDATE payments SET tenancy_id = ?1, kind = ?2 WHERE id = ?3 AND tenancy_id IS ?4 AND kind = ?5
+      env.DB.prepare(`UPDATE payments SET tenancy_id = ?1, kind = ?2, amount = ?3, received_on = ?4 WHERE id = ?5
+        AND tenancy_id IS ?6 AND kind = ?7 AND amount = ?8 AND received_on = ?9
         AND (?1 IS NULL OR EXISTS (SELECT 1 FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE t.id = ?1
         AND (r.service = 'full' OR ?2 <> 'rent')))`)
-        .bind(after.tenancy_id, after.kind, cur.id, cur.tenancy_id, cur.kind),
+        .bind(after.tenancy_id, after.kind, after.amount, after.received_on, cur.id, cur.tenancy_id, cur.kind, cur.amount,
+          cur.received_on),
       ensureChanged(env),
-      rentalEvent(env, { rental_id: (t || was)?.rental_id ?? null, tenancy_id: after.tenancy_id ?? cur.tenancy_id,
-        actor: admin, type: "payment.updated",
-        data: { payment_id: cur.id, before: { tenancy_id: cur.tenancy_id, kind: cur.kind }, after } }),
+      ...(t && was && t.id !== was.id ? [event(was)] : []),
+      t || was ? event(t || was) : rentalEvent(env, { actor: admin, type: "payment.updated", data }),
     ]);
   } catch (e) {
     const p = await load();
-    if (p.tenancy_id !== cur.tenancy_id || p.kind !== cur.kind) fail(409, "This payment changed meanwhile. Reload to see it");
+    if (EDITABLE.some(k => p[k] !== cur[k])) fail(409, "This payment changed meanwhile. Reload to see it");
     if (t) check(await loadTenancy(env, t.id));
     throw e;
   }
@@ -443,7 +532,7 @@ async function updatePayment({ request, env, admin, params: [id] }) {
 }
 
 // Per request (R9 says 2,000 a file): the panel sends a file in chunks of 500, numbered first with occurrences().
-const IMPORT_BYTES = 2 * 1024 * 1024, MAX_ROWS = 500;
+const IMPORT_BYTES = 2 * 1024 * 1024, MAX_ROWS = 500, ENDED_DAYS = 60;
 const sha256 = async text => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))]
   .map(b => b.toString(16).padStart(2, "0")).join("");
 const STATUSES = ["matched", "unmatched", "duplicate", "by_hand", "ignored"];
@@ -451,7 +540,8 @@ const STATUSES = ["matched", "unmatched", "duplicate", "by_hand", "ignored"];
 // R9, R25: bank rows the panel already split ({date ISO, amount in pence, description, n = occurrences() over the
 // whole file}), checked again here. Only money in, not after today; anything unreadable is "ignored" with a reason.
 // Each row's hash (SHA-256 of importKey|n) is unique in payments, so a file imported twice adds nothing.
-// A reference HE-T… finds a full-service tenancy, else the row is Unmatched; that tenancy's manual payment of the same
+// A reference HE-T… finds a full-service tenancy, else the row is Unmatched; so is one of a tenancy that ended more than
+// ENDED_DAYS ago (reason "Tenancy ended"), which someone has to look at. That tenancy's manual rent payment of the same
 // amount, within 7 days and without a hash, takes the row's hash instead of a new payment. dry_run writes nothing;
 // otherwise one batch, with a summary event per tenancy and one for Unmatched.
 async function importPayments({ request, env, admin }) {
@@ -481,22 +571,24 @@ async function importPayments({ request, env, admin }) {
   }));
   const ok = rows.filter(r => r.hash), q = (sql, v) => env.DB.prepare(sql).bind(JSON.stringify(v));
   const [full, known, hand] = (await env.DB.batch([
-    q(`SELECT t.id, t.payment_ref FROM tenancies t JOIN rentals r ON r.id = t.rental_id
+    q(`SELECT t.id, t.payment_ref, t.ended_on FROM tenancies t JOIN rentals r ON r.id = t.rental_id
       WHERE r.service = 'full' AND t.id IN (SELECT value FROM json_each(?1))`, ok.map(r => r.ref).filter(Boolean)),
     q("SELECT import_hash FROM payments WHERE import_hash IN (SELECT value FROM json_each(?1))", ok.map(r => r.hash)),
     q(`SELECT j.key AS i, p.id FROM json_each(?1) j JOIN payments p ON p.tenancy_id = json_extract(j.value, '$[0]')
-      AND p.amount = json_extract(j.value, '$[1]') AND p.source = 'manual' AND p.import_hash IS NULL
+      AND p.amount = json_extract(j.value, '$[1]') AND p.source = 'manual' AND p.kind = 'rent' AND p.import_hash IS NULL
       AND abs(julianday(p.received_on) - julianday(json_extract(j.value, '$[2]'))) <= 7
       ORDER BY j.key, abs(julianday(p.received_on) - julianday(json_extract(j.value, '$[2]'))), p.id`,
       ok.map(r => [r.ref, r.amount, r.date])),
   ])).map(r => r.results);
-  const refs = new Map(full.map(t => [t.id, t.payment_ref])), seen = new Set(known.map(k => k.import_hash));
-  const candidates = {}, used = new Set();
+  const refs = new Map(full.map(t => [t.id, t])), seen = new Set(known.map(k => k.import_hash));
+  const cutoff = plusDays(today, -ENDED_DAYS), candidates = {}, used = new Set();
   for (const h of hand) (candidates[h.i] ??= []).push(h.id);
   ok.forEach((r, i) => {
-    r.out.payment_ref = refs.get(r.ref) ?? null;
+    const t = refs.get(r.ref), old = t?.ended_on && t.ended_on < cutoff;
+    r.out.payment_ref = t && !old ? t.payment_ref : null;
+    if (!r.out.payment_ref) r.ref = null; // goes in Unmatched
     if (seen.has(r.hash)) r.out.status = "duplicate";
-    else if (!r.out.payment_ref) r.out.status = "unmatched";
+    else if (!r.out.payment_ref) Object.assign(r.out, { status: "unmatched" }, old ? { reason: "Tenancy ended" } : {});
     else {
       r.hand = candidates[i]?.find(p => !used.has(p));
       if (r.hand) used.add(r.hand);
@@ -538,10 +630,45 @@ const WARN = Math.max(...LEGAL.warnDays);
 const URGENCY = "CASE p.urgency WHEN 'emergency' THEN 0 WHEN 'urgent' THEN 1 ELSE 2 END";
 const MARKS = ["arrears", "compliance", "renewals", "repairs"];
 
+// R2, §4: the properties, in SQL so a search or filter reads only them (list=1, P26). The current tenancy is the earliest
+// one still running (a later one may be waiting for a planned move-out), with its rent today and, under full service,
+// its balance (rent charges due minus rent payments). The marks: arrears when something due before today is unpaid
+// (owing and at least a day late, P25: the to-do keeps only a step due), checks when a property check or a tenancy
+// deadline is missing or due within WARN days, a renewal to decide, an open repair. Binds ?1 today, ?2 service, ?3 the
+// search (LIKE) or NULL, ?4 a mark or NULL. q searches address, landlord, and any tenant's name or payment reference.
+const has = col => `${col} LIKE ?3 ESCAPE '\\'`;
+const LIST = archived => `WITH x AS (SELECT r.id, r.address, r.parish, r.service, r.landlord_id, l.name AS landlord_name,
+    r.archived_at, t.id AS tenancy_id, t.tenant_name, t.payment_ref, ${rentNow("?1")} AS rent,
+    CASE WHEN r.service = 'full' THEN t.id END AS full_id,
+    r.archived_at IS NULL AND (EXISTS (SELECT 1 FROM compliance_items c WHERE c.rental_id = r.id
+        AND (c.kind <> 'gas' OR r.has_gas IS NOT 0) AND (c.expires_on IS NULL OR c.expires_on <= date(?1, '+${WARN} days')))
+      OR EXISTS (SELECT 1 FROM tenancies t WHERE t.rental_id = r.id
+        AND (${pending(`<= date(?1, '+${WARN} days')`).join(" OR ")}))) AS compliance,
+    EXISTS (SELECT 1 FROM tenancies t WHERE t.rental_id = r.id AND ${RENEWAL}) AS renewals,
+    EXISTS (SELECT 1 FROM repairs p WHERE p.rental_id = r.id AND ${OPEN_REPAIR}) AS repairs
+    FROM rentals r JOIN landlords l ON l.id = r.landlord_id
+    LEFT JOIN tenancies t ON t.id = (SELECT x.id FROM tenancies x WHERE x.rental_id = r.id
+      AND (x.ended_on IS NULL OR x.ended_on > ?1) ORDER BY x.start_on, x.id LIMIT 1)
+    WHERE r.archived_at IS ${archived ? "NOT " : ""}NULL AND (?2 IS NULL OR r.service = ?2)
+    AND (?3 IS NULL OR ${has("r.address")} OR ${has("l.name")} OR EXISTS (SELECT 1 FROM tenancies x
+      WHERE x.rental_id = r.id AND (${has("x.tenant_name")} OR ${has("x.payment_ref")})))),
+  y AS (SELECT *, (SELECT COALESCE(SUM(c.amount), 0) FROM charges c WHERE c.tenancy_id = full_id AND c.due_on <= ?1) AS due,
+    (SELECT COALESCE(SUM(c.amount), 0) FROM charges c WHERE c.tenancy_id = full_id AND c.due_on = ?1) AS today,
+    (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.tenancy_id = full_id AND p.kind = 'rent') AS paid FROM x),
+  z AS (SELECT *, CASE WHEN full_id IS NOT NULL THEN due - paid END AS balance, due - today > paid AS arrears FROM y)
+  SELECT id, address, parish, service, landlord_id, landlord_name, archived_at, tenancy_id, tenant_name, payment_ref, rent,
+    balance, ${MARKS.join(", ")} FROM z
+  WHERE ?4 IS NULL OR CASE ?4 ${MARKS.map(k => `WHEN '${k}' THEN ${k}`).join(" ")} END
+  ORDER BY address COLLATE NOCASE, id`;
+const marks = row => {
+  const { arrears, compliance, renewals, repairs, ...r } = row;
+  return { ...r, marks: MARKS.filter(k => row[k]) };
+};
+
 // R2, R16, §4: the Rentals screen in one batch: the charges brought up to date first (R6), then the to-do (arrears with a
 // step due, checks and deadlines within LEGAL.warnDays or missing, renewals, open repairs with emergencies first,
-// unmatched payments) and the properties. q searches address, landlord, and any tenant's name or payment reference;
-// service and archived narrow the list in SQL, filter (a to-do block) after. The to-do is never filtered.
+// unmatched payments), the properties (LIST) and the totals. The to-do is never filtered. list=1 (P26: a search or a
+// filter changed) answers only the properties, without making charges or reading the to-do.
 async function overview({ request, env }) {
   const p = new URL(request.url).searchParams, q = p.get("q")?.trim() || null;
   const service = p.get("service") || null, filter = p.get("filter") || null, archived = p.get("archived") ?? "";
@@ -549,12 +676,14 @@ async function overview({ request, env }) {
   if (filter && !MARKS.includes(filter)) fail(400, "Invalid filter");
   if (!["", "0", "1"].includes(archived)) fail(400, "Invalid archived");
   const today = jerseyToday(), s = (sql, ...b) => env.DB.prepare(sql).bind(today, ...b);
-  const like = q && `%${q.replace(/[\\%_]/g, "\\$&")}%`, has = col => `${col} LIKE ?3 ESCAPE '\\'`;
-  const [, owing, checks, dues, renewals, repairs, unmatched, list, [totals]] = (await env.DB.batch([
+  const list = s(LIST(archived === "1"), service, q && `%${q.replace(/[\\%_]/g, "\\$&")}%`, filter);
+  if (p.get("list") === "1") return json({ rentals: (await list.all()).results.map(marks) });
+  const [, owing, checks, dues, renewals, repairs, unmatched, rentals, [totals]] = (await env.DB.batch([
     ensureCharges(env, today),
     s(`WITH ${ARREARS_SQL} SELECT a.tenancy_id, a.rental_id, r.address, t.tenant_name, t.payment_ref, a.balance,
       a.oldest_unpaid_on, a.days_late, a.next_step FROM arrears a JOIN tenancies t ON t.id = a.tenancy_id
-      JOIN rentals r ON r.id = a.rental_id ORDER BY a.days_late DESC, r.address COLLATE NOCASE`, null),
+      JOIN rentals r ON r.id = a.rental_id WHERE a.next_step IS NOT NULL OR a.balance > 0
+      ORDER BY a.days_late DESC, r.address COLLATE NOCASE`, null),
     s(`SELECT c.rental_id, r.address, c.kind, c.expires_on ${CHECKS}
       AND (c.expires_on IS NULL OR c.expires_on <= date(?1, '+${WARN} days'))`),
     s(`SELECT t.*, r.address FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE r.archived_at IS NULL
@@ -566,16 +695,7 @@ async function overview({ request, env }) {
     // ponytail: the newest 200; the count in totals says how many there are.
     env.DB.prepare(`SELECT id, received_on, amount, description, kind FROM payments WHERE tenancy_id IS NULL
       ORDER BY received_on DESC, id DESC LIMIT 200`),
-    // The current tenancy: the earliest one still running (a later one may be waiting for a planned move-out).
-    s(`SELECT r.id, r.address, r.parish, r.service, r.landlord_id, l.name AS landlord_name, r.archived_at,
-      t.id AS tenancy_id, t.tenant_name, t.payment_ref, t.rent
-      FROM rentals r JOIN landlords l ON l.id = r.landlord_id
-      LEFT JOIN tenancies t ON t.id = (SELECT x.id FROM tenancies x WHERE x.rental_id = r.id
-        AND (x.ended_on IS NULL OR x.ended_on > ?1) ORDER BY x.start_on, x.id LIMIT 1)
-      WHERE r.archived_at IS ${archived === "1" ? "NOT " : ""}NULL AND (?2 IS NULL OR r.service = ?2)
-      AND (?3 IS NULL OR ${has("r.address")} OR ${has("l.name")} OR EXISTS (SELECT 1 FROM tenancies x
-        WHERE x.rental_id = r.id AND (${has("x.tenant_name")} OR ${has("x.payment_ref")})))
-      ORDER BY r.address COLLATE NOCASE, r.id`, service, like),
+    list,
     s(`SELECT (SELECT COUNT(*) FROM rentals WHERE archived_at IS NULL) AS properties,
       (SELECT COUNT(DISTINCT rental_id) FROM tenancies WHERE ended_on IS NULL OR ended_on > ?1) AS occupied,
       (SELECT COUNT(*) FROM payments WHERE tenancy_id IS NULL) AS unmatched`),
@@ -593,12 +713,8 @@ async function overview({ request, env }) {
     renewals: renewals.map(r => ({ ...r, label: r.end_on < today ? "Fixed term ended" : "Renewal due" })),
     repairs, unmatched,
   };
-  const balance = new Map(owing.map(a => [a.tenancy_id, a.balance]));
-  const marked = Object.fromEntries(MARKS.map(k => [k, new Set(todo[k].map(x => x.rental_id))]));
-  const rentals = list.map(r => ({ ...r, balance: balance.get(r.tenancy_id) ?? null,
-    marks: MARKS.filter(k => marked[k].has(r.id)) })).filter(r => !filter || r.marks.includes(filter));
   const owed = owing.reduce((sum, a) => sum + Math.max(a.balance, 0), 0);
-  return json({ todo, rentals, totals: { properties: totals.properties, occupied: totals.occupied, owed,
+  return json({ todo, rentals: rentals.map(marks), totals: { properties: totals.properties, occupied: totals.occupied, owed,
     unmatched: totals.unmatched } });
 }
 
@@ -665,6 +781,7 @@ export default [
   ["POST", /^\/admin\/tenancies\/(\d+)\/renew$/, renew, true],
   ["POST", /^\/admin\/tenancies\/(\d+)\/notice$/, notice, true],
   ["POST", /^\/admin\/tenancies\/(\d+)\/end$/, endTenancy, true],
+  ["DELETE", /^\/admin\/tenancies\/(\d+)\/end$/, cancelEnd, true],
   ["PUT", /^\/admin\/charges\/(\d+)$/, updateCharge, true],
   ["PUT", /^\/admin\/tenancies\/(\d+)\/arrears\/(\d{4}-\d{2}-\d{2})\/([a-z]+)$/, markStep, true],
   ["POST", /^\/admin\/payments$/, createPayment, true],

@@ -18,7 +18,8 @@ export const COMPLIANCE = [["licence", "Rental dwelling licence", LEGAL.licenceY
 
 // R5, R9: the reference a tenant puts on the transfer, and how a bank description is searched for it.
 export const paymentRef = id => `HE-T${String(id).padStart(4, "0")}`;
-export const REF_RE = /HE\s*-?\s*T\s*(\d{4,})/i;
+// \b: "THE T 2024" is not a reference.
+export const REF_RE = /\bHE\s*-?\s*T\s*(\d{4,})/i;
 
 // Calendar months, capped at the end of the month: 31 Jan + 1 is 28 or 29 Feb.
 export function addMonths(date, n) {

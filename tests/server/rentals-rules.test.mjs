@@ -17,6 +17,7 @@ test("constants and the payment reference", () => {
   for (const s of ["Rent HE-T0042 May", "he-t0042", "HE-T 0042", "HET 0042", "heT0042", "HE T0042", "he - t 0042"])
     assert.equal(s.match(REF_RE)?.[1], "0042", s);
   assert.equal("HE-T042".match(REF_RE), null);
+  for (const s of ["THE T 2024", "the t 20245 rent", "SCHE-T0042"]) assert.equal(s.match(REF_RE), null, s);
 });
 
 test("addMonths: 31 Jan + 1 is the last day of February, leap years included", () => {

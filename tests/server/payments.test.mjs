@@ -24,7 +24,7 @@ async function rental(env, over = {}) {
 // due that many days ago, inserted by hand.
 async function tenancy(env, { days = 6, older = [], service = "full" } = {}) {
   const r = await req(env, "POST", `/admin/rentals/${await rental(env, service === "full" ? {} : { service, fee_percent: null })}/tenancies`,
-    { tenant_name: "Tom Tenant", kind: "periodic", regime: "2025", rent: 1500, start_on: ago(days) });
+    { tenant_name: "Tom Tenant", kind: "periodic", regime: "2025", rent: 1500, start_on: ago(days), collect_from: ago(days) });
   assert.equal(r.status, 201, JSON.stringify(r.data));
   for (const d of older) run(env, "INSERT INTO charges (tenancy_id, due_on, amount, kind) VALUES (?, ?, 150000, 'rent')", r.data.tenancy.id, ago(d));
   return r.data.tenancy.id;
@@ -147,7 +147,7 @@ test("deposit and other payments don't reduce arrears", async () => {
   assert.equal(r.data.balance, 0);
   assert.equal(r.data.arrears, null);
   assert.deepEqual(events(env, "payment.updated").map(e => [e.tenancy_id, e.data]),
-    [[id, { payment_id: deposit, before: { tenancy_id: id, kind: "deposit" }, after: { tenancy_id: id, kind: "rent" } }]]);
+    [[id, { payment_id: deposit, amount: 150000, before: { kind: "deposit" }, after: { kind: "rent" } }]]);
   assert.equal((await req(env, "PUT", `/admin/payments/${deposit}`, { kind: "gift" })).status, 400);
   assert.equal((await req(env, "PUT", "/admin/payments/999", { kind: "rent" })).status, 404);
 });
@@ -268,7 +268,7 @@ test("import: a reference of a let_only or unknown tenancy is unmatched; assigni
   assert.equal(put.data.arrears, null);
   assert.equal((await req(env, "PUT", `/admin/payments/${a.id}`, { tenancy_id: lo })).status, 409, "rent can't go to let_only");
 
-  // P9: moved to another full tenancy, then back to Unmatched; each move logged before/after.
+  // P9, P23: moved to another full tenancy (logged on both properties), then back to Unmatched; each change before/after.
   const other = await tenancy(env, { days: 6 });
   const moved = await req(env, "PUT", `/admin/payments/${a.id}`, { tenancy_id: other });
   assert.equal(moved.status, 200, JSON.stringify(moved.data));
@@ -279,12 +279,13 @@ test("import: a reference of a let_only or unknown tenancy is unmatched; assigni
   assert.equal(back.status, 200, JSON.stringify(back.data));
   assert.equal(back.data.payment.tenancy_id, null);
   assert.equal((await detail(env, other)).balance, 150000);
-  const otherRental = row(env, "SELECT rental_id FROM tenancies WHERE id = ?", other).rental_id;
-  assert.deepEqual(events(env, "payment.updated").map(e => [e.rental_id, e.tenancy_id, e.data.before, e.data.after]), [
-    [null, null, { tenancy_id: null, kind: "rent" }, { tenancy_id: null, kind: "other" }],
-    [row(env, "SELECT rental_id FROM tenancies WHERE id = ?", id).rental_id, id, { tenancy_id: null, kind: "rent" }, { tenancy_id: id, kind: "rent" }],
-    [otherRental, other, { tenancy_id: id, kind: "rent" }, { tenancy_id: other, kind: "rent" }],
-    [otherRental, other, { tenancy_id: other, kind: "rent" }, { tenancy_id: null, kind: "rent" }],
+  const rentalOf = t => row(env, "SELECT rental_id FROM tenancies WHERE id = ?", t).rental_id, [ref, otherRef] = [paymentRef(id), paymentRef(other)];
+  assert.deepEqual(events(env, "payment.updated").map(e => [e.rental_id, e.tenancy_id, e.data.before, e.data.after, e.data.from, e.data.to]), [
+    [null, null, { kind: "rent" }, { kind: "other" }, undefined, undefined],
+    [rentalOf(id), id, { tenancy_id: null }, { tenancy_id: id }, null, ref],
+    [rentalOf(id), id, { tenancy_id: id }, { tenancy_id: other }, ref, otherRef],
+    [rentalOf(other), other, { tenancy_id: id }, { tenancy_id: other }, ref, otherRef],
+    [rentalOf(other), other, { tenancy_id: other }, { tenancy_id: null }, otherRef, null],
   ]);
   assert.equal((await req(env, "PUT", `/admin/payments/${a.id}`, { tenancy_id: "x" })).status, 400);
 });
@@ -315,6 +316,47 @@ test("import: 501 rows is 400; a cell starting with = is stored as plain text", 
   assert.equal(r.data.rows[0].description, evil);
   assert.equal(payments(env)[0].description, evil);
   assert.equal(r.data.unmatched, 1);
+});
+
+test("import: only a manual rent payment takes an imported row's place, not a deposit of the same amount", async () => {
+  const env = makeEnv();
+  const id = await tenancy(env), ref = paymentRef(id);
+  await pay(env, id, 150000, { received_on: ago(3), kind: "deposit" });
+  const r = await imp(env, [ROW({ description: ref })]);
+  assert.deepEqual(r.data.rows.map(o => o.status), ["matched"]);
+  assert.deepEqual(payments(env).map(p => [p.kind, p.source, !!p.import_hash]), [["deposit", "manual", false], ["rent", "import", true]]);
+  assert.equal((await detail(env, id)).balance, 0, "the rent counts; the deposit stays a deposit");
+});
+
+test("import: the reference of a tenancy ended more than 60 days ago goes to Unmatched (P22)", async () => {
+  const env = makeEnv();
+  const old = await tenancy(env, { days: 200 }), recent = await tenancy(env, { days: 200 });
+  run(env, "UPDATE tenancies SET ended_on = ? WHERE id = ?", ago(61), old);
+  run(env, "UPDATE tenancies SET ended_on = ? WHERE id = ?", ago(60), recent);
+  const r = await imp(env, [ROW({ description: `RENT ${paymentRef(old)}` }), ROW({ description: `RENT ${paymentRef(recent)}` })]);
+  assert.deepEqual(r.data.rows.map(o => [o.status, o.payment_ref, o.reason]),
+    [["unmatched", null, "Tenancy ended"], ["matched", paymentRef(recent), undefined]]);
+  assert.deepEqual(payments(env).map(p => p.tenancy_id), [null, recent]);
+});
+
+test("payment edit: a manual payment's amount and date (P23); an imported one keeps the bank's", async () => {
+  const env = makeEnv();
+  const id = await tenancy(env), ref = paymentRef(id);
+  const manual = (await pay(env, id, 100000, { received_on: ago(1) })).payments[0].id;
+  const put = body => req(env, "PUT", `/admin/payments/${manual}`, body);
+  const r = await put({ amount: 150000, received_on: ago(2) });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.balance, 0);
+  assert.deepEqual(payments(env).map(p => [p.received_on, p.amount]), [[ago(2), 150000]]);
+  assert.deepEqual(events(env, "payment.updated").map(e => [e.tenancy_id, e.data]), [[id, { payment_id: manual, amount: 100000,
+    before: { amount: 100000, received_on: ago(1) }, after: { amount: 150000, received_on: ago(2) } }]]);
+  assert.equal((await put({ received_on: plusDays(T, 1) })).status, 400, "not after today");
+  assert.equal((await put({ amount: 0 })).status, 400);
+  await imp(env, [ROW({ amount: 5000, description: ref })]);
+  const imported = rows(env, "SELECT id FROM payments WHERE source = 'import'")[0].id;
+  const refused = await req(env, "PUT", `/admin/payments/${imported}`, { amount: 6000 });
+  assert.deepEqual([refused.status, refused.data.error], [400, "An imported payment keeps the bank's amount and date"]);
+  assert.equal((await req(env, "PUT", `/admin/payments/${imported}`, { tenancy_id: null })).status, 200, "but it can be unassigned");
 });
 
 test("payment routes: signed out 401", async () => {

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, call, adminCookie } from "./helpers.mjs";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
+import { ensureCharges } from "../../server/routes/rent.js";
 
 const req = async (env, method, path, body) => call(env, method, path, { body, cookie: await adminCookie() });
 const run = (env, sql, ...args) => env.DB.raw.prepare(sql).run(...args);
@@ -112,6 +113,38 @@ test("rental: switching to full with an active tenancy needs collect_from", asyn
   const other = await rental(env);
   tenancy(env, other, { ended_on: "2024-01-31" });
   assert.equal((await putRental(env, other, { service: "full", fee_percent: 12.5 })).status, 200);
+});
+
+test("rental: full to let only removes the rent charges not yet due and not corrected by hand (P24)", async () => {
+  const env = makeEnv();
+  const id = await rental(env, { service: "full", fee_percent: 10 }), start = plusDays(today(), -70);
+  const t = await req(env, "POST", `/admin/rentals/${id}/tenancies`, { tenant_name: "Tom", kind: "periodic", regime: "2025",
+    rent: 1000, start_on: start, collect_from: start, due_day: 28 });
+  assert.equal(t.status, 201, JSON.stringify(t.data));
+  await ensureCharges(env, plusDays(today(), 70)).run(); // a few months ahead
+  const all = rows(env, "SELECT id, due_on FROM charges ORDER BY due_on"), future = all.filter(c => c.due_on > today());
+  assert.ok(future.length >= 3 && all.length > future.length);
+  run(env, "UPDATE charges SET edited = 1 WHERE id = ?", future.at(-1).id);
+  const gone = future.slice(0, -1);
+  assert.equal((await putRental(env, id, { service: "let_only" })).status, 200);
+  assert.deepEqual(rows(env, "SELECT due_on FROM charges ORDER BY due_on").map(c => c.due_on),
+    all.filter(c => !gone.includes(c)).map(c => c.due_on), "past charges and the corrected one stay");
+  assert.deepEqual(events(env, "rental.updated").at(-1).data.removed, { count: gone.length, amount: 100000 * gone.length });
+  assert.equal((await putRental(env, id, { notes: "x" })).status, 200);
+  assert.equal(events(env, "rental.updated").at(-1).data.removed, undefined, "only on the switch");
+});
+
+test("landlords: service=full lists those with a full management property not archived (the Statement's choices)", async () => {
+  const env = makeEnv();
+  const anne = await landlord(env, { name: "Anne" }), bob = await landlord(env, { name: "Bob" }), cat = await landlord(env, { name: "Cat" });
+  await rental(env, { landlord_id: anne, service: "full", fee_percent: 10 });
+  await rental(env, { landlord_id: bob });
+  const gone = await rental(env, { landlord_id: cat, service: "full", fee_percent: 10 });
+  assert.equal((await req(env, "POST", `/admin/rentals/${gone}/archive`)).status, 200);
+  const names = async qs => (await req(env, "GET", `/admin/landlords${qs}`)).data.landlords.map(l => l.name);
+  assert.deepEqual(await names(""), ["Anne", "Bob", "Cat"]);
+  assert.deepEqual(await names("?service=full"), ["Anne"]);
+  assert.equal((await req(env, "GET", "/admin/landlords?service=x")).status, 400);
 });
 
 test("rental: archive refused with an active tenancy or open repairs; landlord archive refused with active properties", async () => {

@@ -14,8 +14,10 @@ const landlord = async (env, over = {}) => ok(await req(env, "POST", "/admin/lan
 const rental = async (env, landlord_id, over = {}) => ok(await req(env, "POST", "/admin/rentals", { landlord_id,
   address: "1 Rue des Pres", parish: "St Helier", service: "full", fee_percent: 10, ...over }), 201).rental.id;
 const LET_ONLY = { service: "let_only", fee_percent: null };
+// collect_from defaults to the start here (P22: the API asks for it when the start is before this month).
 const tenancy = async (env, rentalId, over = {}) => ok(await req(env, "POST", `/admin/rentals/${rentalId}/tenancies`,
-  { tenant_name: "Tom Tenant", kind: "periodic", regime: "2025", rent: 1500, start_on: ago(6), ...over }), 201).tenancy;
+  { tenant_name: "Tom Tenant", kind: "periodic", regime: "2025", rent: 1500, start_on: ago(6), collect_from: over.start_on ?? ago(6),
+    ...over }), 201).tenancy;
 const repair = (env, rentalId, body) => req(env, "POST", `/admin/rentals/${rentalId}/repairs`, body);
 const putRepair = (env, r, body) => req(env, "PUT", `/admin/repairs/${r.id}`, { updated_at: r.updated_at, ...body });
 const overview = async (env, qs = "") => ok(await req(env, "GET", `/admin/rentals${qs}`));
@@ -291,6 +293,56 @@ test("overview: search by tenant name, payment reference and address; filters", 
   assert.equal((await call(env, "GET", "/admin/rentals")).status, 401);
 });
 
+test("overview: the list's arrears mark is owing and a day late, even after the last step is done (P25)", async () => {
+  const env = makeEnv();
+  const L = await landlord(env);
+  // 40 days late with the Formal letter done: no step due, still a debtor.
+  const debtor = await tenancy(env, await rental(env, L, { address: "1 Debt Drive" }), { start_on: ago(40) });
+  const d = ok(await req(env, "GET", `/admin/tenancies/${debtor.id}`));
+  ok(await req(env, "PUT", `/admin/tenancies/${debtor.id}/arrears/${d.arrears.oldest_unpaid_on}/letter`, { note: "sent" }));
+  // Due today, not late yet; and nothing owed.
+  const today = await tenancy(env, await rental(env, L, { address: "2 Due Today" }), { start_on: T });
+  await tenancy(env, await rental(env, L, { address: "3 Let Only", ...LET_ONLY }), { start_on: ago(40) });
+  const { todo, rentals } = await overview(env);
+  assert.ok(!todo.arrears.some(a => a.tenancy_id === debtor.id), "no step due, so not in the to-do");
+  const marks = Object.fromEntries(rentals.map(r => [r.address, r.marks.includes("arrears")]));
+  assert.deepEqual(marks, { "1 Debt Drive": true, "2 Due Today": false, "3 Let Only": false });
+  assert.ok(rentals.find(r => r.id === today.rental_id).balance > 0, "owing today, not late");
+  assert.deepEqual((await overview(env, "?filter=arrears")).rentals.map(r => r.address), ["1 Debt Drive"]);
+});
+
+test("overview: the list shows the rent in force today, or the starting rent before the start", async () => {
+  const env = makeEnv();
+  const L = await landlord(env);
+  const now = await tenancy(env, await rental(env, L, { address: "1 Now" }), { start_on: ago(6), rent: 1000 });
+  ok(await req(env, "POST", `/admin/tenancies/${now.id}/rent`, { rent: 1200, effective_on: ahead(60) }));
+  await tenancy(env, await rental(env, L, { address: "2 Soon" }), { start_on: ahead(10), collect_from: ahead(10), rent: 900 });
+  const soon = (await overview(env)).rentals.find(r => r.address === "2 Soon");
+  ok(await req(env, "POST", `/admin/tenancies/${soon.tenancy_id}/rent`, { rent: 950, effective_on: ahead(40) }));
+  assert.deepEqual((await overview(env)).rentals.map(r => [r.address, r.rent]), [["1 Now", 1000], ["2 Soon", 900]]);
+});
+
+test("overview: list=1 answers only the properties, the same as the full load, and makes no charges (P26)", async () => {
+  const env = makeEnv();
+  const L = await landlord(env);
+  const late = await tenancy(env, await rental(env, L, { address: "1 Late Lane" }), { start_on: ago(6) });
+  await tenancy(env, await rental(env, L, { address: "2 Let Lane", ...LET_ONLY }),
+    { kind: "fixed", start_on: ago(300), end_on: ahead(80), inventory_in_on: ago(300) });
+  const quiet = await rental(env, L, { address: "3 Quiet Close" });
+  ok(await repair(env, quiet, { title: "Gate", urgency: "routine" }), 201);
+  for (const qs of ["", "?q=lane", "?service=full", ...["arrears", "compliance", "renewals", "repairs"].map(f => `?filter=${f}`)]) {
+    const full = await overview(env, qs), list = await overview(env, `${qs ? `${qs}&` : "?"}list=1`);
+    assert.deepEqual(Object.keys(list), ["rentals"], qs);
+    assert.deepEqual(list.rentals, full.rentals, qs);
+  }
+  assert.deepEqual((await overview(env, "?filter=repairs&list=1")).rentals.map(r => r.address), ["3 Quiet Close"]);
+  run(env, "DELETE FROM charges");
+  await overview(env, "?list=1");
+  assert.equal(rows(env, "SELECT COUNT(*) AS n FROM charges")[0].n, 0, "a list reload makes no charges");
+  await overview(env);
+  assert.ok(rows(env, "SELECT COUNT(*) AS n FROM charges WHERE tenancy_id = ?", late.id)[0].n > 0, "the full load does");
+});
+
 test("counts: rentals adds overdue items and unmatched payments; action unchanged", async () => {
   const env = makeEnv();
   const counts = async () => ok(await req(env, "GET", "/admin/notifications/counts"));
@@ -432,4 +484,36 @@ test("overview: 300 tenancies with two years of charges in under 10 ms of handle
   // A reference on the double (SQL runs in-process here; on D1 it doesn't count as Worker CPU). Above 10 ms it is
   // reported as a risk, not failed; the bound only catches a runaway query.
   assert.ok(median < 100, `median ${median} ms`);
+});
+
+test("counts: with the cache fresh, both statements of the counts batch read no tenancy (P19 gate)", async t => {
+  const { refreshRentalsCount } = await import("../../server/routes/rent.js");
+  const env = makeEnv(), db = env.DB.raw, ts = new Date().toISOString(), N = 20000;
+  db.exec("BEGIN");
+  db.prepare("INSERT INTO landlords (id, name, created_at, updated_at) VALUES (1, 'A', ?, ?)").run(ts, ts);
+  const ir = db.prepare(`INSERT INTO rentals (id, landlord_id, address, parish, service, fee_percent, created_at, updated_at)
+    VALUES (?, 1, 'x', 'St Helier', 'full', 10, ?, ?)`);
+  const it = db.prepare(`INSERT INTO tenancies (id, rental_id, tenant_name, kind, regime, start_on, rent, due_day, collect_from,
+    created_at, updated_at) VALUES (?, ?, 't', 'periodic', '2025', ?, 1000, 1, ?, ?, ?)`);
+  for (let i = 1; i <= N; i++) { ir.run(i, ts, ts); it.run(i, i, T, T, ts, ts); }
+  db.exec("COMMIT");
+  await env.DB.batch(refreshRentalsCount(env)); // stale: charges made, count cached
+  const stale = new Date(Date.now() - 10 * 60000).toISOString();
+  // Each statement on its own, with the cache fresh (staleBefore 10 minutes ago) and as if stale (staleBefore after it).
+  const time = (sql, binds) => {
+    const st = db.prepare(sql), t0 = performance.now();
+    for (let i = 0; i < 5; i++) st.run(...binds);
+    return (performance.now() - t0) / 5;
+  };
+  const [ens, cnt] = refreshRentalsCount(env);
+  const ensFresh = time(ens.sql, [T, null, stale]), ensStale = time(ens.sql, [T, null, "9999"]);
+  db.prepare("DELETE FROM app_settings WHERE key = 'rentals_count'").run();
+  await env.DB.batch(refreshRentalsCount(env));
+  // The count's SELECT alone (the INSERT would refresh the cache on the first stale run).
+  const select = cnt.sql.replace(/^[\s\S]*?WITH/, "WITH").replace(/ON CONFLICT[\s\S]*$/, "");
+  const cntFresh = time(select, [T, null, ts, stale]), cntStale = time(select, [T, null, ts, "9999"]);
+  t.diagnostic(`${N} tenancies: ensureCharges fresh ${ensFresh.toFixed(3)} / stale ${ensStale.toFixed(3)} ms; count fresh ${
+    cntFresh.toFixed(3)} / stale ${cntStale.toFixed(3)} ms`);
+  assert.ok(ensFresh * 20 < ensStale, `ensureCharges fresh ${ensFresh.toFixed(3)} ms vs stale ${ensStale.toFixed(3)} ms`);
+  assert.ok(cntFresh * 20 < cntStale, `count fresh ${cntFresh.toFixed(3)} ms vs stale ${cntStale.toFixed(3)} ms`);
 });

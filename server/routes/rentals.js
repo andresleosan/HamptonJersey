@@ -84,10 +84,15 @@ async function setArchived(env, admin, table, id, archive, blocks, event) {
   }
 }
 
-// Landlords (R3), the archived ones last, with how many properties they have that are not archived.
-async function listLandlords({ env }) {
+// Landlords (R3), the archived ones last, with how many properties they have that are not archived. service=full: only
+// those with a full management property not archived (the Statement's choices, P26).
+async function listLandlords({ request, env }) {
+  const service = new URL(request.url).searchParams.get("service");
+  if (service !== null && service !== "full") fail(400, "Invalid service");
   const { results } = await env.DB.prepare(`SELECT l.*, (SELECT COUNT(*) FROM rentals r WHERE r.landlord_id = l.id
-    AND r.archived_at IS NULL) AS active_rentals FROM landlords l ORDER BY l.archived_at IS NOT NULL, l.name COLLATE NOCASE, l.id`).all();
+    AND r.archived_at IS NULL) AS active_rentals FROM landlords l
+    ${service ? "WHERE EXISTS (SELECT 1 FROM rentals r WHERE r.landlord_id = l.id AND r.archived_at IS NULL AND r.service = 'full')" : ""}
+    ORDER BY l.archived_at IS NOT NULL, l.name COLLATE NOCASE, l.id`).all();
   return json({ landlords: results });
 }
 
@@ -180,26 +185,33 @@ async function createRental({ request, env, admin }) {
 }
 
 // The stored row and the body are checked together, never left to the database's CHECKs. R22: going from let only to
-// full with a tenancy running asks from when Hampton collects its rent, saved on that tenancy in the same batch.
+// full with a tenancy running asks from when Hampton collects its rent, saved on that tenancy in the same batch. P24:
+// going from full to let only removes the rent charges not yet due and not corrected by hand, counted on the event.
 async function updateRental({ request, env, admin, params: [id] }) {
   const body = asObject(await readJson(request));
   const r = validateRental(body, { partial: true });
   if (r.errors) return fieldErrors(r.errors);
-  const cur = await loadRental(env, id), next = { ...cur, ...r.value };
+  const cur = await loadRental(env, id), next = { ...cur, ...r.value }, today = jerseyToday();
   if (next.service === "full" && next.fee_percent == null) return fieldErrors({ fee_percent: "Enter the management fee" });
   if (next.landlord_id !== cur.landlord_id && !(await openLandlord(env, next.landlord_id))) return fieldErrors(NO_LANDLORD);
   const running = cur.service === "let_only" && next.service === "full" ? (await env.DB.prepare(
-    `SELECT id, start_on FROM tenancies WHERE rental_id = ? AND ${ACTIVE}`).bind(cur.id, jerseyToday()).all()).results : [];
+    `SELECT id, start_on FROM tenancies WHERE rental_id = ? AND ${ACTIVE}`).bind(cur.id, today).all()).results : [];
   const errors = {}, collect_from = running.length ? fields(body, errors).date("collect_from") : null;
   if (running.length && !collect_from) errors.collect_from ??= "Enter the date Hampton starts collecting the rent";
   if (running.some(t => collect_from < t.start_on)) errors.collect_from = "Collect from the start of the tenancy or later";
   if (Object.keys(errors).length) return fieldErrors(errors);
   const ids = running.map(t => t.id), ts = now(), moving = next.landlord_id !== cur.landlord_id;
+  const leaving = cur.service === "full" && next.service === "let_only";
+  const FUTURE = `FROM charges WHERE kind = 'rent' AND edited = 0 AND due_on > ?
+    AND tenancy_id IN (SELECT id FROM tenancies WHERE rental_id = ?)`;
   await save(env, admin, "rentals", cur, body, r.value, (keys, of) => [
     // The landlord read above may be archived meanwhile: checked again in the write.
     ...(moving ? [guardLandlord(env, next.landlord_id)] : []),
     rentalEvent(env, { rental_id: cur.id, actor: admin, type: "rental.updated",
       data: { before: of(cur), after: of(next), ...(ids.length ? { collect_from, tenancy_ids: ids } : {}) } }),
+    ...(leaving ? [env.DB.prepare(`UPDATE rental_events SET data = json_set(data, '$.removed', (SELECT json_object('count',
+      COUNT(*), 'amount', COALESCE(SUM(amount), 0)) ${FUTURE})) WHERE id = (SELECT MAX(id) FROM rental_events)`).bind(today, cur.id),
+    env.DB.prepare(`DELETE ${FUTURE}`).bind(today, cur.id)] : []),
     // R11: a property that may have gas gets its gas check row back.
     ...(keys.includes("has_gas") && next.has_gas !== 0
       ? [env.DB.prepare("INSERT OR IGNORE INTO compliance_items (rental_id, kind) VALUES (?, 'gas')").bind(cur.id)] : []),
