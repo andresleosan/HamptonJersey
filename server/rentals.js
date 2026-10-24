@@ -18,7 +18,7 @@ export const COMPLIANCE = [["licence", "Rental dwelling licence", LEGAL.licenceY
 
 // R5, R9: the reference a tenant puts on the transfer, and how a bank description is searched for it.
 export const paymentRef = id => `HE-T${String(id).padStart(4, "0")}`;
-export const REF_RE = /HE-?T\s*(\d{4,})/i;
+export const REF_RE = /HE\s*-?\s*T\s*(\d{4,})/i;
 
 // Calendar months, capped at the end of the month: 31 Jan + 1 is 28 or 29 Feb.
 export function addMonths(date, n) {
@@ -48,8 +48,10 @@ export function rentAssistant(tenancy, rpi, today) {
     notes: ["Rent changes follow the tenancy agreement (2011 law). Check with a lawyer"] };
   const after = addMonths(tenancy.last_rent_change_on ?? tenancy.start_on, LEGAL.rentIntervalMonths);
   const notice = addMonths(today, LEGAL.rentNoticeMonths);
-  // In basis points so whole pounds are rounded down without float drift.
-  const max_rent = rpi ? Math.floor(tenancy.rent * (10000 + Math.round(rpi.percent * 100)) / 10000) : null;
+  // In whole basis points, rounded down (a third decimal never lifts the cap), so whole pounds round down without
+  // float drift. Rounding at 1e6 first keeps 1.15 at 115, not 114.999….
+  const bp = rpi ? Math.floor(Math.round(rpi.percent * 1e6) / 1e4) : null;
+  const max_rent = rpi ? Math.floor(tenancy.rent * (10000 + bp) / 10000) : null;
   return { applies: true, max_rent, earliest_on: after > notice ? after : notice, notes: [
     ...(rpi ? [] : ["Enter Jersey's RPI to work out the maximum rent."]),
     "The law allows a larger rise after improvements to the property or when the rent is well below the market. " +

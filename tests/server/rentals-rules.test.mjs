@@ -14,7 +14,7 @@ test("constants and the payment reference", () => {
     ["gas", "Gas safety", 1], ["alarms", "Smoke and CO alarms", 1]]);
   assert.equal(paymentRef(42), "HE-T0042");
   assert.equal(paymentRef(12345), "HE-T12345");
-  for (const s of ["Rent HE-T0042 May", "he-t0042", "HE-T 0042", "HET 0042", "heT0042"])
+  for (const s of ["Rent HE-T0042 May", "he-t0042", "HE-T 0042", "HET 0042", "heT0042", "HE T0042", "he - t 0042"])
     assert.equal(s.match(REF_RE)?.[1], "0042", s);
   assert.equal("HE-T042".match(REF_RE), null);
 });
@@ -67,6 +67,9 @@ test("rentAssistant: 2025 tenancy caps at RPI and waits 12 months and 2 months' 
   assert.equal(a.earliest_on, "2026-12-24");
   // Whole pounds without float drift: 1,000 × 1.15 is 1,150, not 1,149.
   assert.equal(rentAssistant({ ...t, rent: 1000 }, { percent: 15, as_of: "2026-09-30" }, "2026-10-24").max_rent, 1150);
+  // Basis points round down too: 3.125% on £10,000 is £10,312, never £10,313; 1.15% stays 115 basis points.
+  assert.equal(rentAssistant({ ...t, rent: 10000 }, { percent: 3.125, as_of: "2026-09-30" }, "2026-10-24").max_rent, 10312);
+  assert.equal(rentAssistant({ ...t, rent: 10000 }, { percent: 1.15, as_of: "2026-09-30" }, "2026-10-24").max_rent, 10115);
   assert.equal(rentAssistant(t, null, "2026-10-24").max_rent, null);
 
   a = rentAssistant({ ...t, regime: "2011" }, rpi, "2026-10-24");
