@@ -109,7 +109,12 @@ test("offer: a paused or lost buyer keeps the stage", async () => {
   for (const stage of ["paused", "lost"]) {
     const id = await buyer(env, { stage });
     const before = applicant(env, id).updated_at;
+    const activity = () => row(env, "SELECT c.last_activity_at AS at FROM contacts c JOIN applicants a ON a.contact_id = c.id WHERE a.id = ?",
+      id).at;
+    run(env, "UPDATE contacts SET last_activity_at = '2026-01-01T00:00:00.000Z' WHERE id = (SELECT contact_id FROM applicants WHERE id = ?)", id);
     await record(env, id);
+    // Still activity on the retention clock (G2).
+    assert.ok(activity() > "2026-01-01T00:00:00.000Z");
     assert.equal(applicant(env, id).stage, stage);
     assert.equal(applicant(env, id).updated_at, before);
     assert.equal(events(env, id).at(-1).type, "offer.recorded");
@@ -133,7 +138,8 @@ test("offer: counter, then accept uses the counter amount as the price", async (
   const c = await req(env, "POST", `/admin/offers/${o}/counter`, { counter_amount: 735000 });
   assert.equal(c.status, 200);
   assert.deepEqual([c.data.offer.status, c.data.offer.counter_amount], ["countered", 735000]);
-  assert.deepEqual(events(env, id).at(-1).data, { offer_id: o, listing_id: "HE-R001", counter_amount: 735000 });
+  assert.deepEqual(events(env, id).at(-1).data, { offer_id: o, listing_id: "HE-R001",
+    before: { counter_amount: null }, after: { counter_amount: 735000 } });
 
   const a = await req(env, "POST", `/admin/offers/${o}/accept`);
   assert.equal(a.status, 201, JSON.stringify(a.data));
@@ -141,8 +147,9 @@ test("offer: counter, then accept uses the counter amount as the price", async (
   assert.deepEqual([a.data.offer.status, a.data.offer.counter_amount], ["accepted", 735000]);
 
   // Closed now: no more changes.
+  // A bad amount on a closed offer is still 409: closed comes first.
   for (const action of ["counter", "reject", "withdraw", "accept"]) {
-    const r = await req(env, "POST", `/admin/offers/${o}/${action}`, { counter_amount: 1 });
+    const r = await req(env, "POST", `/admin/offers/${o}/${action}`, { counter_amount: 0 });
     assert.deepEqual([r.status, r.data.error], [409, "This offer is no longer open"], action);
   }
   assert.equal((await req(env, "PUT", `/admin/offers/${o}`, { amount: 1 })).status, 409);
@@ -157,6 +164,20 @@ test("offer: counter, then accept uses the counter amount as the price", async (
   const w = await req(env, "POST", `/admin/offers/${o3}/withdraw`, { note: "Recorded in error" });
   assert.deepEqual([w.data.offer.status, events(env, other).at(-1).type], ["withdrawn", "offer.withdrawn"]);
   assert.equal((await req(env, "POST", "/admin/offers/999/accept")).status, 404);
+});
+
+test("offer: the seller counters again, lower, and accept uses the second counter", async () => {
+  const env = world();
+  const id = await buyer(env, { stage: "viewing" });
+  const o = await record(env, id, "HE-R001", 700000);
+  assert.equal((await req(env, "POST", `/admin/offers/${o}/counter`, { counter_amount: 760000 })).status, 200);
+  const again = await req(env, "POST", `/admin/offers/${o}/counter`, { counter_amount: 740000 });
+  assert.deepEqual([again.status, again.data.offer.status, again.data.offer.counter_amount], [200, "countered", 740000]);
+  assert.deepEqual(events(env, id).at(-1), { type: "offer.countered", actor: ADMIN, data: { offer_id: o, listing_id: "HE-R001",
+    before: { counter_amount: 760000 }, after: { counter_amount: 740000 } } });
+  const a = await req(env, "POST", `/admin/offers/${o}/accept`);
+  assert.equal(a.status, 201, JSON.stringify(a.data));
+  assert.equal(row(env, "SELECT price FROM sales WHERE id = ?", a.data.sale_id).price, 740000);
 });
 
 test("accept: creates the sale with nine milestones, listing under_offer, buyer agreed, in one go", async () => {

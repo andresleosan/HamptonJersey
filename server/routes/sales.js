@@ -33,7 +33,7 @@ async function eligible(env, listingId, applicantId) {
 }
 
 // Fails the whole batch (NOT NULL) when the statement just before changed no row, like LOCK in applicants.js: nothing
-// after it happens alone.
+// after it happens alone. It always targets offers, whichever insert it guards: the table only lends a NOT NULL column.
 const ensureChanged = env => env.DB.prepare("INSERT INTO offers (listing_id) SELECT NULL WHERE changes() = 0");
 
 // ctx = { admin, ts, data, newest }: who and when, the ids every event of the write carries (V11: offer_id, sale_id,
@@ -91,6 +91,8 @@ async function create({ request, env, admin }) {
       ensureChanged(env),
       ...buyerEvent(env, ctx, applicant.id, "offer.recorded", { amount: o.amount, conditions: o.conditions }),
       ...stage,
+      // G2: an offer is activity on the buyer, whatever the stage (stageTo touches when it moves).
+      ...(stage.length ? [] : [touch(env, applicant.contact_id, ts)]),
     ]);
   } catch (e) {
     await eligible(env, listing.id, applicant.id); // archived or changed meanwhile: 400 says why
@@ -124,16 +126,17 @@ async function update({ request, env, admin, params: [id] }) {
   return change(env, admin, cur, of(r.value), OPEN, "offer.updated", { before: of(cur), after: of(r.value) });
 }
 
-// V4: the seller counters a pending offer; either side closes an open one, with an optional note.
+// V4, R8: the seller counters an open offer (again, if they like); either side closes an open one, with an optional note.
 async function move({ request, env, admin, params: [id, action] }) {
   const body = asObject(await readJson(request));
   const cur = await loadOffer(env, id);
+  if (!OPEN.includes(cur.status)) fail(409, NOT_OPEN);
   if (action === "counter") {
     const r = validateOffer({ amount: body.counter_amount });
     if (r.errors) return fieldErrors({ counter_amount: r.errors.amount });
-    if (cur.status === "countered") fail(409, "The seller has already countered this offer");
-    return change(env, admin, cur, { status: "countered", counter_amount: r.value.amount }, ["pending"], "offer.countered",
-      { counter_amount: r.value.amount });
+    const counter_amount = r.value.amount;
+    return change(env, admin, cur, { status: "countered", counter_amount }, OPEN, "offer.countered",
+      { before: { counter_amount: cur.counter_amount }, after: { counter_amount } });
   }
   const n = body.note ?? "";
   if (typeof n !== "string" || n.trim().length > 300) return fieldErrors({ note: "Use 300 characters or fewer" });
