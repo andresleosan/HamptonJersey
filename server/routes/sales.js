@@ -6,6 +6,7 @@ import { afterSave, recomputeForListing, recomputeForApplicant } from "../match-
 import { touch, LOCK } from "./applicants.js";
 import { jerseyToday } from "../viewings.js";
 import { jerseyDayStart } from "../insights.js";
+import { ENUMS } from "../listing.js";
 
 const OPEN = ["pending", "countered"];
 const NOT_OPEN = "This offer is no longer open";
@@ -240,8 +241,10 @@ async function list({ env }) {
        s.fell_through_reason, s.closed_at, s.fee, s.shared_fee FROM sales s ${people("s")}
        WHERE s.status <> 'in_progress' AND s.closed_at >= ? ORDER BY s.closed_at DESC, s.id DESC`, since.toISOString()),
   ])).map(r => r.results);
+  const bySale = new Map();
+  for (const m of steps) bySale.set(m.sale_id, [...(bySale.get(m.sale_id) ?? []), m]);
   const sales = open.map(s => {
-    const ms = inOrder(steps.filter(m => m.sale_id === s.id)), next = nextMilestone(ms);
+    const ms = inOrder(bySale.get(s.id) ?? []), next = nextMilestone(ms);
     return { ...s, next: next && { key: next.key, label: milestoneLabel(next.key, s.route), planned_on: next.planned_on },
       overdue: ms.some(m => isOverdue(m, today)) };
   }).sort((x, y) => y.overdue - x.overdue);
@@ -308,7 +311,8 @@ async function updateStep({ request, env, admin, params: [id, key] }) {
   if (r.errors) return fieldErrors(r.errors);
   const sale = await loadSale(env, id);
   if (sale.status !== "in_progress") fail(409, CLOSED);
-  const cur = await env.DB.prepare("SELECT * FROM sale_milestones WHERE sale_id = ? AND key = ?").bind(sale.id, key).first();
+  const read = () => env.DB.prepare("SELECT * FROM sale_milestones WHERE sale_id = ? AND key = ?").bind(sale.id, key).first();
+  const cur = (await read()) ?? fail(404, "Step not found");
   // R4: done and not needed, sent or stored, are never set together.
   const next = { ...cur, ...r.value }, today = jerseyToday();
   if (next.done_on && next.not_needed) return fieldErrors({ not_needed: "A step that is done cannot be marked not needed" });
@@ -316,11 +320,20 @@ async function updateStep({ request, env, admin, params: [id, key] }) {
   if (!keys.length) return json({ milestone: step(cur, sale, today) });
   const of = row => Object.fromEntries(keys.map(k => [k, row[k]]));
   const ctx = { admin, data: { offer_id: sale.offer_id, sale_id: sale.id, listing_id: sale.listing_id } };
-  const [res] = await env.DB.batch([
-    env.DB.prepare(`UPDATE sale_milestones SET ${keys.map(k => `${k} = ?`).join(", ")} WHERE sale_id = ? AND key = ?
-      AND EXISTS (SELECT 1 FROM sales WHERE id = ? AND status = 'in_progress')`).bind(...keys.map(k => next[k]), sale.id, key, sale.id),
-    ...buyerEvent(env, ctx, sale.applicant_id, "sale.milestone", { key, before: of(cur), after: of(next) }, true),
-  ]);
+  let res;
+  try {
+    [res] = await env.DB.batch([
+      env.DB.prepare(`UPDATE sale_milestones SET ${keys.map(k => `${k} = ?`).join(", ")} WHERE sale_id = ? AND key = ?
+        AND EXISTS (SELECT 1 FROM sales WHERE id = ? AND status = 'in_progress')`).bind(...keys.map(k => next[k]), sale.id, key, sale.id),
+      ...buyerEvent(env, ctx, sale.applicant_id, "sale.milestone", { key, before: of(cur), after: of(next) }, true),
+    ]);
+  } catch (e) {
+    // R10: a save of the same step meanwhile made ours break a CHECK (done and not needed together).
+    const row = await read();
+    if (["planned_on", "done_on", "not_needed", "note"].some(k => row?.[k] !== cur[k]))
+      fail(409, "Someone else changed this step. Reload to see it");
+    throw e;
+  }
   if (!res.meta.changes) fail(409, CLOSED);
   return json({ milestone: step(next, sale, today) });
 }
@@ -356,14 +369,14 @@ async function closeSale(env, admin, { sale, listing, applicant }, completing, s
   return json({ sale: await loadSale(env, sale.id) });
 }
 
-// V18: closes the open offers whose `col` is `value` with `status` and `note`, each with its event on its buyer (written
-// first, while the offers are still open).
-const closeOffers = (env, ctx, col, value, status, note) => [
+// V18: closes the open offers matching `where` (binds `args`) with `status` and `note`, each with its event on its buyer
+// (written first, while the offers are still open).
+const closeOffers = (env, ctx, where, args, status, note) => [
   env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
     SELECT ?, ?, 'applicant', CAST(applicant_id AS TEXT), ?, json_object('offer_id', id, 'sale_id', ?, 'listing_id', listing_id, 'note', ?)
-    FROM offers WHERE ${col} = ? AND status IN ${OPEN_SQL}`).bind(ctx.ts, ctx.admin, `offer.${status}`, ctx.data.sale_id, note, value),
-  env.DB.prepare(`UPDATE offers SET status = ?, note = ?, updated_at = ?, updated_by = ? WHERE ${col} = ? AND status IN ${OPEN_SQL}`)
-    .bind(status, note, ctx.ts, ctx.admin, value),
+    FROM offers WHERE ${where} AND status IN ${OPEN_SQL}`).bind(ctx.ts, ctx.admin, `offer.${status}`, ctx.data.sale_id, note, ...args),
+  env.DB.prepare(`UPDATE offers SET status = ?, note = ?, updated_at = ?, updated_by = ? WHERE ${where} AND status IN ${OPEN_SQL}`)
+    .bind(status, note, ctx.ts, ctx.admin, ...args),
 ];
 const closeCtx = (admin, sale) => ({ admin, ts: now(), data: { offer_id: sale.offer_id, sale_id: sale.id, listing_id: sale.listing_id } });
 
@@ -377,9 +390,10 @@ async function complete({ env, admin, params: [id] }) {
         AND m.key = 'passing' AND (m.done_on IS NOT NULL OR m.not_needed = 1))`).bind(ctx.ts, ctx.ts, admin, s.sale.id),
     ensureChanged(env),
     ...buyerEvent(env, ctx, s.applicant.id, "sale.completed"),
-    ...closeOffers(env, ctx, "listing_id", s.listing.id, "rejected", "Property sold"),
-    ...closeOffers(env, ctx, "applicant_id", s.applicant.id, "withdrawn", "Buyer completed elsewhere"),
-  ], availabilityTo(env, ctx, s.listing, "sold", ["for_sale", "under_offer", "not_stated", "withdrawn"], s.applicant.id),
+    // Other buyers' offers on the listing are backups; the buyer's own open offers, here or elsewhere, are withdrawn.
+    ...closeOffers(env, ctx, "listing_id = ? AND applicant_id <> ?", [s.listing.id, s.applicant.id], "rejected", "Property sold"),
+    ...closeOffers(env, ctx, "applicant_id = ?", [s.applicant.id], "withdrawn", "Buyer completed elsewhere"),
+  ], availabilityTo(env, ctx, s.listing, "sold", ENUMS.availability.filter(a => a !== "sold"), s.applicant.id),
   stageTo(env, ctx, s.applicant, "completed", ["new", "searching", "viewing", "offer", "agreed", "paused", "lost"]));
 }
 

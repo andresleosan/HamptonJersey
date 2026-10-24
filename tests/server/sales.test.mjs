@@ -132,6 +132,10 @@ test("sales list: an overdue milestone puts the sale first and counts in the nav
   assert.equal(both.status, 400);
   assert.ok(both.data.fields.not_needed);
   assert.equal((await step(s2, "nope", { note: "x" })).status, 404);
+  // A known step whose row is missing is not found either, never a 500.
+  run(env, "DELETE FROM sale_milestones WHERE sale_id = ? AND key = 'settled'", s2);
+  assert.deepEqual([(await step(s2, "settled", { note: "x" })).status, (await step(s2, "settled", { note: "x" })).data.error],
+    [404, "Step not found"]);
   assert.equal((await step(s2, "lawyers", { planned_on: "2026-02-30" })).status, 400);
 });
 
@@ -203,8 +207,11 @@ test("complete: needs passing done or not needed", async () => {
   assert.equal(sale(env, id).status, "in_progress");
   assert.equal(availability(env, "HE-R001"), "under_offer");
   assert.equal((await req(env, "PUT", `/admin/sales/${id}/milestones/passing`, { not_needed: true })).status, 200);
+  // R11: completing sells the listing from any availability but sold, even one set by hand to let.
+  run(env, "UPDATE listings SET availability = 'to_let' WHERE id = 'HE-R001'");
   assert.equal((await req(env, "POST", `/admin/sales/${id}/complete`)).status, 200);
   assert.equal(sale(env, id).status, "completed");
+  assert.equal(availability(env, "HE-R001"), "sold");
   assert.equal((await req(env, "POST", `/admin/sales/${id}/complete`)).status, 409);
   assert.equal((await req(env, "POST", `/admin/sales/${id}/fall-through`, { reason: "chain" })).status, 409);
   assert.equal((await req(env, "PUT", `/admin/sales/${id}/milestones/settled`, { done_on: today() })).status, 409);
@@ -215,6 +222,7 @@ test("complete: listing sold, buyer completed, backup offers rejected and the bu
   const a = await buyer(env), b = await buyer(env);
   const elsewhere = await record(env, a, "HE-R002");
   const backup = await record(env, b, "HE-R001", 760000);
+  const own = await record(env, a, "HE-R001", 740000);
   const id = await accepted(env, a, "HE-R001");
   const s = sale(env, id);
   const r = await complete(env, id);
@@ -229,14 +237,18 @@ test("complete: listing sold, buyer completed, backup offers rejected and the bu
   assert.equal(offer(env, s.offer_id).status, "accepted");
   assert.deepEqual([offer(env, backup).status, offer(env, backup).note], ["rejected", "Property sold"]);
   assert.deepEqual([offer(env, elsewhere).status, offer(env, elsewhere).note], ["withdrawn", "Buyer completed elsewhere"]);
+  // The buyer's own other offer on the listing is theirs to withdraw, not a backup to reject.
+  assert.deepEqual([offer(env, own).status, offer(env, own).note], ["withdrawn", "Buyer completed elsewhere"]);
 
   const ref = { offer_id: s.offer_id, sale_id: id, listing_id: "HE-R001" };
   assert.deepEqual(events(env, b).at(-1), { type: "offer.rejected", actor: ADMIN,
     data: { offer_id: backup, sale_id: id, listing_id: "HE-R001", note: "Property sold" } });
-  const mine = events(env, a).slice(-4);
-  assert.deepEqual(mine.map(e => [e.type, e.data]), [
+  const mine = events(env, a).slice(-5);
+  const withdrawn = (offer_id, listing_id) => ["offer.withdrawn", { offer_id, sale_id: id, listing_id, note: "Buyer completed elsewhere" }];
+  assert.deepEqual([mine[1], mine[2]].map(e => [e.type, e.data]).sort((x, y) => x[1].offer_id - y[1].offer_id),
+    [withdrawn(elsewhere, "HE-R002"), withdrawn(own, "HE-R001")]);
+  assert.deepEqual([mine[0], ...mine.slice(3)].map(e => [e.type, e.data]), [
     ["sale.completed", ref],
-    ["offer.withdrawn", { offer_id: elsewhere, sale_id: id, listing_id: "HE-R002", note: "Buyer completed elsewhere" }],
     ["listing.availability_changed", { ...ref, before: { availability: "under_offer" }, after: { availability: "sold" } }],
     ["applicant.stage_changed", { ...ref, before: { stage: "agreed" }, after: { stage: "completed" } }],
   ]);
@@ -245,7 +257,7 @@ test("complete: listing sold, buyer completed, backup offers rejected and the bu
   const mineView = await req(env, "GET", `/admin/applicants/${a}/offers`);
   assert.equal(mineView.status, 200);
   assert.deepEqual(mineView.data.offers.map(o => [o.id, o.status, o.listing_title]).sort(),
-    [[s.offer_id, "accepted", "Le Bernage"], [elsewhere, "withdrawn", "La Rocque"]].sort());
+    [[s.offer_id, "accepted", "Le Bernage"], [elsewhere, "withdrawn", "La Rocque"], [own, "withdrawn", "Le Bernage"]].sort());
   assert.deepEqual(mineView.data.sales.map(x => [x.id, x.status, x.listing_title]), [[id, "completed", "Le Bernage"]]);
   assert.deepEqual((await req(env, "GET", "/admin/listings/HE-R001/offers")).data, { open: 0, sale: null });
   assert.equal((await req(env, "GET", "/admin/applicants/999/offers")).status, 404);
@@ -344,4 +356,60 @@ test("delete: an archived applicant with a fallen-through sale is 409; without s
   assert.equal((await req(env, "POST", "/admin/listings/HE-R002/archive")).status, 200);
   assert.deepEqual(await del("/admin/listings/HE-R002", "HE-R002"), { status: 200, error: undefined });
   assert.equal(row(env, "SELECT COUNT(*) AS n FROM offers WHERE listing_id = 'HE-R002'").n, 0);
+});
+
+test("milestone: a save of the same step meanwhile that breaks the CHECK is 409 and changes nothing", async () => {
+  const env = world();
+  const a = await buyer(env);
+  const id = await accepted(env, a);
+  const nEvents = events(env, a).length;
+  // Another admin marks the step not needed between our read and our write.
+  const batch = env.DB.batch.bind(env.DB);
+  env.DB.batch = async stmts => {
+    if (stmts[0].sql.startsWith("UPDATE sale_milestones"))
+      run(env, "UPDATE sale_milestones SET not_needed = 1 WHERE sale_id = ? AND key = 'mortgage'", id);
+    return batch(stmts);
+  };
+  const r = await req(env, "PUT", `/admin/sales/${id}/milestones/mortgage`, { done_on: today() });
+  assert.deepEqual([r.status, r.data.error], [409, "Someone else changed this step. Reload to see it"]);
+  const m = row(env, "SELECT done_on, not_needed FROM sale_milestones WHERE sale_id = ? AND key = 'mortgage'", id);
+  assert.deepEqual({ ...m }, { done_on: null, not_needed: 1 });
+  assert.equal(events(env, a).length, nEvents);
+});
+
+test("archive: an offer recorded between the check and the write still blocks it, and nothing is archived", async () => {
+  const env = world();
+  const a = await buyer(env);
+  const nEvents = events(env, a).length;
+  const sneak = applicant_id => run(env, `INSERT INTO offers (listing_id, applicant_id, amount, created_at, updated_at)
+    VALUES ('HE-R001', ?, 700000, '2026-10-24T00:00:00.000Z', '2026-10-24T00:00:00.000Z')`, applicant_id);
+  // The listing: its archive is one UPDATE; the offer lands just before it runs.
+  const prepare = env.DB.prepare;
+  env.DB.prepare = sql => {
+    const st = prepare(sql);
+    if (!/^UPDATE listings SET published/.test(sql)) return st;
+    return { ...st, bind: (...args) => { const b = st.bind(...args); return { ...b, run: () => { sneak(a); return b.run(); } }; } };
+  };
+  const l = await req(env, "POST", "/admin/listings/HE-R001/archive");
+  assert.deepEqual([l.status, l.data.error], [409, "Close its offers and sale first"]);
+  assert.equal(row(env, "SELECT archived_at FROM listings WHERE id = 'HE-R001'").archived_at, null);
+  env.DB.prepare = prepare;
+
+  // The buyer: their archive batch rolls back whole, event and notices included.
+  const b = await buyer(env, "new");
+  const batch = env.DB.batch.bind(env.DB);
+  env.DB.batch = async stmts => {
+    if (stmts[0].sql.startsWith("UPDATE applicants SET archived_at")) sneak(b);
+    return batch(stmts);
+  };
+  const openNotices = () => row(env, `SELECT COUNT(*) AS n FROM notifications n JOIN events e ON e.id = n.event_id
+    WHERE e.entity_type = 'applicant' AND e.entity_id = ? AND n.resolved_at IS NULL`, String(b)).n;
+  const notices = openNotices(), bEvents = events(env, b).length;
+  assert.ok(notices > 0);
+  const r = await req(env, "POST", `/admin/applicants/${b}/archive`);
+  assert.deepEqual([r.status, r.data.error], [409, "Close its offers and sale first"]);
+  assert.equal(row(env, "SELECT archived_at FROM applicants WHERE id = ?", b).archived_at, null);
+  assert.equal(events(env, b).length, bEvents);
+  assert.equal(openNotices(), notices);
+  assert.equal(events(env, a).length, nEvents);
 });

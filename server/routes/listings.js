@@ -179,17 +179,20 @@ async function setState({ env, admin, params: [id, action] }) {
   if (action === "publish" && l.archived_at) fail(400, "Restore the listing before publishing it");
   if (action === "archive" && l.archived_at) fail(400, "The listing is already archived");
   if (action === "restore" && !l.archived_at) fail(400, "The listing isn't archived");
-  // V16: an open offer or a sale in progress keeps it out of the archive.
-  if (action === "archive" && (await env.DB.prepare(`SELECT EXISTS (SELECT 1 FROM offers WHERE listing_id = ?
-    AND status IN ('pending', 'countered')) OR EXISTS (SELECT 1 FROM sales WHERE listing_id = ? AND status = 'in_progress') AS busy`)
-    .bind(id, id).first()).busy) fail(409, "Close its offers and sale first");
+  // V16: an open offer or a sale in progress keeps it out of the archive: checked first for a quick answer, and again
+  // in the archive's own UPDATE (R9).
+  const archive = action === "archive", busy = "Close its offers and sale first";
+  const BUSY = `(EXISTS (SELECT 1 FROM offers WHERE listing_id = ? AND status IN ('pending', 'countered'))
+    OR EXISTS (SELECT 1 FROM sales WHERE listing_id = ? AND status = 'in_progress'))`;
+  if (archive && (await env.DB.prepare(`SELECT ${BUSY} AS busy`).bind(id, id).first()).busy) fail(409, busy);
   const ts = now();
   // Archived (sold, withdrawn) is no longer offered; restoring leaves the offer off, for the editor's switch (B9).
   const patch = { publish: { published: 1 }, unpublish: { published: 0 }, archive: { published: 0, archived_at: ts, matchable: 0 },
     restore: { archived_at: null } }[action];
   const cols = Object.keys(patch);
-  await env.DB.prepare(`UPDATE listings SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ? WHERE id = ?`)
-    .bind(...cols.map(c => patch[c]), ts, admin, id).run();
+  const res = await env.DB.prepare(`UPDATE listings SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ?
+    WHERE id = ?${archive ? ` AND NOT ${BUSY}` : ""}`).bind(...cols.map(c => patch[c]), ts, admin, id, ...(archive ? [id, id] : [])).run();
+  if (archive && !res.meta.changes) fail(409, busy);
   // Publishing also counts: being on the website adds to the score.
   await afterSave(recomputeForListing, env, id, admin);
   return json({ listing: await loadListing(env, id) });

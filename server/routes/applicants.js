@@ -314,18 +314,28 @@ async function setArchived({ env, admin, params: [id, action] }) {
   const cur = await loadApplicant(env, id);
   if (action === "archive" && cur.archived_at) fail(400, "The applicant is already archived");
   if (action === "restore" && !cur.archived_at) fail(400, "The applicant isn't archived");
-  // V16: an open offer or a sale in progress keeps the buyer out of the archive.
-  if (action === "archive" && (await env.DB.prepare(`SELECT EXISTS (SELECT 1 FROM offers WHERE applicant_id = ?
-    AND status IN ('pending', 'countered')) OR EXISTS (SELECT 1 FROM sales WHERE applicant_id = ? AND status = 'in_progress') AS busy`)
-    .bind(cur.id, cur.id).first()).busy) fail(409, "Close its offers and sale first");
+  // V16: an open offer or a sale in progress keeps the buyer out of the archive: checked first for a quick answer, and
+  // again in the archive's own UPDATE (R9), where a busy buyer gets a NULL updated_at: NOT NULL fails the whole batch,
+  // so neither the event nor the closed notices land.
+  const archive = action === "archive";
+  const BUSY = `(EXISTS (SELECT 1 FROM offers WHERE applicant_id = ? AND status IN ('pending', 'countered'))
+    OR EXISTS (SELECT 1 FROM sales WHERE applicant_id = ? AND status = 'in_progress'))`;
+  const busy = async () => (await env.DB.prepare(`SELECT ${BUSY} AS busy`).bind(cur.id, cur.id).first()).busy
+    && fail(409, "Close its offers and sale first");
+  if (archive) await busy();
   const ts = now(), ref = { entity_type: "applicant", entity_id: String(cur.id) };
-  await env.DB.batch([
-    env.DB.prepare("UPDATE applicants SET archived_at = ?, updated_at = ?, updated_by = ? WHERE id = ?")
-      .bind(action === "archive" ? ts : null, ts, admin, cur.id),
-    ...logEvent(env, { actor: admin, ...ref, type: action === "archive" ? "applicant.archived" : "applicant.restored" }),
-    touch(env, cur.contact_id, ts),
-    ...(action === "archive" ? [resolveNotices(env, ref, admin)] : []),
-  ]);
+  try {
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE applicants SET archived_at = ?, updated_at = ${archive ? `CASE WHEN NOT ${BUSY} THEN ? END` : "?"},
+        updated_by = ? WHERE id = ?`).bind(archive ? ts : null, ...(archive ? [cur.id, cur.id] : []), ts, admin, cur.id),
+      ...logEvent(env, { actor: admin, ...ref, type: archive ? "applicant.archived" : "applicant.restored" }),
+      touch(env, cur.contact_id, ts),
+      ...(archive ? [resolveNotices(env, ref, admin)] : []),
+    ]);
+  } catch (e) {
+    if (archive) await busy();
+    throw e;
+  }
   await afterSave(recomputeForApplicant, env, cur.id, admin);
   return json({ applicant: parsed(await loadApplicant(env, cur.id)) });
 }
