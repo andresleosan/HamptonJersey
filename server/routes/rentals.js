@@ -1,5 +1,5 @@
 import { json, fail, readJson, now } from "../http.js";
-import { validateLandlord, validateRental, COMPLIANCE, addMonths, complianceStatus } from "../rentals.js";
+import { validateLandlord, validateRental, validateRepair, COMPLIANCE, addMonths, complianceStatus } from "../rentals.js";
 import { fields, result } from "../sales.js";
 import { LOCK } from "./applicants.js";
 import { jerseyToday, realDate } from "../viewings.js";
@@ -138,12 +138,13 @@ const item = ([kind, label, years], row, today) => ({ kind, label, years, done_o
   expires_on: row?.expires_on ?? null, note: row?.note ?? null, updated_at: row?.updated_at ?? null,
   updated_by: row?.updated_by ?? null, status: complianceStatus(row ?? {}, today) });
 
+// The property page: its data, its checks and its repairs (open ones first, then the newest).
 async function getRental({ env, params: [id] }) {
   const q = sql => env.DB.prepare(sql).bind(Number(id));
-  const [[rental], rows] = (await env.DB.batch([q(RENTAL_SQL), q("SELECT * FROM compliance_items WHERE rental_id = ?")]))
-    .map(r => r.results);
+  const [[rental], rows, repairs] = (await env.DB.batch([q(RENTAL_SQL), q("SELECT * FROM compliance_items WHERE rental_id = ?"),
+    q("SELECT * FROM repairs WHERE rental_id = ? ORDER BY status IN ('done', 'cancelled'), id DESC")])).map(r => r.results);
   if (!rental) fail(404, "Property not found");
-  return json({ rental, compliance: checks(rental, rows, jerseyToday()) });
+  return json({ rental, compliance: checks(rental, rows, jerseyToday()), repairs });
 }
 
 // R3, R11: the property and its empty checks ("Not recorded") in one batch, for a landlord not archived.
@@ -243,6 +244,79 @@ async function updateCompliance({ request, env, admin, params: [id, kind] }) {
   return json({ item: item(c, { ...after, updated_at: ts, updated_by: admin }, jerseyToday()) });
 }
 
+// R14: where a repair may go next; done and cancelled are final. Going back to awaiting_approval asks again (a larger quote).
+const REPAIR_NEXT = { reported: ["awaiting_approval", "approved", "in_progress", "done", "cancelled"],
+  awaiting_approval: ["approved", "cancelled"], approved: ["awaiting_approval", "in_progress", "done", "cancelled"],
+  in_progress: ["awaiting_approval", "done", "cancelled"], done: [], cancelled: [] };
+const loadRepair = async (env, id) =>
+  (await env.DB.prepare("SELECT * FROM repairs WHERE id = ?").bind(Number(id)).first()) ?? fail(404, "Repair not found");
+
+// R14, on the merged row (never the database's CHECK): done needs its date and cost (400); the status moves only as
+// REPAIR_NEXT allows, and a quote above the landlord's approval_limit goes ahead only once they approved it (409). The
+// approval is stamped on awaiting_approval → approved, and dropped when asked again or when the quote goes up.
+function repairRules(cur, next, limit, ts) {
+  const errors = {};
+  if (next.status === "done" && !next.done_on) errors.done_on = "Enter the date it was done";
+  if (next.status === "done" && next.cost == null) errors.cost = "Enter the final cost";
+  if (Object.keys(errors).length) return fieldErrors(errors);
+  const from = cur?.status ?? "reported";
+  if (next.status !== from && !REPAIR_NEXT[from].includes(next.status))
+    fail(409, `A repair can't go from ${from.replace("_", " ")} to ${next.status.replace("_", " ")}`);
+  if (next.status === "awaiting_approval" || (cur && next.quote > cur.quote)) next.approved_at = null;
+  if (from === "awaiting_approval" && next.status === "approved") next.approved_at = ts;
+  if (["approved", "in_progress", "done"].includes(next.status) && limit != null && next.quote > limit && !next.approved_at)
+    fail(409, `The quote is above the landlord's approval limit of £${limit}: mark it Awaiting approval first`);
+  return null;
+}
+
+// R14: a repair on a property not archived, on its running tenancy if it has one.
+async function createRepair({ request, env, admin, params: [id] }) {
+  const r = validateRepair(asObject(await readJson(request)));
+  if (r.errors) return fieldErrors(r.errors);
+  const state = () => env.DB.prepare(`SELECT r.id, r.archived_at, l.approval_limit, (SELECT t.id FROM tenancies t
+    WHERE t.rental_id = r.id AND ${ACTIVE} ORDER BY t.start_on, t.id LIMIT 1) AS tenancy_id
+    FROM rentals r JOIN landlords l ON l.id = r.landlord_id WHERE r.id = ?`).bind(jerseyToday(), Number(id)).first();
+  const s = (await state()) ?? fail(404, "Property not found");
+  const archived = st => { if (st.archived_at) fail(409, "This property is archived"); };
+  archived(s);
+  const ts = now(), value = { status: "reported", ...r.value };
+  const bad = repairRules(null, value, s.approval_limit, ts);
+  if (bad) return bad;
+  const row = { ...value, rental_id: s.id, tenancy_id: s.tenancy_id, created_at: ts, created_by: admin, updated_at: ts,
+    updated_by: admin };
+  let res;
+  try {
+    [res] = await env.DB.batch([
+      env.DB.prepare(`INSERT INTO repairs (${Object.keys(row).join(", ")}) SELECT ${Object.keys(row).map(() => "?").join(", ")}
+        FROM rentals WHERE id = ? AND archived_at IS NULL`).bind(...Object.values(row), s.id),
+      ensureChanged(env),
+      rentalEvent(env, { rental_id: s.id, tenancy_id: s.tenancy_id, actor: admin, type: "repair.created", data: value },
+        { repair_id: "repairs" }),
+    ]);
+  } catch (e) {
+    archived(await state());
+    throw e;
+  }
+  return json({ repair: await loadRepair(env, res.meta.last_row_id) }, 201);
+}
+
+// R14: a form save (lock), so a status change meanwhile is a 409; each change is one repair.updated event.
+async function updateRepair({ request, env, admin, params: [id] }) {
+  const body = asObject(await readJson(request));
+  const r = validateRepair(body, { partial: true });
+  if (r.errors) return fieldErrors(r.errors);
+  const cur = await env.DB.prepare(`SELECT p.*, l.approval_limit FROM repairs p JOIN rentals r ON r.id = p.rental_id
+    JOIN landlords l ON l.id = r.landlord_id WHERE p.id = ?`).bind(Number(id)).first() ?? fail(404, "Repair not found");
+  const { approval_limit, ...stored } = cur, next = { ...stored, ...r.value };
+  const bad = repairRules(stored, next, approval_limit, now());
+  if (bad) return bad;
+  const value = { ...r.value, approved_at: next.approved_at };
+  await save(env, admin, "repairs", stored, body, value, (keys, of) => [rentalEvent(env, { rental_id: cur.rental_id,
+    tenancy_id: cur.tenancy_id, actor: admin, type: "repair.updated", data: { repair_id: cur.id, before: of(stored),
+      after: of(value) } })]);
+  return json({ repair: await loadRepair(env, cur.id) });
+}
+
 // R12, R29: a percentage from 0 to 30 with up to two decimals.
 function percent(b, errors) {
   const n = typeof b.percent === "string" && b.percent.trim() ? Number(b.percent) : b.percent;
@@ -303,6 +377,8 @@ export default [
   ["PUT", /^\/admin\/rentals\/(\d+)$/, updateRental, true],
   ["POST", /^\/admin\/rentals\/(\d+)\/(archive|restore)$/, rentalState, true],
   ["PUT", /^\/admin\/rentals\/(\d+)\/compliance\/([a-z]+)$/, updateCompliance, true],
+  ["POST", /^\/admin\/rentals\/(\d+)\/repairs$/, createRepair, true],
+  ["PUT", /^\/admin\/repairs\/(\d+)$/, updateRepair, true],
   ["GET", /^\/admin\/settings\/(rpi|gst|csv-map)$/, getSetting, true],
   ["PUT", /^\/admin\/settings\/(rpi|gst|csv-map)$/, putSetting, true],
 ];

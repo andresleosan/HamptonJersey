@@ -1,6 +1,6 @@
 import { json, fail, readJson, now } from "../http.js";
 import { validateTenancy, validatePayment, rentAssistant, earliestMoveOut, complianceStatus, addMonths, LEGAL,
-  ARREARS_STEPS, REF_RE, importKey, cleanDescription } from "../rentals.js";
+  ARREARS_STEPS, COMPLIANCE, REF_RE, importKey, cleanDescription } from "../rentals.js";
 import { fields } from "../sales.js";
 import { jerseyToday, plusDays, realDate } from "../viewings.js";
 import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE } from "./rentals.js";
@@ -70,6 +70,30 @@ export const deadlines = (t, today) => DEADLINES.filter(d => t[d[2]]).map(([key,
   const due_on = plusDays(t[from], days);
   return { key, label, due_on, done_on: t[done], status: t[done] ? "done" : complianceStatus({ expires_on: due_on }, today) };
 });
+
+// R10, R11, P4: the property checks that count, over c and r: properties not archived, gas only where there may be gas.
+const CHECKS = `FROM compliance_items c JOIN rentals r ON r.id = c.rental_id
+  WHERE r.archived_at IS NULL AND (c.kind <> 'gas' OR r.has_gas IS NOT 0)`;
+// R10, R13: one SQL term per tenancy deadline not done whose due date `cmp` (e.g. "< ?1"), over t; the same rule as
+// deadlines(), from the same DEADLINES.
+const pending = cmp => DEADLINES.map(([, , from, days, done]) =>
+  `(t.${from} IS NOT NULL AND t.${done} IS NULL AND date(t.${from}, '+${days} days') ${cmp})`);
+// R12, R16, R24: a fixed term within LEGAL.renewalDays of its end, or past it, with no notice and no move-out set (over t;
+// ?1 = today). Renew moves end_on on or makes it periodic.
+const RENEWAL = `t.kind = 'fixed' AND t.ended_on IS NULL AND t.notice_given_on IS NULL
+  AND t.end_on <= date(?1, '+${LEGAL.renewalDays} days')`;
+const OPEN_REPAIR = "p.status NOT IN ('done', 'cancelled')"; // the repairs_open index
+
+// R16: the nav's Rentals count (binds Jersey today): tenancies whose next arrears step is due, checks and tenancy
+// deadlines overdue (a missing check counts), renewals to decide, open emergencies and unmatched payments.
+export const rentalsCount = env => env.DB.prepare(`WITH ${ARREARS_SQL} SELECT
+  (SELECT COUNT(*) FROM arrears WHERE next_step IS NOT NULL)
+  + (SELECT COUNT(*) ${CHECKS} AND (c.expires_on IS NULL OR c.expires_on < ?1))
+  + (SELECT COALESCE(SUM(${pending("< ?1").join(" + ")}), 0) FROM tenancies t JOIN rentals r ON r.id = t.rental_id
+    WHERE r.archived_at IS NULL)
+  + (SELECT COUNT(*) FROM tenancies t WHERE ${RENEWAL})
+  + (SELECT COUNT(*) FROM repairs p WHERE p.urgency = 'emergency' AND ${OPEN_REPAIR})
+  + (SELECT COUNT(*) FROM payments WHERE tenancy_id IS NULL) AS n`).bind(jerseyToday(), null);
 
 const TENANCY_SQL = "SELECT t.*, r.address, r.service FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE t.id = ?";
 const loadTenancy = async (env, id) =>
@@ -490,7 +514,118 @@ async function importPayments({ request, env, admin }) {
   return json({ ...counts, rows: rows.map(r => r.out) });
 }
 
+// The Rentals screen's to-do order: overdue and missing first, then the nearest; checks in COMPLIANCE order.
+const RANK = ["overdue", "missing", "due7", "due30", "due60"];
+const KINDS = [...COMPLIANCE.map(([k]) => k), ...DEADLINES.map(([k]) => k)];
+const LABEL = Object.fromEntries(COMPLIANCE.map(([k, label]) => [k, label]));
+const WARN = Math.max(...LEGAL.warnDays);
+const URGENCY = "CASE p.urgency WHEN 'emergency' THEN 0 WHEN 'urgent' THEN 1 ELSE 2 END";
+const MARKS = ["arrears", "compliance", "renewals", "repairs"];
+
+// R2, R16, §4: the Rentals screen in one batch: the charges brought up to date first (R6), then the to-do (arrears with a
+// step due, checks and deadlines within LEGAL.warnDays or missing, renewals, open repairs with emergencies first,
+// unmatched payments) and the properties. q searches address, landlord, and any tenant's name or payment reference;
+// service and archived narrow the list in SQL, filter (a to-do block) after. The to-do is never filtered.
+async function overview({ request, env }) {
+  const p = new URL(request.url).searchParams, q = p.get("q")?.trim() || null;
+  const service = p.get("service") || null, filter = p.get("filter") || null, archived = p.get("archived") ?? "";
+  if (service && !["full", "let_only"].includes(service)) fail(400, "Invalid service");
+  if (filter && !MARKS.includes(filter)) fail(400, "Invalid filter");
+  if (!["", "0", "1"].includes(archived)) fail(400, "Invalid archived");
+  const today = jerseyToday(), s = (sql, ...b) => env.DB.prepare(sql).bind(today, ...b);
+  const like = q && `%${q.replace(/[\\%_]/g, "\\$&")}%`, has = col => `${col} LIKE ?3 ESCAPE '\\'`;
+  const [, owing, checks, dues, renewals, repairs, unmatched, list, [totals]] = (await env.DB.batch([
+    ensureCharges(env, today),
+    s(`WITH ${ARREARS_SQL} SELECT a.tenancy_id, a.rental_id, r.address, t.tenant_name, t.payment_ref, a.balance,
+      a.oldest_unpaid_on, a.days_late, a.next_step FROM arrears a JOIN tenancies t ON t.id = a.tenancy_id
+      JOIN rentals r ON r.id = a.rental_id ORDER BY a.days_late DESC, r.address COLLATE NOCASE`, null),
+    s(`SELECT c.rental_id, r.address, c.kind, c.expires_on ${CHECKS}
+      AND (c.expires_on IS NULL OR c.expires_on <= date(?1, '+${WARN} days'))`),
+    s(`SELECT t.*, r.address FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE r.archived_at IS NULL
+      AND (${pending(`<= date(?1, '+${WARN} days')`).join(" OR ")})`),
+    s(`SELECT t.id AS tenancy_id, t.rental_id, r.address, t.tenant_name, t.end_on FROM tenancies t
+      JOIN rentals r ON r.id = t.rental_id WHERE ${RENEWAL} ORDER BY t.end_on, t.id`),
+    env.DB.prepare(`SELECT p.id, p.rental_id, r.address, p.title, p.urgency, p.status, p.contractor, p.quote, p.created_at
+      FROM repairs p JOIN rentals r ON r.id = p.rental_id WHERE ${OPEN_REPAIR} ORDER BY ${URGENCY}, p.created_at, p.id`),
+    // ponytail: the newest 200; the count in totals says how many there are.
+    env.DB.prepare(`SELECT id, received_on, amount, description, kind FROM payments WHERE tenancy_id IS NULL
+      ORDER BY received_on DESC, id DESC LIMIT 200`),
+    // The current tenancy: the earliest one still running (a later one may be waiting for a planned move-out).
+    s(`SELECT r.id, r.address, r.parish, r.service, r.landlord_id, l.name AS landlord_name, r.archived_at,
+      t.id AS tenancy_id, t.tenant_name, t.payment_ref, t.rent
+      FROM rentals r JOIN landlords l ON l.id = r.landlord_id
+      LEFT JOIN tenancies t ON t.id = (SELECT x.id FROM tenancies x WHERE x.rental_id = r.id
+        AND (x.ended_on IS NULL OR x.ended_on > ?1) ORDER BY x.start_on, x.id LIMIT 1)
+      WHERE r.archived_at IS ${archived === "1" ? "NOT " : ""}NULL AND (?2 IS NULL OR r.service = ?2)
+      AND (?3 IS NULL OR ${has("r.address")} OR ${has("l.name")} OR EXISTS (SELECT 1 FROM tenancies x
+        WHERE x.rental_id = r.id AND (${has("x.tenant_name")} OR ${has("x.payment_ref")})))
+      ORDER BY r.address COLLATE NOCASE, r.id`, service, like),
+    s(`SELECT (SELECT COUNT(*) FROM rentals WHERE archived_at IS NULL) AS properties,
+      (SELECT COUNT(DISTINCT rental_id) FROM tenancies WHERE ended_on IS NULL OR ended_on > ?1) AS occupied,
+      (SELECT COUNT(*) FROM payments WHERE tenancy_id IS NULL) AS unmatched`),
+  ])).map(r => r.results);
+  const todo = {
+    arrears: owing.filter(a => a.next_step).map(({ next_step, ...a }) => ({ ...a, next_step: STEP[next_step] })),
+    compliance: [
+      ...dues.flatMap(t => deadlines(t, today).filter(d => d.status !== "done" && d.status !== "ok")
+        .map(d => ({ rental_id: t.rental_id, address: t.address, tenancy_id: t.id, tenant_name: t.tenant_name, kind: d.key,
+          label: d.label, due_on: d.due_on, status: d.status }))),
+      ...checks.map(c => ({ rental_id: c.rental_id, address: c.address, tenancy_id: null, tenant_name: null, kind: c.kind,
+        label: LABEL[c.kind], due_on: c.expires_on, status: complianceStatus(c, today) })),
+    ].sort((a, b) => RANK.indexOf(a.status) - RANK.indexOf(b.status) || (a.due_on ?? "").localeCompare(b.due_on ?? "")
+      || a.rental_id - b.rental_id || KINDS.indexOf(a.kind) - KINDS.indexOf(b.kind)),
+    renewals: renewals.map(r => ({ ...r, label: r.end_on < today ? "Fixed term ended" : "Renewal due" })),
+    repairs, unmatched,
+  };
+  const balance = new Map(owing.map(a => [a.tenancy_id, a.balance]));
+  const marked = Object.fromEntries(MARKS.map(k => [k, new Set(todo[k].map(x => x.rental_id))]));
+  const rentals = list.map(r => ({ ...r, balance: balance.get(r.tenancy_id) ?? null,
+    marks: MARKS.filter(k => marked[k].has(r.id)) })).filter(r => !filter || r.marks.includes(filter));
+  const owed = owing.reduce((sum, a) => sum + Math.max(a.balance, 0), 0);
+  return json({ todo, rentals, totals: { properties: totals.properties, occupied: totals.occupied, owed,
+    unmatched: totals.unmatched } });
+}
+
+// R15, R26, R29: a landlord's statement for a Jersey calendar month (dates are already Jersey days), per full-service
+// property: rent payments received in the month, the fee on them (fee_percent, to the penny), repairs done in the month
+// and charged to the landlord, and deposits or other money apart (no fee, not in the net). GST on the fees only when
+// gst_percent > 0. All in pence.
+async function statement({ request, env }) {
+  const p = new URL(request.url).searchParams, month = p.get("month") ?? "", id = Number(p.get("landlord"));
+  const errors = {};
+  if (!Number.isInteger(id) || id < 1) errors.landlord = "Choose a landlord";
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) errors.month = "Choose a month as YYYY-MM";
+  if (Object.keys(errors).length) return fieldErrors(errors);
+  const from = `${month}-01`, to = addMonths(from, 1), q = (sql, ...b) => env.DB.prepare(sql).bind(...b);
+  const received = kind => `COALESCE((SELECT SUM(p.amount) FROM payments p JOIN tenancies t ON t.id = p.tenancy_id
+    WHERE t.rental_id = r.id AND p.kind ${kind} AND p.received_on >= ?2 AND p.received_on < ?3), 0)`;
+  const [[landlord], [setting], lines, repairs] = (await env.DB.batch([
+    q("SELECT id, name, email, phone, archived_at FROM landlords WHERE id = ?", id),
+    q("SELECT value FROM app_settings WHERE key = 'gst_percent'"),
+    q(`SELECT r.id, r.address, r.fee_percent, r.archived_at, ${received("= 'rent'")} AS rent_received,
+      ${received("<> 'rent'")} AS other_received FROM rentals r WHERE r.landlord_id = ?1 AND r.service = 'full'
+      ORDER BY r.address COLLATE NOCASE, r.id`, id, from, to),
+    q(`SELECT p.id, p.rental_id, p.title, p.contractor, p.done_on, 100 * p.cost AS cost FROM repairs p
+      JOIN rentals r ON r.id = p.rental_id WHERE r.landlord_id = ?1 AND r.service = 'full' AND p.status = 'done'
+      AND p.charge_landlord = 1 AND p.done_on >= ?2 AND p.done_on < ?3 ORDER BY p.done_on, p.id`, id, from, to),
+  ])).map(r => r.results);
+  if (!landlord) fail(404, "Landlord not found");
+  // Percentages have two decimals: in basis points, so the pence are exact before rounding.
+  const bp = pct => Math.round(pct * 100), gst_percent = setting ? JSON.parse(setting.value) : 0;
+  const rentals = lines.map(({ id: rid, address, fee_percent, archived_at, rent_received, other_received }) => ({
+    id: rid, address, archived_at, rent_received, fee: Math.round(rent_received * bp(fee_percent) / 10000),
+    repairs: repairs.filter(x => x.rental_id === rid).map(({ rental_id, ...x }) => x), other_received,
+  })).filter(r => !r.archived_at || r.rent_received || r.other_received || r.repairs.length); // archived: only with money
+  const sum = f => rentals.reduce((t, r) => t + f(r), 0);
+  const rent = sum(r => r.rent_received), fee = sum(r => r.fee), cost = sum(r => r.repairs.reduce((t, x) => t + x.cost, 0));
+  const gst = gst_percent > 0 ? Math.round(fee * bp(gst_percent) / 10000) : null;
+  return json({ landlord, month, gst_percent, rentals,
+    totals: { rent, fee, gst, repairs: cost, net: rent - fee - (gst ?? 0) - cost } });
+}
+
 export default [
+  ["GET", /^\/admin\/rentals$/, overview, true],
+  ["GET", /^\/admin\/statements$/, statement, true],
   ["POST", /^\/admin\/rentals\/(\d+)\/tenancies$/, createTenancy, true],
   ["GET", /^\/admin\/tenancies\/(\d+)$/, getTenancy, true],
   ["PUT", /^\/admin\/tenancies\/(\d+)$/, updateTenancy, true],

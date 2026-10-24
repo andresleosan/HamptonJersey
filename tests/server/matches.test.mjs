@@ -397,7 +397,7 @@ test("matched notices: their own category and count, linking to the Matches tab"
   const box = (await req(env, "GET", "/admin/notifications?box=action&category=matched")).data;
   assert.deepEqual(box.notifications.map(n => [n.category, n.title, n.link]),
     [["matched", "2 new matches for Ana Le Gros", `#/applicants/${a}/matches`]]);
-  const counts = { action: 1, new_applicant: 0, viewing: 0, matched: 1, sales: 0 };
+  const counts = { action: 1, new_applicant: 0, viewing: 0, matched: 1, sales: 0, rentals: 0 };
   assert.deepEqual(box.counts, counts);
   assert.deepEqual((await req(env, "GET", "/admin/notifications/counts")).data, counts, "no review count: the queue tells its size");
 });
