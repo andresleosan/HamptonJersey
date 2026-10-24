@@ -32,7 +32,7 @@ async function loadContact(env, id) {
 }
 
 // G2: the 12-month retention clock restarts with every write to the contact or its searches.
-const touch = (env, contactId, ts) =>
+export const touch = (env, contactId, ts) =>
   env.DB.prepare("UPDATE contacts SET last_activity_at = ? WHERE id = ?").bind(ts, contactId);
 
 // Optimistic lock inside the batch: a stale version sets updated_at to NULL, the NOT NULL constraint fails and the

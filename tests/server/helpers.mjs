@@ -19,17 +19,24 @@ export function makeDb() {
       return { results: [], meta: { changes: Number(r.changes), last_row_id: Number(r.lastInsertRowid) } };
     },
   });
+  // Like D1, one batch at a time: two requests' batches never share a transaction.
+  let last = Promise.resolve();
+  const runBatch = async stmts => {
+    db.exec("BEGIN");
+    try {
+      const out = [];
+      for (const s of stmts) out.push(/^\s*(SELECT|WITH)/i.test(s.sql) ? await s.all() : await s.run());
+      db.exec("COMMIT");
+      return out;
+    } catch (e) { db.exec("ROLLBACK"); throw e; }
+  };
   return {
     raw: db,
     prepare: sql => stmt(sql),
-    async batch(stmts) {
-      db.exec("BEGIN");
-      try {
-        const out = [];
-        for (const s of stmts) out.push(/^\s*(SELECT|WITH)/i.test(s.sql) ? await s.all() : await s.run());
-        db.exec("COMMIT");
-        return out;
-      } catch (e) { db.exec("ROLLBACK"); throw e; }
+    batch(stmts) {
+      const done = last.then(() => runBatch(stmts));
+      last = done.catch(() => {});
+      return done;
     },
   };
 }
