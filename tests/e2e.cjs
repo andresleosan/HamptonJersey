@@ -684,6 +684,22 @@ async function property(page, phone, noSideScroll) {
   assert.match(await t.locator("#payments-1").textContent(), /£1,250\.00[\s\S]*Rent/);
   await waitCount("7"); // the next charge's step is due
 
+  // P23: a payment recorded by hand is corrected (the balance follows), then put back; the history says so.
+  const editPayment = async amount => {
+    await t.locator("#payments-1 tbody tr").first().getByRole("button", {name: /^Edit/}).click();
+    dlg = page.getByRole("dialog", {name: "Edit payment"});
+    await dlg.getByLabel("Amount (£)").fill(amount);
+    await dlg.getByRole("button", {name: "Save payment"}).click();
+    await page.waitForSelector(`text=Payment corrected to £${amount} received`);
+  };
+  await editPayment("1,200.00");
+  await t.locator(".balance", {hasText: "£1,300.00"}).waitFor();
+  await editPayment("1,250.00");
+  await t.locator(".balance", {hasText: "£1,250.00"}).waitFor();
+  await page.click("#h-history");
+  await page.locator(".timeline").getByText("Payment of £1,200.00 corrected: now £1,250.00").waitFor();
+  await page.click("#h-history");
+
   // Change rent with the assistant: the RPI is entered inside it, then the maximum rent and earliest date apply.
   await t.getByRole("button", {name: "Change rent"}).click();
   dlg = page.getByRole("dialog", {name: "Change rent"});
@@ -757,6 +773,67 @@ async function property(page, phone, noSideScroll) {
   await page.goto(BASE + "admin/#/rentals");
   await page.waitForSelector("#h-arrears");
   assert.doesNotMatch(await page.locator("#h-arrears").locator("..").textContent(), /Helen Le Cornu/, "no arrears for the new tenancy");
+  await waitCount("7");
+
+  // P23: Rose Cottage's £1,250 moves to Helen Le Cornu (the Assign search, full management only), then back from her page.
+  const move = async (from, search, to) => {
+    await page.locator(`${from} tbody tr`, {hasText: "£1,250.00"}).getByRole("button", {name: /^Move/}).click();
+    dlg = page.getByRole("dialog", {name: "Move payment"});
+    await dlg.getByLabel("Tenancy", {exact: true}).fill(search);
+    await dlg.getByRole("radio", {name: new RegExp(to)}).check();
+    await dlg.getByRole("button", {name: "Move payment"}).click();
+    await page.waitForSelector(`text=/£1,250\\.00 moved to ${to}/`);
+  };
+  await page.goto(BASE + "admin/#/rentals/1");
+  await t.locator(".balance").waitFor();
+  await page.locator("#payments-1 tbody tr", {hasText: "£1,250.00"}).getByRole("button", {name: /^Move/}).click();
+  dlg = page.getByRole("dialog", {name: "Move payment"});
+  await dlg.getByLabel("Tenancy", {exact: true}).fill("he-t000");
+  await dlg.getByRole("radio", {name: /Helen Le Cornu/}).waitFor();
+  assert.deepEqual(await dlg.getByRole("radio").evaluateAll(rs => rs.map(r => r.parentElement.textContent.split(" ")[0])), ["Helen"],
+    "neither the tenancy it's on nor a let-only one");
+  await shot(page, "fw-move-payment");
+  await dlg.getByRole("button", {name: "Cancel"}).click();
+  await shot(page, "fw-payments-actions");
+  await noSideScroll(BASE + "admin/#/rentals/1", "#payments-1");
+  await phone.locator("#payments-1").scrollIntoViewIfNeeded();
+  await shot(phone, "fw-payments-actions-mobile");
+  await move("#payments-1", "cornu", "Helen Le Cornu");
+  await t.locator(".balance", {hasText: "£2,500.00"}).waitFor();
+  await waitCount("6"); // the oldest month is unpaid again, its letter already done
+  await page.goto(BASE + "admin/#/rentals/3");
+  await page.locator("#tenancy-3 .balance", {hasText: "£850.00"}).waitFor();
+  await move("#payments-3", "vautier", "James Vautier");
+  await page.locator("#tenancy-3 .balance", {hasText: "£2,100.00"}).waitFor();
+  await page.click("#h-history");
+  await page.locator(".timeline").getByText("Payment of £1,250.00 moved from HE-T0003 to HE-T0001").waitFor();
+  await page.click("#h-history");
+  await waitCount("7");
+
+  // P22: a planned move-out is changed, then cancelled: the tenancy goes on and the property isn't free any more.
+  await t3.getByRole("button", {name: "End tenancy"}).click();
+  dlg = page.getByRole("dialog", {name: "End tenancy"});
+  await dlg.getByLabel("Move-out date").fill(addMonths(today, 3));
+  await dlg.getByRole("button", {name: "End tenancy"}).click();
+  await page.waitForSelector("text=/Helen Le Cornu moves out on/");
+  await page.getByRole("heading", {name: "Next tenancy"}).waitFor();
+  await t3.getByRole("button", {name: "Change move-out"}).click();
+  dlg = page.getByRole("dialog", {name: "Change move-out"});
+  assert.equal(await dlg.getByLabel("Move-out date").inputValue(), addMonths(today, 3));
+  await dlg.getByLabel("Move-out date").fill(addMonths(today, 4));
+  await dlg.getByRole("button", {name: "Save move-out"}).click();
+  await t3.getByText(/^Moves out /).waitFor();
+  assert.match(await t3.locator(".warn").textContent(), new RegExp(`Moves out \\w{3} ${Number(addMonths(today, 4).slice(8))} `));
+  await t3.getByRole("button", {name: "Cancel move-out"}).click();
+  dlg = page.getByRole("dialog", {name: "Cancel move-out"});
+  await shot(page, "fw-cancel-move-out");
+  await dlg.getByRole("button", {name: "Cancel move-out"}).click();
+  await page.waitForSelector("text=Move-out cancelled: Helen Le Cornu stays.");
+  await t3.getByRole("button", {name: "End tenancy"}).waitFor();
+  assert.equal(await page.getByRole("heading", {name: "Next tenancy"}).count(), 0, "the property is taken again");
+  await page.click("#h-history");
+  await page.locator(".timeline").getByText(/^Move-out of .* cancelled: the tenancy goes on$/).waitFor();
+  await page.locator(".timeline").getByText(/^Move-out moved from .* to /).waitFor();
   await waitCount("7");
 }
 
@@ -844,6 +921,18 @@ async function bankImport(page, phone, noSideScroll) {
   assert.match(await st.textContent(), /Rose Cottage, La Rue du Moulin[\s\S]*Rent received£2,250\.00[\s\S]*Management fee \(10%\)-£225\.00[\s\S]*Replace the boiler[\s\S]*-£780\.00/);
   assert.match(await page.locator("#statement-totals").textContent(), /Rent received£2,250\.00[\s\S]*Fees-£225\.00[\s\S]*Repairs-£780\.00[\s\S]*Net to landlord£1,245\.00/);
   assert.doesNotMatch(await st.textContent(), /GST/, "no GST line while gst_percent is 0");
+  // R29: GST saved on this page applies to the statement at once; back at 0 its line goes.
+  const gst = async p => {
+    await page.getByLabel("GST on fees (%)").fill(p);
+    await page.getByRole("button", {name: "Save GST"}).click();
+    await page.waitForSelector(`text=GST on fees saved: ${p}%.`);
+  };
+  await gst("5");
+  await page.locator("#statement-totals", {hasText: "GST on fees (5%)"}).waitFor();
+  assert.match(await page.locator("#statement-totals").textContent(), /Fees-£225\.00GST on fees \(5%\)-£11\.25[\s\S]*Net to landlord£1,233\.75/);
+  await gst("0");
+  await page.locator("#statement-totals", {hasText: "Net to landlord£1,245.00"}).waitFor();
+  assert.doesNotMatch(await st.textContent(), /GST/);
   await shot(page, "admin-statement");
   // Printing leaves out the bar, the buttons and the selectors.
   await page.emulateMedia({media: "print"});
