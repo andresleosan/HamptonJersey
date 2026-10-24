@@ -41,16 +41,21 @@ export default function Rentals({ onChange }) {
   const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(() => added && { text: added }), [dialog, setDialog] = useState(null);
   const [f, setF] = useState({ q: "", service: "", filter: "", archived: false }), [tick, setTick] = useState(0);
-  const head = useRef(null), refocus = useRef(false);
+  const head = useRef(null), refocus = useRef(false), loaded = useRef(null);
   useEffect(() => { added = null; }, []);
   const query = new URLSearchParams(Object.entries({ q: f.q.trim(), service: f.service, filter: f.filter, archived: f.archived ? "1" : "" })
     .filter(([, v]) => v)).toString();
-  // Typing and filters reload a moment after the last change; only the latest answer shows.
+  // Typing and filters reload a moment after the last change, only the properties (list=1, P26); the first load and every
+  // change (tick) load the to-do too. Only the latest answer shows.
   useEffect(() => {
     let live = true;
+    const full = loaded.current !== tick, qs = [full ? "" : "list=1", query].filter(Boolean).join("&");
     setBusy(true);
-    const t = setTimeout(() => api(`/admin/rentals${query && `?${query}`}`).then(d => { if (live) { setData(d); setLoadErr(null); setBusy(false); } },
-      e => { if (live) { setLoadErr(e.message); setBusy(false); } }), data ? 250 : 0);
+    const t = setTimeout(() => api(`/admin/rentals${qs && `?${qs}`}`).then(d => {
+      if (!live) return;
+      setData(x => full ? d : { ...x, rentals: d.rentals }); setLoadErr(null); setBusy(false);
+      if (full) loaded.current = tick;
+    }, e => { if (live) { setLoadErr(e.message); setBusy(false); } }), data ? 250 : 0);
     return () => { live = false; clearTimeout(t); };
   }, [query, tick]);
   // A row that a change removed took the dialog's opener with it: the To do heading takes the focus.
@@ -193,8 +198,9 @@ export function MarkStep({ row: a, onClose, onDone, onRefused }) {
 
 // An unmatched payment goes to a tenancy, found by tenant, address or reference: a running one, or a full one that ended
 // in the last 12 months (a former tenant paying off a debt). Only rent counts towards balances (R26); let-only tenancies
-// take deposits and other money only, so for them the kind starts at Deposit.
-function Assign({ payment: p, onClose, onDone, onRefused }) {
+// take deposits and other money only, so for them the kind starts at Deposit. from: the tenancy a payment is moved
+// away from (P23, the property page); then only other full management tenancies are offered.
+export function Assign({ payment: p, from, onClose, onDone, onRefused }) {
   const [q, setQ] = useState(""), [found, setFound] = useState(null), [findErr, setFindErr] = useState(null);
   const [pick, setPick] = useState(null), [kind, setKind] = useState(p.kind);
   const [err, setErr] = useState(null), [busy, setBusy] = useState(false);
@@ -206,7 +212,8 @@ function Assign({ payment: p, onClose, onDone, onRefused }) {
       .then(d => { if (live) { setFound(d.tenancies); setFindErr(null); } }, e => { if (live) setFindErr(e.message); }), 250);
     return () => { live = false; clearTimeout(t); };
   }, [q]);
-  const shown = found && pick && !found.some(r => r.tenancy_id === pick.tenancy_id) ? [pick, ...found] : found ?? (pick ? [pick] : []);
+  const offered = from && found ? found.filter(r => r.service === "full" && r.tenancy_id !== from.id) : found;
+  const shown = offered && pick && !offered.some(r => r.tenancy_id === pick.tenancy_id) ? [pick, ...offered] : offered ?? (pick ? [pick] : []);
   const submit = async e => {
     e.preventDefault();
     if (busy) return;
@@ -214,16 +221,18 @@ function Assign({ payment: p, onClose, onDone, onRefused }) {
     setBusy(true); setErr(null); setErrors({});
     try {
       await api(`/admin/payments/${p.id}`, { method: "PUT", body: { tenancy_id: pick.tenancy_id, kind } });
-      onDone({ text: `${pence(p.amount)} assigned to ${pick.tenant_name} as ${AS[kind]}.` });
+      onDone({ text: `${pence(p.amount)} ${from ? `moved to ${pick.tenant_name} (${pick.payment_ref})` : `assigned to ${pick.tenant_name}`} as ${AS[kind]}.` });
     } catch (x) { setErrors(x.data?.fields || {}); setErr(x.message); setBusy(false); if (x.status === 409 || x.status === 404) onRefused(); }
   };
-  return <Modal title="Assign payment" onClose={onClose}>
+  return <Modal title={from ? "Move payment" : "Assign payment"} onClose={onClose}>
     <form className="sheet-form" onSubmit={submit} noValidate>
       <p>{pence(p.amount)} received {fmtDay(p.received_on)}{p.description && ` · ${p.description}`}</p>
+      {from && <p>Now on {from.tenant_name} · {from.payment_ref}. Both tenancies' balances change.</p>}
       <label>Tenancy<input type="search" value={q} onChange={e => setQ(e.target.value)} autoComplete="off" aria-invalid={errors.tenancy_id ? true : undefined}
         aria-describedby={errors.tenancy_id ? "d-as-q e-as-tenancy_id" : "d-as-q"} /></label>
-      <small id="d-as-q" className="muted">Search by tenant, address or payment reference: current tenancies, and full management ones
-        that ended in the last 12 months.</small>
+      <small id="d-as-q" className="muted">Search by tenant, address or payment reference: {from
+        ? "full management tenancies, current or ended in the last 12 months."
+        : "current tenancies, and full management ones that ended in the last 12 months."}</small>
       {findErr && <p role="alert" className="err">{findErr}</p>}
       {shown.length > 0 && <fieldset className="choices-set"><legend>Matching tenancies</legend><div className="buyers">
         {shown.map(r => <label key={r.tenancy_id} className="check"><input type="radio" name="as-tenancy" checked={pick?.tenancy_id === r.tenancy_id}
@@ -231,14 +240,14 @@ function Assign({ payment: p, onClose, onDone, onRefused }) {
           <span>{r.tenant_name}{r.ended_on && r.ended_on <= jerseyToday() && ` (ended ${fmtDay(r.ended_on)})`} <span className="muted">
             {r.address} · {r.payment_ref} · {SERVICE[r.service]}</span></span></label>)}
       </div></fieldset>}
-      {found && !found.length && <p className="muted" role="status">No tenancy matches “{q.trim()}”.</p>}
+      {offered && !offered.length && <p className="muted" role="status">No {from ? "other full management " : ""}tenancy matches “{q.trim()}”.</p>}
       {error("tenancy_id")}
       <label>Kind<select value={kind} onChange={e => setKind(e.target.value)} aria-describedby="d-as-kind" {...invalid("kind")}>
         {Object.entries(KIND).filter(([k]) => k !== "rent" || pick?.service !== "let_only").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </select>{error("kind")}</label>
       <small id="d-as-kind" className="muted">Only rent counts towards the balance and arrears. Let-only tenancies take deposits and other money, not rent.</small>
       {err && <p role="alert" className="err">{err}</p>}
-      <div className="inline"><button className="btn">{busy ? "Assigning…" : "Assign payment"}</button>
+      <div className="inline"><button className="btn">{busy ? "Saving…" : from ? "Move payment" : "Assign payment"}</button>
         <button type="button" className="btn ghost" onClick={onClose}>Cancel</button></div>
     </form>
   </Modal>;

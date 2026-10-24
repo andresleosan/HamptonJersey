@@ -56,13 +56,14 @@ export function useForm(prefix, init, send, onDone, onRefused) {
   return { f, setF, set, field, radios, submit, err, busy, ref, ...fe };
 }
 
-// A dialog around one form; lead goes above it (outside, so it may hold a form of its own).
-const Sheet = ({ title, a, button, danger, lead, onClose, children }) => <Modal title={title} onClose={onClose}>
+// A dialog around one form; lead goes above it (outside, so it may hold a form of its own). back: the closing button's
+// label, when "Cancel" would read as the action.
+const Sheet = ({ title, a, button, danger, lead, back = "Cancel", onClose, children }) => <Modal title={title} onClose={onClose}>
   {lead}
   <form ref={a.ref} className="sheet-form" onSubmit={a.submit} noValidate>{children}
     {a.err && <p role="alert" className="err">{a.err}</p>}
     <div className="inline"><button className={`btn${danger ? " ghost danger" : ""}`}>{a.busy ? "Saving…" : button}</button>
-      <button type="button" className="btn ghost" onClick={onClose}>Cancel</button></div>
+      <button type="button" className="btn ghost" onClick={onClose}>{back}</button></div>
   </form>
 </Modal>;
 const Who = ({ t }) => <p>{t.tenant_name} · {t.payment_ref}</p>;
@@ -166,17 +167,64 @@ export function RecordNotice({ d: { tenancy: t }, onClose, onDone, onRefused }) 
   </Sheet>;
 }
 
-// R13, R24: the move-out, maybe ahead; later rent charges go and the property is free for the next tenancy.
+// R13, R24: the move-out, maybe ahead; later rent charges go and the property is free for the next tenancy. P22: a
+// planned move-out (still ahead) can move to another date from today.
 export function EndTenancy({ d: { tenancy: t, earliest_move_out }, onClose, onDone, onRefused }) {
-  const a = useForm("et", { ended_on: earliest_move_out ?? jerseyToday() }, async f => {
+  const today = jerseyToday(), planned = !!t.ended_on;
+  const a = useForm("et", { ended_on: t.ended_on ?? earliest_move_out ?? today }, async f => {
     await api(`/admin/tenancies/${t.id}/end`, { method: "POST", body: { ended_on: f.ended_on || null } });
-    return f.ended_on > jerseyToday() ? `${t.tenant_name} moves out on ${fmtDay(f.ended_on)}.` : `Tenancy ended on ${fmtDay(f.ended_on)}.`;
+    return f.ended_on > today ? `${t.tenant_name} moves out on ${fmtDay(f.ended_on)}.` : `Tenancy ended on ${fmtDay(f.ended_on)}.`;
   }, onDone, onRefused);
-  return <Sheet title="End tenancy" a={a} button="End tenancy" danger onClose={onClose}>
+  return <Sheet title={planned ? "Change move-out" : "End tenancy"} a={a} button={planned ? "Save move-out" : "End tenancy"} danger={!planned}
+    onClose={onClose}>
     <Who t={t} />
-    {a.field("ended_on", "Move-out date", { type: "date", min: t.start_on })}
-    <p>Rent charges stop on that date and any already made from it are removed. The property is then free for the next tenancy,
-      and the check-out report is due within {LEGAL.reportDays} days. It can't be undone here.</p>
+    {a.field("ended_on", "Move-out date", { type: "date", min: planned && today > t.start_on ? today : t.start_on })}
+    {planned ? <p>Now {fmtDay(t.ended_on)}. Rent charges stop on the new date: a later one charges the months up to it again, an
+      earlier one removes those from it.</p>
+      : <p>Rent charges stop on that date and any already made from it are removed. The property is then free for the next tenancy,
+        and the check-out report is due within {LEGAL.reportDays} days. A date still ahead can be changed or cancelled until then.</p>}
+  </Sheet>;
+}
+
+// P22: a planned move-out cancelled; the tenancy goes on and its rent is charged again from where it stopped.
+export function CancelMoveOut({ d: { tenancy: t }, onClose, onDone, onRefused }) {
+  const a = useForm("cm", {}, async () => {
+    await api(`/admin/tenancies/${t.id}/end`, { method: "DELETE" });
+    return `Move-out cancelled: ${t.tenant_name} stays.`;
+  }, onDone, onRefused);
+  return <Sheet title="Cancel move-out" a={a} button="Cancel move-out" back="Back" onClose={onClose}>
+    <Who t={t} />
+    <p>{t.tenant_name} was moving out on {fmtDay(t.ended_on)}. The tenancy goes on with no end date, and its rent is charged
+      again from where it stopped.</p>
+  </Sheet>;
+}
+
+// P23: a payment recorded by hand, its amount or date corrected (an imported one keeps the bank's).
+export function EditPayment({ d: { tenancy: t }, p, onClose, onDone, onRefused }) {
+  const a = useForm("ep", { amount: asPounds(p.amount), received_on: p.received_on }, async f => {
+    const amount = toPence(f.amount, "amount") ?? (() => { throw fieldError("amount", "Enter an amount"); })();
+    await api(`/admin/payments/${p.id}`, { method: "PUT", body: { amount, received_on: f.received_on || null } });
+    return `Payment corrected to ${pence(amount)} received ${fmtDay(f.received_on)}.`;
+  }, onDone, onRefused);
+  return <Sheet title="Edit payment" a={a} button="Save payment" onClose={onClose}>
+    <Who t={t} />
+    <p>{KIND[p.kind]} of {pence(p.amount)} received {fmtDay(p.received_on)}, recorded by hand.</p>
+    <div className="grid2">{a.field("amount", "Amount (£)", { inputMode: "decimal" })}
+      {a.field("received_on", "Received on", { type: "date", max: jerseyToday() })}</div>
+  </Sheet>;
+}
+
+// P23: a payment back to Unmatched, to be assigned again from Rentals.
+export function UnassignPayment({ d: { tenancy: t }, p, onClose, onDone, onRefused }) {
+  const a = useForm("up", {}, async () => {
+    await api(`/admin/payments/${p.id}`, { method: "PUT", body: { tenancy_id: null } });
+    return `${pence(p.amount)} moved to Unmatched payments.`;
+  }, onDone, onRefused);
+  return <Sheet title="Unassign payment" a={a} button="Move to Unmatched" onClose={onClose}>
+    <Who t={t} />
+    <p>{KIND[p.kind]} of {pence(p.amount)} received {fmtDay(p.received_on)}{p.description && ` · ${p.description}`}.</p>
+    <p>It leaves this tenancy{p.kind === "rent" && " and its balance"} and waits in Unmatched payments on the Rentals screen, to be
+      assigned again.</p>
   </Sheet>;
 }
 
@@ -210,11 +258,13 @@ const POUNDS = ["rent", "deposit"];
 const toTenancyForm = (t, keys) => Object.fromEntries(keys.map(k => [k, t?.[k] == null ? "" : POUNDS.includes(k) ? t[k].toLocaleString("en-GB") : String(t[k])]));
 const toTenancyBody = (f, keys) => Object.fromEntries(keys.map(k => [k, POUNDS.includes(k) ? pounds(f[k])
   : k === "opening_balance" ? toPence(f[k], k) : f[k].trim() || null]));
-const fieldsOf = (a, keys) => keys.map(k => <Fragment key={k}>{a.field(k, ...TENANCY_FIELDS[k])}</Fragment>);
+// over: [label, props] by key, in place of TENANCY_FIELDS.
+const fieldsOf = (a, keys, over = {}) => keys.map(k => <Fragment key={k}>{a.field(k, ...(over[k] ?? TENANCY_FIELDS[k]))}</Fragment>);
 
-// The tenancy's details (locked by updated_at), or one deadline's date (keys of one).
+// The tenancy's details (locked by updated_at), or one deadline's date (keys of one), or collect_from (P22). note: a line
+// under the tenant.
 export const DETAILS = ["tenant_name", "tenant_email", "tenant_phone", "occupants", "deposit", "deposit_received_on", "deposit_ref", "notes"];
-export function EditTenancy({ d: { tenancy: t }, keys, title, onClose, onDone, onRefused }) {
+export function EditTenancy({ d: { tenancy: t }, keys, title, note, onClose, onDone, onRefused }) {
   const shown = t.kind === "fixed" && keys === DETAILS ? [...keys.slice(0, 4), "end_on", ...keys.slice(4)] : keys;
   const a = useForm("tf", toTenancyForm(t, shown), async f => {
     const body = toTenancyBody(f, shown), saved = toTenancyBody(toTenancyForm(t, shown), shown);
@@ -224,7 +274,7 @@ export function EditTenancy({ d: { tenancy: t }, keys, title, onClose, onDone, o
     return changed.length ? `${title} saved.` : "Nothing changed.";
   }, onDone, onRefused);
   return <Sheet title={title} a={a} button="Save" onClose={onClose}>
-    <Who t={t} /><div className="grid2">{fieldsOf(a, shown)}</div>
+    <Who t={t} />{note && <p>{note}</p>}<div className="grid2">{fieldsOf(a, shown)}</div>
   </Sheet>;
 }
 
@@ -295,7 +345,10 @@ export function NewTenancy({ rental, onClose, onDone, onDirty, onRefused }) {
   const dirty = JSON.stringify(a.f) !== JSON.stringify(blank);
   useEffect(() => { onDirty(dirty); }, [dirty]);
   useEffect(() => () => onDirty(false), []);
-  const group = (title, keys) => <fieldset className="choices-set"><legend>{title}</legend><div className="grid2">{fieldsOf(a, keys)}</div></fieldset>;
+  // P22: a tenancy that started before this month needs the date Hampton collects from (blank would charge its past months).
+  const [label, props] = TENANCY_FIELDS.collect_from, needed = !!a.f.start_on && a.f.start_on < `${jerseyToday().slice(0, 8)}01`;
+  const collect = { collect_from: needed ? [label, { ...props, "aria-required": true }] : [`${label} (optional)`, props] };
+  const group = (title, keys) => <fieldset className="choices-set"><legend>{title}</legend><div className="grid2">{fieldsOf(a, keys, collect)}</div></fieldset>;
   return <form ref={a.ref} id="new-tenancy" className="view-form" onSubmit={a.submit} noValidate aria-labelledby="h-new-tenancy">
     {group("Tenant", ["tenant_name", "tenant_email", "tenant_phone", "occupants"])}
     {a.radios("kind", "Kind", [["fixed", "Fixed term"], ["periodic", "Periodic"]])}

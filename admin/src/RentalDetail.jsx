@@ -3,9 +3,9 @@ import { api } from "./api.js";
 import { fmtDay } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
 import { Received, money, useFieldErrors } from "./Sales.jsx";
-import { GAS, KIND, MarkStep, REPAIR_STATUS, SERVICE, URGENCY, checkState, pence } from "./Rentals.jsx";
-import { ChangeRent, CorrectCharge, DETAILS, EditTenancy, EndTenancy, NewTenancy, RecordNotice, RecordPayment, Renew, RepairDialog,
-  UpdateCheck, needsApproval, rentLine } from "./RentalDialogs.jsx";
+import { Assign, GAS, KIND, MarkStep, REPAIR_STATUS, SERVICE, URGENCY, checkState, pence } from "./Rentals.jsx";
+import { CancelMoveOut, ChangeRent, CorrectCharge, DETAILS, EditPayment, EditTenancy, EndTenancy, NewTenancy, RecordNotice, RecordPayment,
+  Renew, RepairDialog, UnassignPayment, UpdateCheck, needsApproval, rentLine } from "./RentalDialogs.jsx";
 import { OPTIONS } from "../../server/applicants.js";
 import { ARREARS_STEPS, COMPLIANCE, LEGAL } from "../../server/rentals.js";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
@@ -19,8 +19,11 @@ const toForm = r => ({ address: r.address, parish: r.parish, service: r.service,
   has_gas: GAS.find(g => g[2] === (r.has_gas == null ? null : r.has_gas === 1))[0], notes: r.notes ?? "", collect_from: "" });
 const toBody = f => ({ address: f.address.trim() || null, parish: f.parish || null, service: f.service, fee_percent: f.fee_percent.trim() || null,
   has_gas: GAS.find(([k]) => k === f.has_gas)[2], notes: f.notes.trim() || null });
+// P23: Move reuses Rentals' Assign, from the tenancy the payment is on.
+const MovePayment = ({ d, p, onDone, ...rest }) => <Assign payment={p} from={d.tenancy} onDone={m => onDone(m.text)} {...rest} />;
 const DIALOGS = { payment: RecordPayment, rent: ChangeRent, renew: Renew, notice: RecordNotice, end: EndTenancy, charge: CorrectCharge,
-  edit: EditTenancy, check: UpdateCheck, repair: RepairDialog };
+  edit: EditTenancy, check: UpdateCheck, repair: RepairDialog, cancelEnd: CancelMoveOut, editPayment: EditPayment,
+  unassign: UnassignPayment, move: MovePayment };
 const day = iso => fmtDay(jerseyToday(new Date(iso)));
 const FINAL = ["done", "cancelled"];
 const TONE = { reported: "active", awaiting_approval: "attention", approved: "active", in_progress: "active", done: "positive", cancelled: "neutral" };
@@ -102,7 +105,8 @@ export default function RentalDetail({ id, onChange }) {
 
     <div className="rental">
       <div className="sections">
-        {running.map(t => <Tenancy key={t.id} id={t.id} tick={tick} note={note(t.id)} open={(kind, props) => open(kind, props, t.id)} />)}
+        {running.map(t => <Tenancy key={t.id} id={t.id} tick={tick} note={note(t.id)} open={(kind, props) => open(kind, props, t.id)}
+          next={data.tenancies.some(x => x.id > t.id)} />)}
         {!running.some(t => !t.ended_on) && <section className="card" aria-labelledby="h-new-tenancy">
           <h2 id="h-new-tenancy">{running.length ? "Next tenancy" : "No tenancy"}</h2>
           {adding ? <NewTenancy rental={r} onClose={() => setAdding(false)} onDirty={setAddDirty} onRefused={reload}
@@ -197,11 +201,12 @@ export default function RentalDetail({ id, onChange }) {
 }
 
 // One tenancy, loaded on its own (P1): the payment reference, balance and arrears (full management), its deadlines, and
-// the charges and payments of the last 24 months (the newest six until asked for all).
+// the charges and payments of the last 24 months (the newest six until asked for all). next: a later tenancy is entered
+// (a planned move-out can then only move, not be cancelled).
 const DONE = { deposit: ["deposit_protected_on", "Deposit protection"], inventory_in: ["inventory_in_on", "Check-in report"],
   inventory_out: ["inventory_out_on", "Check-out report"] };
 const SHORT = 6;
-function Tenancy({ id, tick, note, open }) {
+function Tenancy({ id, tick, note, open, next }) {
   const [d, setD] = useState(null), [err, setErr] = useState(null), [all, setAll] = useState(false);
   const load = () => api(`/admin/tenancies/${id}`).then(x => { setD(x); setErr(null); }, e => setErr(e.message));
   useEffect(() => { load(); }, [id, tick]);
@@ -230,7 +235,9 @@ function Tenancy({ id, tick, note, open }) {
       <div><dt>Rent</dt><dd className="rent">{rentLine(t, d.current_rent)}
         <span className="muted cell-note">Due on day {t.due_day} of each month</span></dd></div>
       <div><dt>Deposit</dt><dd>{t.deposit != null ? money(t.deposit) : "—"}{t.deposit_ref && <span className="muted cell-note">{t.deposit_ref}</span>}</dd></div>
-      {full && <div><dt>Collecting from</dt><dd>{t.collect_from ? fmtDay(t.collect_from) : "—"}</dd></div>}
+      {full && <div><dt>Collecting from</dt><dd>{t.collect_from ? fmtDay(t.collect_from) : "—"}
+        {t.collect_from && !ended && <> <button type="button" className="linkish" onClick={act("edit", { keys: ["collect_from"],
+          title: "Collect rent from", note: COLLECT_NOTE })}>Change<span className="sr"> the date rent is collected from</span></button></>}</dd></div>}
       {t.occupants && <div><dt>Other occupants</dt><dd>{t.occupants}</dd></div>}
     </dl>
     {full && <div className="owed">
@@ -251,6 +258,9 @@ function Tenancy({ id, tick, note, open }) {
         {t.kind === "fixed" && <button type="button" className="btn ghost sm" onClick={act("renew")}>Renew</button>}
         <button type="button" className="btn ghost sm" onClick={act("notice")}>Record notice</button>
         <button type="button" className="btn ghost sm danger" onClick={act("end")}>End tenancy</button></>}
+      {t.ended_on && !ended && <>
+        <button type="button" className="btn ghost sm" onClick={act("end")}>Change move-out</button>
+        {!next && <button type="button" className="btn ghost sm" onClick={act("cancelEnd")}>Cancel move-out</button>}</>}
       <button type="button" className="btn ghost sm" onClick={act("edit", { keys: DETAILS, title: "Tenancy details" })}>Edit details</button>
     </div>
 
@@ -274,22 +284,35 @@ function Tenancy({ id, tick, note, open }) {
     <h3 id={`h-payments-${id}`}>Payments</h3>
     {d.payments.length ? <div className="table-scroll" role="region" aria-labelledby={`h-payments-${id}`} tabIndex={0}>
       <table className="list small" id={`payments-${id}`}><thead><tr><th scope="col">Received</th><th scope="col">Amount</th><th scope="col">Kind</th>
-        <th scope="col">Description</th></tr></thead>
-        <tbody>{(all ? d.payments : d.payments.slice(0, SHORT)).map(p => <tr key={p.id}>
-          <td className="num">{fmtDay(p.received_on)}</td><td className="num">{pence(p.amount)}</td>
-          <td>{KIND[p.kind]}<span className="muted cell-note">{p.source === "import" ? "Bank import" : "By hand"}</span></td>
-          <td className="wrap">{p.description ?? "—"}</td></tr>)}</tbody></table></div>
+        <th scope="col">Description</th><th scope="col"><span className="sr">Actions</span></th></tr></thead>
+        <tbody>{(all ? d.payments : d.payments.slice(0, SHORT)).map(p => {
+          const what = <span className="sr"> the payment of {pence(p.amount)} received {fmtDay(p.received_on)}</span>;
+          return <tr key={p.id}>
+            <td className="num">{fmtDay(p.received_on)}</td><td className="num">{pence(p.amount)}</td>
+            <td>{KIND[p.kind]}<span className="muted cell-note">{p.source === "import" ? "Bank import" : "By hand"}</span></td>
+            <td className="wrap">{p.description ?? "—"}</td>
+            <td><span className="ctl">{p.source === "manual" && <button type="button" className="btn ghost sm" onClick={act("editPayment", { p })}>Edit{what}</button>}
+              <button type="button" className="btn ghost sm" onClick={act("move", { p })}>Move{what}</button>
+              <button type="button" className="btn ghost sm" onClick={act("unassign", { p })}>Unassign{what}</button></span></td></tr>;
+        })}</tbody></table></div>
       : <p className="muted">No payments in the last 24 months.</p>}
     {more(d.payments)}
   </section>;
 }
 
+const COLLECT_NOTE = "Only a later date: the rent charges due before it are removed, except any corrected by hand and the opening "
+  + "balance. Rent owed for earlier months goes in as the opening balance when the tenancy is entered.";
+
 // The history's lines (R18), from each event's data.
 const keys = o => Object.keys(o ?? {}).map(k => k.replaceAll("_", " ")).join(", ");
+// data.removed {count, amount}: the rent charges a change took away.
+const gone = (r, which) => r?.count ? `; ${r.count} ${which} rent charge${r.count === 1 ? "" : "s"} removed (${pence(r.amount)})` : "";
+const PAID = { amount: v => pence(v), received_on: v => `received ${fmtDay(v)}`, kind: v => KIND[v].toLowerCase() };
 const CHECK = Object.fromEntries(COMPLIANCE.map(([k, label]) => [k, label]));
 const EVENT = {
   "rental.created": () => "Property added",
-  "rental.updated": d => `Details changed: ${keys(d.after)}${d.collect_from ? `; rent collected from ${fmtDay(d.collect_from)}` : ""}`,
+  "rental.updated": d => `Details changed: ${keys(d.after)}${d.collect_from ? `; rent collected from ${fmtDay(d.collect_from)}` : ""}${
+    gone(d.removed, "future")}`,
   "rental.archived": () => "Property archived",
   "rental.restored": () => "Property restored",
   "compliance.updated": d => `${CHECK[d.kind]} done ${fmtDay(d.after.done_on)}, expires ${fmtDay(d.after.expires_on)}`,
@@ -297,16 +320,22 @@ const EVENT = {
   "repair.updated": (d, { repairs }) => `Repair ${repairs.find(p => p.id === d.repair_id)?.title ?? ""} updated: ${d.after.status
     ? REPAIR_STATUS[d.after.status] : keys(d.after)}`,
   "tenancy.created": d => `Tenancy entered for ${d.tenant_name}`,
-  "tenancy.updated": d => `Tenancy details changed: ${keys(d.after)}`,
+  "tenancy.updated": ({ before, after: { collect_from, ...rest }, removed }) => [collect_from
+    && `Rent collected from ${fmtDay(collect_from)}, not ${fmtDay(before.collect_from)}`,
+  Object.keys(rest).length && `Tenancy details changed: ${keys(rest)}`].filter(Boolean).join("; ") + gone(removed, "earlier"),
   "tenancy.renewed": d => (d.after.kind === "fixed" ? `Tenancy renewed until ${fmtDay(d.after.end_on)}` : "Tenancy renewed as periodic"),
-  "tenancy.ended": d => `Tenancy ends ${fmtDay(d.ended_on)}${d.removed?.count
-    ? `; ${d.removed.count} later rent charge${d.removed.count === 1 ? "" : "s"} removed (${pence(d.removed.amount)})` : ""}`,
+  "tenancy.ended": d => `${d.before ? `Move-out moved from ${fmtDay(d.before)} to` : "Tenancy ends"} ${fmtDay(d.ended_on)}${gone(d.removed, "later")}`,
+  "tenancy.end_cancelled": d => `Move-out of ${fmtDay(d.before)} cancelled: the tenancy goes on`,
   "notice.recorded": d => `Notice given by the ${d.by} on ${fmtDay(d.given_on)}; earliest move-out ${fmtDay(d.earliest_move_out)}`,
   "rent.changed": d => `Rent changed from ${money(d.before)} to ${money(d.rent)} pcm from ${fmtDay(d.effective_on)}`,
   "charge.edited": d => `Charge due ${fmtDay(d.due_on)} corrected from ${pence(d.before)} to ${pence(d.after)}`,
   "arrears.step_done": d => `${ARREARS_STEPS.find(x => x[1] === d.step)?.[2]} marked done${d.note ? `: ${d.note}` : ""}`,
   "payment.recorded": d => `${KIND[d.kind]} payment of ${pence(d.amount)} recorded`,
-  "payment.updated": d => (d.after.tenancy_id ? `Payment assigned as ${KIND[d.after.kind].toLowerCase()}` : "Payment moved back to Unmatched"),
+  "payment.updated": ({ amount, after: { tenancy_id, ...rest }, from, to }) => {
+    const now = Object.entries(rest).map(([k, v]) => PAID[k](v));
+    return `Payment of ${pence(amount)} ${tenancy_id !== undefined ? from ? `moved from ${from} to ${to ?? "Unmatched"}` : `assigned to ${to}`
+      : "corrected"}${now.length ? `: now ${now.join(", ")}` : ""}`;
+  },
   "payments.imported": d => `${d.added} bank payment${d.added === 1 ? "" : "s"} imported (${pence(d.amount)})${d.by_hand
     ? `; ${d.by_hand} already recorded by hand` : ""}`,
 };
