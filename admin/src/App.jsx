@@ -12,6 +12,7 @@ import ListingEditor from "./ListingEditor.jsx";
 import Viewings from "./Viewings.jsx";
 import Sales from "./Sales.jsx";
 import SaleDetail from "./SaleDetail.jsx";
+import Rentals, { Landlord, NewRental } from "./Rentals.jsx";
 import Insights from "./Insights.jsx";
 import Availability from "./Availability.jsx";
 import Users from "./Users.jsx";
@@ -29,6 +30,27 @@ function useHash() {
   return hash;
 }
 
+// R17: the setup pages, used rarely, in a menu at the end of the sections. Escape or a click elsewhere closes it; Escape
+// and choosing a page give the focus back to its button, which is marked while one of its pages is open.
+const SETTINGS = [["availability", "Availability"], ["tours", "3D tours"], ["users", "Users"]];
+function SettingsMenu({ current }) {
+  const [open, setOpen] = useState(false), box = useRef(null), button = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = e => { if (!box.current.contains(e.target)) setOpen(false); };
+    const key = e => { if (e.key === "Escape") { setOpen(false); button.current.focus(); } };
+    addEventListener("pointerdown", away);
+    addEventListener("keydown", key);
+    return () => { removeEventListener("pointerdown", away); removeEventListener("keydown", key); };
+  }, [open]);
+  return <div className="settings" ref={box} onBlur={e => { if (e.relatedTarget && !box.current.contains(e.relatedTarget)) setOpen(false); }}>
+    <button ref={button} type="button" aria-expanded={open} aria-controls="settings-menu"
+      aria-current={SETTINGS.some(([k]) => k === current) ? "true" : undefined} onClick={() => setOpen(o => !o)}>Settings</button>
+    <div id="settings-menu" className="menu" hidden={!open}>{SETTINGS.map(([k, t]) => <a key={k} href={`#/${k}`}
+      aria-current={current === k ? "page" : undefined} onClick={() => { setOpen(false); button.current.focus(); }}>{t}</a>)}</div>
+  </div>;
+}
+
 export default function App() {
   const [me, setMe] = useState(undefined); // undefined = checking, null = signed out
   const [expired, setExpired] = useState(false);
@@ -43,7 +65,7 @@ export default function App() {
 
   const [path, query] = hash.replace(/^#\/?/, "").split("?");
   const [section, arg, sub] = path.split("/");
-  const current = section === "p" && arg ? "listings" : ["applicants", "review", "listings", "viewings", "sales", "insights", "availability", "users", "tours"].includes(section) ? section : "";
+  const current = section === "p" && arg ? "listings" : ["applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours"].includes(section) ? section : "";
   // The Inbox counter in the navigation: every 30 s while signed in and the tab is visible. On the Inbox itself,
   // the page's own poll brings the counts (onCounts).
   const loadCounts = useCallback(() => api("/admin/notifications/counts").then(setCounts, () => {}), []);
@@ -71,6 +93,10 @@ export default function App() {
       ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} />
     : section === "sales" && /^\d+$/.test(arg) ? <SaleDetail key={arg} id={arg} onChange={loadCounts} />
     : section === "sales" ? <Sales key={query ?? ""} buyer={new URLSearchParams(query).get("applicant")} onChange={loadCounts} />
+    : section === "rentals" && arg === "new"
+      ? <NewRental key={query ?? ""} landlordId={new URLSearchParams(query).get("landlord")} />
+    : section === "rentals" && arg === "landlords" && /^\d+$/.test(sub) ? <Landlord key={sub} id={sub} />
+    : section === "rentals" ? <Rentals onChange={loadCounts} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "tours" ? <Tours /> : <Inbox paused={expired} onCounts={setCounts} />;
   const logout = async () => {
@@ -91,10 +117,10 @@ export default function App() {
         <a href="#/viewings" aria-current={current === "viewings" ? "page" : undefined}>Viewings</a>
         <a href="#/sales" aria-current={current === "sales" ? "page" : undefined}>Sales{counts.sales > 0
           && <span className="count">{counts.sales}<span className="sr"> overdue or waiting</span></span>}</a>
+        <a href="#/rentals" aria-current={current === "rentals" ? "page" : undefined}>Rentals{counts.rentals > 0
+          && <span className="count">{counts.rentals}<span className="sr"> to do</span></span>}</a>
         <a href="#/insights" aria-current={current === "insights" ? "page" : undefined}>Insights</a>
-        <a href="#/availability" aria-current={current === "availability" ? "page" : undefined}>Availability</a>
-        <a href="#/tours" aria-current={current === "tours" ? "page" : undefined}>3D tours</a>
-        <a href="#/users" aria-current={current === "users" ? "page" : undefined}>Users</a>
+        <SettingsMenu current={current} />
       </nav>
       <a href="/" className="home">View website</a>
       <span className="who">{me}</span>

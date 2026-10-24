@@ -322,18 +322,20 @@ async function admin(browser) {
   const figure = label => page.$$eval(".figures div", (ds, l) => ds.find(d => d.querySelector("dt").textContent === l)?.querySelector("dd").textContent, label);
   const rows = within => within.locator("tbody tr").evaluateAll(rs => rs.map(r => [...r.cells].map(c => c.textContent)));
   const table = name => page.getByRole("table", {name, exact: true}), byListing = page.getByRole("region", {name: "Views by listing"});
-  // The bar at its widest: two-digit counts on both Inbox and Sales (stubbed), still on one line at 1280px.
+  // The bar at its widest: two-digit counts on Inbox, Sales and Rentals (stubbed), still on one line at 1280px.
   const COUNTS = /\/api\/admin\/notifications\/counts$/;
   await page.route(COUNTS, r => r.fulfill({contentType: "application/json",
-    body: JSON.stringify({action: 88, new_applicant: 0, viewing: 0, matched: 0, sales: 88})}));
+    body: JSON.stringify({action: 88, new_applicant: 0, viewing: 0, matched: 0, sales: 88, rentals: 88})}));
   await page.goto(BASE + "admin/#/insights");
   await page.reload();
   await page.waitForSelector(".figures");
-  await page.waitForSelector('header.bar a[href="#/sales"] .count');
+  await page.waitForSelector('header.bar a[href="#/rentals"] .count');
   await page.evaluate(() => document.fonts.ready);
-  const bar = await page.$$eval("header.bar > :not(.who), header.bar nav a", es => es.map(e => [e.textContent, Math.round(e.getBoundingClientRect().top + e.offsetHeight / 2)]));
+  const bar = await page.$$eval("header.bar > :not(.who), header.bar nav > a, header.bar nav button", es => es.map(e => [e.textContent, Math.round(e.getBoundingClientRect().top + e.offsetHeight / 2)]));
   const at = t => bar.findIndex(([x]) => x.startsWith(t));
-  assert.ok(at("Sales") === at("Viewings") + 1 && at("Insights") === at("Sales") + 1, "Sales comes between Viewings and Insights");
+  assert.ok(at("Sales") === at("Viewings") + 1 && at("Rentals") === at("Sales") + 1 && at("Insights") === at("Rentals") + 1,
+    "Rentals comes between Sales and Insights");
+  assert.ok(at("Settings") === at("Insights") + 1, "Settings ends the sections");
   assert.ok(Math.max(...bar.map(([, y]) => y)) - Math.min(...bar.map(([, y]) => y)) < 8, "the bar stays on one line at 1280px");
   await page.unroute(COUNTS);
   await page.reload();
@@ -523,6 +525,7 @@ async function admin(browser) {
     ["Pending", ...[...racers].reverse().map(r => (r === loser ? "WithdrawnSuperseded by a new offer" : "Accepted"))], "newest first");
   await page.locator("#s-offers").scrollIntoViewIfNeeded();
   if (SHOTS) await page.locator("#s-offers").screenshot({path: `${SHOTS}/admin-listing-offers.png`});
+  await rentals(page, phone, noSideScroll);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -530,6 +533,119 @@ async function admin(browser) {
   await shot(page, "admin-users");
   assert.deepEqual(page.errors, []);
   await ctx.close();
+}
+
+// F5-A: the Settings menu, then Rentals on the seed (a tenant in arrears, an overdue gas check, a renewal and an
+// unmatched deposit, so the bar's Rentals count starts at 4), and a new landlord with a new property.
+async function rentals(page, phone, noSideScroll) {
+  const settings = page.getByRole("button", {name: "Settings"}), menu = page.locator("#settings-menu");
+  await page.goto(BASE + "admin/#/insights");
+  await settings.focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await settings.getAttribute("aria-expanded"), "true");
+  assert.equal(await settings.getAttribute("aria-controls"), "settings-menu");
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => document.activeElement.textContent), "Availability", "Tab goes into the menu");
+  await page.keyboard.press("Escape");
+  assert.ok(await menu.isHidden(), "Escape closes the menu");
+  assert.ok(await settings.evaluate(b => b === document.activeElement), "the focus goes back to Settings");
+  await settings.click();
+  await page.click("h1");
+  assert.ok(await menu.isHidden(), "a click outside closes the menu");
+  await settings.click();
+  await menu.getByRole("link", {name: "Users"}).click();
+  await page.waitForSelector("text=andres.san1404@gmail.com");
+  assert.equal(await settings.getAttribute("aria-current"), "true", "Settings is marked while on a page inside it");
+  assert.ok(await menu.isHidden());
+
+  const count = () => page.$eval('header.bar a[href="#/rentals"]', a => a.querySelector(".count")?.firstChild.textContent ?? null);
+  const waitCount = n => page.waitForFunction(n => document.querySelector('header.bar a[href="#/rentals"] .count')?.firstChild.textContent === n, n);
+  const block = id => page.locator(`#${id}`).locator("..");
+  await page.goto(BASE + "admin/#/rentals");
+  await page.waitForSelector("#t-rentals");
+  await waitCount("4");
+  const arrears = block("h-arrears").locator("tr", {hasText: "James Vautier"});
+  assert.match(await arrears.textContent(), /Rose Cottage[\s\S]*HE-T0001[\s\S]*£2,500\.00[\s\S]*\d+ days[\s\S]*Formal letter/);
+  assert.match(await block("h-checks").locator("tr", {hasText: "Rose Cottage"}).textContent(), /Gas safety[\s\S]*Overdue/);
+  assert.match(await block("h-renewals").textContent(), /Flat 2, 14 Bath Street[\s\S]*Sophie Martin[\s\S]*Renewal due/);
+  assert.match(await block("h-repairs").textContent(), /No open repairs/);
+  await shot(page, "admin-rentals");
+  // Mark done: the step is recorded with its note, the tenancy leaves the block until the next step is due.
+  await arrears.getByRole("button", {name: /^Mark done/}).click();
+  let dlg = page.getByRole("dialog", {name: "Mark step done"});
+  await dlg.getByLabel("Note (optional)").fill("Letter sent by post");
+  await dlg.getByRole("button", {name: "Mark done"}).click();
+  await page.waitForSelector("text=Formal letter marked done for James Vautier.");
+  await block("h-arrears").getByText("No tenant needs an arrears step today.").waitFor();
+  await waitCount("3");
+  // Assign: the unmatched deposit goes to the let-only tenancy (rent can't, so its kind changes too).
+  await block("h-unmatched").getByRole("button", {name: /^Assign/}).click();
+  dlg = page.getByRole("dialog", {name: "Assign payment"});
+  await dlg.getByLabel("Tenancy", {exact: true}).fill("martin");
+  await dlg.getByRole("radio", {name: /Sophie Martin/}).check();
+  await dlg.getByLabel("Kind").selectOption("deposit");
+  await dlg.getByRole("button", {name: "Assign payment"}).click();
+  await page.waitForSelector("text=£1,900.00 assigned to Sophie Martin as a deposit.");
+  await block("h-unmatched").getByText("Every payment is matched.").waitFor();
+  await waitCount("2");
+  // The list: search (after typing stops) and filters.
+  const rows = page.locator("#rentals-list tbody tr");
+  assert.equal(await rows.count(), 2);
+  await page.getByLabel("Search").fill("he-t0002");
+  await page.waitForFunction(() => document.querySelectorAll("#rentals-list tbody tr").length === 1);
+  assert.match(await rows.textContent(), /Flat 2, 14 Bath Street[\s\S]*Peter Gallienne[\s\S]*Let only[\s\S]*Sophie Martin/);
+  await page.getByLabel("Search").fill("");
+  await page.waitForFunction(() => document.querySelectorAll("#rentals-list tbody tr").length === 2);
+  await page.getByLabel("Show").selectOption("compliance");
+  await page.waitForFunction(() => document.querySelectorAll("#rentals-list tbody tr").length === 1);
+  assert.match(await rows.textContent(), /Rose Cottage[\s\S]*£2,500\.00[\s\S]*Checks due/);
+  await page.getByLabel("Show").selectOption("");
+  await noSideScroll(BASE + "admin/#/rentals", "#rentals-list");
+  await shot(phone, "admin-rentals-mobile");
+
+  // A new landlord, then a property for them: it joins the list with its checks not recorded yet (4 more in the count).
+  await page.getByRole("button", {name: "New landlord"}).click();
+  dlg = page.getByRole("dialog", {name: "New landlord"});
+  await dlg.getByRole("button", {name: "Add landlord"}).click();
+  await dlg.getByText("Enter a name").waitFor();
+  await dlg.getByLabel("Name").fill("Clare Le Gresley");
+  await dlg.getByLabel("Email").fill("clare.legresley@example.je");
+  await dlg.getByLabel("Approval limit (£, optional)").fill("750");
+  await dlg.getByRole("button", {name: "Add landlord"}).click();
+  await page.waitForSelector("text=Landlord added: Clare Le Gresley.");
+  await page.getByRole("link", {name: "Add a property for Clare Le Gresley"}).click();
+  await page.waitForSelector("#t-new-rental");
+  assert.equal(await page.locator("#r-landlord option:checked").textContent(), "Clare Le Gresley", "the new landlord is chosen");
+  await page.getByLabel("Address").fill("La Hougue Farm, La Rue de la Hougue");
+  await page.getByLabel("Parish").selectOption("St Peter");
+  await page.getByRole("radio", {name: "Full management"}).check();
+  await page.getByRole("button", {name: "Add property"}).click();
+  await page.getByText("Enter the management fee").waitFor();
+  await page.getByLabel("Management fee (%)").fill("12.5");
+  await noSideScroll(BASE + "admin/#/rentals/new", "#t-new-rental");
+  await shot(phone, "admin-new-rental-mobile");
+  await page.getByRole("button", {name: "Add property"}).click();
+  await page.waitForSelector("text=Property added: La Hougue Farm, La Rue de la Hougue.");
+  const added = rows.filter({hasText: "La Hougue Farm"});
+  assert.match(await added.textContent(), /Clare Le Gresley[\s\S]*Full management[\s\S]*No tenancy[\s\S]*Checks due/);
+  await waitCount("6");
+  // The landlord's page: their details with the Save bar, and their properties.
+  await added.getByRole("link", {name: "Clare Le Gresley"}).click();
+  await page.waitForSelector("#t-landlord");
+  await page.getByLabel("Phone").fill("07797 123456");
+  await page.waitForSelector("text=Unsaved changes");
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector("text=Changes saved.");
+  assert.match(await page.locator("#landlord-rentals").textContent(), /La Hougue Farm[\s\S]*St Peter[\s\S]*Full management/);
+  await shot(page, "admin-landlord");
+  await noSideScroll(page.url(), "#t-landlord");
+  // On a phone the Settings menu opens inside the screen.
+  await phone.getByRole("button", {name: "Settings"}).click();
+  const box = await phone.locator("#settings-menu").boundingBox();
+  assert.ok(box.x >= 0 && box.x + box.width <= 390, "the menu fits a phone's width");
+  assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0);
+  await shot(phone, "admin-settings-mobile");
+  assert.equal(await count(), "6");
 }
 
 (async () => {

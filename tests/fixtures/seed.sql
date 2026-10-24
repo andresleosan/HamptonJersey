@@ -134,3 +134,40 @@ INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, b
  '2026-10-22T12:00:00.000Z','2026-10-22T12:00:00.000Z','luismadef45@gmail.com');
 INSERT INTO events (id, at, actor, entity_type, entity_id, type, data) VALUES
 (6,'2026-10-22T12:00:00.000Z','luismadef45@gmail.com','applicant','4','applicant.created','{"operation":"buy","source":"phone"}');
+-- F5-A managed rentals, dated from the day the seed is loaded. A full-management property whose tenant hasn't paid the
+-- first two months (the oldest unpaid charge a month and more old, so the Formal letter step is due) and whose gas check
+-- ran out ten days ago; a let-only flat whose fixed term ends in 60 days (Renewal due); and a deposit the bank import
+-- couldn't match. Every other check is recorded and in date, and the deposits and check-ins are done.
+INSERT INTO landlords (id, name, email, phone, approval_limit, notes, created_at, created_by, updated_at, updated_by) VALUES
+(1,'Margaret Le Brun','margaret.lebrun@example.je','07797 711222',500,NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com','2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
+(2,'Peter Gallienne','peter.gallienne@example.je',NULL,NULL,NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com','2026-09-01T09:00:00.000Z','luismadef45@gmail.com');
+INSERT INTO rentals (id, landlord_id, address, parish, service, fee_percent, has_gas, notes, created_at, created_by, updated_at, updated_by) VALUES
+(1,1,'Rose Cottage, La Rue du Moulin','St Lawrence','full',10,1,NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com','2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
+(2,2,'Flat 2, 14 Bath Street','St Helier','let_only',NULL,0,NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com','2026-09-01T09:00:00.000Z','luismadef45@gmail.com');
+INSERT INTO compliance_items (rental_id, kind, done_on, expires_on, note, updated_at, updated_by) VALUES
+(1,'licence',date('now','-6 months'),date('now','-6 months','+2 years'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
+(1,'eicr',date('now','-1 year'),date('now','-1 year','+5 years'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
+(1,'gas',date('now','-10 days','-1 year'),date('now','-10 days'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
+(1,'alarms',date('now','-2 months'),date('now','-2 months','+1 year'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
+(2,'licence',date('now','-3 months'),date('now','-3 months','+2 years'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
+(2,'eicr',date('now','-2 years'),date('now','-2 years','+5 years'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
+(2,'alarms',date('now','-4 months'),date('now','-4 months','+1 year'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com');
+INSERT INTO tenancies (id, rental_id, payment_ref, tenant_name, tenant_email, tenant_phone, kind, regime, start_on, end_on, rent, due_day,
+  deposit, deposit_received_on, deposit_protected_on, deposit_ref, inventory_in_on, collect_from, created_at, created_by, updated_at, updated_by) VALUES
+(1,1,'HE-T0001','James Vautier','james.vautier@example.je','07700 900777','periodic','2025',date('now','-8 days','-1 month'),NULL,1250,
+ min(CAST(strftime('%d',date('now','-8 days','-1 month')) AS INTEGER),28),1250,date('now','-8 days','-1 month'),
+ date('now','-8 days','-1 month','+10 days'),'MD-48213',date('now','-8 days','-1 month'),date('now','-8 days','-1 month'),
+ '2026-09-01T09:00:00.000Z','luismadef45@gmail.com','2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
+(2,2,'HE-T0002','Sophie Martin','sophie.martin@example.je',NULL,'fixed','2011',date('now','+60 days','-1 year'),date('now','+60 days'),1900,1,
+ 1900,date('now','+60 days','-1 year'),date('now','+60 days','-1 year','+7 days'),'MD-39114',date('now','+60 days','-1 year'),NULL,
+ '2026-09-01T09:00:00.000Z','luismadef45@gmail.com','2026-09-01T09:00:00.000Z','luismadef45@gmail.com');
+INSERT INTO rent_changes (tenancy_id, effective_on, rent, created_at, created_by) VALUES
+(1,date('now','-8 days','-1 month'),1250,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
+(2,date('now','+60 days','-1 year'),1900,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com');
+-- The charges the panel generated when the tenancy was entered (the next month's comes when Rentals is read).
+INSERT INTO charges (tenancy_id, due_on, amount, kind) VALUES
+(1,date('now','-8 days','-1 month'),125000,'rent'),
+(1,date('now','-8 days','-1 month','start of month','+1 month',
+ '+' || (min(CAST(strftime('%d',date('now','-8 days','-1 month')) AS INTEGER),28) - 1) || ' days'),125000,'rent');
+INSERT INTO payments (id, tenancy_id, received_on, amount, description, kind, source, created_at, created_by) VALUES
+(1,NULL,date('now','-2 days'),190000,'S MARTIN DEPOSIT FLAT 2 BATH ST','rent','import','2026-10-22T09:00:00.000Z','luismadef45@gmail.com');
