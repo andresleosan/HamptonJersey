@@ -314,3 +314,104 @@ test("0011: daily_stats refuses unknown metrics and negative counts", () => {
   db.prepare("DELETE FROM listings WHERE id = 'HE-R001'").run();
   assert.equal(db.prepare("SELECT count(*) AS n FROM daily_stats").get().n, 0);
 });
+
+// 0012: a buyer (applicant) per call, and offers/sales rows with sensible defaults.
+const addBuyer = (env, email) => Number(addRow(env.DB.raw, "applicants", { contact_id: Number(addContact(env, { email })
+  .lastInsertRowid), operation: "buy", source: "web", created_at: T0, updated_at: T0 }).lastInsertRowid);
+const addOffer = (db, over) => Number(addRow(db, "offers", { listing_id: "HE-R001", amount: 750000, created_at: T0,
+  updated_at: T0, ...over }).lastInsertRowid);
+const addSale = (db, over) => Number(addRow(db, "sales", { listing_id: "HE-R001", price: 750000, created_at: T0,
+  updated_at: T0, ...over }).lastInsertRowid);
+const count = (db, table) => db.prepare(`SELECT count(*) AS n FROM ${table}`).get().n;
+
+test("0012: an offer refuses a zero amount, an unknown status and a counter amount without countered", () => {
+  const env = makeEnv();
+  const db = env.DB.raw;
+  seedListing(env);
+  const buyer = addBuyer(env, "jane@example.je");
+  const id = addOffer(db, { applicant_id: buyer });
+  assert.equal(db.prepare("SELECT status FROM offers WHERE id = ?").get(id).status, "pending");
+  addOffer(db, { applicant_id: buyer, status: "countered", counter_amount: 760000, conditions: "x".repeat(1000) });
+  // An accepted, rejected or withdrawn offer keeps the counter it went through (V21: the price it was accepted at).
+  addOffer(db, { applicant_id: buyer, status: "accepted", counter_amount: 760000, note: "x".repeat(300) });
+  const bad = [{ amount: 0 }, { amount: 100000001 }, { status: "open" }, { counter_amount: 760000 },
+    { status: "countered" }, { status: "countered", counter_amount: 0 }, { conditions: "x".repeat(1001) },
+    { note: "x".repeat(301) }];
+  for (const over of bad) assert.throws(() => addOffer(db, { applicant_id: buyer, ...over }), /CHECK/, JSON.stringify(over));
+  assert.throws(() => addOffer(db, { applicant_id: buyer, listing_id: "HE-R999" }), /FOREIGN KEY/);
+  assert.throws(() => addOffer(db, { applicant_id: 999 }), /FOREIGN KEY/);
+  const cols = index => db.prepare(`PRAGMA index_info(${index})`).all().map(r => r.name);
+  assert.deepEqual(cols("offers_listing"), ["listing_id", "status"]);
+  assert.deepEqual(cols("offers_applicant"), ["applicant_id"]);
+});
+
+test("0012: two in-progress sales of one listing, or of one buyer, are refused by the database", () => {
+  const env = makeEnv();
+  const db = env.DB.raw;
+  seedListing(env);
+  seedListing(env, { id: "HE-R002" });
+  const jane = addBuyer(env, "jane@example.je"), tom = addBuyer(env, "tom@example.je");
+  const o1 = addOffer(db, { applicant_id: jane }), o2 = addOffer(db, { applicant_id: tom });
+  const o3 = addOffer(db, { applicant_id: jane, listing_id: "HE-R002" });
+  const first = addSale(db, { applicant_id: jane, offer_id: o1 });
+  assert.equal(db.prepare("SELECT status FROM sales WHERE id = ?").get(first).status, "in_progress");
+  assert.throws(() => addSale(db, { applicant_id: tom, offer_id: o2 }), /UNIQUE/);
+  assert.throws(() => addSale(db, { applicant_id: jane, offer_id: o3, listing_id: "HE-R002" }), /UNIQUE/);
+
+  db.prepare("UPDATE sales SET status = 'fallen_through', fell_through_reason = 'finance', closed_at = ? WHERE id = ?")
+    .run(T0, first);
+  addSale(db, { applicant_id: tom, offer_id: o2 });
+  addSale(db, { applicant_id: jane, offer_id: o3, listing_id: "HE-R002" });
+  assert.throws(() => addSale(db, { applicant_id: jane, offer_id: o1, status: "completed", closed_at: T0 }), /UNIQUE/);
+  assert.deepEqual(db.prepare("PRAGMA index_list(sales)").all().filter(i => i.partial).map(i => [i.name, i.unique]).sort(),
+    [["sales_applicant_open", 1], ["sales_listing_open", 1]]);
+});
+
+test("0012: sales and milestones refuse values outside their CHECKs", () => {
+  const env = makeEnv();
+  const db = env.DB.raw;
+  seedListing(env);
+  const buyer = addBuyer(env, "jane@example.je");
+  const offer = addOffer(db, { applicant_id: buyer });
+  const sale = over => addSale(db, { applicant_id: buyer, offer_id: offer, ...over });
+  const bad = [{ price: 0 }, { price: 100000001 }, { route: "leasehold" }, { status: "agreed" }, { fee: 0 },
+    { fee: 5000, shared_fee: 5001 }, { shared_fee: 1000 }, { notes: "x".repeat(2001) },
+    { status: "fallen_through", closed_at: T0 }, { status: "fallen_through", fell_through_reason: "weather", closed_at: T0 },
+    { fell_through_reason: "finance" }, { status: "completed" }, { closed_at: T0 }];
+  for (const over of bad) assert.throws(() => sale(over), /CHECK/, JSON.stringify(over));
+  assert.throws(() => sale({ offer_id: 999 }), /FOREIGN KEY/);
+  const id = sale({ route: "share_transfer", fee: 5000, shared_fee: 5000, notes: "x".repeat(2000) });
+
+  const milestone = over => addRow(db, "sale_milestones", { sale_id: id, key: "lawyers", ...over });
+  milestone({});
+  assert.equal(db.prepare("SELECT not_needed FROM sale_milestones").get().not_needed, 0);
+  assert.throws(() => milestone({}), /UNIQUE|PRIMARY KEY/);
+  for (const over of [{ key: "mortgage", not_needed: 2 }, { key: "mortgage", not_needed: 1, done_on: "2026-10-24" },
+    { key: "mortgage", note: "x".repeat(301) }])
+    assert.throws(() => milestone(over), /CHECK/, JSON.stringify(over));
+  assert.throws(() => milestone({ sale_id: 999 }), /FOREIGN KEY/);
+});
+
+test("0012: deleting a listing or applicant with offers deletes the offers; with a sale it fails", () => {
+  const env = makeEnv();
+  const db = env.DB.raw;
+  seedListing(env);
+  seedListing(env, { id: "HE-R002" });
+  const jane = addBuyer(env, "jane@example.je"), tom = addBuyer(env, "tom@example.je");
+  addOffer(db, { applicant_id: jane });
+  db.prepare("DELETE FROM listings WHERE id = 'HE-R001'").run();
+  assert.equal(count(db, "offers"), 0);
+  addOffer(db, { applicant_id: tom, listing_id: "HE-R002" });
+  db.prepare("DELETE FROM applicants WHERE id = ?").run(tom);
+  assert.equal(count(db, "offers"), 0);
+
+  const offer = addOffer(db, { applicant_id: jane, listing_id: "HE-R002" });
+  const sale = addSale(db, { applicant_id: jane, offer_id: offer, listing_id: "HE-R002", status: "completed", closed_at: T0 });
+  addRow(db, "sale_milestones", { sale_id: sale, key: "lawyers" });
+  assert.throws(() => db.prepare("DELETE FROM listings WHERE id = 'HE-R002'").run(), /FOREIGN KEY/);
+  assert.throws(() => db.prepare("DELETE FROM applicants WHERE id = ?").run(jane), /FOREIGN KEY/);
+  assert.deepEqual([count(db, "listings"), count(db, "applicants"), count(db, "offers"), count(db, "sales")], [1, 1, 1, 1]);
+  // Milestones go with their sale (the panel never deletes a sale: D9).
+  db.prepare("DELETE FROM sales WHERE id = ?").run(sale);
+  assert.equal(count(db, "sale_milestones"), 0);
+});
