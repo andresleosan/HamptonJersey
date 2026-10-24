@@ -70,7 +70,7 @@ export default function App() {
     : section === "listings" ? <Listings /> : section === "viewings"
       ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} />
     : section === "sales" && /^\d+$/.test(arg) ? <SaleDetail key={arg} id={arg} onChange={loadCounts} />
-    : section === "sales" ? <Sales onChange={loadCounts} />
+    : section === "sales" ? <Sales key={query ?? ""} buyer={new URLSearchParams(query).get("applicant")} onChange={loadCounts} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "tours" ? <Tours /> : <Inbox paused={expired} onCounts={setCounts} />;
   const logout = async () => {

@@ -40,9 +40,10 @@ export const useFieldErrors = prefix => {
   return { errors, setErrors, invalid, error };
 };
 
-export default function Sales({ onChange }) {
+// buyer: an applicant id from #/sales?applicant=<id> (their record's Record offer), chosen in Record offer at once.
+export default function Sales({ buyer, onChange }) {
   const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [msg, setMsg] = useState(null);
-  const [dialog, setDialog] = useState(null); // { action, offer } or { action: "record" }
+  const [dialog, setDialog] = useState(buyer ? { action: "record" } : null); // { action, offer } or { action: "record" }
   const head = useRef(null), refocus = useRef(false);
   const load = () => api("/admin/sales").then(d => { setData(d); setLoadErr(null); }, e => setLoadErr(e.message));
   useEffect(() => { load(); }, []);
@@ -148,19 +149,24 @@ export default function Sales({ onChange }) {
         </details>
       </section>
     </>}
-    {dialog?.action === "record" && <RecordOffer onClose={() => setDialog(null)} onDone={done} />}
+    {dialog?.action === "record" && <RecordOffer buyerId={buyer} onClose={() => setDialog(null)} onDone={done} />}
     {dialog && dialog.action !== "record" && <OfferDialog {...dialog} onClose={() => setDialog(null)} onDone={done} onAccepted={onChange} onRefused={load} />}
   </section>;
 }
 
 // V1, V17: a buyer (an active To Buy search) and a listing for sale, not archived; under offer takes backup offers.
-function RecordOffer({ onClose, onDone }) {
+function RecordOffer({ buyerId, onClose, onDone }) {
   const [listings, setListings] = useState(null), [listErr, setListErr] = useState(null);
   const [f, setF] = useState({ listing_id: "", amount: "", conditions: "" }), [buyer, setBuyer] = useState(null);
   const [q, setQ] = useState(""), [found, setFound] = useState(null), [findErr, setFindErr] = useState(null);
   const [err, setErr] = useState(null), [busy, setBusy] = useState(false), form = useRef(null);
   const { errors, setErrors, invalid, error } = useFieldErrors("ro");
   useEffect(() => { api("/admin/listings").then(d => setListings(d.listings.filter(forSale)), e => setListErr(e.message)); }, []);
+  // Opened from a buyer's record: that buyer is chosen (the server still says if they can't make an offer).
+  useEffect(() => {
+    if (buyerId) api(`/admin/applicants/${buyerId}`).then(({ applicant: a, contact: c }) => setBuyer(b => b ?? { id: a.id, name: c.name,
+      email: c.email, phone: c.phone, stage: a.stage }), () => {});
+  }, []);
   // The search runs a moment after typing stops; only the latest one shows.
   useEffect(() => {
     if (!q.trim()) { setFound(null); setFindErr(null); return; }

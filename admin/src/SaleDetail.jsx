@@ -14,7 +14,7 @@ const FIELDS = [...MONEY, "route", "target_date", "notes", "seller_name", "selle
   "seller_lawyer_firm", "seller_lawyer_name", "seller_lawyer_email", "seller_lawyer_phone", "shared_agency"];
 const toForm = s => Object.fromEntries(FIELDS.map(k => [k, s[k] == null ? "" : MONEY.includes(k) ? s[k].toLocaleString("en-GB") : String(s[k])]));
 const toBody = f => Object.fromEntries(FIELDS.map(k => [k, MONEY.includes(k) ? pounds(f[k]) : f[k].trim() || null]));
-const SALE_STATUS = { in_progress: ["In progress", "active"], completed: ["Completed", "positive"], fallen_through: ["Fell through", "neutral"] };
+export const SALE_STATUS = { in_progress: ["In progress", "active"], completed: ["Completed", "positive"], fallen_through: ["Fell through", "neutral"] };
 const LAWYER = [["firm", "Firm"], ["name", "Lawyer"], ["email", "Email", "email"], ["phone", "Phone", "tel"]];
 
 export default function SaleDetail({ id, onChange }) {

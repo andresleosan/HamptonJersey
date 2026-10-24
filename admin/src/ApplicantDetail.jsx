@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { fmtAgo, fmtDate, fmtDay, firstSentence, blank, show, VIEWING_STATUS } from "./format.js";
+import { fmtAgo, fmtDate, fmtDay, firstSentence, blank, show, AVAILABILITY, VIEWING_STATUS } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
 import { OPTIONS, normalizePhone, isActive } from "../../server/applicants.js";
 import ApplicantFields, { toForm, toBody } from "./ApplicantFields.jsx";
 import MatchCard, { REASON_LABEL } from "./MatchCard.jsx";
+import { OfferBadge, REASON, Received, money } from "./Sales.jsx";
+import { SALE_STATUS } from "./SaleDetail.jsx";
+import { milestoneLabel } from "../../server/sales.js";
 
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
 // Every form field that belongs to the search (the rest of the form is the contact).
@@ -12,7 +15,8 @@ const SEARCH = Object.keys(toForm()).filter(k => !CONTACT.includes(k));
 // §3.3 Copy fields: the search's requirements (never its operation: that is a second search) and, from the contact,
 // only these two.
 const COPY = [...SEARCH.filter(k => k !== "operation"), "preferred_channel", "best_time"];
-const TABS = [["requirements", "Requirements"], ["matches", "Matches"], ["timeline", "Timeline"]];
+// Offers only on To Buy searches (V1).
+const TABS = [["requirements", "Requirements"], ["matches", "Matches"], ["offers", "Offers"], ["timeline", "Timeline"]];
 const GROUPS = [["found", "Found"], ["shortlisted", "Shortlisted"], ["rejected", "Rejected"]];
 
 const LABEL = { operation: "To Let or To Buy", stage: "Stage", lost_reason: "Why it was lost", assigned_to: "Assigned to",
@@ -23,11 +27,23 @@ const LABEL = { operation: "To Let or To Buy", stage: "Stage", lost_reason: "Why
   buyer_position: "Buying position", mortgage_aip: "Mortgage agreed in principle", housing_status: "Housing status",
   household_adults: "Adults", household_children: "Children", requirements: "Anything else that matters?", name: "Name",
   email: "Email", phone: "Phone", preferred_channel: "Preferred channel", best_time: "Best time to contact",
-  privacy_ack_at: "Privacy notice accepted", marketing_opt_in_at: "Agreed to marketing" };
+  privacy_ack_at: "Privacy notice accepted", marketing_opt_in_at: "Agreed to marketing",
+  // V11: offers, sales and their steps (any other key reads as itself: "seller_email" is "Seller email").
+  counter_amount: "Seller's counter", planned_on: "Planned for", target_date: "Completion target", fee: "Hampton's fee", shared_agency: "Other agency",
+  shared_fee: "Other agency's share" };
+const label = k => LABEL[k] ?? k[0].toUpperCase() + k.slice(1).replaceAll("_", " ");
+const ROUTE = { freehold: "Freehold or flying freehold", share_transfer: "Share transfer" };
+// A value in a change: an applicant's as show() gives it; an offer's or sale's pounds, days, route and listing availability.
+const value = (k, v, nameOf) => (v == null ? show(k, v, nameOf)
+  : ["amount", "counter_amount", "price", "fee", "shared_fee"].includes(k) ? money(v)
+  : ["planned_on", "done_on", "target_date"].includes(k) ? fmtDay(v) : k === "not_needed" ? (v ? "Yes" : "No")
+  : k === "availability" ? AVAILABILITY[v] ?? v : k === "route" ? ROUTE[v] ?? v : show(k, v, nameOf));
 const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requirements changed", "applicant.stage_changed": "Stage changed",
   "applicant.archived": "Archived", "applicant.restored": "Restored", "contact.updated": "Contact details changed",
   "contact.consent_changed": "Consent changed", "applicant.duplicate_submitted": "Registered again on the website",
-  "applicant.matched": "New matches found" };
+  "applicant.matched": "New matches found", "offer.updated": "Offer changed", "offer.countered": "Seller countered",
+  "offer.accepted": "Offer accepted", "offer.rejected": "Offer rejected", "offer.withdrawn": "Offer withdrawn",
+  "sale.updated": "Sale file changed", "sale.completed": "Sale completed", "sale.fallen_through": "Sale fell through" };
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation), SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
 
 const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
@@ -53,7 +69,13 @@ export default function ApplicantDetail({ id, tab }) {
   const stageRef = useRef(null), ownerRef = useRef(null);
   // matchMsg: the last review, in the Matches tab. refocusMatch: the id to focus once the reviewed matches are shown.
   const [matchMsg, setMatchMsg] = useState(null), [reviewing, setReviewing] = useState(false), refocusMatch = useRef(null);
-  const cur = TABS.some(([k]) => k === tab) ? tab : "requirements";
+  const buyer = data?.applicant.operation === "buy", tabList = buyer ? TABS : TABS.filter(([k]) => k !== "offers");
+  const cur = tabList.some(([k]) => k === tab) ? tab : "requirements";
+  // A buyer's offers and sales ({offers, sales}), for the Offers tab and the listing titles in the timeline.
+  const [offers, setOffers] = useState(null), [offersErr, setOffersErr] = useState(null);
+  useEffect(() => {
+    if (buyer) api(`/admin/applicants/${id}/offers`).then(d => { setOffers(d); setOffersErr(null); }, e => setOffersErr(e.message));
+  }, [buyer]);
 
   const fetchDetail = () => api(`/admin/applicants/${id}`).then(d => { setData(d); return d; });
   const load = () => fetchDetail().then(d => {
@@ -87,9 +109,9 @@ export default function ApplicantDetail({ id, tab }) {
     if (focus) tabs.current[k].focus();
   };
   const onTabKey = e => {
-    const i = TABS.findIndex(([k]) => k === cur), j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: TABS.length - 1 }[e.key];
+    const n = tabList.length, i = tabList.findIndex(([k]) => k === cur), j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: n - 1 }[e.key];
     if (j == null) return;
-    e.preventDefault(); go(TABS[(j + TABS.length) % TABS.length][0], true);
+    e.preventDefault(); go(tabList[(j + n) % n][0], true);
   };
 
   // Requirements and contact are saved apart (two records); whatever is still unsaved stays in the form.
@@ -268,7 +290,7 @@ export default function ApplicantDetail({ id, tab }) {
     {data.duplicates.map(d => <Duplicate key={d.id} dup={d} stored={{ ...a, ...c }} contactId={c.id} nameOf={nameOf}
       archived={archived} onCopy={copy} onConfirmMarketing={confirmMarketing} onDismiss={dismiss} />)}
 
-    <div className="seg" role="tablist" aria-label="Applicant record" onKeyDown={onTabKey}>{TABS.map(([k, t]) =>
+    <div className="seg" role="tablist" aria-label="Applicant record" onKeyDown={onTabKey}>{tabList.map(([k, t]) =>
       <button key={k} ref={el => { tabs.current[k] = el; }} type="button" role="tab" id={`tab-${k}`} aria-selected={cur === k}
         aria-controls={`panel-${k}`} tabIndex={cur === k ? 0 : -1} onClick={() => go(k)}>{t}</button>)}</div>
 
@@ -283,8 +305,11 @@ export default function ApplicantDetail({ id, tab }) {
     <div role="tabpanel" id="panel-matches" aria-labelledby="tab-matches" hidden={cur !== "matches"} tabIndex={0}>
       <Matches matches={data.matches} applicant={a} msg={matchMsg} busy={reviewing} onReview={reviewMatch} />
     </div>
+    {buyer && <div role="tabpanel" id="panel-offers" aria-labelledby="tab-offers" hidden={cur !== "offers"} tabIndex={0}>
+      <Offers id={id} data={offers} err={offersErr} archived={archived} />
+    </div>}
     <div role="tabpanel" id="panel-timeline" aria-labelledby="tab-timeline" hidden={cur !== "timeline"} tabIndex={0}>
-      <Timeline events={data.events} viewings={data.viewings} matches={data.matches} by={by} nameOf={nameOf} />
+      <Timeline events={data.events} viewings={data.viewings} matches={data.matches} offers={offers?.offers} by={by} nameOf={nameOf} />
     </div>
 
     <div className="actionbar" role="region" aria-label="Actions">
@@ -370,14 +395,23 @@ function reviewed(e, matches) {
   if (d.to === "rejected") return [`Rejected ${title} · ${REASON_LABEL[d.reason] ?? d.reason}`];
   return ["Moved back to Found", title];
 }
-const headline = (e, matches) => (e.type === "match.reviewed" ? reviewed(e, matches)
+// V11: an event of an offer or sale (its data carries offer_id) names its listing, then any conditions, reason or note.
+function ofOffer(e, offers) {
+  const d = e.data, title = offers?.find(o => o.listing_id === d.listing_id)?.listing_title ?? d.listing_id;
+  const h = e.type === "offer.recorded" ? `Offer recorded: ${money(d.amount)} on ${title}`
+    : e.type === "listing.availability_changed" ? `Listing marked ${AVAILABILITY[d.after.availability] ?? d.after.availability}`
+    : e.type === "sale.milestone" ? `Step updated: ${milestoneLabel(d.key)}` : EVENT[e.type] ?? e.type;
+  return [h, [e.type !== "offer.recorded" && title, d.conditions, REASON[d.reason], d.note].filter(Boolean).join(" · ")];
+}
+const headline = (e, matches, offers) => (e.type === "match.reviewed" ? reviewed(e, matches)
+  : e.data?.offer_id != null ? ofOffer(e, offers)
   : e.type === "applicant.matched" && e.data?.new != null ? [`${e.data.new} new ${e.data.new === 1 ? "match" : "matches"} found`]
   : [EVENT[e.type] ?? e.type]);
 
 // The history, newest first: events with who and what changed, and the viewings (website requests and the team's
 // bookings) from the same email or phone (G4).
-function Timeline({ events, viewings, matches, by, nameOf }) {
-  const items = [...events.map(e => ({ at: e.at, e, h: headline(e, matches) })), ...viewings.map(v => ({ at: v.created_at, v }))]
+function Timeline({ events, viewings, matches, offers, by, nameOf }) {
+  const items = [...events.map(e => ({ at: e.at, e, h: headline(e, matches, offers) })), ...viewings.map(v => ({ at: v.created_at, v }))]
     .sort((x, y) => y.at.localeCompare(x.at));
   if (!items.length) return <p className="empty card">Nothing has happened yet.</p>;
   const when = at => <time dateTime={at} title={fmtDate(at)}>{fmtAgo(at)}</time>;
@@ -385,10 +419,42 @@ function Timeline({ events, viewings, matches, by, nameOf }) {
     <p><strong>{h[0]}</strong> <span className="muted">{by(e.actor)} · {when(e.at)}</span></p>
     {h[1] && <p>{h[1]}</p>}
     {e.type === "applicant.created" && e.data && <p className="muted">{show("operation", e.data.operation)} · {show("source", e.data.source)}</p>}
-    {e.data?.after && <dl className="changes">{Object.keys(e.data.after).map(k => <div key={k}><dt>{LABEL[k] ?? k}</dt>
-      <dd><span className="sr">from </span>{show(k, e.data.before?.[k], nameOf)} <span aria-hidden="true">→</span><span className="sr"> to</span> {show(k, e.data.after[k], nameOf)}</dd></div>)}</dl>}
+    {e.data?.after && <dl className="changes">{Object.keys(e.data.after).map(k => <div key={k}><dt>{label(k)}</dt>
+      <dd><span className="sr">from </span>{value(k, e.data.before?.[k], nameOf)} <span aria-hidden="true">→</span><span className="sr"> to</span> {value(k, e.data.after[k], nameOf)}</dd></div>)}</dl>}
   </li> : <li key={`v${v.id}`}>
     <p><strong>Viewing</strong> <span className="muted">{when(v.created_at)}</span></p>
     <p>{v.listing_title || v.listing_ref || "General enquiry / valuation"} · {fmtDay(v.date, true)} at {v.time} · {VIEWING_STATUS[v.status]?.[0] ?? v.status} · <a href={v.listing_id ? `#/viewings?listing=${v.listing_id}` : "#/viewings"}>Open viewings</a></p>
   </li>)}</ol>;
+}
+
+// Spec §4: this buyer's sales and offers, newest first. Offers are answered in Sales; each sale opens its file.
+function Offers({ id, data, err, archived }) {
+  if (err) return <p role="alert" className="err">{err}</p>;
+  if (!data) return <p>Loading offers…</p>;
+  const open = data.offers.some(o => o.status === "pending" || o.status === "countered");
+  return <div className="buyer-offers">
+    {!archived && <p><a className="btn" href={`#/sales?applicant=${id}`}>Record offer</a></p>}
+    {data.sales.length > 0 && <section aria-labelledby="h-a-sales"><h2 id="h-a-sales">Sales</h2>
+      <div className="table-scroll" role="region" aria-labelledby="h-a-sales" tabIndex={0}><table className="list">
+        <thead><tr><th scope="col">Listing</th><th scope="col">Price</th><th scope="col">Status</th><th scope="col">Agreed</th></tr></thead>
+        <tbody>{data.sales.map(s => { const [t, tone] = SALE_STATUS[s.status]; return <tr key={s.id}>
+          <td><a href={`#/sales/${s.id}`}>{s.listing_title}</a></td>
+          <td className="num">{money(s.price)}</td>
+          <td><span className={`badge ${tone}`}>{t}</span>{s.fell_through_reason && <span className="muted cell-note">{REASON[s.fell_through_reason]}</span>}</td>
+          <td><Received at={s.created_at} /></td>
+        </tr>; })}</tbody>
+      </table></div></section>}
+    <section aria-labelledby="h-a-offers"><h2 id="h-a-offers">Offers</h2>
+      {data.offers.length ? <div className="table-scroll" role="region" aria-labelledby="h-a-offers" tabIndex={0}><table className="list">
+        <thead><tr><th scope="col">Listing</th><th scope="col">Offer</th><th scope="col">Status</th><th scope="col">Received</th></tr></thead>
+        <tbody>{data.offers.map(o => <tr key={o.id}>
+          <td><a href={`#/p/${encodeURIComponent(o.listing_id)}`}>{o.listing_title}</a></td>
+          <td className="num">{money(o.amount)}{o.counter_amount != null && <span className="muted cell-note">Countered {money(o.counter_amount)}</span>}</td>
+          <td><OfferBadge status={o.status} />{o.note && <span className="muted cell-note">{o.note}</span>}</td>
+          <td><Received at={o.created_at} /></td>
+        </tr>)}</tbody>
+      </table></div> : <p className="empty card">No offers yet. Use Record offer when this buyer makes one.</p>}
+      {open && <p><a href="#/sales">Answer open offers in Sales</a></p>}
+    </section>
+  </div>;
 }

@@ -419,6 +419,11 @@ async function admin(browser) {
   const saleUrl = page.url();
   assert.equal(await page.inputValue("#s-price"), "835,000", "the price is the seller's counter");
   assert.match(await publicStatus(), /Under Offer/);
+  // The listing's editor shows the sale in progress, linked to its file.
+  await phone.goto(BASE + "admin/#/p/HE-R050");
+  const inProgress = phone.getByRole("link", {name: "Sale in progress"});
+  assert.equal(await inProgress.getAttribute("href"), saleUrl.slice(saleUrl.indexOf("#")));
+  assert.equal(await phone.getByRole("link", {name: "0 open offers"}).getAttribute("href"), "#/sales");
   await page.fill("#s-buyer_lawyer_firm", "Ogier");
   await page.fill("#s-buyer_lawyer_name", "Anna Le Cornu");
   await page.fill("#s-fee", "16,000");
@@ -450,6 +455,34 @@ async function admin(browser) {
   assert.equal(await salesCount(), null, "a completed sale's steps are not overdue");
   await shot(page, "admin-sales");
   await shot(phone, "admin-sale-mobile");
+  // On the buyer's record: an Offers tab for To Buy searches only, with Helen's offer and her sale; Record offer opens in
+  // Sales with her chosen, and the new offer shows in the tab, on the listing's editor and in her timeline.
+  await page.goto(BASE + "admin/#/applicants/1");
+  await page.waitForSelector("#t-applicant");
+  assert.equal(await page.locator("#tab-offers").count(), 0, "a To Let search has no Offers tab");
+  await page.goto(BASE + "admin/#/applicants/4/offers");
+  const offersTab = page.locator("#panel-offers");
+  await offersTab.locator('a[href^="#/sales/"]').waitFor();
+  assert.equal(await offersTab.locator('a[href^="#/sales/"]').getAttribute("href"), saleUrl.slice(saleUrl.indexOf("#")));
+  assert.match(await offersTab.textContent(), /Rozel Bay house[\s\S]*£820,000[\s\S]*£835,000[\s\S]*Accepted/);
+  await offersTab.getByRole("link", {name: "Record offer"}).click();
+  dlg = page.getByRole("dialog", {name: "Record offer"});
+  await dlg.getByRole("radio", {name: /Helen Picot/, checked: true}).waitFor();
+  await dlg.getByLabel("Listing").selectOption("HE-R006");
+  await dlg.getByLabel("Amount (£)").fill("640000");
+  await dlg.getByRole("button", {name: "Record offer", exact: true}).click();
+  await page.waitForSelector("text=Offer recorded: £640,000 from Helen Picot");
+  await page.goto(BASE + "admin/#/applicants/4/offers");
+  await page.waitForSelector('#panel-offers tr:has-text("St Aubin family house") >> text=Pending');
+  await shot(page, "admin-applicant-offers");
+  await noSideScroll(BASE + "admin/#/applicants/4/offers", "#panel-offers table");
+  await shot(phone, "admin-applicant-offers-mobile");
+  await page.getByRole("tab", {name: "Timeline"}).click();
+  for (const t of ["Offer recorded: £640,000 on St Aubin family house", "Offer accepted", "Listing marked Under offer", "Sale completed",
+    "Listing marked Sold"]) await page.locator("#panel-timeline strong", {hasText: t}).first().waitFor();
+  await page.goto(BASE + "admin/#/p/HE-R006");
+  await page.getByRole("link", {name: "1 open offer", exact: true}).waitFor();
+  assert.equal(await page.getByRole("link", {name: "Sale in progress"}).count(), 0);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
