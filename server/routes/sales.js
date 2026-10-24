@@ -1,8 +1,11 @@
 import { json, fail, readJson, now } from "../http.js";
-import { validateOffer, MILESTONES } from "../sales.js";
+import { validateOffer, validateSale, validateMilestone, MILESTONES, milestoneLabel, isOverdue, nextMilestone,
+  OFFER_WAITING_MS } from "../sales.js";
 import { logEvent, resolveNotices } from "../events.js";
 import { afterSave, recomputeForListing, recomputeForApplicant } from "../match-store.js";
-import { touch } from "./applicants.js";
+import { touch, LOCK } from "./applicants.js";
+import { jerseyToday } from "../viewings.js";
+import { jerseyDayStart } from "../insights.js";
 
 const OPEN = ["pending", "countered"];
 const NOT_OPEN = "This offer is no longer open";
@@ -190,9 +193,223 @@ async function accept({ env, admin, params: [id] }) {
   return json({ offer: await loadOffer(env, offer.id), sale_id: results[1].meta.last_row_id }, 201);
 }
 
+const OPEN_SQL = "('pending', 'countered')";
+const CLOSED = "This sale is no longer in progress";
+const STALE = "Someone else saved changes to this sale. Reload to see them (your changes were not saved).";
+// Who a row of `t` (offers o, sales s) is about: its listing l and its buyer a, named by contact c.
+const people = t => `JOIN listings l ON l.id = ${t}.listing_id JOIN applicants a ON a.id = ${t}.applicant_id
+  JOIN contacts c ON c.id = a.contact_id`;
+const SALE_SQL = `SELECT s.*, l.title AS listing_title, c.name AS buyer_name FROM sales s ${people("s")}`;
+async function loadSale(env, id) {
+  const s = await env.DB.prepare(`${SALE_SQL} WHERE s.id = ?`).bind(Number(id)).first();
+  return s ?? fail(404, "Sale not found");
+}
+
+// V18: an open offer on a listing with a sale in progress is a backup. V9: an open offer untouched for longer than
+// OFFER_WAITING_MS is Waiting, unless it is a backup (binds the cutoff). Over offers o.
+const BACKUP = "EXISTS (SELECT 1 FROM sales bs WHERE bs.listing_id = o.listing_id AND bs.status = 'in_progress')";
+const WAITING = `o.status IN ${OPEN_SQL} AND o.updated_at < ? AND NOT ${BACKUP}`;
+const waitingCutoff = () => new Date(Date.now() - OFFER_WAITING_MS).toISOString();
+
+// V10: the nav's Sales count, sales in progress with an overdue step (isOverdue in SQL, binds today) plus waiting offers.
+export const salesCount = env => env.DB.prepare(`SELECT (SELECT COUNT(*) FROM sales s WHERE s.status = 'in_progress'
+    AND EXISTS (SELECT 1 FROM sale_milestones m WHERE m.sale_id = s.id AND m.planned_on < ? AND m.done_on IS NULL AND m.not_needed = 0))
+  + (SELECT COUNT(*) FROM offers o WHERE ${WAITING}) AS n`).bind(jerseyToday(), waitingCutoff());
+
+// V8 order: sale_milestones is keyed by (sale_id, key), so a plain read comes back by key.
+const inOrder = rows => MILESTONES.map(([k]) => rows.find(m => m.key === k)).filter(Boolean);
+// A step as the panel shows it; only a sale in progress has overdue steps (V9).
+const step = (m, sale, today) => ({ key: m.key, label: milestoneLabel(m.key, sale.route), planned_on: m.planned_on,
+  done_on: m.done_on, not_needed: !!m.not_needed, note: m.note, overdue: sale.status === "in_progress" && isOverdue(m, today) });
+// V3, V20: Hampton's fees net of the other agency's share.
+const netFees = sales => sales.reduce((t, s) => t + (s.fee == null ? 0 : s.fee - (s.shared_fee ?? 0)), 0);
+
+// The Sales screen, in one batch of reads: open offers, sales in progress (overdue first) and those closed in 12 months.
+async function list({ env }) {
+  const today = jerseyToday(), since = new Date();
+  since.setUTCFullYear(since.getUTCFullYear() - 1);
+  const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
+  const [offers, open, steps, closed] = (await env.DB.batch([
+    q(`SELECT o.id, o.listing_id, l.title AS listing_title, o.applicant_id, c.name AS buyer_name, o.amount, o.counter_amount,
+       o.conditions, o.status, a.buyer_position, a.mortgage_aip, o.created_at, o.updated_at, ${WAITING} AS waiting, ${BACKUP} AS backup
+       FROM offers o ${people("o")} WHERE o.status IN ${OPEN_SQL} ORDER BY l.title, o.listing_id, o.created_at, o.id`, waitingCutoff()),
+    q(`SELECT s.id, s.listing_id, l.title AS listing_title, s.applicant_id, c.name AS buyer_name, s.price, s.route, s.target_date,
+       s.fee, s.shared_fee FROM sales s ${people("s")} WHERE s.status = 'in_progress' ORDER BY s.target_date IS NULL, s.target_date, s.id`),
+    q("SELECT m.* FROM sale_milestones m JOIN sales s ON s.id = m.sale_id WHERE s.status = 'in_progress'"),
+    q(`SELECT s.id, s.listing_id, l.title AS listing_title, s.applicant_id, c.name AS buyer_name, s.price, s.status,
+       s.fell_through_reason, s.closed_at, s.fee, s.shared_fee FROM sales s ${people("s")}
+       WHERE s.status <> 'in_progress' AND s.closed_at >= ? ORDER BY s.closed_at DESC, s.id DESC`, since.toISOString()),
+  ])).map(r => r.results);
+  const sales = open.map(s => {
+    const ms = inOrder(steps.filter(m => m.sale_id === s.id)), next = nextMilestone(ms);
+    return { ...s, next: next && { key: next.key, label: milestoneLabel(next.key, s.route), planned_on: next.planned_on },
+      overdue: ms.some(m => isOverdue(m, today)) };
+  }).sort((x, y) => y.overdue - x.overdue);
+  // This Jersey year started within the last 12 months, so its completions are all in `closed`.
+  const yearStart = jerseyDayStart(`${today.slice(0, 4)}-01-01`);
+  return json({
+    totals: { open_offers: offers.length, in_progress: sales.length, fees_in_progress: netFees(sales),
+      fees_completed_year: netFees(closed.filter(s => s.status === "completed" && s.closed_at >= yearStart)) },
+    offers: offers.map(o => ({ ...o, waiting: !!o.waiting, backup: !!o.backup })), sales, closed,
+  });
+}
+
+// The sale file: its data, its steps in order and the listing's other offers.
+async function detail({ env, params: [id] }) {
+  const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
+  const [[sale], steps, offers] = (await env.DB.batch([
+    q(`${SALE_SQL} WHERE s.id = ?`, Number(id)),
+    q("SELECT * FROM sale_milestones WHERE sale_id = ?", Number(id)),
+    q(`SELECT o.*, c.name AS buyer_name FROM offers o JOIN sales s ON s.listing_id = o.listing_id AND s.offer_id <> o.id
+       JOIN applicants a ON a.id = o.applicant_id JOIN contacts c ON c.id = a.contact_id
+       WHERE s.id = ? ORDER BY o.created_at DESC, o.id DESC`, Number(id)),
+  ])).map(r => r.results);
+  if (!sale) fail(404, "Sale not found");
+  const today = jerseyToday();
+  return json({ sale, milestones: inOrder(steps).map(m => step(m, sale, today)), offers });
+}
+
+// V7, V3, V13, R3: the sale's data, with the lock on updated_at; only while in progress.
+async function updateSale({ request, env, admin, params: [id] }) {
+  const body = asObject(await readJson(request));
+  if (typeof body.updated_at !== "string") fail(400, "Missing updated_at: reload the sale");
+  const r = validateSale(body);
+  if (r.errors) return fieldErrors(r.errors);
+  const cur = await loadSale(env, id);
+  if (cur.status !== "in_progress") fail(409, CLOSED);
+  if (body.updated_at !== cur.updated_at) fail(409, STALE);
+  // R4: the share is checked against the fee the sale will have, sent or stored.
+  const next = { ...cur, ...r.value };
+  if (next.shared_fee != null && !(next.fee != null && next.shared_fee <= next.fee))
+    return fieldErrors({ shared_fee: "The other agency's share cannot be more than the fee" });
+  const keys = Object.keys(r.value).filter(k => r.value[k] !== cur[k]);
+  if (!keys.length) return json({ sale: cur });
+  const of = row => Object.fromEntries(keys.map(k => [k, row[k]]));
+  const ts = now(), ctx = { admin, data: { offer_id: cur.offer_id, sale_id: cur.id, listing_id: cur.listing_id } };
+  let res;
+  try {
+    [res] = await env.DB.batch([
+      env.DB.prepare(`UPDATE sales SET ${keys.map(k => `${k} = ?`).join(", ")}, updated_by = ?, ${LOCK}
+        WHERE id = ? AND status = 'in_progress'`).bind(...keys.map(k => next[k]), admin, body.updated_at, ts, cur.id),
+      ...buyerEvent(env, ctx, cur.applicant_id, "sale.updated", { before: of(cur), after: of(next) }, true),
+    ]);
+  } catch (e) {
+    if ((await loadSale(env, cur.id)).updated_at !== body.updated_at) fail(409, STALE);
+    throw e;
+  }
+  if (!res.meta.changes) fail(409, CLOSED);
+  return json({ sale: await loadSale(env, cur.id) });
+}
+
+// V8: one step of a sale in progress.
+async function updateStep({ request, env, admin, params: [id, key] }) {
+  if (!MILESTONES.some(([k]) => k === key)) fail(404, "Step not found");
+  const r = validateMilestone(asObject(await readJson(request)));
+  if (r.errors) return fieldErrors(r.errors);
+  const sale = await loadSale(env, id);
+  if (sale.status !== "in_progress") fail(409, CLOSED);
+  const cur = await env.DB.prepare("SELECT * FROM sale_milestones WHERE sale_id = ? AND key = ?").bind(sale.id, key).first();
+  // R4: done and not needed, sent or stored, are never set together.
+  const next = { ...cur, ...r.value }, today = jerseyToday();
+  if (next.done_on && next.not_needed) return fieldErrors({ not_needed: "A step that is done cannot be marked not needed" });
+  const keys = Object.keys(r.value).filter(k => r.value[k] !== cur[k]);
+  if (!keys.length) return json({ milestone: step(cur, sale, today) });
+  const of = row => Object.fromEntries(keys.map(k => [k, row[k]]));
+  const ctx = { admin, data: { offer_id: sale.offer_id, sale_id: sale.id, listing_id: sale.listing_id } };
+  const [res] = await env.DB.batch([
+    env.DB.prepare(`UPDATE sale_milestones SET ${keys.map(k => `${k} = ?`).join(", ")} WHERE sale_id = ? AND key = ?
+      AND EXISTS (SELECT 1 FROM sales WHERE id = ? AND status = 'in_progress')`).bind(...keys.map(k => next[k]), sale.id, key, sale.id),
+    ...buyerEvent(env, ctx, sale.applicant_id, "sale.milestone", { key, before: of(cur), after: of(next) }, true),
+  ]);
+  if (!res.meta.changes) fail(409, CLOSED);
+  return json({ milestone: step(next, sale, today) });
+}
+
+// The checks of a close, before its batch and again when it fails to say why: the sale is in progress (409) and, to
+// complete it, its passing step is done or not needed (400). Returns the sale, its listing and its buyer.
+async function closable(env, id, completing) {
+  const q = sql => env.DB.prepare(sql).bind(Number(id));
+  const [[sale], [passing], [listing], [applicant]] = (await env.DB.batch([
+    q(`${SALE_SQL} WHERE s.id = ?`),
+    q("SELECT done_on, not_needed FROM sale_milestones WHERE sale_id = ? AND key = 'passing'"),
+    q("SELECT l.* FROM listings l JOIN sales s ON s.listing_id = l.id WHERE s.id = ?"),
+    q("SELECT a.* FROM applicants a JOIN sales s ON s.applicant_id = a.id WHERE s.id = ?"),
+  ])).map(r => r.results);
+  if (!sale) fail(404, "Sale not found");
+  if (sale.status !== "in_progress") fail(409, CLOSED);
+  if (completing && !passing?.done_on && !passing?.not_needed)
+    fail(400, `Mark "${milestoneLabel("passing", sale.route)}" done or not needed first`);
+  return { sale, listing, applicant };
+}
+
+// Runs a close's batch (the sale UPDATE first, then ensureChanged); if it fails, closable says why or the error stands.
+// The matches then follow the listing and the buyer, as after a save.
+async function closeSale(env, admin, { sale, listing, applicant }, completing, stmts, listingMove, stageMove) {
+  try {
+    await env.DB.batch([...stmts, ...listingMove, ...stageMove]);
+  } catch (e) {
+    await closable(env, sale.id, completing);
+    throw e;
+  }
+  if (listingMove.length) await afterSave(recomputeForListing, env, listing.id, admin);
+  if (stageMove.length) await afterSave(recomputeForApplicant, env, applicant.id, admin);
+  return json({ sale: await loadSale(env, sale.id) });
+}
+
+// V18: closes the open offers whose `col` is `value` with `status` and `note`, each with its event on its buyer (written
+// first, while the offers are still open).
+const closeOffers = (env, ctx, col, value, status, note) => [
+  env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
+    SELECT ?, ?, 'applicant', CAST(applicant_id AS TEXT), ?, json_object('offer_id', id, 'sale_id', ?, 'listing_id', listing_id, 'note', ?)
+    FROM offers WHERE ${col} = ? AND status IN ${OPEN_SQL}`).bind(ctx.ts, ctx.admin, `offer.${status}`, ctx.data.sale_id, note, value),
+  env.DB.prepare(`UPDATE offers SET status = ?, note = ?, updated_at = ?, updated_by = ? WHERE ${col} = ? AND status IN ${OPEN_SQL}`)
+    .bind(status, note, ctx.ts, ctx.admin, value),
+];
+const closeCtx = (admin, sale) => ({ admin, ts: now(), data: { offer_id: sale.offer_id, sale_id: sale.id, listing_id: sale.listing_id } });
+
+// V2, V6, V15, V18: one batch completes the sale, sells the listing, completes the buyer, rejects the listing's backup
+// offers and withdraws the buyer's open offers elsewhere. A completed sale is not undone from the panel.
+async function complete({ env, admin, params: [id] }) {
+  const s = await closable(env, id, true), ctx = closeCtx(admin, s.sale);
+  return closeSale(env, admin, s, true, [
+    env.DB.prepare(`UPDATE sales SET status = 'completed', closed_at = ?, updated_at = ?, updated_by = ?
+      WHERE id = ? AND status = 'in_progress' AND EXISTS (SELECT 1 FROM sale_milestones m WHERE m.sale_id = sales.id
+        AND m.key = 'passing' AND (m.done_on IS NOT NULL OR m.not_needed = 1))`).bind(ctx.ts, ctx.ts, admin, s.sale.id),
+    ensureChanged(env),
+    ...buyerEvent(env, ctx, s.applicant.id, "sale.completed"),
+    ...closeOffers(env, ctx, "listing_id", s.listing.id, "rejected", "Property sold"),
+    ...closeOffers(env, ctx, "applicant_id", s.applicant.id, "withdrawn", "Buyer completed elsewhere"),
+  ], availabilityTo(env, ctx, s.listing, "sold", ["for_sale", "under_offer", "not_stated", "withdrawn"], s.applicant.id),
+  stageTo(env, ctx, s.applicant, "completed", ["new", "searching", "viewing", "offer", "agreed", "paused", "lost"]));
+}
+
+const REASONS = ["buyer_withdrew", "seller_withdrew", "finance", "survey", "chain", "other"];
+// V2, V6, V7: the sale falls through with its reason. The accepted offer stays accepted (history); the listing goes back
+// for sale only if still under offer, and the buyer back to searching only if still agreed (a hand change wins).
+async function fallThrough({ request, env, admin, params: [id] }) {
+  const body = asObject(await readJson(request)), errors = {}, n = body.note ?? "";
+  if (!REASONS.includes(body.reason)) errors.reason = "Choose a reason";
+  if (typeof n !== "string" || n.trim().length > 300) errors.note = "Use 300 characters or fewer";
+  if (Object.keys(errors).length) return fieldErrors(errors);
+  const note = n.trim() || null, s = await closable(env, id, false), ctx = closeCtx(admin, s.sale);
+  return closeSale(env, admin, s, false, [
+    env.DB.prepare(`UPDATE sales SET status = 'fallen_through', fell_through_reason = ?, fell_through_note = ?, closed_at = ?,
+      updated_at = ?, updated_by = ? WHERE id = ? AND status = 'in_progress'`).bind(body.reason, note, ctx.ts, ctx.ts, admin, s.sale.id),
+    ensureChanged(env),
+    ...buyerEvent(env, ctx, s.applicant.id, "sale.fallen_through", { reason: body.reason, note }),
+  ], availabilityTo(env, ctx, s.listing, "for_sale", ["under_offer"], s.applicant.id),
+  stageTo(env, ctx, s.applicant, "searching", ["agreed"]));
+}
+
 export default [
   ["POST", /^\/admin\/offers$/, create, true],
   ["PUT", /^\/admin\/offers\/(\d+)$/, update, true],
   ["POST", /^\/admin\/offers\/(\d+)\/accept$/, accept, true],
   ["POST", /^\/admin\/offers\/(\d+)\/(counter|reject|withdraw)$/, move, true],
+  ["GET", /^\/admin\/sales$/, list, true],
+  ["GET", /^\/admin\/sales\/(\d+)$/, detail, true],
+  ["PUT", /^\/admin\/sales\/(\d+)$/, updateSale, true],
+  ["PUT", /^\/admin\/sales\/(\d+)\/milestones\/([a-z_]+)$/, updateStep, true],
+  ["POST", /^\/admin\/sales\/(\d+)\/complete$/, complete, true],
+  ["POST", /^\/admin\/sales\/(\d+)\/fall-through$/, fallThrough, true],
 ];

@@ -141,6 +141,15 @@ async function update({ request, env, admin, params: [id] }) {
   return json({ listing: await loadListing(env, id) });
 }
 
+// The editor's Offers block (F3-C): how many offers are open, and the sale in progress if any.
+async function offers({ env, params: [id] }) {
+  const r = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM offers WHERE listing_id = l.id AND status IN ('pending', 'countered'))
+    AS open, (SELECT id FROM sales WHERE listing_id = l.id AND status = 'in_progress') AS sale_id FROM listings l WHERE l.id = ?`)
+    .bind(id).first();
+  if (!r) fail(404, "Listing not found");
+  return json({ open: r.open, sale: r.sale_id == null ? null : { id: r.sale_id, status: "in_progress" } });
+}
+
 // Home page order from the panel's drag and drop. It is not a content edit, so updated_at is left alone (no false 409s).
 async function reorder({ request, env }) {
   const ids = (await readJson(request))?.ids;
@@ -170,6 +179,10 @@ async function setState({ env, admin, params: [id, action] }) {
   if (action === "publish" && l.archived_at) fail(400, "Restore the listing before publishing it");
   if (action === "archive" && l.archived_at) fail(400, "The listing is already archived");
   if (action === "restore" && !l.archived_at) fail(400, "The listing isn't archived");
+  // V16: an open offer or a sale in progress keeps it out of the archive.
+  if (action === "archive" && (await env.DB.prepare(`SELECT EXISTS (SELECT 1 FROM offers WHERE listing_id = ?
+    AND status IN ('pending', 'countered')) OR EXISTS (SELECT 1 FROM sales WHERE listing_id = ? AND status = 'in_progress') AS busy`)
+    .bind(id, id).first()).busy) fail(409, "Close its offers and sale first");
   const ts = now();
   // Archived (sold, withdrawn) is no longer offered; restoring leaves the offer off, for the editor's switch (B9).
   const patch = { publish: { published: 1 }, unpublish: { published: 0 }, archive: { published: 0, archived_at: ts, matchable: 0 },
@@ -185,6 +198,9 @@ async function setState({ env, admin, params: [id, action] }) {
 async function remove({ request, env, admin, params: [id] }) {
   const l = await loadListing(env, id);
   if (!l.archived_at) fail(400, "Only archived listings can be deleted");
+  // V14, V16: a listing with a sale, in any state, is kept (the sales foreign key is the last barrier); its offers go with it.
+  if (await env.DB.prepare("SELECT 1 FROM sales WHERE listing_id = ? LIMIT 1").bind(id).first())
+    fail(409, "Kept for 5 years: it has a sale");
   if ((await readJson(request))?.confirm !== id) fail(400, `Type ${id} to confirm deletion`);
   const { results } = await env.DB.prepare("SELECT r2_key, thumb_key FROM media WHERE listing_id = ? AND origin = 'upload'").bind(id).all();
   await env.DB.batch([
@@ -204,6 +220,7 @@ export default [
   ["PUT", /^\/admin\/listings\/order$/, reorder, true],
   ["GET", new RegExp(`^/admin/listings/${ID}$`), detail, true],
   ["GET", new RegExp(`^/admin/listings/${ID}/interest$`), interest, true],
+  ["GET", new RegExp(`^/admin/listings/${ID}/offers$`), offers, true],
   ["PUT", new RegExp(`^/admin/listings/${ID}$`), update, true],
   ["DELETE", new RegExp(`^/admin/listings/${ID}$`), remove, true],
   ["POST", new RegExp(`^/admin/listings/${ID}/(publish|unpublish|archive|restore)$`), setState, true],

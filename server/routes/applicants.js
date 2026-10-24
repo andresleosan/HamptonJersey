@@ -38,7 +38,7 @@ export const touch = (env, contactId, ts) =>
 // Optimistic lock inside the batch: a stale version sets updated_at to NULL, the NOT NULL constraint fails and the
 // whole batch (events included) rolls back, even when another save lands between our check and our write.
 // Bind: the updated_at the client saw, then the new one.
-const LOCK = "updated_at = CASE WHEN updated_at = ? THEN ? END";
+export const LOCK = "updated_at = CASE WHEN updated_at = ? THEN ? END";
 // Whatever the error says, the row tells what happened: gone (404), saved by someone else (409), or neither (rethrow).
 // stmts[0] is the UPDATE. A row deleted (§3.4) after our read matches nothing and fails nothing: the last statement then
 // wipes the data of the events this batch wrote, as the delete did for the earlier ones.
@@ -249,6 +249,21 @@ async function update({ request, env, admin, params: [id] }) {
   return json({ applicant: parsed(await loadApplicant(env, cur.id)) });
 }
 
+// The applicant's Offers tab (F3-C): their offers and sales, newest first.
+async function offers({ env, params: [id] }) {
+  const q = sql => env.DB.prepare(sql).bind(Number(id));
+  const [[a], list, sales] = (await env.DB.batch([
+    q("SELECT id FROM applicants WHERE id = ?"),
+    q(`SELECT o.*, l.title AS listing_title FROM offers o JOIN listings l ON l.id = o.listing_id WHERE o.applicant_id = ?
+       ORDER BY o.created_at DESC, o.id DESC`),
+    q(`SELECT s.id, s.listing_id, l.title AS listing_title, s.offer_id, s.price, s.status, s.target_date, s.fell_through_reason,
+       s.closed_at, s.created_at FROM sales s JOIN listings l ON l.id = s.listing_id WHERE s.applicant_id = ?
+       ORDER BY s.created_at DESC, s.id DESC`),
+  ])).map(r => r.results);
+  if (!a) fail(404, "Applicant not found");
+  return json({ offers: list, sales });
+}
+
 // "Add a new search for this contact" (#/applicants/new?contact=<id>) shows the contact it starts from.
 const contactDetail = async ({ env, params: [id] }) => json({ contact: await loadContact(env, id) });
 
@@ -299,6 +314,10 @@ async function setArchived({ env, admin, params: [id, action] }) {
   const cur = await loadApplicant(env, id);
   if (action === "archive" && cur.archived_at) fail(400, "The applicant is already archived");
   if (action === "restore" && !cur.archived_at) fail(400, "The applicant isn't archived");
+  // V16: an open offer or a sale in progress keeps the buyer out of the archive.
+  if (action === "archive" && (await env.DB.prepare(`SELECT EXISTS (SELECT 1 FROM offers WHERE applicant_id = ?
+    AND status IN ('pending', 'countered')) OR EXISTS (SELECT 1 FROM sales WHERE applicant_id = ? AND status = 'in_progress') AS busy`)
+    .bind(cur.id, cur.id).first()).busy) fail(409, "Close its offers and sale first");
   const ts = now(), ref = { entity_type: "applicant", entity_id: String(cur.id) };
   await env.DB.batch([
     env.DB.prepare("UPDATE applicants SET archived_at = ?, updated_at = ?, updated_by = ? WHERE id = ?")
@@ -316,6 +335,9 @@ async function remove({ request, env, admin, params: [id] }) {
   const cur = await loadApplicant(env, id);
   const contact = await loadContact(env, cur.contact_id);
   if (!cur.archived_at) fail(400, "Only archived applicants can be deleted");
+  // V14, V16: a buyer with a sale, in any state, is kept (the sales foreign key is the last barrier); their offers go with them.
+  if (await env.DB.prepare("SELECT 1 FROM sales WHERE applicant_id = ? LIMIT 1").bind(cur.id).first())
+    fail(409, "Kept for 5 years: it has a sale");
   if ((await readJson(request))?.confirm !== contact.name) fail(400, `Type ${contact.name} to confirm deletion`);
   const others = await env.DB.prepare("SELECT COUNT(*) AS n FROM applicants WHERE contact_id = ? AND id <> ?")
     .bind(contact.id, cur.id).first();
@@ -341,6 +363,7 @@ export default [
   ["GET", /^\/admin\/applicants$/, list, true],
   ["POST", /^\/admin\/applicants$/, create, true],
   ["GET", /^\/admin\/applicants\/(\d+)$/, detail, true],
+  ["GET", /^\/admin\/applicants\/(\d+)\/offers$/, offers, true],
   ["PUT", /^\/admin\/applicants\/(\d+)$/, update, true],
   ["DELETE", /^\/admin\/applicants\/(\d+)$/, remove, true],
   ["POST", /^\/admin\/applicants\/(\d+)\/(archive|restore)$/, setArchived, true],
