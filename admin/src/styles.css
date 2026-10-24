@@ -321,3 +321,6 @@ dialog.sheet{width:min(560px,calc(100% - 32px));max-height:calc(100% - 32px);pad
 dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .sheet-form{display:grid;gap:12px} .sheet-form p{margin:0}
 .buyers{display:grid;gap:4px;max-height:180px;overflow:auto}
+/* The record's tabs stay on one row on phones: tighter, and scrolling inside the strip if they still don't fit. */
+@media (max-width:480px){.seg[role=tablist]{flex-wrap:nowrap;max-width:100%;overflow-x:auto}
+  .seg[role=tablist] button{flex:none;padding:7px 9px}}

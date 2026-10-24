@@ -457,9 +457,9 @@ async function admin(browser) {
   await shot(phone, "admin-sale-mobile");
   // On the buyer's record: an Offers tab for To Buy searches only, with Helen's offer and her sale; Record offer opens in
   // Sales with her chosen, and the new offer shows in the tab, on the listing's editor and in her timeline.
-  await page.goto(BASE + "admin/#/applicants/1");
-  await page.waitForSelector("#t-applicant");
-  assert.equal(await page.locator("#tab-offers").count(), 0, "a To Let search has no Offers tab");
+  await page.goto(BASE + "admin/#/applicants/1/offers");
+  await page.waitForSelector("#tab-requirements[aria-selected=true]"); // with no offers, its Offers hash falls back to Requirements
+  assert.equal(await page.locator("#tab-offers").count(), 0, "a To Let search with no offers has no Offers tab");
   await page.goto(BASE + "admin/#/applicants/4/offers");
   const offersTab = page.locator("#panel-offers");
   await offersTab.locator('a[href^="#/sales/"]').waitFor();
@@ -468,6 +468,7 @@ async function admin(browser) {
   await offersTab.getByRole("link", {name: "Record offer"}).click();
   dlg = page.getByRole("dialog", {name: "Record offer"});
   await dlg.getByRole("radio", {name: /Helen Picot/, checked: true}).waitFor();
+  assert.equal(new URL(page.url()).hash, "#/sales", "the buyer is used once: a reload starts with no one chosen");
   await dlg.getByLabel("Listing").selectOption("HE-R006");
   await dlg.getByLabel("Amount (£)").fill("640000");
   await dlg.getByRole("button", {name: "Record offer", exact: true}).click();
@@ -479,7 +480,7 @@ async function admin(browser) {
   await shot(phone, "admin-applicant-offers-mobile");
   await page.getByRole("tab", {name: "Timeline"}).click();
   for (const t of ["Offer recorded: £640,000 on St Aubin family house", "Offer accepted", "Listing marked Under offer", "Sale completed",
-    "Listing marked Sold"]) await page.locator("#panel-timeline strong", {hasText: t}).first().waitFor();
+    "Listing marked Sold", "Step updated: Passing contract or completion"]) await page.locator("#panel-timeline strong", {hasText: t}).first().waitFor();
   await page.goto(BASE + "admin/#/p/HE-R006");
   await page.getByRole("link", {name: "1 open offer", exact: true}).waitFor();
   assert.equal(await page.getByRole("link", {name: "Sale in progress"}).count(), 0);

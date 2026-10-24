@@ -43,10 +43,13 @@ export const useFieldErrors = prefix => {
 // buyer: an applicant id from #/sales?applicant=<id> (their record's Record offer), chosen in Record offer at once.
 export default function Sales({ buyer, onChange }) {
   const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [msg, setMsg] = useState(null);
-  const [dialog, setDialog] = useState(buyer ? { action: "record" } : null); // { action, offer } or { action: "record" }
+  // { action, offer } or { action: "record", buyer }
+  const [dialog, setDialog] = useState(buyer ? { action: "record", buyer } : null);
   const head = useRef(null), refocus = useRef(false);
   const load = () => api("/admin/sales").then(d => { setData(d); setLoadErr(null); }, e => setLoadErr(e.message));
   useEffect(() => { load(); }, []);
+  // The buyer is used once: a reload, or Record offer again, starts with no one chosen. No hashchange, so nothing remounts.
+  useEffect(() => { if (buyer) history.replaceState(null, "", "#/sales"); }, []);
   // An offer that a change closed leaves the list, and with it the menu the focus went back to: the heading takes it.
   useEffect(() => {
     if (refocus.current && document.activeElement === document.body) head.current?.focus();
@@ -149,7 +152,7 @@ export default function Sales({ buyer, onChange }) {
         </details>
       </section>
     </>}
-    {dialog?.action === "record" && <RecordOffer buyerId={buyer} onClose={() => setDialog(null)} onDone={done} />}
+    {dialog?.action === "record" && <RecordOffer buyerId={dialog.buyer} onClose={() => setDialog(null)} onDone={done} />}
     {dialog && dialog.action !== "record" && <OfferDialog {...dialog} onClose={() => setDialog(null)} onDone={done} onAccepted={onChange} onRefused={load} />}
   </section>;
 }

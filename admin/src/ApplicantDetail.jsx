@@ -69,13 +69,13 @@ export default function ApplicantDetail({ id, tab }) {
   const stageRef = useRef(null), ownerRef = useRef(null);
   // matchMsg: the last review, in the Matches tab. refocusMatch: the id to focus once the reviewed matches are shown.
   const [matchMsg, setMatchMsg] = useState(null), [reviewing, setReviewing] = useState(false), refocusMatch = useRef(null);
-  const buyer = data?.applicant.operation === "buy", tabList = buyer ? TABS : TABS.filter(([k]) => k !== "offers");
-  const cur = tabList.some(([k]) => k === tab) ? tab : "requirements";
-  // A buyer's offers and sales ({offers, sales}), for the Offers tab and the listing titles in the timeline.
+  // The search's offers and sales ({offers, sales}), for the Offers tab and the listing titles in the timeline. The tab
+  // shows for a To Buy search, or one that has offers or sales from when it was one.
   const [offers, setOffers] = useState(null), [offersErr, setOffersErr] = useState(null);
-  useEffect(() => {
-    if (buyer) api(`/admin/applicants/${id}/offers`).then(d => { setOffers(d); setOffersErr(null); }, e => setOffersErr(e.message));
-  }, [buyer]);
+  useEffect(() => { api(`/admin/applicants/${id}/offers`).then(setOffers, e => setOffersErr(e.message)); }, []);
+  const buyer = data?.applicant.operation === "buy", hasOffers = buyer || offers?.offers.length > 0 || offers?.sales.length > 0;
+  const tabList = hasOffers ? TABS : TABS.filter(([k]) => k !== "offers");
+  const cur = tabList.some(([k]) => k === tab) ? tab : "requirements";
 
   const fetchDetail = () => api(`/admin/applicants/${id}`).then(d => { setData(d); return d; });
   const load = () => fetchDetail().then(d => {
@@ -305,8 +305,8 @@ export default function ApplicantDetail({ id, tab }) {
     <div role="tabpanel" id="panel-matches" aria-labelledby="tab-matches" hidden={cur !== "matches"} tabIndex={0}>
       <Matches matches={data.matches} applicant={a} msg={matchMsg} busy={reviewing} onReview={reviewMatch} />
     </div>
-    {buyer && <div role="tabpanel" id="panel-offers" aria-labelledby="tab-offers" hidden={cur !== "offers"} tabIndex={0}>
-      <Offers id={id} data={offers} err={offersErr} archived={archived} />
+    {hasOffers && <div role="tabpanel" id="panel-offers" aria-labelledby="tab-offers" hidden={cur !== "offers"} tabIndex={0}>
+      <Offers id={id} data={offers} err={offersErr} canRecord={buyer && !archived} />
     </div>}
     <div role="tabpanel" id="panel-timeline" aria-labelledby="tab-timeline" hidden={cur !== "timeline"} tabIndex={0}>
       <Timeline events={data.events} viewings={data.viewings} matches={data.matches} offers={offers?.offers} by={by} nameOf={nameOf} />
@@ -395,12 +395,14 @@ function reviewed(e, matches) {
   if (d.to === "rejected") return [`Rejected ${title} · ${REASON_LABEL[d.reason] ?? d.reason}`];
   return ["Moved back to Found", title];
 }
+// The event doesn't say the sale's route, so these two steps are named for either (the sale file names them exactly).
+const NEUTRAL_STEP = { passing: "Passing contract or completion", settled: "Seller paid and duties settled" };
 // V11: an event of an offer or sale (its data carries offer_id) names its listing, then any conditions, reason or note.
 function ofOffer(e, offers) {
   const d = e.data, title = offers?.find(o => o.listing_id === d.listing_id)?.listing_title ?? d.listing_id;
   const h = e.type === "offer.recorded" ? `Offer recorded: ${money(d.amount)} on ${title}`
     : e.type === "listing.availability_changed" ? `Listing marked ${AVAILABILITY[d.after.availability] ?? d.after.availability}`
-    : e.type === "sale.milestone" ? `Step updated: ${milestoneLabel(d.key)}` : EVENT[e.type] ?? e.type;
+    : e.type === "sale.milestone" ? `Step updated: ${NEUTRAL_STEP[d.key] ?? milestoneLabel(d.key)}` : EVENT[e.type] ?? e.type;
   return [h, [e.type !== "offer.recorded" && title, d.conditions, REASON[d.reason], d.note].filter(Boolean).join(" · ")];
 }
 const headline = (e, matches, offers) => (e.type === "match.reviewed" ? reviewed(e, matches)
@@ -428,12 +430,12 @@ function Timeline({ events, viewings, matches, offers, by, nameOf }) {
 }
 
 // Spec §4: this buyer's sales and offers, newest first. Offers are answered in Sales; each sale opens its file.
-function Offers({ id, data, err, archived }) {
+function Offers({ id, data, err, canRecord }) {
   if (err) return <p role="alert" className="err">{err}</p>;
   if (!data) return <p>Loading offers…</p>;
   const open = data.offers.some(o => o.status === "pending" || o.status === "countered");
   return <div className="buyer-offers">
-    {!archived && <p><a className="btn" href={`#/sales?applicant=${id}`}>Record offer</a></p>}
+    {canRecord && <p><a className="btn" href={`#/sales?applicant=${id}`}>Record offer</a></p>}
     {data.sales.length > 0 && <section aria-labelledby="h-a-sales"><h2 id="h-a-sales">Sales</h2>
       <div className="table-scroll" role="region" aria-labelledby="h-a-sales" tabIndex={0}><table className="list">
         <thead><tr><th scope="col">Listing</th><th scope="col">Price</th><th scope="col">Status</th><th scope="col">Agreed</th></tr></thead>

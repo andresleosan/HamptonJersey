@@ -36,9 +36,9 @@ export default function ListingEditor({ id }) {
   const load = () => api(`/admin/listings/${id}`).then(d => { setData(d); setForm(toForm(d.listing)); setMatchForm(toMatchForm(d.listing)); setErrors({}); },
     e => setLoadErr(e.message));
   useEffect(() => { load(); }, [id]);
-  // F3-C: the open offers and the sale in progress ({open, sale}), shown for a listing for sale.
-  const [offers, setOffers] = useState(null);
-  useEffect(() => { api(`/admin/listings/${id}/offers`).then(setOffers, () => {}); }, [id]);
+  // F3-C: a listing for sale's open offers and sale in progress ({open, sale}, or {failed}), once the listing is loaded.
+  const [offers, setOffers] = useState(null), forSale = data?.listing.operation === "sale";
+  useEffect(() => { if (forSale) api(`/admin/listings/${id}/offers`).then(setOffers, () => setOffers({ failed: true })); }, [forSale]);
   const matchesReq = useRef(0);
   const photos = useRef({ dirty: false }), [photosDirty, setPhotosDirty] = useState(false);
   const fieldsDirty = !!data && !!form && (JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing)))
@@ -109,7 +109,8 @@ export default function ListingEditor({ id }) {
       <p className="muted">Edited {fmtDate(l.updated_at)}</p>
       {/* C10: people with a viewing coming up, or one in the last 30 days that went well; the link lists them. */}
       <p className="muted">Active interest: <a href={`#/viewings?listing=${l.id}`}>{data.active_interest} {data.active_interest === 1 ? "person" : "people"}</a></p>
-      {l.operation === "sale" && offers && <p className="muted">Offers: <a href="#/sales">{offers.open} open {offers.open === 1 ? "offer" : "offers"}</a>
+      {forSale && offers?.failed && <p className="muted">Offers couldn't be loaded</p>}
+      {forSale && offers && !offers.failed && <p className="muted">Offers: <a href="#/sales">{offers.open} open {offers.open === 1 ? "offer" : "offers"}</a>
         {offers.sale && <> · <a href={`#/sales/${offers.sale.id}`}>Sale in progress</a></>}</p>}
       {l.published === 1 && !publicPhoto && <p className="warn" role="note">Published, but with no public photo: it won't appear on the website until it has one.</p>}
       {data.duplicates.length > 0 && <p className="warn" role="note">Possible duplicate of {data.duplicates.map((d, i) =>
