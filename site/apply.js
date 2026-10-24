@@ -293,8 +293,8 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   go(Number.isInteger(saved?.step) && saved.step > 0 && saved.step <= last ? saved.step : 0);
 }
 
-// DRAFT pending Hampton's approval (spec §5, G5): the confirmation markers below stay until Hampton gives the data,
-// and `npm run check:release` fails while any remains. Not to be deployed before Luis says yes.
+// Controller details come from Hampton's current site (Luis, 2026-10-25): it publishes no legal entity or JOIC number,
+// so the notice names the business and its office. Add them here if Hampton gives them.
 export function renderPrivacy(root) {
   root.innerHTML = `<section class="block"><div class="wrap legal">
     <h1>Privacy notice</h1>
@@ -302,9 +302,8 @@ export function renderPrivacy(root) {
       your search or ask for a viewing, and the rights you have under the Data Protection (Jersey) Law 2018.</p>
 
     <h2>Who we are</h2>
-    <p>Hampton Estates is a trading name of TO CONFIRM: legal name, of TO CONFIRM: address. We decide how your details
-      are used, so we are the controller of your data. We are registered with the Jersey Office of the Information
-      Commissioner under number TO CONFIRM: JOIC registration.</p>
+    <p>Hampton Estates, 42 Bath Street, St Helier, Jersey JE2 4ST. We decide how your details are used, so we are the
+      controller of your data.</p>
 
     <h2>What we collect</h2>
     <ul>
@@ -330,7 +329,7 @@ export function renderPrivacy(root) {
 
     <h2>Who else handles it</h2>
     <p>We do not sell your details. Our website and records are hosted by Cloudflare, which also runs the anti-spam
-      check on our forms. Our systems are built and maintained for us by TO CONFIRM: processor (Optimyze). Both act
+      check on our forms. Our systems are built and maintained for us by Optimyze. Both act
       only on our instructions. When a provider handles data outside Jersey, the law requires suitable safeguards, and
       we only use providers that give them. We pass your details to a landlord, a seller or their agent only when you
       ask us to arrange a viewing or make an offer.</p>
@@ -357,7 +356,7 @@ export function renderPrivacy(root) {
       the form or close the tab.</p>
 
     <h2>Contact us</h2>
-    <p>To ask about your data or use any of these rights, email TO CONFIRM: privacy email, write to us at the address
+    <p>To ask about your data or use any of these rights, email <a href="mailto:francopropertiesjersey@gmail.com">francopropertiesjersey@gmail.com</a>, write to us at the address
       above or call ${TEL}.</p>
   </div></section>`;
 }
