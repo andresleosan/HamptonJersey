@@ -105,7 +105,7 @@ Cada tabla con su comentario de una línea, `created_at`, `updated_at`, `updated
   - `service` (`full`, `let_only`), `fee_percent REAL`, `has_gas INTEGER` (0, 1 o NULL = no se sabe, y entonces cuenta como que sí);
   - `notes`, `archived_at`.
 - `tenancies`:
-  - campos de R4, más `payment_ref TEXT UNIQUE`;
+  - campos de R4, más `payment_ref TEXT UNIQUE`, `collect_from` y `opening_balance` (R22);
   - `CHECK` de tipos, régimen, día 1–28, fin posterior al inicio, y `end_on` obligatorio en `fixed`;
   - índice único parcial `(rental_id) WHERE ended_on IS NULL`.
 - `rent_changes`: `tenancy_id`, `effective_on`, `rent`, `created_at`, `created_by`. Es la historia que usa R6 y R12.
