@@ -41,12 +41,12 @@ async function publicSite(browser) {
   const hrefs = await page.$$eval("#grid .card", cs => cs.map(c => c.getAttribute("href")));
   assert.ok(!hrefs.includes("#/p/HE-R003"), "drafts are not public");
   // Few listings: a showcase home (hero presents one property, every card shown, no search or filters).
-  assert.deepEqual([...hrefs].sort(), ["#/p/HE-C001", "#/p/HE-R001", "#/p/HE-R002", "#/p/HE-R018"]);
+  assert.deepEqual([...hrefs].sort(), ["#/p/HE-C001", "#/p/HE-R001", "#/p/HE-R002", "#/p/HE-R018", "#/p/HE-R050"]);
   assert.match(await page.textContent('#grid .card[href="#/p/HE-R002"] .price'), /£1,900 pcm/);
   assert.equal(await page.$("#quick"), null, "no search form with few listings");
   assert.equal(await page.$("#tabs-region"), null, "no filter tabs with few listings");
   assert.match(await page.textContent(".hero h1"), /Le Bernage/);
-  assert.equal(await page.$$eval(".dots button", d => d.length), 4, "one dot per listing in the hero carousel");
+  assert.equal(await page.$$eval(".dots button", d => d.length), 5, "one dot per listing in the hero carousel");
   await page.click('.dots [data-slide="1"]');
   assert.doesNotMatch(await page.textContent(".hero h1"), /Le Bernage/, "dots change the hero listing");
   await page.click('.dots [data-slide="0"]');
@@ -171,7 +171,7 @@ async function admin(browser) {
   assert.equal(await page.getAttribute("header.bar a.home", "href"), "/", "panel header links back to the public site");
   await page.goto(BASE + "admin/#/listings");
   await page.waitForSelector("#t-props");
-  assert.match(await page.textContent(".seg"), /Published4[\s\S]*Drafts5/);
+  assert.match(await page.textContent(".seg"), /Published5[\s\S]*Drafts5/);
   await shot(page, "admin-list");
 
   await page.click('a[href="#/p/HE-R001"]');
@@ -325,7 +325,8 @@ async function admin(browser) {
   await page.waitForSelector(".figures");
   await page.evaluate(() => document.fonts.ready);
   const bar = await page.$$eval("header.bar > :not(.who), header.bar nav a", es => es.map(e => [e.textContent, Math.round(e.getBoundingClientRect().top + e.offsetHeight / 2)]));
-  assert.ok(bar.findIndex(([t]) => t === "Insights") === bar.findIndex(([t]) => t === "Viewings") + 1, "Insights comes after Viewings");
+  const at = t => bar.findIndex(([x]) => x.startsWith(t));
+  assert.ok(at("Sales") === at("Viewings") + 1 && at("Insights") === at("Sales") + 1, "Sales comes between Viewings and Insights");
   assert.ok(Math.max(...bar.map(([, y]) => y)) - Math.min(...bar.map(([, y]) => y)) < 8, "the bar stays on one line at 1280px");
   assert.equal(await page.textContent(".seg button[aria-pressed=true]"), "30 days", "30 days by default");
   assert.equal(await figure("Listing views"), views30.toLocaleString("en-GB"));
@@ -342,6 +343,92 @@ async function admin(browser) {
   await page.waitForFunction(n => [...document.querySelectorAll(".figures div")].find(d => d.querySelector("dt").textContent === "Listing views")
     ?.querySelector("dd").textContent === n, views90.toLocaleString("en-GB"));
   assert.equal(await page.textContent(".seg button[aria-pressed=true]"), "90 days");
+
+  // F3-C Sales, on the flow's own listing (HE-R050) and buyer (Helen Picot). With no offers or sales yet, each block says so.
+  const salesCount = () => page.$eval('header.bar a[href="#/sales"]', a => a.querySelector(".count")?.firstChild.textContent ?? null);
+  const publicStatus = async () => {
+    const c = await browser.newContext(), p = await c.newPage();
+    await p.goto(BASE + "#/p/HE-R050");
+    await p.waitForSelector(".summary h1");
+    const t = await p.textContent(".summary .eyebrow");
+    await c.close();
+    return t;
+  };
+  // Phones: no page scroll sideways, with an offer and then a sale in progress; the tables scroll inside their box.
+  const phone = await newPage(ctx, {width: 390, height: 844});
+  const noSideScroll = async (url, sel) => {
+    await phone.goto(url);
+    await phone.waitForSelector(sel);
+    await phone.reload();
+    await phone.waitForSelector(sel);
+    assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, `no horizontal scroll on ${url}`);
+  };
+  await page.goto(BASE + "admin/#/sales");
+  await page.waitForSelector("#t-sales");
+  await page.click(".closed summary"); // folded by default
+  for (const t of ["No open offers", "No sales in progress", "No sales closed in the last 12 months"]) await page.waitForSelector(`text=${t}`);
+  assert.equal(await figure("Fees completed this year"), "£0");
+  await shot(page, "admin-sales-empty");
+  const record = page.getByRole("button", {name: "Record offer", exact: true});
+  await record.click();
+  let dlg = page.getByRole("dialog", {name: "Record offer"});
+  assert.ok(await dlg.evaluate(d => d.contains(document.activeElement)), "the focus moves into the dialog");
+  await dlg.getByLabel("Listing").selectOption("HE-R050");
+  await dlg.getByLabel("Buyer", {exact: true}).fill("picot");
+  await dlg.getByRole("radio", {name: /Helen Picot/}).check();
+  await dlg.getByLabel("Amount (£)").fill("820,000");
+  await dlg.getByLabel("Conditions (optional)").fill("Subject to survey");
+  await dlg.getByRole("button", {name: "Record offer", exact: true}).click();
+  await page.waitForSelector("text=Offer recorded");
+  assert.ok(await record.evaluate(b => b === document.activeElement), "the focus goes back to Record offer");
+  await noSideScroll(BASE + "admin/#/sales", ".sales .offers");
+  const offerRow = page.locator("tr", {hasText: "Helen Picot"});
+  assert.match(await offerRow.textContent(), /£820,000[\s\S]*Subject to survey[\s\S]*Nothing to sell/);
+  await offerRow.locator("summary").click();
+  await offerRow.getByRole("button", {name: "Counter"}).click();
+  dlg = page.getByRole("dialog", {name: "Counter offer"});
+  await dlg.getByLabel("Seller's counter (£)").fill("835000");
+  await dlg.getByRole("button", {name: "Save counter"}).click();
+  await page.waitForSelector('tr:has-text("Helen Picot") >> text=Countered');
+  await offerRow.getByRole("button", {name: /^Accept/}).click();
+  await page.getByRole("dialog", {name: "Accept offer"}).getByRole("button", {name: "Accept offer"}).click();
+  // Accepting opens the sale file; the website shows the listing under offer.
+  await page.waitForSelector("#t-sale");
+  const saleUrl = page.url();
+  assert.equal(await page.inputValue("#s-price"), "835,000", "the price is the seller's counter");
+  assert.match(await publicStatus(), /Under Offer/);
+  await page.fill("#s-buyer_lawyer_firm", "Ogier");
+  await page.fill("#s-buyer_lawyer_name", "Anna Le Cornu");
+  await page.fill("#s-fee", "16,000");
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector("text=Changes saved.");
+  await noSideScroll(BASE + "admin/#/sales", ".sales .figures");
+  assert.equal(await phone.locator('.sales tbody a[href^="#/sales/"]').count(), 1, "the sale in progress is listed");
+  await noSideScroll(saleUrl, "#t-sale");
+  // A step planned for yesterday is overdue, here and in the bar's Sales count.
+  const step = name => page.locator(".steps > li", {hasText: name});
+  await step("Lawyers instructed").getByRole("button", {name: /^Update/}).click();
+  await page.fill("#st-planned", new Date(Date.now() - 864e5).toISOString().slice(0, 10));
+  await page.getByRole("button", {name: "Save step"}).click();
+  await page.waitForSelector('.steps > li:has-text("Lawyers instructed") .step-state >> text=Overdue');
+  await page.waitForFunction(() => document.querySelector('header.bar a[href="#/sales"] .count')?.firstChild.textContent === "1");
+  await step("Passing contract (Royal Court)").getByRole("button", {name: /^Update/}).click();
+  await page.getByRole("radio", {name: "Done"}).check();
+  await page.getByRole("button", {name: "Save step"}).click();
+  await page.waitForSelector('.steps > li:has-text("Passing contract") .step-state >> text=Done');
+  await shot(page, "admin-sale");
+  page.once("dialog", d => d.accept());
+  await page.getByRole("button", {name: "Mark completed", exact: true}).click();
+  await page.waitForSelector("text=Sale completed.");
+  assert.match(await publicStatus(), /Sold/);
+  await page.goto(BASE + "admin/#/sales");
+  await page.waitForSelector(".sales .figures");
+  assert.equal(await figure("Fees completed this year"), "£16,000");
+  assert.equal(await salesCount(), null, "a completed sale's steps are not overdue");
+  await shot(page, "admin-sales");
+  await shot(phone, "admin-sale-mobile");
+  assert.deepEqual(phone.errors, []);
+  await phone.close();
   await page.goto(BASE + "admin/#/users");
   await page.waitForSelector("text=andres.san1404@gmail.com");
   await shot(page, "admin-users");

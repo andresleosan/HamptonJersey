@@ -116,3 +116,21 @@ INSERT INTO daily_stats (day, listing_id, metric, n) VALUES
 (date('now','-1 day'),'HE-R001','view',12),(date('now','-1 day'),'HE-R001','photos',5),(date('now','-1 day'),'HE-R001','tour',3),
 (date('now','-1 day'),'HE-R002','view',4),(date('now','-1 day'),'HE-R002','photos',2),
 (date('now','-40 day'),'HE-R001','view',7),(date('now','-40 day'),'HE-R002','view',9),(date('now','-40 day'),'HE-R002','photos',1);
+-- F3-C: a published listing for sale and a buyer used only by the offer-to-completion flow, so HE-R001 stays for sale
+-- for every other check.
+INSERT INTO listings (id, use, title, property_type, operation, availability, country, location, bedrooms, bathrooms,
+  sale_price, currency, price_text, description, specs, published, matchable, archived_at, created_at, updated_at, updated_by) VALUES
+('HE-R050','residential','Rozel Bay house','House','sale','for_sale','Jersey','St Martin',3,2,850000,'GBP','£850,000',
+ 'Granite house above Rozel Bay.','[]',1,1,NULL,'2026-10-07T00:00:00.000Z','2026-10-07T00:00:00.000Z','import');
+INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, label, public, position, content_type, created_at) VALUES
+('A00012','HE-R050','media/hampton/p1.jpg','thumbs/hampton/p1.jpg','hampton','photo','Front',1,0,'image/jpeg','2026-10-07T00:00:00.000Z');
+INSERT INTO contacts (id, name, email, phone, preferred_channel, best_time, privacy_ack_at, marketing_opt_in_at, consent_source,
+  last_activity_at, created_at, updated_at, updated_by) VALUES
+(4,'Helen Picot','helen.picot@example.je','+447700900456','email',NULL,'2026-10-22T12:00:00.000Z',NULL,'phone',
+ '2026-10-22T12:00:00.000Z','2026-10-22T12:00:00.000Z','2026-10-22T12:00:00.000Z','luismadef45@gmail.com');
+INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, budget_max, property_types, bedrooms_min,
+  parishes_wanted, buyer_position, mortgage_aip, housing_status, household_adults, household_children, created_at, updated_at, updated_by) VALUES
+(4,4,'buy','viewing','phone','luismadef45@gmail.com',900000,'["house"]',3,'["St Martin"]','nothing_to_sell','yes','entitled',2,0,
+ '2026-10-22T12:00:00.000Z','2026-10-22T12:00:00.000Z','luismadef45@gmail.com');
+INSERT INTO events (id, at, actor, entity_type, entity_id, type, data) VALUES
+(6,'2026-10-22T12:00:00.000Z','luismadef45@gmail.com','applicant','4','applicant.created','{"operation":"buy","source":"phone"}');
