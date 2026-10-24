@@ -321,13 +321,22 @@ async function admin(browser) {
   const figure = label => page.$$eval(".figures div", (ds, l) => ds.find(d => d.querySelector("dt").textContent === l)?.querySelector("dd").textContent, label);
   const rows = within => within.locator("tbody tr").evaluateAll(rs => rs.map(r => [...r.cells].map(c => c.textContent)));
   const table = name => page.getByRole("table", {name, exact: true}), byListing = page.getByRole("region", {name: "Views by listing"});
+  // The bar at its widest: two-digit counts on both Inbox and Sales (stubbed), still on one line at 1280px.
+  const COUNTS = /\/api\/admin\/notifications\/counts$/;
+  await page.route(COUNTS, r => r.fulfill({contentType: "application/json",
+    body: JSON.stringify({action: 88, new_applicant: 0, viewing: 0, matched: 0, sales: 88})}));
   await page.goto(BASE + "admin/#/insights");
+  await page.reload();
   await page.waitForSelector(".figures");
+  await page.waitForSelector('header.bar a[href="#/sales"] .count');
   await page.evaluate(() => document.fonts.ready);
   const bar = await page.$$eval("header.bar > :not(.who), header.bar nav a", es => es.map(e => [e.textContent, Math.round(e.getBoundingClientRect().top + e.offsetHeight / 2)]));
   const at = t => bar.findIndex(([x]) => x.startsWith(t));
   assert.ok(at("Sales") === at("Viewings") + 1 && at("Insights") === at("Sales") + 1, "Sales comes between Viewings and Insights");
   assert.ok(Math.max(...bar.map(([, y]) => y)) - Math.min(...bar.map(([, y]) => y)) < 8, "the bar stays on one line at 1280px");
+  await page.unroute(COUNTS);
+  await page.reload();
+  await page.waitForSelector(".figures");
   assert.equal(await page.textContent(".seg button[aria-pressed=true]"), "30 days", "30 days by default");
   assert.equal(await figure("Listing views"), views30.toLocaleString("en-GB"));
   for (const l of ["Viewing requests", "New applicants", "Viewings completed"]) assert.match(await figure(l), /^\d[\d,]*$/, l);
@@ -384,6 +393,19 @@ async function admin(browser) {
   await noSideScroll(BASE + "admin/#/sales", ".sales .offers");
   const offerRow = page.locator("tr", {hasText: "Helen Picot"});
   assert.match(await offerRow.textContent(), /£820,000[\s\S]*Subject to survey[\s\S]*Nothing to sell/);
+  // Someone else closes the offer while the Counter dialog is open: the refusal stays in the dialog, the list behind is reloaded.
+  await offerRow.locator("summary").click();
+  await offerRow.getByRole("button", {name: "Counter"}).click();
+  dlg = page.getByRole("dialog", {name: "Counter offer"});
+  assert.equal(await dlg.getByLabel("Seller's counter (£)").inputValue(), "", "no counter yet");
+  d1("UPDATE offers SET status = 'withdrawn' WHERE listing_id = 'HE-R050'");
+  await dlg.getByLabel("Seller's counter (£)").fill("830000");
+  await dlg.getByRole("button", {name: "Save counter"}).click();
+  await dlg.getByText("This offer is no longer open").waitFor();
+  await page.waitForSelector("text=No open offers");
+  await dlg.getByRole("button", {name: "Cancel"}).click();
+  d1("UPDATE offers SET status = 'pending' WHERE listing_id = 'HE-R050'");
+  await page.reload();
   await offerRow.locator("summary").click();
   await offerRow.getByRole("button", {name: "Counter"}).click();
   dlg = page.getByRole("dialog", {name: "Counter offer"});
@@ -420,6 +442,7 @@ async function admin(browser) {
   page.once("dialog", d => d.accept());
   await page.getByRole("button", {name: "Mark completed", exact: true}).click();
   await page.waitForSelector("text=Sale completed.");
+  await page.waitForFunction(() => document.activeElement?.id === "t-sale"); // the closing buttons are gone; the heading has the focus
   assert.match(await publicStatus(), /Sold/);
   await page.goto(BASE + "admin/#/sales");
   await page.waitForSelector(".sales .figures");

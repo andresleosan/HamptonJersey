@@ -12,8 +12,8 @@ a{color:var(--ink)} a:hover{color:var(--bronze-dk)}
 :focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .center{min-height:100vh;display:grid;place-items:center;padding:16px}
-.bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:12px 16px;background:rgba(20,20,20,.94);backdrop-filter:blur(8px);color:#fff}
-.bar a{color:#fff;text-decoration:none} .bar .brand{font-family:var(--display);letter-spacing:.12em;text-transform:uppercase;margin-right:auto}
+.bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 16px;background:rgba(20,20,20,.94);backdrop-filter:blur(8px);color:#fff}
+.bar a{color:#fff;text-decoration:none} .bar .brand{font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;margin-right:auto}
 .bar nav{display:flex;flex-wrap:wrap;gap:2px} .bar nav a{padding:6px 8px;border-radius:999px;transition:background .2s}
 .bar nav a:hover{background:rgba(255,255,255,.1)} .bar nav a[aria-current=page]{background:#fff;color:var(--ink)}
 .bar .who{opacity:.75;font-size:12px}

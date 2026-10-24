@@ -22,19 +22,24 @@ export default function SaleDetail({ id, onChange }) {
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [falling, setFalling] = useState(false);
   const [step, setStep] = useState(null), [stepDirty, setStepDirty] = useState(false), [stepMsg, setStepMsg] = useState(null);
   const { errors, setErrors, invalid, error } = useFieldErrors("s");
-  const formRef = useRef(null), stepButtons = useRef({});
+  const formRef = useRef(null), stepButtons = useRef({}), heading = useRef(null), refocus = useRef(false);
   const load = () => api(`/admin/sales/${id}`).then(d => { setData(d); setForm(toForm(d.sale)); setErrors({}); setLoadErr(null); },
     e => setLoadErr(e.message));
   useEffect(() => { load(); }, [id]);
   useEffect(() => { formRef.current?.querySelector("[aria-invalid=true]")?.focus(); }, [errors]);
+  // A close removes the action bar's buttons (and the dialog's opener): the heading takes the focus.
+  useEffect(() => { if (refocus.current) { refocus.current = false; heading.current?.focus(); } }, [data]);
 
   const body = form && toBody(form), saved = data && toBody(toForm(data.sale));
   const changed = data && form ? FIELDS.filter(k => body[k] !== saved[k]) : [];
   const dirty = changed.length > 0;
   useEffect(() => { setUnsaved(dirty || stepDirty); return () => setUnsaved(false); }, [dirty, stepDirty]);
 
-  if (!data) return loadErr ? <p role="alert" className="err">{loadErr} · <a href="#/sales">Back to sales</a></p> : <p>Loading sale…</p>;
+  if (!data) return loadErr ? <p role="alert" className="err">{loadErr}{" "}
+    <button type="button" className="btn ghost sm" onClick={load}>Try again</button> · <a href="#/sales">Back to sales</a></p> : <p>Loading sale…</p>;
   const s = data.sale, open = s.status === "in_progress", [status, tone] = SALE_STATUS[s.status];
+  // Closing waits for the fields and any open step to be saved or discarded.
+  const locked = dirty || stepDirty || busy, unsaved = dirty || stepDirty ? "Save first" : undefined;
 
   const save = async () => {
     setBusy(true); setMsg(null);
@@ -49,10 +54,11 @@ export default function SaleDetail({ id, onChange }) {
   const discard = () => { setForm(toForm(s)); setErrors({}); setMsg(null); };
   const reload = () => { setMsg(null); load(); };
   // Closing reloads the file: its steps, the listing's offers (V18) and the sale, now read only.
-  const closed = text => { setFalling(false); setStep(null); setMsg({ ok: true, text }); load(); onChange(); };
+  const closed = text => { setFalling(false); setStep(null); setMsg({ ok: true, text }); refocus.current = true; load(); onChange(); };
   const complete = async () => {
     if (!confirm(`Mark the sale of ${s.listing_title} to ${s.buyer_name} as completed? The website shows the listing as Sold, `
-      + `${s.buyer_name} moves to Completed and the listing's other open offers are rejected. It can't be undone here.`)) return;
+      + `${s.buyer_name} moves to Completed, the other open offers on this listing are rejected and ${s.buyer_name}'s open offers on `
+      + "other listings are withdrawn. It can't be undone here.")) return;
     setBusy(true); setMsg(null);
     try { await api(`/admin/sales/${id}/complete`, { method: "POST" }); closed("Sale completed. The website shows the listing as Sold."); }
     catch (e) { setMsg({ text: e.message }); }
@@ -73,7 +79,7 @@ export default function SaleDetail({ id, onChange }) {
   // A div, not a section: the entrance animation of `.page>section` would make it the box the fixed action bar sits in.
   return <div className="record">
     <div className="head">
-      <div><h1 id="t-sale">{s.listing_title}</h1>
+      <div><h1 id="t-sale" ref={heading} tabIndex={-1}>{s.listing_title}</h1>
         <p className="muted">Sale to <a href={`#/applicants/${s.applicant_id}`}>{s.buyer_name}</a> · <a href={`#/p/${encodeURIComponent(s.listing_id)}`}>
           Listing {s.listing_id}</a> · Agreed {fmtDate(s.created_at)} <span className={`badge ${tone}`}>{status}</span></p></div>
       <a href="#/sales">← Back to sales</a>
@@ -151,8 +157,8 @@ export default function SaleDetail({ id, onChange }) {
         {dirty && <span className="unsaved">Unsaved changes</span>}
         <button type="button" className="btn" onClick={save} disabled={!dirty || busy}>{busy ? "Saving…" : "Save"}</button>
         {dirty && <button type="button" className="btn ghost" onClick={discard} disabled={busy}>Discard</button>}
-        <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Save first" : undefined} onClick={complete}>Mark completed</button>
-        <button type="button" className="btn ghost danger" disabled={dirty || busy} title={dirty ? "Save first" : undefined}
+        <button type="button" className="btn ghost" disabled={locked} title={unsaved} onClick={complete}>Mark completed</button>
+        <button type="button" className="btn ghost danger" disabled={locked} title={unsaved}
           onClick={() => { setMsg(null); setFalling(true); }}>Fell through</button></>}
     </div>}
     {falling && <FellThrough sale={s} onClose={() => setFalling(false)} onDone={closed} />}

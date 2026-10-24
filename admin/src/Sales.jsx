@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtAgo, fmtDate, fmtDay, show } from "./format.js";
+import { jerseyToday } from "../../server/viewings.js";
 
 // Spec §4 Sales: the open offers by listing, the sales in progress (overdue first) and those closed in the last 12
 // months, with Hampton's fees on the way and those completed this year.
@@ -140,7 +141,7 @@ export default function Sales({ onChange }) {
                 <td className="num">{money(s.price)}</td>
                 <td>{s.status === "completed" ? <span className="badge positive">Completed</span>
                   : <><span className="badge neutral">Fell through</span> <span className="muted">{REASON[s.fell_through_reason]}</span></>}</td>
-                <td>{fmtDate(s.closed_at)}</td>
+                <td className="num">{fmtDay(jerseyToday(new Date(s.closed_at)))}</td>
               </tr>)}</tbody>
             </table></div>
             : <p className="empty card">No sales closed in the last 12 months.</p>}
@@ -148,7 +149,7 @@ export default function Sales({ onChange }) {
       </section>
     </>}
     {dialog?.action === "record" && <RecordOffer onClose={() => setDialog(null)} onDone={done} />}
-    {dialog && dialog.action !== "record" && <OfferDialog {...dialog} onClose={() => setDialog(null)} onDone={done} onAccepted={onChange} />}
+    {dialog && dialog.action !== "record" && <OfferDialog {...dialog} onClose={() => setDialog(null)} onDone={done} onAccepted={onChange} onRefused={load} />}
   </section>;
 }
 
@@ -192,7 +193,7 @@ function RecordOffer({ onClose, onDone }) {
   return <Modal title="Record offer" onClose={onClose}>
     <form ref={form} className="sheet-form" onSubmit={submit} noValidate>
       <label>Listing<select value={f.listing_id} onChange={set("listing_id")} disabled={listings?.length === 0} {...invalid("listing_id")}>
-        <option value="">{listings ? "Choose a listing for sale" : "Loading listings…"}</option>
+        <option value="">{listings ? "Choose a listing for sale" : listErr ? "The listings couldn't be loaded" : "Loading listings…"}</option>
         {listings?.map(l => <option key={l.id} value={l.id}>{l.title} ({l.id}){l.availability === "under_offer" ? " · under offer" : ""}
           {l.published ? "" : " · draft"}</option>)}</select>{error("listing_id")}</label>
       {listErr && <p role="alert" className="err">{listErr}</p>}
@@ -227,8 +228,9 @@ const ACTION = {
 
 // V4: the seller counters (again, if they like), the team corrects the amount or conditions, or the offer closes.
 // Accepting opens the sale file.
-function OfferDialog({ action, offer: o, onClose, onDone, onAccepted }) {
-  const [f, setF] = useState({ counter_amount: String(o.counter_amount ?? ""), amount: String(o.amount), conditions: o.conditions ?? "", note: "" });
+function OfferDialog({ action, offer: o, onClose, onDone, onAccepted, onRefused }) {
+  const [f, setF] = useState({ counter_amount: o.counter_amount?.toLocaleString("en-GB") ?? "", amount: o.amount.toLocaleString("en-GB"),
+    conditions: o.conditions ?? "", note: "" });
   const [err, setErr] = useState(null), [busy, setBusy] = useState(false), form = useRef(null);
   const { errors, setErrors, invalid, error } = useFieldErrors("od");
   useEffect(() => { form.current?.querySelector("[aria-invalid=true]")?.focus(); }, [errors]);
@@ -249,7 +251,10 @@ function OfferDialog({ action, offer: o, onClose, onDone, onAccepted }) {
       if (action === "accept") { onAccepted(); location.hash = `#/sales/${r.sale_id}`; return; }
       onDone({ counter: `Counter of ${money(r.offer.counter_amount)} saved.`, reject: `Offer from ${o.buyer_name} rejected.`,
         withdraw: `Offer from ${o.buyer_name} withdrawn.` }[action]);
-    } catch (x) { setErrors(x.data?.fields || {}); setErr(x.message); setBusy(false); }
+    } catch (x) {
+      setErrors(x.data?.fields || {}); setErr(x.message); setBusy(false);
+      if (x.status === 409) onRefused(); // someone else changed the offer: the list behind shows how it is now
+    }
   };
   return <Modal title={title} onClose={onClose}>
     <form ref={form} className="sheet-form" onSubmit={submit} noValidate>
