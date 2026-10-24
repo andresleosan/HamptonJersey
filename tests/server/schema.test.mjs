@@ -420,3 +420,86 @@ test("0012: deleting a listing or applicant with offers deletes the offers; with
   db.prepare("DELETE FROM sales WHERE id = ?").run(sale);
   assert.equal(count(db, "sale_milestones"), 0);
 });
+
+const addLandlord = db => Number(addRow(db, "landlords", { name: "Ann Le Sueur", created_at: T0, updated_at: T0 })
+  .lastInsertRowid);
+const addRental = (db, over) => Number(addRow(db, "rentals", { landlord_id: addLandlord(db), address: "1 Rue de Haut",
+  parish: "St Helier", service: "full", fee_percent: 10, created_at: T0, updated_at: T0, ...over }).lastInsertRowid);
+const addTenancy = (db, over) => Number(addRow(db, "tenancies", { tenant_name: "Tom Vibert", kind: "periodic",
+  regime: "2025", start_on: "2026-05-01", rent: 1500, due_day: 1, created_at: T0, updated_at: T0, ...over }).lastInsertRowid);
+
+test("0013: one active tenancy per property; ended ones don't count", () => {
+  const db = makeEnv().DB.raw;
+  const home = addRental(db), other = addRental(db);
+  const first = addTenancy(db, { rental_id: home, payment_ref: "HE-T0001" });
+  assert.throws(() => addTenancy(db, { rental_id: home }), /UNIQUE/);
+  addTenancy(db, { rental_id: other });
+  assert.throws(() => addTenancy(db, { rental_id: other, payment_ref: "HE-T0001", ended_on: "2026-06-01" }), /UNIQUE/);
+  // A future ended_on (planned move-out) frees the property for the next tenancy (R24).
+  db.prepare("UPDATE tenancies SET ended_on = '2026-12-31' WHERE id = ?").run(first);
+  addTenancy(db, { rental_id: home, start_on: "2027-01-01" });
+  assert.throws(() => addTenancy(db, { rental_id: home }), /UNIQUE/);
+  assert.deepEqual(db.prepare("PRAGMA index_list(tenancies)").all().filter(i => i.partial).map(i => [i.name, i.unique]),
+    [["tenancies_active", 1]]);
+  // No cascade: a landlord with properties, or a property with tenancies, cannot be deleted (R19).
+  assert.throws(() => addTenancy(db, { rental_id: 999 }), /FOREIGN KEY/);
+  assert.throws(() => addRental(db, { landlord_id: 999 }), /FOREIGN KEY/);
+  assert.throws(() => db.prepare("DELETE FROM rentals WHERE id = ?").run(home), /FOREIGN KEY/);
+  assert.throws(() => db.prepare("DELETE FROM landlords").run(), /FOREIGN KEY/);
+});
+
+test("0013: a fixed tenancy needs an end date and due_day must be 1-28", () => {
+  const db = makeEnv().DB.raw;
+  const home = addRental(db);
+  const bad = [{ kind: "fixed" }, { kind: "fixed", end_on: "2026-05-01" }, { due_day: 0 }, { due_day: 29 },
+    { kind: "monthly" }, { regime: "2020" }, { rent: 0 }, { rent: 1000001 }, { deposit: 0 }, { tenant_name: "" },
+    { notice_by: "agent", notice_given_on: "2026-06-01" }, { notice_by: "tenant" }, { opening_balance: -1 },
+    { collect_from: "2026-04-30" }, { ended_on: "2026-04-30" }, { notes: "x".repeat(2001) }];
+  for (const over of bad) assert.throws(() => addTenancy(db, { rental_id: home, ...over }), /CHECK/, JSON.stringify(over));
+  addTenancy(db, { rental_id: home, kind: "fixed", end_on: "2027-04-30", due_day: 28, rent: 1000000, opening_balance: 0,
+    collect_from: "2026-05-01", notice_by: "landlord", notice_given_on: "2026-06-01" });
+
+  const bads = { landlords: [{ name: "" }, { name: "x".repeat(121) }, { approval_limit: 0 }, { notes: "x".repeat(2001) }],
+    rentals: [{ service: "managed" }, { fee_percent: 100.01 }, { fee_percent: -1 }, { fee_percent: null }, { has_gas: 2 },
+      { address: "" }, { address: "x".repeat(201) }] };
+  for (const over of bads.landlords)
+    assert.throws(() => addRow(db, "landlords", { name: "A", created_at: T0, updated_at: T0, ...over }), /CHECK/);
+  for (const over of bads.rentals) assert.throws(() => addRental(db, over), /CHECK/, JSON.stringify(over));
+  addRental(db, { service: "let_only", fee_percent: null, has_gas: null });
+});
+
+test("0013: a charge is unique per tenancy, due date and kind; an import hash only once", () => {
+  const db = makeEnv().DB.raw;
+  const home = addRental(db), tenancy = addTenancy(db, { rental_id: home });
+  const charge = over => addRow(db, "charges", { tenancy_id: tenancy, due_on: "2026-05-01", amount: 150000, ...over });
+  charge({});
+  charge({ kind: "opening", amount: 1 });
+  assert.throws(() => charge({ amount: 120000 }), /UNIQUE/);
+  for (const over of [{ due_on: "2026-06-01", amount: 0 }, { due_on: "2026-06-01", kind: "fee" },
+    { due_on: "2026-06-01", edited: 2 }]) assert.throws(() => charge(over), /CHECK/, JSON.stringify(over));
+
+  const payment = over => addRow(db, "payments", { received_on: "2026-05-02", amount: 150000, source: "import",
+    created_at: T0, ...over });
+  payment({ import_hash: "abc", tenancy_id: tenancy });
+  assert.throws(() => payment({ import_hash: "abc" }), /UNIQUE/);
+  payment({ source: "manual", tenancy_id: tenancy });
+  payment({ import_hash: "def" });
+  for (const over of [{ amount: 0 }, { amount: -50 }, { kind: "fee" }, { source: "bank" }, { description: "x".repeat(301) }])
+    assert.throws(() => payment(over), /CHECK/, JSON.stringify(over));
+  const plan = db.prepare("EXPLAIN QUERY PLAN SELECT * FROM payments WHERE tenancy_id IS NULL ORDER BY received_on")
+    .all().map(r => r.detail).join(" ");
+  assert.match(plan, /USING (COVERING )?INDEX payments_/);
+  assert.deepEqual(db.prepare("PRAGMA index_list(payments)").all().filter(i => i.partial).map(i => i.name),
+    ["payments_unmatched"]);
+
+  // Charges, arrears steps and rent changes go with their tenancy; compliance rows with their property; payments stay.
+  addRow(db, "arrears_steps", { tenancy_id: tenancy, charge_due_on: "2026-05-01", step: "reminder", done_at: T0 });
+  addRow(db, "rent_changes", { tenancy_id: tenancy, effective_on: "2026-05-01", rent: 1500, created_at: T0 });
+  addRow(db, "compliance_items", { rental_id: home, kind: "eicr" });
+  assert.throws(() => db.prepare("DELETE FROM tenancies").run(), /FOREIGN KEY/);
+  db.prepare("DELETE FROM payments WHERE tenancy_id IS NOT NULL").run();
+  db.prepare("DELETE FROM tenancies").run();
+  db.prepare("DELETE FROM rentals WHERE id = ?").run(home);
+  assert.deepEqual(["charges", "arrears_steps", "rent_changes", "compliance_items", "payments"].map(t => count(db, t)),
+    [0, 0, 0, 0, 1]);
+});

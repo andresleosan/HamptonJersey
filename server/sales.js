@@ -15,20 +15,20 @@ export const milestoneLabel = (key, route) =>
 export const OFFER_WAITING_MS = 2 * 24 * 3600 * 1000;
 
 const MAX_AMOUNT = 100000000; // V12: whole pounds
-const blank = v => v === undefined || v === null || (typeof v === "string" && !v.trim());
+export const blank = v => v === undefined || v === null || (typeof v === "string" && !v.trim());
 
-// Field checkers over body b, collecting messages in errors; a blank value is null.
-function fields(b, errors) {
+// Field checkers over body b, collecting messages in errors; a blank value is null. Shared with server/rentals.js.
+export function fields(b, errors) {
   const err = (k, msg) => { errors[k] ??= msg; return null; };
   const text = (k, max) => blank(b[k]) ? null : typeof b[k] !== "string" ? err(k, "Enter text")
     : b[k].trim().length <= max ? b[k].trim() : err(k, `Use ${max} characters or fewer`);
   return {
     err, text,
-    money: (k, required) => {
+    money: (k, required, max = MAX_AMOUNT) => {
       if (blank(b[k])) return required ? err(k, "Enter an amount") : null;
       const n = typeof b[k] === "string" && /^\s*\d+\s*$/.test(b[k]) ? Number(b[k]) : b[k];
-      return Number.isInteger(n) && n > 0 && n <= MAX_AMOUNT ? n
-        : err(k, "Enter whole pounds from £1 to £100,000,000");
+      return Number.isInteger(n) && n > 0 && n <= max ? n
+        : err(k, `Enter whole pounds from £1 to £${max.toLocaleString("en-GB")}`);
     },
     email: k => {
       const e = text(k, 120);
@@ -37,8 +37,8 @@ function fields(b, errors) {
     date: k => blank(b[k]) ? null : realDate(b[k]) ? b[k] : err(k, "Enter a date as YYYY-MM-DD"),
   };
 }
-const obj = body => (body && typeof body === "object" && !Array.isArray(body) ? body : {});
-const result = (value, errors) => (Object.keys(errors).length ? { errors } : { value });
+export const obj = body => (body && typeof body === "object" && !Array.isArray(body) ? body : {});
+export const result = (value, errors) => (Object.keys(errors).length ? { errors } : { value });
 
 // V12. partial (edit): only the keys sent; otherwise amount is required and conditions defaults to null.
 export function validateOffer(body, { partial = false } = {}) {

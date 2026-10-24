@@ -29,7 +29,7 @@ export function addMinutes(t, n) {
 }
 const text = (v, max) => (typeof v === "string" && v.trim() && v.trim().length <= max ? v.trim() : null);
 export const realDate = s => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s)
-  && new Date(s + "T12:00:00Z").toISOString().slice(0, 10) === s;
+  && new Date(s + "T12:00:00Z").toJSON()?.slice(0, 10) === s; // toJSON is null for 2026-13-01, not a throw
 export const plusDays = (date, n) => new Date(Date.parse(date + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
 export const weekday = date => WEEKDAYS[(new Date(date + "T12:00:00Z").getUTCDay() + 6) % 7];
 // Same-width HH:MM text compares like the clock: [a1, a2) and [b1, b2) overlap.
