@@ -2,6 +2,8 @@ import { json, fail, readJson, now } from "../http.js";
 import { normalizePhone, activeSql } from "../applicants.js";
 import { salesCount } from "./sales.js";
 import { refreshRentalsCount } from "./rent.js";
+import { jerseyToday } from "../viewings.js";
+import { claimRetentionDay, runRetention } from "../retention.js";
 
 const BOXES = {
   action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id",
@@ -51,7 +53,14 @@ async function list({ request, env }) {
   return json({ notifications, counts: await openCounts(env) });
 }
 
-const counts = async ({ env }) => json(await openCounts(env));
+// E6: the panel polls this every 30 s; the first poll of each Jersey day claims the retention pass, which runs
+// after the answer (the claim too, so the poll waits for neither). A failed pass is logged; the next day's catches up.
+async function counts({ env, waitUntil }) {
+  const ts = now();
+  waitUntil(claimRetentionDay(env, jerseyToday(new Date(ts))).then(won => won && runRetention(env, ts))
+    .catch(e => console.error("Retention pass failed", e)));
+  return json(await openCounts(env));
+}
 
 async function update({ request, env, admin, params: [id] }) {
   const body = await readJson(request);

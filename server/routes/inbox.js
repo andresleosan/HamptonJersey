@@ -2,6 +2,7 @@ import { json, fail, readJson, now } from "../http.js";
 import { logEvent, resolveNotices } from "../events.js";
 import { validateViewing, jerseyNow, isFree, addMinutes, SLOT_MINUTES, ACTIVE, OUTCOMES } from "../viewings.js";
 import { loadAvailability, bookStatement, clash } from "../viewing-store.js";
+import { touchByViewing } from "../retention.js";
 
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
@@ -69,6 +70,7 @@ async function create({ request, env, admin }) {
     ...logEvent(env, { actor: admin, entity_type: "viewing", entity_id: null, type: "viewing.booked",
       data: { listing_id: v.listing_id, date: v.date, time: v.time, kind: v.kind, negotiator_id: v.negotiator_id } }, null,
     { ifInserted: true }),
+    touchByViewing(env, v, now()),
   ]);
   return booked.meta.changes ? json({ id: booked.meta.last_row_id }, 201) : taken();
 }

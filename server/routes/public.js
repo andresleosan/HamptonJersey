@@ -6,6 +6,7 @@ import { verifyTurnstile } from "../turnstile.js";
 import { logEvent } from "../events.js";
 import { validateApplicant, OPTIONS } from "../applicants.js";
 import { afterSave, recomputeForApplicant } from "../match-store.js";
+import { touchByViewing } from "../retention.js";
 
 export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
 
@@ -66,6 +67,7 @@ async function createViewing({ request, env }) {
     ...logEvent(env, { actor: "public", entity_type: "viewing", entity_id: null, type: "viewing.requested",
       data: { listing_id: v.listing_id, date: v.date, time: v.time, kind: v.kind } },
     { category: "viewing", title: `Viewing request: ${v.name}`, action_required: true }, { ifInserted: true }),
+    touchByViewing(env, v, now()),
   ]);
   return booked.meta.changes ? json({ ok: true }, 201) : taken();
 }
