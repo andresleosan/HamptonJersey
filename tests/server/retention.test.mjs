@@ -97,6 +97,11 @@ test("a contact goes on the Jersey day after its kept-until day", async () => {
   const env2 = world(), late = contact(env2, "2025-10-24T12:00:00.000Z");
   assert.deepEqual(await runRetention(env2, "2026-10-24T23:30:00.000Z"), { contacts: 1, viewings: 0 });
   assert.equal(exists(env2, "contacts", late), false);
+  // Active at 00:30 Jersey (BST) on the 25th, stored as the 24th in UTC: never deleted before 12 full months.
+  const env3 = world(), early = contact(env3, "2025-10-24T23:30:00.000Z");
+  assert.deepEqual(await runRetention(env3, "2026-10-24T23:10:00.000Z"), { contacts: 0, viewings: 0 });
+  assert.deepEqual(await runRetention(env3, "2026-10-24T23:40:00.000Z"), { contacts: 1, viewings: 0 });
+  assert.equal(exists(env3, "contacts", early), false);
 });
 
 test("keeps a buyer with an open offer on any search, and not one whose offers are closed", async () => {

@@ -25,8 +25,9 @@ export const KEPT_UNTIL = "strftime('%Y-%m-%d', c.last_activity_at, '+12 months'
 // date, below every time on that day. Every statement reads the set again: until the last one deletes the contacts
 // nothing it depends on changes inside the batch (their searches have no sales nor open offers), so each statement acts
 // on the same contacts.
+// The second bound keeps a full 12 months when the last activity fell in Jersey's first hour of a BST day.
 const CONTACTS = `SELECT c.id FROM contacts c WHERE c.last_activity_at < date(?2, '-12 months')
-  AND ${EXEMPT} ORDER BY c.last_activity_at, c.id LIMIT ${RETENTION_CAP}`;
+  AND c.last_activity_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-12 months') AND ${EXEMPT} ORDER BY c.last_activity_at, c.id LIMIT ${RETENTION_CAP}`;
 const SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
 // entity_id is TEXT: text ids keep each lookup on the events_entity index.
 const eventsOf = (type, set) =>
