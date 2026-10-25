@@ -111,3 +111,8 @@ test("open viewing lines hide themselves after the day", () => {
   assert.deepEqual(L.liveSummary(lines, "2026-10-11"), ["Three bedrooms"], "gone the day after");
   assert.deepEqual(L.liveSummary(["Open viewing: by appointment", "x"], "2026-10-11"), ["Open viewing: by appointment", "x"], "no date, kept");
 });
+
+test("the website shows a listing only with a public photo of its own (shared with the sitemap and /p/<id>)", () => {
+  assert.equal(L.shownOnSite({image: "/media/A00001"}), true);
+  for (const image of [null, undefined, "", "https://evil.example/x.jpg", "/media/../admin"]) assert.equal(L.shownOnSite({image}), false, String(image));
+});

@@ -9,6 +9,8 @@
      SITE_URL: change them with it at the domain switch (tests/server/seo.test.mjs fails until they match). -->
 <meta name="description" content="Family-run estate agent on Bath Street, St Helier, since 1982. Homes and businesses for sale and to let across Jersey, free valuations and viewings in person or by live video.">
 <link rel="canonical" href="https://hamptonjersey.pages.dev/">
+<!-- S7: SITE_URL, the base of every shared link; on /p/<id> the Function sets it from its own SITE_URL. -->
+<meta name="site-url" content="https://hamptonjersey.pages.dev">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Hampton Estates Jersey">
 <meta property="og:title" content="Hampton Estates Jersey · Property sales, lettings and valuations">
@@ -418,9 +420,9 @@ const OPS = {all: "All", sale: "For sale", rent: "To let", business: "Businesses
 const OP_ONE = {sale: "For sale", rent: "To let", business: "Business for sale"};
 const MAX = {sale: [400e3, 600e3, 900e3, 1.5e6], rent: [1500, 2500, 3500], business: [100e3, 250e3, 500e3]};
 const BRAND = "Hampton Estates Jersey", HOME_TITLE = `${BRAND} · Property sales, lettings and valuations`; // as in <title>
-// S7: shared links always point at SITE_URL. The page doesn't know it, but its canonical link is built from it (a
-// listing's by functions/p/[id].js, the home page's in the <head>); a page without one (a 404) falls back to this host.
-const SITE = new URL($('link[rel="canonical"]')?.href || location.origin).origin;
+// S7: shared links always point at SITE_URL, which the page reads from <meta name="site-url"> (static on the home page,
+// set by functions/p/[id].js on a listing); failing that, the canonical link built from it, then this host.
+const SITE = new URL($('meta[name="site-url"]')?.content || $('link[rel="canonical"]')?.href || location.origin).origin;
 const short = (n, op) => op === "rent" ? `£${n.toLocaleString("en-GB")} pcm` : n >= 1e6 ? `£${n / 1e6}m` : `£${n / 1e3}k`;
 // Turnstile loads async; forms render the widget once it is ready.
 let TS_KEY = null, TOURS = [];
@@ -985,14 +987,18 @@ const route = () => {
   const old = location.hash.match(/^#\/p\/(HE-[A-Z]\d{3,})$/);
   // An old #/p/<id> link (shared before, or a Wix redirect) moves to /p/<id>. Any other hash belongs to the home page,
   // so a section or side page asked for on a listing (/p/<id>#portfolio) becomes /#portfolio. Neither adds history.
+  // /p/<id>/ is the same listing, without the slash.
+  const slash = location.pathname.match(/^\/p\/(HE-[A-Z]\d{3,})\/$/);
   if (old) history.replaceState(null, "", `/p/${old[1]}`);
   else if (location.hash.length > 1 && location.pathname !== "/") history.replaceState(null, "", "/" + location.hash);
+  else if (slash) history.replaceState(null, "", `/p/${slash[1]}${location.search}`);
   const h = location.hash, m = location.pathname.match(LISTING), sec = h.slice(1);
   if (!PUB.length && !SIDE_PAGES[h]) return; // listings not here yet (or failed): their own message stays
   routed = location.href;
   setNav(false);
   if (SIDE_PAGES[h]) { document.title = HOME_TITLE; return sidePage(h); }
-  if (m) { detail(m[1]); return reveal(); }
+  // Any other /p/… (a lower-case or mistyped id) is a listing that doesn't exist: not found, as the server says.
+  if (m || location.pathname.startsWith("/p/")) { detail(m?.[1]); return reveal(); }
   document.title = HOME_TITLE;
   if (!$("#portfolio")) home();
   reveal();
@@ -1024,7 +1030,7 @@ Promise.allSettled([getJSON("/api/listings"), getJSON("/data/team.json"), getJSO
       specs: (Array.isArray(x.specs) ? x.specs : []).filter(s => s && typeof s.label === "string" && typeof s.value === "string"),
       summary: liveSummary(arr(x.summary), jerseyToday()), description: arr(x.description)}))
     .sort((a, b) => (rank(a) - rank(b) || 0) || order[a.region] - order[b.region] || (a.use === "commercial") - (b.use === "commercial"));
-  PUB = PROPS.filter(x => x.image); // without a public photo a listing stays out of the public pages
+  PUB = PROPS.filter(shownOnSite); // without a public photo a listing stays out of the public pages
   TEAM = (t.status === "fulfilled" && Array.isArray(t.value) ? t.value : []).filter(a => a && a.name)
     .map(a => ({...a, photo: safeUrl(a.photo, IMG_HOST)}));
   TOURS = (tr.status === "fulfilled" && Array.isArray(tr.value) ? tr.value : []).filter(x => x && typeof x.title === "string" && embedUrl(x.url))

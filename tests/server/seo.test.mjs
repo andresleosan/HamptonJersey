@@ -4,8 +4,9 @@ import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { makeEnv, seedListing, seedMedia } from "./helpers.mjs";
 import { listingMeta, headTags, listingPage, sitemapXml, robotsTxt } from "../../server/seo.js";
-import { onRequestGet as sitemap } from "../../functions/sitemap.xml.js";
-import { onRequestGet as robots } from "../../functions/robots.txt.js";
+import { onRequestGet as sitemap, onRequestHead as sitemapHead } from "../../functions/sitemap.xml.js";
+import { onRequestGet as listingFn, onRequestHead as listingHead } from "../../functions/p/[id].js";
+import { onRequestGet as robots, onRequestHead as robotsHead } from "../../functions/robots.txt.js";
 
 const L = createRequire(import.meta.url)("../../site/lib.js");
 const SITE = "https://hamptonjersey.pages.dev";
@@ -74,13 +75,15 @@ test("head tags escape every value for its attribute", () => {
     assert.ok(html.includes(t), t);
 });
 
-test("sitemap: home and each listing with its lastmod; robots keeps out /admin/ and /api/", () => {
+test("sitemap: home and each listing with its lastmod; robots keeps out /admin/ and /api/ but the page's reads", () => {
   const xml = sitemapXml([{ id: "HE-R001", updated_at: "2026-10-20T09:00:00.000Z" }, { id: "HE-C002", updated_at: "2026-10-21T09:00:00.000Z" }], SITE);
   assert.match(xml, /^<\?xml version="1.0" encoding="UTF-8"\?>\n<urlset xmlns="http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9">/);
   assert.ok(xml.includes(`<url><loc>${SITE}/</loc></url>`));
   assert.ok(xml.includes(`<url><loc>${SITE}/p/HE-R001</loc><lastmod>2026-10-20</lastmod></url>`));
   assert.ok(xml.includes(`<url><loc>${SITE}/p/HE-C002</loc><lastmod>2026-10-21</lastmod></url>`));
-  assert.equal(robotsTxt(SITE + "/"), `User-agent: *\nDisallow: /admin/\nDisallow: /api/\n\nSitemap: ${SITE}/sitemap.xml\n`);
+  // A search engine renders the pages, so the public reads they are built from stay open (the longest rule wins).
+  assert.equal(robotsTxt(SITE + "/"), "User-agent: *\nAllow: /api/listings\nAllow: /api/config\nAllow: /api/tours\n" +
+    `Disallow: /admin/\nDisallow: /api/\n\nSitemap: ${SITE}/sitemap.xml\n`);
 });
 
 function world() {
@@ -88,6 +91,7 @@ function world() {
   seedListing(env, { title: "Le Bernage", sale_price: 769000, summary: "Three bedrooms", updated_at: "2026-10-20T09:00:00.000Z" });
   seedListing(env, { id: "HE-R002", title: "Draft", published: 0 });
   seedListing(env, { id: "HE-R003", title: "Old", archived_at: "2026-10-07" });
+  seedListing(env, { id: "HE-R004", title: "No photo yet" }); // published, but the website doesn't show it
   seedMedia(env);
   return env;
 }
@@ -99,15 +103,16 @@ test("listing page: a published listing gets its tags, 200, cached five minutes"
   assert.equal(r.title, "Le Bernage · £769,000 · Hampton Estates Jersey");
   assert.equal(r.headers.get("cache-control"), "public, max-age=300");
   assert.equal(r.headers.get("x-robots-tag"), null);
+  assert.equal(r.siteUrl, SITE, "the base of the page's shared links (meta site-url)");
   for (const t of ['property="og:title"', `property="og:image" content="${SITE}/media/A00001?thumb"`, 'application/ld+json',
     `<link rel="canonical" href="${SITE}/p/HE-R001">`, 'name="description" content="Three bedrooms."'])
     assert.ok(r.head.includes(t), t);
   assert.ok(!r.head.includes("noindex"));
 });
 
-test("listing page: missing, unpublished or archived is 404 + noindex, with no metadata", async () => {
+test("listing page: missing, unpublished, archived or not shown by the website is 404 + noindex, with no metadata", async () => {
   const env = world();
-  for (const id of ["HE-R999", "HE-R002", "HE-R003", "../admin", "he-r001"]) {
+  for (const id of ["HE-R999", "HE-R002", "HE-R003", "HE-R004", "../admin", "he-r001"]) {
     const r = await listingPage(req(`/p/${id}`), env, id);
     assert.equal(r.status, 404, id);
     assert.equal(r.title, null);
@@ -131,6 +136,7 @@ test("GET /sitemap.xml lists only live listings; GET /robots.txt names it", asyn
   const xml = await s.text();
   assert.ok(xml.includes(`<loc>${SITE}/p/HE-R001</loc><lastmod>2026-10-20</lastmod>`));
   assert.ok(!xml.includes("HE-R002") && !xml.includes("HE-R003"));
+  assert.ok(!xml.includes("HE-R004"), "a listing the website doesn't show (no public photo) is left out, as /p/ 404s it");
   const r = await robots({ request: req("/robots.txt", "http://localhost:8788"), env });
   assert.equal(r.headers.get("content-type"), "text/plain; charset=utf-8");
   assert.equal(r.headers.get("x-robots-tag"), "noindex");
@@ -143,8 +149,9 @@ test("home page (S4): its static tags use wrangler.toml's SITE_URL and are the o
   const html = read("site/index.html"), head = html.slice(0, html.indexOf("</head>"));
   // A change of domain changes SITE_URL; the home page's absolute URLs must follow it.
   for (const u of head.match(/https:\/\/[^"]*\.pages\.dev[^"]*/g))
-    assert.ok(u.startsWith(site + "/"), u);
+    assert.ok(u === site || u.startsWith(site + "/"), u);
   assert.ok(head.includes(`<link rel="canonical" href="${site}/">`));
+  assert.ok(head.includes(`<meta name="site-url" content="${site}">`), "the base of shared links");
   assert.ok(head.includes(`<meta property="og:image" content="${site}/og-image.jpg">`));
   const ld = JSON.parse(head.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
   assert.equal(ld["@type"], "RealEstateAgent");
@@ -152,8 +159,38 @@ test("home page (S4): its static tags use wrangler.toml's SITE_URL and are the o
   assert.deepEqual(ld.address, { "@type": "PostalAddress", streetAddress: "42 Bath Street", addressLocality: "St Helier",
     addressRegion: "Jersey", postalCode: "JE2 4ST", addressCountry: "JE" });
   // Every metadata tag in the head is one functions/p/[id].js removes on a listing (its HOME_TAGS), so none is doubled.
-  const tags = head.match(/<(meta|link)\b[^>]*>/g).filter(t => !/charset|viewport|rel="(icon|apple-touch-icon|preconnect|stylesheet)"/.test(t));
+  const tags = head.match(/<(meta|link)\b[^>]*>/g).filter(t => !/charset|viewport|name="site-url"|rel="(icon|apple-touch-icon|preconnect|stylesheet)"/.test(t));
   const removed = /<meta name="(description|robots)"|<meta property="og:|<meta name="twitter:|<link rel="canonical"/;
   assert.deepEqual(tags.filter(t => !removed.test(t)), []);
   assert.match(read("functions/p/[id].js"), /meta\[name="description"\], meta\[name="robots"\], meta\[property\^="og:"\], meta\[name\^="twitter:"\], link\[rel="canonical"\]/);
+});
+
+test("HEAD answers like GET without a body: sitemap, robots, and a listing page whose read failed", async () => {
+  for (const [get, head, path] of [[sitemap, sitemapHead, "/sitemap.xml"], [robots, robotsHead, "/robots.txt"]]) {
+    const ctx = { request: req(path), env: world() };
+    const [g, h] = [await get(ctx), await head(ctx)];
+    assert.equal(h.status, g.status);
+    assert.deepEqual([...h.headers], [...g.headers]);
+    assert.equal(await h.text(), "");
+  }
+});
+
+test("listing page: if D1 fails, the plain page with a 503, never cached, instead of a platform error", async () => {
+  const env = { ...world(), ASSETS: { fetch: async () => new Response("<!doctype html><title>spa</title>",
+    { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=600" } }) } };
+  env.DB = { ...env.DB, batch: async () => { throw new Error("D1 is down"); }, prepare: env.DB.prepare.bind(env.DB) };
+  const errors = [], log = console.error;
+  console.error = (...a) => errors.push(a.join(" "));
+  try {
+    const ctx = { request: req("/p/HE-R001"), env, params: { id: "HE-R001" } };
+    const r = await listingFn(ctx);
+    assert.equal(r.status, 503);
+    assert.equal(r.headers.get("cache-control"), "no-store");
+    assert.equal(r.headers.get("content-type"), "text/html; charset=utf-8");
+    assert.equal(await r.text(), "<!doctype html><title>spa</title>");
+    const h = await listingHead(ctx);
+    assert.equal(h.status, 503);
+    assert.equal(await h.text(), "");
+  } finally { console.error = log; }
+  assert.match(errors[0], /listing page HE-R001 .*D1 is down/);
 });

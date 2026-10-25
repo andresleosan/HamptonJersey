@@ -12,8 +12,8 @@ export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).
 
 const LIVE = "l.published = 1 AND l.archived_at IS NULL";
 
-// The website's listings in their public shape, all or the one with that id: one D1 round trip (S2).
-export async function readPublic(env, id) {
+// The live listings, all or the one with that id, each as its row and its public shape: one D1 round trip (S2).
+export async function readLive(env, id) {
   const one = id ? " AND l.id = ?" : "", args = id ? [id] : [];
   const [{ results: listings }, { results: media }] = await env.DB.batch([
     env.DB.prepare(`SELECT l.* FROM listings l WHERE ${LIVE}${one} ORDER BY l.id`).bind(...args),
@@ -21,14 +21,9 @@ export async function readPublic(env, id) {
      WHERE ${LIVE} AND m.public = 1${one} ORDER BY m.position, m.id`).bind(...args),
   ]);
   const by = groupBy(media, "listing_id");
-  return listings.map(l => toPublic(l, by[l.id] || []));
+  return listings.map(l => ({ row: l, pub: toPublic(l, by[l.id] || []) }));
 }
-
-// S6: what the sitemap lists.
-export const readLiveIds = env =>
-  env.DB.prepare(`SELECT l.id, l.updated_at FROM listings l WHERE ${LIVE} ORDER BY l.id`).all().then(r => r.results);
-
-const listPublic = async ({ env }) => json(await readPublic(env), 200, { "cache-control": "public, max-age=60" });
+const listPublic = async ({ env }) => json((await readLive(env)).map(x => x.pub), 200, { "cache-control": "public, max-age=60" });
 
 const config = ({ env }) => json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY }, 200, { "cache-control": "public, max-age=300" });
 

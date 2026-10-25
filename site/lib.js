@@ -58,6 +58,9 @@ const priceLabel = p => {
   return money(a, p.currency) + (p.operation === "rent" ? ({month: " pcm", year: " p.a."}[p.rentPeriod] ?? "") : "");
 };
 const isSold = p => /sold/i.test(p.status);
+// The listings the website shows: without a public photo a listing stays out of the public pages. The server uses it
+// too (server/seo.js), so the sitemap and /p/<id> list and answer exactly what the page can show.
+const shownOnSite = p => safeMedia(p.image) != null;
 
 // filter = {region, op, beds, max}; max is in GBP and only applies once an operation is chosen.
 function matches(p, f) {
@@ -88,4 +91,4 @@ const pmt = (principal, annualRate, years) => {
   return r === 0 ? principal / n : principal * r / (1 - (1 + r) ** -n);
 };
 
-if (typeof module === "object") module.exports = {jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, matches, comparables, pmt};
+if (typeof module === "object") module.exports = {shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, matches, comparables, pmt};

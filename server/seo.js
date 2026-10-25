@@ -1,10 +1,10 @@
 // Listing pages, sitemap and robots for crawlers and link previews (spec 2026-10-25, S2–S6). Pure builders plus the
 // listing page's data; the Functions in functions/ only put them into the response.
 import lib from "../site/lib.js";
-import { readPublic, readLiveIds } from "./routes/public.js";
+import { readLive } from "./routes/public.js";
 
 // The website's own helpers (site/lib.js), so a preview's price and summary always match the page.
-const { amount, priceLabel, liveSummary, jerseyToday } = lib;
+const { amount, priceLabel, liveSummary, jerseyToday, shownOnSite } = lib;
 const BRAND = "Hampton Estates Jersey";
 const COUNTRY = { jersey: "JE", uk: "GB" };
 const base = siteUrl => siteUrl.replace(/\/+$/, "");
@@ -70,14 +70,16 @@ export function seoHeaders(request, env, type) {
   return h;
 }
 
-// S2: what /p/<id> puts into index.html. Not live (missing, draft, archived): 404 + noindex and no metadata.
+// S2: what /p/<id> puts into index.html. Not live (missing, draft, archived) or not shown by the website (no public
+// photo): 404 + noindex and no metadata.
 export async function listingPage(request, env, id) {
-  const [p] = /^HE-[A-Z]\d{3,}$/.test(id) ? await readPublic(env, id) : [];
+  const p = /^HE-[A-Z]\d{3,}$/.test(id) ? (await readLive(env, id)).map(x => x.pub).find(shownOnSite) : null;
   const headers = seoHeaders(request, env);
   // A short cache on the 404, so a listing published a minute later doesn't stay hidden for five.
-  if (!p) { headers.set("cache-control", "public, max-age=60"); return { status: 404, headers, title: null, head: '<meta name="robots" content="noindex">' }; }
+  const siteUrl = base(env.SITE_URL);
+  if (!p) { headers.set("cache-control", "public, max-age=60"); return { status: 404, headers, siteUrl, title: null, head: '<meta name="robots" content="noindex">' }; }
   const m = listingMeta(p, env.SITE_URL);
-  return { status: 200, headers, title: m.title, head: headTags(m) };
+  return { status: 200, headers, siteUrl, title: m.title, head: headTags(m) };
 }
 
 // S6: the home page and each live listing.
@@ -88,9 +90,13 @@ export function sitemapXml(listings, siteUrl) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
 }
 
-export const robotsTxt = siteUrl => `User-agent: *\nDisallow: /admin/\nDisallow: /api/\n\nSitemap: ${base(siteUrl)}/sitemap.xml\n`;
+// The public reads the pages are built from stay open, so a search engine can render them (the longest rule wins).
+export const robotsTxt = siteUrl => `User-agent: *\nAllow: /api/listings\nAllow: /api/config\nAllow: /api/tours\n` +
+  `Disallow: /admin/\nDisallow: /api/\n\nSitemap: ${base(siteUrl)}/sitemap.xml\n`;
 
+// S6: the listings the website shows, with their last change.
+const sitemapListings = async env => (await readLive(env)).filter(x => shownOnSite(x.pub)).map(x => x.row);
 export const sitemapResponse = async (request, env) =>
-  new Response(sitemapXml(await readLiveIds(env), env.SITE_URL), { headers: seoHeaders(request, env, "application/xml; charset=utf-8") });
+  new Response(sitemapXml(await sitemapListings(env), env.SITE_URL), { headers: seoHeaders(request, env, "application/xml; charset=utf-8") });
 export const robotsResponse = (request, env) =>
   new Response(robotsTxt(env.SITE_URL), { headers: seoHeaders(request, env, "text/plain; charset=utf-8") });

@@ -173,7 +173,7 @@ async function listingUrls(browser) {
   const html = await r.text();
   for (const t of ['<title>Le Bernage · £779,000 · Hampton Estates Jersey</title>', '<meta property="og:title" content="Le Bernage · £779,000',
     `<meta property="og:image" content="${SITE}/media/A00002?thumb">`, `<link rel="canonical" href="${SITE}/p/HE-R001">`,
-    '"@type":"RealEstateListing"', '"@type":"RealEstateAgent"'])
+    '"@type":"RealEstateListing"', '"@type":"RealEstateAgent"', `<meta name="site-url" content="${SITE}">`])
     assert.ok(html.includes(t), t);
   assert.equal(html.match(/<link rel="canonical"/g).length, 1, "the home page's tags are replaced, not doubled");
   r = await raw.get(BASE + "p/HE-R999", bot);
@@ -186,7 +186,21 @@ async function listingUrls(browser) {
   assert.ok(sitemap.includes(`<loc>${SITE}/</loc>`) && sitemap.includes(`<loc>${SITE}/p/HE-R001</loc>`));
   assert.ok(!sitemap.includes("HE-R003"), "drafts stay out of the sitemap");
   const robots = await (await raw.get(BASE + "robots.txt")).text();
-  for (const t of ["Disallow: /admin/", "Disallow: /api/", `Sitemap: ${SITE}/sitemap.xml`]) assert.ok(robots.includes(t), t);
+  for (const t of ["Allow: /api/listings", "Allow: /api/config", "Allow: /api/tours", "Disallow: /admin/", "Disallow: /api/",
+    `Sitemap: ${SITE}/sitemap.xml`]) assert.ok(robots.includes(t), t);
+  // HEAD (link checkers, some preview robots): the same status and type as GET, no body.
+  for (const [path, status, type] of [["p/HE-R001", 200, "text/html"], ["p/HE-R999", 404, "text/html"], ["sitemap.xml", 200, "application/xml"], ["robots.txt", 200, "text/plain"]]) {
+    r = await raw.head(BASE + path, bot);
+    assert.equal(r.status(), status, path);
+    assert.ok(r.headers()["content-type"].startsWith(type), path);
+    assert.equal((await r.body()).length, 0, path);
+  }
+  // A published listing the website can't show (no public photo) is neither in the sitemap nor a page (one predicate).
+  d1("UPDATE listings SET published = 1 WHERE id = 'HE-R005'");
+  try {
+    assert.ok(!(await (await raw.get(BASE + "sitemap.xml")).text()).includes("HE-R005"));
+    assert.equal((await raw.get(BASE + "p/HE-R005", bot)).status(), 404);
+  } finally { d1("UPDATE listings SET published = 0 WHERE id = 'HE-R005'"); }
   // S10: an old Wix address goes straight to the listing's path.
   r = await raw.get(BASE + "commercial-properties/casa-mia", {maxRedirects: 0});
   assert.deepEqual([r.status(), r.headers().location], [301, "/p/HE-C004"]);
@@ -260,6 +274,14 @@ async function listingUrls(browser) {
   await page.click("#app >> text=See our properties");
   await page.waitForSelector("#portfolio #grid .card");
   assert.equal(new URL(page.url()).hash, "#portfolio");
+  // /p/<id>/ is the listing, without the slash; any other /p/… is not found (not the home page).
+  await page.goto(BASE + "p/HE-R001/");
+  await page.waitForSelector(".summary h1 >> text=Le Bernage");
+  assert.equal(page.url(), BASE + "p/HE-R001");
+  for (const path of ["p/he-r001", "p/foo"]) {
+    assert.equal((await page.goto(BASE + path)).status(), 404, path);
+    await page.waitForSelector("#app h1 >> text=Property not found");
+  }
   // An old shared link opened fresh ends on the listing's own path.
   await page.goto(BASE + "#/p/HE-R001");
   await page.waitForSelector(".summary h1 >> text=Le Bernage");
@@ -366,6 +388,7 @@ async function admin(browser) {
 
   // Featured: the star in the table puts a listing in the home page's Featured section.
   await page.goto(BASE + "admin/#/listings");
+  assert.equal(await page.getAttribute('tr:has-text("HE-R001") a:has-text("View on the website")', "href"), "/p/HE-R001", "the panel links to the listing's own URL");
   await page.click('tr:has-text("HE-R018") .star');
   await page.waitForSelector('tr:has-text("HE-R018") .star[aria-pressed=true]');
   const fresh = async () => { const c = await browser.newContext(); const p = await c.newPage(); await p.goto(BASE); await p.waitForSelector("#grid .card"); return [c, p]; };

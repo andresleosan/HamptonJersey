@@ -107,7 +107,7 @@ export default function Listings() {
         <td className="muted">{fmtDate(l.updated_at)}</td>
         <td><details className="more row-menu"><summary aria-label={`Actions for ${l.title}`}>…</summary><div className="menu">
           <a href={`#/p/${l.id}`}>Edit</a>
-          {stateOf(l) === "published" && l.has_public_photo ? <a href={`/#/p/${l.id}`} target="_blank" rel="noopener">View on the website ↗</a> : null}
+          {stateOf(l) === "published" && l.has_public_photo ? <a href={`/p/${l.id}`} target="_blank" rel="noopener">View on the website ↗</a> : null}
           {stateOf(l) !== "archived" ? <button type="button" onClick={e => act(e, l, "archive", "archived.")}>Archive</button>
             : <button type="button" onClick={e => act(e, l, "restore", "restored as a draft.")}>Restore</button>}
         </div></details></td>
