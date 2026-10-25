@@ -79,7 +79,8 @@ function restricted(a, restriction) {
   if (restriction !== "first_time_buyer") return MEETS;
   const s = a.housing_status, position = a.buyer_position;
   if (NOT_ENTITLED.includes(s)) return ["fails", "First-time buyers only: needs Entitled status"];
-  if (position != null && position !== "first_time") return ["fails", "First-time buyers only"];
+  // Needing to sell means owning a home already; a cash buyer or one with nothing to sell may still be a first-time buyer.
+  if (position === "needs_to_sell") return ["fails", "First-time buyers only"];
   return ENTITLED.includes(s) && position === "first_time" ? MEETS : ["unknown", "First-time buyers only"];
 }
 

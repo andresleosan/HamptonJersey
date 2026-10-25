@@ -54,7 +54,7 @@ Estatus: PE Permanent Entitled, ENT Entitled, LIC Licensed, LLO Licensed for Lea
 | Share transfer · sin categoría | meets | meets | meets | unknown | unknown |
 
 **Restricciones** (se combinan con lo anterior; gana el peor resultado):
-- `first_time_buyer`: LIC, LLO, EFW, STN → **fails** (la compra asistida exige Entitled); `buyer_position` conocido y distinto de `first_time` → **fails**; PE o ENT con `first_time` → meets; lo demás → unknown.
+- `first_time_buyer`: LIC, LLO, EFW, STN → **fails** (la compra asistida exige Entitled); `buyer_position` = `needs_to_sell` → **fails** (ya tiene casa; `cash` y `nothing_to_sell` pueden ser primeros compradores); PE o ENT con `first_time` → meets; lo demás → unknown.
 - `over_55`: siempre unknown («Over 55s only: check age»), porque no guardamos la edad.
 
 ## 4. Lo que decide quien construye

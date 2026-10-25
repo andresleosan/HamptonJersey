@@ -125,11 +125,15 @@ export default function ListingEditor({ id }) {
   const options = obj => Object.entries(obj).map(([k, v]) => <option key={k} value={k}>{v}</option>);
   const publicPhotos = data.media.filter(m => m.public && m.kind === "photo" && m.r2_key && m.origin !== "external");
   const publicPhoto = publicPhotos.length > 0;
-  const todo = state === "archived" ? [] : missing(form, matchForm.parish, publicPhotos, l.cover_media_id);
-  const goTo = id => { const el = document.getElementById(id); el.focus({ preventScroll: true }); el.scrollIntoView({ behavior: "smooth", block: "center" }); };
+  const todo = missing(form, matchForm.parish, publicPhotos, l.cover_media_id);
+  const goTo = id => {
+    const el = document.getElementById(id), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.focus({ preventScroll: true }); el.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "center" });
+  };
   // The housing fields and the first-time buyers option also show while they hold a value, so it can be cleared.
   const home = jerseyHome(form), was = !form.tenure_type && form.tenure;
   const ftb = form.operation === "sale" || form.restriction === "first_time_buyer";
+  const salesOnly = form.restriction === "first_time_buyer" && form.operation !== "sale";
   const cover = data.media.find(m => m.id === l.cover_media_id) || data.media.find(m => m.kind === "photo" && m.r2_key);
 
   return <div className="editor">
@@ -154,11 +158,12 @@ export default function ListingEditor({ id }) {
     </aside>
 
     <div className="sections">
-      {todo.length > 0 && <section className="card prepub" aria-labelledby="h-prepub">
-        <h2 id="h-prepub">Before you publish</h2>
-        <p className="muted">Missing from this listing. You can still publish without them.</p>
-        <ul>{todo.map(([target, text]) => <li key={text}>
-          <button type="button" className="linkish" onClick={() => goTo(target)}>{text}</button></li>)}</ul>
+      {state !== "archived" && <section className={`card prepub${todo.length ? "" : " done"}`} aria-labelledby="h-prepub">
+        <h2 id="h-prepub">Missing from this listing</h2>
+        {todo.length ? <><p className="muted">You can still publish without them.</p>
+          <ul>{todo.map(([target, text]) => <li key={text}>
+            <button type="button" className="linkish" onClick={() => goTo(target)}>{text}</button></li>)}</ul></>
+          : <p className="muted">Nothing missing.</p>}
       </section>}
       <section id="s-details" className="card" aria-labelledby="h-details"><h2 id="h-details">Details</h2><div className="grid2">
         {field("title", "Title", <input {...ctl("title")} maxLength={200} required />)}
@@ -171,11 +176,11 @@ export default function ListingEditor({ id }) {
           {was && <small id="d-tenure" className="muted">Was: {form.tenure}</small>}</>)}
         {(home || form.housing_category) && field("housing_category", "Housing category", <><select {...ctl("housing_category", { "aria-describedby": `d-housing${errors.housing_category ? " e-housing_category" : ""}` })}>
           <option value="">Not set</option>{options(HOUSING)}</select>
-          <small id="d-housing" className="muted">Qualified homes are only open to some residential statuses; Registered homes are open to all.</small></>)}
-        {(home || form.restriction) && field("restriction", "Restriction", <><select {...ctl("restriction")}><option value="">None</option>
+          <small id="d-housing" className="muted">Qualified homes are only open to some residential statuses; Registered homes are open to all statuses to rent or occupy.</small></>)}
+        {(home || form.restriction) && field("restriction", "Restriction", <><select {...ctl("restriction", salesOnly ? { "aria-describedby": `d-restriction${errors.restriction ? " e-restriction" : ""}` } : {})}><option value="">None</option>
           {ftb && <option value="first_time_buyer">{RESTRICTION.first_time_buyer}</option>}
           <option value="over_55">{RESTRICTION.over_55}</option></select>
-          {form.restriction === "first_time_buyer" && form.operation !== "sale" && <small className="muted">Applies to sales only.</small>}</>)}
+          {salesOnly && <small id="d-restriction" className="muted">Applies to sales only.</small>}</>)}
         {field("country", "Country", <input {...ctl("country")} maxLength={100} />)}
         {field("location", "Location", <input {...ctl("location")} maxLength={200} />)}
         {field("road_name", "Road", <input {...ctl("road_name")} maxLength={200} />)}

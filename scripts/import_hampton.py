@@ -38,6 +38,15 @@ def clean(s):
     return s or None
 
 
+# As migrations/0015_jersey_fields.sql: only these exact texts (trimmed, any case) give a tenure type; the rest stay
+# NULL and keep their text in `tenure`.
+TENURE_TYPE = {"freehold": "freehold", "flying freehold": "flying_freehold", "share transfer": "share_transfer"}
+
+
+def tenure_type(text):
+    return TENURE_TYPE.get(text.strip().lower()) if isinstance(text, str) else None
+
+
 def num(v):
     return int(v) if v not in (None, "") else None
 
@@ -82,6 +91,7 @@ def map_listing(r, tenure, today):
         "property_type": clean(r["property_type"]), "operation": op, "availability": avail,
         "country": clean(r["country"]), "location": clean(r["location"]), "road_name": clean(r["road_name"]),
         "bedrooms": num(r["bedrooms"]), "bathrooms": num(r["bathrooms"]), "tenure": tenure,
+        "tenure_type": tenure_type(tenure),
         **prices, "currency": cur, "price_text": clean(r["asking_text"]),
         "summary": clean(r["hampton_summary"]), "description": clean(r["hampton_description"]), "specs": "[]",
         "published": int(r["catalogue_scope"] == "Current requested catalogue" and avail in PUBLISH),

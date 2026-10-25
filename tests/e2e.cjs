@@ -689,7 +689,7 @@ async function admin(browser) {
 
 // Spec 2026-10-25 (Jersey fields), last so nothing above changes. Recalculate all applies the housing check: the seed's
 // Standard-status search (Daniel Hamon) is kept from the Qualified town flat that Claire Le Sueur (Licensed) gets, until
-// the flat is Registered. Then the editor's selects, "Was: …" and Before you publish, and the website's facts.
+// the flat is Registered. Then the editor's selects, "Was: …" and Missing from this listing (J6), and the website's facts.
 async function jersey(browser, page) {
   await page.goto(BASE + "admin/#/review");
   await page.waitForSelector("#t-review");
@@ -704,10 +704,10 @@ async function jersey(browser, page) {
   await matched.getByText("Claire Le Sueur").waitFor();
   assert.doesNotMatch(await matched.textContent(), /Daniel Hamon/, "Standard status is not offered a Qualified home");
   assert.equal(await page.inputValue("#f-housing_category"), "qualified");
-  await page.getByText("Qualified homes are only open to some residential statuses; Registered homes are open to all.").waitFor();
+  await page.getByText("Qualified homes are only open to some residential statuses; Registered homes are open to all statuses to rent or occupy.").waitFor();
   assert.deepEqual(await page.$$eval("#f-restriction option", os => os.map(o => o.textContent)), ["None", "Over 55s only"],
     "first-time buyers only is offered on sales");
-  // Before you publish follows the form as it is typed.
+  // Missing from this listing follows the form as it is typed.
   const todo = page.locator(".prepub");
   assert.deepEqual(await todo.getByRole("button").allTextContents(),
     ["Add photos for the website (0 of 5)", "Choose a cover photo", "Add a summary"]);
@@ -717,6 +717,14 @@ async function jersey(browser, page) {
   await page.getByRole("button", {name: "Save", exact: true}).click();
   await page.waitForSelector("text=Changes saved.");
   await matched.getByText("Daniel Hamon").waitFor();
+  // With five photos on the website and a cover, nothing is missing: the card stays, saying so.
+  d1(`INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, label, public, position, content_type, created_at) VALUES
+    ${[1, 2, 3, 4, 5].map(i => `('J0000${i}','HE-R005','media/hampton/p5.jpg','thumbs/hampton/p5.jpg','hampton','photo','Room ${i}',1,${i},
+    'image/jpeg','2026-10-25T00:00:00.000Z')`).join(",")}`);
+  d1("UPDATE listings SET cover_media_id = 'J00001' WHERE id = 'HE-R005'");
+  await page.reload();
+  await todo.getByText("Nothing missing.", {exact: true}).waitFor();
+  assert.equal(await todo.getByRole("button").count(), 0);
 
   // A commercial listing has a tenure but no housing category or restriction.
   await page.goto(BASE + "admin/#/p/HE-C001");
@@ -750,13 +758,20 @@ async function jersey(browser, page) {
     await site.waitForSelector(".summary h1");
     assert.equal(await site.textContent(".summary .restrict"), "First-time buyers only");
     const facts = await site.$$eval("dl.facts-list div", ds => ds.map(d => `${d.firstChild.textContent}: ${d.lastChild.textContent}`));
-    assert.deepEqual(facts.filter(f => /^(Tenure|Housing):/.test(f)), ["Tenure: Freehold", "Housing: Registered (open to all residential statuses)"]);
+    // A Royal Court purchase depends on the buyer's status, so "open to all" is not said there.
+    assert.deepEqual(facts.filter(f => /^(Tenure|Housing):/.test(f)), ["Tenure: Freehold", "Housing: Registered"]);
     assert.equal(await site.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, `no horizontal scroll at ${width}px`);
     await shot(site, `${name}-summary`, {fullPage: false});
     await site.$eval("dl.facts-list", el => el.scrollIntoView({block: "center", behavior: "instant"}));
     await shot(site, `${name}-facts`, {fullPage: false});
     assert.deepEqual(site.errors, []);
   }
+  // A share transfer (or a rental) is open to every status.
+  d1("UPDATE listings SET tenure_type = 'share_transfer' WHERE id = 'HE-R001'");
+  const share = await newPage(ctx, {width: 1280, height: 800});
+  await share.goto(BASE + "p/HE-R001");
+  await share.waitForSelector(".summary h1");
+  assert.match(await share.textContent("dl.facts-list"), /TenureShare transfer[\s\S]*HousingRegistered \(open to all residential statuses\)/);
   await ctx.close();
 }
 

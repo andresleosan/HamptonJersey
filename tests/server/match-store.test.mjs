@@ -46,7 +46,7 @@ test("J4: the housing rule reads the listing's Jersey fields and the applicant's
   await recomputeForListing(env, "HE-R002", ADMIN);
   assert.deepEqual(found(env, std), []);
   // The first-time buyer restriction reads the buyer's position.
-  const cash = seedApplicant(env, "Tom Vibert", { housing_status: "entitled", buyer_position: "cash" });
+  const cash = seedApplicant(env, "Tom Vibert", { housing_status: "entitled", buyer_position: "needs_to_sell" });
   listing(env, "HE-R003", { tenure_type: "freehold", restriction: "first_time_buyer" });
   await recomputeForApplicant(env, cash, ADMIN);
   assert.deepEqual(found(env, cash), ["HE-R001", "HE-R002"]);

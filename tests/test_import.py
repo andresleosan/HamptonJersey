@@ -1,6 +1,7 @@
 import os, sqlite3, sys, unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 import import_hampton as ih
+import import_agencies as ia
 
 TODAY = "2026-10-07"
 
@@ -82,6 +83,21 @@ def schema_db():
     return db
 
 class Rerun(unittest.TestCase):
+    def test_tenure_type_as_migration_0015(self):
+        # Only the three exact texts (trimmed, any case) give a tenure type; the text itself is kept.
+        cases = [(" Freehold ", "freehold"), ("Flying freehold", "flying_freehold"), ("SHARE TRANSFER", "share_transfer"),
+                 ("Freehold / share transfer", None), ("Leasehold", None), (None, None)]
+        for text, kind in cases:
+            self.assertEqual(ih.map_listing(prop(), text, TODAY)["tenure_type"], kind, text)
+        self.assertEqual(ih.map_listing(prop(), "Freehold / share transfer", TODAY)["tenure"], "Freehold / share transfer")
+        agency = dict(record_key="x", title="Flat", operation="sale", tenure="Flying freehold")
+        self.assertEqual(ia.map_listing(agency, "HE-R900", TODAY)["tenure_type"], "flying_freehold")
+        self.assertIsNone(ia.map_listing({**agency, "tenure": "Freehold / share transfer"}, "HE-R900", TODAY)["tenure_type"])
+        db = schema_db()
+        row = ih.map_listing(prop(), "Share transfer", TODAY); row["cover_media_id"] = None
+        db.execute(ih.insert("listings", row, "id"))
+        self.assertEqual(db.execute("SELECT tenure_type FROM listings").fetchone()[0], "share_transfer")
+
     def test_rerun_never_overwrites_panel_edits(self):
         db = schema_db()
         row = ih.map_listing(prop(), None, TODAY); row["cover_media_id"] = None

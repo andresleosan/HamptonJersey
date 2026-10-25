@@ -17,7 +17,7 @@ import re
 import zipfile
 from datetime import datetime, timezone
 
-from import_hampton import q, insert
+from import_hampton import q, insert, tenure_type
 
 # ponytail: status words seen in the 2026-10-08 packages; anything else falls back to not_stated.
 AVAIL = {"available": None, "for sale": "for_sale", "new instruction": "for_sale", "for rent": "to_let",
@@ -90,6 +90,7 @@ def map_listing(p, lid, ts):
         "location": cap(p.get("place"), 200), "road_name": cap(p.get("address"), 200),
         "bedrooms": beds(p.get("beds")), "bathrooms": beds(p.get("baths")),
         "tenure": TENURE.get((p.get("tenure") or "").lower(), p.get("tenure")),
+        "tenure_type": tenure_type(p.get("tenure")),
         "sale_price": money(p.get("salePrice")), "rent": money(p.get("rent")),
         "rent_period": p.get("rentPeriod") if p.get("rentPeriod") in ("month", "year") else None,
         "premium": money(p.get("premium")),

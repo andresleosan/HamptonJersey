@@ -92,9 +92,12 @@ test("J5: an applicant without a status, by the listing's category and restricti
   const ftb = (l, position) => housing({ buyer_position: position }, { ...l, restriction: "first_time_buyer" });
   for (const l of [{}, { housing_category: "registered" }])
     assert.deepEqual([ftb(l, null).result, ftb(l, null).evidence], [U, "First-time buyers only"], JSON.stringify(l));
-  assert.deepEqual([ftb({}, "cash").result, ftb({}, "cash").evidence, ftb({}, "cash").pass], [F, "First-time buyers only", false]);
-  assert.deepEqual([ftb({ housing_category: "qualified" }, "cash").result, ftb({ housing_category: "qualified" }, "cash").evidence],
-    [F, "First-time buyers only"]);
+  const sells = ftb({}, "needs_to_sell");
+  assert.deepEqual([sells.result, sells.evidence, sells.pass], [F, "First-time buyers only", false]);
+  const q = ftb({ housing_category: "qualified" }, "needs_to_sell");
+  assert.deepEqual([q.result, q.evidence], [F, "First-time buyers only"]);
+  // A cash buyer or one with nothing to sell may still be buying for the first time.
+  for (const position of ["cash", "nothing_to_sell"]) assert.equal(ftb({}, position).result, U, position);
 });
 
 test("the first-time buyer restriction only concerns buyers", () => {
@@ -116,11 +119,14 @@ test("§3 restriction first-time buyers: Entitled status and a first-time buyer"
     for (const position of [null, "first_time", "cash"])
       assert.deepEqual([ftb(s, position).result, ftb(s, position).evidence], [F, "First-time buyers only: needs Entitled status"],
         `${s} · ${position}`);
-  // A known position other than first time fails, with or without a status (J5's exception).
-  for (const s of ["permanent_entitled", "entitled", null, "not_sure"])
-    for (const position of ["nothing_to_sell", "needs_to_sell", "cash"])
-      assert.equal(ftb(s, position).result, F, `${s} · ${position}`);
-  assert.equal(ftb("entitled", "cash").evidence, "First-time buyers only");
+  // Needing to sell means owning a home already: it fails, with or without a status (J5's exception). A cash buyer or one
+  // with nothing to sell may still be buying for the first time: Unknown.
+  for (const s of ["permanent_entitled", "entitled", null, "not_sure"]) {
+    assert.deepEqual([ftb(s, "needs_to_sell").result, ftb(s, "needs_to_sell").evidence], [F, "First-time buyers only"], `${s}`);
+    for (const position of ["nothing_to_sell", "cash"])
+      assert.deepEqual([ftb(s, position).result, ftb(s, position).evidence, ftb(s, position).pass], [U, "First-time buyers only", true],
+        `${s} · ${position}`);
+  }
   for (const s of ["permanent_entitled", "entitled"]) assert.equal(ftb(s, "first_time").result, M, s);
   // Review focus 2: Entitled with no position said is Unknown, not Fails.
   assert.deepEqual([ftb("entitled", null).result, ftb("entitled", null).evidence, ftb("entitled", null).pass],
