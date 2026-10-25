@@ -91,7 +91,7 @@ export default function App() {
   const page = section === "p" && arg ? <ListingEditor key={arg} id={decodeURIComponent(arg)} />
     : section === "applicants" && arg === "new"
       ? <NewApplicant key={query ?? ""} contactId={new URLSearchParams(query).get("contact")} />
-    : section === "applicants" && /^\d+$/.test(arg) ? <ApplicantDetail key={arg} id={arg} tab={sub} />
+    : section === "applicants" && /^\d+$/.test(arg) ? <ApplicantDetail key={arg} id={arg} tab={sub} onChange={loadCounts} />
     : section === "applicants" ? <Applicants /> : section === "review" ? <Review />
     : section === "listings" ? <Listings /> : section === "viewings"
       ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} />
@@ -119,7 +119,8 @@ export default function App() {
       <nav aria-label="Sections">
         <a href="#/" aria-current={current === "" ? "page" : undefined}>Inbox{counts.action > 0
           && <span className="count">{counts.action}<span className="sr"> need action</span></span>}</a>
-        <a href="#/applicants" aria-current={current === "applicants" ? "page" : undefined}>Applicants</a>
+        <a href="#/applicants" aria-current={current === "applicants" ? "page" : undefined}>Applicants{counts.expiring > 0
+          && <span className="count">{counts.expiring}<span className="sr"> expiring</span></span>}</a>
         <a href="#/review" aria-current={current === "review" ? "page" : undefined}>Review</a>
         <a href="#/listings" aria-current={current === "listings" ? "page" : undefined}>Listings</a>
         <a href="#/viewings" aria-current={current === "viewings" ? "page" : undefined}>Viewings</a>

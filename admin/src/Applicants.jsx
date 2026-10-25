@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
-import { fmtDate } from "./format.js";
+import { fmtDate, fmtDayMonth } from "./format.js";
 import { OPTIONS, QUEUES } from "../../server/applicants.js";
 
 const OPERATIONS = [["", "All"], ...OPTIONS.operation];
@@ -13,22 +13,24 @@ const StageBadge = ({ stage }) => <span className={`badge ${TONE[stage]}`}>{STAG
 // DESIGN.md "Badges de estado": the tone of each queue (B13).
 const QUEUE_TONE = { "New properties found": "attention", "Waiting for review": "attention", "In process": "active",
   "No matches": "neutral" };
+// E8: Expiring holds the searches of the contacts deleted within a month, archived ones too.
+const LISTS = [["current", "Current"], ["archived", "Archived"], ["expiring", "Expiring"]];
 const matchCounts = a => (a.found || a.shortlisted ? `${a.found} found · ${a.shortlisted} shortlisted` : null);
 
 export default function Applicants() {
   const [rows, setRows] = useState(null), [error, setError] = useState(null), [users, setUsers] = useState([]);
-  const [archived, setArchived] = useState(false), [op, setOp] = useState(""), [sort, setSort] = useState("newest");
+  const [list, setList] = useState("current"), [op, setOp] = useState(""), [sort, setSort] = useState("newest");
   const [q, setQ] = useState(""), [stage, setStage] = useState(""), [assigned, setAssigned] = useState(""), [queue, setQueue] = useState("");
   useEffect(() => { api("/admin/users").then(d => setUsers(d.users), () => {}); }, []);
   // The server filters and sorts; To Let / To Buy is split here so each tab can show its count.
   useEffect(() => {
     let stale = false;
     const p = new URLSearchParams({ sort, ...(stage && { stage }), ...(assigned && { assigned }), ...(queue && { queue }),
-      ...(q.trim() && { q: q.trim() }), ...(archived && { archived: "1" }) });
+      ...(q.trim() && { q: q.trim() }), ...(list !== "current" && { [list]: "1" }) });
     const t = setTimeout(() => api(`/admin/applicants?${p}`).then(d => { if (!stale) { setRows(d.applicants); setError(null); } },
       e => { if (!stale) setError(e.message); }), 200);
     return () => { stale = true; clearTimeout(t); };
-  }, [archived, sort, stage, assigned, queue, q]);
+  }, [list, sort, stage, assigned, queue, q]);
   const counts = useMemo(() => Object.fromEntries(OPERATIONS.map(([k]) =>
     [k, (rows || []).filter(a => !k || a.operation === k).length])), [rows]);
 
@@ -44,8 +46,8 @@ export default function Applicants() {
     <div className="seg-row">
       <div className="seg" role="group" aria-label="Operation">{OPERATIONS.map(([k, t]) =>
         <button key={k} type="button" aria-pressed={op === k} onClick={() => setOp(k)}>{t}<span className="count">{counts[k]}</span></button>)}</div>
-      <div className="seg" role="group" aria-label="List">{[[false, "Current"], [true, "Archived"]].map(([k, t]) =>
-        <button key={t} type="button" aria-pressed={archived === k} onClick={() => setArchived(k)}>{t}</button>)}</div>
+      <div className="seg" role="group" aria-label="List">{LISTS.map(([k, t]) =>
+        <button key={k} type="button" aria-pressed={list === k} onClick={() => setList(k)}>{t}</button>)}</div>
     </div>
     <div className="filters">
       <label>Search<input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Name, email or phone" /></label>
@@ -66,7 +68,8 @@ export default function Applicants() {
           <button type="button" className="sort" onClick={toggleSort}>Applied<span aria-hidden="true">{sort === "newest" ? " ↓" : " ↑"}</span></button></th>
         <th scope="col">Stage</th><th scope="col">Queue</th><th scope="col">Matches</th><th scope="col">Assigned to</th></tr></thead>
       <tbody>{shown.map(a => <tr key={a.id}>
-        <td><a href={`#/applicants/${a.id}`}>{a.name}</a><div className="muted">{OPERATION_LABEL[a.operation]}{a.email && ` · ${a.email}`}</div></td>
+        <td><a href={`#/applicants/${a.id}`}>{a.name}</a>{a.expires_on
+          && <> <span className="badge attention">Deletes {fmtDayMonth(a.expires_on, false)}</span></>}<div className="muted">{OPERATION_LABEL[a.operation]}{a.email && ` · ${a.email}`}</div></td>
         <td className="num" data-label="Phone">{a.phone || "—"}</td>
         <td className="muted" data-label="Applied"><time dateTime={a.created_at}>{fmtDate(a.created_at)}</time></td>
         {/* On phones a lost reason takes its own row, so it never squeezes the name. */}
@@ -79,7 +82,8 @@ export default function Applicants() {
       </tr>)}</tbody>
     </table> : <div className="empty card">{filtered
       ? <><p>No applicants match these filters.</p><button type="button" className="btn ghost sm" onClick={clear}>Clear filters</button></>
-      : archived ? <p>No archived {op ? `${OPERATION_LABEL[op]} ` : ""}applicants.</p>
+      : list === "archived" ? <p>No archived {op ? `${OPERATION_LABEL[op]} ` : ""}applicants.</p>
+      : list === "expiring" ? <p>No {op ? `${OPERATION_LABEL[op]} ` : ""}applicants are due for deletion in the next month.</p>
       : <><p>{rows.length ? `No ${OPERATION_LABEL[op]} applicants yet.` : "No applicants yet. Add the first one when someone calls, writes or comes in."}</p>
         <a className="btn sm" href="#/applicants/new">New applicant</a></>}</div>}
   </section>;

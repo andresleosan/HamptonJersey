@@ -26,6 +26,9 @@ export const OUTCOME = { proceed: "Proceed", more_info: "Need more information",
 export const fmtDay = (d, long = false) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: long ? "long" : "short",
   day: "numeric", month: long ? "long" : "short", timeZone: "UTC",
   ...(d.slice(0, 4) !== jerseyToday().slice(0, 4) ? { year: "numeric" } : {}) }).replace(",", "");
+// A calendar day (YYYY-MM-DD) as "12 Nov 2027"; year false: "12 Nov" when it is this year.
+export const fmtDayMonth = (d, year = true) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric",
+  month: "short", timeZone: "UTC", ...(year || d.slice(0, 4) !== jerseyToday().slice(0, 4) ? { year: "numeric" } : {}) });
 export const safeHref = u => (/^https?:\/\//i.test(u || "") ? u : undefined);
 const AGO = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 const STEPS = [["year", 31536000], ["month", 2592000], ["week", 604800], ["day", 86400], ["hour", 3600], ["minute", 60]];

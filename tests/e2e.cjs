@@ -322,10 +322,10 @@ async function admin(browser) {
   const figure = label => page.$$eval(".figures div", (ds, l) => ds.find(d => d.querySelector("dt").textContent === l)?.querySelector("dd").textContent, label);
   const rows = within => within.locator("tbody tr").evaluateAll(rs => rs.map(r => [...r.cells].map(c => c.textContent)));
   const table = name => page.getByRole("table", {name, exact: true}), byListing = page.getByRole("region", {name: "Views by listing"});
-  // The bar at its widest: two-digit counts on Inbox, Sales and Rentals (stubbed), still on one line at 1280px.
+  // The bar at its widest: two-digit counts on Inbox, Applicants, Sales and Rentals (stubbed), still on one line at 1280px.
   const COUNTS = /\/api\/admin\/notifications\/counts$/;
   await page.route(COUNTS, r => r.fulfill({contentType: "application/json",
-    body: JSON.stringify({action: 88, new_applicant: 0, viewing: 0, matched: 0, sales: 88, rentals: 88})}));
+    body: JSON.stringify({action: 88, new_applicant: 0, viewing: 0, matched: 0, sales: 88, rentals: 88, expiring: 88})}));
   await page.goto(BASE + "admin/#/insights");
   await page.reload();
   await page.waitForSelector(".figures");
@@ -528,6 +528,7 @@ async function admin(browser) {
   await rentals(page, phone, noSideScroll);
   await property(page, phone, noSideScroll);
   await bankImport(page, phone, noSideScroll);
+  await retention(page, phone);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -535,6 +536,48 @@ async function admin(browser) {
   await shot(page, "admin-users");
   assert.deepEqual(page.errors, []);
   await ctx.close();
+}
+
+// G2 (E8, E9): the seed's Rachel Le Cornu, last active 11.5 months ago, shows in the bar's Applicants count and under
+// Expiring with the day she goes; Log conversation restarts her 12 months, so she leaves both.
+async function retention(page, phone) {
+  // As the panel writes a calendar day: "12 Nov" this year, "12 Nov 2027" with its year.
+  const {jerseyToday} = await import("../server/viewings.js");
+  const day = (d, year) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", {day: "numeric", month: "short", timeZone: "UTC",
+    ...(year || d.slice(0, 4) !== jerseyToday().slice(0, 4) ? {year: "numeric"} : {})});
+  const keptUntil = () => JSON.parse(d1("SELECT strftime('%Y-%m-%d', last_activity_at, '+12 months') AS d FROM contacts WHERE id = 5"))[0].results[0].d;
+  const before = keptUntil();
+  const badge = 'header.bar a[href="#/applicants"] .count';
+  await page.goto(BASE + "admin/#/applicants");
+  await page.waitForSelector("#t-applicants");
+  await page.waitForFunction(b => document.querySelector(b)?.textContent === "1 expiring", badge);
+  await page.getByRole("group", {name: "List"}).getByRole("button", {name: "Expiring"}).click();
+  await page.waitForFunction(() => document.querySelectorAll("table.applicants tbody tr").length === 1
+    && document.querySelector("table.applicants tbody tr").textContent.includes("Rachel Le Cornu"));
+  assert.equal(await page.textContent("table.applicants tbody tr .badge.attention"), `Deletes ${day(before, false)}`);
+  await shot(page, "admin-applicants-expiring");
+  await phone.goto(BASE + "admin/#/applicants");
+  await phone.getByRole("group", {name: "List"}).getByRole("button", {name: "Expiring"}).click();
+  await phone.waitForFunction(() => document.querySelectorAll("table.applicants tbody tr").length === 1);
+  assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, "no horizontal scroll on Expiring");
+  await shot(phone, "admin-applicants-expiring-mobile");
+
+  await page.getByRole("link", {name: "Rachel Le Cornu"}).click();
+  await page.getByText(`Kept until ${day(before, true)}`, {exact: true}).waitFor();
+  await page.getByRole("button", {name: "Log conversation"}).click();
+  const logged = page.getByRole("status").filter({hasText: "Conversation logged."});
+  await logged.waitFor();
+  const after = keptUntil();
+  assert.ok(after > before, "Kept until moves forward");
+  assert.equal(await logged.textContent(), `Conversation logged. Kept until ${day(after, true)}.`);
+  await page.getByText(`Kept until ${day(after, true)}`, {exact: true}).waitFor();
+  await page.waitForFunction(b => !document.querySelector(b), badge);
+  await page.getByRole("tab", {name: "Timeline"}).click();
+  await page.locator("#panel-timeline strong", {hasText: "Conversation logged"}).waitFor();
+  await shot(page, "admin-applicant-conversation");
+  await page.goto(BASE + "admin/#/applicants");
+  await page.getByRole("group", {name: "List"}).getByRole("button", {name: "Expiring"}).click();
+  await page.getByText("No applicants are due for deletion in the next month.").waitFor();
 }
 
 // F5-A: the Settings menu, then Rentals on the seed (a tenant in arrears, an overdue gas check, a renewal and an

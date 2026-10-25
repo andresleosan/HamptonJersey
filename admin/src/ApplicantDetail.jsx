@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { fmtAgo, fmtDate, fmtDay, firstSentence, blank, show, AVAILABILITY, VIEWING_STATUS } from "./format.js";
+import { fmtAgo, fmtDate, fmtDay, fmtDayMonth, firstSentence, blank, show, AVAILABILITY, VIEWING_STATUS } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
 import { OPTIONS, normalizePhone, isActive } from "../../server/applicants.js";
 import ApplicantFields, { toForm, toBody } from "./ApplicantFields.jsx";
@@ -40,7 +40,7 @@ const value = (k, v, nameOf) => (v == null ? show(k, v, nameOf)
   : k === "availability" ? AVAILABILITY[v] ?? v : k === "route" ? ROUTE[v] ?? v : show(k, v, nameOf));
 const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requirements changed", "applicant.stage_changed": "Stage changed",
   "applicant.archived": "Archived", "applicant.restored": "Restored", "contact.updated": "Contact details changed",
-  "contact.consent_changed": "Consent changed", "applicant.duplicate_submitted": "Registered again on the website",
+  "contact.consent_changed": "Consent changed", "contact.conversation": "Conversation logged", "applicant.duplicate_submitted": "Registered again on the website",
   "applicant.matched": "New matches found", "offer.updated": "Offer changed", "offer.countered": "Seller countered",
   "offer.accepted": "Offer accepted", "offer.rejected": "Offer rejected", "offer.withdrawn": "Offer withdrawn",
   "sale.updated": "Sale file changed", "sale.completed": "Sale completed", "sale.fallen_through": "Sale fell through" };
@@ -56,7 +56,7 @@ const same = (k, a, b) => {
 
 // The record of one search (#/applicants/<id>, #/applicants/<id>/matches, #/applicants/<id>/timeline): its contact,
 // stage and owner, the requirements form, its matches and the history. tab: the part of the hash after the id.
-export default function ApplicantDetail({ id, tab }) {
+export default function ApplicantDetail({ id, tab, onChange }) {
   const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [users, setUsers] = useState([]);
   const [form, setForm] = useState(null), [errors, setErrors] = useState({}), [busy, setBusy] = useState(false);
   // msg: Save, Copy fields, archive and delete (in the action bar). note: stage, owner and Dismiss (next to them).
@@ -233,6 +233,20 @@ export default function ApplicantDetail({ id, tab }) {
     finally { setMatchMsg(msg); setReviewing(false); }
   };
 
+  // E9: a talk with the contact restarts their 12 months; the new date, the history and the nav counts follow.
+  const logConversation = async () => {
+    if (busy) return;
+    setBusy(true); setNote(null);
+    try {
+      const { kept_until } = await api(`/admin/contacts/${c.id}/conversation`, { method: "POST" });
+      onChange?.();
+      setNote({ ok: true, text: `Conversation logged.${kept_until ? ` Kept until ${fmtDayMonth(kept_until)}.` : ""}` });
+      const d = await api(`/admin/applicants/${id}`);
+      setData(x => ({ ...x, events: d.events, retention: d.retention }));
+    } catch (e) { setNote({ text: e.message }); }
+    finally { setBusy(false); }
+  };
+
   const act = async action => {
     if (action === "archive" && !confirm(`Archive this search for ${c.name}? You can restore it from Archived.`)) return;
     setBusy(true); setMsg(null);
@@ -256,11 +270,14 @@ export default function ApplicantDetail({ id, tab }) {
   return <div className="record">
     <div className="head">
       <div><h1 id="t-applicant">{c.name}</h1>
-        <p className="muted">{OPERATION_LABEL[a.operation]} · {SOURCE_LABEL[a.source]} · Applied {fmtDate(a.created_at)}</p></div>
+        <p className="muted">{OPERATION_LABEL[a.operation]} · {SOURCE_LABEL[a.source]} · Applied {fmtDate(a.created_at)}</p>
+        <p className="muted">{data.retention.exempt ? "Kept for 5 years: it has a sale"
+          : `Kept until ${fmtDayMonth(data.retention.kept_until)}`}</p></div>
       <div className="inline">
         {tel && <a className="btn ghost sm" href={`tel:${tel}`}>Call</a>}
         {tel && <a className="btn ghost sm" href={`https://wa.me/${tel.slice(1)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
         {c.email && <a className="btn ghost sm" href={`mailto:${c.email}`}>Email</a>}
+        <button type="button" className="btn ghost sm" onClick={logConversation}>Log conversation</button>
         <a href="#/applicants">← Back to applicants</a>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { validateApplicant, normalizePhone, OPTIONS, QUEUES, activeSql } from ".
 import { logEvent, resolveNotices } from "../events.js";
 import { afterSave, recomputeForApplicant } from "../match-store.js";
 import { MATCHES_SQL, matchCard } from "./matches.js";
+import { EXEMPT, EXPIRING, KEPT_UNTIL } from "../retention.js";
 
 const STAGES = OPTIONS.stages.map(([v]) => v);
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
@@ -87,7 +88,10 @@ async function list({ request, env }) {
   if (!["newest", "oldest"].includes(sort)) fail(400, "Invalid sort");
   if (stage && !STAGES.includes(stage)) fail(400, "Invalid stage");
   if (queue && !QUEUES.includes(queue)) fail(400, "Invalid queue");
-  const where = [p.get("archived") === "1" ? "a.archived_at IS NOT NULL" : "a.archived_at IS NULL"], args = [];
+  // E8: Expiring lists the searches of the contacts deleted within a month, archived ones too (they go with them).
+  const ts = now(), expiring = p.get("expiring") === "1";
+  const where = [expiring ? EXPIRING : p.get("archived") === "1" ? "a.archived_at IS NOT NULL" : "a.archived_at IS NULL"];
+  const args = expiring ? [ts, ts] : [];
   if (operation) { where.push("a.operation = ?"); args.push(operation); }
   if (stage) { where.push("a.stage = ?"); args.push(stage); }
   if (assigned) { where.push("a.assigned_to = ?"); args.push(assigned); }
@@ -103,14 +107,19 @@ async function list({ request, env }) {
   const { results } = await env.DB.prepare(
     // Materialized: each listed applicant's counts are read once, not once per use in QUEUE.
     `WITH listed AS MATERIALIZED (SELECT a.id, a.operation, a.stage, a.lost_reason, a.created_at, a.assigned_to,
-       ad.name AS assigned_name, c.name, c.phone, c.email, ${MATCH_COUNTS}
+       ad.name AS assigned_name, c.name, c.phone, c.email, ${MATCH_COUNTS},
+       CASE WHEN ${EXPIRING} THEN ${KEPT_UNTIL} END AS expires_on
        FROM applicants a JOIN contacts c ON c.id = a.contact_id LEFT JOIN admins ad ON ad.email = a.assigned_to
        WHERE ${where.join(" AND ")})
      SELECT id, operation, stage, lost_reason, created_at, assigned_to, assigned_name, name, phone, email, ${QUEUE} AS queue,
-       found, shortlisted FROM listed ${queue ? `WHERE ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
-    .bind(...args, ...(queue ? [queue] : [])).all();
+       found, shortlisted, expires_on FROM listed ${queue ? `WHERE ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
+    .bind(ts, ts, ...args, ...(queue ? [queue] : [])).all();
   return json({ applicants: results });
 }
+
+// E9: the day the contact's 12 months end, or none when a sale keeps it (E3).
+const RETENTION_SQL = `SELECT ${KEPT_UNTIL} AS kept_until, NOT ${EXEMPT} AS exempt FROM contacts c WHERE c.id = ?`;
+const keptFor = r => ({ kept_until: r.exempt ? null : r.kept_until, exempt: !!r.exempt });
 
 async function detail({ env, params: [id] }) {
   const applicant = await loadApplicant(env, id);
@@ -120,7 +129,7 @@ async function detail({ env, params: [id] }) {
   // 9 digits. Catches "07797 123 456" for +447797123456; a foreign number sharing those 9 digits would match too,
   // and dots are not stripped. F3 links viewings to contacts for real (G4).
   const last9 = contact.phone ? contact.phone.slice(1).slice(-9) : null;
-  const [events, viewings, duplicates, matches] = (await env.DB.batch([
+  const [events, viewings, duplicates, matches, [retention]] = (await env.DB.batch([
     q(`SELECT * FROM events WHERE (entity_type = 'applicant' AND entity_id = ?) OR (entity_type = 'contact' AND entity_id = ?)
        ORDER BY at DESC, id DESC`, String(applicant.id), String(contact.id)),
     q(`SELECT v.*, COALESCE(l.title, v.listing_title_snapshot) AS listing_title
@@ -137,9 +146,10 @@ async function detail({ env, params: [id] }) {
     // The Matches tab: Found, Shortlisted, Rejected, each best first.
     q(`${MATCHES_SQL} WHERE m.applicant_id = ?
        ORDER BY CASE m.status WHEN 'found' THEN 0 WHEN 'shortlisted' THEN 1 ELSE 2 END, m.score DESC, m.id`, applicant.id),
+    q(RETENTION_SQL, contact.id),
   ])).map(r => r.results);
   return json({ applicant: parsed(applicant), contact, events: events.map(withData), viewings, duplicates: duplicates.map(withData),
-    matches: matches.map(matchCard) });
+    matches: matches.map(matchCard), retention: keptFor(retention) });
 }
 
 async function create({ request, env, admin }) {
@@ -310,6 +320,18 @@ async function updateContact({ request, env, admin, params: [id] }) {
   return json({ contact: await loadContact(env, cur.id) });
 }
 
+// E9: Log conversation restarts the contact's 12 months. The event is written only when the contact is there (ifInserted
+// reads the touch's changes()), so an unknown contact changes nothing.
+async function logConversation({ env, admin, params: [id] }) {
+  const ts = now();
+  const r = await env.DB.batch([touch(env, Number(id), ts),
+    ...logEvent(env, { actor: admin, entity_type: "contact", entity_id: String(Number(id)), type: "contact.conversation" }, null,
+      { ifInserted: true }),
+    env.DB.prepare(RETENTION_SQL).bind(Number(id))]);
+  if (!r[0].meta.changes) fail(404, "Contact not found");
+  return json({ ok: true, kept_until: keptFor(r[2].results[0]).kept_until });
+}
+
 async function setArchived({ env, admin, params: [id, action] }) {
   const cur = await loadApplicant(env, id);
   if (action === "archive" && cur.archived_at) fail(400, "The applicant is already archived");
@@ -379,4 +401,5 @@ export default [
   ["POST", /^\/admin\/applicants\/(\d+)\/(archive|restore)$/, setArchived, true],
   ["GET", /^\/admin\/contacts\/(\d+)$/, contactDetail, true],
   ["PUT", /^\/admin\/contacts\/(\d+)$/, updateContact, true],
+  ["POST", /^\/admin\/contacts\/(\d+)\/conversation$/, logConversation, true],
 ];

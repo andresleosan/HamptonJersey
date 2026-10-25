@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, seedListing, call, adminCookie, T0 } from "./helpers.mjs";
-import { runRetention, claimRetentionDay, RETENTION_CAP } from "../../server/retention.js";
+import { runRetention, claimRetentionDay, RETENTION_CAP, EXPIRING } from "../../server/retention.js";
 
 // The pass runs at 09:00 on Sunday 25 October 2026 (GMT since 01:00 that day): the contacts' cutoff is
 // 2025-10-25T09:00:00.000Z and the viewings' 2025-10-25.
@@ -205,4 +205,95 @@ test("a viewing request restarts the matching contact's clock", async t => {
     date: "2026-10-28", time: "16:00", name: "Jane Le Brocq", phone: "07797 123 456" } });
   assert.equal(lost.status, 409);
   assert.equal(last(byPhone), new Date(NOW + 60e3).toISOString());
+});
+
+// Task 2 (E8, E9): the warning before the deletion and Log conversation. Now is 09:00 on 25 October 2026 (GMT).
+const NOW25 = Date.parse(TS);
+const cookieFor = () => adminCookie(ADMIN);
+const counts = async env => (await call(env, "GET", "/admin/notifications/counts", { cookie: await cookieFor() })).data;
+
+test("counts.expiring: a contact active 11.5 months ago, not one at 10 months nor one with a sale", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: NOW25 });
+  const env = world();
+  // A day after the pass would have run: the claim is taken, so the counts request deletes nothing here.
+  await claimRetentionDay(env, "2026-10-25");
+  const soon = contact(env, "2025-11-10T09:00:00.000Z");
+  applicant(env, soon);
+  contact(env, "2025-12-25T09:00:00.000Z", { email: "ten@example.je", phone: null });
+  const kept = contact(env, "2025-11-10T09:00:00.000Z", { email: "buyer@example.je", phone: null });
+  sale(env, applicant(env, kept), "fallen_through");
+  // Window edges: exactly 12 months is still in it, exactly 11 months is not yet.
+  contact(env, "2025-10-25T09:00:00.000Z", { email: "edge12@example.je", phone: null });
+  contact(env, "2025-11-25T09:00:00.000Z", { email: "edge11@example.je", phone: null });
+  assert.equal((await counts(env)).expiring, 2);
+});
+
+test("the expiring count reads only the window through the activity index", async () => {
+  const env = world();
+  const plan = env.DB.raw.prepare(`EXPLAIN QUERY PLAN SELECT COUNT(*) FROM contacts c WHERE ${EXPIRING}`).all("x", "x")
+    .map(r => r.detail).join("\n");
+  assert.match(plan, /SEARCH c USING (COVERING )?INDEX contacts_activity \(last_activity_at>\? AND last_activity_at<\?\)/);
+});
+
+test("?expiring=1 lists only the expiring searches, with the day they go", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: NOW25 });
+  const env = world(), cookie = await cookieFor();
+  const soon = contact(env, "2025-11-10T23:30:00.000Z");
+  const a = applicant(env, soon), archived = applicant(env, soon, { operation: "rent", archived_at: T0 });
+  applicant(env, contact(env, "2025-12-25T09:00:00.000Z", { email: "ten@example.je", phone: null }));
+  const kept = contact(env, "2025-11-10T09:00:00.000Z", { email: "buyer@example.je", phone: null });
+  sale(env, applicant(env, kept), "completed");
+  const r = await call(env, "GET", "/admin/applicants?expiring=1", { cookie });
+  assert.equal(r.status, 200);
+  // Archived searches too: the contact goes with all of them.
+  assert.deepEqual(r.data.applicants.map(x => [x.id, x.expires_on]).sort(), [[a, "2026-11-10"], [archived, "2026-11-10"]]);
+  // The current list marks the same row and no other.
+  const all = (await call(env, "GET", "/admin/applicants", { cookie })).data.applicants;
+  assert.deepEqual(all.filter(x => x.expires_on).map(x => x.id), [a]);
+  assert.equal(all.length, 3);
+});
+
+test("the applicant's record says how long it is kept", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: NOW25 });
+  const env = world(), cookie = await cookieFor();
+  const a = applicant(env, contact(env, "2025-11-10T09:00:00.000Z"));
+  const b = applicant(env, contact(env, "2024-01-01T00:00:00.000Z", { email: "buyer@example.je", phone: null }));
+  sale(env, b, "in_progress");
+  assert.deepEqual((await call(env, "GET", `/admin/applicants/${a}`, { cookie })).data.retention,
+    { kept_until: "2026-11-10", exempt: false });
+  assert.deepEqual((await call(env, "GET", `/admin/applicants/${b}`, { cookie })).data.retention,
+    { kept_until: null, exempt: true });
+});
+
+test("Log conversation restarts the clock and the contact leaves Expiring", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: NOW25 });
+  const env = world(), cookie = await cookieFor();
+  await claimRetentionDay(env, "2026-10-25");
+  const c = contact(env, "2025-11-10T09:00:00.000Z");
+  const a = applicant(env, c);
+  assert.equal((await counts(env)).expiring, 1);
+  const before = row(env, "SELECT updated_at FROM contacts WHERE id = ?", c).updated_at;
+  const r = await call(env, "POST", `/admin/contacts/${c}/conversation`, { cookie });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.data, { ok: true, kept_until: "2027-10-25" });
+  assert.deepEqual(row(env, "SELECT last_activity_at, updated_at FROM contacts WHERE id = ?", c),
+    { last_activity_at: TS, updated_at: before });
+  assert.deepEqual(eventsOf(env, "contact", c), [{ type: "contact.conversation", actor: ADMIN, data: null }]);
+  assert.equal((await counts(env)).expiring, 0);
+  // The record shows it in its history and the new date.
+  const d = (await call(env, "GET", `/admin/applicants/${a}`, { cookie })).data;
+  assert.equal(d.events[0].type, "contact.conversation");
+  assert.deepEqual(d.retention, { kept_until: "2027-10-25", exempt: false });
+});
+
+test("Log conversation: signed out 401, cross-origin 403, unknown contact 404", async () => {
+  const env = world();
+  const c = contact(env, "2025-11-10T09:00:00.000Z");
+  assert.equal((await call(env, "POST", `/admin/contacts/${c}/conversation`)).status, 401);
+  assert.equal((await call(env, "POST", `/admin/contacts/${c}/conversation`,
+    { cookie: await cookieFor(), origin: "https://evil.test" })).status, 403);
+  const missing = await call(env, "POST", `/admin/contacts/${c + 1}/conversation`, { cookie: await cookieFor() });
+  assert.equal(missing.status, 404);
+  assert.equal(count(env, "events"), 0);
+  assert.equal(row(env, "SELECT last_activity_at FROM contacts WHERE id = ?", c).last_activity_at, "2025-11-10T09:00:00.000Z");
 });

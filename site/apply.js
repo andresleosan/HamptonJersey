@@ -335,9 +335,9 @@ export function renderPrivacy(root) {
       ask us to arrange a viewing or make an offer.</p>
 
     <h2>How long we keep it</h2>
-    <p>We keep your details for 12 months from the last activity on your record: a new registration, a change you ask
-      for, or a conversation with us. After that we delete them or make them anonymous, so they no longer identify
-      you.</p>
+    <p>We keep your details for 12 months from the last activity on your record: a new registration, a viewing request,
+      a change you ask for, or a conversation with us. After that we delete them, and a viewing request is deleted 12
+      months after the day of the viewing.</p>
 
     <h2>Your rights</h2>
     <ul>

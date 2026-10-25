@@ -134,6 +134,16 @@ INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, b
  '2026-10-22T12:00:00.000Z','2026-10-22T12:00:00.000Z','luismadef45@gmail.com');
 INSERT INTO events (id, at, actor, entity_type, entity_id, type, data) VALUES
 (6,'2026-10-22T12:00:00.000Z','luismadef45@gmail.com','applicant','4','applicant.created','{"operation":"buy","source":"phone"}');
+-- G2 (E8): a contact last active 11 and a half months ago, dated from the day the seed is loaded, so it is Expiring: the
+-- 12-month pass deletes it in about two weeks. Its To Let search fits no listing.
+INSERT INTO contacts (id, name, email, phone, preferred_channel, best_time, privacy_ack_at, marketing_opt_in_at, consent_source,
+  last_activity_at, created_at, updated_at, updated_by) VALUES
+(5,'Rachel Le Cornu','rachel.lecornu@example.je',NULL,'email',NULL,NULL,NULL,'phone',
+ strftime('%Y-%m-%dT%H:%M:%fZ','now','-11 months','-15 days'),'2025-10-01T09:00:00.000Z','2025-10-01T09:00:00.000Z','luismadef45@gmail.com');
+INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, budget_max, property_types, bedrooms_min,
+  parishes_wanted, housing_status, household_adults, household_children, created_at, updated_at, updated_by) VALUES
+(5,5,'rent','searching','phone',NULL,600,'["flat"]',1,'["St Ouen"]','entitled',1,0,
+ '2025-10-01T09:00:00.000Z','2025-10-01T09:00:00.000Z','luismadef45@gmail.com');
 -- F5-A managed rentals, dated from the day the seed is loaded. A full-management property whose tenant hasn't paid the
 -- first two months (the oldest unpaid charge a month and more old, so the Formal letter step is due) and whose gas check
 -- ran out ten days ago; a let-only flat whose fixed term ends in 60 days (Renewal due); and a deposit the bank import

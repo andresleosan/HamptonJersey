@@ -10,6 +10,13 @@ export const RETENTION_CAP = 500;
 // E3: a contact with a sale on any of its searches, in any status, is kept (V14: 5 years). For a query on contacts c.
 export const EXEMPT = "NOT EXISTS (SELECT 1 FROM applicants s JOIN sales x ON x.applicant_id = s.id WHERE s.contact_id = c.id)";
 
+// E8: a contact the pass deletes within a month: not exempt, last activity in [now − 12 months, now − 11 months).
+// Bind now twice. A range on contacts_activity: only the contacts in the window are read.
+export const EXPIRING = `c.last_activity_at >= strftime('%Y-%m-%dT%H:%M:%fZ', ?, '-12 months')
+  AND c.last_activity_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?, '-11 months') AND ${EXEMPT}`;
+// E9: the day a contact's 12 months end; the pass deletes it on the first Jersey day after that moment.
+export const KEPT_UNTIL = "strftime('%Y-%m-%d', c.last_activity_at, '+12 months')";
+
 // E1: ?1 = the pass's ISO time. Every statement reads the set again: until the last one deletes the contacts nothing
 // it depends on changes inside the batch (their searches have no sales), so each statement acts on the same contacts.
 const CONTACTS = `SELECT c.id FROM contacts c WHERE c.last_activity_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-12 months')
