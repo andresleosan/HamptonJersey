@@ -8,8 +8,8 @@ import { OPTIONS, isActive } from "../../server/applicants.js";
 import { BuyerOffers } from "./Sales.jsx";
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
-  "bathrooms", "tenure", "sale_price", "rent", "rent_period", "premium", "currency", "price_text", "summary", "description",
-  "tour_url", "specs"];
+  "bathrooms", "tenure", "tenure_type", "housing_category", "restriction", "sale_price", "rent", "rent_period", "premium",
+  "currency", "price_text", "summary", "description", "tour_url", "specs"];
 const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium"];
 const toForm = l => Object.fromEntries(FIELDS.map(k => [k, k === "specs" ? l.specs : l[k] ?? ""]));
 const toBody = f => Object.fromEntries(FIELDS.map(k => [k,
@@ -27,6 +27,29 @@ const SECTIONS = [["details", "Details"], ["price", "Price"], ["description", "D
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
 // Match status, with its badge tone (DESIGN.md "Badges de estado": Found and Rejected neutral, Shortlisted active).
 const MATCH_STATUS = { found: ["Found", "neutral"], shortlisted: ["Shortlisted", "active"], rejected: ["Rejected", "neutral"] };
+// J2: the Jersey fields (server/listing.js ENUMS); blank = not set (for restriction, none).
+const TENURE = { freehold: "Freehold", flying_freehold: "Flying freehold", share_transfer: "Share transfer", leasehold: "Leasehold" };
+const HOUSING = { qualified: "Qualified", registered: "Registered" };
+const RESTRICTION = { first_time_buyer: "First-time buyers only", over_55: "Over 55s only" };
+// Housing category and restriction concern homes in Jersey (Control of Housing and Work Law).
+const jerseyHome = f => f.use === "residential" && f.country === "Jersey";
+const AMOUNT = { sale: ["sale_price", "Add the sale price"], rent: ["rent", "Add the rent"], business: ["premium", "Add the business premium"] };
+const MIN_PHOTOS = 5;
+// J6 Before you publish: what the listing still lacks, from the form as typed and the photos as saved. [target id, text]:
+// a field's id (focused when clicked) or a section's.
+function missing(form, parish, photos, coverId) {
+  const out = [], blank = v => String(v ?? "").trim() === "";
+  const [price, addPrice] = AMOUNT[form.operation] ?? [];
+  if (price && blank(form[price])) out.push([`f-${price}`, addPrice]);
+  if (form.country === "Jersey" && !parish) out.push(["f-parish", "Choose the parish"]);
+  if (form.use === "residential" && blank(form.bedrooms)) out.push(["f-bedrooms", "Add the bedrooms"]);
+  if (form.operation === "sale" && !form.tenure_type) out.push(["f-tenure_type", "Choose the tenure"]);
+  if (jerseyHome(form) && !form.housing_category) out.push(["f-housing_category", "Choose the housing category"]);
+  if (photos.length < MIN_PHOTOS) out.push(["h-photos", `Add photos for the website (${photos.length} of ${MIN_PHOTOS})`]);
+  if (!photos.some(m => m.id === coverId)) out.push(["h-photos", "Choose a cover photo"]);
+  if (blank(form.summary)) out.push(["f-summary", "Add a summary"]);
+  return out;
+}
 const DONE = { publish: "Published: now on the website (may take a minute).", unpublish: "Unpublished: no longer on the website.",
   archive: "Archived. You can restore it from Archived.", restore: "Restored as a draft." };
 
@@ -100,7 +123,13 @@ export default function ListingEditor({ id }) {
   const field = (k, label, input) => <div className="field" key={k}><label htmlFor={`f-${k}`}>{label}</label>{input}
     {errors[k] && <small id={`e-${k}`} className="err">{errors[k]}</small>}</div>;
   const options = obj => Object.entries(obj).map(([k, v]) => <option key={k} value={k}>{v}</option>);
-  const publicPhoto = data.media.some(m => m.public && m.kind === "photo" && m.r2_key && m.origin !== "external");
+  const publicPhotos = data.media.filter(m => m.public && m.kind === "photo" && m.r2_key && m.origin !== "external");
+  const publicPhoto = publicPhotos.length > 0;
+  const todo = state === "archived" ? [] : missing(form, matchForm.parish, publicPhotos, l.cover_media_id);
+  const goTo = id => { const el = document.getElementById(id); el.focus({ preventScroll: true }); el.scrollIntoView({ behavior: "smooth", block: "center" }); };
+  // The housing fields and the first-time buyers option also show while they hold a value, so it can be cleared.
+  const home = jerseyHome(form), was = !form.tenure_type && form.tenure;
+  const ftb = form.operation === "sale" || form.restriction === "first_time_buyer";
   const cover = data.media.find(m => m.id === l.cover_media_id) || data.media.find(m => m.kind === "photo" && m.r2_key);
 
   return <div className="editor">
@@ -125,13 +154,28 @@ export default function ListingEditor({ id }) {
     </aside>
 
     <div className="sections">
+      {todo.length > 0 && <section className="card prepub" aria-labelledby="h-prepub">
+        <h2 id="h-prepub">Before you publish</h2>
+        <p className="muted">Missing from this listing. You can still publish without them.</p>
+        <ul>{todo.map(([target, text]) => <li key={text}>
+          <button type="button" className="linkish" onClick={() => goTo(target)}>{text}</button></li>)}</ul>
+      </section>}
       <section id="s-details" className="card" aria-labelledby="h-details"><h2 id="h-details">Details</h2><div className="grid2">
         {field("title", "Title", <input {...ctl("title")} maxLength={200} required />)}
         {field("property_type", "Type (house, flat, restaurant…)", <input {...ctl("property_type")} maxLength={100} />)}
         {field("use", "Use", <select {...ctl("use")}>{options(USE)}</select>)}
         {field("operation", "Operation", <select {...ctl("operation")}>{options(OPERATION)}</select>)}
         {field("availability", "Availability", <select {...ctl("availability")}>{options(AVAILABILITY)}</select>)}
-        {field("tenure", "Tenure", <input {...ctl("tenure")} maxLength={100} />)}
+        {field("tenure_type", "Tenure", <><select {...ctl("tenure_type", was ? { "aria-describedby": `d-tenure${errors.tenure_type ? " e-tenure_type" : ""}` } : {})}>
+          <option value="">Not set</option>{options(TENURE)}</select>
+          {was && <small id="d-tenure" className="muted">Was: {form.tenure}</small>}</>)}
+        {(home || form.housing_category) && field("housing_category", "Housing category", <><select {...ctl("housing_category", { "aria-describedby": `d-housing${errors.housing_category ? " e-housing_category" : ""}` })}>
+          <option value="">Not set</option>{options(HOUSING)}</select>
+          <small id="d-housing" className="muted">Qualified homes are only open to some residential statuses; Registered homes are open to all.</small></>)}
+        {(home || form.restriction) && field("restriction", "Restriction", <><select {...ctl("restriction")}><option value="">None</option>
+          {ftb && <option value="first_time_buyer">{RESTRICTION.first_time_buyer}</option>}
+          <option value="over_55">{RESTRICTION.over_55}</option></select>
+          {form.restriction === "first_time_buyer" && form.operation !== "sale" && <small className="muted">Applies to sales only.</small>}</>)}
         {field("country", "Country", <input {...ctl("country")} maxLength={100} />)}
         {field("location", "Location", <input {...ctl("location")} maxLength={200} />)}
         {field("road_name", "Road", <input {...ctl("road_name")} maxLength={200} />)}
@@ -157,7 +201,7 @@ export default function ListingEditor({ id }) {
         {field("description", "Full description (one paragraph per line)", <textarea {...ctl("description")} maxLength={20000} rows={10} />)}
       </section>
 
-      <section id="s-photos" className="card" aria-labelledby="h-photos"><h2 id="h-photos">Photos</h2>
+      <section id="s-photos" className="card" aria-labelledby="h-photos"><h2 id="h-photos" tabIndex={-1}>Photos</h2>
         <MediaManager listingId={id} media={data.media} coverId={l.cover_media_id} updatedAt={l.updated_at}
           register={p => { photos.current = p; setPhotosDirty(p.dirty); }}
           onChange={(media, coverId, saved) => setData(d => ({ ...d, media, listing: saved

@@ -84,6 +84,8 @@ async function publicSite(browser) {
   await page.click("#tab-aerial");
   assert.match(await page.getAttribute("#stage img", "src"), /A00003/);
   assert.match(await page.textContent(".detail"), /Property details[\s\S]*Oil-fired[\s\S]*Floor plans/);
+  // Review Focus 3 (Jersey fields): a legacy tenure text that has no tenure type yet is still the listing's tenure.
+  assert.match(await page.textContent("dl.facts-list"), /TenureFreehold \/ share transfer/);
   assert.ok(await page.$("#calc"));
   assert.equal((await page.request.get(BASE + "media/A00005")).status(), 404, "external photo is private");
   assert.equal((await page.request.get(BASE + "media/A00009")).status(), 404, "draft photo is private");
@@ -488,8 +490,8 @@ async function admin(browser) {
   assert.equal(await page.textContent(".seg button[aria-pressed=true]"), "30 days", "30 days by default");
   assert.equal(await figure("Listing views"), views30.toLocaleString("en-GB"));
   for (const l of ["Viewing requests", "New applicants", "Viewings completed"]) assert.match(await figure(l), /^\d[\d,]*$/, l);
-  // Unmet demand: Sarah and Claire both want St Helier to rent; Tom wants St Brelade to buy.
-  assert.equal((await rows(table("Rent"))).find(r => r[0] === "St Helier")?.[1], "2");
+  // Unmet demand: Sarah, Claire and Daniel want St Helier to rent; Tom wants St Brelade to buy.
+  assert.equal((await rows(table("Rent"))).find(r => r[0] === "St Helier")?.[1], "3");
   assert.equal((await rows(table("Buy"))).find(r => r[0] === "St Brelade")?.[1], "1");
   // Most viewed: Le Bernage with the seed's views and those opened earlier in this run.
   const viewed = await rows(byListing);
@@ -675,12 +677,86 @@ async function admin(browser) {
   await bankImport(page, phone, noSideScroll);
   await retention(page, phone);
   await ownerReport(page, phone, noSideScroll);
+  await jersey(browser, page);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
   await page.waitForSelector("text=andres.san1404@gmail.com");
   await shot(page, "admin-users");
   assert.deepEqual(page.errors, []);
+  await ctx.close();
+}
+
+// Spec 2026-10-25 (Jersey fields), last so nothing above changes. Recalculate all applies the housing check: the seed's
+// Standard-status search (Daniel Hamon) is kept from the Qualified town flat that Claire Le Sueur (Licensed) gets, until
+// the flat is Registered. Then the editor's selects, "Was: …" and Before you publish, and the website's facts.
+async function jersey(browser, page) {
+  await page.goto(BASE + "admin/#/review");
+  await page.waitForSelector("#t-review");
+  page.once("dialog", d => d.accept());
+  await page.getByRole("button", {name: "Recalculate all"}).click();
+  await page.getByText("Done: every listing read again and every active search recomputed.").waitFor({timeout: 60000});
+  await page.locator(".review dl.checks dt", {hasText: "Housing"}).waitFor();
+
+  await page.goto(BASE + "admin/#/p/HE-R005");
+  await page.waitForSelector("#f-title");
+  const matched = page.locator("#s-applicants tbody");
+  await matched.getByText("Claire Le Sueur").waitFor();
+  assert.doesNotMatch(await matched.textContent(), /Daniel Hamon/, "Standard status is not offered a Qualified home");
+  assert.equal(await page.inputValue("#f-housing_category"), "qualified");
+  await page.getByText("Qualified homes are only open to some residential statuses; Registered homes are open to all.").waitFor();
+  assert.deepEqual(await page.$$eval("#f-restriction option", os => os.map(o => o.textContent)), ["None", "Over 55s only"],
+    "first-time buyers only is offered on sales");
+  // Before you publish follows the form as it is typed.
+  const todo = page.locator(".prepub");
+  assert.deepEqual(await todo.getByRole("button").allTextContents(),
+    ["Add photos for the website (0 of 5)", "Choose a cover photo", "Add a summary"]);
+  await page.fill("#f-summary", "Two bedrooms, close to town");
+  await todo.getByRole("button", {name: "Add a summary"}).waitFor({state: "detached"});
+  await page.selectOption("#f-housing_category", "registered");
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector("text=Changes saved.");
+  await matched.getByText("Daniel Hamon").waitFor();
+
+  // A commercial listing has a tenure but no housing category or restriction.
+  await page.goto(BASE + "admin/#/p/HE-C001");
+  await page.waitForSelector("#f-tenure_type");
+  assert.equal(await page.locator("#f-housing_category, #f-restriction").count(), 0);
+
+  await page.goto(BASE + "admin/#/p/HE-R001");
+  await page.waitForSelector("#f-title");
+  const was = page.getByText("Was: Freehold / share transfer", {exact: true});
+  await was.waitFor();
+  assert.equal(await page.inputValue("#f-tenure_type"), "");
+  for (const t of ["Choose the tenure", "Choose the housing category"]) await todo.getByRole("button", {name: t}).waitFor();
+  await todo.getByRole("button", {name: "Choose the housing category"}).click();
+  await page.waitForFunction(() => document.activeElement?.id === "f-housing_category");
+  await shot(page, "admin-jersey-editor", {fullPage: false});
+  await page.evaluate(() => scrollTo(0, 0));
+  await shot(page, "admin-jersey-editor-top", {fullPage: false});
+  await page.selectOption("#f-tenure_type", "freehold");
+  await was.waitFor({state: "detached"});
+  await todo.getByRole("button", {name: "Choose the tenure"}).waitFor({state: "detached"});
+  await page.selectOption("#f-housing_category", "registered");
+  await page.selectOption("#f-restriction", "first_time_buyer");
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector("text=Changes saved.");
+  assert.equal(await todo.getByRole("button", {name: "Choose the housing category"}).count(), 0);
+
+  const ctx = await browser.newContext();
+  for (const [width, name] of [[1280, "listing-jersey-desktop"], [360, "listing-jersey-360"]]) {
+    const site = await newPage(ctx, {width, height: 800});
+    await site.goto(BASE + "p/HE-R001");
+    await site.waitForSelector(".summary h1");
+    assert.equal(await site.textContent(".summary .restrict"), "First-time buyers only");
+    const facts = await site.$$eval("dl.facts-list div", ds => ds.map(d => `${d.firstChild.textContent}: ${d.lastChild.textContent}`));
+    assert.deepEqual(facts.filter(f => /^(Tenure|Housing):/.test(f)), ["Tenure: Freehold", "Housing: Registered (open to all residential statuses)"]);
+    assert.equal(await site.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, `no horizontal scroll at ${width}px`);
+    await shot(site, `${name}-summary`, {fullPage: false});
+    await site.$eval("dl.facts-list", el => el.scrollIntoView({block: "center", behavior: "instant"}));
+    await shot(site, `${name}-facts`, {fullPage: false});
+    assert.deepEqual(site.errors, []);
+  }
   await ctx.close();
 }
 

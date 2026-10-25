@@ -48,6 +48,10 @@ INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, label, publi
 ('A00011','HE-R040','media/hampton/p6.jpg','thumbs/hampton/p6.jpg','hampton','photo','Front',1,0,'image/jpeg','2026-10-07T00:00:00.000Z');
 -- Migration 0009 offers every published listing (B9).
 UPDATE listings SET matchable = 1 WHERE published = 1;
+-- Jersey fields (spec 2026-10-25 J1-J3): Le Bernage keeps a legacy tenure text that 0015 leaves unread (shown as
+-- "Was: …" in the editor and as the tenure on the website), and the town flat is a Qualified home.
+UPDATE listings SET tenure = 'Freehold / share transfer' WHERE id = 'HE-R001';
+UPDATE listings SET housing_category = 'qualified' WHERE id = 'HE-R005';
 -- F0 applicants: one To Let from the website (open "New applicant" notice), one To Buy entered by the team (Feed only),
 -- a pending "registered again" from the To Buy contact (flat submission, as the public API receives it) and a new
 -- viewing request from the same contact, so it shows in the Inbox and on his Timeline.
@@ -76,6 +80,16 @@ INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, b
 (3,3,'rent','searching','email','luismadef45@gmail.com',1500,2300,'["flat"]',2,0,'["balcony"]','yes','[{"kind":"none"}]',
  '["St Helier"]','["St Ouen"]','2026-11-15',12,'licensed',1,0,'2026-10-22T11:00:00.000Z','2026-10-22T11:00:00.000Z',
  'luismadef45@gmail.com');
+-- Jersey fields: a To Let search with Standard status that fits the Qualified town flat (HE-R005) in every other way,
+-- so the housing check alone keeps them apart (Claire Le Sueur, Licensed, is matched with it).
+INSERT INTO contacts (id, name, email, phone, preferred_channel, best_time, privacy_ack_at, marketing_opt_in_at, consent_source,
+  last_activity_at, created_at, updated_at, updated_by) VALUES
+(6,'Daniel Hamon','daniel.hamon@example.je',NULL,'email',NULL,'2026-10-22T13:00:00.000Z',NULL,'email',
+ '2026-10-22T13:00:00.000Z','2026-10-22T13:00:00.000Z','2026-10-22T13:00:00.000Z','luismadef45@gmail.com');
+INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, budget_max, property_types, bedrooms_min,
+  parishes_wanted, housing_status, household_adults, household_children, created_at, updated_at, updated_by) VALUES
+(6,6,'rent','searching','email','luismadef45@gmail.com',2000,'["flat"]',2,'["St Helier"]','standard',1,0,
+ '2026-10-22T13:00:00.000Z','2026-10-22T13:00:00.000Z','luismadef45@gmail.com');
 -- F3-A: a viewing in each state, dated from the day the seed is loaded so they never go stale. Upcoming ones fall on a
 -- weekday (inside the seeded hours) at least two days ahead; 'weekday N' is the next such day (Tue 2 … Fri 5).
 INSERT INTO viewing_requests (id, listing_id, listing_ref, listing_title_snapshot, agent, negotiator_id, kind, date, time, end_time,

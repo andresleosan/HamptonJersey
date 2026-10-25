@@ -304,6 +304,7 @@ dl.facts-list div,.specs dl div{display:flex;justify-content:space-between;gap:1
 dl.facts-list dt,.specs dt{color:var(--stone)}
 dl.facts-list dd,.specs dd{margin:0;text-align:right;min-width:0;overflow-wrap:anywhere}
 .note{font-size:12px;color:var(--stone);margin:12px 0 0}
+.summary .restrict{justify-self:start;margin:-4px 0 0;color:var(--ink);border-color:var(--ink)}
 .tag{display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid var(--line);font:600 10px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--stone);vertical-align:middle}
 
 /* mortgage */
@@ -418,6 +419,10 @@ const fmtDate = iso => new Date(iso + "T12:00").toLocaleDateString("en-GB", {day
 const REGIONS = {all: "All", jersey: "Jersey", uk: "UK", international: "International"};
 const OPS = {all: "All", sale: "For sale", rent: "To let", business: "Businesses"};
 const OP_ONE = {sale: "For sale", rent: "To let", business: "Business for sale"};
+// J3: the Jersey fields, as server/listing.js stores them. The category is described, never advised on.
+const TENURE = {freehold: "Freehold", flying_freehold: "Flying freehold", share_transfer: "Share transfer", leasehold: "Leasehold"};
+const HOUSING = {qualified: "Qualified", registered: "Registered (open to all residential statuses)"};
+const RESTRICTION = {first_time_buyer: "First-time buyers only", over_55: "Over 55s only"};
 const MAX = {sale: [400e3, 600e3, 900e3, 1.5e6], rent: [1500, 2500, 3500], business: [100e3, 250e3, 500e3]};
 const BRAND = "Hampton Estates Jersey", HOME_TITLE = `${BRAND} · Property sales, lettings and valuations`; // as in <title>
 // S7: shared links always point at SITE_URL, which the page reads from <meta name="site-url"> (static on the home page,
@@ -762,7 +767,9 @@ function detail(id) {
   const desc = p.description.filter(l => l.toLowerCase() !== p.title.toLowerCase());
   const similar = comparables(p, PUB);
   const facts = [["Type", p.type], ["Location", p.place], ["Market", REGIONS[p.region]], ["Operation", OP_ONE[p.operation]],
-    ["Price as listed", p.priceText || "Not published"], ["Tenure", p.tenure]].filter(([, v]) => v);
+    ["Price as listed", p.priceText || "Not published"], ["Tenure", TENURE[p.tenureType] || p.tenure], ["Housing", HOUSING[p.housingCategory]]].filter(([, v]) => v);
+  // First-time buyer schemes concern purchases only.
+  const restriction = p.restriction === "first_time_buyer" && p.operation !== "sale" ? null : RESTRICTION[p.restriction];
   const tour = embedUrl(p.tourUrl);
   const groups = p.specs.reduce((a, s) => ((a[s.group || "Details"] ||= []).push(s), a), {});
   const tabs = [["photo", "Photos"], ...(p.tourUrl ? [["tour", "3D tour"]] : []), ...(p.aerial ? [["aerial", "Aerial"]] : [])];
@@ -786,6 +793,7 @@ function detail(id) {
       <div class="eyebrow">${esc(p.status)} · ${esc(p.place)}</div>
       <h1>${esc(p.title)}</h1>
       <div class="price num">${esc(priceLabel(p))}${p.operation === "business" ? "<small>Business, not freehold</small>" : ""}</div>
+      ${restriction ? `<span class="tag restrict">${esc(restriction)}</span>` : ""}
       ${p.beds || p.baths || p.type ? `<div class="keys num">${p.beds ? `<div><b>${p.beds}</b><span>Bedrooms</span></div>` : ""}${p.baths ? `<div><b>${p.baths}</b><span>Bathrooms</span></div>` : ""}${p.type ? `<div><b>${esc(p.type)}</b><span>Type</span></div>` : ""}</div>` : ""}
       ${agent ? `<div class="agent-mini">${agent.photo ? `<img src="${esc(wix(agent.photo, 120, 120))}" alt="">` : ""}<div><b>${esc(agent.name)}</b><div class="hint">${esc(agent.role)} · ${esc(agent.office)}</div></div></div>` : ""}
       <div class="btns">${isSold(p) ? "" : `<a class="btn" href="#detail-book" data-scroll="detail-book">Book a viewing</a>`}

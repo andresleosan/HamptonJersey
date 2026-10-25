@@ -3,8 +3,8 @@ import { AVAILABILITY, priceText } from "./format.js";
 import { REJECT_REASONS } from "../../server/applicants.js";
 
 // The checks of server/matching.js evaluate(), by key.
-const CHECK_LABEL = { budget: "Budget", bedrooms: "Bedrooms", bathrooms: "Bathrooms", area: "Area", pets: "Pets",
-  parking: "Parking", furnished: "Furnished", outdoor: "Outdoor", type: "Type" };
+const CHECK_LABEL = { budget: "Budget", bedrooms: "Bedrooms", bathrooms: "Bathrooms", area: "Area", housing: "Housing",
+  pets: "Pets", parking: "Parking", furnished: "Furnished", outdoor: "Outdoor", type: "Type" };
 const RESULT = { meets: "Meets", fails: "Fails", unknown: "Unknown" };
 export const REASON_LABEL = Object.fromEntries(REJECT_REASONS);
 const OFFERED = ["for_sale", "to_let", "lease"];
