@@ -119,16 +119,21 @@ async function runAction({ env, admin, id, body }) {
   if (cur.updated_at !== body.updated_at) fail(409, stale);
   const ch = await change(env, body.action, body, cur, jerseyNow());
   if (ch.errors) return fields(ch.errors);
-  const cols = Object.keys(ch.set), ref = { entity_type: "viewing", entity_id: String(id) };
-  // The lock and the slot check are part of the UPDATE; the event and the notice follow only if it changed the row.
+  const cols = Object.keys(ch.set), ref = { entity_type: "viewing", entity_id: String(id) }, ts = now();
+  const type = `viewing.${body.action === "reschedule" ? "rescheduled" : TO[body.action]}`;
+  // The lock and the slot check are part of the UPDATE; the event, the touch and the notice follow only if it changed
+  // the row.
   const [r] = await env.DB.batch([
     env.DB.prepare(`UPDATE viewing_requests SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ?
       WHERE id = ? AND updated_at IS ?${ch.clash ? ` AND NOT ${ch.clash.sql}` : ""}`)
-      .bind(...Object.values(ch.set), now(), admin, id, body.updated_at, ...(ch.clash?.binds ?? [])),
-    ...logEvent(env, { actor: admin, ...ref, type: `viewing.${body.action === "reschedule" ? "rescheduled" : TO[body.action]}`,
-      data: ch.data ?? null }, null, { ifInserted: true }),
-    // Confirmed or cancelled, a website request has been dealt with: its Inbox notice is done.
-    ...(["confirm", "cancel"].includes(body.action) ? [resolveNotices(env, { ...ref, category: "viewing" }, admin, { ifLogged: true })] : []),
+      .bind(...Object.values(ch.set), ts, admin, id, body.updated_at, ...(ch.clash?.binds ?? [])),
+    ...logEvent(env, { actor: admin, ...ref, type, data: ch.data ?? null }, null, { ifInserted: true }),
+    // G2: a viewing confirmed, moved or held is activity on the contact with its email or mobile; a no-show or a cancel
+    // is not. Right after the event, so its changes() gate reads the event's insert.
+    ...(["confirm", "reschedule", "complete"].includes(body.action) ? [touchByViewing(env, cur, ts)] : []),
+    // Confirmed or cancelled, a website request has been dealt with: its Inbox notice is done. Gated on that event, since
+    // after a touch changes() is the touch's (each of these actions happens once to a viewing).
+    ...(["confirm", "cancel"].includes(body.action) ? [resolveNotices(env, { ...ref, category: "viewing" }, admin, { ifEvent: type })] : []),
   ]);
   if (r.meta.changes) return json({ ok: true });
   // Nothing changed: the row went, someone else saved it, or (the lock held) the new slot was taken meanwhile.

@@ -120,7 +120,7 @@ export default function App() {
         <a href="#/" aria-current={current === "" ? "page" : undefined}>Inbox{counts.action > 0
           && <span className="count">{counts.action}<span className="sr"> need action</span></span>}</a>
         <a href="#/applicants" aria-current={current === "applicants" ? "page" : undefined}>Applicants{counts.expiring > 0
-          && <span className="count">{counts.expiring}<span className="sr"> expiring</span></span>}</a>
+          && <span className="count" title={`${counts.expiring} expiring`}>{counts.expiring}<span className="sr"> expiring</span></span>}</a>
         <a href="#/review" aria-current={current === "review" ? "page" : undefined}>Review</a>
         <a href="#/listings" aria-current={current === "listings" ? "page" : undefined}>Listings</a>
         <a href="#/viewings" aria-current={current === "viewings" ? "page" : undefined}>Viewings</a>

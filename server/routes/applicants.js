@@ -3,7 +3,8 @@ import { validateApplicant, normalizePhone, OPTIONS, QUEUES, activeSql } from ".
 import { logEvent, resolveNotices } from "../events.js";
 import { afterSave, recomputeForApplicant } from "../match-store.js";
 import { MATCHES_SQL, matchCard } from "./matches.js";
-import { EXEMPT, EXPIRING, KEPT_UNTIL } from "../retention.js";
+import { NO_SALE, EXPIRING, KEPT_UNTIL } from "../retention.js";
+import { jerseyToday } from "../viewings.js";
 
 const STAGES = OPTIONS.stages.map(([v]) => v);
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
@@ -89,9 +90,9 @@ async function list({ request, env }) {
   if (stage && !STAGES.includes(stage)) fail(400, "Invalid stage");
   if (queue && !QUEUES.includes(queue)) fail(400, "Invalid queue");
   // E8: Expiring lists the searches of the contacts deleted within a month, archived ones too (they go with them).
-  const ts = now(), expiring = p.get("expiring") === "1";
+  const today = jerseyToday(), expiring = p.get("expiring") === "1";
   const where = [expiring ? EXPIRING : p.get("archived") === "1" ? "a.archived_at IS NOT NULL" : "a.archived_at IS NULL"];
-  const args = expiring ? [ts, ts] : [];
+  const args = expiring ? [today] : [];
   if (operation) { where.push("a.operation = ?"); args.push(operation); }
   if (stage) { where.push("a.stage = ?"); args.push(stage); }
   if (assigned) { where.push("a.assigned_to = ?"); args.push(assigned); }
@@ -113,12 +114,13 @@ async function list({ request, env }) {
        WHERE ${where.join(" AND ")})
      SELECT id, operation, stage, lost_reason, created_at, assigned_to, assigned_name, name, phone, email, ${QUEUE} AS queue,
        found, shortlisted, expires_on, archived_at FROM listed ${queue ? `WHERE ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
-    .bind(ts, ts, ...args, ...(queue ? [queue] : [])).all();
+    .bind(today, ...args, ...(queue ? [queue] : [])).all();
   return json({ applicants: results });
 }
 
-// E9: the day the contact's 12 months end, or none when a sale keeps it (E3).
-const RETENTION_SQL = `SELECT ${KEPT_UNTIL} AS kept_until, NOT ${EXEMPT} AS exempt FROM contacts c WHERE c.id = ?`;
+// E9: the day the contact's 12 months end, or none when a sale keeps it (E3). An open offer keeps it too, but only while
+// open, and each change to it restarts the 12 months: the line shows that date.
+const RETENTION_SQL = `SELECT ${KEPT_UNTIL} AS kept_until, NOT ${NO_SALE} AS exempt FROM contacts c WHERE c.id = ?`;
 const keptFor = r => ({ kept_until: r.exempt ? null : r.kept_until, exempt: !!r.exempt });
 
 async function detail({ env, params: [id] }) {

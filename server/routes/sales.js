@@ -117,6 +117,9 @@ async function change(env, admin, cur, set, from, type, data) {
     env.DB.prepare(`UPDATE offers SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ?
       WHERE id = ? AND status IN (${from.map(() => "?").join(", ")})`).bind(...Object.values(set), ts, admin, cur.id, ...from),
     ...buyerEvent(env, { admin, data: { offer_id: cur.id, listing_id: cur.listing_id } }, cur.applicant_id, type, data, true),
+    // G2: activity on the buyer. After the event, so its changes() says the offer changed (a 409 restarts nothing).
+    env.DB.prepare(`UPDATE contacts SET last_activity_at = ? WHERE id = (SELECT contact_id FROM applicants WHERE id = ?)
+      AND changes() = 1`).bind(ts, cur.applicant_id),
   ]);
   if (!res.meta.changes) fail(409, NOT_OPEN);
   return json({ offer: await loadOffer(env, cur.id) });

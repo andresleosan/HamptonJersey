@@ -11,7 +11,7 @@ const {execFileSync} = require("node:child_process");
 const {readFileSync} = require("node:fs");
 const BASE = process.env.BASE || "http://localhost:8788/";
 const SHOTS = process.argv[2];
-const shot = (page, name) => SHOTS && page.screenshot({path: `${SHOTS}/${name}.png`, fullPage: true});
+const shot = (page, name, o) => SHOTS && page.screenshot({path: `${SHOTS}/${name}.png`, fullPage: true, ...o});
 const secret = readFileSync(".dev.vars", "utf8").match(/^SESSION_SECRET=(.+)$/m)[1].trim();
 const d1 = sql => execFileSync("npx", ["wrangler", "d1", "execute", "hampton", "--local", "--persist-to", ".wrangler/e2e", "--json", "--command", sql], {encoding: "utf8"});
 
@@ -574,7 +574,8 @@ async function retention(page, phone) {
   await page.waitForFunction(b => !document.querySelector(b), badge);
   await page.getByRole("tab", {name: "Timeline"}).click();
   await page.locator("#panel-timeline strong", {hasText: "Conversation logged"}).waitFor();
-  await shot(page, "admin-applicant-conversation");
+  // The Timeline tab's transition would be caught halfway.
+  await shot(page, "admin-applicant-conversation", {animations: "disabled"});
   await page.goto(BASE + "admin/#/applicants");
   await page.getByRole("group", {name: "List"}).getByRole("button", {name: "Expiring"}).click();
   await page.getByText("No applicants are due for deletion in the next month.").waitFor();

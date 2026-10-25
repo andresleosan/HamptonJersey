@@ -3,7 +3,7 @@ import { normalizePhone, activeSql } from "../applicants.js";
 import { salesCount } from "./sales.js";
 import { refreshRentalsCount } from "./rent.js";
 import { jerseyToday } from "../viewings.js";
-import { claimRetentionDay, runRetention, EXPIRING } from "../retention.js";
+import { claimRetentionDay, runRetention, recordRetentionDay, EXPIRING } from "../retention.js";
 
 const BOXES = {
   action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id",
@@ -34,21 +34,34 @@ function link({ category, entity_type, entity_id, search_id }) {
 
 // sales (V10), rentals (R16, cached: P16) and expiring contacts (E8) are their screens' own counts, not part of action.
 async function openCounts(env) {
-  const ts = now();
   const [{ results }, { results: [sales] }, , , { results: [rentals] }, { results: [expiring] }] = await env.DB.batch([env.DB.prepare(
     "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category"),
   salesCount(env), ...refreshRentalsCount(env),
   env.DB.prepare("SELECT json_extract(value, '$.n') AS n FROM app_settings WHERE key = 'rentals_count'"),
-  env.DB.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${EXPIRING}`).bind(ts, ts)]);
+  // ponytail: rows read per poll ≈ 1 + 3 × the contacts in the band (each one's search, sale and open-offer lookups);
+  // past ~100 contacts in it, cache the count like rentals_count.
+  env.DB.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${EXPIRING}`).bind(jerseyToday())]);
   const by = Object.fromEntries(CATEGORIES.map(c => [c, results.find(r => r.category === c)?.n ?? 0]));
   return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by, sales: sales.n, rentals: rentals.n,
     expiring: expiring.n };
 }
 
-async function list({ request, env }) {
+// E6: the panel polls the counts every 30 s, and the Inbox its list; the first poll of each Jersey day claims the
+// retention pass (a failed one again, up to 3 attempts), which runs after the answer (the claim too, so the poll waits
+// for neither). A failed pass is logged and stays not done for the next claim.
+function retentionPass(env, waitUntil) {
+  const ts = now(), day = jerseyToday(new Date(ts));
+  waitUntil(claimRetentionDay(env, day)
+    .then(won => won && runRetention(env, ts)
+      .then(r => recordRetentionDay(env, day, r).then(() => console.log("Retention pass", r))))
+    .catch(e => console.error("Retention pass failed", e)));
+}
+
+async function list({ request, env, waitUntil }) {
   const q = new URL(request.url).searchParams, box = q.get("box"), category = q.get("category");
   if (!Object.hasOwn(BOXES, box ?? "")) fail(400, "Invalid box");
   if (category && !CATEGORIES.includes(category)) fail(400, "Invalid category");
+  retentionPass(env, waitUntil);
   const { results } = await env.DB.prepare(`${LIST_SQL} WHERE ${category ? "n.category = ? AND " : ""}${BOXES[box]}`)
     .bind(...(category ? [category] : [])).all();
   const notifications = results.map(({ raw_phone, search_id, ...n }) =>
@@ -56,13 +69,8 @@ async function list({ request, env }) {
   return json({ notifications, counts: await openCounts(env) });
 }
 
-// E6: the panel polls this every 30 s; the first poll of each Jersey day claims the retention pass, which runs
-// after the answer (the claim too, so the poll waits for neither). A failed pass is logged; the next day's catches up.
 async function counts({ env, waitUntil }) {
-  const ts = now();
-  waitUntil(claimRetentionDay(env, jerseyToday(new Date(ts)))
-    .then(won => won && runRetention(env, ts).then(r => console.log("Retention pass", r)))
-    .catch(e => console.error("Retention pass failed", e)));
+  retentionPass(env, waitUntil);
   return json(await openCounts(env));
 }
 
