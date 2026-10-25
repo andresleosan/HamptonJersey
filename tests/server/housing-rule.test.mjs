@@ -78,7 +78,10 @@ test("J5: an applicant without a status, by the listing's category and restricti
   for (const status of [null, "not_sure"]) for (const [l, result, evidence] of J5) {
     for (const tenure of [null, "freehold", "share_transfer"]) {
       const h = housing({ housing_status: status }, { ...l, tenure_type: tenure });
-      assert.deepEqual([h.shown, h.result, h.evidence, h.pass], [result !== undefined, result, evidence, true],
+      // A Royal Court purchase of a Registered home says nothing without the buyer's status (Standard cannot buy).
+      const court = l.housing_category === "registered" && !l.restriction && tenure !== "share_transfer";
+      assert.deepEqual([h.shown, h.result, h.evidence, h.pass],
+        court ? [false, undefined, undefined, true] : [result !== undefined, result, evidence, true],
         `buy ${status} · ${tenure} · ${JSON.stringify(l)}`);
     }
     const h = housing({ operation: "rent", housing_status: status }, { ...l, operation: "rent" });

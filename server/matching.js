@@ -90,8 +90,11 @@ function housing(a, l) {
   const restriction = l.restriction === "first_time_buyer" && a.operation === "rent" ? null : l.restriction;
   let base;
   if (s == null || s === "not_sure") {
-    if (category == null && restriction == null) return null;
-    base = NO_STATUS[category] ?? MEETS;
+    // Registered opens the home to every status, not a purchase before the Royal Court (Standard cannot buy): there
+    // the category says nothing without the buyer's status.
+    const open = category === "registered" && a.operation !== "rent" && l.tenure_type !== "share_transfer" ? null : category;
+    if (open == null && restriction == null) return null;
+    base = NO_STATUS[open] ?? MEETS;
   } else {
     const row = a.operation === "rent" ? RENT[category ?? "none"]
       : BUY[l.tenure_type == null ? "noTenure" : l.tenure_type !== "share_transfer" ? "court" : `share_${category ?? "none"}`];
