@@ -57,7 +57,8 @@ async function list({ request, env }) {
 // after the answer (the claim too, so the poll waits for neither). A failed pass is logged; the next day's catches up.
 async function counts({ env, waitUntil }) {
   const ts = now();
-  waitUntil(claimRetentionDay(env, jerseyToday(new Date(ts))).then(won => won && runRetention(env, ts))
+  waitUntil(claimRetentionDay(env, jerseyToday(new Date(ts)))
+    .then(won => won && runRetention(env, ts).then(r => console.log("Retention pass", r)))
     .catch(e => console.error("Retention pass failed", e)));
   return json(await openCounts(env));
 }
