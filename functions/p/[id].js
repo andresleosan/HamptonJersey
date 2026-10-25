@@ -21,9 +21,9 @@ export async function onRequestGet({ request, env, params }) {
   const body = new HTMLRewriter()
     .on(HOME_TAGS, { element: e => e.remove() })
     .on("title", { element: e => { if (page.title) e.setInnerContent(page.title); } })
-    // S7: the base of the links the page shares, from this deployment's SITE_URL.
-    .on('meta[name="site-url"]', { element: e => e.setAttribute("content", page.siteUrl) })
-    .on("head", { element: e => e.append(page.head, { html: true }) })
+    // S7: the base of the links the page shares, from this deployment's SITE_URL. The listing's tags go right after it,
+    // near the top of <head>: some preview robots read only the first bytes, and the inline CSS below is ~28 KB.
+    .on('meta[name="site-url"]', { element: e => { e.setAttribute("content", page.siteUrl); e.after(page.head, { html: true }); } })
     .transform(html).body;
   page.headers.set("content-type", "text/html; charset=utf-8");
   return new Response(body, { status: page.status, headers: page.headers });
