@@ -119,6 +119,8 @@ export default function ListingEditor({ id }) {
         <span key={d}>{i ? ", " : ""}<a href={`#/p/${d}`}>{d}</a></span>)} according to the research.</p>}
       <nav aria-label="Listing sections">{SECTIONS.filter(([k]) => forSale || k !== "offers").map(([k, t]) =>
         <button key={k} type="button" className="linkish" onClick={() => document.getElementById(`s-${k}`).scrollIntoView({ behavior: "smooth" })}>{t}</button>)}</nav>
+      {/* O1: the owner's printable report, 30 days by default. */}
+      <a className="btn ghost sm" href={`#/listings/${encodeURIComponent(l.id)}/report?days=30`}>Owner report</a>
       <a href="#/listings">← Back to listings</a>
     </aside>
 

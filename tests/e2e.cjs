@@ -529,6 +529,7 @@ async function admin(browser) {
   await property(page, phone, noSideScroll);
   await bankImport(page, phone, noSideScroll);
   await retention(page, phone);
+  await ownerReport(page, phone, noSideScroll);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -536,6 +537,67 @@ async function admin(browser) {
   await shot(page, "admin-users");
   assert.deepEqual(page.errors, []);
   await ctx.close();
+}
+
+// Owner report (O1-O9, O11): from Le Bernage's editor, 30 days by default. 7 days hold the seed's views of three days
+// and a day ago and this run's, and the seed's viewing three days ago with its feedback note; the -5 days bound keeps
+// clear of the UTC/Jersey date edge. Notes off takes them out of the page, not just out of sight.
+async function ownerReport(page, phone, noSideScroll) {
+  const {jerseyToday, plusDays} = await import("../server/viewings.js");
+  const {fmtDayMonth} = await import("../admin/src/format.js");
+  const views7 = JSON.parse(d1(`SELECT COALESCE(SUM(n), 0) AS n FROM daily_stats WHERE metric = 'view' AND listing_id = 'HE-R001'
+    AND day >= date('now','-5 day')`))[0].results[0].n;
+  const NOTE = "Wants a second viewing with their partner";
+  await page.goto(BASE + "admin/#/p/HE-R001");
+  await page.waitForSelector("#f-title");
+  await page.getByRole("link", {name: "Owner report"}).click();
+  await page.waitForFunction(() => location.hash === "#/listings/HE-R001/report?days=30");
+  const report = page.locator("#owner-report");
+  await report.waitFor();
+  assert.equal(await page.textContent(".seg button[aria-pressed=true]"), "30 days", "30 days by default");
+  await page.getByRole("button", {name: "7 days", exact: true}).click();
+  await page.waitForFunction(() => location.hash.endsWith("?days=7"));
+  await report.locator(".report-facts", {hasText: "(7 days)"}).waitFor(); // the 30 days' report stays until then
+  const to = jerseyToday(), head = await report.locator(".report-head").textContent();
+  for (const t of ["Hampton Estates", "42 Bath Street, St Helier, Jersey JE2 4ST", "01534 727582", "Le Bernage", "£779,000", "Ref. HE-R001",
+    `${fmtDayMonth(plusDays(to, -6))} to ${fmtDayMonth(to)} (7 days)`]) assert.ok(head.includes(t), `the header shows ${t}`);
+  const figure = label => report.locator(".report-figures div", {has: page.locator(`dt:text-is("${label}")`)}).locator("dd").textContent();
+  assert.ok(views7 >= 20, "the seed's views and this run's");
+  assert.equal(await figure("Page views"), views7.toLocaleString("en-GB"));
+  assert.equal(await report.locator(".views-chart .colbar").count(), 7, "a bar a day");
+  assert.equal(await page.locator(".views-chart table.sr tbody tr").count(), 7, "the same days in a table for screen readers");
+  const said = report.locator(".feedback li", {hasText: NOTE});
+  assert.match(await said.textContent(), /Wants to proceed/);
+  assert.match(await report.textContent(), /No open offers, and none made in these 7 days\.[\s\S]*No sale agreed yet\./);
+  // Prepared for and Notes from Hampton print with the report; nothing typed is saved.
+  await page.getByLabel("Prepared for (optional)").fill("Mr and Mrs Example");
+  await page.getByLabel("Notes from Hampton (optional)").fill("Strong interest this week.");
+  await report.getByText("Mr and Mrs Example").waitFor();
+  await report.getByText("Strong interest this week.").waitFor();
+  await shot(page, "admin-owner-report", {animations: "disabled"});
+  await page.emulateMedia({media: "print"});
+  for (const sel of ["header.bar", "#report-form", ".owner-report .seg", "button:has-text('Print')", "a:has-text('Back to listing')"])
+    assert.ok(await page.locator(sel).isHidden(), `${sel} is not printed`);
+  assert.ok(await report.isVisible() && await said.isVisible());
+  assert.ok(await page.$$eval(".views-chart .colbar", bs => bs.some(b => b.offsetHeight > 0 && getComputedStyle(b).backgroundColor === "rgb(0, 0, 0)")),
+    "the chart's bars print in black");
+  await shot(page, "admin-owner-report-print", {animations: "disabled"});
+  await page.emulateMedia({media: "screen"});
+  await page.getByLabel("Include feedback notes").uncheck();
+  await said.waitFor({state: "detached"});
+  assert.ok(!(await page.content()).includes(NOTE), "no feedback note anywhere in the page");
+  assert.match(await report.locator(".feedback").textContent(), /Wants to proceed/, "the outcome stays");
+  // A rental has no Offers or Sale blocks; the flow's HE-R050, completed above, reads as sold.
+  await page.goto(BASE + "admin/#/listings/HE-R002/report?days=30");
+  await page.waitForSelector("#owner-report[aria-busy=false]");
+  assert.match(await report.textContent(), /Trinity rental[\s\S]*Viewings/);
+  assert.equal(await page.locator("#h-offers, #h-sale").count(), 0, "no Offers or Sale block for a rental");
+  await page.goto(BASE + "admin/#/listings/HE-R050/report?days=90");
+  await page.waitForSelector("#owner-report[aria-busy=false]");
+  assert.match(await report.locator(".report-block", {has: page.locator("#h-sale")}).textContent(), /Sold · agreed £[\d,]+ · completed \d{1,2} \w{3} \d{4}/);
+  await noSideScroll(BASE + "admin/#/listings/HE-R001/report?days=90", "#owner-report");
+  assert.equal(await phone.locator(".views-chart .colbar").count(), 13, "a bar a week");
+  await shot(phone, "admin-owner-report-mobile", {animations: "disabled"});
 }
 
 // G2 (E8, E9): the seed's Rachel Le Cornu, last active 11.5 months ago, shows in the bar's Applicants count and under

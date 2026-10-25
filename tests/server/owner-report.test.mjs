@@ -133,7 +133,7 @@ test("owner report: web, viewings, demand, offers and sale of a listing for sale
     { n: 4, created_at: "2026-10-17T23:30:00.000Z", amount: 945000, status: "accepted", counter_amount: null },
     { n: 5, created_at: "2026-10-20T10:00:00.000Z", amount: 920000, status: "countered", counter_amount: 940000 },
   ]);
-  assert.deepEqual(data.sale, { agreed_price: 945000, status: "in_progress",
+  assert.deepEqual(data.sale, { agreed_price: 945000, status: "in_progress", completed_on: null,
     milestones: [{ key: "lawyers", label: "Lawyers instructed", done_on: "2026-10-19" },
       { key: "due_diligence", label: "Housing status and due diligence checked", done_on: "2026-10-21" }],
     next: { key: "searches", label: "Searches (title, planning) back" } });
@@ -171,6 +171,26 @@ test("owner report: a rental has no offers or sale; a quiet listing reports zero
   assert.deepEqual(quiet.demand, { matched: 0, shortlisted: 0 });
   assert.deepEqual(quiet.offers, []);
   assert.equal(quiet.sale, null);
+});
+
+test("owner report: the sale in progress, else the latest completed one, never one that fell through", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: Date.parse(NOW) });
+  const env = world();
+  const sale = async () => (await get(env, "HE-S201", "?days=7")).data.sale;
+  const earlier = env.DB.raw.prepare("SELECT id, applicant_id FROM offers WHERE amount = 900000").get();
+  insert(env, "sales", { listing_id: "HE-S201", applicant_id: earlier.applicant_id, offer_id: earlier.id, price: 900000,
+    status: "completed", closed_at: "2026-10-10T10:00:00.000Z", created_at: "2026-10-06T10:00:00.000Z",
+    updated_at: "2026-10-10T10:00:00.000Z" });
+  assert.equal((await sale()).status, "in_progress", "the sale in progress comes first");
+  // Completed late on the 22nd UTC: the 23rd in Jersey (BST). Its steps stay; nothing is next.
+  run(env, "UPDATE sales SET status = 'completed', closed_at = '2026-10-22T23:30:00.000Z' WHERE status = 'in_progress'");
+  assert.deepEqual(await sale(), { agreed_price: 945000, status: "completed", completed_on: "2026-10-23",
+    milestones: [{ key: "lawyers", label: "Lawyers instructed", done_on: "2026-10-19" },
+      { key: "due_diligence", label: "Housing status and due diligence checked", done_on: "2026-10-21" }], next: null });
+  run(env, "UPDATE sales SET status = 'fallen_through', fell_through_reason = 'chain' WHERE price = 945000");
+  assert.deepEqual(await sale(), { agreed_price: 900000, status: "completed", completed_on: "2026-10-10", milestones: [], next: null });
+  run(env, "UPDATE sales SET status = 'fallen_through', fell_through_reason = 'chain' WHERE price = 900000");
+  assert.equal(await sale(), null);
 });
 
 test("owner report: no applicant, viewer, buyer or seller detail in the response (O6, O7, O8)", async t => {

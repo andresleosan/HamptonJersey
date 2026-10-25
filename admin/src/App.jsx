@@ -16,6 +16,7 @@ import Rentals, { Landlord, NewRental } from "./Rentals.jsx";
 import RentalDetail from "./RentalDetail.jsx";
 import RentImport from "./RentImport.jsx";
 import Statement from "./Statement.jsx";
+import OwnerReport from "./OwnerReport.jsx";
 import Insights from "./Insights.jsx";
 import Availability from "./Availability.jsx";
 import Users from "./Users.jsx";
@@ -93,6 +94,8 @@ export default function App() {
       ? <NewApplicant key={query ?? ""} contactId={new URLSearchParams(query).get("contact")} />
     : section === "applicants" && /^\d+$/.test(arg) ? <ApplicantDetail key={arg} id={arg} tab={sub} onChange={loadCounts} />
     : section === "applicants" ? <Applicants /> : section === "review" ? <Review />
+    : section === "listings" && arg && sub === "report"
+      ? <OwnerReport key={arg} id={decodeURIComponent(arg)} days={new URLSearchParams(query).get("days")} />
     : section === "listings" ? <Listings /> : section === "viewings"
       ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} />
     : section === "sales" && /^\d+$/.test(arg) ? <SaleDetail key={arg} id={arg} onChange={loadCounts} />

@@ -1,7 +1,7 @@
 import { json, fail } from "../http.js";
 import { activeSql } from "../applicants.js";
 import { milestoneLabel, nextMilestone } from "../sales.js";
-import { plusDays } from "../viewings.js";
+import { plusDays, jerseyToday } from "../viewings.js";
 import { jerseyDayStart } from "../insights.js";
 import { period } from "./insights.js";
 import { ID } from "./listings.js";
@@ -30,9 +30,11 @@ const DEMAND = `SELECT COUNT(*) AS matched, COALESCE(SUM(m.status = 'shortlisted
 const OFFERS = `SELECT n, created_at, amount, status, counter_amount FROM (SELECT created_at, amount, status, counter_amount,
     ROW_NUMBER() OVER (ORDER BY created_at, id) AS n FROM offers WHERE listing_id = ?)
   WHERE status IN ('pending', 'countered') OR created_at >= ? ORDER BY n`;
-const SALE = "SELECT id, price, status, route FROM sales WHERE listing_id = ? AND status = 'in_progress'";
-const STEPS = `SELECT m.key, m.done_on, m.not_needed FROM sale_milestones m JOIN sales s ON s.id = m.sale_id
-  WHERE s.listing_id = ? AND s.status = 'in_progress'`;
+// The sale in progress, else the latest completed one (its status tells which): a sold listing still reports its sale.
+const LATEST_SALE = `SELECT id FROM sales WHERE listing_id = ? AND status IN ('in_progress', 'completed')
+  ORDER BY status = 'in_progress' DESC, closed_at DESC, id DESC LIMIT 1`;
+const SALE = `SELECT price, status, route, closed_at FROM sales WHERE id = (${LATEST_SALE})`;
+const STEPS = `SELECT key, done_on, not_needed FROM sale_milestones WHERE sale_id = (${LATEST_SALE})`;
 
 const METRIC = { view: "views", photos: "photos", tour: "tour" };
 const zero = () => ({ views: 0, photos: 0, tour: 0 });
@@ -67,10 +69,11 @@ async function report({ request, env, params: [id] }) {
     viewings: { ...viewings, feedback },
     demand,
     offers: forSale ? offers : null,
-    // O8: the steps done, with their dates, and the next one.
+    // O8: the steps done, with their dates, and the next one while the sale is in progress.
     sale: forSale && sale ? { agreed_price: sale.price, status: sale.status,
+      completed_on: sale.status === "completed" ? jerseyToday(new Date(sale.closed_at)) : null,
       milestones: ordered.filter(m => m.done_on).map(m => ({ key: m.key, label: milestoneLabel(m.key, sale.route), done_on: m.done_on })),
-      next: next && { key: next.key, label: milestoneLabel(next.key, sale.route) } } : null,
+      next: sale.status === "in_progress" && next ? { key: next.key, label: milestoneLabel(next.key, sale.route) } : null } : null,
   });
 }
 

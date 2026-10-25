@@ -371,7 +371,52 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .lines th{text-align:left;font-weight:400;padding:6px 12px 6px 0} .lines td{text-align:right;white-space:nowrap;vertical-align:top;padding:6px 0}
 .lines caption{text-align:left;font-family:var(--display);font-size:16px;padding-bottom:4px}
 .lines .net{border-bottom:0} .lines .net th,.lines .net td{font-weight:600}
+/* Owner report: an A4-width card that reads like a letter (firm, listing, period), then one block per subject with its
+   figures, a single-colour bar chart (values over the bars, recessive baseline and ticks) and short neutral sentences. */
+.owner-report .screen-note{margin:-4px 0 4px}
+.report-form{display:grid;gap:12px;max-width:820px;margin:8px 0 16px}
+.report-form input{max-width:420px} .notes-choice{display:grid;gap:6px;justify-items:start} .notes-choice .check{min-height:32px;font-size:14px}
+.owner-report article{max-width:820px;padding:40px;display:grid;gap:0} .owner-report article[aria-busy=true]{opacity:.5;transition:opacity .2s}
+.owner-report article p{margin:0 0 8px} .owner-report article .muted{margin-bottom:12px}
+.report-head{display:grid;gap:4px;padding-bottom:24px}
+.report-head .firm{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;align-items:baseline;padding-bottom:16px;margin-bottom:24px;border-bottom:1px solid var(--ink)}
+.report-head .firm-name{font:400 18px/1.2 var(--display);letter-spacing:.14em;text-transform:uppercase;margin:0}
+.report-head address{font-style:normal;font-size:12px;color:var(--stone);text-align:right}
+.owner-report .eyebrow{font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--stone);margin:0}
+.report-head h2{font-size:30px;line-height:1.15;margin:4px 0;overflow-wrap:anywhere}
+.report-sub{font-size:15px} .report-sub .price{font:400 20px var(--display);color:var(--bronze-dk)}
+.report-facts{display:flex;flex-wrap:wrap;gap:8px 32px;margin:12px 0 0}
+.report-facts dt,.report-figures dt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)} .report-facts dd{margin:0}
+.report-block{border-top:1px solid var(--line);padding:24px 0} .report-block h3{font-size:19px;margin:0 0 4px} .report-block h4{font:600 13px var(--body);margin:16px 0 8px}
+.report-figures{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:0 0 16px}
+.report-figures div{border-left:2px solid var(--line);padding-left:12px} .report-figures dd{margin:0;font:400 30px/1.25 var(--display)}
+.report-empty{color:var(--stone)} .report-lead{font-size:15px}
+.views-chart{margin:8px 0 16px} .views-chart figcaption{font-size:12px;font-weight:600;margin-bottom:12px}
+.views-chart .cols,.views-chart .ticks{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px}
+.views-chart .cols{height:150px;align-items:end;border-bottom:1px solid var(--stone)}
+.views-chart .col{display:grid;justify-items:center;gap:4px;font-size:11px;color:var(--stone)}
+.views-chart .colbar{display:block;width:100%;max-width:48px;height:calc(var(--h,0) * 120px);background:var(--ink);border-radius:4px 4px 0 0}
+.views-chart .ticks span{padding-top:6px;font-size:11px;color:var(--stone);text-align:center;white-space:nowrap}
+.feedback,.steps{list-style:none;margin:0;padding:0}
+.feedback li{display:grid;grid-template-columns:110px 1fr;gap:2px 16px;padding:10px 0;border-bottom:1px solid var(--line)} .feedback li:last-child{border-bottom:0}
+.feedback .when,.steps .when{color:var(--stone);font-size:13px} .feedback .outcome{font-weight:600}
+.feedback .note{grid-column:2;margin:0;color:var(--ink);overflow-wrap:anywhere}
+.steps li{display:flex;justify-content:space-between;gap:16px;padding:6px 0;border-bottom:1px solid var(--line)}
+.report-offers{margin:4px 0} .report-offers th[scope=col]{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone);font-weight:400}
+.report-offers td{text-align:left} .report-offers th[scope=row]{vertical-align:top} .report-offers td.num,.report-offers th.num{text-align:right;padding-right:24px}
+.report-offers .counter{display:block;font-size:12px;color:var(--stone);margin-top:4px}
+.report-notes{white-space:pre-line;overflow-wrap:anywhere} .report-foot{border-top:1px solid var(--line);padding-top:16px;margin:0!important}
+@media (max-width:760px){.owner-report article{padding:20px}.report-figures{grid-template-columns:1fr 1fr}.report-head address{text-align:left}
+  .feedback li{grid-template-columns:1fr}.feedback .note{grid-column:1}}
+@media (max-width:480px){.views-chart .cols.many{gap:3px}.views-chart .ticks.many{gap:3px}.views-chart .ticks.many span:nth-child(even){visibility:hidden}
+  .views-chart .cols.many .num{font-size:9px}}
 /* Printing (the statement): only the page's content, black on white, without the bar, buttons or form controls. */
 @media print{*{color:#000!important;background:transparent!important;box-shadow:none!important}
   .bar,.btn,button,form,input,select,textarea{display:none!important}
-  .page{max-width:none;padding:0} .card{border:0;padding:0} .lines tr{border-color:#999}}
+  .page{max-width:none;padding:0} .card{border:0;padding:0} .lines tr{border-color:#999}
+  /* The owner report: only its card, unfaded, blocks kept whole, the chart's bars in black. */
+  .owner-report>.head,.owner-report .seg,.owner-report .screen-note{display:none!important}
+  .owner-report article{max-width:none;padding:0;opacity:1!important} .page>section{animation:none}
+  .report-block,.report-head,.views-chart,.feedback li,.steps li{break-inside:avoid} .report-block h3{break-after:avoid}
+  .views-chart .colbar{background:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .report-head .firm{border-color:#000} .report-block,.report-foot{border-color:#999}}
