@@ -69,7 +69,8 @@ export default function Applicants() {
         <th scope="col">Stage</th><th scope="col">Queue</th><th scope="col">Matches</th><th scope="col">Assigned to</th></tr></thead>
       <tbody>{shown.map(a => <tr key={a.id}>
         <td><a href={`#/applicants/${a.id}`}>{a.name}</a>{a.expires_on
-          && <> <span className="badge attention">Deletes {fmtDayMonth(a.expires_on, false)}</span></>}<div className="muted">{OPERATION_LABEL[a.operation]}{a.email && ` · ${a.email}`}</div></td>
+          && <> <span className="badge attention">Kept until {fmtDayMonth(a.expires_on, false)}</span></>}{list === "expiring"
+          && a.archived_at && <> <span className="badge neutral">Archived</span></>}<div className="muted">{OPERATION_LABEL[a.operation]}{a.email && ` · ${a.email}`}</div></td>
         <td className="num" data-label="Phone">{a.phone || "—"}</td>
         <td className="muted" data-label="Applied"><time dateTime={a.created_at}>{fmtDate(a.created_at)}</time></td>
         {/* On phones a lost reason takes its own row, so it never squeezes the name. */}

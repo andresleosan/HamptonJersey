@@ -297,3 +297,16 @@ test("Log conversation: signed out 401, cross-origin 403, unknown contact 404", 
   assert.equal(count(env, "events"), 0);
   assert.equal(row(env, "SELECT last_activity_at FROM contacts WHERE id = ?", c).last_activity_at, "2025-11-10T09:00:00.000Z");
 });
+
+test("a sale on one of two searches keeps the contact out of Expiring", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: NOW25 });
+  const env = world(), cookie = await cookieFor();
+  await claimRetentionDay(env, "2026-10-25");
+  const c = contact(env, "2025-11-10T09:00:00.000Z");
+  const plain = applicant(env, c, { operation: "rent" }), sold = applicant(env, c);
+  sale(env, sold, "fallen_through");
+  assert.equal((await counts(env)).expiring, 0);
+  assert.deepEqual((await call(env, "GET", "/admin/applicants?expiring=1", { cookie })).data.applicants, []);
+  const all = (await call(env, "GET", "/admin/applicants", { cookie })).data.applicants;
+  assert.deepEqual(all.map(x => [x.id, x.expires_on]).sort(), [[plain, null], [sold, null]]);
+});

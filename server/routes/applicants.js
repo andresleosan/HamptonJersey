@@ -106,13 +106,13 @@ async function list({ request, env }) {
   // ponytail: no paging; the team has hundreds of applicants, not tens of thousands.
   const { results } = await env.DB.prepare(
     // Materialized: each listed applicant's counts are read once, not once per use in QUEUE.
-    `WITH listed AS MATERIALIZED (SELECT a.id, a.operation, a.stage, a.lost_reason, a.created_at, a.assigned_to,
+    `WITH listed AS MATERIALIZED (SELECT a.id, a.operation, a.stage, a.lost_reason, a.created_at, a.archived_at, a.assigned_to,
        ad.name AS assigned_name, c.name, c.phone, c.email, ${MATCH_COUNTS},
        CASE WHEN ${EXPIRING} THEN ${KEPT_UNTIL} END AS expires_on
        FROM applicants a JOIN contacts c ON c.id = a.contact_id LEFT JOIN admins ad ON ad.email = a.assigned_to
        WHERE ${where.join(" AND ")})
      SELECT id, operation, stage, lost_reason, created_at, assigned_to, assigned_name, name, phone, email, ${QUEUE} AS queue,
-       found, shortlisted, expires_on FROM listed ${queue ? `WHERE ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
+       found, shortlisted, expires_on, archived_at FROM listed ${queue ? `WHERE ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
     .bind(ts, ts, ...args, ...(queue ? [queue] : [])).all();
   return json({ applicants: results });
 }

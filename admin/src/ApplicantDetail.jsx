@@ -145,7 +145,9 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     setData(x => ({ ...x, ...saved }));
     const d = await api(`/admin/applicants/${id}`);
     // A new stage can close or reopen the search, which recomputes its matches.
-    setData(x => ({ ...x, events: d.events, viewings: d.viewings, duplicates: d.duplicates, matches: d.matches }));
+    setData(x => ({ ...x, events: d.events, viewings: d.viewings, duplicates: d.duplicates, matches: d.matches,
+      retention: d.retention }));
+    onChange?.(); // the save restarted the contact's 12 months: the bar's expiring count may drop
   };
   // Stage and Assigned to save on their own; unsaved requirements stay in the form. Input while saving is ignored,
   // never disabled, so the focus stays where it is.
@@ -277,7 +279,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
         {tel && <a className="btn ghost sm" href={`tel:${tel}`}>Call</a>}
         {tel && <a className="btn ghost sm" href={`https://wa.me/${tel.slice(1)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
         {c.email && <a className="btn ghost sm" href={`mailto:${c.email}`}>Email</a>}
-        <button type="button" className="btn ghost sm" onClick={logConversation}>Log conversation</button>
+        <button type="button" className="btn ghost sm" disabled={busy} onClick={logConversation}>Log conversation</button>
         <a href="#/applicants">← Back to applicants</a>
       </div>
     </div>

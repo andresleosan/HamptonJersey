@@ -554,7 +554,7 @@ async function retention(page, phone) {
   await page.getByRole("group", {name: "List"}).getByRole("button", {name: "Expiring"}).click();
   await page.waitForFunction(() => document.querySelectorAll("table.applicants tbody tr").length === 1
     && document.querySelector("table.applicants tbody tr").textContent.includes("Rachel Le Cornu"));
-  assert.equal(await page.textContent("table.applicants tbody tr .badge.attention"), `Deletes ${day(before, false)}`);
+  assert.equal(await page.textContent("table.applicants tbody tr .badge.attention"), `Kept until ${day(before, false)}`);
   await shot(page, "admin-applicants-expiring");
   await phone.goto(BASE + "admin/#/applicants");
   await phone.getByRole("group", {name: "List"}).getByRole("button", {name: "Expiring"}).click();
