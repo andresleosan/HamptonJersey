@@ -14,7 +14,7 @@ const listing = (o = {}) => ({ operation: "sale", sale_price: null, rent: null, 
 const housing = (a, l) => {
   const r = evaluate(applicant(a), listing(l));
   const c = r.checks.find(x => x.key === "housing");
-  return { result: c.result, evidence: c.evidence, pass: r.pass, score: r.score };
+  return { shown: !!c, result: c?.result, evidence: c?.evidence, pass: r.pass, score: r.score };
 };
 
 const M = "meets", U = "unknown", F = "fails";
@@ -54,26 +54,55 @@ test("§3 evidence: short, says the case, no advice", () => {
   const rent = (s, category) => housing({ operation: "rent", housing_status: s }, { operation: "rent", housing_category: category });
   assert.deepEqual([rent("licensed_lease_only", "qualified").evidence, rent("standard", "qualified").evidence,
     rent("entitled_work_only", null).evidence, rent("entitled", "qualified").evidence],
-  ["Qualified: lease under 9 years", "Qualified: needs Entitled or Licensed status", "Housing category not given", null]);
+  ["Qualified: lease under 9 years", "Qualified: not open to Entitled for Work Only or Standard status", "Housing category not given", null]);
   const buy = (s, tenure, category = null) => housing({ housing_status: s }, { tenure_type: tenure, housing_category: category }).evidence;
-  assert.equal(buy("licensed_lease_only", "freehold"), "Buys only jointly with an Entitled or Licensed partner");
+  assert.equal(buy("licensed_lease_only", "freehold"), "Buys only jointly with an Entitled or fully Licensed partner");
   assert.equal(buy("standard", "flying_freehold"), "Standard status cannot buy through the Royal Court");
   assert.equal(buy("standard", null), "Tenure not given");
   assert.equal(buy("entitled_work_only", "share_transfer", "qualified"), "Qualified: occupies only with an eligible partner");
-  assert.equal(buy("standard", "share_transfer", "qualified"), "Qualified: needs Entitled or Licensed status");
+  assert.equal(buy("standard", "share_transfer", "qualified"), "Qualified: not open to Entitled for Work Only or Standard status");
   assert.equal(buy("standard", "share_transfer"), "Housing category not given");
 });
 
-test("J5: an applicant without a status is Unknown, whatever the house", () => {
-  for (const status of [null, "not_sure"]) {
-    for (const l of [{ tenure_type: "share_transfer", housing_category: "registered" }, { tenure_type: "freehold" }, {}]) {
-      const h = housing({ housing_status: status }, l);
-      assert.deepEqual([h.result, h.evidence, h.pass], [U, "Housing status not given", true], `${status} · ${JSON.stringify(l)}`);
+test("J5: an applicant without a status, by the listing's category and restriction", () => {
+  const QUALIFIED = "Qualified: housing status not given";
+  // [listing, result, evidence]; the same for buyers (with the listing's tenure) and renters.
+  const J5 = [
+    [{}, undefined, undefined], // neither category nor restriction: no housing check at all
+    [{ housing_category: "registered" }, M, "Registered: open to all"],
+    [{ housing_category: "qualified" }, U, QUALIFIED],
+    [{ restriction: "over_55" }, U, "Over 55s only: check age"],
+    [{ housing_category: "registered", restriction: "over_55" }, U, "Over 55s only: check age"],
+    [{ housing_category: "qualified", restriction: "over_55" }, U, `${QUALIFIED}; Over 55s only: check age`],
+  ];
+  for (const status of [null, "not_sure"]) for (const [l, result, evidence] of J5) {
+    for (const tenure of [null, "freehold", "share_transfer"]) {
+      const h = housing({ housing_status: status }, { ...l, tenure_type: tenure });
+      assert.deepEqual([h.shown, h.result, h.evidence, h.pass], [result !== undefined, result, evidence, true],
+        `buy ${status} · ${tenure} · ${JSON.stringify(l)}`);
     }
-    for (const category of ["registered", "qualified", null])
-      assert.deepEqual(housing({ operation: "rent", housing_status: status }, { operation: "rent", housing_category: category })
-        .result, U);
+    const h = housing({ operation: "rent", housing_status: status }, { ...l, operation: "rent" });
+    assert.deepEqual([h.shown, h.result, h.evidence, h.pass], [result !== undefined, result, evidence, true],
+      `rent ${status} · ${JSON.stringify(l)}`);
   }
+  // A buyer's first-time restriction still reads their position.
+  const ftb = (l, position) => housing({ buyer_position: position }, { ...l, restriction: "first_time_buyer" });
+  for (const l of [{}, { housing_category: "registered" }])
+    assert.deepEqual([ftb(l, null).result, ftb(l, null).evidence], [U, "First-time buyers only"], JSON.stringify(l));
+  assert.deepEqual([ftb({}, "cash").result, ftb({}, "cash").evidence, ftb({}, "cash").pass], [F, "First-time buyers only", false]);
+  assert.deepEqual([ftb({ housing_category: "qualified" }, "cash").result, ftb({ housing_category: "qualified" }, "cash").evidence],
+    [F, "First-time buyers only"]);
+});
+
+test("the first-time buyer restriction only concerns buyers", () => {
+  const rent = (s, category) => housing({ operation: "rent", housing_status: s, buyer_position: null },
+    { operation: "rent", housing_category: category, restriction: "first_time_buyer" });
+  assert.deepEqual([rent("entitled_work_only", "registered").result, rent("entitled_work_only", "registered").evidence],
+    [M, null]);
+  assert.equal(rent("licensed", "qualified").result, M);
+  assert.deepEqual([rent("standard", null).result, rent("standard", null).evidence], [U, "Housing category not given"]);
+  assert.equal(rent(null, null).shown, false); // for a renter the listing says nothing
+  assert.deepEqual([rent(null, "registered").result, rent(null, "registered").evidence], [M, "Registered: open to all"]);
 });
 
 test("§3 restriction first-time buyers: Entitled status and a first-time buyer", () => {
@@ -114,21 +143,23 @@ test("§3 restrictions combine with the status rule: the worst wins", () => {
   const lease = h("licensed_lease_only", { tenure_type: "freehold", restriction: "first_time_buyer" });
   assert.deepEqual([lease.result, lease.evidence], [F, "First-time buyers only: needs Entitled status"]);
   const std = h("standard", { tenure_type: "share_transfer", housing_category: "qualified", restriction: "over_55" });
-  assert.deepEqual([std.result, std.evidence], [F, "Qualified: needs Entitled or Licensed status"]);
+  assert.deepEqual([std.result, std.evidence], [F, "Qualified: not open to Entitled for Work Only or Standard status"]);
   // Two failing parts both say why; two unknown parts too.
   const both = h("standard", { tenure_type: "freehold", restriction: "first_time_buyer" });
   assert.deepEqual([both.result, both.evidence],
     [F, "Standard status cannot buy through the Royal Court; First-time buyers only: needs Entitled status"]);
-  const unsure = h(null, { tenure_type: "freehold", restriction: "over_55" });
-  assert.deepEqual([unsure.result, unsure.evidence], [U, "Housing status not given; Over 55s only: check age"]);
+  const unsure = h(null, { tenure_type: "freehold", housing_category: "qualified", restriction: "over_55" });
+  assert.deepEqual([unsure.result, unsure.evidence], [U, "Qualified: housing status not given; Over 55s only: check age"]);
   // Meets with Meets stays Meets.
   assert.equal(h("entitled", { tenure_type: "freehold", restriction: "first_time_buyer" }, "first_time").result, M);
 });
 
 test("J4: the housing check scores nothing", () => {
-  const free = housing({ housing_status: "entitled" }, { tenure_type: "freehold" });
-  const unknown = housing({ housing_status: null }, { tenure_type: "freehold" });
-  const fails = housing({ housing_status: "standard" }, { tenure_type: "freehold" });
+  const l = { tenure_type: "freehold", housing_category: "qualified" };
+  const free = housing({ housing_status: "entitled" }, l);
+  const unknown = housing({ housing_status: null }, l);
+  const fails = housing({ housing_status: "standard" }, l);
+  assert.deepEqual([free.result, unknown.result, fails.result], [M, U, F]);
   assert.equal(free.score, unknown.score);
   assert.equal(free.score, fails.score);
 });

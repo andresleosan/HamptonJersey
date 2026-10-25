@@ -74,7 +74,7 @@ test("first run creates found matches, one event and one notice", async () => {
   const [m] = matches(env, id);
   assert.equal(m.created_at, m.updated_at);
   assert.ok(m.score >= 35 && m.score <= 100);
-  assert.deepEqual(JSON.parse(m.checks).map(c => c.key), ["budget", "bedrooms", "bathrooms", "area", "housing"]);
+  assert.deepEqual(JSON.parse(m.checks).map(c => c.key), ["budget", "bedrooms", "bathrooms", "area"]);
 
   const [e, ...moreEvents] = matchedEvents(env, id);
   assert.equal(moreEvents.length, 0);
