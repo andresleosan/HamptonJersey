@@ -34,6 +34,26 @@ const review = (env, applicantId, listingId, status, reason = null) => run(env,
   "UPDATE matches SET status = ?, reject_reason = ? WHERE applicant_id = ? AND listing_id = ?",
   status, reason, applicantId, listingId);
 
+test("J4: the housing rule reads the listing's Jersey fields and the applicant's status as stored", async () => {
+  const env = makeEnv();
+  const std = seedApplicant(env, "Ana Le Gros", { housing_status: "standard" });
+  listing(env, "HE-R001", { tenure_type: "share_transfer", housing_category: "qualified" });
+  listing(env, "HE-R002", { tenure_type: "share_transfer", housing_category: "registered" });
+  await recomputeForApplicant(env, std, ADMIN);
+  assert.deepEqual(found(env, std), ["HE-R002"]);
+  // A listing saved as Qualified loses the match, like any other hard filter that starts failing.
+  run(env, "UPDATE listings SET housing_category = 'qualified' WHERE id = 'HE-R002'");
+  await recomputeForListing(env, "HE-R002", ADMIN);
+  assert.deepEqual(found(env, std), []);
+  // The first-time buyer restriction reads the buyer's position.
+  const cash = seedApplicant(env, "Tom Vibert", { housing_status: "entitled", buyer_position: "cash" });
+  listing(env, "HE-R003", { tenure_type: "freehold", restriction: "first_time_buyer" });
+  await recomputeForApplicant(env, cash, ADMIN);
+  assert.deepEqual(found(env, cash), ["HE-R001", "HE-R002"]);
+  const [m] = matches(env, cash);
+  assert.deepEqual(JSON.parse(m.checks).find(c => c.key === "housing"), { key: "housing", result: "meets", evidence: null });
+});
+
 test("first run creates found matches, one event and one notice", async () => {
   const env = makeEnv();
   const id = seedApplicant(env);
@@ -54,7 +74,7 @@ test("first run creates found matches, one event and one notice", async () => {
   const [m] = matches(env, id);
   assert.equal(m.created_at, m.updated_at);
   assert.ok(m.score >= 35 && m.score <= 100);
-  assert.deepEqual(JSON.parse(m.checks).map(c => c.key), ["budget", "bedrooms", "bathrooms", "area"]);
+  assert.deepEqual(JSON.parse(m.checks).map(c => c.key), ["budget", "bedrooms", "bathrooms", "area", "housing"]);
 
   const [e, ...moreEvents] = matchedEvents(env, id);
   assert.equal(moreEvents.length, 0);

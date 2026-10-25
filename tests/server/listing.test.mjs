@@ -45,6 +45,19 @@ test("featured rank: 1 to 99 or blank", () => {
   assert.equal(toPublic(L, []).featured, null);
 });
 
+test("J1: tenure type, housing category and restriction are closed lists; blank is unknown or none", () => {
+  const ok = { tenure_type: "flying_freehold", housing_category: "qualified", restriction: "over_55" };
+  assert.deepEqual(validateListing(ok, { partial: true }).value, ok);
+  assert.deepEqual(validateListing({ tenure_type: "", housing_category: null, restriction: " " }, { partial: true }).value,
+    { tenure_type: null, housing_category: null, restriction: null });
+  const bad = validateListing({ tenure_type: "Freehold", housing_category: "social", restriction: "none" }, { partial: true });
+  assert.deepEqual(bad.errors, { tenure_type: "Invalid value (freehold, flying_freehold, share_transfer, leasehold)",
+    housing_category: "Invalid value (qualified, registered)", restriction: "Invalid value (first_time_buyer, over_55)" });
+  // The old free text is still saved as it was.
+  assert.equal(validateListing({ tenure: " Freehold / share transfer " }, { partial: true }).value.tenure,
+    "Freehold / share transfer");
+});
+
 test("non-object bodies are treated as empty", () => {
   assert.ok(validateListing(null).errors.title);
   assert.ok(validateListing([1, 2]).errors.title);
@@ -84,4 +97,9 @@ test("toPublic keeps the shape index.html expects", () => {
   assert.deepEqual(p.description, ["Line one", "Line two"]);
   assert.deepEqual(p.specs, []);
   assert.ok(!JSON.stringify(p).includes("A3"));
+  assert.deepEqual([p.tenure, p.tenureType, p.housingCategory, p.restriction], [null, null, null, null]);
+  const j = toPublic({ ...L, tenure: "Freehold", tenure_type: "share_transfer", housing_category: "registered",
+    restriction: "first_time_buyer" }, []);
+  assert.deepEqual([j.tenure, j.tenureType, j.housingCategory, j.restriction],
+    ["Freehold", "share_transfer", "registered", "first_time_buyer"]);
 });

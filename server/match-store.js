@@ -13,11 +13,12 @@ const LISTING_OPERATION = { rent: "rent", buy: "sale" };
 
 // Only the columns evaluate() reads (never the listing's text: B10), plus whether the listing is a candidate.
 const LISTING = `id, operation, archived_at, bedrooms, bathrooms, parish, published, sale_price, rent, rent_period,
-  feat_pets, feat_parking, feat_furnished, feat_outdoor, feat_type, feat_evidence, (${CANDIDATES_SQL}) AS candidate`;
+  feat_pets, feat_parking, feat_furnished, feat_outdoor, feat_type, feat_evidence, tenure_type, housing_category, restriction,
+  (${CANDIDATES_SQL}) AS candidate`;
 // The applicant's search as evaluate() reads it, whether it is active, and the contact's name for the notice.
 const APPLICANT = `a.id, a.archived_at, a.stage, a.operation, a.budget_min, a.budget_max, a.budget_stretch,
   a.property_types, a.bedrooms_min, a.bedrooms_ideal, a.bathrooms_min, a.parking_spaces, a.outdoor, a.furnished, a.pets,
-  a.parishes_wanted, a.parishes_excluded, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id`;
+  a.parishes_wanted, a.parishes_excluded, a.housing_status, a.buyer_position, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id`;
 
 // The applicant's open matched notice; notices find their applicant through their event, so the lookup starts from the
 // applicant's events (events_entity, then notifications_event), never from every open notice: CROSS JOIN keeps that

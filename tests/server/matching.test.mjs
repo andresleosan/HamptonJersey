@@ -61,16 +61,18 @@ test("unknown never excludes", () => {
   const r = evaluate(a, listing({ operation: "rent" }));
   assert.equal(r.pass, true);
   assert.deepEqual(r.checks.map(c => c.key),
-    ["budget", "bedrooms", "bathrooms", "area", "pets", "parking", "furnished", "outdoor", "type"]);
-  for (const c of r.checks) assert.deepEqual(c, { key: c.key, result: "unknown", evidence: null });
+    ["budget", "bedrooms", "bathrooms", "area", "housing", "pets", "parking", "furnished", "outdoor", "type"]);
+  for (const c of r.checks) assert.deepEqual(c, { key: c.key, result: "unknown",
+    evidence: c.key === "housing" ? "Housing status not given" : null });
   // A rent with no period is not guessed at.
   assert.equal(monthlyRent(listing({ operation: "rent", rent: 24000 })), null);
   assert.equal(evaluate(a, listing({ operation: "rent", rent: 24000 })).pass, true);
-  // An applicant who asks for nothing gets only the four checks every match shows.
-  assert.deepEqual(evaluate(applicant(), listing()).checks.map(c => c.key), ["budget", "bedrooms", "bathrooms", "area"]);
+  // An applicant who asks for nothing gets only the five checks every match shows.
+  const always = ["budget", "bedrooms", "bathrooms", "area", "housing"];
+  assert.deepEqual(evaluate(applicant(), listing()).checks.map(c => c.key), always);
   // Parking 0 is "none", furnished "either" is no preference, and a buyer is never asked about furniture.
   assert.deepEqual(evaluate(applicant({ parking_spaces: 0, furnished: "either", pets: json([{ kind: "none" }]) }),
-    listing()).checks.map(c => c.key), ["budget", "bedrooms", "bathrooms", "area"]);
+    listing()).checks.map(c => c.key), always);
   // Text that never says a feature is Unknown, not Fails: a garden when a balcony is asked, one space when two are.
   const feats = evaluate(applicant({ outdoor: json(["balcony"]), parking_spaces: 2 }),
     listing({ feat_outdoor: json(["garden"]), feat_parking: 1, feat_evidence: json({ outdoor: "Large garden",
@@ -98,7 +100,7 @@ test("yearly rent is compared per month", () => {
 test("score follows the spec weights", () => {
   const a = applicant({ operation: "rent", budget_min: 1800, budget_max: 2200, bedrooms_ideal: 3,
     parishes_wanted: json(["St Helier", "St Saviour"]), outdoor: json(["garden"]), property_types: json(["house"]),
-    furnished: "yes" });
+    furnished: "yes", housing_status: "entitled" });
   const best = listing({ operation: "rent", rent: 2000, rent_period: "month", bedrooms: 3, bathrooms: 2, parish: "St Helier",
     feat_outdoor: json(["garden", "terrace"]), feat_type: "house", feat_furnished: "yes", published: 1 });
   const r = evaluate(a, best);

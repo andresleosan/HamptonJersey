@@ -42,6 +42,61 @@ function budget(a, l) {
   return { result: "meets", evidence, points: inBand ? POINTS.priceInBand : POINTS.priceBelowBand };
 }
 
+// J4: who may rent or buy the house under the Control of Housing and Work Law, from the applicant's declared status and
+// the listing's category, tenure and restriction: the tables of spec §3, the only copy of this rule. Source: gov.je,
+// "Control of Housing and Work (CHW) Law: housing guidance" and "Residential and employment statuses", read 2026-10-25.
+// Each cell is [result, evidence]; evidence describes the case, it never advises.
+const ENTITLED = ["permanent_entitled", "entitled"];
+const QUALIFIED_NEEDS = "Qualified: needs Entitled or Licensed status";
+const NO_CATEGORY = ["unknown", "Housing category not given"];
+const NO_TENURE = ["unknown", "Tenure not given"];
+const JOINTLY = ["unknown", "Buys only jointly with an Entitled or Licensed partner"];
+const MEETS = ["meets", null];
+const RENT = { // by category, then status; a status not named falls to the row's "other"
+  registered: { other: MEETS },
+  qualified: { licensed_lease_only: ["meets", "Qualified: lease under 9 years"],
+    entitled_work_only: ["fails", QUALIFIED_NEEDS], standard: ["fails", QUALIFIED_NEEDS], other: MEETS },
+  none: { entitled_work_only: NO_CATEGORY, standard: NO_CATEGORY, other: MEETS },
+};
+const BUY = { // "court": a sale through the Royal Court (freehold, flying freehold, leasehold)
+  court: { licensed_lease_only: JOINTLY, entitled_work_only: JOINTLY,
+    standard: ["fails", "Standard status cannot buy through the Royal Court"], other: MEETS },
+  noTenure: { licensed_lease_only: NO_TENURE, entitled_work_only: NO_TENURE, standard: NO_TENURE, other: MEETS },
+  share_registered: { other: MEETS },
+  share_qualified: { entitled_work_only: ["unknown", "Qualified: occupies only with an eligible partner"],
+    standard: ["fails", QUALIFIED_NEEDS], other: MEETS },
+  share_none: { entitled_work_only: NO_CATEGORY, standard: NO_CATEGORY, other: MEETS },
+};
+const WORST = { meets: 0, unknown: 1, fails: 2 };
+
+// The restriction's cell; first-time buyer schemes need Entitled status (spec §3 «Restricciones»).
+function restricted(a, l) {
+  if (l.restriction === "over_55") return ["unknown", "Over 55s only: check age"];
+  if (l.restriction !== "first_time_buyer") return MEETS;
+  const s = a.housing_status, position = a.buyer_position;
+  if (["licensed", "licensed_lease_only", "entitled_work_only", "standard"].includes(s))
+    return ["fails", "First-time buyers only: needs Entitled status"];
+  if (position != null && position !== "first_time") return ["fails", "First-time buyers only"];
+  return ENTITLED.includes(s) && position === "first_time" ? MEETS : ["unknown", "First-time buyers only"];
+}
+
+// Worst wins; the evidence of every part with that result, joined.
+function housing(a, l) {
+  const s = a.housing_status;
+  let base; // J5: no status said is Unknown, whatever the house
+  if (s == null || s === "not_sure") base = ["unknown", "Housing status not given"];
+  else {
+    const row = a.operation === "rent" ? RENT[l.housing_category ?? "none"]
+      : BUY[l.tenure_type == null ? "noTenure" : l.tenure_type !== "share_transfer" ? "court"
+        : `share_${l.housing_category ?? "none"}`];
+    base = row[s] ?? row.other;
+  }
+  const parts = [base, restricted(a, l)];
+  const result = parts.reduce((w, [r]) => (WORST[r] > WORST[w] ? r : w), "meets");
+  const evidence = parts.filter(([r, e]) => r === result && e).map(([, e]) => e).join("; ");
+  return { result, evidence: evidence || null };
+}
+
 const atLeast = (value, min, word) => (value == null ? { result: "unknown", evidence: null }
   : { result: min != null && value < min ? "fails" : "meets", evidence: count(value, word) });
 
@@ -81,6 +136,10 @@ export function evaluate(a, l) {
     add("area", ok ? "meets" : "fails", l.parish);
     if (ok) score += POINTS.area;
   }
+
+  // J4: a filter only, it scores nothing.
+  const home = housing(a, l);
+  add("housing", home.result, home.evidence, true);
 
   // A pet owner never gets a listing that says no pets; one that does not say passes.
   if (list(a.pets).some(p => p.kind !== "none"))

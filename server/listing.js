@@ -8,6 +8,10 @@ export const ENUMS = {
   rent_period: ["month", "year"],
   currency: ["GBP", "EUR"],
   parish: OPTIONS.parishes.map(([p]) => p), // blank = unknown
+  // J1 (migrations/0015_jersey_fields.sql): blank = unknown; for restriction, blank = none.
+  tenure_type: ["freehold", "flying_freehold", "share_transfer", "leasehold"],
+  housing_category: ["qualified", "registered"],
+  restriction: ["first_time_buyer", "over_55"],
 };
 const TEXT = { title: 200, property_type: 100, country: 100, location: 200, road_name: 200, tenure: 100,
   price_text: 200, summary: 5000, description: 20000, tour_url: 500 };
@@ -94,6 +98,7 @@ export function toPublic(l, media) {
     place: l.location || l.country || "", type: l.property_type, use: l.use, operation: l.operation,
     currency: l.currency, salePrice: l.sale_price, rent: l.rent, rentPeriod: l.rent_period, premium: l.premium,
     priceText: l.price_text, beds: l.bedrooms, baths: l.bathrooms, tenure: l.tenure,
+    tenureType: l.tenure_type ?? null, housingCategory: l.housing_category ?? null, restriction: l.restriction ?? null,
     summary: lines(l.summary), description: lines(l.description),
     image: cover ? src(cover) : null, thumb: cover ? src(cover, true) : null,
     photos: photos.map(m => ({ src: src(m), thumb: src(m, true), alt: alt(m, l.title) })),

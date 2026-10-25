@@ -503,3 +503,22 @@ test("0013: a charge is unique per tenancy, due date and kind; an import hash on
   assert.deepEqual(["charges", "arrears_steps", "rent_changes", "compliance_items", "payments"].map(t => count(db, t)),
     [0, 0, 0, 0, 1]);
 });
+
+test("0015: tenure type carried over from the three exact old texts only; the new columns are closed lists", () => {
+  const { db, apply } = migratedUpTo("0015");
+  const old = { "HE-R001": "Freehold", "HE-R002": " flying FREEHOLD ", "HE-R003": "Share Transfer",
+    "HE-R004": "Freehold / share transfer", "HE-R005": "Leasehold", "HE-R006": null, "HE-R007": "freeholds" };
+  for (const [id, tenure] of Object.entries(old)) addRow(db, "listings", { id, use: "residential", title: "Le Bernage",
+    operation: "sale", availability: "for_sale", tenure, published: 0, specs: "[]", created_at: T0, updated_at: T0,
+    updated_by: "import" });
+  apply();
+  const rows = db.prepare("SELECT id, tenure, tenure_type, housing_category, restriction FROM listings ORDER BY id").all();
+  assert.deepEqual(rows.map(r => r.tenure_type),
+    ["freehold", "flying_freehold", "share_transfer", null, null, null, null]);
+  assert.deepEqual(rows.map(r => r.tenure), Object.values(old)); // the old text is kept as it was
+  assert.ok(rows.every(r => r.housing_category === null && r.restriction === null));
+  for (const [col, value] of [["tenure_type", "Freehold"], ["housing_category", "social"], ["restriction", "none"]])
+    assert.throws(() => db.prepare(`UPDATE listings SET ${col} = ? WHERE id = 'HE-R001'`).run(value), /CHECK/, col);
+  db.prepare(`UPDATE listings SET tenure_type = 'leasehold', housing_category = 'registered', restriction = 'over_55'
+    WHERE id = 'HE-R001'`).run();
+});

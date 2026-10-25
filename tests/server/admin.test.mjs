@@ -69,6 +69,23 @@ test("update: validates, ignores locked fields, and refuses stale saves with 409
   assert.equal((await call(env, "PUT", "/admin/listings/HE-R001", { cookie, body: { title: "x" } })).status, 400);
 });
 
+test("J1: update saves tenure type, housing category and restriction, and refuses values outside their lists", async () => {
+  const { env, cookie } = await world();
+  const bad = await call(env, "PUT", "/admin/listings/HE-R001", { cookie,
+    body: { housing_category: "social", tenure_type: "freehold", updated_at: T0 } });
+  assert.equal(bad.status, 400);
+  assert.deepEqual(bad.data.fields, { housing_category: "Invalid value (qualified, registered)" });
+  const ok = await call(env, "PUT", "/admin/listings/HE-R001", { cookie,
+    body: { tenure_type: "share_transfer", housing_category: "qualified", restriction: "first_time_buyer", updated_at: T0 } });
+  assert.equal(ok.status, 200);
+  const l = ok.data.listing;
+  assert.deepEqual([l.tenure_type, l.housing_category, l.restriction], ["share_transfer", "qualified", "first_time_buyer"]);
+  const cleared = await call(env, "PUT", "/admin/listings/HE-R001", { cookie,
+    body: { restriction: null, updated_at: l.updated_at } });
+  assert.equal(cleared.data.listing.restriction, null);
+  assert.equal(cleared.data.listing.housing_category, "qualified");
+});
+
 test("a listing at its maximum lengths, in multi-byte text, is not refused as too large", async () => {
   const { env, cookie } = await world();
   const body = { description: "£".repeat(20000), summary: "£".repeat(5000), updated_at: T0 };
