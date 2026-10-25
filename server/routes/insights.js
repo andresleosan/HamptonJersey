@@ -47,11 +47,17 @@ const WEB_VIEWINGS = `SELECT v.created_at, (SELECT MIN(e.at) FROM events e WHERE
   FROM viewing_requests v WHERE v.created_at >= ?
     AND EXISTS (SELECT 1 FROM events e WHERE ${OF_VIEWING} AND e.type = 'viewing.requested' AND e.actor = 'public')`;
 
-// I5, I12: the period ends today in Jersey and includes it; one batch, counts and medians only.
-async function insights({ request, env }) {
+// I5: 7, 30 or 90 days (30 by default) that end today in Jersey and include it. Shared with the owner report (O2).
+export function period(request) {
   const days = new URL(request.url).searchParams.get("days") ?? "30";
   if (!DAYS.includes(days)) fail(400, "Choose 7, 30 or 90 days");
-  const to = jerseyToday(), from = plusDays(to, 1 - Number(days)), since = jerseyDayStart(from);
+  const to = jerseyToday();
+  return { days: Number(days), from: plusDays(to, 1 - Number(days)), to };
+}
+
+// I12: one batch, counts and medians only.
+async function insights({ request, env }) {
+  const { days, from, to } = period(request), since = jerseyDayStart(from);
   const [[totals], active, available, viewed, cohort, webViewings] = await env.DB.batch([
     env.DB.prepare(TOTALS).bind(from, to, since, from, to),
     env.DB.prepare(DEMAND),
@@ -62,7 +68,7 @@ async function insights({ request, env }) {
   ]).then(r => r.map(x => x.results));
   const counts = funnel(cohort);
   return json({
-    period: { days: Number(days), from, to },
+    period: { days, from, to },
     totals: { views: totals.views, viewing_requests: totals.viewing_requests, new_applicants: counts.registered,
       viewings_completed: totals.viewings_completed },
     demand: groupDemand(active, available),

@@ -225,7 +225,7 @@ export const salesCount = env => env.DB.prepare(`SELECT (SELECT COUNT(*) FROM sa
   + (SELECT COUNT(*) FROM offers o WHERE ${WAITING}) AS n`).bind(jerseyToday(), waitingCutoff());
 
 // V8 order: sale_milestones is keyed by (sale_id, key), so a plain read comes back by key.
-const inOrder = rows => MILESTONES.map(([k]) => rows.find(m => m.key === k)).filter(Boolean);
+export const inOrder = rows => MILESTONES.map(([k]) => rows.find(m => m.key === k)).filter(Boolean);
 // A step as the panel shows it; only a sale in progress has overdue steps (V9).
 const step = (m, sale, today) => ({ key: m.key, label: milestoneLabel(m.key, sale.route), planned_on: m.planned_on,
   done_on: m.done_on, not_needed: !!m.not_needed, note: m.note, overdue: sale.status === "in_progress" && isOverdue(m, today) });

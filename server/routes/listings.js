@@ -4,7 +4,7 @@ import { extractFeatures } from "../listing-features.js";
 import { afterSave, recomputeForListing } from "../match-store.js";
 import { jerseyNow, plusDays } from "../viewings.js";
 
-const ID = "(HE-[A-Z]\\d{3,})";
+export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
 export const COVER_ID = `COALESCE(l.cover_media_id, (SELECT cm.id FROM media cm WHERE cm.listing_id = l.id
   AND cm.kind = 'photo' AND cm.r2_key IS NOT NULL ORDER BY cm.position LIMIT 1))`;
