@@ -403,20 +403,22 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .feedback .note{grid-column:2;margin:0;color:var(--ink);overflow-wrap:anywhere}
 .steps li{display:flex;justify-content:space-between;gap:16px;padding:6px 0;border-bottom:1px solid var(--line)}
 .report-offers{margin:4px 0} .report-offers th[scope=col]{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone);font-weight:400}
-.report-offers td{text-align:left} .report-offers th[scope=row]{vertical-align:top} .report-offers td.num,.report-offers th.num{text-align:right;padding-right:24px}
+.report-offers td{text-align:left;white-space:normal} .report-offers th[scope=row]{vertical-align:top;white-space:nowrap} .report-offers td.num,.report-offers th.num{text-align:right;padding-right:24px;white-space:nowrap}
 .report-offers .counter{display:block;font-size:12px;color:var(--stone);margin-top:4px}
 .report-notes{white-space:pre-line;overflow-wrap:anywhere} .report-foot{border-top:1px solid var(--line);padding-top:16px;margin:0!important}
-@media (max-width:760px){.owner-report article{padding:20px}.report-figures{grid-template-columns:1fr 1fr}.report-head address{text-align:left}
+@media (max-width:760px){.owner-report article{padding:20px}.report-offers td.num,.report-offers th.num{padding-right:12px}.report-figures{grid-template-columns:1fr 1fr}.report-head address{text-align:left}
   .feedback li{grid-template-columns:1fr}.feedback .note{grid-column:1}}
 @media (max-width:480px){.views-chart .cols.many{gap:3px}.views-chart .ticks.many{gap:3px}.views-chart .ticks.many span:nth-child(even){visibility:hidden}
   .views-chart .cols.many .num{font-size:9px}}
+/* The owner report prints on its own named A4 page; the Statement keeps the browser's page settings. */
+@page owner-report{size:A4;margin:16mm}
 /* Printing (the statement): only the page's content, black on white, without the bar, buttons or form controls. */
 @media print{*{color:#000!important;background:transparent!important;box-shadow:none!important}
   .bar,.btn,button,form,input,select,textarea{display:none!important}
   .page{max-width:none;padding:0} .card{border:0;padding:0} .lines tr{border-color:#999}
   /* The owner report: only its card, unfaded, blocks kept whole, the chart's bars in black. */
   .owner-report>.head,.owner-report .seg,.owner-report .screen-note{display:none!important}
-  .owner-report article{max-width:none;padding:0;opacity:1!important} .page>section{animation:none}
+  .owner-report{page:owner-report} .owner-report article{max-width:none;padding:0;opacity:1!important} .page>section{animation:none}
   .report-block,.report-head,.views-chart,.feedback li,.steps li{break-inside:avoid} .report-block h3{break-after:avoid}
   .views-chart .colbar{background:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .report-head .firm{border-color:#000} .report-block,.report-foot{border-color:#999}}

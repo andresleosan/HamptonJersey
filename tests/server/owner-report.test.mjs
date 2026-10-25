@@ -39,6 +39,8 @@ function world() {
     rent: 1800, rent_period: "month", price_text: "£1,800 pcm" });
   seedListing(env, { id: "HE-S203", title: "Other House" });
   seedListing(env, { id: "HE-S204", title: "Quiet House" });
+  seedListing(env, { id: "HE-B205", title: "Harbour Café", use: "commercial", operation: "business", sale_price: null,
+    premium: 250000, price_text: "Premium on application" });
 
   // O4: before the 30 days (the first day), before the 7, on both edges, and another listing's.
   stat(env, "2026-09-01", "HE-S201", "view", 10);
@@ -107,7 +109,7 @@ test("owner report: web, viewings, demand, offers and sale of a listing for sale
   const { status, data } = await get(env, "HE-S201", "?days=7");
   assert.equal(status, 200);
   assert.deepEqual(data.listing, { id: "HE-S201", title: "Bay House", operation: "sale", availability: "under_offer",
-    price_text: null, sale_price: 950000, rent: null, rent_period: null, currency: "GBP" });
+    price_text: null, sale_price: 950000, rent: null, rent_period: null, premium: null, currency: "GBP" });
   assert.deepEqual(data.period, { days: 7, from: "2026-10-18", to: "2026-10-24" });
 
   const { by_day, since, ...web } = data.web;
@@ -153,7 +155,7 @@ test("owner report: 30 days by default widen every period count, not the totals 
   assert.deepEqual(data.offers.map(o => o.n), [2, 3, 4, 5]);
 });
 
-test("owner report: a rental has no offers or sale; a quiet listing reports zeros, never a crash", async t => {
+test("owner report: a rental or a business has no offers or sale; a quiet listing reports zeros, never a crash", async t => {
   t.mock.timers.enable({ apis: ["Date"], now: Date.parse(NOW) });
   const env = world();
   const rent = (await get(env, "HE-R202", "?days=7")).data;
@@ -162,6 +164,11 @@ test("owner report: a rental has no offers or sale; a quiet listing reports zero
   assert.equal(rent.listing.price_text, "£1,800 pcm");
   assert.equal(rent.web.views, 6);
   assert.equal(rent.viewings.upcoming, 1);
+
+  // A business: its premium, as the website prices it; offers and sales are for listings for sale only.
+  const business = (await get(env, "HE-B205", "?days=7")).data;
+  assert.deepEqual([business.listing.operation, business.listing.premium, business.listing.sale_price], ["business", 250000, null]);
+  assert.deepEqual([business.offers, business.sale], [null, null]);
 
   const quiet = (await get(env, "HE-S204", "?days=90")).data;
   assert.equal(quiet.web.by_day.length, 90);

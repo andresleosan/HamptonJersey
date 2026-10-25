@@ -8,7 +8,7 @@ import { ID } from "./listings.js";
 import { inOrder } from "./sales.js";
 
 // Every statement reads one listing and selects only counts, dates, amounts and the team's notes: never who (O6, O7, O8).
-const LISTING = `SELECT id, title, operation, availability, price_text, sale_price, rent, rent_period, currency
+const LISTING = `SELECT id, title, operation, availability, price_text, sale_price, rent, rent_period, premium, currency
   FROM listings WHERE id = ?`;
 // O4: all of the listing's days, summed below for the period and since the first one.
 const STATS = "SELECT day, metric, n FROM daily_stats WHERE listing_id = ? ORDER BY day";

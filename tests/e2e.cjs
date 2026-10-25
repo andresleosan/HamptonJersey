@@ -568,7 +568,7 @@ async function ownerReport(page, phone, noSideScroll) {
   assert.equal(await page.locator(".views-chart table.sr tbody tr").count(), 7, "the same days in a table for screen readers");
   const said = report.locator(".feedback li", {hasText: NOTE});
   assert.match(await said.textContent(), /Wants to proceed/);
-  assert.match(await report.textContent(), /No open offers, and none made in these 7 days\.[\s\S]*No sale agreed yet\./);
+  assert.match(await report.textContent(), /No open offers, and none made in the last 7 days\.[\s\S]*No sale agreed yet\./);
   // Prepared for and Notes from Hampton print with the report; nothing typed is saved.
   await page.getByLabel("Prepared for (optional)").fill("Mr and Mrs Example");
   await page.getByLabel("Notes from Hampton (optional)").fill("Strong interest this week.");
@@ -595,6 +595,19 @@ async function ownerReport(page, phone, noSideScroll) {
   await page.goto(BASE + "admin/#/listings/HE-R050/report?days=90");
   await page.waitForSelector("#owner-report[aria-busy=false]");
   assert.match(await report.locator(".report-block", {has: page.locator("#h-sale")}).textContent(), /Sold · agreed £[\d,]+ · completed \d{1,2} \w{3} \d{4}/);
+  // Any other period reads as 30 days and says so in the address, replacing the entry rather than adding one.
+  const entries = await page.evaluate(() => { location.hash = "#/listings/HE-R001/report?days=14"; return history.length; });
+  await page.waitForFunction(() => location.hash === "#/listings/HE-R001/report?days=30");
+  await report.locator(".report-facts", {hasText: "(30 days)"}).waitFor();
+  assert.equal(await page.evaluate(() => history.length), entries, "no extra history entry");
+  // A listing with no published amount reads as the website does.
+  await page.goto(BASE + "admin/#/listings/HE-C001/report?days=30");
+  await report.locator(".report-sub", {hasText: "Price not published"}).waitFor();
+  // Phones, down to 360px: no sideways scroll, a counter-offer's line included.
+  await phone.setViewportSize({width: 360, height: 780});
+  await noSideScroll(BASE + "admin/#/listings/HE-R050/report?days=90", "#owner-report");
+  assert.match(await phone.locator(".report-offers .counter").first().textContent(), /^Countered at £[\d,]+$/);
+  await phone.setViewportSize({width: 390, height: 844});
   await noSideScroll(BASE + "admin/#/listings/HE-R001/report?days=90", "#owner-report");
   assert.equal(await phone.locator(".views-chart .colbar").count(), 13, "a bar a week");
   await shot(phone, "admin-owner-report-mobile", {animations: "disabled"});

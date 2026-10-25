@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
-import { AVAILABILITY, priceText, fmtDayMonth } from "./format.js";
+import { AVAILABILITY, fmtDayMonth } from "./format.js";
 import { money, OfferBadge } from "./Sales.jsx";
 import { jerseyToday } from "../../server/viewings.js";
 
@@ -13,10 +13,21 @@ const OUTCOME = { proceed: "Wants to proceed", more_info: "Wants more informatio
 const n = v => v.toLocaleString("en-GB");
 const plural = (k, one, many = `${one}s`) => `${n(k)} ${k === 1 ? one : many}`;
 const day = d => fmtDayMonth(d); // "18 Oct 2026"
+// O3: the price as the website shows it (site/lib.js priceLabel): the amount of the listing's operation, else "Price not
+// published" (price_text is not used there either).
+const SYM = { GBP: "£", EUR: "€" };
+function price(l) {
+  const a = { sale: l.sale_price, rent: l.rent, business: l.premium }[l.operation] ?? null;
+  if (a == null) return "Price not published";
+  return (SYM[l.currency] ?? (l.currency ? `${l.currency} ` : "")) + Math.round(a).toLocaleString("en-GB")
+    + (l.operation === "rent" ? ({ month: " pcm", year: " p.a." }[l.rent_period] ?? "") : "");
+}
 const longDay = d => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
 export default function OwnerReport({ id, days }) {
-  const period = PERIODS.includes(Number(days)) ? Number(days) : 30;
+  const known = PERIODS.includes(Number(days)), period = known ? Number(days) : 30;
+  // Any other ?days= reads as 30 and says so in the address, without a new history entry (Back still leaves the page).
+  useEffect(() => { if (!known) location.replace(`#/listings/${encodeURIComponent(id)}/report?days=30`); }, [known, id]);
   const [data, setData] = useState(null), [error, setError] = useState(null), [busy, setBusy] = useState(true);
   const [attempt, setAttempt] = useState(0); // Retry reads the same period again
   const [preparedFor, setPreparedFor] = useState(""), [notes, setNotes] = useState(""), [withNotes, setWithNotes] = useState(true);
@@ -55,14 +66,15 @@ export default function OwnerReport({ id, days }) {
 
 function Report({ d, preparedFor, notes, withNotes }) {
   const { listing: l, period, web, viewings: v, demand, offers, sale } = d;
-  const these = `these ${period.days} days`, missed = v.cancelled + v.no_show;
+  const these = `the last ${period.days} days`, missed = v.cancelled + v.no_show;
   return <>
     <header className="report-head">
       <div className="firm"><p className="firm-name">Hampton Estates</p>
         <address>42 Bath Street, St Helier, Jersey JE2 4ST<br /><span className="num">01534 727582</span></address></div>
-      <p className="eyebrow">Report for the owner</p>
+      <p className="eyebrow">Property marketing report</p>
       <h2 id="h-report">{l.title}</h2>
-      <p className="report-sub"><span className="price">{priceText(l)}</span> · {AVAILABILITY[l.availability] ?? "—"} · Ref. {l.id}</p>
+      <p className="report-sub"><span className="price">{price(l)}</span>
+        {l.availability && l.availability !== "not_stated" && ` · ${AVAILABILITY[l.availability] ?? l.availability}`} · Ref. {l.id}</p>
       <dl className="report-facts">
         <div><dt>Period</dt><dd>{day(period.from)} to {day(period.to)} ({period.days} days)</dd></div>
         <div><dt>Prepared</dt><dd>{longDay(period.to)}</dd></div>
@@ -72,24 +84,24 @@ function Report({ d, preparedFor, notes, withNotes }) {
 
     <section className="report-block" aria-labelledby="h-web">
       <h3 id="h-web">On the website</h3>
-      <p className="muted">Times the listing's page, its full-screen gallery and its 3D tour were opened on Hampton's website
+      <p className="muted">Times the listing's page, its full-screen gallery and its 3D tour were opened on our website
         in {these}. Opens, not people.</p>
       {web.views + web.photos + web.tour ? <>
         <dl className="report-figures">{[["Page views", web.views], ["Gallery opens", web.photos], ["3D tour opens", web.tour]]
           .map(([t, x]) => <div key={t}><dt>{t}</dt><dd className="num">{n(x)}</dd></div>)}</dl>
         {web.views > 0 && <ViewsChart byDay={web.by_day} days={period.days} />}
       </> : <p className="report-empty">{web.since.first_day ? `No visits to this listing's page in ${these}.`
-        : "The website hasn't counted any visits to this listing yet."}</p>}
+        : "Our website hasn't recorded any visits to this listing yet."}</p>}
       {/* Counting started before the period: the totals since then; inside it: from when the figures count. */}
       {web.since.first_day && (web.since.first_day < period.from
-        ? <p className="muted">Since counting began on {day(web.since.first_day)}: {plural(web.since.views, "page view")},
+        ? <p className="muted">Since the first recorded visit on {day(web.since.first_day)}: {plural(web.since.views, "page view")},
           {" "}{plural(web.since.photos, "gallery open")} and {plural(web.since.tour, "3D tour open")}.</p>
-        : web.since.first_day > period.from && <p className="muted">The website began counting on {day(web.since.first_day)}.</p>)}
+        : web.since.first_day > period.from && <p className="muted">The first recorded visit was on {day(web.since.first_day)}.</p>)}
     </section>
 
     <section className="report-block" aria-labelledby="h-viewings">
       <h3 id="h-viewings">Viewings</h3>
-      <p className="muted">By the day of the viewing: those that took place in {these}, and those booked from today on.</p>
+      <p className="muted">Viewings held in {these}, and viewings booked from today.</p>
       {v.completed + v.upcoming + missed ? <dl className="report-figures">{[["Viewings held", v.completed], ["Booked from today", v.upcoming],
         ["Cancelled or missed", missed]].map(([t, x]) => <div key={t}><dt>{t}</dt><dd className="num">{n(x)}</dd></div>)}</dl>
         : <p className="report-empty">No viewings took place in {these}, and none are booked yet.</p>}
@@ -104,10 +116,11 @@ function Report({ d, preparedFor, notes, withNotes }) {
 
     <section className="report-block" aria-labelledby="h-demand">
       <h3 id="h-demand">Applicants looking</h3>
-      <p className="muted">Active applicants on Hampton's register whose search fits this property today.</p>
+      <p className="muted">Active applicants on our register whose search fits this property today.</p>
       <p className={demand.matched ? "report-lead" : "report-empty"}>{demand.matched
         ? <>{plural(demand.matched, "active applicant")} on our register {demand.matched === 1 ? "is" : "are"} looking for a
-          property like this{demand.shortlisted > 0 && `; ${n(demand.shortlisted)} of them shortlisted for it by our team`}.</>
+          property like this{demand.shortlisted > 0 && (demand.matched === 1 ? ", and our team has shortlisted them for it"
+            : `, and our team has shortlisted ${n(demand.shortlisted)} of them for it`)}.</>
         : "No active applicant on our register matches this property yet. New ones are matched as they register."}</p>
     </section>
 
@@ -142,7 +155,7 @@ function Report({ d, preparedFor, notes, withNotes }) {
       <p className="report-notes">{notes}</p>
     </section>}
 
-    <p className="muted report-foot">Prepared by Hampton Estates from its own records. Figures cover the period shown unless
+    <p className="muted report-foot">Prepared by Hampton Estates from our own records. Figures cover the period shown unless
       stated otherwise.</p>
   </>;
 }
