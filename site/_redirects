@@ -1,4 +1,5 @@
 # Old Wix URLs from the public sitemap of www.hamptonestatesjersey.com (plus 3 indexed legacy pages from Hampton_Database), read 2026-10-23
+# S10 (2026-10-25): listings have their own path, so their redirects go straight to /p/<id>.
 /properties /#portfolio 301
 /residential-properties /#portfolio 301
 /commercial-properties /#portfolio 301
@@ -9,23 +10,23 @@
 /enquiry-commercial /#book 301
 /enquiry-buying /#/apply 301
 /enquiry-renting /#/apply 301
-/commercial-properties/caf%C3%A9-and-accommodation /#/p/HE-C001 301
-/commercial-properties/newsagents-corner-shop- /#/p/HE-C002 301
-/commercial-properties/princess-garden---town-centre-restaurant /#/p/HE-C003 301
-/commercial-properties/casa-mia /#/p/HE-C004 301
+/commercial-properties/caf%C3%A9-and-accommodation /p/HE-C001 301
+/commercial-properties/newsagents-corner-shop- /p/HE-C002 301
+/commercial-properties/princess-garden---town-centre-restaurant /p/HE-C003 301
+/commercial-properties/casa-mia /p/HE-C004 301
 /commercial-properties/town-restaurant / 301
-/commercial-properties/corniche-apartments /#/p/HE-C006 301
-/commercial-properties/22-cleveland-road /#/p/HE-C007 301
-/commercial-properties/pension-kim-hostel /#/p/HE-C008 301
-/commercial-properties/retirement-sale /#/p/HE-C009 301
-/commercial-properties/33-la-colomberie /#/p/HE-C010 301
-/commercial-properties/5-6-peter-street /#/p/HE-C011 301
+/commercial-properties/corniche-apartments /p/HE-C006 301
+/commercial-properties/22-cleveland-road /p/HE-C007 301
+/commercial-properties/pension-kim-hostel /p/HE-C008 301
+/commercial-properties/retirement-sale /p/HE-C009 301
+/commercial-properties/33-la-colomberie /p/HE-C010 301
+/commercial-properties/5-6-peter-street /p/HE-C011 301
 /commercial-properties/sold---bar-cafe-in-historic-central-market / 301
-/commercial-properties/fully-equipped-cafe /#/p/HE-C013 301
-/commercial-properties/sid's-continental-takeaway /#/p/HE-C014 301
-/commercial-properties/sold---fish-%26-chip-takeaway /#/p/HE-C015 301
-/commercial-properties/funchal-paradise /#/p/HE-C016 301
-/commercial-properties/margarita-stores /#/p/HE-C017 301
+/commercial-properties/fully-equipped-cafe /p/HE-C013 301
+/commercial-properties/sid's-continental-takeaway /p/HE-C014 301
+/commercial-properties/sold---fish-%26-chip-takeaway /p/HE-C015 301
+/commercial-properties/funchal-paradise /p/HE-C016 301
+/commercial-properties/margarita-stores /p/HE-C017 301
 /commercial-properties/59-62-bath-street / 301
 /commercial-properties/turn-key-ready-salon-in-town-centre / 301
 /commercial-properties/beresford-market-restaurant / 301

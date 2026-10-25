@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
 import { makeEnv, seedListing, seedMedia } from "./helpers.mjs";
 import { listingMeta, headTags, listingPage, sitemapXml, robotsTxt } from "../../server/seo.js";
 import { onRequestGet as sitemap } from "../../functions/sitemap.xml.js";
@@ -34,6 +35,8 @@ test("description: the summary, trimmed at a word boundary to 160 characters", (
   assert.equal(listingMeta(P({ summary: ["Open viewing: Thursday 1 January, 10:30 to 12:00", "Garden"] }), SITE).description
     .startsWith("Open viewing"), false);
   assert.equal(listingMeta(P({ summary: [], description: ["A fine home."] }), SITE).description, "A fine home.");
+  // A line that already ends a sentence with "!" or "?" gets no extra period.
+  assert.equal(listingMeta(P({ summary: ["Must be seen!", "Why wait?", "Garden;"] }), SITE).description, "Must be seen! Why wait? Garden.");
 });
 
 test("canonical, image (thumbnail, S3) and alt are absolute from SITE_URL", () => {
@@ -109,6 +112,8 @@ test("listing page: missing, unpublished or archived is 404 + noindex, with no m
     assert.equal(r.status, 404, id);
     assert.equal(r.title, null);
     assert.equal(r.head, '<meta name="robots" content="noindex">');
+    // A listing published a minute later is not hidden behind a five-minute cache.
+    assert.equal(r.headers.get("cache-control"), "public, max-age=60", id);
   }
 });
 
@@ -130,4 +135,25 @@ test("GET /sitemap.xml lists only live listings; GET /robots.txt names it", asyn
   assert.equal(r.headers.get("content-type"), "text/plain; charset=utf-8");
   assert.equal(r.headers.get("x-robots-tag"), "noindex");
   assert.ok((await r.text()).includes(`Sitemap: ${SITE}/sitemap.xml`));
+});
+
+test("home page (S4): its static tags use wrangler.toml's SITE_URL and are the ones the listing page replaces", () => {
+  const read = f => readFileSync(new URL(`../../${f}`, import.meta.url), "utf8");
+  const site = read("wrangler.toml").match(/^SITE_URL = "(.+)"$/m)[1];
+  const html = read("site/index.html"), head = html.slice(0, html.indexOf("</head>"));
+  // A change of domain changes SITE_URL; the home page's absolute URLs must follow it.
+  for (const u of head.match(/https:\/\/[^"]*\.pages\.dev[^"]*/g))
+    assert.ok(u.startsWith(site + "/"), u);
+  assert.ok(head.includes(`<link rel="canonical" href="${site}/">`));
+  assert.ok(head.includes(`<meta property="og:image" content="${site}/og-image.jpg">`));
+  const ld = JSON.parse(head.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+  assert.equal(ld["@type"], "RealEstateAgent");
+  assert.equal(ld.url, site + "/");
+  assert.deepEqual(ld.address, { "@type": "PostalAddress", streetAddress: "42 Bath Street", addressLocality: "St Helier",
+    addressRegion: "Jersey", postalCode: "JE2 4ST", addressCountry: "JE" });
+  // Every metadata tag in the head is one functions/p/[id].js removes on a listing (its HOME_TAGS), so none is doubled.
+  const tags = head.match(/<(meta|link)\b[^>]*>/g).filter(t => !/charset|viewport|rel="(icon|apple-touch-icon|preconnect|stylesheet)"/.test(t));
+  const removed = /<meta name="(description|robots)"|<meta property="og:|<meta name="twitter:|<link rel="canonical"/;
+  assert.deepEqual(tags.filter(t => !removed.test(t)), []);
+  assert.match(read("functions/p/[id].js"), /meta\[name="description"\], meta\[name="robots"\], meta\[property\^="og:"\], meta\[name\^="twitter:"\], link\[rel="canonical"\]/);
 });

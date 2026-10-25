@@ -21,7 +21,7 @@ function clip(s, n = 160) {
 export function listingMeta(p, siteUrl) {
   const site = base(siteUrl), price = amount(p) == null ? null : priceLabel(p);
   const lines = liveSummary(p.summary, jerseyToday());
-  const text = lines.length ? lines.map(l => l.replace(/^[-•]\s*/, "").replace(/[.;:,]$/, "") + ".").join(" ") : p.description.join(" ");
+  const text = lines.length ? lines.map(l => l.replace(/^[-•]\s*/, "").replace(/[.;:,]$/, "").replace(/[^!?]$/, "$&.")).join(" ") : p.description.join(" ");
   const canonical = `${site}/p/${p.id}`;
   const photos = p.photos.map(x => site + x.src);
   const ld = {
@@ -74,7 +74,8 @@ export function seoHeaders(request, env, type) {
 export async function listingPage(request, env, id) {
   const [p] = /^HE-[A-Z]\d{3,}$/.test(id) ? await readPublic(env, id) : [];
   const headers = seoHeaders(request, env);
-  if (!p) return { status: 404, headers, title: null, head: '<meta name="robots" content="noindex">' };
+  // A short cache on the 404, so a listing published a minute later doesn't stay hidden for five.
+  if (!p) { headers.set("cache-control", "public, max-age=60"); return { status: 404, headers, title: null, head: '<meta name="robots" content="noindex">' }; }
   const m = listingMeta(p, env.SITE_URL);
   return { status: 200, headers, title: m.title, head: headTags(m) };
 }

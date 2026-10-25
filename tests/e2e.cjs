@@ -39,10 +39,10 @@ async function publicSite(browser) {
   const body = await page.textContent("body");
   for (const word of ["Demo", "demo", "Illustrative", "snapshot", "Matterport sample"]) assert.ok(!body.includes(word), `no "${word}" on the public site`);
   const hrefs = await page.$$eval("#grid .card", cs => cs.map(c => c.getAttribute("href")));
-  assert.ok(!hrefs.includes("#/p/HE-R003"), "drafts are not public");
+  assert.ok(!hrefs.includes("/p/HE-R003"), "drafts are not public");
   // Few listings: a showcase home (hero presents one property, every card shown, no search or filters).
-  assert.deepEqual([...hrefs].sort(), ["#/p/HE-C001", "#/p/HE-R001", "#/p/HE-R002", "#/p/HE-R018", "#/p/HE-R050"]);
-  assert.match(await page.textContent('#grid .card[href="#/p/HE-R002"] .price'), /£1,900 pcm/);
+  assert.deepEqual([...hrefs].sort(), ["/p/HE-C001", "/p/HE-R001", "/p/HE-R002", "/p/HE-R018", "/p/HE-R050"]);
+  assert.match(await page.textContent('#grid .card[href="/p/HE-R002"] .price'), /£1,900 pcm/);
   assert.equal(await page.$("#quick"), null, "no search form with few listings");
   assert.equal(await page.$("#tabs-region"), null, "no filter tabs with few listings");
   assert.match(await page.textContent(".hero h1"), /Le Bernage/);
@@ -60,9 +60,11 @@ async function publicSite(browser) {
   await shot(page, "home-tour");
 
   // I3: opening a listing counts a view; the counter answers 204 whether it counts or not.
+  // An old #/p/<id> link (here opened from the home page, so without a reload) moves to /p/<id> (S1).
   const counted = page.waitForResponse(r => r.url().endsWith("/api/stats"));
   await page.goto(BASE + "#/p/HE-R001");
   await page.waitForSelector(".summary h1");
+  await page.waitForFunction(() => location.pathname === "/p/HE-R001" && !location.hash);
   assert.equal((await counted).status(), 204);
   assert.deepEqual(await page.$$eval(".media-tabs button", bs => bs.map(b => b.textContent)), ["Photos", "3D tour", "Aerial"]);
   assert.equal(await page.$$eval("#thumbs button", b => b.length), 2, "two public photos; external one hidden");
@@ -86,14 +88,16 @@ async function publicSite(browser) {
   assert.equal((await page.request.get(BASE + "media/A00005")).status(), 404, "external photo is private");
   assert.equal((await page.request.get(BASE + "media/A00009")).status(), 404, "draft photo is private");
   // Back home and to the same listing without reloading: no second view.
-  await page.goto(BASE + "#/");
-  await page.goto(BASE + "#/p/HE-R001");
+  await page.click("header .logo");
+  await page.waitForSelector("#grid .card");
+  await page.click('#grid .card[href="/p/HE-R001"]');
   await page.waitForSelector(".summary h1");
-  await page.goto(BASE + "#/p/HE-R003");
-  await page.waitForFunction(() => location.hash === "#/");
+  // A draft is not found (404 from the server, the not-found state on the page).
+  assert.equal((await page.goto(BASE + "p/HE-R003")).status(), 404);
+  await page.waitForSelector("#app h1 >> text=Property not found");
 
   // Booking on real slots (C13); the Turnstile test key passes automatically. Trinity rental's agent is Joshua.
-  await page.goto(BASE + "#/p/HE-R002");
+  await page.goto(BASE + "p/HE-R002");
   const token = () => page.waitForFunction(() => document.querySelector('#detail-slot [name="cf-turnstile-response"]')?.value
     && !document.querySelector("#detail-slot button[type=submit]").disabled, null, {timeout: 20000});
   await page.waitForSelector("#detail-slot [name=time]:checked");
@@ -135,7 +139,7 @@ async function publicSite(browser) {
     const off = await newPage(ctx, {width: 1280, height: 800});
     await off.route(/\/api\/stats$/, fail);
     const settled = off.waitForEvent(done, r => r.url().endsWith("/api/stats"));
-    await off.goto(BASE + "#/p/HE-R001");
+    await off.goto(BASE + "p/HE-R001");
     await off.waitForSelector(".summary h1");
     await settled;
     await off.evaluate(() => new Promise(r => setTimeout(r)));
@@ -146,15 +150,133 @@ async function publicSite(browser) {
   // M5: Turnstile blocked (content blocker) → the form offers the phone instead of a dead end.
   const blocked = await newPage(ctx, {width: 1280, height: 800});
   await blocked.route(/challenges\.cloudflare\.com/, r => r.abort());
-  await blocked.goto(BASE + "#/p/HE-R002");
+  await blocked.goto(BASE + "p/HE-R002");
   await blocked.waitForSelector("#detail-slot >> text=01534 727582", {timeout: 15000});
   await blocked.close();
 
   const m = await newPage(ctx, {width: 390, height: 844});
-  await m.goto(BASE + "#/p/HE-R001");
+  await m.goto(BASE + "p/HE-R001");
   await m.waitForSelector(".summary h1");
   assert.equal(await m.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, "no horizontal scroll on mobile");
   await shot(m, "detail-mobile");
+  await ctx.close();
+}
+
+// Spec 2026-10-25 (shareable listing URLs): /p/<id> for people, link previews and search engines.
+async function listingUrls(browser) {
+  const SITE = "https://hamptonjersey.pages.dev"; // wrangler.toml SITE_URL
+  // What WhatsApp's robot (no JavaScript) gets: the listing's title, photo, canonical URL and structured data.
+  const bot = {headers: {"user-agent": "WhatsApp/2.23.20.0 A"}};
+  const raw = (await browser.newContext()).request;
+  let r = await raw.get(BASE + "p/HE-R001", bot);
+  assert.equal(r.status(), 200);
+  const html = await r.text();
+  for (const t of ['<title>Le Bernage · £779,000 · Hampton Estates Jersey</title>', '<meta property="og:title" content="Le Bernage · £779,000',
+    `<meta property="og:image" content="${SITE}/media/A00002?thumb">`, `<link rel="canonical" href="${SITE}/p/HE-R001">`,
+    '"@type":"RealEstateListing"', '"@type":"RealEstateAgent"'])
+    assert.ok(html.includes(t), t);
+  assert.equal(html.match(/<link rel="canonical"/g).length, 1, "the home page's tags are replaced, not doubled");
+  r = await raw.get(BASE + "p/HE-R999", bot);
+  assert.equal(r.status(), 404);
+  assert.match(await r.text(), /<meta name="robots" content="noindex">/);
+  const home = await (await raw.get(BASE, bot)).text();
+  for (const t of [`<link rel="canonical" href="${SITE}/">`, `<meta property="og:image" content="${SITE}/og-image.jpg">`]) assert.ok(home.includes(t), t);
+  assert.equal((await raw.get(BASE + "og-image.jpg")).headers()["content-type"], "image/jpeg");
+  const sitemap = await (await raw.get(BASE + "sitemap.xml")).text();
+  assert.ok(sitemap.includes(`<loc>${SITE}/</loc>`) && sitemap.includes(`<loc>${SITE}/p/HE-R001</loc>`));
+  assert.ok(!sitemap.includes("HE-R003"), "drafts stay out of the sitemap");
+  const robots = await (await raw.get(BASE + "robots.txt")).text();
+  for (const t of ["Disallow: /admin/", "Disallow: /api/", `Sitemap: ${SITE}/sitemap.xml`]) assert.ok(robots.includes(t), t);
+  // S10: an old Wix address goes straight to the listing's path.
+  r = await raw.get(BASE + "commercial-properties/casa-mia", {maxRedirects: 0});
+  assert.deepEqual([r.status(), r.headers().location], [301, "/p/HE-C004"]);
+
+  const ctx = await browser.newContext({permissions: ["clipboard-read", "clipboard-write"]});
+  const page = await newPage(ctx, {width: 1280, height: 800});
+  await page.goto(BASE);
+  await page.waitForSelector("#grid .card");
+  const before = await page.evaluate(() => (window.sameDocument = 1));
+  // Review Focus 2: home → listing → a similar listing → Back → Back, all in one document, each at the top.
+  await page.click('#grid .card[href="/p/HE-R001"]');
+  await page.waitForSelector(".summary h1 >> text=Le Bernage");
+  assert.equal(new URL(page.url()).pathname, "/p/HE-R001");
+  assert.equal(await page.title(), "Le Bernage · £779,000 · Hampton Estates Jersey", "S8: tab title as the server's");
+  await page.$eval('.card[href="/p/HE-R050"]', a => a.scrollIntoView());
+  await page.click('.card[href="/p/HE-R050"]');
+  await page.waitForSelector(".summary h1 >> text=Rozel Bay house");
+  assert.equal(new URL(page.url()).pathname, "/p/HE-R050");
+  assert.equal(await page.evaluate(() => scrollY), 0, "a new listing opens at the top");
+  // The listing opened inside the site shares its own URL, built from SITE_URL.
+  assert.ok((await page.getAttribute(".share a", "href")).includes(encodeURIComponent(`${SITE}/p/HE-R050`)));
+  await page.goBack();
+  await page.waitForSelector(".summary h1 >> text=Le Bernage");
+  assert.equal(new URL(page.url()).pathname, "/p/HE-R001");
+  await page.goBack();
+  await page.waitForSelector("#grid .card");
+  assert.equal(new URL(page.url()).pathname, "/");
+  assert.equal(await page.title(), "Hampton Estates Jersey · Property sales, lettings and valuations");
+  await page.goForward();
+  await page.waitForSelector(".summary h1 >> text=Le Bernage");
+  assert.equal(await page.evaluate(() => window.sameDocument), before, "no full reload while browsing");
+  // A home section from a listing: /#portfolio, and Back returns to the listing; the logo goes to /.
+  await page.click('.crumbs a[href="#portfolio"]');
+  await page.waitForSelector("#portfolio #grid .card");
+  await page.waitForFunction(() => location.pathname === "/" && location.hash === "#portfolio");
+  await page.goBack();
+  await page.waitForSelector(".summary h1 >> text=Le Bernage");
+  await page.click('#main-nav a[href="#/apply"]');
+  await page.waitForFunction(() => location.pathname === "/" && location.hash === "#/apply");
+  await page.waitForSelector("#app .apply form");
+  await page.goBack();
+  await page.waitForSelector(".summary h1 >> text=Le Bernage");
+  await page.click("header .logo");
+  await page.waitForSelector("#grid .card");
+  await page.waitForFunction(() => location.pathname === "/" && !location.hash);
+  assert.equal(await page.evaluate(() => window.sameDocument), before, "still no full reload");
+
+  // S7 on a listing opened directly: no share menu in headless Chrome, so Share copies the link; WhatsApp gets title + link.
+  await page.goto(BASE + "p/HE-R001");
+  await page.waitForSelector(".summary h1");
+  assert.equal(await page.evaluate(() => typeof navigator.share), "undefined");
+  await page.click(".share button");
+  await page.waitForSelector("#share-status >> text=Link copied");
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), `${SITE}/p/HE-R001`);
+  const wa = await page.$eval(".share a", a => ({href: a.getAttribute("href"), target: a.target, rel: a.rel}));
+  assert.deepEqual(wa, {href: "https://wa.me/?text=" + encodeURIComponent(`Le Bernage ${SITE}/p/HE-R001`), target: "_blank", rel: "noopener"});
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(300); // the hover fades out before the picture
+  await shot(page, "listing-share-desktop", {fullPage: false});
+  // Where the phone has a share menu, it gets the title and the SITE_URL link.
+  const menu = await newPage(ctx, {width: 390, height: 844});
+  await menu.addInitScript(() => { navigator.share = d => { window.shared = d; return Promise.resolve(); }; });
+  await menu.goto(BASE + "p/HE-R002");
+  await menu.click(".share button");
+  assert.deepEqual(await menu.evaluate(() => window.shared), {title: "Trinity rental", url: `${SITE}/p/HE-R002`});
+  assert.equal(await menu.textContent("#share-status"), "");
+  await menu.close();
+  // Review Focus 5: not found → its own state, with a way back to the listings.
+  assert.equal((await page.goto(BASE + "p/HE-R999")).status(), 404);
+  await page.waitForSelector("#app h1 >> text=Property not found");
+  await page.click("#app >> text=See our properties");
+  await page.waitForSelector("#portfolio #grid .card");
+  assert.equal(new URL(page.url()).hash, "#portfolio");
+  // An old shared link opened fresh ends on the listing's own path.
+  await page.goto(BASE + "#/p/HE-R001");
+  await page.waitForSelector(".summary h1 >> text=Le Bernage");
+  assert.equal(page.url(), BASE + "p/HE-R001");
+  assert.deepEqual(page.errors, []);
+
+  // 360px phone: Share and WhatsApp side by side, no sideways scroll.
+  const phone = await newPage(ctx, {width: 360, height: 780});
+  await phone.goto(BASE + "p/HE-R001");
+  await phone.waitForSelector(".share a");
+  assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, "no horizontal scroll at 360px");
+  const boxes = await phone.$$eval(".share .btn", bs => bs.map(b => { const r = b.getBoundingClientRect(); return [r.left, r.right, r.top]; }));
+  assert.ok(boxes[0][2] === boxes[1][2] && boxes.every(([l, rt]) => l >= 0 && rt <= 360), JSON.stringify(boxes));
+  await phone.$eval(".share", el => el.scrollIntoView({block: "center", behavior: "instant"}));
+  await shot(phone, "listing-share-360", {fullPage: false});
+  await shot(phone, "listing-360-full");
+  assert.deepEqual(phone.errors, []);
   await ctx.close();
 }
 
@@ -272,7 +394,7 @@ async function admin(browser) {
   await page.waitForSelector("text=Order saved.");
   assert.match(await page.textContent("tbody tr:first-child"), /HE-R018/);
   [hc, home] = await fresh();
-  assert.equal(await home.getAttribute("#grid .card", "href"), "#/p/HE-R018", "home follows the panel order");
+  assert.equal(await home.getAttribute("#grid .card", "href"), "/p/HE-R018", "home follows the panel order");
   assert.match(await home.textContent(".hero h1"), /Pathfield/, "and the carousel starts with it");
   await hc.close();
   await page.click('tr:has-text("HE-R018") [aria-label^="Move"][aria-label$="down"]');
@@ -360,7 +482,7 @@ async function admin(browser) {
   const salesCount = () => page.$eval('header.bar a[href="#/sales"]', a => a.querySelector(".count")?.firstChild.textContent ?? null);
   const publicStatus = async () => {
     const c = await browser.newContext(), p = await c.newPage();
-    await p.goto(BASE + "#/p/HE-R050");
+    await p.goto(BASE + "p/HE-R050");
     await p.waitForSelector(".summary h1");
     const t = await p.textContent(".summary .eyebrow");
     await c.close();
@@ -1085,6 +1207,6 @@ async function bankImport(page, phone, noSideScroll) {
 
 (async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROME});
-  try { await publicSite(browser); await admin(browser); console.log("e2e OK"); }
+  try { await publicSite(browser); await listingUrls(browser); await admin(browser); console.log("e2e OK"); }
   finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });
