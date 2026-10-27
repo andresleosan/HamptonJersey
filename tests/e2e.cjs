@@ -688,7 +688,7 @@ async function admin(browser) {
 }
 
 // Spec 2026-10-25 (Jersey fields), last so nothing above changes. Recalculate all applies the housing check: the seed's
-// Standard-status search (Daniel Hamon) is kept from the Qualified town flat that Claire Le Sueur (Licensed) gets, until
+// Registered-status search (Daniel Hamon) is kept from the Qualified town flat that Claire Le Sueur (Licensed) gets, until
 // the flat is Registered. Then the editor's selects, "Was: …" and Missing from this listing (J6), and the website's facts.
 async function jersey(browser, page) {
   await page.goto(BASE + "admin/#/review");
@@ -702,7 +702,7 @@ async function jersey(browser, page) {
   await page.waitForSelector("#f-title");
   const matched = page.locator("#s-applicants tbody");
   await matched.getByText("Claire Le Sueur").waitFor();
-  assert.doesNotMatch(await matched.textContent(), /Daniel Hamon/, "Standard status is not offered a Qualified home");
+  assert.doesNotMatch(await matched.textContent(), /Daniel Hamon/, "Registered status is not offered a Qualified home");
   assert.equal(await page.inputValue("#f-housing_category"), "qualified");
   await page.getByText("Qualified homes are only open to some residential statuses; Registered homes are open to all statuses to rent or occupy.").waitFor();
   assert.deepEqual(await page.$$eval("#f-restriction option", os => os.map(o => o.textContent)), ["None", "Over 55s only"],

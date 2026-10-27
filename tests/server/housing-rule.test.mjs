@@ -54,13 +54,13 @@ test("§3 evidence: short, says the case, no advice", () => {
   const rent = (s, category) => housing({ operation: "rent", housing_status: s }, { operation: "rent", housing_category: category });
   assert.deepEqual([rent("licensed_lease_only", "qualified").evidence, rent("standard", "qualified").evidence,
     rent("entitled_work_only", null).evidence, rent("entitled", "qualified").evidence],
-  ["Qualified: lease under 9 years", "Qualified: not open to Entitled for Work Only or Standard status", "Housing category not given", null]);
+  ["Qualified: lease under 9 years", "Qualified: not open to Entitled for Work Only or Registered status", "Housing category not given", null]);
   const buy = (s, tenure, category = null) => housing({ housing_status: s }, { tenure_type: tenure, housing_category: category }).evidence;
   assert.equal(buy("licensed_lease_only", "freehold"), "Buys only jointly with an Entitled or fully Licensed partner");
-  assert.equal(buy("standard", "flying_freehold"), "Standard status cannot buy through the Royal Court");
+  assert.equal(buy("standard", "flying_freehold"), "Registered status cannot buy through the Royal Court");
   assert.equal(buy("standard", null), "Tenure not given");
   assert.equal(buy("entitled_work_only", "share_transfer", "qualified"), "Qualified: occupies only with an eligible partner");
-  assert.equal(buy("standard", "share_transfer", "qualified"), "Qualified: not open to Entitled for Work Only or Standard status");
+  assert.equal(buy("standard", "share_transfer", "qualified"), "Qualified: not open to Entitled for Work Only or Registered status");
   assert.equal(buy("standard", "share_transfer"), "Housing category not given");
 });
 
@@ -78,7 +78,7 @@ test("J5: an applicant without a status, by the listing's category and restricti
   for (const status of [null, "not_sure"]) for (const [l, result, evidence] of J5) {
     for (const tenure of [null, "freehold", "share_transfer"]) {
       const h = housing({ housing_status: status }, { ...l, tenure_type: tenure });
-      // A Royal Court purchase of a Registered home says nothing without the buyer's status (Standard cannot buy).
+      // A Royal Court purchase of a Registered home says nothing without the buyer's status (Registered status cannot buy).
       const court = l.housing_category === "registered" && !l.restriction && tenure !== "share_transfer";
       assert.deepEqual([h.shown, h.result, h.evidence, h.pass],
         court ? [false, undefined, undefined, true] : [result !== undefined, result, evidence, true],
@@ -152,11 +152,11 @@ test("§3 restrictions combine with the status rule: the worst wins", () => {
   const lease = h("licensed_lease_only", { tenure_type: "freehold", restriction: "first_time_buyer" });
   assert.deepEqual([lease.result, lease.evidence], [F, "First-time buyers only: needs Entitled status"]);
   const std = h("standard", { tenure_type: "share_transfer", housing_category: "qualified", restriction: "over_55" });
-  assert.deepEqual([std.result, std.evidence], [F, "Qualified: not open to Entitled for Work Only or Standard status"]);
+  assert.deepEqual([std.result, std.evidence], [F, "Qualified: not open to Entitled for Work Only or Registered status"]);
   // Two failing parts both say why; two unknown parts too.
   const both = h("standard", { tenure_type: "freehold", restriction: "first_time_buyer" });
   assert.deepEqual([both.result, both.evidence],
-    [F, "Standard status cannot buy through the Royal Court; First-time buyers only: needs Entitled status"]);
+    [F, "Registered status cannot buy through the Royal Court; First-time buyers only: needs Entitled status"]);
   const unsure = h(null, { tenure_type: "freehold", housing_category: "qualified", restriction: "over_55" });
   assert.deepEqual([unsure.result, unsure.evidence], [U, "Qualified: housing status not given; Over 55s only: check age"]);
   // Meets with Meets stays Meets.

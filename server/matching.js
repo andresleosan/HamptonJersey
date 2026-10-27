@@ -48,7 +48,7 @@ function budget(a, l) {
 // Each cell is [result, evidence]; evidence describes the case, it never advises.
 const ENTITLED = ["permanent_entitled", "entitled"];
 const NOT_ENTITLED = ["licensed", "licensed_lease_only", "entitled_work_only", "standard"]; // no first-time buyer scheme
-const QUALIFIED_NEEDS = "Qualified: not open to Entitled for Work Only or Standard status";
+const QUALIFIED_NEEDS = "Qualified: not open to Entitled for Work Only or Registered status";
 const NO_CATEGORY = ["unknown", "Housing category not given"];
 const NO_TENURE = ["unknown", "Tenure not given"];
 const JOINTLY = ["unknown", "Buys only jointly with an Entitled or fully Licensed partner"];
@@ -61,7 +61,7 @@ const RENT = { // by category, then status; a status not named falls to the row'
 };
 const BUY = { // "court": a sale through the Royal Court (freehold, flying freehold, leasehold)
   court: { licensed_lease_only: JOINTLY, entitled_work_only: JOINTLY,
-    standard: ["fails", "Standard status cannot buy through the Royal Court"], other: MEETS },
+    standard: ["fails", "Registered status cannot buy through the Royal Court"], other: MEETS },
   noTenure: { licensed_lease_only: NO_TENURE, entitled_work_only: NO_TENURE, standard: NO_TENURE, other: MEETS },
   share_registered: { other: MEETS },
   share_qualified: { entitled_work_only: ["unknown", "Qualified: occupies only with an eligible partner"],
@@ -91,8 +91,8 @@ function housing(a, l) {
   const restriction = l.restriction === "first_time_buyer" && a.operation === "rent" ? null : l.restriction;
   let base;
   if (s == null || s === "not_sure") {
-    // Registered opens the home to every status, not a purchase before the Royal Court (Standard cannot buy): there
-    // the category says nothing without the buyer's status.
+    // A Registered home is open to every status, not a purchase before the Royal Court (Registered status cannot
+    // buy): there the category says nothing without the buyer's status.
     const open = category === "registered" && a.operation !== "rent" && l.tenure_type !== "share_transfer" ? null : category;
     if (open == null && restriction == null) return null;
     base = NO_STATUS[open] ?? MEETS;

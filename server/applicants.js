@@ -19,7 +19,7 @@ export const OPTIONS = {
   mortgage_aip: [["yes", "Yes"], ["no", "No"], ["in_progress", "In progress"]],
   housing_status: [["permanent_entitled", "Permanent Entitled"], ["entitled", "Entitled"], ["licensed", "Licensed"],
     ["licensed_lease_only", "Licensed for Lease Only"], ["entitled_work_only", "Entitled for Work Only"],
-    ["standard", "Standard"], ["not_sure", "Not sure"]],
+    ["standard", "Registered"], ["not_sure", "Not sure"]],
   channels: [["whatsapp", "WhatsApp"], ["call", "Phone call"], ["email", "Email"]],
   stages: [["new", "New"], ["searching", "Searching"], ["viewing", "Viewing"], ["offer", "Offer / Application"],
     ["agreed", "Agreed"], ["completed", "Completed"], ["paused", "Paused"], ["lost", "Lost"]],

@@ -80,7 +80,7 @@ INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, b
 (3,3,'rent','searching','email','luismadef45@gmail.com',1500,2300,'["flat"]',2,0,'["balcony"]','yes','[{"kind":"none"}]',
  '["St Helier"]','["St Ouen"]','2026-11-15',12,'licensed',1,0,'2026-10-22T11:00:00.000Z','2026-10-22T11:00:00.000Z',
  'luismadef45@gmail.com');
--- Jersey fields: a To Let search with Standard status that fits the Qualified town flat (HE-R005) in every other way,
+-- Jersey fields: a To Let search with Registered status (value standard) that fits the Qualified town flat (HE-R005) in every other way,
 -- so the housing check alone keeps them apart (Claire Le Sueur, Licensed, is matched with it).
 INSERT INTO contacts (id, name, email, phone, preferred_channel, best_time, privacy_ack_at, marketing_opt_in_at, consent_source,
   last_activity_at, created_at, updated_at, updated_by) VALUES
