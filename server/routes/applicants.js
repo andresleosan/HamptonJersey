@@ -3,7 +3,7 @@ import { validateApplicant, normalizePhone, OPTIONS, QUEUES, activeSql } from ".
 import { logEvent, resolveNotices } from "../events.js";
 import { afterSave, recomputeForApplicant } from "../match-store.js";
 import { MATCHES_SQL, matchCard } from "./matches.js";
-import { NO_SALE, EXPIRING, KEPT_UNTIL } from "../retention.js";
+import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL } from "../retention.js";
 import { jerseyToday } from "../viewings.js";
 
 const STAGES = OPTIONS.stages.map(([v]) => v);
@@ -118,10 +118,11 @@ async function list({ request, env }) {
   return json({ applicants: results });
 }
 
-// E9: the day the contact's 12 months end, or none when a sale keeps it (E3). An open offer keeps it too, but only while
-// open, and each change to it restarts the 12 months: the line shows that date.
-const RETENTION_SQL = `SELECT ${KEPT_UNTIL} AS kept_until, NOT ${NO_SALE} AS exempt FROM contacts c WHERE c.id = ?`;
-const keptFor = r => ({ kept_until: r.exempt ? null : r.kept_until, exempt: !!r.exempt });
+// E9: the day the contact's 12 months end, or none when a sale keeps it (E3) or an open offer does, for as long as it
+// stays open (its date may then be past).
+const RETENTION_SQL = `SELECT ${KEPT_UNTIL} AS kept_until, NOT ${NO_SALE} AS exempt, NOT ${EXEMPT} AS held
+  FROM contacts c WHERE c.id = ?`;
+const keptFor = r => ({ kept_until: r.held ? null : r.kept_until, exempt: !!r.exempt, offer: !!r.held && !r.exempt });
 
 async function detail({ env, params: [id] }) {
   const applicant = await loadApplicant(env, id);

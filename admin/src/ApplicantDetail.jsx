@@ -274,7 +274,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       <div><h1 id="t-applicant">{c.name}</h1>
         <p className="muted">{OPERATION_LABEL[a.operation]} · {SOURCE_LABEL[a.source]} · Applied {fmtDate(a.created_at)}</p>
         <p className="muted">{data.retention.exempt ? "Kept for 5 years: it has a sale"
-          : `Kept until ${fmtDayMonth(data.retention.kept_until)}`}</p></div>
+          : data.retention.offer ? "Kept while an offer is open" : `Kept until ${fmtDayMonth(data.retention.kept_until)}`}</p></div>
       <div className="inline">
         {tel && <a className="btn ghost sm" href={`tel:${tel}`}>Call</a>}
         {tel && <a className="btn ghost sm" href={`https://wa.me/${tel.slice(1)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
