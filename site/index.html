@@ -284,6 +284,9 @@ form.tour .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-
 .agent-mini{display:flex;gap:14px;align-items:center}
 .agent-mini img{width:52px;height:52px;border-radius:50%;object-fit:cover;filter:grayscale(1)}
 .summary .btns{display:grid;gap:8px}
+.interest{display:grid;gap:4px;margin:0;text-wrap:balance}
+.interest b{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+.interest b::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:currentColor}
 .share{display:grid;grid-template-columns:1fr 1fr;column-gap:8px}
 .share .btn{padding-inline:12px}
 .share .hint{grid-column:1/-1;margin:8px 0 0}
@@ -772,6 +775,8 @@ function detail(id) {
     ["Price as listed", p.priceText || "Not published"], ["Tenure", TENURE[p.tenureType] || p.tenure], ["Housing", housingLabel(p)]].filter(([, v]) => v);
   // First-time buyer schemes concern purchases only.
   const restriction = p.restriction === "first_time_buyer" && p.operation !== "sale" ? null : RESTRICTION[p.restriction];
+  // VIS-03 (§5.9): the real count of people interested, which the server sends only from 2. A sold house takes no viewings.
+  const interest = isSold(p) ? null : p.interest;
   const tour = embedUrl(p.tourUrl);
   const groups = p.specs.reduce((a, s) => ((a[s.group || "Details"] ||= []).push(s), a), {});
   const tabs = [["photo", "Photos"], ...(p.tourUrl ? [["tour", "3D tour"]] : []), ...(p.aerial ? [["aerial", "Aerial"]] : [])];
@@ -798,6 +803,7 @@ function detail(id) {
       ${restriction ? `<span class="tag restrict">${esc(restriction)}</span>` : ""}
       ${p.beds || p.baths || p.type ? `<div class="keys num">${p.beds ? `<div><b>${p.beds}</b><span>Bedrooms</span></div>` : ""}${p.baths ? `<div><b>${p.baths}</b><span>Bathrooms</span></div>` : ""}${p.type ? `<div><b>${esc(p.type)}</b><span>Type</span></div>` : ""}</div>` : ""}
       ${agent ? `<div class="agent-mini">${agent.photo ? `<img src="${esc(wix(agent.photo, 120, 120))}" alt="">` : ""}<div><b>${esc(agent.name)}</b><div class="hint">${esc(agent.role)} · ${esc(agent.office)}</div></div></div>` : ""}
+      ${interest ? `<p class="interest"><b>${interest} people interested</b> <span class="hint">Upcoming viewings, and those of the last 30 days that went well</span></p>` : ""}
       <div class="btns">${isSold(p) ? "" : `<a class="btn" href="#detail-book" data-scroll="detail-book">Book a viewing</a>`}
         ${p.tourUrl ? `<button class="btn ghost" type="button" data-go="tour">Open the 3D tour</button>` : ""}</div>
       <div class="share"><button class="btn ghost" type="button" data-share>Share</button>
@@ -1032,7 +1038,7 @@ Promise.allSettled([getJSON("/api/listings"), getJSON("/data/team.json"), getJSO
   if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
   const order = {jersey: 0, uk: 1, international: 2};
   PROPS = p.value.filter(x => x && /^HE-[A-Z]\d{3,}$/.test(x.id) && x.title && x.region in order && x.operation in OP_ONE)
-    .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "premium", "featured", "order"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
+    .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "premium", "featured", "order", "interest"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
       use: x.use === "commercial" ? "commercial" : "residential", image: safeMedia(x.image), thumb: safeMedia(x.thumb),
       photos: (Array.isArray(x.photos) ? x.photos : []).filter(f => safeMedia(f?.src) && safeMedia(f?.thumb)),
       floorplans: (Array.isArray(x.floorplans) ? x.floorplans : []).filter(f => safeMedia(f?.src)),

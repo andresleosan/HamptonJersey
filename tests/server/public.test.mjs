@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, seedMedia, call, adminCookie, ORIGIN } from "./helpers.mjs";
+import { makeEnv, seedListing, seedMedia, call, adminCookie, ORIGIN, captured, plan } from "./helpers.mjs";
 import { serveMedia } from "../../server/media.js";
-import { jerseyToday, EMAIL, addMinutes } from "../../server/viewings.js";
+import { jerseyToday, EMAIL, addMinutes, plusDays } from "../../server/viewings.js";
 import { verifyTurnstile } from "../../server/turnstile.js";
 
 const turnstile = ok => { globalThis.fetch = async () => new Response(JSON.stringify({ success: ok, hostname: "hampton.test" })); };
@@ -42,6 +42,51 @@ test("GET /listings: only published, not archived, public shape, cached 60s", as
   assert.equal(r.headers.get("cache-control"), "public, max-age=60");
   assert.deepEqual(r.data.map(p => p.id), ["HE-R001"]);
   assert.deepEqual(r.data[0].photos.map(p => p.src), ["/media/A00001"]);
+});
+
+test("GET /listings: interest is the panel's count from 2 people, null below, with no personal data", async () => {
+  const env = world(), cookie = await adminCookie(), ago = n => plusDays(jerseyToday(), -n);
+  const v = o => seedViewing(env, { listing_id: "HE-R001", ...o });
+  const interest = async () => (await call(env, "GET", "/listings")).data.find(p => p.id === "HE-R001").interest;
+  v();
+  assert.equal(await interest(), null, "one person is never shown");
+  v({ name: "Ann Other", email: "Ann@X.je", phone: null, status: "completed", outcome: "proceed", date: ago(2), time: "10:00" });
+  assert.equal(await interest(), 2);
+  assert.equal((await call(env, "GET", "/admin/listings/HE-R001", { cookie })).data.active_interest, 2, "the panel's own count");
+  v({ email: "SAM@secret.je", time: "14:00" });
+  v({ name: "Gone", email: "gone@x.je", status: "cancelled", time: "15:00" });
+  v({ name: "Nope", email: "nope@x.je", status: "completed", outcome: "not_interested", date: ago(1), time: "16:00" });
+  assert.equal(await interest(), 2, "the same person once; cancelled and not interested never count");
+  v({ listing_id: "HE-R002", email: "d1@x.je", time: "10:00" });
+  v({ listing_id: "HE-R002", email: "d2@x.je", time: "10:30" });
+  const r = await call(env, "GET", "/listings");
+  assert.deepEqual(r.data.map(p => p.id), ["HE-R001"], "a draft's interest never reaches the website");
+  assert.doesNotMatch(JSON.stringify(r.data), /Sam|secret|07797|Ann/i);
+});
+
+test("GET /listings: one person booked online and again by phone, or with one phone typed two ways, counts once", async () => {
+  const env = world(), cookie = await adminCookie(), ago = n => plusDays(jerseyToday(), -n);
+  const v = o => seedViewing(env, { listing_id: "HE-R001", ...o });
+  const interest = async () => (await call(env, "GET", "/listings")).data.find(p => p.id === "HE-R001").interest;
+  v({ name: "Jane", email: "jane@x.je", phone: "07797 123456", status: "completed", outcome: "proceed", date: ago(2), time: "10:00" });
+  v({ name: "Jane", email: null, phone: "+44 7797 123-456", time: "10:00" });
+  v({ name: "Pat", email: null, phone: "07700 900321", time: "11:00" });
+  v({ name: "Pat", email: null, phone: "07700900321", time: "12:00" });
+  assert.equal(await interest(), 2, "Jane once, Pat once");
+  v({ name: "Kim", email: "kim@x.je", phone: "(07797) 555.666", status: "completed", outcome: "not_interested", date: ago(40), time: "10:00" });
+  v({ name: "Kim", email: null, phone: "07797 555666", time: "13:00" });
+  v({ name: "Lee", email: null, phone: "07700 111222", time: "14:00" });
+  assert.equal(await interest(), 4, "Kim's new viewing and another phone-only person still count");
+  assert.equal((await call(env, "GET", "/admin/listings/HE-R001", { cookie })).data.active_interest, 4, "the panel's own count");
+});
+
+test("GET /listings reads interest through the (listing_id, date) index", async () => {
+  const env = world(), q = captured(env, /COUNT\(DISTINCT/);
+  await call(env, "GET", "/listings");
+  assert.equal(q.length, 1);
+  const p = plan(env, q[0]);
+  assert.match(p, /SEARCH viewing_requests USING INDEX viewing_listing \(listing_id=\? AND date>\?\)/, p);
+  assert.doesNotMatch(p, /SCAN viewing_requests/, p);
 });
 
 test("GET /config exposes only the Turnstile site key", async () => {

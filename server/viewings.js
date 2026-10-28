@@ -32,6 +32,23 @@ export const realDate = s => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test
   && new Date(s + "T12:00:00Z").toJSON()?.slice(0, 10) === s; // toJSON is null for 2026-13-01, not a throw
 export const plusDays = (date, n) => new Date(Date.parse(date + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
 export const weekday = date => WEEKDAYS[(new Date(date + "T12:00:00Z").getUTCDay() + 6) % 7];
+
+// A phone as the interest rule compares it: its last 10 digits once spaces, dashes, dots and brackets are gone, so
+// 07797 123456, 07797123456 and +44 (0)7797 123456 are one number, as normalizePhone (applicants.js) makes them.
+// ponytail: two foreign numbers ending in the same 10 digits count once; store normalised phones if that ever matters.
+const tel = col => `substr(${[" ", "-", ".", "(", ")"].reduce((s, c) => `replace(${s}, '${c}', '')`, col)}, -10)`;
+
+// C10, the panel's and the website's one rule: people with an active viewing of listing `id` (SQL: "?" or a column)
+// from today on, or a completed one of the last 30 days that went well. Each person once: by email; a viewing booked
+// with a phone only counts as whoever gave that phone with an email on another viewing of the listing, else as that
+// phone. Counted when read, so it expires by itself; read through the (listing_id, date) index. In parentheses it is a
+// column of another query. Binds: interestDates(), after any of `id`'s.
+export const interestSql = id => `SELECT COUNT(DISTINCT COALESCE(lower(email), (SELECT lower(o.email) FROM viewing_requests o
+    WHERE o.listing_id = viewing_requests.listing_id AND o.email IS NOT NULL AND ${tel("o.phone")} = ${tel("viewing_requests.phone")}
+    LIMIT 1), ${tel("phone")})) AS n FROM viewing_requests
+  WHERE listing_id = ${id} AND ((status IN ('requested', 'confirmed') AND date >= ?)
+    OR (status = 'completed' AND outcome IN ('proceed', 'more_info') AND date >= ?))`;
+export const interestDates = (today = jerseyToday()) => [today, plusDays(today, -30)];
 // Same-width HH:MM text compares like the clock: [a1, a2) and [b1, b2) overlap.
 const overlaps = (a1, a2, b1, b2) => a1 < b2 && a2 > b1;
 

@@ -2,7 +2,7 @@ import { json, fail, readJson, now } from "../http.js";
 import { validateListing, checkPrice, idPrefix, nextId, ENUMS } from "../listing.js";
 import { extractFeatures } from "../listing-features.js";
 import { afterSave, recomputeForListing } from "../match-store.js";
-import { jerseyNow, plusDays } from "../viewings.js";
+import { interestSql, interestDates } from "../viewings.js";
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -22,14 +22,8 @@ export async function loadListing(env, id) {
   return { ...l, specs: JSON.parse(l.specs || "[]") };
 }
 
-// C10: people with an active viewing from today on, or a completed one of the last 30 days that went well. Each person
-// once: by email, or by phone when there is none. Read through the (listing_id, date) index.
-const interestStatement = (env, id) => {
-  const today = jerseyNow().date;
-  return env.DB.prepare(`SELECT COUNT(DISTINCT COALESCE(lower(email), phone)) AS n FROM viewing_requests WHERE listing_id = ?
-    AND ((status IN ('requested', 'confirmed') AND date >= ?)
-      OR (status = 'completed' AND outcome IN ('proceed', 'more_info') AND date >= ?))`).bind(id, today, plusDays(today, -30));
-};
+// C10: the listing's active interest, as the website counts it (server/viewings.js).
+const interestStatement = (env, id) => env.DB.prepare(interestSql("?")).bind(id, ...interestDates());
 
 async function list({ request, env }) {
   const q = new URL(request.url).searchParams;

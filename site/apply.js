@@ -319,12 +319,15 @@ export function renderPrivacy(root) {
     <ul>
       <li>To look for homes that match your search and tell you about them.</li>
       <li>To arrange viewings and keep a record of what we have discussed with you.</li>
+      <li>To show on a property's page how many people are interested in it: a number only, from 2 people, never your
+        name or details.</li>
       <li>To send you news about homes and the Jersey market, only if you ticked the box for it.</li>
     </ul>
 
     <h2>Our legal basis</h2>
     <p>We use your details to take the steps you ask us to take before you rent or buy a home, and because we have a
-      legitimate interest in keeping an accurate record of our dealings with you. We send you news only with your
+      legitimate interest in keeping an accurate record of our dealings with you and in showing, without naming anyone,
+      how much interest a property has. We send you news only with your
       consent, which you can withdraw at any time.</p>
 
     <h2>Who else handles it</h2>

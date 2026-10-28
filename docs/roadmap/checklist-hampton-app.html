@@ -1226,12 +1226,13 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F3-A",
    "estado": "hecho",
    "responsable": "—",
-   "hecho": "Cada petición de visita suma a esa persona al interés activo de la casa (visita pedida o confirmada de hoy en adelante, o hecha en 30 días con Proceed o Need more information), una vez por email o teléfono, y caduca solo. El panel lo muestra en el editor de la ficha («Active interest: N people») y en el detalle de cada visita.",
+   "hecho": "Cada petición de visita suma a esa persona al interés activo de la casa (visita pedida o confirmada de hoy en adelante, o hecha en 30 días con Proceed o Need more information) y caduca solo. Cada persona cuenta una vez: por su email, y una visita apuntada solo con teléfono cuenta como quien dio ese teléfono con email en otra visita de la casa; el número se compara sin espacios ni prefijo (desde el 28-oct-2026). El panel lo muestra en el editor de la ficha («Active interest: N people») y en el detalle de cada visita, y la web desde 2 personas (VIS-03).",
    "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "server/routes/listings.js:25-31",
-    "server/routes/listings.js:74-78",
+    "server/viewings.js:36-51",
+    "server/routes/listings.js:25-26",
+    "server/routes/listings.js:67-73",
     "admin/src/ListingEditor.jsx:146",
     "admin/src/Viewings.jsx:167-173",
     "admin/src/Viewings.jsx:221-222",
@@ -1247,13 +1248,13 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "En Viewings la persona sale del recuento con Cancel viewing, con Mark completed → Not interested (motivo opcional) o con Delete viewing.",
-   "falta": "No hay un botón para quitarla del contador con motivo sin tocar la visita: Cancel viewing no pide motivo y, tras marcar Proceed o Need more information, solo sale borrando la visita o al pasar 30 días.",
+   "falta": "No hay un botón para quitarla del contador con motivo sin tocar la visita: Cancel viewing no pide motivo y, tras marcar Proceed o Need more information, solo sale borrando la visita o al pasar 30 días. Mientras tanto, si alguien reservó por la web sin teléfono y el equipo le apunta otra visita solo con su teléfono, cuenta dos veces: al reservar por teléfono hay que poner su email.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Viewings.jsx:186-188",
     "admin/src/Viewings.jsx:236-237",
     "server/routes/inbox.js:78-80",
-    "server/routes/listings.js:29-31"
+    "server/viewings.js:36-51"
    ]
   },
   {
@@ -1262,16 +1263,25 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "La web muestra cuántas personas están interesadas en la casa (desde 2, cifra real)",
    "origen": "texto",
    "fase": "F3-A",
-   "estado": "pendiente",
-   "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "La ficha pública no recibe ni muestra el interés, que hoy solo se calcula para el panel. Falta pintarlo en la ficha de la web cuando sean 2 o más, con el mismo cálculo que caduca solo y sin datos de nadie (§5.9).",
+   "estado": "hecho",
+   "responsable": "—",
+   "hecho": "La ficha de cada casa en la web dice «N people interested» con la nota «Upcoming viewings, and those of the last 30 days that went well», justo encima de Book a viewing, cuando 2 o más personas están interesadas. Usa el mismo cálculo que el panel (VIS-01), que caduca solo. La API pública envía el número solo desde 2 y ningún dato de nadie; en una casa vendida no sale. El aviso de privacidad explica este uso (28-oct-2026).",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "server/listing.js:91-108",
-    "server/routes/listings.js:25-31",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:40",
-    "docs/superpowers/specs/2026-10-24-hampton-app-f7a-design.md:22"
+    "server/viewings.js:36-51",
+    "server/routes/public.js:18-27",
+    "server/listing.js:108-109",
+    "site/index.html:287-289",
+    "site/index.html:778-779",
+    "site/index.html:806",
+    "site/index.html:1041",
+    "site/apply.js:322-323",
+    "site/apply.js:328-330",
+    "tests/server/public.test.mjs:47-90",
+    "tests/e2e.cjs:69-71",
+    "tests/e2e.cjs:103-118",
+    "docs/superpowers/specs/2026-10-28-hampton-app-public-interest-design.md"
    ]
   },
   {
@@ -1586,8 +1596,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:451",
-    "docker ps (28-oct-2026): infra-whisper-1 en 127.0.0.1:9300 y cerebro-caddy en 100.125.184.56:9455 (Tailscale)",
-    "/root/.claude/projects/-root-HamptonJersey/memory/reference-vps-host-access.md:10",
+    "docker ps (28-oct-2026): los servicios internos del VPS escuchan solo en local o en la tailnet",
     "wrangler.toml:1-20"
    ]
   },
@@ -1922,18 +1931,19 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "BUS-11",
    "seccion": "Búsqueda de propiedades",
-   "titulo": "Deep Research solo para casos raros, verificada contra su página",
+   "titulo": "Deep Research con dos sistemas, solo para casos raros y verificada contra su página",
    "origen": "plan",
    "fase": "F1-B",
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No hay Deep Research automática: la sección Research de cada ficha solo muestra, sin poder editarla, la investigación de Hampton_Database (instantánea del 5-oct). Falta lanzarla con menos de 3 coincidencias, con requisitos raros o en compras fuera de mercado, verificar cada hallazgo contra su página y guardarlo en el inventario (BUS-10); necesita un proveedor de IA con búsqueda web por API (§6.3).",
+   "falta": "No hay Deep Research automática: la sección Research de cada ficha solo muestra, sin poder editarla, la investigación de Hampton_Database (instantánea del 5-oct). Falta lanzarla con menos de 3 coincidencias, con requisitos raros o en compras fuera de mercado, con dos sistemas distintos cuyos hallazgos se suman (lo que queda de las dos investigaciones de BUS-05), verificar cada hallazgo contra su página y guardarlo en el inventario (BUS-10). Necesita IA con búsqueda web por API (§6.3).",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Research.jsx:11-27",
     "admin/src/ListingEditor.jsx:249-251",
     "migrations/0001_init.sql:59-94",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:266",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:268"
    ]
   },
@@ -1964,14 +1974,17 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "Hampton",
    "hecho": "La comprobación Housing aplica las reglas de gov.je (Qualified o Registered, tenencia y restricción para primeros compradores o mayores de 55) al estatus que declara el aplicante. Excluye las casas que no puede ocupar y deja en Unknown lo que depende de su pareja o de datos que faltan.",
-   "falta": "Hampton tiene que poner la categoría de vivienda de HE-R001, HE-R003 y HE-R027; sin ella, la regla no sabe si son Qualified o Registered.",
-   "bloqueo": "Dato de Hampton",
+   "falta": "Hampton tiene que poner la categoría de vivienda de HE-R001, HE-R003 y HE-R027; sin ella, la regla no sabe si son Qualified o Registered. Además, como pide el §7.3, un abogado de Jersey tiene que validar la tabla, que ya excluye casas sola y vive en el código (cambiarla exige publicar). Sobre todo las compras, donde se aparta del plan: el estatus Registered (Standard en el plan) puede comprar un share transfer Registered sin marcarse para revisión, y Licensed for Lease Only puede comprar (unknown o meets) cuando el plan lo deja solo en alquiler.",
+   "bloqueo": "Dato de Hampton · JFSC/abogado",
    "evidencia": [
     "server/matching.js:45-110",
     "server/matching.js:152-154",
     "migrations/0015_jersey_fields.sql:1-11",
     "commit 4cd4001",
-    "commit 127c7ef"
+    "commit 127c7ef",
+    "docs/superpowers/specs/2026-10-25-hampton-app-jersey-fields-design.md:28",
+    "docs/superpowers/specs/2026-10-25-hampton-app-jersey-fields-design.md:46-54",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:496-506"
    ]
   },
   {
@@ -1983,12 +1996,15 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "La puntuación suma parroquia deseada (30), dormitorios ideales (15), posición del precio en el presupuesto (20), exterior, tipo y amueblado (25) y estar publicada en la web de Hampton (10). Solo se guardan las de 35 o más, y como mucho las 25 mejores por aplicante.",
-   "falta": "Faltan la frescura del anuncio (llega con el inventario del mercado) y la comparación con IA de los requisitos libres con la descripción, citando la frase (REG-13).",
+   "falta": "Faltan la frescura del anuncio (llega con el inventario del mercado) y la comparación con IA de los requisitos libres con la descripción, citando la frase (REG-13). Además, los 10 puntos van a toda ficha publicada, también a las co-listed como las 3 públicas (A4), y el plan los reserva a las casas propias, que no tienen comisión que repartir; para separarlas hace falta la categoría co_listed (BUS-07).",
    "bloqueo": "",
    "evidencia": [
     "server/matching.js:6-14",
     "server/matching.js:118-183",
-    "server/match-store.js:96-100"
+    "server/match-store.js:96-100",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:111",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:275",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30"
    ]
   },
   {
@@ -2058,6 +2074,25 @@ document.addEventListener('DOMContentLoaded', () => {
     "admin/src/ListingEditor.jsx:236-247",
     "admin/src/ListingEditor.jsx:273-288",
     "server/routes/listings.js:60-63"
+   ]
+  },
+  {
+   "id": "BUS-19",
+   "seccion": "Búsqueda de propiedades",
+   "titulo": "Usar solo fuentes del mercado que lo permitan: webs de agencias según sus términos, Properties.je con permiso escrito y Homely.je nunca",
+   "origen": "plan",
+   "fase": "F1-B",
+   "estado": "pendiente",
+   "responsable": "Luis",
+   "hecho": "",
+   "falta": "No hay lector de webs externas: hoy la app solo llama a Turnstile y a las claves públicas de Google del login. Antes de leer la web de una agencia hay que comprobar que sus términos lo permiten, y leerla con baja frecuencia, respetando robots.txt y con un user-agent identificado. Properties.je solo con permiso escrito; JEP property, OnTheMarket y Rightmove después de revisar sus términos; Homely.je nunca, porque sus términos lo prohíben.",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:255-256",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:537-544",
+    "server/auth.js:3-4",
+    "server/turnstile.js:8",
+    "wrangler.toml:1-20"
    ]
   },
   {
@@ -2866,7 +2901,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Checks de cada vivienda (Rental dwelling licence, EICR, Gas safety si hay gas, Smoke and CO alarms) con Update y caducidad, y plazos del contrato (depósito protegido en 30 días, Check-in y Check-out report en 7); avisan a 60, 30 y 7 días en Checks and deadlines, y lo vencido o «Not recorded» sale en rojo y suma en el contador.",
-   "falta": "No se siguen los 29 riesgos de la Order de 2018 ni la copia al inquilino en 28 días de la licencia y del EICR (§7.3), y lo vencido sale en Rentals pero no en el Inbox.",
+   "falta": "No se siguen los 29 riesgos de la Order de 2018, la copia al inquilino en 28 días de la licencia y del EICR, el aviso de cambios de la licencia en 28 días, el checklist eléctrico anual o al cambiar de inquilino ni el aviso de datos prescritos que va con el depósito en sus 30 días (§7.3), y lo vencido sale en Rentals pero no en el Inbox.",
    "bloqueo": "",
    "evidencia": [
     "server/rentals.js:8-17",
@@ -2875,7 +2910,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/routes/rentals.js:243-265",
     "server/routes/rent.js:70-77",
     "admin/src/RentalDetail.jsx:120-128",
-    "admin/src/Rentals.jsx:96-104"
+    "admin/src/Rentals.jsx:96-104",
+    "migrations/0013_rentals.sql:47-48",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:514",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:523-524"
    ]
   },
   {
@@ -3018,6 +3056,43 @@ document.addEventListener('DOMContentLoaded', () => {
    "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26",
     "migrations/0013_rentals.sql:30-63"
+   ]
+  },
+  {
+   "id": "ADM-20",
+   "seccion": "Administración de propiedades",
+   "titulo": "Ley de alquiler de 2025: un solo plazo fijo inicial de hasta 3 años y nada de premium",
+   "origen": "plan",
+   "fase": "F5-A",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "Se puede hacer ya: avisar o impedir, en los contratos de la ley de 2025, un plazo fijo de más de 3 años y un segundo plazo fijo con Renew (al acabar el primero el contrato pasa a periódico); hoy New tenancy acepta cualquier duración y Renew deja poner otro. Espera a un abogado: que lo confirme junto con el resto de plazos (ADM-17) y que valide cualquier cargo al inquilino además de renta y depósito (por ejemplo por las referencias de F5-B), porque está prohibido cobrar premium o key money.",
+   "bloqueo": "JFSC/abogado",
+   "evidencia": [
+    "server/rentals.js:158-160",
+    "server/routes/rent.js:333-356",
+    "admin/src/RentalDialogs.jsx:134-151",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:86",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:516-517"
+   ]
+  },
+  {
+   "id": "ADM-21",
+   "seccion": "Administración de propiedades",
+   "titulo": "Exportar cobros, pagos y liquidaciones a la contabilidad de Hampton",
+   "origen": "plan",
+   "fase": "F5-A",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "No hay ninguna exportación: Rentals importa el extracto del banco y Statements se imprime desde el navegador. Falta descargar por periodo los cobros, los pagos con su referencia HE-T#### y las liquidaciones en un CSV que acepte cualquier programa de contabilidad; si Hampton usa uno concreto, se ajusta a su formato.",
+   "bloqueo": "",
+   "evidencia": [
+    "admin/src/Statement.jsx:9-11",
+    "admin/src/RentImport.jsx:29-139",
+    "server/routes/rent.js:737-771",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:580"
    ]
   },
   {
@@ -3241,7 +3316,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "En listings y en el editor: Title, Summary y Description; Photos con portada, orden, pies de foto y tipos Floor plan y Aerial; URL de tour 3D o vídeo (Matterport, Vimeo, YouTube); estrella de destacada y orden de portada en Listings.",
-   "falta": "Faltan etiquetas (renovated, sea view, town centre…), textos para redes y un vídeo aparte del tour (hoy comparten una sola URL). Replanteado para Jersey (§5.10), no falta: la descripción va solo en inglés (D19) y se traduce solo si Hampton lo pide.",
+   "falta": "Faltan etiquetas (renovated, sea view, town centre…), textos para redes y un vídeo aparte del tour (hoy comparten una sola URL). Replanteado para Jersey (§5.10), no falta: la descripción va solo en inglés (D19) y se traduce solo si Hampton lo pide, con la traducción revisada por una persona antes de publicarla.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/ListingEditor.jsx:204-226",
@@ -4196,8 +4271,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/events.js:9-19",
     "admin/src/ApplicantDetail.jsx:434",
     "admin/src/RentalDetail.jsx:181",
-    "/root/.claude/projects/-root-HamptonJersey/memory/project-hamptonjersey-admin-panel.md:17",
-    "/root/.claude/projects/-root-HamptonJersey/memory/project-hamptonjersey-admin-panel.md:47-52",
+    "registro de despliegues de Claude (privado, fuera del repositorio)",
     "docs/superpowers/specs/2026-10-07-panel-admin-design.md:222",
     "docs/superpowers/plans/2026-10-23-hampton-app-f1a.md:19"
    ]

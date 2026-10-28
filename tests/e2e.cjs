@@ -66,6 +66,9 @@ async function publicSite(browser) {
   await page.waitForSelector(".summary h1");
   await page.waitForFunction(() => location.pathname === "/p/HE-R001" && !location.hash);
   assert.equal((await counted).status(), 204);
+  // VIS-03: two people are interested in Le Bernage (seed rows 1 and 4): the real count, right above the booking buttons.
+  assert.match(await page.textContent(".summary .interest"), /^2 people interested\s+Upcoming viewings, and those of the last 30 days that went well$/);
+  assert.ok(await page.$eval(".summary .interest", el => el.nextElementSibling.matches(".btns")), "right above Book a viewing");
   assert.deepEqual(await page.$$eval(".media-tabs button", bs => bs.map(b => b.textContent)), ["Photos", "3D tour", "Aerial"]);
   assert.equal(await page.$$eval("#thumbs button", b => b.length), 2, "two public photos; external one hidden");
   assert.match(await page.getAttribute("#stage img", "src"), /\/media\/A00002$/, "M6: detail opens on the chosen cover");
@@ -97,6 +100,22 @@ async function publicSite(browser) {
   // A draft is not found (404 from the server, the not-found state on the page).
   assert.equal((await page.goto(BASE + "p/HE-R003")).status(), 404);
   await page.waitForSelector("#app h1 >> text=Property not found");
+  // VIS-03: one person interested (the café, seed row 2) is never shown, and a sold house never shows it. Its own page,
+  // with the view counter answered here, so neither the counts checked below nor the seed's stats change.
+  const vis = await newPage(ctx, {width: 1280, height: 800});
+  await vis.route(/\/api\/stats$/, r => r.fulfill({status: 204}));
+  await vis.goto(BASE + "p/HE-C001");
+  await vis.waitForSelector(".summary h1");
+  assert.equal(await vis.$(".summary .interest"), null, "one person is not shown");
+  await vis.route(/\/api\/listings$/, async r => {
+    const res = await r.fetch();
+    await r.fulfill({response: res, json: (await res.json()).map(p => p.id === "HE-R001" ? {...p, status: "Sold", interest: 3} : p)});
+  });
+  await vis.goto(BASE + "p/HE-R001");
+  await vis.waitForSelector(".summary h1");
+  assert.equal(await vis.$(".summary .interest"), null, "a sold house never shows it");
+  assert.deepEqual(vis.errors, []);
+  await vis.close();
 
   // Booking on real slots (C13); the Turnstile test key passes automatically. Trinity rental's agent is Joshua.
   await page.goto(BASE + "p/HE-R002");
@@ -160,6 +179,8 @@ async function publicSite(browser) {
   await m.goto(BASE + "p/HE-R001");
   await m.waitForSelector(".summary h1");
   assert.equal(await m.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, "no horizontal scroll on mobile");
+  const [said, buttons] = await m.$$eval(".summary .interest, .summary .btns", els => els.map(e => e.getBoundingClientRect()));
+  assert.ok(said.bottom <= buttons.top, "mobile: the interest line stays above the buttons");
   await shot(m, "detail-mobile");
   await ctx.close();
 }

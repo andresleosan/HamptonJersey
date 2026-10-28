@@ -103,3 +103,9 @@ test("toPublic keeps the shape index.html expects", () => {
   assert.deepEqual([j.tenure, j.tenureType, j.housingCategory, j.restriction],
     ["Freehold", "share_transfer", "registered", "first_time_buyer"]);
 });
+
+test("P6: the public shape carries interest only from 2 people", () => {
+  for (const n of [undefined, null, 0, 1]) assert.equal(toPublic({ ...L, active_interest: n }, []).interest, null, String(n));
+  assert.equal(toPublic({ ...L, active_interest: 2 }, []).interest, 2);
+  assert.equal(toPublic({ ...L, active_interest: 5 }, []).interest, 5);
+});

@@ -1,6 +1,7 @@
 import { json, fail, readJson, now } from "../http.js";
 import { toPublic } from "../listing.js";
-import { validateViewing, jerseyNow, jerseyToday, isFree, realDate, plusDays, SLOT_MINUTES, PUBLIC_DAYS, MAX_DAYS } from "../viewings.js";
+import { validateViewing, jerseyNow, jerseyToday, isFree, realDate, plusDays, SLOT_MINUTES, PUBLIC_DAYS, MAX_DAYS,
+  interestSql, interestDates } from "../viewings.js";
 import { loadAvailability, bookStatement } from "../viewing-store.js";
 import { verifyTurnstile } from "../turnstile.js";
 import { logEvent } from "../events.js";
@@ -12,11 +13,13 @@ export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).
 
 const LIVE = "l.published = 1 AND l.archived_at IS NULL";
 
-// The live listings, all or the one with that id, each as its row and its public shape: one D1 round trip (S2).
+// The live listings, all or the one with that id, each as its row (with its active interest, C10) and its public
+// shape: one D1 round trip (S2).
 export async function readLive(env, id) {
   const one = id ? " AND l.id = ?" : "", args = id ? [id] : [];
   const [{ results: listings }, { results: media }] = await env.DB.batch([
-    env.DB.prepare(`SELECT l.* FROM listings l WHERE ${LIVE}${one} ORDER BY l.id`).bind(...args),
+    env.DB.prepare(`SELECT l.*, (${interestSql("l.id")}) AS active_interest FROM listings l WHERE ${LIVE}${one} ORDER BY l.id`)
+      .bind(...interestDates(), ...args),
     env.DB.prepare(`SELECT m.* FROM media m JOIN listings l ON l.id = m.listing_id
      WHERE ${LIVE} AND m.public = 1${one} ORDER BY m.position, m.id`).bind(...args),
   ]);

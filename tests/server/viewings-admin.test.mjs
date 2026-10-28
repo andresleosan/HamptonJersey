@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, call, adminCookie, T0 } from "./helpers.mjs";
+import { makeEnv, seedListing, call, adminCookie, T0, captured, plan } from "./helpers.mjs";
 import { plusDays, addMinutes } from "../../server/viewings.js";
 
 // A fixed clock: Wednesday 28 October 2026, 12:05 in Jersey (GMT since the 25th, so the same as UTC).
@@ -335,19 +335,6 @@ test("active interest counts each person once: active from today on, proceed or 
   v({ email: null, phone: "07797 1", status: "requested", date: day(2) });
   assert.equal(await interest(), 3, "proceed 30 days ago, and a phone-only person once");
 });
-
-// The SQL a request runs, with its binds, from the route itself.
-const captured = (env, match) => {
-  const seen = [], prepare = env.DB.prepare.bind(env.DB);
-  env.DB.prepare = sql => {
-    const st = prepare(sql), bind = st.bind;
-    if (match.test(sql)) seen.push({ sql, args: [] });
-    return match.test(sql) ? { ...st, bind: (...a) => { seen.at(-1).args = a; return bind(...a); } } : st;
-  };
-  return seen;
-};
-const plan = (env, { sql, args }) =>
-  env.DB.raw.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...args).map(r => r.detail).join("\n");
 
 test("active interest and a listing's viewings are read through the (listing_id, date) index, never a scan", async t => {
   const { env, cookie } = await world(t);

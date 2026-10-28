@@ -96,3 +96,16 @@ export async function call(env, method, path, { body, cookie, origin = ORIGIN, f
   return { status: res.status, headers: res.headers, data: await res.json().catch(() => null) };
 }
 export const adminCookie = async (email = "luismadef45@gmail.com") => `${COOKIE}=${await signSession(email, SECRET)}`;
+
+// The SQL a request runs, with its binds, from the route itself.
+export const captured = (env, match) => {
+  const seen = [], prepare = env.DB.prepare.bind(env.DB);
+  env.DB.prepare = sql => {
+    const st = prepare(sql), bind = st.bind;
+    if (match.test(sql)) seen.push({ sql, args: [] });
+    return match.test(sql) ? { ...st, bind: (...a) => { seen.at(-1).args = a; return bind(...a); } } : st;
+  };
+  return seen;
+};
+export const plan = (env, { sql, args }) =>
+  env.DB.raw.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...args).map(r => r.detail).join("\n");
