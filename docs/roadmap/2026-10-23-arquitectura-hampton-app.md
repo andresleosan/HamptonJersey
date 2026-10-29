@@ -3,6 +3,8 @@
 > Propuesta para convertir la web y el panel de Hampton Estates en el sistema de trabajo diario del equipo: aplicantes, propiedades, otras agencias, visitas, alquileres gestionados, publicación, mensajes, tours 3D y analítica. Parte del texto «Hampton APP» de Luis y crece sobre lo que ya está en producción en el repo HamptonJersey.
 >
 > Versión 1 · 23-oct-2026 · Preparada por Claude para Luis · Borrador: nada de esto está aprobado ni construido · Base: HamptonJersey en `ada40e3` (Cloudflare Pages + D1 + R2 + panel `/admin`)
+>
+> Añadido el 29-oct-2026: §6.5 (plan de ChatGPT de cada empleado), decisión P-17 y pregunta 14. Lo construido y lo pendiente está en [ESTADO.md](ESTADO.md) y en el [checklist](checklist-hampton-app.html). La versión HTML de este documento sigue siendo la del 23-oct.
 
 ## 0. Lo esencial
 
@@ -463,6 +465,8 @@ Para construir y probar automatizaciones nuevas, Luis puede seguir usando n8n en
 
 **Suscripciones o API.** Las suscripciones de ChatGPT o Gemini están pensadas para personas trabajando en una ventana: sus límites cambian sin aviso, no garantizan servicio y sus términos pueden no permitir usarlas como motor de un servicio para un cliente. Las automatizaciones deben ir por API, con pago por uso, condiciones de empresa y registro de cada llamada. Con modelos pequeños, casi todas estas tareas cuestan céntimos. Las suscripciones siguen siendo útiles para que Luis prototipe.
 
+> **Actualizado el 29-oct-2026.** Luis quiere que los empleados de Hampton usen su suscripción de ChatGPT en las automatizaciones de la app. OpenAI ofrece una vía oficial para eso, «Sign in with ChatGPT», pero hoy no admite una app comercial alojada como esta. Detalle y condiciones en el §6.5; mientras no haya permiso de OpenAI, la regla de este apartado sigue vigente.
+
 **AI Gateway** de Cloudflare como puerta única: cada llamada queda registrada con su coste y su automatización, lo repetido se puede cachear, se ponen límites y se cambia de proveedor sin desplegar.
 
 ### 6.4 Barandillas
@@ -472,6 +476,37 @@ Para construir y probar automatizaciones nuevas, Luis puede seguir usando n8n en
 - Horas de silencio: nada de WhatsApp ni SMS entre las 21:00 y las 08:00 de Jersey.
 - Interruptor por automatización y el general Pause all outbound.
 - Cada automatización con IA tiene su batería de pruebas, que se repite al cambiar de modelo.
+
+### 6.5 El plan de ChatGPT de cada empleado (Sign in with ChatGPT)
+
+Añadido el 29-oct-2026 a petición de Luis: que los empleados de Hampton usen su suscripción de ChatGPT para las automatizaciones de la app. Es su regla original de las suscripciones (§11) y pasa a ser la siguiente tarea (checklist AUT-12).
+
+**Qué ofrece OpenAI** (consultado el 29-oct-2026 en [developers.openai.com/siwc](https://developers.openai.com/siwc) y en el [DevKit](https://github.com/openai/sign-in-with-chatgpt-devkit)):
+
+| Pieza | Qué hace | Condición hoy |
+|---|---|---|
+| Inicio de sesión en una web | Solo identidad: el empleado entra con su cuenta de ChatGPT (OpenID Connect con PKCE; datos `openid`, `profile`, `email`). No da acceso a modelos | Prueba limitada para socios comerciales seleccionados; lista de espera a través de un representante de OpenAI |
+| Uso del plan de ChatGPT | Las peticiones de IA de la app (Responses API) se cargan al plan del usuario, sin clave de API | Documentado solo para apps de código abierto que corren en la máquina del usuario o en su propia VM. Para una app de pago o alojada en remoto, OpenAI pide rellenar un formulario de interés |
+| DevKit (SDK, componentes y ejemplo) | SDK local en Node.js, componentes React y logos | Licencia no comercial: no sirve para «operar un producto o servicio por o para una empresa» sin un acuerdo escrito con OpenAI |
+
+Limitaciones del preview: peticiones con `store: false` y `stream: true`; el token se renueva desde la app; no admite generación de imágenes, búsqueda en archivos, intérprete de código, audio ni subida de archivos; la búsqueda web depende de la cuenta. La documentación no dice qué planes son válidos (Free, Plus, Pro, Business, Enterprise), qué límites de uso hay ni si se puede usar en tareas de fondo sin la persona delante.
+
+**Qué significa para Hampton.** Hampton App es una web comercial alojada en Cloudflare, así que hoy no entra en ninguna de las dos vías. El primer paso no es código:
+
+1. Luis rellena el formulario de interés de OpenAI para apps alojadas o de pago y pide un client ID, explicando el caso (equipo de 2 a 4 personas, automatizaciones internas de una inmobiliaria).
+2. Hampton dice qué plan de ChatGPT tiene cada empleado (pregunta 14 del §12).
+3. Con el permiso por escrito de OpenAI (y su licencia o acuerdo para el SDK), se diseña y se construye.
+
+**Cómo encajaría si OpenAI da acceso:**
+
+- En el panel, cada empleado pulsa «Connect ChatGPT» una vez. El token se guarda cifrado en D1 con la clave en los secretos de Cloudflare, nunca en el navegador ni en el repositorio, y se puede desconectar.
+- Una automatización con IA corre con el plan del empleado que la lanza o que la aprueba en modo Draft (§6.2). Si los términos no permiten tareas de fondo, las automatizaciones del reloj se quedan en la vía API (AUT-02) o esperan a que alguien las apruebe.
+- Si el empleado no tiene plan válido o agota su límite, la automatización no se cae: pasa a la vía API si Luis la ha activado, o queda en pausa con un aviso.
+- La pantalla Automations muestra por automatización qué vía usó (plan del empleado o API) y cuántas peticiones.
+
+**Datos.** Las peticiones con el plan del empleado se rigen por las condiciones de esa cuenta, y falta confirmar con OpenAI cuáles aplican. En los planes personales (Free, Plus, Pro) OpenAI puede usar las conversaciones para entrenar si no se desactiva; en Business y Enterprise no. Por eso, mientras no esté claro: datos C0 sí; C1 y C2 solo con un plan Business o Enterprise de Hampton y su acuerdo de tratamiento; C3 nunca (modelo local, §6.3).
+
+**Hecho cuando:** OpenAI ha dado acceso por escrito, un empleado conecta su cuenta en el panel, una automatización con IA corre con su plan, y la pantalla Automations registra qué vía usó.
 
 ## 7. Seguridad, privacidad y cumplimiento en Jersey
 
@@ -631,6 +666,7 @@ Todas son propuestas mías; ninguna está aprobada.
 | P-14 | Tours 3D por línea de comandos y con protocolo de captura | Repetible y sin pantalla | Computer use sobre Adobe |
 | P-15 | La lista del aplicante no revela la agencia hasta acordar comisión o visita | Protege la comisión | Enlazar el anuncio original |
 | P-16 | Expediente de venta con hitos y recordatorios automáticos a los abogados | Es donde más horas se pierden y no estaba en el texto | Seguimiento por teléfono y memoria |
+| P-17 | Decisión de Luis (29-oct-2026): la IA de la app usa el plan de ChatGPT de cada empleado con «Sign in with ChatGPT», si OpenAI da acceso por escrito a una app comercial alojada (§6.5) | Aprovecha suscripciones que Hampton ya paga | Solo API con pago por uso (P-09), que sigue como alternativa mientras tanto |
 
 ## 11. Tu texto, punto por punto
 
@@ -651,7 +687,7 @@ Todas son propuestas mías; ninguna está aprobada.
 | Cada negociador marca días y horas disponibles y no disponibles | Plantilla semanal y excepciones | §5.9 |
 | Automatizaciones con interfaz fácil | Pantalla Automations y ficha estándar | §6.1, §6.2 |
 | Interna en puerto privado del VPS; de cliente, en una página web | Se mantiene, con carril privado sin puertos para modelos locales | §6.3 |
-| Bajo riesgo con suscripciones; datos sensibles con modelos locales | Clases C0 a C3; API en lugar de suscripciones; C3 en local (cambia) | §6.3 |
+| Bajo riesgo con suscripciones; datos sensibles con modelos locales | Clases C0 a C3; API en lugar de suscripciones; C3 en local (cambia). Desde el 29-oct-2026 Luis retoma las suscripciones: plan de ChatGPT de cada empleado si OpenAI lo permite (P-17) | §6.3, §6.5 |
 | Deep Research la primera vez | Solo para casos raros; el inventario da el resultado inicial (cambia) | §5.5 |
 | Base de datos de propiedades encontradas con valor, habitaciones y requisitos que no cumple | `market_listings` y lista ✅ ❌ ❓ con evidencia | §5.5, §5.6 |
 | Nueva búsqueda a las 24 horas sin repetir | Pasada diaria con comparación y deduplicación | §5.5 |
@@ -696,3 +732,4 @@ Ordenadas por cuánto cambian lo que se construye. Las tres primeras salieron de
 11. ¿Qué cámara 360 tienen y cuántos tours harían al mes? ¿Hay un PC con GPU NVIDIA? Decide entre construir o comprar el 3D.
 12. ¿Optimyze opera el sistema para Hampton? Hace falta un acuerdo de tratamiento de datos y decidir a nombre de quién van las cuentas (Cloudflare ya está en la de AndresLeoSan).
 13. ¿Hampton está registrada en la JFSC y en la JOIC? ¿Cobra rentas o depósitos en una cuenta propia? Decide qué controles de blanqueo y qué cuenta de clientes necesita la gestión de alquileres (F5).
+14. ¿Qué plan de ChatGPT tiene cada empleado de Hampton (Free, Plus, Pro, Business o Enterprise) y quién lo paga? Decide si las automatizaciones con IA pueden usar ese plan (§6.5) y con qué datos. Añadida el 29-oct-2026.

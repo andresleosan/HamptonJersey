@@ -1633,15 +1633,15 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Automatizaciones sin datos sensibles con suscripciones de ChatGPT o Google",
    "origen": "texto",
    "fase": "—",
-   "estado": "replanteado",
-   "responsable": "—",
+   "estado": "bloqueado",
+   "responsable": "Luis",
    "hecho": "",
-   "falta": "Las suscripciones son para personas en una ventana: sus límites cambian sin aviso, no garantizan servicio y sus términos pueden no permitir usarlas como motor de un servicio para un cliente. Se sustituye por API con pago por uso, condiciones de empresa y registro de cada llamada vía AI Gateway (AUT-02, P-09); las suscripciones quedan para que Luis prototipe.",
-   "bloqueo": "",
+   "falta": "Luis lo retomó el 29-oct-2026: que los empleados usen su suscripción de ChatGPT. La vía oficial es «Sign in with ChatGPT» (AUT-12), que hoy no admite una app comercial alojada como Hampton App y espera el permiso de OpenAI. Mientras tanto la vía es la API (AUT-02). Para Google (Gemini) no se ha revisado si existe algo parecido.",
+   "bloqueo": "Aprobación de OpenAI",
    "evidencia": [
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:464",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:654",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:626"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.3",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.5",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §10 P-17"
    ]
   },
   {
@@ -1752,6 +1752,23 @@ document.addEventListener('DOMContentLoaded', () => {
     "admin/src/ApplicantDetail.jsx:279-281",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:443",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:470-473"
+   ]
+  },
+  {
+   "id": "AUT-12",
+   "seccion": "Automatizaciones e IA",
+   "titulo": "Los empleados usan su plan de ChatGPT en las automatizaciones (Sign in with ChatGPT)",
+   "origen": "texto",
+   "fase": "—",
+   "estado": "bloqueado",
+   "responsable": "Luis",
+   "hecho": "Revisado el 29-oct-2026 y documentado en el §6.5 del plan: qué ofrece OpenAI, por qué hoy no entra Hampton App, cómo encajaría y con qué datos. Es la siguiente tarea por decisión de Luis (P-17).",
+   "falta": "Primero, permiso de OpenAI: la vía que carga la IA al plan del usuario solo está documentada para apps de código abierto que corren en la máquina del usuario, el inicio de sesión web está en prueba limitada con lista de espera, y el DevKit tiene licencia no comercial. Luis rellena el formulario de interés de OpenAI para apps alojadas o de pago y pide un client ID; Hampton dice qué plan tiene cada empleado (PRE-30). Con el permiso: botón «Connect ChatGPT» por empleado con el token cifrado en D1, automatizaciones con IA que corren con el plan de quien las lanza o aprueba, vía API (AUT-02) cuando no hay plan válido, y la vía usada visible en Automations (AUT-01). Datos C0 sí; C1 y C2 solo con plan Business o Enterprise; C3 nunca.",
+   "bloqueo": "Aprobación de OpenAI",
+   "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.5",
+    "https://developers.openai.com/siwc",
+    "https://github.com/openai/sign-in-with-chatgpt-devkit (LICENSE: no comercial)"
    ]
   },
   {
@@ -4545,6 +4562,21 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93",
     "docs/roadmap/ESTADO.md:13",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:698"
+   ]
+  },
+  {
+   "id": "PRE-30",
+   "seccion": "Acciones previas y cumplimiento",
+   "titulo": "Respuesta a la pregunta 14: qué plan de ChatGPT tiene cada empleado",
+   "origen": "plan",
+   "fase": "—",
+   "estado": "bloqueado",
+   "responsable": "Hampton",
+   "hecho": "",
+   "falta": "Sin respuesta: qué plan tiene cada empleado (Free, Plus, Pro, Business o Enterprise) y quién lo paga. Decide si las automatizaciones pueden usar ese plan y con qué datos (AUT-12).",
+   "bloqueo": "Dato de Hampton",
+   "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 14"
    ]
   }
  ]
