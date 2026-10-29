@@ -1,0 +1,33 @@
+# SDD ledger — plan: docs/superpowers/plans/2026-10-29-hampton-app-jobs-clock.md
+Spec: docs/superpowers/specs/2026-10-29-hampton-app-jobs-clock-design.md
+Executor: inline (executing-plans) on main; one commit at the end with code, tests and docs (Luis's /avanzar rule: work on main, single commit). Ultracode on: the final review is a multi-lens workflow.
+
+## Pre-flight scan
+| Rows | Finding |
+|---|---|
+| T1 -> T2 `server/jobs.js` | T2's `main = "../server/jobs.js"` is T1's file; T2's test reads only the two TOML files — consistent |
+| T1 `retentionPass(env, ts)` -> both callers | the panel passes `now()`, the Worker its `scheduledTime` as ISO; both only need a promise that never rejects — consistent |
+| Spec K3 -> T2/T3 | the dashboard settings (root `jobs`, `npx wrangler@4.148.0 deploy`, `SKIP_DEPENDENCY_INSTALL=1`) appear in the config's header and in Luis's steps — consistent |
+Scan clean.
+Task 1: complete (commits d19b8b2..d19b8b2, tests: npm test → OK)
+Task 1: RED: the whole file failed on "Cannot find module …/server/jobs.js" (as planned). GREEN: 40/40 on jobs + retention + notifications, then npm test (node + 14 Python) OK. Mutation check: no pass on the tick → 3 fail; a pass that rejects → 1 fail; the heartbeat with the wrong time → 1 fail; restored byte-identical → 4/4.
+Task 2: RED: the config test failed on ENOENT …/jobs/wrangler.toml (as planned); GREEN 5/5 on tests/server/jobs.test.mjs.
+Task 2: bundle check: wrangler deploy -c jobs/wrangler.toml --dry-run → 8.53 KiB (gzip 3.13 KiB), binding env.DB (hampton) only, "Retention pass" in the bundle, no firebase or jose.
+Task 2: real tick in workerd: wrangler dev -c jobs/wrangler.toml --test-scheduled on a scratch D1 (migrations applied with the root config, one contact last active 2024-01-01) → GET /__scheduled "Ran scheduled event"; app_settings.clock {at: the tick's time} by system; retention_run {date 2026-10-29, ok true, attempts 1, contacts 1, viewings 0}; contacts 0; events contact.deleted by system; the Worker's only log line "Retention pass { contacts: 1, viewings: 0 }". The Worker and wrangler.toml resolve to the same local database.
+Task 2: Ruling: in workerd, retention_run stores the counts as 1.0/0.0 (D1 binds JS numbers as REAL); the panel's pass has always written them that way and nothing reads them as integers — left as is — cost if wrong: none (JSON 1.0 parses as 1).
+Task 2: regression: npm test 440/440 + 14 Python OK; npm run build OK (the 500 kB chunk warning predates this task); e2e OK after a fresh reseed (49 shots). No browser walkthrough: nothing visible changes.
+Task 2: complete (commits d19b8b2..d19b8b2, tests: npm test → OK)
+
+Final review: a workflow with four lenses (errors, security and privacy, DESIGN.md and docs, excess code), each lens's findings checked by a skeptic (8 agents). 7 confirmed (1 important, 6 minor; errors-2 and security-3 are the same finding), 5 refuted. Luis's /avanzar asks to fix what the reviewers find, so the minors were fixed too, where cheap.
+Final: fixed security-1 (important: with SKIP_DEPENDENCY_INSTALL and `npx wrangler@4.148.0 deploy`, Workers Builds would fetch wrangler's dependency tree unpinned, with install scripts, in a build that holds the account's deploy token) — build command `cd .. && npm ci --ignore-scripts` (the root lockfile, the website's versions) and deploy command `../node_modules/.bin/wrangler deploy`, recorded in the config's header, spec K3 and plan — test "the clock's build installs from the lockfile and runs no install scripts" RED (the header said npx wrangler@4.148.0) → GREEN. Simulated on a clean copy without node_modules: npm ci --ignore-scripts installed 140 packages from the lockfile, then the deploy dry-run from jobs/ bundled 8.53 KiB with env.DB only.
+Final: fixed errors-2 + security-3 (the config test let a [[routes]] custom domain, other bindings or a key moved under a table through) — allow-lists of the top-level keys (read before the first table) and of the table headers — RED on two drifted copies ([[routes]] with custom_domain appended; workers_dev moved under [observability]) → GREEN on the real file, which was restored byte-identical.
+Final: errors-3 (a module the clock shares with the website gaining an npm import would break the clock's build, which installed nothing) — closed by security-1's fix: the build now installs the root lockfile, as the website's build does.
+Final: fixed design-docs-3 (claimRetentionDay's comment said only panel polls claim and retry) — now "a claim (a clock tick or a panel poll)"; comment only.
+Final: fixed design-docs-4 (plan Review Focus 5 pointed at the wrong test) — names the test.
+Final: fixed excess-1 (AGE-13 and ADM-04 said "el reloj" twice) — worded as BUS-08. While re-running the checklist script, PRE-12's "la repite" (design-docs-2, refuted) became "si el reloj no la hizo, la hace el panel" and AUT-07's "si el reloj fallara" (errors-1, refuted) became "si el reloj se parara".
+Final: Ruling: errors-1 (after 3 failed attempts in one night, neither the ticks nor the polls retry until the next day) — that is E6's shared 3-attempt rule, unchanged by the spec; the docs now promise the panel only for a stopped clock — cost if wrong: one night's delay of a deletion after a ~20-minute D1 outage at midnight.
+Final: Ruling: security-2 (a later failed Workers Build would leave the old clock code running unnoticed) — both deploy from the same commit, and alerts are AUT-01's (Luis, 29-oct); mitigation without code: after each push, /avanzar checks the commit's GitHub check runs for the hampton-jobs build as well as origin/main (the repo is public, so the API needs no token) — cost if wrong: the clock runs the previous rules until someone sees a red check.
+Final: Ruling: design-docs-1 (NOT-02 and NOT-07 cite notifications.js lines that moved) — the checklist's untouched items stay pinned to its base 127c7ef ("Código comprobado"), the 28-oct ruling — cost if wrong: a reader of those two items lands a few lines off.
+Final: Ruling: design-docs-5 (the plan's e2e step names local paths) — none is on the public-repo ban list (IPs, ports, tokens, /root/.claude paths); the portable placeholder form stays in tests/e2e.cjs — cost if wrong: none.
+Final: suite after the fix pass: npm test 441/441 + 14 OK; npm run build OK; deploy dry-run 8.53 KiB, env.DB only. The e2e (OK, 49 shots) ran before the fix pass, which changed no panel or website code.
+Final: note for a later task: npm audit lists 9 high-severity advisories in build-time dependencies (@grpc/grpc-js via firebase, sharp and undici via wrangler); none is in the clock's 8.53 KiB bundle.

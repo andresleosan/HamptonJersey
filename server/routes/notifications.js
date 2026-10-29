@@ -3,7 +3,7 @@ import { normalizePhone, activeSql } from "../applicants.js";
 import { salesCount } from "./sales.js";
 import { refreshRentalsCount } from "./rent.js";
 import { jerseyToday } from "../viewings.js";
-import { claimRetentionDay, runRetention, recordRetentionDay, EXPIRING } from "../retention.js";
+import { retentionPass, EXPIRING } from "../retention.js";
 
 const BOXES = {
   action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id",
@@ -46,22 +46,14 @@ async function openCounts(env) {
     expiring: expiring.n };
 }
 
-// E6: the panel polls the counts every 30 s, and the Inbox its list; the first poll of each Jersey day claims the
-// retention pass (a failed one again, up to 3 attempts), which runs after the answer (the claim too, so the poll waits
-// for neither). A failed pass is logged and stays not done for the next claim.
-function retentionPass(env, waitUntil) {
-  const ts = now(), day = jerseyToday(new Date(ts));
-  waitUntil(claimRetentionDay(env, day)
-    .then(won => won && runRetention(env, ts)
-      .then(r => recordRetentionDay(env, day, r).then(() => console.log("Retention pass", r))))
-    .catch(e => console.error("Retention pass failed", e)));
-}
-
+// E6: the panel polls the counts every 30 s, and the Inbox its list; each poll claims the day's retention pass in case
+// the clock has not (a failed one again, up to 3 attempts). It runs after the answer, the claim too, so the poll waits
+// for neither.
 async function list({ request, env, waitUntil }) {
   const q = new URL(request.url).searchParams, box = q.get("box"), category = q.get("category");
   if (!Object.hasOwn(BOXES, box ?? "")) fail(400, "Invalid box");
   if (category && !CATEGORIES.includes(category)) fail(400, "Invalid category");
-  retentionPass(env, waitUntil);
+  waitUntil(retentionPass(env, now()));
   const { results } = await env.DB.prepare(`${LIST_SQL} WHERE ${category ? "n.category = ? AND " : ""}${BOXES[box]}`)
     .bind(...(category ? [category] : [])).all();
   const notifications = results.map(({ raw_phone, search_id, ...n }) =>
@@ -70,7 +62,7 @@ async function list({ request, env, waitUntil }) {
 }
 
 async function counts({ env, waitUntil }) {
-  retentionPass(env, waitUntil);
+  waitUntil(retentionPass(env, now()));
   return json(await openCounts(env));
 }
 

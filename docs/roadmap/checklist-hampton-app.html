@@ -676,12 +676,11 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "No hay envío de correo ni tarea programada: no existe el Worker hampton-jobs con cron y las tareas diarias (borrado G2, cobros de Rentals) se lanzan con el sondeo del panel.",
+   "falta": "No hay envío de correo. El reloj ya existe (AUT-07, Worker hampton-jobs cada 10 minutos): con el servicio de correo, el resumen de las 8:00 de Jersey será un trabajo más del reloj.",
    "bloqueo": "Servicio de correo",
    "evidencia": [
-    "wrangler.toml:1-20",
-    "server/routes/notifications.js:49-58",
-    "server/routes/rent.js:92-101",
+    "server/jobs.js:1-15",
+    "jobs/wrangler.toml:1-24",
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:42"
    ]
   },
@@ -1097,11 +1096,11 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "Falta enviar, a las 09:00 y a las 14:00, un correo por agencia con todas sus casas pendientes, desde el buzón real de Hampton y con [HE-OUT-…] en el asunto para enlazar la respuesta. También hace falta la tarea programada, porque no hay Worker con cron.",
+   "falta": "Falta enviar, a las 09:00 y a las 14:00, un correo por agencia con todas sus casas pendientes, desde el buzón real de Hampton y con [HE-OUT-…] en el asunto para enlazar la respuesta. Las horas fijas las dará el reloj (AUT-07), que ya existe.",
    "bloqueo": "Servicio de correo",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:291",
-    "wrangler.toml:1-20"
+    "jobs/wrangler.toml:1-24"
    ]
   },
   {
@@ -1210,12 +1209,13 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "La etapa Paused existe y el equipo la pone a mano en la ficha del aplicante.",
-   "falta": "Falta que el match pase solo a No response a los 7 días sin respuesta (hoy los matches solo tienen Found, Shortlisted y Rejected, y antes hay que avisar al aplicante, AGE-11, o darle su portal, AGE-12) y que la búsqueda pase sola a Paused tras 30 días sin actividad, con una tarea programada (AUT-07).",
+   "falta": "Falta que el match pase solo a No response a los 7 días sin respuesta (hoy los matches solo tienen Found, Shortlisted y Rejected, y antes hay que avisar al aplicante, AGE-11, o darle su portal, AGE-12) y que la búsqueda pase sola a Paused tras 30 días sin actividad, con una pasada diaria en el reloj (AUT-07), que ya existe.",
    "bloqueo": "",
    "evidencia": [
     "server/applicants.js:24-25",
     "admin/src/ApplicantDetail.jsx:289-293",
-    "migrations/0009_matches.sql:33"
+    "migrations/0009_matches.sql:33",
+    "server/jobs.js:1-15"
    ]
   },
   {
@@ -1473,11 +1473,11 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "No se envía nada al aplicante ni se avisa al negociador si a 2 h sigue sin confirmar. Además del correo hace falta un reloj en Cloudflare: no existe el Worker hampton-jobs con cron y lo diario solo corre cuando el panel sondea.",
+   "falta": "No se envía nada al aplicante ni se avisa al negociador si a 2 h sigue sin confirmar. Falta el servicio de correo; el reloj que los lanzará a su hora ya existe (AUT-07).",
    "bloqueo": "Servicio de correo",
    "evidencia": [
-    "wrangler.toml:1-21",
-    "server/routes/notifications.js:49-58",
+    "jobs/wrangler.toml:1-24",
+    "server/jobs.js:1-15",
     "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:37"
    ]
   },
@@ -1523,7 +1523,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "Luis",
    "hecho": "Botón Owner report en cada ficha: página imprimible en A4 (7, 30 o 90 días) con aperturas en la web, visitas y su resultado, aplicantes que encajan y, en venta, ofertas numeradas y avance de la venta, sin datos de interesados.",
-   "falta": "El envío automático semanal al propietario (necesita correo y un reloj en Cloudflare), un resumen de los temas del feedback y guardar el contacto del propietario en la ficha, que hoy no existe. Mientras tanto el equipo lo guarda como PDF y lo manda a mano.",
+   "falta": "El envío automático semanal al propietario (necesita correo; el reloj ya existe, AUT-07), un resumen de los temas del feedback y guardar el contacto del propietario en la ficha, que hoy no existe. Mientras tanto el equipo lo guarda como PDF y lo manda a mano.",
    "bloqueo": "Servicio de correo",
    "evidencia": [
     "admin/src/ListingEditor.jsx:155-156",
@@ -1559,14 +1559,14 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "—",
    "estado": "pendiente",
    "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "No hay pantalla Automations (ni en la barra ni en Settings): faltan la lista con interruptor, modo, última ejecución, % de éxito, pendientes de aprobar y coste del mes, el registro de ejecuciones con datos sensibles ocultos y las plantillas y parámetros editables. Hoy la única tarea diaria, el borrado de 12 meses, solo deja su última pasada en app_settings y en el log.",
+   "hecho": "El reloj (AUT-07) deja la hora de su última vuelta en app_settings (clave clock) y el borrado de 12 meses su última pasada (retention_run): es lo que leerá esta pantalla.",
+   "falta": "No hay pantalla Automations (ni en la barra ni en Settings): faltan la lista con interruptor, modo, última ejecución, % de éxito, pendientes de aprobar y coste del mes, el registro de ejecuciones con datos sensibles ocultos, las plantillas y parámetros editables y un aviso si el reloj se para (Luis prefirió verlo aquí y no antes, 29-oct).",
    "bloqueo": "",
    "evidencia": [
     "admin/src/App.jsx:39",
     "admin/src/App.jsx:73",
-    "server/retention.js:89-92",
-    "server/routes/notifications.js:56-57",
+    "server/jobs.js:1-15",
+    "server/retention.js:95-104",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:436-445"
    ]
   },
@@ -1669,21 +1669,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Worker hampton-jobs con cron cada 10 minutos: un solo reloj para lo vencido",
    "origen": "plan",
    "fase": "F0",
-   "estado": "pendiente",
-   "responsable": "desarrollo",
-   "hecho": "Lo diario va colgado del sondeo del panel: el primer sondeo de cada día de Jersey lanza el borrado de 12 meses (hasta 3 intentos) y el mismo sondeo pone al día los cobros mensuales cada 10 minutos.",
-   "falta": "No existe el Worker ni ningún Cron Trigger (wrangler.toml solo declara Pages, D1 y R2), así que si nadie abre el panel no corre nada. Hará falta para recordatorios, seguimientos a agencias, pagos atrasados y fichas To confirm que deben saltar a su hora.",
+   "estado": "hecho",
+   "responsable": "—",
+   "hecho": "El Worker hampton-jobs se despierta cada 10 minutos (cron */10 * * * *, hora UTC) sobre la misma base de datos que la web y sin dirección en internet: no responde a peticiones, solo al reloj de Cloudflare. Cada vuelta deja su hora en app_settings (clave clock) y la primera de cada día de Jersey (00:00) hace el borrado de 12 meses, con sus 3 intentos al día; si el reloj se parara, el panel lo sigue haciendo al abrirse. Sus registros solo dicen cuántos borró. Cada push a main lo despliega con Workers Builds desde la carpeta jobs/. En producción desde el 29-oct-2026.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "wrangler.toml:1-20",
-    "server/routes/notifications.js:52-58",
-    "server/routes/notifications.js:36-39",
-    "server/routes/rent.js:100-115",
-    "server/retention.js:77-87",
-    "admin/src/App.jsx:76-77",
-    "admin/src/poll.js:8",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:15",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:18"
+    "server/jobs.js:1-15",
+    "jobs/wrangler.toml:1-24",
+    "server/retention.js:95-104",
+    "server/routes/notifications.js:56",
+    "server/routes/notifications.js:65",
+    "tests/server/jobs.test.mjs",
+    "docs/superpowers/specs/2026-10-29-hampton-app-jobs-clock-design.md"
    ]
   },
   {
@@ -1892,12 +1890,11 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "No hay pasada a las 06:00 (y a mediodía para alquileres) que compare con ayer (nuevas, cambios de precio, desaparecidas como Gone tras dos pasadas, con sus matches a Not available) ni que registre por fuente cuántas leyó, nuevas, cambiadas y desaparecidas. Además necesita la tarea programada (AUT-07), que no existe.",
+   "falta": "No hay pasada a las 06:00 (y a mediodía para alquileres) que compare con ayer (nuevas, cambios de precio, desaparecidas como Gone tras dos pasadas, con sus matches a Not available) ni que registre por fuente cuántas leyó, nuevas, cambiadas y desaparecidas. La pasada irá en el reloj (AUT-07), que ya existe.",
    "bloqueo": "Clave API Places.je",
    "evidencia": [
-    "wrangler.toml:1-20",
-    "server/routes/notifications.js:49-58",
-    "admin/src/poll.js:5-14"
+    "jobs/wrangler.toml:1-24",
+    "server/jobs.js:1-15"
    ]
   },
   {
@@ -2753,7 +2750,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Solo hay avisos dentro del panel: el contador junto a Rentals (atrasos con paso pendiente, plazos vencidos o sin registrar, renovaciones, emergencias abiertas y pagos sin emparejar), que el sondeo del panel recalcula cada 30 s (caché de 10 min), y los avisos a 60, 30 y 7 días del bloque To do, que se calculan al abrir Rentals.",
-   "falta": "Se puede hacer ya: llevarlos al Inbox (hoy solo cuenta new_applicant, viewing y matched) y calcularlos con un Worker hampton-jobs con cron, que no existe, porque sin el panel abierto no se calcula nada. Espera al correo y a Meta: enviar avisos por email o WhatsApp al equipo, al inquilino y al propietario (F5-B).",
+   "falta": "Se puede hacer ya: llevarlos al Inbox (hoy solo cuenta new_applicant, viewing y matched) y calcularlos en el reloj (AUT-07, ya en producción), para que salten aunque nadie abra el panel. Espera al correo y a Meta: enviar avisos por email o WhatsApp al equipo, al inquilino y al propietario (F5-B).",
    "bloqueo": "Servicio de correo · Trámite Meta",
    "evidencia": [
     "admin/src/App.jsx:132-133",
@@ -2762,7 +2759,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/routes/rent.js:684-731",
     "server/routes/notifications.js:12",
     "server/routes/notifications.js:36-46",
-    "wrangler.toml:1-20"
+    "server/jobs.js:1-15"
    ]
   },
   {
@@ -2774,13 +2771,13 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No existen review_due_at ni el estado To confirm (§4.4: 90 días sin cambios en venta y 30 en alquiler, configurable, con tarea de llamar al propietario), y la ficha no guarda el contacto del propietario; las casas de otras agencias las cubrirá el inventario de F1-B. La pasada diaria tendría que ir en un Worker con cron, que no existe, o colgada del sondeo del panel como el borrado de G2.",
+   "falta": "No existen review_due_at ni el estado To confirm (§4.4: 90 días sin cambios en venta y 30 en alquiler, configurable, con tarea de llamar al propietario), y la ficha no guarda el contacto del propietario; las casas de otras agencias las cubrirá el inventario de F1-B. La pasada diaria irá en el reloj (AUT-07), que ya existe.",
    "bloqueo": "",
    "evidencia": [
     "migrations/0001_init.sql:1-24",
     "server/listing.js:4-21",
-    "server/routes/notifications.js:52-58",
-    "wrangler.toml:1-20"
+    "server/jobs.js:1-15",
+    "jobs/wrangler.toml:1-24"
    ]
   },
   {
@@ -3862,12 +3859,12 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "No se envía. Necesita el servicio de correo y un reloj en Cloudflare (no existe el Worker hampton-jobs).",
+   "falta": "No se envía. Necesita el servicio de correo; el reloj que lo enviará cada semana ya existe (AUT-07).",
    "bloqueo": "Servicio de correo",
    "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f7a-design.md:15",
     "docs/roadmap/ESTADO.md:15",
-    "wrangler.toml:1-21"
+    "jobs/wrangler.toml:1-24"
    ]
   },
   {
@@ -3992,12 +3989,12 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "No se envía nada: el equipo persigue a los abogados a mano con los hitos de Sales. Necesita correo y un reloj en Cloudflare (no hay Worker con cron).",
+   "falta": "No se envía nada: el equipo persigue a los abogados a mano con los hitos de Sales. Necesita correo; el reloj (AUT-07) ya existe.",
    "bloqueo": "Servicio de correo",
    "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
     "docs/roadmap/ESTADO.md:11",
-    "wrangler.toml:1-21"
+    "jobs/wrangler.toml:1-24"
    ]
   },
   {
@@ -4229,12 +4226,13 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "G2",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "G2 en producción (991b6c6): una pasada diaria borra contactos con 12 meses sin actividad y visitas de hace más de 12 meses, salvo ventas (5 años) y ofertas abiertas; Applicants tiene la lista Expiring desde el mes 11, Kept until y el botón Log conversation, y el aviso lo explica.",
-   "falta": "No hay aviso previo por email al aplicante (G2 lo preveía a los 11 meses) ni descarga o borrado desde el portal, que no existe, y la pasada solo corre si alguien abre el panel (AUT-07). Antes de 2031 hay que borrar las ventas a los 5 años.",
+   "hecho": "G2 en producción (991b6c6): una pasada diaria borra contactos con 12 meses sin actividad y visitas de hace más de 12 meses, salvo ventas (5 años) y ofertas abiertas; Applicants tiene la lista Expiring desde el mes 11, Kept until y el botón Log conversation, y el aviso lo explica. Desde el 29-oct la pasada la hace el reloj a las 00:00 de Jersey (AUT-07); si el reloj no la hizo, la hace el panel al abrirse.",
+   "falta": "No hay aviso previo por email al aplicante (G2 lo preveía a los 11 meses) ni descarga o borrado desde el portal, que no existe. Antes de 2031 hay que borrar las ventas a los 5 años.",
    "bloqueo": "Servicio de correo",
    "evidencia": [
     "server/retention.js:51-92",
-    "server/routes/notifications.js:52-58",
+    "server/retention.js:95-104",
+    "server/jobs.js:1-15",
     "admin/src/Applicants.jsx:16-17",
     "admin/src/ApplicantDetail.jsx:243-282",
     "admin/src/App.jsx:125-126",
@@ -4268,7 +4266,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Los secretos (SESSION_SECRET, TURNSTILE_SECRET) viven en las variables de Cloudflare y .dev.vars no se sube al repo; antes de las migraciones remotas 0009–0015 se guardó un marcador de Time Travel, y la tabla events hace de auditoría (Timeline del aplicante, History de Rentals).",
-   "falta": "No existe la exportación semanal cifrada a un destino privado (ni script ni tarea programada). Comprobar el plazo de Time Travel: el spec del panel dice 30 días, pero el plan de F1-A asume el plan gratuito de Workers, que guarda menos (7 días).",
+   "falta": "No existe la exportación semanal cifrada a un destino privado: faltan el código y el destino; el reloj (AUT-07) ya puede lanzarla cada semana. Comprobar el plazo de Time Travel: el spec del panel dice 30 días, pero el plan de F1-A asume el plan gratuito de Workers, que guarda menos (7 días).",
    "bloqueo": "",
    "evidencia": [
     "wrangler.toml:5-10",

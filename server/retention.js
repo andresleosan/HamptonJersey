@@ -71,9 +71,10 @@ export async function runRetention(env, ts) {
   return { contacts: r[6].meta.changes, viewings: r[10].meta.changes };
 }
 
-// E6: retention_run {date, ok, attempts, contacts, viewings}. A poll claims the pass when the stored date is earlier
-// than today (attempts starts again at 1), or is today with the pass not done and fewer than 3 attempts: a failed pass
-// is retried twice by later polls, then waits for the next day. One statement, so two polls never both win an attempt.
+// E6: retention_run {date, ok, attempts, contacts, viewings}. A claim (a clock tick or a panel poll) wins the pass when
+// the stored date is earlier than today (attempts starts again at 1), or is today with the pass not done and fewer than
+// 3 attempts: a failed pass is retried twice by later claims, then waits for the next day. One statement, so two claims
+// never both win an attempt.
 export async function claimRetentionDay(env, date) {
   const r = await env.DB.prepare(`INSERT INTO app_settings (key, value, updated_at, updated_by)
     VALUES ('retention_run', json_object('date', ?1, 'ok', json('false'), 'attempts', 1), ?2, 'system')
@@ -90,3 +91,14 @@ export async function claimRetentionDay(env, date) {
 export const recordRetentionDay = (env, date, { contacts, viewings }) => env.DB.prepare(`UPDATE app_settings
   SET value = json_set(value, '$.ok', json('true'), '$.contacts', ?, '$.viewings', ?), updated_at = ?
   WHERE key = 'retention_run' AND json_extract(value, '$.date') = ?`).bind(contacts, viewings, now(), date).run();
+
+// E6: claims the Jersey day of ts (ISO) and, when won, runs and records its pass. The clock (server/jobs.js) claims
+// each day at 00:00 Jersey; the panel's polls claim it too, as its backup. Never rejects: a failed pass is logged and
+// stays not done for the next claim. The log says how many were deleted, never who.
+export const retentionPass = (env, ts) => {
+  const day = jerseyToday(new Date(ts));
+  return claimRetentionDay(env, day)
+    .then(won => won && runRetention(env, ts)
+      .then(r => recordRetentionDay(env, day, r).then(() => console.log("Retention pass", r))))
+    .catch(e => console.error("Retention pass failed", e));
+};

@@ -1,0 +1,24 @@
+# AUT-07: the clock. A Worker beside the Pages project, on the website's D1 and with no URL: Cloudflare wakes it every
+# 10 minutes (UTC) to run what is due (server/jobs.js). Workers Builds deploys it on each push to main from this folder:
+# root directory "jobs", build command "cd .. && npm ci --ignore-scripts",
+# deploy command "../node_modules/.bin/wrangler deploy", build variable SKIP_DEPENDENCY_INSTALL=1, preview builds off.
+# The build holds the account's deploy token, so it installs only the repo's lockfile and runs no install scripts. Its
+# own folder because Workers Builds checks the name in the Wrangler file of its root directory, and at the repo root
+# that file is the website's. First deploy, by hand from the repo root: npx wrangler deploy -c jobs/wrangler.toml
+name = "hampton-jobs"
+main = "../server/jobs.js"
+compatibility_date = "2025-10-01"
+workers_dev = false
+preview_urls = false
+
+[triggers]
+crons = ["*/10 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hampton"
+database_id = "1da41b63-c61f-4491-9f8d-3a9afde6e0fb"
+
+# Workers Logs: the Worker logs counts and errors only, never who.
+[observability]
+enabled = true
