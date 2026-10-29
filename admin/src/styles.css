@@ -251,6 +251,17 @@ kbd{font:600 11px var(--body);letter-spacing:0;padding:0 5px;border:1px solid cu
 .inbox-detail .more .inline{margin:0}
 .view-form{display:grid;gap:12px;padding:16px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--mist);min-width:0}
 .view-form h3{margin:0;font-size:17px} .view-form p,.view-form .inline{margin:0}
+/* VIS-02: who counts in a listing's interest, above its viewings. Buttons reach 32px (DESIGN.md, new panel screens) and
+   44px on phones (antislop R-03). */
+.interest{display:grid;gap:12px;margin-bottom:16px}
+.interest h2,.interest h3,.interest p,.interest .inline{margin:0} .interest h3{font-size:16px;margin-top:4px}
+.interest ul{list-style:none;margin:0;padding:0}
+.interest li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.interest li p{overflow-wrap:anywhere} .interest .who{font-weight:600} .interest li>.view-form{grid-column:1/-1}
+.interest select{max-width:360px}
+.warn.uncounted{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center} .warn.uncounted p{margin:0}
+.interest .btn{min-height:32px}
+@media (max-width:760px){.interest li{grid-template-columns:1fr}.interest .btn{min-height:44px}}
 textarea.short{min-height:72px}
 .slot-picker{display:grid;gap:12px;min-width:0} .slot-who{max-width:360px} .slot-picker p{margin:0}
 .pick-set{border:0;padding:0;margin:0;min-width:0}

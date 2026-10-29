@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { fmtDate, fmtDay, firstSentence, VIEWING_STATUS, OUTCOME } from "./format.js";
+import { fmtDate, fmtDay, firstSentence, VIEWING_STATUS, OUTCOME, INTEREST_REASON } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
-import { KINDS, OUTCOMES, jerseyToday } from "../../server/viewings.js";
+import { KINDS, OUTCOMES, jerseyToday, plusDays } from "../../server/viewings.js";
 import SlotPicker from "./SlotPicker.jsx";
+import Interest from "./Interest.jsx";
 
 // Spec §5: a viewing from the request to its outcome, and the team's own bookings (C14).
 const TABS = { requests: "Requests", upcoming: "Upcoming", outcome: "Needs outcome", past: "Past" };
@@ -21,36 +22,47 @@ const Badge = ({ status }) => { const [t, tone] = VIEWING_STATUS[status] ?? [sta
 const refusal = e => (/Reload to see/.test(e.message)
   ? `${firstSentence(e.message)} This is the latest version; your change was not saved.` : e.message);
 const stillThere = (d, id) => !!d?.viewings.some(x => x.id === id);
+// VIS-02 (R9): a viewing that counts, or can once it is closed: still active, or gone well in the last 30 days.
+const couldCount = v => ["requested", "confirmed"].includes(v.status)
+  || (v.status === "completed" && ["proceed", "more_info"].includes(v.outcome) && v.date >= plusDays(jerseyToday(), -30));
 
 // listing: the #/viewings?listing=<id> filter (the listing editor's "Active interest" link).
 export default function Viewings({ listing }) {
   const [tab, setTab] = useState("requests"), [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null);
   const [sel, setSel] = useState(null), [msg, setMsg] = useState(null), [creating, setCreating] = useState(false);
-  const [title, setTitle] = useState(null), [focusTo, setFocusTo] = useState(null), [counts, setCounts] = useState({});
-  // notes: the open viewing's notes; step: its open outcome or reschedule form; form: New viewing.
-  const [dirty, setDirty] = useState({ notes: false, step: false, form: false });
-  const seq = useRef(0), headRef = useRef(null), listRef = useRef(null), detailRef = useRef(null), newBtn = useRef(null);
+  const [interest, setInterest] = useState(null), [interestErr, setInterestErr] = useState(null);
+  const [focusTo, setFocusTo] = useState(null), [counts, setCounts] = useState({});
+  // notes: the open viewing's notes; step: its open outcome or reschedule form; form: New viewing; interest: the open
+  // form of the interest card.
+  const [dirty, setDirty] = useState({ notes: false, step: false, form: false, interest: false });
+  const seq = useRef(0), iseq = useRef(0), headRef = useRef(null), listRef = useRef(null), detailRef = useRef(null), newBtn = useRef(null);
   // A viewing that a refused action moved out of this tab while its notes were still unsaved: it stays open (as last
   // read) so the notes can be saved, instead of being dropped with it.
   const pinned = useRef(null);
   const filter = listing ? `&listing_id=${encodeURIComponent(listing)}` : "";
 
-  // Resolves to the list read (undefined when it failed or a newer read superseded it).
+  // VIS-02: the listing's interest card (and its title), read again with every list load: any change to a viewing can
+  // change who counts.
+  const loadInterest = () => {
+    const n = ++iseq.current;
+    return api(`/admin/listings/${encodeURIComponent(listing)}/interest`).then(d => {
+      if (n === iseq.current) { setInterest(d); setInterestErr(null); }
+    }, e => { if (n === iseq.current) setInterestErr(e.message); });
+  };
+  // Resolves to the list read (undefined when it failed or a newer read superseded it), once the card is read too.
   const load = (t = tab) => {
     const n = ++seq.current;
-    return api(`/admin/viewings?tab=${t}${filter}`).then(d => {
+    const list = api(`/admin/viewings?tab=${t}${filter}`).then(d => {
       if (n !== seq.current) return;
       setData(d); setCounts(d.counts); setLoadErr(null);
       setSel(id => (stillThere(d, id) || id === pinned.current?.id ? id : d.viewings[0]?.id ?? null));
       return d;
     }, e => { if (n === seq.current) setLoadErr(e.message); });
+    return listing ? Promise.all([list, loadInterest()]).then(([d]) => d) : list;
   };
   useEffect(() => { load(); }, []);
-  useEffect(() => {
-    if (listing) api(`/admin/listings/${encodeURIComponent(listing)}/interest`).then(d => setTitle(d.title), () => {});
-  }, [listing]);
   const onDirty = useCallback((k, b) => setDirty(d => (d[k] === b ? d : { ...d, [k]: b })), []);
-  useEffect(() => { setUnsaved(dirty.notes || dirty.step || dirty.form); }, [dirty]);
+  useEffect(() => { setUnsaved(dirty.notes || dirty.step || dirty.form || dirty.interest); }, [dirty]);
   useEffect(() => () => setUnsaved(false), []);
   // Typed notes, a chosen outcome or new time go with the open viewing: switching to another one asks first (the New
   // viewing form stays open).
@@ -106,6 +118,9 @@ export default function Viewings({ listing }) {
   const saveNotes = (v, notes) => send(v, put(v, { notes }), { done: "Notes saved.", refocus: false });
   const remove = v => confirm(`Delete the viewing of ${v.name}? This can't be undone.`)
     && send(v, () => api(`/admin/viewings/${v.id}`, { method: "DELETE" }), { done: "Viewing deleted." });
+  // VIS-02 (R9): a person the team took out of the count, back in from one of their viewings.
+  const recount = v => send(v, () => api(`/admin/viewings/${v.id}/interest`, { method: "PUT", body: { action: "restore" } }),
+    { done: `${v.name} counts again.` });
 
   const booked = async (id, text) => {
     setCreating(false);
@@ -130,8 +145,10 @@ export default function Viewings({ listing }) {
   return <section aria-labelledby="t-views">
     <div className="head"><h1 id="t-views" ref={headRef} tabIndex={-1}>Viewings</h1>
       {!creating && <button type="button" ref={newBtn} className="btn" onClick={() => { setCreating(true); setMsg(null); }}>New viewing</button>}</div>
-    {listing && <p className="view-filter">Only the viewings of <a href={`#/p/${encodeURIComponent(listing)}`}>{title ? `${title} (${listing})` : listing}</a>.{" "}
+    {listing && <p className="view-filter">Only the viewings of <a href={`#/p/${encodeURIComponent(listing)}`}>{interest ? `${interest.title} (${listing})` : listing}</a>.{" "}
       <a href="#/viewings">Show all viewings</a></p>}
+    {/* The card's changes read the list again too; the list's last message is about something else by then. */}
+    {listing && <Interest data={interest} error={interestErr} reload={() => { setMsg(null); return load(); }} onDirty={onDirty} />}
     {creating && <NewViewing listing={listing} onBooked={booked} onClose={closeForm} onDirty={onDirty} />}
     <div className="seg" role="group" aria-label="Viewings">{Object.entries(TABS).map(([k, t]) =>
       <button key={k} type="button" aria-pressed={tab === k} onClick={() => show(k)}>{t}<span className="count">{counts[k] ?? ""}</span></button>)}</div>
@@ -151,26 +168,30 @@ export default function Viewings({ listing }) {
             </button></li>)}</ul>
         </div>)}</div>
         {v && <Detail key={v.id} v={v} gone={!stillThere(data, v.id) ? TABS[tab] : null} ended={tab === "outcome"} filtered={listing === v.listing_id} headRef={detailRef}
-          act={act} saveNotes={saveNotes} remove={remove} onDirty={onDirty} />}
+          count={listing === v.listing_id ? interest?.active_interest ?? null : undefined}
+          act={act} saveNotes={saveNotes} remove={remove} recount={recount} onDirty={onDirty} />}
       </div>}
   </section>;
 }
 
-// gone: the tab v has just left (see send); only its notes can still be saved.
-function Detail({ v, gone, ended, filtered, headRef, act, saveNotes, remove, onDirty }) {
+// gone: the tab v has just left (see send); only its notes can still be saved. count: the listing's interest when the
+// screen reads it already (filtered by v's listing; null while it loads), else undefined and read here.
+function Detail({ v, gone, ended, filtered, headRef, count, act, saveNotes, remove, recount, onDirty }) {
   const [notes, setNotes] = useState(v.notes ?? ""), [open, setOpen] = useState(null); // open: "complete" | "reschedule"
   const [err, setErr] = useState(null), [interest, setInterest] = useState(null), [refresh, setRefresh] = useState(0);
   const busy = useRef(false), notesRef = useRef(null), opener = useRef(null);
   const notesDirty = notes.trim() !== (v.notes ?? "");
   useEffect(() => { onDirty("notes", notesDirty); }, [notesDirty]);
   useEffect(() => () => onDirty("notes", false), []);
-  // C10's count for the listing: read with the listing, and again after each change to this viewing.
+  // C10's count for the listing: read with the listing, and again after each change to this viewing or its place in
+  // the count (VIS-02).
+  const own = count === undefined;
   useEffect(() => {
-    if (!v.listing_id) return;
+    if (!v.listing_id || !own) return;
     let live = true;
     api(`/admin/listings/${v.listing_id}/interest`).then(d => live && setInterest(d.active_interest), () => {});
     return () => { live = false; };
-  }, [v.listing_id, v.updated_at, v.status]);
+  }, [v.listing_id, v.updated_at, v.status, v.interest_removed_at, own]);
 
   // Presses while a request is under way are ignored (the buttons stay enabled, so they keep the focus).
   const run = async (fn, after) => {
@@ -192,7 +213,7 @@ function Detail({ v, gone, ended, filtered, headRef, act, saveNotes, remove, onD
   const close = () => { setOpen(null); setErr(null); opener.current?.focus(); };
 
   const subject = encodeURIComponent(`Your viewing: ${listingOf(v)}`);
-  const n = interest;
+  const n = own ? interest : count;
   const active = !gone && (v.status === "requested" || v.status === "confirmed");
   return <article className="card inbox-detail" aria-labelledby="v-name">
     <div className="head"><div>
@@ -208,6 +229,12 @@ function Detail({ v, gone, ended, filtered, headRef, act, saveNotes, remove, onD
     {err && <p role="alert" className="err">{err}</p>}
     {gone && <p className="warn" role="note">This viewing has changed and is no longer in {gone}. Your notes aren't saved yet:
       save them below, then choose another viewing.</p>}
+    {/* VIS-02 (R9): out of the count until the team counts them again, whatever happens to the viewing meanwhile. Said
+        above the outcome form, on a viewing that can still count. */}
+    {v.interest_removed_at && couldCount(v) && <div className="warn uncounted" role="note">
+      <p>Not counted in this listing's interest: {[INTEREST_REASON[v.interest_reason], v.interest_note,
+        fmtDate(v.interest_removed_at)].filter(Boolean).join(" · ")}</p>
+      {!gone && v.listing_id && <button type="button" className="btn ghost sm" onClick={() => run(() => recount(v))}>Count again</button>}</div>}
     {active && open === "complete" && <OutcomeForm onSave={complete} onClose={close} onDirty={onDirty} />}
     {active && open === "reschedule" && <RescheduleForm v={v} refresh={refresh} onSave={reschedule} onClose={close} onDirty={onDirty} />}
     <dl className="kv">

@@ -693,6 +693,7 @@ async function admin(browser) {
     ["Pending", ...[...racers].reverse().map(r => (r === loser ? "WithdrawnSuperseded by a new offer" : "Accepted"))], "newest first");
   await page.locator("#s-offers").scrollIntoViewIfNeeded();
   if (SHOTS) await page.locator("#s-offers").screenshot({path: `${SHOTS}/admin-listing-offers.png`});
+  await interestCount(page, phone, noSideScroll);
   await rentals(page, phone, noSideScroll);
   await property(page, phone, noSideScroll);
   await bankImport(page, phone, noSideScroll);
@@ -799,6 +800,108 @@ async function jersey(browser, page) {
 // Owner report (O1-O9, O11): from Le Bernage's editor, 30 days by default. 7 days hold the seed's views of three days
 // and a day ago and this run's, and the seed's viewing three days ago with its feedback note; the -5 days bound keeps
 // clear of the UTC/Jersey date edge. Notes off takes them out of the page, not just out of sight.
+// VIS-02: the team corrects who counts as interested, from Viewings filtered by a listing. Le Bernage has two: Tom Renouf
+// (confirmed earlier in this run) and Mark Querée (viewed, Proceed). Remove Mark, count him again from his viewing, join
+// him to Tom and separate them; the website's number follows. It ends as it started, with 2.
+async function interestCount(page, phone, noSideScroll) {
+  const card = page.locator("section.interest"), form = card.locator("form");
+  const heading = n => card.getByRole("heading", {level: 2, name: `Interested now: ${n}`}).waitFor();
+  const person = name => card.getByRole("list", {name: "People counted"}).getByRole("listitem").filter({hasText: name});
+  const pub = async () => (await (await page.request.get(BASE + "api/listings")).json()).find(p => p.id === "HE-R001").interest;
+  const tab = name => page.getByRole("group", {name: "Viewings"}).getByRole("button", {name: new RegExp(`^${name}`)}).click();
+  const tom = status => d1(`UPDATE viewing_requests SET status = '${status}' WHERE listing_id = 'HE-R001' AND name = 'Tom Renouf'`);
+  // A card that failed to load comes back with its Try again, and the list below stays as it was.
+  await page.route("**/api/admin/listings/HE-R001/interest", r => r.abort(), {times: 1});
+  await page.goto(BASE + "admin/#/viewings?listing=HE-R001");
+  await page.getByText("No viewings of this listing in Requests.").waitFor();
+  const listRead = page.waitForResponse(r => r.url().includes("/api/admin/viewings?"));
+  await card.getByRole("alert").getByRole("button", {name: "Try again"}).click();
+  assert.equal((await listRead).status(), 200, "Try again reads the list with its own tab");
+  await heading("2 people");
+  assert.match(await person("Mark Querée").textContent(), /mark\.queree@example\.je[\s\S]*Viewed .+ · Proceed/);
+  await shot(page, "admin-interest");
+  await person("Mark Querée").getByRole("button", {name: "Remove from count"}).click();
+  assert.equal(await person("Mark Querée").getByRole("button", {name: "Remove from count", exact: true}).count(), 1,
+    "the form's own button has another name than the one that opened it");
+  await form.getByLabel("Other", {exact: true}).check();
+  await form.getByRole("button", {name: "Save"}).click();
+  await form.getByText("Add a note for Other").waitFor();
+  assert.equal(await form.getByLabel("Note", {exact: true}).getAttribute("aria-invalid"), "true", "Other needs a note");
+  await form.getByLabel("Not a buyer or tenant").check();
+  await form.getByLabel(/^Note/).fill("Neighbour");
+  // A refusal (a colleague got there first) shows under the heading, which takes the focus.
+  await page.route("**/api/admin/viewings/*/interest", r => r.fulfill({status: 409, contentType: "application/json",
+    body: JSON.stringify({error: "Someone else changed this person's count. The list now shows the latest."})}), {times: 1});
+  await form.getByRole("button", {name: "Save"}).click();
+  await card.getByRole("alert").filter({hasText: "Someone else changed this person's count."}).waitFor();
+  assert.equal(await page.evaluate(() => document.activeElement.id), "h-interest");
+  await form.getByRole("button", {name: "Save"}).click();
+  await card.getByText("Mark Querée no longer counts. The website shows the new number within a minute.").waitFor();
+  await heading("1 person");
+  assert.equal(await card.getByRole("alert").count(), 0, "the refusal goes with the change that worked");
+  const out = card.getByRole("list", {name: "Not counted"}).getByRole("listitem").filter({hasText: "Mark Querée"});
+  assert.match(await out.textContent(), /Not a buyer or tenant · Neighbour · /);
+  assert.equal(await pub(), null, "one person left is never shown on the website");
+  // His viewing says so, with Count again, above the rest of the viewing.
+  await tab("Past");
+  await page.click('.inbox-list button:has-text("Mark Querée")');
+  const detail = page.locator(".inbox-detail");
+  await detail.locator(".warn", {hasText: /^Not counted in this listing's interest: Not a buyer or tenant · Neighbour · /}).waitFor();
+  await detail.getByRole("button", {name: "Count again"}).click();
+  await heading("2 people");
+  assert.equal(await pub(), 2);
+  assert.equal(await card.getByText(/no longer counts/).count(), 0, "the card's old message goes when the viewing acts");
+  // Counted twice: Mark joined to Tom counts once, also while Tom's own viewing doesn't count; Count separately undoes it.
+  await person("Mark Querée").getByRole("button", {name: "Remove from count"}).click();
+  await form.getByLabel("Counted twice").check();
+  await form.getByLabel("Same person as").selectOption({label: "Tom Renouf · tom.renouf@example.je"});
+  await form.getByRole("button", {name: "Count as one person"}).click();
+  await card.getByText("Mark Querée now counts as the same person as Tom Renouf.").waitFor();
+  await heading("1 person");
+  assert.match(await person("Tom Renouf").textContent(), /Also booked as mark\.queree@example\.je/);
+  tom("cancelled");
+  await tab("Upcoming");
+  await person("Mark Querée").waitFor();
+  assert.equal(await card.getByRole("button", {name: "Count separately"}).count(), 0, "nothing on screen to separate");
+  await heading("1 person");
+  tom("confirmed");
+  await tab("Requests");
+  await person("Tom Renouf").getByRole("button", {name: "Count separately"}).click();
+  await card.getByText("The bookings joined to Tom Renouf count separately again.").waitFor();
+  await heading("2 people");
+  // The person chosen as "Same person as" leaves the list while the form is open: the form asks again.
+  await person("Mark Querée").getByRole("button", {name: "Remove from count"}).click();
+  await form.getByLabel("Counted twice").check();
+  await form.getByLabel("Same person as").selectOption({label: "Tom Renouf · tom.renouf@example.je"});
+  tom("cancelled");
+  await tab("Upcoming");
+  await heading("1 person");
+  await form.getByRole("button", {name: "Save"}).click();
+  await form.getByText("Choose a reason").waitFor();
+  await form.getByRole("button", {name: "Close"}).click();
+  tom("confirmed");
+  await tab("Requests");
+  await heading("2 people");
+  // R9's notice: only on a viewing that can count again, and above the outcome form.
+  d1("UPDATE viewing_requests SET interest_removed_at = '2026-10-29T09:00:00.000Z', interest_reason = 'not_buyer' WHERE id IN (3, 5)");
+  await page.goto(BASE + "admin/#/viewings?listing=HE-R002");
+  await tab("Needs outcome");
+  await page.click('.inbox-list button:has-text("Ann Mourant")');
+  const notice = detail.locator(".warn", {hasText: /^Not counted in this listing's interest: Not a buyer or tenant · /});
+  await notice.waitFor();
+  await detail.getByRole("button", {name: "Mark completed", exact: true}).click();
+  assert.ok(await notice.evaluate(n => !!(n.compareDocumentPosition(document.querySelector(".inbox-detail form")) & Node.DOCUMENT_POSITION_FOLLOWING)),
+    "the notice sits above the outcome form");
+  await detail.locator("form").getByRole("button", {name: "Close"}).click();
+  await tab("Past");
+  await page.click('.inbox-list button:has-text("Lucy Bisson")');
+  await detail.getByRole("heading", {name: /Lucy Bisson/}).waitFor();
+  assert.equal(await detail.getByText(/Not counted in this listing's interest/).count(), 0, "a no-show can't count again");
+  d1("UPDATE viewing_requests SET interest_removed_at = NULL, interest_reason = NULL WHERE id IN (3, 5)");
+  await noSideScroll(BASE + "admin/#/viewings?listing=HE-R001", "#h-interest");
+  await shot(phone, "admin-interest-mobile");
+}
+
 async function ownerReport(page, phone, noSideScroll) {
   const {jerseyToday, plusDays} = await import("../server/viewings.js");
   const {fmtDayMonth} = await import("../admin/src/format.js");
@@ -1198,8 +1301,10 @@ async function property(page, phone, noSideScroll) {
   assert.equal(await dlg.getByLabel("Move-out date").inputValue(), addMonths(today, 3));
   await dlg.getByLabel("Move-out date").fill(addMonths(today, 4));
   await dlg.getByRole("button", {name: "Save move-out"}).click();
-  await t3.getByText(/^Moves out /).waitFor();
-  assert.match(await t3.locator(".warn").textContent(), new RegExp(`Moves out \\w{3} ${Number(addMonths(today, 4).slice(8))} `));
+  // The old date stays on screen until the tenancy is read again, so wait for the new one itself (day and month: on the
+  // 28th the two dates share the day).
+  const moved = new Date(`${addMonths(today, 4)}T12:00:00Z`).toLocaleDateString("en-GB", {day: "numeric", month: "short", timeZone: "UTC"});
+  await t3.locator(".warn", {hasText: new RegExp(`^Moves out \\w{3} ${moved} `)}).waitFor();
   await t3.getByRole("button", {name: "Cancel move-out"}).click();
   dlg = page.getByRole("dialog", {name: "Cancel move-out"});
   await shot(page, "fw-cancel-move-out");

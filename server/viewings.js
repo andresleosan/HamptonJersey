@@ -38,17 +38,38 @@ export const weekday = date => WEEKDAYS[(new Date(date + "T12:00:00Z").getUTCDay
 // ponytail: two foreign numbers ending in the same 10 digits count once; store normalised phones if that ever matters.
 const tel = col => `substr(${[" ", "-", ".", "(", ")"].reduce((s, c) => `replace(${s}, '${c}', '')`, col)}, -10)`;
 
-// C10, the panel's and the website's one rule: people with an active viewing of listing `id` (SQL: "?" or a column)
-// from today on, or a completed one of the last 30 days that went well. Each person once: by email; a viewing booked
-// with a phone only counts as whoever gave that phone with an email on another viewing of the listing, else as that
-// phone. Counted when read, so it expires by itself; read through the (listing_id, date) index. In parentheses it is a
-// column of another query. Binds: interestDates(), after any of `id`'s.
-export const interestSql = id => `SELECT COUNT(DISTINCT COALESCE(lower(email), (SELECT lower(o.email) FROM viewing_requests o
-    WHERE o.listing_id = viewing_requests.listing_id AND o.email IS NOT NULL AND ${tel("o.phone")} = ${tel("viewing_requests.phone")}
-    LIMIT 1), ${tel("phone")})) AS n FROM viewing_requests
-  WHERE listing_id = ${id} AND ((status IN ('requested', 'confirmed') AND date >= ?)
+// A person's key as the rule reads it on the listing of viewing `t` (a table or alias in scope): a phone's 10 digits
+// that the listing's viewings give with one email only are that email; any other key is itself. A phone given with two
+// emails (a couple on one mobile) stays a phone: the rule never guesses whose it is, and the team joins it (VIS-02).
+const keyOf = (t, key) => `COALESCE((SELECT CASE COUNT(DISTINCT lower(o.email)) WHEN 1 THEN MIN(lower(o.email)) END
+    FROM viewing_requests o WHERE o.listing_id = ${t}.listing_id AND o.email IS NOT NULL AND ${tel("o.phone")} = ${key}), ${key})`;
+// Who viewing `t` is, as C10 tells people apart: its email; booked with a phone only, whoever gave that phone with an
+// email on another viewing of the listing (if one person did), else that phone.
+export const ownSql = t => `COALESCE(lower(${t}.email), ${keyOf(t, tel(`${t}.phone`))})`;
+// Who viewing `t` counts as. VIS-02 (R14): one the team joined to another person ("Counted twice") counts as that
+// person's key, read the same way, so the join holds after that person's own viewings stop counting or are deleted.
+export const personSql = t => `CASE WHEN ${t}.interest_same_as IS NULL THEN ${ownSql(t)}
+    ELSE ${keyOf(t, `${t}.interest_same_as`)} END`;
+// The viewings that show interest: active from today on, or completed in the last 30 days and gone well.
+// Binds: interestDates().
+const SHOWS_INTEREST = `((status IN ('requested', 'confirmed') AND date >= ?)
     OR (status = 'completed' AND outcome IN ('proceed', 'more_info') AND date >= ?))`;
+
+// C10, the panel's and the website's one rule: the people with a viewing of listing `id` (SQL: "?" or a column) that
+// shows interest and that the team hasn't removed (VIS-02), each once. Counted when read, so it expires by itself; read
+// through the (listing_id, date) index. In parentheses it is a column of another query. Binds: interestDates(), after
+// any of `id`'s.
+export const interestSql = id => `SELECT COUNT(DISTINCT ${personSql("viewing_requests")}) AS n FROM viewing_requests
+  WHERE listing_id = ${id} AND interest_removed_at IS NULL AND ${SHOWS_INTEREST}`;
+// VIS-02: the same viewings of listing "?", the removed ones too, latest first, each with who it counts as and who it
+// is (the panel's card groups them). Binds: the id, then interestDates().
+export const interestRowsSql = `SELECT id, name, email, phone, date, time, status, outcome, interest_removed_at,
+    interest_reason, interest_note, interest_same_as, ${personSql("viewing_requests")} AS person,
+    ${ownSql("viewing_requests")} AS own
+  FROM viewing_requests WHERE listing_id = ? AND ${SHOWS_INTEREST} ORDER BY date DESC, time DESC, id DESC`;
 export const interestDates = (today = jerseyToday()) => [today, plusDays(today, -30)];
+// VIS-02 (R2): why the team takes someone out of the count. "Counted twice" joins instead (personSql).
+export const INTEREST_REASONS = ["no_longer_interested", "not_buyer", "other"];
 // Same-width HH:MM text compares like the clock: [a1, a2) and [b1, b2) overlap.
 const overlaps = (a1, a2, b1, b2) => a1 < b2 && a2 > b1;
 

@@ -80,6 +80,22 @@ test("GET /listings: one person booked online and again by phone, or with one ph
   assert.equal((await call(env, "GET", "/admin/listings/HE-R001", { cookie })).data.active_interest, 4, "the panel's own count");
 });
 
+test("the public answer carries only the number", async () => {
+  const env = world(), cookie = await adminCookie();
+  const v = o => { seedViewing(env, { listing_id: "HE-R001", phone: null, ...o });
+    return env.DB.raw.prepare("SELECT MAX(id) id FROM viewing_requests").get().id; };
+  const interest = async () => (await call(env, "GET", "/listings")).data.find(p => p.id === "HE-R001").interest;
+  const correct = (id, body) => call(env, "PUT", `/admin/viewings/${id}/interest`, { cookie, body });
+  const ann = v({ name: "Ann", email: "ann@x.je", time: "10:00" }), bo = v({ name: "Bo", email: "bo@x.je", time: "10:30" });
+  const cy = v({ name: "Cy", email: "cy@x.je", time: "11:00" });
+  assert.equal(await interest(), 3);
+  assert.equal((await correct(ann, { action: "remove", reason: "not_buyer", note: "Owner's brother" })).status, 200);
+  assert.equal(await interest(), 2);
+  assert.equal((await correct(bo, { action: "join", same_as: cy })).status, 200);
+  assert.equal(await interest(), null, "one person left is never shown");
+  assert.doesNotMatch(JSON.stringify((await call(env, "GET", "/listings")).data), /Owner|not_buyer|ann@|bo@|cy@/i);
+});
+
 test("GET /listings reads interest through the (listing_id, date) index", async () => {
   const env = world(), q = captured(env, /COUNT\(DISTINCT/);
   await call(env, "GET", "/listings");

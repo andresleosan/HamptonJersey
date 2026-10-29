@@ -375,13 +375,14 @@ test("the interest route gives the title and the same count as the listing detai
   const { env, cookie } = await world(t);
   seedViewing(env, { email: "ann@x.je", status: "requested", date: day(1) });
   seedViewing(env, { email: null, phone: "07797 1", status: "completed", outcome: "proceed", date: day(-2) });
-  const q = captured(env, /COUNT\(DISTINCT/);
+  const q = captured(env, /AS own/);
   const r = await call(env, "GET", "/admin/listings/HE-R001/interest", { cookie });
   assert.equal(r.status, 200);
-  assert.deepEqual(r.data, { title: "Le Bernage", active_interest: 2 });
+  assert.deepEqual([r.data.title, r.data.active_interest, r.data.people.length, r.data.removed], ["Le Bernage", 2, 2, []]);
   assert.equal((await call(env, "GET", "/admin/listings/HE-R001", { cookie })).data.active_interest, 2);
   const p = plan(env, q[0]);
-  assert.match(p, /SEARCH viewing_requests USING INDEX viewing_listing \(listing_id=\? AND date>\?\)/, p);
+  assert.match(p, /SEARCH viewing_requests USING INDEX viewing_listing \(listing_id=\?/, p);
+  assert.doesNotMatch(p, /SCAN viewing_requests/, p);
   assert.equal((await call(env, "GET", "/admin/listings/HE-Z999/interest", { cookie })).status, 404);
   assert.equal((await call(env, "GET", "/admin/listings/HE-R001/interest")).status, 401);
 });

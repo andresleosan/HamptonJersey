@@ -64,14 +64,6 @@ async function detail({ env, params: [id] }) {
     matched_applicants: matched, active_interest: interest.n });
 }
 
-// The listing's title and active interest alone (the panel's Viewings screen), without the editor's full read.
-async function interest({ env, params: [id] }) {
-  const [[l], [n]] = (await env.DB.batch([env.DB.prepare("SELECT title FROM listings WHERE id = ?").bind(id),
-    interestStatement(env, id)])).map(r => r.results);
-  if (!l) fail(404, "Listing not found");
-  return json({ title: l.title, active_interest: n.n });
-}
-
 const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
 
 // The features read from a listing's text (B10), for the row as it will be saved (specs as JSON text). The parish read
@@ -220,7 +212,6 @@ export default [
   ["POST", /^\/admin\/listings$/, create, true],
   ["PUT", /^\/admin\/listings\/order$/, reorder, true],
   ["GET", new RegExp(`^/admin/listings/${ID}$`), detail, true],
-  ["GET", new RegExp(`^/admin/listings/${ID}/interest$`), interest, true],
   ["GET", new RegExp(`^/admin/listings/${ID}/offers$`), offers, true],
   ["PUT", new RegExp(`^/admin/listings/${ID}$`), update, true],
   ["DELETE", new RegExp(`^/admin/listings/${ID}$`), remove, true],

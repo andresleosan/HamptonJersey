@@ -3,11 +3,13 @@ import { now } from "./http.js";
 // Statements recording what happened to an entity, plus its Inbox notice when one is given.
 // entity_id null = the row inserted just before, in the same batch. ifInserted: write nothing unless that statement
 // added a row (an INSERT … WHERE NOT EXISTS may add none, and last_insert_rowid() would then name some other row).
-// changes() is the row count of the statement just before, so the notice follows the event the same way.
+// changes() is the row count of the statement just before, so the notice follows the event the same way. ifChanged:
+// write nothing unless that statement changed at least one row (an UPDATE of several).
 // newest: data keys set to the id of the newest row of a table, e.g. { offer_id: "offers" }: with AUTOINCREMENT, the row
 // this batch inserted. Table names come from the code, never from a request.
-export function logEvent(env, { actor, entity_type, entity_id, type, data }, notice, { ifInserted = false, newest = {} } = {}) {
-  const at = now(), only = ifInserted ? " WHERE changes() = 1" : "";
+export function logEvent(env, { actor, entity_type, entity_id, type, data }, notice,
+  { ifInserted = false, ifChanged = false, newest = {} } = {}) {
+  const at = now(), only = ifInserted ? " WHERE changes() = 1" : ifChanged ? " WHERE changes() > 0" : "";
   const ids = Object.entries(newest).map(([k, table]) => `, '$.${k}', (SELECT MAX(id) FROM ${table})`).join("");
   const stmts = [env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
     SELECT ?, ?, ?, COALESCE(?, last_insert_rowid()), ?, ${ids ? `json_set(?${ids})` : "?"}${only}`)

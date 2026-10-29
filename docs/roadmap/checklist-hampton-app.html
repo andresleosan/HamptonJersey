@@ -485,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
      "vence" (opcional, AAAA-MM-DD) saca el punto arriba con la cuenta atrás. -->
 <script type="application/json" id="datos">
 {
- "actualizado": "2026-10-28",
+ "actualizado": "2026-10-29",
  "base": "127c7ef",
  "items": [
   {
@@ -1226,16 +1226,16 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F3-A",
    "estado": "hecho",
    "responsable": "—",
-   "hecho": "Cada petición de visita suma a esa persona al interés activo de la casa (visita pedida o confirmada de hoy en adelante, o hecha en 30 días con Proceed o Need more information) y caduca solo. Cada persona cuenta una vez: por su email, y una visita apuntada solo con teléfono cuenta como quien dio ese teléfono con email en otra visita de la casa; el número se compara sin espacios ni prefijo (desde el 28-oct-2026). El panel lo muestra en el editor de la ficha («Active interest: N people») y en el detalle de cada visita, y la web desde 2 personas (VIS-03).",
+   "hecho": "Cada petición de visita suma a esa persona al interés activo de la casa (visita pedida o confirmada de hoy en adelante, o hecha en 30 días con Proceed o Need more information) y caduca solo. Cada persona cuenta una vez: por su email, y una visita apuntada solo con teléfono cuenta como quien dio ese teléfono con email en otra visita de la casa, si lo dio una sola persona (si lo dieron dos, cuenta aparte hasta que el equipo la une); el número se compara sin espacios ni prefijo. El panel lo muestra en el editor de la ficha («Active interest: N people») y en el detalle de cada visita, y la web desde 2 personas (VIS-03). El equipo lo corrige quitando a alguien o uniendo dos reservas de la misma persona (VIS-02).",
    "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "server/viewings.js:36-51",
+    "server/viewings.js:36-72",
     "server/routes/listings.js:25-26",
-    "server/routes/listings.js:67-73",
+    "server/routes/interest.js:9-30",
     "admin/src/ListingEditor.jsx:146",
-    "admin/src/Viewings.jsx:167-173",
-    "admin/src/Viewings.jsx:221-222",
+    "admin/src/Viewings.jsx:186-193",
+    "admin/src/Viewings.jsx:248-249",
     "migrations/0010_viewings.sql:68-69"
    ]
   },
@@ -1245,16 +1245,22 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "El equipo puede quitar a una persona del contador de interesados, con motivo",
    "origen": "texto",
    "fase": "F3-A",
-   "estado": "parcial",
-   "responsable": "desarrollo",
-   "hecho": "En Viewings la persona sale del recuento con Cancel viewing, con Mark completed → Not interested (motivo opcional) o con Delete viewing.",
-   "falta": "No hay un botón para quitarla del contador con motivo sin tocar la visita: Cancel viewing no pide motivo y, tras marcar Proceed o Need more information, solo sale borrando la visita o al pasar 30 días. Mientras tanto, si alguien reservó por la web sin teléfono y el equipo le apunta otra visita solo con su teléfono, cuenta dos veces: al reservar por teléfono hay que poner su email.",
+   "estado": "hecho",
+   "responsable": "—",
+   "hecho": "En Viewings filtrado por una casa (los enlaces «Active interest» del editor e «Interest in this listing» de cada visita llevan ahí), la tarjeta «Interested now: N people» lista a cada persona que cuenta y la visita por la que cuenta. «Remove from count» la saca con su motivo (No longer interested, Not a buyer or tenant, u Other con nota) sin tocar la visita, y queda en «Not counted» con «Count again». «Counted twice» une dos reservas de la misma persona (por ejemplo una por la web con email y otra por teléfono) para que cuente una vez aunque una se cancele, caduque o se borre, y «Count separately» lo deshace. Una reserva nueva vuelve a contar. La visita de alguien quitado lo avisa encima del formulario del resultado, con «Count again». La web baja el número en menos de un minuto y nunca ve motivos ni nombres; el panel enseña la fecha y el registro guarda quién lo hizo (29-oct-2026, migración 0016).",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "admin/src/Viewings.jsx:186-188",
-    "admin/src/Viewings.jsx:236-237",
-    "server/routes/inbox.js:78-80",
-    "server/viewings.js:36-51"
+    "server/viewings.js:41-72",
+    "server/routes/interest.js:9-90",
+    "migrations/0016_interest_corrections.sql:1-12",
+    "admin/src/Interest.jsx:17-141",
+    "admin/src/Viewings.jsx:25-27",
+    "admin/src/Viewings.jsx:150-151",
+    "admin/src/Viewings.jsx:232-237",
+    "tests/server/interest.test.mjs:83-283",
+    "tests/e2e.cjs:806-904",
+    "docs/superpowers/specs/2026-10-29-hampton-app-interest-removal-design.md"
    ]
   },
   {
@@ -1265,11 +1271,11 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F3-A",
    "estado": "hecho",
    "responsable": "—",
-   "hecho": "La ficha de cada casa en la web dice «N people interested» con la nota «Upcoming viewings, and those of the last 30 days that went well», justo encima de Book a viewing, cuando 2 o más personas están interesadas. Usa el mismo cálculo que el panel (VIS-01), que caduca solo. La API pública envía el número solo desde 2 y ningún dato de nadie; en una casa vendida no sale. El aviso de privacidad explica este uso (28-oct-2026).",
+   "hecho": "La ficha de cada casa en la web dice «N people interested» con la nota «Upcoming viewings, and those of the last 30 days that went well», justo encima de Book a viewing, cuando 2 o más personas están interesadas. Usa el mismo cálculo que el panel (VIS-01), que caduca solo y que el equipo corrige (VIS-02). La API pública envía el número solo desde 2 y ningún dato de nadie; en una casa vendida no sale. El aviso de privacidad explica este uso (28-oct-2026).",
    "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "server/viewings.js:36-51",
+    "server/viewings.js:36-72",
     "server/routes/public.js:18-27",
     "server/listing.js:108-109",
     "site/index.html:287-289",

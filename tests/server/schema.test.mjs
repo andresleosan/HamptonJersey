@@ -522,3 +522,24 @@ test("0015: tenure type carried over from the three exact old texts only; the ne
   db.prepare(`UPDATE listings SET tenure_type = 'leasehold', housing_category = 'registered', restriction = 'over_55'
     WHERE id = 'HE-R001'`).run();
 });
+
+test("0016: interest corrections refuse what the app never writes", () => {
+  const env = makeEnv();
+  seedListing(env);
+  const add = o => env.DB.raw.prepare(`INSERT INTO viewing_requests (listing_id, kind, date, time, name, email, status,
+    created_at, ${Object.keys(o)}) VALUES ('HE-R001', 'In person', '2026-11-02', '10:00', 'Sam', 'sam@x.je', 'requested', ?,
+    ${Object.keys(o).map(() => "?")})`).run(T0, ...Object.values(o));
+  add({ interest_removed_at: T0, interest_reason: "not_buyer" });
+  add({ interest_removed_at: T0, interest_reason: "other", interest_note: "Owner's brother" });
+  add({ interest_same_as: "jane@x.je" });
+  for (const o of [
+    { interest_removed_at: T0, interest_reason: "counted_twice" },
+    { interest_reason: "not_buyer" },
+    { interest_removed_at: T0 },
+    { interest_note: "Owner's brother" },
+    { interest_removed_at: T0, interest_reason: "other" },
+    { interest_removed_at: T0, interest_reason: "not_buyer", interest_note: "x".repeat(201) },
+    { interest_same_as: "" },
+    { interest_same_as: "x".repeat(255) },
+  ]) assert.throws(() => add(o), /CHECK/, JSON.stringify(o).slice(0, 90));
+});

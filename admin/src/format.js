@@ -22,6 +22,8 @@ export const fmtDate = iso => (iso ? new Date(iso).toLocaleString("en-GB",
 export const VIEWING_STATUS = { requested: ["Requested", "attention"], confirmed: ["Confirmed", "positive"],
   completed: ["Completed", "neutral"], no_show: ["No-show", "neutral"], cancelled: ["Cancelled", "neutral"] };
 export const OUTCOME = { proceed: "Proceed", more_info: "Need more information", not_interested: "Not interested" };
+// VIS-02: why the team took someone out of a listing's interest count (INTEREST_REASONS).
+export const INTEREST_REASON = { no_longer_interested: "No longer interested", not_buyer: "Not a buyer or tenant", other: "Other" };
 // A Jersey calendar day (YYYY-MM-DD) as text: "Mon 26 Oct", or long "Monday 26 October"; the year only when it isn't this one.
 export const fmtDay = (d, long = false) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: long ? "long" : "short",
   day: "numeric", month: long ? "long" : "short", timeZone: "UTC",
