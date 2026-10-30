@@ -193,3 +193,6 @@ INSERT INTO rent_changes (tenancy_id, effective_on, rent, created_at, created_by
 (2,date('now','+60 days','-1 year'),1900,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com');
 INSERT INTO payments (id, tenancy_id, received_on, amount, description, kind, source, created_at, created_by) VALUES
 (1,NULL,date('now','-2 days'),190000,'S MARTIN DEPOSIT FLAT 2 BATH ST','rent','import','2026-10-22T09:00:00.000Z','luismadef45@gmail.com');
+-- ADM-04: two listings on the website left unconfirmed for 4 months (a sale and a business), so the panel asks for a
+-- call to their owners.
+UPDATE listings SET confirmed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-4 months') WHERE id IN ('HE-R018', 'HE-C001');

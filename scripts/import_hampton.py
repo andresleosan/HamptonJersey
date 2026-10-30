@@ -97,6 +97,7 @@ def map_listing(r, tenure, today):
         "published": int(r["catalogue_scope"] == "Current requested catalogue" and avail in PUBLISH),
         "archived_at": f"{today}T00:00:00.000Z" if legacy else None,
         "created_at": stamp, "updated_at": stamp, "updated_by": "import",
+        "confirmed_at": stamp,  # ADM-04: a published listing counts its 3 months from its research date
     }
 
 

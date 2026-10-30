@@ -121,6 +121,8 @@ table.list{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .row-menu .menu{position:absolute;right:0;top:calc(100% + 6px);z-index:3;min-width:200px;display:grid;padding:4px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);box-shadow:0 12px 32px rgba(20,20,20,.14);animation:rise .18s var(--ease) both}
 .row-menu .menu a,.row-menu .menu button{all:unset;box-sizing:border-box;cursor:pointer;padding:9px 12px;border-radius:8px;font-size:13px;color:var(--ink)}
 .row-menu .menu a:hover,.row-menu .menu button:hover,.row-menu .menu :focus-visible{background:var(--mist)}
+/* On a phone a listing's … sits at the left of its card: its menu opens rightwards, inside the screen. */
+@media (max-width:760px){.list.listings .row-menu .menu{left:0;right:auto}}
 .media-grid li{min-width:0;grid-template-columns:minmax(0,1fr)}
 .media-grid input:not([type=checkbox]):not([type=radio]),.media-grid select{width:100%}
 .title-cell{display:flex;gap:8px;align-items:flex-start}
@@ -259,7 +261,8 @@ kbd{font:600 11px var(--body);letter-spacing:0;padding:0 5px;border:1px solid cu
 .interest li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
 .interest li p{overflow-wrap:anywhere} .interest .who{font-weight:600} .interest li>.view-form{grid-column:1/-1}
 .interest select{max-width:360px}
-.warn.uncounted{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center} .warn.uncounted p{margin:0}
+.warn.uncounted,.warn.to-confirm{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center} .warn.uncounted p,.warn.to-confirm p{margin:0}
+.warn.to-confirm .btn{min-height:32px} /* ADM-04: the panel's 32px target (DESIGN.md) */
 .interest .btn{min-height:32px}
 @media (max-width:760px){.interest li{grid-template-columns:1fr}.interest .btn{min-height:44px}}
 textarea.short{min-height:72px}

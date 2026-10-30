@@ -346,7 +346,7 @@ test("overview: list=1 answers only the properties, the same as the full load, a
 test("counts: rentals adds overdue items and unmatched payments; action unchanged", async () => {
   const env = makeEnv();
   const counts = async () => ok(await req(env, "GET", "/admin/notifications/counts"));
-  assert.deepEqual(await counts(), { action: 0, new_applicant: 0, viewing: 0, matched: 0, sales: 0, rentals: 0, expiring: 0 });
+  assert.deepEqual(await counts(), { action: 0, new_applicant: 0, viewing: 0, matched: 0, sales: 0, rentals: 0, expiring: 0, to_confirm: 0 });
 
   const L = await landlord(env);
   const done = async id => { for (const k of ["licence", "eicr", "alarms"])
@@ -373,7 +373,7 @@ test("counts: rentals adds overdue items and unmatched payments; action unchange
   // An unmatched payment (+1).
   run(env, "INSERT INTO payments (received_on, amount, kind, source, created_at) VALUES (?, 100, 'rent', 'import', ?)", T, T);
 
-  assert.deepEqual(await counts(), { action: 0, new_applicant: 0, viewing: 0, matched: 0, sales: 0, rentals: 9, expiring: 0 });
+  assert.deepEqual(await counts(), { action: 0, new_applicant: 0, viewing: 0, matched: 0, sales: 0, rentals: 9, expiring: 0, to_confirm: 0 });
   ok(await req(env, "PUT", `/admin/tenancies/${late.id}/arrears/${ago(6)}/firm`, {}));
   assert.equal((await counts()).rentals, 8, "a marked step stops counting");
   assert.equal(ok(await req(env, "GET", "/admin/notifications?box=action")).counts.rentals, 8);
@@ -407,7 +407,7 @@ test("counts: the rentals count is cached for 10 minutes and any rental write dr
   assert.equal(cache(), undefined);
   assert.equal(await rentalsCount(), 3);
   assert.deepEqual(Object.keys(ok(await req(env, "GET", "/admin/notifications/counts"))),
-    ["action", "new_applicant", "viewing", "matched", "sales", "rentals", "expiring"]);
+    ["action", "new_applicant", "viewing", "matched", "sales", "rentals", "expiring", "to_confirm"]);
 });
 
 test("tenancy search: running ones of either service and full ones ended in the last 12 months", async () => {

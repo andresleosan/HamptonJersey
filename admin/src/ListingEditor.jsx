@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, safeHref, show } from "./format.js";
+import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show } from "./format.js";
 import MediaManager from "./MediaManager.jsx";
 import Research from "./Research.jsx";
 import { setUnsaved } from "./unsaved.js";
 import { OPTIONS, isActive } from "../../server/applicants.js";
+import { ON_MARKET } from "../../server/listing.js";
+import { jerseyToday } from "../../server/viewings.js";
 import { BuyerOffers } from "./Sales.jsx";
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
@@ -53,10 +55,11 @@ function missing(form, parish, photos, coverId) {
 const DONE = { publish: "Published: now on the website (may take a minute).", unpublish: "Unpublished: no longer on the website.",
   archive: "Archived. You can restore it from Archived.", restore: "Restored as a draft." };
 
-export default function ListingEditor({ id }) {
+export default function ListingEditor({ id, onChange }) {
   const [data, setData] = useState(null), [form, setForm] = useState(null), [errors, setErrors] = useState({});
   const [matchForm, setMatchForm] = useState(null), [matchesErr, setMatchesErr] = useState(null);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [loadErr, setLoadErr] = useState(null), [confirmDel, setConfirmDel] = useState("");
+  const [confirming, setConfirming] = useState(false); // ADM-04: its own flag, so Save never reads "Saving…" meanwhile
   const load = () => api(`/admin/listings/${id}`).then(d => { setData(d); setForm(toForm(d.listing)); setMatchForm(toMatchForm(d.listing)); setErrors({}); },
     e => setLoadErr(e.message));
   useEffect(() => { load(); }, [id]);
@@ -91,7 +94,7 @@ export default function ListingEditor({ id }) {
       if (fieldsDirty) {
         const body = { ...toBody(form), ...changedMatchForm(matchForm, l), updated_at: at };
         const saved = (await api(`/admin/listings/${id}`, { method: "PUT", body })).listing;
-        setListing(saved); at = saved.updated_at; reloadMatches();
+        setListing(saved); at = saved.updated_at; reloadMatches(); onChange?.(); // a new price or availability confirms it
       }
       if (photos.current.dirty && !(await photos.current.save(at))) return setMsg({ text: "The photos weren't saved: see the message under Photos." });
       setMsg({ ok: true, text: "Changes saved." });
@@ -104,12 +107,23 @@ export default function ListingEditor({ id }) {
     if (action === "archive" && !confirm("Archive this listing? It will leave the website; you can restore it later.")) return;
     setBusy(true); setMsg(null);
     try {
-      setListing((await api(`/admin/listings/${id}/${action}`, { method: "POST" })).listing); reloadMatches();
+      setListing((await api(`/admin/listings/${id}/${action}`, { method: "POST" })).listing); reloadMatches(); onChange?.();
       setMsg({ ok: true, text: action === "publish" && !publicPhoto
         ? "Published, but it won't appear on the website until it has a visible photo." : DONE[action] });
     }
     catch (e) { setMsg({ text: e.message }); }
     finally { setBusy(false); }
+  };
+  // ADM-04: after a call to the owner. Only confirmed_at changes, so whatever is being typed stays (T11).
+  const stillAvailable = async () => {
+    setConfirming(true); setMsg(null);
+    try {
+      const { confirmed_at } = await api(`/admin/listings/${id}/confirm`, { method: "POST" });
+      setData(d => ({ ...d, listing: { ...d.listing, confirmed_at, to_confirm: 0 } }));
+      setMsg({ ok: true, text: `${l.title}: confirmed as still available.` }); onChange?.();
+    }
+    catch (e) { setMsg({ text: e.message }); }
+    finally { setConfirming(false); }
   };
   const destroy = async e => {
     e.preventDefault(); setBusy(true);
@@ -135,13 +149,18 @@ export default function ListingEditor({ id }) {
   const ftb = form.operation === "sale" || form.restriction === "first_time_buyer";
   const salesOnly = form.restriction === "first_time_buyer" && form.operation !== "sale";
   const cover = data.media.find(m => m.id === l.cover_media_id) || data.media.find(m => m.kind === "photo" && m.r2_key);
+  // ADM-04: the Jersey day of the last confirmation, shown on a published listing still on the market (T12).
+  const checked = l.confirmed_at && fmtDayMonth(jerseyToday(new Date(l.confirmed_at)));
+  const onMarket = state === "published" && ON_MARKET.includes(l.availability) && checked;
 
   return <div className="editor">
     <aside className="side card">
       {cover ? <img src={`/media/${cover.id}?thumb`} alt="" /> : <div className="thumb big" />}
       <h1>{l.title}</h1>
-      <p className="muted">{l.id} · <span className={`badge ${state}`}>{STATUS_LABEL[state]}</span></p>
+      <p className="muted">{l.id} · <span className={`badge ${state}`}>{STATUS_LABEL[state]}</span>
+        {l.to_confirm === 1 && <> <span className="badge attention">To confirm</span></>}</p>
       <p className="muted">Edited {fmtDate(l.updated_at)}</p>
+      {l.to_confirm !== 1 && onMarket && <p className="muted">Availability confirmed {checked}</p>}
       {/* C10: people with a viewing coming up, or one in the last 30 days that went well; the link lists them. */}
       <p className="muted">Active interest: <a href={`#/viewings?listing=${l.id}`}>{data.active_interest} {data.active_interest === 1 ? "person" : "people"}</a></p>
       {forSale && offers?.failed && <p className="muted">Offers couldn't be loaded</p>}
@@ -158,6 +177,9 @@ export default function ListingEditor({ id }) {
     </aside>
 
     <div className="sections">
+      {l.to_confirm === 1 && <div className="warn to-confirm" role="note">
+        <p>Last confirmed {checked}: call the owner to check it is still available.</p>
+        <button type="button" className="btn ghost sm" onClick={stillAvailable} disabled={confirming}>Still available</button></div>}
       {state !== "archived" && <section className={`card prepub${todo.length ? "" : " done"}`} aria-labelledby="h-prepub">
         <h2 id="h-prepub">Missing from this listing</h2>
         {todo.length ? <><p className="muted">You can still publish without them.</p>

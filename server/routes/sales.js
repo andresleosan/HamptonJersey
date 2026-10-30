@@ -65,12 +65,13 @@ function stageTo(env, ctx, applicant, stage, from) {
 }
 
 // V2: moves the listing to `availability` when at one of `from`, only from the availability read (the team's hand
-// change wins), advancing updated_at (an open editor gets 409); its event goes on the buyer's history.
+// change wins), advancing updated_at (an open editor gets 409); its event goes on the buyer's history. ADM-04 (T2): the
+// move also confirms the listing.
 function availabilityTo(env, ctx, listing, availability, from, buyerId) {
   if (!from.includes(listing.availability)) return [];
   return [
-    env.DB.prepare("UPDATE listings SET availability = ?, updated_at = ?, updated_by = ? WHERE id = ? AND availability = ?")
-      .bind(availability, ctx.ts, ctx.admin, listing.id, listing.availability),
+    env.DB.prepare(`UPDATE listings SET availability = ?, confirmed_at = ?, updated_at = ?, updated_by = ?
+      WHERE id = ? AND availability = ?`).bind(availability, ctx.ts, ctx.ts, ctx.admin, listing.id, listing.availability),
     ...buyerEvent(env, ctx, buyerId, "listing.availability_changed",
       { before: { availability: listing.availability }, after: { availability } }, true),
   ];

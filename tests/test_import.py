@@ -28,6 +28,8 @@ class ListingMapping(unittest.TestCase):
         self.assertEqual((l["title"], l["property_type"], l["road_name"], l["summary"]), ("Le Bernage", "House", None, "A\nB"))
         self.assertEqual((l["published"], l["archived_at"], l["availability"]), (1, None, "for_sale"))
         self.assertEqual(l["bedrooms"], 3)
+        # ADM-04: a published listing counts its 3 months from when it was imported.
+        self.assertEqual(l["confirmed_at"], l["updated_at"])
 
     def test_rent_per_month(self):
         l = ih.map_listing(prop(price_basis="Rent per month", availability="To let", asking_amount=1900.0), None, TODAY)

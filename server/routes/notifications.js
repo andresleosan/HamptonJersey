@@ -4,6 +4,7 @@ import { salesCount } from "./sales.js";
 import { refreshRentalsCount } from "./rent.js";
 import { jerseyToday } from "../viewings.js";
 import { retentionPass, EXPIRING } from "../retention.js";
+import { TO_CONFIRM } from "../listing.js";
 
 const BOXES = {
   action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id",
@@ -32,18 +33,22 @@ function link({ category, entity_type, entity_id, search_id }) {
   return search_id != null ? `#/applicants/${search_id}` : `#/applicants/new?contact=${entity_id}`;
 }
 
-// sales (V10), rentals (R16, cached: P16) and expiring contacts (E8) are their screens' own counts, not part of action.
+// sales (V10), rentals (R16, cached: P16), expiring contacts (E8) and listings to confirm (ADM-04) are their screens'
+// own counts, not part of action.
 async function openCounts(env) {
-  const [{ results }, { results: [sales] }, , , { results: [rentals] }, { results: [expiring] }] = await env.DB.batch([env.DB.prepare(
+  const [{ results }, { results: [sales] }, , , { results: [rentals] }, { results: [expiring] }, { results: [toConfirm] }] =
+    await env.DB.batch([env.DB.prepare(
     "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category"),
   salesCount(env), ...refreshRentalsCount(env),
   env.DB.prepare("SELECT json_extract(value, '$.n') AS n FROM app_settings WHERE key = 'rentals_count'"),
   // ponytail: rows read per poll ≈ 1 + 3 × the contacts in the band (each one's search, sale and open-offer lookups);
   // past ~100 contacts in it, cache the count like rentals_count.
-  env.DB.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${EXPIRING}`).bind(jerseyToday())]);
+  env.DB.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${EXPIRING}`).bind(jerseyToday()),
+  // Reads the listings_live index only (migration 0017).
+  env.DB.prepare(`SELECT COUNT(*) AS n FROM listings l WHERE ${TO_CONFIRM}`).bind(now())]);
   const by = Object.fromEntries(CATEGORIES.map(c => [c, results.find(r => r.category === c)?.n ?? 0]));
   return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by, sales: sales.n, rentals: rentals.n,
-    expiring: expiring.n };
+    expiring: expiring.n, to_confirm: toConfirm.n };
 }
 
 // E6: the panel polls the counts every 30 s, and the Inbox its list; each poll claims the day's retention pass in case

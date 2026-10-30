@@ -342,6 +342,43 @@ async function admin(browser) {
   assert.match(await page.textContent(".seg"), /Published5[\s\S]*Drafts5/);
   await shot(page, "admin-list");
 
+  // ADM-04: HE-C001 and HE-R018 have gone 4 months unconfirmed (seed): the bar counts them, the To confirm tab lists them.
+  const toConfirm = page.locator('header.bar a[href="#/listings"] .count');
+  await toConfirm.waitFor();
+  assert.equal(await toConfirm.textContent(), "2 to confirm");
+  const status = page.getByRole("group", {name: "Status"});
+  assert.match(await status.textContent(), /Published5To confirm2Drafts5/, "the tab comes after Published");
+  await status.getByRole("button", {name: /^To confirm/}).click();
+  const due = await page.locator("table.listings tbody tr").allTextContents();
+  assert.deepEqual(due.map(r => r.match(/HE-[A-Z]\d+/)[0]), ["HE-C001", "HE-R018"]);
+  assert.ok(due.every(r => r.includes("To confirm")), "each row carries its badge");
+  await shot(page, "admin-to-confirm");
+  // The row's menu confirms without opening the listing.
+  await page.click('tr:has-text("HE-C001") .row-menu summary');
+  await page.click('tr:has-text("HE-C001") .row-menu >> text=Still available');
+  await page.waitForSelector("text=Café and Accommodation: confirmed as still available.");
+  await page.waitForSelector('[aria-label="Status"] button:has-text("To confirm1")');
+  await page.waitForSelector('header.bar a[href="#/listings"] .count:has-text("1 to confirm")');
+  // In the listing: its note, and Still available keeps what is being typed (T11), which then saves with no false 409 (T8).
+  await page.click('tr:has-text("HE-R018") a:has-text("Pathfield Road")');
+  await page.waitForSelector("text=Last confirmed");
+  assert.ok(await page.isVisible('.side .badge.attention:has-text("To confirm")'));
+  await shot(page, "editor-to-confirm");
+  await page.fill("#f-summary", "Garden and garage");
+  await page.getByRole("button", {name: "Still available", exact: true}).click();
+  await page.waitForSelector("text=Pathfield Road: confirmed as still available.");
+  assert.equal(await page.inputValue("#f-summary"), "Garden and garage", "the typed summary stays");
+  assert.equal(await page.$("text=Last confirmed"), null);
+  await page.waitForSelector(".side >> text=Availability confirmed");
+  await toConfirm.waitFor({state: "detached"});
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector("text=Changes saved.");
+  // Nothing left to confirm: the tab says when a listing comes back.
+  await page.goto(BASE + "admin/#/listings");
+  await page.getByRole("group", {name: "Status"}).getByRole("button", {name: /^To confirm/}).click();
+  await page.waitForSelector("text=No listings to confirm.");
+  await page.getByRole("group", {name: "Status"}).getByRole("button", {name: /^Published/}).click();
+
   await page.click('a[href="#/p/HE-R001"]');
   await page.waitForSelector("#f-title");
   assert.ok(await page.isVisible("text=Private · reference"));

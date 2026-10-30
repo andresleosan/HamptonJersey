@@ -13,6 +13,12 @@ export const ENUMS = {
   housing_category: ["qualified", "registered"],
   restriction: ["first_time_buyer", "over_55"],
 };
+// ADM-04 (spec T1, T3): a listing on the website and still on the market whose last confirmation (confirmed_at) is 3
+// months old, 1 for a rental, is To confirm. The months are added to confirmed_at, so its due moment never moves; NULL
+// is never due (T10), and the IS NOT NULL keeps the answer 0 or 1. For a query on listings l; bind the ISO time now.
+export const ON_MARKET = ["for_sale", "to_let", "lease", "not_stated"];
+export const TO_CONFIRM = `l.published = 1 AND l.archived_at IS NULL AND l.availability IN (${ON_MARKET.map(a => `'${a}'`).join(", ")})
+  AND l.confirmed_at IS NOT NULL AND strftime('%Y-%m-%dT%H:%M:%fZ', l.confirmed_at, CASE l.operation WHEN 'rent' THEN '+1 month' ELSE '+3 months' END) <= ?`;
 const TEXT = { title: 200, property_type: 100, country: 100, location: 200, road_name: 200, tenure: 100,
   price_text: 200, summary: 5000, description: 20000, tour_url: 500 };
 const INTS = ["bedrooms", "bathrooms"];

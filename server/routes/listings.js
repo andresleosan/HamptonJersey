@@ -1,5 +1,5 @@
 import { json, fail, readJson, now } from "../http.js";
-import { validateListing, checkPrice, idPrefix, nextId, ENUMS } from "../listing.js";
+import { validateListing, checkPrice, idPrefix, nextId, ENUMS, TO_CONFIRM } from "../listing.js";
 import { extractFeatures } from "../listing-features.js";
 import { afterSave, recomputeForListing } from "../match-store.js";
 import { interestSql, interestDates } from "../viewings.js";
@@ -13,11 +13,12 @@ export const HAS_PUBLIC_PHOTO = `EXISTS (SELECT 1 FROM media m WHERE m.listing_i
     AND m.origin <> 'external' AND m.r2_key IS NOT NULL)`;
 const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availability, l.operation, l.sale_price, l.rent,
   l.rent_period, l.premium, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by, l.featured_rank, l.home_order,
-  l.parish, l.matchable, ${COVER_ID} AS cover_id, ${HAS_PUBLIC_PHOTO} AS has_public_photo
-  FROM listings l`;
+  l.parish, l.matchable, l.confirmed_at, (${TO_CONFIRM}) AS to_confirm, ${COVER_ID} AS cover_id,
+  ${HAS_PUBLIC_PHOTO} AS has_public_photo FROM listings l`;
 
+// to_confirm: ADM-04, as the list and the counts say it.
 export async function loadListing(env, id) {
-  const l = await env.DB.prepare("SELECT * FROM listings WHERE id = ?").bind(id).first();
+  const l = await env.DB.prepare(`SELECT l.*, (${TO_CONFIRM}) AS to_confirm FROM listings l WHERE l.id = ?`).bind(now(), id).first();
   if (!l) fail(404, "Listing not found");
   return { ...l, specs: JSON.parse(l.specs || "[]") };
 }
@@ -36,7 +37,7 @@ async function list({ request, env }) {
   const parish = q.get("parish") || null;
   if (parish && !ENUMS.parish.includes(parish)) fail(400, "Invalid parish");
   const { results } = await env.DB.prepare(`${LIST_SQL} ${parish ? "WHERE l.parish = ?" : ""} ORDER BY l.id`)
-    .bind(...(parish ? [parish] : [])).all();
+    .bind(now(), ...(parish ? [parish] : [])).all();
   return json({ listings: results });
 }
 
@@ -115,7 +116,10 @@ async function update({ request, env, admin, params: [id] }) {
   const priceErrors = checkPrice(merged);
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
   // The lock on updated_at also guarantees the features were read from the row this save replaces.
-  const ts = now(), patch = withFeatures(merged, r.value, ts), cols = Object.keys(patch);
+  const ts = now(), patch = withFeatures(merged, r.value, ts);
+  // ADM-04 (T2): a new availability or price means the owner was spoken to. The editor sends every field on each save.
+  if (["availability", "sale_price", "rent", "premium"].some(k => k in r.value && r.value[k] !== stored[k])) patch.confirmed_at = ts;
+  const cols = Object.keys(patch);
   const res = await env.DB.prepare(
     `UPDATE listings SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ? WHERE id = ? AND updated_at = ?`)
     .bind(...cols.map(c => patch[c]), ts, admin, id, body.updated_at).run();
@@ -177,7 +181,8 @@ async function setState({ env, admin, params: [id, action] }) {
   if (archive && (await env.DB.prepare(`SELECT ${BUSY} AS busy`).bind(id, id).first()).busy) fail(409, busy);
   const ts = now();
   // Archived (sold, withdrawn) is no longer offered; restoring leaves the offer off, for the editor's switch (B9).
-  const patch = { publish: { published: 1 }, unpublish: { published: 0 }, archive: { published: 0, archived_at: ts, matchable: 0 },
+  // ADM-04 (T2): publishing confirms the listing is on the market.
+  const patch = { publish: { published: 1, confirmed_at: ts }, unpublish: { published: 0 }, archive: { published: 0, archived_at: ts, matchable: 0 },
     restore: { archived_at: null } }[action];
   const cols = Object.keys(patch);
   const res = await env.DB.prepare(`UPDATE listings SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ?
@@ -186,6 +191,15 @@ async function setState({ env, admin, params: [id, action] }) {
   // Publishing also counts: being on the website adds to the score.
   await afterSave(recomputeForListing, env, id, admin);
   return json({ listing: await loadListing(env, id) });
+}
+
+// ADM-04: Still available, after a call to the owner. Like the order and the star, not a content edit: updated_at is
+// left alone, so an open editor with unsaved changes can still save them (T8). Any listing may be confirmed (T11).
+async function confirm({ env, params: [id] }) {
+  const ts = now();
+  if (!(await env.DB.prepare("UPDATE listings SET confirmed_at = ? WHERE id = ?").bind(ts, id).run()).meta.changes)
+    fail(404, "Listing not found");
+  return json({ confirmed_at: ts });
 }
 
 async function remove({ request, env, admin, params: [id] }) {
@@ -216,5 +230,6 @@ export default [
   ["PUT", new RegExp(`^/admin/listings/${ID}$`), update, true],
   ["DELETE", new RegExp(`^/admin/listings/${ID}$`), remove, true],
   ["POST", new RegExp(`^/admin/listings/${ID}/(publish|unpublish|archive|restore)$`), setState, true],
+  ["POST", new RegExp(`^/admin/listings/${ID}/confirm$`), confirm, true],
   ["PUT", new RegExp(`^/admin/listings/${ID}/featured$`), setFeatured, true],
 ];

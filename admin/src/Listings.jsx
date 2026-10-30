@@ -3,13 +3,15 @@ import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, priceText, fmtDate } from "./format.js";
 import { OPTIONS } from "../../server/applicants.js";
 
-const TABS = [["published", "Published"], ["draft", "Drafts"], ["archived", "Archived"], ["all", "All"]];
+// ADM-04: To confirm is the published listings on the market that nobody has confirmed lately (the server's to_confirm).
+const TABS = [["published", "Published"], ["to_confirm", "To confirm"], ["draft", "Drafts"], ["archived", "Archived"], ["all", "All"]];
+const inTab = (l, tab) => tab === "all" || (tab === "to_confirm" ? l.to_confirm === 1 : stateOf(l) === tab);
 const REGIONS = { jersey: "Jersey", uk: "United Kingdom", international: "International" };
 // The Parish filter's value for listings whose parish is not known (no parish is called this).
 const UNKNOWN = "unknown";
 const regionOf = c => (c === "Jersey" ? "jersey" : c === "United Kingdom" ? "uk" : "international");
 
-export default function Listings() {
+export default function Listings({ onChange }) {
   const [rows, setRows] = useState(null), [error, setError] = useState(null), [creating, setCreating] = useState(false);
   const [tab, setTab] = useState("published"), [q, setQ] = useState(""), [use, setUse] = useState(""),
     [region, setRegion] = useState(""), [avail, setAvail] = useState(""), [parish, setParish] = useState("");
@@ -20,7 +22,10 @@ export default function Listings() {
     e.currentTarget.closest("details")?.removeAttribute("open");
     if (action === "archive" && !confirm(`Archive "${l.title}"? It will leave the website; you can restore it later.`)) return;
     setMsg(null);
-    try { await api(`/admin/listings/${l.id}/${action}`, { method: "POST" }); setMsg({ ok: true, text: `${l.title}: ${done}` }); await load(); }
+    try {
+      await api(`/admin/listings/${l.id}/${action}`, { method: "POST" }); setMsg({ ok: true, text: `${l.title}: ${done}` });
+      await load(); onChange?.(); // the bar's To confirm count
+    }
     catch (e) { setMsg({ text: e.message }); }
   };
   // Star = shown in the home page's Featured section, in the order stars were given (a new star goes last).
@@ -43,11 +48,11 @@ export default function Listings() {
   };
   const moveTo = (list, id, to) => { const ids = list.map(l => l.id).filter(x => x !== id); ids.splice(to, 0, id); return ids; };
   const counts = useMemo(() => Object.fromEntries(TABS.map(([k]) =>
-    [k, (rows || []).filter(l => k === "all" || stateOf(l) === k).length])), [rows]);
+    [k, (rows || []).filter(l => inTab(l, k)).length])), [rows]);
   if (error) return <p role="alert" className="err">{error}</p>;
   if (!rows) return <p>Loading listings…</p>;
   const needle = q.trim().toLowerCase();
-  const shown = rows.filter(l => (tab === "all" || stateOf(l) === tab) && (!use || l.use === use)
+  const shown = rows.filter(l => inTab(l, tab) && (!use || l.use === use)
     && (!region || regionOf(l.country) === region) && (!avail || l.availability === avail)
     && (!parish || (parish === UNKNOWN ? l.parish == null : l.parish === parish))
     && (!needle || `${l.id} ${l.title} ${l.location ?? ""}`.toLowerCase().includes(needle)))
@@ -98,7 +103,7 @@ export default function Listings() {
         <td>{l.location || l.country || "—"}</td>
         <td className="parish" data-label="Parish">{l.parish ?? "—"}</td>
         <td className="num">{priceText(l)}</td>
-        <td>{AVAILABILITY[l.availability]}</td>
+        <td>{AVAILABILITY[l.availability]}{l.to_confirm === 1 && <> <span className="badge attention">To confirm</span></>}</td>
         <td>{stateOf(l) === "archived" ? <span className="badge archived">{STATUS_LABEL.archived}</span>
           : <button type="button" role="switch" className="switch" aria-checked={stateOf(l) === "published"} aria-label={`Visible on the website: ${l.title}`}
             onClick={e => act(e, l, l.published ? "unpublish" : "publish", l.published ? "hidden from the website." : l.has_public_photo ? "now visible on the website." : "published, but it needs a visible photo to appear.")}>
@@ -108,12 +113,14 @@ export default function Listings() {
         <td><details className="more row-menu"><summary aria-label={`Actions for ${l.title}`}>…</summary><div className="menu">
           <a href={`#/p/${l.id}`}>Edit</a>
           {stateOf(l) === "published" && l.has_public_photo ? <a href={`/p/${l.id}`} target="_blank" rel="noopener">View on the website ↗</a> : null}
+          {l.to_confirm === 1 && <button type="button" onClick={e => act(e, l, "confirm", "confirmed as still available.")}>Still available</button>}
           {stateOf(l) !== "archived" ? <button type="button" onClick={e => act(e, l, "archive", "archived.")}>Archive</button>
             : <button type="button" onClick={e => act(e, l, "restore", "restored as a draft.")}>Restore</button>}
         </div></details></td>
       </tr>)}</tbody>
     </table> : <div className="empty card">{rows.length && (needle || use || region || avail || parish)
       ? <><p>No listings match these filters.</p><button type="button" className="btn ghost sm" onClick={() => { setQ(""); setUse(""); setRegion(""); setAvail(""); setParish(""); }}>Clear filters</button></>
+      : tab === "to_confirm" ? <p>No listings to confirm. A listing on the website asks for a call to its owner 3 months after its last confirmation, or 1 month for a rental.</p>
       : <><p>No {TABS.find(([k]) => k === tab)[1].toLowerCase()} listings.</p>
         {tab !== "archived" && <button type="button" className="btn sm" onClick={() => setCreating(true)}>New listing</button>}</>}</div>}
   </section>;

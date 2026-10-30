@@ -89,14 +89,14 @@ export default function App() {
   if (me === undefined) return <p className="center">Loading…</p>;
   if (me === null) return <main className="center"><Login onSignedIn={signedIn} /></main>;
 
-  const page = section === "p" && arg ? <ListingEditor key={arg} id={decodeURIComponent(arg)} />
+  const page = section === "p" && arg ? <ListingEditor key={arg} id={decodeURIComponent(arg)} onChange={loadCounts} />
     : section === "applicants" && arg === "new"
       ? <NewApplicant key={query ?? ""} contactId={new URLSearchParams(query).get("contact")} />
     : section === "applicants" && /^\d+$/.test(arg) ? <ApplicantDetail key={arg} id={arg} tab={sub} onChange={loadCounts} />
     : section === "applicants" ? <Applicants /> : section === "review" ? <Review />
     : section === "listings" && arg && sub === "report"
       ? <OwnerReport key={arg} id={decodeURIComponent(arg)} days={new URLSearchParams(query).get("days")} />
-    : section === "listings" ? <Listings /> : section === "viewings"
+    : section === "listings" ? <Listings onChange={loadCounts} /> : section === "viewings"
       ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} />
     : section === "sales" && /^\d+$/.test(arg) ? <SaleDetail key={arg} id={arg} onChange={loadCounts} />
     : section === "sales" ? <Sales key={query ?? ""} buyer={new URLSearchParams(query).get("applicant")} onChange={loadCounts} />
@@ -125,7 +125,8 @@ export default function App() {
         <a href="#/applicants" aria-current={current === "applicants" ? "page" : undefined}>Applicants{counts.expiring > 0
           && <span className="count" title={`${counts.expiring} expiring`}>{counts.expiring}<span className="sr"> expiring</span></span>}</a>
         <a href="#/review" aria-current={current === "review" ? "page" : undefined}>Review</a>
-        <a href="#/listings" aria-current={current === "listings" ? "page" : undefined}>Listings</a>
+        <a href="#/listings" aria-current={current === "listings" ? "page" : undefined}>Listings{counts.to_confirm > 0
+          && <span className="count">{counts.to_confirm}<span className="sr"> to confirm</span></span>}</a>
         <a href="#/viewings" aria-current={current === "viewings" ? "page" : undefined}>Viewings</a>
         <a href="#/sales" aria-current={current === "sales" ? "page" : undefined}>Sales{counts.sales > 0
           && <span className="count">{counts.sales}<span className="sr"> overdue or waiting</span></span>}</a>

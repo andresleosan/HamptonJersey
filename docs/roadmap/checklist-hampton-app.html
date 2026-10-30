@@ -496,20 +496,22 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Inbox se refresca cada 30 s mientras la pestaña está visible y la barra muestra su contador; recibe avisos de aplicantes nuevos, registros repetidos, altas del equipo (al Feed), solicitudes de visita de la web y matches nuevos. Sales, Rentals y Applicants (expiring) tienen su propio contador en la barra.",
-   "falta": "Avisos en Inbox para el resto de eventos: visitas reservadas por el equipo, ofertas e hitos de venta, y atrasos, plazos y reparaciones de alquiler (estos solo suman en los contadores Sales y Rentals), y cambios de fichas (no avisan en ningún sitio); y la notificación del navegador para lo urgente (§5.1), que no existe.",
+   "hecho": "Inbox se refresca cada 30 s mientras la pestaña está visible y la barra muestra su contador; recibe avisos de aplicantes nuevos, registros repetidos, altas del equipo (al Feed), solicitudes de visita de la web y matches nuevos. Sales, Rentals, Applicants (expiring) y, desde el 30-oct-2026, Listings (fichas por confirmar, ADM-04) tienen su propio número en la barra.",
+   "falta": "Avisos en Inbox para el resto de eventos: visitas reservadas por el equipo, ofertas e hitos de venta, y atrasos, plazos y reparaciones de alquiler (estos solo suman en los contadores Sales y Rentals), las fichas por confirmar (solo suman en el de Listings: llevarlas al Inbox obliga a rehacer las tablas events y notifications, cuyos CHECK no admiten fichas) y los demás cambios de fichas (no avisan en ningún sitio); y la notificación del navegador para lo urgente (§5.1), que no existe.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Inbox.jsx:38-39",
     "admin/src/poll.js:3-13",
     "admin/src/App.jsx:74-77",
-    "admin/src/App.jsx:123-133",
-    "server/routes/notifications.js:12",
-    "server/routes/notifications.js:35-47",
+    "admin/src/App.jsx:123-134",
+    "server/routes/notifications.js:13",
+    "server/routes/notifications.js:36-52",
     "migrations/0009_matches.sql:49",
-    "server/routes/sales.js:223-225",
+    "server/routes/sales.js:224-226",
     "server/routes/rent.js:102-115",
-    "server/routes/inbox.js:55-76"
+    "server/routes/inbox.js:55-76",
+    "server/routes/notifications.js:47-48",
+    "migrations/0008_applicants.sql:63"
    ]
   },
   {
@@ -1112,10 +1114,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "Falta recibir las respuestas y que la IA devuelva un JSON fijo (disponible, desde cuándo, respuestas a los ❓, horarios, comisión, si necesita a una persona y su confianza). Con confianza alta, la casa pasa a Availability confirmed y sus matches a Waiting for applicant response; con confianza baja se crea una tarea ya rellenada, y antes de ir en automático debe acertar 27 de 30 respuestas reales.",
+   "falta": "Falta recibir las respuestas y que la IA devuelva un JSON fijo (disponible, desde cuándo, respuestas a los ❓, horarios, comisión, si necesita a una persona y su confianza). Con confianza alta, la casa pasa a Availability confirmed y sus matches a Waiting for applicant response; con confianza baja se crea una tarea ya rellenada, y antes de ir en automático debe acertar 27 de 30 respuestas reales. La lectura la hará Hermes (AUT-13). Los correos de agencias son C1, así que necesita un plan Business o Enterprise (pregunta 16).",
    "bloqueo": "Servicio de correo",
    "evidencia": [
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:292-294",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297-299",
     "migrations/0009_matches.sql:33"
    ]
   },
@@ -1506,7 +1508,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No hay subida de audio, tabla jobs ni proceso en el VPS con faster-whisper. ESTADO la agrupa en F3-B con correo y calendario, pero no depende de ellos: necesita el carril privado del VPS (§2).",
+   "falta": "No hay subida de audio, tabla jobs ni proceso en el VPS con faster-whisper. ESTADO la agrupa en F3-B con correo y calendario, pero no depende de ellos: necesita el carril privado del VPS (§2). Con Hermes (AUT-13), la transcripción seguiría en local y el resumen lo haría Hermes, solo con un plan Business y su memoria apagada (pregunta 16), porque una nota de voz puede llevar datos personales. Hoy Hermes no llega a Whisper, porque su salida no alcanza los servicios del VPS (AUT-08).",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:68",
@@ -1560,14 +1562,15 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "El reloj (AUT-07) deja la hora de su última vuelta en app_settings (clave clock) y el borrado de 12 meses su última pasada (retention_run): es lo que leerá esta pantalla.",
-   "falta": "No hay pantalla Automations (ni en la barra ni en Settings): faltan la lista con interruptor, modo, última ejecución, % de éxito, pendientes de aprobar y coste del mes, el registro de ejecuciones con datos sensibles ocultos, las plantillas y parámetros editables y un aviso si el reloj se para (Luis prefirió verlo aquí y no antes, 29-oct).",
+   "falta": "No hay pantalla Automations (ni en la barra ni en Settings): faltan la lista con interruptor, modo, última ejecución, % de éxito, pendientes de aprobar y coste del mes, el registro de ejecuciones con datos sensibles ocultos, las plantillas y parámetros editables y un aviso si el reloj se para (Luis prefirió verlo aquí y no antes, 29-oct). Con Hermes (AUT-13): qué hizo en cada ejecución, cuándo pidió trabajo por última vez y un aviso si deja de pedirlo. Aquí pasarán a ser editables los plazos de ADM-04 (3 meses, 1 en alquiler).",
    "bloqueo": "",
    "evidencia": [
     "admin/src/App.jsx:39",
     "admin/src/App.jsx:73",
     "server/jobs.js:1-15",
     "server/retention.js:95-104",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:436-445"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:436-445",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6"
    ]
   },
   {
@@ -1576,17 +1579,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Cada automatización usa el modelo de IA adecuado, por API y vía AI Gateway (P-09)",
    "origen": "texto",
    "fase": "—",
-   "estado": "pendiente",
-   "responsable": "desarrollo",
-   "hecho": "Luis decidió el 23-oct AI Gateway en Cloudflare (A1) y modelos locales para los datos C3 (A2).",
-   "falta": "No hay ninguna llamada a modelos ni AI Gateway en el código: las únicas salidas externas son Turnstile y las claves públicas de Google del login. Falta la puerta única (coste por automatización, caché, límites, cambio de modelo sin desplegar) y elegir el modelo por la clase del dato: C0 público, C1 contacto profesional, C2 personal sin nombre ni teléfono, C3 solo local.",
+   "estado": "replanteado",
+   "responsable": "—",
+   "hecho": "Luis decidió el 23-oct AI Gateway en Cloudflare (A1) y modelos locales para los datos C3 (A2). El 30-oct-2026 cambió la puerta: la IA de las automatizaciones pasa por Hermes, en el VPS de Optimyze (P-18, §6.6), y AI Gateway deja de ser la principal.",
+   "falta": "Lo sustituye AUT-13 (Hermes conectado a la app). La regla de la clase del dato se mantiene: C0 público, C1 contacto profesional, C2 personal sin nombre ni teléfono, y C3 solo en local (AUT-06).",
    "bloqueo": "",
    "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:27-28",
     "server/turnstile.js:8",
     "server/auth.js:3-4",
     "wrangler.toml:1-20",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:455-466"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:455-466",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §10 P-18"
    ]
   },
   {
@@ -1635,13 +1640,14 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "—",
    "estado": "bloqueado",
    "responsable": "Luis",
-   "hecho": "",
-   "falta": "Luis lo retomó el 29-oct-2026: que los empleados usen su suscripción de ChatGPT. La vía oficial es «Sign in with ChatGPT» (AUT-12), que hoy no admite una app comercial alojada como Hampton App y espera el permiso de OpenAI. Mientras tanto la vía es la API (AUT-02). Para Google (Gemini) no se ha revisado si existe algo parecido.",
-   "bloqueo": "Aprobación de OpenAI",
+   "hecho": "Desde el 29-oct-2026 Hermes corre en el VPS de Optimyze con el plan de ChatGPT de Luis (inicio de sesión de OpenAI Codex). El 30-oct Luis decidió que será el cerebro de IA de las automatizaciones (P-18, §6.6): es su regla original, una suscripción para lo que no es sensible. Todavía no hace ninguna automatización de Hampton.",
+   "falta": "Falta confirmar qué plan es y que sus condiciones permiten usarlo en el trabajo de un cliente, y comprobar que OpenAI no entrena con lo que envía (pregunta 16, PRE-32). Con un plan personal, Hermes solo podrá recibir datos públicos (C0) y contadores. Conectarlo a la app es AUT-13. El plan de cada empleado sigue esperando a OpenAI (AUT-12), y no se ha revisado si Google (Gemini) tiene algo parecido.",
+   "bloqueo": "Decisión de Luis",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.3",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.5",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §10 P-17"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §10 P-17",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6"
    ]
   },
   {
@@ -1653,7 +1659,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "Luis",
    "hecho": "La regla se mantiene para C3 (documentos, ingresos, referencias, atrasos, datos bancarios) y Luis eligió Ollama en el VPS, al que solo llega Cloudflare por un túnel privado (A2); el plan deja los datos personales básicos (C2) por API con acuerdo de tratamiento y sin nombre ni teléfono.",
-   "falta": "No hay ninguna automatización con IA sobre datos C3 ni conexión con un modelo local: F5-A trata atrasos y extractos sin IA, lo que la regla permite. En el Docker del VPS no hay contenedor de Ollama (docker ps -a, 28-oct; fuera de Docker no se pudo comprobar); llega con el carril privado (AUT-08).",
+   "falta": "No hay ninguna automatización con IA sobre datos C3 ni conexión con un modelo local: F5-A trata atrasos y extractos sin IA, lo que la regla permite. En el Docker del VPS no hay contenedor de Ollama (docker ps -a, 28-oct; fuera de Docker no se pudo comprobar); llega con el carril privado (AUT-08). Con Hermes (P-18), los datos C3 nunca pasarán por él: siguen este camino de A2 (§6.6).",
    "bloqueo": "",
    "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:28",
@@ -1693,16 +1699,17 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "Luis",
    "hecho": "Luis eligió el mecanismo (A2): Cloudflare Tunnel privado (Workers VPC o Access con token de servicio) hacia Ollama en el VPS, sin abrir puertos; Whisper ya corre en el VPS solo en 127.0.0.1:9300.",
-   "falta": "No existe: ni tabla jobs, ni túnel o binding en wrangler.toml, ni cloudflared u Ollama en el Docker del VPS (docker ps -a, 28-oct), ni código que llame a un modelo local. Lo monta Luis y servirá a datos C3 (F5-B), notas de voz (F3-B) y tours 3D (F8).",
+   "falta": "No existe: ni tabla jobs, ni túnel o binding en wrangler.toml, ni cloudflared u Ollama en el Docker del VPS (docker ps -a, 28-oct), ni código que llame a un modelo local. Lo monta Luis y servirá a datos C3 (F5-B), notas de voz (F3-B) y tours 3D (F8). Hermes (P-18) no es este carril: no alcanza los servicios del VPS y nunca recibe datos C3; pedirá a la app el trabajo de IA con datos públicos por su propia puerta (AUT-13, §6.6).",
    "bloqueo": "",
    "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:28",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:68",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:107",
-    "migrations/ (0001–0015, sin tabla jobs)",
+    "migrations/ (0001–0017, sin tabla jobs)",
     "wrangler.toml:1-20",
     "docker ps (28-oct-2026): infra-whisper-1 en 127.0.0.1:9300",
-    "docker ps -a (28-oct-2026): sin cloudflared ni Ollama"
+    "docker ps -a (28-oct-2026): sin cloudflared ni Ollama",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6"
    ]
   },
   {
@@ -1730,7 +1737,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No existe ningún modo ni cola de aprobación: hoy ninguna IA propone ni decide nada. Cada automatización nueva empieza en Draft (propone y una persona aprueba), pasa a Approve (aprobación en lote) y a Auto (actúa sola y se revisa una muestra) según el acierto medido.",
+   "falta": "No existe ningún modo ni cola de aprobación: hoy ninguna IA propone ni decide nada. Cada automatización nueva empieza en Draft (propone y una persona aprueba), pasa a Approve (aprobación en lote) y a Auto (actúa sola y se revisa una muestra) según el acierto medido. Lo que proponga Hermes (AUT-13) entra en Draft y se aprueba en el panel; un mensaje de Telegram no cuenta como aprobación (§6.6).",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:440",
@@ -1746,7 +1753,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "Hoy no sale ningún mensaje automático: el panel solo abre Call, WhatsApp y Email para que escriba una persona.",
-   "falta": "Clave de idempotencia por envío (plantilla + entidad + versión), topes diarios por canal y por agencia, horas de silencio sin WhatsApp ni SMS de 21:00 a 08:00 de Jersey, interruptor por automatización y el botón general Pause all outbound. Se construyen con el primer envío automático.",
+   "falta": "Clave de idempotencia por envío (plantilla + entidad + versión), topes diarios por canal y por agencia, horas de silencio sin WhatsApp ni SMS de 21:00 a 08:00 de Jersey, interruptor por automatización y el botón general Pause all outbound. Se construyen con el primer envío automático. Con Hermes, la pausa también se podrá pedir por Telegram (AUT-14); reanudar, solo en el panel. Mientras dure, la app no envía nada.",
    "bloqueo": "Servicio de correo · Trámite Meta",
    "evidencia": [
     "admin/src/ApplicantDetail.jsx:279-281",
@@ -1762,13 +1769,46 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "—",
    "estado": "bloqueado",
    "responsable": "Luis",
-   "hecho": "Revisado el 29-oct-2026 y documentado en el §6.5 del plan: qué ofrece OpenAI, por qué hoy no entra Hampton App, cómo encajaría y con qué datos. Es la siguiente tarea por decisión de Luis (P-17).",
+   "hecho": "Revisado el 29-oct-2026 y documentado en el §6.5 del plan: qué ofrece OpenAI, por qué hoy no entra Hampton App, cómo encajaría y con qué datos. Es la siguiente tarea por decisión de Luis (P-17). Mientras tanto, Hermes usará el plan de ChatGPT de Luis para lo que no es sensible (AUT-05, P-18).",
    "falta": "Primero, permiso de OpenAI: la vía que carga la IA al plan del usuario solo está documentada para apps de código abierto que corren en la máquina del usuario, el inicio de sesión web está en prueba limitada con lista de espera, y el DevKit tiene licencia no comercial. Luis rellena el formulario de interés de OpenAI para apps alojadas o de pago y pide un client ID; Hampton dice qué plan tiene cada empleado (PRE-30). Con el permiso: botón «Connect ChatGPT» por empleado con el token cifrado en D1, automatizaciones con IA que corren con el plan de quien las lanza o aprueba, vía API (AUT-02) cuando no hay plan válido, y la vía usada visible en Automations (AUT-01). Datos C0 sí; C1 y C2 solo con plan Business o Enterprise; C3 nunca.",
    "bloqueo": "Aprobación de OpenAI",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.5",
     "https://developers.openai.com/siwc",
     "https://github.com/openai/sign-in-with-chatgpt-devkit (LICENSE: no comercial)"
+   ]
+  },
+  {
+   "id": "AUT-13",
+   "seccion": "Automatizaciones e IA",
+   "titulo": "Hermes, en el VPS, es el cerebro de IA que enlaza las automatizaciones (P-18)",
+   "origen": "texto",
+   "fase": "—",
+   "estado": "bloqueado",
+   "responsable": "Luis",
+   "hecho": "Hermes Agent v0.22.5 (Nous Research, código abierto) corre desde el 29-oct-2026 en el VPS de Optimyze. Es el Hermes de desarrollo de Optimyze. Está en un contenedor aislado, sin permisos de administrador ni Docker, solo sale a internet hacia una lista de dominios, su panel solo se abre por el tailnet y usa el plan de ChatGPT de Luis. El 30-oct Luis decidió que Hermes será el cerebro de IA de las automatizaciones (P-18). El reparto, la conexión, los datos y las barreras están en el §6.6.",
+   "falta": "Antes de construir, Luis responde las preguntas 15 y 16 (PRE-31, PRE-32): se recomienda un Hermes propio para Hampton, todavía sin instalar. Después se repasa el diseño con /grill-me, porque toca permisos y datos. Falta todo lo de la app: una puerta para Hermes con su propia llave y solo operaciones fijas (leer datos públicos y contadores, pedir trabajo, devolver borradores y pausar, nunca reanudar); la tabla jobs; que lo que proponga entre como borrador y se apruebe en el panel (AUT-10); el dominio de la app en su lista de salida; y que Automations muestre su última petición (AUT-01).",
+   "bloqueo": "Decisión de Luis",
+   "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §10 P-18",
+    "docker ps (30-oct-2026): contenedor hermes (nousresearch/hermes-agent:v0.22.5) con su proxy de salida y su panel solo en el tailnet"
+   ]
+  },
+  {
+   "id": "AUT-14",
+   "seccion": "Automatizaciones e IA",
+   "titulo": "Hablar con Hermes y gestionar las automatizaciones por Telegram",
+   "origen": "texto",
+   "fase": "—",
+   "estado": "bloqueado",
+   "responsable": "Luis",
+   "hecho": "Hermes trae la pasarela de Telegram y su modo actual ya activa la mensajería, pero no tiene ningún bot configurado (comprobado en el VPS el 30-oct-2026). La propuesta está en el §6.6.",
+   "falta": "Depende de la pregunta 15 (PRE-31), porque el bot va en el Hermes de Hampton. Después, Luis crea el bot con @BotFather y da su número de usuario de Telegram; se añade api.telegram.org a la lista de salida de ese Hermes; y el bot se configura para responder solo a Luis. Por Telegram se podrá preguntar el estado, recibir avisos y el resumen del día (también las fichas por confirmar de ADM-04), pedir borradores y pausar los envíos. Reanudar, aprobar, publicar o cambiar datos importantes se hace en el panel. Solo viajan contadores, referencias de fichas (HE-R001) y enlaces al panel: nada de un aplicante concreto, ni siquiera su número. Estará hecho cuando Luis pregunte «¿qué hay por confirmar?» y reciba la respuesta sin datos personales.",
+   "bloqueo": "Decisión de Luis",
+   "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
+    "VPS (30-oct-2026): Hermes sin variables TELEGRAM_ y sin api.telegram.org en su lista de salida"
    ]
   },
   {
@@ -1923,7 +1963,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "Luis",
    "hecho": "Para el catálogo propio, server/listing-features.js lee del texto de cada ficha la parroquia, mascotas, parking, amueblado, exterior y tipo con patrones fijos (sin IA) y guarda la frase que lo prueba. La renta anual se pasa a mensual al comparar.",
-   "falta": "Para los anuncios externos falta todo: lector por fuente o IA barata con esquema JSON solo en páginas cambiadas, normalización, dos modelos que dejan en «needs review» lo que no coincide (precio, dormitorios) y la regla de no aceptar nada sin página descargada (URL y fecha).",
+   "falta": "Para los anuncios externos falta todo: lector por fuente o IA barata con esquema JSON solo en páginas cambiadas, normalización, dos modelos que dejan en «needs review» lo que no coincide (precio, dormitorios) y la regla de no aceptar nada sin página descargada (URL y fecha). La extracción la puede hacer Hermes (AUT-13), porque los anuncios son públicos (C0).",
    "bloqueo": "Clave API Places.je",
    "evidencia": [
     "server/listing-features.js:1-30",
@@ -1957,7 +1997,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No hay Deep Research automática: la sección Research de cada ficha solo muestra, sin poder editarla, la investigación de Hampton_Database (instantánea del 5-oct). Falta lanzarla con menos de 3 coincidencias, con requisitos raros o en compras fuera de mercado, con dos sistemas distintos cuyos hallazgos se suman (lo que queda de las dos investigaciones de BUS-05), verificar cada hallazgo contra su página y guardarlo en el inventario (BUS-10). Necesita IA con búsqueda web por API (§6.3).",
+   "falta": "No hay Deep Research automática: la sección Research de cada ficha solo muestra, sin poder editarla, la investigación de Hampton_Database (instantánea del 5-oct). Falta lanzarla con menos de 3 coincidencias, con requisitos raros o en compras fuera de mercado, con dos sistemas distintos cuyos hallazgos se suman (lo que queda de las dos investigaciones de BUS-05), verificar cada hallazgo contra su página y guardarlo en el inventario (BUS-10). Necesita IA con búsqueda web. No la haría el Hermes de Hampton (AUT-13): tiene la llave de la app y no debe leer páginas cualesquiera (§6.6). La haría un agente sin esa llave ni el bot, que devuelva lo encontrado como datos que la app comprueba (URL, fecha y campos). Los requisitos del aplicante son C2: necesita un plan Business o Enterprise (pregunta 16) o un modelo local.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Research.jsx:11-27",
@@ -2406,16 +2446,17 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Listings separa Draft, Published y Archived, y Availability guarda For sale, Under offer, Sold, To let, Lease, Not stated y Withdrawn; aceptar una oferta pone Under offer, completar la venta pone Sold y si se cae vuelve a For sale.",
-   "falta": "Ready for review, Let agreed y Let en alquileres, y To confirm (review_due_at a 90 días en venta o 30 en alquiler; su tarea es ADM-04).",
+   "hecho": "Listings separa Draft, Published y Archived, y Availability guarda For sale, Under offer, Sold, To let, Lease, Not stated y Withdrawn; aceptar una oferta pone Under offer, completar la venta pone Sold y si se cae vuelve a For sale. Desde el 30-oct-2026, una ficha publicada y en el mercado que lleva 3 meses sin confirmar (1 en alquiler) sale como «To confirm» hasta que alguien la confirma (ADM-04).",
+   "falta": "Ready for review, y Let agreed y Let en alquileres.",
    "bloqueo": "",
    "evidencia": [
     "migrations/0001_init.sql:7",
     "admin/src/format.js:4-10",
     "admin/src/Listings.jsx:6",
-    "server/routes/sales.js:176",
-    "server/routes/sales.js:411",
-    "server/routes/sales.js:429"
+    "server/routes/sales.js:177",
+    "server/routes/sales.js:412",
+    "server/routes/sales.js:430",
+    "server/listing.js:16-21"
    ]
   },
   {
@@ -2676,7 +2717,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "El código no usa IA y «Anything else that matters?» se guarda tal cual. Falta convertirlo en imprescindibles y deseables («quiet street», «near Victoria College») que el equipo confirme en la ficha; el spec F1-A lo dejó fuera.",
+   "falta": "El código no usa IA y «Anything else that matters?» se guarda tal cual. Falta convertirlo en imprescindibles y deseables («quiet street», «near Victoria College») que el equipo confirme en la ficha; el spec F1-A lo dejó fuera. Lo hará Hermes (AUT-13) cuando pueda recibir datos C2 (los requisitos, sin nombre ni teléfono): con un plan Business o Enterprise y su memoria apagada (pregunta 16). Con un modelo local (AUT-06), no pasaría por Hermes.",
    "bloqueo": "",
    "evidencia": [
     "server/applicants.js:174",
@@ -2785,16 +2826,30 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Ficha sin cambios en 3 meses pasa a To confirm para llamar al propietario",
    "origen": "texto",
    "fase": "F4",
-   "estado": "pendiente",
-   "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "No existen review_due_at ni el estado To confirm (§4.4: 90 días sin cambios en venta y 30 en alquiler, configurable, con tarea de llamar al propietario), y la ficha no guarda el contacto del propietario; las casas de otras agencias las cubrirá el inventario de F1-B. La pasada diaria irá en el reloj (AUT-07), que ya existe.",
+   "estado": "hecho",
+   "responsable": "—",
+   "hecho": "Una ficha publicada y en el mercado (For sale, To let, Lease o Not stated) que lleva 3 meses sin confirmar, o 1 si es de alquiler, pasa a «To confirm». Sale con su número junto a Listings en la barra, en la pestaña «To confirm» de Listings, con una etiqueta en su fila y en su ficha, y con un aviso arriba de su ficha para llamar al propietario. «Still available», en la ficha o en el menú … de la fila, la confirma después de la llamada. También la confirman publicarla, cambiar su disponibilidad o su precio, y los cambios de Sales. Se calcula al mirar, sin el reloj. La web no cambia y no se guarda el contacto del propietario. Desde el 30-oct-2026, con la migración 0017 (columna confirmed_at, rellenada con la fecha del último cambio de cada ficha).",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "migrations/0001_init.sql:1-24",
-    "server/listing.js:4-21",
-    "server/jobs.js:1-15",
-    "jobs/wrangler.toml:1-24"
+    "migrations/0017_to_confirm.sql:1-7",
+    "server/listing.js:16-21",
+    "server/routes/listings.js:16",
+    "server/routes/listings.js:19-22",
+    "server/routes/listings.js:120-121",
+    "server/routes/listings.js:185",
+    "server/routes/listings.js:196-203",
+    "server/routes/sales.js:67-76",
+    "server/routes/notifications.js:47-48",
+    "admin/src/App.jsx:128-129",
+    "admin/src/Listings.jsx:6-8",
+    "admin/src/Listings.jsx:106",
+    "admin/src/Listings.jsx:116",
+    "admin/src/ListingEditor.jsx:117-127",
+    "admin/src/ListingEditor.jsx:152-163",
+    "admin/src/ListingEditor.jsx:180-182",
+    "tests/server/to-confirm.test.mjs",
+    "docs/superpowers/specs/2026-10-30-hampton-app-to-confirm-design.md"
    ]
   },
   {
@@ -3354,8 +3409,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "En listings: Availability (For sale, Under offer, Sold, To let, Lease, Withdrawn) y el estado Draft, Published o Archived; daily_stats cuenta aperturas de página, galería y tour (Owner report e Insights) y el editor muestra Active interest y ofertas.",
-   "falta": "Faltan fecha de publicación, motivo de retirada, Let agreed y Let, guardados, llamadas e IDs en portales (PUB-15); review_due_at es ADM-04. Replanteado para Jersey (§5.10), no falta: Idealista, Fotocasa, Zillow o MLS pasan a los portales donde Hampton tenga cuenta, y la fecha de vencimiento a review_due_at.",
+   "hecho": "En listings: Availability (For sale, Under offer, Sold, To let, Lease, Withdrawn) y el estado Draft, Published o Archived; daily_stats cuenta aperturas de página, galería y tour (Owner report e Insights) y el editor muestra Active interest y ofertas. Desde el 30-oct-2026 guarda cuándo se confirmó la ficha por última vez (confirmed_at), y a los 3 meses, o 1 en alquiler, pasa a «To confirm» (ADM-04).",
+   "falta": "Faltan fecha de publicación, motivo de retirada, Let agreed y Let, guardados, llamadas e IDs en portales (PUB-15). Replanteado para Jersey (§5.10), no falta: Idealista, Fotocasa, Zillow o MLS pasan a los portales donde Hampton tenga cuenta, y la fecha de vencimiento a la confirmación de la ficha (ADM-04).",
    "bloqueo": "",
    "evidencia": [
     "server/listing.js:7",
@@ -3364,7 +3419,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/routes/public.js:82-95",
     "admin/src/OwnerReport.jsx:86-98",
     "admin/src/Insights.jsx:86",
-    "admin/src/ListingEditor.jsx:145-149"
+    "admin/src/ListingEditor.jsx:164-168",
+    "migrations/0017_to_confirm.sql:1-7"
    ]
   },
   {
@@ -3429,7 +3485,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No hay IA en la app: falta redactar título, descripción, puntos fuertes, textos para redes y textos alternativos desde campos y fotos, etiquetar cada foto por estancia y quitar objetos temporales, con aprobación de una persona y marcando cualquier frase que no salga de un campo.",
+   "falta": "No hay IA en la app: falta redactar título, descripción, puntos fuertes, textos para redes y textos alternativos desde campos y fotos, etiquetar cada foto por estancia y quitar objetos temporales, con aprobación de una persona y marcando cualquier frase que no salga de un campo. Desde el 30-oct-2026 lo redactará Hermes (AUT-13) con los datos de la ficha, que son públicos (C0), y quedará como borrador que aprueba una persona.",
    "bloqueo": "",
    "evidencia": [
     "wrangler.toml:1-20",
@@ -4267,7 +4323,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "Luis",
    "hecho": "El aviso de privacidad ya nombra a Cloudflare y a Optimyze como encargados que actúan solo por instrucciones de Hampton.",
-   "falta": "No consta ningún acuerdo firmado: el de Hampton con Optimyze y los de Cloudflare y Google (Firebase), más Meta y el proveedor de IA cuando se usen. Depende de a nombre de quién van las cuentas (PRE-28).",
+   "falta": "No consta ningún acuerdo firmado: el de Hampton con Optimyze y los de Cloudflare y Google (Firebase), más Meta y el proveedor de IA cuando se usen. Depende de a nombre de quién van las cuentas (PRE-28). Con Hermes (P-18), el proveedor de IA es OpenAI con el plan de ChatGPT de Luis: hace falta acuerdo si recibe datos personales (C1 o C2, pregunta 16), que cubra también lo que Hermes guarda en el VPS. Por Telegram solo viajarán contadores y referencias de fichas, nada de aplicantes (§6.6); si eso cambiara, Telegram también necesitaría acuerdo.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:492",
@@ -4381,7 +4437,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "—",
    "estado": "bloqueado",
    "responsable": "Luis",
-   "hecho": "P-01 aceptada (A5): inventario diario y matching en SQL, Deep Research solo en casos raros. AI Gateway (A1) y C3 en local (A2) encajan con API en lugar de suscripciones, y los estados en el match (F1-A) y los campos de Jersey en las fichas (4cd4001) ya están construidos.",
+   "hecho": "P-01 aceptada (A5): inventario diario y matching en SQL, Deep Research solo en casos raros. AI Gateway (A1) y C3 en local (A2) encajan con API en lugar de suscripciones, y los estados en el match (F1-A) y los campos de Jersey en las fichas (4cd4001) ya están construidos. El 30-oct-2026 Luis cambió la puerta de la IA: Hermes con su plan de ChatGPT en lugar de AI Gateway (P-18).",
    "falta": "No consta el sí a P-14 (tours 3D por línea de comandos en lugar de computer use, T3D-04) ni a P-03 y P-04 (una consulta por casa y un acuerdo de comisión por agencia), que llegan con F2.",
    "bloqueo": "Decisión de Luis",
    "evidencia": [
@@ -4537,7 +4593,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "Optimyze construye y mantiene el sistema: el aviso de privacidad la nombra encargada de Hampton.",
-   "falta": "Decidir a nombre de quién van las cuentas (Cloudflare está en la de AndresLeoSan; Firebase, Meta y el proveedor de IA después) y firmar el acuerdo de tratamiento con Hampton (PRE-13).",
+   "falta": "Decidir a nombre de quién van las cuentas (Cloudflare está en la de AndresLeoSan; Firebase y Meta después; el modelo de Hermes usa hoy el plan de ChatGPT de Luis) y firmar el acuerdo de tratamiento con Hampton (PRE-13).",
    "bloqueo": "Decisión de Luis",
    "evidencia": [
     "site/apply.js:331-333",
@@ -4577,6 +4633,37 @@ document.addEventListener('DOMContentLoaded', () => {
    "bloqueo": "Dato de Hampton",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 14"
+   ]
+  },
+  {
+   "id": "PRE-31",
+   "seccion": "Acciones previas y cumplimiento",
+   "titulo": "Respuesta a la pregunta 15: un Hermes propio para Hampton y quién le habla por Telegram",
+   "origen": "plan",
+   "fase": "—",
+   "estado": "bloqueado",
+   "responsable": "Luis",
+   "hecho": "",
+   "falta": "Hay que decidir si Hampton tiene su propio Hermes, aparte del de desarrollo de Optimyze, y si por Telegram le habla solo Luis o también el equipo de Hampton. Se recomienda uno propio (§6.6): el de Optimyze está pensado para trabajar con copias de otros proyectos (hoy no tiene ninguna) y puede salir a GitHub y npm, así que no conviene darle la llave de Hampton App.",
+   "bloqueo": "Decisión de Luis",
+   "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 15",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6"
+   ]
+  },
+  {
+   "id": "PRE-32",
+   "seccion": "Acciones previas y cumplimiento",
+   "titulo": "Respuesta a la pregunta 16: qué plan de ChatGPT usa Hermes y qué datos puede recibir",
+   "origen": "plan",
+   "fase": "—",
+   "estado": "bloqueado",
+   "responsable": "Luis",
+   "hecho": "",
+   "falta": "Hay que decir qué plan de ChatGPT usa Hermes (Plus, Pro, Business…), confirmar que sus condiciones permiten usarlo en el trabajo de un cliente y comprobar en su configuración de datos que OpenAI no entrena con lo que envía. Con un plan personal, Hermes solo podrá recibir datos públicos (C0) y contadores. C1 y C2 necesitan un plan Business o Enterprise con acuerdo de tratamiento, y que Hermes no guarde esos datos más tiempo que la app (memoria apagada y conversaciones de trabajo borradas). C3 nunca pasa por Hermes (§6.3, §6.5, §6.6).",
+   "bloqueo": "Decisión de Luis",
+   "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 16"
    ]
   }
  ]
