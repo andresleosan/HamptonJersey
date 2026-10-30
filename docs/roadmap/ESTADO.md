@@ -1,6 +1,6 @@
 # Estado de Hampton App
 
-Actualizado el 29-oct-2026. Qué incluye cada fase y cuándo se da por hecha: [arquitectura, §9 Hoja de ruta](2026-10-23-arquitectura-hampton-app.md). Qué está hecho y qué falta, punto por punto: [checklist](checklist-hampton-app.html). En producción: lo que está en `main` en GitHub (cada push a `main` se publica solo: la web y, desde el 29-oct-2026, también el reloj, el Worker `hampton-jobs`) y las migraciones hasta la 0016.
+Actualizado el 30-oct-2026. Qué incluye cada fase y cuándo se da por hecha: [arquitectura, §9 Hoja de ruta](2026-10-23-arquitectura-hampton-app.md). Qué está hecho y qué falta, punto por punto: [checklist](checklist-hampton-app.html). En producción: lo que está en `main` en GitHub (cada push a `main` se publica solo: la web y, desde el 30-oct-2026, también el reloj, el Worker `hampton-jobs`) y las migraciones hasta la 0016.
 
 | Fase | Estado | Spec | Plan | Pendiente |
 |---|---|---|---|---|
