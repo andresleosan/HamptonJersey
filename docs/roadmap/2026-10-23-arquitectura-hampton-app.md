@@ -4,7 +4,7 @@
 >
 > Versión 1 · 23-oct-2026 · Preparada por Claude para Luis · Borrador: nada de esto está aprobado ni construido · Base: HamptonJersey en `ada40e3` (Cloudflare Pages + D1 + R2 + panel `/admin`)
 >
-> Añadido el 29-oct-2026: §6.5 (plan de ChatGPT de cada empleado), decisión P-17 y pregunta 14. Añadido el 30-oct-2026: §6.6 (Hermes, el cerebro de IA de las automatizaciones, con Telegram), decisión P-18 y preguntas 15 y 16. Lo construido y lo pendiente está en [ESTADO.md](ESTADO.md) y en el [checklist](checklist-hampton-app.html). La versión HTML de este documento sigue siendo la del 23-oct.
+> Añadido el 29-oct-2026: §6.5 (plan de ChatGPT de cada empleado), decisión P-17 y pregunta 14. Añadido el 30-oct-2026: §6.6 (Hermes, el cerebro de IA de las automatizaciones, con Telegram), decisión P-18 y preguntas 15 y 16; ese mismo día Luis las respondió y aprobó el diseño del Hermes propio de Hampton. Lo construido y lo pendiente está en [ESTADO.md](ESTADO.md) y en el [checklist](checklist-hampton-app.html). La versión HTML de este documento sigue siendo la del 23-oct.
 
 ## 0. Lo esencial
 
@@ -36,7 +36,7 @@ Tu texto describe bien qué tiene que pasar. Le faltaba el cómo que evita traba
 | Paquetes de 9 agencias recogidos de sus webs públicas el 8-oct (5 con datos: 264 fichas importadas como archivadas; 3 bloquearon la recogida con robots.txt o un 403) | 8-oct (cerebro y README de los paquetes) | Son inventario de mercado, no stock propio ni prueba de un acuerdo; qué hacer con ellos lo decide la pregunta 1 del §12 |
 | Directorio `jersey-scout`: 97 empresas de Jersey, 58 con email y 76 con web | Export del 9-jun | Contactos iniciales de agencias |
 | faster-whisper y ollama (gemma4:12b) en el VPS de Optimyze | En el VPS | Carril privado para notas de voz y datos sensibles |
-| Hermes Agent (Nous Research, código abierto) en el VPS de Optimyze | Instalado el 29-oct-2026 en un contenedor aislado, solo accesible por el tailnet; todavía sin conexión con Hampton App ni Telegram | Cerebro de IA de las automatizaciones, con Telegram para hablar con él (§6.6, añadido el 30-oct-2026) |
+| Hermes Agent (Nous Research, código abierto) en el VPS de Optimyze | Instalado el 29-oct-2026 en un contenedor aislado, solo accesible por el tailnet; todavía sin conexión con Hampton App ni Telegram | Cerebro de IA de las automatizaciones, con Telegram para hablar con él (§6.6, añadido el 30-oct-2026). Hampton tendrá su propio Hermes en el mismo VPS, todavía sin instalar |
 
 El proyecto SDD de `/root/Hampton` (Astro, specs 001–009, sin publicar) sigue aparte y esta propuesta no lo toca. Una restricción práctica: el contenedor donde trabaja Claude no tiene cron ni systemd, así que todo lo programado vive en Cloudflare y no depende de que haya una sesión abierta.
 
@@ -449,7 +449,7 @@ Para el equipo de Hampton, la «interfaz fácil de usar» es un tablero para con
 
 Para construir y probar automatizaciones nuevas, Luis puede seguir usando n8n en el VPS. Lo que pasa a producción para Hampton vive en el código de la app, con pruebas.
 
-Desde el 30-oct-2026 los pasos con IA los hará Hermes (§6.6), que además avisará y responderá por Telegram. La pantalla Automations sigue siendo el sitio donde el equipo controla cada automatización y aprueba lo que propone Hermes.
+Desde el 30-oct-2026 los pasos con IA los hará Hermes (§6.6), que además avisará y responderá por Telegram. La pantalla Automations sigue siendo el sitio donde el equipo controla cada automatización y ve lo que espera aprobación. Lo que propone Hermes se aprueba en el panel, en el propio borrador, y nunca por Telegram: un texto de ficha, por ejemplo, dentro de la ficha con «Use this text» y guardándola (§6.6).
 
 ### 6.3 Dónde corre y qué modelo usa
 
@@ -517,7 +517,7 @@ Limitaciones del preview: peticiones con `store: false` y `stream: true`; el tok
 
 ### 6.6 Hermes: el cerebro de IA de las automatizaciones, con Telegram
 
-Añadido el 30-oct-2026 a petición de Luis: Hermes, el agente que ya corre en el VPS de Optimyze, es el cerebro de IA de las automatizaciones de Hampton. Con él se enlazan las automatizaciones, y Luis habla con él y lo gestiona por Telegram (decisión P-18; checklist AUT-13 y AUT-14). Todavía no está conectado a nada de Hampton: todo lo que sigue sobre cómo se conecta es una propuesta.
+Añadido el 30-oct-2026 a petición de Luis: Hermes Agent, el agente que ya corre en el VPS de Optimyze, es el cerebro de IA de las automatizaciones de Hampton, en una instalación propia de Hampton (pregunta 15). Con él se enlazan las automatizaciones, y Luis habla con él y lo gestiona por Telegram (decisión P-18; checklist AUT-13 y AUT-14). El mismo día Luis respondió las preguntas 15 y 16 y aprobó el diseño que sigue, repasado con /grill-me. Ese Hermes de Hampton todavía no está instalado ni conectado a nada. Lo que no decidió Luis va marcado como propuesta.
 
 **Qué hay hoy** (comprobado en el VPS el 30-oct-2026):
 
@@ -531,52 +531,69 @@ Añadido el 30-oct-2026 a petición de Luis: Hermes, el agente que ya corre en e
 | Pieza | Hace | No hace |
 |---|---|---|
 | Hampton App (Cloudflare) | Guarda los datos (D1), aplica las reglas exactas en SQL (matching, plazos, To confirm), lleva el reloj (AUT-07), hace los envíos con sus barandillas (§6.4) y recoge las aprobaciones en el panel | Llamar a modelos de IA |
-| Hermes (VPS) | Redacta (textos de fichas, publicaciones, resúmenes), lee texto sin forma, encadena pasos («cuando pase X, prepara Y»), avisa a Luis y le responde por Telegram | Entrar en la base de datos, enviar nada a clientes o agencias por su cuenta, aprobar lo que él mismo propone, tocar datos sensibles (C3) |
+| Hermes (VPS) | Redacta (textos de fichas, publicaciones, resúmenes), lee texto sin forma, encadena pasos («cuando pase X, prepara Y»), avisa y responde por Telegram a Luis y al equipo | Entrar en la base de datos, enviar nada a clientes o agencias por su cuenta, aprobar lo que él mismo propone, tocar datos sensibles (C3) |
 
-**Cómo se conectan** (propuesta; antes de construirlo se repasa con /grill-me, porque toca permisos y datos):
+**Cómo se conectan.** Luis aprobó lo esencial el 30-oct-2026: Hermes nunca entra en la base de datos; por la puerta de la app solo lee datos públicos y contadores, pide trabajo, devuelve borradores y pausa los envíos; y lo que propone se aprueba en el panel. El resto de esta lista es propuesta de Claude y se fija en el spec: la llave como secreto de Cloudflare, la tabla `jobs`, que esas consultas no gasten el plan, el paso a Approve o Auto y lo que enseña Automations.
 
 1. La app abre una puerta pequeña solo para Hermes: unas pocas rutas con su propia llave, guardada como secreto de Cloudflare y que se puede cambiar en cualquier momento. Solo admite operaciones fijas: leer datos públicos (C0) y contadores, pedir el trabajo pendiente que su plan permite, devolver borradores y pausar los envíos. Nada de SQL libre, ni borrar, ni publicar, ni reanudar.
-2. La app deja el trabajo en la tabla `jobs` (§3), por ejemplo «redacta la descripción de HE-R027» o «resumen de la mañana». Hermes pregunta por HTTPS con una tarea programada, lo hace y devuelve el resultado. Cada cuánto pregunta se decide al construirlo, para no gastar el plan en preguntas vacías. Hermes sale hacia la app: nadie entra al VPS y no se abre ningún puerto.
+2. La app deja el trabajo en la tabla `jobs` (§3), por ejemplo «redacta la descripción de HE-R027» o «resumen de la mañana». Hermes pregunta por HTTPS con una tarea programada, lo hace y devuelve el resultado. Para los avisos al momento (abajo) pregunta cada minuto o dos. Esas preguntas y los avisos de texto fijo no deben gastar el plan: el modelo solo entra cuando hay que redactar o responder, y cómo se consigue con Hermes se decide al construirlo. Hermes sale hacia la app: nadie entra al VPS y no se abre ningún puerto.
 3. Lo que devuelve Hermes entra como borrador (Draft, §6.2) y una persona lo aprueba en el panel. Una automatización pasa a Approve o a Auto cuando sus pruebas lo justifican (AUT-09, AUT-10).
 4. La pantalla Automations enseña qué hizo Hermes en cada ejecución y cuándo pidió trabajo por última vez, y avisa si deja de pedirlo.
 
-**Telegram** (propuesta):
+**Telegram** (decisiones de Luis del 30-oct-2026):
 
-- Un bot propio de Hampton, en el Hermes de Hampton (pregunta 15), que crea Luis con @BotFather y que solo responde a los usuarios permitidos: al principio, solo Luis.
-- Por Telegram se puede preguntar el estado («¿qué fichas hay por confirmar?», «¿cuántos aplicantes nuevos hay?»), recibir los avisos y el resumen del día, pedir borradores y pausar los envíos (Pause all outbound, §6.4).
-- Reanudar los envíos, aprobar lo que manda algo a clientes o agencias, publicar o cambiar datos importantes se hace en el panel, con el inicio de sesión de Google. Un mensaje de Telegram no cuenta como aprobación: la cuenta se puede robar y un texto puede colar instrucciones. Mientras la pausa está puesta, la app no envía nada, la pida quien la pida.
-- Por Telegram solo viajan contadores, referencias de fichas (HE-R001) y enlaces a pantallas del panel. Nada sobre un aplicante concreto, ni siquiera su número: un número que identifica a una persona también es un dato personal (C2). Los chats con un bot no van cifrados de extremo a extremo y se guardan en los servidores de Telegram.
+- Un bot propio del Hermes de Hampton, que crea Luis con @BotFather y que solo responde a los usuarios permitidos: Luis y el equipo de Hampton desde el inicio. Cada persona activa la verificación en dos pasos de Telegram y habla con el bot en privado, no en grupos. Hermes contesta en el idioma en que se le escribe.
+- Por Telegram se puede:
+  - preguntar el estado («¿qué fichas hay por confirmar?», «¿cuántos aplicantes nuevos hay?»);
+  - recibir el resumen del día a las 8:00 de Jersey;
+  - recibir al momento, en uno o dos minutos, un aviso por cada aplicante nuevo, cada solicitud de visita nueva y cada borrador que espera aprobación;
+  - pedir borradores de textos de fichas;
+  - pausar los envíos (Pause all outbound, §6.4).
+- Los avisos no llevan datos de la persona: «New applicant» con un enlace al Inbox, o «New viewing request for 23 Le Bernage» con un enlace a Viewings. Nunca enlazan a la ficha de una persona. Por eso la app solo le da a Hermes el tipo de novedad y la ficha, nunca el texto de los avisos del Inbox, que lleva el nombre de la persona.
+- Horario de silencio (propuesta de Claude, a confirmar con Luis al construir AUT-14): de 21:00 a 08:00 de Jersey los avisos esperan y entran en el resumen de las 8:00, como las horas de silencio de los envíos (§6.4).
+- Lo que espera aprobación trae un botón que abre el panel en ese borrador, y se aprueba allí, con el inicio de sesión de Google. También se hace en el panel reanudar los envíos, aprobar lo que manda algo a clientes o agencias, publicar o cambiar datos importantes. Hermes nunca puede aprobar lo que él mismo propone, y un mensaje de Telegram no cuenta como aprobación: la cuenta se puede robar y un texto puede colar instrucciones. Mientras la pausa está puesta, la app no envía nada, la pida quien la pida.
+- Por Telegram solo viajan contadores, referencias y títulos de fichas (HE-R001) y enlaces a pantallas del panel. Nada sobre un aplicante concreto, ni siquiera su número: un número que identifica a una persona también es un dato personal (C2). Los chats con un bot no van cifrados de extremo a extremo y se guardan en los servidores de Telegram.
+- Privacidad del chat:
+  - una guía corta para el equipo: en el chat solo referencias de fichas, nunca datos de clientes;
+  - si alguien escribe datos de un cliente, Hermes tiene la instrucción de avisar y no usarlos (no se puede garantizar: por eso la regla);
+  - la memoria de Hermes está apagada. «Sin memoria» incluye que no escriba skills propias: son notas de «cómo hacer X» que Hermes puede sacar solo de las conversaciones y que no se borrarían con ellas;
+  - Hermes borra su copia de las conversaciones a los 30 días. La copia que guarda Telegram no la borra Hermes.
 
-**Datos y modelo.** Hermes usa el plan de ChatGPT de Luis, así que vale la regla del §6.5:
+**Datos y modelo** (decisión de Luis, pregunta 16). El Hermes de Hampton usa el plan de ChatGPT de Luis y solo recibe datos públicos (C0) y contadores. Vale la regla del §6.5:
 
 - datos públicos (C0) y contadores, sí;
 - C1 y C2, solo si Hermes pasa a un plan Business o Enterprise con acuerdo de tratamiento, y con su memoria apagada y sus conversaciones de trabajo borradas antes de que la app borre esos datos (12 meses, §7.2), porque Hermes guarda lo que lee;
 - C3, nunca pasa por Hermes: sigue la decisión A2 (Ollama en el VPS, al que llega Cloudflare por un túnel privado). Hermes no alcanza los servicios del VPS, así que darle un modelo local sería cambiar sus barreras, y eso se decide con /grill-me.
 
-Hermes es una app de código abierto que corre en el VPS de Luis con su propio plan. Parece el caso que OpenAI documenta para usar un plan de ChatGPT fuera de su web (§6.5), pero falta confirmar que las condiciones del plan permiten usarlo en el trabajo de un cliente (pregunta 16).
+Hermes es una app de código abierto que corre en el VPS de Luis con su propio plan. Si solo lo usara Luis, parecería el caso que OpenAI documenta para usar un plan de ChatGPT fuera de su web (§6.5). Antes de conectar ese plan al Hermes de Hampton, Luis comprueba dos cosas (PRE-32): que las condiciones de su plan permiten usarlo en el trabajo de un cliente, y que en la configuración de datos de ChatGPT está apagada la opción de mejorar el modelo con su contenido.
 
-**Un Hermes solo para Hampton** (recomendado; pregunta 15). El Hermes de hoy es el de desarrollo de Optimyze: está pensado para trabajar con copias de otros proyectos (hoy no tiene ninguna) y puede salir a GitHub y a los repositorios de paquetes. Si ese mismo agente tuviera la llave de Hampton App, una instrucción escondida en una web o en un repositorio podría usarla. Las reglas del propio despliegue de Hermes ya lo dicen: cada cliente con datos propios va en su propio Hermes.
+Propuesta de Claude, a confirmar con Luis: comprobar además que esas condiciones permiten que el equipo de Hampton use el plan a través de Hermes, y que Hermes trabaje sin Luis delante, como en el resumen de las 8:00. Las condiciones de OpenAI no dejan poner la cuenta a disposición de otras personas, y el Hermes de Optimyze usa la misma cuenta, así que una suspensión pararía los dos. Si no lo permiten, las preguntas del equipo y el resumen esperan a un plan Business o pasan a la vía API (P-09), y Hermes solo responde a Luis.
 
-La propuesta es un segundo Hermes, igual de aislado, todavía sin instalar:
+**Un Hermes solo para Hampton** (decisión de Luis, pregunta 15). El Hermes de hoy es el de desarrollo de Optimyze: está pensado para trabajar con copias de otros proyectos (hoy no tiene ninguna) y puede salir a GitHub y a los repositorios de paquetes. Si ese mismo agente tuviera la llave de Hampton App, una instrucción escondida en una web o en un repositorio podría usarla. Las reglas del propio despliegue de Hermes ya lo dicen: cada cliente con datos propios va en su propio Hermes.
+
+Es un segundo Hermes en el mismo VPS, en su propia jaula (su carpeta, sus datos, su panel y su bot), igual de aislado y todavía sin instalar:
 
 - con su propio bot;
 - sin herramientas de terminal ni de código;
+- sin entrar nunca en la base de datos: solo usa la puerta de la app;
 - con una lista de salida mínima: el modelo, Telegram y el dominio de Hampton App.
 
-Esa lista no basta para que no salgan datos: un bot o una clave de otra persona en esos mismos dominios servirían para sacarlos. Lo que protege es lo poco que ese Hermes tiene y puede hacer. Por eso la llave de la app solo da operaciones fijas y datos C0, y si se puede, la guarda un pequeño intermediario fuera del contenedor de Hermes.
+Esa lista no basta para que no salgan datos: un bot o una clave de otra persona en esos mismos dominios servirían para sacarlos. Lo que protege es lo poco que ese Hermes tiene y puede hacer. Por eso la llave de la app solo da operaciones fijas y datos C0. Además, si se puede, la guarda un pequeño intermediario fuera del contenedor de Hermes (propuesta de Claude, a confirmar en el spec).
 
-**Qué puede llevar primero** (todo con datos C0 mientras no cambie el plan):
+**Primera entrega** (decisión de Luis: las dos partes a la vez, en un mismo plan; todo con datos C0):
 
-- ayuda para redactar fichas y publicaciones (PUB-13);
-- el resumen del día y los avisos por Telegram, también las fichas por confirmar (ADM-04);
-- la extracción de anuncios del mercado cuando llegue la clave de Places.je (BUS-09).
+1. El resumen de las 8:00, las preguntas por Telegram y los avisos al momento (AUT-13 y AUT-14). Propuesta de Claude, a confirmar con Luis: el resumen incluye las fichas que han pasado a To confirm (ADM-04). Se calculan al mirar, así que no hay un momento que dispare un aviso.
+2. Los borradores de textos de fichas (PUB-13). Se piden con un botón en el editor de la ficha o por Telegram. El borrador aparece dentro de la ficha con «Use this text», y usarlo y guardar la ficha es la aprobación.
+
+Después llegará la extracción de anuncios del mercado, cuando llegue la clave de Places.je (BUS-09).
 
 Con un plan Business y la memoria de Hermes apagada llegarían la lectura de respuestas de agencias (AGE-06), los requisitos libres convertidos en etiquetas (REG-13) y el resumen de las notas de voz (VIS-15). La búsqueda en la web (BUS-11) no la haría el Hermes de Hampton: leer páginas cualesquiera es justo lo que no debe hacer el agente que tiene la llave de la app.
 
-**Hecho cuando:** se cumplen las cuatro cosas:
+**Hecho cuando:** se cumplen las cinco cosas:
 
-- Hermes pide trabajo a la app con su llave y devuelve un borrador que una persona aprueba en el panel;
-- Luis pregunta por Telegram «¿qué hay por confirmar?» y recibe la respuesta sin datos personales;
+- Hermes pide trabajo a la app con su llave y devuelve el borrador de un texto de ficha, que aparece en la ficha y que «Use this text» y guardar aplican;
+- Luis o alguien del equipo pregunta por Telegram «¿qué hay por confirmar?» y recibe la respuesta en su idioma y sin datos personales;
+- el resumen llega a las 8:00 de Jersey, y un aplicante nuevo produce su aviso en uno o dos minutos, sin datos de la persona;
 - la pantalla Automations muestra la última vez que Hermes pidió trabajo;
 - una pausa pedida por Telegram se ve en el panel.
 
@@ -739,7 +756,7 @@ Todas son propuestas mías; ninguna está aprobada.
 | P-15 | La lista del aplicante no revela la agencia hasta acordar comisión o visita | Protege la comisión | Enlazar el anuncio original |
 | P-16 | Expediente de venta con hitos y recordatorios automáticos a los abogados | Es donde más horas se pierden y no estaba en el texto | Seguimiento por teléfono y memoria |
 | P-17 | Decisión de Luis (29-oct-2026): la IA de la app usa el plan de ChatGPT de cada empleado con «Sign in with ChatGPT», si OpenAI da acceso por escrito a una app comercial alojada (§6.5) | Aprovecha suscripciones que Hampton ya paga | Solo API con pago por uso (P-09), que sigue como alternativa mientras tanto |
-| P-18 | Decisión de Luis (30-oct-2026): Hermes, en el VPS de Optimyze, es el cerebro de IA de las automatizaciones; con él se enlazan, y Luis habla con él y lo gestiona por Telegram (§6.6). La app sigue guardando los datos y las aprobaciones se hacen en el panel. El Hermes propio de Hampton que se recomienda (pregunta 15) está por instalar | Una sola IA para todas las automatizaciones, aislada como la que ya corre en el VPS, que usa el plan de ChatGPT que Luis ya paga, y Telegram para manejarla desde el móvil | AI Gateway con pago por uso como puerta única (P-09), que deja de ser la principal |
+| P-18 | Decisión de Luis (30-oct-2026): Hermes, en el VPS de Optimyze, es el cerebro de IA de las automatizaciones; con él se enlazan, y Luis habla con él y lo gestiona por Telegram (§6.6). La app sigue guardando los datos y las aprobaciones se hacen en el panel. El mismo día Luis aprobó un Hermes propio para Hampton, todavía por instalar (preguntas 15 y 16) | Una sola IA para todas las automatizaciones, aislada como la que ya corre en el VPS, que usa el plan de ChatGPT que Luis ya paga, y Telegram para manejarla desde el móvil | AI Gateway con pago por uso como puerta única (P-09), que deja de ser la principal |
 
 ## 11. Tu texto, punto por punto
 
@@ -806,5 +823,5 @@ Ordenadas por cuánto cambian lo que se construye. Las tres primeras salieron de
 12. ¿Optimyze opera el sistema para Hampton? Hace falta un acuerdo de tratamiento de datos y decidir a nombre de quién van las cuentas (Cloudflare ya está en la de AndresLeoSan).
 13. ¿Hampton está registrada en la JFSC y en la JOIC? ¿Cobra rentas o depósitos en una cuenta propia? Decide qué controles de blanqueo y qué cuenta de clientes necesita la gestión de alquileres (F5).
 14. ¿Qué plan de ChatGPT tiene cada empleado de Hampton (Free, Plus, Pro, Business o Enterprise) y quién lo paga? Decide si las automatizaciones con IA pueden usar ese plan (§6.5) y con qué datos. Añadida el 29-oct-2026.
-15. ¿Un Hermes propio para Hampton, aparte del de Optimyze, y quién habla con él por Telegram: solo Luis o también el equipo de Hampton? Decide cómo se protege la llave de Hampton App y a quién responde el bot (§6.6). Añadida el 30-oct-2026.
-16. ¿Qué plan de ChatGPT usa Hermes (Plus, Pro, Business…) y permiten sus condiciones usarlo en el trabajo de un cliente? Decide qué datos puede recibir Hermes (§6.3, §6.5): con un plan personal, solo datos públicos y contadores, comprobando antes en su configuración de datos que OpenAI no entrena con lo que envía. Añadida el 30-oct-2026.
+15. ¿Un Hermes propio para Hampton, aparte del de Optimyze, y quién habla con él por Telegram: solo Luis o también el equipo de Hampton? Decide cómo se protege la llave de Hampton App y a quién responde el bot (§6.6). Añadida el 30-oct-2026. **Respondida el 30-oct-2026:** un Hermes propio para Hampton, en el mismo VPS y en su propia jaula; por Telegram le hablan Luis y el equipo de Hampton desde el inicio (PRE-31).
+16. ¿Qué plan de ChatGPT usa Hermes (Plus, Pro, Business…) y permiten sus condiciones usarlo en el trabajo de un cliente? Decide qué datos puede recibir Hermes (§6.3, §6.5): con un plan personal, solo datos públicos y contadores, comprobando antes en su configuración de datos que OpenAI no entrena con lo que envía. Añadida el 30-oct-2026. **Respondida en parte el 30-oct-2026:** el plan de ChatGPT de Luis, solo con datos públicos y contadores. Falta que Luis diga qué plan es, compruebe sus condiciones y apague el entrenamiento (PRE-32).
