@@ -56,8 +56,17 @@
 **Files:**
 - Create: `hermes/key-proxy.mjs`, `tests/server/key-proxy.test.mjs`
 
-- [ ] Step 1: failing test with a fake upstream: forwards `GET`/`POST` `/api/hermes/...` with the key, drops incoming `authorization`, `cookie`, `host`; refuses other paths and methods (404/405); body over 160 KB → 413.
+- [ ] Step 1: failing test with a fake upstream: forwards `GET`/`POST` `/api/hermes/...` with the key, drops incoming `authorization`, `cookie`, `host`; refuses other paths and methods (404/405); body over 160 KB → 413 with the connection closed, without reading the rest; refuses to start on `0.0.0.0` or `::`.
 - [ ] Step 2: implement until green. `npm test`.
+
+## Installation notes (outside the taller, after Luis's «sí»)
+
+Added on 31-oct-2026 from the VPS security review, for whoever installs it with Docker and the VPS and Cloudflare keys:
+
+- **Network:** the key's custodian (`hermes/key-proxy.mjs`) runs in a Docker network of its own, shared only by Hampton's Hermes and the custodian. No other container on it and no port published on the host. `LISTEN_HOST` is the custodian's address on that network; it refuses `0.0.0.0` and `::`. Hermes's outbound list reaches the model, `api.telegram.org` and the custodian, and nothing else.
+- **Key:** generate it with `openssl rand -hex 32` on the VPS, never in a chat. Put it only in the **Production** environment of the Pages project (`HERMES_KEY`), never in Preview: previews use the production database. On the VPS it is a Docker secret read through `HERMES_KEY_FILE`, never an environment variable of Hermes. It is never printed or committed. To change it: a new value in both places, then a new Pages deployment.
+- **Old jobs:** the `jobs` table keeps used, discarded and failed rows (C0 drafts and the email of the staff member who decided). Clearing them is pending: a step of the clock (AUT-07) that deletes closed jobs after a set time, to be decided with Luis.
+- **Pause:** every future send to clients or agencies (email, WhatsApp, social posts) reads `app_settings.outbound` right before it leaves and sends nothing while `paused` is true, whoever asked for the pause. Today the app sends nothing, so nothing reads it yet.
 
 ### Task 4: Close
 

@@ -29,8 +29,11 @@ Final: fixed (B4) duplicated `.warn` flex rules — `.warn.paused` joins the exi
 Final: fixed (B5, B6) the `outbound` shaping (now two `json_extract` columns), `shape` returning null itself, `{page}` on its own line, the error alert moved out of the `role="status"` bar.
 Final: fixed (A1) a team member's email could leave through the door once the panel can pause (AUT-01) — the door says `hermes` or `team`. Test added.
 Final: fixed (A2) a cursor past the last notice (a restored database) silenced news — it comes back to the last notice. Test added.
-Final: fixed (A4, decision) unpublished listings reached Hermes, wider than «only public data (C0)» — jobs only for listings on the website, at request and at claim; the editor shows the block only on a published listing. Asked Luis whether drafts of unpublished listings may go to Hermes. Test added; mutation check: removing the rule turns the test red.
+Final: fixed (A4, decision) unpublished listings reached Hermes, wider than «only public data (C0)» — jobs only for listings on the website, at request and at claim; the editor shows the block only on a published listing. Luis answered on 31-oct: published listings only (option 2). Test added; mutation check: removing the rule turns the test red.
 Final: fixed (A5) a 64 KB body could refuse 25,200 characters escaped as \uXXXX — door and proxy now allow 160 KB.
 Final: fixed (A6) the proxy sends its own user-agent (Cloudflare bot rules once the domain is there).
 Final: minor (deferred) (A3) a 409 can answer `id: null` if the open job closes in the same instant as the second request; the caller asks again.
 Final: suite 464/464 + 14, build OK, check:release OK, walkthrough OK at 1280 and 390.
+VPS security review (Luis, 31-oct): fixed — a viewing request's notice used the title of an unpublished or archived listing, or the old `listing_title_snapshot`; now only `l.title` of a listing joined as published and not archived, else «New viewing request». Test added (RED → GREEN).
+VPS security review: fixed — the custodian refuses `LISTEN_HOST` 0.0.0.0, :: and [::]; past 160 KB (declared in content-length or read) it answers 413 with `connection: close` and stops reading. Tests added (RED: the old code hung reading → GREEN).
+VPS security review: noted in the plan («Installation notes»): a network only for Hermes and the custodian, the key from `openssl rand -hex 32` and only in Pages' Production environment, clearing old jobs pending, every future send reads the pause.

@@ -282,3 +282,19 @@ test("the door never names who paused from the panel; a cursor past the last not
   assert.equal((await admin(env, "GET", "/admin/notifications/counts")).data.outbound.by, ADMIN, "the panel says who");
   assert.deepEqual((await door(env, "GET", "/news?after=99")).data, { items: [], cursor: 0 });
 });
+
+test("news: a viewing request names only a listing on the website, never an old or hidden title", async () => {
+  const env = env0();
+  seedListing(env, { id: "HE-R001", title: "Live one" });
+  seedListing(env, { id: "HE-R002", title: "Off-market house", published: 0 });
+  seedListing(env, { id: "HE-R003", title: "Archived house", archived_at: T0 });
+  const ask = (listing_id, listing_title_snapshot = null) => notice(env, { entity_type: "viewing", category: "viewing",
+    title: "Viewing request: Ottoline Pryke", type: "viewing.requested", entity_id: insert(env, "viewing_requests", {
+      listing_id, listing_title_snapshot, kind: "In person", date: "2026-11-02", time: "11:30", name: "Ottoline Pryke",
+      phone: "07700 900654", created_at: T0 }) });
+  ask("HE-R001"); ask("HE-R002"); ask("HE-R003"); ask(null, "Old snapshot title");
+  const { data } = await door(env, "GET", "/news?after=0");
+  assert.deepEqual(data.items.map(i => i.text), ["New viewing request for Live one", "New viewing request",
+    "New viewing request", "New viewing request"]);
+  for (const s of ["Off-market", "Archived house", "Old snapshot"]) assert.ok(!JSON.stringify(data).includes(s), s);
+});

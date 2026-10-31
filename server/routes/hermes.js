@@ -63,10 +63,11 @@ async function news({ request, env }) {
   if (after !== null && !/^\d{1,15}$/.test(after)) fail(400, "after must be a notification id");
   const { max } = await env.DB.prepare("SELECT COALESCE(MAX(id), 0) AS max FROM notifications").first();
   if (after === null) return json({ items: [], cursor: max });
-  const { results } = await env.DB.prepare(`SELECT n.id, n.category, COALESCE(l.title, v.listing_title_snapshot) AS listing
+  // Only the title of a listing on the website: an unpublished or archived one, or an old snapshot, may not be public.
+  const { results } = await env.DB.prepare(`SELECT n.id, n.category, l.title AS listing
     FROM notifications n JOIN events e ON e.id = n.event_id
     LEFT JOIN viewing_requests v ON e.entity_type = 'viewing' AND v.id = e.entity_id
-    LEFT JOIN listings l ON l.id = v.listing_id
+    LEFT JOIN listings l ON l.id = v.listing_id AND l.published = 1 AND l.archived_at IS NULL
     WHERE n.id > ?1 AND n.id <= ?2 AND n.action_required = 1 AND n.category IN ('new_applicant', 'viewing')
     ORDER BY n.id LIMIT ${NEWS}`).bind(Number(after), max).all();
   const items = results.map(n => n.category === "new_applicant"
