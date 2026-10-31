@@ -8,6 +8,7 @@ import { OPTIONS, isActive } from "../../server/applicants.js";
 import { ON_MARKET } from "../../server/listing.js";
 import { jerseyToday } from "../../server/viewings.js";
 import { BuyerOffers } from "./Sales.jsx";
+import HermesDraft from "./HermesDraft.jsx";
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "tenure_type", "housing_category", "restriction", "sale_price", "rent", "rent_period", "premium",
@@ -224,6 +225,9 @@ export default function ListingEditor({ id, onChange }) {
       </div></section>
 
       <section id="s-description" className="card" aria-labelledby="h-desc"><h2 id="h-desc">Description</h2>
+        {/* AUT-13: on a listing on the website only (H9). A used draft fills the form like typing; Save is the approval (H10). */}
+        {state === "published" && <HermesDraft listingId={id} onUse={text => setForm(f => ({ ...f, ...text }))}
+          replacing={["title", "summary", "description"].some(k => form[k] !== toForm(l)[k])} />}
         {field("summary", "Summary (one bullet per line)", <textarea {...ctl("summary")} maxLength={5000} />)}
         {field("description", "Full description (one paragraph per line)", <textarea {...ctl("description")} maxLength={20000} rows={10} />)}
       </section>

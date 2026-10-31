@@ -1,6 +1,6 @@
 # Estado de Hampton App
 
-Actualizado el 30-oct-2026. Qué incluye cada fase y cuándo se da por hecha: [arquitectura, §9 Hoja de ruta](2026-10-23-arquitectura-hampton-app.md). Qué está hecho y qué falta, punto por punto: [checklist](checklist-hampton-app.html). En producción: lo que está en `main` en GitHub (cada push a `main` se publica solo: la web y, desde el 30-oct-2026, también el reloj, el Worker `hampton-jobs`) y las migraciones hasta la 0017.
+Actualizado el 31-oct-2026. Qué incluye cada fase y cuándo se da por hecha: [arquitectura, §9 Hoja de ruta](2026-10-23-arquitectura-hampton-app.md). Qué está hecho y qué falta, punto por punto: [checklist](checklist-hampton-app.html). En producción: lo que está en `main` en GitHub (cada push a `main` se publica solo: la web y, desde el 30-oct-2026, también el reloj, el Worker `hampton-jobs`) y las migraciones hasta la 0017.
 
 | Fase | Estado | Spec | Plan | Pendiente |
 |---|---|---|---|---|
@@ -27,33 +27,46 @@ Decisión de Luis del 30-oct-2026 (arquitectura §6.6 y P-18): **Hermes**, el ag
 El mismo día Luis respondió las preguntas 15 y 16 y aprobó el diseño del **Hermes propio de Hampton** (arquitectura §6.6). Todavía no está instalado ni conectado a nada:
 
 - Va en el mismo VPS, en su propia jaula, aparte del Hermes de Optimyze: sin herramientas de terminal ni de código, sin entrar nunca en la base de datos y con salida solo al modelo, Telegram y la app.
-- Usa el plan de ChatGPT de Luis y solo recibe datos públicos y contadores. Antes de conectarlo, Luis comprueba que las condiciones de su plan permiten usarlo para un cliente y apaga el entrenamiento con sus datos (PRE-32). Claude propone comprobar también que permiten que el equipo use el plan a través de Hermes y que Hermes trabaje sin Luis delante; si no, las preguntas del equipo y el resumen esperan a un plan Business o a la vía API. Los datos sensibles nunca pasarán por Hermes.
+- Usa el plan de ChatGPT de Luis y solo recibe datos públicos y contadores. Antes de conectarlo, Luis comprueba que las condiciones de su plan permiten usarlo para un cliente y apaga el entrenamiento con sus datos (PRE-32). Luis decidió el 31-oct comprobar también que permiten que el equipo use el plan a través de Hermes y que Hermes trabaje sin Luis delante; si no, las preguntas del equipo y el resumen esperan a un plan Business o a la vía API. Los datos sensibles nunca pasarán por Hermes.
 - Por Telegram le hablan Luis y el equipo de Hampton, cada uno en privado con el bot y con la verificación en dos pasos. Contesta en el idioma en que se le escribe.
 - Por Telegram se podrá preguntar, recibir el resumen de las 8:00 de Jersey y un aviso al momento por cada aplicante o solicitud de visita nuevos, pedir borradores de textos de fichas y pausar los envíos.
 - No viajarán datos de clientes, ni siquiera el número de un aplicante. Los avisos dicen «New applicant», con un enlace al Inbox, o «New viewing request for» y el título de la ficha, con un enlace a Viewings. Nunca enlazan a la ficha de una persona.
 - Lo que espera aprobación trae un botón que abre el borrador en el panel, y se aprueba allí con la cuenta de Google. Reanudar los envíos, también en el panel. Hermes nunca aprueba solo.
 - Privacidad: una guía corta para el equipo (nada de datos de clientes en el chat), la memoria de Hermes apagada (tampoco escribe skills propias) y sus conversaciones borradas a los 30 días.
 
+El 31-oct-2026 Luis decidió cuatro cosas más: los avisos de Telegram **no tienen horario de silencio**, el resumen de las 8:00 **incluye las fichas por confirmar**, PRE-32 **también comprueba** que el plan de ChatGPT permite que el equipo lo use a través de Hermes y que Hermes trabaje sin él delante, y **la llave de Hermes la guarda un pequeño intermediario** fuera de su contenedor.
+
+**Preparado el 31-oct-2026 en la rama local `hermes/aut-13` del taller** (sin subir a GitHub ni en producción; [spec](../superpowers/specs/2026-10-31-hampton-app-hermes-design.md), [plan](../superpowers/plans/2026-10-31-hampton-app-hermes.md)). Es la parte de la app:
+
+- La puerta `/api/hermes` con su propia llave (secreto `HERMES_KEY`; sin él, cerrada) y seis operaciones fijas: el estado con los contadores y el resumen de las 8:00 ya escrito, los avisos sin datos de la persona, pedir y tomar trabajo, devolver un borrador y pausar los envíos. La llave no abre nada más y la cookie del panel no abre la puerta.
+- La tabla `jobs` (migración 0018, sin aplicar en remoto).
+- En el editor de una ficha publicada, el borrador de título, resumen y descripción con «Use this text» y «Discard»: la ficha solo cambia al guardar (primera parte de PUB-13). El bloque no se ve hasta que Hermes se conecte por primera vez.
+- La barra de pausa arriba de cada pantalla del panel, con «Resume sending», que solo existe en el panel.
+- El intermediario de la llave (`hermes/key-proxy.mjs`), listo para instalar en el VPS.
+
+Falta: llevar la rama a main con la migración 0018 y el secreto `HERMES_KEY` (cuando Luis lo apruebe), PRE-32, el bot con @BotFather y los números de usuario del equipo, y la instalación en el VPS del Hermes de Hampton y del intermediario (necesita Docker y las llaves del VPS y de Cloudflare). Hasta PRE-32 no se conecta ni el modelo ni el bot.
+
 Puntos del checklist:
 
-- AUT-13 (conectar Hermes a la app), AUT-14 (Telegram) y PUB-13 (textos de fichas), en un mismo plan;
+- AUT-13 (conectar Hermes a la app) y PUB-13 (textos de fichas): parciales, la parte de la app preparada en la rama; AUT-14 (Telegram): pendiente;
 - PRE-31, la pregunta 15, respondida;
 - PRE-32, la pregunta 16: falta la comprobación de Luis.
 
 ## Siguiente tarea
 
-**El Hermes de Hampton** (AUT-13, AUT-14 y PUB-13 en un mismo plan; diseño aprobado por Luis el 30-oct-2026, arquitectura §6.6). Las decisiones principales ya están tomadas, así que la sesión empieza por el spec y el plan. Va en dos partes:
+**Llevar a main la rama `hermes/aut-13`** (la parte de la app del Hermes de Hampton). La revisa y la publica Luis, o la sesión de /avanzar de su VS Code:
 
-1. La puerta de la app para Hermes (su propia llave y solo operaciones fijas), la tabla jobs, el resumen de las 8:00, las preguntas y los avisos al momento por Telegram.
-2. Los borradores de textos de fichas, con «Use this text» en el editor.
+1. Traer la rama del taller, pasar las pruebas, la compilación y el e2e.
+2. Aplicar en remoto la migración 0018.
+3. Poner el secreto `HERMES_KEY` en el proyecto de Cloudflare Pages.
+4. El push a main.
 
-Luis, guiado paso a paso, crea el bot con @BotFather y reúne los números de usuario de Telegram del equipo. Antes de conectar el modelo, comprueba su plan de ChatGPT (PRE-32).
+Hasta que Hermes se conecte, el panel no cambia a la vista: el bloque del borrador está oculto y la barra de pausa no sale.
 
-Al empezar, Luis confirma cuatro propuestas de Claude:
+Después, con Luis:
 
-- el horario de silencio de los avisos: de 21:00 a 08:00 de Jersey, y lo de esas horas entra en el resumen;
-- que el resumen incluya las fichas por confirmar;
-- la comprobación extra del plan de ChatGPT: que el equipo pueda usarlo a través de Hermes y que Hermes trabaje sin Luis delante;
-- que la llave de Hermes la guarde un pequeño intermediario fuera de su contenedor.
+1. PRE-32: decir qué plan de ChatGPT es y comprobar sus condiciones (uso para un cliente, el equipo a través de Hermes y Hermes sin él delante), y apagar el entrenamiento.
+2. Crear el bot con @BotFather y reunir los números de usuario de Telegram del equipo.
+3. Instalar en el VPS el Hermes de Hampton y el intermediario de la llave (fuera del taller).
 
-Después viene la pantalla Automations (AUT-01, AUT-09, AUT-10), que enseñará lo que hace Hermes. El plan de ChatGPT de cada empleado (AUT-12) sigue esperando a OpenAI.
+Si se prefiere algo que no espere nada de fuera: la pantalla Automations (AUT-01, AUT-09, AUT-10), que enseñará la última petición de Hermes. El plan de ChatGPT de cada empleado (AUT-12) sigue esperando a OpenAI.

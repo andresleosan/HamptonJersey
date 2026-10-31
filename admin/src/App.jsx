@@ -22,6 +22,7 @@ import Availability from "./Availability.jsx";
 import Users from "./Users.jsx";
 import Tours from "./Tours.jsx";
 import { confirmLeave } from "./unsaved.js";
+import { fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
 
 function useHash() {
@@ -140,10 +141,31 @@ export default function App() {
       <button type="button" className="btn ghost sm" title={`Signed in as ${me}`} onClick={logout}>Sign out</button>
     </header>
     {/* Every link in the page, like those in the header, asks first when there are unsaved changes. */}
-    <main className="page" inert={expired} onClickCapture={e => { if (e.target.closest("a[href^='#']")) confirmLeave(e); }}>{page}</main>
+    <main className="page" inert={expired} tabIndex={-1} onClickCapture={e => { if (e.target.closest("a[href^='#']")) confirmLeave(e); }}>
+      {counts.outbound && <Paused outbound={counts.outbound} onResumed={loadCounts} />}
+      {page}</main>
     {/* Session expired mid-task: sign in again on top of the page so nothing typed is lost. */}
     {expired && <div className="modal" role="dialog" aria-modal="true" aria-label="Session expired">
       <Login title="Your session has expired" note="Sign in again; what you were editing is still here." onSignedIn={signedIn} home={false} />
     </div>}
   </>;
+}
+
+// AUT-13 (H11): Hermes, or later the Automations screen, can pause sending; only a person here resumes it.
+function Paused({ outbound, onResumed }) {
+  const [busy, setBusy] = useState(false), [err, setErr] = useState(null);
+  const resume = async () => {
+    if (!confirm("Resume sending to clients and agencies?")) return;
+    setBusy(true); setErr(null);
+    // The bar and its button go away: the focus goes to the page.
+    try { await api("/admin/outbound/resume", { method: "POST" }); await onResumed(); document.querySelector("main")?.focus(); }
+    catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  };
+  return <>
+    <div className="warn paused" role="status">
+      <p>Sending to clients and agencies is paused (asked by {outbound.by === "hermes" ? "Hermes" : outbound.by} on {fmtDate(outbound.at)}).
+        Nothing is sent until someone resumes it here.</p>
+      <button type="button" className="btn ghost sm" onClick={resume} disabled={busy}>Resume sending</button></div>
+    {err && <p role="alert" className="err">{err}</p>}</>;
 }

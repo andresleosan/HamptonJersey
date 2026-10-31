@@ -261,8 +261,8 @@ kbd{font:600 11px var(--body);letter-spacing:0;padding:0 5px;border:1px solid cu
 .interest li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
 .interest li p{overflow-wrap:anywhere} .interest .who{font-weight:600} .interest li>.view-form{grid-column:1/-1}
 .interest select{max-width:360px}
-.warn.uncounted,.warn.to-confirm{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center} .warn.uncounted p,.warn.to-confirm p{margin:0}
-.warn.to-confirm .btn{min-height:32px} /* ADM-04: the panel's 32px target (DESIGN.md) */
+.warn.uncounted,.warn.to-confirm,.warn.paused{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center} .warn.uncounted p,.warn.to-confirm p,.warn.paused p{margin:0}
+.warn.to-confirm .btn,.warn.paused .btn{min-height:32px} /* ADM-04: the panel's 32px target (DESIGN.md) */
 .interest .btn{min-height:32px}
 @media (max-width:760px){.interest li{grid-template-columns:1fr}.interest .btn{min-height:44px}}
 textarea.short{min-height:72px}
@@ -441,3 +441,9 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
   .report-block,.report-head,.views-chart,.feedback li,.steps li{break-inside:avoid} .report-block h3{break-after:avoid}
   .views-chart .colbar{background:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .report-head .firm{border-color:#000} .report-block,.report-foot{border-color:#999}}
+/* AUT-13: the pause bar above every page, and Hermes's draft in the listing editor (spec 2026-10-31 §5). */
+.warn.paused{margin-bottom:16px} .hermes-draft .btn{min-height:32px}
+.hermes-draft{display:grid;gap:8px;margin-bottom:16px} .hermes-draft h3{margin:0;font-size:16px}
+.hermes-draft p{margin:0} .hermes-draft .row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.hermes-draft .draft{display:grid;gap:12px;border:1px solid var(--line);border-radius:var(--r-sm);padding:16px}
+.hermes-draft dl{display:grid;gap:12px;margin:0} .hermes-draft dt{font-size:12px;color:var(--stone)} .hermes-draft dd{margin:0;display:grid;gap:4px}

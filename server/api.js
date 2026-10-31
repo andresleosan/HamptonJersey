@@ -17,16 +17,17 @@ import rentalRoutes from "./routes/rentals.js";
 import rentRoutes from "./routes/rent.js";
 import reportRoutes from "./routes/report.js";
 import interestRoutes from "./routes/interest.js";
+import hermesRoutes, { hermesDoor } from "./routes/hermes.js";
 
 // [method, path regex, handler, requiresAdmin]
-const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes];
+const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes];
 
 // waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
 // promise still runs, unawaited; pass only promises that never reject.
 export async function handleApi(request, env, segments, waitUntil = () => {}) {
   const res = await route(request, env, segments, waitUntil);
   // Admin and session answers carry personal data: never cache them anywhere.
-  if (/^(admin|me|session)$/.test(segments[0] ?? "")) res.headers.set("cache-control", "no-store");
+  if (/^(admin|me|session|hermes)$/.test(segments[0] ?? "")) res.headers.set("cache-control", "no-store");
   return res;
 }
 
@@ -36,6 +37,8 @@ async function route(request, env, segments, waitUntil) {
     // Pages hands catch-all segments still percent-encoded (e.g. "x%40gmail.com").
     let path;
     try { path = "/" + segments.map(decodeURIComponent).join("/"); } catch { fail(400, "Bad URL encoding"); }
+    // AUT-13: Hermes's door has its own key and no cookie, so the same-origin check (against cookie CSRF) is not its.
+    if (segments[0] === "hermes") return await hermesDoor(request, env, path.slice("/hermes".length));
     if (method !== "GET" && method !== "HEAD" && !sameOrigin(request)) fail(403, "Cross-origin request blocked");
     for (const [m, re, handler, auth] of ROUTES) {
       const hit = m === method && re.exec(path);

@@ -81,8 +81,9 @@ import { handleApi } from "../../server/api.js";
 import { signSession, COOKIE } from "../../server/auth.js";
 
 export const ORIGIN = "https://hampton.test";
-export async function call(env, method, path, { body, cookie, origin = ORIGIN, form } = {}) {
+export async function call(env, method, path, { body, cookie, origin = ORIGIN, form, bearer } = {}) {
   const headers = new Headers();
+  if (bearer) headers.set("authorization", `Bearer ${bearer}`);
   if (origin && method !== "GET") headers.set("origin", origin);
   if (cookie) headers.set("cookie", cookie);
   if (body !== undefined) headers.set("content-type", "application/json");

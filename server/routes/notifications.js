@@ -34,10 +34,10 @@ function link({ category, entity_type, entity_id, search_id }) {
 }
 
 // sales (V10), rentals (R16, cached: P16), expiring contacts (E8) and listings to confirm (ADM-04) are their screens'
-// own counts, not part of action.
-async function openCounts(env) {
-  const [{ results }, { results: [sales] }, , , { results: [rentals] }, { results: [expiring] }, { results: [toConfirm] }] =
-    await env.DB.batch([env.DB.prepare(
+// own counts, not part of action. outbound: {at, by} while sending is paused (AUT-13, H11), else null.
+export async function openCounts(env) {
+  const [{ results }, { results: [sales] }, , , { results: [rentals] }, { results: [expiring] }, { results: [toConfirm] },
+    { results: [outbound] }] = await env.DB.batch([env.DB.prepare(
     "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category"),
   salesCount(env), ...refreshRentalsCount(env),
   env.DB.prepare("SELECT json_extract(value, '$.n') AS n FROM app_settings WHERE key = 'rentals_count'"),
@@ -45,10 +45,13 @@ async function openCounts(env) {
   // past ~100 contacts in it, cache the count like rentals_count.
   env.DB.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${EXPIRING}`).bind(jerseyToday()),
   // Reads the listings_live index only (migration 0017).
-  env.DB.prepare(`SELECT COUNT(*) AS n FROM listings l WHERE ${TO_CONFIRM}`).bind(now())]);
+  env.DB.prepare(`SELECT COUNT(*) AS n FROM listings l WHERE ${TO_CONFIRM}`).bind(now()),
+  env.DB.prepare(`SELECT json_extract(value, '$.at') AS at, json_extract(value, '$.by') AS by FROM app_settings
+    WHERE key = 'outbound' AND json_extract(value, '$.paused') = 1`)]);
   const by = Object.fromEntries(CATEGORIES.map(c => [c, results.find(r => r.category === c)?.n ?? 0]));
   return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by, sales: sales.n, rentals: rentals.n,
-    expiring: expiring.n, to_confirm: toConfirm.n };
+    expiring: expiring.n, to_confirm: toConfirm.n,
+    outbound: outbound ?? null };
 }
 
 // E6: the panel polls the counts every 30 s, and the Inbox its list; each poll claims the day's retention pass in case
