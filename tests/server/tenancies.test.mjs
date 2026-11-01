@@ -209,10 +209,10 @@ test("renew: same reference, new end or periodic, regime 2025 after 15 April 202
 test("charges: a service switch moving collect_from never charges a month or the opening balance twice", async () => {
   const env = makeEnv();
   const rid = await rental(env);
-  const start = `${month(-4).slice(0, 8)}15`;
+  const start = month(-4);
   const id = await tenancy(env, rid, { start_on: start, rent: 1000, opening_balance: 5000 });
   const before = charges(env, id), balance = (await req(env, "GET", `/admin/tenancies/${id}`)).data.balance;
-  assert.equal(balance, 5000 + 100000 * rentDues(start, 15).filter(d => d <= T).length);
+  assert.equal(balance, 5000 + 100000 * rentDues(start, 1).filter(d => d <= T).length);
   const putRental = body => req(env, "PUT", `/admin/rentals/${rid}`, { updated_at: stamp(env, "rentals", rid), ...body });
   assert.equal((await putRental({ service: "let_only" })).status, 200);
   const back = await putRental({ service: "full", collect_from: T });
