@@ -65,7 +65,7 @@ Si el reloj o Hermes se paran, el botón Settings de la barra lleva un número e
 
 ## Siguiente tarea
 
-**Instalar el Hermes de Hampton en el VPS.** La parte de la app está en producción desde el 1-nov-2026 con la migración 0018. Sin el secreto `HERMES_KEY` la puerta sigue cerrada y el panel no cambia a la vista: el bloque del borrador está oculto y la barra de pausa no sale.
+**Instalar el Hermes de Hampton en el VPS.** La parte de la app está en producción desde el 1-nov-2026 con la migración 0018. Sin el secreto `HERMES_KEY` la puerta sigue cerrada: el bloque del borrador está oculto y Automations dice «Not connected yet»; la barra de pausa solo sale si alguien del equipo pulsa «Pause all outbound».
 
 En orden, con Luis:
 

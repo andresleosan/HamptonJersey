@@ -95,4 +95,4 @@
 
 - [ ] **Step 3: Run** `npm test`, `npm run build`, then the e2e (reseed as in the header of `tests/e2e.cjs`). In the workshop the e2e stops at Turnstile (`tests/e2e.cjs:125`): run the new block on its own against the local server to see it pass, and say so in the ledger.
 
-- [ ] **Step 4: Walkthrough** at 1280 and 390 with Playwright MCP (or chrome-devtools MCP), screenshots to `/home/taller/encargos/capturas`.
+- [ ] **Step 4: Walkthrough** at 1280 and 390 with Playwright MCP (or chrome-devtools MCP), screenshots kept outside the repo.

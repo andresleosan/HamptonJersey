@@ -48,6 +48,7 @@ Texto de Luis: «Cada vez que se pide una automatización nueva, debe tener algu
 | A8 | **Registro de Hermes:** los 20 trabajos más recientes, con ficha (referencia y título, enlace a su editor), estado, pedido por (persona del equipo o Hermes) y fechas. Ni los textos del borrador ni el email completo: «Team» o «Hermes». Los borradores que esperan a una persona salen aparte, con su enlace | Claude. Que no salga el email lo decidió Claude: la pantalla no necesita saber quién del equipo pidió el borrador |
 | A9 | **Una ruta nueva, `GET /admin/automations`**, con sesión y mismo origen, como todo `/admin`. Lee solo `app_settings` (por clave) y `jobs`; los títulos salen de un JOIN con `listings` | Claude |
 | A10 | **El sondeo de contadores** (`openCounts`) añade `stalled`: cuántas automatizaciones están paradas. La puerta de Hermes lo quita de su `status` (anti-objetivo) | Claude |
+| A11 | **Detalles tras la revisión del diseño:**<br>• «asked by» en la tarjeta de envíos sale del contador `outbound` que ya usa la barra de pausa, sin datos nuevos en la ruta;<br>• el número `contacts` de `retention_run` se enseña como «applicants», y una pasada antigua sin `jobs` cuenta 0;<br>• una pasada en curso (unos segundos) se ve como «failed (attempt 1 of 3)»: se acepta;<br>• sin migración: `retention_run` es JSON. | Claude |
 
 ## 3. Textos (D19: en inglés)
 
@@ -60,8 +61,6 @@ Texto de Luis: «Cada vez que se pide una automatización nueva, debe tener algu
 | Hermes | «Hermes text drafts» · «Writes listing texts for a person to approve.» · «Last asked for work {fecha y hora}» · «Not connected yet» · parado: «Stopped: no request for over 15 minutes.» · «Last 30 days: {n} used, {n} discarded, {n} failed ({p}% used)» · «Waiting for approval» · «Recent jobs» · vacío: «No jobs yet. Once Hermes is connected, ask for a draft in a listing's editor.» (tras la revisión de diseño: un vacío dice su causa y su siguiente paso) |
 | Envíos | «Sending to clients and agencies» · «Nothing is sent automatically yet; this switch stops any future sending.» · activo: «Active» + botón «Pause all outbound» (confirmación: «Pause all sending to clients and agencies?») · pausado: «Paused since {fecha} (asked by {quién})» + «Resume sending» |
 | Número en Settings (lector de pantalla) | «{n} stopped» |
-
-| A11 | **Detalles tras la revisión del diseño:**<br>• «asked by» en la tarjeta de envíos sale del contador `outbound` que ya usa la barra de pausa, sin datos nuevos en la ruta;<br>• el número `contacts` de `retention_run` se enseña como «applicants», y una pasada antigua sin `jobs` cuenta 0;<br>• una pasada en curso (unos segundos) se ve como «failed (attempt 1 of 3)»: se acepta;<br>• sin migración: `retention_run` es JSON. | Claude |
 
 ## 4. Lo que queda al constructor
 

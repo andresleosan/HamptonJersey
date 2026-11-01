@@ -4,7 +4,8 @@ import { normalizePhone } from "./applicants.js";
 
 // G2: contacts 12 months without activity and viewing requests whose date is over 12 months old are deleted once a
 // Jersey day, as the manual deletes do it (E4, E5). E7: at most RETENTION_CAP of each per pass, oldest first, in one
-// batch of a fixed number of set-based statements, whatever the count; what is left goes the next day.
+// batch of a fixed number of set-based statements, whatever the count; what is left goes the next day. The same pass
+// deletes Hermes's jobs 90 days after their last activity, never a draft (AUT-01, A5; JOBS below).
 export const RETENTION_CAP = 500;
 
 // E3: a contact with a sale on any of its searches, in any status, is kept (V14: 5 years). For a query on contacts c.
