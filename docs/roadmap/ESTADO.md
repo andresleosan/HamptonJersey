@@ -52,6 +52,17 @@ Puntos del checklist:
 - PRE-31, la pregunta 15, respondida;
 - PRE-32, la pregunta 16: falta la comprobación de Luis.
 
+## Pantalla Automations
+
+**En producción desde el 1-nov-2026**, sin migración (AUT-01; [spec](../superpowers/specs/2026-11-01-hampton-app-automations-design.md), [plan](../superpowers/plans/2026-11-01-hampton-app-automations.md)). En el menú Settings, una tarjeta por cada cosa que corre sola:
+
+- el reloj: su última vuelta, en rojo si lleva más de 30 minutos parado;
+- el borrado de 12 meses: el último día y cuántos aplicantes, visitas y trabajos de Hermes borró;
+- los borradores de Hermes: cuándo pidió trabajo por última vez («Not connected yet» hasta instalarlo), un aviso si deja de pedirlo más de 15 minutos, los usados de los últimos 30 días, los que esperan aprobación y los 20 últimos trabajos;
+- los envíos: activos o pausados, con «Pause all outbound» para cualquiera del equipo y «Resume sending».
+
+Si el reloj o Hermes se paran, el botón Settings de la barra lleva un número en todas las pantallas. Decisiones de Luis del 1-nov: esta primera versión, sin interruptores ni plazos editables; los avisos en Settings; 30 y 15 minutos; y borrar los trabajos de Hermes 90 días después de su última actividad, también los que nadie tomó. El modo, el coste, las plantillas y los parámetros llegan con la primera automatización que los use (AUT-01 sigue parcial).
+
 ## Siguiente tarea
 
 **Instalar el Hermes de Hampton en el VPS.** La parte de la app está en producción desde el 1-nov-2026 con la migración 0018. Sin el secreto `HERMES_KEY` la puerta sigue cerrada y el panel no cambia a la vista: el bloque del borrador está oculto y la barra de pausa no sale.
@@ -63,4 +74,4 @@ En orden, con Luis:
 3. Instalar en el VPS el Hermes de Hampton y el intermediario de la llave (fuera del taller), con las notas de instalación del [plan](../superpowers/plans/2026-10-31-hampton-app-hermes.md).
 4. Al final, con Hermes ya instalado y consultando: generar `HERMES_KEY` en el VPS (`openssl rand -hex 32`) y ponerla solo en el entorno Production de Pages. Antes no: una sola llamada válida a la puerta haría aparecer el bloque del borrador en todas las fichas publicadas.
 
-Si se prefiere algo que no espere nada de fuera: la pantalla Automations (AUT-01, AUT-09, AUT-10), que enseñará la última petición de Hermes. El plan de ChatGPT de cada empleado (AUT-12) sigue esperando a OpenAI.
+Si se prefiere algo que no espere nada de fuera: la guía corta del equipo para Telegram (AUT-14), que hace falta antes de dar el bot al equipo. El plan de ChatGPT de cada empleado (AUT-12) sigue esperando a OpenAI.

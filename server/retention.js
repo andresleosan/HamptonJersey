@@ -36,6 +36,11 @@ const CONTACT_EVENTS = `${eventsOf("contact", CONTACTS)} UNION ALL ${eventsOf("a
 // E5.
 const VIEWINGS = `SELECT id FROM viewing_requests WHERE date < date(?2, '-12 months') ORDER BY date, id LIMIT ${RETENTION_CAP}`;
 const VIEWING_EVENTS = eventsOf("viewing", VIEWINGS);
+// AUT-01 (A5): a Hermes job's last activity (a failed one has no decided_at). The pass deletes jobs 90 days after it,
+// closed or never finished; a draft waits for a person.
+export const jobLastActivity = (t = "jobs") => `COALESCE(${t}.decided_at, ${t}.claimed_at, ${t}.created_at)`;
+const JOBS = `SELECT id FROM jobs WHERE status <> 'draft' AND ${jobLastActivity()} < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-90 days')
+  ORDER BY ${jobLastActivity()}, id LIMIT ${RETENTION_CAP}`;
 const deletedEvents = (type, set) => `INSERT INTO events (at, actor, entity_type, entity_id, type)
   SELECT ?1, 'system', '${type}', CAST(id AS TEXT), '${type}.deleted' FROM (${set}) ORDER BY id`;
 
@@ -67,11 +72,12 @@ export async function runRetention(env, ts) {
     q(`UPDATE notifications SET title = 'Deleted viewing request' WHERE event_id IN (${VIEWING_EVENTS})`),
     q(`UPDATE events SET data = NULL WHERE id IN (${VIEWING_EVENTS})`),
     q(`DELETE FROM viewing_requests WHERE id IN (${VIEWINGS})`),
+    env.DB.prepare(`DELETE FROM jobs WHERE id IN (${JOBS})`).bind(ts),
   ]);
-  return { contacts: r[6].meta.changes, viewings: r[10].meta.changes };
+  return { contacts: r[6].meta.changes, viewings: r[10].meta.changes, jobs: r[11].meta.changes };
 }
 
-// E6: retention_run {date, ok, attempts, contacts, viewings}. A claim (a clock tick or a panel poll) wins the pass when
+// E6: retention_run {date, ok, attempts, contacts, viewings, jobs}. A claim (a clock tick or a panel poll) wins the pass when
 // the stored date is earlier than today (attempts starts again at 1), or is today with the pass not done and fewer than
 // 3 attempts: a failed pass is retried twice by later claims, then waits for the next day. One statement, so two claims
 // never both win an attempt.
@@ -88,9 +94,9 @@ export async function claimRetentionDay(env, date) {
 }
 
 // After a pass: done for `date`, with what it deleted.
-export const recordRetentionDay = (env, date, { contacts, viewings }) => env.DB.prepare(`UPDATE app_settings
-  SET value = json_set(value, '$.ok', json('true'), '$.contacts', ?, '$.viewings', ?), updated_at = ?
-  WHERE key = 'retention_run' AND json_extract(value, '$.date') = ?`).bind(contacts, viewings, now(), date).run();
+export const recordRetentionDay = (env, date, { contacts, viewings, jobs }) => env.DB.prepare(`UPDATE app_settings
+  SET value = json_set(value, '$.ok', json('true'), '$.contacts', ?, '$.viewings', ?, '$.jobs', ?), updated_at = ?
+  WHERE key = 'retention_run' AND json_extract(value, '$.date') = ?`).bind(contacts, viewings, jobs, now(), date).run();
 
 // E6: claims the Jersey day of ts (ISO) and, when won, runs and records its pass. The clock (server/jobs.js) claims
 // each day at 00:00 Jersey; the panel's polls claim it too, as its backup. Never rejects: a failed pass is logged and

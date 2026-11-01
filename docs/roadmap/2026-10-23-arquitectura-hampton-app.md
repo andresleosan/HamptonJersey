@@ -447,6 +447,8 @@ Para el equipo de Hampton, la «interfaz fácil de usar» es un tablero para con
 - Registro de cada ejecución con su entrada y su salida, con los datos sensibles ocultos.
 - Un botón general **Pause all outbound** que detiene cualquier envío a clientes y agencias.
 
+> **Actualizado el 1-nov-2026 (AUT-01).** Primera versión en producción, en Settings → Automations, con lo que ya existe: el reloj, el borrado de 12 meses, los borradores de Hermes y los envíos. Enseña la última ejecución de cada uno, el porcentaje de borradores usados en 30 días, los que esperan aprobación y los últimos trabajos de Hermes, y tiene el botón **Pause all outbound**. Si el reloj lleva más de 30 minutos parado o Hermes más de 15 sin pedir trabajo, el botón Settings de la barra lo cuenta. El interruptor, el modo, el coste, las plantillas y los parámetros llegan con la primera automatización que los use. Desde ese día, además, el borrado diario quita los trabajos de Hermes 90 días después de su última actividad (decisión de Luis).
+
 Para construir y probar automatizaciones nuevas, Luis puede seguir usando n8n en el VPS. Lo que pasa a producción para Hampton vive en el código de la app, con pruebas.
 
 Desde el 30-oct-2026 los pasos con IA los hará Hermes (§6.6), que además avisará y responderá por Telegram. La pantalla Automations sigue siendo el sitio donde el equipo controla cada automatización y ve lo que espera aprobación. Lo que propone Hermes se aprueba en el panel, en el propio borrador, y nunca por Telegram: un texto de ficha, por ejemplo, dentro de la ficha con «Use this text» y guardándola (§6.6).

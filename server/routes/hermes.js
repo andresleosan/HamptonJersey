@@ -1,6 +1,7 @@
 import { json, fail, readJson, now } from "../http.js";
 import { toPublic, TO_CONFIRM } from "../listing.js";
 import { openCounts } from "./notifications.js";
+import { pauseOutbound } from "./automations.js";
 
 // AUT-13 (spec 2026-10-31): Hermes's door. Hermes, on the VPS, reaches it through the key's custodian (H4), which adds
 // Authorization: Bearer <HERMES_KEY>. Six fixed operations, public data (C0) and counts only: never who (H6, H7). It
@@ -46,7 +47,7 @@ async function status({ request, env }) {
     env.DB.prepare(`SELECT l.id, l.title FROM listings l WHERE ${TO_CONFIRM} ORDER BY l.id LIMIT 50`).bind(now()),
     env.DB.prepare("SELECT COUNT(*) AS n FROM jobs WHERE status = 'draft'"),
   ])]);
-  const { outbound, ...c } = counts;
+  const { outbound, stalled, ...c } = counts; // stalled is the panel's (AUT-01)
   const by = outbound && (outbound.by === "hermes" ? "hermes" : "team"); // never a team member's email
   return json({ counts: c, drafts_waiting: drafts.n,
     to_confirm_listings: toConfirm.map(l => ({ id: l.id, title: l.title, link: panel(request, `p/${l.id}`) })),
@@ -151,15 +152,9 @@ async function draft({ request, env, params: [id] }) {
   return json({ link: panel(request, `p/${job.listing_id}`) });
 }
 
-// H11: Hermes can only pause. Already paused: who paused and when are kept.
+// H11: Hermes can only pause (server/routes/automations.js).
 async function pause({ env }) {
-  const ts = now();
-  await env.DB.prepare(`INSERT INTO app_settings (key, value, updated_at, updated_by)
-    VALUES ('outbound', json_object('paused', json('true'), 'at', ?1, 'by', 'hermes'), ?1, 'hermes')
-    ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by
-    WHERE json_extract(app_settings.value, '$.paused') IS NOT 1`).bind(ts).run();
-  const { value } = await env.DB.prepare("SELECT value FROM app_settings WHERE key = 'outbound'").first();
-  const { at, by } = JSON.parse(value);
+  const { at, by } = await pauseOutbound(env, "hermes");
   return json({ outbound: { paused: true, at, by: by === "hermes" ? "hermes" : "team" } });
 }
 

@@ -21,6 +21,7 @@ import Insights from "./Insights.jsx";
 import Availability from "./Availability.jsx";
 import Users from "./Users.jsx";
 import Tours from "./Tours.jsx";
+import Automations from "./Automations.jsx";
 import { confirmLeave } from "./unsaved.js";
 import { fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
@@ -37,8 +38,10 @@ function useHash() {
 
 // R17: the setup pages, used rarely, in a menu at the end of the sections. Escape or a click elsewhere closes it; Escape
 // and choosing a page give the focus back to its button, which is marked while one of its pages is open.
-const SETTINGS = [["availability", "Availability"], ["tours", "3D tours"], ["users", "Users"]];
-function SettingsMenu({ current }) {
+// AUT-01: stalled, how many automations have stopped, is counted on the button and on Automations.
+const SETTINGS = [["availability", "Availability"], ["tours", "3D tours"], ["users", "Users"], ["automations", "Automations"]];
+const stoppedCount = n => n > 0 && <span className="count">{n}<span className="sr"> stopped</span></span>;
+function SettingsMenu({ current, stalled }) {
   const [open, setOpen] = useState(false), box = useRef(null), button = useRef(null);
   useEffect(() => {
     if (!open) return;
@@ -51,9 +54,9 @@ function SettingsMenu({ current }) {
   useEffect(() => setOpen(false), [current]); // another page, however it was reached, closes it
   return <div className="settings" ref={box} onBlur={e => { if (e.relatedTarget && !box.current.contains(e.relatedTarget)) setOpen(false); }}>
     <button ref={button} type="button" aria-expanded={open} aria-controls="settings-menu"
-      aria-current={SETTINGS.some(([k]) => k === current) ? "true" : undefined} onClick={() => setOpen(o => !o)}>Settings</button>
+      aria-current={SETTINGS.some(([k]) => k === current) ? "true" : undefined} onClick={() => setOpen(o => !o)}>Settings{stoppedCount(stalled)}</button>
     <div id="settings-menu" className="menu" hidden={!open}>{SETTINGS.map(([k, t]) => <a key={k} href={`#/${k}`}
-      aria-current={current === k ? "page" : undefined} onClick={() => { setOpen(false); button.current.focus(); }}>{t}</a>)}</div>
+      aria-current={current === k ? "page" : undefined} onClick={() => { setOpen(false); button.current.focus(); }}>{t}{k === "automations" && stoppedCount(stalled)}</a>)}</div>
   </div>;
 }
 
@@ -71,7 +74,7 @@ export default function App() {
 
   const [path, query] = hash.replace(/^#\/?/, "").split("?");
   const [section, arg, sub] = path.split("/");
-  const current = section === "p" && arg ? "listings" : ["applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours"].includes(section) ? section : "";
+  const current = section === "p" && arg ? "listings" : ["applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours", "automations"].includes(section) ? section : "";
   // The Inbox counter in the navigation: every 30 s while signed in and the tab is visible. On the Inbox itself,
   // the page's own poll brings the counts (onCounts).
   const loadCounts = useCallback(() => api("/admin/notifications/counts").then(setCounts, () => {}), []);
@@ -110,7 +113,8 @@ export default function App() {
     : section === "rentals" && /^\d+$/.test(arg) ? <RentalDetail key={arg} id={arg} onChange={loadCounts} />
     : section === "rentals" ? <Rentals onChange={loadCounts} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
-    : section === "tours" ? <Tours /> : <Inbox paused={expired} onCounts={setCounts} />;
+    : section === "tours" ? <Tours /> : section === "automations" ? <Automations stalled={counts.stalled} outbound={counts.outbound} onChange={loadCounts} />
+    : <Inbox paused={expired} onCounts={setCounts} />;
   const logout = async () => {
     if (!confirmLeave()) return;
     await api("/session", { method: "DELETE" }).catch(() => {});
@@ -134,7 +138,7 @@ export default function App() {
         <a href="#/rentals" aria-current={current === "rentals" ? "page" : undefined}>Rentals{counts.rentals > 0
           && <span className="count">{counts.rentals}<span className="sr"> to do</span></span>}</a>
         <a href="#/insights" aria-current={current === "insights" ? "page" : undefined}>Insights</a>
-        <SettingsMenu current={current} />
+        <SettingsMenu current={current} stalled={counts.stalled} />
       </nav>
       <a href="/" className="home">View website</a>
       <span className="who">{me}</span>
@@ -160,7 +164,7 @@ function focusHeading() {
   h.focus();
 }
 
-// AUT-13 (H11): Hermes, or later the Automations screen, can pause sending; only a person here resumes it.
+// AUT-13 (H11): Hermes, or someone on the Automations screen, can pause sending; only a person in the panel resumes it.
 function Paused({ outbound, onResumed }) {
   const [busy, setBusy] = useState(false), [err, setErr] = useState(null);
   const resume = async () => {

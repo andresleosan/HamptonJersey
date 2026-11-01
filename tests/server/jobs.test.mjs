@@ -53,9 +53,9 @@ test("each tick leaves its time; the first tick of a Jersey day deletes once", a
   await tick(env, "2026-10-24T23:00:00.000Z");
   assert.deepEqual(setting(env, "clock"), { at: "2026-10-24T23:00:00.000Z" });
   assert.equal(exists(env, gone), false);
-  assert.deepEqual(setting(env, "retention_run"), { date: "2026-10-25", ok: true, attempts: 1, contacts: 1, viewings: 0 });
+  assert.deepEqual(setting(env, "retention_run"), { date: "2026-10-25", ok: true, attempts: 1, contacts: 1, viewings: 0, jobs: 0 });
   // K8: the log says how many, never who.
-  assert.deepEqual(logs.mock.calls.map(c => c.arguments), [["Retention pass", { contacts: 1, viewings: 0 }]]);
+  assert.deepEqual(logs.mock.calls.map(c => c.arguments), [["Retention pass", { contacts: 1, viewings: 0, jobs: 0 }]]);
   // Later ticks of the same Jersey day only move the clock.
   const late = contact(env, "late@example.je");
   await tick(env, "2026-10-24T23:10:00.000Z");
@@ -64,7 +64,7 @@ test("each tick leaves its time; the first tick of a Jersey day deletes once", a
   // 00:00 GMT on the 26th starts the next Jersey day.
   await tick(env, "2026-10-26T00:00:00.000Z");
   assert.equal(exists(env, late), false);
-  assert.deepEqual(setting(env, "retention_run"), { date: "2026-10-26", ok: true, attempts: 1, contacts: 1, viewings: 0 });
+  assert.deepEqual(setting(env, "retention_run"), { date: "2026-10-26", ok: true, attempts: 1, contacts: 1, viewings: 0, jobs: 0 });
 });
 
 test("a failed pass is logged, and the next tick tries again", async t => {
@@ -80,7 +80,7 @@ test("a failed pass is logged, and the next tick tries again", async t => {
   assert.equal(exists(env, gone), true);
   await tick(env, "2026-10-25T09:10:00.000Z");
   assert.equal(exists(env, gone), false);
-  assert.deepEqual(setting(env, "retention_run"), { date: "2026-10-25", ok: true, attempts: 2, contacts: 1, viewings: 0 });
+  assert.deepEqual(setting(env, "retention_run"), { date: "2026-10-25", ok: true, attempts: 2, contacts: 1, viewings: 0, jobs: 0 });
 });
 
 test("the panel's poll stays a backup", async t => {

@@ -447,3 +447,9 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .hermes-draft p{margin:0} .hermes-draft .row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
 .hermes-draft .draft{display:grid;gap:12px;border:1px solid var(--line);border-radius:var(--r-sm);padding:16px}
 .hermes-draft dl{display:grid;gap:12px;margin:0} .hermes-draft dt{font-size:12px;color:var(--stone)} .hermes-draft dd{margin:0;display:grid;gap:4px}
+/* AUT-01 Automations: one card per automation; on phones each recent job is a card with its labels. */
+.automations{display:grid;gap:16px} .automations .head{margin:0}
+.automations .card{display:grid;gap:8px} .automations .card :is(h2,h3,p,ul,.inline){margin:0} .automations h3{font-size:16px;margin-top:8px}
+.automations ul{padding-left:20px} .automations .inline{align-items:center} .automations .btn{min-height:32px}
+@media (max-width:760px){.list.jobs tr{grid-template-columns:1fr auto;border-bottom:1px solid var(--line)}.list.jobs tr:last-child{border-bottom:0}.list.jobs td:first-child{grid-row:auto;overflow-wrap:anywhere}
+  .list.jobs td[data-label]{grid-column:1/-1}.list.jobs td[data-label]::before{content:attr(data-label) ": ";color:var(--stone);font-size:12px}}

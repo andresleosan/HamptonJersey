@@ -1559,18 +1559,20 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Interfaz fácil para controlar cada automatización nueva (pantalla Automations)",
    "origen": "texto",
    "fase": "—",
-   "estado": "pendiente",
+   "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "El reloj (AUT-07) deja la hora de su última vuelta en app_settings (clave clock) y el borrado de 12 meses su última pasada (retention_run): es lo que leerá esta pantalla. Con AUT-13 (en producción desde el 1-nov-2026 con la migración 0018; la puerta sigue cerrada (sin HERMES_KEY) hasta instalar el Hermes de Hampton en el VPS), Hermes deja la hora de cada petición en app_settings (clave hermes) y la pausa de los envíos en la clave outbound.",
-   "falta": "No hay pantalla Automations (ni en la barra ni en Settings): faltan la lista con interruptor, modo, última ejecución, % de éxito, pendientes de aprobar y coste del mes, el registro de ejecuciones con datos sensibles ocultos, las plantillas y parámetros editables y un aviso si el reloj se para (Luis prefirió verlo aquí y no antes, 29-oct). Con Hermes (AUT-13): qué hizo en cada ejecución, cuándo pidió trabajo por última vez y un aviso si deja de pedirlo. Aquí pasarán a ser editables los plazos de ADM-04 (3 meses, 1 en alquiler).",
+   "hecho": "En producción desde el 1-nov-2026, sin migración: la pantalla Automations, en el menú Settings, con una tarjeta por automatización. El reloj (AUT-07): su última vuelta, y «Stopped» si lleva más de 30 minutos sin dar una o no hay ninguna. El borrado de 12 meses: el último día, si salió bien y cuántos aplicantes, visitas y trabajos de Hermes borró (solo números). Los borradores de Hermes (AUT-13): la última vez que pidió trabajo o «Not connected yet», un aviso si deja de pedirlo más de 15 minutos después de haberse conectado, los usados, descartados y fallidos de los últimos 30 días con su porcentaje, los borradores por aprobar con enlace a la ficha y los 20 trabajos más recientes, sin sus textos ni el email de quien los pidió. Los envíos: activos o pausados, con «Pause all outbound» para cualquiera del equipo y «Resume sending». Cuando el reloj o Hermes se paran, el botón Settings de la barra lleva un número en todas las pantallas. Luis eligió el 1-nov esta primera versión, los avisos en Settings, los umbrales de 30 y 15 minutos y el borrado de los trabajos de Hermes a los 90 días, también los que nadie tomó.",
+   "falta": "Llega con la primera automatización que lo necesite: el interruptor de cada una (el reloj y el borrado de 12 meses no se apagan; para Hermes, Luis prefirió no ponerlo el 1-nov), el modo Draft/Approve/Auto (AUT-10), el coste del mes, las plantillas, los parámetros editables (entre ellos los plazos de ADM-04: 3 meses, 1 en alquiler) y el registro de cada ejecución con su entrada y su salida (hoy, solo la lista de trabajos de Hermes). Aquí se verá también la vía que usó cada empleado (AUT-12).",
    "bloqueo": "",
    "evidencia": [
-    "admin/src/App.jsx:39",
-    "admin/src/App.jsx:73",
-    "server/jobs.js:1-15",
-    "server/retention.js:95-104",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:436-445",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6"
+    "admin/src/Automations.jsx",
+    "server/routes/automations.js",
+    "server/routes/notifications.js (openCounts: stalled)",
+    "server/retention.js (JOBS)",
+    "admin/src/App.jsx (SETTINGS)",
+    "tests/server/automations.test.mjs",
+    "docs/superpowers/specs/2026-11-01-hampton-app-automations-design.md",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.2"
    ]
   },
   {
@@ -1677,7 +1679,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "hecho",
    "responsable": "—",
-   "hecho": "El Worker hampton-jobs se despierta cada 10 minutos (cron */10 * * * *, hora UTC) sobre la misma base de datos que la web y sin dirección en internet: no responde a peticiones, solo al reloj de Cloudflare. Cada vuelta deja su hora en app_settings (clave clock) y la primera de cada día de Jersey (00:00) hace el borrado de 12 meses, con sus 3 intentos al día; si el reloj se parara, el panel lo sigue haciendo al abrirse. Sus registros solo dicen cuántos borró. Cada push a main lo despliega con Workers Builds desde la carpeta jobs/ (conectado el 30-oct-2026). En producción desde el 29-oct-2026; el 30-oct hizo a las 00:00 su primer borrado diario.",
+   "hecho": "El Worker hampton-jobs se despierta cada 10 minutos (cron */10 * * * *, hora UTC) sobre la misma base de datos que la web y sin dirección en internet: no responde a peticiones, solo al reloj de Cloudflare. Cada vuelta deja su hora en app_settings (clave clock) y la primera de cada día de Jersey (00:00) hace el borrado de 12 meses (desde el 1-nov-2026, también los trabajos de Hermes de más de 90 días), con sus 3 intentos al día; si el reloj se parara, el panel lo sigue haciendo al abrirse. Sus registros solo dicen cuántos borró. Cada push a main lo despliega con Workers Builds desde la carpeta jobs/ (conectado el 30-oct-2026). En producción desde el 29-oct-2026; el 30-oct hizo a las 00:00 su primer borrado diario. Desde el 1-nov-2026 la pantalla Automations (AUT-01) enseña su última vuelta y avisa si lleva más de 30 minutos parado.",
    "falta": "",
    "bloqueo": "",
    "evidencia": [
@@ -1752,8 +1754,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "—",
    "estado": "bloqueado",
    "responsable": "Luis",
-   "hecho": "Hoy no sale ningún mensaje automático: el panel solo abre Call, WhatsApp y Email para que escriba una persona.",
-   "falta": "Clave de idempotencia por envío (plantilla + entidad + versión), topes diarios por canal y por agencia, horas de silencio sin WhatsApp ni SMS de 21:00 a 08:00 de Jersey, interruptor por automatización y el botón general Pause all outbound. Se construyen con el primer envío automático. Con Hermes, la pausa también se podrá pedir por Telegram (AUT-14); reanudar, solo en el panel. Mientras dure, la app no envía nada.",
+   "hecho": "Hoy no sale ningún mensaje automático: el panel solo abre Call, WhatsApp y Email para que escriba una persona. Desde el 1-nov-2026 el botón general Pause all outbound está en la pantalla Automations (AUT-01) y lo puede pulsar cualquiera del equipo; Hermes también puede pausar (AUT-13), y reanudar solo se hace en el panel.",
+   "falta": "Clave de idempotencia por envío (plantilla + entidad + versión), topes diarios por canal y por agencia, horas de silencio sin WhatsApp ni SMS de 21:00 a 08:00 de Jersey, e interruptor por automatización. Se construyen con el primer envío automático, que además mira la pausa antes de salir. Con Hermes, la pausa también se podrá pedir por Telegram (AUT-14); reanudar, solo en el panel. Mientras dure, la app no envía nada.",
    "bloqueo": "Servicio de correo · Trámite Meta",
    "evidencia": [
     "admin/src/ApplicantDetail.jsx:279-281",
@@ -1786,8 +1788,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "—",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Hermes Agent v0.22.5 (Nous Research, código abierto) corre desde el 29-oct-2026 en el VPS de Optimyze. Es el Hermes de desarrollo de Optimyze. Está en un contenedor aislado, sin permisos de administrador ni Docker, solo sale a internet hacia una lista de dominios, su panel solo se abre por el tailnet y usa el plan de ChatGPT de Luis. El 30-oct Luis decidió que Hermes será el cerebro de IA de las automatizaciones (P-18) y aprobó el diseño del Hermes propio de Hampton (preguntas 15 y 16, §6.6): en el mismo VPS y en su propia jaula, sin herramientas de terminal ni de código, sin entrar nunca en la base de datos, con salida solo al modelo, Telegram y la app, y con el plan de ChatGPT de Luis solo para datos públicos y contadores. La parte de la app está en producción desde el 1-nov-2026 con la migración 0018; la puerta sigue cerrada (sin HERMES_KEY) hasta instalar el Hermes de Hampton en el VPS (preparada el 31-oct en el taller): la puerta /api/hermes con su propia llave (secreto HERMES_KEY; sin él, cerrada) y seis operaciones fijas. Son: el estado con los contadores y el resumen de las 8:00 ya escrito (con las fichas To confirm); los avisos «New applicant» y «New viewing request for …» con un enlace al panel y sin datos de la persona; pedir y tomar trabajo; devolver un borrador; y pausar los envíos. También la tabla jobs (migración 0018: un trabajo abierto por ficha, reintento a los 10 minutos y fallo al tercer intento), la hora de la última petición de Hermes (app_settings, clave hermes), el borrador de textos en el editor de la ficha (PUB-13) y la barra de pausa en todas las pantallas del panel, con «Resume sending», que solo existe en el panel. Además, el intermediario que guarda la llave fuera del contenedor de Hermes (hermes/key-proxy.mjs, decisión de Luis del 31-oct). Pruebas: la llave no abre nada más, la cookie del panel no abre la puerta y ninguna respuesta lleva nombres, emails, teléfonos ni números de personas.",
-   "falta": "Instalar en el VPS (necesita Docker y las llaves del VPS y de Cloudflare, que el taller no tiene; notas de instalación en el plan del 31-oct): el Hermes de Hampton en su jaula (sin terminal ni código, memoria y skills propias apagadas, conversaciones borradas a los 30 días, salida solo al modelo, a Telegram y al intermediario) y el intermediario, con la llave como secreto de Docker. En Hermes, programar los avisos (news, cada minuto o dos), el resumen de las 8:00 de Jersey (status) y la toma de trabajo (jobs/next). Antes de conectar el modelo y el bot, PRE-32. La pantalla Automations (AUT-01) enseñará la última petición y avisará si Hermes deja de pedir trabajo. Cuando el dominio esté en Cloudflare, un límite de peticiones a /api/hermes en el WAF. Falta también borrar los trabajos cerrados pasado un tiempo (un paso del reloj, plazo a decidir con Luis), y todo envío futuro a clientes o agencias debe mirar la pausa antes de salir. Al final, con Hermes ya instalado y consultando: generar HERMES_KEY en el VPS y ponerla solo en el entorno Production de Pages. Antes no, ni ninguna llamada a la puerta en producción: una sola llamada válida hace aparecer el bloque del borrador en todas las fichas publicadas.",
+   "hecho": "Hermes Agent v0.22.5 (Nous Research, código abierto) corre desde el 29-oct-2026 en el VPS de Optimyze. Es el Hermes de desarrollo de Optimyze. Está en un contenedor aislado, sin permisos de administrador ni Docker, solo sale a internet hacia una lista de dominios, su panel solo se abre por el tailnet y usa el plan de ChatGPT de Luis. El 30-oct Luis decidió que Hermes será el cerebro de IA de las automatizaciones (P-18) y aprobó el diseño del Hermes propio de Hampton (preguntas 15 y 16, §6.6): en el mismo VPS y en su propia jaula, sin herramientas de terminal ni de código, sin entrar nunca en la base de datos, con salida solo al modelo, Telegram y la app, y con el plan de ChatGPT de Luis solo para datos públicos y contadores. La parte de la app está en producción desde el 1-nov-2026 con la migración 0018; la puerta sigue cerrada (sin HERMES_KEY) hasta instalar el Hermes de Hampton en el VPS (preparada el 31-oct en el taller): la puerta /api/hermes con su propia llave (secreto HERMES_KEY; sin él, cerrada) y seis operaciones fijas. Son: el estado con los contadores y el resumen de las 8:00 ya escrito (con las fichas To confirm); los avisos «New applicant» y «New viewing request for …» con un enlace al panel y sin datos de la persona; pedir y tomar trabajo; devolver un borrador; y pausar los envíos. También la tabla jobs (migración 0018: un trabajo abierto por ficha, reintento a los 10 minutos y fallo al tercer intento), la hora de la última petición de Hermes (app_settings, clave hermes), el borrador de textos en el editor de la ficha (PUB-13) y la barra de pausa en todas las pantallas del panel, con «Resume sending», que solo existe en el panel. Además, el intermediario que guarda la llave fuera del contenedor de Hermes (hermes/key-proxy.mjs, decisión de Luis del 31-oct). Pruebas: la llave no abre nada más, la cookie del panel no abre la puerta y ninguna respuesta lleva nombres, emails, teléfonos ni números de personas. Desde el 1-nov-2026 la pantalla Automations (AUT-01) enseña la última petición de Hermes y avisa si deja de pedir trabajo, y el borrado diario quita los trabajos 90 días después de su última actividad: los cerrados y los que nadie tomó; un borrador espera siempre a una persona (decisión de Luis del 1-nov).",
+   "falta": "Instalar en el VPS (necesita Docker y las llaves del VPS y de Cloudflare, que el taller no tiene; notas de instalación en el plan del 31-oct): el Hermes de Hampton en su jaula (sin terminal ni código, memoria y skills propias apagadas, conversaciones borradas a los 30 días, salida solo al modelo, a Telegram y al intermediario) y el intermediario, con la llave como secreto de Docker. En Hermes, programar los avisos (news, cada minuto o dos), el resumen de las 8:00 de Jersey (status) y la toma de trabajo (jobs/next). Antes de conectar el modelo y el bot, PRE-32. Cuando el dominio esté en Cloudflare, un límite de peticiones a /api/hermes en el WAF. Todo envío futuro a clientes o agencias debe mirar la pausa antes de salir. Al final, con Hermes ya instalado y consultando: generar HERMES_KEY en el VPS y ponerla solo en el entorno Production de Pages. Antes no, ni ninguna llamada a la puerta en producción: una sola llamada válida hace aparecer el bloque del borrador en todas las fichas publicadas.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
@@ -1799,7 +1801,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "hermes/key-proxy.mjs",
     "tests/server/hermes.test.mjs",
     "tests/server/key-proxy.test.mjs",
-    "docs/superpowers/specs/2026-10-31-hampton-app-hermes-design.md"
+    "docs/superpowers/specs/2026-10-31-hampton-app-hermes-design.md",
+    "server/retention.js (JOBS)"
    ]
   },
   {

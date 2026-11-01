@@ -737,6 +737,7 @@ async function admin(browser) {
   await retention(page, phone);
   await ownerReport(page, phone, noSideScroll);
   await jersey(browser, page);
+  await automations(page, phone, noSideScroll);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -744,6 +745,34 @@ async function admin(browser) {
   await shot(page, "admin-users");
   assert.deepEqual(page.errors, []);
   await ctx.close();
+}
+
+// AUT-01 (spec 2026-11-01). `wrangler pages dev` runs no clock, so the clock shows stopped and Settings counts 1. One
+// finished Hermes job fills the recent table; the pause asked here shows the bar on the page and goes with Resume sending.
+async function automations(page, phone, noSideScroll) {
+  d1(`INSERT INTO jobs (kind, listing_id, status, attempts, requested_by, created_at, claimed_at, drafted_at, decided_at, decided_by)
+    SELECT 'listing_text', id, 'used', 1, 'luismadef45@gmail.com', '2026-10-31T09:00:00.000Z', '2026-10-31T09:01:00.000Z',
+    '2026-10-31T09:02:00.000Z', '2026-10-31T10:00:00.000Z', 'luismadef45@gmail.com' FROM listings WHERE id = 'HE-R001'`);
+  await page.goto(BASE + "admin/#/automations");
+  await page.waitForSelector("#t-auto");
+  for (const name of ["Clock", "12-month clean-up", "Hermes text drafts", "Sending to clients and agencies"])
+    await page.getByRole("heading", {name, exact: true}).waitFor();
+  await page.getByText("Stopped: no run recorded.").waitFor();
+  await page.waitForFunction(() => document.querySelector("header.bar .settings > button .count")?.textContent === "1 stopped");
+  await page.getByText("Not connected yet").waitFor();
+  assert.match(await page.textContent("table.jobs tbody"), /HE-R001[\s\S]*Used[\s\S]*Team/);
+  page.once("dialog", d => d.accept());
+  await page.getByRole("button", {name: "Pause all outbound"}).click();
+  await page.locator(".warn.paused").waitFor();
+  assert.match(await page.textContent(".warn.paused"), /asked by luismadef45@gmail\.com/);
+  await shot(page, "admin-automations");
+  page.once("dialog", d => d.accept());
+  await page.locator(".automations").getByRole("button", {name: "Resume sending"}).click();
+  await page.locator(".warn.paused").waitFor({state: "detached"});
+  await page.getByRole("status").filter({hasText: "Sending resumed."}).waitFor();
+  assert.equal(await page.evaluate(() => document.activeElement.textContent), "Sending resumed.", "the focus goes to the message");
+  await noSideScroll(BASE + "admin/#/automations", "table.jobs");
+  await shot(phone, "admin-automations-mobile");
 }
 
 // Spec 2026-10-25 (Jersey fields), last so nothing above changes. Recalculate all applies the housing check: the seed's

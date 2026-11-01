@@ -5,6 +5,7 @@ import { refreshRentalsCount } from "./rent.js";
 import { jerseyToday } from "../viewings.js";
 import { retentionPass, EXPIRING } from "../retention.js";
 import { TO_CONFIRM } from "../listing.js";
+import { stoppedFlags } from "./automations.js";
 
 const BOXES = {
   action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id",
@@ -34,10 +35,11 @@ function link({ category, entity_type, entity_id, search_id }) {
 }
 
 // sales (V10), rentals (R16, cached: P16), expiring contacts (E8) and listings to confirm (ADM-04) are their screens'
-// own counts, not part of action. outbound: {at, by} while sending is paused (AUT-13, H11), else null.
+// own counts, not part of action. outbound: {at, by} while sending is paused (AUT-13, H11), else null. stalled: how many
+// automations are stopped, the clock or Hermes (AUT-01, A3).
 export async function openCounts(env) {
   const [{ results }, { results: [sales] }, , , { results: [rentals] }, { results: [expiring] }, { results: [toConfirm] },
-    { results: [outbound] }] = await env.DB.batch([env.DB.prepare(
+    { results: [outbound] }, { results: seen }] = await env.DB.batch([env.DB.prepare(
     "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category"),
   salesCount(env), ...refreshRentalsCount(env),
   env.DB.prepare("SELECT json_extract(value, '$.n') AS n FROM app_settings WHERE key = 'rentals_count'"),
@@ -47,11 +49,13 @@ export async function openCounts(env) {
   // Reads the listings_live index only (migration 0017).
   env.DB.prepare(`SELECT COUNT(*) AS n FROM listings l WHERE ${TO_CONFIRM}`).bind(now()),
   env.DB.prepare(`SELECT json_extract(value, '$.at') AS at, json_extract(value, '$.by') AS by FROM app_settings
-    WHERE key = 'outbound' AND json_extract(value, '$.paused') = 1`)]);
+    WHERE key = 'outbound' AND json_extract(value, '$.paused') = 1`),
+  env.DB.prepare("SELECT key, json_extract(value, '$.at') AS at FROM app_settings WHERE key IN ('clock', 'hermes')")]);
   const by = Object.fromEntries(CATEGORIES.map(c => [c, results.find(r => r.category === c)?.n ?? 0]));
+  const at = Object.fromEntries(seen.map(r => [r.key, r.at])), stopped = stoppedFlags(at.clock, at.hermes, Date.now());
   return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by, sales: sales.n, rentals: rentals.n,
     expiring: expiring.n, to_confirm: toConfirm.n,
-    outbound: outbound ?? null };
+    outbound: outbound ?? null, stalled: stopped.clock + stopped.hermes };
 }
 
 // E6: the panel polls the counts every 30 s, and the Inbox its list; each poll claims the day's retention pass in case

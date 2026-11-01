@@ -58,7 +58,7 @@ test("deletes a contact inactive for 12 months with its searches, matches and of
   const a = applicant(env, c), a2 = applicant(env, c, { operation: "rent" });
   const m = match(env, a), o = offer(env, a);
   const n = notice(env, "applicant", a), nc = notice(env, "contact", c, { title: "Jane Le Brocq registered again" });
-  assert.deepEqual(await runRetention(env, TS), { contacts: 1, viewings: 0 });
+  assert.deepEqual(await runRetention(env, TS), { contacts: 1, viewings: 0, jobs: 0 });
 
   assert.deepEqual([exists(env, "contacts", c), exists(env, "applicants", a), exists(env, "applicants", a2),
     exists(env, "matches", m), exists(env, "offers", o)], [false, false, false, false, false]);
@@ -81,7 +81,7 @@ test("keeps a contact active 11 months ago", async () => {
   // Kept until today: it goes tomorrow, not today, even at 00:00 of that day 12 months ago.
   const edge = contact(env, "2025-10-25T00:00:00.000Z", { email: "edge@example.je", phone: null });
   const a = applicant(env, recent), n = notice(env, "applicant", a);
-  assert.deepEqual(await runRetention(env, TS), { contacts: 0, viewings: 0 });
+  assert.deepEqual(await runRetention(env, TS), { contacts: 0, viewings: 0, jobs: 0 });
   assert.deepEqual([exists(env, "contacts", recent), exists(env, "contacts", edge), exists(env, "applicants", a)], [true, true, true]);
   assert.deepEqual(noticeRow(env, n), { title: "New applicant: Jane Le Brocq · To Buy", resolved_at: null, resolved_by: null });
   assert.equal(eventsOf(env, "applicant", a)[0].data, JSON.stringify({ name: "Jane Le Brocq" }));
@@ -91,16 +91,16 @@ test("a contact goes on the Jersey day after its kept-until day", async () => {
   const env = world();
   const gone = contact(env, "2025-10-24T23:59:59.999Z");
   const kept = contact(env, "2025-10-25T00:00:00.000Z", { email: "kept@example.je", phone: null });
-  assert.deepEqual(await runRetention(env, TS), { contacts: 1, viewings: 0 });
+  assert.deepEqual(await runRetention(env, TS), { contacts: 1, viewings: 0, jobs: 0 });
   assert.deepEqual([exists(env, "contacts", gone), exists(env, "contacts", kept)], [false, true]);
   // 23:30 UTC on the 24th is the 25th in Jersey: a contact kept until the 24th goes then.
   const env2 = world(), late = contact(env2, "2025-10-24T12:00:00.000Z");
-  assert.deepEqual(await runRetention(env2, "2026-10-24T23:30:00.000Z"), { contacts: 1, viewings: 0 });
+  assert.deepEqual(await runRetention(env2, "2026-10-24T23:30:00.000Z"), { contacts: 1, viewings: 0, jobs: 0 });
   assert.equal(exists(env2, "contacts", late), false);
   // Active at 00:30 Jersey (BST) on the 25th, stored as the 24th in UTC: never deleted before 12 full months.
   const env3 = world(), early = contact(env3, "2025-10-24T23:30:00.000Z");
-  assert.deepEqual(await runRetention(env3, "2026-10-24T23:10:00.000Z"), { contacts: 0, viewings: 0 });
-  assert.deepEqual(await runRetention(env3, "2026-10-24T23:40:00.000Z"), { contacts: 1, viewings: 0 });
+  assert.deepEqual(await runRetention(env3, "2026-10-24T23:10:00.000Z"), { contacts: 0, viewings: 0, jobs: 0 });
+  assert.deepEqual(await runRetention(env3, "2026-10-24T23:40:00.000Z"), { contacts: 1, viewings: 0, jobs: 0 });
   assert.equal(exists(env3, "contacts", early), false);
 });
 
@@ -114,7 +114,7 @@ test("keeps a buyer with an open offer on any search, and not one whose offers a
   });
   const closed = contact(env, "2024-01-01T00:00:00.000Z");
   for (const status of ["rejected", "withdrawn"]) offer(env, applicant(env, closed), status);
-  assert.deepEqual(await runRetention(env, TS), { contacts: 1, viewings: 0 });
+  assert.deepEqual(await runRetention(env, TS), { contacts: 1, viewings: 0, jobs: 0 });
   assert.deepEqual([...open, closed].map(c => exists(env, "contacts", c)), [true, true, false]);
   assert.equal(count(env, "offers"), 2);
 });
@@ -129,7 +129,7 @@ test("keeps a contact with a sale in any status", async () => {
     return { c, plain, sold, n: notice(env, "applicant", plain) };
   });
   const gone = contact(env, "2024-01-01T00:00:00.000Z");
-  assert.deepEqual(await runRetention(env, TS), { contacts: 1, viewings: 0 });
+  assert.deepEqual(await runRetention(env, TS), { contacts: 1, viewings: 0, jobs: 0 });
   assert.equal(exists(env, "contacts", gone), false);
   for (const k of kept) {
     assert.deepEqual([exists(env, "contacts", k.c), exists(env, "applicants", k.plain), exists(env, "applicants", k.sold)],
@@ -145,7 +145,7 @@ test("deletes viewing requests whose date is over 12 months old", async () => {
   const old = viewing(env, "2025-10-24"), edge = viewing(env, "2025-10-25"), recent = viewing(env, "2025-10-26");
   const n = notice(env, "viewing", old, { category: "viewing", title: "Viewing request: Tom Vibert" });
   const kept = notice(env, "viewing", recent, { category: "viewing", title: "Viewing request: Tom Vibert" });
-  assert.deepEqual(await runRetention(env, TS), { contacts: 0, viewings: 1 });
+  assert.deepEqual(await runRetention(env, TS), { contacts: 0, viewings: 1, jobs: 0 });
   assert.deepEqual([exists(env, "viewing_requests", old), exists(env, "viewing_requests", edge),
     exists(env, "viewing_requests", recent)], [false, true, true]);
   assert.deepEqual(noticeRow(env, n), { title: "Deleted viewing request", resolved_at: TS, resolved_by: "system" });
@@ -164,7 +164,7 @@ test("stops at 500 per pass, oldest first", async () => {
     return c;
   });
   for (let i = 0; i < 501; i++) viewing(env, i < 250 ? "2025-01-02" : "2025-01-01");
-  assert.deepEqual(await runRetention(env, TS), { contacts: 500, viewings: 500 });
+  assert.deepEqual(await runRetention(env, TS), { contacts: 500, viewings: 500, jobs: 0 });
   assert.deepEqual(rows(env, "SELECT id FROM contacts").map(r => r.id), [ids[500]]);
   // Every statement acted on the same 500: one search left, and one deletion event per contact and per search.
   assert.deepEqual(rows(env, "SELECT contact_id FROM applicants").map(r => r.contact_id), [ids[500]]);
@@ -172,7 +172,7 @@ test("stops at 500 per pass, oldest first", async () => {
     [["applicant.deleted", 500], ["contact.deleted", 500]]);
   // Viewings oldest first too: the one left is from the later date.
   assert.deepEqual(rows(env, "SELECT date FROM viewing_requests").map(r => r.date), ["2025-01-02"]);
-  assert.deepEqual(await runRetention(env, TS), { contacts: 1, viewings: 1 });
+  assert.deepEqual(await runRetention(env, TS), { contacts: 1, viewings: 1, jobs: 0 });
 });
 
 const run = env => JSON.parse(row(env, "SELECT value FROM app_settings WHERE key = 'retention_run'").value);
@@ -190,8 +190,8 @@ test("claims the day until its pass is done, 3 attempts at most", async () => {
   assert.equal(await claimRetentionDay(env, "2026-10-24"), false);
   // A new day starts again at 1; once its pass is recorded, no other poll claims it.
   assert.equal(await claimRetentionDay(env, "2026-10-26"), true);
-  await recordRetentionDay(env, "2026-10-26", { contacts: 2, viewings: 0 });
-  assert.deepEqual(run(env), { date: "2026-10-26", ok: true, attempts: 1, contacts: 2, viewings: 0 });
+  await recordRetentionDay(env, "2026-10-26", { contacts: 2, viewings: 0, jobs: 0 });
+  assert.deepEqual(run(env), { date: "2026-10-26", ok: true, attempts: 1, contacts: 2, viewings: 0, jobs: 0 });
   assert.equal(await claimRetentionDay(env, "2026-10-26"), false);
   assert.equal(await claimRetentionDay(env, "2026-10-27"), true);
   assert.deepEqual(run(env), { date: "2026-10-27", ok: false, attempts: 1 });
@@ -206,7 +206,7 @@ test("the counts request runs the pass once a day", async t => {
   assert.equal(r.status, 200);
   assert.equal(typeof r.data.action, "number");
   assert.equal(exists(env, "contacts", first), false);
-  assert.deepEqual(run(env), { date: "2026-10-25", ok: true, attempts: 1, contacts: 1, viewings: 0 });
+  assert.deepEqual(run(env), { date: "2026-10-25", ok: true, attempts: 1, contacts: 1, viewings: 0, jobs: 0 });
   // Another poll the same Jersey day deletes nothing; the next day's first one does.
   const second = contact(env, "2025-10-01T10:00:00.000Z", { email: "late@example.je", phone: null });
   assert.equal((await call(env, "GET", "/admin/notifications/counts", { cookie })).status, 200);
@@ -221,7 +221,7 @@ test("the Inbox list runs the pass too", async t => {
   const env = world(), gone = contact(env, "2025-10-01T10:00:00.000Z");
   assert.equal((await call(env, "GET", "/admin/notifications?box=action", { cookie: await adminCookie(ADMIN) })).status, 200);
   assert.equal(exists(env, "contacts", gone), false);
-  assert.deepEqual(run(env), { date: "2026-10-25", ok: true, attempts: 1, contacts: 1, viewings: 0 });
+  assert.deepEqual(run(env), { date: "2026-10-25", ok: true, attempts: 1, contacts: 1, viewings: 0, jobs: 0 });
 });
 
 test("a failed pass is logged and retried by a later poll the same day", async t => {
@@ -238,7 +238,7 @@ test("a failed pass is logged and retried by a later poll the same day", async t
   assert.deepEqual(run(env), { date: "2026-10-25", ok: false, attempts: 1 });
   assert.equal((await call(env, "GET", "/admin/notifications/counts", { cookie })).status, 200);
   assert.equal(exists(env, "contacts", gone), false);
-  assert.deepEqual(run(env), { date: "2026-10-25", ok: true, attempts: 2, contacts: 1, viewings: 0 });
+  assert.deepEqual(run(env), { date: "2026-10-25", ok: true, attempts: 2, contacts: 1, viewings: 0, jobs: 0 });
 });
 
 test("a viewing request restarts the matching contact's clock", async t => {
