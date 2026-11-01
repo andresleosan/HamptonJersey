@@ -433,7 +433,7 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 @page owner-report{size:A4;margin:16mm}
 /* Printing (the statement): only the page's content, black on white, without the bar, buttons or form controls. */
 @media print{*{color:#000!important;background:transparent!important;box-shadow:none!important}
-  .bar,.btn,button,form,input,select,textarea{display:none!important}
+  .bar,.btn,button,form,input,select,textarea,.warn.paused{display:none!important}
   .page{max-width:none;padding:0} .card{border:0;padding:0} .lines tr{border-color:#999}
   /* The owner report: only its card, unfaded, blocks kept whole, the chart's bars in black. */
   .owner-report>.head,.owner-report .seg,.owner-report .screen-note{display:none!important}

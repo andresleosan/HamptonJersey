@@ -141,7 +141,7 @@ export default function App() {
       <button type="button" className="btn ghost sm" title={`Signed in as ${me}`} onClick={logout}>Sign out</button>
     </header>
     {/* Every link in the page, like those in the header, asks first when there are unsaved changes. */}
-    <main className="page" inert={expired} tabIndex={-1} onClickCapture={e => { if (e.target.closest("a[href^='#']")) confirmLeave(e); }}>
+    <main className="page" inert={expired} onClickCapture={e => { if (e.target.closest("a[href^='#']")) confirmLeave(e); }}>
       {counts.outbound && <Paused outbound={counts.outbound} onResumed={loadCounts} />}
       {page}</main>
     {/* Session expired mid-task: sign in again on top of the page so nothing typed is lost. */}
@@ -151,14 +151,22 @@ export default function App() {
   </>;
 }
 
+// The bar and its button go away after Resume sending: the focus goes to the page's heading, focusable only then if it
+// is not already.
+function focusHeading() {
+  const h = document.querySelector("main h1, main h2");
+  if (!h) return;
+  if (!h.hasAttribute("tabindex")) h.setAttribute("tabindex", "-1");
+  h.focus();
+}
+
 // AUT-13 (H11): Hermes, or later the Automations screen, can pause sending; only a person here resumes it.
 function Paused({ outbound, onResumed }) {
   const [busy, setBusy] = useState(false), [err, setErr] = useState(null);
   const resume = async () => {
     if (!confirm("Resume sending to clients and agencies?")) return;
     setBusy(true); setErr(null);
-    // The bar and its button go away: the focus goes to the page.
-    try { await api("/admin/outbound/resume", { method: "POST" }); await onResumed(); document.querySelector("main")?.focus(); }
+    try { await api("/admin/outbound/resume", { method: "POST" }); await onResumed(); focusHeading(); }
     catch (e) { setErr(e.message); }
     finally { setBusy(false); }
   };

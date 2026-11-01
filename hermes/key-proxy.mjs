@@ -22,10 +22,12 @@ export function makeServer({ origin, key, fetchFn = fetch }) {
     if (Number(req.headers["content-length"]) > MAX_BODY) return tooBig();
     const chunks = [];
     let size = 0;
-    for await (const c of req) {
-      if ((size += c.length) > MAX_BODY) return tooBig();
-      chunks.push(c);
-    }
+    try {
+      for await (const c of req) {
+        if ((size += c.length) > MAX_BODY) return tooBig();
+        chunks.push(c);
+      }
+    } catch { return res.destroy(); } // the caller hung up mid-body
     try {
       const r = await fetchFn(origin + req.url, {
         method: req.method, redirect: "manual", signal: AbortSignal.timeout(15000),
@@ -41,10 +43,16 @@ export function makeServer({ origin, key, fetchFn = fetch }) {
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const { APP_ORIGIN: origin, HERMES_KEY_FILE: file, LISTEN_HOST: host, LISTEN_PORT: port = "8787" } = process.env;
   const key = file ? readFileSync(file, "utf8").trim() : "";
-  // Only the private network shared with Hermes: never every interface.
-  if (!/^https:\/\/[^/]+$/.test(origin ?? "") || key.length < 32 || !host || ["0.0.0.0", "::", "[::]"].includes(host)) {
-    console.error("Set APP_ORIGIN (https://host), HERMES_KEY_FILE (a key of 32+ characters) and LISTEN_HOST (a private address, not 0.0.0.0 or ::)");
+  if (!/^https:\/\/[^/]+$/.test(origin ?? "") || key.length < 32 || !host) {
+    console.error("Set APP_ORIGIN (https://host), HERMES_KEY_FILE (a key of 32+ characters) and LISTEN_HOST (a private address)");
     process.exit(1);
   }
-  makeServer({ origin, key }).listen(Number(port), host, () => console.log(`Forwarding /api/hermes/ to ${origin}`));
+  const stop = why => { console.error(`LISTEN_HOST ${host}: ${why}`); process.exit(1); };
+  const server = makeServer({ origin, key }).on("error", e => stop(e.message));
+  server.listen(Number(port), host, () => {
+    // Only the private network shared with Hermes: whatever LISTEN_HOST says ("0", "::0", a name…), it exits if it
+    // ended up listening on every interface.
+    if (["0.0.0.0", "::", "::ffff:0.0.0.0"].includes(server.address().address)) stop("listens on every interface; use the private address");
+    console.log(`Forwarding /api/hermes/ to ${origin}`);
+  });
 }

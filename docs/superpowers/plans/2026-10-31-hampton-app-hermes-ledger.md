@@ -1,6 +1,6 @@
 # SDD ledger — plan: docs/superpowers/plans/2026-10-31-hampton-app-hermes.md
 Spec: docs/superpowers/specs/2026-10-31-hampton-app-hermes-design.md
-Executor: inline (executing-plans) in Hermes's taller, on the local branch `hermes/aut-13` from `main` at f823d17, by Luis's encargo of 31-oct-2026 (no push, no production, no e2e: Turnstile needs a connection the taller lacks).
+Executor: inline (executing-plans) in Hermes's taller, on the local branch `hermes/aut-13` from `main` at f823d17, by Luis's encargo of 31-oct-2026 (no push, no production). In the taller the e2e stops at Turnstile, which needs a connection the taller lacks; the full e2e passed on the VPS on c5cf12d (Luis's review of 1-nov-2026).
 
 ## Pre-flight scan
 | Rows | Finding |
@@ -18,7 +18,7 @@ Task 1: complete (tests: npm test → 460 + 14 OK)
 Task 3: Ruling: an oversized body is read to the end and dropped, not `req.destroy()`ed — destroying the socket before the 413 left the client with "other side closed" — cost if wrong: a 160 KB+ body is read once on a private network.
 Task 3: complete (tests: 2/2)
 Task 2: Ruling: the draft block is hidden until Hermes has called once (`app_settings.hermes`), so merging this before Hermes is installed changes nothing visible in the panel — cost if wrong: none.
-Task 2: Ruling: local walkthrough with playwright-core and the taller's Chromium (Playwright MCP not used), against `wrangler pages dev` on the e2e fixture database with a throwaway key passed as a binding (never written to `.dev.vars`), at 1280x900 and 390x844: ask → waiting → draft → Use this text → form filled and Unsaved changes; pause from the door → bar on Listings → Resume sending. The door's status and news were checked against all 22 names, emails and phones of the fixture's contacts and viewing requests. Screenshots in /home/taller/encargos/capturas/aut13 (outside the repo) — cost if wrong: none.
+Task 2: Ruling: local walkthrough with playwright-core and the taller's Chromium (Playwright MCP not used), against `wrangler pages dev` on the e2e fixture database with a throwaway key passed as a binding (never written to `.dev.vars`), at 1280x900 and 390x844: ask → waiting → draft → Use this text → form filled and Unsaved changes; pause from the door → bar on Listings → Resume sending. The door's status and news were checked against all 22 names, emails and phones of the fixture's contacts and viewing requests. Screenshots kept outside the repo — cost if wrong: none.
 Task 2: complete (tests: npm test → OK; npm run build → OK)
 
 Final review: two independent reviewers (A: bugs, security and privacy; B: design against DESIGN.md and the spec, and code that is more than needed). Neither found anything serious. Everything they raised was fixed, except one item:
@@ -37,3 +37,16 @@ Final: suite 464/464 + 14, build OK, check:release OK, walkthrough OK at 1280 an
 VPS security review (Luis, 31-oct): fixed — a viewing request's notice used the title of an unpublished or archived listing, or the old `listing_title_snapshot`; now only `l.title` of a listing joined as published and not archived, else «New viewing request». Test added (RED → GREEN).
 VPS security review: fixed — the custodian refuses `LISTEN_HOST` 0.0.0.0, :: and [::]; past 160 KB (declared in content-length or read) it answers 413 with `connection: close` and stops reading. Tests added (RED: the old code hung reading → GREEN).
 VPS security review: noted in the plan («Installation notes»): a network only for Hermes and the custodian, the key from `openssl rand -hex 32` and only in Pages' Production environment, clearing old jobs pending, every future send reads the pause.
+VPS review of c5cf12d (Luis, 1-nov-2026; full e2e passed there). Fixed in one commit:
+- (A1) `tabIndex={-1}` on `<main>` let a click on empty space focus the whole page (next Tab jumped to the top, keys drew the focus ring round the page) — removed; after Resume sending the focus goes to the page's h1 or h2, made focusable only then if it is not.
+- (B2) the publish steps no longer carry `HERMES_KEY`: it is generated on the VPS at install time and goes only in Production. The documents keep the real state (branch not on main, 0018 not applied remotely); the review's «in production since 1-nov» wording waits for the authorised publication.
+- (B3) ESTADO no longer says «si Luis lo confirma» for To confirm in the 8:00 summary (H2).
+- (B4) plan Installation notes: no key and no call to the door before Hermes is installed; the custodian's second network out to APP_ORIGIN, its fixed address, restart policy; the review-focus line said 404 where the code and its test give 401.
+- (B5) spec H9 said a job whose listing left the website can be cancelled by the team; the block only shows on published listings, so it waits until the listing is back. Known limit: such a job cannot be cancelled from the panel meanwhile.
+- (B6) architecture §2, §3 and §6.6 aligned with what 0018 builds (a Hermes-only, listing-only `jobs`), the summary computed in GET /status, the spec not fixing Approve/Auto, published listings only.
+- (B7) this ledger names no local path for the screenshots.
+- (C8) the custodian checks the address it actually bound: «0», «::0», «0:0:0:0:0:0:0:0» or a name resolving to every interface make it exit, saying LISTEN_HOST. Test RED (still listening) → GREEN.
+- (C9) a caller hanging up mid-body crashed the custodian (ECONNRESET outside the try) — the read is caught and the response destroyed. Test RED (ECONNRESET) → GREEN.
+- (C10) custodian tests: the declared-too-big case uses http.request with flushHeaders and requires 413 with connection close; the hanging case has a 5 s timeout and destroys its request; the interface test uses fileURLToPath, requires stderr to name LISTEN_HOST, adds «0» and «::0», removes its temp dir.
+- (C11) the pause bar is hidden in print, so the owner report stays one page.
+Suite after these fixes: 467 of 468; build OK; check:release OK. The one failure is not this branch's: `tests/server/tenancies.test.mjs:209` («a service switch moving collect_from…») also fails on main on 1-nov-2026 (it uses today as collect_from, and on the 1st of a month November's rent falls on the 1st instead of the 15th). It passed on 31-oct. Left untouched (outside this review's scope); noted for development.

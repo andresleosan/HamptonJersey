@@ -20,11 +20,11 @@
 - Stale claim: `working` for more than 10 minutes → claimable again; 3 attempts → `failed` (H8).
 - Links from the request's origin: `/admin/#/`, `/admin/#/viewings`, `/admin/#/p/<id>` (H13).
 - Panel: copy exactly as spec §3. DESIGN.md: `.warn` bar, `.btn.sm` / `.btn.ghost.sm` at 32px, messages `role="status" class="ok"` / `role="alert" class="err"`, text never HTML (no `dangerouslySetInnerHTML`), no new token, font, library or `style=` attribute, spacing 4/8/12/16/24.
-- `/avanzar` on the taller: local branch `hermes/aut-13`, one commit with code, tests, migration, ESTADO, checklist, spec, plan and ledger; no push, no production (Luis's encargo of 31-oct). e2e not run (Turnstile).
+- `/avanzar` on the taller: local branch `hermes/aut-13`, one commit with code, tests, migration, ESTADO, checklist, spec, plan and ledger; no push, no production (Luis's encargo of 31-oct). e2e run in the taller up to the Turnstile step; the full e2e passed on the VPS on c5cf12d (Luis's review of 1-nov-2026).
 
 ## Review Focus
 
-1. A request with the panel cookie and no key gets 401 on the door; a request with the key gets 404 on `/api/admin/...` paths (the key opens nothing else).
+1. A request with the panel cookie and no key gets 401 on the door; a request with the key gets 401 on `/api/admin/...` paths (the key is not a session: it opens nothing else).
 2. Seed an applicant and a viewing with a recognisable name, phone and email: no door response contains them, nor the applicant's id.
 3. Two concurrent `jobs/next` never get the same job; a stale job is retried and fails at the third attempt.
 4. A draft is never applied to the listing by the door: the listing row is unchanged until the panel saves.
@@ -56,14 +56,15 @@
 **Files:**
 - Create: `hermes/key-proxy.mjs`, `tests/server/key-proxy.test.mjs`
 
-- [ ] Step 1: failing test with a fake upstream: forwards `GET`/`POST` `/api/hermes/...` with the key, drops incoming `authorization`, `cookie`, `host`; refuses other paths and methods (404/405); body over 160 KB → 413 with the connection closed, without reading the rest; refuses to start on `0.0.0.0` or `::`.
+- [ ] Step 1: failing test with a fake upstream: forwards `GET`/`POST` `/api/hermes/...` with the key, drops incoming `authorization`, `cookie`, `host`; refuses other paths and methods (404/405); body over 160 KB → 413 with the connection closed, without reading the rest; exits if it ends up listening on every interface, however `LISTEN_HOST` is written (`0.0.0.0`, `::`, `0`, `::0`…); survives a caller hanging up mid-body.
 - [ ] Step 2: implement until green. `npm test`.
 
 ## Installation notes (outside the taller, after Luis's «sí»)
 
 Added on 31-oct-2026 from the VPS security review, for whoever installs it with Docker and the VPS and Cloudflare keys:
 
-- **Network:** the key's custodian (`hermes/key-proxy.mjs`) runs in a Docker network of its own, shared only by Hampton's Hermes and the custodian. No other container on it and no port published on the host. `LISTEN_HOST` is the custodian's address on that network; it refuses `0.0.0.0` and `::`. Hermes's outbound list reaches the model, `api.telegram.org` and the custodian, and nothing else.
+- **Order:** do not set the key, nor call `/api/hermes` in production even once (not a `curl` test, not to a path that does not exist), until Hampton's Hermes is installed and polling. A single valid call writes `app_settings.hermes`; from then on the «Ask Hermes for a draft» block shows on every published listing, and queued jobs never expire.
+- **Network:** the key's custodian (`hermes/key-proxy.mjs`) sits in a Docker network of its own, shared only by Hampton's Hermes and the custodian, with no other container and no port published on the host. Its address there is fixed (`ipam` subnet plus `ipv4_address`), and that IP is `LISTEN_HOST`. It also needs a way out to `APP_ORIGIN`: a second network whose exit is limited to the app's host, or the existing outbound list. With only an `internal: true` network every call answers 502. `restart: unless-stopped`. The custodian exits if it ends up listening on every interface, however `LISTEN_HOST` is written. Hermes's outbound list reaches the model, `api.telegram.org` and the custodian, and nothing else.
 - **Key:** generate it with `openssl rand -hex 32` on the VPS, never in a chat. Put it only in the **Production** environment of the Pages project (`HERMES_KEY`), never in Preview: previews use the production database. On the VPS it is a Docker secret read through `HERMES_KEY_FILE`, never an environment variable of Hermes. It is never printed or committed. To change it: a new value in both places, then a new Pages deployment.
 - **Old jobs:** the `jobs` table keeps used, discarded and failed rows (C0 drafts and the email of the staff member who decided). Clearing them is pending: a step of the clock (AUT-07) that deletes closed jobs after a set time, to be decided with Luis.
 - **Pause:** every future send to clients or agencies (email, WhatsApp, social posts) reads `app_settings.outbound` right before it leaves and sends nothing while `paused` is true, whoever asked for the pause. Today the app sends nothing, so nothing reads it yet.

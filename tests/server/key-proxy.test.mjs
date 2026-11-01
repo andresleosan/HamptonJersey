@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { makeServer } from "../../hermes/key-proxy.mjs";
 import { spawnSync } from "node:child_process";
-import { writeFileSync, mkdtempSync } from "node:fs";
+import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { request } from "node:http";
+import { fileURLToPath } from "node:url";
 
 // AUT-13, H4: the key's custodian, outside Hermes's container. Hermes calls it with no key; it forwards only the door.
 const KEY = "hermes-test-key-hermes-test-key-0123456789";
@@ -53,34 +54,55 @@ test("refuses everything else without calling the app", async () => {
   } finally { p.close(); }
 });
 
-test("over the limit: 413 and the connection closed, without reading the rest", async () => {
+// A raw request: headers sent, then `body` written (or nothing), never ended. Resolves with the answer.
+function rawPost(base, headers, body) {
+  const { port } = new URL(base);
+  let req;
+  return new Promise((resolve, reject) => {
+    req = request({ host: "127.0.0.1", port, method: "POST", path: "/api/hermes/pause", headers }, res => {
+      res.resume();
+      res.on("end", () => resolve({ status: res.statusCode, connection: res.headers.connection }));
+    });
+    req.on("error", reject);
+    if (body) req.write(body); else req.flushHeaders();
+  }).finally(() => req.destroy());
+}
+
+test("over the limit, read or declared: 413 and the connection closed, without reading the rest", { timeout: 5000 }, async () => {
   const p = await start();
   try {
-    const { port } = new URL(p.base);
-    const answer = await new Promise((resolve, reject) => {
-      const req = request({ host: "127.0.0.1", port, method: "POST", path: "/api/hermes/pause" }, res => {
-        res.resume();
-        res.on("end", () => resolve({ status: res.statusCode, connection: res.headers.connection }));
-      });
-      req.on("error", reject);
-      req.write("x".repeat(163841)); // no content-length: chunked, so the limit is found while reading
-      // Never ends the body: a proxy that read to the end would never answer.
-    });
-    assert.deepEqual(answer, { status: 413, connection: "close" });
-    const declared = await fetch(`${p.base}/api/hermes/pause`, { method: "POST", headers: { "content-length": "999999" }, body: "x" })
-      .then(r => r.status, () => "refused before the body");
-    assert.ok([413, "refused before the body"].includes(declared));
+    // Chunked, never ended: a proxy that read to the end would never answer.
+    assert.deepEqual(await rawPost(p.base, {}, "x".repeat(163841)), { status: 413, connection: "close" });
+    // Declared too big, no body sent at all.
+    assert.deepEqual(await rawPost(p.base, { "content-length": "999999" }), { status: 413, connection: "close" });
     assert.equal(p.seen.length, 0);
   } finally { p.close(); }
 });
 
-test("refuses to listen on every interface", () => {
+test("a caller that hangs up mid-body does not bring the proxy down", { timeout: 5000 }, async () => {
+  const p = await start();
+  try {
+    const { port } = new URL(p.base);
+    await new Promise(resolve => {
+      const req = request({ host: "127.0.0.1", port, method: "POST", path: "/api/hermes/pause", headers: { "content-length": "1000" } });
+      req.on("error", () => {});
+      req.write("x".repeat(100));
+      setTimeout(() => { req.destroy(); setTimeout(resolve, 100); }, 50);
+    });
+    assert.equal((await fetch(`${p.base}/api/hermes/status`)).status, 201, "still answering");
+  } finally { p.close(); }
+});
+
+test("refuses to listen on every interface, however it is written", () => {
   const dir = mkdtempSync(`${tmpdir()}/kp-`), file = `${dir}/key`;
-  writeFileSync(file, KEY);
-  const script = new URL("../../hermes/key-proxy.mjs", import.meta.url).pathname;
-  for (const host of ["0.0.0.0", "::", "[::]", ""]) {
-    const r = spawnSync(process.execPath, [script], { timeout: 5000, encoding: "utf8",
-      env: { APP_ORIGIN: "https://app.example", HERMES_KEY_FILE: file, LISTEN_HOST: host, LISTEN_PORT: "0" } });
-    assert.equal(r.status, 1, `LISTEN_HOST=${host}`);
-  }
+  try {
+    writeFileSync(file, KEY);
+    const script = fileURLToPath(new URL("../../hermes/key-proxy.mjs", import.meta.url));
+    for (const host of ["0.0.0.0", "::", "[::]", "0", "::0", "0:0:0:0:0:0:0:0", ""]) {
+      const r = spawnSync(process.execPath, [script], { timeout: 5000, encoding: "utf8",
+        env: { APP_ORIGIN: "https://app.example", HERMES_KEY_FILE: file, LISTEN_HOST: host, LISTEN_PORT: "0" } });
+      assert.equal(r.status, 1, `LISTEN_HOST=${host}`);
+      assert.match(r.stderr, /LISTEN_HOST/, `LISTEN_HOST=${host} says why`);
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
