@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, seedListing, call, adminCookie, T0 } from "./helpers.mjs";
 import { stoppedFlags } from "../../server/routes/automations.js";
-import { runRetention } from "../../server/retention.js";
+import { runRetention, RETENTION_CAP } from "../../server/retention.js";
 
 // AUT-01 (spec 2026-11-01): the Automations screen, the stopped count, the panel's pause and the jobs' 90 days.
 const KEY = "hermes-test-key-hermes-test-key-0123456789";
@@ -103,19 +103,34 @@ test("the daily pass deletes Hermes jobs closed or untouched for 90 days, never 
   const env = makeEnv();
   seedListing(env);
   seedListing(env, { id: "HE-R002" });
-  seedListing(env, { id: "HE-R003" });
+  for (const id of ["HE-R003", "HE-R004", "HE-R005", "HE-R006", "HE-R007"]) seedListing(env, { id }); // one open job each
   [
     job(env, { status: "queued", created_at: daysAgo(91) }),
     job(env, { listing_id: "HE-R002", status: "failed", created_at: daysAgo(120), claimed_at: daysAgo(91) }),
     job(env, { status: "used", created_at: daysAgo(100), decided_at: daysAgo(91) }),
+    job(env, { listing_id: "HE-R004", status: "working", created_at: daysAgo(95), claimed_at: daysAgo(91) }), // abandoned
+    job(env, { status: "discarded", created_at: daysAgo(95), decided_at: daysAgo(91) }),
+    job(env, { listing_id: "HE-R005", status: "queued", created_at: ago(90 * 1440 + 1) }),
   ];
   const kept = [
     job(env, { listing_id: "HE-R003", status: "draft", created_at: daysAgo(200), drafted_at: daysAgo(199) }),
     job(env, { status: "used", created_at: daysAgo(100), decided_at: daysAgo(89) }),
     job(env, { listing_id: "HE-R002", status: "queued", created_at: daysAgo(10) }),
+    job(env, { status: "used", created_at: daysAgo(100), claimed_at: daysAgo(99), decided_at: daysAgo(1) }), // decided_at counts
+    job(env, { listing_id: "HE-R006", status: "queued", created_at: daysAgo(90) }),
+    job(env, { listing_id: "HE-R007", status: "queued", created_at: ago(90 * 1440 - 1) }),
   ];
   const r = await runRetention(env, NOW);
-  assert.equal(r.jobs, 3);
+  assert.equal(r.jobs, 6);
   const left = env.DB.raw.prepare("SELECT id FROM jobs ORDER BY id").all().map(j => j.id);
   assert.deepEqual(left, kept);
+});
+
+test("the pass deletes at most 500 jobs, oldest first", async () => {
+  const env = makeEnv();
+  seedListing(env);
+  const newest = job(env, { status: "used", created_at: daysAgo(200), decided_at: daysAgo(91) });
+  for (let i = 0; i < RETENTION_CAP; i++) job(env, { status: "used", created_at: daysAgo(200), decided_at: daysAgo(92) });
+  assert.equal((await runRetention(env, NOW)).jobs, RETENTION_CAP);
+  assert.deepEqual(env.DB.raw.prepare("SELECT id FROM jobs").all().map(j => j.id), [newest]);
 });

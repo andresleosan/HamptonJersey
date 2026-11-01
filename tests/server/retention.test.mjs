@@ -190,8 +190,8 @@ test("claims the day until its pass is done, 3 attempts at most", async () => {
   assert.equal(await claimRetentionDay(env, "2026-10-24"), false);
   // A new day starts again at 1; once its pass is recorded, no other poll claims it.
   assert.equal(await claimRetentionDay(env, "2026-10-26"), true);
-  await recordRetentionDay(env, "2026-10-26", { contacts: 2, viewings: 0, jobs: 0 });
-  assert.deepEqual(run(env), { date: "2026-10-26", ok: true, attempts: 1, contacts: 2, viewings: 0, jobs: 0 });
+  await recordRetentionDay(env, "2026-10-26", { contacts: 2, viewings: 1, jobs: 3 });
+  assert.deepEqual(run(env), { date: "2026-10-26", ok: true, attempts: 1, contacts: 2, viewings: 1, jobs: 3 });
   assert.equal(await claimRetentionDay(env, "2026-10-26"), false);
   assert.equal(await claimRetentionDay(env, "2026-10-27"), true);
   assert.deepEqual(run(env), { date: "2026-10-27", ok: false, attempts: 1 });

@@ -753,19 +753,32 @@ async function automations(page, phone, noSideScroll) {
   d1(`INSERT INTO jobs (kind, listing_id, status, attempts, requested_by, created_at, claimed_at, drafted_at, decided_at, decided_by)
     SELECT 'listing_text', id, 'used', 1, 'luismadef45@gmail.com', '2026-10-31T09:00:00.000Z', '2026-10-31T09:01:00.000Z',
     '2026-10-31T09:02:00.000Z', '2026-10-31T10:00:00.000Z', 'luismadef45@gmail.com' FROM listings WHERE id = 'HE-R001'`);
+  const gets = [], count = r => r.url().endsWith("/api/admin/automations") && gets.push(r);
+  page.on("request", count);
   await page.goto(BASE + "admin/#/automations");
   await page.waitForSelector("#t-auto");
   for (const name of ["Clock", "12-month clean-up", "Hermes text drafts", "Sending to clients and agencies"])
     await page.getByRole("heading", {name, exact: true}).waitFor();
-  await page.getByText("Stopped: no run recorded.").waitFor();
+  await page.getByText("Stopped: no run recorded. Tell Optimyze; while the panel is open, it keeps the daily clean-up going.").waitFor();
   await page.waitForFunction(() => document.querySelector("header.bar .settings > button .count")?.textContent === "1 stopped");
   await page.getByText("Not connected yet").waitFor();
+  page.off("request", count);
+  assert.equal(gets.length, 1, "a direct visit loads the screen once");
   assert.match(await page.textContent("table.jobs tbody"), /HE-R001[\s\S]*Used[\s\S]*Team/);
   page.once("dialog", d => d.accept());
   await page.getByRole("button", {name: "Pause all outbound"}).click();
   await page.locator(".warn.paused").waitFor();
   assert.match(await page.textContent(".warn.paused"), /asked by luismadef45@gmail\.com/);
+  await page.getByRole("status").filter({hasText: "Sending paused."}).waitFor();
   await shot(page, "admin-automations");
+  // A resume from the bar leaves no stale «Sending paused.» in the card.
+  page.once("dialog", d => d.accept());
+  await page.locator(".warn.paused").getByRole("button", {name: "Resume sending"}).click();
+  await page.locator(".warn.paused").waitFor({state: "detached"});
+  await page.getByText("Sending paused.").waitFor({state: "detached"});
+  page.once("dialog", d => d.accept());
+  await page.getByRole("button", {name: "Pause all outbound"}).click();
+  await page.locator(".warn.paused").waitFor();
   page.once("dialog", d => d.accept());
   await page.locator(".automations").getByRole("button", {name: "Resume sending"}).click();
   await page.locator(".warn.paused").waitFor({state: "detached"});

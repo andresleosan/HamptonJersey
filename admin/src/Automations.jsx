@@ -9,20 +9,25 @@ const JOB = { queued: ["Queued", "neutral"], working: ["Working", "active"], dra
   used: ["Used", "positive"], discarded: ["Discarded", "neutral"], failed: ["Failed", "neutral"] };
 
 export default function Automations({ stalled, outbound, onChange }) {
-  const [d, setD] = useState(null), [err, setErr] = useState(null);
-  useEffect(() => { api("/admin/automations").then(setD, e => setErr(e.message)); }, [stalled]);
+  const [d, setD] = useState(null), [err, setErr] = useState(null), seen = useRef(null);
+  // On arrival, then when the bar's poll changes stalled; its first answer on a direct visit (from undefined) is not a change.
+  useEffect(() => {
+    if (seen.current !== undefined) api("/admin/automations").then(x => { setD(x); setErr(null); }, e => setErr(e.message));
+    seen.current = stalled;
+  }, [stalled]);
   if (!d) return err ? <p role="alert" className="err">{err}</p> : <p>Loading automations…</p>;
   const { clock, retention: r, hermes: h } = d, m = h.month, closed = m.used + m.discarded + m.failed;
 
   return <section aria-labelledby="t-auto" className="automations">
     <div className="head"><div><h1 id="t-auto">Automations</h1>
       <p className="muted">What runs on its own, and when it last ran.</p></div></div>
+    {err && <p role="alert" className="err">Couldn't refresh; what you see may be out of date. {err}</p>}
 
     <article className="card" aria-labelledby="a-clock">
       <h2 id="a-clock">Clock</h2>
       <p className="muted">Wakes every 10 minutes to run what is due.</p>
       {clock.at && <p>Last run {fmtDate(clock.at)}</p>}
-      {clock.stopped && <p className="err">{clock.at ? "Stopped: no run for over 30 minutes." : "Stopped: no run recorded."}</p>}
+      {clock.stopped && <p className="err">{clock.at ? "Stopped: no run for over 30 minutes." : "Stopped: no run recorded."} Tell Optimyze; while the panel is open, it keeps the daily clean-up going.</p>}
     </article>
 
     <article className="card" aria-labelledby="a-clean">
@@ -30,14 +35,15 @@ export default function Automations({ stalled, outbound, onChange }) {
       <p className="muted">Once a day, deletes applicants and viewing requests inactive for 12 months, and Hermes jobs closed or untouched for 90 days.</p>
       <p>{!r ? "No run yet."
         : r.ok ? `Last run ${fmtDay(r.date)}: ${r.contacts} applicants, ${r.viewings} viewing requests, ${r.jobs} Hermes jobs deleted.`
-        : <span className="err">Last run {fmtDay(r.date)} failed (attempt {r.attempts} of 3).</span>}</p>
+        : <span className="err">Last run {fmtDay(r.date)} failed (attempt {r.attempts} of 3). {r.attempts < 3 ? "It tries again in a few minutes."
+          : "It tries again tomorrow; if that fails too, tell Optimyze."}</span>}</p>
     </article>
 
     <article className="card" aria-labelledby="a-hermes">
       <h2 id="a-hermes">Hermes text drafts</h2>
       <p className="muted">Writes listing texts for a person to approve.</p>
       {h.at ? <p>Last asked for work {fmtDate(h.at)}</p> : <p><span className="badge neutral">Not connected yet</span></p>}
-      {h.stopped && <p className="err">Stopped: no request for over 15 minutes.</p>}
+      {h.stopped && <p className="err">Stopped: no request for over 15 minutes. Requests wait in the queue until it is back; tell Optimyze.</p>}
       <p>Last 30 days: {m.used} used, {m.discarded} discarded, {m.failed} failed ({closed ? `${Math.round(100 * m.used / closed)}% used` : "—"})</p>
       {h.waiting.length > 0 && <><h3>Waiting for approval</h3>
         <ul>{h.waiting.map(j => <li key={j.id}><a href={`#/p/${encodeURIComponent(j.listing_id)}`}>{j.listing_id} {j.title}</a>
@@ -62,10 +68,12 @@ export default function Automations({ stalled, outbound, onChange }) {
 function Sending({ outbound, onChange }) {
   const [busy, setBusy] = useState(false), [msg, setMsg] = useState(null), said = useRef(null);
   useEffect(() => { if (msg) said.current.focus(); }, [msg]);
-  const act = async (ask, path, done) => {
+  // A pause or resume from elsewhere (the bar, Hermes) makes the card's own message stale: it goes.
+  if (msg?.ok && msg.paused !== !!outbound) setMsg(null);
+  const act = async (ask, path, done, paused) => {
     if (!confirm(ask)) return;
     setBusy(true); setMsg(null);
-    try { await api(path, { method: "POST" }); await onChange(); setMsg({ ok: true, text: done }); }
+    try { await api(path, { method: "POST" }); await onChange(); setMsg({ ok: true, text: done, paused }); }
     catch (e) { setMsg({ text: e.message }); }
     finally { setBusy(false); }
   };
@@ -76,10 +84,10 @@ function Sending({ outbound, onChange }) {
       {outbound ? <><span className="badge attention">Paused</span>
         <span>Paused since {fmtDate(outbound.at)} (asked by {outbound.by === "hermes" ? "Hermes" : outbound.by})</span>
         <button type="button" className="btn ghost sm" disabled={busy}
-          onClick={() => act("Resume sending to clients and agencies?", "/admin/outbound/resume", "Sending resumed.")}>Resume sending</button></>
+          onClick={() => act("Resume sending to clients and agencies?", "/admin/outbound/resume", "Sending resumed.", false)}>Resume sending</button></>
         : <><span className="badge positive">Active</span>
           <button type="button" className="btn sm" disabled={busy}
-            onClick={() => act("Pause all sending to clients and agencies?", "/admin/outbound/pause", "Sending paused.")}>Pause all outbound</button></>}
+            onClick={() => act("Pause all sending to clients and agencies?", "/admin/outbound/pause", "Sending paused.", true)}>Pause all outbound</button></>}
     </div>}
     {msg && <p ref={said} tabIndex={-1} role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
   </article>;

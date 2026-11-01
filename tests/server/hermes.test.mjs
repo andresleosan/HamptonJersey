@@ -158,7 +158,8 @@ test("jobs: Hermes asks for a listing text, takes it with the listing's public f
   assert.equal((await door(env, "GET", "/status")).data.drafts_waiting, 1);
 });
 
-test("jobs: oldest first, never the same one twice, a stale one retried and failed at the third attempt", async t => {
+// Two jobs, the one for HE-R002 asked a second earlier.
+async function twoJobs(t) {
   at(t, "2026-10-31T09:00:00.000Z");
   const env = env0();
   seedListing(env, { id: "HE-R001" });
@@ -166,15 +167,27 @@ test("jobs: oldest first, never the same one twice, a stale one retried and fail
   await door(env, "POST", "/jobs", { kind: "listing_text", listing: "HE-R002" });
   t.mock.timers.setTime(Date.parse("2026-10-31T09:00:01.000Z"));
   await door(env, "POST", "/jobs", { kind: "listing_text", listing: "HE-R001" });
+  return env;
+}
+
+test("jobs: oldest first", async t => {
+  const env = await twoJobs(t);
+  assert.equal((await door(env, "POST", "/jobs/next")).data.job.listing.id, "HE-R002");
+  assert.equal((await door(env, "POST", "/jobs/next")).data.job.listing.id, "HE-R001");
+});
+
+// Two requests at once do not always arrive in order, so this one checks only that they never share a job.
+test("jobs: never the same one twice, a stale one retried and failed at the third attempt", async t => {
+  const env = await twoJobs(t);
   const [a, b] = await Promise.all([door(env, "POST", "/jobs/next"), door(env, "POST", "/jobs/next")]);
   assert.deepEqual([a.data.job.listing.id, b.data.job.listing.id].sort(), ["HE-R001", "HE-R002"]);
-  assert.equal(a.data.job.listing.id, "HE-R002", "oldest first");
-  const id = a.data.job.id;
+  // Both go stale together and the oldest is taken again first: follow HE-R002's job, keep the other one busy.
+  const [old, other] = a.data.job.listing.id === "HE-R002" ? [a, b] : [b, a], id = old.data.job.id;
   for (const [n, min] of [[2, 11], [3, 22]]) {
     t.mock.timers.setTime(Date.parse(`2026-10-31T09:${min}:30.000Z`));
     const again = await door(env, "POST", "/jobs/next");
     assert.equal(again.data.job?.id, id, `attempt ${n}`);
-    await door(env, "POST", `/jobs/${b.data.job.id}/draft`, { title: "keep the other one busy" }).catch(() => {});
+    await door(env, "POST", `/jobs/${other.data.job.id}/draft`, { title: "keep the other one busy" }).catch(() => {});
   }
   t.mock.timers.setTime(Date.parse("2026-10-31T09:33:30.000Z"));
   assert.deepEqual((await door(env, "POST", "/jobs/next")).data, { job: null });
