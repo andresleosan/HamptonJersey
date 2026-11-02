@@ -178,11 +178,28 @@ export async function hermesDoor(request, env, path) {
   fail(404, "Not found");
 }
 
+// AUT-15 (spec 2026-11-03): who may use Hermes drafts, that is spend Luis's personal ChatGPT plan. The app_settings row
+// hermes_drafters holds a JSON list of emails, set by a remote SQL command (never in this public repo); no row or any
+// other value means nobody. Not a role: never reuse it for another permission.
+async function canUseHermesDrafts(env, email) {
+  const row = await env.DB.prepare("SELECT value FROM app_settings WHERE key = 'hermes_drafters'").first();
+  try {
+    const list = JSON.parse(row?.value);
+    return Array.isArray(list) && list.some(e => typeof e === "string" && e.trim().toLowerCase() === email);
+  } catch { return false; }
+}
+// Before reading the request, so someone off the list can't tell which listings exist.
+const draftersOnly = handler => async ctx => {
+  if (!(await canUseHermesDrafts(ctx.env, ctx.admin))) fail(403, "Hermes drafts aren't available to your account.");
+  return handler(ctx);
+};
+
 // The panel's side (session and same origin, like every admin route): ask, see, use or discard a draft (H10), resume.
 const shape = j => j ? { id: j.id, kind: j.kind, listing_id: j.listing_id, status: j.status, created_at: j.created_at,
   drafted_at: j.drafted_at, result: j.result ? JSON.parse(j.result) : null } : null;
 
-async function latestJob({ request, env }) {
+async function latestJob({ request, env, admin }) {
+  if (!(await canUseHermesDrafts(env, admin))) return json({ job: null, hermes_at: null }); // HermesDraft hides itself
   const listing = new URL(request.url).searchParams.get("listing") ?? "";
   const [{ results: [job] }, { results: [seen] }] = await env.DB.batch([
     env.DB.prepare("SELECT * FROM jobs WHERE listing_id = ? AND kind = 'listing_text' ORDER BY id DESC LIMIT 1").bind(listing),
@@ -211,8 +228,8 @@ async function resume({ env, admin }) {
 
 export default [
   ["GET", /^\/admin\/jobs$/, latestJob, true],
-  ["POST", /^\/admin\/jobs$/, askJob, true],
-  ["POST", /^\/admin\/jobs\/(\d+)\/use$/, decide("used", ["draft"]), true],
-  ["POST", /^\/admin\/jobs\/(\d+)\/discard$/, decide("discarded", ["queued", "working", "draft"]), true],
+  ["POST", /^\/admin\/jobs$/, draftersOnly(askJob), true],
+  ["POST", /^\/admin\/jobs\/(\d+)\/use$/, draftersOnly(decide("used", ["draft"])), true],
+  ["POST", /^\/admin\/jobs\/(\d+)\/discard$/, draftersOnly(decide("discarded", ["queued", "working", "draft"])), true],
   ["POST", /^\/admin\/outbound\/resume$/, resume, true],
 ];

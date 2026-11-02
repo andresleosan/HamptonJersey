@@ -5,7 +5,8 @@ import { usePoll } from "./poll.js";
 
 // AUT-13 / PUB-13 (spec 2026-10-31, H10): Hermes drafts the listing's texts from its saved details. The draft only
 // reaches the form with "Use this text", and the listing only changes when the person saves it. Hidden until Hermes
-// has asked the app for work at least once. replacing: the form's title, summary or description differ from the saved
+// has asked the app for work at least once, and for anyone off the drafts list (AUT-15: the server answers them
+// hermes_at null). replacing: the form's title, summary or description differ from the saved
 // ones, so using the draft would overwrite what was typed.
 const OPEN = ["queued", "working"];
 const QUIET_MS = 15 * 60e3;

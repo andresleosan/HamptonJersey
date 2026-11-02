@@ -5,7 +5,13 @@ import { makeEnv, seedListing, call, adminCookie, ORIGIN, T0 } from "./helpers.m
 // AUT-13 (spec 2026-10-31): Hermes's door. Its own key, six fixed operations, public data and counts only.
 const KEY = "hermes-test-key-hermes-test-key-0123456789";
 const ADMIN = "admin@example.test";
-const env0 = () => ({ ...makeEnv(), HERMES_KEY: KEY });
+// AUT-15: the panel tests run as someone on the drafts list unless they pass another stored value, or null (no row).
+const env0 = (drafters = JSON.stringify([ADMIN])) => {
+  const env = { ...makeEnv(), HERMES_KEY: KEY };
+  if (drafters !== null) run(env, `INSERT INTO app_settings (key, value, updated_at, updated_by)
+    VALUES ('hermes_drafters', ?, ?, 'setup')`, drafters, T0);
+  return env;
+};
 // Hermes calls from the VPS through the key's custodian: no Origin, no cookie.
 const door = (env, method, path, body) => call(env, method, `/hermes${path}`, { body, bearer: KEY, origin: null });
 const admin = async (env, method, path, body) => call(env, method, path, { body, cookie: await adminCookie() });
@@ -261,6 +267,37 @@ test("panel: ask for a draft, see it, use it or discard it; all with the session
   assert.deepEqual((await door(env, "POST", "/jobs/next")).data, { job: null }, "a discarded job is not taken");
   assert.equal((await admin(env, "POST", "/admin/jobs/999/discard")).status, 404);
   assert.equal((await admin(env, "GET", "/admin/jobs?listing=HE-X999")).data.job, null);
+});
+
+test("panel: only the people on the drafts list see and use Hermes drafts (AUT-15)", async () => {
+  // With a job waiting and the door already used (hermes.at set).
+  const setup = drafters => {
+    const env = env0(drafters);
+    seedListing(env, { id: "HE-R001" });
+    return door(env, "POST", "/jobs", { kind: "listing_text", listing: "HE-R001" }).then(r => ({ env, id: r.data.id }));
+  };
+  const hidden = { job: null, hermes_at: null };
+  // No row, an oddly typed value, an empty list or a list without this admin: nobody, never everyone (app_settings
+  // itself refuses a value that is not JSON).
+  for (const value of [null, '{"emails":["admin@example.test"]}', '"admin@example.test"', "[1]", "[]", '["colleague@example.test"]']) {
+    const { env } = await setup(value);
+    assert.deepEqual((await admin(env, "GET", "/admin/jobs?listing=HE-R001")).data, hidden, String(value));
+  }
+  // 403 before anything else: a bad body, a missing listing or job answers the same, and nothing changes.
+  const { env, id } = await setup(null);
+  const job = row(env, "SELECT * FROM jobs WHERE id = ?", id);
+  for (const body of [{ kind: "listing_text", listing: "HE-R001" }, { kind: "listing_text", listing: "HE-X999" }, { kind: "nope" }])
+    assert.equal((await admin(env, "POST", "/admin/jobs", body)).status, 403, JSON.stringify(body));
+  for (const path of [`/admin/jobs/${id}/use`, `/admin/jobs/${id}/discard`, "/admin/jobs/999/use"])
+    assert.equal((await admin(env, "POST", path)).status, 403, path);
+  assert.deepEqual(row(env, "SELECT * FROM jobs WHERE id = ?", id), job);
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM jobs").n, 1);
+  assert.equal((await admin(env, "POST", "/admin/outbound/resume")).status, 200, "Resume stays open to everyone");
+  // An entry in mixed case or with stray spaces still matches the session's lower-case email.
+  const listed = await setup(JSON.stringify([" Admin@Example.test\n"]));
+  const seen = (await admin(listed.env, "GET", "/admin/jobs?listing=HE-R001")).data;
+  assert.equal(seen.job?.status, "queued");
+  assert.ok(seen.hermes_at);
 });
 
 test("panel: an archived listing gets no job; deleting a listing deletes its jobs", async () => {

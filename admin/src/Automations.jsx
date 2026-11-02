@@ -56,7 +56,7 @@ export default function Automations({ stalled, outbound, onChange }) {
           <td><span className={`badge ${JOB[j.status][1]}`}>{JOB[j.status][0]}</span></td>
           <td data-label="Asked by">{j.by}</td><td data-label="Asked">{fmtDate(j.created_at)}</td>
           <td data-label="Closed">{fmtDate(j.closed_at)}</td></tr>)}</tbody>
-      </table> : <p className="muted">No jobs yet. Once Hermes is connected, ask for a draft in a listing's editor.</p>}
+      </table> : <p className="muted">No jobs yet.</p>}
     </article>
 
     <Sending outbound={outbound} onChange={onChange} />

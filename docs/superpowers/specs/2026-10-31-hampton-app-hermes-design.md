@@ -1,6 +1,8 @@
 # Hampton App · El Hermes de Hampton (AUT-13, AUT-14 y PUB-13)
 
 Fecha: 2026-10-31 · Estado: diseño general aprobado por Luis el 30-oct-2026 (arquitectura §6.6, P-18, preguntas 15 y 16); decisiones nuevas del 31-oct en §2 · Base: `main` en `f823d17`
+
+> **Cambiado el 2-nov-2026** (arquitectura §6.6): el equipo solo lee un canal privado de Telegram, que publica un avisador sin IA (fase 1a), y solo Luis da órdenes, desde sus dos cuentas, al Hermes de la fase 1b, que llega con un segundo bot. Desde el 3-nov solo quien está en la lista de borradores ve y usa el bloque del borrador (AUT-15).
 Puntos del checklist: AUT-13 (puerta de la app y trabajo de Hermes), AUT-14 (Telegram) y PUB-13 (textos de fichas). Este spec cubre los tres; esta entrega construye la parte de la app (§6) y deja el resto escrito como pendiente (§7).
 
 ## 1. Intención
@@ -9,7 +11,7 @@ Hermes, el agente de IA que corre en el VPS, redacta y avisa; la app guarda los 
 
 **Éxito de la entrega completa (arquitectura §6.6, «Hecho cuando»):**
 - Hermes pide trabajo a la app con su llave y devuelve el borrador de un texto de ficha, que aparece en la ficha; «Use this text» y guardar lo aplican.
-- Alguien del equipo pregunta por Telegram «¿qué hay por confirmar?» y recibe la respuesta en su idioma y sin datos personales.
+- Luis pregunta por su chat privado «¿qué hay por confirmar?» y recibe la respuesta en su idioma y sin datos personales (fase 1b, cambio del 2-nov).
 - El resumen llega a las 8:00 de Jersey, y un aplicante nuevo produce su aviso en uno o dos minutos, sin datos de la persona.
 - La pantalla Automations muestra la última vez que Hermes pidió trabajo.
 - Una pausa pedida por Telegram se ve en el panel.
@@ -35,7 +37,7 @@ Hermes, el agente de IA que corre en el VPS, redacta y avisa; la app guarda los 
 |---|---|---|
 | H1 | **Sin horario de silencio** en los avisos de Telegram: cada aviso sale al momento, a cualquier hora | Luis, 31-oct (sustituye la propuesta de 21:00 a 08:00) |
 | H2 | El resumen de las 08:00 de Jersey **incluye las fichas To confirm** (ADM-04), con su referencia y su título | Luis, 31-oct |
-| H3 | PRE-32 incluye comprobar que el plan de ChatGPT permite **que el equipo lo use a través de Hermes y que Hermes trabaje sin Luis delante**. Si no, las preguntas del equipo y el resumen esperan a un plan Business o pasan a la vía API (P-09) | Luis, 31-oct |
+| H3 | PRE-32 incluye comprobar que el plan de ChatGPT permite **que Hermes trabaje sin Luis delante**. Si no, los borradores esperan a un plan Business o pasan a la vía API (P-09). Que el equipo use el plan dejó de hacer falta el 2-nov: solo lee el canal | Luis, 31-oct y 2-nov |
 | H4 | **La llave la guarda un pequeño intermediario fuera del contenedor de Hermes.** Hermes llama al intermediario sin llave; el intermediario solo reenvía `/api/hermes/…` a la app y añade la llave | Luis, 31-oct |
 | H5 | **Llave:** secreto de Cloudflare `HERMES_KEY` (32 caracteres o más) del proyecto Pages, enviada como `Authorization: Bearer …`. Se compara en tiempo constante (resumen SHA-256). Sin el secreto, o con uno corto, la puerta responde 401 a todo. Se cambia con `wrangler pages secret put HERMES_KEY` y la anterior deja de valer en el siguiente despliegue | Claude |
 | H6 | **La puerta tiene seis operaciones fijas** y nada más (§4). No acepta la cookie del panel, ni SQL, ni rutas de admin. Va fuera de la comprobación de mismo origen porque no usa cookies: un navegador no puede enviar la cabecera `Authorization` a otro origen sin CORS, y la app no responde CORS | Claude |
@@ -77,7 +79,7 @@ Todas con `Authorization: Bearer <HERMES_KEY>`, `cache-control: no-store` y JSON
 
 Cualquier otra ruta bajo `/api/hermes` responde 404 (tras comprobar la llave: 401 sin ella).
 
-**El panel** (sesión de Google y mismo origen, como el resto): `GET /api/admin/jobs?listing=ID` (`{job, hermes_at}`), `POST /api/admin/jobs` (pedir), `POST /api/admin/jobs/:id/use`, `POST /api/admin/jobs/:id/discard` y `POST /api/admin/outbound/resume`. Los contadores del panel ganan `outbound` (`null` o `{at, by}`).
+**El panel** (sesión de Google y mismo origen, como el resto): `GET /api/admin/jobs?listing=ID` (`{job, hermes_at}`), `POST /api/admin/jobs` (pedir), `POST /api/admin/jobs/:id/use`, `POST /api/admin/jobs/:id/discard` y `POST /api/admin/outbound/resume`. Los contadores del panel ganan `outbound` (`null` o `{at, by}`). Actualizado el 3-nov-2026 (AUT-15, [spec](2026-11-03-hampton-app-hermes-drafters-design.md)): las cuatro rutas de trabajos solo sirven a quien está en la lista de borradores; a los demás, `GET` responde `{job: null, hermes_at: null}` y las otras tres, 403.
 
 ## 5. Diseño (DESIGN.md)
 
@@ -95,9 +97,9 @@ Cualquier otra ruta bajo `/api/hermes` responde 404 (tras comprobar la llave: 40
 
 ## 7. Lo que queda (fuera de esta entrega)
 
-- **Luis:** PRE-32 con la comprobación de H3; crear el bot con @BotFather; reunir los números de usuario de Telegram del equipo y que cada uno active la verificación en dos pasos.
+- **Luis:** crear el canal privado del equipo y poner al bot que creó con @BotFather como único administrador que se añade, solo con «Post messages» (fase 1a); PRE-32 con la comprobación de H3 antes de la fase 1b.
 - **Instalación en el VPS** (con Docker y las llaves del VPS y de Cloudflare, que el taller no tiene; notas de instalación en el plan): instalar el Hermes de Hampton en su jaula (sin terminal ni código, memoria y skills propias apagadas, conversaciones borradas a los 30 días) con salida solo al modelo, a `api.telegram.org` y al intermediario; el intermediario en la red interna con la llave como secreto de Docker; las tareas de Hermes: `news` cada minuto o dos, `status` a las 08:00 de Europe/Jersey sin horario de silencio (H1), y `jobs/next` cada minuto o dos. **La llave va al final**, cuando Hermes ya esté instalado y consultando: se genera en el VPS con `openssl rand -hex 32`, se pone como secreto de Docker del intermediario y como `HERMES_KEY` solo en el entorno Production de Pages. Antes no, ni ninguna llamada a la puerta en producción: una sola llamada válida hace aparecer el bloque del borrador en todas las fichas publicadas.
-- **AUT-14:** los usuarios permitidos del bot, la instrucción de no usar datos de clientes y la guía corta para el equipo.
+- **AUT-14:** el canal del equipo (fase 1a, sin IA), la regla de no poner datos de clientes en Telegram y la guía corta para el equipo antes de invitarlo.
 - **PUB-13, resto:** textos para redes, textos alternativos, etiquetar y limpiar fotos, y marcar las frases que no salen de un campo.
 - **AUT-01:** la pantalla Automations con la última petición de Hermes, el aviso si deja de pedir trabajo y el botón Pause all outbound.
 - Un límite de peticiones a `/api/hermes` en el WAF cuando el dominio esté en Cloudflare.

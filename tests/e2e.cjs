@@ -738,6 +738,7 @@ async function admin(browser) {
   await ownerReport(page, phone, noSideScroll);
   await jersey(browser, page);
   await automations(page, phone, noSideScroll);
+  await hermesDrafters(page);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -786,6 +787,26 @@ async function automations(page, phone, noSideScroll) {
   assert.equal(await page.evaluate(() => document.activeElement.textContent), "Sending resumed.", "the focus goes to the message");
   await noSideScroll(BASE + "admin/#/automations", "table.jobs");
   await shot(phone, "admin-automations-mobile");
+}
+
+// AUT-15 (spec 2026-11-03). Once the door has been used, the draft block shows only to the people on the drafts list;
+// with no list nobody sees it. The block renders after the jobs answer, so the hidden case checks the answer itself.
+// After automations(), which needs Hermes "Not connected yet".
+async function hermesDrafters(page) {
+  const editor = async open => {
+    const [res] = await Promise.all([page.waitForResponse(r => r.url().includes("/api/admin/jobs?listing=HE-R001")), open()]);
+    await page.waitForSelector("#f-title");
+    return res.json();
+  };
+  d1(`INSERT INTO app_settings (key, value, updated_at, updated_by)
+    VALUES ('hermes', '{"at":"2026-11-03T08:00:00.000Z"}', '2026-11-03T08:00:00.000Z', 'hermes')`);
+  assert.deepEqual(await editor(() => page.goto(BASE + "admin/#/p/HE-R001")), {job: null, hermes_at: null}, "no drafts list");
+  assert.equal(await page.locator(".hermes-draft").count(), 0, "no drafts list: nobody sees the block");
+  d1(`INSERT INTO app_settings (key, value, updated_at, updated_by)
+    VALUES ('hermes_drafters', '["admin@example.test"]', '2026-11-03T08:00:00.000Z', 'setup')`);
+  await editor(() => page.reload());
+  await page.getByRole("button", {name: "Ask Hermes for a draft"}).waitFor();
+  d1("DELETE FROM app_settings WHERE key IN ('hermes', 'hermes_drafters')");
 }
 
 // Spec 2026-10-25 (Jersey fields), last so nothing above changes. Recalculate all applies the housing check: the seed's
