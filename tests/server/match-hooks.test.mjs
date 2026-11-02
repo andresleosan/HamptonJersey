@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { makeEnv, seedListing, call, adminCookie, T0, ORIGIN } from "./helpers.mjs";
 import { handleApi } from "../../server/api.js";
 
-const ADMIN = "luismadef45@gmail.com";
+const ADMIN = "admin@example.test";
 const req = async (env, method, path, body) => call(env, method, path, { body, cookie: await adminCookie() });
 const run = (env, sql, ...args) => env.DB.raw.prepare(sql).run(...args);
 const row = (env, sql, ...args) => env.DB.raw.prepare(sql).get(...args);

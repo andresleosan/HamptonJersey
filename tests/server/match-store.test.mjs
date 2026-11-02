@@ -4,7 +4,7 @@ import { makeEnv, seedListing, T0 } from "./helpers.mjs";
 import { recomputeForApplicant, recomputeForListing, closeMatchedNoticeIfEmpty } from "../../server/match-store.js";
 import { evaluate, MIN_SCORE } from "../../server/matching.js";
 
-const ADMIN = "luismadef45@gmail.com";
+const ADMIN = "admin@example.test";
 const json = v => JSON.stringify(v);
 const run = (env, sql, ...args) => env.DB.raw.prepare(sql).run(...args);
 const rows = (env, sql, ...args) => env.DB.raw.prepare(sql).all(...args);

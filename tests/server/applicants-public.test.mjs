@@ -23,7 +23,7 @@ const without = (row, ...keys) => Object.fromEntries(Object.entries(row).filter(
 const panelContact = (env, o = {}) => Number(env.DB.raw.prepare(`INSERT INTO contacts (name, email, phone, privacy_ack_at,
   marketing_opt_in_at, consent_source, last_activity_at, created_at, updated_at, updated_by) VALUES (?,?,?,?,?,?,?,?,?,?)`)
   .run(o.name ?? "Jane Le Brocq", o.email ?? null, o.phone ?? null, o.privacy_ack_at ?? null, o.marketing_opt_in_at ?? null,
-    o.consent_source ?? null, T0, T0, T0, "luismadef45@gmail.com").lastInsertRowid);
+    o.consent_source ?? null, T0, T0, T0, "admin@example.test").lastInsertRowid);
 
 test("GET /applicants/options returns the closed lists, cached for a day", async () => {
   const r = await call(makeEnv(), "GET", "/applicants/options");

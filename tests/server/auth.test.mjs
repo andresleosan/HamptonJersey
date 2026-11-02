@@ -38,10 +38,10 @@ test("session cookie round-trips and rejects tampering or expiry", async () => {
 test("currentAdmin re-checks the admins table on every request", async () => {
   const env = makeEnv();
   const req = async email => new Request("https://h.test/x", { headers: { cookie: `x=1; ${COOKIE}=${await signSession(email, SECRET)}` } });
-  assert.equal(await currentAdmin(await req("luismadef45@gmail.com"), env), "luismadef45@gmail.com");
+  assert.equal(await currentAdmin(await req("admin@example.test"), env), "admin@example.test");
   assert.equal(await currentAdmin(await req("someone@else.com"), env), null);
-  await env.DB.prepare("DELETE FROM admins WHERE email = ?").bind("luismadef45@gmail.com").run();
-  assert.equal(await currentAdmin(await req("luismadef45@gmail.com"), env), null);
+  await env.DB.prepare("DELETE FROM admins WHERE email = ?").bind("admin@example.test").run();
+  assert.equal(await currentAdmin(await req("admin@example.test"), env), null);
 });
 
 test("cookie parsing and same-origin check", () => {

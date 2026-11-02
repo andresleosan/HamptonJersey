@@ -15,7 +15,7 @@
 - Proyecto Firebase: `hamptonestatesjersey`. App web registrada: `1:760161138036:web:f94005452426188f946821`.
 - Proyecto Pages: `hamptonjersey` (repo `HamptonJersey`, rama `main`). **No tocar** el proyecto Pages `hamptonestatesjersey`.
 - D1: base `hampton`, binding `DB`. R2: bucket `hampton-media`, binding `MEDIA`.
-- Primeros admins: `luismadef45@gmail.com`, `andres.san1404@gmail.com`.
+- Primeros admins: las cuentas de Google de Luis y Andrés (sus correos salieron del repo público el 2-nov-2026).
 - Precios: `sale_price`, `rent` (+ `rent_period`), `premium` en columnas separadas; desconocido = `NULL`, **nunca 0**.
 - Las fotos externas (`origin = 'external'`) **nunca** son públicas; lo garantiza un CHECK en D1 además del código.
 - Las fichas importadas quedan publicadas solo si son del "Current requested catalogue" y su disponibilidad es For sale / To let / Lease / Under offer. HE-X001–003 entran archivadas.
@@ -235,8 +235,8 @@ CREATE TABLE admins (
   added_by TEXT, added_at TEXT NOT NULL
 );
 INSERT INTO admins (email, added_by, added_at) VALUES
-  ('luismadef45@gmail.com', 'setup', '2026-10-07T00:00:00.000Z'),
-  ('andres.san1404@gmail.com', 'setup', '2026-10-07T00:00:00.000Z');
+  ('admin@example.test', 'setup', '2026-10-07T00:00:00.000Z'),
+  ('colleague@example.test', 'setup', '2026-10-07T00:00:00.000Z');
 
 -- Investigación: copia literal de /root/Hampton_Database/hampton_properties.sqlite, solo lectura.
 CREATE TABLE research_properties (
@@ -362,7 +362,7 @@ import { makeEnv, seedListing, seedMedia } from "./helpers.mjs";
 test("initial admins are seeded", async () => {
   const env = makeEnv();
   const { results } = await env.DB.prepare("SELECT email FROM admins ORDER BY email").all();
-  assert.deepEqual(results.map(r => r.email), ["andres.san1404@gmail.com", "luismadef45@gmail.com"]);
+  assert.deepEqual(results.map(r => r.email), ["colleague@example.test", "admin@example.test"]);
 });
 
 test("the database itself refuses public external media and zero prices", () => {
@@ -703,10 +703,10 @@ test("session cookie round-trips and rejects tampering or expiry", async () => {
 test("currentAdmin re-checks the admins table on every request", async () => {
   const env = makeEnv();
   const req = async email => new Request("https://h.test/x", { headers: { cookie: `x=1; ${COOKIE}=${await signSession(email, SECRET)}` } });
-  assert.equal(await currentAdmin(await req("luismadef45@gmail.com"), env), "luismadef45@gmail.com");
+  assert.equal(await currentAdmin(await req("admin@example.test"), env), "admin@example.test");
   assert.equal(await currentAdmin(await req("someone@else.com"), env), null);
-  await env.DB.prepare("DELETE FROM admins WHERE email = ?").bind("luismadef45@gmail.com").run();
-  assert.equal(await currentAdmin(await req("luismadef45@gmail.com"), env), null);
+  await env.DB.prepare("DELETE FROM admins WHERE email = ?").bind("admin@example.test").run();
+  assert.equal(await currentAdmin(await req("admin@example.test"), env), null);
 });
 
 test("cookie parsing and same-origin check", () => {
@@ -1216,7 +1216,7 @@ export async function call(env, method, path, { body, cookie, origin = ORIGIN, f
   const res = await handleApi(req, env, segments);
   return { status: res.status, headers: res.headers, data: await res.json().catch(() => null) };
 }
-export const adminCookie = async (email = "luismadef45@gmail.com") => `${COOKIE}=${await signSession(email, SECRET)}`;
+export const adminCookie = async (email = "admin@example.test") => `${COOKIE}=${await signSession(email, SECRET)}`;
 ```
 
 - [ ] **Step 2: Escribir los tests que fallan `tests/server/public.test.mjs`**
@@ -1561,7 +1561,7 @@ test("admin routes need a valid session of a listed admin", async () => {
   assert.equal((await call(env, "GET", "/admin/listings")).status, 401);
   assert.equal((await call(env, "GET", "/admin/listings", { cookie: await adminCookie("intruder@x.com") })).status, 401);
   assert.equal((await call(env, "GET", "/admin/listings", { cookie: "__Host-hs=forged.sig" })).status, 401);
-  assert.equal((await call(env, "GET", "/me", { cookie: await adminCookie() })).data.email, "luismadef45@gmail.com");
+  assert.equal((await call(env, "GET", "/me", { cookie: await adminCookie() })).data.email, "admin@example.test");
 });
 
 test("session: missing or invalid Google token", async () => {
@@ -1592,7 +1592,7 @@ test("create assigns the next free id, skipping ids used by research", async () 
   assert.equal(r.status, 201);
   assert.equal(r.data.id, "HE-R028");   // HE-R027 exists in research
   const row = await env.DB.prepare("SELECT published, updated_by FROM listings WHERE id = 'HE-R028'").first();
-  assert.deepEqual({ ...row }, { published: 0, updated_by: "luismadef45@gmail.com" });
+  assert.deepEqual({ ...row }, { published: 0, updated_by: "admin@example.test" });
   assert.equal((await call(env, "POST", "/admin/listings", { cookie, body: { title: "" } })).status, 400);
 });
 
@@ -1674,7 +1674,7 @@ test("users: add, refuse self-removal, remove others", async () => {
   assert.equal((await call(env, "POST", "/admin/users", { cookie, body: { email: " New@Hampton.je " } })).status, 201);
   assert.ok((await call(env, "GET", "/admin/users", { cookie })).data.users.some(u => u.email === "new@hampton.je"));
   assert.equal((await call(env, "POST", "/admin/users", { cookie, body: { email: "bad" } })).status, 400);
-  assert.equal((await call(env, "DELETE", "/admin/users/luismadef45%40gmail.com", { cookie })).status, 400);
+  assert.equal((await call(env, "DELETE", "/admin/users/admin%40example.test", { cookie })).status, 400);
   assert.equal((await call(env, "DELETE", "/admin/users/new%40hampton.je", { cookie })).status, 200);
   assert.equal((await call(env, "DELETE", "/admin/users/new%40hampton.je", { cookie })).status, 404);
 });
@@ -3440,7 +3440,7 @@ async function admin(browser) {
   const page = await newPage(ctx, {width: 1280, height: 900});
   await page.goto(BASE + "admin/");
   await page.waitForSelector("text=Entrar con Google");
-  await ctx.addCookies([{name: COOKIE, value: await signSession("luismadef45@gmail.com", secret), url: BASE, secure: true, httpOnly: true, sameSite: "Strict"}]);
+  await ctx.addCookies([{name: COOKIE, value: await signSession("admin@example.test", secret), url: BASE, secure: true, httpOnly: true, sameSite: "Strict"}]);
   await page.reload();
   await page.waitForSelector("text=Propiedades");
   assert.match(await page.textContent(".seg"), /Publicadas4[\s\S]*Borradores1/);
@@ -3456,7 +3456,7 @@ async function admin(browser) {
   await page.waitForSelector('[role=dialog] >> text=Tu sesión ha caducado');
   assert.equal(await page.inputValue("#f-title"), "Le Bernage (edited)");
   // Signing in again needs Google; simulate it with a fresh cookie and a reload.
-  await ctx.addCookies([{name: COOKIE, value: await signSession("luismadef45@gmail.com", secret), url: BASE, secure: true, httpOnly: true, sameSite: "Strict"}]);
+  await ctx.addCookies([{name: COOKIE, value: await signSession("admin@example.test", secret), url: BASE, secure: true, httpOnly: true, sameSite: "Strict"}]);
   await page.reload();
   await page.waitForSelector("#f-title");
   await page.fill("#f-title", "Le Bernage (edited)");
@@ -3487,7 +3487,7 @@ async function admin(browser) {
   await page.goto(BASE + "admin/#/solicitudes");
   await page.waitForSelector("text=Jane Le Brocq");
   await page.goto(BASE + "admin/#/usuarios");
-  await page.waitForSelector("text=andres.san1404@gmail.com");
+  await page.waitForSelector("text=colleague@example.test");
   await shot(page, "admin-users");
   assert.deepEqual(page.errors, []);
   await ctx.close();
@@ -3600,7 +3600,7 @@ Esperado: `N published` (el mismo N que en local), `public photo 200`, `external
 - [ ] **Step 9: Prueba de Luis (no automatizable)**
 
 Pídele que:
-1. abra https://hamptonjersey.pages.dev/admin/ y pulse "Entrar con Google" con `luismadef45@gmail.com`; debe ver el listado;
+1. abra https://hamptonjersey.pages.dev/admin/ y pulse "Entrar con Google" con su cuenta de administrador; debe ver el listado;
 2. edite el título de una ficha, guarde y lo vea en la web pública en menos de un minuto (y después lo deje como estaba);
 3. pruebe con una cuenta de Google que no esté autorizada; debe ver "Esta cuenta no tiene acceso";
 4. envíe una solicitud desde "Book a viewing" y la vea en Solicitudes.

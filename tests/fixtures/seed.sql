@@ -1,3 +1,6 @@
+-- The e2e's two fictitious admins (the migrations seed none).
+INSERT INTO admins (email, added_by, added_at) VALUES ('admin@example.test', 'setup', '2026-10-07T00:00:00.000Z'),
+  ('colleague@example.test', 'setup', '2026-10-07T00:00:00.000Z');
 INSERT INTO listings (id, use, title, property_type, operation, availability, country, location, bedrooms, bathrooms,
   sale_price, rent, rent_period, premium, currency, price_text, summary, description, tour_url, specs, published, archived_at, created_at, updated_at, updated_by) VALUES
 ('HE-R001','residential','Le Bernage','House','sale','for_sale','Jersey','St Saviour',3,1,779000,NULL,NULL,NULL,'GBP','£779,000',
@@ -29,16 +32,16 @@ INSERT INTO listings (id, use, title, property_type, operation, availability, co
 ('HE-R004','residential','Havre des Pas apartment','Apartment','rent','to_let','Jersey','Havre des Pas',2,1,NULL,2100,'month',
  'GBP','£2,100 pcm','Fully furnished, sea views','Fully furnished two-bedroom apartment on the seafront with a balcony.'
  || char(10) || 'Pets considered. One allocated parking space.','[]',0,1,NULL,
- '2026-10-22T09:00:00.000Z','2026-10-22T09:00:00.000Z','luismadef45@gmail.com'),
+ '2026-10-22T09:00:00.000Z','2026-10-22T09:00:00.000Z','admin@example.test'),
 ('HE-R005','residential','Town flat near the Parade','Flat','rent','to_let','Jersey','St Helier',2,1,NULL,21600,'year',
  'GBP','£21,600 per annum',NULL,'Unfurnished two-bedroom flat close to town, with a communal garden. No pets.','[]',0,1,NULL,
- '2026-10-22T09:10:00.000Z','2026-10-22T09:10:00.000Z','luismadef45@gmail.com'),
+ '2026-10-22T09:10:00.000Z','2026-10-22T09:10:00.000Z','admin@example.test'),
 ('HE-R006','residential','St Aubin family house','House','sale','for_sale','Jersey','St Aubin',4,2,695000,NULL,NULL,
  'GBP','£695,000','Detached, four bedrooms','Detached family house with a south-facing garden and parking for 2 cars.','[]',0,1,NULL,
- '2026-10-22T09:20:00.000Z','2026-10-22T09:20:00.000Z','luismadef45@gmail.com'),
+ '2026-10-22T09:20:00.000Z','2026-10-22T09:20:00.000Z','admin@example.test'),
 ('HE-R007','residential','Gorey harbour cottage','Cottage','rent','to_let','Jersey','Gorey',3,1,NULL,1950,'month',
  'GBP','£1,950 pcm',NULL,'Pet friendly cottage a short walk from the harbour. Garage.','[]',0,1,NULL,
- '2026-10-22T09:30:00.000Z','2026-10-22T09:30:00.000Z','luismadef45@gmail.com'),
+ '2026-10-22T09:30:00.000Z','2026-10-22T09:30:00.000Z','admin@example.test'),
 ('HE-R040','residential','Millbrook stone cottage','Cottage','sale','for_sale','Jersey','Millbrook',3,1,640000,NULL,NULL,
  'GBP','£640,000',NULL,'Granite cottage with a sunny patio, marketed jointly with another agency.',
  '[{"group":"Outside","label":"Parking Spaces","value":"2"}]',0,1,'2026-10-07T00:00:00.000Z',
@@ -60,36 +63,36 @@ INSERT INTO contacts (id, name, email, phone, preferred_channel, best_time, priv
 (1,'Sarah Vibert','sarah.vibert@example.je','+447797111222','whatsapp','After 6pm','2026-10-20T09:00:00.000Z',NULL,'web',
  '2026-10-20T09:00:00.000Z','2026-10-20T09:00:00.000Z','2026-10-20T09:00:00.000Z','public'),
 (2,'Tom Renouf','tom.renouf@example.je','+447700900321','call',NULL,'2026-10-21T10:00:00.000Z',NULL,'phone',
- '2026-10-22T18:30:00.000Z','2026-10-21T10:00:00.000Z','2026-10-21T10:00:00.000Z','luismadef45@gmail.com');
+ '2026-10-22T18:30:00.000Z','2026-10-21T10:00:00.000Z','2026-10-21T10:00:00.000Z','admin@example.test');
 INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, budget_min, budget_max, property_types, bedrooms_min,
   parking_spaces, outdoor, furnished, pets, parishes_wanted, move_in_date, lease_term_months, buyer_position, mortgage_aip,
   housing_status, household_adults, household_children, requirements, created_at, updated_at, updated_by) VALUES
 (1,1,'rent','new','web',NULL,NULL,2200,'["flat","house"]',2,1,NULL,'either','[{"kind":"dog","count":1}]','["St Helier","St Saviour"]',
  '2026-12-01',12,NULL,NULL,'entitled',2,0,NULL,'2026-10-20T09:00:00.000Z','2026-10-20T09:00:00.000Z','public'),
-(2,2,'buy','searching','phone','luismadef45@gmail.com',500000,750000,'["house"]',3,2,'["garden"]',NULL,NULL,'["St Brelade","St Lawrence"]',
+(2,2,'buy','searching','phone','admin@example.test',500000,750000,'["house"]',3,2,'["garden"]',NULL,NULL,'["St Brelade","St Lawrence"]',
  NULL,NULL,'needs_to_sell','in_progress','entitled',2,1,'Quiet road, room for a home office','2026-10-21T10:00:00.000Z',
- '2026-10-21T10:00:00.000Z','luismadef45@gmail.com');
+ '2026-10-21T10:00:00.000Z','admin@example.test');
 -- F1-A: a To Let search with no pets that wants a furnished flat with a balcony in St Helier and never St Ouen.
 INSERT INTO contacts (id, name, email, phone, preferred_channel, best_time, privacy_ack_at, marketing_opt_in_at, consent_source,
   last_activity_at, created_at, updated_at, updated_by) VALUES
 (3,'Claire Le Sueur','claire.lesueur@example.je',NULL,'email',NULL,'2026-10-22T11:00:00.000Z',NULL,'email',
- '2026-10-22T11:00:00.000Z','2026-10-22T11:00:00.000Z','2026-10-22T11:00:00.000Z','luismadef45@gmail.com');
+ '2026-10-22T11:00:00.000Z','2026-10-22T11:00:00.000Z','2026-10-22T11:00:00.000Z','admin@example.test');
 INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, budget_min, budget_max, property_types, bedrooms_min,
   parking_spaces, outdoor, furnished, pets, parishes_wanted, parishes_excluded, move_in_date, lease_term_months, housing_status,
   household_adults, household_children, created_at, updated_at, updated_by) VALUES
-(3,3,'rent','searching','email','luismadef45@gmail.com',1500,2300,'["flat"]',2,0,'["balcony"]','yes','[{"kind":"none"}]',
+(3,3,'rent','searching','email','admin@example.test',1500,2300,'["flat"]',2,0,'["balcony"]','yes','[{"kind":"none"}]',
  '["St Helier"]','["St Ouen"]','2026-11-15',12,'licensed',1,0,'2026-10-22T11:00:00.000Z','2026-10-22T11:00:00.000Z',
- 'luismadef45@gmail.com');
+ 'admin@example.test');
 -- Jersey fields: a To Let search with Registered status (value standard) that fits the Qualified town flat (HE-R005) in every other way,
 -- so the housing check alone keeps them apart (Claire Le Sueur, Licensed, is matched with it).
 INSERT INTO contacts (id, name, email, phone, preferred_channel, best_time, privacy_ack_at, marketing_opt_in_at, consent_source,
   last_activity_at, created_at, updated_at, updated_by) VALUES
 (6,'Daniel Hamon','daniel.hamon@example.je',NULL,'email',NULL,'2026-10-22T13:00:00.000Z',NULL,'email',
- '2026-10-22T13:00:00.000Z','2026-10-22T13:00:00.000Z','2026-10-22T13:00:00.000Z','luismadef45@gmail.com');
+ '2026-10-22T13:00:00.000Z','2026-10-22T13:00:00.000Z','2026-10-22T13:00:00.000Z','admin@example.test');
 INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, budget_max, property_types, bedrooms_min,
   parishes_wanted, housing_status, household_adults, household_children, created_at, updated_at, updated_by) VALUES
-(6,6,'rent','searching','email','luismadef45@gmail.com',2000,'["flat"]',2,'["St Helier"]','standard',1,0,
- '2026-10-22T13:00:00.000Z','2026-10-22T13:00:00.000Z','luismadef45@gmail.com');
+(6,6,'rent','searching','email','admin@example.test',2000,'["flat"]',2,'["St Helier"]','standard',1,0,
+ '2026-10-22T13:00:00.000Z','2026-10-22T13:00:00.000Z','admin@example.test');
 -- F3-A: a viewing in each state, dated from the day the seed is loaded so they never go stale. Upcoming ones fall on a
 -- weekday (inside the seeded hours) at least two days ahead; 'weekday N' is the next such day (Tue 2 … Fri 5).
 INSERT INTO viewing_requests (id, listing_id, listing_ref, listing_title_snapshot, agent, negotiator_id, kind, date, time, end_time,
@@ -110,15 +113,15 @@ INSERT INTO viewing_requests (id, listing_id, listing_ref, listing_title_snapsho
 -- Gilberto is away one day: no website times that date.
 INSERT INTO negotiator_exceptions (negotiator_id, date, kind, note, created_at, created_by) VALUES
 ((SELECT id FROM negotiators WHERE name = 'Gilberto Franco'),date('now','+2 days','weekday 5'),'block','Holiday',
- '2026-10-22T09:00:00.000Z','luismadef45@gmail.com');
+ '2026-10-22T09:00:00.000Z','admin@example.test');
 INSERT INTO events (id, at, actor, entity_type, entity_id, type, data) VALUES
 (1,'2026-10-20T09:00:00.000Z','public','applicant','1','applicant.created','{"operation":"rent","source":"web"}'),
-(2,'2026-10-21T10:00:00.000Z','luismadef45@gmail.com','applicant','2','applicant.created','{"operation":"buy","source":"phone"}'),
+(2,'2026-10-21T10:00:00.000Z','admin@example.test','applicant','2','applicant.created','{"operation":"buy","source":"phone"}'),
 (3,'2026-10-22T14:00:00.000Z','public','viewing','1','viewing.requested',
  '{"listing_id":"HE-R001","date":"' || date('now','+2 days','weekday 2') || '","time":"10:00","kind":"In person"}'),
 (4,'2026-10-22T18:30:00.000Z','public','contact','2','applicant.duplicate_submitted',
  '{"operation":"buy","name":"Tom Renouf","email":"tom.renouf@example.je","phone":"+447700900321","preferred_channel":"whatsapp","best_time":"Weekday mornings","budget_max":800000,"property_types":["house","cottage"],"bedrooms_min":4,"parking_spaces":2,"outdoor":["garden"],"parishes_wanted":["St Brelade","St Lawrence","St Peter"],"buyer_position":"needs_to_sell","mortgage_aip":"yes","housing_status":"entitled","requirements":"Quiet road, room for a home office","privacy":true,"marketing":true}'),
-(5,'2026-10-22T11:00:00.000Z','luismadef45@gmail.com','applicant','3','applicant.created','{"operation":"rent","source":"email"}');
+(5,'2026-10-22T11:00:00.000Z','admin@example.test','applicant','3','applicant.created','{"operation":"rent","source":"email"}');
 INSERT INTO notifications (id, event_id, category, title, action_required, created_at) VALUES
 (1,1,'new_applicant','New applicant: Sarah Vibert · To Let',1,'2026-10-20T09:00:00.000Z'),
 (2,2,'new_applicant','New applicant: Tom Renouf · To Buy',0,'2026-10-21T10:00:00.000Z'),
@@ -144,55 +147,55 @@ INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, label, publi
 INSERT INTO contacts (id, name, email, phone, preferred_channel, best_time, privacy_ack_at, marketing_opt_in_at, consent_source,
   last_activity_at, created_at, updated_at, updated_by) VALUES
 (4,'Helen Picot','helen.picot@example.je','+447700900456','email',NULL,'2026-10-22T12:00:00.000Z',NULL,'phone',
- '2026-10-22T12:00:00.000Z','2026-10-22T12:00:00.000Z','2026-10-22T12:00:00.000Z','luismadef45@gmail.com');
+ '2026-10-22T12:00:00.000Z','2026-10-22T12:00:00.000Z','2026-10-22T12:00:00.000Z','admin@example.test');
 INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, budget_max, property_types, bedrooms_min,
   parishes_wanted, buyer_position, mortgage_aip, housing_status, household_adults, household_children, created_at, updated_at, updated_by) VALUES
-(4,4,'buy','viewing','phone','luismadef45@gmail.com',900000,'["house"]',3,'["St Martin"]','nothing_to_sell','yes','entitled',2,0,
- '2026-10-22T12:00:00.000Z','2026-10-22T12:00:00.000Z','luismadef45@gmail.com');
+(4,4,'buy','viewing','phone','admin@example.test',900000,'["house"]',3,'["St Martin"]','nothing_to_sell','yes','entitled',2,0,
+ '2026-10-22T12:00:00.000Z','2026-10-22T12:00:00.000Z','admin@example.test');
 INSERT INTO events (id, at, actor, entity_type, entity_id, type, data) VALUES
-(6,'2026-10-22T12:00:00.000Z','luismadef45@gmail.com','applicant','4','applicant.created','{"operation":"buy","source":"phone"}');
+(6,'2026-10-22T12:00:00.000Z','admin@example.test','applicant','4','applicant.created','{"operation":"buy","source":"phone"}');
 -- G2 (E8): a contact last active 11 and a half months ago, dated from the day the seed is loaded, so it is Expiring: the
 -- 12-month pass deletes it in about two weeks. Its To Let search fits no listing.
 INSERT INTO contacts (id, name, email, phone, preferred_channel, best_time, privacy_ack_at, marketing_opt_in_at, consent_source,
   last_activity_at, created_at, updated_at, updated_by) VALUES
 (5,'Rachel Le Cornu','rachel.lecornu@example.je',NULL,'email',NULL,NULL,NULL,'phone',
- strftime('%Y-%m-%dT%H:%M:%fZ','now','-11 months','-15 days'),'2025-10-01T09:00:00.000Z','2025-10-01T09:00:00.000Z','luismadef45@gmail.com');
+ strftime('%Y-%m-%dT%H:%M:%fZ','now','-11 months','-15 days'),'2025-10-01T09:00:00.000Z','2025-10-01T09:00:00.000Z','admin@example.test');
 INSERT INTO applicants (id, contact_id, operation, stage, source, assigned_to, budget_max, property_types, bedrooms_min,
   parishes_wanted, housing_status, household_adults, household_children, created_at, updated_at, updated_by) VALUES
 (5,5,'rent','searching','phone',NULL,600,'["flat"]',1,'["St Ouen"]','entitled',1,0,
- '2025-10-01T09:00:00.000Z','2025-10-01T09:00:00.000Z','luismadef45@gmail.com');
+ '2025-10-01T09:00:00.000Z','2025-10-01T09:00:00.000Z','admin@example.test');
 -- F5-A managed rentals, dated from the day the seed is loaded. A full-management property whose tenant hasn't paid the
 -- first two months (the oldest unpaid charge a month and more old, so the Formal letter step is due) and whose gas check
 -- ran out ten days ago; a let-only flat whose fixed term ends in 60 days (Renewal due); and a deposit the bank import
 -- couldn't match. Every other check is recorded and in date, and the deposits and check-ins are done.
 INSERT INTO landlords (id, name, email, phone, approval_limit, notes, created_at, created_by, updated_at, updated_by) VALUES
-(1,'Margaret Le Brun','margaret.lebrun@example.je','07797 711222',500,NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com','2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
-(2,'Peter Gallienne','peter.gallienne@example.je',NULL,NULL,NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com','2026-09-01T09:00:00.000Z','luismadef45@gmail.com');
+(1,'Margaret Le Brun','margaret.lebrun@example.je','07797 711222',500,NULL,'2026-09-01T09:00:00.000Z','admin@example.test','2026-09-01T09:00:00.000Z','admin@example.test'),
+(2,'Peter Gallienne','peter.gallienne@example.je',NULL,NULL,NULL,'2026-09-01T09:00:00.000Z','admin@example.test','2026-09-01T09:00:00.000Z','admin@example.test');
 INSERT INTO rentals (id, landlord_id, address, parish, service, fee_percent, has_gas, notes, created_at, created_by, updated_at, updated_by) VALUES
-(1,1,'Rose Cottage, La Rue du Moulin','St Lawrence','full',10,1,NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com','2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
-(2,2,'Flat 2, 14 Bath Street','St Helier','let_only',NULL,0,NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com','2026-09-01T09:00:00.000Z','luismadef45@gmail.com');
+(1,1,'Rose Cottage, La Rue du Moulin','St Lawrence','full',10,1,NULL,'2026-09-01T09:00:00.000Z','admin@example.test','2026-09-01T09:00:00.000Z','admin@example.test'),
+(2,2,'Flat 2, 14 Bath Street','St Helier','let_only',NULL,0,NULL,'2026-09-01T09:00:00.000Z','admin@example.test','2026-09-01T09:00:00.000Z','admin@example.test');
 INSERT INTO compliance_items (rental_id, kind, done_on, expires_on, note, updated_at, updated_by) VALUES
-(1,'licence',date('now','-6 months'),date('now','-6 months','+2 years'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
-(1,'eicr',date('now','-1 year'),date('now','-1 year','+5 years'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
-(1,'gas',date('now','-10 days','-1 year'),date('now','-10 days'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
-(1,'alarms',date('now','-2 months'),date('now','-2 months','+1 year'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
-(2,'licence',date('now','-3 months'),date('now','-3 months','+2 years'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
-(2,'eicr',date('now','-2 years'),date('now','-2 years','+5 years'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
-(2,'alarms',date('now','-4 months'),date('now','-4 months','+1 year'),NULL,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com');
+(1,'licence',date('now','-6 months'),date('now','-6 months','+2 years'),NULL,'2026-09-01T09:00:00.000Z','admin@example.test'),
+(1,'eicr',date('now','-1 year'),date('now','-1 year','+5 years'),NULL,'2026-09-01T09:00:00.000Z','admin@example.test'),
+(1,'gas',date('now','-10 days','-1 year'),date('now','-10 days'),NULL,'2026-09-01T09:00:00.000Z','admin@example.test'),
+(1,'alarms',date('now','-2 months'),date('now','-2 months','+1 year'),NULL,'2026-09-01T09:00:00.000Z','admin@example.test'),
+(2,'licence',date('now','-3 months'),date('now','-3 months','+2 years'),NULL,'2026-09-01T09:00:00.000Z','admin@example.test'),
+(2,'eicr',date('now','-2 years'),date('now','-2 years','+5 years'),NULL,'2026-09-01T09:00:00.000Z','admin@example.test'),
+(2,'alarms',date('now','-4 months'),date('now','-4 months','+1 year'),NULL,'2026-09-01T09:00:00.000Z','admin@example.test');
 INSERT INTO tenancies (id, rental_id, payment_ref, tenant_name, tenant_email, tenant_phone, kind, regime, start_on, end_on, rent, due_day,
   deposit, deposit_received_on, deposit_protected_on, deposit_ref, inventory_in_on, collect_from, created_at, created_by, updated_at, updated_by) VALUES
 (1,1,'HE-T0001','James Vautier','james.vautier@example.je','07700 900777','periodic','2025',date('now','-8 days','-1 month'),NULL,1250,
  min(CAST(strftime('%d',date('now','-8 days','-1 month')) AS INTEGER),28),1250,date('now','-8 days','-1 month'),
  date('now','-8 days','-1 month','+10 days'),'MD-48213',date('now','-8 days','-1 month'),date('now','-8 days','-1 month'),
- '2026-09-01T09:00:00.000Z','luismadef45@gmail.com','2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
+ '2026-09-01T09:00:00.000Z','admin@example.test','2026-09-01T09:00:00.000Z','admin@example.test'),
 (2,2,'HE-T0002','Sophie Martin','sophie.martin@example.je',NULL,'fixed','2011',date('now','+60 days','-1 year'),date('now','+60 days'),1900,1,
  1900,date('now','+60 days','-1 year'),date('now','+60 days','-1 year','+7 days'),'MD-39114',date('now','+60 days','-1 year'),NULL,
- '2026-09-01T09:00:00.000Z','luismadef45@gmail.com','2026-09-01T09:00:00.000Z','luismadef45@gmail.com');
+ '2026-09-01T09:00:00.000Z','admin@example.test','2026-09-01T09:00:00.000Z','admin@example.test');
 INSERT INTO rent_changes (tenancy_id, effective_on, rent, created_at, created_by) VALUES
-(1,date('now','-8 days','-1 month'),1250,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com'),
-(2,date('now','+60 days','-1 year'),1900,'2026-09-01T09:00:00.000Z','luismadef45@gmail.com');
+(1,date('now','-8 days','-1 month'),1250,'2026-09-01T09:00:00.000Z','admin@example.test'),
+(2,date('now','+60 days','-1 year'),1900,'2026-09-01T09:00:00.000Z','admin@example.test');
 INSERT INTO payments (id, tenancy_id, received_on, amount, description, kind, source, created_at, created_by) VALUES
-(1,NULL,date('now','-2 days'),190000,'S MARTIN DEPOSIT FLAT 2 BATH ST','rent','import','2026-10-22T09:00:00.000Z','luismadef45@gmail.com');
+(1,NULL,date('now','-2 days'),190000,'S MARTIN DEPOSIT FLAT 2 BATH ST','rent','import','2026-10-22T09:00:00.000Z','admin@example.test');
 -- ADM-04: two listings on the website left unconfirmed for 4 months (a sale and a business), so the panel asks for a
 -- call to their owners.
 UPDATE listings SET confirmed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-4 months') WHERE id IN ('HE-R018', 'HE-C001');

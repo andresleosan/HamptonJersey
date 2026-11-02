@@ -86,7 +86,7 @@ test("arrears: the next step is the latest due one; marking it done; a full paym
   const r = await mark(env, id, ago(6), "firm", { note: "Texted on Monday" });
   assert.equal(r.status, 200, JSON.stringify(r.data));
   assert.equal(r.data.arrears.next_step, null);
-  assert.deepEqual(r.data.arrears.done.map(s => [s.step, s.note, s.done_by]), [["firm", "Texted on Monday", "luismadef45@gmail.com"]]);
+  assert.deepEqual(r.data.arrears.done.map(s => [s.step, s.note, s.done_by]), [["firm", "Texted on Monday", "admin@example.test"]]);
   const again = await mark(env, id, ago(6), "firm", { note: "Twice" });
   assert.equal(again.status, 200, "marking it again changes nothing");
   assert.deepEqual(again.data.arrears, r.data.arrears);

@@ -4,7 +4,7 @@ import { makeEnv, seedListing, call, adminCookie, ORIGIN, T0 } from "./helpers.m
 
 // AUT-13 (spec 2026-10-31): Hermes's door. Its own key, six fixed operations, public data and counts only.
 const KEY = "hermes-test-key-hermes-test-key-0123456789";
-const ADMIN = "luismadef45@gmail.com";
+const ADMIN = "admin@example.test";
 const env0 = () => ({ ...makeEnv(), HERMES_KEY: KEY });
 // Hermes calls from the VPS through the key's custodian: no Origin, no cookie.
 const door = (env, method, path, body) => call(env, method, `/hermes${path}`, { body, bearer: KEY, origin: null });

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { makeEnv, seedListing, call, adminCookie } from "./helpers.mjs";
 import { median, reachedStages, groupDemand, topUnmet, jerseyDayStart } from "../../server/insights.js";
 
-const ADMIN = "luismadef45@gmail.com";
+const ADMIN = "admin@example.test";
 const NOW = "2026-10-24T11:00:00Z"; // 12:00 BST: Jersey's today is 2026-10-24
 const run = (env, sql, ...args) => env.DB.raw.prepare(sql).run(...args);
 const get = async (env, query = "") => call(env, "GET", `/admin/insights${query}`, { cookie: await adminCookie(ADMIN) });

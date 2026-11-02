@@ -22,7 +22,7 @@ Sustituir el demo por el catálogo real de Hampton Estates. El equipo entra con 
 | D4 | El panel edita el catálogo; la investigación (fuentes, facts, términos, issues, búsquedas, match) se importa y es solo lectura | Luis | Pregunta "Alcance datos" |
 | D5 | Se suben a R2 las 749 fotos. Las externas son privadas (solo con sesión admin); las de Hampton son públicas cuando su ficha está publicada | Luis | Pregunta "Fotos" |
 | D6 | Acceso: lista de emails en D1, un solo rol con todos los permisos; usuarios gestionables desde el panel | Luis | Pregunta "Acceso" |
-| D7 | Primeros admins: `luismadef45@gmail.com`, `andres.san1404@gmail.com` | Luis | Pregunta "Admins" |
+| D7 | Primeros admins: las cuentas de Google de Luis y Andrés (sus correos salieron del repo público el 2-nov-2026) | Luis | Pregunta "Admins" |
 | D8 | Panel en React + Vite | Luis | Pregunta "Stack" |
 | D9 | Borrar = archivar (recuperable). El borrado definitivo solo desde Archivadas y escribiendo la referencia | Luis | Pregunta "Borrar" |
 | D10 | Enfoque A: Pages Functions en este repo, sobre el proyecto Pages `hamptonjersey` (deploy automático desde GitHub `main`) | Luis | "si, vamos con A" |

@@ -6,7 +6,7 @@ import { plusDays, addMinutes } from "../../server/viewings.js";
 // A fixed clock: Wednesday 28 October 2026, 12:05 in Jersey (GMT since the 25th, so the same as UTC).
 const NOW = Date.parse("2026-10-28T12:05:00.000Z"), TODAY = "2026-10-28";
 const day = n => plusDays(TODAY, n);
-const ADMIN = "luismadef45@gmail.com";
+const ADMIN = "admin@example.test";
 const TAKEN = "That time was just booked. Please choose another.";
 
 async function world(t) {

@@ -6,7 +6,7 @@ import { runRetention, RETENTION_CAP } from "../../server/retention.js";
 
 // AUT-01 (spec 2026-11-01): the Automations screen, the stopped count, the panel's pause and the jobs' 90 days.
 const KEY = "hermes-test-key-hermes-test-key-0123456789";
-const ADMIN = "luismadef45@gmail.com";
+const ADMIN = "admin@example.test";
 const NOW = "2026-11-01T12:00:00.000Z";
 const ago = min => new Date(Date.parse(NOW) - min * 60e3).toISOString();
 const daysAgo = d => ago(d * 1440);

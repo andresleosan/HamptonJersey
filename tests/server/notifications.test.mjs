@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, call, adminCookie, T0 } from "./helpers.mjs";
 
-const ADMIN = "luismadef45@gmail.com";
+const ADMIN = "admin@example.test";
 const at = min => new Date(Date.parse(T0) + min * 60e3).toISOString();
 
 const insert = (env, table, row) => {
@@ -189,7 +189,7 @@ test("PUT resolved:true closes the notice and it stops counting", async () => {
   assert.ok((await get(env, "?box=feed")).data.notifications.some(n => n.id === ids.oldViewing));
 
   const again = await call(env, "PUT", `/admin/notifications/${ids.oldViewing}`,
-    { cookie: await adminCookie("andres.san1404@gmail.com"), body: { resolved: true } });
+    { cookie: await adminCookie("colleague@example.test"), body: { resolved: true } });
   assert.equal(again.status, 200, "resolving twice is fine");
   assert.deepEqual(env.DB.raw.prepare("SELECT resolved_at, resolved_by FROM notifications WHERE id = ?").get(ids.oldViewing),
     row, "and leaves it unchanged");

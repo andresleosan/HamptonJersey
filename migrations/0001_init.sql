@@ -52,9 +52,9 @@ CREATE TABLE admins (
   email TEXT PRIMARY KEY CHECK (email = lower(email)),
   added_by TEXT, added_at TEXT NOT NULL
 );
-INSERT INTO admins (email, added_by, added_at) VALUES
-  ('luismadef45@gmail.com', 'setup', '2026-10-07T00:00:00.000Z'),
-  ('andres.san1404@gmail.com', 'setup', '2026-10-07T00:00:00.000Z');
+-- No admin is seeded here: the repo is public. The first admin of a new database is added once, outside the repo:
+--   npx wrangler d1 execute hampton --remote --command "INSERT INTO admins (email, added_by, added_at) VALUES ('<email>', 'setup', strftime('%Y-%m-%dT%H:%M:%fZ'))"
+-- and the rest from Settings → Users. (Production's admins were added when this file still seeded them, on 7-oct-2026.)
 
 -- Investigación: copia literal de /root/Hampton_Database/hampton_properties.sqlite, solo lectura.
 CREATE TABLE research_properties (

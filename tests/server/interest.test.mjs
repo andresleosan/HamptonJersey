@@ -120,7 +120,7 @@ test("remove: only the person the count makes of that viewing", async t => {
   assert.equal(await interest(env), 1);
   const [e] = events(env, "viewing.uncounted");
   assert.deepEqual([events(env, "viewing.uncounted").length, e.entity_type, e.entity_id, e.actor, e.data],
-    [1, "viewing", String(a2), "luismadef45@gmail.com", '{"reason":"not_buyer"}']);
+    [1, "viewing", String(a2), "admin@example.test", '{"reason":"not_buyer"}']);
   assert.equal((await correct(env, a1, { action: "restore" })).status, 200);
   for (const id of [a1, a2]) assert.deepEqual([row(env, id).interest_removed_at, row(env, id).interest_reason, row(env, id).interest_note], [null, null, null]);
   assert.equal(await interest(env), 2);
@@ -228,7 +228,7 @@ test("corrections leave the viewing and the contact as they were", async t => {
   env.DB.raw.prepare("INSERT INTO contacts (name, email, last_activity_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
     .run("Sam Buyer", "sam@x.je", T0, T0, T0);
   const sam = seedViewing(env, { email: "sam@x.je", phone: "07797 123456", notes: "Called", status: "confirmed",
-    updated_at: "2026-10-20T09:00:00.000Z", updated_by: "andres.san1404@gmail.com" });
+    updated_at: "2026-10-20T09:00:00.000Z", updated_by: "colleague@example.test" });
   const kay = seedViewing(env, { name: "Kay", email: "kay@x.je", date: day(2) });
   const COLS = ["status", "date", "time", "end_time", "notes", "name", "email", "phone", "negotiator_id", "updated_at", "updated_by"];
   const viewing = () => Object.fromEntries(COLS.map(c => [c, row(env, sam)[c]]));

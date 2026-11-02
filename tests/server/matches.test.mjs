@@ -4,7 +4,7 @@ import { makeEnv, seedListing, seedMedia, call, adminCookie, T0 } from "./helper
 import { recomputeForApplicant } from "../../server/match-store.js";
 import { RECALC_BATCH } from "../../server/routes/matches.js";
 
-const ADMIN = "luismadef45@gmail.com", OTHER = "andres.san1404@gmail.com";
+const ADMIN = "admin@example.test", OTHER = "colleague@example.test";
 const at = min => new Date(Date.parse(T0) + min * 60e3).toISOString();
 const run = (env, sql, ...args) => env.DB.raw.prepare(sql).run(...args);
 const row = (env, sql, ...args) => env.DB.raw.prepare(sql).get(...args);

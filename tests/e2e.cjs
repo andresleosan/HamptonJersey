@@ -333,7 +333,7 @@ async function admin(browser) {
   await page.goto(BASE + "admin/");
   await page.waitForSelector("text=Sign in with Google");
   assert.equal(await page.getAttribute(".login a.home", "href"), "/", "login screen links back to the public site");
-  await ctx.addCookies([{name: COOKIE, value: await signSession("luismadef45@gmail.com", secret), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: "Strict"}]);
+  await ctx.addCookies([{name: COOKIE, value: await signSession("admin@example.test", secret), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: "Strict"}]);
   await page.reload();
   await page.waitForSelector("#t-inbox");
   assert.equal(await page.getAttribute("header.bar a.home", "href"), "/", "panel header links back to the public site");
@@ -392,7 +392,7 @@ async function admin(browser) {
   assert.equal(await page.evaluate(() => document.activeElement.textContent), "Sign in with Google");
   assert.equal(await page.getAttribute("main.page", "inert"), "");
   // Signing in again needs Google; simulate it with a fresh cookie and a reload.
-  await ctx.addCookies([{name: COOKIE, value: await signSession("luismadef45@gmail.com", secret), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: "Strict"}]);
+  await ctx.addCookies([{name: COOKIE, value: await signSession("admin@example.test", secret), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: "Strict"}]);
   await page.reload();
   await page.waitForSelector("#f-title");
   await page.fill("#f-title", "Le Bernage (edited)");
@@ -741,7 +741,7 @@ async function admin(browser) {
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
-  await page.waitForSelector("text=andres.san1404@gmail.com");
+  await page.waitForSelector("text=colleague@example.test");
   await shot(page, "admin-users");
   assert.deepEqual(page.errors, []);
   await ctx.close();
@@ -751,8 +751,8 @@ async function admin(browser) {
 // finished Hermes job fills the recent table; the pause asked here shows the bar on the page and goes with Resume sending.
 async function automations(page, phone, noSideScroll) {
   d1(`INSERT INTO jobs (kind, listing_id, status, attempts, requested_by, created_at, claimed_at, drafted_at, decided_at, decided_by)
-    SELECT 'listing_text', id, 'used', 1, 'luismadef45@gmail.com', '2026-10-31T09:00:00.000Z', '2026-10-31T09:01:00.000Z',
-    '2026-10-31T09:02:00.000Z', '2026-10-31T10:00:00.000Z', 'luismadef45@gmail.com' FROM listings WHERE id = 'HE-R001'`);
+    SELECT 'listing_text', id, 'used', 1, 'admin@example.test', '2026-10-31T09:00:00.000Z', '2026-10-31T09:01:00.000Z',
+    '2026-10-31T09:02:00.000Z', '2026-10-31T10:00:00.000Z', 'admin@example.test' FROM listings WHERE id = 'HE-R001'`);
   const gets = [], count = r => r.url().endsWith("/api/admin/automations") && gets.push(r);
   page.on("request", count);
   await page.goto(BASE + "admin/#/automations");
@@ -768,7 +768,7 @@ async function automations(page, phone, noSideScroll) {
   page.once("dialog", d => d.accept());
   await page.getByRole("button", {name: "Pause all outbound"}).click();
   await page.locator(".warn.paused").waitFor();
-  assert.match(await page.textContent(".warn.paused"), /asked by luismadef45@gmail\.com/);
+  assert.match(await page.textContent(".warn.paused"), /asked by admin@example\.test/);
   await page.getByRole("status").filter({hasText: "Sending paused."}).waitFor();
   await shot(page, "admin-automations");
   // A resume from the bar leaves no stale «Sending paused.» in the card.
@@ -1114,7 +1114,7 @@ async function rentals(page, phone, noSideScroll) {
   assert.ok(await menu.isHidden(), "a click outside closes the menu");
   await settings.click();
   await menu.getByRole("link", {name: "Users"}).click();
-  await page.waitForSelector("text=andres.san1404@gmail.com");
+  await page.waitForSelector("text=colleague@example.test");
   assert.equal(await settings.getAttribute("aria-current"), "true", "Settings is marked while on a page inside it");
   assert.ok(await menu.isHidden());
 

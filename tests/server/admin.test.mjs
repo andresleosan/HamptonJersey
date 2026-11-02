@@ -19,7 +19,7 @@ test("admin routes need a valid session of a listed admin", async () => {
   assert.equal((await call(env, "GET", "/admin/listings")).status, 401);
   assert.equal((await call(env, "GET", "/admin/listings", { cookie: await adminCookie("intruder@x.com") })).status, 401);
   assert.equal((await call(env, "GET", "/admin/listings", { cookie: "__Host-hs=forged.sig" })).status, 401);
-  assert.equal((await call(env, "GET", "/me", { cookie: await adminCookie() })).data.email, "luismadef45@gmail.com");
+  assert.equal((await call(env, "GET", "/me", { cookie: await adminCookie() })).data.email, "admin@example.test");
 });
 
 test("session: missing or invalid Google token", async () => {
@@ -51,7 +51,7 @@ test("create assigns the next free id, skipping ids used by research", async () 
   assert.equal(r.status, 201);
   assert.equal(r.data.id, "HE-R028");   // HE-R027 exists in research
   const row = await env.DB.prepare("SELECT published, updated_by FROM listings WHERE id = 'HE-R028'").first();
-  assert.deepEqual({ ...row }, { published: 0, updated_by: "luismadef45@gmail.com" });
+  assert.deepEqual({ ...row }, { published: 0, updated_by: "admin@example.test" });
   assert.equal((await call(env, "POST", "/admin/listings", { cookie, body: { title: "" } })).status, 400);
 });
 
@@ -108,7 +108,7 @@ test("archive → cannot publish → restore → delete only when archived and c
   assert.equal((await call(env, "DELETE", "/admin/listings/HE-R001", { cookie, body: { confirm: "nope" } })).status, 400);
   assert.equal((await call(env, "DELETE", "/admin/listings/HE-R001", { cookie, body: { confirm: "HE-R001" } })).status, 200);
   assert.equal(await env.DB.prepare("SELECT 1 FROM listings WHERE id = 'HE-R001'").first(), null);
-  assert.equal((await env.DB.prepare("SELECT deleted_by FROM deleted_listings WHERE id = 'HE-R001'").first()).deleted_by, "luismadef45@gmail.com");
+  assert.equal((await env.DB.prepare("SELECT deleted_by FROM deleted_listings WHERE id = 'HE-R001'").first()).deleted_by, "admin@example.test");
   assert.equal(env.MEDIA.store.has(up.data.media.r2_key), false);
   const r = await call(env, "POST", "/admin/listings/HE-R026/archive", { cookie });
   assert.equal((await call(env, "POST", "/admin/listings/HE-R026/restore", { cookie })).data.listing.archived_at, null);
@@ -176,7 +176,7 @@ test("users: add, refuse self-removal, remove others", async () => {
   assert.equal((await call(env, "POST", "/admin/users", { cookie, body: { email: " New@Hampton.je " } })).status, 201);
   assert.ok((await call(env, "GET", "/admin/users", { cookie })).data.users.some(u => u.email === "new@hampton.je"));
   assert.equal((await call(env, "POST", "/admin/users", { cookie, body: { email: "bad" } })).status, 400);
-  assert.equal((await call(env, "DELETE", "/admin/users/luismadef45%40gmail.com", { cookie })).status, 400);
+  assert.equal((await call(env, "DELETE", "/admin/users/admin%40example.test", { cookie })).status, 400);
   assert.equal((await call(env, "DELETE", "/admin/users/new%40hampton.je", { cookie })).status, 200);
   assert.equal((await call(env, "DELETE", "/admin/users/new%40hampton.je", { cookie })).status, 404);
 });

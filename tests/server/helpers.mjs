@@ -9,6 +9,9 @@ export function makeDb() {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON;");
   for (const f of readdirSync(MIG).filter(f => f.endsWith(".sql")).sort()) db.exec(readFileSync(new URL(f, MIG), "utf8"));
+  // The migrations seed no admin (0001); the tests' own two, fictitious.
+  db.exec(`INSERT INTO admins (email, added_by, added_at) VALUES ('admin@example.test', 'setup', '${T0}'),
+    ('colleague@example.test', 'setup', '${T0}')`);
   const stmt = (sql, args = []) => ({
     sql,
     bind: (...a) => stmt(sql, a),
@@ -96,7 +99,7 @@ export async function call(env, method, path, { body, cookie, origin = ORIGIN, f
   await Promise.all(pending);
   return { status: res.status, headers: res.headers, data: await res.json().catch(() => null) };
 }
-export const adminCookie = async (email = "luismadef45@gmail.com") => `${COOKIE}=${await signSession(email, SECRET)}`;
+export const adminCookie = async (email = "admin@example.test") => `${COOKIE}=${await signSession(email, SECRET)}`;
 
 // The SQL a request runs, with its binds, from the route itself.
 export const captured = (env, match) => {

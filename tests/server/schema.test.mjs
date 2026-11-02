@@ -7,10 +7,10 @@ import { OPTIONS } from "../../server/applicants.js";
 
 const MIG = new URL("../../migrations/", import.meta.url);
 
-test("initial admins are seeded", async () => {
-  const env = makeEnv();
-  const { results } = await env.DB.prepare("SELECT email FROM admins ORDER BY email").all();
-  assert.deepEqual(results.map(r => r.email), ["andres.san1404@gmail.com", "luismadef45@gmail.com"]);
+test("the migrations seed no admin: the repo is public, admins are added outside it", () => {
+  const db = new DatabaseSync(":memory:");
+  for (const f of readdirSync(MIG).filter(f => f.endsWith(".sql")).sort()) db.exec(readFileSync(new URL(f, MIG), "utf8"));
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM admins").get().n, 0);
 });
 
 test("the database itself refuses public external media and zero prices", () => {
@@ -175,7 +175,7 @@ test("0009: notifications rebuilt keep rows, indexes and accept matched", () => 
   const eventId = Number(addRow(db, "events", { at: T0, actor: "public", entity_type: "applicant", entity_id: "1",
     type: "applicant.created" }).lastInsertRowid);
   addRow(db, "notifications", { id: 7, event_id: eventId, category: "new_applicant", title: "New applicant: Jane",
-    action_required: 1, created_at: T0, resolved_at: T0, resolved_by: "luismadef45@gmail.com" });
+    action_required: 1, created_at: T0, resolved_at: T0, resolved_by: "admin@example.test" });
   const before = db.prepare("SELECT * FROM notifications").all();
   apply();
 
@@ -205,7 +205,7 @@ test("0010: viewing requests keep ids and data and map their status", () => {
     created_at: T0, ...over });
   viewing(3, "new", "2026-11-02", "Joshua Franco", { listing_id: "HE-R001", listing_ref: "HE-R001",
     listing_title_snapshot: "Le Bernage", phone: "07797 123456", notes: "Wants Saturday" });
-  viewing(5, "contacted", "2026-11-03", "Gilberto Franco", { updated_at: T0, updated_by: "luismadef45@gmail.com" });
+  viewing(5, "contacted", "2026-11-03", "Gilberto Franco", { updated_at: T0, updated_by: "admin@example.test" });
   viewing(8, "closed", "2020-01-06", "Joshua Franco", { time: "17:00" });
   viewing(9, "closed", "2099-01-05", null);
   viewing(12, "new", "2026-11-04", "Someone else", { time: "10:00" });

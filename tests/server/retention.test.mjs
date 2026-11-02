@@ -6,7 +6,7 @@ import { runRetention, claimRetentionDay, recordRetentionDay, RETENTION_CAP, EXP
 // The pass runs at 09:00 on Sunday 25 October 2026 (GMT since 01:00 that day): the cutoff of contacts and viewings is
 // 2025-10-25, so a contact last active on the 24th (kept until 2026-10-24) goes and one active on the 25th stays.
 const TS = "2026-10-25T09:00:00.000Z";
-const ADMIN = "luismadef45@gmail.com";
+const ADMIN = "admin@example.test";
 
 const insert = (env, table, row) => {
   const cols = Object.keys(row);

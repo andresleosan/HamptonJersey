@@ -7,7 +7,7 @@ const turnstile = ok => { globalThis.fetch = async () => new Response(JSON.strin
 const nextWeekday = () => { const d = new Date(Date.now() + 2 * 864e5); if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
 const booking = (o = {}) => ({ listing_id: "HE-R001", negotiator_id: 1, kind: "In person", date: nextWeekday(),
   time: "11:30", name: "Jane Le Brocq", email: "jane@example.je", phone: "", turnstile: "tok", ...o });
-const ADMIN = "luismadef45@gmail.com";
+const ADMIN = "admin@example.test";
 
 async function requested() {
   const env = makeEnv();

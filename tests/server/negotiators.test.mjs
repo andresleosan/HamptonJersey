@@ -44,8 +44,8 @@ test("create: name, optional role and hours (the seeded week by default); a repe
   const rows = env.DB.raw.prepare("SELECT id, name, role, active, hours, updated_by FROM negotiators WHERE id IN (?, ?) ORDER BY id")
     .all(a.data.id, b.data.id).map(r => ({ ...r, hours: JSON.parse(r.hours) }));
   assert.deepEqual(rows, [
-    { id: a.data.id, name: "Ana Le Sueur", role: null, active: 1, hours: DEFAULT_HOURS, updated_by: "luismadef45@gmail.com" },
-    { id: b.data.id, name: "Tom Vibert", role: "Lettings", active: 1, hours: HOURS, updated_by: "luismadef45@gmail.com" }]);
+    { id: a.data.id, name: "Ana Le Sueur", role: null, active: 1, hours: DEFAULT_HOURS, updated_by: "admin@example.test" },
+    { id: b.data.id, name: "Tom Vibert", role: "Lettings", active: 1, hours: HOURS, updated_by: "admin@example.test" }]);
   const dup = await call(env, "POST", "/admin/negotiators", { cookie, body: { name: "Gilberto Franco" } });
   assert.equal(dup.status, 409);
   assert.match(dup.data.error, /already/);
@@ -78,7 +78,7 @@ test("update changes name, role, active and hours; unknown id 404, repeated name
   assert.equal(r.status, 200);
   const row = env.DB.raw.prepare("SELECT name, role, active, hours, updated_by FROM negotiators WHERE id = 2").get();
   assert.deepEqual({ ...row, hours: JSON.parse(row.hours) },
-    { name: "Josh Franco", role: null, active: 1, hours: HOURS, updated_by: "luismadef45@gmail.com" });
+    { name: "Josh Franco", role: null, active: 1, hours: HOURS, updated_by: "admin@example.test" });
   assert.equal((await call(env, "PUT", "/admin/negotiators/2", { cookie, body: { active: false } })).status, 200);
   assert.equal(env.DB.raw.prepare("SELECT active FROM negotiators WHERE id = 2").get().active, 0);
   assert.equal((await call(env, "PUT", "/admin/negotiators/2", { cookie, body: { active: "no" } })).status, 400);

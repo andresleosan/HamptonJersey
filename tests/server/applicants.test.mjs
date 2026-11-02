@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, call, adminCookie, T0 } from "./helpers.mjs";
 
-const ADMIN = "luismadef45@gmail.com", OTHER = "andres.san1404@gmail.com";
+const ADMIN = "admin@example.test", OTHER = "colleague@example.test";
 const STALE = "Someone else saved changes to this applicant. Reload to see them (your changes were not saved).";
 
 const req = async (env, method, path, body, who = ADMIN) => call(env, method, path, { body, cookie: await adminCookie(who) });
