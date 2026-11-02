@@ -817,7 +817,7 @@ Ordenadas por cuánto cambian lo que se construye. Las tres primeras salieron de
 4. ¿Hampton usa hoy algún programa para aplicantes o alquileres (un CRM inmobiliario, hojas de cálculo)? Decide entre integrar y construir.
 5. ¿Qué pesa más hoy en Hampton: alquileres, ventas, gestión de alquileres o comercial? Decide el orden de las fases.
 6. ¿Hay acuerdos de comisión con otras agencias y con qué condiciones? Define el primer correo y el permiso para enseñar fotos.
-7. ¿El correo de Hampton es Google Workspace, Microsoft 365 u otro? ¿Su dominio está o puede estar en Cloudflare? Decide cómo se envían y se leen los correos con agencias.
+7. ¿El correo de Hampton es Google Workspace, Microsoft 365 u otro? ¿Su dominio está o puede estar en Cloudflare? Decide cómo se envían y se leen los correos con agencias. Dominio: en Cloudflare desde el 1-nov-2026 (PRE-16); queda qué correo usa Hampton (PRE-23).
 8. ¿Usan WhatsApp con clientes? ¿Tienen un número que pueda pasar a WhatsApp Business?
 9. ¿Cuántos aplicantes nuevos llegan al mes y cuántas propiedades gestionan? Dimensiona costes y límites.
 10. ¿Cómo pagan hoy los inquilinos (transferencia, orden permanente) y en qué banco? ¿Se puede exportar el extracto en CSV?
