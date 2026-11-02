@@ -187,7 +187,7 @@ async function publicSite(browser) {
 
 // Spec 2026-10-25 (shareable listing URLs): /p/<id> for people, link previews and search engines.
 async function listingUrls(browser) {
-  const SITE = "https://hamptonjersey.pages.dev"; // wrangler.toml SITE_URL
+  const SITE = "https://www.hamptonestatesjersey.com"; // wrangler.toml SITE_URL
   // What WhatsApp's robot (no JavaScript) gets: the listing's title, photo, canonical URL and structured data.
   const bot = {headers: {"user-agent": "WhatsApp/2.23.20.0 A"}};
   const raw = (await browser.newContext()).request;

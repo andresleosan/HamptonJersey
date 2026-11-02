@@ -485,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
      "vence" (opcional, AAAA-MM-DD) saca el punto arriba con la cuenta atrás. -->
 <script type="application/json" id="datos">
 {
- "actualizado": "2026-11-01",
+ "actualizado": "2026-11-02",
  "base": "127c7ef",
  "items": [
   {
@@ -1622,7 +1622,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "La app de Hampton (web, panel /admin y su API) vive en Cloudflare Pages con D1 y R2, y lo público va protegido: Turnstile en el registro y las reservas, mismo origen en las escrituras y tope diario en /api/stats.",
-   "falta": "Ninguna automatización de la app usa todavía un modelo de IA (AUT-02). Además sigue en la cuenta de Cloudflare de AndresLeoSan y no en la de Hampton (PRE-28), y la regla WAF de límite de peticiones espera al dominio (PRE-16).",
+   "falta": "Ninguna automatización de la app usa todavía un modelo de IA (AUT-02). Además sigue en la cuenta de Cloudflare de AndresLeoSan y no en la de Hampton (PRE-28), y falta la regla WAF de límite de peticiones, que ya se puede crear con el dominio en Cloudflare (ANA-09).",
    "bloqueo": "",
    "evidencia": [
     "wrangler.toml:1-20",
@@ -1789,7 +1789,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Hermes Agent v0.22.5 (Nous Research, código abierto) corre desde el 29-oct-2026 en el VPS de Optimyze. Es el Hermes de desarrollo de Optimyze. Está en un contenedor aislado, sin permisos de administrador ni Docker, solo sale a internet hacia una lista de dominios, su panel solo se abre por el tailnet y usa el plan de ChatGPT de Luis. El 30-oct Luis decidió que Hermes será el cerebro de IA de las automatizaciones (P-18) y aprobó el diseño del Hermes propio de Hampton (preguntas 15 y 16, §6.6): en el mismo VPS y en su propia jaula, sin herramientas de terminal ni de código, sin entrar nunca en la base de datos, con salida solo al modelo, Telegram y la app, y con el plan de ChatGPT de Luis solo para datos públicos y contadores. La parte de la app está en producción desde el 1-nov-2026 con la migración 0018; la puerta sigue cerrada (sin HERMES_KEY) hasta instalar el Hermes de Hampton en el VPS (preparada el 31-oct en el taller): la puerta /api/hermes con su propia llave (secreto HERMES_KEY; sin él, cerrada) y seis operaciones fijas. Son: el estado con los contadores y el resumen de las 8:00 ya escrito (con las fichas To confirm); los avisos «New applicant» y «New viewing request for …» con un enlace al panel y sin datos de la persona; pedir y tomar trabajo; devolver un borrador; y pausar los envíos. También la tabla jobs (migración 0018: un trabajo abierto por ficha, reintento a los 10 minutos y fallo al tercer intento), la hora de la última petición de Hermes (app_settings, clave hermes), el borrador de textos en el editor de la ficha (PUB-13) y la barra de pausa en todas las pantallas del panel, con «Resume sending», que solo existe en el panel. Además, el intermediario que guarda la llave fuera del contenedor de Hermes (hermes/key-proxy.mjs, decisión de Luis del 31-oct). Pruebas: la llave no abre nada más, la cookie del panel no abre la puerta y ninguna respuesta lleva nombres, emails, teléfonos ni números de personas. Desde el 1-nov-2026 la pantalla Automations (AUT-01) enseña la última petición de Hermes y avisa si deja de pedir trabajo, y el borrado diario quita los trabajos 90 días después de su última actividad: los cerrados y los que nadie tomó (decisión de Luis del 1-nov), y también los que Hermes dejó a medias; un borrador espera siempre a una persona (estas dos, decisión de Claude, spec A5).",
-   "falta": "Instalar en el VPS (necesita Docker y las llaves del VPS y de Cloudflare, que el taller no tiene; notas de instalación en el plan del 31-oct): el Hermes de Hampton en su jaula (sin terminal ni código, memoria y skills propias apagadas, conversaciones borradas a los 30 días, salida solo al modelo, a Telegram y al intermediario) y el intermediario, con la llave como secreto de Docker. En Hermes, programar los avisos (news, cada minuto o dos), el resumen de las 8:00 de Jersey (status) y la toma de trabajo (jobs/next). Antes de conectar el modelo y el bot, PRE-32. Cuando el dominio esté en Cloudflare, un límite de peticiones a /api/hermes en el WAF. Todo envío futuro a clientes o agencias debe mirar la pausa antes de salir. Al final, con Hermes ya instalado y consultando: generar HERMES_KEY en el VPS y ponerla solo en el entorno Production de Pages. Antes no, ni ninguna llamada a la puerta en producción: una sola llamada válida hace aparecer el bloque del borrador en todas las fichas publicadas.",
+   "falta": "Instalar en el VPS (necesita Docker y las llaves del VPS y de Cloudflare, que el taller no tiene; notas de instalación en el plan del 31-oct): el Hermes de Hampton en su jaula (sin terminal ni código, memoria y skills propias apagadas, conversaciones borradas a los 30 días, salida solo al modelo, a Telegram y al intermediario) y el intermediario, con la llave como secreto de Docker. En Hermes, programar los avisos (news, cada minuto o dos), el resumen de las 8:00 de Jersey (status) y la toma de trabajo (jobs/next). Antes de conectar el modelo y el bot, PRE-32. Con el dominio ya en Cloudflare (1-nov-2026), crear un límite de peticiones a /api/hermes en el WAF. Todo envío futuro a clientes o agencias debe mirar la pausa antes de salir. Al final, con Hermes ya instalado y consultando: generar HERMES_KEY en el VPS y ponerla solo en el entorno Production de Pages. Antes no, ni ninguna llamada a la puerta en producción: una sola llamada válida hace aparecer el bloque del borrador en todas las fichas publicadas.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
@@ -3208,7 +3208,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "La web no tiene chat ni formulario de contacto: lo único que el público escribe llega con Register your search («Anything else that matters?») o como reserva «General enquiry / valuation» sin texto libre, y el equipo contesta fuera de la app. Falta un chat web con respuesta desde el panel, que no depende de Meta; contestar a quien ya se fue necesita el servicio de correo, y el público seguirá en Wix hasta el cambio de dominio.",
+   "falta": "La web no tiene chat ni formulario de contacto: lo único que el público escribe llega con Register your search («Anything else that matters?») o como reserva «General enquiry / valuation» sin texto libre, y el equipo contesta fuera de la app. Falta un chat web con respuesta desde el panel, que no depende de Meta; contestar a quien ya se fue necesita el servicio de correo.",
    "bloqueo": "",
    "evidencia": [
     "site/index.html:465-482",
@@ -3291,9 +3291,9 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "Luis",
-   "hecho": "Publish en el editor (o el interruptor Visible en Listings) pone la ficha al momento en la web de la app, en la portada y en /p/<id>, si tiene una foto pública.",
-   "falta": "La web oficial www.hamptonestatesjersey.com sigue en Wix y no recibe las fichas hasta el cambio de dominio; publicar solo al tenerlo todo depende de los obligatorios (PUB-12).",
-   "bloqueo": "Dominio",
+   "hecho": "Publish en el editor (o el interruptor Visible en Listings) pone la ficha al momento en la web de la app, en la portada y en /p/<id>, si tiene una foto pública. Desde el 1-nov-2026 eso es la web oficial, www.hamptonestatesjersey.com.",
+   "falta": "Publicar solo al tenerlo todo depende de los obligatorios (PUB-12).",
+   "bloqueo": "",
    "evidencia": [
     "admin/src/ListingEditor.jsx:259-260",
     "admin/src/Listings.jsx:102-106",
@@ -3516,16 +3516,18 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "Luis",
-   "hecho": "Cada ficha tiene /p/<id> con título, descripción e imagen para la vista previa en WhatsApp y redes, JSON-LD RealEstateListing, sitemap.xml, robots.txt y botones Share y WhatsApp; site/_redirects ya lleva las URL viejas de Wix a /p/<id> para cuando el dominio apunte aquí.",
-   "falta": "Con el dominio propio: cambiar SITE_URL, la meta site-url, el canonical y el JSON-LD de site/index.html y enviar el sitemap a Search Console; hoy solo se indexa hamptonjersey.pages.dev.",
-   "bloqueo": "Dominio",
+   "hecho": "Cada ficha tiene /p/<id> con título, descripción e imagen para la vista previa en WhatsApp y redes, JSON-LD RealEstateListing, sitemap.xml, robots.txt y botones Share y WhatsApp; site/_redirects lleva las URL viejas de Wix a /p/<id>. Desde el 2-nov-2026 todo apunta a https://www.hamptonestatesjersey.com, que sirve la app desde el 1-nov: SITE_URL, la meta site-url, el canonical, og:url, og:image y el JSON-LD de la portada, el sitemap y robots.txt. Solo ese host se indexa: en el dominio sin www, en hamptonjersey.pages.dev y en las vistas previas, las fichas, el sitemap y robots.txt responden noindex, y Cloudflare redirige los dos primeros a www.",
+   "falta": "Enviar el sitemap (https://www.hamptonestatesjersey.com/sitemap.xml) a Google Search Console, con el dominio verificado allí.",
+   "bloqueo": "",
    "evidencia": [
     "functions/p/[id].js:1-33",
     "server/seo.js:21-48",
+    "server/seo.js:63-70",
     "server/seo.js:86-101",
-    "site/index.html:803-805",
+    "site/index.html:11-25",
     "site/_redirects:1-32",
     "wrangler.toml:10",
+    "tests/server/seo.test.mjs:125-171",
     "commit 2bc363a"
    ]
   },
@@ -3855,7 +3857,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "Activar Cloudflare Web Analytics en el proyecto de Pages (sin código ni cookies) y, con F7-B, verlo dentro de Insights. Mientras el público entre por Wix, solo medirá hamptonjersey.pages.dev.",
+   "falta": "Activar Cloudflare Web Analytics en el proyecto de Pages (sin código ni cookies) y, con F7-B, verlo dentro de Insights. Desde el 1-nov-2026 el público entra por www.hamptonestatesjersey.com, que es lo que medirá.",
    "bloqueo": "",
    "evidencia": [
     "site/index.html y functions/: sin script de Cloudflare Web Analytics (grep cloudflareinsights: 0 resultados; no lo descarta, porque Pages lo inyecta al desplegar)",
@@ -3965,8 +3967,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "Luis",
    "hecho": "La propia sentencia deja de contar al llegar a 20.000 aperturas en un día de Jersey.",
-   "falta": "La regla de límite de peticiones de Cloudflare WAF que incluya POST /api/stats, que exige el dominio propio en Cloudflare (en *.pages.dev no hay WAF).",
-   "bloqueo": "Dominio",
+   "falta": "La regla de límite de peticiones de Cloudflare WAF que incluya POST /api/stats. Ya se puede crear: desde el 1-nov-2026 el dominio está en Cloudflare (en *.pages.dev no hay WAF).",
+   "bloqueo": "",
    "evidencia": [
     "server/routes/public.js:84-94",
     "docs/superpowers/specs/2026-10-24-hampton-app-f7a-design.md:37",
@@ -4396,18 +4398,18 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "Luis",
-   "hecho": "Preparado sin acceso: 30 redirecciones 301 de las URL de Wix (site/_redirects) y la URL canónica en una sola variable SITE_URL, que una prueba compara con site/index.html.",
-   "falta": "Con el acceso: dominio en Pages y DNS, Firebase (dominios autorizados), Turnstile (hostnames) y Meta; SITE_URL, meta site-url, canonical y JSON-LD; sitemap en Search Console; reglas WAF (incluida POST /api/stats); probar login, una reserva y un registro reales y dejar de mantener Wix.",
-   "bloqueo": "Dominio",
+   "hecho": "Desde el 1-nov-2026 www.hamptonestatesjersey.com sirve la app (web y panel); hamptonestatesjersey.com (301) y hamptonjersey.pages.dev (308) redirigen ahí desde Cloudflare. El 1-nov Luis añadió el dominio a Firebase (dominios autorizados), a la llave del navegador en Google Cloud y a los hostnames de Turnstile, y comprobó el login del panel y los formularios públicos en www. Las 30 redirecciones 301 de las URL de Wix (site/_redirects) sirven desde entonces, y el 2-nov SITE_URL, la meta site-url, el canonical y el JSON-LD pasaron a www (PUB-14).",
+   "falta": "Meta; el sitemap en Search Console (PUB-14); las reglas WAF, incluida POST /api/stats (ANA-09); probar una reserva y un registro reales; y dejar de mantener Wix. Antes de dar de baja Wix, las fotos del equipo que la web carga desde static.wixstatic.com (site/lib.js:5) tienen que pasar a la app.",
+   "bloqueo": "",
    "evidencia": [
     "site/_redirects:1-32",
     "fd43820",
     "wrangler.toml:9-10",
-    "site/index.html:11-24",
-    "tests/server/seo.test.mjs:146",
+    "site/index.html:11-25",
+    "site/lib.js:5",
+    "tests/server/seo.test.mjs:148-171",
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:164-169",
-    "docs/roadmap/ESTADO.md:12",
-    "docs/roadmap/ESTADO.md:15"
+    "docs/roadmap/ESTADO.md:8"
    ]
   },
   {
@@ -4437,7 +4439,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "hecho",
    "responsable": "—",
-   "hecho": "Luis (A3, 23-oct): hamptonestatesjersey.com pasa a esta app. El cuándo depende de que llegue el acceso al dominio (PRE-16).",
+   "hecho": "Luis (A3, 23-oct): hamptonestatesjersey.com pasa a esta app. Se hizo el 1-nov-2026 (PRE-16).",
    "falta": "",
    "bloqueo": "",
    "evidencia": [
@@ -4522,7 +4524,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "—",
    "estado": "bloqueado",
    "responsable": "Hampton",
-   "hecho": "El dominio pasa a esta app (A3) y ESTADO cuenta con tenerlo en Cloudflare para las reglas WAF; hoy el contacto de privacidad es una cuenta de Gmail.",
+   "hecho": "El dominio pasa a esta app (A3) y está en Cloudflare desde el 1-nov-2026, lo que permite las reglas WAF; hoy el contacto de privacidad es una cuenta de Gmail.",
    "falta": "Qué correo usa Hampton (Google Workspace, Microsoft 365 u otro): decide cómo se envían y se leen los correos con agencias y desbloquea F2, F3-B y F7-B.",
    "bloqueo": "Dato de Hampton",
    "evidencia": [

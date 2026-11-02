@@ -7,7 +7,7 @@ FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
 TURNSTILE_SITE_KEY = "0x4AAAAAAFQB3xGjTWfMlGS5"
 # S5: the one host search engines index; canonicals, og:url, sitemap and robots point here. Change it with the domain.
-SITE_URL = "https://hamptonjersey.pages.dev"
+SITE_URL = "https://www.hamptonestatesjersey.com"
 
 [[d1_databases]]
 binding = "DB"

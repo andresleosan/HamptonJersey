@@ -9,7 +9,7 @@ import { onRequestGet as listingFn, onRequestHead as listingHead } from "../../f
 import { onRequestGet as robots, onRequestHead as robotsHead } from "../../functions/robots.txt.js";
 
 const L = createRequire(import.meta.url)("../../site/lib.js");
-const SITE = "https://hamptonjersey.pages.dev";
+const SITE = "https://www.hamptonestatesjersey.com";
 const P = o => ({ id: "HE-R001", title: "Le Bernage", place: "St Saviour", region: "jersey", operation: "sale",
   currency: "GBP", salePrice: 769000, rent: null, rentPeriod: null, premium: null, summary: ["Three bedrooms"],
   description: [], image: "/media/A00001", thumb: "/media/A00001?thumb",
@@ -70,7 +70,7 @@ test("head tags escape every value for its attribute", () => {
   assert.ok(html.includes('content="&quot;&gt;&lt;script&gt;x&lt;/script&gt;&amp;&#39; · £769,000 · Hampton Estates Jersey"'));
   assert.ok(html.includes('<meta property="og:image:alt" content="a&quot;b&lt;c">'));
   assert.equal(html.match(/<script/g).length, 1); // only the JSON-LD
-  for (const t of ['<link rel="canonical" href="https://hamptonjersey.pages.dev/p/HE-R001">', 'property="og:type" content="website"',
+  for (const t of [`<link rel="canonical" href="${SITE}/p/HE-R001">`, 'property="og:type" content="website"',
     'property="og:site_name" content="Hampton Estates Jersey"', 'name="twitter:card" content="summary_large_image"'])
     assert.ok(html.includes(t), t);
 });
@@ -122,11 +122,13 @@ test("listing page: missing, unpublished, archived or not shown by the website i
   }
 });
 
-test("another host (preview, old domain) is never indexed; URLs still point at SITE_URL", async () => {
-  const r = await listingPage(req("/p/HE-R001", "https://abc123.hamptonjersey.pages.dev"), world(), "HE-R001");
-  assert.equal(r.status, 200);
-  assert.equal(r.headers.get("x-robots-tag"), "noindex");
-  assert.ok(r.head.includes(`<link rel="canonical" href="${SITE}/p/HE-R001">`));
+test("another host (preview, old domain, the bare domain) is never indexed; URLs still point at SITE_URL", async () => {
+  for (const host of ["https://abc123.hamptonjersey.pages.dev", "https://hamptonestatesjersey.com"]) {
+    const r = await listingPage(req("/p/HE-R001", host), world(), "HE-R001");
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get("x-robots-tag"), "noindex", host);
+    assert.ok(r.head.includes(`<link rel="canonical" href="${SITE}/p/HE-R001">`));
+  }
 });
 
 test("GET /sitemap.xml lists only live listings; GET /robots.txt names it", async () => {
@@ -146,12 +148,15 @@ test("GET /sitemap.xml lists only live listings; GET /robots.txt names it", asyn
 test("home page (S4): its static tags use wrangler.toml's SITE_URL and are the ones the listing page replaces", () => {
   const read = f => readFileSync(new URL(`../../${f}`, import.meta.url), "utf8");
   const site = read("wrangler.toml").match(/^SITE_URL = "(.+)"$/m)[1];
+  assert.equal(site, "https://www.hamptonestatesjersey.com", "PUB-14: the domain serves the app since 1-nov-2026");
   const html = read("site/index.html"), head = html.slice(0, html.indexOf("</head>"));
   // A change of domain changes SITE_URL; the home page's absolute URLs must follow it.
-  for (const u of head.match(/https:\/\/[^"]*\.pages\.dev[^"]*/g))
+  assert.ok(!head.includes("pages.dev"), "no URL of the old host is left");
+  for (const u of head.match(/https:\/\/[^"]*hamptonestatesjersey\.com[^"]*/g))
     assert.ok(u === site || u.startsWith(site + "/"), u);
   assert.ok(head.includes(`<link rel="canonical" href="${site}/">`));
   assert.ok(head.includes(`<meta name="site-url" content="${site}">`), "the base of shared links");
+  assert.ok(head.includes(`<meta property="og:url" content="${site}/">`));
   assert.ok(head.includes(`<meta property="og:image" content="${site}/og-image.jpg">`));
   const ld = JSON.parse(head.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
   assert.equal(ld["@type"], "RealEstateAgent");
