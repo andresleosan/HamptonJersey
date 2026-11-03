@@ -453,3 +453,15 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .automations ul{padding-left:20px} .automations .inline{align-items:center} .automations .btn{min-height:32px}
 @media (max-width:760px){.list.jobs tr{grid-template-columns:1fr auto;border-bottom:1px solid var(--line)}.list.jobs tr:last-child{border-bottom:0}.list.jobs td:first-child{grid-row:auto;overflow-wrap:anywhere}
   .list.jobs td[data-label]{grid-column:1/-1}.list.jobs td[data-label]::before{content:attr(data-label) ": ";color:var(--stone);font-size:12px}}
+/* PUB-01 Add new property: the import zone is a drop target, not a button; its two buttons open the pickers. */
+.dropzone.import{cursor:default;margin:0} .dropzone.import:not(.over):hover{border-color:#c9c3b8}
+.dropzone.import .inline{justify-content:center;margin:8px 0 4px}
+.add-property fieldset{display:grid;gap:12px;min-width:0;margin:0;padding:0;border:0}
+.add-property h2,.add-property p{margin:0} .add-property h2+.muted{margin-top:-8px}
+.import-summary{display:grid;gap:8px} .import-summary .inline{margin:0;justify-content:space-between;align-items:center} .import-summary summary{cursor:pointer}
+.import-summary ol{margin:8px 0 0;padding-left:24px;columns:2 16rem;column-gap:24px}
+.import-summary dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:0} .import-summary dl div{display:contents}
+.import-summary dt{color:var(--stone)} .import-summary dd{margin:0}
+.import-summary,.add-property .warn,.add-property [role=status]{overflow-wrap:anywhere} .add-property .warn ul{margin:4px 0 0;padding-left:16px}
+.add-property .actions{margin:0;align-items:center} .add-property progress{accent-color:var(--bronze);width:160px}
+.add-property .btn{min-height:32px} @media (pointer:coarse){.add-property .btn{min-height:44px}} /* panel target (DESIGN.md); 44px on a phone */

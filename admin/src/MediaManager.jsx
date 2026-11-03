@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { KIND, safeHref } from "./format.js";
-import { resizeImage } from "./image.js";
+import { uploadPhoto } from "./image.js";
 
 const pick = m => ({ id: m.id, public: !!m.public, kind: m.kind, label: m.label ?? "" });
 
@@ -40,15 +40,8 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
     setBusy(true); setMsg(null);
     const added = [], failed = [];
     for (const file of files) {
-      try {
-        if (file.size > 40 * 1024 * 1024) throw new Error("is larger than 40 MB");
-        const [big, small] = await Promise.all([resizeImage(file, 1600), resizeImage(file, 640, 0.8)]);
-        const form = new FormData();
-        form.append("file", big.blob, "photo.jpg"); form.append("thumb", small.blob, "thumb.jpg");
-        form.append("label", file.name.replace(/\.[^.]+$/, "")); form.append("kind", "photo");
-        form.append("width", big.width); form.append("height", big.height);
-        added.push((await api(`/admin/listings/${listingId}/media`, { method: "POST", form })).media);
-      } catch (e) { failed.push(`${file.name}: ${e.message}`); }
+      try { added.push(await uploadPhoto(listingId, file, { label: file.name.replace(/\.[^.]+$/, "") })); }
+      catch (e) { failed.push(`${file.name}: ${e.message}`); }
     }
     if (added.length) {
       // New uploads are saved server-side (last position, as here); any unsaved local reorder is kept.

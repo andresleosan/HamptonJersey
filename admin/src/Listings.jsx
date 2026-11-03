@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, priceText, fmtDate } from "./format.js";
 import { OPTIONS } from "../../server/applicants.js";
+import NewProperty from "./NewProperty.jsx";
 
 // ADM-04: To confirm is the published listings on the market that nobody has confirmed lately (the server's to_confirm).
 const TABS = [["published", "Published"], ["to_confirm", "To confirm"], ["draft", "Drafts"], ["archived", "Archived"], ["all", "All"]];
@@ -64,8 +65,8 @@ export default function Listings({ onChange }) {
 
   return <section aria-labelledby="t-props">
     <div className="head"><h1 id="t-props">Listings</h1>
-      <button type="button" className="btn" onClick={() => setCreating(true)}>New listing</button></div>
-    {creating && <NewListing onClose={() => setCreating(false)} />}
+      <button type="button" className="btn" onClick={() => setCreating(true)}>Add new property</button></div>
+    {creating && <NewProperty rows={rows} onClose={() => { setCreating(false); load(); }} />}
     <div className="seg" role="group" aria-label="Status">{TABS.map(([k, t]) =>
       <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)}>{t}<span className="count">{counts[k]}</span></button>)}</div>
     <div className="filters">
@@ -122,30 +123,6 @@ export default function Listings({ onChange }) {
       ? <><p>No listings match these filters.</p><button type="button" className="btn ghost sm" onClick={() => { setQ(""); setUse(""); setRegion(""); setAvail(""); setParish(""); }}>Clear filters</button></>
       : tab === "to_confirm" ? <p>No listings to confirm. A listing on the website asks for a call to its owner 3 months after its last confirmation, or 1 month for a rental.</p>
       : <><p>No {TABS.find(([k]) => k === tab)[1].toLowerCase()} listings.</p>
-        {tab !== "archived" && <button type="button" className="btn sm" onClick={() => setCreating(true)}>New listing</button>}</>}</div>}
+        {tab !== "archived" && <button type="button" className="btn sm" onClick={() => setCreating(true)}>Add new property</button>}</>}</div>}
   </section>;
-}
-
-function NewListing({ onClose }) {
-  const [f, setF] = useState({ title: "", use: "residential", operation: "sale", availability: "for_sale", country: "Jersey" });
-  const [err, setErr] = useState(null), [busy, setBusy] = useState(false);
-  const set = k => e => setF({ ...f, [k]: e.target.value });
-  const submit = async e => {
-    e.preventDefault(); setBusy(true); setErr(null);
-    try { const { id } = await api("/admin/listings", { method: "POST", body: f }); location.hash = `#/p/${id}`; }
-    catch (x) { setErr(x.data?.fields ? Object.entries(x.data.fields).map(([k, v]) => `${k}: ${v}`).join(". ") : x.message); setBusy(false); }
-  };
-  return <form className="card new" onSubmit={submit} aria-labelledby="t-new">
-    <h2 id="t-new">New listing (draft)</h2>
-    <label>Title<input required maxLength={200} value={f.title} onChange={set("title")} autoFocus /></label>
-    <div className="filters">
-      <label>Use<select value={f.use} onChange={set("use")}>{Object.entries(USE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-      <label>Operation<select value={f.operation} onChange={set("operation")}>{Object.entries(OPERATION).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-      <label>Availability<select value={f.availability} onChange={set("availability")}>{Object.entries(AVAILABILITY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-      <label>Country<input value={f.country} onChange={set("country")} maxLength={100} /></label>
-    </div>
-    {err && <p role="alert" className="err">{err}</p>}
-    <div className="filters"><button className="btn" disabled={busy}>{busy ? "Creating…" : "Create draft"}</button>
-      <button type="button" className="btn ghost" onClick={onClose}>Cancel</button></div>
-  </form>;
 }

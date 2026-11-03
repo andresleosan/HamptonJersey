@@ -1,0 +1,39 @@
+# Property details for Hampton's "Add new property".
+# Keep this file in the property's folder, next to the photos, and fill in what you know.
+# One field per line, like "Bedrooms: 4". Leave a value blank if you don't know it:
+# blank Use, Operation, Availability and Country keep the form's values, which you can change before creating.
+# Never write the owner's name, phone number or email here: these details can end up on the website.
+# Lines that start with # are notes for you and aren't imported.
+#
+# Type: house, flat, cottage, restaurant…   Use: Residential or Commercial.   Operation: Sale, Rent or Business.
+# Availability: For sale, Under offer, Sold, To let, Lease, Not stated or Withdrawn.
+# Parish: one of the twelve, like St Helier or Trinity.
+# Tenure: Freehold, Flying freehold, Share transfer or Leasehold.
+# Housing category: Qualified or Registered.   Restriction: First-time buyers only or Over 55s only.
+# Price: an amount like 850000, £850,000, 1.25m or £2,500 pcm. Words like "Offers over £850,000" are shown as written.
+# Rent period: Per month or Per year.   Currency: GBP or EUR (blank means GBP).   Tour URL: starts with https://
+
+Title:
+Type:
+Use:
+Operation:
+Availability:
+Country:
+Parish:
+Location:
+Road:
+Bedrooms:
+Bathrooms:
+Tenure:
+Housing category:
+Restriction:
+Price:
+Rent period:
+Currency:
+Tour URL:
+
+# Summary: one point per line, up to the Description line.
+Summary:
+
+# Description: one paragraph per line, to the end of the file.
+Description:

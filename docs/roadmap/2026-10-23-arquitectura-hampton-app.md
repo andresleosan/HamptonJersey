@@ -333,6 +333,7 @@ Tus nueve campos están todos: nombre, email, móvil, presupuesto, dormitorios y
 
 - **Captación**: el formulario público «Book a valuation» crea un contacto propietario y una cita en el mismo calendario de §5.9. Para preparar la valoración, el historial de transacciones de Places.je da comparables reales, y los datos de demanda de §5.14 ayudan a convencer al propietario.
 - **Alta desde el móvil durante la valoración** («New instruction» en el panel): secciones por familia de datos, subida de fotos con control de calidad (resolución, desenfoque, oscuridad, líneas torcidas), plano y documentos.
+- **Alta desde una carpeta del ordenador** (construida el 3-nov-2026, PUB-01): «Add new property» lee el `property.txt` de la carpeta (plantilla descargable en el formulario) y sube sus fotos sueltas en orden de nombre, con portada; las subcarpetas no se leen. Crea un borrador y el editor dice qué falta.
 - **Campos obligatorios según la operación** y porcentaje completado. Con menos del 100 % de lo obligatorio no se puede publicar.
 - **Tus seis familias, adaptadas a Jersey**. La lista original era de España: IBI, comunidad, fianza, Idealista o Fotocasa no aplican aquí.
 

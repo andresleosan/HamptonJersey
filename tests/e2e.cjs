@@ -739,6 +739,7 @@ async function admin(browser) {
   await jersey(browser, page);
   await automations(page, phone, noSideScroll);
   await hermesDrafters(page);
+  await folderImport(page, phone);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -807,6 +808,96 @@ async function hermesDrafters(page) {
   await editor(() => page.reload());
   await page.getByRole("button", {name: "Ask Hermes for a draft"}).waitFor();
   d1("DELETE FROM app_settings WHERE key IN ('hermes', 'hermes_drafters')");
+}
+
+// PUB-01 (spec 2026-11-03): Add new property from a folder (property.txt and the folder's own photos), last so the counts
+// above don't change. Desktop: the summary, a duplicate title, Remove, a double click, then the editor and the cover. Phone:
+// loose photos, a failed upload and a failed cover call, then Open the listing.
+async function folderImport(page, phone) {
+  const {mkdtempSync, mkdirSync, writeFileSync, copyFileSync} = require("node:fs"), {join} = require("node:path"), {tmpdir} = require("node:os");
+  const dir = join(mkdtempSync(join(tmpdir(), "hampton-import-")), "Le Clos Test"), jpg = "tests/fixtures/photo.jpg";
+  mkdirSync(join(dir, "360 photos"), {recursive: true});
+  for (const n of ["01 Front.jpg", "02 Kitchen.jpg", "Floor plan ground.jpg", "IMG_1234.jpg", "360 photos/pano.jpg"]) copyFileSync(jpg, join(dir, n));
+  await page.goto(BASE + "admin/#/listings");
+  await page.waitForSelector("#t-props");
+  await page.bringToFront(); // a folder only reaches the active tab, and the phone page opened after this one
+  writeFileSync(join(dir, "Floor plan first.png"), Buffer.from(await page.evaluate(async () => {
+    const c = new OffscreenCanvas(40, 40); c.getContext("2d"); // fully transparent
+    return [...new Uint8Array(await (await c.convertToBlob({type: "image/png"})).arrayBuffer())];
+  })));
+  writeFileSync(join(dir, "notes.pdf"), "%PDF-1.4"); writeFileSync(join(dir, "IMG_2041.HEIC"), "x"); writeFileSync(join(dir, ".DS_Store"), "x");
+  writeFileSync(join(dir, "property.txt"), ["Title: Le Clos Test", "Country: jersey", "Parish: st. brelade", "Bedrooms: 4 bedrooms", "Tenure: Freehold",
+    "Housing category: Qualified", "Price: £1,250,000", "Garage: double", "Summary:", "- Sea views", "Description:",
+    "Location: set above the bay, invented for this test.", "Viewings through the owner on 01534 000000."].join("\r\n"));
+  const heicOnly = join(dir, "..", "Only HEIC");
+  mkdirSync(heicOnly); writeFileSync(join(heicOnly, "IMG_1.HEIC"), "x");
+  const existing = JSON.parse(d1("SELECT title FROM listings WHERE id = 'HE-R001'"))[0].results[0].title;
+
+  const form = page.locator("form.new");
+  await page.getByRole("button", {name: "Add new property"}).first().click();
+  await form.locator("input[webkitdirectory]").setInputFiles(heicOnly);
+  const refused = await form.getByRole("alert").textContent();
+  assert.ok(refused.includes("No photos or property.txt in this folder.") && refused.includes("HEIC photos (export them as JPG first): IMG_1.HEIC"), refused);
+  const pick = async () => { await form.locator("input[webkitdirectory]").setInputFiles(dir); await form.getByText(/3 photos, 2 floor plans/).waitFor(); };
+  await pick();
+  const text = await form.textContent();
+  for (const t of ["notes.pdf", "IMG_2041.HEIC", 'Line 8: "Garage: double"', "Subfolders not read: 360 photos.", "Sea views", "Location: set above the bay"]) assert.ok(text.includes(t), t);
+  assert.ok(!text.includes("pano.jpg"), "subfolders are never read");
+  assert.ok(!(await form.locator(".warn.skipped").textContent()).includes("phone number"), "a warning about imported text is not listed as not imported");
+  assert.match(await form.locator(".warn.before-publish").textContent(), /Description seems to include an email address or phone number/);
+  const title = form.getByLabel("Title");
+  assert.equal(await title.inputValue(), "Le Clos Test");
+  await title.fill(existing);
+  await form.getByText("A listing with this title already exists: HE-R001.").waitFor();
+  await form.getByRole("button", {name: "Remove"}).click();
+  assert.equal(await title.inputValue(), "", "Remove starts the form again");
+  await pick();
+  await shot(page, "admin-add-property");
+  await form.getByRole("button", {name: "Create draft"}).dblclick();
+  await page.waitForURL(/#\/p\/HE-R\d+$/, {timeout: 60000});
+  const id = page.url().split("/").pop();
+  assert.equal(JSON.parse(d1("SELECT COUNT(*) AS n FROM listings WHERE title = 'Le Clos Test'"))[0].results[0].n, 1, "a double click makes one listing");
+  await page.waitForSelector("#f-title");
+  for (const [sel, want] of [["#f-country", "Jersey"], ["#f-parish", "St Brelade"], ["#f-bedrooms", "4"], ["#f-sale_price", "1250000"],
+    ["#f-tenure_type", "freehold"], ["#f-housing_category", "qualified"], ["#f-summary", "Sea views"]]) assert.equal(await page.inputValue(sel), want, sel);
+  assert.match(await page.inputValue("#f-description"), /^Location: set above the bay/);
+  const {listing, media} = await page.evaluate(i => fetch(`/api/admin/listings/${i}`).then(r => r.json()), id);
+  assert.deepEqual(media.map(m => [m.label, m.kind, m.public]), [["Front", "photo", 1], ["Kitchen", "photo", 1], ["Floor plan first", "floorplan", 1],
+    ["Floor plan ground", "floorplan", 1], [null, "photo", 1]]);
+  assert.equal(listing.cover_media_id, media[0].id, "the first photo is the cover");
+  const todo = await page.locator("section:has(#h-prepub)").textContent();
+  assert.ok(todo.includes("Add photos for the website (3 of 5)") && !todo.includes("Choose a cover photo"), todo);
+  const px = await page.evaluate(async src => {
+    const b = await createImageBitmap(await (await fetch(src)).blob()), c = new OffscreenCanvas(b.width, b.height).getContext("2d");
+    c.drawImage(b, 0, 0);
+    return [...c.getImageData(0, 0, 1, 1).data];
+  }, `/media/${media[2].id}`);
+  assert.ok(px.slice(0, 3).every(v => v > 245), `a transparent PNG plan gets a white background: ${px}`);
+  await shot(page, "admin-add-property-editor");
+
+  await phone.goto(BASE + "admin/#/listings");
+  await phone.getByRole("button", {name: "Add new property"}).first().click();
+  const pform = phone.locator(".add-property"), mediaRoute = /\/api\/admin\/listings\/[^/]+\/media$/;
+  await pform.locator("input[type=file][multiple]:not([webkitdirectory])").setInputFiles([join(dir, "01 Front.jpg"), join(dir, "02 Kitchen.jpg")]);
+  await pform.getByText(/2 photos/).first().waitFor();
+  await pform.getByLabel("Title").fill("Phone import test");
+  let posts = 0;
+  await phone.route(mediaRoute, r => (r.request().method() === "POST" && ++posts === 1 ? setTimeout(() => r.continue(), 1500)
+    : r.request().method() === "POST" ? r.fulfill({status: 500, contentType: "application/json", body: '{"error":"Test failure"}'})
+    : r.request().method() === "PUT" ? r.fulfill({status: 409, contentType: "application/json", body: '{"error":"Someone else saved changes"}'}) : r.continue()));
+  await pform.getByRole("button", {name: "Create draft"}).click();
+  await pform.getByText("Uploading photo 1 of 2…").waitFor();
+  assert.ok(await pform.getByLabel("Title").isDisabled(), "the fields are locked while it works");
+  assert.equal(await pform.locator("progress").count(), 1, "a progress bar while uploading");
+  await pform.getByText(/created\. 1 of 2 photos uploaded\./).waitFor({timeout: 60000});
+  const ptext = await pform.textContent();
+  for (const t of ["02 Kitchen.jpg: Test failure", "Choose the cover in the editor."]) assert.ok(ptext.includes(t), t);
+  assert.equal(await pform.getByRole("button", {name: "Close"}).count(), 1, "the result can be closed");
+  assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, "no side scroll at 390");
+  await shot(phone, "admin-add-property-phone");
+  await phone.unroute(mediaRoute);
+  await pform.getByRole("link", {name: "Open the listing"}).click();
+  await phone.waitForSelector("#f-title");
 }
 
 // Spec 2026-10-25 (Jersey fields), last so nothing above changes. Recalculate all applies the housing check: the seed's

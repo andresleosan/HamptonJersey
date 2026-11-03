@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show } from "./format.js";
+import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show, TENURE, HOUSING, RESTRICTION } from "./format.js";
 import MediaManager from "./MediaManager.jsx";
 import Research from "./Research.jsx";
 import { setUnsaved } from "./unsaved.js";
@@ -30,10 +30,7 @@ const SECTIONS = [["details", "Details"], ["price", "Price"], ["description", "D
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
 // Match status, with its badge tone (DESIGN.md "Badges de estado": Found and Rejected neutral, Shortlisted active).
 const MATCH_STATUS = { found: ["Found", "neutral"], shortlisted: ["Shortlisted", "active"], rejected: ["Rejected", "neutral"] };
-// J2: the Jersey fields (server/listing.js ENUMS); blank = not set (for restriction, none).
-const TENURE = { freehold: "Freehold", flying_freehold: "Flying freehold", share_transfer: "Share transfer", leasehold: "Leasehold" };
-const HOUSING = { qualified: "Qualified", registered: "Registered" };
-const RESTRICTION = { first_time_buyer: "First-time buyers only", over_55: "Over 55s only" };
+// J2: the Jersey fields (server/listing.js ENUMS, labels in format.js); blank = not set (for restriction, none).
 // Housing category and restriction concern homes in Jersey (Control of Housing and Work Law).
 const jerseyHome = f => f.use === "residential" && f.country === "Jersey";
 const AMOUNT = { sale: ["sale_price", "Add the sale price"], rent: ["rent", "Add the rent"], business: ["premium", "Add the business premium"] };
