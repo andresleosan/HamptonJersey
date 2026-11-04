@@ -91,7 +91,8 @@ test("same email in other case, or same phone in another format, is a duplicate 
   const [c1, ...moreContacts] = contacts(env), [a1, ...moreApplicants] = applicants(env);
   assert.deepEqual(moreContacts, []);
   assert.deepEqual(moreApplicants, []);
-  assert.deepEqual(without(c1, "last_activity_at"), without(c0, "last_activity_at"));
+  assert.deepEqual(without(without(c1, "last_activity_at"), "last_contact_at"), without(without(c0, "last_activity_at"), "last_contact_at"));
+  assert.ok(c1.last_contact_at > c0.last_contact_at, "sending the form again is a contact");
   assert.deepEqual(a1, a0);
   assert.ok(c1.last_activity_at > T0, "the retention clock restarts");
 

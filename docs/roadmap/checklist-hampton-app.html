@@ -483,9 +483,8 @@ document.addEventListener('DOMContentLoaded', () => {
      replanteado o descartado), ajusta "hecho" y "falta", y pon la fecha de hoy en "actualizado".
      "responsable": desarrollo, Luis, Hampton, tercero o — . Varios bloqueos se separan con " · ".
      "vence" (opcional, AAAA-MM-DD) saca el punto arriba con la cuenta atrás. -->
-<script type="application/json" id="datos">
-{
- "actualizado": "2026-11-03",
+<script type="application/json" id="datos">{
+ "actualizado": "2026-11-04",
  "base": "127c7ef",
  "items": [
   {
@@ -813,16 +812,16 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Columnas y filtros extra en Applicants: Last contact, presupuesto, parroquia y origen",
    "origen": "plan",
    "fase": "F0",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "Ya hay columnas Stage, Queue y Assigned to, y filtros Search, Stage, Queue (cubre «necesita revisión»), Assigned to y las listas Current, Archived y Expiring.",
-   "falta": "La columna Last contact (último contacto con el aplicante) y los filtros por presupuesto, parroquia y origen (Website, Phone, Walk-in, Email).",
+   "hecho": "Columnas Stage, Queue, Matches, Last contact y Assigned to; filtros Search, Stage, Queue, Assigned to, Budget (un importe que el presupuesto cubre, hasta el estirado), Parish (la pidió o le vale cualquiera, salvo si la excluyó), Source y Last contact (Gone quiet), más las listas Current, Archived y Expiring. Last contact es el último contacto real (migración 0019).",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "admin/src/Applicants.jsx:49-61",
-    "admin/src/Applicants.jsx:66-69",
-    "server/routes/applicants.js:83-105",
-    "server/applicants.js:26"
+    "admin/src/Applicants.jsx",
+    "server/routes/applicants.js",
+    "migrations/0019_last_contact.sql",
+    "tests/server/last-contact.test.mjs"
    ]
   },
   {
@@ -2400,16 +2399,16 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Etiqueta Gone quiet a los 14 días sin respuesta, con mensaje «Are you still looking?»",
    "origen": "plan",
    "fase": "F2",
-   "estado": "pendiente",
+   "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "No existe la etiqueta. Se puede calcular ya con el último contacto real (Log conversation, visitas, ofertas, registro en la web), que hoy no se guarda aparte: last_activity_at también cambia con las ediciones del equipo. El mensaje automático «Are you still looking?» necesita un canal de envío.",
+   "hecho": "La etiqueta Gone quiet sale en la columna Last contact y tiene su filtro: búsqueda activa (también Paused) sin contacto real en más de 14 días. El último contacto se guarda aparte (contacts.last_contact_at): alta, envío repetido, Log conversation, visitas y ofertas; las ediciones del equipo no cuentan.",
+   "falta": "El mensaje automático «Are you still looking?», que necesita un canal de envío.",
    "bloqueo": "Servicio de correo · Trámite Meta",
    "evidencia": [
-    "server/applicants.js:31",
-    "server/routes/applicants.js:36-38",
-    "server/routes/applicants.js:328-337",
-    "migrations/0008_applicants.sql:15"
+    "server/routes/applicants.js",
+    "server/retention.js",
+    "migrations/0019_last_contact.sql",
+    "tests/server/last-contact.test.mjs"
    ]
   },
   {
@@ -4824,7 +4823,6 @@ document.addEventListener('DOMContentLoaded', () => {
    ]
   }
  ]
-}
-</script>
+}</script>
 </body>
 </html>

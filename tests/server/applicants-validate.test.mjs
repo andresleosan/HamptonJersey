@@ -157,7 +157,7 @@ test("the value fits the contacts and applicants tables as they are", () => {
     best_time: "Evenings", marketing: true }), { publicForm: true }, NOW).value;
   const contactCols = env.DB.raw.prepare("SELECT name FROM pragma_table_info('contacts')").all().map(r => r.name);
   const applicantCols = env.DB.raw.prepare("SELECT name FROM pragma_table_info('applicants')").all().map(r => r.name);
-  const routeSet = ["id", "last_activity_at", "created_at", "updated_at", "updated_by"];
+  const routeSet = ["id", "last_activity_at", "last_contact_at", "created_at", "updated_at", "updated_by"];
   assert.deepEqual(Object.keys(contact).sort(), contactCols.filter(c => !routeSet.includes(c)).sort());
   // stage (DEFAULT 'new'), lost_reason, assigned_to and first_reviewed_at belong to the workflow, not to the registration.
   assert.deepEqual(Object.keys(applicant).sort(), applicantCols.filter(c =>

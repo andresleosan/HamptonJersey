@@ -21,16 +21,21 @@ export default function Applicants() {
   const [rows, setRows] = useState(null), [error, setError] = useState(null), [users, setUsers] = useState([]);
   const [list, setList] = useState("current"), [op, setOp] = useState(""), [sort, setSort] = useState("newest");
   const [q, setQ] = useState(""), [stage, setStage] = useState(""), [assigned, setAssigned] = useState(""), [queue, setQueue] = useState("");
+  const [budget, setBudget] = useState(""), [parish, setParish] = useState(""), [source, setSource] = useState("");
+  const [contact, setContact] = useState("");
+  // A half-typed or invalid amount filters nothing until it is a number.
+  const amount = Number(budget) > 0 ? String(Number(budget)) : "";
   useEffect(() => { api("/admin/users").then(d => setUsers(d.users), () => {}); }, []);
   // The server filters and sorts; To Let / To Buy is split here so each tab can show its count.
   useEffect(() => {
     let stale = false;
     const p = new URLSearchParams({ sort, ...(stage && { stage }), ...(assigned && { assigned }), ...(queue && { queue }),
-      ...(q.trim() && { q: q.trim() }), ...(list !== "current" && { [list]: "1" }) });
+      ...(q.trim() && { q: q.trim() }), ...(list !== "current" && { [list]: "1" }), ...(amount && { budget: amount }),
+      ...(parish && { parish }), ...(source && { source }), ...(contact && { contact }) });
     const t = setTimeout(() => api(`/admin/applicants?${p}`).then(d => { if (!stale) { setRows(d.applicants); setError(null); } },
       e => { if (!stale) setError(e.message); }), 200);
     return () => { stale = true; clearTimeout(t); };
-  }, [list, sort, stage, assigned, queue, q]);
+  }, [list, sort, stage, assigned, queue, q, amount, parish, source, contact]);
   const counts = useMemo(() => Object.fromEntries(OPERATIONS.map(([k]) =>
     [k, (rows || []).filter(a => !k || a.operation === k).length])), [rows]);
 
@@ -38,8 +43,8 @@ export default function Applicants() {
   if (!rows) return <section aria-labelledby="t-applicants">{head}
     {error ? <p role="alert" className="err">{error}</p> : <p>Loading applicants…</p>}</section>;
   const shown = rows.filter(a => !op || a.operation === op);
-  const filtered = !!(q.trim() || stage || assigned || queue);
-  const clear = () => { setQ(""); setStage(""); setAssigned(""); setQueue(""); };
+  const filtered = !!(q.trim() || stage || assigned || queue || amount || parish || source || contact);
+  const clear = () => { setQ(""); setStage(""); setAssigned(""); setQueue(""); setBudget(""); setParish(""); setSource(""); setContact(""); };
   const toggleSort = () => setSort(s => (s === "newest" ? "oldest" : "newest"));
 
   return <section aria-labelledby="t-applicants">{head}
@@ -57,6 +62,14 @@ export default function Applicants() {
         {QUEUES.map(k => <option key={k} value={k}>{k}</option>)}</select></label>
       <label>Assigned to<select value={assigned} onChange={e => setAssigned(e.target.value)}><option value="">Anyone</option>
         {users.map(u => <option key={u.email} value={u.email}>{u.name || u.email}</option>)}</select></label>
+      <label>{op === "rent" ? "Rent (£ pcm)" : op === "buy" ? "Price (£)" : "Budget (£)"}<input type="number" min="1" step="1"
+        inputMode="numeric" value={budget} onChange={e => setBudget(e.target.value)} placeholder="e.g. 2500" /></label>
+      <label>Parish<select value={parish} onChange={e => setParish(e.target.value)}><option value="">Any</option>
+        {OPTIONS.parishes.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+      <label>Source<select value={source} onChange={e => setSource(e.target.value)}><option value="">All</option>
+        {OPTIONS.sources.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+      <label>Last contact<select value={contact} onChange={e => setContact(e.target.value)}><option value="">Any</option>
+        <option value="quiet">Gone quiet (over 14 days)</option></select></label>
       <label>Order<select value={sort} onChange={e => setSort(e.target.value)}>
         <option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
     </div>
@@ -66,7 +79,7 @@ export default function Applicants() {
       <thead><tr><th scope="col">Name</th><th scope="col">Phone</th>
         <th scope="col" aria-sort={sort === "newest" ? "descending" : "ascending"}>
           <button type="button" className="sort" onClick={toggleSort}>Applied<span aria-hidden="true">{sort === "newest" ? " ↓" : " ↑"}</span></button></th>
-        <th scope="col">Stage</th><th scope="col">Queue</th><th scope="col">Matches</th><th scope="col">Assigned to</th></tr></thead>
+        <th scope="col">Stage</th><th scope="col">Queue</th><th scope="col">Matches</th><th scope="col">Last contact</th><th scope="col">Assigned to</th></tr></thead>
       <tbody>{shown.map(a => <tr key={a.id}>
         <td><a href={`#/applicants/${a.id}`}>{a.name}</a>{a.expires_on
           && <> <span className="badge attention">Kept until {fmtDayMonth(a.expires_on, false)}</span></>}{list === "expiring"
@@ -79,6 +92,8 @@ export default function Applicants() {
         <td data-label="Queue"><span className={`badge ${QUEUE_TONE[a.queue] ?? "neutral"}`}>{a.queue}</span></td>
         <td className="num" data-label="Matches">{matchCounts(a)
           ? <a href={`#/applicants/${a.id}/matches`}>{matchCounts(a)}<span className="sr"> for {a.name}</span></a> : <span className="muted">—</span>}</td>
+        <td data-label="Last contact"><time dateTime={a.last_contact_at}>{fmtDate(a.last_contact_at)}</time>{a.gone_quiet
+          ? <> <span className="badge attention">Gone quiet</span></> : null}</td>
         <td data-label="Assigned to">{a.assigned_to ? a.assigned_name || a.assigned_to : <span className="muted">Unassigned</span>}</td>
       </tr>)}</tbody>
     </table> : <div className="empty card">{filtered

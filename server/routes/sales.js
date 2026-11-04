@@ -3,7 +3,7 @@ import { validateOffer, validateSale, validateMilestone, MILESTONES, milestoneLa
   OFFER_WAITING_MS } from "../sales.js";
 import { logEvent, resolveNotices } from "../events.js";
 import { afterSave, recomputeForListing, recomputeForApplicant } from "../match-store.js";
-import { touch, LOCK } from "./applicants.js";
+import { touch, contacted, LOCK } from "./applicants.js";
 import { jerseyToday } from "../viewings.js";
 import { jerseyDayStart } from "../insights.js";
 import { ENUMS } from "../listing.js";
@@ -100,8 +100,8 @@ async function create({ request, env, admin }) {
       ensureChanged(env),
       ...buyerEvent(env, ctx, applicant.id, "offer.recorded", { amount: o.amount, conditions: o.conditions }),
       ...stage,
-      // G2: an offer is activity on the buyer, whatever the stage (stageTo touches when it moves).
-      ...(stage.length ? [] : [touch(env, applicant.contact_id, ts)]),
+      // G2: an offer is activity on the buyer, whatever the stage; L1: and a real contact with them.
+      contacted(env, applicant.contact_id, ts),
     ]);
   } catch (e) {
     await eligible(env, listing.id, applicant.id); // archived or changed meanwhile: 400 says why

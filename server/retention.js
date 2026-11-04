@@ -50,7 +50,7 @@ const deletedEvents = (type, set) => `INSERT INTO events (at, actor, entity_type
 // write's event or notice: changes() is then that of its insert, made only when the write happened, so a lost booking
 // or a refused action restarts nothing.
 export const touchByViewing = (env, { email, phone }, ts) => env.DB.prepare(
-  "UPDATE contacts SET last_activity_at = ? WHERE (email = ? OR phone = ?) AND changes() = 1")
+  "UPDATE contacts SET last_activity_at = ?1, last_contact_at = ?1 WHERE (email = ?2 OR phone = ?3) AND changes() = 1")
   .bind(ts, email, normalizePhone(phone));
 
 // ts: the ISO time of the pass; the cutoffs are its Jersey date.

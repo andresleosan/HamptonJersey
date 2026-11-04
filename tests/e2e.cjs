@@ -1205,6 +1205,25 @@ async function retention(page, phone) {
   await page.goto(BASE + "admin/#/applicants");
   await page.getByRole("group", {name: "List"}).getByRole("button", {name: "Expiring"}).click();
   await page.getByText("No applicants are due for deletion in the next month.").waitFor();
+
+  // SAP-07 + EST-11: Log conversation was a real contact, so Rachel is no longer Gone quiet; the seed's Sarah, with no
+  // contact since 20 October, is.
+  const quiet = async p => {
+    await p.getByLabel("Last contact").selectOption("quiet");
+    await p.waitForFunction(() => {
+      const rows = [...document.querySelectorAll("table.applicants tbody tr")];
+      return document.querySelector("[aria-label=List] button[aria-pressed=true]")?.textContent === "Current"
+        && rows.some(r => r.textContent.includes("Sarah Vibert")) && !rows.some(r => r.textContent.includes("Rachel Le Cornu"))
+        && rows.every(r => r.querySelector("td[data-label='Last contact'] .badge")?.textContent === "Gone quiet");
+    });
+  };
+  await page.getByRole("group", {name: "List"}).getByRole("button", {name: "Current"}).click();
+  await quiet(page);
+  await shot(page, "admin-applicants-gone-quiet", {animations: "disabled"});
+  await phone.reload();
+  await quiet(phone);
+  assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, "no horizontal scroll with the new filters");
+  await shot(phone, "admin-applicants-gone-quiet-mobile", {animations: "disabled"});
 }
 
 // F5-A: the Settings menu, then Rentals on the seed (a tenant in arrears, an overdue gas check, a renewal and an

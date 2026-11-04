@@ -36,6 +36,9 @@ async function loadContact(env, id) {
 // G2: the 12-month retention clock restarts with every write to the contact or its searches.
 export const touch = (env, contactId, ts) =>
   env.DB.prepare("UPDATE contacts SET last_activity_at = ? WHERE id = ?").bind(ts, contactId);
+// L1 (spec 2026-11-04): a real contact with the person also moves last_contact_at, which edits never do.
+export const contacted = (env, contactId, ts) =>
+  env.DB.prepare("UPDATE contacts SET last_activity_at = ?1, last_contact_at = ?1 WHERE id = ?2").bind(ts, contactId);
 
 // Optimistic lock inside the batch: a stale version sets updated_at to NULL, the NOT NULL constraint fails and the
 // whole batch (events included) rolls back, even when another save lands between our check and our write.
@@ -60,6 +63,10 @@ async function saveVersioned(env, stmts, entity, id, seen) {
 }
 
 const ACTIVE = activeSql("s");
+// EST-11 (L3): an active search, Paused included, with no real contact for more than 14 days. Bind: the cutoff.
+const QUIET = `${activeSql("a")} AND COALESCE(c.last_contact_at, c.created_at) < ?`;
+const quietCutoff = () => new Date(Date.now() - 14 * 864e5).toISOString();
+const PARISHES = OPTIONS.parishes.map(([v]) => v), SOURCES = OPTIONS.sources.map(([v]) => v);
 
 // B13: the applicant's work queue, one label in this order: New properties found (found ones created after the first
 // review), Waiting for review (found ones left), In process (shortlisted ones), No matches (everything else).
@@ -84,11 +91,17 @@ async function list({ request, env }) {
   const p = new URL(request.url).searchParams;
   const operation = p.get("operation") || null, sort = p.get("sort") || "newest", stage = p.get("stage") || null;
   const assigned = p.get("assigned")?.trim().toLowerCase() || null, q = p.get("q")?.trim() || null;
-  const queue = p.get("queue") || null;
+  const queue = p.get("queue") || null, budget = p.get("budget")?.trim() || null, parish = p.get("parish") || null;
+  const source = p.get("source") || null, contact = p.get("contact") || null;
   if (operation && !OPTIONS.operation.some(([v]) => v === operation)) fail(400, "Invalid operation");
   if (!["newest", "oldest"].includes(sort)) fail(400, "Invalid sort");
   if (stage && !STAGES.includes(stage)) fail(400, "Invalid stage");
   if (queue && !QUEUES.includes(queue)) fail(400, "Invalid queue");
+  if (budget && !(/^\d+(\.\d+)?$/.test(budget) && Number(budget) > 0)) fail(400, "Invalid budget");
+  if (parish && !PARISHES.includes(parish)) fail(400, "Invalid parish");
+  if (source && !SOURCES.includes(source)) fail(400, "Invalid source");
+  if (contact && contact !== "quiet") fail(400, "Invalid contact filter");
+  const cutoff = quietCutoff();
   // E8: Expiring lists the searches of the contacts deleted within a month, archived ones too (they go with them).
   const today = jerseyToday(), expiring = p.get("expiring") === "1";
   const where = [expiring ? EXPIRING : p.get("archived") === "1" ? "a.archived_at IS NOT NULL" : "a.archived_at IS NULL"];
@@ -96,6 +109,19 @@ async function list({ request, env }) {
   if (operation) { where.push("a.operation = ?"); args.push(operation); }
   if (stage) { where.push("a.stage = ?"); args.push(stage); }
   if (assigned) { where.push("a.assigned_to = ?"); args.push(assigned); }
+  // L5: the amount is within the budget, up to the stretch as in the matching; no budget fits any amount.
+  if (budget) {
+    where.push("? BETWEEN COALESCE(a.budget_min, 0) AND COALESCE(a.budget_stretch, a.budget_max, ?)");
+    args.push(Number(budget), Number(budget));
+  }
+  // L6: wanted, or no parish asked for (anywhere), and never one they excluded.
+  if (parish) {
+    where.push(`NOT EXISTS (SELECT 1 FROM json_each(COALESCE(a.parishes_excluded, '[]')) WHERE value = ?)
+      AND (COALESCE(json_array_length(a.parishes_wanted), 0) = 0 OR EXISTS (SELECT 1 FROM json_each(a.parishes_wanted) WHERE value = ?))`);
+    args.push(parish, parish);
+  }
+  if (source) { where.push("a.source = ?"); args.push(source); }
+  if (contact) { where.push(QUIET); args.push(cutoff); }
   if (q) {
     const like = s => `%${s.replace(/[\\%_]/g, "\\$&")}%`;
     // A phone in any format ("07797 123 456") is found by its stored form; part of a number by its digits.
@@ -109,12 +135,13 @@ async function list({ request, env }) {
     // Materialized: each listed applicant's counts are read once, not once per use in QUEUE.
     `WITH listed AS MATERIALIZED (SELECT a.id, a.operation, a.stage, a.lost_reason, a.created_at, a.archived_at, a.assigned_to,
        ad.name AS assigned_name, c.name, c.phone, c.email, ${MATCH_COUNTS},
-       CASE WHEN ${EXPIRING} THEN ${KEPT_UNTIL} END AS expires_on
+       CASE WHEN ${EXPIRING} THEN ${KEPT_UNTIL} END AS expires_on,
+       COALESCE(c.last_contact_at, c.created_at) AS last_contact_at, CASE WHEN ${QUIET} THEN 1 ELSE 0 END AS gone_quiet
        FROM applicants a JOIN contacts c ON c.id = a.contact_id LEFT JOIN admins ad ON ad.email = a.assigned_to
        WHERE ${where.join(" AND ")})
      SELECT id, operation, stage, lost_reason, created_at, assigned_to, assigned_name, name, phone, email, ${QUEUE} AS queue,
-       found, shortlisted, expires_on, archived_at FROM listed ${queue ? `WHERE ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
-    .bind(today, ...args, ...(queue ? [queue] : [])).all();
+       found, shortlisted, expires_on, archived_at, last_contact_at, gone_quiet FROM listed ${queue ? `WHERE ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
+    .bind(today, cutoff, ...args, ...(queue ? [queue] : [])).all();
   return json({ applicants: results });
 }
 
@@ -178,7 +205,7 @@ async function create({ request, env, admin }) {
   }
 
   const stamps = { created_at: ts, updated_at: ts, updated_by: admin };
-  const person = { ...r.value.contact, last_activity_at: ts, ...stamps }, a = { ...r.value.applicant, ...stamps };
+  const person = { ...r.value.contact, last_activity_at: ts, last_contact_at: ts, ...stamps }, a = { ...r.value.applicant, ...stamps };
   const cols = row => Object.keys(row).join(", "), marks = row => Object.keys(row).map(() => "?").join(", ");
   const name = contact?.name ?? person.name;
   const stmts = [
@@ -190,7 +217,7 @@ async function create({ request, env, admin }) {
     ...logEvent(env, { actor: admin, entity_type: "applicant", entity_id: null, type: "applicant.created",
       data: { operation: a.operation, source: a.source } },
     { category: "new_applicant", title: `New applicant: ${name} · ${OPERATION_LABEL[a.operation]}`, action_required: false }),
-    ...(contact ? [touch(env, contact.id, ts)] : []),
+    ...(contact ? [contacted(env, contact.id, ts)] : []),
   ];
   let results;
   try { results = await env.DB.batch(stmts); } catch (e) {
@@ -327,7 +354,7 @@ async function updateContact({ request, env, admin, params: [id] }) {
 // reads the touch's changes()), so an unknown contact changes nothing.
 async function logConversation({ env, admin, params: [id] }) {
   const ts = now();
-  const r = await env.DB.batch([touch(env, Number(id), ts),
+  const r = await env.DB.batch([contacted(env, Number(id), ts),
     ...logEvent(env, { actor: admin, entity_type: "contact", entity_id: String(Number(id)), type: "contact.conversation" }, null,
       { ifInserted: true }),
     env.DB.prepare(RETENTION_SQL).bind(Number(id))]);

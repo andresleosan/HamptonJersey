@@ -80,9 +80,16 @@ Puntos del checklist:
 
 Si el reloj o Hermes se paran, el botón Settings de la barra lleva un número en todas las pantallas. Decisiones de Luis del 1-nov: esta primera versión, sin interruptores ni plazos editables; los avisos en Settings; 30 y 15 minutos; y borrar los trabajos de Hermes 90 días después de su última actividad, también los que nadie tomó. El modo, el coste, las plantillas y los parámetros llegan con la primera automatización que los use (AUT-01 sigue parcial).
 
+## Seguimiento de clientes en Applicants (SAP-07 + EST-11)
+
+**En producción desde el 4-nov-2026 con la migración 0019** ([spec](../superpowers/specs/2026-11-04-hampton-app-last-contact-design.md), [plan](../superpowers/plans/2026-11-04-hampton-app-last-contact.md)). Decisiones de Luis del 3/4-nov:
+- Una fecha propia de **último contacto real** (`contacts.last_contact_at`), aparte de la de los 12 meses. La cambian el alta (web o panel), un envío repetido desde la web, **Log conversation**, una visita pedida, reservada, confirmada, movida o hecha, y una oferta registrada. Las ediciones del equipo y los cambios de etapa no la tocan. Las fichas que ya existían arrancan con la fecha más reciente de su historial.
+- La lista lleva la columna **Last contact** con la etiqueta **Gone quiet** cuando una búsqueda activa (también en Paused) pasa 14 días sin contacto, y los filtros **Budget** (un importe que su presupuesto cubre, hasta el estirado), **Parish** (la pidieron o les vale cualquiera, salvo si la excluyeron), **Source** y **Last contact** (Gone quiet).
+- Falta el mensaje automático «Are you still looking?»: necesita un canal de envío (correo o Meta).
+
 ## Siguiente tarea
 
-**SAP-07 con «Gone quiet» (EST-11): seguir a los clientes en Applicants.** Luis decidió el 2-nov que el seguimiento de clientes vive en el panel, nunca en Drive ni en Telegram. Faltan la columna Last contact, los filtros por presupuesto, parroquia y origen, y la etiqueta «Gone quiet» a los 14 días sin respuesta. No necesita nada de fuera.
+**Ampliar criterios cuando hay menos de 3 coincidencias (BUS-17), con el botón Widen criteria de la ficha (SAP-10).** Es una automatización (la prioridad de Luis), no necesita nada de fuera y ayuda a recuperar a los clientes en Gone quiet o en No matches.
 
 Pendiente de Luis, sin código: comprobar a las 8:00 de Jersey que el resumen llega al canal, y la guía corta del equipo antes de invitarlo (AUT-14).
 

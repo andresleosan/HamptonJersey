@@ -137,7 +137,7 @@ async function createApplicant({ request, env, waitUntil }) {
 
 function newApplicant(env, contact, applicant, ts) {
   const stamps = { created_at: ts, updated_at: ts, updated_by: "public" };
-  const person = { ...contact, last_activity_at: ts, ...stamps }, a = { ...applicant, ...stamps };
+  const person = { ...contact, last_activity_at: ts, last_contact_at: ts, ...stamps }, a = { ...applicant, ...stamps };
   const cols = row => Object.keys(row).join(", "), marks = row => Object.keys(row).map(() => "?").join(", ");
   return [
     env.DB.prepare(`INSERT INTO contacts (${cols(person)}) VALUES (${marks(person)})`).bind(...Object.values(person)),
@@ -164,7 +164,7 @@ function duplicate(env, [c, other], contact, applicant, ts) {
   return [
     // A withdrawal is a change to the contact (a stale panel save then gets its 409); the retention clock always restarts.
     env.DB.prepare(`UPDATE contacts SET ${withdrawn ? "marketing_opt_in_at = NULL, updated_at = ?, updated_by = 'public', " : ""}
-      last_activity_at = ? WHERE id = ?`).bind(...(withdrawn ? [ts] : []), ts, c.id),
+      last_activity_at = ?, last_contact_at = ? WHERE id = ?`).bind(...(withdrawn ? [ts] : []), ts, ts, c.id),
     ...(withdrawn ? logEvent(env, { ...ref, type: "contact.consent_changed",
       data: { before: { marketing_opt_in_at: c.marketing_opt_in_at }, after: { marketing_opt_in_at: null } } }) : []),
     ...logEvent(env, { ...ref, type: "applicant.duplicate_submitted", data: sent },
