@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
      "responsable": desarrollo, Luis, Hampton, tercero o — . Varios bloqueos se separan con " · ".
      "vence" (opcional, AAAA-MM-DD) saca el punto arriba con la cuenta atrás. -->
 <script type="application/json" id="datos">{
- "actualizado": "2026-11-04",
+ "actualizado": "2026-11-05",
  "base": "127c7ef",
  "items": [
   {
@@ -3708,6 +3708,23 @@ document.addEventListener('DOMContentLoaded', () => {
    "bloqueo": "",
    "evidencia": [
     "server/insights.js"
+   ]
+  },
+  {
+   "id": "PUB-21",
+   "seccion": "Publicar propiedades",
+   "titulo": "Crear la propiedad desde una carpeta de Google Drive",
+   "origen": "texto",
+   "fase": "—",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "Pedido de Luis del 5-nov-2026. Hoy la importación de PUB-01 solo lee una carpeta del ordenador. Falta poder elegir en «Add new property» una carpeta de Google Drive y ver, antes de crear, lo mismo que con la carpeta del ordenador: fotos en orden (portada, planos y vista aérea según el nombre), la descripción y los datos de property.txt (o de un documento de Google con el mismo formato), venta o alquiler, y lo que no se importa. Crea el borrador en la base de datos y se publica en la web como cualquier otra ficha (PUB-02). Hay que decidir antes: qué cuenta de Google es la de Hampton, cómo da permiso (iniciar sesión con Google desde el panel solo para leer, o compartir la carpeta con una cuenta de servicio), que la clave quede solo en Cloudflare y nunca en GitHub, y qué hacer con HEIC y PDF, que tampoco convierte la carpeta del ordenador.",
+   "bloqueo": "",
+   "evidencia": [
+    "admin/src/NewProperty.jsx",
+    "server/listing-import.js",
+    "admin/public/property.txt"
    ]
   },
   {
