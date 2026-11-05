@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, KIND, TENURE, HOUSING, RESTRICTION, priceText } from "./format.js";
-import { uploadPhoto } from "./image.js";
+import { createDraft } from "./createDraft.js";
 import { setUnsaved } from "./unsaved.js";
-import { decodeText, readPropertyText, draftBody, planFolder, pickCover, readDrop } from "../../server/listing-import.js";
+import { decodeText, readPropertyText, draftBody, planFolder, readDrop } from "../../server/listing-import.js";
 
 // PUB-01 (spec 2026-11-03): a draft typed by hand, as before, or read from a folder: its property.txt and its own photos.
 const START = { title: "", use: "residential", operation: "sale", availability: "for_sale", country: "Jersey" };
@@ -56,35 +55,21 @@ export default function NewProperty({ rows, onClose }) {
     e.preventDefault();
     if (running.current) return; // a double click must not create two listings
     running.current = true; setBusy(true); setErr(null); setStatus("Creating the draft…"); setUnsaved(true);
-    let id;
-    try { ({ id } = await api("/admin/listings", { method: "POST", body: draftBody(imp?.fields ?? {}, f).body })); }
-    catch (x) {
+    let r;
+    try {
+      r = await createDraft(draftBody(imp?.fields ?? {}, f).body, imp?.plan.photos ?? [], { alive: () => alive.current,
+        onProgress: (i, n) => { setStatus(`Uploading photo ${i + 1} of ${n}…`); setProgress({ value: i, max: n }); } });
+    } catch (x) {
       if (!alive.current) return; // the unmount already cleared the flag: never touch another page's
       setUnsaved(false); setStatus(null); setBusy(false); running.current = false;
       setErr(x.data?.fields ? Object.entries(x.data.fields).map(([k, v]) => `${k}: ${v}`).join(". ") : x.message);
       return;
     }
-    // One at a time and in order: the server gives each photo the next position as it arrives.
-    const photos = imp?.plan.photos ?? [], uploaded = [], failed = [];
-    for (const [i, p] of photos.entries()) {
-      if (!alive.current) break; // left the page: stop, and never pull them back to the editor
-      setStatus(`Uploading photo ${i + 1} of ${photos.length}…`); setProgress({ value: i, max: photos.length });
-      try { uploaded.push({ ...p, media: await uploadPhoto(id, p.file, { kind: p.kind, label: p.label }) }); }
-      catch (x) { failed.push(`${p.name}: ${x.message}`); }
-    }
-    let coverFailed = false;
-    const c = pickCover(uploaded);
-    if (alive.current && c !== null) {
-      try {
-        const { listing } = await api(`/admin/listings/${id}`);
-        await api(`/admin/listings/${id}/media`, { method: "PUT",
-          body: { items: [], cover_media_id: uploaded[c].media.id, updated_at: listing.updated_at } });
-      } catch { coverFailed = true; }
-    }
+    const { id, failed, coverFailed } = r;
     if (!alive.current) return;
     setUnsaved(false);
     if (!failed.length && !coverFailed) { location.hash = `#/p/${id}`; return; }
-    setDone({ id, uploaded: uploaded.length, total: photos.length, failed, coverFailed });
+    setDone(r);
     setStatus(null); setProgress(null); setBusy(false);
   };
 

@@ -1,3 +1,5 @@
 SESSION_SECRET=dev-only-secret-change-me-0123456789abcdef
 TURNSTILE_SECRET=1x0000000000000000000000000000000AA
 TURNSTILE_SITE_KEY=1x00000000000000000000AA
+# PUB-21: production uses the secret GOOGLE_SERVICE_ACCOUNT (the service account's JSON key). For the e2e only, see the
+# header of tests/e2e.cjs (a fake Drive on port 8799 and a made-up key).

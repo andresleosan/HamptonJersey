@@ -2,9 +2,11 @@ import { json, fail, readJson, now } from "../http.js";
 import { toPublic, TO_CONFIRM } from "../listing.js";
 import { openCounts } from "./notifications.js";
 import { pauseOutbound } from "./automations.js";
+import { nextImport, importFile, importProposal } from "./queue.js";
 
 // AUT-13 (spec 2026-10-31): Hermes's door. Hermes, on the VPS, reaches it through the key's custodian (H4), which adds
-// Authorization: Bearer <HERMES_KEY>. Six fixed operations, public data (C0) and counts only: never who (H6, H7). It
+// Authorization: Bearer <HERMES_KEY>. Fixed operations, public data (C0) and counts only: never who (H6, H7); since PUB-21
+// also the documents of a Drive folder the team sent to Properties Queue (D2 of spec 2026-11-05). It
 // cannot approve, resume, publish or delete; that is done in the panel, with the routes at the end of this file.
 
 const enc = new TextEncoder();
@@ -165,6 +167,10 @@ const DOOR = [
   ["POST", /^\/jobs\/next$/, nextJob],
   ["POST", /^\/jobs\/(\d+)\/draft$/, draft],
   ["POST", /^\/pause$/, pause],
+  // PUB-21: Properties Queue (server/routes/queue.js).
+  ["POST", /^\/imports\/next$/, nextImport],
+  ["GET", /^\/imports\/(\d+)\/files\/([A-Za-z0-9_-]{10,100})$/, importFile],
+  ["POST", /^\/imports\/(\d+)\/proposal$/, importProposal],
 ];
 
 // path: what follows /hermes. Errors are thrown as HttpError, for server/api.js to answer.

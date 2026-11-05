@@ -112,6 +112,17 @@ export default function ListingEditor({ id, onChange }) {
     catch (e) { setMsg({ text: e.message }); }
     finally { setBusy(false); }
   };
+  // PUB-21 (D11, C8): a draft from Properties Queue is published from here, with the queue's minimum.
+  const approve = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      setListing((await api(`/admin/queue/${data.queue.id}/approve`, { method: "POST" })).listing);
+      setData(d => ({ ...d, queue: null })); reloadMatches(); onChange?.();
+      setMsg({ ok: true, text: "Approved and published: now on the website (may take a minute)." });
+    }
+    catch (e) { setMsg({ text: e.data?.missing ? `Complete before publishing: ${e.data.missing.join(", ")}.` : e.message }); }
+    finally { setBusy(false); }
+  };
   // ADM-04: after a call to the owner. Only confirmed_at changes, so whatever is being typed stays (T11).
   const stillAvailable = async () => {
     setConfirming(true); setMsg(null);
@@ -279,8 +290,9 @@ export default function ListingEditor({ id, onChange }) {
       {dirty && <span className="unsaved">Unsaved changes</span>}
       <button type="button" className="btn" onClick={save} disabled={!dirty || busy}>{busy ? "Saving…" : "Save"}</button>
       {dirty && <button type="button" className="btn ghost" onClick={discard} disabled={busy}>Discard</button>}
-      {state !== "archived" && <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Save first" : undefined}
-        onClick={() => act(l.published ? "unpublish" : "publish")}>{l.published ? "Unpublish" : "Publish"}</button>}
+      {state !== "archived" && (data.queue ? <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Save first" : undefined}
+        onClick={approve}>Approve and publish</button> : <button type="button" className="btn ghost" disabled={dirty || busy}
+        title={dirty ? "Save first" : undefined} onClick={() => act(l.published ? "unpublish" : "publish")}>{l.published ? "Unpublish" : "Publish"}</button>)}
       {state !== "archived" && <button type="button" className="btn ghost" disabled={dirty || busy} onClick={() => act("archive")}>Archive</button>}
       {state === "archived" && <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Save first" : undefined} onClick={() => act("restore")}>Restore</button>}
       {state === "archived" && <form className="inline" onSubmit={destroy}>

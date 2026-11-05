@@ -7,6 +7,7 @@ import Applicants from "./Applicants.jsx";
 import NewApplicant from "./NewApplicant.jsx";
 import ApplicantDetail from "./ApplicantDetail.jsx";
 import Review from "./Review.jsx";
+import Queue from "./Queue.jsx";
 import Listings from "./Listings.jsx";
 import ListingEditor from "./ListingEditor.jsx";
 import Viewings from "./Viewings.jsx";
@@ -74,7 +75,7 @@ export default function App() {
 
   const [path, query] = hash.replace(/^#\/?/, "").split("?");
   const [section, arg, sub] = path.split("/");
-  const current = section === "p" && arg ? "listings" : ["applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours", "automations"].includes(section) ? section : "";
+  const current = (section === "p" && arg) || section === "queue" ? "listings" : ["applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours", "automations"].includes(section) ? section : "";
   // The Inbox counter in the navigation: every 30 s while signed in and the tab is visible. On the Inbox itself,
   // the page's own poll brings the counts (onCounts).
   const loadCounts = useCallback(() => api("/admin/notifications/counts").then(setCounts, () => {}), []);
@@ -100,7 +101,7 @@ export default function App() {
     : section === "applicants" ? <Applicants /> : section === "review" ? <Review />
     : section === "listings" && arg && sub === "report"
       ? <OwnerReport key={arg} id={decodeURIComponent(arg)} days={new URLSearchParams(query).get("days")} />
-    : section === "listings" ? <Listings onChange={loadCounts} /> : section === "viewings"
+    : section === "listings" ? <Listings onChange={loadCounts} /> : section === "queue" ? <Queue onChange={loadCounts} /> : section === "viewings"
       ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} />
     : section === "sales" && /^\d+$/.test(arg) ? <SaleDetail key={arg} id={arg} onChange={loadCounts} />
     : section === "sales" ? <Sales key={query ?? ""} buyer={new URLSearchParams(query).get("applicant")} onChange={loadCounts} />

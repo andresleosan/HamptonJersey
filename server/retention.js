@@ -42,6 +42,9 @@ const VIEWING_EVENTS = eventsOf("viewing", VIEWINGS);
 export const jobLastActivity = (t = "jobs") => `COALESCE(${t}.decided_at, ${t}.claimed_at, ${t}.created_at)`;
 const JOBS = `SELECT id FROM jobs WHERE status <> 'draft' AND ${jobLastActivity()} < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-90 days')
   ORDER BY ${jobLastActivity()}, id LIMIT ${RETENTION_CAP}`;
+// PUB-21 (C7): Properties Queue's closed rows (published, discarded, failed) the same 90 days; open ones wait for a person.
+const IMPORTS = `SELECT id FROM drive_imports WHERE status IN ('published', 'discarded', 'failed')
+  AND COALESCE(decided_at, claimed_at, created_at) < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-90 days') LIMIT ${RETENTION_CAP}`;
 const deletedEvents = (type, set) => `INSERT INTO events (at, actor, entity_type, entity_id, type)
   SELECT ?1, 'system', '${type}', CAST(id AS TEXT), '${type}.deleted' FROM (${set}) ORDER BY id`;
 
@@ -74,6 +77,7 @@ export async function runRetention(env, ts) {
     q(`UPDATE events SET data = NULL WHERE id IN (${VIEWING_EVENTS})`),
     q(`DELETE FROM viewing_requests WHERE id IN (${VIEWINGS})`),
     env.DB.prepare(`DELETE FROM jobs WHERE id IN (${JOBS})`).bind(ts),
+    env.DB.prepare(`DELETE FROM drive_imports WHERE id IN (${IMPORTS})`).bind(ts),
   ]);
   return { contacts: r[6].meta.changes, viewings: r[10].meta.changes, jobs: r[11].meta.changes };
 }

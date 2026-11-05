@@ -65,7 +65,8 @@ export default function Listings({ onChange }) {
 
   return <section aria-labelledby="t-props">
     <div className="head"><h1 id="t-props">Listings</h1>
-      <button type="button" className="btn" onClick={() => setCreating(true)}>Add new property</button></div>
+      <div className="inline"><a className="btn ghost" href="#/queue">Properties Queue</a>
+        <button type="button" className="btn" onClick={() => setCreating(true)}>Add new property</button></div></div>
     {creating && <NewProperty rows={rows} onClose={() => { setCreating(false); load(); }} />}
     <div className="seg" role="group" aria-label="Status">{TABS.map(([k, t]) =>
       <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)}>{t}<span className="count">{counts[k]}</span></button>)}</div>

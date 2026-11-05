@@ -148,7 +148,8 @@ export function draftBody(fields, form) {
 
 // The folder (spec §3.3). Only the chosen folder's own files go up (Luis, decision 5): subfolders hold 360 photos, videos,
 // originals or documents. System files are ignored without a word.
-const MAX_PHOTOS = 100, MAX_TEXT = 100 * 1024, MAX_PHOTO = 40 * 1024 * 1024;
+export const MAX_PHOTOS = 100, MAX_PHOTO = 40 * 1024 * 1024;
+const MAX_TEXT = 100 * 1024;
 const hidden = n => n.startsWith(".") || /^(thumbs\.db|desktop\.ini|__macosx)$/i.test(n);
 const ext = n => (/\.([^.]+)$/.exec(n)?.[1] ?? "").toLowerCase();
 const byName = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
@@ -167,6 +168,12 @@ export function labelFromName(name) {
   if (CAMERA.test(base)) return null;
   // Leading numbering goes («01 - Kitchen»), digits that start a word stay («1st floor plan», «3D floor plan»).
   return base.replace(/^\d+(?![\p{L}\d])\s*[-_.)]?\s*/u, "").replace(/_/g, " ").replace(/\s+/g, " ").trim() || null;
+}
+
+// «floor plan» in the name is a plan; the first «aerial» or «drone» the aerial view (also Properties Queue, PUB-21).
+export function kindsOf(names) {
+  let aerial = false;
+  return names.map(n => (PLAN.test(n) ? "floorplan" : AERIAL.test(n) && !aerial ? ((aerial = true), "aerial") : "photo"));
 }
 
 // The cover: the first photo whose name doesn't say aerial or drone, else the first photo; never a floor plan.
@@ -201,9 +208,8 @@ export function planFolder(items, subfolders = []) {
   }
   if (text && text.size > MAX_TEXT) skipped.push(`${text.name} is larger than 100 KB and wasn't read.`);
   for (const [reason, names] of groups) if (names.length) skipped.push(`${reason}: ${names.join(", ")}`);
-  let aerial = false;
-  const planned = photos.map(file => ({ file, name: file.name, label: labelFromName(file.name),
-    kind: PLAN.test(file.name) ? "floorplan" : AERIAL.test(file.name) && !aerial ? ((aerial = true), "aerial") : "photo" }));
+  const kind = kindsOf(photos.map(f => f.name));
+  const planned = photos.map((file, i) => ({ file, name: file.name, label: labelFromName(file.name), kind: kind[i] }));
   const error = planned.length > MAX_PHOTOS ? `This folder has ${planned.length} photos. The limit is 100: choose the property's own folder.`
     : !planned.length && !text ? "No photos or property.txt in this folder." : null;
   return { folder, photos: planned, cover: pickCover(planned), text: text && text.size <= MAX_TEXT ? text : null, skipped,

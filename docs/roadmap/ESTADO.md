@@ -87,6 +87,15 @@ Si el reloj o Hermes se paran, el botón Settings de la barra lleva un número e
 - La lista lleva la columna **Last contact** con la etiqueta **Gone quiet** cuando una búsqueda activa (también en Paused) pasa 14 días sin contacto, y los filtros **Budget** (un importe que su presupuesto cubre, hasta el estirado), **Parish** (la pidieron o les vale cualquiera, salvo si la excluyeron), **Source** y **Last contact** (Gone quiet).
 - Falta el mensaje automático «Are you still looking?»: necesita un canal de envío (correo o Meta).
 
+## Properties Queue: propiedades desde Google Drive (PUB-21)
+
+**Construido el 5-nov-2026, sin desplegar** ([spec](../superpowers/specs/2026-11-05-hampton-app-drive-queue-design.md), [plan](../superpowers/plans/2026-11-05-hampton-app-drive-queue.md), [ledger](../superpowers/plans/2026-11-05-hampton-app-drive-queue-ledger.md)). Migración 0020. Decisiones de Luis del 5-nov, con /grill-me:
+- En **Properties Queue** (botón en Listings) cualquiera del panel pega el link de la carpeta de una casa del Drive de Hampton y una nota. La casa espera a Hermes, que lee todos sus documentos menos «Records» y propone los datos de `property.txt`, un resumen y una descripción nuevos, de qué documento sale cada dato y lo que se contradice (manda la nota; si no, el documento más reciente).
+- Las fotos son solo las de la subcarpeta «Edited» / «Editadas» (la más reciente si hay varias, o la que diga la nota). El título es el nombre de la carpeta. Si la carpeta ya se importó, avisa con la ficha.
+- «Review» crea el borrador con las fotos reducidas y sin GPS; en el editor, **Approve and publish** lo publica si tiene título, venta o alquiler, precio, parroquia, una foto y descripción. Discard borra el borrador.
+- La app lee Drive con una **cuenta de servicio de solo lectura** (secreto `GOOGLE_SERVICE_ACCOUNT` en Cloudflare); Hermes pide los documentos a la app y nunca tiene la clave.
+- **Falta:** que Luis cree la cuenta de servicio, guarde su clave, comparta la carpeta de las casas desde la cuenta de Franco y aplique la migración 0020; y en el VPS, la instrucción de Hermes y las tres rutas nuevas en el custodio, que esperan a PRE-32 (el plan de ChatGPT). Hasta entonces las casas se quedan en «Waiting for Hermes».
+
 ## Siguiente tarea
 
 **Ampliar criterios cuando hay menos de 3 coincidencias (BUS-17), con el botón Widen criteria de la ficha (SAP-10).** Es una automatización (la prioridad de Luis), no necesita nada de fuera y ayuda a recuperar a los clientes en Gone quiet o en No matches.

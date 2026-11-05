@@ -44,7 +44,7 @@ async function list({ request, env }) {
 async function detail({ env, params: [id] }) {
   const listing = await loadListing(env, id);
   const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
-  const [media, research, sources, facts, terms, issues, searches, matched, [interest]] = (await env.DB.batch([
+  const [media, research, sources, facts, terms, issues, searches, matched, [interest], [queue]] = (await env.DB.batch([
     q("SELECT * FROM media WHERE listing_id = ? ORDER BY position, id", id),
     q("SELECT * FROM research_properties WHERE property_id = ?", id),
     q("SELECT * FROM research_sources WHERE property_id = ? ORDER BY source_id", id),
@@ -57,12 +57,13 @@ async function detail({ env, params: [id] }) {
        WHERE m.listing_id = ?
        ORDER BY CASE m.status WHEN 'shortlisted' THEN 0 WHEN 'found' THEN 1 ELSE 2 END, m.score DESC, m.id`, id),
     interestStatement(env, id),
+    q("SELECT id, status FROM drive_imports WHERE listing_id = ? AND status = 'review'", id),
   ])).map(r => r.results);
   const group = research[0]?.duplicate_group;
   const duplicates = group ? (await q("SELECT property_id FROM research_properties WHERE duplicate_group = ? AND property_id <> ? ORDER BY property_id", group, id).all())
     .results.map(r => r.property_id) : [];
   return json({ listing, media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates,
-    matched_applicants: matched, active_interest: interest.n });
+    matched_applicants: matched, active_interest: interest.n, queue: queue ?? null });
 }
 
 const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
@@ -77,8 +78,10 @@ function withFeatures(row, patch, ts) {
 // A listing at its maximum lengths (description, summary, spec rows, multi-byte text) passes 32 KB.
 const LISTING_BYTES = 256 * 1024;
 
-async function create({ request, env, admin }) {
-  const r = validateListing(await readJson(request, LISTING_BYTES));
+const create = async ({ request, env, admin }) => createListing(env, admin, await readJson(request, LISTING_BYTES));
+// Also Properties Queue's draft (PUB-21), which ties the new listing to its row on the server.
+export async function createListing(env, admin, body) {
+  const r = validateListing(body);
   if (r.errors) return fieldErrors(r.errors);
   const priceErrors = checkPrice(r.value);
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
@@ -168,9 +171,12 @@ async function setFeatured({ request, env, params: [id] }) {
   return json({ ok: true });
 }
 
-async function setState({ env, admin, params: [id, action] }) {
+// fromQueue: Properties Queue's Approve and publish (PUB-21), the only way to publish a listing still in review (C8).
+export async function setState({ env, admin, params: [id, action], fromQueue = false }) {
   const l = await loadListing(env, id);
   if (action === "publish" && l.archived_at) fail(400, "Restore the listing before publishing it");
+  if (action === "publish" && !fromQueue && await env.DB.prepare("SELECT 1 FROM drive_imports WHERE listing_id = ? AND status = 'review'")
+    .bind(id).first()) fail(409, "Use Approve and publish in the queue");
   if (action === "archive" && l.archived_at) fail(400, "The listing is already archived");
   if (action === "restore" && !l.archived_at) fail(400, "The listing isn't archived");
   // V16: an open offer or a sale in progress keeps it out of the archive: checked first for a quick answer, and again
@@ -209,6 +215,12 @@ async function remove({ request, env, admin, params: [id] }) {
   if (await env.DB.prepare("SELECT 1 FROM sales WHERE listing_id = ? LIMIT 1").bind(id).first())
     fail(409, "Kept for 5 years: it has a sale");
   if ((await readJson(request))?.confirm !== id) fail(400, `Type ${id} to confirm deletion`);
+  await deleteListing(env, id, admin);
+  return json({ ok: true });
+}
+
+// Also Properties Queue's Discard (PUB-21, C7), for a draft that was never published.
+export async function deleteListing(env, id, admin) {
   const { results } = await env.DB.prepare("SELECT r2_key, thumb_key FROM media WHERE listing_id = ? AND origin = 'upload'").bind(id).all();
   await env.DB.batch([
     env.DB.prepare("DELETE FROM media WHERE listing_id = ?").bind(id),
@@ -218,7 +230,6 @@ async function remove({ request, env, admin, params: [id] }) {
   // Imported files stay in R2 (they also live in /root/Hampton_Database); research rows are kept.
   const keys = results.flatMap(m => [m.r2_key, m.thumb_key]).filter(Boolean);
   if (keys.length) await env.MEDIA.delete(keys);
-  return json({ ok: true });
 }
 
 export default [

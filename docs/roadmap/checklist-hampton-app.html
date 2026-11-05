@@ -3716,15 +3716,22 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Crear la propiedad desde una carpeta de Google Drive",
    "origen": "texto",
    "fase": "—",
-   "estado": "pendiente",
+   "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "Pedido de Luis del 5-nov-2026. Hoy la importación de PUB-01 solo lee una carpeta del ordenador. Falta poder elegir en «Add new property» una carpeta de Google Drive y ver, antes de crear, lo mismo que con la carpeta del ordenador: fotos en orden (portada, planos y vista aérea según el nombre), la descripción y los datos de property.txt (o de un documento de Google con el mismo formato), venta o alquiler, y lo que no se importa. Crea el borrador en la base de datos y se publica en la web como cualquier otra ficha (PUB-02). Hay que decidir antes: qué cuenta de Google es la de Hampton, cómo da permiso (iniciar sesión con Google desde el panel solo para leer, o compartir la carpeta con una cuenta de servicio), que la clave quede solo en Cloudflare y nunca en GitHub, y qué hacer con HEIC y PDF, que tampoco convierte la carpeta del ordenador.",
-   "bloqueo": "",
+   "hecho": "Pedido de Luis del 5-nov-2026, reglas con /grill-me. Construido el 5-nov-2026 (migración 0020, sin desplegar): «Properties Queue» (botón en Listings, #/queue) recibe el link de la carpeta de una casa en Drive y una nota; la casa espera a Hermes, que pide a la app los documentos de esa carpeta (nunca «Records» ni las carpetas de fotos) y devuelve un property.txt, la descripción nueva, de qué documento sale cada dato y lo que se contradice. Las fotos salen solo de la subcarpeta «Edited»/«Editadas» y el título es el nombre de la carpeta. «Review» crea el borrador con las fotos reducidas y sin GPS; en el editor, «Approve and publish» lo publica si tiene título, venta o alquiler, precio, parroquia, una foto y descripción. Avisa si la carpeta ya se importó; Discard borra el borrador; las filas cerradas se borran a los 90 días. La app lee Drive con una cuenta de servicio de solo lectura y Hermes nunca tiene su clave.",
+   "falta": "Luis: crear la cuenta de servicio en Google Cloud, guardar su clave como secreto de Cloudflare (GOOGLE_SERVICE_ACCOUNT), compartir la carpeta de las casas como lector desde la cuenta de Franco y aplicar la migración 0020 antes del push. VPS (espera a PRE-32, el plan de ChatGPT): la instrucción de Hermes y las tres rutas /imports en el custodio. Hasta entonces las casas se quedan en «Waiting for Hermes».",
+   "bloqueo": "PRE-32 para que Hermes lea las carpetas",
    "evidencia": [
-    "admin/src/NewProperty.jsx",
-    "server/listing-import.js",
-    "admin/public/property.txt"
+    "server/drive.js",
+    "server/routes/queue.js",
+    "server/routes/hermes.js",
+    "admin/src/Queue.jsx",
+    "admin/src/createDraft.js",
+    "admin/src/ListingEditor.jsx",
+    "migrations/0020_drive_imports.sql",
+    "tests/server/drive.test.mjs",
+    "tests/server/queue.test.mjs",
+    "docs/superpowers/specs/2026-11-05-hampton-app-drive-queue-design.md"
    ]
   },
   {

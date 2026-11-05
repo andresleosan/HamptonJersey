@@ -97,7 +97,10 @@ export async function call(env, method, path, { body, cookie, origin = ORIGIN, f
   const pending = [];
   const res = await handleApi(req, env, segments, p => pending.push(p));
   await Promise.all(pending);
-  return { status: res.status, headers: res.headers, data: await res.json().catch(() => null) };
+  const text = await res.text();
+  let data = null;
+  try { data = JSON.parse(text); } catch {}
+  return { status: res.status, headers: res.headers, data, text };
 }
 export const adminCookie = async (email = "admin@example.test") => `${COOKIE}=${await signSession(email, SECRET)}`;
 

@@ -4,7 +4,9 @@
 //   npx wrangler d1 execute hampton --local --persist-to .wrangler/e2e --file tests/fixtures/seed.sql
 //   npx wrangler pages dev --port 8788 --persist-to .wrangler/e2e     (terminal A)
 //   PW=<playwright-core> CHROME=<chrome> node tests/e2e.cjs [screenshot-dir]   (terminal B)
-// Matterport is never contacted: its requests are aborted.
+// Matterport is never contacted: its requests are aborted. Properties Queue (PUB-21) needs three lines in .dev.vars for
+// the fake Drive this script starts on port 8799: DRIVE_API=http://localhost:8799, DRIVE_TOKEN_URL=http://localhost:8799/token
+// and GOOGLE_SERVICE_ACCOUNT='{"client_email":"e2e@example.iam.gserviceaccount.com","private_key":"<any RSA PKCS8 PEM, \n escaped>"}'.
 const {chromium} = require(process.env.PW || "playwright-core");
 const assert = require("node:assert/strict");
 const {execFileSync} = require("node:child_process");
@@ -740,6 +742,7 @@ async function admin(browser) {
   await automations(page, phone, noSideScroll);
   await hermesDrafters(page);
   await folderImport(page, phone);
+  await driveQueue(page, phone, noSideScroll);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -747,6 +750,64 @@ async function admin(browser) {
   await shot(page, "admin-users");
   assert.deepEqual(page.errors, []);
   await ctx.close();
+}
+
+// PUB-21 (spec 2026-11-05): Properties Queue against a fake Google Drive on port 8799 (.dev.vars points DRIVE_API and
+// DRIVE_TOKEN_URL at it, with a made-up key). Send a folder, then review a seeded proposal: leave a photo out, create
+// the draft, approve and publish it from the editor. Phone: the list with no side scroll.
+async function driveQueue(page, phone, noSideScroll) {
+  const http = require("node:http"), jpg = readFileSync("tests/fixtures/photo.jpg");
+  const files = {F_E2EHOUSE01: {name: "Les Fougères Test", mimeType: "application/vnd.google-apps.folder"},
+    P_E2EFRONT1: {name: "01 Front.jpg", mimeType: "image/jpeg"}, P_E2EBACK01: {name: "02 Garden.jpg", mimeType: "image/jpeg"}};
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, "http://localhost:8799"), m = /^\/drive\/v3\/files\/([^/]+)$/.exec(url.pathname);
+    const send = (code, body, type = "application/json") => { res.writeHead(code, {"content-type": type}); res.end(body); };
+    if (url.pathname === "/token") return send(200, JSON.stringify({access_token: "e2e", expires_in: 3600}));
+    if (!m || !files[m[1]]) return send(404, "{}");
+    if (url.searchParams.get("alt") === "media") return send(200, jpg, "image/jpeg");
+    send(200, JSON.stringify({id: m[1], ...files[m[1]]}));
+  });
+  await new Promise(ok => server.listen(8799, ok));
+  try {
+    await page.goto(BASE + "admin/#/queue");
+    await page.waitForSelector("#t-queue");
+    await page.getByLabel("Drive folder link").fill("https://example.com/not-drive");
+    await page.getByRole("button", {name: "Send to Hermes"}).click();
+    await page.waitForSelector("#e-link:has-text('Paste the link of a Google Drive folder.')");
+    await page.getByLabel("Drive folder link").fill("https://drive.google.com/drive/u/5/folders/F_E2EHOUSE01?usp=sharing");
+    await page.getByLabel("Note for Hermes (optional)").fill("The price is the one in the Word.");
+    await page.getByRole("button", {name: "Send to Hermes"}).click();
+    await page.waitForSelector("text=Les Fougères Test is in the queue.");
+    assert.match(await page.textContent(".queue-list tbody tr"), /Les Fougères Test[\s\S]*Waiting for Hermes/);
+    assert.ok(await page.isVisible("text=Hermes isn't responding"), "no Hermes yet: the page says so");
+    // Hermes's work, as its door would leave it.
+    const result = JSON.stringify({property_txt: "Operation: Sale\nParish: St Lawrence\nBedrooms: 3\nPrice: £895,000\n" +
+      "Description:\nA granite farmhouse with a walled garden.", sources: {price: "Details.docx"},
+      conflicts: [{field: "price", values: [{value: "£895,000", document: "Details.docx"}, {value: "£875,000", document: "Old.pdf"}]}],
+      photos_folder: "Edited", photos: [{id: "P_E2EFRONT1", name: "01 Front.jpg", mimeType: "image/jpeg", heic: false},
+        {id: "P_E2EBACK01", name: "02 Garden.jpg", mimeType: "image/jpeg", heic: false}], warnings: []}).replace(/'/g, "''");
+    d1(`UPDATE drive_imports SET status = 'ready', ready_at = created_at, result = '${result}' WHERE folder_id = 'F_E2EHOUSE01'`);
+    await page.reload();
+    await page.getByRole("button", {name: "Review"}).click();
+    await page.waitForSelector("#t-review");
+    assert.match(await page.textContent(".queue-review dl"), /St Lawrence[\s\S]*£895,000 · from Details.docx/);
+    assert.match(await page.textContent(".queue-review"), /The documents disagree:[\s\S]*£875,000 \(Old.pdf\)/);
+    await shot(page, "admin-queue-review");
+    await page.locator(".queue-photos li").nth(1).getByLabel("Leave out").check();
+    await page.getByRole("button", {name: "Create draft"}).click();
+    await page.waitForSelector("#f-title");
+    assert.equal(await page.inputValue("#f-title"), "Les Fougères Test", "the title is the folder's name");
+    await page.waitForSelector(".media-grid img");
+    assert.equal(await page.locator(".media-grid img").count(), 1, "only the kept photo went up");
+    await page.getByRole("button", {name: "Approve and publish"}).click();
+    await page.waitForSelector("text=Approved and published");
+    await page.goto(BASE + "admin/#/queue");
+    await page.waitForSelector(".queue-list");
+    assert.match(await page.textContent(".queue-list tbody tr"), /Les Fougères Test[\s\S]*Published/);
+    await shot(page, "admin-queue");
+    await noSideScroll(BASE + "admin/#/queue", ".queue-list");
+    await shot(phone, "phone-queue");
+  } finally { server.close(); }
 }
 
 // AUT-01 (spec 2026-11-01). `wrangler pages dev` runs no clock, so the clock shows stopped and Settings counts 1. One

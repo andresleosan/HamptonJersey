@@ -4,7 +4,7 @@
 >
 > Versión 1 · 23-oct-2026 · Preparada por Claude para Luis · Borrador: nada de esto está aprobado ni construido · Base: HamptonJersey en `ada40e3` (Cloudflare Pages + D1 + R2 + panel `/admin`)
 >
-> Añadido el 29-oct-2026: §6.5 (plan de ChatGPT de cada empleado), decisión P-17 y pregunta 14. Añadido el 30-oct-2026: §6.6 (Hermes, el cerebro de IA de las automatizaciones, con Telegram), decisión P-18 y preguntas 15 y 16; ese mismo día Luis las respondió y aprobó el diseño del Hermes propio de Hampton. Cambiado el 2-nov-2026: canal del equipo, avisador sin IA y solo Luis da órdenes (§6.6). Lo construido y lo pendiente está en [ESTADO.md](ESTADO.md) y en el [checklist](checklist-hampton-app.html). La versión HTML de este documento sigue siendo la del 23-oct.
+> Añadido el 29-oct-2026: §6.5 (plan de ChatGPT de cada empleado), decisión P-17 y pregunta 14. Añadido el 30-oct-2026: §6.6 (Hermes, el cerebro de IA de las automatizaciones, con Telegram), decisión P-18 y preguntas 15 y 16; ese mismo día Luis las respondió y aprobó el diseño del Hermes propio de Hampton. Cambiado el 2-nov-2026: canal del equipo, avisador sin IA y solo Luis da órdenes (§6.6). Cambiado el 5-nov-2026: Hermes también lee los documentos de las carpetas de Drive que el equipo manda a Properties Queue (§5.10, PUB-21). Lo construido y lo pendiente está en [ESTADO.md](ESTADO.md) y en el [checklist](checklist-hampton-app.html). La versión HTML de este documento sigue siendo la del 23-oct.
 
 ## 0. Lo esencial
 
@@ -334,6 +334,7 @@ Tus nueve campos están todos: nombre, email, móvil, presupuesto, dormitorios y
 - **Captación**: el formulario público «Book a valuation» crea un contacto propietario y una cita en el mismo calendario de §5.9. Para preparar la valoración, el historial de transacciones de Places.je da comparables reales, y los datos de demanda de §5.14 ayudan a convencer al propietario.
 - **Alta desde el móvil durante la valoración** («New instruction» en el panel): secciones por familia de datos, subida de fotos con control de calidad (resolución, desenfoque, oscuridad, líneas torcidas), plano y documentos.
 - **Alta desde una carpeta del ordenador** (construida el 3-nov-2026, PUB-01): «Add new property» lee el `property.txt` de la carpeta (plantilla descargable en el formulario) y sube sus fotos sueltas en orden de nombre, con portada; las subcarpetas no se leen. Crea un borrador y el editor dice qué falta.
+- **Alta desde una carpeta de Google Drive** (construida el 5-nov-2026, PUB-21, [spec](../superpowers/specs/2026-11-05-hampton-app-drive-queue-design.md)): en «Properties Queue» (desde Listings) se pega el link de la carpeta de una casa del Drive de Hampton y una nota. Hermes lee sus documentos (nunca «Records») y propone los datos y una descripción nueva; las fotos salen solo de su carpeta «Edited». El equipo crea el borrador, lo revisa en el editor y «Approve and publish» lo publica si tiene título, venta o alquiler, precio, parroquia, una foto y descripción. La app lee Drive con una cuenta de servicio de solo lectura; Hermes nunca tiene la clave.
 - **Campos obligatorios según la operación** y porcentaje completado. Con menos del 100 % de lo obligatorio no se puede publicar.
 - **Tus seis familias, adaptadas a Jersey**. La lista original era de España: IBI, comunidad, fianza, Idealista o Fotocasa no aplican aquí.
 

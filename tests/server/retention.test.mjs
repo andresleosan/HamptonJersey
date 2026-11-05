@@ -460,3 +460,14 @@ test("confirming, moving or completing a viewing restarts the contact's clock; a
   assert.equal(lastActivity(env, c), before);
   assert.equal(noticeRow(env, n2).resolved_at, null);
 });
+
+test("PUB-21: closed Properties Queue rows go 90 days after their last activity, open ones stay", async () => {
+  const env = makeEnv();
+  const add = (status, at) => env.DB.raw.prepare(`INSERT INTO drive_imports (folder_id, folder_name, status, requested_by,
+    created_at, decided_at) VALUES ('F_HOUSE00001', 'House', ?, 'admin@example.test', ?, ?)`).run(status, at, status === "review" ? null : at);
+  add("published", "2026-07-01T00:00:00.000Z");
+  add("review", "2026-03-01T00:00:00.000Z");
+  add("discarded", "2026-10-01T00:00:00.000Z");
+  await runRetention(env, "2026-10-24T23:30:00.000Z");
+  assert.deepEqual(env.DB.raw.prepare("SELECT status FROM drive_imports ORDER BY id").all().map(r => r.status), ["review", "discarded"]);
+});
