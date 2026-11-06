@@ -145,7 +145,7 @@ export async function fileResponse(env, file) {
     const m = await driveFetch(env, `files/${file.id}?fields=thumbnailLink`);
     const link = m.ok ? (await m.json()).thumbnailLink : null;
     if (!link) fail(502, "Google Drive didn't send the photo");
-    r = await driveFetch(env, link.replace(/=s\d+$/, "=s1600"));
+    r = await driveFetch(env, link.replace(/=s\d+$/, "=s4000")); // full size for the details photo (6-nov)
   } else if (EXPORT[file.mimeType]) {
     r = await driveFetch(env, `files/${file.id}/export?${new URLSearchParams({ mimeType: EXPORT[file.mimeType] })}`);
   } else r = await driveFetch(env, `files/${file.id}?alt=media`);
