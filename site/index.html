@@ -392,9 +392,17 @@ footer .staff:hover,footer .staff:focus-visible{opacity:1;text-decoration:underl
 .apply-body>.confirm{margin-top:24px}
 .apply-progress{display:grid;gap:8px;margin:24px 0 32px}
 .apply-progress p{margin:0;font-size:13px;color:var(--stone)}
-.pbar{height:2px}
-.pbar i{display:block;height:100%;width:calc(var(--step,1) / 6 * 100%);background:var(--bronze);transition:width .25s ease}
-fieldset.step{border:0;margin:0;padding:0;min-width:0;display:grid;gap:24px}
+.pbar{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.pbar i{display:block;height:100%;width:calc(var(--step,1) / var(--total,6) * 100%);background:var(--bronze);border-radius:2px;transition:width .25s ease-out}
+fieldset.step{border:0;margin:0;padding:0;min-width:0;display:grid;gap:36px}
+/* Questions in sentence case at a readable size; "(optional)" quieter; more air between groups than inside one. */
+.apply .field{gap:12px}
+.apply .field>legend,.apply .field>label{font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink);line-height:1.35}
+.apply .field>legend i,.apply .field>label i{font-style:normal;font-weight:400;letter-spacing:0;color:var(--stone);margin-left:2px}
+.apply .opts{gap:10px}
+.apply .opts span{font-size:15px;padding:10px 20px}
+.apply .opts.nums span{min-width:48px;justify-content:center;padding:10px 14px}
+@media (max-width:480px){.apply .row{grid-template-columns:1fr}.apply .opts{gap:8px}.apply .opts span{padding:10px 16px}.apply .opts.nums span{padding:10px 12px}fieldset.step{gap:32px}}
 fieldset.step>legend{padding:0;margin-bottom:24px}
 .step h2{scroll-margin-top:96px}
 .step .hint{margin:0}

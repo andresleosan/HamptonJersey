@@ -10,8 +10,9 @@ const PRIVATE = ["name", "email", "phone", "preferred_channel", "best_time", "re
 const STEPS = [
   { title: "What are you looking for?", fields: ["operation"] },
   { title: "Where?", fields: ["parishes_wanted", "parishes_excluded", "near"] },
-  { title: "What kind of home?", fields: ["property_types", "bedrooms_min", "bedrooms_ideal", "bathrooms_min",
-    "parking_spaces", "outdoor", "furnished", "pets", "pets_cat", "pets_dog", "pets_other"] },
+  { title: "What kind of home?", fields: ["property_types", "bedrooms_min", "bedrooms_ideal", "bathrooms_min"] },
+  { title: "Parking, outdoor space and pets", fields: ["parking_spaces", "outdoor", "furnished", "pets", "pets_cat",
+    "pets_dog", "pets_other"] },
   { title: "Budget and timing", fields: ["budget_max", "budget_min", "budget_stretch", "move_in_date",
     "lease_term_months", "buyer_position", "mortgage_aip"] },
   { title: "Living in Jersey", fields: ["housing_status", "household_adults", "household_children"] },
@@ -55,10 +56,11 @@ export function toBody(a) {
 // Help before Continue; the server checks everything again and its errors bring the visitor back to the step.
 function checkStep(i, a) {
   const e = {}, missing = (k, msg) => { if (!String(a[k] ?? "").trim()) e[k] = msg; };
-  if (i === 0) missing("operation", "Choose To Let or To Buy");
-  if (i === 2) missing("bedrooms_min", "Choose the minimum bedrooms");
-  if (i === 3) missing("budget_max", "Enter your maximum budget");
-  if (i === 5) {
+  const has = k => STEPS[i].fields.includes(k);
+  if (has("operation")) missing("operation", "Choose To Let or To Buy");
+  if (has("bedrooms_min")) missing("bedrooms_min", "Choose the minimum bedrooms");
+  if (has("budget_max")) missing("budget_max", "Enter your maximum budget");
+  if (has("name")) {
     missing("name", "Enter your name");
     missing("email", "Enter your email address");
     if (!e.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.email.trim())) e.email = "Enter a valid email address";
@@ -101,12 +103,14 @@ export function renderApply(root, { esc, tsKey, tsReady }) {
 function wizard(body, options, { esc, tsKey, tsReady }) {
   const list = k => (Array.isArray(options?.[k]) ? options[k].filter(x => Array.isArray(x) && x.length === 2) : []);
   const err = name => `<small class="field-err" id="e-${name}" hidden></small>`;
-  const pills = (name, items, type = "radio", req = false) => `<div class="opts">${items.map(([v, l]) =>
+  // "(optional)" is set apart in lighter text so the question itself reads first.
+  const opt = l => l.replace(" (optional)", " <i>(optional)</i>");
+  const pills = (name, items, type = "radio", req = false, cls = "") => `<div class="opts${cls}">${items.map(([v, l]) =>
     `<label><input type="${type}" name="${name}" value="${esc(v)}"${req ? " required" : ""}><span>${esc(l)}</span></label>`).join("")}</div>`;
   const group = (name, legend, inner, only = "") =>
-    `<fieldset class="field"${only ? ` data-only="${only}"` : ""}><legend>${legend}</legend>${inner}${err(name)}</fieldset>`;
+    `<fieldset class="field"${only ? ` data-only="${only}"` : ""}><legend>${opt(legend)}</legend>${inner}${err(name)}</fieldset>`;
   const input = (name, label, attrs = "", only = "") => `<div class="field"${only ? ` data-only="${only}"` : ""}>
-    <label for="f-${name}"${label.rent ? ` data-rent="${label.rent}" data-buy="${label.buy}"` : ""}>${label.rent || label}</label>
+    <label for="f-${name}"${label.rent ? ` data-rent="${label.rent}" data-buy="${label.buy}"` : ""}>${opt(label.rent || label)}</label>
     <input id="f-${name}" name="${name}" ${attrs}>${err(name)}</div>`;
   const today = jerseyToday(), inTwoYears = `${Number(today.slice(0, 4)) + 2}${today.slice(4)}`;
   const count = `inputmode="numeric" autocomplete="off"`;
@@ -122,10 +126,10 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       + group("parishes_excluded", "Parishes to avoid (optional)", pills("parishes_excluded", list("parishes"), "checkbox"))
       + input("near", "Near somewhere in particular (optional)", `maxlength="200" placeholder="Your work, a school"`),
     group("property_types", "Type of home (optional)", pills("property_types", list("property_types"), "checkbox"))
-      + group("bedrooms_min", "Bedrooms, at least", pills("bedrooms_min", [[0, "Studio"], [1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]], "radio", true))
-      + group("bedrooms_ideal", "Bedrooms, ideally (optional)", pills("bedrooms_ideal", [[1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]]))
-      + group("bathrooms_min", "Bathrooms, at least (optional)", pills("bathrooms_min", [[1, "1"], [2, "2"], [3, "3+"]]))
-      + group("parking_spaces", "Parking spaces (optional)", pills("parking_spaces", list("parking")))
+      + group("bedrooms_min", "Bedrooms, at least", pills("bedrooms_min", [[0, "Studio"], [1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]], "radio", true, " nums"))
+      + group("bedrooms_ideal", "Bedrooms, ideally (optional)", pills("bedrooms_ideal", [[1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]], "radio", false, " nums"))
+      + group("bathrooms_min", "Bathrooms, at least (optional)", pills("bathrooms_min", [[1, "1"], [2, "2"], [3, "3+"]], "radio", false, " nums")),
+    group("parking_spaces", "Parking spaces (optional)", pills("parking_spaces", list("parking"), "radio", false, " nums"))
       + group("outdoor", "Outdoor space (optional)", pills("outdoor", list("outdoor"), "checkbox"))
       + group("furnished", "Furnished (optional)", pills("furnished", list("furnished")), "rent")
       + group("pets", "Pets (optional)", pills("pets", list("pet_kinds"), "checkbox") + `<div class="row">${pets.map(([v, l]) =>
@@ -146,7 +150,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       + input("phone", "Mobile", `type="tel" autocomplete="tel" required placeholder="07797 000000"`)
       + group("preferred_channel", "How should we contact you? (optional)", pills("preferred_channel", list("channels")))
       + input("best_time", "Best time to reach you (optional)", `maxlength="200" placeholder="Weekday mornings"`)
-      + `<div class="field"><label for="f-requirements">Anything else that matters? (optional)</label>
+      + `<div class="field"><label for="f-requirements">Anything else that matters? <i>(optional)</i></label>
         <textarea id="f-requirements" name="requirements" maxlength="2000" rows="4"></textarea>${err("requirements")}</div>
       <div class="consent">
         <label><input type="checkbox" name="privacy" value="yes" required><span>I have read the
@@ -155,7 +159,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       </div>
       ${tsKey ? `<div class="ts"></div>` : ""}`,
   ];
-  body.innerHTML = `<p class="hint">Six short steps, about two minutes.</p>
+  body.innerHTML = `<p class="hint">Seven short steps, about two minutes.</p>
     <div class="apply-progress"><p class="num" aria-live="polite"></p><div class="pbar" aria-hidden="true"><i></i></div></div>
     <form novalidate>${steps.map((html, i) => `<fieldset class="step" hidden><legend><h2 tabindex="-1">${STEPS[i].title}</h2></legend>${html}</fieldset>`).join("")}
       <p class="form-status" role="alert"></p>
@@ -187,7 +191,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   const sync = () => {
     const op = $("[name=operation]:checked", form)?.value;
     form.querySelectorAll("[data-only]").forEach(el => { el.hidden = el.dataset.only !== op; });
-    form.querySelectorAll("[data-rent]").forEach(l => { l.textContent = op === "buy" ? l.dataset.buy : l.dataset.rent; });
+    form.querySelectorAll("[data-rent]").forEach(l => { l.innerHTML = opt(op === "buy" ? l.dataset.buy : l.dataset.rent); });
     const chosen = snapshot().pets ?? [];
     form.querySelectorAll("[data-pet]").forEach(el => { el.hidden = !chosen.includes(el.dataset.pet); });
   };
@@ -225,6 +229,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     sets.forEach((s, j) => { s.hidden = j !== i; });
     counter.textContent = `Step ${i + 1} of ${sets.length}`;
     bar.style.setProperty("--step", i + 1);
+    bar.style.setProperty("--total", sets.length);
     back.hidden = i === 0;
     next.textContent = i === last ? "Register my search" : "Continue";
     next.disabled = i === last && !tsKey;
