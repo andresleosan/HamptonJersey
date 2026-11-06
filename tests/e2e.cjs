@@ -14,8 +14,8 @@ const {readFileSync} = require("node:fs");
 const BASE = process.env.BASE || "http://localhost:8788/";
 const SHOTS = process.argv[2];
 const shot = (page, name, o) => SHOTS && page.screenshot({path: `${SHOTS}/${name}.png`, fullPage: true, ...o});
-const secret = readFileSync(".dev.vars", "utf8").match(/^SESSION_SECRET=(.+)$/m)[1].trim();
-const d1 = sql => execFileSync("npx", ["wrangler", "d1", "execute", "hampton", "--local", "--persist-to", ".wrangler/e2e", "--json", "--command", sql], {encoding: "utf8"});
+const secret = readFileSync(process.env.E2E_VARS || ".dev.vars", "utf8").match(/^SESSION_SECRET=(.+)$/m)[1].trim();
+const d1 = sql => execFileSync("npx", ["wrangler", "d1", "execute", "hampton", "--local", "--persist-to", process.env.E2E_STATE || ".wrangler/e2e", "--json", "--command", sql], {encoding: "utf8"});
 
 async function newPage(ctx, viewport) {
   const page = await ctx.newPage();
@@ -47,7 +47,7 @@ async function publicSite(browser) {
   assert.match(await page.textContent('#grid .card[href="/p/HE-R002"] .price'), /£1,900 pcm/);
   assert.equal(await page.$("#quick"), null, "no search form with few listings");
   assert.equal(await page.$("#tabs-region"), null, "no filter tabs with few listings");
-  assert.match(await page.textContent(".hero h1"), /Le Bernage/);
+  assert.match(await page.textContent(".hero .slide:first-child h2"), /Le Bernage/);
   // PUB-22: the home's section is Properties with at most five cards and View all; the menu opens /properties.
   assert.equal(await page.textContent("#portfolio .eyebrow"), "Properties");
   assert.equal(await page.getAttribute("#portfolio a.btn", "href"), "/properties");
@@ -92,12 +92,25 @@ async function publicSite(browser) {
   await phone.close();
   await page.goto(BASE);
   await page.waitForSelector("#grid .card");
-  assert.equal(await page.$$eval(".dots button", d => d.length), 5, "one dot per listing in the hero carousel");
-  await page.click('.dots [data-slide="1"]');
-  assert.doesNotMatch(await page.textContent(".hero h1"), /Le Bernage/, "dots change the hero listing");
-  await page.click('.dots [data-slide="0"]');
-  await page.click("#hero-book");
-  assert.equal(await page.inputValue("#book-slot select[name=prop]"), "HE-R001", "hero booking preselects the property");
+  assert.equal(await page.$$eval(".hero .slide", s => s.length), 5, "one slide per published listing");
+  assert.equal(await page.textContent("#hero-count"), "1 of 5");
+  assert.ok(await page.$eval('.hero-arrow[data-dir="-1"]', b => b.disabled));
+  await page.click('.hero-arrow[data-dir="1"]');
+  await page.waitForFunction(() => document.querySelector("#hero-count").textContent === "2 of 5");
+  await page.$eval(".hero-track", t => { t.scrollLeft = t.clientWidth * 4; });
+  await page.waitForFunction(() => document.querySelector("#hero-count").textContent === "5 of 5");
+  assert.ok(await page.$eval('.hero-arrow[data-dir="1"]', b => b.disabled));
+  await page.focus(".hero-track"); await page.keyboard.press("ArrowLeft");
+  await page.waitForFunction(() => document.querySelector("#hero-count").textContent === "4 of 5");
+  assert.equal(await page.$eval(".hero-track", t => getComputedStyle(t).overscrollBehaviorX), "contain");
+  await page.waitForTimeout(8000);
+  assert.equal(await page.textContent("#hero-count"), "4 of 5", "no autoplay");
+  await page.mouse.move(400, 300); await page.mouse.wheel(0, 600);
+  await page.waitForFunction(() => scrollY > 0);
+  await page.$eval(".hero-track", t => { t.scrollLeft = 0; });
+  await page.waitForFunction(() => document.querySelector("#hero-count").textContent === "1 of 5");
+  await page.click('.slide:first-child [data-book]');
+  assert.equal(await page.inputValue("#book-slot select[name=prop]"), "HE-R001", "slide booking preselects it");
   // 3D tour beside the booking form: a poster until the visitor reaches it, then it plays by itself with wheel zoom off.
   assert.equal(await page.$("#tour3d iframe"), null, "the tour does not load before it is reached");
   await page.$eval("#tour3d", el => el.scrollIntoView({block: "center"}));
@@ -536,7 +549,7 @@ async function admin(browser) {
   await page.waitForSelector('tr:has-text("HE-R018") .switch[aria-checked=true]');
   [hc, home] = await fresh();
   assert.equal(await home.getAttribute("#grid .card", "href"), "/p/HE-R018", "newest first on the home page");
-  assert.match(await home.textContent(".hero h1"), /Pathfield/, "and the carousel starts with it");
+  assert.match(await home.textContent(".hero .slide:first-child h2"), /Pathfield/, "and the carousel starts with it");
   await hc.close();
   assert.equal(await page.$(".handle"), null, "no drag-to-order any more");
   // SPR-06 / SPR-07: Operation, Bedrooms, Price and 7-day filters, and the Checked / Matched / Interested columns.

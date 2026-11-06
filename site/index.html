@@ -88,28 +88,27 @@ nav.main a:hover{color:var(--bronze-dk)}
 [tabindex="-1"]:focus{outline:none}
 
 /* hero */
-.hero{position:relative;min-height:min(78vh,720px);display:grid;align-items:end;color:#fff;background:#222 center/cover no-repeat}
-.hero::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.4) 40%,rgba(0,0,0,.75))}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.hero{position:relative;color:var(--paper);background:var(--ink)}
+.hero-track{display:grid;grid-auto-flow:column;grid-auto-columns:100%;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;scroll-behavior:smooth;position:relative}
+.hero-track::-webkit-scrollbar{display:none}
+.slide{position:relative;display:grid;align-items:end;min-width:0;min-height:min(78vh,720px);scroll-snap-align:start;scroll-snap-stop:always;background:var(--mist)}
+.slide>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.slide::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.4) 40%,rgba(0,0,0,.75))}
 .hero .wrap{position:relative;z-index:2;padding-block:64px;width:100%}
-.hero-bg{position:absolute;inset:0;background:#222 center/cover no-repeat;opacity:0;transition:opacity 1.2s ease}
-.hero-bg.on{opacity:1}
-#hero-txt>*{animation:heroIn .7s ease both}
-@keyframes heroIn{from{opacity:0;transform:translateY(10px)}}
-.hero-nav{display:flex;align-items:center;gap:18px;margin-top:28px}
-.dots{display:flex;gap:10px}
-.dots button{all:unset;cursor:pointer;width:32px;height:3px;padding:11px 0;background:rgba(255,255,255,.45);background-clip:content-box}
-.dots button[aria-current=true]{background-color:#fff}
-.dots button:focus-visible,.hero-pause:focus-visible{outline:2px solid #fff;outline-offset:3px}
-.hero-pause{all:unset;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#fff;opacity:.85;padding:6px 0}
-.hero-pause:hover{opacity:1}
-@media (prefers-reduced-motion:reduce){.hero-bg{transition:none}#hero-txt>*{animation:none}}
+.hero-nav{display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 24px}
+.hero-arrow{width:44px;height:44px;display:grid;place-items:center;border:1px solid currentColor;border-radius:999px;background:none;color:inherit;font-size:26px;cursor:pointer}
+.hero-arrow:disabled{opacity:.4;cursor:default}
+.hero .meta{color:inherit;margin-block:16px 24px;font-size:14px;letter-spacing:0;gap:8px 16px}
+.hero .place{margin-bottom:8px;font-size:13px}
+@media (prefers-reduced-motion:reduce){.hero-track{scroll-behavior:auto}}
 .rv{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
 .rv.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.card,.card .ph,.opts span,.btn{transition:none}.card:hover{transform:none}}
-.hero h1{font-size:clamp(34px,6vw,72px);line-height:1.05;max-width:14ch}
+.hero h1,.hero h2{font-size:clamp(28px,4vw,52px);line-height:1.12;max-width:28ch;text-transform:none;letter-spacing:.01em}
 .hero p{max-width:52ch;margin:18px 0 28px;font-size:16px;opacity:.92}
 .hero .eyebrow{color:#fff;opacity:.85}
-.hero h1,.hero p,.hero .eyebrow{text-shadow:0 1px 14px rgba(0,0,0,.55)}
+.hero h1,.hero h2,.hero p,.hero .place{text-shadow:0 1px 14px rgba(0,0,0,.55)}
 .search{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;background:var(--paper);color:var(--ink);max-width:980px;border-radius:var(--r);overflow:hidden}
 .search label{display:grid;gap:2px;padding:12px 18px;border-right:1px solid var(--line);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
 .search select{border:0;background:transparent;padding:4px 0;font-size:14px;color:var(--ink);text-transform:none;letter-spacing:0}
@@ -506,6 +505,31 @@ let PROPS = [], PUB = [], TEAM = [], filter = {region: "all", op: "all", beds: 0
 const pillCls = s => /sold/i.test(s) ? "sold" : /offer/i.test(s) ? "offer" : "";
 const agentFor = p => TEAM[(amount(p) ?? 0) > 1e6 ? 0 : 1] || TEAM[0] || null;
 
+const facts = p => [priceLabel(p), p.beds && `${p.beds} bedroom${p.beds === 1 ? "" : "s"}`,
+  p.baths && `${p.baths} bathroom${p.baths === 1 ? "" : "s"}`, !/bed/i.test(p.type || "") && p.type].filter(Boolean);
+let galleryObserver;
+const clearGallery = () => { galleryObserver?.disconnect(); galleryObserver = null; };
+function snapTrack(track, changed, initial = 0) {
+  clearGallery();
+  const slides = [...track.children];
+  let cur = initial;
+  const go = i => { const target = slides[Math.max(0, Math.min(slides.length - 1, i))];
+    if (target) track.scrollTo({left: target.offsetLeft - slides[0].offsetLeft}); };
+  galleryObserver = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.intersectionRatio >= .6).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    if (visible) { cur = slides.indexOf(visible.target); changed(cur); }
+  }, {root: track, threshold: .6});
+  slides.forEach(slide => galleryObserver.observe(slide));
+  track.addEventListener("keydown", e => {
+    if (e.target !== track) return;
+    const d = {ArrowLeft: -1, ArrowRight: 1}[e.key];
+    if (d) { e.preventDefault(); go(cur + d); }
+  });
+  changed(cur);
+  if (initial) track.scrollTo({left: slides[initial].offsetLeft - slides[0].offsetLeft, behavior: "instant"});
+  return {go, current: () => cur};
+}
+
 function card(p, extra = "") {
   return `<a class="card" href="/p/${p.id}">
     <div class="ph"><img loading="lazy" src="${esc(p.thumb || p.image)}" alt="${esc(p.title)}">
@@ -639,6 +663,7 @@ function mountBooking(slot, pre = {}) {
 // ponytail: with only a few listings the home is a showcase and /properties has no filters; they come back at FEW_MAX + 1.
 const FEW_MAX = 5;
 function home() {
+  clearGallery();
   const few = PUB.length <= FEW_MAX;
   const feat = few ? PUB[0] : PUB.find(p => p.featured) || PUB.find(p => p.tourUrl || p.aerial) || PUB[0];
   // In showcase mode the hero already presents `feat`, so the Featured block shows the next featured listing.
@@ -648,21 +673,24 @@ function home() {
     p.operation === "sale" && p.salePrice != null && "Mortgage calculator", "Book with an agent"].filter(Boolean);
   const n = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;
   const slides = few ? PUB : [feat]; // showcase hero: a carousel of every published listing, starred ones first
-  const heroTxt = p => `<div class="eyebrow">Featured · ${esc(p.place)}</div><h1>${esc(p.title)}</h1><p class="num">${esc(keyFacts(p))}</p>`;
   const keyFacts = p => [priceLabel(p), n(p.beds, "bedroom"), n(p.baths, "bathroom"), p.type].filter(Boolean).join(" · ");
   const bios = ["Founded Hampton Estates in 1982 and has guided generations of Jersey families through buying, selling and letting. Advice and valuations are always free.",
                 "Handles day-to-day sales and lettings, from first viewing to completion. Your first call for viewings, offers and rental enquiries."];
   const sel = (id, obj, cur) => `<select id="${id}">${Object.entries(obj).map(([k, v]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${v}</option>`).join("")}</select>`;
   $("#app").innerHTML = `
-  <section class="hero" style="background-image:url('${esc(feat.image)}')" ${few ? 'aria-roledescription="carousel" aria-label="Featured properties"' : ""}>
-    ${few ? slides.map(p => `<div class="hero-bg${p === feat ? " on" : ""}" style="background-image:url('${esc(p.image)}')"></div>`).join("") : ""}
-    <div class="wrap">${few ? `
-    <div id="hero-txt">${heroTxt(feat)}</div>
-    <div class="cta"><a class="btn light" id="hero-explore" href="/p/${feat.id}">Explore the property</a>
-      <button class="btn ghost" type="button" id="hero-book">Book a viewing</button></div>
-    ${slides.length > 1 ? `<div class="hero-nav"><div class="dots" role="group" aria-label="Choose a property">${slides.map((p, i) =>
-      `<button type="button" data-slide="${i}" aria-label="Show ${esc(p.title)}" aria-current="${p === feat}"></button>`).join("")}</div>
-      <button type="button" class="hero-pause">Pause</button></div>` : ""}` : `
+  <section class="hero" ${few ? 'aria-roledescription="carousel" aria-label="Featured properties"' : ""}>
+    ${few ? `<h1 class="sr">Homes for sale and to let in Jersey</h1><div class="hero-track" tabindex="0" aria-label="Property gallery">
+      ${slides.map((p, i) => `<article class="slide" role="group" aria-roledescription="slide" aria-label="${i + 1} of ${slides.length}" data-id="${esc(p.id)}">
+        <img src="${esc(p.image)}" alt="" ${i ? 'loading="lazy"' : 'fetchpriority="high"'}>
+        <div class="wrap"><div class="place">${esc(p.place)}</div><h2>${esc(p.title)}</h2>
+          <div class="meta num">${facts(p).map(f => `<span>${esc(f)}</span>`).join("")}</div>
+          <div class="cta"><a class="btn light" href="/p/${esc(p.id)}">Explore the property</a>
+            <button class="btn ghost" type="button" data-book="${esc(p.id)}">Book a viewing</button></div></div>
+      </article>`).join("")}</div>
+      ${slides.length > 1 ? `<div class="hero-nav"><button type="button" class="hero-arrow" data-dir="-1" aria-label="Previous property" disabled>‹</button>
+        <span id="hero-count" aria-live="polite">1 of ${slides.length}</span>
+        <button type="button" class="hero-arrow" data-dir="1" aria-label="Next property">›</button></div>` : ""}` : `
+    <div class="slide"><img src="${esc(feat.image)}" alt="" fetchpriority="high"><div class="wrap">
     <div class="eyebrow">Jersey · Channel Islands</div>
     <h1>Homes across Jersey, since 1982</h1>
     <p>Sales, lettings and free valuations from our St Helier office on Bath Street. Discreet, personal advice from a family firm that has known the island since 1982.</p>
@@ -672,8 +700,8 @@ function home() {
       <label>Bedrooms<select id="q-beds">${[0, 2, 3, 4].map(n => `<option value="${n}" ${n === filter.beds ? "selected" : ""}>${n ? n + "+" : "Any"}</option>`).join("")}</select></label>
       <label>Max price<select id="q-max"></select></label>
       <button class="btn" type="submit">Search</button>
-    </form>`}
-  </div></section>
+    </form></div></div>`}
+  </section>
 
   <section class="block" id="portfolio" tabindex="-1"><div class="wrap">
     <div class="head"><div><div class="eyebrow">Properties</div><h2>Latest properties</h2></div>
@@ -748,28 +776,19 @@ function home() {
   // PUB-22: the home shows the newest five still on the market; the rest are on /properties.
   $("#grid").innerHTML = homePicks(PUB).map(p => card(p)).join("");
   if (few) {
-    // ponytail: setInterval that stops itself once the home is gone; pauses on hover/focus, never auto-plays with reduced motion.
-    const hero = $(".hero"), bgs = [...hero.querySelectorAll(".hero-bg")], dots = [...hero.querySelectorAll("[data-slide]")], pb = $(".hero-pause");
-    let cur = slides.indexOf(feat), paused = matchMedia("(prefers-reduced-motion: reduce)").matches, hold = false;
-    const go = i => {
-      cur = (i + slides.length) % slides.length; const p = slides[cur];
-      bgs.forEach((b, j) => b.classList.toggle("on", j === cur)); dots.forEach((d, j) => d.setAttribute("aria-current", j === cur));
-      $("#hero-txt").innerHTML = heroTxt(p); $("#hero-explore").href = `/p/${p.id}`;
-    };
-    if (slides.length > 1) {
-      const timer = setInterval(() => { if (!document.contains(hero)) return clearInterval(timer); if (!paused && !hold) go(cur + 1); }, 7000);
-      const setPaused = v => { paused = v; pb.textContent = v ? "Play" : "Pause"; };
-      setPaused(paused);
-      hero.addEventListener("mouseenter", () => { hold = true; });
-      hero.addEventListener("mouseleave", () => { hold = false; });
-      hero.addEventListener("focusin", () => { hold = true; });
-      hero.addEventListener("focusout", e => { hold = hero.contains(e.relatedTarget); });
-      $(".dots", hero).addEventListener("click", e => { const d = e.target.closest("[data-slide]"); if (d) go(+d.dataset.slide); });
-      pb.addEventListener("click", () => setPaused(!paused));
-    }
-    $("#hero-book").addEventListener("click", () => {
-      const prop = $("#book-slot select[name=prop]"), now = slides[cur];
-      if (!isSold(now)) prop.value = now.id;
+    const hero = $(".hero"), track = $(".hero-track", hero);
+    const gallery = snapTrack(track, i => {
+      const count = $("#hero-count", hero);
+      if (count) count.textContent = `${i + 1} of ${slides.length}`;
+      hero.querySelectorAll(".hero-arrow").forEach(b => { b.disabled = +b.dataset.dir < 0 ? i === 0 : i === slides.length - 1; });
+    });
+    hero.addEventListener("click", e => {
+      const arrow = e.target.closest(".hero-arrow");
+      if (arrow) gallery.go(gallery.current() + +arrow.dataset.dir);
+      const booking = e.target.closest("[data-book]");
+      if (!booking) return;
+      const prop = $("#book-slot select[name=prop]"), now = slides.find(p => p.id === booking.dataset.book);
+      if (now && !isSold(now)) prop.value = now.id;
       $("#book").scrollIntoView(); prop.focus({preventScroll: true});
     });
     return;
@@ -793,6 +812,7 @@ function home() {
 const OP_BUTTONS = [["rent", "Rent", "Homes to let"], ["sale", "Buy", "Homes for sale"], ["business", "Businesses", "Businesses for sale"]];
 const NO_FILTER = {region: "all", op: "all", beds: 0, max: 0};
 function properties() {
+  clearGallery();
   const full = PUB.length > FEW_MAX;
   document.title = `Properties · ${BRAND}`;
   $("#app").innerHTML = `<section class="block catalog" id="catalog"><div class="wrap">
@@ -1114,7 +1134,7 @@ addEventListener("popstate", navigated);
 // ---------- data: validate before anything reaches the HTML ----------
 addEventListener("error", e => {
   if (e.target.tagName !== "IMG") return;
-  const ph = e.target.closest(".ph, .stage"); ph ? ph.classList.add("noimg") : (e.target.style.visibility = "hidden");
+  const ph = e.target.closest(".ph, .slide, .stage"); ph ? ph.classList.add("noimg") : (e.target.style.visibility = "hidden");
 }, true);
 const getJSON = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); });
 const arr = v => (Array.isArray(v) ? v.filter(x => typeof x === "string") : []);
