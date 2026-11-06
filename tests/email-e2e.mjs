@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";
 import { emailFixture } from "./email-browser.mjs";
+import { prepareSummary } from "../server/email.js";
 const require=createRequire(import.meta.url), {chromium}=require(process.env.PW||"playwright-core");
 const fixture=await emailFixture();
 const browser=await chromium.launch({executablePath:process.env.CHROME,args:["--no-sandbox"]});
@@ -57,8 +58,55 @@ try {
   await page.getByText("Accepted by Cloudflare",{exact:true}).waitFor();
   await page.getByText("Acceptance does not confirm delivery to the recipient's inbox.",{exact:true}).waitFor();
   if(shots)await page.screenshot({path:`${shots}/email-outgoing-desktop.png`,fullPage:true});
+  // Unknown results from previous days stay actionable independently of today's totals.
+  fixture.env.DB.raw.prepare("DELETE FROM email_suppressions").run();
+  for(const days of [1,2])await prepareSummary(fixture.env,new Date(Date.now()-days*86400000).toISOString().slice(0,10)+"T12:00:00.000Z");
+  fixture.env.DB.raw.prepare("UPDATE outbound SET status='unknown',error_code='UNKNOWN_RESULT',attempts=1 WHERE status='queued'").run();
+  await page.goto(fixture.base+"/admin/#/automations");
+  const pendingLink=card.getByRole("link",{name:"2 unknown results waiting for review",exact:true});
+  await pendingLink.waitFor({timeout:2000});await pendingLink.click();
+  await page.waitForFunction(()=>document.querySelectorAll(".email-list li button").length===2);
+  assert.match(page.url(),/review=pending/);
+  await page.reload();await page.getByRole("button",{name:"Pending review (2)",exact:true}).waitFor();
+  assert.equal(await page.locator(".email-list li button").count(),2,"deep link survives reloading");
+  for(const width of [1280,390]) {
+    await page.setViewportSize({width,height:900});
+    await page.locator(".email-list li button").first().click();await page.locator(".email-body").waitFor();
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`pending review no overflow ${width}`);
+    if(shots)await page.screenshot({path:`${shots}/email-pending-${width}.png`,fullPage:true});
+    await page.evaluate(()=>document.documentElement.style.zoom="2");
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`pending review no overflow at 200% ${width}`);
+    await page.evaluate(()=>document.documentElement.style.zoom="");
+  }
+  // A successful review followed by a failed detail refresh retains content and offers a direct retry.
+  const previousBody=await page.locator(".email-body").textContent();
+  let failReviewRefresh=true;
+  await page.route("**/api/admin/email/outbound/*",async r=>{
+    if(r.request().method()==="GET"&&failReviewRefresh){failReviewRefresh=false;
+      await r.fulfill({status:503,contentType:"application/json",body:'{"error":"Local refresh unavailable. Try again."}'});}
+    else await r.continue();
+  });
+  page.once("dialog",d=>d.accept());
+  await page.getByRole("button",{name:"Acknowledge unknown result",exact:true}).click();
+  await page.getByText("Unknown result reviewed. No email was resent.",{exact:true}).waitFor();
+  await page.getByRole("button",{name:"Pending review (1)",exact:true}).waitFor();
+  assert.equal(await page.locator(".email-list li button").count(),1);
+  await page.getByRole("alert").filter({hasText:"Couldn't refresh this email."}).waitFor();
+  assert.equal(await page.getByRole("button",{name:"Acknowledge unknown result",exact:true}).isDisabled(),true,"stale detail cannot repeat acknowledgement");
+  assert.equal(await page.locator(".email-body").textContent(),previousBody,"loaded text survives the refresh failure");
+  const retryDetail=page.getByRole("button",{name:"Retry loading email",exact:true});
+  await retryDetail.waitFor({timeout:2000});await retryDetail.focus();await page.keyboard.press("Enter");
+  await page.locator(".email-detail").getByText(/^Reviewed /).waitFor();
+  assert.equal(await page.locator(".email-detail [role=alert]").count(),0);
+  assert.equal(await page.getByRole("button",{name:"Acknowledge unknown result",exact:true}).count(),0);
+  assert.equal(await page.evaluate(()=>document.activeElement?.tagName),"H2","retry restores focus within the updated detail");
+  await page.unroute("**/api/admin/email/outbound/*");
+  await page.goto(fixture.base+"/admin/#/automations");
+  await card.getByRole("link",{name:"1 unknown result waiting for review",exact:true}).waitFor();
+  assert.equal(fixture.sent.length,1,"reviewing yesterday's unknown result never resends it");
   // Long hostile content, pagination and tablet/mobile/zoom layout all use the same real API.
   for(let i=0;i<27;i++)await fixture.receive(`Local message ${i} ${"longword".repeat(70)}`,`Local reply ${i}`);
+  await page.goto(fixture.base+"/admin/#/email");
   await page.getByRole("button",{name:"Received",exact:true}).click();
   await page.getByRole("button",{name:"Older emails"}).click();
   await page.waitForFunction(()=>document.querySelectorAll(".email-list li button").length===2);
@@ -98,5 +146,5 @@ try {
   await card.getByRole("alert").filter({hasText:"another tab"}).waitFor();
   assert.equal(await card.getByLabel("Team email addresses").inputValue(),"other@example.test");
   assert.deepEqual(errors,[]);assert.deepEqual(fixture.errors,[]);
-  console.log("Email browser checks OK: configuration, recurrence, dedupe, MIME text, suppression, deletion, pagination, read/save recovery, 390/1280 and 200% zoom.");
+  console.log("Email browser checks OK: configuration, recurrence, dedupe, MIME text, suppression, deletion, pagination, global pending review across midnight, deep link, post-action detail recovery and focus, read/save recovery, 390/1280 and 200% zoom.");
 } finally {await browser.close();await fixture.close();}

@@ -69,3 +69,37 @@ test("unknown outcome review records acknowledgement but never requeues or sends
   const row=env.DB.raw.prepare("SELECT * FROM outbound").get();
   assert.equal(row.status,"unknown"); assert.ok(row.reviewed_at); assert.equal(env.sent.length,0);
 });
+
+test("unreviewed unknown results survive midnight in the global count and paginated review filter", async t => {
+  t.mock.timers.enable({apis:["Date"],now:Date.parse(TS)});
+  const env=emailEnv();
+  for(let days=30;days>0;days--) await prepareSummary(env,new Date(Date.parse(TS)-days*86400000).toISOString());
+  env.DB.raw.prepare("UPDATE outbound SET status='unknown',error_code='UNKNOWN_RESULT'").run();
+  env.DB.raw.prepare("UPDATE outbound SET reviewed_at=? WHERE id=1").run(TS);
+  env.DB.raw.prepare("UPDATE outbound SET status='accepted' WHERE id=2").run();
+  env.DB.raw.prepare("UPDATE outbound SET status='failed' WHERE id=3").run();
+  const overview=(await admin(env,"GET","/admin/email/settings")).data.overview;
+  assert.equal(overview.unknown_today,0,"daily counts keep their daily meaning");
+  assert.equal(overview.pending_review,27,"all days contribute until acknowledged");
+  const page=await admin(env,"GET","/admin/email?box=outbound&review=pending");
+  assert.equal(page.data.pending_review,27);
+  assert.equal(page.data.items.length,25); assert.ok(page.data.next);
+  assert.ok(page.data.items.every(m=>m.status==="unknown" && m.reviewed_at===null));
+  const older=await admin(env,"GET",`/admin/email?box=outbound&review=pending&before=${page.data.next}`);
+  assert.equal(older.data.items.length,2); assert.equal(older.data.next,null);
+  assert.equal(older.data.pending_review,27,"the count is independent of the cursor");
+  assert.equal(new Set([...page.data.items,...older.data.items].map(m=>m.id)).size,27);
+  for(const query of ["box=inbound&review=pending","box=outbound&review=all","box=outbound&review=pending&before=0"])
+    assert.equal((await admin(env,"GET",`/admin/email?${query}`)).status,400);
+  const id=page.data.items[0].id;
+  assert.equal((await admin(env,"POST",`/admin/email/outbound/${id}/review`,{acknowledged:true})).status,200);
+  assert.equal((await admin(env,"GET","/admin/email/settings")).data.overview.pending_review,26);
+  const remaining=(await admin(env,"GET","/admin/email?box=outbound&review=pending")).data;
+  assert.equal(remaining.pending_review,26); assert.ok(!remaining.items.some(m=>m.id===id));
+  assert.equal((await admin(env,"GET",`/admin/email/outbound/${id}`)).data.message.status,"unknown");
+  assert.equal(env.sent.length,0,"acknowledgement never sends");
+  await emailPass(env,TS); await emailPass(env,TS);
+  assert.equal(env.sent.length,1,"an active worker sends only today's new summary, never the uncertain ones");
+  assert.equal(env.DB.raw.prepare("SELECT status FROM outbound WHERE entity_id='2026-11-06'").get().status,"accepted");
+  assert.equal(env.DB.raw.prepare("SELECT COUNT(*) n FROM outbound WHERE status='unknown'").get().n,28);
+});

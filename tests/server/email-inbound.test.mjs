@@ -51,6 +51,45 @@ test("only unambiguous references with matching envelope and header from link to
   assert.equal(inbox(env).at(-1).outbound_id,null,"multiple references require human review");
 });
 
+test("conflicting subject and reply headers never suggest a thread", async () => {
+  const env=emailEnv();
+  for(const ts of [TS,"2026-11-07T08:00:00.000Z"]) {await prepareSummary(env,ts);await dispatchEmail(env,()=>ts);}
+  const [a,b]=env.DB.raw.prepare("SELECT * FROM outbound ORDER BY id").all();
+  env.DB.raw.prepare("UPDATE outbound SET message_id=? WHERE id=?").run("<a@example.test>",a.id);
+  env.DB.raw.prepare("UPDATE outbound SET message_id=? WHERE id=?").run("<b@example.test>",b.id);
+  const eventsBefore=env.DB.raw.prepare("SELECT COUNT(*) n FROM events").get().n;
+  for(const headers of ["In-Reply-To: <b@example.test>","References: <b@example.test>",
+    "In-Reply-To: <a@example.test>\r\nReferences: <b@example.test>",
+    "References: <a@example.test> <b@example.test>"]) {
+    await receiveEmail(message(mime(`Re: [HE-OUT-${a.ref}]`).replace("Subject:",`${headers}\r\nSubject:`)),env,TS);
+    assert.equal(inbox(env).at(-1).outbound_id,null,headers);
+  }
+  assert.equal(env.DB.raw.prepare("SELECT COUNT(*) n FROM events").get().n,eventsBefore);
+  assert.equal(env.sent.length,2,"incoming hints never send email");
+});
+
+test("References-only and agreeing clues suggest only one expected-recipient thread", async () => {
+  const env=emailEnv();await prepareSummary(env,TS);await dispatchEmail(env,()=>TS);
+  const row=env.DB.raw.prepare("SELECT * FROM outbound").get();
+  env.DB.raw.prepare("UPDATE outbound SET message_id=? WHERE id=?").run("<local@example.test>",row.id);
+  const cases=[
+    ["Hello","References: <external@example.test> <local@example.test>","team@example.test","team@example.test",row.id],
+    [`Re: [HE-OUT-${row.ref}]`,"In-Reply-To: <local@example.test>\r\nReferences: <local@example.test>","team@example.test","team@example.test",row.id],
+    ["Hello","References: <local@example.test>","stranger@example.test","stranger@example.test",null],
+    ["Hello","References: <local@example.test>","team@example.test","stranger@example.test",null],
+    [`Re: [HE-OUT-${"f".repeat(32)}]`,"References: <local@example.test>","team@example.test","team@example.test",null],
+  ];
+  for(const [subject,headers,from,envelope,expected] of cases) {
+    await receiveEmail(message(mime(subject,"Reply",from).replace("Subject:",`${headers}\r\nSubject:`),{from:envelope}),env,TS);
+    assert.equal(inbox(env).at(-1).outbound_id,expected,`${subject} / ${headers} / ${envelope}`);
+  }
+  // An identifier reused for another recipient is ambiguous even if one row matches the sender.
+  await prepareSummary(env,"2026-11-07T08:00:00.000Z");
+  env.DB.raw.prepare("UPDATE outbound SET status='accepted',recipient='other@example.test',message_id='<local@example.test>' WHERE id<>?").run(row.id);
+  await receiveEmail(message(mime("Ambiguous").replace("Subject:","References: <local@example.test>\r\nSubject:")),env,TS);
+  assert.equal(inbox(env).at(-1).outbound_id,null);
+});
+
 test("oversized, lying, wrong-address and malformed messages are rejected without persistence", async () => {
   const env=emailEnv();
   for (const m of [message(mime(),{rawSize:1048577}),message("a".repeat(1048577),{rawSize:10}),

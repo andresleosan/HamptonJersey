@@ -28,6 +28,7 @@ a{color:var(--ink)} a:hover{color:var(--bronze-dk)}
 .email-body{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font:inherit;line-height:1.6;margin:16px 0;max-width:100%}
 .email-sample{margin:16px 0;padding:16px;background:var(--mist);border-radius:var(--r-sm)}
 .email-detail .kv dd{overflow-wrap:anywhere}
+.email-detail .kv{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
 @media(min-width:760px){.email-layout{grid-template-columns:minmax(240px,340px) minmax(0,1fr)}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .center{min-height:100vh;display:grid;place-items:center;padding:16px}

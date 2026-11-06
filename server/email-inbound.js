@@ -37,13 +37,17 @@ export async function receiveEmail(message, env, ts = now()) {
   let linked = null;
   try {
     if (sender === from) {
-      const references = [...new Set([...subject.matchAll(/\[HE-OUT-([a-f0-9]{32})\]/gi)].map(m => m[1].toLowerCase()))];
-      if (references.length === 1) {
-        linked = await env.DB.prepare("SELECT id FROM outbound WHERE ref=? AND recipient=? AND status IN ('accepted','unknown')")
-          .bind(references[0],sender).first();
-      } else if (!references.length && reply) {
-        linked = await env.DB.prepare("SELECT id FROM outbound WHERE message_id=? AND recipient=? AND status IN ('accepted','unknown')")
-          .bind(reply,sender).first();
+      const subjectRefs = [...new Set([...subject.matchAll(/\[HE-OUT-([a-f0-9]{32})\]/gi)].map(m => m[1].toLowerCase()))];
+      const ids = [...new Set([reply,refs].flatMap(value => value?.match(/<[^<>\s]+>|[^<>\s]+/g) ?? []))];
+      if (subjectRefs.length <= 1 && (subjectRefs.length || ids.length)) {
+        // Consider all recognized clues together, including matches for other recipients.
+        // External ancestors in References need not exist locally. A subject marker must resolve.
+        // JSON arrays keep the query bounded even when a header contains many short identifiers.
+        const {results} = await env.DB.prepare(`SELECT id,ref,recipient FROM outbound WHERE status IN ('accepted','unknown')
+          AND (ref IN (SELECT value FROM json_each(?)) OR message_id IN (SELECT value FROM json_each(?)))`)
+          .bind(JSON.stringify(subjectRefs),JSON.stringify(ids)).all();
+        if (results.length === 1 && results[0].recipient === sender && (!subjectRefs.length || results[0].ref === subjectRefs[0]))
+          linked = results[0];
       }
     }
     await env.DB.batch([

@@ -64,6 +64,7 @@ export default function EmailSettings() {
       <label className="email-check"><input type="checkbox" checked={form.enabled} disabled={!data.ready||busy}
         onChange={e=>change("enabled",e.target.checked)}/>Enable email sending</label>
       <p>{o.attempts_today} of {o.limit} send attempts today in Jersey. {o.accepted_today} accepted by Cloudflare today, {o.failed_today} failed, {o.unknown_today} with an unknown result.</p>
+      <p><a href="#/email?review=pending">{o.pending_review} unknown {o.pending_review===1?"result":"results"} waiting for review</a> across all days.</p>
       <p className="muted">Acceptance does not confirm inbox delivery. Pause all outbound also stops the team summary. Unknown results require review in Email and are never retried automatically.</p>
       <a href="#/email">Review received and outgoing email</a>
       <details className="more"><summary>Address preferences</summary>

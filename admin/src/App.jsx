@@ -117,7 +117,7 @@ export default function App() {
     : section === "rentals" ? <Rentals onChange={loadCounts} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "messages" ? <Messages paused={expired} onChange={loadCounts} />
-    : section === "email" ? <Suspense fallback={<p>Loading email…</p>}><Email /></Suspense>
+    : section === "email" ? <Suspense fallback={<p>Loading email…</p>}><Email key={query??""} query={query} /></Suspense>
     : section === "tours" ? <Tours /> : section === "automations" ? <Automations stalled={counts.stalled} outbound={counts.outbound} onChange={loadCounts} />
     : <Inbox paused={expired} onCounts={setCounts} />;
   const logout = async () => {
