@@ -2,6 +2,8 @@
 
 Actualizado el 3-nov-2026. Qué incluye cada fase y cuándo se da por hecha: [arquitectura, §9 Hoja de ruta](2026-10-23-arquitectura-hampton-app.md). Qué está hecho y qué falta, punto por punto: [checklist](checklist-hampton-app.html). En producción: lo que está en `main` en GitHub (cada push a `main` se publica solo: la web y, desde el 30-oct-2026, también el reloj, el Worker `hampton-jobs`) y las migraciones hasta la 0018.
 
+Siguiente recomendado: /avanzar BUS-17 · claude-opus-5-5 · high
+
 | Fase | Estado | Spec | Plan | Pendiente |
 |---|---|---|---|---|
 | F0 Cimientos · Entrega 1 (panel: Inbox, aplicantes, ficha, alta, borrado, nombres del equipo) | **En producción desde el 23-oct-2026** (commit `ef28568`; Luis comprobó Inbox y Applicants en `/admin/`) | [spec F0](../superpowers/specs/2026-10-23-hampton-app-f0-design.md) | [plan F0](../superpowers/plans/2026-10-23-hampton-app-f0.md), tareas 1–10 | Menores aplazados: ver el [registro de la ejecución](../superpowers/plans/2026-10-23-hampton-app-f0-ledger.md) (líneas «minor (deferred)») |
