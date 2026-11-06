@@ -262,7 +262,8 @@ form.tour .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-
 .stage{position:relative;aspect-ratio:3/2;max-height:calc(100vh - 250px);min-height:240px;width:100%;background:#111;overflow:hidden;border-radius:var(--r)}
 .stage>img,.stage iframe{width:100%;height:100%;object-fit:cover;border:0;display:block}
 .stage-track{height:100%}
-.stage-track:focus-visible{outline-offset:-4px}
+.stage-track:focus-visible{outline:none}
+.stage:has(.stage-track:focus-visible)::after{content:"";position:absolute;inset:4px;border:2px solid var(--bronze);border-radius:12px;box-shadow:0 0 0 2px var(--paper);pointer-events:none;z-index:2}
 .stage-frame{position:relative;min-width:0;height:100%;scroll-snap-align:start;scroll-snap-stop:always;background:var(--mist)}
 .stage-frame img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}
 .stage-nav:disabled{opacity:.4;cursor:default}

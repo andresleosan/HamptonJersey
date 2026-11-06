@@ -155,7 +155,15 @@ async function shot(page, name, width) {
         await page.evaluate(() => { window.galleryClosed = new Promise(done => document.querySelector('#lightbox').addEventListener('close', () => done(true), {once: true})); });
         await page.keyboard.press('Escape'); await page.evaluate(() => window.galleryClosed);
         await page.focus('.stage-track');
-        assert.ok(await page.$eval('.stage-track', t => parseFloat(getComputedStyle(t).outlineOffset) <= -2), 'keyboard focus stays inside the clipped photo stage');
+        const focused = await page.locator('#stage').screenshot();
+        const ring = await page.evaluate(async src => {
+          const photo = new Image(); photo.src = src; await photo.decode();
+          const canvas = document.createElement('canvas'); canvas.width = photo.width; canvas.height = photo.height;
+          const ctx = canvas.getContext('2d'); ctx.drawImage(photo, 0, 0);
+          const pixels = ctx.getImageData(40, 2, 1, 8).data;
+          return Array.from({length: 8}, (_, i) => [...pixels.slice(i * 4, i * 4 + 3)]);
+        }, `data:image/png;base64,${focused.toString('base64')}`);
+        assert.ok(ring.some(rgb => rgb[0] === 165 && rgb[1] === 107 && rgb[2] === 61), 'keyboard focus is painted above the photo');
         await page.keyboard.press('ArrowLeft');
         await page.waitForFunction(() => document.querySelector('#stage-note').textContent.includes('Photo 4 of 17'));
         assert.ok(await noOverflow(page)); assert.deepEqual(page.errors, []); await shot(page, 'listing', width); await ctx.close();

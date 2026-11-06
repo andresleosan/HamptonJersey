@@ -4,6 +4,8 @@
 //   npx wrangler d1 execute hampton --local --persist-to .wrangler/e2e --file tests/fixtures/seed.sql
 //   npx wrangler pages dev --port 8788 --persist-to .wrangler/e2e     (terminal A)
 //   PW=<playwright-core> CHROME=<chrome> node tests/e2e.cjs [screenshot-dir]   (terminal B)
+// For a process time limit, run E2E_PHASES=public,urls and then E2E_PHASES=admin on the same freshly seeded fixture.
+// E2E_STATE and E2E_VARS can point at an isolated local fixture/runtime.
 // Matterport is never contacted: its requests are aborted. Properties Queue (PUB-21) needs three lines in .dev.vars for
 // the fake Drive this script starts on port 8799: DRIVE_API=http://localhost:8799, DRIVE_TOKEN_URL=http://localhost:8799/token
 // and GOOGLE_SERVICE_ACCOUNT='{"client_email":"e2e@example.iam.gserviceaccount.com","private_key":"<any RSA PKCS8 PEM, \n escaped>"}'.
@@ -1892,6 +1894,13 @@ async function bankImport(page, phone, noSideScroll) {
 
 (async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROME});
-  try { await publicSite(browser); await listingUrls(browser); await admin(browser); console.log("e2e OK"); }
+  try {
+    const phases = (process.env.E2E_PHASES || "public,urls,admin").split(",");
+    if (phases.some(p => !["public", "urls", "admin"].includes(p))) throw new Error("E2E_PHASES accepts public, urls and admin.");
+    if (phases.includes("public")) await publicSite(browser);
+    if (phases.includes("urls")) await listingUrls(browser);
+    if (phases.includes("admin")) await admin(browser);
+    console.log(`e2e OK (${phases.join(", ")})`);
+  }
   finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });
