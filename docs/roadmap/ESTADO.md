@@ -3,6 +3,7 @@
 Actualizado el 6-nov-2026. Qué incluye cada fase y cuándo se da por hecha: [arquitectura, §9 Hoja de ruta](2026-10-23-arquitectura-hampton-app.md). Qué está hecho y qué falta, punto por punto: [checklist](checklist-hampton-app.html). En producción: lo que está en `main` en GitHub (cada push a `main` se publica solo: la web y, desde el 30-oct-2026, también el reloj, el Worker `hampton-jobs`) y las migraciones hasta la 0020. La integración local de MSG-02 conserva `0021_published_at.sql` de GitHub y añade `0022_chats.sql`; no se han aplicado migraciones en este encargo ni se ha comprobado el estado remoto de la 0021. MSG-02 sigue solo en el taller: sin push ni publicación. El permiso anterior de Luis correspondía a otro SHA y no autoriza publicar esta integración.
 
 Siguiente recomendado: /avanzar AUT-17 · claude-opus-5-5 · high
+Siguiente recomendado Codex: /avanzar AUT-17 · gpt-6.1-terra · high
 
 | Fase | Estado | Spec | Plan | Pendiente |
 |---|---|---|---|---|
@@ -131,7 +132,7 @@ Si el reloj o Hermes se paran, el botón Settings de la barra lleva un número e
 
 ## Siguiente tarea
 
-**Correo saliente y entrante con Cloudflare Email Service (AUT-17).** Decisión de Luis del 6-nov-2026 (arquitectura P-19, cierra la pregunta 7): el dominio ya está en Cloudflare, el envío sale de la app con un binding y la recepción entra por Email Routing; sin proveedor aparte (Workers Paid, 5 USD al mes con 3.000 correos incluidos). Es la pieza que desbloquea el bucle del aplicante de abajo y 14 puntos más del checklist. Antes de construir, Luis: subir la cuenta a Workers Paid, incorporar el dominio en Email Service y elegir el remitente. Modelo recomendado: claude-opus-5-5 · high.
+**Correo saliente y entrante con Cloudflare Email Service (AUT-17).** Decisión de Luis del 6-nov-2026 (arquitectura P-19, cierra la pregunta 7): el dominio ya está en Cloudflare, el envío sale de la app con un binding y la recepción entra por Email Routing; sin proveedor aparte (Workers Paid, 5 USD al mes con 3.000 correos incluidos). Es la pieza que desbloquea el bucle del aplicante de abajo y 14 puntos más del checklist. Preparación de Codex del 6-nov-2026: [diseño propuesto y revisado](../superpowers/specs/2026-11-06-hampton-app-email-design.md), pendiente de las decisiones de Luis sobre identidad de correo, activación del resumen, límite y conservación; todavía sin implementación. Corrección técnica: Wrangler 4.148.0 no admite `send_email` en Pages; el panel prepara y aprueba en D1, y `hampton-jobs` envía. Para conservar el buzón habitual se propone recibir respuestas en un subdominio. No se pudo consultar la cuenta desde el taller por falta de autenticación: Workers Paid y el alta del dominio están sin verificar, no se afirma que falten. Sin cambios de DNS, migraciones ni publicación. Modelo recomendado Claude: claude-opus-5-5 · high. Codex: gpt-6.1-terra · high, por la cola concurrente, recepción no fiable, datos personales y pruebas del reloj.
 
 ## Orden de trabajo desde el 6-nov-2026: el bucle del aplicante y Hampton Bot
 
