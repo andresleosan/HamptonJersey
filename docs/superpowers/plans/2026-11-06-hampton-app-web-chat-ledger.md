@@ -141,3 +141,28 @@ Un hallazgo importante y seis menores. Luis autorizó una ronda más: arreglar e
    - Arreglo propuesto: un paso del e2e que abra un chat de hace 3 h y espere una respuesta posterior.
 
 Además, el `npm audit` de Codex da 9 entradas `high` en dependencias heredadas. Es el menor k del ledger de Widen criteria: no viene de este cambio.
+
+## Cuarta revisión de Codex sobre `0639e4e..ee4fc29` (6-nov-2026)
+
+Sin críticos ni importantes. Siete menores: uno nuevo y seis que ya estaban anotados. Luis pidió anotarlos antes de pedir el «sí», sin cambiar código.
+
+1. **Nuevo, menor, aplazado: con más de 200 chats en una pestaña, algunos no se pueden abrir.** La lista de Messages (`list()` en `server/routes/chats.js`) tiene `LIMIT 200` y no pagina. Los contadores (`SELECT status, COUNT(*) … GROUP BY status`) cuentan todos, y el panel no avisa de que la lista está cortada.
+   - Codex lo reprodujo con 201 chats Handled: el contador dice 201, y el más antiguo no sale ni en Handled ni en All. Sus datos siguen en la base, pero el equipo no puede abrirlo desde el panel (solo se borra a los 30 días).
+   - Afecta a todas las pestañas, según su orden:
+     - en Handled, Answered y All quedan fuera los más antiguos (`last_at` descendente);
+     - en Waiting, ordenada de la espera más larga a la más corta, quedan fuera los que llevan menos rato esperando.
+   - Con unos 150 chats al mes y el borrado a los 30 días, no se llega a 200 con el tráfico previsto.
+   - Arreglo propuesto: paginar (`before`/`after` sobre el orden de cada pestaña) con «Show older», o al menos decir «Showing 200 of N».
+2. **Ya anotado:** el tope de 500 borrados al día, que puede pasar de los 30 días anunciados. Es el e (primera revisión) y el 2 (tercera); Codex lo volvió a reproducir con 501 vencidos.
+3. **Ya anotado:** `/api/%63hat` sin `no-store`. Es el d y el 3.
+4. **Ya anotado:** borrar el chat durante un envío da un 500 por la clave foránea. Es el 4 de la tercera.
+5. **Ya anotado:** el panel pierde una respuesta sin enviar al cambiar de chat o de pestaña. Es el 5 de la tercera.
+6. **Ya anotado:** el interruptor no llega a las páginas ya abiertas. Es el 6 de la tercera.
+   - Codex lo precisó: tras apagarlo y adelantar el reloj 301 s, una página abierta sigue enseñando el botón y el formulario, y crear el chat da 404.
+   - El texto que lo contradice es el de la tarjeta «Web chat» de `admin/src/Automations.jsx` («The button leaves the website within 5 minutes»), además de la spec (C3).
+7. **Ya anotado:** la prueba de reapertura no abre el chat. Es el 5 de la segunda y el 7 de la tercera. Codex volvió a anular la asignación de `openedAt` en `toggle()`, y las 8 pruebas de `tests/chat.test.js` siguieron pasando.
+
+Codex confirmó los siete comportamientos con reproducciones. Además:
+- `webChatTabs` y `webChatRecovers` pasan ejecutados por separado;
+- el e2e completo sigue parado en Turnstile en el taller (`tests/e2e.cjs:147`);
+- `npm audit` da 9 entradas `high` heredadas y 0 críticas. Las dependencias no cambian en estos commits: es el menor k de Widen criteria.
