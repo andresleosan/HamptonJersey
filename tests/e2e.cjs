@@ -136,21 +136,23 @@ async function publicSite(browser) {
   assert.ok(await page.$eval(".summary .interest", el => el.nextElementSibling.matches(".btns")), "right above Book a viewing");
   assert.deepEqual(await page.$$eval(".media-tabs button", bs => bs.map(b => b.textContent)), ["Photos", "3D tour", "Aerial"]);
   assert.equal(await page.$$eval("#thumbs button", b => b.length), 2, "two public photos; external one hidden");
-  assert.match(await page.getAttribute("#stage img", "src"), /\/media\/A00002$/, "M6: detail opens on the chosen cover");
+  assert.match(await page.getAttribute("#stage [aria-current=true] img, #stage > img", "src"), /\/media\/A00002$/, "M6: detail opens on the chosen cover");
   await page.click('#thumbs [data-i="1"]');
-  assert.match(await page.getAttribute("#stage img", "src"), /\/media\/A00002$/);
-  assert.equal(await page.getAttribute("#stage img", "alt"), "Kitchen");
+  assert.match(await page.getAttribute("#stage [aria-current=true] img, #stage > img", "src"), /\/media\/A00002$/);
+  assert.equal(await page.getAttribute("#stage [aria-current=true] img, #stage > img", "alt"), "Kitchen");
   await page.click("[data-all]");
   assert.equal(await page.textContent("#lb-count"), "2 / 2", "full-screen viewer opens on the current photo");
   await page.keyboard.press("ArrowRight");
   assert.equal(await page.textContent("#lb-count"), "1 / 2");
-  await page.keyboard.press("Escape");
+  await page.evaluate(() => { window.galleryClosed = new Promise(done => document.querySelector("#lightbox").addEventListener("close", () => done(true), {once: true})); });
+  await page.keyboard.press("Escape"); await page.evaluate(() => window.galleryClosed);
   await page.click(".stage-nav.next");
+  await page.waitForFunction(() => document.querySelector("#stage-note").textContent.includes("Photo 2 of 2"));
   assert.match(await page.textContent("#stage-note"), /Photo 2 of 2/);
   await page.click("#tab-tour");
   assert.match(await page.getAttribute("#stage iframe", "src"), /my\.matterport\.com\/show\/\?m=TEST/);
   await page.click("#tab-aerial");
-  assert.match(await page.getAttribute("#stage img", "src"), /A00003/);
+  assert.match(await page.getAttribute("#stage [aria-current=true] img, #stage > img", "src"), /A00003/);
   assert.match(await page.textContent(".detail"), /Property details[\s\S]*Oil-fired[\s\S]*Floor plans/);
   // Review Focus 3 (Jersey fields): a legacy tenure text that has no tenure type yet is still the listing's tenure.
   assert.match(await page.textContent("dl.facts-list"), /TenureFreehold \/ share transfer/);
@@ -458,7 +460,7 @@ async function admin(browser) {
 
   await page.click('a[href="#/p/HE-R001"]');
   await page.waitForSelector("#f-title");
-  assert.ok(await page.isVisible("text=Private · reference"));
+  assert.ok(await page.isVisible("text=Private reference"));
   await page.fill("#f-title", "Le Bernage (edited)");
   // Review focus 2: session lost mid-edit → login dialog, typed text kept.
   await ctx.clearCookies();
@@ -529,7 +531,7 @@ async function admin(browser) {
   await page.click('tr:has-text("HE-R018") .star');
   await page.waitForSelector('tr:has-text("HE-R018") .star[aria-pressed=true]');
   const fresh = async () => { const c = await browser.newContext(); const p = await c.newPage(); await p.goto(BASE); await p.waitForSelector("#grid .card"); return [c, p]; };
-  d1("UPDATE listings SET published = 1, archived_at = NULL WHERE id IN ('HE-R002', 'HE-R003')");
+  d1("UPDATE listings SET published = 1, archived_at = NULL WHERE id IN ('HE-R002', 'HE-R004'); UPDATE media SET public = 1 WHERE listing_id = 'HE-C001' AND kind = 'photo'");
   let [hc, home] = await fresh();
   assert.deepEqual(await home.$$eval(".feature h2", h => h.map(x => x.textContent)), ["Pathfield Road"], "only starred listings get a Featured block");
   await hc.close();
@@ -549,7 +551,7 @@ async function admin(browser) {
   await hc.close();
   await page.click('tr:has-text("HE-R001") .star');
   await page.waitForSelector('tr:has-text("HE-R001") .star[aria-pressed=false]');
-  d1("UPDATE listings SET published = 0 WHERE id IN ('HE-R002', 'HE-R003')");
+  d1("UPDATE listings SET published = 0 WHERE id IN ('HE-R002', 'HE-R004'); UPDATE media SET public = 0 WHERE listing_id = 'HE-C001' AND kind = 'photo'");
   // PUB-22: the home page and the carousel start with the listing published last (hide, then show again).
   await page.click('tr:has-text("HE-R018") .switch');
   await page.waitForSelector('tr:has-text("HE-R018") .switch[aria-checked=false]');
@@ -563,7 +565,7 @@ async function admin(browser) {
   // SPR-06 / SPR-07: Operation, Bedrooms, Price and 7-day filters, and the Checked / Matched / Interested columns.
   await page.getByRole("group", {name: "Status"}).getByRole("button", {name: /^All/}).click();
   for (const h of ["Checked", "Matched", "Interested"]) assert.ok(await page.$(`thead th:has-text("${h}")`), h);
-  const ids = () => page.$$eval("tbody tr", rs => rs.map(r => r.querySelector(".muted").textContent.split(" · ")[0]).sort());
+  const ids = () => page.$$eval("tbody tr", rs => rs.map(r => r.querySelector(".meta > span").textContent).sort());
   // A select inside its label is named with its option too ("Operation All"), so find it by the label's first word.
   const filt = name => page.locator(".filters label", {hasText: new RegExp(`^${name}`)}).locator("select, input");
   await filt("Operation").selectOption("rent");
@@ -639,6 +641,10 @@ async function admin(browser) {
   await page.goto(BASE + "admin/#/insights");
   await page.reload();
   await page.waitForSelector(".figures");
+  const unmetRegion = table("Top unmet requests").locator("..");
+  assert.equal(await unmetRegion.getAttribute("tabindex"), "0", "the demand table can be scrolled by keyboard");
+  assert.equal(await unmetRegion.getAttribute("role"), "region");
+  assert.equal(await unmetRegion.getAttribute("aria-label"), "Top unmet requests");
   await page.waitForSelector('header.bar a[href="#/rentals"] .count');
   await page.evaluate(() => document.fonts.ready);
   const bar = await page.$$eval("header.bar > :not(.who), header.bar nav > a, header.bar nav button", es => es.map(e => [e.textContent, Math.round(e.getBoundingClientRect().top + e.offsetHeight / 2)]));
@@ -776,6 +782,8 @@ async function admin(browser) {
   // On the buyer's record: an Offers tab for To Buy searches only, with Helen's offer and her sale; Record offer opens in
   // Sales with her chosen, and the new offer shows in the tab, on the listing's editor and in her timeline.
   await page.goto(BASE + "admin/#/applicants/1/offers");
+  await page.waitForSelector("#t-applicant");
+  assert.equal(await page.locator(".record > .head .meta > span").count(), 3, "operation, source and applied date are separate facts");
   await page.waitForSelector("#tab-requirements[aria-selected=true]"); // with no offers, its Offers hash falls back to Requirements
   assert.equal(await page.locator("#tab-offers").count(), 0, "a To Let search with no offers has no Offers tab");
   await page.goto(BASE + "admin/#/applicants/4/offers");
@@ -1257,13 +1265,14 @@ async function interestCount(page, phone, noSideScroll) {
   await heading("1 person");
   assert.equal(await card.getByRole("alert").count(), 0, "the refusal goes with the change that worked");
   const out = card.getByRole("list", {name: "Not counted"}).getByRole("listitem").filter({hasText: "Mark Querée"});
-  assert.match(await out.textContent(), /Not a buyer or tenant · Neighbour · /);
+  assert.deepEqual((await out.locator(".meta > span").allTextContents()).slice(0, 2), ["Not a buyer or tenant", "Neighbour"]);
   assert.equal(await pub(), null, "one person left is never shown on the website");
   // His viewing says so, with Count again, above the rest of the viewing.
   await tab("Past");
   await page.click('.inbox-list button:has-text("Mark Querée")');
   const detail = page.locator(".inbox-detail");
-  await detail.locator(".warn", {hasText: /^Not counted in this listing's interest: Not a buyer or tenant · Neighbour · /}).waitFor();
+  await detail.locator(".uncounted .meta", {hasText: "Neighbour"}).waitFor();
+  assert.deepEqual((await detail.locator(".uncounted .meta > span").allTextContents()).slice(0, 2), ["Not a buyer or tenant", "Neighbour"]);
   await detail.getByRole("button", {name: "Count again"}).click();
   await heading("2 people");
   assert.equal(await pub(), 2);
@@ -1304,7 +1313,7 @@ async function interestCount(page, phone, noSideScroll) {
   await page.goto(BASE + "admin/#/viewings?listing=HE-R002");
   await tab("Needs outcome");
   await page.click('.inbox-list button:has-text("Ann Mourant")');
-  const notice = detail.locator(".warn", {hasText: /^Not counted in this listing's interest: Not a buyer or tenant · /});
+  const notice = detail.locator(".uncounted", {hasText: "Not a buyer or tenant"});
   await notice.waitFor();
   await detail.getByRole("button", {name: "Mark completed", exact: true}).click();
   assert.ok(await notice.evaluate(n => !!(n.compareDocumentPosition(document.querySelector(".inbox-detail form")) & Node.DOCUMENT_POSITION_FOLLOWING)),
@@ -1371,7 +1380,7 @@ async function ownerReport(page, phone, noSideScroll) {
   assert.equal(await page.locator("#h-offers, #h-sale").count(), 0, "no Offers or Sale block for a rental");
   await page.goto(BASE + "admin/#/listings/HE-R050/report?days=90");
   await page.waitForSelector("#owner-report[aria-busy=false]");
-  assert.match(await report.locator(".report-block", {has: page.locator("#h-sale")}).textContent(), /Sold · agreed £[\d,]+ · completed \d{1,2} \w{3} \d{4}/);
+  assert.deepEqual((await report.locator(".report-block", {has: page.locator("#h-sale")}).locator(".meta > span").allTextContents()).map(t => t.replace(/£[\d,]+/, "PRICE").replace(/\d{1,2} \w{3} \d{4}/, "DATE")), ["Sold", "Agreed PRICE", "Completed DATE"]);
   // Any other period reads as 30 days and says so in the address, replacing the entry rather than adding one.
   const entries = await page.evaluate(() => { location.hash = "#/listings/HE-R001/report?days=14"; return history.length; });
   await page.waitForFunction(() => location.hash === "#/listings/HE-R001/report?days=30");
