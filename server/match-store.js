@@ -9,10 +9,10 @@ import { evaluate, MIN_SCORE, MAX_FOUND } from "./matching.js";
 // Listings that may be offered (B2): archived ones too. The applicant's operation is evaluate()'s first filter.
 export const CANDIDATES_SQL = `matchable = 1 AND use = 'residential' AND availability IN ('for_sale','to_let','lease')
   AND operation IN ('sale','rent') AND (country IS NULL OR country = 'Jersey') AND (currency IS NULL OR currency = 'GBP')`;
-const LISTING_OPERATION = { rent: "rent", buy: "sale" };
+export const LISTING_OPERATION = { rent: "rent", buy: "sale" };
 
 // Only the columns evaluate() reads (never the listing's text: B10), plus whether the listing is a candidate.
-const LISTING = `id, operation, archived_at, bedrooms, bathrooms, parish, published, sale_price, rent, rent_period,
+export const LISTING = `id, operation, archived_at, bedrooms, bathrooms, parish, published, sale_price, rent, rent_period,
   feat_pets, feat_parking, feat_furnished, feat_outdoor, feat_type, feat_evidence, tenure_type, housing_category, restriction,
   (${CANDIDATES_SQL}) AS candidate`;
 // The applicant's search as evaluate() reads it, whether it is active, and the contact's name for the notice.

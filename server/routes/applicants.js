@@ -1,7 +1,8 @@
 import { json, fail, readJson, now } from "../http.js";
-import { validateApplicant, normalizePhone, OPTIONS, QUEUES, activeSql } from "../applicants.js";
+import { validateApplicant, normalizePhone, OPTIONS, QUEUES, activeSql, isActive } from "../applicants.js";
 import { logEvent, resolveNotices } from "../events.js";
-import { afterSave, recomputeForApplicant } from "../match-store.js";
+import { afterSave, recomputeForApplicant, CANDIDATES_SQL, LISTING, LISTING_OPERATION } from "../match-store.js";
+import { widen } from "../widen.js";
 import { MATCHES_SQL, matchCard } from "./matches.js";
 import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL } from "../retention.js";
 import { jerseyToday } from "../viewings.js";
@@ -159,7 +160,7 @@ async function detail({ env, params: [id] }) {
   // 9 digits. Catches "07797 123 456" for +447797123456; a foreign number sharing those 9 digits would match too,
   // and dots are not stripped. F3 links viewings to contacts for real (G4).
   const last9 = contact.phone ? contact.phone.slice(1).slice(-9) : null;
-  const [events, viewings, duplicates, matches, [retention]] = (await env.DB.batch([
+  const [events, viewings, duplicates, matches, [retention], [live]] = (await env.DB.batch([
     q(`SELECT * FROM events WHERE (entity_type = 'applicant' AND entity_id = ?) OR (entity_type = 'contact' AND entity_id = ?)
        ORDER BY at DESC, id DESC`, String(applicant.id), String(contact.id)),
     q(`SELECT v.*, COALESCE(l.title, v.listing_title_snapshot) AS listing_title
@@ -177,9 +178,22 @@ async function detail({ env, params: [id] }) {
     q(`${MATCHES_SQL} WHERE m.applicant_id = ?
        ORDER BY CASE m.status WHEN 'found' THEN 0 WHEN 'shortlisted' THEN 1 ELSE 2 END, m.score DESC, m.id`, applicant.id),
     q(RETENTION_SQL, contact.id),
+    // W1: Found and Shortlisted matches whose listing is still offered, for the search's operation.
+    q(`SELECT COUNT(*) AS n FROM matches WHERE applicant_id = ? AND status IN ('found', 'shortlisted')
+       AND listing_id IN (SELECT id FROM listings WHERE ${CANDIDATES_SQL} AND operation = ?)`,
+      applicant.id, LISTING_OPERATION[applicant.operation]),
   ])).map(r => r.results);
+  const cards = matches.map(matchCard);
   return json({ applicant: parsed(applicant), contact, events: events.map(withData), viewings, duplicates: duplicates.map(withData),
-    matches: matches.map(matchCard), retention: keptFor(retention) });
+    matches: cards, retention: keptFor(retention), widen: await widenFor(env, applicant, cards, live.n) });
+}
+
+// BUS-17: the widen alternatives of an active search with fewer than 3 live matches, else null.
+async function widenFor(env, a, matches, live) {
+  if (!isActive(a) || live >= 3) return null;
+  const { results } = await env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE ${CANDIDATES_SQL} AND operation = ?`)
+    .bind(LISTING_OPERATION[a.operation]).all();
+  return widen(a, results, new Set(matches.map(m => m.listing.id)), matches.filter(m => m.status === "found").length);
 }
 
 async function create({ request, env, admin }) {

@@ -41,7 +41,7 @@ export const isActive = a => a.archived_at == null && !CLOSED_STAGES.includes(a.
 const values = list => OPTIONS[list].map(([v]) => v);
 
 // Budgets in GBP; renting is per month.
-const BUDGET = { rent: [100, 50000], buy: [10000, 100000000] };
+export const BUDGET = { rent: [100, 50000], buy: [10000, 100000000] };
 
 // One stored form per number: "+" and digits only, which the DB CHECK also enforces; the length is checked only here.
 export function normalizePhone(s) {

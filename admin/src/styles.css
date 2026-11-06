@@ -193,6 +193,9 @@ table.list{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 fieldset.plain{border:0;padding:0;margin:0;min-width:0}
 @media (max-width:760px){.name-form{align-items:center}.name-label{position:static;width:auto;height:auto;overflow:visible;clip:auto;color:var(--stone)}}
 .match-group{margin:20px 0} .match-group h2{margin-bottom:10px} .match-group h2 .count{font:600 12px var(--body);color:var(--stone);margin-left:4px}
+.widen{margin-bottom:20px} .widen h2{margin:0 0 4px} .widen ul{list-style:none;margin:8px 0 0;padding:0}
+.widen li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:10px 0;border-top:1px solid var(--line)}
+.widen li>span:first-child{flex:1 1 220px} .widen .added{font-weight:600}
 .match-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
 .match{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:16px}
 .match-photo{aspect-ratio:4/3;border-radius:var(--r-sm);overflow:hidden;background:var(--mist);display:grid;place-items:center}

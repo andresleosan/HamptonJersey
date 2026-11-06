@@ -94,6 +94,11 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     if (el) { el.focus(); focusError.current = false; }
   }, [errors, cur]);
   useEffect(() => { if (lost === "") lostRef.current?.focus(); }, [lost]);
+  // After "Use this" (Widen criteria): the changed field, once Requirements is showing.
+  const widenFocus = useRef(null);
+  useEffect(() => {
+    if (widenFocus.current && cur === "requirements") { document.querySelector(widenFocus.current)?.focus(); widenFocus.current = null; }
+  }, [cur]);
   useEffect(() => {
     if (refocusMatch.current) { document.getElementById(refocusMatch.current)?.focus(); refocusMatch.current = null; }
   }, [data]);
@@ -137,6 +142,12 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     } finally { setBusy(false); }
   };
   const discard = () => { setForm(toForm(a, c)); setErrors({}); setMsg(null); };
+  // W9: fills the one field in Requirements, unsaved; the team saves it after talking to the applicant.
+  const applyWiden = w => {
+    setForm(f => ({ ...f, [w.field]: w.key === "parish" ? w.to : String(w.to) }));
+    widenFocus.current = w.key === "parish" ? `input[name="a-parishes_wanted"][value="${CSS.escape(w.parish)}"]` : `#a-${w.field}`;
+    go("requirements");
+  };
 
   // After Apply or Confirm: the record just saved ({applicant} or {contact}) and the fresh history. The other record
   // keeps the version the form started from, so an edit someone else made there never shows up as this user's
@@ -146,7 +157,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     const d = await api(`/admin/applicants/${id}`);
     // A new stage can close or reopen the search, which recomputes its matches.
     setData(x => ({ ...x, events: d.events, viewings: d.viewings, duplicates: d.duplicates, matches: d.matches,
-      retention: d.retention }));
+      retention: d.retention, widen: d.widen }));
     onChange?.(); // the save restarted the contact's 12 months: the bar's expiring count may drop
   };
   // Stage and Assigned to save on their own; unsaved requirements stay in the form. Input while saving is ignored,
@@ -230,7 +241,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       const left = !d.matches.some(x => x.id === m.id && x.status === m.status);
       if (msg.ok || left)
         refocusMatch.current = next && d.matches.some(x => x.id === next.id && x.status === m.status) ? `match-${next.id}` : `group-${m.status}`;
-      setData(x => ({ ...x, events: d.events, matches: d.matches }));
+      setData(x => ({ ...x, events: d.events, matches: d.matches, widen: d.widen }));
     } catch (e) { msg = { text: `${msg.text} ${e.message}` }; } // shown as an error even when the review was saved
     finally { setMatchMsg(msg); setReviewing(false); }
   };
@@ -322,6 +333,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       </form>
     </div>
     <div role="tabpanel" id="panel-matches" aria-labelledby="tab-matches" hidden={cur !== "matches"} tabIndex={0}>
+      {data.widen && <Widen alternatives={data.widen} applicant={a} dirty={dirty} onUse={applyWiden} />}
       <Matches matches={data.matches} applicant={a} msg={matchMsg} busy={reviewing} onReview={reviewMatch} />
     </div>
     {hasOffers && <div role="tabpanel" id="panel-offers" aria-labelledby="tab-offers" hidden={cur !== "offers"} tabIndex={0}>
@@ -373,6 +385,32 @@ function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirm
       {dup.active_search_id == null && <a className="btn ghost sm" href={`#/applicants/new?contact=${contactId}`}>Create second search</a>}
       <button type="button" className="btn ghost sm" onClick={() => onDismiss(dup)}>Dismiss</button>
     </div>
+  </section>;
+}
+
+// BUS-17 (spec 2026-11-06): with fewer than 3 matches, what one change to the saved search would add. "Use this" waits
+// while the form has unsaved changes: each new value comes from the saved search.
+function Widen({ alternatives, applicant: a, dirty, onUse }) {
+  const rent = a.operation === "rent";
+  const what = w => (w.key === "budget" ? `Budget up 10%: ${money(w.from)} to ${money(w.to)}${rent ? " a month" : ""}`
+    : w.key === "parish" ? (w.parish ? `Add ${w.parish}` : "Add any other parish")
+    : `Minimum bedrooms down 1: ${w.from} to ${w.to}`);
+  // With nothing to widen, why: each of the three changes is out (spec W7).
+  const [budget, parish, beds] = [(a.budget_stretch ?? a.budget_max) == null ? "has no budget limit" : "is at the highest budget the form accepts",
+    a.parishes_wanted?.length ? "has no parish left to add" : "accepts any parish",
+    a.bedrooms_min > 0 ? "asks for at least 1 bedroom" : "sets no minimum bedrooms"];
+  return <section className="card widen" aria-labelledby="widen-h">
+    <h2 id="widen-h">Widen criteria</h2>
+    {alternatives.length ? <>
+      <p className="muted">Fewer than 3 listings fit this search. Each change on its own would add:</p>
+      {dirty && <p className="muted">You have unsaved changes in Requirements. Save or discard them to use these.</p>}
+      <ul>{alternatives.map(w => <li key={w.key}>
+        <span>{what(w)}</span>
+        <span className="added">{w.added ? `${w.added} more listing${w.added === 1 ? "" : "s"}` : "No more listings"}</span>
+        {w.added > 0 && <button type="button" className="btn ghost sm" disabled={dirty} onClick={() => onUse(w)}>
+          Use this<span className="sr"> ({what(w)})</span></button>}
+      </li>)}</ul>
+    </> : <p className="muted">Nothing to widen: this search {budget}, {parish} and {beds}.</p>}
   </section>;
 }
 

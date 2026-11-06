@@ -743,6 +743,7 @@ async function admin(browser) {
   await hermesDrafters(page);
   await folderImport(page, phone);
   await driveQueue(page, phone, noSideScroll);
+  await widenCriteria(page, phone, noSideScroll);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -750,6 +751,67 @@ async function admin(browser) {
   await shot(page, "admin-users");
   assert.deepEqual(page.errors, []);
   await ctx.close();
+}
+
+// BUS-17 (spec 2026-11-06): a buyer with fewer than 3 matches sees Widen criteria. Its own Trinity listings: two that fit,
+// one £50,000 over budget and one a bedroom short of 6 (no seed listing has 5 or more); every other parish but St Clement
+// excluded. Unsaved changes disable "Use this"; "Use this" fills Requirements unsaved; Save brings the counted listing in
+// (3 matches: no card) and a rejection brings the card back, without counting the rejected listing again.
+async function widenCriteria(page, phone, noSideScroll) {
+  d1(`INSERT INTO listings (id, use, title, property_type, operation, availability, country, location, parish, bedrooms,
+    sale_price, currency, price_text, specs, published, matchable, created_at, updated_at, updated_by) VALUES
+    ('HE-R070','residential','Trinity farmhouse','House','sale','for_sale','Jersey','Trinity','Trinity',6,950000,'GBP','£950,000','[]',0,1,
+     '2026-10-07T00:00:00.000Z','2026-10-07T00:00:00.000Z','import'),
+    ('HE-R071','residential','Trinity barn','House','sale','for_sale','Jersey','Trinity','Trinity',5,800000,'GBP','£800,000','[]',0,1,
+     '2026-10-07T00:00:00.000Z','2026-10-07T00:00:00.000Z','import'),
+    ('HE-R072','residential','Trinity manor','House','sale','for_sale','Jersey','Trinity','Trinity',6,850000,'GBP','£850,000','[]',0,1,
+     '2026-10-07T00:00:00.000Z','2026-10-07T00:00:00.000Z','import'),
+    ('HE-R073','residential','Trinity lodge','House','sale','for_sale','Jersey','Trinity','Trinity',6,860000,'GBP','£860,000','[]',0,1,
+     '2026-10-07T00:00:00.000Z','2026-10-07T00:00:00.000Z','import')`);
+  const others = ["Grouville", "St Brelade", "St Helier", "St John", "St Lawrence", "St Martin", "St Mary", "St Ouen", "St Peter", "St Saviour"];
+  const a = await page.evaluate(body => fetch("/api/admin/applicants", {method: "POST", headers: {"content-type": "application/json"},
+    body: JSON.stringify(body)}).then(async r => ({status: r.status, ...await r.json()})), {name: "Wendy Le Cornu", email: "wendy@example.je", source: "phone", operation: "buy",
+    budget_max: 900000, bedrooms_min: 6, parishes_wanted: ["Trinity"], parishes_excluded: others});
+  assert.equal(a.status, 201, JSON.stringify(a));
+  const url = BASE + `admin/#/applicants/${a.id}/matches`;
+  await page.goto(url);
+  const card = page.locator("section.widen");
+  await card.getByRole("heading", {name: "Widen criteria"}).waitFor();
+  const row = card.locator("li", {hasText: "Budget up 10%: £900,000 to £990,000"});
+  assert.equal(await row.locator(".added").textContent(), "1 more listing");
+  await card.locator("li", {hasText: "Minimum bedrooms down 1: 6 to 5"}).locator(".added").getByText("1 more listing").waitFor();
+  await card.locator("li", {hasText: "Add any other parish"}).getByText("No more listings").waitFor();
+  const found = () => page.locator("#group-found .count").textContent();
+  const before = Number(await found());
+  assert.equal(before, 2, "the two Trinity listings that fit");
+  // Unsaved changes: every "Use this" waits for Save or Discard.
+  await page.getByRole("tab", {name: "Requirements"}).click();
+  await page.fill("#a-requirements", "Quiet lane");
+  await page.getByRole("tab", {name: "Matches"}).click();
+  await card.getByText("You have unsaved changes in Requirements. Save or discard them to use these.").waitFor();
+  assert.equal(await card.getByRole("button", {name: /^Use this/}).first().isDisabled(), true);
+  await page.getByRole("button", {name: "Discard"}).click();
+  await shot(page, "admin-widen");
+  await card.getByRole("button", {name: "Use this (Budget up 10%: £900,000 to £990,000)"}).click();
+  await page.waitForFunction(() => document.activeElement?.id === "a-budget_max");
+  assert.equal(await page.inputValue("#a-budget_max"), "990000");
+  await page.getByText("Unsaved changes", {exact: true}).waitFor();
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.getByText("Changes saved.").waitFor();
+  await page.getByRole("tab", {name: "Matches"}).click();
+  await page.waitForFunction(n => document.querySelector("#group-found .count")?.textContent === String(n), before + 1);
+  assert.equal(await card.count(), 0, "3 matches: nothing to widen");
+  await page.getByRole("button", {name: "Reject Trinity farmhouse"}).click();
+  await page.getByRole("group", {name: "Why reject Trinity farmhouse?"}).getByRole("button", {name: "Price"}).click();
+  await page.getByText("Rejected Trinity farmhouse · Price.").waitFor();
+  await card.locator("li", {hasText: "Budget up 10%: £990,000 to £1,089,000"}).getByText("No more listings").waitFor();
+  await card.getByText("Fewer than 3 listings fit this search.").waitFor();
+  await noSideScroll(url, "section.widen");
+  await shot(phone, "admin-widen-mobile");
+  // A closed search has nothing to widen: Stage → Completed takes the card away without a reload.
+  await page.getByLabel("Stage").selectOption("completed");
+  await page.getByRole("button", {name: "Apply stage"}).click();
+  await card.waitFor({state: "detached"});
 }
 
 // PUB-21 (spec 2026-11-05): Properties Queue against a fake Google Drive on port 8799 (.dev.vars points DRIVE_API and

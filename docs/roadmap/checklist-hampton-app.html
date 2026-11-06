@@ -869,8 +869,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F1-A",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "El selector Stage de la ficha permite poner la búsqueda en Paused con Apply.",
-   "falta": "Un botón Pause search que la detenga (hoy una búsqueda Paused sigue activa: recibe matches y avisos) y Widen criteria, que enseñe cuántas casas más saldrían con un 10 % más de presupuesto o una parroquia más.",
+   "hecho": "El selector Stage de la ficha permite poner la búsqueda en Paused con Apply. Desde el 6-nov-2026, Widen criteria (BUS-17): con menos de 3 casas, la pestaña Matches enseña cuántas casas más saldrían con un 10 % más de presupuesto, una parroquia más o un dormitorio menos, y «Use this» rellena el cambio sin guardar.",
+   "falta": "Un botón Pause search que la detenga (hoy una búsqueda Paused sigue activa: recibe matches y avisos).",
    "bloqueo": "",
    "evidencia": [
     "admin/src/ApplicantDetail.jsx:288-293",
@@ -2175,15 +2175,17 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Ampliar criterios cuando hay menos de 3 coincidencias",
    "origen": "plan",
    "fase": "F1-A",
-   "estado": "pendiente",
+   "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "La cola marca «No matches», pero nada calcula alternativas (10 % más de presupuesto, una parroquia más, un dormitorio menos) ni cuántas casas añadirían, ni las sugiere al equipo o al aplicante.",
-   "bloqueo": "",
+   "hecho": "Construido el 6-nov-2026 (spec 2026-11-06, decisiones de Luis «1 1 1»). Con menos de 3 casas entre Found y Shortlisted (solo de casas que siguen en el mercado) y la búsqueda activa (Paused incluida), la pestaña Matches de la ficha enseña «Widen criteria»: presupuesto +10 % (sobre el estirado si lo hay; redondeado a £50 al mes o £1,000), la parroquia libre que más casas añade y un dormitorio menos, cada una con cuántas casas nuevas daría, con las mismas reglas del matching y sin contar las rechazadas. «Use this» rellena ese campo en Requirements sin guardar; el equipo lo habla con el aplicante y pulsa Save. Lo que no aplica se oculta. Se calcula al abrir la ficha, sin guardar nada.",
+   "falta": "Sugerírselo al aplicante (necesita un canal: correo o Meta). Fuera por decisión de Luis: verlo en la lista de Applicants, el Inbox o el resumen de Telegram.",
+   "bloqueo": "Servicio de correo · Trámite Meta (solo para el aviso al aplicante)",
    "evidencia": [
-    "server/applicants.js:31",
-    "server/routes/applicants.js:64-67",
-    "admin/src/ApplicantDetail.jsx:385-390"
+    "server/widen.js",
+    "server/routes/applicants.js",
+    "admin/src/ApplicantDetail.jsx",
+    "tests/server/widen.test.mjs",
+    "docs/superpowers/specs/2026-11-06-hampton-app-widen-criteria-design.md"
    ]
   },
   {
