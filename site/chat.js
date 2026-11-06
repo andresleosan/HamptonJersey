@@ -98,19 +98,28 @@ function adopt() {
 
 async function refreshChat() {
   try { remember(await call("GET", "/chat")); render(); schedule(); }
-  catch (e) { if (e.status === 401) ended(e.message); }
+  catch (e) { failed(e); }
+}
+
+// A read that failed: an ended chat ends here; a dropped answer (status -1) is another chat's. Anything else (no network,
+// a server error) says so in the open chat and tries again on the polling schedule, also while nothing has loaded yet.
+function failed(e) {
+  if (e.status === 401) return ended(e.message);
+  if (e.status === -1) return;
+  const note = body?.querySelector(".chat-load");
+  if (note) note.textContent = "We couldn't reach our server. Trying again…";
+  schedule();
 }
 
 function schedule() {
   clearTimeout(timer);
-  if (!store || !chat) return;
+  if (!store) return;
   const wait = nextPoll(Date.now(), store.at, openedAt);
   if (wait == null) return;
   timer = setTimeout(async () => {
     if (document.hidden) return; // visibilitychange (set in init) starts it again
-    try { remember(await call("GET", "/chat")); render(); }
-    catch (e) { if (e.status === 401) return ended(e.message); if (e.status === -1) return; }
-    schedule();
+    try { remember(await call("GET", "/chat")); render(); schedule(); }
+    catch (e) { failed(e); }
   }, wait);
 }
 
@@ -198,7 +207,8 @@ const counter = (area, out) => area.addEventListener("input", () => { out.textCo
 
 function conversation() {
   shown = new Set();
-  body.innerHTML = `<p class="hint chat-about" hidden></p><ol class="chat-log" aria-live="polite" aria-label="Conversation"></ol>
+  body.innerHTML = `<p class="hint chat-load" role="status"></p><p class="hint chat-about" hidden></p>
+    <ol class="chat-log" aria-live="polite" aria-label="Conversation"></ol>
     <p class="hint">We'll reply here. If you close this page, you can come back on this device for 7 days, and we may also
       contact you by email or phone.</p>
     <form class="chat-say" novalidate><label class="field"><span>Your message</span>
@@ -237,6 +247,7 @@ function conversation() {
 function render() {
   const log = body?.querySelector(".chat-log");
   if (!log || !chat) return badge();
+  body.querySelector(".chat-load").textContent = "";
   const about = body.querySelector(".chat-about");
   about.hidden = !chat.listing;
   if (chat.listing) about.textContent = `About ${chat.listing.title}`;
@@ -275,5 +286,5 @@ export async function init(opts) {
   if (!store) { forget(); return badge(); }
   badge();
   try { remember(await call("GET", "/chat")); badge(); schedule(); }
-  catch (e) { if (e.status === 401) ended(); }
+  catch (e) { e.status === 401 ? ended() : failed(e); }
 }

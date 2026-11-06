@@ -746,6 +746,7 @@ async function admin(browser) {
   await widenCriteria(page, phone, noSideScroll);
   await webChat(page);
   await webChatTabs(page);
+  await webChatRecovers(page);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -836,6 +837,33 @@ async function webChatTabs(page) {
   assert.equal(await box.locator(".chat-log").count(), 0, "ended here too");
   assert.equal(await one.evaluate(() => localStorage.getItem("hampton-chat")), null, "and not stored again");
   assert.deepEqual([...one.errors, ...two.errors], []);
+  await vctx.close();
+}
+
+// MSG-02 (Codex, third review): the chat's first reads fail (the network drops /api/chat); the open chat says so and,
+// once the connection is back, shows the conversation without being reopened. Written straight into the database.
+async function webChatRecovers(page) {
+  const crypto = require("node:crypto"), t = new Date().toISOString();
+  const key = crypto.randomBytes(32).toString("base64url"), hash = crypto.createHash("sha256").update(key).digest("hex");
+  d1(`INSERT INTO chats (key_hash, status, name, email, privacy_ack_at, created_at, last_at, waiting_since)
+    VALUES ('${hash}', 'waiting', 'Offline Visitor', 'offline@example.je', '${t}', '${t}', '${t}', '${t}');
+    INSERT INTO chat_messages (chat_id, role, text, created_at) SELECT id, 'visitor', 'Written before the outage', '${t}' FROM chats WHERE key_hash = '${hash}'`);
+  const vctx = await page.context().browser().newContext();
+  const visitor = await newPage(vctx, {width: 390, height: 844});
+  await visitor.goto(BASE);
+  await visitor.evaluate(k => localStorage.setItem("hampton-chat", JSON.stringify({key: k, at: Date.now(), seen: 0})), key);
+  const drop = r => r.request().method() === "GET" ? r.abort("internetdisconnected") : r.continue();
+  await visitor.route("**/api/chat", drop);
+  await visitor.reload();
+  await visitor.getByRole("button", {name: /^Message us/}).click();
+  const box = visitor.locator("dialog.chat");
+  await box.getByText("We couldn't reach our server. Trying again…").waitFor();
+  assert.equal(await box.locator(".chat-log li").count(), 0, "nothing loaded while offline");
+  await visitor.unroute("**/api/chat", drop);
+  await box.getByText("Written before the outage").waitFor({timeout: 12000});
+  assert.equal(await box.getByText("We couldn't reach our server. Trying again…").count(), 0, "the note goes once it loads");
+  // The aborted requests are logged by Chromium as failed resources; nothing else may have failed.
+  assert.deepEqual(visitor.errors.filter(e => !/internet|ERR_INTERNET_DISCONNECTED/i.test(e)), []);
   await vctx.close();
 }
 

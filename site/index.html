@@ -420,6 +420,7 @@ body:has(.chat-btn:not([hidden])) footer{padding-bottom:80px}
 .chat .check input{flex:none;width:20px;height:20px;margin:2px 0 0;accent-color:var(--ink)}
 .chat .form-status{color:var(--err);font-size:14px}
 .chat .form-status:empty{height:0;overflow:hidden}
+.chat .chat-load:empty{height:0;overflow:hidden;margin-bottom:-16px} /* no gap while empty */
 .chat .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-color:var(--ink)}
 .chat-log{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .chat-log li{max-width:85%;padding:8px 12px;border-radius:12px;background:var(--mist)}

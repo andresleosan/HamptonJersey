@@ -9,7 +9,7 @@ Ejecución del [plan](2026-11-06-hampton-app-web-chat.md) el 6-nov-2026, en esta
 - Tarea 4 (borrado a 30 días): hecha; `retention_run.chats`.
 - Tarea 5 (Messages y Automations): hecha.
 - Tarea 6 (web y aviso): hecha; `tests/chat.test.js`.
-- Tarea 7 (e2e y documentos): paso `webChat` en `tests/e2e.cjs`. En el taller el envío del formulario se queda esperando a `siteverify` (el Worker local no sale por el proxy); con un arnés que solo sustituye ese envío por un chat creado en la base local (`/home/taller/encargos/capturas/web-chat/run.cjs`), el resto del paso pasa. Recorrido con Playwright MCP a 1280 y 390. Tras la segunda revisión de Codex, también el paso `webChatTabs` (dos pestañas; sin Turnstile, escribe los chats en la base), que pasa entero en el taller.
+- Tarea 7 (e2e y documentos): paso `webChat` en `tests/e2e.cjs`. En el taller el envío del formulario se queda esperando a `siteverify` (el Worker local no sale por el proxy); con un arnés que solo sustituye ese envío por un chat creado en la base local (`/home/taller/encargos/capturas/web-chat/run.cjs`), el resto del paso pasa. Recorrido con Playwright MCP a 1280 y 390. Tras la segunda revisión de Codex, también el paso `webChatTabs` (dos pestañas; sin Turnstile, escribe los chats en la base), que pasa entero en el taller. Tras la tercera, el paso `webChatRecovers` (sin conexión al abrir el chat), que también pasa entero.
 
 ## Arreglado durante el recorrido
 - Los mensajes del equipo salían casi invisibles en la web: la clase `team` chocaba con la sección «Our team». Clases `from-team` / `from-visitor`.
@@ -91,3 +91,53 @@ Un hallazgo importante y cinco menores. Luis pidió arreglar el 1 y el 2, con pr
 4. **Menor, aplazado:** el tope de 500 borrados al día. Es el mismo que el e de arriba.
 5. **Menor, aplazado:** la prueba de reapertura no abre el chat. Corregido el texto del punto b de arriba. Arreglo propuesto: un paso del e2e que abra un chat de hace 3 h y espere una respuesta posterior, como `reopen/run.cjs`.
 6. **Menor, arreglado:** el ledger explicaba mal la prueba del contador (punto f de arriba, corregido). El e2e ahora exige una petición del sondeo posterior al chat.
+
+## Tercera revisión de Codex sobre `527d365` (6-nov-2026)
+
+Un hallazgo importante y seis menores. Luis autorizó una ronda más: arreglar el importante con una prueba reproducible y anotar los menores con precisión.
+
+1. **Importante, arreglado: el chat no se recuperaba de un fallo inicial.** El fallo estaba en dos sitios:
+   - `refreshChat()` (al abrir) e `init()` (al cargar la página) solo trataban el 401. Cualquier otro error (sin red, un 500) se tragaba sin aviso.
+   - `schedule()` no programaba nada mientras `chat` siguiera vacío.
+
+   Con eso, si fallaban las primeras lecturas, el chat abierto quedaba en blanco para siempre, aunque volviera la conexión.
+
+   Arreglo, con `failed(e)`:
+   - 401: el chat termina aquí, como antes.
+   - Respuesta de otro chat (-1): se ignora.
+   - Cualquier otro error: el chat abierto dice «We couldn't reach our server. Trying again…» (en `.chat-load`, `role="status"`) y se reintenta con el calendario de sondeo, también mientras no se ha cargado nada.
+   - Una lectura buena borra el aviso.
+   - En segundo plano, un chat sin abrir y viejo (más de 2 h) no se reintenta hasta que se abra.
+
+   Pruebas que ejercitan el fallo real:
+   - `tests/chat.test.js`, «a chat whose first reads fail keeps trying and recovers when the connection is back». Pasa por `init()`, con `fetch` que falla primero sin red (`TypeError`) y luego con un 500, y temporizadores simulados. Falla con `527d365`, porque tras el primer error no hay más lecturas.
+   - Paso `webChatRecovers` del e2e, en Chromium. Es el camino que vio Codex: `page.route` aborta todo `GET /api/chat` como `internetdisconnected` antes de cargar la página y de abrir el chat. Exige el aviso y que no haya mensajes. Al quitar el corte, la conversación aparece sin reabrir (12 s como mucho) y el aviso desaparece.
+     - Con el `site/chat.js` de `527d365` falla en el aviso, que nunca sale.
+     - Con una variante sin esa comprobación (`/home/taller/encargos/capturas/web-chat/run-recovery-only.cjs`, fuera del repo), también falla al recuperar: la conversación nunca aparece.
+     - Pasa con el código nuevo.
+2. **Menor, aplazado: el borrado puede pasar de los 30 días anunciados.** Es el mismo que el e y el 4 de las revisiones anteriores.
+   - La sentencia `CHATS` de `server/retention.js` borra como mucho `RETENTION_CAP` (500) chats por pasada, y `recordRetentionDay` da el día por hecho. Con 501 vencidos, uno espera al día siguiente.
+   - Contradice lo prometido en `ESTADO.md` (línea 107), en el checklist (MSG-02, «Se borra sola 30 días después…») y en el aviso público (`site/apply.js`, «We delete a conversation 30 days after its last message»).
+   - Arreglo propuesto: repetir el lote hasta agotarlo antes de dar la pasada por hecha, o decir el margen real en los tres sitios.
+3. **Menor, aplazado: la ruta codificada pierde `no-store`.** Es el mismo que el d y el 3 de antes.
+   - `route()` decodifica los segmentos para elegir la ruta, pero `handleApi()` decide `no-store` con `segments[0]` sin decodificar. Por eso `/api/%63hat` devuelve la conversación de una llave válida sin esa cabecera.
+   - Codex no demostró una filtración por una caché compartida.
+   - Arreglo propuesto: decidir las dos cosas con la misma ruta decodificada.
+4. **Menor, aplazado: borrar el chat durante un envío da un 500.** Reproducido fuera del repo con `/home/taller/encargos/capturas/web-chat/minor4.test.mjs`: el chat se borra entre `chatOf()` y el batch de `say()` (`server/routes/chat.js`).
+   - El `INSERT … SELECT ?1 …` no comprueba que el chat siga existiendo, y la clave foránea falla («FOREIGN KEY constraint failed»).
+   - El visitante recibe un 500 «Server error. Please try again.» en vez del 401 de chat terminado.
+   - Arreglo propuesto: `… WHERE EXISTS (SELECT 1 FROM chats WHERE id = ?1) AND …` en el INSERT y, si no entra nada y el chat ya no existe, responder el 401 «This chat has ended».
+5. **Menor, aplazado: el panel pierde una respuesta sin enviar.** En `admin/src/Messages.jsx` el detalle es `<Chat key={sel}>`. Cambiar de pestaña (`show()` pone `sel` a null) o pulsar otro chat desmonta el componente, y el texto escrito se pierde sin preguntar. Codex lo confirmó en Chromium.
+   - El arreglo de la primera revisión solo protege del sondeo de la lista, no de los clics de la persona.
+   - Arreglo propuesto: guardar el borrador por chat en el estado de Messages, o preguntar antes de descartarlo (como `confirmLeave`).
+6. **Menor, aplazado: el interruptor no llega a las páginas ya abiertas.**
+   - `index.html` lee `/api/config` una sola vez al cargar (`bootChat(on)`), y `chat.js` guarda `chatOn` en `init()`.
+   - Tras apagar el chat, una página abierta sigue enseñando el botón y el formulario hasta que se recarga, y el envío acaba en el 404 «Not found».
+   - La spec (C3) y la tarjeta de Automations dicen «hasta 5 minutos», pero eso solo vale para páginas que se cargan después (la caché de `/api/config`).
+   - Arreglo propuesto: volver a leer `/api/config` al abrir el chat (o tratar el 404 de `POST /api/chat` como «chat no disponible», con el teléfono), y precisar el texto.
+7. **Menor, aplazado: la prueba de reapertura no abre el chat.** Es el mismo que el 5 de la segunda revisión.
+   - Codex anuló en memoria la línea `openedAt = Date.now()` de `toggle()` y las pruebas siguieron pasando. Sigue siendo cierto: ni las de `tests/chat.test.js` ni los pasos del e2e reabren un chat viejo.
+   - Solo lo cubre `/home/taller/encargos/capturas/web-chat/reopen/run.cjs`, fuera del repo.
+   - Arreglo propuesto: un paso del e2e que abra un chat de hace 3 h y espere una respuesta posterior.
+
+Además, el `npm audit` de Codex da 9 entradas `high` en dependencias heredadas. Es el menor k del ledger de Widen criteria: no viene de este cambio.

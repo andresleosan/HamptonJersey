@@ -138,3 +138,27 @@ test("a chat started in another tab replaces this one: its key, its replies, not
   assert.equal(JSON.parse(w.store.get("hampton-chat")).key, B);
   assert.ok(!w.keys.slice(2).includes(A), "the old chat is never asked for again");
 });
+
+// Codex, third review: when the first reads fail (no network, a server error), the chat keeps trying and shows the
+// replies once the connection is back, instead of staying empty for good.
+test("a chat whose first reads fail keeps trying and recovers when the connection is back", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: NOW });
+  const w = tabs({ [A]: { status: "answered", listing: null,
+    messages: [said(1, "visitor", NOW - 10e3), said(2, "team", NOW - 5e3, "Hampton Estates")] } });
+  w.store.set("hampton-chat", JSON.stringify({ key: A, at: NOW - 10e3, seen: 1 }));
+  const real = globalThis.fetch;
+  let down = 2;
+  globalThis.fetch = async (url, init) => {
+    if (down-- === 2) throw new TypeError("Failed to fetch"); // offline
+    if (down === 0) return new Response(JSON.stringify({ error: "Server error. Please try again." }), { status: 500 });
+    return real(url, init);
+  };
+  const m = await fresh();
+  await m.init({ btn: w.btn, chatOn: true, hidden: () => false });
+  assert.equal(w.btn.textContent, "Message us", "nothing loaded yet");
+  t.mock.timers.tick(5000); await settle();
+  assert.equal(w.btn.textContent, "Message us", "second read: a 500");
+  t.mock.timers.tick(5000); await settle();
+  assert.equal(w.btn.textContent, "Message us · 1 new reply", "the connection is back: the reply shows");
+  assert.equal(w.keys.length, 1, "the two failed reads never reached the fake server");
+});
