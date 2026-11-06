@@ -74,7 +74,7 @@ function Report({ d }) {
       <h3>Top unmet requests</h3>
       <p className="muted">Active applicants without a match, by what they ask for, most asked first. The rows don't add up:
         someone who wants several parishes is in each.</p>
-      {unmet.length ? <div className="table-scroll"><table className="list" aria-label="Top unmet requests">
+      {unmet.length ? <div className="table-scroll" role="region" aria-label="Top unmet requests" tabIndex={0}><table className="list" aria-label="Top unmet requests">
         <thead><tr><th scope="col">Parish</th><th scope="col">Operation</th><th scope="col">Bedrooms</th>
           <th scope="col" className="num">Median budget</th><th scope="col" className="num">Applicants</th></tr></thead>
         <tbody>{unmet.map(u => <tr key={`${u.operation} ${u.parish} ${u.bedrooms_min}`}>
