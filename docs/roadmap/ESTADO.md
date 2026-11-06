@@ -1,8 +1,8 @@
 # Estado de Hampton App
 
-Actualizado el 3-nov-2026. Qué incluye cada fase y cuándo se da por hecha: [arquitectura, §9 Hoja de ruta](2026-10-23-arquitectura-hampton-app.md). Qué está hecho y qué falta, punto por punto: [checklist](checklist-hampton-app.html). En producción: lo que está en `main` en GitHub (cada push a `main` se publica solo: la web y, desde el 30-oct-2026, también el reloj, el Worker `hampton-jobs`) y las migraciones hasta la 0018.
+Actualizado el 6-nov-2026. Qué incluye cada fase y cuándo se da por hecha: [arquitectura, §9 Hoja de ruta](2026-10-23-arquitectura-hampton-app.md). Qué está hecho y qué falta, punto por punto: [checklist](checklist-hampton-app.html). En producción: lo que está en `main` en GitHub (cada push a `main` se publica solo: la web y, desde el 30-oct-2026, también el reloj, el Worker `hampton-jobs`) y las migraciones hasta la 0018.
 
-Siguiente recomendado: /avanzar BUS-17 · claude-opus-5-5 · high
+Siguiente recomendado: /avanzar AUT-17 · claude-opus-5-5 · high
 
 | Fase | Estado | Spec | Plan | Pendiente |
 |---|---|---|---|---|
@@ -100,8 +100,26 @@ Si el reloj o Hermes se paran, el botón Settings de la barra lleva un número e
 
 ## Siguiente tarea
 
-**Ampliar criterios cuando hay menos de 3 coincidencias (BUS-17), con el botón Widen criteria de la ficha (SAP-10).** Es una automatización (la prioridad de Luis), no necesita nada de fuera y ayuda a recuperar a los clientes en Gone quiet o en No matches.
+**Correo saliente y entrante con Cloudflare Email Service (AUT-17).** Decisión de Luis del 6-nov-2026 (arquitectura P-19, cierra la pregunta 7): el dominio ya está en Cloudflare, el envío sale de la app con un binding y la recepción entra por Email Routing; sin proveedor aparte (Workers Paid, 5 USD al mes con 3.000 correos incluidos). Es la pieza que desbloquea el bucle del aplicante de abajo y 14 puntos más del checklist. Antes de construir, Luis: subir la cuenta a Workers Paid, incorporar el dominio en Email Service y elegir el remitente. Modelo recomendado: claude-opus-5-5 · high.
 
-Pendiente de Luis, sin código: comprobar a las 8:00 de Jersey que el resumen llega al canal, y la guía corta del equipo antes de invitarlo (AUT-14).
+## Orden de trabajo desde el 6-nov-2026: el bucle del aplicante
 
-Después: Book a valuation (PUB-10) cuando Hampton confirme su registro en la JOIC (PRE-03) y el aviso de privacidad cubra a los propietarios (PRE-09), y el alta guiada para el móvil por familias de datos (PUB-01, con PUB-04 a PUB-09). La fase 1b (el Hermes de Hampton y el asistente de Luis, AUT-16) espera a PRE-32.
+Objetivo (idea del equipo de Hampton del 6-nov): cada aplicante recibe las casas que encajan, se le recuerda, si calla se le llama, se le lleva a ver la casa, y cada aplicante presentado a otra agencia queda registrado para cobrarle la comisión. El matching ya es automático e inmediato (F1-A); lo que falta es el envío, el seguimiento y las agencias.
+
+| Orden | Tarea | Modelo · esfuerzo | Qué hace falta antes |
+|---|---|---|---|
+| 1 | AUT-17 Correo con Cloudflare Email Service; su primer envío real es el resumen de las 8:00 por email al equipo (NOT-10) | opus · high | Luis: Workers Paid, dominio en Email Service, remitente |
+| 2 | AGE-04 Directorio de agencias con acuerdo de comisión, más el registro de presentaciones (la parte de AGE-09 que no necesita correo: `introduced_at` y «Hampton presentó N aplicantes a esta casa el día D») | opus · medium | Nada |
+| 3 | EST-13 + AGE-11 + AGE-13: estados del match, correo «tus casas» con enlaces, recordatorios a las 24 y 72 h, No response a los 7 días con la tarea de llamar en el Inbox | opus · high | AUT-17 |
+| 4 | BUS-17 + SAP-10: ampliar criterios con menos de 3 coincidencias (más casas que enviar) | opus · high | Nada |
+| 5 | AGE-03 + AGE-05 + AGE-10: consulta por casa a su agencia con [HE-OUT-…], agrupada a las 9:00 y 14:00, sin revelar la agencia al aplicante hasta acordar | opus · high | AUT-17; la pregunta de comisión espera PRE-22 |
+| 6 | VIS-13: recordatorios de visita a las 24 h y 2 h | sonnet · medium | AUT-17 |
+| 7 | AGE-08 + ANA-06: seguimiento de agencias que no responden y sus tiempos de respuesta | sonnet · medium | 5 |
+| 8 | AGE-06: lectura con IA de las respuestas de agencias (Hermes con un modelo por API con acuerdo de datos: son datos C1) | opus · high | 5 y PRE-32 |
+| 9 | BUS-06 + BUS-08 + EST-16 + VIS-17: casas del mercado, pasada diaria y visitas en casas de otras agencias | opus · high | PRE-01 (clave de Places.je) |
+
+Cada envío nuevo empieza en modo borrador (una persona aprueba cada uno) y pasa a automático cuando acierte; todo envío mira antes la pausa de Automations (AUT-11).
+
+Pendiente de Luis, sin código: la clave de Places.je (PRE-01, vencida el 2-nov), la respuesta de Hampton sobre comisiones (PRE-22), PRE-32, comprobar a las 8:00 de Jersey que el resumen llega al canal y la guía corta del equipo antes de invitarlo (AUT-14).
+
+Después del bucle: Book a valuation (PUB-10) cuando Hampton confirme su registro en la JOIC (PRE-03) y el aviso de privacidad cubra a los propietarios (PRE-09); el alta guiada para el móvil por familias de datos (PUB-01, con PUB-04 a PUB-09); la fase 1b (el Hermes de Hampton y el asistente de Luis, AUT-16) espera a PRE-32; el chat web «Hampton Bot» (MSG-02 y MSG-04) está en estudio desde el 6-nov con su propio documento de ideas.

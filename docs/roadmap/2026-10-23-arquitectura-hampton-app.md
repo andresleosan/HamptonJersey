@@ -766,6 +766,7 @@ Todas son propuestas mías; ninguna está aprobada.
 | P-16 | Expediente de venta con hitos y recordatorios automáticos a los abogados | Es donde más horas se pierden y no estaba en el texto | Seguimiento por teléfono y memoria |
 | P-17 | Decisión de Luis (29-oct-2026): la IA de la app usa el plan de ChatGPT de cada empleado con «Sign in with ChatGPT», si OpenAI da acceso por escrito a una app comercial alojada (§6.5) | Aprovecha suscripciones que Hampton ya paga | Solo API con pago por uso (P-09), que sigue como alternativa mientras tanto |
 | P-18 | Decisión de Luis (30-oct-2026): Hermes, en el VPS de Optimyze, es el cerebro de IA de las automatizaciones; con él se enlazan, y Luis habla con él y lo gestiona por Telegram (§6.6). La app sigue guardando los datos y las aprobaciones se hacen en el panel. El mismo día Luis aprobó un Hermes propio para Hampton, todavía por instalar (preguntas 15 y 16) | Una sola IA para todas las automatizaciones, aislada como la que ya corre en el VPS, que usa el plan de ChatGPT que Luis ya paga, y Telegram para manejarla desde el móvil | AI Gateway con pago por uso como puerta única (P-09), que deja de ser la principal |
+| P-19 | Decisión de Luis (6-nov-2026): el correo que envía y recibe la app sale de Cloudflare Email Service (envío desde el dominio con un binding desde Pages y el Worker, plan Workers Paid; recepción por Email Routing a un Worker); Hampton conserva su buzón de siempre, y lo que la app envía lo aprueba una persona en el panel (checklist AUT-17) | El dominio ya está en Cloudflare desde el 1-nov, no hace falta otro proveedor, 3.000 correos al mes incluidos, y las respuestas de las agencias entran a la app por una dirección propia | Google Workspace o un proveedor de correo transaccional aparte, con otra cuenta y otro panel |
 
 ## 11. Tu texto, punto por punto
 
@@ -824,7 +825,7 @@ Ordenadas por cuánto cambian lo que se construye. Las tres primeras salieron de
 4. ¿Hampton usa hoy algún programa para aplicantes o alquileres (un CRM inmobiliario, hojas de cálculo)? Decide entre integrar y construir.
 5. ¿Qué pesa más hoy en Hampton: alquileres, ventas, gestión de alquileres o comercial? Decide el orden de las fases.
 6. ¿Hay acuerdos de comisión con otras agencias y con qué condiciones? Define el primer correo y el permiso para enseñar fotos.
-7. ¿El correo de Hampton es Google Workspace, Microsoft 365 u otro? ¿Su dominio está o puede estar en Cloudflare? Decide cómo se envían y se leen los correos con agencias. Dominio: en Cloudflare desde el 1-nov-2026 (PRE-16); queda qué correo usa Hampton (PRE-23).
+7. ¿El correo de Hampton es Google Workspace, Microsoft 365 u otro? ¿Su dominio está o puede estar en Cloudflare? Decide cómo se envían y se leen los correos con agencias. Dominio: en Cloudflare desde el 1-nov-2026 (PRE-16). Respondida el 6-nov-2026 (P-19): la app envía y recibe con Cloudflare Email Service (AUT-17); Hampton conserva su buzón para el día a día (PRE-23 cerrada).
 8. ¿Usan WhatsApp con clientes? ¿Tienen un número que pueda pasar a WhatsApp Business?
 9. ¿Cuántos aplicantes nuevos llegan al mes y cuántas propiedades gestionan? Dimensiona costes y límites.
 10. ¿Cómo pagan hoy los inquilinos (transferencia, orden permanente) y en qué banco? ¿Se puede exportar el extracto en CSV?

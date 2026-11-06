@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
      "responsable": desarrollo, Luis, Hampton, tercero o — . Varios bloqueos se separan con " · ".
      "vence" (opcional, AAAA-MM-DD) saca el punto arriba con la cuenta atrás. -->
 <script type="application/json" id="datos">{
- "actualizado": "2026-11-05",
+ "actualizado": "2026-11-06",
  "base": "127c7ef",
  "items": [
   {
@@ -644,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "desarrollo",
    "hecho": "Existe la pestaña Viewings: cada solicitud de visita de la web llega como aviso Needs action con Open viewings.",
    "falta": "Compliance (los plazos vencidos solo salen en Rentals › Checks and deadlines), Agency replies (respuestas de agencias, F2) y Messages (bandeja unificada, F6).",
-   "bloqueo": "Servicio de correo · Trámite Meta",
+   "bloqueo": "Correo (AUT-17) · Trámite Meta",
    "evidencia": [
     "admin/src/Inbox.jsx:7",
     "server/routes/public.js:72-74",
@@ -662,7 +662,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "desarrollo",
    "hecho": "Cada aviso trae Done, Call con el número a la vista y el enlace a su ficha (Open applicant, Review matches, Open viewings o Add a search for this contact).",
    "falta": "Approve sin salir del aviso, Reply y Snooze para posponerlo.",
-   "bloqueo": "Servicio de correo · Trámite Meta",
+   "bloqueo": "Correo (AUT-17) · Trámite Meta",
    "evidencia": [
     "admin/src/Inbox.jsx:19-21",
     "admin/src/Inbox.jsx:81-95"
@@ -675,10 +675,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F2",
    "estado": "bloqueado",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No hay envío de correo. El reloj ya existe (AUT-07, Worker hampton-jobs cada 10 minutos): con el servicio de correo, el resumen de las 8:00 de Jersey será un trabajo más del reloj.",
-   "bloqueo": "Servicio de correo",
+   "falta": "No hay envío de correo todavía: es el primer uso de AUT-17 y sale con él. El reloj ya existe (AUT-07, Worker hampton-jobs cada 10 minutos): el resumen de las 8:00 de Jersey será un trabajo más del reloj.",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "server/jobs.js:1-15",
     "jobs/wrangler.toml:1-24",
@@ -834,7 +834,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "desarrollo",
    "hecho": "Existen Requirements (editable; al guardar se recalcula el matching), Matches, Offers (búsquedas To Buy) y Timeline, que incluye las visitas con el mismo email o teléfono.",
    "falta": "Una pestaña Viewings con las visitas ligadas al aplicante (hoy solo se cruzan por email o teléfono, G4) y la pestaña Messages con sus conversaciones (F6).",
-   "bloqueo": "Servicio de correo · Trámite Meta",
+   "bloqueo": "Correo (AUT-17) · Trámite Meta",
    "evidencia": [
     "admin/src/ApplicantDetail.jsx:19",
     "admin/src/ApplicantDetail.jsx:312-330",
@@ -853,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "desarrollo",
    "hecho": "Se puede reservar por teléfono en Viewings › New viewing (huecos reales por negociador, confirmada al momento), que puede abrirse con la casa ya elegida (?listing=), pero no desde la ficha del aplicante ni con sus datos puestos.",
    "falta": "Book viewing en la ficha con sus datos y la casa del match ya puestos, y Send shortlist para mandarle su lista por el portal del aplicante (F2) o por correo.",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "admin/src/ApplicantDetail.jsx:278-283",
     "admin/src/Viewings.jsx:132",
@@ -1061,10 +1061,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F2",
    "estado": "bloqueado",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "",
    "falta": "No existen la tabla outreach ni el envío. Al aprobar (Shortlist) casas de otra agencia debe salir una consulta por casa («we have N qualified applicants») con la disponibilidad, los requisitos Unknown convertidos en preguntas y los horarios de visita, según el acuerdo con esa agencia.",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "docs/roadmap/ESTADO.md:10",
     "server/routes/matches.js:45-93",
@@ -1095,10 +1095,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F2",
    "estado": "bloqueado",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "",
    "falta": "Falta enviar, a las 09:00 y a las 14:00, un correo por agencia con todas sus casas pendientes, desde el buzón real de Hampton y con [HE-OUT-…] en el asunto para enlazar la respuesta. Las horas fijas las dará el reloj (AUT-07), que ya existe.",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:291",
     "jobs/wrangler.toml:1-24"
@@ -1111,10 +1111,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F2",
    "estado": "bloqueado",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "",
    "falta": "Falta recibir las respuestas y que la IA devuelva un JSON fijo (disponible, desde cuándo, respuestas a los ❓, horarios, comisión, si necesita a una persona y su confianza). Con confianza alta, la casa pasa a Availability confirmed y sus matches a Waiting for applicant response; con confianza baja se crea una tarea ya rellenada, y antes de ir en automático debe acertar 27 de 30 respuestas reales. La lectura la hará Hermes (AUT-13). Los correos de agencias son C1, así que necesita un plan Business o Enterprise (pregunta 16).",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297-299",
     "migrations/0009_matches.sql:33"
@@ -1127,10 +1127,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F2",
    "estado": "bloqueado",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "",
    "falta": "Falta el recordatorio automático a los 2 días laborables sin respuesta, la tarea «Call agency» con su teléfono tras dos recordatorios y, en el panel, la tasa y el tiempo medio de respuesta de cada agencia.",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:295",
     "docs/roadmap/ESTADO.md:10"
@@ -1143,10 +1143,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F2",
    "estado": "bloqueado",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "",
    "falta": "Falta guardar con fecha cada consulta y cada respuesta («Hampton introduced N applicants for this property on date D») y la fecha de presentación en cada match (introduced_at), que sirven de base para reclamar la comisión en una disputa.",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:296",
     "migrations/0009_matches.sql:27-38"
@@ -1178,7 +1178,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "Luis",
    "hecho": "",
    "falta": "Cuando un match pasa a Waiting for applicant response, falta mandarle por WhatsApp (plantilla aprobada) o email «3 homes confirmed for you» con su enlace, recordárselo a las 24 y a las 72 h y preguntarle a los 7 días si sigue buscando. Hoy el equipo solo tiene los botones Call, WhatsApp y Email de la ficha.",
-   "bloqueo": "Servicio de correo · Trámite Meta",
+   "bloqueo": "Correo (AUT-17) · Trámite Meta",
    "evidencia": [
     "admin/src/ApplicantDetail.jsx:279-281",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:303-305"
@@ -1298,10 +1298,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "texto",
    "fase": "F3-A",
    "estado": "parcial",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "El equipo cierra la visita en Viewings con Mark completed y elige Proceed, Need more information o Not interested con motivo opcional; el resultado se ve en el detalle de la visita (pestaña Past) y en el Owner report.",
    "falta": "El formulario que recibe el aplicante una hora después de la visita para elegirlo él mismo (F3-B), que necesita enviarle un email. Sin dependencias: el Timeline del aplicante muestra la visita solo como Completed, sin el resultado.",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "admin/src/Viewings.jsx:249-270",
     "server/routes/inbox.js:83-91",
@@ -1381,10 +1381,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F3-A",
    "estado": "parcial",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "Viewings tiene las pestañas Requests, Upcoming, Needs outcome y Past, los botones Confirm, Reschedule, Mark completed, No-show y Cancel viewing, y New viewing para reservas por teléfono ya confirmadas. Las peticiones antiguas se migraron (new → Requested, contacted → Confirmed).",
    "falta": "Faltan los estados Reminded y Feedback received, que llegan con los recordatorios y el formulario al aplicante (F3-B).",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "migrations/0010_viewings.sql:40",
     "migrations/0010_viewings.sql:50-59",
@@ -1472,10 +1472,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F3-B",
    "estado": "bloqueado",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "",
    "falta": "No se envía nada al aplicante ni se avisa al negociador si a 2 h sigue sin confirmar. Falta el servicio de correo; el reloj que los lanzará a su hora ya existe (AUT-07).",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "jobs/wrangler.toml:1-24",
     "server/jobs.js:1-15",
@@ -1522,10 +1522,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F3-A",
    "estado": "parcial",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "Botón Owner report en cada ficha: página imprimible en A4 (7, 30 o 90 días) con aperturas en la web, visitas y su resultado, aplicantes que encajan y, en venta, ofertas numeradas y avance de la venta, sin datos de interesados.",
    "falta": "El envío automático semanal al propietario (necesita correo; el reloj ya existe, AUT-07), un resumen de los temas del feedback y guardar el contacto del propietario en la ficha, que hoy no existe. Mientras tanto el equipo lo guarda como PDF y lo manda a mano.",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "admin/src/ListingEditor.jsx:152-153",
     "server/routes/report.js:43-78",
@@ -1545,7 +1545,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "Luis",
    "hecho": "",
    "falta": "Solo hay visitas a fichas propias. Hacen falta las casas del mercado (F1-B) y el contacto con la agencia por correo (F2).",
-   "bloqueo": "Clave API Places.je · Servicio de correo",
+   "bloqueo": "Clave API Places.je · Correo (AUT-17)",
    "evidencia": [
     "server/routes/public.js:57-59",
     "server/routes/inbox.js:61-62",
@@ -1754,8 +1754,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "Hoy no sale ningún mensaje automático: el panel solo abre Call, WhatsApp y Email para que escriba una persona. Desde el 1-nov-2026 el botón general Pause all outbound está en la pantalla Automations (AUT-01) y lo puede pulsar cualquiera del equipo; Hermes también puede pausar (AUT-13), y reanudar solo se hace en el panel.",
-   "falta": "Clave de idempotencia por envío (plantilla + entidad + versión), topes diarios por canal y por agencia, horas de silencio sin WhatsApp ni SMS de 21:00 a 08:00 de Jersey, e interruptor por automatización. Se construyen con el primer envío automático, que además mira la pausa antes de salir. Con Hermes, la pausa también se podrá pedir por Telegram, solo Luis desde su chat privado (fase 1b, AUT-13); reanudar, solo en el panel. Mientras dure, la app no envía nada.",
-   "bloqueo": "Servicio de correo · Trámite Meta",
+   "falta": "Clave de idempotencia por envío (plantilla + entidad + versión), topes diarios por canal y por agencia, horas de silencio sin WhatsApp ni SMS de 21:00 a 08:00 de Jersey, e interruptor por automatización. Se construyen con el primer envío automático, que además mira la pausa antes de salir. Con Hermes, la pausa también se podrá pedir por Telegram, solo Luis desde su chat privado (fase 1b, AUT-13); reanudar, solo en el panel. Mientras dure, la app no envía nada. Se construyen dentro de AUT-17, con el primer envío real (el resumen de las 8:00 por email).",
+   "bloqueo": "Correo (AUT-17) · Trámite Meta",
    "evidencia": [
     "admin/src/ApplicantDetail.jsx:279-281",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:444",
@@ -1858,6 +1858,24 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
     "server/matching.js:118",
     "server/routes/hermes.js"
+   ]
+  },
+  {
+   "id": "AUT-17",
+   "seccion": "Automatizaciones e IA",
+   "titulo": "Correo saliente y entrante de la app con Cloudflare Email Service",
+   "origen": "plan",
+   "fase": "F2",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "Decisión de Luis del 6-nov-2026 (P-19): el correo que envía y recibe la app sale de Cloudflare Email Service, sin proveedor aparte. El dominio está en Cloudflare desde el 1-nov-2026; el envío va con un binding send_email desde Pages y desde el Worker hampton-jobs, y la recepción (respuestas de agencias y de aplicantes) entra por Email Routing a un Worker. Hampton sigue usando su buzón de siempre para el día a día. Coste: plan Workers Paid (5 USD al mes) con 3.000 correos al mes incluidos y 0,35 USD por cada 1.000 más; recibir es gratis. Cierra la pregunta 7 (PRE-23).",
+   "falta": "Luis: subir la cuenta de Cloudflare a Workers Paid, incorporar hamptonestatesjersey.com en Compute › Email Service › Email Sending (Cloudflare añade solo los registros SPF, DKIM y DMARC, en el subdominio cf-bounce y en _dmarc) y elegir la dirección remitente (por ejemplo hello@hamptonestatesjersey.com) y la de respuestas. App: binding send_email en wrangler.toml y en jobs/wrangler.toml; tabla outbound con plantilla, entidad y versión como clave de idempotencia, estado, intentos y messageId; antes de cada envío mira la pausa (AUT-11) y el tope diario; lista de bajas; plantilla base con el pie legal y el enlace al aviso de privacidad; tarjeta de Automations con los envíos del día y los fallos; Worker de entrada que guarda cada correo recibido en la app, enlazado por su [HE-OUT-…]. Primer uso, sin clientes: el resumen de las 8:00 de Jersey por email al equipo (NOT-10), desde el reloj (AUT-07). Desbloquea NOT-10, AGE-03, AGE-05, AGE-06, AGE-08, AGE-09, AGE-11, EST-13, VIS-13, ANA-06, ANA-08, OFE-06, ADM-09, ADM-19 y la parte de email de MSG-03. Modelo recomendado: claude-opus-5-5 · esfuerzo high.",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:827",
+    "server/jobs.js:1-15",
+    "jobs/wrangler.toml:1-24",
+    "https://developers.cloudflare.com/email-service/platform/pricing/"
    ]
   },
   {
@@ -2178,7 +2196,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "Luis",
    "hecho": "En cada ficha del catálogo, la sección Matched applicants lista los aplicantes que encajan, si buscan To Let o To Buy, su estado (Found, Shortlisted o Rejected) y su puntuación, con enlace a su pestaña Matches.",
    "falta": "Falta lo mismo para las casas del mercado de otras agencias (F1-B) y los pasos con su agencia: consulta, disponibilidad confirmada y comisión (AGE-03 a AGE-09).",
-   "bloqueo": "Clave API Places.je · Servicio de correo",
+   "bloqueo": "Clave API Places.je · Correo (AUT-17)",
    "evidencia": [
     "admin/src/ListingEditor.jsx:233-244",
     "admin/src/ListingEditor.jsx:270-285",
@@ -2403,7 +2421,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "desarrollo",
    "hecho": "La etiqueta Gone quiet sale en la columna Last contact y tiene su filtro: búsqueda activa (también Paused) sin contacto real en más de 14 días. El último contacto se guarda aparte (contacts.last_contact_at): alta, envío repetido, Log conversation, visitas y ofertas; las ediciones del equipo no cuentan.",
    "falta": "El mensaje automático «Are you still looking?», que necesita un canal de envío.",
-   "bloqueo": "Servicio de correo · Trámite Meta",
+   "bloqueo": "Correo (AUT-17) · Trámite Meta",
    "evidencia": [
     "server/routes/applicants.js",
     "server/retention.js",
@@ -2440,7 +2458,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "desarrollo",
    "hecho": "",
    "falta": "Faltan los dos estados (B6 los dejó para F2): esperar a la agencia, salvo en casas de Hampton, y pasar solo a Waiting for applicant response cuando confirma; el cambio automático por respuesta de agencia necesita el correo con agencias (servicio de correo).",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "migrations/0009_matches.sql:33",
     "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:36",
@@ -2816,10 +2834,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F0",
    "estado": "bloqueado",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "",
    "falta": "No existe. Falta que un visitante deje solo su email y sus criterios y reciba por correo las casas nuevas que encajen, con el mismo motor de matching.",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:242",
     "site/index.html:628-629"
@@ -2888,7 +2906,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "desarrollo",
    "hecho": "Solo hay avisos dentro del panel: el contador junto a Rentals (atrasos con paso pendiente, plazos vencidos o sin registrar, renovaciones, emergencias abiertas y pagos sin emparejar), que el sondeo del panel recalcula cada 30 s (caché de 10 min), y los avisos a 60, 30 y 7 días del bloque To do, que se calculan al abrir Rentals.",
    "falta": "Se puede hacer ya: llevarlos al Inbox (hoy solo cuenta new_applicant, viewing y matched) y calcularlos en el reloj (AUT-07, ya en producción), para que salten aunque nadie abra el panel. Espera al correo y a Meta: enviar avisos por email o WhatsApp al equipo, al inquilino y al propietario (F5-B).",
-   "bloqueo": "Servicio de correo · Trámite Meta",
+   "bloqueo": "Correo (AUT-17) · Trámite Meta",
    "evidencia": [
     "admin/src/App.jsx:132-133",
     "admin/src/App.jsx:76-77",
@@ -3018,7 +3036,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "desarrollo",
    "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia.",
    "falta": "Se puede hacer ya: dar una deuda por perdida (Written off, §4.6; Correct no admite 0) y hacer configurable la secuencia, hoy fija en ARREARS_STEPS. Esperan al correo y a un abogado: enviar los recordatorios y el aviso al propietario, y la carta formal con plantilla validada; hoy se hacen fuera y se marcan a mano.",
-   "bloqueo": "Servicio de correo · JFSC/abogado",
+   "bloqueo": "Correo (AUT-17) · JFSC/abogado",
    "evidencia": [
     "admin/src/Rentals.jsx:86-95",
     "admin/src/Rentals.jsx:171-197",
@@ -3039,7 +3057,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "Luis",
    "hecho": "Statements (#/rentals/statements) da por propietario con gestión completa y mes las rentas cobradas, los honorarios, el GST si se configura, las reparaciones cargadas y el neto, y se imprime desde el navegador con Print.",
    "falta": "No sale sola al cerrar el mes como PDF por email (F5-B), y el GST sigue en 0 hasta confirmar si Hampton está registrado.",
-   "bloqueo": "Servicio de correo · Dato de Hampton",
+   "bloqueo": "Correo (AUT-17) · Dato de Hampton",
    "evidencia": [
     "admin/src/Statement.jsx:15-71",
     "admin/src/Statement.jsx:73-98",
@@ -3080,7 +3098,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "desarrollo",
    "hecho": "New repair y Update en la vivienda: urgencia (Emergency, Urgent, Routine), proveedor, presupuesto, estados hasta Done, aprobación obligatoria por encima del límite del propietario y coste a su liquidación; las emergencias abiertas encabezan Repairs en To do y suman en el contador.",
    "falta": "El inquilino no puede avisar desde un portal ni por WhatsApp con fotos, no hay IA que clasifique urgencia y tipo, ni aviso inmediato al equipo, ni directorio de proveedores (es texto libre); la aprobación del propietario la marca el equipo a mano.",
-   "bloqueo": "Servicio de correo · Trámite Meta",
+   "bloqueo": "Correo (AUT-17) · Trámite Meta",
    "evidencia": [
     "admin/src/RentalDialogs.jsx:299-334",
     "server/routes/rentals.js:270-336",
@@ -3116,7 +3134,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "desarrollo",
    "hecho": "Desde 90 días antes del fin de un plazo fijo el contrato sale en Renewals («Renewal due» o «Fixed term ended») y en su tarjeta; Renew lo prorroga o lo pasa a periódico con la misma referencia, renta nueva opcional y ley 2025.",
    "falta": "No se pregunta al propietario ni al inquilino con botones (necesita correo o portal), y si el inquilino se va no se crea el borrador de ficha copiando la anterior, porque viviendas y listings no están enlazados.",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "server/routes/rent.js:86-89",
     "admin/src/Rentals.jsx:105-111",
@@ -3206,7 +3224,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "Luis",
    "hecho": "",
    "falta": "No existen: pedir referencias por email con un enlace necesita el servicio de correo, y el contrato de plantilla con firma electrónica necesita una plantilla revisada por un abogado de Jersey y un proveedor de firma.",
-   "bloqueo": "Servicio de correo · JFSC/abogado",
+   "bloqueo": "Correo (AUT-17) · JFSC/abogado",
    "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26",
     "migrations/0013_rentals.sql:30-63"
@@ -3294,7 +3312,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "Luis",
    "hecho": "",
    "falta": "No existe la pantalla Messages ni conversaciones unidas a un contacto; Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas.",
-   "bloqueo": "Servicio de correo · Trámite Meta",
+   "bloqueo": "Correo (AUT-17) · Trámite Meta",
    "evidencia": [
     "admin/src/App.jsx:122-136",
     "admin/src/ApplicantDetail.jsx:279-281",
@@ -4044,10 +4062,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F7-A",
    "estado": "parcial",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "Team response times en Insights (medianas): aplicante nuevo de la web → primera atención, petición de visita → primera respuesta y aplicante → primera revisión de sus coincidencias.",
    "falta": "El tiempo de respuesta de las agencias y el de la primera lista enviada al aplicante, que llegan con los correos a agencias y el portal (F2).",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "server/routes/insights.js:34-48",
     "server/routes/insights.js:78-85",
@@ -4079,10 +4097,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F7-B",
    "estado": "bloqueado",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "",
    "falta": "No se envía. Necesita el servicio de correo; el reloj que lo enviará cada semana ya existe (AUT-07).",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f7a-design.md:15",
     "docs/roadmap/ESTADO.md:15",
@@ -4148,10 +4166,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F3-B",
    "estado": "bloqueado",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "",
    "falta": "El vendedor no recibe nada desde la app: el equipo le traslada la oferta y anota su respuesta en Sales. Falta enviársela desde Sales y guardar su contacto en la ficha (hoy solo se apunta en el expediente, al aceptar); la oferta hecha por el aplicante desde su portal llega con F2.",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
     "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:19",
@@ -4224,10 +4242,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F3-B",
    "estado": "bloqueado",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "",
    "falta": "No se envía nada: el equipo persigue a los abogados a mano con los hitos de Sales. Necesita correo; el reloj (AUT-07) ya existe.",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
     "docs/roadmap/ESTADO.md:11",
@@ -4424,7 +4442,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "desarrollo",
    "hecho": "Register your search y New applicant piden el marketing en una casilla aparte y opcional, el aviso explica el derecho a oponerse y un registro repetido sin la casilla retira el consentimiento al momento.",
    "falta": "La ficha del aplicante no tiene botón para anotar una oposición recibida por teléfono o email (la API acepta marketing: false, pero el panel solo envía true). Faltan el aviso en el primer WhatsApp o email y en el pie de los correos a agencias, que llegan con los envíos, y que un abogado confirme las reglas de email, SMS y WhatsApp.",
-   "bloqueo": "Servicio de correo · Trámite Meta · JFSC/abogado",
+   "bloqueo": "Correo (AUT-17) · Trámite Meta · JFSC/abogado",
    "evidencia": [
     "site/apply.js:154",
     "admin/src/NewApplicant.jsx:68",
@@ -4465,7 +4483,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "responsable": "desarrollo",
    "hecho": "G2 en producción (991b6c6): una pasada diaria borra contactos con 12 meses sin actividad y visitas de hace más de 12 meses, salvo ventas (5 años) y ofertas abiertas; Applicants tiene la lista Expiring desde el mes 11, Kept until y el botón Log conversation, y el aviso lo explica. Desde el 29-oct la pasada la hace el reloj a las 00:00 de Jersey (AUT-07); si el reloj no la hizo, la hace el panel al abrirse.",
    "falta": "No hay aviso previo por email al aplicante (G2 lo preveía a los 11 meses) ni descarga o borrado desde el portal, que no existe. Antes de 2031 hay que borrar las ventas a los 5 años. Falta también fijar cuánto se guardan un alquiler o una venta después de terminar (contabilidad, depósitos, reclamaciones): la limpieza de 12 meses no toca alquileres, contratos ni pagos, y las ventas se guardan 5 años. El plazo lo propone el abogado de Hampton (PRE-33) y después la app lo aplica sola.",
-   "bloqueo": "Servicio de correo",
+   "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "server/retention.js:51-92",
     "server/retention.js:95-104",
@@ -4668,11 +4686,11 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Respuesta a la pregunta 7: servicio de correo de Hampton y dominio en Cloudflare",
    "origen": "plan",
    "fase": "—",
-   "estado": "bloqueado",
-   "responsable": "Hampton",
-   "hecho": "El dominio pasa a esta app (A3) y está en Cloudflare desde el 1-nov-2026, lo que permite las reglas WAF; hoy el contacto de privacidad es una cuenta de Gmail.",
-   "falta": "Qué correo usa Hampton (Google Workspace, Microsoft 365 u otro): decide cómo se envían y se leen los correos con agencias y desbloquea F2, F3-B y F7-B. Plan del 2-nov-2026: el correo de Hampton entrará en la app (al Inbox) y la app enviará cuando una persona lo apruebe en el panel; Hermes no tendrá buzón propio, porque contestaría solo y cualquiera podría darle órdenes por correo.",
-   "bloqueo": "Dato de Hampton",
+   "estado": "hecho",
+   "responsable": "Luis",
+   "hecho": "Respondida el 6-nov-2026 (decisión de Luis, P-19): la app envía y recibe con Cloudflare Email Service (AUT-17); Hampton conserva su buzón de siempre (hoy una cuenta de Gmail) para el día a día y como contacto de privacidad. Sigue el plan del 2-nov-2026: lo que la app envía lo aprueba una persona en el panel y Hermes no tiene buzón propio. El dominio pasa a esta app (A3) y está en Cloudflare desde el 1-nov-2026, lo que permite las reglas WAF; hoy el contacto de privacidad es una cuenta de Gmail.",
+   "falta": "",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:826",
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:29",
