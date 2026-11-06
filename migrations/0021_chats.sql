@@ -2,7 +2,9 @@
 -- key, which only the visitor's browser holds (C5). waiting: the visitor wrote last; answered: the team did; handled:
 -- someone marked it done (C7). Deleted 30 days after its last message (C11), its messages with it.
 CREATE TABLE chats (
-  id INTEGER PRIMARY KEY,
+  -- AUTOINCREMENT: a deleted chat's id is never given to a new one, so a panel still showing the old chat cannot reply
+  -- into another visitor's conversation (plain rowids reuse the last deleted id).
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
   key_hash TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting','answered','handled')),
   listing_id TEXT REFERENCES listings(id) ON DELETE SET NULL,

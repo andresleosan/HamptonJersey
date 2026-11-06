@@ -126,3 +126,14 @@ test("mark handled waits when the visitor wrote after what the panel shows (C7)"
   assert.equal((await admin(env, "POST", `/admin/chats/${id}/handled`, { last: seen + 1 })).status, 200);
   assert.equal((await admin(env, "POST", `/admin/chats/${id}/handled`, { last: "x" })).status, 400);
 });
+
+test("a deleted chat's id is never given to a new one: a reply to the old id never reaches another visitor", async () => {
+  const env = world();
+  const old = chat(env, { name: "First Visitor" });
+  run(env, "DELETE FROM chats WHERE id = ?", old);
+  const fresh = chat(env, { name: "Second Visitor" });
+  assert.notEqual(fresh, old, "AUTOINCREMENT: SQLite would otherwise reuse the last deleted rowid");
+  const r = await admin(env, "POST", `/admin/chats/${old}/reply`, { text: "Your private answer" });
+  assert.equal(r.status, 404);
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM chat_messages WHERE role = 'team'").n, 0);
+});

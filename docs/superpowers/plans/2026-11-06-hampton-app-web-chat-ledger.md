@@ -48,3 +48,27 @@ Ejecución del [plan](2026-11-06-hampton-app-web-chat.md) el 6-nov-2026, en esta
   - fuera `headRef`, el envoltorio de `messageText` y el `export` de `STORE`;
   - texto C14 como en la spec («Visitor on the website now»).
   - La casilla dice «I have read the privacy notice», como la de Register your search, en vez de «I've read» (decisión del constructor).
+
+## Revisión de Codex sobre `0639e4e` (6-nov-2026)
+
+Dos importantes, arreglados con su prueba:
+- **a. Una respuesta podía llegar a otro visitante.** Sin `AUTOINCREMENT`, SQLite reutiliza el id del último chat borrado. Un panel que aún mostraba el chat viejo contestaba dentro del nuevo.
+  - Arreglo: `chats.id INTEGER PRIMARY KEY AUTOINCREMENT` en la propia 0021, que no estaba aplicada en remoto.
+  - Prueba: `a deleted chat's id is never given to a new one…` en `tests/server/chats-admin.test.mjs`.
+  - Los ids de `chat_messages` siempre se leen dentro de su chat, así que no lo necesitan.
+- **b. Reabrir un chat viejo no volvía a sondear.** Si el último mensaje tenía más de 2 h, abrir el chat leía una vez y ya no programaba más lecturas.
+  - Arreglo: `nextPoll(now, lastAt, openedAt)`. El periodo de sondeo cuenta desde lo más reciente entre el último mensaje y la última vez que el visitante abrió el chat en esa página.
+  - También deja de pararse en `handled`: una respuesta a un chat cerrado también llega, siempre dentro de las 2 h.
+  - Pruebas del planificador entero, con `init()`, un navegador falso y temporizadores simulados, en `tests/chat.test.js`. Comprobado también en Chromium con `/home/taller/encargos/capturas/web-chat/reopen/run.cjs`.
+
+Cuatro menores, comprobados en el código y **aplazados** (Luis pidió solo anotarlos):
+- **c. Otra pestaña puede deshacer «End chat».** `load() ?? store` (en `toggle`) recupera la llave que esta pestaña tiene en memoria y `remember()` la vuelve a guardar después de que otra pestaña la borrara. Contradice «la olvida en ese aparato».
+  - Arreglo propuesto: distinguir «almacenamiento inaccesible» de «llave borrada» y escuchar el evento `storage` para sincronizar las pestañas.
+- **d. Una ruta codificada pierde `no-store`.** `/api/%63hat` llega a las rutas del chat, porque el router decodifica los segmentos. La política de caché de `server/api.js` mira el segmento sin decodificar.
+  - Arreglo propuesto: decidir las dos cosas sobre la misma ruta decodificada.
+  - Codex no demostró una filtración por una caché compartida.
+- **e. El borrado tiene tope diario.** La pasada diaria borra como mucho 500 chats (`RETENTION_CAP`), igual que con contactos y visitas. Con más de 500 vencidos, alguno pasa de los 30 días que prometen el aviso, ESTADO y el checklist.
+  - Arreglo propuesto: seguir en lotes hasta agotarlos, o decir el margen real en el aviso.
+  - Con el tráfico previsto (unos 150 chats al mes) no se llega.
+- **f. El e2e no prueba el sondeo del contador.** `webChat` navega a Messages después de crear el chat, así que la primera lectura ya cumple la aserción de «Messages 1».
+  - Arreglo propuesto: dejar el panel abierto antes de crear el chat y esperar el cambio sin navegar, dentro de los 30 s.

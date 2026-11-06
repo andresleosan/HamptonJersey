@@ -12,6 +12,10 @@ export function pollDelay(ms) {
   return ms < 60e3 ? 5000 : ms < 5 * 60e3 ? 15000 : ms < 2 * 3600e3 ? 30000 : null;
 }
 
+// The polling period runs from the later of the chat's last message and the moment the visitor last opened it here: a
+// visitor who opens an old chat to wait for an answer is polled again (0 = not opened on this page).
+export const nextPoll = (nowMs, lastAt, openedAt) => pollDelay(nowMs - Math.max(lastAt, openedAt));
+
 // C5: this browser keeps the key, the time of the chat's last message and the last message seen: nothing personal. The
 // server says when the key has ended (7 days after the chat's last message, which a reply also moves); the browser only
 // drops a key older than the chat itself can be (30 days).
@@ -33,7 +37,7 @@ const when = iso => {
 };
 
 let o = null; // init's options: {btn, chatOn, tsKey, tsReady, listing}
-let dlg, body, store = null, chat = null, shown = new Set(), timer = null, widget = null;
+let dlg, body, store = null, chat = null, shown = new Set(), timer = null, widget = null, openedAt = 0;
 
 // A response for a chat this page has since ended or replaced is dropped (status -1): it must not bring it back.
 async function call(method, path, payload) {
@@ -74,8 +78,8 @@ function ended(message) {
 
 function schedule() {
   clearTimeout(timer);
-  if (!store || !chat || chat.status === "handled") return;
-  const wait = pollDelay(Date.now() - store.at);
+  if (!store || !chat) return;
+  const wait = nextPoll(Date.now(), store.at, openedAt);
   if (wait == null) return;
   timer = setTimeout(async () => {
     if (document.hidden) return; // visibilitychange (set in init) starts it again
@@ -227,6 +231,7 @@ export async function toggle() {
   if (!dlg) shell();
   dlg.showModal();
   o.btn.setAttribute("aria-expanded", "true");
+  openedAt = Date.now();
   store = load() ?? store; // storage off: the chat this page started
   if (!store) return startForm();
   if (!body.querySelector(".chat-log")) conversation();
