@@ -113,6 +113,14 @@ Si el reloj o Hermes se paran, el botón Settings de la barra lleva un número e
 - **Web:** el menú Properties abre `/properties`, solo con propiedades: tres botones grandes con foto (Rent, Buy, Businesses; diseño A elegido por Luis) y el catálogo mezclado debajo, que los botones filtran; el enlace guarda la elección. La portada enseña en **Properties** las 5 publicadas más recientemente que siguen en el mercado, con **View all properties**. Las direcciones antiguas de Wix del catálogo llevan a `/properties`.
 - **Falta (SPR-07):** la fuente (Hampton o agencia), que llega con la búsqueda del mercado. Luis decidió el 6-nov que esa búsqueda la hará **Hermes, un agente, sin atarse a ninguna página**; queda por diseñar (cambia BUS-06, BUS-08, BUS-10, EST-16 y las demás tareas con el bloqueo «Clave API Places.je»).
 
+## Design pass de web y panel (6-nov-2026)
+
+**Implementado en la rama local `codex/hampton-design-pass`, pendiente de publicar** ([plan](../superpowers/plans/2026-11-06-hampton-app-design-pass.md), [registro](../superpowers/plans/2026-11-06-hampton-app-design-pass-ledger.md)). Sin migraciones ni dependencias nuevas.
+- Portada y fotos de ficha con scroll-snap nativo: gesto táctil/trackpad, flechas y teclado, contador y sin autoplay. Una propiedad no muestra controles; una foto rota conserva el espacio y la reserva.
+- Títulos en sentence case, hechos separados, menos eyebrows, sin flechas decorativas ni tira de estadísticas. Featured solo con seis propiedades o más, máximo dos. Catálogo con zoom de imagen sin ensanchar los botones.
+- Panel con metadatos en spans, etiquetas legibles, rangos con guion corto, demanda de Insights en tabla accesible e informes impresos con cabecera sencilla.
+- La comprobación física en Safari/MacBook y la copia privada del checklist quedan pendientes; el entorno no dispone de las bibliotecas de WebKit ni de integración con claude.ai. Las comprobaciones automatizadas y sus resultados quedan en el registro.
+
 ## Siguiente tarea
 
 **Correo saliente y entrante con Cloudflare Email Service (AUT-17).** Decisión de Luis del 6-nov-2026 (arquitectura P-19, cierra la pregunta 7): el dominio ya está en Cloudflare, el envío sale de la app con un binding y la recepción entra por Email Routing; sin proveedor aparte (Workers Paid, 5 USD al mes con 3.000 correos incluidos). Es la pieza que desbloquea el bucle del aplicante de abajo y 14 puntos más del checklist. Antes de construir, Luis: subir la cuenta a Workers Paid, incorporar el dominio en Email Service y elegir el remitente. Modelo recomendado: claude-opus-5-5 · high.

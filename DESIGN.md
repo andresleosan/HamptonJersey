@@ -25,15 +25,15 @@ colors:
 typography:
   display:
     fontFamily: "Tenor Sans, Gill Sans, Optima, sans-serif"
-    fontSize: "clamp(34px, 6vw, 72px)"
+    fontSize: "clamp(28px, 4vw, 52px)"
     fontWeight: 400
-    lineHeight: 1.05
-    letterSpacing: "0.06em"
+    lineHeight: 1.12
+    letterSpacing: "0.01em"
   headline:
     fontFamily: "Tenor Sans, Gill Sans, Optima, sans-serif"
     fontSize: "clamp(24px, 3vw, 34px)"
     fontWeight: 400
-    letterSpacing: "0.06em"
+    letterSpacing: "0.01em"
   title:
     fontFamily: "Tenor Sans, Gill Sans, Optima, sans-serif"
     fontSize: "17px"
@@ -106,7 +106,7 @@ Regla D19: todo texto visible (web, panel, mensajes de la API) va en inglés. Es
 
 **Creative North Star: "The Bath Street Gallery"**
 
-El comentario de cabecera del CSS lo dice (`site/index.html:13`): galería monocroma estilo Heider, imagen a sangre, titulares en mayúsculas con Tenor Sans y el bronce reservado para la acción y el precio. Es una agencia familiar desde 1982: la sensación es discreta, cálida y de oficio, no de portal inmobiliario. La foto de la casa es la protagonista; la interfaz se aparta.
+El comentario de cabecera del CSS lo dice (`site/index.html:13`): galería monocroma estilo Heider, imagen a sangre, titulares en sentence case con Tenor Sans y el bronce reservado para la acción y el precio. Es una agencia familiar desde 1982: la sensación es discreta, cálida y de oficio, no de portal inmobiliario. La foto de la casa es la protagonista; la interfaz se aparta.
 
 Dos superficies, un mismo mundo:
 
@@ -174,18 +174,18 @@ Al tocar una pantalla, migra sus colores a este set (y nada nuevo fuera de él):
 **Display Font:** Tenor Sans (fallback web: Gill Sans, Optima, sans-serif; panel: Georgia, serif)
 **Body Font:** Montserrat (fallback web: Helvetica Neue, Arial; panel: system-ui)
 
-**Character:** Tenor Sans en mayúsculas espaciadas da el tono de agencia clásica; Montserrat a 15px con interlineado amplio la legibilidad. Carga: Google Fonts con `display=swap` (`site/index.html:11`, `admin/index.html`).
+**Character:** Tenor Sans en sentence case y con tracking `.01em` da el tono discreto de agencia; Montserrat a 15px con interlineado amplio la legibilidad. Carga: Google Fonts con `display=swap` (`site/index.html:11`, `admin/index.html`).
 
 ### Hierarchy (web)
-- **Display** (400, `clamp(34px,6vw,72px)`, lh 1.05, máx. 14ch): solo el H1 del hero (`site/index.html:87`).
-- **Headline** (400, `clamp(24px,3vw,34px)`, mayúsculas, `.06em`): H2 de sección (`:27-28`). H1 de ficha `clamp(24px,2.6vw,32px)` (`:249`).
+- **Display** (400, `clamp(28px,4vw,52px)`, lh 1.12, máx. 28ch): títulos del hero, con un máximo de dos líneas a 1280px para el título actual más largo. El H1 del carrusel es el título accesible de la galería; cada propiedad lleva H2.
+- **Headline** (400, `clamp(24px,3vw,34px)`, sentence case, `.01em`): H2 de sección (`:27-28`). H1 de ficha `clamp(24px,2.6vw,32px)` (`:249`).
 - **Title** (400, 17px, lh 1.3): título de tarjeta (`:133`); agente 22px (`:155`).
 - **Body** (400, 15px, lh 1.65): todo el texto (`:21`); prosa a 68ch máx. (`:265`).
 - **Label** (600, 11px, `.22em`, mayúsculas, stone): `.eyebrow` (`:29`). Etiquetas de campo 10px `.18em` (`:192`). Botón 12px `.16em` (`:30`).
 - **Numérico:** precio en Tenor 20px bronce (`:135`), 30px en ficha (`:250`); cifras con `.num` (tabular-nums, `:36`).
 
 ### Hierarchy (panel)
-- H1 26px, H2 19px, Tenor sin mayúsculas (`admin/src/styles.css:6-7`); cuerpo 14px/1.5 (`:5`); `.muted` y `label` 12px stone (`:29`, `:36`); cabecera de tabla 11px `.08em` mayúsculas (`:45`); botón 12px `.08em` (`:22`).
+- H1 26px, H2 19px, Tenor sin mayúsculas (`admin/src/styles.css:6-7`); cuerpo 14px/1.5 (`:5`); `.muted` y `label` 12px stone (`:29`, `:36`); cabeceras de tabla, `dt` y días en sentence case, 12px/600 stone, sin tracking; botón 12px `.08em` (`:22`).
 
 **The Two Fonts Rule.** No se añade ninguna familia nueva. Pesos permitidos: 400, 500, 600.
 
@@ -257,7 +257,7 @@ Casi plano. La profundidad la dan las bandas `mist` y la foto; la sombra solo ma
 - **Filtros del panel `.filters`** (`styles.css:35`): fila flex de `label > select/input`, con recuento vivo `aria-live` (`Listings.jsx:71`).
 
 ### Tables y listas
-- `table.list` (`styles.css:42-47`): cabecera 11px mayúsculas, celdas 10px 12px, hover #faf8f4; bajo 760px cada fila pasa a tarjeta en grid (`:53`).
+- `table.list` (`styles.css:42-47`): cabecera 12px/600 en sentence case, celdas 10px 12px, hover #faf8f4; bajo 760px cada fila pasa a tarjeta en grid (`:53`).
 - Acciones de fila en `<details class="row-menu">` (`:106-112`, `Listings.jsx:101-106`).
 - Reordenar: arrastre más botones ↑ ↓ `.nudge` como alternativa sin arrastre (`styles.css:133-136`).
 - Bandeja `.inbox-list` (`:88-99`): botones con `aria-current`, borde izquierdo bronce en el activo, nombre en negrita si es nuevo.
@@ -281,6 +281,10 @@ Casi plano. La profundidad la dan las bandas `mist` y la foto; la sombra solo ma
 ## Do's and Don'ts
 
 ### Do:
+- **Do** mantener títulos y direcciones en sentence case; reservar la voz en mayúsculas para logo, navegación y botones de la web, y botones del panel.
+- **Do** separar los metadatos en elementos `.meta > span` cuando hay tres o más hechos (R1); como máximo un «·» en una línea. En un `<option>` nativo, usar comas.
+- **Do** usar cabeceras de tabla, `dt` y días de panel en sentence case, 12px/600 stone y sin tracking (R2). Rangos con guion corto; «—» solo como valor vacío.
+- **Do** usar scroll-snap nativo para las galerías, sin autoplay; flechas, contador y teclado acompañan al gesto. Con hasta cinco propiedades no se repiten bloques Featured; con seis o más, máximo dos.
 - **Do** usar las clases existentes antes de crear otras: `.btn`, `.opts`, `.field`, `.card`, `.seg`, `table.list`, `.badge`, `.empty`, `.actionbar`.
 - **Do** construir cada pantalla del panel alrededor de la decisión que se toma en ella (qué revisar, a quién llamar), no del esquema "stats + gráfico + tabla".
 - **Do** usar fotos reales de la propiedad con `object-fit:cover` dentro de un contenedor con `aspect-ratio`.
@@ -291,7 +295,7 @@ Casi plano. La profundidad la dan las bandas `mist` y la foto; la sombra solo ma
 ### Don't:
 - **Don't** añadir un segundo acento (azul, morado, verde decorativo) ni degradados; el verde y el rojo son solo estado.
 - **Don't** usar emoji en la interfaz, tampoco para ✅ ❌ ❓ de requisitos: usa texto ("Meets", "Fails", "Unknown") con un glifo simple.
-- **Don't** poner eyebrow encima de cada titular nuevo: la web ya tiene uno por sección; no se suman más por defecto.
+- **Don't** poner un eyebrow encima de cada titular. La portada tiene como máximo dos; los títulos de sección y de ficha se sostienen solos.
 - **Don't** añadir animaciones en bucle; el único bucle existente (anillo del tour 3D, `site:177`) no es un patrón a copiar.
 - **Don't** inventar datos de relleno ("John Doe", cifras con deltas): campos vacíos o placeholders honestos ("Your name", "name@example.com").
 - **Don't** usar "—" como separador en frases nuevas; sí se mantiene como celda vacía en el panel (`format.js` `priceText`, `fmtDate`).
@@ -307,7 +311,7 @@ Todo este apartado es propuesta construida con piezas que existen; donde hace fa
 | Cuerpo | 15px/1.65 (16px en inputs del asistente) | 14px/1.5 |
 | Objetivo táctil | 44px mínimo | 32px mínimo (24px absoluto, WCAG 2.5.8) |
 | Separación de bloques | 24-48px | 12-16px |
-| Titulares | Tenor mayúsculas | Tenor sin mayúsculas |
+| Titulares | Tenor en sentence case, `.01em` | Tenor en sentence case |
 
 ### Lista + detalle (Applicants, Properties, Action inbox)
 - Cabecera: `.head` con H1 y una acción primaria a la derecha (`New applicant`). Debajo `.seg` para la dimensión principal con contadores (Applicants: `To Let` / `To Buy` / `All`; Inbox: `Needs action` / `For info`), luego `.filters` y el recuento `aria-live`.

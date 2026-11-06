@@ -739,7 +739,7 @@ async function admin(browser) {
   await page.waitForSelector("#t-sale");
   const saleUrl = page.url();
   assert.equal(await page.inputValue("#s-price"), "835,000", "the price is the seller's counter");
-  assert.match(await publicStatus(), /Under Offer/);
+  assert.match(await publicStatus(), /^Under offer in /);
   // The listing's editor shows the sale in progress, linked to its file.
   await phone.goto(BASE + "admin/#/p/HE-R050");
   const inProgress = phone.getByRole("link", {name: "Sale in progress"});
@@ -854,9 +854,10 @@ async function admin(browser) {
   await jersey(browser, page);
   await automations(page, phone, noSideScroll);
   await hermesDrafters(page);
+  // Check the controlled search before photo-only import creates a draft with unknown bedrooms/price.
+  await widenCriteria(page, phone, noSideScroll);
   await folderImport(page, phone);
   await driveQueue(page, phone, noSideScroll);
-  await widenCriteria(page, phone, noSideScroll);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
