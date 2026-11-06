@@ -1,0 +1,13 @@
+# /avanzar de Codex desde la VPS y Hermes
+
+Decisiones de Luis, 6-nov-2026: adaptar el flujo existente de Claude a Codex; trabajar por Telegram sin entrar a la VPS; cerrar con pruebas, commit y push; analizar la tarea siguiente para recomendar modelo y esfuerzo al final. Hermes conserva su autenticación y publica tras el sí de Luis por Telegram. La configuración local de credenciales solicitada para esta sesión no se traslada al taller.
+
+La solución integra una skill versionada en `.agents/skills/avanzar`, disponible directamente como `$avanzar` en Codex y como `/avanzar` a través de Hermes. Hermes usa Codex por defecto para este flujo y conserva Claude cuando Luis lo pida. Se reutilizan checklist, ESTADO y relevo privado compartido. Mantener únicamente el comando de Claude impediría la invocación nativa; crear otro orquestador duplicaría los controles existentes.
+
+Cada tarea sigue brainstorming, grill-me para decisiones abiertas, writing-plans, construcción con Superpowers, validación final, revisión y publicación. El plan extrae los valores y requisitos aplicables de DESIGN.md y asigna las skills pedidas: impeccable, taste-skill, redesign-skill, security-best-practices, frontend-security-coder, antislop durante el trabajo, web-performance-optimization y ponytail. Las pantallas se comprueban con Playwright MCP local en 1280 y 390; un cambio sin interfaz indica que no aplica. No se transforma una comprobación bloqueada en un resultado aprobado.
+
+La recomendación de Codex se calcula con el alcance real de la siguiente tarea y el catálogo disponible, separando capacidad del modelo y profundidad de esfuerzo. Se guarda como `Siguiente recomendado Codex:` sin confundirla con modelos de Claude. Se prepara después de pruebas y revisión para incluirla en el commit y se presenta al usuario al final, con el resultado real de publicación.
+
+La confirmación presencial de Hampton se sustituye por aprobación de Telegram vinculada al SHA completo. Permanecen el candado entre Hermes, solo main, prohibición de force-push y borrado de ramas, las comprobaciones de historia y remoto y la extracción de migraciones desde los blobs del commit aprobado. Una consulta dry-run nunca puede publicar. No se cambian red, puertos, usuarios admitidos, secretos ni autenticación.
+
+La validación de esta configuración usa repositorios temporales sin red para probar rechazo de subidas sin sí, SHA incorrecto, cambios tras aprobar, otras ramas y force-push, consulta sin publicación y migraciones desde el commit. La instalación actualiza las fuentes de la imagen y los archivos del contenedor en marcha sin recrearlo. No publica código de la aplicación ni aplica migraciones de producción.
