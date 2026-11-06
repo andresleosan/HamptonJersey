@@ -405,6 +405,8 @@ fieldset.step{border:0;margin:0;padding:0;min-width:0;display:grid;gap:24px}
 /* The line sits on the legend itself: a fieldset's own top border would run through its legend. */
 fieldset.step>fieldset.field+fieldset.field>legend{width:100%;border-top:1px solid var(--line);padding-top:24px}
 .apply .opts label:active span{transform:none}
+/* Examples inside the boxes: grey, but 5.5:1 on the field so they stay readable (browsers default lighter). */
+.apply .field :is(input,textarea)::placeholder{color:var(--stone);opacity:1}
 .apply details.more{border-top:1px solid var(--line);padding-top:8px}
 .apply details.more summary{display:flex;align-items:center;gap:8px;min-height:44px;width:max-content;cursor:pointer;font-size:15px;font-weight:600;text-decoration:underline;text-underline-offset:3px;list-style:none}
 .apply details.more summary::-webkit-details-marker{display:none}

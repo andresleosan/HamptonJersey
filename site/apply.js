@@ -117,6 +117,8 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   const count = `inputmode="numeric" autocomplete="off"`;
   const pets = list("pet_kinds").filter(([v]) => v !== "none");
   const money = (rent, buy, optional = "") => ({ rent: `${rent}, £ per month${optional}`, buy: `${buy}, £${optional}` });
+  // A grey example of the expected format inside the box; amounts follow To Let or To Buy (sync).
+  const eg = (rent, buy) => `placeholder="${rent}" data-ph-rent="${rent}" data-ph-buy="${buy}"`;
 
   const steps = [
     `<div class="opts cards">${list("operation").map(([v, l]) => `<label><input type="radio" name="operation" value="${esc(v)}" required>
@@ -138,23 +140,23 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       + group("pets", "Pets (optional)", pills("pets", list("pet_kinds"), "checkbox") + `<div class="row">${pets.map(([v, l]) =>
         `<div class="field" data-pet="${esc(v)}" hidden><label for="f-pets_${esc(v)}">How many: ${esc(l)}</label>
           <input id="f-pets_${esc(v)}" name="pets_${esc(v)}" value="1" ${count}>${err(`pets_${esc(v)}`)}</div>`).join("")}</div>`),
-    input("budget_max", money("Maximum rent", "Maximum price"), `${count} required`)
-      + `<div class="row">${input("budget_min", money("Minimum rent", "Minimum price", " (optional)"), count)}
-        ${input("budget_stretch", money("I can stretch to", "I can stretch to", " (optional)"), count)}</div>`
+    input("budget_max", money("Maximum rent", "Maximum price"), `${count} required ${eg("£1,300", "£550,000")}`)
+      + `<div class="row">${input("budget_min", money("Minimum rent", "Minimum price", " (optional)"), `${count} ${eg("£1,000", "£400,000")}`)}
+        ${input("budget_stretch", money("I can stretch to", "I can stretch to", " (optional)"), `${count} ${eg("£1,500", "£600,000")}`)}</div>`
       + input("move_in_date", "When would you like to move? (optional)", `type="date" min="${today}" max="${inTwoYears}"`)
-      + input("lease_term_months", "Lease length in months (optional)", count, "rent")
+      + input("lease_term_months", "Lease length in months (optional)", `${count} placeholder="12"`, "rent")
       + group("buyer_position", "Your position (optional)", pills("buyer_position", list("buyer_position"), "radio", false, " tiles"), "buy")
       + group("mortgage_aip", "Mortgage agreement in principle (optional)", pills("mortgage_aip", list("mortgage_aip")), "buy"),
     `<p class="hint">It decides which homes you can rent or buy in Jersey.</p>`
       + group("housing_status", "Housing status (optional)", pills("housing_status", list("housing_status"), "radio", false, " tiles"))
-      + `<div class="row">${input("household_adults", "Adults (optional)", count)}${input("household_children", "Children (optional)", count)}</div>`,
+      + `<div class="row">${input("household_adults", "Adults (optional)", `${count} placeholder="2"`)}${input("household_children", "Children (optional)", `${count} placeholder="1"`)}</div>`,
     input("name", "Full name", `autocomplete="name" maxlength="120" required placeholder="Your name"`)
       + input("email", "Email", `type="email" autocomplete="email" maxlength="254" required placeholder="name@example.com"`)
       + input("phone", "Mobile", `type="tel" autocomplete="tel" required placeholder="07797 000000"`)
       + group("preferred_channel", "How should we contact you? (optional)", pills("preferred_channel", list("channels")))
       + input("best_time", "Best time to reach you (optional)", `maxlength="200" placeholder="Weekday mornings"`)
       + `<div class="field"><label for="f-requirements">Anything else that matters? <i>(optional)</i></label>
-        <textarea id="f-requirements" name="requirements" maxlength="2000" rows="4"></textarea>${err("requirements")}</div>
+        <textarea id="f-requirements" name="requirements" maxlength="2000" rows="4" placeholder="A garden for the dog, close to a bus route"></textarea>${err("requirements")}</div>
       <div class="consent">
         <label><input type="checkbox" name="privacy" value="yes" required><span>I have read the
           <a href="#/privacy" target="_blank" rel="noopener noreferrer">privacy notice</a> (opens in a new tab).</span></label>${err("privacy")}
@@ -194,6 +196,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   const sync = () => {
     const op = $("[name=operation]:checked", form)?.value;
     form.querySelectorAll("[data-only]").forEach(el => { el.hidden = el.dataset.only !== op; });
+    form.querySelectorAll("[data-ph-buy]").forEach(i => { i.placeholder = op === "buy" ? i.dataset.phBuy : i.dataset.phRent; });
     form.querySelectorAll("[data-rent]").forEach(l => { l.innerHTML = opt(op === "buy" ? l.dataset.buy : l.dataset.rent); });
     const a = snapshot(), chosen = a.pets ?? [];
     if ((a.parishes_excluded ?? []).length) $("details.more", form).open = true;
