@@ -9,7 +9,7 @@ Ejecución del [plan](2026-11-06-hampton-app-web-chat.md) el 6-nov-2026, en esta
 - Tarea 4 (borrado a 30 días): hecha; `retention_run.chats`.
 - Tarea 5 (Messages y Automations): hecha.
 - Tarea 6 (web y aviso): hecha; `tests/chat.test.js`.
-- Tarea 7 (e2e y documentos): paso `webChat` en `tests/e2e.cjs`. En el taller el envío del formulario se queda esperando a `siteverify` (el Worker local no sale por el proxy); con un arnés que solo sustituye ese envío por un chat creado en la base local (`/home/taller/encargos/capturas/web-chat/run.cjs`), el resto del paso pasa. Recorrido con Playwright MCP a 1280 y 390.
+- Tarea 7 (e2e y documentos): paso `webChat` en `tests/e2e.cjs`. En el taller el envío del formulario se queda esperando a `siteverify` (el Worker local no sale por el proxy); con un arnés que solo sustituye ese envío por un chat creado en la base local (`/home/taller/encargos/capturas/web-chat/run.cjs`), el resto del paso pasa. Recorrido con Playwright MCP a 1280 y 390. Tras la segunda revisión de Codex, también el paso `webChatTabs` (dos pestañas; sin Turnstile, escribe los chats en la base), que pasa entero en el taller.
 
 ## Arreglado durante el recorrido
 - Los mensajes del equipo salían casi invisibles en la web: la clase `team` chocaba con la sección «Our team». Clases `from-team` / `from-visitor`.
@@ -23,7 +23,7 @@ Ejecución del [plan](2026-11-06-hampton-app-web-chat.md) el 6-nov-2026, en esta
   - «Mark handled» podía tapar un mensaje nuevo del visitante (el panel manda el último id que ve; si hay uno más nuevo, 409 y se recarga);
   - el sondeo de la lista cambiaba de chat y borraba una respuesta a medio escribir (el chat abierto se queda; solo tras una acción propia pasa al siguiente);
   - detalle borrado entre dos consultas → 404, no 500.
-  - **Menor (aplazado):** con dos pestañas abiertas que empiezan chats distintos, la última en guardar gana la llave.
+  - **Menor:** con dos pestañas abiertas que empiezan chats distintos, la última en guardar gana la llave. *Corrección:* lo apunté como aplazado; la segunda revisión de Codex mostró que además mezclaba las dos conversaciones, y quedó arreglado (abajo, punto 1 de la segunda revisión).
 - **Seguridad y privacidad**: nada alto.
   - El aviso decía que el visitante puede borrar el chat «at any time», pero solo puede mientras lo tiene abierto en su aparato: texto corregido («at any time, you can ask us to delete it»).
   - El aviso no decía que se guarda cuándo tuvo el chat abierto: añadido, y una línea en «Why we use it».
@@ -59,16 +59,35 @@ Dos importantes, arreglados con su prueba:
 - **b. Reabrir un chat viejo no volvía a sondear.** Si el último mensaje tenía más de 2 h, abrir el chat leía una vez y ya no programaba más lecturas.
   - Arreglo: `nextPoll(now, lastAt, openedAt)`. El periodo de sondeo cuenta desde lo más reciente entre el último mensaje y la última vez que el visitante abrió el chat en esa página.
   - También deja de pararse en `handled`: una respuesta a un chat cerrado también llega, siempre dentro de las 2 h.
-  - Pruebas del planificador entero, con `init()`, un navegador falso y temporizadores simulados, en `tests/chat.test.js`. Comprobado también en Chromium con `/home/taller/encargos/capturas/web-chat/reopen/run.cjs`.
+  - Pruebas en `tests/chat.test.js`: el ciclo de sondeo con `init()`, un navegador falso y temporizadores simulados, y la regla de reapertura con `nextPoll()`. Comprobado en Chromium con `/home/taller/encargos/capturas/web-chat/reopen/run.cjs`, que abre el chat de verdad.
+  - *Corrección (segunda revisión de Codex, punto 5):* aquí ponía «pruebas del planificador entero». No es exacto: ninguna prueba del repo abre el chat (`toggle()`), así que no detectaría que dejara de poner `openedAt`. Solo lo cubre la comprobación de Chromium, que está fuera del repo.
 
 Cuatro menores, comprobados en el código y **aplazados** (Luis pidió solo anotarlos):
-- **c. Otra pestaña puede deshacer «End chat».** `load() ?? store` (en `toggle`) recupera la llave que esta pestaña tiene en memoria y `remember()` la vuelve a guardar después de que otra pestaña la borrara. Contradice «la olvida en ese aparato».
+- **c. Otra pestaña puede deshacer «End chat».** *Arreglado en la segunda ronda (punto 2 de abajo).* `load() ?? store` (en `toggle`) recupera la llave que esta pestaña tiene en memoria y `remember()` la vuelve a guardar después de que otra pestaña la borrara. Contradice «la olvida en ese aparato».
   - Arreglo propuesto: distinguir «almacenamiento inaccesible» de «llave borrada» y escuchar el evento `storage` para sincronizar las pestañas.
 - **d. Una ruta codificada pierde `no-store`.** `/api/%63hat` llega a las rutas del chat, porque el router decodifica los segmentos. La política de caché de `server/api.js` mira el segmento sin decodificar.
   - Arreglo propuesto: decidir las dos cosas sobre la misma ruta decodificada.
   - Codex no demostró una filtración por una caché compartida.
-- **e. El borrado tiene tope diario.** La pasada diaria borra como mucho 500 chats (`RETENTION_CAP`), igual que con contactos y visitas. Con más de 500 vencidos, alguno pasa de los 30 días que prometen el aviso, ESTADO y el checklist.
+- **e. El borrado tiene tope diario.** La pasada diaria borra como mucho 500 chats (`RETENTION_CAP`), igual que con contactos y visitas, y da el día por hecho: lo que sobra espera al día siguiente. Con más de 500 vencidos, alguno pasa de los 30 días que prometen el aviso, ESTADO y el checklist.
   - Arreglo propuesto: seguir en lotes hasta agotarlos, o decir el margen real en el aviso.
   - Con el tráfico previsto (unos 150 chats al mes) no se llega.
-- **f. El e2e no prueba el sondeo del contador.** `webChat` navega a Messages después de crear el chat, así que la primera lectura ya cumple la aserción de «Messages 1».
+- **f. El e2e no prueba el sondeo del contador.** *Corrección (segunda revisión de Codex, punto 6):* aquí ponía que, al navegar a Messages, «la primera lectura ya cumple la aserción». Es falso. Pasar de Automations a Messages solo cambia el fragmento: no recarga la página ni hace una lectura nueva del contador. «Messages 1» solo puede llegar por el sondeo de 30 s, así que el paso sí lo probaba, aunque sin decirlo. Ahora `webChat` cuenta las peticiones a `/api/admin/notifications/counts` y exige una posterior al chat.
   - Arreglo propuesto: dejar el panel abierto antes de crear el chat y esperar el cambio sin navegar, dentro de los 30 s.
+
+## Segunda revisión de Codex sobre `0639e4e..5ad9add` (6-nov-2026)
+
+Un hallazgo importante y cinco menores. Luis pidió arreglar el 1 y el 2, con pruebas que reproduzcan los dos, y corregir el ledger.
+1. **Importante, arreglado: se mezclaban conversaciones entre pestañas.** Una pestaña que tomaba de `localStorage` la llave de otro chat conservaba el historial anterior y le añadía el nuevo, y el siguiente envío iba al chat nuevo.
+   - Arreglo: `adopt()` en `site/chat.js`. Al abrir el chat, con el evento `storage` y antes de guardar cada respuesta, la pestaña sigue al chat que guarda el navegador. Si cambió, para el sondeo, borra lo pintado y reconstruye la conversación desde cero. `call()` ya descartaba las respuestas de una llave anterior.
+2. **Menor, arreglado: otra pestaña podía deshacer «End chat».** `load() ?? store` desaparece.
+   - `peek()` distingue el almacenamiento ilegible (`ok: false`: se queda el chat de la página) de la llave borrada (`s: null`: el chat termina aquí también).
+   - `persisted` indica si el chat de la página es el guardado: un chat que no se pudo guardar no se pierde por lo que hagan otras pestañas.
+   - Pruebas en `tests/chat.test.js`:
+     - «another tab's End chat ends it here too…» (con una respuesta en vuelo cuando la otra pestaña lo termina);
+     - «a chat started in another tab replaces this one…».
+     - Las dos fallan con el `site/chat.js` de `5ad9add` y pasan ahora.
+   - Paso `webChatTabs` del e2e en Chromium, con dos pestañas: el historial nunca se mezcla y «End chat» en una termina el chat en la otra. Falla con el código anterior (la primera pestaña no pasa al chat nuevo) y pasa ahora.
+3. **Menor, aplazado:** `/api/%63hat` sin `no-store`. Es el mismo que el d de arriba.
+4. **Menor, aplazado:** el tope de 500 borrados al día. Es el mismo que el e de arriba.
+5. **Menor, aplazado:** la prueba de reapertura no abre el chat. Corregido el texto del punto b de arriba. Arreglo propuesto: un paso del e2e que abra un chat de hace 3 h y espere una respuesta posterior, como `reopen/run.cjs`.
+6. **Menor, arreglado:** el ledger explicaba mal la prueba del contador (punto f de arriba, corregido). El e2e ahora exige una petición del sondeo posterior al chat.

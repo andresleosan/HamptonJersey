@@ -745,6 +745,7 @@ async function admin(browser) {
   await driveQueue(page, phone, noSideScroll);
   await widenCriteria(page, phone, noSideScroll);
   await webChat(page);
+  await webChatTabs(page);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -758,6 +759,9 @@ async function admin(browser) {
 // bar says Messages 1 within a poll, the reply comes back signed, still there after a reload, and the visitor deletes it.
 // The visitor has a context of their own: /api/config is cached for 5 minutes, and no admin cookie.
 async function webChat(page) {
+  // The bar's count polls, every 30 s; going from Automations to Messages only changes the fragment, so no first read.
+  const polls = [], poll = r => r.url().endsWith("/api/admin/notifications/counts") && polls.push(r);
+  page.on("request", poll);
   await page.goto(BASE + "admin/#/automations");
   page.once("dialog", d => d.accept());
   await page.getByRole("switch", {name: "Web chat"}).click();
@@ -775,9 +779,12 @@ async function webChat(page) {
   await box.getByRole("button", {name: "Send"}).click();
   await box.locator(".chat-log li").first().waitFor();
   await shot(visitor, "chat-visitor");
+  const before = polls.length;
   await page.goto(BASE + "admin/#/messages");
   await page.waitForFunction(() => document.querySelector('header.bar a[href="#/messages"] .count')?.textContent === "1 waiting",
     null, {timeout: 35000});
+  assert.ok(polls.length > before, "Messages 1 came from the bar's poll after the chat began");
+  page.off("request", poll);
   await page.getByRole("heading", {name: /Nina Le Sueur/}).waitFor();
   await page.getByText("About HE-R001").waitFor();
   await page.getByLabel("Reply").fill("Yes it is. When would you like to see it?");
@@ -797,6 +804,38 @@ async function webChat(page) {
   await box.getByText("Your chat was deleted.").waitFor();
   assert.equal(await visitor.evaluate(() => localStorage.getItem("hampton-chat")), null);
   assert.deepEqual(visitor.errors, []);
+  await vctx.close();
+}
+
+// MSG-02, C5 across tabs (Codex, second review): two tabs of one browser share the stored chat. A chat started in one
+// replaces the other's, history and all (never a mix of both); End chat in one ends it in the other. Chats are written
+// straight into the database (no Turnstile), each with its key's hash.
+async function webChatTabs(page) {
+  const crypto = require("node:crypto"), t = new Date().toISOString();
+  const keys = ["A", "B"].map(n => {
+    const key = crypto.randomBytes(32).toString("base64url"), hash = crypto.createHash("sha256").update(key).digest("hex");
+    d1(`INSERT INTO chats (key_hash, status, name, email, privacy_ack_at, created_at, last_at, waiting_since)
+      VALUES ('${hash}', 'waiting', 'Tab ${n}', 'tab${n}@example.je', '${t}', '${t}', '${t}', '${t}');
+      INSERT INTO chat_messages (chat_id, role, text, created_at) SELECT id, 'visitor', 'Written in chat ${n}', '${t}' FROM chats WHERE key_hash = '${hash}'`);
+    return key;
+  });
+  const vctx = await page.context().browser().newContext();
+  const [one, two] = [await newPage(vctx, {width: 390, height: 844}), await newPage(vctx, {width: 1280, height: 800})];
+  await one.goto(BASE);
+  await one.evaluate(k => localStorage.setItem("hampton-chat", JSON.stringify({key: k, at: Date.now(), seen: 0})), keys[0]);
+  await one.reload();
+  await one.getByRole("button", {name: /^Message us/}).click();
+  const box = one.locator("dialog.chat");
+  await box.getByText("Written in chat A").waitFor();
+  await two.goto(BASE);
+  await two.evaluate(k => localStorage.setItem("hampton-chat", JSON.stringify({key: k, at: Date.now(), seen: 0})), keys[1]);
+  await box.getByText("Written in chat B").waitFor();
+  assert.equal(await box.getByText("Written in chat A").count(), 0, "the other tab's chat replaces this one, never mixed");
+  await two.evaluate(() => localStorage.removeItem("hampton-chat")); // its End chat
+  await box.getByLabel("Name").waitFor();
+  assert.equal(await box.locator(".chat-log").count(), 0, "ended here too");
+  assert.equal(await one.evaluate(() => localStorage.getItem("hampton-chat")), null, "and not stored again");
+  assert.deepEqual([...one.errors, ...two.errors], []);
   await vctx.close();
 }
 

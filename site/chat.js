@@ -26,9 +26,12 @@ export function readStore(raw, nowMs) {
       ? { key: s.key, at: s.at, seen: Number.isInteger(s.seen) ? s.seen : 0 } : null;
   } catch { return null; }
 }
-const load = () => { try { return readStore(localStorage.getItem(STORE), Date.now()); } catch { return null; } };
-const save = s => { try { localStorage.setItem(STORE, JSON.stringify(s)); } catch { /* storage off: the chat lasts this page */ } };
-const forget = () => { try { localStorage.removeItem(STORE); } catch { /* nothing kept */ } };
+// What this browser keeps now; ok: false when storage cannot be read (storage off: the chat lasts this page).
+const peek = () => { try { return {ok: true, s: readStore(localStorage.getItem(STORE), Date.now())}; } catch { return {ok: false}; } };
+// persisted: this page's chat is the one in storage, so what other tabs do to storage applies to it too.
+let persisted = false;
+const save = s => { try { localStorage.setItem(STORE, JSON.stringify(s)); persisted = true; } catch { persisted = false; } };
+const forget = () => { persisted = false; try { localStorage.removeItem(STORE); } catch { /* nothing kept */ } };
 
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const when = iso => {
@@ -62,6 +65,7 @@ function badge() {
 }
 
 function remember(c) {
+  if (adopt()) return; // another tab ended this chat or started another meanwhile: this answer is not for the page
   chat = c;
   const last = c.messages.at(-1);
   store = {...store, at: last ? Date.parse(last.at) : Date.now()};
@@ -74,6 +78,27 @@ function ended(message) {
   forget(); store = null; chat = null; shown = new Set(); clearTimeout(timer);
   if (dlg?.open) o.chatOn ? startForm(message) : (dlg.close(), badge());
   else badge();
+}
+
+// C5 across tabs: follow the chat this browser keeps now, never the old one. Another tab's "End chat" or "Delete chat"
+// ends it here too; a chat another tab started replaces this one (or fills a page without one), its history rebuilt from
+// scratch. Unreadable storage, or a chat that could not be stored, keeps the one this page holds. True when it changed.
+function adopt() {
+  const now = peek(), next = now.ok && (persisted || !store) ? now.s : store;
+  if (next?.key === store?.key) { if (next) store = next; return false; }
+  clearTimeout(timer);
+  store = next; chat = null; shown = new Set(); persisted = !!next;
+  if (body) body.innerHTML = "";
+  if (dlg?.open && store) conversation();
+  else if (dlg?.open) o.chatOn ? startForm() : dlg.close();
+  badge();
+  if (store) refreshChat();
+  return true;
+}
+
+async function refreshChat() {
+  try { remember(await call("GET", "/chat")); render(); schedule(); }
+  catch (e) { if (e.status === 401) ended(e.message); }
 }
 
 function schedule() {
@@ -157,6 +182,7 @@ function startForm(note) {
         privacy: f.privacy.checked, listing_id: o.listing(), turnstile: form.querySelector('[name="cf-turnstile-response"]')?.value});
       if (widget != null) window.turnstile.remove(widget);
       store = {key: r.key, at: Date.now(), seen: 0};
+      save(store); // first, so remember() finds this chat in storage
       remember(r.chat);
       conversation();
       schedule();
@@ -232,18 +258,20 @@ export async function toggle() {
   dlg.showModal();
   o.btn.setAttribute("aria-expanded", "true");
   openedAt = Date.now();
-  store = load() ?? store; // storage off: the chat this page started
+  if (adopt()) return; // the box was rebuilt for the chat this browser keeps now
   if (!store) return startForm();
   if (!body.querySelector(".chat-log")) conversation();
-  try { remember(await call("GET", "/chat")); render(); schedule(); }
-  catch (e) { if (e.status === 401) ended(e.message); }
+  await refreshChat();
 }
 
 // From index.html once the config is known. With a stored chat, one look for new replies (the button says so).
 export async function init(opts) {
   o = opts;
   addEventListener("visibilitychange", () => { if (!document.hidden) schedule(); });
-  store = load();
+  // Another tab of this site changed the stored chat (End chat, Delete chat, a new chat).
+  addEventListener("storage", e => { if (e.key === STORE || e.key === null) adopt(); });
+  store = peek().s ?? null;
+  persisted = !!store;
   if (!store) { forget(); return badge(); }
   badge();
   try { remember(await call("GET", "/chat")); badge(); schedule(); }
