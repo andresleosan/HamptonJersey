@@ -40,6 +40,12 @@ async function publicSite(browser) {
   assert.equal(await page.getAttribute("footer a.staff", "href"), "/admin/", "discreet staff link in the footer");
   const body = await page.textContent("body");
   for (const word of ["Demo", "demo", "Illustrative", "snapshot", "Matterport sample"]) assert.ok(!body.includes(word), `no "${word}" on the public site`);
+  assert.equal(await page.$(".facts"), null, "no template stat strip");
+  assert.ok(await page.$eval("#app", root => {
+    const texts = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    while (texts.nextNode()) if (texts.currentNode.textContent.includes("·")) return false;
+    return true;
+  }), "home facts are separate items");
   const hrefs = await page.$$eval("#grid .card", cs => cs.map(c => c.getAttribute("href")));
   assert.ok(!hrefs.includes("/p/HE-R003"), "drafts are not public");
   // Few listings: a showcase home (hero presents one property, every card shown, no search or filters).
@@ -49,7 +55,7 @@ async function publicSite(browser) {
   assert.equal(await page.$("#tabs-region"), null, "no filter tabs with few listings");
   assert.match(await page.textContent(".hero .slide:first-child h2"), /Le Bernage/);
   // PUB-22: the home's section is Properties with at most five cards and View all; the menu opens /properties.
-  assert.equal(await page.textContent("#portfolio .eyebrow"), "Properties");
+  assert.equal(await page.textContent("#portfolio h2"), "Latest properties");
   assert.equal(await page.getAttribute("#portfolio a.btn", "href"), "/properties");
   assert.equal(await page.getAttribute('#main-nav a:has-text("Properties")', "href"), "/properties");
   await page.click('#main-nav a:has-text("Properties")');
@@ -523,6 +529,7 @@ async function admin(browser) {
   await page.click('tr:has-text("HE-R018") .star');
   await page.waitForSelector('tr:has-text("HE-R018") .star[aria-pressed=true]');
   const fresh = async () => { const c = await browser.newContext(); const p = await c.newPage(); await p.goto(BASE); await p.waitForSelector("#grid .card"); return [c, p]; };
+  d1("UPDATE listings SET published = 1, archived_at = NULL WHERE id IN ('HE-R002', 'HE-R003')");
   let [hc, home] = await fresh();
   assert.deepEqual(await home.$$eval(".feature h2", h => h.map(x => x.textContent)), ["Pathfield Road"], "only starred listings get a Featured block");
   await hc.close();
@@ -542,6 +549,7 @@ async function admin(browser) {
   await hc.close();
   await page.click('tr:has-text("HE-R001") .star');
   await page.waitForSelector('tr:has-text("HE-R001") .star[aria-pressed=false]');
+  d1("UPDATE listings SET published = 0 WHERE id IN ('HE-R002', 'HE-R003')");
   // PUB-22: the home page and the carousel start with the listing published last (hide, then show again).
   await page.click('tr:has-text("HE-R018") .switch');
   await page.waitForSelector('tr:has-text("HE-R018") .switch[aria-checked=false]');
