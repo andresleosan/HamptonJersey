@@ -483,7 +483,8 @@ document.addEventListener('DOMContentLoaded', () => {
      replanteado o descartado), ajusta "hecho" y "falta", y pon la fecha de hoy en "actualizado".
      "responsable": desarrollo, Luis, Hampton, tercero o — . Varios bloqueos se separan con " · ".
      "vence" (opcional, AAAA-MM-DD) saca el punto arriba con la cuenta atrás. -->
-<script type="application/json" id="datos">{
+<script type="application/json" id="datos">
+{
  "actualizado": "2026-11-06",
  "base": "127c7ef",
  "items": [
@@ -1876,6 +1877,23 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/jobs.js:1-15",
     "jobs/wrangler.toml:1-24",
     "https://developers.cloudflare.com/email-service/platform/pricing/"
+   ]
+  },
+  {
+   "id": "AUT-18",
+   "seccion": "Automatizaciones e IA",
+   "titulo": "Marca «Ready for the team» en la ficha del aplicante, anunciada en el resumen de las 8:00 del canal",
+   "origen": "plan",
+   "fase": "—",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "Luis lo pidió el 6-nov-2026, sin prioridad: cuando una búsqueda para un aplicante está lista (propuestas revisadas), el equipo debe enterarse en Telegram junto al resumen de las 8:00 de Jersey. Hoy el avisador (AUT-14) solo escribe frases fijas construidas con los números de la puerta y nunca texto libre, así que el aviso se pega a mano en el canal.",
+   "falta": "Panel: botón «Ready for the team» en la ficha del aplicante (columna nueva en applicants, migración aditiva; evento en su historial; se quita con «Done» o al cambiar la etapa). Puerta: GET /api/hermes/status devuelve el número de aplicantes marcados. Avisador: una línea fija más en mensajeResumen, «N applicants with proposals ready for the team», con el enlace al panel que pone él mismo; sin nombres, sin texto libre (R21), en el mismo cambio que /status y con su prueba, como la Decisión 7. Las propuestas en sí se leen en el panel. Hecho cuando: Luis marca un aplicante y el resumen de las 8:00 siguiente lleva esa línea y el enlace; otra cuenta del canal no ve más que eso. Modelo recomendado: claude-opus-5-5 · esfuerzo medium.",
+   "bloqueo": "",
+   "evidencia": [
+    "server/routes/hermes.js:32-47",
+    "server/routes/applicants.js:154",
+    "docs/roadmap/ESTADO.md (Después del bucle)"
    ]
   },
   {
@@ -4890,6 +4908,7 @@ document.addEventListener('DOMContentLoaded', () => {
    ]
   }
  ]
-}</script>
+}
+</script>
 </body>
 </html>
