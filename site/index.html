@@ -683,7 +683,7 @@ function home() {
       <a class="btn ghost" href="#/apply">Tell us what you're looking for</a></div>
   </div></section>
 
-  ${spots.map((p, i) => `<section class="feature${i % 2 ? " flip" : ""}"><img src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy">
+  ${spots.map((p, i) => `<section class="feature${i % 2 ? " flip" : ""}"><img src="${esc(p.thumb || p.image)}" alt="${esc(p.title)}" loading="lazy">
     <div class="txt"><div class="eyebrow">Featured · ${esc(p.place)}</div><h2>${esc(p.title)}</h2>
       <p class="num">${esc(keyFacts(p))}</p>
       <div class="chips">${featChips(p).map(c => `<span>${c}</span>`).join("")}</div>
