@@ -4,6 +4,7 @@
 //   npx wrangler d1 execute hampton --local --persist-to .wrangler/e2e --file tests/fixtures/seed.sql
 //   npx wrangler pages dev --port 8788 --persist-to .wrangler/e2e     (terminal A)
 //   PW=<playwright-core> CHROME=<chrome> node tests/e2e.cjs [screenshot-dir]   (terminal B)
+// E2E_PERSIST overrides .wrangler/e2e when running in an isolated local fixture database.
 // Matterport is never contacted: its requests are aborted. Properties Queue (PUB-21) needs three lines in .dev.vars for
 // the fake Drive this script starts on port 8799: DRIVE_API=http://localhost:8799, DRIVE_TOKEN_URL=http://localhost:8799/token
 // and GOOGLE_SERVICE_ACCOUNT='{"client_email":"e2e@example.iam.gserviceaccount.com","private_key":"<any RSA PKCS8 PEM, \n escaped>"}'.
@@ -15,7 +16,7 @@ const BASE = process.env.BASE || "http://localhost:8788/";
 const SHOTS = process.argv[2];
 const shot = (page, name, o) => SHOTS && page.screenshot({path: `${SHOTS}/${name}.png`, fullPage: true, ...o});
 const secret = readFileSync(".dev.vars", "utf8").match(/^SESSION_SECRET=(.+)$/m)[1].trim();
-const d1 = sql => execFileSync("npx", ["wrangler", "d1", "execute", "hampton", "--local", "--persist-to", ".wrangler/e2e", "--json", "--command", sql], {encoding: "utf8"});
+const d1 = sql => execFileSync("npx", ["wrangler", "d1", "execute", "hampton", "--local", "--persist-to", process.env.E2E_PERSIST || ".wrangler/e2e", "--json", "--command", sql], {encoding: "utf8"});
 
 async function newPage(ctx, viewport) {
   const page = await ctx.newPage();
@@ -1080,6 +1081,10 @@ async function automations(page, phone, noSideScroll) {
   await page.waitForSelector("#t-auto");
   for (const name of ["Clock", "12-month clean-up", "Hermes text drafts", "Sending to clients and agencies"])
     await page.getByRole("heading", {name, exact: true}).waitFor();
+  // AUT-17 starts disabled and cannot activate until the real email service is configured.
+  await page.locator("#email-settings").getByRole("heading", {name:"Daily team summary",exact:true}).waitFor();
+  assert.equal(await page.getByLabel("Enable email sending").isChecked(),false);
+  assert.equal(await page.getByLabel("Enable email sending").isDisabled(),true);
   await page.getByText("Stopped: no run recorded. Tell Optimyze; while the panel is open, it keeps the daily clean-up going.").waitFor();
   await page.waitForFunction(() => document.querySelector("header.bar .settings > button .count")?.textContent === "1 stopped");
   await page.getByText("Not connected yet").waitFor();

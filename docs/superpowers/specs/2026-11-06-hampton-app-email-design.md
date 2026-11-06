@@ -1,6 +1,6 @@
 # Hampton App · Correo saliente y entrante (AUT-17)
 
-Fecha: 6-nov-2026 · Estado: propuesta de Codex, pendiente de decisiones de Luis. Sin implementación ni autorización de publicación.
+Fecha: 6-nov-2026 · Estado: aprobada íntegramente por Luis el 6-nov-2026 (respuesta «1», remitente, respuestas, resumen recurrente, cuota y conservación). Implementación autorizada con pruebas y revisión local; sin publicación ni migraciones de producción.
 
 Base leída: `main` en `a0c7bcf`, arquitectura P-19, AUT-17 y NOT-10 del checklist, `DESIGN.md`, pausa de AUT-11 y reloj de AUT-07. El texto privado de Luis se ha leído sin modificarlo ni incorporarlo a Git.
 
@@ -8,7 +8,7 @@ Base leída: `main` en `a0c7bcf`, arquitectura P-19, AUT-17 y NOT-10 del checkli
 
 La app envía correo con Cloudflare Email Service y guarda las respuestas para que el equipo las lea en el panel. Hampton conserva el buzón que usa cada día. El primer uso es el resumen de las 08:00 de Jersey al equipo, sin envíos a clientes ni agencias. Construir esta base no completa los flujos dependientes de F2 ni la bandeja multicanal de MSG-03.
 
-Decisión ya tomada por Luis: Cloudflare Email Service, sin otro proveedor, con aprobación humana en el panel para el correo externo. Las decisiones siguientes son propuestas de Codex; no se atribuyen a Luis.
+Decisión ya tomada por Luis: Cloudflare Email Service, sin otro proveedor, con aprobación humana en el panel para el correo externo. Las propuestas de identidad, resumen recurrente, cuota y conservación fueron confirmadas íntegramente por Luis en este chat. Las decisiones menores de implementación se distinguen en el ledger.
 
 ## Hallazgos comprobados y límites de esta preparación
 
@@ -18,7 +18,7 @@ Decisión ya tomada por Luis: Cloudflare Email Service, sin otro proveedor, con 
 - **Código existente:** `server/jobs.js` ejecuta el borrado diario, pero aún no despacha correo. `server/routes/automations.js` y `admin/src/Automations.jsx` ya tienen la pausa general; no hay tabla outbound ni parser de correo instalado.
 - No se han enviado mensajes, cambiado DNS, aplicado migraciones ni publicado nada.
 
-## Propuesta para revisar
+## Diseño aprobado e implementado en local
 
 ### Identidad y activación
 
@@ -77,13 +77,15 @@ Consultas a agencias, interpretación por IA, recordatorios de visitas, portal, 
 7. Migración aditiva con el siguiente número libre al implementar. Sin datos personales en documentos, capturas ni commits públicos.
 8. La entrega real se valida después, con autorización para el SHA concreto y un destinatario del equipo controlado: un correo recibido y una respuesta visible en la app. Una simulación local no cumple este criterio externo.
 
-## Decisiones necesarias y siguiente paso
+## Estado de entrega y siguiente paso
 
-Luis revisa el alcance anterior y confirma o cambia las direcciones propuestas, la autorización recurrente del resumen, el límite y la conservación. La cuenta Cloudflare se verificará por un canal autenticado existente; la falta de acceso del taller no se resuelve pidiendo una llave por el chat.
+Luis confirmó íntegramente la propuesta y autorizó plan, implementación, pruebas, revisión local y commit. [Plan](../plans/2026-11-06-hampton-app-email.md) y [ledger](../plans/2026-11-06-hampton-app-email-ledger.md) registran la construcción. Migración aditiva 0023, solo aplicada en bases de prueba locales; correo desactivado por defecto y preparación externa false. Las direcciones, cuota y conservación están fijadas por esta aprobación.
 
-Después de resolver estas decisiones se escribe el plan de implementación con archivos, SQL, contratos, reglas de DESIGN.md y pruebas. No hay plan aprobado ni implementación empezada. Si Luis prefiere avanzar otra tarea mientras se resuelve la cuenta, AGE-04 no requiere correo externo.
+El Worker usa la hora de procesamiento para evitar que un trigger retrasado envíe el resumen del día anterior. Contenido HTML de entrada se conserva únicamente como fuente de texto cuando falta la parte plain text; nunca se interpreta. Un cambio o borrado durante una llamada ya iniciada conserva la incertidumbre y borra el contenido requerido, sin afirmar que el proveedor canceló la entrega. Hashes de deduplicación hasta 90 días; hashes de baja hasta retirada expresa. El panel configura y retira bajas introduciendo la dirección conocida, sin publicar una lista de direcciones suprimidas.
 
-Revisión de construcción: agente independiente, solo lectura, 6-nov-2026. No encontró otra decisión imprescindible para Luis. Sus precisiones sobre contenido del resumen, copy de pausa, trabajos caducados/atascados, topes por agencia y recepción no garantizada se incorporan arriba. Siguen por confirmar las propuestas de identidad, autorización recurrente, límite y conservación.
+Quedan la revisión independiente de código y el cierre local registrados en el ledger, y, fuera del encargo autorizado, configuración real de la cuenta/routing, publicación y migraciones de producción aprobadas para un SHA concreto, y entrega/respuesta reales. El taller no pudo verificar la cuenta ni los MX; no se afirma que falte el plan o el alta. La documentación consultada no garantiza reintentos tras un fallo de persistencia del handler: se rechaza su promesa sin ocultar el error, y la comprobación externa sigue pendiente.
+
+Revisión de construcción del diseño: agente independiente, solo lectura, 6-nov-2026. Sus precisiones sobre contenido del resumen, pausa, trabajos caducados/atascados, topes por agencia y recepción no garantizada se incorporaron antes de la aprobación. Ninguna decisión imprescindible nueva para Luis.
 
 ## Fuentes consultadas el 6-nov-2026
 

@@ -10,6 +10,25 @@ h1,h2,h3{font-family:var(--display);font-weight:400;margin:0 0 12px}
 h1{font-size:26px} h2{font-size:19px}
 a{color:var(--ink)} a:hover{color:var(--bronze-dk)}
 :focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
+.email-preferences{display:grid;gap:16px;min-width:0}
+.email-preferences .card,.email-detail{min-width:0;overflow-wrap:anywhere}
+.email-preferences label{margin:12px 0}
+.email-check{display:flex;align-items:center;gap:8px;min-height:32px;color:var(--ink)}
+.email-check input{width:18px;height:18px;padding:0;flex-shrink:0}
+.email-address{overflow-wrap:anywhere}
+.email-layout{display:grid;gap:24px;align-items:start}
+.email-list{min-width:0}
+.email-list ul{list-style:none;padding:0;margin:0 0 16px}
+.email-list li+li{border-top:1px solid var(--line)}
+.email-list li button{display:grid;gap:8px;width:100%;min-height:44px;text-align:left;padding:16px;border:1px solid transparent;border-radius:var(--r-sm);background:var(--paper);color:var(--ink);font:inherit;cursor:pointer;overflow-wrap:anywhere}
+.email-list li button[aria-current=true]{border-color:var(--bronze);background:var(--mist)}
+.email-list li button small{color:var(--stone)}
+.email-list .badge{justify-self:start}
+.email-list>.inline .btn,.email-preferences .btn,.email-detail .btn{min-height:32px}
+.email-body{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font:inherit;line-height:1.6;margin:16px 0;max-width:100%}
+.email-sample{margin:16px 0;padding:16px;background:var(--mist);border-radius:var(--r-sm)}
+.email-detail .kv dd{overflow-wrap:anywhere}
+@media(min-width:760px){.email-layout{grid-template-columns:minmax(240px,340px) minmax(0,1fr)}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .center{min-height:100vh;display:grid;place-items:center;padding:16px}
 .bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 16px;background:rgba(20,20,20,.94);backdrop-filter:blur(8px);color:#fff}

@@ -11,6 +11,10 @@ compatibility_date = "2025-10-01"
 workers_dev = false
 preview_urls = false
 
+[vars]
+# Set true only after real service/domain/routing setup and the approved activation check.
+EMAIL_SERVICE_READY = "false"
+
 [triggers]
 crons = ["*/10 * * * *"]
 
@@ -22,3 +26,7 @@ database_id = "1da41b63-c61f-4491-9f8d-3a9afde6e0fb"
 # Workers Logs: the Worker logs counts and errors only, never who.
 [observability]
 enabled = true
+
+[[send_email]]
+name = "EMAIL"
+allowed_sender_addresses = ["hello@hamptonestatesjersey.com"]

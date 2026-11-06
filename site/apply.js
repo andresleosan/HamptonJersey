@@ -369,6 +369,14 @@ export function renderPrivacy(root) {
       While the conversation is still open on your device, you can delete it yourself with "Delete chat"; at any time,
       you can ask us to delete it.</p>
 
+    <h2>Email sent to the app</h2>
+    <p>When you reply to an email from our app, Hampton Estates can read your reply in its staff panel. Cloudflare
+      sends and receives these emails on our instructions. Email content is removed after 30 days; delivery and receipt
+      records are removed after 90 days. Attachments are not saved. A minimal fingerprint of a received message is kept
+      for up to 90 days so deleting a message does not let a duplicate delivery restore it. If you ask us to stop sending
+      to your address, we keep a fingerprint of the address to respect that preference until you ask us to remove it.
+      You can contact us to ask for deletion or to change your sending preferences.</p>
+
     <h2>Your rights</h2>
     <ul>
       <li>Access: ask for a copy of the details we hold about you.</li>

@@ -3,6 +3,7 @@ pages_build_output_dir = "site"
 compatibility_date = "2025-10-01"
 
 [vars]
+EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
 TURNSTILE_SITE_KEY = "0x4AAAAAAFQB3xGjTWfMlGS5"

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtDate, fmtDay } from "./format.js";
+import EmailSettings from "./EmailSettings.jsx";
 
 // AUT-01 (spec 2026-11-01): what runs on its own, when it last ran and whether it has stopped. The bar's counts poll
 // carries the stopped count and the pause (stalled and outbound, from App); the screen loads again when stalled changes,
@@ -60,6 +61,7 @@ export default function Automations({ stalled, outbound, onChange }) {
     </article>
 
     <WebChat initial={d.webchat} />
+    <EmailSettings />
     <Sending outbound={outbound} onChange={onChange} />
   </section>;
 }
@@ -80,7 +82,7 @@ function Sending({ outbound, onChange }) {
   };
   return <article className="card" aria-labelledby="a-send">
     <h2 id="a-send">Sending to clients and agencies</h2>
-    <p className="muted">Nothing is sent automatically yet; this switch stops any future sending.</p>
+    <p className="muted">This switch stops all outbound sending, including the daily team email summary.</p>
     {outbound === undefined ? <p>Checking…</p> : <div className="inline">
       {outbound ? <><span className="badge attention">Paused</span>
         <span>Paused since {fmtDate(outbound.at)} (asked by {outbound.by === "hermes" ? "Hermes" : outbound.by})</span>

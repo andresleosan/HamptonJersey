@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { firebaseSignOut } from "./firebase.js";
 import Login from "./Login.jsx";
@@ -27,6 +27,7 @@ import Messages from "./Messages.jsx";
 import { confirmLeave } from "./unsaved.js";
 import { fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
+const Email = lazy(() => import("./Email.jsx"));
 
 function useHash() {
   const [hash, setHash] = useState(location.hash);
@@ -76,7 +77,7 @@ export default function App() {
 
   const [path, query] = hash.replace(/^#\/?/, "").split("?");
   const [section, arg, sub] = path.split("/");
-  const current = (section === "p" && arg) || section === "queue" ? "listings" : ["messages", "applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours", "automations"].includes(section) ? section : "";
+  const current = (section === "p" && arg) || section === "queue" ? "listings" : ["email", "messages", "applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours", "automations"].includes(section) ? section : "";
   // The Inbox counter in the navigation: every 30 s while signed in and the tab is visible. On the Inbox itself,
   // the page's own poll brings the counts (onCounts).
   const loadCounts = useCallback(() => api("/admin/notifications/counts").then(setCounts, () => {}), []);
@@ -116,6 +117,7 @@ export default function App() {
     : section === "rentals" ? <Rentals onChange={loadCounts} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "messages" ? <Messages paused={expired} onChange={loadCounts} />
+    : section === "email" ? <Suspense fallback={<p>Loading email…</p>}><Email /></Suspense>
     : section === "tours" ? <Tours /> : section === "automations" ? <Automations stalled={counts.stalled} outbound={counts.outbound} onChange={loadCounts} />
     : <Inbox paused={expired} onCounts={setCounts} />;
   const logout = async () => {
@@ -132,6 +134,7 @@ export default function App() {
           && <span className="count">{counts.action}<span className="sr"> need action</span></span>}</a>
         <a href="#/messages" aria-current={current === "messages" ? "page" : undefined}>Messages{counts.chats > 0
           && <span className="count">{counts.chats}<span className="sr"> waiting</span></span>}</a>
+        <a href="#/email" aria-current={current === "email" ? "page" : undefined}>Email</a>
         <a href="#/applicants" aria-current={current === "applicants" ? "page" : undefined}>Applicants{counts.expiring > 0
           && <span className="count" title={`${counts.expiring} expiring`}>{counts.expiring}<span className="sr"> expiring</span></span>}</a>
         <a href="#/review" aria-current={current === "review" ? "page" : undefined}>Review</a>
@@ -182,6 +185,7 @@ function Paused({ outbound, onResumed }) {
   return <>
     <div className="warn paused" role="status">
       <p>Sending to clients and agencies is paused (asked by {outbound.by === "hermes" ? "Hermes" : outbound.by} on {fmtDate(outbound.at)}).
+        The daily team email summary is paused too.
         Nothing is sent until someone resumes it here.</p>
       <button type="button" className="btn ghost sm" onClick={resume} disabled={busy}>Resume sending</button></div>
     {err && <p role="alert" className="err">{err}</p>}</>;

@@ -22,9 +22,10 @@ import automationRoutes from "./routes/automations.js";
 import queueRoutes from "./routes/queue.js";
 import chatRoutes from "./routes/chat.js";
 import chatAdminRoutes from "./routes/chats.js";
+import emailRoutes from "./routes/email.js";
 
 // [method, path regex, handler, requiresAdmin]
-const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes];
+const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes];
 
 // waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
 // promise still runs, unawaited; pass only promises that never reject.

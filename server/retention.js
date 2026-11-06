@@ -2,6 +2,7 @@ import { now } from "./http.js";
 import { jerseyToday } from "./viewings.js";
 import { normalizePhone } from "./applicants.js";
 import { KEEP_DAYS } from "./chat.js";
+import { cleanEmail } from "./email-retention.js";
 
 // G2: contacts 12 months without activity and viewing requests whose date is over 12 months old are deleted once a
 // Jersey day, as the manual deletes do it (E4, E5). E7: at most RETENTION_CAP of each per pass, oldest first, in one
@@ -63,6 +64,7 @@ export const touchByViewing = (env, { email, phone }, ts) => env.DB.prepare(
 
 // ts: the ISO time of the pass; the cutoffs are its Jersey date.
 export async function runRetention(env, ts) {
+  await cleanEmail(env, ts);
   const q = sql => env.DB.prepare(sql).bind(ts, jerseyToday(new Date(ts)));
   const r = await env.DB.batch([
     // As the applicant's Delete (§3.4): notices closed and nameless, events without data (NULL, never '': the Inbox runs

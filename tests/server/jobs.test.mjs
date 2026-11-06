@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { makeEnv, call, adminCookie, T0 } from "./helpers.mjs";
 import worker from "../../server/jobs.js";
+import { emailEnv, TS } from "./email-helpers.mjs";
+import { prepareSummary } from "../../server/email.js";
 
 // AUT-07: Cloudflare calls the Worker's scheduled() every 10 minutes with the tick's scheduled time.
 const tick = (env, iso) => worker.scheduled({ cron: "*/10 * * * *", scheduledTime: Date.parse(iso) }, env, { waitUntil() {} });
@@ -16,8 +18,25 @@ const setting = (env, key) => {
   return r && JSON.parse(r.value);
 };
 
-test("the Worker only answers the clock", () => {
-  assert.deepEqual(Object.keys(worker), ["scheduled"]);
+test("the Worker answers the clock and inbound email, with no public HTTP handler", () => {
+  assert.deepEqual(Object.keys(worker).sort(), ["email", "scheduled"]);
+});
+
+test("Cloudflare's email execution context is not mistaken for the received timestamp", async () => {
+  const env=emailEnv(), bytes=new TextEncoder().encode("From: team@example.test\r\nSubject: Received\r\n\r\nHello");
+  await worker.email({from:"team@example.test",to:"replies@app.hamptonestatesjersey.com",rawSize:bytes.length,
+    raw:new ReadableStream({start(c){c.enqueue(bytes);c.close();}}),setReject(){assert.fail("valid email");}},env,{waitUntil(){}});
+  assert.match(env.DB.raw.prepare("SELECT received_at FROM email_inbound").get().received_at,/^\d{4}-/);
+});
+
+test("the daily pass also clears 30-day email content when sending is disabled", async t => {
+  t.mock.method(console,"log",()=>{});
+  const env=emailEnv(); await prepareSummary(env,TS);
+  env.EMAIL_SERVICE_READY="false";
+  await tick(env,"2026-12-07T08:00:00.000Z");
+  const row=env.DB.raw.prepare("SELECT * FROM outbound").get();
+  assert.equal(row.text,null); assert.equal(row.status,"cancelled");
+  assert.equal(env.sent.length,0);
 });
 
 // The Worker's config next to the website's: a drift (another database, another cadence, a public URL, another
@@ -27,7 +46,10 @@ const val = (text, key) => text.match(new RegExp(`^${key} = (.+)$`, "m"))?.[1];
 test("the clock's Worker: hampton-jobs, every 10 minutes, on the website's database, with no public URL", () => {
   const jobs = read("jobs/wrangler.toml"), pages = read("wrangler.toml"), top = jobs.split(/^\[/m)[0];
   assert.deepEqual(top.match(/^\w+(?= = )/gm), ["name", "main", "compatibility_date", "workers_dev", "preview_urls"]);
-  assert.deepEqual(jobs.match(/^\[.*\]$/gm), ["[triggers]", "[[d1_databases]]", "[observability]"]);
+  assert.deepEqual(jobs.match(/^\[.*\]$/gm), ["[vars]", "[triggers]", "[[d1_databases]]", "[observability]", "[[send_email]]"]);
+  assert.match(jobs, /EMAIL_SERVICE_READY = "false"/);
+  assert.match(jobs, /allowed_sender_addresses = \["hello@hamptonestatesjersey\.com"\]/);
+  assert.doesNotMatch(pages, /^\[\[send_email\]\]/m);
   assert.equal(val(top, "name"), '"hampton-jobs"');
   assert.equal(val(top, "main"), '"../server/jobs.js"');
   assert.equal(val(top, "workers_dev"), "false");
