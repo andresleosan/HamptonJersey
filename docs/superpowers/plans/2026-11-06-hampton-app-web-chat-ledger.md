@@ -198,3 +198,83 @@ Seguridad y privacidad revisadas:
 - Siguen pendientes la regla WAF de PRE-34/ANA-09 y la CSP ya anotada. La prueba de texto hostil y los tests de permisos pasan, pero no sustituyen esos controles ni una auditoría exhaustiva.
 
 No probado en este encargo: migraciones sobre bases persistentes o D1 remoto, estado de aplicación de la 0021 en producción, despliegues de Pages/Workers, login real de Google, envío real con Turnstile, reglas WAF/CSP en Cloudflare, avisador/DM del VPS y e2e completo. Este último necesita preparar una base persistente con migraciones y servicios externos; no se ha preparado ni ejecutado bajo la autorización actual. La limitación de red de Turnstile anotada en rondas anteriores no se ha vuelto a ensayar. Ningún bloqueo se ha saltado para obtener estos resultados.
+
+## Seguimiento documental de la revisión independiente de `9e6ed97` (6-nov-2026)
+
+Encargo de Luis: conservar el merge y todo el historial; sincronizar solo la privacidad y el borrado de la spec privada, completar este ledger e investigar las nueve entradas high sin actualizar dependencias. Commit solo local de documentos. No autoriza push, migraciones, publicación, rebase, reset, force ni excepciones a bloqueos. El permiso anterior no vale para el SHA resultante. Se conserva el candado existente y no se cambian las aprobaciones pendientes.
+
+Fuente: `/home/taller/encargos/hampton-20261106-205737-revision.txt` e [informe completo](</home/taller/encargos/revision-msg02-9e6ed97/informe.md>). Según esa revisión, no hubo regresiones nuevas del merge; todos los hallazgos eran preexistentes. Su e2e completo terminó con exit 1 en `tests/e2e.cjs:191`, esperando la reserva: `POST /api/viewings` dio 500 porque workerd no resolvió `challenges.cloudflare.com`. No alcanzó el recorrido administrativo/MSG-02 ni Drive. Los pasos aislados `webChatTabs` y `webChatRecovers` sí pasaron. Estos son resultados de la revisión, no una nueva ejecución ni un e2e aprobado en este seguimiento.
+
+### Hallazgos menores y excepciones pendientes
+
+| Revisión | Estado en este ledger y resultado de este encargo |
+|---|---|
+| F2, borrado limitado a 500 | Ya registrado como PRIV-01 y en rondas anteriores. Sigue abierto: con 501 vencidos queda uno; ajustar la spec privada no corrige la promesa pública. |
+| F3, interruptor en páginas abiertas | Ya registrado en tercera revisión, 6, y cuarta, 6. Sigue abierto; 301 s no retiran el botón/formulario de una página cargada. |
+| F4, lista de 200 sin paginación | Ya registrado en cuarta revisión, 1. Sigue abierto; contador 201, lista 200. |
+| F5, ruta codificada sin `no-store` | Ya registrado como SEC-02. Sigue abierto; fuga efectiva por caché compartida no demostrada. |
+| F6, borrar durante envío produce 500 | Ya registrado en tercera revisión, 4. Sigue abierto; carrera entre `chatOf()` y el INSERT. |
+| F7, pérdida de borrador al cambiar chat/pestaña | Ya registrado en tercera revisión, 5. Sigue abierto. |
+| F8, cobertura insuficiente de reapertura | Ya registrado en segunda revisión, 5, y tercera, 7. Sigue abierto; anular `openedAt` deja pasar los 8 tests del módulo. |
+| **F9 / DOC-01, privacidad desfasada en la spec** | **No constaba como pendiente documental separado. Corregido aquí:** transcripción del aviso implementado con actividad de lectura, finalidad y condiciones de autoservicio/solicitud de borrado; C5, C10, C11 y C14 precisan llave, IP enviada a Turnstile, sondeo y límite real de retención. `site/apply.js` no cambia. PRIV-01 y PRE-33/PRE-34 siguen pendientes. |
+| **F10 / PRIV-02, emails de administradores en historial público** | **Excepción heredada de GitHub, antes no registrada aquí. Abierta:** dos direcciones reales en `d41b339:migrations/0001_init.sql:56–57`, retiradas del árbol actual en `2d171c3`, todavía alcanzables desde HEAD. Se verificó solo el recuento y la ascendencia, sin imprimir ni copiar las direcciones. Facilita identificar cuentas objetivo; no demuestra acceso autenticado. Una eventual limpieza histórica y de copias/referencias requiere un encargo y autorización específicos; no se realiza ni se autoriza en este seguimiento. |
+
+Se mantienen los otros menores ya aplazados, WAF/ANA-09, requisitos de PRE-34, publicación, avisador del VPS y Create applicant. Los avisos high heredados (F1 / SEC-01) siguen abiertos tras la investigación siguiente; no se reclasifican como seguros ni como resueltos.
+
+### SEC-01: investigación de las nueve entradas high de npm
+
+Evidencia del 6-nov-2026 sobre el lockfile de `9e6ed97`: `npm audit --json` devuelve **exit 1, 9 high, 0 critical**; `npm audit --omit=dev --json` informa **5 high, 0 critical**. Los totales low/moderate son cero **por entrada de paquete**, aunque `via` contiene avisos de esas gravedades. No son nueve fallos independientes: hay cuatro paquetes con avisos propios y cinco entradas que heredan el impacto. Árbol confirmado con `npm ls firebase @firebase/firestore @firebase/firestore-compat @grpc/grpc-js wrangler miniflare re2js sharp undici`; versiones y clasificación `dev` contrastadas con `package-lock.json`. Informes JSON fuera del repo: `/home/taller/encargos/hampton-msg02-documentacion-audit-20261106/`.
+
+«Runtime» en esta tabla significa instalado por `dependencies` (sin marca `dev`), no prueba de que se ejecute el código afectado en Hampton. «Dev» no excluye riesgo para el proceso local o CI.
+
+| Entrada y versión instalada | Tipo / ruta de dependencia | Causa concreta y exposición observada |
+|---|---|---|
+| `firebase@12.19.0` | Runtime, directa (`package-lock.json:2484`) | Hereda de Firestore y compat. Hampton solo importa `firebase/app` y `firebase/auth` (`admin/src/firebase.js:1–2`). No hay import de Firestore en el código de la app revisado. |
+| `@firebase/firestore@4.17.2` | Runtime, transitiva de Firebase (`:894`) | Hereda de `@grpc/grpc-js`. Además incorpora `re2js`, que tiene su propia entrada high. No se ha demostrado ejecución de estas rutas por Hampton. |
+| `@firebase/firestore-compat@0.4.14` | Runtime, transitiva de Firebase (`:916`) | Hereda de Firestore; comparte la misma instalación. Sin uso compat localizado en la app. |
+| `@grpc/grpc-js@1.9.16` | Runtime, Firebase → Firestore → grpc-js (`:1231`) | Avisos propios de autenticación por certificados (high) y exposición de errores (low); condiciones detalladas abajo. |
+| `re2js@2.8.6` | Runtime, Firebase → Firestore → re2js (`:2992`) | Aviso propio de DoS cuadrático con lookbehind optativo y coincidencias repetidas. |
+| `wrangler@4.148.0` | Dev, directa (`:3380`) | Hereda de Miniflare; se usa como herramienta de desarrollo/despliegue, no como import de la API desplegada. |
+| `miniflare@5.20261006.0-alpha` | Dev, Wrangler → Miniflare (`:2869`) | Hereda de Sharp y Undici. La simulación local tiene llamadas reales a ambos paquetes. |
+| `sharp@0.35.4` | Dev, Wrangler → Miniflare → Sharp (`:3104`) | Aviso propio en librsvg; posible RCE bajo condiciones concretas. |
+| `undici@7.29.1` | Dev, Wrangler → Miniflare → Undici (`:3226`) | Ocho avisos propios: cuatro high y cuatro moderate; una sola entrada high. |
+
+Rutas plausibles y límites de la evidencia:
+
+- **grpc-js:** [GHSA-m9gg-hp2v-232j, del mantenedor](https://github.com/grpc/grpc-node/security/advisories/GHSA-m9gg-hp2v-232j) requiere un servidor gRPC que cree credenciales con `requireClientCertificate: false` y use `getAuthContext` para autenticar: podría tratar certificados no autorizados como autorizados. [GHSA-f596-whhp-79r4](https://github.com/grpc/grpc-node/security/advisories/GHSA-f596-whhp-79r4) permite que errores de handlers de un servidor revelen información en el estado enviado al cliente (low). Hampton no importa grpc-js ni crea ese servidor; Firestore es una dependencia instalada pero no importada por la app. No se ha demostrado una ruta desde las peticiones públicas de Hampton a esos handlers, ni se ha ejecutado una prueba de explotación. No equivale a certificar ausencia de riesgo.
+- **re2js:** [GHSA-gg6h-894w-4m9c, del mantenedor](https://github.com/le0pard/re2js/security/advisories/GHSA-gg6h-894w-4m9c) afecta a `>=2.2.0 <2.8.7`. Texto controlado por un atacante podría agotar CPU si se compila un lookbehind con `LOOKBEHINDS` y se usa una API de coincidencias repetidas. En el módulo ESM de Firestore instalado, `dist/common-CLMydGSF.esm.js:15320–15350` compila sin ese flag y usa `matches`/`test`; no se localizó `LOOKBEHINDS` en esos archivos de Firestore. Hampton tampoco importa Firestore. Esa inspección acota la ruta observada; no demuestra seguridad de todos los consumidores ni sustituye la corrección del paquete.
+- **Sharp:** [GHSA-wq5f-xc86-pv6w, del mantenedor](https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w) afecta a `<0.35.5`; librsvg puede permitir RCE en Linux/glibc bajo condiciones de ejecución específicas. Un SVG malicioso procesado por el simulador local de Images es una ruta plausible: Miniflare importa Sharp y entrega bytes a `sharp()` en `dist/src/index.js:119241–119261`. La app no importa Sharp; `server/routes/media.js:9–14,54–63` admite por firma JPG/PNG/WebP, y no se halló binding Images en `wrangler.toml`. No se probó que una carga de Hampton alcance ese decodificador, ni se verificaron las condiciones de explotación nativa. La exposición relevante es la herramienta local/CI; la marca dev no la elimina.
+- **Undici:** Miniflare sí llama a `undici.fetch` (`dist/src/index.js:68210,79780`); una respuesta HTTP/TLS hostil o un destino comprometido alcanzado desde la simulación podría afectar al proceso local. No se reprodujo ninguno de los avisos en Hampton. Los `fetch` del código Worker no son por ello prueba de que la API desplegada use este paquete de npm; tampoco se auditó la versión integrada de Undici en Node.
+
+Avisos concretos de `undici@7.29.1`, todos con corrección publicada para su rama en **7.30.1**:
+
+| GHSA del mantenedor | Gravedad | Condición plausible; no demostrada en Hampton |
+|---|---|---|
+| [xjj6-f33q-929c](https://github.com/nodejs/undici/security/advisories/GHSA-xjj6-f33q-929c) | High | Respuesta con más de cinco codificaciones y cierre antes del cuerpo: error sin manejar y caída del proceso. El uso de fetch por Miniflare hace plausible esta clase de exposición. |
+| [4w7w-5xrc-9h26](https://github.com/nodejs/undici/security/advisories/GHSA-4w7w-5xrc-9h26) | High | `Agent` sin origen fijo, caché compartida y `compose(redirect(), cache())`: redirección entre orígenes puede contaminar caché o revelar datos entre usuarios. No se localizó esa composición en el código de la app; no se ha probado su activación en el simulador. |
+| [2m5v-pch6-74hx](https://github.com/nodejs/undici/security/advisories/GHSA-2m5v-pch6-74hx) | High | `Agent` pierde funciones de la opción `tls`, como `checkServerIdentity`; puede eludir validación adicional/pinning, sin requerir eludir necesariamente las comprobaciones TLS predeterminadas. No se demostró uso de esa configuración afectada en Hampton. |
+| [qrxm-fqhp-jwvm](https://github.com/nodejs/undici/security/advisories/GHSA-qrxm-fqhp-jwvm) | High | Servidor TLS 1.2 renegocia con otro certificado válido cuyo nombre no coincide: aserción sin manejar y caída del cliente. Depende de alcanzar un endpoint malicioso/comprometido y negociar TLS 1.2. |
+| [4qv8-2p9j-2685](https://github.com/nodejs/undici/security/advisories/GHSA-4qv8-2p9j-2685) | Moderate | Consumo de memoria sin límite al analizar EventSource/SSE hostil. No se localizó uso de EventSource en la app. |
+| [f72v-6w45-q472](https://github.com/nodejs/undici/security/advisories/GHSA-f72v-6w45-q472) | Moderate | Bypass de integridad SRI con nombres de algoritmo que no están en minúsculas; requiere usar esa comprobación con los tokens afectados. No demostrado aquí. |
+| [9fm3-97px-rjf6](https://github.com/nodejs/undici/security/advisories/GHSA-9fm3-97px-rjf6) | Moderate | Servidor WebSocket causa acumulación ilimitada de PONG automáticos en el cliente. No se demostró una ruta al cliente WebSocket de Undici desde Hampton. |
+| [55wc-3pg8-jfw6](https://github.com/nodejs/undici/security/advisories/GHSA-55wc-3pg8-jfw6) | Moderate | Excepción sin manejar en el interceptor de descompresión con respuesta hostil; activación del interceptor no demostrada en Hampton. |
+
+### Opciones de actualización investigadas, sin aplicarlas
+
+Se consultó el registro mediante `npm view` (versiones, dependencias y engines) y los avisos enlazados. Compatibilidad de rangos/engines no implica validación funcional. Entorno de comprobación: Node `v24.22.1`, npm `11.19.1`; `.node-version` pide 22. No se ejecutaron instalaciones, `npm update`, `audit fix`, overrides ni cambios al manifest/lockfile.
+
+1. **re2js → 2.8.7:** parche del aviso y compatible con el rango `^2.8.3` declarado por Firestore 4.17.2. Pide Node >=20, compatible con el 22 del proyecto. Una futura actualización selectiva del lockfile puede resolver esta entrada sin cambiar Firebase; hay que repetir audit y validar, no basta modificar el número.
+2. **grpc-js → 1.13.7 o 1.14.6 como candidatos para ambos avisos:** el aviso high publica correcciones en 1.13.6/1.14.5, pero el apartado Patches del aviso low indica 1.13.7/1.14.6, aunque audit sitúa el límite del low en `<1.13.6`. Se conserva esta discrepancia de fuentes y se proponen las versiones posteriores, sin certificar una corrección probada aquí. **No encajan** en `~1.9.0`, que Firestore 4.17.2 fija; ambas aceptan Node >=12.10.0, verificado con `npm view`. Un override selectivo sería de la misma major pero fuera del contrato del padre: exige pruebas de compatibilidad. `npm view 'firebase@^12.19.0'` solo devuelve 12.19.0; el latest 13.2.0 es cambio mayor y trae Firestore 4.19.1, que aún declara `~1.9.0`: actualizar al latest no acredita resolverlo. Audit propone **firebase 9.14.0**, un downgrade fuera de `^12.19.0`; no es una actualización compatible ni se adopta. Otra opción a estudiar es declarar solo los módulos App/Auth usados, ajustando imports y peers para no instalar Firestore: requiere trabajo y validación propios.
+3. **Wrangler → 4.158.0:** encaja en `^4.148.0` y mantiene Node >=22. Su manifest declara **Miniflare 5.20261104.0-beta**, que declara exactamente **Sharp 0.35.5** y **Undici 7.30.1**, versiones corregidas de los avisos analizados. Puede resolver las cuatro entradas dev de esta cadena; verificar audit del árbol completo y pruebas del simulador en otro encargo. El cambio de Miniflare alpha a beta y workerd `1.20261006.1` → `1.20261104.1` merece validación aunque Wrangler conserve la major. No asumir que cualquier parche de Wrangler sirve: 4.149.0 declara otra alpha, `5.20261006.1-alpha`.
+4. **Overrides dev alternativos:** Sharp 0.35.5 (Node >=20.9.0) y Undici 7.30.1 (Node >=20.18.1) conservan sus ramas, pero Miniflare instalado fija **versiones exactas**, 0.35.4 y 7.29.1; reemplazarlas por override exige validar Images, red y simulación. Preferible evaluar la combinación que declara el padre Wrangler. No cambiar Miniflare ciegamente a su etiqueta `latest`: el registro devuelve 4.20260730.0, con Sharp 0.35.2 y Undici 7.28.0, todavía en rangos afectados.
+
+En un encargo posterior de dependencias habrá que escoger la opción, revisar el diff del lockfile, auditar el árbol resultante y validar autenticación Google, build y simulación pertinente, respetando el bloqueo de Turnstile y los requisitos de publicación. Este seguimiento identifica candidatos, no certifica compatibilidad funcional ni una app libre de vulnerabilidades.
+
+### Validación del seguimiento documental
+
+- `npm test`: **exit 0**, 587/587 Node, cero fallidas/canceladas/omitidas, y 14/14 Python, OK.
+- `npm run build`: **exit 0**, Vite 8.3.3, 76 módulos; mantiene el aviso de chunk >500 kB (JS 675,97 kB, gzip 190,96 kB). Gate y aviso intactos.
+- `npm run check:release`: **exit 0**, `No TO CONFIRM markers in site/.` No constituye aprobación de publicación ni resuelve los pendientes de PRE-34.
+- `git diff --check`: **exit 0**. Solo cambian esta spec privada y este ledger; código, aviso público, dependencias, lockfile y migraciones quedan idénticos a `9e6ed97`.
+- Logs de estas ejecuciones: `/home/taller/encargos/hampton-msg02-documentacion-audit-20261106/npm-test.log`, `npm-build.log` y `npm-check-release.log`. No se repite ni se declara aprobado el e2e completo.
+- Verificada la ascendencia de `d41b339`, los dos padres de la integración (`7701aca`, `52681bb`) y el merge `9e6ed97`; se conservan. Este commit documental se añade como descendiente local del merge, sin reescribir historial. Sin push, migraciones ni publicación; cualquier autorización futura debe identificar el nuevo SHA y cumplir los bloqueos vigentes.
