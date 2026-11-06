@@ -678,7 +678,7 @@ async function admin(browser) {
     const c = await browser.newContext(), p = await c.newPage();
     await p.goto(BASE + "p/HE-R050");
     await p.waitForSelector(".summary h1");
-    const t = await p.textContent(".summary .eyebrow");
+    const t = await p.textContent(".summary .place");
     await c.close();
     return t;
   };

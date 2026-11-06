@@ -4,10 +4,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const BASE = process.env.BASE || 'http://localhost:8788/';
 const SHOTS = process.argv[2];
-const cases = (process.env.DESIGN_CASES || 'home,catalog,detail,aux').split(',');
+const cases = (process.env.DESIGN_CASES || 'home,navigation,catalog,detail,aux').split(',');
 const photos = Array.from({length: 17}, (_, i) => ({src: `/media/DESIGN${i}`, thumb: `/media/DESIGN${i}?thumb`, alt: `Room ${i + 1}`}));
 const listing = (i = 0) => ({id: `HE-R${String(i + 1).padStart(3, '0')}`, title: i ? `Jersey home ${i + 1}` : '2 bedroom flat - Bottom of Wellington Road',
-  region: 'jersey', place: 'St Saviour', operation: 'sale', use: 'residential', status: 'For sale', beds: 2, baths: 1,
+  region: 'jersey', place: 'St Saviour', operation: 'sale', use: 'residential', status: 'For Sale', beds: 2, baths: 1,
   type: 'Two-bedroom flat', salePrice: 779000, currency: 'GBP', image: photos[0].src, thumb: photos[0].thumb,
   photos, summary: ['Parking and garden'], description: ['A quiet home in St Saviour.'], specs: [{group: 'Accommodation', label: 'Heating', value: 'Electric'}],
   floorplans: [], featured: i + 1});
@@ -74,6 +74,15 @@ async function shot(page, name, width) {
           await page.waitForFunction(() => scrollY > 0);
         } else {
           assert.equal(await page.$eval('.slide', el => Math.round(el.getBoundingClientRect().width)), width);
+          if (engine === chromium) {
+            const touch = await ctx.newCDPSession(page);
+            await page.evaluate(() => { window.pageSettled = new Promise(done => document.addEventListener('scrollend', () => done(true), {once: true})); });
+            await touch.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [{x: 200, y: 450}]});
+            for (let y = 410; y >= 130; y -= 40) await touch.send('Input.dispatchTouchEvent', {type: 'touchMove', touchPoints: [{x: 200, y}]});
+            await touch.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []});
+            await page.waitForFunction(() => scrollY > 0); await page.evaluate(() => window.pageSettled); await touch.detach();
+          }
+
         }
         await page.click('.slide:first-child [data-book]');
         assert.equal(await page.inputValue('#book-slot select[name=prop]'), 'HE-R001');
@@ -99,6 +108,23 @@ async function shot(page, name, width) {
         await many.waitForSelector('#quick');
         assert.equal(await many.locator('.feature').count(), 2, 'two featured blocks at most with six listings');
         assert.ok(await noOverflow(many)); assert.deepEqual(many.errors, []); await shot(many, 'home-many', width); await manyCtx.close();
+      }
+      if (cases.includes('navigation')) {
+        const {ctx, page} = await open(browser, width);
+        await page.waitForSelector('.hero-track');
+        let release, requested;
+        const gate = new Promise(done => { release = done; }), hit = new Promise(done => { requested = done; });
+        await page.route('**/apply.js', async route => { requested(); await gate; await route.continue(); });
+        const loaded = page.waitForResponse('**/apply.js');
+        try {
+          if (width === 390) await page.click('.menu-btn');
+          await page.click('#main-nav a[href="#/apply"]'); await hit;
+          await page.click('header .logo');
+          await page.$eval('.hero-track', t => { t.scrollLeft = t.clientWidth; });
+          await page.waitForFunction(() => document.querySelector('#hero-count').textContent === '2 of 5', undefined, {timeout: 3000});
+          assert.ok(!(await page.locator('.hero-arrow[data-dir="-1"]').isDisabled()), 'observer survives a cancelled side page');
+        } finally { release(); await loaded; }
+        assert.deepEqual(page.errors, []); await ctx.close();
       }
       if (cases.includes('catalog')) {
         const {ctx, page} = await open(browser, width, fixture.slice(0, 4), 'properties');
@@ -128,7 +154,9 @@ async function shot(page, name, width) {
         await shot(page, 'lightbox', width);
         await page.evaluate(() => { window.galleryClosed = new Promise(done => document.querySelector('#lightbox').addEventListener('close', () => done(true), {once: true})); });
         await page.keyboard.press('Escape'); await page.evaluate(() => window.galleryClosed);
-        await page.focus('.stage-track'); await page.keyboard.press('ArrowLeft');
+        await page.focus('.stage-track');
+        assert.ok(await page.$eval('.stage-track', t => parseFloat(getComputedStyle(t).outlineOffset) <= -2), 'keyboard focus stays inside the clipped photo stage');
+        await page.keyboard.press('ArrowLeft');
         await page.waitForFunction(() => document.querySelector('#stage-note').textContent.includes('Photo 4 of 17'));
         assert.ok(await noOverflow(page)); assert.deepEqual(page.errors, []); await shot(page, 'listing', width); await ctx.close();
         const broken = {...listing(), photos: [{src: '/media/BROKEN', thumb: '/media/BROKEN?thumb', alt: 'Front'}, photos[1]], image: '/media/BROKEN'};

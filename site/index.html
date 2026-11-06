@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tenor+Sans&family=Montserrat:wght@300;400;500;600&display=swap">
 <style>
-/* Layout: Heider-style monochrome gallery — full-bleed imagery, uppercase display type, bronze used only for action and price. */
+/* Layout: Heider-style monochrome gallery — full-bleed imagery, sentence-case display type, bronze used only for action and price. */
 :root{
   --ink:#151515; --paper:#ffffff; --mist:#f4f3f0; --line:#e3e0da; --stone:#6b665e; --bronze:#a56b3d; --bronze-dk:#86542d;
   --ok:#2f6b4f; --err:#a32020; --warn-bg:#fff6e5; --field-line:#8f8a82; --bronze-on-dark:#c9a27e;
@@ -262,6 +262,7 @@ form.tour .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-
 .stage{position:relative;aspect-ratio:3/2;max-height:calc(100vh - 250px);min-height:240px;width:100%;background:#111;overflow:hidden;border-radius:var(--r)}
 .stage>img,.stage iframe{width:100%;height:100%;object-fit:cover;border:0;display:block}
 .stage-track{height:100%}
+.stage-track:focus-visible{outline-offset:-4px}
 .stage-frame{position:relative;min-width:0;height:100%;scroll-snap-align:start;scroll-snap-stop:always;background:var(--mist)}
 .stage-frame img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}
 .stage-nav:disabled{opacity:.4;cursor:default}
@@ -362,8 +363,8 @@ footer .staff:hover,footer .staff:focus-visible{opacity:1;text-decoration:underl
 .reg-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;margin-top:48px;padding-top:32px;border-top:1px solid var(--line)}
 .reg-cta p{margin:0;color:var(--stone);max-width:52ch}
 @media (max-width:480px){.reg-cta .btn{width:100%;padding-inline:16px}}
-/* PUB-22: /properties. Design A (Luis, 6-nov): three photo buttons; the hovered or chosen one widens and its photo
-   zooms in slowly. Text sits on a dark gradient for contrast. Stacked bands on phones; no motion when reduced. */
+/* PUB-22: /properties. Design A (Luis, 6-nov): three photo buttons; the hovered or chosen photo zooms in slowly
+   without changing the button width. Text sits on a dark gradient for contrast. Stacked bands on phones; no motion when reduced. */
 .catalog h1{font:400 clamp(30px,4.4vw,52px)/1.08 var(--display);letter-spacing:.01em;margin:0 0 32px}
 .op-buttons{display:flex;gap:12px;height:clamp(200px,26vw,320px);margin-bottom:28px}
 .op-buttons button{flex:1;min-width:0;position:relative;overflow:hidden;border:0;border-radius:var(--r-lg);padding:0;cursor:pointer;color:#fff;
@@ -877,6 +878,7 @@ function detail(id) {
   // S8: as the server titles the page (server/seo.js), so a listing opened inside the site reads the same.
   document.title = [p.title, amount(p) == null ? null : priceLabel(p), BRAND].filter(Boolean).join(" · ");
   const shareUrl = `${SITE}/p/${p.id}`;
+  const status = String(p.status || OP_ONE[p.operation]);
   const agent = agentFor(p);
   const canCalc = p.operation === "sale" && p.salePrice != null;
   const cur = p.currency || "GBP", money0 = n => money(n, cur);
@@ -908,7 +910,7 @@ function detail(id) {
       </dialog>` : ""}
     </div>
     <aside class="summary" aria-label="Summary">
-      <div class="place">${esc(p.status)} in ${esc(p.place)}</div>
+      <div class="place">${esc(status.charAt(0).toUpperCase() + status.slice(1).toLowerCase())} in ${esc(p.place)}</div>
       <h1>${esc(p.title)}</h1>
       <div class="price num">${esc(priceLabel(p))}${p.operation === "business" ? "<small>Business, not freehold</small>" : ""}</div>
       ${restriction ? `<span class="tag restrict">${esc(restriction)}</span>` : ""}
@@ -1107,14 +1109,15 @@ const HOME_SECTIONS = ["portfolio", "team", "book"];
 // Sections and cards fade up as they scroll into view; skipped with reduced motion or no IntersectionObserver.
 const io = "IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion: reduce)").matches
   ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), {rootMargin: "0px 0px -6% 0px"}) : null;
-const reveal = () => io && document.querySelectorAll("#app .head, #app .card, #app .agent, #app .feature, #app .facts > div, #app .book > *, #app .detail > *")
+const reveal = () => io && document.querySelectorAll("#app .head, #app .card, #app .agent, #app .feature, #app .book > *, #app .detail > *")
   .forEach(el => { if (el.classList.contains("rv")) return; el.classList.add("rv"); el.style.transitionDelay = `${([...el.parentElement.children].indexOf(el) % 4) * 80}ms`;
     el.addEventListener("transitionend", () => { el.style.transitionDelay = ""; }, {once: true}); io.observe(el); });
 // Register your search and the privacy notice live in apply.js, fetched only when one of them opens (spec §5).
 const SIDE_PAGES = {"#/apply": (m, root) => m.renderApply(root, {esc, tsKey: TS_KEY, tsReady}), "#/privacy": (m, root) => m.renderPrivacy(root)};
-const sidePage = h => import("/apply.js").then(m => { if (location.hash !== h) return; SIDE_PAGES[h](m, $("#app")); scrollTo({top: 0, behavior: "instant"}); })
+const sidePage = h => import("/apply.js").then(m => { if (location.hash !== h) return; clearGallery(); SIDE_PAGES[h](m, $("#app")); scrollTo({top: 0, behavior: "instant"}); })
   .catch(() => {
     if (location.hash !== h) return;
+    clearGallery();
     $("#app").innerHTML = `<section class="block"><div class="wrap empty" role="alert"><p>We couldn't load this page right now.</p>
       <button class="btn ghost" type="button">Try again</button></div></section>`;
     $("#app .empty button").addEventListener("click", () => location.reload());
@@ -1135,7 +1138,7 @@ const route = () => {
   if (!PUB.length && !SIDE_PAGES[h]) return; // listings not here yet (or failed): their own message stays
   routed = location.href;
   setNav(false);
-  if (SIDE_PAGES[h]) { clearGallery(); document.title = HOME_TITLE; return sidePage(h); }
+  if (SIDE_PAGES[h]) { document.title = HOME_TITLE; return sidePage(h); }
   // Any other /p/… (a lower-case or mistyped id) is a listing that doesn't exist: not found, as the server says.
   if (m || location.pathname.startsWith("/p/")) { detail(m?.[1]); return reveal(); }
   if (location.pathname === "/properties") { filter = catalogFilter(location.search, PUB.length > FEW_MAX, MAX); properties(); return reveal(); }
