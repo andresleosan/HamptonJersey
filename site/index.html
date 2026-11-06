@@ -394,15 +394,36 @@ footer .staff:hover,footer .staff:focus-visible{opacity:1;text-decoration:underl
 .apply-progress p{margin:0;font-size:13px;color:var(--stone)}
 .pbar{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
 .pbar i{display:block;height:100%;width:calc(var(--step,1) / var(--total,6) * 100%);background:var(--bronze);border-radius:2px;transition:width .25s ease-out}
-fieldset.step{border:0;margin:0;padding:0;min-width:0;display:grid;gap:36px}
-/* Questions in sentence case at a readable size; "(optional)" quieter; more air between groups than inside one. */
+fieldset.step{border:0;margin:0;padding:0;min-width:0;display:grid;gap:24px}
+/* Register your search (references: Redfin/Zillow segmented counts, Realtor/Redfin equal tiles, Airbnb section rules).
+   Questions in sentence case at a readable size; "(optional)" quieter; a hairline between option groups.
+   One choice from a short scale = segmented bar of equal cells; several choices or long labels = equal-width tiles. */
 .apply .field{gap:12px}
-.apply .field>legend,.apply .field>label{font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink);line-height:1.35}
-.apply .field>legend i,.apply .field>label i{font-style:normal;font-weight:400;letter-spacing:0;color:var(--stone);margin-left:2px}
-.apply .opts{gap:10px}
-.apply .opts span{font-size:15px;padding:10px 20px}
-.apply .opts.nums span{min-width:48px;justify-content:center;padding:10px 14px}
-@media (max-width:480px){.apply .row{grid-template-columns:1fr}.apply .opts{gap:8px}.apply .opts span{padding:10px 16px}.apply .opts.nums span{padding:10px 12px}fieldset.step{gap:32px}}
+.apply .field>legend,.apply .field>label{font-size:16px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink);line-height:1.35}
+.apply fieldset.field>legend{padding-bottom:12px}
+.apply .field>legend i,.apply .field>label i{font-style:normal;font-size:14px;font-weight:400;letter-spacing:0;color:var(--stone);margin-left:4px}
+/* The line sits on the legend itself: a fieldset's own top border would run through its legend. */
+fieldset.step>fieldset.field+fieldset.field>legend{width:100%;border-top:1px solid var(--line);padding-top:24px}
+.apply .opts label:active span{transform:none}
+.apply details.more{border-top:1px solid var(--line);padding-top:8px}
+.apply details.more summary{display:flex;align-items:center;gap:8px;min-height:44px;width:max-content;cursor:pointer;font-size:15px;font-weight:600;text-decoration:underline;text-underline-offset:3px;list-style:none}
+.apply details.more summary::-webkit-details-marker{display:none}
+.apply details.more summary::before{content:"+";font-size:18px;font-weight:400;text-decoration:none}
+.apply details.more[open] summary{display:none}
+.apply details.more>fieldset{padding-top:16px}
+.apply .opts.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:0;border:1px solid var(--field-line);border-radius:12px;overflow:hidden;background:#fff}
+.apply .opts.seg label{display:flex;min-width:0}
+.apply .opts.seg label+label{border-left:1px solid var(--field-line)}
+.apply .opts.seg span{flex:1;justify-content:center;min-height:48px;padding:0 6px;border:0;border-radius:0;font-size:15px;text-align:center;line-height:1.2}
+.apply .opts.seg label:hover span{background:var(--mist)}
+.apply .opts.seg input:checked+span{background:var(--ink);color:var(--paper)}
+.apply .opts.seg input:focus-visible+span{outline:2px solid var(--bronze);outline-offset:-4px}
+.apply .opts.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:10px}
+.apply .opts.tiles label{display:flex}
+.apply .opts.tiles span{position:relative;flex:1;justify-content:flex-start;min-height:52px;padding:12px 40px 12px 16px;border-radius:12px;font-size:15px;line-height:1.3}
+.apply .opts.tiles input:checked+span{background:#fff;color:var(--ink);border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.apply .opts.tiles input:checked+span::after{content:"";position:absolute;top:50%;right:14px;width:18px;height:18px;margin-top:-9px;border-radius:50%;background:var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m6 12 4 4 8-8' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E") center/12px no-repeat}
+@media (max-width:480px){.apply .row{grid-template-columns:1fr}.apply .opts.seg span{font-size:14px;padding:0 4px}}
 fieldset.step>legend{padding:0;margin-bottom:24px}
 .step h2{scroll-margin-top:96px}
 .step .hint{margin:0}

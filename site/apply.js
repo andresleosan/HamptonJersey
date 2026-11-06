@@ -105,7 +105,8 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   const err = name => `<small class="field-err" id="e-${name}" hidden></small>`;
   // "(optional)" is set apart in lighter text so the question itself reads first.
   const opt = l => l.replace(" (optional)", " <i>(optional)</i>");
-  const pills = (name, items, type = "radio", req = false, cls = "") => `<div class="opts${cls}">${items.map(([v, l]) =>
+  // One choice from a short scale → a segmented bar ("seg"); any number of choices, or long labels → tiles.
+  const pills = (name, items, type = "radio", req = false, cls = type === "checkbox" ? " tiles" : " seg") => `<div class="opts${cls}">${items.map(([v, l]) =>
     `<label><input type="${type}" name="${name}" value="${esc(v)}"${req ? " required" : ""}><span>${esc(l)}</span></label>`).join("")}</div>`;
   const group = (name, legend, inner, only = "") =>
     `<fieldset class="field"${only ? ` data-only="${only}"` : ""}><legend>${opt(legend)}</legend>${inner}${err(name)}</fieldset>`;
@@ -123,13 +124,15 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       ${err("operation")}
       <p class="hint">Looking for commercial premises? <a href="#book">Contact us</a></p>`,
     group("parishes_wanted", "Parishes you'd like (optional)", pills("parishes_wanted", list("parishes"), "checkbox"))
-      + group("parishes_excluded", "Parishes to avoid (optional)", pills("parishes_excluded", list("parishes"), "checkbox"))
+      // Rarely used, so it waits behind a link; it opens by itself when it already has an answer (sync).
+      + `<details class="more"><summary>Add parishes to avoid</summary>${group("parishes_excluded", "Parishes to avoid (optional)",
+        pills("parishes_excluded", list("parishes"), "checkbox"))}</details>`
       + input("near", "Near somewhere in particular (optional)", `maxlength="200" placeholder="Your work, a school"`),
     group("property_types", "Type of home (optional)", pills("property_types", list("property_types"), "checkbox"))
-      + group("bedrooms_min", "Bedrooms, at least", pills("bedrooms_min", [[0, "Studio"], [1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]], "radio", true, " nums"))
-      + group("bedrooms_ideal", "Bedrooms, ideally (optional)", pills("bedrooms_ideal", [[1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]], "radio", false, " nums"))
-      + group("bathrooms_min", "Bathrooms, at least (optional)", pills("bathrooms_min", [[1, "1"], [2, "2"], [3, "3+"]], "radio", false, " nums")),
-    group("parking_spaces", "Parking spaces (optional)", pills("parking_spaces", list("parking"), "radio", false, " nums"))
+      + group("bedrooms_min", "Bedrooms, at least", pills("bedrooms_min", [[0, "Studio"], [1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]], "radio", true))
+      + group("bedrooms_ideal", "Bedrooms, ideally (optional)", pills("bedrooms_ideal", [[1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]], "radio"))
+      + group("bathrooms_min", "Bathrooms, at least (optional)", pills("bathrooms_min", [[1, "1"], [2, "2"], [3, "3+"]], "radio")),
+    group("parking_spaces", "Parking spaces (optional)", pills("parking_spaces", list("parking"), "radio"))
       + group("outdoor", "Outdoor space (optional)", pills("outdoor", list("outdoor"), "checkbox"))
       + group("furnished", "Furnished (optional)", pills("furnished", list("furnished")), "rent")
       + group("pets", "Pets (optional)", pills("pets", list("pet_kinds"), "checkbox") + `<div class="row">${pets.map(([v, l]) =>
@@ -140,10 +143,10 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
         ${input("budget_stretch", money("I can stretch to", "I can stretch to", " (optional)"), count)}</div>`
       + input("move_in_date", "When would you like to move? (optional)", `type="date" min="${today}" max="${inTwoYears}"`)
       + input("lease_term_months", "Lease length in months (optional)", count, "rent")
-      + group("buyer_position", "Your position (optional)", pills("buyer_position", list("buyer_position")), "buy")
+      + group("buyer_position", "Your position (optional)", pills("buyer_position", list("buyer_position"), "radio", false, " tiles"), "buy")
       + group("mortgage_aip", "Mortgage agreement in principle (optional)", pills("mortgage_aip", list("mortgage_aip")), "buy"),
     `<p class="hint">It decides which homes you can rent or buy in Jersey.</p>`
-      + group("housing_status", "Housing status (optional)", pills("housing_status", list("housing_status")))
+      + group("housing_status", "Housing status (optional)", pills("housing_status", list("housing_status"), "radio", false, " tiles"))
       + `<div class="row">${input("household_adults", "Adults (optional)", count)}${input("household_children", "Children (optional)", count)}</div>`,
     input("name", "Full name", `autocomplete="name" maxlength="120" required placeholder="Your name"`)
       + input("email", "Email", `type="email" autocomplete="email" maxlength="254" required placeholder="name@example.com"`)
@@ -192,7 +195,8 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     const op = $("[name=operation]:checked", form)?.value;
     form.querySelectorAll("[data-only]").forEach(el => { el.hidden = el.dataset.only !== op; });
     form.querySelectorAll("[data-rent]").forEach(l => { l.innerHTML = opt(op === "buy" ? l.dataset.buy : l.dataset.rent); });
-    const chosen = snapshot().pets ?? [];
+    const a = snapshot(), chosen = a.pets ?? [];
+    if ((a.parishes_excluded ?? []).length) $("details.more", form).open = true;
     form.querySelectorAll("[data-pet]").forEach(el => { el.hidden = !chosen.includes(el.dataset.pet); });
   };
   const controls = name => [...form.querySelectorAll(`[name="${name}"]`)];
@@ -249,6 +253,9 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     if (other && t.checked) controls(other).forEach(x => { if (x.value === t.value) x.checked = false; });
     sync(); save();
   });
+  // The link disappears once open, so the focus moves to the first parish rather than being lost.
+  $("details.more summary", form).addEventListener("click", e =>
+    setTimeout(() => $("input", e.target.parentElement).focus()));
   back.addEventListener("click", () => { if (step > 0 && !sending) go(step - 1); });
   form.addEventListener("submit", async e => {
     e.preventDefault();
