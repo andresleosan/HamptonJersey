@@ -101,7 +101,7 @@ export default function Listings({ onChange }) {
           title={l.featured_rank != null ? "In the Featured section of the home page. Click to remove." : "Click to show in the Featured section of the home page."}
           aria-label={`Featured on the home page: ${l.title}${featNo[l.id] ? `, number ${featNo[l.id]}` : ""}`} onClick={() => star(l)}>{l.featured_rank != null ? "★" : "☆"}
           {featNo[l.id] && <sup className="star-no" aria-hidden="true">{featNo[l.id]}</sup>}</button>
-          <div><a href={`#/p/${l.id}`}>{l.title}</a><div className="muted">{l.id} · {OPERATION[l.operation]}{bedsLabel(l.bedrooms) && ` · ${bedsLabel(l.bedrooms)}`}</div></div></div></td>
+          <div><a href={`#/p/${l.id}`}>{l.title}</a><div className="meta"><span>{l.id}</span><span>{OPERATION[l.operation]}</span>{bedsLabel(l.bedrooms) && <span>{bedsLabel(l.bedrooms)}</span>}</div></div></div></td>
         <td>{l.location || l.country || "—"}</td>
         <td className="parish" data-label="Parish">{l.parish ?? "—"}</td>
         <td className="num">{priceText(l)}</td>
@@ -117,7 +117,7 @@ export default function Listings({ onChange }) {
         <td className="muted">{fmtDate(l.updated_at)}</td>
         <td><details className="more row-menu"><summary aria-label={`Actions for ${l.title}`}>…</summary><div className="menu">
           <a href={`#/p/${l.id}`}>Edit</a>
-          {stateOf(l) === "published" && l.has_public_photo ? <a href={`/p/${l.id}`} target="_blank" rel="noopener">View on the website ↗</a> : null}
+          {stateOf(l) === "published" && l.has_public_photo ? <a href={`/p/${l.id}`} target="_blank" rel="noopener noreferrer">View on the website</a> : null}
           {l.to_confirm === 1 && <button type="button" onClick={e => act(e, l, "confirm", "confirmed as still available.")}>Still available</button>}
           {stateOf(l) !== "archived" ? <button type="button" onClick={e => act(e, l, "archive", "archived.")}>Archive</button>
             : <button type="button" onClick={e => act(e, l, "restore", "restored as a draft.")}>Restore</button>}

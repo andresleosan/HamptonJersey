@@ -124,8 +124,14 @@ export default function Review() {
       <Recalculate onDone={restart} />
     </div>
     <div ref={regionRef} className="review-queue" role="region" aria-label="Review queue" onKeyDown={onKey}>
-      <p className="muted">While the focus is in the queue: <kbd>A</kbd> Shortlist · <kbd>R</kbd> Reject, then <kbd>1</kbd>–<kbd>5</kbd> for
-        why · <kbd>S</kbd> Skip · <kbd>Esc</kbd> cancels.</p>
+      <p className="muted">While the focus is in the queue:</p>
+      <dl className="shortcuts">
+        <dt><kbd>A</kbd></dt><dd>Shortlist</dd>
+        <dt><kbd>R</kbd></dt><dd>Reject</dd>
+        <dt><kbd>1</kbd>-<kbd>5</kbd></dt><dd>Choose a rejection reason</dd>
+        <dt><kbd>S</kbd></dt><dd>Skip</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Cancel</dd>
+      </dl>
       <p role="status" className="ok review-msg">{msg?.ok && msg.text}
         {undo && <button type="button" className="btn ghost sm" onClick={undoLast}>Undo</button>}</p>
       {msg && !msg.ok && <p role="alert" className="err">{msg.text}</p>}
@@ -153,7 +159,7 @@ export default function Review() {
 // The search the match is for, as text.
 function Summary({ a }) {
   const { budget_min: lo, budget_max: hi, budget_stretch: up } = a;
-  const range = lo != null && hi != null ? `${money(lo)}–${money(hi)}` : hi != null ? `Up to ${money(hi)}`
+  const range = lo != null && hi != null ? `${money(lo)}-${money(hi)}` : hi != null ? `Up to ${money(hi)}`
     : lo != null ? `From ${money(lo)}` : null;
   const budget = range ? `${range}${a.operation === "rent" ? " a month" : ""}${up != null ? `, can stretch to ${money(up)}` : ""}` : "—";
   const rows = [["Looking", show("operation", a.operation)], ["Budget", budget], ["Type", show("property_types", a.property_types)],

@@ -124,7 +124,7 @@ export default function App() {
   };
   return <>
     <header ref={bar} className="bar" inert={expired} onClick={e => { if (e.target.closest("a")) confirmLeave(e); }}>
-      <a href="#/" className="brand">Hampton Estates · Admin</a>
+      <a href="#/" className="brand">Hampton Estates{" "}<span className="staff">Staff</span></a>
       <nav aria-label="Sections">
         <a href="#/" aria-current={current === "" ? "page" : undefined}>Inbox{counts.action > 0
           && <span className="count">{counts.action}<span className="sr"> need action</span></span>}</a>

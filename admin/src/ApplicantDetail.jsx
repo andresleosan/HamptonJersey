@@ -103,7 +103,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     if (refocusMatch.current) { document.getElementById(refocusMatch.current)?.focus(); refocusMatch.current = null; }
   }, [data]);
 
-  if (loadErr && !data) return <p role="alert" className="err">{loadErr} · <a href="#/applicants">Back to applicants</a></p>;
+  if (loadErr && !data) return <p role="alert" className="err">{loadErr}<br /><a href="#/applicants">Back to applicants</a></p>;
   if (!data || !form) return <p>Loading applicant…</p>;
   const a = data.applicant, c = data.contact, archived = !!a.archived_at;
   const nameOf = email => users.find(u => u.email === email)?.name || email;
@@ -283,7 +283,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   return <div className="record">
     <div className="head">
       <div><h1 id="t-applicant">{c.name}</h1>
-        <p className="muted">{OPERATION_LABEL[a.operation]} · {SOURCE_LABEL[a.source]} · Applied {fmtDate(a.created_at)}</p>
+        <p className="meta"><span>{OPERATION_LABEL[a.operation]}</span><span>{SOURCE_LABEL[a.source]}</span><span>Applied {fmtDate(a.created_at)}</span></p>
         <p className="muted">{data.retention.exempt ? "Kept for 5 years: it has a sale"
           : data.retention.offer ? "Kept while an offer is open" : `Kept until ${fmtDayMonth(data.retention.kept_until)}`}</p></div>
       <div className="inline">
@@ -291,7 +291,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
         {tel && <a className="btn ghost sm" href={`https://wa.me/${tel.slice(1)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
         {c.email && <a className="btn ghost sm" href={`mailto:${c.email}`}>Email</a>}
         <button type="button" className="btn ghost sm" onClick={logConversation}>Log conversation</button>
-        <a href="#/applicants">← Back to applicants</a>
+        <a href="#/applicants">Back to applicants</a>
       </div>
     </div>
     {archived && <p className="warn" role="note">Archived {fmtDate(a.archived_at)}. Restore it to work on it again, or delete it permanently from the bar below.</p>}
@@ -460,7 +460,7 @@ function ofOffer(e, offers) {
   const h = e.type === "offer.recorded" ? `Offer recorded: ${money(d.amount)} on ${title}`
     : e.type === "listing.availability_changed" ? `Listing marked ${AVAILABILITY[d.after.availability] ?? d.after.availability}`
     : e.type === "sale.milestone" ? `Step updated: ${NEUTRAL_STEP[d.key] ?? milestoneLabel(d.key)}` : EVENT[e.type] ?? e.type;
-  return [h, [e.type !== "offer.recorded" && title, d.conditions, REASON[d.reason], d.note].filter(Boolean).join(" · ")];
+  return [h, [e.type !== "offer.recorded" && title, d.conditions, REASON[d.reason], d.note].filter(Boolean)];
 }
 const headline = (e, matches, offers) => (e.type === "match.reviewed" ? reviewed(e, matches)
   : e.data?.offer_id != null ? ofOffer(e, offers)
@@ -475,14 +475,14 @@ function Timeline({ events, viewings, matches, offers, by, nameOf }) {
   if (!items.length) return <p className="empty card">Nothing has happened yet.</p>;
   const when = at => <time dateTime={at} title={fmtDate(at)}>{fmtAgo(at)}</time>;
   return <ol className="timeline card">{items.map(({ e, h, v }) => e ? <li key={`e${e.id}`}>
-    <p><strong>{h[0]}</strong> <span className="muted">{by(e.actor)} · {when(e.at)}</span></p>
-    {h[1] && <p>{h[1]}</p>}
+    <p><strong>{h[0]}</strong> <span className="meta"><span>{by(e.actor)}</span><span>{when(e.at)}</span></span></p>
+    {h[1]?.length > 0 && <p className="meta">{(Array.isArray(h[1]) ? h[1] : [h[1]]).map((fact, i) => <span key={i}>{fact}</span>)}</p>}
     {e.type === "applicant.created" && e.data && <p className="muted">{show("operation", e.data.operation)} · {show("source", e.data.source)}</p>}
     {e.data?.after && <dl className="changes">{Object.keys(e.data.after).map(k => <div key={k}><dt>{label(k)}</dt>
       <dd><span className="sr">from </span>{value(k, e.data.before?.[k], nameOf)} <span aria-hidden="true">→</span><span className="sr"> to</span> {value(k, e.data.after[k], nameOf)}</dd></div>)}</dl>}
   </li> : <li key={`v${v.id}`}>
     <p><strong>Viewing</strong> <span className="muted">{when(v.created_at)}</span></p>
-    <p>{v.listing_title || v.listing_ref || "General enquiry / valuation"} · {fmtDay(v.date, true)} at {v.time} · {VIEWING_STATUS[v.status]?.[0] ?? v.status} · <a href={v.listing_id ? `#/viewings?listing=${v.listing_id}` : "#/viewings"}>Open viewings</a></p>
+    <p className="meta"><span>{v.listing_title || v.listing_ref || "General enquiry / valuation"}</span><span>{fmtDay(v.date, true)} at {v.time}</span><span>{VIEWING_STATUS[v.status]?.[0] ?? v.status}</span><span><a href={v.listing_id ? `#/viewings?listing=${v.listing_id}` : "#/viewings"}>Open viewings</a></span></p>
   </li>)}</ol>;
 }
 

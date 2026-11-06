@@ -49,7 +49,7 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
       setItems(list => [...list, ...added]); setSaved(next);
       onChange(next, latest.current.coverId);
     }
-    setMsg(failed.length ? { text: `Not uploaded: ${failed.join(" · ")}` } : { ok: true, text: `${added.length} photo(s) uploaded.` });
+    setMsg(failed.length ? { text: `Not uploaded: ${failed.join("; ")}` } : { ok: true, text: `${added.length} photo(s) uploaded.` });
     setBusy(false);
   };
 
@@ -71,10 +71,10 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
       className={m.id === cover ? "is-cover" : undefined}>
       <div className="ph">
         {m.content_type === "application/pdf"
-          ? <a className="doc" href={`/media/${m.id}`} target="_blank" rel="noopener noreferrer">PDF · open</a>
+          ? <a className="doc" href={`/media/${m.id}`} target="_blank" rel="noopener noreferrer">Open PDF</a>
           : <img src={`/media/${m.id}?thumb`} alt={m.label || ""} loading="lazy" />}
         {m.id === cover && <span className="tag">Cover</span>}
-        {m.origin === "external" && <span className="tag priv">Private · reference</span>}
+        {m.origin === "external" && <span className="tag priv">Private reference</span>}
       </div>
       <input aria-label={`Caption for photo ${i + 1}`} value={m.label ?? ""} maxLength={200} onChange={e => patch(m.id, { label: e.target.value })} />
       <div className="ctl">

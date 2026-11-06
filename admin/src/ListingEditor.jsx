@@ -72,7 +72,7 @@ export default function ListingEditor({ id, onChange }) {
   const dirty = fieldsDirty || photosDirty;
   useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
 
-  if (loadErr) return <p role="alert" className="err">{loadErr} · <a href="#/listings">Back to listings</a></p>;
+  if (loadErr) return <p role="alert" className="err">{loadErr}<br /><a href="#/listings">Back to listings</a></p>;
   if (!data) return <p>Loading listing…</p>;
   const l = data.listing, state = stateOf(l);
   const setListing = listing => { setData(d => ({ ...d, listing })); setForm(toForm(listing)); setMatchForm(toMatchForm(listing)); setErrors({}); };
@@ -166,8 +166,8 @@ export default function ListingEditor({ id, onChange }) {
     <aside className="side card">
       {cover ? <img src={`/media/${cover.id}?thumb`} alt="" /> : <div className="thumb big" />}
       <h1>{l.title}</h1>
-      <p className="muted">{l.id} · <span className={`badge ${state}`}>{STATUS_LABEL[state]}</span>
-        {l.to_confirm === 1 && <> <span className="badge attention">To confirm</span></>}</p>
+      <p className="meta"><span>{l.id}</span><span><span className={`badge ${state}`}>{STATUS_LABEL[state]}</span></span>
+        {l.to_confirm === 1 && <span><span className="badge attention">To confirm</span></span>}</p>
       <p className="muted">Edited {fmtDate(l.updated_at)}</p>
       {l.to_confirm !== 1 && onMarket && <p className="muted">Availability confirmed {checked}</p>}
       {/* C10: people with a viewing coming up, or one in the last 30 days that went well; the link lists them. */}
@@ -182,7 +182,7 @@ export default function ListingEditor({ id, onChange }) {
         <button key={k} type="button" className="linkish" onClick={() => document.getElementById(`s-${k}`).scrollIntoView({ behavior: "smooth" })}>{t}</button>)}</nav>
       {/* O1: the owner's printable report, 30 days by default. */}
       <a className="btn ghost sm" href={`#/listings/${encodeURIComponent(l.id)}/report?days=30`}>Owner report</a>
-      <a href="#/listings">← Back to listings</a>
+      <a href="#/listings">Back to listings</a>
     </aside>
 
     <div className="sections">

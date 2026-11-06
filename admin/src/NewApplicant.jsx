@@ -41,7 +41,7 @@ export default function NewApplicant({ contactId }) {
     }
   };
 
-  if (contactId && loadErr) return <p role="alert" className="err">{loadErr} · <a href="#/applicants/new">Start a new applicant instead</a></p>;
+  if (contactId && loadErr) return <p role="alert" className="err">{loadErr}<br /><a href="#/applicants/new">Start a new applicant instead</a></p>;
   if (contactId && !contact) return <p>Loading contact…</p>;
   const radio = (k, v, t) => <label key={v} className="check"><input type="radio" name={`n-${k}`} value={v} checked={extra[k] === v}
     aria-invalid={errors[k] ? true : undefined} aria-describedby={errors[k] ? `ae-${k}` : undefined}
@@ -52,7 +52,7 @@ export default function NewApplicant({ contactId }) {
   // A div, not a section: the entrance animation of `.page>section` would make it the box the fixed action bar sits in.
   return <div>
     <div className="head"><h1 id="t-new-app">{contact ? `New search for ${contact.name}` : "New applicant"}</h1>
-      <a href="#/applicants">← Back to applicants</a></div>
+      <a href="#/applicants">Back to applicants</a></div>
     <p className="muted">Required: {contact ? "" : "a name, an email or phone number, "}To Let or To Buy, and how they contacted us. Leave anything unknown blank.</p>
     <form ref={formRef} className="sections" noValidate onSubmit={e => { e.preventDefault(); submit(contact?.id); }}>
       <section className="card fields-group" aria-labelledby="g-source"><h2 id="g-source">How they contacted us</h2>

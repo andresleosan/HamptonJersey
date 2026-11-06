@@ -55,7 +55,7 @@ export default function RentImport({ onChange }) {
     const rows = read(file.rows, map), parts = Math.ceil(rows.length / PART);
     const total = { matched: 0, unmatched: 0, duplicate: 0, by_hand: 0, ignored: 0, rows: [] };
     for (let i = 0; i < parts; i++) {
-      setProgress(`${verb} rows ${(i * PART + 1).toLocaleString("en-GB")}–${Math.min((i + 1) * PART, rows.length).toLocaleString("en-GB")} of ${rows.length.toLocaleString("en-GB")}…`);
+      setProgress(`${verb} rows ${(i * PART + 1).toLocaleString("en-GB")}-${Math.min((i + 1) * PART, rows.length).toLocaleString("en-GB")} of ${rows.length.toLocaleString("en-GB")}…`);
       const r = await api("/admin/payments/import", { method: "POST", body: { rows: rows.slice(i * PART, (i + 1) * PART), dry_run } })
         .catch(e => { e.parts = [i, parts]; throw e; });
       for (const k of Object.keys(STATUS)) total[k] += r[k];
@@ -79,7 +79,7 @@ export default function RentImport({ onChange }) {
       setProgress(""); setSummary(s); setDone(s); // the message shows in the status line
     } catch (e) {
       const [ok, parts] = e.parts ?? [0, 0];
-      setProgress(""); setErr(`${e.message} ${ok ? `The first ${ok} of ${parts} parts (rows 1–${(ok * PART).toLocaleString("en-GB")}) were saved.`
+      setProgress(""); setErr(`${e.message} ${ok ? `The first ${ok} of ${parts} parts (rows 1-${(ok * PART).toLocaleString("en-GB")}) were saved.`
         : "Nothing was saved."} Import the same file again to add the rest: rows already imported are skipped.`);
     } finally { setBusy(false); onChange(); }
   };

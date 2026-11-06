@@ -183,7 +183,7 @@ export function MarkStep({ row: a, onClose, onDone, onRefused }) {
   };
   return <Modal title="Mark step done" onClose={onClose}>
     <form className="sheet-form" onSubmit={submit} noValidate>
-      <p>{a.tenant_name} · {a.address} · {a.payment_ref}</p>
+      <p className="meta"><span>{a.tenant_name}</span><span>{a.address}</span><span>{a.payment_ref}</span></p>
       <p>{pence(a.balance)} owed. The oldest unpaid rent fell due {fmtDay(a.oldest_unpaid_on)}, {a.days_late} days ago.</p>
       <p><strong>{a.next_step.label}</strong> <span className="muted">(day {a.next_step.days})</span>. Nothing is sent from here: record it
         once it's done.</p>
@@ -237,8 +237,8 @@ export function Assign({ payment: p, from, onClose, onDone, onRefused }) {
       {shown.length > 0 && <fieldset className="choices-set"><legend>Matching tenancies</legend><div className="buyers">
         {shown.map(r => <label key={r.tenancy_id} className="check"><input type="radio" name="as-tenancy" checked={pick?.tenancy_id === r.tenancy_id}
           onChange={() => { setPick(r); setKind(r.service === "let_only" && p.kind === "rent" ? "deposit" : p.kind); setErrors(({ tenancy_id, ...x }) => x); }} />
-          <span>{r.tenant_name}{r.ended_on && r.ended_on <= jerseyToday() && ` (ended ${fmtDay(r.ended_on)})`} <span className="muted">
-            {r.address} · {r.payment_ref} · {SERVICE[r.service]}</span></span></label>)}
+          <span>{r.tenant_name}{r.ended_on && r.ended_on <= jerseyToday() && ` (ended ${fmtDay(r.ended_on)})`} <span className="meta">
+            <span>{r.address}</span><span>{r.payment_ref}</span><span>{SERVICE[r.service]}</span></span></span></label>)}
       </div></fieldset>}
       {offered && !offered.length && <p className="muted" role="status">No {from ? "other full management " : ""}tenancy matches “{q.trim()}”.</p>}
       {error("tenancy_id")}
@@ -341,7 +341,7 @@ export function NewRental({ landlordId, onChange }) {
     aria-invalid={r.errors[k] ? true : undefined} aria-describedby={r.errors[k] ? `e-nr-${k}` : undefined} />{t}</label>;
   // A div, not a section: the entrance animation of `.page>section` would make it the box the fixed action bar sits in.
   return <div>
-    <div className="head"><h1 id="t-new-rental">New property</h1><a href="#/rentals">← Back to rentals</a></div>
+    <div className="head"><h1 id="t-new-rental">New property</h1><a href="#/rentals">Back to rentals</a></div>
     <form ref={form} className="sections" noValidate onSubmit={submit}>
       <section className="card fields-group" aria-labelledby="g-landlord"><h2 id="g-landlord">Landlord</h2>
         <label>Landlord<select id="r-landlord" value={f.landlord} onChange={set("landlord")} {...r.invalid("landlord_id")}>
@@ -393,7 +393,7 @@ export function Landlord({ id }) {
   useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
 
   if (!data) return loadErr ? <p role="alert" className="err">{loadErr}{" "}
-    <button type="button" className="btn ghost sm" onClick={load}>Try again</button> · <a href="#/rentals">Back to rentals</a></p> : <p>Loading landlord…</p>;
+    <button type="button" className="btn ghost sm" onClick={load}>Try again</button><br /><a href="#/rentals">Back to rentals</a></p> : <p>Loading landlord…</p>;
   const ll = data.landlord;
   const save = async () => {
     setBusy(true); setMsg(null);
@@ -410,7 +410,7 @@ export function Landlord({ id }) {
   return <div className="record">
     <div className="head"><div><h1 id="t-landlord">{ll.name}</h1>
       <p className="muted">Landlord{ll.archived_at && <> · <span className="badge neutral">Archived</span></>}</p></div>
-      <a href="#/rentals">← Back to rentals</a></div>
+      <a href="#/rentals">Back to rentals</a></div>
     <div className="sections">
       <form ref={formRef} noValidate onSubmit={e => { e.preventDefault(); if (dirty && !busy) save(); }}>
         <section className="card fields-group" aria-labelledby="h-ll-details"><h2 id="h-ll-details">Details</h2>
