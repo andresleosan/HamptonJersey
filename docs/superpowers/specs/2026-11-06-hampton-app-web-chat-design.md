@@ -1,5 +1,7 @@
 # Chat de la web con respuesta humana (MSG-02, fase 1 de Hampton Bot)
 
+Integración local del 6-nov-2026: chats usa `0022_chats.sql`, después de `0021_published_at.sql` de PUB-22. Sin migraciones aplicadas ni publicación; el permiso anterior era para otro SHA.
+
 Fecha: 6-nov-2026. Decisiones de Luis en el brainstorming del 6-nov: «1 1 1 1» y «1 1». Base: [documento de ideas de Hampton Bot](../../roadmap/2026-11-06-ideas-hampton-bot.md), §4, §5, §7 y fase 1.
 
 ## Por qué
@@ -36,7 +38,7 @@ Hoy el público no puede escribir a Hampton desde la web: solo registra su búsq
 - En «In your browser», una frase: «If you start a chat, this browser keeps a random key, not your details, so you can come back to the conversation for 7 days. "End chat" removes it.»
 
 ## Dónde va (lo decidido)
-- **Migración 0021** (`migrations/0021_chats.sql`):
+- **Migración 0022** (`migrations/0022_chats.sql`):
   - `chats`: `id`, `key_hash` UNIQUE (SHA-256 de la llave), `status` CHECK (`waiting`, `answered`, `handled`), `listing_id` REFERENCES listings ON DELETE SET NULL, `name`, `email`, `phone` (CHECK de al menos uno), `privacy_ack_at`, `created_at`, `last_at`, `waiting_since`, `visitor_seen_at`, `handled_at`, `handled_by`.
   - `chat_messages`: `id`, `chat_id` REFERENCES chats ON DELETE CASCADE, `role` CHECK (`visitor`, `team`), `sent_by` (email del admin, solo en `team`), `text` CHECK de longitud, `created_at`.
   - Índices: parcial `WHERE status = 'waiting'` (contador), por `last_at` (borrado y llave), por `(chat_id, id)`.

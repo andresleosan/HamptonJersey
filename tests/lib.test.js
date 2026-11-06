@@ -116,3 +116,50 @@ test("the website shows a listing only with a public photo of its own (shared wi
   assert.equal(L.shownOnSite({image: "/media/A00001"}), true);
   for (const image of [null, undefined, "", "https://evil.example/x.jpg", "/media/../admin"]) assert.equal(L.shownOnSite({image}), false, String(image));
 });
+
+// PUB-22: the Properties page and the home page's newest five.
+const at = (id, publishedAt, o = {}) => P({ id, publishedAt, salePrice: 1, ...o });
+
+test("newest first, unknown dates last in the order they had", () => {
+  const list = [at("HE-R001", null), at("HE-R002", "2026-11-01T10:00:00Z"), at("HE-R003", "2026-11-05T10:00:00Z"), at("HE-R000", null)];
+  assert.deepEqual(list.sort(L.newestFirst).map(p => p.id), ["HE-R003", "HE-R002", "HE-R001", "HE-R000"]);
+});
+
+test("home picks skip sold and stop at 5", () => {
+  const list = ["1", "2", "3", "4", "5", "6", "7"].map((n, i) => at(`HE-R00${n}`, null, i === 1 ? {status: "Sold"} : {}));
+  assert.deepEqual(L.homePicks(list).map(p => p.id), ["HE-R001", "HE-R003", "HE-R004", "HE-R005", "HE-R006"]);
+  assert.deepEqual(L.homePicks([sold]), [], "all sold: nothing, never an error");
+  assert.equal(L.homePicks(list, 2).length, 2);
+});
+
+test("catalog query ignores unknown values", () => {
+  const all = {op: "all", region: "all", beds: 0, max: 0};
+  assert.deepEqual(L.readCatalogQuery(""), all);
+  assert.deepEqual(L.readCatalogQuery("?op=bogus&region=mars&beds=7&max=-5"), all);
+  assert.deepEqual(L.readCatalogQuery("?op=<script>&max=1e3x"), all);
+  assert.deepEqual(L.readCatalogQuery("?op=rent&region=jersey&beds=2&max=2500"), {op: "rent", region: "jersey", beds: 2, max: 2500});
+});
+
+test("catalog query round-trips", () => {
+  assert.equal(L.catalogQuery({op: "all", region: "all", beds: 0, max: 0}), "");
+  assert.equal(L.catalogQuery({op: "business", region: "all", beds: 0, max: 0}), "?op=business");
+  const f = {op: "sale", region: "uk", beds: 3, max: 900000};
+  assert.deepEqual(L.readCatalogQuery(L.catalogQuery(f)), f);
+});
+
+test("button photo is the newest of its operation", () => {
+  const list = [at("HE-R009", "2026-11-05T10:00:00Z", {operation: "rent", image: "/media/Rnew"}),
+    at("HE-R008", "2026-11-01T10:00:00Z", {operation: "rent", image: "/media/Rold"}), at("HE-R007", null, {image: "/media/S"})];
+  assert.equal(L.buttonPhoto(list, "rent"), "/media/Rnew");
+  assert.equal(L.buttonPhoto(list, "sale"), "/media/S");
+  assert.equal(L.buttonPhoto(list, "business"), null);
+});
+
+test("catalog filter: few listings keep only the operation; a max not on offer is dropped", () => {
+  const MAX = {sale: [400e3, 600e3], rent: [1500, 2500]};
+  assert.deepEqual(L.catalogFilter("?op=rent&region=uk&beds=3&max=2500", false, MAX), {op: "rent", region: "all", beds: 0, max: 0},
+    "no filters on the page: none applied out of sight");
+  assert.deepEqual(L.catalogFilter("?op=rent&region=uk&beds=3&max=2500", true, MAX), {op: "rent", region: "uk", beds: 3, max: 2500});
+  assert.deepEqual(L.catalogFilter("?op=rent&max=1", true, MAX), {op: "rent", region: "all", beds: 0, max: 0}, "1 is not in the list");
+  assert.deepEqual(L.catalogFilter("?max=2500", true, MAX), {op: "all", region: "all", beds: 0, max: 0}, "a max needs an operation");
+});

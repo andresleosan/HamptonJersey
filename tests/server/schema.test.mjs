@@ -544,7 +544,31 @@ test("0016: interest corrections refuse what the app never writes", () => {
   ]) assert.throws(() => add(o), /CHECK/, JSON.stringify(o).slice(0, 90));
 });
 
-test("0021: a chat needs an email or a phone, and its messages go with it", () => {
+test("migrations have unique numbers: published_at precedes chats and survives the upgrade", () => {
+  const files = readdirSync(MIG).filter(f => f.endsWith(".sql")).sort();
+  const numbers = files.map(f => f.match(/^\d{4}(?=_)/)?.[0]);
+  assert.ok(numbers.every(Boolean), "every migration has a four-digit prefix");
+  assert.equal(new Set(numbers).size, files.length, "migration numbers must not collide");
+  assert.deepEqual(files.filter(f => f.startsWith("0021_") || f.startsWith("0022_")),
+    ["0021_published_at.sql", "0022_chats.sql"]);
+  const { db, apply } = migratedUpTo("0021");
+  try {
+    for (const [id, published] of [["HE-R001", 1], ["HE-R002", 0]])
+      addRow(db, "listings", { id, use: "residential", title: "Upgrade fixture", operation: "sale",
+        availability: "for_sale", published, specs: "[]", created_at: T0, updated_at: T0, updated_by: "import" });
+    apply();
+    const before = db.prepare("SELECT * FROM listings ORDER BY id").all();
+    assert.deepEqual(before.map(r => r.published_at), [T0, null], "backfill only published listings");
+    db.exec(readFileSync(new URL("0022_chats.sql", MIG), "utf8"));
+    assert.deepEqual(db.prepare("SELECT * FROM listings ORDER BY id").all(), before, "chats preserve listing data");
+    assert.deepEqual(["chats", "chat_messages"].map(table => db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n), [0, 0]);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM app_settings WHERE key = 'webchat'").get().n, 0,
+      "the migration leaves the chat off");
+    assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
+  } finally { db.close(); }
+});
+
+test("0022: a chat needs an email or a phone, and its messages go with it", () => {
   const env = makeEnv(), db = env.DB.raw;
   seedListing(env);
   const chat = o => Number(db.prepare(`INSERT INTO chats (key_hash, name, email, phone, listing_id, privacy_ack_at, created_at,

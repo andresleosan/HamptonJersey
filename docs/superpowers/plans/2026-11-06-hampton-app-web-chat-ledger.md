@@ -3,7 +3,7 @@
 Ejecución del [plan](2026-11-06-hampton-app-web-chat.md) el 6-nov-2026, en esta sesión (sin subagentes por tarea), con una revisión de cuatro revisores al final.
 
 ## Tareas
-- Tarea 1 (migración 0021): hecha; prueba de esquema.
+- Tarea 1 (migración 0022): hecha; prueba de esquema.
 - Tarea 2 (rutas públicas): hecha; `tests/server/chat.test.mjs` (10 casos). La prueba de `INSERT … RETURNING` en batch no funciona con el doble de D1 de las pruebas: se usa `meta.last_row_id`.
 - Tarea 3 (panel, contador, interruptor, `news`): hecha; `tests/server/chats-admin.test.mjs` y un caso en `hermes.test.mjs`. Las pruebas que comparaban `counts` y `news` enteros se pusieron al día con `chats` y `chats_waiting`.
 - Tarea 4 (borrado a 30 días): hecha; `retention_run.chats`.
@@ -53,7 +53,7 @@ Ejecución del [plan](2026-11-06-hampton-app-web-chat.md) el 6-nov-2026, en esta
 
 Dos importantes, arreglados con su prueba:
 - **a. Una respuesta podía llegar a otro visitante.** Sin `AUTOINCREMENT`, SQLite reutiliza el id del último chat borrado. Un panel que aún mostraba el chat viejo contestaba dentro del nuevo.
-  - Arreglo: `chats.id INTEGER PRIMARY KEY AUTOINCREMENT` en la propia 0021, que no estaba aplicada en remoto.
+  - Arreglo: `chats.id INTEGER PRIMARY KEY AUTOINCREMENT` en la propia 0022, que no estaba aplicada en remoto.
   - Prueba: `a deleted chat's id is never given to a new one…` en `tests/server/chats-admin.test.mjs`.
   - Los ids de `chat_messages` siempre se leen dentro de su chat, así que no lo necesitan.
 - **b. Reabrir un chat viejo no volvía a sondear.** Si el último mensaje tenía más de 2 h, abrir el chat leía una vez y ya no programaba más lecturas.
@@ -166,3 +166,35 @@ Codex confirmó los siete comportamientos con reproducciones. Además:
 - `webChatTabs` y `webChatRecovers` pasan ejecutados por separado;
 - el e2e completo sigue parado en Turnstile en el taller (`tests/e2e.cjs:147`);
 - `npm audit` da 9 entradas `high` heredadas y 0 críticas. Las dependencias no cambian en estos commits: es el menor k de Widen criteria.
+
+## Integración local con GitHub (6-nov-2026)
+
+Autorización de Luis: integrar y hacer commit **solo en el taller**. Sin aplicar migraciones, push, publicación, marcas de aprobación ni excepciones a los bloqueos. El permiso anterior correspondía a otro SHA y no sirve para publicar este resultado. El candado de HamptonJersey ya estaba tomado y se conserva.
+
+Historial conservado mediante merge con dos padres, sin reescribir commits:
+- `main` local: `7701acae4143d72080f81c68f428e9181e5ef8f3`, cinco commits de MSG-02.
+- `origin/main`: `52681bba5bf5146b6eece92256a803125a44d00b`, nueve commits de GitHub. Confirmado con fetch y de nuevo con `git ls-remote` antes del commit.
+
+Conflictos y archivos:
+- `docs/roadmap/ESTADO.md`: cabecera de migraciones, fila F6 y cierre de la hoja de ruta. Se conserva el orden de trabajo de GitHub, PRE-34, AUT-18 y las fases futuras; MSG-02 figura como construido e integrado localmente, pendiente de publicación y del trabajo restante.
+- `docs/roadmap/checklist-hampton-app.html`: estado y alcance de MSG-02, Messages en MSG-03, Create applicant pendiente en MSG-05 y regla WAF de ANA-09. Se mantiene la regla concreta de GitHub y sus requisitos del bot nuevo y VPS. Todos los 241 IDs se conservan; solo cambian MSG-02, MSG-03 y MSG-05 respecto a GitHub. Se explicitan las diferencias entre el documento de ideas y la spec implementada, sin dar por hechas las partes pendientes.
+- Combinaciones automáticas revisadas: `admin/src/styles.css`, `site/apply.js`, `site/index.html` y `tests/e2e.cjs`. Conservan el chat junto con Properties, las fotos y el nuevo Register your search. Los otros 29 archivos exclusivos de GitHub son idénticos byte por byte a `origin/main`.
+- `migrations/0021_published_at.sql` queda idéntica a GitHub. `0021_chats.sql` pasa a `0022_chats.sql`, siguiente número libre, con SQL idéntico al local original. Ajustadas las referencias en spec, plan, este ledger, ESTADO, checklist, prueba de esquema y relevo privado `.claude/relevo-avanzar.md` (excluido del repo).
+- `tests/server/schema.test.mjs`: añade una regresión de números únicos y actualización en SQLite en memoria desde la 0020: comprueba el backfill de `published_at`, preservación de las fichas al crear chats, tablas vacías, chat apagado y claves foráneas. Con la colisión 0021 falla con «migration numbers must not collide» (exit 1); con 0022 pasa (exit 0).
+
+Validación de esta integración:
+- `npm test`: exit 0; **587/587 Node**, 0 fallidas, canceladas u omitidas; **14/14 Python**, OK.
+- `npm run build`: exit 0; Vite 8.3.3, 76 módulos. Aviso de chunk mayor de 500 kB: JS 675,97 kB (gzip 190,96 kB). No se ha desactivado el aviso ni el gate.
+- `npm run check:release`: exit 0, `No TO CONFIRM markers in site/.` El gate queda intacto.
+- `node --test tests/server/chat.test.mjs tests/server/chats-admin.test.mjs tests/server/hermes.test.mjs tests/server/schema.test.mjs`: exit 0, **65/65**, 0 fallidas u omitidas. Cubre llave/huella, aislamiento de conversaciones, sesión obligatoria del panel, firma sin email, previews cerradas, Turnstile rechazado, borrado y Hermes con contadores sin datos de chats.
+- Sintaxis de `tests/e2e.cjs`, `site/chat.js`, `site/apply.js` y scripts inline de la web: exit 0. JSON del checklist válido.
+- Chromium local a 390 y 1280 px: navegación, Properties con filtros, orden por publicación, apertura del chat y pasos del nuevo Register con placeholders. Panel compilado: columnas Checked/Matched/Interested, contador de Messages por sondeo de 30 s, respuesta firmada, recarga, borrado y texto hostil mostrado literalmente sin ejecutarse. Las regresiones del repo `webChatTabs` y `webChatRecovers` también pasan. Arnés fuera del repo: `/tmp/hampton-integration-browser.mjs`, exit 0; API real con SQLite en memoria y datos ficticios, sin servicios externos ni bases persistentes. No equivale al e2e completo con Cloudflare.
+
+Seguridad y privacidad revisadas:
+- Barrido por patrones de los cinco commits locales y nueve remotos: sin candidatos nuevos de claves privadas, tokens GitHub/AWS/proveedores, JWT literales o secretos de producción. En el árbol rastreado, las cinco coincidencias son ejemplos de desarrollo/Turnstile y la plantilla que genera una clave ficticia en ejecución (`tests/server/fake-drive.mjs:12`), no llaves privadas guardadas. Revisión de literales de contacto: fixtures de pruebas; no se incorporan datos de clientes. `.dev.vars`, relevo, build, cookies y claves de los arneses permanecen fuera del índice. Este barrido no es una garantía exhaustiva.
+- **SEC-01, alta, heredada:** `npm audit --json` termina con exit 1: **9 high, 0 critical, 0 moderate, 0 low**. Entradas: firebase, @firebase/firestore, @firebase/firestore-compat, @grpc/grpc-js, wrangler, miniflare, re2js, sharp y undici. Evidencia: `package-lock.json` (por ejemplo grpc-js:1231, firebase:2484, wrangler:3380). El lockfile es idéntico en ambos padres; no se han actualizado dependencias. El impacto depende del paquete y de su uso: este barrido no demuestra explotación en la app. Corregir y validar dependencias en trabajo separado; no usar `audit fix --force` ni publicar suponiendo una auditoría limpia.
+- **SEC-02, baja, ya aplazada:** `server/api.js:34` decide `no-store` con el segmento crudo, mientras `route()` lo decodifica (`:43`). `/api/%63hat` puede carecer de esa cabecera. No se ha demostrado fuga por caché compartida. Sigue pendiente unificar ambas decisiones; no se presenta como corregido por el merge.
+- **PRIV-01, baja, ya aplazada:** `server/retention.js:51` limita el lote a 500 chats; con más vencidos, el borrado puede superar los 30 días anunciados. Pendiente agotar lotes o ajustar el aviso. Se mantiene el hallazgo anterior, sin ocultarlo ni ampliar el alcance de esta integración.
+- Siguen pendientes la regla WAF de PRE-34/ANA-09 y la CSP ya anotada. La prueba de texto hostil y los tests de permisos pasan, pero no sustituyen esos controles ni una auditoría exhaustiva.
+
+No probado en este encargo: migraciones sobre bases persistentes o D1 remoto, estado de aplicación de la 0021 en producción, despliegues de Pages/Workers, login real de Google, envío real con Turnstile, reglas WAF/CSP en Cloudflare, avisador/DM del VPS y e2e completo. Este último necesita preparar una base persistente con migraciones y servicios externos; no se ha preparado ni ejecutado bajo la autorización actual. La limitación de red de Turnstile anotada en rondas anteriores no se ha vuelto a ensayar. Ningún bloqueo se ha saltado para obtener estos resultados.

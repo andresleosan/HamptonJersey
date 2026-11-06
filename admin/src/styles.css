@@ -145,16 +145,13 @@ table.list{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .switch[aria-checked=true] .knob::after{transform:translateX(14px)}
 .lbl-like{font-size:12px;color:var(--stone)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
-.list td.order{white-space:nowrap;width:1%}
-.list tr[draggable=true]{cursor:grab}
-.list tr.dragging{opacity:.45}
-.handle{font-size:18px;color:var(--stone);margin-right:4px;vertical-align:middle}
-.nudge{all:unset;cursor:pointer;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px;margin-left:2px;transition:background .15s}
-.nudge:hover:not(:disabled){background:var(--mist)}
-.nudge:disabled{opacity:.3;cursor:not-allowed}
-.nudge:focus-visible{outline:2px solid var(--bronze)}
-@media (max-width:760px){.list td.order{grid-row:auto;grid-column:1/-1}.list td.order+td{grid-row:span 6}}
 .star{position:relative}
+/* SPR-06/07: Bedrooms From–To and Price Min–Max as one labelled pair in the filter row. */
+.filters .range{border:0;padding:0;margin:0;min-width:0}
+.filters .range legend{padding:0;margin-bottom:4px;font-size:12px;color:var(--stone)}
+.filters .range>div{display:flex;gap:8px;align-items:end}
+.filters .range select{width:96px} .filters .range input{width:110px}
+.filters > .check{min-height:42px}
 .star-no{font:700 10px/1 var(--body);color:var(--bronze-dk);margin-left:1px;vertical-align:top}
 .tour-list{list-style:none;margin:0;padding:0;display:grid;gap:16px}
 .tour-list>li{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:20px;padding:16px}
@@ -228,7 +225,8 @@ kbd{font:600 11px var(--body);letter-spacing:0;padding:0 5px;border:1px solid cu
 .offer{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-bottom:12px} .offer .muted{flex-basis:100%}
 .list.matched{margin:0}
 @media (max-width:760px){.list td.parish::before{content:attr(data-label) ": ";color:var(--stone);font-size:12px}
-  .list.listings td:first-child:not(.order),.list.listings td.order+td{grid-row:span 7}
+  .list.listings td:first-child{grid-row:span 10}
+  .list.listings td.stat::before{content:attr(data-label) ": ";color:var(--stone);font-size:12px}
   .list.matched tr{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;border-bottom:1px solid var(--line)}.list.matched tr:last-child{border-bottom:0}
   .list.matched td:first-child{flex-basis:100%;overflow-wrap:anywhere}.list.matched td.num::before{content:"Score ";color:var(--stone);font-size:12px}}
 .avail-intro{margin:-4px 0 12px}

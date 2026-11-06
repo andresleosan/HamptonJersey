@@ -10,8 +10,9 @@ const PRIVATE = ["name", "email", "phone", "preferred_channel", "best_time", "re
 const STEPS = [
   { title: "What are you looking for?", fields: ["operation"] },
   { title: "Where?", fields: ["parishes_wanted", "parishes_excluded", "near"] },
-  { title: "What kind of home?", fields: ["property_types", "bedrooms_min", "bedrooms_ideal", "bathrooms_min",
-    "parking_spaces", "outdoor", "furnished", "pets", "pets_cat", "pets_dog", "pets_other"] },
+  { title: "What kind of home?", fields: ["property_types", "bedrooms_min", "bedrooms_ideal", "bathrooms_min"] },
+  { title: "Parking, outdoor space and pets", fields: ["parking_spaces", "outdoor", "furnished", "pets", "pets_cat",
+    "pets_dog", "pets_other"] },
   { title: "Budget and timing", fields: ["budget_max", "budget_min", "budget_stretch", "move_in_date",
     "lease_term_months", "buyer_position", "mortgage_aip"] },
   { title: "Living in Jersey", fields: ["housing_status", "household_adults", "household_children"] },
@@ -55,10 +56,11 @@ export function toBody(a) {
 // Help before Continue; the server checks everything again and its errors bring the visitor back to the step.
 function checkStep(i, a) {
   const e = {}, missing = (k, msg) => { if (!String(a[k] ?? "").trim()) e[k] = msg; };
-  if (i === 0) missing("operation", "Choose To Let or To Buy");
-  if (i === 2) missing("bedrooms_min", "Choose the minimum bedrooms");
-  if (i === 3) missing("budget_max", "Enter your maximum budget");
-  if (i === 5) {
+  const has = k => STEPS[i].fields.includes(k);
+  if (has("operation")) missing("operation", "Choose To Let or To Buy");
+  if (has("bedrooms_min")) missing("bedrooms_min", "Choose the minimum bedrooms");
+  if (has("budget_max")) missing("budget_max", "Enter your maximum budget");
+  if (has("name")) {
     missing("name", "Enter your name");
     missing("email", "Enter your email address");
     if (!e.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.email.trim())) e.email = "Enter a valid email address";
@@ -101,17 +103,22 @@ export function renderApply(root, { esc, tsKey, tsReady }) {
 function wizard(body, options, { esc, tsKey, tsReady }) {
   const list = k => (Array.isArray(options?.[k]) ? options[k].filter(x => Array.isArray(x) && x.length === 2) : []);
   const err = name => `<small class="field-err" id="e-${name}" hidden></small>`;
-  const pills = (name, items, type = "radio", req = false) => `<div class="opts">${items.map(([v, l]) =>
+  // "(optional)" is set apart in lighter text so the question itself reads first.
+  const opt = l => l.replace(" (optional)", " <i>(optional)</i>");
+  // One choice from a short scale → a segmented bar ("seg"); any number of choices, or long labels → tiles.
+  const pills = (name, items, type = "radio", req = false, cls = type === "checkbox" ? " tiles" : " seg") => `<div class="opts${cls}">${items.map(([v, l]) =>
     `<label><input type="${type}" name="${name}" value="${esc(v)}"${req ? " required" : ""}><span>${esc(l)}</span></label>`).join("")}</div>`;
   const group = (name, legend, inner, only = "") =>
-    `<fieldset class="field"${only ? ` data-only="${only}"` : ""}><legend>${legend}</legend>${inner}${err(name)}</fieldset>`;
+    `<fieldset class="field"${only ? ` data-only="${only}"` : ""}><legend>${opt(legend)}</legend>${inner}${err(name)}</fieldset>`;
   const input = (name, label, attrs = "", only = "") => `<div class="field"${only ? ` data-only="${only}"` : ""}>
-    <label for="f-${name}"${label.rent ? ` data-rent="${label.rent}" data-buy="${label.buy}"` : ""}>${label.rent || label}</label>
+    <label for="f-${name}"${label.rent ? ` data-rent="${label.rent}" data-buy="${label.buy}"` : ""}>${opt(label.rent || label)}</label>
     <input id="f-${name}" name="${name}" ${attrs}>${err(name)}</div>`;
   const today = jerseyToday(), inTwoYears = `${Number(today.slice(0, 4)) + 2}${today.slice(4)}`;
   const count = `inputmode="numeric" autocomplete="off"`;
   const pets = list("pet_kinds").filter(([v]) => v !== "none");
   const money = (rent, buy, optional = "") => ({ rent: `${rent}, £ per month${optional}`, buy: `${buy}, £${optional}` });
+  // A grey example of the expected format inside the box; amounts follow To Let or To Buy (sync).
+  const eg = (rent, buy) => `placeholder="${rent}" data-ph-rent="${rent}" data-ph-buy="${buy}"`;
 
   const steps = [
     `<div class="opts cards">${list("operation").map(([v, l]) => `<label><input type="radio" name="operation" value="${esc(v)}" required>
@@ -119,35 +126,37 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       ${err("operation")}
       <p class="hint">Looking for commercial premises? <a href="#book">Contact us</a></p>`,
     group("parishes_wanted", "Parishes you'd like (optional)", pills("parishes_wanted", list("parishes"), "checkbox"))
-      + group("parishes_excluded", "Parishes to avoid (optional)", pills("parishes_excluded", list("parishes"), "checkbox"))
+      // Rarely used, so it waits behind a link; it opens by itself when it already has an answer (sync).
+      + `<details class="more"><summary>Add parishes to avoid</summary>${group("parishes_excluded", "Parishes to avoid (optional)",
+        pills("parishes_excluded", list("parishes"), "checkbox"))}</details>`
       + input("near", "Near somewhere in particular (optional)", `maxlength="200" placeholder="Your work, a school"`),
     group("property_types", "Type of home (optional)", pills("property_types", list("property_types"), "checkbox"))
       + group("bedrooms_min", "Bedrooms, at least", pills("bedrooms_min", [[0, "Studio"], [1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]], "radio", true))
-      + group("bedrooms_ideal", "Bedrooms, ideally (optional)", pills("bedrooms_ideal", [[1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]]))
-      + group("bathrooms_min", "Bathrooms, at least (optional)", pills("bathrooms_min", [[1, "1"], [2, "2"], [3, "3+"]]))
-      + group("parking_spaces", "Parking spaces (optional)", pills("parking_spaces", list("parking")))
+      + group("bedrooms_ideal", "Bedrooms, ideally (optional)", pills("bedrooms_ideal", [[1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]], "radio"))
+      + group("bathrooms_min", "Bathrooms, at least (optional)", pills("bathrooms_min", [[1, "1"], [2, "2"], [3, "3+"]], "radio")),
+    group("parking_spaces", "Parking spaces (optional)", pills("parking_spaces", list("parking"), "radio"))
       + group("outdoor", "Outdoor space (optional)", pills("outdoor", list("outdoor"), "checkbox"))
       + group("furnished", "Furnished (optional)", pills("furnished", list("furnished")), "rent")
       + group("pets", "Pets (optional)", pills("pets", list("pet_kinds"), "checkbox") + `<div class="row">${pets.map(([v, l]) =>
         `<div class="field" data-pet="${esc(v)}" hidden><label for="f-pets_${esc(v)}">How many: ${esc(l)}</label>
           <input id="f-pets_${esc(v)}" name="pets_${esc(v)}" value="1" ${count}>${err(`pets_${esc(v)}`)}</div>`).join("")}</div>`),
-    input("budget_max", money("Maximum rent", "Maximum price"), `${count} required`)
-      + `<div class="row">${input("budget_min", money("Minimum rent", "Minimum price", " (optional)"), count)}
-        ${input("budget_stretch", money("I can stretch to", "I can stretch to", " (optional)"), count)}</div>`
+    input("budget_max", money("Maximum rent", "Maximum price"), `${count} required ${eg("£1,300", "£550,000")}`)
+      + `<div class="row">${input("budget_min", money("Minimum rent", "Minimum price", " (optional)"), `${count} ${eg("£1,000", "£400,000")}`)}
+        ${input("budget_stretch", money("I can stretch to", "I can stretch to", " (optional)"), `${count} ${eg("£1,500", "£600,000")}`)}</div>`
       + input("move_in_date", "When would you like to move? (optional)", `type="date" min="${today}" max="${inTwoYears}"`)
-      + input("lease_term_months", "Lease length in months (optional)", count, "rent")
-      + group("buyer_position", "Your position (optional)", pills("buyer_position", list("buyer_position")), "buy")
+      + input("lease_term_months", "Lease length in months (optional)", `${count} placeholder="12"`, "rent")
+      + group("buyer_position", "Your position (optional)", pills("buyer_position", list("buyer_position"), "radio", false, " tiles"), "buy")
       + group("mortgage_aip", "Mortgage agreement in principle (optional)", pills("mortgage_aip", list("mortgage_aip")), "buy"),
     `<p class="hint">It decides which homes you can rent or buy in Jersey.</p>`
-      + group("housing_status", "Housing status (optional)", pills("housing_status", list("housing_status")))
-      + `<div class="row">${input("household_adults", "Adults (optional)", count)}${input("household_children", "Children (optional)", count)}</div>`,
+      + group("housing_status", "Housing status (optional)", pills("housing_status", list("housing_status"), "radio", false, " tiles"))
+      + `<div class="row">${input("household_adults", "Adults (optional)", `${count} placeholder="2"`)}${input("household_children", "Children (optional)", `${count} placeholder="1"`)}</div>`,
     input("name", "Full name", `autocomplete="name" maxlength="120" required placeholder="Your name"`)
       + input("email", "Email", `type="email" autocomplete="email" maxlength="254" required placeholder="name@example.com"`)
       + input("phone", "Mobile", `type="tel" autocomplete="tel" required placeholder="07797 000000"`)
       + group("preferred_channel", "How should we contact you? (optional)", pills("preferred_channel", list("channels")))
       + input("best_time", "Best time to reach you (optional)", `maxlength="200" placeholder="Weekday mornings"`)
-      + `<div class="field"><label for="f-requirements">Anything else that matters? (optional)</label>
-        <textarea id="f-requirements" name="requirements" maxlength="2000" rows="4"></textarea>${err("requirements")}</div>
+      + `<div class="field"><label for="f-requirements">Anything else that matters? <i>(optional)</i></label>
+        <textarea id="f-requirements" name="requirements" maxlength="2000" rows="4" placeholder="A garden for the dog, close to a bus route"></textarea>${err("requirements")}</div>
       <div class="consent">
         <label><input type="checkbox" name="privacy" value="yes" required><span>I have read the
           <a href="#/privacy" target="_blank" rel="noopener noreferrer">privacy notice</a> (opens in a new tab).</span></label>${err("privacy")}
@@ -155,7 +164,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       </div>
       ${tsKey ? `<div class="ts"></div>` : ""}`,
   ];
-  body.innerHTML = `<p class="hint">Six short steps, about two minutes.</p>
+  body.innerHTML = `<p class="hint">Seven short steps, about two minutes.</p>
     <div class="apply-progress"><p class="num" aria-live="polite"></p><div class="pbar" aria-hidden="true"><i></i></div></div>
     <form novalidate>${steps.map((html, i) => `<fieldset class="step" hidden><legend><h2 tabindex="-1">${STEPS[i].title}</h2></legend>${html}</fieldset>`).join("")}
       <p class="form-status" role="alert"></p>
@@ -187,8 +196,10 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   const sync = () => {
     const op = $("[name=operation]:checked", form)?.value;
     form.querySelectorAll("[data-only]").forEach(el => { el.hidden = el.dataset.only !== op; });
-    form.querySelectorAll("[data-rent]").forEach(l => { l.textContent = op === "buy" ? l.dataset.buy : l.dataset.rent; });
-    const chosen = snapshot().pets ?? [];
+    form.querySelectorAll("[data-ph-buy]").forEach(i => { i.placeholder = op === "buy" ? i.dataset.phBuy : i.dataset.phRent; });
+    form.querySelectorAll("[data-rent]").forEach(l => { l.innerHTML = opt(op === "buy" ? l.dataset.buy : l.dataset.rent); });
+    const a = snapshot(), chosen = a.pets ?? [];
+    if ((a.parishes_excluded ?? []).length) $("details.more", form).open = true;
     form.querySelectorAll("[data-pet]").forEach(el => { el.hidden = !chosen.includes(el.dataset.pet); });
   };
   const controls = name => [...form.querySelectorAll(`[name="${name}"]`)];
@@ -225,6 +236,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     sets.forEach((s, j) => { s.hidden = j !== i; });
     counter.textContent = `Step ${i + 1} of ${sets.length}`;
     bar.style.setProperty("--step", i + 1);
+    bar.style.setProperty("--total", sets.length);
     back.hidden = i === 0;
     next.textContent = i === last ? "Register my search" : "Continue";
     next.disabled = i === last && !tsKey;
@@ -244,6 +256,9 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     if (other && t.checked) controls(other).forEach(x => { if (x.value === t.value) x.checked = false; });
     sync(); save();
   });
+  // The link disappears once open, so the focus moves to the first parish rather than being lost.
+  $("details.more summary", form).addEventListener("click", e =>
+    setTimeout(() => $("input", e.target.parentElement).focus()));
   back.addEventListener("click", () => { if (step > 0 && !sending) go(step - 1); });
   form.addEventListener("submit", async e => {
     e.preventDefault();

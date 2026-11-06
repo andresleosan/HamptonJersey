@@ -82,10 +82,38 @@ export async function listingPage(request, env, id) {
   return { status: 200, headers, siteUrl, title: m.title, head: headTags(m) };
 }
 
+// PUB-22: what /properties puts into index.html. One canonical for every choice (?op=…), so the catalogue is one page
+// for search engines and not a copy of the home page.
+const PROPERTIES = { title: `Properties · ${BRAND}`,
+  description: "Homes to let, homes for sale and businesses for sale across Jersey, from Hampton Estates on Bath Street, St Helier, since 1982." };
+export function propertiesPage(request, env) {
+  const siteUrl = base(env.SITE_URL), canonical = `${siteUrl}/properties`;
+  const ld = { "@context": "https://schema.org", "@type": "CollectionPage", name: PROPERTIES.title, url: canonical, description: PROPERTIES.description };
+  return { status: 200, headers: seoHeaders(request, env), siteUrl, title: PROPERTIES.title,
+    head: headTags({ ...PROPERTIES, canonical, image: `${siteUrl}/og-image.jpg`,
+      imageAlt: "A country house in Jersey with a courtyard garden and a conservatory", jsonLd: JSON.stringify(ld).replace(/</g, "\\u003c") }) };
+}
+
+// Tags the static page carries for the home page (S4); a page's own replace them. HTMLRewriter only exists on Workers:
+// the pages that use this are tested by the e2e against `wrangler pages dev`.
+const HOME_TAGS = 'meta[name="description"], meta[name="robots"], meta[property^="og:"], meta[name^="twitter:"], link[rel="canonical"]';
+// html: the Response of index.html (HTMLRewriter transforms a Response).
+export function withPageHead(html, page) {
+  const body = new HTMLRewriter()
+    .on(HOME_TAGS, { element: e => e.remove() })
+    .on("title", { element: e => { if (page.title) e.setInnerContent(page.title); } })
+    // S7: the base of the links the page shares, from this deployment's SITE_URL. The page's tags go right after it,
+    // near the top of <head>: some preview robots read only the first bytes, and the inline CSS below is ~28 KB.
+    .on('meta[name="site-url"]', { element: e => { e.setAttribute("content", page.siteUrl); e.after(page.head, { html: true }); } })
+    .transform(html).body;
+  page.headers.set("content-type", "text/html; charset=utf-8");
+  return new Response(body, { status: page.status, headers: page.headers });
+}
+
 // S6: the home page and each live listing.
 export function sitemapXml(listings, siteUrl) {
   const site = base(siteUrl);
-  const urls = [`<url><loc>${esc(site)}/</loc></url>`, ...listings.map(l =>
+  const urls = [`<url><loc>${esc(site)}/</loc></url>`, `<url><loc>${esc(site)}/properties</loc></url>`, ...listings.map(l =>
     `<url><loc>${esc(`${site}/p/${l.id}`)}</loc><lastmod>${esc(l.updated_at.slice(0, 10))}</lastmod></url>`)];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
 }

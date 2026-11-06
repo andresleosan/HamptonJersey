@@ -112,7 +112,7 @@ test("review: one draft per row, made and linked by the server; the photo proxy 
   const p = await admin(env, "GET", `/admin/queue/${id}/photo/P_A000000001`);
   assert.equal(p.status, 200);
   assert.equal(p.text, "bytes P_A000000001");
-  assert.equal((await admin(env, "GET", `/admin/queue/${id}/photo/P_C000000001`)).text, "thumb P_C000000001 1600");
+  assert.equal((await admin(env, "GET", `/admin/queue/${id}/photo/P_C000000001`)).text, "thumb P_C000000001 4000");
   const before = d.calls.length;
   for (const f of ["P_LOOSE00001", "P_RAW0000001", "D_DETAILS001"])
     assert.equal((await admin(env, "GET", `/admin/queue/${id}/photo/${f}`)).status, 404, f);

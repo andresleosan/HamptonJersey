@@ -12,9 +12,11 @@ export const COVER_ID = `COALESCE(l.cover_media_id, (SELECT cm.id FROM media cm 
 export const HAS_PUBLIC_PHOTO = `EXISTS (SELECT 1 FROM media m WHERE m.listing_id = l.id AND m.kind = 'photo' AND m.public = 1
     AND m.origin <> 'external' AND m.r2_key IS NOT NULL)`;
 const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availability, l.operation, l.sale_price, l.rent,
-  l.rent_period, l.premium, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by, l.featured_rank, l.home_order,
-  l.parish, l.matchable, l.confirmed_at, (${TO_CONFIRM}) AS to_confirm, ${COVER_ID} AS cover_id,
-  ${HAS_PUBLIC_PHOTO} AS has_public_photo FROM listings l`;
+  l.rent_period, l.premium, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by, l.featured_rank,
+  l.parish, l.matchable, l.confirmed_at, l.bedrooms, (${TO_CONFIRM}) AS to_confirm, ${COVER_ID} AS cover_id,
+  ${HAS_PUBLIC_PHOTO} AS has_public_photo,
+  (SELECT COUNT(*) FROM matches mm WHERE mm.listing_id = l.id) AS matched, (${interestSql("l.id")}) AS interested
+  FROM listings l`;
 
 // to_confirm: ADM-04, as the list and the counts say it.
 export async function loadListing(env, id) {
@@ -37,7 +39,7 @@ async function list({ request, env }) {
   const parish = q.get("parish") || null;
   if (parish && !ENUMS.parish.includes(parish)) fail(400, "Invalid parish");
   const { results } = await env.DB.prepare(`${LIST_SQL} ${parish ? "WHERE l.parish = ?" : ""} ORDER BY l.id`)
-    .bind(now(), ...(parish ? [parish] : [])).all();
+    .bind(now(), ...interestDates(), ...(parish ? [parish] : [])).all();
   return json({ listings: results });
 }
 
@@ -147,17 +149,8 @@ async function offers({ env, params: [id] }) {
   return json({ open: r.open, sale: r.sale_id == null ? null : { id: r.sale_id, status: "in_progress" }, offers: list });
 }
 
-// Home page order from the panel's drag and drop. It is not a content edit, so updated_at is left alone (no false 409s).
-async function reorder({ request, env }) {
-  const ids = (await readJson(request))?.ids;
-  if (!Array.isArray(ids) || !ids.length || ids.length > 500 || new Set(ids).size !== ids.length
-    || !ids.every(id => typeof id === "string" && new RegExp(`^${ID}$`).test(id))) fail(400, "Send the listing ids in their new order");
-  await env.DB.batch(ids.map((id, i) => env.DB.prepare("UPDATE listings SET home_order = ? WHERE id = ?").bind(i + 1, id)));
-  return json({ ok: true });
-}
-
 // Star for the home page's Featured section. Ranks stay 1..n in the order stars were given: a new star goes last,
-// removing one moves the later ones up. Like the order, it is not a content edit (updated_at untouched).
+// removing one moves the later ones up. It is not a content edit (updated_at untouched).
 async function setFeatured({ request, env, params: [id] }) {
   const on = (await readJson(request))?.featured;
   if (typeof on !== "boolean") fail(400, "Send featured: true or false");
@@ -188,10 +181,12 @@ export async function setState({ env, admin, params: [id, action], fromQueue = f
   const ts = now();
   // Archived (sold, withdrawn) is no longer offered; restoring leaves the offer off, for the editor's switch (B9).
   // ADM-04 (T2): publishing confirms the listing is on the market.
-  const patch = { publish: { published: 1, confirmed_at: ts }, unpublish: { published: 0 }, archive: { published: 0, archived_at: ts, matchable: 0 },
+  // PUB-22: published_at only moves when the listing was hidden (the CASE reads the row before this UPDATE).
+  const patch = { publish: { published: 1, confirmed_at: ts, published_at: ts }, unpublish: { published: 0 }, archive: { published: 0, archived_at: ts, matchable: 0 },
     restore: { archived_at: null } }[action];
   const cols = Object.keys(patch);
-  const res = await env.DB.prepare(`UPDATE listings SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ?
+  const set = c => (c === "published_at" ? "published_at = CASE WHEN published = 0 THEN ? ELSE published_at END" : `${c} = ?`);
+  const res = await env.DB.prepare(`UPDATE listings SET ${cols.map(set).join(", ")}, updated_at = ?, updated_by = ?
     WHERE id = ?${archive ? ` AND NOT ${BUSY}` : ""}`).bind(...cols.map(c => patch[c]), ts, admin, id, ...(archive ? [id, id] : [])).run();
   if (archive && !res.meta.changes) fail(409, busy);
   // Publishing also counts: being on the website adds to the score.
@@ -199,7 +194,7 @@ export async function setState({ env, admin, params: [id, action], fromQueue = f
   return json({ listing: await loadListing(env, id) });
 }
 
-// ADM-04: Still available, after a call to the owner. Like the order and the star, not a content edit: updated_at is
+// ADM-04: Still available, after a call to the owner. Like the star, not a content edit: updated_at is
 // left alone, so an open editor with unsaved changes can still save them (T8). Any listing may be confirmed (T11).
 async function confirm({ env, params: [id] }) {
   const ts = now();
@@ -235,7 +230,6 @@ export async function deleteListing(env, id, admin) {
 export default [
   ["GET", /^\/admin\/listings$/, list, true],
   ["POST", /^\/admin\/listings$/, create, true],
-  ["PUT", /^\/admin\/listings\/order$/, reorder, true],
   ["GET", new RegExp(`^/admin/listings/${ID}$`), detail, true],
   ["GET", new RegExp(`^/admin/listings/${ID}/offers$`), offers, true],
   ["PUT", new RegExp(`^/admin/listings/${ID}$`), update, true],

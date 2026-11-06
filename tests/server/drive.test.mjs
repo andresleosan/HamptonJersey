@@ -53,7 +53,7 @@ test("fileResponse: Google Docs exported as text, HEIC through a large thumbnail
     "export D_NOTES00001 text/plain");
   assert.equal(await (await fileResponse(d.env, { id: "D_DETAILS001", mimeType: "application/pdf" })).text(), "Asking price £675,000");
   const [heic] = (await photosIn(d.env, "F_EDITED0001")).photos.filter(x => x.heic);
-  assert.equal(await (await fileResponse(d.env, heic)).text(), "thumb P_C000000001 1600");
+  assert.equal(await (await fileResponse(d.env, heic)).text(), "thumb P_C000000001 4000");
 });
 
 test("the token: drive.readonly, asked once an hour; no key, 503", async t => {

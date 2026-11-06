@@ -246,18 +246,6 @@ test("M10: a failed media insert removes the files it just stored", async () => 
 });
 
 
-test("home order: set by id list, validated, leaves updated_at alone", async () => {
-  const { env, cookie } = await world();
-  const put = body => call(env, "PUT", "/admin/listings/order", { cookie, body });
-  assert.equal((await put({ ids: ["HE-R026", "HE-R001"] })).status, 200);
-  const rows = (await call(env, "GET", "/admin/listings", { cookie })).data.listings;
-  assert.deepEqual(rows.map(l => [l.id, l.home_order]).sort(), [["HE-R001", 2], ["HE-R026", 1]]);
-  assert.ok(rows.every(l => l.updated_at === T0), "ordering is not a content edit");
-  for (const bad of [{}, { ids: [] }, { ids: ["HE-R001", "HE-R001"] }, { ids: ["x; DROP"] }, { ids: "HE-R001" }])
-    assert.equal((await put(bad)).status, 400);
-  assert.equal((await call(env, "PUT", "/admin/listings/order", { body: { ids: ["HE-R001"] } })).status, 401, "admins only");
-});
-
 test("stars keep the order they were given; removing one moves the later ones up", async () => {
   const { env, cookie } = await world();
   seedListing(env, { id: "HE-R003", title: "Playa" });

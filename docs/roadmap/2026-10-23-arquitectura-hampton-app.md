@@ -92,7 +92,7 @@ Todo en D1; los archivos en R2. La columna Fase indica cuándo se crea cada tabl
 | `notifications` | Lo que cada persona debe ver o hacer | evento, destinatario, categoría, `action_required`, `due_at`, `resolved_at`, leída | F0 |
 | `properties` | La casa física, una sola vez aunque la anuncien tres agencias | dirección normalizada, parroquia, código postal, tipo, dormitorios, baños, parking, mascotas (sí, no, desconocido), categoría de vivienda, tenencia, estado, `last_verified_at` | F1 |
 | `market_listings` | Cada anuncio visto en cada fuente | fuente, URL, referencia externa, precio normalizado, datos extraídos y su confianza, `first_seen`, `last_seen`, `removed_at`, huella de la foto principal, `property_id` | F1 |
-| `listings` (existe) | El catálogo propio publicado | + `property_id`, campos de Jersey (§5.10), `confirmed_at` (§4.4; construido el 30-oct-2026, en lugar de `review_due_at`) | F1 y F4 |
+| `listings` (existe) | El catálogo propio publicado | + `property_id`, campos de Jersey (§5.10), `confirmed_at` (§4.4; construido el 30-oct-2026, en lugar de `review_due_at`), `published_at` (PUB-22, migración 0021, 6-nov-2026) | F1 y F4 |
 | `matches` | Aplicante × propiedad | puntuación, lista de requisitos ✅ ❌ ❓ con evidencia, estado, motivo de descarte, `introduced_at` | F1 |
 | `agencies` | Otras agencias | web, emails de ventas y alquileres, teléfonos, acuerdo de comisión (estado, condiciones, vigencia, documento), permiso para enseñar fotos, tiempo medio de respuesta | F2 |
 | `outreach` | Cada consulta a una agencia sobre una casa | preguntas hechas, envío, hilo del correo, respuesta interpretada (JSON), seguimientos, estado | F2 |
@@ -226,6 +226,10 @@ Cada módulo sigue el mismo orden: lo que pediste, lo que propongo y cuándo est
 - **Tarjeta**: estado, precio con su periodo, dirección (calle y parroquia), dormitorios, baños y fecha de disponibilidad, como pediste; además la fuente (Hampton o agencia), «checked 2 days ago», aplicantes con match e interesados.
 - **Ficha**: Overview, History (todos los eventos), Availability snapshots, Matched applicants con su estado, Photos (las externas, privadas), Adverts (todos los anuncios de esa casa en todas las fuentes, con su precio, así se ven las bajadas), Viewings y Notes.
 - **Filtros**: To Buy / To Let, dormitorios, parroquia (las doce), rango de precio, estado, fuente y «cambió en los últimos 7 días».
+
+> **Actualizado el 6-nov-2026 (SPR-06, SPR-07).** En Listings ya están Operation (To Buy, To Let, Business), dormitorios con un rango From–To, parroquia, precio Min–Max (el alquiler por mes) y «Changed in the last 7 days» (cualquier cambio guardado), con las columnas Checked, Matched e Interested. Falta la fuente: Luis decidió el 6-nov que la búsqueda del mercado la hará Hermes, un agente, sin atarse a ninguna página, y queda por diseñar.
+>
+> **Web (PUB-22, 6-nov-2026).** El catálogo vive en `/properties`: tres botones grandes con foto, Rent, Buy y Businesses, sobre el catálogo mezclado, que filtran sin recargar y dejan la elección en el enlace. La portada enseña las 5 publicadas más recientemente que siguen en el mercado, con View all. El orden «más nuevas» usa `listings.published_at` (migración 0021), que se pone cada vez que una ficha oculta se publica.
 
 ### 5.4 Registro de aplicantes paso a paso
 

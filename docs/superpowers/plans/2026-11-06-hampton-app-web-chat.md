@@ -1,10 +1,12 @@
 # Chat de la web con respuesta humana (MSG-02) Implementation Plan
 
+Integración local del 6-nov-2026: chats usa `0022_chats.sql`, después de `0021_published_at.sql` de PUB-22. Sin migraciones aplicadas ni publicación; el permiso anterior era para otro SHA.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Un visitante escribe desde la web, una persona del equipo contesta desde el panel y el visitante ve la respuesta, sin IA.
 
-**Architecture:** Dos tablas nuevas (migración 0021). Las rutas públicas `/api/chat*` identifican el chat por la huella SHA-256 de una llave que solo viaja en `Authorization: Bearer`, y las del panel `/admin/chats*` van con sesión. En la web, un módulo `site/chat.js` cargado a demanda, y en el panel una pantalla `Messages.jsx` con el patrón `.inbox`. El interruptor es la fila `app_settings.webchat`.
+**Architecture:** Dos tablas nuevas (migración 0022). Las rutas públicas `/api/chat*` identifican el chat por la huella SHA-256 de una llave que solo viaja en `Authorization: Bearer`, y las del panel `/admin/chats*` van con sesión. En la web, un módulo `site/chat.js` cargado a demanda, y en el panel una pantalla `Messages.jsx` con el patrón `.inbox`. El interruptor es la fila `app_settings.webchat`.
 
 **Tech Stack:** Cloudflare Pages Functions + D1 (SQLite), JS sin dependencias en la web, React 19 + Vite en el panel, `node:test` con D1 sobre `node:sqlite`.
 
@@ -33,16 +35,16 @@
 
 ---
 
-### Task 1: Migración 0021
+### Task 1: Migración 0022
 
 **Files:**
-- Create: `migrations/0021_chats.sql`
+- Create: `migrations/0022_chats.sql`
 - Test: `tests/server/schema.test.mjs` (añadir un caso)
 
 **Interfaces:**
 - Produces: tablas `chats` y `chat_messages` con las columnas de la spec («Dónde va»); índices `chats_waiting` (parcial, `status = 'waiting'`, sobre `waiting_since`), `chats_last` (`last_at`), `chat_messages_chat` (`chat_id, id`).
 
-- [ ] **Step 1: Prueba que falla** `test("0021: a chat needs an email or a phone, and its messages go with it")`: insertar un chat sin email ni teléfono lanza CHECK; uno con email y dos mensajes, borrado, deja 0 filas en `chat_messages`; un `role` fuera de `visitor`/`team` y un `text` vacío o de 2.001 caracteres lanzan; borrar la ficha deja `listing_id` en NULL.
+- [ ] **Step 1: Prueba que falla** `test("0022: a chat needs an email or a phone, and its messages go with it")`: insertar un chat sin email ni teléfono lanza CHECK; uno con email y dos mensajes, borrado, deja 0 filas en `chat_messages`; un `role` fuera de `visitor`/`team` y un `text` vacío o de 2.001 caracteres lanzan; borrar la ficha deja `listing_id` en NULL.
 - [ ] **Step 2:** `node --test tests/server/schema.test.mjs` → FAIL (no such table).
 - [ ] **Step 3:** Escribir la migración. CHECK de `text`: `length(text) BETWEEN 1 AND 2000` (el tope de 1.000 del visitante va en el código). `status` por defecto `'waiting'`. Comentario de cabecera como en `0018_jobs.sql`.
 - [ ] **Step 4:** `npm test` → todo PASS.
