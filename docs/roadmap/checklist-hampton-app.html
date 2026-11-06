@@ -1846,13 +1846,13 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "AUT-16",
    "seccion": "Automatizaciones e IA",
-   "titulo": "El asistente de Luis por Telegram: buscar fichas y recomendarlas, y si no hay, «lo buscamos»",
+   "titulo": "Hampton Bot · fase 4: el asistente de Luis por Telegram (buscar fichas y recomendarlas, y si no hay, «lo buscamos»)",
    "origen": "plan",
    "fase": "—",
    "estado": "bloqueado",
    "responsable": "Luis",
-   "hecho": "Luis lo pidió el 2-nov-2026: desde sus dos cuentas de Telegram, un asistente que trabaje en el panel, ayude con los correos, siga a los clientes interesados y busque y recomiende lo disponible. El plan aprobado ese día lo hace por fases.",
-   "falta": "Bloqueado por PRE-32. Fase 1b (tras PRE-32, solo datos públicos): una operación de la puerta que busca entre las fichas publicadas con el motor de matching, para preguntas generales como «¿qué tenemos de 3 habitaciones en St Helier?». Las respuestas llevan referencias, títulos, precios y enlaces de la web; si no hay nada, el enlace a «Register your search» para que el cliente registre su búsqueda. La búsqueda para un cliente concreto se hace en el panel, nunca por Telegram. El asistente rechaza antes de pasarlos al modelo los mensajes reenviados, los adjuntos y los que traen emails o teléfonos, y solo deja enlaces del dominio de Hampton. Después, con el correo dentro de la app (PRE-23), redactar respuestas que una persona aprueba en el panel; leer correos de clientes con IA solo con un modelo con acuerdo de datos (P-09). El seguimiento usa «Gone quiet» (EST-11) y los números del resumen.",
+   "hecho": "Luis lo pidió el 2-nov-2026: desde sus dos cuentas de Telegram, un asistente que trabaje en el panel, ayude con los correos, siga a los clientes interesados y busque y recomiende lo disponible. El plan aprobado ese día lo hace por fases. Desde el 6-nov-2026 es la fase 4 de Hampton Bot (documento de ideas, §6 y §9): el bot de Telegram es nuevo y solo para Luis (PRE-34); Hermes 2 y su bot no cambian.",
+   "falta": "Bloqueado por PRE-32 o una clave de API con acuerdo de datos para ese Hermes. Fase 1b (solo datos públicos): una operación de la puerta que busca entre las fichas publicadas con el motor de matching, para preguntas generales como «¿qué tenemos de 3 habitaciones en St Helier?». Las respuestas llevan referencias, títulos, precios y enlaces de la web; si no hay nada, el enlace a «Register your search» para que el cliente registre su búsqueda. La búsqueda para un cliente concreto se hace en el panel, nunca por Telegram. El asistente rechaza antes de pasarlos al modelo los mensajes reenviados, los adjuntos y los que traen emails o teléfonos, y solo deja enlaces del dominio de Hampton. Después, con el correo dentro de la app (AUT-17), redactar respuestas que una persona aprueba en el panel; leer correos de clientes con IA solo con un modelo con acuerdo de datos (P-09). El seguimiento usa «Gone quiet» (EST-11) y los números del resumen. Diseño del 6-nov: el token del bot no entra en Hermes, vive en un portero (proxy sin dependencias, solo en la red interna de Docker, como el custodio de la llave) que sustituye el token ficticio, sale por el proxy de la jaula y descarta reenvíos, adjuntos y mensajes con emails o teléfonos antes del modelo; el Hermes de Hampton va sin terminal, archivos ni web, con un servidor MCP mínimo de solo lectura más pause (reanudar, solo en el panel), una operación GET /api/hermes/search y solo los dos IDs de Luis; verificar.sh ampliado. Hecho cuando: Luis pregunta por chats en espera y fichas desde sus dos cuentas y recibe solo números, referencias y enlaces; otra cuenta no recibe nada; el portero para reenvíos, adjuntos y teléfonos. Bloqueo: PRE-32 o una clave de API con acuerdo de datos para ese Hermes, y la decisión 4 del documento (Properties Queue). Modelo recomendado: claude-opus-5-5 · esfuerzo xhigh: crea el portero que custodia el token del bot y filtra lo que llega antes del modelo, con la lista de los dos IDs de Luis como única barrera, en el VPS y en un Hermes nuevo.",
    "bloqueo": "Decisión de Luis",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
@@ -3289,15 +3289,18 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "MSG-02",
    "seccion": "Mensajes y redes",
-   "titulo": "Responder los mensajes escritos en la web (chat web)",
+   "titulo": "Hampton Bot · fase 1: chat web con respuesta humana desde el panel (Messages, sin IA)",
    "origen": "texto",
    "fase": "F6",
    "estado": "pendiente",
    "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "La web no tiene chat ni formulario de contacto: lo único que el público escribe llega con Register your search («Anything else that matters?») o como reserva «General enquiry / valuation» sin texto libre, y el equipo contesta fuera de la app. Falta un chat web con respuesta desde el panel, que no depende de Meta; contestar a quien ya se fue necesita el servicio de correo.",
+   "hecho": "Diseño en el documento de ideas del 6-nov-2026 (§4, §5 y §9), con las decisiones de Luis de ese día: nombre visible «Hampton Bot», bot de Telegram nuevo y correo con Cloudflare Email Service (AUT-17). Lo que se construya pasa antes por /brainstorming y su spec.",
+   "falta": "La web no tiene chat ni formulario de contacto: lo único que el público escribe llega con Register your search («Anything else that matters?») o como reserva «General enquiry / valuation» sin texto libre, y el equipo contesta fuera de la app. Fase 1 de Hampton Bot, sin IA: burbuja «Message us» en la portada y en cada ficha (site/chat.js se carga al pulsar; solo texto, 1.000 caracteres, Turnstile y enlace al aviso); llave aleatoria devuelta una vez y guardada solo como huella SHA-256, que viaja únicamente en la cabecera Authorization, caduca a las 24 h y está apagada en *.pages.dev; migración 0021 con las tablas chats y chat_messages; rutas públicas /api/chat, /api/chat/messages y /api/chat/contact (mini-formulario «Talk to a person» con nombre, email o teléfono y casilla del aviso); topes por chat y por IP con huella diaria; pantalla Messages (#/messages) con los chats que esperan primero, transcripción en texto plano, Reply, Mark handled, Create applicant con el contacto (MSG-05) y Delete, y su número en la barra del panel en menos de 30 s; retención de 30 días en la pasada diaria; la operación news de la puerta de Hermes devuelve además chats_waiting y el avisador manda a Luis «N web chats waiting for a person» con el enlace al panel por el bot nuevo (token de PRE-34), nunca texto de chats. La parte de la jaula del VPS (cuatro archivos del avisador con su prueba sin red; el DM a Luis como mucho uno cada 10 minutos; verificar.sh compara los montajes y secretos exactos) va fuera del repo y la tarea la deja escrita paso a paso; sin ella MSG-02 queda parcial. Hecho cuando: un visitante escribe desde el móvil, «Messages 1» aparece en 30 s, una persona contesta y el visitante lo ve; verificar.sh sale sin FALLA con el token de Hampton Bot guardado y Luis recibe el DM de prueba sin datos. Para construir no espera a nada; para publicar hacen falta de PRE-34 solo la regla WAF y el token del bot nuevo; contestar a quien ya cerró la pestaña necesita el correo (AUT-17). Modelo recomendado: claude-opus-5-5 · esfuerzo high.",
    "bloqueo": "",
    "evidencia": [
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §4",
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §5",
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §9",
     "site/index.html:465-482",
     "site/apply.js:149-150",
     "server/routes/public.js:72-74",
@@ -3313,7 +3316,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "No existe la pantalla Messages ni conversaciones unidas a un contacto; Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas.",
+   "falta": "No existe la pantalla Messages ni conversaciones unidas a un contacto; Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas. La pantalla Messages nace con el chat web (MSG-02, Hampton Bot fase 1); Meta y el email, si se piden, después.",
    "bloqueo": "Correo (AUT-17) · Trámite Meta",
    "evidencia": [
     "admin/src/App.jsx:122-136",
@@ -3324,15 +3327,18 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "MSG-04",
    "seccion": "Mensajes y redes",
-   "titulo": "Asistente automático con modos y objetivo de primera respuesta",
+   "titulo": "Hampton Bot · fases 2 y 3: el modelo en sombra y luego en vivo, con modos y objetivo de primera respuesta",
    "origen": "plan",
    "fase": "F6",
-   "estado": "pendiente",
-   "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "No hay asistente que responda solo con datos de las fichas publicadas, horario y enlaces de reserva y registro, diga que es automático y pase a una persona, empezando en borrador y luego con lista blanca, con primera respuesta en menos de 5 min en horario y humana en menos de 2 h. Puede empezar en el chat web (MSG-02); en Messenger, Instagram y WhatsApp espera a Meta.",
-   "bloqueo": "",
+   "estado": "bloqueado",
+   "responsable": "Luis",
+   "hecho": "Diseño en el documento de ideas del 6-nov-2026 (§2, §5, §7, §8 y §9): el cerebro vive en la app (Pages Function) y usa Workers AI por binding; el modelo solo entiende qué pide el visitante y el código actúa con lo que ya existe; nunca aprueba, publica ni envía nada solo.",
+   "falta": "No hay asistente que responda solo con datos de las fichas publicadas, horario y enlaces de reserva y registro, diga que es automático y pase a una persona. Fase 2, en sombra: binding [ai] de Workers AI en wrangler.toml (modelo @cf/google/gemma-4-26b-a4b-it, sin entrenar ni retener) y un modelo falso HBOT_FAKE para las pruebas, porque el local llama a la cuenta real; server/hamptonbot.js con una sola llamada con tope de 10 s que devuelve un JSON fijo (intención, idioma, criterios, si pide persona) validado campo a campo; guardias antes del modelo (emails y teléfonos pasan a «[email]» y «[phone]», IBAN y tarjetas se bloquean, palabras C3 van a persona sin llamar al modelo); el código responde con plantillas y datos reales (fichas publicadas, huecos, horario como unión de los negociadores activos menos sus excepciones); modo shadow en app_settings.hamptonbot (la respuesta se guarda y el visitante no la ve), tarjeta «Hampton Bot · web chat» en Automations con modo, llamadas de hoy y neurons, tope diario de llamadas y de neurons, y obedece Pause all outbound (AUT-11); batería de 30 casos y 10 adversarios con el modelo real (≥ 27/30 y 10/10) y una semana o 30 chats revisados sin un dato inventado, con p95 por debajo de 15 s. Fase 3, en vivo (assist), con el «sí» de Luis tras medir: las intenciones de la lista blanca se contestan solas en menos de 10 s, botón y burbuja pasan a «Chat with Hampton Bot», tarjetas de fichas, hasta tres huecos reales y el formulario #book prellenado, registro prellenado en #/apply, valoración sin cifras, Suggested reply para lo que va a persona (Use / Edit / Discard, nunca se envía solo) y los campos extraídos en Create applicant (MSG-05); Hecho cuando: una reserva y un registro reales nacidos en el chat aparecen en Viewings y Applicants, y durante una semana la primera respuesta automática llega en menos de 10 s y la humana en menos de 2 h en horario. Meta y WhatsApp quedan descartados para el asistente (§10: Meta no admite asistentes de IA fuera del EEE); la bandeja Messages puede sumar esos canales si se pide (MSG-03). Bloqueado por PRE-34 (aviso, DPIA y JOIC antes de que entre texto de clientes en el modelo) y por la decisión 2 del documento (proveedor del modelo); la fase 3, además, por la semana en sombra y el «sí» de Luis. Modelo recomendado: claude-opus-5-5 · esfuerzo xhigh en la fase 2 (guardias de seguridad sobre texto hostil y batería adversaria) y high en la fase 3.",
+   "bloqueo": "Decisión de Luis",
    "evidencia": [
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §7",
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §8",
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §9",
     "wrangler.toml:1-20",
     "docs/roadmap/ESTADO.md:14"
    ]
@@ -3346,7 +3352,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No existe: depende de tener conversaciones (MSG-02, MSG-03); hoy el aplicante se crea a mano en New applicant o llega por Register your search.",
+   "falta": "No existe: depende de tener conversaciones (MSG-02, MSG-03); hoy el aplicante se crea a mano en New applicant o llega por Register your search. Con Hampton Bot va en dos pasos: en la fase 1 (MSG-02) el botón Create applicant de Messages abre New applicant con ?chat=ID y el contacto del mini-formulario; en la fase 3 (MSG-04) añade los campos cerrados que Hampton Bot extrajo del chat (requisitos libres truncados y marcados «from chat»). Save es la aprobación; nada se crea solo.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/App.jsx:93-94",
@@ -4118,7 +4124,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "Luis",
    "hecho": "La propia sentencia deja de contar al llegar a 20.000 aperturas en un día de Jersey.",
-   "falta": "La regla de límite de peticiones de Cloudflare WAF que incluya POST /api/stats. Ya se puede crear: desde el 1-nov-2026 el dominio está en Cloudflare (en *.pages.dev no hay WAF).",
+   "falta": "Una sola regla de límite de peticiones (la única del plan Free), acotada a /api/chat* y /api/stats: más de 20 en 10 s por IP → bloqueo de 10 s; nunca todo /api/, porque la oficina sale por una IP y el panel rozaría el tope. Es la misma regla que necesita Hampton Bot (PRE-34). Ya se puede crear: desde el 1-nov-2026 el dominio está en Cloudflare (en *.pages.dev no hay WAF).",
    "bloqueo": "",
    "evidencia": [
     "server/routes/public.js:84-94",
@@ -4507,7 +4513,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "Luis",
    "hecho": "El aviso de privacidad ya nombra a Cloudflare y a Optimyze como encargados que actúan solo por instrucciones de Hampton.",
-   "falta": "No consta ningún acuerdo firmado: el de Hampton con Optimyze y los de Cloudflare y Google (Firebase), más Meta y el proveedor de IA cuando se usen. Depende de a nombre de quién van las cuentas (PRE-28). Con Hermes (P-18), el proveedor de IA es OpenAI con el plan de ChatGPT de Luis: hace falta acuerdo si recibe datos personales (C1 o C2, pregunta 16), que cubra también lo que Hermes guarda en el VPS. Por Telegram solo viajarán contadores y referencias de fichas, nada de aplicantes (§6.6); si eso cambiara, Telegram también necesitaría acuerdo. El paquete para el abogado (PRE-33) lleva el esquema del contrato entre Hampton y Optimyze.",
+   "falta": "No consta ningún acuerdo firmado: el de Hampton con Optimyze y los de Cloudflare y Google (Firebase), más Meta y el proveedor de IA cuando se usen. Depende de a nombre de quién van las cuentas (PRE-28). Con Hermes (P-18), el proveedor de IA es OpenAI con el plan de ChatGPT de Luis: hace falta acuerdo si recibe datos personales (C1 o C2, pregunta 16), que cubra también lo que Hermes guarda en el VPS. Por Telegram solo viajarán contadores y referencias de fichas, nada de aplicantes (§6.6); si eso cambiara, Telegram también necesitaría acuerdo. El paquete para el abogado (PRE-33) lleva el esquema del contrato entre Hampton y Optimyze. Para el chat web (Hampton Bot, MSG-04) el proveedor de IA es Cloudflare Workers AI: entra como subencargado en ese contrato y el abogado confirma que su certificación cubre Workers AI (PRE-34).",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:493",
@@ -4864,6 +4870,23 @@ document.addEventListener('DOMContentLoaded', () => {
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6"
+   ]
+  },
+  {
+   "id": "PRE-34",
+   "seccion": "Acciones previas y cumplimiento",
+   "titulo": "Hampton Bot · fase 0: papeles y Cloudflare antes del chat con IA (aviso «Web chat», DPIA corta, JOIC, regla WAF, previews y bot nuevo en BotFather)",
+   "origen": "plan",
+   "fase": "—",
+   "estado": "pendiente",
+   "responsable": "Luis",
+   "hecho": "Documento de ideas del 6-nov-2026 (docs/roadmap/2026-11-06-ideas-hampton-bot.md) con las decisiones de Luis de ese día: nombre visible «Hampton Bot», bot de Telegram nuevo (Hermes 2 y su bot no cambian) y correo con Cloudflare Email Service (AUT-17).",
+   "falta": "Sin código, todo de Luis y en paralelo: párrafo «Web chat» del aviso de privacidad (automático desde la fase 3, qué se guarda, Workers AI sin entrenar ni retener, 30 días, aplicante solo si lo pides, cómo borrar, reclamar ante la JOIC), revisado por el abogado con el paquete de PRE-33; DPIA corta (evaluación de impacto, art. 16) firmada por Hampton antes de encender el modelo; registro en la JOIC de Hampton y de Optimyze como encargado (PRE-03); la única regla de límite de peticiones del plan Free, acotada a /api/chat* y /api/stats (la misma de ANA-09: más de 20 en 10 s por IP → bloqueo 10 s); política de acceso en las vistas previas *.pages.dev; contrato Hampton–Optimyze con Cloudflare como subencargado (PRE-13) y confirmación del abogado de que la certificación DPF de Cloudflare, Inc. cubre Workers AI (transferencia a EE. UU., art. 66(2)(a)); y en BotFather, /newbot con el nombre «Hampton Bot» (usuario terminado en «bot»), grupos desactivados, modo privacidad activado, descripción con el aviso, y su token guardado como secreto en la jaula de Hampton del VPS, nunca por chat ni en el repo. Hecho cuando: regla creada, bot creado y token guardado, aviso aprobado y DPIA firmada por Hampton. Aparte de la fase 0, Luis decide el proveedor del modelo para el chat (decisión 2 del documento: Workers AI recomendado; Claude por Bedrock en Europa si la batería falla). La fase 1 (MSG-02) no espera a nada de esto salvo, para publicar, la regla y el token; las fases 2 y 3 (MSG-04) sí. Si Luis pide ayuda con los textos: claude-fable-5-1 · esfuerzo high (derecho de datos de Jersey).",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §7",
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §9",
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §11"
    ]
   }
  ]
