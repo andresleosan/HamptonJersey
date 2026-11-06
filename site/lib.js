@@ -91,4 +91,30 @@ const pmt = (principal, annualRate, years) => {
   return r === 0 ? principal / n : principal * r / (1 - (1 + r) ** -n);
 };
 
-if (typeof module === "object") module.exports = {shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, matches, comparables, pmt};
+// PUB-22: newest on the website first (publishedAt, migration 0021); listings without a date after. Ties return 0,
+// so a stable sort keeps the order they had (the site sorts by region first).
+const newestFirst = (a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "");
+// The home page's latest: the first n still on the market, from a list already newest first.
+const homePicks = (pub, n = 5) => pub.filter(p => !isSold(p)).slice(0, n);
+// /properties?op=…&region=…&beds=…&max=…: anything unknown falls back to "all" / 0, never to an empty page.
+const CATALOG = {op: ["sale", "rent", "business"], region: ["jersey", "uk", "international"], beds: [2, 3, 4]};
+function readCatalogQuery(search) {
+  const q = new URLSearchParams(search), beds = +q.get("beds"), max = q.get("max");
+  return {op: CATALOG.op.includes(q.get("op")) ? q.get("op") : "all", region: CATALOG.region.includes(q.get("region")) ? q.get("region") : "all",
+    beds: CATALOG.beds.includes(beds) ? beds : 0, max: /^[1-9]\d{0,9}$/.test(max ?? "") ? +max : 0};
+}
+const catalogQuery = f => {
+  const q = new URLSearchParams(Object.entries(f).filter(([, v]) => v && v !== "all"));
+  return String(q) ? `?${q}` : ""; // not q.size: Safari 16 has no size
+};
+// The filter /properties applies: only what its page shows. With few listings (no filters on the page) just the
+// operation; a max price only when it is one the page offers for that operation (max: the page's MAX lists).
+function catalogFilter(search, full, max) {
+  const f = readCatalogQuery(search);
+  if (!full) return {op: f.op, region: "all", beds: 0, max: 0};
+  return {...f, max: (max[f.op] || []).includes(f.max) ? f.max : 0};
+}
+// The big button's photo: the newest listing of that operation, or null (the page then uses its own photo).
+const buttonPhoto = (pub, op) => [...pub].sort(newestFirst).find(p => p.operation === op)?.image ?? null;
+
+if (typeof module === "object") module.exports = {newestFirst, homePicks, readCatalogQuery, catalogQuery, catalogFilter, buttonPhoto, shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, matches, comparables, pmt};

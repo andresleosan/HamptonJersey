@@ -1,9 +1,9 @@
 # Old Wix URLs from the public sitemap of www.hamptonestatesjersey.com (plus 3 indexed legacy pages from Hampton_Database), read 2026-10-23
 # S10 (2026-10-25): listings have their own path, so their redirects go straight to /p/<id>.
-/properties /#portfolio 301
-/residential-properties /#portfolio 301
-/commercial-properties /#portfolio 301
-/copy-of-residential-properties /#portfolio 301
+# PUB-22 (2026-11-06): /properties is a page of its own now; the old Wix catalogue URLs go there.
+/residential-properties /properties 301
+/commercial-properties /properties?op=business 301
+/copy-of-residential-properties /properties 301
 /about /#team 301
 /meet-the-team /#team 301
 /valuations /#book 301

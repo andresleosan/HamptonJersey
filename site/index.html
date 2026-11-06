@@ -131,9 +131,6 @@ section#book,section#detail-book{padding-top:clamp(40px,5vw,64px);background:var
 .tabs{display:flex;gap:4px;flex-wrap:wrap}
 .tabs button{border:1px solid var(--line);background:none;padding:9px 16px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
 .tabs button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.filters{display:grid;gap:10px;justify-items:end}
-@media (max-width:760px){.filters{justify-items:start}}
-.active{margin:-20px 0 28px;font-size:13px;color:var(--stone)}
 .linkbtn{border:0;background:none;padding:4px 2px;margin-left:6px;text-decoration:underline;cursor:pointer;font-size:13px}
 
 /* property cards */
@@ -360,6 +357,34 @@ footer .staff:hover,footer .staff:focus-visible{opacity:1;text-decoration:underl
 .reg-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;margin-top:48px;padding-top:32px;border-top:1px solid var(--line)}
 .reg-cta p{margin:0;color:var(--stone);max-width:52ch}
 @media (max-width:480px){.reg-cta .btn{width:100%;padding-inline:16px}}
+/* PUB-22: /properties. Design A (Luis, 6-nov): three photo buttons; the hovered or chosen one widens and its photo
+   zooms in slowly. Text sits on a dark gradient for contrast. Stacked bands on phones; no motion when reduced. */
+.catalog h1{font:400 clamp(30px,4.4vw,52px)/1.08 var(--display);letter-spacing:.06em;margin:10px 0 32px}
+.op-buttons{display:flex;gap:12px;height:clamp(200px,26vw,320px);margin-bottom:28px}
+.op-buttons button{flex:1;min-width:0;position:relative;overflow:hidden;border:0;border-radius:var(--r-lg);padding:0;cursor:pointer;color:#fff;
+  background:#222;text-align:left;font:inherit;transition:flex .6s cubic-bezier(.2,.8,.2,1)}
+.op-ph{position:absolute;inset:0;background:#222 center/cover no-repeat;transition:transform 1.2s cubic-bezier(.2,.8,.2,1)}
+/* Ink gradient: white text keeps ≥ 4.5:1 even on a light photo (darker on phones, where the text fills more of the band). */
+.op-buttons button::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(21,21,21,.12),rgba(21,21,21,.78))}
+.op-txt{position:absolute;left:clamp(18px,2.4vw,28px);right:12px;bottom:clamp(16px,2.2vw,24px);z-index:1;display:grid;gap:8px}
+.op-txt b{font:400 clamp(30px,3.6vw,46px)/1 var(--display);letter-spacing:.08em;text-shadow:0 1px 14px rgba(0,0,0,.45)}
+.op-txt small{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;opacity:.92}
+.op-txt small::after{content:" →";display:inline-block;transition:transform .4s}
+.op-buttons button:is(:hover,:focus-visible),.op-buttons button[aria-pressed=true]{flex:1.6}
+.op-buttons button:is(:hover,:focus-visible) .op-ph,.op-buttons button[aria-pressed=true] .op-ph{transform:scale(1.06)}
+.op-buttons button:is(:hover,:focus-visible) small::after{transform:translateX(6px)}
+.op-buttons button:focus-visible{outline:3px solid var(--bronze);outline-offset:3px}
+.op-buttons button[aria-pressed=true] .op-txt b{text-decoration:underline 2px var(--bronze-on-dark);text-underline-offset:10px}
+.catalog-filters{display:flex;flex-wrap:wrap;gap:16px;align-items:end;margin-bottom:24px}
+.catalog-filters .field{width:180px}
+.catalog .count{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;margin:0 0 28px;color:var(--stone);font-size:13px}
+#show-all{min-height:44px;padding-inline:8px}
+@media (max-width:700px){.op-buttons{flex-direction:column;height:auto}
+  .op-buttons button::after{background:linear-gradient(180deg,rgba(21,21,21,.45),rgba(21,21,21,.82))}
+  .op-buttons button,.op-buttons button:is(:hover,:focus-visible),.op-buttons button[aria-pressed=true]{flex:none;height:140px}}
+@media (prefers-reduced-motion:reduce){.op-buttons button,.op-ph,.op-txt small::after{transition:none}
+  .op-buttons button:is(:hover,:focus-visible) .op-ph,.op-buttons button[aria-pressed=true] .op-ph{transform:none}}
+@media (prefers-reduced-motion:reduce) and (min-width:701px){.op-buttons button:is(:hover,:focus-visible),.op-buttons button[aria-pressed=true]{flex:1}}
 .apply .wrap,.legal{max-width:720px}
 .apply [hidden]{display:none}
 .apply-h1{font:600 11px/1.4 var(--body);letter-spacing:.22em;color:var(--stone);margin-bottom:8px}
@@ -400,7 +425,7 @@ fieldset.step>legend{padding:0;margin-bottom:24px}
 <a class="skip" href="#app" data-scroll="app">Skip to content</a>
 <header class="top"><div class="wrap">
   <a class="logo" href="/">HAMPTON ESTATES<small>JERSEY · SINCE 1982</small></a>
-  <nav class="main" id="main-nav" aria-label="Main"><a href="/">Home</a><a href="#portfolio">Properties</a><a href="#team">Our team</a><a href="#book">Book a viewing</a><a href="#/apply">Register</a></nav>
+  <nav class="main" id="main-nav" aria-label="Main"><a href="/">Home</a><a href="/properties">Properties</a><a href="#team">Our team</a><a href="#book">Book a viewing</a><a href="#/apply">Register</a></nav>
   <span class="tel num">01534 727582</span>
   <button class="menu-btn" type="button" aria-expanded="false" aria-controls="main-nav"><i aria-hidden="true"></i>Menu</button>
 </div></header>
@@ -446,7 +471,7 @@ const track = (id, metric) => {
 
 
 // ---------- state ----------
-let PROPS = [], PUB = [], TEAM = [], filter = {region: "all", op: "all", beds: 0, max: 0}, showAll = false;
+let PROPS = [], PUB = [], TEAM = [], filter = {region: "all", op: "all", beds: 0, max: 0};
 const pillCls = s => /sold/i.test(s) ? "sold" : /offer/i.test(s) ? "offer" : "";
 const agentFor = p => TEAM[(amount(p) ?? 0) > 1e6 ? 0 : 1] || TEAM[0] || null;
 
@@ -580,9 +605,10 @@ function mountBooking(slot, pre = {}) {
 }
 
 // ---------- pages ----------
+// ponytail: with only a few listings the home is a showcase and /properties has no filters; they come back at FEW_MAX + 1.
+const FEW_MAX = 5;
 function home() {
-  // ponytail: with only a few listings the home is a showcase (no search or filters); they come back at FEW_MAX + 1.
-  const FEW_MAX = 5, few = PUB.length <= FEW_MAX;
+  const few = PUB.length <= FEW_MAX;
   const feat = few ? PUB[0] : PUB.find(p => p.featured) || PUB.find(p => p.tourUrl || p.aerial) || PUB[0];
   // In showcase mode the hero already presents `feat`, so the Featured block shows the next featured listing.
   // The star in the panel (featured_rank) picks the Featured blocks; the hero carousel shows every published listing.
@@ -619,15 +645,9 @@ function home() {
   </div></section>
 
   <section class="block" id="portfolio" tabindex="-1"><div class="wrap">
-    <div class="head"><div><div class="eyebrow">Portfolio</div><h2>${few ? "Our properties" : "Properties for sale & to let"}</h2>
-      ${few ? "" : `<p><span id="count" class="num"></span> listings.</p>`}</div>
-      ${few ? "" : `<div class="filters">
-        <div class="tabs" id="tabs-region" role="group" aria-label="Location">${Object.entries(REGIONS).map(([k, v]) => `<button type="button" data-region="${k}">${v}</button>`).join("")}</div>
-        <div class="tabs" id="tabs-op" role="group" aria-label="Operation">${Object.entries(OPS).map(([k, v]) => `<button type="button" data-op="${k}">${v}</button>`).join("")}</div>
-      </div>`}</div>
-    <p class="active" id="active" hidden></p>
+    <div class="head"><div><div class="eyebrow">Properties</div><h2>Latest properties</h2></div>
+      <a class="btn ghost" href="/properties">View all properties</a></div>
     <div class="grid" id="grid"></div>
-    ${few ? "" : `<div style="text-align:center;margin-top:48px"><button class="btn ghost" type="button" id="more"></button></div>`}
     <div class="reg-cta"><p>Not seeing the right home? Register your search and our team will be in touch.</p>
       <a class="btn ghost" href="#/apply">Tell us what you're looking for</a></div>
   </div></section>
@@ -694,8 +714,9 @@ function home() {
       ob.observe(stage);
     }
   }
+  // PUB-22: the home shows the newest five still on the market; the rest are on /properties.
+  $("#grid").innerHTML = homePicks(PUB).map(p => card(p)).join("");
   if (few) {
-    $("#grid").innerHTML = PUB.map(p => card(p)).join("");
     // ponytail: setInterval that stops itself once the home is gone; pauses on hover/focus, never auto-plays with reduced motion.
     const hero = $(".hero"), bgs = [...hero.querySelectorAll(".hero-bg")], dots = [...hero.querySelectorAll("[data-slide]")], pb = $(".hero-pause");
     let cur = slides.indexOf(feat), paused = matchMedia("(prefers-reduced-motion: reduce)").matches, hold = false;
@@ -728,31 +749,64 @@ function home() {
       list.map(n => `<option value="${n}" ${n === filter.max && op === filter.op ? "selected" : ""}>${short(n, op)}</option>`).join("");
     $("#q-max").disabled = !list.length;
   };
-  const render = () => {
-    const list = PUB.filter(p => matches(p, filter)), shown = showAll ? list : list.slice(0, 9);
-    $("#more").hidden = shown.length === list.length;
-    $("#more").textContent = `Show all ${list.length} properties`;
-    $("#grid").innerHTML = shown.map(p => card(p)).join("") || `<div class="empty">No properties match these filters. Try another location, a higher budget or fewer bedrooms.</div>`;
-    $("#count").textContent = list.length;
-    document.querySelectorAll("#tabs-region button").forEach(b => b.setAttribute("aria-pressed", b.dataset.region === filter.region));
-    document.querySelectorAll("#tabs-op button").forEach(b => b.setAttribute("aria-pressed", b.dataset.op === filter.op));
-    $("#q-region").value = filter.region; $("#q-op").value = filter.op; $("#q-beds").value = filter.beds; fillMax();
-    const extra = [filter.beds && `${filter.beds}+ bedrooms`, filter.max && filter.op !== "all" && `up to ${short(filter.max, filter.op)}`].filter(Boolean);
-    $("#active").hidden = !extra.length;
-    $("#active").innerHTML = extra.length ? `Also filtered by ${extra.join(" · ")}<button class="linkbtn" type="button" id="clear">Clear</button>` : "";
-  };
-  const set = patch => { Object.assign(filter, patch); if ("op" in patch) filter.max = 0; showAll = false; render(); };
   $("#q-op").addEventListener("change", fillMax); fillMax();
-  $("#tabs-region").addEventListener("click", e => { const r = e.target.closest("button")?.dataset.region; if (r) set({region: r}); });
-  $("#tabs-op").addEventListener("click", e => { const o = e.target.closest("button")?.dataset.op; if (o) set({op: o}); });
-  $("#active").addEventListener("click", e => { if (e.target.id === "clear") set({beds: 0, max: 0}); });
-  $("#more").addEventListener("click", () => { showAll = true; render(); });
+  // PUB-22: the search goes to /properties, where its choices filter the whole catalogue.
   $("#quick").addEventListener("submit", e => {
     e.preventDefault();
-    filter = {region: $("#q-region").value, op: $("#q-op").value, beds: +$("#q-beds").value, max: +$("#q-max").value};
-    showAll = false; render(); $("#portfolio").scrollIntoView();
+    navigate("/properties" + catalogQuery({op: $("#q-op").value, region: $("#q-region").value, beds: +$("#q-beds").value, max: +$("#q-max").value}));
   });
+}
+
+// PUB-22 (spec 2026-11-06): the catalogue on its own page, mixed at first. Three photo buttons narrow it to one
+// operation (pressing the chosen one again, or Show all, brings the mix back); the URL follows so it can be shared.
+const OP_BUTTONS = [["rent", "Rent", "Homes to let"], ["sale", "Buy", "Homes for sale"], ["business", "Businesses", "Businesses for sale"]];
+const NO_FILTER = {region: "all", op: "all", beds: 0, max: 0};
+function properties() {
+  const full = PUB.length > FEW_MAX;
+  document.title = `Properties · ${BRAND}`;
+  $("#app").innerHTML = `<section class="block catalog" id="catalog"><div class="wrap">
+    <div class="eyebrow">Properties</div><h1>Find your home in Jersey</h1>
+    <div class="op-buttons" role="group" aria-label="Rent, buy or businesses">${OP_BUTTONS.map(([op, word, sub]) =>
+      `<button type="button" data-op="${op}" aria-pressed="false"><span class="op-ph" style="background-image:url('${esc(buttonPhoto(PUB, op) || "/og-image.jpg")}')"></span>
+        <span class="op-txt"><b>${word}</b><small>${sub}</small></span></button>`).join("")}</div>
+    ${full ? `<div class="catalog-filters">
+      <div class="tabs" id="tabs-region" role="group" aria-label="Location">${Object.entries(REGIONS).map(([k, v]) => `<button type="button" data-region="${k}">${v}</button>`).join("")}</div>
+      <label class="field"><span>Bedrooms</span><select id="c-beds">${[0, 2, 3, 4].map(n => `<option value="${n}">${n ? n + "+" : "Any"}</option>`).join("")}</select></label>
+      <label class="field"><span>Max price</span><select id="c-max"></select></label></div>` : ""}
+    <p class="count" aria-live="polite"><span id="count" class="num"></span><button class="linkbtn" type="button" id="show-all" hidden>Show all properties</button></p>
+    <div class="grid" id="grid"></div>
+    <div class="reg-cta"><p>Not seeing the right home? Register your search and our team will be in touch.</p>
+      <a class="btn ghost" href="#/apply">Tell us what you're looking for</a></div>
+  </div></section>`;
+  const fillMax = () => {
+    const list = MAX[filter.op] || [];
+    $("#c-max").innerHTML = `<option value="0">${list.length ? "No limit" : "Choose Rent, Buy or Businesses"}</option>` +
+      list.map(n => `<option value="${n}" ${n === filter.max ? "selected" : ""}>${short(n, filter.op)}</option>`).join("");
+    $("#c-max").disabled = !list.length;
+  };
+  const render = () => {
+    const list = PUB.filter(p => matches(p, filter));
+    $("#grid").innerHTML = list.map(p => card(p)).join("") || `<div class="empty"><p>No properties here yet.</p>
+      <a class="btn ghost" href="#/apply">Register your search</a></div>`;
+    $("#count").textContent = `${list.length} ${list.length === 1 ? "property" : "properties"}`;
+    $("#show-all").hidden = Object.entries(NO_FILTER).every(([k, v]) => filter[k] === v);
+    document.querySelectorAll(".op-buttons button").forEach(b => b.setAttribute("aria-pressed", b.dataset.op === filter.op));
+    if (full) {
+      document.querySelectorAll("#tabs-region button").forEach(b => b.setAttribute("aria-pressed", b.dataset.region === filter.region));
+      $("#c-beds").value = filter.beds; fillMax();
+    }
+    history.replaceState(null, "", "/properties" + catalogQuery(filter)); routed = location.href;
+  };
+  const set = patch => { Object.assign(filter, patch); if ("op" in patch) filter.max = 0; render(); };
+  $(".op-buttons").addEventListener("click", e => { const op = e.target.closest("button")?.dataset.op; if (op) set({op: filter.op === op ? "all" : op}); });
+  $("#show-all").addEventListener("click", () => set({...NO_FILTER}));
+  if (full) {
+    $("#tabs-region").addEventListener("click", e => { const r = e.target.closest("button")?.dataset.region; if (r) set({region: r}); });
+    $("#c-beds").addEventListener("change", e => set({beds: +e.target.value}));
+    $("#c-max").addEventListener("change", e => set({max: +e.target.value}));
+  }
   render();
+  scrollTo({top: 0, behavior: "instant"});
 }
 
 function detail(id) {
@@ -760,7 +814,7 @@ function detail(id) {
   if (!p) { // not published (any more), or a mistyped link: the server answered 404 too
     document.title = `Property not found · ${BRAND}`;
     $("#app").innerHTML = `<section class="block"><div class="wrap empty"><h1 class="sub">Property not found</h1>
-      <p>This property is no longer on our website, or the link is incomplete.</p><a class="btn ghost" href="/#portfolio">See our properties</a></div></section>`;
+      <p>This property is no longer on our website, or the link is incomplete.</p><a class="btn ghost" href="/properties">See our properties</a></div></section>`;
     return scrollTo({top: 0, behavior: "instant"});
   }
   // S8: as the server titles the page (server/seo.js), so a listing opened inside the site reads the same.
@@ -781,7 +835,7 @@ function detail(id) {
   const groups = p.specs.reduce((a, s) => ((a[s.group || "Details"] ||= []).push(s), a), {});
   const tabs = [["photo", "Photos"], ...(p.tourUrl ? [["tour", "3D tour"]] : []), ...(p.aerial ? [["aerial", "Aerial"]] : [])];
 
-  $("#app").innerHTML = `<div class="wrap crumbs"><a href="/">Home</a> / <a href="#portfolio" data-region="${p.region}">${esc(REGIONS[p.region])}</a> / ${esc(p.title)}</div>
+  $("#app").innerHTML = `<div class="wrap crumbs"><a href="/">Home</a> / <a href="/properties?region=${p.region}">${esc(REGIONS[p.region])}</a> / ${esc(p.title)}</div>
   <div class="wrap d-top">
     <div style="min-width:0">
       ${tabs.length > 1 ? `<div class="media-tabs" role="tablist" aria-label="Media">${tabs.map(([v, t], i) =>
@@ -965,21 +1019,21 @@ addEventListener("click", e => {
   const t = document.getElementById(a.dataset.scroll); if (!t) return;
   e.preventDefault(); t.scrollIntoView(); t.focus({preventScroll: true});
 });
-// S1: the home page and each listing are real paths, opened without reloading (pushState + route); popstate below
+const navigate = href => { history.pushState(null, "", href); route(); };
+// S1: the home page, /properties and each listing are real paths, opened without reloading (pushState + route); popstate below
 // brings them back. A link to a #section of the same path is left to the browser (hashchange routes it).
 addEventListener("click", e => {
   const a = e.target.closest("a[href]");
   if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target || a.hasAttribute("download")) return;
   const u = new URL(a.href);
-  if (u.origin !== location.origin || !(u.pathname === "/" || LISTING.test(u.pathname)) || (u.hash && u.pathname === location.pathname)) return;
+  if (u.origin !== location.origin || !(u.pathname === "/" || u.pathname === "/properties" || LISTING.test(u.pathname))
+    || (u.hash && u.pathname === location.pathname)) return;
   e.preventDefault();
   if (u.href === location.href) return scrollTo({top: 0}); // the logo on the home page: back to the top, as before
-  history.pushState(null, "", u.href); route();
+  navigate(u.href);
 });
 // After a registration the hash is still #/apply: "Register" then starts a new one (never while a form is open).
 addEventListener("click", e => { if (e.target.closest('a[href="#/apply"]') && location.hash === "#/apply" && !$("#app .apply form")) route(); });
-// Breadcrumb back to a market: preset the location tab before the home page renders.
-addEventListener("click", e => { const r = e.target.closest(".crumbs [data-region]")?.dataset.region; if (r) Object.assign(filter, {region: r, op: "all", beds: 0, max: 0}); });
 
 const HOME_SECTIONS = ["portfolio", "team", "book"];
 // Sections and cards fade up as they scroll into view; skipped with reduced motion or no IntersectionObserver.
@@ -1008,6 +1062,7 @@ const route = () => {
   if (old) history.replaceState(null, "", `/p/${old[1]}`);
   else if (location.hash.length > 1 && location.pathname !== "/") history.replaceState(null, "", "/" + location.hash);
   else if (slash) history.replaceState(null, "", `/p/${slash[1]}${location.search}`);
+  else if (location.pathname === "/properties/") history.replaceState(null, "", "/properties" + location.search);
   const h = location.hash, m = location.pathname.match(LISTING), sec = h.slice(1);
   if (!PUB.length && !SIDE_PAGES[h]) return; // listings not here yet (or failed): their own message stays
   routed = location.href;
@@ -1015,6 +1070,7 @@ const route = () => {
   if (SIDE_PAGES[h]) { document.title = HOME_TITLE; return sidePage(h); }
   // Any other /p/… (a lower-case or mistyped id) is a listing that doesn't exist: not found, as the server says.
   if (m || location.pathname.startsWith("/p/")) { detail(m?.[1]); return reveal(); }
+  if (location.pathname === "/properties") { filter = catalogFilter(location.search, PUB.length > FEW_MAX, MAX); properties(); return reveal(); }
   document.title = HOME_TITLE;
   if (!$("#portfolio")) home();
   reveal();
@@ -1031,21 +1087,22 @@ addEventListener("error", e => {
 }, true);
 const getJSON = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); });
 const arr = v => (Array.isArray(v) ? v.filter(x => typeof x === "string") : []);
-const rank = p => p.order ?? Infinity; // home_order, set by dragging rows in the panel; unordered listings keep the usual order after
 Promise.allSettled([getJSON("/api/listings"), getJSON("/data/team.json"), getJSON("/api/config"), getJSON("/api/tours")]).then(([p, t, c, tr]) => {
   // Before the listings check: Register your search still opens (with its anti-spam key) when they fail.
   TS_KEY = c.status === "fulfilled" && typeof c.value?.turnstileSiteKey === "string" ? c.value.turnstileSiteKey : null;
   if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
   const order = {jersey: 0, uk: 1, international: 2};
   PROPS = p.value.filter(x => x && /^HE-[A-Z]\d{3,}$/.test(x.id) && x.title && x.region in order && x.operation in OP_ONE)
-    .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "premium", "featured", "order", "interest"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
+    .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "premium", "featured", "interest"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
       use: x.use === "commercial" ? "commercial" : "residential", image: safeMedia(x.image), thumb: safeMedia(x.thumb),
+      publishedAt: typeof x.publishedAt === "string" ? x.publishedAt : null,
       photos: (Array.isArray(x.photos) ? x.photos : []).filter(f => safeMedia(f?.src) && safeMedia(f?.thumb)),
       floorplans: (Array.isArray(x.floorplans) ? x.floorplans : []).filter(f => safeMedia(f?.src)),
       aerial: x.aerial && safeMedia(x.aerial.src) ? x.aerial : null, tourUrl: safeHttps(x.tourUrl),
       specs: (Array.isArray(x.specs) ? x.specs : []).filter(s => s && typeof s.label === "string" && typeof s.value === "string"),
       summary: liveSummary(arr(x.summary), jerseyToday()), description: arr(x.description)}))
-    .sort((a, b) => (rank(a) - rank(b) || 0) || order[a.region] - order[b.region] || (a.use === "commercial") - (b.use === "commercial"));
+    .sort((a, b) => order[a.region] - order[b.region] || (a.use === "commercial") - (b.use === "commercial"))
+    .sort(newestFirst); // PUB-22: newest on the website first; without a date, by region then homes before businesses
   PUB = PROPS.filter(shownOnSite); // without a public photo a listing stays out of the public pages
   TEAM = (t.status === "fulfilled" && Array.isArray(t.value) ? t.value : []).filter(a => a && a.name)
     .map(a => ({...a, photo: safeUrl(a.photo, IMG_HOST)}));

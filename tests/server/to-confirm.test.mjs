@@ -110,10 +110,9 @@ test("publishing, a new availability or a new price confirms; other edits do not
   clock("2026-10-30T12:03:00.000Z");
   await save(env, "HE-R001", { availability: "not_stated" });
   assert.equal(confirmedAt(), "2026-10-30T12:03:00.000Z");
-  // The star and the home page order are not edits.
+  // The star is not an edit.
   run(env, "UPDATE listings SET confirmed_at = ? WHERE id = 'HE-R001'", OLD);
   assert.equal((await req(env, "PUT", "/admin/listings/HE-R001/featured", { featured: true })).status, 200);
-  assert.equal((await req(env, "PUT", "/admin/listings/order", { ids: ["HE-R001"] })).status, 200);
   assert.equal(confirmedAt(), OLD);
   // Hiding it does not confirm it; publishing it again does.
   clock("2026-10-30T12:04:00.000Z");

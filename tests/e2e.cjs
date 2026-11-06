@@ -48,6 +48,50 @@ async function publicSite(browser) {
   assert.equal(await page.$("#quick"), null, "no search form with few listings");
   assert.equal(await page.$("#tabs-region"), null, "no filter tabs with few listings");
   assert.match(await page.textContent(".hero h1"), /Le Bernage/);
+  // PUB-22: the home's section is Properties with at most five cards and View all; the menu opens /properties.
+  assert.equal(await page.textContent("#portfolio .eyebrow"), "Properties");
+  assert.equal(await page.getAttribute("#portfolio a.btn", "href"), "/properties");
+  assert.equal(await page.getAttribute('#main-nav a:has-text("Properties")', "href"), "/properties");
+  await page.click('#main-nav a:has-text("Properties")');
+  await page.waitForSelector("#catalog #grid .card");
+  assert.equal(new URL(page.url()).pathname, "/properties");
+  assert.equal(await page.title(), "Properties · Hampton Estates Jersey");
+  assert.equal(await page.$("#portfolio"), null, "a page of its own, not the home page");
+  const catalog = () => page.$$eval("#catalog #grid .card", cs => cs.map(c => c.getAttribute("href")).sort());
+  assert.deepEqual(await catalog(), [...hrefs].sort(), "mixed at first: sales, rentals and businesses");
+  assert.deepEqual(await page.$$eval(".op-buttons button b", b => b.map(x => x.textContent)), ["Rent", "Buy", "Businesses"]);
+  await shot(page, "properties");
+  await page.click('.op-buttons button[data-op="rent"]');
+  assert.deepEqual(await catalog(), ["/p/HE-R002"]);
+  assert.equal(await page.getAttribute('.op-buttons button[data-op="rent"]', "aria-pressed"), "true");
+  assert.equal(new URL(page.url()).search, "?op=rent", "the choice is in the link");
+  await page.click('.op-buttons button[data-op="rent"]');
+  assert.equal((await catalog()).length, hrefs.length, "pressing it again brings the mix back");
+  await page.click('.op-buttons button[data-op="business"]');
+  assert.deepEqual(await catalog(), ["/p/HE-C001"]);
+  assert.ok((await page.$eval("#show-all", b => b.getBoundingClientRect().height)) >= 44, "Show all is a 44px target");
+  await page.click("#show-all");
+  assert.equal((await catalog()).length, hrefs.length);
+  assert.equal(new URL(page.url()).search, "");
+  await page.goto(BASE + "properties?region=uk&beds=4");
+  await page.waitForSelector("#catalog #grid .card");
+  assert.equal((await catalog()).length, hrefs.length, "few listings: no filters on the page, so none applied out of sight");
+  await page.goto(BASE + "properties?op=bogus");
+  await page.waitForSelector("#catalog #grid .card");
+  assert.equal((await catalog()).length, hrefs.length, "an unknown choice shows everything");
+  await page.goto(BASE + "properties?op=sale");
+  await page.waitForSelector("#catalog #grid .card");
+  assert.equal(await page.getAttribute('.op-buttons button[data-op="sale"]', "aria-pressed"), "true", "a shared link opens on its choice");
+  const phone = await newPage(ctx, {width: 390, height: 844});
+  await phone.goto(BASE + "properties");
+  await phone.waitForSelector("#catalog #grid .card");
+  assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "no sideways scroll at 390");
+  assert.ok((await phone.$$eval(".op-buttons button", b => b.map(x => x.getBoundingClientRect().height))).every(h => h >= 120), "stacked bands");
+  await shot(phone, "properties-mobile");
+  assert.deepEqual(phone.errors, []);
+  await phone.close();
+  await page.goto(BASE);
+  await page.waitForSelector("#grid .card");
   assert.equal(await page.$$eval(".dots button", d => d.length), 5, "one dot per listing in the hero carousel");
   await page.click('.dots [data-slide="1"]');
   assert.doesNotMatch(await page.textContent(".hero h1"), /Le Bernage/, "dots change the hero listing");
@@ -229,6 +273,18 @@ async function listingUrls(browser) {
   // S10: an old Wix address goes straight to the listing's path.
   r = await raw.get(BASE + "commercial-properties/casa-mia", {maxRedirects: 0});
   assert.deepEqual([r.status(), r.headers().location], [301, "/p/HE-C004"]);
+  // PUB-22: the old catalogue pages go to /properties (commercial straight to Businesses); /properties is a page.
+  r = await raw.get(BASE + "commercial-properties", {maxRedirects: 0});
+  assert.deepEqual([r.status(), r.headers().location], [301, "/properties?op=business"]);
+  r = await raw.get(BASE + "residential-properties", {maxRedirects: 0});
+  assert.deepEqual([r.status(), r.headers().location], [301, "/properties"]);
+  r = await raw.get(BASE + "properties?op=rent", {maxRedirects: 0});
+  assert.equal(r.status(), 200);
+  const props = await r.text();
+  assert.ok(props.includes(`<link rel="canonical" href="${SITE}/properties">`), "its own canonical, not the home page's");
+  assert.ok(props.includes("<title>Properties · Hampton Estates Jersey</title>"));
+  assert.equal((props.match(/<link rel="canonical"/g) || []).length, 1, "one canonical");
+  assert.ok((await (await raw.get(BASE + "sitemap.xml")).text()).includes("/properties</loc>"));
 
   const ctx = await browser.newContext({permissions: ["clipboard-read", "clipboard-write"]});
   const page = await newPage(ctx, {width: 1280, height: 800});
@@ -257,10 +313,10 @@ async function listingUrls(browser) {
   await page.goForward();
   await page.waitForSelector(".summary h1 >> text=Le Bernage");
   assert.equal(await page.evaluate(() => window.sameDocument), before, "no full reload while browsing");
-  // A home section from a listing: /#portfolio, and Back returns to the listing; the logo goes to /.
-  await page.click('.crumbs a[href="#portfolio"]');
-  await page.waitForSelector("#portfolio #grid .card");
-  await page.waitForFunction(() => location.pathname === "/" && location.hash === "#portfolio");
+  // The breadcrumb's market opens /properties on that location, and Back returns to the listing; the logo goes to /.
+  await page.click('.crumbs a[href="/properties?region=jersey"]');
+  await page.waitForSelector("#catalog #grid .card");
+  await page.waitForFunction(() => location.pathname === "/properties");
   await page.goBack();
   await page.waitForSelector(".summary h1 >> text=Le Bernage");
   await page.click('#main-nav a[href="#/apply"]');
@@ -297,8 +353,8 @@ async function listingUrls(browser) {
   assert.equal((await page.goto(BASE + "p/HE-R999")).status(), 404);
   await page.waitForSelector("#app h1 >> text=Property not found");
   await page.click("#app >> text=See our properties");
-  await page.waitForSelector("#portfolio #grid .card");
-  assert.equal(new URL(page.url()).hash, "#portfolio");
+  await page.waitForSelector("#catalog #grid .card");
+  assert.equal(new URL(page.url()).pathname, "/properties");
   // /p/<id>/ is the listing, without the slash; any other /p/… is not found (not the home page).
   await page.goto(BASE + "p/HE-R001/");
   await page.waitForSelector(".summary h1 >> text=Le Bernage");
@@ -473,18 +529,44 @@ async function admin(browser) {
   await hc.close();
   await page.click('tr:has-text("HE-R001") .star');
   await page.waitForSelector('tr:has-text("HE-R001") .star[aria-pressed=false]');
-  // Drag a row to the top of Published: the home page follows that order.
-  await page.getByRole("group", {name: "Status"}).getByRole("button", {name: /^Published/}).click();
-  await page.dragAndDrop('tr:has-text("HE-R018")', "tbody tr:first-child");
-  await page.waitForSelector("text=Order saved.");
-  assert.match(await page.textContent("tbody tr:first-child"), /HE-R018/);
+  // PUB-22: the home page and the carousel start with the listing published last (hide, then show again).
+  await page.click('tr:has-text("HE-R018") .switch');
+  await page.waitForSelector('tr:has-text("HE-R018") .switch[aria-checked=false]');
+  await page.click('tr:has-text("HE-R018") .switch');
+  await page.waitForSelector('tr:has-text("HE-R018") .switch[aria-checked=true]');
   [hc, home] = await fresh();
-  assert.equal(await home.getAttribute("#grid .card", "href"), "/p/HE-R018", "home follows the panel order");
+  assert.equal(await home.getAttribute("#grid .card", "href"), "/p/HE-R018", "newest first on the home page");
   assert.match(await home.textContent(".hero h1"), /Pathfield/, "and the carousel starts with it");
   await hc.close();
-  await page.click('tr:has-text("HE-R018") [aria-label^="Move"][aria-label$="down"]');
-  await page.waitForSelector("text=Order saved.");
-  assert.doesNotMatch(await page.textContent("tbody tr:first-child"), /HE-R018/, "keyboard arrows move rows too");
+  assert.equal(await page.$(".handle"), null, "no drag-to-order any more");
+  // SPR-06 / SPR-07: Operation, Bedrooms, Price and 7-day filters, and the Checked / Matched / Interested columns.
+  await page.getByRole("group", {name: "Status"}).getByRole("button", {name: /^All/}).click();
+  for (const h of ["Checked", "Matched", "Interested"]) assert.ok(await page.$(`thead th:has-text("${h}")`), h);
+  const ids = () => page.$$eval("tbody tr", rs => rs.map(r => r.querySelector(".muted").textContent.split(" · ")[0]).sort());
+  // A select inside its label is named with its option too ("Operation All"), so find it by the label's first word.
+  const filt = name => page.locator(".filters label", {hasText: new RegExp(`^${name}`)}).locator("select, input");
+  await filt("Operation").selectOption("rent");
+  assert.ok((await ids()).every(id => /^HE-R/.test(id)) && (await ids()).includes("HE-R002"));
+  assert.ok(!(await ids()).includes("HE-R001"), "To Let leaves the sales out");
+  await filt("Operation").selectOption("");
+  await filt("From").selectOption("4");
+  assert.ok((await ids()).includes("HE-R018") && !(await ids()).includes("HE-R001"), "4 bedrooms or more");
+  await filt("To").selectOption("3");
+  assert.equal(await filt("From").inputValue(), "3", "a To below the From lowers the From");
+  assert.ok((await ids()).includes("HE-R001"), "exactly 3");
+  await filt("Max").fill("1000");
+  assert.equal(await page.textContent("main >> text=No listings match these filters."), "No listings match these filters.");
+  await shot(page, "listings-filters", {fullPage: false});
+  await page.getByRole("button", {name: "Clear filters"}).click();
+  assert.equal(await filt("From").inputValue(), "");
+  await shot(page, "listings-table", {fullPage: false});
+  await page.setViewportSize({width: 390, height: 844});
+  await shot(page, "listings-table-mobile");
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Listings: no sideways scroll at 390");
+  await page.setViewportSize({width: 1280, height: 800});
+  await page.getByLabel("Changed in the last 7 days").check();
+  assert.ok((await ids()).includes("HE-R018"), "just republished");
+  await page.getByLabel("Changed in the last 7 days").uncheck();
 
   await page.goto(BASE + "admin/#/viewings");
   await page.waitForSelector("text=Tom Renouf");

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { makeEnv, seedListing, seedMedia } from "./helpers.mjs";
-import { listingMeta, headTags, listingPage, sitemapXml, robotsTxt } from "../../server/seo.js";
+import { listingMeta, headTags, listingPage, propertiesPage, sitemapXml, robotsTxt } from "../../server/seo.js";
 import { onRequestGet as sitemap, onRequestHead as sitemapHead } from "../../functions/sitemap.xml.js";
 import { onRequestGet as listingFn, onRequestHead as listingHead } from "../../functions/p/[id].js";
 import { onRequestGet as robots, onRequestHead as robotsHead } from "../../functions/robots.txt.js";
@@ -79,6 +79,7 @@ test("sitemap: home and each listing with its lastmod; robots keeps out /admin/ 
   const xml = sitemapXml([{ id: "HE-R001", updated_at: "2026-10-20T09:00:00.000Z" }, { id: "HE-C002", updated_at: "2026-10-21T09:00:00.000Z" }], SITE);
   assert.match(xml, /^<\?xml version="1.0" encoding="UTF-8"\?>\n<urlset xmlns="http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9">/);
   assert.ok(xml.includes(`<url><loc>${SITE}/</loc></url>`));
+  assert.ok(xml.includes(`<url><loc>${SITE}/</loc></url>\n<url><loc>${SITE}/properties</loc></url>`), "PUB-22: the Properties page, after home");
   assert.ok(xml.includes(`<url><loc>${SITE}/p/HE-R001</loc><lastmod>2026-10-20</lastmod></url>`));
   assert.ok(xml.includes(`<url><loc>${SITE}/p/HE-C002</loc><lastmod>2026-10-21</lastmod></url>`));
   // A search engine renders the pages, so the public reads they are built from stay open (the longest rule wins).
@@ -163,11 +164,11 @@ test("home page (S4): its static tags use wrangler.toml's SITE_URL and are the o
   assert.equal(ld.url, site + "/");
   assert.deepEqual(ld.address, { "@type": "PostalAddress", streetAddress: "42 Bath Street", addressLocality: "St Helier",
     addressRegion: "Jersey", postalCode: "JE2 4ST", addressCountry: "JE" });
-  // Every metadata tag in the head is one functions/p/[id].js removes on a listing (its HOME_TAGS), so none is doubled.
+  // Every metadata tag in the head is one server/seo.js withPageHead removes on a listing or /properties (HOME_TAGS), so none is doubled.
   const tags = head.match(/<(meta|link)\b[^>]*>/g).filter(t => !/charset|viewport|name="site-url"|rel="(icon|apple-touch-icon|preconnect|stylesheet)"/.test(t));
   const removed = /<meta name="(description|robots)"|<meta property="og:|<meta name="twitter:|<link rel="canonical"/;
   assert.deepEqual(tags.filter(t => !removed.test(t)), []);
-  assert.match(read("functions/p/[id].js"), /meta\[name="description"\], meta\[name="robots"\], meta\[property\^="og:"\], meta\[name\^="twitter:"\], link\[rel="canonical"\]/);
+  assert.match(read("server/seo.js"), /meta\[name="description"\], meta\[name="robots"\], meta\[property\^="og:"\], meta\[name\^="twitter:"\], link\[rel="canonical"\]/);
 });
 
 test("HEAD answers like GET without a body: sitemap, robots, and a listing page whose read failed", async () => {
@@ -198,4 +199,16 @@ test("listing page: if D1 fails, the plain page with a 503, never cached, instea
     assert.equal(await h.text(), "");
   } finally { console.error = log; }
   assert.match(errors[0], /listing page HE-R001 .*D1 is down/);
+});
+
+test("PUB-22: /properties has its own title, description and canonical, not the home page's", () => {
+  const page = propertiesPage(new Request(`${SITE}/properties?op=rent`), { SITE_URL: SITE });
+  assert.equal(page.status, 200);
+  assert.equal(page.title, "Properties · Hampton Estates Jersey");
+  assert.ok(page.head.includes(`<link rel="canonical" href="${SITE}/properties">`), "one canonical for every choice");
+  assert.ok(page.head.includes(`<meta property="og:url" content="${SITE}/properties">`));
+  assert.match(page.head, /<meta name="description" content="Homes to let, homes for sale and businesses/);
+  assert.ok(page.head.includes(`<meta property="og:image" content="${SITE}/og-image.jpg">`));
+  assert.equal(page.headers.get("x-robots-tag"), null, "indexed on the site's own host");
+  assert.equal(propertiesPage(new Request("https://preview.pages.dev/properties"), { SITE_URL: SITE }).headers.get("x-robots-tag"), "noindex");
 });

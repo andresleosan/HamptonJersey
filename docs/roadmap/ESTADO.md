@@ -106,6 +106,13 @@ Si el reloj o Hermes se paran, el botón Settings de la barra lleva un número e
 - La app lee Drive con una **cuenta de servicio de solo lectura** (secreto `GOOGLE_SERVICE_ACCOUNT` en Cloudflare); Hermes pide los documentos a la app y nunca tiene la clave.
 - **Falta:** que Luis cree la cuenta de servicio, guarde su clave y comparta la carpeta de las casas desde la cuenta de Franco; y en el VPS, la instrucción de Hermes y las tres rutas nuevas en el custodio, que esperan a PRE-32 (el plan de ChatGPT). Hasta entonces las casas se quedan en «Waiting for Hermes».
 
+## Listings con más filtros y la página Properties de la web (SPR-06, SPR-07, PUB-22)
+
+**Construido el 6-nov-2026** ([plan](../superpowers/plans/2026-11-06-hampton-app-listings-and-properties-page.md), [ledger](../superpowers/plans/2026-11-06-hampton-app-listings-and-properties-page-ledger.md); specs [SPR-06](../superpowers/specs/2026-11-05-hampton-app-listing-filters-design.md), [SPR-07](../superpowers/specs/2026-11-05-hampton-app-listing-tracking-design.md), [PUB-22](../superpowers/specs/2026-11-06-hampton-app-properties-page-design.md)). Migración 0021 (`listings.published_at`).
+- **Panel, Listings:** filtros Operation (To Buy, To Let, Business), Bedrooms From–To, Min y Max price (alquiler por mes) y Changed in the last 7 days; columnas Checked, Matched e Interested; «3 bed» en cada fila. Ya no se ordena la portada arrastrando filas: el orden es automático.
+- **Web:** el menú Properties abre `/properties`, solo con propiedades: tres botones grandes con foto (Rent, Buy, Businesses; diseño A elegido por Luis) y el catálogo mezclado debajo, que los botones filtran; el enlace guarda la elección. La portada enseña en **Properties** las 5 publicadas más recientemente que siguen en el mercado, con **View all properties**. Las direcciones antiguas de Wix del catálogo llevan a `/properties`.
+- **Falta (SPR-07):** la fuente (Hampton o agencia), que llega con la búsqueda del mercado. Luis decidió el 6-nov que esa búsqueda la hará **Hermes, un agente, sin atarse a ninguna página**; queda por diseñar (cambia BUS-06, BUS-08, BUS-10, EST-16 y las demás tareas con el bloqueo «Clave API Places.je»).
+
 ## Siguiente tarea
 
 **Correo saliente y entrante con Cloudflare Email Service (AUT-17).** Decisión de Luis del 6-nov-2026 (arquitectura P-19, cierra la pregunta 7): el dominio ya está en Cloudflare, el envío sale de la app con un binding y la recepción entra por Email Routing; sin proveedor aparte (Workers Paid, 5 USD al mes con 3.000 correos incluidos). Es la pieza que desbloquea el bucle del aplicante de abajo y 14 puntos más del checklist. Antes de construir, Luis: subir la cuenta a Workers Paid, incorporar el dominio en Email Service y elegir el remitente. Modelo recomendado: claude-opus-5-5 · high.
@@ -118,7 +125,7 @@ Objetivo (idea del equipo de Hampton del 6-nov): cada aplicante recibe las casas
 |---|---|---|---|
 | 1 | AUT-17 Correo con Cloudflare Email Service; su primer envío real es el resumen de las 8:00 por email al equipo (NOT-10) | opus · high | Luis: Workers Paid, dominio en Email Service, remitente |
 | 2 | AGE-04 Directorio de agencias con acuerdo de comisión, más el registro de presentaciones (la parte de AGE-09 que no necesita correo: `introduced_at` y «Hampton presentó N aplicantes a esta casa el día D») | opus · medium | Nada |
-| 3 | MSG-02 Hampton Bot · fase 1: chat web con respuesta humana (burbuja «Message us», pantalla Messages, migración 0021, aviso «N chats esperan» a Luis por el bot nuevo, sin IA), con la primera mitad de MSG-05 (Create applicant con el contacto) | opus · high | Nada para construir; para publicar, de PRE-34 solo la regla WAF y el token del bot nuevo |
+| 3 | MSG-02 Hampton Bot · fase 1: chat web con respuesta humana (burbuja «Message us», pantalla Messages, migración 0022, aviso «N chats esperan» a Luis por el bot nuevo, sin IA), con la primera mitad de MSG-05 (Create applicant con el contacto) | opus · high | Nada para construir; para publicar, de PRE-34 solo la regla WAF y el token del bot nuevo |
 | 4 | EST-13 + AGE-11 + AGE-13: estados del match, correo «tus casas» con enlaces, recordatorios a las 24 y 72 h, No response a los 7 días con la tarea de llamar en el Inbox | opus · high | AUT-17 |
 | 5 | BUS-17 + SAP-10: ampliar criterios con menos de 3 coincidencias (más casas que enviar). **Widen criteria construido el 6-nov-2026** (sección propia arriba); falta el botón Pause search de SAP-10 | opus · medium (lo que falta) | Nada |
 | 6 | AGE-03 + AGE-05 + AGE-10: consulta por casa a su agencia con [HE-OUT-…], agrupada a las 9:00 y 14:00, sin revelar la agencia al aplicante hasta acordar | opus · high | AUT-17; la pregunta de comisión espera PRE-22 |
@@ -127,7 +134,7 @@ Objetivo (idea del equipo de Hampton del 6-nov): cada aplicante recibe las casas
 | 9 | AGE-08 + ANA-06: seguimiento de agencias que no responden y sus tiempos de respuesta | sonnet · medium | 6 |
 | 10 | AGE-06: lectura con IA de las respuestas de agencias (Hermes con un modelo por API con acuerdo de datos: son datos C1) | opus · high | 6 y PRE-32 |
 | 11 | AUT-16 Hampton Bot · fase 4: Luis pregunta por Telegram al Hermes de Hampton (portero del token, MCP mínimo, búsqueda de fichas) | opus · xhigh | PRE-32 o una clave de API con acuerdo de datos; decisión 4 del documento (Properties Queue) |
-| 12 | BUS-06 + BUS-08 + EST-16 + VIS-17: casas del mercado, pasada diaria y visitas en casas de otras agencias | opus · high | PRE-01 (clave de Places.je) |
+| 12 | BUS-06 + BUS-08 + EST-16 + VIS-17: casas del mercado, pasada diaria y visitas en casas de otras agencias | opus · high | Rediseño: Luis decidió el 6-nov que la búsqueda la hace Hermes, sin atarse a ninguna página (antes PRE-01, la clave de Places.je) |
 
 Cada envío nuevo empieza en modo borrador (una persona aprueba cada uno) y pasa a automático cuando acierte; todo envío mira antes la pausa de Automations (AUT-11).
 
