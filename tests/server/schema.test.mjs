@@ -543,3 +543,25 @@ test("0016: interest corrections refuse what the app never writes", () => {
     { interest_same_as: "x".repeat(255) },
   ]) assert.throws(() => add(o), /CHECK/, JSON.stringify(o).slice(0, 90));
 });
+
+test("0021: a chat needs an email or a phone, and its messages go with it", () => {
+  const env = makeEnv(), db = env.DB.raw;
+  seedListing(env);
+  const chat = o => Number(db.prepare(`INSERT INTO chats (key_hash, name, email, phone, listing_id, privacy_ack_at, created_at,
+    last_at, waiting_since) VALUES (?, 'Sam', ?, ?, ?, ?, ?, ?, ?)`).run(o.hash, o.email ?? null, o.phone ?? null,
+    o.listing ?? null, T0, T0, T0, T0).lastInsertRowid);
+  const msg = (id, role, text) => db.prepare("INSERT INTO chat_messages (chat_id, role, text, created_at) VALUES (?, ?, ?, ?)")
+    .run(id, role, text, T0);
+  assert.throws(() => chat({ hash: "a" }), /CHECK/, "no email nor phone");
+  const id = chat({ hash: "b", email: "sam@x.je", listing: "HE-R001" });
+  assert.throws(() => chat({ hash: "b", phone: "+447700900000" }), /UNIQUE/);
+  msg(id, "visitor", "Hello"); msg(id, "team", "Hi Sam");
+  for (const [role, text] of [["bot", "x"], ["visitor", ""], ["team", "x".repeat(2001)]])
+    assert.throws(() => msg(id, role, text), /CHECK/, `${role} ${text.length}`);
+  assert.equal(db.prepare("SELECT status FROM chats WHERE id = ?").get(id).status, "waiting");
+  assert.throws(() => db.prepare("UPDATE chats SET status = 'closed' WHERE id = ?").run(id), /CHECK/);
+  db.prepare("DELETE FROM listings WHERE id = 'HE-R001'").run();
+  assert.equal(db.prepare("SELECT listing_id FROM chats WHERE id = ?").get(id).listing_id, null);
+  db.prepare("DELETE FROM chats WHERE id = ?").run(id);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM chat_messages").get().n, 0);
+});

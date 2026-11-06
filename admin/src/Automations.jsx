@@ -32,9 +32,9 @@ export default function Automations({ stalled, outbound, onChange }) {
 
     <article className="card" aria-labelledby="a-clean">
       <h2 id="a-clean">12-month clean-up</h2>
-      <p className="muted">Once a day, deletes applicants and viewing requests inactive for 12 months, and Hermes jobs closed or untouched for 90 days.</p>
+      <p className="muted">Once a day, deletes applicants and viewing requests inactive for 12 months, Hermes jobs closed or untouched for 90 days, and website chats 30 days after their last message.</p>
       <p>{!r ? "No run yet."
-        : r.ok ? `Last run ${fmtDay(r.date)}: ${r.contacts} applicants, ${r.viewings} viewing requests, ${r.jobs} Hermes jobs deleted.`
+        : r.ok ? `Last run ${fmtDay(r.date)}: ${r.contacts} applicants, ${r.viewings} viewing requests, ${r.jobs} Hermes jobs, ${r.chats} chats deleted.`
         : <span className="err">Last run {fmtDay(r.date)} failed (attempt {r.attempts} of 3). {r.attempts < 3 ? "It tries again in a few minutes."
           : "It tries again tomorrow; if that fails too, tell Optimyze."}</span>}</p>
     </article>
@@ -59,6 +59,7 @@ export default function Automations({ stalled, outbound, onChange }) {
       </table> : <p className="muted">No jobs yet.</p>}
     </article>
 
+    <WebChat initial={d.webchat} />
     <Sending outbound={outbound} onChange={onChange} />
   </section>;
 }
@@ -89,6 +90,32 @@ function Sending({ outbound, onChange }) {
           <button type="button" className="btn sm" disabled={busy}
             onClick={() => act("Pause all sending to clients and agencies?", "/admin/outbound/pause", "Sending paused.", true)}>Pause all outbound</button></>}
     </div>}
+    {msg && <p ref={said} tabIndex={-1} role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
+  </article>;
+}
+
+// MSG-02 (C3): the website's chat. Off, the website offers no new chats; chats already open go on.
+function WebChat({ initial }) {
+  const [w, setW] = useState(initial), [busy, setBusy] = useState(false), [msg, setMsg] = useState(null), said = useRef(null);
+  useEffect(() => { if (msg) said.current.focus(); }, [msg]);
+  const flip = async () => {
+    if (!w.on && !confirm("Turn the web chat on? The button appears on the website within 5 minutes.")) return;
+    setBusy(true); setMsg(null);
+    try {
+      const r = await api("/admin/webchat", { method: "POST", body: { on: !w.on } });
+      setW(r.webchat);
+      setMsg({ ok: true, text: r.webchat.on ? "Web chat on." : "Web chat off. The button leaves the website within 5 minutes; open chats go on." });
+    } catch (e) { setMsg({ text: e.message }); }
+    finally { setBusy(false); }
+  };
+  return <article className="card" aria-labelledby="a-chat">
+    <h2 id="a-chat">Web chat</h2>
+    <p className="muted">A "Message us" button on the website. A person replies from Messages; nothing answers on its own.</p>
+    <div className="inline">
+      <button type="button" role="switch" aria-checked={w.on} aria-labelledby="a-chat" className="switch" disabled={busy}
+        onClick={flip}><span className="knob" aria-hidden="true" />{w.on ? "On" : "Off"}</button>
+      {w.at && <span className="muted">Turned {w.on ? "on" : "off"} by {w.by} on {fmtDate(w.at)}</span>}
+    </div>
     {msg && <p ref={said} tabIndex={-1} role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
   </article>;
 }

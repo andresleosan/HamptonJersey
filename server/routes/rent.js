@@ -1,4 +1,4 @@
-import { json, fail, readJson, now } from "../http.js";
+import { json, fail, readJson, now, sha256 } from "../http.js";
 import { validateTenancy, validatePayment, rentAssistant, earliestMoveOut, complianceStatus, addMonths, LEGAL,
   ARREARS_STEPS, COMPLIANCE, REF_RE, importKey, cleanDescription } from "../rentals.js";
 import { fields } from "../sales.js";
@@ -545,8 +545,6 @@ async function updatePayment({ request, env, admin, params: [id] }) {
 
 // Per request (R9 says 2,000 a file): the panel sends a file in chunks of 500, numbered first with occurrences().
 const IMPORT_BYTES = 2 * 1024 * 1024, MAX_ROWS = 500, ENDED_DAYS = 60;
-const sha256 = async text => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))]
-  .map(b => b.toString(16).padStart(2, "0")).join("");
 const STATUSES = ["matched", "unmatched", "duplicate", "by_hand", "ignored"];
 
 // R9, R25: bank rows the panel already split ({date ISO, amount in pence, description, n = occurrences() over the

@@ -394,6 +394,46 @@ fieldset.step>legend{padding:0;margin-bottom:24px}
 .legal h1{font-size:clamp(28px,4vw,40px);margin-bottom:16px}
 .legal h2{font-size:18px;margin:32px 0 8px}
 .legal ul{padding-left:18px}
+/* web chat (MSG-02; the box is rendered by chat.js). Full screen on phones, a box at the bottom right from 760px. */
+.chat-btn{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:15;min-height:44px;box-shadow:var(--shadow)}
+.chat-btn[hidden]{display:none}
+.chat-btn[aria-expanded=true]{visibility:hidden}
+/* Room under the page for the button, so it never hides the last links or a focused control. */
+html:has(.chat-btn:not([hidden])){scroll-padding-bottom:80px}
+body:has(.chat-btn:not([hidden])) footer{padding-bottom:80px}
+@media (max-width:980px){body:has(.mbar) .chat-btn{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+.chat{width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:var(--paper);color:var(--ink)}
+.chat[open]{display:grid;grid-template-rows:auto minmax(0,1fr)}
+.chat::backdrop{background:rgba(21,21,21,.24)}
+.chat-top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:4px 16px;border-bottom:1px solid var(--line)}
+.chat-top h2{font-size:17px}
+.chat .linkbtn{min-height:44px;margin:0}
+.chat-body{overflow:auto;padding:16px;display:grid;align-content:start;gap:16px}
+.chat-body form{display:grid;gap:12px}
+.chat-body p{margin:0}
+.chat .hint{font-size:13px;color:var(--stone)}
+.chat .field input{font-size:16px}
+.chat .field textarea{border:1px solid var(--field-line);border-radius:12px;background:#fbfaf8;padding:13px 14px;width:100%;font:inherit;font-size:16px;resize:vertical}
+.chat .field textarea:focus{outline:none;border-color:var(--bronze);background:#fff;box-shadow:0 0 0 3px rgba(165,107,61,.15)}
+.chat .field [aria-invalid=true]{border-color:var(--err)}
+.chat .check{display:flex;gap:12px;align-items:flex-start;font-size:14px;cursor:pointer}
+.chat .check input{flex:none;width:20px;height:20px;margin:2px 0 0;accent-color:var(--ink)}
+.chat .form-status{color:var(--err);font-size:14px}
+.chat .form-status:empty{height:0;overflow:hidden}
+.chat .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-color:var(--ink)}
+.chat-log{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.chat-log li{max-width:85%;padding:8px 12px;border-radius:12px;background:var(--mist)}
+.chat-log li.from-visitor{justify-self:end}
+.chat-log li.from-team{border:1px solid var(--line);border-left:3px solid var(--bronze);background:var(--paper)}
+.chat-log .who{font-size:12px;color:var(--stone)}
+.chat-log .text{white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+/* The reply box stays at the foot of the chat while the conversation scrolls above it. */
+.chat-say{position:sticky;bottom:-16px;margin-bottom:-16px;padding:8px 0 16px;background:var(--paper);border-top:1px solid var(--line)}
+@media (min-width:760px){
+  .chat{width:min(400px,calc(100vw - 32px));height:min(640px,calc(100dvh - 120px));margin:auto 24px 24px auto;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+  .chat::backdrop{background:transparent}
+}
 </style>
 </head>
 <body>
@@ -411,6 +451,8 @@ fieldset.step>legend{padding:0;margin-bottom:24px}
   <div><b>Contact</b><p class="num">01534 727582 · 07797 718199<br>francopropertiesjersey@gmail.com</p></div>
 </div>
   <div class="wrap staff-row"><a class="privacy" href="#/privacy">Privacy</a><a class="staff" href="/admin/">Staff login</a></div></footer>
+
+<button class="btn chat-btn" type="button" aria-haspopup="dialog" aria-expanded="false" hidden>Message us</button>
 
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstile" async defer></script>
 <script src="/lib.js"></script>
@@ -997,6 +1039,25 @@ const sidePage = h => import("/apply.js").then(m => { if (location.hash !== h) r
       <button class="btn ghost" type="button">Try again</button></div></section>`;
     $("#app .empty button").addEventListener("click", () => location.reload());
   });
+// MSG-02: the web chat. chat.js loads on the first click, or at once when this browser keeps a chat to come back to;
+// from then on it shows and hides the button. Never on previews: they use the production database (C12).
+const chatBtn = $(".chat-btn");
+let chatMod = null;
+function bootChat(on) {
+  if (location.hostname.endsWith(".pages.dev")) return;
+  const opts = {btn: chatBtn, chatOn: on, tsKey: TS_KEY, tsReady, hidden: () => !!SIDE_PAGES[location.hash],
+    listing: () => location.pathname.match(LISTING)?.[1] ?? null};
+  const load = () => chatMod ??= import("/chat.js").then(async m => { await m.init(opts); return m; }).catch(e => { chatMod = null; throw e; });
+  let kept = false;
+  try { kept = !!localStorage.getItem("hampton-chat"); } catch { /* storage off */ }
+  const show = () => chatMod ? chatMod.then(m => m.refresh(), () => {}) : (chatBtn.hidden = !on || opts.hidden());
+  show();
+  addEventListener("hashchange", show);
+  // chat.js could not load: the button becomes a call to the office.
+  chatBtn.addEventListener("click", () => chatBtn.dataset.call ? (location.href = "tel:+441534727582") : load().then(m => m.toggle(), () => {
+    chatBtn.dataset.call = "1"; chatBtn.textContent = "Call 01534 727582"; }));
+  if (kept) load().catch(() => {});
+}
 const LISTING = /^\/p\/(HE-[A-Z]\d{3,})$/;
 let routed = null; // the URL last routed: a fragment change fires both popstate and hashchange, it is routed once
 const route = () => {
@@ -1035,6 +1096,7 @@ const rank = p => p.order ?? Infinity; // home_order, set by dragging rows in th
 Promise.allSettled([getJSON("/api/listings"), getJSON("/data/team.json"), getJSON("/api/config"), getJSON("/api/tours")]).then(([p, t, c, tr]) => {
   // Before the listings check: Register your search still opens (with its anti-spam key) when they fail.
   TS_KEY = c.status === "fulfilled" && typeof c.value?.turnstileSiteKey === "string" ? c.value.turnstileSiteKey : null;
+  bootChat(c.status === "fulfilled" && c.value?.chat === true);
   if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
   const order = {jersey: 0, uk: 1, international: 2};
   PROPS = p.value.filter(x => x && /^HE-[A-Z]\d{3,}$/.test(x.id) && x.title && x.region in order && x.operation in OP_ONE)

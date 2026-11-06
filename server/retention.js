@@ -1,11 +1,13 @@
 import { now } from "./http.js";
 import { jerseyToday } from "./viewings.js";
 import { normalizePhone } from "./applicants.js";
+import { KEEP_DAYS } from "./chat.js";
 
 // G2: contacts 12 months without activity and viewing requests whose date is over 12 months old are deleted once a
 // Jersey day, as the manual deletes do it (E4, E5). E7: at most RETENTION_CAP of each per pass, oldest first, in one
 // batch of a fixed number of set-based statements, whatever the count; what is left goes the next day. The same pass
-// deletes Hermes's jobs 90 days after their last activity, never a draft (AUT-01, A5; JOBS below).
+// deletes Hermes's jobs 90 days after their last activity, never a draft (AUT-01, A5; JOBS below), and the website's
+// chats 30 days after their last message (MSG-02; CHATS below).
 export const RETENTION_CAP = 500;
 
 // E3: a contact with a sale on any of its searches, in any status, is kept (V14: 5 years). For a query on contacts c.
@@ -45,6 +47,9 @@ const JOBS = `SELECT id FROM jobs WHERE status <> 'draft' AND ${jobLastActivity(
 // PUB-21 (C7): Properties Queue's closed rows (published, discarded, failed) the same 90 days; open ones wait for a person.
 const IMPORTS = `SELECT id FROM drive_imports WHERE status IN ('published', 'discarded', 'failed')
   AND COALESCE(decided_at, claimed_at, created_at) < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-90 days') LIMIT ${RETENTION_CAP}`;
+// MSG-02 (C11): the website's chats 30 days after their last message, their messages in cascade. Nothing else points at them.
+const CHATS = `SELECT id FROM chats WHERE last_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-${KEEP_DAYS} days') ORDER BY last_at, id
+  LIMIT ${RETENTION_CAP}`;
 const deletedEvents = (type, set) => `INSERT INTO events (at, actor, entity_type, entity_id, type)
   SELECT ?1, 'system', '${type}', CAST(id AS TEXT), '${type}.deleted' FROM (${set}) ORDER BY id`;
 
@@ -78,11 +83,12 @@ export async function runRetention(env, ts) {
     q(`DELETE FROM viewing_requests WHERE id IN (${VIEWINGS})`),
     env.DB.prepare(`DELETE FROM jobs WHERE id IN (${JOBS})`).bind(ts),
     env.DB.prepare(`DELETE FROM drive_imports WHERE id IN (${IMPORTS})`).bind(ts),
+    env.DB.prepare(`DELETE FROM chats WHERE id IN (${CHATS})`).bind(ts),
   ]);
-  return { contacts: r[6].meta.changes, viewings: r[10].meta.changes, jobs: r[11].meta.changes };
+  return { contacts: r[6].meta.changes, viewings: r[10].meta.changes, jobs: r[11].meta.changes, chats: r[13].meta.changes };
 }
 
-// E6: retention_run {date, ok, attempts, contacts, viewings, jobs}. A claim (a clock tick or a panel poll) wins the pass when
+// E6: retention_run {date, ok, attempts, contacts, viewings, jobs, chats}. A claim (a clock tick or a panel poll) wins the pass when
 // the stored date is earlier than today (attempts starts again at 1), or is today with the pass not done and fewer than
 // 3 attempts: a failed pass is retried twice by later claims, then waits for the next day. One statement, so two claims
 // never both win an attempt.
@@ -99,9 +105,9 @@ export async function claimRetentionDay(env, date) {
 }
 
 // After a pass: done for `date`, with what it deleted.
-export const recordRetentionDay = (env, date, { contacts, viewings, jobs }) => env.DB.prepare(`UPDATE app_settings
-  SET value = json_set(value, '$.ok', json('true'), '$.contacts', ?, '$.viewings', ?, '$.jobs', ?), updated_at = ?
-  WHERE key = 'retention_run' AND json_extract(value, '$.date') = ?`).bind(contacts, viewings, jobs, now(), date).run();
+export const recordRetentionDay = (env, date, { contacts, viewings, jobs, chats }) => env.DB.prepare(`UPDATE app_settings
+  SET value = json_set(value, '$.ok', json('true'), '$.contacts', ?, '$.viewings', ?, '$.jobs', ?, '$.chats', ?), updated_at = ?
+  WHERE key = 'retention_run' AND json_extract(value, '$.date') = ?`).bind(contacts, viewings, jobs, chats, now(), date).run();
 
 // E6: claims the Jersey day of ts (ISO) and, when won, runs and records its pass. The clock (server/jobs.js) claims
 // each day at 00:00 Jersey; the panel's polls claim it too, as its backup. Never rejects: a failed pass is logged and

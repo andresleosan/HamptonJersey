@@ -65,7 +65,9 @@ async function news({ request, env }) {
   const after = new URL(request.url).searchParams.get("after");
   if (after !== null && !/^\d{1,15}$/.test(after)) fail(400, "after must be a notification id");
   const { max } = await env.DB.prepare("SELECT COALESCE(MAX(id), 0) AS max FROM notifications").first();
-  if (after === null) return json({ items: [], cursor: max });
+  // MSG-02 (C9): how many website chats wait for a person, a number only.
+  const { n: chats_waiting } = await env.DB.prepare("SELECT COUNT(*) AS n FROM chats WHERE status = 'waiting'").first();
+  if (after === null) return json({ items: [], cursor: max, chats_waiting });
   // Only the title of a listing on the website: an unpublished or archived one, or an old snapshot, may not be public.
   const { results } = await env.DB.prepare(`SELECT n.id, n.category, l.title AS listing
     FROM notifications n JOIN events e ON e.id = n.event_id
@@ -77,7 +79,7 @@ async function news({ request, env }) {
     ? { id: n.id, text: "New applicant", link: panel(request) }
     : { id: n.id, text: n.listing ? `New viewing request for ${n.listing}` : "New viewing request", link: panel(request, "viewings") });
   // A cursor past the last notice (a restored database) comes back to it, so later notices are not skipped.
-  return json({ items, cursor: results.length === NEWS ? results.at(-1).id : max });
+  return json({ items, cursor: results.length === NEWS ? results.at(-1).id : max, chats_waiting });
 }
 
 // H8: one open job per listing and kind; asking again answers with the open one.

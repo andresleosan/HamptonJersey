@@ -67,7 +67,7 @@ test("GET /admin/automations: last runs, Hermes's month, waiting drafts and rece
 
   ({ data } = await admin(env, "GET", "/admin/automations"));
   assert.deepEqual(data.clock, { at: ago(3), stopped: false });
-  assert.deepEqual(data.retention, { date: "2026-11-01", ok: true, attempts: 1, contacts: 2, viewings: 1, jobs: 0 });
+  assert.deepEqual(data.retention, { date: "2026-11-01", ok: true, attempts: 1, contacts: 2, viewings: 1, jobs: 0, chats: 0 });
   assert.equal(data.hermes.at, ago(2));
   assert.deepEqual(data.hermes.month, { used: 1, discarded: 1, failed: 1 });
   assert.deepEqual(data.hermes.waiting, [{ id: draft, listing_id: "HE-R002", title: "Rue des Pres", drafted_at: ago(30) }]);

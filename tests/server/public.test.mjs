@@ -106,7 +106,7 @@ test("GET /listings reads interest through the (listing_id, date) index", async 
 });
 
 test("GET /config exposes only the Turnstile site key", async () => {
-  assert.deepEqual((await call(world(), "GET", "/config")).data, { turnstileSiteKey: "site-key" });
+  assert.deepEqual((await call(world(), "GET", "/config")).data, { turnstileSiteKey: "site-key", chat: false });
 });
 
 test("media: public photo is cacheable; private or draft media are 404 without a session", async () => {

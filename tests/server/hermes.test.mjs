@@ -100,7 +100,7 @@ test("news: a fixed text and a panel link per new website notice, never who", as
   const env = env0();
   seedListing(env, { id: "HE-R001", title: "23 Le Bernage" });
   const first = await door(env, "GET", "/news");
-  assert.deepEqual(first.data, { items: [], cursor: 0 }, "without after: no history, just the cursor");
+  assert.deepEqual(first.data, { items: [], cursor: 0, chats_waiting: 0 }, "without after: no history, just the cursor");
   const { applicant, n1, n2 } = people(env);
   // A general enquiry, a notice the team made in the panel and a match: not news for Telegram.
   const general = insert(env, "viewing_requests", { kind: "In person", date: "2026-11-03", time: "10:00", name: "Ottoline Pryke",
@@ -120,7 +120,7 @@ test("news: a fixed text and a panel link per new website notice, never who", as
   assert.equal(data.cursor, n3 + 2, "the cursor passes the notices that are not news");
   const text = JSON.stringify(data);
   for (const s of [...SECRETS, `applicants/${applicant}`]) assert.ok(!text.includes(s), `news leaks ${s}`);
-  assert.deepEqual((await door(env, "GET", `/news?after=${data.cursor}`)).data, { items: [], cursor: data.cursor });
+  assert.deepEqual((await door(env, "GET", `/news?after=${data.cursor}`)).data, { items: [], cursor: data.cursor, chats_waiting: 0 });
   assert.equal((await door(env, "GET", "/news?after=abc")).status, 400);
 });
 
@@ -330,7 +330,7 @@ test("the door never names who paused from the panel; a cursor past the last not
   assert.deepEqual((await door(env, "GET", "/status")).data.outbound, { paused: true, at: T0, by: "team" });
   assert.deepEqual((await door(env, "POST", "/pause")).data.outbound, { paused: true, at: T0, by: "team" });
   assert.equal((await admin(env, "GET", "/admin/notifications/counts")).data.outbound.by, ADMIN, "the panel says who");
-  assert.deepEqual((await door(env, "GET", "/news?after=99")).data, { items: [], cursor: 0 });
+  assert.deepEqual((await door(env, "GET", "/news?after=99")).data, { items: [], cursor: 0, chats_waiting: 0 });
 });
 
 test("news: a viewing request names only a listing on the website, never an old or hidden title", async () => {
@@ -347,4 +347,21 @@ test("news: a viewing request names only a listing on the website, never an old 
   assert.deepEqual(data.items.map(i => i.text), ["New viewing request for Live one", "New viewing request",
     "New viewing request", "New viewing request"]);
   for (const s of ["Off-market", "Archived house", "Old snapshot"]) assert.ok(!JSON.stringify(data).includes(s), s);
+});
+
+test("news carries how many website chats wait, and nothing else of them (MSG-02)", async () => {
+  const env = env0();
+  const chat = (status, hash) => {
+    const id = Number(run(env, `INSERT INTO chats (key_hash, status, name, email, privacy_ack_at, created_at, last_at, waiting_since)
+      VALUES (?, ?, 'Wilhelmina Chatterbox', 'wil@private.je', ?, ?, ?, ?)`, hash, status, T0, T0, T0, T0).lastInsertRowid);
+    run(env, "INSERT INTO chat_messages (chat_id, role, text, created_at) VALUES (?, 'visitor', 'My secret budget is 900k', ?)", id, T0);
+  };
+  chat("waiting", "a"); chat("waiting", "b"); chat("answered", "c");
+  const first = await door(env, "GET", "/news");
+  assert.equal(first.data.chats_waiting, 2);
+  const later = await door(env, "GET", `/news?after=${first.data.cursor}`);
+  assert.equal(later.data.chats_waiting, 2);
+  const status = await door(env, "GET", "/status");
+  assert.equal(status.data.counts.chats, 2);
+  for (const r of [first, later, status]) assert.doesNotMatch(r.text, /Wilhelmina|Chatterbox|wil@|secret budget/);
 });

@@ -20,16 +20,18 @@ import interestRoutes from "./routes/interest.js";
 import hermesRoutes, { hermesDoor } from "./routes/hermes.js";
 import automationRoutes from "./routes/automations.js";
 import queueRoutes from "./routes/queue.js";
+import chatRoutes from "./routes/chat.js";
+import chatAdminRoutes from "./routes/chats.js";
 
 // [method, path regex, handler, requiresAdmin]
-const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes];
+const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes];
 
 // waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
 // promise still runs, unawaited; pass only promises that never reject.
 export async function handleApi(request, env, segments, waitUntil = () => {}) {
   const res = await route(request, env, segments, waitUntil);
-  // Admin and session answers carry personal data: never cache them anywhere.
-  if (/^(admin|me|session|hermes)$/.test(segments[0] ?? "")) res.headers.set("cache-control", "no-store");
+  // Admin, session and chat answers carry personal data: never cache them anywhere.
+  if (/^(admin|me|session|hermes|chat)$/.test(segments[0] ?? "")) res.headers.set("cache-control", "no-store");
   return res;
 }
 

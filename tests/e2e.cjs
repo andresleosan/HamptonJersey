@@ -744,6 +744,7 @@ async function admin(browser) {
   await folderImport(page, phone);
   await driveQueue(page, phone, noSideScroll);
   await widenCriteria(page, phone, noSideScroll);
+  await webChat(page);
   assert.deepEqual(phone.errors, []);
   await phone.close();
   await page.goto(BASE + "admin/#/users");
@@ -751,6 +752,52 @@ async function admin(browser) {
   await shot(page, "admin-users");
   assert.deepEqual(page.errors, []);
   await ctx.close();
+}
+
+// MSG-02 (spec 2026-11-06): the website's chat. Turned on in Automations; a visitor on a phone writes from a listing, the
+// bar says Messages 1 within a poll, the reply comes back signed, still there after a reload, and the visitor deletes it.
+// The visitor has a context of their own: /api/config is cached for 5 minutes, and no admin cookie.
+async function webChat(page) {
+  await page.goto(BASE + "admin/#/automations");
+  page.once("dialog", d => d.accept());
+  await page.getByRole("switch", {name: "Web chat"}).click();
+  await page.getByText("Web chat on.").waitFor();
+  const vctx = await page.context().browser().newContext();
+  const visitor = await newPage(vctx, {width: 390, height: 844});
+  await visitor.goto(BASE + "p/HE-R001");
+  await visitor.getByRole("button", {name: "Message us"}).click();
+  const box = visitor.locator("dialog.chat");
+  await box.getByLabel("Name").fill("Nina Le Sueur");
+  await box.getByLabel("Email").fill("nina@example.je");
+  await box.getByLabel("Your message").fill("Is Le Bernage still available?");
+  await box.getByRole("checkbox").check();
+  await visitor.waitForFunction(() => document.querySelector('dialog.chat [name="cf-turnstile-response"]')?.value);
+  await box.getByRole("button", {name: "Send"}).click();
+  await box.locator(".chat-log li").first().waitFor();
+  await shot(visitor, "chat-visitor");
+  await page.goto(BASE + "admin/#/messages");
+  await page.waitForFunction(() => document.querySelector('header.bar a[href="#/messages"] .count')?.textContent === "1 waiting",
+    null, {timeout: 35000});
+  await page.getByRole("heading", {name: /Nina Le Sueur/}).waitFor();
+  await page.getByText("About HE-R001").waitFor();
+  await page.getByLabel("Reply").fill("Yes it is. When would you like to see it?");
+  await page.getByRole("button", {name: "Send reply"}).click();
+  await page.getByText("Reply sent to Nina Le Sueur").waitFor();
+  await shot(page, "admin-messages");
+  const reply = "Yes it is. When would you like to see it?";
+  await box.getByText(reply).waitFor({timeout: 15000});
+  const from = await box.locator(".from-team .who b").textContent();
+  assert.match(from, /Hampton Estates$/);
+  assert.doesNotMatch(from, /@/, "never the team member's email");
+  await visitor.reload();
+  await visitor.getByRole("button", {name: /^Message us/}).click();
+  await box.getByText(reply).waitFor();
+  visitor.once("dialog", d => d.accept());
+  await box.getByRole("button", {name: "Delete chat"}).click();
+  await box.getByText("Your chat was deleted.").waitFor();
+  assert.equal(await visitor.evaluate(() => localStorage.getItem("hampton-chat")), null);
+  assert.deepEqual(visitor.errors, []);
+  await vctx.close();
 }
 
 // BUS-17 (spec 2026-11-06): a buyer with fewer than 3 matches sees Widen criteria. Its own Trinity listings: two that fit,

@@ -313,12 +313,15 @@ export function renderPrivacy(root) {
       <li>Your housing status in Jersey and how many adults and children would live in the home.</li>
       <li>Whether you accepted this notice and whether you asked for our news, with the date.</li>
       <li>For a viewing request: the property, the day and the time you chose.</li>
+      <li>If you use the chat on our website: your name, the email or mobile number you give, your messages and our
+        replies, the property you were looking at and when you last had the chat open.</li>
     </ul>
 
     <h2>Why we use it</h2>
     <ul>
       <li>To look for homes that match your search and tell you about them.</li>
       <li>To arrange viewings and keep a record of what we have discussed with you.</li>
+      <li>To answer the messages you send us through the chat on our website.</li>
       <li>To show on a property's page how many people are interested in it: a number only, from 2 people, never your
         name or details.</li>
       <li>To send you news about homes and the Jersey market, only if you ticked the box for it.</li>
@@ -344,6 +347,13 @@ export function renderPrivacy(root) {
       record and your details for 5 years after it completes or falls through, as anti-money-laundering record-keeping
       rules require.</p>
 
+    <h2>Web chat</h2>
+    <p>A person from Hampton Estates reads and answers every message; the chat does not reply automatically. We use what
+      you write only to answer you, in the chat or by contacting you. We delete a conversation 30 days after its last
+      message. If you ask us to register your search or arrange a viewing, those details are kept as explained above.
+      While the conversation is still open on your device, you can delete it yourself with "Delete chat"; at any time,
+      you can ask us to delete it.</p>
+
     <h2>Your rights</h2>
     <ul>
       <li>Access: ask for a copy of the details we hold about you.</li>
@@ -358,7 +368,8 @@ export function renderPrivacy(root) {
     <h2>In your browser</h2>
     <p>While you fill in Register your search, your answers about the home you want are kept in that browser tab, so a
       reload does not lose them. Your name, contact details and housing status are not. They are cleared when you send
-      the form or close the tab.</p>
+      the form or close the tab. If you start a chat, this browser keeps a random key, not your details, so you can come
+      back to the conversation for 7 days. "End chat" removes it.</p>
 
     <h2>Contact us</h2>
     <p>To ask about your data or use any of these rights, email <a href="mailto:francopropertiesjersey@gmail.com">francopropertiesjersey@gmail.com</a>, write to us at the address

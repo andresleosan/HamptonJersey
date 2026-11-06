@@ -8,6 +8,7 @@ import { logEvent } from "../events.js";
 import { validateApplicant, OPTIONS } from "../applicants.js";
 import { afterSave, recomputeForApplicant } from "../match-store.js";
 import { touchByViewing } from "../retention.js";
+import { chatOn } from "../chat.js";
 
 export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
 
@@ -28,7 +29,9 @@ export async function readLive(env, id) {
 }
 const listPublic = async ({ env }) => json((await readLive(env)).map(x => x.pub), 200, { "cache-control": "public, max-age=60" });
 
-const config = ({ env }) => json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY }, 200, { "cache-control": "public, max-age=300" });
+// chat: whether the website offers new chats (MSG-02, C3); with the cache, a change shows within 5 minutes.
+const config = async ({ request, env }) => json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY, chat: await chatOn(env, request) }, 200,
+  { "cache-control": "public, max-age=300" });
 
 // ?from=YYYY-MM-DD&days=N of an availability request, shared with the panel's (which starts from today).
 export function availabilityRange(q, defaultFrom) {

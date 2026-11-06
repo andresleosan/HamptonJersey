@@ -1,5 +1,6 @@
 import { json, now } from "../http.js";
 import { jobLastActivity } from "../retention.js";
+import { readWebchat } from "./chats.js";
 
 // AUT-01 (spec 2026-11-01): the Automations screen. What runs on its own and when it last ran, from app_settings (clock,
 // retention_run, hermes) and the jobs table. Counts, times and listing titles only: never who, nor a draft's text (A8).
@@ -16,7 +17,7 @@ const CLOSED_AT = jobLastActivity("j"); // A7: when a used, discarded or failed 
 async function automations({ env }) {
   const since = new Date(Date.now() - 30 * 86400e3).toISOString();
   const [{ results: settings }, { results: month }, { results: waiting }, { results: recent }] = await env.DB.batch([
-    env.DB.prepare("SELECT key, value FROM app_settings WHERE key IN ('clock', 'retention_run', 'hermes')"),
+    env.DB.prepare("SELECT key, value FROM app_settings WHERE key IN ('clock', 'retention_run', 'hermes', 'webchat')"),
     env.DB.prepare(`SELECT j.status, COUNT(*) AS n FROM jobs j WHERE j.status IN ('used', 'discarded', 'failed')
       AND ${CLOSED_AT} >= ? GROUP BY j.status`).bind(since),
     env.DB.prepare(`SELECT j.id, j.listing_id, l.title, j.drafted_at FROM jobs j JOIN listings l ON l.id = j.listing_id
@@ -31,9 +32,10 @@ async function automations({ env }) {
   const n = status => month.find(m => m.status === status)?.n ?? 0;
   return json({
     clock: { at: clock?.at ?? null, stopped: stopped.clock },
-    retention: retention && { ...retention, jobs: retention.jobs ?? 0 },
+    retention: retention && { ...retention, jobs: retention.jobs ?? 0, chats: retention.chats ?? 0 },
     hermes: { at: hermes?.at ?? null, stopped: stopped.hermes, month: { used: n("used"), discarded: n("discarded"), failed: n("failed") },
       waiting, recent: recent.map(({ requested_by, ...j }) => ({ ...j, by: requested_by === "hermes" ? "Hermes" : "Team" })) },
+    webchat: readWebchat(settings.find(s => s.key === "webchat")?.value),
   });
 }
 

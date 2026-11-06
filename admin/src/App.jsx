@@ -23,6 +23,7 @@ import Availability from "./Availability.jsx";
 import Users from "./Users.jsx";
 import Tours from "./Tours.jsx";
 import Automations from "./Automations.jsx";
+import Messages from "./Messages.jsx";
 import { confirmLeave } from "./unsaved.js";
 import { fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
@@ -75,7 +76,7 @@ export default function App() {
 
   const [path, query] = hash.replace(/^#\/?/, "").split("?");
   const [section, arg, sub] = path.split("/");
-  const current = (section === "p" && arg) || section === "queue" ? "listings" : ["applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours", "automations"].includes(section) ? section : "";
+  const current = (section === "p" && arg) || section === "queue" ? "listings" : ["messages", "applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours", "automations"].includes(section) ? section : "";
   // The Inbox counter in the navigation: every 30 s while signed in and the tab is visible. On the Inbox itself,
   // the page's own poll brings the counts (onCounts).
   const loadCounts = useCallback(() => api("/admin/notifications/counts").then(setCounts, () => {}), []);
@@ -114,6 +115,7 @@ export default function App() {
     : section === "rentals" && /^\d+$/.test(arg) ? <RentalDetail key={arg} id={arg} onChange={loadCounts} />
     : section === "rentals" ? <Rentals onChange={loadCounts} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
+    : section === "messages" ? <Messages paused={expired} onChange={loadCounts} />
     : section === "tours" ? <Tours /> : section === "automations" ? <Automations stalled={counts.stalled} outbound={counts.outbound} onChange={loadCounts} />
     : <Inbox paused={expired} onCounts={setCounts} />;
   const logout = async () => {
@@ -128,6 +130,8 @@ export default function App() {
       <nav aria-label="Sections">
         <a href="#/" aria-current={current === "" ? "page" : undefined}>Inbox{counts.action > 0
           && <span className="count">{counts.action}<span className="sr"> need action</span></span>}</a>
+        <a href="#/messages" aria-current={current === "messages" ? "page" : undefined}>Messages{counts.chats > 0
+          && <span className="count">{counts.chats}<span className="sr"> waiting</span></span>}</a>
         <a href="#/applicants" aria-current={current === "applicants" ? "page" : undefined}>Applicants{counts.expiring > 0
           && <span className="count" title={`${counts.expiring} expiring`}>{counts.expiring}<span className="sr"> expiring</span></span>}</a>
         <a href="#/review" aria-current={current === "review" ? "page" : undefined}>Review</a>

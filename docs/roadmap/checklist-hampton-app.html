@@ -3292,16 +3292,18 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Responder los mensajes escritos en la web (chat web)",
    "origen": "texto",
    "fase": "F6",
-   "estado": "pendiente",
+   "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "La web no tiene chat ni formulario de contacto: lo único que el público escribe llega con Register your search («Anything else that matters?») o como reserva «General enquiry / valuation» sin texto libre, y el equipo contesta fuera de la app. Falta un chat web con respuesta desde el panel, que no depende de Meta; contestar a quien ya se fue necesita el servicio de correo.",
+   "hecho": "Construido el 6-nov-2026, fase 1 de Hampton Bot sin IA (spec 2026-11-06, decisiones de Luis «1 1 1 1» y «1 1», migración 0021). En la portada y en cada ficha, el botón «Message us» abre el chat: nombre, email o móvil, el mensaje y la casilla del aviso de privacidad, con Turnstile. En el panel, la pantalla Messages (Waiting, Answered, Handled) con «Messages N» en la barra, la ficha por la que pregunta, si el visitante sigue en la web, Send reply (firmada «Nombre · Hampton Estates», nunca el email), Mark handled y Delete. El visitante vuelve a su conversación en ese navegador durante 7 días; «End chat» la olvida allí y «Delete chat» la borra. Se borra sola 30 días después del último mensaje. Interruptor «Web chat» en Automations, apagado al empezar; nunca en *.pages.dev. Hermes recibe solo el número de chats en espera (chats_waiting en news). Aviso de privacidad con la sección «Web chat».",
+   "falta": "Luis: crear la regla WAF que cubra /api/chat y /api/stats (ANA-09) y encender el chat en Automations. Desarrollo: que el avisador del VPS mande «N web chats waiting» al canal y a Luis (los cuatro archivos de la jaula, tarea aparte); contestar por correo a quien ya cerró la página necesita AUT-17. El abogado revisa el párrafo del aviso (PRE-33).",
    "bloqueo": "",
    "evidencia": [
-    "site/index.html:465-482",
-    "site/apply.js:149-150",
-    "server/routes/public.js:72-74",
-    "server/routes/public.js:143-145"
+    "migrations/0021_chats.sql",
+    "server/routes/chat.js",
+    "server/routes/chats.js",
+    "site/chat.js",
+    "admin/src/Messages.jsx",
+    "docs/superpowers/specs/2026-11-06-hampton-app-web-chat-design.md"
    ]
   },
   {
@@ -3313,7 +3315,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "No existe la pantalla Messages ni conversaciones unidas a un contacto; Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas.",
+   "falta": "La pantalla Messages existe desde el 6-nov-2026, solo con el chat de la web (MSG-02), y las conversaciones no se unen a un contacto. Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas.",
    "bloqueo": "Correo (AUT-17) · Trámite Meta",
    "evidencia": [
     "admin/src/App.jsx:122-136",
@@ -3346,7 +3348,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No existe: depende de tener conversaciones (MSG-02, MSG-03); hoy el aplicante se crea a mano en New applicant o llega por Register your search.",
+   "falta": "Los chats de la web existen desde el 6-nov-2026 (MSG-02, pantalla Messages); falta el botón Create applicant que abra New applicant con el nombre y el contacto del chat. Hoy el aplicante se crea a mano en New applicant o llega por Register your search.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/App.jsx:93-94",
@@ -4118,7 +4120,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "Luis",
    "hecho": "La propia sentencia deja de contar al llegar a 20.000 aperturas en un día de Jersey.",
-   "falta": "La regla de límite de peticiones de Cloudflare WAF que incluya POST /api/stats. Ya se puede crear: desde el 1-nov-2026 el dominio está en Cloudflare (en *.pages.dev no hay WAF).",
+   "falta": "La regla de límite de peticiones de Cloudflare WAF que incluya POST /api/stats y, desde el 6-nov-2026, /api/chat* (el chat de la web, MSG-02). Ya se puede crear: desde el 1-nov-2026 el dominio está en Cloudflare (en *.pages.dev no hay WAF).",
    "bloqueo": "",
    "evidencia": [
     "server/routes/public.js:84-94",
