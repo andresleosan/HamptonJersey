@@ -43,11 +43,12 @@ export function availabilityRange(q, defaultFrom) {
 
 // C12: the website's slots, from tomorrow, Monday to Saturday. Only "booked" says a viewing exists, never whose.
 async function availability({ request, env }) {
-  const clock = jerseyNow();
-  const a = await loadAvailability(env, { ...availabilityRange(new URL(request.url).searchParams, plusDays(clock.date, 1)),
-    now: clock, fromTomorrow: true });
+  const clock = jerseyNow(), q = new URL(request.url).searchParams, listingId = q.get("listing_id");
+  if (listingId != null && !/^HE-[A-Z]\d{3,}$/.test(listingId)) fail(400, "Unknown property");
+  const a = await loadAvailability(env, { ...availabilityRange(q, plusDays(clock.date, 1)),
+    now: clock, fromTomorrow: true, listingId });
   return json({ slot_minutes: SLOT_MINUTES, negotiators: a.negotiators.map(({ id, name, role }) => ({ id, name, role })),
-    days: a.days }, 200, { "cache-control": "no-store" });
+    days: a.days, ...(listingId == null ? {} : { property_viewings_enabled: a.property_viewings_enabled }) }, 200, { "cache-control": "no-store" });
 }
 
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
@@ -64,7 +65,8 @@ async function createViewing({ request, env }) {
     "SELECT 1 FROM listings WHERE id = ? AND published = 1 AND archived_at IS NULL").bind(v.listing_id).first();
   if (v.listing_id && !listing) fail(400, "That property is no longer available. Choose another or send a general enquiry.");
   // The slot must be one the website offers (§4.6): an active negotiator, on the grid, inside their hours, not booked.
-  const a = await loadAvailability(env, { from: v.date, days: 1, now: clock, fromTomorrow: true, negotiatorId: v.negotiator_id });
+  const a = await loadAvailability(env, { from: v.date, days: 1, now: clock, fromTomorrow: true, negotiatorId: v.negotiator_id, listingId: v.listing_id });
+  if (a.property_viewings_enabled === false) return fields({ listing_id: "Viewings are disabled for this property." });
   if (!a.negotiators.length) return fields({ negotiator_id: "Choose who will show you round" });
   const slots = a.days[0].slots[v.negotiator_id];
   if (!isFree(slots, v.time))
@@ -73,7 +75,7 @@ async function createViewing({ request, env }) {
     fail(400, "The anti-spam check expired or failed. Please try again.");
   // C6: the insert re-checks the slot itself; if another booking took it since the check, nothing at all is written.
   const [booked] = await env.DB.batch([
-    bookStatement(env, v, { status: "requested" }),
+    bookStatement(env, v, { status: "requested", publicOnly: true }),
     // Personal data stays in the request row; the event only says what was asked for.
     ...logEvent(env, { actor: "public", entity_type: "viewing", entity_id: null, type: "viewing.requested",
       data: { listing_id: v.listing_id, date: v.date, time: v.time, kind: v.kind } },

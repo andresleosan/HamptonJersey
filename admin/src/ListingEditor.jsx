@@ -9,12 +9,17 @@ import { ON_MARKET } from "../../server/listing.js";
 import { jerseyToday } from "../../server/viewings.js";
 import { BuyerOffers } from "./Sales.jsx";
 import HermesDraft from "./HermesDraft.jsx";
+import ViewingAvailability from "./ViewingAvailability.jsx";
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "tenure_type", "housing_category", "restriction", "sale_price", "rent", "rent_period", "premium",
-  "currency", "price_text", "summary", "description", "tour_url", "specs"];
+  "currency", "price_text", "summary", "description", "tour_url", "specs", "viewings_enabled", "viewing_hours"];
 const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium"];
-const toForm = l => Object.fromEntries(FIELDS.map(k => [k, k === "specs" ? l.specs : l[k] ?? ""]));
+// Keep custom hours while the form temporarily uses general availability. This draft-only key is not sent by toBody,
+// and toForm resets it on load, a successful save and Discard.
+const toForm = l => ({ ...Object.fromEntries(FIELDS.map(k => [k, k === "specs" ? l.specs
+  : k === "viewings_enabled" ? l[k] ?? 1 : k === "viewing_hours" ? l[k] ?? null : l[k] ?? ""])),
+  viewing_hours_draft: l.viewing_hours ?? [] });
 const toBody = f => Object.fromEntries(FIELDS.map(k => [k,
   NUMERIC.includes(k) ? (f[k] === "" ? null : Number(f[k]))
     : k === "specs" ? f.specs.filter(s => s.label.trim() || s.value.trim())
@@ -26,7 +31,7 @@ const toMatchForm = l => ({ parish: l.parish ?? "", matchable: l.matchable });
 const changedMatchForm = (f, l) => Object.fromEntries(IF_CHANGED.filter(k => f[k] !== toMatchForm(l)[k])
   .map(k => [k, k === "parish" ? f.parish || null : f.matchable]));
 const SECTIONS = [["details", "Details"], ["price", "Price"], ["description", "Description"], ["photos", "Photos"],
-  ["tour", "Tour and specification"], ["offers", "Offers"], ["applicants", "Matched applicants"], ["research", "Research"]];
+  ["tour", "Tour and specification"], ["viewings", "Viewings"], ["offers", "Offers"], ["applicants", "Matched applicants"], ["research", "Research"]];
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
 // Match status, with its badge tone (DESIGN.md "Badges de estado": Found and Rejected neutral, Shortlisted active).
 const MATCH_STATUS = { found: ["Found", "neutral"], shortlisted: ["Shortlisted", "active"], rejected: ["Rejected", "neutral"] };
@@ -257,6 +262,32 @@ export default function ListingEditor({ id, onChange }) {
         {data.media.some(m => !m.r2_key && m.source_url) && <details><summary>Reference links from the research (not publishable without permission)</summary>
           <ul>{data.media.filter(m => !m.r2_key && m.source_url).map(m => <li key={m.id}>
             <a href={safeHref(m.source_url)} target="_blank" rel="noopener noreferrer">{m.label || m.source_url}</a> · {m.provider}</li>)}</ul></details>}
+      </section>
+
+      <section id="s-viewings" className="card fields-group" aria-labelledby="h-viewings">
+        <h2 id="h-viewings">Viewings</h2>
+        <div className="inline">
+          <span className={`badge ${form.viewings_enabled === 1 ? "positive" : "neutral"}`} role="status">
+            {form.viewings_enabled === 1 ? "Enabled" : "Disabled"}</span>
+          <button type="button" className="btn ghost" disabled={busy}
+            aria-describedby={`d-viewings${errors.viewings_enabled ? " e-viewings_enabled" : ""}`}
+            aria-invalid={errors.viewings_enabled ? true : undefined}
+            onClick={() => setForm(f => ({ ...f, viewings_enabled: f.viewings_enabled === 1 ? 0 : 1 }))}>
+            {form.viewings_enabled === 1 ? "Deactivate" : "Activate"}</button>
+        </div>
+        <p id="d-viewings" className="muted">Disabling viewings stops new bookings and rescheduling. Existing appointments and saved viewing hours are kept. Use Save to apply changes.</p>
+        {errors.viewings_enabled && <small id="e-viewings_enabled" className="err" role="alert">{errors.viewings_enabled}</small>}
+        <label>Viewing hours<select value={form.viewing_hours === null ? "general" : "custom"} disabled={busy}
+          aria-describedby="d-viewing-hours"
+          onChange={e => setForm(f => ({ ...f, viewing_hours: e.target.value === "general" ? null : f.viewing_hours_draft }))}>
+          <option value="general">General availability</option><option value="custom">Custom hours</option>
+        </select></label>
+        <p id="d-viewing-hours" className="muted">General availability uses the negotiators' free times. Custom hours limit this property to the weekly times below, when a negotiator is also free.</p>
+        {form.viewing_hours !== null && <ViewingAvailability id="property-viewing-hours" title="Custom viewing hours"
+          heading="h3" className="fields-group" description="Choose at least one time option in Jersey local time. Each viewing must fit fully within an option."
+          value={form.viewing_hours} disabled={busy}
+          onChange={viewing_hours => setForm(f => ({ ...f, viewing_hours, viewing_hours_draft: viewing_hours }))} error={errors.viewing_hours} />}
+        {form.viewing_hours === null && errors.viewing_hours && <small className="err" role="alert">{errors.viewing_hours}</small>}
       </section>
 
       {/* Spec §1: every offer on the listing with what became of it, newest first; they are answered in Sales. */}

@@ -22,7 +22,7 @@ const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availabi
 export async function loadListing(env, id) {
   const l = await env.DB.prepare(`SELECT l.*, (${TO_CONFIRM}) AS to_confirm FROM listings l WHERE l.id = ?`).bind(now(), id).first();
   if (!l) fail(404, "Listing not found");
-  return { ...l, specs: JSON.parse(l.specs || "[]") };
+  return { ...l, specs: JSON.parse(l.specs || "[]"), viewing_hours: l.viewing_hours == null ? null : JSON.parse(l.viewing_hours) };
 }
 
 // C10: the listing's active interest, as the website counts it (server/viewings.js).

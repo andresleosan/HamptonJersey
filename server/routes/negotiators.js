@@ -95,10 +95,12 @@ async function removeException({ env, params: [id, eid] }) {
 // blocks its own slot or the ones next to it (as clash(…, excludeId) when it is saved).
 async function availability({ request, env }) {
   const q = new URL(request.url).searchParams, clock = jerseyNow(), id = q.get("negotiator_id"), exclude = q.get("exclude");
+  const listingId = q.get("listing_id");
+  if (listingId != null && !/^HE-[A-Z]\d{3,}$/.test(listingId)) fail(400, "Unknown property");
   if (id != null && !ID.test(id)) fail(400, "Unknown negotiator");
   if (exclude != null && !ID.test(exclude)) fail(400, "Unknown viewing");
   const a = await loadAvailability(env, { ...availabilityRange(q, clock.date), now: clock, fromTomorrow: false,
-    includeInactive: id != null, negotiatorId: id == null ? null : Number(id), excludeId: exclude == null ? null : Number(exclude) });
+    includeInactive: id != null, negotiatorId: id == null ? null : Number(id), excludeId: exclude == null ? null : Number(exclude), listingId });
   if (id != null && !a.negotiators.length) fail(404, "Unknown negotiator");
   return json({ slot_minutes: SLOT_MINUTES, ...a });
 }

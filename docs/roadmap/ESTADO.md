@@ -1,6 +1,6 @@
 # Estado de Hampton App
 
-Actualizado el 7-nov-2026. Orden vigente: [reconciliación funcional](2026-11-07-reconciliacion-automatizacion.md); detalle: [checklist](checklist-hampton-app.html); ciclo: [AVANZAR](AVANZAR.md). Base remota verificada con fetch: origin/main `1a240597`; REG-17 integrado localmente y pendiente de publicación. EST-09 y continuidad de PRE-12 publicados y activados el 7-nov-2026: migración 0024 aplicada y despliegues Pages/Worker correctos. La corrección de galería y controles está en origin/main `5d10220`; su despliegue no se volvió a consultar en este encargo.
+Actualizado el 7-nov-2026. Orden vigente: [reconciliación funcional](2026-11-07-reconciliacion-automatizacion.md); detalle: [checklist](checklist-hampton-app.html); ciclo: [AVANZAR](AVANZAR.md). Base remota verificada con fetch para VIS-18: origin/main `5e9c860`, que incluye REG-17 y la corrección de catálogo. La consulta remota del 7-nov confirma que no hay migraciones pendientes hasta 0026. EST-09 y continuidad de PRE-12 publicados y activados el 7-nov-2026: migración 0024 aplicada y despliegues Pages/Worker correctos. La corrección de galería y controles está en origin/main `5d10220`; su despliegue no se volvió a consultar en este encargo.
 
 Siguiente recomendado Codex: /avanzar AGE-04 · gpt-6.1-terra · high
 
@@ -183,6 +183,11 @@ Fuera del nuevo recorrido permanecen las tareas de alquileres, ofertas, publicac
 
 ## Próxima tarea
 
-REG-17 construido localmente: franjas habituales reutilizables por búsqueda, con inicio/fin en Europe/Jersey; no confirman visitas. La migración 0026, revisión y publicación quedan pendientes; VIS-17 debe usarlas para coordinar fechas y confirmaciones. El directorio M01 mantiene su investigación secuencial independiente.
+REG-17 está en la base remota 5e9c860, con migración 0026 aplicada y recorrido reg17 aprobado en esta entrega. Guarda franjas reutilizables por búsqueda en Europe/Jersey, sin confirmar citas; VIS-17 debe usarlas para coordinar fechas y confirmaciones. El directorio M01 mantiene su investigación secuencial independiente.
 
 Recomendación Codex posterior a pruebas y revisión: **gpt-6.1-terra · high** para AGE-04. El directorio necesita modelar anunciantes, contactos, teléfonos y permisos por separado; afecta esquema, rutas y panel, con datos y pruebas de deduplicación. Construcción viable sin activar capturas ni envíos. El catálogo local admite ese esfuerzo. Se conserva la recomendación de Claude en la cabecera.
+
+
+## VIS-18 · Control de visitas por propiedad (urgente, 7-nov-2026)
+
+Petición directa de Luis: activar/desactivar visitas en la ficha y elegir un horario general o franjas propias de días y horas. Se reutiliza el selector REG-17 añadido hoy; la nueva tarea pertenece a M09, sin dar por hecha VIS-17. [Plan y criterios](../superpowers/plans/2026-11-07-vis-18-property-viewings.md). Construido y revisado: 689 Node + 14 Python, build, check:release, e2e completo y VIS-18 a 1280/390 aprobados. Migración 0027 y publicación pendientes.

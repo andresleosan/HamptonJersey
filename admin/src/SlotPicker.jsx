@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtDay } from "./format.js";
 import { jerseyToday, plusDays, MAX_DAYS } from "../../server/viewings.js";
@@ -8,22 +8,35 @@ import { jerseyToday, plusDays, MAX_DAYS } from "../../server/viewings.js";
 // own: the viewing being rescheduled. It is excluded from the availability (exclude=<id>), so it never blocks its own
 // slot or the ones next to it (Review Focus 3); its current time shows as "Current time".
 // refresh: change it to read the times again (after a 409), keeping the choice while it is still free.
-export default function SlotPicker({ value, onChange, own, refresh = 0, errors = {} }) {
+// listingId: a property's viewing rules; blank keeps general enquiries on the negotiators' availability.
+export default function SlotPicker({ value, onChange, own, listingId, refresh = 0, errors = {} }) {
   const uid = useId(), today = jerseyToday(), last = plusDays(today, 365);
   const [from, setFrom] = useState(() => (value.date > plusDays(today, MAX_DAYS - 1) ? value.date : today));
-  const [data, setData] = useState(null), [err, setErr] = useState(null), [retry, setRetry] = useState(0);
+  const [response, setResponse] = useState(null), [failure, setFailure] = useState(null), [retry, setRetry] = useState(0);
   const earlier = useRef(null), later = useRef(null);
+  const property = listingId || null, exclude = own?.id ?? null;
+  const context = JSON.stringify([property, exclude]);
+  const request = useMemo(() => ({ context, from, refresh, retry }), [context, from, refresh, retry]);
+  const previousProperty = useRef(property);
+  // Drop a choice immediately when its property changes, even if the new property's response takes longer.
+  useEffect(() => {
+    if (previousProperty.current === property) return;
+    previousProperty.current = property;
+    onChange({ ...value, date: null, time: null });
+  }, [property]);
   useEffect(() => {
     let live = true;
-    setErr(null);
-    api(`/admin/availability?from=${from}&days=${MAX_DAYS}${own ? `&exclude=${own.id}` : ""}`)
-      .then(d => live && setData(d), e => live && setErr(e.message));
+    api(`/admin/availability?from=${from}&days=${MAX_DAYS}${exclude ? `&exclude=${exclude}` : ""}${property ? `&listing_id=${encodeURIComponent(property)}` : ""}`)
+      .then(data => { if (live) setResponse({ context, request, data }); },
+        e => { if (live) setFailure({ request, message: e.message }); });
     return () => { live = false; };
-  }, [from, refresh, retry]);
+  }, [request]);
 
   const nid = value.negotiator_id;
-  // While another window of days loads, the last one stays read but isn't offered (the pager keeps its focus).
-  const paging = !!data && data.days[0]?.date !== from;
+  const data = response?.context === context ? response.data : null;
+  const err = failure?.request === request ? failure.message : null;
+  // Previous days stay read while paging, but only a response for the current property and request offers slots.
+  const paging = response?.request !== request;
   const slotsOf = date => data?.days.find(d => d.date === date)?.slots[nid] ?? [];
   const stateOf = (date, s) => (own && own.negotiator_id === nid && own.date === date && own.time === s.time ? "current"
     : s.booked ? "booked" : "free");
@@ -31,9 +44,10 @@ export default function SlotPicker({ value, onChange, own, refresh = 0, errors =
 
   // Fresh times: a chosen time someone else has just taken is dropped (the day stays).
   useEffect(() => {
-    if (data && !paging && value.time && !slotsOf(value.date).some(s => s.time === value.time && stateOf(value.date, s) === "free"))
+    if (data && !paging && value.time && (data.property_viewings_enabled === false
+      || !slotsOf(value.date).some(s => s.time === value.time && stateOf(value.date, s) === "free")))
       onChange({ ...value, time: null });
-  }, [data]);
+  }, [response]);
 
   const page = n => {
     const next = n < 0 && plusDays(from, n) < today ? today : plusDays(from, n);
@@ -56,6 +70,8 @@ export default function SlotPicker({ value, onChange, own, refresh = 0, errors =
     {error("negotiator_id")}
     {err && <p role="alert" className="err">{err} <button type="button" className="linkish" onClick={() => setRetry(x => x + 1)}>Try again</button></p>}
     {!data ? !err && <p className="muted">Loading free times…</p>
+      : !paging && data.property_viewings_enabled === false ? <p className="warn" role="status">
+        Viewings are disabled for this property. Activate viewings in the <a href={`#/p/${encodeURIComponent(property)}`}>property editor</a> to book or reschedule.</p>
       : !known ? <p className="muted">Choose a negotiator to see their free times.</p>
       : <>
         <fieldset className="pick-set" {...described("date")}>

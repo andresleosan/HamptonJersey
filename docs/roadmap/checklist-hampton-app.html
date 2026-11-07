@@ -1717,6 +1717,27 @@ document.addEventListener('DOMContentLoaded', () => {
    "criterio_aceptacion": "Una hora propuesta por agencia sigue pendiente hasta aceptar cliente y demás participantes requeridos; la visita confirmada no cierra la búsqueda."
   },
   {
+   "id": "VIS-18",
+   "seccion": "Interesados y visitas",
+   "titulo": "Activar visitas y definir franjas semanales por propiedad",
+   "origen": "Luis 7-nov-2026",
+   "fase": "F3-A",
+   "estado": "parcial",
+   "responsable": "desarrollo",
+   "hecho": "Construido y validado: Activate/Deactivate, horario general o franjas semanales por propiedad, reutilización de REG-17, filtrado público/interno y comprobaciones atómicas al reservar y reprogramar. Se conservan las visitas existentes. 689 Node + 14 Python, e2e completo y VIS-18 1280/390 aprobados; revisión independiente sin bloqueos.",
+   "falta": "Aplicar migración 0027, publicar y verificar producción.",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/superpowers/plans/2026-11-07-vis-18-property-viewings.md",
+    "migrations/0027_property_viewings.sql",
+    "tests/server/property-viewings.test.mjs",
+    "tests/property-viewings.e2e.cjs"
+   ],
+   "modulo": "M09",
+   "deps": [],
+   "criterio_aceptacion": "Desactivar impide nuevas reservas y reprogramaciones; un horario propio limita huecos y exige que la visita completa quepa, junto con el horario del agente. Se conservan las visitas existentes."
+  },
+  {
    "id": "AUT-01",
    "seccion": "Automatizaciones e IA",
    "titulo": "Interfaz fácil para controlar cada automatización nueva (pantalla Automations)",

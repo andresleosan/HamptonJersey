@@ -46,6 +46,7 @@ Las afirmaciones de despliegue se conservan en ESTADO con su evidencia históric
 
 | Orden | Módulo y códigos que se ejecutan juntos o en entregas pequeñas | Depende de | Resultado que permite continuar |
 |---|---|---|---|
+| Urgente 7-nov | **M09a · VIS-18** control de visitas por propiedad | Agenda existente; selector REG-17 | Activación por ficha y franjas propias aplicadas a huecos, reservas y reprogramación. Cierre en la sección VIS-18 al final de este plan. |
 | 1 | **M03** ciclo de búsqueda y registro: EST-09, REG-11, REG-17; PRE-12 | Decisiones de campos aplicables | Búsqueda activa independiente de etapa, criterios y franjas versionados; cierre humano y conservación reconciliados. |
 | 2 | **M01** directorio: AGE-04, BUS-19, BUS-21 → BUS-22 → BUS-23 | Acceso por fuente; cada investigación depende de la anterior | Directorio y anunciantes con teléfonos; tres pasadas contrastadas. Se puede desarrollar junto a M03, pero no paralelizar las tres investigaciones. |
 | 3 | **M02** inventario: BUS-06, BUS-09, BUS-10, BUS-07, EST-16, SPR-07 | M01 para captura real | Propiedad/publicación/anunciante, procedencia y normalización; carga inicial completa por tandas. |
@@ -62,7 +63,7 @@ Las afirmaciones de despliegue se conservan en ESTADO con su evidencia históric
 | 13 | **M12b** purga de papelera: EST-19 | M02/M06/M07 y política de archivos | Purga segura a seis meses sobre exclusión ya implantada en M12a; activar al final de sus pruebas. |
 | 14 | **M13b** recorrido integrado y cierre: AUT-20 | Todos los módulos anteriores | Los 16 ejemplos funcionales y los casos de concurrencia pasan juntos. |
 
-**M03a publicada:** EST-09 y continuidad PRE-12 en `aea7eb5`, migración 0024 aplicada. **M03b:** REG-11 publicado en `9b8dbd41` con D08 acordada y migración 0025 aplicada. REG-17 construido localmente con migración 0026 pendiente de revisión y publicación; VIS-17 aún debe consumir las franjas y coordinar confirmaciones. M01 puede avanzar por su propia dependencia y sus tres investigaciones siguen siendo secuenciales.
+**M03a publicada:** EST-09 y continuidad PRE-12 en `aea7eb5`, migración 0024 aplicada. **M03b:** REG-11 publicado en `9b8dbd41` con D08 acordada y migración 0025 aplicada. REG-17 incluido en origin/main `5e9c860`, con migración 0026 aplicada (consulta remota del 7-nov); VIS-17 aún debe consumir las franjas y coordinar confirmaciones. M01 puede avanzar por su propia dependencia y sus tres investigaciones siguen siendo secuenciales.
 
 AUT-17 conserva su cierre operativo pendiente y puede avanzar con su propia autorización. MSG-02, MSG-04/05, AUT-16, administración de alquileres, ofertas, publicación propia, analítica y tours siguen en el checklist; no se borran ni se convierten en dependencias artificiales del nuevo recorrido. PRE-22 solo condiciona la gestión comercial humana que lo necesite. PRE-32 y las reglas de datos siguen condicionando el uso del modelo correspondiente.
 
@@ -262,3 +263,10 @@ Añadir en los planes cinco clases de fallo transversales: (1) dos empleados y d
 Construir el alcance entero; ejecutar las pruebas relevantes y, para código de Hampton, `npm test`, `npm run build` y `npm run check:release`. E2E según cabecera vigente y **MCP Playwright** después de construir, a1280/390: camino correcto, validaciones, vacío/error/parcial, teclado, foco, zoom, consola/red; datos locales de prueba. Corregir y repetir solo comprobaciones afectadas. Para documentación/skills: comprobar JSON, dependencias, enlaces, carga real de instrucciones; «Playwright: no aplica a la aplicación». Si cambia el checklist HTML, comprobar que sus datos se renderizan y navegan.
 
 Después de pruebas y revisión, analizar próxima tarea, modelo y esfuerzo con la rúbrica de `/avanzar`; guardar recomendación en ESTADO antes del commit. El modelo actual no obliga al de la siguiente tarea. Publicar según autorización de sesión; en Hermes siguen siendo obligatorios el SHA exacto aprobado, candado y envoltorios existentes. Verificar remoto y distinguir subida de despliegue/activación. Actualizar el relevo privado y el checklist en la misma entrega, sin publicar el original privado ni datos de clientes.
+
+
+## Prioridad urgente añadida el 7-nov: VIS-18
+
+Luis solicita controlar las visitas desde la ficha de cada propiedad: activar/desactivar y, opcionalmente, días y franjas propias. Se ejecuta antes de continuar la secuencia M01–M09 por petición directa, sin sustituir VIS-17 (coordinación multiparte). Reutiliza el selector REG-17 de los commits d9a48fe/1695920/0e7f4b5.
+
+Contrato y ejecución: [plan VIS-18](../superpowers/plans/2026-11-07-vis-18-property-viewings.md). Horas Europe/Jersey, intersección con agenda del agente, comprobación al ofrecer huecos y al escribir reservas/reprogramaciones, citas previas conservadas. Estado: construido, validado y revisado sin bloqueos. 689 Node + 14 Python, e2e completo (incluido REG-17) y recorridos VIS-18 a 1280/390 aprobados. Migración 0027 y verificación de publicación pendientes.

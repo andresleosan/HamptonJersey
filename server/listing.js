@@ -1,5 +1,6 @@
 import { isPublicMedia } from "./visibility.js";
 import { OPTIONS } from "./applicants.js";
+import { validWeeklyWindows } from "./viewings.js";
 
 export const ENUMS = {
   use: ["residential", "commercial"],
@@ -25,7 +26,8 @@ const INTS = ["bedrooms", "bathrooms"];
 const MONEY = ["sale_price", "rent", "premium"];
 const REQUIRED = ["title", "use", "operation", "availability"];
 // matchable: whether the listing is offered to applicants (B9).
-export const EDITABLE = [...Object.keys(ENUMS), ...Object.keys(TEXT), ...INTS, ...MONEY, "featured_rank", "specs", "matchable"];
+export const EDITABLE = [...Object.keys(ENUMS), ...Object.keys(TEXT), ...INTS, ...MONEY, "featured_rank", "specs", "matchable",
+  "viewings_enabled", "viewing_hours"];
 
 const blank = v => v === null || v === undefined || (typeof v === "string" && v.trim() === "");
 const bad = msg => { throw new Error(msg); };
@@ -41,7 +43,12 @@ function checkSpecs(v) {
 }
 
 function check(k, v) {
-  if (k === "matchable") return v === 0 || v === 1 ? v : bad("0 or 1");
+  if (k === "matchable" || k === "viewings_enabled") return v === 0 || v === 1 ? v : bad("0 or 1");
+  if (k === "viewing_hours") {
+    if (v === null) return null;
+    if (!validWeeklyWindows(v)) bad("Choose 1 to 21 valid, non-overlapping times with an end after the start, or use general hours");
+    return JSON.stringify(v.map(({ day, start, end }) => ({ day, start, end })));
+  }
   if (blank(v)) return REQUIRED.includes(k) ? bad("Required") : k === "specs" ? "[]" : null;
   if (k in ENUMS) return ENUMS[k].includes(v) ? v : bad(`Invalid value (${ENUMS[k].join(", ")})`);
   if (k in TEXT) {

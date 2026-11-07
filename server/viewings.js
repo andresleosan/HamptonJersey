@@ -94,6 +94,22 @@ export function daySlots({ hours, exceptions, bookings, date, now, fromTomorrow 
 
 export const isFree = (slots, time) => slots.some(s => s.time === time && !s.booked);
 
+// Weekly wall-clock windows, shared by applicant preferences and property schedules. Sunday = 0.
+export function validWeeklyWindows(windows, { allowEmpty = false } = {}) {
+  return Array.isArray(windows) && (allowEmpty || windows.length > 0) && windows.length <= 21
+    && windows.every(w => w && Number.isInteger(w.day) && w.day >= 0 && w.day <= 6
+      && typeof w.start === "string" && typeof w.end === "string" && TIME.test(w.start) && TIME.test(w.end) && w.start < w.end)
+    && windows.every((a, i) => windows.slice(i + 1).every(b => a.day !== b.day || !overlaps(a.start, a.end, b.start, b.end)));
+}
+
+// A full appointment must fit in one property window; NULL retains the general negotiator hours.
+export function propertyAllows({ viewings_enabled, viewing_hours }, date, time) {
+  if (viewings_enabled !== 1) return false;
+  if (viewing_hours == null) return true;
+  const day = new Date(date + "T12:00:00Z").getUTCDay();
+  return viewing_hours.some(w => w.day === day && w.start <= time && w.end >= addMinutes(time, SLOT_MINUTES));
+}
+
 const span = v => Array.isArray(v) && v.length === 2 && TIME.test(v[0]) && TIME.test(v[1]) && v[0] < v[1];
 
 // A negotiator's week (C2): the seven days, each null (day off) or ["HH:MM","HH:MM"] with opening before closing.

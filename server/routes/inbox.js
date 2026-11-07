@@ -1,7 +1,7 @@
 import { json, fail, readJson, now } from "../http.js";
 import { logEvent, resolveNotices } from "../events.js";
 import { validateViewing, jerseyNow, isFree, addMinutes, SLOT_MINUTES, ACTIVE, OUTCOMES } from "../viewings.js";
-import { loadAvailability, bookStatement, clash } from "../viewing-store.js";
+import { loadAvailability, bookStatement, clash, propertyViewingGuard } from "../viewing-store.js";
 import { touchByViewing } from "../retention.js";
 
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
@@ -47,9 +47,9 @@ function readNotes(body) {
 }
 
 // The name and slots of `negotiator_id` on `date`, today's still to come; null when inactive (they take no new viewings).
-async function dayOf(env, { negotiator_id, date }, clock) {
-  const a = await loadAvailability(env, { from: date, days: 1, now: clock, fromTomorrow: false, negotiatorId: negotiator_id });
-  return a.negotiators.length ? { name: a.negotiators[0].name, slots: a.days[0].slots[negotiator_id] } : null;
+async function dayOf(env, { negotiator_id, date, listing_id }, clock) {
+  const a = await loadAvailability(env, { from: date, days: 1, now: clock, fromTomorrow: false, negotiatorId: negotiator_id, listingId: listing_id });
+  return a.negotiators.length ? { name: a.negotiators[0].name, slots: a.days[0].slots[negotiator_id], property_viewings_enabled: a.property_viewings_enabled } : null;
 }
 
 // C14: booked by the team, so confirmed at once and without an Inbox notice. Any listing still in the table will do.
@@ -60,7 +60,8 @@ async function create({ request, env, admin }) {
   const v = { ...r.value, notes: readNotes(body) };
   if (v.listing_id && !(await env.DB.prepare("SELECT 1 FROM listings WHERE id = ?").bind(v.listing_id).first()))
     return fields({ listing_id: "Unknown property" });
-  const slots = (await dayOf(env, v, clock))?.slots;
+  const day = await dayOf(env, v, clock), slots = day?.slots;
+  if (day?.property_viewings_enabled === false) return fields({ listing_id: "Viewings are disabled for this property." });
   if (!slots) return fields({ negotiator_id: "Choose an active negotiator" });
   if (!isFree(slots, v.time))
     return slots.some(s => s.time === v.time) ? taken() : fields({ time: "That time is not available. Please choose another." });
@@ -96,7 +97,9 @@ async function change(env, action, body, cur, clock) {
   const wrong = Object.fromEntries(["negotiator_id", "date", "time"].filter(k => errors[k]).map(k => [k, errors[k]]));
   if (Object.keys(wrong).length) return { errors: wrong };
   const to = { negotiator_id: Number(body.negotiator_id), date: body.date, time: body.time };
-  const who = await dayOf(env, to, clock);
+  const propertySlot = { ...to, listing_id: cur.listing_id };
+  const who = await dayOf(env, propertySlot, clock);
+  if (who?.property_viewings_enabled === false) return { errors: { listing_id: "Viewings are disabled for this property." } };
   if (!who) return { errors: { negotiator_id: "Choose an active negotiator" } };
   // On the grid, inside the hours, still to come. Whether it is free is the UPDATE's call: the viewing's own slot and
   // its neighbours show as booked by itself, and clash() leaves it out.
@@ -104,6 +107,7 @@ async function change(env, action, body, cur, clock) {
   return {
     set: { ...to, end_time: addMinutes(to.time, SLOT_MINUTES), agent: who.name },
     clash: clash(to, cur.id),
+    property: propertyViewingGuard(propertySlot),
     data: { from: { negotiator_id: cur.negotiator_id, date: cur.date, time: cur.time }, to },
   };
 }
@@ -125,8 +129,8 @@ async function runAction({ env, admin, id, body }) {
   // the row.
   const [r] = await env.DB.batch([
     env.DB.prepare(`UPDATE viewing_requests SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ?
-      WHERE id = ? AND updated_at IS ?${ch.clash ? ` AND NOT ${ch.clash.sql}` : ""}`)
-      .bind(...Object.values(ch.set), ts, admin, id, body.updated_at, ...(ch.clash?.binds ?? [])),
+      WHERE id = ? AND updated_at IS ?${ch.clash ? ` AND NOT ${ch.clash.sql} AND ${ch.property.sql}` : ""}`)
+      .bind(...Object.values(ch.set), ts, admin, id, body.updated_at, ...(ch.clash?.binds ?? []), ...(ch.property?.binds ?? [])),
     ...logEvent(env, { actor: admin, ...ref, type, data: ch.data ?? null }, null, { ifInserted: true }),
     // G2: a viewing confirmed, moved or held is activity on the contact with its email or mobile; a no-show or a cancel
     // is not. Right after the event, so its changes() gate reads the event's insert.
