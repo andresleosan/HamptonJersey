@@ -157,6 +157,8 @@ Paleta cálida de galería: casi negro, blanco, un gris piedra y un bronce. El v
 | line sobre paper (borde de input) | 1.32 | bordes de campos y chips | por debajo de 3:1 (WCAG 1.4.11) |
 
 ### Propuesta: una sola paleta para las dos apps
+Verificación 7-nov-2026 (EST-09): el panel ya usa este set en `admin/src/styles.css:1`, incluidos `--bronze-dk` y `--field-line`. La cabecera YAML y las mediciones anteriores conservan el estado del análisis original; para cambios del panel se toman los valores de este apartado y del CSS vigente.
+
 Al tocar una pantalla, migra sus colores a este set (y nada nuevo fuera de él):
 - `--ink #151515`, `--paper #ffffff`, `--mist #f4f3f0`, `--line #e3e0da` (los de la web).
 - `--stone #6b665e` (el del panel: 5.13 sobre mist, arregla el footer y los hints).

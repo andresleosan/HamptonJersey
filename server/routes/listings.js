@@ -54,7 +54,7 @@ async function detail({ env, params: [id] }) {
     q("SELECT * FROM research_financial_terms WHERE property_id = ? ORDER BY term_id", id),
     q("SELECT * FROM research_issues WHERE property_ids LIKE ? ORDER BY severity, issue_id", `%${id}%`),
     q("SELECT * FROM research_search_log WHERE property_id = ? ORDER BY date, search_id", id),
-    q(`SELECT m.id AS match_id, m.applicant_id, c.name, a.operation, a.stage, a.archived_at, m.status, m.score
+    q(`SELECT m.id AS match_id, m.applicant_id, c.name, a.operation, a.stage, a.search_state, a.archived_at, m.status, m.score
        FROM matches m JOIN applicants a ON a.id = m.applicant_id JOIN contacts c ON c.id = a.contact_id
        WHERE m.listing_id = ?
        ORDER BY CASE m.status WHEN 'shortlisted' THEN 0 WHEN 'found' THEN 1 ELSE 2 END, m.score DESC, m.id`, id),

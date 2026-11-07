@@ -356,9 +356,14 @@ export function renderPrivacy(root) {
       ask us to arrange a viewing or make an offer.</p>
 
     <h2>How long we keep it</h2>
-    <p>We keep your details for 12 months from the last activity on your record: a new registration, a viewing request,
-      an offer, a change you ask for, or a conversation with us. After that we delete them, and a viewing request is
-      deleted 12 months after the day of the viewing. If you make an offer that leads to an agreed sale, we keep the sale
+    <p>While any of your searches is active or awaiting our team's review, we keep your contact details and search record
+      so we can continue helping you. After 11 months without activity on your record, our team reviews whether you still
+      need the search. A viewing, offer or period without contact does not close it automatically.</p>
+    <p>Once our team has marked all your searches as resolved, we keep your details for 12 months from the last activity
+      on your record, including the closure, a registration, a recorded change, a viewing request, an offer or a conversation
+      with us. An open offer also protects your record while it is being negotiated. Resolving a search does not delete it.</p>
+    <p>Viewing requests have their own retention period: they are deleted 12 months after the day of the viewing.
+      If you make an offer that leads to an agreed sale, we keep the sale
       record and your details for 5 years after it completes or falls through, as anti-money-laundering record-keeping
       rules require.</p>
 

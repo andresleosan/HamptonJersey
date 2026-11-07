@@ -1005,9 +1005,13 @@ async function widenCriteria(page, phone, noSideScroll) {
   await card.getByText("Fewer than 3 listings fit this search.").waitFor();
   await noSideScroll(url, "section.widen");
   await shot(phone, "admin-widen-mobile");
-  // A closed search has nothing to widen: Stage → Completed takes the card away without a reload.
+  // Stage remains independent; explicit resolution removes Widen without a reload.
   await page.getByLabel("Stage").selectOption("completed");
   await page.getByRole("button", {name: "Apply stage"}).click();
+  assert.ok(await card.isVisible(), "Completed alone leaves the search active");
+  await page.getByRole("button", {name: "Resolve search", exact: true}).click();
+  await page.getByLabel("Resolution reason", {exact: true}).fill("Found a property");
+  await page.getByRole("button", {name: "Confirm resolution", exact: true}).click();
   await card.waitFor({state: "detached"});
 }
 

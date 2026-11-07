@@ -1,0 +1,81 @@
+// Focused EST-09 flow, independent of the public site's external widgets.
+// Use the same local fixture server, .dev.vars, PW and CHROME setup as tests/e2e.cjs.
+const { chromium } = require(process.env.PW || 'playwright-core');
+const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const BASE = process.env.BASE || 'http://localhost:8788/';
+(async () => {
+  const { signSession, COOKIE } = await import('../server/auth.js');
+  const localKey = readFileSync('.dev.vars', 'utf8').match(/^SESSION_SECRET=(.+)$/m)[1].trim();
+  const browser = await chromium.launch({ executablePath: process.env.CHROME });
+  try {
+    const ctx = await browser.newContext();
+    await ctx.addCookies([{ name: COOKIE, value: await signSession('admin@example.test', localKey), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: 'Strict' }]);
+    const request = async (method, path, data) => {
+      const r = await ctx.request.fetch(BASE + 'api' + path, { method, data, headers: { origin: new URL(BASE).origin } });
+      assert.ok(r.ok(), `${method} ${path}: ${r.status()}`); return r.json();
+    };
+    const fixtureName = `EST09 browser fixture ${Date.now()}`;
+    const made = await request('POST', '/admin/applicants', { name: fixtureName, email: `est09-${Date.now()}@example.test`, source: 'phone', operation: 'buy', budget_max: 900000 });
+    const path = `/admin/applicants/${made.id}`, page = await ctx.newPage(), errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(BASE + `admin/#/applicants/${made.id}`);
+    const section = page.locator('.search-lifecycle');
+    await section.getByRole('button', { name: 'Resolve search', exact: true }).click();
+    await section.getByRole('button', { name: 'Confirm resolution', exact: true }).click();
+    await section.locator('#search-reason-error').waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'search-reason');
+    const reason = 'Client confirmed a home <test>'; // rendered as text
+    await page.locator('#search-reason').fill(reason);
+    const before = (await request('GET', path)).applicant;
+    await request('PUT', path, { updated_at: before.updated_at, budget_max: 950000 });
+    await section.getByRole('button', { name: 'Confirm resolution', exact: true }).click();
+    await section.getByRole('alert').filter({ hasText: 'Someone else saved' }).waitFor();
+    await section.getByRole('button', { name: 'Reload search', exact: true }).click();
+    await section.getByRole('button', { name: 'Confirm resolution', exact: true }).waitFor();
+    await page.waitForFunction(() => !document.querySelector('.search-lifecycle button[type=submit]')?.disabled);
+    assert.equal(await page.locator('#search-reason').inputValue(), reason, 'reload preserves the decision reason');
+    assert.equal(await page.locator('#a-budget_max').inputValue(), '950000', 'reload reconciles untouched criteria');
+    assert.equal(await section.getByText('Save or discard your changes', { exact: false }).count(), 0, 'no fictitious unsaved edit');
+    await section.getByRole('button', { name: 'Confirm resolution', exact: true }).click();
+    await section.getByRole('status').filter({ hasText: 'Search resolved' }).waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'search-heading');
+    await page.getByRole('tab', { name: 'Timeline', exact: true }).click();
+    await page.locator('.timeline').getByText(reason, { exact: true }).waitFor();
+    assert.equal(await page.locator('.timeline test').count(), 0);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await section.getByRole('button', { name: 'Reopen search', exact: true }).click();
+    await page.locator('#search-reason').fill('Client is still looking');
+    await page.locator('#search-reason').press('Tab');
+    assert.equal(await page.evaluate(() => document.activeElement.textContent), 'Confirm active search');
+    await page.keyboard.press('Enter');
+    await section.getByRole('status').filter({ hasText: 'Search is active again' }).waitFor();
+    assert.equal((await request('GET', path)).applicant.search_state, 'active');
+    assert.equal(await page.getByRole('button', { name: 'Archive', exact: true }).count(), 0);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), '390px: no horizontal overflow');
+    await section.getByRole('button', { name: 'Resolve search', exact: true }).click();
+    await page.locator('#search-reason').fill('Second confirmation');
+    const failed = r => r.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary test outage' }) });
+    await page.route(`**/api${path}/search`, failed);
+    await section.getByRole('button', { name: 'Confirm resolution', exact: true }).click();
+    await section.getByRole('alert').filter({ hasText: 'Temporary test outage' }).waitFor();
+    assert.equal(await page.locator('#search-reason').inputValue(), 'Second confirmation');
+    await page.unroute(`**/api${path}/search`, failed);
+    await section.getByRole('button', { name: 'Confirm resolution', exact: true }).click();
+    await section.getByRole('status').filter({ hasText: 'Search resolved' }).waitFor();
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
+    assert.ok(await section.isVisible());
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), '200% zoom: no horizontal overflow');
+    await page.evaluate(() => { document.documentElement.style.zoom = ''; });
+    await page.goto(BASE + 'admin/#/applicants');
+    await page.getByLabel('Search', { exact: true }).fill(fixtureName);
+    await page.getByLabel('Search status').selectOption('resolved');
+    await page.getByRole('link', { name: fixtureName, exact: true }).last().waitFor();
+    await page.getByLabel('Search status').selectOption('active');
+    await page.locator('.empty').waitFor();
+    assert.deepEqual(errors, []);
+    console.log('EST-09 UI OK: validation, stale/reload, reason, resolution, reopen, error retry, keyboard/focus, 1280/390, zoom, filters/empty.');
+  } finally { await browser.close(); }
+})().catch(e => { console.error(e); process.exitCode = 1; });

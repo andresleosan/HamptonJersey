@@ -314,7 +314,7 @@ function MatchedApplicants({ rows, offered }) {
       <tbody>{rows.map(m => { const [label, tone] = MATCH_STATUS[m.status] ?? [m.status, "neutral"];
         return <tr key={m.match_id}>
           <td><a href={`#/applicants/${m.applicant_id}/matches`}>{m.name}</a>
-            {!isActive(m) && <span className="muted"> · {m.archived_at ? "Archived" : show("stage", m.stage)}</span>}</td>
+            {!isActive(m) && <span className="muted"> · {m.archived_at ? "Archived" : m.search_state === "resolved" ? "Resolved" : "Needs review"}</span>}</td>
           <td>{OPERATION_LABEL[m.operation] ?? m.operation ?? "—"}</td>
           <td><span className={`badge ${tone}`}>{label}</span></td>
           <td className="num">{m.score}</td>

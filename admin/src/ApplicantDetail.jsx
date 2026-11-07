@@ -8,6 +8,7 @@ import MatchCard, { REASON_LABEL } from "./MatchCard.jsx";
 import { OfferBadge, REASON, Received, money } from "./Sales.jsx";
 import { SALE_STATUS } from "./SaleDetail.jsx";
 import { milestoneLabel } from "../../server/sales.js";
+import SearchLifecycle from "./SearchLifecycle.jsx";
 
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
 // Every form field that belongs to the search (the rest of the form is the contact).
@@ -43,7 +44,8 @@ const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requi
   "contact.consent_changed": "Consent changed", "contact.conversation": "Conversation logged", "applicant.duplicate_submitted": "Registered again on the website",
   "applicant.matched": "New matches found", "offer.updated": "Offer changed", "offer.countered": "Seller countered",
   "offer.accepted": "Offer accepted", "offer.rejected": "Offer rejected", "offer.withdrawn": "Offer withdrawn",
-  "sale.updated": "Sale file changed", "sale.completed": "Sale completed", "sale.fallen_through": "Sale fell through" };
+  "sale.updated": "Sale file changed", "sale.completed": "Sale completed", "sale.fallen_through": "Sale fell through",
+  "applicant.search_resolved": "Search resolved", "applicant.search_reopened": "Search made active" };
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation), SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
 
 const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
@@ -62,6 +64,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   // msg: Save, Copy fields, archive and delete (in the action bar). note: stage, owner and Dismiss (next to them).
   const [msg, setMsg] = useState(null), [note, setNote] = useState(null);
   const [lost, setLost] = useState(null), [confirmDel, setConfirmDel] = useState(""); // lost: the reason being typed
+  const [decisionDirty, setDecisionDirty] = useState(false);
   // Stage and Assigned to as chosen but not yet applied (null = as stored): a select saves only on Apply or Enter,
   // so moving through its options with the arrow keys saves nothing.
   const [choice, setChoice] = useState({ stage: null, assigned_to: null });
@@ -78,6 +81,13 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const cur = tabList.some(([k]) => k === tab) ? tab : "requirements";
 
   const fetchDetail = () => api(`/admin/applicants/${id}`).then(d => { setData(d); return d; });
+  const reloadSearch = async () => {
+    const baseline = toForm(data.applicant, data.contact);
+    const d = await fetchDetail(), fresh = toForm(d.applicant, d.contact);
+    // Reconcile untouched fields with the new version; preserve anything typed locally during the request.
+    setForm(current => Object.fromEntries(Object.keys(fresh).map(k => [k,
+      JSON.stringify(current[k]) === JSON.stringify(baseline[k]) ? fresh[k] : current[k]])));
+  };
   const load = () => fetchDetail().then(d => {
     setForm(toForm(d.applicant, d.contact)); setErrors({}); setMsg(null); setNote(null); setLost(null); setLoadErr(null);
   }, e => { setLoadErr(e.message); setNote({ text: e.message }); }); // a failed Reload keeps the page and says why
@@ -87,7 +97,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const changed = keys => (data && form ? keys.filter(k => JSON.stringify(body[k]) !== JSON.stringify(saved[k])) : []);
   const searchChanged = changed(SEARCH), contactChanged = changed(CONTACT);
   const dirty = searchChanged.length + contactChanged.length > 0;
-  useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
+  useEffect(() => { setUnsaved(dirty || decisionDirty); return () => setUnsaved(false); }, [dirty, decisionDirty]);
   // After a refused save, the first highlighted field gets the focus (once its tab is showing).
   useEffect(() => {
     const el = focusError.current && cur === "requirements" && formRef.current?.querySelector("[aria-invalid=true]");
@@ -241,7 +251,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       const left = !d.matches.some(x => x.id === m.id && x.status === m.status);
       if (msg.ok || left)
         refocusMatch.current = next && d.matches.some(x => x.id === next.id && x.status === m.status) ? `match-${next.id}` : `group-${m.status}`;
-      setData(x => ({ ...x, events: d.events, matches: d.matches, widen: d.widen }));
+      setData(x => ({ ...x, applicant: d.applicant, events: d.events, matches: d.matches, widen: d.widen }));
     } catch (e) { msg = { text: `${msg.text} ${e.message}` }; } // shown as an error even when the review was saved
     finally { setMatchMsg(msg); setReviewing(false); }
   };
@@ -284,7 +294,8 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     <div className="head">
       <div><h1 id="t-applicant">{c.name}</h1>
         <p className="muted">{OPERATION_LABEL[a.operation]} · {SOURCE_LABEL[a.source]} · Applied {fmtDate(a.created_at)}</p>
-        <p className="muted">{data.retention.exempt ? "Kept for 5 years: it has a sale"
+        <p className="muted">{data.retention.search ? "Kept while a search is active or awaiting review"
+          : data.retention.exempt ? "Kept for 5 years: it has a sale"
           : data.retention.offer ? "Kept while an offer is open" : `Kept until ${fmtDayMonth(data.retention.kept_until)}`}</p></div>
       <div className="inline">
         {tel && <a className="btn ghost sm" href={`tel:${tel}`}>Call</a>}
@@ -295,6 +306,12 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       </div>
     </div>
     {archived && <p className="warn" role="note">Archived {fmtDate(a.archived_at)}. Restore it to work on it again, or delete it permanently from the bar below.</p>}
+
+    {data.retention.review && <p className="warn" role="note">Review retention: this contact has had no recorded activity for at least 11 months.
+      Check whether they still need their searches. Their record is protected from automatic deletion while a search is active or awaiting review.
+      Log a conversation only after speaking with them.</p>}
+    <SearchLifecycle applicant={a} dirty={dirty} busy={busy || reviewing} nameOf={nameOf} onReload={reloadSearch} onEditing={setDecisionDirty}
+      onChanged={async applicant => { setData(d => ({ ...d, applicant })); onChange?.(); await fetchDetail(); }} />
 
     <div className="filters">
       <div className="apply"><label>Stage<select ref={stageRef} value={stage} disabled={archived} onKeyDown={onEnter(applyStage)}
@@ -348,7 +365,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       {dirty && <span className="unsaved">Unsaved changes</span>}
       <button type="button" className="btn" onClick={save} disabled={!dirty || busy}>{busy ? "Saving…" : "Save"}</button>
       {dirty && <button type="button" className="btn ghost" onClick={discard} disabled={busy}>Discard</button>}
-      {!archived && <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Save first" : undefined}
+      {!archived && a.search_state === "resolved" && <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Save first" : undefined}
         onClick={() => act("archive")}>Archive</button>}
       {archived && <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Save first" : undefined}
         onClick={() => act("restore")}>Restore</button>}
@@ -415,14 +432,14 @@ function Widen({ alternatives, applicant: a, dirty, onUse }) {
 }
 
 // Spec §5: Found, Shortlisted and Rejected, each best first (as the API orders them). Each empty group says why.
-// A closed search (archived, lost or completed) is read only: the server refuses its reviews (409).
+// A resolved or legacy search keeps its matches as read-only history.
 function Matches({ matches, applicant: a, msg, busy, onReview }) {
   const archived = !!a.archived_at, closed = !isActive(a) && !archived;
   const readOnly = archived ? "Restore this search to review its matches" : closed ? "Reopen this search to review its matches" : null;
   const reviewed = matches.some(m => m.status !== "found");
   const empty = {
     found: archived ? "Archived searches get no new matches. Restore it to look again."
-      : closed ? `Searches marked ${show("stage", a.stage)} get no new matches.`
+      : closed ? "Resolved searches and searches awaiting review get no new matches."
       : reviewed ? "Nothing left to review. Listings that fit this search appear here when they are added or change."
       : "No listing fits this search right now. Listings that fit appear here when they are added or change. Check the requirements if you expected some.",
     shortlisted: "Nothing shortlisted yet.",
@@ -477,6 +494,7 @@ function Timeline({ events, viewings, matches, offers, by, nameOf }) {
   return <ol className="timeline card">{items.map(({ e, h, v }) => e ? <li key={`e${e.id}`}>
     <p><strong>{h[0]}</strong> <span className="muted">{by(e.actor)} · {when(e.at)}</span></p>
     {h[1] && <p>{h[1]}</p>}
+    {["applicant.search_resolved", "applicant.search_reopened"].includes(e.type) && e.data?.reason && <p>{e.data.reason}</p>}
     {e.type === "applicant.created" && e.data && <p className="muted">{show("operation", e.data.operation)} · {show("source", e.data.source)}</p>}
     {e.data?.after && <dl className="changes">{Object.keys(e.data.after).map(k => <div key={k}><dt>{label(k)}</dt>
       <dd><span className="sr">from </span>{value(k, e.data.before?.[k], nameOf)} <span aria-hidden="true">→</span><span className="sr"> to</span> {value(k, e.data.after[k], nameOf)}</dd></div>)}</dl>}

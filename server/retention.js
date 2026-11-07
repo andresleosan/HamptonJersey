@@ -15,9 +15,12 @@ export const RETENTION_CAP = 500;
 export const NO_SALE = "NOT EXISTS (SELECT 1 FROM applicants s JOIN sales x ON x.applicant_id = s.id WHERE s.contact_id = c.id)";
 // What the pass and Expiring leave alone: E3, and a buyer in an open negotiation (an offer pending or countered on any of
 // its searches) for as long as it lasts. For a query on contacts c.
-export const EXEMPT = `NOT EXISTS (SELECT 1 FROM applicants s WHERE s.contact_id = c.id
-  AND (EXISTS (SELECT 1 FROM sales x WHERE x.applicant_id = s.id)
-    OR EXISTS (SELECT 1 FROM offers o WHERE o.applicant_id = s.id AND o.status IN ('pending', 'countered'))))`;
+export const HAS_OPEN_SEARCH = "EXISTS (SELECT 1 FROM applicants s WHERE s.contact_id = c.id AND s.search_state IN ('active', 'needs_review'))";
+export const HAS_OPEN_OFFER = `EXISTS (SELECT 1 FROM applicants s JOIN offers o ON o.applicant_id = s.id
+  WHERE s.contact_id = c.id AND o.status IN ('pending', 'countered'))`;
+export const EXEMPT = `(${NO_SALE} AND NOT ${HAS_OPEN_OFFER} AND NOT ${HAS_OPEN_SEARCH})`;
+// Review due is not a deletion deadline. No automated job advances the activity/contact clocks.
+export const RETENTION_REVIEW = `c.last_activity_at < date(?, '-11 months') AND ${HAS_OPEN_SEARCH}`;
 
 // E8: a contact the pass deletes within a month, or one already due that it has not reached (over the cap, or a failed
 // pass), so the delay shows. Bind the Jersey date. A range on contacts_activity: only the contacts in it are read.

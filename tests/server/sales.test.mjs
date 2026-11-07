@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, call, adminCookie } from "./helpers.mjs";
+import { makeEnv, seedListing, call, adminCookie, T0 } from "./helpers.mjs";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
 import { MILESTONES } from "../../server/sales.js";
 
@@ -336,6 +336,7 @@ test("archive: a listing or applicant with an open offer or a sale in progress i
 
   await req(env, "POST", `/admin/offers/${o}/withdraw`, {});
   await req(env, "POST", `/admin/sales/${id}/fall-through`, { reason: "chain" });
+  for (const aid of [a, b]) run(env, "UPDATE applicants SET search_state = 'resolved', resolved_at = ?, resolved_by = ?, resolution_reason = 'Found a home' WHERE id = ?", T0, ADMIN, aid);
   for (const path of ["/admin/listings/HE-R002", `/admin/applicants/${a}`, "/admin/listings/HE-R001", `/admin/applicants/${b}`])
     assert.equal((await req(env, "POST", `${path}/archive`)).status, 200, path);
 });
@@ -348,12 +349,14 @@ test("delete: an archived applicant with a fallen-through sale is 409; without s
   const a = await buyer(env), b = await buyer(env), c = await buyer(env);
   const id = await accepted(env, a, "HE-R001");
   await req(env, "POST", `/admin/sales/${id}/fall-through`, { reason: "buyer_withdrew" });
+  run(env, "UPDATE applicants SET search_state = 'resolved', resolved_at = ?, resolved_by = ?, resolution_reason = 'Found a home' WHERE id = ?", T0, ADMIN, a);
   assert.equal((await req(env, "POST", `/admin/applicants/${a}/archive`)).status, 200);
   assert.deepEqual(await del(`/admin/applicants/${a}`, name(a)), kept);
   assert.ok(row(env, "SELECT 1 AS x FROM applicants WHERE id = ?", a));
 
   const o = await record(env, b, "HE-R002");
   await req(env, "POST", `/admin/offers/${o}/withdraw`, {});
+  run(env, "UPDATE applicants SET search_state = 'resolved', resolved_at = ?, resolved_by = ?, resolution_reason = 'Found a home' WHERE id = ?", T0, ADMIN, b);
   assert.equal((await req(env, "POST", `/admin/applicants/${b}/archive`)).status, 200);
   assert.deepEqual(await del(`/admin/applicants/${b}`, name(b)), { status: 200, error: undefined });
   assert.equal(row(env, "SELECT COUNT(*) AS n FROM offers WHERE applicant_id = ?", b).n, 0);
@@ -414,6 +417,7 @@ test("archive: an offer recorded between the check and the write still blocks it
 
   // The buyer: their archive batch rolls back whole, event and notices included.
   const b = await buyer(env, "new");
+  run(env, "UPDATE applicants SET search_state = 'resolved', resolved_at = ?, resolved_by = ?, resolution_reason = 'Found a home' WHERE id = ?", T0, ADMIN, b);
   const batch = env.DB.batch.bind(env.DB);
   env.DB.batch = async stmts => {
     if (stmts[0].sql.startsWith("UPDATE applicants SET archived_at")) sneak(b);

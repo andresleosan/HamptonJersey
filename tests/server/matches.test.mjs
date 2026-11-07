@@ -156,27 +156,23 @@ test("only found → shortlisted|rejected and back to found are allowed; bad req
   assert.equal(match(env, id).status, "shortlisted");
 });
 
-test("a lost or completed search is not reviewed: Undo is refused with 409 and the match keeps its status", async () => {
+test("a resolved search refuses Undo and preserves all match history until explicitly reopened", async () => {
   const env = makeEnv();
-  listing(env, "HE-R001");
-  listing(env, "HE-R002", { sale_price: 800000 });
+  listing(env, "HE-R001"); listing(env, "HE-R002", { sale_price: 800000 });
   const a = seedApplicant(env);
   await recomputeForApplicant(env, a, "system");
   const kept = matchId(env, a, "HE-R001"), other = matchId(env, a, "HE-R002");
   assert.equal((await put(env, kept, { status: "shortlisted", from: "found" })).status, 200);
-  const stage = async body => (await req(env, "PUT", `/admin/applicants/${a}`,
-    { ...body, updated_at: row(env, "SELECT updated_at FROM applicants WHERE id = ?", a).updated_at })).status;
-  for (const body of [{ stage: "lost", lost_reason: "Found elsewhere" }, { stage: "completed" }]) {
-    assert.equal(await stage(body), 200);
-    const r = await put(env, kept, { status: "found", from: "shortlisted" });
-    assert.equal(r.status, 409, body.stage);
-    assert.equal(r.data.error, "Reopen this search to review its matches.");
-    assert.equal(match(env, kept).status, "shortlisted", "still shortlisted, not deleted");
-  }
-  assert.equal(match(env, other), undefined, "a closed search keeps no found matches");
-  assert.equal(rows(env, "SELECT 1 FROM events WHERE type = 'match.reviewed'").length, 1, "only the shortlist");
-  // Reopened: reviews work again.
-  assert.equal(await stage({ stage: "searching" }), 200);
+  const transition = async state => req(env, "POST", `/admin/applicants/${a}/search`,
+    { state, reason: "Confirmed by client", updated_at: row(env, "SELECT updated_at FROM applicants WHERE id = ?", a).updated_at });
+  assert.equal((await transition("resolved")).status, 200);
+  const r = await put(env, kept, { status: "found", from: "shortlisted" });
+  assert.equal(r.status, 409);
+  assert.equal(r.data.error, "Reopen this search to review its matches.");
+  assert.equal(match(env, kept).status, "shortlisted");
+  assert.equal(match(env, other).status, "found", "unreviewed matches are also preserved");
+  assert.equal(rows(env, "SELECT 1 FROM events WHERE type = 'match.reviewed'").length, 1);
+  assert.equal((await transition("active")).status, 200);
   assert.equal((await put(env, kept, { status: "found", from: "shortlisted" })).status, 200);
 });
 
@@ -201,7 +197,7 @@ test("the review queue: oldest applicant first, best score first, after skips pa
   seedMedia(env, { id: "A00001", listing_id: "HE-R002" });
   const newer = seedApplicant(env, "Tom Vibert", { minute: 5, budget_min: 400000, parishes_wanted: '["St Helier"]' });
   const older = seedApplicant(env, "Ana Le Gros", { minute: 1 });
-  const closed = seedApplicant(env, "Lost One", { minute: 0, stage: "lost" });
+  const closed = seedApplicant(env, "Lost One", { minute: 0, stage: "lost", search_state: "needs_review" });
   const reviewed = seedApplicant(env, "All Reviewed", { minute: 0 }); // active, nothing found left: walked past
   seedMatch(env, reviewed, "HE-R002", { score: 95, status: "rejected", reason: "price" });
   const o1 = seedMatch(env, older, "HE-R001", { score: 60 });
@@ -241,9 +237,9 @@ test("the review queue: oldest applicant first, best score first, after skips pa
   assert.equal("remaining" in (await next(o1)), false);
   assert.equal((await next()).remaining, 3);
   // After a match whose search was closed meanwhile: the next search.
-  run(env, "UPDATE applicants SET stage = 'lost' WHERE id = ?", older);
+  run(env, "UPDATE applicants SET stage = 'lost', search_state = 'needs_review' WHERE id = ?", older);
   assert.equal((await next(o2)).match.id, n1);
-  run(env, "UPDATE applicants SET stage = 'searching' WHERE id = ?", older);
+  run(env, "UPDATE applicants SET stage = 'searching', search_state = 'active' WHERE id = ?", older);
   // After a match that no longer exists: from the start.
   assert.equal((await next(12345)).match.id, o2);
   assert.equal((await req(env, "GET", "/admin/review?after=x")).status, 400);
@@ -261,7 +257,7 @@ test("Recalculate all reads every listing in batches, then recomputes every acti
   run(env, "UPDATE listings SET parish = 'Trinity' WHERE id = 'HE-R002'"); // corrected by the team
   run(env, "UPDATE listings SET use = 'commercial', matchable = 1 WHERE id = 'HE-R003'"); // read too, never offered
   const actives = Array.from({ length: RECALC_BATCH.applicants + 1 }, (_, i) => seedApplicant(env, `Buyer ${i}`, { minute: i }));
-  const lost = seedApplicant(env, "Lost One", { stage: "lost" });
+  const lost = seedApplicant(env, "Lost One", { stage: "lost", search_state: "needs_review" });
   const updatedAt = row(env, "SELECT updated_at FROM listings WHERE id = 'HE-R001'").updated_at;
 
   const recalc = body => req(env, "POST", "/admin/matches/recalculate", body);
@@ -397,7 +393,7 @@ test("matched notices: their own category and count, linking to the Matches tab"
   const box = (await req(env, "GET", "/admin/notifications?box=action&category=matched")).data;
   assert.deepEqual(box.notifications.map(n => [n.category, n.title, n.link]),
     [["matched", "2 new matches for Ana Le Gros", `#/applicants/${a}/matches`]]);
-  const counts = { action: 1, new_applicant: 0, viewing: 0, matched: 1, sales: 0, rentals: 0, expiring: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 };
+  const counts = { action: 1, new_applicant: 0, viewing: 0, matched: 1, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 };
   assert.deepEqual(box.counts, counts);
   assert.deepEqual((await req(env, "GET", "/admin/notifications/counts")).data, counts, "no review count: the queue tells its size");
 });

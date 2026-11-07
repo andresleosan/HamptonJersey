@@ -23,7 +23,7 @@ const QUEUED = `m.status = 'found' AND ${activeSql("a")}`;
 const QUEUE_COUNT_SQL = `SELECT COUNT(*) AS n FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE ${QUEUED}`;
 // The search shown next to the match, its JSON lists as lists; from applicants a JOIN contacts c.
 const LISTS = ["property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"];
-const APPLICANT = object("a", ["id", "operation", "stage", "budget_min", "budget_max", "budget_stretch", "bedrooms_min",
+const APPLICANT = object("a", ["id", "operation", "stage", "search_state", "budget_min", "budget_max", "budget_stretch", "bedrooms_min",
   "bedrooms_ideal", "bathrooms_min", "parking_spaces", "furnished"],
   ["'name', c.name", ...LISTS.map(k => `'${k}', json(a.${k})`)]);
 // Queue order: the oldest search first, then its best matches, ties by id. One search's found matches are read at a
@@ -50,10 +50,11 @@ async function review({ request, env, admin, params: [id] }) {
   const reason = status === "rejected" ? body.reject_reason : null;
   if (status === "rejected" && !REASONS.includes(reason)) fail(400, "Choose why the match is rejected");
 
-  const m = await env.DB.prepare(`SELECT m.id, m.applicant_id, m.listing_id, m.status, a.archived_at, a.stage
+  const m = await env.DB.prepare(`SELECT m.id, m.applicant_id, m.listing_id, m.status, a.archived_at, a.stage, a.search_state,
+    a.updated_at AS applicant_updated_at
     FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE m.id = ?`).bind(Number(id)).first();
   if (!m) fail(404, "Match not found");
-  // A closed search (archived, lost or completed) is not reviewed: an Undo's recompute would delete the match.
+  // Closed/legacy searches preserve their matches without further review until a human reopens them.
   if (m.archived_at) fail(409, "Restore this search to review its matches");
   if (!isActive(m)) fail(409, "Reopen this search to review its matches.");
   if (m.status !== from) fail(409, STALE);
@@ -67,9 +68,10 @@ async function review({ request, env, admin, params: [id] }) {
     results = await env.DB.batch([
       // The status the client saw, checked inside the batch: a review landing after our read sets status to NULL, the
       // NOT NULL constraint fails and the whole batch rolls back.
-      env.DB.prepare(`UPDATE matches SET status = CASE WHEN status = ? THEN ? END, reject_reason = ?, reviewed_by = ?,
+      env.DB.prepare(`UPDATE matches SET status = CASE WHEN status = ? AND EXISTS (SELECT 1 FROM applicants a
+        WHERE a.id = matches.applicant_id AND a.updated_at = ? AND ${activeSql("a")}) THEN ? END, reject_reason = ?, reviewed_by = ?,
         reviewed_at = ?, updated_at = ? WHERE id = ?`)
-        .bind(from, status, reason, reviewed ? admin : null, reviewed ? ts : null, ts, m.id),
+        .bind(from, m.applicant_updated_at, status, reason, reviewed ? admin : null, reviewed ? ts : null, ts, m.id),
       // B13: the applicant's first review is kept, Undo included.
       ...(reviewed ? [env.DB.prepare(`UPDATE applicants SET first_reviewed_at = ? WHERE id = ? AND first_reviewed_at IS NULL
         AND ${ifThere}`).bind(ts, m.applicant_id, m.id, status)] : []),
@@ -79,6 +81,8 @@ async function review({ request, env, admin, params: [id] }) {
       closeMatchedNoticeIfEmpty(env, m.applicant_id, admin),
     ]);
   } catch (e) {
+    const a = await env.DB.prepare("SELECT search_state, archived_at, updated_at FROM applicants WHERE id = ?").bind(m.applicant_id).first();
+    if (!a || !isActive(a) || a.updated_at !== m.applicant_updated_at) fail(409, "The search changed. Reload to see it.");
     const cur = await env.DB.prepare("SELECT status FROM matches WHERE id = ?").bind(m.id).first();
     if (cur && cur.status !== from) fail(409, STALE);
     throw e;

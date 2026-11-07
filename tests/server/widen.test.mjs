@@ -122,7 +122,7 @@ test("detail: closed or archived searches get null", async () => {
   const env = makeEnv();
   const lost = await create(env), archived = await create(env);
   assert.ok(Array.isArray(await getWiden(env, lost)));
-  sql(env, "UPDATE applicants SET stage = 'lost', lost_reason = 'Bought privately' WHERE id = ?", lost);
+  sql(env, "UPDATE applicants SET search_state = 'needs_review', stage = 'lost', lost_reason = 'Bought privately' WHERE id = ?", lost);
   sql(env, "UPDATE applicants SET archived_at = ? WHERE id = ?", T0, archived);
   assert.equal(await getWiden(env, lost), null);
   assert.equal(await getWiden(env, archived), null);

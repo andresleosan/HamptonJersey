@@ -242,30 +242,29 @@ test("a recompute that only refreshes scores and checks leaves the matched notic
   assert.equal(notices(env, id)[0].title, "1 new match for Ana Le Gros");
 });
 
-test("archived, lost or completed applicants keep no found matches", async () => {
+test("inactive applicants keep all match history and receive no new matches", async () => {
   const env = makeEnv();
   listing(env, "HE-R001");
   listing(env, "HE-R002");
-  const ids = ["archived", "lost", "completed"].map(k => seedApplicant(env, `Ana ${k}`));
+  const ids = ["archived", "resolved", "needs_review"].map(k => seedApplicant(env, `Ana ${k}`));
   const paused = seedApplicant(env, "Ana paused");
   for (const id of [...ids, paused]) {
     await recomputeForApplicant(env, id, ADMIN);
     review(env, id, "HE-R002", "shortlisted");
   }
   run(env, "UPDATE applicants SET archived_at = ? WHERE id = ?", T0, ids[0]);
-  run(env, "UPDATE applicants SET stage = 'lost', lost_reason = 'Bought elsewhere' WHERE id = ?", ids[1]);
-  run(env, "UPDATE applicants SET stage = 'completed' WHERE id = ?", ids[2]);
+  run(env, "UPDATE applicants SET search_state = 'resolved', resolved_at = ?, resolved_by = ?, resolution_reason = 'Found a home' WHERE id = ?", T0, ADMIN, ids[1]);
+  run(env, "UPDATE applicants SET search_state = 'needs_review' WHERE id = ?", ids[2]);
   run(env, "UPDATE applicants SET stage = 'paused' WHERE id = ?", paused);
   listing(env, "HE-R003");
 
   for (const id of ids) {
     assert.deepEqual(await recomputeForApplicant(env, id, ADMIN), { created: 0 });
-    assert.deepEqual(matches(env, id).map(m => [m.listing_id, m.status]), [["HE-R002", "shortlisted"]]);
-    assert.ok(notices(env, id)[0].resolved_at);
+    assert.deepEqual(matches(env, id).map(m => [m.listing_id, m.status]), [["HE-R001", "found"], ["HE-R002", "shortlisted"]]);
   }
   // A new listing is not offered to them either; a paused search is still active.
   await recomputeForListing(env, "HE-R003", ADMIN);
-  for (const id of ids) assert.deepEqual(found(env, id), []);
+  for (const id of ids) assert.deepEqual(found(env, id), ["HE-R001"]);
   assert.deepEqual(found(env, paused), ["HE-R001", "HE-R003"]);
 });
 

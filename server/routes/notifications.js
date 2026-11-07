@@ -3,7 +3,7 @@ import { normalizePhone, activeSql } from "../applicants.js";
 import { salesCount } from "./sales.js";
 import { refreshRentalsCount } from "./rent.js";
 import { jerseyToday } from "../viewings.js";
-import { retentionPass, EXPIRING } from "../retention.js";
+import { retentionPass, EXPIRING, RETENTION_REVIEW } from "../retention.js";
 import { TO_CONFIRM } from "../listing.js";
 import { stoppedFlags } from "./automations.js";
 
@@ -39,7 +39,7 @@ function link({ category, entity_type, entity_id, search_id }) {
 // automations are stopped, the clock or Hermes (AUT-01, A3). chats: the website's chats waiting (MSG-02).
 export async function openCounts(env) {
   const [{ results }, { results: [sales] }, , , { results: [rentals] }, { results: [expiring] }, { results: [toConfirm] },
-    { results: [outbound] }, { results: seen }, { results: [chats] }] = await env.DB.batch([env.DB.prepare(
+    { results: [outbound] }, { results: seen }, { results: [chats] }, { results: [retentionReview] }] = await env.DB.batch([env.DB.prepare(
     "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category"),
   salesCount(env), ...refreshRentalsCount(env),
   env.DB.prepare("SELECT json_extract(value, '$.n') AS n FROM app_settings WHERE key = 'rentals_count'"),
@@ -52,11 +52,12 @@ export async function openCounts(env) {
     WHERE key = 'outbound' AND json_extract(value, '$.paused') = 1`),
   env.DB.prepare("SELECT key, json_extract(value, '$.at') AS at FROM app_settings WHERE key IN ('clock', 'hermes')"),
   // MSG-02 (C8): the website's chats waiting for the team, on the chats_waiting partial index.
-  env.DB.prepare("SELECT COUNT(*) AS n FROM chats WHERE status = 'waiting'")]);
+  env.DB.prepare("SELECT COUNT(*) AS n FROM chats WHERE status = 'waiting'"),
+  env.DB.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${RETENTION_REVIEW}`).bind(jerseyToday())]);
   const by = Object.fromEntries(CATEGORIES.map(c => [c, results.find(r => r.category === c)?.n ?? 0]));
   const at = Object.fromEntries(seen.map(r => [r.key, r.at])), stopped = stoppedFlags(at.clock, at.hermes, Date.now());
   return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by, sales: sales.n, rentals: rentals.n,
-    expiring: expiring.n, to_confirm: toConfirm.n, chats: chats.n,
+    expiring: expiring.n, retention_review: retentionReview.n, to_confirm: toConfirm.n, chats: chats.n,
     outbound: outbound ?? null, stalled: stopped.clock + stopped.hermes };
 }
 

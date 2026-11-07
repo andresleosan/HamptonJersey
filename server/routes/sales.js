@@ -54,7 +54,9 @@ function stageTo(env, ctx, applicant, stage, from) {
   // Leaving Lost clears its reason, as a panel save does.
   const [was, is] = applicant.lost_reason == null ? [{}, {}] : [{ lost_reason: applicant.lost_reason }, { lost_reason: null }];
   return [
-    env.DB.prepare("UPDATE applicants SET stage = ?, lost_reason = NULL, updated_at = ?, updated_by = ? WHERE id = ? AND stage = ?")
+    // Read the current version inside the write: concurrent criteria edits may already have advanced it.
+    env.DB.prepare(`UPDATE applicants SET stage = ?, lost_reason = NULL,
+      updated_at = MAX(?, strftime('%Y-%m-%dT%H:%M:%fZ', updated_at, '+0.001 seconds')), updated_by = ? WHERE id = ? AND stage = ?`)
       .bind(stage, ctx.ts, ctx.admin, applicant.id, applicant.stage),
     ...buyerEvent(env, ctx, applicant.id, "applicant.stage_changed", { before: { stage: applicant.stage, ...was },
       after: { stage, ...is } }, true),

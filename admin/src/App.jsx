@@ -136,7 +136,8 @@ export default function App() {
           && <span className="count">{counts.chats}<span className="sr"> waiting</span></span>}</a>
         <a href="#/email" aria-current={current === "email" ? "page" : undefined}>Email</a>
         <a href="#/applicants" aria-current={current === "applicants" ? "page" : undefined}>Applicants{counts.expiring > 0
-          && <span className="count" title={`${counts.expiring} expiring`}>{counts.expiring}<span className="sr"> expiring</span></span>}</a>
+          && <span className="count" title={`${counts.expiring} expiring`}>{counts.expiring}<span className="sr"> expiring</span></span>}{counts.retention_review > 0
+          && <span className="count" title={`${counts.retention_review} contacts need retention review`}>{counts.retention_review}<span className="sr"> retention review</span></span>}</a>
         <a href="#/review" aria-current={current === "review" ? "page" : undefined}>Review</a>
         <a href="#/listings" aria-current={current === "listings" ? "page" : undefined}>Listings{counts.to_confirm > 0
           && <span className="count">{counts.to_confirm}<span className="sr"> to confirm</span></span>}</a>

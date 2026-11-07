@@ -23,7 +23,7 @@ La documentación, el checklist y la skill pueden publicarse como una entrega do
 | Correo AUT-17 | `server/email.js`, `server/email-inbound.js`, `server/routes/email.js`, `migrations/0023_email.sql` | Transporte, estados e interfaz construidos en main; conservar el cierre operativo pendiente en ESTADO. Falta el dominio de consultas compartidas y clasificar respuestas útiles. No reconstruir correo. |
 | Chat MSG-02 | `server/chat.js`, `server/routes/chats.js`, `migrations/0022_chats.sql` | Chat humano construido. No resuelve por sí solo búsqueda comercial, captación completa ni mensajes a Facebook. |
 | Hermes | `server/routes/hermes.js`, `hermes/`, migraciones 0018/0020 | Puerta limitada, jobs y lector de importación son bases. No asumir que el agente tiene lectura general de internet o acceso a clientes. |
-| Conservación y cierre | `server/retention.js`, `server/routes/sales.js` | G2 borra contactos por inactividad con excepciones de ventas/ofertas; no protege expresamente todas las búsquedas activas. Hay que reconciliar esa política antes de activar continuidad. El cierre de venta actual cambia la etapa: debe documentarse como acto humano explícito o pedir confirmación de búsqueda resuelta. |
+| Conservación y cierre | `server/retention.js`, `server/routes/sales.js` | EST-09 construido localmente: search_state separado de Stage; completar venta no resuelve la búsqueda. Cualquier búsqueda active/needs_review protege el contacto; revisión desde 11 meses y plazo existente tras cierre humano. Migración 0024 y publicación pendientes; G2 remoto sigue con su versión anterior hasta activación. |
 
 Las afirmaciones de despliegue se conservan en ESTADO con su evidencia histórica. En esta revisión no se ha consultado ni alterado la base de producción.
 
@@ -62,7 +62,7 @@ Las afirmaciones de despliegue se conservan en ESTADO con su evidencia históric
 | 13 | **M12b** purga de papelera: EST-19 | M02/M06/M07 y política de archivos | Purga segura a seis meses sobre exclusión ya implantada en M12a; activar al final de sus pruebas. |
 | 14 | **M13b** recorrido integrado y cierre: AUT-20 | Todos los módulos anteriores | Los 16 ejemplos funcionales y los casos de concurrencia pasan juntos. |
 
-**Próxima entrega propuesta:** `/avanzar EST-09`, acotada a separar búsqueda activa de etapa comercial, cierre explícito y conflicto de conservación (M03a). El formulario ampliado M03b y REG-17 pueden tener planes posteriores. Es la base que evita que el nuevo motor use un cliente ya resuelto o detenga a quien sigue buscando.
+**M03a preparada:** EST-09 y continuidad PRE-12 construidos y verificados localmente, pendientes de publicación/0024. **Próxima construcción recomendada:** `/avanzar REG-11` (M03b), con preguntas comerciales D08 por concretar; REG-17 seguirá después. M01 puede avanzar por su propia dependencia y sus tres investigaciones siguen siendo secuenciales.
 
 AUT-17 conserva su cierre operativo pendiente y puede avanzar con su propia autorización. MSG-02, MSG-04/05, AUT-16, administración de alquileres, ofertas, publicación propia, analítica y tours siguen en el checklist; no se borran ni se convierten en dependencias artificiales del nuevo recorrido. PRE-22 solo condiciona la gestión comercial humana que lo necesite. PRE-32 y las reglas de datos siguen condicionando el uso del modelo correspondiente.
 
@@ -187,7 +187,7 @@ Resolver cada una con brainstorming/grill-me al comenzar la entrega que la consu
 | D11 | Fuentes y canales utilizables | Registro por fuente/canal con prueba de acceso; lo restringido y los envíos sin integración se resuelven con tarea manual, nunca como éxito ficticio. | BUS-19/21, AGE-03 |
 | D12 | Pausa/retirada voluntaria | Dejar fuera de la primera entrega salvo decisión explícita; distinguir después de «resolved» sin cierre por silencio. | SAP-10, EST-09 |
 
-**Conflicto adicional detectado C01:** la retención G2 vigente frente a búsqueda activa e historial conservado. Propuesta: separar continuidad de búsqueda, política de conservación personal y purga de archivos; revisar PRE-12 junto a EST-09 y EST-19. No basta con cambiar una etiqueta del checklist ni con desactivar todos los borrados. Debe quedar un criterio verificable antes de activar el nuevo motor.
+**C01 resuelto para EST-09:** Luis eligió opción 1 el 7-nov: active/needs_review protege el contacto compartido; revisión humana desde 11 meses; con todas resueltas, 12 meses desde última actividad incluido cierre y excepciones existentes. Visitas, correo y chat conservan reglas independientes; no hay conservación personal ilimitada. Implementación y pruebas locales en el ledger EST-09; publicación y migración 0024 pendientes. EST-19 sigue limitado a archivos de propiedades.
 
 ## 7. DESIGN.md y skills: contrato para cada plan
 

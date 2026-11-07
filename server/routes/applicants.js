@@ -1,10 +1,10 @@
 import { json, fail, readJson, now } from "../http.js";
-import { validateApplicant, normalizePhone, OPTIONS, QUEUES, activeSql, isActive } from "../applicants.js";
+import { validateApplicant, normalizePhone, OPTIONS, QUEUES, SEARCH_STATES, activeSql, isActive } from "../applicants.js";
 import { logEvent, resolveNotices } from "../events.js";
 import { afterSave, recomputeForApplicant, CANDIDATES_SQL, LISTING, LISTING_OPERATION } from "../match-store.js";
 import { widen } from "../widen.js";
 import { MATCHES_SQL, matchCard } from "./matches.js";
-import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL } from "../retention.js";
+import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER } from "../retention.js";
 import { jerseyToday } from "../viewings.js";
 
 const STAGES = OPTIONS.stages.map(([v]) => v);
@@ -45,6 +45,8 @@ export const contacted = (env, contactId, ts) =>
 // whole batch (events included) rolls back, even when another save lands between our check and our write.
 // Bind: the updated_at the client saw, then the new one.
 export const LOCK = "updated_at = CASE WHEN updated_at = ? THEN ? END";
+// Millisecond timestamps are also optimistic-lock versions: two saves must never reuse one.
+const nextVersion = previous => new Date(Math.max(Date.now(), Date.parse(previous) + 1)).toISOString();
 // Whatever the error says, the row tells what happened: gone (404), saved by someone else (409), or neither (rethrow).
 // stmts[0] is the UPDATE. A row deleted (§3.4) after our read matches nothing and fails nothing: the last statement then
 // wipes the data of the events this batch wrote, as the delete did for the earlier ones.
@@ -94,6 +96,8 @@ async function list({ request, env }) {
   const assigned = p.get("assigned")?.trim().toLowerCase() || null, q = p.get("q")?.trim() || null;
   const queue = p.get("queue") || null, budget = p.get("budget")?.trim() || null, parish = p.get("parish") || null;
   const source = p.get("source") || null, contact = p.get("contact") || null;
+  const searchState = p.get("search_state") || null;
+  if (searchState && !SEARCH_STATES.some(([s]) => s === searchState)) fail(400, "Invalid search state");
   if (operation && !OPTIONS.operation.some(([v]) => v === operation)) fail(400, "Invalid operation");
   if (!["newest", "oldest"].includes(sort)) fail(400, "Invalid sort");
   if (stage && !STAGES.includes(stage)) fail(400, "Invalid stage");
@@ -104,9 +108,10 @@ async function list({ request, env }) {
   if (contact && contact !== "quiet") fail(400, "Invalid contact filter");
   const cutoff = quietCutoff();
   // E8: Expiring lists the searches of the contacts deleted within a month, archived ones too (they go with them).
-  const today = jerseyToday(), expiring = p.get("expiring") === "1";
-  const where = [expiring ? EXPIRING : p.get("archived") === "1" ? "a.archived_at IS NOT NULL" : "a.archived_at IS NULL"];
-  const args = expiring ? [today] : [];
+  const today = jerseyToday(), expiring = p.get("expiring") === "1", retentionReview = p.get("retention_review") === "1";
+  const where = [retentionReview ? RETENTION_REVIEW : expiring ? EXPIRING : p.get("archived") === "1" ? "a.archived_at IS NOT NULL" : "a.archived_at IS NULL"];
+  const args = expiring || retentionReview ? [today] : [];
+  if (searchState) { where.push("a.search_state = ?"); args.push(searchState); }
   if (operation) { where.push("a.operation = ?"); args.push(operation); }
   if (stage) { where.push("a.stage = ?"); args.push(stage); }
   if (assigned) { where.push("a.assigned_to = ?"); args.push(assigned); }
@@ -134,23 +139,26 @@ async function list({ request, env }) {
   // ponytail: no paging; the team has hundreds of applicants, not tens of thousands.
   const { results } = await env.DB.prepare(
     // Materialized: each listed applicant's counts are read once, not once per use in QUEUE.
-    `WITH listed AS MATERIALIZED (SELECT a.id, a.operation, a.stage, a.lost_reason, a.created_at, a.archived_at, a.assigned_to,
+    `WITH listed AS MATERIALIZED (SELECT a.id, a.operation, a.stage, a.search_state, a.lost_reason, a.created_at, a.archived_at, a.assigned_to,
        ad.name AS assigned_name, c.name, c.phone, c.email, ${MATCH_COUNTS},
        CASE WHEN ${EXPIRING} THEN ${KEPT_UNTIL} END AS expires_on,
+       CASE WHEN ${RETENTION_REVIEW} THEN 1 ELSE 0 END AS retention_review,
        COALESCE(c.last_contact_at, c.created_at) AS last_contact_at, CASE WHEN ${QUIET} THEN 1 ELSE 0 END AS gone_quiet
        FROM applicants a JOIN contacts c ON c.id = a.contact_id LEFT JOIN admins ad ON ad.email = a.assigned_to
        WHERE ${where.join(" AND ")})
-     SELECT id, operation, stage, lost_reason, created_at, assigned_to, assigned_name, name, phone, email, ${QUEUE} AS queue,
-       found, shortlisted, expires_on, archived_at, last_contact_at, gone_quiet FROM listed ${queue ? `WHERE ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
-    .bind(today, cutoff, ...args, ...(queue ? [queue] : [])).all();
+     SELECT id, operation, stage, search_state, lost_reason, created_at, assigned_to, assigned_name, name, phone, email,
+       CASE WHEN search_state = 'active' AND archived_at IS NULL THEN ${QUEUE} END AS queue,
+       found, shortlisted, expires_on, retention_review, archived_at, last_contact_at, gone_quiet FROM listed ${queue ? `WHERE search_state = 'active' AND archived_at IS NULL AND ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
+    .bind(today, today, cutoff, ...args, ...(queue ? [queue] : [])).all();
   return json({ applicants: results });
 }
 
 // E9: the day the contact's 12 months end, or none when a sale keeps it (E3) or an open offer does, for as long as it
 // stays open (its date may then be past).
-const RETENTION_SQL = `SELECT ${KEPT_UNTIL} AS kept_until, NOT ${NO_SALE} AS exempt, NOT ${EXEMPT} AS held
-  FROM contacts c WHERE c.id = ?`;
-const keptFor = r => ({ kept_until: r.held ? null : r.kept_until, exempt: !!r.exempt, offer: !!r.held && !r.exempt });
+const RETENTION_SQL = `SELECT ${KEPT_UNTIL} AS kept_until, NOT ${NO_SALE} AS exempt, NOT ${EXEMPT} AS held,
+  ${HAS_OPEN_SEARCH} AS search, ${HAS_OPEN_OFFER} AS offer, ${RETENTION_REVIEW} AS review FROM contacts c WHERE c.id = ?`;
+const keptFor = r => ({ kept_until: r.held ? null : r.kept_until, exempt: !!r.exempt, offer: !!r.offer,
+  search: !!r.search, review: !!r.review });
 
 async function detail({ env, params: [id] }) {
   const applicant = await loadApplicant(env, id);
@@ -177,7 +185,7 @@ async function detail({ env, params: [id] }) {
     // The Matches tab: Found, Shortlisted, Rejected, each best first.
     q(`${MATCHES_SQL} WHERE m.applicant_id = ?
        ORDER BY CASE m.status WHEN 'found' THEN 0 WHEN 'shortlisted' THEN 1 ELSE 2 END, m.score DESC, m.id`, applicant.id),
-    q(RETENTION_SQL, contact.id),
+    q(RETENTION_SQL, jerseyToday(), contact.id),
     // W1: Found and Shortlisted matches whose listing is still offered, for the search's operation.
     q(`SELECT COUNT(*) AS n FROM matches WHERE applicant_id = ? AND status IN ('found', 'shortlisted')
        AND listing_id IN (SELECT id FROM listings WHERE ${CANDIDATES_SQL} AND operation = ?)`,
@@ -238,6 +246,7 @@ async function create({ request, env, admin }) {
     // Another admin added the same email or phone a moment ago.
     const c = /UNIQUE/i.test(String(e?.message)) && !contact && await findContact(env, r.value.contact);
     if (c) return taken(c);
+    if (contact && /UNIQUE/i.test(String(e?.message))) fail(409, "This contact already has an active search for this operation. Reload to see it.");
     throw e;
   }
   const newId = results[contact ? 0 : 1].meta.last_row_id;
@@ -287,9 +296,9 @@ async function update({ request, env, admin, params: [id] }) {
   const { keys, data } = diff(cur, next);
   if (!keys.length) return json({ applicant: parsed(cur) });
 
-  const ts = now();
+  const ts = nextVersion(cur.updated_at);
   const leftNew = cur.stage === "new" && stage !== "new";
-  await saveVersioned(env, [
+  try { await saveVersioned(env, [
     env.DB.prepare(`UPDATE applicants SET ${keys.map(k => `${k} = ?`).join(", ")}, updated_by = ?, ${LOCK} WHERE id = ?`)
       .bind(...keys.map(k => next[k]), admin, body.updated_at, ts, cur.id),
     ...logEvent(env, { actor: admin, entity_type: "applicant", entity_id: String(cur.id),
@@ -298,7 +307,11 @@ async function update({ request, env, admin, params: [id] }) {
     // Someone has picked it up: the new-applicant notice is done (§3.2).
     ...((keys.includes("assigned_to") && assigned_to) || leftNew
       ? [resolveNotices(env, { entity_type: "applicant", entity_id: String(cur.id), category: "new_applicant" }, admin)] : []),
-  ], "applicant", cur.id, body.updated_at);
+  ], "applicant", cur.id, body.updated_at); }
+  catch (e) {
+    if (/UNIQUE/i.test(String(e?.message))) fail(409, "This contact already has an active search for this operation.");
+    throw e;
+  }
   await afterSave(recomputeForApplicant, env, cur.id, admin);
   return json({ applicant: parsed(await loadApplicant(env, cur.id)) });
 }
@@ -371,7 +384,7 @@ async function logConversation({ env, admin, params: [id] }) {
   const r = await env.DB.batch([contacted(env, Number(id), ts),
     ...logEvent(env, { actor: admin, entity_type: "contact", entity_id: String(Number(id)), type: "contact.conversation" }, null,
       { ifInserted: true }),
-    env.DB.prepare(RETENTION_SQL).bind(Number(id))]);
+    env.DB.prepare(RETENTION_SQL).bind(jerseyToday(), Number(id))]);
   if (!r[0].meta.changes) fail(404, "Contact not found");
   return json({ ok: true, kept_until: keptFor(r[2].results[0]).kept_until });
 }
@@ -389,20 +402,56 @@ async function setArchived({ env, admin, params: [id, action] }) {
   const busy = async () => (await env.DB.prepare(`SELECT ${BUSY} AS busy`).bind(cur.id, cur.id).first()).busy
     && fail(409, "Close its offers and sale first");
   if (archive) await busy();
-  const ts = now(), ref = { entity_type: "applicant", entity_id: String(cur.id) };
+  if (archive && cur.search_state !== "resolved") fail(409, "Resolve this search before archiving it.");
+  const ts = nextVersion(cur.updated_at), ref = { entity_type: "applicant", entity_id: String(cur.id) };
   try {
     await env.DB.batch([
-      env.DB.prepare(`UPDATE applicants SET archived_at = ?, updated_at = ${archive ? `CASE WHEN NOT ${BUSY} THEN ? END` : "?"},
-        updated_by = ? WHERE id = ?`).bind(archive ? ts : null, ...(archive ? [cur.id, cur.id] : []), ts, admin, cur.id),
+      env.DB.prepare(`UPDATE applicants SET archived_at = ?, updated_at = CASE WHEN updated_at = ?
+        ${archive ? `AND search_state = 'resolved' AND NOT ${BUSY}` : ""} THEN ? END,
+        updated_by = ? WHERE id = ?`).bind(archive ? ts : null, cur.updated_at, ...(archive ? [cur.id, cur.id] : []), ts, admin, cur.id),
       ...logEvent(env, { actor: admin, ...ref, type: archive ? "applicant.archived" : "applicant.restored" }),
       touch(env, cur.contact_id, ts),
       ...(archive ? [resolveNotices(env, ref, admin)] : []),
     ]);
   } catch (e) {
+    const current = await loadApplicant(env, id);
+    if (current.updated_at !== cur.updated_at || current.search_state !== cur.search_state) fail(409, stale("applicant"));
     if (archive) await busy();
     throw e;
   }
   await afterSave(recomputeForApplicant, env, cur.id, admin);
+  return json({ applicant: parsed(await loadApplicant(env, cur.id)) });
+}
+
+// EST-09: the employee decides explicitly; the router supplies identity, never the request body.
+async function setSearch({ request, env, admin, params: [id] }) {
+  const body = asObject(await readJson(request));
+  if (!["active", "resolved"].includes(body.state)) fail(400, "Choose Active or Resolved");
+  if (typeof body.updated_at !== "string") fail(400, "Missing updated_at: reload the applicant");
+  const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+  if (!reason || reason.length > 200) return fieldErrors({ reason: "Enter a reason from 1 to 200 characters" });
+  const cur = await loadApplicant(env, id);
+  if (body.updated_at !== cur.updated_at) fail(409, stale("applicant"));
+  if (cur.search_state === body.state) fail(409, "The search is already in this state. Reload to see it.");
+  if (body.state === "active" && cur.archived_at) fail(409, "Restore this search before reopening it.");
+  const resolved = body.state === "resolved";
+  const ts = nextVersion(cur.updated_at);
+  const ref = { entity_type: "applicant", entity_id: String(cur.id) };
+  try {
+    await saveVersioned(env, [
+      env.DB.prepare(`UPDATE applicants SET search_state = ?, resolved_at = ?, resolved_by = ?, resolution_reason = ?,
+        updated_by = ?, ${LOCK} WHERE id = ?`).bind(body.state, resolved ? ts : null, resolved ? admin : null,
+        resolved ? reason : null, admin, body.updated_at, ts, cur.id),
+      ...logEvent(env, { actor: admin, ...ref, type: resolved ? "applicant.search_resolved" : "applicant.search_reopened",
+        data: { before: { search_state: cur.search_state }, after: { search_state: body.state }, reason } }),
+      touch(env, cur.contact_id, ts),
+      ...(resolved ? ["new_applicant", "matched"].map(category => resolveNotices(env, { ...ref, category }, admin)) : []),
+    ], "applicant", cur.id, body.updated_at);
+  } catch (e) {
+    if (/UNIQUE/i.test(String(e?.message))) fail(409, "This contact already has an active search for this operation.");
+    throw e;
+  }
+  if (!resolved) await afterSave(recomputeForApplicant, env, cur.id, admin, true);
   return json({ applicant: parsed(await loadApplicant(env, cur.id)) });
 }
 
@@ -441,6 +490,7 @@ export default [
   ["GET", /^\/admin\/applicants\/(\d+)$/, detail, true],
   ["GET", /^\/admin\/applicants\/(\d+)\/offers$/, offers, true],
   ["PUT", /^\/admin\/applicants\/(\d+)$/, update, true],
+  ["POST", /^\/admin\/applicants\/(\d+)\/search$/, setSearch, true],
   ["DELETE", /^\/admin\/applicants\/(\d+)$/, remove, true],
   ["POST", /^\/admin\/applicants\/(\d+)\/(archive|restore)$/, setArchived, true],
   ["GET", /^\/admin\/contacts\/(\d+)$/, contactDetail, true],

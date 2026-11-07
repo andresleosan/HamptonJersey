@@ -75,8 +75,8 @@ function world() {
   match(env, bruno, "HE-S201", "shortlisted");
   match(env, buyer(env, "Carla Renouf"), "HE-S201", "rejected");
   match(env, buyer(env, "Iris Archived", { archived_at: "2026-10-01T10:00:00.000Z" }), "HE-S201", "found");
-  match(env, buyer(env, "Hugo Lost", { stage: "lost" }), "HE-S201", "shortlisted");
-  match(env, buyer(env, "Kim Completed", { stage: "completed" }), "HE-S201", "found");
+  match(env, buyer(env, "Hugo Lost", { stage: "lost", search_state: "needs_review" }), "HE-S201", "shortlisted");
+  match(env, buyer(env, "Kim Completed", { stage: "completed", search_state: "needs_review" }), "HE-S201", "found");
   match(env, buyer(env, "Leo Elsewhere"), "HE-S203", "found");
 
   // O8: numbered by arrival; a closed offer only in its period. 7 days start at 2026-10-17T23:00Z, 30 at 2026-09-24T23:00Z.

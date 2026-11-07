@@ -110,7 +110,7 @@ function world() {
     bedrooms_min: 3, budget_max: 900000 });
   applicant(env, { name: "Gina Falle", created_at: OLD, operation: "buy", bedrooms_min: 3, budget_max: 700000 });
   // Not active: lost, archived.
-  applicant(env, { name: "Hugo Lost", created_at: OLD, operation: "rent", parishes_wanted: ["St Helier"], stage: "lost" });
+  applicant(env, { name: "Hugo Lost", created_at: OLD, operation: "rent", parishes_wanted: ["St Helier"], stage: "lost", search_state: "needs_review" });
   applicant(env, { name: "Iris Archived", created_at: OLD, operation: "rent", parishes_wanted: ["St Helier"],
     archived_at: "2026-10-01T10:00:00.000Z" });
   match(env, a1, "HE-R101", "found");
@@ -119,12 +119,12 @@ function world() {
   match(env, a5, "HE-R101", "rejected");
 
   // The 30-day cohort (from 2026-09-25 in Jersey, 2026-09-24T23:00Z).
-  const c1 = applicant(env, { name: "Jon Offer", created_at: "2026-10-10T10:00:00.000Z", operation: "rent", stage: "lost",
+  const c1 = applicant(env, { name: "Jon Offer", created_at: "2026-10-10T10:00:00.000Z", operation: "rent", stage: "lost", search_state: "needs_review",
     first_reviewed_at: "2026-10-10T20:00:00.000Z" });
   stage(env, c1, "searching", "viewing", "2026-10-11T10:00:00.000Z");
   stage(env, c1, "viewing", "offer", "2026-10-12T10:00:00.000Z");
   stage(env, c1, "offer", "lost", "2026-10-13T10:00:00.000Z"); // Review Focus 2
-  const c2 = applicant(env, { name: "Kim Completed", created_at: "2026-10-12T10:00:00.000Z", operation: "buy", stage: "completed" });
+  const c2 = applicant(env, { name: "Kim Completed", created_at: "2026-10-12T10:00:00.000Z", operation: "buy", stage: "completed", search_state: "needs_review" });
   run(env, "INSERT INTO events (at, actor, entity_type, entity_id, type, data) VALUES (?, ?, 'applicant', ?, 'applicant.stage_changed', ?)",
     "2026-10-12T12:00:00.000Z", ADMIN, String(c2), "{after: offer");
   const c3 = applicant(env, { name: "Leo Waiting", created_at: "2026-10-20T08:00:00.000Z", operation: "rent", stage: "new",
@@ -142,9 +142,9 @@ function world() {
   stage(env, c5, "new", "viewing", "2026-10-23T10:00:00.000Z");
   match(env, c5, "HE-S104", "shortlisted");
   // 00:30 BST on 25 September is in the period; 23:30 BST on the 24th is not.
-  const c6 = applicant(env, { name: "Olga Edge", created_at: "2026-09-24T23:30:00.000Z", operation: "rent", stage: "lost" });
+  const c6 = applicant(env, { name: "Olga Edge", created_at: "2026-09-24T23:30:00.000Z", operation: "rent", stage: "lost", search_state: "needs_review" });
   match(env, c6, "HE-R101", "found");
-  applicant(env, { name: "Pia Before", created_at: "2026-09-24T22:30:00.000Z", operation: "rent", stage: "lost" });
+  applicant(env, { name: "Pia Before", created_at: "2026-09-24T22:30:00.000Z", operation: "rent", stage: "lost", search_state: "needs_review" });
   applicant(env, { name: "Quin Archived", created_at: "2026-10-12T10:00:00.000Z", operation: "rent",
     archived_at: "2026-10-13T10:00:00.000Z" });
 

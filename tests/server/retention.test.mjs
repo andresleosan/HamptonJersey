@@ -20,7 +20,8 @@ const rows = (env, sql, ...args) => env.DB.raw.prepare(sql).all(...args).map(r =
 const contact = (env, last_activity_at, o = {}) => insert(env, "contacts", {
   name: "Jane Le Brocq", email: "jane@example.je", phone: "+447797123456", last_activity_at, created_at: T0, updated_at: T0, ...o });
 const applicant = (env, contact_id, o = {}) => insert(env, "applicants", {
-  contact_id, operation: "buy", source: "web", created_at: T0, updated_at: T0, ...o });
+  contact_id, operation: "buy", source: "web", search_state: "resolved", resolved_at: T0, resolved_by: ADMIN,
+  resolution_reason: "Found a home", created_at: T0, updated_at: T0, ...o });
 const match = (env, applicant_id) => insert(env, "matches", {
   applicant_id, listing_id: "HE-R001", score: 60, checks: "[]", status: "found", created_at: T0, updated_at: T0 });
 const offer = (env, applicant_id, status = "accepted") => insert(env, "offers", {
@@ -334,17 +335,17 @@ test("the applicant's record says how long it is kept", async t => {
   const b = applicant(env, contact(env, "2024-01-01T00:00:00.000Z", { email: "buyer@example.je", phone: null }));
   sale(env, b, "in_progress");
   assert.deepEqual((await call(env, "GET", `/admin/applicants/${a}`, { cookie })).data.retention,
-    { kept_until: "2026-11-10", exempt: false, offer: false });
+    { kept_until: "2026-11-10", exempt: false, offer: false, search: false, review: false });
   assert.deepEqual((await call(env, "GET", `/admin/applicants/${b}`, { cookie })).data.retention,
-    { kept_until: null, exempt: true, offer: false });
+    { kept_until: null, exempt: true, offer: false, search: false, review: false });
   // An open offer keeps a contact past its date: no date that has gone by; a closed one leaves the date.
   const c = applicant(env, contact(env, "2024-06-01T00:00:00.000Z", { email: "offer@example.je", phone: null }));
   offer(env, c, "countered");
   assert.deepEqual((await call(env, "GET", `/admin/applicants/${c}`, { cookie })).data.retention,
-    { kept_until: null, exempt: false, offer: true });
+    { kept_until: null, exempt: false, offer: true, search: false, review: false });
   env.DB.raw.prepare("UPDATE offers SET status = 'rejected' WHERE applicant_id = ?").run(c);
   assert.deepEqual((await call(env, "GET", `/admin/applicants/${c}`, { cookie })).data.retention,
-    { kept_until: "2025-06-01", exempt: false, offer: false });
+    { kept_until: "2025-06-01", exempt: false, offer: false, search: false, review: false });
 });
 
 test("Log conversation restarts the clock and the contact leaves Expiring", async t => {
@@ -365,7 +366,7 @@ test("Log conversation restarts the clock and the contact leaves Expiring", asyn
   // The record shows it in its history and the new date.
   const d = (await call(env, "GET", `/admin/applicants/${a}`, { cookie })).data;
   assert.equal(d.events[0].type, "contact.conversation");
-  assert.deepEqual(d.retention, { kept_until: "2027-10-25", exempt: false, offer: false });
+  assert.deepEqual(d.retention, { kept_until: "2027-10-25", exempt: false, offer: false, search: false, review: false });
 });
 
 test("Log conversation: signed out 401, cross-origin 403, unknown contact 404", async () => {

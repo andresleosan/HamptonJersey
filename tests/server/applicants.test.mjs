@@ -18,6 +18,8 @@ async function create(env, o) {
   env.DB.raw.prepare("UPDATE contacts SET updated_at = ? WHERE id = (SELECT contact_id FROM applicants WHERE id = ?)").run(T0, r.data.id);
   return r.data.id;
 }
+// Existing archive/delete tests start with an already resolved search; transition semantics have their own suite.
+const resolved = (env, id) => env.DB.raw.prepare("UPDATE applicants SET search_state = 'resolved', resolved_at = ?, resolved_by = ?, resolution_reason = 'Found a home' WHERE id = ?").run(T0, ADMIN, id);
 const detail = async (env, id) => (await req(env, "GET", `/admin/applicants/${id}`)).data;
 // Puts the applicant's created_at in a known order for the sort tests.
 const age = (env, id, at) => env.DB.raw.prepare("UPDATE applicants SET created_at = ? WHERE id = ?").run(at, id);
@@ -59,7 +61,7 @@ test("create from the panel, then list filtered and sorted", async () => {
   assert.deepEqual((await list("?operation=rent")).map(x => x.id), [b, a], "newest is the default");
   assert.deepEqual((await list("")).map(x => x.id), [c, b, a]);
   assert.deepEqual(Object.keys((await list("?operation=buy"))[0]).sort(),
-    ["archived_at", "assigned_name", "assigned_to", "created_at", "email", "expires_on", "found", "gone_quiet", "id", "last_contact_at", "lost_reason", "name", "operation", "phone", "queue",
+    ["archived_at", "assigned_name", "assigned_to", "created_at", "email", "expires_on", "found", "gone_quiet", "id", "last_contact_at", "lost_reason", "name", "operation", "phone", "queue", "retention_review", "search_state",
       "shortlisted", "stage"]);
   for (const q of ["jane", "JANE@example", "07797 123456", "7797123", "+447797123456"])
     assert.deepEqual((await list(`?q=${encodeURIComponent(q)}`)).map(x => x.id), [a], q);
@@ -73,7 +75,7 @@ test("create from the panel, then list filtered and sorted", async () => {
   assert.ok(last_contact_at, "registered by the team: a contact");
   assert.deepEqual(tom, { id: b, operation: "rent", stage: "searching", created_at: "2026-10-02T09:00:00.000Z",
     assigned_to: OTHER, assigned_name: "Andrés", lost_reason: null, name: "Tom Vibert", phone: null, email: "tom@example.je",
-    queue: "No matches", found: 0, shortlisted: 0, expires_on: null, archived_at: null, gone_quiet: 0 });
+    queue: "No matches", found: 0, shortlisted: 0, expires_on: null, archived_at: null, gone_quiet: 0, search_state: "active", retention_review: 0 });
   assert.deepEqual((await list("?stage=new")).map(x => x.id), [c, a]);
   // A lost search carries its reason, shown next to the badge.
   await req(env, "PUT", `/admin/applicants/${c}`, { updated_at: row(env, "SELECT updated_at FROM applicants WHERE id = ?", c).updated_at,
@@ -304,6 +306,7 @@ test("confirming an opt-in keeps a consent source already on file", async () => 
 test("an archived search is read only until restored", async () => {
   const env = makeEnv();
   const id = await create(env);
+  resolved(env, id);
   assert.equal((await req(env, "POST", `/admin/applicants/${id}/archive`)).status, 200);
   const { applicant } = await detail(env, id);
   const events = row(env, "SELECT COUNT(*) AS n FROM events").n;
@@ -319,6 +322,7 @@ const deletedMidFlight = (env, id, name = "Jane Le Brocq") => {
   const batch = env.DB.batch.bind(env.DB);
   env.DB.batch = async stmts => {
     env.DB.batch = batch;
+    resolved(env, id);
     if (!row(env, "SELECT archived_at FROM applicants WHERE id = ?", id).archived_at)
       assert.equal((await req(env, "POST", `/admin/applicants/${id}/archive`)).status, 200);
     assert.equal((await req(env, "DELETE", `/admin/applicants/${id}`, { confirm: name })).status, 200);
@@ -358,6 +362,7 @@ test("archive closes the open notices; restore brings it back to the list", asyn
   env.DB.raw.prepare("INSERT INTO notifications (event_id, category, title, action_required, created_at) VALUES (last_insert_rowid(), 'new_applicant', 'New applicant', 1, ?)").run(T0);
   const ids = async q => (await req(env, "GET", `/admin/applicants${q}`)).data.applicants.map(x => x.id);
 
+  resolved(env, id);
   const r = await req(env, "POST", `/admin/applicants/${id}/archive`);
   assert.equal(r.status, 200);
   assert.ok(r.data.applicant.archived_at);
@@ -426,6 +431,7 @@ test("permanent delete only from Archived, with the exact name, and wipes person
 
   const active = await req(env, "DELETE", path, { confirm: "Jane Le Brocq" });
   assert.equal(active.status, 400, "not archived yet");
+  resolved(env, id);
   await req(env, "POST", `${path}/archive`);
   for (const confirm of ["jane le brocq", "Jane", undefined]) {
     const r = await req(env, "DELETE", path, { confirm });
@@ -454,6 +460,7 @@ test("a permanently deleted search or contact never lends its id, or its history
   const env = makeEnv();
   const id = await create(env);
   const contactId = row(env, "SELECT contact_id FROM applicants WHERE id = ?", id).contact_id;
+  resolved(env, id);
   assert.equal((await req(env, "POST", `/admin/applicants/${id}/archive`)).status, 200);
   assert.equal((await req(env, "DELETE", `/admin/applicants/${id}`, { confirm: "Jane Le Brocq" })).status, 200);
   const next = await create(env, { name: "Tom Vibert", email: "tom@example.je", phone: "07797 654321" });
@@ -470,6 +477,7 @@ test("deleting one of two searches keeps the contact and its own history", async
   const second = (await req(env, "POST", "/admin/applicants", form({ contact_id: contactId, operation: "buy", budget_max: 450000 }))).data.id;
   const { contact } = await detail(env, first);
   await req(env, "PUT", `/admin/contacts/${contact.id}`, { updated_at: contact.updated_at, best_time: "Evenings" });
+  resolved(env, second);
   await req(env, "POST", `/admin/applicants/${second}/archive`);
   assert.equal((await req(env, "DELETE", `/admin/applicants/${second}`, { confirm: "Jane Le Brocq" })).status, 200);
 
@@ -501,7 +509,7 @@ test("users can carry a display name", async () => {
 
 test("each pending duplicate says whether the contact already has an active search of that operation", async () => {
   // The contact has an open buy search, plus (or not) a rent search in the given stage; the duplicate asks to rent.
-  for (const [rentStage, expectRent] of [[null, false], ["searching", true], ["lost", false]]) {
+  for (const [rentStage, expectRent] of [[null, false], ["searching", true], ["lost", true]]) {
     const env = makeEnv();
     const buy = await create(env, { operation: "buy", budget_max: 450000 });
     const contactId = row(env, "SELECT contact_id FROM applicants WHERE id = ?", buy).contact_id;
@@ -532,7 +540,9 @@ test("a new search for a contact with an active search of that operation is refu
   assert.deepEqual(counts(), before, "nothing written");
 
   env.DB.raw.prepare("UPDATE applicants SET stage = 'completed' WHERE id = ?").run(rent);
-  assert.equal((await req(env, "POST", "/admin/applicants", form({ contact_id: contactId }))).status, 201, "a completed search is over");
+  assert.equal((await req(env, "POST", "/admin/applicants", form({ contact_id: contactId }))).status, 409, "Completed does not resolve a search");
+  resolved(env, rent);
+  assert.equal((await req(env, "POST", "/admin/applicants", form({ contact_id: contactId }))).status, 201, "an explicitly resolved search allows a new one");
 });
 
 test("a stale save is 409 whatever the database error says", async () => {

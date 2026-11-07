@@ -2,7 +2,6 @@
 // evaluate() decides every rule; this file only gates the candidates, keeps the best MAX_FOUND found and writes them,
 // with the applicant.matched event and the applicant's matched Inbox notice, in one batch.
 import { now } from "./http.js";
-import { logEvent } from "./events.js";
 import { activeSql, isActive } from "./applicants.js";
 import { evaluate, MIN_SCORE, MAX_FOUND } from "./matching.js";
 
@@ -16,7 +15,7 @@ export const LISTING = `id, operation, archived_at, bedrooms, bathrooms, parish,
   feat_pets, feat_parking, feat_furnished, feat_outdoor, feat_type, feat_evidence, tenure_type, housing_category, restriction,
   (${CANDIDATES_SQL}) AS candidate`;
 // The applicant's search as evaluate() reads it, whether it is active, and the contact's name for the notice.
-const APPLICANT = `a.id, a.archived_at, a.stage, a.operation, a.budget_min, a.budget_max, a.budget_stretch,
+const APPLICANT = `a.id, a.archived_at, a.stage, a.search_state, a.updated_at, a.operation, a.budget_min, a.budget_max, a.budget_stretch,
   a.property_types, a.bedrooms_min, a.bedrooms_ideal, a.bathrooms_min, a.parking_spaces, a.outdoor, a.furnished, a.pets,
   a.parishes_wanted, a.parishes_excluded, a.housing_status, a.buyer_position, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id`;
 
@@ -42,14 +41,17 @@ export const closeMatchedNoticeIfEmpty = (env, applicantId, by) => env.DB.prepar
 // others: found matches left as they are but counted against MAX_FOUND, [{ id, listing_id, score }].
 function writesFor(env, a, results, stored, others, actor, ts) {
   const stmts = [], pool = [];
+  // Every write rechecks the read version inside the batch: close, reopen or changed requirements invalidate it.
+  const guard = `EXISTS (SELECT 1 FROM applicants a WHERE a.id = ? AND a.updated_at = ? AND ${activeSql("a")})`;
+  const guarded = (sql, ...args) => env.DB.prepare(sql).bind(...args, a.id, a.updated_at);
   let deleted = 0; // del() only ever gets found matches
   const del = m => {
     deleted++;
-    stmts.push(env.DB.prepare("DELETE FROM matches WHERE id = ? AND status = 'found'").bind(m.id));
+    stmts.push(guarded(`DELETE FROM matches WHERE id = ? AND status = 'found' AND ${guard}`, m.id));
   };
-  const refresh = (m, r) => (m.score !== r.score || m.checks !== r.checks) && stmts.push(env.DB.prepare(
-    "UPDATE matches SET score = ?, checks = ?, updated_at = ? WHERE id = ? AND status <> 'rejected'")
-    .bind(r.score, r.checks, ts, m.id));
+  const refresh = (m, r) => (m.score !== r.score || m.checks !== r.checks) && stmts.push(guarded(
+    `UPDATE matches SET score = ?, checks = ?, updated_at = ? WHERE id = ? AND status <> 'rejected' AND ${guard}`,
+    r.score, r.checks, ts, m.id));
   const evaluated = new Set();
   for (const r of results) {
     evaluated.add(r.listing_id);
@@ -70,9 +72,9 @@ function writesFor(env, a, results, stored, others, actor, ts) {
     else if (!p.match) {
       created++;
       // A recompute running at the same time may have inserted the pair already.
-      stmts.push(env.DB.prepare(`INSERT INTO matches (applicant_id, listing_id, score, checks, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, 'found', ?, ?) ON CONFLICT (applicant_id, listing_id) DO NOTHING`)
-        .bind(a.id, p.listing_id, p.score, p.checks, ts, ts));
+      stmts.push(guarded(`INSERT INTO matches (applicant_id, listing_id, score, checks, status, created_at, updated_at)
+        SELECT ?, ?, ?, ?, 'found', ?, ? WHERE ${guard} ON CONFLICT (applicant_id, listing_id) DO NOTHING`,
+        a.id, p.listing_id, p.score, p.checks, ts, ts));
     } else if (!p.kept) refresh(p.match, p);
   });
   // Only a change in the found matches touches the notice; refreshing scores and checks leaves its count as it is.
@@ -82,13 +84,15 @@ function writesFor(env, a, results, stored, others, actor, ts) {
   // total found now; closed at zero found.
   const id = String(a.id);
   if (created) stmts.push(
-    ...logEvent(env, { actor, entity_type: "applicant", entity_id: id, type: "applicant.matched", data: { new: created } }),
-    env.DB.prepare(`INSERT INTO notifications (event_id, category, title, action_required, created_at)
-      SELECT last_insert_rowid(), 'matched', ${TITLE}, 1, ? WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE ${OPEN_NOTICE})`)
-      .bind(a.id, a.name, ts, id));
-  stmts.push(env.DB.prepare(`UPDATE notifications SET title = ${TITLE} WHERE ${OPEN_NOTICE}
-    AND EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found')`).bind(a.id, a.name, id, a.id),
-  closeMatchedNoticeIfEmpty(env, a.id, actor));
+    guarded(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
+      SELECT ?, ?, 'applicant', ?, 'applicant.matched', ? WHERE ${guard}`, ts, actor, id, JSON.stringify({ new: created })),
+    guarded(`INSERT INTO notifications (event_id, category, title, action_required, created_at)
+      SELECT last_insert_rowid(), 'matched', ${TITLE}, 1, ? WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE ${OPEN_NOTICE}) AND ${guard}`,
+      a.id, a.name, ts, id));
+  stmts.push(guarded(`UPDATE notifications SET title = ${TITLE} WHERE ${OPEN_NOTICE}
+    AND EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found') AND ${guard}`, a.id, a.name, id, a.id),
+  guarded(`UPDATE notifications SET resolved_at = ?, resolved_by = ? WHERE ${OPEN_NOTICE}
+    AND NOT EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found') AND ${guard}`, ts, actor, id, a.id));
   return { stmts, created };
 }
 
@@ -108,14 +112,10 @@ export async function afterSave(recompute, ...args) {
 }
 
 // After an applicant is saved. actor: an admin email, 'public' or 'system'.
-export async function recomputeForApplicant(env, applicantId, actor) {
+export async function recomputeForApplicant(env, applicantId, actor, restoreNotice = false) {
   const a = await env.DB.prepare(`SELECT ${APPLICANT} WHERE a.id = ?`).bind(applicantId).first();
   if (!a) return { created: 0 };
-  if (!isActive(a)) {
-    await env.DB.batch([env.DB.prepare("DELETE FROM matches WHERE applicant_id = ? AND status = 'found'").bind(a.id),
-      closeMatchedNoticeIfEmpty(env, a.id, actor)]);
-    return { created: 0 };
-  }
+  if (!isActive(a)) return { created: 0 }; // Resolved and legacy searches keep their match history.
   // The candidates, and the shortlisted ones that left them (their checks still show what fails now).
   const [listings, stored] = (await env.DB.batch([
     env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE (${CANDIDATES_SQL} AND operation = ?)
@@ -124,6 +124,15 @@ export async function recomputeForApplicant(env, applicantId, actor) {
     env.DB.prepare("SELECT id, listing_id, status, score, checks FROM matches WHERE applicant_id = ?").bind(a.id),
   ])).map(r => r.results);
   const { stmts, created } = writesFor(env, a, listings.map(l => result(a, l)), byListing(stored), [], actor, now());
+  // Reopening may retain exactly the same Found matches. Give that decision its own Inbox notice even when
+  // recalculation creates nothing, leaving the old resolved notice and its event intact.
+  if (restoreNotice) stmts.push(env.DB.prepare(`INSERT INTO notifications (event_id, category, title, action_required, created_at)
+    SELECT e.id, 'matched', ${TITLE}, 1, ? FROM events e
+    WHERE e.entity_type = 'applicant' AND e.entity_id = ? AND e.type = 'applicant.search_reopened'
+      AND EXISTS (SELECT 1 FROM applicants a WHERE a.id = ? AND a.updated_at = ? AND ${activeSql("a")})
+      AND EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found')
+      AND NOT EXISTS (SELECT 1 FROM notifications WHERE ${OPEN_NOTICE})
+    ORDER BY e.id DESC LIMIT 1`).bind(a.id, a.name, now(), String(a.id), a.id, a.updated_at, a.id, String(a.id)));
   if (stmts.length) await env.DB.batch(stmts);
   return { created };
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
 import { fmtDate, fmtDayMonth } from "./format.js";
-import { OPTIONS, QUEUES } from "../../server/applicants.js";
+import { OPTIONS, QUEUES, SEARCH_STATES } from "../../server/applicants.js";
 
 const OPERATIONS = [["", "All"], ...OPTIONS.operation];
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
@@ -14,7 +14,8 @@ const StageBadge = ({ stage }) => <span className={`badge ${TONE[stage]}`}>{STAG
 const QUEUE_TONE = { "New properties found": "attention", "Waiting for review": "attention", "In process": "active",
   "No matches": "neutral" };
 // E8: Expiring holds the searches of the contacts deleted within a month, archived ones too.
-const LISTS = [["current", "Current"], ["archived", "Archived"], ["expiring", "Expiring"]];
+const LISTS = [["current", "Current"], ["archived", "Archived"], ["retention_review", "Review retention"], ["expiring", "Expiring"]];
+const SEARCH_LABEL = Object.fromEntries(SEARCH_STATES);
 const matchCounts = a => (a.found || a.shortlisted ? `${a.found} found · ${a.shortlisted} shortlisted` : null);
 
 export default function Applicants() {
@@ -23,6 +24,7 @@ export default function Applicants() {
   const [q, setQ] = useState(""), [stage, setStage] = useState(""), [assigned, setAssigned] = useState(""), [queue, setQueue] = useState("");
   const [budget, setBudget] = useState(""), [parish, setParish] = useState(""), [source, setSource] = useState("");
   const [contact, setContact] = useState("");
+  const [searchState, setSearchState] = useState("");
   // A half-typed or invalid amount filters nothing until it is a number.
   const amount = Number(budget) > 0 ? String(Number(budget)) : "";
   useEffect(() => { api("/admin/users").then(d => setUsers(d.users), () => {}); }, []);
@@ -31,11 +33,11 @@ export default function Applicants() {
     let stale = false;
     const p = new URLSearchParams({ sort, ...(stage && { stage }), ...(assigned && { assigned }), ...(queue && { queue }),
       ...(q.trim() && { q: q.trim() }), ...(list !== "current" && { [list]: "1" }), ...(amount && { budget: amount }),
-      ...(parish && { parish }), ...(source && { source }), ...(contact && { contact }) });
+      ...(parish && { parish }), ...(source && { source }), ...(contact && { contact }), ...(searchState && { search_state: searchState }) });
     const t = setTimeout(() => api(`/admin/applicants?${p}`).then(d => { if (!stale) { setRows(d.applicants); setError(null); } },
       e => { if (!stale) setError(e.message); }), 200);
     return () => { stale = true; clearTimeout(t); };
-  }, [list, sort, stage, assigned, queue, q, amount, parish, source, contact]);
+  }, [list, sort, stage, assigned, queue, q, amount, parish, source, contact, searchState]);
   const counts = useMemo(() => Object.fromEntries(OPERATIONS.map(([k]) =>
     [k, (rows || []).filter(a => !k || a.operation === k).length])), [rows]);
 
@@ -43,8 +45,8 @@ export default function Applicants() {
   if (!rows) return <section aria-labelledby="t-applicants">{head}
     {error ? <p role="alert" className="err">{error}</p> : <p>Loading applicants…</p>}</section>;
   const shown = rows.filter(a => !op || a.operation === op);
-  const filtered = !!(q.trim() || stage || assigned || queue || amount || parish || source || contact);
-  const clear = () => { setQ(""); setStage(""); setAssigned(""); setQueue(""); setBudget(""); setParish(""); setSource(""); setContact(""); };
+  const filtered = !!(q.trim() || stage || assigned || queue || amount || parish || source || contact || searchState);
+  const clear = () => { setQ(""); setStage(""); setAssigned(""); setQueue(""); setBudget(""); setParish(""); setSource(""); setContact(""); setSearchState(""); };
   const toggleSort = () => setSort(s => (s === "newest" ? "oldest" : "newest"));
 
   return <section aria-labelledby="t-applicants">{head}
@@ -56,6 +58,8 @@ export default function Applicants() {
     </div>
     <div className="filters">
       <label>Search<input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Name, email or phone" /></label>
+      <label>Search status<select value={searchState} onChange={e => setSearchState(e.target.value)}><option value="">All</option>
+        {SEARCH_STATES.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label>Stage<select value={stage} onChange={e => setStage(e.target.value)}><option value="">All</option>
         {OPTIONS.stages.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label>Queue<select value={queue} onChange={e => setQueue(e.target.value)}><option value="">All</option>
@@ -73,6 +77,8 @@ export default function Applicants() {
       <label>Order<select value={sort} onChange={e => setSort(e.target.value)}>
         <option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
     </div>
+    {list === "retention_review" && <p className="muted">Contacts with an open search and at least 11 months without recorded activity.
+      Review whether they still need the search. They are protected from automatic deletion.</p>}
     <p className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? "applicant" : "applicants"}</p>
     {error && <p role="alert" className="err">{error}</p>}
     {shown.length ? <table className="list applicants">
@@ -81,7 +87,8 @@ export default function Applicants() {
           <button type="button" className="sort" onClick={toggleSort}>Applied<span aria-hidden="true">{sort === "newest" ? " ↓" : " ↑"}</span></button></th>
         <th scope="col">Stage</th><th scope="col">Queue</th><th scope="col">Matches</th><th scope="col">Last contact</th><th scope="col">Assigned to</th></tr></thead>
       <tbody>{shown.map(a => <tr key={a.id}>
-        <td><a href={`#/applicants/${a.id}`}>{a.name}</a>{a.expires_on
+        <td><a href={`#/applicants/${a.id}`}>{a.name}</a> <span className={`badge ${a.search_state === "active" ? "active" : a.search_state === "resolved" ? "positive" : "attention"}`}>{SEARCH_LABEL[a.search_state]}</span>{a.retention_review
+          ? <> <span className="badge attention">Review retention</span></> : null}{a.expires_on
           && <> <span className="badge attention">Kept until {fmtDayMonth(a.expires_on, false)}</span></>}{list === "expiring"
           && a.archived_at && <> <span className="badge neutral">Archived</span></>}<div className="muted">{OPERATION_LABEL[a.operation]}{a.email && ` · ${a.email}`}</div></td>
         <td className="num" data-label="Phone">{a.phone || "—"}</td>
@@ -89,7 +96,7 @@ export default function Applicants() {
         {/* On phones a lost reason takes its own row, so it never squeezes the name. */}
         <td className={a.stage === "lost" && a.lost_reason ? "stage lost" : "stage"}><StageBadge stage={a.stage} />{a.stage === "lost"
           && a.lost_reason && <span className="muted"> {a.lost_reason}</span>}</td>
-        <td data-label="Queue"><span className={`badge ${QUEUE_TONE[a.queue] ?? "neutral"}`}>{a.queue}</span></td>
+        <td data-label="Queue">{a.queue ? <span className={`badge ${QUEUE_TONE[a.queue] ?? "neutral"}`}>{a.queue}</span> : <span className="muted">History only</span>}</td>
         <td className="num" data-label="Matches">{matchCounts(a)
           ? <a href={`#/applicants/${a.id}/matches`}>{matchCounts(a)}<span className="sr"> for {a.name}</span></a> : <span className="muted">—</span>}</td>
         <td data-label="Last contact"><time dateTime={a.last_contact_at}>{fmtDate(a.last_contact_at)}</time>{a.gone_quiet
@@ -100,6 +107,7 @@ export default function Applicants() {
       ? <><p>No applicants match these filters.</p><button type="button" className="btn ghost sm" onClick={clear}>Clear filters</button></>
       : list === "archived" ? <p>No archived {op ? `${OPERATION_LABEL[op]} ` : ""}applicants.</p>
       : list === "expiring" ? <p>No {op ? `${OPERATION_LABEL[op]} ` : ""}applicants are due for deletion in the next month.</p>
+      : list === "retention_review" ? <p>No {op ? `${OPERATION_LABEL[op]} ` : ""}applicants need a retention review.</p>
       : <><p>{rows.length ? `No ${OPERATION_LABEL[op]} applicants yet.` : "No applicants yet. Add the first one when someone calls, writes or comes in."}</p>
         <a className="btn sm" href="#/applicants/new">New applicant</a></>}</div>}
   </section>;

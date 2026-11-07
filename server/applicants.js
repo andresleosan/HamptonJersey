@@ -32,11 +32,10 @@ export const QUEUES = ["New properties found", "Waiting for review", "In process
 // Why a match is rejected (PUT /admin/matches/:id reject_reason); values match the CHECK in migrations/0009_matches.sql.
 export const REJECT_REASONS = [["price", "Price"], ["area", "Area"], ["size", "Size"], ["condition", "Condition"], ["other", "Other"]];
 
-// "Active search" (F0): not archived, lost or completed; a paused one is still active. The one rule, in SQL and JS.
-const CLOSED_STAGES = ["lost", "completed"];
-export const activeSql = alias =>
-  `${alias}.archived_at IS NULL AND ${alias}.stage NOT IN (${CLOSED_STAGES.map(s => `'${s}'`).join(", ")})`;
-export const isActive = a => a.archived_at == null && !CLOSED_STAGES.includes(a.stage);
+// EST-09: commercial stages never close a search. Legacy ambiguous records await a human decision.
+export const SEARCH_STATES = [["active", "Active"], ["resolved", "Resolved"], ["needs_review", "Needs review"]];
+export const activeSql = alias => `${alias}.archived_at IS NULL AND ${alias}.search_state = 'active'`;
+export const isActive = a => a.archived_at == null && a.search_state === "active";
 
 const values = list => OPTIONS[list].map(([v]) => v);
 

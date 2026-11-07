@@ -487,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script type="application/json" id="datos">
 {
  "actualizado": "2026-11-07",
- "base": "246300e",
+ "base": "d0738c7",
  "items": [
   {
    "id": "NOT-01",
@@ -2845,22 +2845,23 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Cada búsqueda guarda su etapa (más Paused, Lost con motivo y Archived); el equipo la cambia en la ficha con Stage + Apply y la filtra en Applicants, y ofertas y ventas la mueven solas a Offer / Application, Agreed y Completed.",
-   "falta": "M03 · Reconciliación 7-nov: Separar estado de búsqueda activa/resuelta de la etapa comercial y de cada match/visita. Solo la acción expresa del empleado que confirma que el cliente ya encontró propiedad cierra por éxito; una oferta, visita, negociación, etapa Agreed/Completed automática o inactividad no lo infiere. Al resolver, detener nuevos matches/propuestas/recordatorios y actualizar tareas sin borrar ficha, criterios ni historial, sin cancelar consultas que sirvan a otros ni el barrido diario. Revisar transiciones existentes de ventas y la retención PRE-12 antes de habilitar este comportamiento. Coentrega M03a: subalcance de continuidad de PRE-12. No depende de completar sus avisos por correo, portal ni borrado de ventas a cinco años; la política compatible con búsquedas activas sí se valida antes de activar el nuevo ciclo. Aceptación: Una visita o cambio comercial no termina la búsqueda; marcar resuelta sí detiene su trabajo y deja activos otros clientes y el barrido.",
+   "hecho": "Construido localmente el 7-nov-2026 (pendiente publicar): search_state separado de Stage; resolución y reapertura humanas con motivo, autor, fecha y versión; archivo exige resolución y restaurar no reabre. Migración 0024 conserva históricos ambiguos y duplicados como Needs review. Preserva Found/Shortlisted/Rejected y bloquea recálculos/reviews tardíos; la reapertura devuelve los Found al Inbox. Contactos con cualquier búsqueda activa o pendiente de revisión protegidos del borrado. 630 pruebas JS + 14 Python, build, check:release, e2e focal y MCP 1280/390/zoom aprobados. Dos hallazgos de concurrencia/recarga corregidos con regresiones.",
+   "falta": "Aplicar migración 0024 y publicar/desplegar el commit aprobado. E2e general detenido antes del panel por cabecera de la galería que intercepta un clic (tests/e2e.cjs:130); el flujo EST-09 está comprobado por separado. Los consumidores futuros M05/M06/M13 deben usar el estado explícito y conservar consultas útiles para otros; no se implementan aquí esos módulos. D12 pausa/retirada sigue fuera del alcance.",
    "bloqueo": "",
    "evidencia": [
-    "migrations/0008_applicants.sql:27-28",
-    "server/applicants.js:24-25",
-    "admin/src/ApplicantDetail.jsx:288-306",
-    "admin/src/Applicants.jsx:54-55",
-    "server/routes/sales.js:89",
-    "server/routes/sales.js:176-177",
-    "server/routes/sales.js:411-412",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "migrations/0024_search_lifecycle.sql",
+    "server/routes/applicants.js",
+    "server/match-store.js",
+    "server/retention.js",
+    "admin/src/SearchLifecycle.jsx",
+    "tests/server/search-lifecycle.test.mjs",
+    "tests/search-lifecycle.e2e.cjs",
+    "docs/superpowers/plans/2026-11-07-hampton-app-search-lifecycle-ledger.md"
    ],
    "modulo": "M03",
    "deps": [],
-   "criterio_aceptacion": "Una visita o cambio comercial no termina la búsqueda; marcar resuelta sí detiene su trabajo y deja activos otros clientes y el barrido."
+   "criterio_aceptacion": "Una visita o cambio comercial no termina la búsqueda; marcar resuelta sí detiene su trabajo y deja activos otros clientes y el barrido.",
+   "actualizado": "2026-11-07"
   },
   {
    "id": "EST-10",
@@ -5098,8 +5099,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "G2",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "G2 en producción (991b6c6): una pasada diaria borra contactos con 12 meses sin actividad y visitas de hace más de 12 meses, salvo ventas (5 años) y ofertas abiertas; Applicants tiene la lista Expiring desde el mes 11, Kept until y el botón Log conversation, y el aviso lo explica. Desde el 29-oct la pasada la hace el reloj a las 00:00 de Jersey (AUT-07); si el reloj no la hizo, la hace el panel al abrirse.",
-   "falta": "M03/M12 · Reconciliación 7-nov: No hay aviso previo por email al aplicante (G2 lo preveía a los 11 meses) ni descarga o borrado desde el portal, que no existe. Antes de 2031 hay que borrar las ventas a los 5 años. Falta también fijar cuánto se guardan un alquiler o una venta después de terminar (contabilidad, depósitos, reclamaciones): la limpieza de 12 meses no toca alquileres, contratos ni pagos, y las ventas se guardan 5 años. El plazo lo propone el abogado de Hampton (PRE-33) y después la app lo aplica sola. Revisar la limpieza existente de contactos frente a la continuidad de búsquedas activas y la conservación al resolverlas: hoy el borrado por inactividad no distingue una búsqueda activa. No inventar aquí otro plazo. La papelera de seis meses EST-19 se limita a archivos de propiedades no disponibles y no autoriza borrar contactos, criterios o historial de gestiones. Aceptación: La regla de seis meses no elimina historial de clientes; la limpieza general no cierra silenciosamente una búsqueda activa.",
+   "hecho": "G2 en producción (991b6c6): una pasada diaria borra contactos con 12 meses sin actividad y visitas de hace más de 12 meses, salvo ventas (5 años) y ofertas abiertas; Applicants tiene la lista Expiring desde el mes 11, Kept until y el botón Log conversation, y el aviso lo explica. Desde el 29-oct la pasada la hace el reloj a las 00:00 de Jersey (AUT-07); si el reloj no la hizo, la hace el panel al abrirse. Coentrega EST-09 construida y verificada localmente el 7-nov-2026, sin publicar: active/needs_review protege al contacto compartido; revisión interna desde 11 meses; todas resueltas, 12 meses desde última actividad incluido cierre, con excepciones existentes de ofertas/ventas. Visitas, correo y chat conservan sus reglas propias; aviso público actualizado.",
+   "falta": "M03/M12 · Reconciliación 7-nov: No hay aviso previo por email al aplicante (G2 lo preveía a los 11 meses) ni descarga o borrado desde el portal, que no existe. Antes de 2031 hay que borrar las ventas a los 5 años. Falta también fijar cuánto se guardan un alquiler o una venta después de terminar (contabilidad, depósitos, reclamaciones): la limpieza de 12 meses no toca alquileres, contratos ni pagos, y las ventas se guardan 5 años. El plazo lo propone el abogado de Hampton (PRE-33) y después la app lo aplica sola. Publicar y aplicar 0024 para activar la continuidad acordada con EST-09; la protección ya está implementada y probada localmente. La papelera de seis meses EST-19 se limita a archivos de propiedades no disponibles y no autoriza borrar contactos, criterios o historial de gestiones. Aceptación: La regla de seis meses no elimina historial de clientes; la limpieza general no cierra silenciosamente una búsqueda activa.",
    "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "server/retention.js:51-92",
@@ -5111,11 +5112,15 @@ document.addEventListener('DOMContentLoaded', () => {
     "site/apply.js:337-342",
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:43",
     "991b6c6",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "migrations/0024_search_lifecycle.sql",
+    "tests/server/search-lifecycle.test.mjs",
+    "docs/superpowers/plans/2026-11-07-hampton-app-search-lifecycle-ledger.md"
    ],
    "modulo": "M03/M12",
    "deps": [],
-   "criterio_aceptacion": "La regla de seis meses no elimina historial de clientes; la limpieza general no cierra silenciosamente una búsqueda activa."
+   "criterio_aceptacion": "La regla de seis meses no elimina historial de clientes; la limpieza general no cierra silenciosamente una búsqueda activa.",
+   "actualizado": "2026-11-07"
   },
   {
    "id": "PRE-13",

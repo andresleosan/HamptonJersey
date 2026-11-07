@@ -507,3 +507,6 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
   .queue-list td.actions .inline{justify-content:flex-start} .queue-review dl div{grid-template-columns:1fr;gap:4px}}
 @media (pointer:coarse){.queue .btn,.queue-review .btn{min-height:44px}}
 @media (pointer:coarse){.queue-photos .check{min-height:44px;display:inline-flex;align-items:center}}
+:root .search-lifecycle{margin:16px 0;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.search-lifecycle h2{margin:0}.search-lifecycle p{max-width:75ch}.search-decision{display:grid;gap:8px;max-width:640px}
+.search-decision input{border-color:#8f8a82}.search-decision .inline{flex-wrap:wrap}.search-lifecycle .inline{flex-wrap:wrap}

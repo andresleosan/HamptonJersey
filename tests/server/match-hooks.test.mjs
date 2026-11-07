@@ -45,14 +45,16 @@ test("an applicant saved in the panel gets its matches in the same request, and 
   // A change of requirements.
   assert.equal((await putApplicant(env, id, { bedrooms_min: 3 })).status, 200);
   assert.deepEqual(found(env, id), ["HE-R002"]);
-  // A change of stage: a lost search has no found matches.
+  // A commercial stage change leaves the search active.
   assert.equal((await putApplicant(env, id, { stage: "lost", lost_reason: "Found elsewhere" })).status, 200);
-  assert.deepEqual(found(env, id), []);
+  assert.deepEqual(found(env, id), ["HE-R002"]);
   assert.equal((await putApplicant(env, id, { stage: "searching" })).status, 200);
   assert.deepEqual(found(env, id), ["HE-R002"]);
-  // Archive and restore.
+  // Explicit resolution, archive and restore keep the stored history.
+  assert.equal((await req(env, "POST", `/admin/applicants/${id}/search`, { state: "resolved", reason: "Found a home",
+    updated_at: updatedAt(env, "applicants", id) })).status, 200);
   assert.equal((await req(env, "POST", `/admin/applicants/${id}/archive`)).status, 200);
-  assert.deepEqual(found(env, id), []);
+  assert.deepEqual(found(env, id), ["HE-R002"]);
   assert.equal((await req(env, "POST", `/admin/applicants/${id}/restore`)).status, 200);
   assert.deepEqual(found(env, id), ["HE-R002"]);
 });
@@ -174,17 +176,17 @@ test("listing detail lists its matched applicants; the list shows parish and fil
   run(env, "UPDATE matches SET score = 70, status = 'rejected', reject_reason = 'price' WHERE applicant_id = ? AND listing_id = 'HE-R001'", b);
   run(env, "UPDATE matches SET score = 50, status = 'shortlisted' WHERE applicant_id = ? AND listing_id = 'HE-R001'", c);
   const id = s => row(env, "SELECT id FROM matches WHERE applicant_id = ? AND listing_id = 'HE-R001'", s).id;
-  // Closed searches keep their reviewed matches, and the list says they are closed.
+  // Commercial stages and archive state are returned independently of the search state.
   run(env, "UPDATE applicants SET stage = 'lost', lost_reason = 'Found elsewhere' WHERE id = ?", b);
   run(env, "UPDATE applicants SET archived_at = ? WHERE id = ?", T0, c);
 
   const d = (await req(env, "GET", "/admin/listings/HE-R001")).data;
   assert.deepEqual(d.matched_applicants, [
-    { match_id: id(c), applicant_id: c, name: "Ann Renouf", operation: "rent", stage: "new", archived_at: T0, status: "shortlisted",
+    { match_id: id(c), applicant_id: c, name: "Ann Renouf", operation: "rent", stage: "new", search_state: "active", archived_at: T0, status: "shortlisted",
       score: 50 },
-    { match_id: id(a), applicant_id: a, name: "Jane Le Brocq", operation: "rent", stage: "new", archived_at: null, status: "found",
+    { match_id: id(a), applicant_id: a, name: "Jane Le Brocq", operation: "rent", stage: "new", search_state: "active", archived_at: null, status: "found",
       score: 60 },
-    { match_id: id(b), applicant_id: b, name: "Tom Vibert", operation: "rent", stage: "lost", archived_at: null, status: "rejected",
+    { match_id: id(b), applicant_id: b, name: "Tom Vibert", operation: "rent", stage: "lost", search_state: "active", archived_at: null, status: "rejected",
       score: 70 },
   ]);
   assert.deepEqual((await req(env, "GET", "/admin/listings/HE-R002")).data.matched_applicants.map(m => m.applicant_id), [a, b, c]);

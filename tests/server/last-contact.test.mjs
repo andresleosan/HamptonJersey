@@ -73,9 +73,9 @@ test("Gone quiet: an active search, Paused included, with no contact for more th
   run(env, "UPDATE applicants SET stage = 'paused' WHERE id = ?", paused);
   run(env, "UPDATE applicants SET stage = 'lost', lost_reason = 'Found elsewhere' WHERE id = ?", lost);
   const by = Object.fromEntries((await list(env)).map(a => [a.id, a]));
-  assert.deepEqual([fresh, old, paused, lost, edge].map(id => by[id].gone_quiet), [0, 1, 1, 0, 0]);
+  assert.deepEqual([fresh, old, paused, lost, edge].map(id => by[id].gone_quiet), [0, 1, 1, 1, 0]);
   assert.equal(by[old].last_contact_at, ago(15));
-  assert.deepEqual(await ids(env, "?contact=quiet"), [old, paused]);
+  assert.deepEqual(await ids(env, "?contact=quiet"), [old, paused, lost]);
 });
 
 test("filters by budget, parish and source", async t => {
