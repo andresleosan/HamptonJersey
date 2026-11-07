@@ -62,7 +62,7 @@ Las afirmaciones de despliegue se conservan en ESTADO con su evidencia históric
 | 13 | **M12b** purga de papelera: EST-19 | M02/M06/M07 y política de archivos | Purga segura a seis meses sobre exclusión ya implantada en M12a; activar al final de sus pruebas. |
 | 14 | **M13b** recorrido integrado y cierre: AUT-20 | Todos los módulos anteriores | Los 16 ejemplos funcionales y los casos de concurrencia pasan juntos. |
 
-**M03a preparada:** EST-09 y continuidad PRE-12 construidos y verificados localmente, pendientes de publicación/0024. **Próxima construcción recomendada:** `/avanzar REG-11` (M03b), con preguntas comerciales D08 por concretar; REG-17 seguirá después. M01 puede avanzar por su propia dependencia y sus tres investigaciones siguen siendo secuenciales.
+**M03a publicada:** EST-09 y continuidad PRE-12 en `aea7eb5`, migración 0024 aplicada. **M03b:** REG-11 construido localmente con D08 acordada, pendiente de validación completa, revisión y publicación autorizada con 0025; REG-17 sigue después de integrar esa base. M01 puede avanzar por su propia dependencia y sus tres investigaciones siguen siendo secuenciales.
 
 AUT-17 conserva su cierre operativo pendiente y puede avanzar con su propia autorización. MSG-02, MSG-04/05, AUT-16, administración de alquileres, ofertas, publicación propia, analítica y tours siguen en el checklist; no se borran ni se convierten en dependencias artificiales del nuevo recorrido. PRE-22 solo condiciona la gestión comercial humana que lo necesite. PRE-32 y las reglas de datos siguen condicionando el uso del modelo correspondiente.
 
@@ -181,13 +181,13 @@ Resolver cada una con brainstorming/grill-me al comenzar la entrega que la consu
 | D05 | Envío de presentación | Revisión final del empleado en la primera versión; distinta de aprobar contacto con anunciante. | AGE-11 |
 | D06 | Consultar desde cola de imprescindibles desconocidos | Acción humana separada «Ask to confirm details», con alcance limitado y estado pendiente; desactivada hasta acordarla. | BUS-15, AGE-03 |
 | D07 | Más de una pasada diaria | Empezar con una diaria observable y medir cobertura/errores antes de aumentar por fuente. | BUS-08 |
-| D08 | Campos comerciales/negocios | Separar inmueble, negocio y ambos; uso, superficie/unidad, modalidad y precio/periodo/traspaso/gastos, zonas y disponibilidad. Validar preguntas con Hampton. | REG-11 |
+| D08 | Campos comerciales/negocios | **Resuelta por Luis:** inmueble, negocio o ambos; operación, uso, zona/exclusiones, superficie/unidad, fecha y compra, renta/periodo, traspaso y gastos separados cuando proceda; admitir desconocido. Una búsqueda activa residencial y otra comercial por contacto y operación; duplicados a revisión. | REG-11 |
 | D09 | Ranking de alternativas | Primero número de imprescindibles incumplidos, después distancia explicada en cada criterio y preferencias; no sumar libras, metros y parking sin una regla acordada. | BUS-17 |
 | D10 | Archivos purgados y exportaciones | Purgar originales descargados, derivados y paquetes de presentación sin uso activo; conservar IDs mínimos/eventos/referencias y evidencia necesaria según política acordada. JSON + CSV para datos; ZIP para selección de fotos. | SPR-03, EST-19 |
 | D11 | Fuentes y canales utilizables | Registro por fuente/canal con prueba de acceso; lo restringido y los envíos sin integración se resuelven con tarea manual, nunca como éxito ficticio. | BUS-19/21, AGE-03 |
 | D12 | Pausa/retirada voluntaria | Dejar fuera de la primera entrega salvo decisión explícita; distinguir después de «resolved» sin cierre por silencio. | SAP-10, EST-09 |
 
-**C01 resuelto para EST-09:** Luis eligió opción 1 el 7-nov: active/needs_review protege el contacto compartido; revisión humana desde 11 meses; con todas resueltas, 12 meses desde última actividad incluido cierre y excepciones existentes. Visitas, correo y chat conservan reglas independientes; no hay conservación personal ilimitada. Implementación y pruebas locales en el ledger EST-09; publicación y migración 0024 pendientes. EST-19 sigue limitado a archivos de propiedades.
+**C01 resuelto para EST-09:** Luis eligió opción 1 el 7-nov: active/needs_review protege el contacto compartido; revisión humana desde 11 meses; con todas resueltas, 12 meses desde última actividad incluido cierre y excepciones existentes. Visitas, correo y chat conservan reglas independientes; no hay conservación personal ilimitada. Publicado y migración 0024 aplicada; detalles en ESTADO y el ledger EST-09. EST-19 sigue limitado a archivos de propiedades.
 
 ## 7. DESIGN.md y skills: contrato para cada plan
 

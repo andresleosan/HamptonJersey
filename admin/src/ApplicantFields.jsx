@@ -2,14 +2,16 @@ import { OPTIONS } from "../../server/applicants.js";
 
 // The form value: API field names, inputs as strings, lists as arrays, pets as [{kind, count}].
 const TEXT = ["name", "email", "phone", "preferred_channel", "best_time", "operation", "furnished", "near", "move_in_date",
-  "buyer_position", "mortgage_aip", "housing_status", "requirements"];
-const NUM = ["budget_min", "budget_max", "budget_stretch", "bedrooms_min", "bedrooms_ideal", "bathrooms_min", "parking_spaces",
-  "lease_term_months", "household_adults", "household_children"];
+  "buyer_position", "mortgage_aip", "housing_status", "requirements", "search_category", "commercial_kind", "commercial_use",
+  "area_unit", "commercial_rent_period", "preferred_language", "household_children_status"];
+const NUM = ["budget_min", "budget_max", "budget_stretch", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "parking_spaces",
+  "lease_term_months", "household_adults", "household_children", "area_min", "area_max", "commercial_purchase", "commercial_rent",
+  "commercial_premium", "commercial_expenses"];
 const LIST = ["property_types", "outdoor", "parishes_wanted", "parishes_excluded", "pets"];
 
 // From the stored applicant and contact (detail API) to the form value; with no arguments, an empty form.
 export const toForm = (applicant = {}, contact = {}) => {
-  const src = { ...applicant, name: contact.name, email: contact.email, phone: contact.phone,
+  const src = { ...applicant, operation: applicant.search_operation ?? applicant.operation, name: contact.name, email: contact.email, phone: contact.phone,
     preferred_channel: contact.preferred_channel, best_time: contact.best_time };
   return Object.fromEntries([...TEXT.map(k => [k, src[k] ?? ""]), ...NUM.map(k => [k, src[k] == null ? "" : String(src[k])]),
     ...LIST.map(k => [k, src[k] ?? []])]);
@@ -33,7 +35,7 @@ const HOUSING_WHY = "It decides which homes they can rent or buy in Jersey.";
 // The search's requirements and the person's contact details, grouped like the website's steps (§5).
 // operation: the search's operation; it decides the rent-only and buy-only fields and the budget wording.
 // contact: a saved contact the search is for; its details are shown, not edited.
-export default function ApplicantFields({ value, onChange, errors = {}, operation, contact }) {
+export default function ApplicantFields({ value, onChange, errors = {}, operation, contact, lockedCategory = false }) {
   const set = (k, v) => onChange({ ...value, [k]: v });
   const err = k => errors[k] && <small id={`ae-${k}`} className="err">{errors[k]}</small>;
   const aria = k => ({ "aria-invalid": errors[k] ? true : undefined, "aria-describedby": errors[k] ? `ae-${k}` : undefined });
@@ -54,11 +56,14 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
         onChange={e => set(k, type === "radio" ? v : e.target.checked ? [...value[k], v] : value[k].filter(x => x !== v))} />{t}</label>)}</div>
     {err(k)}</fieldset>;
 
-  const rent = operation === "rent", buy = operation === "buy";
+  const rent = operation === "rent", buy = operation === "buy", commercial = value.search_category === "commercial";
   const per = rent ? " (£ per month)" : " (£)";
   return <>
     <section className="card fields-group" aria-labelledby="g-search"><h2 id="g-search">What they're looking for</h2>
-      {choices("operation", "To Let or To Buy", OPTIONS.operation, "radio")}
+      {lockedCategory ? <p>Search type: {commercial ? "Commercial or business" : "Home"}</p>
+        : choices("search_category", "Search type", [["residential", "Home"], ["commercial", "Commercial or business"]], "radio")}
+      {choices("operation", "Operation", commercial ? [...OPTIONS.operation, ["transfer", "Business transfer"]] : OPTIONS.operation, "radio")}
+      {commercial && choices("commercial_kind", "Looking for", [["property", "Commercial property"], ["business", "Business"], ["both", "Both"]], "radio")}
     </section>
 
     <section className="card fields-group" aria-labelledby="g-where"><h2 id="g-where">Where</h2>
@@ -67,10 +72,25 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
       <div className="grid2">{input("near", "Near (work, school…)", { maxLength: 200 })}</div>
     </section>
 
+    {commercial ? <section className="card fields-group" aria-labelledby="g-commercial"><h2 id="g-commercial">Commercial requirements</h2>
+      <p className="muted">Leave unknown answers blank so the team can confirm them.</p>
+      <div className="grid2">
+        {input("commercial_use", "Intended use", { maxLength: 200 })}
+        {money("area_min", "Minimum area")}{money("area_max", "Maximum area")}
+        {select("area_unit", "Area unit", [["sqm", "Square metres"], ["sqft", "Square feet"]], "Unknown")}
+        {money("commercial_purchase", "Maximum purchase price (£)")}
+        {money("commercial_rent", "Maximum rent (£)")}
+        {select("commercial_rent_period", "Rent period", [["month", "Per month"], ["year", "Per year"]], "Unknown")}
+        {money("commercial_premium", "Maximum business transfer (£)")}
+        {money("commercial_expenses", "Maximum expenses (£)")}
+        {input("move_in_date", "Available from", { type: "date" })}
+      </div>
+    </section> : <>
     <section className="card fields-group" aria-labelledby="g-home"><h2 id="g-home">What kind of home</h2>
       {choices("property_types", "Type", OPTIONS.property_types)}
       <div className="grid2">
         {count("bedrooms_min", "Bedrooms, at least")}
+        {count("bedrooms_max", "Bedrooms, at most")}
         {count("bedrooms_ideal", "Bedrooms, ideally")}
         {count("bathrooms_min", "Bathrooms, at least")}
         {select("parking_spaces", "Parking", OPTIONS.parking)}
@@ -101,9 +121,19 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
             <option value="">Not said</option>{OPTIONS.housing_status.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select>
           <small id="ah-housing_status" className="muted">{HOUSING_WHY}</small>{err("housing_status")}</div>
         {count("household_adults", "Adults")}
-        {count("household_children", "Children")}
+        <div className="field"><label htmlFor="a-household_children_status">Children</label>
+          <select id="a-household_children_status" value={value.household_children_status} onChange={e => onChange({ ...value,
+            household_children_status: e.target.value, ...(e.target.value !== "known" ? { household_children: "" } : {}) })}>
+            <option value="">Not said</option><option value="known">Number known</option><option value="unknown">Don't know</option>
+            <option value="not_applicable">Not applicable</option></select></div>
+        {(value.household_children_status === "known" || (!value.household_children_status && value.household_children !== ""))
+          && count("household_children", "Number of children (enter 0 if none)")}
       </div>
+      <p className="muted">Total occupants: {value.household_adults !== "" && value.household_children !== ""
+        && Number.isInteger(Number(value.household_adults)) && Number.isInteger(Number(value.household_children))
+        ? Number(value.household_adults) + Number(value.household_children) : "Not yet confirmed"}</p>
     </section>
+    </>}
 
     <section className="card fields-group" aria-labelledby="g-about"><h2 id="g-about">About them</h2>
       {contact ? <>
@@ -122,6 +152,7 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
         {select("preferred_channel", "Preferred channel", OPTIONS.channels)}
         {input("best_time", "Best time to contact", { maxLength: 200 })}
       </div>}
+      {input("preferred_language", "Preferred language (if known)", { maxLength: 80 })}
       <div className="field"><label htmlFor="a-requirements">Anything else that matters?</label>
         <textarea id="a-requirements" value={value.requirements} onChange={e => set("requirements", e.target.value)} maxLength={2000}
           {...aria("requirements")} />{err("requirements")}</div>

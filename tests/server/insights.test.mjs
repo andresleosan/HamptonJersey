@@ -86,6 +86,14 @@ const stat = (env, day, listing_id, metric, n) =>
   run(env, "INSERT INTO daily_stats (day, listing_id, metric, n) VALUES (?, ?, ?, ?)", day, listing_id, metric, n);
 
 const OLD = "2026-06-01T10:00:00.000Z"; // before every period
+test("commercial searches do not count as residential demand", async () => {
+  const env = makeEnv();
+  applicant(env, { name: "Test business", created_at: OLD, operation: "rent", search_category: "commercial", parishes_wanted: ["St Helier"] });
+  const result = await get(env);
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.data.demand.rent, []);
+  assert.deepEqual(result.data.unmet, []);
+});
 function world() {
   const env = makeEnv();
   const rent = { operation: "rent", availability: "to_let", sale_price: null, rent: 1800, rent_period: "month", matchable: 1 };

@@ -60,7 +60,13 @@ const realDate = s => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s)
 // now: ISO time used for the consent timestamps. Returns { value: { contact, applicant } } or { errors }.
 // The routes add contact_id, last_activity_at, created_at, updated_at and updated_by; stage starts at its DEFAULT.
 export function validateApplicant(body, { publicForm }, now = new Date().toISOString()) {
-  const b = body && typeof body === "object" ? body : {};
+  let b = body && typeof body === "object" ? body : {};
+  if (b.search_category === "commercial") {
+    const residential = new Set(["budget_min", "budget_max", "budget_stretch", "property_types", "bedrooms_min", "bedrooms_max",
+      "bedrooms_ideal", "bathrooms_min", "parking_spaces", "outdoor", "furnished", "pets", "lease_term_months", "buyer_position",
+      "mortgage_aip", "housing_status", "household_adults", "household_children", "household_children_status"]);
+    b = Object.fromEntries(Object.entries(b).filter(([k]) => !residential.has(k)));
+  }
   const errors = {};
   const err = (k, msg) => { errors[k] ??= msg; return null; };
 
@@ -112,14 +118,19 @@ export function validateApplicant(body, { publicForm }, now = new Date().toISOSt
     : ["phone", "walk_in", "email"].includes(b.source) ? b.source : err("source", "Choose how they contacted us");
 
   // Search
-  const operation = values("operation").includes(b.operation) ? b.operation
-    : err("operation", "Choose To Let or To Buy");
+  const search_category = blank(b.search_category) ? "residential"
+    : ["residential", "commercial"].includes(b.search_category) ? b.search_category
+      : err("search_category", "Choose residential or commercial");
+  const commercial = search_category === "commercial";
+  const search_operation = commercial && b.operation === "transfer" ? "transfer" : null;
+  const operation = search_operation ? "rent" : values("operation").includes(b.operation) ? b.operation
+    : err("operation", "Choose To Let, To Buy or a business transfer");
   const rent = operation !== "buy", buy = operation !== "rent"; // unknown operation: check both groups
 
   const [lo, hi] = BUDGET[operation] ?? [1, BUDGET.buy[1]];
   const budgetMsg = operation === "rent" ? `Enter a monthly rent from £${lo.toLocaleString("en-GB")} to £${hi.toLocaleString("en-GB")}`
     : `Enter a price from £${lo.toLocaleString("en-GB")} to £${hi.toLocaleString("en-GB")}`;
-  const budget = k => num(k, lo, hi, { int: false, required: publicForm && k === "budget_max",
+  const budget = k => num(k, lo, hi, { int: false, required: publicForm && !commercial && k === "budget_max",
     msg: blank(b[k]) ? "Enter your maximum budget" : budgetMsg });
   const budget_min = budget("budget_min"), budget_max = budget("budget_max"), budget_stretch = budget("budget_stretch");
   if (budget_min !== null && budget_max !== null && budget_min > budget_max)
@@ -152,9 +163,10 @@ export function validateApplicant(body, { publicForm }, now = new Date().toISOSt
   }
 
   const applicant = {
-    operation, source, budget_min, budget_max, budget_stretch,
+    operation, search_operation, search_category, source, budget_min, budget_max, budget_stretch,
     property_types: many("property_types", "property_types"),
-    bedrooms_min: num("bedrooms_min", 0, 20, { required: publicForm, msg: blank(b.bedrooms_min) ? "Choose the minimum bedrooms" : undefined }),
+    bedrooms_min: num("bedrooms_min", 0, 20, { required: publicForm && !commercial, msg: blank(b.bedrooms_min) ? "Choose the minimum bedrooms" : undefined }),
+    bedrooms_max: num("bedrooms_max", 0, 20),
     bedrooms_ideal: num("bedrooms_ideal", 0, 20),
     bathrooms_min: num("bathrooms_min", 0, 20),
     parking_spaces: num("parking_spaces", 0, 3),
@@ -172,6 +184,34 @@ export function validateApplicant(body, { publicForm }, now = new Date().toISOSt
     household_children: num("household_children", 0, 20),
     requirements: str("requirements", 2000),
   };
+  if (applicant.bedrooms_min != null && applicant.bedrooms_max != null && applicant.bedrooms_min > applicant.bedrooms_max)
+    err("bedrooms_max", "Maximum cannot be below minimum");
+  const choice = (k, allowed) => blank(b[k]) ? null : allowed.includes(b[k]) ? b[k] : err(k, "Choose one of the options");
+  const area_min = commercial ? num("area_min", 0.01, 100000000, { int: false }) : null;
+  const area_max = commercial ? num("area_max", 0.01, 100000000, { int: false }) : null;
+  const area_unit = commercial ? choice("area_unit", ["sqm", "sqft"]) : null;
+  if ((area_min != null || area_max != null) && !area_unit) err("area_unit", "Choose an area unit");
+  if (area_min != null && area_max != null && area_min > area_max) err("area_max", "Maximum cannot be below minimum");
+  const commercial_rent = commercial ? num("commercial_rent", 0.01, 100000000, { int: false }) : null;
+  const commercial_rent_period = commercial ? choice("commercial_rent_period", ["month", "year"]) : null;
+  if (commercial_rent != null && !commercial_rent_period) err("commercial_rent_period", "Choose a rent period");
+  const children_status = choice("household_children_status", ["known", "unknown", "not_applicable"])
+    ?? (applicant.household_children != null ? "known" : null);
+  if (children_status === "known" && applicant.household_children == null) err("household_children", "Enter the number of children");
+  if (children_status && children_status !== "known" && applicant.household_children != null)
+    err("household_children", "Remove the number or choose a known number");
+  Object.assign(applicant, {
+    commercial_kind: commercial ? choice("commercial_kind", ["property", "business", "both"]) : null,
+    commercial_use: commercial ? str("commercial_use", 200) : null,
+    area_min, area_max, area_unit, commercial_rent, commercial_rent_period,
+    commercial_purchase: commercial ? num("commercial_purchase", 0.01, 100000000, { int: false }) : null,
+    commercial_premium: commercial ? num("commercial_premium", 0, 100000000, { int: false }) : null,
+    commercial_expenses: commercial ? num("commercial_expenses", 0, 100000000, { int: false }) : null,
+    household_total: applicant.household_adults != null && applicant.household_children != null
+      ? applicant.household_adults + applicant.household_children : null,
+    household_children_status: children_status,
+    preferred_language: str("preferred_language", 80),
+  });
   for (const k of ["property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"])
     if (applicant[k]) applicant[k] = JSON.stringify(applicant[k]);
 

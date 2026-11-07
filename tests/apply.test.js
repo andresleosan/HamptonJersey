@@ -7,6 +7,27 @@ const path = require("node:path");
 // site/apply.js is a browser ES module next to a type-less package.json; importing its source as a data: URL loads
 // it as ESM without Node's module-type warning.
 const src = fs.readFileSync(path.join(__dirname, "..", "site", "apply.js"), "utf8");
+
+test("commercial form carries its own amounts and does not send home criteria", async () => {
+  const { toBody } = await load();
+  const b = toBody(answers({ search_category: "commercial", commercial_kind: "both", commercial_use: "Retail",
+    area_min: "50", area_max: "100", area_unit: "sqm", commercial_rent: "12,000", commercial_rent_period: "year",
+    commercial_premium: "20,000", bedrooms_min: "2" }));
+  assert.equal(b.search_category, "commercial");
+  assert.equal(b.commercial_rent, 12000);
+  assert.equal(b.commercial_rent_period, "year");
+  assert.equal(b.commercial_premium, 20000);
+  assert.equal(b.bedrooms_min, undefined);
+  assert.equal(toBody(answers({ search_category: "residential", commercial_use: "Retail" })).commercial_use, undefined);
+});
+
+test("both operations submit separate rent and purchase budgets", async () => {
+  const { toBody } = await load();
+  const b = toBody(answers({ operation: "both", budget_max_rent: "2,000", budget_max_buy: "650,000" }));
+  assert.deepEqual(b.searches, [{ operation: "rent", budget_max: 2000 }, { operation: "buy", budget_max: 650000 }]);
+  const commercial = toBody(answers({ search_category: "commercial", operation: "both", budget_max_rent: "2000", budget_max_buy: "650000" }));
+  assert.deepEqual(commercial.searches, [{ operation: "rent" }, { operation: "buy" }]);
+});
 const load = () => import("data:text/javascript," + encodeURIComponent(src));
 
 // What the wizard reads from the form: text as strings, radios as one value or "", checkbox groups as lists.

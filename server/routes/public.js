@@ -101,7 +101,7 @@ async function countStat({ request, env }) {
   return new Response(null, { status: 204 });
 }
 
-const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
+const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" };
 const JSON_FIELDS = ["property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"];
 
 // The wizard's registration (§3.3). New email and phone: contact + search. Either on file: the existing contact and
@@ -111,21 +111,39 @@ async function createApplicant({ request, env, waitUntil }) {
   const body = await readJson(request);
   const ts = now();
   // As in createViewing: the single-use Turnstile token is only spent on an otherwise valid request.
-  const r = validateApplicant(body, { publicForm: true }, ts);
-  if (r.errors) return json({ error: "Please check the highlighted fields.", fields: r.errors }, 400);
+  let inputs = [body];
+  if (body?.searches !== undefined) {
+    const searches = body.searches;
+    const allowed = new Set(["operation", "budget_min", "budget_max", "budget_stretch"]);
+    if (!Array.isArray(searches) || searches.length !== 2 || searches.some(s => !s || typeof s !== "object" || Array.isArray(s)
+      || Object.keys(s).some(k => !allowed.has(k))) || new Set(searches.map(s => s.operation)).size !== 2
+      || !searches.every(s => ["rent", "buy"].includes(s.operation))) fail(400, "Choose rent and buy with separate budgets");
+    inputs = searches.map(s => ({ ...body, ...s }));
+  }
+  const validated = inputs.map(input => validateApplicant(input, { publicForm: true }, ts));
+  const invalidIndex = validated.findIndex(r => r.errors);
+  if (invalidIndex !== -1) {
+    const fields = { ...validated[invalidIndex].errors };
+    if (inputs.length > 1 && fields.budget_max) {
+      fields[`budget_max_${inputs[invalidIndex].operation}`] = fields.budget_max;
+      delete fields.budget_max;
+    }
+    return json({ error: "Please check the highlighted fields.", fields }, 400);
+  }
   if (!(await verifyTurnstile(body.turnstile, env.TURNSTILE_SECRET, request.headers.get("cf-connecting-ip"), new URL(request.url).hostname)))
     fail(400, "The anti-spam check expired or failed. Please try again.");
-  const { contact, applicant } = r.value;
+  const { contact } = validated[0].value;
+  const applicants = validated.map(r => r.value.applicant);
   const found = () => env.DB.prepare(
     "SELECT id, name, marketing_opt_in_at FROM contacts WHERE email = ? OR phone = ? ORDER BY id")
     .bind(contact.email, contact.phone).all().then(x => x.results);
   let matches = await found();
   if (!matches.length) {
     try {
-      const results = await env.DB.batch(newApplicant(env, contact, applicant, ts));
+      const results = await env.DB.batch(newApplicants(env, contact, applicants, ts));
       // Only a new search is matched; a duplicate leaves the contact's searches as they are. The matching runs after
       // the answer is sent, so a new registration takes as long as a duplicate (afterSave never rejects).
-      waitUntil(afterSave(recomputeForApplicant, env, results[1].meta.last_row_id, "public"));
+      for (let i = 0; i < applicants.length; i++) waitUntil(afterSave(recomputeForApplicant, env, results[1 + 3 * i].meta.last_row_id, "public"));
       return json({ ok: true }, 201);
     } catch (e) {
       // The same person sent the form twice at once: the other request created the contact.
@@ -134,41 +152,45 @@ async function createApplicant({ request, env, waitUntil }) {
       if (!matches.length) throw e;
     }
   }
-  await env.DB.batch(duplicate(env, matches, contact, applicant, ts));
+  await env.DB.batch(applicants.flatMap((applicant, i) => duplicate(env, matches, contact, applicant, ts, i === 0)));
   return json({ ok: true }, 201);
 }
 
-function newApplicant(env, contact, applicant, ts) {
+function newApplicants(env, contact, applicants, ts) {
   const stamps = { created_at: ts, updated_at: ts, updated_by: "public" };
-  const person = { ...contact, last_activity_at: ts, last_contact_at: ts, ...stamps }, a = { ...applicant, ...stamps };
+  const person = { ...contact, last_activity_at: ts, last_contact_at: ts, ...stamps };
   const cols = row => Object.keys(row).join(", "), marks = row => Object.keys(row).map(() => "?").join(", ");
   return [
     env.DB.prepare(`INSERT INTO contacts (${cols(person)}) VALUES (${marks(person)})`).bind(...Object.values(person)),
-    // The contact is the row inserted just before, and the applicant the one just before the event.
-    env.DB.prepare(`INSERT INTO applicants (contact_id, ${cols(a)}) VALUES (last_insert_rowid(), ${marks(a)})`).bind(...Object.values(a)),
-    ...logEvent(env, { actor: "public", entity_type: "applicant", entity_id: null, type: "applicant.created",
-      data: { operation: a.operation, source: a.source } },
-    { category: "new_applicant", title: `New applicant: ${contact.name} · ${OPERATION_LABEL[a.operation]}`, action_required: true }),
+    ...applicants.flatMap(applicant => {
+      const a = { ...applicant, ...stamps };
+      return [env.DB.prepare(`INSERT INTO applicants (contact_id, ${cols(a)}) VALUES ((SELECT id FROM contacts WHERE email = ?), ${marks(a)})`)
+        .bind(contact.email, ...Object.values(a)),
+      ...logEvent(env, { actor: "public", entity_type: "applicant", entity_id: null, type: "applicant.created",
+        data: { operation: a.search_operation ?? a.operation, source: a.source } },
+      { category: "new_applicant", title: `New applicant: ${contact.name} · ${OPERATION_LABEL[a.search_operation ?? a.operation]}`, action_required: true })];
+    }),
   ];
 }
 
 // matches: the contacts with that email or phone, oldest first (two when each points to a different one).
-function duplicate(env, [c, other], contact, applicant, ts) {
+function duplicate(env, [c, other], contact, applicant, ts, touchContact = true) {
   const { source, ...search } = applicant, marketing = contact.marketing_opt_in_at != null;
   // Flat, with the form's field names and lists as lists: what the panel's duplicate strip compares and copies.
   const sent = Object.fromEntries(Object.entries({ operation: search.operation, name: contact.name, email: contact.email,
     phone: contact.phone, preferred_channel: contact.preferred_channel, best_time: contact.best_time, ...search,
     privacy: true, marketing, other_contact_id: other?.id })
-    .filter(([, v]) => v != null).map(([k, v]) => [k, JSON_FIELDS.includes(k) ? JSON.parse(v) : v]));
+    .filter(([k, v]) => v != null && !(k === "search_category" && v === "residential"))
+    .map(([k, v]) => [k, JSON_FIELDS.includes(k) ? JSON.parse(v) : v]));
   const ref = { actor: "public", entity_type: "contact", entity_id: String(c.id) };
   // §3.3 consent exception: an objection to marketing applies at once (a forged one only stops marketing). Nothing
   // else unverified reaches the contact: a new opt-in or a privacy acknowledgement stays in the event, for the team.
   const withdrawn = !marketing && c.marketing_opt_in_at != null;
   return [
     // A withdrawal is a change to the contact (a stale panel save then gets its 409); the retention clock always restarts.
-    env.DB.prepare(`UPDATE contacts SET ${withdrawn ? "marketing_opt_in_at = NULL, updated_at = ?, updated_by = 'public', " : ""}
-      last_activity_at = ?, last_contact_at = ? WHERE id = ?`).bind(...(withdrawn ? [ts] : []), ts, ts, c.id),
-    ...(withdrawn ? logEvent(env, { ...ref, type: "contact.consent_changed",
+    ...(touchContact ? [env.DB.prepare(`UPDATE contacts SET ${withdrawn ? "marketing_opt_in_at = NULL, updated_at = ?, updated_by = 'public', " : ""}
+      last_activity_at = ?, last_contact_at = ? WHERE id = ?`).bind(...(withdrawn ? [ts] : []), ts, ts, c.id)] : []),
+    ...(touchContact && withdrawn ? logEvent(env, { ...ref, type: "contact.consent_changed",
       data: { before: { marketing_opt_in_at: c.marketing_opt_in_at }, after: { marketing_opt_in_at: null } } }) : []),
     ...logEvent(env, { ...ref, type: "applicant.duplicate_submitted", data: sent },
       { category: "new_applicant", title: `${c.name} registered again${other ? " · email and phone match two contacts" : ""}`,

@@ -34,6 +34,24 @@ const review = (env, applicantId, listingId, status, reason = null) => run(env,
   "UPDATE matches SET status = ?, reject_reason = ? WHERE applicant_id = ? AND listing_id = ?",
   status, reason, applicantId, listingId);
 
+test("commercial searches never receive residential matches on search or listing recalculation", async () => {
+  const env = makeEnv();
+  const id = seedApplicant(env, "Commercial search", { search_category: "commercial" });
+  listing(env, "HE-R001");
+  await recomputeForApplicant(env, id, ADMIN);
+  await recomputeForListing(env, "HE-R001", ADMIN);
+  assert.deepEqual(matches(env, id), []);
+  assert.deepEqual(notices(env, id), []);
+});
+
+test("a home above the applicant's maximum bedrooms is not offered as a match", async () => {
+  const env = makeEnv();
+  const id = seedApplicant(env, "Maximum bedrooms", { bedrooms_min: 1, bedrooms_max: 2 });
+  listing(env, "HE-R001", { bedrooms: 3 });
+  await recomputeForApplicant(env, id, ADMIN);
+  assert.deepEqual(found(env, id), []);
+});
+
 test("J4: the housing rule reads the listing's Jersey fields and the applicant's status as stored", async () => {
   const env = makeEnv();
   const std = seedApplicant(env, "Ana Le Gros", { housing_status: "standard" });

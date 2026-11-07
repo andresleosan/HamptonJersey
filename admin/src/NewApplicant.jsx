@@ -53,7 +53,7 @@ export default function NewApplicant({ contactId }) {
   return <div>
     <div className="head"><h1 id="t-new-app">{contact ? `New search for ${contact.name}` : "New applicant"}</h1>
       <a href="#/applicants">← Back to applicants</a></div>
-    <p className="muted">Required: {contact ? "" : "a name, an email or phone number, "}To Let or To Buy, and how they contacted us. Leave anything unknown blank.</p>
+    <p className="muted">Required: {contact ? "" : "a name, an email or phone number, "}the operation and how they contacted us. Leave anything unknown blank.</p>
     <form ref={formRef} className="sections" noValidate onSubmit={e => { e.preventDefault(); submit(contact?.id); }}>
       <section className="card fields-group" aria-labelledby="g-source"><h2 id="g-source">How they contacted us</h2>
         <fieldset className="choices-set" aria-describedby={errors.source ? "ae-source" : undefined}><legend className="sr">Source</legend>

@@ -24,6 +24,64 @@ const detail = async (env, id) => (await req(env, "GET", `/admin/applicants/${id
 // Puts the applicant's created_at in a known order for the sort tests.
 const age = (env, id, at) => env.DB.raw.prepare("UPDATE applicants SET created_at = ? WHERE id = ?").run(at, id);
 
+test("one contact can keep residential and commercial searches for the same operation and edit the commercial criteria", async () => {
+  const env = makeEnv();
+  const home = await create(env);
+  const contact_id = row(env, "SELECT contact_id FROM applicants WHERE id = ?", home).contact_id;
+  const body = form({ contact_id, search_category: "commercial", commercial_kind: "both", commercial_use: "Retail",
+    area_min: 50, area_max: 100, area_unit: "sqm", commercial_rent: 12000, commercial_rent_period: "year" });
+  const created = await req(env, "POST", "/admin/applicants", body);
+  assert.equal(created.status, 201, JSON.stringify(created.data));
+  const id = created.data.id;
+  const before = row(env, "SELECT * FROM applicants WHERE id = ?", id);
+  const updated = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: before.updated_at, commercial_use: "Office" });
+  assert.equal(updated.status, 200, JSON.stringify(updated.data));
+  const after = row(env, "SELECT * FROM applicants WHERE id = ?", id);
+  assert.equal(after.commercial_use, "Office");
+  assert.equal(after.commercial_rent, 12000);
+  assert.equal(after.commercial_rent_period, "year");
+  assert.equal(after.search_category, "commercial");
+  const listed = (await req(env, "GET", "/admin/applicants")).data.applicants.find(a => a.id === id);
+  assert.equal(listed.search_category, "commercial");
+  assert.equal(listed.queue, null);
+  assert.equal((await req(env, "GET", "/admin/applicants?budget=2000")).data.applicants.some(a => a.id === id), false);
+  assert.equal((await detail(env, id)).widen, null);
+  resolved(env, home);
+  assert.equal((await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: after.updated_at, search_category: "residential" })).status, 409);
+  assert.equal((await req(env, "POST", "/admin/applicants", body)).status, 409);
+});
+
+test("a commercial duplicate is not treated as the contact's residential search", async () => {
+  const env = makeEnv();
+  const home = await create(env);
+  const contact = row(env, "SELECT contact_id FROM applicants WHERE id = ?", home).contact_id;
+  env.DB.raw.prepare("INSERT INTO events (at, actor, entity_type, entity_id, type, data) VALUES (?, 'public', 'contact', ?, 'applicant.duplicate_submitted', ?)")
+    .run(T0, String(contact), JSON.stringify({ operation: "rent", search_category: "commercial", commercial_kind: "business" }));
+  env.DB.raw.prepare("INSERT INTO notifications (event_id, category, title, action_required, created_at) VALUES (last_insert_rowid(), 'new_applicant', 'Duplicate', 1, ?)").run(T0);
+  const d = await detail(env, home);
+  assert.equal(d.duplicates[0].active_search_id, null);
+});
+
+test("a transfer and rental search for the same business are distinct and the transfer survives editing", async () => {
+  const env = makeEnv();
+  const rent = await create(env, { search_category: "commercial", commercial_kind: "business" });
+  const contact_id = row(env, "SELECT contact_id FROM applicants WHERE id = ?", rent).contact_id;
+  const r = await req(env, "POST", "/admin/applicants", form({ contact_id, search_category: "commercial", operation: "transfer",
+    budget_max: null, commercial_kind: "business", commercial_premium: 40000 }));
+  assert.equal(r.status, 201, JSON.stringify(r.data));
+  const before = row(env, "SELECT * FROM applicants WHERE id = ?", r.data.id);
+  const saved = await req(env, "PUT", `/admin/applicants/${r.data.id}`, { updated_at: before.updated_at, commercial_use: "Retail" });
+  assert.equal(saved.status, 200, JSON.stringify(saved.data));
+  assert.equal(saved.data.applicant.search_operation, "transfer");
+  assert.equal((await req(env, "POST", "/admin/applicants", form({ contact_id, search_category: "commercial", operation: "transfer" }))).status, 409);
+  const listed = (await req(env, "GET", "/admin/applicants?operation=transfer")).data.applicants;
+  assert.deepEqual(listed.map(a => a.id), [r.data.id]);
+  env.DB.raw.prepare("INSERT INTO events (at, actor, entity_type, entity_id, type, data) VALUES (?, 'public', 'contact', ?, 'applicant.duplicate_submitted', ?)")
+    .run(T0, String(contact_id), JSON.stringify({ operation: "rent", search_operation: "transfer", search_category: "commercial" }));
+  env.DB.raw.prepare("INSERT INTO notifications (event_id, category, title, action_required, created_at) VALUES (last_insert_rowid(), 'new_applicant', 'Duplicate', 1, ?)").run(T0);
+  assert.equal((await detail(env, rent)).duplicates[0].active_search_id, r.data.id);
+});
+
 test("every applicants route needs a session", async () => {
   const env = makeEnv();
   for (const [m, p] of [["GET", "/admin/applicants"], ["POST", "/admin/applicants"], ["GET", "/admin/applicants/1"],
@@ -61,7 +119,7 @@ test("create from the panel, then list filtered and sorted", async () => {
   assert.deepEqual((await list("?operation=rent")).map(x => x.id), [b, a], "newest is the default");
   assert.deepEqual((await list("")).map(x => x.id), [c, b, a]);
   assert.deepEqual(Object.keys((await list("?operation=buy"))[0]).sort(),
-    ["archived_at", "assigned_name", "assigned_to", "created_at", "email", "expires_on", "found", "gone_quiet", "id", "last_contact_at", "lost_reason", "name", "operation", "phone", "queue", "retention_review", "search_state",
+    ["archived_at", "assigned_name", "assigned_to", "created_at", "email", "expires_on", "found", "gone_quiet", "id", "last_contact_at", "lost_reason", "name", "operation", "phone", "queue", "retention_review", "search_category", "search_state",
       "shortlisted", "stage"]);
   for (const q of ["jane", "JANE@example", "07797 123456", "7797123", "+447797123456"])
     assert.deepEqual((await list(`?q=${encodeURIComponent(q)}`)).map(x => x.id), [a], q);
@@ -73,7 +131,7 @@ test("create from the panel, then list filtered and sorted", async () => {
     assigned_to: OTHER, stage: "searching" });
   const [{ last_contact_at, ...tom }] = await list(`?assigned=${encodeURIComponent(OTHER)}&stage=searching`);
   assert.ok(last_contact_at, "registered by the team: a contact");
-  assert.deepEqual(tom, { id: b, operation: "rent", stage: "searching", created_at: "2026-10-02T09:00:00.000Z",
+  assert.deepEqual(tom, { id: b, operation: "rent", search_category: "residential", stage: "searching", created_at: "2026-10-02T09:00:00.000Z",
     assigned_to: OTHER, assigned_name: "Andrés", lost_reason: null, name: "Tom Vibert", phone: null, email: "tom@example.je",
     queue: "No matches", found: 0, shortlisted: 0, expires_on: null, archived_at: null, gone_quiet: 0, search_state: "active", retention_review: 0 });
   assert.deepEqual((await list("?stage=new")).map(x => x.id), [c, a]);

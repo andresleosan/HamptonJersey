@@ -20,7 +20,8 @@ const LIST_SQL = `
     COALESCE(c.phone, ac.phone, v.phone) AS raw_phone,
     CASE WHEN e.entity_type = 'contact' THEN (SELECT s.id FROM applicants s WHERE s.contact_id = c.id
       ORDER BY (${activeSql("s")}
-        AND s.operation IS json_extract(e.data, '$.operation')) DESC, s.created_at DESC, s.id DESC LIMIT 1) END AS search_id
+        AND COALESCE(s.search_operation, s.operation) IS COALESCE(json_extract(e.data, '$.search_operation'), json_extract(e.data, '$.operation'))
+        AND s.search_category = COALESCE(json_extract(e.data, '$.search_category'), 'residential')) DESC, s.created_at DESC, s.id DESC LIMIT 1) END AS search_id
   FROM notifications n JOIN events e ON e.id = n.event_id
   -- No CAST: comparing with the INTEGER id gives entity_id numeric affinity, so each join is a primary-key lookup.
   LEFT JOIN applicants a ON e.entity_type = 'applicant' AND a.id = e.entity_id

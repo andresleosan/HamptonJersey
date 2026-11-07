@@ -131,6 +131,7 @@ export function evaluate(a, l) {
   score += price.points;
 
   const beds = atLeast(l.bedrooms, a.bedrooms_min, "bedroom");
+  if (a.bedrooms_max != null && l.bedrooms != null && l.bedrooms > a.bedrooms_max) beds.result = "fails";
   add("bedrooms", beds.result, beds.evidence, true);
   if (a.bedrooms_ideal == null || (l.bedrooms != null && l.bedrooms >= a.bedrooms_ideal)) score += POINTS.bedrooms;
 

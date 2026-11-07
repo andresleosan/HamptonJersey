@@ -25,6 +25,50 @@ const panelContact = (env, o = {}) => Number(env.DB.raw.prepare(`INSERT INTO con
   .run(o.name ?? "Jane Le Brocq", o.email ?? null, o.phone ?? null, o.privacy_ack_at ?? null, o.marketing_opt_in_at ?? null,
     o.consent_source ?? null, T0, T0, T0, "admin@example.test").lastInsertRowid);
 
+test("a single registration creates linked rent and buy searches with separate budgets", async () => {
+  const env = makeEnv(); turnstile(true);
+  const r = await register(env, form({ searches: [
+    { operation: "rent", budget_max: 2500 },
+    { operation: "buy", budget_max: 650000 },
+  ] }));
+  assert.equal(r.status, 201, JSON.stringify(r.data));
+  const [rent, buy] = applicants(env);
+  assert.equal(rent.contact_id, buy.contact_id);
+  assert.deepEqual([rent.operation, rent.budget_max, buy.operation, buy.budget_max], ["rent", 2500, "buy", 650000]);
+  assert.equal(notices(env).length, 2);
+  assert.equal(spent.n, 1);
+});
+
+test("invalid second budget cannot create a partial registration or spend the challenge", async () => {
+  const env = makeEnv(); turnstile(true);
+  const r = await register(env, form({ searches: [{ operation: "rent", budget_max: 2500 }, { operation: "buy", budget_max: 50 }] }));
+  assert.equal(r.status, 400);
+  assert.ok(r.data.fields.budget_max_buy);
+  assert.equal(applicants(env).length, 0);
+  assert.equal(contacts(env).length, 0);
+  assert.equal(spent.n, 0);
+});
+
+test("repeat rent and buy registration retains both proposals and records a marketing withdrawal once", async () => {
+  const env = makeEnv(); turnstile(true);
+  await register(env, form({ marketing: true }));
+  const r = await register(env, form({ searches: [{ operation: "rent", budget_max: 2500 }, { operation: "buy", budget_max: 650000 }] }));
+  assert.equal(r.status, 201);
+  assert.equal(applicants(env).length, 1);
+  assert.equal(events(env).filter(e => e.type === "applicant.duplicate_submitted").length, 2);
+  assert.equal(events(env).filter(e => e.type === "contact.consent_changed").length, 1);
+});
+
+test("simultaneous two-operation registrations do not split the contact or duplicate active searches", async () => {
+  const env = makeEnv(); turnstile(true);
+  const body = form({ searches: [{ operation: "rent", budget_max: 2500 }, { operation: "buy", budget_max: 650000 }] });
+  const results = await Promise.all([register(env, body), register(env, body)]);
+  assert.deepEqual(results.map(r => r.status), [201, 201]);
+  assert.equal(contacts(env).length, 1);
+  assert.deepEqual(applicants(env).map(a => a.operation).sort(), ["buy", "rent"]);
+  assert.equal(events(env).filter(e => e.type === "applicant.duplicate_submitted").length, 2);
+});
+
 test("GET /applicants/options returns the closed lists, cached for a day", async () => {
   const r = await call(makeEnv(), "GET", "/applicants/options");
   assert.equal(r.status, 200);

@@ -3,8 +3,8 @@ import { api } from "./api.js";
 import { fmtDate, fmtDayMonth } from "./format.js";
 import { OPTIONS, QUEUES, SEARCH_STATES } from "../../server/applicants.js";
 
-const OPERATIONS = [["", "All"], ...OPTIONS.operation];
-const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
+const OPERATIONS = [["", "All"], ...OPTIONS.operation, ["transfer", "Business transfer"]];
+const OPERATION_LABEL = Object.fromEntries(OPERATIONS);
 const STAGE_LABEL = Object.fromEntries(OPTIONS.stages);
 // DESIGN.md "Badges de estado": the tone of each stage.
 const TONE = { new: "attention", searching: "active", viewing: "active", offer: "active", agreed: "positive", completed: "positive",
@@ -66,7 +66,7 @@ export default function Applicants() {
         {QUEUES.map(k => <option key={k} value={k}>{k}</option>)}</select></label>
       <label>Assigned to<select value={assigned} onChange={e => setAssigned(e.target.value)}><option value="">Anyone</option>
         {users.map(u => <option key={u.email} value={u.email}>{u.name || u.email}</option>)}</select></label>
-      <label>{op === "rent" ? "Rent (£ pcm)" : op === "buy" ? "Price (£)" : "Budget (£)"}<input type="number" min="1" step="1"
+      <label>{op === "rent" ? "Home rent (£ pcm)" : op === "buy" ? "Home price (£)" : "Home budget (£)"}<input type="number" min="1" step="1"
         inputMode="numeric" value={budget} onChange={e => setBudget(e.target.value)} placeholder="e.g. 2500" /></label>
       <label>Parish<select value={parish} onChange={e => setParish(e.target.value)}><option value="">Any</option>
         {OPTIONS.parishes.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
@@ -77,6 +77,7 @@ export default function Applicants() {
       <label>Order<select value={sort} onChange={e => setSort(e.target.value)}>
         <option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
     </div>
+    {amount && <p className="muted">Budget filtering covers home searches only.</p>}
     {list === "retention_review" && <p className="muted">Contacts with an open search and at least 11 months without recorded activity.
       Review whether they still need the search. They are protected from automatic deletion.</p>}
     <p className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? "applicant" : "applicants"}</p>
@@ -90,13 +91,13 @@ export default function Applicants() {
         <td><a href={`#/applicants/${a.id}`}>{a.name}</a> <span className={`badge ${a.search_state === "active" ? "active" : a.search_state === "resolved" ? "positive" : "attention"}`}>{SEARCH_LABEL[a.search_state]}</span>{a.retention_review
           ? <> <span className="badge attention">Review retention</span></> : null}{a.expires_on
           && <> <span className="badge attention">Kept until {fmtDayMonth(a.expires_on, false)}</span></>}{list === "expiring"
-          && a.archived_at && <> <span className="badge neutral">Archived</span></>}<div className="muted">{OPERATION_LABEL[a.operation]}{a.email && ` · ${a.email}`}</div></td>
+          && a.archived_at && <> <span className="badge neutral">Archived</span></>}<div className="muted">{OPERATION_LABEL[a.operation]} · {a.search_category === "commercial" ? "Commercial or business" : "Home"}{a.email && ` · ${a.email}`}</div></td>
         <td className="num" data-label="Phone">{a.phone || "—"}</td>
         <td className="muted" data-label="Applied"><time dateTime={a.created_at}>{fmtDate(a.created_at)}</time></td>
         {/* On phones a lost reason takes its own row, so it never squeezes the name. */}
         <td className={a.stage === "lost" && a.lost_reason ? "stage lost" : "stage"}><StageBadge stage={a.stage} />{a.stage === "lost"
           && a.lost_reason && <span className="muted"> {a.lost_reason}</span>}</td>
-        <td data-label="Queue">{a.queue ? <span className={`badge ${QUEUE_TONE[a.queue] ?? "neutral"}`}>{a.queue}</span> : <span className="muted">History only</span>}</td>
+        <td data-label="Queue">{a.queue ? <span className={`badge ${QUEUE_TONE[a.queue] ?? "neutral"}`}>{a.queue}</span> : <span className="muted">{a.search_category === "commercial" && a.search_state === "active" && !a.archived_at ? "Manual review" : "History only"}</span>}</td>
         <td className="num" data-label="Matches">{matchCounts(a)
           ? <a href={`#/applicants/${a.id}/matches`}>{matchCounts(a)}<span className="sr"> for {a.name}</span></a> : <span className="muted">—</span>}</td>
         <td data-label="Last contact"><time dateTime={a.last_contact_at}>{fmtDate(a.last_contact_at)}</time>{a.gone_quiet

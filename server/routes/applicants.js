@@ -8,13 +8,14 @@ import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIE
 import { jerseyToday } from "../viewings.js";
 
 const STAGES = OPTIONS.stages.map(([v]) => v);
-const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
+const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" };
 const JSON_FIELDS = ["property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"];
 // What an applicant edit may change; source stays as it was registered.
 const SEARCH_FIELDS = ["operation", "budget_min", "budget_max", "budget_stretch", "property_types", "bedrooms_min",
-  "bedrooms_ideal", "bathrooms_min", "parking_spaces", "outdoor", "furnished", "pets", "parishes_wanted", "parishes_excluded",
+  "bedrooms_ideal", "bedrooms_max", "bathrooms_min", "parking_spaces", "outdoor", "furnished", "pets", "parishes_wanted", "parishes_excluded",
   "near", "move_in_date", "lease_term_months", "buyer_position", "mortgage_aip", "housing_status", "household_adults",
-  "household_children", "requirements"];
+  "household_children", "household_children_status", "requirements", "search_category", "commercial_kind", "commercial_use", "area_min", "area_max", "area_unit",
+  "commercial_purchase", "commercial_rent", "commercial_rent_period", "commercial_premium", "commercial_expenses", "preferred_language"];
 const CONTACT_FIELDS = ["name", "email", "phone", "preferred_channel", "best_time"];
 const stale = entity => `Someone else saved changes to this ${entity}. Reload to see them (your changes were not saved).`;
 
@@ -98,7 +99,7 @@ async function list({ request, env }) {
   const source = p.get("source") || null, contact = p.get("contact") || null;
   const searchState = p.get("search_state") || null;
   if (searchState && !SEARCH_STATES.some(([s]) => s === searchState)) fail(400, "Invalid search state");
-  if (operation && !OPTIONS.operation.some(([v]) => v === operation)) fail(400, "Invalid operation");
+  if (operation && ![...OPTIONS.operation.map(([v]) => v), "transfer"].includes(operation)) fail(400, "Invalid operation");
   if (!["newest", "oldest"].includes(sort)) fail(400, "Invalid sort");
   if (stage && !STAGES.includes(stage)) fail(400, "Invalid stage");
   if (queue && !QUEUES.includes(queue)) fail(400, "Invalid queue");
@@ -112,12 +113,12 @@ async function list({ request, env }) {
   const where = [retentionReview ? RETENTION_REVIEW : expiring ? EXPIRING : p.get("archived") === "1" ? "a.archived_at IS NOT NULL" : "a.archived_at IS NULL"];
   const args = expiring || retentionReview ? [today] : [];
   if (searchState) { where.push("a.search_state = ?"); args.push(searchState); }
-  if (operation) { where.push("a.operation = ?"); args.push(operation); }
+  if (operation) { where.push("COALESCE(a.search_operation, a.operation) = ?"); args.push(operation); }
   if (stage) { where.push("a.stage = ?"); args.push(stage); }
   if (assigned) { where.push("a.assigned_to = ?"); args.push(assigned); }
   // L5: the amount is within the budget, up to the stretch as in the matching; no budget fits any amount.
   if (budget) {
-    where.push("? BETWEEN COALESCE(a.budget_min, 0) AND COALESCE(a.budget_stretch, a.budget_max, ?)");
+    where.push("a.search_category = 'residential' AND ? BETWEEN COALESCE(a.budget_min, 0) AND COALESCE(a.budget_stretch, a.budget_max, ?)");
     args.push(Number(budget), Number(budget));
   }
   // L6: wanted, or no parish asked for (anywhere), and never one they excluded.
@@ -139,16 +140,16 @@ async function list({ request, env }) {
   // ponytail: no paging; the team has hundreds of applicants, not tens of thousands.
   const { results } = await env.DB.prepare(
     // Materialized: each listed applicant's counts are read once, not once per use in QUEUE.
-    `WITH listed AS MATERIALIZED (SELECT a.id, a.operation, a.stage, a.search_state, a.lost_reason, a.created_at, a.archived_at, a.assigned_to,
+    `WITH listed AS MATERIALIZED (SELECT a.id, COALESCE(a.search_operation, a.operation) AS operation, a.search_category, a.stage, a.search_state, a.lost_reason, a.created_at, a.archived_at, a.assigned_to,
        ad.name AS assigned_name, c.name, c.phone, c.email, ${MATCH_COUNTS},
        CASE WHEN ${EXPIRING} THEN ${KEPT_UNTIL} END AS expires_on,
        CASE WHEN ${RETENTION_REVIEW} THEN 1 ELSE 0 END AS retention_review,
        COALESCE(c.last_contact_at, c.created_at) AS last_contact_at, CASE WHEN ${QUIET} THEN 1 ELSE 0 END AS gone_quiet
        FROM applicants a JOIN contacts c ON c.id = a.contact_id LEFT JOIN admins ad ON ad.email = a.assigned_to
        WHERE ${where.join(" AND ")})
-     SELECT id, operation, stage, search_state, lost_reason, created_at, assigned_to, assigned_name, name, phone, email,
-       CASE WHEN search_state = 'active' AND archived_at IS NULL THEN ${QUEUE} END AS queue,
-       found, shortlisted, expires_on, retention_review, archived_at, last_contact_at, gone_quiet FROM listed ${queue ? `WHERE search_state = 'active' AND archived_at IS NULL AND ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
+     SELECT id, operation, search_category, stage, search_state, lost_reason, created_at, assigned_to, assigned_name, name, phone, email,
+       CASE WHEN search_state = 'active' AND archived_at IS NULL AND search_category = 'residential' THEN ${QUEUE} END AS queue,
+       found, shortlisted, expires_on, retention_review, archived_at, last_contact_at, gone_quiet FROM listed ${queue ? `WHERE search_state = 'active' AND archived_at IS NULL AND search_category = 'residential' AND ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
     .bind(today, today, cutoff, ...args, ...(queue ? [queue] : [])).all();
   return json({ applicants: results });
 }
@@ -177,7 +178,9 @@ async function detail({ env, params: [id] }) {
        ORDER BY v.created_at DESC, v.id DESC`, contact.email, last9, last9),
     // active_search_id: the contact's active search with the submitted operation; null = "Create second search" applies.
     q(`SELECT n.id, n.title, n.created_at, e.id AS event_id, e.data,
-         (SELECT s.id FROM applicants s WHERE s.contact_id = ? AND ${ACTIVE} AND s.operation IS json_extract(e.data, '$.operation')
+         (SELECT s.id FROM applicants s WHERE s.contact_id = ? AND ${ACTIVE}
+          AND COALESCE(s.search_operation, s.operation) IS COALESCE(json_extract(e.data, '$.search_operation'), json_extract(e.data, '$.operation'))
+          AND s.search_category = COALESCE(json_extract(e.data, '$.search_category'), 'residential')
           ORDER BY s.created_at DESC, s.id DESC LIMIT 1) AS active_search_id
        FROM notifications n JOIN events e ON e.id = n.event_id
        WHERE n.resolved_at IS NULL AND e.entity_type = 'contact' AND e.entity_id = ? AND e.type = 'applicant.duplicate_submitted'
@@ -198,7 +201,7 @@ async function detail({ env, params: [id] }) {
 
 // BUS-17: the widen alternatives of an active search with fewer than 3 live matches, else null.
 async function widenFor(env, a, matches, live) {
-  if (!isActive(a) || live >= 3) return null;
+  if (!isActive(a) || a.search_category !== "residential" || live >= 3) return null;
   const { results } = await env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE ${CANDIDATES_SQL} AND operation = ?`)
     .bind(LISTING_OPERATION[a.operation]).all();
   return widen(a, results, new Set(matches.map(m => m.listing.id)), matches.filter(m => m.status === "found").length);
@@ -220,9 +223,10 @@ async function create({ request, env, admin }) {
   if (!contact) { const c = await findContact(env, r.value.contact); if (c) return taken(c); }
   else {
     // One active search per operation: a second one would split the contact's history (§3.3 "Create second search").
-    const s = await env.DB.prepare(`SELECT s.id FROM applicants s WHERE s.contact_id = ? AND s.operation = ? AND ${ACTIVE}
-      ORDER BY s.created_at DESC, s.id DESC LIMIT 1`).bind(contact.id, r.value.applicant.operation).first();
-    if (s) return json({ error: `${contact.name} already has an active ${OPERATION_LABEL[r.value.applicant.operation]} search`,
+    const effective = r.value.applicant.search_operation ?? r.value.applicant.operation;
+    const s = await env.DB.prepare(`SELECT s.id FROM applicants s WHERE s.contact_id = ? AND COALESCE(s.search_operation, s.operation) = ? AND s.search_category = ? AND ${ACTIVE}
+      ORDER BY s.created_at DESC, s.id DESC LIMIT 1`).bind(contact.id, effective, r.value.applicant.search_category).first();
+    if (s) return json({ error: `${contact.name} already has an active ${OPERATION_LABEL[effective]} search`,
       applicant_id: s.id }, 409);
   }
 
@@ -237,8 +241,8 @@ async function create({ request, env, admin }) {
       .bind(...(contact ? [contact.id] : []), ...Object.values(a)),
     // Entered by the team: the Feed tells the others, nobody needs to act (§3.2).
     ...logEvent(env, { actor: admin, entity_type: "applicant", entity_id: null, type: "applicant.created",
-      data: { operation: a.operation, source: a.source } },
-    { category: "new_applicant", title: `New applicant: ${name} · ${OPERATION_LABEL[a.operation]}`, action_required: false }),
+    data: { operation: a.search_operation ?? a.operation, source: a.source } },
+    { category: "new_applicant", title: `New applicant: ${name} · ${OPERATION_LABEL[a.search_operation ?? a.operation]}`, action_required: false }),
     ...(contact ? [contacted(env, contact.id, ts)] : []),
   ];
   let results;
@@ -261,11 +265,14 @@ async function update({ request, env, admin, params: [id] }) {
   if (body.updated_at !== cur.updated_at) fail(409, stale("applicant"));
   // Archived searches are read only (D9); also keeps an edit from racing a permanent delete, which needs Archived.
   if (cur.archived_at) fail(409, "Restore this search to edit it");
+  if (body.search_category != null && body.search_category !== cur.search_category)
+    fail(409, "Create a separate search to change the search type.");
   const contact = await loadContact(env, cur.contact_id);
 
   // Fields left out of the body keep their stored value. A move-in date already saved may be in the past by now:
   // it is only checked when it changes. The stored contact and a panel source only complete the shared form check.
   const form = { ...parsed(pick(cur, SEARCH_FIELDS)), ...pick(body, SEARCH_FIELDS) };
+  if (!Object.hasOwn(body, "operation") && cur.search_operation) form.operation = cur.search_operation;
   const keepDate = form.move_in_date === cur.move_in_date;
   const r = validateApplicant({ ...form, move_in_date: keepDate ? null : form.move_in_date,
     name: contact.name, email: contact.email, phone: contact.phone, source: "phone" }, { publicForm: false });

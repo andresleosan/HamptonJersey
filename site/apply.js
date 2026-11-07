@@ -6,27 +6,29 @@ const TEL = "01534 727582";
 const STORE = "hampton-apply";
 // Answers kept in this tab so a reload loses nothing; personal details and consents never are (DESIGN.md).
 const PRIVATE = ["name", "email", "phone", "preferred_channel", "best_time", "requirements", "housing_status", "privacy",
-  "marketing"];
+  "marketing", "preferred_language", "household_adults", "household_children", "household_children_status"];
 const STEPS = [
-  { title: "What are you looking for?", fields: ["operation"] },
+  { title: "What are you looking for?", fields: ["operation", "search_category", "commercial_kind"] },
   { title: "Where?", fields: ["parishes_wanted", "parishes_excluded", "near"] },
-  { title: "What kind of home?", fields: ["property_types", "bedrooms_min", "bedrooms_ideal", "bathrooms_min"] },
+  { title: "Property details", fields: ["property_types", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "commercial_use", "area_min", "area_max", "area_unit"] },
   { title: "Parking, outdoor space and pets", fields: ["parking_spaces", "outdoor", "furnished", "pets", "pets_cat",
     "pets_dog", "pets_other"] },
-  { title: "Budget and timing", fields: ["budget_max", "budget_min", "budget_stretch", "move_in_date",
-    "lease_term_months", "buyer_position", "mortgage_aip"] },
-  { title: "Living in Jersey", fields: ["housing_status", "household_adults", "household_children"] },
-  { title: "About you", fields: ["name", "email", "phone", "preferred_channel", "best_time", "requirements",
+  { title: "Budget and timing", fields: ["budget_max", "budget_min", "budget_stretch", "budget_max_rent", "budget_max_buy", "move_in_date",
+    "lease_term_months", "buyer_position", "mortgage_aip", "commercial_purchase", "commercial_rent", "commercial_rent_period", "commercial_premium", "commercial_expenses"] },
+  { title: "Living in Jersey", fields: ["housing_status", "household_adults", "household_children_status", "household_children"] },
+  { title: "About you", fields: ["name", "email", "phone", "preferred_channel", "best_time", "requirements", "preferred_language",
     "privacy", "marketing"] },
 ];
 const FIELDS = new Set(STEPS.flatMap(s => s.fields));
 const ONLY = { rent: ["furnished", "lease_term_months"], buy: ["buyer_position", "mortgage_aip"] };
-const CHOICES = ["operation", "furnished", "buyer_position", "mortgage_aip", "housing_status", "preferred_channel"];
-const TEXT = ["near", "move_in_date", "name", "email", "phone", "best_time", "requirements"];
+const CHOICES = ["operation", "furnished", "buyer_position", "mortgage_aip", "housing_status", "household_children_status", "preferred_channel", "search_category", "commercial_kind", "area_unit", "commercial_rent_period"];
+const TEXT = ["near", "move_in_date", "name", "email", "phone", "best_time", "requirements", "commercial_use", "preferred_language"];
 const LISTS = ["parishes_wanted", "parishes_excluded", "property_types", "outdoor"];
-const INTS = ["bedrooms_min", "bedrooms_ideal", "bathrooms_min", "parking_spaces", "lease_term_months",
+const INTS = ["bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "parking_spaces", "lease_term_months",
   "household_adults", "household_children", "pets_cat", "pets_dog", "pets_other"];
-const MONEY = ["budget_min", "budget_max", "budget_stretch"];
+const MONEY = ["budget_min", "budget_max", "budget_stretch", "budget_max_rent", "budget_max_buy", "commercial_purchase", "commercial_rent", "commercial_premium", "commercial_expenses", "area_min", "area_max"];
+const HOME_ONLY = ["property_types", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "parking_spaces", "outdoor", "furnished", "pets", "household_adults", "household_children", "household_children_status", "housing_status", "budget_min", "budget_max", "budget_stretch", "lease_term_months", "buyer_position", "mortgage_aip"];
+const COMMERCIAL_ONLY = ["commercial_kind", "commercial_use", "area_min", "area_max", "area_unit", "commercial_purchase", "commercial_rent", "commercial_rent_period", "commercial_premium", "commercial_expenses"];
 
 // "£1,500" → 1500; empty → null (never 0); anything else stays text, for the check or the server to refuse.
 const number = s => {
@@ -37,15 +39,22 @@ const number = s => {
 // answers: {name: string | string[]} as read from the form (checkbox groups are lists). Returns the API body:
 // empty answers are left out, numbers are numbers, and only the operation's own fields are sent.
 export function toBody(a) {
-  const b = {}, skip = ONLY[a.operation === "rent" ? "buy" : "rent"];
+  const b = {}, skip = a.operation === "both" ? [] : ONLY[a.operation === "rent" ? "buy" : "rent"];
   const put = (k, v) => {
-    if (!skip.includes(k) && v != null && v !== "" && !(Array.isArray(v) && !v.length)) b[k] = v;
+    if (!skip.includes(k) && !(a.search_category === "commercial" && HOME_ONLY.includes(k))
+      && !(a.search_category !== "commercial" && COMMERCIAL_ONLY.includes(k))
+      && v != null && v !== "" && !(Array.isArray(v) && !v.length)) b[k] = v;
   };
   CHOICES.forEach(k => put(k, a[k]));
   TEXT.forEach(k => put(k, String(a[k] ?? "").trim()));
   LISTS.forEach(k => put(k, a[k]));
   INTS.filter(k => !k.startsWith("pets_")).forEach(k => put(k, number(a[k])));
-  MONEY.forEach(k => put(k, number(a[k])));
+  MONEY.filter(k => !["budget_max_rent", "budget_max_buy"].includes(k)).forEach(k => put(k, number(a[k])));
+  if (a.operation === "both") {
+    delete b.budget_min; delete b.budget_max; delete b.budget_stretch;
+    b.searches = ["rent", "buy"].map(operation => ({ operation,
+      ...(a.search_category === "commercial" ? {} : { budget_max: number(a[`budget_max_${operation}`]) }) }));
+  }
   const pets = a.pets ?? [];
   put("pets", pets.includes("none") ? [{ kind: "none" }] : pets.map(kind => ({ kind, count: number(a[`pets_${kind}`]) })));
   b.privacy = (a.privacy ?? []).length > 0;
@@ -58,8 +67,14 @@ function checkStep(i, a) {
   const e = {}, missing = (k, msg) => { if (!String(a[k] ?? "").trim()) e[k] = msg; };
   const has = k => STEPS[i].fields.includes(k);
   if (has("operation")) missing("operation", "Choose To Let or To Buy");
-  if (has("bedrooms_min")) missing("bedrooms_min", "Choose the minimum bedrooms");
-  if (has("budget_max")) missing("budget_max", "Enter your maximum budget");
+  if (has("search_category")) missing("search_category", "Choose what you are looking for");
+  if (a.search_category !== "commercial" && has("bedrooms_min")) missing("bedrooms_min", "Choose the minimum bedrooms");
+  if (a.search_category !== "commercial" && has("budget_max")) {
+    if (a.operation === "both") { missing("budget_max_rent", "Enter your maximum rent"); missing("budget_max_buy", "Enter your maximum purchase price"); }
+    else missing("budget_max", "Enter your maximum budget");
+  }
+  if (has("household_children") && a.search_category !== "commercial" && a.household_children_status === "known")
+    missing("household_children", "Enter the number of children, or 0 if none");
   if (has("name")) {
     missing("name", "Enter your name");
     missing("email", "Enter your email address");
@@ -68,7 +83,11 @@ function checkStep(i, a) {
     if (!(a.privacy ?? []).length) e.privacy = "Accept the privacy notice to continue";
   }
   for (const k of STEPS[i].fields) {
-    if (e[k] || ONLY[a.operation === "rent" ? "buy" : "rent"].includes(k)) continue;
+    if (a.search_category === "commercial" && (HOME_ONLY.includes(k) || k.startsWith("pets_"))) continue;
+    if (a.search_category !== "commercial" && COMMERCIAL_ONLY.includes(k)) continue;
+    if (["budget_max_rent", "budget_max_buy"].includes(k) && a.operation !== "both") continue;
+    if (["budget_min", "budget_max", "budget_stretch"].includes(k) && a.operation === "both") continue;
+    if (e[k] || (a.operation !== "both" && ONLY[a.operation === "rent" ? "buy" : "rent"].includes(k))) continue;
     if (k.startsWith("pets_") && !(a.pets ?? []).includes(k.slice(5))) continue;
     const n = number(a[k]);
     if (k.startsWith("pets_") && !(Number.isInteger(n) && n >= 1 && n <= 20)) e[k] = "Enter how many, from 1 to 20";
@@ -83,7 +102,7 @@ const ICONS = {
   rent: '<path d="M14.5 9.5a4 4 0 1 1-1.2-2.8M13.3 6.7 20 13.4v3.1h-2.6v-2.1h-2.1v-2.1h-2.1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
   buy: '<path d="M3 11 12 4l9 7M5 10v10h14V10M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
 };
-const OP_NOTE = { rent: "Rent a home, paid monthly", buy: "Buy a home in Jersey" };
+const OP_NOTE = { rent: "Looking to rent", buy: "Looking to buy", both: "Explore both options", transfer: "Take over a business" };
 
 export function renderApply(root, { esc, tsKey, tsReady }) {
   root.innerHTML = `<section class="block apply"><div class="wrap">
@@ -121,40 +140,54 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   const eg = (rent, buy) => `placeholder="${rent}" data-ph-rent="${rent}" data-ph-buy="${buy}"`;
 
   const steps = [
-    `<div class="opts cards">${list("operation").map(([v, l]) => `<label><input type="radio" name="operation" value="${esc(v)}" required>
+    group("search_category", "What are you searching for?", pills("search_category", [["residential", "A home"], ["commercial", "Commercial property or a business"]]))
+      + `<div data-category="commercial">${group("commercial_kind", "What are you looking for?", pills("commercial_kind", [["property", "Commercial property"], ["business", "A business"], ["both", "Both"]]))}</div>`
+      + `<div class="opts cards">${[...list("operation"), ["both", "Rent and buy"], ["transfer", "Business transfer"]].map(([v, l]) => `<label${v === "transfer" ? ' data-category="commercial"' : ""}><input type="radio" name="operation" value="${esc(v)}" required>
       <span class="opt"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[v] || ""}</svg><b>${esc(l)}</b><small>${esc(OP_NOTE[v] || "")}</small></span></label>`).join("")}</div>
-      ${err("operation")}
-      <p class="hint">Looking for commercial premises? <a href="#book">Contact us</a></p>`,
+      ${err("operation")}`,
     group("parishes_wanted", "Parishes you'd like (optional)", pills("parishes_wanted", list("parishes"), "checkbox"))
       // Rarely used, so it waits behind a link; it opens by itself when it already has an answer (sync).
       + `<details class="more"><summary>Add parishes to avoid</summary>${group("parishes_excluded", "Parishes to avoid (optional)",
         pills("parishes_excluded", list("parishes"), "checkbox"))}</details>`
       + input("near", "Near somewhere in particular (optional)", `maxlength="200" placeholder="Your work, a school"`),
-    group("property_types", "Type of home (optional)", pills("property_types", list("property_types"), "checkbox"))
+    `<div data-category="residential">${group("property_types", "Type of home (optional)", pills("property_types", list("property_types"), "checkbox"))
       + group("bedrooms_min", "Bedrooms, at least", pills("bedrooms_min", [[0, "Studio"], [1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]], "radio", true))
+      + group("bedrooms_max", "Bedrooms, at most (optional)", pills("bedrooms_max", [[0, "Studio"], [1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5"]], "radio"))
       + group("bedrooms_ideal", "Bedrooms, ideally (optional)", pills("bedrooms_ideal", [[1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5+"]], "radio"))
-      + group("bathrooms_min", "Bathrooms, at least (optional)", pills("bathrooms_min", [[1, "1"], [2, "2"], [3, "3+"]], "radio")),
-    group("parking_spaces", "Parking spaces (optional)", pills("parking_spaces", list("parking"), "radio"))
+      + group("bathrooms_min", "Bathrooms, at least (optional)", pills("bathrooms_min", [[1, "1"], [2, "2"], [3, "3+"]], "radio"))}</div>`
+      + `<div data-category="commercial">${input("commercial_use", "Intended use (optional)", 'maxlength="200"')
+      + input("area_min", "Minimum area (optional)", count) + input("area_max", "Maximum area (optional)", count)
+      + group("area_unit", "Area unit", pills("area_unit", [["sqm", "Square metres"], ["sqft", "Square feet"]]))}</div>`,
+    `<div data-category="residential">${group("parking_spaces", "Parking spaces (optional)", pills("parking_spaces", list("parking"), "radio"))
       + group("outdoor", "Outdoor space (optional)", pills("outdoor", list("outdoor"), "checkbox"))
       + group("furnished", "Furnished (optional)", pills("furnished", list("furnished")), "rent")
       + group("pets", "Pets (optional)", pills("pets", list("pet_kinds"), "checkbox") + `<div class="row">${pets.map(([v, l]) =>
         `<div class="field" data-pet="${esc(v)}" hidden><label for="f-pets_${esc(v)}">How many: ${esc(l)}</label>
-          <input id="f-pets_${esc(v)}" name="pets_${esc(v)}" value="1" ${count}>${err(`pets_${esc(v)}`)}</div>`).join("")}</div>`),
-    input("budget_max", money("Maximum rent", "Maximum price"), `${count} required ${eg("£1,300", "£550,000")}`)
+          <input id="f-pets_${esc(v)}" name="pets_${esc(v)}" value="1" ${count}>${err(`pets_${esc(v)}`)}</div>`).join("")}</div>`)}</div><p data-category="commercial" class="hint">Leave unknown details blank; our team can confirm them with you.</p>`,
+    `<div data-category="residential"><div data-both="no">${input("budget_max", money("Maximum rent", "Maximum price"), `${count} required ${eg("£1,300", "£550,000")}`)
       + `<div class="row">${input("budget_min", money("Minimum rent", "Minimum price", " (optional)"), `${count} ${eg("£1,000", "£400,000")}`)}
-        ${input("budget_stretch", money("I can stretch to", "I can stretch to", " (optional)"), `${count} ${eg("£1,500", "£600,000")}`)}</div>`
-      + input("move_in_date", "When would you like to move? (optional)", `type="date" min="${today}" max="${inTwoYears}"`)
+        ${input("budget_stretch", money("I can stretch to", "I can stretch to", " (optional)"), `${count} ${eg("£1,500", "£600,000")}`)}</div>`}</div>`
+      + `<div data-both="yes">${input("budget_max_rent", "Maximum rent, £ per month", count)}${input("budget_max_buy", "Maximum purchase price, £", count)}</div>`
       + input("lease_term_months", "Lease length in months (optional)", `${count} placeholder="12"`, "rent")
       + group("buyer_position", "Your position (optional)", pills("buyer_position", list("buyer_position"), "radio", false, " tiles"), "buy")
-      + group("mortgage_aip", "Mortgage agreement in principle (optional)", pills("mortgage_aip", list("mortgage_aip")), "buy"),
-    `<p class="hint">It decides which homes you can rent or buy in Jersey.</p>`
+      + group("mortgage_aip", "Mortgage agreement in principle (optional)", pills("mortgage_aip", list("mortgage_aip")), "buy") + `</div>`
+      + `<div data-category="commercial">${input("commercial_purchase", "Maximum purchase price, £ (optional)", count)
+      + input("commercial_rent", "Maximum rent, £ (optional)", count)
+      + group("commercial_rent_period", "Rent period", pills("commercial_rent_period", [["month", "Per month"], ["year", "Per year"]]))
+      + input("commercial_premium", "Maximum business transfer, £ (optional)", count)
+      + input("commercial_expenses", "Maximum expenses, £ (optional)", count)}</div>`
+      + input("move_in_date", "When do you need it? (optional)", `type="date" min="${today}" max="${inTwoYears}"`),
+    `<div data-category="residential"><p class="hint">It decides which homes you can rent or buy in Jersey.</p>`
       + group("housing_status", "Housing status (optional)", pills("housing_status", list("housing_status"), "radio", false, " tiles"))
-      + `<div class="row">${input("household_adults", "Adults (optional)", `${count} placeholder="2"`)}${input("household_children", "Children (optional)", `${count} placeholder="1"`)}</div>`,
+      + input("household_adults", "Adults (optional)", `${count} placeholder="2"`)
+      + group("household_children_status", "Children", pills("household_children_status", [["known", "I know how many"], ["unknown", "I don't know"], ["not_applicable", "Not applicable"]]))
+      + `<div data-children-count>${input("household_children", "Number of children (enter 0 if none)", count)}</div></div><p data-category="commercial" class="hint">Your search stays open until our team confirms it is resolved.</p>`,
     input("name", "Full name", `autocomplete="name" maxlength="120" required placeholder="Your name"`)
       + input("email", "Email", `type="email" autocomplete="email" maxlength="254" required placeholder="name@example.com"`)
       + input("phone", "Mobile", `type="tel" autocomplete="tel" required placeholder="07797 000000"`)
       + group("preferred_channel", "How should we contact you? (optional)", pills("preferred_channel", list("channels")))
       + input("best_time", "Best time to reach you (optional)", `maxlength="200" placeholder="Weekday mornings"`)
+      + input("preferred_language", "Preferred language (optional)", `maxlength="80"`)
       + `<div class="field"><label for="f-requirements">Anything else that matters? <i>(optional)</i></label>
         <textarea id="f-requirements" name="requirements" maxlength="2000" rows="4" placeholder="A garden for the dog, close to a bus route"></textarea>${err("requirements")}</div>
       <div class="consent">
@@ -194,8 +227,15 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   };
   // Shows what fits the chosen operation and pets; hidden fields are not sent (toBody) and not checked.
   const sync = () => {
+    const category = $("[name=search_category]:checked", form)?.value || "residential";
+    const selectedOperation = $("[name=operation]:checked", form);
+    if (category !== "commercial" && selectedOperation?.value === "transfer") selectedOperation.checked = false;
     const op = $("[name=operation]:checked", form)?.value;
-    form.querySelectorAll("[data-only]").forEach(el => { el.hidden = el.dataset.only !== op; });
+    const childStatus = $("[name=household_children_status]:checked", form)?.value;
+    $("[data-children-count]", form).hidden = childStatus !== "known";
+    form.querySelectorAll("[data-category]").forEach(el => { el.hidden = el.dataset.category !== category; });
+    form.querySelectorAll("[data-both]").forEach(el => { el.hidden = (el.dataset.both === "yes") !== (op === "both"); });
+    form.querySelectorAll("[data-only]").forEach(el => { el.hidden = op !== "both" && el.dataset.only !== op; });
     form.querySelectorAll("[data-ph-buy]").forEach(i => { i.placeholder = op === "buy" ? i.dataset.phBuy : i.dataset.phRent; });
     form.querySelectorAll("[data-rent]").forEach(l => { l.innerHTML = opt(op === "buy" ? l.dataset.buy : l.dataset.rent); });
     const a = snapshot(), chosen = a.pets ?? [];
@@ -249,6 +289,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   form.addEventListener("input", e => { if (FIELDS.has(e.target.name)) setError(e.target.name); save(); });
   form.addEventListener("change", e => {
     const t = e.target;
+    if (t.name === "household_children_status" && t.value !== "known") $("[name=household_children]", form).value = "";
     // "No pets" stands alone; a parish is either wanted or avoided.
     if (t.name === "pets" && t.checked)
       controls("pets").forEach(x => { if (x !== t && (t.value === "none" || x.value === "none")) x.checked = false; });
@@ -322,9 +363,9 @@ export function renderPrivacy(root) {
 
     <h2>What we collect</h2>
     <ul>
-      <li>Your name, email address and mobile number, and how and when you prefer us to contact you.</li>
-      <li>What you are looking for: renting or buying, areas, type and size of home, budget, timing, pets and anything
-        else you tell us.</li>
+      <li>Your name, email address and mobile number, and how, when and in which language you prefer us to contact you.</li>
+      <li>What you are looking for: renting, buying or a business transfer, areas, the kind and size of home or commercial
+        property, intended use, budgets, timing, pets and anything else you tell us.</li>
       <li>Your housing status in Jersey and how many adults and children would live in the home.</li>
       <li>Whether you accepted this notice and whether you asked for our news, with the date.</li>
       <li>For a viewing request: the property, the day and the time you chose.</li>
@@ -334,7 +375,7 @@ export function renderPrivacy(root) {
 
     <h2>Why we use it</h2>
     <ul>
-      <li>To look for homes that match your search and tell you about them.</li>
+      <li>To look for properties or businesses that match your search and tell you about them.</li>
       <li>To arrange viewings and keep a record of what we have discussed with you.</li>
       <li>To answer the messages you send us through the chat on our website.</li>
       <li>To show on a property's page how many people are interested in it: a number only, from 2 people, never your
@@ -343,7 +384,7 @@ export function renderPrivacy(root) {
     </ul>
 
     <h2>Our legal basis</h2>
-    <p>We use your details to take the steps you ask us to take before you rent or buy a home, and because we have a
+    <p>We use your details to take the steps you ask us to take before you rent or buy a property or acquire a business, and because we have a
       legitimate interest in keeping an accurate record of our dealings with you and in showing, without naming anyone,
       how much interest a property has. We send you news only with your
       consent, which you can withdraw at any time.</p>

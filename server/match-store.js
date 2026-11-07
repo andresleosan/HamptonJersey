@@ -15,8 +15,8 @@ export const LISTING = `id, operation, archived_at, bedrooms, bathrooms, parish,
   feat_pets, feat_parking, feat_furnished, feat_outdoor, feat_type, feat_evidence, tenure_type, housing_category, restriction,
   (${CANDIDATES_SQL}) AS candidate`;
 // The applicant's search as evaluate() reads it, whether it is active, and the contact's name for the notice.
-const APPLICANT = `a.id, a.archived_at, a.stage, a.search_state, a.updated_at, a.operation, a.budget_min, a.budget_max, a.budget_stretch,
-  a.property_types, a.bedrooms_min, a.bedrooms_ideal, a.bathrooms_min, a.parking_spaces, a.outdoor, a.furnished, a.pets,
+const APPLICANT = `a.id, a.archived_at, a.stage, a.search_state, a.search_category, a.updated_at, a.operation, a.budget_min, a.budget_max, a.budget_stretch,
+  a.property_types, a.bedrooms_min, a.bedrooms_max, a.bedrooms_ideal, a.bathrooms_min, a.parking_spaces, a.outdoor, a.furnished, a.pets,
   a.parishes_wanted, a.parishes_excluded, a.housing_status, a.buyer_position, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id`;
 
 // The applicant's open matched notice; notices find their applicant through their event, so the lookup starts from the
@@ -115,7 +115,7 @@ export async function afterSave(recompute, ...args) {
 export async function recomputeForApplicant(env, applicantId, actor, restoreNotice = false) {
   const a = await env.DB.prepare(`SELECT ${APPLICANT} WHERE a.id = ?`).bind(applicantId).first();
   if (!a) return { created: 0 };
-  if (!isActive(a)) return { created: 0 }; // Resolved and legacy searches keep their match history.
+  if (!isActive(a) || a.search_category !== "residential") return { created: 0 }; // Commercial matching belongs to M04.
   // The candidates, and the shortlisted ones that left them (their checks still show what fails now).
   const [listings, stored] = (await env.DB.batch([
     env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE (${CANDIDATES_SQL} AND operation = ?)
@@ -143,7 +143,7 @@ export async function recomputeForListing(env, listingId, actor) {
   if (!l) return;
   // A listing that is not offered only concerns the applicants already matched with it.
   const [applicants, stored] = (await env.DB.batch([
-    env.DB.prepare(`SELECT ${APPLICANT} WHERE ${activeSql("a")}
+    env.DB.prepare(`SELECT ${APPLICANT} WHERE ${activeSql("a")} AND a.search_category = 'residential'
       ${l.candidate ? "" : "AND a.id IN (SELECT applicant_id FROM matches WHERE listing_id = ?)"}`)
       .bind(...(l.candidate ? [] : [listingId])),
     env.DB.prepare("SELECT id, applicant_id, listing_id, status, score, checks FROM matches WHERE listing_id = ?")

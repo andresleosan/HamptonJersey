@@ -15,7 +15,7 @@ const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
 const SEARCH = Object.keys(toForm()).filter(k => !CONTACT.includes(k));
 // §3.3 Copy fields: the search's requirements (never its operation: that is a second search) and, from the contact,
 // only these two.
-const COPY = [...SEARCH.filter(k => k !== "operation"), "preferred_channel", "best_time"];
+const COPY = [...SEARCH.filter(k => !["operation", "search_category"].includes(k)), "preferred_channel", "best_time"];
 // Offers only on To Buy searches (V1).
 const TABS = [["requirements", "Requirements"], ["matches", "Matches"], ["offers", "Offers"], ["timeline", "Timeline"]];
 const GROUPS = [["found", "Found"], ["shortlisted", "Shortlisted"], ["rejected", "Rejected"]];
@@ -46,7 +46,7 @@ const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requi
   "offer.accepted": "Offer accepted", "offer.rejected": "Offer rejected", "offer.withdrawn": "Offer withdrawn",
   "sale.updated": "Sale file changed", "sale.completed": "Sale completed", "sale.fallen_through": "Sale fell through",
   "applicant.search_resolved": "Search resolved", "applicant.search_reopened": "Search made active" };
-const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation), SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
+const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" }, SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
 
 const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
 // What the duplicate strip compares: an email or phone written another way is the same one.
@@ -293,7 +293,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   return <div className="record">
     <div className="head">
       <div><h1 id="t-applicant">{c.name}</h1>
-        <p className="muted">{OPERATION_LABEL[a.operation]} · {SOURCE_LABEL[a.source]} · Applied {fmtDate(a.created_at)}</p>
+        <p className="muted">{OPERATION_LABEL[a.search_operation ?? a.operation]} · {SOURCE_LABEL[a.source]} · Applied {fmtDate(a.created_at)}</p>
         <p className="muted">{data.retention.search ? "Kept while a search is active or awaiting review"
           : data.retention.exempt ? "Kept for 5 years: it has a sale"
           : data.retention.offer ? "Kept while an offer is open" : `Kept until ${fmtDayMonth(data.retention.kept_until)}`}</p></div>
@@ -345,13 +345,14 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       <form ref={formRef} noValidate onSubmit={e => { e.preventDefault(); if (dirty && !busy) save(); }}>
         {/* Archived: read only until restored. */}
         <fieldset className="sections plain" disabled={archived}>
-          <ApplicantFields value={form} onChange={setForm} errors={errors} operation={form.operation} />
+          <ApplicantFields value={form} onChange={setForm} errors={errors} operation={form.operation} lockedCategory />
         </fieldset>
       </form>
     </div>
     <div role="tabpanel" id="panel-matches" aria-labelledby="tab-matches" hidden={cur !== "matches"} tabIndex={0}>
-      {data.widen && <Widen alternatives={data.widen} applicant={a} dirty={dirty} onUse={applyWiden} />}
-      <Matches matches={data.matches} applicant={a} msg={matchMsg} busy={reviewing} onReview={reviewMatch} />
+      {a.search_category === "commercial" ? <p>Commercial matching is not available yet. Please review this search manually.</p> : <>
+        {data.widen && <Widen alternatives={data.widen} applicant={a} dirty={dirty} onUse={applyWiden} />}
+        <Matches matches={data.matches} applicant={a} msg={matchMsg} busy={reviewing} onReview={reviewMatch} /></>}
     </div>
     {hasOffers && <div role="tabpanel" id="panel-offers" aria-labelledby="tab-offers" hidden={cur !== "offers"} tabIndex={0}>
       <Offers id={id} data={offers} err={offersErr} canRecord={buyer && !archived} />
@@ -383,17 +384,20 @@ const Message = ({ m, onReload }) => m && <p role={m.ok ? "status" : "alert"} cl
 
 // §3.3: a pending "registered again" from the website. Shows what they sent that differs from what is saved.
 function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirmMarketing, onDismiss }) {
-  const sent = dup.data ?? {};
+  const original = dup.data ?? {};
+  const sent = { ...original, operation: original.search_operation ?? original.operation };
+  stored = { ...stored, operation: stored.search_operation ?? stored.operation };
   const differs = k => !blank(sent[k]) && !same(k, sent[k], stored[k]);
   // Sent for the other operation: that is a second search, not changes to this one.
   const keys = [...CONTACT, ...SEARCH].filter(differs);
-  const copyable = (sent.operation == null || sent.operation === stored.operation) && COPY.some(differs);
+  const copyable = (sent.operation == null || (sent.search_operation ?? sent.operation) === (stored.search_operation ?? stored.operation))
+    && (sent.search_category ?? "residential") === stored.search_category && COPY.some(differs);
   const optIn = sent.marketing === true && stored.marketing_opt_in_at == null;
   return <section className="warn dup" aria-labelledby={`dup-${dup.id}`}>
     <h2 id={`dup-${dup.id}`} tabIndex={-1}>{dup.title}</h2>
     <p className="muted">{fmtAgo(dup.created_at)} · {keys.length ? "What they sent that differs from what is saved:" : "What they sent matches what is saved."}</p>
     {sent.other_contact_id != null && <p>Their email and their phone number belong to two different contacts.</p>}
-    {keys.length > 0 && <dl className="changes">{keys.map(k => <div key={k}><dt>{LABEL[k]}</dt>
+    {keys.length > 0 && <dl className="changes">{keys.map(k => <div key={k}><dt>{label(k)}</dt>
       <dd><span className="muted">Saved:</span> {show(k, stored[k], nameOf)} <span className="muted">· Sent:</span> {show(k, sent[k], nameOf)}</dd></div>)}</dl>}
     {optIn && <p>They agreed to marketing this time. The website doesn't check who sent this. Confirm with them before you record it.</p>}
     <div className="inline">

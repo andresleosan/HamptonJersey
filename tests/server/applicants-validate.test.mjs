@@ -15,6 +15,68 @@ const applicantOf = (body, publicForm = true) => {
   return r.value.applicant;
 };
 
+test("search category defaults to residential and rejects unrecognised categories", () => {
+  assert.equal(applicantOf(pub()).search_category, "residential");
+  assert.ok(errorsOf(pub({ search_category: "industrial" })).search_category);
+});
+
+test("commercial registration keeps unknowns and independent monetary amounts", () => {
+  const a = applicantOf(pub({ search_category: "commercial", commercial_kind: "both", bedrooms_min: null,
+    budget_max: null, commercial_use: "Café", area_min: 80, area_max: 120, area_unit: "sqm",
+    commercial_purchase: 400000, commercial_rent: 20000, commercial_rent_period: "year",
+    commercial_premium: 50000, commercial_expenses: 1500 }));
+  assert.equal(a.search_category, "commercial");
+  assert.equal(a.commercial_purchase, 400000);
+  assert.equal(a.commercial_rent, 20000);
+  assert.equal(a.commercial_rent_period, "year");
+  assert.equal(a.commercial_premium, 50000);
+  assert.equal(a.commercial_expenses, 1500);
+  assert.equal(a.household_children, null);
+  assert.equal(a.household_total, null);
+  const changed = applicantOf(pub({ search_category: "commercial", bedrooms_min: 2, budget_max: 2000, household_children: 1 }));
+  assert.equal(changed.bedrooms_min, null);
+  assert.equal(changed.budget_max, null);
+  assert.equal(changed.household_children, null);
+});
+
+test("commercial ranges and monetary periods are validated", () => {
+  const body = pub({ search_category: "commercial", commercial_kind: "business", bedrooms_min: null, budget_max: null });
+  assert.ok(errorsOf({ ...body, area_min: 100, area_max: 50, area_unit: "sqm" }).area_max);
+  assert.ok(errorsOf({ ...body, area_min: 100 }).area_unit);
+  assert.ok(errorsOf({ ...body, commercial_rent: 2000 }).commercial_rent_period);
+  assert.ok(errorsOf({ ...body, commercial_premium: -1 }).commercial_premium);
+});
+
+test("a business transfer is a distinct commercial operation and can include a separate rent", () => {
+  const a = applicantOf(pub({ search_category: "commercial", commercial_kind: "business", operation: "transfer",
+    bedrooms_min: null, budget_max: null, commercial_premium: 40000, commercial_rent: 12000, commercial_rent_period: "year" }));
+  assert.equal(a.operation, "rent");
+  assert.equal(a.search_operation, "transfer");
+  assert.equal(a.commercial_premium, 40000);
+  assert.equal(a.commercial_rent, 12000);
+  assert.ok(errorsOf(pub({ operation: "transfer" })).operation);
+});
+
+test("household total is known only when both counts are explicitly known", () => {
+  assert.equal(applicantOf(pub({ household_adults: 2, household_children: 0 })).household_total, 2);
+  assert.equal(applicantOf(pub({ household_adults: 2 })).household_total, null);
+});
+
+test("no children, not applicable and unknown remain distinct", () => {
+  const none = applicantOf(pub({ household_adults: 2, household_children: 0 }));
+  const na = applicantOf(pub({ household_adults: 2, household_children_status: "not_applicable" }));
+  const unknown = applicantOf(pub({ household_adults: 2, household_children_status: "unknown" }));
+  assert.deepEqual([none.household_children_status, none.household_children, none.household_total], ["known", 0, 2]);
+  assert.deepEqual([na.household_children_status, na.household_children, na.household_total], ["not_applicable", null, null]);
+  assert.deepEqual([unknown.household_children_status, unknown.household_children, unknown.household_total], ["unknown", null, null]);
+  assert.ok(errorsOf(pub({ household_children: 1, household_children_status: "unknown" })).household_children);
+});
+
+test("bedroom maximum is preserved and cannot be below the minimum", () => {
+  assert.equal(applicantOf(pub({ bedrooms_min: 2, bedrooms_max: 3 })).bedrooms_max, 3);
+  assert.ok(errorsOf(pub({ bedrooms_min: 3, bedrooms_max: 2 })).bedrooms_max);
+});
+
 test("normalizePhone", () => {
   for (const s of ["07797 123456", "+44 7797 123456", "0044 7797-123456", "+44 (0)7797 123456", "07797.123.456"])
     assert.equal(normalizePhone(s), "+447797123456", s);
