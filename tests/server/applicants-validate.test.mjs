@@ -272,8 +272,28 @@ test("weekly viewing preferences are validated and stored as local Jersey wall t
   assert.deepEqual(JSON.parse(applicantOf(pub({ viewing_availability: slots })).viewing_availability), slots);
   assert.equal(applicantOf(pub()).viewing_availability, null);
   for (const invalid of [[{ day: 7, start: "09:00", end: "10:00" }], [{ day: 1, start: "24:00", end: "25:00" }],
-    [{ day: 1, start: "10:00", end: "09:00" }], [{ day: 1, start: "09:00", end: "12:00" }, { day: 1, start: "11:00", end: "13:00" }],
-    Array(22).fill({ day: 1, start: "09:00", end: "10:00" }), "bad"]) {
+    [{ day: 1, start: "10:00", end: "09:00" }], "bad"]) {
     assert.ok(errorsOf(pub({ viewing_availability: invalid })).viewing_availability);
   }
+});
+
+// Four adjacent one-hour intervals per day; 22 spans six days, all within the same week.
+const weeklyIntervals = count => Array.from({ length: count }, (_, i) => {
+  const hour = 10 + i % 4;
+  return { day: Math.floor(i / 4), start: `${hour}:00`, end: `${hour + 1}:00` };
+});
+
+test("weekly viewing preferences accept 21 valid non-overlapping intervals", () => {
+  const allowed = weeklyIntervals(21);
+  assert.deepEqual(JSON.parse(applicantOf(pub({ viewing_availability: allowed })).viewing_availability), allowed);
+});
+
+test("weekly viewing preferences reject 22 valid non-overlapping intervals by count", () => {
+  assert.equal(errorsOf(pub({ viewing_availability: weeklyIntervals(22) })).viewing_availability,
+    "Choose valid, non-overlapping times with an end after the start (up to 21).");
+});
+
+test("weekly viewing preferences reject overlapping intervals independently of the count limit", () => {
+  const overlap = [{ day: 1, start: "09:00", end: "12:00" }, { day: 1, start: "11:00", end: "13:00" }];
+  assert.ok(errorsOf(pub({ viewing_availability: overlap })).viewing_availability);
 });
