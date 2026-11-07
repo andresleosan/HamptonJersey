@@ -2198,6 +2198,77 @@ async function advertiserDirectory(browser) {
   await ctx.close();
 }
 
+// A failed detail load exposes Reload. A pending retry must exclude a second retry
+// and remain locked until it settles, before erase can begin.
+async function advertiserReloadRace(browser, width, failAfterErase, staleHistory = false) {
+  const ctx = await browser.newContext();
+  const { signSession, COOKIE } = await import('../server/auth.js');
+  await ctx.addCookies([{ name: COOKIE, value: await signSession('admin@example.test', secret), domain: new URL(BASE).hostname, path: '/', secure: true, httpOnly: true, sameSite: 'Strict' }]);
+  const page = await newPage(ctx, { width, height: 844 });
+  await page.goto(BASE + 'admin/#/advertisers');
+  await page.getByRole('button', { name: 'Add advertiser' }).click();
+  const name = `Race Person ${width} ${failAfterErase} ${staleHistory}`;
+  await page.getByLabel('Name', { exact: true }).first().fill(name);
+  await page.locator('.advertiser-directory select').first().selectOption('individual');
+  await page.getByRole('button', { name: 'Add contact' }).click();
+  await page.getByRole('group', { name: 'Contact 1' }).getByLabel('Name', { exact: true }).fill('Private Race Contact');
+  await page.getByLabel('Email', { exact: true }).fill('race-private@example.test');
+  await page.getByRole('button', { name: 'Save advertiser' }).click();
+  await page.getByText('Advertiser saved.').waitFor();
+  const reason = page.getByLabel('Why are the personal details still needed for an open relationship or case?');
+  await reason.fill('Private race reason');
+  await page.getByRole('button', { name: 'Record reason' }).click();
+  await page.getByText('Reason recorded.').waitFor();
+  let stage = 'error', release, seen, staleBody;
+  const gate = new Promise(r => release = r), pending = new Promise(r => seen = r);
+  let gets = 0;
+  await page.route(/\/api\/admin\/advertisers\/\d+(?:\/erase)?$/, async route => {
+    if (route.request().method() === 'POST' && route.request().url().endsWith('/erase')) { stage = 'erased'; return route.continue(); }
+    if (route.request().method() !== 'GET') return route.continue();
+    if (stage === 'error') return route.fulfill({status:503, contentType:'application/json', body:JSON.stringify({error:'Detail unavailable'})});
+    if (stage === 'retry') { gets++; const response = await route.fetch(); staleBody = await response.text(); seen(); await gate; return route.fulfill({response, body:staleBody}); }
+    if (stage === 'stale') return route.fulfill({status:200, contentType:'application/json', body:staleBody});
+    if (stage === 'erased' && staleHistory) return route.fulfill({status:200, contentType:'application/json', body:staleBody});
+    if (stage === 'erased' && failAfterErase) return route.fulfill({status:503, contentType:'application/json', body:JSON.stringify({error:'History unavailable'})});
+    return route.continue();
+  });
+  await page.route('**/api/admin/advertisers?*', route => stage === 'erased' && failAfterErase ? route.fulfill({status:503, contentType:'application/json', body:JSON.stringify({error:'Directory unavailable'})}) : route.continue());
+  await page.getByRole('row').filter({hasText:name}).getByRole('button', {name:'Open'}).click();
+  const reload = page.getByRole('button', {name:'Reload record'}); await reload.waitFor();
+  stage = 'retry'; await reload.evaluate(e => { e.click(); e.click(); }); await pending;
+  try {
+    assert.equal(await reload.isDisabled(), true, 'Reload cannot start a second detail request while one is pending');
+    assert.equal(await page.getByRole('button', {name:'Remove personal data'}).isDisabled(), true, 'erase cannot run while retry is pending');
+    assert.equal(gets, 1);
+  } finally { release(); }
+  await page.waitForFunction(() => !document.querySelector('section[aria-labelledby="retention-heading"] fieldset')?.disabled);
+  page.once('dialog', d => d.accept());
+  await page.getByRole('button', {name:'Remove personal data'}).click();
+  await page.getByText('Personal information was removed. This record cannot be edited.').waitFor();
+  if (failAfterErase) { await page.getByText(/Directory unavailable/).first().waitFor(); assert.match(await page.getByRole('alert').innerText(), /History unavailable/); }
+  else { await page.getByText('Personal information removed.', {exact:true}).waitFor(); await page.waitForFunction(() => ![...document.querySelectorAll('button')].find(b => b.textContent === 'Add advertiser')?.disabled); }
+  const dom = await page.evaluate(() => document.body.outerHTML + [...document.querySelectorAll('input,textarea')].map(e => e.value).join(' '));
+  for (const value of [name, 'Private Race Contact', 'race-private@example.test', 'Private race reason']) assert.ok(!dom.includes(value), `erased data absent: ${value}`);
+  assert.equal(await page.getByRole('button', {name:'Save advertiser'}).count(), 0);
+  {
+    if (!failAfterErase) {
+      // Re-expose Reload after the successful reconciliation, retaining the erased form.
+      stage = 'error';
+      await page.getByRole('button', {name:'Open', exact:true}).first().click();
+      await page.getByText('Detail unavailable').waitFor();
+    }
+    await page.waitForFunction(() => ![...document.querySelectorAll('button')].find(b => b.textContent === 'Reload record')?.disabled);
+    const previousError = await page.getByRole('alert').innerText();
+    stage = 'stale'; await page.getByRole('button', {name:'Reload record'}).click();
+    await page.waitForFunction(() => ![...document.querySelectorAll('button')].find(b => b.textContent === 'Reload record')?.disabled);
+    const afterStale = await page.evaluate(() => document.body.outerHTML + [...document.querySelectorAll('input,textarea')].map(e => e.value).join(' '));
+    for (const value of [name, 'Private Race Contact', 'race-private@example.test', 'Private race reason']) assert.ok(!afterStale.includes(value), `old detail cannot restore: ${value}`);
+    assert.equal(await page.getByRole('alert').innerText(), previousError, 'stale response does not clear errors');
+    assert.equal(await page.getByRole('button', {name:'Save advertiser'}).count(), 0);
+  }
+  await ctx.close();
+}
+
 (async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROME});
   try {
@@ -2209,6 +2280,7 @@ async function advertiserDirectory(browser) {
     if (phases.includes("admin")) { await admin(browser); await advertiserDirectory(browser); }
     if (phases.includes("reg17")) await viewingAvailability(browser);
     if (phases.includes("advertisers") && !phases.includes("admin")) await advertiserDirectory(browser);
+    if (phases.includes("advertisers") || phases.includes("admin")) { await advertiserReloadRace(browser, 390, true); await advertiserReloadRace(browser, 1280, false); await advertiserReloadRace(browser, 390, false, true); }
     console.log(process.env.E2E_ONLY === "reg17" ? "reg17 e2e OK" : `e2e OK (${phases.join(", ")})`);
   }
   finally { await browser.close(); }

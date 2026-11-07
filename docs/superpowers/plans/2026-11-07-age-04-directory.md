@@ -43,5 +43,5 @@
 **Files:** crear `admin/src/Advertisers.jsx`; modificar `admin/src/App.jsx`, `tests/e2e.cjs`, ESTADO, checklist, reconciliación y ledger.
 
 - [x] Construir listado y ficha editables, enlaces válidos, estados de carga/error/vacío/conflicto, acciones humanas de conservación y confirmación de borrado.
-- [x] Cubrir flujo y estados con pruebas locales, luego ejecutar `npm test`, `npm run build`, `npm run check:release`, `npm run test:e2e` y recorrido MCP 1280/390 con teclado, foco, ampliación CSS, errores, consola y red. El zoom nativo queda sin acreditar; ver ledger.
+- [x] Cubrir flujo y estados con pruebas locales, luego ejecutar `npm test`, `npm run build`, `npm run check:release`, `npm run test:e2e` y recorrido MCP 1280/390 con teclado, foco, ampliación CSS, errores, consola y red. El zoom nativo 200% se acreditó después en 390 y 1280; ver ledger y revisión independiente de 0b41ec4.
 - [ ] Preparar revisión independiente de Hermes, registrar resultados y limitaciones, actualizar ESTADO/checklist y hacer commit local en main. Sin push ni migración remota.
