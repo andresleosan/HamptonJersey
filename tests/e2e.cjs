@@ -1987,8 +1987,71 @@ async function bankImport(page, phone, noSideScroll) {
   await shot(phone, "admin-statement-mobile");
 }
 
+// REG-17: a real public registration and staff editing, against this run's isolated fixture.
+async function viewingAvailability(browser) {
+  const ctx = await browser.newContext();
+  const page = await newPage(ctx, {width: 1280, height: 800});
+  await page.goto(BASE + "#/apply");
+  await page.waitForSelector(".apply form");
+  const form = page.locator(".apply form"), next = form.locator('button[type="submit"]');
+  const choice = async (name, value) => form.locator(`input[name="${name}"][value="${value}"] + span`).click();
+  await choice("search_category", "residential"); await choice("operation", "both"); await next.click();
+  await next.click(); await choice("bedrooms_min", "2"); await next.click(); await next.click();
+  await form.locator('[name="budget_max_rent"]').fill("2000");
+  await form.locator('[name="budget_max_buy"]').fill("500000");
+  const add = form.locator('[data-add-slot]');
+  await add.click(); await add.click();
+  const slots = form.locator('[data-slot]');
+  await slots.nth(0).locator('select').selectOption('1');
+  await slots.nth(0).locator('[data-start]').fill('09:00'); await slots.nth(0).locator('[data-end]').fill('11:00');
+  await slots.nth(1).locator('select').selectOption('3');
+  await slots.nth(1).locator('[data-start]').fill('14:00'); await slots.nth(1).locator('[data-end]').fill('16:00');
+  await next.click(); await next.click();
+  await form.locator('[name="name"]').fill('REG17 Local Test');
+  await form.locator('[name="email"]').fill('reg17-e2e@example.test');
+  await form.locator('[name="phone"]').fill('07797001234');
+  await form.locator('[name="privacy"]').check();
+  await page.waitForFunction(() => document.querySelector('.apply [name="cf-turnstile-response"]')?.value, null, {timeout: 30000});
+  const response = page.waitForResponse(r => r.url().endsWith('/api/applicants') && r.request().method() === 'POST');
+  await next.click(); assert.equal((await response).status(), 201);
+  await page.locator('.apply .confirm').waitFor();
+  const records = JSON.parse(d1("SELECT a.id, a.operation, a.viewing_availability FROM applicants a JOIN contacts c ON c.id=a.contact_id WHERE c.email='reg17-e2e@example.test' ORDER BY a.operation"))[0].results;
+  const expected = [{day:1,start:'09:00',end:'11:00'},{day:3,start:'14:00',end:'16:00'}];
+  assert.equal(records.length, 2);
+  assert.deepEqual(records.map(r => r.operation), ['buy','rent']);
+  for (const record of records) assert.deepEqual(JSON.parse(record.viewing_availability), expected);
+  const {signSession, COOKIE} = await import('../server/auth.js');
+  await ctx.addCookies([{name:COOKIE,value:await signSession('admin@example.test',secret),domain:new URL(BASE).hostname,path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
+  await page.goto(BASE + `admin/#/applicants/${records[0].id}`);
+  const section = page.locator('section[aria-labelledby="viewing-availability-title"]');
+  await section.waitFor();
+  const fields = section.locator('fieldset');
+  assert.equal(await fields.count(), 2);
+  await fields.nth(0).getByLabel('Until').fill('12:00');
+  await page.getByRole('button', {name:'Save',exact:true}).click();
+  await page.getByText('Changes saved.').waitFor(); await page.reload(); await section.waitFor();
+  assert.equal(await fields.nth(0).getByLabel('Until').inputValue(), '12:00');
+  // Keyboard removal keeps focus in the form, including the disabled-at-21 boundary.
+  await fields.nth(0).getByRole('button',{name:'Remove option 1'}).focus(); await page.keyboard.press('Enter');
+  assert.equal(await page.evaluate(() => document.activeElement?.closest('fieldset')?.querySelector('legend')?.textContent), 'Time option 1');
+  await section.getByRole('button',{name:'Remove option 1'}).focus(); await page.keyboard.press('Enter');
+  assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Add time option');
+  await page.getByRole('button', {name:'Save',exact:true}).click(); await page.getByText('Changes saved.').waitFor();
+  await page.reload(); await section.waitFor(); assert.equal(await fields.count(), 0);
+  const after = JSON.parse(d1(`SELECT id, viewing_availability FROM applicants WHERE id IN (${records.map(r=>r.id).join(',')}) ORDER BY id`))[0].results;
+  assert.equal(after.find(r=>r.id === records[0].id).viewing_availability, null);
+  assert.deepEqual(JSON.parse(after.find(r=>r.id === records[1].id).viewing_availability), expected);
+  const panelAdd = section.getByRole('button',{name:'Add time option'});
+  for (let i=0;i<21;i++) await panelAdd.click();
+  assert.equal(await panelAdd.isDisabled(), true);
+  await section.getByRole('button',{name:'Remove option 21'}).focus(); await page.keyboard.press('Enter');
+  assert.equal(await page.evaluate(() => document.activeElement?.closest('fieldset')?.querySelector('legend')?.textContent), 'Time option 20');
+  assert.equal(await panelAdd.isEnabled(), true);
+  await ctx.close();
+}
+
 (async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROME});
-  try { await publicSite(browser); await listingUrls(browser); await admin(browser); console.log("e2e OK"); }
+  try { if (process.env.E2E_ONLY !== "reg17") { await publicSite(browser); await listingUrls(browser); await admin(browser); } await viewingAvailability(browser); console.log(process.env.E2E_ONLY === "reg17" ? "reg17 e2e OK" : "e2e OK"); }
   finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });
