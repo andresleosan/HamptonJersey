@@ -1,6 +1,6 @@
 # Estado de Hampton App
 
-Actualizado el 7-nov-2026. Orden vigente: [reconciliación funcional](2026-11-07-reconciliacion-automatizacion.md); detalle: [checklist](checklist-hampton-app.html); ciclo: [AVANZAR](AVANZAR.md). Base verificada con fetch: origin/main `9b8dbd41`. EST-09 y continuidad de PRE-12 publicados y activados el 7-nov-2026: migración 0024 aplicada y despliegues Pages/Worker correctos. La corrección de galería y controles está en origin/main `5d10220`; su despliegue no se volvió a consultar en este encargo.
+Actualizado el 7-nov-2026. Orden vigente: [reconciliación funcional](2026-11-07-reconciliacion-automatizacion.md); detalle: [checklist](checklist-hampton-app.html); ciclo: [AVANZAR](AVANZAR.md). Base remota verificada con fetch: origin/main `1a240597`; REG-17 integrado localmente y pendiente de publicación. EST-09 y continuidad de PRE-12 publicados y activados el 7-nov-2026: migración 0024 aplicada y despliegues Pages/Worker correctos. La corrección de galería y controles está en origin/main `5d10220`; su despliegue no se volvió a consultar en este encargo.
 
 Siguiente recomendado Codex: /avanzar AGE-04 · gpt-6.1-terra · high
 
@@ -136,9 +136,18 @@ Si el reloj o Hermes se paran, el botón Settings de la barra lleva un número e
 
 **Construido el 6-nov-2026** ([plan](../superpowers/plans/2026-11-06-hampton-app-listings-and-properties-page.md), [ledger](../superpowers/plans/2026-11-06-hampton-app-listings-and-properties-page-ledger.md); specs [SPR-06](../superpowers/specs/2026-11-05-hampton-app-listing-filters-design.md), [SPR-07](../superpowers/specs/2026-11-05-hampton-app-listing-tracking-design.md), [PUB-22](../superpowers/specs/2026-11-06-hampton-app-properties-page-design.md)). Migración 0021 (`listings.published_at`).
 - **Panel, Listings:** filtros Operation (To Buy, To Let, Business), Bedrooms From–To, Min y Max price (alquiler por mes) y Changed in the last 7 days; columnas Checked, Matched e Interested; «3 bed» en cada fila. Ya no se ordena la portada arrastrando filas: el orden es automático.
-- **Web:** el menú Properties abre `/properties`, solo con propiedades: tres botones grandes con foto (Rent, Buy, Businesses; diseño A elegido por Luis) y el catálogo mezclado debajo, que los botones filtran; el enlace guarda la elección. La portada enseña en **Properties** las 5 publicadas más recientemente que siguen en el mercado, con **View all properties**. Las direcciones antiguas de Wix del catálogo llevan a `/properties`.
+- **Web:** el menú Properties abre `/properties`, solo con propiedades: cuatro opciones con foto (Rent, Buy, Commercial e International); International filtra la región y mantiene el enlace compartible y el catálogo mezclado debajo, que los botones filtran; el enlace guarda la elección. La portada enseña en **Properties** las 5 publicadas más recientemente que siguen en el mercado, con **View all properties**. Las direcciones antiguas de Wix del catálogo llevan a `/properties`.
 - **Falta (SPR-07):** la fuente (Hampton o agencia), que llega con la búsqueda del mercado. Luis decidió el 6-nov que esa búsqueda la hará **Hermes, un agente, sin atarse a ninguna página**; queda por diseñar (cambia BUS-06, BUS-08, BUS-10, EST-16 y las demás tareas con el bloqueo «Clave API Places.je»).
 
+## Design pass de web y panel (6-nov-2026)
+
+**Integrado en origin/main mediante `8f31feb`, con International en `1a24059`; despliegue no comprobado en esta integración** ([plan](../superpowers/plans/2026-11-06-hampton-app-design-pass.md), [registro](../superpowers/plans/2026-11-06-hampton-app-design-pass-ledger.md)). Sin migraciones ni dependencias nuevas.
+- Portada y fotos de ficha con scroll-snap nativo: gesto táctil/trackpad, flechas y teclado, contador y sin autoplay. Una propiedad no muestra controles; una foto rota conserva el espacio y la reserva.
+- Títulos en sentence case, hechos separados, menos eyebrows, sin flechas decorativas ni tira de estadísticas. Featured solo con seis propiedades o más, máximo dos. Catálogo con zoom de imagen sin ensanchar los botones.
+- Panel con metadatos en spans, etiquetas legibles, rangos con guion corto, demanda de Insights en tabla accesible e informes impresos con cabecera sencilla.
+- La comprobación física en Safari/MacBook y la copia privada del checklist quedan pendientes; el entorno no dispone de las bibliotecas de WebKit ni de integración con claude.ai. Las comprobaciones automatizadas y sus resultados quedan en el registro.
+
+## Siguiente tarea
 ## Correo AUT-17: construcción y activación
 
 **AUT-17 y NOT-10: código desplegado, activación real del correo pendiente.** La publicación verificada de `aea7eb5` incluye esta construcción; la autorización histórica descrita a continuación correspondía a la fase local. Luis aprobó íntegramente el [diseño](../superpowers/specs/2026-11-06-hampton-app-email-design.md) y autorizó implementación, pruebas, revisión local y commit, sin publicar ni aplicar migraciones de producción ([plan](../superpowers/plans/2026-11-06-hampton-app-email.md), [ledger](../superpowers/plans/2026-11-06-hampton-app-email-ledger.md)).

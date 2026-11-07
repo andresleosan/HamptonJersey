@@ -108,13 +108,13 @@ const catalogQuery = f => {
   return String(q) ? `?${q}` : ""; // not q.size: Safari 16 has no size
 };
 // The filter /properties applies: only what its page shows. With few listings (no filters on the page) just the
-// operation; a max price only when it is one the page offers for that operation (max: the page's MAX lists).
+// operation and the International choice; a max price only when offered for that operation.
 function catalogFilter(search, full, max) {
   const f = readCatalogQuery(search);
-  if (!full) return {op: f.op, region: "all", beds: 0, max: 0};
+  if (!full) return {op: f.op, region: f.region === "international" ? f.region : "all", beds: 0, max: 0};
   return {...f, max: (max[f.op] || []).includes(f.max) ? f.max : 0};
 }
-// The big button's photo: the newest listing of that operation, or null (the page then uses its own photo).
-const buttonPhoto = (pub, op) => [...pub].sort(newestFirst).find(p => p.operation === op)?.image ?? null;
+// The category photo: newest matching operation, or international region, with the page fallback if absent.
+const buttonPhoto = (pub, op) => [...pub].sort(newestFirst).find(p => op === "international" ? p.region === op : p.operation === op)?.image ?? null;
 
 if (typeof module === "object") module.exports = {newestFirst, homePicks, readCatalogQuery, catalogQuery, catalogFilter, buttonPhoto, shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, matches, comparables, pmt};

@@ -41,7 +41,7 @@ export default function MatchCard({ match, onReview, busy, disabled = null, shor
         <h3 id={`match-${match.id}`} tabIndex={-1}><a href={`#/p/${l.id}`}>{title}</a></h3>
         <span className="score num">Score {match.score}</span>
       </div>
-      <p className="muted">{meta.join(" · ")}</p>
+      <p className="meta">{meta.map((fact, i) => <span key={i}>{fact}</span>)}</p>
       <p className="match-price"><span className="num">{priceText(l)}</span>
         {offSite && <span className="badge neutral">Not on website</span>}
         {!OFFERED.includes(l.availability) && <span className={`badge ${AVAILABILITY_TONE[l.availability] ?? "neutral"}`}>{AVAILABILITY[l.availability] ?? l.availability}</span>}</p>
@@ -59,7 +59,7 @@ export default function MatchCard({ match, onReview, busy, disabled = null, shor
             onClick={() => (rejecting ? cancel() : setRejecting(true))}>Reject<span className="sr"> {title}</span>{hint("R")}</button>
           {children}
         </> : <button type="button" className="btn ghost sm" disabled={off} title={why} onClick={() => review("found")}>
-          Undo<span className="sr"> · move {title} back to Found</span></button>}
+          Undo<span className="sr">, move {title} back to Found</span></button>}
       </div>
       {rejecting && match.status === "found" && <div className="inline reasons" role="group" aria-label={`Why reject ${title}?`}
         onKeyDown={e => { if (e.key === "Escape") { e.preventDefault(); cancel(); } }}>

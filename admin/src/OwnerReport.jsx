@@ -71,10 +71,9 @@ function Report({ d, preparedFor, notes, withNotes }) {
     <header className="report-head">
       <div className="firm"><p className="firm-name">Hampton Estates</p>
         <address>42 Bath Street, St Helier, Jersey JE2 4ST<br /><span className="num">01534 727582</span></address></div>
-      <p className="eyebrow">Property marketing report</p>
       <h2 id="h-report">{l.title}</h2>
-      <p className="report-sub"><span className="price">{price(l)}</span>
-        {l.availability && l.availability !== "not_stated" && ` · ${AVAILABILITY[l.availability] ?? l.availability}`} · Ref. {l.id}</p>
+      <p className="report-sub"><span className="meta"><span className="price">{price(l)}</span>
+        {l.availability && l.availability !== "not_stated" && <span>{AVAILABILITY[l.availability] ?? l.availability}</span>}<span>Ref. {l.id}</span></span></p>
       <dl className="report-facts">
         <div><dt>Period</dt><dd>{day(period.from)} to {day(period.to)} ({period.days} days)</dd></div>
         <div><dt>Prepared</dt><dd>{longDay(period.to)}</dd></div>
@@ -140,7 +139,7 @@ function Report({ d, preparedFor, notes, withNotes }) {
     {offers && <section className="report-block" aria-labelledby="h-sale">
       <h3 id="h-sale">Sale</h3>
       {!sale ? <p className="report-empty">No sale agreed yet.</p>
-        : sale.status === "completed" ? <p className="report-lead">Sold · agreed {money(sale.agreed_price)} · completed {day(sale.completed_on)}</p>
+        : sale.status === "completed" ? <p className="report-lead"><span className="meta"><span>Sold</span><span>Agreed {money(sale.agreed_price)}</span><span>Completed {day(sale.completed_on)}</span></span></p>
         : <>
           <p className="report-lead">Sale agreed at {money(sale.agreed_price)}, in progress.</p>
           {sale.milestones.length ? <ol className="steps">{sale.milestones.map(m =>

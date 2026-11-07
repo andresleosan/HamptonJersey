@@ -156,7 +156,7 @@ function Proposal({ item, onClose }) {
         <dd>{show ? show(values[k]) : values[k]}{r.sources?.[k] && <small className="muted"> · from {r.sources[k]}</small>}</dd></div>)}</dl>
         : <p className="warn">Hermes found no details. The draft gets the title only.</p>}
       {r.conflicts?.length > 0 && <div className="warn" role="note"><p>The documents disagree:</p><ul>{r.conflicts.map(c => <li key={c.field}>
-        {LABEL[c.field] ?? c.field}: {c.values.map(v => `${v.value} (${v.document})`).join(" · ")}</li>)}</ul></div>}
+        {LABEL[c.field] ?? c.field}: <span className="meta">{c.values.map((v, i) => <span key={i}>{v.value} ({v.document})</span>)}</span></li>)}</ul></div>}
       {warnings.length > 0 && <div className="warn"><p>Check:</p><ul>{warnings.map(w => <li key={w}>{w}</li>)}</ul></div>}
       <h2>Photos{r.photos_folder ? ` from "${r.photos_folder}"` : ""}</h2>
       {r.photos.length ? <ol className="queue-photos">{r.photos.map(p => <li key={p.id}>

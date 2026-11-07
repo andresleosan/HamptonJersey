@@ -74,10 +74,14 @@ function Report({ d }) {
       <h3>Top unmet requests</h3>
       <p className="muted">Active applicants without a match, by what they ask for, most asked first. The rows don't add up:
         someone who wants several parishes is in each.</p>
-      {unmet.length ? <ol className="unmet">{unmet.map(u =>
-        <li key={`${u.operation} ${u.parish} ${u.bedrooms_min}`}><strong>{plural(u.applicants, "applicant")}</strong>
-          {" · "}{u.operation === "rent" ? "Rent" : "Buy"} · {u.parish} · {u.bedrooms_min == null ? "Any bedrooms" : `${u.bedrooms_min}+ bedrooms`}
-          {" · "}{u.median_budget == null ? "no budget given" : `median budget ${budget(u.median_budget, u.operation)}`}</li>)}</ol>
+      {unmet.length ? <div className="table-scroll" role="region" aria-label="Top unmet requests" tabIndex={0}><table className="list" aria-label="Top unmet requests">
+        <thead><tr><th scope="col">Parish</th><th scope="col">Operation</th><th scope="col">Bedrooms</th>
+          <th scope="col" className="num">Median budget</th><th scope="col" className="num">Applicants</th></tr></thead>
+        <tbody>{unmet.map(u => <tr key={`${u.operation} ${u.parish} ${u.bedrooms_min}`}>
+          <th scope="row">{u.parish}</th><td>{u.operation === "rent" ? "Rent" : "Buy"}</td>
+          <td>{u.bedrooms_min == null ? "Any bedrooms" : `${u.bedrooms_min}+ bedrooms`}</td>
+          <td className="num">{budget(u.median_budget, u.operation)}</td><td className="num">{n(u.applicants)}</td>
+        </tr>)}</tbody></table></div>
         : <p className="empty card">{[...demand.rent, ...demand.buy].some(r => r.applicants > 0)
           ? "Every active applicant has a found or shortlisted match on an available listing." : "No active applicants."}</p>}
     </section>

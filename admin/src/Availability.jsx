@@ -5,8 +5,8 @@ import { fmtDay } from "./format.js";
 import { WEEKDAYS, DEFAULT_HOURS, SLOT_MINUTES, jerseyToday } from "../../server/viewings.js";
 
 const DAY = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
-const exceptionText = e => (e.kind === "open" ? `Open ${e.start_time}–${e.end_time}`
-  : e.start_time ? `Blocked ${e.start_time}–${e.end_time}` : "Blocked all day");
+const exceptionText = e => (e.kind === "open" ? `Open ${e.start_time}-${e.end_time}`
+  : e.start_time ? `Blocked ${e.start_time}-${e.end_time}` : "Blocked all day");
 // A day off keeps the times it had (else the office's usual ones), so turning it back on doesn't start from blank.
 const usual = d => DEFAULT_HOURS[d] ?? DEFAULT_HOURS.mon;
 const toWeek = hours => Object.fromEntries(WEEKDAYS.map(d => [d,

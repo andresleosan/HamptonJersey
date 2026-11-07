@@ -27,6 +27,6 @@ export default function Login({ onSignedIn, title = "Hampton Estates admin", not
       <button type="button" className="btn" onClick={go} disabled={state.busy} autoFocus={!home}>{state.busy ? "Signing in…" : "Sign in with Google"}</button>
       {state.error && <p role="alert" className="err">{state.error}</p>}
     </>}
-    {home && <a href="/" className="home">← Back to the website</a>}
+    {home && <a href="/" className="home">Back to the website</a>}
   </section>;
 }

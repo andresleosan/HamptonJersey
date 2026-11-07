@@ -163,3 +163,13 @@ test("catalog filter: few listings keep only the operation; a max not on offer i
   assert.deepEqual(L.catalogFilter("?op=rent&max=1", true, MAX), {op: "rent", region: "all", beds: 0, max: 0}, "1 is not in the list");
   assert.deepEqual(L.catalogFilter("?max=2500", true, MAX), {op: "all", region: "all", beds: 0, max: 0}, "a max needs an operation");
 });
+
+
+test("International catalogue choice survives a shared link with few listings", () => {
+  assert.deepEqual(L.catalogFilter("?region=international", false, {}), {op: "all", region: "international", beds: 0, max: 0});
+});
+test("International button uses the newest international property, regardless of operation", () => {
+  const list = [at("HE-R009", "2026-11-05T10:00:00Z", {region: "jersey", image: "/media/J"}),
+    at("HE-I001", "2026-11-04T10:00:00Z", {region: "international", operation: "rent", image: "/media/I"})];
+  assert.equal(L.buttonPhoto(list, "international"), "/media/I");
+});
