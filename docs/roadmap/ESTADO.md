@@ -6,6 +6,8 @@ Siguiente recomendado Codex: /avanzar EST-09 · gpt-6-astra · xhigh
 
 Siguiente recomendado: /avanzar AUT-17 · claude-opus-5-5 · high
 
+Arranque de `/avanzar`, 7-nov-2026: añadida comprobación obligatoria del repositorio canónico antes de leer el roadmap, con clon inicial, fetch, comparación de commits y actualización segura. Conserva tareas pendientes, ramas ajenas, candado de Hermes y aprobación por SHA. Instrucciones locales de VPS y ambos Hermes verificadas; publicación de esta norma pendiente y PC local no accesible en esta sesión. Véase [AVANZAR](AVANZAR.md).
+
 | Fase | Estado | Spec | Plan | Pendiente |
 |---|---|---|---|---|
 | F0 Cimientos · Entrega 1 (panel: Inbox, aplicantes, ficha, alta, borrado, nombres del equipo) | **En producción desde el 23-oct-2026** (commit `ef28568`; Luis comprobó Inbox y Applicants en `/admin/`) | [spec F0](../superpowers/specs/2026-10-23-hampton-app-f0-design.md) | [plan F0](../superpowers/plans/2026-10-23-hampton-app-f0.md), tareas 1–10 | Menores aplazados: ver el [registro de la ejecución](../superpowers/plans/2026-10-23-hampton-app-f0-ledger.md) (líneas «minor (deferred)») |

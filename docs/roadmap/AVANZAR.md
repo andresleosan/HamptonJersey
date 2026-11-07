@@ -6,6 +6,10 @@ La [skill versionada](../../.agents/skills/avanzar/SKILL.md) contiene el procedi
 
 ## Contexto de cada tarea
 
+**Primero GitHub, en VPS, Hermes1/Hermes2 y PC/VS Code:** aplicar «Primero: verificar y alinear con GitHub» de la skill. Origen canónico `https://github.com/andresleosan/HamptonJersey.git`, rama main. Clonar si falta; fetch y comparación real si existe; fast-forward solo para main limpio atrasado. Conservar cambios/commits de la tarea al retomar. Para ramas o trabajo ajenos, copia aislada si el entorno la permite; en Hermes prevalecen candado y clon obligatorio. Sin red no declarar sincronización. Leer después la skill y los documentos de la copia verificada. Esto no publica ni transfiere cambios privados sin subir.
+
+Una instalación en otro equipo necesita poder descubrir `/avanzar` o `$avanzar` una primera vez. Las copias de arranque deben contener esta comprobación y remitir a la skill versionada, sin mantener otra política independiente. Publicar la skill en GitHub no acredita que ya se haya actualizado una instalación inaccesible; registrar cuáles se comprobaron.
+
 Leer [ESTADO](ESTADO.md), [checklist](checklist-hampton-app.html), [reconciliación y orden de automatización](2026-11-07-reconciliacion-automatizacion.md), [arquitectura](2026-10-23-arquitectura-hampton-app.md), spec/plan de la tarea y [DESIGN.md](../../DESIGN.md). Contrastar la documentación con código y pruebas; separar lo construido de lo que espera configuración, autorización o un proveedor externo.
 
 El texto original de Luis y el relevo privado permanecen fuera de Git. Los requisitos públicos pueden resumirse sin copiar datos personales, credenciales ni el documento privado completo.
