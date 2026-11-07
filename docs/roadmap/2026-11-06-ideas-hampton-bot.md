@@ -1,5 +1,7 @@
 # Ideas: «Hampton Bot», el empleado de IA de Hampton (chat web + panel + Telegram) — 2026-11-06
 
+> Vigencia 7-nov-2026: ideas y fases de Hampton Bot conservadas. Cuando afecten a búsquedas, criterios, contactos, visitas o cierre, prevalece la [reconciliación funcional](2026-11-07-reconciliacion-automatizacion.md). Las propuestas de este documento no sustituyen la aprobación humana ni autorizan mensajes, cambios de criterios o cierres automáticos.
+
 > Documento de ideas, no un spec aprobado: lo que se construya pasa antes por /brainstorming y su spec. Salió de cinco propuestas independientes, quince críticas adversariales, una síntesis y una revisión (6-nov-2026). Ya incorpora las decisiones de Luis de ese día: nombre visible «Hampton Bot»; bot de Telegram nuevo (Hermes 2 y @Carl_Bro_001_bot no cambian); correo con Cloudflare Email Service (AUT-17, P-19).
 
 ## 0. En una página

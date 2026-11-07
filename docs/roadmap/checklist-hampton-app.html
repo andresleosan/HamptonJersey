@@ -50,7 +50,7 @@
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1rem/1.55 var(--f-body); }
+body { overflow-wrap: anywhere; margin: 0; background: var(--paper); color: var(--ink); font: 400 1rem/1.55 var(--f-body); }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
 a { color: var(--accent); text-underline-offset: 2px; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -180,8 +180,9 @@ main.wrap { padding-block: 8px 56px; }
   <div class="wrap">
     <p class="kicker">Hampton App · seguimiento</p>
     <h1>Checklist</h1>
-    <p class="lead">Qué está hecho y qué falta de tu texto «Hampton APP» y del plan de arquitectura del 23-oct, comprobado punto por punto contra el código que está en producción.</p>
-    <p class="fuentes">Plan: <a href="2026-10-23-arquitectura-hampton-app.html">Arquitectura Hampton App</a> · Estado por fase: <a href="ESTADO.md">ESTADO.md</a> · Actualizado el <span id="fecha"></span> · Código comprobado: <code id="base"></code></p>
+    <p class="lead">Qué existe, qué sigue parcial y qué falta tras reconciliar el plan de arquitectura con la especificación de automatización del 6-nov. El estado refleja el código revisado; la documentación nueva no acredita funcionalidad ni despliegue.</p>
+    <p class="fuentes">Plan: <a href="2026-10-23-arquitectura-hampton-app.html">Arquitectura Hampton App</a> · Recorrido vigente: <a href="2026-11-07-reconciliacion-automatizacion.md">Reconciliación de automatización · módulos y decisiones abiertas</a> · Estado por fase: <a href="ESTADO.md">ESTADO.md</a> · Actualizado el <span id="fecha"></span> · Código revisado: <code id="base"></code></p>
+    <p class="fuentes">Orden vigente: M03 base de búsqueda y conservación (EST-09 + PRE-12); M01 directorio (BUS-21 → BUS-22 → BUS-23, secuenciales); M02 inventario; M04 criterios y revisión. M13a tareas y M12a exclusión de no disponibles preceden a activar M05 barrido y M06 consultas. Después M07 archivos, M08 presentación, M09 visitas, M10 revisión interna de 21 días y M11 dictado; M12b purga de archivos y AUT-20 validación integral cierran el recorrido. El plan enlazado precisa qué puede adelantarse.</p>
   </div>
 </header>
 
@@ -210,7 +211,7 @@ main.wrap { padding-block: 8px 56px; }
 
 <div class="toolbar">
   <div class="wrap">
-    <input type="search" id="q" placeholder="Buscar: visitas, Places.je…" aria-label="Buscar en el checklist">
+    <input type="search" id="q" placeholder="Buscar: visitas, fuentes, EST-09…" aria-label="Buscar en el checklist">
     <div class="chips" id="chips" role="group" aria-label="Estados que se muestran"></div>
     <button type="button" class="btn" id="falta">Solo lo que falta</button>
     <span class="campo">
@@ -241,9 +242,9 @@ main.wrap { padding-block: 8px 56px; }
   <div class="wrap">
     <div>
       <h2>Cómo se actualiza</h2>
-      <p>Los puntos viven en este mismo archivo, en el bloque <code>datos</code> del final. Para cerrar uno, cambia su <code>"estado"</code>, ajusta <code>"hecho"</code> y <code>"falta"</code> y pon la fecha en <code>"actualizado"</code>. También puedes pedírselo a Claude con el código del punto, por ejemplo «marca VIS-04 como hecho».</p>
-      <p>Cada tarea que se termine con Claude actualiza este archivo en el mismo commit, así el checklist no se queda atrás.</p>
-      <p>«Tu texto» son los requisitos del documento «Hampton APP»; «Plan» es lo que añadió el plan de arquitectura. «Mueve» dice quién tiene que actuar para que el punto avance.</p>
+      <p>Los puntos viven en este mismo archivo, en el bloque <code>datos</code> del final. Para cerrar uno, cambia su <code>"estado"</code>, ajusta <code>"hecho"</code> y <code>"falta"</code> y pon la fecha en <code>"actualizado"</code>. Usa /avanzar con el código del punto; solo se marca hecho con evidencia de construcción, comprobaciones y publicación.</p>
+      <p>Cada tarea que se termine con Codex o Claude, desde la VPS o Hermes, actualiza este archivo en el mismo commit, así el checklist no se queda atrás.</p>
+      <p>«Tu texto» incluye los requisitos funcionales de Luis; «Plan» incluye su implementación y comprobaciones. La reconciliación del 7-nov registra la especificación vigente. «Mueve» dice quién tiene que actuar para que el punto avance.</p>
     </div>
     <div>
       <h2>Estados</h2>
@@ -299,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const FASES = [
     { k: 'F0', n: 'Cimientos: aplicantes, avisos y registro' },
     { k: 'F1-A', n: 'Matching con las fichas de Hampton' },
-    { k: 'F1-B', n: 'Inventario del mercado (Places.je)' },
+    { k: 'F1-B', n: 'Directorio e inventario común del mercado' },
     { k: 'F2', n: 'Agencias y portal del aplicante' },
     { k: 'F3-A', n: 'Visitas con huecos reales' },
     { k: 'F3-B', n: 'Calendario, recordatorios y después de la visita' },
@@ -485,8 +486,8 @@ document.addEventListener('DOMContentLoaded', () => {
      "vence" (opcional, AAAA-MM-DD) saca el punto arriba con la cuenta atrás. -->
 <script type="application/json" id="datos">
 {
- "actualizado": "2026-11-06",
- "base": "127c7ef",
+ "actualizado": "2026-11-07",
+ "base": "246300e",
  "items": [
   {
    "id": "NOT-01",
@@ -497,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Inbox se refresca cada 30 s mientras la pestaña está visible y la barra muestra su contador; recibe avisos de aplicantes nuevos, registros repetidos, altas del equipo (al Feed), solicitudes de visita de la web y matches nuevos. Sales, Rentals, Applicants (expiring) y, desde el 30-oct-2026, Listings (fichas por confirmar, ADM-04) tienen su propio número en la barra.",
-   "falta": "Avisos en Inbox para el resto de eventos: visitas reservadas por el equipo, ofertas e hitos de venta, y atrasos, plazos y reparaciones de alquiler (estos solo suman en los contadores Sales y Rentals), las fichas por confirmar (solo suman en el de Listings: llevarlas al Inbox obliga a rehacer las tablas events y notifications, cuyos CHECK no admiten fichas) y los demás cambios de fichas (no avisan en ningún sitio); y la notificación del navegador para lo urgente (§5.1), que no existe.",
+   "falta": "M13 · Reconciliación 7-nov: Avisos en Inbox para el resto de eventos: visitas reservadas por el equipo, ofertas e hitos de venta, y atrasos, plazos y reparaciones de alquiler (estos solo suman en los contadores Sales y Rentals), las fichas por confirmar (solo suman en el de Listings: llevarlas al Inbox obliga a rehacer las tablas events y notifications, cuyos CHECK no admiten fichas) y los demás cambios de fichas (no avisan en ningún sitio); y la notificación del navegador para lo urgente (§5.1), que no existe. Añadir los eventos de este recorrido: MUST desconocido, fuente fallida, llamada a los dos días, respuesta útil, captura completa/parcial con Abrir ficha, confirmaciones de visita, indisponibilidad, revisión interna del día 21 y propuesta dictada. Cada aviso lleva responsable, contexto y enlace, y se actualiza al llegar nuevos datos. Depende de: NOT-11, EST-18.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Inbox.jsx:38-39",
@@ -511,7 +512,13 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/routes/rent.js:102-115",
     "server/routes/inbox.js:55-76",
     "server/routes/notifications.js:47-48",
-    "migrations/0008_applicants.sql:63"
+    "migrations/0008_applicants.sql:63",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M13",
+   "deps": [
+    "NOT-11",
+    "EST-18"
    ]
   },
   {
@@ -644,13 +651,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Existe la pestaña Viewings: cada solicitud de visita de la web llega como aviso Needs action con Open viewings.",
-   "falta": "Compliance (los plazos vencidos solo salen en Rentals › Checks and deadlines), Agency replies (respuestas de agencias, F2) y Messages (bandeja unificada, F6).",
-   "bloqueo": "Correo (AUT-17) · Trámite Meta",
+   "falta": "M13 · Reconciliación 7-nov: Compliance (los plazos vencidos solo salen en Rentals › Checks and deadlines), Agency replies (respuestas de agencias, F2) y Messages (bandeja unificada, F6). Incorporar consultas, llamadas, captura, fuentes pendientes, día 21 y dictado con enlaces a su gestión; evitar una bandeja separada sin relación con la ficha común. Depende de: NOT-11, EST-18. El inbox y las tareas manuales pueden construirse antes de activar correo o Meta; esos accesos solo afectan sus respectivos canales reales.",
+   "bloqueo": "Activación del correo para respuestas reales · Meta solo para sus canales",
    "evidencia": [
     "admin/src/Inbox.jsx:7",
     "server/routes/public.js:72-74",
     "migrations/0009_matches.sql:49",
-    "admin/src/Rentals.jsx:96-104"
+    "admin/src/Rentals.jsx:96-104",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M13",
+   "deps": [
+    "NOT-11",
+    "EST-18"
    ]
   },
   {
@@ -662,11 +675,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Cada aviso trae Done, Call con el número a la vista y el enlace a su ficha (Open applicant, Review matches, Open viewings o Add a search for this contact).",
-   "falta": "Approve sin salir del aviso, Reply y Snooze para posponerlo.",
+   "falta": "M13 · Reconciliación 7-nov: Approve sin salir del aviso, Reply y Snooze para posponerlo. Aprobar match debe autorizar la consulta definida, Call muestra todos los teléfonos y registra resultado, Abrir ficha muestra archivos parciales, y confirmar dictado enseña antes/después. Done no sustituye confirmación de disponibilidad ni cierre de búsqueda. Depende de: BUS-15, AGE-08, SPR-03, AUT-19.",
    "bloqueo": "Correo (AUT-17) · Trámite Meta",
    "evidencia": [
     "admin/src/Inbox.jsx:19-21",
-    "admin/src/Inbox.jsx:81-95"
+    "admin/src/Inbox.jsx:81-95",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M13",
+   "deps": [
+    "BUS-15",
+    "AGE-08",
+    "SPR-03",
+    "AUT-19"
    ]
   },
   {
@@ -697,12 +718,16 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "La tabla notifications no tiene destinatario, due_at ni leído: los avisos son comunes a todo el equipo (decisión A9 de F0) y no hay preferencias por persona de qué avisos recibir ni por qué canal.",
+   "falta": "M13 · Reconciliación 7-nov: La tabla notifications no tiene destinatario, due_at ni leído: los avisos son comunes a todo el equipo (decisión A9 de F0) y no hay preferencias por persona de qué avisos recibir ni por qué canal. Definir identidad de tarea y coordinación entre empleados: responsable, causa, vencimiento y enlace directo; una respuesta nueva actualiza la tarea antigua. Reclamar/completar/reintentar sin duplicados; preservar historial. No crear una tarea diaria repetida para el top 20 sin una cadencia decidida. Aceptación: Dos empleados actuando sobre la misma gestión dejan una acción y una tarea coherentes; una respuesta recibida retira o actualiza la llamada pendiente.",
    "bloqueo": "",
    "evidencia": [
     "migrations/0009_matches.sql:46-54",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:35"
-   ]
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:35",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M13",
+   "deps": [],
+   "criterio_aceptacion": "Dos empleados actuando sobre la misma gestión dejan una acción y una tarea coherentes; una respuesta recibida retira o actualiza la llamada pendiente."
   },
   {
    "id": "SAP-01",
@@ -855,31 +880,45 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Se puede reservar por teléfono en Viewings › New viewing (huecos reales por negociador, confirmada al momento), que puede abrirse con la casa ya elegida (?listing=), pero no desde la ficha del aplicante ni con sus datos puestos.",
-   "falta": "Book viewing en la ficha con sus datos y la casa del match ya puestos, y Send shortlist para mandarle su lista por el portal del aplicante (F2) o por correo.",
-   "bloqueo": "Correo (AUT-17)",
+   "falta": "M08/M09 · Reconciliación 7-nov: Enlazar la ficha del aplicante y el match con la presentación privada AGE-11 y coordinación VIS-17, reutilizando contacto y franjas. En propiedades externas, Book viewing inicia propuesta y confirmaciones; nunca presenta la reserva de un hueco local como aceptación del anunciante. Depende de: AGE-11, VIS-17.",
+   "bloqueo": "",
    "evidencia": [
     "admin/src/ApplicantDetail.jsx:278-283",
     "admin/src/Viewings.jsx:132",
     "admin/src/Viewings.jsx:291-293",
-    "server/routes/inbox.js:55-76"
+    "server/routes/inbox.js:55-76",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M08/M09",
+   "deps": [
+    "AGE-11",
+    "VIS-17"
    ]
   },
   {
    "id": "SAP-10",
    "seccion": "Seguimiento · Aplicantes",
-   "titulo": "Acciones rápidas Pause search y Widen criteria en la ficha del aplicante",
+   "titulo": "Cambios de criterios confirmados por el equipo; pausa pendiente de definición",
    "origen": "plan",
    "fase": "F1-A",
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "El selector Stage de la ficha permite poner la búsqueda en Paused con Apply. Desde el 6-nov-2026, Widen criteria (BUS-17): con menos de 3 casas, la pestaña Matches enseña cuántas casas más saldrían con un 10 % más de presupuesto, una parroquia más o un dormitorio menos, y «Use this» rellena el cambio sin guardar.",
-   "falta": "Un botón Pause search que la detenga (hoy una búsqueda Paused sigue activa: recibe matches y avisos).",
+   "falta": "M10 · Reconciliación 7-nov: Conservar Use this como propuesta que no guarda y requerir confirmación humana tras hablar con el cliente; no aplicar cambios por click en interés o por dictado sin confirmar. El top 20 de BUS-17 permanece interno. El antiguo botón para detener por Paused queda fuera de este alcance hasta decidir pausa/retirada; no añadir pausa por inactividad y mantener la búsqueda hasta resolución expresa EST-09. Depende de: BUS-17, AUT-19, EST-09. Aceptación: Ver una alternativa o pulsar Use this no altera la búsqueda guardada ni termina su actividad.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/ApplicantDetail.jsx:288-293",
     "server/applicants.js:35-39",
-    "server/match-store.js:110-118"
-   ]
+    "server/match-store.js:110-118",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M10",
+   "deps": [
+    "BUS-17",
+    "AUT-19",
+    "EST-09"
+   ],
+   "criterio_aceptacion": "Ver una alternativa o pulsar Use this no altera la búsqueda guardada ni termina su actividad."
   },
   {
    "id": "SPR-01",
@@ -908,33 +947,46 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "La ficha enseña sus ofertas con su resultado, enlaza sus visitas (Active interest) y el botón Owner report resume interés, visitas y ofertas por periodo.",
-   "falta": "Una sección History con todo lo que le pasa a la ficha (alta, cambios de precio y de disponibilidad, publicación, archivado, matches, visitas, ofertas): las rutas de fichas no escriben eventos y events no admite listing.",
+   "falta": "M13 · Reconciliación 7-nov: Una sección History con todo lo que le pasa a la ficha (alta, cambios de precio y de disponibilidad, publicación, archivado, matches, visitas, ofertas): las rutas de fichas no escriben eventos y events no admite listing. Conservar observaciones de fuente, confirmaciones humanas, capturas, consultas, llamadas y cambios por operación con su evidencia y fecha; el historial permanece accesible tras purgar archivos. Depende de: EST-18.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/ListingEditor.jsx:25-26",
     "admin/src/ListingEditor.jsx:143-153",
     "admin/src/ListingEditor.jsx:226-232",
     "server/routes/listings.js:1-5",
-    "migrations/0008_applicants.sql:63"
+    "migrations/0008_applicants.sql:63",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M13",
+   "deps": [
+    "EST-18"
    ]
   },
   {
    "id": "SPR-03",
    "seccion": "Seguimiento · Propiedades",
-   "titulo": "Copia completa de la ficha en el momento en que se confirma la disponibilidad",
+   "titulo": "Captura tras disponibilidad confirmada, ficha compartida y descargas",
    "origen": "texto",
    "fase": "F2",
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No existe la tabla availability_snapshots ni el paso Availability confirmed: falta guardar la ficha completa y la respuesta de la agencia el día que se confirma la disponibilidad (EST-13).",
+   "falta": "M07 · Reconciliación 7-nov: Al confirmar disponibilidad por correo útil o llamada registrada, enriquecer una ficha común con datos completos y fotos originales, URL, fecha y evidencia. Captura completa/parcial/fallida visible y reintentos sin duplicados; no afirmar éxito si falta algún archivo. Crear tarea Abrir ficha para revisar, corregir, ver incumplimientos/datos pendientes, abrir origen y descargar fotos individuales, selección o ZIP y datos en formato a concretar. La misma ficha sirve a varios clientes; las versiones aptas para el cliente se gestionan en AGE-10. Depende de: AGE-06, BUS-10, EST-13. Aceptación: Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:96",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:159",
     "admin/src/ListingEditor.jsx:25-26",
-    "migrations/0001–0015: ninguna crea availability_snapshots"
-   ]
+    "migrations/0001–0015: ninguna crea availability_snapshots",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M07",
+   "deps": [
+    "AGE-06",
+    "BUS-10",
+    "EST-13"
+   ],
+   "criterio_aceptacion": "Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos."
   },
   {
    "id": "SPR-04",
@@ -996,12 +1048,18 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Construido el 6-nov-2026 (sin migración; spec docs/superpowers/specs/2026-11-05-hampton-app-listing-tracking-design.md). La lista de Listings tiene tres columnas nuevas: Checked («12 days ago», desde la última confirmación), Matched (aplicantes con match, los mismos que la ficha) e Interested (el interés activo, con la regla de la web). Filtros Min price y Max price en £ (venta y negocio por el precio total; alquiler por la renta al mes, pasando la semanal o anual a mensual) y la casilla Changed in the last 7 days (cualquier cambio guardado). La ficha sigue mostrando Active interest y Matched applicants.",
-   "falta": "La fuente (Hampton o agencia), en columna y en filtro: llegará con la búsqueda del mercado. Luis decidió el 6-nov-2026 que esa búsqueda la hará Hermes, un agente, sin atarse a ninguna página; queda por diseñar. «Cambió en los últimos 7 días» podrá afinarse a precio y disponibilidad cuando exista el historial de la ficha (SPR-02).",
-   "bloqueo": "Búsqueda del mercado con Hermes",
+   "falta": "M02 · Reconciliación 7-nov: La fuente (Hampton o agencia), en columna y en filtro: llegará con la búsqueda del mercado. Luis decidió el 6-nov-2026 que esa búsqueda la hará Hermes, un agente, sin atarse a ninguna página; queda por diseñar. «Cambió en los últimos 7 días» podrá afinarse a precio y disponibilidad cuando exista el historial de la ficha (SPR-02). Distinguir la última observación web de la confirmación comercial con evidencia: Checked/confirmed_at del catálogo se refresca también al publicar o cambiar precio y no acredita por sí solo disponibilidad del anunciante. Fuentes y filtros se completan con el inventario común. Depende de: BUS-10, EST-16.",
+   "bloqueo": "",
    "evidencia": [
     "admin/src/Listings.jsx",
     "server/routes/listings.js",
-    "tests/server/listings-list.test.mjs"
+    "tests/server/listings-list.test.mjs",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M02",
+   "deps": [
+    "BUS-10",
+    "EST-16"
    ]
   },
   {
@@ -1013,14 +1071,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "La ficha ya tiene Details, Price, Description, Photos, Offers y Matched applicants; Active interest abre Viewings filtrado por esa casa, y Research (solo lectura) enseña las fuentes de la investigación importada con el estado, el precio y la fecha vistos, congelados.",
-   "falta": "Las secciones Viewings dentro de la ficha, Notes internas y Adverts al día (todos los anuncios de la casa en cada fuente con su precio, para ver las bajadas).",
-   "bloqueo": "Clave API Places.je",
+   "falta": "M02/M07 · Reconciliación 7-nov: Las secciones Viewings dentro de la ficha, Notes internas y Adverts al día (todos los anuncios de la casa en cada fuente con su precio, para ver las bajadas). Relacionar todas las publicaciones/anunciantes con su origen, fecha y precio; mostrar confirmaciones, archivos completos/parciales y notas humanas. Se apoya en el directorio multifuente, sin bloqueo obligatorio por Places.je. Depende de: BUS-10, SPR-03, EST-18.",
+   "bloqueo": "",
    "evidencia": [
     "admin/src/ListingEditor.jsx:25-26",
     "admin/src/ListingEditor.jsx:143",
     "admin/src/App.jsx:99-100",
     "admin/src/Research.jsx:21",
-    "migrations/0001_init.sql:71-75"
+    "migrations/0001_init.sql:71-75",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M02/M07",
+   "deps": [
+    "BUS-10",
+    "SPR-03",
+    "EST-18"
    ]
   },
   {
@@ -1032,110 +1097,157 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "replanteado",
    "responsable": "—",
    "hecho": "",
-   "falta": "El plan cambia el enfoque (§11, «cambia»): en vez de un correo por aplicante sale una sola consulta por casa con todos sus aplicantes, agrupada por agencia y enviada a horas fijas. Se sustituye por AGE-03 y AGE-05.",
+   "falta": "M06 · Reconciliación 7-nov: Se concreta en AGE-03: tras aprobación humana, crear o reutilizar una consulta general por propiedad y operación. Los interesados conservan sus condiciones y visitas separadas; no se suman hogares en el mensaje ni se exige comisión acordada.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:653",
-    "docs/roadmap/ESTADO.md:10"
-   ]
+    "docs/roadmap/ESTADO.md:10",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M06",
+   "deps": []
   },
   {
    "id": "AGE-02",
    "seccion": "Agencias y portal del aplicante",
-   "titulo": "Preguntar a la agencia si comparte la comisión por traerle un cliente",
+   "titulo": "Comisión tratada personalmente, separada del contacto inicial",
    "origen": "texto",
    "fase": "F2",
    "estado": "replanteado",
    "responsable": "—",
    "hecho": "",
-   "falta": "El plan cambia el enfoque (§11, «cambia»; P-04): la comisión se negocia una sola vez con cada agencia y queda guardada, en lugar de preguntarla en cada correo. Se sustituye por AGE-04.",
+   "falta": "M06 · Reconciliación 7-nov: La comisión queda como conversación y gestión humana separada en AGE-04. No aparece en el primer contacto ni se negocia automáticamente, y no condiciona por una regla automática la visita. No se fija porcentaje ni reparto.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:653",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:627"
-   ]
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:627",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M06",
+   "deps": []
   },
   {
    "id": "AGE-03",
    "seccion": "Agencias y portal del aplicante",
-   "titulo": "Una sola consulta por casa a su agencia, con los ❓ como preguntas",
-   "origen": "plan",
-   "fase": "F2",
-   "estado": "bloqueado",
-   "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "No existen la tabla outreach ni el envío. Al aprobar (Shortlist) casas de otra agencia debe salir una consulta por casa («we have N qualified applicants») con la disponibilidad, los requisitos Unknown convertidos en preguntas y los horarios de visita, según el acuerdo con esa agencia.",
-   "bloqueo": "Correo (AUT-17)",
-   "evidencia": [
-    "docs/roadmap/ESTADO.md:10",
-    "server/routes/matches.js:45-93",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:286"
-   ]
-  },
-  {
-   "id": "AGE-04",
-   "seccion": "Agencias y portal del aplicante",
-   "titulo": "Directorio de agencias (Agencies) con acuerdo de comisión y permiso de fotos",
+   "titulo": "Consulta inicial aprobada y compartida con agencia, entidad o particular",
    "origen": "plan",
    "fase": "F2",
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No existen la tabla agencies ni su pantalla. Falta guardar web, emails de ventas y alquileres, teléfonos, el acuerdo (agreed, none o declined, con condiciones, vigencia y documento), qué hacer con las que lo rechazan y el permiso para enseñar fotos; hoy solo hay un texto «Other agency» y su parte de los honorarios en cada venta.",
+   "falta": "M06 · Reconciliación 7-nov: Crear la gestión compartida de disponibilidad por propiedad/operación y relacionar los matches aprobados. Revalidar búsqueda activa y datos vigentes antes de enviar. La consulta identifica el inmueble, expresa interés y pregunta disponibilidad y horarios; en vivienda solo puede incluir ocupantes de un caso concreto seleccionado, sin sumar familias ni divulgar nombres, contactos, presupuesto o documentos. Adaptar comercial sin inventar residentes. Reutilizar la disponibilidad general sin asumir aceptadas las condiciones de todos; vigencia por concretar. Si el canal no es utilizable, tarea manual con destinatario y contenido, sin marcar enviado. Consultas específicas desde la cola de MUST desconocido siguen como decisión abierta. Depende de: BUS-15, BUS-10, AGE-04, EST-09, AUT-11, EST-15. Aceptación: Cinco matches aprobados reutilizan una consulta general; un match sin aprobar no contacta y los datos de familias no se mezclan. Antes de activar envíos debe estar operativa la exclusión por indisponibilidad confirmada EST-15; la construcción y las tareas manuales no esperan a un proveedor de correo.",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/roadmap/ESTADO.md:10",
+    "server/routes/matches.js:45-93",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:286",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M06",
+   "deps": [
+    "BUS-15",
+    "BUS-10",
+    "AGE-04",
+    "EST-09",
+    "AUT-11",
+    "EST-15"
+   ],
+   "criterio_aceptacion": "Cinco matches aprobados reutilizan una consulta general; un match sin aprobar no contacta y los datos de familias no se mezclan."
+  },
+  {
+   "id": "AGE-04",
+   "seccion": "Agencias y portal del aplicante",
+   "titulo": "Directorio de anunciantes, contactos y permisos de imágenes",
+   "origen": "plan",
+   "fase": "F2",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "M01 · Reconciliación 7-nov: Crear directorio de anunciantes: agencia, entidad o particular, webs y canales, contactos y todos los teléfonos identificados. Relacionarlo con fuentes y publicaciones. Conservar por separado acuerdos de comisión tratados personalmente y permisos de uso de fotos; no son requisitos generales para inventariar o consultar disponibilidad. Aceptación: La tarea de llamada puede mostrar todos los teléfonos y su titular, incluso con varios anuncios del mismo inmueble.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/SaleDetail.jsx:139-140",
     "server/sales.js:52",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:94"
-   ]
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:94",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M01",
+   "deps": [],
+   "criterio_aceptacion": "La tarea de llamada puede mostrar todos los teléfonos y su titular, incluso con varios anuncios del mismo inmueble."
   },
   {
    "id": "AGE-05",
    "seccion": "Agencias y portal del aplicante",
-   "titulo": "Envíos agrupados por agencia a horas fijas con referencia [HE-OUT-…]",
+   "titulo": "Enviar la consulta por un canal utilizable, con trazabilidad y sin duplicados",
    "origen": "plan",
    "fase": "F2",
-   "estado": "bloqueado",
+   "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "Falta enviar, a las 09:00 y a las 14:00, un correo por agencia con todas sus casas pendientes, desde el buzón real de Hampton y con [HE-OUT-…] en el asunto para enlazar la respuesta. Las horas fijas las dará el reloj (AUT-07), que ya existe.",
-   "bloqueo": "Correo (AUT-17)",
+   "falta": "M06 · Reconciliación 7-nov: Construir envío trazable por canal con referencia e identidad de consulta, usando AUT-17 para correo cuando esté activado y una tarea manual para otros canales sin integración operativa. Validar autorización y datos justo antes de salir, registrar envío real y manejar fallos sin iniciar el plazo de respuesta. Reintentos y acciones simultáneas no duplican el envío. La agrupación y horas fijas históricas quedan como opciones técnicas por concretar, sin mezclar clientes. Depende de: AGE-03, AUT-17, AUT-11. Aceptación: Dos empleados o un reintento producen una sola consulta enviada; un fallo no empieza el reloj de dos días.",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:291",
-    "jobs/wrangler.toml:1-24"
-   ]
+    "jobs/wrangler.toml:1-24",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M06",
+   "deps": [
+    "AGE-03",
+    "AUT-17",
+    "AUT-11"
+   ],
+   "criterio_aceptacion": "Dos empleados o un reintento producen una sola consulta enviada; un fallo no empieza el reloj de dos días."
   },
   {
    "id": "AGE-06",
    "seccion": "Agencias y portal del aplicante",
-   "titulo": "Lectura con IA de las respuestas de agencias, con nivel de confianza",
+   "titulo": "Respuestas y llamadas con evidencia, alcance y actualización de tareas",
    "origen": "plan",
    "fase": "F2",
-   "estado": "bloqueado",
+   "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "Falta recibir las respuestas y que la IA devuelva un JSON fijo (disponible, desde cuándo, respuestas a los ❓, horarios, comisión, si necesita a una persona y su confianza). Con confianza alta, la casa pasa a Availability confirmed y sus matches a Waiting for applicant response; con confianza baja se crea una tarea ya rellenada, y antes de ir en automático debe acertar 27 de 30 respuestas reales. La lectura la hará Hermes (AUT-13). Los correos de agencias son C1, así que necesita un plan Business o Enterprise (pregunta 16).",
-   "bloqueo": "Correo (AUT-17)",
+   "falta": "M06 · Reconciliación 7-nov: Vincular respuestas con la propiedad y la consulta, distinguir respuesta útil de acuse automático/ambigua y guardar evidencia, fuente y fecha. Confirmaciones humanas posteriores prevalecen ante anuncios antiguos; contradicciones van a revisión. El empleado puede registrar llamada disponible/no disponible/inconclusa, persona que confirma, alcance y condiciones. Repercutir disponibilidad y pendientes sobre matches y tareas relacionados; no inferir que una respuesta general acepta todos los hogares ni que confirma la visita. La IA, si se usa, extrae una propuesta revisable y no negocia comisión. Depende de: AGE-03, AGE-05, EST-13. Aceptación: Una respuesta automática mantiene pendiente; una llamada humana confirmada actualiza todas las gestiones afectadas sin cerrar búsquedas.",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297-299",
-    "migrations/0009_matches.sql:33"
-   ]
+    "migrations/0009_matches.sql:33",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M06",
+   "deps": [
+    "AGE-03",
+    "AGE-05",
+    "EST-13"
+   ],
+   "criterio_aceptacion": "Una respuesta automática mantiene pendiente; una llamada humana confirmada actualiza todas las gestiones afectadas sin cerrar búsquedas."
   },
   {
    "id": "AGE-08",
    "seccion": "Agencias y portal del aplicante",
-   "titulo": "Seguimiento de agencias que no responden y sus estadísticas de respuesta",
+   "titulo": "Dos días sin respuesta útil: tarea de llamada con todos los teléfonos",
    "origen": "plan",
    "fase": "F2",
-   "estado": "bloqueado",
+   "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "Falta el recordatorio automático a los 2 días laborables sin respuesta, la tarea «Call agency» con su teléfono tras dos recordatorios y, en el panel, la tasa y el tiempo medio de respuesta de cada agencia.",
-   "bloqueo": "Correo (AUT-17)",
+   "falta": "M06 · Reconciliación 7-nov: Tras dos días desde el envío real sin respuesta útil, crear una única tarea de llamada con propiedad, anunciante, mensaje, historial, clientes y todos los teléfonos identificados. Una respuesta que llega antes de llamar actualiza o resuelve la tarea según lo confirmado. Registrar disponible, no disponible o inconcluso; una llamada sin contestar no prueba indisponibilidad. Sustituye el antiguo encadenamiento de recordatorios por correo. Naturales/laborables, hora y fines de semana siguen pendientes de decisión; conservar estadísticas de respuesta como mejora separada. Depende de: AGE-05, AGE-06, AGE-04, AUT-07, NOT-11. Aceptación: Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea.",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:295",
-    "docs/roadmap/ESTADO.md:10"
-   ]
+    "docs/roadmap/ESTADO.md:10",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M06",
+   "deps": [
+    "AGE-05",
+    "AGE-06",
+    "AGE-04",
+    "AUT-07",
+    "NOT-11"
+   ],
+   "criterio_aceptacion": "Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea."
   },
   {
    "id": "AGE-09",
@@ -1143,82 +1255,117 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Prueba de presentación de aplicantes a cada agencia",
    "origen": "plan",
    "fase": "F2",
-   "estado": "bloqueado",
+   "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "Falta guardar con fecha cada consulta y cada respuesta («Hampton introduced N applicants for this property on date D») y la fecha de presentación en cada match (introduced_at), que sirven de base para reclamar la comisión en una disputa.",
-   "bloqueo": "Correo (AUT-17)",
+   "falta": "M06 · Reconciliación 7-nov: Guardar quién aprobó, qué consulta se envió realmente, qué matches autorizados vincula, respuesta/llamada y sus fechas. Distinguir una comprobación común de la presentación de un cliente concreto; registrar solo datos efectivamente compartidos. La trazabilidad puede servir a la gestión humana de acuerdos, sin imponer la comisión en el primer mensaje. Depende de: AGE-03, AGE-05, EST-18.",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:296",
-    "migrations/0009_matches.sql:27-38"
+    "migrations/0009_matches.sql:27-38",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M06",
+   "deps": [
+    "AGE-03",
+    "AGE-05",
+    "EST-18"
    ]
   },
   {
    "id": "AGE-10",
    "seccion": "Agencias y portal del aplicante",
-   "titulo": "No revelar la agencia ni el anuncio original al aplicante hasta acordar",
+   "titulo": "Fotografías aptas para presentación privada y originales con procedencia",
    "origen": "plan",
    "fase": "F2",
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "Falta la política configurable: lo que ve el aplicante (portal, AGE-12) no muestra la agencia ni el enlace original hasta acordar la comisión o organizar la visita. Conviene que la revise un abogado de Jersey.",
+   "falta": "M07 · Reconciliación 7-nov: Preparar fotos aptas para presentación privada: propias o versiones sin marca facilitadas o autorizadas para compartir. Conservar originales, procedencia, permiso y fecha en la ficha interna; si solo hay fotos con marca, tarea para obtener versión adecuada. No eliminar marcas automáticamente ni republicar anuncios ajenos en la web pública por este flujo. Sustituye la condición histórica de ocultar hasta acordar comisión; esta no bloquea la visita. Depende de: SPR-03, AGE-04. Aceptación: Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297",
-    "server/routes/public.js:178-186"
-   ]
+    "server/routes/public.js:178-186",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M07",
+   "deps": [
+    "SPR-03",
+    "AGE-04"
+   ],
+   "criterio_aceptacion": "Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura."
   },
   {
    "id": "AGE-11",
    "seccion": "Agencias y portal del aplicante",
-   "titulo": "Avisos al aplicante por su canal: casas confirmadas y recordatorios",
-   "origen": "plan",
-   "fase": "F2",
-   "estado": "bloqueado",
-   "responsable": "Luis",
-   "hecho": "",
-   "falta": "Cuando un match pasa a Waiting for applicant response, falta mandarle por WhatsApp (plantilla aprobada) o email «3 homes confirmed for you» con su enlace, recordárselo a las 24 y a las 72 h y preguntarle a los 7 días si sigue buscando. Hoy el equipo solo tiene los botones Call, WhatsApp y Email de la ficha.",
-   "bloqueo": "Correo (AUT-17) · Trámite Meta",
-   "evidencia": [
-    "admin/src/ApplicantDetail.jsx:279-281",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:303-305"
-   ]
-  },
-  {
-   "id": "AGE-12",
-   "seccion": "Agencias y portal del aplicante",
-   "titulo": "Portal del aplicante con enlace personal y sus tres botones",
+   "titulo": "Presentación privada de una propiedad confirmada y recogida de interés",
    "origen": "plan",
    "fase": "F2",
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No existe. Falta el enlace sin contraseña (token aleatorio guardado con hash, que caduca a los 30 días y se puede revocar) con sus casas (fotos permitidas, precio, parroquia, dormitorios, lista ✅ ❓) y los botones Book a viewing (puede reutilizar la reserva de F3-A), Not for me con motivo y Ask a question, registrando cada clic como evento; desde ahí también debe poder cambiar sus criterios, pausar la búsqueda o borrar sus datos.",
+   "falta": "M08 · Reconciliación 7-nov: Preparar presentación breve con fotos aptas y pregunta de interés/visita cuando coincidan match aprobado, disponibilidad confirmada e imágenes autorizadas. No mostrar como confirmada una propiedad pendiente. El disparador final del envío (automático al cumplir condiciones o revisión adicional) sigue abierto. El flujo no incluye una cadena automática de mensajes a 24/72 horas ni petición de flexibilizar requisitos; Meta no es requisito para construir la presentación y puede haber una tarea manual de entrega. Depende de: BUS-15, AGE-06, SPR-03, AGE-10, AGE-12. Aceptación: La presentación no sale si falta disponibilidad o imagen apta; el top 20 interno nunca se incorpora por envío automático.",
+   "bloqueo": "",
+   "evidencia": [
+    "admin/src/ApplicantDetail.jsx:279-281",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:303-305",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M08",
+   "deps": [
+    "BUS-15",
+    "AGE-06",
+    "SPR-03",
+    "AGE-10",
+    "AGE-12"
+   ],
+   "criterio_aceptacion": "La presentación no sale si falta disponibilidad o imagen apta; el top 20 interno nunca se incorpora por envío automático."
+  },
+  {
+   "id": "AGE-12",
+   "seccion": "Agencias y portal del aplicante",
+   "titulo": "Respuesta del cliente a la propuesta privada sin repetir su solicitud",
+   "origen": "plan",
+   "fase": "F2",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "M08 · Reconciliación 7-nov: Construir acceso privado a las opciones presentadas con respuesta interesado, quiere visitarla, no encaja con motivo o necesita llamada. Reutilizar la solicitud y franjas previas; no repetir el formulario completo. El motivo de descarte no modifica MUST ni disponibilidad general. Cualquier cambio de criterios pasa por confirmación del empleado; pausa/retirada son decisiones adicionales abiertas. Conservar revocación y protección del enlace, y tratar descarga/borrado de datos según PRE-12. Depende de: AGE-10, REG-17, EST-13. Aceptación: Not for me solo afecta al match de ese cliente; pedir visita inicia coordinación, no una cita confirmada.",
    "bloqueo": "",
    "evidencia": [
     "server/routes/public.js:178-186",
     "docs/roadmap/ESTADO.md:10",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:304"
-   ]
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:304",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M08",
+   "deps": [
+    "AGE-10",
+    "REG-17",
+    "EST-13"
+   ],
+   "criterio_aceptacion": "Not for me solo afecta al match de ese cliente; pedir visita inicia coordinación, no una cita confirmada."
   },
   {
    "id": "AGE-13",
    "seccion": "Agencias y portal del aplicante",
-   "titulo": "No response a los 7 días y Paused tras 30 días sin actividad",
+   "titulo": "Retirar la pausa automática por inactividad; continuidad hasta resolución humana",
    "origen": "plan",
    "fase": "F2",
-   "estado": "parcial",
-   "responsable": "desarrollo",
+   "estado": "replanteado",
+   "responsable": "—",
    "hecho": "La etapa Paused existe y el equipo la pone a mano en la ficha del aplicante.",
-   "falta": "Falta que el match pase solo a No response a los 7 días sin respuesta (hoy los matches solo tienen Found, Shortlisted y Rejected, y antes hay que avisar al aplicante, AGE-11, o darle su portal, AGE-12) y que la búsqueda pase sola a Paused tras 30 días sin actividad, con una pasada diaria en el reloj (AUT-07), que ya existe.",
+   "falta": "M08 · Reconciliación 7-nov: Queda retirada la propuesta de pausar automáticamente tras 30 días o cerrar por no respuesta. La etapa Paused existente se conserva como antecedente; su política requiere una decisión adicional. La búsqueda continúa en consultas, visitas y negociación y solo se resuelve por acción expresa del empleado (EST-09). Las tareas pendientes se gestionan en NOT-11.",
    "bloqueo": "",
    "evidencia": [
     "server/applicants.js:24-25",
     "admin/src/ApplicantDetail.jsx:289-293",
     "migrations/0009_matches.sql:33",
-    "server/jobs.js:1-15"
-   ]
+    "server/jobs.js:1-15",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M08",
+   "deps": []
   },
   {
    "id": "VIS-01",
@@ -1384,7 +1531,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Viewings tiene las pestañas Requests, Upcoming, Needs outcome y Past, los botones Confirm, Reschedule, Mark completed, No-show y Cancel viewing, y New viewing para reservas por teléfono ya confirmadas. Las peticiones antiguas se migraron (new → Requested, contacted → Confirmed).",
-   "falta": "Faltan los estados Reminded y Feedback received, que llegan con los recordatorios y el formulario al aplicante (F3-B).",
+   "falta": "M09 · Reconciliación 7-nov: Faltan los estados Reminded y Feedback received, que llegan con los recordatorios y el formulario al aplicante (F3-B). Extender el ciclo actual a propuestas de terceros y confirmaciones individuales: solicitada, por coordinar, propuesta, pendiente de confirmaciones, confirmada, realizada o cancelada. Mantener contactos e instrucciones juntos, actualizar reprogramaciones y no cerrar la búsqueda por ningún estado de visita. Depende de: VIS-17. Aceptación: Una propuesta incompleta no aparece confirmada ni provoca cierre de búsqueda.",
    "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "migrations/0010_viewings.sql:40",
@@ -1392,8 +1539,14 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/routes/inbox.js:11-18",
     "server/routes/inbox.js:78-80",
     "admin/src/Viewings.jsx:9",
-    "admin/src/Viewings.jsx:292-353"
-   ]
+    "admin/src/Viewings.jsx:292-353",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M09",
+   "deps": [
+    "VIS-17"
+   ],
+   "criterio_aceptacion": "Una propuesta incompleta no aparece confirmada ni provoca cierre de búsqueda."
   },
   {
    "id": "VIS-09",
@@ -1539,19 +1692,28 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "VIS-17",
    "seccion": "Interesados y visitas",
-   "titulo": "Visitas a casas de otras agencias: proponer a la agencia tres horarios del aplicante",
+   "titulo": "Visitas multiparte con franjas compatibles y confirmaciones separadas",
    "origen": "plan",
    "fase": "F2",
-   "estado": "bloqueado",
-   "responsable": "Luis",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
    "hecho": "",
-   "falta": "Solo hay visitas a fichas propias. Hacen falta las casas del mercado (F1-B) y el contacto con la agencia por correo (F2).",
-   "bloqueo": "Clave API Places.je · Correo (AUT-17)",
+   "falta": "M09 · Reconciliación 7-nov: Coordinar visita con propiedad, búsqueda, anunciante y empleado. Reutilizar franjas REG-17 y permitir actualizarlas para esta cita; cruzar horarios de cliente, anunciante y empleado si asiste. Proponer opciones y guardar cada aceptación necesaria; confirmar solo cuando estén completas, sin condicionar la visita a un acuerdo de comisión. Reprogramación/cancelación actualizan la misma visita y tareas, y la búsqueda continúa. Depende de: REG-17, AGE-12, AGE-06, EST-13. Aceptación: Una hora propuesta por agencia sigue pendiente hasta aceptar cliente y demás participantes requeridos; la visita confirmada no cierra la búsqueda.",
+   "bloqueo": "",
    "evidencia": [
     "server/routes/public.js:57-59",
     "server/routes/inbox.js:61-62",
-    "docs/roadmap/ESTADO.md:10"
-   ]
+    "docs/roadmap/ESTADO.md:10",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M09",
+   "deps": [
+    "REG-17",
+    "AGE-12",
+    "AGE-06",
+    "EST-13"
+   ],
+   "criterio_aceptacion": "Una hora propuesta por agencia sigue pendiente hasta aceptar cliente y demás participantes requeridos; la visita confirmada no cierra la búsqueda."
   },
   {
    "id": "AUT-01",
@@ -1742,12 +1904,16 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No existe ningún modo ni cola de aprobación: hoy ninguna IA propone ni decide nada. Cada automatización nueva empieza en Draft (propone y una persona aprueba), pasa a Approve (aprobación en lote) y a Auto (actúa sola y se revisa una muestra) según el acierto medido. Lo que proponga Hermes (AUT-13) entra en Draft y se aprueba en el panel; un mensaje de Telegram no cuenta como aprobación (§6.6).",
+   "falta": "M04/M06 · Reconciliación 7-nov: Concretar modos por operación sin convertirlos en autorización general. La automatización puede investigar, recalcular, preparar y ejecutar pasos ya autorizados; cada match requiere aprobación humana (BUS-15), cada cambio dictado confirmación (AUT-19) y el cierre por éxito acción expresa (EST-09). Ni confianza del modelo, ni porcentaje, ni un modo Auto pueden saltar esas decisiones. El disparador final de presentación se decide aparte. Aceptación: Activar Auto no aprueba matches, guarda criterios dictados ni resuelve búsquedas.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:441",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:633"
-   ]
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:633",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M04/M06",
+   "deps": [],
+   "criterio_aceptacion": "Activar Auto no aprueba matches, guarda criterios dictados ni resuelve búsquedas."
   },
   {
    "id": "AUT-11",
@@ -1758,7 +1924,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "La pausa general está en producción desde el 1-nov-2026 (AUT-01/AUT-13). Añadido en local el 6-nov-2026, sin publicar, para AUT-17: idempotencia por snapshot, cuota compartida de 100 intentos por día de Jersey con reserva atómica, interruptor de correo y del resumen, supresiones y comprobación de pausa antes de cada llamada. Resultados inciertos sin reenvío automático. La pausa también detiene el resumen interno y el panel lo explica.",
-   "falta": "Activar y probar AUT-17 en real. Topes por agencia y otros canales, horas de silencio de WhatsApp/SMS y barandillas particulares de cada futuro flujo se implementan con esos flujos; el tope compartido de correo no los sustituye. Solo una persona en el panel reanuda los envíos.",
+   "falta": "M06 · Reconciliación 7-nov: Activar y probar AUT-17 en real. Topes por agencia y otros canales, horas de silencio de WhatsApp/SMS y barandillas particulares de cada futuro flujo se implementan con esos flujos; el tope compartido de correo no los sustituye. Solo una persona en el panel reanuda los envíos. El envío de consultas debe además revalidar aprobación, búsqueda activa, vigencia de propiedad y permisos antes de salir; un cambio de precio, requisitos o disponibilidad después de aprobar revisa las acciones pendientes. Dos empleados y los reintentos deben compartir la misma acción sin doble correo. Depende de: BUS-15, EST-09. Aceptación: Dos acciones concurrentes no envían dos veces y una propiedad invalidada no sale en una consulta pendiente.",
    "bloqueo": "Activación de AUT-17; otros canales dependen de Meta",
    "evidencia": [
     "admin/src/ApplicantDetail.jsx:279-281",
@@ -1767,8 +1933,15 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/email.js",
     "server/routes/email.js",
     "migrations/0023_email.sql",
-    "tests/server/email.test.mjs"
-   ]
+    "tests/server/email.test.mjs",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M06",
+   "deps": [
+    "BUS-15",
+    "EST-09"
+   ],
+   "criterio_aceptacion": "Dos acciones concurrentes no envían dos veces y una propiedad invalidada no sale en una consulta pendiente."
   },
   {
    "id": "AUT-12",
@@ -1916,24 +2089,92 @@ document.addEventListener('DOMContentLoaded', () => {
    ]
   },
   {
+   "id": "AUT-19",
+   "seccion": "Automatizaciones e IA",
+   "titulo": "Dictado de criterios: propuesta antes/después y confirmación del empleado",
+   "origen": "plan",
+   "fase": "F1-A",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "M11 · Reconciliación 7-nov: Después de hablar con el cliente, permitir al empleado introducir o dictar solo los cambios aceptados. El bot prepara valores anteriores/propuestos; el empleado confirma o corrige antes de guardar. Conservar versión, fecha, responsable y evidencia de la confirmación; recalcular matches y actualizar acciones/tareas afectadas. Resolver ediciones simultáneas sin sobrescribir silenciosamente. Usar un canal autenticado compatible con las fronteras actuales de datos de Hermes; este plan no habilita clientes ni criterios privados por Telegram. Depende de: REG-11, BUS-12, EST-18. Aceptación: Dictar subir presupuesto no cambia datos hasta confirmar; no altera parking ni otros MUST no mencionados, y al confirmar recalcula sin duplicados.",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M11",
+   "deps": [
+    "REG-11",
+    "BUS-12",
+    "EST-18"
+   ],
+   "criterio_aceptacion": "Dictar subir presupuesto no cambia datos hasta confirmar; no altera parking ni otros MUST no mencionados, y al confirmar recalcula sin duplicados."
+  },
+  {
+   "id": "AUT-20",
+   "seccion": "Automatizaciones e IA",
+   "titulo": "Validación integral del recorrido de búsqueda",
+   "origen": "plan",
+   "fase": "—",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "M13b · Reconciliación 7-nov: Validar el recorrido completo desde el directorio y el alta de búsqueda hasta consulta compartida, llamada, captura, presentación, visita, revisión interna de 21 días, cambios confirmados, indisponibilidad, purga y cierre humano. Integrar las pruebas de los módulos con datos locales de prueba y registrar resultado y evidencia de cada comprobación; documentar el plan no satisface esta tarea. Depende de: BUS-23, BUS-04, BUS-13, BUS-14, BUS-15, REG-12, REG-17, AGE-08, AGE-09, AGE-11, VIS-08, BUS-17, AUT-19, EST-19, NOT-01, NOT-08, NOT-09, NOT-11, EST-18. Aceptación: Las dieciséis comprobaciones A01–A16 del plan de reconciliación pasan juntas, además de cinco casos transversales: dos empleados y dos ticks simultáneos; cambio material después de aprobar y antes de enviar; envío aceptado con acuse perdido; lectura, captura o purga parcial con reintento; límites de fechas de Jersey, cambios de hora y meses de distinta longitud. Los resultados demuestran ausencia de duplicados, conservación del historial y respeto de las decisiones humanas, con evidencia verificable y ningún fallo abierto que invalide el recorrido.",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M13b",
+   "deps": [
+    "BUS-23",
+    "BUS-04",
+    "BUS-13",
+    "BUS-14",
+    "BUS-15",
+    "REG-12",
+    "REG-17",
+    "AGE-08",
+    "AGE-09",
+    "AGE-11",
+    "VIS-08",
+    "BUS-17",
+    "AUT-19",
+    "EST-19",
+    "NOT-01",
+    "NOT-08",
+    "NOT-09",
+    "NOT-11",
+    "EST-18"
+   ],
+   "criterio_aceptacion": "Las dieciséis comprobaciones A01–A16 del plan de reconciliación pasan juntas, además de cinco casos transversales: dos empleados y dos ticks simultáneos; cambio material después de aprobar y antes de enviar; envío aceptado con acuse perdido; lectura, captura o purga parcial con reintento; límites de fechas de Jersey, cambios de hora y meses de distinta longitud. Los resultados demuestran ausencia de duplicados, conservación del historial y respeto de las decisiones humanas, con evidencia verificable y ningún fallo abierto que invalide el recorrido."
+  },
+  {
    "id": "BUS-01",
    "seccion": "Búsqueda de propiedades",
    "titulo": "Búsqueda de casas que arranca sola al registrarse el aplicante",
    "origen": "texto",
    "fase": "F1-A",
    "estado": "parcial",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "Cada alta (web o panel), cada cambio de requisitos y cada restauración cruza al aplicante al momento con las fichas de Hampton ofrecidas a aplicantes. Lo encontrado sale en su pestaña Matches, en Review y como aviso Matched en Inbox.",
-   "falta": "Falta cruzarlo también con el inventario del mercado de otras agencias (F1-B).",
-   "bloqueo": "Clave API Places.je",
+   "falta": "M03/M04 · Reconciliación 7-nov: Ampliar el cruce inicial al inventario común y activar la búsqueda con fecha y responsable. Separar candidatos con datos pendientes de coincidencias completas. El inventario funciona también sin clientes nuevos; no requiere exclusivamente Places.je. Depende de: BUS-06, BUS-12, EST-09. Aceptación: El alta cruza la base disponible, informa del estado real y deja visibles los esenciales sin responder.",
+   "bloqueo": "",
    "evidencia": [
     "server/routes/public.js:120-122",
     "server/routes/applicants.js:203",
     "server/routes/applicants.js:261",
     "server/routes/applicants.js:364",
     "server/match-store.js:10-11",
-    "server/match-store.js:110-129"
-   ]
+    "server/match-store.js:110-129",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M03/M04",
+   "deps": [
+    "BUS-06",
+    "BUS-12",
+    "EST-09"
+   ],
+   "criterio_aceptacion": "El alta cruza la base disponible, informa del estado real y deja visibles los esenciales sin responder."
   },
   {
    "id": "BUS-02",
@@ -1944,12 +2185,15 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "replanteado",
    "responsable": "—",
    "hecho": "",
-   "falta": "El plan cambia el enfoque (§11, «cambia»; Luis aceptó P-01 el 23-oct, A5): el primer resultado sale del cruce inmediato con un inventario compartido, sin IA por aplicante. Se sustituye por BUS-01, BUS-06 (inventario del mercado) y BUS-11 (Deep Research solo en casos raros).",
+   "falta": "M01/M02 · Reconciliación 7-nov: El registro no dispara una investigación completa por cliente: usa BUS-01 sobre inventario común. El directorio se prepara mediante tres investigaciones profundas secuenciales BUS-21, BUS-22 y BUS-23, seguidas por el recorrido inicial BUS-06; BUS-11 queda como ampliación complementaria.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:661",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:31"
-   ]
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:31",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M01/M02",
+   "deps": []
   },
   {
    "id": "BUS-03",
@@ -1958,16 +2202,23 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "texto",
    "fase": "F1-A",
    "estado": "parcial",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "La tabla matches guarda, por aplicante, cada casa encontrada con su puntuación, sus comprobaciones y su estado. La pestaña Matches (Found, Shortlisted, Rejected) y Review la muestran con foto, precio, parroquia, dormitorios, baños y cada requisito como Meets, Fails o Unknown, con su evidencia.",
-   "falta": "Solo entran fichas propias con «Offer to applicants». Falta la base de anuncios de otras agencias (market_listings: fuente, URL, precio, first_seen, last_seen).",
-   "bloqueo": "Clave API Places.je",
+   "falta": "M02/M04 · Reconciliación 7-nov: Añadir propiedades comunes y todas sus publicaciones, URLs, fuentes, anunciantes, operación y fechas; conservar las tarjetas y revisiones existentes. Incorporar resultados completos, pendientes de dato y alternativas internas sin mezclarlos. Depende de: BUS-06, BUS-10, BUS-12.",
+   "bloqueo": "",
    "evidencia": [
     "migrations/0009_matches.sql:27-38",
     "admin/src/MatchCard.jsx:21-73",
     "admin/src/ApplicantDetail.jsx:379-408",
     "admin/src/Review.jsx:135-142",
-    "server/matching.js:115-183"
+    "server/matching.js:115-183",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M02/M04",
+   "deps": [
+    "BUS-06",
+    "BUS-10",
+    "BUS-12"
    ]
   },
   {
@@ -1977,10 +2228,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "texto",
    "fase": "F1-A",
    "estado": "parcial",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "No se repite ninguna casa: cada pareja aplicante–ficha es única, lo rechazado no se vuelve a proponer y lo nuevo tras la primera revisión sale como «New properties found». En vez de esperar 24 h, crear, editar o publicar una ficha la cruza al momento con todos los aplicantes activos, y «Recalculate all» en Review repite el cruce completo.",
-   "falta": "Falta la búsqueda periódica en el mercado (BUS-08). Hoy solo aparecen casas nuevas cuando el equipo añade o edita fichas.",
-   "bloqueo": "Clave API Places.je",
+   "falta": "M05 · Reconciliación 7-nov: Conectar las altas y cambios relevantes del inventario externo con todas las búsquedas activas afectadas. Evitar propuestas y avisos idénticos; una bajada de precio sí permite revisar una opción anterior. Continúa durante consultas, visitas y negociaciones. Depende de: BUS-08, BUS-12, EST-09. Aceptación: Un cambio relevante recalcula solo lo afectado sin duplicar avisos; una visita no desactiva el cruce.",
+   "bloqueo": "",
    "evidencia": [
     "migrations/0009_matches.sql:38",
     "server/match-store.js:54-62",
@@ -1988,8 +2239,16 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/routes/listings.js:140",
     "server/routes/listings.js:201",
     "server/routes/applicants.js:64-71",
-    "admin/src/Review.jsx:173-214"
-   ]
+    "admin/src/Review.jsx:173-214",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M05",
+   "deps": [
+    "BUS-08",
+    "BUS-12",
+    "EST-09"
+   ],
+   "criterio_aceptacion": "Un cambio relevante recalcula solo lo afectado sin duplicar avisos; una visita no desactiva el cruce."
   },
   {
    "id": "BUS-05",
@@ -2000,29 +2259,40 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "replanteado",
    "responsable": "—",
    "hecho": "",
-   "falta": "El plan cambia el enfoque (§11, «cambia»): el mercado se lee una vez al día para todos los aplicantes, los modelos baratos solo extraen datos de las páginas y los dos modelos se comparan solo en esa extracción. Se sustituye por BUS-08 (pasada diaria) y BUS-09 (extracción con doble modelo).",
+   "falta": "M05 · Reconciliación 7-nov: La base común se revisa diariamente desde su puesta en marcha, aunque no llegue ningún cliente. BUS-08 controla intentos y resultados; BUS-09 normaliza. La elección de modelos y una frecuencia superior a diaria son propuestas técnicas, no obligaciones cerradas.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:664",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:266"
-   ]
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:266",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M05",
+   "deps": []
   },
   {
    "id": "BUS-06",
    "seccion": "Búsqueda de propiedades",
-   "titulo": "Inventario del mercado desde la API de Places.je y feeds de agencias",
+   "titulo": "Inventario inicial común desde el directorio de fuentes, por tandas",
    "origen": "plan",
    "fase": "F1-B",
-   "estado": "bloqueado",
-   "responsable": "Luis",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No hay conexión con Places.je (anuncios de muchas agencias con precio, dormitorios, parroquia, estado y property_key, más su directorio de agencias); desde el 2-nov-2026 responde 401 sin clave. Los feeds de agencias para lo que no esté allí se piden dentro del acuerdo de comisión (AGE-04).",
-   "bloqueo": "Clave API Places.je",
+   "falta": "M02 · Reconciliación 7-nov: Crear el inventario inicial por tandas desde el directorio revisado, usando las fuentes operativas disponibles y tareas manuales para las restringidas. Capturar datos suficientes para comparar: operación, tipo, precio y periodicidad originales, ubicación, dormitorios o superficie, ocupación, parking, mascotas, descripción, referencia, anunciante y contactos. La descarga completa de fotos espera a la disponibilidad confirmada (SPR-03). Places.je es un conector posible; PRE-01 no bloquea el inventario ni se exige un acuerdo de comisión para leer un feed utilizable. Depende de: BUS-23, BUS-19, AGE-04. Aceptación: Las fuentes accesibles producen inventario común y las inaccesibles quedan pendientes, sin registrarlas como vacías.",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/ESTADO.md:9",
     "wrangler.toml:5-10",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:18"
-   ]
+    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:18",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M02",
+   "deps": [
+    "BUS-23",
+    "BUS-19",
+    "AGE-04"
+   ],
+   "criterio_aceptacion": "Las fuentes accesibles producen inventario común y las inaccesibles quedan pendientes, sin registrarlas como vacías."
   },
   {
    "id": "BUS-07",
@@ -2033,13 +2303,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Luis respondió el 23-oct (A4): se comercializan con la agencia que tiene el encargo. Las fichas HE-R028 a HE-R285 entraron archivadas, la migración 0009 las ofrece a los aplicantes y su tarjeta dice «Not on website».",
-   "falta": "No existe la categoría co_listed (§3). Falta guardar en cada ficha su agencia (hoy solo consta como proveedor de sus fotos) y el reparto acordado, y hacer que pasen por la confirmación de la agencia (AGE-03); el permiso de fotos ya lo dio Luis (A4).",
+   "falta": "M02 · Reconciliación 7-nov: Vincular las fichas importadas con su anunciante, publicaciones y procedencia, y someter las consultas al circuito aprobado AGE-03. Conservar las autorizaciones históricas documentadas sin extenderlas a nuevas capturas. El reparto de comisión es una gestión humana separada y no bloquea inventario, contacto o visita; nuevas fotos siguen AGE-10. Depende de: BUS-10, AGE-04.",
    "bloqueo": "",
    "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
     "migrations/0009_matches.sql:18",
     "admin/src/MatchCard.jsx:33-46",
-    "scripts/import_agencies.py:176"
+    "scripts/import_agencies.py:176",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M02",
+   "deps": [
+    "BUS-10",
+    "AGE-04"
    ]
   },
   {
@@ -2048,15 +2324,26 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Pasada diaria automática del mercado con comparación con el día anterior",
    "origen": "plan",
    "fase": "F1-B",
-   "estado": "bloqueado",
-   "responsable": "Luis",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No hay pasada a las 06:00 (y a mediodía para alquileres) que compare con ayer (nuevas, cambios de precio, desaparecidas como Gone tras dos pasadas, con sus matches a Not available) ni que registre por fuente cuántas leyó, nuevas, cambiadas y desaparecidas. La pasada irá en el reloj (AUT-07), que ya existe.",
-   "bloqueo": "Clave API Places.je",
+   "falta": "M05 · Reconciliación 7-nov: Construir el barrido diario por tandas, independiente de clientes: nuevas publicaciones, cambios, anuncios no localizados y errores de fuente; guardar cada intento y la última revisión correcta. Un fallo o anuncio ausente genera revisión, nunca indisponibilidad confirmada. Reutilizar capturas sin descargar todas las fotos cada día, reintentar sin duplicados y emitir cambios hacia BUS-04. Una hora concreta o frecuencia superior a diaria queda por concretar. Depende de: BUS-06, BUS-09, BUS-10, EST-16, AUT-07, EST-15. Aceptación: Una fuente caída conserva sus propiedades y muestra el fallo; una bajada de precio actualiza la propiedad y recalcula búsquedas activas. La activación automática exige antes la exclusión por indisponibilidad y prioridad humana EST-15; el desarrollo puede avanzar con fuentes y datos de prueba.",
+   "bloqueo": "",
    "evidencia": [
     "jobs/wrangler.toml:1-24",
-    "server/jobs.js:1-15"
-   ]
+    "server/jobs.js:1-15",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M05",
+   "deps": [
+    "BUS-06",
+    "BUS-09",
+    "BUS-10",
+    "EST-16",
+    "AUT-07",
+    "EST-15"
+   ],
+   "criterio_aceptacion": "Una fuente caída conserva sus propiedades y muestra el fallo; una bajada de precio actualiza la propiedad y recalcula búsquedas activas."
   },
   {
    "id": "BUS-09",
@@ -2065,15 +2352,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F1-B",
    "estado": "parcial",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "Para el catálogo propio, server/listing-features.js lee del texto de cada ficha la parroquia, mascotas, parking, amueblado, exterior y tipo con patrones fijos (sin IA) y guarda la frase que lo prueba. La renta anual se pasa a mensual al comparar.",
-   "falta": "Para los anuncios externos falta todo: lector por fuente o IA barata con esquema JSON solo en páginas cambiadas, normalización, dos modelos que dejan en «needs review» lo que no coincide (precio, dormitorios) y la regla de no aceptar nada sin página descargada (URL y fecha). La extracción la puede hacer Hermes (AUT-13), porque los anuncios son públicos (C0).",
-   "bloqueo": "Clave API Places.je",
+   "falta": "M02 · Reconciliación 7-nov: Extender la extracción a cada fuente, conservando original, normalizado, URL y fecha; distinguir precio de venta, renta, traspaso y gastos. Mantener desconocidos, normalizar periodicidades y no inventar rasgos. Registrar contradicciones o extracción parcial para revisión; una observación web no sobrescribe una comprobación humana posterior. Elegir lectores y modelos en el diseño técnico, sin exigir dos modelos para todos los anuncios. Depende de: BUS-06. Aceptación: Una renta anual se compara mensualmente conservando su importe y periodo originales; ausencia de mascotas sigue desconocida.",
+   "bloqueo": "",
    "evidencia": [
     "server/listing-features.js:1-30",
     "server/routes/listings.js:84-87",
-    "server/matching.js:24-29"
-   ]
+    "server/matching.js:24-29",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M02",
+   "deps": [
+    "BUS-06"
+   ],
+   "criterio_aceptacion": "Una renta anual se compara mensualmente conservando su importe y periodo originales; ausencia de mascotas sigue desconocida."
   },
   {
    "id": "BUS-10",
@@ -2081,53 +2374,76 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Casa física única (properties) con deduplicación entre fuentes",
    "origen": "plan",
    "fase": "F1-B",
-   "estado": "bloqueado",
-   "responsable": "Luis",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No existen las tablas properties ni market_listings, ni la deduplicación (property_key de Places.je; si no hay, dirección + parroquia + dormitorios + precio ±10 % + huella de la primera foto). Hoy la ficha solo avisa «Possible duplicate of…» con los grupos de la investigación de Hampton_Database (instantánea del 5-oct).",
-   "bloqueo": "Clave API Places.je",
+   "falta": "M02 · Reconciliación 7-nov: Crear identidad común de propiedad y publicaciones separadas con todos sus anunciantes y contactos. Deduplicar conservando referencias; señales ambiguas generan revisión, sin fusionar unidades distintas por compartir dirección ni mezclar compra, alquiler o traspaso. Evitar duplicados en reintentos y conservar identidad mínima tras la futura purga EST-19. Depende de: BUS-06. Aceptación: Una propiedad en tres webs conserva una ficha y tres publicaciones; dos unidades de la misma dirección siguen separadas. La identidad mínima o marca de baja se define desde el inventario para reconocer reimportaciones antiguas; la purga física posterior se construye en EST-19.",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:90-91",
     "admin/src/ListingEditor.jsx:148",
-    "server/routes/listings.js:66-67"
-   ]
+    "server/routes/listings.js:66-67",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M02",
+   "deps": [
+    "BUS-06"
+   ],
+   "criterio_aceptacion": "Una propiedad en tres webs conserva una ficha y tres publicaciones; dos unidades de la misma dirección siguen separadas."
   },
   {
    "id": "BUS-11",
    "seccion": "Búsqueda de propiedades",
-   "titulo": "Deep Research con dos sistemas, solo para casos raros y verificada contra su página",
+   "titulo": "Investigación complementaria de casos especiales, posterior al directorio común",
    "origen": "plan",
    "fase": "F1-B",
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No hay Deep Research automática: la sección Research de cada ficha solo muestra, sin poder editarla, la investigación de Hampton_Database (instantánea del 5-oct). Falta lanzarla con menos de 3 coincidencias, con requisitos raros o en compras fuera de mercado, con dos sistemas distintos cuyos hallazgos se suman (lo que queda de las dos investigaciones de BUS-05), verificar cada hallazgo contra su página y guardarlo en el inventario (BUS-10). Necesita IA con búsqueda web. No la haría el Hermes de Hampton (AUT-13): tiene la llave de la app y no debe leer páginas cualesquiera (§6.6). La haría un agente sin esa llave ni el bot, que devuelva lo encontrado como datos que la app comprueba (URL, fecha y campos). Los requisitos del aplicante son C2: necesita un plan Business o Enterprise (pregunta 16) o un modelo local.",
+   "falta": "M01 · Reconciliación 7-nov: Conservar como ampliación complementaria la investigación de casos especiales con validación de fuente, URL y fecha. No sustituye las tres investigaciones separadas y secuenciales del directorio BUS-21 → BUS-22 → BUS-23 ni dispara una investigación completa por cada cliente. La investigación existente de Hampton_Database puede ser un punto de partida trazable; no demuestra que las tres pasadas estén completas. Las condiciones técnicas de acceso del agente se concretan sin cambiar criterios ni contactar por iniciativa propia. Depende de: BUS-23.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Research.jsx:11-27",
     "admin/src/ListingEditor.jsx:246-248",
     "migrations/0001_init.sql:59-94",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:266",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:268"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:268",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M01",
+   "deps": [
+    "BUS-23"
    ]
   },
   {
    "id": "BUS-12",
    "seccion": "Búsqueda de propiedades",
-   "titulo": "Filtros duros del matching (precio, tamaño, zona, mascotas, parking, fecha)",
+   "titulo": "Matching con imprescindibles, exclusiones, rangos y datos desconocidos",
    "origen": "plan",
    "fase": "F1-A",
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Una casa queda fuera si no encaja la operación, si supera el tope (o el tope ampliado) o baja del 75 % del mínimo, si le faltan dormitorios o baños, si está en una parroquia excluida o si dice «no pets» y el aplicante tiene mascota. Lo desconocido nunca excluye.",
-   "falta": "El parking no excluye (solo sale Fails si la ficha dice 0 plazas), y no se compara la fecha de entrada con la disponibilidad porque las fichas no tienen fecha de disponibilidad.",
+   "falta": "M04 · Reconciliación 7-nov: Modelar cada criterio con valor/rango, imprescindible o negociable, exclusión y certeza. Corregir parking, máximos de dormitorios, fechas y demás MUST: un incumplimiento impide match completo; un imprescindible sin dato queda pendiente, no aprobado por una buena puntuación. No interpretar un blanco como no ni mascotas/ocupantes como preferencias descartables. Separar completa, falta confirmar, alternativa cercana y no pertinente/no disponible; guardar explicación y fechas. Depende de: REG-04, REG-05, REG-06, REG-07, REG-08, REG-11, BUS-09. Aceptación: Dos plazas imprescindibles y una disponible es alternativa; parking desconocido es pendiente; el resto favorable no cambia ese resultado. El conjunto actual de candidatos es residencial; ampliar de forma explícita a inmuebles comerciales y negocios con criterios adaptados, sin equiparar renta, compra y traspaso.",
    "bloqueo": "",
    "evidencia": [
     "server/matching.js:31-43",
     "server/matching.js:118-164",
     "server/match-store.js:10-11",
-    "migrations/0001_init.sql:1-23"
-   ]
+    "migrations/0001_init.sql:1-23",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M04",
+   "deps": [
+    "REG-04",
+    "REG-05",
+    "REG-06",
+    "REG-07",
+    "REG-08",
+    "REG-11",
+    "BUS-09"
+   ],
+   "criterio_aceptacion": "Dos plazas imprescindibles y una disponible es alternativa; parking desconocido es pendiente; el resto favorable no cambia ese resultado."
   },
   {
    "id": "BUS-13",
@@ -2154,13 +2470,13 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "BUS-14",
    "seccion": "Búsqueda de propiedades",
-   "titulo": "Puntuación de 0 a 100 de cada coincidencia",
+   "titulo": "Orden explicable de coincidencias y alternativas, después de evaluar requisitos",
    "origen": "plan",
    "fase": "F1-A",
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "La puntuación suma parroquia deseada (30), dormitorios ideales (15), posición del precio en el presupuesto (20), exterior, tipo y amueblado (25) y estar publicada en la web de Hampton (10). Solo se guardan las de 35 o más, y como mucho las 25 mejores por aplicante.",
-   "falta": "Faltan la frescura del anuncio (llega con el inventario del mercado) y la comparación con IA de los requisitos libres con la descripción, citando la frase (REG-13). Además, los 10 puntos van a toda ficha publicada, también a las co-listed como las 3 públicas (A4), y el plan los reserva a las casas propias, que no tienen comisión que repartir; para separarlas hace falta la categoría co_listed (BUS-07).",
+   "falta": "M04 · Reconciliación 7-nov: Usar la puntuación solo para ordenar preferencias entre opciones del mismo resultado lógico. Mostrar qué cumple, incumple y falta verificar, con diferencias concretas y origen. Revisar umbral de 35, tope de 25 y bonus de publicación para que no oculten coincidencias completas ni conviertan alternativas en matches. Las alternativas del día 21 tienen ranking explicable separado; nunca se presentan como completas por porcentaje. Depende de: BUS-12. Aceptación: Una opción con MUST incumplido no se etiqueta completa aunque tenga mayor puntuación que las válidas.",
    "bloqueo": "",
    "evidencia": [
     "server/matching.js:6-14",
@@ -2168,8 +2484,14 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/match-store.js:96-100",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:111",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:275",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30"
-   ]
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M04",
+   "deps": [
+    "BUS-12"
+   ],
+   "criterio_aceptacion": "Una opción con MUST incumplido no se etiqueta completa aunque tenga mayor puntuación que las válidas."
   },
   {
    "id": "BUS-15",
@@ -2180,50 +2502,70 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "La pantalla Review muestra una coincidencia cada vez (primero la búsqueda más antigua y, dentro de ella, la de mejor puntuación) con A = Shortlist, R = Reject con motivo 1–5, S = Skip y Undo. La pestaña Matches de la ficha ofrece Shortlist, Reject y Undo como botones, sin Skip ni teclas.",
-   "falta": "Falta la aprobación en lote por encima de un umbral; el spec F1-A la aplazó hasta tener datos de aciertos.",
+   "falta": "M04 · Reconciliación 7-nov: Mantener aprobación, rechazo con motivo y pendiente como decisiones humanas. Mostrar comparación, fuentes, fechas y dudas; registrar responsable y versión revisada. Al aprobar se autoriza únicamente la consulta inicial AGE-03. Una aprobación no elimina un MUST ni autoriza divulgar datos del cliente o cambiar criterios. La aprobación en lote, si se conserva, exige selección y acción explícitas del empleado; ningún umbral aprueba solo. Depende de: BUS-12, EST-09. Aceptación: Sin decisión humana registrada no se crea envío; rechazar un match no marca la propiedad no disponible para los demás.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Review.jsx:12-151",
     "server/routes/matches.js:21-43",
     "server/routes/matches.js:45-113",
     "admin/src/App.jsx:127",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:45"
-   ]
+    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:45",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M04",
+   "deps": [
+    "BUS-12",
+    "EST-09"
+   ],
+   "criterio_aceptacion": "Sin decisión humana registrada no se crea envío; rechazar un match no marca la propiedad no disponible para los demás."
   },
   {
    "id": "BUS-16",
    "seccion": "Búsqueda de propiedades",
-   "titulo": "Paso de aprobación manual a automática según aciertos por tramo de puntuación",
+   "titulo": "Aprobación humana obligatoria: sustituye la aprobación automática por puntuación",
    "origen": "plan",
    "fase": "F1-A",
-   "estado": "pendiente",
-   "responsable": "desarrollo",
+   "estado": "replanteado",
+   "responsable": "—",
    "hecho": "",
-   "falta": "Nada mide qué parte aprueba el equipo en cada tramo de puntuación ni propone aprobar solas, por ejemplo, las de 85 o más. Las revisiones ya se guardan (reviewed_by, reviewed_at y el evento match.reviewed), así que hay datos para calcularlo.",
+   "falta": "M04 · Reconciliación 7-nov: La propuesta histórica de autoaprobar por porcentaje queda sustituida por BUS-15: cada match requiere decisión del empleado. Métricas de aciertos pueden ayudar a revisar, pero ningún modo Auto, puntuación o confianza omite ese paso. Aceptación: No hay transición automática de pendiente a aprobado, ni con puntuación máxima.",
    "bloqueo": "",
    "evidencia": [
     "server/routes/matches.js:67-79",
-    "migrations/0009_matches.sql:36"
-   ]
+    "migrations/0009_matches.sql:36",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M04",
+   "deps": [],
+   "criterio_aceptacion": "No hay transición automática de pendiente a aprobado, ni con puntuación máxima."
   },
   {
    "id": "BUS-17",
    "seccion": "Búsqueda de propiedades",
-   "titulo": "Ampliar criterios cuando hay menos de 3 coincidencias",
+   "titulo": "Revisión interna a los 21 días con hasta 20 alternativas explicables",
    "origen": "plan",
    "fase": "F1-A",
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Construido el 6-nov-2026 (spec 2026-11-06, decisiones de Luis «1 1 1»). Con menos de 3 casas entre Found y Shortlisted (solo de casas que siguen en el mercado) y la búsqueda activa (Paused incluida), la pestaña Matches de la ficha enseña «Widen criteria»: presupuesto +10 % (sobre el estirado si lo hay; redondeado a £50 al mes o £1,000), la parroquia libre que más casas añade y un dormitorio menos, cada una con cuántas casas nuevas daría, con las mismas reglas del matching y sin contar las rechazadas. «Use this» rellena ese campo en Requirements sin guardar; el equipo lo habla con el aplicante y pulsa Save. Lo que no aplica se oculta. Se calcula al abrir la ficha, sin guardar nada.",
-   "falta": "Sugerírselo al aplicante (necesita un canal: correo o Meta). Fuera por decisión de Luis: verlo en la lista de Applicants, el Inbox o el resumen de Telegram.",
-   "bloqueo": "Servicio de correo · Trámite Meta (solo para el aviso al aplicante)",
+   "falta": "M10 · Reconciliación 7-nov: La ampliación existente es solo una base parcial. Construir el reloj de 21 días sin coincidencia completa y una tarea interna con hasta 20 alternativas útiles, menos si no hay más. Cada alternativa explica requisitos satisfechos, incumplidos, pendientes y cambio concreto; distinguir restricciones del cliente de información o fuentes incompletas. El equipo elige qué tratar personalmente. No enviar top 20, mensajes de flexibilización ni aplicar criterios automáticamente; la búsqueda sigue activa. Quedan abiertas la comparación de diferencias, el reinicio del reloj y las revisiones posteriores. Depende de: EST-09, BUS-12, BUS-08, NOT-11. Aceptación: Al día 21 se crea una revisión interna explicable, sin correo al cliente ni cambio de criterios, y el día 22 continúa el matching.",
+   "bloqueo": "",
    "evidencia": [
     "server/widen.js",
     "server/routes/applicants.js",
     "admin/src/ApplicantDetail.jsx",
     "tests/server/widen.test.mjs",
-    "docs/superpowers/specs/2026-11-06-hampton-app-widen-criteria-design.md"
-   ]
+    "docs/superpowers/specs/2026-11-06-hampton-app-widen-criteria-design.md",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M10",
+   "deps": [
+    "EST-09",
+    "BUS-12",
+    "BUS-08",
+    "NOT-11"
+   ],
+   "criterio_aceptacion": "Al día 21 se crea una revisión interna explicable, sin correo al cliente ni cambio de criterios, y el día 22 continúa el matching."
   },
   {
    "id": "BUS-18",
@@ -2232,14 +2574,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "texto",
    "fase": "F1-A",
    "estado": "parcial",
-   "responsable": "Luis",
+   "responsable": "desarrollo",
    "hecho": "En cada ficha del catálogo, la sección Matched applicants lista los aplicantes que encajan, si buscan To Let o To Buy, su estado (Found, Shortlisted o Rejected) y su puntuación, con enlace a su pestaña Matches.",
-   "falta": "Falta lo mismo para las casas del mercado de otras agencias (F1-B) y los pasos con su agencia: consulta, disponibilidad confirmada y comisión (AGE-03 a AGE-09).",
-   "bloqueo": "Clave API Places.je · Correo (AUT-17)",
+   "falta": "M02/M06 · Reconciliación 7-nov: Extender el seguimiento al inventario externo y separar cada búsqueda por operación. Mostrar evaluación y decisión del match, consulta común, disponibilidad, interés y visitas; la comisión se registra como gestión humana independiente. Depende de: BUS-10, AGE-03, EST-13.",
+   "bloqueo": "",
    "evidencia": [
     "admin/src/ListingEditor.jsx:233-244",
     "admin/src/ListingEditor.jsx:270-285",
-    "server/routes/listings.js:60-63"
+    "server/routes/listings.js:60-63",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M02/M06",
+   "deps": [
+    "BUS-10",
+    "AGE-03",
+    "EST-13"
    ]
   },
   {
@@ -2251,15 +2600,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "No hay lector de webs externas: hoy la app solo llama a Turnstile y a las claves públicas de Google del login. Antes de leer la web de una agencia hay que comprobar que sus términos lo permiten, y leerla con baja frecuencia, respetando robots.txt y con un user-agent identificado. Properties.je solo con permiso escrito; JEP property, OnTheMarket y Rightmove después de revisar sus términos; Homely.je nunca, porque sus términos lo prohíben.",
+   "falta": "M01 · Reconciliación 7-nov: No hay lector de webs externas: hoy la app solo llama a Turnstile y a las claves públicas de Google del login. Antes de leer la web de una agencia hay que comprobar que sus términos lo permiten, y leerla con baja frecuencia, respetando robots.txt y con un user-agent identificado. Properties.je solo con permiso escrito; JEP property, OnTheMarket y Rightmove después de revisar sus términos; Homely.je nunca, porque sus términos lo prohíben. Actualizar esta revisión por fuente con canal utilizable, acceso público/restringido, última comprobación y trabajo manual pendiente. Las restricciones históricas se conservan hasta comprobar condiciones vigentes; no se exige obtener acceso a todas las fuentes para comenzar con las operativas. Una fuente inaccesible no se cuenta como fuente sin anuncios. Aceptación: Cada fuente indica método disponible o tarea manual; las restricciones se ven sin paralizar todas las demás.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:255-256",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:538-545",
     "server/auth.js:3-4",
     "server/turnstile.js:8",
-    "wrangler.toml:1-20"
-   ]
+    "wrangler.toml:1-20",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M01",
+   "deps": [],
+   "criterio_aceptacion": "Cada fuente indica método disponible o tarea manual; las restricciones se ven sin paralizar todas las demás."
   },
   {
    "id": "BUS-20",
@@ -2277,6 +2630,64 @@ document.addEventListener('DOMContentLoaded', () => {
    ]
   },
   {
+   "id": "BUS-21",
+   "seccion": "Búsqueda de propiedades",
+   "titulo": "Directorio de fuentes · investigación inicial por tandas",
+   "origen": "plan",
+   "fase": "F1-B",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "M01 · Reconciliación 7-nov: Hacer una investigación profunda inicial de Jersey, Islas del Canal, excluyendo Nueva Jersey. Recorrer por tandas agencias y sus webs, portales/clasificados y Facebook (páginas, Marketplace y grupos, incluidos particulares). Si existe una investigación trazable, reutilizarla como punto de partida sin afirmar cobertura no comprobada. Guardar nombre, tipo, URLs directas y de venta/alquiler, acceso, comprobación, evidencia y pendientes. Agrupar fuentes duplicadas conservando canales distintos; una restricción queda pendiente, no vacía. Aceptación: Existe un resultado fechado con método, tandas y evidencias; cada fuente tiene acceso o trabajo pendiente visible.",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M01",
+   "deps": [],
+   "criterio_aceptacion": "Existe un resultado fechado con método, tandas y evidencias; cada fuente tiene acceso o trabajo pendiente visible."
+  },
+  {
+   "id": "BUS-22",
+   "seccion": "Búsqueda de propiedades",
+   "titulo": "Directorio de fuentes · segunda investigación independiente y contraste",
+   "origen": "plan",
+   "fase": "F1-B",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "M01 · Reconciliación 7-nov: Después de terminar BUS-21, investigar de nuevo por tandas agencias, portales/clasificados y Facebook. Buscar fuentes adicionales, contrastar el directorio inicial, corregir enlaces y documentar añadidas, duplicadas, corregidas y pendientes. No repetir una lectura del mismo resultado ni ejecutarla en paralelo a la primera. Depende de: BUS-21. Aceptación: La segunda pasada tiene evidencia propia, fecha posterior a la primera y diferencias explícitas, aunque no encuentre nuevas fuentes.",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M01",
+   "deps": [
+    "BUS-21"
+   ],
+   "criterio_aceptacion": "La segunda pasada tiene evidencia propia, fecha posterior a la primera y diferencias explícitas, aunque no encuentre nuevas fuentes."
+  },
+  {
+   "id": "BUS-23",
+   "seccion": "Búsqueda de propiedades",
+   "titulo": "Directorio de fuentes · tercera investigación y consolidación revisable",
+   "origen": "plan",
+   "fase": "F1-B",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "M01 · Reconciliación 7-nov: Tras BUS-22, realizar una tercera investigación profunda por las mismas tandas contra el conjunto acumulado; buscar omisiones y revisar pendientes. Mantener resultados separados, diferencias y procedencia al consolidar un directorio único ampliable. Entregar las fuentes utilizables al inventario; pendientes manuales no se registran como cero anuncios. Depende de: BUS-22. Aceptación: Hay tres investigaciones separadas y secuenciales con método y contraste; el directorio consolidado preserva evidencia y canales.",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M01",
+   "deps": [
+    "BUS-22"
+   ],
+   "criterio_aceptacion": "Hay tres investigaciones separadas y secuenciales con método y contraste; el directorio consolidado preserva evidencia y canales."
+  },
+  {
    "id": "EST-01",
    "seccion": "Estados",
    "titulo": "Estado Waiting for investigation: registrado y con la primera búsqueda en cola",
@@ -2285,13 +2696,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No existe la etiqueta: el matching con el inventario propio corre al guardar (B5), así que el aplicante pasa directo a Waiting for review o No matches y no se registra si su búsqueda terminó; cobra sentido cuando la búsqueda en el mercado (F1-B) no sea inmediata.",
+   "falta": "M03 · Reconciliación 7-nov: Registrar búsqueda activa, alta, responsable, último intento de cruce y último éxito, con resultados o datos pendientes. El cruce inicial puede ser inmediato; una revisión pendiente de una fuente no equivale a una investigación terminada sin propiedades. Depende de: BUS-01, EST-09.",
    "bloqueo": "",
    "evidencia": [
     "server/applicants.js:29-31",
     "server/routes/applicants.js:64-67",
     "server/routes/applicants.js:203",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:35"
+    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:35",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M03",
+   "deps": [
+    "BUS-01",
+    "EST-09"
    ]
   },
   {
@@ -2356,12 +2773,15 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "replanteado",
    "responsable": "—",
    "hecho": "",
-   "falta": "El plan (§4.2; «cambia» en §11) lo pasa de la propiedad al match aplicante × casa, porque la espera es de cada pareja; se sustituye por EST-13 (Waiting for agent confirmation).",
+   "falta": "M06 · Reconciliación 7-nov: Separar consulta general compartida, disponibilidad de propiedad/operación y espera de cada match; se implementa con AGE-03 y EST-13. La consulta común no duplica datos ni une el interés particular de varios clientes.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:140-147",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:667"
-   ]
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:667",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M06",
+   "deps": []
   },
   {
    "id": "EST-06",
@@ -2372,12 +2792,15 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "replanteado",
    "responsable": "—",
    "hecho": "",
-   "falta": "Pasa a ser un estado del match que se pone solo cuando la agencia confirma, como pedía Luis (§4.2; «cambia» en §11); se sustituye por EST-13.",
+   "falta": "M08 · Reconciliación 7-nov: La confirmación del anunciante actualiza disponibilidad; no implica presentación enviada ni respuesta del cliente. EST-13 separa las dimensiones y AGE-11 exige aprobación e imágenes aptas antes de la presentación, cuyo disparador final sigue abierto.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:142-148",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:667"
-   ]
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:667",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M08",
+   "deps": []
   },
   {
    "id": "EST-07",
@@ -2388,12 +2811,15 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "replanteado",
    "responsable": "—",
    "hecho": "",
-   "falta": "El plan lo convierte en un hecho de la propiedad que, al marcarse a mano o por respuesta de agencia, cierra a la vez todos sus matches abiertos (§4.2; «cambia» en §11); se sustituye por EST-15.",
+   "falta": "M12 · Reconciliación 7-nov: EST-15 aplica la indisponibilidad confirmada con su alcance real: propiedad, operación o publicación afectada. No basta un anuncio ausente ni un contacto inconcluso; actualizar matches/visitas y papelera EST-19 sin borrar el historial.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:149",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:667"
-   ]
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:667",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M12",
+   "deps": []
   },
   {
    "id": "EST-08",
@@ -2414,13 +2840,13 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "EST-09",
    "seccion": "Estados",
-   "titulo": "Etapa del aplicante: New → Searching → Viewing → Offer → Agreed → Completed",
+   "titulo": "Búsqueda activa hasta que el empleado confirma que ya encontró propiedad",
    "origen": "plan",
    "fase": "F0",
-   "estado": "hecho",
-   "responsable": "—",
+   "estado": "parcial",
+   "responsable": "desarrollo",
    "hecho": "Cada búsqueda guarda su etapa (más Paused, Lost con motivo y Archived); el equipo la cambia en la ficha con Stage + Apply y la filtra en Applicants, y ofertas y ventas la mueven solas a Offer / Application, Agreed y Completed.",
-   "falta": "",
+   "falta": "M03 · Reconciliación 7-nov: Separar estado de búsqueda activa/resuelta de la etapa comercial y de cada match/visita. Solo la acción expresa del empleado que confirma que el cliente ya encontró propiedad cierra por éxito; una oferta, visita, negociación, etapa Agreed/Completed automática o inactividad no lo infiere. Al resolver, detener nuevos matches/propuestas/recordatorios y actualizar tareas sin borrar ficha, criterios ni historial, sin cancelar consultas que sirvan a otros ni el barrido diario. Revisar transiciones existentes de ventas y la retención PRE-12 antes de habilitar este comportamiento. Coentrega M03a: subalcance de continuidad de PRE-12. No depende de completar sus avisos por correo, portal ni borrado de ventas a cinco años; la política compatible con búsquedas activas sí se valida antes de activar el nuevo ciclo. Aceptación: Una visita o cambio comercial no termina la búsqueda; marcar resuelta sí detiene su trabajo y deja activos otros clientes y el barrido.",
    "bloqueo": "",
    "evidencia": [
     "migrations/0008_applicants.sql:27-28",
@@ -2429,8 +2855,12 @@ document.addEventListener('DOMContentLoaded', () => {
     "admin/src/Applicants.jsx:54-55",
     "server/routes/sales.js:89",
     "server/routes/sales.js:176-177",
-    "server/routes/sales.js:411-412"
-   ]
+    "server/routes/sales.js:411-412",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M03",
+   "deps": [],
+   "criterio_aceptacion": "Una visita o cambio comercial no termina la búsqueda; marcar resuelta sí detiene su trabajo y deja activos otros clientes y el barrido."
   },
   {
    "id": "EST-10",
@@ -2441,32 +2871,42 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "La cola se calcula a partir de los matches y sale en la columna Queue con filtro, con una sola etiqueta por prioridad (B13); No matches ya existe.",
-   "falta": "Varias etiquetas a la vez, la nueva Viewing booked (visita confirmada próxima) y que No matches llegue a los 7 días sin coincidencias proponiendo ampliar criterios.",
+   "falta": "M13 · Reconciliación 7-nov: Separar las etiquetas simultáneas de trabajo de la actividad de la búsqueda. Añadir visita pendiente/confirmada y dato esencial sin comprobar. Sustituir la ampliación a los siete días por la revisión interna a los 21 días BUS-17; ninguna etiqueta cierra o cambia criterios. Depende de: EST-09, BUS-17, VIS-17.",
    "bloqueo": "",
    "evidencia": [
     "server/routes/applicants.js:64-71",
     "server/applicants.js:29-31",
     "admin/src/Applicants.jsx:56-57",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:43"
+    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:43",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M13",
+   "deps": [
+    "EST-09",
+    "BUS-17",
+    "VIS-17"
    ]
   },
   {
    "id": "EST-11",
    "seccion": "Estados",
-   "titulo": "Etiqueta Gone quiet a los 14 días sin respuesta, con mensaje «Are you still looking?»",
+   "titulo": "Gone quiet informativo, sin cierre ni mensaje automático por inactividad",
    "origen": "plan",
    "fase": "F2",
-   "estado": "parcial",
-   "responsable": "desarrollo",
+   "estado": "replanteado",
+   "responsable": "—",
    "hecho": "La etiqueta Gone quiet sale en la columna Last contact y tiene su filtro: búsqueda activa (también Paused) sin contacto real en más de 14 días. El último contacto se guarda aparte (contacts.last_contact_at): alta, envío repetido, Log conversation, visitas y ofertas; las ediciones del equipo no cuentan.",
-   "falta": "El mensaje automático «Are you still looking?», que necesita un canal de envío.",
-   "bloqueo": "Correo (AUT-17) · Trámite Meta",
+   "falta": "M13 · Reconciliación 7-nov: Conservar Gone quiet como señal informativa de último contacto, sin mensaje automático ni cierre o pausa por inactividad. El mensaje histórico Are you still looking? no forma parte del recorrido acordado; cualquier tarea humana debe preservar búsqueda activa y datos hasta resolución expresa (EST-09).",
+   "bloqueo": "",
    "evidencia": [
     "server/routes/applicants.js",
     "server/retention.js",
     "migrations/0019_last_contact.sql",
-    "tests/server/last-contact.test.mjs"
-   ]
+    "tests/server/last-contact.test.mjs",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M13",
+   "deps": []
   },
   {
    "id": "EST-12",
@@ -2490,19 +2930,28 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "EST-13",
    "seccion": "Estados",
-   "titulo": "Estados del match Waiting for agent confirmation y Waiting for applicant response",
+   "titulo": "Estados independientes de evaluación, aprobación, disponibilidad y consulta",
    "origen": "plan",
    "fase": "F2",
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "Faltan los dos estados (B6 los dejó para F2): esperar a la agencia, salvo en casas de Hampton, y pasar solo a Waiting for applicant response cuando confirma; el cambio automático por respuesta de agencia necesita el correo con agencias (servicio de correo).",
-   "bloqueo": "Correo (AUT-17)",
+   "falta": "M06 · Reconciliación 7-nov: Representar por separado evaluación completa/pendiente/incumple, decisión del empleado, disponibilidad con evidencia, consulta compartida y espera del cliente. Una aprobación no confirma disponibilidad; una disponibilidad confirmada no implica envío al cliente ni visita cerrada. Mantener consultas de otros clientes cuando uno resuelve su búsqueda. Depende de: BUS-12, BUS-15, BUS-10, EST-09. Aceptación: Aprobar, confirmar disponibilidad, confirmar visita y resolver búsqueda son acciones y estados distintos.",
+   "bloqueo": "",
    "evidencia": [
     "migrations/0009_matches.sql:33",
     "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:36",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:147-148"
-   ]
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:147-148",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M06",
+   "deps": [
+    "BUS-12",
+    "BUS-15",
+    "BUS-10",
+    "EST-09"
+   ],
+   "criterio_aceptacion": "Aprobar, confirmar disponibilidad, confirmar visita y resolver búsqueda son acciones y estados distintos."
   },
   {
    "id": "EST-14",
@@ -2513,25 +2962,32 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "Faltan Interested, Viewing booked, Viewed, Offer / Application y Agreed como estados del match: las visitas no guardan el aplicante y las ofertas guardan aplicante y casa pero no mueven el match. Faltan también las salidas Not interested con motivo (hoy solo es un resultado de la visita) y No response, y que los motivos de descarte alimenten la puntuación.",
+   "falta": "M08/M09 · Reconciliación 7-nov: Relacionar interés, descarte con motivo, visita, oferta y acuerdo con el match correcto. Conservar historial de pasos; un descarte de cliente no cambia criterios automáticamente ni vuelve no disponible la propiedad. Una visita realizada, oferta o acuerdo mantiene activa la búsqueda hasta EST-09. Depende de: EST-13, AGE-12, VIS-17.",
    "bloqueo": "",
    "evidencia": [
     "migrations/0009_matches.sql:33-35",
     "migrations/0010_viewings.sql:35-49",
     "migrations/0012_sales.sql:2-8",
-    "server/matching.js:9-12"
+    "server/matching.js:9-12",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M08/M09",
+   "deps": [
+    "EST-13",
+    "AGE-12",
+    "VIS-17"
    ]
   },
   {
    "id": "EST-15",
    "seccion": "Estados",
-   "titulo": "Not available como hecho de la propiedad que cierra todos sus matches abiertos",
+   "titulo": "Indisponibilidad confirmada con alcance y propagación a gestiones",
    "origen": "plan",
    "fase": "F1-A",
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Poner la ficha en Withdrawn, Sold o Under offer, archivarla o apagar Offer to applicants borra sus matches Found de todos los aplicantes, y los Shortlisted muestran la insignia de su disponibilidad.",
-   "falta": "Un estado Not available de la casa, a mano o por respuesta de agencia, que también cierre los Shortlisted con esa salida.",
+   "falta": "M12 · Reconciliación 7-nov: Registrar indisponibilidad confirmada con motivo, fecha, origen, evidencia, responsable y alcance (inmueble, operación, anunciante o publicación). Excluir solo lo afectado de propuestas, actualizar también los Shortlisted y avisar sobre visitas/gestiones en curso, preservando historial. Mover a papelera EST-19; un anuncio viejo no revoca la confirmación ni reabre la propiedad, y evidencia nueva genera revisión. Depende de: BUS-10, EST-16, EST-18. Aceptación: Confirmar baja de una operación retira sus propuestas y avisa las visitas; una publicación antigua no reactiva ni afecta sin fundamento a otra operación. La papelera de no disponibles es distinta del archivado editorial: hoy una ficha archivada puede seguir ofrecida a aplicantes. Esta exclusión confirmada y su prioridad humana deben funcionar antes de activar el barrido o contacto automáticos.",
    "bloqueo": "",
    "evidencia": [
     "server/match-store.js:9-11",
@@ -2539,25 +2995,39 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/routes/listings.js:194",
     "admin/src/MatchCard.jsx:10-12",
     "admin/src/MatchCard.jsx:47",
-    "admin/src/ListingEditor.jsx:235-240"
-   ]
+    "admin/src/ListingEditor.jsx:235-240",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M12",
+   "deps": [
+    "BUS-10",
+    "EST-16",
+    "EST-18"
+   ],
+   "criterio_aceptacion": "Confirmar baja de una operación retira sus propuestas y avisa las visitas; una publicación antigua no reactiva ni afecta sin fundamento a otra operación."
   },
   {
    "id": "EST-16",
    "seccion": "Estados",
-   "titulo": "Estados de la propiedad del inventario del mercado, con Stale a los 7 o 30 días",
+   "titulo": "Estado publicado, disponibilidad y procedencia como dimensiones separadas",
    "origen": "plan",
    "fase": "F1-B",
-   "estado": "bloqueado",
-   "responsable": "Luis",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No existen properties ni market_listings: faltan Detected, Active, Availability confirmed, Under offer / Let agreed, Sold / Let, Gone y Not available, y la marca Stale (sin verificar en 7 días si es alquiler o 30 si es venta).",
-   "bloqueo": "Clave API Places.je",
+   "falta": "M02 · Reconciliación 7-nov: Separar estado observado de publicación (visible/modificada/no localizada) de disponibilidad comercial (sin confirmar/disponible/no disponible), con fechas y fuentes independientes. Priorizar confirmación humana posterior ante scraping; contradicciones y posible reaparición generan revisión. Registrar intentos fallidos sin afirmar vacío o baja. La vigencia de una disponibilidad compartida y los plazos Stale históricos de 7/30 días se deben decidir, no se dan por cerrados. Depende de: BUS-10. Aceptación: Anuncio no localizado y fallo de web nunca equivalen solos a no disponible; una observación antigua no reemplaza confirmación humana. Crear fechas propias de observación y confirmación comercial: no reutilizar como prueba del anunciante el confirmed_at del catálogo, que también cambia por publicación o precio.",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:152-159",
     "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:31",
-    "migrations/0001–0015: sin properties ni market_listings"
-   ]
+    "migrations/0001–0015: sin properties ni market_listings",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M02",
+   "deps": [
+    "BUS-10"
+   ],
+   "criterio_aceptacion": "Anuncio no localizado y fallo de web nunca equivalen solos a no disponible; una observación antigua no reemplaza confirmación humana."
   },
   {
    "id": "EST-17",
@@ -2589,7 +3059,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Escriben evento la etapa y los cambios del aplicante, las revisiones de matches, las visitas y las ofertas y ventas (en el historial del comprador); los alquileres usan su propia tabla rental_events.",
-   "falta": "Los cambios de las fichas (publicar, archivar, precio, disponibilidad a mano) no escriben evento: events solo admite applicant, contact, viewing y admin.",
+   "falta": "M13 · Reconciliación 7-nov: Los cambios de las fichas (publicar, archivar, precio, disponibilidad a mano) no escriben evento: events solo admite applicant, contact, viewing y admin. Ampliar el historial para fuentes, publicaciones, disponibilidad, aprobación, consultas, llamadas, archivos, visitas, cambios confirmados y cierre; distinguir observación automática de confirmación humana con autor/fecha/evidencia. Los reintentos no repiten eventos funcionales y las correcciones humanas no se sobrescriben en silencio. Aceptación: Dos fuentes o una corrección conservan procedencia y secuencia; una purga de archivos no borra eventos históricos.",
    "bloqueo": "",
    "evidencia": [
     "server/events.js:9-19",
@@ -2598,8 +3068,36 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/routes/inbox.js:122-130",
     "server/routes/sales.js:44-46",
     "migrations/0013_rentals.sql:151-161",
-    "server/routes/listings.js:1-5"
-   ]
+    "server/routes/listings.js:1-5",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M13",
+   "deps": [],
+   "criterio_aceptacion": "Dos fuentes o una corrección conservan procedencia y secuencia; una purga de archivos no borra eventos históricos."
+  },
+  {
+   "id": "EST-19",
+   "seccion": "Estados",
+   "titulo": "Papelera de no disponibles y purga de archivos a los seis meses",
+   "origen": "plan",
+   "fase": "F1-B",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "M12 · Reconciliación 7-nov: Mover la propiedad/operación confirmada como no disponible a papelera con fecha de entrada, motivo, alcance y evidencia. A los seis meses purgar automáticamente los archivos definidos en la política, registrando resultado y reintentos sin duplicados. Concretar antes qué archivos y mínimos de identidad quedan; preservar referencias, historial de clientes, criterios, consultas y visitas. Mantener una huella o referencia que impida reimportar como nueva una propiedad purgada; nueva evidencia exige revisión antes de reactivar. No extender esta regla a la retención de personas PRE-12. Depende de: EST-15, SPR-03, BUS-10, EST-18, AUT-07. Aceptación: Al cumplir seis meses se borran solo archivos acordados; historial y referencias siguen legibles y un anuncio viejo no recrea ni reactiva la propiedad.",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M12",
+   "deps": [
+    "EST-15",
+    "SPR-03",
+    "BUS-10",
+    "EST-18",
+    "AUT-07"
+   ],
+   "criterio_aceptacion": "Al cumplir seis meses se borran solo archivos acordados; historial y referencias siguen legibles y un anuncio viejo no recrea ni reactiva la propiedad."
   },
   {
    "id": "REG-01",
@@ -2666,10 +3164,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Presupuesto del aplicante",
    "origen": "texto",
    "fase": "F0",
-   "estado": "hecho",
-   "responsable": "—",
+   "estado": "parcial",
+   "responsable": "desarrollo",
    "hecho": "El paso «Budget and timing» pide el máximo (obligatorio), el mínimo y «I can stretch to…», en £ al mes si alquila y en £ si compra, con rangos que valida el servidor. El matching usa el tope ampliado.",
-   "falta": "",
+   "falta": "M03 · Reconciliación 7-nov: Extender el presupuesto a periodicidad y condiciones separadas para comprar y alquilar; registrar qué máximo es imprescindible y qué ampliación fue aceptada. El tope ampliado no es permiso para cambiar otras condiciones. Aceptación: La misma persona puede buscar compra y alquiler con presupuestos independientes.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:134-136",
@@ -2677,8 +3175,12 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/applicants.js:120-130",
     "migrations/0008_applicants.sql:31-33",
     "admin/src/ApplicantFields.jsx:83-87",
-    "server/matching.js:31-43"
-   ]
+    "server/matching.js:31-43",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M03",
+   "deps": [],
+   "criterio_aceptacion": "La misma persona puede buscar compra y alquiler con presupuestos independientes."
   },
   {
    "id": "REG-05",
@@ -2686,17 +3188,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Habitaciones y baños que busca el aplicante",
    "origen": "texto",
    "fase": "F0",
-   "estado": "hecho",
-   "responsable": "—",
+   "estado": "parcial",
+   "responsable": "desarrollo",
    "hecho": "El paso «What kind of home?» pide los dormitorios mínimos (obligatorio, de Studio a 5+), los dormitorios ideales y los baños mínimos. El matching descarta las casas que tienen menos y da más puntos a las que llegan a los ideales.",
-   "falta": "",
+   "falta": "M03 · Reconciliación 7-nov: Añadir límites mínimo y máximo aceptados, y separar imprescindibles de preferencias. El dato actual de dormitorios ideales no expresa un máximo aceptado. Aceptación: Un rango de uno a dos dormitorios no acepta automáticamente tres.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:125-127",
     "server/applicants.js:158-160",
     "migrations/0008_applicants.sql:35-37",
-    "server/matching.js:133-138"
-   ]
+    "server/matching.js:133-138",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M03",
+   "deps": [],
+   "criterio_aceptacion": "Un rango de uno a dos dormitorios no acepta automáticamente tres."
   },
   {
    "id": "REG-06",
@@ -2704,18 +3210,22 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Zona ideal y zona no deseada del aplicante",
    "origen": "texto",
    "fase": "F0",
-   "estado": "hecho",
-   "responsable": "—",
+   "estado": "parcial",
+   "responsable": "desarrollo",
    "hecho": "El paso «Where?» deja marcar las parroquias deseadas y las que quiere evitar (de las doce, sin repetir ninguna en las dos) y escribir «Near…» (trabajo, colegio). El matching descarta las parroquias excluidas y da puntos a las deseadas.",
-   "falta": "",
+   "falta": "M03 · Reconciliación 7-nov: Distinguir zonas aceptables, preferidas y excluidas; exigir una respuesta explícita cuando sea esencial y ofrecer cualquier zona/no lo sé cuando corresponda. Una lista vacía no expresa por sí sola una decisión del cliente. Aceptación: El cliente puede aceptar varias zonas y preferir una sin perder la distinción.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:121-123",
     "site/apply.js:243-244",
     "server/applicants.js:132-134",
     "server/matching.js:140-150",
-    "admin/src/ApplicantFields.jsx:64-68"
-   ]
+    "admin/src/ApplicantFields.jsx:64-68",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M03",
+   "deps": [],
+   "criterio_aceptacion": "El cliente puede aceptar varias zonas y preferir una sin perder la distinción."
   },
   {
    "id": "REG-07",
@@ -2723,17 +3233,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Mascotas del aplicante (Pet allowance)",
    "origen": "texto",
    "fase": "F0",
-   "estado": "hecho",
-   "responsable": "—",
+   "estado": "parcial",
+   "responsable": "desarrollo",
    "hecho": "El registro pregunta No pets, Cat, Dog u Other y cuántos de cada uno. El matching descarta las fichas que dicen «no pets» y deja en Unknown las que no lo dicen.",
-   "falta": "",
+   "falta": "M03 · Reconciliación 7-nov: Exigir respuesta explícita cuando aplique y conservar no tengo mascotas, tipos/cantidades y desconocido como valores distintos. La existencia de mascotas es un hecho y no se elimina para mejorar un resultado. Aceptación: Una respuesta omitida no equivale a No pets ni a compatibilidad confirmada.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:131-133",
     "server/applicants.js:136-145",
     "admin/src/ApplicantFields.jsx:132-147",
-    "server/matching.js:156-158"
-   ]
+    "server/matching.js:156-158",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M03",
+   "deps": [],
+   "criterio_aceptacion": "Una respuesta omitida no equivale a No pets ni a compatibilidad confirmada."
   },
   {
    "id": "REG-08",
@@ -2741,18 +3255,22 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Parking que necesita el aplicante, con número de plazas",
    "origen": "texto",
    "fase": "F0",
-   "estado": "hecho",
-   "responsable": "—",
+   "estado": "parcial",
+   "responsable": "desarrollo",
    "hecho": "El registro pide las plazas de parking (None, 1, 2 o 3+), y cada coincidencia muestra si la ficha las cubre (Meets, Fails o Unknown).",
-   "falta": "",
+   "falta": "M03 · Reconciliación 7-nov: Añadir carácter imprescindible o negociable al número de plazas, respuestas explícitas y desconocido/no aplica cuando proceda. Llevar esa distinción al motor BUS-12. Aceptación: Dos plazas imprescindibles excluyen de completas una propiedad con una plaza.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:128",
     "server/applicants.js:15",
     "server/applicants.js:161",
     "migrations/0008_applicants.sql:38",
-    "server/matching.js:160-164"
-   ]
+    "server/matching.js:160-164",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M03",
+   "deps": [],
+   "criterio_aceptacion": "Dos plazas imprescindibles excluyen de completas una propiedad con una plaza."
   },
   {
    "id": "REG-09",
@@ -2795,13 +3313,13 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "REG-11",
    "seccion": "Registro de aplicantes",
-   "titulo": "Campos extra del plan: operación, tipo, exterior, fechas, compra, estatus, canal, idioma",
+   "titulo": "Registro por modalidad, búsquedas separadas y datos esenciales explícitos",
    "origen": "plan",
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "La web y el panel piden además To Let / To Buy, tipo de casa, exterior, amueblado (alquiler), fecha de entrada y duración, situación de compra e hipoteca, estatus de vivienda con su explicación, adultos y niños, canal preferido y mejor hora.",
-   "falta": "Falta el idioma preferido, que el plan pone en el paso 6 y el spec F0 dejó fuera.",
+   "falta": "M03 · Reconciliación 7-nov: Conservar campos actuales y completar compra, alquiler o ambas como búsquedas relacionadas con condiciones separadas; vivienda, comercial y negocio con preguntas adaptadas. Guardar adultos, niños y total con respuestas explícitas, no niños/no aplica/desconocido, sin asumir ceros por omisión. Añadir idioma pendiente. El conjunto de campos comercial/negocio sigue abierto y debe distinguir inmueble, negocio o ambos. Aceptación: Ambas operaciones no mezclan presupuestos; un hogar incompleto no se trata como confirmado.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:116-148",
@@ -2809,25 +3327,36 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/applicants.js:155-175",
     "admin/src/ApplicantFields.jsx:57-129",
     "migrations/0008_applicants.sql:11-12",
-    "migrations/0008_applicants.sql:23-54"
-   ]
+    "migrations/0008_applicants.sql:23-54",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M03",
+   "deps": [],
+   "criterio_aceptacion": "Ambas operaciones no mezclan presupuestos; un hogar incompleto no se trata como confirmado."
   },
   {
    "id": "REG-12",
    "seccion": "Registro de aplicantes",
-   "titulo": "Resultado inmediato al registrarse: casas que encajan y enlace al portal",
+   "titulo": "Confirmación de alta y activación de búsqueda sin promesas de disponibilidad",
    "origen": "plan",
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Al enviar, la web confirma «Thank you, <name>. We'll be in touch within one working day.» y el matching corre justo después de responder.",
-   "falta": "No dice cuántas casas encajan ya ni da el enlace a su portal (AGE-12, sin construir). Para no revelar quién ya está registrado, el recuento debe calcularse con los criterios enviados y el enlace llegar por email o WhatsApp, no en pantalla.",
+   "falta": "M03 · Reconciliación 7-nov: Confirmar el alta y el inicio real de la búsqueda sin prometer una propiedad adecuada ni una visita. Mostrar al equipo el resultado inicial y datos esenciales pendientes; gestionar solo el dato que falta. El portal pendiente AGE-12 no bloquea ese acuse de registro y no se revelan coincidencias de un contacto previo por una repetición del formulario. Depende de: BUS-01, EST-09. Aceptación: El formulario informa que la búsqueda está activa y el equipo ve cualquier esencial pendiente.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:264-271",
     "server/routes/public.js:101-133",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:101"
-   ]
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:101",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M03",
+   "deps": [
+    "BUS-01",
+    "EST-09"
+   ],
+   "criterio_aceptacion": "El formulario informa que la búsqueda está activa y el equipo ve cualquier esencial pendiente."
   },
   {
    "id": "REG-13",
@@ -2896,6 +3425,26 @@ document.addEventListener('DOMContentLoaded', () => {
    "evidencia": [
     "site/apply.js:318-346"
    ]
+  },
+  {
+   "id": "REG-17",
+   "seccion": "Registro de aplicantes",
+   "titulo": "Franjas de visita reutilizables, con inicio y fin en horario de Jersey",
+   "origen": "plan",
+   "fase": "F0",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "M03 · Reconciliación 7-nov: Recoger varias opciones de días y franjas con inicio/fin, explicar la utilidad de dar disponibilidad realista y flexible, guardarlas con la búsqueda y permitir actualizarlas. Usar la zona horaria de Jersey y distinguir franjas habituales de confirmaciones de una visita concreta. El formulario de reserva existente no sustituye esta información en el registro de búsqueda. Depende de: REG-11. Aceptación: Una búsqueda guarda varias franjas válidas que VIS-17 reutiliza; guardarlas nunca confirma una cita.",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M03",
+   "deps": [
+    "REG-11"
+   ],
+   "criterio_aceptacion": "Una búsqueda guarda varias franjas válidas que VIS-17 reutiliza; guardarlas nunca confirma una cita."
   },
   {
    "id": "ADM-01",
@@ -3582,12 +4131,13 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "La reserva pública deja elegir «General enquiry / valuation» con un hueco real de un negociador (llega al Inbox y a Viewings), e Insights muestra la demanda sin cubrir por parroquia (Unmet demand) para preparar la valoración.",
-   "falta": "No hay formulario Book a valuation que cree el contacto del propietario con los datos de su casa, y los comparables del historial de Places.je esperan la clave. El formulario del propietario espera a que Hampton confirme su registro en la JOIC (PRE-03) y a que el aviso de privacidad cubra a los propietarios (PRE-09).",
-   "bloqueo": "Clave API Places.je · Dato de Hampton",
+   "falta": "No hay formulario Book a valuation que cree el contacto del propietario con los datos de su casa, y los comparables siguen pendientes: Places.je es una posible fuente cuyo acceso se verifica por separado, no un bloqueo obligatorio del inventario común. El formulario del propietario espera a que Hampton confirme su registro en la JOIC (PRE-03) y a que el aviso de privacidad cubra a los propietarios (PRE-09).",
+   "bloqueo": "Dato de Hampton",
    "evidencia": [
     "site/index.html:465-482",
     "server/routes/public.js:50-78",
-    "admin/src/Insights.jsx:60"
+    "admin/src/Insights.jsx:60",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
    ]
   },
   {
@@ -4355,19 +4905,21 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "PRE-01",
    "seccion": "Acciones previas y cumplimiento",
-   "titulo": "Pedir la clave de la API de Places.je",
+   "titulo": "Acceso a Places.je como conector opcional del inventario",
    "origen": "plan",
    "fase": "F1-B",
    "estado": "pendiente",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "Luis aún no tiene la clave: se pide en places.je/developers/request-access y desde el 2-nov-2026 las llamadas sin clave reciben 401. Sin ella no empieza F1-B, el inventario del mercado.",
+   "falta": "M01 · Reconciliación 7-nov: Conservar la solicitud de acceso a Places.je como gestión opcional para ese conector; comprobar si hay credenciales y vía operativa cuando se aborde. El dato histórico del 401 no se vuelve a afirmar como comprobación de hoy. El directorio, otras fuentes accesibles y el inventario BUS-06 pueden avanzar sin esa clave.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:590",
-    "docs/roadmap/ESTADO.md:9"
+    "docs/roadmap/ESTADO.md:9",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
    ],
-   "vence": "2026-11-02"
+   "modulo": "M01",
+   "deps": []
   },
   {
    "id": "PRE-02",
@@ -4547,7 +5099,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "G2 en producción (991b6c6): una pasada diaria borra contactos con 12 meses sin actividad y visitas de hace más de 12 meses, salvo ventas (5 años) y ofertas abiertas; Applicants tiene la lista Expiring desde el mes 11, Kept until y el botón Log conversation, y el aviso lo explica. Desde el 29-oct la pasada la hace el reloj a las 00:00 de Jersey (AUT-07); si el reloj no la hizo, la hace el panel al abrirse.",
-   "falta": "No hay aviso previo por email al aplicante (G2 lo preveía a los 11 meses) ni descarga o borrado desde el portal, que no existe. Antes de 2031 hay que borrar las ventas a los 5 años. Falta también fijar cuánto se guardan un alquiler o una venta después de terminar (contabilidad, depósitos, reclamaciones): la limpieza de 12 meses no toca alquileres, contratos ni pagos, y las ventas se guardan 5 años. El plazo lo propone el abogado de Hampton (PRE-33) y después la app lo aplica sola.",
+   "falta": "M03/M12 · Reconciliación 7-nov: No hay aviso previo por email al aplicante (G2 lo preveía a los 11 meses) ni descarga o borrado desde el portal, que no existe. Antes de 2031 hay que borrar las ventas a los 5 años. Falta también fijar cuánto se guardan un alquiler o una venta después de terminar (contabilidad, depósitos, reclamaciones): la limpieza de 12 meses no toca alquileres, contratos ni pagos, y las ventas se guardan 5 años. El plazo lo propone el abogado de Hampton (PRE-33) y después la app lo aplica sola. Revisar la limpieza existente de contactos frente a la continuidad de búsquedas activas y la conservación al resolverlas: hoy el borrado por inactividad no distingue una búsqueda activa. No inventar aquí otro plazo. La papelera de seis meses EST-19 se limita a archivos de propiedades no disponibles y no autoriza borrar contactos, criterios o historial de gestiones. Aceptación: La regla de seis meses no elimina historial de clientes; la limpieza general no cierra silenciosamente una búsqueda activa.",
    "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "server/retention.js:51-92",
@@ -4558,8 +5110,12 @@ document.addEventListener('DOMContentLoaded', () => {
     "admin/src/App.jsx:125-126",
     "site/apply.js:337-342",
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:43",
-    "991b6c6"
-   ]
+    "991b6c6",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M03/M12",
+   "deps": [],
+   "criterio_aceptacion": "La regla de seis meses no elimina historial de clientes; la limpieza general no cierra silenciosamente una búsqueda activa."
   },
   {
    "id": "PRE-13",
@@ -4685,14 +5241,17 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "P-01 aceptada (A5): inventario diario y matching en SQL, Deep Research solo en casos raros. AI Gateway (A1) y C3 en local (A2) encajan con API en lugar de suscripciones, y los estados en el match (F1-A) y los campos de Jersey en las fichas (4cd4001) ya están construidos. El 30-oct-2026 Luis cambió la puerta de la IA: Hermes con su plan de ChatGPT en lugar de AI Gateway (P-18).",
-   "falta": "No consta el sí a P-14 (tours 3D por línea de comandos en lugar de computer use, T3D-04) ni a P-03 y P-04 (una consulta por casa y un acuerdo de comisión por agencia), que llegan con F2.",
+   "falta": "M01/M06 · Reconciliación 7-nov: Se conserva fuera de este alcance la decisión pendiente de P-14 sobre tours 3D (T3D-04). Para el recorrido de búsqueda ya queda acordado compartir la consulta de disponibilidad sin mezclar hogares (AGE-03), y gestionar la comisión personalmente sin condicionarla al primer contacto ni a la visita (AGE-02). No mantener P-03/P-04 como bloqueo de F2.",
    "bloqueo": "Decisión de Luis",
    "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:27-31",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:694",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:653",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:637"
-   ]
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:637",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M01/M06",
+   "deps": []
   },
   {
    "id": "PRE-20",
@@ -4732,18 +5291,21 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "PRE-22",
    "seccion": "Acciones previas y cumplimiento",
-   "titulo": "Respuesta a la pregunta 6: acuerdos de comisión con otras agencias y sus condiciones",
+   "titulo": "Acuerdos de comisión como gestión humana independiente",
    "origen": "plan",
    "fase": "F2",
-   "estado": "bloqueado",
+   "estado": "pendiente",
    "responsable": "Hampton",
    "hecho": "",
-   "falta": "Solo se sabe que las 264 fichas se comercializan con la agencia del encargo (A4); no constan acuerdos ni condiciones (reparto, vigencia, permiso de fotos), que definen el primer correo a agencias de F2.",
-   "bloqueo": "Dato de Hampton",
+   "falta": "M06 · Reconciliación 7-nov: Registrar cuando el equipo los aporte los acuerdos y condiciones comerciales tratados personalmente, separados de permisos de imágenes (AGE-10). No se presupone un porcentaje ni se necesita un acuerdo de reparto para construir el directorio, hacer la consulta inicial o coordinar la visita. No incluir comisión en la consulta automática.",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:697",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30"
-   ]
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+   ],
+   "modulo": "M06",
+   "deps": []
   },
   {
    "id": "PRE-23",
@@ -4947,7 +5509,27 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/2026-11-06-ideas-hampton-bot.md §11"
    ]
   }
- ]
+ ],
+ "reconciliacion": {
+  "documento": "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+  "fecha": "2026-11-07",
+  "criterio": "Estados contrastados con código; documentar una necesidad no la da por implementada. La verificación de producción sigue siendo independiente.",
+  "secuencia": [
+   "M01 Directorio: BUS-21 → BUS-22 → BUS-23",
+   "M02 Inventario común: BUS-06, BUS-09, BUS-10, EST-16",
+   "M03 Registro y búsqueda activa: REG-11, REG-17, EST-09",
+   "M04 Matching y revisión: BUS-12, BUS-14, BUS-15",
+   "M05 Barrido diario: BUS-08, BUS-04",
+   "M06 Consulta y llamada: AGE-03, AGE-05, AGE-06, AGE-08",
+   "M07 Ficha y archivos: SPR-03, AGE-10",
+   "M08 Presentación privada: AGE-11, AGE-12",
+   "M09 Visita multiparte: VIS-17",
+   "M10 Revisión interna día 21: BUS-17",
+   "M11 Criterios dictados: AUT-19",
+   "M12 Papelera: EST-15, EST-19",
+   "M13 Inbox y trazabilidad: NOT-11, EST-18"
+  ]
+ }
 }
 </script>
 </body>

@@ -6,6 +6,10 @@
 >
 > Añadido el 29-oct-2026: §6.5 (plan de ChatGPT de cada empleado), decisión P-17 y pregunta 14. Añadido el 30-oct-2026: §6.6 (Hermes, el cerebro de IA de las automatizaciones, con Telegram), decisión P-18 y preguntas 15 y 16; ese mismo día Luis las respondió y aprobó el diseño del Hermes propio de Hampton. Cambiado el 2-nov-2026: canal del equipo, avisador sin IA y solo Luis da órdenes (§6.6). Cambiado el 5-nov-2026: Hermes también lee los documentos de las carpetas de Drive que el equipo manda a Properties Queue (§5.10, PUB-21). Lo construido y lo pendiente está en [ESTADO.md](ESTADO.md) y en el [checklist](checklist-hampton-app.html). La versión HTML de este documento sigue siendo la del 23-oct.
 
+## Actualización normativa del recorrido · 7-nov-2026
+
+La [reconciliación funcional](2026-11-07-reconciliacion-automatizacion.md) y el [checklist](checklist-hampton-app.html) gobiernan el recorrido de búsqueda desde el 7-nov. Este documento conserva el diseño y decisiones históricos del resto del producto. No interpretar sus propuestas antiguas como funciones construidas. En el recorrido nuevo prevalecen: imprescindibles vinculantes, aprobación humana permanente, tres investigaciones secuenciales, disponibilidad con evidencia/alcance, llamada a dos días, top20 interno a21 días, cierre humano y purga de archivos a seis meses. Comisión, autopausa y aprobación automática no se heredan.
+
 ## 0. Lo esencial
 
 Tu texto describe bien qué tiene que pasar. Le faltaba el cómo que evita trabajo repetido: dónde vive cada dato, quién cambia cada estado y qué ocurre cuando algo no llega. Estos son los ocho cambios de fondo:
@@ -14,11 +18,11 @@ Tu texto describe bien qué tiene que pasar. Le faltaba el cómo que evita traba
 |---|---|---|---|
 | 1 | Un **inventario único del mercado de Jersey** en lugar de una investigación por aplicante | El mercado es pequeño: Places.je muestra unos 1.640 anuncios en venta y 340 en alquiler, y Homely.je trabaja con 42 agencias (observado el 23-oct-2026). Leerlo una vez al día sirve a todos los aplicantes a la vez, y Places.je tiene una API pública para hacerlo con permiso | Un aplicante nuevo ve coincidencias en minutos, sin coste de IA por aplicante y sin propiedades repetidas |
 | 2 | Separar **Propiedad, Anuncio y Match** | Tus «estados de propiedad» describen la relación propiedad × aplicante. Guardados en la propiedad, dos aplicantes para la misma casa se pisan | Cada aplicante tiene su estado con cada casa; la disponibilidad se guarda una sola vez |
-| 3 | Preguntar a cada agencia **una vez por casa**, en un correo diario, con un **acuerdo de comisión** negociado una sola vez | Con 3 aplicantes para la misma casa saldrían 3 correos y 3 negociaciones | Una respuesta de la agencia actualiza a todos los aplicantes de esa casa |
+| 3 | Compartir la consulta de disponibilidad **por propiedad y alcance**, con **comisión tratada personalmente** | Con 3 aplicantes para la misma casa saldrían 3 correos y 3 negociaciones | Una respuesta de la agencia actualiza a todos los aplicantes de esa casa |
 | 4 | Un **registro de eventos** como columna vertebral | Avisos, historial, auditoría, analítica y disparadores necesitan lo mismo: qué pasó, cuándo y quién | Una tabla en lugar de cinco sistemas; el historial de cada ficha sale solo |
 | 5 | El aplicante **se atiende solo** desde un enlace personal | «Waiting for applicant response» hoy significa llamar y esperar | Sus clics (reservar, descartar, preguntar) cambian los estados sin que nadie teclee |
 | 6 | **IA solo donde el dato no tiene forma**, por API y según la clase del dato | Filtros, plazos y pagos son reglas exactas: SQL no se equivoca y no cuesta | Menos errores, coste bajo y medible, datos sensibles fuera de la nube |
-| 7 | **Autonomía graduable** en cada automatización | Una automatización nueva se equivoca al principio | Borrador, luego aprobación con un clic, luego automático con muestreo |
+| 7 | **Autonomía graduable** en cada automatización | Una automatización nueva se equivoca al principio | Autonomía delimitada por acción; el match mantiene siempre aprobación humana y los criterios requieren confirmación |
 | 8 | **Crecer sobre HamptonJersey**, sin segundo backend | Ya hay catálogo, panel con Google, bandeja de visitas, D1, R2 y Turnstile en producción | Lo nuevo son tablas D1, rutas `/api`, pantallas del panel y un Worker con cron |
 
 ## 1. Punto de partida
@@ -117,49 +121,17 @@ Reglas para todas las tablas: precios siempre con moneda y periodo (como ya exig
 
 ### 4.1 Aplicante: etapa y cola de trabajo
 
-Tu texto da cuatro estados de aplicante. El problema: un aplicante puede estar «In process» con una casa y tener «New properties found» con otras a la vez, y un solo campo no puede expresarlo. Propuesta en dos capas.
+**Vigente, M03:** la búsqueda distingue activa/resuelta por empleado; la etapa comercial y las colas son independientes. Viewing, Offer, Agreed, silencio o 21 días no resuelven una búsqueda. Registrar responsable, fecha y causa del cierre; actualizar solo sus tareas y mantener consultas compartidas útiles. Pausa/retirada voluntaria quedan en decisión D12. Revisar PRE-12 para impedir que la retención por inactividad contradiga este contrato.
 
-**Etapa** (se guarda; una a la vez):
-
-```flow
-New → Searching → Viewing → Offer / Application → Agreed → Completed
-salidas: Paused · Lost (con motivo) · Archived
-```
-
-**Cola de trabajo** (se calcula a partir de sus matches; puede tener varias etiquetas a la vez). Conserva tus nombres con la ortografía corregida:
-
-| Etiqueta | Significa | Se calcula como |
-|---|---|---|
-| `Waiting for investigation` | Registrado; la primera búsqueda está en cola | Sin búsqueda completada. Con el inventario dura minutos |
-| `Waiting for review` (era «Waiting for reviewing») | Hay resultados y falta la revisión humana | Matches `Found` de la primera búsqueda sin revisar |
-| `New properties found` (era «New Properties Founded») | Búsquedas posteriores encontraron casas nuevas | Matches `Found` creados después de la primera revisión |
-| `In process` | Al menos una casa espera a la agencia o al aplicante | Matches en `Waiting for agent confirmation` o `Waiting for applicant response` |
-| `Viewing booked` (nueva) | Tiene una visita próxima | Visita confirmada en el futuro |
-| `No matches` (nueva) | 7 días sin coincidencias | El sistema propone ampliar criterios |
-| `Gone quiet` (nueva) | 14 días sin responder | Mensaje automático «Are you still looking?» |
+Las etiquetas Waiting for investigation/review, New properties found e In process describen trabajo pendiente. Gone quiet es interno. La revisión del día21 se define en M10, sin mensajes automáticos para ampliar criterios.
 
 ### 4.2 Match: aplicante × propiedad
 
-Aquí van tus «estados de propiedad», que en realidad son de la pareja:
-
-```flow
-Found → Shortlisted → Waiting for agent confirmation → Waiting for applicant response → Interested → Viewing booked → Viewed → Offer / Application → Agreed
-salidas: Rejected by staff (motivo) · Not available · Not interested (motivo) · No response
-```
-
-- `Waiting for agent confirmation` se salta si la casa es de Hampton: su disponibilidad ya se conoce.
-- `Waiting for applicant response` se pone solo cuando la agencia confirma, como pedías.
-- `Not available` es un hecho de la **propiedad**. Al marcarla, a mano o por la respuesta de una agencia, se cierran a la vez todos sus matches abiertos.
-- `Not interested` (era «Not intereses») es de la **pareja**. Lo marca el aplicante con un clic o el equipo, siempre con motivo: precio, zona, tamaño, estado u otro. Los motivos alimentan la puntuación.
+**Vigente, M04:** guardar por separado evaluación (completa/pendiente/alternativa/excluida), decisión humana (pendiente/aprobada/rechazada), interés y gestiones. Aprobar no confirma disponibilidad ni cambia imprescindibles. Cada autorización se vincula a la versión de criterios/datos; un cambio material exige revisar la acción pendiente. Rechazar una pareja no retira la propiedad para otros clientes.
 
 ### 4.3 Propiedad del inventario
 
-```flow
-Detected → Active → Availability confirmed → Under offer / Let agreed → Sold / Let
-salidas: Gone (no aparece en la fuente dos pasadas seguidas) · Not available
-```
-
-Una casa está `Stale` si su última verificación tiene más de 7 días (alquiler) o 30 (venta): hay que volver a confirmarla antes de mandarla a un aplicante. Al confirmar la disponibilidad se guarda un `availability_snapshot` con la ficha completa y la respuesta de la agencia tal como estaban ese día. Es lo que pedías: los detalles enteros en el momento en que se confirmó la disponibilidad.
+**Vigente, M02/M05/M12:** separar estado de publicación (visible/modificada/no localizada), disponibilidad (sin confirmar/disponible/no disponible) y archivos (pendiente/parcial/disponible/archivado/purgado). Una fuente fallida o dos lecturas sin anuncio no confirman retirada. Guardar fecha, origen, evidencia y alcance de confirmación; un anuncio antiguo no sobrescribe al empleado. Reactivar requiere revisión. La vigencia comercial se decide en D02; no hereda automáticamente 7/30 días de frescura de anuncios.
 
 ### 4.4 Ficha propia del catálogo de Hampton
 
@@ -254,65 +226,27 @@ Tus nueve campos están todos: nombre, email, móvil, presupuesto, dormitorios y
 
 ### 5.5 Búsqueda de propiedades: el inventario del mercado
 
-**Pediste:** una «Deep Research» la primera vez; después una búsqueda diaria con modelos baratos y dos investigaciones con modelos distintos para comparar, sin repetir lo que ya está en la base.
+**Vigente, M01/M02/M05:** directorio común de Jersey (no Nueva Jersey), formado por tres investigaciones profundas separadas y secuenciales; cada una recorre agencias, portales/clasificados y Facebook/Marketplace/grupos por tandas y contrasta hallazgos con lo acumulado. Acceso restringido queda pendiente verificable. Después, inventario inicial y pasada diaria independiente de clientes.
 
-**Propuesta:** darle la vuelta. En vez de buscar para cada aplicante, el sistema lee el mercado una vez al día y cruza a todos los aplicantes contra él.
-
-1. **Fuentes, de mejor a peor** (detalle y términos en §7.3):
-   - **La API pública de Places.je**: anuncios de muchas agencias ya estructurados (agencia, precio, dormitorios, parroquia, estado, `property_key`), con permiso y sin leer HTML. Unos 2.000 anuncios disponibles caben en unas 20 peticiones. Exige clave desde el 2-nov-2026: hay que pedirla ya. Su directorio de agencias y agentes alimenta `agencies`, y su historial de transacciones da comparables para las valoraciones (§5.10).
-   - Exportaciones o feeds que las agencias acepten mandar, para lo que no esté en Places.je. Los propios README de los paquetes de octubre lo concluyen: las agencias que bloquean la recogida automática solo entran con un export o feed autorizado. Pedirlo dentro del acuerdo de comisión es un trato justo, porque Hampton les trae compradores e inquilinos.
-   - Webs de agencias, solo si sus términos lo permiten, con baja frecuencia, respetando `robots.txt` y con un user-agent identificado.
-   - Otros portales, solo con permiso escrito. Homely.je lo prohíbe expresamente.
-2. **Pasada diaria** a las 06:00 de Jersey y otra a mediodía para alquileres: descargar, extraer, normalizar, deduplicar, comparar con ayer y cruzar.
-3. **Extracción**: lo que llega por API o feed ya viene estructurado. Para páginas web, un lector específico por fuente cuando la página es estable (gratis y exacto); si no, IA barata con un esquema JSON fijo. Solo se procesan las páginas que cambiaron, comparando una huella del contenido.
-4. **Normalización**: precio a libras al mes o total; parroquia desde la dirección o el código postal; dormitorios y baños como números; mascotas, parking y amueblado como sí, no o desconocido.
-5. **Deduplicación**: primero la `property_key` de Places.je cuando exista; después dirección normalizada + parroquia + dormitorios + precio ±10 % + huella de la primera foto. Las agencias suelen usar las mismas fotos del propietario, así que la huella de imagen detecta la misma casa aunque cambie el texto.
-6. **Comparación con ayer**: casa nueva, cambio de precio o desaparecida, cada una como evento. Dos pasadas sin verla la marcan `Gone` y sus matches se cierran solos como `Not available`.
-7. **Cruce** con todos los aplicantes activos (§5.6). Un aplicante nuevo se cruza en el momento contra el inventario que ya existe.
-
-**Verificación**: nada entra sin una página descargada que lo respalde (URL y fecha). La IA solo extrae de páginas reales, así que no puede «encontrar» casas que no existen. Los valores fuera de rango o con baja confianza quedan marcados para revisión.
-
-**Dónde sí uso dos modelos**: en la extracción, si dos modelos baratos no coinciden en precio o dormitorios, el dato queda en «needs review» en lugar de adivinar. En la Deep Research, la unión de dos sistemas encuentra más resultados, y cada uno se verifica contra su página. Dos modelos pueden coincidir y estar equivocados a la vez; la referencia es la página descargada.
-
-**Cuándo usar Deep Research**: si el inventario da menos de 3 casas, si el requisito es raro (caballerizas, cocina industrial, local con licencia) o para compras fuera del mercado. Lo que encuentre entra al inventario con su fuente y sirve también a los demás aplicantes. El modelo de evidencia de `Hampton_Database` (fuente, hecho, confianza, incidencia y registro de búsquedas) es justo este patrón y ya está probado.
-
-**Hecho cuando:** la pasada diaria termina sola y registra, por fuente, cuántos anuncios leyó y cuántos son nuevos, cambiados o desaparecidos; y un aplicante nuevo ve coincidencias en menos de 5 minutos.
+Propiedad física, publicación, anunciante y operación conservan identidades distintas. Unidades de la misma dirección no se fusionan sin evidencia. Datos originales, periodicidad/gastos y representación normalizada se conservan; desconocido no es cero. Registrar cambios y última lectura correcta; recalcular búsquedas activas ante cambio material. Captura completa de fotos solo tras confirmar disponibilidad. Places.je es una fuente opcional, no dependencia global. Véanse contratos y aceptación en el plan del 7-nov.
 
 ### 5.6 Matching y revisión humana
 
-- **Filtros duros (SQL)**: operación; precio menor o igual que el máximo por (1 + flexibilidad); dormitorios y baños mínimos; fuera de las parroquias excluidas; categoría de vivienda compatible con su estatus (§7.3); mascotas (si la ficha dice «no pets» y el aplicante tiene perro, queda fuera; si no lo dice, sigue con ❓); parking y fecha de disponibilidad, con la misma lógica.
-- **Puntuación de 0 a 100**: parroquia preferida, dormitorios ideales, exterior, amueblado, posición del precio dentro del presupuesto, frescura del anuncio y requisitos libres (la IA compara la descripción con las etiquetas y cita la frase que lo prueba). Las casas de Hampton suben, porque no hay comisión que repartir.
-- **Lista ✅ ❌ ❓ por casa**: es tu «indicar si no posee alguno de los requisitos», con evidencia («Pets: the advert says "no pets"» → ❌).
-- **Los ❓ se convierten en preguntas** del correo a la agencia («Are pets allowed? Is parking included?»).
-- **Cola de revisión rápida**: ordenada por puntuación; teclas A para aprobar, R para descartar (motivo en un toque) y S para saltar; aprobación en lote por encima de un umbral.
-- **De manual a automático**: el sistema mide cuántas aprueba el equipo por tramo de puntuación. Si, por ejemplo, el 95 % de las de 85 o más se aprueban, propone aprobarlas solas. El equipo decide.
-- **Ampliar criterios**: con menos de 3 coincidencias calcula alternativas (10 % más de presupuesto, una parroquia más, un dormitorio menos) y las sugiere al equipo o al aplicante.
+**Vigente, M04:** primero imprescindibles y exclusiones, después preferencias. Precio máximo, rango completo de dormitorios, parking y demás condiciones vinculantes no se compensan con puntuación. Un dato imprescindible desconocido queda pendiente. Alternativas incumplidas son internas, con explicación concreta.
+
+La revisión humana es permanente; BUS-16 ya no autoriza autoaprobar por score. Solo un match aprobado y vigente puede iniciar la consulta delimitada al anunciante. Consultas desde la cola de datos pendientes requieren resolver D06. El día21 sin coincidencia completa genera hasta20 alternativas para el equipo (M10), nunca una ampliación automática de criterios ni un mensaje al cliente.
 
 ### 5.7 Contacto con agencias: disponibilidad y comisión
 
-**Pediste:** un correo automático al agente que administra la propiedad para saber si sigue disponible y si comparte la comisión.
+**Vigente, M06:** una consulta general compartida por propiedad/operación/alcance compatible, conservando interés, familia y visita de cada búsqueda. Mensaje inicial: identificar inmueble, indicar personas interesadas, preguntar disponibilidad y horarios. Para vivienda solo se comparte número de ocupantes de un caso seleccionado, nunca suma de familias ni nombres/contactos/presupuesto. Para comercial no inventar residentes.
 
-- **Disparador**: matches aprobados de una casa que no es de Hampton. Sale una sola consulta por casa, con independencia de cuántos aplicantes haya; el correo dice «we have N qualified applicants», lo que además da fuerza para negociar.
-- **Según el acuerdo con esa agencia** (`agencies.fee_agreement`):
-  - `agreed`: solo pregunta disponibilidad, los ❓ y horarios de visita.
-  - `none`: primer contacto con presentación, aplicantes interesados, disponibilidad, propuesta de reparto con las condiciones estándar de Hampton y permiso para enseñar datos y fotos al aplicante. Se negocia una vez y queda guardado.
-  - `declined`: preguntar o no la disponibilidad es una decisión de negocio, configurable en el panel.
-- **Agrupado**: envíos a horas fijas (por ejemplo, 09:00 y 14:00), un correo por agencia con todas sus casas pendientes, desde el buzón real de Hampton y con una referencia en el asunto (`[HE-OUT-1234]`) para enlazar la respuesta. Dos envíos al día porque en alquiler una casa puede irse en horas.
-- **Lectura de la respuesta**: la IA devuelve un JSON fijo con disponible (sí, no, no lo dice), desde cuándo, respuestas a los ❓, horarios de visita ofrecidos, comisión (acepta, rechaza o contraoferta, con condiciones), si necesita una persona (contraoferta, queja, tema legal o ambigüedad) y su confianza.
-  - Confianza alta: se aplica sola. La propiedad pasa a `Availability confirmed`, sus matches a `Waiting for applicant response` y se guarda el snapshot.
-  - Confianza baja: crea una tarea con la interpretación ya rellenada; el empleado confirma con un clic o corrige.
-- **Seguimiento**: sin respuesta en 2 días laborables, recordatorio amable automático; tras dos recordatorios, tarea «Call agency» con su teléfono. El panel muestra por agencia la tasa y el tiempo medio de respuesta.
-- **Prueba de presentación**: cada consulta y cada respuesta quedan guardadas con fecha («Hampton introduced N applicants for this property on date D»). Es la base para reclamar una comisión si hay disputa.
-- **Riesgo de que el aplicante vaya directo**: la lista que recibe no muestra la agencia ni el enlace original hasta que la comisión esté acordada o la visita organizada. Es una política configurable que conviene revisar con un abogado (§7.3).
-
-**Hecho cuando:** una respuesta típica de agencia actualiza la casa y avisa a sus aplicantes sin que nadie teclee, y la lectura acierta en al menos 27 de 30 respuestas reales etiquetadas antes de pasar a automático.
+Comisión gestionada personalmente, fuera del primer mensaje y sin condición automática sobre visita. Correo cuando funciona; mensajes solo por canal utilizable; si falta, tarea manual con contenido y destinatario, sin marcar enviado. Reutilizar AUT-17, pausas y estados inciertos. Dos días desde envío real sin respuesta útil generan llamada con todos los teléfonos; no cadena de recordatorios. Autorespuesta o ambigüedad no confirman. El empleado registra llamada disponible/no disponible/inconclusa con origen, fecha y alcance. Confirmación útil actualiza los matches afectados y activa captura privada (M07). D01/D02 fijan cómputo/vigencia.
 
 ### 5.8 Respuesta del aplicante y su portal
 
-- Cuando un match pasa a `Waiting for applicant response`, el aplicante recibe un mensaje por su canal (WhatsApp con plantilla aprobada, o email) con su enlace: «3 homes confirmed for you».
-- **Portal** con enlace personal sin contraseña (token aleatorio guardado con hash, caduca a los 30 días, revocable): tarjetas con fotos (las de Hampton o las que la agencia permita), precio, parroquia, dormitorios y la lista ✅ ❓, con tres botones: **Book a viewing**, **Not for me** (motivo en un toque) y **Ask a question**. Desde ahí también puede cambiar sus criterios, pausar la búsqueda o borrar sus datos.
-- Recordatorios a las 24 y 72 horas si no hace nada. A los 7 días el match pasa a `No response` y se le pregunta si sigue buscando; a los 30 días sin actividad, la búsqueda queda en `Paused`.
-- Cada clic es un evento que cambia el estado. Al equipo solo le llega un aviso si hay algo que hacer.
+**Vigente, M08/M09:** presentación privada breve con fotos aptas, aprobación vigente y disponibilidad confirmada; el disparador exacto se decide en D05. Fotos propias o versiones sin marca autorizadas; originales internos conservados. No republicar terceros ni eliminar marcas automáticamente.
+
+El cliente responde interesado/quiere visitar/no encaja/que lo llamen sin repetir registro. Su motivo no cambia criterios. Para visitar se cruzan sus franjas en Jersey con anunciante y empleado, y se confirma solo al reunir las aceptaciones necesarias. Cancelación/reprogramación mantiene búsqueda activa. No se heredan recordatorios24/72h ni autopausa30 como reglas obligatorias del nuevo recorrido. Pausa voluntaria queda pendiente D12.
 
 ### 5.9 Visitas: Arrange Property Viewing
 
@@ -591,7 +525,7 @@ Esa lista no basta para que no salgan datos: un bot o una clave de otra persona 
 1. El resumen de las 8:00 y los avisos al momento, en el canal del equipo (AUT-13 y AUT-14; fase 1a, sin IA). Decisión de Luis del 31-oct-2026: el resumen incluye las fichas que han pasado a To confirm (ADM-04). Se calculan al mirar, así que no hay un momento que dispare un aviso.
 2. Los borradores de textos de fichas (PUB-13), solo de fichas publicadas (decisión de Luis del 31-oct-2026), y las preguntas de Luis por su chat privado (fase 1b). Los borradores los pide, con un botón en el editor de la ficha, quien está en la lista de borradores (AUT-15, desde el 3-nov-2026); en la fase 1b, también Luis por su chat. El borrador aparece dentro de la ficha con «Use this text», y usarlo y guardar la ficha es la aprobación.
 
-Después llegará la extracción de anuncios del mercado, cuando llegue la clave de Places.je (BUS-09).
+Después llegará la extracción de anuncios del mercado, cuando esté habilitada cada fuente del directorio (BUS-09).
 
 Con un plan Business y la memoria de Hermes apagada llegarían la lectura de respuestas de agencias (AGE-06), los requisitos libres convertidos en etiquetas (REG-13) y el resumen de las notas de voz (VIS-15). La búsqueda en la web (BUS-11) no la haría el Hermes de Hampton: leer páginas cualesquiera es justo lo que no debe hacer el agente que tiene la llave de la app.
 
@@ -675,7 +609,7 @@ Una vivienda Qualified exige tarjeta Permanent Entitled, Entitled, Licensed o Li
 
 | Fuente | Qué ofrece | Uso |
 |---|---|---|
-| Places.je | API REST pública de solo lectura: anuncios con agencia, precio, dormitorios, parroquia, estado y `property_key`; directorio de agencias y agentes; historial de transacciones por propiedad. Clave obligatoria desde el 2-nov-2026; 60 peticiones por minuto. Unos 1.640 anuncios en venta y 340 en alquiler disponibles | Fuente principal. Pedir la clave ya |
+| Places.je | API REST pública de solo lectura: anuncios con agencia, precio, dormitorios, parroquia, estado y `property_key`; directorio de agencias y agentes; historial de transacciones por propiedad. Clave obligatoria desde el 2-nov-2026; 60 peticiones por minuto. Unos 1.640 anuncios en venta y 340 en alquiler disponibles | Fuente opcional. Verificar acceso si se incorpora |
 | Homely.je | Alertas por email dos veces al día; sin API. Sus términos prohíben extraer datos, crear una base competidora y usar sus datos para contactar a las agencias | No usar |
 | Properties.je | Sin API ni alertas por ahora; sus términos no hablan del scraping | Solo con permiso escrito |
 | JEP property, OnTheMarket, Rightmove | Más volumen, con mucho solapamiento; Rightmove casi sin alquileres | Revisar sus términos antes de usarlos |
@@ -723,9 +657,11 @@ Lo encontró la lectura en frío del documento y lo comprobé en el código (`sc
 
 ## 9. Hoja de ruta
 
-Antes de construir nada, cuatro acciones que no esperan:
+**Orden vigente:** seguir [reconciliación §4](2026-11-07-reconciliacion-automatizacion.md#4-orden-de-entrega-y-dependencias). La tabla F0–F8 de abajo clasifica áreas y conserva el alcance histórico; no es el orden de ejecución del recorrido nuevo.
 
-1. **Pedir la clave de la API de Places.je** en `places.je/developers/request-access`. Desde el 2-nov-2026 las llamadas sin clave reciben 401.
+Acciones externas independientes:
+
+1. **Verificar accesos por fuente** en BUS-19; Places.je puede requerir su clave si se elige, pero no bloquea el directorio ni el resto del mercado.
 2. **Empezar el trámite de Meta** (verificación del negocio y app con permisos) si se quiere publicar en redes o responder mensajes. Es lo más lento.
 3. **Confirmar los registros de Hampton** en la JFSC (Schedule 2) y en la JOIC (§7.2, §7.3).
 4. **Medir cómo se trabaja hoy**: cuánto tarda la primera lista que recibe un aplicante y cuántas horas por semana se buscan casas a mano, para poder comparar después.
@@ -735,8 +671,8 @@ La hoja de ruta está ordenada por el trabajo que quita y por dependencias. No p
 | Fase | Qué incluye | Hecho cuando |
 |---|---|---|
 | F0 Cimientos | `contacts`, `applicants`, `events`, `notifications` y `staff` con roles; Worker `hampton-jobs` con cron; registro paso a paso en la web y en el panel; lista y ficha de aplicantes; Action inbox básico; el camino del público hacia la app según la pregunta 2 (dominio propio o enlaces desde Wix) | Un registro desde la web pública aparece en el panel con su aviso en menos de un minuto, y los duplicados por email o móvil se unen |
-| F1 Inventario y matching | `properties`, `market_listings` y `matches`; fuentes empezando por la API de Places.je; destino de las 264 fichas de agencias según la pregunta 1; extracción, deduplicación, matching, cola de revisión y lista ✅ ❌ ❓ | La pasada diaria corre sola, un aplicante nuevo ve coincidencias en menos de 5 minutos y el equipo revisa 20 casas en menos de 5 minutos |
-| F2 Agencias y portal | `agencies`, `outreach` y snapshots; correos agrupados, lectura de respuestas y seguimientos; portal del aplicante con sus tres botones | Una respuesta de agencia cambia estados y avisa al aplicante sin teclear, con 27 de 30 aciertos en las pruebas |
+| F1 Inventario y matching | `properties`, `market_listings` y `matches`; fuentes del directorio común y acceso verificado por fuente; destino de las 264 fichas de agencias según la pregunta 1; extracción, deduplicación, matching, cola de revisión y lista ✅ ❌ ❓ | La pasada diaria corre sola, un aplicante nuevo ve coincidencias en menos de 5 minutos y el equipo revisa 20 casas en menos de 5 minutos |
+| F2 Agencias y portal | `agencies`, `outreach` y snapshots; correos agrupados, lectura de respuestas y seguimientos; portal del aplicante con sus tres botones | M06 comparte confirmación útil y genera llamada a dos días; M08 presenta solo con aprobación vigente, disponibilidad e imágenes aptas y el disparador acordado en D05 |
 | F3 Visitas y ofertas | Disponibilidad por negociador, huecos reales, reservas sin choques, calendario, recordatorios, feedback, contador de interesados, informe al propietario; ofertas y expediente de venta con hitos | Cero dobles reservas, recordatorios enviados, feedback en la ficha, y una oferta aceptada abre su expediente con hitos |
 | F4 Publicación | Alta de ficha con campos de Jersey, ayuda de IA, Publish a la web y a Meta, KPIs y `To confirm` | Una ficha completa sale en la web y en redes con un botón |
 | F5 Alquileres gestionados | Solicitud y referencias del inquilino, contratos, cobros, conciliación, atrasos, cumplimiento, reparaciones y renovaciones | Un pago atrasado aparece en Missing payments el día que toca y sigue su secuencia |
@@ -748,7 +684,7 @@ Si la gestión de alquileres es hoy el negocio principal de Hampton, F5 puede ad
 
 ## 10. Decisiones propuestas
 
-Todas son propuestas mías; ninguna está aprobada.
+Registro histórico de propuestas y decisiones fechadas. Para el recorrido nuevo, P-01/P-03/P-04/P-06/P-10/P-15 se interpretan con la reconciliación del 7-nov: multifuente, consulta compartida, comisión humana, búsqueda independiente de etapa, aprobación humana permanente y presentación privada. Las decisiones abiertas actuales son D01–D12 del nuevo plan.
 
 | # | Propuesta | Por qué | Alternativa descartada |
 |---|---|---|---|
@@ -775,6 +711,8 @@ Todas son propuestas mías; ninguna está aprobada.
 > Aclaración técnica e implementación local de AUT-17, 6-nov-2026: Wrangler 4.148.0 no admite `send_email` en Pages. Pages autentica preferencias y aprobaciones en D1 y `hampton-jobs` envía con su binding; su handler `email()` guarda las respuestas. Luis aprobó el [diseño completo](../superpowers/specs/2026-11-06-hampton-app-email-design.md): hello@hamptonestatesjersey.com, replies@app.hamptonestatesjersey.com, resumen interno recurrente autorizado al activarlo, cuota de 100 intentos/día y conservación 30/90 días. Construido y comprobado en local con la migración 0023; envío apagado y preparación externa false. Sin publicación, migraciones de producción ni cambios DNS. El buzón habitual se conserva; el alta de recepción del subdominio y la entrega/respuesta reales siguen pendientes.
 
 ## 11. Tu texto, punto por punto
+
+Comparación histórica con el primer texto. Para requisitos de búsqueda sustituidos por la especificación del 6-nov, usar la matriz de cobertura del plan del 7-nov.
 
 | Tu punto | Qué pasa | Dónde |
 |---|---|---|
@@ -822,6 +760,8 @@ Lo que añadí porque faltaba para cubrir el recorrido completo:
 - Barandillas de envío, pruebas de cada IA y modos de autonomía (§6).
 
 ## 12. Preguntas para Luis
+
+Historial de preguntas anteriores. Las pendientes del nuevo recorrido son D01–D12; ni Places.je ni la negociación de comisión bloquean globalmente el circuito.
 
 Ordenadas por cuánto cambian lo que se construye. Las tres primeras salieron de la lectura en frío del documento:
 
