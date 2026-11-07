@@ -2030,6 +2030,7 @@ async function viewingAvailability(browser) {
   await fields.nth(0).getByLabel('Until').fill('12:00');
   await page.getByRole('button', {name:'Save',exact:true}).click();
   await page.getByText('Changes saved.').waitFor(); await page.reload(); await section.waitFor();
+  assert.equal(await section.evaluate(e => e.contains(document.activeElement)), false, 'loading does not move focus into availability');
   assert.equal(await fields.nth(0).getByLabel('Until').inputValue(), '12:00');
   // Keyboard removal keeps focus in the form, including the disabled-at-21 boundary.
   await fields.nth(0).getByRole('button',{name:'Remove option 1'}).focus(); await page.keyboard.press('Enter');
@@ -2042,11 +2043,21 @@ async function viewingAvailability(browser) {
   assert.equal(after.find(r=>r.id === records[0].id).viewing_availability, null);
   assert.deepEqual(JSON.parse(after.find(r=>r.id === records[1].id).viewing_availability), expected);
   const panelAdd = section.getByRole('button',{name:'Add time option'});
-  for (let i=0;i<21;i++) await panelAdd.click();
+  for (let i=0;i<19;i++) await panelAdd.click();
+  await panelAdd.focus(); await page.keyboard.press('Enter');
+  assert.equal(await panelAdd.evaluate(e => document.activeElement === e), true, 'adding 20 keeps focus on Add');
+  await fields.nth(0).getByLabel('From').focus();
+  await fields.nth(0).getByLabel('From').fill('09:00');
+  assert.equal(await fields.nth(0).getByLabel('From').evaluate(e => document.activeElement === e), true, 'editing does not move focus');
+  await panelAdd.focus(); await page.keyboard.press('Enter');
+  assert.equal(await fields.count(), 21);
   assert.equal(await panelAdd.isDisabled(), true);
+  assert.equal(await fields.nth(20).getByLabel('Day').evaluate(e => document.activeElement === e), true, 'adding 21 focuses its day');
   await section.getByRole('button',{name:'Remove option 21'}).focus(); await page.keyboard.press('Enter');
   assert.equal(await page.evaluate(() => document.activeElement?.closest('fieldset')?.querySelector('legend')?.textContent), 'Time option 20');
   assert.equal(await panelAdd.isEnabled(), true);
+  await section.getByRole('button',{name:'Remove option 1',exact:true}).focus(); await page.keyboard.press('Enter');
+  assert.equal(await page.evaluate(() => document.activeElement?.closest('fieldset')?.querySelector('legend')?.textContent), 'Time option 1');
   await ctx.close();
 }
 

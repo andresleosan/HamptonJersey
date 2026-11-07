@@ -3,17 +3,21 @@ import { useLayoutEffect, useRef } from "react";
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function ViewingAvailability({ value, onChange, error }) {
-  const sectionRef = useRef(null), addRef = useRef(null), focusAfterRemoval = useRef(null);
+  const sectionRef = useRef(null), addRef = useRef(null), pendingFocus = useRef(null);
   useLayoutEffect(() => {
-    if (focusAfterRemoval.current === null) return;
-    const index = focusAfterRemoval.current;
-    focusAfterRemoval.current = null;
+    if (pendingFocus.current === null) return;
+    const index = pendingFocus.current;
+    pendingFocus.current = null;
     const fields = sectionRef.current?.querySelectorAll("fieldset select");
     (fields?.[index] ?? addRef.current)?.focus();
   }, [value.length]);
   const remove = i => {
-    focusAfterRemoval.current = value.length === 1 ? -1 : Math.min(i, value.length - 2);
+    pendingFocus.current = value.length === 1 ? -1 : Math.min(i, value.length - 2);
     onChange(value.filter((_, j) => j !== i));
+  };
+  const add = () => {
+    if (value.length === 20) pendingFocus.current = 20;
+    onChange([...value, { day: 1, start: "", end: "" }]);
   };
   const change = (i, key, v) => onChange(value.map((slot, j) => i === j ? { ...slot, [key]: v } : slot));
   return <section ref={sectionRef} className="card fields-group" aria-labelledby="viewing-availability-title">
@@ -31,6 +35,6 @@ export default function ViewingAvailability({ value, onChange, error }) {
       <button type="button" className="btn ghost" onClick={() => remove(i)}>Remove option {i + 1}</button>
     </fieldset>)}
     {error && <small id="availability-error" className="err" role="alert">{error}</small>}
-    <button ref={addRef} type="button" className="btn ghost" disabled={value.length >= 21} onClick={() => onChange([...value, { day: 1, start: "", end: "" }])}>Add time option</button>
+    <button ref={addRef} type="button" className="btn ghost" disabled={value.length >= 21} onClick={add}>Add time option</button>
   </section>;
 }
