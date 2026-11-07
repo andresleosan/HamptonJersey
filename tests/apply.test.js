@@ -28,7 +28,7 @@ test("both operations submit separate rent and purchase budgets", async () => {
   const commercial = toBody(answers({ search_category: "commercial", operation: "both", budget_max_rent: "2000", budget_max_buy: "650000" }));
   assert.deepEqual(commercial.searches, [{ operation: "rent" }, { operation: "buy" }]);
 });
-const load = () => import("data:text/javascript," + encodeURIComponent(src));
+const load = () => import("data:text/javascript," + encodeURIComponent(src + "\nexport { checkStep };"));
 
 // What the wizard reads from the form: text as strings, radios as one value or "", checkbox groups as lists.
 const answers = o => ({
@@ -38,6 +38,17 @@ const answers = o => ({
   lease_term_months: "", buyer_position: "", mortgage_aip: "", housing_status: "", household_adults: "",
   household_children: "", name: "", email: "", phone: "", preferred_channel: "", best_time: "", requirements: "",
   privacy: [], marketing: [], ...o,
+});
+
+test("the details step refuses reversed ranges and missing area units before continuing", async () => {
+  const { checkStep } = await load();
+  assert.ok(checkStep(2, answers({ search_category: "commercial", area_min: "100", area_max: "50", area_unit: "sqm" })).area_max);
+  assert.ok(checkStep(2, answers({ search_category: "commercial", area_min: "50", area_unit: "" })).area_unit);
+  assert.ok(checkStep(2, answers({ search_category: "commercial", area_min: "0", area_unit: "sqm" })).area_min);
+  assert.ok(checkStep(2, answers({ search_category: "commercial", area_max: "100000001", area_unit: "sqft" })).area_max);
+  assert.ok(checkStep(2, answers({ search_category: "residential", bedrooms_min: "4", bedrooms_max: "2" })).bedrooms_max);
+  assert.ok(checkStep(2, answers({ search_category: "residential", bedrooms_min: "21" })).bedrooms_min);
+  assert.deepEqual(checkStep(2, answers({ search_category: "residential", bedrooms_min: "0", bedrooms_max: "2" })), {});
 });
 
 test("empty answers are left out, never sent as 0", async () => {

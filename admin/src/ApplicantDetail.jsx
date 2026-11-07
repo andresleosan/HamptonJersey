@@ -76,7 +76,8 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   // shows for a To Buy search, or one that has offers or sales from when it was one.
   const [offers, setOffers] = useState(null), [offersErr, setOffersErr] = useState(null);
   useEffect(() => { api(`/admin/applicants/${id}/offers`).then(setOffers, e => setOffersErr(e.message)); }, []);
-  const buyer = data?.applicant.operation === "buy", hasOffers = buyer || offers?.offers.length > 0 || offers?.sales.length > 0;
+  const buyer = data?.applicant.operation === "buy" && data?.applicant.search_category === "residential",
+    hasOffers = buyer || offers?.offers.length > 0 || offers?.sales.length > 0;
   const tabList = hasOffers ? TABS : TABS.filter(([k]) => k !== "offers");
   const cur = tabList.some(([k]) => k === tab) ? tab : "requirements";
 
@@ -198,7 +199,8 @@ export default function ApplicantDetail({ id, tab, onChange }) {
 
   const copy = sent => {
     const from = toForm(sent, sent), keys = COPY.filter(k => !blank(sent[k]));
-    setForm(f => ({ ...f, ...pick(from, keys) })); setErrors({});
+    setForm(f => ({ ...f, ...pick(from, keys),
+      ...(["unknown", "not_applicable"].includes(sent.household_children_status) ? { household_children: "" } : {}) })); setErrors({});
     setMsg({ ok: true, text: "What they sent is in the form. Check it, then save." });
     if (cur !== "requirements") go("requirements");
   };

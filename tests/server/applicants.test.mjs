@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, call, adminCookie, T0 } from "./helpers.mjs";
+import { makeEnv, seedListing, call, adminCookie, T0 } from "./helpers.mjs";
 
 const ADMIN = "admin@example.test", OTHER = "colleague@example.test";
 const STALE = "Someone else saved changes to this applicant. Reload to see them (your changes were not saved).";
@@ -23,6 +23,24 @@ const resolved = (env, id) => env.DB.raw.prepare("UPDATE applicants SET search_s
 const detail = async (env, id) => (await req(env, "GET", `/admin/applicants/${id}`)).data;
 // Puts the applicant's created_at in a known order for the sort tests.
 const age = (env, id, at) => env.DB.raw.prepare("UPDATE applicants SET created_at = ? WHERE id = ?").run(at, id);
+
+test("null category cannot convert a commercial search or erase its details", async () => {
+  for (const operation of ["rent", "buy", "transfer"]) {
+    const env = makeEnv();
+    seedListing(env, { matchable: 1 });
+    seedListing(env, { id: "HE-R002", matchable: 1, operation: "rent", availability: "to_let", sale_price: null, rent: 2000, rent_period: "month" });
+    const id = await create(env, { search_category: "commercial", commercial_kind: "business", operation,
+      budget_max: null, commercial_rent: 24000, commercial_rent_period: "year", commercial_premium: 45000 });
+    const before = row(env, "SELECT * FROM applicants WHERE id = ?", id);
+    const eventsBefore = rows(env, "SELECT * FROM events WHERE entity_type = 'applicant' AND entity_id = ?", String(id));
+    const result = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: before.updated_at, search_category: null,
+      ...(operation === "transfer" ? { operation: "rent" } : {}) });
+    assert.equal(result.status, 409, operation);
+    assert.deepEqual(row(env, "SELECT * FROM applicants WHERE id = ?", id), before);
+    assert.deepEqual(rows(env, "SELECT * FROM events WHERE entity_type = 'applicant' AND entity_id = ?", String(id)), eventsBefore);
+    assert.equal(row(env, "SELECT COUNT(*) AS n FROM matches WHERE applicant_id = ?", id).n, 0);
+  }
+});
 
 test("one contact can keep residential and commercial searches for the same operation and edit the commercial criteria", async () => {
   const env = makeEnv();

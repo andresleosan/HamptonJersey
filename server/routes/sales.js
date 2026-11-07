@@ -22,7 +22,7 @@ async function loadOffer(env, id) {
 // SQL (binds: listing id, applicant id), eligible() in words.
 const ELIGIBLE = `EXISTS (SELECT 1 FROM listings WHERE id = ? AND operation = 'sale' AND archived_at IS NULL
     AND availability IN ('for_sale', 'under_offer'))
-  AND EXISTS (SELECT 1 FROM applicants WHERE id = ? AND operation = 'buy' AND archived_at IS NULL)`;
+  AND EXISTS (SELECT 1 FROM applicants WHERE id = ? AND operation = 'buy' AND search_category = 'residential' AND archived_at IS NULL)`;
 async function eligible(env, listingId, applicantId) {
   const [[listing], [applicant]] = (await env.DB.batch([
     env.DB.prepare("SELECT * FROM listings WHERE id = ?").bind(listingId),
@@ -33,6 +33,7 @@ async function eligible(env, listingId, applicantId) {
   if (listing.operation !== "sale" || listing.archived_at || !["for_sale", "under_offer"].includes(listing.availability))
     fail(400, "This listing is not for sale");
   if (applicant.operation !== "buy" || applicant.archived_at) fail(400, "This applicant is not an active buyer");
+  if (applicant.search_category !== "residential") fail(400, "This offer requires a residential buyer");
   return { listing, applicant };
 }
 

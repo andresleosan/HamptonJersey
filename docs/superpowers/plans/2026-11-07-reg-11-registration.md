@@ -25,7 +25,9 @@
 - [x] Matching: `server/match-store.js`, `server/matching.js` y sus pruebas excluyen búsquedas comerciales de ambos recálculos y respetan el máximo de dormitorios; `routes/insights.js` excluye comercial de la demanda residencial. El panel declara el matching comercial pendiente de M04.
 - [x] Interfaz: `site/apply.js`, `admin/src/ApplicantFields.jsx`, `NewApplicant.jsx`, `ApplicantDetail.jsx` y `Applicants.jsx` ofrecen modalidad y datos condicionales; dos operaciones web guardan presupuestos distintos; el hogar distingue número conocido, desconocido y no aplicable. La edición de la categoría exige una búsqueda separada para conservar historial.
 - [ ] Validación: `npm test`, `npm run build`, `npm run check:release`, e2e y Playwright MCP local a 1280/390; revisión y corrección. Registrar resultados concretos en ledger.
-- [ ] Actualizar ESTADO, checklist, reconciliación y relevo, analizar la siguiente tarea y crear commit local. Sin migrar ni publicar sin aprobación posterior del SHA.
+- [x] Actualizar ESTADO, checklist, reconciliación y relevo, analizar la siguiente tarea y crear commit local `712bf27`. Sin migrar ni publicar sin aprobación posterior del SHA.
+- [x] Revisión independiente de `712bf27`: corregir R1 (categoría nula), R2 (copia de hogar), R3 (rangos al avanzar) y la incompatibilidad de comprador comercial en ofertas residenciales. Pruebas API y UI en el ledger; crear un commit adicional sin reescribir el anterior.
+- [ ] Nueva revisión independiente del SHA corregido, dentro del máximo de dos vueltas. El e2e general y el envío público real siguen sujetos al servicio externo.
 
 ## Riesgos de revisión
 

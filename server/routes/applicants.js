@@ -265,7 +265,7 @@ async function update({ request, env, admin, params: [id] }) {
   if (body.updated_at !== cur.updated_at) fail(409, stale("applicant"));
   // Archived searches are read only (D9); also keeps an edit from racing a permanent delete, which needs Archived.
   if (cur.archived_at) fail(409, "Restore this search to edit it");
-  if (body.search_category != null && body.search_category !== cur.search_category)
+  if (Object.hasOwn(body, "search_category") && body.search_category !== cur.search_category)
     fail(409, "Create a separate search to change the search type.");
   const contact = await loadContact(env, cur.contact_id);
 

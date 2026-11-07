@@ -178,15 +178,17 @@ function RecordOffer({ buyerId, onClose, onDone }) {
   useEffect(() => { api("/admin/listings").then(d => setListings(d.listings.filter(forSale)), e => setListErr(e.message)); }, []);
   // Opened from a buyer's record: that buyer is chosen (the server still says if they can't make an offer).
   useEffect(() => {
-    if (buyerId) api(`/admin/applicants/${buyerId}`).then(({ applicant: a, contact: c }) => setBuyer(b => b ?? { id: a.id, name: c.name,
-      email: c.email, phone: c.phone, stage: a.stage }), () => {});
+    if (buyerId) api(`/admin/applicants/${buyerId}`).then(({ applicant: a, contact: c }) => {
+      if (a.search_category === "residential" && a.operation === "buy") setBuyer(b => b ?? { id: a.id, name: c.name,
+        email: c.email, phone: c.phone, stage: a.stage });
+    }, () => {});
   }, []);
   // The search runs a moment after typing stops; only the latest one shows.
   useEffect(() => {
     if (!q.trim()) { setFound(null); setFindErr(null); return; }
     let live = true;
     const t = setTimeout(() => api(`/admin/applicants?operation=buy&q=${encodeURIComponent(q.trim())}`)
-      .then(d => { if (live) { setFound(d.applicants); setFindErr(null); } }, e => { if (live) setFindErr(e.message); }), 250);
+      .then(d => { if (live) { setFound(d.applicants.filter(a => a.search_category === "residential")); setFindErr(null); } }, e => { if (live) setFindErr(e.message); }), 250);
     return () => { live = false; clearTimeout(t); };
   }, [q]);
   useEffect(() => { form.current?.querySelector("[aria-invalid=true]")?.focus(); }, [errors]);
@@ -221,7 +223,7 @@ function RecordOffer({ buyerId, onClose, onDone }) {
         it is For sale or Under offer.</p>}
       <label>Buyer<input type="search" value={q} onChange={e => setQ(e.target.value)} autoComplete="off" aria-invalid={errors.applicant_id ? true : undefined}
         aria-describedby={errors.applicant_id ? "d-ro-buyer e-ro-applicant_id" : "d-ro-buyer"} /></label>
-      <small id="d-ro-buyer" className="muted">Search by name, email or phone. Only To Buy searches are listed.</small>
+      <small id="d-ro-buyer" className="muted">Search by name, email or phone. Only residential To Buy searches are listed.</small>
       {findErr && <p role="alert" className="err">{findErr}</p>}
       {shown.length > 0 && <fieldset className="choices-set"><legend>Matching buyers</legend><div className="buyers">
         {shown.map(a => <label key={a.id} className="check"><input type="radio" name="ro-buyer" checked={buyer?.id === a.id}

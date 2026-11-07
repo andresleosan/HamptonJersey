@@ -94,6 +94,25 @@ function checkStep(i, a) {
     else if (MONEY.includes(k) && typeof n === "string") e[k] = "Enter an amount in pounds, like 1,500";
     else if (INTS.includes(k) && typeof n === "string") e[k] = "Enter a whole number";
   }
+  if (has("bedrooms_max") && a.search_category !== "commercial") {
+    for (const k of ["bedrooms_min", "bedrooms_max"]) {
+      const n = number(a[k]);
+      if (n != null && !(Number.isInteger(n) && n >= 0 && n <= 20)) e[k] = "Enter a whole number from 0 to 20";
+    }
+    const min = number(a.bedrooms_min), max = number(a.bedrooms_max);
+    if (!e.bedrooms_min && !e.bedrooms_max && min != null && max != null && min > max)
+      e.bedrooms_max = "Maximum cannot be below minimum";
+  }
+  if (has("area_min") && a.search_category === "commercial") {
+    for (const k of ["area_min", "area_max"]) {
+      const n = number(a[k]);
+      if (n != null && !(typeof n === "number" && n >= 0.01 && n <= 100000000)) e[k] = "Enter an area from 0.01 to 100,000,000";
+    }
+    const min = number(a.area_min), max = number(a.area_max);
+    if ((min != null || max != null) && !a.area_unit) e.area_unit = "Choose an area unit";
+    if (!e.area_min && !e.area_max && min != null && max != null && min > max)
+      e.area_max = "Maximum cannot be below minimum";
+  }
   return e;
 }
 

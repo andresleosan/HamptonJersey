@@ -126,10 +126,11 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
             household_children_status: e.target.value, ...(e.target.value !== "known" ? { household_children: "" } : {}) })}>
             <option value="">Not said</option><option value="known">Number known</option><option value="unknown">Don't know</option>
             <option value="not_applicable">Not applicable</option></select></div>
-        {(value.household_children_status === "known" || (!value.household_children_status && value.household_children !== ""))
+        {(value.household_children_status === "known" || (!value.household_children_status && value.household_children !== "") || errors.household_children)
           && count("household_children", "Number of children (enter 0 if none)")}
       </div>
-      <p className="muted">Total occupants: {value.household_adults !== "" && value.household_children !== ""
+      <p className="muted">Total occupants: {!["unknown", "not_applicable"].includes(value.household_children_status)
+        && value.household_adults !== "" && value.household_children !== ""
         && Number.isInteger(Number(value.household_adults)) && Number.isInteger(Number(value.household_children))
         ? Number(value.household_adults) + Number(value.household_children) : "Not yet confirmed"}</p>
     </section>

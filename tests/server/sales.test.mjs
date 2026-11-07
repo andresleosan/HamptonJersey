@@ -52,6 +52,16 @@ async function complete(env, id) {
 }
 const counts = async env => (await req(env, "GET", "/admin/notifications/counts")).data;
 
+test("commercial search cannot create a residential offer", async () => {
+  const env = world();
+  const r = await req(env, "POST", "/admin/applicants", { name: "Commercial test", email: "commercial@example.test",
+    source: "phone", operation: "buy", search_category: "commercial", commercial_kind: "property" });
+  assert.equal(r.status, 201);
+  const result = await req(env, "POST", "/admin/offers", { listing_id: "HE-R001", applicant_id: r.data.id, amount: 400000 });
+  assert.equal(result.status, 400);
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM offers").n, 0);
+});
+
 test("sales list: fees in progress and completed this year are net of the shared fee", async () => {
   const env = world();
   const a = await buyer(env), b = await buyer(env), c = await buyer(env), d = await buyer(env);
