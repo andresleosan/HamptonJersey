@@ -162,7 +162,7 @@ export default function Viewings({ listing }) {
           <ul {...(date ? { "aria-labelledby": `d-${date}` } : { "aria-label": `${TABS[tab]} viewings` })}>{rows.map(x => <li key={x.id}>
             <button type="button" aria-current={x.id === sel ? "true" : undefined} onClick={() => pick(x.id)}>
               <span className="who">{x.name}</span>
-              <span className="muted num">{tab === "upcoming" ? `${x.time}–${x.end_time}` : `${fmtDay(x.date)} · ${x.time}`}</span>
+              <span className="muted num">{tab === "upcoming" ? `${x.time}-${x.end_time}` : `${fmtDay(x.date)} · ${x.time}`}</span>
               <span className="what">{listingOf(x)}</span>
               {tab === "past" ? <Badge status={x.status} /> : <span className="muted">{x.negotiator_name ?? "No negotiator"}</span>}
             </button></li>)}</ul>
@@ -232,15 +232,15 @@ function Detail({ v, gone, ended, filtered, headRef, count, act, saveNotes, remo
     {/* VIS-02 (R9): out of the count until the team counts them again, whatever happens to the viewing meanwhile. Said
         above the outcome form, on a viewing that can still count. */}
     {v.interest_removed_at && couldCount(v) && <div className="warn uncounted" role="note">
-      <p>Not counted in this listing's interest: {[INTEREST_REASON[v.interest_reason], v.interest_note,
-        fmtDate(v.interest_removed_at)].filter(Boolean).join(" · ")}</p>
+      <p>Not counted in this listing's interest:</p><p className="meta">{[INTEREST_REASON[v.interest_reason], v.interest_note,
+        fmtDate(v.interest_removed_at)].filter(Boolean).map((fact, i) => <span key={i}>{fact}</span>)}</p>
       {!gone && v.listing_id && <button type="button" className="btn ghost sm" onClick={() => run(() => recount(v))}>Count again</button>}</div>}
     {active && open === "complete" && <OutcomeForm onSave={complete} onClose={close} onDirty={onDirty} />}
     {active && open === "reschedule" && <RescheduleForm v={v} refresh={refresh} onSave={reschedule} onClose={close} onDirty={onDirty} />}
     <dl className="kv">
       <div><dt>Listing</dt><dd>{v.listing_id ? <a href={`#/p/${v.listing_id}`}>{listingOf(v)}</a>
         : v.listing_ref ? <>{listingOf(v)} <span className="muted">({v.listing_ref}, listing deleted)</span></> : listingOf(v)}</dd></div>
-      <div><dt>When</dt><dd className="num">{fmtDay(v.date, true)} · {v.time}–{v.end_time}</dd></div>
+      <div><dt>When</dt><dd className="num">{fmtDay(v.date, true)} · {v.time}-{v.end_time}</dd></div>
       <div><dt>Negotiator</dt><dd>{v.negotiator_name ?? "No negotiator"}</dd></div>
       <div><dt>Viewing</dt><dd>{v.kind}</dd></div>
       {v.email && <div><dt>Email</dt><dd><a href={`mailto:${v.email}?subject=${subject}`}>{v.email}</a></dd></div>}

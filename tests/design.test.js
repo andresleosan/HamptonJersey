@@ -61,3 +61,16 @@ test("bronze is never used as text colour", () => {
     assert.deepEqual(hits, [], `${name} uses --bronze as text colour`);
   }
 });
+
+// Guard the site's editorial copy; comments are not visible UI.
+const code = src => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+test("visible copy has no en or em dash", () => {
+  for (const f of ["site/index.html", "site/apply.js"]) assert.doesNotMatch(code(read(f)), /[–—]/, f);
+});
+test("no decorative arrows in CSS content", () => {
+  assert.doesNotMatch(FILES.site, /content:\s*"[^"]*[→↗]/);
+});
+test("home has at most two eyebrows", () => {
+  const home = read("site/index.html").match(/function home\(\)[\s\S]*?\n}\n/)[0];
+  assert.ok((home.match(/class="eyebrow"/g) || []).length <= 2);
+});

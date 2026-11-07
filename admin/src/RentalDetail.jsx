@@ -51,7 +51,7 @@ export default function RentalDetail({ id, onChange }) {
   useEffect(() => { setUnsaved(dirty || addDirty); return () => setUnsaved(false); }, [dirty, addDirty]);
 
   if (!data) return loadErr ? <p role="alert" className="err">{loadErr}{" "}
-    <button type="button" className="btn ghost sm" onClick={() => load(true)}>Try again</button> · <a href="#/rentals">Back to rentals</a></p>
+    <button type="button" className="btn ghost sm" onClick={() => load(true)}>Try again</button><br /><a href="#/rentals">Back to rentals</a></p>
     : <p>Loading property…</p>;
   const r = data.rental, today = jerseyToday(), archived = !!r.archived_at;
   const running = data.tenancies.filter(t => !t.ended_on || t.ended_on > today), past = data.tenancies.filter(t => !running.includes(t));
@@ -98,9 +98,9 @@ export default function RentalDetail({ id, onChange }) {
   return <div className="record">
     <div className="head">
       <div><h1 id="t-rental" ref={heading} tabIndex={-1}>{r.address}</h1>
-        <p className="muted">{r.parish} · {SERVICE[r.service]}{r.service === "full" && r.fee_percent != null && `, ${r.fee_percent}% fee`} · Landlord{" "}
-          <a href={`#/rentals/landlords/${r.landlord_id}`}>{r.landlord_name}</a>{archived && <> <span className="badge neutral">Archived</span></>}</p></div>
-      <a href="#/rentals">← Back to rentals</a>
+        <p className="meta"><span>{r.parish}</span><span>{SERVICE[r.service]}{r.service === "full" && r.fee_percent != null && `, ${r.fee_percent}% fee`}</span><span>Landlord{" "}
+          <a href={`#/rentals/landlords/${r.landlord_id}`}>{r.landlord_name}</a></span>{archived && <span><span className="badge neutral">Archived</span></span>}</p></div>
+      <a href="#/rentals">Back to rentals</a>
     </div>
 
     <div className="rental">
@@ -133,10 +133,11 @@ export default function RentalDetail({ id, onChange }) {
           {note("repairs")}
           {data.repairs.length ? <ul className="plain-list" id="repairs">{data.repairs.map(p => {
             const live = !FINAL.includes(p.status);
+            const facts = [p.contractor, p.quote != null && `quote ${money(p.quote)}`, p.cost != null && `cost ${money(p.cost)}`,
+              p.done_on && `done ${fmtDay(p.done_on)}`, !p.charge_landlord && "not charged to the landlord"].filter(Boolean);
             return <li key={p.id} className={live && p.urgency === "emergency" ? "overdue" : undefined}>
-              <span><strong>{p.title}</strong><span className="muted cell-note">{[p.contractor, p.quote != null && `quote ${money(p.quote)}`,
-                p.cost != null && `cost ${money(p.cost)}`, p.done_on && `done ${fmtDay(p.done_on)}`, !p.charge_landlord && "not charged to the landlord"]
-                .filter(Boolean).join(" · ") || `Reported ${day(p.created_at)}`}</span>
+              <span><strong>{p.title}</strong><span className="meta">{(facts.length ? facts : [`Reported ${day(p.created_at)}`])
+                .map((fact, i) => <span key={i}>{fact}</span>)}</span>
                 {p.approved_at && <span className="muted cell-note">The landlord approved it {day(p.approved_at)}</span>}</span>
               <span className="ctl">{p.urgency === "emergency" ? <strong className="err">Emergency</strong>
                 : <span className={`badge ${p.urgency === "urgent" ? "attention" : "neutral"}`}>{URGENCY[p.urgency]}</span>}
@@ -221,8 +222,8 @@ function Tenancy({ id, tick, note, open, next }) {
   return <section className="card tenancy" id={`tenancy-${id}`} aria-labelledby={h}>
     <div className="head">
       <div><h2 id={h}>{ended ? "Past tenancy" : "Tenancy"}: {t.tenant_name}</h2>
-        <p className="muted">{[t.kind === "fixed" ? `Fixed term ${fmtDay(t.start_on)} to ${fmtDay(t.end_on)}` : `Periodic from ${fmtDay(t.start_on)}`,
-          `${t.regime} law`, t.tenant_email, t.tenant_phone].filter(Boolean).join(" · ")}</p></div>
+        <p className="meta">{[t.kind === "fixed" ? `Fixed term ${fmtDay(t.start_on)} to ${fmtDay(t.end_on)}` : `Periodic from ${fmtDay(t.start_on)}`,
+          `${t.regime} law`, t.tenant_email, t.tenant_phone].filter(Boolean).map((fact, i) => <span key={i}>{fact}</span>)}</p></div>
       <p className="ref"><span className="muted">Payment reference</span> <strong>{t.payment_ref}</strong></p>
     </div>
     {note}

@@ -9,7 +9,7 @@ const people = n => `${n} ${n === 1 ? "person" : "people"}`;
 // The viewing a person counts by: "Confirmed · Sat 2 Nov", or "Viewed Sat 25 Oct · Proceed".
 const visit = p => (p.status === "completed" ? `Viewed ${fmtDay(p.date)} · ${OUTCOME[p.outcome]}`
   : `${VIEWING_STATUS[p.status][0]} · ${fmtDay(p.date)}`);
-const why = p => [INTEREST_REASON[p.reason], p.note, fmtDate(p.removed_at)].filter(Boolean).join(" · ");
+const why = p => [INTEREST_REASON[p.reason], p.note, fmtDate(p.removed_at)].filter(Boolean);
 // R2, in the spec's order: "Counted twice" joins the person to another one instead of removing them (R14).
 const CHOICES = [["no_longer_interested", INTEREST_REASON.no_longer_interested], ["counted_twice", "Counted twice"],
   ["not_buyer", INTEREST_REASON.not_buyer], ["other", INTEREST_REASON.other]];
@@ -80,7 +80,7 @@ export default function Interest({ data, error, reload, onDirty }) {
       <ul aria-labelledby="h-uncounted">{data.removed.map(p => <li key={p.viewing_id}>
         <div>
           <p><span id={`who-${p.viewing_id}`} className="who">{p.name}</span> · {contactOf(p)}</p>
-          <p className="muted">{why(p)}</p>
+          <p className="meta">{why(p).map((fact, i) => <span key={i}>{fact}</span>)}</p>
         </div>
         <div className="inline"><button type="button" className="btn ghost sm" aria-describedby={`who-${p.viewing_id}`}
           onClick={() => correct(p, { action: "restore" }, `${p.name} counts again.`)}>Count again</button></div>

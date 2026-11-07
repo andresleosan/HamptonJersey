@@ -37,7 +37,7 @@ export default function SaleDetail({ id, onChange }) {
   useEffect(() => { setUnsaved(dirty || stepDirty); return () => setUnsaved(false); }, [dirty, stepDirty]);
 
   if (!data) return loadErr ? <p role="alert" className="err">{loadErr}{" "}
-    <button type="button" className="btn ghost sm" onClick={load}>Try again</button> · <a href="#/sales">Back to sales</a></p> : <p>Loading sale…</p>;
+    <button type="button" className="btn ghost sm" onClick={load}>Try again</button><br /><a href="#/sales">Back to sales</a></p> : <p>Loading sale…</p>;
   const s = data.sale, open = s.status === "in_progress", [status, tone] = SALE_STATUS[s.status];
   // Closing waits for the fields and any open step to be saved or discarded.
   const locked = dirty || stepDirty || busy, unsaved = dirty || stepDirty ? "Save first" : undefined;
@@ -81,9 +81,9 @@ export default function SaleDetail({ id, onChange }) {
   return <div className="record">
     <div className="head">
       <div><h1 id="t-sale" ref={heading} tabIndex={-1}>{s.listing_title}</h1>
-        <p className="muted">Sale to <a href={`#/applicants/${s.applicant_id}`}>{s.buyer_name}</a> · <a href={`#/p/${encodeURIComponent(s.listing_id)}`}>
-          Listing {s.listing_id}</a> · Agreed {fmtDate(s.created_at)} <span className={`badge ${tone}`}>{status}</span></p></div>
-      <a href="#/sales">← Back to sales</a>
+        <p className="meta"><span>Sale to <a href={`#/applicants/${s.applicant_id}`}>{s.buyer_name}</a></span><span><a href={`#/p/${encodeURIComponent(s.listing_id)}`}>
+          Listing {s.listing_id}</a></span><span>Agreed {fmtDate(s.created_at)}</span><span><span className={`badge ${tone}`}>{status}</span></span></p></div>
+      <a href="#/sales">Back to sales</a>
     </div>
     {s.status === "completed" && <p className="warn" role="note">Completed {fmtDate(s.closed_at)}. A completed sale can't be reopened
       here; if it was a mistake, correct the listing in Listings.</p>}
@@ -100,7 +100,7 @@ export default function SaleDetail({ id, onChange }) {
               <div className="step-head"><span className="step-name">{label}</span>
                 <span className="step-state">{m.done_on ? <span className="ok">Done {fmtDay(m.done_on)}</span>
                   : m.not_needed ? <span className="muted">Not needed</span>
-                  : m.overdue ? <strong className="err">Overdue · planned {fmtDay(m.planned_on)}</strong>
+                  : m.overdue ? <strong className="err">Overdue, planned {fmtDay(m.planned_on)}</strong>
                   : <span className="muted">{m.planned_on ? `Planned ${fmtDay(m.planned_on)}` : "No date yet"}</span>}</span>
                 {open && step !== m.key && <button type="button" className="btn ghost sm" ref={el => { stepButtons.current[m.key] = el; }}
                   onClick={() => { if (!stepDirty || confirm("You have unsaved changes to a step. Leave without saving them?")) { setStepMsg(null); setStep(m.key); } }}>

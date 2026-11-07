@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tenor+Sans&family=Montserrat:wght@300;400;500;600&display=swap">
 <style>
-/* Layout: Heider-style monochrome gallery — full-bleed imagery, uppercase display type, bronze used only for action and price. */
+/* Layout: Heider-style monochrome gallery — full-bleed imagery, sentence-case display type, bronze used only for action and price. */
 :root{
   --ink:#151515; --paper:#ffffff; --mist:#f4f3f0; --line:#e3e0da; --stone:#6b665e; --bronze:#a56b3d; --bronze-dk:#86542d;
   --ok:#2f6b4f; --err:#a32020; --warn-bg:#fff6e5; --field-line:#8f8a82; --bronze-on-dark:#c9a27e;
@@ -46,7 +46,7 @@ a{color:inherit}
 button,input,select{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
 .wrap{max-width:var(--wrap);margin:0 auto;padding-inline:clamp(16px,4vw,40px)}
-h1,h2,h3,.disp{font-family:var(--display);font-weight:400;text-transform:uppercase;letter-spacing:.06em;text-wrap:balance;margin:0}
+h1,h2,h3,.disp{font-family:var(--display);font-weight:400;text-transform:none;letter-spacing:.01em;text-wrap:balance;margin:0}
 h2{font-size:clamp(24px,3vw,34px)}
 .eyebrow{font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--stone)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--ink);border-radius:999px;background:var(--ink);color:var(--paper);padding:13px 28px;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s,color .2s,transform .2s,box-shadow .2s}
@@ -88,28 +88,27 @@ nav.main a:hover{color:var(--bronze-dk)}
 [tabindex="-1"]:focus{outline:none}
 
 /* hero */
-.hero{position:relative;min-height:min(78vh,720px);display:grid;align-items:end;color:#fff;background:#222 center/cover no-repeat}
-.hero::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.4) 40%,rgba(0,0,0,.75))}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.hero{position:relative;color:var(--paper);background:var(--ink)}
+.hero-track,.stage-track{display:grid;grid-auto-flow:column;grid-auto-columns:100%;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;scroll-behavior:smooth;position:relative}
+.hero-track::-webkit-scrollbar,.stage-track::-webkit-scrollbar{display:none}
+.slide{position:relative;display:grid;align-items:end;min-width:0;min-height:min(78vh,720px);scroll-snap-align:start;scroll-snap-stop:always;background:var(--mist)}
+.slide>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.slide::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.4) 40%,rgba(0,0,0,.75))}
 .hero .wrap{position:relative;z-index:2;padding-block:64px;width:100%}
-.hero-bg{position:absolute;inset:0;background:#222 center/cover no-repeat;opacity:0;transition:opacity 1.2s ease}
-.hero-bg.on{opacity:1}
-#hero-txt>*{animation:heroIn .7s ease both}
-@keyframes heroIn{from{opacity:0;transform:translateY(10px)}}
-.hero-nav{display:flex;align-items:center;gap:18px;margin-top:28px}
-.dots{display:flex;gap:10px}
-.dots button{all:unset;cursor:pointer;width:32px;height:3px;padding:11px 0;background:rgba(255,255,255,.45);background-clip:content-box}
-.dots button[aria-current=true]{background-color:#fff}
-.dots button:focus-visible,.hero-pause:focus-visible{outline:2px solid #fff;outline-offset:3px}
-.hero-pause{all:unset;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#fff;opacity:.85;padding:6px 0}
-.hero-pause:hover{opacity:1}
-@media (prefers-reduced-motion:reduce){.hero-bg{transition:none}#hero-txt>*{animation:none}}
+.hero-nav{display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 24px}
+.hero-arrow{width:44px;height:44px;display:grid;place-items:center;border:1px solid currentColor;border-radius:999px;background:none;color:inherit;font-size:26px;cursor:pointer}
+.hero-arrow:disabled{opacity:.4;cursor:default}
+.hero .meta{color:inherit;margin-block:16px 24px;font-size:14px;letter-spacing:0;gap:8px 16px}
+.hero .place{margin-bottom:8px;font-size:13px}
+@media (prefers-reduced-motion:reduce){.hero-track,.stage-track{scroll-behavior:auto}}
 .rv{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
 .rv.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.card,.card .ph,.opts span,.btn{transition:none}.card:hover{transform:none}}
-.hero h1{font-size:clamp(34px,6vw,72px);line-height:1.05;max-width:14ch}
+.hero h1,.hero h2{font-size:clamp(28px,4vw,52px);line-height:1.12;max-width:28ch;text-transform:none;letter-spacing:.01em}
 .hero p{max-width:52ch;margin:18px 0 28px;font-size:16px;opacity:.92}
 .hero .eyebrow{color:#fff;opacity:.85}
-.hero h1,.hero p,.hero .eyebrow{text-shadow:0 1px 14px rgba(0,0,0,.55)}
+.hero h1,.hero h2,.hero p,.hero .place{text-shadow:0 1px 14px rgba(0,0,0,.55)}
 .search{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;background:var(--paper);color:var(--ink);max-width:980px;border-radius:var(--r);overflow:hidden}
 .search label{display:grid;gap:2px;padding:12px 18px;border-right:1px solid var(--line);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
 .search select{border:0;background:transparent;padding:4px 0;font-size:14px;color:var(--ink);text-transform:none;letter-spacing:0}
@@ -134,6 +133,9 @@ section#book,section#detail-book{padding-top:clamp(40px,5vw,64px);background:var
 .linkbtn{border:0;background:none;padding:4px 2px;margin-left:6px;text-decoration:underline;cursor:pointer;font-size:13px}
 
 /* property cards */
+.place{font-size:13px;color:var(--stone);letter-spacing:0}
+.hero .place{color:inherit}
+@media (min-width:760px){.grid.balanced{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:40px 28px}
 .card{text-decoration:none;display:grid;gap:14px;min-width:0}
 .card{transition:transform .35s ease}
@@ -144,7 +146,7 @@ section#book,section#detail-book{padding-top:clamp(40px,5vw,64px);background:var
 .card:hover .ph img{transform:scale(1.04)}
 .noimg{position:relative}
 .noimg>img{visibility:hidden}
-.noimg::after{content:"Photo unavailable";position:absolute;inset:0;display:grid;place-items:center;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);background:var(--mist)}
+.noimg::after{content:"Photo unavailable";position:absolute;inset:0;display:grid;place-items:center;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);background:var(--mist);pointer-events:none}
 .pill{position:absolute;top:12px;left:12px;background:var(--paper);padding:5px 10px;font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;border-radius:999px}
 .pill.sold{background:var(--ink);color:var(--paper)}
 .pill.offer{background:var(--bronze-dk);color:#fff}
@@ -165,7 +167,7 @@ section#book,section#detail-book{padding-top:clamp(40px,5vw,64px);background:var
 
 /* team */
 .team{background:var(--ink);color:#f2efe9}
-.team .eyebrow{color:#a9a49b}
+.team-intro{max-width:68ch;color:#cfcac2;margin:16px 0 0}
 .team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px;margin-top:40px}
 .agent{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);background:#1f1f1f;min-height:360px;border-radius:var(--r-lg);overflow:hidden;border:1px solid #2b2b2b}
 .agent img{width:100%;height:100%;object-fit:cover;filter:grayscale(1);transition:filter .5s}
@@ -178,10 +180,6 @@ section#book,section#detail-book{padding-top:clamp(40px,5vw,64px);background:var
 .agent .btn{background:transparent;border-color:#f2efe9;color:#f2efe9}
 .agent .btn:hover{background:var(--bronze-dk);border-color:var(--bronze-dk)}
 @media (max-width:560px){.agent{grid-template-columns:1fr}.agent img{aspect-ratio:4/3}}
-.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));border-top:1px solid #333;margin-top:48px}
-.facts div{padding:22px 0;display:grid;gap:4px}
-.facts b{font-family:var(--display);font-weight:400;font-size:26px;color:#fff}
-.facts span{font-size:12px;color:#a9a49b;letter-spacing:.06em}
 
 /* booking */
 .book{display:grid;grid-template-columns:1fr 1.4fr;gap:clamp(28px,5vw,72px)}
@@ -260,8 +258,15 @@ form.tour .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-
 .media-tabs{display:flex;gap:0;border-bottom:1px solid var(--line);overflow-x:auto}
 .media-tabs button{border:0;background:none;padding:12px 20px;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
 .media-tabs button[aria-selected=true]{border-color:var(--bronze);color:var(--bronze-dk)}
+.listing-media{min-width:0}
 .stage{position:relative;aspect-ratio:3/2;max-height:calc(100vh - 250px);min-height:240px;width:100%;background:#111;overflow:hidden;border-radius:var(--r)}
 .stage>img,.stage iframe{width:100%;height:100%;object-fit:cover;border:0;display:block}
+.stage-track{height:100%}
+.stage-track:focus-visible{outline:none}
+.stage:has(.stage-track:focus-visible)::after{content:"";position:absolute;inset:4px;border:2px solid var(--bronze);border-radius:12px;box-shadow:0 0 0 2px var(--paper);pointer-events:none;z-index:2}
+.stage-frame{position:relative;min-width:0;height:100%;scroll-snap-align:start;scroll-snap-stop:always;background:var(--mist)}
+.stage-frame img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}
+.stage-nav:disabled{opacity:.4;cursor:default}
 .stage-note{margin:10px 0 0;font-size:12px;color:var(--stone);display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:space-between}
 .stage-note:empty{display:none}
 .stage-note b{font-weight:600;color:var(--ink)}
@@ -277,7 +282,7 @@ form.tour .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-
 .keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));border-block:1px solid var(--line)}
 .keys div{padding:14px 0;display:grid;gap:2px}
 .keys b{font-family:var(--display);font-weight:400;font-size:20px;line-height:1.2}
-.keys span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone)}
+.keys span{font-size:13px;color:var(--stone)}
 .agent-mini{display:flex;gap:14px;align-items:center}
 .agent-mini img{width:52px;height:52px;border-radius:50%;object-fit:cover;filter:grayscale(1)}
 .summary .btns{display:grid;gap:8px}
@@ -298,9 +303,10 @@ form.tour .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-
 .prose p{margin:0 0 12px}
 .sub{margin:0 0 16px;font-size:20px}
 .specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:24px 40px}
-.specs h4{margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--bronze-dk)}
-dl.facts-list,.specs dl{margin:0;display:grid}
-dl.facts-list div,.specs dl div{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.specs h4{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--ink)}
+dl.facts-list,.specs dl{margin:0;display:grid;border-top:1px solid var(--line)}
+dl.facts-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px}
+dl.facts-list div,.specs dl div{display:flex;justify-content:space-between;gap:16px;padding:8px 0;font-size:14px}
 dl.facts-list dt,.specs dt{color:var(--stone)}
 dl.facts-list dd,.specs dd{margin:0;text-align:right;min-width:0;overflow-wrap:anywhere}
 .note{font-size:12px;color:var(--stone);margin:12px 0 0}
@@ -349,6 +355,7 @@ body:has(dialog[open]){overflow:hidden}
 .plans img{width:100%;background:#fff;border:1px solid var(--mist)}
 .bullets{margin:0 0 16px;padding-left:18px}
 .form-status{min-height:1.4em}
+.booking-hint{font-size:14px;margin-top:16px}
 footer .staff-row{display:block;margin-top:28px}
 footer .privacy{display:inline-block;margin-right:24px;padding-block:8px}
 footer .staff{font-size:11px;color:var(--stone);text-decoration:none;opacity:.6}
@@ -358,22 +365,20 @@ footer .staff:hover,footer .staff:focus-visible{opacity:1;text-decoration:underl
 .reg-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;margin-top:48px;padding-top:32px;border-top:1px solid var(--line)}
 .reg-cta p{margin:0;color:var(--stone);max-width:52ch}
 @media (max-width:480px){.reg-cta .btn{width:100%;padding-inline:16px}}
-/* PUB-22: /properties. Design A (Luis, 6-nov): three photo buttons; the hovered or chosen one widens and its photo
-   zooms in slowly. Text sits on a dark gradient for contrast. Stacked bands on phones; no motion when reduced. */
-.catalog h1{font:400 clamp(30px,4.4vw,52px)/1.08 var(--display);letter-spacing:.06em;margin:10px 0 32px}
+/* PUB-22: /properties. Design A (Luis, 6-nov): three photo buttons; the hovered or chosen photo zooms in slowly
+   without changing the button width. Text sits on a dark gradient for contrast. Stacked bands on phones; no motion when reduced. */
+.catalog h1{font:400 clamp(30px,4.4vw,52px)/1.08 var(--display);letter-spacing:.01em;margin:0 0 32px}
 .op-buttons{display:flex;gap:12px;height:clamp(200px,26vw,320px);margin-bottom:28px}
 .op-buttons button{flex:1;min-width:0;position:relative;overflow:hidden;border:0;border-radius:var(--r-lg);padding:0;cursor:pointer;color:#fff;
-  background:#222;text-align:left;font:inherit;transition:flex .6s cubic-bezier(.2,.8,.2,1)}
+  background:#222;text-align:left;font:inherit}
 .op-ph{position:absolute;inset:0;background:#222 center/cover no-repeat;transition:transform 1.2s cubic-bezier(.2,.8,.2,1)}
 /* Ink gradient: white text keeps ≥ 4.5:1 even on a light photo (darker on phones, where the text fills more of the band). */
 .op-buttons button::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(21,21,21,.12),rgba(21,21,21,.78))}
 .op-txt{position:absolute;left:clamp(18px,2.4vw,28px);right:12px;bottom:clamp(16px,2.2vw,24px);z-index:1;display:grid;gap:8px}
 .op-txt b{font:400 clamp(30px,3.6vw,46px)/1 var(--display);letter-spacing:.08em;text-shadow:0 1px 14px rgba(0,0,0,.45)}
-.op-txt small{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;opacity:.92}
-.op-txt small::after{content:" →";display:inline-block;transition:transform .4s}
-.op-buttons button:is(:hover,:focus-visible),.op-buttons button[aria-pressed=true]{flex:1.6}
-.op-buttons button:is(:hover,:focus-visible) .op-ph,.op-buttons button[aria-pressed=true] .op-ph{transform:scale(1.06)}
-.op-buttons button:is(:hover,:focus-visible) small::after{transform:translateX(6px)}
+.op-txt small{font-size:13px;font-weight:400;opacity:.92}
+.op-buttons button[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:4px}
+.op-buttons button:is(:hover,:focus-visible) .op-ph,.op-buttons button[aria-pressed=true] .op-ph{transform:scale(1.04)}
 .op-buttons button:focus-visible{outline:3px solid var(--bronze);outline-offset:3px}
 .op-buttons button[aria-pressed=true] .op-txt b{text-decoration:underline 2px var(--bronze-on-dark);text-underline-offset:10px}
 .catalog-filters{display:flex;flex-wrap:wrap;gap:16px;align-items:end;margin-bottom:24px}
@@ -504,9 +509,9 @@ body:has(.chat-btn:not([hidden])) footer{padding-bottom:80px}
 </div></header>
 <main id="app" tabindex="-1"></main>
 <footer><div class="wrap">
-  <div><b>Hampton Estates</b><p>Property sales · Free valuations · Rentals.<br>Family-run on Bath Street since 1982.</p></div>
+  <div><b>Hampton Estates</b><p>Sales, lettings and free valuations.<br>Family-run on Bath Street since 1982.</p></div>
   <div><b>Visit</b><p>42 Bath Street, St Helier<br>Jersey JE2 4ST</p></div>
-  <div><b>Contact</b><p class="num">01534 727582 · 07797 718199<br>francopropertiesjersey@gmail.com</p></div>
+  <div><b>Contact</b><p class="num">Office 01534 727582<br>Mobile 07797 718199<br>francopropertiesjersey@gmail.com</p></div>
 </div>
   <div class="wrap staff-row"><a class="privacy" href="#/privacy">Privacy</a><a class="staff" href="/admin/">Staff login</a></div></footer>
 
@@ -550,12 +555,37 @@ let PROPS = [], PUB = [], TEAM = [], filter = {region: "all", op: "all", beds: 0
 const pillCls = s => /sold/i.test(s) ? "sold" : /offer/i.test(s) ? "offer" : "";
 const agentFor = p => TEAM[(amount(p) ?? 0) > 1e6 ? 0 : 1] || TEAM[0] || null;
 
+const facts = p => [priceLabel(p), p.beds && `${p.beds} bedroom${p.beds === 1 ? "" : "s"}`,
+  p.baths && `${p.baths} bathroom${p.baths === 1 ? "" : "s"}`, !/bed/i.test(p.type || "") && p.type].filter(Boolean);
+let galleryObserver;
+const clearGallery = () => { galleryObserver?.disconnect(); galleryObserver = null; };
+function snapTrack(track, changed, initial = 0) {
+  clearGallery();
+  const slides = [...track.children];
+  let cur = initial;
+  const go = i => { const target = slides[Math.max(0, Math.min(slides.length - 1, i))];
+    if (target) track.scrollTo({left: target.offsetLeft - slides[0].offsetLeft}); };
+  galleryObserver = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.intersectionRatio >= .6).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    if (visible) { cur = slides.indexOf(visible.target); changed(cur); }
+  }, {root: track, threshold: .6});
+  slides.forEach(slide => galleryObserver.observe(slide));
+  track.addEventListener("keydown", e => {
+    if (e.target !== track) return;
+    const d = {ArrowLeft: -1, ArrowRight: 1}[e.key];
+    if (d) { e.preventDefault(); go(cur + d); }
+  });
+  changed(cur);
+  if (initial) track.scrollTo({left: slides[initial].offsetLeft - slides[0].offsetLeft, behavior: "instant"});
+  return {go, current: () => cur};
+}
+
 function card(p, extra = "") {
   return `<a class="card" href="/p/${p.id}">
     <div class="ph"><img loading="lazy" src="${esc(p.thumb || p.image)}" alt="${esc(p.title)}">
       <span class="pill ${pillCls(p.status)}">${esc(p.status)}</span>${p.tourUrl ? '<span class="pill tour">3D tour</span>' : ""}</div>
-    <div><div class="eyebrow">${esc(p.place)}</div><h3>${esc(p.title)}</h3></div>
-    <div class="meta">${p.beds ? `<span>${p.beds} bed</span>` : ""}${p.baths ? `<span>${p.baths} bath</span>` : ""}${p.type ? `<span>${esc(p.type)}</span>` : ""}${p.operation !== "sale" ? `<span>${OP_ONE[p.operation]}</span>` : ""}</div>
+    <div><div class="place">${esc(p.place)}</div><h3>${esc(p.title)}</h3></div>
+    <div class="meta">${facts(p).slice(1).map(f => `<span>${esc(f)}</span>`).join("")}</div>
     <div class="price num">${extra}${esc(priceLabel(p))}</div></a>`;
 }
 
@@ -567,7 +597,7 @@ const teamOf = n => TEAM.find(t => t.name === n.name); // photo, role and office
 // Agents, days and times are filled in by mountBooking once the availability arrives.
 function bookingForm(pre = {}) {
   const opts = PUB.filter(p => !isSold(p)).map(p =>
-    `<option value="${p.id}" ${p.id === pre.prop ? "selected" : ""}>${esc(p.title)} — ${esc(priceLabel(p))}</option>`).join("");
+    `<option value="${p.id}" ${p.id === pre.prop ? "selected" : ""}>${esc(p.title)}, ${esc(priceLabel(p))}</option>`).join("");
   return `${pre.msg ? `<p class="cancelled" role="status">${esc(pre.msg)}</p>` : ""}<form class="tour" novalidate>
     <label class="field"><span>Property</span><select name="prop"><option value="">General enquiry / valuation</option>${opts}</select></label>
     <div class="agents"><p class="hint">Loading available times…</p></div>
@@ -575,9 +605,9 @@ function bookingForm(pre = {}) {
       <label><input type="radio" name="kind" value="In person" checked><span class="opt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7M5 10v10h14V10M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><b>In person</b><small>At the property with your agent</small></span></label>
       <label><input type="radio" name="kind" value="Live video call"><span class="opt"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m16 10 5-3v10l-5-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><b>Live video call</b><small>Ideal if you are buying from abroad</small></span></label></div></fieldset>
     <div class="when"></div>
-    <div class="row"><label class="field"><span>Full name</span><input name="name" autocomplete="name" required placeholder="Jane Le Brocq"></label>
-      <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="jane@example.je"></label>
-      <label class="field"><span>Phone (optional)</span><input name="phone" type="tel" autocomplete="tel" placeholder="07797 000000"></label></div>
+    <div class="row"><label class="field"><span>Full name</span><input name="name" autocomplete="name" required></label>
+      <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="name@example.com"></label>
+      <label class="field"><span>Phone (optional)</span><input name="phone" type="tel" autocomplete="tel" placeholder="07797 123456"></label></div>
     ${TS_KEY ? `<div class="ts"></div>` : ""}
     <div><button class="btn" type="submit" disabled>Request viewing</button>
       <p class="hint form-status" role="status" aria-live="polite">${TS_KEY ? "" : BOOKING_DOWN}</p></div>
@@ -662,7 +692,7 @@ function mountBooking(slot, pre = {}) {
       }
       if (!r.ok) throw new Error(data.fields ? Object.values(data.fields).join(". ") + "." : data.error || "Something went wrong.");
     } catch (err) {
-      status.textContent = `${err instanceof TypeError ? "We couldn't reach our server." : err.message} Your details are still here — please try again.`;
+      status.textContent = `${err instanceof TypeError ? "We couldn't reach our server." : err.message} Your details are still here. Please try again.`;
       btn.disabled = false; if (widget != null) turnstile.reset(widget);
       return;
     }
@@ -683,31 +713,33 @@ function mountBooking(slot, pre = {}) {
 // ponytail: with only a few listings the home is a showcase and /properties has no filters; they come back at FEW_MAX + 1.
 const FEW_MAX = 5;
 function home() {
+  clearGallery();
   const few = PUB.length <= FEW_MAX;
   const feat = few ? PUB[0] : PUB.find(p => p.featured) || PUB.find(p => p.tourUrl || p.aerial) || PUB[0];
   // In showcase mode the hero already presents `feat`, so the Featured block shows the next featured listing.
   // The star in the panel (featured_rank) picks the Featured blocks; the hero carousel shows every published listing.
-  const spots = PUB.filter(p => p.featured).sort((a, b) => a.featured - b.featured); // star order from the panel
+  const spots = few ? [] : PUB.filter(p => p.featured).sort((a, b) => a.featured - b.featured).slice(0, 2); // star order from the panel
   const featChips = p => [p.tourUrl && "3D tour", p.aerial && "Aerial view", p.floorplans.length && "Floor plans",
-    p.operation === "sale" && p.salePrice != null && "Mortgage calculator", "Book with an agent"].filter(Boolean);
-  const n = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;
+    p.operation === "sale" && p.salePrice != null && "Mortgage calculator"].filter(Boolean);
   const slides = few ? PUB : [feat]; // showcase hero: a carousel of every published listing, starred ones first
-  const heroTxt = p => `<div class="eyebrow">Featured · ${esc(p.place)}</div><h1>${esc(p.title)}</h1><p class="num">${esc(keyFacts(p))}</p>`;
-  const keyFacts = p => [priceLabel(p), n(p.beds, "bedroom"), n(p.baths, "bathroom"), p.type].filter(Boolean).join(" · ");
   const bios = ["Founded Hampton Estates in 1982 and has guided generations of Jersey families through buying, selling and letting. Advice and valuations are always free.",
                 "Handles day-to-day sales and lettings, from first viewing to completion. Your first call for viewings, offers and rental enquiries."];
   const sel = (id, obj, cur) => `<select id="${id}">${Object.entries(obj).map(([k, v]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${v}</option>`).join("")}</select>`;
   $("#app").innerHTML = `
-  <section class="hero" style="background-image:url('${esc(feat.image)}')" ${few ? 'aria-roledescription="carousel" aria-label="Featured properties"' : ""}>
-    ${few ? slides.map(p => `<div class="hero-bg${p === feat ? " on" : ""}" style="background-image:url('${esc(p.image)}')"></div>`).join("") : ""}
-    <div class="wrap">${few ? `
-    <div id="hero-txt">${heroTxt(feat)}</div>
-    <div class="cta"><a class="btn light" id="hero-explore" href="/p/${feat.id}">Explore the property</a>
-      <button class="btn ghost" type="button" id="hero-book">Book a viewing</button></div>
-    ${slides.length > 1 ? `<div class="hero-nav"><div class="dots" role="group" aria-label="Choose a property">${slides.map((p, i) =>
-      `<button type="button" data-slide="${i}" aria-label="Show ${esc(p.title)}" aria-current="${p === feat}"></button>`).join("")}</div>
-      <button type="button" class="hero-pause">Pause</button></div>` : ""}` : `
-    <div class="eyebrow">Jersey · Channel Islands</div>
+  <section class="hero" ${few ? 'aria-roledescription="carousel" aria-label="Featured properties"' : ""}>
+    ${few ? `<h1 class="sr">Homes for sale and to let in Jersey</h1><div class="hero-track" tabindex="0" aria-label="Property gallery">
+      ${slides.map((p, i) => `<article class="slide" role="group" aria-roledescription="slide" aria-label="${i + 1} of ${slides.length}" data-id="${esc(p.id)}">
+        <img src="${esc(p.image)}" alt="" ${i ? 'loading="lazy"' : 'fetchpriority="high"'}>
+        <div class="wrap"><div class="place">${esc(p.place)}</div><h2>${esc(p.title)}</h2>
+          <div class="meta num">${facts(p).map(f => `<span>${esc(f)}</span>`).join("")}</div>
+          <div class="cta"><a class="btn light" href="/p/${esc(p.id)}">Explore the property</a>
+            <button class="btn ghost" type="button" data-book="${esc(p.id)}">Book a viewing</button></div></div>
+      </article>`).join("")}</div>
+      ${slides.length > 1 ? `<div class="hero-nav"><button type="button" class="hero-arrow" data-dir="-1" aria-label="Previous property" disabled>‹</button>
+        <span id="hero-count" aria-live="polite">1 of ${slides.length}</span>
+        <button type="button" class="hero-arrow" data-dir="1" aria-label="Next property">›</button></div>` : ""}` : `
+    <div class="slide"><img src="${esc(feat.image)}" alt="" fetchpriority="high"><div class="wrap">
+    <div class="place">Jersey, Channel Islands</div>
     <h1>Homes across Jersey, since 1982</h1>
     <p>Sales, lettings and free valuations from our St Helier office on Bath Street. Discreet, personal advice from a family firm that has known the island since 1982.</p>
     <form class="search" id="quick">
@@ -716,11 +748,11 @@ function home() {
       <label>Bedrooms<select id="q-beds">${[0, 2, 3, 4].map(n => `<option value="${n}" ${n === filter.beds ? "selected" : ""}>${n ? n + "+" : "Any"}</option>`).join("")}</select></label>
       <label>Max price<select id="q-max"></select></label>
       <button class="btn" type="submit">Search</button>
-    </form>`}
-  </div></section>
+    </form></div></div>`}
+  </section>
 
   <section class="block" id="portfolio" tabindex="-1"><div class="wrap">
-    <div class="head"><div><div class="eyebrow">Properties</div><h2>Latest properties</h2></div>
+    <div class="head"><div><h2>Latest properties</h2></div>
       <a class="btn ghost" href="/properties">View all properties</a></div>
     <div class="grid" id="grid"></div>
     <div class="reg-cta"><p>Not seeing the right home? Register your search and our team will be in touch.</p>
@@ -728,28 +760,28 @@ function home() {
   </div></section>
 
   ${spots.map((p, i) => `<section class="feature${i % 2 ? " flip" : ""}"><img src="${esc(p.thumb || p.image)}" alt="${esc(p.title)}" loading="lazy">
-    <div class="txt"><div class="eyebrow">Featured · ${esc(p.place)}</div><h2>${esc(p.title)}</h2>
-      <p class="num">${esc(keyFacts(p))}</p>
+    <div class="txt"><div class="place">${esc(p.place)}</div><h2>${esc(p.title)}</h2>
+      <div class="meta num">${facts(p).map(f => `<span>${esc(f)}</span>`).join("")}</div>
       <div class="chips">${featChips(p).map(c => `<span>${c}</span>`).join("")}</div>
       <div><a class="btn" href="/p/${p.id}">Explore the property</a></div></div>
   </section>`).join("")}
 
   <section class="block team" id="team" tabindex="-1"><div class="wrap">
-    <div class="eyebrow">Meet the team</div><h2>A family firm on Bath Street</h2>
+    <h2>A family firm on Bath Street</h2>
+    <p class="team-intro">Established in St Helier in 1982. Free local and international valuations. Viewings Monday to Saturday, in person or by live video.</p>
     ${TEAM.length ? `<div class="team-grid">${TEAM.map((t, i) => `<article class="agent">
       <img src="${esc(wix(t.photo, 600, 760))}" alt="${esc(t.name)}">
       <div class="info"><div><h3>${esc(t.name)}</h3><div class="role">${esc(t.role)}</div></div>
         <p>${bios[i] || ""}</p>
         <div class="contact num">${t.phone ? `<span>Mobile ${esc(t.phone)}</span>` : ""}<span>Office ${esc(t.office)}</span><span>francopropertiesjersey@gmail.com</span></div>
         <div><button class="btn" type="button" data-agent="${i}">Book with ${esc(t.name.split(" ")[0])}</button></div></div></article>`).join("")}</div>`
-      : `<p style="margin-top:24px;color:#cfcac2">Team details could not be loaded. Call the office on 01534 727582.</p>`}
-    <div class="facts"><div><b class="num">1982</b><span>Established in St Helier</span></div>
-      <div><b>Free</b><span>Local & international valuations</span></div><div><b>Mon–Sat</b><span>Viewings in person or by live video</span></div><div><b>Sales & lettings</b><span>Homes and businesses across Jersey</span></div>${PUB.length >= 10 ? `<div><b class="num">${PUB.length}</b><span>Listings available now</span></div>` : ""}</div>
+      : `<p class="team-intro">Team details could not be loaded. Call the office on 01534 727582.</p>`}
+
   </div></section>
 
   <section class="block" id="book" tabindex="-1"><div class="wrap book">
-    <div><div class="eyebrow">Book a viewing</div><h2>Choose an agent and a time</h2>
-      <p class="hint" style="font-size:14px;margin-top:14px">Pick the property, the agent you want to meet and a slot. Viewings run Monday to Saturday from our Bath Street office, or by live video call if you are buying from abroad.</p>${TOURS.length ? `
+    <div><h2>Book a viewing</h2>
+      <p class="hint booking-hint">Pick the property, the agent you want to meet and a slot. Viewings run Monday to Saturday from our Bath Street office, or by live video call if you are buying from abroad.</p>${TOURS.length ? `
       <figure class="tour3d" id="tour3d"><div class="tour3d-stage"></div><figcaption></figcaption>
         ${TOURS.length > 1 ? `<div class="opts" role="group" aria-label="3D tours">${TOURS.map((t, i) => `<label><input type="radio" name="tour3d" value="${i}"${i ? "" : " checked"}><span>${esc(t.title)}</span></label>`).join("")}</div>` : ""}</figure>` : ""}</div>
     <div id="book-slot"></div>
@@ -790,30 +822,23 @@ function home() {
     }
   }
   // PUB-22: the home shows the newest five still on the market; the rest are on /properties.
-  $("#grid").innerHTML = homePicks(PUB).map(p => card(p)).join("");
+  const picks = homePicks(PUB);
+  $("#grid").classList.toggle("balanced", picks.length <= 4 && picks.length % 2 === 0);
+  $("#grid").innerHTML = picks.map(p => card(p)).join("");
   if (few) {
-    // ponytail: setInterval that stops itself once the home is gone; pauses on hover/focus, never auto-plays with reduced motion.
-    const hero = $(".hero"), bgs = [...hero.querySelectorAll(".hero-bg")], dots = [...hero.querySelectorAll("[data-slide]")], pb = $(".hero-pause");
-    let cur = slides.indexOf(feat), paused = matchMedia("(prefers-reduced-motion: reduce)").matches, hold = false;
-    const go = i => {
-      cur = (i + slides.length) % slides.length; const p = slides[cur];
-      bgs.forEach((b, j) => b.classList.toggle("on", j === cur)); dots.forEach((d, j) => d.setAttribute("aria-current", j === cur));
-      $("#hero-txt").innerHTML = heroTxt(p); $("#hero-explore").href = `/p/${p.id}`;
-    };
-    if (slides.length > 1) {
-      const timer = setInterval(() => { if (!document.contains(hero)) return clearInterval(timer); if (!paused && !hold) go(cur + 1); }, 7000);
-      const setPaused = v => { paused = v; pb.textContent = v ? "Play" : "Pause"; };
-      setPaused(paused);
-      hero.addEventListener("mouseenter", () => { hold = true; });
-      hero.addEventListener("mouseleave", () => { hold = false; });
-      hero.addEventListener("focusin", () => { hold = true; });
-      hero.addEventListener("focusout", e => { hold = hero.contains(e.relatedTarget); });
-      $(".dots", hero).addEventListener("click", e => { const d = e.target.closest("[data-slide]"); if (d) go(+d.dataset.slide); });
-      pb.addEventListener("click", () => setPaused(!paused));
-    }
-    $("#hero-book").addEventListener("click", () => {
-      const prop = $("#book-slot select[name=prop]"), now = slides[cur];
-      if (!isSold(now)) prop.value = now.id;
+    const hero = $(".hero"), track = $(".hero-track", hero);
+    const gallery = snapTrack(track, i => {
+      const count = $("#hero-count", hero);
+      if (count) count.textContent = `${i + 1} of ${slides.length}`;
+      hero.querySelectorAll(".hero-arrow").forEach(b => { b.disabled = +b.dataset.dir < 0 ? i === 0 : i === slides.length - 1; });
+    });
+    hero.addEventListener("click", e => {
+      const arrow = e.target.closest(".hero-arrow");
+      if (arrow) gallery.go(gallery.current() + +arrow.dataset.dir);
+      const booking = e.target.closest("[data-book]");
+      if (!booking) return;
+      const prop = $("#book-slot select[name=prop]"), now = slides.find(p => p.id === booking.dataset.book);
+      if (now && !isSold(now)) prop.value = now.id;
       $("#book").scrollIntoView(); prop.focus({preventScroll: true});
     });
     return;
@@ -837,10 +862,11 @@ function home() {
 const OP_BUTTONS = [["rent", "Rent", "Homes to let"], ["sale", "Buy", "Homes for sale"], ["business", "Businesses", "Businesses for sale"]];
 const NO_FILTER = {region: "all", op: "all", beds: 0, max: 0};
 function properties() {
+  clearGallery();
   const full = PUB.length > FEW_MAX;
   document.title = `Properties · ${BRAND}`;
   $("#app").innerHTML = `<section class="block catalog" id="catalog"><div class="wrap">
-    <div class="eyebrow">Properties</div><h1>Find your home in Jersey</h1>
+    <h1>Find your home in Jersey</h1>
     <div class="op-buttons" role="group" aria-label="Rent, buy or businesses">${OP_BUTTONS.map(([op, word, sub]) =>
       `<button type="button" data-op="${op}" aria-pressed="false"><span class="op-ph" style="background-image:url('${esc(buttonPhoto(PUB, op) || "/og-image.jpg")}')"></span>
         <span class="op-txt"><b>${word}</b><small>${sub}</small></span></button>`).join("")}</div>
@@ -861,6 +887,7 @@ function properties() {
   };
   const render = () => {
     const list = PUB.filter(p => matches(p, filter));
+    $("#grid").classList.toggle("balanced", list.length <= 4 && list.length % 2 === 0);
     $("#grid").innerHTML = list.map(p => card(p)).join("") || `<div class="empty"><p>No properties here yet.</p>
       <a class="btn ghost" href="#/apply">Register your search</a></div>`;
     $("#count").textContent = `${list.length} ${list.length === 1 ? "property" : "properties"}`;
@@ -885,6 +912,7 @@ function properties() {
 }
 
 function detail(id) {
+  clearGallery();
   const p = PUB.find(x => x.id === id);
   if (!p) { // not published (any more), or a mistyped link: the server answered 404 too
     document.title = `Property not found · ${BRAND}`;
@@ -895,13 +923,14 @@ function detail(id) {
   // S8: as the server titles the page (server/seo.js), so a listing opened inside the site reads the same.
   document.title = [p.title, amount(p) == null ? null : priceLabel(p), BRAND].filter(Boolean).join(" · ");
   const shareUrl = `${SITE}/p/${p.id}`;
+  const status = String(p.status || OP_ONE[p.operation]);
   const agent = agentFor(p);
   const canCalc = p.operation === "sale" && p.salePrice != null;
   const cur = p.currency || "GBP", money0 = n => money(n, cur);
   const desc = p.description.filter(l => l.toLowerCase() !== p.title.toLowerCase());
   const similar = comparables(p, PUB);
-  const facts = [["Type", p.type], ["Location", p.place], ["Market", REGIONS[p.region]], ["Operation", OP_ONE[p.operation]],
-    ["Price as listed", p.priceText || "Not published"], ["Tenure", TENURE[p.tenureType] || p.tenure], ["Housing", housingLabel(p)]].filter(([, v]) => v);
+  const listingFacts = [["Location", p.place], ["Market", REGIONS[p.region]],
+    ["Tenure", TENURE[p.tenureType] || p.tenure], ["Housing", housingLabel(p)]].filter(([, v]) => v);
   // First-time buyer schemes concern purchases only.
   const restriction = p.restriction === "first_time_buyer" && p.operation !== "sale" ? null : RESTRICTION[p.restriction];
   // VIS-03 (§5.9): the real count of people interested, which the server sends only from 2. A sold house takes no viewings.
@@ -912,7 +941,7 @@ function detail(id) {
 
   $("#app").innerHTML = `<div class="wrap crumbs"><a href="/">Home</a> / <a href="/properties?region=${p.region}">${esc(REGIONS[p.region])}</a> / ${esc(p.title)}</div>
   <div class="wrap d-top">
-    <div style="min-width:0">
+    <div class="listing-media">
       ${tabs.length > 1 ? `<div class="media-tabs" role="tablist" aria-label="Media">${tabs.map(([v, t], i) =>
         `<button role="tab" id="tab-${v}" data-v="${v}" aria-controls="stage" aria-selected="${!i}" tabindex="${i ? -1 : 0}">${t}</button>`).join("")}</div>` : ""}
       <div class="stage" id="stage" ${tabs.length > 1 ? 'role="tabpanel" aria-labelledby="tab-photo"' : ""}></div>
@@ -926,7 +955,7 @@ function detail(id) {
       </dialog>` : ""}
     </div>
     <aside class="summary" aria-label="Summary">
-      <div class="eyebrow">${esc(p.status)} · ${esc(p.place)}</div>
+      <div class="place">${esc(status.charAt(0).toUpperCase() + status.slice(1).toLowerCase())} in ${esc(p.place)}</div>
       <h1>${esc(p.title)}</h1>
       <div class="price num">${esc(priceLabel(p))}${p.operation === "business" ? "<small>Business, not freehold</small>" : ""}</div>
       ${restriction ? `<span class="tag restrict">${esc(restriction)}</span>` : ""}
@@ -945,7 +974,7 @@ function detail(id) {
       <div class="prose">${p.summary.length ? `<ul class="bullets">${p.summary.map(l => `<li>${esc(l.replace(/^[-•]\s*/, ""))}</li>`).join("")}</ul>` : ""}
         ${desc.map(l => `<p>${esc(l)}</p>`).join("") || (p.summary.length ? "" : "<p>Full particulars available from our office.</p>")}</div></div>
     <div><h2 class="sub">Listing details</h2>
-      <dl class="facts-list">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl></div>
+      <dl class="facts-list">${listingFacts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl></div>
     ${p.specs.length ? `<div class="full"><h2 class="sub">Property details</h2>
       <div class="specs">${Object.entries(groups).map(([g, rows]) => `<div><h4>${esc(g)}</h4><dl>${rows.map(s =>
         `<div><dt>${esc(s.label)}</dt><dd>${esc(s.value)}</dd></div>`).join("")}</dl></div>`).join("")}</div></div>` : ""}
@@ -968,41 +997,52 @@ function detail(id) {
       </div></div>` : ""}
   </div>
   ${similar.length ? `<section class="block" style="background:var(--mist)"><div class="wrap">
-    <div class="head"><div><div class="eyebrow">${{sale: "Similar prices", rent: "Similar rents", business: "Similar businesses"}[p.operation]}</div><h2>Around ${esc(priceLabel(p))} in ${esc(REGIONS[p.region])}</h2>
+    <div class="head"><div><h2>Around ${esc(priceLabel(p))} in ${esc(REGIONS[p.region])}</h2>
       <p>Compared only with other ${p.use} listings ${{sale: "for sale", rent: "to let", business: "offered as businesses"}[p.operation]} in the same market.</p></div></div>
     <div class="grid">${similar.map(s => card(s, `<span class="hint" style="font-family:var(--body);margin-right:8px">${amount(s) >= amount(p) ? "+" : "−"}${Math.round(Math.abs(amount(s) / amount(p) - 1) * 100)}%</span>`)).join("")}</div>
   </div></section>` : ""}
   ${isSold(p) ? "" : `<div class="mbar"><span class="price num">${esc(priceLabel(p))}</span><a class="btn" href="#detail-book" data-scroll="detail-book">Book a viewing</a></div>`}
   ${isSold(p) ? "" : `<section class="block" id="detail-book" tabindex="-1"><div class="wrap book">
-    <div><div class="eyebrow">Book a viewing</div><h2>See ${esc(p.title)}</h2><p class="hint" style="font-size:14px;margin-top:14px">Choose your agent, the type of viewing and a slot that suits you.</p></div>
+    <div><h2>Book a viewing</h2><p class="hint booking-hint">Choose your agent, the type of viewing and a slot that suits you.</p></div>
     <div id="detail-slot"></div></div></section>`}`;
 
   const stage = $("#stage"), note = $("#stage-note");
-  let timer, idx = Math.max(0, p.photos.findIndex(f => f.src === p.image)); // open on the chosen cover
+  let gallery, timer, idx = Math.max(0, p.photos.findIndex(f => f.src === p.image)); // open on the chosen cover
   const fail = (msg, retry) => {
     stage.insertAdjacentHTML("beforeend", `<div class="stage-msg" role="alert"><div><p>${msg}</p>
-      <a href="${esc(p.tourUrl)}" target="_blank" rel="noopener noreferrer">Open the tour in a new tab ↗</a>
+      <a href="${esc(p.tourUrl)}" target="_blank" rel="noopener noreferrer">Open the tour in a new tab</a>
       ${retry ? `<button class="btn light" type="button" data-retry>Try again</button>` : ""}</div></div>`);
   };
   const webgl = () => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; } };
   const show = v => {
-    clearTimeout(timer); stage.classList.remove("noimg");
+    clearTimeout(timer); clearGallery(); gallery = null; stage.classList.remove("noimg");
     document.querySelectorAll(".media-tabs button").forEach(b => { const on = b.dataset.v === v; b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; });
     if (tabs.length > 1) stage.setAttribute("aria-labelledby", `tab-${v}`);
     $("#thumbs").innerHTML = "";
     if (v === "photo") {
-      const ph = p.photos[idx] || {src: p.image, alt: p.title};
-      const many = p.photos.length > 1;
-      stage.innerHTML = `<img src="${esc(ph.src)}" alt="${esc(ph.alt)}">` + (many ? `
+      const photos = p.photos.length ? p.photos : [{src: p.image, alt: p.title}];
+      const many = photos.length > 1;
+      stage.innerHTML = `<div class="stage-track" tabindex="0" aria-label="Property photos">${photos.map((f, i) =>
+        `<div class="stage-frame" data-photo="${i}"><img src="${esc(f.src)}" alt="${esc(f.alt)}"${i === idx ? ' fetchpriority="high"' : ' loading="lazy"'}></div>`).join("")}</div>` + (many ? `
         <button type="button" class="stage-nav prev" data-step="-1" aria-label="Previous photo">‹</button>
         <button type="button" class="stage-nav next" data-step="1" aria-label="Next photo">›</button>` : "");
-      note.innerHTML = many ? `<span>Photo ${idx + 1} of ${p.photos.length}</span><button type="button" class="linkbtn" data-all>View all ${p.photos.length} photos</button>` : "";
-      if (p.photos.length > 1) $("#thumbs").innerHTML = p.photos.map((f, i) =>
-        `<button type="button" data-i="${i}" aria-label="Show photo ${i + 1} of ${p.photos.length}" aria-pressed="${i === idx}"><img src="${esc(f.thumb)}" alt="" loading="lazy"></button>`).join("");
+      note.innerHTML = many ? `<span></span><button type="button" class="linkbtn" data-all>View all ${photos.length} photos</button>` : "";
+      if (many) $("#thumbs").innerHTML = photos.map((f, i) =>
+        `<button type="button" data-i="${i}" aria-label="Show photo ${i + 1} of ${photos.length}" aria-pressed="${i === idx}"><img src="${esc(f.thumb)}" alt="" loading="lazy"></button>`).join("");
+      gallery = snapTrack($(".stage-track", stage), i => {
+        idx = i;
+        stage.querySelectorAll(".stage-frame").forEach((f, j) => f.setAttribute("aria-current", j === i));
+        $("#thumbs").querySelectorAll("button").forEach((b, j) => b.setAttribute("aria-pressed", j === i));
+        if (many) {
+          $("span", note).textContent = `Photo ${i + 1} of ${photos.length}`;
+
+        }
+      }, idx);
     }
+
     if (v === "tour") {
       track(p.id, "tour");
-      note.innerHTML = `<span>3D tour · drag to look around.</span><a href="${esc(p.tourUrl)}" target="_blank" rel="noopener noreferrer">Open in a new tab ↗</a>`;
+      note.innerHTML = `<span>Drag to look around.</span><a href="${esc(p.tourUrl)}" target="_blank" rel="noopener noreferrer">Open the tour in a new tab</a>`;
       stage.innerHTML = "";
       if (!tour) return fail("This tour opens on the provider's website.");
       if (!webgl()) return fail("This browser can't show 3D content (WebGL is off or unsupported).");
@@ -1028,12 +1068,12 @@ function detail(id) {
   note.addEventListener("click", e => { if (e.target.closest("[data-all]")) openLb(); });
   stage.addEventListener("click", e => {
     if (e.target.closest("[data-retry]")) return show("tour");
-    const s = e.target.closest("[data-step]"); if (s) { step(+s.dataset.step); show("photo"); return $(`.stage-nav.${s.classList[1]}`).focus(); }
-    if (e.target.matches("img") && $(".stage-nav")) openLb();
+    const s = e.target.closest("[data-step]"); if (s) { step(+s.dataset.step); return gallery?.go(idx); }
+    if (e.target.matches(".stage-frame img")) { idx = +e.target.closest("[data-photo]").dataset.photo; openLb(); }
   });
   $("#thumbs").addEventListener("click", e => {
     const b = e.target.closest("[data-i]"); if (!b) return;
-    idx = +b.dataset.i; show("photo"); $(`#thumbs [data-i="${idx}"]`).focus();
+    gallery?.go(+b.dataset.i);
   });
 
   const mt = $(".media-tabs");
@@ -1114,14 +1154,15 @@ const HOME_SECTIONS = ["portfolio", "team", "book"];
 // Sections and cards fade up as they scroll into view; skipped with reduced motion or no IntersectionObserver.
 const io = "IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion: reduce)").matches
   ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), {rootMargin: "0px 0px -6% 0px"}) : null;
-const reveal = () => io && document.querySelectorAll("#app .head, #app .card, #app .agent, #app .feature, #app .facts > div, #app .book > *, #app .detail > *")
+const reveal = () => io && document.querySelectorAll("#app .head, #app .card, #app .agent, #app .feature, #app .book > *, #app .detail > *")
   .forEach(el => { if (el.classList.contains("rv")) return; el.classList.add("rv"); el.style.transitionDelay = `${([...el.parentElement.children].indexOf(el) % 4) * 80}ms`;
     el.addEventListener("transitionend", () => { el.style.transitionDelay = ""; }, {once: true}); io.observe(el); });
 // Register your search and the privacy notice live in apply.js, fetched only when one of them opens (spec §5).
 const SIDE_PAGES = {"#/apply": (m, root) => m.renderApply(root, {esc, tsKey: TS_KEY, tsReady}), "#/privacy": (m, root) => m.renderPrivacy(root)};
-const sidePage = h => import("/apply.js").then(m => { if (location.hash !== h) return; SIDE_PAGES[h](m, $("#app")); scrollTo({top: 0, behavior: "instant"}); })
+const sidePage = h => import("/apply.js").then(m => { if (location.hash !== h) return; clearGallery(); SIDE_PAGES[h](m, $("#app")); scrollTo({top: 0, behavior: "instant"}); })
   .catch(() => {
     if (location.hash !== h) return;
+    clearGallery();
     $("#app").innerHTML = `<section class="block"><div class="wrap empty" role="alert"><p>We couldn't load this page right now.</p>
       <button class="btn ghost" type="button">Try again</button></div></section>`;
     $("#app .empty button").addEventListener("click", () => location.reload());
@@ -1177,7 +1218,7 @@ addEventListener("popstate", navigated);
 // ---------- data: validate before anything reaches the HTML ----------
 addEventListener("error", e => {
   if (e.target.tagName !== "IMG") return;
-  const ph = e.target.closest(".ph, .stage"); ph ? ph.classList.add("noimg") : (e.target.style.visibility = "hidden");
+  const ph = e.target.closest(".ph, .slide, .stage-frame, .stage"); ph ? ph.classList.add("noimg") : (e.target.style.visibility = "hidden");
 }, true);
 const getJSON = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); });
 const arr = v => (Array.isArray(v) ? v.filter(x => typeof x === "string") : []);

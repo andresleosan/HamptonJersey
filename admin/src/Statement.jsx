@@ -45,7 +45,7 @@ export default function Statement({ landlord, month }) {
     {!landlord ? <p className="empty card">Choose a landlord to see their statement.</p> : !data ? !err && <p>Loading statement…</p>
     : <article id="statement" className="card">
       <header className="statement-head"><h2>{data.landlord.name}</h2>
-        <p>Statement for {monthName(data.month)} · Hampton Estates</p>
+        <p>Statement for {monthName(data.month)}</p><p>Hampton Estates</p>
         {(data.landlord.email || data.landlord.phone) && <p className="muted">{[data.landlord.email, data.landlord.phone].filter(Boolean).join(" · ")}</p>}
       </header>
       {data.rentals.length ? data.rentals.map(r => <section key={r.id} className="statement-property" aria-labelledby={`sp-${r.id}`}>

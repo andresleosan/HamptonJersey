@@ -216,8 +216,8 @@ function RecordOffer({ buyerId, onClose, onDone }) {
     <form ref={form} className="sheet-form" onSubmit={submit} noValidate>
       <label>Listing<select value={f.listing_id} onChange={set("listing_id")} disabled={listings?.length === 0} {...invalid("listing_id")}>
         <option value="">{listings ? "Choose a listing for sale" : listErr ? "The listings couldn't be loaded" : "Loading listings…"}</option>
-        {listings?.map(l => <option key={l.id} value={l.id}>{l.title} ({l.id}){l.availability === "under_offer" ? " · under offer" : ""}
-          {l.published ? "" : " · draft"}</option>)}</select>{error("listing_id")}</label>
+        {listings?.map(l => <option key={l.id} value={l.id}>{l.title} ({l.id}){l.availability === "under_offer" ? ", under offer" : ""}
+          {l.published ? "" : ", draft"}</option>)}</select>{error("listing_id")}</label>
       {listErr && <p role="alert" className="err">{listErr}</p>}
       {listings && !listings.length && <p className="muted">No listing is for sale. A listing takes offers when its operation is Sale and
         it is For sale or Under offer.</p>}
@@ -280,7 +280,7 @@ function OfferDialog({ action, offer: o, onClose, onDone, onAccepted, onRefused 
   };
   return <Modal title={title} onClose={onClose}>
     <form ref={form} className="sheet-form" onSubmit={submit} noValidate>
-      <p>{o.buyer_name} · {money(o.amount)}{o.counter_amount != null && `, countered at ${money(o.counter_amount)}`} · {o.listing_title}</p>
+      <p className="meta"><span>{o.buyer_name}</span><span>{money(o.amount)}{o.counter_amount != null && `, countered at ${money(o.counter_amount)}`}</span><span>{o.listing_title}</span></p>
       {action === "accept" && <p>A sale file opens at {money(price)}. The website shows the listing as Under offer and {o.buyer_name} moves
         to Agreed. Other open offers on this listing stay as backups.</p>}
       {action === "counter" && <label>Seller's counter (£)<input value={f.counter_amount} onChange={set("counter_amount")} inputMode="numeric"

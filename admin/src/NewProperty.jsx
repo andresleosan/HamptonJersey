@@ -7,7 +7,7 @@ import { decodeText, readPropertyText, draftBody, planFolder, readDrop } from ".
 // PUB-01 (spec 2026-11-03): a draft typed by hand, as before, or read from a folder: its property.txt and its own photos.
 const START = { title: "", use: "residential", operation: "sale", availability: "for_sale", country: "Jersey" };
 const plural = (n, one) => `${n} ${one}${n === 1 ? "" : "s"}`;
-const clip = s => { const t = s.replace(/\n/g, " · "); return t.length > 120 ? `${t.slice(0, 119)}…` : t; };
+const clip = s => { const t = s.replace(/\n/g, "; "); return t.length > 120 ? `${t.slice(0, 119)}…` : t; };
 const subfolders = plan => (plan.subfolders.length ? [`Subfolders not read: ${plan.subfolders.join(", ")}.`] : []);
 // What the summary lists from the file, in the template's order (the five above show in the form itself).
 const SHOWN = [["property_type", "Type"], ["parish", "Parish"], ["location", "Location"], ["road_name", "Road"], ["bedrooms", "Bedrooms"],
@@ -114,12 +114,12 @@ export default function NewProperty({ rows, onClose }) {
       </div>
       {plan && <div className="import-summary">
         <div className="inline">
-          <p><b>{plan.folder ?? "Photos"}</b>{head.length ? ` · ${head.join(" · ")}` : ""}</p>
+          <p className="meta"><span><b>{plan.folder ?? "Photos"}</b></span>{head.map((fact, i) => <span key={i}>{fact}</span>)}</p>
           <button type="button" className="btn ghost sm" onClick={() => reset()}>Remove</button>
         </div>
         {plan.photos.length > 0 && <details className="files" open={plan.photos.length <= 12}>
           <summary>{plural(plan.photos.length, "file")} to upload, in this order</summary>
-          <ol>{plan.photos.map((p, i) => <li key={p.name}>{p.name} <span className="muted">· {KIND[p.kind]}{i === plan.cover ? " · cover" : ""}</span></li>)}</ol>
+          <ol>{plan.photos.map((p, i) => <li key={p.name}><span className="meta"><span>{p.name}</span><span>{KIND[p.kind]}</span>{i === plan.cover && <span>Cover</span>}</span></li>)}</ol>
         </details>}
         {read.length > 0 && <dl>{read.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>}
         {warnings.length > 0 && <div className="warn before-publish"><p>Check before you publish:</p><ul>{warnings.map(x => <li key={x}>{x}</li>)}</ul></div>}
