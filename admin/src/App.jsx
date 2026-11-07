@@ -21,6 +21,7 @@ import OwnerReport from "./OwnerReport.jsx";
 import Insights from "./Insights.jsx";
 import Availability from "./Availability.jsx";
 import Users from "./Users.jsx";
+import Advertisers from "./Advertisers.jsx";
 import Tours from "./Tours.jsx";
 import Automations from "./Automations.jsx";
 import Messages from "./Messages.jsx";
@@ -77,7 +78,7 @@ export default function App() {
 
   const [path, query] = hash.replace(/^#\/?/, "").split("?");
   const [section, arg, sub] = path.split("/");
-  const current = (section === "p" && arg) || section === "queue" ? "listings" : ["email", "messages", "applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours", "automations"].includes(section) ? section : "";
+  const current = (section === "p" && arg) || section === "queue" ? "listings" : ["advertisers", "email", "messages", "applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours", "automations"].includes(section) ? section : "";
   // The Inbox counter in the navigation: every 30 s while signed in and the tab is visible. On the Inbox itself,
   // the page's own poll brings the counts (onCounts).
   const loadCounts = useCallback(() => api("/admin/notifications/counts").then(setCounts, () => {}), []);
@@ -116,6 +117,7 @@ export default function App() {
     : section === "rentals" && /^\d+$/.test(arg) ? <RentalDetail key={arg} id={arg} onChange={loadCounts} />
     : section === "rentals" ? <Rentals onChange={loadCounts} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
+    : section === "advertisers" ? <Advertisers />
     : section === "messages" ? <Messages paused={expired} onChange={loadCounts} />
     : section === "email" ? <Suspense fallback={<p>Loading email…</p>}><Email key={query??""} query={query} /></Suspense>
     : section === "tours" ? <Tours /> : section === "automations" ? <Automations stalled={counts.stalled} outbound={counts.outbound} onChange={loadCounts} />
@@ -139,6 +141,7 @@ export default function App() {
           && <span className="count" title={`${counts.expiring} expiring`}>{counts.expiring}<span className="sr"> expiring</span></span>}{counts.retention_review > 0
           && <span className="count" title={`${counts.retention_review} contacts need retention review`}>{counts.retention_review}<span className="sr"> retention review</span></span>}</a>
         <a href="#/review" aria-current={current === "review" ? "page" : undefined}>Review</a>
+        <a href="#/advertisers" aria-current={current === "advertisers" ? "page" : undefined}>Advertisers</a>
         <a href="#/listings" aria-current={current === "listings" ? "page" : undefined}>Listings{counts.to_confirm > 0
           && <span className="count">{counts.to_confirm}<span className="sr"> to confirm</span></span>}</a>
         <a href="#/viewings" aria-current={current === "viewings" ? "page" : undefined}>Viewings</a>

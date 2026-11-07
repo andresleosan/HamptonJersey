@@ -1,0 +1,86 @@
+import { json, fail, readJson, now } from '../http.js';
+import { jerseyToday, EMAIL } from '../viewings.js';
+
+const clean = (v, label, max, required = false) => {
+  if (typeof v !== 'string') { if (!required && v == null) return ''; fail(400, `Enter ${label} as text`); }
+  v = v.trim();
+  if (v.length > max || (required && !v)) fail(400, `Enter ${label} (up to ${max} characters)`);
+  return v;
+};
+const list = (v, label, max = 40) => { if (!Array.isArray(v) || v.length > max) fail(400, `Invalid ${label}`); return v; };
+function validate(b) {
+  if (!b || typeof b !== 'object') fail(400, 'Invalid advertiser');
+  const name = clean(b.name, 'name', 200, true), kind = b.kind;
+  if (!['agency', 'entity', 'individual'].includes(kind)) fail(400, 'Choose a type');
+  const contacts = list(b.contacts, 'contacts').map(c => ({
+    name: clean(c?.name, 'contact name', 200, true), email: clean(c?.email, 'email', 254),
+    phones: list(c?.phones, 'phones').map(p => ({ label: clean(p?.label, 'phone label', 80, true), number: clean(p?.number, 'phone number', 80, true) }))
+  }));
+  if (contacts.some(c => c.email && !EMAIL.test(c.email))) fail(400, 'Enter a valid email');
+  const channels = list(b.channels, 'channels').map(c => {
+    const url = clean(c?.url, 'URL', 2048, true);
+    try { const u = new URL(url); if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password) throw Error(); } catch { fail(400, 'Enter an http or https URL'); }
+    return { label: clean(c?.label, 'channel label', 100, true), url, personal: c?.personal !== false };
+  });
+  const ids = (v, label) => [...new Set(list(v, label, 100).map(x => clean(x, label, 100)).filter(Boolean))];
+  return { name, kind, details: { contacts, channels, source_ids: ids(b.source_ids, 'source'), listing_ids: ids(b.listing_ids, 'listing'), commission: clean(b.commission, 'commission', 2000), photo_permission: clean(b.photo_permission, 'photo permission', 2000), commission_personal: b.commission_personal !== false, photo_permission_personal: b.photo_permission_personal !== false, name_personal: kind === 'individual' || b.name_personal !== false } };
+}
+function monthAfter(date, months) {
+  const [y, m, d] = date.split('-').map(Number), base = new Date(Date.UTC(y, m - 1 + months, 1));
+  const last = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 0)).getUTCDate();
+  base.setUTCDate(Math.min(d, last)); return base.toISOString().slice(0, 10);
+}
+function output(r) { const d = JSON.parse(r.details); return { ...r, details: undefined, ...d, review_on: monthAfter(r.activity_on, 11), due_on: monthAfter(r.activity_on, 12), today: jerseyToday() }; }
+const columns = `a.*, (SELECT r.action FROM advertiser_reviews r WHERE r.advertiser_id=a.id ORDER BY r.id DESC LIMIT 1) AS last_review_action, (SELECT r.on_date FROM advertiser_reviews r WHERE r.advertiser_id=a.id ORDER BY r.id DESC LIMIT 1) AS last_review_on`;
+async function get(env, id) { const r = await env.DB.prepare(`SELECT ${columns} FROM advertisers a WHERE a.id = ?`).bind(id).first(); if (!r) fail(404, 'Advertiser not found'); return r; }
+async function refs(env, d) {
+  for (const id of d.source_ids) if (!await env.DB.prepare('SELECT source_id FROM research_sources WHERE source_id = ?').bind(id).first()) fail(400, 'Source not found');
+  for (const id of d.listing_ids) if (!await env.DB.prepare('SELECT id FROM listings WHERE id = ?').bind(id).first()) fail(400, 'Listing not found');
+}
+async function all({ env, request }) {
+  const p = new URL(request.url).searchParams, offset = Math.max(0, Math.min(100000, Number.parseInt(p.get('offset'), 10) || 0));
+  const listing = clean(p.get('listing_id') ?? '', 'listing', 100), property = clean(p.get('property_id') ?? '', 'property', 100);
+  const rows = (await env.DB.prepare(`SELECT ${columns} FROM advertisers a WHERE (? = '' OR EXISTS
+    (SELECT 1 FROM json_each(a.details, '$.listing_ids') j WHERE j.value = ?)) AND (? = '' OR EXISTS
+    (SELECT 1 FROM json_each(a.details, '$.source_ids') j JOIN research_sources s ON s.source_id = j.value WHERE s.property_id = ?))
+    ORDER BY erased, activity_on, name COLLATE NOCASE, id LIMIT 51 OFFSET ?`).bind(listing,listing,property,property,offset).all()).results;
+  return json({ advertisers: rows.slice(0, 50).map(output), more: rows.length > 50, offset });
+}
+async function one({ env, params: [id] }) {
+  const a = output(await get(env, id));
+  const reviews = (await env.DB.prepare('SELECT action, reason, actor, created_at FROM advertiser_reviews WHERE advertiser_id = ? ORDER BY id DESC LIMIT 100').bind(id).all()).results;
+  return json({ advertiser: a, reviews });
+}
+async function create({ request, env, admin }) {
+  const v = validate(await readJson(request)); await refs(env, v.details); const t = now();
+  const r = await env.DB.prepare('INSERT INTO advertisers(name,kind,details,activity_on,created_at,updated_at,updated_by) VALUES(?,?,?,?,?,?,?)').bind(v.name,v.kind,JSON.stringify(v.details),jerseyToday(),t,t,admin).run();
+  return json({ advertiser: output(await get(env,r.meta.last_row_id)) },201);
+}
+async function update({ request, env, admin, params: [id] }) {
+  const body = await readJson(request), v = validate(body); await refs(env, v.details);
+  if (!Number.isInteger(body.version)) fail(400, 'Send version');
+  const r = await env.DB.prepare('UPDATE advertisers SET name=?,kind=?,details=?,updated_at=?,updated_by=?,version=version+1 WHERE id=? AND version=? AND erased=0').bind(v.name,v.kind,JSON.stringify(v.details),now(),admin,id,body.version).run();
+  if (!r.meta.changes) { await get(env,id); fail(409,'This record changed. Reload before saving.'); }
+  return json({ advertiser: output(await get(env,id)) });
+}
+async function act({ request, env, admin, params: [id, action] }) {
+  const b = await readJson(request); if (!Number.isInteger(b?.version)) fail(400,'Send version');
+  const reason = action === 'retain' ? clean(b.reason,'reason',1000,true) : null;
+  const old = await get(env,id); if (old.erased || old.version !== b.version) fail(409,'This record changed. Reload before continuing.');
+  const t = now(), detail = JSON.parse(old.details);
+  if (action === 'erase') { detail.contacts = []; detail.channels = detail.channels.filter(c => !c.personal); if (detail.commission_personal) detail.commission = ''; if (detail.photo_permission_personal) detail.photo_permission = ''; }
+  const name = action === 'erase' && detail.name_personal ? 'Personal data removed' : old.name;
+  const sql = 'UPDATE advertisers SET name=?,details=?,activity_on=?,erased=?,updated_at=?,updated_by=?,version=version+1 WHERE id=? AND version=? AND erased=0';
+  const result = await env.DB.batch([
+    env.DB.prepare(sql).bind(name,JSON.stringify(detail),action === 'activity' ? jerseyToday() : old.activity_on, action === 'erase' ? 1 : 0,t,admin,id,b.version),
+    env.DB.prepare('INSERT INTO advertiser_reviews(advertiser_id,action,reason,on_date,actor,created_at) SELECT ?,?,?,?,?,? WHERE changes() = 1').bind(id,action === 'retain' ? 'retained' : action === 'erase' ? 'erased' : 'activity',reason,jerseyToday(),admin,t),
+    ...(action === 'erase' ? [env.DB.prepare('UPDATE advertiser_reviews SET reason = NULL WHERE advertiser_id = ? AND EXISTS (SELECT 1 FROM advertisers WHERE id = ? AND version = ? AND erased = 1 AND updated_at = ? AND updated_by = ?)').bind(id,id,b.version+1,t,admin)] : [])
+  ]);
+  if (!result[0].meta.changes) fail(409,'This record changed. Reload before continuing.');
+  return json({ advertiser: output(await get(env,id)) });
+}
+export default [
+  ['GET', /^\/admin\/advertisers$/, all, true], ['POST', /^\/admin\/advertisers$/, create, true],
+  ['GET', /^\/admin\/advertisers\/(\d+)$/, one, true], ['PUT', /^\/admin\/advertisers\/(\d+)$/, update, true],
+  ['POST', /^\/admin\/advertisers\/(\d+)\/(retain|erase|activity)$/, act, true],
+];

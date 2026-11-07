@@ -2094,16 +2094,47 @@ async function viewingAvailability(browser) {
   await ctx.close();
 }
 
+
+async function advertiserDirectory(browser) {
+  const ctx = await browser.newContext();
+  const { signSession, COOKIE } = await import('../server/auth.js');
+  await ctx.addCookies([{ name: COOKIE, value: await signSession('admin@example.test', secret), domain: new URL(BASE).hostname, path: '/', secure: true, httpOnly: true, sameSite: 'Strict' }]);
+  const page = await newPage(ctx, { width: 1280, height: 800 });
+  await page.goto(BASE + 'admin/#/advertisers');
+  await page.getByText('No advertisers on this page.').waitFor();
+  await page.getByRole('button', { name: 'Add advertiser' }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Test Estates');
+  await page.getByRole('button', { name: 'Add contact' }).click();
+  await page.getByRole('group', { name: 'Contact 1' }).getByLabel('Name', { exact: true }).fill('Test Person');
+  await page.getByRole('button', { name: 'Add phone' }).click();
+  await page.getByLabel('Phone 1 label').fill('Office');
+  await page.getByLabel('Number', { exact: true }).fill('01534 123456');
+  await page.getByRole('button', { name: 'Save advertiser' }).click();
+  await page.getByText('Advertiser saved.').waitFor();
+  await page.reload();
+  await page.getByRole('button', { name: 'Open' }).click();
+  assert.equal(await page.getByLabel('Number', { exact: true }).inputValue(), '01534 123456');
+  await page.getByLabel('Why are the personal details still needed for an open relationship or case?').fill('Open case');
+  await page.getByRole('button', { name: 'Record reason' }).click();
+  await page.getByText('Reason recorded.').waitFor();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Remove personal data' }).click();
+  await page.getByText('Personal information removed.').waitFor();
+  assert.equal(await page.getByText('Test Person').count(), 0);
+  await ctx.close();
+}
+
 (async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROME});
   try {
     const phases = process.env.E2E_ONLY === "reg17" ? ["reg17"] : (process.env.E2E_PHASES || "public,urls,admin,reg17").split(",");
-    if (phases.some(p => !["public", "urls", "admin", "reg17"].includes(p)))
-      throw new Error("E2E_PHASES accepts public, urls, admin and reg17.");
+    if (phases.some(p => !["public", "urls", "admin", "reg17", "advertisers"].includes(p)))
+      throw new Error("E2E_PHASES accepts public, urls, admin, reg17 and advertisers.");
     if (phases.includes("public")) await publicSite(browser);
     if (phases.includes("urls")) await listingUrls(browser);
-    if (phases.includes("admin")) await admin(browser);
+    if (phases.includes("admin")) { await admin(browser); await advertiserDirectory(browser); }
     if (phases.includes("reg17")) await viewingAvailability(browser);
+    if (phases.includes("advertisers") && !phases.includes("admin")) await advertiserDirectory(browser);
     console.log(process.env.E2E_ONLY === "reg17" ? "reg17 e2e OK" : `e2e OK (${phases.join(", ")})`);
   }
   finally { await browser.close(); }

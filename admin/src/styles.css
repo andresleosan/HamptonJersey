@@ -514,3 +514,6 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 :root .search-lifecycle{margin:16px 0;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .search-lifecycle h2{margin:0}.search-lifecycle p{max-width:75ch}.search-decision{display:grid;gap:8px;max-width:640px}
 .search-decision input{border-color:#8f8a82}.search-decision .inline{flex-wrap:wrap}.search-lifecycle .inline{flex-wrap:wrap}
+
+/* AGE-04: long names and the review state remain legible in the mobile list. */
+@media (max-width:760px){.list.advertisers tr{grid-template-columns:1fr;border-bottom:1px solid var(--line)}.list.advertisers td:first-child{grid-row:auto;overflow-wrap:anywhere}.list.advertisers td[data-label]::before{content:attr(data-label) ": ";color:var(--stone);font-size:12px}}

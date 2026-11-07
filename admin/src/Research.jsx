@@ -18,7 +18,7 @@ export default function Research({ data }) {
     <dl className="kv">{facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
     {data.issues.length > 0 && <><h3>Issues ({data.issues.length})</h3><ul className="issues">{data.issues.map(i =>
       <li key={i.issue_id}><b>{i.severity}</b> · {i.field}: {i.issue}{i.proposed_action && <div className="muted">{i.proposed_action}</div>}</li>)}</ul></>}
-    <Table caption="Sources" rows={data.sources} cols={[["title", "Source"], ["origin", "Origin"], ["source_type", "Type"], ["observed_status", "Status seen"], ["price_text", "Price seen"], ["source_date", "Date"]]} />
+    <Table caption="Sources" rows={data.sources} cols={[["source_id", "Source ID"], ["title", "Source"], ["origin", "Origin"], ["source_type", "Type"], ["observed_status", "Status seen"], ["price_text", "Price seen"], ["source_date", "Date"]]} />
     <Table caption="Facts" rows={data.facts} cols={[["field", "Field"], ["value", "Value"], ["confidence", "Confidence"], ["origin", "Origin"]]} />
     <Table caption="Financial terms" rows={data.terms} cols={[["term_type", "Type"], ["amount", "Amount"], ["currency", "Currency"], ["period", "Period"], ["qualifier", "Qualifier"]]} />
     <details><summary>Searches made ({data.searches.length})</summary>
