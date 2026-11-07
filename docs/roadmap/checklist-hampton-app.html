@@ -1163,8 +1163,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F2",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Construcción local en preparación: directorio, contactos y teléfonos, canales, referencias, notas comerciales y revisión humana de datos personales a 11/12 meses. Migración 0027 solo en bases de prueba; pendiente revisión independiente de Hermes, publicación y activación.",
-   "falta": "M01 · Reconciliación 7-nov: Revisar independientemente la coordinación de sesión ante navegación durante el borrado; activar solo tras autorización. Directorio de anunciantes: agencia, entidad o particular, webs y canales, contactos y todos los teléfonos identificados. Relacionarlo con fuentes y publicaciones. Conservar por separado acuerdos de comisión tratados personalmente y permisos de uso de fotos; no son requisitos generales para inventariar o consultar disponibilidad. Aceptación: La tarea de llamada puede mostrar todos los teléfonos y su titular, incluso con varios anuncios del mismo inmueble.",
+   "hecho": "Construcción local parcial: directorio, contactos, teléfonos, canales, referencias, notas y revisión humana a 11/12 meses. Sin eliminación manual ni automática en la app; supresión pendiente en AGE-14. Migración 0027 solo en fixtures; revisión independiente pendiente.",
+   "falta": "M01 · Reconciliación 7-nov: Revisión independiente del directorio; la supresión se aborda por separado en AGE-14. Publicar y activar solo tras autorización. Directorio de anunciantes: agencia, entidad o particular, webs y canales, contactos y todos los teléfonos identificados. Relacionarlo con fuentes y publicaciones. Conservar por separado acuerdos de comisión tratados personalmente y permisos de uso de fotos; no son requisitos generales para inventariar o consultar disponibilidad. Aceptación: La tarea de llamada puede mostrar todos los teléfonos y su titular, incluso con varios anuncios del mismo inmueble.",
    "actualizado": "2026-11-07",
    "bloqueo": "",
    "evidencia": [
@@ -1179,6 +1179,22 @@ document.addEventListener('DOMContentLoaded', () => {
    "modulo": "M01",
    "deps": [],
    "criterio_aceptacion": "La tarea de llamada puede mostrar todos los teléfonos y su titular, incluso con varios anuncios del mismo inmueble."
+  },
+  {
+   "id": "AGE-14",
+   "seccion": "Agencias y portal del aplicante",
+   "titulo": "Supresión de datos personales de anunciantes",
+   "origen": "decisión de Luis",
+   "fase": "F2",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "La acción de supresión se retiró de AGE-04; no está disponible en la aplicación.",
+   "falta": "Diseñar y verificar la supresión de datos personales de anunciantes, preservando referencias históricas y evitando exposición o restauración desde respuestas obsoletas entre pestañas, recargas y eventos perdidos. Mantener la decisión humana de revisión a 11 meses y decisión o justificación a 12, sin extenderla a otros datos.",
+   "bloqueo": "",
+   "evidencia": ["docs/superpowers/specs/2026-11-07-age-04-directory-design.md", "docs/superpowers/plans/2026-11-07-age-04-ledger.md"],
+   "modulo": "M01",
+   "deps": ["AGE-04"],
+   "criterio_aceptacion": "La solución y sus límites reciben pruebas y revisión independiente antes de ofrecer la supresión."
   },
   {
    "id": "AGE-05",

@@ -1,5 +1,7 @@
 # AGE-04 Directory Implementation Plan
 
+> **Alcance vigente:** Luis retiró la supresión de AGE-04. Las etapas anteriores a «Decisión de Luis» son históricas y sus referencias a erase, clasificación y coordinación de supresión han quedado sustituidas. La supresión pendiente se sigue en AGE-14; la app no ofrece esa acción.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement task-by-task. Steps use checkbox syntax.
 
 **Goal:** Proporcionar al equipo un directorio protegido de anunciantes con relaciones, teléfonos, permisos y revisión humana de datos personales.
@@ -55,3 +57,19 @@ Archivos: `admin/src/App.jsx` crea el coordinador por sesión y lo pasa a `Adver
 - [x] Suscribir cada instancia; depurar de inmediato presentación de lista/ficha/historial, descartar respuestas antiguas y liberar correctamente ante fallo de POST. Comprobar además hash/atrás, doble entrada y otras mutaciones.
 - [x] GREEN: E2E focal y MCP local; después npm test, build, check:release y E2E general. Comprobar zoom nativo 200% si el entorno lo permite y registrar límites.
 - [x] Actualizar ledger, ESTADO y checklist; preparar relevo y commit local para revisión independiente, sin push, migración o activación.
+
+## Decisión de Luis: retirar la supresión de AGE-04
+
+**Objetivo:** conservar el directorio y la revisión humana sin ofrecer ni ejecutar borrado de datos personales en la app; el borrado será tarea separada. No se publica ni se migra remotamente.
+
+**Archivos:** `server/routes/advertisers.js` y `tests/server/advertisers.test.mjs` retiran y prueban la ausencia del endpoint; `admin/src/Advertisers.jsx`, `admin/src/advertiserSession.js`, `admin/src/App.jsx` y `tests/e2e.cjs` retiran la acción y la coordinación exclusiva de supresión, conservando bloqueo de guardado y motivo sin guardar; `migrations/0027*` solo se ajusta si `erased` deja de usarse. Spec, ledger, ESTADO y checklist distinguen revisión de borrado pendiente.
+
+**DESIGN vigente:** panel blanco `#ffffff`, ink `#151515`, mist `#f4f3f0`, línea `#e3e0da`, bronce `#a56b3d` y bronce oscuro `#86542d` (Colors y verificación del panel); cuerpo 14px/1.5 y H1 26px Tenor, dos familias sin añadir fuentes (Typography); contenedor 1240px y margen lateral 16px (Layout), tarjetas de radio 14px/padding 24px y botones existentes (Shapes/Components); tabla apilada bajo 760px, foco visible y navegación por teclado (Tables y Requisitos verificables). Mantener texto en inglés, estados/error legibles, `no-store`, autorización de servidor y control de versión. Comprobar 1280/390 y zoom nativo 200%; no se cambia la paleta ni se añaden imágenes o dependencias.
+
+- [x] TDD: test API exige 404 a POST erase autenticado y ausencia de mutación; comprobar RED en el código previo.
+- [x] Retirar endpoint y handler, conservar revisión de 11/12 meses, motivo, actividad, validaciones, privacidad y versiones; eliminar datos/esquema usados solo por borrar si corresponde.
+- [x] Retirar botón, copy y guardas específicas de borrado; conservar borradores, errores enfocados y bloqueo de mutaciones; actualizar E2E para el flujo vigente.
+- [x] Probar API focal, npm test, build, check:release, e2e focal y general, MCP 1280/390 y zoom nativo; registrar fallos y límites reales.
+- [x] Actualizar spec, ledger, ESTADO y checklist para supresión pendiente en tarea separada; preparar commit local para revisión independiente.
+
+Skills: brainstorming/grill-me retoman la decisión explícita de Luis, sin otra decisión abierta; writing-plans define este alcance. TDD y systematic-debugging verifican la retirada de la ruta; frontend-security-coder conserva entrada segura y auth existente; impeccable y antislop conservan componentes y lenguaje del panel, sin rediseño; ponytail elimina estado muerto; rendimiento mantiene dependencias y construcción actuales. Taste/redesign no aplican porque no hay página nueva ni rediseño. La validación local no activa migración ni publicación.

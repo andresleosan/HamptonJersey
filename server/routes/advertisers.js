@@ -23,10 +23,10 @@ function validate(b) {
   const channels = list(b.channels, 'channels').map((c, index) => {
     const url = clean(c?.url, 'URL', 2048, true);
     try { const u = new URL(url); if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password) throw Error(); } catch { throw new FieldError(`channels.${index}.url`, 'Enter an http or https URL'); }
-    return { label: clean(c?.label, 'channel label', 100, true), url, personal: c?.personal !== false };
+    return { label: clean(c?.label, 'channel label', 100, true), url };
   });
   const ids = (v, label) => [...new Set(list(v, label, 100).map(x => clean(x, label, 100)).filter(Boolean))];
-  return { name, kind, details: { contacts, channels, source_ids: ids(b.source_ids, 'source'), listing_ids: ids(b.listing_ids, 'listing'), commission: clean(b.commission, 'commission', 2000), photo_permission: clean(b.photo_permission, 'photo permission', 2000), commission_personal: b.commission_personal !== false, photo_permission_personal: b.photo_permission_personal !== false, name_personal: kind === 'individual' || b.name_personal !== false } };
+  return { name, kind, details: { contacts, channels, source_ids: ids(b.source_ids, 'source'), listing_ids: ids(b.listing_ids, 'listing'), commission: clean(b.commission, 'commission', 2000), photo_permission: clean(b.photo_permission, 'photo permission', 2000) } };
 }
 function monthAfter(date, months) {
   const [y, m, d] = date.split('-').map(Number), base = new Date(Date.UTC(y, m - 1 + months, 1));
@@ -50,7 +50,7 @@ async function all({ env, request }) {
   const rows = (await env.DB.prepare(`SELECT ${columns} FROM advertisers a WHERE (? = '' OR EXISTS
     (SELECT 1 FROM json_each(a.details, '$.listing_ids') j WHERE j.value = ?)) AND (? = '' OR EXISTS
     (SELECT 1 FROM json_each(a.details, '$.source_ids') j JOIN research_sources s ON s.source_id = j.value WHERE s.property_id = ?))
-    ORDER BY erased, activity_on, name COLLATE NOCASE, id LIMIT 51 OFFSET ?`).bind(listing,listing,property,property,offset).all()).results;
+    ORDER BY activity_on, name COLLATE NOCASE, id LIMIT 51 OFFSET ?`).bind(listing,listing,property,property,offset).all()).results;
   return json({ advertisers: rows.slice(0, 50).map(output), more: rows.length > 50, offset });
 }
 async function withHistory(env, row) {
@@ -73,24 +73,21 @@ async function update({ request, env, admin, params: [id] }) {
   try { v = validate(body); } catch (e) { return validateResponse(e); }
   if (!Number.isInteger(body.version)) fail(400, 'Send version');
   const old = await get(env, id);
-  if (old.erased || old.version !== body.version) fail(409, 'This record changed. Reload before saving.');
+  if (old.version !== body.version) fail(409, 'This record changed. Reload before saving.');
   try { await refs(env, v.details, JSON.parse(old.details).listing_ids); } catch (e) { return validateResponse(e); }
-  const r = await env.DB.prepare('UPDATE advertisers SET name=?,kind=?,details=?,updated_at=?,updated_by=?,version=version+1 WHERE id=? AND version=? AND erased=0').bind(v.name,v.kind,JSON.stringify(v.details),now(),admin,id,body.version).run();
+  const r = await env.DB.prepare('UPDATE advertisers SET name=?,kind=?,details=?,updated_at=?,updated_by=?,version=version+1 WHERE id=? AND version=?').bind(v.name,v.kind,JSON.stringify(v.details),now(),admin,id,body.version).run();
   if (!r.meta.changes) { await get(env,id); fail(409,'This record changed. Reload before saving.'); }
   return json({ advertiser: await withHistory(env, await get(env,id)) });
 }
 async function act({ request, env, admin, params: [id, action] }) {
   const b = await readJson(request); if (!Number.isInteger(b?.version)) fail(400,'Send version');
   const reason = action === 'retain' ? clean(b.reason,'reason',1000,true) : null;
-  const old = await get(env,id); if (old.erased || old.version !== b.version) fail(409,'This record changed. Reload before continuing.');
-  const t = now(), detail = JSON.parse(old.details);
-  if (action === 'erase') { detail.contacts = []; detail.channels = detail.channels.filter(c => !c.personal); if (detail.commission_personal) detail.commission = ''; if (detail.photo_permission_personal) detail.photo_permission = ''; }
-  const name = action === 'erase' && detail.name_personal ? 'Personal data removed' : old.name;
-  const sql = 'UPDATE advertisers SET name=?,details=?,activity_on=?,erased=?,updated_at=?,updated_by=?,version=version+1 WHERE id=? AND version=? AND erased=0';
+  const old = await get(env,id); if (old.version !== b.version) fail(409,'This record changed. Reload before continuing.');
+  const t = now();
+  const sql = 'UPDATE advertisers SET activity_on=?,updated_at=?,updated_by=?,version=version+1 WHERE id=? AND version=?';
   const result = await env.DB.batch([
-    env.DB.prepare(sql).bind(name,JSON.stringify(detail),action === 'activity' ? jerseyToday() : old.activity_on, action === 'erase' ? 1 : 0,t,admin,id,b.version),
-    env.DB.prepare('INSERT INTO advertiser_reviews(advertiser_id,action,reason,on_date,actor,created_at) SELECT ?,?,?,?,?,? WHERE changes() = 1').bind(id,action === 'retain' ? 'retained' : action === 'erase' ? 'erased' : 'activity',reason,jerseyToday(),admin,t),
-    ...(action === 'erase' ? [env.DB.prepare('UPDATE advertiser_reviews SET reason = NULL WHERE advertiser_id = ? AND EXISTS (SELECT 1 FROM advertisers WHERE id = ? AND version = ? AND erased = 1 AND updated_at = ? AND updated_by = ?)').bind(id,id,b.version+1,t,admin)] : [])
+    env.DB.prepare(sql).bind(action === 'activity' ? jerseyToday() : old.activity_on,t,admin,id,b.version),
+    env.DB.prepare('INSERT INTO advertiser_reviews(advertiser_id,action,reason,on_date,actor,created_at) SELECT ?,?,?,?,?,? WHERE changes() = 1').bind(id,action === 'retain' ? 'retained' : 'activity',reason,jerseyToday(),admin,t)
   ]);
   if (!result[0].meta.changes) fail(409,'This record changed. Reload before continuing.');
   return json({ advertiser: output(await get(env,id)) });
@@ -98,5 +95,5 @@ async function act({ request, env, admin, params: [id, action] }) {
 export default [
   ['GET', /^\/admin\/advertisers$/, all, true], ['POST', /^\/admin\/advertisers$/, create, true],
   ['GET', /^\/admin\/advertisers\/(\d+)$/, one, true], ['PUT', /^\/admin\/advertisers\/(\d+)$/, update, true],
-  ['POST', /^\/admin\/advertisers\/(\d+)\/(retain|erase|activity)$/, act, true],
+  ['POST', /^\/admin\/advertisers\/(\d+)\/(retain|activity)$/, act, true],
 ];

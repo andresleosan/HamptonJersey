@@ -6,7 +6,6 @@ CREATE TABLE advertisers (
   details TEXT NOT NULL CHECK(json_valid(details)),
   activity_on TEXT NOT NULL,
   version INTEGER NOT NULL DEFAULT 1,
-  erased INTEGER NOT NULL DEFAULT 0 CHECK(erased IN (0,1)),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   updated_by TEXT NOT NULL
@@ -14,7 +13,7 @@ CREATE TABLE advertisers (
 CREATE TABLE advertiser_reviews (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   advertiser_id INTEGER NOT NULL REFERENCES advertisers(id),
-  action TEXT NOT NULL CHECK(action IN ('retained','erased','activity')),
+  action TEXT NOT NULL CHECK(action IN ('retained','activity')),
   reason TEXT,
   on_date TEXT NOT NULL,
   actor TEXT NOT NULL,

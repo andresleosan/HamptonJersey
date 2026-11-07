@@ -19,24 +19,24 @@ test('directory is private and preserves contacts and phones, with versioned upd
   assert.equal(invalidUrl.status, 400); assert.ok(invalidUrl.data.fields['channels.0.url']);
 });
 
-test('manual retention action removes personal data and stale updates cannot restore it', async () => {
+test('recording a reason preserves personal data and rejects a stale version', async () => {
   const env = makeEnv();
   const made = await request(env, 'POST', '/admin/advertisers', { ...entry, kind: 'individual', name: 'Private person' });
-  assert.equal(made.status, 201, JSON.stringify(made.data));
   const { id, version } = made.data.advertiser;
   assert.equal((await request(env, 'POST', `/admin/advertisers/${id}/retain`, { version, reason: '' })).status, 400);
-  assert.equal((await request(env, 'POST', `/admin/advertisers/${id}/erase`, { version })).status, 200);
-  const after = (await request(env, 'GET', `/admin/advertisers/${id}`)).data.advertiser;
-  assert.equal(after.name, 'Personal data removed');
-  assert.deepEqual(after.contacts, []);
-  assert.equal((await request(env, 'PUT', `/admin/advertisers/${id}`, { ...entry, version })).status, 409);
+  assert.equal((await request(env, 'POST', `/admin/advertisers/${id}/retain`, { version, reason: 'Open case' })).status, 200);
+  assert.equal((await request(env, 'POST', `/admin/advertisers/${id}/retain`, { version, reason: 'Stale case' })).status, 409);
+  const after = (await request(env, 'GET', `/admin/advertisers/${id}`)).data;
+  assert.equal(after.advertiser.name, 'Private person');
+  assert.deepEqual(after.advertiser.contacts, entry.contacts);
+  assert.equal(after.reviews[0].reason, 'Open case');
 });
 
 test('calendar review dates, manual reasons, reference validation and no automated deletion', async () => {
   const env = makeEnv(); seedListing(env);
   const invalidListing = await request(env, 'POST', '/admin/advertisers', { ...entry, listing_ids: ['missing'] });
   assert.equal(invalidListing.status, 400); assert.ok(invalidListing.data.fields.listing_ids);
-  const made = await request(env, 'POST', '/admin/advertisers', { ...entry, name_personal: false, commission: 'Fixed fee', commission_personal: false, channels: [{label:'Website',url:'https://example.test',personal:false}], listing_ids: ['HE-R001'] });
+  const made = await request(env, 'POST', '/admin/advertisers', { ...entry, commission: 'Fixed fee', channels: [{label:'Website',url:'https://example.test'}], listing_ids: ['HE-R001'] });
   const id = made.data.advertiser.id;
   env.DB.raw.prepare('UPDATE advertisers SET activity_on = ? WHERE id = ?').run('2024-03-31', id);
   let a = (await request(env, 'GET', `/admin/advertisers/${id}`)).data.advertiser;
@@ -49,9 +49,8 @@ test('calendar review dates, manual reasons, reference validation and no automat
   assert.equal(a.last_review_action, 'retained');
   assert.ok(a.last_review_on >= a.due_on);
   assert.equal(a.contacts.length, 1);
-  assert.equal((await request(env, 'POST', `/admin/advertisers/${id}/erase`, { version: a.version })).status, 200);
   const final = (await request(env, 'GET', `/admin/advertisers/${id}`)).data;
-  assert.ok(final.reviews.every(r => r.reason === null));
+  assert.equal(final.reviews[0].reason, 'Open case');
   assert.deepEqual(final.advertiser.listing_ids, ['HE-R001']);
   assert.equal(final.advertiser.name, 'Example agency');
   assert.equal(final.advertiser.commission, 'Fixed fee');
@@ -94,4 +93,19 @@ test('deleted listings already linked remain verifiable, while new tombstones ca
   assert.equal((await request(env, 'POST', '/admin/advertisers', { ...entry, listing_ids: ['HE-R001'] })).status, 400);
   const other = await request(env, 'POST', '/admin/advertisers', entry);
   assert.equal((await request(env, 'PUT', `/admin/advertisers/${other.data.advertiser.id}`, { ...other.data.advertiser, listing_ids: ['HE-R001'] })).status, 400);
+});
+
+test('personal-data erasure endpoint is unavailable and cannot mutate an advertiser', async () => {
+  const env = makeEnv();
+  const created = await request(env, 'POST', '/admin/advertisers', {...entry, kind:'individual', name:'Private test person'});
+  const {id, version} = created.data.advertiser;
+  const attempt = await request(env, 'POST', `/admin/advertisers/${id}/erase`, {version});
+  assert.equal(attempt.status, 404, 'no erase endpoint');
+  assert.equal((await request(env, 'GET', `/admin/advertisers/${id}/erase`)).status, 404);
+  assert.equal((await request(env, 'DELETE', `/admin/advertisers/${id}/erase`)).status, 404);
+  const after = await request(env, 'GET', `/admin/advertisers/${id}`);
+  assert.equal(after.status, 200);
+  assert.equal(after.data.advertiser.name, 'Private test person');
+  assert.deepEqual(after.data.advertiser.contacts, entry.contacts);
+  assert.equal(after.data.advertiser.version, version);
 });
