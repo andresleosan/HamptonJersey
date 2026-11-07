@@ -45,3 +45,13 @@
 - [x] Construir listado y ficha editables, enlaces válidos, estados de carga/error/vacío/conflicto, acciones humanas de conservación y confirmación de borrado.
 - [x] Cubrir flujo y estados con pruebas locales, luego ejecutar `npm test`, `npm run build`, `npm run check:release`, `npm run test:e2e` y recorrido MCP 1280/390 con teclado, foco, ampliación CSS, errores, consola y red. El zoom nativo 200% se acreditó después en 390 y 1280; ver ledger y revisión independiente de 0b41ec4.
 - [ ] Preparar revisión independiente de Hermes, registrar resultados y limitaciones, actualizar ESTADO/checklist y hacer commit local en main. Sin push ni migración remota.
+
+## Corrección de ciclo de vida tras revisión de 7932fbf
+
+Archivos: `admin/src/App.jsx` crea el coordinador por sesión y lo pasa a `Advertisers`; `admin/src/advertiserSession.js` conserva únicamente token, generación e IDs y notifica suscriptores; `admin/src/Advertisers.jsx` consume ese estado, impide operaciones concurrentes y elimina de la vista las respuestas previas a una supresión. `tests/e2e.cjs` verifica las interleavings; spec: `docs/superpowers/specs/2026-11-07-age-04-directory-design.md`.
+
+- [x] RED: retener POST erase, navegar Insights y volver, retener GET real anterior en instancia nueva y liberarlo tras POST 200; el primer caso 390/200 reprodujo PII. En GREEN comprobar también 390/1280 y reconciliación 200/200 y 503/503.
+- [x] Crear coordinador de sesión sin PII; bloqueo síncrono con token propietario y generación invalidada en erase 200.
+- [x] Suscribir cada instancia; depurar de inmediato presentación de lista/ficha/historial, descartar respuestas antiguas y liberar correctamente ante fallo de POST. Comprobar además hash/atrás, doble entrada y otras mutaciones.
+- [x] GREEN: E2E focal y MCP local; después npm test, build, check:release y E2E general. Comprobar zoom nativo 200% si el entorno lo permite y registrar límites.
+- [x] Actualizar ledger, ESTADO y checklist; preparar relevo y commit local para revisión independiente, sin push, migración o activación.

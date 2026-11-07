@@ -22,6 +22,7 @@ import Insights from "./Insights.jsx";
 import Availability from "./Availability.jsx";
 import Users from "./Users.jsx";
 import Advertisers from "./Advertisers.jsx";
+import { createAdvertiserSession } from "./advertiserSession.js";
 import Tours from "./Tours.jsx";
 import Automations from "./Automations.jsx";
 import Messages from "./Messages.jsx";
@@ -65,6 +66,7 @@ function SettingsMenu({ current, stalled }) {
 }
 
 export default function App() {
+  const [advertiserSession] = useState(createAdvertiserSession);
   const [me, setMe] = useState(undefined); // undefined = checking, null = signed out
   const [expired, setExpired] = useState(false);
   const [counts, setCounts] = useState({});
@@ -117,7 +119,7 @@ export default function App() {
     : section === "rentals" && /^\d+$/.test(arg) ? <RentalDetail key={arg} id={arg} onChange={loadCounts} />
     : section === "rentals" ? <Rentals onChange={loadCounts} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
-    : section === "advertisers" ? <Advertisers />
+    : section === "advertisers" ? <Advertisers session={advertiserSession} />
     : section === "messages" ? <Messages paused={expired} onChange={loadCounts} />
     : section === "email" ? <Suspense fallback={<p>Loading email…</p>}><Email key={query??""} query={query} /></Suspense>
     : section === "tours" ? <Tours /> : section === "automations" ? <Automations stalled={counts.stalled} outbound={counts.outbound} onChange={loadCounts} />

@@ -1,26 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { flushSync } from 'react-dom';
 import { api } from './api.js';
 import { safeHref } from './format.js';
 import { confirmLeave, setUnsaved } from './unsaved.js';
 
 const empty = () => ({ name: '', kind: 'agency', contacts: [], channels: [], source_ids: [], listing_ids: [], commission: '', photo_permission: '', commission_personal: true, photo_permission_personal: true, name_personal: true });
 const copy = a => ({ ...a, contacts: a.contacts.map(c => ({ ...c, phones: c.phones.map(p => ({ ...p })) })), channels: a.channels.map(c => ({ ...c })) });
-export default function Advertisers() {
+export default function Advertisers({ session }) {
   const [rows, setRows] = useState(null), [offset, setOffset] = useState(0), [more, setMore] = useState(false);
-  const redacted = useRef(new Map());
-  // One record operation owns the lock until it finishes. Erasure invalidates
-  // earlier detail snapshots even if a request outlives its operation.
-  const operation = useRef(null), detailEpoch = useRef(0);
-  const begin = () => { if (operation.current) return null; const token = {}; operation.current = token; setBusy(true); return token; };
-  const end = token => { if (operation.current === token) { operation.current = null; setBusy(false); } };
+  const sessionRevision = useSyncExternalStore(session.subscribe, session.snapshot);
+  const busy = session.busy;
+  const begin = () => session.begin(), end = token => session.end(token);
+  const visibleRow = row => session.isRemoved(row.id) && !row.erased ? { id: row.id, name: 'Personal data removed', kind: row.kind, erased: true } : row;
   const heading = useRef(null), errorSummary = useRef(null), addContact = useRef(null), addChannel = useRef(null);
-  const [baseline, setBaseline] = useState(''), [form, setForm] = useState(null), [reviews, setReviews] = useState([]), [error, setError] = useState(''), [message, setMessage] = useState(''), [busy, setBusy] = useState(false), [reason, setReason] = useState(''), [fieldErrors, setFieldErrors] = useState({});
-  const load = async n => { try { const d = await api(`/admin/advertisers?offset=${n}`); setRows(d.advertisers.map(row => redacted.current.get(row.id) ?? row)); setMore(d.more); setOffset(n); } catch(e) { setError(previous => previous ? `${previous} ${e.message}` : e.message); } };
+  const [baseline, setBaseline] = useState(''), [form, setForm] = useState(null), [reviews, setReviews] = useState([]), [error, setError] = useState(''), [message, setMessage] = useState(''), [reason, setReason] = useState(''), [fieldErrors, setFieldErrors] = useState({});
+  const load = async n => { try { const d = await api(`/admin/advertisers?offset=${n}`); setRows(d.advertisers); setMore(d.more); setOffset(n); } catch(e) { setError(previous => previous ? `${previous} ${e.message}` : e.message); } };
   useEffect(() => { load(0); return () => setUnsaved(false); }, []);
   useEffect(() => { setUnsaved(!!form && (JSON.stringify(form) !== baseline || reason.length > 0)); }, [form, baseline, reason]);
+  useEffect(() => { if (form?.id && session.isRemoved(form.id) && !form.erased) { setForm(null); setBaseline(''); setReason(''); setReviews([]); setFieldErrors({}); } }, [sessionRevision, form, session]);
   const formKey = form ? form.id ?? 'new' : null;
   useEffect(() => { if (formKey !== null) heading.current?.focus(); }, [formKey]);
-  const open = async id => { const token = begin(); if (!token) return; const epoch = detailEpoch.current; try { const d = await api(`/admin/advertisers/${id}`); if (epoch !== detailEpoch.current || (redacted.current.has(id) && !d.advertiser.erased)) return; setForm(copy(d.advertiser)); setBaseline(JSON.stringify(d.advertiser)); setReviews(d.reviews); setError(''); setFieldErrors({}); setMessage(''); setReason(''); requestAnimationFrame(() => heading.current?.focus()); } catch(e) { if (epoch === detailEpoch.current) setError(e.message); } finally { end(token); } };
+  const open = async id => { const token = begin(); if (!token) return; const epoch = session.epoch; try { const d = await api(`/admin/advertisers/${id}`); if (epoch !== session.epoch || (session.isRemoved(id) && !d.advertiser.erased)) return; setForm(copy(d.advertiser)); setBaseline(JSON.stringify(d.advertiser)); setReviews(d.reviews); setError(''); setFieldErrors({}); setMessage(''); setReason(''); requestAnimationFrame(() => heading.current?.focus()); } catch(e) { if (epoch === session.epoch) setError(e.message); } finally { end(token); } };
   const change = (key, value) => setForm(f => ({ ...f, [key]: value }));
   const contact = (i, key, value) => setForm(f => ({ ...f, contacts: f.contacts.map((c, n) => n === i ? { ...c, [key]: value } : c) }));
   const save = async e => {
@@ -34,17 +34,17 @@ export default function Advertisers() {
     } finally { end(token); }
   };
   const action = async (name) => {
-    if (operation.current) return;
+    if (session.busy) return;
     if (name === 'retain' ? (JSON.stringify(form) !== baseline && !confirm('You have unsaved changes. Leave without saving them?')) : !confirmLeave()) return;
     if (name === 'erase' && !confirm('Permanently remove personal information from this advertiser?')) return;
     const token = begin(); if (!token) return; setError(''); setFieldErrors({}); setMessage('');
     try {
       const d = await api(`/admin/advertisers/${form.id}/${name}`, { method: 'POST', body: { version: form.version, reason } });
-      if (name === 'erase') { detailEpoch.current++; redacted.current.set(d.advertiser.id, d.advertiser); }
+      if (name === 'erase') flushSync(() => session.erase(d.advertiser.id));
       setRows(rows => rows?.map(row => row.id === d.advertiser.id ? d.advertiser : row) ?? rows);
       setForm(copy(d.advertiser)); setBaseline(JSON.stringify(d.advertiser)); setReason(''); setReviews([]);
       setMessage(name === 'erase' ? 'Personal information removed.' : name === 'retain' ? 'Reason recorded.' : 'Activity recorded.');
-      try { const refreshed = await api(`/admin/advertisers/${form.id}`); if (!redacted.current.has(form.id) || refreshed.advertiser.erased) setReviews(refreshed.reviews); }
+      try { const refreshed = await api(`/admin/advertisers/${form.id}`); if (!session.isRemoved(form.id) || refreshed.advertiser.erased) setReviews(refreshed.reviews); }
       catch(e) { setError(`Could not refresh review history: ${e.message}`); requestAnimationFrame(() => errorSummary.current?.focus()); }
       await load(offset);
     } catch(e) { setError(e.message); requestAnimationFrame(() => errorSummary.current?.focus()); } finally { end(token); }
@@ -55,9 +55,9 @@ export default function Advertisers() {
     <p>Agencies, organisations and individuals who advertise properties.</p>
     <button type="button" disabled={busy} className="btn" onClick={() => { if (!confirmLeave()) return; const fresh = empty(); setForm(fresh); setBaseline(JSON.stringify(fresh)); setReviews([]); setReason(''); setFieldErrors({}); setError(''); setMessage(''); }}>Add advertiser</button>
     {error && <div><p role="alert" tabIndex={-1} ref={errorSummary} className="err">{error}</p>{rows === null && <button className="btn ghost sm" type="button" onClick={() => { setError(''); load(0); }}>Retry loading</button>}{form?.id && <button className="btn ghost sm" type="button" disabled={busy} onClick={() => { if (confirmLeave()) open(form.id); }}>Reload record</button>}</div>}{message && <p role="status" className="ok">{message}</p>}
-    {!rows ? (!error && <p>Loading advertisers…</p>) : rows.length === 0 ? <p className="empty">No advertisers on this page.</p> : <table className="list advertisers"><caption>Advertisers</caption><thead><tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Personal data review</th><th scope="col">Action</th></tr></thead><tbody>{rows.map(a => <tr key={a.id}><td>{a.name}</td><td data-label="Type">{a.kind}</td><td data-label="Personal data review">{a.erased ? 'Removed' : a.today >= a.due_on ? (a.last_review_action === 'retained' && a.last_review_on >= a.due_on ? 'Reason recorded' : 'Due for decision') : a.today >= a.review_on ? 'Review due' : `Review from ${a.review_on}`}</td><td><button className="btn ghost sm" type="button" disabled={busy} onClick={() => { if (confirmLeave()) open(a.id); }}>Open</button></td></tr>)}</tbody></table>}
+    {!rows ? (!error && <p>Loading advertisers…</p>) : rows.length === 0 ? <p className="empty">No advertisers on this page.</p> : <table className="list advertisers"><caption>Advertisers</caption><thead><tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Personal data review</th><th scope="col">Action</th></tr></thead><tbody>{rows.map(visibleRow).map(a => <tr key={a.id}><td>{a.name}</td><td data-label="Type">{a.kind}</td><td data-label="Personal data review">{a.erased ? 'Removed' : a.today >= a.due_on ? (a.last_review_action === 'retained' && a.last_review_on >= a.due_on ? 'Reason recorded' : 'Due for decision') : a.today >= a.review_on ? 'Review due' : `Review from ${a.review_on}`}</td><td><button className="btn ghost sm" type="button" disabled={busy} onClick={() => { if (confirmLeave()) open(a.id); }}>Open</button></td></tr>)}</tbody></table>}
     <p><button type="button" className="btn ghost sm" disabled={busy || offset === 0} onClick={() => load(Math.max(0, offset - 50))}>Previous</button>{' '}<button type="button" className="btn ghost sm" disabled={busy || !more} onClick={() => load(offset + 50)}>Next</button></p>
-    {form && <div className="card"><h2 ref={heading} tabIndex={-1}>{form.id ? 'Advertiser details' : 'New advertiser'}</h2>
+    {form && (!session.isRemoved(form.id) || form.erased) && <div className="card"><h2 ref={heading} tabIndex={-1}>{form.id ? 'Advertiser details' : 'New advertiser'}</h2>
       {form.erased ? <><p>Personal information was removed. This record cannot be edited.</p>
         <dl><dt>Name</dt><dd>{form.name}</dd><dt>Commission discussion</dt><dd>{form.commission || 'None retained'}</dd><dt>Photo permission notes</dt><dd>{form.photo_permission || 'None retained'}</dd><dt>Research source IDs</dt><dd>{form.source_ids.join(', ') || 'None'}</dd><dt>Listing IDs</dt><dd>{form.listing_ids.join(', ') || 'None'}</dd></dl>
         {form.channels.map((c,i) => <p key={i}>{c.label}: {safeHref(c.url) ? <a href={safeHref(c.url)} target="_blank" rel="noopener noreferrer">{c.url}</a> : c.url}</p>)}</> : <form onSubmit={save}><fieldset disabled={busy}>

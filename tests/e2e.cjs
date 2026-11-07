@@ -2269,6 +2269,136 @@ async function advertiserReloadRace(browser, width, failAfterErase, staleHistory
   await ctx.close();
 }
 
+
+// A mutation may finish after its component unmounts. A new instance must not
+// install a real detail snapshot captured before that mutation.
+async function advertiserRemountRace(browser, width, failures) {
+  const ctx = await browser.newContext();
+  const { signSession, COOKIE } = await import('../server/auth.js');
+  await ctx.addCookies([{ name: COOKIE, value: await signSession('admin@example.test', secret), domain: new URL(BASE).hostname, path: '/', secure: true, httpOnly: true, sameSite: 'Strict' }]);
+  const page = await newPage(ctx, {width, height:844});
+  await page.goto(BASE + 'admin/#/advertisers');
+  await page.getByRole('button', {name:'Add advertiser'}).click();
+  const name = `Remount Private ${width} ${failures}`;
+  await page.getByLabel('Name', {exact:true}).first().fill(name);
+  await page.locator('.advertiser-directory select').first().selectOption('individual');
+  await page.getByRole('button', {name:'Add contact'}).click();
+  await page.getByRole('group', {name:'Contact 1'}).getByLabel('Name', {exact:true}).fill('Remount Contact');
+  await page.getByLabel('Email', {exact:true}).fill('remount-private@example.test');
+  await page.getByRole('button', {name:'Add phone'}).click();
+  await page.getByLabel('Phone 1 label').fill('Office');
+  await page.getByLabel('Number', {exact:true}).fill('01534 998877');
+  await page.getByRole('button', {name:'Save advertiser'}).click();
+  await page.getByText('Advertiser saved.').waitFor();
+  await page.getByLabel('Why are the personal details still needed for an open relationship or case?').fill('Remount private reason');
+  await page.getByRole('button', {name:'Record reason'}).click();
+  await page.getByText('Reason recorded.').waitFor();
+  let releasePost, postSeen, releaseDetail, detailSeen, detailStarted = false, afterErase = false, replay = false, oldBody, detailUrl;
+  const postGate = new Promise(r => releasePost=r), postPending = new Promise(r => postSeen=r);
+  const detailGate = new Promise(r => releaseDetail=r), detailPending = new Promise(r => detailSeen=r);
+  await page.route(/\/api\/admin\/advertisers\/\d+(?:\/erase)?$/, async route => {
+    const request=route.request();
+    if (request.method()==='POST' && request.url().endsWith('/erase')) { detailUrl=request.url().replace(/\/erase$/, ''); const snapshot=await route.fetch({url:detailUrl,method:'GET',postData:undefined}); assert.equal(snapshot.status(),200); oldBody=await snapshot.text(); assert.ok(oldBody.includes(name) && oldBody.includes('Remount private reason')); postSeen(); await postGate; const response=await route.fetch(); assert.equal(response.status(),200); afterErase=true; return route.fulfill({response}); }
+    if (request.method()==='GET' && replay) { assert.equal(request.url(), detailUrl, 'replay targets the erased record'); return route.fulfill({status:200,contentType:'application/json',body:oldBody}); }
+    if (request.method()==='GET' && !afterErase) { detailStarted=true; const response=await route.fetch(); oldBody=await response.text(); detailSeen(); await detailGate; return route.fulfill({response,body:oldBody}); }
+    if (request.method()==='GET' && afterErase && failures) return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'History unavailable'})});
+    return route.continue();
+  });
+  await page.route('**/api/admin/advertisers?*', route => afterErase && failures ? route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Directory unavailable'})}) : route.continue());
+  page.once('dialog',d=>d.accept()); await page.getByRole('button',{name:'Remove personal data'}).click(); await postPending;
+  await page.locator('header a[href="#/insights"]').click();
+  if (width === 390) await page.goBack(); else await page.locator('header a[href="#/advertisers"]').click();
+  const row=page.getByRole('row').filter({hasText:name}); await row.waitFor();
+  const rowHandle=await row.elementHandle();
+  const open=row.getByRole('button',{name:'Open'});
+  if (await open.isEnabled()) { await open.click(); await detailPending; }
+  releasePost();
+  await page.waitForFunction(() => performance.getEntriesByType('resource').some(e => e.name.endsWith('/erase') && e.responseEnd > 0));
+  if (detailStarted) releaseDetail();
+  else {
+    await page.waitForFunction(e => e.textContent.includes('Personal data removed'), rowHandle);
+    const safeOpen=await rowHandle.$('button');
+    await page.waitForFunction(e => !e.disabled, safeOpen);
+    replay=true; await safeOpen.click();
+    await page.waitForFunction(e => !e.disabled, safeOpen);
+  }
+  await page.waitForTimeout(300);
+  const dom=await page.evaluate(()=>document.body.outerHTML+[...document.querySelectorAll('input,textarea')].map(e=>e.value).join(' '));
+  for(const value of [name,'Remount Contact','remount-private@example.test','01534 998877','Remount private reason']) assert.ok(!dom.includes(value), `remount cannot restore ${value}`);
+  assert.equal(await page.getByRole('button',{name:'Save advertiser'}).count(),0,'remount cannot expose stale editor');
+  await ctx.close();
+}
+
+
+
+async function advertiserStaleListAcrossNavigation(browser) {
+  const ctx=await browser.newContext(); const {signSession,COOKIE}=await import('../server/auth.js');
+  await ctx.addCookies([{name:COOKIE,value:await signSession('admin@example.test',secret),domain:new URL(BASE).hostname,path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
+  const page=await newPage(ctx,{width:390,height:844}); await page.goto(BASE+'admin/#/advertisers');
+  await page.getByRole('button',{name:'Add advertiser'}).click(); await page.getByLabel('Name',{exact:true}).first().fill('Old list private person');
+  await page.locator('.advertiser-directory select').first().selectOption('individual');
+  await page.getByRole('button',{name:'Save advertiser'}).click(); await page.getByText('Advertiser saved.').waitFor();
+  let releasePost,postSeen,releaseList,listSeen,holdList=false;
+  const postGate=new Promise(r=>releasePost=r),postPending=new Promise(r=>postSeen=r),listGate=new Promise(r=>releaseList=r),listPending=new Promise(r=>listSeen=r);
+  await page.route(/\/api\/admin\/advertisers\/\d+\/erase$/,async route=>{postSeen();await postGate;return route.continue()});
+  await page.route('**/api/admin/advertisers?*',async route=>{if(!holdList)return route.continue();holdList=false;const response=await route.fetch(),body=await response.text();assert.ok(body.includes('Old list private person'));listSeen();await listGate;return route.fulfill({response,body})});
+  page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'Remove personal data'}).click();await postPending;
+  await page.locator('header a[href="#/insights"]').click();
+  await page.waitForFunction(() => document.querySelector('header a[href="#/insights"]')?.getAttribute('aria-current') === 'page');
+  holdList=true;await page.locator('header a[href="#/advertisers"]').click();await listPending;
+  releasePost();await page.waitForFunction(()=>performance.getEntriesByType('resource').some(e=>e.name.endsWith('/erase')&&e.responseEnd>0));
+  releaseList();await page.getByRole('row').filter({hasText:'Personal data removed'}).first().waitFor();
+  const dom=await page.evaluate(()=>document.body.outerHTML+[...document.querySelectorAll('input,textarea')].map(e=>e.value).join(' '));
+  assert.ok(!dom.includes('Old list private person'),'a pre-erase list cannot restore a name after remount');await ctx.close();
+}
+
+
+async function advertiserNonPersonalName(browser) {
+  const ctx=await browser.newContext();const {signSession,COOKIE}=await import('../server/auth.js');
+  await ctx.addCookies([{name:COOKIE,value:await signSession('admin@example.test',secret),domain:new URL(BASE).hostname,path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
+  const page=await newPage(ctx,{width:390,height:844});await page.goto(BASE+'admin/#/advertisers');
+  await page.getByRole('button',{name:'Add advertiser'}).click();await page.getByLabel('Name',{exact:true}).first().fill('Public Agency Name');
+  await page.getByLabel('Name identifies a person').uncheck();await page.getByRole('button',{name:'Save advertiser'}).click();await page.getByText('Advertiser saved.').waitFor();
+  page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'Remove personal data'}).click();await page.getByText('Personal information removed.',{exact:true}).waitFor();
+  await page.waitForFunction(()=>![...document.querySelectorAll('button')].find(b=>b.textContent==='Add advertiser')?.disabled);
+  assert.equal(await page.getByRole('row').filter({hasText:'Public Agency Name'}).count(),1,'a confirmed nonpersonal agency name remains in the directory');
+  await ctx.close();
+}
+
+async function advertiserMutationAcrossNavigation(browser, action) {
+  const ctx = await browser.newContext();
+  const { signSession, COOKIE } = await import('../server/auth.js');
+  await ctx.addCookies([{name:COOKIE,value:await signSession('admin@example.test',secret),domain:new URL(BASE).hostname,path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
+  const page=await newPage(ctx,{width:390,height:844});
+  await page.goto(BASE+'admin/#/advertisers'); await page.getByRole('button',{name:'Add advertiser'}).click();
+  const name=`Mutation ${action}`; await page.getByLabel('Name',{exact:true}).first().fill(name);
+  await page.getByRole('button',{name:'Save advertiser'}).click(); await page.getByText('Advertiser saved.').waitFor();
+  if(action==='retain') await page.getByLabel('Why are the personal details still needed for an open relationship or case?').fill('Open case');
+  if(action==='save') await page.getByLabel('Name',{exact:true}).first().fill(name+' updated');
+  let release,seen,count=0;const gate=new Promise(r=>release=r),pending=new Promise(r=>seen=r);
+  await page.route(/\/api\/admin\/advertisers\/\d+(?:\/(?:erase|retain|activity))?$/,async route=>{
+    const method=route.request().method(); if(method!=='POST' && method!=='PUT') return route.continue();
+    count++;seen();await gate;
+    if(action==='erase-fail') return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Erase failed'})});
+    return route.continue();
+  });
+  const label=action==='save'?'Save advertiser':action==='retain'?'Record reason':action==='activity'?'Record activity today':'Remove personal data';
+  if(action==='erase-fail') page.once('dialog',d=>d.accept());
+  await page.getByRole('button',{name:label}).evaluate(e=>{e.click();e.click()}); await pending;
+  page.once('dialog',d=>d.accept());
+  await page.evaluate(()=>{location.hash='#/insights'}); await page.waitForURL('**/#/insights');
+  await page.goBack(); await page.waitForURL('**/#/advertisers');
+  const add=page.getByRole('button',{name:'Add advertiser'}); await add.waitFor();
+  assert.equal(await add.isDisabled(),true,`${action} keeps session lock after remount`);
+  assert.equal(count,1,`${action} excludes duplicate submissions`);
+  release(); await page.waitForFunction(()=>![...document.querySelectorAll('button')].find(b=>b.textContent==='Add advertiser')?.disabled);
+  // A fresh list can have been read before the write; reload it after the owner settles.
+  await page.reload(); await page.getByRole('row').filter({hasText:action==='save'?name+' updated':name}).getByRole('button',{name:'Open'}).click();
+  await page.getByRole('button',{name:'Save advertiser'}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Save advertiser'}).count(),1,`${action} leaves record editable`);
+  await ctx.close();
+}
+
 (async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROME});
   try {
@@ -2281,6 +2411,12 @@ async function advertiserReloadRace(browser, width, failAfterErase, staleHistory
     if (phases.includes("reg17")) await viewingAvailability(browser);
     if (phases.includes("advertisers") && !phases.includes("admin")) await advertiserDirectory(browser);
     if (phases.includes("advertisers") || phases.includes("admin")) { await advertiserReloadRace(browser, 390, true); await advertiserReloadRace(browser, 1280, false); await advertiserReloadRace(browser, 390, false, true); }
+    if (phases.includes("advertisers") || phases.includes("admin")) {
+      for (const width of [390,1280]) for (const failures of [false,true]) await advertiserRemountRace(browser,width,failures);
+      await advertiserStaleListAcrossNavigation(browser);
+      await advertiserNonPersonalName(browser);
+      for (const action of ["save","retain","activity","erase-fail"]) await advertiserMutationAcrossNavigation(browser,action);
+    }
     console.log(process.env.E2E_ONLY === "reg17" ? "reg17 e2e OK" : `e2e OK (${phases.join(", ")})`);
   }
   finally { await browser.close(); }
