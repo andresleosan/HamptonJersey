@@ -2104,6 +2104,7 @@ async function advertiserDirectory(browser) {
   await page.getByText('No advertisers on this page.').waitFor();
   await page.getByRole('button', { name: 'Add advertiser' }).click();
   await page.getByLabel('Name', { exact: true }).fill('Test Estates');
+  await page.locator('.advertiser-directory select').first().selectOption('individual');
   await page.getByRole('button', { name: 'Add contact' }).click();
   await page.getByRole('group', { name: 'Contact 1' }).getByLabel('Name', { exact: true }).fill('Test Person');
   await page.getByRole('button', { name: 'Add phone' }).click();
@@ -2127,16 +2128,17 @@ async function advertiserDirectory(browser) {
   releaseSave(); await page.getByText('Advertiser saved.').waitFor(); await page.unroute('**/api/admin/advertisers/*');
   // F4: an unrecorded reason is protected even when the form itself is unchanged.
   const reason = page.getByLabel('Why are the personal details still needed for an open relationship or case?');
-  await reason.fill('Open case');
+  const longReason = `Open case ${'x'.repeat(450)}`;
+  await reason.fill(longReason);
   let warned = false; page.once('dialog', d => { warned = true; return d.dismiss(); });
   await page.getByRole('button', { name: 'Open', exact: true }).click();
-  assert.equal(warned, true); assert.equal(await reason.inputValue(), 'Open case');
+  assert.equal(warned, true); assert.equal(await reason.inputValue(), longReason);
   warned = false; page.once('dialog', d => { warned = true; return d.dismiss(); });
   await page.getByRole('button', { name: 'Add advertiser' }).click();
-  assert.equal(warned, true); assert.equal(await reason.inputValue(), 'Open case');
+  assert.equal(warned, true); assert.equal(await reason.inputValue(), longReason);
   warned = false; page.once('dialog', d => { warned = true; return d.dismiss(); });
   await page.locator('header a[href="#/listings"]').click();
-  assert.equal(warned, true); assert.equal(await reason.inputValue(), 'Open case');
+  assert.equal(warned, true); assert.equal(await reason.inputValue(), longReason);
   await page.getByRole('button', { name: 'Record reason' }).click();
   await page.getByText('Reason recorded.').waitFor(); assert.equal(await reason.inputValue(), '');
   let releaseOpen, openSeen; const openGate = new Promise(r => releaseOpen = r), opened = new Promise(r => openSeen = r);
@@ -2150,6 +2152,8 @@ async function advertiserDirectory(browser) {
   await page.unroute('**/api/admin/advertisers/*');
   // F5: server error must remain associated with the offending URL and receive focus, including on mobile.
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByText(longReason, { exact: true }).waitFor();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390, 'long review history reflows on mobile');
   await page.getByRole('button', { name: 'Add channel' }).click();
   await page.getByLabel('Channel 1 label').fill('Invalid'); await page.getByLabel('URL', { exact: true }).fill('javascript:alert(1)');
   await page.getByRole('button', { name: 'Save advertiser' }).click();
@@ -2166,17 +2170,28 @@ async function advertiserDirectory(browser) {
   await page.waitForFunction(e => document.activeElement === e, await listing.elementHandle()); await listing.fill('');
   await page.getByRole('button', { name: 'Save advertiser' }).click(); await page.getByText('Advertiser saved.').waitFor();
   // F1: POST succeeded even if the separate history reload subsequently fails.
-  let failRefresh = false;
-  await page.route(/\/api\/admin\/advertisers\/\d+(?:\/erase)?$/, route => {
-    if (failRefresh && route.request().method() === 'GET') return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({error:'History unavailable'}) });
+  let failRefresh = false, releaseHistory, historySeen;
+  const historyGate = new Promise(r => releaseHistory = r), historyPending = new Promise(r => historySeen = r);
+  await page.route(/\/api\/admin\/advertisers\/\d+(?:\/erase)?$/, async route => {
+    if (failRefresh && route.request().method() === 'GET') { historySeen(); await historyGate; return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({error:'History unavailable'}) }); }
     if (route.request().method() === 'POST' && route.request().url().endsWith('/erase')) failRefresh = true;
     return route.continue();
   });
   await page.route('**/api/admin/advertisers?*', route => failRefresh ? route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({error:'Directory unavailable'}) }) : route.continue());
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Remove personal data' }).click();
-  await page.getByText('Personal information was removed. This record cannot be edited.').waitFor();
+  await historyPending;
+  try {
+    await page.getByText('Personal information was removed. This record cannot be edited.').waitFor();
+    assert.equal(await page.getByText('Test Estates saved', { exact: true }).count(), 0, 'personal name removed before GET completes');
+    assert.equal(await page.getByText('Test Person', { exact: true }).count(), 0, 'personal contact removed before GET completes');
+    const dom = await page.evaluate(() => document.body.textContent + [...document.querySelectorAll('input,textarea')].map(e => e.value).join(' '));
+    assert.ok(!dom.includes('Test Estates saved') && !dom.includes('Test Person'), 'no personal data remains anywhere in the DOM');
+  } finally { releaseHistory(); }
   await page.getByText(/Directory unavailable/).first().waitFor();
+  assert.equal(await page.getByText('Test Estates saved', { exact: true }).count(), 0, 'personal name removed after both GET failures');
+  const finalDom = await page.evaluate(() => document.body.textContent + [...document.querySelectorAll('input,textarea')].map(e => e.value).join(' '));
+  assert.ok(!finalDom.includes('Test Estates saved') && !finalDom.includes('Test Person'), 'no personal data returns after failures');
   assert.match(await page.getByRole('alert').innerText(), /History unavailable/);
   assert.equal(await page.getByText('Test Person').count(), 0);
   assert.equal(await page.getByRole('button', { name: 'Save advertiser' }).count(), 0);

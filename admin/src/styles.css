@@ -523,3 +523,8 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 /* Fieldsets must shrink when browser zoom leaves a narrow effective viewport. */
 .advertiser-directory fieldset{min-inline-size:0}
 .advertiser-directory form>fieldset,.advertiser-directory section>fieldset{border:0;margin:0;padding:0}
+
+/* Review metadata and unbroken justifications must reflow at high browser zoom. */
+.advertiser-review-history,.advertiser-review-history li{min-width:0;overflow-wrap:anywhere}
+.advertiser-review-meta{display:flex;flex-wrap:wrap;gap:4px 12px;min-width:0}
+.advertiser-review-meta>*{min-width:0;overflow-wrap:anywhere}

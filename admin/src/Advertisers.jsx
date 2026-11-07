@@ -7,9 +7,10 @@ const empty = () => ({ name: '', kind: 'agency', contacts: [], channels: [], sou
 const copy = a => ({ ...a, contacts: a.contacts.map(c => ({ ...c, phones: c.phones.map(p => ({ ...p })) })), channels: a.channels.map(c => ({ ...c })) });
 export default function Advertisers() {
   const [rows, setRows] = useState(null), [offset, setOffset] = useState(0), [more, setMore] = useState(false);
+  const redacted = useRef(new Map());
   const heading = useRef(null), errorSummary = useRef(null), addContact = useRef(null), addChannel = useRef(null);
   const [baseline, setBaseline] = useState(''), [form, setForm] = useState(null), [reviews, setReviews] = useState([]), [error, setError] = useState(''), [message, setMessage] = useState(''), [busy, setBusy] = useState(false), [reason, setReason] = useState(''), [fieldErrors, setFieldErrors] = useState({});
-  const load = async n => { try { const d = await api(`/admin/advertisers?offset=${n}`); setRows(d.advertisers); setMore(d.more); setOffset(n); } catch(e) { setError(previous => previous ? `${previous} ${e.message}` : e.message); } };
+  const load = async n => { try { const d = await api(`/admin/advertisers?offset=${n}`); setRows(d.advertisers.map(row => redacted.current.get(row.id) ?? row)); setMore(d.more); setOffset(n); } catch(e) { setError(previous => previous ? `${previous} ${e.message}` : e.message); } };
   useEffect(() => { load(0); return () => setUnsaved(false); }, []);
   useEffect(() => { setUnsaved(!!form && (JSON.stringify(form) !== baseline || reason.length > 0)); }, [form, baseline, reason]);
   const formKey = form ? form.id ?? 'new' : null;
@@ -33,6 +34,8 @@ export default function Advertisers() {
     setBusy(true); setError(''); setFieldErrors({}); setMessage('');
     try {
       const d = await api(`/admin/advertisers/${form.id}/${name}`, { method: 'POST', body: { version: form.version, reason } });
+      if (name === 'erase') redacted.current.set(d.advertiser.id, d.advertiser);
+      setRows(rows => rows?.map(row => row.id === d.advertiser.id ? d.advertiser : row) ?? rows);
       setForm(copy(d.advertiser)); setBaseline(JSON.stringify(d.advertiser)); setReason(''); setReviews([]);
       setMessage(name === 'erase' ? 'Personal information removed.' : name === 'retain' ? 'Reason recorded.' : 'Activity recorded.');
       try { const refreshed = await api(`/admin/advertisers/${form.id}`); setReviews(refreshed.reviews); }
@@ -73,7 +76,7 @@ export default function Advertisers() {
         <p className="muted">Keep the personal-data boxes checked unless the text contains no personal information. Removal clears contacts and fields marked personal. Notes do not establish permission to publish individual photos.</p><button className="btn" disabled={busy}>Save advertiser</button>
       </fieldset></form>}
       {form.id && !form.erased && <section aria-labelledby="retention-heading"><fieldset disabled={busy}><h3 id="retention-heading">Personal data review</h3><p>Last activity: {form.activity_on}. Review from {form.review_on}; decision due {form.due_on}. No automatic deletion.</p><button type="button" className="btn ghost sm" disabled={busy} onClick={() => action('activity')}>Record activity today</button><label>Why are the personal details still needed for an open relationship or case? <textarea maxLength={1000} value={reason} onChange={e => setReason(e.target.value)} /></label><button type="button" className="btn ghost sm" disabled={busy || !reason.trim()} onClick={() => action('retain')}>Record reason</button>{' '}<button type="button" className="btn ghost sm danger" disabled={busy} onClick={() => action('erase')}>Remove personal data</button></fieldset></section>}
-      {reviews.length > 0 && <><h3>Review history</h3><ul>{reviews.map((r,i) => <li key={i}>{r.created_at} · {r.action} · {r.actor}{r.reason && `: ${r.reason}`}</li>)}</ul></>}
+      {reviews.length > 0 && <><h3>Review history</h3><ul className="advertiser-review-history">{reviews.map((r,i) => <li key={i}><div className="advertiser-review-meta"><time dateTime={r.created_at}>{r.created_at}</time><span>{r.action}</span><span>{r.actor}</span></div>{r.reason && <p>{r.reason}</p>}</li>)}</ul></>}
     </div>}
   </section>;
 }
