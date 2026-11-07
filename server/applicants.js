@@ -1,6 +1,6 @@
 // Applicant validation and the closed lists, shared by the API, the panel (through Vite) and the website
 // (GET /api/applicants/options). Pure ESM: no database, no env, no Node- or Workers-only imports.
-import { EMAIL, jerseyToday } from "./viewings.js";
+import { EMAIL, jerseyToday, validWeeklyWindows } from "./viewings.js";
 
 const PARISHES = ["Grouville", "St Brelade", "St Clement", "St Helier", "St John", "St Lawrence", "St Martin",
   "St Mary", "St Ouen", "St Peter", "St Saviour", "Trinity"];
@@ -165,10 +165,7 @@ export function validateApplicant(body, { publicForm }, now = new Date().toISOSt
   let viewing_availability = null;
   if (b.viewing_availability != null) {
     const slots = b.viewing_availability;
-    const time = v => typeof v === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v);
-    const valid = Array.isArray(slots) && slots.length <= 21 && slots.every(s => s && Number.isInteger(s.day)
-      && s.day >= 0 && s.day <= 6 && time(s.start) && time(s.end) && s.start < s.end)
-      && slots.every((a, i) => slots.slice(i + 1).every(c => a.day !== c.day || a.end <= c.start || c.end <= a.start));
+    const valid = validWeeklyWindows(slots, { allowEmpty: true });
     if (!valid) err("viewing_availability", "Choose valid, non-overlapping times with an end after the start (up to 21).");
     else if (slots.length) viewing_availability = JSON.stringify(slots.map(({ day, start, end }) => ({ day, start, end })));
   }

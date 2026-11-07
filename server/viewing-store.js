@@ -1,18 +1,18 @@
-import { now as stamp } from "./http.js";
-import { daySlots, addMinutes, plusDays, weekday, SLOT_MINUTES, BUFFER_MINUTES, ACTIVE } from "./viewings.js";
+import { fail, now as stamp } from "./http.js";
+import { daySlots, addMinutes, plusDays, weekday, SLOT_MINUTES, BUFFER_MINUTES, ACTIVE, propertyAllows } from "./viewings.js";
 
 const ACTIVE_SQL = ACTIVE.map(s => `'${s}'`).join(", ");
 
 // The slots of `days` days from `from` (website, fromTomorrow: Monday to Saturday only, C11), per negotiator.
-// Three queries in one batch; exceptions and viewings are read through the (negotiator_id, date) indexes (the unary +
+// Three queries (plus an optional property policy) in one batch; exceptions and viewings are read through the (negotiator_id, date) indexes (the unary +
 // keeps SQLite from picking the (status, created_at) index instead, which would read every active viewing ever).
 // excludeId: a viewing being rescheduled, left out of the bookings so its own and neighbouring slots show as free.
-export async function loadAvailability(env, { from, days, now, fromTomorrow, includeInactive = false, negotiatorId, excludeId }) {
+export async function loadAvailability(env, { from, days, now, fromTomorrow, includeInactive = false, negotiatorId, excludeId, listingId }) {
   const dates = [];
   for (let d = from; dates.length < days; d = plusDays(d, 1)) if (!fromTomorrow || weekday(d) !== "sun") dates.push(d);
   const who = [includeInactive ? "1" : "active = 1", ...(negotiatorId == null ? [] : ["id = ?"])].join(" AND ");
   const args = negotiatorId == null ? [] : [negotiatorId], range = [dates[0], dates.at(-1)];
-  const [people, exceptions, bookings] = await env.DB.batch([
+  const [people, exceptions, bookings, properties] = await env.DB.batch([
     env.DB.prepare(`SELECT id, name, role, active, hours FROM negotiators WHERE ${who} ORDER BY id`).bind(...args),
     env.DB.prepare(`SELECT negotiator_id, date, kind, start_time, end_time FROM negotiator_exceptions
       WHERE negotiator_id IN (SELECT id FROM negotiators WHERE ${who}) AND date BETWEEN ? AND ?`).bind(...args, ...range),
@@ -20,14 +20,21 @@ export async function loadAvailability(env, { from, days, now, fromTomorrow, inc
       WHERE negotiator_id IN (SELECT id FROM negotiators WHERE ${who}) AND date BETWEEN ? AND ? AND +status IN (${ACTIVE_SQL})${
         excludeId == null ? "" : " AND id <> ?"}`)
       .bind(...args, ...range, ...(excludeId == null ? [] : [excludeId])),
+    ...(listingId == null ? [] : [env.DB.prepare(`SELECT viewings_enabled, viewing_hours FROM listings WHERE id = ?${
+      fromTomorrow ? " AND published = 1 AND archived_at IS NULL" : ""}`).bind(listingId)]),
   ]).then(r => r.map(x => x.results));
+  if (listingId != null && !properties.length) fail(404, "Unknown property");
+  const property = properties?.[0];
+  if (property) property.viewing_hours = property.viewing_hours == null ? null : JSON.parse(property.viewing_hours);
   const byDay = rows => rows.reduce((a, r) => ((a[`${r.negotiator_id} ${r.date}`] ||= []).push(r), a), {});
   const ex = byDay(exceptions), booked = byDay(bookings);
   const hours = Object.fromEntries(people.map(p => [p.id, JSON.parse(p.hours)]));
   return {
+    ...(property ? { property_viewings_enabled: property.viewings_enabled === 1 } : {}),
     negotiators: people.map(({ id, name, role, active }) => ({ id, name, role, active })),
     days: dates.map(date => ({ date, slots: Object.fromEntries(people.map(({ id }) => [id, daySlots({ hours: hours[id],
-      exceptions: ex[`${id} ${date}`] ?? [], bookings: booked[`${id} ${date}`] ?? [], date, now, fromTomorrow })])) })),
+      exceptions: ex[`${id} ${date}`] ?? [], bookings: booked[`${id} ${date}`] ?? [], date, now, fromTomorrow })
+      .filter(slot => !property || propertyAllows(property, date, slot.time))])) })),
   };
 }
 
@@ -44,15 +51,28 @@ export function clash({ negotiator_id, date, time }, excludeId) {
   };
 }
 
+// Re-read the property policy within the INSERT/UPDATE, so a concurrent settings save cannot admit a stale slot.
+// Dates and times are already Jersey wall-clock values; strftime('%w') uses Sunday = 0 just like the editor.
+export function propertyViewingGuard({ listing_id, date, time }, { publicOnly = false } = {}) {
+  return {
+    sql: `(? IS NULL OR EXISTS (SELECT 1 FROM listings p WHERE p.id = ? AND p.viewings_enabled = 1
+      ${publicOnly ? "AND p.published = 1 AND p.archived_at IS NULL" : ""}
+      AND (p.viewing_hours IS NULL OR EXISTS (SELECT 1 FROM json_each(p.viewing_hours) w
+        WHERE json_extract(w.value, '$.day') = CAST(strftime('%w', ?) AS INTEGER)
+          AND json_extract(w.value, '$.start') <= ? AND json_extract(w.value, '$.end') >= ?))))`,
+    binds: [listing_id ?? null, listing_id ?? null, date, time, addMinutes(time, SLOT_MINUTES)],
+  };
+}
+
 // The booking (v: validateViewing's value, plus the panel's notes), inserted only if its slot is still free: run it in a batch followed by
 // logEvent(…, { ifInserted: true }) and read meta.changes (0 = taken meanwhile). agent and the listing title are
 // copied from their rows, as the text the panel shows.
-export function bookStatement(env, v, { status }) {
-  const c = clash(v);
+export function bookStatement(env, v, { status, publicOnly = false }) {
+  const c = clash(v), property = propertyViewingGuard(v, { publicOnly });
   return env.DB.prepare(`INSERT INTO viewing_requests (listing_id, listing_ref, listing_title_snapshot, negotiator_id, agent,
       kind, date, time, end_time, name, email, phone, notes, status, created_at)
     SELECT ?, ?, (SELECT title FROM listings WHERE id = ?), ?, (SELECT name FROM negotiators WHERE id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-    WHERE NOT ${c.sql}`)
+    WHERE NOT ${c.sql} AND ${property.sql}`)
     .bind(v.listing_id, v.listing_id, v.listing_id, v.negotiator_id, v.negotiator_id, v.kind, v.date, v.time,
-      addMinutes(v.time, SLOT_MINUTES), v.name, v.email, v.phone, v.notes ?? null, status, stamp(), ...c.binds);
+      addMinutes(v.time, SLOT_MINUTES), v.name, v.email, v.phone, v.notes ?? null, status, stamp(), ...c.binds, ...property.binds);
 }

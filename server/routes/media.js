@@ -1,5 +1,6 @@
 import { json, fail, readJson, now } from "../http.js";
 import { loadListing } from "./listings.js";
+import { listingBatch, listingClock } from "../listing-events.js";
 
 const KINDS = ["photo", "floorplan", "aerial", "document"];
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -37,9 +38,9 @@ async function save({ request, env, admin, params: [id] }) {
     if (!c || c.origin === "external") fail(400, "The cover must be one of this listing's own photos");
   }
   // Same optimistic lock as the listing fields: a stale editor gets 409 instead of overwriting.
-  const claimed = await env.DB.prepare(
-    "UPDATE listings SET cover_media_id = ?, updated_at = ?, updated_by = ? WHERE id = ? AND updated_at = ?")
-    .bind(cover_media_id, now(), admin, id, updated_at).run();
+  const [claimed] = await listingBatch(env, id, { actor: admin, source: 'media', action: 'cover_changed' }, [env.DB.prepare(
+    `UPDATE listings SET cover_media_id = ?, updated_at = ${listingClock}, updated_by = ? WHERE id = ? AND updated_at = ?`)
+    .bind(cover_media_id, now(), admin, id, updated_at)]);
   if (!claimed.meta.changes) fail(409, "Someone else saved changes to this listing. Reload to see them (your changes were not saved).");
   if (stmts.length) await env.DB.batch(stmts);
   return json({ media: (await ordered(env)(id)).results, listing: await loadListing(env, id) });
@@ -75,11 +76,11 @@ async function upload({ request, env, admin, params: [id] }) {
   return json({ media: await env.DB.prepare("SELECT * FROM media WHERE id = ?").bind(mid).first() }, 201);
 }
 
-async function remove({ env, params: [mid] }) {
+async function remove({ env, admin, params: [mid] }) {
   const m = await env.DB.prepare("SELECT * FROM media WHERE id = ?").bind(mid).first();
   if (!m) fail(404, "Photo not found");
   if (m.origin !== "upload") fail(400, "Only photos uploaded from the panel can be deleted");
-  await env.DB.batch([
+  await listingBatch(env, m.listing_id, { actor: admin, source: 'media', action: 'cover_changed' }, [
     env.DB.prepare("UPDATE listings SET cover_media_id = NULL WHERE cover_media_id = ?").bind(mid),
     env.DB.prepare("DELETE FROM media WHERE id = ?").bind(mid),
   ]);

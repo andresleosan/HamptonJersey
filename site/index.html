@@ -621,13 +621,13 @@ function bookingForm(pre = {}) {
   </form>`;
 }
 
-// pre: {prop: listing id, agent: negotiator name, msg}. One availability request when the form opens, another after a 409.
+// pre: {prop: listing id, agent: negotiator name, msg}. Reload slots when the property changes or a slot is refused.
 function mountBooking(slot, pre = {}) {
   slot.innerHTML = bookingForm(pre);
   const form = $("form", slot), el = form.elements, status = $(".form-status", slot), btn = $("button[type=submit]", form);
   const agents = $(".agents", form), when = $(".when", form);
   const v = n => form.querySelector(`[name=${n}]:checked`)?.value;
-  let widget = null, A = null; // A: the availability, after parseAvailability
+  let widget = null, A = null, availabilityRequest = 0; // Ignore replies for a previously selected property.
   if (TS_KEY) tsReady.then(() => { if ($(".ts", slot)) widget = turnstile.render($(".ts", slot), {sitekey: TS_KEY}); });
   // Script blocked (content blocker, network): don't leave the visitor at a check they can't complete.
   if (TS_KEY) setTimeout(() => { if (widget == null && document.body.contains(form))
@@ -636,6 +636,7 @@ function mountBooking(slot, pre = {}) {
   const negotiator = () => A.negotiators.find(n => n.id === +v("negotiator"));
   // Days stay; a day with no free time for the chosen agent is disabled. Times are that agent's on the chosen day.
   const paint = want => {
+    if (!A) return;
     const n = negotiator(), pick = pickSlot(A.days, n.id, want);
     for (const r of form.querySelectorAll("[name=date]")) {
       const free = freeTimes(A.days.find(d => d.date === r.value), n.id).length > 0;
@@ -658,18 +659,29 @@ function mountBooking(slot, pre = {}) {
     paint(want);
   };
   // want: the day and time to keep (see pickSlot). The agent stays the one chosen, while they are still offered.
-  const load = want => getJSON("/api/availability").then(x => {
-    if (!slot.contains(form)) return;
-    const keepId = A && +v("negotiator");
-    A = parseAvailability(x);
-    if (!A?.negotiators.length || !A.days.length) throw new Error("no availability");
-    show(keepId, want);
-  }).catch(() => {
-    if (!slot.contains(form)) return;
-    A = null; agents.innerHTML = when.innerHTML = ""; btn.disabled = true; status.textContent = BOOKING_DOWN;
-  });
+  const load = want => {
+    const request = ++availabilityRequest, keepId = A && +v("negotiator");
+    A = null; btn.disabled = true; status.textContent = "";
+    agents.innerHTML = '<p class="hint">Loading available times…</p>'; when.innerHTML = "";
+    const query = el.prop.value ? `?listing_id=${encodeURIComponent(el.prop.value)}` : "";
+    return getJSON("/api/availability" + query).then(x => {
+      if (request !== availabilityRequest || !slot.contains(form)) return;
+      if (x.property_viewings_enabled === false) {
+        agents.innerHTML = "";
+        status.textContent = "Viewings are currently disabled for this property. Please contact the office on 01534 727582.";
+        return;
+      }
+      A = parseAvailability(x);
+      if (!A?.negotiators.length || !A.days.length) throw new Error("no availability");
+      show(keepId, want);
+    }).catch(() => {
+      if (request !== availabilityRequest || !slot.contains(form)) return;
+      A = null; agents.innerHTML = when.innerHTML = ""; btn.disabled = true; status.textContent = BOOKING_DOWN;
+    });
+  };
   load();
   form.addEventListener("change", e => {
+    if (e.target.name === "prop") { load(); return; }
     if (e.target.name === "negotiator") paint({date: v("date"), time: v("time") ?? null});
     if (e.target.name === "date") paint({date: e.target.value, time: v("time") ?? null});
   });
@@ -687,7 +699,7 @@ function mountBooking(slot, pre = {}) {
         name: el.name.value, email: el.email.value, phone: el.phone.value || null, turnstile: token})});
       const data = await r.json().catch(() => ({}));
       // 400: the time or the agent is no longer offered (hours or exceptions changed, agent made inactive).
-      const gone = r.status === 400 && (data.fields?.time || data.fields?.negotiator_id);
+      const gone = r.status === 400 && (data.fields?.time || data.fields?.negotiator_id || data.fields?.listing_id);
       if (r.status === 409 || gone) {
         // Taken or gone since the form opened: fresh slots, the same day if it still has a free time, and no time chosen.
         // A 400 is refused before the anti-spam check, so its token is still good.
@@ -802,7 +814,7 @@ function home() {
     const slot = $("#book-slot"), name = TEAM[i].name, radios = [...slot.querySelectorAll("input[name=negotiator]")];
     const radio = radios.find(r => r.dataset.name === name);
     if (radio) { radio.checked = true; radio.dispatchEvent(new Event("change", {bubbles: true})); }
-    else if (!radios.length) mountBooking(slot, {agent: name});
+    else if (!radios.length) mountBooking(slot, {agent: name, prop: $("select[name=prop]", slot)?.value});
     $("#book").scrollIntoView(); $("select", slot).focus({preventScroll: true});
   });
   mountBooking($("#book-slot"));
@@ -847,7 +859,7 @@ function home() {
       const booking = e.target.closest("[data-book]");
       if (!booking) return;
       const prop = $("#book-slot select[name=prop]"), now = slides.find(p => p.id === booking.dataset.book);
-      if (now && !isSold(now)) prop.value = now.id;
+      if (now && !isSold(now)) { prop.value = now.id; prop.dispatchEvent(new Event("change", {bubbles: true})); }
       $("#book").scrollIntoView(); prop.focus({preventScroll: true});
     });
     return;

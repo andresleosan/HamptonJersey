@@ -1,5 +1,6 @@
 // Reviewing a match (B6), the keyboard review queue (spec §5 Review) and "Recalculate all" (B12).
 import { json, fail, readJson, now } from "../http.js";
+import { listingEventStatements, derivedListingFields } from "../listing-events.js";
 import { activeSql, isActive, REJECT_REASONS } from "../applicants.js";
 import { extractFeatures } from "../listing-features.js";
 import { afterSave, recomputeForApplicant, closeMatchedNoticeIfEmpty } from "../match-store.js";
@@ -130,10 +131,12 @@ async function recalcListings(env, after) {
     env.DB.prepare("SELECT COUNT(*) AS n FROM listings"),
   ])).map(r => r.results);
   const ts = now();
-  if (page.length) await env.DB.batch(page.map(l => {
+  if (page.length) await env.DB.batch(page.flatMap(l => {
     const { parish, ...features } = extractFeatures(l), cols = Object.keys(features);
-    return env.DB.prepare(`UPDATE listings SET parish = COALESCE(parish, ?), ${cols.map(c => `${c} = ?`).join(", ")},
-      features_at = ? WHERE id = ? AND updated_at = ?`).bind(parish, ...cols.map(c => features[c]), ts, l.id, l.updated_at);
+    return listingEventStatements(env, l.id, { actor: 'system', source: 'recalculate', action: 'recalculated',
+      derivedFields: derivedListingFields({ parish, ...features }) }, [env.DB.prepare(
+      `UPDATE listings SET parish = COALESCE(parish, ?), ${cols.map(c => `${c} = ?`).join(", ")},
+      features_at = ? WHERE id = ? AND updated_at = ?`).bind(parish, ...cols.map(c => features[c]), ts, l.id, l.updated_at)]);
   }));
   return { next: page.length === RECALC_BATCH.listings ? page.at(-1).id : null, count: page.length, total: n };
 }

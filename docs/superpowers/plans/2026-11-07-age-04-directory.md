@@ -31,7 +31,7 @@
 
 ### Task 1: Persistencia, validación y API
 
-**Files:** crear `migrations/0027_advertisers.sql`, `server/routes/advertisers.js`, pruebas `tests/server/advertisers.test.mjs`; modificar `server/api.js`.
+**Files:** crear `migrations/0030_advertisers.sql`, `server/routes/advertisers.js`, pruebas `tests/server/advertisers.test.mjs`; modificar `server/api.js`.
 
 **Interfaces:** `GET/POST /admin/advertisers`, `GET/PUT /admin/advertisers/:id`, `POST /admin/advertisers/:id/{activity,retain,erase}`; `version` entero para actualización condicional. Filtros `property_id` por `research_sources` y `listing_id` por catálogo, ambos paginados. `contacts[]` con `name`, `email`, `phones[]` (`label`, `number`); `channels[]` con `label`, `url`, `personal`; IDs existentes de fuentes y listings; comisión y permiso de fotos separados. La fecha `activity_on` alimenta los 11 y 12 meses calendario, con ajuste al último día del mes; `retain` exige motivo y actor, no reinicia el reloj; `erase` borra contactos y campos marcados personales y anonimiza nombre marcado personal, sin afectar relaciones.
 
@@ -62,7 +62,7 @@ Archivos: `admin/src/App.jsx` crea el coordinador por sesión y lo pasa a `Adver
 
 **Objetivo:** conservar el directorio y la revisión humana sin ofrecer ni ejecutar borrado de datos personales en la app; el borrado será tarea separada. No se publica ni se migra remotamente.
 
-**Archivos:** `server/routes/advertisers.js` y `tests/server/advertisers.test.mjs` retiran y prueban la ausencia del endpoint; `admin/src/Advertisers.jsx`, `admin/src/advertiserSession.js`, `admin/src/App.jsx` y `tests/e2e.cjs` retiran la acción y la coordinación exclusiva de supresión, conservando bloqueo de guardado y motivo sin guardar; `migrations/0027*` solo se ajusta si `erased` deja de usarse. Spec, ledger, ESTADO y checklist distinguen revisión de borrado pendiente.
+**Archivos:** `server/routes/advertisers.js` y `tests/server/advertisers.test.mjs` retiran y prueban la ausencia del endpoint; `admin/src/Advertisers.jsx`, `admin/src/advertiserSession.js`, `admin/src/App.jsx` y `tests/e2e.cjs` retiran la acción y la coordinación exclusiva de supresión, conservando bloqueo de guardado y motivo sin guardar; `migrations/0030_advertisers.sql` solo se ajusta si `erased` deja de usarse. Spec, ledger, ESTADO y checklist distinguen revisión de borrado pendiente.
 
 **DESIGN vigente:** panel blanco `#ffffff`, ink `#151515`, mist `#f4f3f0`, línea `#e3e0da`, bronce `#a56b3d` y bronce oscuro `#86542d` (Colors y verificación del panel); cuerpo 14px/1.5 y H1 26px Tenor, dos familias sin añadir fuentes (Typography); contenedor 1240px y margen lateral 16px (Layout), tarjetas de radio 14px/padding 24px y botones existentes (Shapes/Components); tabla apilada bajo 760px, foco visible y navegación por teclado (Tables y Requisitos verificables). Mantener texto en inglés, estados/error legibles, `no-store`, autorización de servidor y control de versión. Comprobar 1280/390 y zoom nativo 200%; no se cambia la paleta ni se añaden imágenes o dependencias.
 

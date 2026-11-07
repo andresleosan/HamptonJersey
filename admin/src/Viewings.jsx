@@ -310,7 +310,8 @@ function RescheduleForm({ v, refresh, onSave, onClose, onDirty }) {
   return <form className="view-form" onSubmit={submit} aria-labelledby="h-resched">
     <h3 id="h-resched" ref={head} tabIndex={-1}>Reschedule</h3>
     <p className="muted">Now {fmtDay(v.date, true)} at {v.time}{v.negotiator_name ? ` with ${v.negotiator_name}` : ""}. Choose the new time.</p>
-    <SlotPicker value={slot} onChange={s => { setSlot(s); setErr(null); }} own={v} refresh={refresh} errors={err ? { time: err } : {}} />
+    <SlotPicker value={slot} onChange={s => { setSlot(s); setErr(null); }} own={v} listingId={v.listing_id}
+      refresh={refresh} errors={err ? { time: err } : {}} />
     <div className="inline"><button className="btn">Save new time</button><button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
   </form>;
 }
@@ -347,7 +348,8 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
       onBooked(id, `Viewing booked for ${fmtDay(slot.date, true)} at ${slot.time}.`);
     } catch (err) {
       focusErr.current = true; setErrors(err.data?.fields || {}); setMsg({ text: err.message });
-      if (err.status === 409) setRefresh(x => x + 1); // the times again; what was typed stays
+      // A property can be disabled or its hours changed after these times were read.
+      if (err.status === 409 || err.data?.fields?.listing_id || err.data?.fields?.time) setRefresh(x => x + 1);
     } finally { setBusy(false); }
   };
   const state = l => (l.archived_at ? " · archived" : l.published ? "" : " · draft");
@@ -356,7 +358,10 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
     <h2 id="h-new" ref={head} tabIndex={-1}>New viewing</h2>
     <p className="muted">For a booking by phone or in the office. It is confirmed straight away.</p>
     <div className="grid2">
-      <label>Property<select value={f.listing_id} onChange={set("listing_id")} {...invalid("listing_id")}>
+      <label>Property<select value={f.listing_id} onChange={e => {
+        setF(x => ({ ...x, listing_id: e.target.value })); setSlot(s => ({ ...s, date: null, time: null }));
+        setErrors(({ listing_id, negotiator_id, date, time, ...x }) => x); setMsg(null);
+      }} {...invalid("listing_id")}>
         <option value="">General enquiry / valuation</option>
         {listings?.map(l => <option key={l.id} value={l.id}>{l.title} ({l.id}){state(l)}</option>)}
         {!listings && f.listing_id && <option value={f.listing_id}>{f.listing_id}</option>}
@@ -365,7 +370,7 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
         {KINDS.map(k => <option key={k}>{k}</option>)}</select>{error("kind")}</label>
     </div>
     <SlotPicker value={slot} onChange={s => { setSlot(s); setErrors(({ negotiator_id, date, time, ...x }) => x); }}
-      refresh={refresh} errors={errors} />
+      listingId={f.listing_id} refresh={refresh} errors={errors} />
     <div className="grid2">
       <label>Name<input value={f.name} maxLength={120} autoComplete="off" onChange={set("name")} {...invalid("name")} />{error("name")}</label>
       <label>Email<input type="email" value={f.email} maxLength={254} autoComplete="off" onChange={set("email")} {...invalid("email")} />{error("email")}</label>

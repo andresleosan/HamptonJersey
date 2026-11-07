@@ -487,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script type="application/json" id="datos">
 {
  "actualizado": "2026-11-07",
- "base": "d0738c7",
+ "base": "95226d7",
  "items": [
   {
    "id": "NOT-01",
@@ -1163,14 +1163,14 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F2",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Construcción local parcial: directorio, contactos, teléfonos, canales, referencias, notas y revisión humana a 11/12 meses. Sin eliminación manual ni automática en la app; supresión pendiente en AGE-14. Migración 0027 solo en fixtures; revisión independiente favorable de b413987, sin hallazgos accionables.",
-   "falta": "M01 · Reconciliación 7-nov: La supresión se aborda por separado en AGE-14. La revisión independiente favorable solo cubre el alcance local parcial; publicar y activar solo tras autorización. Directorio de anunciantes: agencia, entidad o particular, webs y canales, contactos y todos los teléfonos identificados. Relacionarlo con fuentes y publicaciones. Conservar por separado acuerdos de comisión tratados personalmente y permisos de uso de fotos; no son requisitos generales para inventariar o consultar disponibilidad. Aceptación: La tarea de llamada puede mostrar todos los teléfonos y su titular, incluso con varios anuncios del mismo inmueble.",
+   "hecho": "Construcción local parcial: directorio, contactos, teléfonos, canales, referencias, notas y revisión humana a 11/12 meses. Sin eliminación manual ni automática en la app; supresión pendiente en AGE-14. Migración 0030 de anunciantes solo en fixtures; revisión independiente favorable de b413987, sin hallazgos accionables.",
+   "falta": "M01 · Reconciliación 7-nov: La supresión se aborda por separado en AGE-14. La revisión independiente favorable solo cubre b413987 y el alcance local parcial; la integración necesita nueva revisión, y publicar y activar requieren autorización. Directorio de anunciantes: agencia, entidad o particular, webs y canales, contactos y todos los teléfonos identificados. Relacionarlo con fuentes y publicaciones. Conservar por separado acuerdos de comisión tratados personalmente y permisos de uso de fotos; no son requisitos generales para inventariar o consultar disponibilidad. Aceptación: La tarea de llamada puede mostrar todos los teléfonos y su titular, incluso con varios anuncios del mismo inmueble.",
    "actualizado": "2026-11-07",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Advertisers.jsx",
     "server/routes/advertisers.js",
-    "migrations/0027_advertisers.sql",
+    "migrations/0030_advertisers.sql",
     "admin/src/SaleDetail.jsx:139-140",
     "server/sales.js:52",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:94",
@@ -1735,6 +1735,27 @@ document.addEventListener('DOMContentLoaded', () => {
     "EST-13"
    ],
    "criterio_aceptacion": "Una hora propuesta por agencia sigue pendiente hasta aceptar cliente y demás participantes requeridos; la visita confirmada no cierra la búsqueda."
+  },
+  {
+   "id": "VIS-18",
+   "seccion": "Interesados y visitas",
+   "titulo": "Activar visitas y definir franjas semanales por propiedad",
+   "origen": "Luis 7-nov-2026",
+   "fase": "F3-A",
+   "estado": "hecho",
+   "responsable": "desarrollo",
+   "hecho": "En producción el 7-nov-2026, commit 95226d7, migración 0027 aplicada y Cloudflare Pages/hampton-jobs correctos. Activate/Deactivate, horario general o franjas semanales por propiedad, reutilización de REG-17, filtrado público/interno y comprobaciones atómicas al reservar y reprogramar. Se conservan las visitas existentes. 689 Node + 14 Python, e2e completo y VIS-18 1280/390 aprobados; revisión independiente sin bloqueos. Verificación de producción de solo lectura: API de cuatro propiedades, consulta general, bundle del panel y páginas públicas/acceso al panel a 1280/390 correctos, sin errores JavaScript ni desbordamiento.",
+   "falta": "",
+   "bloqueo": "",
+   "evidencia": [
+    "docs/superpowers/plans/2026-11-07-vis-18-property-viewings.md",
+    "migrations/0027_property_viewings.sql",
+    "tests/server/property-viewings.test.mjs",
+    "tests/property-viewings.e2e.cjs"
+   ],
+   "modulo": "M09",
+   "deps": [],
+   "criterio_aceptacion": "Desactivar impide nuevas reservas y reprogramaciones; un horario propio limita huecos y exige que la visita completa quepa, junto con el horario del agente. Se conservan las visitas existentes."
   },
   {
    "id": "AUT-01",
@@ -3082,18 +3103,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Escriben evento la etapa y los cambios del aplicante, las revisiones de matches, las visitas y las ofertas y ventas (en el historial del comprador); los alquileres usan su propia tabla rental_events.",
-   "falta": "M13 · Reconciliación 7-nov: Los cambios de las fichas (publicar, archivar, precio, disponibilidad a mano) no escriben evento: events solo admite applicant, contact, viewing y admin. Ampliar el historial para fuentes, publicaciones, disponibilidad, aprobación, consultas, llamadas, archivos, visitas, cambios confirmados y cierre; distinguir observación automática de confirmación humana con autor/fecha/evidencia. Los reintentos no repiten eventos funcionales y las correcciones humanas no se sobrescriben en silencio. Aceptación: Dos fuentes o una corrección conservan procedencia y secuencia; una purga de archivos no borra eventos históricos.",
+   "hecho": "7-nov-2026: construida localmente la base interna de eventos de propiedades, aprobada sin vista nueva. Migración 0029 amplía events; alta/edición/estados/confirmación, Queue, Sales, portada/destacados, recálculo y borrado dejan actor, fecha UTC, origen, revisión y diferencias estructuradas, sin copiar texto libre ni crear avisos. Registro y cambio atómicos; no-op/conflictos sin evento, reintentos identificados mediante contrato interno. Revisión independiente corregida, 708 pruebas JS + 14 Python, build, check:release y e2e general aprobados. Composición D1 poblada con NOT-11 0028 verificada; pendiente de publicar/aplicar migración.",
+   "falta": "M13: publicar el SHA revisado y aplicar 0029 con aprobación explícita; no está en producción. Futuros módulos deben conectar fuentes, publicaciones, consultas, llamadas, archivos y su evidencia; falta la vista de historial aplazada por Luis. No se identifican reintentos HTTP actuales del panel ni se reconstruye historial anterior a la activación. Mantener secuencia/procedencia, prioridad humana y conservación en futuras purgas.",
    "bloqueo": "",
    "evidencia": [
-    "server/events.js:9-19",
-    "migrations/0008_applicants.sql:59-68",
-    "server/routes/matches.js:76-78",
-    "server/routes/inbox.js:122-130",
-    "server/routes/sales.js:44-46",
-    "migrations/0013_rentals.sql:151-161",
-    "server/routes/listings.js:1-5",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "server/listing-events.js",
+    "migrations/0029_listing_events.sql",
+    "server/routes/listings.js",
+    "server/routes/sales.js",
+    "server/routes/queue.js",
+    "server/routes/media.js",
+    "server/routes/matches.js",
+    "tests/server/listing-events.test.mjs",
+    "docs/superpowers/plans/2026-11-07-est-18-listing-events-ledger.md"
    ],
    "modulo": "M13",
    "deps": [],
