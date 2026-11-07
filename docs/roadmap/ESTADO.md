@@ -143,7 +143,7 @@ Si el reloj o Hermes se paran, el botón Settings de la barra lleva un número e
 
 **Integrado en origin/main mediante `8f31feb`, con International en `1a24059`; despliegue no comprobado en esta integración** ([plan](../superpowers/plans/2026-11-06-hampton-app-design-pass.md), [registro](../superpowers/plans/2026-11-06-hampton-app-design-pass-ledger.md)). Sin migraciones ni dependencias nuevas.
 - Portada y fotos de ficha con scroll-snap nativo: gesto táctil/trackpad, flechas y teclado, contador y sin autoplay. Una propiedad no muestra controles; una foto rota conserva el espacio y la reserva.
-- Títulos en sentence case, hechos separados, menos eyebrows, sin flechas decorativas ni tira de estadísticas. Featured solo con seis propiedades o más, máximo dos. Catálogo con zoom de imagen sin ensanchar los botones.
+- Títulos en sentence case, hechos separados, menos eyebrows, sin flechas decorativas ni tira de estadísticas. Featured solo con seis propiedades o más, máximo dos. Catálogo con cuatro categorías: en escritorio, la opción bajo el cursor o con foco se ensancha y su foto se acerca; en tableta son dos columnas y en móvil cuatro franjas. Con movimiento reducido se mantienen anchos estables y se elimina la animación.
 - Panel con metadatos en spans, etiquetas legibles, rangos con guion corto, demanda de Insights en tabla accesible e informes impresos con cabecera sencilla.
 - La comprobación física en Safari/MacBook y la copia privada del checklist quedan pendientes; el entorno no dispone de las bibliotecas de WebKit ni de integración con claude.ai. Las comprobaciones automatizadas y sus resultados quedan en el registro.
 
