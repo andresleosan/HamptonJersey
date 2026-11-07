@@ -657,3 +657,22 @@ test("a contact can be read by its id, for a new search started from it", async 
     { id: contactId, name: "Jane Le Brocq", email: "jane@example.je", phone: "+447797123456" });
   assert.equal((await req(env, "GET", "/admin/contacts/999")).status, 404);
 });
+
+test("viewing availability is stored per search and stale edits cannot overwrite it", async () => {
+  const env = makeEnv();
+  const monday = [{ day: 1, start: "09:00", end: "11:00" }];
+  const id = await create(env, { viewing_availability: monday });
+  const d = await detail(env, id);
+  assert.deepEqual(d.applicant.viewing_availability, monday);
+  const contact_id = d.applicant.contact_id;
+  const second = await req(env, "POST", "/admin/applicants", form({ contact_id, operation: "buy", budget_max: 500000, viewing_availability: [] }));
+  assert.equal(second.status, 201);
+  const tuesday = [{ day: 2, start: "10:00", end: "12:00" }];
+  const saved = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: d.applicant.updated_at, viewing_availability: tuesday });
+  assert.equal(saved.status, 200, JSON.stringify(saved.data));
+  assert.deepEqual(saved.data.applicant.viewing_availability, tuesday);
+  assert.equal((await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: d.applicant.updated_at, viewing_availability: monday })).status, 409);
+  assert.deepEqual((await detail(env, id)).applicant.viewing_availability, tuesday);
+  assert.equal((await detail(env, second.data.id)).applicant.viewing_availability, null);
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM viewing_requests").n, 0);
+});

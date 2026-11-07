@@ -6,14 +6,14 @@ const TEL = "01534 727582";
 const STORE = "hampton-apply";
 // Answers kept in this tab so a reload loses nothing; personal details and consents never are (DESIGN.md).
 const PRIVATE = ["name", "email", "phone", "preferred_channel", "best_time", "requirements", "housing_status", "privacy",
-  "marketing", "preferred_language", "household_adults", "household_children", "household_children_status"];
+  "marketing", "viewing_availability", "preferred_language", "household_adults", "household_children", "household_children_status"];
 const STEPS = [
   { title: "What are you looking for?", fields: ["operation", "search_category", "commercial_kind"] },
   { title: "Where?", fields: ["parishes_wanted", "parishes_excluded", "near"] },
   { title: "Property details", fields: ["property_types", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "commercial_use", "area_min", "area_max", "area_unit"] },
   { title: "Parking, outdoor space and pets", fields: ["parking_spaces", "outdoor", "furnished", "pets", "pets_cat",
     "pets_dog", "pets_other"] },
-  { title: "Budget and timing", fields: ["budget_max", "budget_min", "budget_stretch", "budget_max_rent", "budget_max_buy", "move_in_date",
+  { title: "Budget and timing", fields: ["viewing_availability", "budget_max", "budget_min", "budget_stretch", "budget_max_rent", "budget_max_buy", "move_in_date",
     "lease_term_months", "buyer_position", "mortgage_aip", "commercial_purchase", "commercial_rent", "commercial_rent_period", "commercial_premium", "commercial_expenses"] },
   { title: "Living in Jersey", fields: ["housing_status", "household_adults", "household_children_status", "household_children"] },
   { title: "About you", fields: ["name", "email", "phone", "preferred_channel", "best_time", "requirements", "preferred_language",
@@ -45,6 +45,7 @@ export function toBody(a) {
       && !(a.search_category !== "commercial" && COMMERCIAL_ONLY.includes(k))
       && v != null && v !== "" && !(Array.isArray(v) && !v.length)) b[k] = v;
   };
+  put("viewing_availability", a.viewing_availability);
   CHOICES.forEach(k => put(k, a[k]));
   TEXT.forEach(k => put(k, String(a[k] ?? "").trim()));
   LISTS.forEach(k => put(k, a[k]));
@@ -66,6 +67,13 @@ export function toBody(a) {
 function checkStep(i, a) {
   const e = {}, missing = (k, msg) => { if (!String(a[k] ?? "").trim()) e[k] = msg; };
   const has = k => STEPS[i].fields.includes(k);
+  if (has("viewing_availability") && a.viewing_availability?.length) {
+    const slots = a.viewing_availability;
+    const time = v => typeof v === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v);
+    if (slots.length > 21 || slots.some(s => !time(s.start) || !time(s.end) || s.start >= s.end)
+      || slots.some((s, i) => slots.slice(i + 1).some(t => s.day === t.day && s.start < t.end && t.start < s.end)))
+      e.viewing_availability = "Choose valid, non-overlapping times with an end after the start (up to 21).";
+  }
   if (has("operation")) missing("operation", "Choose To Let or To Buy");
   if (has("search_category")) missing("search_category", "Choose what you are looking for");
   if (a.search_category !== "commercial" && has("bedrooms_min")) missing("bedrooms_min", "Choose the minimum bedrooms");
@@ -195,7 +203,9 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       + group("commercial_rent_period", "Rent period", pills("commercial_rent_period", [["month", "Per month"], ["year", "Per year"]]))
       + input("commercial_premium", "Maximum business transfer, £ (optional)", count)
       + input("commercial_expenses", "Maximum expenses, £ (optional)", count)}</div>`
-      + input("move_in_date", "When do you need it? (optional)", `type="date" min="${today}" max="${inTwoYears}"`),
+      + input("move_in_date", "When do you need it? (optional)", `type="date" min="${today}" max="${inTwoYears}"`)
+      + `<div class="field"><h3>Usual viewing availability (optional)</h3><p>Realistic, flexible times in Jersey help us arrange viewings. This does not book an appointment.</p>
+        <div data-viewing-slots></div>${err("viewing_availability")}<button class="btn ghost" type="button" name="viewing_availability" data-add-slot>Add time option</button></div>`,
     `<div data-category="residential"><p class="hint">It decides which homes you can rent or buy in Jersey.</p>`
       + group("housing_status", "Housing status (optional)", pills("housing_status", list("housing_status"), "radio", false, " tiles"))
       + input("household_adults", "Adults (optional)", `${count} placeholder="2"`)
@@ -238,6 +248,8 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       else if (el.type === "radio") { a[el.name] ??= ""; if (el.checked) a[el.name] = el.value; }
       else a[el.name] = el.value;
     }
+    a.viewing_availability = [...form.querySelectorAll("[data-slot]")].map(row => ({ day: Number(row.querySelector("select").value),
+      start: row.querySelector('[data-start]').value, end: row.querySelector('[data-end]').value }));
     return a;
   };
   const save = () => {
@@ -261,11 +273,26 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     if ((a.parishes_excluded ?? []).length) $("details.more", form).open = true;
     form.querySelectorAll("[data-pet]").forEach(el => { el.hidden = !chosen.includes(el.dataset.pet); });
   };
+  const slots = $("[data-viewing-slots]", form), addSlot = $("[data-add-slot]", form);
+  const numberSlots = () => [...slots.children].forEach((row, i) => {
+    $("legend", row).textContent = `Time option ${i + 1}`;
+    $("[data-remove]", row).textContent = `Remove option ${i + 1}`;
+  });
+  addSlot.addEventListener("click", () => {
+    if (slots.children.length >= 21) return;
+    const n = slots.children.length + 1, row = document.createElement("fieldset");
+    row.className = "field"; row.dataset.slot = "";
+    row.innerHTML = `<legend>Time option ${n}</legend><label>Day <select>${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((d, i) => `<option value="${i}"${i === 1 ? " selected" : ""}>${d}</option>`).join("")}</select></label>
+      <label>From <input type="time" data-start></label><label>Until <input type="time" data-end></label><button type="button" class="btn ghost" data-remove>Remove option</button>`;
+    $("[data-remove]", row).addEventListener("click", () => { row.remove(); numberSlots(); setError("viewing_availability"); addSlot.disabled = false; addSlot.focus(); });
+    slots.append(row); numberSlots(); addSlot.disabled = slots.children.length >= 21; $("select", row).focus();
+  });
   const controls = name => [...form.querySelectorAll(`[name="${name}"]`)];
   const setError = (name, msg) => {
     const slot = $(`#e-${name}`, form);
     if (slot) { slot.textContent = msg || ""; slot.hidden = !msg; }
-    controls(name).forEach(c => {
+    const targets = name === "viewing_availability" ? [...controls(name), ...form.querySelectorAll("[data-slot] select, [data-slot] input")] : controls(name);
+    targets.forEach(c => {
       if (msg) { c.setAttribute("aria-invalid", "true"); c.setAttribute("aria-describedby", `e-${name}`); }
       else { c.removeAttribute("aria-invalid"); c.removeAttribute("aria-describedby"); }
     });
@@ -277,7 +304,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     const i = STEPS.findIndex(s => s.fields.some(k => errors[k]));
     return i < 0 ? null : { i, first: STEPS[i].fields.find(k => errors[k]) };
   };
-  const focusField = name => controls(name)[0]?.focus();
+  const focusField = name => (name === "viewing_availability" ? $("[data-slot] select", form) ?? controls(name)[0] : controls(name)[0])?.focus();
 
   const startTurnstile = () => {
     if (!tsKey || tsAsked) return;
@@ -305,7 +332,8 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     if (focus) $("h2", sets[i]).focus();
   };
 
-  form.addEventListener("input", e => { if (FIELDS.has(e.target.name)) setError(e.target.name); save(); });
+  form.addEventListener("input", e => { if (e.target.closest("[data-slot]")) setError("viewing_availability");
+    else if (FIELDS.has(e.target.name)) setError(e.target.name); save(); });
   form.addEventListener("change", e => {
     const t = e.target;
     if (t.name === "household_children_status" && t.value !== "known") $("[name=household_children]", form).value = "";

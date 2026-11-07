@@ -59,6 +59,8 @@ const MONEY = ["budget_min", "budget_max", "budget_stretch"];
 export function show(k, v, nameOf) {
   if (k === "assigned_to") return v ? nameOf(v) : "Unassigned";
   if (blank(v)) return "—";
+  if (k === "viewing_availability" && Array.isArray(v)) return v.map(s =>
+    `${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][s.day]} ${s.start}–${s.end} (Jersey)`).join(", ");
   if (k === "pets") return OPTIONS.pet_kinds.filter(([p]) => v.some(x => x.kind === p)).map(([p, t]) => {
     const n = v.find(x => x.kind === p).count;
     return p === "none" || blank(n) ? t : `${t} (${n})`;

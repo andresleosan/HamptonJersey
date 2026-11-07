@@ -265,3 +265,15 @@ test("readJson stops at the limit whatever Content-Length says", async () => {
   const ok = new Request("https://hampton.test/api/x", { method: "POST", body: JSON.stringify({ rent: "£1,500" }) });
   assert.deepEqual(await readJson(ok), { rent: "£1,500" });
 });
+
+test("weekly viewing preferences are validated and stored as local Jersey wall times", () => {
+  const slots = [{ day: 1, start: "09:00", end: "12:00" }, { day: 1, start: "13:00", end: "17:00" },
+    { day: 0, start: "01:00", end: "02:30" }];
+  assert.deepEqual(JSON.parse(applicantOf(pub({ viewing_availability: slots })).viewing_availability), slots);
+  assert.equal(applicantOf(pub()).viewing_availability, null);
+  for (const invalid of [[{ day: 7, start: "09:00", end: "10:00" }], [{ day: 1, start: "24:00", end: "25:00" }],
+    [{ day: 1, start: "10:00", end: "09:00" }], [{ day: 1, start: "09:00", end: "12:00" }, { day: 1, start: "11:00", end: "13:00" }],
+    Array(22).fill({ day: 1, start: "09:00", end: "10:00" }), "bad"]) {
+    assert.ok(errorsOf(pub({ viewing_availability: invalid })).viewing_availability);
+  }
+});

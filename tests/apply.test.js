@@ -98,3 +98,13 @@ test("contact text is trimmed and consents are booleans", async () => {
   assert.equal(b.privacy, true);
   assert.equal(b.marketing, false);
 });
+
+test("viewing options prevent advancing with invalid or overlapping times and are sent as local preferences", async () => {
+  const { checkStep, toBody } = await load();
+  const valid = [{ day: 1, start: "09:00", end: "12:00" }, { day: 1, start: "13:00", end: "15:00" }];
+  const a = answers({ budget_max: "2000", viewing_availability: valid });
+  assert.deepEqual(checkStep(4, a), {});
+  assert.deepEqual(toBody(a).viewing_availability, valid);
+  assert.ok(checkStep(4, { ...a, viewing_availability: [{ day: 1, start: "12:00", end: "09:00" }] }).viewing_availability);
+  assert.ok(checkStep(4, { ...a, viewing_availability: [valid[0], { day: 1, start: "11:00", end: "14:00" }] }).viewing_availability);
+});

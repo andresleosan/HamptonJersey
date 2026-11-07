@@ -1,0 +1,9 @@
+# REG-17 · Disponibilidad habitual para visitas
+
+Cada búsqueda puede guardar varias franjas semanales opcionales: día de la semana y hora local de inicio y fin, siempre en Europe/Jersey. Son preferencias reutilizables, no reservas ni promesas de disponibilidad. Se capturan en el registro público y en el panel, y el equipo puede actualizarlas en la búsqueda concreta. Dos búsquedas del mismo contacto conservan sus propias franjas; el alta simultánea aplica las respuestas iniciales a ambas, que luego pueden editarse por separado.
+
+Contrato persistido: `viewing_availability` es null o JSON de objetos `{day, start, end}`; `day` es 0 domingo a 6 sábado y las horas son cadenas `HH:mm` en Europe/Jersey. No se almacena desplazamiento fijo ni se presupone la vigencia de una fecha concreta.
+
+La ausencia significa «no indicada», no «nunca disponible». Cada franja debe ser completa, de un día, con hora final posterior a la inicial; no se admiten solapamientos del mismo día. Se permiten varias franjas por día y hasta 21 en total. Las franjas que cruzan medianoche quedan fuera de esta primera entrega. La zona se conserva como regla fija Europe/Jersey, no como desplazamiento UTC: VIS-17 tendrá que resolver la fecha concreta y los cambios de hora antes de proponer citas. Los registros previos permanecen sin datos. Las ediciones usan la versión de búsqueda existente; un cambio concurrente devuelve conflicto. Al borrar una búsqueda se borran sus franjas junto a ella. Ningún cambio crea visitas ni envía mensajes.
+
+Decisiones de implementación: semanales en lugar de fechas aisladas por el requisito de franjas habituales reutilizables; campo opcional para no inventar disponibilidad ni impedir el alta. Límites, no solapamiento y prohibición de medianoche son reglas técnicas para datos legibles y acotados. La coordinación específica y confirmaciones siguen en VIS-17. No se identificó una decisión de Luis indispensable para construir este alcance.

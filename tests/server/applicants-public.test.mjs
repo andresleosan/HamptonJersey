@@ -273,3 +273,24 @@ test("cross-origin and oversized bodies are refused", async () => {
   assert.equal(spent.n, 0);
   assert.deepEqual([contacts(env), events(env)], [[], []]);
 });
+
+test("registration copies weekly availability to each new search without booking a viewing", async () => {
+  const env = makeEnv(); turnstile(true);
+  const slots = [{ day: 0, start: "01:00", end: "02:30" }, { day: 5, start: "14:00", end: "17:00" }];
+  const r = await register(env, form({ viewing_availability: slots, searches: [
+    { operation: "rent", budget_max: 2500 }, { operation: "buy", budget_max: 650000 },
+  ] }));
+  assert.equal(r.status, 201, JSON.stringify(r.data));
+  assert.deepEqual(applicants(env).map(a => JSON.parse(a.viewing_availability)), [slots, slots]);
+  assert.equal(rows(env, "SELECT * FROM viewing_requests").length, 0);
+});
+
+test("repeat registration preserves viewing options as structured data for staff review", async () => {
+  const env = makeEnv(); turnstile(true);
+  await register(env, form());
+  const slots = [{ day: 3, start: "10:00", end: "12:00" }];
+  assert.equal((await register(env, form({ viewing_availability: slots }))).status, 201);
+  const duplicate = events(env).find(e => e.type === "applicant.duplicate_submitted");
+  assert.deepEqual(duplicate.data.viewing_availability, slots);
+  assert.equal(applicants(env)[0].viewing_availability, null);
+});

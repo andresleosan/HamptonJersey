@@ -1,4 +1,5 @@
 import { OPTIONS } from "../../server/applicants.js";
+import ViewingAvailability from "./ViewingAvailability.jsx";
 
 // The form value: API field names, inputs as strings, lists as arrays, pets as [{kind, count}].
 const TEXT = ["name", "email", "phone", "preferred_channel", "best_time", "operation", "furnished", "near", "move_in_date",
@@ -7,7 +8,7 @@ const TEXT = ["name", "email", "phone", "preferred_channel", "best_time", "opera
 const NUM = ["budget_min", "budget_max", "budget_stretch", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "parking_spaces",
   "lease_term_months", "household_adults", "household_children", "area_min", "area_max", "commercial_purchase", "commercial_rent",
   "commercial_premium", "commercial_expenses"];
-const LIST = ["property_types", "outdoor", "parishes_wanted", "parishes_excluded", "pets"];
+const LIST = ["property_types", "outdoor", "parishes_wanted", "parishes_excluded", "pets", "viewing_availability"];
 
 // From the stored applicant and contact (detail API) to the form value; with no arguments, an empty form.
 export const toForm = (applicant = {}, contact = {}) => {
@@ -59,6 +60,7 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
   const rent = operation === "rent", buy = operation === "buy", commercial = value.search_category === "commercial";
   const per = rent ? " (£ per month)" : " (£)";
   return <>
+    <ViewingAvailability value={value.viewing_availability} onChange={v => set("viewing_availability", v)} error={errors.viewing_availability} />
     <section className="card fields-group" aria-labelledby="g-search"><h2 id="g-search">What they're looking for</h2>
       {lockedCategory ? <p>Search type: {commercial ? "Commercial or business" : "Home"}</p>
         : choices("search_category", "Search type", [["residential", "Home"], ["commercial", "Commercial or business"]], "radio")}

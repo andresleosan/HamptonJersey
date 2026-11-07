@@ -102,7 +102,7 @@ async function countStat({ request, env }) {
 }
 
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" };
-const JSON_FIELDS = ["property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"];
+const JSON_FIELDS = ["property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded", "viewing_availability"];
 
 // The wizard's registration (§3.3). New email and phone: contact + search. Either on file: the existing contact and
 // its searches stay as they are; the submission goes into an event for the team, apart from the consent exception.
