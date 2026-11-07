@@ -27,6 +27,18 @@ El texto original de Luis y el relevo privado permanecen fuera de Git. Los requi
 
 La [rúbrica de modelo y esfuerzo](../../.agents/skills/avanzar/references/modelo-y-esfuerzo.md) se aplica después de pruebas y revisión. La recomendación se incluye en ESTADO antes del commit final revisado y se presenta al usuario al cerrar. Se conserva el modelo y esfuerzo elegidos para la tarea en curso.
 
+## E2E local reproducible
+
+`npm run test:e2e` prepara una base D1 nueva, aplica migraciones **solo locales**, carga fixtures, compila el panel y las Pages Functions, y ejecuta `tests/e2e.cjs`. Genera credenciales ficticias en una carpeta privada temporal y las elimina al cerrar; conserva intacto `.dev.vars`. `PW` y `CHROME` siguen señalando la instalación de Playwright y Chromium del equipo, como indica la cabecera del test. En el taller:
+
+```sh
+PW=/usr/local/lib/node_modules/@playwright/mcp/node_modules/playwright-core CHROME=/opt/ms-playwright/chromium-1228/chrome-linux64/chrome npm run test:e2e
+```
+
+El servidor escucha solo en `127.0.0.1`. Sus llamadas externas usan el proxy ya configurado y sus exclusiones, mediante EnvHttpProxyAgent. Se mantiene la llamada real a Siteverify con el par oficial de claves de prueba; no se simula una respuesta aprobada. El DNS directo de workerd puede fallar aunque el navegador y el proxy sí alcancen Turnstile. No convertir esa diferencia en un bloqueo permanente ni cambiar controles de red para resolverla.
+
+Para un recorrido MCP separado, `npm run dev:e2e` acepta `E2E_PERSIST`, `E2E_VARS` y `PORT` de un fixture local ya preparado. Exige claves de prueba; nunca reutilizar variables o datos de producción. No ejecutar dos e2e generales simultáneos: el proveedor Drive ficticio de esa suite ocupa el puerto local 8799. Build, reglas de servidor y aserciones del e2e siguen vigentes. El arreglo y la evidencia están en el [ledger del entorno](../superpowers/plans/2026-11-07-hermes-e2e-proxy-ledger.md).
+
 ## Hermes
 
 Al abrir el encargo, Hermes transmite a Codex la lectura explícita de `.agents/skills/avanzar/SKILL.md` desde el clon actualizado y de esta guía. Retoma el mismo `thread_id` para preguntas y respuestas; conserva el candado, el modelo y esfuerzo de la tarea, y la autenticación instalada. La disponibilidad de esta guía no demuestra que una copia global haya sido actualizada.

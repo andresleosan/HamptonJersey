@@ -1,3 +1,4 @@
+// Prefer npm run test:e2e for fresh local fixtures and outbound proxy support.
 // End-to-end check against `wrangler pages dev` with the fixture database (see Task 13 of the plan).
 // The seed's viewing dates are relative to today, so reseed before each run: delete .wrangler/e2e/v3/d1, then
 //   npx wrangler d1 migrations apply hampton --local --persist-to .wrangler/e2e
@@ -15,7 +16,7 @@ const {readFileSync} = require("node:fs");
 const BASE = process.env.BASE || "http://localhost:8788/";
 const SHOTS = process.argv[2];
 const shot = (page, name, o) => SHOTS && page.screenshot({path: `${SHOTS}/${name}.png`, fullPage: true, ...o});
-const secret = readFileSync(".dev.vars", "utf8").match(/^SESSION_SECRET=(.+)$/m)[1].trim();
+const secret = readFileSync(process.env.E2E_VARS || ".dev.vars", "utf8").match(/^SESSION_SECRET=(.+)$/m)[1].trim();
 const d1 = sql => execFileSync("npx", ["wrangler", "d1", "execute", "hampton", "--local", "--persist-to", process.env.E2E_PERSIST || ".wrangler/e2e", "--json", "--command", sql], {encoding: "utf8"});
 
 async function newPage(ctx, viewport) {
