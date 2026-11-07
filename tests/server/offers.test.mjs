@@ -261,7 +261,8 @@ test("accept: two accepts on one listing at once, one wins, the other is 409 and
   assert.equal(count(env, "sale_milestones"), MILESTONES.length);
   assert.equal(listing(env).availability, "under_offer");
   assert.deepEqual([applicant(env, win[1]).stage, applicant(env, lose[1]).stage], ["agreed", "offer"]);
-  assert.equal(count(env, "events") - eventsBefore, 3);
+  assert.equal(count(env, "events") - eventsBefore, 4); // three buyer facts plus the property availability fact
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM events WHERE entity_type = 'listing'").n, 1);
 });
 
 test("accept: a buyer with a sale in progress elsewhere is 409", async () => {
@@ -289,7 +290,8 @@ test("accept: a buyer with a sale in progress elsewhere is 409", async () => {
   assert.deepEqual([offer(env, o3).status, offer(env, o4).status].sort(), ["accepted", "pending"]);
   assert.deepEqual(["HE-R002", "HE-R004"].map(l => listing(env, l).availability).sort(), ["for_sale", "under_offer"]);
   assert.equal(count(env, "sales"), 2);
-  assert.equal(count(env, "events") - before, 3);
+  assert.equal(count(env, "events") - before, 4); // only the winning sale adds its property fact
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM events WHERE entity_type = 'listing'").n, 2);
 });
 
 test("accept: the buyer's open form gets 409 after the automatic stage change", async () => {

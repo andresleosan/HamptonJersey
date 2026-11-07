@@ -7,6 +7,7 @@ import { touch, contacted, LOCK } from "./applicants.js";
 import { jerseyToday } from "../viewings.js";
 import { jerseyDayStart } from "../insights.js";
 import { ENUMS } from "../listing.js";
+import { listingEventStatements, listingClock } from "../listing-events.js";
 
 const OPEN = ["pending", "countered"];
 const NOT_OPEN = "This offer is no longer open";
@@ -72,12 +73,13 @@ function stageTo(env, ctx, applicant, stage, from) {
 // move also confirms the listing.
 function availabilityTo(env, ctx, listing, availability, from, buyerId) {
   if (!from.includes(listing.availability)) return [];
-  return [
-    env.DB.prepare(`UPDATE listings SET availability = ?, confirmed_at = ?, updated_at = ?, updated_by = ?
+  return listingEventStatements(env, listing.id, { actor: ctx.admin, source: 'sales', action: 'availability_changed',
+    related: Object.fromEntries(Object.entries(ctx.data).filter(([key]) => ['offer_id', 'sale_id'].includes(key))) }, [
+    env.DB.prepare(`UPDATE listings SET availability = ?, confirmed_at = ?, updated_at = ${listingClock}, updated_by = ?
       WHERE id = ? AND availability = ?`).bind(availability, ctx.ts, ctx.ts, ctx.admin, listing.id, listing.availability),
     ...buyerEvent(env, ctx, buyerId, "listing.availability_changed",
       { before: { availability: listing.availability }, after: { availability } }, true),
-  ];
+  ]);
 }
 
 async function create({ request, env, admin }) {

@@ -63,7 +63,8 @@ async function draft({ request, env, admin, params: [id] }) {
   const back = () => env.DB.prepare(`UPDATE drive_imports SET status = 'ready', decided_at = NULL, decided_by = NULL
     WHERE id = ? AND listing_id IS NULL`).bind(Number(id)).run();
   let res;
-  try { res = await createListing(env, admin, body); } catch (e) { await back(); throw e; }
+  try { res = await createListing(env, admin, body, { source: 'queue', related: { import_id: Number(id) } }); }
+  catch (e) { await back(); throw e; }
   if (res.status !== 201) { await back(); return res; }
   const { id: lid } = await res.clone().json();
   await env.DB.batch([
@@ -97,7 +98,7 @@ async function discard({ env, admin, params: [id] }) {
     const l = await env.DB.prepare(`SELECT published, EXISTS (SELECT 1 FROM sales WHERE listing_id = ?1) AS sale
       FROM listings WHERE id = ?1`).bind(row.listing_id).first();
     if (l?.published || l?.sale) fail(409, "Its listing is on the website: unpublish it first");
-    if (l) await deleteListing(env, row.listing_id, admin);
+    if (l) await deleteListing(env, row.listing_id, admin, { source: 'queue', related: { import_id: Number(id) } });
   }
   const r = await env.DB.prepare(`UPDATE drive_imports SET status = 'discarded', decided_at = ?, decided_by = ?
     WHERE id = ? AND status IN ${IN_OPEN} RETURNING *`).bind(now(), admin, Number(id)).first();
@@ -122,7 +123,8 @@ async function approve({ env, admin, params: [id] }) {
   const done = await env.DB.prepare(`UPDATE drive_imports SET status = 'published', decided_at = ?, decided_by = ?
     WHERE id = ? AND status = 'review' RETURNING id`).bind(now(), admin, Number(id)).first();
   if (!done) fail(409, "This one is already closed");
-  try { return await setState({ env, admin, params: [row.listing_id, "publish"], fromQueue: true }); }
+  try { return await setState({ env, admin, params: [row.listing_id, "publish"], fromQueue: true,
+    related: { import_id: Number(id) } }); }
   catch (e) {
     await env.DB.prepare("UPDATE drive_imports SET status = 'review' WHERE id = ?").bind(Number(id)).run();
     throw e;

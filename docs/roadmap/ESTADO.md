@@ -2,11 +2,15 @@
 
 Actualizado el 7-nov-2026. Orden vigente: [reconciliación funcional](2026-11-07-reconciliacion-automatizacion.md); detalle: [checklist](checklist-hampton-app.html); ciclo: [AVANZAR](AVANZAR.md). VIS-18 publicado y verificado en `95226d7`, sobre la base `5e9c860` que incluye REG-17 y la corrección de catálogo. Migración 0027 aplicada, sin migraciones pendientes; Cloudflare Pages y `hampton-jobs` correctos para ese SHA. EST-09 y continuidad de PRE-12 publicados y activados el 7-nov-2026: migración 0024 aplicada y despliegues Pages/Worker correctos. La corrección de galería y controles está incluida desde `5d10220`.
 
-Siguiente recomendado Codex: /avanzar AGE-04 · gpt-6.1-terra · high
+Siguiente recomendado Codex: /avanzar REG-08 · gpt-6.1-terra · high
 
 Siguiente recomendado: /avanzar AUT-17 · claude-opus-5-5 · high
 
 Arranque de `/avanzar`, 7-nov-2026: añadida comprobación obligatoria del repositorio canónico antes de leer el roadmap, con clon inicial, fetch, comparación de commits y actualización segura. Conserva tareas pendientes, ramas ajenas, candado de Hermes y aprobación por SHA. Norma publicada en `8388560` e incluida en `aea7eb5`. Instrucciones locales de VPS y ambos Hermes verificadas; clon compartido del taller actualizado por fast-forward a `aea7eb5`, limpio y candado liberado. PC local fuera del alcance de esta sesión. Véase [AVANZAR](AVANZAR.md).
+
+EST-18, 7-nov-2026: construida localmente la base de registro interno de propiedades elegida por Luis, sin vista nueva. Revisión independiente atendida; 708 pruebas JS + 14 Python, build, check:release y e2e general aprobados. Eventos atómicos para cambios de ficha, estados, confirmación, Queue, Sales, portada/destacados y recálculos; actor/origen/revisión, texto libre excluido y reintentos identificados solo en contrato interno. Migración 0029 pendiente de aprobación y aplicación en producción; verificada localmente también sobre NOT-11 0028 poblada. No implica publicar NOT-11 ni completar AGE-04. [Diseño](../superpowers/specs/2026-11-07-est-18-listing-events-design.md), [plan](../superpowers/plans/2026-11-07-est-18-listing-events.md) y [evidencia](../superpowers/plans/2026-11-07-est-18-listing-events-ledger.md). EST-18 sigue parcial para los futuros productores y la consulta visual aplazada.
+
+Próxima construcción independiente: REG-08. El parking actual guarda cantidad opcional, pero falta distinguir imprescindible/negociable/desconocido y aplicarlo al matching; no espera a fuentes externas ni al directorio AGE-04. Requiere cambios de datos, registro, panel y motor con pruebas existentes: gpt-6.1-terra · high.
 
 | Fase | Estado | Spec | Plan | Pendiente |
 |---|---|---|---|---|

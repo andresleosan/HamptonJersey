@@ -164,6 +164,8 @@ Dos entregas: **M12a** exclusión, propagación y prioridad humana antes de acti
 
 ### M13 · Inbox y consistencia transversal
 
+Avance EST-18, 7-nov: base interna de eventos de propiedades construida, verificada localmente y revisada; migración 0029 y publicación pendientes. Se cubren escritores existentes sin crear tareas ni vista nueva. Los futuros productores y su evidencia siguen pendientes; no se declara cerrado M13. Compatibilidad local con NOT-11 0028 comprobada, sin publicar esa entrega como efecto secundario.
+
 - **Consume/produce:** eventos de cada módulo → tareas únicas por tipo/entidad/versión, responsable, motivo, vencimiento, enlaces y acción. Feed informativo y trabajo pendiente mantienen significados separados.
 - **Inicio/fin:** evento material → tarea; resultado útil o estado nuevo → actualizar/resolver la existente, conservando trazabilidad. Registrar actor, fecha, versión y evidencia sin secretos en logs.
 - **Cambios:** ampliar CHECK de eventos/notificaciones con migraciones y pruebas; `Inbox.jsx`, `server/routes/inbox.js`, `server/routes/notifications.js`; operaciones atómicas/condicionales para dos empleados. La app aplica permisos; el modelo no decide autorización.

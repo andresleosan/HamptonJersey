@@ -3,6 +3,7 @@ import { validateListing, checkPrice, idPrefix, nextId, ENUMS, TO_CONFIRM } from
 import { extractFeatures } from "../listing-features.js";
 import { afterSave, recomputeForListing } from "../match-store.js";
 import { interestSql, interestDates } from "../viewings.js";
+import { listingBatch, derivedListingFields, listingClock } from "../listing-events.js";
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -82,7 +83,7 @@ const LISTING_BYTES = 256 * 1024;
 
 const create = async ({ request, env, admin }) => createListing(env, admin, await readJson(request, LISTING_BYTES));
 // Also Properties Queue's draft (PUB-21), which ties the new listing to its row on the server.
-export async function createListing(env, admin, body) {
+export async function createListing(env, admin, body, context = {}) {
   const r = validateListing(body);
   if (r.errors) return fieldErrors(r.errors);
   const priceErrors = checkPrice(r.value);
@@ -98,13 +99,16 @@ export async function createListing(env, admin, body) {
       updated_by: admin }, ts);
     const cols = Object.keys(row); // whitelisted by validateListing, plus the features
     try {
-      await env.DB.prepare(`INSERT INTO listings (${cols.join(", ")}) VALUES (${cols.map(() => "?").join(", ")})`)
-        .bind(...cols.map(c => row[c])).run();
+      await listingBatch(env, id, { actor: admin, source: 'panel', ...context, action: 'created',
+        derivedFields: derivedListingFields(row).filter(k => !(k in r.value)) }, [
+        env.DB.prepare(`INSERT INTO listings (${cols.join(", ")}) VALUES (${cols.map(() => "?").join(", ")})`)
+          .bind(...cols.map(c => row[c])),
+      ]);
       await afterSave(recomputeForListing, env, id, admin);
       return json({ id }, 201);
     } catch (e) {
       // Another admin created a listing with the same id at the same moment: take the next one.
-      if (attempt < 3 && /UNIQUE|PRIMARY KEY/i.test(String(e?.message))) continue;
+      if (attempt < 3 && /UNIQUE constraint failed: listings.id/i.test(String(e?.message))) continue;
       throw e;
     }
   }
@@ -125,9 +129,10 @@ async function update({ request, env, admin, params: [id] }) {
   // ADM-04 (T2): a new availability or price means the owner was spoken to. The editor sends every field on each save.
   if (["availability", "sale_price", "rent", "premium"].some(k => k in r.value && r.value[k] !== stored[k])) patch.confirmed_at = ts;
   const cols = Object.keys(patch);
-  const res = await env.DB.prepare(
-    `UPDATE listings SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ? WHERE id = ? AND updated_at = ?`)
-    .bind(...cols.map(c => patch[c]), ts, admin, id, body.updated_at).run();
+  const [res] = await listingBatch(env, id, { actor: admin, source: 'panel', action: 'updated',
+    derivedFields: derivedListingFields(patch).filter(k => !(k in r.value)) }, [env.DB.prepare(
+    `UPDATE listings SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ${listingClock}, updated_by = ? WHERE id = ? AND updated_at = ?`)
+    .bind(...cols.map(c => patch[c]), ts, admin, id, body.updated_at)]);
   if (!res.meta.changes) {
     await loadListing(env, id); // 404 if it no longer exists
     fail(409, "Someone else saved changes to this listing. Reload to see them (your changes were not saved).");
@@ -151,13 +156,14 @@ async function offers({ env, params: [id] }) {
 
 // Star for the home page's Featured section. Ranks stay 1..n in the order stars were given: a new star goes last,
 // removing one moves the later ones up. It is not a content edit (updated_at untouched).
-async function setFeatured({ request, env, params: [id] }) {
+async function setFeatured({ request, env, admin, params: [id] }) {
   const on = (await readJson(request))?.featured;
   if (typeof on !== "boolean") fail(400, "Send featured: true or false");
   const l = await loadListing(env, id);
   if (on === (l.featured_rank != null)) return json({ ok: true });
-  if (on) await env.DB.prepare("UPDATE listings SET featured_rank = (SELECT COALESCE(MAX(featured_rank), 0) + 1 FROM listings) WHERE id = ?").bind(id).run();
-  else await env.DB.batch([
+  await listingBatch(env, id, { actor: admin, source: 'panel', action: 'featured_changed' }, on ? [
+    env.DB.prepare("UPDATE listings SET featured_rank = (SELECT COALESCE(MAX(featured_rank), 0) + 1 FROM listings) WHERE id = ? AND featured_rank IS NULL").bind(id),
+  ] : [
     env.DB.prepare("UPDATE listings SET featured_rank = NULL WHERE id = ?").bind(id),
     env.DB.prepare("UPDATE listings SET featured_rank = featured_rank - 1 WHERE featured_rank > ?").bind(l.featured_rank),
   ]);
@@ -165,7 +171,7 @@ async function setFeatured({ request, env, params: [id] }) {
 }
 
 // fromQueue: Properties Queue's Approve and publish (PUB-21), the only way to publish a listing still in review (C8).
-export async function setState({ env, admin, params: [id, action], fromQueue = false }) {
+export async function setState({ env, admin, params: [id, action], fromQueue = false, related = {} }) {
   const l = await loadListing(env, id);
   if (action === "publish" && l.archived_at) fail(400, "Restore the listing before publishing it");
   if (action === "publish" && !fromQueue && await env.DB.prepare("SELECT 1 FROM drive_imports WHERE listing_id = ? AND status = 'review'")
@@ -186,9 +192,19 @@ export async function setState({ env, admin, params: [id, action], fromQueue = f
     restore: { archived_at: null } }[action];
   const cols = Object.keys(patch);
   const set = c => (c === "published_at" ? "published_at = CASE WHEN published = 0 THEN ? ELSE published_at END" : `${c} = ?`);
-  const res = await env.DB.prepare(`UPDATE listings SET ${cols.map(set).join(", ")}, updated_at = ?, updated_by = ?
-    WHERE id = ?${archive ? ` AND NOT ${BUSY}` : ""}`).bind(...cols.map(c => patch[c]), ts, admin, id, ...(archive ? [id, id] : [])).run();
-  if (archive && !res.meta.changes) fail(409, busy);
+  // Another request may archive/restore after loadListing. Repeat that eligibility in the write.
+  const stateGuard = action === 'restore' ? ' AND archived_at IS NOT NULL'
+    : ['archive', 'publish'].includes(action) ? ' AND archived_at IS NULL' : '';
+  const [res] = await listingBatch(env, id, { actor: admin, source: fromQueue ? 'queue' : 'panel', related,
+    action: { publish: 'published', unpublish: 'unpublished', archive: 'archived', restore: 'restored' }[action] }, [
+    env.DB.prepare(`UPDATE listings SET ${cols.map(set).join(", ")}, updated_at = ${listingClock}, updated_by = ?
+      WHERE id = ?${stateGuard}${archive ? ` AND NOT ${BUSY}` : ""}`).bind(...cols.map(c => patch[c]), ts, admin, id, ...(archive ? [id, id] : [])),
+  ]);
+  if (!res.meta.changes) {
+    const current = await loadListing(env, id);
+    if (archive && !current.archived_at) fail(409, busy);
+    fail(409, 'The listing state changed. Reload before trying again.');
+  }
   // Publishing also counts: being on the website adds to the score.
   await afterSave(recomputeForListing, env, id, admin);
   return json({ listing: await loadListing(env, id) });
@@ -196,9 +212,12 @@ export async function setState({ env, admin, params: [id, action], fromQueue = f
 
 // ADM-04: Still available, after a call to the owner. Like the star, not a content edit: updated_at is
 // left alone, so an open editor with unsaved changes can still save them (T8). Any listing may be confirmed (T11).
-async function confirm({ env, params: [id] }) {
+async function confirm({ env, admin, params: [id] }) {
   const ts = now();
-  if (!(await env.DB.prepare("UPDATE listings SET confirmed_at = ? WHERE id = ?").bind(ts, id).run()).meta.changes)
+  const [res] = await listingBatch(env, id, { actor: admin, source: 'panel', action: 'confirmed' }, [
+    env.DB.prepare("UPDATE listings SET confirmed_at = ? WHERE id = ?").bind(ts, id),
+  ]);
+  if (!res.meta.changes)
     fail(404, "Listing not found");
   return json({ confirmed_at: ts });
 }
@@ -215,9 +234,9 @@ async function remove({ request, env, admin, params: [id] }) {
 }
 
 // Also Properties Queue's Discard (PUB-21, C7), for a draft that was never published.
-export async function deleteListing(env, id, admin) {
+export async function deleteListing(env, id, admin, context = {}) {
   const { results } = await env.DB.prepare("SELECT r2_key, thumb_key FROM media WHERE listing_id = ? AND origin = 'upload'").bind(id).all();
-  await env.DB.batch([
+  await listingBatch(env, id, { actor: admin, source: 'panel', ...context, action: 'deleted' }, [
     env.DB.prepare("DELETE FROM media WHERE listing_id = ?").bind(id),
     env.DB.prepare("DELETE FROM listings WHERE id = ?").bind(id),
     env.DB.prepare("INSERT INTO deleted_listings (id, deleted_at, deleted_by) VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING").bind(id, now(), admin),
