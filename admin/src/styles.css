@@ -58,6 +58,7 @@ a{color:var(--ink)} a:hover{color:var(--bronze-dk)}
 .filters,.inline{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:12px}
 label{display:grid;gap:4px;font-size:12px;color:var(--stone)}
 input,select,textarea{font:14px var(--body);color:var(--ink);background:#fbfaf8;border:1px solid var(--field-line);border-radius:var(--r-sm);padding:9px 12px;min-width:0;transition:border-color .2s,box-shadow .2s,background .2s}
+input[type=checkbox],input[type=radio]{padding:0}
 input:hover,select:hover,textarea:hover{border-color:var(--stone)}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--bronze);background:#fff;box-shadow:0 0 0 3px rgba(165,107,61,.15)}
 input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{border-color:var(--err)}
@@ -112,7 +113,7 @@ table.list{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .tag{position:absolute;left:6px;top:6px;background:var(--ink);color:#fff;font-size:10px;padding:2px 8px;border-radius:999px}
 .tag.priv{left:auto;right:6px;background:var(--bronze-dk)}
 .ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.check{display:flex;gap:6px;align-items:center;color:var(--ink);font-size:12px}
+.check{display:flex;gap:6px;align-items:center;color:var(--ink);font-size:12px;min-height:32px}
 .upload:focus-within{outline:2px solid var(--bronze);outline-offset:2px}
 .bar a.home{font-size:12px;opacity:.8} .bar a.home:hover{opacity:1}
 .login a.home{font-size:12px;color:var(--stone)}
@@ -292,6 +293,7 @@ kbd{font:600 11px var(--body);letter-spacing:0;padding:0 5px;border:1px solid cu
 .warn.to-confirm .btn,.warn.paused .btn{min-height:32px} /* ADM-04: the panel's 32px target (DESIGN.md) */
 .interest .btn{min-height:32px}
 @media (max-width:760px){.interest li{grid-template-columns:1fr}.interest .btn{min-height:44px}}
+@media (max-width:760px){.check,.choices .check,.filters>.check{min-height:44px}}
 textarea.short{min-height:72px}
 .slot-picker{display:grid;gap:12px;min-width:0} .slot-who{max-width:360px} .slot-picker p{margin:0}
 .pick-set{border:0;padding:0;margin:0;min-width:0}
@@ -380,6 +382,7 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .bar .settings>button[aria-current]{background:#fff;color:var(--ink)}
 .bar .settings .menu{position:absolute;right:0;top:calc(100% + 8px);min-width:180px;display:grid;padding:4px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);box-shadow:0 12px 32px rgba(20,20,20,.14);animation:rise .18s var(--ease) both}
 .bar .settings .menu[hidden]{display:none}
+@media(min-width:1100px) and (max-width:1535px){.bar{gap:6px}.bar nav{font-size:12px;gap:0}.bar nav>a,.bar .settings>button{padding-inline:5px}}
 .bar .settings .menu a{color:var(--ink);padding:9px 12px;border-radius:8px}
 .bar .settings .menu a:hover,.bar .settings .menu a[aria-current=page]{background:var(--mist)} .bar .settings .menu a[aria-current=page]{font-weight:600}
 @media (max-width:760px){.bar nav{position:relative}.bar .settings{position:static}.bar .settings .menu{left:0;right:auto}}

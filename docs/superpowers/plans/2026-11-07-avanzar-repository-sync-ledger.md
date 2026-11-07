@@ -11,3 +11,7 @@ Skills: skill-creator para modificación acotada, mantener invocación y validar
 Verificación: `git diff --check` correcto. Frontmatter, referencias y casos de sincronización comprobados; el validador de skill-creator no arrancó por PyYAML ausente, por lo que se registró validación estructural alternativa, sin instalar dependencias globales. Playwright: no aplica.
 
 Distribución: respaldos privados en `/tmp/hampton-avanzar-sync-backup`; solo Markdown actualizado en copia local de VPS, instrucciones compartidas de Hermes1/Hermes2 y fuentes persistentes de Codex/Claude del taller. Ambas vistas Hermes coinciden con el archivo compartido; hashes de fuentes y runtime del taller coinciden. Escritura in situ conserva propietarios/permisos; sin reinicios, configuración, llaves ni controles alterados. PC no accesible: no afirmar instalación. GitHub espera publicación autorizada de esta entrega.
+
+## Actualización posterior a la entrega
+
+Publicación posterior confirmada: norma en8388560, incluida enaea7eb5. En la continuación del7-nov se verificaron otra vez ambos hashes de la skill y se alineó el clon compartido Hermes de246300e aaea7eb5 por fast-forward bajo candadoh1; limpio y candado liberado. PC fuera del alcance actual.

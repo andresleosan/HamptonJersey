@@ -31,6 +31,7 @@ async function newPage(ctx, viewport) {
 async function publicSite(browser) {
   const ctx = await browser.newContext();
   const page = await newPage(ctx, {width: 1280, height: 800});
+  await page.emulateMedia({reducedMotion: "reduce"}); // Keep the initial hero stable even on slow test hosts.
   // Spec §1: the counter carries no cookies, even when the browser has one for the site (e.g. staff signed in).
   await ctx.addCookies([{name: "probe", value: "1", url: BASE}]);
   const stats = [], statsCookies = [];
@@ -49,6 +50,7 @@ async function publicSite(browser) {
   assert.equal(await page.$("#quick"), null, "no search form with few listings");
   assert.equal(await page.$("#tabs-region"), null, "no filter tabs with few listings");
   assert.match(await page.textContent(".hero h1"), /Le Bernage/);
+  await page.emulateMedia({reducedMotion: "no-preference"}); // Subsequent navigations still exercise tour autoplay and normal motion.
   // PUB-22: the home's section is Properties with at most five cards and View all; the menu opens /properties.
   assert.equal(await page.textContent("#portfolio .eyebrow"), "Properties");
   assert.equal(await page.getAttribute("#portfolio a.btn", "href"), "/properties");
@@ -824,9 +826,9 @@ async function admin(browser) {
   await jersey(browser, page);
   await automations(page, phone, noSideScroll);
   await hermesDrafters(page);
+  await widenCriteria(page, phone, noSideScroll); // Run before imports add listings with unknown price/bedrooms that also match.
   await folderImport(page, phone);
   await driveQueue(page, phone, noSideScroll);
-  await widenCriteria(page, phone, noSideScroll);
   await webChat(page);
   await webChatTabs(page);
   await webChatRecovers(page);
@@ -860,6 +862,7 @@ async function webChat(page) {
   await box.getByLabel("Your message").fill("Is Le Bernage still available?");
   await box.getByRole("checkbox").check();
   await visitor.waitForFunction(() => document.querySelector('dialog.chat [name="cf-turnstile-response"]')?.value);
+  await box.getByRole("button", {name: "Send"}).scrollIntoViewIfNeeded();
   await box.getByRole("button", {name: "Send"}).click();
   await box.locator(".chat-log li").first().waitFor();
   await shot(visitor, "chat-visitor");

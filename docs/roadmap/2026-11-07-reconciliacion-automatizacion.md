@@ -1,6 +1,6 @@
 # Búsqueda y seguimiento: reorganización del 7 de noviembre de 2026
 
-Estado: **planificado, pendiente de implementación por tarea**. Base revisada: `origin/main` en `246300e`, incluidas las entregas de chat y correo. La especificación funcional v1 del 6-nov-2026 proporcionada por Luis es la autoridad para este recorrido. Su original privado no se incorpora al repositorio. Este documento sintetiza requisitos, evidencia y decisiones de implementación; no acredita que las nuevas funciones estén construidas o publicadas.
+Estado: **plan maestro en curso**. M03a (EST-09 y continuidad PRE-12) publicado y activado el 7-nov-2026 en `aea7eb5`, con migración 0024; los demás módulos conservan su estado por tarea. Base revisada: `origin/main` en `246300e`, incluidas las entregas de chat y correo. La especificación funcional v1 del 6-nov-2026 proporcionada por Luis es la autoridad para este recorrido. Su original privado no se incorpora al repositorio. Este documento sintetiza requisitos, evidencia y decisiones de implementación; no acredita que las nuevas funciones estén construidas o publicadas.
 
 ## 1. Cómo continuar con /avanzar
 
@@ -23,7 +23,7 @@ La documentación, el checklist y la skill pueden publicarse como una entrega do
 | Correo AUT-17 | `server/email.js`, `server/email-inbound.js`, `server/routes/email.js`, `migrations/0023_email.sql` | Transporte, estados e interfaz construidos en main; conservar el cierre operativo pendiente en ESTADO. Falta el dominio de consultas compartidas y clasificar respuestas útiles. No reconstruir correo. |
 | Chat MSG-02 | `server/chat.js`, `server/routes/chats.js`, `migrations/0022_chats.sql` | Chat humano construido. No resuelve por sí solo búsqueda comercial, captación completa ni mensajes a Facebook. |
 | Hermes | `server/routes/hermes.js`, `hermes/`, migraciones 0018/0020 | Puerta limitada, jobs y lector de importación son bases. No asumir que el agente tiene lectura general de internet o acceso a clientes. |
-| Conservación y cierre | `server/retention.js`, `server/routes/sales.js` | EST-09 construido localmente: search_state separado de Stage; completar venta no resuelve la búsqueda. Cualquier búsqueda active/needs_review protege el contacto; revisión desde 11 meses y plazo existente tras cierre humano. Migración 0024 y publicación pendientes; G2 remoto sigue con su versión anterior hasta activación. |
+| Conservación y cierre | `server/retention.js`, `server/routes/sales.js` | EST-09 publicado y activado en aea7eb5: search_state separado de Stage; completar venta no resuelve la búsqueda. Cualquier búsqueda active/needs_review protege el contacto; revisión desde 11 meses y plazo existente tras cierre humano. Migración 0024 aplicada el 7-nov; G2 incluye la protección de búsquedas abiertas. |
 
 Las afirmaciones de despliegue se conservan en ESTADO con su evidencia histórica. En esta revisión no se ha consultado ni alterado la base de producción.
 
