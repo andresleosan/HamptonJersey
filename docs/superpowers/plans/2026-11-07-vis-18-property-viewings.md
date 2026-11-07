@@ -24,13 +24,14 @@ El botón nombra la acción (Deactivate cuando están activadas), acompañado po
 
 ## Resultado
 
-Construcción y revisión terminadas. Publicación pendiente de ejecutar y verificar.
+**En producción desde el 7-nov-2026**, commit `95226d7cc303a361553f35243f0e6bbdb1a9ddbf`. Publicación autorizada expresamente por Luis; migración 0027 aplicada y comprobaciones de Cloudflare Pages y `hampton-jobs` terminadas con éxito para ese SHA.
 
 - 689 pruebas Node y 14 Python aprobadas; build y check:release aprobados.
 - Recorrido completo aprobado: public, urls, admin y reg17 (salida 0).
 - VIS-18 en navegador a 1280/390: guardar, recargar, desactivar, horario propio, vacío inválido, horarios públicos e internos, respuestas atrasadas y teclado.
 - Revisión independiente: sin Critical/Important pendientes. Detectó y corrigió conservación del borrador al alternar modos y bloqueo de controles mientras Save está en curso; ambos verificados con respuesta demorada a 1280/390.
 - 19 regresiones del servidor: límites de ventana, intersección, domingo interno, consulta general, visibilidad pública y carreras de reserva/reprogramación sin escrituras de avisos/eventos si se rechazan.
-- Migración necesaria: 0027. Antes de esta tarea 0026 ya estaba aplicada en producción. Punto de recuperación previo conservado localmente en /tmp/hampton-vis18-before-migration.json.
+- Migración 0027 aplicada en producción; consulta posterior de Wrangler sin migraciones pendientes. Antes de esta tarea 0026 ya estaba aplicada. Punto de recuperación previo conservado localmente en /tmp/hampton-vis18-before-migration.json.
+- Verificación de producción de solo lectura: disponibilidad por propiedad correcta en las cuatro fichas publicadas, consulta general compatible y bundle del panel idéntico al compilado y probado. Inicio, catálogo, ficha pública y acceso al panel responden correctamente a 1280/390, sin errores JavaScript ni desbordamiento horizontal. Evidencia: /tmp/hampton-vis18-production-smoke.log. El guardado y los cambios de estado se verificaron en el entorno local; no se modificaron fichas ni se crearon reservas reales durante esta comprobación.
 - Evidencia local: /tmp/hampton-vis18-tests.log, /tmp/hampton-vis18-full-e2e-final.log, /tmp/hampton-vis18-browser-final.log y /tmp/vis18-review-saved-{1280,390}.png. El primer recorrido general falló en Sales durante compilaciones concurrentes; se reinició con el artefacto estable y pasó completo.
 

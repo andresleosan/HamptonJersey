@@ -25,7 +25,7 @@ La documentación, el checklist y la skill pueden publicarse como una entrega do
 | Hermes | `server/routes/hermes.js`, `hermes/`, migraciones 0018/0020 | Puerta limitada, jobs y lector de importación son bases. No asumir que el agente tiene lectura general de internet o acceso a clientes. |
 | Conservación y cierre | `server/retention.js`, `server/routes/sales.js` | EST-09 publicado y activado en aea7eb5: search_state separado de Stage; completar venta no resuelve la búsqueda. Cualquier búsqueda active/needs_review protege el contacto; revisión desde 11 meses y plazo existente tras cierre humano. Migración 0024 aplicada el 7-nov; G2 incluye la protección de búsquedas abiertas. |
 
-Las afirmaciones de despliegue se conservan en ESTADO con su evidencia histórica. En esta revisión no se ha consultado ni alterado la base de producción.
+Las afirmaciones de despliegue se conservan en ESTADO con su evidencia histórica. La revisión inicial no consultó ni alteró la base de producción; las entregas posteriores registran su activación por tarea, incluido el cierre de VIS-18 al final de este plan.
 
 ## 3. Reglas que sustituyen el plan antiguo
 
@@ -46,7 +46,7 @@ Las afirmaciones de despliegue se conservan en ESTADO con su evidencia históric
 
 | Orden | Módulo y códigos que se ejecutan juntos o en entregas pequeñas | Depende de | Resultado que permite continuar |
 |---|---|---|---|
-| Urgente 7-nov | **M09a · VIS-18** control de visitas por propiedad | Agenda existente; selector REG-17 | Activación por ficha y franjas propias aplicadas a huecos, reservas y reprogramación. Cierre en la sección VIS-18 al final de este plan. |
+| Urgente 7-nov | **M09a · VIS-18 · Completado en producción** control de visitas por propiedad | Agenda existente; selector REG-17 | Activación por ficha y franjas propias aplicadas a huecos, reservas y reprogramación. Publicado en `95226d7`, migración 0027 aplicada; evidencia de cierre al final de este plan. |
 | 1 | **M03** ciclo de búsqueda y registro: EST-09, REG-11, REG-17; PRE-12 | Decisiones de campos aplicables | Búsqueda activa independiente de etapa, criterios y franjas versionados; cierre humano y conservación reconciliados. |
 | 2 | **M01** directorio: AGE-04, BUS-19, BUS-21 → BUS-22 → BUS-23 | Acceso por fuente; cada investigación depende de la anterior | Directorio y anunciantes con teléfonos; tres pasadas contrastadas. Se puede desarrollar junto a M03, pero no paralelizar las tres investigaciones. |
 | 3 | **M02** inventario: BUS-06, BUS-09, BUS-10, BUS-07, EST-16, SPR-07 | M01 para captura real | Propiedad/publicación/anunciante, procedencia y normalización; carga inicial completa por tandas. |
@@ -269,4 +269,4 @@ Después de pruebas y revisión, analizar próxima tarea, modelo y esfuerzo con 
 
 Luis solicita controlar las visitas desde la ficha de cada propiedad: activar/desactivar y, opcionalmente, días y franjas propias. Se ejecuta antes de continuar la secuencia M01–M09 por petición directa, sin sustituir VIS-17 (coordinación multiparte). Reutiliza el selector REG-17 de los commits d9a48fe/1695920/0e7f4b5.
 
-Contrato y ejecución: [plan VIS-18](../superpowers/plans/2026-11-07-vis-18-property-viewings.md). Horas Europe/Jersey, intersección con agenda del agente, comprobación al ofrecer huecos y al escribir reservas/reprogramaciones, citas previas conservadas. Estado: construido, validado y revisado sin bloqueos. 689 Node + 14 Python, e2e completo (incluido REG-17) y recorridos VIS-18 a 1280/390 aprobados. Migración 0027 y verificación de publicación pendientes.
+Contrato y ejecución: [plan VIS-18](../superpowers/plans/2026-11-07-vis-18-property-viewings.md). Horas Europe/Jersey, intersección con agenda del agente, comprobación al ofrecer huecos y al escribir reservas/reprogramaciones, citas previas conservadas. **Completado y en producción el 7-nov-2026**, commit `95226d7`, tras autorización expresa de Luis. Migración 0027 aplicada, sin migraciones pendientes, y Cloudflare Pages/`hampton-jobs` correctos para ese SHA. 689 Node + 14 Python, e2e completo (incluido REG-17), recorridos VIS-18 a 1280/390 y revisión independiente aprobados. Verificación de producción de solo lectura: API de las cuatro propiedades publicadas, consulta general, bundle probado del panel e inicio/catálogo/ficha/acceso al panel a 1280/390 correctos, sin errores JavaScript ni desbordamiento; no se crearon reservas ni se modificaron fichas reales para probar.
