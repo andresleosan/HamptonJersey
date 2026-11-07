@@ -2114,13 +2114,72 @@ async function advertiserDirectory(browser) {
   await page.reload();
   await page.getByRole('button', { name: 'Open' }).click();
   assert.equal(await page.getByLabel('Number', { exact: true }).inputValue(), '01534 123456');
-  await page.getByLabel('Why are the personal details still needed for an open relationship or case?').fill('Open case');
+  // F2: a delayed save must not permit a second draft to be silently overwritten.
+  let releaseSave, saveSeen; const seen = new Promise(r => saveSeen = r), gate = new Promise(r => releaseSave = r);
+  await page.route('**/api/admin/advertisers/*', async route => {
+    if (route.request().method() !== 'PUT') return route.continue();
+    const response = await route.fetch(); saveSeen(); await gate; await route.fulfill({ response });
+  });
+  await page.getByLabel('Name', { exact: true }).first().fill('Test Estates saved');
+  await page.getByRole('button', { name: 'Save advertiser' }).click(); await seen;
+  assert.equal(await page.getByLabel('Name', { exact: true }).first().isDisabled(), true, 'fields locked during save');
+  assert.equal(await page.getByRole('button', { name: 'Add advertiser' }).isDisabled(), true, 'navigation locked during save');
+  releaseSave(); await page.getByText('Advertiser saved.').waitFor(); await page.unroute('**/api/admin/advertisers/*');
+  // F4: an unrecorded reason is protected even when the form itself is unchanged.
+  const reason = page.getByLabel('Why are the personal details still needed for an open relationship or case?');
+  await reason.fill('Open case');
+  let warned = false; page.once('dialog', d => { warned = true; return d.dismiss(); });
+  await page.getByRole('button', { name: 'Open', exact: true }).click();
+  assert.equal(warned, true); assert.equal(await reason.inputValue(), 'Open case');
+  warned = false; page.once('dialog', d => { warned = true; return d.dismiss(); });
+  await page.getByRole('button', { name: 'Add advertiser' }).click();
+  assert.equal(warned, true); assert.equal(await reason.inputValue(), 'Open case');
+  warned = false; page.once('dialog', d => { warned = true; return d.dismiss(); });
+  await page.locator('header a[href="#/listings"]').click();
+  assert.equal(warned, true); assert.equal(await reason.inputValue(), 'Open case');
   await page.getByRole('button', { name: 'Record reason' }).click();
-  await page.getByText('Reason recorded.').waitFor();
+  await page.getByText('Reason recorded.').waitFor(); assert.equal(await reason.inputValue(), '');
+  let releaseOpen, openSeen; const openGate = new Promise(r => releaseOpen = r), opened = new Promise(r => openSeen = r);
+  await page.route('**/api/admin/advertisers/*', async route => {
+    if (route.request().method() !== 'GET') return route.continue();
+    const response = await route.fetch(); openSeen(); await openGate; await route.fulfill({ response });
+  });
+  await page.getByRole('button', { name: 'Open', exact: true }).click(); await opened;
+  assert.equal(await reason.isDisabled(), true, 'reason locked while another record is loading');
+  releaseOpen(); await reason.waitFor({ state: 'visible' }); await page.waitForFunction(() => !document.querySelector('section[aria-labelledby="retention-heading"] fieldset')?.disabled);
+  await page.unroute('**/api/admin/advertisers/*');
+  // F5: server error must remain associated with the offending URL and receive focus, including on mobile.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Add channel' }).click();
+  await page.getByLabel('Channel 1 label').fill('Invalid'); await page.getByLabel('URL', { exact: true }).fill('javascript:alert(1)');
+  await page.getByRole('button', { name: 'Save advertiser' }).click();
+  await page.getByRole('alert').waitFor();
+  const url = page.getByLabel('URL', { exact: true });
+  assert.equal(await url.getAttribute('aria-invalid'), 'true');
+  assert.ok(await url.getAttribute('aria-describedby')); await page.waitForFunction(e => document.activeElement === e, await url.elementHandle());
+  assert.equal(await page.getByText('Advertiser saved.').count(), 0);
+  await page.getByRole('button', { name: 'Remove channel 1' }).click();
+  const listing = page.getByLabel('Listing IDs, one per line'); await listing.fill('unknown-listing');
+  await page.getByRole('button', { name: 'Save advertiser' }).click();
+  await page.getByText('Listing not found', { exact: true }).first().waitFor();
+  assert.equal(await listing.getAttribute('aria-invalid'), 'true'); assert.ok(await listing.getAttribute('aria-describedby'));
+  await page.waitForFunction(e => document.activeElement === e, await listing.elementHandle()); await listing.fill('');
+  await page.getByRole('button', { name: 'Save advertiser' }).click(); await page.getByText('Advertiser saved.').waitFor();
+  // F1: POST succeeded even if the separate history reload subsequently fails.
+  let failRefresh = false;
+  await page.route(/\/api\/admin\/advertisers\/\d+(?:\/erase)?$/, route => {
+    if (failRefresh && route.request().method() === 'GET') return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({error:'History unavailable'}) });
+    if (route.request().method() === 'POST' && route.request().url().endsWith('/erase')) failRefresh = true;
+    return route.continue();
+  });
+  await page.route('**/api/admin/advertisers?*', route => failRefresh ? route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({error:'Directory unavailable'}) }) : route.continue());
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Remove personal data' }).click();
-  await page.getByText('Personal information removed.').waitFor();
+  await page.getByText('Personal information was removed. This record cannot be edited.').waitFor();
+  await page.getByText(/Directory unavailable/).first().waitFor();
+  assert.match(await page.getByRole('alert').innerText(), /History unavailable/);
   assert.equal(await page.getByText('Test Person').count(), 0);
+  assert.equal(await page.getByRole('button', { name: 'Save advertiser' }).count(), 0);
   await ctx.close();
 }
 

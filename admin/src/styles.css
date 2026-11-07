@@ -517,3 +517,9 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 
 /* AGE-04: long names and the review state remain legible in the mobile list. */
 @media (max-width:760px){.list.advertisers tr{grid-template-columns:1fr;border-bottom:1px solid var(--line)}.list.advertisers td:first-child{grid-row:auto;overflow-wrap:anywhere}.list.advertisers td[data-label]::before{content:attr(data-label) ": ";color:var(--stone);font-size:12px}}
+/* Keep the shared header from covering content when browser zoom or a short viewport makes it taller than the screen. */
+@media (max-height:500px){.bar{position:static}html{scroll-padding-top:12px}}
+
+/* Fieldsets must shrink when browser zoom leaves a narrow effective viewport. */
+.advertiser-directory fieldset{min-inline-size:0}
+.advertiser-directory form>fieldset,.advertiser-directory section>fieldset{border:0;margin:0;padding:0}

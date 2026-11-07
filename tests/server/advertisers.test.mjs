@@ -15,7 +15,8 @@ test('directory is private and preserves contacts and phones, with versioned upd
   assert.deepEqual(found.data.advertiser.contacts[0].phones, entry.contacts[0].phones);
   assert.equal((await request(env, 'PUT', `/admin/advertisers/${id}`, { ...entry, version })).status, 200);
   assert.equal((await request(env, 'PUT', `/admin/advertisers/${id}`, { ...entry, version })).status, 409);
-  assert.equal((await request(env, 'POST', '/admin/advertisers', { ...entry, channels: [{ label: 'Bad', url: 'javascript:alert(1)' }] })).status, 400);
+  const invalidUrl = await request(env, 'POST', '/admin/advertisers', { ...entry, channels: [{ label: 'Bad', url: 'javascript:alert(1)' }] });
+  assert.equal(invalidUrl.status, 400); assert.ok(invalidUrl.data.fields['channels.0.url']);
 });
 
 test('manual retention action removes personal data and stale updates cannot restore it', async () => {
@@ -33,7 +34,8 @@ test('manual retention action removes personal data and stale updates cannot res
 
 test('calendar review dates, manual reasons, reference validation and no automated deletion', async () => {
   const env = makeEnv(); seedListing(env);
-  assert.equal((await request(env, 'POST', '/admin/advertisers', { ...entry, listing_ids: ['missing'] })).status, 400);
+  const invalidListing = await request(env, 'POST', '/admin/advertisers', { ...entry, listing_ids: ['missing'] });
+  assert.equal(invalidListing.status, 400); assert.ok(invalidListing.data.fields.listing_ids);
   const made = await request(env, 'POST', '/admin/advertisers', { ...entry, name_personal: false, commission: 'Fixed fee', commission_personal: false, channels: [{label:'Website',url:'https://example.test',personal:false}], listing_ids: ['HE-R001'] });
   const id = made.data.advertiser.id;
   env.DB.raw.prepare('UPDATE advertisers SET activity_on = ? WHERE id = ?').run('2024-03-31', id);
@@ -76,4 +78,20 @@ test('invalid inputs and concurrent saves do not corrupt the record', async () =
   const updates = await Promise.all(['First', 'Second'].map(name => request(env, 'PUT', `/admin/advertisers/${id}`, { ...entry, name, version })));
   assert.deepEqual(updates.map(r => r.status).sort(), [200, 409]);
   assert.ok(['First', 'Second'].includes((await request(env, 'GET', `/admin/advertisers/${id}`)).data.advertiser.name));
+});
+
+test('deleted listings already linked remain verifiable, while new tombstones cannot be linked', async () => {
+  const { deleteListing } = await import('../../server/routes/listings.js');
+  const env = makeEnv(); seedListing(env);
+  const made = await request(env, 'POST', '/admin/advertisers', { ...entry, listing_ids: ['HE-R001'] });
+  const original = made.data.advertiser;
+  await deleteListing(env, 'HE-R001', 'admin@example.test');
+  const saved = await request(env, 'PUT', `/admin/advertisers/${original.id}`, { ...original, commission: 'Updated' });
+  assert.equal(saved.status, 200, JSON.stringify(saved.data));
+  assert.deepEqual(saved.data.advertiser.listing_ids, ['HE-R001']);
+  assert.deepEqual(saved.data.advertiser.deleted_listing_ids, ['HE-R001']);
+  assert.deepEqual((await request(env, 'GET', `/admin/advertisers/${original.id}`)).data.advertiser.deleted_listing_ids, ['HE-R001']);
+  assert.equal((await request(env, 'POST', '/admin/advertisers', { ...entry, listing_ids: ['HE-R001'] })).status, 400);
+  const other = await request(env, 'POST', '/admin/advertisers', entry);
+  assert.equal((await request(env, 'PUT', `/admin/advertisers/${other.data.advertiser.id}`, { ...other.data.advertiser, listing_ids: ['HE-R001'] })).status, 400);
 });
