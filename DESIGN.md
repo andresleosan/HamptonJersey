@@ -390,3 +390,10 @@ Un único componente `.badge` en contorno con cinco tonos, siempre con texto:
 - [ ] Datos personales (nombre, email, móvil, estatus de vivienda) nunca en `localStorage`; el asistente solo guarda en el navegador respuestas no personales.
 - [ ] Validación del cliente solo para ayudar; Turnstile y reglas se verifican en el servidor.
 - [ ] Mensajes de error de la API mostrados como texto, nunca como HTML.
+
+
+### Public catalogue and hero update · 7 November 2026
+
+The catalogue photo choices are Rent, Buy, Commercial and International. Commercial keeps the existing business operation filter; International selects the existing international region and persists in shared URLs even with a small catalogue. Changing between these choices clears the other category filter. Empty categories offer the existing search registration and Show all actions.
+
+At desktop widths, a hovered or keyboard-focused category widens; the photograph also zooms. Tablet uses two columns, phones stacked bands, and reduced motion keeps widths stable without animation. Hero arrows and one progress bar per property sit over the photograph; a hidden live counter supplies the same information to assistive technology. Native swipe and keyboard navigation remain available, with no autoplay.

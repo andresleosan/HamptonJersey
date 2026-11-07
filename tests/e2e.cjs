@@ -71,7 +71,7 @@ async function publicSite(browser) {
   assert.equal(await page.$("#portfolio"), null, "a page of its own, not the home page");
   const catalog = () => page.$$eval("#catalog #grid .card", cs => cs.map(c => c.getAttribute("href")).sort());
   assert.deepEqual(await catalog(), [...hrefs].sort(), "mixed at first: sales, rentals and businesses");
-  assert.deepEqual(await page.$$eval(".op-buttons button b", b => b.map(x => x.textContent)), ["Rent", "Buy", "Businesses"]);
+  assert.deepEqual(await page.$$eval(".op-buttons button b", b => b.map(x => x.textContent)), ["Rent", "Buy", "Commercial", "International"]);
   await shot(page, "properties");
   await page.click('.op-buttons button[data-op="rent"]');
   assert.deepEqual(await catalog(), ["/p/HE-R002"]);

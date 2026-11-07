@@ -34,12 +34,15 @@ async function shot(page, name, width) {
   const engine = process.env.DESIGN_BROWSER === 'webkit' ? webkit : chromium;
   const browser = await engine.launch(process.env.DESIGN_BROWSER === 'webkit' ? {} : {executablePath: process.env.CHROME});
   try {
-    for (const width of [1280, 390]) {
+    for (const width of (process.env.DESIGN_WIDTHS || '1280,390').split(',').map(Number)) {
       if (cases.includes('home')) {
         const {ctx, page} = await open(browser, width);
         await page.waitForSelector('.hero .slide');
         assert.equal(await page.locator('.hero .slide').count(), 5);
         assert.equal(await page.textContent('#hero-count'), '1 of 5');
+        assert.equal(await page.locator('.hero-bars span').count(), 5);
+        assert.equal(await page.locator('.hero-bars .is-current').count(), 1);
+        assert.ok(await page.locator('.hero-nav').evaluate(el => { const n=el.getBoundingClientRect(), h=el.closest('.hero').querySelector('.hero-track').getBoundingClientRect(); return n.top >= h.top && n.bottom <= h.bottom; }), 'controls overlay the photo');
         assert.ok(await page.locator('.hero-arrow[data-dir="-1"]').isDisabled());
         await page.evaluate(() => { window.heroSettled = new Promise(done => document.querySelector('.hero-track').addEventListener('scrollend', () => done(true), {once: true})); });
         if (width === 1280) {
@@ -63,6 +66,7 @@ async function shot(page, name, width) {
         await page.waitForFunction(() => document.querySelector('#hero-count').textContent === '3 of 5').catch(async e => { console.log('Hero state:', await page.evaluate(() => ({count: document.querySelector('#hero-count').textContent, left: document.querySelector('.hero-track').scrollLeft, width: document.querySelector('.hero-track').clientWidth, active: document.activeElement.className, viewport: innerWidth}))); throw e; });
         await page.$eval('.hero-track', t => { t.scrollLeft = t.clientWidth * 4; });
         await page.waitForFunction(() => document.querySelector('#hero-count').textContent === '5 of 5');
+        assert.ok(await page.locator('.hero-bars span').last().evaluate(el => el.classList.contains('is-current')));
         assert.ok(await page.locator('.hero-arrow[data-dir="1"]').isDisabled());
         assert.equal(await page.$eval('.hero-track', t => getComputedStyle(t).overscrollBehaviorX), 'contain');
         assert.equal(await page.$eval('.hero-track', t => getComputedStyle(t).scrollBehavior), 'auto', 'reduced motion');
@@ -127,17 +131,47 @@ async function shot(page, name, width) {
         assert.deepEqual(page.errors, []); await ctx.close();
       }
       if (cases.includes('catalog')) {
-        const {ctx, page} = await open(browser, width, fixture.slice(0, 4), 'properties');
+        const {ctx, page} = await open(browser, width, [listing(), {...listing(1), operation:'business', use:'commercial'}, {...listing(2), region:'international'}, {...listing(3), region:'international', operation:'rent'}], 'properties');
         await page.waitForSelector('.op-buttons button');
+        assert.deepEqual(await page.locator('.op-buttons b').allTextContents(), ['Rent','Buy','Commercial','International']);
+        await page.click('.op-buttons [data-op=international]');
+        await page.waitForFunction(() => document.querySelector('#count').textContent === '2 properties');
+        assert.ok(new URL(page.url()).searchParams.get('region') === 'international');
+        await page.reload(); await page.waitForSelector('.op-buttons [data-op=international][aria-pressed=true]');
+        assert.equal(await page.textContent('#count'), '2 properties');
+        await page.click('.op-buttons [data-op=business]');
+        assert.equal(await page.textContent('#count'), '1 property');
+        assert.equal(new URL(page.url()).searchParams.has('region'), false);
+        await page.click('.op-buttons [data-op=international]');
+        assert.equal(await page.textContent('#count'), '2 properties');
+        await page.click('.op-buttons [data-op=international]');
+        assert.equal(await page.textContent('#count'), '4 properties');
         if (width === 1280) {
           await page.emulateMedia({reducedMotion: 'no-preference'});
           const button = page.locator('.op-buttons button').first();
           const before = (await button.boundingBox()).width; await button.hover(); await page.waitForTimeout(750);
-          assert.equal(Math.round((await button.boundingBox()).width), Math.round(before), 'hover keeps button width');
+          assert.ok((await button.boundingBox()).width > before + 20, 'hover widens the property type');
           assert.equal(await page.$eval('#grid', el => getComputedStyle(el).gridTemplateColumns.split(' ').length), 2, 'four cards form two columns');
         }
+        for (const category of await page.locator('.op-buttons button').all()) {
+          if (width > 1100) { await category.hover(); await page.waitForTimeout(650); }
+          assert.ok(await category.evaluate(el => { const text=el.querySelector('b'), r=text.getBoundingClientRect(), range=document.createRange(); range.selectNodeContents(text); return range.getBoundingClientRect().width <= r.width + 1; }), 'category label fits, including while neighbours expand');
+        }
+        await page.emulateMedia({reducedMotion:'reduce'});
+        if (width > 1100) {
+          await page.mouse.move(0,0); const first=page.locator('.op-buttons button').first(), before=(await first.boundingBox()).width;
+          await first.focus(); assert.ok(Math.abs((await first.boundingBox()).width-before)<1, 'reduced motion keeps card sizes stable');
+        }
         assert.equal(await page.$eval('.op-txt small', el => getComputedStyle(el, '::after').content), 'none');
-        assert.ok(await noOverflow(page)); assert.deepEqual(page.errors, []); await shot(page, 'properties', width); await ctx.close();
+        assert.ok(await noOverflow(page), `${width}px: catalogue overflow: ${JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('body *')].filter(e => e.getBoundingClientRect().right > innerWidth + 1 && getComputedStyle(e).position !== 'absolute').slice(0,8).map(e=>({tag:e.tagName,cls:e.className,right:e.getBoundingClientRect().right}))))}`); assert.deepEqual(page.errors, []); await shot(page, 'properties', width); await ctx.close();
+        for (const total of [4,6]) {
+          const {ctx: emptyCtx,page: emptyPage}=await open(browser,width,Array.from({length:total},(_,i)=>listing(i)),'properties?region=international');
+          await emptyPage.waitForSelector('.op-buttons [data-op=international][aria-pressed=true]');
+          assert.equal(await emptyPage.textContent('#count'),'0 properties');
+          assert.ok(await emptyPage.locator('#grid .empty').isVisible());
+          await emptyPage.click('#show-all'); assert.equal(await emptyPage.locator('#grid .card').count(),total);
+          assert.ok(await noOverflow(emptyPage)); assert.deepEqual(emptyPage.errors,[]);await emptyCtx.close();
+        }
       }
       if (cases.includes('detail')) {
         const {ctx, page} = await open(browser, width, fixture, 'p/HE-R001');
@@ -196,6 +230,6 @@ async function shot(page, name, width) {
         }
       }
     }
-    console.log(`design e2e OK (${cases.join(', ')}, desktop + mobile, ${process.env.DESIGN_BROWSER || 'chromium'})`);
+    console.log(`design e2e OK (${cases.join(', ')}, widths ${process.env.DESIGN_WIDTHS || '1280,390'}, ${process.env.DESIGN_BROWSER || 'chromium'})`);
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });

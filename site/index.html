@@ -83,6 +83,7 @@ nav.main a:hover{color:var(--bronze-dk)}
   .tel{margin-left:auto}
 }
 @media (max-width:480px){.tel{display:none}.logo{font-size:16px;letter-spacing:.2em}}
+@media (max-width:360px){.logo{font-size:14px;letter-spacing:.16em}.logo small{letter-spacing:.28em}.menu-btn{padding-inline:10px;gap:8px;flex-shrink:0}}
 .skip{position:absolute;left:12px;top:-60px;z-index:50;background:var(--ink);color:var(--paper);padding:10px 16px;text-decoration:none}
 .skip:focus{top:12px}
 [tabindex="-1"]:focus{outline:none}
@@ -96,8 +97,13 @@ nav.main a:hover{color:var(--bronze-dk)}
 .slide>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .slide::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.4) 40%,rgba(0,0,0,.75))}
 .hero .wrap{position:relative;z-index:2;padding-block:64px;width:100%}
-.hero-nav{display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 24px}
-.hero-arrow{width:44px;height:44px;display:grid;place-items:center;border:1px solid currentColor;border-radius:999px;background:none;color:inherit;font-size:26px;cursor:pointer}
+.hero-with-nav .wrap{padding-bottom:112px}
+.hero-nav{position:absolute;bottom:20px;inset-inline:16px;z-index:3;display:flex;align-items:center;justify-content:center;gap:16px;pointer-events:none}
+.hero-bars{display:flex;gap:6px;align-items:center}
+.hero-bars span{width:clamp(12px,4vw,32px);height:3px;border-radius:2px;background:rgba(255,255,255,.4)}
+.hero-bars .is-current{background:var(--paper)}
+.hero-arrow{width:44px;height:44px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.75);border-radius:999px;background:rgba(21,21,21,.65);color:inherit;font-size:26px;cursor:pointer;pointer-events:auto}
+.hero-arrow:focus-visible{outline:2px solid var(--paper);outline-offset:4px}
 .hero-arrow:disabled{opacity:.4;cursor:default}
 .hero .meta{color:inherit;margin-block:16px 24px;font-size:14px;letter-spacing:0;gap:8px 16px}
 .hero .place{margin-bottom:8px;font-size:13px}
@@ -365,18 +371,18 @@ footer .staff:hover,footer .staff:focus-visible{opacity:1;text-decoration:underl
 .reg-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;margin-top:48px;padding-top:32px;border-top:1px solid var(--line)}
 .reg-cta p{margin:0;color:var(--stone);max-width:52ch}
 @media (max-width:480px){.reg-cta .btn{width:100%;padding-inline:16px}}
-/* PUB-22: /properties. Design A (Luis, 6-nov): three photo buttons; the hovered or chosen photo zooms in slowly
-   without changing the button width. Text sits on a dark gradient for contrast. Stacked bands on phones; no motion when reduced. */
+/* /properties: four photo categories; the hovered or focused button widens on desktop and its photo zooms. Text sits on a dark gradient for contrast. Stacked bands on phones; no motion when reduced. */
 .catalog h1{font:400 clamp(30px,4.4vw,52px)/1.08 var(--display);letter-spacing:.01em;margin:0 0 32px}
 .op-buttons{display:flex;gap:12px;height:clamp(200px,26vw,320px);margin-bottom:28px}
 .op-buttons button{flex:1;min-width:0;position:relative;overflow:hidden;border:0;border-radius:var(--r-lg);padding:0;cursor:pointer;color:#fff;
-  background:#222;text-align:left;font:inherit}
+  background:#222;text-align:left;font:inherit;transition:flex .6s cubic-bezier(.2,.8,.2,1)}
 .op-ph{position:absolute;inset:0;background:#222 center/cover no-repeat;transition:transform 1.2s cubic-bezier(.2,.8,.2,1)}
 /* Ink gradient: white text keeps ≥ 4.5:1 even on a light photo (darker on phones, where the text fills more of the band). */
 .op-buttons button::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(21,21,21,.12),rgba(21,21,21,.78))}
 .op-txt{position:absolute;left:clamp(18px,2.4vw,28px);right:12px;bottom:clamp(16px,2.2vw,24px);z-index:1;display:grid;gap:8px}
-.op-txt b{font:400 clamp(30px,3.6vw,46px)/1 var(--display);letter-spacing:.08em;text-shadow:0 1px 14px rgba(0,0,0,.45)}
+.op-txt b{font:400 clamp(24px,2.2vw,32px)/1.1 var(--display);letter-spacing:.01em;text-shadow:0 1px 14px rgba(0,0,0,.45)}
 .op-txt small{font-size:13px;font-weight:400;opacity:.92}
+.op-buttons button:is(:hover,:focus-visible){flex:1.6}
 .op-buttons button[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:4px}
 .op-buttons button:is(:hover,:focus-visible) .op-ph,.op-buttons button[aria-pressed=true] .op-ph{transform:scale(1.04)}
 .op-buttons button:focus-visible{outline:3px solid var(--bronze);outline-offset:3px}
@@ -385,6 +391,7 @@ footer .staff:hover,footer .staff:focus-visible{opacity:1;text-decoration:underl
 .catalog-filters .field{width:180px}
 .catalog .count{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;margin:0 0 28px;color:var(--stone);font-size:13px}
 #show-all{min-height:44px;padding-inline:8px}
+@media (min-width:701px) and (max-width:1100px){.op-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));height:auto}.op-buttons button{height:200px}}
 @media (max-width:700px){.op-buttons{flex-direction:column;height:auto}
   .op-buttons button::after{background:linear-gradient(180deg,rgba(21,21,21,.45),rgba(21,21,21,.82))}
   .op-buttons button,.op-buttons button:is(:hover,:focus-visible),.op-buttons button[aria-pressed=true]{flex:none;height:140px}}
@@ -726,7 +733,7 @@ function home() {
                 "Handles day-to-day sales and lettings, from first viewing to completion. Your first call for viewings, offers and rental enquiries."];
   const sel = (id, obj, cur) => `<select id="${id}">${Object.entries(obj).map(([k, v]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${v}</option>`).join("")}</select>`;
   $("#app").innerHTML = `
-  <section class="hero" ${few ? 'aria-roledescription="carousel" aria-label="Featured properties"' : ""}>
+  <section class="hero${few && slides.length > 1 ? " hero-with-nav" : ""}" ${few ? 'aria-roledescription="carousel" aria-label="Featured properties"' : ""}>
     ${few ? `<h1 class="sr">Homes for sale and to let in Jersey</h1><div class="hero-track" tabindex="0" aria-label="Property gallery">
       ${slides.map((p, i) => `<article class="slide" role="group" aria-roledescription="slide" aria-label="${i + 1} of ${slides.length}" data-id="${esc(p.id)}">
         <img src="${esc(p.image)}" alt="" ${i ? 'loading="lazy"' : 'fetchpriority="high"'}>
@@ -736,7 +743,8 @@ function home() {
             <button class="btn ghost" type="button" data-book="${esc(p.id)}">Book a viewing</button></div></div>
       </article>`).join("")}</div>
       ${slides.length > 1 ? `<div class="hero-nav"><button type="button" class="hero-arrow" data-dir="-1" aria-label="Previous property" disabled>‹</button>
-        <span id="hero-count" aria-live="polite">1 of ${slides.length}</span>
+        <div class="hero-bars" aria-hidden="true">${slides.map((_, i) => `<span${i ? "" : ' class="is-current"'}></span>`).join("")}</div>
+        <span id="hero-count" class="sr" aria-live="polite">1 of ${slides.length}</span>
         <button type="button" class="hero-arrow" data-dir="1" aria-label="Next property">›</button></div>` : ""}` : `
     <div class="slide"><img src="${esc(feat.image)}" alt="" fetchpriority="high"><div class="wrap">
     <div class="place">Jersey, Channel Islands</div>
@@ -830,6 +838,7 @@ function home() {
     const gallery = snapTrack(track, i => {
       const count = $("#hero-count", hero);
       if (count) count.textContent = `${i + 1} of ${slides.length}`;
+      hero.querySelectorAll(".hero-bars span").forEach((bar, n) => bar.classList.toggle("is-current", n === i));
       hero.querySelectorAll(".hero-arrow").forEach(b => { b.disabled = +b.dataset.dir < 0 ? i === 0 : i === slides.length - 1; });
     });
     hero.addEventListener("click", e => {
@@ -857,9 +866,8 @@ function home() {
   });
 }
 
-// PUB-22 (spec 2026-11-06): the catalogue on its own page, mixed at first. Three photo buttons narrow it to one
-// operation (pressing the chosen one again, or Show all, brings the mix back); the URL follows so it can be shared.
-const OP_BUTTONS = [["rent", "Rent", "Homes to let"], ["sale", "Buy", "Homes for sale"], ["business", "Businesses", "Businesses for sale"]];
+// The catalogue categories select an operation or the international region. Press again to show all; URLs are shareable.
+const OP_BUTTONS = [["rent", "Rent", "Homes to let"], ["sale", "Buy", "Homes for sale"], ["business", "Commercial", "Commercial properties"], ["international", "International", "Properties abroad"]];
 const NO_FILTER = {region: "all", op: "all", beds: 0, max: 0};
 function properties() {
   clearGallery();
@@ -867,7 +875,7 @@ function properties() {
   document.title = `Properties · ${BRAND}`;
   $("#app").innerHTML = `<section class="block catalog" id="catalog"><div class="wrap">
     <h1>Find your home in Jersey</h1>
-    <div class="op-buttons" role="group" aria-label="Rent, buy or businesses">${OP_BUTTONS.map(([op, word, sub]) =>
+    <div class="op-buttons" role="group" aria-label="Property categories">${OP_BUTTONS.map(([op, word, sub]) =>
       `<button type="button" data-op="${op}" aria-pressed="false"><span class="op-ph" style="background-image:url('${esc(buttonPhoto(PUB, op) || "/og-image.jpg")}')"></span>
         <span class="op-txt"><b>${word}</b><small>${sub}</small></span></button>`).join("")}</div>
     ${full ? `<div class="catalog-filters">
@@ -881,7 +889,7 @@ function properties() {
   </div></section>`;
   const fillMax = () => {
     const list = MAX[filter.op] || [];
-    $("#c-max").innerHTML = `<option value="0">${list.length ? "No limit" : "Choose Rent, Buy or Businesses"}</option>` +
+    $("#c-max").innerHTML = `<option value="0">${list.length ? "No limit" : "Choose Rent, Buy or Commercial"}</option>` +
       list.map(n => `<option value="${n}" ${n === filter.max ? "selected" : ""}>${short(n, filter.op)}</option>`).join("");
     $("#c-max").disabled = !list.length;
   };
@@ -892,7 +900,7 @@ function properties() {
       <a class="btn ghost" href="#/apply">Register your search</a></div>`;
     $("#count").textContent = `${list.length} ${list.length === 1 ? "property" : "properties"}`;
     $("#show-all").hidden = Object.entries(NO_FILTER).every(([k, v]) => filter[k] === v);
-    document.querySelectorAll(".op-buttons button").forEach(b => b.setAttribute("aria-pressed", b.dataset.op === filter.op));
+    document.querySelectorAll(".op-buttons button").forEach(b => b.setAttribute("aria-pressed", b.dataset.op === "international" ? filter.region === "international" : b.dataset.op === filter.op));
     if (full) {
       document.querySelectorAll("#tabs-region button").forEach(b => b.setAttribute("aria-pressed", b.dataset.region === filter.region));
       $("#c-beds").value = filter.beds; fillMax();
@@ -900,7 +908,9 @@ function properties() {
     history.replaceState(null, "", "/properties" + catalogQuery(filter)); routed = location.href;
   };
   const set = patch => { Object.assign(filter, patch); if ("op" in patch) filter.max = 0; render(); };
-  $(".op-buttons").addEventListener("click", e => { const op = e.target.closest("button")?.dataset.op; if (op) set({op: filter.op === op ? "all" : op}); });
+  $(".op-buttons").addEventListener("click", e => { const op = e.target.closest("button")?.dataset.op; if (!op) return;
+    if (op === "international") set({region: filter.region === "international" ? "all" : "international", op: "all", beds: 0});
+    else set({op: filter.op === op ? "all" : op, region: "all"}); });
   $("#show-all").addEventListener("click", () => set({...NO_FILTER}));
   if (full) {
     $("#tabs-region").addEventListener("click", e => { const r = e.target.closest("button")?.dataset.region; if (r) set({region: r}); });
