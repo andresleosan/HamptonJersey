@@ -8,3 +8,6 @@ __pycache__/
 coordination/public/
 coordination/build/
 .superpowers/
+
+coordination/public-board/
+coordination/build-public/

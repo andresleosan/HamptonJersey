@@ -110,6 +110,12 @@ Haz commit y push según la autorización de la sesión. En Hermes, pide el sí 
 
 Presenta la recomendación al final, tanto desde la VPS como desde Hermes, junto con el resultado de las pruebas y la publicación. Si el cierre queda bloqueado, prioriza resolverlo y refleja la recomendación corregida en el relevo privado. No añadas otro commit después del sí para cambiar la recomendación. Actualiza el relevo con el resultado real después de publicar.
 
+## Registrar el progreso al cerrar /avanzar
+
+Antes de responder al usuario, actualizar el estado confirmado del coordinador: `submit` para una entrega en revisión, `pause` si queda trabajo pendiente y `complete` solo si existen las evidencias reales de cierre. Registrar el cierre de publicación y la importación del catálogo cuando corresponda. Consultar después `status` y anotar el resultado. No cambiar una tarea a terminada por haber acabado un turno de chat, ni abandonar una reserva con trabajo pendiente. Si falla la red, conservar el relevo y explicar que el tablero aún no confirmó el cambio.
+
+El tablero público previsto consulta automáticamente una proyección reducida del mismo estado. No hay que subir manualmente otro HTML, editar el tablero ni enviarle claves. La consulta pública no concede autoridad para tomar tareas o publicar código. Hasta desplegar la vista pública, el coordinador privado sigue siendo el origen de las operaciones.
+
 ## Relevo y respuesta
 
 Sobrescribe `.claude/relevo-avanzar.md` al cerrar: fecha, códigos y commits, comprobaciones, subida y despliegue confirmados o pendientes, migraciones y marcador si hubo, pendientes y responsable, próxima tarea y motivo. Añade el motor y modelo elegidos para la siguiente tarea con su motivo; indica esfuerzo solo si aplica. En el flujo opcional de Codex usa `Modelo recomendado Codex para <código>: <modelo recomendado> · esfuerzo <nivel> · por qué: <frase>`. Es un archivo privado local.

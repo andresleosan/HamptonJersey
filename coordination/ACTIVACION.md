@@ -88,3 +88,11 @@ No instalar servicios permanentes del cliente para renovar sesiones. `watch` se 
 Con GPT/Codex o Hermes → OpenCode → DeepSeek, el cliente habilitado aplica [inicio-guiado.md](../.agents/skills/avanzar/references/inicio-guiado.md). `/new` abre la conversación de Hermes y `/avanzar` inicia la guía. La guía instalada ya se comprobó en ambos bots sin enviar mensajes ni hacer inferencias adicionales. No declara incorporados clientes sin su credencial y prueba real.
 
 OpenCode está fijado a `deepseek/deepseek-flash#max`; los perfiles de Hermes conservan GPT como principal y fallback `deepseek-flash` con `agent.reasoning_overrides` max. La API llama así a DeepSeek V4.1 Flash 1017. Se probaron respuestas reales con variante explícita en ambos talleres y clasificación simulada de errores 401/429; no se agotó GPT a propósito.
+
+## Vista pública de consulta (entrega preparada)
+
+Luis pidió un enlace público sin login. `coordination/wrangler.public.toml` prepara el Worker `hampton-tareas` con assets mínimos y binding de lectura al objeto existente. El enlace previsto es `https://hampton-tareas.andres-san1404.workers.dev/`; no declararlo publicado hasta verificar su despliegue. `npm run team:public:build` valida assets y bundle sin desplegar. Después del SHA aprobado, desplegar únicamente esta configuración con la cuenta fijada y verificar GET200 sin login/POST405; el coordinador privado y Access siguen intactos.
+
+El público consulta cada15s y comparte JSON reducido durante5s. Solo muestra código/título/lista/estado/progreso anónimo/fecha. No contiene identidades, sesiones, recursos, evidencias ni claves. La página privada puede seguir disponible para sus lectores autorizados. Los agentes siguen usando el endpoint de `hampton-team-coordinator`; nunca inicializar el CLI contra el Worker público.
+
+Al cerrar /avanzar, registrar primero el estado real por los comandos ya existentes y confirmar con status. No subir manualmente un HTML ni marcar como terminado un pendiente para actualizar la vista.

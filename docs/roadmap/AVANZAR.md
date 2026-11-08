@@ -44,6 +44,10 @@ Leer [ESTADO](ESTADO.md), [checklist](checklist-hampton-app.html), [reconciliaci
 
 El texto original de Luis y el relevo privado permanecen fuera de Git. Los requisitos públicos pueden resumirse sin copiar datos personales, credenciales ni el documento privado completo.
 
+## Tablero público y cierre del turno
+
+La entrega del [tablero público](../superpowers/specs/2026-11-08-tablero-publico-design.md) prepara un enlace sin login para consultar Lista1–4 y progreso anónimo. Se publica como servicio separado del coordinador; no cambiar las credenciales o el endpoint de los agentes por el enlace público. Antes de responder al cerrar /avanzar, registrar el resultado real con submit/pause/complete y comprobar status. La vista lo recoge automáticamente, normalmente en unos20s cuando está visible y conectada. No declarar una tarea terminada si faltan evidencias o publicación.
+
 ## Ciclo y evidencia
 
 | Paso | Resultado comprobable |

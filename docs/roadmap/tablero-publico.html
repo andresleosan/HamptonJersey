@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lista 1–4 · Hampton</title><meta name="description" content="Consulta pública del progreso de las cuatro listas de tareas de Hampton.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Open+Sans:wdth,wght@75..100,400..800&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap">
+<link rel="stylesheet" href="equipo.css"><script src="tablero-publico.js" defer></script></head><body>
+<a class="skip" href="#columns">Saltar a las listas</a>
+<header><p class="muted">Hampton · tareas del equipo</p><h1>Lista 1–4</h1>
+<p class="note">Consulta pública, sin clave. Se actualiza cada 15 segundos mientras está abierta. Al cerrar una tarea con <code>/avanzar</code>, su progreso aparecerá automáticamente en unos segundos.</p>
+<div class="connection-panel"><p id="connection" role="status" aria-live="polite">Conectando…</p><p id="updated" class="muted"></p><button id="refresh" type="button">Actualizar ahora</button></div>
+<p id="totals" class="summary"></p><div class="toolbar">
+<label>Buscar tarea<input id="search" type="search" placeholder="Código o título"></label>
+<label>Lista<select id="list"><option value="">Las cuatro listas</option><option value="1">Lista 1</option><option value="2">Lista 2</option><option value="3">Lista 3</option><option value="4">Lista 4</option></select></label>
+<label>Actividad<select id="activity"><option value="">Todas</option><option value="planning">Planificando</option><option value="active">En curso</option><option value="submitted">En revisión</option><option value="completed">Trabajo completado</option><option value="paused">Pausada</option><option value="stale">Sin contacto</option><option value="unreserved">Sin reserva</option></select></label>
+<button id="reset" type="button">Mostrar todas</button></div><p id="result" class="muted" role="status"></p></header>
+<main><div id="columns" class="columns" tabindex="-1"></div><noscript>Activa JavaScript para ver la actualización automática.</noscript></main>
+<footer><p>Cualquier herramienta puede trabajar en cualquiera de las cuatro listas. Las tareas se seleccionan y reservan desde <code>/avanzar</code>. El estado corresponde al checklist y la actividad al trabajo registrado. «Sin reserva» no confirma que una tarea esté habilitada para construir.</p></footer>
+</body></html>

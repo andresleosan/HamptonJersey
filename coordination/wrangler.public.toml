@@ -1,0 +1,16 @@
+name = "hampton-tareas"
+main = "src/public-worker.mjs"
+compatibility_date = "2026-10-01"
+workers_dev = true
+preview_urls = false
+
+# Read the existing state; no new namespace, migrations, credentials or write routes.
+[[durable_objects.bindings]]
+name = "BOARD_SOURCE"
+class_name = "TeamCoordinator"
+script_name = "hampton-team-coordinator"
+
+[assets]
+directory = "./public-board"
+binding = "ASSETS"
+run_worker_first = true
