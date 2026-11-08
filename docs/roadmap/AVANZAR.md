@@ -1,6 +1,6 @@
 # Avanzar una tarea de Hampton App
 
-Contrato compartido por Codex y Hermes, actualizado el 7-nov-2026. En Codex se invoca `$avanzar <código>`; por Telegram, `/avanzar <código>`. Sin código, se presentan tres tareas viables para que Luis elija.
+Contrato compartido por Codex y Hermes, actualizado el 8-nov-2026. En Codex se invoca `$avanzar <código>`; por Telegram, `/avanzar <código>`. Sin código, se presentan tres tareas viables para que Luis elija.
 
 La [skill versionada](../../.agents/skills/avanzar/SKILL.md) contiene el procedimiento completo. Se lee desde el clon actual de HamptonJersey, también cuando Hermes arranca una skill instalada en el taller. Esta guía enlaza el contrato; no instala ni sincroniza copias externas.
 
@@ -9,6 +9,18 @@ La [skill versionada](../../.agents/skills/avanzar/SKILL.md) contiene el procedi
 **Primero GitHub, en VPS, Hermes1/Hermes2 y PC/VS Code:** aplicar «Primero: verificar y alinear con GitHub» de la skill. Origen canónico `https://github.com/andresleosan/HamptonJersey.git`, rama main. Clonar si falta; fetch y comparación real si existe; fast-forward solo para main limpio atrasado. Conservar cambios/commits de la tarea al retomar. Para ramas o trabajo ajenos, copia aislada si el entorno la permite; en Hermes prevalecen candado y clon obligatorio. Sin red no declarar sincronización. Leer después la skill y los documentos de la copia verificada. Esto no publica ni transfiere cambios privados sin subir.
 
 Una instalación en otro equipo necesita poder descubrir `/avanzar` o `$avanzar` una primera vez. Las copias de arranque deben contener esta comprobación y remitir a la skill versionada, sin mantener otra política independiente. Publicar la skill en GitHub no acredita que ya se haya actualizado una instalación inaccesible; registrar cuáles se comprobaron.
+
+**Comprobación automática por invocación:** el agente ejecuta `node scripts/check-avanzar.mjs` desde la raíz del clon al iniciar o reanudar, y antes de preparar la publicación. Luis solo invoca avanzar. Requiere Git y Node, sin dependencias npm nuevas; admite `--repo <ruta>` para comprobar una copia desde otra carpeta. Funciona con raíces Git y worktrees, sin rutas fijas de VPS, Windows, VS Code o Hermes. El Git que resuelve el entorno conserva sus wrappers; en Hermes se toma primero el candado. Si una copia vieja todavía no contiene el script, el arranque de la skill la verifica y alinea antes de ejecutarlo.
+
+El JSON deja fecha, ruta, rama, SHA local/main/remoto, relación entre commits y recuentos de cambios preparados, sin preparar y sin seguimiento. Salida `0`: main limpio e igual; `2`: clasificar trabajo local o desalineación; `1`: sincronización no verificada. Un SHA igual con archivos modificados no es una copia idéntica. La skill define cómo continuar preservando la tarea. Antes de publicar un SHA aprobado se usa `--approved-sha <SHA completo>` (o `TALLER_SHA_APROBADO` en Hermes): comprueba que el commit sigue intacto e incluye lo publicado, sin autorizar el push.
+
+| Entorno | Entrada al contrato compartido |
+| --- | --- |
+| Codex en VS Code o terminal | `.agents/skills/avanzar/SKILL.md`, invocada con `$avanzar`. |
+| Claude Code en VS Code o terminal | [`.claude/commands/avanzar.md`](../../.claude/commands/avanzar.md), invocada con `/avanzar`; conserva los argumentos y remite a la misma skill. |
+| Hermes con Codex o Claude | Arranque instalado → candado → clon verificado → skill versionada → verificador. Conserva el flujo de publicación del taller. |
+
+Estos archivos viajan con el repositorio. Una copia que nunca recibió este arranque necesita obtenerlo una vez mediante clon/actualización; una copia instalada antigua que ya remite a la skill del clon la relee tras alinear. No se requiere que Luis ejecute el verificador en cada tarea.
 
 Leer [ESTADO](ESTADO.md), [checklist](checklist-hampton-app.html), [reconciliación y orden de automatización](2026-11-07-reconciliacion-automatizacion.md), [arquitectura](2026-10-23-arquitectura-hampton-app.md), spec/plan de la tarea y [DESIGN.md](../../DESIGN.md). Contrastar la documentación con código y pruebas; separar lo construido de lo que espera configuración, autorización o un proveedor externo.
 
