@@ -72,8 +72,8 @@
 - [x] Probar la capa de instalación para una futura imagen sin red y con todas las capacidades retiradas, preservando hashes de guardas. No reiniciar talleres para OpenCode.
 - [x] Confirmar que ambos paneles Hermes admiten el proveedor nativo DeepSeek; cancelar el login Codex pendiente que ya no se necesita.
 - [x] Documentar `Keys → DeepSeek API Key → Save`, selección del modelo y sesión nueva; indicar que no configura OpenCode automáticamente.
-- [ ] Confirmar que Luis ha guardado una clave DeepSeek distinta por panel. El operador aprovisiona selectivamente cada clave en el OpenCode de su taller, sin `.env` completo ni passthrough SSH.
-- [ ] Tras disponer de claves reales, comprobar una inferencia mínima y revisión independiente por taller; registrar resultados observados sin inventar éxito ni gasto.
+- [x] Confirmar que Luis ha guardado una clave DeepSeek distinta por panel. El operador aprovisiona selectivamente cada clave en el OpenCode de su taller, sin `.env` completo ni passthrough SSH.
+- [x] Tras disponer de claves reales, comprobar una inferencia mínima y revisión independiente por taller; registrar resultados observados sin inventar éxito ni gasto.
 
 ### Task 5: Final verification and reviewed delivery
 

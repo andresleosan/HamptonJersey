@@ -48,7 +48,7 @@ Luis sigue escribiendo `/avanzar` en Hermes; el agente realiza estas operaciones
 
 ## Hermes, OpenCode y DeepSeek
 
-El flujo elegido es **Hermes recibe el encargo → OpenCode construye y revisa → DeepSeek aporta el modelo**. Cada taller conserva sus sesiones y almacenes privados. OpenCode V2 oficial `@opencode/cli@2.2.6` está instalado y su versión se comprobó en ambos talleres. Usa configuración administrada, ejecución `run --standalone --format json` y no comparte servidor. El diagnóstico del helper rechaza continuar sin clave. La revisión independiente de sus controles dio PASS: directorio canónico, variables permitidas sin credenciales de Cloudflare ni aprobaciones, filtrado de stdout/stderr, configuración administrada intacta, revisión nueva sin shell y ejecución standalone en loopback. La capa de instalación para una futura imagen se probó sin red y con todas las capacidades retiradas, conservando los hashes de las guardas; no se reinició ningún taller para instalar OpenCode. Estas comprobaciones no incluyen inferencia real. La interfaz del taller es:
+El flujo elegido es **Hermes recibe el encargo → OpenCode construye y revisa → DeepSeek aporta el modelo**. Cada taller conserva sus sesiones y almacenes privados. OpenCode V2 oficial `@opencode/cli@2.2.6` está instalado y su versión se comprobó en ambos talleres. Usa configuración administrada, ejecución `run --standalone --format json` y no comparte servidor. El diagnóstico del helper rechaza continuar sin clave. La revisión independiente de sus controles dio PASS: directorio canónico, variables permitidas sin credenciales de Cloudflare ni aprobaciones, filtrado de stdout/stderr, configuración administrada intacta, revisión nueva sin shell y ejecución standalone en loopback. La capa de instalación para una futura imagen se probó sin red y con todas las capacidades retiradas, conservando los hashes de las guardas; no se reinició ningún taller para instalar OpenCode. La inferencia mínima real también está comprobada en ambos talleres, según el resultado siguiente. La interfaz del taller es:
 
 ```sh
 taller-opencode build -- <encargo>
@@ -58,11 +58,11 @@ taller-opencode review -- <encargo de revisión>
 
 La revisión siempre inicia una sesión nueva y no admite `--session`. El helper mantiene las guardas Git y el candado local, y excluye las marcas de aprobación de sus procesos. Tras revisar y aprobar el SHA exacto, Hermes realiza la publicación con un mandato separado mediante los wrappers existentes. La disponibilidad del binario no acredita autenticación ni inferencia correcta.
 
-La versión instalada de Hermes ya admite DeepSeek. Cada bot requiere una clave distinta, cuya disponibilidad todavía debe confirmarse. Se guarda desde su propio panel: `Keys → DeepSeek API Key → Save`. Después elegirá `Models → Main Model → Change → DeepSeek → deepseek-v4-pro → Apply` y abrirá una sesión nueva. No introducir las claves por Telegram ni en documentos públicos.
+La versión instalada de Hermes ya admite DeepSeek. Cada bot tiene una clave distinta verificada y provisionada en su propio taller. Se guarda desde su propio panel: `Keys → DeepSeek API Key → Save`. Después elegirá `Models → Main Model → Change → DeepSeek → deepseek-v4-pro → Apply` y abrirá una sesión nueva. No introducir las claves por Telegram ni en documentos públicos.
 
 **Cambiar Hermes no configura OpenCode automáticamente.** Tras guardar cada clave, el operador aprovisiona exclusivamente esa clave en el almacén privado del OpenCode de ese taller, por el canal administrativo autorizado. No se copia el `.env` completo ni se habilita el passthrough SSH de credenciales de proveedores. El modelo de OpenCode queda configurado explícitamente. Rotar o eliminar una clave en el panel exige revisar también el almacén de OpenCode.
 
-Las claves reales y la prueba de inferencia de cada taller siguen pendientes; no se ha hecho una petición de pago para acreditarlas. El login Codex pendiente de Hermes 2 se canceló porque ya no es requisito del flujo elegido. Codex puede seguir siendo una opción explícita de Luis, sin convertirlo en una dependencia de Hermes.
+Ambas claves DeepSeek están guardadas y aprovisionadas selectivamente en su taller correspondiente, en archivos privados 0600. Se comprobó en memoria que son distintas. Ambos clientes obtienen HTTP 200 en la consulta de modelos y ejecutan una prueba mínima real de construcción y otra de revisión con `deepseek/deepseek-v4-pro`: salida 0, respuesta exacta, sesiones distintas, cero herramientas y Git intacto; candados propios liberados. Estas pruebas verifican la conexión del motor, sin acreditar todavía el piloto completo de tareas coordinadas. El login Codex pendiente de Hermes 2 se canceló porque ya no es requisito del flujo elegido. Codex puede seguir siendo una opción explícita de Luis, sin convertirlo en una dependencia de Hermes.
 
 ## Piloto por cliente y comprobación del equipo
 
@@ -75,7 +75,7 @@ Las claves reales y la prueba de inferencia de cada taller siguen pendientes; no
 - Suspender un cliente y comprobar «sin contacto» sin ceder su trabajo; recuperarlo con relevo y aceptación explícita de nueva generación.
 - Preparar dos entregas: una sola integración/publicación a la vez. Revisar el SHA final antes de aprobarlo y conservarlo intacto después.
 - Verificar navegador real a 1280/390 y zoom 200 %. Las pruebas DOM anteriores no sustituyen este recorrido; el arranque nativo estuvo bloqueado por el entorno de sandbox/root.
-- Cuando Luis guarde las claves y se aprovisionen en los talleres, verificar una ejecución mínima y una revisión nueva con DeepSeek por taller, registrando resultado real sin exponer credenciales.
+- Pruebas mínimas reales de construcción y revisión DeepSeek por taller: comprobadas; conservar como pendiente el piloto completo de reservas y publicación.
 
 ## Operación y coste
 
