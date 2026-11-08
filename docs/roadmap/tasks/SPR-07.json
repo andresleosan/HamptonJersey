@@ -1,0 +1,49 @@
+{
+  "id": "SPR-07",
+  "seccion": "Seguimiento · Propiedades",
+  "titulo": "Fuente, última verificación, interesados y filtros extra en el seguimiento de propiedades",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Construido el 6-nov-2026 (sin migración; spec docs/superpowers/specs/2026-11-05-hampton-app-listing-tracking-design.md). La lista de Listings tiene tres columnas nuevas: Checked («12 days ago», desde la última confirmación), Matched (aplicantes con match, los mismos que la ficha) e Interested (el interés activo, con la regla de la web). Filtros Min price y Max price en £ (venta y negocio por el precio total; alquiler por la renta al mes, pasando la semanal o anual a mensual) y la casilla Changed in the last 7 days (cualquier cambio guardado). La ficha sigue mostrando Active interest y Matched applicants.",
+  "falta": "M02 · Reconciliación 7-nov: La fuente (Hampton o agencia), en columna y en filtro: llegará con la búsqueda del mercado. Luis decidió el 6-nov-2026 que esa búsqueda la hará Hermes, un agente, sin atarse a ninguna página; queda por diseñar. «Cambió en los últimos 7 días» podrá afinarse a precio y disponibilidad cuando exista el historial de la ficha (SPR-02). Distinguir la última observación web de la confirmación comercial con evidencia: Checked/confirmed_at del catálogo se refresca también al publicar o cambiar precio y no acredita por sí solo disponibilidad del anunciante. Fuentes y filtros se completan con el inventario común. Depende de: BUS-10, EST-16.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Listings.jsx",
+    "server/routes/listings.js",
+    "tests/server/listings-list.test.mjs",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M02",
+  "deps": [
+    "BUS-10",
+    "EST-16"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "BUS-10",
+      "requires": "integrated",
+      "reason": "Solo la procedencia y filtros del inventario común esperan la propiedad normalizada; la tarjeta propia existe.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "EST-16",
+      "requires": "integrated",
+      "reason": "Solo separar observación y confirmación del inventario común espera ese contrato.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "inventory-contract",
+    "listings-schema"
+  ],
+  "nextStep": "Añadir procedencia y filtros distinguiendo observación web de confirmación comercial."
+}

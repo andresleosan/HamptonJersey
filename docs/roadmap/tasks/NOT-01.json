@@ -1,0 +1,63 @@
+{
+  "id": "NOT-01",
+  "seccion": "Notificaciones",
+  "titulo": "Inbox en tiempo real con un aviso por cada novedad de la app y de la web",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Inbox se refresca cada 30 s mientras la pestaña está visible y la barra muestra su contador; recibe avisos de aplicantes nuevos, registros repetidos, altas del equipo (al Feed), solicitudes de visita de la web y matches nuevos. Sales, Rentals, Applicants (expiring) y, desde el 30-oct-2026, Listings (fichas por confirmar, ADM-04) tienen su propio número en la barra.",
+  "falta": "M13 · Reconciliación 7-nov: Avisos en Inbox para el resto de eventos: visitas reservadas por el equipo, ofertas e hitos de venta, y atrasos, plazos y reparaciones de alquiler (estos solo suman en los contadores Sales y Rentals), las fichas por confirmar (solo suman en el de Listings: llevarlas al Inbox obliga a rehacer las tablas events y notifications, cuyos CHECK no admiten fichas) y los demás cambios de fichas (no avisan en ningún sitio); y la notificación del navegador para lo urgente (§5.1), que no existe. Añadir los eventos de este recorrido: MUST desconocido, fuente fallida, llamada a los dos días, respuesta útil, captura completa/parcial con Abrir ficha, confirmaciones de visita, indisponibilidad, revisión interna del día 21 y propuesta dictada. Cada aviso lleva responsable, contexto y enlace, y se actualiza al llegar nuevos datos. Depende de: NOT-11, EST-18.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Inbox.jsx:38-39",
+    "admin/src/poll.js:3-13",
+    "admin/src/App.jsx:74-77",
+    "admin/src/App.jsx:123-134",
+    "server/routes/notifications.js:13",
+    "server/routes/notifications.js:36-52",
+    "migrations/0009_matches.sql:49",
+    "server/routes/sales.js:224-226",
+    "server/routes/rent.js:102-115",
+    "server/routes/inbox.js:55-76",
+    "server/routes/notifications.js:47-48",
+    "migrations/0008_applicants.sql:63",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M13",
+  "deps": [
+    "NOT-11",
+    "EST-18"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "NOT-11",
+      "requires": "integrated",
+      "reason": "Contrato de tareas con responsable y cierre consistente.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-18",
+      "requires": "integrated",
+      "reason": "Eventos del recorrido para alimentar los avisos.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "notifications-schema",
+    "inbox-ui",
+    "events-contract",
+    "viewings-contract",
+    "sales-contract",
+    "rentals-contract",
+    "listings-contract"
+  ],
+  "nextStep": "Completar los avisos y productores del recorrido sobre el contrato común de NOT-11 y EST-18."
+}

@@ -1,0 +1,51 @@
+{
+  "id": "SAP-09",
+  "seccion": "Seguimiento · Aplicantes",
+  "titulo": "Acciones rápidas Send shortlist y Book viewing en la ficha del aplicante",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Se puede reservar por teléfono en Viewings › New viewing (huecos reales por negociador, confirmada al momento), que puede abrirse con la casa ya elegida (?listing=), pero no desde la ficha del aplicante ni con sus datos puestos.",
+  "falta": "M08/M09 · Reconciliación 7-nov: Enlazar la ficha del aplicante y el match con la presentación privada AGE-11 y coordinación VIS-17, reutilizando contacto y franjas. En propiedades externas, Book viewing inicia propuesta y confirmaciones; nunca presenta la reserva de un hueco local como aceptación del anunciante. Depende de: AGE-11, VIS-17.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/ApplicantDetail.jsx:278-283",
+    "admin/src/Viewings.jsx:132",
+    "admin/src/Viewings.jsx:291-293",
+    "server/routes/inbox.js:55-76",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M08/M09",
+  "deps": [
+    "AGE-11",
+    "VIS-17"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AGE-11",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "VIS-17",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "applicants-ui",
+    "private-presentations",
+    "viewings-contract"
+  ],
+  "nextStep": "Conectar presentación y propuesta de visita con AGE-11 y VIS-17, sin confirmar al anunciante por deducción."
+}

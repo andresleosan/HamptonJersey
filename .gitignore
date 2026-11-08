@@ -5,3 +5,6 @@ build/
 .dev.vars
 test-results/
 __pycache__/
+coordination/public/
+coordination/build/
+.superpowers/

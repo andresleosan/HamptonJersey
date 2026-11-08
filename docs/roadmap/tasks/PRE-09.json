@@ -1,0 +1,42 @@
+{
+  "id": "PRE-09",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Aviso de privacidad con base legal en el registro y en el portal",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "La web tiene #/privacy (responsable, usos, base legal, encargados, plazos, derechos y contacto), enlazado en el pie y obligatorio en el último paso de Register your search.",
+  "falta": "Faltan la razón social y el número de la JOIC (hoy dice Hampton Estates, 42 Bath Street) y el aviso en el portal, que no existe. Además, el formulario de visitas no lo enlaza junto a Request viewing (solo desde el pie), y el aviso no cubre a propietarios e inquilinos de Rentals (6 años, R19) ni nombra a Google (fuentes de la web) ni a los reproductores de tours, que reciben la IP del visitante.",
+  "bloqueo": "Dato de Hampton",
+  "evidencia": [
+    "site/apply.js:298-363",
+    "site/apply.js:152-153",
+    "site/index.html:410",
+    "site/index.html:468-481",
+    "site/index.html:30-32",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:82",
+    "docs/roadmap/ESTADO.md:8",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:489"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-03",
+      "requires": "decision",
+      "reason": "Solo completar los datos de registro requiere confirmación de Hampton.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Dato de Hampton",
+  "resources": [
+    "privacy-notice",
+    "public-forms",
+    "tenant-portal"
+  ],
+  "nextStep": "Completar datos aportados por Hampton y cobertura del aviso en formularios, portal y funciones pendientes."
+}

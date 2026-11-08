@@ -1,0 +1,28 @@
+{
+  "id": "T3D-04",
+  "seccion": "Tour 3D",
+  "titulo": "Edición con LLM que usan MCP y computer use sobre los programas de fotos y vídeo",
+  "origen": "texto",
+  "fase": "F8",
+  "estado": "replanteado",
+  "responsable": "—",
+  "hecho": "",
+  "falta": "Manejar Photoshop y After Effects por la pantalla es lento, frágil y caro para un proceso que se repite igual; por línea de comandos corre solo y da siempre el mismo resultado (P-14). Se sustituye por la cadena de T3D-02; Luis aún no ha confirmado P-14 (PRE-19).",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:384",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:575",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:637"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "tours-pipeline",
+    "media-pipeline"
+  ],
+  "nextStep": "Conservar la decisión replanteada y seguir el alcance vigente en PRE-19."
+}

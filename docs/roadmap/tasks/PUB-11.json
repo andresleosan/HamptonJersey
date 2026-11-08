@@ -1,0 +1,30 @@
+{
+  "id": "PUB-11",
+  "seccion": "Publicar propiedades",
+  "titulo": "Subida de fotos con control de calidad, plano y documentos",
+  "origen": "plan",
+  "fase": "F4",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Photos sube JPG, PNG o WebP reducidas en el navegador (1600 px y miniatura), con orden, portada, visibilidad en la web y tipo Floor plan o Aerial.",
+  "falta": "No hay control de calidad (resolución, desenfoque, oscuridad, líneas torcidas) ni subida de PDF o documentos: el servidor solo acepta imágenes.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/MediaManager.jsx:39-54",
+    "admin/src/image.js:1-27",
+    "server/routes/media.js:11-13",
+    "server/routes/media.js:58",
+    "migrations/0001_init.sql:25-40"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "media-pipeline",
+    "listing-editor"
+  ],
+  "nextStep": "Ampliar medios y documentos con controles de calidad sobre la subida existente."
+}

@@ -1,0 +1,27 @@
+{
+  "id": "BUS-02",
+  "seccion": "Búsqueda de propiedades",
+  "titulo": "Deep Research en la web la primera vez que se registra un aplicante",
+  "origen": "texto",
+  "fase": "F1-B",
+  "estado": "replanteado",
+  "responsable": "—",
+  "hecho": "",
+  "falta": "M01/M02 · Reconciliación 7-nov: El registro no dispara una investigación completa por cliente: usa BUS-01 sobre inventario común. El directorio se prepara mediante tres investigaciones profundas secuenciales BUS-21, BUS-22 y BUS-23, seguidas por el recorrido inicial BUS-06; BUS-11 queda como ampliación complementaria.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:661",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:31",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M01/M02",
+  "deps": [],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como antecedente sustituido por inventario común y BUS-21→BUS-22→BUS-23; no ejecutar la investigación por cada alta."
+}

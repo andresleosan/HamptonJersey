@@ -1,0 +1,29 @@
+{
+  "id": "OFE-05",
+  "seccion": "Ofertas y cierre",
+  "titulo": "Cerrar la venta: completada (Sold) o caída con su motivo",
+  "origen": "plan",
+  "fase": "F3-C",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Mark completed (exige el passing o completion hecho) pone la ficha en Sold, al comprador en Completed y cierra las demás ofertas abiertas de la casa y del comprador; Fell through guarda el motivo y devuelve la ficha a For sale y al comprador a Searching. La web muestra Under Offer y Sold.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/sales.js:396-430",
+    "admin/src/SaleDetail.jsx:152-154",
+    "admin/src/SaleDetail.jsx:203-215",
+    "server/listing.js:84"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "sales-contract",
+    "sales-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

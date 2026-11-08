@@ -1,0 +1,31 @@
+{
+  "id": "PRE-11",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Web pública sin cookies no esenciales (banner solo si se añaden)",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "La web no pone cookies propias: el asistente guarda su avance en sessionStorage (lo explica el aviso) y la única cookie es la de sesión del panel. Cloudflare Web Analytics, si Luis lo activa, tampoco usa cookies.",
+  "falta": "La home carga sola el reproductor del tour (Matterport, YouTube o Vimeo) al llegar a la reserva, sin clic, y Vimeo se incrusta sin dnt=1. Falta comprobar qué cookies ponen esos reproductores y, si no son esenciales, cargarlos solo con un clic y aviso o pedir consentimiento.",
+  "bloqueo": "",
+  "evidencia": [
+    "site/apply.js:184",
+    "site/apply.js:355-358",
+    "server/auth.js:42-43",
+    "site/index.html:688-692",
+    "server/routes/tours.js:12",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:491"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "public-site",
+    "tour-embeds"
+  ],
+  "nextStep": "Comprobar los reproductores y evitar carga no esencial previa a la acción o consentimiento que se determine."
+}

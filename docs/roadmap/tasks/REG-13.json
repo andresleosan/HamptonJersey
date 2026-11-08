@@ -1,0 +1,51 @@
+{
+  "id": "REG-13",
+  "seccion": "Registro de aplicantes",
+  "titulo": "Requisitos libres convertidos en etiquetas con IA y confirmados por el equipo",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "El código no usa IA y «Anything else that matters?» se guarda tal cual. Falta convertirlo en imprescindibles y deseables («quiet street», «near Victoria College») que el equipo confirme en la ficha; el spec F1-A lo dejó fuera. Lo hará Hermes (AUT-13) cuando pueda recibir datos C2 (los requisitos, sin nombre ni teléfono): con un plan Business o Enterprise y su memoria apagada (pregunta 16). Con un modelo local (AUT-06), no pasaría por Hermes.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/applicants.js:174",
+    "migrations/0008_applicants.sql:51",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:18"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "EST-09",
+      "requires": "integrated",
+      "reason": "M11 consume búsqueda activa y criterios versionados M03.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-12",
+      "requires": "design",
+      "reason": "La extracción propone criterios compatibles con el contrato M04.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "NOT-11",
+      "requires": "design",
+      "reason": "M11 necesita propuesta y confirmación por el empleado dentro del trabajo M13a.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Elegir Hermes con carril autorizado para requisitos C2 (PRE-32) o modelo local AUT-06; alternativas, no dos dependencias obligatorias.",
+  "resources": [
+    "requirements-contract",
+    "applicants-ui",
+    "model-data-contract"
+  ],
+  "nextStep": "Elegir carril de datos autorizado y proponer etiquetas extraídas que el empleado confirme antes de guardar."
+}

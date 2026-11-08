@@ -1,0 +1,44 @@
+{
+  "id": "NOT-05",
+  "seccion": "Notificaciones",
+  "titulo": "Pestaña Missing payments con los pagos que no han llegado",
+  "origen": "texto",
+  "fase": "F5-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since <fecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra.",
+  "falta": "No hay categoría ni pestaña Missing payments en Inbox (notifications solo admite new_applicant, viewing y matched); falta el margen grace_days configurable (3 días por defecto; hoy el atraso sale al día siguiente del vencimiento, con el paso +1); y las comisiones que otras agencias deben a Hampton no se registran: Sales solo guarda los honorarios de Hampton y la parte que se lleva la otra agencia, sin fecha ni estado de cobro.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/notifications.js:12",
+    "migrations/0009_matches.sql:49",
+    "admin/src/Rentals.jsx:86-95",
+    "server/rentals.js:11-13",
+    "server/routes/rent.js:102-115",
+    "server/routes/rent.js:716",
+    "admin/src/App.jsx:132-133",
+    "migrations/0012_sales.sql:32-34",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:34"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "OFE-08",
+      "requires": "integrated",
+      "reason": "Solo el tramo de comisiones requiere factura, vencimiento y cobro; los atrasos de alquiler pueden avanzar antes.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "notifications-schema",
+    "inbox-ui",
+    "rentals-contract",
+    "sales-contract"
+  ],
+  "nextStep": "Añadir la cola de cobros pendientes y el margen configurable; incorporar comisiones cuando exista su registro de cobro."
+}

@@ -1,0 +1,44 @@
+{
+  "id": "PUB-10",
+  "seccion": "Publicar propiedades",
+  "titulo": "Formulario público Book a valuation para captar propietarios",
+  "origen": "plan",
+  "fase": "F4",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "La reserva pública deja elegir «General enquiry / valuation» con un hueco real de un negociador (llega al Inbox y a Viewings), e Insights muestra la demanda sin cubrir por parroquia (Unmet demand) para preparar la valoración.",
+  "falta": "No hay formulario Book a valuation que cree el contacto del propietario con los datos de su casa, y los comparables siguen pendientes: Places.je es una posible fuente cuyo acceso se verifica por separado, no un bloqueo obligatorio del inventario común. El formulario del propietario espera a que Hampton confirme su registro en la JOIC (PRE-03) y a que el aviso de privacidad cubra a los propietarios (PRE-09).",
+  "bloqueo": "Dato de Hampton",
+  "evidencia": [
+    "site/index.html:465-482",
+    "server/routes/public.js:50-78",
+    "admin/src/Insights.jsx:60",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-03",
+      "requires": "decision",
+      "reason": "Formulario espera confirmación de registro JOIC de Hampton.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "PRE-09",
+      "requires": "integrated",
+      "reason": "Aviso debe cubrir propietarios antes de recibir sus datos.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Hampton/abogado: confirmación JOIC y aviso que cubra propietarios.",
+  "resources": [
+    "public-site",
+    "owner-contact"
+  ],
+  "nextStep": "Preparar formulario de propietario cuando se confirme JOIC y alcance del aviso de privacidad."
+}

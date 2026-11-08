@@ -1,0 +1,60 @@
+{
+  "id": "SPR-03",
+  "seccion": "Seguimiento · Propiedades",
+  "titulo": "Captura tras disponibilidad confirmada, ficha compartida y descargas",
+  "origen": "texto",
+  "fase": "F2",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M07 · Reconciliación 7-nov: Al confirmar disponibilidad por correo útil o llamada registrada, enriquecer una ficha común con datos completos y fotos originales, URL, fecha y evidencia. Captura completa/parcial/fallida visible y reintentos sin duplicados; no afirmar éxito si falta algún archivo. Crear tarea Abrir ficha para revisar, corregir, ver incumplimientos/datos pendientes, abrir origen y descargar fotos individuales, selección o ZIP y datos en formato a concretar. La misma ficha sirve a varios clientes; las versiones aptas para el cliente se gestionan en AGE-10. Depende de: AGE-06, BUS-10, EST-13. Aceptación: Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:96",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:159",
+    "admin/src/ListingEditor.jsx:25-26",
+    "migrations/0001–0015: ninguna crea availability_snapshots",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M07",
+  "deps": [
+    "AGE-06",
+    "BUS-10",
+    "EST-13"
+  ],
+  "criterio_aceptacion": "Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos.",
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AGE-06",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-10",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-13",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "inventory-contract",
+    "media-pipeline",
+    "notifications-schema"
+  ],
+  "nextStep": "Construir captura común tras confirmación, con estados parciales y descargas verificables."
+}

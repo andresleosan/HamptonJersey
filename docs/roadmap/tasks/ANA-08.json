@@ -1,0 +1,44 @@
+{
+  "id": "ANA-08",
+  "seccion": "Trazabilidad y analítica",
+  "titulo": "Resumen semanal de Insights por email a la dirección",
+  "origen": "plan",
+  "fase": "F7-B",
+  "estado": "bloqueado",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "No se envía. Necesita el servicio de correo; el reloj que lo enviará cada semana ya existe (AUT-07).",
+  "bloqueo": "Correo (AUT-17)",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-24-hampton-app-f7a-design.md:15",
+    "docs/roadmap/ESTADO.md:15",
+    "jobs/wrangler.toml:1-24"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "El resumen semanal exige correo operativo.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AUT-07",
+      "requires": "activated",
+      "reason": "El reloj semanal ya existe y debe conservarse.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17)",
+  "resources": [
+    "analytics-contract",
+    "email-pipeline",
+    "jobs-clock"
+  ],
+  "nextStep": "Preparar resumen semanal sobre el reloj existente y enviarlo solo con correo operativo."
+}

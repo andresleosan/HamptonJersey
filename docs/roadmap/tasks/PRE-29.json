@@ -1,0 +1,38 @@
+{
+  "id": "PRE-29",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Respuesta a la pregunta 13: registros en JFSC y JOIC y cobro de rentas en cuenta propia",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "bloqueado",
+  "responsable": "Hampton",
+  "hecho": "Hampton cobra la renta y liquida con algunos propietarios (gestión completa) y con otros solo busca inquilino (Luis, 24-oct); Rentals ya lo distingue por vivienda.",
+  "falta": "Los registros en la JFSC y la JOIC (PRE-03) y si rentas y depósitos entran en una cuenta de clientes; hasta confirmarlo no se usa la gestión completa en producción (R21).",
+  "bloqueo": "Dato de Hampton",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:17",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:64",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93",
+    "docs/roadmap/ESTADO.md:13",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:704"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-03",
+      "requires": "decision",
+      "reason": "Confirmación de los registros de Hampton.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Hampton: Dato de Hampton",
+  "resources": [
+    "compliance-evidence",
+    "client-money-process"
+  ],
+  "nextStep": "Hampton confirma registros y gestión de fondos antes de activar la gestión completa de alquileres."
+}

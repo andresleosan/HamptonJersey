@@ -1,0 +1,37 @@
+{
+  "id": "SAP-01",
+  "seccion": "Seguimiento · Aplicantes",
+  "titulo": "Estado de la búsqueda del aplicante mientras no tiene ningún match",
+  "origen": "texto",
+  "fase": "F1-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "La columna Queue de Applicants marca «No matches» (con filtro) y la pestaña Matches explica que ninguna ficha encaja todavía y que aparecerán cuando se añadan o cambien.",
+  "falta": "Decir si la búsqueda está en curso o hecha y cuándo fue la última («Searching · no matches yet (last search 2 h ago)»): no se guarda la hora de la última búsqueda (ver EST-01).",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/applicants.js:64-67",
+    "admin/src/Applicants.jsx:14-15",
+    "admin/src/Applicants.jsx:79",
+    "admin/src/ApplicantDetail.jsx:385-389"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "EST-01",
+      "requires": "integrated",
+      "reason": "Necesita hora de búsqueda y resultado real que hoy no se guarda.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "applicants-ui",
+    "search-lifecycle"
+  ],
+  "nextStep": "Mostrar estado real de la búsqueda y hora del último intento y éxito, consumiendo EST-01."
+}

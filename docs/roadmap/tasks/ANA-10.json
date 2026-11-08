@@ -1,0 +1,34 @@
+{
+  "id": "ANA-10",
+  "seccion": "Trazabilidad y analítica",
+  "titulo": "Origen de cada contacto nuevo: web, cartel con QR, folleto o recomendación",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "Para saber qué canal trae propietarios (plan del 2-nov-2026): cada QR de cartel o de folleto lleva su etiqueta, el contacto guarda de dónde llegó e Insights cuenta por origen. Los carteles van solo en la casa que Hampton anuncia, con permiso del dueño, y se quitan a los 14 días de la venta o el alquiler.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/insights.js"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PUB-10",
+      "requires": "design",
+      "reason": "El tramo de captación de propietarios acuerda origen con valoración; otros contactos pueden medirse aparte.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "analytics-contract",
+    "owner-contact"
+  ],
+  "nextStep": "Añadir origen de contacto y QR trazable con recuentos por canal."
+}

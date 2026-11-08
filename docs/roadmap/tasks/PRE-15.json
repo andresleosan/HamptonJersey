@@ -1,0 +1,29 @@
+{
+  "id": "PRE-15",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Proteger las fotos de los paquetes de agencias (riesgo §7.5)",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "descartado",
+  "responsable": "—",
+  "hecho": "Luis decidió (A4, 23-oct) que esas fichas se comercializan con la agencia del encargo y que publicar sus fotos está permitido, así que la propuesta no se aplicó: siguen con origin 'upload' y public=1, y el CHECK solo frena 'external'.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
+    "scripts/import_agencies.py:172-174",
+    "migrations/0001_init.sql:37",
+    "server/visibility.js:3-4",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:564-568"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "agency-media-permissions"
+  ],
+  "nextStep": "Conservar la decisión de descarte; no ejecutar ni reabrir automáticamente."
+}

@@ -1,0 +1,36 @@
+{
+  "id": "AUT-12",
+  "seccion": "Automatizaciones e IA",
+  "titulo": "Los empleados usan su plan de ChatGPT en las automatizaciones (Sign in with ChatGPT)",
+  "origen": "texto",
+  "fase": "—",
+  "estado": "bloqueado",
+  "responsable": "Luis",
+  "hecho": "Revisado el 29-oct-2026 y documentado en el §6.5 del plan: qué ofrece OpenAI, por qué hoy no entra Hampton App, cómo encajaría y con qué datos. Es la siguiente tarea por decisión de Luis (P-17). Mientras tanto, Hermes usará el plan de ChatGPT de Luis para lo que no es sensible (AUT-05, P-18).",
+  "falta": "Primero, permiso de OpenAI: la vía que carga la IA al plan del usuario solo está documentada para apps de código abierto que corren en la máquina del usuario, el inicio de sesión web está en prueba limitada con lista de espera, y el DevKit tiene licencia no comercial. Luis rellena el formulario de interés de OpenAI para apps alojadas o de pago y pide un client ID; Hampton dice qué plan tiene cada empleado (PRE-30). Con el permiso: botón «Connect ChatGPT» por empleado con el token cifrado en D1, automatizaciones con IA que corren con el plan de quien las lanza o aprueba, vía API (AUT-02) cuando no hay plan válido, y la vía usada visible en Automations (AUT-01). Datos C0 sí; C1 y C2 solo con plan Business o Enterprise; C3 nunca.",
+  "bloqueo": "Aprobación de OpenAI",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.5",
+    "https://developers.openai.com/siwc",
+    "https://github.com/openai/sign-in-with-chatgpt-devkit (LICENSE: no comercial)"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-30",
+      "requires": "decision",
+      "reason": "Hampton debe informar de los planes de los empleados.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Permiso de OpenAI y datos de planes de empleados proporcionados por Hampton; vigencia por verificar.",
+  "resources": [
+    "model-data-policy",
+    "automation-controls"
+  ],
+  "nextStep": "Registrar permiso pendiente de OpenAI y planes del equipo antes de diseñar una conexión operativa."
+}

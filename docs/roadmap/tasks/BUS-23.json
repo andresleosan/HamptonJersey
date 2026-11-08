@@ -1,0 +1,39 @@
+{
+  "id": "BUS-23",
+  "seccion": "Búsqueda de propiedades",
+  "titulo": "Directorio de fuentes · tercera investigación y consolidación revisable",
+  "origen": "plan",
+  "fase": "F1-B",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M01 · Reconciliación 7-nov: Tras BUS-22, realizar una tercera investigación profunda por las mismas tandas contra el conjunto acumulado; buscar omisiones y revisar pendientes. Mantener resultados separados, diferencias y procedencia al consolidar un directorio único ampliable. Entregar las fuentes utilizables al inventario; pendientes manuales no se registran como cero anuncios. Depende de: BUS-22. Aceptación: Hay tres investigaciones separadas y secuenciales con método y contraste; el directorio consolidado preserva evidencia y canales.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M01",
+  "deps": [
+    "BUS-22"
+  ],
+  "criterio_aceptacion": "Hay tres investigaciones separadas y secuenciales con método y contraste; el directorio consolidado preserva evidencia y canales.",
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "BUS-22",
+      "requires": "research_accepted",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Accesos restringidos por fuente; consolidar pendientes sin afirmar cobertura no comprobada.",
+  "resources": [
+    "sources-directory",
+    "research-pass-3"
+  ],
+  "nextStep": "Tras aceptar BUS-22, realizar tercera investigación y consolidar el directorio manteniendo procedencia y pendientes."
+}

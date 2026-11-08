@@ -1,0 +1,44 @@
+{
+  "id": "VIS-10",
+  "seccion": "Interesados y visitas",
+  "titulo": "Restricciones de cada casa: aviso previo si hay inquilino, llaves y quién la enseña",
+  "origen": "plan",
+  "fase": "F3-A",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "Cualquier negociador activo enseña cualquier casa en cualquier hueco. Faltan el aviso mínimo si está alquilada (p. ej. 24 h), quién tiene las llaves y qué negociadores pueden enseñarla; el aviso automático al inquilino necesitará el servicio de correo.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/viewing-store.js:10-32",
+    "migrations/0010_viewings.sql:2-9",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "VIS-17",
+      "requires": "design",
+      "reason": "Acordar el contrato de visitas externas antes de incorporar restricciones a ese tramo.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui",
+    "listings-contract"
+  ],
+  "nextStep": "Añadir restricciones de aviso, llaves y negociadores por propiedad; dejar el aviso automático condicionado al correo."
+}

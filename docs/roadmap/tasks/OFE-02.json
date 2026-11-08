@@ -1,0 +1,39 @@
+{
+  "id": "OFE-02",
+  "seccion": "Ofertas y cierre",
+  "titulo": "Enviar cada oferta al propietario con un clic",
+  "origen": "plan",
+  "fase": "F3-B",
+  "estado": "bloqueado",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "El vendedor no recibe nada desde la app: el equipo le traslada la oferta y anota su respuesta en Sales. Falta enviársela desde Sales y guardar su contacto en la ficha (hoy solo se apunta en el expediente, al aceptar); la oferta hecha por el aplicante desde su portal llega con F2.",
+  "bloqueo": "Correo (AUT-17)",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:19",
+    "migrations/0001_init.sql:1-23",
+    "migrations/0012_sales.sql:28"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Necesita correo operativo para completar la entrega real de mensajes.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17)",
+  "resources": [
+    "sales-contract",
+    "sales-ui",
+    "email-pipeline",
+    "listings-contract"
+  ],
+  "nextStep": "Completar contacto del vendedor y envío de oferta desde Sales cuando el correo esté operativo."
+}

@@ -1,0 +1,35 @@
+{
+  "id": "AGE-04",
+  "seccion": "Agencias y portal del aplicante",
+  "titulo": "Directorio de anunciantes, contactos y permisos de imágenes",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Construcción local parcial: directorio, contactos, teléfonos, canales, referencias, notas y revisión humana a 11/12 meses. Sin eliminación manual ni automática en la app; supresión pendiente en AGE-14. Migración 0030 de anunciantes solo en fixtures; revisión independiente favorable de la integración bf30e863, sin P0/P1/P2; P3 heredado de VIS-18 en ledger.",
+  "falta": "M01 · Reconciliación 7-nov: La supresión se aborda por separado en AGE-14. La revisión independiente favorable cubre la integración local parcial; publicar y activar requieren autorización para el SHA final y la migración. Directorio de anunciantes: agencia, entidad o particular, webs y canales, contactos y todos los teléfonos identificados. Relacionarlo con fuentes y publicaciones. Conservar por separado acuerdos de comisión tratados personalmente y permisos de uso de fotos; no son requisitos generales para inventariar o consultar disponibilidad. Aceptación: La tarea de llamada puede mostrar todos los teléfonos y su titular, incluso con varios anuncios del mismo inmueble.",
+  "actualizado": "2026-11-07",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Advertisers.jsx",
+    "server/routes/advertisers.js",
+    "migrations/0030_advertisers.sql",
+    "admin/src/SaleDetail.jsx:139-140",
+    "server/sales.js:52",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:94",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M01",
+  "deps": [],
+  "criterio_aceptacion": "La tarea de llamada puede mostrar todos los teléfonos y su titular, incluso con varios anuncios del mismo inmueble.",
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Publicación y activación requieren autorización vigente del SHA final y migración; verificar lo ya integrado.",
+  "resources": [
+    "advertisers-directory"
+  ],
+  "nextStep": "Reconciliar integración publicada y preparar activación del directorio ya construido para el SHA y migración finales."
+}

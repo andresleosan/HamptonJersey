@@ -1,0 +1,28 @@
+{
+  "id": "BUS-16",
+  "seccion": "Búsqueda de propiedades",
+  "titulo": "Aprobación humana obligatoria: sustituye la aprobación automática por puntuación",
+  "origen": "plan",
+  "fase": "F1-A",
+  "estado": "replanteado",
+  "responsable": "—",
+  "hecho": "",
+  "falta": "M04 · Reconciliación 7-nov: La propuesta histórica de autoaprobar por porcentaje queda sustituida por BUS-15: cada match requiere decisión del empleado. Métricas de aciertos pueden ayudar a revisar, pero ningún modo Auto, puntuación o confianza omite ese paso. Aceptación: No hay transición automática de pendiente a aprobado, ni con puntuación máxima.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/matches.js:67-79",
+    "migrations/0009_matches.sql:36",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M04",
+  "deps": [],
+  "criterio_aceptacion": "No hay transición automática de pendiente a aprobado, ni con puntuación máxima.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar la sustitución por aprobación humana BUS-15; no implementar el umbral de autoaprobación histórico."
+}

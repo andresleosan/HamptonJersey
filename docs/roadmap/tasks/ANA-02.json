@@ -1,0 +1,32 @@
+{
+  "id": "ANA-02",
+  "seccion": "Trazabilidad y analítica",
+  "titulo": "Ver qué propiedades tienen más vistas",
+  "origen": "texto",
+  "fase": "F7-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "La web cuenta sin cookies cada apertura de ficha, de su galería y de su tour 3D (POST /api/stats → daily_stats). Insights muestra Most viewed listings (las 10 más vistas del periodo, con galería, tour y peticiones de visita) y el Owner report las de cada casa.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "site/index.html:437-442",
+    "site/index.html:869",
+    "site/index.html:887",
+    "site/index.html:928",
+    "server/routes/public.js:82-96",
+    "migrations/0011_daily_stats.sql:2-8",
+    "server/routes/insights.js:28-33",
+    "admin/src/Insights.jsx:85-103"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "analytics-contract"
+  ],
+  "nextStep": "Conservar como hecho en el historial; no reconstruir salvo una regresión o cambio de alcance comprobado."
+}

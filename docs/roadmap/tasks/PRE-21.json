@@ -1,0 +1,28 @@
+{
+  "id": "PRE-21",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Respuesta a la pregunta 5: qué pesa más hoy en Hampton",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Luis (24-oct): hoy sostienen a Hampton los alquileres porque las ventas caen, pero «Ventas primero»: F3-C (ofertas y expediente de venta) se hizo antes que F5-A.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:8",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:32",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:8",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:696"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "business-priorities"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

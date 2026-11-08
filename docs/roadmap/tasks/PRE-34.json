@@ -1,0 +1,58 @@
+{
+  "id": "PRE-34",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Hampton Bot · fase 0: papeles y Cloudflare antes del chat con IA (aviso «Web chat», DPIA corta, JOIC, regla WAF, previews y bot nuevo en BotFather)",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "pendiente",
+  "responsable": "Luis",
+  "hecho": "Documento de ideas del 6-nov-2026 (docs/roadmap/2026-11-06-ideas-hampton-bot.md) con las decisiones de Luis de ese día: nombre visible «Hampton Bot», bot de Telegram nuevo (Hermes 2 y su bot no cambian) y correo con Cloudflare Email Service (AUT-17).",
+  "falta": "Sin código, todo de Luis y en paralelo: párrafo «Web chat» del aviso de privacidad (automático desde la fase 3, qué se guarda, Workers AI sin entrenar ni retener, 30 días, aplicante solo si lo pides, cómo borrar, reclamar ante la JOIC), revisado por el abogado con el paquete de PRE-33; DPIA corta (evaluación de impacto, art. 16) firmada por Hampton antes de encender el modelo; registro en la JOIC de Hampton y de Optimyze como encargado (PRE-03); la única regla de límite de peticiones del plan Free, acotada a /api/chat* y /api/stats (la misma de ANA-09: más de 20 en 10 s por IP → bloqueo 10 s); política de acceso en las vistas previas *.pages.dev; contrato Hampton–Optimyze con Cloudflare como subencargado (PRE-13) y confirmación del abogado de que la certificación DPF de Cloudflare, Inc. cubre Workers AI (transferencia a EE. UU., art. 66(2)(a)); y en BotFather, /newbot con el nombre «Hampton Bot» (usuario terminado en «bot»), grupos desactivados, modo privacidad activado, descripción con el aviso, y su token guardado como secreto en la jaula de Hampton del VPS, nunca por chat ni en el repo. Hecho cuando: regla creada, bot creado y token guardado, aviso aprobado y DPIA firmada por Hampton. Aparte de la fase 0, Luis decide el proveedor del modelo para el chat (decisión 2 del documento: Workers AI recomendado; Claude por Bedrock en Europa si la batería falla). La fase 1 (MSG-02) no espera a nada de esto salvo, para publicar, la regla y el token; las fases 2 y 3 (MSG-04) sí. Si Luis pide ayuda con los textos: claude-fable-5-1 · esfuerzo high (derecho de datos de Jersey).",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §7",
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §9",
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §11"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-03",
+      "requires": "decision",
+      "reason": "Solo las fases con IA requieren registros, acuerdos y revisión documental; MSG-02 tiene un subconjunto distinto.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PRE-13",
+      "requires": "decision",
+      "reason": "Solo las fases con IA requieren registros, acuerdos y revisión documental; MSG-02 tiene un subconjunto distinto.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PRE-33",
+      "requires": "decision",
+      "reason": "Solo las fases con IA requieren registros, acuerdos y revisión documental; MSG-02 tiene un subconjunto distinto.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "ANA-09",
+      "requires": "activated",
+      "reason": "Compartir la regla WAF aplicable a chat y estadísticas; no crear dos reglas incompatibles.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Luis: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
+  "resources": [
+    "web-chat-policy",
+    "waf-policy",
+    "hermes-bot-configuration"
+  ],
+  "nextStep": "Luis coordina los requisitos documentales y de configuración del chat; registrar qué parte habilita cada fase."
+}

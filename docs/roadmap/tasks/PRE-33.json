@@ -1,0 +1,28 @@
+{
+  "id": "PRE-33",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Paquete para el abogado de Jersey: cláusula de datos de los contratos, contrato entre Hampton y Optimyze y preguntas sobre captar propietarios",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "pendiente",
+  "responsable": "Luis",
+  "hecho": "",
+  "falta": "Claude prepara el borrador en inglés (2-nov-2026) y Luis se lo pasa a Hampton para su abogado. Lleva: la cláusula de protección de datos de los contratos de venta y de alquiler (informa, sin pedir consentimiento ni prometer que los datos se guardan para siempre); el esquema del contrato de encargo entre Hampton y Optimyze (art. 19, PRE-13), con las cláusulas tipo y la evaluación para el acceso desde Colombia; cuánto guardar un alquiler o una venta después de terminar (PRE-12); y las preguntas sobre captar propietarios: el texto del consentimiento para ofrecer valoraciones (REG-16), las cartas a «The Owner», los datos de ventas por dirección, los carteles, los folletos, las recomendaciones, la investigación de empresas (BUS-20), la publicidad por teléfono y correo en Jersey y si las agencias deben estar en un sistema de reclamaciones. Revisar también el nuevo párrafo Email sent to the app del aviso de privacidad (AUT-17), con conservación de contenido 30 días, metadatos y deduplicación 90 días y huella de baja mientras siga vigente.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
+    "site/apply.js (Email sent to the app)"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Luis: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
+  "resources": [
+    "legal-review-package",
+    "data-processing-agreements",
+    "retention-policy"
+  ],
+  "nextStep": "Preparar el borrador solicitado para revisión del abogado y entrega por Luis; no tratarlo como criterio legal validado."
+}

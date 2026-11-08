@@ -1,0 +1,28 @@
+{
+  "id": "SPR-06",
+  "seccion": "Seguimiento · Propiedades",
+  "titulo": "Filtros de propiedades por To Buy / To Let, número de dormitorios y parroquia",
+  "origen": "texto",
+  "fase": "—",
+  "estado": "hecho",
+  "responsable": "desarrollo",
+  "hecho": "Construido el 6-nov-2026 (sin migración; spec docs/superpowers/specs/2026-11-05-hampton-app-listing-filters-design.md). Listings filtra por Operation (To Buy, To Let o Business, aunque la casa esté Under offer o Sold), por Bedrooms con un rango From–To (Any, Studio, 1 a 6: «3 a 5», «2 a 2» o «3 o más»; si From pasa de To, To sube; las fichas sin dormitorios salen al elegir un número) y por parroquia (las 12 y Unknown), además de Use, Region, Availability y búsqueda. Cada fila dice «HE-R001 · Sale · 3 bed». Luis eligió el 5-nov el desplegable y el rango.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Listings.jsx",
+    "admin/src/listing-filters.js",
+    "tests/server/listing-filters.test.mjs"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "listings-schema",
+    "listing-editor"
+  ],
+  "nextStep": "Conservar como hecho en el historial; no reconstruir salvo una regresión o cambio de alcance comprobado."
+}

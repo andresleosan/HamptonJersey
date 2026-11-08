@@ -1,0 +1,47 @@
+{
+  "id": "REG-06",
+  "seccion": "Registro de aplicantes",
+  "titulo": "Zona ideal y zona no deseada del aplicante",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Parroquias deseadas como alternativas y excluidas como veto. REG-08 añade Must-have al grupo de parroquias y a Near; este último queda pendiente de comprobación manual. Construido localmente.",
+  "falta": "Publicar REG-08 y0031. Completar respuestas explícitas Cualquier zona/No lo sé; un campo histórico vacío no expresa ninguna de ellas.",
+  "bloqueo": "",
+  "evidencia": [
+    "site/apply.js:121-123",
+    "site/apply.js:243-244",
+    "server/applicants.js:132-134",
+    "server/matching.js:140-150",
+    "admin/src/ApplicantFields.jsx:64-68",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
+  ],
+  "modulo": "M03",
+  "deps": [],
+  "criterio_aceptacion": "El cliente puede aceptar varias zonas y preferir una sin perder la distinción.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "REG-08",
+      "requires": "integrated",
+      "reason": "Completar solo lo pendiente sobre prioridades actuales; activación requiere 0031.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "registration-ui",
+    "applicants-schema",
+    "requirements-contract"
+  ],
+  "nextStep": "Verificar REG-08/0031 y completar respuestas explícitas de zona sin interpretar vacíos heredados."
+}

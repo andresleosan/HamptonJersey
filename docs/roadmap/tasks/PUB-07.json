@@ -1,0 +1,38 @@
+{
+  "id": "PUB-07",
+  "seccion": "Publicar propiedades",
+  "titulo": "Familia 4 · Cumplimiento legal y técnico de la ficha",
+  "origen": "texto",
+  "fase": "F4",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "En listings, en Details del editor y en la web: Tenure (freehold, flying freehold, share transfer, leasehold), Housing category (Qualified, Registered) y Restriction (first-time buyers, over 55s), que el matching aplica.",
+  "falta": "Faltan licencia de vivienda en alquiler, certificado energético, ocupación (vacía o alquilada) y abogado del vendedor (hoy solo en el expediente de Sales); la categoría de HE-R001, HE-R003 y HE-R027 la pone Hampton (BUS-13). Replanteado para Jersey (§5.10), no falta: título, hipotecas y cargas los revisan los abogados en la venta; la ficha lleva tenencia y categoría.",
+  "bloqueo": "",
+  "evidencia": [
+    "migrations/0015_jersey_fields.sql:1-11",
+    "admin/src/ListingEditor.jsx:171-180",
+    "site/index.html:771-774",
+    "migrations/0012_sales.sql:21-31",
+    "commit 4cd4001"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "BUS-13",
+      "requires": "decision",
+      "reason": "Hampton proporciona la categoría de vivienda de sus fichas; no bloquea los demás campos.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Hampton: categorías de vivienda y datos de cumplimiento aplicables.",
+  "resources": [
+    "listings-schema",
+    "listing-editor"
+  ],
+  "nextStep": "Completar campos legales/técnicos documentados y solicitar a Hampton las categorías de sus fichas."
+}

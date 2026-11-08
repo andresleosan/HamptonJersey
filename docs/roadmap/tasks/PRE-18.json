@@ -1,0 +1,26 @@
+{
+  "id": "PRE-18",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Respuesta a la pregunta 2: qué web usará el público y cuándo",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Luis (A3, 23-oct): hamptonestatesjersey.com pasa a esta app. Se hizo el 1-nov-2026 (PRE-16).",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:29",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:821"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "public-domain"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

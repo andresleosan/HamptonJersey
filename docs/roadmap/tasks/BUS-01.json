@@ -1,0 +1,63 @@
+{
+  "id": "BUS-01",
+  "seccion": "Búsqueda de propiedades",
+  "titulo": "Búsqueda de casas que arranca sola al registrarse el aplicante",
+  "origen": "texto",
+  "fase": "F1-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Cada alta (web o panel), cada cambio de requisitos y cada restauración cruza al aplicante al momento con las fichas de Hampton ofrecidas a aplicantes. Lo encontrado sale en su pestaña Matches, en Review y como aviso Matched en Inbox.",
+  "falta": "M03/M04 · Reconciliación 7-nov: Ampliar el cruce inicial al inventario común y activar la búsqueda con fecha y responsable. Separar candidatos con datos pendientes de coincidencias completas. El inventario funciona también sin clientes nuevos; no requiere exclusivamente Places.je. Depende de: BUS-06, BUS-12, EST-09. Aceptación: El alta cruza la base disponible, informa del estado real y deja visibles los esenciales sin responder.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/public.js:120-122",
+    "server/routes/applicants.js:203",
+    "server/routes/applicants.js:261",
+    "server/routes/applicants.js:364",
+    "server/match-store.js:10-11",
+    "server/match-store.js:110-129",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M03/M04",
+  "deps": [
+    "BUS-06",
+    "BUS-12",
+    "EST-09"
+  ],
+  "criterio_aceptacion": "El alta cruza la base disponible, informa del estado real y deja visibles los esenciales sin responder.",
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "BUS-06",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-12",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-09",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "matching-contract",
+    "search-lifecycle",
+    "market-inventory",
+    "notifications-schema"
+  ],
+  "nextStep": "Ampliar el cruce inicial al inventario común y registrar activación y datos pendientes de la búsqueda."
+}

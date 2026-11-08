@@ -1,0 +1,42 @@
+{
+  "id": "VIS-16",
+  "seccion": "Interesados y visitas",
+  "titulo": "Informe para el propietario con vistas, visitas y feedback, enviado cada semana",
+  "origen": "plan",
+  "fase": "F3-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Botón Owner report en cada ficha: página imprimible en A4 (7, 30 o 90 días) con aperturas en la web, visitas y su resultado, aplicantes que encajan y, en venta, ofertas numeradas y avance de la venta, sin datos de interesados.",
+  "falta": "El envío automático semanal al propietario (necesita correo; el reloj ya existe, AUT-07), un resumen de los temas del feedback y guardar el contacto del propietario en la ficha, que hoy no existe. Mientras tanto el equipo lo guarda como PDF y lo manda a mano.",
+  "bloqueo": "Correo (AUT-17)",
+  "evidencia": [
+    "admin/src/ListingEditor.jsx:152-153",
+    "server/routes/report.js:43-78",
+    "admin/src/OwnerReport.jsx:27-66",
+    "migrations/0001_init.sql:1-23",
+    "commit fe098be",
+    "commit 7ff3158"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17)",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui",
+    "owner-report",
+    "email-pipeline",
+    "jobs-clock"
+  ],
+  "nextStep": "Completar contacto del propietario y resumen del feedback; enviar el informe semanal solo con correo operativo."
+}

@@ -1,0 +1,43 @@
+{
+  "id": "SPR-02",
+  "seccion": "Seguimiento · Propiedades",
+  "titulo": "Historial de todas las actividades de la propiedad al abrir su ficha",
+  "origen": "texto",
+  "fase": "—",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "La ficha enseña sus ofertas con su resultado, enlaza sus visitas (Active interest) y el botón Owner report resume interés, visitas y ofertas por periodo.",
+  "falta": "M13 · Reconciliación 7-nov: Una sección History con todo lo que le pasa a la ficha (alta, cambios de precio y de disponibilidad, publicación, archivado, matches, visitas, ofertas): las rutas de fichas no escriben eventos y events no admite listing. Conservar observaciones de fuente, confirmaciones humanas, capturas, consultas, llamadas y cambios por operación con su evidencia y fecha; el historial permanece accesible tras purgar archivos. Depende de: EST-18.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/ListingEditor.jsx:25-26",
+    "admin/src/ListingEditor.jsx:143-153",
+    "admin/src/ListingEditor.jsx:226-232",
+    "server/routes/listings.js:1-5",
+    "migrations/0008_applicants.sql:63",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M13",
+  "deps": [
+    "EST-18"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "EST-18",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "events-contract",
+    "listings-schema"
+  ],
+  "nextStep": "Extender History con eventos de propiedad y evidencias, conservándolo tras purgar archivos."
+}

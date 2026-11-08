@@ -1,0 +1,27 @@
+{
+  "id": "EST-07",
+  "seccion": "Estados",
+  "titulo": "Estado Not available, marcado a mano por aviso del agente o del aplicante",
+  "origen": "texto",
+  "fase": "F1-A",
+  "estado": "replanteado",
+  "responsable": "—",
+  "hecho": "",
+  "falta": "M12 · Reconciliación 7-nov: EST-15 aplica la indisponibilidad confirmada con su alcance real: propiedad, operación o publicación afectada. No basta un anuncio ausente ni un contacto inconcluso; actualizar matches/visitas y papelera EST-19 sin borrar el historial.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:149",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:667",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M12",
+  "deps": [],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como antecedente sustituido por indisponibilidad con alcance EST-15."
+}

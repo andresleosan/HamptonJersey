@@ -1,0 +1,29 @@
+{
+  "id": "ANA-03",
+  "seccion": "Trazabilidad y analítica",
+  "titulo": "Seguimiento del tráfico de la web y de dónde llegan las visitas",
+  "origen": "texto",
+  "fase": "F7-B",
+  "estado": "pendiente",
+  "responsable": "Luis",
+  "hecho": "",
+  "falta": "Activar Cloudflare Web Analytics en el proyecto de Pages (sin código ni cookies) y, con F7-B, verlo dentro de Insights. Desde el 1-nov-2026 el público entra por www.hamptonestatesjersey.com, que es lo que medirá.",
+  "bloqueo": "",
+  "evidencia": [
+    "site/index.html y functions/: sin script de Cloudflare Web Analytics (grep cloudflareinsights: 0 resultados; no lo descarta, porque Pages lo inyecta al desplegar)",
+    "docs/roadmap/ESTADO.md:15",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f7a-design.md:15",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f7a-design.md:22"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Luis: activación de Web Analytics en su cuenta.",
+  "resources": [
+    "analytics-contract",
+    "external-account-config"
+  ],
+  "nextStep": "Gestionar activación autorizada de Web Analytics y planificar su visualización en Insights."
+}

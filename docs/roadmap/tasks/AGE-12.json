@@ -1,0 +1,58 @@
+{
+  "id": "AGE-12",
+  "seccion": "Agencias y portal del aplicante",
+  "titulo": "Respuesta del cliente a la propuesta privada sin repetir su solicitud",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M08 · Reconciliación 7-nov: Construir acceso privado a las opciones presentadas con respuesta interesado, quiere visitarla, no encaja con motivo o necesita llamada. Reutilizar la solicitud y franjas previas; no repetir el formulario completo. El motivo de descarte no modifica MUST ni disponibilidad general. Cualquier cambio de criterios pasa por confirmación del empleado; pausa/retirada son decisiones adicionales abiertas. Conservar revocación y protección del enlace, y tratar descarga/borrado de datos según PRE-12. Depende de: AGE-10, REG-17, EST-13. Aceptación: Not for me solo afecta al match de ese cliente; pedir visita inicia coordinación, no una cita confirmada.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/public.js:178-186",
+    "docs/roadmap/ESTADO.md:10",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:304",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M08",
+  "deps": [
+    "AGE-10",
+    "REG-17",
+    "EST-13"
+  ],
+  "criterio_aceptacion": "Not for me solo afecta al match de ese cliente; pedir visita inicia coordinación, no una cita confirmada.",
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AGE-10",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "REG-17",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-13",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "private-presentation",
+    "applicants-schema"
+  ],
+  "nextStep": "Construir respuesta privada del cliente reutilizando su solicitud y franjas, sin alterar requisitos ni disponibilidad general."
+}

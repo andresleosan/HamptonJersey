@@ -1,0 +1,49 @@
+{
+  "id": "ADM-09",
+  "seccion": "Administración de propiedades",
+  "titulo": "Secuencia de atrasos +1/+5/+7/+10/+14 con recordatorios y carta formal",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia.",
+  "falta": "Se puede hacer ya: dar una deuda por perdida (Written off, §4.6; Correct no admite 0) y hacer configurable la secuencia, hoy fija en ARREARS_STEPS. Esperan al correo y a un abogado: enviar los recordatorios y el aviso al propietario, y la carta formal con plantilla validada; hoy se hacen fuera y se marcan a mano.",
+  "bloqueo": "Correo (AUT-17) · JFSC/abogado",
+  "evidencia": [
+    "admin/src/Rentals.jsx:86-95",
+    "admin/src/Rentals.jsx:171-197",
+    "admin/src/RentalDetail.jsx:245-251",
+    "server/rentals.js:11-13",
+    "server/routes/rent.js:48-67",
+    "server/routes/rent.js:444-476",
+    "server/routes/rent.js:272-276"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "ADM-17",
+      "requires": "decision",
+      "reason": "Solo las plantillas, plazos o cargos correspondientes necesitan validación del abogado; no acredita autorización por asignar tarea.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17) · JFSC/abogado",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "email-pipeline",
+    "legal-parameters"
+  ],
+  "nextStep": "Completar deuda dada por perdida y secuencia configurable; esperar validación de plantilla y correo para los envíos."
+}

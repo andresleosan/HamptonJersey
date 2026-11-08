@@ -1,0 +1,66 @@
+{
+  "id": "NOT-08",
+  "seccion": "Notificaciones",
+  "titulo": "Pestañas extra en Inbox: Agency replies, Viewings, Messages y Compliance",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Existe la pestaña Viewings: cada solicitud de visita de la web llega como aviso Needs action con Open viewings.",
+  "falta": "M13 · Reconciliación 7-nov: Compliance (los plazos vencidos solo salen en Rentals › Checks and deadlines), Agency replies (respuestas de agencias, F2) y Messages (bandeja unificada, F6). Incorporar consultas, llamadas, captura, fuentes pendientes, día 21 y dictado con enlaces a su gestión; evitar una bandeja separada sin relación con la ficha común. Depende de: NOT-11, EST-18. El inbox y las tareas manuales pueden construirse antes de activar correo o Meta; esos accesos solo afectan sus respectivos canales reales.",
+  "bloqueo": "Activación del correo para respuestas reales · Meta solo para sus canales",
+  "evidencia": [
+    "admin/src/Inbox.jsx:7",
+    "server/routes/public.js:72-74",
+    "migrations/0009_matches.sql:49",
+    "admin/src/Rentals.jsx:96-104",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M13",
+  "deps": [
+    "NOT-11",
+    "EST-18"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "NOT-11",
+      "requires": "integrated",
+      "reason": "Contrato de tareas con responsable y cierre consistente.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-18",
+      "requires": "integrated",
+      "reason": "Eventos del recorrido para alimentar los avisos.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PRE-02",
+      "requires": "activated",
+      "reason": "Solo para los canales reales de Meta/WhatsApp; no bloquea las tareas manuales ni otros canales.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Activación del correo para respuestas reales · Meta solo para sus canales",
+  "resources": [
+    "notifications-schema",
+    "inbox-ui",
+    "agency-consultations-contract",
+    "messages-contract"
+  ],
+  "nextStep": "Añadir categorías y enlaces de tareas manuales al Inbox; activar respuestas reales por canal cuando estén disponibles."
+}

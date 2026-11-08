@@ -1,0 +1,47 @@
+{
+  "id": "PUB-16",
+  "seccion": "Publicar propiedades",
+  "titulo": "Estados de la ficha y su propagación a la web: Under offer, Let agreed, Sold",
+  "origen": "plan",
+  "fase": "F3-C",
+  "estado": "parcial",
+  "responsable": "Luis",
+  "hecho": "Aceptar una oferta en Sales pone la ficha en Under offer, completar la venta en Sold y una venta caída la devuelve a For sale; la web lo muestra en la etiqueta de la ficha y quita Book a viewing cuando está vendida.",
+  "falta": "La publicación «Let agreed» en redes, que espera a Meta. Los estados que faltan en la ficha (Ready for review, Let agreed y Let) se siguen en EST-17.",
+  "bloqueo": "Trámite Meta",
+  "evidencia": [
+    "server/routes/sales.js:67-76",
+    "server/routes/sales.js:176",
+    "server/routes/sales.js:411",
+    "server/routes/sales.js:429",
+    "site/index.html:447-453",
+    "site/index.html:801",
+    "server/listing.js:7"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "EST-17",
+      "requires": "integrated",
+      "reason": "Los estados aún pendientes se implementan en el ciclo de ficha EST-17.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "PRE-02",
+      "requires": "activated",
+      "reason": "La propagación a redes espera Meta; la web no.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Luis/Meta: permisos de publicación en redes.",
+  "resources": [
+    "listings-schema",
+    "meta-channel"
+  ],
+  "nextStep": "Completar estados pendientes y propagación a redes cuando Meta esté operativo."
+}

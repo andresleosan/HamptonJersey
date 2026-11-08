@@ -1,0 +1,59 @@
+{
+  "id": "EST-10",
+  "seccion": "Estados",
+  "titulo": "Cola de trabajo con varias etiquetas a la vez, más Viewing booked y No matches a 7 días",
+  "origen": "plan",
+  "fase": "F1-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "La cola se calcula a partir de los matches y sale en la columna Queue con filtro, con una sola etiqueta por prioridad (B13); No matches ya existe.",
+  "falta": "M13 · Reconciliación 7-nov: Separar las etiquetas simultáneas de trabajo de la actividad de la búsqueda. Añadir visita pendiente/confirmada y dato esencial sin comprobar. Sustituir la ampliación a los siete días por la revisión interna a los 21 días BUS-17; ninguna etiqueta cierra o cambia criterios. Depende de: EST-09, BUS-17, VIS-17.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/applicants.js:64-71",
+    "server/applicants.js:29-31",
+    "admin/src/Applicants.jsx:56-57",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:43",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M13",
+  "deps": [
+    "EST-09",
+    "BUS-17",
+    "VIS-17"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "EST-09",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-17",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "VIS-17",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "search-lifecycle",
+    "notifications-schema",
+    "viewings-contract"
+  ],
+  "nextStep": "Mostrar etiquetas de trabajo simultáneas y visitas sin cerrar búsqueda ni conservar la antigua ampliación automática a siete días."
+}

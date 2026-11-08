@@ -1,0 +1,75 @@
+{
+  "id": "BUS-12",
+  "seccion": "Búsqueda de propiedades",
+  "titulo": "Matching con imprescindibles, exclusiones, rangos y datos desconocidos",
+  "origen": "plan",
+  "fase": "F1-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "REG-08 implementa prioridades versionadas y checks residenciales actuales: imprescindibles satisfechos, pendientes, alternativas y exclusiones. Parking distingue cifra fiable de mínimo/ambigüedad; mascotas condicionadas y exteriores dudosos quedan pendientes. Las tarjetas evalúan datos estructurados actuales; Shortlist/Rejected conservan su decisión humana. Construido localmente.",
+  "falta": "Publicar REG-08 y0031. Continúa M04: inventario común y evidencia/fechas, confirmación de disponibilidad, criterios comerciales y negocios, fuentes M02. El estado Stated must-haves met solo certifica los imprescindibles declarados, no todo BUS-12.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/matching.js:31-43",
+    "server/matching.js:118-164",
+    "server/match-store.js:10-11",
+    "migrations/0001_init.sql:1-23",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
+  ],
+  "modulo": "M04",
+  "deps": [
+    "REG-04",
+    "REG-05",
+    "REG-06",
+    "REG-07",
+    "REG-08",
+    "REG-11",
+    "BUS-09"
+  ],
+  "criterio_aceptacion": "Dos plazas imprescindibles y una disponible es alternativa; parking desconocido es pendiente; el resto favorable no cambia ese resultado.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "REG-08",
+      "requires": "integrated",
+      "reason": "Las prioridades residenciales ya están construidas; verificar incorporación y migración antes de extender.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "REG-11",
+      "requires": "integrated",
+      "reason": "M04 consume modalidades y criterios de M03.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-09",
+      "requires": "integrated",
+      "reason": "M04 debe preservar actividad de búsqueda definida en M03.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-10",
+      "requires": "design",
+      "reason": "La ampliación al inventario común necesita contrato M02, no terminar todos los conectores.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "matching-contract",
+    "requirements-contract",
+    "market-inventory"
+  ],
+  "nextStep": "Verificar REG-08/0031 y ampliar M04 a inventario común y condiciones comerciales sin rehacer los checks existentes."
+}

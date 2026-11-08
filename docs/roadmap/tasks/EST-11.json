@@ -1,0 +1,29 @@
+{
+  "id": "EST-11",
+  "seccion": "Estados",
+  "titulo": "Gone quiet informativo, sin cierre ni mensaje automático por inactividad",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "replanteado",
+  "responsable": "—",
+  "hecho": "La etiqueta Gone quiet sale en la columna Last contact y tiene su filtro: búsqueda activa (también Paused) sin contacto real en más de 14 días. El último contacto se guarda aparte (contacts.last_contact_at): alta, envío repetido, Log conversation, visitas y ofertas; las ediciones del equipo no cuentan.",
+  "falta": "M13 · Reconciliación 7-nov: Conservar Gone quiet como señal informativa de último contacto, sin mensaje automático ni cierre o pausa por inactividad. El mensaje histórico Are you still looking? no forma parte del recorrido acordado; cualquier tarea humana debe preservar búsqueda activa y datos hasta resolución expresa (EST-09).",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/applicants.js",
+    "server/retention.js",
+    "migrations/0019_last_contact.sql",
+    "tests/server/last-contact.test.mjs",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M13",
+  "deps": [],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar Gone quiet solo como señal informativa; no activar cierre, pausa ni mensajes automáticos por inactividad."
+}

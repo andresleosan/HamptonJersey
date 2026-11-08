@@ -229,6 +229,7 @@ main.wrap { padding-block: 8px 56px; }
     <div class="seg" role="group" aria-label="Agrupar">
       <button type="button" id="v-seccion" aria-pressed="true">Por sección</button>
       <button type="button" id="v-fase" aria-pressed="false">Por fase</button>
+      <a class="btn" href="reparto-equipo.html">Equipo</a>
     </div>
     <button type="button" class="btn" id="abrir">Abrir todos</button>
     <span id="filtro-bloqueo"></span>
@@ -384,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   }
 
-  const itemHTML = it => `<details class="it" data-e="${it.estado}" data-id="${esc(it.id)}"${abiertos.has(it.id) ? ' open' : ''}>
+  const itemHTML = it => `<details class="it" id="${esc(it.id)}" data-e="${it.estado}" data-id="${esc(it.id)}"${abiertos.has(it.id) ? ' open' : ''}>
 <summary><span class="st" data-e="${it.estado}">${glifo()}${NOMBRE[it.estado] || esc(it.estado)}</span><span class="tt">${esc(it.titulo)}</span><span class="tags"><code>${esc(it.id)}</code><span>${esc(it.fase)}</span><span>${it.origen === 'texto' ? 'Tu texto' : 'Plan'}</span>${RESP_N[it.responsable] ? `<span>Mueve: ${RESP_N[it.responsable]}</span>` : ''}</span></summary>
 <div class="det">${it.hecho ? `<p><b>Hecho</b>${conRefs(it.hecho)}</p>` : ''}${it.falta ? `<p><b>Falta</b>${conRefs(it.falta)}</p>` : ''}${it.bloqueo ? `<p><b>Bloqueo</b>${esc(it.bloqueo)}</p>` : ''}${(it.evidencia || []).length ? `<p class="ev"><b>Evidencia</b>${it.evidencia.map(e => `<code>${esc(e)}</code>`).join('')}</p>` : ''}</div>
 </details>`;
@@ -430,12 +431,27 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.assign(st, { q: '', est: new Set(EST.map(e => e.k)), origen: '', resp: '', bloqueo: '' });
     render();
   }
+  // Los enlaces del tablero Equipo abren el punto y conservan un destino de teclado.
+  function abrirCodigoEnHash() {
+    let id;
+    try { id = decodeURIComponent(location.hash.slice(1)); } catch { return; }
+    if (!IDS.has(id)) return;
+    abiertos.add(id);
+    limpiar();
+    const punto = document.getElementById(id);
+    if (punto) {
+      punto.scrollIntoView({ block: 'center' });
+      punto.querySelector('summary').focus({ preventScroll: true });
+    }
+  }
+  window.addEventListener('hashchange', abrirCodigoEnHash);
   const irALista = () => $('.toolbar').scrollIntoView({ block: 'start' });
 
   $('#chips').innerHTML = EST.map(e => `<button type="button" class="chip" data-e="${e.k}" aria-pressed="true">${glifo()}${e.n}</button>`).join('');
   $('#resp').innerHTML = '<option value="">Cualquiera</option>' + RESP.map(r => `<option value="${r.k}">${r.n}</option>`).join('');
   resumen();
   render();
+  abrirCodigoEnHash();
 
   $('#q').addEventListener('input', e => { st.q = e.target.value; render(); });
   $('#origen').addEventListener('change', e => { st.origen = e.target.value; render(); });
@@ -568,7 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F1-A",
    "estado": "hecho",
    "responsable": "—",
-   "hecho": "Cada recálculo con casas nuevas abre o actualiza un solo aviso Needs action por aplicante, «N new matches for <name>», con el botón Review matches hacia su pestaña Matches; se cierra solo cuando no queda ninguna Found.",
+   "hecho": "Cada recálculo con casas nuevas abre o actualiza un solo aviso Needs action por aplicante, «N new matches for \u003cname>», con el botón Review matches hacia su pestaña Matches; se cierra solo cuando no queda ninguna Found.",
    "falta": "",
    "bloqueo": "",
    "evidencia": [
@@ -587,7 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F5-A",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since <fecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra.",
+   "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since \u003cfecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra.",
    "falta": "No hay categoría ni pestaña Missing payments en Inbox (notifications solo admite new_applicant, viewing y matched); falta el margen grace_days configurable (3 días por defecto; hoy el atraso sale al día siguiente del vencimiento, con el paso +1); y las comisiones que otras agencias deben a Hampton no se registran: Sales solo guarda los honorarios de Hampton y la parte que se lleva la otra agencia, sin fecha ni estado de cobro.",
    "bloqueo": "",
    "evidencia": [
@@ -610,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F5-A",
    "estado": "hecho",
    "responsable": "—",
-   "hecho": "Cada contrato lleva Rent day (1–28) y cada cobro mensual su fecha de vencimiento; pasado ese día sin pago entra en Arrears con «N days · Since <fecha>». Usarlo con gestión completa en producción espera la confirmación de JFSC y abogado.",
+   "hecho": "Cada contrato lleva Rent day (1–28) y cada cobro mensual su fecha de vencimiento; pasado ese día sin pago entra en Arrears con «N days · Since \u003cfecha>». Usarlo con gestión completa en producción espera la confirmación de JFSC y abogado.",
    "falta": "",
    "bloqueo": "",
    "evidencia": [
@@ -3422,7 +3438,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Al enviar, la web confirma «Thank you, <name>. We'll be in touch within one working day.» y el matching corre justo después de responder.",
+   "hecho": "Al enviar, la web confirma «Thank you, \u003cname>. We'll be in touch within one working day.» y el matching corre justo después de responder.",
    "falta": "M03 · Reconciliación 7-nov: Confirmar el alta y el inicio real de la búsqueda sin prometer una propiedad adecuada ni una visita. Mostrar al equipo el resultado inicial y datos esenciales pendientes; gestionar solo el dato que falta. El portal pendiente AGE-12 no bloquea ese acuse de registro y no se revelan coincidencias de un contacto previo por una repetición del formulario. Depende de: BUS-01, EST-09. Aceptación: El formulario informa que la búsqueda está activa y el equipo ve cualquier esencial pendiente.",
    "bloqueo": "",
    "evidencia": [
@@ -3463,7 +3479,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "hecho",
    "responsable": "—",
-   "hecho": "Un alta web con un email o móvil ya guardado no cambia los datos del contacto (solo reinicia sus 12 meses y, si desmarca el marketing, lo retira): guarda el envío, crea el aviso «<name> registered again» y la ficha muestra lo que difiere con Copy fields, Create second search (si no tiene esa operación activa) y Dismiss. La web responde igual en los dos casos para no revelar quién está registrado, y en el panel New applicant avisa del contacto existente.",
+   "hecho": "Un alta web con un email o móvil ya guardado no cambia los datos del contacto (solo reinicia sus 12 meses y, si desmarca el marketing, lo retira): guarda el envío, crea el aviso «\u003cname> registered again» y la ficha muestra lo que difiere con Copy fields, Create second search (si no tiene esa operación activa) y Dismiss. La web responde igual en los dos casos para no revelar quién está registrado, y en el panel New applicant avisa del contacto existente.",
    "falta": "",
    "bloqueo": "",
    "evidencia": [
@@ -3625,7 +3641,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F5-A",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "New landlord y New property (#/rentals/new) recogen propietario (nombre, email, teléfono, límite de aprobación), dirección, parroquia, servicio Full management o Let only, Management fee y gas; la vivienda nace con sus Checks en «Not recorded» y el propietario tiene su página (#/rentals/landlords/<id>).",
+   "hecho": "New landlord y New property (#/rentals/new) recogen propietario (nombre, email, teléfono, límite de aprobación), dirección, parroquia, servicio Full management o Let only, Management fee y gas; la vivienda nace con sus Checks en «Not recorded» y el propietario tiene su página (#/rentals/landlords/\u003cid>).",
    "falta": "No se suben documentos de cumplimiento (Rentals no admite archivos) ni se registran llaves ni datos bancarios del propietario para liquidar (no-objetivo de F5-A; el plan los reservaba al rol owner, que no existe por la decisión de un solo rol).",
    "bloqueo": "",
    "evidencia": [
@@ -4033,7 +4049,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "«Add new property» (Listings) crea un borrador con título, uso, operación, disponibilidad y país, a mano o, desde el 3-nov-2026, desde una carpeta del ordenador: lee su property.txt (plantilla descargable en el mismo formulario) y sube las fotos sueltas de la carpeta en orden de nombre, reducidas en el navegador y sin GPS, con portada, planos y vista aérea según el nombre. Antes de crear enseña un resumen con lo que no se importa (líneas que no son campos, valores no válidos, HEIC, PDF, vídeos y subcarpetas, que no se leen) y avisa si el título ya existe o si el texto parece llevar un email o un teléfono. En el móvil se eligen fotos sueltas. El editor (#/p/<id>) reúne Details, Price, Description, Photos y Tour and specification con la caja «Missing from this listing».",
+   "hecho": "«Add new property» (Listings) crea un borrador con título, uso, operación, disponibilidad y país, a mano o, desde el 3-nov-2026, desde una carpeta del ordenador: lee su property.txt (plantilla descargable en el mismo formulario) y sube las fotos sueltas de la carpeta en orden de nombre, reducidas en el navegador y sin GPS, con portada, planos y vista aérea según el nombre. Antes de crear enseña un resumen con lo que no se importa (líneas que no son campos, valores no válidos, HEIC, PDF, vídeos y subcarpetas, que no se leen) y avisa si el título ya existe o si el texto parece llevar un email o un teléfono. En el móvil se eligen fotos sueltas. El editor (#/p/\u003cid>) reúne Details, Price, Description, Photos y Tour and specification con la caja «Missing from this listing».",
    "falta": "No hay alta guiada «New instruction» por familias de datos pensada para el móvil durante la valoración, y varias familias no tienen sus campos (PUB-04 a PUB-09). La importación no convierte HEIC, no sube PDFs ni documentos (PUB-11) y no lee filas de especificación.",
    "bloqueo": "",
    "evidencia": [
@@ -4058,7 +4074,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "Luis",
-   "hecho": "Publish en el editor (o el interruptor Visible en Listings) pone la ficha al momento en la web de la app, en la portada y en /p/<id>, si tiene una foto pública. Desde el 1-nov-2026 eso es la web oficial, www.hamptonestatesjersey.com.",
+   "hecho": "Publish en el editor (o el interruptor Visible en Listings) pone la ficha al momento en la web de la app, en la portada y en /p/\u003cid>, si tiene una foto pública. Desde el 1-nov-2026 eso es la web oficial, www.hamptonestatesjersey.com.",
    "falta": "Publicar solo al tenerlo todo depende de los obligatorios (PUB-12).",
    "bloqueo": "",
    "evidencia": [
@@ -4285,7 +4301,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "Luis",
-   "hecho": "Cada ficha tiene /p/<id> con título, descripción e imagen para la vista previa en WhatsApp y redes, JSON-LD RealEstateListing, sitemap.xml, robots.txt y botones Share y WhatsApp; site/_redirects lleva las URL viejas de Wix a /p/<id>. Desde c9ac1ec todo apunta a https://www.hamptonestatesjersey.com, que sirve la app desde el 1-nov: SITE_URL, la meta site-url, el canonical, og:url, og:image y el JSON-LD de la portada, el sitemap y robots.txt. Solo ese host se indexa: en el dominio sin www, en hamptonjersey.pages.dev y en las vistas previas, las fichas, el sitemap y robots.txt responden noindex, y Cloudflare redirige los dos primeros a www.",
+   "hecho": "Cada ficha tiene /p/\u003cid> con título, descripción e imagen para la vista previa en WhatsApp y redes, JSON-LD RealEstateListing, sitemap.xml, robots.txt y botones Share y WhatsApp; site/_redirects lleva las URL viejas de Wix a /p/\u003cid>. Desde c9ac1ec todo apunta a https://www.hamptonestatesjersey.com, que sirve la app desde el 1-nov: SITE_URL, la meta site-url, el canonical, og:url, og:image y el JSON-LD de la portada, el sitemap y robots.txt. Solo ese host se indexa: en el dominio sin www, en hamptonjersey.pages.dev y en las vistas previas, las fichas, el sitemap y robots.txt responden noindex, y Cloudflare redirige los dos primeros a www.",
    "falta": "Enviar el sitemap (https://www.hamptonestatesjersey.com/sitemap.xml) a Google Search Console, con el dominio verificado allí.",
    "bloqueo": "",
    "evidencia": [
@@ -4363,7 +4379,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "descartado",
    "responsable": "—",
-   "hecho": "site/_redirects lleva las URL de Wix de cada ficha a /p/<id>; si la ficha ya no se publica, la web muestra «Property not found» con See our properties, y Luis decidió dejarlo así.",
+   "hecho": "site/_redirects lleva las URL de Wix de cada ficha a /p/\u003cid>; si la ficha ya no se publica, la web muestra «Property not found» con See our properties, y Luis decidió dejarlo así.",
    "falta": "",
    "bloqueo": "",
    "evidencia": [
@@ -4882,7 +4898,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F3-C",
    "estado": "hecho",
    "responsable": "—",
-   "hecho": "Accept abre en un solo paso el expediente (#/sales/<id>) con precio, vía freehold o share transfer, vendedor, abogados de ambas partes, fecha prevista, honorarios y nueve hitos de Jersey con fecha prevista y real. Pone la ficha en Under offer y al comprador en Agreed, y nunca deja dos ventas en curso de la misma casa ni del mismo comprador.",
+   "hecho": "Accept abre en un solo paso el expediente (#/sales/\u003cid>) con precio, vía freehold o share transfer, vendedor, abogados de ambas partes, fecha prevista, honorarios y nueve hitos de Jersey con fecha prevista y real. Pone la ficha en Under offer y al comprador en Agreed, y nunca deja dos ventas en curso de la misma casa ni del mismo comprador.",
    "falta": "",
    "bloqueo": "",
    "evidencia": [

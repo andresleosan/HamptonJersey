@@ -1,0 +1,27 @@
+{
+  "id": "PUB-15",
+  "seccion": "Publicar propiedades",
+  "titulo": "Publicación en portales por feed con su ID en la ficha",
+  "origen": "plan",
+  "fase": "F4",
+  "estado": "bloqueado",
+  "responsable": "Hampton",
+  "hecho": "",
+  "falta": "No hay feeds a portales ni campo para su ID en la ficha; el plan los limita a los portales donde Hampton tenga cuenta, y eso no se sabe.",
+  "bloqueo": "Dato de Hampton",
+  "evidencia": [
+    "server/listing.js:16-21",
+    "migrations/0001_init.sql:1-24"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Hampton: portales contratados, cuentas y condiciones de feed.",
+  "resources": [
+    "portal-feeds",
+    "listings-schema"
+  ],
+  "nextStep": "Recoger portales y cuentas de Hampton antes de definir sus feeds e identificadores."
+}

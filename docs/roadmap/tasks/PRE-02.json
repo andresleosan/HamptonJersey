@@ -1,0 +1,27 @@
+{
+  "id": "PRE-02",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Empezar el trámite de Meta: verificación del negocio y app con permisos",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "pendiente",
+  "responsable": "Luis",
+  "hecho": "",
+  "falta": "No consta que se haya empezado. Es el trámite más lento y de él dependen publicar en Facebook e Instagram (F4), WhatsApp y la bandeja de mensajes (F6) y las firmas de webhooks (PRE-08).",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:591",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:376",
+    "docs/roadmap/ESTADO.md:14"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Luis: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
+  "resources": [
+    "meta-integration"
+  ],
+  "nextStep": "Luis gestiona verificación y permisos de Meta y registra el resultado comprobado del trámite."
+}

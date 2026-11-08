@@ -1,0 +1,26 @@
+{
+  "id": "SAP-04",
+  "seccion": "Seguimiento · Aplicantes",
+  "titulo": "Filtro To Let / To Buy al principio de la lista de aplicantes",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Applicants abre con el control All · To Let · To Buy, cada uno con su contador.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Applicants.jsx:6",
+    "admin/src/Applicants.jsx:34-35",
+    "admin/src/Applicants.jsx:47-48",
+    "server/applicants.js:10"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como completada; no reabrir salvo regresión o nueva necesidad explícita."
+}

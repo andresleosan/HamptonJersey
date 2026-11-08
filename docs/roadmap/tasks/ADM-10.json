@@ -1,0 +1,38 @@
+{
+  "id": "ADM-10",
+  "seccion": "Administración de propiedades",
+  "titulo": "Liquidación mensual al propietario enviada al cerrar el mes",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "parcial",
+  "responsable": "Luis",
+  "hecho": "Statements (#/rentals/statements) da por propietario con gestión completa y mes las rentas cobradas, los honorarios, el GST si se configura, las reparaciones cargadas y el neto, y se imprime desde el navegador con Print.",
+  "falta": "No sale sola al cerrar el mes como PDF por email (F5-B), y el GST sigue en 0 hasta confirmar si Hampton está registrado.",
+  "bloqueo": "Correo (AUT-17) · Dato de Hampton",
+  "evidencia": [
+    "admin/src/Statement.jsx:15-71",
+    "admin/src/Statement.jsx:73-98",
+    "server/routes/rent.js:733-768"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Luis: Correo (AUT-17) · Dato de Hampton",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "email-pipeline",
+    "statement-ui"
+  ],
+  "nextStep": "Confirmar GST con Hampton y completar liquidación automática por PDF/email cuando AUT-17 esté operativo."
+}

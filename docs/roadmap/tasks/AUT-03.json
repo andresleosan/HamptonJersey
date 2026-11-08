@@ -1,0 +1,27 @@
+{
+  "id": "AUT-03",
+  "seccion": "Automatizaciones e IA",
+  "titulo": "Automatizaciones internas de Optimyze en el VPS con puerto privado",
+  "origen": "texto",
+  "fase": "—",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Se mantiene «como ahora»: en el VPS los servicios internos solo escuchan en 127.0.0.1 o en la IP de Tailscale (docker ps del 28-oct) y DOCKER-USER corta el resto. Hampton App no tiene automatizaciones internas: todo corre en Cloudflare.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:452",
+    "docker ps (28-oct-2026): los servicios internos del VPS escuchan solo en local o en la tailnet",
+    "wrangler.toml:1-20"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "vps-private-services"
+  ],
+  "nextStep": "Conservar como hecho en el historial; no reconstruir salvo una regresión o cambio de alcance comprobado."
+}

@@ -1,0 +1,36 @@
+{
+  "id": "EST-18",
+  "seccion": "Estados",
+  "titulo": "Cada cambio de estado deja su evento en la tabla events",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Publicado y verificado en esta sesión el7-nov-2026 con cf0c86d y migración0029 aplicada. Registro interno de propiedades sin vista nueva: actor, fecha, origen, revisión y diferencias estructuradas; cambios y evento atómicos, sin texto libre ni avisos. Pages, Jobs y smokes comprobados tras publicación;708 pruebasJS+14Python, build,release y e2e general. La observación posterior de Hermes no sustituye esta evidencia anterior.",
+  "falta": "Conectar los futuros productores y su evidencia en M13. La vista de historial sigue aplazada por Luis; no se reconstruye historial anterior ni se añade idempotencia HTTP del panel. NOT-11 sigue siendo entrega independiente.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/listing-events.js",
+    "migrations/0029_listing_events.sql",
+    "server/routes/listings.js",
+    "server/routes/sales.js",
+    "server/routes/queue.js",
+    "server/routes/media.js",
+    "server/routes/matches.js",
+    "tests/server/listing-events.test.mjs",
+    "docs/superpowers/plans/2026-11-07-est-18-listing-events-ledger.md"
+  ],
+  "modulo": "M13",
+  "deps": [],
+  "criterio_aceptacion": "Dos fuentes o una corrección conservan procedencia y secuencia; una purga de archivos no borra eventos históricos.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "events-contract"
+  ],
+  "nextStep": "Conectar solo los futuros productores al registro de eventos ya publicado; conservar la vista de historial aplazada."
+}

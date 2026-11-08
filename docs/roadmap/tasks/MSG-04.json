@@ -1,0 +1,53 @@
+{
+  "id": "MSG-04",
+  "seccion": "Mensajes y redes",
+  "titulo": "Hampton Bot · fases 2 y 3: el modelo en sombra y luego en vivo, con modos y objetivo de primera respuesta",
+  "origen": "plan",
+  "fase": "F6",
+  "estado": "bloqueado",
+  "responsable": "Luis",
+  "hecho": "Diseño en el documento de ideas del 6-nov-2026 (§2, §5, §7, §8 y §9): el cerebro vive en la app (Pages Function) y usa Workers AI por binding; el modelo solo entiende qué pide el visitante y el código actúa con lo que ya existe; nunca aprueba, publica ni envía nada solo.",
+  "falta": "No hay asistente que responda solo con datos de las fichas publicadas, horario y enlaces de reserva y registro, diga que es automático y pase a una persona. Fase 2, en sombra: binding [ai] de Workers AI en wrangler.toml (modelo @cf/google/gemma-4-26b-a4b-it, sin entrenar ni retener) y un modelo falso HBOT_FAKE para las pruebas, porque el local llama a la cuenta real; server/hamptonbot.js con una sola llamada con tope de 10 s que devuelve un JSON fijo (intención, idioma, criterios, si pide persona) validado campo a campo; guardias antes del modelo (emails y teléfonos pasan a «[email]» y «[phone]», IBAN y tarjetas se bloquean, palabras C3 van a persona sin llamar al modelo); el código responde con plantillas y datos reales (fichas publicadas, huecos, horario como unión de los negociadores activos menos sus excepciones); modo shadow en app_settings.hamptonbot (la respuesta se guarda y el visitante no la ve), tarjeta «Hampton Bot · web chat» en Automations con modo, llamadas de hoy y neurons, tope diario de llamadas y de neurons, y obedece Pause all outbound (AUT-11); batería de 30 casos y 10 adversarios con el modelo real (≥ 27/30 y 10/10) y una semana o 30 chats revisados sin un dato inventado, con p95 por debajo de 15 s. Fase 3, en vivo (assist), con el «sí» de Luis tras medir: las intenciones de la lista blanca se contestan solas en menos de 10 s, botón y burbuja pasan a «Chat with Hampton Bot», tarjetas de fichas, hasta tres huecos reales y el formulario #book prellenado, registro prellenado en #/apply, valoración sin cifras, Suggested reply para lo que va a persona (Use / Edit / Discard, nunca se envía solo) y los campos extraídos en Create applicant (MSG-05); Hecho cuando: una reserva y un registro reales nacidos en el chat aparecen en Viewings y Applicants, y durante una semana la primera respuesta automática llega en menos de 10 s y la humana en menos de 2 h en horario. Meta y WhatsApp quedan descartados para el asistente (§10: Meta no admite asistentes de IA fuera del EEE); la bandeja Messages puede sumar esos canales si se pide (MSG-03). Bloqueado por PRE-34 (aviso, DPIA y JOIC antes de que entre texto de clientes en el modelo) y por la decisión 2 del documento (proveedor del modelo); la fase 3, además, por la semana en sombra y el «sí» de Luis. Modelo recomendado: claude-opus-5-5 · esfuerzo xhigh en la fase 2 (guardias de seguridad sobre texto hostil y batería adversaria) y high en la fase 3.",
+  "bloqueo": "Decisión de Luis",
+  "evidencia": [
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §7",
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §8",
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §9",
+    "wrangler.toml:1-20",
+    "docs/roadmap/ESTADO.md:14"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "MSG-02",
+      "requires": "integrated",
+      "reason": "El modo IA se añade al chat humano ya construido.",
+      "basis": "inferred",
+      "scope": "partial"
+    },
+    {
+      "id": "PRE-34",
+      "requires": "decision",
+      "reason": "Aviso, DPIA y JOIC antes de texto de clientes en modelo; además decisión de proveedor.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AUT-11",
+      "requires": "integrated",
+      "reason": "El asistente respeta pausa global y barandillas antes de responder.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Luis/abogado/Hampton: PRE-34, proveedor, periodo en sombra y autorización separada para vivo.",
+  "resources": [
+    "web-chat",
+    "automation-controls",
+    "model-data-policy"
+  ],
+  "nextStep": "Resolver requisitos de IA y proveedor; construir sombra y exigir evidencia y autorización antes de modo vivo."
+}

@@ -1,0 +1,23 @@
+{
+  "id": "SAP-05",
+  "seccion": "Seguimiento · Aplicantes",
+  "titulo": "Lista con nombre, teléfono y fecha de la solicitud de cada aplicante",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "La tabla de Applicants muestra Name (enlace a la ficha), Phone y Applied con la fecha y hora de la solicitud.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Applicants.jsx:66-75"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como completada; no reabrir salvo regresión o nueva necesidad explícita."
+}

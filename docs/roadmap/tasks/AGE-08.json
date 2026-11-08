@@ -1,0 +1,74 @@
+{
+  "id": "AGE-08",
+  "seccion": "Agencias y portal del aplicante",
+  "titulo": "Dos días sin respuesta útil: tarea de llamada con todos los teléfonos",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M06 · Reconciliación 7-nov: Tras dos días desde el envío real sin respuesta útil, crear una única tarea de llamada con propiedad, anunciante, mensaje, historial, clientes y todos los teléfonos identificados. Una respuesta que llega antes de llamar actualiza o resuelve la tarea según lo confirmado. Registrar disponible, no disponible o inconcluso; una llamada sin contestar no prueba indisponibilidad. Sustituye el antiguo encadenamiento de recordatorios por correo. Naturales/laborables, hora y fines de semana siguen pendientes de decisión; conservar estadísticas de respuesta como mejora separada. Depende de: AGE-05, AGE-06, AGE-04, AUT-07, NOT-11. Aceptación: Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:295",
+    "docs/roadmap/ESTADO.md:10",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M06",
+  "deps": [
+    "AGE-05",
+    "AGE-06",
+    "AGE-04",
+    "AUT-07",
+    "NOT-11"
+  ],
+  "criterio_aceptacion": "Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea.",
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AGE-05",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AGE-06",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AGE-04",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AUT-07",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "NOT-11",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Decisión de producto pendiente sobre días naturales/laborables, hora y fines de semana.",
+  "resources": [
+    "consultations-contract",
+    "jobs-clock",
+    "notifications-schema"
+  ],
+  "nextStep": "Crear una única llamada pendiente a los dos días sin respuesta útil, tras definir cómputo de días y horarios."
+}

@@ -1,0 +1,49 @@
+{
+  "id": "PUB-20",
+  "seccion": "Publicar propiedades",
+  "titulo": "Folleto por parroquia con código QR, repartido sin lista de direcciones",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "Un folleto imprimible con los números de demanda de la parroquia, sin direcciones ni precios de casas concretas, y un QR a Book a valuation con su origen (ANA-10). Lo reparte Jersey Post sin lista de direcciones (Direct2home), respetando a quien no quiere publicidad. Hampton elige la primera parroquia (la de más demanda en Insights) y pide presupuesto.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/insights.js"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "ANA-10",
+      "requires": "integrated",
+      "reason": "Solo atribución real de contactos por QR requiere guardar origen; diseño del folleto puede avanzar.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PUB-10",
+      "requires": "integrated",
+      "reason": "Solo reparto con QR operativo requiere formulario; se puede preparar material antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "ANA-07",
+      "requires": "integrated",
+      "reason": "Las cifras del folleto salen de demanda real por parroquia.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Hampton: elegir parroquia y solicitar presupuesto de reparto; asignación no autoriza contratar.",
+  "resources": [
+    "analytics-contract",
+    "owner-contact",
+    "marketing-material"
+  ],
+  "nextStep": "Preparar folleto por parroquia con QR trazable; Hampton decide parroquia y contratación del reparto."
+}

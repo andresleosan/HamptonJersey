@@ -1,0 +1,31 @@
+{
+  "id": "ADM-21",
+  "seccion": "Administración de propiedades",
+  "titulo": "Exportar cobros, pagos y liquidaciones a la contabilidad de Hampton",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "No hay ninguna exportación: Rentals importa el extracto del banco y Statements se imprime desde el navegador. Falta descargar por periodo los cobros, los pagos con su referencia HE-T#### y las liquidaciones en un CSV que acepte cualquier programa de contabilidad; si Hampton usa uno concreto, se ajusta a su formato.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Statement.jsx:9-11",
+    "admin/src/RentImport.jsx:29-139",
+    "server/routes/rent.js:737-771",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:579"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "statement-ui",
+    "rentals-export"
+  ],
+  "nextStep": "Añadir exportación por periodo de cobros, pagos y liquidaciones con referencias trazables."
+}

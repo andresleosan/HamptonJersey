@@ -1,0 +1,40 @@
+{
+  "id": "ANA-05",
+  "seccion": "Trazabilidad y analítica",
+  "titulo": "Embudo completo: de la visita a la web hasta el cierre",
+  "origen": "plan",
+  "fase": "F7-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Funnel en Insights sobre los aplicantes registrados en el periodo: Registered, Viewing, Offer, Agreed y Completed, más Lost aparte. Encima, totales sueltos de Listing views, Viewing requests, New applicants y Viewings completed.",
+  "falta": "El tramo web encadenado del §5.14 (visitas a la web → consulta o petición de visita → aplicante): la web solo cuenta aperturas de fichas, no visitas. Además, la barra Viewing solo cuenta a quien el equipo pasó a mano a esa etapa, porque reservar o hacer una visita no cambia la etapa (C16).",
+  "bloqueo": "",
+  "evidencia": [
+    "server/insights.js:25-29",
+    "server/insights.js:76-84",
+    "server/routes/insights.js:20-23",
+    "server/routes/insights.js:34-43",
+    "admin/src/Insights.jsx:53-55",
+    "admin/src/Insights.jsx:105-113",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:46"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "VIS-08",
+      "requires": "design",
+      "reason": "Solo medición del tramo de visitas necesita reconciliar su ciclo; tramo web puede avanzar.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "analytics-contract",
+    "events-contract"
+  ],
+  "nextStep": "Completar el tramo web del embudo y reconciliar la medición de visitas con el ciclo real."
+}

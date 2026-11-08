@@ -1,0 +1,59 @@
+{
+  "id": "EST-14",
+  "seccion": "Estados",
+  "titulo": "Resto del ciclo del match: Interested, Viewing booked, Viewed, Offer, Agreed y salidas",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M08/M09 · Reconciliación 7-nov: Relacionar interés, descarte con motivo, visita, oferta y acuerdo con el match correcto. Conservar historial de pasos; un descarte de cliente no cambia criterios automáticamente ni vuelve no disponible la propiedad. Una visita realizada, oferta o acuerdo mantiene activa la búsqueda hasta EST-09. Depende de: EST-13, AGE-12, VIS-17.",
+  "bloqueo": "",
+  "evidencia": [
+    "migrations/0009_matches.sql:33-35",
+    "migrations/0010_viewings.sql:35-49",
+    "migrations/0012_sales.sql:2-8",
+    "server/matching.js:9-12",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M08/M09",
+  "deps": [
+    "EST-13",
+    "AGE-12",
+    "VIS-17"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "EST-13",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AGE-12",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "VIS-17",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "matching-contract",
+    "viewings-contract",
+    "sales-contract"
+  ],
+  "nextStep": "Relacionar interés, descarte, visita y oferta con el match correcto manteniendo búsqueda e historial."
+}

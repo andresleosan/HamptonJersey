@@ -1,0 +1,32 @@
+{
+  "id": "AGE-13",
+  "seccion": "Agencias y portal del aplicante",
+  "titulo": "Retirar la pausa automática por inactividad; continuidad hasta resolución humana",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "replanteado",
+  "responsable": "—",
+  "hecho": "La etapa Paused existe y el equipo la pone a mano en la ficha del aplicante.",
+  "falta": "M08 · Reconciliación 7-nov: Queda retirada la propuesta de pausar automáticamente tras 30 días o cerrar por no respuesta. La etapa Paused existente se conserva como antecedente; su política requiere una decisión adicional. La búsqueda continúa en consultas, visitas y negociación y solo se resuelve por acción expresa del empleado (EST-09). Las tareas pendientes se gestionan en NOT-11.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/applicants.js:24-25",
+    "admin/src/ApplicantDetail.jsx:289-293",
+    "migrations/0009_matches.sql:33",
+    "server/jobs.js:1-15",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M08",
+  "deps": [],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "advertisers-directory",
+    "consultations-contract"
+  ],
+  "nextStep": "Conservar la decisión replanteada y seguir el alcance vigente en EST-09, NOT-11."
+}

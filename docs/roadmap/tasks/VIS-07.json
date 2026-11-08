@@ -1,0 +1,30 @@
+{
+  "id": "VIS-07",
+  "seccion": "Interesados y visitas",
+  "titulo": "Cada negociador con sus días y horas disponibles y no disponibles",
+  "origen": "texto",
+  "fase": "F3-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Pantalla Availability (menú Settings): Add negotiator, interruptor Takes viewings, Weekly hours por día con Day off y Exceptions por fecha (Blocked todo el día o de hora a hora, u Open con horas que sustituyen las del día). La web ofrece los cambios al momento.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Availability.jsx:50-69",
+    "admin/src/Availability.jsx:188-245",
+    "server/routes/negotiators.js:106-113",
+    "migrations/0010_viewings.sql:2-31",
+    "admin/src/App.jsx:39"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

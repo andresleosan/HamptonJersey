@@ -1,0 +1,28 @@
+{
+  "id": "SPR-04",
+  "seccion": "Seguimiento · Propiedades",
+  "titulo": "Aplicantes que hicieron match con la propiedad, en su ficha",
+  "origen": "texto",
+  "fase": "F1-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "La sección Matched applicants de la ficha lista cada aplicante con si busca To Let o To Buy, su estado (Found, Shortlisted, Rejected), su puntuación, si su búsqueda está cerrada y el enlace a sus matches; el interruptor Offer to applicants decide si se ofrece.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/ListingEditor.jsx:233-243",
+    "admin/src/ListingEditor.jsx:270-287",
+    "server/routes/listings.js:52-70"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "matching-contract",
+    "listing-editor"
+  ],
+  "nextStep": "Conservar como hecho en el historial; no reconstruir salvo una regresión o cambio de alcance comprobado."
+}

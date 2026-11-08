@@ -1,0 +1,26 @@
+{
+  "id": "PRE-31",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Respuesta a la pregunta 15: un Hermes propio para Hampton y quién le habla por Telegram",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Luis (30-oct-2026): Hampton tiene su propio Hermes, aparte del de Optimyze, en el mismo VPS y en su propia jaula (su carpeta, sus datos y su bot). Cambio de Luis del 2-nov-2026: el equipo no habla con el bot; solo lee un canal privado de Telegram con los avisos y el resumen, y nadie puede darle órdenes desde el canal. Solo Luis da órdenes, en privado, desde sus dos cuentas de Telegram. El diseño está en el §6.6.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 15",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "hermes-access-model"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

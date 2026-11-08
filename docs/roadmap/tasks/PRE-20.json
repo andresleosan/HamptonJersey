@@ -1,0 +1,27 @@
+{
+  "id": "PRE-20",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Respuesta a la pregunta 4: si Hampton usa un CRM u hojas para aplicantes y alquileres",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "No hay CRM: los aplicantes vivían en la memoria y en notas sueltas del equipo, y los alquileres gestionados en la memoria, hojas y el banco (Luis, 24-oct); por eso se construyó en vez de integrar (F0, F5-A).",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:8",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:8",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:695"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "business-decisions"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

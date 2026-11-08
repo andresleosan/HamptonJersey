@@ -1,0 +1,33 @@
+{
+  "id": "BUS-19",
+  "seccion": "Búsqueda de propiedades",
+  "titulo": "Usar solo fuentes del mercado que lo permitan: webs de agencias según sus términos, Properties.je con permiso escrito y Homely.je nunca",
+  "origen": "plan",
+  "fase": "F1-B",
+  "estado": "pendiente",
+  "responsable": "Luis",
+  "hecho": "",
+  "falta": "M01 · Reconciliación 7-nov: No hay lector de webs externas: hoy la app solo llama a Turnstile y a las claves públicas de Google del login. Antes de leer la web de una agencia hay que comprobar que sus términos lo permiten, y leerla con baja frecuencia, respetando robots.txt y con un user-agent identificado. Properties.je solo con permiso escrito; JEP property, OnTheMarket y Rightmove después de revisar sus términos; Homely.je nunca, porque sus términos lo prohíben. Actualizar esta revisión por fuente con canal utilizable, acceso público/restringido, última comprobación y trabajo manual pendiente. Las restricciones históricas se conservan hasta comprobar condiciones vigentes; no se exige obtener acceso a todas las fuentes para comenzar con las operativas. Una fuente inaccesible no se cuenta como fuente sin anuncios. Aceptación: Cada fuente indica método disponible o tarea manual; las restricciones se ven sin paralizar todas las demás.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:255-256",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:538-545",
+    "server/auth.js:3-4",
+    "server/turnstile.js:8",
+    "wrangler.toml:1-20",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M01",
+  "deps": [],
+  "criterio_aceptacion": "Cada fuente indica método disponible o tarea manual; las restricciones se ven sin paralizar todas las demás.",
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Luis gestiona permisos que requieran autorización escrita; cada fuente conserva restricciones y revisión propia.",
+  "resources": [
+    "source-access-policy"
+  ],
+  "nextStep": "Revisar acceso y condiciones por fuente, dejando método permitido o tarea manual sin bloquear las demás fuentes."
+}

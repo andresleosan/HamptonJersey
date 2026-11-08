@@ -1,0 +1,41 @@
+{
+  "id": "PUB-09",
+  "seccion": "Publicar propiedades",
+  "titulo": "Familia 6 · Estado y trazabilidad de la ficha",
+  "origen": "texto",
+  "fase": "F4",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "En listings: Availability (For sale, Under offer, Sold, To let, Lease, Withdrawn) y el estado Draft, Published o Archived; daily_stats cuenta aperturas de página, galería y tour (Owner report e Insights) y el editor muestra Active interest y ofertas. Desde el 30-oct-2026 guarda cuándo se confirmó la ficha por última vez (confirmed_at), y a los 3 meses, o 1 en alquiler, pasa a «To confirm» (ADM-04).",
+  "falta": "Faltan fecha de publicación, motivo de retirada, Let agreed y Let, guardados, llamadas e IDs en portales (PUB-15). Replanteado para Jersey (§5.10), no falta: Idealista, Fotocasa, Zillow o MLS pasan a los portales donde Hampton tenga cuenta, y la fecha de vencimiento a la confirmación de la ficha (ADM-04).",
+  "bloqueo": "",
+  "evidencia": [
+    "server/listing.js:7",
+    "admin/src/format.js:4-14",
+    "migrations/0011_daily_stats.sql:1-8",
+    "server/routes/public.js:82-95",
+    "admin/src/OwnerReport.jsx:86-98",
+    "admin/src/Insights.jsx:86",
+    "admin/src/ListingEditor.jsx:161-165",
+    "migrations/0017_to_confirm.sql:1-7"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PUB-15",
+      "requires": "design",
+      "reason": "Solo el subtramo IDs de portales depende del contrato de feeds.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "listings-schema",
+    "listing-editor"
+  ],
+  "nextStep": "Contrastar los campos ya añadidos y completar solo retirada, estados y trazabilidad pendientes."
+}

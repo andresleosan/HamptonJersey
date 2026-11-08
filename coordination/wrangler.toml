@@ -1,0 +1,22 @@
+name = "hampton-team-coordinator"
+main = "src/worker.mjs"
+compatibility_date = "2026-10-01"
+workers_dev = false
+preview_urls = false
+
+[[durable_objects.bindings]]
+name = "TEAM_COORDINATOR"
+class_name = "TeamCoordinator"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TeamCoordinator"]
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+# Configure ACCESS_TEAM_DOMAIN, ACCESS_AUD and TEAM_IDENTITIES_JSON explicitly
+# before activation. No executor identity or public route is enabled by default.
+# An optional COORDINATION_GITHUB_TOKEN is a separate read-only repository secret.

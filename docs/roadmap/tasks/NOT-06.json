@@ -1,0 +1,30 @@
+{
+  "id": "NOT-06",
+  "seccion": "Notificaciones",
+  "titulo": "Fecha límite de cobro en cada pago de alquiler",
+  "origen": "texto",
+  "fase": "F5-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Cada contrato lleva Rent day (1–28) y cada cobro mensual su fecha de vencimiento; pasado ese día sin pago entra en Arrears con «N days · Since <fecha>». Usarlo con gestión completa en producción espera la confirmación de JFSC y abogado.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "migrations/0013_rentals.sql:45",
+    "migrations/0013_rentals.sql:78-87",
+    "admin/src/RentalDialogs.jsx:251",
+    "server/routes/rent.js:48-67",
+    "admin/src/Rentals.jsx:86-92"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "notifications-schema",
+    "inbox-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

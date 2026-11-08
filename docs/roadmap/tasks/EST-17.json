@@ -1,0 +1,33 @@
+{
+  "id": "EST-17",
+  "seccion": "Estados",
+  "titulo": "Estados de la ficha propia de Draft a Sold / Let, con Withdrawn y To confirm",
+  "origen": "plan",
+  "fase": "F4",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Listings separa Draft, Published y Archived, y Availability guarda For sale, Under offer, Sold, To let, Lease, Not stated y Withdrawn; aceptar una oferta pone Under offer, completar la venta pone Sold y si se cae vuelve a For sale. Desde el 30-oct-2026, una ficha publicada y en el mercado que lleva 3 meses sin confirmar (1 en alquiler) sale como «To confirm» hasta que alguien la confirma (ADM-04).",
+  "falta": "Ready for review, y Let agreed y Let en alquileres.",
+  "bloqueo": "",
+  "evidencia": [
+    "migrations/0001_init.sql:7",
+    "admin/src/format.js:4-14",
+    "admin/src/Listings.jsx:7",
+    "server/routes/sales.js:177",
+    "server/routes/sales.js:412",
+    "server/routes/sales.js:430",
+    "server/listing.js:16-21"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "listings-schema",
+    "rentals-contract",
+    "listing-editor"
+  ],
+  "nextStep": "Completar Ready for review y Let agreed/Let preservando la propagación entre ficha y alquiler."
+}

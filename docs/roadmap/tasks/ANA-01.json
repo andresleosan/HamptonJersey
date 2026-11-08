@@ -1,0 +1,44 @@
+{
+  "id": "ANA-01",
+  "seccion": "Trazabilidad y analítica",
+  "titulo": "Ver la actividad de cada usuario en la web",
+  "origen": "texto",
+  "fase": "F7-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "El Timeline de cada aplicante recoge lo que hizo desde la web (registro, registros repetidos, peticiones de visita) y sus ofertas; la web cuenta aperturas de fichas sin identificar a nadie.",
+  "falta": "El rastro por persona (fichas que miró, búsquedas): anónimo por defecto y unido al aplicante solo al registrarse o entrar en su portal con el aviso aceptado (§5.14), con consentimiento si guarda un identificador en el navegador. Hoy la web no guarda nada por visitante.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/ApplicantDetail.jsx:434-447",
+    "server/routes/public.js:82-96",
+    "migrations/0011_daily_stats.sql:1-8",
+    "site/index.html:437-442"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-09",
+      "requires": "design",
+      "reason": "Definir aviso y base del vínculo identificable antes de implementarlo.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "PRE-11",
+      "requires": "design",
+      "reason": "Si se guarda identificador no esencial, revisar consentimiento antes de activarlo.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "analytics-contract",
+    "privacy-policy"
+  ],
+  "nextStep": "Diseñar actividad anónima y vínculo consentido al contacto sin introducir seguimiento individual implícito."
+}

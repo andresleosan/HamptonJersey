@@ -1,0 +1,37 @@
+{
+  "id": "ADM-16",
+  "seccion": "Administración de propiedades",
+  "titulo": "Salida: preaviso, inventario de salida y devolución del depósito",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Record notice calcula la salida más temprana (inquilino 1 mes, casero 12 meses, plazo fijo en su fin) y End tenancy fija la salida, detiene los cobros desde esa fecha y abre el plazo de 7 días del Check-out report.",
+  "falta": "No hay inventario de salida comparado con el de entrada y con fotos, ni propuesta de deducciones, ni seguimiento de la devolución del depósito a través de mydeposits.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/RentalDialogs.jsx:153-187",
+    "server/rentals.js:62-66",
+    "server/routes/rent.js:358-406",
+    "server/routes/rent.js:70-77"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "ADM-06",
+      "requires": "integrated",
+      "reason": "La comparación de salida requiere inventario de entrada.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui"
+  ],
+  "nextStep": "Comparar inventarios de entrada y salida y seguir deducciones y devolución del depósito."
+}

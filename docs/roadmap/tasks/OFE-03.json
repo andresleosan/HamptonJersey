@@ -1,0 +1,30 @@
+{
+  "id": "OFE-03",
+  "seccion": "Ofertas y cierre",
+  "titulo": "Aceptar una oferta abre el expediente de venta con partes, abogados e hitos de Jersey",
+  "origen": "plan",
+  "fase": "F3-C",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Accept abre en un solo paso el expediente (#/sales/<id>) con precio, vía freehold o share transfer, vendedor, abogados de ambas partes, fecha prevista, honorarios y nueve hitos de Jersey con fecha prevista y real. Pone la ficha en Under offer y al comprador en Agreed, y nunca deja dos ventas en curso de la misma casa ni del mismo comprador.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/sales.js:170-209",
+    "server/sales.js:4-12",
+    "migrations/0012_sales.sql:21-59",
+    "admin/src/SaleDetail.jsx:95-140",
+    "tests/e2e.cjs:649-664"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "sales-contract",
+    "sales-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

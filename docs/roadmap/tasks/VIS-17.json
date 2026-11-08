@@ -1,0 +1,69 @@
+{
+  "id": "VIS-17",
+  "seccion": "Interesados y visitas",
+  "titulo": "Visitas multiparte con franjas compatibles y confirmaciones separadas",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M09 · Reconciliación 7-nov: Coordinar visita con propiedad, búsqueda, anunciante y empleado. Reutilizar franjas REG-17 y permitir actualizarlas para esta cita; cruzar horarios de cliente, anunciante y empleado si asiste. Proponer opciones y guardar cada aceptación necesaria; confirmar solo cuando estén completas, sin condicionar la visita a un acuerdo de comisión. Reprogramación/cancelación actualizan la misma visita y tareas, y la búsqueda continúa. Depende de: REG-17, AGE-12, AGE-06, EST-13. Aceptación: Una hora propuesta por agencia sigue pendiente hasta aceptar cliente y demás participantes requeridos; la visita confirmada no cierra la búsqueda.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/public.js:57-59",
+    "server/routes/inbox.js:61-62",
+    "docs/roadmap/ESTADO.md:10",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M09",
+  "deps": [
+    "REG-17",
+    "AGE-12",
+    "AGE-06",
+    "EST-13"
+  ],
+  "criterio_aceptacion": "Una hora propuesta por agencia sigue pendiente hasta aceptar cliente y demás participantes requeridos; la visita confirmada no cierra la búsqueda.",
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "REG-17",
+      "requires": "integrated",
+      "reason": "Franjas, interés, respuesta y estados necesarios para coordinar la visita multiparte.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AGE-12",
+      "requires": "integrated",
+      "reason": "Franjas, interés, respuesta y estados necesarios para coordinar la visita multiparte.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AGE-06",
+      "requires": "integrated",
+      "reason": "Franjas, interés, respuesta y estados necesarios para coordinar la visita multiparte.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-13",
+      "requires": "integrated",
+      "reason": "Franjas, interés, respuesta y estados necesarios para coordinar la visita multiparte.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui",
+    "search-lifecycle",
+    "agency-consultations-contract",
+    "notifications-schema"
+  ],
+  "nextStep": "Coordinar franjas y aceptaciones de propiedad, cliente, anunciante y empleado sin cerrar la búsqueda."
+}

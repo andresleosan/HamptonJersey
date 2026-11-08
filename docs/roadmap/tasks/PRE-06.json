@@ -1,0 +1,30 @@
+{
+  "id": "PRE-06",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Segunda barrera del panel: 2FA en las cuentas de Google y Cloudflare Access (opcional)",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "pendiente",
+  "responsable": "Luis",
+  "hecho": "El panel exige login con una cuenta de Google verificada que esté en Users, con cookie HMAC __Host- de 8 horas (HttpOnly, Secure, SameSite=Strict).",
+  "falta": "No consta que cada cuenta de Users tenga la verificación en dos pasos (el panel no puede comprobarlo) ni que haya Cloudflare Access delante de /admin y /api/admin. Las dos se activan fuera del código, en Google y en Cloudflare.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:482",
+    "server/auth.js:7-14",
+    "server/auth.js:16-17",
+    "server/auth.js:42-53",
+    "server/routes/session.js:8-12"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Luis: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
+  "resources": [
+    "staff-access-model",
+    "account-security"
+  ],
+  "nextStep": "Luis verifica y configura las barreras de cuenta y acceso por los canales autorizados, fuera del código."
+}

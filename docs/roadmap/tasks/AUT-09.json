@@ -1,0 +1,26 @@
+{
+  "id": "AUT-09",
+  "seccion": "Automatizaciones e IA",
+  "titulo": "Ficha estándar de cada automatización, con pruebas y criterio de hecho",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "Ninguna automatización tiene su ficha: objetivo, disparador, entradas, pasos, modelo y clase de dato, punto humano y modo, salidas, qué hacer si falla, tope de coste mensual (al llegar pasa a Draft) y una batería de unos 30 casos reales que se repite al cambiar de modelo. Se escribe antes de construir cada una, con su criterio de hecho (p. ej. 27 de 30 aciertos).",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:419-435",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:475"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "automation-contracts"
+  ],
+  "nextStep": "Redactar ficha y criterios de prueba de cada automatización antes de construir su integración."
+}

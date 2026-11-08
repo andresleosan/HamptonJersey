@@ -1,0 +1,50 @@
+{
+  "id": "AGE-10",
+  "seccion": "Agencias y portal del aplicante",
+  "titulo": "Fotografías aptas para presentación privada y originales con procedencia",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M07 · Reconciliación 7-nov: Preparar fotos aptas para presentación privada: propias o versiones sin marca facilitadas o autorizadas para compartir. Conservar originales, procedencia, permiso y fecha en la ficha interna; si solo hay fotos con marca, tarea para obtener versión adecuada. No eliminar marcas automáticamente ni republicar anuncios ajenos en la web pública por este flujo. Sustituye la condición histórica de ocultar hasta acordar comisión; esta no bloquea la visita. Depende de: SPR-03, AGE-04. Aceptación: Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297",
+    "server/routes/public.js:178-186",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M07",
+  "deps": [
+    "SPR-03",
+    "AGE-04"
+  ],
+  "criterio_aceptacion": "Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura.",
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "SPR-03",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AGE-04",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Propietario/anunciante debe facilitar o autorizar imágenes aptas cuando falten permisos.",
+  "resources": [
+    "media-pipeline",
+    "advertisers-directory",
+    "private-presentation"
+  ],
+  "nextStep": "Gestionar originales, permiso e imágenes aptas para presentación privada sin quitar marcas automáticamente."
+}

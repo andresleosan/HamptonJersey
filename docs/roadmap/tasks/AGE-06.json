@@ -1,0 +1,58 @@
+{
+  "id": "AGE-06",
+  "seccion": "Agencias y portal del aplicante",
+  "titulo": "Respuestas y llamadas con evidencia, alcance y actualización de tareas",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M06 · Reconciliación 7-nov: Vincular respuestas con la propiedad y la consulta, distinguir respuesta útil de acuse automático/ambigua y guardar evidencia, fuente y fecha. Confirmaciones humanas posteriores prevalecen ante anuncios antiguos; contradicciones van a revisión. El empleado puede registrar llamada disponible/no disponible/inconclusa, persona que confirma, alcance y condiciones. Repercutir disponibilidad y pendientes sobre matches y tareas relacionados; no inferir que una respuesta general acepta todos los hogares ni que confirma la visita. La IA, si se usa, extrae una propuesta revisable y no negocia comisión. Depende de: AGE-03, AGE-05, EST-13. Aceptación: Una respuesta automática mantiene pendiente; una llamada humana confirmada actualiza todas las gestiones afectadas sin cerrar búsquedas.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297-299",
+    "migrations/0009_matches.sql:33",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M06",
+  "deps": [
+    "AGE-03",
+    "AGE-05",
+    "EST-13"
+  ],
+  "criterio_aceptacion": "Una respuesta automática mantiene pendiente; una llamada humana confirmada actualiza todas las gestiones afectadas sin cerrar búsquedas.",
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AGE-03",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AGE-05",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-13",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "consultations-contract",
+    "inventory-contract",
+    "notifications-schema"
+  ],
+  "nextStep": "Registrar respuestas útiles y llamadas con alcance, evidencia y actualización coherente de gestiones."
+}

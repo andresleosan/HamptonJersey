@@ -1,0 +1,38 @@
+{
+  "id": "VIS-03",
+  "seccion": "Interesados y visitas",
+  "titulo": "La web muestra cuántas personas están interesadas en la casa (desde 2, cifra real)",
+  "origen": "texto",
+  "fase": "F3-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "La ficha de cada casa en la web dice «N people interested» con la nota «Upcoming viewings, and those of the last 30 days that went well», justo encima de Book a viewing, cuando 2 o más personas están interesadas. Usa el mismo cálculo que el panel (VIS-01), que caduca solo y que el equipo corrige (VIS-02). La API pública envía el número solo desde 2 y ningún dato de nadie; en una casa vendida no sale. El aviso de privacidad explica este uso (28-oct-2026).",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/viewings.js:36-72",
+    "server/routes/public.js:18-27",
+    "server/listing.js:108-109",
+    "site/index.html:287-289",
+    "site/index.html:778-779",
+    "site/index.html:806",
+    "site/index.html:1041",
+    "site/apply.js:322-323",
+    "site/apply.js:328-330",
+    "tests/server/public.test.mjs:47-90",
+    "tests/e2e.cjs:69-71",
+    "tests/e2e.cjs:103-118",
+    "docs/superpowers/specs/2026-10-28-hampton-app-public-interest-design.md"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

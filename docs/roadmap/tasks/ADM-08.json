@@ -1,0 +1,31 @@
+{
+  "id": "ADM-08",
+  "seccion": "Administración de propiedades",
+  "titulo": "Pagos a mano e importación del extracto CSV del banco con cola Unmatched",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Record payment (Rent, Deposit u Other) con Edit, Move y Unassign en la vivienda; Import bank CSV (#/rentals/import) lee el archivo en el navegador, recuerda las columnas de cada banco, empareja por HE-T#### sin duplicar y deja el resto en Unmatched payments, con Assign.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/RentalDialogs.jsx:71-90",
+    "admin/src/RentImport.jsx:29-139",
+    "server/routes/rent.js:552-635",
+    "admin/src/Rentals.jsx:123-131",
+    "admin/src/Rentals.jsx:199-254",
+    "admin/src/RentalDetail.jsx:283-298"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

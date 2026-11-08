@@ -1,0 +1,45 @@
+{
+  "id": "VIS-15",
+  "seccion": "Interesados y visitas",
+  "titulo": "Nota de voz del negociador tras la visita, transcrita en el VPS y resumida",
+  "origen": "plan",
+  "fase": "F3-B",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "No hay subida de audio, tabla jobs ni proceso en el VPS con faster-whisper. ESTADO la agrupa en F3-B con correo y calendario, pero no depende de ellos: necesita el carril privado del VPS (§2). Con Hermes (AUT-13), la transcripción seguiría en local y el resumen lo haría Hermes, solo con un plan Business y su memoria apagada (pregunta 16), porque una nota de voz puede llevar datos personales. Hoy Hermes no llega a Whisper, porque su salida no alcanza los servicios del VPS (AUT-08).",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:68",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:107",
+    "docs/roadmap/ESTADO.md:11"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-08",
+      "requires": "activated",
+      "reason": "La transcripción requiere carril privado permitido del VPS.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "PRE-32",
+      "requires": "decision",
+      "reason": "Solo para resumir con Hermes: verificar el carril apto para datos personales.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui",
+    "private-vps-processing",
+    "voice-jobs"
+  ],
+  "nextStep": "Diseñar subida y transcripción de notas por el carril privado permitido; validar antes el acceso y tratamiento de datos."
+}

@@ -1,0 +1,49 @@
+{
+  "id": "PRE-16",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Cambio de dominio: hamptonestatesjersey.com pasa de Wix a esta app",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "parcial",
+  "responsable": "Luis",
+  "hecho": "Desde el 1-nov-2026 www.hamptonestatesjersey.com sirve la app (web y panel); hamptonestatesjersey.com (301) y hamptonjersey.pages.dev (308) redirigen ahí desde Cloudflare. El 1-nov Luis añadió el dominio a Firebase (dominios autorizados), a la llave del navegador en Google Cloud y a los hostnames de Turnstile, y comprobó el login del panel y los formularios públicos en www. Las 30 redirecciones 301 de las URL de Wix (site/_redirects) sirven desde entonces, y desde c9ac1ec SITE_URL, la meta site-url, el canonical y el JSON-LD pasaron a www (PUB-14).",
+  "falta": "Meta; el sitemap en Search Console (PUB-14); las reglas WAF, incluida POST /api/stats (ANA-09); probar una reserva y un registro reales; y dejar de mantener Wix. Antes de dar de baja Wix, las fotos del equipo que la web carga desde static.wixstatic.com (site/lib.js:5) tienen que pasar a la app.",
+  "bloqueo": "",
+  "evidencia": [
+    "site/_redirects:1-32",
+    "fd43820",
+    "wrangler.toml:9-10",
+    "site/index.html:11-25",
+    "site/lib.js:5",
+    "tests/server/seo.test.mjs:148-171",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:164-169",
+    "docs/roadmap/ESTADO.md:8"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PUB-14",
+      "requires": "activated",
+      "reason": "Cerrar la parte de sitemap o WAF antes de dar por completada la transición.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "ANA-09",
+      "requires": "activated",
+      "reason": "Cerrar la parte de sitemap o WAF antes de dar por completada la transición.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Luis: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
+  "resources": [
+    "public-domain",
+    "public-site",
+    "waf-policy"
+  ],
+  "nextStep": "Cerrar sitemap, WAF, pruebas reales y traslado de fotos antes de que Luis decida dejar Wix."
+}

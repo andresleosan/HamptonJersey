@@ -1,0 +1,41 @@
+{
+  "id": "NOT-10",
+  "seccion": "Notificaciones",
+  "titulo": "Resumen diario por email a las 8:00 de Jersey",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "parcial",
+  "responsable": "Luis",
+  "hecho": "Código de AUT-17 desplegado y verificado en aea7eb5 el 7-nov-2026; activación del correo pendiente: hampton-jobs prepara un resumen interno por dirección y día a partir de las 08:00 Europe/Jersey; probado en verano, invierno y ambos cambios de hora. Solo contadores y enlace al panel, sin datos de clientes; cada persona recibe su propio correo. El equipo revisa la muestra y autoriza los envíos recurrentes en Automations. Respeta pausa, bajas, cuota y preferencias; nunca envía al día siguiente un resumen caducado ni repite uno aceptado. Corregido en local el 6-nov tras revisión: los resultados inciertos pendientes siguen contados y accesibles después de medianoche; reconocerlos no reenvía el resumen.",
+  "falta": "Activación real del servicio, publicación y migración de AUT-17, destinatarios elegidos en el panel y comprobación de un resumen recibido por el equipo. Sigue apagado por defecto y no hubo envíos reales.",
+  "bloqueo": "Activación de AUT-17",
+  "evidencia": [
+    "server/email.js",
+    "server/jobs.js",
+    "admin/src/EmailSettings.jsx",
+    "tests/server/email.test.mjs",
+    "tests/email-e2e.mjs"
+  ],
+  "actualizado": "2026-11-07",
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Necesita correo operativo para completar la entrega real de mensajes.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Luis: Activación de AUT-17",
+  "resources": [
+    "notifications-schema",
+    "inbox-ui",
+    "email-pipeline",
+    "jobs-clock"
+  ],
+  "nextStep": "Comprobar la activación de AUT-17, destinatarios elegidos y recepción real de un resumen; no rehacer el envío ya construido."
+}

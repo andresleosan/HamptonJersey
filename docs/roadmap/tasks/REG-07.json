@@ -1,0 +1,46 @@
+{
+  "id": "REG-07",
+  "seccion": "Registro de aplicantes",
+  "titulo": "Mascotas del aplicante (Pet allowance)",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "REG-08 exige respuesta explícita en el formulario nuevo: sin mascotas, especies/cantidades o Not sure. Must-have no elimina el hecho de tener mascotas. No pets no es compatible y permisos condicionados quedan desconocidos. Construido localmente.",
+  "falta": "Publicar REG-08 y0031. Registros anteriores y clientes API antiguos pueden conservar omisiones, que se muestran pendientes de confirmar.",
+  "bloqueo": "",
+  "evidencia": [
+    "site/apply.js:131-133",
+    "server/applicants.js:136-145",
+    "admin/src/ApplicantFields.jsx:132-147",
+    "server/matching.js:156-158",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
+  ],
+  "modulo": "M03",
+  "deps": [],
+  "criterio_aceptacion": "Una respuesta omitida no equivale a No pets ni a compatibilidad confirmada.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "REG-08",
+      "requires": "activated",
+      "reason": "Confirmar publicación/0031; no reconstruir las respuestas explícitas.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "registration-ui",
+    "applicants-schema",
+    "requirements-contract"
+  ],
+  "nextStep": "Verificar REG-08/0031 y confirmar omisiones de registros heredados sin inventar ausencia de mascotas."
+}

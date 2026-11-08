@@ -1,0 +1,45 @@
+{
+  "id": "ADM-19",
+  "seccion": "Administración de propiedades",
+  "titulo": "Referencias del inquilino por email y contrato de plantilla con firma electrónica",
+  "origen": "plan",
+  "fase": "F5-B",
+  "estado": "bloqueado",
+  "responsable": "Luis",
+  "hecho": "",
+  "falta": "No existen: pedir referencias por email con un enlace necesita el servicio de correo, y el contrato de plantilla con firma electrónica necesita una plantilla revisada por un abogado de Jersey y un proveedor de firma.",
+  "bloqueo": "Correo (AUT-17) · JFSC/abogado",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26",
+    "migrations/0013_rentals.sql:30-63"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "ADM-17",
+      "requires": "decision",
+      "reason": "Solo las plantillas, plazos o cargos correspondientes necesitan validación del abogado; no acredita autorización por asignar tarea.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Luis: Correo (AUT-17) · JFSC/abogado",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "email-pipeline",
+    "electronic-signature",
+    "legal-parameters"
+  ],
+  "nextStep": "Coordinar correo, plantilla validada y proveedor de firma antes de activar referencias y contrato electrónico."
+}

@@ -1,0 +1,36 @@
+{
+  "id": "T3D-11",
+  "seccion": "Tour 3D",
+  "titulo": "Revisión humana de cada tour propio antes de publicarlo (floaters y privacidad)",
+  "origen": "plan",
+  "fase": "F8",
+  "estado": "bloqueado",
+  "responsable": "Hampton",
+  "hecho": "",
+  "falta": "No existe: una persona revisa floaters y privacidad (fotos familiares, documentos, caras reflejadas, que se difuminan) y aprueba el tour antes de publicarlo. Hoy 3D tours publica al momento el enlace que se pega, con su interruptor Visible/Hidden.",
+  "bloqueo": "Cámara 360/GPU",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:393",
+    "admin/src/Tours.jsx:32-34",
+    "migrations/0007_tours.sql:7"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "T3D-10",
+      "requires": "design",
+      "reason": "Acordar el artefacto de tour para revisar calidad y privacidad; la revisión debe diseñarse antes de publicar.",
+      "basis": "inferred",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Hampton/equipo: persona que revise y autorice cada tour antes de publicar.",
+  "resources": [
+    "tours-pipeline",
+    "media-pipeline"
+  ],
+  "nextStep": "Definir revisión humana de calidad y privacidad antes de publicar tours propios."
+}

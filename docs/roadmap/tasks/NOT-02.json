@@ -1,0 +1,29 @@
+{
+  "id": "NOT-02",
+  "seccion": "Notificaciones",
+  "titulo": "Pestaña All con todas las notificaciones",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "La pestaña All de Inbox muestra los avisos de todas las categorías sin filtrar: en Needs action todos los abiertos, con su contador, y en Feed los 200 más recientes.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Inbox.jsx:7",
+    "admin/src/Inbox.jsx:64-65",
+    "server/routes/notifications.js:8-11",
+    "server/routes/notifications.js:60-69"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "notifications-schema",
+    "inbox-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

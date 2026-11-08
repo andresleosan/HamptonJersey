@@ -1,0 +1,36 @@
+{
+  "id": "T3D-09",
+  "seccion": "Tour 3D",
+  "titulo": "Subir vídeos y fotos 360 desde el panel a R2, con trabajo y estado por etapa",
+  "origen": "plan",
+  "fase": "F8",
+  "estado": "bloqueado",
+  "responsable": "Hampton",
+  "hecho": "",
+  "falta": "No existe la tabla capture_jobs (archivos en R2, estado por etapa, resultados y coste) y la subida del panel solo acepta fotos JPG, PNG o WebP de hasta 10 MB para la galería. Los vídeos 360, mucho más pesados, tendrán que subir directamente a R2.",
+  "bloqueo": "Cámara 360/GPU",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:106",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:390",
+    "server/routes/media.js:54-57"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-27",
+      "requires": "decision",
+      "reason": "El catálogo bloquea esta entrega por equipo de captura.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Hampton: equipo y formato de captura.",
+  "resources": [
+    "tours-pipeline",
+    "media-pipeline"
+  ],
+  "nextStep": "Diseñar subida directa de capturas y estados por etapa cuando se confirme el equipo de captura."
+}

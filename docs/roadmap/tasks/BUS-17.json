@@ -1,0 +1,70 @@
+{
+  "id": "BUS-17",
+  "seccion": "Búsqueda de propiedades",
+  "titulo": "Revisión interna a los 21 días con hasta 20 alternativas explicables",
+  "origen": "plan",
+  "fase": "F1-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Construido el 6-nov-2026 (spec 2026-11-06, decisiones de Luis «1 1 1»). Con menos de 3 casas entre Found y Shortlisted (solo de casas que siguen en el mercado) y la búsqueda activa (Paused incluida), la pestaña Matches de la ficha enseña «Widen criteria»: presupuesto +10 % (sobre el estirado si lo hay; redondeado a £50 al mes o £1,000), la parroquia libre que más casas añade y un dormitorio menos, cada una con cuántas casas nuevas daría, con las mismas reglas del matching y sin contar las rechazadas. «Use this» rellena ese campo en Requirements sin guardar; el equipo lo habla con el aplicante y pulsa Save. Lo que no aplica se oculta. Se calcula al abrir la ficha, sin guardar nada.",
+  "falta": "M10 · Reconciliación 7-nov: La ampliación existente es solo una base parcial. Construir el reloj de 21 días sin coincidencia completa y una tarea interna con hasta 20 alternativas útiles, menos si no hay más. Cada alternativa explica requisitos satisfechos, incumplidos, pendientes y cambio concreto; distinguir restricciones del cliente de información o fuentes incompletas. El equipo elige qué tratar personalmente. No enviar top 20, mensajes de flexibilización ni aplicar criterios automáticamente; la búsqueda sigue activa. Quedan abiertas la comparación de diferencias, el reinicio del reloj y las revisiones posteriores. Depende de: EST-09, BUS-12, BUS-08, NOT-11. Aceptación: Al día 21 se crea una revisión interna explicable, sin correo al cliente ni cambio de criterios, y el día 22 continúa el matching.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/widen.js",
+    "server/routes/applicants.js",
+    "admin/src/ApplicantDetail.jsx",
+    "tests/server/widen.test.mjs",
+    "docs/superpowers/specs/2026-11-06-hampton-app-widen-criteria-design.md",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M10",
+  "deps": [
+    "EST-09",
+    "BUS-12",
+    "BUS-08",
+    "NOT-11"
+  ],
+  "criterio_aceptacion": "Al día 21 se crea una revisión interna explicable, sin correo al cliente ni cambio de criterios, y el día 22 continúa el matching.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "EST-09",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-12",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-08",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "NOT-11",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Acordar comparación de diferencias, reinicio del reloj y revisiones posteriores antes de cerrar diseño.",
+  "resources": [
+    "matching-contract",
+    "jobs-clock",
+    "notifications-schema",
+    "search-lifecycle"
+  ],
+  "nextStep": "Definir el reloj de 21 días y crear revisión interna explicable de hasta 20 alternativas sin cambiar criterios ni enviar al cliente."
+}

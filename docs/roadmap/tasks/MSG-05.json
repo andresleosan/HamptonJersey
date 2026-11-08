@@ -1,0 +1,35 @@
+{
+  "id": "MSG-05",
+  "seccion": "Mensajes y redes",
+  "titulo": "Create applicant desde una conversación con los datos ya rellenados",
+  "origen": "plan",
+  "fase": "F6",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "Los chats de la web existen desde el 6-nov-2026 (MSG-02, pantalla Messages); falta el botón Create applicant que abra New applicant con el nombre y el contacto del chat. Hoy el aplicante se crea a mano en New applicant o llega por Register your search. Con Hampton Bot quedan los dos pasos del diseño: primero New applicant con ?chat=ID y el contacto; en la fase 3 los campos cerrados extraídos del chat, con requisitos truncados y marcados «from chat». Save es la aprobación; nada se crea solo.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/App.jsx:93-94",
+    "server/routes/public.js:104-133"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "MSG-02",
+      "requires": "integrated",
+      "reason": "El primer tramo consume el contacto de chat ya existente; no espera todo cierre operativo de MSG-02.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "web-chat",
+    "applicants-schema"
+  ],
+  "nextStep": "Añadir Create applicant con el contacto del chat existente; dejar extracción IA para la fase aprobada."
+}

@@ -1,0 +1,26 @@
+{
+  "id": "SAP-07",
+  "seccion": "Seguimiento · Aplicantes",
+  "titulo": "Columnas y filtros extra en Applicants: Last contact, presupuesto, parroquia y origen",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "hecho",
+  "responsable": "desarrollo",
+  "hecho": "Columnas Stage, Queue, Matches, Last contact y Assigned to; filtros Search, Stage, Queue, Assigned to, Budget (un importe que el presupuesto cubre, hasta el estirado), Parish (la pidió o le vale cualquiera, salvo si la excluyó), Source y Last contact (Gone quiet), más las listas Current, Archived y Expiring. Last contact es el último contacto real (migración 0019).",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Applicants.jsx",
+    "server/routes/applicants.js",
+    "migrations/0019_last_contact.sql",
+    "tests/server/last-contact.test.mjs"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como completada; no reabrir salvo regresión o nueva necesidad explícita."
+}

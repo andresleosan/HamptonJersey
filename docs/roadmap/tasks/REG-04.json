@@ -1,0 +1,48 @@
+{
+  "id": "REG-04",
+  "seccion": "Registro de aplicantes",
+  "titulo": "Presupuesto del aplicante",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Compra y alquiler tienen búsquedas y presupuestos independientes desde REG-11. REG-08 añade prioridad del presupuesto y muestra el límite final, incluyendo solo el importe extra aceptado; £2000 con stretch£2200 evalúa techo£2200. Construido localmente.",
+  "falta": "Publicar REG-08 y0031. Ampliar en M04 las condiciones y periodicidades comerciales; el techo aceptado no cambia otros criterios.",
+  "bloqueo": "",
+  "evidencia": [
+    "site/apply.js:134-136",
+    "server/applicants.js:43-44",
+    "server/applicants.js:120-130",
+    "migrations/0008_applicants.sql:31-33",
+    "admin/src/ApplicantFields.jsx:83-87",
+    "server/matching.js:31-43",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
+  ],
+  "modulo": "M03",
+  "deps": [],
+  "criterio_aceptacion": "La misma persona puede buscar compra y alquiler con presupuestos independientes.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "REG-08",
+      "requires": "activated",
+      "reason": "Pendiente documental de publicación y aplicación de 0031; extensión comercial se divide aparte.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "registration-ui",
+    "applicants-schema",
+    "requirements-contract"
+  ],
+  "nextStep": "Verificar REG-08/0031 y ampliar condiciones comerciales conservando presupuesto y periodicidad separados."
+}

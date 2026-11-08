@@ -1,0 +1,79 @@
+{
+  "id": "PUB-01",
+  "seccion": "Publicar propiedades",
+  "titulo": "Alta guiada que recoge todos los datos de una propiedad nueva",
+  "origen": "texto",
+  "fase": "F4",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "«Add new property» (Listings) crea un borrador con título, uso, operación, disponibilidad y país, a mano o, desde el 3-nov-2026, desde una carpeta del ordenador: lee su property.txt (plantilla descargable en el mismo formulario) y sube las fotos sueltas de la carpeta en orden de nombre, reducidas en el navegador y sin GPS, con portada, planos y vista aérea según el nombre. Antes de crear enseña un resumen con lo que no se importa (líneas que no son campos, valores no válidos, HEIC, PDF, vídeos y subcarpetas, que no se leen) y avisa si el título ya existe o si el texto parece llevar un email o un teléfono. En el móvil se eligen fotos sueltas. El editor (#/p/<id>) reúne Details, Price, Description, Photos y Tour and specification con la caja «Missing from this listing».",
+  "falta": "No hay alta guiada «New instruction» por familias de datos pensada para el móvil durante la valoración, y varias familias no tienen sus campos (PUB-04 a PUB-09). La importación no convierte HEIC, no sube PDFs ni documentos (PUB-11) y no lee filas de especificación.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Listings.jsx:68-69",
+    "admin/src/NewProperty.jsx:29-89",
+    "server/listing-import.js:63-147",
+    "server/listing-import.js:181-229",
+    "admin/public/property.txt",
+    "admin/src/image.js:19-27",
+    "admin/src/ListingEditor.jsx:182-241",
+    "server/routes/listings.js:80-99",
+    "tests/server/listing-import.test.mjs",
+    "tests/e2e.cjs:816",
+    "docs/superpowers/specs/2026-11-03-hampton-app-folder-import-design.md"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PUB-04",
+      "requires": "design",
+      "reason": "Acordar identificación antes de añadir esa familia al alta; otras familias pueden avanzar.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PUB-05",
+      "requires": "design",
+      "reason": "Acordar características antes de añadir esa familia al alta; otras familias pueden avanzar.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PUB-06",
+      "requires": "design",
+      "reason": "Acordar economía antes de añadir esa familia al alta; otras familias pueden avanzar.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PUB-07",
+      "requires": "design",
+      "reason": "Acordar cumplimiento antes de añadir esa familia al alta; otras familias pueden avanzar.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PUB-08",
+      "requires": "design",
+      "reason": "Acordar contenidos antes de añadir esa familia al alta; otras familias pueden avanzar.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PUB-09",
+      "requires": "design",
+      "reason": "Acordar trazabilidad antes de añadir esa familia al alta; otras familias pueden avanzar.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "listings-schema",
+    "listing-editor"
+  ],
+  "nextStep": "Diseñar alta móvil por familias sobre los campos existentes y coordinar los campos pendientes."
+}

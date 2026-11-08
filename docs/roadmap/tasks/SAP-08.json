@@ -1,0 +1,46 @@
+{
+  "id": "SAP-08",
+  "seccion": "Seguimiento · Aplicantes",
+  "titulo": "Ficha del aplicante con pestañas Requirements, Matches, Timeline, Messages y Viewings",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Existen Requirements (editable; al guardar se recalcula el matching), Matches, Offers (búsquedas To Buy) y Timeline, que incluye las visitas con el mismo email o teléfono.",
+  "falta": "Una pestaña Viewings con las visitas ligadas al aplicante (hoy solo se cruzan por email o teléfono, G4) y la pestaña Messages con sus conversaciones (F6).",
+  "bloqueo": "Correo (AUT-17) · Trámite Meta",
+  "evidencia": [
+    "admin/src/ApplicantDetail.jsx:19",
+    "admin/src/ApplicantDetail.jsx:312-330",
+    "admin/src/ApplicantDetail.jsx:434-449",
+    "server/routes/applicants.js:131-141",
+    "server/routes/applicants.js:261"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para correo operativo; visitas y chat pueden dividirse en unidades independientes.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "MSG-02",
+      "requires": "integrated",
+      "reason": "La pestaña de conversación necesita el contrato del chat existente.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Activación de correo y permisos Meta solo para esos canales; no bloquear artificialmente visitas/chat independientes.",
+  "resources": [
+    "applicants-ui",
+    "viewings-contract",
+    "messages-contract"
+  ],
+  "nextStep": "Añadir vínculos persistentes de visitas y conversaciones a la búsqueda, separando canales todavía no activos."
+}

@@ -1,0 +1,29 @@
+{
+  "id": "REG-02",
+  "seccion": "Registro de aplicantes",
+  "titulo": "Registro paso a paso del aplicante en la web (Register your search)",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "La web tiene #/apply con seis pasos, uno por pantalla con varias preguntas de opciones que se tocan, barra de progreso y Back/Continue; se llega desde «Register» en el menú y desde la portada. Guarda el avance en la pestaña, pasa Turnstile y crea el aplicante con su aviso en Inbox (en el panel el alta es de una página, decisión A11 del spec F0).",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "site/apply.js:10-20",
+    "site/apply.js:101-294",
+    "site/index.html:400",
+    "site/index.html:628-629",
+    "site/index.html:985-987",
+    "server/routes/public.js:104-147",
+    "commit 49fdaa3"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como completada; no reabrir salvo regresión o nueva necesidad explícita."
+}

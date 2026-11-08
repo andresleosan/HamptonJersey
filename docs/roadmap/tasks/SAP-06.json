@@ -1,0 +1,26 @@
+{
+  "id": "SAP-06",
+  "seccion": "Seguimiento · Aplicantes",
+  "titulo": "Orden por antigüedad de la solicitud, de la más nueva a la más vieja y al revés",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "El selector Order (Newest first / Oldest first) y la cabecera Applied ordenan por fecha de solicitud en el servidor.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Applicants.jsx:43",
+    "admin/src/Applicants.jsx:60-61",
+    "admin/src/Applicants.jsx:67-68",
+    "server/routes/applicants.js:106-116"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como completada; no reabrir salvo regresión o nueva necesidad explícita."
+}

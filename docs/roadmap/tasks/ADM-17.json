@@ -1,0 +1,38 @@
+{
+  "id": "ADM-17",
+  "seccion": "Administración de propiedades",
+  "titulo": "Plazos legales como parámetros validados y registro JFSC antes de la gestión completa",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "parcial",
+  "responsable": "tercero",
+  "hecho": "Los plazos (depósito 30 días, inventarios 7, licencia 2 años, EICR 5, preavisos de 1 y 12 meses, aviso de renta de 2) están en una sola constante, LEGAL, que el panel lee.",
+  "falta": "Falta confirmar el registro de Hampton en la JFSC por cobrar rentas en cuenta propia (R21), que un abogado de Jersey valide plazos y preavisos (R10, R13) y si Hampton está registrado en GST; además los plazos son código (cambiarlos exige publicar), no un ajuste del panel.",
+  "bloqueo": "JFSC/abogado · Dato de Hampton",
+  "evidencia": [
+    "server/rentals.js:6-10",
+    "docs/roadmap/ESTADO.md:13",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:73",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-29",
+      "requires": "decision",
+      "reason": "Confirmación de Hampton sobre registros y gestión de fondos antes de operación completa.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "tercero: JFSC/abogado · Dato de Hampton",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "legal-parameters"
+  ],
+  "nextStep": "Coordinar confirmación de registros y GST y validación del abogado; después parametrizar plazos aprobados."
+}

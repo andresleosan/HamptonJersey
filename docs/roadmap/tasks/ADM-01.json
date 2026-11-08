@@ -1,0 +1,31 @@
+{
+  "id": "ADM-01",
+  "seccion": "Administración de propiedades",
+  "titulo": "Pantalla Rentals para seguir las viviendas con gestión de inquilinos",
+  "origen": "texto",
+  "fase": "F5-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "La pantalla Rentals (#/rentals) muestra el bloque To do (Arrears, Checks and deadlines, Renewals, Repairs, Unmatched payments) y la lista de viviendas con búsqueda y filtros; cada vivienda tiene su página con contrato, Checks, Repairs, Past tenancies e History, tanto en Full management como en Let only.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Rentals.jsx:73-161",
+    "admin/src/RentalDetail.jsx:98-200",
+    "server/routes/rent.js:684-731",
+    "migrations/0013_rentals.sql:1-27",
+    "admin/src/App.jsx:103-110",
+    "commit 49fdaa3"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

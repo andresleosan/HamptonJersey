@@ -1,0 +1,36 @@
+{
+  "id": "EST-04",
+  "seccion": "Estados",
+  "titulo": "Estado In process: alguna casa espera a la agencia o al aplicante",
+  "origen": "texto",
+  "fase": "F1-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Queue marca In process cuando el aplicante tiene alguna casa Shortlisted.",
+  "falta": "Calcularlo con los matches en Waiting for agent confirmation o Waiting for applicant response (EST-13), que aún no existen; hoy solo refleja la preselección del equipo.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/applicants.js:64-67",
+    "migrations/0009_matches.sql:33",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:43"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "EST-13",
+      "requires": "integrated",
+      "reason": "Cálculo de espera real depende de dimensiones de consulta/cliente.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "search-lifecycle",
+    "outreach-contract"
+  ],
+  "nextStep": "Calcular la espera real de agencia o cliente usando EST-13 en lugar de la mera preselección."
+}

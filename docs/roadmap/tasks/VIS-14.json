@@ -1,0 +1,27 @@
+{
+  "id": "VIS-14",
+  "seccion": "Interesados y visitas",
+  "titulo": "Visitas en bloque u open viewing cuando varias personas quieren la misma casa",
+  "origen": "plan",
+  "fase": "F3-A",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "El sistema no detecta varias peticiones para la misma casa ni propone huecos seguidos u open viewing con reserva. Hoy solo existe la línea de texto «Open viewing: fecha» en la ficha, que la web oculta cuando pasa el día.",
+  "bloqueo": "",
+  "evidencia": [
+    "site/lib.js:20-26",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui"
+  ],
+  "nextStep": "Añadir propuestas y reservas de visitas consecutivas o abiertas por propiedad."
+}

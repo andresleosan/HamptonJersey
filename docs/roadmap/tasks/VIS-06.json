@@ -1,0 +1,29 @@
+{
+  "id": "VIS-06",
+  "seccion": "Interesados y visitas",
+  "titulo": "Ver en el calendario, sin datos, que otra persona ya tiene cita para esa casa",
+  "origen": "texto",
+  "fase": "F3-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Las horas ocupadas del negociador salen como «Booked» en la web y en el panel, sin nombre, email ni teléfono de nadie.",
+  "falta": "«Booked» marca la agenda del negociador y no dice si la cita es para esta casa. Falta el aviso por casa con números reales que caducan a los 14 días («2 viewings booked this week», §5.9).",
+  "bloqueo": "",
+  "evidencia": [
+    "site/index.html:506-507",
+    "server/routes/public.js:38-44",
+    "server/viewing-store.js:19-22",
+    "admin/src/SlotPicker.jsx:84"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui"
+  ],
+  "nextStep": "Mostrar el número real de reservas por propiedad con caducidad de 14 días y sin datos personales."
+}

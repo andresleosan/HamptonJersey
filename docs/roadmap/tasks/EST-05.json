@@ -1,0 +1,27 @@
+{
+  "id": "EST-05",
+  "seccion": "Estados",
+  "titulo": "Estado de propiedad Waiting for other agents confirmation",
+  "origen": "texto",
+  "fase": "F2",
+  "estado": "replanteado",
+  "responsable": "—",
+  "hecho": "",
+  "falta": "M06 · Reconciliación 7-nov: Separar consulta general compartida, disponibilidad de propiedad/operación y espera de cada match; se implementa con AGE-03 y EST-13. La consulta común no duplica datos ni une el interés particular de varios clientes.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:140-147",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:667",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M06",
+  "deps": [],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como antecedente sustituido por consulta compartida AGE-03 y dimensiones EST-13."
+}

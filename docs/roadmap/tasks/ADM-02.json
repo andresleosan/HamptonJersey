@@ -1,0 +1,29 @@
+{
+  "id": "ADM-02",
+  "seccion": "Administración de propiedades",
+  "titulo": "Registro de cada nuevo Lease Agreement en la base de datos",
+  "origen": "texto",
+  "fase": "F5-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "New tenancy, en la página de la vivienda, guarda inquilino y ocupantes, plazo fijo o periódico, ley 2011 o 2025, fechas, renta y día de pago, depósito con sus fechas y la referencia de mydeposits, Check-in report, collect_from y deuda inicial (tabla tenancies); Edit details, Renew y Past tenancies conservan la historia.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/RentalDialogs.jsx:336-368",
+    "server/routes/rent.js:175-215",
+    "migrations/0013_rentals.sql:30-66",
+    "admin/src/RentalDetail.jsx:174-178"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

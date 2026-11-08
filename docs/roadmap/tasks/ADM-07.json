@@ -1,0 +1,31 @@
+{
+  "id": "ADM-07",
+  "seccion": "Administración de propiedades",
+  "titulo": "Referencia de pago única HE-T#### y calendario de cobros automático",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Cada contrato recibe al crearse su referencia HE-T#### (Payment reference en su tarjeta) y sus cobros mensuales se generan solos desde collect_from en el día de pago, sin duplicar, al abrir Rentals, la vivienda o el contador; Correct ajusta un cobro y Change rent rehace los futuros.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/rent.js:201",
+    "server/routes/rent.js:20-46",
+    "server/rentals.js:19-22",
+    "admin/src/RentalDetail.jsx:226",
+    "admin/src/RentalDetail.jsx:271-282",
+    "migrations/0013_rentals.sql:78-89"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

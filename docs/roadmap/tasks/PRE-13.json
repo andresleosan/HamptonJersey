@@ -1,0 +1,34 @@
+{
+  "id": "PRE-13",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Acuerdos de tratamiento con Optimyze, Cloudflare, Google, Meta y el proveedor de IA",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "pendiente",
+  "responsable": "Luis",
+  "hecho": "El aviso de privacidad ya nombra a Cloudflare y a Optimyze como encargados que actúan solo por instrucciones de Hampton.",
+  "falta": "No consta ningún acuerdo firmado: el de Hampton con Optimyze y los de Cloudflare y Google (Firebase), más Meta y el proveedor de IA cuando se usen. Depende de a nombre de quién van las cuentas (PRE-28). Con Hermes (P-18), el proveedor de IA es OpenAI con el plan de ChatGPT de Luis: hace falta acuerdo si recibe datos personales (C1 o C2, pregunta 16), que cubra también lo que Hermes guarda en el VPS. Por Telegram solo viajarán contadores y referencias de fichas, nada de aplicantes (§6.6); si eso cambiara, Telegram también necesitaría acuerdo. El paquete para el abogado (PRE-33) lleva el esquema del contrato entre Hampton y Optimyze. Para el chat web (Hampton Bot, MSG-04) el proveedor de IA es Cloudflare Workers AI: entra como subencargado en ese contrato y el abogado confirma que su certificación cubre Workers AI (PRE-34).",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:493",
+    "site/apply.js:330-335"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-28",
+      "requires": "decision",
+      "reason": "Los acuerdos dependen de la titularidad de las cuentas.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Luis: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
+  "resources": [
+    "data-processing-agreements"
+  ],
+  "nextStep": "Luis coordina titularidad y acuerdos de tratamiento aplicables con los participantes y el abogado."
+}

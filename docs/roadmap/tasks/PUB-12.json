@@ -1,0 +1,28 @@
+{
+  "id": "PUB-12",
+  "seccion": "Publicar propiedades",
+  "titulo": "Campos obligatorios por operación y porcentaje completado antes de Publish",
+  "origen": "plan",
+  "fase": "F4",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "«Missing from this listing» en el editor lista lo que falta según la operación (precio, parroquia, dormitorios, tenencia en venta, categoría, 5 fotos públicas, portada y resumen) y lleva a cada campo.",
+  "falta": "Se puede hacer ya el porcentaje completado. Publish no se bloquea por debajo del 100 % («You can still publish without them», decisión J6 del spec de campos de Jersey), al revés que el plan: bloquearlo o no lo decide Luis.",
+  "bloqueo": "Decisión de Luis",
+  "evidencia": [
+    "admin/src/ListingEditor.jsx:33-49",
+    "admin/src/ListingEditor.jsx:158-164",
+    "docs/superpowers/specs/2026-10-25-hampton-app-jersey-fields-design.md:30"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Luis: decidir bloqueo por completitud; porcentaje puede construirse sin anticipar esa decisión.",
+  "resources": [
+    "listings-schema",
+    "listing-editor"
+  ],
+  "nextStep": "Construir porcentaje completado y dejar el bloqueo de publicación pendiente de decisión expresa de Luis."
+}

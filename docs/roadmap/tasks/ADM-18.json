@@ -1,0 +1,31 @@
+{
+  "id": "ADM-18",
+  "seccion": "Administración de propiedades",
+  "titulo": "Solicitud de alquiler del inquilino con comprobación de asequibilidad",
+  "origen": "plan",
+  "fase": "F5-B",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "No hay portal ni solicitud del inquilino (empleo, ingresos, referencias, avalista) ni regla de asequibilidad (§5.15); el estatus de vivienda solo se pide en Register your search para el matching, sin enlace con el contrato, que se da de alta a mano con New tenancy.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/public.js:104-133",
+    "server/applicants.js:21-23",
+    "migrations/0013_rentals.sql:30-63",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "tenant-portal",
+    "applicants-contract"
+  ],
+  "nextStep": "Definir y construir solicitud del inquilino y enlace al contrato con criterios de asequibilidad aprobados."
+}

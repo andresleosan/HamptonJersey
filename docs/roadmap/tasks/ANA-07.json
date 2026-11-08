@@ -1,0 +1,27 @@
+{
+  "id": "ANA-07",
+  "seccion": "Trazabilidad y analítica",
+  "titulo": "Demanda contra oferta por parroquia, dormitorios y presupuesto",
+  "origen": "plan",
+  "fase": "F7-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Insights → Unmet demand (Rent y Buy por parroquia: aplicantes activos, cuántos sin coincidencia, mediana de presupuesto y fichas disponibles) y Top unmet requests por operación, parroquia y dormitorios con su mediana de presupuesto, el dato para captar propietarios.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/insights.js:24-27",
+    "server/insights.js:44-75",
+    "admin/src/Insights.jsx:59-83"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "analytics-contract"
+  ],
+  "nextStep": "Conservar como hecho en el historial; no reconstruir salvo una regresión o cambio de alcance comprobado."
+}

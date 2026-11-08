@@ -1,0 +1,37 @@
+{
+  "id": "REG-15",
+  "seccion": "Registro de aplicantes",
+  "titulo": "Alertas «Save this search» para visitantes de la web",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "bloqueado",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "No existe. Falta que un visitante deje solo su email y sus criterios y reciba por correo las casas nuevas que encajen, con el mismo motor de matching.",
+  "bloqueo": "Correo (AUT-17)",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:242",
+    "site/index.html:628-629"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Necesario para envío real de alertas; construcción local puede usar fixtures.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17)",
+  "resources": [
+    "matching-contract",
+    "email-pipeline",
+    "marketing-preferences",
+    "public-forms"
+  ],
+  "nextStep": "Construir alertas por criterios y email con matching y preferencias, activables cuando AUT-17 esté operativo."
+}

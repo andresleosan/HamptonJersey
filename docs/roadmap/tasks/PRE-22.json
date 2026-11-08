@@ -1,0 +1,29 @@
+{
+  "id": "PRE-22",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Acuerdos de comisión como gestión humana independiente",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "pendiente",
+  "responsable": "Hampton",
+  "hecho": "",
+  "falta": "M06 · Reconciliación 7-nov: Registrar cuando el equipo los aporte los acuerdos y condiciones comerciales tratados personalmente, separados de permisos de imágenes (AGE-10). No se presupone un porcentaje ni se necesita un acuerdo de reparto para construir el directorio, hacer la consulta inicial o coordinar la visita. No incluir comisión en la consulta automática.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:697",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M06",
+  "deps": [],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Hampton: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
+  "resources": [
+    "agency-commercial-agreements"
+  ],
+  "nextStep": "Registrar los acuerdos comerciales que Hampton aporte sin bloquear directorio, consulta inicial o visita."
+}

@@ -1,0 +1,30 @@
+{
+  "id": "AGE-01",
+  "seccion": "Agencias y portal del aplicante",
+  "titulo": "Correo automático al agente de la casa para saber si sigue disponible",
+  "origen": "texto",
+  "fase": "F2",
+  "estado": "replanteado",
+  "responsable": "—",
+  "hecho": "",
+  "falta": "M06 · Reconciliación 7-nov: Se concreta en AGE-03: tras aprobación humana, crear o reutilizar una consulta general por propiedad y operación. Los interesados conservan sus condiciones y visitas separadas; no se suman hogares en el mensaje ni se exige comisión acordada.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:653",
+    "docs/roadmap/ESTADO.md:10",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M06",
+  "deps": [],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "advertisers-directory",
+    "consultations-contract"
+  ],
+  "nextStep": "Conservar la decisión replanteada y seguir el alcance vigente en AGE-03."
+}

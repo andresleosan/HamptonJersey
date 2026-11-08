@@ -1,0 +1,30 @@
+{
+  "id": "PRE-26",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Respuesta a la pregunta 10: cómo pagan los inquilinos y extracto CSV del banco",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Pagos marcados a mano y extracto del banco en CSV, con la referencia única HE-T#### en cada transferencia; Import bank CSV deja elegir las columnas, así que vale cualquier banco.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:20",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:68",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:72",
+    "admin/src/Rentals.jsx:76",
+    "admin/src/RentImport.jsx:47-69",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:701"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "rentals-import"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

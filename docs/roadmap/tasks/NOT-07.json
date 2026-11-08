@@ -1,0 +1,32 @@
+{
+  "id": "NOT-07",
+  "seccion": "Notificaciones",
+  "titulo": "Dos bandejas: Needs action, que solo se vacía al resolver, y Feed informativo",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Inbox separa Needs action (con contador en la barra) y Feed; un aviso de Needs action solo pasa al Feed con Done o al resolverse lo que pide: asignar o mover al aplicante, confirmar o cancelar la visita, revisar todos sus matches.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Inbox.jsx:6",
+    "admin/src/Inbox.jsx:61-62",
+    "server/routes/notifications.js:8-11",
+    "server/routes/notifications.js:77-88",
+    "server/routes/inbox.js:134-136",
+    "server/match-store.js:32-36",
+    "admin/src/App.jsx:123-124"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "notifications-schema",
+    "inbox-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

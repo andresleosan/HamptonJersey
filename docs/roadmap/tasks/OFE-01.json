@@ -1,0 +1,31 @@
+{
+  "id": "OFE-01",
+  "seccion": "Ofertas y cierre",
+  "titulo": "Registrar ofertas de compra y ver juntas las de cada casa con su historial",
+  "origen": "plan",
+  "fase": "F3-C",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Pantalla Sales: Record offer (también desde la pestaña Offers del aplicante) y ofertas abiertas agrupadas por casa con Accept, Counter, Edit, Reject y Withdraw. El editor de la ficha lista todas sus ofertas y el Timeline del aplicante cada cambio.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Sales.jsx:81",
+    "admin/src/Sales.jsx:112-120",
+    "server/routes/sales.js:434-437",
+    "migrations/0012_sales.sql:2-18",
+    "admin/src/ListingEditor.jsx:225-230",
+    "admin/src/ApplicantDetail.jsx:327-331"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "sales-contract",
+    "sales-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

@@ -1,0 +1,31 @@
+{
+  "id": "ADM-06",
+  "seccion": "Administración de propiedades",
+  "titulo": "Contrato que nace de Let agreed, con contrato firmado e inventario de entrada",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Solo se anota la fecha del Check-in report, con su plazo de 7 días en Deadlines de la tarjeta del contrato.",
+  "falta": "El contrato no nace de una ficha en Let agreed ni de un aplicante (viviendas, listings y applicants no están enlazados), y no se guardan el contrato firmado (no hay subida de archivos) ni el inventario de entrada con fotos y lecturas de contadores.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/rent.js:70-77",
+    "admin/src/RentalDetail.jsx:266-269",
+    "migrations/0013_rentals.sql:49",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:51"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "listings-contract",
+    "applicants-contract"
+  ],
+  "nextStep": "Enlazar contrato, ficha y aplicante e incorporar contrato firmado e inventario de entrada."
+}

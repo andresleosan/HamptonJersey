@@ -1,0 +1,51 @@
+{
+  "id": "MSG-03",
+  "seccion": "Mensajes y redes",
+  "titulo": "Bandeja única Messages: Messenger, Instagram, WhatsApp, chat web y email",
+  "origen": "plan",
+  "fase": "F6",
+  "estado": "bloqueado",
+  "responsable": "Luis",
+  "hecho": "",
+  "falta": "La pantalla Messages existe desde el 6-nov-2026, solo con el chat de la web (MSG-02), y las conversaciones no se unen a un contacto. Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas.",
+  "bloqueo": "Correo (AUT-17) · Trámite Meta",
+  "evidencia": [
+    "admin/src/App.jsx:122-136",
+    "admin/src/ApplicantDetail.jsx:279-281",
+    "server/api.js:3-21"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "El tramo de email exige servicio operativo; los demás canales se integran por separado.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PRE-02",
+      "requires": "activated",
+      "reason": "Los canales Meta esperan verificación y permisos.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PRE-24",
+      "requires": "decision",
+      "reason": "WhatsApp requiere número y decisión de Hampton.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Luis/Meta y Hampton: permisos, número de WhatsApp y correo operativo por canal.",
+  "resources": [
+    "web-chat",
+    "meta-channel",
+    "email-pipeline"
+  ],
+  "nextStep": "Integrar canales operativos con conversaciones y contactos, separando los bloqueos de correo y Meta."
+}

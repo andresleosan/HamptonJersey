@@ -1,0 +1,41 @@
+{
+  "id": "NOT-11",
+  "seccion": "Notificaciones",
+  "titulo": "Avisos con responsable, plazo y preferencias por persona",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M13 · Reconciliación 7-nov: La tabla notifications no tiene destinatario, due_at ni leído: los avisos son comunes a todo el equipo (decisión A9 de F0) y no hay preferencias por persona de qué avisos recibir ni por qué canal. Definir identidad de tarea y coordinación entre empleados: responsable, causa, vencimiento y enlace directo; una respuesta nueva actualiza la tarea antigua. Reclamar/completar/reintentar sin duplicados; preservar historial. No crear una tarea diaria repetida para el top 20 sin una cadencia decidida. Aceptación: Dos empleados actuando sobre la misma gestión dejan una acción y una tarea coherentes; una respuesta recibida retira o actualiza la llamada pendiente.",
+  "bloqueo": "",
+  "evidencia": [
+    "migrations/0009_matches.sql:46-54",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:35",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M13",
+  "deps": [],
+  "criterio_aceptacion": "Dos empleados actuando sobre la misma gestión dejan una acción y una tarea coherentes; una respuesta recibida retira o actualiza la llamada pendiente.",
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "EST-09",
+      "requires": "integrated",
+      "reason": "M13a consume el ciclo de búsqueda M03; no debe cerrar una búsqueda por completar un aviso.",
+      "basis": "inferred",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "notifications-schema",
+    "inbox-ui",
+    "matching-contract",
+    "events-contract"
+  ],
+  "nextStep": "Definir y construir responsable, vencimiento, reclamación y cierre consistente de gestiones del equipo Hampton."
+}

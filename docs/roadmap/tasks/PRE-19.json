@@ -1,0 +1,31 @@
+{
+  "id": "PRE-19",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Respuesta a la pregunta 3: aceptar los cambios marcados «cambia», sobre todo P-01",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "bloqueado",
+  "responsable": "Luis",
+  "hecho": "P-01 aceptada (A5): inventario diario y matching en SQL, Deep Research solo en casos raros. AI Gateway (A1) y C3 en local (A2) encajan con API en lugar de suscripciones, y los estados en el match (F1-A) y los campos de Jersey en las fichas (4cd4001) ya están construidos. El 30-oct-2026 Luis cambió la puerta de la IA: Hermes con su plan de ChatGPT en lugar de AI Gateway (P-18).",
+  "falta": "M01/M06 · Reconciliación 7-nov: Se conserva fuera de este alcance la decisión pendiente de P-14 sobre tours 3D (T3D-04). Para el recorrido de búsqueda ya queda acordado compartir la consulta de disponibilidad sin mezclar hogares (AGE-03), y gestionar la comisión personalmente sin condicionarla al primer contacto ni a la visita (AGE-02). No mantener P-03/P-04 como bloqueo de F2.",
+  "bloqueo": "Decisión de Luis",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:27-31",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:694",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:653",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:637",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M01/M06",
+  "deps": [],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Luis: Decisión de Luis",
+  "resources": [
+    "tour-pipeline-design"
+  ],
+  "nextStep": "Luis resuelve únicamente la decisión pendiente sobre tours; no reabrir bloqueos retirados del recorrido de búsqueda."
+}

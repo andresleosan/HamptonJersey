@@ -1,0 +1,63 @@
+{
+  "id": "AUT-19",
+  "seccion": "Automatizaciones e IA",
+  "titulo": "Dictado de criterios: propuesta antes/después y confirmación del empleado",
+  "origen": "plan",
+  "fase": "F1-A",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M11 · Reconciliación 7-nov: Después de hablar con el cliente, permitir al empleado introducir o dictar solo los cambios aceptados. El bot prepara valores anteriores/propuestos; el empleado confirma o corrige antes de guardar. Conservar versión, fecha, responsable y evidencia de la confirmación; recalcular matches y actualizar acciones/tareas afectadas. Resolver ediciones simultáneas sin sobrescribir silenciosamente. Usar un canal autenticado compatible con las fronteras actuales de datos de Hermes; este plan no habilita clientes ni criterios privados por Telegram. Depende de: REG-11, BUS-12, EST-18. Aceptación: Dictar subir presupuesto no cambia datos hasta confirmar; no altera parking ni otros MUST no mencionados, y al confirmar recalcula sin duplicados.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M11",
+  "deps": [
+    "REG-11",
+    "BUS-12",
+    "EST-18"
+  ],
+  "criterio_aceptacion": "Dictar subir presupuesto no cambia datos hasta confirmar; no altera parking ni otros MUST no mencionados, y al confirmar recalcula sin duplicados.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "REG-11",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-12",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-18",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "NOT-11",
+      "requires": "integrated",
+      "reason": "M11 consume M13a para actualizar tareas afectadas por criterios.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Definir carril autenticado apto para transcripción de criterios privados; Telegram no queda autorizado.",
+  "resources": [
+    "applicants-schema",
+    "matching-contract",
+    "events-contract"
+  ],
+  "nextStep": "Diseñar propuesta de criterios con versión y confirmación humana antes de guardar o recalcular."
+}

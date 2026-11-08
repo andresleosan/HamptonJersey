@@ -1,0 +1,27 @@
+{
+  "id": "PUB-18",
+  "seccion": "Publicar propiedades",
+  "titulo": "Mandar a la lista los enlaces de Wix de fichas que ya no están",
+  "origen": "plan",
+  "fase": "F4",
+  "estado": "descartado",
+  "responsable": "—",
+  "hecho": "site/_redirects lleva las URL de Wix de cada ficha a /p/<id>; si la ficha ya no se publica, la web muestra «Property not found» con See our properties, y Luis decidió dejarlo así.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "site/_redirects:1-32",
+    "site/index.html:755-761",
+    "docs/superpowers/plans/2026-10-25-hampton-app-seo-sharing-ledger.md:15"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "public-site"
+  ],
+  "nextStep": "Conservar como descartado y excluir de la selección automática; no ejecutar la propuesta retirada."
+}

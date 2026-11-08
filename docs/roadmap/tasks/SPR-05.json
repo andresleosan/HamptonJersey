@@ -1,0 +1,28 @@
+{
+  "id": "SPR-05",
+  "seccion": "Seguimiento · Propiedades",
+  "titulo": "Álbum de fotos de la propiedad en su ficha",
+  "origen": "texto",
+  "fase": "—",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "La sección Photos de la ficha sube, ordena y elige portada de las fotos guardadas en R2, con visibilidad en la web; las externas quedan solo como referencia privada.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/ListingEditor.jsx:206-212",
+    "admin/src/MediaManager.jsx:39-68",
+    "migrations/0001_init.sql:25-39"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "listings-schema",
+    "listing-editor"
+  ],
+  "nextStep": "Conservar como hecho en el historial; no reconstruir salvo una regresión o cambio de alcance comprobado."
+}

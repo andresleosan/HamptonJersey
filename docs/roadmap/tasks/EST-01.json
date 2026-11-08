@@ -1,0 +1,50 @@
+{
+  "id": "EST-01",
+  "seccion": "Estados",
+  "titulo": "Estado Waiting for investigation: registrado y con la primera búsqueda en cola",
+  "origen": "texto",
+  "fase": "F1-A",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M03 · Reconciliación 7-nov: Registrar búsqueda activa, alta, responsable, último intento de cruce y último éxito, con resultados o datos pendientes. El cruce inicial puede ser inmediato; una revisión pendiente de una fuente no equivale a una investigación terminada sin propiedades. Depende de: BUS-01, EST-09.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/applicants.js:29-31",
+    "server/routes/applicants.js:64-67",
+    "server/routes/applicants.js:203",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:35",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M03",
+  "deps": [
+    "BUS-01",
+    "EST-09"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "BUS-01",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-09",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "search-lifecycle",
+    "applicants-schema"
+  ],
+  "nextStep": "Registrar actividad, responsable y último intento/éxito de cruce sin confundir fuente pendiente con búsqueda vacía."
+}

@@ -1,0 +1,38 @@
+{
+  "id": "SAP-03",
+  "seccion": "Seguimiento · Aplicantes",
+  "titulo": "Ficha del aplicante con todas las casas encontradas y las confirmadas disponibles",
+  "origen": "texto",
+  "fase": "F1-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "La pestaña Matches agrupa Found, Shortlisted y Rejected; cada casa con foto, precio, parroquia, dormitorios, baños, puntuación y Meets / Fails / Unknown con su evidencia, y los botones Shortlist, Reject y Undo.",
+  "falta": "La lista de casas confirmadas y aún disponibles para el aplicante (grupos Confirmed y Available del §5.2), que depende de los estados de confirmación (EST-13).",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/ApplicantDetail.jsx:19-20",
+    "admin/src/ApplicantDetail.jsx:381-408",
+    "admin/src/MatchCard.jsx:31-71",
+    "server/routes/applicants.js:149-151"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "EST-13",
+      "requires": "integrated",
+      "reason": "Los grupos confirmadas/disponibles requieren sus dimensiones.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "applicants-ui",
+    "matching-contract",
+    "outreach-contract"
+  ],
+  "nextStep": "Agrupar coincidencias confirmadas y disponibles según las dimensiones de EST-13."
+}

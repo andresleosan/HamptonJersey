@@ -1,0 +1,30 @@
+{
+  "id": "ADM-05",
+  "seccion": "Administración de propiedades",
+  "titulo": "Alta de vivienda gestionada: propietario, servicio, honorarios, documentos y llaves",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "New landlord y New property (#/rentals/new) recogen propietario (nombre, email, teléfono, límite de aprobación), dirección, parroquia, servicio Full management o Let only, Management fee y gas; la vivienda nace con sus Checks en «Not recorded» y el propietario tiene su página (#/rentals/landlords/<id>).",
+  "falta": "No se suben documentos de cumplimiento (Rentals no admite archivos) ni se registran llaves ni datos bancarios del propietario para liquidar (no-objetivo de F5-A; el plan los reservaba al rol owner, que no existe por la decisión de un solo rol).",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Rentals.jsx:274-294",
+    "admin/src/Rentals.jsx:300-379",
+    "admin/src/Rentals.jsx:382-435",
+    "server/routes/rentals.js:164-185",
+    "migrations/0013_rentals.sql:1-27"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui"
+  ],
+  "nextStep": "Completar documentos, llaves y datos de liquidación con almacenamiento y acceso definidos."
+}

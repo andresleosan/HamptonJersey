@@ -1,0 +1,31 @@
+{
+  "id": "PUB-05",
+  "seccion": "Publicar propiedades",
+  "titulo": "Familia 2 · Características físicas de la ficha",
+  "origen": "texto",
+  "fase": "F4",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "En listings y en el editor: Bedrooms, Bathrooms y Type (texto); listings guarda además parking, exterior (jardín, terraza, balcón), amueblado y mascotas leídos solos del texto para el matching, sin campo en el editor, y lo demás va en filas libres de Specification.",
+  "falta": "Faltan como campos superficie interior en pies² y m², aseos, salones, trastero, planta y plantas, ascensor, año, estado de conservación, calefacción (gasoil, gas, eléctrica, bomba de calor, GLP), doble acristalamiento y comodidades, y parking, amueblado y mascotas no tienen campo propio (solo se leen del texto o de filas de Specification). Replanteado para Jersey (§5.10), no falta: superficies útil y construida pasan a superficie interior, y aire acondicionado, videovigilancia, domótica o panel solar no están en la lista de Jersey.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/ListingEditor.jsx:167",
+    "admin/src/ListingEditor.jsx:187-188",
+    "server/listing-features.js:143-158",
+    "server/listing-features.js:160-176",
+    "migrations/0009_matches.sql:6-14",
+    "admin/src/ListingEditor.jsx:287-298"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "listings-schema",
+    "listing-editor"
+  ],
+  "nextStep": "Completar campos físicos estructurados y revisar compatibilidad con matching."
+}

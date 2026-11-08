@@ -1,0 +1,27 @@
+{
+  "id": "BUS-05",
+  "seccion": "Búsqueda de propiedades",
+  "titulo": "Búsquedas diarias con modelos baratos y dos modelos para comparar resultados",
+  "origen": "texto",
+  "fase": "F1-B",
+  "estado": "replanteado",
+  "responsable": "—",
+  "hecho": "",
+  "falta": "M05 · Reconciliación 7-nov: La base común se revisa diariamente desde su puesta en marcha, aunque no llegue ningún cliente. BUS-08 controla intentos y resultados; BUS-09 normaliza. La elección de modelos y una frecuencia superior a diaria son propuestas técnicas, no obligaciones cerradas.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:664",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:266",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M05",
+  "deps": [],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como antecedente sustituido por BUS-08/BUS-09; no imponer doble modelo ni búsquedas por cliente."
+}

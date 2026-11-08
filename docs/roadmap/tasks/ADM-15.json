@@ -1,0 +1,37 @@
+{
+  "id": "ADM-15",
+  "seccion": "Administración de propiedades",
+  "titulo": "Asistente de revisión de renta con tope RPI y carta de aviso",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "parcial",
+  "responsable": "tercero",
+  "hecho": "Change rent incluye el Rent assistant: con el RPI de Jersey que guarda el equipo calcula la renta máxima y la primera fecha posible (12 meses desde el último cambio y 2 meses de aviso) en contratos de la ley 2025; en los de 2011 pide consultar a un abogado.",
+  "falta": "No prepara la carta de aviso al inquilino, que necesita una plantilla validada por un abogado de Jersey (F5-B).",
+  "bloqueo": "JFSC/abogado",
+  "evidencia": [
+    "server/rentals.js:46-60",
+    "admin/src/RentalDialogs.jsx:92-132",
+    "server/routes/rentals.js:347-353"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "ADM-17",
+      "requires": "decision",
+      "reason": "Solo las plantillas, plazos o cargos correspondientes necesitan validación del abogado; no acredita autorización por asignar tarea.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "tercero: JFSC/abogado",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "legal-parameters"
+  ],
+  "nextStep": "Obtener la plantilla validada por el abogado y añadir la carta de revisión de renta."
+}

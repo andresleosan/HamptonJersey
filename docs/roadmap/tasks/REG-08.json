@@ -1,0 +1,39 @@
+{
+  "id": "REG-08",
+  "seccion": "Registro de aplicantes",
+  "titulo": "Imprescindibles por requisito, parking y edades del hogar",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "8-nov-2026: construido REG-08 ampliado con interruptores Must-have a la derecha en web y panel para parking, ubicación, tipo, rango de dormitorios, baños, exterior por opción, amueblado, mascotas, presupuesto, fechas, duración, cercanía, texto y adecuación al hogar. Guarda edades 0–17 o por confirmar sin nombres ni fechas de nacimiento. Contrato versionado, legado sin prioridades inventadas; las respuestas sobreviven al apagar el interruptor. Migración0031 integrada sobre AGE-04 9d4429c.",
+  "falta": "Publicar el SHA revisado y aplicar0031 con aprobación. Los checks desconocidos requieren confirmación; Children no filtra automáticamente por edad. El motor comercial y la verificación de disponibilidad siguen fuera de este alcance.",
+  "bloqueo": "",
+  "evidencia": [
+    "site/apply.js:128",
+    "server/applicants.js:15",
+    "server/applicants.js:161",
+    "migrations/0008_applicants.sql:38",
+    "server/matching.js:160-164",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
+  ],
+  "modulo": "M03",
+  "deps": [],
+  "criterio_aceptacion": "Interruptores a la derecha conservan respuestas; dos plazas imprescindibles con una fiable es alternativa, sin dato es pendiente. Edades desconocidas no se convierten en cero.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Verificar autorización del SHA y aplicación de 0031 mediante flujo existente; tener el código en Git no acredita activación.",
+  "resources": [
+    "registration-ui",
+    "applicants-schema",
+    "requirements-contract"
+  ],
+  "nextStep": "Verificar SHA publicado y aplicación de 0031 mediante el flujo autorizado, sin reconstruir prioridades ya integradas."
+}

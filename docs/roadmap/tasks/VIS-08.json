@@ -1,0 +1,54 @@
+{
+  "id": "VIS-08",
+  "seccion": "Interesados y visitas",
+  "titulo": "Ciclo de la visita: Requested, Confirmed, Reminded, Completed y Feedback received",
+  "origen": "plan",
+  "fase": "F3-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Viewings tiene las pestañas Requests, Upcoming, Needs outcome y Past, los botones Confirm, Reschedule, Mark completed, No-show y Cancel viewing, y New viewing para reservas por teléfono ya confirmadas. Las peticiones antiguas se migraron (new → Requested, contacted → Confirmed).",
+  "falta": "M09 · Reconciliación 7-nov: Faltan los estados Reminded y Feedback received, que llegan con los recordatorios y el formulario al aplicante (F3-B). Extender el ciclo actual a propuestas de terceros y confirmaciones individuales: solicitada, por coordinar, propuesta, pendiente de confirmaciones, confirmada, realizada o cancelada. Mantener contactos e instrucciones juntos, actualizar reprogramaciones y no cerrar la búsqueda por ningún estado de visita. Depende de: VIS-17. Aceptación: Una propuesta incompleta no aparece confirmada ni provoca cierre de búsqueda.",
+  "bloqueo": "Correo (AUT-17)",
+  "evidencia": [
+    "migrations/0010_viewings.sql:40",
+    "migrations/0010_viewings.sql:50-59",
+    "server/routes/inbox.js:11-18",
+    "server/routes/inbox.js:78-80",
+    "admin/src/Viewings.jsx:9",
+    "admin/src/Viewings.jsx:292-353",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M09",
+  "deps": [
+    "VIS-17"
+  ],
+  "criterio_aceptacion": "Una propuesta incompleta no aparece confirmada ni provoca cierre de búsqueda.",
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "VIS-17",
+      "requires": "integrated",
+      "reason": "El ciclo multiparte consume propuestas y confirmaciones de VIS-17.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17)",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui",
+    "agency-consultations-contract",
+    "notifications-schema"
+  ],
+  "nextStep": "Extender las visitas a propuestas y confirmaciones multiparte; añadir recordatorio y feedback cuando sus canales existan."
+}

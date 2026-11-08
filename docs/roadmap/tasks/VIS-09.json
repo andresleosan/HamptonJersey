@@ -1,0 +1,28 @@
+{
+  "id": "VIS-09",
+  "seccion": "Interesados y visitas",
+  "titulo": "Duración de la visita, margen entre casas y máximo de visitas por día",
+  "origen": "plan",
+  "fase": "F3-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Visitas de 30 minutos con 15 minutos de margen antes y después de cada cita, fijados en el servidor.",
+  "falta": "Margen extra cuando el negociador cambia de parroquia, máximo de visitas por día y ajustar duración y margen desde Availability.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/viewings.js:5-6",
+    "server/viewings.js:47-52",
+    "admin/src/Availability.jsx:53"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui"
+  ],
+  "nextStep": "Añadir ajustes de duración, margen por cambio de parroquia y máximo diario en Availability."
+}

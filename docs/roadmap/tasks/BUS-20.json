@@ -1,0 +1,34 @@
+{
+  "id": "BUS-20",
+  "seccion": "Búsqueda de propiedades",
+  "titulo": "Investigar empresas propietarias (promotoras, caseros con cartera) con un asistente sin la llave de la app",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "bloqueado",
+  "responsable": "tercero",
+  "hecho": "",
+  "falta": "Plan del 2-nov-2026: lo haría un asistente aparte, sin la llave de la app ni el bot de Hampton, que solo lee fuentes cuyas condiciones lo permiten (webs de empresas, decisiones de planificación) y nunca el registro de empresas de la JFSC, cuyas condiciones lo prohíben. Lo que encuentre entra por el panel, donde una persona lo revisa. Son datos C1: hace falta un plan con acuerdo de tratamiento (P-09) y el visto bueno del abogado (PRE-33). Hasta entonces, la investigación de empresas se hace a mano.",
+  "bloqueo": "JFSC/abogado · Decisión de Luis",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-33",
+      "requires": "decision",
+      "reason": "El asistente con datos C1 espera visto bueno del abogado; investigación manual sigue permitida.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Plan con acuerdo de tratamiento para datos C1 y visto bueno del abogado; hasta entonces investigación manual.",
+  "resources": [
+    "sources-directory",
+    "data-processing-policy"
+  ],
+  "nextStep": "Mantener investigación manual hasta disponer de carril con acuerdo de datos y validación del abogado para el asistente."
+}

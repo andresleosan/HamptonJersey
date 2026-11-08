@@ -1,0 +1,35 @@
+{
+  "id": "VIS-02",
+  "seccion": "Interesados y visitas",
+  "titulo": "El equipo puede quitar a una persona del contador de interesados, con motivo",
+  "origen": "texto",
+  "fase": "F3-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "En Viewings filtrado por una casa (los enlaces «Active interest» del editor e «Interest in this listing» de cada visita llevan ahí), la tarjeta «Interested now: N people» lista a cada persona que cuenta y la visita por la que cuenta. «Remove from count» la saca con su motivo (No longer interested, Not a buyer or tenant, u Other con nota) sin tocar la visita, y queda en «Not counted» con «Count again». «Counted twice» une dos reservas de la misma persona (por ejemplo una por la web con email y otra por teléfono) para que cuente una vez aunque una se cancele, caduque o se borre, y «Count separately» lo deshace. Una reserva nueva vuelve a contar. La visita de alguien quitado lo avisa encima del formulario del resultado, con «Count again». La web baja el número en menos de un minuto y nunca ve motivos ni nombres; el panel enseña la fecha y el registro guarda quién lo hizo (29-oct-2026, migración 0016).",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/viewings.js:41-72",
+    "server/routes/interest.js:9-90",
+    "migrations/0016_interest_corrections.sql:1-12",
+    "admin/src/Interest.jsx:17-141",
+    "admin/src/Viewings.jsx:25-27",
+    "admin/src/Viewings.jsx:150-151",
+    "admin/src/Viewings.jsx:232-237",
+    "tests/server/interest.test.mjs:83-283",
+    "tests/e2e.cjs:918-1016",
+    "docs/superpowers/specs/2026-10-29-hampton-app-interest-removal-design.md"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

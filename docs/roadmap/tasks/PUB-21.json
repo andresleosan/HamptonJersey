@@ -1,0 +1,51 @@
+{
+  "id": "PUB-21",
+  "seccion": "Publicar propiedades",
+  "titulo": "Crear la propiedad desde una carpeta de Google Drive",
+  "origen": "texto",
+  "fase": "—",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Pedido de Luis del 5-nov-2026, reglas con /grill-me. En producción desde el 5-nov-2026 (migración 0020): «Properties Queue» (botón en Listings, #/queue) recibe el link de la carpeta de una casa en Drive y una nota; la casa espera a Hermes, que pide a la app los documentos de esa carpeta (nunca «Records» ni las carpetas de fotos) y devuelve un property.txt, la descripción nueva, de qué documento sale cada dato y lo que se contradice. Las fotos salen solo de la subcarpeta «Edited»/«Editadas» y el título es el nombre de la carpeta. «Review» crea el borrador con las fotos reducidas y sin GPS; en el editor, «Approve and publish» lo publica si tiene título, venta o alquiler, precio, parroquia, una foto y descripción. Avisa si la carpeta ya se importó; Discard borra el borrador; las filas cerradas se borran a los 90 días. La app lee Drive con una cuenta de servicio de solo lectura y Hermes nunca tiene su clave.",
+  "falta": "Luis: crear la cuenta de servicio en Google Cloud, guardar su clave como secreto de Cloudflare (GOOGLE_SERVICE_ACCOUNT) y compartir la carpeta de las casas como lector desde la cuenta de Franco; sin eso la cola responde que Google Drive no está configurado. VPS (espera a PRE-32, el plan de ChatGPT): la instrucción de Hermes y las tres rutas /imports en el custodio. Hasta entonces las casas se quedan en «Waiting for Hermes».",
+  "bloqueo": "PRE-32 para que Hermes lea las carpetas",
+  "evidencia": [
+    "server/drive.js",
+    "server/routes/queue.js",
+    "server/routes/hermes.js",
+    "admin/src/Queue.jsx",
+    "admin/src/createDraft.js",
+    "admin/src/ListingEditor.jsx",
+    "migrations/0020_drive_imports.sql",
+    "tests/server/drive.test.mjs",
+    "tests/server/queue.test.mjs",
+    "docs/superpowers/specs/2026-11-05-hampton-app-drive-queue-design.md"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-32",
+      "requires": "decision",
+      "reason": "La parte Hermes de lectura de carpetas espera el plan y límites de datos.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "AUT-13",
+      "requires": "activated",
+      "reason": "La cola existente necesita el tramo autorizado de Hermes para producir borradores.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Luis/Franco: acceso de Drive y configuración de servicio; PRE-32 para lectura por Hermes.",
+  "resources": [
+    "drive-import",
+    "hermes-gateway",
+    "listing-editor"
+  ],
+  "nextStep": "Completar configuración autorizada de Drive y conexión pendiente de Hermes sin rehacer la cola existente."
+}

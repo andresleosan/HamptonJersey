@@ -1,0 +1,43 @@
+{
+  "id": "MSG-01",
+  "seccion": "Mensajes y redes",
+  "titulo": "Responder desde el panel los mensajes de Facebook e Instagram",
+  "origen": "texto",
+  "fase": "F6",
+  "estado": "bloqueado",
+  "responsable": "Luis",
+  "hecho": "",
+  "falta": "No hay conexión con Messenger ni con Instagram (webhooks de la API de Meta) ni pantalla Messages en el panel; responder en nombre de la página exige una app de Meta verificada y respetar la ventana de 24 horas.",
+  "bloqueo": "Trámite Meta",
+  "evidencia": [
+    "server/api.js:3-21",
+    "admin/src/App.jsx:122-136",
+    "docs/roadmap/ESTADO.md:14"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-02",
+      "requires": "activated",
+      "reason": "Mensajería por Meta requiere trámite y permisos operativos.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "PRE-08",
+      "requires": "integrated",
+      "reason": "La integración de webhooks necesita su verificación de firma.",
+      "basis": "inferred",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Luis/Meta: verificación de negocio y permisos operativos.",
+  "resources": [
+    "web-chat",
+    "meta-channel"
+  ],
+  "nextStep": "Obtener trámite Meta y conectar sus canales a la pantalla Messages existente, sin reconstruirla."
+}

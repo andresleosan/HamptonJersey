@@ -1,0 +1,47 @@
+{
+  "id": "ADM-12",
+  "seccion": "Administración de propiedades",
+  "titulo": "Reparaciones con urgencia, proveedor y aprobación del propietario",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "New repair y Update en la vivienda: urgencia (Emergency, Urgent, Routine), proveedor, presupuesto, estados hasta Done, aprobación obligatoria por encima del límite del propietario y coste a su liquidación; las emergencias abiertas encabezan Repairs en To do y suman en el contador.",
+  "falta": "El inquilino no puede avisar desde un portal ni por WhatsApp con fotos, no hay IA que clasifique urgencia y tipo, ni aviso inmediato al equipo, ni directorio de proveedores (es texto libre); la aprobación del propietario la marca el equipo a mano.",
+  "bloqueo": "Correo (AUT-17) · Trámite Meta",
+  "evidencia": [
+    "admin/src/RentalDialogs.jsx:299-334",
+    "server/routes/rentals.js:270-336",
+    "admin/src/Rentals.jsx:112-122",
+    "server/routes/rent.js:111",
+    "migrations/0013_rentals.sql:128-149"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PRE-02",
+      "requires": "activated",
+      "reason": "Solo para los canales reales de Meta/WhatsApp; no bloquea las tareas manuales ni otros canales.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17) · Trámite Meta",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "tenant-portal",
+    "messages-contract"
+  ],
+  "nextStep": "Definir portal, evidencias y proveedores de reparaciones; activar comunicaciones por sus canales disponibles."
+}

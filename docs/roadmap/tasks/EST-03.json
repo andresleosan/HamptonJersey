@@ -1,0 +1,25 @@
+{
+  "id": "EST-03",
+  "seccion": "Estados",
+  "titulo": "Estado New properties found: búsquedas posteriores con casas nuevas que revisar",
+  "origen": "texto",
+  "fase": "F1-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Queue marca New properties found, con prioridad sobre las demás, cuando hay casas Found creadas después de la primera revisión del aplicante (first_reviewed_at).",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/applicants.js:64-71",
+    "server/routes/matches.js:73-75",
+    "migrations/0009_matches.sql:20-21"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como completada; no reabrir salvo regresión o nueva necesidad explícita."
+}

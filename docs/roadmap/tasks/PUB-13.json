@@ -1,0 +1,41 @@
+{
+  "id": "PUB-13",
+  "seccion": "Publicar propiedades",
+  "titulo": "Ayuda de IA para textos, textos alternativos y etiquetado de fotos",
+  "origen": "plan",
+  "fase": "F4",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Primera entrega en producción desde el 1-nov-2026 con la migración 0018; la puerta está abierta desde el 3-nov-2026 para el avisador de la fase 1a, y nadie pide borradores hasta la fase 1b (AUT-13, AUT-15). En el editor de una ficha publicada, «Ask Hermes for a draft» le pide a Hermes título, resumen y descripción a partir de los datos guardados de la ficha, solo los que enseña la web (sin la calle ni la investigación). En la fase 1b también podrá pedirlo Luis por Telegram (AUT-13). El borrador aparece en la ficha con «Use this text» y «Discard»: usarlo lo copia al formulario y guardar la ficha es la aprobación. Hermes nunca cambia la ficha. El bloque solo se ve cuando la puerta ya se ha usado y, desde el 3-nov-2026, solo a quien está en la lista de borradores (AUT-15), vacía hasta la fase 1b.",
+  "falta": "Que funcione de verdad necesita el Hermes de Hampton instalado (AUT-13). Faltan los textos para redes, los textos alternativos, etiquetar cada foto por estancia, quitar objetos temporales y marcar cualquier frase que no salga de un campo. Solo fichas publicadas: Luis decidió el 31-oct que las fichas sin publicar no pasan por Hermes.",
+  "bloqueo": "",
+  "evidencia": [
+    "wrangler.toml:1-20",
+    "server/listing.js:88",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
+    "admin/src/HermesDraft.jsx",
+    "server/routes/hermes.js",
+    "docs/superpowers/specs/2026-10-31-hampton-app-hermes-design.md",
+    "docs/superpowers/specs/2026-11-03-hampton-app-hermes-drafters-design.md"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-13",
+      "requires": "activated",
+      "reason": "La operación real de borradores espera Hermes autorizado.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "hermes-gateway",
+    "listing-editor",
+    "media-pipeline"
+  ],
+  "nextStep": "Completar borradores pendientes de IA sobre fichas publicadas cuando opere Hermes autorizado."
+}

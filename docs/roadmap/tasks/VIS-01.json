@@ -1,0 +1,32 @@
+{
+  "id": "VIS-01",
+  "seccion": "Interesados y visitas",
+  "titulo": "Contador de personas interesadas en cada casa a partir de sus visitas",
+  "origen": "texto",
+  "fase": "F3-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Cada petición de visita suma a esa persona al interés activo de la casa (visita pedida o confirmada de hoy en adelante, o hecha en 30 días con Proceed o Need more information) y caduca solo. Cada persona cuenta una vez: por su email, y una visita apuntada solo con teléfono cuenta como quien dio ese teléfono con email en otra visita de la casa, si lo dio una sola persona (si lo dieron dos, cuenta aparte hasta que el equipo la une); el número se compara sin espacios ni prefijo. El panel lo muestra en el editor de la ficha («Active interest: N people») y en el detalle de cada visita, y la web desde 2 personas (VIS-03). El equipo lo corrige quitando a alguien o uniendo dos reservas de la misma persona (VIS-02).",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/viewings.js:36-72",
+    "server/routes/listings.js:25-26",
+    "server/routes/interest.js:9-30",
+    "admin/src/ListingEditor.jsx:143",
+    "admin/src/Viewings.jsx:186-193",
+    "admin/src/Viewings.jsx:248-249",
+    "migrations/0010_viewings.sql:68-69"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

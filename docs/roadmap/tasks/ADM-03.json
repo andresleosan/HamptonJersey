@@ -1,0 +1,50 @@
+{
+  "id": "ADM-03",
+  "seccion": "Administración de propiedades",
+  "titulo": "Notificaciones automáticas de la gestión de alquileres",
+  "origen": "texto",
+  "fase": "F5-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Solo hay avisos dentro del panel: el contador junto a Rentals (atrasos con paso pendiente, plazos vencidos o sin registrar, renovaciones, emergencias abiertas y pagos sin emparejar), que el sondeo del panel recalcula cada 30 s (caché de 10 min), y los avisos a 60, 30 y 7 días del bloque To do, que se calculan al abrir Rentals.",
+  "falta": "Se puede hacer ya: llevarlos al Inbox (hoy solo cuenta new_applicant, viewing y matched) y calcularlos en el reloj (AUT-07, ya en producción), para que salten aunque nadie abra el panel. Espera al correo y a Meta: enviar avisos por email o WhatsApp al equipo, al inquilino y al propietario (F5-B).",
+  "bloqueo": "Correo (AUT-17) · Trámite Meta",
+  "evidencia": [
+    "admin/src/App.jsx:132-133",
+    "admin/src/App.jsx:76-77",
+    "server/routes/rent.js:92-116",
+    "server/routes/rent.js:684-731",
+    "server/routes/notifications.js:12",
+    "server/routes/notifications.js:36-46",
+    "server/jobs.js:1-15"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PRE-02",
+      "requires": "activated",
+      "reason": "Solo para los canales reales de Meta/WhatsApp; no bloquea las tareas manuales ni otros canales.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17) · Trámite Meta",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "notifications-schema",
+    "jobs-clock",
+    "email-pipeline"
+  ],
+  "nextStep": "Llevar avisos de alquileres al Inbox y al reloj; los canales de correo y WhatsApp se activan por separado."
+}

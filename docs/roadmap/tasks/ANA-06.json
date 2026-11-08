@@ -1,0 +1,44 @@
+{
+  "id": "ANA-06",
+  "seccion": "Trazabilidad y analítica",
+  "titulo": "Tiempos de respuesta del equipo y de las agencias",
+  "origen": "plan",
+  "fase": "F7-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Team response times en Insights (medianas): aplicante nuevo de la web → primera atención, petición de visita → primera respuesta y aplicante → primera revisión de sus coincidencias.",
+  "falta": "El tiempo de respuesta de las agencias y el de la primera lista enviada al aplicante, que llegan con los correos a agencias y el portal (F2).",
+  "bloqueo": "Correo (AUT-17)",
+  "evidencia": [
+    "server/routes/insights.js:34-48",
+    "server/routes/insights.js:78-85",
+    "admin/src/Insights.jsx:10-15",
+    "admin/src/Insights.jsx:115-126"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AGE-06",
+      "requires": "integrated",
+      "reason": "Solo indicador de respuesta de agencia consume esta evidencia; otras métricas del equipo ya existen.",
+      "basis": "inferred",
+      "scope": "partial"
+    },
+    {
+      "id": "AGE-11",
+      "requires": "integrated",
+      "reason": "Solo indicador de primera presentación consume envío real; tiempos de agencia pueden avanzar aparte.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17)",
+  "resources": [
+    "analytics-contract",
+    "consultations-contract"
+  ],
+  "nextStep": "Añadir tiempos de respuesta de agencias y primera presentación cuando exista su trazabilidad."
+}

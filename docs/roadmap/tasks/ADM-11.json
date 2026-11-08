@@ -1,0 +1,45 @@
+{
+  "id": "ADM-11",
+  "seccion": "Administración de propiedades",
+  "titulo": "Calendario de cumplimiento por vivienda con avisos a 60, 30 y 7 días",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Checks de cada vivienda (Rental dwelling licence, EICR, Gas safety si hay gas, Smoke and CO alarms) con Update y caducidad, y plazos del contrato (depósito protegido en 30 días, Check-in y Check-out report en 7); avisan a 60, 30 y 7 días en Checks and deadlines, y lo vencido o «Not recorded» sale en rojo y suma en el contador.",
+  "falta": "No se siguen los 29 riesgos de la Order de 2018, la copia al inquilino en 28 días de la licencia y del EICR, el aviso de cambios de la licencia en 28 días, el checklist eléctrico anual o al cambiar de inquilino ni el aviso de datos prescritos que va con el depósito en sus 30 días (§7.3), y lo vencido sale en Rentals pero no en el Inbox.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/rentals.js:8-17",
+    "server/rentals.js:38-44",
+    "server/routes/rentals.js:140-145",
+    "server/routes/rentals.js:243-265",
+    "server/routes/rent.js:70-77",
+    "admin/src/RentalDetail.jsx:120-128",
+    "admin/src/Rentals.jsx:96-104",
+    "migrations/0013_rentals.sql:47-48",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:515",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:524-525"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "ADM-17",
+      "requires": "decision",
+      "reason": "Validar controles y plazos antes de activarlos como cumplimiento exigible.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "notifications-schema",
+    "legal-parameters"
+  ],
+  "nextStep": "Completar los controles y avisos de cumplimiento documentados y conectarlos al Inbox tras validación correspondiente."
+}

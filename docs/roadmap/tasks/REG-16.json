@@ -1,0 +1,42 @@
+{
+  "id": "REG-16",
+  "seccion": "Registro de aplicantes",
+  "titulo": "Ofrecer una valoración a contactos que ya están en la app (compradores que tienen que vender, propietarios actuales)",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "bloqueado",
+  "responsable": "tercero",
+  "hecho": "",
+  "falta": "Solo a quien haya dado un consentimiento que cubra las ofertas de valoración o los servicios de venta y alquiler. El de hoy («news about homes and the Jersey market») no basta, y el aviso de privacidad dice que la publicidad va solo con consentimiento. Hay que reescribir esa casilla y pedir el nuevo consentimiento, con el visto bueno del abogado (PRE-33). Los propietarios de alquileres esperan a que el aviso los cubra (PRE-09).",
+  "bloqueo": "JFSC/abogado",
+  "evidencia": [
+    "site/apply.js:318-346"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-33",
+      "requires": "decision",
+      "reason": "Consentimiento específico y visto bueno del abogado para valorar contactos existentes.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "PRE-09",
+      "requires": "integrated",
+      "reason": "Aviso de privacidad debe cubrir a propietarios antes de esa captación.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Revisión de abogado y consentimiento específico; no iniciar captación por la asignación de esta tarea.",
+  "resources": [
+    "marketing-preferences",
+    "privacy-notice",
+    "valuation-form"
+  ],
+  "nextStep": "Obtener consentimiento específico y revisión del abogado antes de ofrecer valoraciones a contactos existentes."
+}

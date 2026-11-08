@@ -1,0 +1,37 @@
+{
+  "id": "SPR-01",
+  "seccion": "Seguimiento · Propiedades",
+  "titulo": "Tarjeta de propiedad con estado, precio, dirección, dormitorios, baños y disponibilidad",
+  "origen": "texto",
+  "fase": "—",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Listings muestra ubicación, parroquia, precio con su periodo, Availability y si se ve en la web (Visible/Hidden; pestañas Published, Drafts y Archived); desde el 6-nov-2026 los dormitorios salen en la línea gris de cada fila («3 bed», SPR-06); los baños solo se ven al abrir la ficha.",
+  "falta": "Baños en la lista, y la fecha desde la que está disponible, que no existe como campo en listings.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Listings.jsx:81-108",
+    "server/routes/listings.js:14-17",
+    "admin/src/ListingEditor.jsx:187-188",
+    "migrations/0001_init.sql:1-23"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PUB-06",
+      "requires": "design",
+      "reason": "Coordinar el campo de fecha de disponibilidad que también incorpora PUB-06.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "listings-schema",
+    "listing-editor"
+  ],
+  "nextStep": "Completar baños y fecha de disponibilidad en la tarjeta, reconciliando el campo con PUB-06."
+}

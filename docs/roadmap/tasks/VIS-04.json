@@ -1,0 +1,41 @@
+{
+  "id": "VIS-04",
+  "seccion": "Interesados y visitas",
+  "titulo": "Decidir tras la visita: Proceed, Need more information o Not interested",
+  "origen": "texto",
+  "fase": "F3-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "El equipo cierra la visita en Viewings con Mark completed y elige Proceed, Need more information o Not interested con motivo opcional; el resultado se ve en el detalle de la visita (pestaña Past) y en el Owner report.",
+  "falta": "El formulario que recibe el aplicante una hora después de la visita para elegirlo él mismo (F3-B), que necesita enviarle un email. Sin dependencias: el Timeline del aplicante muestra la visita solo como Completed, sin el resultado.",
+  "bloqueo": "Correo (AUT-17)",
+  "evidencia": [
+    "admin/src/Viewings.jsx:249-270",
+    "server/routes/inbox.js:83-91",
+    "migrations/0010_viewings.sql:45-46",
+    "admin/src/format.js:28",
+    "admin/src/OwnerReport.jsx:108-114",
+    "admin/src/ApplicantDetail.jsx:446-447"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17)",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui",
+    "applicant-timeline",
+    "email-pipeline"
+  ],
+  "nextStep": "Mostrar primero el resultado de la visita en Timeline; enviar el formulario posterior cuando el correo esté operativo."
+}

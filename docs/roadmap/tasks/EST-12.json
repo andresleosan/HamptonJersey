@@ -1,0 +1,27 @@
+{
+  "id": "EST-12",
+  "seccion": "Estados",
+  "titulo": "Estados del match Found, Shortlisted y Rejected by staff con motivo",
+  "origen": "plan",
+  "fase": "F1-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Cada pareja aplicante × casa nace Found y el equipo la pasa a Shortlisted o Rejected con motivo (Price, Area, Size, Condition, Other) desde Matches o Review, con Undo; cada revisión queda en el Timeline.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "migrations/0009_matches.sql:27-39",
+    "server/routes/matches.js:10",
+    "server/routes/matches.js:45-93",
+    "admin/src/MatchCard.jsx:53-71",
+    "server/applicants.js:33"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como completada; no reabrir salvo regresión o nueva necesidad explícita."
+}

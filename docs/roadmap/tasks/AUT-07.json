@@ -1,0 +1,31 @@
+{
+  "id": "AUT-07",
+  "seccion": "Automatizaciones e IA",
+  "titulo": "Worker hampton-jobs con cron cada 10 minutos: un solo reloj para lo vencido",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "El Worker hampton-jobs se despierta cada 10 minutos (cron */10 * * * *, hora UTC) sobre la misma base de datos que la web y sin dirección en internet: no responde a peticiones, solo al reloj de Cloudflare. Cada vuelta deja su hora en app_settings (clave clock) y la primera de cada día de Jersey (00:00) hace el borrado de 12 meses (desde el 1-nov-2026, también los trabajos de Hermes de más de 90 días), con sus 3 intentos al día; si el reloj se parara, el panel lo sigue haciendo al abrirse. Sus registros solo dicen cuántos borró. Cada push a main lo despliega con Workers Builds desde la carpeta jobs/ (conectado el 30-oct-2026). En producción desde el 29-oct-2026; el 30-oct hizo a las 00:00 su primer borrado diario. Desde el 1-nov-2026 la pantalla Automations (AUT-01) enseña su última vuelta y avisa si lleva más de 30 minutos parado.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/jobs.js:1-15",
+    "jobs/wrangler.toml:1-24",
+    "server/retention.js:95-104",
+    "server/routes/notifications.js:56",
+    "server/routes/notifications.js:65",
+    "tests/server/jobs.test.mjs",
+    "docs/superpowers/specs/2026-10-29-hampton-app-jobs-clock-design.md"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "jobs-clock"
+  ],
+  "nextStep": "Conservar como hecho en el historial; no reconstruir salvo una regresión o cambio de alcance comprobado."
+}

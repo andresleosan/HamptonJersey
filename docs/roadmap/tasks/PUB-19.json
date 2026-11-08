@@ -1,0 +1,42 @@
+{
+  "id": "PUB-19",
+  "seccion": "Publicar propiedades",
+  "titulo": "Página para propietarios: «N personas buscan casa en tu parroquia», con enlace a Book a valuation",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "Plan del 2-nov-2026 para captar propietarios, empezando por los que vienen solos. Una página pública que enseña cuántas personas buscan casa por parroquia y dormitorios, con los totales de Unmet demand (ANA-07), y oculta cualquier casilla de menos de 5 personas para que nadie se pueda identificar. Las cifras tienen que ser ciertas (ley de consumo). Enlaza a Book a valuation (PUB-10).",
+  "bloqueo": "",
+  "evidencia": [
+    "server/insights.js",
+    "admin/src/Insights.jsx"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "ANA-07",
+      "requires": "integrated",
+      "reason": "La página consume demanda agregada con umbral de privacidad.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "PUB-10",
+      "requires": "integrated",
+      "reason": "Solo el enlace de conversión operativo necesita valoración disponible; cifras agregadas pueden diseñarse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "analytics-contract",
+    "public-site"
+  ],
+  "nextStep": "Diseñar página de demanda agregada con umbral de privacidad y enlace al formulario de valoración."
+}

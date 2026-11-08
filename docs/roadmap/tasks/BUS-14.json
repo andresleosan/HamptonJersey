@@ -1,0 +1,50 @@
+{
+  "id": "BUS-14",
+  "seccion": "Búsqueda de propiedades",
+  "titulo": "Orden explicable de coincidencias y alternativas, después de evaluar requisitos",
+  "origen": "plan",
+  "fase": "F1-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "REG-08 ordena el pool de25 y Review por cumplimiento, pendiente y alternativa, con score dentro de cada grupo. Prueba28candidatos: uno válido con menor score precede a27alternativas. Una tarjeta cuyos datos cambiaron avisa que debe recalcularse la lista. Construido localmente.",
+  "falta": "Publicar REG-08. Próxima construcción recomendada: revisar el umbral35, tope25 y bonus de publicación para evitar perder opciones válidas antes del orden; explicar esos límites sobre inventario actual. Ranking de alternativas día21 y evidencia de nuevas fuentes siguen pendientes de sus módulos.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/matching.js:6-14",
+    "server/matching.js:118-183",
+    "server/match-store.js:96-100",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:111",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:275",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
+  ],
+  "modulo": "M04",
+  "deps": [
+    "BUS-12"
+  ],
+  "criterio_aceptacion": "Una opción con MUST incumplido no se etiqueta completa aunque tenga mayor puntuación que las válidas.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "REG-08",
+      "requires": "integrated",
+      "reason": "El siguiente tramo se construye sobre prioridades existentes e inventario actual.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "matching-contract",
+    "notifications-schema",
+    "matching-review-ui"
+  ],
+  "nextStep": "Revisar umbral 35, límite 25 y bonus de publicación sobre el inventario actual sin descartar candidatos válidos antes de ordenarlos."
+}

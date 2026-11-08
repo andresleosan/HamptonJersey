@@ -1,0 +1,28 @@
+{
+  "id": "PRE-23",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Respuesta a la pregunta 7: servicio de correo de Hampton y dominio en Cloudflare",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "hecho",
+  "responsable": "Luis",
+  "hecho": "Respondida el 6-nov-2026 (decisión de Luis, P-19): la app envía y recibe con Cloudflare Email Service (AUT-17); Hampton conserva su buzón de siempre (hoy una cuenta de Gmail) para el día a día y como contacto de privacidad. Sigue el plan del 2-nov-2026: lo que la app envía lo aprueba una persona en el panel y Hermes no tiene buzón propio. El dominio pasa a esta app (A3) y está en Cloudflare desde el 1-nov-2026, lo que permite las reglas WAF; hoy el contacto de privacidad es una cuenta de Gmail.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:826",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:29",
+    "docs/roadmap/ESTADO.md:15",
+    "site/apply.js:361"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "email-pipeline"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

@@ -1,0 +1,26 @@
+{
+  "id": "T3D-07",
+  "seccion": "Tour 3D",
+  "titulo": "Fotogramas del vídeo 360 con After Effects, a 6–10 por segundo, para el splat",
+  "origen": "texto",
+  "fase": "F8",
+  "estado": "replanteado",
+  "responsable": "—",
+  "hecho": "",
+  "falta": "Sin After Effects: ffmpeg extrae los fotogramas a 6–10 por segundo (lo que importa es que se solapen mucho), pasa el vídeo 360 a vistas normales con su filtro v360 y un filtro de nitidez descarta los borrosos. Se sustituye por T3D-02.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:385-386"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "tours-pipeline",
+    "media-pipeline"
+  ],
+  "nextStep": "Conservar la decisión replanteada y seguir el alcance vigente; no ejecutar la propuesta antigua."
+}

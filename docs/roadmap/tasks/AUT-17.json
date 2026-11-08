@@ -1,0 +1,42 @@
+{
+  "id": "AUT-17",
+  "seccion": "Automatizaciones e IA",
+  "titulo": "Correo saliente y entrante de la app con Cloudflare Email Service",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "parcial",
+  "responsable": "Luis",
+  "hecho": "Actualización 7-nov: código desplegado en aea7eb5 y migraciones remotas al día; activación del servicio pendiente. Evidencia de construcción: Construido y comprobado en local el 6-nov-2026, con diseño aprobado íntegramente por Luis y migración aditiva 0023_email.sql, sin aplicar en producción. Pages autentica preferencias y revisión; hampton-jobs envía con binding send_email restringido a hello@hamptonestatesjersey.com y recibe en replies@app.hamptonestatesjersey.com. Cola D1 con snapshot aprobado, idempotencia por plantilla/entidad/versión/destinatario, cuota atómica de 100 intentos por día de Jersey y comprobación de pausa, preferencias y baja antes de cada llamada. Solo rechazos explícitos de límite admiten hasta 3 intentos; timeouts y resultados inciertos esperan revisión, sin reenvío automático. Primer uso NOT-10: resumen de contadores a las 08:00 de Jersey, activado expresamente para las direcciones del equipo tras ver una muestra. Automations incluye Email y Daily team summary. Sección Email paginada con entrada/salida, texto literal, bajas, borrado y revisión de resultados desconocidos. MIME limitado a 1 MiB/50.000 caracteres, sin guardar adjuntos; huellas contra duplicados y referencias de hilo sin acciones de negocio. Contenido 30 días, metadatos 90; borrado diario y de contactos. Aviso de privacidad actualizado. Configuración de servicio false y preferencias apagadas por defecto; no se han enviado correos reales. Correcciones de revisión del 6-nov: contador global y filtro paginado Pending review de resultados inciertos sin revisar, visible después de medianoche y sin reenvío al reconocerlos. Asunto, In-Reply-To y References se resuelven conjuntamente; las contradicciones quedan sin hilo y References puede ser la única pista. El detalle conserva texto y ofrece reintento con aviso y foco si falla su refresco. Regresiones RED-GREEN; 622 pruebas Node y 14 Python, build, check:release, e2e de correo y Playwright MCP 1280/390 con zoom 200% aprobados; e2e general bloqueado por DNS de Turnstile.",
+  "falta": "Verificar Workers Paid y alta del dominio en Email Sending por el canal autenticado existente; el taller no pudo consultar la cuenta, no se afirma que falten. Configurar la recepción literal del subdominio sin alterar los MX del buzón habitual; confirmar sus registros de autenticación y las posibilidades de alta de la zona. Confirmar la preparación real en Pages y Worker con EMAIL_SERVICE_READY=true solo al completar ese montaje. El equipo elige destinatarios en Automations, revisa la muestra y activa el resumen. Falta una entrega real al equipo y una respuesta visible en Email; no se promete reintento automático del proveedor ante fallo de recepción. Consultas a agencias, correo a aplicantes/chats y los demás flujos dependientes se construyen aparte y conservan sus estados pendientes. Los menores restantes y bloqueos del taller están registrados en el ledger; H1/H2/H3 están corregidos. El código y las migraciones ya están publicados; la activación de correo y sus cambios DNS no se realizaron en esta entrega.",
+  "bloqueo": "Activación y prueba real de Cloudflare Email Service",
+  "evidencia": [
+    "migrations/0023_email.sql",
+    "server/email.js",
+    "server/email-inbound.js",
+    "server/email-retention.js",
+    "server/routes/email.js",
+    "server/jobs.js",
+    "jobs/wrangler.toml",
+    "admin/src/Email.jsx",
+    "admin/src/EmailSettings.jsx",
+    "tests/server/email.test.mjs",
+    "tests/server/email-admin.test.mjs",
+    "tests/server/email-inbound.test.mjs",
+    "tests/email-e2e.mjs",
+    "docs/superpowers/specs/2026-11-06-hampton-app-email-design.md",
+    "docs/superpowers/plans/2026-11-06-hampton-app-email.md",
+    "docs/superpowers/plans/2026-11-06-hampton-app-email-ledger.md"
+  ],
+  "actualizado": "2026-11-07",
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Luis/equipo: verificar configuración de cuenta y DNS y autorizar activación y destinatarios; no afirmar que falta Workers Paid.",
+  "resources": [
+    "email-pipeline",
+    "external-account-config"
+  ],
+  "nextStep": "Verificar configuración existente y preparar activación y prueba real del correo ya construido y publicado."
+}

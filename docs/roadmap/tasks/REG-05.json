@@ -1,0 +1,46 @@
+{
+  "id": "REG-05",
+  "seccion": "Registro de aplicantes",
+  "titulo": "Habitaciones y baños que busca el aplicante",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Rango de dormitorios mínimo/máximo existente desde REG-11; REG-08 añade Must-have para ese rango y para baños. Dormitorios ideales conserva su función de preferencia. Incumplir un rango imprescindible produce alternativa, sin compensación por score. Construido localmente.",
+  "falta": "Publicar REG-08 y0031; alcance residencial actual.",
+  "bloqueo": "",
+  "evidencia": [
+    "site/apply.js:125-127",
+    "server/applicants.js:158-160",
+    "migrations/0008_applicants.sql:35-37",
+    "server/matching.js:133-138",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
+  ],
+  "modulo": "M03",
+  "deps": [],
+  "criterio_aceptacion": "Un rango de uno a dos dormitorios no acepta automáticamente tres.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "REG-08",
+      "requires": "activated",
+      "reason": "La entrega residencial ya construida se cierra al verificar publicación y 0031.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "registration-ui",
+    "applicants-schema",
+    "requirements-contract"
+  ],
+  "nextStep": "Verificar publicación y migración de REG-08/0031 antes de cerrar el alcance residencial ya construido."
+}

@@ -1,0 +1,58 @@
+{
+  "id": "PRE-12",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Borrado a los 12 meses de inactividad, con aviso previo y descarga desde el portal",
+  "origen": "plan",
+  "fase": "G2",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "G2 en producción (991b6c6): una pasada diaria borra contactos con 12 meses sin actividad y visitas de hace más de 12 meses, salvo ventas (5 años) y ofertas abiertas; Applicants tiene la lista Expiring desde el mes 11, Kept until y el botón Log conversation, y el aviso lo explica. Desde el 29-oct la pasada la hace el reloj a las 00:00 de Jersey (AUT-07); si el reloj no la hizo, la hace el panel al abrirse. Coentrega EST-09 publicada y activada el 7-nov-2026 en aea7eb5, con migración 0024: active/needs_review protege al contacto compartido; revisión interna desde 11 meses; todas resueltas, 12 meses desde última actividad incluido cierre, con excepciones existentes de ofertas/ventas. Visitas, correo y chat conservan sus reglas propias; aviso público actualizado.",
+  "falta": "M03/M12 · Reconciliación 7-nov: No hay aviso previo por email al aplicante (G2 lo preveía a los 11 meses) ni descarga o borrado desde el portal, que no existe. Antes de 2031 hay que borrar las ventas a los 5 años. Falta también fijar cuánto se guardan un alquiler o una venta después de terminar (contabilidad, depósitos, reclamaciones): la limpieza de 12 meses no toca alquileres, contratos ni pagos, y las ventas se guardan 5 años. El plazo lo propone el abogado de Hampton (PRE-33) y después la app lo aplica sola. La papelera de seis meses EST-19 se limita a archivos de propiedades no disponibles y no autoriza borrar contactos, criterios o historial de gestiones. Aceptación: La regla de seis meses no elimina historial de clientes; la limpieza general no cierra silenciosamente una búsqueda activa.",
+  "bloqueo": "Correo (AUT-17)",
+  "evidencia": [
+    "server/retention.js:51-92",
+    "server/retention.js:95-104",
+    "server/jobs.js:1-15",
+    "admin/src/Applicants.jsx:16-17",
+    "admin/src/ApplicantDetail.jsx:243-282",
+    "admin/src/App.jsx:125-126",
+    "site/apply.js:337-342",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:43",
+    "991b6c6",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "migrations/0024_search_lifecycle.sql",
+    "tests/server/search-lifecycle.test.mjs",
+    "docs/superpowers/plans/2026-11-07-hampton-app-search-lifecycle-ledger.md"
+  ],
+  "modulo": "M03/M12",
+  "deps": [],
+  "criterio_aceptacion": "La regla de seis meses no elimina historial de clientes; la limpieza general no cierra silenciosamente una búsqueda activa.",
+  "actualizado": "2026-11-07",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PRE-33",
+      "requires": "decision",
+      "reason": "Fijar conservación de alquiler/venta tras terminar mediante revisión del abogado.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17)",
+  "resources": [
+    "retention-policy",
+    "search-lifecycle",
+    "email-pipeline"
+  ],
+  "nextStep": "Completar aviso previo y funciones de portal conservando búsquedas activas y la política validada de retención."
+}

@@ -1,0 +1,44 @@
+{
+  "id": "AUT-16",
+  "seccion": "Automatizaciones e IA",
+  "titulo": "Hampton Bot · fase 4: el asistente de Luis por Telegram (buscar fichas y recomendarlas, y si no hay, «lo buscamos»)",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "bloqueado",
+  "responsable": "Luis",
+  "hecho": "Luis lo pidió el 2-nov-2026: desde sus dos cuentas de Telegram, un asistente que trabaje en el panel, ayude con los correos, siga a los clientes interesados y busque y recomiende lo disponible. El plan aprobado ese día lo hace por fases. Desde el 6-nov-2026 es la fase 4 de Hampton Bot (documento de ideas, §6 y §9): el bot de Telegram es nuevo y solo para Luis (PRE-34); Hermes 2 y su bot no cambian.",
+  "falta": "Bloqueado por PRE-32 o una clave de API con acuerdo de datos para ese Hermes. Fase 1b (solo datos públicos): una operación de la puerta que busca entre las fichas publicadas con el motor de matching, para preguntas generales como «¿qué tenemos de 3 habitaciones en St Helier?». Las respuestas llevan referencias, títulos, precios y enlaces de la web; si no hay nada, el enlace a «Register your search» para que el cliente registre su búsqueda. La búsqueda para un cliente concreto se hace en el panel, nunca por Telegram. El asistente rechaza antes de pasarlos al modelo los mensajes reenviados, los adjuntos y los que traen emails o teléfonos, y solo deja enlaces del dominio de Hampton. Después, con el correo dentro de la app (AUT-17), redactar respuestas que una persona aprueba en el panel; leer correos de clientes con IA solo con un modelo con acuerdo de datos (P-09). El seguimiento usa «Gone quiet» (EST-11) y los números del resumen. Diseño del 6-nov: el token del bot no entra en Hermes, vive en un portero (proxy sin dependencias, solo en la red interna de Docker, como el custodio de la llave) que sustituye el token ficticio, sale por el proxy de la jaula y descarta reenvíos, adjuntos y mensajes con emails o teléfonos antes del modelo; el Hermes de Hampton va sin terminal, archivos ni web, con un servidor MCP mínimo de solo lectura más pause (reanudar, solo en el panel), una operación GET /api/hermes/search y solo los dos IDs de Luis; verificar.sh ampliado. Hecho cuando: Luis pregunta por chats en espera y fichas desde sus dos cuentas y recibe solo números, referencias y enlaces; otra cuenta no recibe nada; el portero para reenvíos, adjuntos y teléfonos. Bloqueo: PRE-32 o una clave de API con acuerdo de datos para ese Hermes, y la decisión 4 del documento (Properties Queue). Modelo recomendado: claude-opus-5-5 · esfuerzo xhigh: crea el portero que custodia el token del bot y filtra lo que llega antes del modelo, con la lista de los dos IDs de Luis como única barrera, en el VPS y en un Hermes nuevo.",
+  "bloqueo": "Decisión de Luis",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
+    "server/matching.js:118",
+    "server/routes/hermes.js"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-32",
+      "requires": "decision",
+      "reason": "Resolver PRE-32 o alternativa de API con acuerdo; no exigir ambas rutas.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "AUT-13",
+      "requires": "activated",
+      "reason": "La fase de asistente consume la puerta y entorno Hermes autorizados.",
+      "basis": "inferred",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Luis: PRE-32 o alternativa de API con acuerdo y decisión de Properties Queue.",
+  "resources": [
+    "hermes-gateway",
+    "model-data-policy",
+    "matching-contract"
+  ],
+  "nextStep": "Resolver la vía de datos/modelo y Properties Queue; después diseñar el asistente restringido de Luis."
+}

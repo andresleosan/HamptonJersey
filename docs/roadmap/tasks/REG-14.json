@@ -1,0 +1,28 @@
+{
+  "id": "REG-14",
+  "seccion": "Registro de aplicantes",
+  "titulo": "Duplicados por email o móvil unidos al mismo contacto",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Un alta web con un email o móvil ya guardado no cambia los datos del contacto (solo reinicia sus 12 meses y, si desmarca el marketing, lo retira): guarda el envío, crea el aviso «<name> registered again» y la ficha muestra lo que difiere con Copy fields, Create second search (si no tiene esa operación activa) y Dismiss. La web responde igual en los dos casos para no revelar quién está registrado, y en el panel New applicant avisa del contacto existente.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/public.js:101-133",
+    "server/routes/public.js:149-176",
+    "server/routes/applicants.js:170-178",
+    "admin/src/ApplicantDetail.jsx:355-377",
+    "admin/src/NewApplicant.jsx:74-77",
+    "migrations/0008_applicants.sql:19-20"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como completada; no reabrir salvo regresión o nueva necesidad explícita."
+}

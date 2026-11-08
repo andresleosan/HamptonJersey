@@ -1,0 +1,29 @@
+{
+  "id": "VIS-12",
+  "seccion": "Interesados y visitas",
+  "titulo": "La cita en el Google o Outlook Calendar del negociador e invitación al aplicante",
+  "origen": "plan",
+  "fase": "F3-B",
+  "estado": "bloqueado",
+  "responsable": "Luis",
+  "hecho": "",
+  "falta": "No hay conexión con calendarios: la cita no se escribe en la agenda del negociador, no se leen sus horas ocupadas personales y el aplicante no recibe invitación.",
+  "bloqueo": "Calendario Google/Outlook",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:10",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18",
+    "docs/roadmap/ESTADO.md:11"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Luis: Calendario Google/Outlook",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui",
+    "calendar-integration"
+  ],
+  "nextStep": "Luis debe habilitar la conexión de calendario; después integrar ocupaciones e invitaciones con la agenda actual."
+}

@@ -1,0 +1,30 @@
+{
+  "id": "NOT-04",
+  "seccion": "Notificaciones",
+  "titulo": "Pestaña Matched con las casas que encajan con cada aplicante, agrupadas por aplicante",
+  "origen": "texto",
+  "fase": "F1-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Cada recálculo con casas nuevas abre o actualiza un solo aviso Needs action por aplicante, «N new matches for <name>», con el botón Review matches hacia su pestaña Matches; se cierra solo cuando no queda ninguna Found.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/match-store.js:23-36",
+    "server/match-store.js:81-91",
+    "server/routes/notifications.js:29-33",
+    "admin/src/Inbox.jsx:19-21",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:37"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "notifications-schema",
+    "inbox-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

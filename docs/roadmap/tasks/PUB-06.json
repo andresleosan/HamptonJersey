@@ -1,0 +1,28 @@
+{
+  "id": "PUB-06",
+  "seccion": "Publicar propiedades",
+  "titulo": "Familia 3 · Datos económicos de la ficha",
+  "origen": "texto",
+  "fase": "F4",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "En listings y en Price del editor: precio de venta, renta por mes o por año, premium del negocio, moneda (GBP o EUR) y un texto para cuando no hay importe.",
+  "falta": "Faltan precio por pie², depósito del alquiler, parish rates, service charge, suministros incluidos y fecha de disponibilidad, y el editor no deja poner premium más renta a un negocio. Replanteado para Jersey (§5.10), no falta: el IBI pasa a parish rates, los gastos de comunidad a service charge, y fianza y depósito son un solo depósito.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/ListingEditor.jsx:191-199",
+    "migrations/0001_init.sql:12-18",
+    "server/listing.js:69-74"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "listings-schema",
+    "listing-editor"
+  ],
+  "nextStep": "Completar datos económicos y disponibilidad diferenciando vivienda, negocio, renta y premium."
+}

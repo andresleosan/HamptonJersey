@@ -1,0 +1,29 @@
+{
+  "id": "PRE-05",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Roles owner y staff en el panel (P-12)",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "descartado",
+  "responsable": "—",
+  "hecho": "Luis decidió un solo rol de admin con todos los permisos (A8, 23-oct): el servidor solo comprueba que el email esté en la lista, y Users (en Settings) da y quita acceso y pone nombres.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:34",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:635",
+    "server/auth.js:48-53",
+    "server/routes/users.js:39-44",
+    "admin/src/Users.jsx:5-37"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "staff-access-model"
+  ],
+  "nextStep": "Conservar la decisión de descarte; no ejecutar ni reabrir automáticamente."
+}

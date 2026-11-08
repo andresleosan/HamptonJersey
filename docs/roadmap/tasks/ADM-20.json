@@ -1,0 +1,39 @@
+{
+  "id": "ADM-20",
+  "seccion": "Administración de propiedades",
+  "titulo": "Ley de alquiler de 2025: un solo plazo fijo inicial de hasta 3 años y nada de premium",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "Se puede hacer ya: avisar o impedir, en los contratos de la ley de 2025, un plazo fijo de más de 3 años y un segundo plazo fijo con Renew (al acabar el primero el contrato pasa a periódico); hoy New tenancy acepta cualquier duración y Renew deja poner otro. Espera a un abogado: que lo confirme junto con el resto de plazos (ADM-17) y que valide cualquier cargo al inquilino además de renta y depósito (por ejemplo por las referencias de F5-B), porque está prohibido cobrar premium o key money.",
+  "bloqueo": "JFSC/abogado",
+  "evidencia": [
+    "server/rentals.js:158-160",
+    "server/routes/rent.js:333-356",
+    "admin/src/RentalDialogs.jsx:134-151",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:86",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:517-518"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "ADM-17",
+      "requires": "decision",
+      "reason": "Solo las plantillas, plazos o cargos correspondientes necesitan validación del abogado; no acredita autorización por asignar tarea.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "JFSC/abogado",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "legal-parameters"
+  ],
+  "nextStep": "Implementar las validaciones de contrato previstas y someter plazos y cargos a validación del abogado."
+}

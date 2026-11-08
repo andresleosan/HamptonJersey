@@ -1,0 +1,38 @@
+{
+  "id": "OFE-06",
+  "seccion": "Ofertas y cierre",
+  "titulo": "Correo semanal a los abogados con lo pendiente y resumen a comprador y vendedor",
+  "origen": "plan",
+  "fase": "F3-B",
+  "estado": "bloqueado",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "No se envía nada: el equipo persigue a los abogados a mano con los hitos de Sales. Necesita correo; el reloj (AUT-07) ya existe.",
+  "bloqueo": "Correo (AUT-17)",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
+    "docs/roadmap/ESTADO.md:11",
+    "jobs/wrangler.toml:1-24"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Necesita correo operativo para completar la entrega real de mensajes.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17)",
+  "resources": [
+    "sales-contract",
+    "sales-ui",
+    "email-pipeline",
+    "jobs-clock"
+  ],
+  "nextStep": "Añadir el resumen semanal de hitos por correo sobre Sales y el reloj existentes."
+}

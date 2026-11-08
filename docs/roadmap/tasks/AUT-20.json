@@ -1,0 +1,182 @@
+{
+  "id": "AUT-20",
+  "seccion": "Automatizaciones e IA",
+  "titulo": "Validación integral del recorrido de búsqueda",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M13b · Reconciliación 7-nov: Validar el recorrido completo desde el directorio y el alta de búsqueda hasta consulta compartida, llamada, captura, presentación, visita, revisión interna de 21 días, cambios confirmados, indisponibilidad, purga y cierre humano. Integrar las pruebas de los módulos con datos locales de prueba y registrar resultado y evidencia de cada comprobación; documentar el plan no satisface esta tarea. Depende de: BUS-23, BUS-04, BUS-13, BUS-14, BUS-15, REG-12, REG-17, AGE-08, AGE-09, AGE-11, VIS-08, BUS-17, AUT-19, EST-19, NOT-01, NOT-08, NOT-09, NOT-11, EST-18. Aceptación: Las dieciséis comprobaciones A01–A16 del plan de reconciliación pasan juntas, además de cinco casos transversales: dos empleados y dos ticks simultáneos; cambio material después de aprobar y antes de enviar; envío aceptado con acuse perdido; lectura, captura o purga parcial con reintento; límites de fechas de Jersey, cambios de hora y meses de distinta longitud. Los resultados demuestran ausencia de duplicados, conservación del historial y respeto de las decisiones humanas, con evidencia verificable y ningún fallo abierto que invalide el recorrido.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M13b",
+  "deps": [
+    "BUS-23",
+    "BUS-04",
+    "BUS-13",
+    "BUS-14",
+    "BUS-15",
+    "REG-12",
+    "REG-17",
+    "AGE-08",
+    "AGE-09",
+    "AGE-11",
+    "VIS-08",
+    "BUS-17",
+    "AUT-19",
+    "EST-19",
+    "NOT-01",
+    "NOT-08",
+    "NOT-09",
+    "NOT-11",
+    "EST-18"
+  ],
+  "criterio_aceptacion": "Las dieciséis comprobaciones A01–A16 del plan de reconciliación pasan juntas, además de cinco casos transversales: dos empleados y dos ticks simultáneos; cambio material después de aprobar y antes de enviar; envío aceptado con acuse perdido; lectura, captura o purga parcial con reintento; límites de fechas de Jersey, cambios de hora y meses de distinta longitud. Los resultados demuestran ausencia de duplicados, conservación del historial y respeto de las decisiones humanas, con evidencia verificable y ningún fallo abierto que invalide el recorrido.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "BUS-23",
+      "requires": "research_accepted",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-04",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-13",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-14",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-15",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "REG-12",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "REG-17",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AGE-08",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AGE-09",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AGE-11",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "VIS-08",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-17",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AUT-19",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-19",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "NOT-01",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "NOT-08",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "NOT-09",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "NOT-11",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-18",
+      "requires": "integrated",
+      "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "integrated-journey-tests"
+  ],
+  "nextStep": "Ejecutar las comprobaciones integradas A01–A16 y los casos transversales cuando estén los módulos."
+}

@@ -1,0 +1,38 @@
+{
+  "id": "SAP-02",
+  "seccion": "Seguimiento · Aplicantes",
+  "titulo": "Número de casas con match y cuántas están confirmadas, en la lista de aplicantes",
+  "origen": "texto",
+  "fase": "F1-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "La columna Matches muestra «N found · M shortlisted» y enlaza a la pestaña Matches del aplicante.",
+  "falta": "Contar las confirmadas y las disponibles («12 found · 3 confirmed · 2 available»): Shortlisted es la preselección del equipo, no una disponibilidad confirmada, que no existe hasta EST-13.",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/Applicants.jsx:18",
+    "admin/src/Applicants.jsx:80-81",
+    "server/routes/applicants.js:68-71",
+    "migrations/0009_matches.sql:33"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "EST-13",
+      "requires": "integrated",
+      "reason": "La disponibilidad confirmada no se deduce de Shortlisted.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "applicants-ui",
+    "matching-contract",
+    "outreach-contract"
+  ],
+  "nextStep": "Añadir contadores de confirmadas y disponibles sin confundir preselección con disponibilidad."
+}

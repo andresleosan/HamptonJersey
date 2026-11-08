@@ -1,0 +1,36 @@
+{
+  "id": "AUT-14",
+  "seccion": "Automatizaciones e IA",
+  "titulo": "Avisos y resumen del día en un canal de Telegram del equipo; solo Luis da órdenes",
+  "origen": "texto",
+  "fase": "—",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Diseño aprobado por Luis el 2-nov-2026 (§6.6). El equipo solo lee un canal privado de Telegram, y desde el canal nadie puede darle órdenes al bot. Publica un avisador que solo envía y no lee Telegram (fase 1a, sin IA): un aviso por cada aplicante nuevo y cada solicitud de visita, con un enlace al panel y sin datos de la persona, y el resumen de las 8:00 de Jersey con las fichas por confirmar. La app ya prepara esos textos (la puerta de Hermes, en producción desde el 1-nov-2026 con la migración 0018). Solo Luis da órdenes, en privado y desde sus dos cuentas, cuando llegue el Hermes de la fase 1b (AUT-13). Desde el 3-nov-2026 el avisador está instalado en el VPS y publica en el canal privado del equipo, del que Luis es propietario y donde el bot es el único administrador, solo con «Post messages»: una solicitud de visita de prueba produjo su aviso en el canal, sin datos personales.",
+  "falta": "Comprobar que el resumen de las 8:00 de Jersey llega al canal y probar qué pasa cuando un envío falla. El canal no tiene grupo de discusión y su enlace de invitación pide la aprobación de Luis. El ID del canal y los de los chats de Luis solo se guardan en el VPS. Si un envío falla, el avisador avisa a Luis en privado, como mucho una línea por hora. Por Telegram solo viajan números, referencias y títulos de fichas, y enlaces al panel; nunca datos de personas, ni en el canal ni en los chats: es una regla absoluta, porque Telegram no firma acuerdos de tratamiento. Añadir al resumen cuántos contactos caducan este mes y los «Gone quiet» (EST-11). Antes de invitar al equipo: una guía corta (qué es el canal, que unirse es voluntario, que no se escribe nada de clientes), y altas desde el enlace con la aprobación de Luis. Para quitar a alguien: expulsarlo del canal, cambiar el enlace y quitarle el acceso en Settings → Users. Conviene que el canal quede a nombre de alguien de Hampton (se puede transferir); entonces esa persona aprueba las altas. Sin horario de silencio (decisión de Luis del 31-oct). Estará hecho cuando un aplicante nuevo produzca su aviso en el canal en uno o dos minutos, sin datos personales, y el resumen llegue a las 8:00 de Jersey.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
+    "server/routes/hermes.js",
+    "docs/superpowers/specs/2026-10-31-hampton-app-hermes-design.md"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-13",
+      "requires": "activated",
+      "reason": "Los ensayos del canal consumen la fase 1a ya operativa; no esperan toda la fase 1b.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Luis/Hampton: comprobar entrega real y aprobar incorporación del equipo al canal.",
+  "resources": [
+    "telegram-notifier",
+    "hermes-gateway"
+  ],
+  "nextStep": "Verificar resumen y fallo de envío, completar contadores autorizados y guía de incorporación al canal."
+}

@@ -1,0 +1,37 @@
+{
+  "id": "VIS-05",
+  "seccion": "Interesados y visitas",
+  "titulo": "Reservar en la web eligiendo negociador, día y hora entre los huecos libres",
+  "origen": "texto",
+  "fase": "F3-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "El formulario Book a viewing (portada y cada ficha) pide a GET /api/availability (el /api/slots del plan, que sustituye las 5 horas fijas TIMES) los huecos reales de cada negociador activo para 12 días, de lunes a sábado desde mañana, y desactiva los días sin huecos. La petición lleva negotiator_id y entra como Requested en Viewings con su aviso en el Inbox; la migración 0010 enlazó el antiguo texto agent con su negociador.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "site/index.html:465-583",
+    "site/index.html:521",
+    "site/index.html:545-546",
+    "site/index.html:653",
+    "site/index.html:842",
+    "server/routes/public.js:38-45",
+    "server/routes/public.js:50-78",
+    "server/routes/public.js:181-182",
+    "server/viewing-store.js:10-32",
+    "server/viewings.js:41-55",
+    "migrations/0010_viewings.sql:43",
+    "migrations/0010_viewings.sql:58"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

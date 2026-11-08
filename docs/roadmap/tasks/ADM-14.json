@@ -1,0 +1,40 @@
+{
+  "id": "ADM-14",
+  "seccion": "Administración de propiedades",
+  "titulo": "Renovación a 90 días del fin con respuesta del propietario y del inquilino",
+  "origen": "plan",
+  "fase": "F5-A",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Desde 90 días antes del fin de un plazo fijo el contrato sale en Renewals («Renewal due» o «Fixed term ended») y en su tarjeta; Renew lo prorroga o lo pasa a periódico con la misma referencia, renta nueva opcional y ley 2025.",
+  "falta": "No se pregunta al propietario ni al inquilino con botones (necesita correo o portal), y si el inquilino se va no se crea el borrador de ficha copiando la anterior, porque viviendas y listings no están enlazados.",
+  "bloqueo": "Correo (AUT-17)",
+  "evidencia": [
+    "server/routes/rent.js:86-89",
+    "admin/src/Rentals.jsx:105-111",
+    "admin/src/RentalDetail.jsx:229-231",
+    "admin/src/RentalDialogs.jsx:134-151",
+    "server/routes/rent.js:333-356"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Correo (AUT-17)",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "email-pipeline",
+    "listings-contract"
+  ],
+  "nextStep": "Completar respuestas a renovación y enlace con la ficha; activar comunicaciones cuando exista correo o portal."
+}

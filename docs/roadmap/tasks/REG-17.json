@@ -1,0 +1,32 @@
+{
+  "id": "REG-17",
+  "seccion": "Registro de aplicantes",
+  "titulo": "Franjas de visita reutilizables, con inicio y fin en horario de Jersey",
+  "origen": "plan",
+  "fase": "F0",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "Construido localmente: franjas semanales opcionales por búsqueda, con día, inicio y fin en Europe/Jersey, captura pública y edición en panel con control de concurrencia. Guardarlas no reserva ni confirma una visita.",
+  "falta": "Revisión independiente, publicación autorizada y migración 0026 en producción; VIS-17 debe consumir estas preferencias al proponer fechas y confirmar visitas. No se ha activado en producción.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/superpowers/plans/2026-11-07-reg-17-availability-ledger.md"
+  ],
+  "modulo": "M03",
+  "deps": [
+    "REG-11"
+  ],
+  "criterio_aceptacion": "Una búsqueda guarda varias franjas válidas que VIS-17 reutiliza; guardarlas nunca confirma una cita.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "La reconciliación documenta publicación/0026 y contradice el checklist; verificar evidencia antes de actuar.",
+  "resources": [
+    "applicants-schema",
+    "viewings-contract",
+    "registration-ui"
+  ],
+  "nextStep": "Conciliar checklist con publicación 5e9c8609/0026 documentada y verificar cierre; VIS-17 consumirá las franjas existentes."
+}

@@ -1,0 +1,25 @@
+{
+  "id": "PRE-30",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Respuesta a la pregunta 14: qué plan de ChatGPT tiene cada empleado",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "bloqueado",
+  "responsable": "Hampton",
+  "hecho": "",
+  "falta": "Sin respuesta: qué plan tiene cada empleado (Free, Plus, Pro, Business o Enterprise) y quién lo paga. Decide si las automatizaciones pueden usar ese plan y con qué datos (AUT-12).",
+  "bloqueo": "Dato de Hampton",
+  "evidencia": [
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 14"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Hampton: Dato de Hampton",
+  "resources": [
+    "staff-ai-access"
+  ],
+  "nextStep": "Hampton confirma los planes y su financiación antes de decidir el uso de automatizaciones por empleados."
+}

@@ -1,0 +1,31 @@
+{
+  "id": "VIS-11",
+  "seccion": "Interesados y visitas",
+  "titulo": "Reservas sin choques: dos personas nunca se quedan con el mismo hueco",
+  "origen": "plan",
+  "fase": "F3-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Las reservas de la web, New viewing y Reschedule se guardan con una sola sentencia que solo escribe si no hay otra cita activa del negociador solapada (con el margen); si el hueco se ocupó entre medias responde 409 «That time was just booked» y la web recarga los huecos. Probado con 10 reservas simultáneas: entra una.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/viewing-store.js:34-58",
+    "server/routes/public.js:68-77",
+    "server/routes/inbox.js:124-143",
+    "site/index.html:549-558",
+    "tests/server/public.test.mjs:119",
+    "docs/superpowers/plans/2026-10-23-hampton-app-f3a-ledger.md:112"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "viewings-contract",
+    "viewings-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

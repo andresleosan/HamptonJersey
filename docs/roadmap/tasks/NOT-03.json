@@ -1,0 +1,32 @@
+{
+  "id": "NOT-03",
+  "seccion": "Notificaciones",
+  "titulo": "Pestaña New applicants con cada aplicante que se registra",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Cada registro en Register your search y cada registro repetido crean un aviso Needs action en New applicants (con Call); un alta hecha por el equipo va al Feed. El aviso de un aplicante nuevo se cierra con Done, al asignarlo o al sacarlo de New; el de un registro repetido, con Done o con Dismiss en su ficha.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/public.js:143-145",
+    "server/routes/public.js:167-169",
+    "server/routes/applicants.js:189-192",
+    "server/routes/applicants.js:256-259",
+    "admin/src/ApplicantDetail.jsx:198-207",
+    "admin/src/Inbox.jsx:7-8",
+    "admin/src/Inbox.jsx:88"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "notifications-schema",
+    "inbox-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

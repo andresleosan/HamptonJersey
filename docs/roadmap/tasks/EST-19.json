@@ -1,0 +1,80 @@
+{
+  "id": "EST-19",
+  "seccion": "Estados",
+  "titulo": "Papelera de no disponibles y purga de archivos a los seis meses",
+  "origen": "plan",
+  "fase": "F1-B",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M12 · Reconciliación 7-nov: Mover la propiedad/operación confirmada como no disponible a papelera con fecha de entrada, motivo, alcance y evidencia. A los seis meses purgar automáticamente los archivos definidos en la política, registrando resultado y reintentos sin duplicados. Concretar antes qué archivos y mínimos de identidad quedan; preservar referencias, historial de clientes, criterios, consultas y visitas. Mantener una huella o referencia que impida reimportar como nueva una propiedad purgada; nueva evidencia exige revisión antes de reactivar. No extender esta regla a la retención de personas PRE-12. Depende de: EST-15, SPR-03, BUS-10, EST-18, AUT-07. Aceptación: Al cumplir seis meses se borran solo archivos acordados; historial y referencias siguen legibles y un anuncio viejo no recrea ni reactiva la propiedad.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M12",
+  "deps": [
+    "EST-15",
+    "SPR-03",
+    "BUS-10",
+    "EST-18",
+    "AUT-07"
+  ],
+  "criterio_aceptacion": "Al cumplir seis meses se borran solo archivos acordados; historial y referencias siguen legibles y un anuncio viejo no recrea ni reactiva la propiedad.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "EST-15",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "SPR-03",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-10",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-18",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "AUT-07",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "PRE-12",
+      "requires": "design",
+      "reason": "Asegurar separación de la política de archivos frente a retención de personas; no exigir nueva purga personal.",
+      "basis": "inferred",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Definir antes qué archivos se purgan y qué identidad/historial se conserva; no ampliar borrado de personas.",
+  "resources": [
+    "market-inventory",
+    "availability-contract",
+    "media-private",
+    "jobs-clock"
+  ],
+  "nextStep": "Acordar archivos a purgar y conservar identidad/historial, después implementar papelera y purga de seis meses."
+}

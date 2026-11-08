@@ -1,0 +1,38 @@
+{
+  "id": "ADM-13",
+  "seccion": "Administración de propiedades",
+  "titulo": "Inspecciones cada 6 meses con lista en el móvil, fotos e informe al propietario",
+  "origen": "plan",
+  "fase": "F5-B",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "No existen la programación cada 6 meses, la lista de comprobación en el móvil, las fotos ni el informe al propietario (F5-B); el informe puede imprimirse como la liquidación y solo su envío necesita el servicio de correo.",
+  "bloqueo": "",
+  "evidencia": [
+    "server/rentals.js:14-17",
+    "migrations/0013_rentals.sql:118-126",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "requires": "activated",
+      "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "rentals-contract",
+    "rentals-ui",
+    "rental-inspections",
+    "private-media"
+  ],
+  "nextStep": "Construir inspección periódica con lista móvil, fotos e informe imprimible; el envío por correo es una extensión."
+}

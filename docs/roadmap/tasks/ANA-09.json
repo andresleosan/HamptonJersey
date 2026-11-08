@@ -1,0 +1,28 @@
+{
+  "id": "ANA-09",
+  "seccion": "Trazabilidad y analítica",
+  "titulo": "Límite de peticiones en Cloudflare WAF para el contador de vistas (POST /api/stats)",
+  "origen": "plan",
+  "fase": "F7-A",
+  "estado": "parcial",
+  "responsable": "Luis",
+  "hecho": "La propia sentencia deja de contar al llegar a 20.000 aperturas en un día de Jersey.",
+  "falta": "Una sola regla de límite de peticiones (la única del plan Free), acotada a /api/chat* y /api/stats: más de 20 en 10 s por IP → bloqueo de 10 s; nunca todo /api/, porque la oficina sale por una IP y el panel rozaría el tope. Es la misma regla que necesita Hampton Bot (PRE-34). Ya se puede crear: desde el 1-nov-2026 el dominio está en Cloudflare (en *.pages.dev no hay WAF).",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/public.js:84-94",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f7a-design.md:37",
+    "docs/roadmap/ESTADO.md:15"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Luis: configuración autorizada y comprobación de la regla WAF compartida con chat.",
+  "resources": [
+    "external-account-config",
+    "web-chat"
+  ],
+  "nextStep": "Preparar y verificar con Luis la regla WAF acotada de chat y estadísticas, sin afectar todo el API."
+}

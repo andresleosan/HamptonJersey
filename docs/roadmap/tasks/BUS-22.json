@@ -1,0 +1,39 @@
+{
+  "id": "BUS-22",
+  "seccion": "Búsqueda de propiedades",
+  "titulo": "Directorio de fuentes · segunda investigación independiente y contraste",
+  "origen": "plan",
+  "fase": "F1-B",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M01 · Reconciliación 7-nov: Después de terminar BUS-21, investigar de nuevo por tandas agencias, portales/clasificados y Facebook. Buscar fuentes adicionales, contrastar el directorio inicial, corregir enlaces y documentar añadidas, duplicadas, corregidas y pendientes. No repetir una lectura del mismo resultado ni ejecutarla en paralelo a la primera. Depende de: BUS-21. Aceptación: La segunda pasada tiene evidencia propia, fecha posterior a la primera y diferencias explícitas, aunque no encuentre nuevas fuentes.",
+  "bloqueo": "",
+  "evidencia": [
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M01",
+  "deps": [
+    "BUS-21"
+  ],
+  "criterio_aceptacion": "La segunda pasada tiene evidencia propia, fecha posterior a la primera y diferencias explícitas, aunque no encuentre nuevas fuentes.",
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "BUS-21",
+      "requires": "research_accepted",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "Accesos restringidos por fuente; no registrar ausencia de acceso como cero resultados.",
+  "resources": [
+    "sources-directory",
+    "research-pass-2"
+  ],
+  "nextStep": "Tras aceptar BUS-21, realizar segunda investigación propia y registrar diferencias y correcciones."
+}

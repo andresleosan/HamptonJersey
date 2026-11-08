@@ -1,0 +1,67 @@
+{
+  "id": "EST-13",
+  "seccion": "Estados",
+  "titulo": "Estados independientes de evaluación, aprobación, disponibilidad y consulta",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "M06 · Reconciliación 7-nov: Representar por separado evaluación completa/pendiente/incumple, decisión del empleado, disponibilidad con evidencia, consulta compartida y espera del cliente. Una aprobación no confirma disponibilidad; una disponibilidad confirmada no implica envío al cliente ni visita cerrada. Mantener consultas de otros clientes cuando uno resuelve su búsqueda. Depende de: BUS-12, BUS-15, BUS-10, EST-09. Aceptación: Aprobar, confirmar disponibilidad, confirmar visita y resolver búsqueda son acciones y estados distintos.",
+  "bloqueo": "",
+  "evidencia": [
+    "migrations/0009_matches.sql:33",
+    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:36",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:147-148",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+  ],
+  "modulo": "M06",
+  "deps": [
+    "BUS-12",
+    "BUS-15",
+    "BUS-10",
+    "EST-09"
+  ],
+  "criterio_aceptacion": "Aprobar, confirmar disponibilidad, confirmar visita y resolver búsqueda son acciones y estados distintos.",
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "BUS-12",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-15",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "BUS-10",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "EST-09",
+      "requires": "integrated",
+      "reason": "Dependencia declarada en el pendiente del checklist.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
+  "externalBlocker": "",
+  "resources": [
+    "matching-contract",
+    "outreach-contract",
+    "availability-contract"
+  ],
+  "nextStep": "Separar evaluación, decisión humana, disponibilidad acreditada y consulta compartida con historial por búsqueda."
+}

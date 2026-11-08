@@ -1,0 +1,27 @@
+{
+  "id": "EST-02",
+  "seccion": "Estados",
+  "titulo": "Estado Waiting for review: ya hay resultados y falta la revisión del equipo",
+  "origen": "texto",
+  "fase": "F1-A",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Queue marca Waiting for review cuando quedan casas Found sin revisar; se ve como insignia en Applicants, con filtro, y se revisa en Review o en la pestaña Matches.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/applicants.js:31",
+    "server/routes/applicants.js:64-71",
+    "admin/src/Applicants.jsx:14-15",
+    "admin/src/Applicants.jsx:56-57",
+    "admin/src/Review.jsx:12-15"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como completada; no reabrir salvo regresión o nueva necesidad explícita."
+}

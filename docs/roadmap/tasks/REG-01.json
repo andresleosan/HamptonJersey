@@ -1,0 +1,27 @@
+{
+  "id": "REG-01",
+  "seccion": "Registro de aplicantes",
+  "titulo": "Alta de aplicantes por el equipo en el panel (New applicant)",
+  "origen": "texto",
+  "fase": "F0",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "En Applicants, el botón New applicant abre un formulario de una página con los mismos grupos que la web, el origen (Phone, Walk-in o Email) y los consentimientos. Si el email o el móvil ya existen, ofrece «Add a new search for this contact».",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "admin/src/NewApplicant.jsx:13-83",
+    "admin/src/Applicants.jsx:37",
+    "admin/src/App.jsx:93-94",
+    "server/routes/applicants.js:158-205",
+    "server/routes/applicants.js:399"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [],
+  "nextStep": "Conservar como completada; no reabrir salvo regresión o nueva necesidad explícita."
+}

@@ -1,0 +1,27 @@
+{
+  "id": "PRE-25",
+  "seccion": "Acciones previas y cumplimiento",
+  "titulo": "Respuesta a la pregunta 9: aplicantes nuevos al mes y propiedades gestionadas",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "bloqueado",
+  "responsable": "Hampton",
+  "hecho": "Alquileres gestionados: menos de 15, con margen por si son más (Luis, 24-oct); F5-A está pensada para cientos.",
+  "falta": "Cuántos aplicantes nuevos llegan al mes, que dimensiona costes de IA y límites; Insights lo irá contando desde que se use Register your search.",
+  "bloqueo": "Dato de Hampton",
+  "evidencia": [
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:18",
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:65",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:700"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Hampton: Dato de Hampton",
+  "resources": [
+    "baseline-metrics"
+  ],
+  "nextStep": "Hampton aporta volumen de aplicantes y propiedades para dimensionar el trabajo."
+}

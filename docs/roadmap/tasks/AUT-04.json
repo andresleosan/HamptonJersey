@@ -1,0 +1,47 @@
+{
+  "id": "AUT-04",
+  "seccion": "Automatizaciones e IA",
+  "titulo": "Automatizaciones de cliente dentro de la web de Hampton, con los modelos adecuados",
+  "origen": "texto",
+  "fase": "—",
+  "estado": "parcial",
+  "responsable": "desarrollo",
+  "hecho": "La app de Hampton (web, panel /admin y su API) vive en Cloudflare Pages con D1 y R2, y lo público va protegido: Turnstile en el registro y las reservas, mismo origen en las escrituras y tope diario en /api/stats.",
+  "falta": "Ninguna automatización de la app usa todavía un modelo de IA (AUT-02). Además sigue en la cuenta de Cloudflare de AndresLeoSan y no en la de Hampton (PRE-28), y falta la regla WAF de límite de peticiones, que ya se puede crear con el dominio en Cloudflare (ANA-09).",
+  "bloqueo": "",
+  "evidencia": [
+    "wrangler.toml:1-20",
+    "server/routes/public.js:66",
+    "server/routes/public.js:110",
+    "server/api.js:38",
+    "server/routes/public.js:93",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:453",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:703"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [
+    {
+      "id": "PRE-28",
+      "requires": "decision",
+      "reason": "Titularidad de las cuentas del cliente pendiente en el catálogo.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "ANA-09",
+      "requires": "activated",
+      "reason": "La protección WAF está pendiente para operación real documentada.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
+  "externalBlocker": "Luis/Hampton: titularidad de cuenta y configuración WAF pendientes de verificación.",
+  "resources": [
+    "automation-controls",
+    "external-account-config"
+  ],
+  "nextStep": "Verificar titularidad y protección WAF y diseñar únicamente los tramos IA aún pendientes."
+}

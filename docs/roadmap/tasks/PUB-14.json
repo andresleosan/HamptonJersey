@@ -1,0 +1,34 @@
+{
+  "id": "PUB-14",
+  "seccion": "Publicar propiedades",
+  "titulo": "Enlace propio por ficha con vista previa y datos para buscadores",
+  "origen": "plan",
+  "fase": "F4",
+  "estado": "parcial",
+  "responsable": "Luis",
+  "hecho": "Cada ficha tiene /p/<id> con título, descripción e imagen para la vista previa en WhatsApp y redes, JSON-LD RealEstateListing, sitemap.xml, robots.txt y botones Share y WhatsApp; site/_redirects lleva las URL viejas de Wix a /p/<id>. Desde c9ac1ec todo apunta a https://www.hamptonestatesjersey.com, que sirve la app desde el 1-nov: SITE_URL, la meta site-url, el canonical, og:url, og:image y el JSON-LD de la portada, el sitemap y robots.txt. Solo ese host se indexa: en el dominio sin www, en hamptonjersey.pages.dev y en las vistas previas, las fichas, el sitemap y robots.txt responden noindex, y Cloudflare redirige los dos primeros a www.",
+  "falta": "Enviar el sitemap (https://www.hamptonestatesjersey.com/sitemap.xml) a Google Search Console, con el dominio verificado allí.",
+  "bloqueo": "",
+  "evidencia": [
+    "functions/p/[id].js:1-33",
+    "server/seo.js:21-48",
+    "server/seo.js:63-70",
+    "server/seo.js:86-101",
+    "site/index.html:11-25",
+    "site/_redirects:1-32",
+    "wrangler.toml:10",
+    "tests/server/seo.test.mjs:125-171",
+    "commit 2bc363a"
+  ],
+  "assignedSlot": "codex-desktop",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Luis: dominio verificado y acceso a Search Console para enviar sitemap.",
+  "resources": [
+    "public-site",
+    "external-account-config"
+  ],
+  "nextStep": "Gestionar con Luis el envío del sitemap en Search Console con el dominio verificado."
+}

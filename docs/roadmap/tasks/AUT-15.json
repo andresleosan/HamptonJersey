@@ -1,0 +1,32 @@
+{
+  "id": "AUT-15",
+  "seccion": "Automatizaciones e IA",
+  "titulo": "Solo quien está en la lista de borradores ve y usa «Ask Hermes for a draft»",
+  "origen": "plan",
+  "fase": "—",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Desde el 3-nov-2026 el bloque del borrador de Hermes solo lo ve y lo usa quien está en la lista hermes_drafters de app_settings, una lista de emails que se pone con un comando SQL en remoto y nunca va al repo; sin ella, nadie. A los demás, pedir, usar o descartar un borrador les responde «no permitido» antes de leer la petición. La tarjeta de Hermes de Automations sigue a la vista de todos, sin el texto de los borradores. Luis se añade al empezar la fase 1b, con el comando de ESTADO (decisiones del 3-nov).",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/routes/hermes.js:184-195",
+    "server/routes/hermes.js:201-202",
+    "server/routes/hermes.js:231-233",
+    "tests/server/hermes.test.mjs:272",
+    "tests/e2e.cjs:796",
+    "admin/src/Automations.jsx:59",
+    "docs/superpowers/specs/2026-11-03-hampton-app-hermes-drafters-design.md"
+  ],
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "hermes-gateway",
+    "listing-editor"
+  ],
+  "nextStep": "Conservar como hecho en el historial; no reconstruir salvo una regresión o cambio de alcance comprobado."
+}

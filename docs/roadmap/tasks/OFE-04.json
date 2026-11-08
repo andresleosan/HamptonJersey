@@ -1,0 +1,32 @@
+{
+  "id": "OFE-04",
+  "seccion": "Ofertas y cierre",
+  "titulo": "Hitos vencidos y ofertas sin respuesta a la vista en Sales y en la barra",
+  "origen": "plan",
+  "fase": "F3-C",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Un hito con fecha prevista pasada sale como Overdue y su venta sube arriba en Sales in progress; una oferta abierta sin cambios en 2 días se marca Waiting. El contador junto a Sales en la barra suma ambos.",
+  "falta": "",
+  "bloqueo": "",
+  "evidencia": [
+    "server/sales.js:14-15",
+    "server/sales.js:86-88",
+    "server/routes/sales.js:216-226",
+    "admin/src/Sales.jsx:112",
+    "admin/src/Sales.jsx:134-135",
+    "admin/src/SaleDetail.jsx:99-103",
+    "admin/src/App.jsx:130-131"
+  ],
+  "assignedSlot": "vscode",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "historical",
+  "dependencies": [],
+  "externalBlocker": "",
+  "resources": [
+    "sales-contract",
+    "sales-ui"
+  ],
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+}

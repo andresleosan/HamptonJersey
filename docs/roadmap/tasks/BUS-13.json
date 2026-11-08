@@ -1,0 +1,34 @@
+{
+  "id": "BUS-13",
+  "seccion": "Búsqueda de propiedades",
+  "titulo": "Filtro por estatus de residencia según la categoría de vivienda de Jersey",
+  "origen": "plan",
+  "fase": "F4",
+  "estado": "parcial",
+  "responsable": "Hampton",
+  "hecho": "La comprobación Housing aplica las reglas de gov.je (Qualified o Registered, tenencia y restricción para primeros compradores o mayores de 55) al estatus que declara el aplicante. Excluye las casas que no puede ocupar y deja en Unknown lo que depende de su pareja o de datos que faltan.",
+  "falta": "Hampton tiene que poner la categoría de vivienda de HE-R001, HE-R003 y HE-R027; sin ella, la regla no sabe si son Qualified o Registered. Además, como pide el §7.3, un abogado de Jersey tiene que validar la tabla, que ya excluye casas sola y vive en el código (cambiarla exige publicar). Sobre todo las compras, donde se aparta del plan: el estatus Registered (Standard en el plan) puede comprar un share transfer Registered sin marcarse para revisión, y Licensed for Lease Only puede comprar (unknown o meets) cuando el plan lo deja solo en alquiler.",
+  "bloqueo": "Dato de Hampton · JFSC/abogado",
+  "evidencia": [
+    "server/matching.js:45-110",
+    "server/matching.js:152-154",
+    "migrations/0015_jersey_fields.sql:1-11",
+    "commit 4cd4001",
+    "commit 127c7ef",
+    "docs/superpowers/specs/2026-10-25-hampton-app-jersey-fields-design.md:28",
+    "docs/superpowers/specs/2026-10-25-hampton-app-jersey-fields-design.md:46-54",
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:497-507"
+  ],
+  "assignedSlot": "vps",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "needs_scope_and_evidence_review",
+  "dependencies": [],
+  "externalBlocker": "Hampton debe aportar categoría de viviendas y un abogado de Jersey validar la tabla; el desarrollador no sustituye esas decisiones.",
+  "resources": [
+    "residency-rules",
+    "matching-contract",
+    "listings-schema"
+  ],
+  "nextStep": "Obtener categorías de Hampton y validación de la tabla por abogado antes de cambiar o dar por cerradas reglas residenciales."
+}
