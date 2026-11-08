@@ -6,13 +6,32 @@
  function validateBoard(b){
   if(!b||b.schemaVersion!==1||!Number.isSafeInteger(b.revision)||b.revision<0||!Number.isFinite(Date.parse(b.updatedAt))||!Array.isArray(b.lists)||!Array.isArray(b.tasks))throw Error('Respuesta incompatible');
   if(b.lists.length!==4||new Set(b.lists.map(l=>l.number)).size!==4||b.lists.some(l=>![1,2,3,4].includes(l.number)||l.name!=='Lista '+l.number||!Number.isInteger(l.capacity)||l.capacity<1||l.capacity>2||!Number.isInteger(l.activeCount)||l.activeCount<0))throw Error('Listas incompatibles');
-  const ids=new Set();for(const t of b.tasks){if(!t||typeof t.code!=='string'||! /^[A-Z0-9]+-\d+$/.test(t.code)||ids.has(t.code)||typeof t.title!=='string'||!t.title.trim()||![1,2,3,4].includes(t.list)||!Object.hasOwn(STATES,t.state)||!Object.hasOwn(ACTIVITY,t.activity))throw Error('Tarea incompatible');ids.add(t.code);}
+  const ids=new Set();for(const t of b.tasks){if(!t||typeof t.code!=='string'||! /^[A-Z0-9]+-\d+$/.test(t.code)||ids.has(t.code)||typeof t.title!=='string'||!t.title.trim()||![1,2,3,4].includes(t.list)||!Object.hasOwn(STATES,t.state)||!Object.hasOwn(ACTIVITY,t.activity))throw Error('Tarea incompatible');ids.add(t.code);
+   if(t.details!==undefined){const d=t.details;if(!d||['done','pending','nextStep'].some(k=>typeof d[k]!=='string')||!Array.isArray(d.dependencies)||d.dependencies.some(code=>typeof code!=='string'||!/^[A-Z0-9]+-\d+$/.test(code)))throw Error('Detalle incompatible');}
+  }
   return b;
  }
  function mount(doc,win){
   const $=id=>doc.getElementById(id),el=(tag,text,cls)=>{const n=doc.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
   const cards=new Map(),columns=new Map();let board=null,lastSuccess=null,inFlight=false,stopped=false,poll=null,failures=0;
   for(let number=1;number<=4;number++){const node=el('section',undefined,'column'),head=el('div',undefined,'column-head'),title=el('h2','Lista '+number),area=el('p',AREAS[number-1],'area muted'),count=el('p','','count'),presence=el('p','Consultando…','presence'),tasks=el('div',undefined,'tasks'),empty=el('p','No hay tareas con estos filtros.','empty');head.append(title,area,count,presence);node.append(head,tasks,empty);$('columns').append(node);columns.set(number,{node,count,presence,tasks,empty});}
+  function renderDetail(c,t){
+   const signature=JSON.stringify(t.details);if(c.detailSignature===signature)return;c.detailSignature=signature;
+   const focusedJump=c.detail.contains(doc.activeElement)?doc.activeElement.dataset.jump:null;
+   c.detail.replaceChildren();const block=(title,text)=>c.detail.append(el('h3',title),el('p',text));
+   const d=t.details;
+   if(d){
+    block('Siguiente paso',d.nextStep||'Sin siguiente paso documentado. Consulta esta tarea con /avanzar.');
+    block('Qué está hecho',d.done||'No hay trabajo completado documentado en el checklist.');
+    block('Qué falta',d.pending||'No hay trabajo pendiente documentado en el checklist.');
+    c.detail.append(el('h3','Dependencias entre tareas'));
+    if(!d.dependencies.length)c.detail.append(el('p','Sin dependencia documentada entre códigos. /avanzar comprueba la disponibilidad antes de reservar.'));
+    for(const code of d.dependencies){const p=el('p'),link=el('a',code);link.href='#task-'+code;link.dataset.jump=code;p.append(link);c.detail.append(p);}
+   }else c.detail.append(el('p','El detalle del checklist aparecerá en la próxima actualización automática.'));
+   block('Trabajar esta tarea','/avanzar '+t.code);
+   c.detail.append(el('p','El detalle corresponde al checklist. /avanzar comprueba las dependencias, la evidencia y las reservas actuales.'));
+   if(focusedJump)c.detail.querySelector('a[data-jump="'+focusedJump+'"]')?.focus({preventScroll:true});
+  }
   function freshness(){
    const stale=failures>0||lastSuccess===null||Date.now()-lastSuccess>=45000;
    $('connection').dataset.state=stale?'stale':'live';
@@ -24,8 +43,9 @@
    const q=$('search').value.trim().toLocaleLowerCase(),list=$('list').value,activity=$('activity').value;let visible=0;
    const ids=new Set(board.tasks.map(t=>t.code));for(const [id,c] of cards)if(!ids.has(id)){c.node.remove();cards.delete(id);}
    for(const l of board.lists){const col=columns.get(l.number);col.node.hidden=Boolean(list&&Number(list)!==l.number);const tasks=board.tasks.filter(t=>t.list===l.number);let shown=0;
-    for(const [index,t] of tasks.entries()){let c=cards.get(t.code);if(!c){const node=el('details',undefined,'task'),summary=el('summary'),code=el('span',t.code,'code'),state=el('span','','state'),title=el('span','','title'),status=el('span','','activity'),detail=el('div',undefined,'detail');summary.append(code,state,title,status);detail.append(el('p','Gestiona esta tarea desde /avanzar. Esta página muestra su progreso y no reserva trabajo.'));node.id='task-'+t.code;node.append(summary,detail);c={node,state,title,status};cards.set(t.code,c);}
+    for(const [index,t] of tasks.entries()){let c=cards.get(t.code);if(!c){const node=el('details',undefined,'task'),summary=el('summary'),code=el('span',t.code,'code'),state=el('span','','state'),title=el('span','','title'),status=el('span','','activity'),detail=el('div',undefined,'detail');summary.append(code,state,title,status);node.id='task-'+t.code;node.append(summary,detail);c={node,state,title,status,detail,detailSignature:null};cards.set(t.code,c);}
      c.title.textContent=t.title;c.state.textContent=STATES[t.state];c.status.textContent=ACTIVITY[t.activity];c.node.dataset.activity=t.activity;
+     renderDetail(c,t);
      if(col.tasks.children[index]!==c.node)col.tasks.insertBefore(c.node,col.tasks.children[index]||null);
      const match=(!q||(t.code+' '+t.title).toLocaleLowerCase().includes(q))&&(!activity||activity===t.activity);c.node.hidden=!match;if(match)shown++;
     }
@@ -42,6 +62,7 @@
    finally{inFlight=false;win.clearTimeout(timeout);schedule();}
   }
   for(const id of ['search','list','activity'])$(id).addEventListener(id==='search'?'input':'change',render);
+  $('columns').addEventListener('click',event=>{const link=event.target.closest?.('a[data-jump]'),target=link&&cards.get(link.dataset.jump);if(!target)return;event.preventDefault();$('search').value='';$('list').value='';$('activity').value='';render();target.node.open=true;target.node.scrollIntoView?.({block:'start'});target.node.querySelector('summary').focus({preventScroll:true});});
   $('reset').addEventListener('click',()=>{$('search').value='';$('list').value='';$('activity').value='';render();});$('refresh').addEventListener('click',refresh);
   doc.addEventListener('visibilitychange',()=>{win.clearTimeout(poll);freshness();if(!doc.hidden)refresh();});win.addEventListener('focus',()=>{if(!doc.hidden)refresh();});
   const age=win.setInterval(freshness,5000);refresh();

@@ -12,9 +12,19 @@ test('public projection is an explicit minimal allowlist for all250tasks, with s
  const b=fixture();b.slots.reverse();const p=publicBoard(b);
  assert.equal(p.tasks.length,250);assert.deepEqual(p.lists.map(l=>l.name),['Lista 1','Lista 2','Lista 3','Lista 4']);
  assert.deepEqual(Object.keys(p).sort(),['lists','revision','schemaVersion','tasks','updatedAt']);
- assert.deepEqual(Object.keys(p.tasks[0]).sort(),['activity','code','list','state','title']);
+ assert.deepEqual(Object.keys(p.tasks[0]).sort(),['activity','code','details','list','state','title']);
+ assert.deepEqual(Object.keys(p.tasks[0].details).sort(),['dependencies','done','nextStep','pending']);
  assert.deepEqual(Object.keys(p.lists[0]).sort(),['activeCount','capacity','name','number']);
  assert.ok(!JSON.stringify(p).includes('PRIVATE_SENTINEL'));ui.validateBoard(p);
+});
+test('task details expose only checklist progress and dependency codes, without contacts or operational notes',()=>{
+ const b=fixture(),t=b.tasks[0];t.hecho='Trabajo existente para equipo@example.com';t.falta='Completar el recorrido';t.nextStep='Revisar el contrato';
+ t.bloqueo=t.externalBlocker=t.responsable='PRIVATE_SENTINEL';t.dependencies=[{id:'NOT-11',requires:'integrated',reason:'PRIVATE_SENTINEL'},{id:'javascript:PRIVATE_SENTINEL'}];
+ const p=publicBoard(b),d=p.tasks[0].details;
+ assert.deepEqual(d,{done:'Trabajo existente para [correo del equipo]',pending:t.falta,nextStep:t.nextStep,dependencies:['NOT-11']});
+ assert.ok(!JSON.stringify(p).includes('PRIVATE_SENTINEL'));assert.ok(!JSON.stringify(p).includes('equipo@example.com'));
+ const legacy=structuredClone(p);delete legacy.tasks[0].details;ui.validateBoard(legacy);
+ for(const bad of [{...d,done:42},{...d,dependencies:['javascript:alert(1)']},{...d,dependencies:null}]){const invalid=structuredClone(p);invalid.tasks[0].details=bad;assert.throws(()=>ui.validateBoard(invalid),/Detalle incompatible/);}
 });
 test('public progress changes after closure; planning and obsolete completions never finish build work',()=>{
  const b=fixture(),u=b.units.find(u=>u.enabled);b.units=[u];b.tasks=b.tasks.filter(t=>t.id===u.parentTaskId);
@@ -51,6 +61,27 @@ test('public browser polls without credentials and updates closure without reloa
  fail=true;await app.refresh();assert.equal(app.getBoard().revision,2);assert.match(w.document.getElementById('connection').textContent,/último dato/);for(const tick of ageTicks)tick();assert.match(w.document.getElementById('connection').textContent,/No se pudo actualizar/);assert.equal(w.document.getElementById('connection').dataset.state,'stale');
  payload.tasks[0].title='<img src=x onerror=alert(1)>';fail=false;b.revision=3;payload.revision=3;await app.refresh();assert.equal(w.document.querySelectorAll('img').length,0);assert.equal(w.document.querySelector('.title').textContent,payload.tasks[0].title);
  app.stop();dom.window.close();
+});
+
+test('expanded details refresh safely and dependency links reveal and open tasks across filtered lists',async()=>{
+ const dom=new JSDOM(readFileSync(new URL('../docs/roadmap/tablero-publico.html',import.meta.url),'utf8'),{url:'https://public.example/',pretendToBeVisual:true}),w=dom.window;
+ let payload=publicBoard(fixture());w.fetch=async()=>({ok:true,json:async()=>structuredClone(payload)});
+ const app=ui.mount(w.document,w);await new Promise(resolve=>setImmediate(resolve));
+ try{
+  const source=payload.tasks.find(t=>t.details.dependencies.some(code=>payload.tasks.some(other=>other.code===code&&other.list!==t.list)));
+  assert.ok(source);const target=payload.tasks.find(t=>source.details.dependencies.includes(t.code)&&t.list!==source.list);
+  const doc=w.document,card=doc.getElementById('task-'+source.code),destination=doc.getElementById('task-'+target.code);card.open=true;
+  for(const [id,value] of [['search',source.code],['list',String(source.list)],['activity',source.activity]]){const field=doc.getElementById(id);field.value=value;field.dispatchEvent(new w.Event(id==='search'?'input':'change'));}
+  assert.equal(card.hidden,false);assert.equal(destination.closest('.column').hidden,true);
+  assert.deepEqual([...card.querySelectorAll('h3')].map(n=>n.textContent),['Siguiente paso','Qué está hecho','Qué falta','Dependencias entre tareas','Trabajar esta tarea']);
+  assert.ok(card.querySelector('.detail').textContent.includes(source.details.nextStep));
+  card.querySelector('a[data-jump="'+target.code+'"]').focus();payload.revision++;
+  payload.tasks.find(t=>t.code===source.code).details.pending='<img src=x onerror=alert(1)> Nueva información del checklist';
+  await app.refresh();assert.equal(card.open,true);assert.equal(doc.getElementById('search').value,source.code);assert.equal(doc.activeElement.dataset.jump,target.code);
+  assert.equal(card.querySelector('img'),null);assert.match(card.querySelector('.detail').textContent,/<img src=x onerror=alert\(1\)> Nueva información/);
+  doc.activeElement.click();assert.equal(destination.open,true);assert.equal(destination.hidden,false);assert.equal(destination.closest('.column').hidden,false);assert.equal(doc.activeElement,destination.querySelector('summary'));
+  for(const id of ['search','list','activity'])assert.equal(doc.getElementById(id).value,'');
+ }finally{app.stop();dom.window.close();}
 });
 
 test('short cache shares only sanitized JSON; query/cookies cannot bypass it and errors are not cached',async()=>{
