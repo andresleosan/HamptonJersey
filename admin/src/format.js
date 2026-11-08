@@ -1,3 +1,4 @@
+import { CRITERIA, parsePriorities } from "../../site/requirements.js";
 import { OPTIONS } from "../../server/applicants.js";
 import { jerseyToday } from "../../server/viewings.js";
 
@@ -57,6 +58,14 @@ const CHOICES = { operation: OPTIONS.operation, stage: OPTIONS.stages, source: O
 const MONEY = ["budget_min", "budget_max", "budget_stretch"];
 // An applicant's stored or submitted value as text: option labels, £ amounts, lists in the form's order. Never HTML.
 export function show(k, v, nameOf) {
+  if (k === 'requirement_priorities') {
+    const p=parsePriorities(v); if (!p) return 'Priorities to confirm';
+    return Object.entries(p.values).map(([key,priority])=>`${CRITERIA[key]?.[0] ?? key}: ${priority==='must'?'Must-have':priority==='preferred'?'Preferred':'To confirm'}`).join('; ') || 'Priorities to confirm';
+  }
+  if (k === 'household_children_ages') {
+    const ages=typeof v==='string'?JSON.parse(v):v;
+    return ages==null ? 'To confirm' : ages.length ? ages.map((n,i)=>`Child ${i+1}: ${n==null?'To confirm':n===0?'Under 1':n}`).join('; ') : 'No children';
+  }
   if (k === "assigned_to") return v ? nameOf(v) : "Unassigned";
   if (blank(v)) return "—";
   if (k === "viewing_availability" && Array.isArray(v)) return v.map(s =>

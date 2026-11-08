@@ -20,7 +20,7 @@ const COPY = [...SEARCH.filter(k => !["operation", "search_category"].includes(k
 const TABS = [["requirements", "Requirements"], ["matches", "Matches"], ["offers", "Offers"], ["timeline", "Timeline"]];
 const GROUPS = [["found", "Found"], ["shortlisted", "Shortlisted"], ["rejected", "Rejected"]];
 
-const LABEL = { viewing_availability: "Usual viewing availability", operation: "To Let or To Buy", stage: "Stage", lost_reason: "Why it was lost", assigned_to: "Assigned to",
+const LABEL = { requirement_priorities:"Requirement priorities", household_children_ages:"Children’s ages", household_ages_at:"Ages declared",  viewing_availability: "Usual viewing availability", operation: "To Let or To Buy", stage: "Stage", lost_reason: "Why it was lost", assigned_to: "Assigned to",
   source: "Source", budget_max: "Maximum budget", budget_min: "Minimum budget", budget_stretch: "Can stretch to",
   property_types: "Type", bedrooms_min: "Bedrooms, at least", bedrooms_ideal: "Bedrooms, ideally", bathrooms_min: "Bathrooms, at least",
   parking_spaces: "Parking", furnished: "Furnished", outdoor: "Outdoor space", pets: "Pets", parishes_wanted: "Parishes they want",

@@ -1,3 +1,5 @@
+import { parsePriorities } from "../site/requirements.js";
+import { requirementChecks, requirementsSummary } from "./requirements.js";
 // One applicant against one listing (spec §4, B11): the hard filters, the checks a match shows and its 0–100 score.
 // The single source of truth for every matching rule: server/match-store.js only stores what evaluate() returns.
 // Pure ESM and cheap: it runs ~300 times per save inside the Worker's 10 ms CPU budget and never reads listing
@@ -117,6 +119,7 @@ const atLeast = (value, min, word) => (value == null ? { result: "unknown", evid
 // only (MIN_SCORE is applied by the caller), and checks and score are filled even when pass is false.
 export function evaluate(a, l) {
   const said = l.feat_evidence ? JSON.parse(l.feat_evidence) : {};
+  const priorities = parsePriorities(a.requirement_priorities);
   const checks = [];
   let pass = LISTING_OPERATION[a.operation] === l.operation;
   let score = 0;
@@ -127,7 +130,9 @@ export function evaluate(a, l) {
   };
 
   const price = budget(a, l);
-  add("budget", price.result, price.evidence, true);
+  // The declared must-have is the accepted ceiling. The minimum still affects the preference score.
+  const ceiling = priorities ? budget({...a,budget_min:null},l) : price;
+  add("budget", ceiling.result, ceiling.evidence, true);
   score += price.points;
 
   const beds = atLeast(l.bedrooms, a.bedrooms_min, "bedroom");
@@ -180,5 +185,12 @@ export function evaluate(a, l) {
 
   score += extras;
   if (l.published === 1 && l.archived_at == null) score += POINTS.published; // on Hampton's website
-  return { pass, score: Math.round(score), checks };
+  if (priorities) {
+    pass = LISTING_OPERATION[a.operation] === l.operation && home?.result !== 'fails'
+      && !list(a.parishes_excluded).includes(l.parish) && l.archived_at == null
+      && (l.availability == null || ['for_sale','to_let','lease'].includes(l.availability));
+    const current = requirementChecks(a,l,checks);
+    return { pass, score: Math.round(score), checks:current, ...requirementsSummary(current,pass) };
+  }
+  return { pass, score: Math.round(score), checks, ...requirementsSummary(checks,pass,true) };
 }

@@ -1,5 +1,6 @@
 // BUS-17: with fewer than 3 matches, what one change to the saved search would add (spec 2026-11-06, W2–W8).
 // Decides no matching rule: each change is run through evaluate() as it is. Pure ESM, nothing stored.
+import { parsePriorities } from "../site/requirements.js";
 import { evaluate, MIN_SCORE, MAX_FOUND } from "./matching.js";
 import { OPTIONS, BUDGET } from "./applicants.js";
 
@@ -15,7 +16,7 @@ const list = json => (json ? JSON.parse(json) : []);
 export function widen(a, listings, taken, found) {
   const room = Math.max(0, MAX_FOUND - found);
   const free = listings.filter(l => !taken.has(l.id));
-  const fits = (b, l) => { const r = evaluate(b, l); return r.pass && r.score >= MIN_SCORE; }; // as result() in match-store.js
+  const fits = (b, l) => { const r = evaluate(b, l); return r.pass && r.score >= MIN_SCORE && (!parsePriorities(b.requirement_priorities) || r.requirements_status === "meets"); }; // as result() in match-store.js
   const added = b => Math.min(room, free.filter(l => fits(b, l)).length);
   const out = [];
 

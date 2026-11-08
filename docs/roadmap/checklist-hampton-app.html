@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
      "vence" (opcional, AAAA-MM-DD) saca el punto arriba con la cuenta atrás. -->
 <script type="application/json" id="datos">
 {
- "actualizado": "2026-11-07",
+ "actualizado": "2026-11-08",
  "base": "95226d7",
  "items": [
   {
@@ -1191,9 +1191,14 @@ document.addEventListener('DOMContentLoaded', () => {
    "hecho": "La acción de supresión se retiró de AGE-04; no está disponible en la aplicación.",
    "falta": "Diseñar y verificar la supresión de datos personales de anunciantes, preservando referencias históricas y evitando exposición o restauración desde respuestas obsoletas entre pestañas, recargas y eventos perdidos. Mantener la decisión humana de revisión a 11 meses y decisión o justificación a 12, sin extenderla a otros datos.",
    "bloqueo": "",
-   "evidencia": ["docs/superpowers/specs/2026-11-07-age-04-directory-design.md", "docs/superpowers/plans/2026-11-07-age-04-ledger.md"],
+   "evidencia": [
+    "docs/superpowers/specs/2026-11-07-age-04-directory-design.md",
+    "docs/superpowers/plans/2026-11-07-age-04-ledger.md"
+   ],
    "modulo": "M01",
-   "deps": ["AGE-04"],
+   "deps": [
+    "AGE-04"
+   ],
    "criterio_aceptacion": "La solución y sus límites reciben pruebas y revisión independiente antes de ofrecer la supresión."
   },
   {
@@ -2466,15 +2471,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F1-A",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Una casa queda fuera si no encaja la operación, si supera el tope (o el tope ampliado) o baja del 75 % del mínimo, si le faltan dormitorios o baños, si está en una parroquia excluida o si dice «no pets» y el aplicante tiene mascota. Lo desconocido nunca excluye.",
-   "falta": "M04 · Reconciliación 7-nov: Modelar cada criterio con valor/rango, imprescindible o negociable, exclusión y certeza. Corregir parking, máximos de dormitorios, fechas y demás MUST: un incumplimiento impide match completo; un imprescindible sin dato queda pendiente, no aprobado por una buena puntuación. No interpretar un blanco como no ni mascotas/ocupantes como preferencias descartables. Separar completa, falta confirmar, alternativa cercana y no pertinente/no disponible; guardar explicación y fechas. Depende de: REG-04, REG-05, REG-06, REG-07, REG-08, REG-11, BUS-09. Aceptación: Dos plazas imprescindibles y una disponible es alternativa; parking desconocido es pendiente; el resto favorable no cambia ese resultado. El conjunto actual de candidatos es residencial; ampliar de forma explícita a inmuebles comerciales y negocios con criterios adaptados, sin equiparar renta, compra y traspaso.",
+   "hecho": "REG-08 implementa prioridades versionadas y checks residenciales actuales: imprescindibles satisfechos, pendientes, alternativas y exclusiones. Parking distingue cifra fiable de mínimo/ambigüedad; mascotas condicionadas y exteriores dudosos quedan pendientes. Las tarjetas evalúan datos estructurados actuales; Shortlist/Rejected conservan su decisión humana. Construido localmente.",
+   "falta": "Publicar REG-08 y0031. Continúa M04: inventario común y evidencia/fechas, confirmación de disponibilidad, criterios comerciales y negocios, fuentes M02. El estado Stated must-haves met solo certifica los imprescindibles declarados, no todo BUS-12.",
    "bloqueo": "",
    "evidencia": [
     "server/matching.js:31-43",
     "server/matching.js:118-164",
     "server/match-store.js:10-11",
     "migrations/0001_init.sql:1-23",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
    ],
    "modulo": "M04",
    "deps": [
@@ -2518,8 +2527,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F1-A",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "La puntuación suma parroquia deseada (30), dormitorios ideales (15), posición del precio en el presupuesto (20), exterior, tipo y amueblado (25) y estar publicada en la web de Hampton (10). Solo se guardan las de 35 o más, y como mucho las 25 mejores por aplicante.",
-   "falta": "M04 · Reconciliación 7-nov: Usar la puntuación solo para ordenar preferencias entre opciones del mismo resultado lógico. Mostrar qué cumple, incumple y falta verificar, con diferencias concretas y origen. Revisar umbral de 35, tope de 25 y bonus de publicación para que no oculten coincidencias completas ni conviertan alternativas en matches. Las alternativas del día 21 tienen ranking explicable separado; nunca se presentan como completas por porcentaje. Depende de: BUS-12. Aceptación: Una opción con MUST incumplido no se etiqueta completa aunque tenga mayor puntuación que las válidas.",
+   "hecho": "REG-08 ordena el pool de25 y Review por cumplimiento, pendiente y alternativa, con score dentro de cada grupo. Prueba28candidatos: uno válido con menor score precede a27alternativas. Una tarjeta cuyos datos cambiaron avisa que debe recalcularse la lista. Construido localmente.",
+   "falta": "Publicar REG-08. Próxima construcción recomendada: revisar el umbral35, tope25 y bonus de publicación para evitar perder opciones válidas antes del orden; explicar esos límites sobre inventario actual. Ranking de alternativas día21 y evidencia de nuevas fuentes siguen pendientes de sus módulos.",
    "bloqueo": "",
    "evidencia": [
     "server/matching.js:6-14",
@@ -2528,7 +2537,11 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:111",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:275",
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
    ],
    "modulo": "M04",
    "deps": [
@@ -3103,8 +3116,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "7-nov-2026: construida localmente la base interna de eventos de propiedades, aprobada sin vista nueva. Migración 0029 amplía events; alta/edición/estados/confirmación, Queue, Sales, portada/destacados, recálculo y borrado dejan actor, fecha UTC, origen, revisión y diferencias estructuradas, sin copiar texto libre ni crear avisos. Registro y cambio atómicos; no-op/conflictos sin evento, reintentos identificados mediante contrato interno. Revisión independiente corregida, 708 pruebas JS + 14 Python, build, check:release y e2e general aprobados. Composición D1 poblada con NOT-11 0028 verificada localmente. Tras el merge, migrar-hampton ver devolvió solo 0030 pendiente; 0029 no figuró pendiente, sin atribuir aplicación ni acreditar despliegue.",
-   "falta": "M13: confirmar por separado el despliegue efectivo de EST-18; la lectura de migraciones no lo acredita. Futuros módulos deben conectar fuentes, publicaciones, consultas, llamadas, archivos y su evidencia; falta la vista de historial aplazada por Luis. No se identifican reintentos HTTP actuales del panel ni se reconstruye historial anterior a la activación. Mantener secuencia/procedencia, prioridad humana y conservación en futuras purgas.",
+   "hecho": "Publicado y verificado en esta sesión el7-nov-2026 con cf0c86d y migración0029 aplicada. Registro interno de propiedades sin vista nueva: actor, fecha, origen, revisión y diferencias estructuradas; cambios y evento atómicos, sin texto libre ni avisos. Pages, Jobs y smokes comprobados tras publicación;708 pruebasJS+14Python, build,release y e2e general. La observación posterior de Hermes no sustituye esta evidencia anterior.",
+   "falta": "Conectar los futuros productores y su evidencia en M13. La vista de historial sigue aplazada por Luis; no se reconstruye historial anterior ni se añade idempotencia HTTP del panel. NOT-11 sigue siendo entrega independiente.",
    "bloqueo": "",
    "evidencia": [
     "server/listing-events.js",
@@ -3212,8 +3225,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "El paso «Budget and timing» pide el máximo (obligatorio), el mínimo y «I can stretch to…», en £ al mes si alquila y en £ si compra, con rangos que valida el servidor. El matching usa el tope ampliado.",
-   "falta": "M03 · Reconciliación 7-nov: Extender el presupuesto a periodicidad y condiciones separadas para comprar y alquilar; registrar qué máximo es imprescindible y qué ampliación fue aceptada. El tope ampliado no es permiso para cambiar otras condiciones. Aceptación: La misma persona puede buscar compra y alquiler con presupuestos independientes.",
+   "hecho": "Compra y alquiler tienen búsquedas y presupuestos independientes desde REG-11. REG-08 añade prioridad del presupuesto y muestra el límite final, incluyendo solo el importe extra aceptado; £2000 con stretch£2200 evalúa techo£2200. Construido localmente.",
+   "falta": "Publicar REG-08 y0031. Ampliar en M04 las condiciones y periodicidades comerciales; el techo aceptado no cambia otros criterios.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:134-136",
@@ -3222,7 +3235,11 @@ document.addEventListener('DOMContentLoaded', () => {
     "migrations/0008_applicants.sql:31-33",
     "admin/src/ApplicantFields.jsx:83-87",
     "server/matching.js:31-43",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
    ],
    "modulo": "M03",
    "deps": [],
@@ -3236,15 +3253,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "El paso «What kind of home?» pide los dormitorios mínimos (obligatorio, de Studio a 5+), los dormitorios ideales y los baños mínimos. El matching descarta las casas que tienen menos y da más puntos a las que llegan a los ideales.",
-   "falta": "M03 · Reconciliación 7-nov: Añadir límites mínimo y máximo aceptados, y separar imprescindibles de preferencias. El dato actual de dormitorios ideales no expresa un máximo aceptado. Aceptación: Un rango de uno a dos dormitorios no acepta automáticamente tres.",
+   "hecho": "Rango de dormitorios mínimo/máximo existente desde REG-11; REG-08 añade Must-have para ese rango y para baños. Dormitorios ideales conserva su función de preferencia. Incumplir un rango imprescindible produce alternativa, sin compensación por score. Construido localmente.",
+   "falta": "Publicar REG-08 y0031; alcance residencial actual.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:125-127",
     "server/applicants.js:158-160",
     "migrations/0008_applicants.sql:35-37",
     "server/matching.js:133-138",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
    ],
    "modulo": "M03",
    "deps": [],
@@ -3258,8 +3279,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "El paso «Where?» deja marcar las parroquias deseadas y las que quiere evitar (de las doce, sin repetir ninguna en las dos) y escribir «Near…» (trabajo, colegio). El matching descarta las parroquias excluidas y da puntos a las deseadas.",
-   "falta": "M03 · Reconciliación 7-nov: Distinguir zonas aceptables, preferidas y excluidas; exigir una respuesta explícita cuando sea esencial y ofrecer cualquier zona/no lo sé cuando corresponda. Una lista vacía no expresa por sí sola una decisión del cliente. Aceptación: El cliente puede aceptar varias zonas y preferir una sin perder la distinción.",
+   "hecho": "Parroquias deseadas como alternativas y excluidas como veto. REG-08 añade Must-have al grupo de parroquias y a Near; este último queda pendiente de comprobación manual. Construido localmente.",
+   "falta": "Publicar REG-08 y0031. Completar respuestas explícitas Cualquier zona/No lo sé; un campo histórico vacío no expresa ninguna de ellas.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:121-123",
@@ -3267,7 +3288,11 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/applicants.js:132-134",
     "server/matching.js:140-150",
     "admin/src/ApplicantFields.jsx:64-68",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
    ],
    "modulo": "M03",
    "deps": [],
@@ -3281,15 +3306,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "El registro pregunta No pets, Cat, Dog u Other y cuántos de cada uno. El matching descarta las fichas que dicen «no pets» y deja en Unknown las que no lo dicen.",
-   "falta": "M03 · Reconciliación 7-nov: Exigir respuesta explícita cuando aplique y conservar no tengo mascotas, tipos/cantidades y desconocido como valores distintos. La existencia de mascotas es un hecho y no se elimina para mejorar un resultado. Aceptación: Una respuesta omitida no equivale a No pets ni a compatibilidad confirmada.",
+   "hecho": "REG-08 exige respuesta explícita en el formulario nuevo: sin mascotas, especies/cantidades o Not sure. Must-have no elimina el hecho de tener mascotas. No pets no es compatible y permisos condicionados quedan desconocidos. Construido localmente.",
+   "falta": "Publicar REG-08 y0031. Registros anteriores y clientes API antiguos pueden conservar omisiones, que se muestran pendientes de confirmar.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:131-133",
     "server/applicants.js:136-145",
     "admin/src/ApplicantFields.jsx:132-147",
     "server/matching.js:156-158",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
    ],
    "modulo": "M03",
    "deps": [],
@@ -3298,13 +3327,13 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "REG-08",
    "seccion": "Registro de aplicantes",
-   "titulo": "Parking que necesita el aplicante, con número de plazas",
+   "titulo": "Imprescindibles por requisito, parking y edades del hogar",
    "origen": "texto",
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "El registro pide las plazas de parking (None, 1, 2 o 3+), y cada coincidencia muestra si la ficha las cubre (Meets, Fails o Unknown).",
-   "falta": "M03 · Reconciliación 7-nov: Añadir carácter imprescindible o negociable al número de plazas, respuestas explícitas y desconocido/no aplica cuando proceda. Llevar esa distinción al motor BUS-12. Aceptación: Dos plazas imprescindibles excluyen de completas una propiedad con una plaza.",
+   "hecho": "8-nov-2026: construido REG-08 ampliado con interruptores Must-have a la derecha en web y panel para parking, ubicación, tipo, rango de dormitorios, baños, exterior por opción, amueblado, mascotas, presupuesto, fechas, duración, cercanía, texto y adecuación al hogar. Guarda edades 0–17 o por confirmar sin nombres ni fechas de nacimiento. Contrato versionado, legado sin prioridades inventadas; las respuestas sobreviven al apagar el interruptor. Migración0031 integrada sobre AGE-04 9d4429c.",
+   "falta": "Publicar el SHA revisado y aplicar0031 con aprobación. Los checks desconocidos requieren confirmación; Children no filtra automáticamente por edad. El motor comercial y la verificación de disponibilidad siguen fuera de este alcance.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:128",
@@ -3312,11 +3341,15 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/applicants.js:161",
     "migrations/0008_applicants.sql:38",
     "server/matching.js:160-164",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
+    "migrations/0031_requirement_priorities.sql",
+    "tests/server/requirements.test.mjs",
+    "tests/reg08-e2e.cjs"
    ],
    "modulo": "M03",
    "deps": [],
-   "criterio_aceptacion": "Dos plazas imprescindibles excluyen de completas una propiedad con una plaza."
+   "criterio_aceptacion": "Interruptores a la derecha conservan respuestas; dos plazas imprescindibles con una fiable es alternativa, sin dato es pendiente. Edades desconocidas no se convierten en cero."
   },
   {
    "id": "REG-09",

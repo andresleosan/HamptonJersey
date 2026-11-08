@@ -162,7 +162,7 @@ function Summary({ a }) {
   const range = lo != null && hi != null ? `${money(lo)}-${money(hi)}` : hi != null ? `Up to ${money(hi)}`
     : lo != null ? `From ${money(lo)}` : null;
   const budget = range ? `${range}${a.operation === "rent" ? " a month" : ""}${up != null ? `, can stretch to ${money(up)}` : ""}` : "—";
-  const rows = [["Looking", show("operation", a.operation)], ["Budget", budget], ["Type", show("property_types", a.property_types)],
+  const rows = [["Must-haves", show("requirement_priorities",a.requirement_priorities)], ["Children’s ages",show("household_children_ages",a.household_children_ages)], ["Ages declared", a.household_ages_at ? a.household_ages_at.slice(0,10) : "Not said"], ["Looking", show("operation", a.operation)], ["Budget", budget], ["Type", show("property_types", a.property_types)],
     ["Bedrooms, at least", show("bedrooms_min", a.bedrooms_min)], ["Bedrooms, ideally", show("bedrooms_ideal", a.bedrooms_ideal)],
     ["Bathrooms, at least", show("bathrooms_min", a.bathrooms_min)], ["Parking", show("parking_spaces", a.parking_spaces)],
     ["Furnished", show("furnished", a.furnished)], ["Outdoor space", show("outdoor", a.outdoor)],

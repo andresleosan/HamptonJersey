@@ -39,7 +39,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
     await run([wrangler, 'd1', 'migrations', 'apply', 'hampton', '--local', '--persist-to', persist]);
     await run([wrangler, 'd1', 'execute', 'hampton', '--local', '--persist-to', persist, '--file', 'tests/fixtures/seed.sql']);
     server = await startFixture({ persist, varsFile, port: 0 });
-    await run(['tests/e2e.cjs'], { ...process.env, BASE: server.url.href, E2E_PERSIST: persist, E2E_VARS: varsFile });
+    await run([process.env.E2E_SCRIPT || 'tests/e2e.cjs'], { ...process.env, BASE: server.url.href, E2E_PERSIST: persist, E2E_VARS: varsFile });
   } finally {
     if (server) await server.close();
     rmSync(dir, { recursive: true });

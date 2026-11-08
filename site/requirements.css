@@ -1,0 +1,21 @@
+/* Shared requirement controls: label left, switch right, answers below. */
+.fields-group .grid2{grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))}
+.fields-group,.fields-group .field{min-width:0}
+.req-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;width:100%;min-width:0}
+.req-heading>label,.req-heading>.req-label{flex:1;min-width:100px;color:var(--ink);font-weight:600}
+.req-switch{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;min-height:44px;min-width:44px;margin:0 0 0 auto;padding:4px 0 4px 8px;border:0;background:transparent;color:var(--ink);font:500 12px/1.3 var(--body);letter-spacing:0;text-transform:none;cursor:pointer;flex-shrink:0}
+.req-switch:focus-visible{outline:2px solid var(--bronze);outline-offset:2px;border-radius:4px}
+.req-track{position:relative;display:inline-block;width:40px;height:24px;border:1px solid var(--field-line,#8f8a82);border-radius:999px;background:var(--paper,#fff);flex-shrink:0}
+.req-track:after{content:"";position:absolute;width:18px;height:18px;left:2px;top:2px;border-radius:50%;background:var(--stone,#6b665e)}
+.req-switch[aria-checked=true] .req-track{background:var(--ok,#2f6b4f);border-color:var(--ok,#2f6b4f)}
+.req-switch[aria-checked=true] .req-track:after{transform:translateX(16px);background:#fff}
+.req-switch:disabled{cursor:not-allowed;color:var(--stone,#6b665e)}
+.req-state{min-width:20px;text-align:left}
+.req-note{color:var(--stone,#6b665e);font-size:12px;margin:4px 0 12px;line-height:1.5}
+.req-outdoor{display:grid;gap:8px}.req-outdoor .req-heading{border-bottom:1px solid var(--line);padding:4px 0}
+.req-outdoor label{display:flex;align-items:center;gap:8px}.req-outdoor input[type=checkbox]{width:18px;height:18px;flex-shrink:0;margin:0;accent-color:var(--ink)}
+.children-ages{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:16px;grid-column:1/-1;margin-top:12px}
+.children-ages .field{margin:0}.criteria-summary{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.criteria-summary span{overflow-wrap:anywhere}
+.apply .req-heading>label,.apply .req-heading>.req-label{font-size:16px;line-height:1.35;text-transform:none;letter-spacing:0}
+.apply .field>legend.req-heading{display:flex;padding-bottom:12px}
+.apply .req-outdoor label{font-size:16px;font-weight:500}

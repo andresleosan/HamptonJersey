@@ -1,3 +1,5 @@
+import { evaluate } from "../matching.js";
+import { CRITERIA, parsePriorities } from "../../site/requirements.js";
 // Reviewing a match (B6), the keyboard review queue (spec §5 Review) and "Recalculate all" (B12).
 import { json, fail, readJson, now } from "../http.js";
 import { listingEventStatements, derivedListingFields } from "../listing-events.js";
@@ -13,28 +15,38 @@ const STALE = "Someone else reviewed this match. Reload to see it.";
 
 const object = (alias, keys, extra = []) => `json_object(${[...keys.map(k => `'${k}', ${alias}.${k}`), ...extra].join(", ")})`;
 // A match as its card shows it (spec §5), with its listing; from matches m JOIN listings l.
-const CARD = `m.id, m.applicant_id, m.status, m.score, m.checks, m.reject_reason, m.reviewed_at, ${object("l", ["id", "title",
+const EVAL_APPLICANT = object("a", ["operation", "budget_min", "budget_max", "budget_stretch", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "parking_spaces", "property_types", "outdoor", "furnished", "pets", "parishes_wanted", "parishes_excluded", "housing_status", "buyer_position", "requirement_priorities", "household_children", "household_children_status", "move_in_date", "lease_term_months", "near", "requirements"]);
+const EVAL_LISTING = object("l", ["operation", "availability", "sale_price", "rent", "rent_period", "bedrooms", "bathrooms", "parish", "published", "archived_at", "feat_parking", "feat_pets", "feat_outdoor", "feat_furnished", "feat_type", "feat_evidence", "tenure_type", "housing_category", "restriction"]);
+const CARD = `${EVAL_APPLICANT} AS eval_applicant, ${EVAL_LISTING} AS eval_listing, m.id, m.applicant_id, m.status, m.score, m.checks, m.requirements_rank, m.reject_reason, m.reviewed_at, ${object("l", ["id", "title",
   "operation", "availability", "price_text", "sale_price", "rent", "rent_period", "currency", "parish", "bedrooms", "bathrooms",
   "published", "archived_at"], [`'cover_id', ${COVER_ID}`, `'has_public_photo', ${HAS_PUBLIC_PHOTO}`])} AS listing`;
-export const MATCHES_SQL = `SELECT ${CARD} FROM matches m JOIN listings l ON l.id = m.listing_id`;
-export const matchCard = m => ({ ...m, checks: JSON.parse(m.checks), listing: JSON.parse(m.listing) });
+export const MATCHES_SQL = `SELECT ${CARD} FROM matches m JOIN listings l ON l.id = m.listing_id JOIN applicants a ON a.id = m.applicant_id`;
+export const matchCard = m => {
+  const {eval_applicant,eval_listing,...card} = m;
+  const a = JSON.parse(eval_applicant), r = evaluate(a,JSON.parse(eval_listing));
+  const current = !!parsePriorities(a.requirement_priorities);
+  const refresh = current && (r.requirements_rank !== card.requirements_rank || r.score !== card.score || JSON.stringify(r.checks) !== card.checks);
+  return {...card, score:current ? r.score : card.score, checks:current ? r.checks : JSON.parse(card.checks).map(c =>
+    Object.hasOwn(CRITERIA,c.key) || c.key === 'outdoor' ? {...c,result:'unknown',priority:'unknown',reason:'Confirm the saved requirement and property details'} : c),
+    requirements_status:r.requirements_status, requirements_rank:r.requirements_rank, ...(refresh ? {requirements_refresh_needed:true} : {}), listing:JSON.parse(card.listing)};
+};
 
 // The review queue: the found matches of active searches (spec §5), from matches m JOIN applicants a.
 const QUEUED = `m.status = 'found' AND ${activeSql("a")}`;
 const QUEUE_COUNT_SQL = `SELECT COUNT(*) AS n FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE ${QUEUED}`;
 // The search shown next to the match, its JSON lists as lists; from applicants a JOIN contacts c.
-const LISTS = ["property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"];
+const LISTS = ["requirement_priorities", "household_children_ages", "property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"];
 const APPLICANT = object("a", ["id", "operation", "stage", "search_state", "budget_min", "budget_max", "budget_stretch", "bedrooms_min",
-  "bedrooms_ideal", "bathrooms_min", "parking_spaces", "furnished"],
+  "bedrooms_ideal", "bathrooms_min", "parking_spaces", "furnished", "household_children", "household_ages_at"],
   ["'name', c.name", ...LISTS.map(k => `'${k}', json(a.${k})`)]);
 // Queue order: the oldest search first, then its best matches, ties by id. One search's found matches are read at a
 // time (matches_status), never the whole queue. Each query takes the match to resume after (0 = from the start).
 const QUEUE_ROW = `SELECT ${CARD}, ${APPLICANT} AS applicant FROM matches m JOIN listings l ON l.id = m.listing_id
   JOIN applicants a ON a.id = m.applicant_id JOIN contacts c ON c.id = a.contact_id`;
-const BEST = "ORDER BY m.score DESC, m.id LIMIT 1";
+const BEST = "ORDER BY m.requirements_rank, m.score DESC, m.id LIMIT 1";
 // The rest of that match's search. Bind: the match, twice.
 const SAME_SEARCH = `${QUEUE_ROW} WHERE ${QUEUED} AND m.applicant_id = (SELECT applicant_id FROM matches WHERE id = ?)
-  AND (-m.score, m.id) > (SELECT -score, id FROM matches WHERE id = ?) ${BEST}`;
+  AND (m.requirements_rank, -m.score, m.id) > (SELECT requirements_rank, -score, id FROM matches WHERE id = ?) ${BEST}`;
 // The best match of the next search with any found, walking the active searches oldest first (applicants_queue) from
 // that match's search; from the first one when the match is 0 or no longer exists. Bind: the match.
 const NEXT_SEARCH = `${QUEUE_ROW} WHERE m.status = 'found' AND m.applicant_id = (SELECT q.id FROM applicants q

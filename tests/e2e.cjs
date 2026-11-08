@@ -2029,9 +2029,13 @@ async function viewingAvailability(browser) {
   const form = page.locator(".apply form"), next = form.locator('button[type="submit"]');
   const choice = async (name, value) => form.locator(`input[name="${name}"][value="${value}"] + span`).click();
   await choice("search_category", "residential"); await choice("operation", "both"); await next.click();
-  await next.click(); await choice("bedrooms_min", "2"); await next.click(); await next.click();
+  await next.click(); await choice("bedrooms_min", "2"); await next.click();
+  await choice("parking_spaces", "unknown"); await choice("pets", "unknown"); await next.click();
   await form.locator('[name="budget_max_rent"]').fill("2000");
   await form.locator('[name="budget_max_buy"]').fill("500000");
+  await form.locator('[data-must="budget"]:visible').first().click();
+  assert.deepEqual(await form.locator('[data-must="budget"]:visible').evaluateAll(es=>es.map(e=>e.getAttribute('aria-checked'))),['true','true']);
+  assert.match(await form.locator('#budget-limit').textContent(),/£2,000 per month to rent; £500,000 to buy/);
   const add = form.locator('[data-add-slot]');
   await add.click(); await add.click();
   const slots = form.locator('[data-slot]');
@@ -2048,10 +2052,12 @@ async function viewingAvailability(browser) {
   const response = page.waitForResponse(r => r.url().endsWith('/api/applicants') && r.request().method() === 'POST');
   await next.click(); assert.equal((await response).status(), 201);
   await page.locator('.apply .confirm').waitFor();
-  const records = JSON.parse(d1("SELECT a.id, a.operation, a.viewing_availability FROM applicants a JOIN contacts c ON c.id=a.contact_id WHERE c.email='reg17-e2e@example.test' ORDER BY a.operation"))[0].results;
+  const records = JSON.parse(d1("SELECT a.id, a.operation, a.viewing_availability, a.requirement_priorities, a.budget_max FROM applicants a JOIN contacts c ON c.id=a.contact_id WHERE c.email='reg17-e2e@example.test' ORDER BY a.operation"))[0].results;
   const expected = [{day:1,start:'09:00',end:'11:00'},{day:3,start:'14:00',end:'16:00'}];
   assert.equal(records.length, 2);
   assert.deepEqual(records.map(r => r.operation), ['buy','rent']);
+  assert.deepEqual(records.map(r=>r.budget_max),[500000,2000]);
+  for(const record of records) assert.equal(JSON.parse(record.requirement_priorities).values.budget,'must');
   for (const record of records) assert.deepEqual(JSON.parse(record.viewing_availability), expected);
   const {signSession, COOKIE} = await import('../server/auth.js');
   await ctx.addCookies([{name:COOKIE,value:await signSession('admin@example.test',secret),domain:new URL(BASE).hostname,path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);

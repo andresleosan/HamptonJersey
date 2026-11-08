@@ -1,9 +1,10 @@
+import { CRITERIA } from "../../site/requirements.js";
 import { useEffect, useRef, useState } from "react";
 import { AVAILABILITY, priceText } from "./format.js";
 import { REJECT_REASONS } from "../../server/applicants.js";
 
 // The checks of server/matching.js evaluate(), by key.
-const CHECK_LABEL = { budget: "Budget", bedrooms: "Bedrooms", bathrooms: "Bathrooms", area: "Area", housing: "Housing",
+const CHECK_LABEL = { ...Object.fromEntries(Object.entries(CRITERIA).map(([k,[label]])=>[k,label])), budget: "Budget", bedrooms: "Bedrooms", bathrooms: "Bathrooms", area: "Area", housing: "Housing",
   pets: "Pets", parking: "Parking", furnished: "Furnished", outdoor: "Outdoor", type: "Type" };
 const RESULT = { meets: "Meets", fails: "Fails", unknown: "Unknown" };
 export const REASON_LABEL = Object.fromEntries(REJECT_REASONS);
@@ -45,9 +46,11 @@ export default function MatchCard({ match, onReview, busy, disabled = null, shor
       <p className="match-price"><span className="num">{priceText(l)}</span>
         {offSite && <span className="badge neutral">Not on website</span>}
         {!OFFERED.includes(l.availability) && <span className={`badge ${AVAILABILITY_TONE[l.availability] ?? "neutral"}`}>{AVAILABILITY[l.availability] ?? l.availability}</span>}</p>
+      <p className="criteria-summary"><span className={`badge ${match.requirements_status==='meets'?'positive':'attention'}`}>{({meets:'Stated must-haves met',pending:'Requirements to confirm',alternative:'Alternative · requirements not met',excluded:'Outside search criteria'})[match.requirements_status] ?? 'Requirements to confirm'}</span></p>
+      {match.requirements_refresh_needed && <p className="muted">Details have changed. Recalculate matches to refresh the list and its order.</p>}
       <dl className="checks">{match.checks.map(c => <div key={c.key}>
-        <dt>{CHECK_LABEL[c.key] ?? c.key}</dt>
-        <dd><span className={`result ${c.result}`}>{RESULT[c.result] ?? c.result}</span>{c.evidence && <span className="muted"> · {c.evidence}</span>}</dd>
+        <dt>{CHECK_LABEL[c.key] ?? c.key}{c.priority && <small className="muted"> · {c.priority === "must" ? "Must-have" : c.priority === "preferred" ? "Preferred" : "Priority to confirm"}</small>}</dt>
+        <dd><span className={`result ${c.result}`}>{RESULT[c.result] ?? c.result}</span>{c.reason && <span className="muted"> · {c.reason}</span>}{c.evidence && <span className="muted"> · {c.evidence}</span>}</dd>
       </div>)}</dl>
       {match.status === "rejected" && <p className="muted">Rejected · {REASON_LABEL[match.reject_reason] ?? match.reject_reason}</p>}
       <div className="inline match-actions">

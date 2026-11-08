@@ -28,7 +28,22 @@ test("both operations submit separate rent and purchase budgets", async () => {
   const commercial = toBody(answers({ search_category: "commercial", operation: "both", budget_max_rent: "2000", budget_max_buy: "650000" }));
   assert.deepEqual(commercial.searches, [{ operation: "rent" }, { operation: "buy" }]);
 });
-const load = () => import("data:text/javascript," + encodeURIComponent(src + "\nexport { checkStep };"));
+
+test("both operations with a must-have budget validate as known separate ceilings", async () => {
+  const {toBody}=await load();
+  const {validateApplicant}=await import('../server/applicants.js');
+  const b=toBody(answers({operation:'both',budget_max_rent:'2000',budget_max_buy:'500000',parking_spaces:'0',pets:['none'],
+    name:'Combined search',email:'combined@example.test',phone:'07797000123',privacy:['yes'],
+    requirement_priorities:{version:1,values:{budget:'must'},unknown:[]}}));
+  assert.equal(b.requirement_priorities.unknown.includes('budget'),false);
+  for(const search of b.searches){
+    const r=validateApplicant({...b,...search},{publicForm:true});
+    assert.equal(r.errors,undefined,JSON.stringify(r.errors));
+    assert.equal(r.value.applicant.budget_max,search.budget_max);
+    assert.equal(JSON.parse(r.value.applicant.requirement_priorities).values.budget,'must');
+  }
+});
+const load = () => import("data:text/javascript," + encodeURIComponent(src.replaceAll('"./requirements.js"', JSON.stringify(require("node:url").pathToFileURL(path.join(__dirname,"../site/requirements.js")).href)) + "\nexport { checkStep };"));
 
 // What the wizard reads from the form: text as strings, radios as one value or "", checkbox groups as lists.
 const answers = o => ({
@@ -107,4 +122,22 @@ test("viewing options prevent advancing with invalid or overlapping times and ar
   assert.deepEqual(toBody(a).viewing_availability, valid);
   assert.ok(checkStep(4, { ...a, viewing_availability: [{ day: 1, start: "12:00", end: "09:00" }] }).viewing_availability);
   assert.ok(checkStep(4, { ...a, viewing_availability: [valid[0], { day: 1, start: "11:00", end: "14:00" }] }).viewing_availability);
+});
+
+test('Must-have off keeps the value and children ages keep unknown distinct from baby', async () => {
+  const {toBody}=await load();
+  const b=toBody(answers({parking_spaces:'2',pets:['dog'],pets_dog:'2',household_children_status:'known',household_children:'3',household_children_ages:['0','7',''],
+    requirement_priorities:{version:1,values:{parking:'preferred',pets:'must',children:'must'},unknown:[]}}));
+  assert.equal(b.parking_spaces,2); assert.deepEqual(b.pets,[{kind:'dog',count:2}]);
+  assert.equal(b.requirement_priorities.values.parking,'preferred');
+  assert.deepEqual(b.household_children_ages,[0,7,null]);
+});
+test('unknown parking/pets are explicit, and hidden priorities do not leak across category/operation',async()=>{
+  const {toBody}=await load(), p={version:1,values:{parking:'must',pets:'preferred',furnished:'must'},unknown:[]};
+  const b=toBody(answers({parking_spaces:'unknown',pets:['unknown'],requirement_priorities:p}));
+  assert.equal(b.parking_spaces,undefined);assert.equal(b.pets,undefined);
+  assert.ok(b.requirement_priorities.unknown.includes('parking'));assert.ok(b.requirement_priorities.unknown.includes('pets'));
+  const commercial=toBody(answers({search_category:'commercial',requirement_priorities:p,household_children:'1',household_children_ages:['7']}));
+  assert.equal(commercial.requirement_priorities,undefined);assert.equal(commercial.household_children_ages,undefined);
+  assert.equal(toBody(answers({operation:'buy',requirement_priorities:p})).requirement_priorities.values.furnished,undefined);
 });

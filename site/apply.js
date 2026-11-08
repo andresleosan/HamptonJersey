@@ -1,3 +1,4 @@
+import { CRITERIA, hasAnswer, notApplicable, prioritiesFor, budgetLimitNote } from "./requirements.js";
 // "Register your search" (spec §5) and the privacy notice. index.html imports this module only on #/apply or
 // #/privacy, so the home page never downloads it. Values from the API or the visitor reach the page only through
 // esc() or textContent.
@@ -6,16 +7,16 @@ const TEL = "01534 727582";
 const STORE = "hampton-apply";
 // Answers kept in this tab so a reload loses nothing; personal details and consents never are (DESIGN.md).
 const PRIVATE = ["name", "email", "phone", "preferred_channel", "best_time", "requirements", "housing_status", "privacy",
-  "marketing", "viewing_availability", "preferred_language", "household_adults", "household_children", "household_children_status"];
+  "marketing", "viewing_availability", "preferred_language", "household_adults", "household_children", "household_children_status", "household_children_ages"];
 const STEPS = [
   { title: "What are you looking for?", fields: ["operation", "search_category", "commercial_kind"] },
   { title: "Where?", fields: ["parishes_wanted", "parishes_excluded", "near"] },
   { title: "Property details", fields: ["property_types", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "commercial_use", "area_min", "area_max", "area_unit"] },
   { title: "Parking, outdoor space and pets", fields: ["parking_spaces", "outdoor", "furnished", "pets", "pets_cat",
-    "pets_dog", "pets_other"] },
+    "pets_dog", "pets_other", "requirement_priorities"] },
   { title: "Budget and timing", fields: ["viewing_availability", "budget_max", "budget_min", "budget_stretch", "budget_max_rent", "budget_max_buy", "move_in_date",
     "lease_term_months", "buyer_position", "mortgage_aip", "commercial_purchase", "commercial_rent", "commercial_rent_period", "commercial_premium", "commercial_expenses"] },
-  { title: "Living in Jersey", fields: ["housing_status", "household_adults", "household_children_status", "household_children"] },
+  { title: "Living in Jersey", fields: ["housing_status", "household_adults", "household_children_status", "household_children", "household_children_ages"] },
   { title: "About you", fields: ["name", "email", "phone", "preferred_channel", "best_time", "requirements", "preferred_language",
     "privacy", "marketing"] },
 ];
@@ -49,7 +50,7 @@ export function toBody(a) {
   CHOICES.forEach(k => put(k, a[k]));
   TEXT.forEach(k => put(k, String(a[k] ?? "").trim()));
   LISTS.forEach(k => put(k, a[k]));
-  INTS.filter(k => !k.startsWith("pets_")).forEach(k => put(k, number(a[k])));
+  INTS.filter(k => !k.startsWith("pets_")).forEach(k => { if (!(k === "parking_spaces" && a[k] === "unknown")) put(k, number(a[k])); });
   MONEY.filter(k => !["budget_max_rent", "budget_max_buy"].includes(k)).forEach(k => put(k, number(a[k])));
   if (a.operation === "both") {
     delete b.budget_min; delete b.budget_max; delete b.budget_stretch;
@@ -57,7 +58,18 @@ export function toBody(a) {
       ...(a.search_category === "commercial" ? {} : { budget_max: number(a[`budget_max_${operation}`]) }) }));
   }
   const pets = a.pets ?? [];
-  put("pets", pets.includes("none") ? [{ kind: "none" }] : pets.map(kind => ({ kind, count: number(a[`pets_${kind}`]) })));
+  if (!pets.includes("unknown")) put("pets", pets.includes("none") ? [{ kind: "none" }] : pets.map(kind => ({ kind, count: number(a[`pets_${kind}`]) })));
+  if (a.requirement_priorities && a.search_category !== 'commercial') {
+    const p={...a.requirement_priorities, values:{...a.requirement_priorities.values}, unknown:[]};
+    for (const key of Object.keys(CRITERIA)) {
+      const answered=key==='budget' && b.searches ? b.searches.every(search=>hasAnswer(key,search)) : hasAnswer(key,b);
+      if ((key==='parking' && a.parking_spaces==='unknown') || (key==='pets' && pets.includes('unknown'))
+        || (p.values[key]==='must' && !answered)) p.unknown.push(key);
+    }
+    b.requirement_priorities=prioritiesFor(p,{...b, operation:a.operation});
+  }
+  if (a.search_category !== 'commercial' && a.household_children_status === 'known' && Array.isArray(a.household_children_ages))
+    b.household_children_ages=a.household_children_ages.map(number);
   b.privacy = (a.privacy ?? []).length > 0;
   b.marketing = (a.marketing ?? []).length > 0;
   return b;
@@ -81,6 +93,10 @@ function checkStep(i, a) {
     if (a.operation === "both") { missing("budget_max_rent", "Enter your maximum rent"); missing("budget_max_buy", "Enter your maximum purchase price"); }
     else missing("budget_max", "Enter your maximum budget");
   }
+  if (has('parking_spaces') && a.search_category !== 'commercial') {
+    if (!String(a.parking_spaces ?? '').trim()) e.parking_spaces='Choose a number, None or Not sure';
+    if (!(a.pets ?? []).length) e.pets='Tell us about pets, or choose Not sure';
+  }
   if (has("household_children") && a.search_category !== "commercial" && a.household_children_status === "known")
     missing("household_children", "Enter the number of children, or 0 if none");
   if (has("name")) {
@@ -97,6 +113,7 @@ function checkStep(i, a) {
     if (["budget_min", "budget_max", "budget_stretch"].includes(k) && a.operation === "both") continue;
     if (e[k] || (a.operation !== "both" && ONLY[a.operation === "rent" ? "buy" : "rent"].includes(k))) continue;
     if (k.startsWith("pets_") && !(a.pets ?? []).includes(k.slice(5))) continue;
+    if (k === "parking_spaces" && a[k] === "unknown") continue;
     const n = number(a[k]);
     if (k.startsWith("pets_") && !(Number.isInteger(n) && n >= 1 && n <= 20)) e[k] = "Enter how many, from 1 to 20";
     else if (MONEY.includes(k) && typeof n === "string") e[k] = "Enter an amount in pounds, like 1,500";
@@ -154,10 +171,12 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   // One choice from a short scale → a segmented bar ("seg"); any number of choices, or long labels → tiles.
   const pills = (name, items, type = "radio", req = false, cls = type === "checkbox" ? " tiles" : " seg") => `<div class="opts${cls}">${items.map(([v, l]) =>
     `<label><input type="${type}" name="${name}" value="${esc(v)}"${req ? " required" : ""}><span>${esc(l)}</span></label>`).join("")}</div>`;
+  const keyFor = {parishes_wanted:'area',property_types:'type',bedrooms_min:'bedrooms',bathrooms_min:'bathrooms',parking_spaces:'parking',furnished:'furnished',pets:'pets',budget_max:'budget',budget_max_rent:'budget',budget_max_buy:'budget',move_in_date:'move_in_date',lease_term_months:'lease_term_months',near:'near',requirements:'requirements',household_children_status:'children'};
+  const must = key => `<button type="button" class="req-switch" role="switch" aria-checked="false" data-must="${key}" aria-label="${esc(CRITERIA[key][0])} must-have"${key==='budget' ? ' aria-describedby="budget-limit"' : ''}><span>Must-have</span><span class="req-track" aria-hidden="true"></span><span class="req-state" aria-hidden="true">Off</span></button>`;
   const group = (name, legend, inner, only = "") =>
-    `<fieldset class="field"${only ? ` data-only="${only}"` : ""}><legend>${opt(legend)}</legend>${inner}${err(name)}</fieldset>`;
+    `<fieldset class="field"${only ? ` data-only="${only}"` : ""}><legend${keyFor[name] ? ' class="req-heading"' : ''}><span class="req-label">${opt(legend)}</span>${keyFor[name] ? must(keyFor[name]) : ''}</legend>${inner}${err(name)}</fieldset>`;
   const input = (name, label, attrs = "", only = "") => `<div class="field"${only ? ` data-only="${only}"` : ""}>
-    <label for="f-${name}"${label.rent ? ` data-rent="${label.rent}" data-buy="${label.buy}"` : ""}>${opt(label.rent || label)}</label>
+    <div class="req-heading"><label for="f-${name}"${label.rent ? ` data-rent="${label.rent}" data-buy="${label.buy}"` : ""}>${opt(label.rent || label)}</label>${keyFor[name] ? must(keyFor[name]) : ''}</div>
     <input id="f-${name}" name="${name}" ${attrs}>${err(name)}</div>`;
   const today = jerseyToday(), inTwoYears = `${Number(today.slice(0, 4)) + 2}${today.slice(4)}`;
   const count = `inputmode="numeric" autocomplete="off"`;
@@ -185,16 +204,16 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       + `<div data-category="commercial">${input("commercial_use", "Intended use (optional)", 'maxlength="200"')
       + input("area_min", "Minimum area (optional)", count) + input("area_max", "Maximum area (optional)", count)
       + group("area_unit", "Area unit", pills("area_unit", [["sqm", "Square metres"], ["sqft", "Square feet"]]))}</div>`,
-    `<div data-category="residential">${group("parking_spaces", "Parking spaces (optional)", pills("parking_spaces", list("parking"), "radio"))
-      + group("outdoor", "Outdoor space (optional)", pills("outdoor", list("outdoor"), "checkbox"))
+    `<div data-category="residential">${group("parking_spaces", "Parking spaces", pills("parking_spaces", [...list("parking"), ["unknown", "Not sure"]], "radio"))
+      + group("outdoor", "Outdoor space (optional)", `<div class="req-outdoor">${list("outdoor").map(([v,l])=>`<div class="req-heading"><label><input type="checkbox" name="outdoor" value="${esc(v)}">${esc(l)}</label>${must(v)}</div>`).join('')}</div>`)
       + group("furnished", "Furnished (optional)", pills("furnished", list("furnished")), "rent")
-      + group("pets", "Pets (optional)", pills("pets", list("pet_kinds"), "checkbox") + `<div class="row">${pets.map(([v, l]) =>
+      + group("pets", "Pets", pills("pets", [...list("pet_kinds"), ["unknown", "Not sure"]], "checkbox") + `<div class="row">${pets.map(([v, l]) =>
         `<div class="field" data-pet="${esc(v)}" hidden><label for="f-pets_${esc(v)}">How many: ${esc(l)}</label>
           <input id="f-pets_${esc(v)}" name="pets_${esc(v)}" value="1" ${count}>${err(`pets_${esc(v)}`)}</div>`).join("")}</div>`)}</div><p data-category="commercial" class="hint">Leave unknown details blank; our team can confirm them with you.</p>`,
     `<div data-category="residential"><div data-both="no">${input("budget_max", money("Maximum rent", "Maximum price"), `${count} required ${eg("£1,300", "£550,000")}`)
       + `<div class="row">${input("budget_min", money("Minimum rent", "Minimum price", " (optional)"), `${count} ${eg("£1,000", "£400,000")}`)}
         ${input("budget_stretch", money("I can stretch to", "I can stretch to", " (optional)"), `${count} ${eg("£1,500", "£600,000")}`)}</div>`}</div>`
-      + `<div data-both="yes">${input("budget_max_rent", "Maximum rent, £ per month", count)}${input("budget_max_buy", "Maximum purchase price, £", count)}</div>`
+      + `<div data-both="yes">${input("budget_max_rent", "Maximum rent, £ per month", count)}${input("budget_max_buy", "Maximum purchase price, £", count)}</div><p id="budget-limit" class="req-note" hidden></p>`
       + input("lease_term_months", "Lease length in months (optional)", `${count} placeholder="12"`, "rent")
       + group("buyer_position", "Your position (optional)", pills("buyer_position", list("buyer_position"), "radio", false, " tiles"), "buy")
       + group("mortgage_aip", "Mortgage agreement in principle (optional)", pills("mortgage_aip", list("mortgage_aip")), "buy") + `</div>`
@@ -208,16 +227,16 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
         <div data-viewing-slots></div>${err("viewing_availability")}<button class="btn ghost" type="button" name="viewing_availability" data-add-slot>Add time option</button></div>`,
     `<div data-category="residential"><p class="hint">It decides which homes you can rent or buy in Jersey.</p>`
       + group("housing_status", "Housing status (optional)", pills("housing_status", list("housing_status"), "radio", false, " tiles"))
-      + input("household_adults", "Adults (optional)", `${count} placeholder="2"`)
+      + input("household_adults", "Adults, 18 or over (optional)", `${count} placeholder="2"`)
       + group("household_children_status", "Children", pills("household_children_status", [["known", "I know how many"], ["unknown", "I don't know"], ["not_applicable", "Not applicable"]]))
-      + `<div data-children-count>${input("household_children", "Number of children (enter 0 if none)", count)}</div></div><p data-category="commercial" class="hint">Your search stays open until our team confirms it is resolved.</p>`,
+      + `<div data-children-count>${input("household_children", "Number of children (enter 0 if none)", count)}<div class="children-ages" data-children-ages></div>${err("household_children_ages")}</div><p class="req-note">Children’s ages help our team understand your household. A must-have here asks us to check that the home suits your household.</p></div><p data-category="commercial" class="hint">Your search stays open until our team confirms it is resolved.</p>`,
     input("name", "Full name", `autocomplete="name" maxlength="120" required placeholder="Your name"`)
       + input("email", "Email", `type="email" autocomplete="email" maxlength="254" required placeholder="name@example.com"`)
       + input("phone", "Mobile", `type="tel" autocomplete="tel" required placeholder="07797 000000"`)
       + group("preferred_channel", "How should we contact you? (optional)", pills("preferred_channel", list("channels")))
       + input("best_time", "Best time to reach you (optional)", `maxlength="200" placeholder="Weekday mornings"`)
       + input("preferred_language", "Preferred language (optional)", `maxlength="80"`)
-      + `<div class="field"><label for="f-requirements">Anything else that matters? <i>(optional)</i></label>
+      + `<div class="field"><div class="req-heading"><label for="f-requirements">Anything else that matters? <i>(optional)</i></label>${must("requirements")}</div>
         <textarea id="f-requirements" name="requirements" maxlength="2000" rows="4" placeholder="A garden for the dog, close to a bus route"></textarea>${err("requirements")}</div>
       <div class="consent">
         <label><input type="checkbox" name="privacy" value="yes" required><span>I have read the
@@ -226,7 +245,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       </div>
       ${tsKey ? `<div class="ts"></div>` : ""}`,
   ];
-  body.innerHTML = `<p class="hint">Seven short steps, about two minutes.</p>
+  body.innerHTML = `<p class="hint">Seven short steps. Turn on Must-have for requirements that are essential for your new home.</p>
     <div class="apply-progress"><p class="num" aria-live="polite"></p><div class="pbar" aria-hidden="true"><i></i></div></div>
     <form novalidate>${steps.map((html, i) => `<fieldset class="step" hidden><legend><h2 tabindex="-1">${STEPS[i].title}</h2></legend>${html}</fieldset>`).join("")}
       <p class="form-status" role="alert"></p>
@@ -248,12 +267,15 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       else if (el.type === "radio") { a[el.name] ??= ""; if (el.checked) a[el.name] = el.value; }
       else a[el.name] = el.value;
     }
+    a.requirement_priorities={version:1,values:Object.fromEntries([...form.querySelectorAll('[data-must]')].map(b=>[b.dataset.must,b.getAttribute('aria-checked')==='true'?'must':'preferred'])),unknown:[]};
+    a.household_children_ages=[...form.querySelectorAll('[data-child-age]')].map(el=>el.value);
     a.viewing_availability = [...form.querySelectorAll("[data-slot]")].map(row => ({ day: Number(row.querySelector("select").value),
       start: row.querySelector('[data-start]').value, end: row.querySelector('[data-end]').value }));
     return a;
   };
   const save = () => {
     const a = Object.fromEntries(Object.entries(snapshot()).filter(([k]) => !PRIVATE.includes(k)));
+    if (a.requirement_priorities) delete a.requirement_priorities.values.children;
     try { sessionStorage.setItem(STORE, JSON.stringify({ step, a })); } catch { /* storage off: nothing is kept */ }
   };
   // Shows what fits the chosen operation and pets; hidden fields are not sent (toBody) and not checked.
@@ -270,6 +292,22 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     form.querySelectorAll("[data-ph-buy]").forEach(i => { i.placeholder = op === "buy" ? i.dataset.phBuy : i.dataset.phRent; });
     form.querySelectorAll("[data-rent]").forEach(l => { l.innerHTML = opt(op === "buy" ? l.dataset.buy : l.dataset.rent); });
     const a = snapshot(), chosen = a.pets ?? [];
+    const limit=$('#budget-limit',form), note=budgetLimitNote(a);
+    limit.textContent=note; limit.hidden=!note;
+    const ages=$('[data-children-ages]',form), n=childStatus==='known' ? number(a.household_children) : null;
+    const size=Number.isInteger(n) && n>=0 && n<=20 ? n : 0;
+    if (ages.children.length!==size) {
+      const previous=[...ages.querySelectorAll('select')].map(el=>el.value);
+      ages.innerHTML=Array.from({length:size},(_,i)=>`<div class="field"><label for="child-age-${i}">Child ${i+1} age</label><select id="child-age-${i}" data-child-age aria-describedby="e-household_children_ages"><option value="">To confirm</option>${Array.from({length:18},(_,n)=>`<option value="${n}">${n===0?'Under 1':n}</option>`).join('')}</select></div>`).join('');
+      ages.querySelectorAll('select').forEach((el,i)=>{el.value=previous[i]??'';});
+    }
+    const facts={...a,pets:chosen.map(kind=>({kind}))};
+    form.querySelectorAll('[data-must]').forEach(btn=>{
+      btn.hidden=category==='commercial';
+      btn.disabled=notApplicable(btn.dataset.must,facts);
+      if (btn.disabled) btn.setAttribute('aria-checked','false');
+      $('.req-state',btn).textContent=btn.getAttribute('aria-checked')==='true'?'On':'Off';
+    });
     if ((a.parishes_excluded ?? []).length) $("details.more", form).open = true;
     form.querySelectorAll("[data-pet]").forEach(el => { el.hidden = !chosen.includes(el.dataset.pet); });
   };
@@ -287,11 +325,17 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     $("[data-remove]", row).addEventListener("click", () => { row.remove(); numberSlots(); setError("viewing_availability"); addSlot.disabled = false; addSlot.focus(); });
     slots.append(row); numberSlots(); addSlot.disabled = slots.children.length >= 21; $("select", row).focus();
   });
+  form.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-must]'); if (!btn || btn.disabled) return;
+    const checked=btn.getAttribute('aria-checked')!=='true';
+    form.querySelectorAll(`[data-must="${btn.dataset.must}"]`).forEach(b=>b.setAttribute('aria-checked',String(checked)));
+    sync();save();
+  });
   const controls = name => [...form.querySelectorAll(`[name="${name}"]`)];
   const setError = (name, msg) => {
     const slot = $(`#e-${name}`, form);
     if (slot) { slot.textContent = msg || ""; slot.hidden = !msg; }
-    const targets = name === "viewing_availability" ? [...controls(name), ...form.querySelectorAll("[data-slot] select, [data-slot] input")] : controls(name);
+    const targets = name === "viewing_availability" ? [...controls(name), ...form.querySelectorAll("[data-slot] select, [data-slot] input")] : name === "household_children_ages" ? [...form.querySelectorAll("[data-child-age]")] : controls(name);
     targets.forEach(c => {
       if (msg) { c.setAttribute("aria-invalid", "true"); c.setAttribute("aria-describedby", `e-${name}`); }
       else { c.removeAttribute("aria-invalid"); c.removeAttribute("aria-describedby"); }
@@ -304,7 +348,8 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     const i = STEPS.findIndex(s => s.fields.some(k => errors[k]));
     return i < 0 ? null : { i, first: STEPS[i].fields.find(k => errors[k]) };
   };
-  const focusField = name => (name === "viewing_availability" ? $("[data-slot] select", form) ?? controls(name)[0] : controls(name)[0])?.focus();
+  const focusField = name => (name === "viewing_availability" ? $("[data-slot] select", form) ?? controls(name)[0]
+    : name === "household_children_ages" ? $('[data-child-age]',form) : controls(name)[0])?.focus();
 
   const startTurnstile = () => {
     if (!tsKey || tsAsked) return;
@@ -333,13 +378,15 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   };
 
   form.addEventListener("input", e => { if (e.target.closest("[data-slot]")) setError("viewing_availability");
-    else if (FIELDS.has(e.target.name)) setError(e.target.name); save(); });
+    else if (FIELDS.has(e.target.name)) setError(e.target.name);
+    if (e.target.name === "household_children") sync();
+    if (e.target.matches("[data-child-age]")) setError("household_children_ages"); save(); });
   form.addEventListener("change", e => {
     const t = e.target;
     if (t.name === "household_children_status" && t.value !== "known") $("[name=household_children]", form).value = "";
     // "No pets" stands alone; a parish is either wanted or avoided.
     if (t.name === "pets" && t.checked)
-      controls("pets").forEach(x => { if (x !== t && (t.value === "none" || x.value === "none")) x.checked = false; });
+      controls("pets").forEach(x => { if (x !== t && (["none","unknown"].includes(t.value) || ["none","unknown"].includes(x.value))) x.checked = false; });
     const other = { parishes_wanted: "parishes_excluded", parishes_excluded: "parishes_wanted" }[t.name];
     if (other && t.checked) controls(other).forEach(x => { if (x.value === t.value) x.checked = false; });
     sync(); save();
@@ -391,6 +438,9 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     else if (el.type === "radio") el.checked = v === el.value;
     else if (typeof v === "string") el.value = v;
   }
+  if (saved?.a?.requirement_priorities?.values) form.querySelectorAll('[data-must]').forEach(btn=>{
+    if (btn.dataset.must!=='children') btn.setAttribute('aria-checked',String(saved.a.requirement_priorities.values[btn.dataset.must]==='must'));
+  });
   sync();
   // Opening (or starting again) puts focus on the step's heading, as each step change does (WCAG 2.4.3).
   go(Number.isInteger(saved?.step) && saved.step > 0 && saved.step <= last ? saved.step : 0);
@@ -413,7 +463,7 @@ export function renderPrivacy(root) {
       <li>Your name, email address and mobile number, and how, when and in which language you prefer us to contact you.</li>
       <li>What you are looking for: renting, buying or a business transfer, areas, the kind and size of home or commercial
         property, intended use, budgets, timing, pets and anything else you tell us.</li>
-      <li>Your housing status in Jersey and how many adults and children would live in the home.</li>
+      <li>Your housing status in Jersey how many adults and children would live in the home, and the children’s ages you choose to tell us.</li>
       <li>Whether you accepted this notice and whether you asked for our news, with the date.</li>
       <li>For a viewing request: the property, the day and the time you chose.</li>
       <li>If you use the chat on our website: your name, the email or mobile number you give, your messages and our

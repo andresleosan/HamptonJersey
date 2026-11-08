@@ -1,6 +1,7 @@
 // Applicant validation and the closed lists, shared by the API, the panel (through Vite) and the website
 // (GET /api/applicants/options). Pure ESM: no database, no env, no Node- or Workers-only imports.
 import { EMAIL, jerseyToday, validWeeklyWindows } from "./viewings.js";
+import { CRITERIA, RENT_CRITERIA, hasAnswer, notApplicable } from "../site/requirements.js";
 
 const PARISHES = ["Grouville", "St Brelade", "St Clement", "St Helier", "St John", "St Lawrence", "St Martin",
   "St Mary", "St Ouen", "St Peter", "St Saviour", "Trinity"];
@@ -59,12 +60,13 @@ const realDate = s => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s)
 // body: the form as JSON. publicForm: the website wizard (true) or the panel's New applicant (false).
 // now: ISO time used for the consent timestamps. Returns { value: { contact, applicant } } or { errors }.
 // The routes add contact_id, last_activity_at, created_at, updated_at and updated_by; stage starts at its DEFAULT.
-export function validateApplicant(body, { publicForm }, now = new Date().toISOString()) {
+export function validateApplicant(body, { publicForm, savedMoveInDate = null }, now = new Date().toISOString()) {
   let b = body && typeof body === "object" ? body : {};
   if (b.search_category === "commercial") {
     const residential = new Set(["budget_min", "budget_max", "budget_stretch", "property_types", "bedrooms_min", "bedrooms_max",
       "bedrooms_ideal", "bathrooms_min", "parking_spaces", "outdoor", "furnished", "pets", "lease_term_months", "buyer_position",
-      "mortgage_aip", "housing_status", "household_adults", "household_children", "household_children_status"]);
+      "mortgage_aip", "housing_status", "household_adults", "household_children", "household_children_status",
+      "requirement_priorities", "household_children_ages"]);
     b = Object.fromEntries(Object.entries(b).filter(([k]) => !residential.has(k)));
   }
   const errors = {};
@@ -158,7 +160,7 @@ export function validateApplicant(body, { publicForm }, now = new Date().toISOSt
   if (!blank(b.move_in_date)) {
     const today = jerseyToday(new Date(now));
     const last = `${Number(today.slice(0, 4)) + 2}${today.slice(4)}`;
-    move_in_date = realDate(b.move_in_date) && b.move_in_date >= today && b.move_in_date <= last ? b.move_in_date
+    move_in_date = realDate(b.move_in_date) && ((!publicForm && b.move_in_date === savedMoveInDate) || (b.move_in_date >= today && b.move_in_date <= last)) ? b.move_in_date
       : err("move_in_date", "Choose a date between today and two years from now");
   }
 
@@ -220,6 +222,36 @@ export function validateApplicant(body, { publicForm }, now = new Date().toISOSt
     household_children_status: children_status,
     preferred_language: str("preferred_language", 80),
   });
+  let priorities = null;
+  if (b.requirement_priorities != null) {
+    const p = b.requirement_priorities, object = x => x && typeof x === 'object' && !Array.isArray(x);
+    const valid = object(p) && p.version === 1 && object(p.values) && Array.isArray(p.unknown)
+      && Object.keys(p).every(k => ['version','values','unknown'].includes(k))
+      && Object.entries(p.values).every(([k,v]) => Object.hasOwn(CRITERIA,k) && ['must','preferred','unknown'].includes(v))
+      && p.unknown.every(k => Object.hasOwn(CRITERIA,k)) && new Set(p.unknown).size === p.unknown.length;
+    if (!valid) err('requirement_priorities', 'Choose valid requirement priorities');
+    else {
+      const values = { ...p.values }, unknown = [...p.unknown];
+      if (buy) for (const k of RENT_CRITERIA) { delete values[k]; const i = unknown.indexOf(k); if (i >= 0) unknown.splice(i,1); }
+      for (const [k,v] of Object.entries(values)) {
+        if (v === 'must' && (notApplicable(k,applicant) || (!hasAnswer(k,applicant) && !unknown.includes(k))))
+          err('requirement_priorities', `Set ${CRITERIA[k][0].toLowerCase()} or mark it as not yet known before making it a must-have`);
+      }
+      if (unknown.some(k => hasAnswer(k,applicant))) err('requirement_priorities', 'A requirement cannot have both a value and an unknown answer');
+      if (publicForm) for (const k of ['parking','pets'])
+        if (!hasAnswer(k,applicant) && !unknown.includes(k)) err(CRITERIA[k][1][0], `Tell us about ${k}, or choose Not sure`);
+      priorities = JSON.stringify({ version: 1, values, unknown });
+    }
+  }
+  let ages = null;
+  if (b.household_children_ages != null) {
+    const v = b.household_children_ages;
+    if (!Array.isArray(v) || !Number.isInteger(applicant.household_children)
+      || v.length !== applicant.household_children || v.some(n => n !== null && (!Number.isInteger(n) || n < 0 || n > 17)))
+      err('household_children_ages', 'Enter one age from Under 1 to 17, or To confirm, for each child');
+    else ages = JSON.stringify(v);
+  }
+  Object.assign(applicant, { requirement_priorities: priorities, household_children_ages: ages, household_ages_at: ages == null ? null : now });
   for (const k of ["property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"])
     if (applicant[k]) applicant[k] = JSON.stringify(applicant[k]);
 

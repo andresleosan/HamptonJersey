@@ -1,3 +1,5 @@
+import RequirementSwitch from "./RequirementSwitch.jsx";
+import { CRITERIA, hasAnswer, notApplicable, prioritiesFor, budgetLimitNote } from "../../site/requirements.js";
 import { OPTIONS } from "../../server/applicants.js";
 import ViewingAvailability from "./ViewingAvailability.jsx";
 
@@ -14,8 +16,8 @@ const LIST = ["property_types", "outdoor", "parishes_wanted", "parishes_excluded
 export const toForm = (applicant = {}, contact = {}) => {
   const src = { ...applicant, operation: applicant.search_operation ?? applicant.operation, name: contact.name, email: contact.email, phone: contact.phone,
     preferred_channel: contact.preferred_channel, best_time: contact.best_time };
-  return Object.fromEntries([...TEXT.map(k => [k, src[k] ?? ""]), ...NUM.map(k => [k, src[k] == null ? "" : String(src[k])]),
-    ...LIST.map(k => [k, src[k] ?? []])]);
+  return {requirement_priorities:applicant.requirement_priorities ?? (applicant.id == null ? {version:1,values:Object.fromEntries(Object.keys(CRITERIA).map(k=>[k,'preferred'])),unknown:[]} : null), household_children_ages:applicant.household_children_ages ?? null, ...Object.fromEntries([...TEXT.map(k => [k, src[k] ?? ""]), ...NUM.map(k => [k, src[k] == null ? "" : String(src[k])]),
+    ...LIST.map(k => [k, src[k] ?? []])])};
 };
 
 // "2,000" and "£ 2000" become 2000; text that isn't a number goes as typed, so the server's message lands on the field.
@@ -24,12 +26,13 @@ const number = s => {
   return t === "" ? null : /^\d+(\.\d+)?$/.test(t) ? Number(t) : t;
 };
 // From the form value to the API body: blank is null, never 0.
-export const toBody = f => Object.fromEntries([
+export const toBody = f => ({ requirement_priorities:prioritiesFor(f.requirement_priorities,f),
+  household_children_ages:f.search_category === "commercial" ? null : f.household_children_ages, ...Object.fromEntries([
   ...TEXT.map(k => [k, f[k].trim() === "" ? null : f[k]]),
   ...NUM.map(k => [k, number(f[k])]),
   ...LIST.map(k => [k, !f[k].length ? null : k === "pets"
     ? f.pets.map(p => (p.kind === "none" ? { kind: "none" } : { kind: p.kind, count: number(p.count) })) : f[k]]),
-]);
+])});
 
 const HOUSING_WHY = "It decides which homes they can rent or buy in Jersey.";
 
@@ -37,21 +40,33 @@ const HOUSING_WHY = "It decides which homes they can rent or buy in Jersey.";
 // operation: the search's operation; it decides the rent-only and buy-only fields and the budget wording.
 // contact: a saved contact the search is for; its details are shown, not edited.
 export default function ApplicantFields({ value, onChange, errors = {}, operation, contact, lockedCategory = false }) {
-  const set = (k, v) => onChange({ ...value, [k]: v });
+  const set = (k, v) => onChange({ ...value, [k]: v, ...(k==='household_children' && value.household_children_ages && /^\d+$/.test(v) && Number(v)<=20
+    ? {household_children_ages:Array.from({length:Number(v)},(_,i)=>value.household_children_ages[i]??null)} : {}) });
+  const keyFor={parishes_wanted:'area',property_types:'type',bedrooms_min:'bedrooms',bathrooms_min:'bathrooms',parking_spaces:'parking',furnished:'furnished',budget_max:'budget',move_in_date:'move_in_date',lease_term_months:'lease_term_months',near:'near',requirements:'requirements',household_children_status:'children'};
+  const changePriority=(key,p)=>{
+    const old=value.requirement_priorities ?? {version:1,values:{},unknown:[]};
+    const unknown=old.unknown.filter(k=>k!==key);
+    if (p==='must' && !hasAnswer(key,value)) unknown.push(key);
+    set('requirement_priorities',{version:1,values:{...old.values,[key]:p},unknown});
+  };
+  const prioritySwitch = key => value.search_category==='commercial' ? null : <RequirementSwitch criterion={key}
+    priority={value.requirement_priorities?.values[key]} disabled={notApplicable(key,value)} invalid={!!errors.requirement_priorities}
+    onChange={p=>changePriority(key,p)}/>;
+  const heading=(k,label)=><div className="req-heading"><label htmlFor={`a-${k}`}>{label}</label>{keyFor[k] && prioritySwitch(keyFor[k])}</div>;
   const err = k => errors[k] && <small id={`ae-${k}`} className="err">{errors[k]}</small>;
   const aria = k => ({ "aria-invalid": errors[k] ? true : undefined, "aria-describedby": errors[k] ? `ae-${k}` : undefined });
   const input = (k, label, extra = {}) => <div className="field">
-    <label htmlFor={`a-${k}`}>{label}</label>
+    {heading(k,label)}
     <input id={`a-${k}`} value={value[k]} onChange={e => set(k, e.target.value)} {...aria(k)} {...extra} />{err(k)}</div>;
   const count = (k, label, max = 20) => input(k, label, { type: "number", min: 0, max, step: 1, inputMode: "numeric" });
   const money = (k, label) => input(k, label, { inputMode: "decimal", autoComplete: "off" });
   const select = (k, label, list, blank = "Not said") => <div className="field">
-    <label htmlFor={`a-${k}`}>{label}</label>
+    {heading(k,label)}
     <select id={`a-${k}`} value={value[k]} onChange={e => set(k, e.target.value)} {...aria(k)}>
       <option value="">{blank}</option>{list.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select>{err(k)}</div>;
   // A list of real checkboxes (or radios) inside its own fieldset, the error under it.
   const choices = (k, legend, list, type = "checkbox") => <fieldset className="choices-set" aria-describedby={aria(k)["aria-describedby"]}>
-    <legend>{legend}</legend>
+    <legend className="req-heading"><span className="req-label">{legend}</span>{keyFor[k] && prioritySwitch(keyFor[k])}</legend>
     <div className="choices">{list.map(([v, t]) => <label key={v} className="check">
       <input type={type} name={`a-${k}`} value={v} checked={type === "radio" ? value[k] === v : value[k].includes(v)} {...aria(k)}
         onChange={e => set(k, type === "radio" ? v : e.target.checked ? [...value[k], v] : value[k].filter(x => x !== v))} />{t}</label>)}</div>
@@ -60,6 +75,8 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
   const rent = operation === "rent", buy = operation === "buy", commercial = value.search_category === "commercial";
   const per = rent ? " (£ per month)" : " (£)";
   return <>
+    <p className="req-note">Turn on Must-have for essential requirements. Unanswered priorities on older searches stay unconfirmed.</p>
+    {errors.requirement_priorities && <p className="err" role="alert">{errors.requirement_priorities}</p>}
     <ViewingAvailability value={value.viewing_availability} onChange={v => set("viewing_availability", v)} error={errors.viewing_availability} />
     <section className="card fields-group" aria-labelledby="g-search"><h2 id="g-search">What they're looking for</h2>
       {lockedCategory ? <p>Search type: {commercial ? "Commercial or business" : "Home"}</p>
@@ -98,11 +115,12 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
         {select("parking_spaces", "Parking", OPTIONS.parking)}
         {rent && select("furnished", "Furnished", OPTIONS.furnished)}
       </div>
-      {choices("outdoor", "Outdoor space", OPTIONS.outdoor)}
-      <Pets value={value.pets} onChange={v => set("pets", v)} error={errors.pets} />
+      <fieldset className="choices-set"><legend>Outdoor space</legend><div className="req-outdoor">{OPTIONS.outdoor.map(([k,label])=><div className="req-heading" key={k}><label><input type="checkbox" checked={value.outdoor.includes(k)} onChange={e=>set('outdoor',e.target.checked?[...value.outdoor,k]:value.outdoor.filter(v=>v!==k))}/>{label}</label>{prioritySwitch(k)}</div>)}</div></fieldset>
+      <Pets switchControl={prioritySwitch("pets")} value={value.pets} onChange={v => set("pets", v)} error={errors.pets} />
     </section>
 
     <section className="card fields-group" aria-labelledby="g-budget"><h2 id="g-budget">Budget and timing</h2>
+      {!commercial && <p id="a-budget-limit" className="req-note" hidden={!budgetLimitNote(value)}>{budgetLimitNote(value)}</p>}
       <div className="grid2">
         {money("budget_max", `Maximum budget${per}`)}
         {money("budget_min", `Minimum budget${per}`)}
@@ -122,15 +140,21 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
             aria-describedby={`ah-housing_status${errors.housing_status ? " ae-housing_status" : ""}`}>
             <option value="">Not said</option>{OPTIONS.housing_status.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select>
           <small id="ah-housing_status" className="muted">{HOUSING_WHY}</small>{err("housing_status")}</div>
-        {count("household_adults", "Adults")}
-        <div className="field"><label htmlFor="a-household_children_status">Children</label>
+        {count("household_adults", "Adults (18 or over)")}
+        <div className="field">{heading("household_children_status","Children")}
           <select id="a-household_children_status" value={value.household_children_status} onChange={e => onChange({ ...value,
-            household_children_status: e.target.value, ...(e.target.value !== "known" ? { household_children: "" } : {}) })}>
+            household_children_status: e.target.value, ...(e.target.value !== "known" ? { household_children: "", household_children_ages:null } : {}) })}>
             <option value="">Not said</option><option value="known">Number known</option><option value="unknown">Don't know</option>
             <option value="not_applicable">Not applicable</option></select></div>
         {(value.household_children_status === "known" || (!value.household_children_status && value.household_children !== "") || errors.household_children)
           && count("household_children", "Number of children (enter 0 if none)")}
       </div>
+      {value.household_children_status !== 'unknown' && value.household_children_status !== 'not_applicable' && Number(value.household_children)>0 && Number(value.household_children)<=20 && <div className="children-ages">{Array.from({length:Number(value.household_children)},(_,i)=><div className="field" key={i}>
+        <label htmlFor={`a-child-age-${i}`}>Child {i+1} age</label><select id={`a-child-age-${i}`} value={value.household_children_ages?.[i] ?? ''} {...aria('household_children_ages')}
+          onChange={e=>set('household_children_ages',Array.from({length:Number(value.household_children)},(_,j)=>i===j ? (e.target.value===''?null:Number(e.target.value)) : value.household_children_ages?.[j]??null))}>
+          <option value="">To confirm</option>{Array.from({length:18},(_,n)=><option key={n} value={n}>{n===0?'Under 1':n}</option>)}</select></div>)}</div>}
+      {err('household_children_ages')}
+      <p className="req-note">Children’s ages are as declared. A must-have here asks the team to confirm household suitability.</p>
       <p className="muted">Total occupants: {!["unknown", "not_applicable"].includes(value.household_children_status)
         && value.household_adults !== "" && value.household_children !== ""
         && Number.isInteger(Number(value.household_adults)) && Number.isInteger(Number(value.household_children))
@@ -156,7 +180,7 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
         {input("best_time", "Best time to contact", { maxLength: 200 })}
       </div>}
       {input("preferred_language", "Preferred language (if known)", { maxLength: 80 })}
-      <div className="field"><label htmlFor="a-requirements">Anything else that matters?</label>
+      <div className="field">{heading("requirements","Anything else that matters?")}
         <textarea id="a-requirements" value={value.requirements} onChange={e => set("requirements", e.target.value)} maxLength={2000}
           {...aria("requirements")} />{err("requirements")}</div>
     </section>
@@ -164,13 +188,13 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
 }
 
 // "No pets" on its own, or each kind once with how many.
-function Pets({ value, onChange, error }) {
+function Pets({ value, onChange, error, switchControl }) {
   const has = k => value.find(p => p.kind === k);
   const toggle = (k, on) => onChange(!on ? value.filter(p => p.kind !== k)
     : k === "none" ? [{ kind: "none" }] : [...value.filter(p => p.kind !== "none"), { kind: k, count: "1" }]);
   const aria = { "aria-invalid": error ? true : undefined, "aria-describedby": error ? "ae-pets" : undefined };
   return <fieldset className="choices-set" aria-describedby={aria["aria-describedby"]}>
-    <legend>Pets</legend>
+    <legend className="req-heading"><span className="req-label">Pets</span>{switchControl}</legend>
     <div className="choices">{OPTIONS.pet_kinds.map(([k, t]) => <span key={k} className="pet">
       <label className="check"><input type="checkbox" checked={!!has(k)} onChange={e => toggle(k, e.target.checked)} {...aria} />{t}</label>
       {k !== "none" && has(k) && <input type="number" min={1} max={20} step={1} inputMode="numeric" className="pet-count"

@@ -156,6 +156,48 @@ function readSpecs(specs) {
   return { keyed, prose };
 }
 
+// Versioned certainty for must-haves. Historical numeric features alone are not proof of capacity.
+function requirementEvidence(listing, reading) {
+  const specs = JSON.parse(listing.specs || '[]');
+  const prose = [listing.summary, listing.description].filter(Boolean).join('\n');
+  const text = [...specs.map(s => `${s.label}: ${s.value}`), prose].filter(Boolean).join('\n');
+  const f = { version: 1 };
+  if (/parking|garag/i.test(text)) {
+    const numbers = [];
+    for (const [re, fixed] of PARKING_COUNTS) for (const m of text.matchAll(re))
+      numbers.push(fixed ?? NUMBER_WORDS[m[1].toLowerCase()] ?? Number(m[1]));
+    const no = NO_PARKING.test(text) || specs.some(s => /^parking(?: spaces?)?$/i.test(s.label.trim()) && ROW_NO.test(String(s.value).trim()));
+    const yes = numbers.some(n => n > 0) || /\b(?:parking|garage):\s*yes\b/i.test(text);
+    const uncertain = /\b(?:visitors?|public|nearby|on.street|permit|paycard|up to|rent(?:ed|able)? separately)\b|\b\d+\s*[/–-]\s*\d+\b/i.test(text)
+      || /\b(?:parking|garag\w*)\b[^.!?\n]{0,100}\b(?:to rent|for rent|extra (?:cost|charge)|additional (?:cost|charge)|subject to|not included|separately)\b/i.test(text)
+      || new Set(numbers).size > 1 || (no && yes);
+    f.parking = uncertain ? {value:null,kind:'unknown'} : no ? {value:0,kind:'exact'}
+      : numbers.length ? {value:numbers[0],kind:/\b(?:plus|and|with|in addition|also|\+)\s+(?:a |an |the |single |double )?garage\b/i.test(text) ? 'minimum' : 'exact'}
+        : /\b(?:garag\w*):\s*(?:no|none|0)\b/i.test(text) ? {value:null,kind:'unknown'}
+          : reading.feat_parking > 0 ? {value:reading.feat_parking,kind:'minimum'} : {value:null,kind:'unknown'};
+  }
+  if (/\bpets?|\bdogs?|\bcats?\b/i.test(text)) {
+    const rows=specs.filter(s=>SPEC_ROWS[0][1].test(s.label));
+    const no=PETS_NO.test(prose) || rows.some(s=>ROW_NO.test(String(s.value).trim()));
+    const yes=PETS_YES.test(prose) || rows.some(s=>ROW_YES.test(String(s.value).trim()));
+    const conditional = /\b(?:considered|negotiat\w*|arrangement|subject to|permission|approval|consent|only|except|small|one dog|one cat|\d+ dogs?|\d+ cats?|no dogs?|no cats?)\b|\b(?:dogs?|cats?) (?:are )?not\b/i.test(text);
+    f.pets = conditional || (no && yes) ? 'unknown' : no ? 'no' : yes ? 'yes' : 'unknown';
+  }
+  if (/garden|terrace|patio|balcon/i.test(text)) {
+    f.outdoor = {};
+    for (const [key,re] of OUTDOOR) {
+      const word = key === 'terrace' ? '(?:terraces?|patios?)' : key==='balcony' ? 'balcon(?:y|ies)' : 'gardens?';
+      const rows=specs.filter(s=>new RegExp(`^(?:(?:private|own|rear|front)\\s+)*${word}$`,'i').test(s.label.trim()));
+      const negative = new RegExp(`\\b(?:no|without|not a|not any)\\s+(?:(?:private|own|rear|front|enclosed|usable)\\s+)*${word}\\b|\\b${word}\\s+(?:is |are )?not\\b`,'gi');
+      const no = negative.test(prose) || rows.some(s=>ROW_NO.test(String(s.value).trim()));
+      const yes = re.test(prose.replace(negative,'')) || rows.some(s=>ROW_YES.test(String(s.value).trim()));
+      const doubtful = /\b(?:communal|shared|nearby|access to|potential|permission|subject to)\b/i.test(text);
+      f.outdoor[key] = no && yes ? 'unknown' : no ? 'no' : doubtful ? 'unknown' : yes ? 'yes' : 'unknown';
+    }
+  }
+  return Object.keys(f).length > 1 ? f : null;
+}
+
 // listing: a listings row (specs as JSON text). Returns the columns of migrations/0009_matches.sql.
 export function extractFeatures(listing) {
   let parishes = parishesIn(listing.location);
@@ -171,6 +213,8 @@ export function extractFeatures(listing) {
     out[`feat_${key}`] = result?.value ?? null;
     if (result) evidence[key] = result.evidence;
   }
+  const certainty = requirementEvidence(listing, out);
+  if (certainty) evidence._requirements = certainty;
   out.feat_evidence = Object.keys(evidence).length ? JSON.stringify(evidence) : null;
   return out;
 }

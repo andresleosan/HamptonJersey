@@ -3,15 +3,16 @@ import { validateApplicant, normalizePhone, OPTIONS, QUEUES, SEARCH_STATES, acti
 import { logEvent, resolveNotices } from "../events.js";
 import { afterSave, recomputeForApplicant, CANDIDATES_SQL, LISTING, LISTING_OPERATION } from "../match-store.js";
 import { widen } from "../widen.js";
+import { compareRequirements } from "../requirements.js";
 import { MATCHES_SQL, matchCard } from "./matches.js";
 import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER } from "../retention.js";
 import { jerseyToday } from "../viewings.js";
 
 const STAGES = OPTIONS.stages.map(([v]) => v);
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" };
-const JSON_FIELDS = ["property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded", "viewing_availability"];
+const JSON_FIELDS = ["requirement_priorities", "household_children_ages", "property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded", "viewing_availability"];
 // What an applicant edit may change; source stays as it was registered.
-const SEARCH_FIELDS = ["viewing_availability", "operation", "budget_min", "budget_max", "budget_stretch", "property_types", "bedrooms_min",
+const SEARCH_FIELDS = ["requirement_priorities", "household_children_ages", "viewing_availability", "operation", "budget_min", "budget_max", "budget_stretch", "property_types", "bedrooms_min",
   "bedrooms_ideal", "bedrooms_max", "bathrooms_min", "parking_spaces", "outdoor", "furnished", "pets", "parishes_wanted", "parishes_excluded",
   "near", "move_in_date", "lease_term_months", "buyer_position", "mortgage_aip", "housing_status", "household_adults",
   "household_children", "household_children_status", "requirements", "search_category", "commercial_kind", "commercial_use", "area_min", "area_max", "area_unit",
@@ -194,7 +195,7 @@ async function detail({ env, params: [id] }) {
        AND listing_id IN (SELECT id FROM listings WHERE ${CANDIDATES_SQL} AND operation = ?)`,
       applicant.id, LISTING_OPERATION[applicant.operation]),
   ])).map(r => r.results);
-  const cards = matches.map(matchCard);
+  const cards = matches.map(matchCard).sort((a,b) => ["found","shortlisted","rejected"].indexOf(a.status) - ["found","shortlisted","rejected"].indexOf(b.status) || compareRequirements(a,b));
   return json({ applicant: parsed(applicant), contact, events: events.map(withData), viewings, duplicates: duplicates.map(withData),
     matches: cards, retention: keptFor(retention), widen: await widenFor(env, applicant, cards, live.n) });
 }
@@ -274,8 +275,8 @@ async function update({ request, env, admin, params: [id] }) {
   const form = { ...parsed(pick(cur, SEARCH_FIELDS)), ...pick(body, SEARCH_FIELDS) };
   if (!Object.hasOwn(body, "operation") && cur.search_operation) form.operation = cur.search_operation;
   const keepDate = form.move_in_date === cur.move_in_date;
-  const r = validateApplicant({ ...form, move_in_date: keepDate ? null : form.move_in_date,
-    name: contact.name, email: contact.email, phone: contact.phone, source: "phone" }, { publicForm: false });
+  const r = validateApplicant({ ...form,
+    name: contact.name, email: contact.email, phone: contact.phone, source: "phone" }, { publicForm: false, savedMoveInDate: cur.move_in_date });
   const errors = { ...r.errors };
 
   const stage = Object.hasOwn(body, "stage") ? body.stage : cur.stage;
@@ -300,6 +301,7 @@ async function update({ request, env, admin, params: [id] }) {
 
   const { source, ...search } = r.value.applicant;
   const next = { ...search, move_in_date: keepDate ? cur.move_in_date : search.move_in_date, stage, lost_reason, assigned_to };
+  if (next.household_children_ages === cur.household_children_ages) next.household_ages_at = cur.household_ages_at;
   const { keys, data } = diff(cur, next);
   if (!keys.length) return json({ applicant: parsed(cur) });
 
