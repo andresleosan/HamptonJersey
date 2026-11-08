@@ -48,7 +48,9 @@ Luis sigue escribiendo `/avanzar` en Hermes; el agente realiza estas operaciones
 
 ## Hermes, OpenCode y DeepSeek
 
-El flujo elegido es **Hermes recibe el encargo → OpenCode construye y revisa → DeepSeek aporta el modelo**. Cada taller conserva sus sesiones y almacenes privados. OpenCode V2 oficial `@opencode/cli@2.2.6` está instalado y su versión se comprobó en ambos talleres. Usa configuración administrada, ejecución `run --standalone --format json` y no comparte servidor. El diagnóstico del helper rechaza continuar sin clave. La revisión independiente de sus controles dio PASS: directorio canónico, variables permitidas sin credenciales de Cloudflare ni aprobaciones, filtrado de stdout/stderr, configuración administrada intacta, revisión nueva sin shell y ejecución standalone en loopback. La capa de instalación para una futura imagen se probó sin red y con todas las capacidades retiradas, conservando los hashes de las guardas; no se reinició ningún taller para instalar OpenCode. La inferencia mínima real también está comprobada en ambos talleres, según el resultado siguiente. La interfaz del taller es:
+La prioridad corregida por Luis es **Hermes trabaja directamente con GPT mientras esté disponible → solo ante indisponibilidad confirmada, respaldo OpenCode + DeepSeek**. Construcción y revisión GPT no se envían a OpenCode por defecto. Antes de elegir tarea se anuncia modelo/esfuerzo comprobados; la revisión GPT debe ser independiente y no escribir en paralelo. Si ya existe un OpenCode activo, conservar sus cambios/reserva y esperar un punto seguro y su finalización antes de retomar con GPT.
+
+Cada taller conserva sus sesiones y almacenes privados. OpenCode V2 oficial `@opencode/cli@2.2.6` está instalado como respaldo y su versión se comprobó en ambos talleres. Usa configuración administrada, ejecución `run --standalone --format json` y no comparte servidor. El diagnóstico del helper rechaza continuar sin clave. La revisión independiente de sus controles dio PASS: directorio canónico, variables permitidas sin credenciales de Cloudflare ni aprobaciones, filtrado de stdout/stderr, configuración administrada intacta, revisión nueva sin shell y ejecución standalone en loopback. La capa de instalación para una futura imagen se probó sin red y con todas las capacidades retiradas, conservando los hashes de las guardas; no se reinició ningún taller para instalar OpenCode. La inferencia mínima real también está comprobada en ambos talleres, según el resultado siguiente. La interfaz de respaldo es:
 
 ```sh
 taller-opencode build -- <encargo>
@@ -85,7 +87,7 @@ No instalar servicios permanentes del cliente para renovar sesiones. `watch` se 
 
 ## Inicio guiado vigente
 
-Con GPT/Codex o Hermes → OpenCode → DeepSeek, el cliente habilitado aplica [inicio-guiado.md](../.agents/skills/avanzar/references/inicio-guiado.md). `/new` abre la conversación de Hermes y `/avanzar` inicia la guía. La guía instalada ya se comprobó en ambos bots sin enviar mensajes ni hacer inferencias adicionales. No declara incorporados clientes sin su credencial y prueba real.
+Con GPT/Codex o Hermes directamente con GPT (OpenCode/DeepSeek solo cuando corresponda el respaldo), el cliente habilitado aplica [inicio-guiado.md](../.agents/skills/avanzar/references/inicio-guiado.md). `/new` abre la conversación de Hermes y `/avanzar` inicia la guía con anuncio de modelo/esfuerzo comprobados. La guía instalada ya se comprobó en ambos bots sin enviar mensajes ni hacer inferencias adicionales. No declara incorporados clientes sin su credencial y prueba real.
 
 OpenCode está fijado a `deepseek/deepseek-flash#max`; los perfiles de Hermes conservan GPT como principal y fallback `deepseek-flash` con `agent.reasoning_overrides` max. La API llama así a DeepSeek V4.1 Flash 1017. Se probaron respuestas reales con variante explícita en ambos talleres y clasificación simulada de errores 401/429; no se agotó GPT a propósito.
 

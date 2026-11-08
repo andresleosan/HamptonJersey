@@ -10,7 +10,7 @@ Antes de seleccionar, identificar la raíz Git y el checkout propios. Si otra se
 
 Cambiar de herramienta para continuar una tarea requiere que la ejecución anterior haya terminado y que se conserve su reserva/relevo; no abre otra plaza ni otra copia con la misma identidad para trabajar a la vez. El servidor limita actor/sesión/checkout y recursos; esas comprobaciones complementan la carpeta separada. Si se pierde una renovación o no puede comprobarse la titularidad, detener escrituras y diagnosticar.
 
-1. Verificar el repositorio y consultar `status`, con el archivo privado provisionado si existe. Sin conexión, explicar cómo incorporar ese cliente; no mostrar disponibilidad como confirmada.
+1. Verificar el repositorio. En Hermes, anunciar modelo y esfuerzo de conversación, construcción y revisión según «Anunciar modelo y esfuerzo al iniciar en Hermes» de la skill, incluso sin lista/tarea o al recuperar trabajo. Consultar `status`, con el archivo privado provisionado si existe. Sin conexión, explicar cómo incorporar ese cliente; no mostrar disponibilidad como confirmada.
 2. Recuperar primero trabajo propio: reserva activa/pausada/sin contacto/entregada, operación incierta, aprobación o turno pendiente bloquean una selección nueva. `/new` conserva ese estado privado. Presentar el código y el estado, nunca las claves.
 3. Si falta lista, presentar las cuatro con ocupación actual frente a su capacidad. Recomendar una por preferencia, carga y dependencias verificadas, sin prometer reserva. Una pregunta: «¿Qué lista quieres usar? Recomiendo Lista N por …; también puedo elegir automáticamente».
 4. Tras elegir, usar `select-list --list N` solo si no hay pendientes. Si falla, conservar la configuración y explicar el conflicto. Si no se puede verificar qué actor o checkout tiene un pendiente, diagnosticar antes de cambiar.
@@ -28,6 +28,10 @@ Cambiar de herramienta para continuar una tarea requiere que la ejecución anter
 | `/avanzar AUT-17 lista 2` | Comprobar y reservar sin repetir preguntas de selección. |
 | `/avanzar automático` | Recomendar/elegir según estado vivo y pedir reserva al servidor sin entrevistas innecesarias. |
 | `/new`, luego `/avanzar`, con reserva propia | Ofrecer continuar esa reserva; no crear otra ni resetear identidades. |
+| Hermes inicia o retoma `/avanzar` | Antes de elegir/reservar/construir, anunciar modelo y esfuerzo comprobados para conversación, construcción y revisión; marcar datos no verificables y avisar de cambios confirmados. |
+| Hermes con GPT disponible | GPT trabaja directamente; no iniciar OpenCode para construir ni revisar. No inventar esfuerzo si no es visible. |
+| Indisponibilidad de GPT confirmada y respaldo nativo activado | Anunciar el cambio y comprobar `taller-opencode doctor` antes de usar el respaldo DeepSeek Flash max, conservando reserva y alcance. |
+| OpenCode anterior aún activo en el clon | Conservar proceso/cambios/reserva; esperar punto seguro y finalización antes de retomar con GPT. No iniciar otro escritor. |
 | Lista llena, tarea ocupada o dependencias pendientes | Explicar el bloqueo real y ofrecer opciones compatibles. |
 | Sin credencial / sin red | Diagnosticar incorporación; no reservar ni editar como si hubiera permiso. |
 | Dos herramientas concurrentes en la misma carpeta | Detener el segundo inicio y usar una copia independiente autorizada; no cambiar de lista para esquivar la ocupación. |
