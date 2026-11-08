@@ -2,6 +2,7 @@
  'use strict';
  const STATES={hecho:'Hecho',parcial:'Parcial',pendiente:'Pendiente',bloqueado:'Bloqueado',replanteado:'Replanteado',descartado:'Descartado'};
  const ACTIVITY={planning:'Planificando',active:'En curso',paused:'Pausada',stale:'Sin contacto',submitted:'En revisión',completed:'Trabajo completado',unreserved:'Sin reserva'};
+ const AREAS=['Aplicantes, requisitos, matching y estados','Fuentes, agencias, integraciones y automatizaciones','Inbox, visitas, alquileres y ofertas','Propiedades, publicación, tours y analítica'];
  function validateBoard(b){
   if(!b||b.schemaVersion!==1||!Number.isSafeInteger(b.revision)||b.revision<0||!Number.isFinite(Date.parse(b.updatedAt))||!Array.isArray(b.lists)||!Array.isArray(b.tasks))throw Error('Respuesta incompatible');
   if(b.lists.length!==4||new Set(b.lists.map(l=>l.number)).size!==4||b.lists.some(l=>![1,2,3,4].includes(l.number)||l.name!=='Lista '+l.number||!Number.isInteger(l.capacity)||l.capacity<1||l.capacity>2||!Number.isInteger(l.activeCount)||l.activeCount<0))throw Error('Listas incompatibles');
@@ -11,7 +12,7 @@
  function mount(doc,win){
   const $=id=>doc.getElementById(id),el=(tag,text,cls)=>{const n=doc.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
   const cards=new Map(),columns=new Map();let board=null,lastSuccess=null,inFlight=false,stopped=false,poll=null,failures=0;
-  for(let number=1;number<=4;number++){const node=el('section',undefined,'column'),head=el('div',undefined,'column-head'),title=el('h2','Lista '+number),count=el('p','','count'),presence=el('p','Consultando…','presence'),tasks=el('div',undefined,'tasks'),empty=el('p','No hay tareas con estos filtros.','empty');head.append(title,count,presence);node.append(head,tasks,empty);$('columns').append(node);columns.set(number,{node,count,presence,tasks,empty});}
+  for(let number=1;number<=4;number++){const node=el('section',undefined,'column'),head=el('div',undefined,'column-head'),title=el('h2','Lista '+number),area=el('p',AREAS[number-1],'area muted'),count=el('p','','count'),presence=el('p','Consultando…','presence'),tasks=el('div',undefined,'tasks'),empty=el('p','No hay tareas con estos filtros.','empty');head.append(title,area,count,presence);node.append(head,tasks,empty);$('columns').append(node);columns.set(number,{node,count,presence,tasks,empty});}
   function freshness(){
    const stale=failures>0||lastSuccess===null||Date.now()-lastSuccess>=45000;
    $('connection').dataset.state=stale?'stale':'live';
