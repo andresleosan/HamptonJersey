@@ -1,4 +1,4 @@
-import { normalizeResource, resourcesConflict } from '../catalog.mjs';
+import { normalizeResource, resourcesConflict, slotCapacity } from '../catalog.mjs';
 import { fail, requireThat, text, identifier, gitSha, allowFields } from './errors.mjs';
 import { canonicalJson } from './retention.mjs';
 export const LEASE_MS=15*60*1000;
@@ -46,7 +46,8 @@ function conflicts(state,wanted,exceptId) {
   return state.claims.filter(c=>current(c)&&c.id!==exceptId&&c.resources.some(r=>wanted.some(w=>resourcesConflict(r,w)))).map(c=>({claimId:c.id,unitId:c.unitId,slot:c.slot}));
 }
 function availableIdentity(state,target,exceptId) {
-  return !state.claims.some(c=>current(c)&&c.id!==exceptId&&(c.slot===target.slot||c.sessionId===target.sessionId||c.checkoutId===target.checkoutId||c.actorId===target.actorId));
+  const occupied=state.claims.filter(c=>current(c)&&c.id!==exceptId);
+  return occupied.filter(c=>c.slot===target.slot).length<slotCapacity(state.catalog,target.slot)&&!occupied.some(c=>c.sessionId===target.sessionId||c.checkoutId===target.checkoutId||c.actorId===target.actorId);
 }
 export function assertAuthority(state,actor,path,body,now) {
   const match=path.match(/^\/v1\/claims\/([^/]+)\/(\w+)$/);
@@ -74,6 +75,10 @@ export function board(state,now=Date.now()) {
     blockers:(state.catalog?.units||[]).flatMap(u=>{const reasons=[];if(!u.enabled)reasons.push('disabled');if(!reviewed(state,u,state.claims.find(c=>current(c)&&c.unitId===u.id)?.resources||u.resources))reasons.push('review_required');const dependencies=dependencyBlockers(state,u);const occupied=conflicts(state,u.resources);return reasons.length||dependencies.length||occupied.length?[{unitId:u.id,reasons,dependencies,conflicts:occupied}]:[];})};
 }
 function importCatalog(state,catalog,sha,publication=false) {
+  for(const slot of catalog.slots) {
+    const occupied=state.claims.filter(c=>current(c)&&c.slot===slot.id).length;
+    requireThat(occupied<=slotCapacity(catalog,slot.id),'CATALOG_CAPACITY_CONFLICT','Catalogue capacity is below reserved occupancy.',{slot:slot.id,occupied,capacity:slotCapacity(catalog,slot.id)});
+  }
   for(const claim of state.claims.filter(current)) {
     const previous=unitFor(state,claim.unitId); const replacement=catalog.units.find(u=>u.id===claim.unitId);
     const identical=replacement&&canonicalJson(previous)===canonicalJson(replacement);
@@ -109,7 +114,7 @@ function dispatch(state,actor,path,body,prepared,now) {
       requireThat(own.mode===body.mode,'MODE_CONFLICT','Use resume to request a mode change.');return {claim:own};
     }
     requireThat(state.release?.status!=='synchronization_pending','CATALOG_SYNC_PENDING','Reconcile the published catalogue before starting new work.');
-    requireThat(availableIdentity(state,{...body,actorId:actor.actorId}),'CHECKOUT_OCCUPIED','Slot, session or checkout contains reserved work.');
+    requireThat(availableIdentity(state,{...body,actorId:actor.actorId}),'CHECKOUT_OCCUPIED','Actor, slot capacity, session or checkout contains reserved work.');
     const occupiedOrigins=new Set(state.claims.filter(current).map(c=>c.slot));
     const candidates=state.catalog.units.filter(u=>u.enabled&&!state.claims.some(c=>c.unitId===u.id&&c.status==='completed'&&c.mode==='build'&&completionCurrent(state,c))&&(!body.taskId||u.id===body.taskId||u.parentTaskId===body.taskId))
       .sort((a,b)=>Number(b.preferredSlot===body.slot)-Number(a.preferredSlot===body.slot)||a.priority-b.priority||a.id.localeCompare(b.id));
@@ -143,7 +148,7 @@ function dispatch(state,actor,path,body,prepared,now) {
     text(body.evidence,'handoff evidence',4000);allowFields(body.target,['actorId','slot','sessionId','checkoutId','hostId']);
     for(const name of ['actorId','sessionId','checkoutId','hostId'])identifier(body.target[name],`target ${name}`);
     requireThat(prepared.authorizedTarget===true,'TARGET_NOT_AUTHORIZED','Target identity and slot must be authorized.');
-    requireThat(availableIdentity(state,body.target,claim.id),'CHECKOUT_OCCUPIED','Target slot, session or checkout is occupied.');
+    requireThat(availableIdentity(state,body.target,claim.id),'CHECKOUT_OCCUPIED','Target actor, slot capacity, session or checkout is occupied.');
     claim.handoffs=[...(claim.handoffs||[]),{from:{actorId:claim.actorId,slot:claim.slot,sessionId:claim.sessionId,checkoutId:claim.checkoutId,hostId:claim.hostId},to:body.target,evidence:body.evidence,at:now}];
     Object.assign(claim,body.target,{generation:claim.generation+1,status:claim.status==='submitted'?'submitted':'paused',updatedAt:now,expiresAt:now+LEASE_MS});
     if(state.release?.claimId===claim.id)Object.assign(state.release,{actorId:claim.actorId,generation:claim.generation,sessionId:claim.sessionId,status:'uncertain',evidence:body.evidence,updatedAt:now,expiresAt:now+LEASE_MS});

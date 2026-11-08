@@ -30,7 +30,7 @@ export function catalogFromAllocation(allocation) {
       enabled:!HISTORICAL.has(task.estado),reviewRequired:!research,
       dependencies,resources,acceptance:[task.nextStep || task.falta || 'Conservar la evidencia histórica.']};
   });
-  const result = {schemaVersion:1,project:'hampton',slots:allocation.slots.map(({id,name,area})=>({id,name,area})),tasks,units};
+  const result = {schemaVersion:1,project:'hampton',slots:allocation.slots.map(({id,name,area,capacity})=>({id,name,area,...(capacity!==undefined?{capacity}:{})})),tasks,units};
   const errors = validateCatalog(result);
   if (errors.length) throw new Error(errors.join('; '));
   return result;

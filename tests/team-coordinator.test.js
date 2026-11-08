@@ -168,3 +168,71 @@ test('unbound evidence and incomplete reviewed resources cannot satisfy design d
   state.evidence.at(-1).reviewedResources=[];
   assert.equal(board(state,1000).evidence.at(-1).evidenceCurrent,false);assert.throws(()=>claim(state,{taskId:'B'}),error=>error.code==='NO_AVAILABLE_UNIT');
 });
+
+const hermesActor=id=>({actorId:id,role:'executor',slots:['hermes']});
+function twoHermesState({capacity=2,shared=false}={}) {
+  const state=initialized(['H1','H2','H3'].map((id,index)=>unit(id,[{key:shared?'notifications-schema':`task:hermes-${index}`,mode:'write'}],{preferredSlot:'hermes'})));
+  if(capacity!==undefined)state.catalog.slots.find(s=>s.id==='hermes').capacity=capacity;
+  return state;
+}
+
+test('two independent Hermes actors can reserve distinct units in one column, with an explicit limit of two',()=>{
+  const state=twoHermesState();const first=claim(state,{},hermesActor('hermes-1'));const second=claim(state,{},hermesActor('hermes-2'));
+  assert.notEqual(first.unitId,second.unitId);assert.equal(first.slot,'hermes');assert.equal(second.slot,'hermes');
+  assert.throws(()=>claim(state,{},hermesActor('hermes-3')),e=>e.code==='CHECKOUT_OCCUPIED');
+  assert.equal(state.claims.length,2);
+});
+
+test('legacy capacity remains one and one actor cannot acquire a second session or checkout',()=>{
+  const legacy=twoHermesState();delete legacy.catalog.slots.find(s=>s.id==='hermes').capacity;
+  claim(legacy,{},hermesActor('hermes-1'));assert.throws(()=>claim(legacy,{},hermesActor('hermes-2')),e=>e.code==='CHECKOUT_OCCUPIED');
+  const state=twoHermesState();const first=claim(state,{},hermesActor('hermes-1'));
+  assert.throws(()=>claim(state,{sessionId:'other-session',checkoutId:'other-checkout'},hermesActor('hermes-1')),e=>e.code==='CHECKOUT_OCCUPIED');
+  assert.equal(state.claims[0].id,first.id);assert.equal(state.claims.length,1);
+});
+
+test('paused and expired Hermes claims consume their places without releasing resources or generations',()=>{
+  const state=twoHermesState();const first=claim(state,{},hermesActor('hermes-1'));const second=claim(state,{},hermesActor('hermes-2'));
+  call(state,`/v1/claims/${first.id}/pause`,{...authority(first),evidence:'Saved work',pendingWork:true},hermesActor('hermes-1'));
+  assert.throws(()=>claim(state,{},hermesActor('hermes-3')),e=>e.code==='CHECKOUT_OCCUPIED');
+  const snapshot=board(state,1_000_000);assert.equal(snapshot.claims.filter(c=>c.status==='stale').length,2);
+  assert.throws(()=>call(state,'/v1/claims',{expectedRevision:state.revision,slot:'hermes',sessionId:'third-session',checkoutId:'third-checkout',hostId:'other-host',mode:'build',baseSha:sha},hermesActor('hermes-3'),1_000_000),e=>e.code==='CHECKOUT_OCCUPIED');
+  assert.equal(state.claims[0].generation,1);assert.deepEqual(state.claims[0].resources,first.resources);assert.equal(state.claims[1].id,second.id);
+});
+
+test('Hermes capacity does not bypass unit or logical resource conflicts',()=>{
+  const state=twoHermesState();const first=claim(state,{taskId:'H1'},hermesActor('hermes-1'));
+  assert.throws(()=>claim(state,{taskId:first.unitId},hermesActor('hermes-2')),e=>e.code==='NO_AVAILABLE_UNIT');
+  const conflicting=twoHermesState({shared:true});claim(conflicting,{},hermesActor('hermes-1'));
+  assert.throws(()=>claim(conflicting,{},hermesActor('hermes-2')),e=>e.code==='NO_AVAILABLE_UNIT');
+});
+
+test('handoff checks target capacity and actor, excluding only its source claim',()=>{
+  const state=twoHermesState();state.catalog.units.push(unit('VPS',[{key:'task:vps',mode:'write'}]));
+  const first=claim(state,{},hermesActor('hermes-1'));const second=claim(state,{},hermesActor('hermes-2'));const source=claim(state,{taskId:'VPS'});
+  const target={actorId:'hermes-3',slot:'hermes',sessionId:'third-session',checkoutId:'third-checkout',hostId:'third-host'};
+  assert.throws(()=>call(state,`/v1/claims/${source.id}/handoff`,{...authority(source),target,evidence:'Explicit saved transfer'},actor('vps','coordinator')),e=>e.code==='CHECKOUT_OCCUPIED');
+  assert.equal(state.claims.find(c=>c.id===source.id).generation,1);
+  assert.throws(()=>call(state,`/v1/claims/${first.id}/handoff`,{...authority(first),target:{...target,actorId:'hermes-2'},evidence:'Occupied actor'},actor('vps','coordinator')),e=>e.code==='CHECKOUT_OCCUPIED');
+  const moved=call(state,`/v1/claims/${first.id}/handoff`,{...authority(first),target,evidence:'Verified source replacement'},actor('vps','coordinator')).claim;
+  assert.equal(moved.generation,2);assert.equal(moved.actorId,'hermes-3');assert.equal(state.claims.find(c=>c.id===second.id).generation,1);
+});
+
+test('catalogue capacity reductions reject atomically while current paused or stale claims exceed the new limit',()=>{
+  const state=twoHermesState();const first=claim(state,{},hermesActor('hermes-1'));claim(state,{},hermesActor('hermes-2'));
+  call(state,`/v1/claims/${first.id}/pause`,{...authority(first),evidence:'Preserved work',pendingWork:false},hermesActor('hermes-1'));
+  const changed=structuredClone(state.catalog);changed.slots.find(s=>s.id==='hermes').capacity=1;const revision=state.revision;
+  assert.throws(()=>applyCommand(state,actor('vps','coordinator'),'/v1/catalog',{operationId:'reduce-hermes-capacity',expectedRevision:revision,sha},{catalog:changed},1_000_000),e=>e.code==='CATALOG_CAPACITY_CONFLICT');
+  assert.equal(state.revision,revision);assert.equal(state.catalog.slots.find(s=>s.id==='hermes').capacity,2);assert.equal(state.claims.length,2);
+});
+
+test('increasing legacy Hermes capacity and labels preserves current claims and reviewed unit contracts',()=>{
+  const state=twoHermesState();delete state.catalog.slots.find(s=>s.id==='hermes').capacity;
+  state.catalog.units[0].reviewRequired=true;
+  call(state,'/v1/evidence',{expectedRevision:state.revision,unitId:'H1',kind:'design',reference:'Exact original unit reviewed'},actor('vps','coordinator'));
+  const first=claim(state,{taskId:'H1'},hermesActor('hermes-1'));const original=structuredClone(first);
+  const changed=structuredClone(state.catalog);Object.assign(changed.slots.find(s=>s.id==='hermes'),{capacity:2,name:'Hermes 1 y Hermes 2'});
+  applyCommand(state,actor('vps','coordinator'),'/v1/catalog',{operationId:'increase-hermes-capacity',expectedRevision:state.revision,sha},{catalog:changed},2000);
+  assert.deepEqual(state.claims[0],original);assert.equal(board(state,2000).evidence[0].evidenceCurrent,true);
+  assert.equal(claim(state,{taskId:'H2'},hermesActor('hermes-2')).slot,'hermes');
+});

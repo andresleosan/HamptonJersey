@@ -1,68 +1,84 @@
-# Activación de los cuatro puestos
+# Activación de las cuatro listas
 
-El código se prepara y prueba separado de la web y de la base de datos de Hampton. Este documento no acredita que el servicio esté desplegado ni que los cuatro equipos estén conectados.
+Las tareas se distribuyen en **Lista 1, Lista 2, Lista 3 y Lista 4**. Cualquier cliente autorizado puede elegir cualquiera, independientemente de la herramienta o teléfono. Cada lista admite dos reservas; cada actor, sesión o checkout mantiene una sola. El catálogo conserva las 250 tareas, sus asignaciones y dependencias. La elección de lista no concede permiso para editar ni publicar.
 
-## Resultado preparado
+## Estado comprobado y pendientes
 
-- Catálogo de 250 puntos, propiedad única y unidades con dependencias: docs/roadmap/catalog.json.
-- Worker hampton-team-coordinator, Durable Object SQLite propio, sin binding a la base de Hampton. No tiene rutas públicas habilitadas por defecto.
-- Tablero de consulta autenticado y cliente portable, con reservas por tarea/puesto/checkout, recursos, relevo y turno único de publicación.
-- El propio agente puede usar plan para revisar alcance; build exige el diseño revisado y la evidencia de sus dependencias. Una asignación no concede permisos sobre configuración externa.
+El servicio está desplegado en `https://hampton-team-coordinator.andres-san1404.workers.dev`, protegido con Cloudflare Access. Las consultas anónimas se rechazan. VPS, Hermes 1 y Hermes 2 han verificado `status` desde sus entornos reales: 250 tareas, cuatro listas y revisión 1 del catálogo publicado `f85f247c505e177b0ffd3ab06be49163a682e314`. El dominio previsto `equipo.hamptonestatesjersey.com` sigue pendiente porque la zona usa DNS de Wix; no se migraron los DNS de la web.
 
-## Decisiones y capacidades pendientes
+Hermes 1 y Hermes 2 ya tienen talleres, homes, clones, sesiones y credenciales independientes; los accesos SSH cruzados se rechazan. El candado local de un taller no bloquea al otro. La simultaneidad se comprobó con archivos y candados locales independientes. Los nombres Lista 1–4, la capacidad dos simétrica y su selección están preparados en el checkout, sin desplegar; producción conserva `f85f247c505e177b0ffd3ab06be49163a682e314` y catálogo revisión 1. El piloto de reservas con la nueva capacidad requiere publicar esta entrega e importar su catálogo. Las cinco identidades ya están autorizadas para las cuatro listas; eso no acredita que los cinco clientes estén instalados o verificados. VS Code y Codex escritorio necesitan comprobaciones desde sus equipos reales. La incorporación es individual: cada cliente que complete su piloto puede trabajar sin esperar a los demás; una instalación o respuesta HTTP no demuestra ese piloto. Queda pendiente habilitar y comprobar la entrada humana al tablero con los correos autorizados en Access, sin publicar esas direcciones.
 
-Propuesta de URL estable: https://equipo.hamptonestatesjersey.com . Debe confirmarse y configurarse antes de iniciar los clientes. No se ha creado este dominio ni un registro DNS.
-
-La sesión de Wrangler disponible permite preparar Workers pero no acredita permisos de Cloudflare Access. La configuración de Access debe realizarla quien tenga acceso autorizado a esa cuenta, mediante su panel o un mecanismo autenticado admitido; no se necesitan claves por el chat.
-
-El taller compartido de Hermes1/2 tiene una allowlist de destinos que no incluye ese hostname. Requiere permitir únicamente el dominio acordado, conservando el proxy, el candado, el clon obligatorio y los wrappers. Este cambio no está aplicado ni se sustituye por acceso directo a la red.
-
-VS Code y Codex escritorio no están conectados a esta sesión. Necesitan una comprobación desde cada equipo; instalar archivos en GitHub no verifica sus instalaciones.
+El Worker `hampton-team-coordinator` usa su propio Durable Object SQLite, sin binding a la base de Hampton. El catálogo describe asignaciones; el servicio autenticado arbitra reservas, recursos, generaciones, evidencias y un único turno de publicación. `plan` permite documentación; `build` exige diseño revisado para el alcance y dependencias satisfechas. Ninguna asignación autoriza cambios de configuración externa.
 
 ## Configuración del servicio
 
-1. Revisar el commit final y autorizar su publicación por el flujo vigente de Hampton. Publicar solamente main; no crear previews de ramas sobre datos de producción.
-2. En Cloudflare, crear una aplicación Access para el hostname elegido: usuarios del equipo con acceso de consulta y credenciales de servicio individuales para los clientes. Hermes1/2 comparten puesto; no comparten identidad con el coordinador administrador.
-3. Configurar ACCESS_TEAM_DOMAIN y ACCESS_AUD para esa aplicación. Configurar TEAM_IDENTITIES_JSON con sujetos verificados y puestos admitidos. La clave de cada entrada procede del sujeto autenticado, no del nombre escrito por el cliente. Las identidades humanas del navegador son solo lectoras. Conceder rol coordinador solo a quien revisa diseños, recupera sesiones y registra evidencia.
-4. Guardar la configuración de identidades y credenciales por el gestor de secretos autorizado. Nada de valores de autenticación en Git, HTML, argumentos de procesos, capturas o mensajes. No reutilizar la llave de Hermes de negocio ni las cuentas admins del panel Hampton como permiso implícito.
-5. Generar assets con npm run team:build (dry-run). La carpeta coordination/public incluye únicamente cinco recursos de documentación y el índice; no se copia el árbol del repositorio.
-6. Desplegar el Worker preparado con su configuración revisada y enlazar el dominio protegido. Mantener workers_dev y preview_urls desactivados. La autenticación del Worker protege también los assets, aunque alguien alcance el origen directamente.
-7. Habilitar el hostname exacto en el taller por su procedimiento autorizado. Probar la salida por el proxy ya existente, sin copiar credenciales entre máquinas ni cambiar los controles de otros servicios.
-8. Importar el catálogo del SHA publicado mediante el comando catalog del cliente con identidad coordinadora. El servidor obtiene el fichero de GitHub canónico; no acepta definiciones arbitrarias enviadas por un ejecutor.
-9. Completar el piloto inferior y publicar el estado operativo canónico en docs/roadmap/ESTADO.md: fecha, origen real y comprobación de los cuatro puestos, sin identidades privadas. Actualizar también la skill, su referencia equipo.md y AVANZAR.md, sustituyendo las afirmaciones de activación pendiente. El arranque obligatorio vuelve a leer esas instrucciones desde main. Desde ese estado, un cliente sin configurar o sin conexión queda bloqueado para incorporarse; nunca puede elegir modo individual por no tener su configuración local. Tener el Worker desplegado, por sí solo, no habilita el trabajo paralelo antes del piloto y la actualización del contrato.
+1. Revisar el SHA final y obtener su autorización de publicación por el flujo de Hampton. Publicar solamente main; no crear previews de ramas sobre datos de producción.
+2. Mantener la aplicación Access del hostname aprobado, usuarios de consulta y credenciales de servicio individuales. Cada Hermes tiene identidad ejecutora propia; ninguna comparte la identidad coordinadora de la VPS. Las cinco identidades existentes pueden solicitar cualquiera de las listas sin ampliar su rol.
+3. Configurar `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` y `TEAM_IDENTITIES_JSON` con sujetos verificados y listas admitidas. Los IDs internos históricos se conservan solo por compatibilidad. La identidad procede del sujeto autenticado, no del nombre escrito por el cliente. Los usuarios del navegador son lectores; el rol coordinador se limita a revisión, recuperación y evidencia.
+4. Guardar identidades y credenciales mediante el gestor privado autorizado. Las identidades de servicio se provisionan por separado, con duración de 90 días. Nada de secretos en Git, HTML, argumentos, capturas o mensajes. No reutilizar la llave de Hermes de negocio ni cuentas admins de Hampton como permiso implícito.
+5. Generar assets con `npm run team:build` (dry-run). `coordination/public` incluye únicamente los cinco recursos de documentación y el índice; no copia el árbol del repositorio.
+6. Desplegar el Worker revisado. Conservar `workers_dev` habilitado únicamente para el origen temporal protegido y `preview_urls` desactivado. Usar `--keep-vars` para preservar la configuración privada existente. La autenticación protege también los assets del origen.
+7. Conservar el proxy, candado, clon obligatorio y wrappers de cada taller. El hostname temporal exacto ya está permitido; no habilitar salida directa ni destinos generales. No copiar credenciales entre máquinas.
+8. Importar el catálogo del SHA publicado con `catalog` y la identidad coordinadora. El servidor obtiene el fichero de GitHub canónico, sin aceptar definiciones arbitrarias del ejecutor.
+9. Completar el piloto de cada cliente y registrar resultados en ESTADO y el relevo, sin identidades privadas. Solo declarar completo el equipo al comprobar los cinco entornos. Sin configuración o conexión se conserva el trabajo y se diagnostica; no se usa un modo individual que eluda el coordinador.
 
-## Alta por puesto
+## Alta y elección de lista
 
-Usar Node 24 recomendado, Git 2.36 o superior y npm ci. Cada editor debe tener su checkout independiente. Nunca usar una carpeta con trabajo de otra persona para ejecutar la inicialización.
+Usar Node 20.18.1 o posterior (recomendado Node 24), Git 2.36 o posterior y `npm ci`. Cada editor conserva su checkout independiente. En Hermes, tomar el candado propio antes de usar el clon obligatorio; para el primer clon seguir el orden autorizado del taller.
 
-Desde el clon verificado de cada entorno:
+`init --list` y `select-list` pertenecen a esta entrega todavía sin publicar. Los ejemplos siguientes se ejecutan después de publicar, actualizar cada clon y comprobar el catálogo nuevo; no se presentan como disponibles en los clones que siguen en `f85f247c505e177b0ffd3ab06be49163a682e314`. La lista inicial es una elección independiente de la herramienta:
 
-| Persona / entorno | Inicialización del cliente |
-|---|---|
-| Luis, VPS | node scripts/avanzar-team.mjs init --slot vps --endpoint https://equipo.hamptonestatesjersey.com |
-| Hermes 1 o 2 | Tomar primero el candado existente; en su clon obligatorio ejecutar node scripts/avanzar-team.mjs init --slot hermes --endpoint https://equipo.hamptonestatesjersey.com |
-| Compañero en VS Code | node scripts/avanzar-team.mjs init --slot vscode --endpoint https://equipo.hamptonestatesjersey.com |
-| Compañero en Codex escritorio | node scripts/avanzar-team.mjs init --slot codex-desktop --endpoint https://equipo.hamptonestatesjersey.com |
+```sh
+node scripts/avanzar-team.mjs init --list 1 --endpoint "$TEAM_ENDPOINT"
+```
 
-La identidad de servicio de cada puesto se proporciona en CF_ACCESS_CLIENT_ID y CF_ACCESS_CLIENT_SECRET mediante el mecanismo privado permitido de ese equipo. El cliente no imprime sus valores. Su configuración/sesión local se conserva en el directorio privado de Git, fuera del contenido publicado. El cliente respeta HTTP_PROXY/HTTPS_PROXY/NO_PROXY cuando existen.
+Sustituir `1` por `2`, `3` o `4` según la lista elegida. En un checkout ya inicializado, cambiar solo la preferencia mediante:
 
-Tras inicializar, ejecutar node scripts/avanzar-team.mjs status. Solo una respuesta autenticada válida acredita conexión. Consultar [.agents/skills/avanzar/references/equipo.md](../.agents/skills/avanzar/references/equipo.md) para el ciclo de reserva y publicación. El usuario continúa escribiendo /avanzar en Hermes/Claude o $avanzar en Codex; el agente llama al cliente. La inicialización es única por checkout; no recrearla al cambiar de teléfono o reanudar la sesión.
+```sh
+node scripts/avanzar-team.mjs select-list --list 3
+node scripts/avanzar-team.mjs status
+node scripts/avanzar-team.mjs claim --mode plan
+```
 
-## Piloto antes de marcar los cuatro puestos operativos
+`select-list` consulta el tablero, conserva los identificadores y el estado privado y no reserva trabajo. Rechaza reservas propias abiertas —incluidas pausadas, sin contacto y entregadas—, operaciones desconocidas, aprobaciones o turno de publicación propios pendientes. `claim` comprueba autorización y disponibilidad. El servidor prioriza la lista elegida; puede asignar ayuda temporal a otra lista conservando la asignación original de la tarea. No se borra ni reinicializa una sesión para cambiar de lista. `init --slot` sigue disponible para compatibilidad, excluyente con `--list`; la correspondencia interna está en [equipo.md](../.agents/skills/avanzar/references/equipo.md).
 
-- Abrir la vista con una identidad de consulta y verificar que aparecen los 250 puntos.
-- Registrar cuatro respuestas status desde sus equipos reales, mostrando solo puesto, versión y catálogo; no los valores de autenticación.
-- Probar una tarea disputada: un ganador; el otro cliente recibe conflicto sin editar.
-- Probar cuatro tareas compatibles, confirmando nombres de puesto y reservas en las cuatro vistas.
-- Cambiar entre los dos teléfonos: mismo puesto y candado; no una segunda reserva.
-- Suspender un cliente: mostrar sin contacto sin ceder su trabajo; recuperar con relevo y nueva generación.
-- Preparar dos entregas independientes: una sola integración/publicación a la vez; nuevo SHA final se revisa antes de aprobarlo.
-- Verificar las pantallas en navegador real a 1280/390 y zoom 200%. En la sesión de construcción se pudo probar DOM y comportamiento; el recorrido visual quedó limitado por bibliotecas nativas disponibles.
+El operador proporciona `TEAM_ENDPOINT`, `CF_ACCESS_CLIENT_ID` y `CF_ACCESS_CLIENT_SECRET` por el mecanismo privado del cliente. Nunca se muestran sus valores ni se copian entre talleres. En clones con `.git/avanzar-team.env` privado (0600), anteponer `--env-file=.git/avanzar-team.env` a Node en cada comando; en worktrees usar su Git dir propio. El cliente no busca archivos de claves y respeta `HTTP_PROXY`, `HTTPS_PROXY` y `NO_PROXY`. Su configuración y sesión permanecen junto al Git dir, fuera del contenido publicado.
+
+Luis sigue escribiendo `/avanzar` en Hermes; el agente realiza estas operaciones. En Codex se usa `$avanzar`. Cambiar de herramienta no exige cambiar la lista ni compartir credenciales.
+
+## Hermes, OpenCode y DeepSeek
+
+El flujo elegido es **Hermes recibe el encargo → OpenCode construye y revisa → DeepSeek aporta el modelo**. Cada taller conserva sus sesiones y almacenes privados. OpenCode V2 oficial `@opencode/cli@2.2.6` está instalado y su versión se comprobó en ambos talleres. Usa configuración administrada, ejecución `run --standalone --format json` y no comparte servidor. El diagnóstico del helper rechaza continuar sin clave. La revisión independiente de sus controles dio PASS: directorio canónico, variables permitidas sin credenciales de Cloudflare ni aprobaciones, filtrado de stdout/stderr, configuración administrada intacta, revisión nueva sin shell y ejecución standalone en loopback. La capa de instalación para una futura imagen se probó sin red y con todas las capacidades retiradas, conservando los hashes de las guardas; no se reinició ningún taller para instalar OpenCode. Estas comprobaciones no incluyen inferencia real. La interfaz del taller es:
+
+```sh
+taller-opencode build -- <encargo>
+taller-opencode build --session <ID propio> -- <continuación>
+taller-opencode review -- <encargo de revisión>
+```
+
+La revisión siempre inicia una sesión nueva y no admite `--session`. El helper mantiene las guardas Git y el candado local, y excluye las marcas de aprobación de sus procesos. Tras revisar y aprobar el SHA exacto, Hermes realiza la publicación con un mandato separado mediante los wrappers existentes. La disponibilidad del binario no acredita autenticación ni inferencia correcta.
+
+La versión instalada de Hermes ya admite DeepSeek. Cada bot requiere una clave distinta, cuya disponibilidad todavía debe confirmarse. Se guarda desde su propio panel: `Keys → DeepSeek API Key → Save`. Después elegirá `Models → Main Model → Change → DeepSeek → deepseek-v4-pro → Apply` y abrirá una sesión nueva. No introducir las claves por Telegram ni en documentos públicos.
+
+**Cambiar Hermes no configura OpenCode automáticamente.** Tras guardar cada clave, el operador aprovisiona exclusivamente esa clave en el almacén privado del OpenCode de ese taller, por el canal administrativo autorizado. No se copia el `.env` completo ni se habilita el passthrough SSH de credenciales de proveedores. El modelo de OpenCode queda configurado explícitamente. Rotar o eliminar una clave en el panel exige revisar también el almacén de OpenCode.
+
+Las claves reales y la prueba de inferencia de cada taller siguen pendientes; no se ha hecho una petición de pago para acreditarlas. El login Codex pendiente de Hermes 2 se canceló porque ya no es requisito del flujo elegido. Codex puede seguir siendo una opción explícita de Luis, sin convertirlo en una dependencia de Hermes.
+
+## Piloto por cliente y comprobación del equipo
+
+- Completar el acceso humano mediante los correos autorizados de Access, sin registrarlos en documentos públicos. Tras publicar la nueva entrega, abrir la vista autenticada y comprobar 250 tareas con los encabezados exactos Lista 1, Lista 2, Lista 3 y Lista 4.
+- Registrar `status` desde cada entorno real que se incorpora, mostrando solo lista, versión y catálogo. Conservar como pendientes los entornos no accesibles.
+- Elegir una lista libre con `select-list`; comprobar que conserva identidades y no crea reserva. Con trabajo propio, verificar su rechazo sin pérdida de cambios.
+- Probar una tarea disputada: un ganador; el otro recibe conflicto y no edita. Repetir con recursos compartidos.
+- Probar tareas compatibles en las cuatro listas y dos actores distintos en una misma lista, respetando capacidad dos. La ayuda temporal conserva el origen de cada tarea.
+- Ejecutar ambos Hermes a la vez con homes, checkouts y sesiones distintos; confirmar reservas compatibles y la exclusión de tareas/recursos. La falta de contacto no libera plazas.
+- Suspender un cliente y comprobar «sin contacto» sin ceder su trabajo; recuperarlo con relevo y aceptación explícita de nueva generación.
+- Preparar dos entregas: una sola integración/publicación a la vez. Revisar el SHA final antes de aprobarlo y conservarlo intacto después.
+- Verificar navegador real a 1280/390 y zoom 200 %. Las pruebas DOM anteriores no sustituyen este recorrido; el arranque nativo estuvo bloqueado por el entorno de sandbox/root.
+- Cuando Luis guarde las claves y se aprovisionen en los talleres, verificar una ejecución mínima y una revisión nueva con DeepSeek por taller, registrando resultado real sin exponer credenciales.
 
 ## Operación y coste
 
-Con cuatro pestañas visibles, consultas cada 15 s son aproximadamente 960 lecturas por hora; cuatro sesiones que renuevan cada 60 s añaden 240 renovaciones por hora. Son estimaciones de tráfico, no precios ni consumo ya facturado. Revisar el plan, cuotas y coste de la cuenta antes de activar: [precios oficiales de Durable Objects](https://developers.cloudflare.com/durable-objects/platform/pricing/). Las pestañas ocultas suspenden consultas y los fallos aplican espera creciente.
+Cuatro pestañas visibles que consultan cada 15 s generan aproximadamente 960 lecturas por hora; cinco sesiones que renuevan cada 60 s añaden 300 renovaciones por hora. Son estimaciones de tráfico, no precios ni consumo facturado. Revisar el plan y las cuotas de la cuenta: [precios oficiales de Durable Objects](https://developers.cloudflare.com/durable-objects/platform/pricing/). Las pestañas ocultas suspenden consultas y los errores aplican espera creciente.
 
-No instalar servicios nuevos permanentes en el VPS para renovar sesiones. watch se ejecuta en primer plano mientras exista el encargo; si se detiene, la reserva pasa a sin contacto y permanece protegida. Mantener las evidencias y revisar el crecimiento del historial del coordinador según su política de retención documentada.
-
-V1 descarga el catálogo completo en cada respuesta válida del tablero; las respuestas condicionales por revisión quedan como optimización posterior. Comprobar el tráfico real del piloto antes de dejar varias pestañas móviles abiertas de forma continua.
+No instalar servicios permanentes del cliente para renovar sesiones. `watch` se ejecuta en primer plano durante el encargo; si se detiene, la reserva pasa a «sin contacto» y permanece protegida. Mantener las evidencias y revisar el crecimiento del historial según la política de retención. V1 descarga el catálogo completo en cada respuesta válida; las respuestas condicionales por revisión quedan como optimización posterior. Comprobar el tráfico real antes de dejar varias pestañas móviles abiertas continuamente.

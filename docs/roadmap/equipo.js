@@ -4,6 +4,9 @@
  const OPEN = new Set(['parcial','pendiente','bloqueado']);
  const LABELS = {hecho:'Hecho',parcial:'Parcial',pendiente:'Pendiente',bloqueado:'Bloqueado',replanteado:'Replanteado',descartado:'Descartado'};
  const REQUIRED = {design:'Contrato/diseño',integrated:'Código integrado',research_accepted:'Investigación aceptada',activated:'Activación comprobada',decision:'Decisión'};
+ const listName = (board,id) => board.slots.find(s=>s.id===id)?.name || 'Lista sin identificar';
+ const claimOrigin = (board,claim) => board.tasks.find(t=>t.id===board.units.find(u=>u.id===claim.unitId)?.parentTaskId)?.assignedSlot;
+ const actorName = id => ({'hermes-1':'Hermes 1','hermes-2':'Hermes 2'}[id] || id || 'Responsable');
  const timestamp = value => typeof value==='number'?value:Date.parse(value);
  const current = c => !['completed','complete','abandoned','released'].includes(c.status);
  const isStale = (last,now) => last === null || now-last >= 45000;
@@ -12,7 +15,7 @@
   if (!b || b.protocolVersion !== 1 || !Number.isSafeInteger(b.revision) || b.revision < 0 || !Number.isFinite(Date.parse(b.serverTime)) || (b.catalogSha !== null && typeof b.catalogSha !== 'string')) throw Error('Respuesta incompatible');
   for(const key of ['slots','tasks','units','claims','evidence','blockers']) if(!Array.isArray(b[key])) throw Error('Catálogo incompleto');
   const slots=new Set(b.slots.map(s=>s.id));
-  if(b.slots.some(s=>!s||typeof s.name!=='string'||typeof s.area!=='string'))throw Error('Puesto incompatible');
+  if(b.slots.some(s=>!s||typeof s.name!=='string'||typeof s.area!=='string'||(s.capacity!==undefined&&(!Number.isInteger(s.capacity)||s.capacity<1||s.capacity>2))))throw Error('Puesto incompatible');
   if(b.slots.length!==4 || slots.size!==4 || !['vps','hermes','vscode','codex-desktop'].every(s=>slots.has(s))) throw Error('Puestos incompatibles');
   const validResource=r=>r&&typeof r.key==='string'&&['read','write'].includes(r.mode);
   const ids=new Set();
@@ -51,7 +54,7 @@
    const occupied=b.claims.filter(c=>current(c)&&!unitIds.has(c.unitId)&&(u.resources||[]).some(r=>(c.resources||[]).some(s=>resourceConflict(r,s))));
    const blocks=b.blockers.filter(x=>(x.unitId===u.id||x.taskId===t.id)&&(x.message||x.reason||x.code||(x.reasons||[]).length||(x.dependencies||[]).length||(x.conflicts||[]).length));
    if(!pending.length&&!occupied.length&&!blocks.length)ready=true;
-   reasons.push(...pending.map(d=>'Falta '+(REQUIRED[d.requiredEvidence]||d.requiredEvidence)+' de '+d.unitId),...occupied.map(c=>'Conflicto de recursos con '+c.unitId+' · '+(c.slot||'puesto reservado')),...blocks.flatMap(x=>[...(x.reasons||[]).map(r=>({disabled:'Unidad deshabilitada',review_required:'Alcance por revisar'}[r]||r)),...(x.dependencies||[]).map(d=>'Falta '+(REQUIRED[d.requiredEvidence]||d.requiredEvidence)+' de '+d.unitId),...(x.conflicts||[]).map(c=>'Recurso reservado por '+c.unitId+' · '+c.slot),...(x.message||x.reason||x.code?[x.message||x.reason||x.code]:[])]));
+   reasons.push(...pending.map(d=>'Falta '+(REQUIRED[d.requiredEvidence]||d.requiredEvidence)+' de '+d.unitId),...occupied.map(c=>'Conflicto de recursos con '+c.unitId+' · '+listName(b,c.slot)),...blocks.flatMap(x=>[...(x.reasons||[]).map(r=>({disabled:'Unidad deshabilitada',review_required:'Alcance por revisar'}[r]||r)),...(x.dependencies||[]).map(d=>'Falta '+(REQUIRED[d.requiredEvidence]||d.requiredEvidence)+' de '+d.unitId),...(x.conflicts||[]).map(c=>'Recurso reservado por '+c.unitId+' · '+listName(b,c.slot)),...(x.message||x.reason||x.code?[x.message||x.reason||x.code]:[])]));
   }
   return {key:ready?'ready':review?'review':'blocked',label:ready?'Lista para reservar':review?'Alcance por revisar':'Bloqueada',claims:[],reasons};
  }
@@ -68,9 +71,9 @@
    let c=cards.get(t.id);
    if(!c){const node=el('details',undefined,'task');node.id='task-'+t.id;node.dataset.taskId=t.id;const summary=el('summary');summary.dataset.focusKey=t.id+':summary';c={node,summary,code:el('span',t.id,'code'),state:el('span','','state'),title:el('span','','title'),activity:el('span','','activity'),body:el('div',undefined,'detail')};summary.append(c.code,c.state,c.title,c.activity);node.append(summary,c.body);cards.set(t.id,c);}
    c.title.textContent=t.titulo;c.state.textContent=LABELS[t.estado]||t.estado||'Sin estado';const a=taskActivity(t,board,clock()),stale=lastSuccess!==null&&isStale(lastSuccess,Date.now());c.activity.textContent=lastSuccess===null?'Instantánea · sin disponibilidad verificada':stale?(a.key==='ready'?'Disponibilidad sin confirmar · última consulta: lista para reservar':'Último dato sin confirmar · '+a.label):a.label;c.node.dataset.activity=lastSuccess===null?'snapshot':a.key;c.node.dataset.freshness=lastSuccess===null?'snapshot':stale?'stale':'confirmed';
-   const signature=JSON.stringify([t,a,stale]);if(c.signature===signature)return c;c.signature=signature;
+   const signature=JSON.stringify([t,a,stale,a.claims.map(claim=>listName(board,claim.slot))]);if(c.signature===signature)return c;c.signature=signature;
    c.body.replaceChildren();block(c.body,'Siguiente paso',t.nextStep);
-   if(a.claims.length){for(const claim of a.claims)block(c.body,stale?'Reserva en última consulta':'Reserva actual',(claim.actorId||'Responsable verificado')+' · sesión '+(claim.sessionId||'sin identificador')+' · '+(claim.mode==='plan'?'revisión':'construcción')+' · vence '+(claim.expiresAt?new Date(timestamp(claim.expiresAt)).toLocaleString('es'):'sin fecha'));}else block(c.body,stale?'Reserva en última consulta':'Reserva actual',lastSuccess===null?'No se consultó el coordinador.':stale?'Sin reserva en la última consulta. La disponibilidad actual no está confirmada.':'Sin reserva actual. La disponibilidad depende de las unidades y su evidencia.');
+   if(a.claims.length){for(const claim of a.claims)block(c.body,stale?'Reserva en última consulta':'Reserva actual',actorName(claim.actorId)+' · desde '+listName(board,claim.slot)+' · sesión '+(claim.sessionId||'sin identificador')+' · '+(claim.mode==='plan'?'revisión':'construcción')+' · vence '+(claim.expiresAt?new Date(timestamp(claim.expiresAt)).toLocaleString('es'):'sin fecha'));}else block(c.body,stale?'Reserva en última consulta':'Reserva actual',lastSuccess===null?'No se consultó el coordinador.':stale?'Sin reserva en la última consulta. La disponibilidad actual no está confirmada.':'Sin reserva actual. La disponibilidad depende de las unidades y su evidencia.');
    if(a.reasons.length)block(c.body,'Bloqueos y conflictos',a.reasons.join('\n'));
    block(c.body,'Responsable del checklist',t.responsable==='—'?'Historial':t.responsable);
    if(t.externalBlocker)block(c.body,'Dependencia externa',t.externalBlocker);
@@ -85,18 +88,18 @@
    const active=doc.activeElement,key=active&&active.dataset.focusKey,x=win.scrollX,y=win.scrollY;
    const q=$('search').value.toLocaleLowerCase().trim(),state=$('state').value,slot=$('slot').value,execution=$('activity').value;
    const known=new Set(board.tasks.map(t=>t.id));for(const [id,c] of cards)if(!known.has(id)){c.node.remove();cards.delete(id);}
-   const slotSignature=JSON.stringify(board.slots.map(s=>[s.id,s.name]));if($('slot').dataset.signature!==slotSignature){$('slot').replaceChildren(el('option','Los cuatro puestos'));$('slot').firstChild.value='';for(const s of board.slots){const o=el('option',s.name);o.value=s.id;$('slot').append(o);}$('slot').value=slot;$('slot').dataset.signature=slotSignature;}
+   const slotSignature=JSON.stringify(board.slots.map(s=>[s.id,s.name]));if($('slot').dataset.signature!==slotSignature){$('slot').replaceChildren(el('option','Las cuatro listas'));$('slot').firstChild.value='';for(const s of board.slots){const o=el('option',s.name);o.value=s.id;$('slot').append(o);}$('slot').value=slot;$('slot').dataset.signature=slotSignature;}
    let visible=0;
    for(const s of board.slots){let col=columns.get(s.id);if(!col){col={node:el('section',undefined,'column'),head:el('div',undefined,'column-head'),name:el('h2'),area:el('p','','muted'),count:el('p','','count'),presence:el('p','','presence'),list:el('div',undefined,'tasks'),empty:el('p','No hay tareas con estos filtros. Usa «Mostrar todas» para recuperar el reparto.','empty')};col.head.append(col.name,col.area,col.count,col.presence);col.node.append(col.head,col.list,col.empty);$('columns').append(col.node);columns.set(s.id,col);}
     col.name.textContent=s.name;col.area.textContent=s.area||'';col.node.setAttribute('aria-label',s.name);col.node.hidden=Boolean(slot&&slot!==s.id);
     const assigned=board.tasks.filter(t=>t.assignedSlot===s.id);let shown=0;
     for(const [index,t] of assigned.entries()){const c=updateCard(t);if(col.list.children[index]!==c.node)col.list.insertBefore(c.node,col.list.children[index]||null);const match=(!state||t.estado===state)&&(!unresolved||OPEN.has(t.estado))&&(!execution||c.node.dataset.activity===execution)&&(!q||(t.id+' '+t.titulo+' '+(t.nextStep||'')).toLocaleLowerCase().includes(q));c.node.hidden=!match;if(match)shown++;}
     col.empty.hidden=shown>0;col.count.textContent=shown+' visibles de '+assigned.length+' · '+assigned.filter(t=>OPEN.has(t.estado)).length+' por resolver';
-    const held=board.claims.filter(c=>c.slot===s.id&&current(c));col.presence.textContent=lastSuccess===null?'Ocupación sin verificar':held.length?held.map(c=>(c.actorId||'Responsable')+' · '+(c.status==='paused'?'pausada':c.status==='stale'||timestamp(c.expiresAt)<=clock()?'sin contacto':c.mode==='plan'?'revisando':'en curso')).join(' / '):'Puesto sin reserva';if(lastSuccess!==null&&isStale(lastSuccess,Date.now()))col.presence.textContent='Último dato sin confirmar · '+col.presence.textContent;if(!col.node.hidden)visible+=shown;
+    const held=board.claims.filter(c=>c.slot===s.id&&current(c));col.presence.textContent=lastSuccess===null?'Ocupación sin verificar':held.length?held.map(c=>actorName(c.actorId)+' · '+c.unitId+' · '+(c.status==='paused'?'pausada':c.status==='stale'||timestamp(c.expiresAt)<=clock()?'sin contacto':c.mode==='plan'?'revisando':'en curso')+(claimOrigin(board,c)&&claimOrigin(board,c)!==s.id?' · ayudando en '+listName(board,claimOrigin(board,c)):'')).join(' / '):'Puesto sin reserva';if(lastSuccess!==null&&(s.capacity||1)>1)col.presence.textContent=held.length+' de '+s.capacity+' reservas · '+col.presence.textContent;if(lastSuccess!==null&&isStale(lastSuccess,Date.now()))col.presence.textContent='Último dato sin confirmar · '+col.presence.textContent;if(!col.node.hidden)visible+=shown;
    }
    $('totals').textContent=board.tasks.length+' puntos · '+board.slots.map(s=>s.name+': '+board.tasks.filter(t=>t.assignedSlot===s.id).length).join(' · ');
    $('reset').textContent='Mostrar todas ('+board.tasks.length+')';$('result').textContent=visible+' de '+board.tasks.length+' puntos visibles. Cada código tiene una asignación.';$('open-only').setAttribute('aria-pressed',String(unresolved));
-   $('release').textContent=board.release?'Turno de publicación: '+(board.release.slot||board.release.actorId||board.release.status||'reservado')+' · '+({held:'reservado',uncertain:'resultado pendiente de reconciliar',synchronization_pending:'publicado, sincronización pendiente'}[board.release.status]||board.release.status||'ocupado'):(lastSuccess===null?'Turno de publicación sin consultar.':'Sin turno de publicación registrado.');
+   $('release').textContent=board.release?'Turno de publicación: '+(board.release.slot?listName(board,board.release.slot):(board.release.actorId||board.release.status||'reservado'))+' · '+({held:'reservado',uncertain:'resultado pendiente de reconciliar',synchronization_pending:'publicado, sincronización pendiente'}[board.release.status]||board.release.status||'ocupado'):(lastSuccess===null?'Turno de publicación sin consultar.':'Sin turno de publicación registrado.');
    if(key&&(!active.isConnected||doc.activeElement!==active)){const next=Array.from(doc.querySelectorAll('[data-focus-key]')).find(n=>n.dataset.focusKey===key);if(next)next.focus({preventScroll:true});}win.scrollTo(x,y);
   }
   function freshness(){

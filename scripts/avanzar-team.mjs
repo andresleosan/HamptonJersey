@@ -9,6 +9,7 @@ import { checkAvanzar } from './check-avanzar.mjs';
 import { normalizeResource as normalizeCanonicalResource } from '../coordination/catalog.mjs';
 
 const SLOTS = ['vps', 'hermes', 'vscode', 'codex-desktop'];
+const ACTOR_ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,159}$/;
 const SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i;
 const UUID = /^[a-zA-Z0-9_-]{1,100}$/;
 export class TeamError extends Error {
@@ -145,7 +146,7 @@ async function request(config, path, body, env) {
 }
 function options(argv) {
   const [command,...rest]=argv;const opts={},positionals=[];
-  const permitted=['endpoint','slot','mode','task','path','read-path','write','read','resource','summary','claim','generation','target-actor','target-slot','target-session-id','target-checkout-id','target-host-id','evidence','unit','kind','reference','sha','approved-sha'];
+  const permitted=['endpoint','slot','list','mode','task','path','read-path','write','read','resource','summary','claim','generation','target-actor','target-slot','target-session-id','target-checkout-id','target-host-id','evidence','unit','kind','reference','sha','approved-sha'];
   for(let i=0;i<rest.length;i++) {
     if(!rest[i].startsWith('--')) {positionals.push(rest[i]);continue;}
     const key=rest[i].slice(2);
@@ -157,6 +158,7 @@ function options(argv) {
   return {command,opts,positionals};
 }
 const required=(value,label)=>{if(typeof value!=='string'||!value.trim()||value.length>4000)fail('usage',`Missing or invalid ${label}.`);return value;};
+function slotFromList(value){if(typeof value!=='string'||! /^[1-4]$/.test(value))fail('usage','List must be exactly 1, 2, 3 or 4.');return SLOTS[Number(value)-1];}
 function validSha(value){if(!SHA.test(value||''))fail('usage','A full Git SHA is required.');return value.toLowerCase();}
 function inspect(root,env,check,{clean=false,approvedSha,allowDiverged=false}={}) {
   if(approvedSha && env.TALLER_SHA_APROBADO && approvedSha.toLowerCase()!==env.TALLER_SHA_APROBADO.toLowerCase())fail('approved_mismatch','Requested SHA differs from the approved frozen SHA.',2);
@@ -179,7 +181,11 @@ async function safeScope(root, resource) {
 
 export async function runCommand(argv, {cwd=process.cwd(),env=process.env,check=checkAvanzar}={}) {
   const {command,opts,positionals}=options(argv);
-  if(!['init','status','claim','renew','watch','scope','pause','resume','handoff','accept-handoff','submit','abandon','complete','evidence','catalog','release'].includes(command))fail('usage','Usage: node scripts/avanzar-team.mjs init|status|claim|renew|watch|scope|pause|resume|handoff|accept-handoff|submit|abandon|complete|evidence|catalog|release');
+  if(!['init','select-list','status','claim','renew','watch','scope','pause','resume','handoff','accept-handoff','submit','abandon','complete','evidence','catalog','release'].includes(command))fail('usage','Usage: node scripts/avanzar-team.mjs init|select-list|status|claim|renew|watch|scope|pause|resume|handoff|accept-handoff|submit|abandon|complete|evidence|catalog|release');
+  if(Object.hasOwn(opts,'slot')&&Object.hasOwn(opts,'list'))fail('usage','Choose either --list or legacy --slot, never both.');
+  if(Object.hasOwn(opts,'list')&&!['init','select-list'].includes(command))fail('usage','Choose a list with init or select-list before requesting work.');
+  if(command==='select-list'&&(positionals.length||Object.keys(opts).some(key=>key!=='list')))fail('usage','Usage: select-list --list 1|2|3|4.');
+  const requestedSlot=command==='init'?(Object.hasOwn(opts,'list')?slotFromList(opts.list):opts.slot):command==='select-list'?slotFromList(opts.list):undefined;
   if(command==='watch') {
     if(positionals.length||Object.keys(opts).length)fail('usage','Usage: watch (foreground; renew every 60 seconds).');
     const abort=new AbortController();const stop=()=>abort.abort();process.once('SIGINT',stop);process.once('SIGTERM',stop);
@@ -190,24 +196,35 @@ export async function runCommand(argv, {cwd=process.cwd(),env=process.env,check=
   try {
     let config=await readPrivate(repo.configFile,true);let state=await readPrivate(repo.stateFile,true);
     if(command==='init') {
-      const endpoint=validateEndpoint(required(opts.endpoint,'endpoint'));if(!SLOTS.includes(opts.slot))fail('usage','Slot must be vps, hermes, vscode or codex-desktop.');
+      const endpoint=validateEndpoint(required(opts.endpoint,'endpoint'));if(!SLOTS.includes(requestedSlot))fail('usage','Choose --list 1|2|3|4 or a valid legacy --slot.');
       const initial=inspect(repo.root,env,check,{clean:true});
       if(!config && initial.relation!=='equal')fail('pending_work','Initialize a clean canonical checkout; preserve pending commits first.',2);
       if(config) {
-        if(config.endpoint!==endpoint||config.slot!==opts.slot||state?.root!==repo.root)fail('configuration','Existing checkout configuration differs; preserve its session and slot.',2);
-        return sanitize({status:'initialized',config},env);
+        if(config.endpoint!==endpoint||config.slot!==requestedSlot||state?.root!==repo.root)fail('configuration','Existing checkout configuration differs; preserve its session and slot.',2);
+        return sanitize({status:'initialized',list:SLOTS.indexOf(config.slot)+1,config},env);
       }
       const hostId=createHash('sha256').update(`${process.platform}:${hostname().toLowerCase()}`).digest('hex').slice(0,32);
-      config={endpoint,slot:opts.slot,sessionId:randomUUID(),hostId,checkoutId:randomUUID()};
+      config={endpoint,slot:requestedSlot,sessionId:randomUUID(),hostId,checkoutId:randomUUID()};
       state={version:1,root:repo.root,claim:null,pending:null};await atomicPrivate(repo.stateFile,state);await atomicPrivate(repo.configFile,config);
-      return sanitize({status:'initialized',config},env);
+      return sanitize({status:'initialized',list:SLOTS.indexOf(config.slot)+1,config},env);
     }
     if(!config||!state||state.root!==repo.root||state.version!==1)fail('configuration','Initialize this checkout; copied or shared configuration cannot be adopted.');
     validateEndpoint(config.endpoint);
     if(!SLOTS.includes(config.slot)||!['sessionId','checkoutId','hostId'].every(k=>UUID.test(config[k]||'')))fail('configuration','Invalid private session configuration.');
     const board=await request(config,'/v1/board',null,env);
     if(board.protocolVersion!==1||!Number.isSafeInteger(board.revision)||!Array.isArray(board.claims)||!Array.isArray(board.units))fail('protocol','Unsupported or malformed coordinator board.');
-    if(command==='status')return sanitize({...board,local:{slot:config.slot,sessionId:config.sessionId,checkoutId:config.checkoutId,claim:state.claim,pending:state.pending?{command:state.pending.command,operationId:state.pending.body.operationId}:null}},env);
+    if(command==='status')return sanitize({...board,local:{list:SLOTS.indexOf(config.slot)+1,slot:config.slot,sessionId:config.sessionId,checkoutId:config.checkoutId,claim:state.claim,pending:state.pending?{command:state.pending.command,operationId:state.pending.body.operationId}:null}},env);
+    if(command==='select-list') {
+      if(board.claims.some(claim=>!claim||typeof claim.id!=='string'||typeof claim.status!=='string')||(board.release!==null&&board.release!==undefined&&(typeof board.release!=='object'||Array.isArray(board.release))))fail('protocol','Cannot verify local work from this coordinator board.');
+      const terminal=claim=>['completed','abandoned','handed_off'].includes(claim.status);
+      const associated=board.claims.filter(claim=>claim.id===state.claim?.id||claim.sessionId===config.sessionId||claim.checkoutId===config.checkoutId);
+      const unconfirmedLocal=state.claim&&!terminal(state.claim)&&!board.claims.some(claim=>claim.id===state.claim.id&&terminal(claim));
+      const ownRelease=board.release&&(board.release.sessionId===config.sessionId||board.release.checkoutId===config.checkoutId||board.release.claimId===state.claim?.id||associated.some(claim=>claim.id===board.release.claimId));
+      if(state.pending||state.approvedRelease||env.TALLER_SHA_APROBADO||env.TALLER_PUSH_APROBADO==='1'||env.TALLER_MIGRACION_APROBADA==='1'||associated.some(claim=>!terminal(claim))||unconfirmedLocal||ownRelease)fail('list_busy','Preserve the current claim, operation, approval or publication turn before selecting another list.',2);
+      const selected={...config,slot:requestedSlot};
+      if(config.slot!==requestedSlot)await atomicPrivate(repo.configFile,selected);
+      return sanitize({status:'list_selected',list:SLOTS.indexOf(requestedSlot)+1,preferenceOnly:true,config:selected,revision:board.revision,catalogSha:board.catalogSha},env);
+    }
     const semantic=JSON.stringify({command,opts:Object.fromEntries(Object.entries(opts).sort(([a],[b])=>a.localeCompare(b))),positionals});
     const explicitHandoff=command==='handoff' && opts.claim;
     if(explicitHandoff && (!UUID.test(opts.claim)||!/^\d+$/.test(opts.generation||'')||!Number.isSafeInteger(Number(opts.generation))))fail('usage','Explicit coordinator handoff requires --claim and --generation.');
@@ -333,7 +350,7 @@ export async function runCommand(argv, {cwd=process.cwd(),env=process.env,check=
     if(command==='pause') {body.evidence=required(opts.evidence,'pause evidence');body.pendingWork=changedPaths(repo.root,current.baseSha,env).length>0 || git(repo.root,['rev-parse','HEAD'],env).trim()!==current.baseSha;}
     if(command==='handoff'){
       body.target={actorId:required(opts['target-actor'],'target actor'),slot:required(opts['target-slot'],'target slot'),sessionId:required(opts['target-session-id'],'target session'),checkoutId:required(opts['target-checkout-id'],'target checkout'),hostId:required(opts['target-host-id'],'target host')};
-      if(!SLOTS.includes(body.target.slot)||!['actorId','sessionId','checkoutId','hostId'].every(k=>UUID.test(body.target[k])))fail('usage','Invalid target identity.');
+      if(!SLOTS.includes(body.target.slot)||!ACTOR_ID.test(body.target.actorId)||!['sessionId','checkoutId','hostId'].every(k=>UUID.test(body.target[k])))fail('usage','Invalid target identity.');
       body.evidence=required(opts.evidence,'handoff evidence');
     }
     if(command==='submit') {

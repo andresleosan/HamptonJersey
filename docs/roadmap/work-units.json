@@ -4,23 +4,27 @@
   "slots": [
     {
       "id": "vps",
-      "name": "1 · VPS · Luis",
-      "area": "Aplicantes, requisitos, matching y estados"
+      "name": "Lista 1",
+      "area": "Aplicantes, requisitos, matching y estados",
+      "capacity": 2
     },
     {
       "id": "hermes",
-      "name": "2 · Hermes · teléfono 1 o 2",
-      "area": "Fuentes, agencias, integraciones y automatizaciones"
+      "name": "Lista 2",
+      "area": "Fuentes, agencias, integraciones y automatizaciones",
+      "capacity": 2
     },
     {
       "id": "vscode",
-      "name": "3 · VS Code",
-      "area": "Inbox, visitas, alquileres y ofertas"
+      "name": "Lista 3",
+      "area": "Inbox, visitas, alquileres y ofertas",
+      "capacity": 2
     },
     {
       "id": "codex-desktop",
-      "name": "4 · Codex escritorio",
-      "area": "Propiedades, publicación, tours y analítica"
+      "name": "Lista 4",
+      "area": "Propiedades, publicación, tours y analítica",
+      "capacity": 2
     }
   ],
   "units": [

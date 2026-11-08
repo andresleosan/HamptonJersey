@@ -1,5 +1,7 @@
 # Avanzar en equipo: cuatro puestos coordinados
 
+> Actualización de decisión, 8-nov-2026: Luis pidió después separar los dos Hermes y usarlos simultáneamente. La regla histórica de alternancia de este documento queda sustituida por [Hermes independientes](2026-11-08-hermes-independientes-design.md); se conservan cuatro columnas, con dos actores distintos en Hermes.
+
 Estado: implementación local solicitada por Luis y construida el 8-nov-2026; validación y revisión registradas en el [ledger](../plans/2026-11-08-avanzar-equipo-ledger.md). Publicación, acceso privado y piloto en los cuatro equipos pendientes. No acredita un servicio activo.
 
 ## Objetivo y base comprobada

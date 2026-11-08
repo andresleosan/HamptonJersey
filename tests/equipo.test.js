@@ -61,3 +61,14 @@ test('historical evidence does not authorize a revised unit contract', () => {
  const b=fixture(),t=b.tasks[0];b.units=[{id:'a',parentTaskId:t.id,enabled:true,reviewRequired:true,dependencies:[],resources:[]}];b.evidence=[{unitId:'a',kind:'design',evidenceCurrent:false}];assert.equal(api.taskActivity(t,b).key,'review');b.evidence[0].evidenceCurrent=true;assert.equal(api.taskActivity(t,b).key,'ready');
  b.units[0].dependencies=[{unitId:'dep',requiredEvidence:'research_accepted'}];b.evidence.push({unitId:'dep',kind:'research_accepted',evidenceCurrent:false});assert.equal(api.taskActivity(t,b).key,'blocked');b.evidence[1].evidenceCurrent=true;assert.equal(api.taskActivity(t,b).key,'ready');
 });
+
+test('board accepts legacy single capacity and rejects invalid column capacity', () => {
+ const b=fixture();
+ for(const capacity of [0,3,1.5,'2',null])assert.throws(()=>api.validateBoard({...b,slots:b.slots.map(s=>s.id==='hermes'?{...s,capacity}:s)}));
+ for(const capacity of [undefined,1,2])assert.equal(api.validateBoard({...b,slots:b.slots.map(s=>s.id==='hermes'?{...s,capacity}:s)}).tasks.length,250);
+});
+
+test('columns have tool-independent list names and the same capacity', () => {
+ assert.deepEqual(snapshot.slots.map(s=>s.name),['Lista 1','Lista 2','Lista 3','Lista 4']);
+ assert.deepEqual(snapshot.slots.map(s=>s.capacity),[2,2,2,2]);
+});

@@ -1,5 +1,10 @@
 export const SLOT_IDS = ['vps', 'hermes', 'vscode', 'codex-desktop'];
 export const EVIDENCE_KINDS = ['design','integrated','research_accepted','activated','decision'];
+
+export function slotCapacity(catalog,slotId) {
+  const capacity=catalog?.slots?.find(slot=>slot?.id===slotId)?.capacity;
+  return Number.isInteger(capacity)&&capacity>=1&&capacity<=2?capacity:1;
+}
 const ID = /^[A-Z][A-Z0-9]*-\d{2,}(?:\/[a-z0-9-]+)?$/;
 
 export function normalizeResource(resource) {
@@ -28,6 +33,7 @@ export function validateCatalog(catalog) {
   if (catalog.tasks.length > 2000 || catalog.units.length > 5000) return ['Catalogue too large'];
   const slots = catalog.slots.map(s=>s?.id);
   if (slots.length !== SLOT_IDS.length || new Set(slots).size !== SLOT_IDS.length || SLOT_IDS.some(id=>!slots.includes(id))) errors.push('Invalid slots');
+  for(const slot of catalog.slots)if(slot?.capacity!==undefined&&(!Number.isInteger(slot.capacity)||slot.capacity<1||slot.capacity>2))errors.push('Invalid slot capacity');
   const tasks = new Map(), units = new Map(), covered = new Set();
   for (const task of catalog.tasks) {
     if (!task || !ID.test(task.id) || task.id.includes('/')) { errors.push('Invalid task ID'); continue; }

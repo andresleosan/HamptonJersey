@@ -98,3 +98,24 @@ test('generated tasks and board share one catalogue and stale output is rejected
     renderRoadmap(dir,{check:true});
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test('slot capacities preserve explicit Hermes two and default omitted legacy capacity to one',()=>{
+  const allocation=JSON.parse(fs.readFileSync(path.join(root,'docs/roadmap/reparto-equipo.json')));
+  for(const slot of allocation.slots)delete slot.capacity;
+  let catalog=api.catalogFromAllocation(allocation);
+  assert.equal(shared.slotCapacity(catalog,'hermes'),1);
+  allocation.slots.find(slot=>slot.id==='hermes').capacity=2;
+  catalog=api.catalogFromAllocation(allocation);
+  assert.equal(catalog.slots.find(slot=>slot.id==='hermes').capacity,2);
+  assert.equal(shared.slotCapacity(catalog,'hermes'),2);
+  assert.equal(shared.slotCapacity(catalog,'vps'),1);
+  assert.deepEqual(shared.validateCatalog(catalog),[]);
+});
+
+test('catalogue rejects noninteger and out-of-range slot capacities',()=>{
+  for(const capacity of [0,3,-1,1.5,'2',null,true]){
+    const allocation=JSON.parse(fs.readFileSync(path.join(root,'docs/roadmap/reparto-equipo.json')));
+    allocation.slots.find(slot=>slot.id==='hermes').capacity=capacity;
+    assert.throws(()=>api.catalogFromAllocation(allocation),/capacity/i);
+  }
+});

@@ -1,7 +1,7 @@
 name = "hampton-team-coordinator"
 main = "src/worker.mjs"
 compatibility_date = "2026-10-01"
-workers_dev = false
+workers_dev = true
 preview_urls = false
 
 [[durable_objects.bindings]]
@@ -18,5 +18,6 @@ binding = "ASSETS"
 run_worker_first = true
 
 # Configure ACCESS_TEAM_DOMAIN, ACCESS_AUD and TEAM_IDENTITIES_JSON explicitly
-# before activation. No executor identity or public route is enabled by default.
+# before enabling clients. The workers.dev hostname is protected by the approved Access app;
+# preview URLs remain disabled. Deploy with --keep-vars to preserve the private configuration.
 # An optional COORDINATION_GITHUB_TOKEN is a separate read-only repository secret.

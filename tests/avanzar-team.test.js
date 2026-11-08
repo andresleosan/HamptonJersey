@@ -8,7 +8,7 @@ const { execFileSync } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
 const load = () => import('../scripts/avanzar-team.mjs');
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-async function fixture(t) {
+async function fixture(t, {initialList} = {}) {
   const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'team-client-'));
   t.after(() => fs.rm(cwd, { recursive: true, force: true }));
   git(cwd, 'init', '-b', 'main'); git(cwd, 'config', 'user.email', 'test@example.invalid'); git(cwd, 'config', 'user.name', 'Test');
@@ -27,7 +27,7 @@ async function fixture(t) {
   const env = { CF_ACCESS_CLIENT_ID: 'client-secret-id', CF_ACCESS_CLIENT_SECRET: 'super-secret-value' };
   const { runCommand } = await load();
   const run = args => runCommand(args, {cwd, env, check});
-  await run(['init', '--endpoint', endpoint, '--slot', 'vps']);
+  await run(['init','--endpoint',endpoint,...(initialList===undefined?['--slot','vps']:['--list',String(initialList)])]);
   return { cwd, endpoint, board, requests, run, env, check, baseSha, setHandler: fn => { handler = fn; } };
 }
 
@@ -463,4 +463,131 @@ test('approval declared during authenticated handoff acceptance remains frozen f
   const state=JSON.parse(await fs.readFile(path.join(f.cwd,'.git/avanzar-team-session.json')));assert.equal(state.approvedRelease?.sha,f.baseSha);
   await fs.writeFile(path.join(f.cwd,'docs/plan.md'),'changed after accepted approval');git(f.cwd,'add','.');git(f.cwd,'commit','-m','changed after approval');
   await assert.rejects(f.run(['submit','--summary','Still frozen']),/approved|frozen/i);
+});
+
+for(const targetActor of ['vps','hermes-1','hermes-2','operator@hermes/2'])test(`handoff accepts server-compatible semantic actor ${targetActor}`,async t=>{
+  const f=await fixture(t);await f.run(['claim','--mode','plan']);
+  await f.run(['handoff','--target-actor',targetActor,'--target-slot','hermes','--target-session-id','target-session','--target-checkout-id','target-checkout','--target-host-id','target-host','--evidence','Verified private transfer']);
+  const handoff=f.requests.find(request=>request.url.endsWith('/handoff'));assert.equal(handoff.body.target.actorId,targetActor);
+});
+
+test('handoff actor validation matches server identifiers and rejects invalid target names before mutation',async t=>{
+  const f=await fixture(t);await f.run(['claim','--mode','plan']);
+  for(const targetActor of ['', 'bad actor','bad?actor','bad\nactor','x'.repeat(161)]){
+    await assert.rejects(f.run(['handoff','--target-actor',targetActor,'--target-slot','hermes','--target-session-id','target-session','--target-checkout-id','target-checkout','--target-host-id','target-host','--evidence','Reviewed transfer']),error=>error.code==='usage');
+  }
+  assert.equal(f.requests.filter(request=>request.url.endsWith('/handoff')).length,0);
+});
+
+test('handoff accepts the server actor length limit without widening session identifiers',async t=>{
+  const f=await fixture(t);await f.run(['claim','--mode','plan']);const targetActor='a'.repeat(160);
+  await f.run(['handoff','--target-actor',targetActor,'--target-slot','hermes','--target-session-id','target-session','--target-checkout-id','target-checkout','--target-host-id','target-host','--evidence','Explicit transfer at identifier length boundary']);
+  assert.equal(f.requests.find(request=>request.url.endsWith('/handoff')).body.target.actorId.length,160);
+});
+
+for(const [number,slot] of [[1,'vps'],[2,'hermes'],[3,'vscode'],[4,'codex-desktop']])test(`init list ${number} aliases the legacy slot without storing a second identity`,async t=>{
+  const f=await fixture(t,{initialList:number});const configFile=path.join(f.cwd,'.git/avanzar-team.json');const first=JSON.parse(await fs.readFile(configFile));
+  assert.equal(first.slot,slot);assert.equal(Object.hasOwn(first,'list'),false);
+  await f.run(['init','--endpoint',f.endpoint,'--list',String(number)]);
+  assert.deepEqual(JSON.parse(await fs.readFile(configFile)),first);
+  assert.equal((await f.run(['status'])).local.list,number);
+});
+
+test('init and select-list reject invalid or ambiguous list choices without replacing private IDs',async t=>{
+  const f=await fixture(t);const file=path.join(f.cwd,'.git/avanzar-team.json');const before=await fs.readFile(file,'utf8');
+  for(const number of ['0','5','01','1.0','-1','word']){
+    await assert.rejects(f.run(['init','--endpoint',f.endpoint,'--list',number]),error=>error.code==='usage');
+    await assert.rejects(f.run(['select-list','--list',number]),error=>error.code==='usage');
+  }
+  for(const args of [['init','--endpoint',f.endpoint,'--slot','vps','--list','1'],['select-list','--list','2','--slot','hermes'],['select-list','--slot','hermes'],['select-list'],['select-list','extra','--list','2'],['claim','--list','2']])await assert.rejects(f.run(args),error=>error.code==='usage');
+  assert.equal(await fs.readFile(file,'utf8'),before);
+});
+
+test('select-list changes only private preference after an online board read and never reserves work',async t=>{
+  const f=await fixture(t);const file=path.join(f.cwd,'.git/avanzar-team.json');const stateFile=path.join(f.cwd,'.git/avanzar-team-session.json');const original=JSON.parse(await fs.readFile(file));const originalState=await fs.readFile(stateFile,'utf8');
+  for(const [number,slot] of [[2,'hermes'],[3,'vscode'],[4,'codex-desktop'],[1,'vps']]){
+    const beforeRequests=f.requests.length;const selected=await f.run(['select-list','--list',String(number)]);
+    const changed=JSON.parse(await fs.readFile(file));assert.deepEqual(changed,{...original,slot});assert.equal(await fs.readFile(stateFile,'utf8'),originalState);
+    assert.equal(selected.status,'list_selected');assert.equal(selected.list,number);assert.equal(selected.preferenceOnly,true);
+    assert.equal(f.requests.length,beforeRequests+1);assert.equal(f.requests.at(-1).url,'/v1/board');assert.equal(f.requests.at(-1).body,null);
+    assert.equal((await fs.stat(file)).mode&0o777,0o600);
+  }
+  assert.equal(f.requests.filter(request=>request.body).length,0);
+});
+
+for(const status of ['active','paused','stale','submitted'])test(`select-list rejects ${status} checkout work and preserves all private state`,async t=>{
+  const f=await fixture(t);await f.run(['claim','--mode','plan']);f.board.claims[0].status=status;
+  const configFile=path.join(f.cwd,'.git/avanzar-team.json'),stateFile=path.join(f.cwd,'.git/avanzar-team-session.json');const config=await fs.readFile(configFile,'utf8'),state=await fs.readFile(stateFile,'utf8');const requests=f.requests.length;
+  await assert.rejects(f.run(['select-list','--list','2']),error=>error.code==='list_busy'&&error.exitCode===2);
+  assert.equal(await fs.readFile(configFile,'utf8'),config);assert.equal(await fs.readFile(stateFile,'utf8'),state);assert.equal(f.requests.length,requests+1);assert.equal(f.requests.at(-1).body,null);
+});
+
+test('select-list detects a server reservation for the local checkout or session before local adoption',async t=>{
+  const f=await fixture(t);const file=path.join(f.cwd,'.git/avanzar-team.json');const config=JSON.parse(await fs.readFile(file));
+  for(const association of [{checkoutId:config.checkoutId,sessionId:'another-session'},{checkoutId:'another-checkout',sessionId:config.sessionId}]){
+    f.board.claims=[{id:'not-locally-adopted',status:'active',slot:'vps',...association}];
+    await assert.rejects(f.run(['select-list','--list','2']),error=>error.code==='list_busy');
+  }
+  assert.deepEqual(JSON.parse(await fs.readFile(file)),config);
+});
+
+test('select-list never treats a missing live local claim as confirmed closure',async t=>{
+  const f=await fixture(t);await f.run(['claim','--mode','plan']);f.board.claims=[];
+  const file=path.join(f.cwd,'.git/avanzar-team.json');const original=await fs.readFile(file,'utf8');
+  await assert.rejects(f.run(['select-list','--list','2']),error=>error.code==='list_busy');assert.equal(await fs.readFile(file,'utf8'),original);
+});
+
+test('select-list refuses an unknown mutation after reading board and preserves its exact retry record',async t=>{
+  const f=await fixture(t);f.setHandler((req,res)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));req.socket.destroy();});
+  await assert.rejects(f.run(['claim','--mode','plan']),/unknown|network/i);
+  const configFile=path.join(f.cwd,'.git/avanzar-team.json'),stateFile=path.join(f.cwd,'.git/avanzar-team-session.json');const config=await fs.readFile(configFile,'utf8'),state=await fs.readFile(stateFile,'utf8');const count=f.requests.length;
+  await assert.rejects(f.run(['select-list','--list','2']),error=>error.code==='list_busy');
+  assert.equal(f.requests.length,count+1);assert.equal(await fs.readFile(configFile,'utf8'),config);assert.equal(await fs.readFile(stateFile,'utf8'),state);
+});
+
+test('select-list refuses stored or environment approval and own unresolved publication turn',async t=>{
+  const f=await fixture(t);const configFile=path.join(f.cwd,'.git/avanzar-team.json'),stateFile=path.join(f.cwd,'.git/avanzar-team-session.json');const config=JSON.parse(await fs.readFile(configFile));const state=JSON.parse(await fs.readFile(stateFile));
+  const approved={...state,approvedRelease:{claimId:'old-delivery',sha:f.baseSha}};await fs.writeFile(stateFile,JSON.stringify(approved),{mode:0o600});
+  await assert.rejects(f.run(['select-list','--list','2']),error=>error.code==='list_busy');assert.deepEqual(JSON.parse(await fs.readFile(stateFile)),approved);
+  await fs.writeFile(stateFile,JSON.stringify(state),{mode:0o600});const {runCommand}=await load();
+  await assert.rejects(runCommand(['select-list','--list','2'],{cwd:f.cwd,env:{...f.env,TALLER_SHA_APROBADO:f.baseSha},check:f.check}),error=>error.code==='list_busy');
+  f.board.release={claimId:'old-delivery',sessionId:config.sessionId,status:'uncertain'};
+  await assert.rejects(f.run(['select-list','--list','2']),error=>error.code==='list_busy');assert.deepEqual(JSON.parse(await fs.readFile(configFile)),config);
+});
+
+test('select-list preserves terminal history and is unaffected by another checkout publication turn',async t=>{
+  const f=await fixture(t);await f.run(['claim','--mode','plan']);f.board.claims[0].status='completed';
+  const stateFile=path.join(f.cwd,'.git/avanzar-team-session.json');const state=await fs.readFile(stateFile,'utf8');f.board.release={claimId:'other-delivery',sessionId:'other-session',status:'held'};
+  const result=await f.run(['select-list','--list','4']);assert.equal(result.list,4);assert.equal(await fs.readFile(stateFile,'utf8'),state);
+});
+
+test('select-list fails closed offline or on malformed board without changing preference',async t=>{
+  const f=await fixture(t);const file=path.join(f.cwd,'.git/avanzar-team.json');const original=await fs.readFile(file,'utf8');
+  f.setHandler(req=>req.socket.destroy());await assert.rejects(f.run(['select-list','--list','2']),/network|unknown/i);assert.equal(await fs.readFile(file,'utf8'),original);
+  f.setHandler((req,res)=>res.end(JSON.stringify({protocolVersion:9,revision:1,claims:[],units:[]})));await assert.rejects(f.run(['select-list','--list','2']),error=>error.code==='protocol');assert.equal(await fs.readFile(file,'utf8'),original);
+});
+
+test('choosing a list only changes future claim preference and never bypasses server slot permissions',async t=>{
+  const f=await fixture(t);await f.run(['select-list','--list','3']);assert.equal(f.requests.filter(request=>request.body).length,0);
+  f.setHandler((req,res,body)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));res.statusCode=403;res.end(JSON.stringify({error:{code:'SLOT_FORBIDDEN'}}));});
+  await assert.rejects(f.run(['claim','--mode','plan']),error=>error.code==='SLOT_FORBIDDEN');
+  assert.equal(f.requests.find(request=>request.url==='/v1/claims').body.slot,'vscode');
+  const state=JSON.parse(await fs.readFile(path.join(f.cwd,'.git/avanzar-team-session.json')));assert.equal(state.claim,null);
+});
+
+test('a numbered preference is used by the next normal authenticated claim without changing session identifiers',async t=>{
+  const f=await fixture(t);const file=path.join(f.cwd,'.git/avanzar-team.json');const original=JSON.parse(await fs.readFile(file));
+  await f.run(['select-list','--list','4']);const result=await f.run(['claim','--mode','plan']);const sent=f.requests.find(request=>request.url==='/v1/claims').body;
+  assert.equal(sent.slot,'codex-desktop');for(const key of ['sessionId','checkoutId','hostId'])assert.equal(sent[key],original[key]);
+  assert.equal(result.claim.slot,'codex-desktop');assert.equal(f.requests.filter(request=>request.url==='/v1/claims').length,1);
+});
+
+test('selection cannot adopt or bypass the authenticated actor work in another checkout',async t=>{
+  const f=await fixture(t);const configFile=path.join(f.cwd,'.git/avanzar-team.json');const before=JSON.parse(await fs.readFile(configFile));
+  f.board.claims=[{id:'other-checkout-claim',unitId:'OTHER',actorId:'actor',slot:'hermes',status:'active',generation:1,sessionId:'other-session',checkoutId:'other-checkout'}];
+  f.setHandler((req,res)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));res.statusCode=409;res.end(JSON.stringify({error:{code:'CHECKOUT_OCCUPIED'}}));});
+  const selected=await f.run(['select-list','--list','3']);assert.equal(selected.preferenceOnly,true);assert.equal(f.requests.filter(request=>request.body).length,0);
+  await assert.rejects(f.run(['claim','--mode','plan']),error=>error.code==='CHECKOUT_OCCUPIED');
+  const state=JSON.parse(await fs.readFile(path.join(f.cwd,'.git/avanzar-team-session.json')));assert.equal(state.claim,null);assert.equal(f.board.claims.length,1);
+  const after=JSON.parse(await fs.readFile(configFile));for(const key of ['sessionId','checkoutId','hostId'])assert.equal(after[key],before[key]);
 });
