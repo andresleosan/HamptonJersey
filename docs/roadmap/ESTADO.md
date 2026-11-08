@@ -1,5 +1,14 @@
 # Estado de Hampton App
 
+Planificación sin reservas, 8-nov-2026: decisión explícita de Luis. El cliente local plan consulta catálogo/base y no crea reservas, plazas, leases o estado de coordinación; la skill instalada ya aplica la regla. Construcción conserva revisión de alcance, dependencias y reserva build; publicación conserva aprobación por SHA. Código/guías revisados en commit local32e06e6, con913Node+14Python, runtime26, build/release/team:check correctos. Publicación/despliegue del ajuste pendientes; no se cambió el servicio activo ni sus reservas históricas.
+
+NOT-01, 8-nov-2026: [diseño](../superpowers/specs/2026-11-08-not-01-event-inbox-design.md), [plan](../superpowers/plans/2026-11-08-not-01-event-inbox.md) y ledger preparados y revisados, sin reserva ni implementación del módulo. Integración de NOT-11/EST-18 necesaria para construir, no para planificar. Fuentes futuras, política de canales y latencia del reloj delimitadas; no se ejecutaron migraciones ni pruebas de producto para NOT-01.
+
+Siguiente recomendado Codex: /avanzar NOT-05 · gpt-6.1-terra · high
+
+Próxima planificación propuesta: NOT-05, cola de cobros pendientes y margen de retraso sobre ARREARS_SQL existente; comisiones condicionadas a OFE-08. Modelo/esfuerzo por definición financiera y temporal, dependencias parciales y aceptación, sin construir ni mover dinero.
+
+
 Tablero público, 8-nov-2026: Luis eligió consulta sin login para Lista1–4, independiente del coordinador protegido. Worker/HTML y proyección mínima preparados en esta entrega; actualización automática15s y caché reducida5s. Cierre de /avanzar usa el estado real del coordinador; no hay segundo HTML que actualizar manualmente. Pendientes publicación y despliegue del SHA revisado. [Diseño](../superpowers/specs/2026-11-08-tablero-publico-design.md) y [plan/evidencia](../superpowers/plans/2026-11-08-tablero-publico.md).
 
 
@@ -9,7 +18,7 @@ Flujo elegido: Hermes coordina y OpenCode con DeepSeek construye y revisa en ses
 
 Actualizado el 8-nov-2026. Orden vigente: [reconciliación funcional](2026-11-07-reconciliacion-automatizacion.md); detalle: [checklist](checklist-hampton-app.html); ciclo: [AVANZAR](AVANZAR.md). VIS-18 publicado y verificado en `95226d7`, sobre la base `5e9c860` que incluye REG-17 y la corrección de catálogo. Migración 0027 de visitas aplicada; Cloudflare Pages y `hampton-jobs` correctos para ese SHA. EST-09 y continuidad de PRE-12 publicados y activados el 7-nov-2026: migración 0024 aplicada y despliegues Pages/Worker correctos. Tras el merge, Hermes consultó `migrar-hampton ver`: salida 0 y solo `0030_advertisers.sql` pendiente; 0029 no figuró entre las pendientes. La sesión de REG-08 conserva la comprobación anterior de0029 aplicada y EST-18 publicado en cf0c86d; se corrige ese desfase documental. AGE-04 sigue sin publicar ni activar.
 
-Recomendación conservada para el uso opcional de Codex, si Luis lo elige: /avanzar BUS-14 · gpt-6.1-terra · high. No sustituye el flujo actual Hermes → OpenCode → DeepSeek ni la activación pendiente indicada arriba.
+Recomendación anterior de construcción, conservada como histórica para Codex: /avanzar BUS-14 · gpt-6.1-terra · high. No sustituye el flujo actual Hermes → OpenCode → DeepSeek ni la activación pendiente indicada arriba.
 
 BUS-21 sigue siendo una propuesta viable para la primera investigación por fuentes accesibles; BUS-19 mantiene las restricciones y BUS-22/23 son posteriores. REG-08 ya construye esa base; BUS-14 es la siguiente ampliación acotada del matching.
 
