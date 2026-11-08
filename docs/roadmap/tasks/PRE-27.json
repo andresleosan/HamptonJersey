@@ -1,14 +1,14 @@
 {
   "id": "PRE-27",
   "seccion": "Acciones previas y cumplimiento",
-  "titulo": "Respuesta a la pregunta 11: cámara 360, tours al mes y PC con GPU NVIDIA",
+  "titulo": "Decisión anterior de tours aplazada",
   "origen": "plan",
   "fase": "F8",
-  "estado": "bloqueado",
+  "estado": "replanteado",
   "responsable": "Hampton",
   "hecho": "",
-  "falta": "Sin respuesta: qué cámara 360 tienen, cuántos tours harían al mes y si hay un PC con GPU NVIDIA. Decide entre comprar o construir el 3D (T3D-12) y desbloquea F8.",
-  "bloqueo": "Dato de Hampton",
+  "falta": "Tours 3D más adelante.",
+  "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:702",
     "docs/roadmap/ESTADO.md:16"
@@ -18,9 +18,9 @@
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
   "dependencies": [],
-  "externalBlocker": "Hampton: Dato de Hampton",
+  "externalBlocker": "",
   "resources": [
     "tour-capture-design"
   ],
-  "nextStep": "Hampton confirma cámara, volumen de tours y equipo para decidir la solución 3D."
+  "nextStep": "Tours 3D más adelante; no planificar decisiones anteriores."
 }

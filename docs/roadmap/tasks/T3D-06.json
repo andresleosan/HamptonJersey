@@ -1,13 +1,13 @@
 {
   "id": "T3D-06",
   "seccion": "Tour 3D",
-  "titulo": "Color uniforme y fotos 360 ambientadas antes de usarlas",
+  "titulo": "Alcance anterior aplazado",
   "origen": "texto",
   "fase": "F8",
   "estado": "replanteado",
   "responsable": "—",
   "hecho": "",
-  "falta": "Retocar cada foto por separado hace que el splat parpadee y salgan floaters: el plan aplica una sola LUT igual a todos los fotogramas (T3D-02). La ambientación se resuelve al grabar, con la casa ordenada, las luces encendidas y exposición y balance de blancos bloqueados (T3D-08).",
+  "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:387",
@@ -23,5 +23,5 @@
     "tours-pipeline",
     "media-pipeline"
   ],
-  "nextStep": "Conservar la decisión replanteada y seguir el alcance vigente; no ejecutar la propuesta antigua."
+  "nextStep": "Conservar como antecedente; no planificar esta unidad."
 }

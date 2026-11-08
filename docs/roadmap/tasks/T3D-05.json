@@ -1,13 +1,13 @@
 {
   "id": "T3D-05",
   "seccion": "Tour 3D",
-  "titulo": "Limpieza de objetos indeseados en cada foto 360",
+  "titulo": "Alcance anterior aplazado",
   "origen": "texto",
   "fase": "F8",
   "estado": "replanteado",
   "responsable": "—",
   "hecho": "",
-  "falta": "En lugar de borrar objetos foto a foto, el plan usa máscaras automáticas de personas, operador y trípode que el entrenamiento ignora (T3D-02), y graba con la casa ordenada y el operador fuera de plano (T3D-08).",
+  "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:388",
@@ -23,5 +23,5 @@
     "tours-pipeline",
     "media-pipeline"
   ],
-  "nextStep": "Conservar la decisión replanteada y seguir el alcance vigente; no ejecutar la propuesta antigua."
+  "nextStep": "Conservar como antecedente; no planificar esta unidad."
 }

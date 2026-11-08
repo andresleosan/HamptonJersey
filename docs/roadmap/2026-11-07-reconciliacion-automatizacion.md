@@ -66,7 +66,7 @@ Las afirmaciones de despliegue se conservan en ESTADO con su evidencia históric
 **M03a publicada:** EST-09 y continuidad PRE-12 en `aea7eb5`, migración 0024 aplicada. **M03b:** REG-11 publicado en `9b8dbd41` con D08 acordada y migración 0025 aplicada. REG-17 publicado en `5e9c8609` y migración 0026 aplicada, según el relevo de publicación; VIS-17 aún debe consumir las franjas y coordinar confirmaciones. M01 puede avanzar por su propia dependencia y sus tres investigaciones siguen siendo secuenciales.
 
 
-AUT-17 conserva su cierre operativo pendiente y puede avanzar con su propia autorización. MSG-02, MSG-04/05, AUT-16, administración de alquileres, ofertas, publicación propia, analítica y tours siguen en el checklist; no se borran ni se convierten en dependencias artificiales del nuevo recorrido. PRE-22 solo condiciona la gestión comercial humana que lo necesite. PRE-32 y las reglas de datos siguen condicionando el uso del modelo correspondiente.
+AUT-17 conserva su cierre operativo pendiente y puede avanzar con su propia autorización. MSG-02, MSG-04/05, AUT-16, administración de alquileres, ofertas, publicación propia y analítica siguen en el checklist; Tours 3D más adelante; no se borran ni se convierten en dependencias artificiales del nuevo recorrido. PRE-22 solo condiciona la gestión comercial humana que lo necesite. PRE-32 y las reglas de datos siguen condicionando el uso del modelo correspondiente.
 
 ## 5. Contratos funcionales de cada módulo
 

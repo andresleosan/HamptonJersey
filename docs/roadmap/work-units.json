@@ -6931,11 +6931,11 @@
     {
       "id": "T3D-01",
       "parentTaskId": "T3D-01",
-      "title": "Incorporar tours 3D a las fichas y a la web",
+      "title": "Tours 3D más adelante",
       "preferredSlot": "codex-desktop",
       "priority": 287,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -6957,24 +6957,19 @@
         }
       ],
       "acceptance": [
-        "Integrar tours propios en la ficha cuando se defina la vía de captura y exista un tour válido."
+        "Tours 3D más adelante."
       ]
     },
     {
       "id": "T3D-02",
       "parentTaskId": "T3D-02",
-      "title": "Automatización de Gaussian Splatting por propiedad, de la captura 360 al splat",
+      "title": "Alcance anterior aplazado",
       "preferredSlot": "codex-desktop",
       "priority": 288,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
-      "dependencies": [
-        {
-          "unitId": "PRE-27",
-          "requiredEvidence": "decision"
-        }
-      ],
+      "dependencies": [],
       "resources": [
         {
           "key": "tours-pipeline",
@@ -6994,13 +6989,13 @@
         }
       ],
       "acceptance": [
-        "Decidir captura y capacidad GPU antes de diseñar la cadena de splat y su control de calidad."
+        "Conservar como antecedente; no planificar esta unidad."
       ]
     },
     {
       "id": "T3D-03",
       "parentTaskId": "T3D-03",
-      "title": "Carpeta por propiedad con subcarpetas de vídeos 360 y fotos 360",
+      "title": "Alcance anterior aplazado",
       "preferredSlot": "codex-desktop",
       "priority": 289,
       "kind": "decision",
@@ -7026,13 +7021,13 @@
         }
       ],
       "acceptance": [
-        "Conservar la decisión replanteada y seguir el alcance vigente; no ejecutar la propuesta antigua."
+        "Conservar como antecedente; no planificar esta unidad."
       ]
     },
     {
       "id": "T3D-04",
       "parentTaskId": "T3D-04",
-      "title": "Edición con LLM que usan MCP y computer use sobre los programas de fotos y vídeo",
+      "title": "Alcance anterior aplazado",
       "preferredSlot": "codex-desktop",
       "priority": 290,
       "kind": "decision",
@@ -7058,13 +7053,13 @@
         }
       ],
       "acceptance": [
-        "Conservar la decisión replanteada y seguir el alcance vigente en PRE-19."
+        "Conservar como antecedente; no planificar esta unidad."
       ]
     },
     {
       "id": "T3D-05",
       "parentTaskId": "T3D-05",
-      "title": "Limpieza de objetos indeseados en cada foto 360",
+      "title": "Alcance anterior aplazado",
       "preferredSlot": "codex-desktop",
       "priority": 291,
       "kind": "decision",
@@ -7090,13 +7085,13 @@
         }
       ],
       "acceptance": [
-        "Conservar la decisión replanteada y seguir el alcance vigente; no ejecutar la propuesta antigua."
+        "Conservar como antecedente; no planificar esta unidad."
       ]
     },
     {
       "id": "T3D-06",
       "parentTaskId": "T3D-06",
-      "title": "Color uniforme y fotos 360 ambientadas antes de usarlas",
+      "title": "Alcance anterior aplazado",
       "preferredSlot": "codex-desktop",
       "priority": 292,
       "kind": "decision",
@@ -7122,13 +7117,13 @@
         }
       ],
       "acceptance": [
-        "Conservar la decisión replanteada y seguir el alcance vigente; no ejecutar la propuesta antigua."
+        "Conservar como antecedente; no planificar esta unidad."
       ]
     },
     {
       "id": "T3D-07",
       "parentTaskId": "T3D-07",
-      "title": "Fotogramas del vídeo 360 con After Effects, a 6–10 por segundo, para el splat",
+      "title": "Alcance anterior aplazado",
       "preferredSlot": "codex-desktop",
       "priority": 293,
       "kind": "decision",
@@ -7154,24 +7149,19 @@
         }
       ],
       "acceptance": [
-        "Conservar la decisión replanteada y seguir el alcance vigente; no ejecutar la propuesta antigua."
+        "Conservar como antecedente; no planificar esta unidad."
       ]
     },
     {
       "id": "T3D-08",
       "parentTaskId": "T3D-08",
-      "title": "Protocolo de captura como checklist en el panel",
+      "title": "Alcance anterior aplazado",
       "preferredSlot": "codex-desktop",
       "priority": 294,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
-      "dependencies": [
-        {
-          "unitId": "PRE-27",
-          "requiredEvidence": "decision"
-        }
-      ],
+      "dependencies": [],
       "resources": [
         {
           "key": "tours-pipeline",
@@ -7191,24 +7181,19 @@
         }
       ],
       "acceptance": [
-        "Concretar protocolo de captura según la cámara confirmada por Hampton."
+        "Conservar como antecedente; no planificar esta unidad."
       ]
     },
     {
       "id": "T3D-09",
       "parentTaskId": "T3D-09",
-      "title": "Subir vídeos y fotos 360 desde el panel a R2, con trabajo y estado por etapa",
+      "title": "Alcance anterior aplazado",
       "preferredSlot": "codex-desktop",
       "priority": 295,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
-      "dependencies": [
-        {
-          "unitId": "PRE-27",
-          "requiredEvidence": "decision"
-        }
-      ],
+      "dependencies": [],
       "resources": [
         {
           "key": "tours-pipeline",
@@ -7228,24 +7213,19 @@
         }
       ],
       "acceptance": [
-        "Diseñar subida directa de capturas y estados por etapa cuando se confirme el equipo de captura."
+        "Conservar como antecedente; no planificar esta unidad."
       ]
     },
     {
       "id": "T3D-10",
       "parentTaskId": "T3D-10",
-      "title": "Tour 360 de fotos propio servido desde R2 en la ficha (primer producto de F8)",
+      "title": "Alcance anterior aplazado",
       "preferredSlot": "codex-desktop",
       "priority": 296,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
-      "dependencies": [
-        {
-          "unitId": "PRE-27",
-          "requiredEvidence": "decision"
-        }
-      ],
+      "dependencies": [],
       "resources": [
         {
           "key": "tours-pipeline",
@@ -7265,17 +7245,17 @@
         }
       ],
       "acceptance": [
-        "Construir visor 360 desde R2 cuando haya cámara y captura válida; este tramo no requiere GPU."
+        "Conservar como antecedente; no planificar esta unidad."
       ]
     },
     {
       "id": "T3D-11",
       "parentTaskId": "T3D-11",
-      "title": "Revisión humana de cada tour propio antes de publicarlo (floaters y privacidad)",
+      "title": "Alcance anterior aplazado",
       "preferredSlot": "codex-desktop",
       "priority": 297,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -7297,24 +7277,19 @@
         }
       ],
       "acceptance": [
-        "Definir revisión humana de calidad y privacidad antes de publicar tours propios."
+        "Conservar como antecedente; no planificar esta unidad."
       ]
     },
     {
       "id": "T3D-12",
       "parentTaskId": "T3D-12",
-      "title": "Decidir si comprar (Matterport o app de captura) en vez de construir la cadena",
+      "title": "Alcance anterior aplazado",
       "preferredSlot": "codex-desktop",
       "priority": 298,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
-      "dependencies": [
-        {
-          "unitId": "PRE-27",
-          "requiredEvidence": "decision"
-        }
-      ],
+      "dependencies": [],
       "resources": [
         {
           "key": "tours-pipeline",
@@ -7334,7 +7309,7 @@
         }
       ],
       "acceptance": [
-        "Recoger cámara y volumen real y comparar compra frente a construcción antes de comprometer la cadena."
+        "Conservar como antecedente; no planificar esta unidad."
       ]
     },
     {
@@ -8494,7 +8469,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 334,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -8512,7 +8487,7 @@
         }
       ],
       "acceptance": [
-        "Luis resuelve únicamente la decisión pendiente sobre tours; no reabrir bloqueos retirados del recorrido de búsqueda."
+        "Tours 3D más adelante; no planificar decisiones anteriores."
       ]
     },
     {
@@ -8714,11 +8689,11 @@
     {
       "id": "PRE-27",
       "parentTaskId": "PRE-27",
-      "title": "Respuesta a la pregunta 11: cámara 360, tours al mes y PC con GPU NVIDIA",
+      "title": "Decisión anterior de tours aplazada",
       "preferredSlot": "codex-desktop",
       "priority": 342,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -8736,7 +8711,7 @@
         }
       ],
       "acceptance": [
-        "Hampton confirma cámara, volumen de tours y equipo para decidir la solución 3D."
+        "Tours 3D más adelante; no planificar decisiones anteriores."
       ]
     },
     {

@@ -1,13 +1,13 @@
 {
   "id": "T3D-03",
   "seccion": "Tour 3D",
-  "titulo": "Carpeta por propiedad con subcarpetas de vídeos 360 y fotos 360",
+  "titulo": "Alcance anterior aplazado",
   "origen": "texto",
   "fase": "F8",
   "estado": "replanteado",
   "responsable": "—",
   "hecho": "",
-  "falta": "El plan conserva las dos subcarpetas con la referencia de Hampton delante y una tercera de salida (HE-R027_Chateau-La-Chaire/videos_360, /fotos_360, /_output), pero prefiere subir desde el panel a R2, que crea el trabajo y muestra su estado. Se sustituye por T3D-09.",
+  "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:390",
@@ -23,5 +23,5 @@
     "tours-pipeline",
     "media-pipeline"
   ],
-  "nextStep": "Conservar la decisión replanteada y seguir el alcance vigente; no ejecutar la propuesta antigua."
+  "nextStep": "Conservar como antecedente; no planificar esta unidad."
 }

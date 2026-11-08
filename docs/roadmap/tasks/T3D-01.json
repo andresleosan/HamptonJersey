@@ -1,14 +1,14 @@
 {
   "id": "T3D-01",
   "seccion": "Tour 3D",
-  "titulo": "Incorporar tours 3D a las fichas y a la web",
+  "titulo": "Tours 3D más adelante",
   "origen": "texto",
   "fase": "F8",
-  "estado": "parcial",
-  "responsable": "Hampton",
-  "hecho": "3D tours (en Settings) gestiona tours de Matterport, YouTube y Vimeo que la home muestra junto a la reserva y reproduce sola al llegar a ella, salvo con movimiento reducido (la migración sembró una muestra de Matterport); cada ficha tiene su enlace de tour con pestaña 3D tour en la web.",
-  "falta": "Faltan los tours propios, 360 y splat desde R2 (T3D-10, T3D-02): hay que ampliar embedTour y EMBED_HOSTS, que solo aceptan esos tres proveedores, y no hay CSP que ajustar (site/_headers no define ninguna). La muestra sembrada no es una casa de Hampton y promete «like the ones we can film for your home», lo que depende de la pregunta 11 (PRE-27).",
-  "bloqueo": "Cámara 360/GPU",
+  "estado": "replanteado",
+  "responsable": "—",
+  "hecho": "",
+  "falta": "Tours 3D más adelante.",
+  "bloqueo": "",
   "evidencia": [
     "admin/src/Tours.jsx:7-45",
     "admin/src/App.jsx:39",
@@ -25,26 +25,11 @@
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
-  "dependencies": [
-    {
-      "id": "PRE-27",
-      "requires": "decision",
-      "reason": "Confirmar cámara y capacidad reales; enlaces externos existentes no esperan esto.",
-      "basis": "explicit",
-      "scope": "partial"
-    },
-    {
-      "id": "T3D-10",
-      "requires": "integrated",
-      "reason": "La extensión de tours propios requiere visor/captura 360 válidos.",
-      "basis": "explicit",
-      "scope": "partial"
-    }
-  ],
-  "externalBlocker": "Hampton: confirmar cámara y modalidad de tours.",
+  "dependencies": [],
+  "externalBlocker": "",
   "resources": [
     "tours-pipeline",
     "media-pipeline"
   ],
-  "nextStep": "Integrar tours propios en la ficha cuando se defina la vía de captura y exista un tour válido."
+  "nextStep": "Tours 3D más adelante."
 }

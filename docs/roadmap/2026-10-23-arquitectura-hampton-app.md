@@ -4,7 +4,7 @@
 >
 > Versión 1 · 23-oct-2026 · Preparada por Claude para Luis · Borrador: nada de esto está aprobado ni construido · Base: HamptonJersey en `ada40e3` (Cloudflare Pages + D1 + R2 + panel `/admin`)
 >
-> Añadido el 29-oct-2026: §6.5 (plan de ChatGPT de cada empleado), decisión P-17 y pregunta 14. Añadido el 30-oct-2026: §6.6 (Hermes, el cerebro de IA de las automatizaciones, con Telegram), decisión P-18 y preguntas 15 y 16; ese mismo día Luis las respondió y aprobó el diseño del Hermes propio de Hampton. Cambiado el 2-nov-2026: canal del equipo, avisador sin IA y solo Luis da órdenes (§6.6). Cambiado el 5-nov-2026: Hermes también lee los documentos de las carpetas de Drive que el equipo manda a Properties Queue (§5.10, PUB-21). Lo construido y lo pendiente está en [ESTADO.md](ESTADO.md) y en el [checklist](checklist-hampton-app.html). La versión HTML de este documento sigue siendo la del 23-oct.
+> Añadido el 29-oct-2026: §6.5 (plan de ChatGPT de cada empleado), decisión P-17 y pregunta 14. Añadido el 30-oct-2026: §6.6 (Hermes, el cerebro de IA de las automatizaciones, con Telegram), decisión P-18 y preguntas 15 y 16; ese mismo día Luis las respondió y aprobó el diseño del Hermes propio de Hampton. Cambiado el 2-nov-2026: canal del equipo, avisador sin IA y solo Luis da órdenes (§6.6). Cambiado el 5-nov-2026: Hermes también lee los documentos de las carpetas de Drive que el equipo manda a Properties Queue (§5.10, PUB-21). Lo construido y lo pendiente está en [ESTADO.md](ESTADO.md) y en el [checklist](checklist-hampton-app.html). La versión HTML conserva el texto histórico del 23-oct, salvo el aplazamiento de tours actualizado el 8-nov.
 
 ## Actualización normativa del recorrido · 7-nov-2026
 
@@ -63,9 +63,9 @@ El proyecto SDD de `/root/Hampton` (Astro, specs 001–009, sin publicar) sigue 
 ```capas
 Público · internet | Web y fichas | Registro de aplicantes | Portal del aplicante | Reserva de visitas | Valoración y «List your property» | Chat web
 Panel del equipo · /admin | Action inbox | Applicants | Properties | Agencies | Viewings | Listings | Lettings | Messages | 3D tours | Insights | Automations
-Motor · Cloudflare | D1 (fuente de verdad) | Tabla events | Matching en SQL | Worker de tareas (cron cada 10 min) | R2 (fotos, vídeos, tours) | Puerta para Hermes (§6.6)
-Carril privado · VPS de Optimyze | Hermes, cerebro de IA (§6.6) | Modelos locales para datos sensibles | Transcripción de notas de voz | Preparación de tours 3D | El VPS pide trabajo; no abre puertos
-Servicios externos | API de Places.je | Correo de Hampton | WhatsApp Business | Meta (Facebook, Instagram) | Google o Outlook Calendar | Banco (CSV) | Firma electrónica | GPU por horas | Telegram (Hermes)
+Motor · Cloudflare | D1 (fuente de verdad) | Tabla events | Matching en SQL | Worker de tareas (cron cada 10 min) | R2 (fotos y vídeos) | Puerta para Hermes (§6.6)
+Carril privado · VPS de Optimyze | Hermes, cerebro de IA (§6.6) | Modelos locales para datos sensibles | Transcripción de notas de voz | El VPS pide trabajo; no abre puertos
+Servicios externos | API de Places.je | Correo de Hampton | WhatsApp Business | Meta (Facebook, Instagram) | Google o Outlook Calendar | Banco (CSV) | Firma electrónica | Telegram (Hermes)
 ```
 
 Cómo encaja con lo que hay:
@@ -110,7 +110,6 @@ Todo en D1; los archivos en R2. La columna Fase indica cuándo se crea cada tabl
 | `compliance_items`, `maintenance_jobs` | Obligaciones con caducidad y reparaciones | tipo, caduca el, documento · urgencia, categoría, proveedor, coste, aprobación del propietario | F5 |
 | `messages` | Conversaciones de todos los canales | canal, hilo, contacto, dirección, texto, adjuntos, borrador de IA, enviado por | F6 |
 | `daily_stats` | Contadores por ficha y día | ficha, día, métrica, valor | F7 |
-| `capture_jobs` | Tours 3D | ficha, archivos de entrada en R2, estado por etapa, resultados, coste | F8 |
 | `jobs` | Trabajo para Hermes (§6.6): hoy solo el texto de una ficha publicada | tipo (`listing_text`), ficha, estado, intentos, borrador, quién lo pidió y quién lo decidió | AUT-13 (migración 0018) |
 
 Reglas para todas las tablas: precios siempre con moneda y periodo (como ya exige `listings`); un dato desconocido es `NULL`, nunca 0; nada se borra de verdad sin pasar por archivado (D9); cada cambio de estado escribe un evento.
@@ -282,7 +281,7 @@ El cliente responde interesado/quiere visitar/no encaja/que lo llamen sin repeti
 | 2. Características | Superficie interior en pies² y m², dormitorios, baños, aseos, salones, parking (plazas, garaje), trastero, planta y plantas del edificio, ascensor, año, estado de conservación, calefacción (gasoil, gas, eléctrica, bomba de calor, GLP), doble acristalamiento, exterior (jardín, terraza, balcón, patio), comodidades (piscina, gimnasio, zonas comunes), amueblado y mascotas en alquiler |
 | 3. Económicos | Precio de venta, renta mensual, o premium más renta si es un negocio; precio por pie² calculado; depósito (alquiler); parish rates si se publican; service charge (pisos); suministros incluidos; fecha de disponibilidad |
 | 4. Legal y técnico | Tenencia (freehold, flying freehold, share transfer, leasehold), categoría de vivienda (§7.3), licencia de vivienda en alquiler si aplica, certificado energético si existe, ocupación (vacía, alquilada), abogado del vendedor |
-| 5. Marketing | Título, descripción en inglés, galería, vídeo, tour 360 o 3D, plano, destacada (`featured_rank` ya existe), etiquetas (renovated, sea view, town centre…), textos para redes |
+| 5. Marketing | Título, descripción en inglés, galería, vídeo, plano, destacada (`featured_rank` ya existe), etiquetas (renovated, sea view, town centre…), textos para redes |
 | 6. Estado y trazabilidad | Estado, IDs en portales, vistas, consultas, visitas, guardados, fecha de publicación, `confirmed_at` (§4.4), motivo de retirada |
 
 - **Ayuda de IA**: con los campos y las fotos redacta título, descripción, puntos fuertes, textos para redes y textos alternativos, y etiqueta cada foto por estancia. Una persona aprueba. Regla: no inventa datos y marca cualquier frase que no salga de un campo.
@@ -321,22 +320,9 @@ El cliente responde interesado/quiere visitar/no encaja/que lo llamen sin repeti
 - **De conversación a aplicante**: botón Create applicant con los campos ya rellenados por la IA a partir del chat.
 - **Objetivo de servicio**: primera respuesta automática en menos de 5 minutos en horario de oficina; respuesta humana en menos de 2 horas.
 
-### 5.13 Tour 3D: 360 y Gaussian Splatting
+### 5.13 Tours 3D
 
-**Pediste:** una carpeta por propiedad con dos subcarpetas (vídeos 360 y fotos 360); un LLM con MCP y computer use que limpie las fotos, corrija el color y saque con After Effects los fotogramas (6 a 10 por segundo) para entrenar el splat.
-
-- **Sin computer use para esto.** Manejar Photoshop y After Effects a través de la pantalla es lento, frágil y caro para un proceso que se repite igual cada vez. Los mismos pasos por línea de comandos corren solos y dan siempre el mismo resultado:
-  - `ffmpeg` extrae los fotogramas a la tasa que se quiera (6 a 10 por segundo caminando despacio es un buen punto de partida; lo importante es que dos fotogramas seguidos se solapen mucho) y convierte el vídeo 360 en vistas normales con su filtro `v360`.
-  - Un filtro de nitidez descarta los fotogramas borrosos.
-  - **Una sola corrección de color** (una LUT) aplicada igual a todos los fotogramas. Retocar cada foto por separado, con IA o a mano, hace que el splat parpadee y aparezcan «floaters».
-  - En lugar de borrar objetos foto a foto, **máscaras automáticas** de personas, operador y trípode, que el entrenamiento ignora.
-- **El protocolo de captura importa más que la edición**: ordenar antes de grabar, todas las luces encendidas, exposición y balance de blancos bloqueados, caminar despacio en bucles, cámara en monopié a la altura del pecho, operador fuera de plano, cada estancia y cada paso entre estancias, cuidado con espejos y ventanas. Va como checklist en el panel.
-- **Carpetas** con la referencia de Hampton delante: `HE-R027_Chateau-La-Chaire/videos_360`, `/fotos_360` y `/_output`. Mejor aún: subir desde el panel a R2, lo que crea el trabajo y muestra su estado.
-- **Dos productos de la misma visita**: un **tour 360 de fotos** (rápido, robusto, funciona en cualquier móvil) y el **splat** como versión premium.
-- **Etapas del splat**: fotogramas, posiciones de cámara (COLMAP o GLOMAP), entrenamiento (gsplat o Nerfstudio, Postshot o Brush) en una GPU alquilada por horas porque el VPS no tiene GPU, limpieza (SuperSplat), compresión (SPZ o SOG), R2 y visor en la ficha, con el tour 360 como respaldo en móviles lentos.
-- **Revisión humana antes de publicar**: floaters y privacidad (fotos familiares, documentos o caras reflejadas, que se difuminan).
-- **Encaje con lo actual**: la sección «3D tours» del panel solo acepta Matterport, YouTube y Vimeo. Para tours propios hay que servirlos desde R2 y ajustar la CSP.
-- **Comprar en vez de construir**: con pocas fichas al mes, Matterport o una app de captura puede salir más barato que mantener la cadena propia. Se decide con el volumen real (pregunta 8).
+Tours 3D más adelante.
 
 ### 5.14 Analítica y trazabilidad
 
@@ -644,7 +630,6 @@ Lo encontró la lectura en frío del documento y lo comprobé en el código (`sc
 | En vez de… | Usaría… | Por qué |
 |---|---|---|
 | Investigación diaria por aplicante con dos modelos | Inventario único y matching en SQL | Más completo, más barato y sin duplicados |
-| Computer use sobre Photoshop y After Effects | `ffmpeg`, herramientas de línea de comandos y un protocolo de captura | Repetible, sin pantalla y sin coste por clic |
 | Un sistema de notificaciones aparte | La tabla `events` y unas reglas | Una sola fuente de verdad |
 | Un motor de flujos para esperas y recordatorios | Un cron cada 10 minutos y consultas de lo vencido | El estado ya está en D1 |
 | Un calendario propio | Reglas de disponibilidad y Google u Outlook | Los negociadores ya viven en su calendario |
@@ -678,7 +663,7 @@ La hoja de ruta está ordenada por el trabajo que quita y por dependencias. No p
 | F5 Alquileres gestionados | Solicitud y referencias del inquilino, contratos, cobros, conciliación, atrasos, cumplimiento, reparaciones y renovaciones | Un pago atrasado aparece en Missing payments el día que toca y sigue su secuencia |
 | F6 Mensajes | Bandeja unificada y asistente | Primera respuesta automática en menos de 5 minutos en horario |
 | F7 Insights | Contadores, demanda contra oferta y resumen semanal | La dirección ve la demanda sin cubrir por parroquia |
-| F8 Tours 3D | Primero el tour 360; después el splat | Un tour propio se ve en la ficha desde R2 |
+| F8 Tours 3D | Tours 3D más adelante | — |
 
 Si la gestión de alquileres es hoy el negocio principal de Hampton, F5 puede adelantarse a F3.
 
@@ -701,7 +686,7 @@ Registro histórico de propuestas y decisiones fechadas. Para el recorrido nuevo
 | P-11 | Disponibilidad por negociador con plantilla y excepciones, sincronizada con su calendario | Huecos reales sin choques | Horas fijas para todos |
 | P-12 | Roles `owner` y `staff` | Pagos, datos bancarios y borrados solo para `owner` | Un solo rol |
 | P-13 | Campos de Jersey en fichas y registro (parroquia, tenencia, categoría de vivienda, estatus) | Sin ellos el matching propone casas que no valen | La lista genérica de España |
-| P-14 | Tours 3D por línea de comandos y con protocolo de captura | Repetible y sin pantalla | Computer use sobre Adobe |
+| P-14 | Tours 3D más adelante | — | — |
 | P-15 | La lista del aplicante no revela la agencia hasta acordar comisión o visita | Protege la comisión | Enlazar el anuncio original |
 | P-16 | Expediente de venta con hitos y recordatorios automáticos a los abogados | Es donde más horas se pierden y no estaba en el texto | Seguimiento por teléfono y memoria |
 | P-17 | Decisión de Luis (29-oct-2026): la IA de la app usa el plan de ChatGPT de cada empleado con «Sign in with ChatGPT», si OpenAI da acceso por escrito a una app comercial alojada (§6.5) | Aprovecha suscripciones que Hampton ya paga | Solo API con pago por uso (P-09), que sigue como alternativa mientras tanto |
@@ -745,7 +730,7 @@ Comparación histórica con el primer texto. Para requisitos de búsqueda sustit
 | Tres meses sin cambios: «por confirmar» | `To confirm` en fichas propias; las externas se detectan solas | §4.4, §5.10 |
 | Recoger los datos de una propiedad y publicarla sola en la web y en redes | Alta guiada y botón Publish | §5.10 |
 | Familias de datos 1 a 6 | Adaptadas a Jersey (cambia) | §5.10 |
-| Carpeta con dos subcarpetas; limpieza, color y fotogramas a 6–10 fps | Línea de comandos, protocolo de captura, tour 360 y splat (cambia) | §5.13 |
+| Tours 3D | Tours 3D más adelante | §5.13 |
 | Actividad de cada usuario, propiedades más vistas, tráfico y tendencias | Insights y demanda contra oferta, con privacidad | §5.14 |
 
 Lo que añadí porque faltaba para cubrir el recorrido completo:
@@ -775,7 +760,7 @@ Ordenadas por cuánto cambian lo que se construye. Las tres primeras salieron de
 8. ¿Usan WhatsApp con clientes? ¿Tienen un número que pueda pasar a WhatsApp Business?
 9. ¿Cuántos aplicantes nuevos llegan al mes y cuántas propiedades gestionan? Dimensiona costes y límites.
 10. ¿Cómo pagan hoy los inquilinos (transferencia, orden permanente) y en qué banco? ¿Se puede exportar el extracto en CSV?
-11. ¿Qué cámara 360 tienen y cuántos tours harían al mes? ¿Hay un PC con GPU NVIDIA? Decide entre construir o comprar el 3D.
+11. Tours 3D más adelante.
 12. ¿Optimyze opera el sistema para Hampton? Hace falta un acuerdo de tratamiento de datos y decidir a nombre de quién van las cuentas (Cloudflare ya está en la de AndresLeoSan).
 13. ¿Hampton está registrada en la JFSC y en la JOIC? ¿Cobra rentas o depósitos en una cuenta propia? Decide qué controles de blanqueo y qué cuenta de clientes necesita la gestión de alquileres (F5).
 14. ¿Qué plan de ChatGPT tiene cada empleado de Hampton (Free, Plus, Pro, Business o Enterprise) y quién lo paga? Decide si las automatizaciones con IA pueden usar ese plan (§6.5) y con qué datos. Añadida el 29-oct-2026.

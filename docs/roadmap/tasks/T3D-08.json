@@ -1,14 +1,14 @@
 {
   "id": "T3D-08",
   "seccion": "Tour 3D",
-  "titulo": "Protocolo de captura como checklist en el panel",
+  "titulo": "Alcance anterior aplazado",
   "origen": "plan",
   "fase": "F8",
-  "estado": "bloqueado",
-  "responsable": "Hampton",
+  "estado": "replanteado",
+  "responsable": "—",
   "hecho": "",
-  "falta": "No existe el checklist: ordenar antes de grabar, todas las luces encendidas, exposición y balance de blancos bloqueados, caminar despacio en bucles con monopié a la altura del pecho, operador fuera de plano, cada estancia y cada paso entre ellas, cuidado con espejos y ventanas. Su contenido depende de la cámara (pregunta 11, PRE-27).",
-  "bloqueo": "Cámara 360/GPU",
+  "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+  "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:389"
   ],
@@ -16,19 +16,11 @@
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
-  "dependencies": [
-    {
-      "id": "PRE-27",
-      "requires": "decision",
-      "reason": "El protocolo depende del modelo de cámara confirmado.",
-      "basis": "explicit",
-      "scope": "whole"
-    }
-  ],
-  "externalBlocker": "Hampton: modelo de cámara.",
+  "dependencies": [],
+  "externalBlocker": "",
   "resources": [
     "tours-pipeline",
     "media-pipeline"
   ],
-  "nextStep": "Concretar protocolo de captura según la cámara confirmada por Hampton."
+  "nextStep": "Conservar como antecedente; no planificar esta unidad."
 }

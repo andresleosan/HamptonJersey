@@ -1,14 +1,14 @@
 {
   "id": "T3D-02",
   "seccion": "Tour 3D",
-  "titulo": "Automatización de Gaussian Splatting por propiedad, de la captura 360 al splat",
+  "titulo": "Alcance anterior aplazado",
   "origen": "texto",
   "fase": "F8",
-  "estado": "bloqueado",
-  "responsable": "Hampton",
+  "estado": "replanteado",
+  "responsable": "—",
   "hecho": "",
-  "falta": "No existe nada de la cadena (F8 sin empezar). El plan la hace por línea de comandos: fotogramas con ffmpeg, máscaras y una LUT, posiciones de cámara (COLMAP o GLOMAP), entrenamiento en una GPU alquilada por horas (el VPS no tiene), limpieza en SuperSplat, compresión SPZ o SOG y visor en la ficha desde R2 con el tour 360 de respaldo; depende de la pregunta 11 (PRE-27).",
-  "bloqueo": "Cámara 360/GPU",
+  "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+  "bloqueo": "",
   "evidencia": [
     "docs/roadmap/ESTADO.md:16",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:384-392",
@@ -18,26 +18,11 @@
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
-  "dependencies": [
-    {
-      "id": "PRE-27",
-      "requires": "decision",
-      "reason": "La cadena de splat depende del equipo y volumen confirmados por Hampton.",
-      "basis": "explicit",
-      "scope": "whole"
-    },
-    {
-      "id": "T3D-12",
-      "requires": "decision",
-      "reason": "Resolver comprar/construir antes de comprometer una cadena propia.",
-      "basis": "inferred",
-      "scope": "whole"
-    }
-  ],
-  "externalBlocker": "Hampton/Luis: cámara, volumen, decisión construir/comprar y capacidad GPU autorizada.",
+  "dependencies": [],
+  "externalBlocker": "",
   "resources": [
     "tours-pipeline",
     "media-pipeline"
   ],
-  "nextStep": "Decidir captura y capacidad GPU antes de diseñar la cadena de splat y su control de calidad."
+  "nextStep": "Conservar como antecedente; no planificar esta unidad."
 }

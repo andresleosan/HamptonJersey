@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "Luis",
   "hecho": "Luis eligió el mecanismo (A2): Cloudflare Tunnel privado (Workers VPC o Access con token de servicio) hacia Ollama en el VPS, sin abrir puertos; Whisper ya corre en el VPS solo en 127.0.0.1:9300.",
-  "falta": "No existe: ni tabla jobs, ni túnel o binding en wrangler.toml, ni cloudflared u Ollama en el Docker del VPS (docker ps -a, 28-oct), ni código que llame a un modelo local. Lo monta Luis y servirá a datos C3 (F5-B), notas de voz (F3-B) y tours 3D (F8). Hermes (P-18) no es este carril: no alcanza los servicios del VPS y nunca recibe datos C3; pedirá a la app el trabajo de IA con datos públicos por su propia puerta (AUT-13, §6.6).",
+  "falta": "No existe: ni tabla jobs, ni túnel o binding en wrangler.toml, ni cloudflared u Ollama en el Docker del VPS (docker ps -a, 28-oct), ni código que llame a un modelo local. Lo monta Luis y servirá a datos C3 (F5-B) y notas de voz (F3-B). Hermes (P-18) no es este carril: no alcanza los servicios del VPS y nunca recibe datos C3; pedirá a la app el trabajo de IA con datos públicos por su propia puerta (AUT-13, §6.6).",
   "bloqueo": "",
   "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:28",

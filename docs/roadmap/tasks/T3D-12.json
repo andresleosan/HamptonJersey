@@ -1,14 +1,14 @@
 {
   "id": "T3D-12",
   "seccion": "Tour 3D",
-  "titulo": "Decidir si comprar (Matterport o app de captura) en vez de construir la cadena",
+  "titulo": "Alcance anterior aplazado",
   "origen": "plan",
   "fase": "F8",
-  "estado": "bloqueado",
-  "responsable": "Hampton",
-  "hecho": "La vía de comprar Matterport ya funciona sin código: 3D tours y el campo de tour de cada ficha aceptan sus enlaces.",
-  "falta": "Decidirlo con el volumen real de tours al mes y la cámara que tenga Hampton (pregunta 11, PRE-27): con pocas fichas al mes, Matterport o una app puede salir más barato que mantener T3D-02; otra app de captura habría que añadirla a embedTour y EMBED_HOSTS.",
-  "bloqueo": "Dato de Hampton",
+  "estado": "replanteado",
+  "responsable": "—",
+  "hecho": "",
+  "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+  "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:395",
     "server/routes/tours.js:8",
@@ -18,19 +18,11 @@
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
-  "dependencies": [
-    {
-      "id": "PRE-27",
-      "requires": "decision",
-      "reason": "La comparación necesita cámara y volumen mensual de tours.",
-      "basis": "explicit",
-      "scope": "whole"
-    }
-  ],
-  "externalBlocker": "Hampton: cámara, volumen mensual y decisión de compra frente a construcción.",
+  "dependencies": [],
+  "externalBlocker": "",
   "resources": [
     "tours-pipeline",
     "media-pipeline"
   ],
-  "nextStep": "Recoger cámara y volumen real y comparar compra frente a construcción antes de comprometer la cadena."
+  "nextStep": "Conservar como antecedente; no planificar esta unidad."
 }
