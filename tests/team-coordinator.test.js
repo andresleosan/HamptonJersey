@@ -16,6 +16,10 @@ function claim(state, data={}, who=actor()) {
   return call(state,'/v1/claims',{expectedRevision:state.revision,slot:who.slots[0],sessionId:who.actorId==='vps'?'session':`session-${who.actorId}`,checkoutId:`checkout-${who.actorId}`,hostId:'host',mode:'build',baseSha:sha,...data},who).claim;
 }
 const authority = c => ({generation:c.generation,sessionId:c.sessionId});
+// Persisted old planning claims remain closable; new planning never creates one.
+function legacyPlanningClaim(state) {
+  const u=state.catalog.units[0];const c={id:`legacy-plan-${++sequence}`,unitId:u.id,slot:'vps',actorId:'vps',sessionId:'session',checkoutId:'checkout-vps',hostId:'host',generation:1,mode:'plan',status:'active',resources:structuredClone(u.resources),baseSha:sha,updatedAt:1000,expiresAt:1000000};state.claims.push(c);return c;
+}
 
 test('logical and parent/child resources conflict; paused and expired retain occupancy', () => {
   const state=initialized([unit('A',[{key:'path:src/',mode:'write'}]),unit('B',[{key:'path:src/a.js',mode:'read'}],{preferredSlot:'hermes'})]);
@@ -27,10 +31,10 @@ test('logical and parent/child resources conflict; paused and expired retain occ
   assert.throws(()=>call(state,`/v1/claims/${c.id}/renew`,authority(c),actor(),1_000_000), e=>e.code==='STALE_CLAIM');
 });
 
-test('review-required units permit plan only, plan never submits product edits',()=>{
+test('review-required units reject build; legacy planning cannot submit product edits',()=>{
   const state=initialized([unit('A',[{key:'path:src/',mode:'write'}],{reviewRequired:true})]);
   assert.throws(()=>claim(state),e=>e.code==='NO_AVAILABLE_UNIT');
-  const c=claim(state,{mode:'plan'});
+  const c=legacyPlanningClaim(state);
   assert.throws(()=>call(state,`/v1/claims/${c.id}/submit`,{...authority(c),headSha:sha,changedPaths:['src/a.js'],evidence:'Plan'}),e=>e.code==='PLAN_ONLY');
 });
 
@@ -89,7 +93,7 @@ test('publication can advance held SHA and import disable-only for its matching 
 });
 
 test('design review covers claimed paths and is invalidated by a later unit contract change',()=>{
-  const state=initialized([unit('A',[{key:'path:src/',mode:'write'}],{reviewRequired:true})]);const c=claim(state,{mode:'plan'});
+  const state=initialized([unit('A',[{key:'path:src/',mode:'write'}],{reviewRequired:true})]);const c=legacyPlanningClaim(state);
   call(state,`/v1/claims/${c.id}/scope`,{...authority(c),resources:[{key:'path:docs/a.md',mode:'write'}]});
   call(state,'/v1/evidence',{expectedRevision:state.revision,unitId:'A',kind:'design',reference:'Scope reviewed'},actor('vps','coordinator'));
   assert.deepEqual(state.evidence[0].reviewedResources,state.claims[0].resources);
@@ -102,18 +106,17 @@ test('design review covers claimed paths and is invalidated by a later unit cont
   assert.equal(state.evidence[0].reference,'Scope reviewed');
 });
 
-test('review-required dynamic product scope is reserved in plan then reviewed before edits',()=>{
-  const state=initialized([unit('A',[{key:'task:a',mode:'write'}],{reviewRequired:true})]);const c=claim(state,{mode:'plan'});
-  call(state,`/v1/claims/${c.id}/scope`,{...authority(c),resources:[{key:'path:src/a.js',mode:'write'}]});
-  call(state,'/v1/evidence',{expectedRevision:state.revision,unitId:'A',kind:'design',reference:'Exact product file reviewed'},actor('vps','coordinator'));
-  call(state,`/v1/claims/${c.id}/resume`,{...authority(c),mode:'build'});
+test('unreserved design review supplies exact build paths and expanded scope still requires review',()=>{
+  const state=initialized([unit('A',[{key:'task:a',mode:'write'}],{reviewRequired:true})]);
+  const scope=[...state.catalog.units[0].resources,{key:'path:src/a.js',mode:'write'}];
+  call(state,'/v1/evidence',{expectedRevision:state.revision,unitId:'A',kind:'design',reference:'Exact product file reviewed without reservation',resources:scope},actor('vps','coordinator'));
+  assert.equal(state.claims.length,0);const c=claim(state);
+  assert.deepEqual(c.resources,scope);
   assert.throws(()=>call(state,`/v1/claims/${c.id}/scope`,{...authority(c),resources:[{key:'path:src/b.js',mode:'write'}]}),e=>e.code==='SCOPE_REVIEW_REQUIRED');
-  assert.equal(state.claims[0].resources.some(r=>r.key==='path:src/b.js'),false);
-  call(state,`/v1/claims/${c.id}/resume`,{...authority(c),mode:'plan'});
+  assert.throws(()=>call(state,`/v1/claims/${c.id}/resume`,{...authority(c),mode:'plan'}),e=>e.code==='PLANNING_IS_UNRESERVED');
+  call(state,'/v1/evidence',{expectedRevision:state.revision,unitId:'A',kind:'design',reference:'Both files reviewed',resources:[...scope,{key:'path:src/b.js',mode:'write'}]},actor('vps','coordinator'));
   call(state,`/v1/claims/${c.id}/scope`,{...authority(c),resources:[{key:'path:src/b.js',mode:'write'}]});
-  assert.throws(()=>call(state,`/v1/claims/${c.id}/resume`,{...authority(c),mode:'build'}),e=>e.code==='UNIT_NOT_REVIEWED');
-  call(state,'/v1/evidence',{expectedRevision:state.revision,unitId:'A',kind:'design',reference:'Both files reviewed'},actor('vps','coordinator'));
-  assert.equal(call(state,`/v1/claims/${c.id}/resume`,{...authority(c),mode:'build'}).claim.mode,'build');
+  assert.equal(state.claims[0].mode,'build');assert.equal(state.claims[0].resources.length,3);
 });
 
 for(const kind of ['design','integrated','research_accepted','activated','decision'])test(`${kind} dependency evidence must match the source unit's current contract`,()=>{
@@ -155,9 +158,9 @@ test('catalogue cannot invalidate a dependency contract while its dependent buil
   const changed=structuredClone(state.catalog);changed.units[0].acceptance=['Revised source contract'];
   assert.throws(()=>applyCommand(state,actor('vps','coordinator'),'/v1/catalog',{operationId:'invalidate-live-dependency',expectedRevision:state.revision,sha},{catalog:changed},2000),error=>error.code==='CATALOG_DEPENDENCY_CONFLICT');
   assert.deepEqual(state.catalog.units[0].acceptance,['Works']);
-  call(state,`/v1/claims/${c.id}/resume`,{...authority(c),mode:'plan'});
+  call(state,`/v1/claims/${c.id}/abandon`,{...authority(c),clean:true});
   applyCommand(state,actor('vps','coordinator'),'/v1/catalog',{operationId:'review-updated-dependency',expectedRevision:state.revision,sha},{catalog:changed},2000);
-  assert.throws(()=>call(state,`/v1/claims/${c.id}/resume`,{...authority(c),mode:'build'}),error=>error.code==='DEPENDENCIES_BLOCKED');
+  assert.throws(()=>claim(state,{taskId:c.unitId}),error=>error.code==='NO_AVAILABLE_UNIT');
 });
 
 test('unbound evidence and incomplete reviewed resources cannot satisfy design dependencies',()=>{

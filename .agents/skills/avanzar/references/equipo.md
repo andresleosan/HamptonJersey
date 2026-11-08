@@ -4,89 +4,44 @@ Contrato versionado para `/avanzar` y `$avanzar`, 8-nov-2026. Las columnas se ll
 
 ## Estado de activación
 
-El coordinador está publicado y desplegado con el catálogo de `c2ef559bac59a2f6ccb1e5c6c527221f1a367568`: 250 tareas, Lista 1–4 y capacidad dos por lista. VPS y ambos Hermes tienen conexión autenticada comprobada; los dos talleres están actualizados y el piloto real reservó tareas distintas simultáneamente en Lista 2, rechazó una tarea ocupada y liberó las reservas sin cambios de producto. El turno de publicación de una reserva solo de planificación se rechazó correctamente con `PLAN_ONLY`; no se declara completo el piloto de construcción/publicación. VS Code y Codex escritorio conservan incorporación pendiente desde sus equipos. Cualquier cliente habilitado puede elegir cualquier lista. Sin repositorio, Git/Node, credencial propia o conexión verificada, diagnosticar la incorporación sin reservar ni editar fuera del coordinador. Sigue pendiente el acceso humano al tablero mediante correos autorizados de Access. Una fotografía del tablero no concede permiso para editar.
+El coordinador está publicado y desplegado con el catálogo de `c2ef559bac59a2f6ccb1e5c6c527221f1a367568`: 250 tareas, Lista 1–4 y capacidad dos por lista. VPS y ambos Hermes tienen conexión autenticada comprobada; los dos talleres están actualizados y el piloto real reservó tareas distintas simultáneamente en Lista 2, rechazó una tarea ocupada y liberó las reservas sin cambios de producto. El turno de publicación de una reserva solo de planificación se rechazó correctamente con `PLAN_ONLY`; no se declara completo el piloto de construcción/publicación. VS Code y Codex escritorio conservan incorporación pendiente desde sus equipos. Cualquier cliente habilitado puede elegir cualquier lista. Para construir, sin repositorio, Git/Node, credencial propia o conexión verificada, diagnosticar la incorporación sin editar producto. La planificación local verificada no depende de esa incorporación. Sigue pendiente el acceso humano al tablero mediante correos autorizados de Access. Una fotografía del tablero no concede permiso para editar.
 
-## Selección guiada
+## Planificación local sin reservas
 
-Si faltan lista o tarea, aplicar [inicio-guiado.md](inicio-guiado.md) antes de `claim`: consultar estado, recuperar pendientes, mostrar listas y después candidatas reales. Elegir no reserva; la asignación solo existe cuando la confirma el coordinador.
-
-Cada participante activo necesita una copia exclusiva, independientemente de la herramienta o lista elegidas. No usar dos agentes simultáneos en una carpeta ni duplicar la sesión privada para cambiar de herramienta. Véase [carpeta exclusiva por participante](inicio-guiado.md#carpeta-exclusiva-por-participante-activo).
-
-## Arranque portable, una vez por copia
-
-Desde la raíz del clon canónico ya comprobado, se requieren Git 2.36 o posterior con `--remerge-diff`, Node 20.18.1 o posterior (preferible Node 24) y `npm ci`. No hay que instalar comandos globales. Git se invoca por su nombre normal para conservar los envoltorios del entorno. En Hermes, tomar el candado del taller **antes** de fetch o de usar una copia existente; para el primer clon, respetar el orden permitido por el taller.
-
-Si el operador ha provisionado un archivo de entorno privado, el agente conserva su ruta en el relevo privado y ejecuta cada comando con `node --env-file=<ruta privada> scripts/avanzar-team.mjs ...`. En un clon con directorio `.git`, la instalación puede usar `.git/avanzar-team.env` (0600); en worktrees se usa el Git dir propio. El CLI solo recibe las variables del proceso; no descubre archivos ni instala perfiles. No mezclar variables de otra identidad heredadas del proceso.
-
-El operador prepara `TEAM_ENDPOINT` con el origen HTTPS autenticado real y proporciona `CF_ACCESS_CLIENT_ID` y `CF_ACCESS_CLIENT_SECRET` mediante el entorno privado ya autorizado. No incluir valores en argumentos, ejemplos, chat, capturas, historial ni archivos versionados. La identidad y sus permisos derivan del JWT validado por Access; `--list` y el alias heredado `--slot` solo eligen una preferencia, sin conceder identidad ni permisos. El cliente respeta `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` y sus variantes en minúsculas, usando la dependencia local `undici`. Una redirección se rechaza sin reenviar credenciales. HTTP solo se admite en loopback para las pruebas locales.
-
-| Lista visible | Número para `--list` | ID interno conservado por compatibilidad |
-| --- | --- | --- |
-| Lista 1 | `1` | `vps` |
-| Lista 2 | `2` | `hermes` |
-| Lista 3 | `3` | `vscode` |
-| Lista 4 | `4` | `codex-desktop` |
-
-Los IDs internos no asignan herramientas a las listas. `init --list` y `select-list` están publicados desde `c2ef559`; actualizar las copias anteriores antes de usarlos. Después, desde cualquier cliente autorizado, elige el número inicial, por ejemplo:
+Decisión de Luis, 8-nov-2026. Las reservas, capacidad y exclusión son para **construir**. Planificar no obtiene plaza, identidad, generación, lease, recurso ni permiso de código. Una reserva de otra sesión y las dependencias pendientes no bloquean documentos.
 
 ```sh
-node scripts/avanzar-team.mjs init --endpoint "$TEAM_ENDPOINT" --list 1
+node scripts/avanzar-team.mjs plan --list 3 --task NOT-01
 ```
 
-`init --slot <ID interno>` se conserva para clientes anteriores; no se pueden pasar `--list` y `--slot` juntos.
+El comando lee el catálogo local después de verificar GitHub y devuelve contexto con `reserved:false`, `buildAuthorized:false`. Funciona sin init, credenciales o API del coordinador y conserva íntegros archivos privados de otras operaciones. `claim --mode plan` y claim sin modo son alias locales. El servidor rechaza nuevos POST de reserva plan; no reintentar por otra identidad.
 
-Hermes 1 y Hermes 2 usan talleres independientes, cada uno con home, clon obligatorio, sesión, configuración privada y credencial de servicio. Cada uno elige una lista, y también pueden elegir la misma si hay capacidad y tareas compatibles. Las cuatro listas admiten dos reservas; un catálogo antiguo sin `capacity` conserva capacidad uno. Una misma identidad, sesión o checkout nunca obtiene dos reservas. Las reservas pausadas o sin contacto siguen consumiendo capacidad y recursos. El candado local de un taller no bloquea al otro. No compartir archivos privados de sesión o credenciales para cambiar de teléfono. Cada entorno conserva su trabajo pendiente hasta un relevo explícito.
+En planificación: copia exclusiva, Git comprobado, spec/plan/ledger y relevo; no claim/scope/watch/renew/submit/pause/complete/release. No hacen falta evidencias de integración para redactar documentos. La vista de reservas no representa borradores locales. El título o catálogo no concede permiso de construcción.
 
-`init` deja configuración y sesión privadas junto al Git dir de cada checkout, con escritura atómica y permisos del propietario. En worktrees usa su Git dir propio. El identificador de host de una inicialización nueva es un hash estable del sistema y su hostname; dos clones en la misma máquina comparten ese identificador, sin exponer el nombre. Si dos máquinas tienen el mismo nombre, el conflicto conservador evita concurrencia. No modificar identidades para escapar de una reserva. No copia credenciales ni modifica `.git/config` ni hooks. Repetir `init` con la misma lista conserva los identificadores; cambiarla mediante `init` o copiar su configuración a otro checkout se rechaza. No borrar esos archivos para escapar de una tarea pendiente.
+## Construcción: inicialización y revisión del alcance
 
-Para elegir otra lista en un checkout ya inicializado:
+Cada participante usa copia propia. El entorno privado del operador suministra el endpoint HTTPS y credenciales exclusivamente al proceso, mediante su archivo autorizado; no imprimir ni copiar valores. El CLI no descubre archivos automáticamente. En clones provisionados se usa `node --env-file=<ruta privada> scripts/avanzar-team.mjs ...`. No compartir sesión o credenciales para cambiar de cliente.
+
+Desde una copia de construcción nueva y limpia verificada, `init --list N --endpoint "$TEAM_ENDPOINT"` crea únicamente estado privado en su Git dir; no instala servicios. Si una planificación tiene commits locales pendientes, conservar esa copia; inicializar la copia de construcción sobre main verificado antes de incorporar sus documentos públicos al alcance de la entrega. No publicar planes como requisito para obtener una identidad ni perder commits para aparentar igualdad.
+
+Antes de construir, la identidad coordinadora registra la revisión real y el alcance concreto, sin tomar reserva:
 
 ```sh
-node scripts/avanzar-team.mjs select-list --list 3
+node scripts/avanzar-team.mjs evidence --unit NOT-01 --kind design --reference docs/superpowers/specs/mi-tarea.md --write server/archivo.js --write tests/archivo.test.js --resource events-contract
 ```
 
-`select-list` consulta primero el tablero y guarda únicamente la preferencia local; conserva actor, sesión, checkout, host y estado privado. No reserva trabajo ni acredita permisos sobre la lista elegida: el servidor vuelve a autorizarlos en `claim`. Se rechaza con una reserva propia abierta, pausada, sin contacto o entregada, una operación de resultado desconocido, una aprobación declarada/privada/de entorno o un turno de publicación propio. Termina o resuelve el trabajo por el flujo correspondiente antes de cambiar; no reinicialices ni borres la sesión. Elegir otra lista no mueve las tareas del catálogo.
+La lista revisada debe incluir todos los recursos mínimos de la unidad y los paths exactos de producto, docs, pruebas y generados. No reservar rutas durante la planificación. La atestación de diseño no es integración, activación o permiso de publicar.
 
-En cada inicio o reanudación, seguir primero la verificación/alineación de GitHub de la skill y después ejecutar:
-
-```sh
-node scripts/avanzar-team.mjs status
-node scripts/avanzar-team.mjs claim --mode plan
-```
-
-Con código de tarea solicitado: `node scripts/avanzar-team.mjs claim --task AUT-17 --mode plan`. Sin código, el servidor recupera primero el trabajo propio; después elige una unidad disponible preferida por la lista seleccionada, por prioridad e identificador; solo toma una unidad compatible de otra lista cuando no hay una propia viable. Esta ayuda temporal conserva la lista original de la tarea y la preferencia del cliente; el tablero distingue ambas. La capacidad cuenta reservas de la lista elegida, no el total de tarjetas que reciben ayuda desde otras listas. Una reserva ocupada, pausada o caducada conserva sus conflictos y su plaza. Que quede una segunda plaza en una lista no autoriza tomar una tarea ni recursos ya reservados. El título del checklist por sí solo no demuestra que una unidad sea ejecutable. Aplicar el inicio guiado cuando falten lista o tarea; no repetir elecciones explícitas ni tomar otra tarea mientras haya trabajo propio pendiente.
-
-`status` muestra revisión y SHA del catálogo, ocupación y la operación local pendiente. Consultarlo no renueva nada. `claim` requiere una copia limpia y comprobada cuando empieza trabajo nuevo. Al recuperar trabajo propio conserva cambios y commits, verifica el alcance y la base. Sin red no concede tarea ni permiso de publicación. Salidas JSON: `0` éxito confirmado, `2` conflicto, `1` configuración, red o resultado desconocido. No interpretar un error como reserva obtenida.
-
-## Plan, alcance y construcción
-
-Una unidad pendiente de revisión solo permite `plan`: escribir documentos Markdown concretos, nunca código del producto. En plan sí se reservan **antes de la revisión** las rutas exactas de documentación y producto; la reserva por sí sola no autoriza editar producto. El diseño revisado queda ligado a ese alcance. Reservar también archivos generados, checklist, ledger y recursos de prueba que la entrega vaya a necesitar:
+Después de recibir encargo de construcción, consultar status y resolver reservas build/operaciones/aprobaciones propias pendientes; entonces:
 
 ```sh
-node scripts/avanzar-team.mjs scope --path docs/superpowers/specs/mi-tarea.md --path docs/superpowers/plans/mi-tarea.md --write admin/ruta-del-cambio/ --read functions/ruta-de-consulta/
-node scripts/avanzar-team.mjs scope --resource "e2e:$HOST_ID"
+node scripts/avanzar-team.mjs claim --task NOT-01 --mode build
 node scripts/avanzar-team.mjs watch
 ```
 
-`watch` corre en primer plano, renueva la reserva cada 60 segundos y termina ante señal o fallo. Puede quedar abierto en otra terminal del **mismo** checkout; no instala daemon ni servicio. Si se pierde la renovación, detener ediciones y consultar el estado. La reserva dura 15 minutos; caducar no libera sus recursos ni permite robarla.
+El servidor toma el alcance revisado y comprueba identidad, capacidad, conflictos, revisión vigente y dependencias de forma atómica. Cada lista admite dos reservas build, cada actor/sesión/checkout una sola. Exige respuesta confirmada mode:build antes de código; ampliar recursos con scope requiere una nueva atestación que cubra la ampliación. `e2e:<hostId>` se incluye antes de usar fixtures/puertos compartidos. Watch renueva en primer plano cada60s; no daemon. Sin renovación o autoridad comprobada, detener código y diagnosticar.
 
-`--path` y `--write` reservan escritura; `--read-path` y `--read` reservan lectura. `--resource` reserva una clave lógica de escritura validada. Usa como `HOST_ID` el identificador del `init`/`status` de esa máquina. Antes de e2e reserva `e2e:<hostId>`: dos copias en el mismo equipo no pueden ocupar a la vez los puertos/fixtures compartidos. Esta reserva debe formar parte del alcance revisado, sin daemon global.
-
-Brainstorming, preguntas resueltas y plan preceden al código. El coordinador registra una revisión verificable de esa unidad, por ejemplo:
-
-```sh
-node scripts/avanzar-team.mjs evidence --unit AUT-17 --kind design --reference docs/superpowers/specs/mi-tarea.md
-```
-
-Solo una identidad coordinadora puede registrar esa atestación. La revisión no inventa evidencia de integración ni activación. El catálogo inicial deja las unidades de desarrollo pendientes de revisión. Con la evidencia de diseño y las dependencias exigidas satisfechas, solicitar la transición; el servidor decide:
-
-```sh
-node scripts/avanzar-team.mjs resume --mode build
-```
-
-Al solicitar un cambio de modo, `resume` y `accept-handoff` comprueban los cambios guardados contra el modo solicitado y las mismas rutas de escritura reservadas. Esto permite conservar JSON/HTML documentales de una investigación al solicitar `build`; no autoriza nuevas ediciones mientras la reserva siga en `plan`. El servidor sigue comprobando propietario, generación, vigencia, revisión y dependencias. Una respuesta que no confirme el modo solicitado queda pendiente de reconciliación y no acredita la transición. Sin `--mode`, siguen aplicándose las restricciones del modo actual.
-
-Antes de editar código, comprobar que la respuesta confirma `mode: build` y que cada archivo pertenece a un recurso `path:` con escritura. `scope` añade recursos, nunca reduce reservas existentes; una ruta con lectura no autoriza escritura. La evidencia `design` está ligada a los recursos concretos revisados. Añadir recursos de producto después de pasar a build exige volver a revisar ese alcance; no es una ampliación automática del permiso de construcción. En plan, el cliente sigue rechazando la entrega de código aunque ya esté reservado. Directorios con `/` final cubren descendientes. No reservar todo el repositorio para evitar pensar el alcance. Nuevas dependencias o reglas de ejecución deben quedar revisadas en el catálogo canónico; las relaciones inferidas o parciales del checklist no se promueven automáticamente. Las unidades de investigación usan sus entregables y dependencias propias; terminar código nunca satisface una decisión de negocio.
+El servidor no convierte build a plan. Para ampliar un diseño se revisan documentos/alcance sin una reserva nueva; el trabajo build pendiente conserva su reserva y no se presenta como abandonado. Las reservas plan anteriores a la decisión se conservan hasta cierre explícito de su titular con evidencia de diseño; este cambio no borra archivos ni modifica esas reservas activas.
 
 ## Pausa, reanudación y relevo
 
@@ -104,7 +59,7 @@ El destino obtiene sus identificadores de su `init`/`status`, sin compartir arch
 node scripts/avanzar-team.mjs handoff --claim "$CLAIM_ID" --generation "$GENERATION" --target-actor "$TARGET_ACTOR" --target-slot "$TARGET_SLOT" --target-session-id "$TARGET_SESSION" --target-checkout-id "$TARGET_CHECKOUT" --target-host-id "$TARGET_HOST" --evidence 'Relevo revisado y ubicación del trabajo conservado'
 ```
 
-`TARGET_SLOT` usa el ID interno de la lista de destino de la tabla anterior; el nombre histórico no determina la herramienta del destinatario. Para el relevo de la propia reserva se pueden omitir `--claim` y `--generation`. El mandato no transmite cambios sin publicar ni salta el candado de Hermes. El destino vuelve a comprobar su clon y acepta explícitamente el relevo; el origen deja de editar. Un relevo con archivos pendientes necesita una ubicación y responsable explícitos, sin presentar esos cambios como integrados.
+`TARGET_SLOT` usa el ID interno de la lista de destino: 1=vps, 2=hermes, 3=vscode, 4=codex-desktop; el nombre histórico no determina la herramienta del destinatario. Para el relevo de la propia reserva se pueden omitir `--claim` y `--generation`. El mandato no transmite cambios sin publicar ni salta el candado de Hermes. El destino vuelve a comprobar su clon y acepta explícitamente el relevo; el origen deja de editar. Un relevo con archivos pendientes necesita una ubicación y responsable explícitos, sin presentar esos cambios como integrados.
 
 ### Aceptar el relevo en el destino
 
@@ -114,7 +69,7 @@ La nueva generación no se adopta por consultar el estado, ejecutar `init` o vol
 node scripts/avanzar-team.mjs accept-handoff --claim "$CLAIM_ID" --generation "$NEW_GENERATION"
 ```
 
-Opcionalmente añadir `--mode plan` o `--mode build` para una reanudación; el servidor vuelve a exigir la revisión y dependencias que correspondan. El cliente exige la última procedencia `handoffs.to` y los campos actuales del tablero coincidentes, la lista/sesión/checkout/host locales exactos y una generación mayor que uno. Comprueba la base y el alcance de commits propios y de archivos pendientes; no exige borrar commits o limpiar trabajo legítimo recibido para fingir una reserva nueva. Si otro cliente publicó desde la base, esta aceptación explícita sin aprobación puede conservar la divergencia verificada para después entregar el trabajo provisional, tomar el turno e integrar main. Una aprobación declarada, privada o de entorno conserva el preflight estricto y nunca admite esa excepción. Una reserva local distinta, trabajo fuera de alcance o un destino diferente bloquean la aceptación.
+Opcionalmente añadir `--mode build` para reanudar construcción; `--mode plan` se conserva únicamente para reservas plan históricas, sin permitir convertir build en plan; el servidor vuelve a exigir la revisión y dependencias que correspondan. El cliente exige la última procedencia `handoffs.to` y los campos actuales del tablero coincidentes, la lista/sesión/checkout/host locales exactos y una generación mayor que uno. Comprueba la base y el alcance de commits propios y de archivos pendientes; no exige borrar commits o limpiar trabajo legítimo recibido para fingir una reserva nueva. Si otro cliente publicó desde la base, esta aceptación explícita sin aprobación puede conservar la divergencia verificada para después entregar el trabajo provisional, tomar el turno e integrar main. Una aprobación declarada, privada o de entorno conserva el preflight estricto y nunca admite esa excepción. Una reserva local distinta, trabajo fuera de alcance o un destino diferente bloquean la aceptación.
 
 La aceptación llama al `resume` existente para que el servidor autentique al actor propietario. Si la reserva ya está `submitted`, confirma la identidad mediante `renew`, conserva ese estado y no permite cambiar su modo ni resolver por accidente un turno de publicación incierto. Solo guarda la nueva generación tras respuesta autorizada. Si hay una operación anterior de esa misma reserva con generación menor revocada por el relevo verificado, la aceptación explícita la archiva íntegra en el estado privado como `unknown_revoked`, con cuerpo e identificador; no la repite ni la declara exitosa. Una operación de catálogo/evidencia, otra reserva o una generación aún vigente sigue bloqueando la aceptación. Después se guarda la nueva operación autenticada. Si se pierde esa respuesta, repetir exactamente `accept-handoff`: conserva el mismo cuerpo e identificador, sin adoptar autoridad durante la incertidumbre. Un rechazo del actor autenticado no guarda la nueva generación. Nunca copiar ni editar los archivos privados de sesión para eludir esta aceptación.
 
@@ -135,7 +90,7 @@ node scripts/avanzar-team.mjs evidence --unit AUT-17 --kind activated --referenc
 node scripts/avanzar-team.mjs evidence --unit AUT-17 --kind decision --reference "$DECISION_REFERENCE"
 ```
 
-`integrated` verifica que el commit pertenece al main canónico. Las otras referencias registran una atestación explícita del coordinador. No registrar `activated` porque compile o tenga un mock aprobado. `complete` exige la evidencia de cierre que corresponde a la unidad y libera sus recursos; no fabrica evidencia de activación. `abandon` solo acepta una copia sin cambios ni commits pendientes de esa reserva.
+`integrated` verifica que el commit pertenece al main canónico. Las otras referencias registran una atestación explícita del coordinador. No registrar `activated` porque compile o tenga un mock aprobado. `complete` se aplica al cierre de reservas build o a la compatibilidad de reservas plan históricas; exige la evidencia de cierre que corresponde a la unidad y libera sus recursos; no fabrica evidencia de activación. `abandon` solo acepta una copia sin cambios ni commits pendientes de esa reserva.
 
 ```sh
 node scripts/avanzar-team.mjs complete

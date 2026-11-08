@@ -103,6 +103,7 @@ function dispatch(state,actor,path,body,prepared,now) {
   requireThat(state.catalog,'CATALOG_REQUIRED','Import the verified canonical catalogue first.');
   if(path==='/v1/claims') {
     allowFields(body,['operationId','expectedRevision','slot','sessionId','checkoutId','hostId','taskId','mode','baseSha']);
+    requireThat(body.mode!=='plan','PLANNING_IS_UNRESERVED','Planning is local and unreserved; use the plan command.');
     assertRevision(state,body.expectedRevision);slot(actor,body.slot);
     identifier(body.sessionId,'sessionId');identifier(body.checkoutId,'checkoutId');identifier(body.hostId,'hostId');gitSha(body.baseSha);
     if(!['plan','build'].includes(body.mode)) fail(400,'INVALID_MODE','Mode must be plan or build.');
@@ -126,12 +127,15 @@ function dispatch(state,actor,path,body,prepared,now) {
     state.claims.push(claim);return {claim};
   }
   if(path==='/v1/evidence') {
-    allowFields(body,['operationId','expectedRevision','unitId','kind','reference','sha']);coordinator(actor);assertRevision(state,body.expectedRevision);
+    allowFields(body,['operationId','expectedRevision','unitId','kind','reference','sha','resources']);coordinator(actor);assertRevision(state,body.expectedRevision);
     requireThat(unitFor(state,body.unitId),'UNIT_NOT_FOUND','Evidence unit does not exist.');
     if(!KINDS.includes(body.kind)) fail(400,'INVALID_EVIDENCE','Unknown evidence kind.');text(body.reference,'reference',4000);
     if(body.kind==='integrated') requireThat(prepared.integratedSha===gitSha(body.sha),'UNVERIFIED_EVIDENCE','Commit must be verified on canonical main.');
     else if(body.sha!==undefined) gitSha(body.sha);
-    const evidence={id:crypto.randomUUID(),unitId:body.unitId,kind:body.kind,reference:body.reference,...(body.sha?{sha:gitSha(body.sha)}:{}),verification:body.kind==='integrated'?'canonical-main':'coordinator-attestation',actorId:actor.actorId,createdAt:now,scopeDefinition:scopeDefinition(unitFor(state,body.unitId)),...(body.kind==='design'?{reviewedResources:structuredClone(state.claims.find(c=>c.unitId===body.unitId&&current(c))?.resources||unitFor(state,body.unitId).resources)}:{})};
+    requireThat(body.resources===undefined||body.kind==='design','INVALID_INPUT','Only design evidence accepts reviewed resources.');
+    const reviewedResources=body.kind==='design'?(body.resources===undefined?structuredClone(state.claims.find(c=>c.unitId===body.unitId&&current(c))?.resources||unitFor(state,body.unitId).resources):resources(body.resources)):null;
+    if(reviewedResources)requireThat(unitFor(state,body.unitId).resources.every(r=>covers(reviewedResources,r)),'INCOMPLETE_REVIEW','Design review must cover the unit contract.');
+    const evidence={id:crypto.randomUUID(),unitId:body.unitId,kind:body.kind,reference:body.reference,...(body.sha?{sha:gitSha(body.sha)}:{}),verification:body.kind==='integrated'?'canonical-main':'coordinator-attestation',actorId:actor.actorId,createdAt:now,scopeDefinition:scopeDefinition(unitFor(state,body.unitId)),...(body.kind==='design'?{reviewedResources}:{})};
     state.evidence.push(evidence);return {evidence};
   }
   const claim=assertAuthority(state,actor,path,body,now);
@@ -165,6 +169,7 @@ function dispatch(state,actor,path,body,prepared,now) {
     claim.status='paused';claim.pendingWork=claim.pendingWork||body.pendingWork;claim.pauseEvidence=body.evidence;
   } else if(action==='resume') {
     requireThat(claim.status!=='submitted','SUBMITTED_CLAIM','Submitted claim remains reserved for integration.');
+    requireThat(body.mode!=='plan'||claim.mode==='plan','PLANNING_IS_UNRESERVED','A build reservation cannot become a planning reservation.');
     const mode=body.mode||claim.mode;if(!['plan','build'].includes(mode))fail(400,'INVALID_MODE','Invalid mode.');
     if(mode==='build')buildable(state,unit,claim.resources);
     claim.status='active';claim.mode=mode;claim.expiresAt=now+LEASE_MS;

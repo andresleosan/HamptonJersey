@@ -4,11 +4,13 @@ Las tareas se distribuyen en **Lista 1, Lista 2, Lista 3 y Lista 4**. Cualquier 
 
 ## Estado comprobado y pendientes
 
+**Cambio local preparado, 8-nov:** planificación sin reservas mediante comando local plan; rechazo de nuevas reservas plan y revisión explícita de alcance sin claim previo. Pendiente publicar/desplegar este ajuste; no se alteraron las reservas históricas del servicio activo.
+
 El servicio privado está desplegado en `https://hampton-team-coordinator.andres-san1404.workers.dev` con Access; consultas anónimas rechazadas. Código y catálogo aprobados `c2ef559bac59a2f6ccb1e5c6c527221f1a367568` publicados y activados: 250 tareas, cuatro listas y capacidad dos. VPS y ambos Hermes comprobaron el catálogo desde sus entornos reales. El hostname personalizado sigue pendiente de DNS; no se migraron los DNS de la web.
 
 Hermes 1 y Hermes 2 tienen talleres, homes, clones, sesiones y credenciales independientes y actualizados. SSH cruzado rechazado; candados locales independientes. Piloto real de dos reservas simultáneas de tareas distintas en Lista 2, rechazo de tarea ocupada y limpieza completa sin cambios de producto. El turno de publicación desde plan se rechazó con PLAN_ONLY; el piloto completo de build y release requiere una tarea cuyo diseño y dependencias estén realmente revisados. VS Code y Codex escritorio necesitan comprobación desde sus equipos.
 
-El Worker `hampton-team-coordinator` usa su propio Durable Object SQLite, sin binding a la base de Hampton. El catálogo describe asignaciones; el servicio autenticado arbitra reservas, recursos, generaciones, evidencias y un único turno de publicación. `plan` permite documentación; `build` exige diseño revisado para el alcance y dependencias satisfechas. Ninguna asignación autoriza cambios de configuración externa.
+El Worker `hampton-team-coordinator` usa su propio Durable Object SQLite, sin binding a la base de Hampton. El catálogo describe asignaciones; el servicio autenticado arbitra reservas, recursos, generaciones, evidencias y un único turno de publicación. El flujo nuevo planifica documentación local sin reserva; `build` exige diseño revisado para el alcance y dependencias satisfechas. El servicio desplegado conserva el protocolo anterior hasta publicar este ajuste. Ninguna asignación autoriza cambios de configuración externa.
 
 ## Configuración del servicio
 

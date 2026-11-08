@@ -70,10 +70,13 @@ test('idempotency returns exact successful response and rejects changed payload'
 });
 test('review attestation unlocks build; integrated evidence does not impersonate activated',async()=>{
   const stub=await initialized('review',{review:true});assert.equal((await claim(stub)).status,409);
-  const c=(await claim(stub,'vps',{mode:'plan'})).body.claim;
-  assert.equal((await mutate(stub,c,'resume',{mode:'build'})).body.error.code,'UNIT_NOT_REVIEWED');
-  const evidence=await stub.command(actors.vps,'/v1/evidence',{operationId:operation(),expectedRevision:(await stub.getBoard()).revision,unitId:c.unitId,kind:'design',reference:'Reviewed resources and acceptance'});assert.equal(evidence.status,200);
-  assert.equal((await mutate(stub,c,'resume',{mode:'build'})).body.claim.mode,'build');
+  const before=await stub.getBoard();
+  assert.equal((await claim(stub,'vps',{mode:'plan'})).body.error.code,'PLANNING_IS_UNRESERVED');
+  const after=await stub.getBoard();assert.deepEqual(after.claims,before.claims);assert.equal(after.revision,before.revision);
+  const unitId=catalog.units[0].id;
+  const evidence=await stub.command(actors.vps,'/v1/evidence',{operationId:operation(),expectedRevision:before.revision,unitId,kind:'design',reference:'Reviewed without any reservation',resources:catalog.units[0].resources});assert.equal(evidence.status,200);
+  assert.equal((await stub.getBoard()).claims.length,0);
+  assert.equal((await claim(stub)).body.claim.mode,'build');
 });
 test('coordinator handoff validates target and revokes previous-generation idempotency',async()=>{
   const stub=await initialized('handoff');const c=(await claim(stub)).body.claim;
@@ -158,7 +161,8 @@ test('idempotent replay cannot return obsolete build authority after mode change
   const stub=await initialized('superseded');const c=(await claim(stub)).body.claim;
   const body={operationId:operation(),...authority(c),mode:'build'};
   assert.equal((await stub.command(actors.vps,`/v1/claims/${c.id}/resume`,body)).status,200);
-  assert.equal((await mutate(stub,c,'resume',{mode:'plan'})).status,200);
+  assert.equal((await mutate(stub,c,'resume',{mode:'plan'})).body.error.code,'PLANNING_IS_UNRESERVED');
+  assert.equal((await mutate(stub,c,'pause',{evidence:'Saved build checkpoint',pendingWork:false})).status,200);
   const replay=await stub.command(actors.vps,`/v1/claims/${c.id}/resume`,body);
   assert.equal(replay.status,409);assert.equal(replay.body.error.code,'OPERATION_SUPERSEDED');
 });
@@ -179,10 +183,9 @@ test('canonical source contract update invalidates historical dependency design 
   assert.equal(snapshot.blockers.find(b=>b.unitId===catalog.units[0].id).reasons.includes('review_required'),true);
   assert.deepEqual(snapshot.blockers.find(b=>b.unitId===catalog.units[1].id).dependencies,[{unitId:catalog.units[0].id,requiredEvidence:'design'}]);
   assert.equal((await claim(stub,'hermes',{taskId:catalog.units[1].id})).body.error.code,'NO_AVAILABLE_UNIT');
-  const planning=(await claim(stub,'hermes',{taskId:catalog.units[1].id,mode:'plan'})).body.claim;
-  assert.equal((await mutate(stub,planning,'resume',{mode:'build'})).body.error.code,'DEPENDENCIES_BLOCKED');
+  assert.equal((await claim(stub,'hermes',{taskId:catalog.units[1].id,mode:'plan'})).body.error.code,'PLANNING_IS_UNRESERVED');
   assert.equal((await attest()).status,200);
-  assert.equal((await mutate(stub,planning,'resume',{mode:'build'})).status,200);
+  assert.equal((await claim(stub,'hermes',{taskId:catalog.units[1].id})).body.claim.mode,'build');
   assert.equal((await stub.getBoard()).evidence[0].evidenceCurrent,false);
   assert.equal((await stub.getBoard()).evidence.at(-1).evidenceCurrent,true);
 });

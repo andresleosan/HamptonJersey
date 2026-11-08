@@ -1,40 +1,25 @@
 # Inicio guiado de /avanzar
 
-La skill principal define cuándo guiar. Este inicio usa las cuatro listas desde cualquier cliente habilitado, con la API viva como autoridad. No modifica identidad, credenciales ni el contrato de reservas.
+Regla de Luis, 8-nov-2026: planificación sin reservas. La lista elegida y la herramienta no asignan una carpeta ni una identidad. Cada participante conserva copia exclusiva y los archivos privados propios.
 
-### Carpeta exclusiva por participante activo
+1. Verificar GitHub y clasificar/conservar trabajo local según la skill. En Hermes conservar el candado local de su copia; esto no es una reserva remota de tarea.
+2. Si el encargo es solo planificar, consultar `node scripts/avanzar-team.mjs plan --list N --task CODIGO` desde el clon comprobado. No requiere init/credenciales/coordinador y no modifica archivos privados. No consultar status ni recuperar trabajo de otra sesión como requisito para planificar.
+3. Si falta lista, mostrar Lista 1–4 y sus áreas del catálogo; no presentar ocupación como bloqueo. Si falta tarea, mostrar hasta tres códigos reales, su utilidad y dependencias de futura construcción. Conservar elecciones previas; preguntar una vez.
+4. Elegida la tarea, redactar documentos y revisar el diseño. No hacer claim/scope/watch/submit/pause/complete para planificación. No construir nada porque una dependencia siga pendiente.
+5. Si el encargo es construir, aplicar el protocolo autenticado de equipo: recuperar pendientes build y operaciones inciertas; revisión del alcance con evidencia design sin reserva previa; después claim --mode build y comprobación atómica de dependencias/capacidad/recursos. Publicación requiere aprobación por SHA.
 
-Lista, herramienta y copia de trabajo son conceptos independientes. Un participante puede usar GPT, OpenCode u otra herramienta con cualquiera de las cuatro listas. Cada participante activo conserva su propio clon/checkout, sesión y credencial de coordinación, aunque todos estén en la misma máquina. Dos herramientas concurrentes nunca deben escribir la misma carpeta, ni siquiera si eligieron listas distintas.
+## Casos de comprobación
 
-Antes de seleccionar, identificar la raíz Git y el checkout propios. Si otra sesión/agente usa esa carpeta, no continuar allí ni recuperar su reserva como si fuera propia: conservar el trabajo y usar una copia independiente permitida por el arranque del proyecto. No copiar `.git`, estado privado, identidades o credenciales desde la carpeta del compañero. En Hermes se usa exclusivamente el clon de su propio taller y su candado; no crear clones/worktrees adicionales para eludirlo. Fuera de Hermes, el operador debe incorporar la copia nueva con identidad autorizada propia. No afirmar exclusividad solo porque Git esté limpio o el nombre de la herramienta cambió.
+| Entrada | Resultado |
+|---|---|
+| Solo planificación, sin datos | Guiar lista/tarea desde catálogo, sin reservar |
+| Planificar NOT-01 Lista 3 con NOT-11 pendiente | Redactar plan; registrar dependencia para construcción |
+| Otra conversación usa la misma identidad VPS | Planificación local permitida; no adoptar ni modificar su reserva |
+| Sin credencial del coordinador | Planificación permitida con repositorio verificado; construcción no habilitada |
+| Sin GitHub/base verificable | Lectura/diagnóstico, no presentar copia como actualizada |
+| Misma carpeta usada por otra sesión | Conservar trabajo y usar copia propia permitida; no editar concurrentemente |
+| claim --mode plan en cliente actualizado | Alias del comando plan, sin POST ni lease |
+| Construir sin evidencia/dependencias | Servidor rechaza build, sin construir |
+| /new en Hermes | No cambia identidades ni libera reservas build; no condiciona planificación local |
 
-Cambiar de herramienta para continuar una tarea requiere que la ejecución anterior haya terminado y que se conserve su reserva/relevo; no abre otra plaza ni otra copia con la misma identidad para trabajar a la vez. El servidor limita actor/sesión/checkout y recursos; esas comprobaciones complementan la carpeta separada. Si se pierde una renovación o no puede comprobarse la titularidad, detener escrituras y diagnosticar.
-
-1. Verificar el repositorio. En Hermes, anunciar modelo y esfuerzo de conversación, construcción y revisión según «Anunciar modelo y esfuerzo al iniciar en Hermes» de la skill, incluso sin lista/tarea o al recuperar trabajo. Consultar `status`, con el archivo privado provisionado si existe. Sin conexión, explicar cómo incorporar ese cliente; no mostrar disponibilidad como confirmada.
-2. Recuperar primero trabajo propio: reserva activa/pausada/sin contacto/entregada, operación incierta, aprobación o turno pendiente bloquean una selección nueva. `/new` conserva ese estado privado. Presentar el código y el estado, nunca las claves.
-3. Si falta lista, presentar las cuatro con ocupación actual frente a su capacidad. Recomendar una por preferencia, carga y dependencias verificadas, sin prometer reserva. Una pregunta: «¿Qué lista quieres usar? Recomiendo Lista N por …; también puedo elegir automáticamente».
-4. Tras elegir, usar `select-list --list N` solo si no hay pendientes. Si falla, conservar la configuración y explicar el conflicto. Si no se puede verificar qué actor o checkout tiene un pendiente, diagnosticar antes de cambiar.
-5. Si falta tarea, mostrar hasta tres candidatas reales de la lista, por prioridad y dependencias; para cada una indicar código, título y siguiente paso. Una pregunta: «¿Cuál quieres trabajar? Recomiendo CÓDIGO para [planificar/construir]; puedes responder “recomendada”». El tablero puede acreditar revisión y dependencias, pero un resumen local nunca sustituye la decisión del servidor. Si no hay tarea viable, explicar el bloqueo y proponer ayuda a otra lista, sin tomarla a escondidas.
-6. Tras elegir tarea o pedir «automático/siguiente/elige tú», ejecutar `claim --mode plan`, con `--task CÓDIGO` si eligió uno. El servidor puede asignar ayuda temporal según su política. Informar de lista de ejecución y lista original si difieren; conservar la asignación del catálogo. Ante un rechazo, refrescar `status` y proponer opciones vigentes. No repetir ciegamente una operación incierta.
-7. Confirmada la reserva, seguir alcance, revisión de diseño, dependencias, `resume --mode build`, renovación, pruebas y aprobación de publicación de la skill. Seleccionar no autoriza a saltarse ninguna etapa.
-
-## Casos de comprobación del agente
-
-| Entrada / estado | Respuesta esperada |
-| --- | --- |
-| `/avanzar` sin reserva | Mostrar listas; después tareas; reservar solo tras elección o autorización automática. |
-| `/avanzar lista 3` | Conservar Lista 3; guiar únicamente la tarea. |
-| `/avanzar AUT-17` | Guiar la lista si no está indicada; conservar el código pedido y verificarlo. |
-| `/avanzar AUT-17 lista 2` | Comprobar y reservar sin repetir preguntas de selección. |
-| `/avanzar automático` | Recomendar/elegir según estado vivo y pedir reserva al servidor sin entrevistas innecesarias. |
-| `/new`, luego `/avanzar`, con reserva propia | Ofrecer continuar esa reserva; no crear otra ni resetear identidades. |
-| Hermes inicia o retoma `/avanzar` | Antes de elegir/reservar/construir, anunciar modelo y esfuerzo comprobados para conversación, construcción y revisión; marcar datos no verificables y avisar de cambios confirmados. |
-| Hermes con GPT disponible | GPT trabaja directamente; no iniciar OpenCode para construir ni revisar. No inventar esfuerzo si no es visible. |
-| Indisponibilidad de GPT confirmada y respaldo nativo activado | Anunciar el cambio y comprobar `taller-opencode doctor` antes de usar el respaldo DeepSeek Flash max, conservando reserva y alcance. |
-| OpenCode anterior aún activo en el clon | Conservar proceso/cambios/reserva; esperar punto seguro y finalización antes de retomar con GPT. No iniciar otro escritor. |
-| Lista llena, tarea ocupada o dependencias pendientes | Explicar el bloqueo real y ofrecer opciones compatibles. |
-| Sin credencial / sin red | Diagnosticar incorporación; no reservar ni editar como si hubiera permiso. |
-| Dos herramientas concurrentes en la misma carpeta | Detener el segundo inicio y usar una copia independiente autorizada; no cambiar de lista para esquivar la ocupación. |
-| Usuario cancela antes de elegir | Terminar la guía sin reserva nueva. |
-
-Hermes: `/new` abre una conversación y `/avanzar` invoca la skill. Un chat GPT sin acceso al repositorio ni herramientas de coordinación solo puede orientar; para ejecutar necesita un cliente habilitado. Codex usa `$avanzar`; el nombre visible de invocación depende del cliente, mientras el contrato y las listas son los mismos.
+Un chat sin repositorio solo orienta. No inventar reservas, revisiones, publicación ni pruebas del código por tener documentos listos.

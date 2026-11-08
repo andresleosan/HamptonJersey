@@ -55,8 +55,8 @@ test('init stores only private stable identifiers and rejects replacing a shared
 test('unknown mutation retries the original operation even after board revision changes', async t => {
   const f = await fixture(t); let first = true;
   f.setHandler((req,res,body) => { res.setHeader('content-type','application/json'); if(req.method==='GET') return res.end(JSON.stringify(f.board)); if(first) {first=false;f.board.revision=2;req.socket.destroy();return;} res.end(JSON.stringify({claim:{id:'c', unitId:'U', generation:1, sessionId:body.sessionId,checkoutId:body.checkoutId,slot:body.slot,mode:'plan',status:'active',baseSha:f.baseSha,resources:[]},revision:2})); });
-  await assert.rejects(f.run(['claim','--mode','plan']), /network|unknown/i);
-  const result = await f.run(['claim','--mode','plan']);
+  await assert.rejects(f.run(['claim','--mode','build']), /network|unknown/i);
+  const result = await f.run(['claim','--mode','build']);
   const posts = f.requests.filter(r=>r.body);
   assert.equal(posts.length,2); assert.deepEqual(posts[0].body,posts[1].body); assert.ok(result.claim);
 });
@@ -71,14 +71,14 @@ test('redirects never forward access credentials to another server and output re
 });
 
 test('renew rejects a generation replaced by recovery without adopting its authority', async t => {
-  const f = await fixture(t); await f.run(['claim','--mode','plan']);f.board.claims[0].generation=2;
+  const f = await fixture(t); await f.run(['claim','--mode','build']);f.board.claims[0].generation=2;
   await assert.rejects(f.run(['renew']),/generation|revoked/i);
   assert.equal(f.requests.filter(r=>r.url.endsWith('/renew')).length,0);
 });
 
 test('offline status cannot return cached success or grant a claim', async t => {
   const f = await fixture(t); f.setHandler((req)=>req.socket.destroy());
-  await assert.rejects(f.run(['status']),/network|unknown/i); await assert.rejects(f.run(['claim','--mode','plan']),/network|unknown/i);
+  await assert.rejects(f.run(['status']),/network|unknown/i); await assert.rejects(f.run(['claim','--mode','build']),/network|unknown/i);
   assert.equal(f.requests.filter(r=>r.body).length,0);
 });
 
@@ -86,7 +86,7 @@ test('fresh claims reject dirty files and submit checks committed staged unstage
   const f = await fixture(t);
   await fs.writeFile(path.join(f.cwd,'src/app.js'),'dirty');
   await assert.rejects(f.run(['claim','--mode','build']),/dirty|clean/i);
-  await fs.writeFile(path.join(f.cwd,'src/app.js'),'base\n');await f.run(['claim','--mode','plan']);
+  await fs.writeFile(path.join(f.cwd,'src/app.js'),'base\n');await f.run(['claim','--mode','build']);
   await fs.writeFile(path.join(f.cwd,'docs/plan.md'),'plan');git(f.cwd,'add','.');git(f.cwd,'commit','-m','plan');
   await fs.writeFile(path.join(f.cwd,'src/untracked.js'),'unsafe');
   await assert.rejects(f.run(['submit','--summary','review plan']),/scope|plan/i);
@@ -95,8 +95,8 @@ test('fresh claims reject dirty files and submit checks committed staged unstage
   const submit=f.requests.find(r=>r.url.endsWith('/submit'));assert.deepEqual(submit.body.changedPaths,['docs/plan.md']);assert.equal(submit.body.headSha,git(f.cwd,'rev-parse','HEAD'));
 });
 
-test('plan claims reject product code even if an expansive resource is present', async t => {
-  const f=await fixture(t);await f.run(['claim','--mode','plan']); f.board.claims[0].resources=[{key:'path:src/',mode:'write'}];
+test('legacy plan claims reject product code even if an expansive resource is present', async t => {
+  const f=await fixture(t);await f.run(['claim','--mode','build']);f.board.claims[0].mode='plan'; f.board.claims[0].resources=[{key:'path:src/',mode:'write'}];
   await fs.writeFile(path.join(f.cwd,'src/app.js'),'code');
   await assert.rejects(f.run(['submit','--summary','unsafe']),/plan|document/i);
   await f.run(['scope','--path','src/app.js']);
@@ -105,7 +105,7 @@ test('plan claims reject product code even if an expansive resource is present',
 });
 
 test('abandon never discards local committed work and release acquire requires a clean submitted claim', async t=>{
-  const f=await fixture(t);await f.run(['claim','--mode','plan']);
+  const f=await fixture(t);await f.run(['claim','--mode','build']);
   await fs.writeFile(path.join(f.cwd,'docs/plan.md'),'pending');git(f.cwd,'add','.');git(f.cwd,'commit','-m','pending');
   await assert.rejects(f.run(['abandon']),/pending|work|clean/i);
   await assert.rejects(f.run(['release','acquire']),/submitted/i);
@@ -120,7 +120,7 @@ test('proxy environment routes requests through an HTTP CONNECT proxy and NO_PRO
 });
 
 test('pause records pending work and handoff names the complete explicit target session', async t=>{
-  const f=await fixture(t);await f.run(['claim','--mode','plan']);await fs.writeFile(path.join(f.cwd,'docs/plan.md'),'pending');
+  const f=await fixture(t);await f.run(['claim','--mode','build']);await fs.writeFile(path.join(f.cwd,'docs/plan.md'),'pending');
   await f.run(['pause','--evidence','Paused for review']);
   const pause=f.requests.find(r=>r.url.endsWith('/pause'));assert.equal(pause.body.pendingWork,true);assert.equal(pause.body.evidence,'Paused for review');
   await f.run(['handoff','--target-actor','reviewer','--target-slot','hermes','--target-session-id','new-session','--target-checkout-id','new-checkout','--target-host-id','new-host','--evidence','Reviewed handoff']);
@@ -128,7 +128,7 @@ test('pause records pending work and handoff names the complete explicit target 
 });
 
 test('terminal mutation with a lost response can be retried but a changed generation still cannot',async t=>{
-  const f=await fixture(t);await f.run(['claim','--mode','plan']);let first=true;
+  const f=await fixture(t);await f.run(['claim','--mode','build']);let first=true;
   f.setHandler((req,res,body)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));if(first){first=false;f.board.claims[0].status='completed';req.socket.destroy();return;}res.end(JSON.stringify({claim:f.board.claims[0],revision:3}));});
   await assert.rejects(f.run(['complete']),/network|unknown/i);
   await f.run(['complete']);const complete=f.requests.filter(r=>r.url.endsWith('/complete'));assert.deepEqual(complete[0].body,complete[1].body);
@@ -150,9 +150,9 @@ test('config copied to another checkout and a symlinked private config are rejec
 
 test('HTTP conflict is definitive and an untrusted successful response remains pending',async t=>{
   const f=await fixture(t);f.setHandler((req,res)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));res.writeHead(409);res.end(JSON.stringify({error:{code:'occupied',message:f.env.CF_ACCESS_CLIENT_SECRET}}));});
-  await assert.rejects(f.run(['claim']),e=>e.exitCode===2&&!e.message.includes(f.env.CF_ACCESS_CLIENT_SECRET));
+  await assert.rejects(f.run(['claim','--mode','build']),e=>e.exitCode===2&&!e.message.includes(f.env.CF_ACCESS_CLIENT_SECRET));
   f.setHandler((req,res)=>{res.end(JSON.stringify(req.method==='GET'?f.board:{}));});
-  await assert.rejects(f.run(['claim']),/unknown|invalid/i);
+  await assert.rejects(f.run(['claim','--mode','build']),/unknown|invalid/i);
   const state=JSON.parse(await fs.readFile(path.join(f.cwd,'.git/avanzar-team-session.json')));assert.ok(state.pending);
 });
 
@@ -165,14 +165,14 @@ test('coordinator handoff may explicitly recover another claim without adopting 
 });
 
 test('a dirty submit never freezes a release SHA and new claim cannot use ahead commits',async t=>{
-  const f=await fixture(t);await f.run(['claim','--mode','plan']);f.board.claims[0].status='submitted';await fs.writeFile(path.join(f.cwd,'docs/plan.md'),'dirty');
+  const f=await fixture(t);await f.run(['claim','--mode','build']);f.board.claims[0].status='submitted';await fs.writeFile(path.join(f.cwd,'docs/plan.md'),'dirty');
   await assert.rejects(f.run(['release','acquire']),/clean|dirty/i);assert.equal(f.requests.filter(r=>r.url==='/v1/release/acquire').length,0);
   const {runCommand}=await load();const g=await fixture(t);await fs.writeFile(path.join(g.cwd,'docs/plan.md'),'ahead');git(g.cwd,'add','.');git(g.cwd,'commit','-m','ahead');
-  await assert.rejects(runCommand(['claim'],{cwd:g.cwd,env:g.env,check:()=>({...g.check(),exitCode:2,relation:'ahead'})}),/pending|canonical/i);
+  await assert.rejects(runCommand(['claim','--mode','build'],{cwd:g.cwd,env:g.env,check:()=>({...g.check(),exitCode:2,relation:'ahead'})}),/pending|canonical/i);
 });
 
 test('unknown mutation blocks a different mutation and a cancelled release uses explicit evidence',async t=>{
-  const f=await fixture(t);await f.run(['claim']);let first=true;
+  const f=await fixture(t);await f.run(['claim','--mode','build']);let first=true;
   f.setHandler((req,res)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));if(first){first=false;req.socket.destroy();return;}res.end(JSON.stringify(req.url.startsWith('/v1/release/')?{release:null,revision:2}:{claim:f.board.claims[0],revision:2}));});
   await assert.rejects(f.run(['renew']),/network|unknown/i);await assert.rejects(f.run(['pause','--evidence','waiting']),/unknown|retry|operation/i);
   await f.run(['renew']);await f.run(['release','finish','cancelled','--evidence','No publication attempted']);
@@ -222,7 +222,7 @@ test('environment approval rejects a different SHA even if a preflight implement
 });
 
 test('lost handoff response reconciles the exact new target without adopting its authority',async t=>{
-  const f=await fixture(t);await f.run(['claim','--mode','plan']);
+  const f=await fixture(t);await f.run(['claim','--mode','build']);
   const args=['handoff','--target-actor','next-actor','--target-slot','hermes','--target-session-id','next-session','--target-checkout-id','next-checkout','--target-host-id','next-host','--evidence','Reviewed transfer'];let first=true;
   f.setHandler((req,res,body)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));if(first){first=false;const c=f.board.claims[0];Object.assign(c,body.target,{actorId:body.target.actorId,generation:2});req.socket.destroy();return;}res.end(JSON.stringify({revision:++f.board.revision}));});
   await assert.rejects(f.run(args),/network|unknown/i);
@@ -251,8 +251,8 @@ test('renew without SHA keeps the held turn SHA instead of changing it to local 
   await f.run(['release','renew']);const body=f.requests.find(r=>r.url==='/v1/release/renew').body;assert.equal(Object.hasOwn(body,'sha'),false);
 });
 
-test('plan scope can reserve exact product paths before design without authorizing product edits',async t=>{
-  const f=await fixture(t);await f.run(['claim','--mode','plan']);await f.run(['scope','--write','src/app.js','--read','docs/']);
+test('legacy planning scope still cannot submit product edits',async t=>{
+  const f=await fixture(t);await f.run(['claim','--mode','build']);f.board.claims[0].mode='plan';await f.run(['scope','--write','src/app.js','--read','docs/']);
   const body=f.requests.find(r=>r.url.endsWith('/scope')).body;assert.deepEqual(body.resources,[{key:'path:src/app.js',mode:'write'},{key:'path:docs/',mode:'read'}]);
   f.board.claims[0].resources.push({key:'path:src/app.js',mode:'write'});await fs.writeFile(path.join(f.cwd,'src/app.js'),'not yet authorized');
   await assert.rejects(f.run(['submit','--summary','Plan only']),/plan|document/i);
@@ -261,7 +261,7 @@ test('plan scope can reserve exact product paths before design without authorizi
 test('same-machine clones share host identity and can reserve a logical E2E resource',async t=>{
   const f=await fixture(t);const g=await fixture(t);const a=JSON.parse(await fs.readFile(path.join(f.cwd,'.git/avanzar-team.json')));const b=JSON.parse(await fs.readFile(path.join(g.cwd,'.git/avanzar-team.json')));
   assert.equal(a.hostId,b.hostId);assert.notEqual(a.checkoutId,b.checkoutId);assert.notEqual(a.sessionId,b.sessionId);
-  await f.run(['claim','--mode','plan']);await f.run(['scope','--resource',`e2e:${a.hostId}`]);
+  await f.run(['claim','--mode','build']);await f.run(['scope','--resource',`e2e:${a.hostId}`]);
   const body=f.requests.find(r=>r.url.endsWith('/scope')).body;assert.deepEqual(body.resources,[{key:`e2e:${a.hostId}`,mode:'write'}]);
   await assert.rejects(f.run(['scope','--resource','../invalid']),/resource|scope/i);
 });
@@ -352,7 +352,7 @@ function recoveredClaim(f, config, generation=2) {
 
 for (const command of ['resume', 'accept-handoff']) {
   async function pendingPlan(t) {
-    const f=await fixture(t);await f.run(['claim','--mode','plan']);
+    const f=await fixture(t);await f.run(['claim','--mode','build']);f.board.claims[0].mode='plan';
     const config=JSON.parse(await fs.readFile(path.join(f.cwd,'.git/avanzar-team.json')));
     if(command==='accept-handoff')f.board.claims=[{...recoveredClaim(f,config),mode:'plan'}];
     const args=command==='resume'?['resume','--mode','build']:['accept-handoff','--claim','claim-1','--generation','2','--mode','build'];
@@ -514,13 +514,13 @@ test('approval declared during authenticated handoff acceptance remains frozen f
 });
 
 for(const targetActor of ['vps','hermes-1','hermes-2','operator@hermes/2'])test(`handoff accepts server-compatible semantic actor ${targetActor}`,async t=>{
-  const f=await fixture(t);await f.run(['claim','--mode','plan']);
+  const f=await fixture(t);await f.run(['claim','--mode','build']);
   await f.run(['handoff','--target-actor',targetActor,'--target-slot','hermes','--target-session-id','target-session','--target-checkout-id','target-checkout','--target-host-id','target-host','--evidence','Verified private transfer']);
   const handoff=f.requests.find(request=>request.url.endsWith('/handoff'));assert.equal(handoff.body.target.actorId,targetActor);
 });
 
 test('handoff actor validation matches server identifiers and rejects invalid target names before mutation',async t=>{
-  const f=await fixture(t);await f.run(['claim','--mode','plan']);
+  const f=await fixture(t);await f.run(['claim','--mode','build']);
   for(const targetActor of ['', 'bad actor','bad?actor','bad\nactor','x'.repeat(161)]){
     await assert.rejects(f.run(['handoff','--target-actor',targetActor,'--target-slot','hermes','--target-session-id','target-session','--target-checkout-id','target-checkout','--target-host-id','target-host','--evidence','Reviewed transfer']),error=>error.code==='usage');
   }
@@ -528,7 +528,7 @@ test('handoff actor validation matches server identifiers and rejects invalid ta
 });
 
 test('handoff accepts the server actor length limit without widening session identifiers',async t=>{
-  const f=await fixture(t);await f.run(['claim','--mode','plan']);const targetActor='a'.repeat(160);
+  const f=await fixture(t);await f.run(['claim','--mode','build']);const targetActor='a'.repeat(160);
   await f.run(['handoff','--target-actor',targetActor,'--target-slot','hermes','--target-session-id','target-session','--target-checkout-id','target-checkout','--target-host-id','target-host','--evidence','Explicit transfer at identifier length boundary']);
   assert.equal(f.requests.find(request=>request.url.endsWith('/handoff')).body.target.actorId.length,160);
 });
@@ -547,7 +547,7 @@ test('init and select-list reject invalid or ambiguous list choices without repl
     await assert.rejects(f.run(['init','--endpoint',f.endpoint,'--list',number]),error=>error.code==='usage');
     await assert.rejects(f.run(['select-list','--list',number]),error=>error.code==='usage');
   }
-  for(const args of [['init','--endpoint',f.endpoint,'--slot','vps','--list','1'],['select-list','--list','2','--slot','hermes'],['select-list','--slot','hermes'],['select-list'],['select-list','extra','--list','2'],['claim','--list','2']])await assert.rejects(f.run(args),error=>error.code==='usage');
+  for(const args of [['init','--endpoint',f.endpoint,'--slot','vps','--list','1'],['select-list','--list','2','--slot','hermes'],['select-list','--slot','hermes'],['select-list'],['select-list','extra','--list','2'],['claim','--mode','build','--list','2']])await assert.rejects(f.run(args),error=>error.code==='usage');
   assert.equal(await fs.readFile(file,'utf8'),before);
 });
 
@@ -564,7 +564,7 @@ test('select-list changes only private preference after an online board read and
 });
 
 for(const status of ['active','paused','stale','submitted'])test(`select-list rejects ${status} checkout work and preserves all private state`,async t=>{
-  const f=await fixture(t);await f.run(['claim','--mode','plan']);f.board.claims[0].status=status;
+  const f=await fixture(t);await f.run(['claim','--mode','build']);f.board.claims[0].status=status;
   const configFile=path.join(f.cwd,'.git/avanzar-team.json'),stateFile=path.join(f.cwd,'.git/avanzar-team-session.json');const config=await fs.readFile(configFile,'utf8'),state=await fs.readFile(stateFile,'utf8');const requests=f.requests.length;
   await assert.rejects(f.run(['select-list','--list','2']),error=>error.code==='list_busy'&&error.exitCode===2);
   assert.equal(await fs.readFile(configFile,'utf8'),config);assert.equal(await fs.readFile(stateFile,'utf8'),state);assert.equal(f.requests.length,requests+1);assert.equal(f.requests.at(-1).body,null);
@@ -580,14 +580,14 @@ test('select-list detects a server reservation for the local checkout or session
 });
 
 test('select-list never treats a missing live local claim as confirmed closure',async t=>{
-  const f=await fixture(t);await f.run(['claim','--mode','plan']);f.board.claims=[];
+  const f=await fixture(t);await f.run(['claim','--mode','build']);f.board.claims=[];
   const file=path.join(f.cwd,'.git/avanzar-team.json');const original=await fs.readFile(file,'utf8');
   await assert.rejects(f.run(['select-list','--list','2']),error=>error.code==='list_busy');assert.equal(await fs.readFile(file,'utf8'),original);
 });
 
 test('select-list refuses an unknown mutation after reading board and preserves its exact retry record',async t=>{
   const f=await fixture(t);f.setHandler((req,res)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));req.socket.destroy();});
-  await assert.rejects(f.run(['claim','--mode','plan']),/unknown|network/i);
+  await assert.rejects(f.run(['claim','--mode','build']),/unknown|network/i);
   const configFile=path.join(f.cwd,'.git/avanzar-team.json'),stateFile=path.join(f.cwd,'.git/avanzar-team-session.json');const config=await fs.readFile(configFile,'utf8'),state=await fs.readFile(stateFile,'utf8');const count=f.requests.length;
   await assert.rejects(f.run(['select-list','--list','2']),error=>error.code==='list_busy');
   assert.equal(f.requests.length,count+1);assert.equal(await fs.readFile(configFile,'utf8'),config);assert.equal(await fs.readFile(stateFile,'utf8'),state);
@@ -604,7 +604,7 @@ test('select-list refuses stored or environment approval and own unresolved publ
 });
 
 test('select-list preserves terminal history and is unaffected by another checkout publication turn',async t=>{
-  const f=await fixture(t);await f.run(['claim','--mode','plan']);f.board.claims[0].status='completed';
+  const f=await fixture(t);await f.run(['claim','--mode','build']);f.board.claims[0].status='completed';
   const stateFile=path.join(f.cwd,'.git/avanzar-team-session.json');const state=await fs.readFile(stateFile,'utf8');f.board.release={claimId:'other-delivery',sessionId:'other-session',status:'held'};
   const result=await f.run(['select-list','--list','4']);assert.equal(result.list,4);assert.equal(await fs.readFile(stateFile,'utf8'),state);
 });
@@ -618,14 +618,14 @@ test('select-list fails closed offline or on malformed board without changing pr
 test('choosing a list only changes future claim preference and never bypasses server slot permissions',async t=>{
   const f=await fixture(t);await f.run(['select-list','--list','3']);assert.equal(f.requests.filter(request=>request.body).length,0);
   f.setHandler((req,res,body)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));res.statusCode=403;res.end(JSON.stringify({error:{code:'SLOT_FORBIDDEN'}}));});
-  await assert.rejects(f.run(['claim','--mode','plan']),error=>error.code==='SLOT_FORBIDDEN');
+  await assert.rejects(f.run(['claim','--mode','build']),error=>error.code==='SLOT_FORBIDDEN');
   assert.equal(f.requests.find(request=>request.url==='/v1/claims').body.slot,'vscode');
   const state=JSON.parse(await fs.readFile(path.join(f.cwd,'.git/avanzar-team-session.json')));assert.equal(state.claim,null);
 });
 
 test('a numbered preference is used by the next normal authenticated claim without changing session identifiers',async t=>{
   const f=await fixture(t);const file=path.join(f.cwd,'.git/avanzar-team.json');const original=JSON.parse(await fs.readFile(file));
-  await f.run(['select-list','--list','4']);const result=await f.run(['claim','--mode','plan']);const sent=f.requests.find(request=>request.url==='/v1/claims').body;
+  await f.run(['select-list','--list','4']);const result=await f.run(['claim','--mode','build']);const sent=f.requests.find(request=>request.url==='/v1/claims').body;
   assert.equal(sent.slot,'codex-desktop');for(const key of ['sessionId','checkoutId','hostId'])assert.equal(sent[key],original[key]);
   assert.equal(result.claim.slot,'codex-desktop');assert.equal(f.requests.filter(request=>request.url==='/v1/claims').length,1);
 });
@@ -635,7 +635,7 @@ test('selection cannot adopt or bypass the authenticated actor work in another c
   f.board.claims=[{id:'other-checkout-claim',unitId:'OTHER',actorId:'actor',slot:'hermes',status:'active',generation:1,sessionId:'other-session',checkoutId:'other-checkout'}];
   f.setHandler((req,res)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));res.statusCode=409;res.end(JSON.stringify({error:{code:'CHECKOUT_OCCUPIED'}}));});
   const selected=await f.run(['select-list','--list','3']);assert.equal(selected.preferenceOnly,true);assert.equal(f.requests.filter(request=>request.body).length,0);
-  await assert.rejects(f.run(['claim','--mode','plan']),error=>error.code==='CHECKOUT_OCCUPIED');
+  await assert.rejects(f.run(['claim','--mode','build']),error=>error.code==='CHECKOUT_OCCUPIED');
   const state=JSON.parse(await fs.readFile(path.join(f.cwd,'.git/avanzar-team-session.json')));assert.equal(state.claim,null);assert.equal(f.board.claims.length,1);
   const after=JSON.parse(await fs.readFile(configFile));for(const key of ['sessionId','checkoutId','hostId'])assert.equal(after[key],before[key]);
 });

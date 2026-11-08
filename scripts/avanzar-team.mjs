@@ -181,8 +181,23 @@ async function safeScope(root, resource) {
 
 export async function runCommand(argv, {cwd=process.cwd(),env=process.env,check=checkAvanzar}={}) {
   const {command,opts,positionals}=options(argv);
-  if(!['init','select-list','status','claim','renew','watch','scope','pause','resume','handoff','accept-handoff','submit','abandon','complete','evidence','catalog','release'].includes(command))fail('usage','Usage: node scripts/avanzar-team.mjs init|select-list|status|claim|renew|watch|scope|pause|resume|handoff|accept-handoff|submit|abandon|complete|evidence|catalog|release');
+  if(!['plan','init','select-list','status','claim','renew','watch','scope','pause','resume','handoff','accept-handoff','submit','abandon','complete','evidence','catalog','release'].includes(command))fail('usage','Usage: node scripts/avanzar-team.mjs plan|init|select-list|status|claim|renew|watch|scope|pause|resume|handoff|accept-handoff|submit|abandon|complete|evidence|catalog|release');
   if(Object.hasOwn(opts,'slot')&&Object.hasOwn(opts,'list'))fail('usage','Choose either --list or legacy --slot, never both.');
+  // Planning is local context, never authority. Do not read, lock or mutate another session's private state.
+  if(command==='plan'||(command==='claim'&&(opts.mode??'plan')==='plan')) {
+    if(positionals.length||Object.keys(opts).some(k=>!['task','list','slot','mode'].includes(k))||(opts.mode&&opts.mode!=='plan'))fail('usage','Usage: plan [--task CODE] [--list 1|2|3|4].');
+    const root=await fs.realpath(git(cwd,['rev-parse','--show-toplevel'],env).trim());
+    const report=inspect(root,env,check);
+    let catalog;try{catalog=JSON.parse(await fs.readFile(resolve(root,'docs/roadmap/work-units.json'),'utf8'));}catch{fail('catalog','Cannot read the local work-unit catalogue.');}
+    if(!Array.isArray(catalog.units))fail('catalog','Invalid local work-unit catalogue.');
+    const task=opts.task?catalog.units.find(u=>u.id===opts.task):null;
+    if(opts.task&&!task)fail('unknown_task','Task is absent from the verified local catalogue.');
+    const selected=Object.hasOwn(opts,'list')?slotFromList(opts.list):opts.slot??task?.preferredSlot??null;
+    if(selected!==null&&!SLOTS.includes(selected))fail('usage','Choose --list 1|2|3|4.');
+    const tasks=catalog.units.filter(u=>u.enabled&&(!selected||u.preferredSlot===selected)).sort((a,b)=>a.priority-b.priority||a.id.localeCompare(b.id)).slice(0,3);
+    return {status:'planning',mode:'plan',reserved:false,buildAuthorized:false,source:'verified-local-catalogue',baseSha:report.head,
+      list:selected===null?null:SLOTS.indexOf(selected)+1,task,tasks,...(!selected?{lists:SLOTS.map((id,i)=>({id,number:i+1}))}:{})};
+  }
   if(Object.hasOwn(opts,'list')&&!['init','select-list'].includes(command))fail('usage','Choose a list with init or select-list before requesting work.');
   if(command==='select-list'&&(positionals.length||Object.keys(opts).some(key=>key!=='list')))fail('usage','Usage: select-list --list 1|2|3|4.');
   const requestedSlot=command==='init'?(Object.hasOwn(opts,'list')?slotFromList(opts.list):opts.slot):command==='select-list'?slotFromList(opts.list):undefined;
@@ -278,7 +293,11 @@ export async function runCommand(argv, {cwd=process.cwd(),env=process.env,check=
     if(command==='catalog')return await mutate('/v1/catalog',{expectedRevision:board.revision,sha:validSha(opts.sha)});
     if(command==='evidence') {
       if(!['design','integrated','research_accepted','activated','decision'].includes(opts.kind))fail('usage','Invalid evidence kind.');
-      return await mutate('/v1/evidence',{expectedRevision:board.revision,unitId:required(opts.unit,'unit'),kind:opts.kind,reference:required(opts.reference,'reference'),...(opts.sha?{sha:validSha(opts.sha)}:{})});
+      const resources=[...[...(opts.path||[]),...(opts.write||[])].map(p=>normalizeResource(p)),...[...(opts['read-path']||[]),...(opts.read||[])].map(p=>normalizeResource(p,'read'))];
+      for(const key of opts.resource||[]) {try{resources.push(normalizeCanonicalResource({key,mode:'write'}));}catch{fail('scope','Invalid reviewed resource.');}}
+      if(resources.length&&opts.kind!=='design')fail('usage','Only design evidence accepts reviewed resources.');
+      for(const r of resources)if(r.key.startsWith('path:'))await safeScope(repo.root,r);
+      return await mutate('/v1/evidence',{expectedRevision:board.revision,unitId:required(opts.unit,'unit'),kind:opts.kind,reference:required(opts.reference,'reference'),...(resources.length?{resources}:{}),...(opts.sha?{sha:validSha(opts.sha)}:{})});
     }
     if(acceptingHandoff) {
       const target=current?.handoffs?.at(-1)?.to;
