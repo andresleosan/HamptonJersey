@@ -1,10 +1,20 @@
 # Estado de Hampton App
 
+Cierre vigente de planificación Lista1,8-nov-2026: [plan maestro listo para construir](../superpowers/plans/2026-11-08-lista1-build-ready.md) e [índice59/59](../superpowers/plans/2026-11-08-lista1-tanda2-index.md). Preguntas de entrevista resueltas; los datos/textos se añadirán manualmente y los plazos configurables se validarán antes de activar. Presentación por email con texto breve/fotos adjuntas preparada por Hermes y revisada/enviada por empleado; privacidad por email/equipo; valoraciones soloemail; nombre Hampton Estates LTD; Qualified/Registered solo Lettings residencialJersey. Los registros previos de pendientes se conservan como historia, no como preguntas actuales. No construcción ni publicación de producto en esta sesión.
+
+Entrevista Lista1 posterior a las tandas: [cierre de decisiones](../superpowers/plans/2026-11-08-lista1-decision-closure.md). Q01/D05 aprobada: revisión humana final y envío explícito por empleado para cada presentación, aunque matches y disponibilidad estén confirmados. Solo actualización documental; próxima pregunta Q02, acceso del cliente a sus datos.
+
+Tandas de planificación Lista1, 8-nov-2026: [tanda anterior](../superpowers/plans/2026-11-08-lista1-batch-index.md) conservada y [segunda tanda](../superpowers/plans/2026-11-08-lista1-tanda2-index.md) preparada con ocho planes nuevos, ampliación REG-15 y guía para cinco entregas existentes. Solo documentación: estados de producto/catálogo sin cambiar, sin reservas, código, migración, envíos, borrados o publicación. AUT-19/REG-13: Luis aprueba núcleo de revisión con IA desactivada; REG-15: aprueba confirmación, resumen diario y cancelación, conservación pendiente. Gates concretos de Hampton/abogado/proveedor/portal/correo en cada spec. Base GitHub c26cc8e comprobada; Tours3D siguen aplazados.
+
+Siguiente recomendado Codex: /avanzar BUS-14 · gpt-6.1-terra · high
+
+Las decisiones de esta tanda ya están cerradas. El siguiente encargo de construcción recomendado es BUS14, una vez revisadas sus dependencias; la activación de IA queda fuera del alcance ya acordado.
+
 Planificación sin reservas, 8-nov-2026: decisión explícita de Luis. El cliente local plan consulta catálogo/base y no crea reservas, plazas, leases o estado de coordinación; la skill instalada ya aplica la regla. Construcción conserva revisión de alcance, dependencias y reserva build; publicación conserva aprobación por SHA. Código/guías revisados en commit local32e06e6, con913Node+14Python, runtime26, build/release/team:check correctos. Publicación/despliegue del ajuste pendientes; no se cambió el servicio activo ni sus reservas históricas.
 
 NOT-01, 8-nov-2026: [diseño](../superpowers/specs/2026-11-08-not-01-event-inbox-design.md), [plan](../superpowers/plans/2026-11-08-not-01-event-inbox.md) y ledger preparados y revisados, sin reserva ni implementación del módulo. Integración de NOT-11/EST-18 necesaria para construir, no para planificar. Fuentes futuras, política de canales y latencia del reloj delimitadas; no se ejecutaron migraciones ni pruebas de producto para NOT-01.
 
-Siguiente recomendado Codex: /avanzar NOT-05 · gpt-6.1-terra · high
+Recomendación histórica de otra tanda: NOT-05 · gpt-6.1-terra · high
 
 Próxima planificación propuesta: NOT-05, cola de cobros pendientes y margen de retraso sobre ARREARS_SQL existente; comisiones condicionadas a OFE-08. Modelo/esfuerzo por definición financiera y temporal, dependencias parciales y aceptación, sin construir ni mover dinero.
 
@@ -215,3 +225,13 @@ BUS-21 requiere investigación verificable, procedencia por fuente y canales, tr
 ## VIS-18 · Control de visitas por propiedad (urgente, 7-nov-2026)
 
 Petición directa de Luis: activar/desactivar visitas en la ficha y elegir un horario general o franjas propias de días y horas. Se reutiliza el selector REG-17 añadido hoy; la nueva tarea pertenece a M09, sin dar por hecha VIS-17. [Plan y criterios](../superpowers/plans/2026-11-07-vis-18-property-viewings.md). **Completado y en producción el 7-nov-2026**, commit `95226d7`, migración 0027 aplicada y Pages/Worker correctos. 689 Node + 14 Python, build, check:release, e2e completo y VIS-18 a 1280/390 aprobados. Verificación pública de solo lectura: API de las cuatro propiedades, disponibilidad general, bundle del panel e inicio/catálogo/ficha/acceso al panel a 1280/390 correctos, sin errores JavaScript ni desbordamiento. Las reservas existentes se conservan; no se crearon reservas ni se modificaron fichas reales para probar.
+
+Entrevista Lista1: Luis aclara presentación por email con fotos preparada por Hermes, con revisión/envío del empleado; portal no requerido para visualizar. M08/SAP09/AUT20 documentados, Q11 formato y Q12 respuesta pendientes. No hay construcción ni envío.
+
+Entrevista Lista1, Q11: Luis confirma presentación sencilla preparada por Hermes, texto breve y fotos adjuntas descargables; empleado revisa y envía. Sin fotos inline ni portal para verla. Se adopta respuesta ordinaria al email con revisión humana como criterio de sencillez del planificador, sin interpretar respuestas para confirmar visitas o guardar criterios automáticamente. Privacidad/copia/borrado de datos permanece como tema separado.
+
+Cierre Q02 de Lista1 aprobado por Luis: solicitudes de copia o borrado por email, verificación de identidad y tramitación por equipo; portal de privacidad para más adelante. El primer alcance PRE12 ya no exige portal. Copia/revisión manual no aprueban política de divulgación, retención sectorial o borrado automático; gates externos concretos conservados.
+
+Q05 aprobada por Luis el8-nov: si el email de aviso previo a limpieza falla o queda incierto, se detiene el borrado de ese contacto y se crea tarea para revisión del equipo. No se mueve last_activity_at ni se cierra búsqueda; resolver la tarea no es un DELETE. El contrato y sus pruebas futuras se incorporan a PRE12. Sin implementación, envío o borrado en esta entrevista.
+
+Q06 aprobada por Luis: alertas seis meses, una invitación de renovación al terminar, sin renovación se detienen. La vigencia del servicio no determina el plazo de conservación tras baja/expiración, que sigue pendiente. Solo documentos actualizados, sin activación/envíos.

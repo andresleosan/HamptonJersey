@@ -1,5 +1,10 @@
 # Búsqueda y seguimiento: reorganización del 7 de noviembre de 2026
 
+## Alcance vigente tras cierre de Lista1 · 8-nov-2026
+
+Las respuestas finales de Luis están consolidadas en el [plan maestro vigente](../superpowers/plans/2026-11-08-lista1-build-ready.md). Esas decisiones sustituyen los pendientes históricos de este documento en sus puntos: identidad Hampton Estates LTD; categorías Qualified/Registered solo Lettings residencialJersey, sin exigirlas a compra/comercial/internacional; textos y parámetros introducidos manualmente por Hampton, sin nuevos trámites documentales en esta tanda; retención configurable validada antes de activar; valoraciones soloemail con consentimiento específico; privacidad por email y revisión del equipo; presentaciones por email con texto breve y fotos adjuntas, preparadas por Hermes y enviadas tras revisión humana. Este documento y los planes no afirman producto ya construido. No hay preguntas de la entrevista pendientes.
+
+
 Estado: **plan maestro en curso**. M03a (EST-09 y continuidad PRE-12) publicado y activado el 7-nov-2026 en `aea7eb5`, con migración 0024; los demás módulos conservan su estado por tarea. Base revisada: `origin/main` en `246300e`, incluidas las entregas de chat y correo. La especificación funcional v1 del 6-nov-2026 proporcionada por Luis es la autoridad para este recorrido. Su original privado no se incorpora al repositorio. Este documento sintetiza requisitos, evidencia y decisiones de implementación; no acredita que las nuevas funciones estén construidas o publicadas.
 
 ## 1. Cómo continuar con /avanzar
@@ -128,10 +133,13 @@ Los nombres nuevos son propuestas de contrato, no tablas ya migradas. El plan de
 
 ### M08 · Presentación y respuesta
 
-- **Consume/produce:** match aprobado válido + disponibilidad vigente + imágenes aptas → presentación privada breve, estado de entrega y respuesta `interested / wants_viewing / not_suitable / call_me` con motivo opcional.
-- **Inicio/fin:** condiciones y disparador D05 → entrega; respuesta actualiza la relación, sin cambiar criterios. Cierre de búsqueda invalida enlaces/acciones que ya no procedan sin afectar al historial.
-- **Cambios:** AGE-12 portal limitado por token revocable y alcance de búsqueda; reutilizar transporte AUT-17. Criterios personales no se guardan en localStorage; el portal no enumera otros clientes. Copy visible en inglés: «Would you like to view it?».
-- **Aceptación:** no repetir formulario, no enviar alternativas internas, no enviar con fotos inadecuadas o autorización caducada; silencio no pausa automáticamente. Recordatorios adicionales de cliente requieren política propia, no heredan los antiguos 24/72 h como acuerdo nuevo.
+Actualización expresa de Luis durante cierre de planes,8-nov: la presentación consiste en un email con fotos enviado directamente al cliente y preparado por Hermes; no se necesita portal para verlo. D05 aprobada: el empleado revisa cada presentación y pulsa Enviar.
+
+- **Consume/produce:** match aprobado válido, disponibilidad vigente e imágenes aptas/autorizadas → borrador preparado por Hermes y snapshot revisable de email/fotos; tras confirmación humana → envío por AUT17 y estado real de entrega. Preparar o cumplir condiciones no envía automáticamente.
+- **Inicio/fin:** preparación → revisión del empleado → confirmación sobre versiones actuales → envío registrado. Las respuestas actualizan la relación sin cambiar criterios, con mecanismo pendiente de concretar en la entrevista. No asumir botones o portal.
+- **Cambios:** adaptar AGE11/AUT17 al formato de fotos que Luis elija. El transporte actual de resumen del equipo no demuestra soporte ya construido de imágenes/adjuntos. Hermes opera dentro de su frontera de datos; app resuelve destinatario y compone archivos autorizados. Esta decisión no habilita datos privados por Telegram ni al modelo actual.
+- **Aceptación:** el cliente recibe la presentación por email sin entrar a un portal; fotos aptas y autorización vigente; revisión/envío explícito, sin duplicados ante reintento; top20 interno fuera. Silencio no pausa ni cierra y no hereda recordatorios24/72h.
+- Las dependencias AGE10/12 del catálogo productor deberán reconciliarse mediante diseño/scope por su dueño antes de construir; no eliminarlas por inferencia. Funciones de privacidad/copias de datos PRE12 siguen separadas y pendientes de decisión propia.
 
 ### M09 · Coordinación de visitas
 
@@ -172,7 +180,14 @@ Avance EST-18, 7-nov: base interna de eventos de propiedades publicada en cf0c86
 - **Cambios:** ampliar CHECK de eventos/notificaciones con migraciones y pruebas; `Inbox.jsx`, `server/routes/inbox.js`, `server/routes/notifications.js`; operaciones atómicas/condicionales para dos empleados. La app aplica permisos; el modelo no decide autorización.
 - **Aceptación:** llamadas con todos los teléfonos, fuente fallida, captura parcial, cambio dictado y top20 accesibles en un clic; dos empleados o dos ticks del reloj no duplican tareas/envíos; respuesta y cierre concurrentes conservan lo que aún sirve a otros clientes.
 
-## 6. Decisiones abiertas: propuestas, no acuerdos
+## 6. Decisiones: propuestas y acuerdos registrados
+
+**Actualización documental de las tandas Lista1 del8-nov-2026:** Luis aprobó D02 (48h alquiler/7d compra, configurables, reconfirmar ante contradicción), D03/D04/D09 (conservar reloj al editar, una tarea por episodio y orden por imprescindibles incumplidos con diferencias explicadas sin sumar unidades) y D10 **solo alcance de purga** (originales/derivados/paquetes sin uso activo, conservando mínimos/evidencia e historial). Los formatos JSON/CSV/ZIP de la propuesta D10 no fueron aprobados por esa respuesta. D06/D12 mantienen sus pendientes/límites. D05 quedó aprobada después, durante la entrevista de cierre: revisión final humana y click Enviar para cada presentación, aunque match y disponibilidad estén aprobados. Los detalles técnicos de cómputo/calendario/desempate constan en los planes y no son citas de Luis.
+
+En la segunda tanda Luis aprobó AUT-19/REG-13 con revisión antes/después y adaptador IA desactivado, sin seleccionar proveedor/carril. Aprobó REG-15D1: confirmación de dirección, resumen diario solo con nuevas viviendas y cancelación, sin prometer disponibilidad; D3 conserva plazos/política pendientes antes de activar. Véase [índice de segunda tanda](../superpowers/plans/2026-11-08-lista1-tanda2-index.md). Ninguna aprobación documental equivale a construcción, comunicación, borrado o publicación.
+
+La tabla siguiente conserva el origen de las propuestas; los acuerdos posteriores de este párrafo prevalecen en sus puntos concretos.
+
 
 Resolver cada una con brainstorming/grill-me al comenzar la entrega que la consume. No bloquear investigación o trabajo independiente por una decisión de otra entrega.
 
@@ -276,3 +291,11 @@ Contrato y ejecución: [plan VIS-18](../superpowers/plans/2026-11-07-vis-18-prop
 
 
 Avance REG-08, 8-nov: prioridades residenciales y edades del hogar construidas con switches a la derecha; incumplimiento imprescindible es alternativa, incertidumbre es pendiente y score solo ordena dentro del grupo. Integrado con AGE-04 9d4429c, migración0031 pendiente de aprobación/publicación. BUS-12/14 siguen parciales: el inventario común, evidencia y disponibilidad no quedan completados por este agregado. Próximo alcance independiente: BUS-14, revisar selección35/tope25/bonus sobre inventario existente.
+
+Entrevista Lista1, Q11: Luis confirma presentación sencilla preparada por Hermes, texto breve y fotos adjuntas descargables; empleado revisa y envía. Sin fotos inline ni portal para verla. Se adopta respuesta ordinaria al email con revisión humana como criterio de sencillez del planificador, sin interpretar respuestas para confirmar visitas o guardar criterios automáticamente. Privacidad/copia/borrado de datos permanece como tema separado.
+
+Cierre Q02 de Lista1 aprobado por Luis: solicitudes de copia o borrado por email, verificación de identidad y tramitación por equipo; portal de privacidad para más adelante. El primer alcance PRE12 ya no exige portal. Copia/revisión manual no aprueban política de divulgación, retención sectorial o borrado automático; gates externos concretos conservados.
+
+Q05 aprobada por Luis el8-nov: si el email de aviso previo a limpieza falla o queda incierto, se detiene el borrado de ese contacto y se crea tarea para revisión del equipo. No se mueve last_activity_at ni se cierra búsqueda; resolver la tarea no es un DELETE. El contrato y sus pruebas futuras se incorporan a PRE12. Sin implementación, envío o borrado en esta entrevista.
+
+Q06 aprobada por Luis: alertas seis meses, una invitación de renovación al terminar, sin renovación se detienen. La vigencia del servicio no determina el plazo de conservación tras baja/expiración, que sigue pendiente. Solo documentos actualizados, sin activación/envíos.
