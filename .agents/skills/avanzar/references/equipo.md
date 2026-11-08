@@ -84,6 +84,8 @@ Solo una identidad coordinadora puede registrar esa atestación. La revisión no
 node scripts/avanzar-team.mjs resume --mode build
 ```
 
+Al solicitar un cambio de modo, `resume` y `accept-handoff` comprueban los cambios guardados contra el modo solicitado y las mismas rutas de escritura reservadas. Esto permite conservar JSON/HTML documentales de una investigación al solicitar `build`; no autoriza nuevas ediciones mientras la reserva siga en `plan`. El servidor sigue comprobando propietario, generación, vigencia, revisión y dependencias. Una respuesta que no confirme el modo solicitado queda pendiente de reconciliación y no acredita la transición. Sin `--mode`, siguen aplicándose las restricciones del modo actual.
+
 Antes de editar código, comprobar que la respuesta confirma `mode: build` y que cada archivo pertenece a un recurso `path:` con escritura. `scope` añade recursos, nunca reduce reservas existentes; una ruta con lectura no autoriza escritura. La evidencia `design` está ligada a los recursos concretos revisados. Añadir recursos de producto después de pasar a build exige volver a revisar ese alcance; no es una ampliación automática del permiso de construcción. En plan, el cliente sigue rechazando la entrega de código aunque ya esté reservado. Directorios con `/` final cubren descendientes. No reservar todo el repositorio para evitar pensar el alcance. Nuevas dependencias o reglas de ejecución deben quedar revisadas en el catálogo canónico; las relaciones inferidas o parciales del checklist no se promueven automáticamente. Las unidades de investigación usan sus entregables y dependencias propias; terminar código nunca satisface una decisión de negocio.
 
 ## Pausa, reanudación y relevo

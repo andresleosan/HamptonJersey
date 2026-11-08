@@ -350,6 +350,54 @@ function recoveredClaim(f, config, generation=2) {
   return {id:'claim-1',unitId:'UNIT-1',...target,generation,status:'paused',mode:'build',baseSha:f.baseSha,resources:[{key:'path:docs/',mode:'write'}],handoffs:[{from:source,to:target,evidence:'Explicit authorized recovery',at:new Date().toISOString()}]};
 }
 
+for (const command of ['resume', 'accept-handoff']) {
+  async function pendingPlan(t) {
+    const f=await fixture(t);await f.run(['claim','--mode','plan']);
+    const config=JSON.parse(await fs.readFile(path.join(f.cwd,'.git/avanzar-team.json')));
+    if(command==='accept-handoff')f.board.claims=[{...recoveredClaim(f,config),mode:'plan'}];
+    const args=command==='resume'?['resume','--mode','build']:['accept-handoff','--claim','claim-1','--generation','2','--mode','build'];
+    await fs.writeFile(path.join(f.cwd,'docs/sources.json'),'[{"source":"pending"}]\n');
+    await fs.writeFile(path.join(f.cwd,'docs/checklist.html'),'<p>Partial</p>\n');
+    git(f.cwd,'add','docs/checklist.html');git(f.cwd,'commit','-m','Saved partial checklist');
+    return {...f,args};
+  }
+
+  test(`${command} can request build with reserved JSON and HTML while preserving saved work`,async t=>{
+    const f=await pendingPlan(t);const savedHead=git(f.cwd,'rev-parse','HEAD');
+    await assert.rejects(f.run(f.args.filter((_,i)=>i<f.args.length-2)),e=>e.code==='plan_scope');
+    f.setHandler((req,res,body)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));assert.equal(body.mode,'build');f.board.claims[0].mode='build';f.board.claims[0].status='active';res.end(JSON.stringify({claim:f.board.claims[0],revision:++f.board.revision}));});
+    const result=await f.run(f.args);assert.equal(result.claim.mode,'build');
+    assert.equal(git(f.cwd,'rev-parse','HEAD'),savedHead);
+    assert.equal(await fs.readFile(path.join(f.cwd,'docs/sources.json'),'utf8'),'[{"source":"pending"}]\n');
+    assert.equal(await fs.readFile(path.join(f.cwd,'docs/checklist.html'),'utf8'),'<p>Partial</p>\n');
+    const state=JSON.parse(await fs.readFile(path.join(f.cwd,'.git/avanzar-team-session.json')));assert.equal(state.claim.generation,command==='resume'?1:2);assert.equal(state.pending,null);
+  });
+
+  test(`${command} requesting build still refuses saved files outside the reserved write scope`,async t=>{
+    const f=await pendingPlan(t);await fs.writeFile(path.join(f.cwd,'src/app.js'),'unreserved\n');
+    await assert.rejects(f.run(f.args),e=>e.code==='out_of_scope');
+    assert.equal(f.requests.filter(r=>r.url.endsWith('/resume')).length,0);
+  });
+
+  test(`${command} requesting build preserves local authority when the server rejects the transition`,async t=>{
+    const f=await pendingPlan(t);const file=path.join(f.cwd,'.git/avanzar-team-session.json');const before=JSON.parse(await fs.readFile(file));
+    f.setHandler((req,res)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));res.writeHead(409);res.end(JSON.stringify({error:{code:'UNIT_NOT_REVIEWED'}}));});
+    await assert.rejects(f.run(f.args),e=>e.code==='UNIT_NOT_REVIEWED');
+    const after=JSON.parse(await fs.readFile(file));assert.deepEqual(after.claim,before.claim);assert.equal(after.pending,null);assert.equal(f.board.claims[0].mode,'plan');
+  });
+
+  test(`${command} requesting build reconciles the same operation after a response without the requested mode`,async t=>{
+    const f=await pendingPlan(t);const file=path.join(f.cwd,'.git/avanzar-team-session.json');const before=JSON.parse(await fs.readFile(file));
+    await assert.rejects(f.run(f.args),e=>e.code==='unknown_result');
+    const after=JSON.parse(await fs.readFile(file));assert.deepEqual(after.claim,before.claim);assert.equal(after.pending.body.mode,'build');
+    assert.equal(f.board.claims[0].mode,'plan');
+    f.setHandler((req,res,body)=>{if(req.method==='GET')return res.end(JSON.stringify(f.board));f.board.claims[0].mode=body.mode;f.board.claims[0].status='active';res.end(JSON.stringify({claim:f.board.claims[0],revision:++f.board.revision}));});
+    const result=await f.run(f.args);assert.equal(result.claim.mode,'build');
+    const posts=f.requests.filter(r=>r.url.endsWith('/resume'));assert.equal(posts.length,2);assert.deepEqual(posts[0].body,posts[1].body);
+    const reconciled=JSON.parse(await fs.readFile(file));assert.equal(reconciled.pending,null);assert.equal(reconciled.claim.generation,command==='resume'?1:2);
+  });
+}
+
 test('same-checkout explicit handoff acceptance verifies next generation and preserves committed and dirty work',async t=>{
   const f=await fixture(t);await f.run(['claim','--mode','build']);const config=JSON.parse(await fs.readFile(path.join(f.cwd,'.git/avanzar-team.json')));
   await fs.writeFile(path.join(f.cwd,'docs/plan.md'),'saved commit\n');git(f.cwd,'add','.');git(f.cwd,'commit','-m','saved work');

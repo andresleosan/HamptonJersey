@@ -257,6 +257,7 @@ export async function runCommand(argv, {cwd=process.cwd(),env=process.env,check=
       if(path.startsWith('/v1/release/') && (!Object.hasOwn(result,'release') || (result.release!==null && !['held','uncertain','synchronization_pending'].includes(result.release?.status))))fail('unknown_result','Invalid release response; retry the same command.');
       if(result.claim && command!=='handoff') {
         if(!UUID.test(result.claim.id||'')||!Number.isSafeInteger(result.claim.generation)||result.claim.sessionId!==config.sessionId||result.claim.checkoutId!==config.checkoutId||result.claim.slot!==config.slot)fail('unknown_result','Invalid claim response; retry the same command.');
+        if(path.endsWith('/resume') && state.pending.body.mode && result.claim.mode!==state.pending.body.mode)fail('unknown_result','Resume did not confirm the requested mode; retry the same command.');
         if(acceptingHandoff && (result.claim.id!==current.id||result.claim.generation!==current.generation||result.claim.actorId!==current.actorId||result.claim.hostId!==config.hostId))fail('generation_revoked','Handoff resume returned a different target; preserve local work.',2);
         if(!acceptingHandoff && state.claim && result.claim.id===state.claim.id && result.claim.generation!==state.claim.generation)fail('generation_revoked','Unexpected claim generation; preserve local work.',2);
         state.claim={id:result.claim.id,generation:result.claim.generation};
@@ -290,10 +291,10 @@ export async function runCommand(argv, {cwd=process.cwd(),env=process.env,check=
       const approved=storedApproval||declaredApproval;
       const report=inspect(repo.root,env,check,approved?{approvedSha:validSha(approved)}:{allowDiverged:true});
       acceptedApproval=approved;
-      assertScope(changedPaths(repo.root,current.baseSha,env,{upstreamSha:report.remoteHead}),current);
       if(opts.mode && !['plan','build'].includes(opts.mode))fail('usage','Mode must be plan or build.');
       const submitted=current.status==='submitted';
       if(submitted && opts.mode && opts.mode!==current.mode)fail('handoff_target','Submitted handoff mode cannot change; preserve the submitted delivery.',2);
+      assertScope(changedPaths(repo.root,current.baseSha,env,{upstreamSha:report.remoteHead}),{...current,mode:opts.mode||current.mode});
       const pending=state.pending;
       const sameClaimOperation=pending && (pending.path.startsWith(`/v1/claims/${encodeURIComponent(current.id)}/`) || (pending.path.startsWith('/v1/release/') && pending.body.claimId===current.id));
       if(sameClaimOperation && Number.isSafeInteger(pending.body.generation) && pending.body.generation>0 && pending.body.generation<current.generation) {
@@ -343,8 +344,8 @@ export async function runCommand(argv, {cwd=process.cwd(),env=process.env,check=
       for(const r of resources){if(r.key.startsWith('path:'))await safeScope(repo.root,r);}body.resources=resources;
     }
     if(command==='resume') {
-      const report=inspect(repo.root,env,check);assertScope(changedPaths(repo.root,current.baseSha,env,{upstreamSha:report.remoteHead}),current);
       if(opts.mode){if(!['plan','build'].includes(opts.mode))fail('usage','Mode must be plan or build.');body.mode=opts.mode;}
+      const report=inspect(repo.root,env,check);assertScope(changedPaths(repo.root,current.baseSha,env,{upstreamSha:report.remoteHead}),{...current,mode:body.mode||current.mode});
       if(!report.head)fail('git','Cannot verify resume state.');
     }
     if(command==='pause') {body.evidence=required(opts.evidence,'pause evidence');body.pendingWork=changedPaths(repo.root,current.baseSha,env).length>0 || git(repo.root,['rev-parse','HEAD'],env).trim()!==current.baseSha;}
