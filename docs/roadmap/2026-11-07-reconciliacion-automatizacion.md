@@ -309,3 +309,6 @@ Q06 aprobada por Luis: alertas seis meses, una invitación de renovación al ter
 
 
 9-nov-2026 · Reconciliación posterior BUS-14: código publicado en main/GitHub72b3ad3be3bf49ea82cf3f8d56cfce169f6e26a7, Pages/Jobs success comprobados al reanudar. Los registros de publicación confirman0037 aplicada, recuentos conservados e integridad correcta; la nueva consulta D1 rechazada7403 no sustituye esa evidencia ni autoriza repetir la migración. La nota de entrega local anterior queda histórica. Sigue pendiente el recorrido autenticado de Matches y zoom nativo; MCP no inicia por sandbox/root y HTTP de esta sesión devolvió403. BUS-14 permanece parcial; no completa EvaluationV1/BUS-12 ni el ranking21d/BUS-17.
+
+
+9-nov-2026 · Ayuda adicional de validación BUS-14: navegador independiente normal confirma producción pública1280/390, raíz/admin200, assets iguales al build publicado y Matches401 sin sesión; el403 del cliente HTTP no era un impedimento para este navegador. Recorrido local con fixtures nuevos1280/390 y zoom nativo200% (DPR2, CSSzoom1, paginación por teclado y sin overflow) comprobados. MCP sigue no disponible; no se cambia infraestructura. Continúa pendiente acompañar el smoke autenticado de producción con Google autorizado. No confundir sesión local de pruebas con acceso real; BUS-14 sigue parcial.

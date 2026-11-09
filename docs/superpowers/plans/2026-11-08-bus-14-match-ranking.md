@@ -130,3 +130,12 @@ La construcción anterior ya está publicada en72b3ad3; sus notas de «pendiente
 - [ ] Persona con sesión autorizada: Applicants→ficha→Matches, recálculo explícito de búsqueda antigua que el equipo quiera actualizar, siguiente/anterior si existe otra página, Shortlist/Undo solo sobre decisión de prueba autorizada y zoom nativo200% en escritorio/móvil. No fabricar registros o sesiones en producción; si no hay caso autorizado, registrar esa parte pendiente.
 
 Ruling: no repetir suites de producto ni e2e locales ya acreditados para un ajuste exclusivamente documental; ejecutar comprobaciones de documentación/generación. No confundirlas con el smoke autenticado pendiente. Aplicar ponytail para reutilizar el generador; verification-before-completion para no cerrar tareas sin evidencia.
+
+
+## Ayuda de validación solicitada por Luis · 9-nov
+
+- [x] Usar navegador independiente existente para comprobar públicamente1280/390, assets y protección401: PASS. El403 anterior de HTTP simple no impedía esta comprobación.
+- [x] Ejecutar el flujo BUS-14 con fixtures nuevos y medir zoom nativo200% en un perfil temporal: recorrido normal1280/390PASS y, como paso explícito, zoom con teclado siguiente/anterior, foco y sin overflow (DPR2, CSSzoom1,640/195CSS). No modificar aplicación ni controles del sistema.
+- [ ] Guiar a la persona autorizada en su sesión Google de producción hasta completar el smoke autenticado pendiente. Las referencias anteriores al zoom como pendiente quedan superadas por esta comprobación; MCP sigue indisponible y no se presenta como usado.
+
+El lanzador local existente compila y migra exclusivamente fixtures temporales. La sesión de prueba solo autentica contra el runtime local; no acredita el intercambio Google ni las operaciones autenticadas de producción.
