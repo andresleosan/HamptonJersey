@@ -6,8 +6,8 @@
   "fase": "—",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "9-nov-2026: etapa A construida y comprobada solo en h1 sobre la base main2084cb9; aún sin integrar ni publicar. History administrativo de eventos reales de la ficha (EST-18/EST-17) con cambios permitidos, referencias de evidencia sin snapshots/PII, cursor estable de50 y lectura tras tombstone sin depender de archivos R2. Panel con vacío/carga/error, Retry y borrador intacto; fecha heredada inválida se marca sin inventar edad. Pruebas focales12/12, npm test998/1023 (25 fallos basales del wrapper git push), Python14/14, build/release, e2e focal y MCP1280/390 con datos ficticios. La ficha ya enlazaba ofertas, visitas y Owner report; eso no equivale a una cronología unificada de esas gestiones.",
-  "falta": "Revisión final del SHA con documentación integrada y turno único entre talleres; pedir el sí de Luis para ese SHA antes de publicar y comprobar despliegues/activación. El e2e general de admin no se completó por fake Drive que escucha sin host explícito; zoom nativo200% pendiente (CSS zoom2 no lo sustituye). Etapa B: asociar matches, visitas y ofertas/ventas con referencias duraderas sin PII ni duplicados. Etapa C: productores de fuentes, captura, consultas, llamadas, respuesta útil y purga real cuando esos módulos existan. Mantener SPR-02 parcial; no atribuir llamadas, comprobaciones de disponibilidad ni purga por tener un evento de ficha.",
+  "hecho": "9-nov-2026: etapa A construida y comprobada solo en h1 sobre la base main2084cb9 e integrada localmente con ANA-08 f0d8eb7; sin publicar. History administrativo de eventos reales de la ficha (EST-18/EST-17) con cambios permitidos, referencias de evidencia sin snapshots/PII, cursor estable de50 y lectura tras tombstone sin depender de archivos R2. Panel con vacío/carga/error, Retry y borrador intacto; fecha heredada inválida se marca sin inventar edad. Pruebas focales12/12, npm test1007/1032 tras integrar (los mismos25 fallos basales del wrapper git push), Python14/14, build/release, e2e focal y MCP1280/390 con datos ficticios. La ficha ya enlazaba ofertas, visitas y Owner report; eso no equivale a una cronología unificada de esas gestiones.",
+  "falta": "Con turno exclusivo de h1 para integrar confirmado por Luis, falta revisión independiente del SHA integrado y su sí escrito antes de publicar; comprobar checks, despliegue y activación después. El e2e general de admin no se completó por fake Drive que escucha sin host explícito; zoom nativo200% pendiente (CSS zoom2 no lo sustituye). Etapa B: asociar matches, visitas y ofertas/ventas con referencias duraderas sin PII ni duplicados. Etapa C: productores de fuentes, captura, consultas, llamadas, respuesta útil y purga real cuando esos módulos existan. Mantener SPR-02 parcial; no atribuir llamadas, comprobaciones de disponibilidad ni purga por tener un evento de ficha.",
   "bloqueo": "",
   "evidencia": [
     "server/listing-history.js",
@@ -42,5 +42,5 @@
     "events-contract",
     "listings-schema"
   ],
-  "nextStep": "Revisar/confirmar turno único entre talleres, integrar main y publicar solo tras sí para SHA final de etapa A; después diseñar B/C para matches, visitas, ofertas y productores reales, sin declarar SPR-02 completa."
+  "nextStep": "Con turno h1 confirmado e integración local ANA-08 realizada, revisar SHA final y publicar etapa A solo tras sí escrito de Luis; después diseñar B/C para matches, visitas, ofertas y productores reales, sin declarar SPR-02 completa."
 }

@@ -1,6 +1,7 @@
 import {activeSql,normalizePhone} from './applicants.js';
 import {fail} from './http.js';
 import {MILESTONES} from './sales.js';
+import {realDate,weekday} from './viewings.js';
 import {COMPLIANCE} from './rentals.js';
 export {TASK_CATEGORIES} from '../shared/notification-categories.js';
 
@@ -45,7 +46,7 @@ export function targetExists(kind,id,context='NULL') {
       AND (json_extract(${context},'$.compliance_kind') IS NULL OR EXISTS(SELECT 1 FROM compliance_items
         WHERE rental_id=${id} AND kind=json_extract(${context},'$.compliance_kind')))
     WHEN 'payment' THEN EXISTS(SELECT 1 FROM payments WHERE id=${id})
-    WHEN 'collection' THEN ${id}='unmatched-payments' ELSE 0 END)`;
+    WHEN 'collection' THEN (${id}='unmatched-payments' OR EXISTS(SELECT 1 FROM weekly_insights wi WHERE ${id}='weekly-insights:'||wi.week_start)) ELSE 0 END)`;
 }
 
 export const sourceAllowsTarget=(kind,id,event='e')=>`((${event}.entity_type=${kind} AND ${event}.entity_id=${id})
@@ -56,7 +57,7 @@ export const sourceAllowsTarget=(kind,id,event='e')=>`((${event}.entity_type=${k
 export const noticeTargetExists=(notice='n',event='e')=>`${notice}.target_deleted=0 AND ${targetExists(
   `COALESCE(${notice}.target_kind,${event}.entity_type)`,`COALESCE(${notice}.target_id,${event}.entity_id)`,`${notice}.target_context`)}`;
 
-export const NOTICE_SELECT=`SELECT n.id,n.event_id,n.category,n.title,n.created_at,n.action_required,n.resolved_at,n.resolved_by,
+export const NOTICE_SELECT=`SELECT e.type AS source_type,e.entity_type AS source_entity_type,e.entity_id AS source_entity_id,n.id,n.event_id,n.category,n.title,n.created_at,n.action_required,n.resolved_at,n.resolved_by,
   n.source_version,n.revision,n.assigned_to,n.due_at,n.task_reason,n.urgency,n.closed_by_source,
   owner.name AS assigned_name,owner.email IS NOT NULL AS assigned_available,
   CASE WHEN COALESCE(seen.read_revision,0)>=n.revision THEN 1 ELSE 0 END AS is_read,
@@ -85,8 +86,11 @@ export const NOTICE_SELECT=`SELECT n.id,n.event_id,n.category,n.title,n.created_
   LEFT JOIN tenancies pt ON pt.id=p.tenancy_id
   LEFT JOIN rentals payment_rental ON payment_rental.id=pt.rental_id`;
 
-export function noticeDto({raw_phone,search_id,target_context,target_deleted,context_label,...n}) {
+export function noticeDto({source_type,source_entity_type,source_entity_id,raw_phone,search_id,target_context,target_deleted,context_label,...n}) {
   const numeric=/^[1-9]\d*$/.test(n.entity_id)&&Number.isSafeInteger(Number(n.entity_id));
+  const week=n.entity_type==='collection'&&/^weekly-insights:\d{4}-\d{2}-\d{2}$/.test(n.entity_id)?n.entity_id.slice(16):null;
+  const weekly=week&&realDate(week)&&weekday(week)==='mon'&&source_type==='analytics.weekly_created'
+    &&source_entity_type==='admin'&&source_entity_id===n.entity_id;
   let link=null;
   if(numeric&&n.entity_type==='viewing')link=`#/viewings?viewing=${n.entity_id}`;
   else if(numeric&&n.entity_type==='applicant')link=`#/applicants/${n.entity_id}${n.category==='matched'?'/matches':''}`;
@@ -96,6 +100,7 @@ export function noticeDto({raw_phone,search_id,target_context,target_deleted,con
   else if(numeric&&n.entity_type==='sale')link=`#/sales/${n.entity_id}`;
   else if(numeric&&n.entity_type==='rental')link=`#/rentals/${n.entity_id}`;
   else if(numeric&&n.entity_type==='payment')link=`#/rentals?payment=${n.entity_id}`;
+  else if(weekly)link=`#/insights/weekly/${week}`;
   else if(n.entity_type==='collection'&&n.entity_id==='unmatched-payments')link='#/rentals?payments=unmatched';
   const context=target_context?JSON.parse(target_context):null;
   if(link&&context){const params=new URLSearchParams();
@@ -104,6 +109,6 @@ export function noticeDto({raw_phone,search_id,target_context,target_deleted,con
     if(params.size)link+=(link.includes('?')?'&':'?')+params;
   }
   const exists=Boolean(n.target_exists&&!target_deleted);
-  return {...n,...(context?{context}:{}),...(context_label&&exists?{context_label}:{}),phone:exists?normalizePhone(raw_phone):null,link:exists?link:null,target_exists:exists,
+  return {...n,...(weekly?{weekly_insights:week}:{}),...(context?{context}:{}),...(context_label&&exists?{context_label}:{}),phone:exists?normalizePhone(raw_phone):null,link:exists?link:null,target_exists:exists,
     can_reopen:Boolean(n.action_required&&n.resolved_at&&!n.closed_by_source&&n.target_exists)};
 }

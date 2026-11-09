@@ -86,7 +86,7 @@ export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,on
       <div className="inline">
         {open&&<button type="button" className="btn" disabled={disabled||dirty||createDirty||conflict||!task.target_exists} onClick={()=>save('done')}>Done</button>}
         {task.can_reopen&&<button type="button" className="btn" disabled={disabled||dirty||createDirty||conflict} onClick={()=>save('reopen')}>Reopen task</button>}
-        {task.link&&task.target_exists&&<a className="btn ghost" href={task.link}>{({viewing:'Open viewing',listing:'Open property',offer:'Open offer',sale:'Open sale',rental:'Open rental',payment:'Open payment',collection:'Open unmatched payments'})[task.entity_type]||(task.category==='matched'?'Review matches':'Open applicant')}</a>}
+        {task.link&&task.target_exists&&<a className="btn ghost" href={task.link}>{task.weekly_insights?'Open weekly Insights':({viewing:'Open viewing',listing:'Open property',offer:'Open offer',sale:'Open sale',rental:'Open rental',payment:'Open payment',collection:'Open unmatched payments'})[task.entity_type]||(task.category==='matched'?'Review matches':'Open applicant')}</a>}
         {task.phone&&<a className="btn ghost" href={`tel:${task.phone}`}>Call</a>}
       </div></div>
     {error&&<p role="alert" className="err">{error}</p>}
@@ -100,12 +100,12 @@ export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,on
     <dl className="kv">
       <div><dt>Received</dt><dd>{fmtDate(task.created_at)}</dd></div>
       <div><dt>Status</dt><dd>{open?'Needs action':task.resolved_at?(task.closed_by_source?'Resolved by source':'Done'):'For your information'}</dd></div>
-      <div><dt>Assigned to</dt><dd>{task.assigned_name||task.assigned_to||'Unassigned'}{task.assigned_to&&!task.assigned_available?' (no longer has access)':''}</dd></div>
-      <div><dt>Deadline</dt><dd>{task.due_at?new Date(task.due_at).toLocaleString('en-GB'):'No deadline'}{task.due_at&&open&&Date.parse(task.due_at)<Date.now()?' · Overdue':''}</dd></div>
+      {!task.weekly_insights&&<div><dt>Assigned to</dt><dd>{task.assigned_name||task.assigned_to||'Unassigned'}{task.assigned_to&&!task.assigned_available?' (no longer has access)':''}</dd></div>}
+      {!task.weekly_insights&&<div><dt>Deadline</dt><dd>{task.due_at?new Date(task.due_at).toLocaleString('en-GB'):'No deadline'}{task.due_at&&open&&Date.parse(task.due_at)<Date.now()?' · Overdue':''}</dd></div>}
       {task.phone&&<div><dt>Phone</dt><dd className="num">{task.phone}</dd></div>}
     </dl>
     {!task.target_exists&&<p className="warn">The related record is no longer available.</p>}
-    <form className="task-form" onSubmit={e=>{e.preventDefault();save('edit',{assigned_to:draft.assigned_to||null,due_at:draft.due?new Date(draft.due).toISOString():null});}}>
+    {!task.weekly_insights&&<form className="task-form" onSubmit={e=>{e.preventDefault();save('edit',{assigned_to:draft.assigned_to||null,due_at:draft.due?new Date(draft.due).toISOString():null});}}>
       <fieldset disabled={disabled||!task.target_exists}><legend>Task details</legend>
         <div className="task-fields"><Owners value={draft.assigned_to} users={users} onChange={value=>setDraft(d=>({...d,assigned_to:value}))}/>
           <label>Deadline (your time zone)<input type="datetime-local" value={draft.due} onChange={e=>setDraft(d=>({...d,due:e.target.value}))}/></label></div>
@@ -113,7 +113,7 @@ export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,on
           {dirty&&<button type="button" className="btn ghost" onClick={discard}>Discard task changes</button>}
           {open&&(!task.assigned_to||task.assigned_to===me)&&<button type="button" className="btn ghost" disabled={dirty||createDirty||conflict||task.assigned_to===me} onClick={()=>save('claim')}>Claim task</button>}
         </div></fieldset>
-    </form>
+    </form>}
     {['applicant','viewing','rental'].includes(task.entity_type)&&task.target_exists&&!creating&&
       <p><button type="button" className="btn ghost" disabled={disabled||dirty||conflict} onClick={()=>setCreating(true)}>Add follow-up task</button></p>}
     {creating&&<Followup task={task} users={users} paused={paused} onDirty={setCreateDirty} onPending={setCreatePending} onCreated={result=>onChanged({task:result.task,action:'created'})} onCancel={()=>setCreating(false)}/>}

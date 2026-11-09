@@ -2,6 +2,7 @@ import { now } from "./http.js";
 import { retentionPass } from "./retention.js";
 import { emailPass } from "./email.js";
 import { receiveEmail } from "./email-inbound.js";
+import { weeklyInsightsPass } from './weekly-insights.js';
 import { notificationsPass } from "./notification-reconcile.js";
 
 // AUT-07: the clock. Cloudflare wakes this Worker (hampton-jobs, configured in jobs/wrangler.toml) every 10 minutes, on
@@ -16,6 +17,8 @@ export default {
     await retentionPass(env, ts); // G2: the first tick of each Jersey day deletes what is 12 months inactive.
     try { await notificationsPass(env, now()); }
     catch { console.error('Notification pass failed'); } // No source/customer data in operational logs.
+    try { await weeklyInsightsPass(env, now()); }
+    catch { console.error('Weekly Insights pass failed'); }
     // Use processing time for email: a delayed old trigger must not send yesterday's summary.
     await emailPass(env, now());
   },

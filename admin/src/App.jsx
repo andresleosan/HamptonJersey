@@ -20,6 +20,7 @@ import RentImport from "./RentImport.jsx";
 import Statement from "./Statement.jsx";
 import OwnerReport from "./OwnerReport.jsx";
 import Insights from "./Insights.jsx";
+import WeeklyInsights from "./WeeklyInsights.jsx";
 import Availability from "./Availability.jsx";
 import Users from "./Users.jsx";
 import Advertisers from "./Advertisers.jsx";
@@ -134,6 +135,7 @@ export default function App() {
     : section === "rentals" && arg === "landlords" && /^\d+$/.test(sub) ? <Landlord key={sub} id={sub} />
     : section === "rentals" && /^\d+$/.test(arg) ? <RentalDetail key={arg} id={arg} selection={query??''} onChange={loadCounts} />
     : section === "rentals" ? <Rentals requestedPayment={new URLSearchParams(query).get('payment')} unmatched={new URLSearchParams(query).get('payments')==='unmatched'} onChange={loadCounts} />
+    : section === "insights" && arg === "weekly" ? <WeeklyInsights key={sub} weekStart={sub ?? ""} paused={expired} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "advertisers" ? <Advertisers session={advertiserSession} />
     : section === "messages" ? <Messages paused={expired} onChange={loadCounts} />

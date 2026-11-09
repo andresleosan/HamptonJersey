@@ -136,3 +136,15 @@ test("the panel's poll stays a backup", async t => {
   assert.equal((await call(env, "GET", "/admin/notifications/counts", { cookie: await adminCookie() })).status, 200);
   assert.equal(exists(env, kept), false);
 });
+
+test('weekly Insights uses processing time and a failure does not prevent email',async t=>{
+  t.mock.method(console,'log',()=>{});const errors=t.mock.method(console,'error',()=>{});
+  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-09T08:00:00.000Z')});
+  const env=makeEnv();await tick(env,'2026-10-01T00:00:00.000Z');
+  assert.equal(env.DB.raw.prepare('SELECT week_start FROM weekly_insights').get()?.week_start,'2026-11-02');
+  const original=env.DB.batch.bind(env.DB);
+  env.DB.raw.exec("DELETE FROM app_settings WHERE key='email_worker'");
+  env.DB.batch=stmts=>{if(stmts.some(s=>/INSERT INTO weekly_insights/.test(s.sql)))return Promise.reject(new Error('Private fixture data'));return original(stmts);};
+  await tick(env,'2026-10-01T00:10:00.000Z');assert.equal(setting(env,'email_worker').at,'2026-11-09T08:00:00.000Z');
+  assert.deepEqual(errors.mock.calls.map(c=>c.arguments),[['Weekly Insights pass failed']]);
+});
