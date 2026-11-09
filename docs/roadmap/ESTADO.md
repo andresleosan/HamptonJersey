@@ -4,6 +4,8 @@
 
 Siguiente recomendado Codex: /avanzar PAQ-01 · gpt-6.1-sol · high
 
+PAQ-01,9-nov: sesión VPS incorporada; planificación histórica BUS-21 cerrada sin aceptar investigación ni producto. [Arreglo canónico](../superpowers/plans/2026-11-09-paq-01-canonical-verification-ledger.md) preparado para reparar503 al verificar commits antiguos con diffs>1MB. Pendiente revisión/publicación/despliegue; operación original conservada y NOT-11 aún sin construcción. No cambia el estado de las250tareas.
+
 Cierre vigente de planificación Lista1,8-nov-2026: [plan maestro listo para construir](../superpowers/plans/2026-11-08-lista1-build-ready.md) e [índice59/59](../superpowers/plans/2026-11-08-lista1-tanda2-index.md). Preguntas de entrevista resueltas; los datos/textos se añadirán manualmente y los plazos configurables se validarán antes de activar. Presentación por email con texto breve/fotos adjuntas preparada por Hermes y revisada/enviada por empleado; privacidad por email/equipo; valoraciones soloemail; nombre Hampton Estates LTD; Qualified/Registered solo Lettings residencialJersey. Los registros previos de pendientes se conservan como historia, no como preguntas actuales. No construcción ni publicación de producto en esta sesión.
 
 Entrevista Lista1 posterior a las tandas: [cierre de decisiones](../superpowers/plans/2026-11-08-lista1-decision-closure.md). Q01/D05 aprobada: revisión humana final y envío explícito por empleado para cada presentación, aunque matches y disponibilidad estén confirmados. Solo actualización documental; próxima pregunta Q02, acceso del cliente a sus datos.

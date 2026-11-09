@@ -29,7 +29,9 @@ export async function importCanonicalCatalog(env,sha) {
 }
 export async function verifyIntegrated(env,sha) {
   sha=gitSha(sha);
-  const comparison=await github(env,`/compare/${sha}...main`,{maxBytes:1_000_000});
+  // GitHub returns comparison-wide file patches only on page 1. Page 2 retains the ancestry metadata,
+  // even for identical or single-commit comparisons, without downloading megabytes of unrelated diffs.
+  const comparison=await github(env,`/compare/${sha}...main?per_page=1&page=2`,{maxBytes:1_000_000});
   requireThat(['ahead','identical'].includes(comparison.status)&&comparison.merge_base_commit?.sha===sha,'COMMIT_NOT_ON_MAIN','Integrated evidence SHA must be an ancestor of canonical main.');
   return sha;
 }

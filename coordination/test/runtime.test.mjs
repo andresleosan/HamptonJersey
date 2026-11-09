@@ -11,7 +11,7 @@ const SHA='a'.repeat(40), OTHER='b'.repeat(40), SLOTS=['vps','hermes','vscode','
 const actors=Object.fromEntries(SLOTS.map(slot=>[slot,{actorId:slot,role:slot==='vps'?'coordinator':'executor',slots:[slot]}]));
 const identities={...Object.fromEntries(SLOTS.map(slot=>[`service-${slot}`,actors[slot]])),'viewer@example.test':{actorId:'reader',role:'viewer',slots:[]}};
 function makeCatalog({collision=false,review=false}={}) {return {schemaVersion:1,project:'hampton',slots:SLOTS.map(id=>({id,name:id,area:id})),tasks:SLOTS.map((slot,i)=>({id:`TASK-0${i+1}`,titulo:`Task ${i+1}`,estado:'pendiente',assignedSlot:slot})),units:SLOTS.map((slot,i)=>({id:`TASK-0${i+1}/build`,parentTaskId:`TASK-0${i+1}`,title:`Task ${i+1}`,preferredSlot:slot,priority:i,kind:'development',enabled:true,reviewRequired:review,dependencies:[],resources:[{key:collision?'notifications-schema':`path:src/${slot}/`,mode:'write'}],acceptance:['Works']}))};}
-let directory,bundle,mf,ns,privateKey,publicJwk;let catalog=makeCatalog();let mainSha=SHA;let unavailable=false;let op=0;
+let directory,bundle,mf,ns,privateKey,publicJwk;let catalog=makeCatalog();let mainSha=SHA;let unavailable=false,oversizedComparison=false;let op=0;
 const operation=()=>`operation-${++op}`;
 const rpc=raw=>({command:async(...args)=>JSON.parse(JSON.stringify(await raw.command(...args))),getBoard:async()=>JSON.parse(JSON.stringify(await raw.getBoard()))});
 const config=()=>({modules:true,script:bundle,compatibilityDate:'2026-10-01',durableObjects:{TEAM_COORDINATOR:{className:'TeamCoordinator',useSQLite:true}},resourcePersistencePath:join(directory,'state'),bindings:{ACCESS_TEAM_DOMAIN:'fixture.cloudflareaccess.com',ACCESS_AUD:'test-audience',TEAM_IDENTITIES_JSON:JSON.stringify(identities)},serviceBindings:{ASSETS:async()=>new Response('private asset')},outboundService:async request=>{
@@ -21,13 +21,17 @@ const config=()=>({modules:true,script:bundle,compatibilityDate:'2026-10-01',dur
   assert.equal(url.hostname,'api.github.com');
   if(url.pathname.endsWith('/git/ref/heads/main'))return Response.json({object:{sha:mainSha,type:'commit'}});
   if(url.pathname.endsWith('/contents/docs/roadmap/catalog.json'))return Response.json(catalog);
-  if(url.pathname.includes('/compare/'))return Response.json({status:url.pathname.includes(OTHER)?'diverged':'identical',merge_base_commit:{sha:SHA}});
+  if(url.pathname.includes('/compare/')) {
+    assert.equal(url.search,'?per_page=1&page=2');
+    return Response.json({status:url.pathname.includes(OTHER)?'diverged':'identical',merge_base_commit:{sha:SHA},
+      ...(oversizedComparison?{padding:'x'.repeat(1_000_001)}:{})});
+  }
   throw new Error(`Unexpected outbound fixture: ${url}`);
 }});
 async function token(payload={},options={}) {return new SignJWT({common_name:'service-vps',...payload}).setProtectedHeader({alg:'RS256',kid:'fixture'}).setIssuer(options.issuer||'https://fixture.cloudflareaccess.com').setAudience(options.audience||'test-audience').setSubject('service-sub').setIssuedAt().setExpirationTime(options.expiration||'10m').sign(privateKey);}
 async function http(path,{body,jwt,method=body?'POST':'GET'}={}) {const response=await mf.dispatchFetch(`https://team.example.test${path}`,{method,headers:{...(jwt?{'Cf-Access-Jwt-Assertion':jwt}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});let data;try{data=await response.json();}catch{data=null;}return {status:response.status,body:data};}
 async function initialized(name,{collision=false,review=false}={}) {
-  catalog=makeCatalog({collision,review});mainSha=SHA;unavailable=false;
+  catalog=makeCatalog({collision,review});mainSha=SHA;unavailable=false;oversizedComparison=false;
   const stub=rpc(ns.get(ns.idFromName(name)));
   const result=await stub.command(actors.vps,'/v1/catalog',{operationId:operation(),expectedRevision:0,sha:SHA});
   assert.equal(result.status,200,JSON.stringify(result));return stub;
@@ -108,6 +112,18 @@ test('arbitrary commit evidence and incompatible live catalogue update fail clos
   const rejected=await stub.command(actors.vps,'/v1/evidence',{operationId:operation(),expectedRevision:(await stub.getBoard()).revision,unitId:c.unitId,kind:'integrated',sha:OTHER,reference:'Unrelated commit'});assert.equal(rejected.status,409);assert.equal(rejected.body.error.code,'COMMIT_NOT_ON_MAIN');
   catalog.units[0].resources.push({key:'shared-styles',mode:'write'});
   const imported=await stub.command(actors.vps,'/v1/catalog',{operationId:operation(),expectedRevision:(await stub.getBoard()).revision,sha:SHA});assert.equal(imported.body.error.code,'CATALOG_CLAIM_CONFLICT');
+});
+test('oversized integration proof preserves state and the exact retry records evidence once',async()=>{
+  const stub=await initialized('bounded-comparison-retry');const before=await stub.getBoard();
+  const body={operationId:operation(),expectedRevision:before.revision,unitId:catalog.units[0].id,kind:'integrated',sha:SHA,reference:'Published ancestry'};
+  oversizedComparison=true;
+  const rejected=await stub.command(actors.vps,'/v1/evidence',body);
+  assert.equal(rejected.status,503);assert.equal(rejected.body.error.code,'CANONICAL_UNAVAILABLE');
+  const failed=await stub.getBoard();assert.equal(failed.revision,before.revision);assert.deepEqual(failed.evidence,before.evidence);
+  oversizedComparison=false;
+  const accepted=await stub.command(actors.vps,'/v1/evidence',body);assert.equal(accepted.status,200);
+  assert.deepEqual(await stub.command(actors.vps,'/v1/evidence',body),accepted);
+  const after=await stub.getBoard();assert.equal(after.revision,before.revision+1);assert.equal(after.evidence.length,before.evidence.length+1);
 });
 test('JWT verifies signature, issuer, audience, expiry; viewers cannot mutate; assets require auth',async()=>{
   assert.equal((await http('/v1/board')).status,401);
