@@ -1,7 +1,7 @@
 import { json, fail } from "../http.js";
 import { activeSql } from "../applicants.js";
 import { CANDIDATES_SQL } from "../match-store.js";
-import { jerseyToday, plusDays } from "../viewings.js";
+import { jerseyToday, plusDays, realDate, weekday } from "../viewings.js";
 import { jerseyDayStart, groupDemand, topUnmet, funnel, responseTime, earliest } from "../insights.js";
 
 const DAYS = ["7", "30", "90"];
@@ -86,4 +86,14 @@ async function insights({ request, env }) {
   });
 }
 
-export default [["GET", /^\/admin\/insights$/, insights, true]];
+async function weekly({env,params:[weekStart]}) {
+  if(!realDate(weekStart)||weekday(weekStart)!=='mon')fail(400,'Choose a valid Monday');
+  const row=await env.DB.prepare('SELECT payload FROM weekly_insights WHERE week_start=?').bind(weekStart).first();
+  if(!row)fail(404,'Weekly Insights not found');
+  return json(JSON.parse(row.payload));
+}
+
+export default [
+  ["GET", /^\/admin\/insights$/, insights, true],
+  ["GET", /^\/admin\/insights\/weekly\/([^/]+)$/, weekly, true],
+];

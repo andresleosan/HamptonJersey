@@ -105,6 +105,8 @@ async function replay(env,actor,operationId,hash,id=null) {
 export async function mutateTask(env,id,actor,body) {
   operationInput(body,['operation_id','revision','action','assigned_to','due_at']);
   if(!Number.isSafeInteger(body.revision)||body.revision<1)fail(400,'Send the task revision you reviewed');
+  const current=await getTask(env,id,actor);
+  if(current.weekly_insights)fail(400,'Weekly Insights is an informational notice');
   const {action}=body;
   let set,args=[],condition='';
   if(action==='claim'){set='assigned_to=?';args=[actor];condition=' AND (assigned_to IS NULL OR assigned_to=?)';}
@@ -123,7 +125,6 @@ export async function mutateTask(env,id,actor,body) {
     ...(['assign','edit'].includes(action)?{assigned_to:body.assigned_to}:{}),
     ...(['deadline','edit'].includes(action)?{due_at:action==='edit'?args[1]:args[0]}:{})}));
   const prior=await replay(env,actor,body.operation_id,hash,id);if(prior)return prior;
-  await getTask(env,id,actor);
   const extra=action==='claim'?[actor]:['assign','edit'].includes(action)?[body.assigned_to,body.assigned_to]:[];
   const target=`EXISTS(SELECT 1 FROM events e WHERE e.id=notifications.event_id AND ${currentTarget})`;
   const [updated]=await env.DB.batch([
