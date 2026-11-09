@@ -95,7 +95,8 @@ SELECT e.id,e.at,e.actor,
     WHEN e.entity_type='applicant' AND e.type LIKE 'sale.%' THEN 'sale' ELSE e.entity_type END AS target_kind,
   CASE WHEN e.entity_type='applicant' AND e.type LIKE 'offer.%' THEN CAST(json_extract(e.data,'$.offer_id') AS TEXT)
     WHEN e.entity_type='applicant' AND e.type LIKE 'sale.%' THEN CAST(json_extract(e.data,'$.sale_id') AS TEXT) ELSE e.entity_id END AS target_id,
-  CASE WHEN e.entity_type='rental' THEN json_patch('{}',json_object(
+  CASE WHEN e.entity_type='applicant' AND e.type='sale.milestone' THEN json_object('milestone',json_extract(e.data,'$.key'))
+    WHEN e.entity_type='rental' THEN json_patch('{}',json_object(
     'tenancy_id',json_extract(e.data,'$.tenancy_id'),'repair_id',json_extract(e.data,'$.repair_id'),
     'compliance_kind',json_extract(e.data,'$.compliance_kind'))) END AS target_context,
   CASE WHEN e.entity_type='viewing' THEN 'viewing' ELSE 'task' END AS category,
@@ -130,7 +131,9 @@ WHERE (e.entity_type='viewing' AND e.type IN ('viewing.booked','viewing.confirme
  OR (e.entity_type='applicant' AND (e.type IN ('offer.recorded','offer.updated','offer.countered','offer.rejected','offer.withdrawn','offer.accepted')
    AND EXISTS(SELECT 1 FROM offers WHERE id=json_extract(e.data,'$.offer_id') AND applicant_id=e.entity_id)
    OR e.type IN ('sale.updated','sale.milestone','sale.completed','sale.fallen_through')
-   AND EXISTS(SELECT 1 FROM sales WHERE id=json_extract(e.data,'$.sale_id') AND applicant_id=e.entity_id)))
+   AND EXISTS(SELECT 1 FROM sales WHERE id=json_extract(e.data,'$.sale_id') AND applicant_id=e.entity_id)
+   AND (e.type<>'sale.milestone' OR (json_extract(e.data,'$.key') IN ('lawyers','due_diligence','questionnaire','searches','mortgage','contract','funds','passing','settled')
+     AND EXISTS(SELECT 1 FROM sale_milestones WHERE sale_id=json_extract(e.data,'$.sale_id') AND key=json_extract(e.data,'$.key'))))))
  OR (e.entity_type='listing' AND e.type IN ('listing.created','listing.updated','listing.published','listing.unpublished','listing.archived','listing.restored','listing.confirmed','listing.availability_changed','listing.featured_changed','listing.cover_changed','listing.recalculated','listing.deleted'))
  OR (e.rental_event_id IS NOT NULL AND e.entity_type IN ('rental','payment','collection'));
 

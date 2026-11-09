@@ -30,6 +30,7 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
   const taskPending = useCallback(value => { setPending(value); onPending(value); }, [onPending]);
   useEffect(() => () => onPending(false), [onPending]);
   const seq = useRef(0), listRef = useRef(null), headRef = useRef(null);
+  const selectedSnapshot=useRef(null);
   const current = useRef(null); current.current = { data, sel, dirty };
   const taskDirty = useCallback(value => setDirty(d => d.task === value ? d : { ...d, task: value }), []);
   const prefsDirty = useCallback(value => setDirty(d => d.prefs === value ? d : { ...d, prefs: value }), []);
@@ -44,16 +45,18 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
     return api(`/admin/notifications?box=${box}${cat ? `&category=${cat}` : ""}`).then(async d => {
       if (n !== seq.current) return; // a newer request (another tab, a later poll) has the fresher answer
       const editing = current.current;
+      let selectionError=null;
       // A colleague can move the selected task into another box. Keep its draft mounted
       // until an explicit reload/save or confirmed navigation, including an uncertain retry.
       if (pin && editing.sel && !d.notifications.some(x => x.id === editing.sel)) {
-        const previous = editing.data?.notifications.find(x => x.id === editing.sel);
+        const previous = editing.data?.notifications.find(x => x.id === editing.sel)
+          ??(selectedSnapshot.current?.id===editing.sel?selectedSnapshot.current:null);
         let selected=previous;
-        if(!editing.dirty.task)try{selected=(await api(`/admin/notification-tasks/${editing.sel}`)).task;}catch{ /* Detail retains its own explicit error/retry. */ }
+        if(!editing.dirty.task)try{selected=(await api(`/admin/notification-tasks/${editing.sel}`)).task;}catch(e){selectionError=e.message;}
         if(n!==seq.current)return;
-        if (selected) d = { ...d, notifications: [...d.notifications, { ...selected, moved: true }] };
+        if (selected) {selectedSnapshot.current=selected;d = { ...d, notifications: [...d.notifications, { ...selected, moved: true }] };}
       }
-      setData(d); setCounts(d.counts); onCounts(d.counts); setLoadErr(null);
+      setData(d); setCounts(d.counts); onCounts(d.counts); setLoadErr(selectionError?`Could not refresh the selected task: ${selectionError}`:null);
       setSel(id => (d.notifications.some(x => x.id === id) ? id : d.notifications[0]?.id ?? null));
     }, e => { if (n === seq.current) { setLoadErr(e.message); refocus.current = false; } });
   }, [box, cat, onCounts]);
@@ -62,9 +65,9 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
   const canLeaveTask = () => !pending && (!dirty.task || confirm("Discard unsaved task changes?"));
   const show = (b, c) => {
     if ((b === box && c === cat) || !canLeaveTask()) return;
-    taskDirty(false); seq.current++; setBox(b); setCat(c); setData(null); setSel(null); setMsg(null); setLoadErr(null);
+    taskDirty(false); seq.current++; selectedSnapshot.current=null;setBox(b); setCat(c); setData(null); setSel(null); setMsg(null); setLoadErr(null);
   };
-  const pick = id => { if (id !== sel && canLeaveTask()) { taskDirty(false); setSel(id); setMsg(null); } };
+  const pick = id => { if (id !== sel && canLeaveTask()) { seq.current++;selectedSnapshot.current=data?.notifications.find(n=>n.id===id)??null;taskDirty(false); setSel(id); setMsg(null); } };
   const read = useCallback((id, revision) => setData(d => d && ({ ...d,
     notifications: d.notifications.map(n => n.id === id && n.revision === revision ? { ...n, is_read: 1 } : n) })), []);
   useEffect(() => {
@@ -80,6 +83,7 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
     setMsg({ ok: true, text: messages[action] || "Task saved." }); refocus.current = true;
     if (action === "created" || action === "reopen") {
       const nextBox = stillOpen ? "action" : "feed", nextCat = action === "created" ? "task" : cat;
+      selectedSnapshot.current=task;
       setSel(task.id);
       if (nextBox !== box || nextCat !== cat) { seq.current++; setBox(nextBox); setCat(nextCat); setData(null); return; }
     } else if (action === "done" && !stillOpen) {

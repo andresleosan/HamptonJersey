@@ -56,3 +56,13 @@ test('hiding, disabling, session expiry and unmount abort fetch and ignore late 
     pending.resolve(Response.json({alerts:[{version:2,id:2}],cursor:{version:2,id:2},hasMore:false}));await settle();assert.equal(h.sent.length,0);c.stop();
   }
 });
+
+test('a shared cursor arriving during baseline fetch is consumed before its later watermark',async()=>{
+  const {createBrowserAlerts}=await import('../admin/src/browser-alerts.js');const h=harness(),t=h.tab(),c=createBrowserAlerts(t.env);
+  h.Native.permission='granted';c.start();await c.enable();await settle();
+  const peer=new t.env.BroadcastChannel('hampton:urgent-alert-cursor');peer.postMessage({cursor:{version:100,id:10}});await settle();
+  await t.reply({alerts:[],cursor:{version:101,id:11},hasMore:false});assert.equal(h.sent.length,0);
+  await t.tick();assert.match(h.requests.at(-1),/version=100&id=10/);
+  await t.reply({alerts:[{version:101,id:11}],cursor:{version:101,id:11},hasMore:false});assert.equal(h.sent.length,1);
+  peer.close();c.stop();
+});

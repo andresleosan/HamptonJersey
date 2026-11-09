@@ -27,6 +27,9 @@ export function createBrowserAlerts(env,onChange=()=>{}) {
       if(ticket!==generation||!started||!enabled||!visible())return;
       if(!validCursor(data?.cursor)||!Array.isArray(data.alerts)||typeof data.hasMore!=='boolean'
         ||data.alerts.length>200||data.alerts.some(a=>!validCursor(a)||a.id<1||a.version<1||compare(a,data.cursor)>0))throw new Error('Invalid alert metadata');
+      // A handoff arrived while the baseline was in flight. Consume from that shared cursor
+      // before accepting a newer silent baseline that could skip its urgent siblings.
+      if(baseline&&cursor!==null){nextAt=0;return;}
       if(!baseline)for(const item of data.alerts){
         if(cursor&&compare(item,cursor)<=0)continue;
         const notification=new Native('Hampton needs your attention',{body:'Open Inbox to review a task.',tag:`hampton-task:${item.id}:${item.version}`});

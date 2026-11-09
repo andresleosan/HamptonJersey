@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {makeEnv,seedListing,call,adminCookie,T0} from './helpers.mjs';
 import {logEvent} from '../../server/events.js';
-import {taskStatements} from '../../server/notification-tasks.js';
+import {taskStatements,getTask} from '../../server/notification-tasks.js';
 
 const ADMIN='admin@example.test';
 function fixture(){const env=makeEnv();seedListing(env);env.DB.raw.exec(`
@@ -40,11 +40,11 @@ test('a future producer can project a freshly inserted event inside the same gua
 });
 
 test('all allowed viewing, offer, sale and property facts produce one Feed entry; legacy and unknown events do not',async()=>{
-  const env=fixture();let count=0;
+  const env=fixture();let count=0;env.DB.raw.exec("INSERT INTO sale_milestones(sale_id,key) VALUES(1,'mortgage')");
   for(const [kind,id,prefix,names,data] of [
     ['viewing','1','viewing',['booked','confirmed','rescheduled','cancelled','completed','no_show'],null],
     ['applicant','1','offer',['recorded','updated','countered','rejected','withdrawn','accepted'],{offer_id:1}],
-    ['applicant','1','sale',['updated','milestone','completed','fallen_through'],{sale_id:1}],
+    ['applicant','1','sale',['updated','milestone','completed','fallen_through'],{sale_id:1,key:'mortgage'}],
     ['listing','HE-R001','listing',['created','updated','published','unpublished','archived','restored','confirmed','availability_changed','featured_changed','cover_changed','recalculated','deleted'],null],
   ])for(const name of names){await env.DB.batch(logEvent(env,{actor:ADMIN,entity_type:kind,entity_id:id,type:`${prefix}.${name}`,data}));count++;}
   assert.equal(scalar(env,'SELECT COUNT(*) FROM notifications'),count);
@@ -119,4 +119,12 @@ test('exact offer and payment routes authenticate and retrieve an assigned payme
   const p=await call(env,'GET','/admin/payments/1',{cookie});assert.equal(p.data.payment.tenancy_id,1);assert.equal(p.data.payment.rental_id,1);
   assert.equal((await call(env,'GET','/admin/payments/999',{cookie})).status,404);
   assert.equal((await call(env,'GET','/admin/offers/999',{cookie})).status,404);
+});
+
+test('a real sale milestone fact links its exact validated step',async()=>{
+  const env=fixture();env.DB.raw.exec("INSERT INTO sale_milestones(sale_id,key,planned_on) VALUES(1,'mortgage','2026-11-01')");
+  await env.DB.batch(logEvent(env,{actor:ADMIN,entity_type:'applicant',entity_id:'1',type:'sale.milestone',data:{sale_id:1,key:'mortgage'}}));
+  const id=scalar(env,'SELECT id FROM notifications');assert.equal((await getTask(env,id,ADMIN)).link,'#/sales/1?milestone=mortgage');
+  await env.DB.batch(logEvent(env,{actor:ADMIN,entity_type:'applicant',entity_id:'1',type:'sale.milestone',data:{sale_id:1,key:'unknown'}}));
+  assert.equal(scalar(env,'SELECT COUNT(*) FROM notifications'),1);
 });

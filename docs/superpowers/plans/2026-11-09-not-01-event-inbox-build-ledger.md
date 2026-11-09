@@ -35,3 +35,15 @@ Task2: runtimeD1 real detectó compoundSELECT excesivo queSQLite normal permite;
 Task1: adapter futuro admite captura fresca ifInserted sin separar negocio/evento/proyección. RED por guard ausente→GREEN; resolución por fase sigue explícita. Fuentes futuras no integradas.
 
 Suite antes de revisión984JS+14PythonPASS; añadida después prueba runtimeD1 (10/10focalPASS). Recorrido general en curso y suite final/revisión pendientes. Sin autorización de migración0033/publicación aún; sí anterior fue exclusivo3213+0032 y ya ejecutado.
+
+Revisión independiente de implementación not01_code_review, contexto nuevo GPT6astra/high, rango3213..42578e5:0Critical,3Important,1Minor, declined-to-judge vacío. Ruling: el enlace de milestone se eleva de Minor a Important porque el aviso no permite identificar ni abrir el paso concreto; coste si se dejara: revisión del hito equivocado. Se corrigen los4en una pasada, sin re-review sustitutivo.
+
+Final: fixed respuesta GET exacta tardía que desmontaba otro borrador: e2e pin_race RED seleccionaba Review window fixture1 en vez de Follow-up source fixture; GREEN conserva selección y responsable editado. Pick invalida la secuencia anterior.
+
+Final: fixed cursor compartido durante baseline: test `a shared cursor arriving during baseline fetch is consumed before its later watermark` RED saltaba100→101 sin alerta; GREEN continúa100 y notifica101 una vez. No adelanta el watermark silencioso sobre trabajo compartido conocido.
+
+Final: fixed creación fuera200 con GET temporal503: e2e new_selection RED elegía otra fila; GREEN conserva la tarea creada de la respuesta, muestra error y Reload recupera ese mismo ID. Snapshot conocido persiste al cambiar categoría.
+
+Final: fixed destino de sale.milestone: test `a real sale milestone fact links its exact validated step` RED abría venta genérica; GREEN enlaza mortgage validado contra enum/venta/paso existente y omite un paso inválido.14/14focal native/producersPASS.
+
+Suite después de los4arreglos987JS+14PythonPASS. General completo public/urls/admin/reg17PASS antes del fix; focalNOT11PASS. Nuevo focalNOT01 completo1280/390/zoom200PASS trasfix, incluido Assign real desde pago exacto, validación sin tenancy, oferta abierta con5diálogos/cancelación, check/deadline pasado, errores, vacío, XSS, borradores y permiso opcional. Regresión admin/reg17 yNOT11 trasfix en curso; publicación0033 no autorizada aún. Sin menores aplazados.
