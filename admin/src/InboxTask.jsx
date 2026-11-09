@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {api} from './api.js';
 import {fmtAgo,fmtDate} from './format.js';
+import {CATEGORY_LABELS,MANUAL_CATEGORIES} from '../../shared/notification-categories.js';
 
 const localTime=iso=>iso?new Date(new Date(iso).getTime()-new Date(iso).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
 const fields=t=>({assigned_to:t.assigned_to??'',due:localTime(t.due_at)});
@@ -113,7 +114,7 @@ export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,on
           {open&&(!task.assigned_to||task.assigned_to===me)&&<button type="button" className="btn ghost" disabled={dirty||createDirty||conflict||task.assigned_to===me} onClick={()=>save('claim')}>Claim task</button>}
         </div></fieldset>
     </form>
-    {['applicant','viewing'].includes(task.entity_type)&&task.target_exists&&!creating&&
+    {['applicant','viewing','rental'].includes(task.entity_type)&&task.target_exists&&!creating&&
       <p><button type="button" className="btn ghost" disabled={disabled||dirty||conflict} onClick={()=>setCreating(true)}>Add follow-up task</button></p>}
     {creating&&<Followup task={task} users={users} paused={paused} onDirty={setCreateDirty} onPending={setCreatePending} onCreated={result=>onChanged({task:result.task,action:'created'})} onCancel={()=>setCreating(false)}/>}
     <details className="task-history"><summary>Task history ({history.length})</summary>
@@ -124,15 +125,18 @@ export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,on
 }
 
 function Followup({task,users,paused,onDirty,onPending,onCreated,onCancel}) {
+  const [initialCategory]=useState(()=>MANUAL_CATEGORIES.includes(task.category)?task.category:'task');
+  const [category,setCategory]=useState(initialCategory);
   const [title,setTitle]=useState(''),[reason,setReason]=useState(''),[owner,setOwner]=useState(task.assigned_to??''),[due,setDue]=useState('');
   const [busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState(null);const pending=useRef(null);
-  useEffect(()=>{onDirty(Boolean(title||reason||due||owner!==(task.assigned_to??'')||busy||uncertain));},[title,reason,owner,due,busy,uncertain,onDirty,task.assigned_to]);
+  useEffect(()=>{onDirty(Boolean(title||reason||due||category!==initialCategory||owner!==(task.assigned_to??'')||busy||uncertain));},[title,reason,owner,due,category,initialCategory,busy,uncertain,onDirty,task.assigned_to]);
   useEffect(()=>()=>onDirty(false),[onDirty]);
   useEffect(()=>{onPending(busy||uncertain);},[busy,uncertain,onPending]);
   useEffect(()=>()=>onPending(false),[onPending]);
   const submit=async e=>{
     e?.preventDefault();if(busy||paused)return;
-    const body=pending.current??{operation_id:crypto.randomUUID(),target:{kind:task.entity_type,id:task.entity_id},title,reason,
+    const body=pending.current??{operation_id:crypto.randomUUID(),target:{kind:task.entity_type,id:task.entity_id,
+      ...(task.entity_type==='rental'&&task.context?{context:task.context}:{})},category,title,reason,
       assigned_to:owner||null,due_at:due?new Date(due).toISOString():null};
     pending.current=body;setBusy(true);setError(null);
     try {const result=await api('/admin/notification-tasks',{method:'POST',body});
@@ -144,6 +148,9 @@ function Followup({task,users,paused,onDirty,onPending,onCreated,onCancel}) {
   };
   return <form className="task-form" onSubmit={submit}>
     <fieldset disabled={busy||uncertain||paused}><legend>Follow-up task</legend>
+      <label>Follow-up category<select aria-label="Follow-up category" value={category} onChange={e=>setCategory(e.target.value)}>
+        {MANUAL_CATEGORIES.map(key=><option key={key} value={key}>{CATEGORY_LABELS[key]}</option>)}
+      </select></label>
       <label>Follow-up title<input value={title} onChange={e=>setTitle(e.target.value)} maxLength={200} required/></label>
       <label>Follow-up reason<textarea value={reason} onChange={e=>setReason(e.target.value)} maxLength={500} rows={2}/></label>
       <div className="task-fields"><Owners label="Follow-up assigned to" value={owner} users={users} onChange={setOwner}/>

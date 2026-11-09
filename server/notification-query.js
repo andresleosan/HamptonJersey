@@ -2,13 +2,14 @@ import {activeSql,normalizePhone} from './applicants.js';
 import {fail} from './http.js';
 import {MILESTONES} from './sales.js';
 import {COMPLIANCE} from './rentals.js';
+export {TASK_CATEGORIES} from '../shared/notification-categories.js';
 
 const positive=value=>/^[1-9]\d*$/.test(String(value))&&Number.isSafeInteger(Number(value));
 const CONTEXT={sale:['milestone'],rental:['tenancy_id','repair_id','compliance_kind','deadline']};
 export function taskTarget(value,manual=false) {
-  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!['kind','id',...(!manual?['context']:[])].includes(k)))fail(400,'Choose a task target');
+  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!['kind','id',...(!manual||value.kind==='rental'?['context']:[])].includes(k)))fail(400,'Choose a task target');
   const kind=value.kind,id=String(value.id??'');
-  if(!(manual?['applicant','viewing']:['applicant','viewing','contact','listing','offer','sale','rental','payment','collection']).includes(kind))fail(400,'Invalid task target');
+  if(!(manual?['applicant','viewing','rental']:['applicant','viewing','contact','listing','offer','sale','rental','payment','collection']).includes(kind))fail(400,'Invalid task target');
   if(kind==='listing'?!/^HE-[A-Z]\d{3,}$/.test(id):kind==='collection'?id!=='unmatched-payments':!positive(id))fail(400,'Invalid task target');
   const input=value.context;let context;
   if(input!=null){
@@ -55,7 +56,6 @@ export const sourceAllowsTarget=(kind,id,event='e')=>`((${event}.entity_type=${k
 export const noticeTargetExists=(notice='n',event='e')=>`${notice}.target_deleted=0 AND ${targetExists(
   `COALESCE(${notice}.target_kind,${event}.entity_type)`,`COALESCE(${notice}.target_id,${event}.entity_id)`,`${notice}.target_context`)}`;
 
-export const TASK_CATEGORIES=['new_applicant','viewing','matched','task'];
 export const NOTICE_SELECT=`SELECT n.id,n.event_id,n.category,n.title,n.created_at,n.action_required,n.resolved_at,n.resolved_by,
   n.source_version,n.revision,n.assigned_to,n.due_at,n.task_reason,n.urgency,n.closed_by_source,
   owner.name AS assigned_name,owner.email IS NOT NULL AS assigned_available,

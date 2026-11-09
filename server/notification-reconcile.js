@@ -71,7 +71,7 @@ export async function notificationsPass(env,isoNow) {
         CASE WHEN p.task_key IS NOT NULL THEN p.target_context ELSE n.target_context END AS target_context,
         COALESCE(p.title,n.title) AS title,CASE WHEN p.task_key IS NOT NULL THEN p.due_at ELSE n.due_at END AS due_at,
         COALESCE(p.urgency,n.urgency) AS urgency,COALESCE(p.signature,o.signature) AS signature,
-        ${reentry} AS reentered,o.active AS prior_active,o.signature AS prior_signature
+        ${reentry} AS reentered,o.active AS prior_active,o.signature AS prior_signature,n.category AS prior_category,n.revision AS prior_revision
       FROM identities i LEFT JOIN pending p ON p.task_key=i.task_key
       LEFT JOIN notification_observations o ON o.task_key=i.task_key LEFT JOIN notifications n ON n.task_key=i.task_key
       WHERE i.sort_key>(SELECT after_key FROM notification_cursor WHERE key='queues') ORDER BY i.sort_key LIMIT 51`),
@@ -83,7 +83,16 @@ export async function notificationsPass(env,isoNow) {
     .bind(hasMore?selected.at(-1).sort_key:'',isoNow,cursor.revision,isoNow,cursor.source_max),
     env.DB.prepare("INSERT INTO notification_cursor(key,revision,after_key,observed_at) SELECT 'contended',0,'','' WHERE changes()=0")];
   for(const row of selected){
-    if(row.pending&&row.prior_active===1&&row.signature===row.prior_signature&&!row.reentered)continue;
+    const category=['check','deadline'].includes(row.kind)?'compliance':'task';
+    if(row.pending&&row.prior_active===1&&row.signature===row.prior_signature&&!row.reentered){
+      // Classification changes preserve the observed source event and human Done.
+      if(category==='compliance'&&row.prior_category!==category)statements.push(q(`WITH ${PENDING}
+        UPDATE notifications SET category=?5,task_actor='system',task_action='source_update'
+        WHERE task_key=?6 AND revision=?7 AND resolved_at IS NULL AND action_required=1 AND target_deleted=0
+          AND EXISTS(SELECT 1 FROM pending p WHERE p.task_key=notifications.task_key AND p.signature=?8 AND p.kind IN ('check','deadline'))`,
+        category,row.task_key,row.prior_revision,row.signature));
+      continue;
+    }
     const token=crypto.randomUUID(),target={kind:row.target_kind,id:row.target_id,...(row.target_context?{context:JSON.parse(row.target_context)}:{})};
     if(row.pending)statements.push(q(`WITH ${PENDING} INSERT INTO events(at,actor,entity_type,entity_id,type,data)
       SELECT ?7,'system',p.source_kind,p.source_id,'notification.observed',json_object('version',1,'queue',p.kind,'identity',p.entity_id,'cycle',p.cycle,
@@ -96,7 +105,7 @@ export async function notificationsPass(env,isoNow) {
         'sale_id',CASE WHEN o.target_kind='sale' THEN CAST(o.target_id AS INTEGER) END,'observation_token',?7)
       FROM notification_observations o JOIN events e ON e.id=o.event_id WHERE o.task_key=?5 AND o.active=1
         AND NOT EXISTS(SELECT 1 FROM pending p WHERE p.task_key=o.task_key)`,row.task_key,isoNow,token));
-    statements.push(...taskStatements(env,{taskKey:row.task_key,eventId:null,target,category:'task',title:row.title,
+    statements.push(...taskStatements(env,{taskKey:row.task_key,eventId:null,target,category,title:row.title,
       dueAt:row.due_at,urgency:row.urgency,resolved:!row.pending,preserveDone:true,reopen:Boolean(row.pending&&row.reentered)}, {ifInserted:true}));
     statements.push(env.DB.prepare(`INSERT INTO notification_observations(task_key,kind,entity_id,cycle,signature,active,target_kind,target_id,event_id)
       SELECT ?,?,?,?,?,?,?,?,n.event_id FROM notifications n JOIN events e ON e.id=n.event_id

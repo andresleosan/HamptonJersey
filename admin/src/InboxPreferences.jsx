@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {api} from './api.js';
-const CATEGORIES={new_applicant:'New applicants',viewing:'Viewings',matched:'Matched',task:'Tasks'};
+import {CATEGORY_LABELS as CATEGORIES} from '../../shared/notification-categories.js';
 
 export default function InboxPreferences({paused,blocked,onDirty,onSaved}) {
   const [saved,setSaved]=useState(null),[checked,setChecked]=useState([]),[busy,setBusy]=useState(false);

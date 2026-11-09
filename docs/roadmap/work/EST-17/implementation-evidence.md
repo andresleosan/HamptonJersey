@@ -43,4 +43,4 @@ Hampton's existing operational layout, current CSS tokens, native controls and E
 
 ## Publication boundary
 
-0034 remains unapplied remotely. Obtain approval for the final reviewed SHA before migration or push; then verify deployment, schema and representative live reads without writing test fixtures to production. Future shared-inventory and tenancy producers remain separate work.
+Published with explicit approval on9November2026 at f2113769903548f4c5a4763a51c7962e84e80aef. Migration0034 applied remotely:53application tables retain their counts and foreign_key_check is empty. Pages and Jobs checks succeeded; public site/panel return200, protected API reads401, and served JS/CSS match the approved build. No production test fixtures were written. Integrated evidence recorded; the expired own lease was explicitly recovered in the same checkout and completed at generation2, with publication turn closed and catalogue imported. Future shared-inventory and tenancy producers remain separate work.

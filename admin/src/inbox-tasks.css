@@ -1,4 +1,5 @@
 .inbox-tasks{container-type:inline-size}
+.inbox-tasks .seg{max-width:100%;border-radius:var(--r)}
 .task-controls{min-width:0;overflow-wrap:anywhere}
 .task-controls .head{align-items:flex-start}
 .task-controls fieldset,.task-preferences fieldset{min-width:0;border:0;margin:0;padding:0}
@@ -29,6 +30,7 @@
   .inbox-tasks .inbox-list{max-height:none}
 }
 @media(max-width:760px){
+  .inbox-tasks .seg button{min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center}
   .task-fields{grid-template-columns:1fr}
   .task-controls .head{display:block}
   .task-controls .head>.inline{margin-top:12px}

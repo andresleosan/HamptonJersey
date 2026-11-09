@@ -5,11 +5,12 @@ import { usePoll } from "./poll.js";
 import { setUnsaved } from "./unsaved.js";
 import InboxTask from "./InboxTask.jsx";
 import InboxPreferences from "./InboxPreferences.jsx";
+import {CATEGORY_LABELS} from "../../shared/notification-categories.js";
 import "./inbox-tasks.css";
 
 const BOXES = { action: "Needs action", feed: "Feed" };
-const CATEGORIES = { "": "All", new_applicant: "New applicants", matched: "Matched", viewing: "Viewings", task: "Tasks" };
-const KIND = { new_applicant: "New applicant", matched: "New matches", viewing: "Viewing request", task: "Shared task" };
+const CATEGORIES = { "": "All", ...CATEGORY_LABELS };
+const KIND = { ...CATEGORY_LABELS, new_applicant: "New applicant", matched: "New matches", viewing: "Viewing request", task: "Shared task" };
 const EMPTY = {
   action: { "": "You're all caught up. New applicants, matches, viewing requests and shared tasks that need a reply appear here.",
     new_applicant: "You're all caught up. New applicants from the website appear here.",
@@ -19,6 +20,8 @@ const EMPTY = {
     new_applicant: "No applicant notices here yet.", matched: "No match notices here yet.",
     viewing: "No viewing request notices here yet.", task: "No completed tasks or task updates here yet." },
 };
+Object.assign(EMPTY.action,{agency_reply:'No agency reply tasks need action.',message:'No message tasks need action.',compliance:'No compliance tasks need action.'});
+Object.assign(EMPTY.feed,{agency_reply:'No agency reply updates here yet.',message:'No message updates here yet.',compliance:'No compliance updates here yet.'});
 const isOpen = n => n.action_required === 1 && n.resolved_at == null;
 export default function Inbox({ paused, onCounts, me, onPending }) {
   const [box, setBox] = useState("action"), [cat, setCat] = useState("");
@@ -82,7 +85,7 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
       done: stillOpen ? "New work remains in Needs action." : "Marked as done. It's in the Feed now." };
     setMsg({ ok: true, text: messages[action] || "Task saved." }); refocus.current = true;
     if (action === "created" || action === "reopen") {
-      const nextBox = stillOpen ? "action" : "feed", nextCat = action === "created" ? "task" : cat;
+      const nextBox = stillOpen ? "action" : "feed", nextCat = action === "created" ? task.category : cat;
       selectedSnapshot.current=task;
       setSel(task.id);
       if (nextBox !== box || nextCat !== cat) { seq.current++; setBox(nextBox); setCat(nextCat); setData(null); return; }

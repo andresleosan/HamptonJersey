@@ -1,5 +1,6 @@
 import {fail,now,sha256} from './http.js';
 import {NOTICE_SELECT,noticeDto,TASK_CATEGORIES,targetExists,taskTarget,sourceAllowsTarget,noticeTargetExists} from './notification-query.js';
+import {MANUAL_CATEGORIES} from '../shared/notification-categories.js';
 export {targetExists,taskTarget} from './notification-query.js';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -143,22 +144,24 @@ export async function mutateTask(env,id,actor,body) {
 }
 
 export async function createTask(env,actor,body) {
-  operationInput(body,['operation_id','target','title','reason','assigned_to','due_at']);
+  operationInput(body,['operation_id','target','title','reason','assigned_to','due_at','category']);
+  const category=body.category===undefined?'task':body.category;
+  if(!MANUAL_CATEGORIES.includes(category))fail(400,'Choose a task category');
   const target=taskTarget(body.target,true),title=keyText(body.title,'task title',200);
   const reason=body.reason==null||body.reason===''?null:keyText(body.reason,'task reason',500);
   const assigned=body.assigned_to??null;if(assigned!==null&&typeof assigned!=='string')fail(400,'Choose an assignee');
   const due=body.due_at==null?null:deadline(body.due_at);
-  const hash=await sha256(JSON.stringify({target,title,reason,assigned,due}));
+  const hash=await sha256(JSON.stringify({target,title,reason,assigned,due,...(Object.hasOwn(body,'category')?{category}:{})}));
   const prior=await replay(env,actor,body.operation_id,hash);if(prior)return prior;
   const taskKey=`manual:${await sha256(actor)}:${body.operation_id}`,ts=now();
   const [created]=await env.DB.batch([
     env.DB.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
-      SELECT ?,?,?,?,'task.created','{"version":1,"manual":true}' FROM (SELECT ? AS kind,? AS id) target WHERE ${targetExists('target.kind','target.id')}
+      SELECT ?,?,?,?,'task.created','{"version":1,"manual":true}' FROM (SELECT ? AS kind,? AS id,? AS context) target WHERE ${targetExists('target.kind','target.id','target.context')}
       AND (? IS NULL OR EXISTS(SELECT 1 FROM admins WHERE email=?))
       AND EXISTS(SELECT 1 FROM admins WHERE email=?)
       AND NOT EXISTS(SELECT 1 FROM notification_task_operations WHERE actor=? AND operation_id=?)`)
-      .bind(ts,actor,target.kind,target.id,target.kind,target.id,assigned,assigned,actor,actor,body.operation_id),
-    ...taskStatements(env,{taskKey,eventId:null,category:'task',title,reason,target,requiresAction:true,resolved:false,
+      .bind(ts,actor,target.kind,target.id,target.kind,target.id,target.context?JSON.stringify(target.context):null,assigned,assigned,actor,actor,body.operation_id),
+    ...taskStatements(env,{taskKey,eventId:null,category,title,reason,target,requiresAction:true,resolved:false,
       dueAt:due,initialAssignedTo:assigned,actor},{ifInserted:true}),
     env.DB.prepare(`INSERT INTO notification_task_operations(actor,operation_id,task_id,payload_hash,result_revision)
       SELECT ?,?,id,?,revision FROM notifications WHERE task_key=? AND changes()=1`).bind(actor,body.operation_id,hash,taskKey),

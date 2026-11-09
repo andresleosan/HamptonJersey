@@ -6,15 +6,21 @@
   "fase": "—",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Existe la pestaña Viewings: cada solicitud de visita de la web llega como aviso Needs action con Open viewings.",
-  "falta": "M13 · Reconciliación 7-nov: Compliance (los plazos vencidos solo salen en Rentals › Checks and deadlines), Agency replies (respuestas de agencias, F2) y Messages (bandeja unificada, F6). Incorporar consultas, llamadas, captura, fuentes pendientes, día 21 y dictado con enlaces a su gestión; evitar una bandeja separada sin relación con la ficha común. Depende de: NOT-11, EST-18. El inbox y las tareas manuales pueden construirse antes de activar correo o Meta; esos accesos solo afectan sus respectivos canales reales.",
+  "hecho": "Construido localmente el9-nov-2026 sobre EST-17 publicado f211376: categorías Agency replies, Messages y Compliance junto a las existentes, contrato compartido UI/API/preferencias, filtros y contadores sobre todas las tareas. Follow-up manual clasificado con destino de aplicante, visita o alquiler/contexto validado; conserva asignación, plazo, recibos antiguos y borradores ante cambios de categoría. Checks/plazos actuales entran en Compliance sin duplicar eventos por reclasificar. Migración0035 ensayada con D1local poblada:55tablas conservadas,0erroresFK. No activa correo, Meta o productores futuros.",
+  "falta": "Publicar el SHA revisado y aplicar0035 con autorización; verificar despliegue después. Agency replies y Messages admiten tareas registradas manualmente; respuestas y mensajes reales se conectan por sus propios canales/productores. Consultas, llamadas, captura, fuentes pendientes, revisión día21 y dictado conservan adaptadores y gestión común, pero su operación real espera sus módulos. Playwright MCP sigue bloqueado antes de navegar; el runner local es evidencia separada.",
   "bloqueo": "Activación del correo para respuestas reales · Meta solo para sus canales",
   "evidencia": [
-    "admin/src/Inbox.jsx:7",
-    "server/routes/public.js:72-74",
-    "migrations/0009_matches.sql:49",
-    "admin/src/Rentals.jsx:96-104",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "shared/notification-categories.js",
+    "admin/src/Inbox.jsx",
+    "admin/src/InboxTask.jsx",
+    "admin/src/InboxPreferences.jsx",
+    "server/notification-query.js",
+    "server/notification-tasks.js",
+    "server/notification-reconcile.js",
+    "migrations/0035_notification_categories.sql",
+    "tests/server/notification-categories.test.mjs",
+    "tests/notification-categories.e2e.cjs",
+    "docs/roadmap/work/NOT-08/implementation-evidence.md"
   ],
   "modulo": "M13",
   "deps": [
