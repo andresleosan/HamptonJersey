@@ -93,7 +93,7 @@
 
 - [x] Ejecutar npm test, npm run build y npm run check:release. Registrar resultados reales y separar fallos anteriores de regresiones.
 - [x] Ejecutar npm run test:e2e para el general y el recorrido BUS-14 con el selector existente E2E_SCRIPT, sin modificar wrappers ni controles del entorno.
-- [ ] Completar Playwright MCP local a1280/390: navegación, validaciones, vacíos/error, teclado/foco, zoom200%, consola/red. Fixtures propias y un e2e general por host; MCP no inicia por sandbox/root, registrado sin alterar controles.
+- [x] Completar el recorrido local1280/390 de navegación, validaciones, vacíos/error, teclado/foco, zoom200% y consola/red con fixtures propios: Playwright independientePASS. MCP se intentó y no inicia por sandbox/root; no se registraMCP comoPASS ni se alteran controles. La matriz de cierre documenta la alternativa real.
 - [x] Medir respuesta paginada y recálculos con fixture de volumen:25 tarjetas por respuesta, sin lectura de otros Found al guardar vivienda y sin N+1. Ajustar procesamiento por lotes existente si las mediciones lo requieren; nunca restaurar top25 para ocultar coste ni añadir infraestructura sin revisión de alcance.
 - [x] Revisar independientemente el diff final y corregir hallazgos importantes; repetir comprobaciones afectadas. Esta revisión de plan no sustituye aquella revisión de código.
 - [x] Actualizar documentos y generados desde sus fuentes con estado real, incluyendo publicación/migración/activación pendientes. Hacer commit de archivos concretos en main y preparar aprobación del SHA exacto; no migrar ni publicar sin la autorización correspondiente.
@@ -127,7 +127,7 @@ La construcción anterior ya está publicada en72b3ad3; sus notas de «pendiente
 - [x] Contrastar main/GitHub y checks del SHA publicado; conservar evidencia histórica de0037 y comprobar dependencia REG-08/cfb3d3c/0031.
 - [x] Intentar validación disponible sin cambiar controles: MCP falla antes de navegar, consulta D1 rechazada7403 y HTTP403. Registrar estos límites; no considerar PASS ni repetir migración.
 - [x] Reconciliar ESTADO, fuente BUS-14, checklist/generados y ledger; verificar catálogo/paquetes/release y revisar el diff documental antes del commit local.
-- [ ] Persona con sesión autorizada: Applicants→ficha→Matches, recálculo explícito de búsqueda antigua que el equipo quiera actualizar, siguiente/anterior si existe otra página, Shortlist/Undo solo sobre decisión de prueba autorizada y zoom nativo200% en escritorio/móvil. No fabricar registros o sesiones en producción; si no hay caso autorizado, registrar esa parte pendiente.
+> Propuesta histórica de guía manual: repetir también paginación/Shortlist/Undo con sesión de producción y zoom nativo. El cierre de aceptación posterior registra lo realmente probado y corrige esa repetición adicional como bloqueo; no marca esas mutaciones como realizadas en producción.
 
 Ruling: no repetir suites de producto ni e2e locales ya acreditados para un ajuste exclusivamente documental; ejecutar comprobaciones de documentación/generación. No confundirlas con el smoke autenticado pendiente. Aplicar ponytail para reutilizar el generador; verification-before-completion para no cerrar tareas sin evidencia.
 
@@ -136,6 +136,11 @@ Ruling: no repetir suites de producto ni e2e locales ya acreditados para un ajus
 
 - [x] Usar navegador independiente existente para comprobar públicamente1280/390, assets y protección401: PASS. El403 anterior de HTTP simple no impedía esta comprobación.
 - [x] Ejecutar el flujo BUS-14 con fixtures nuevos y medir zoom nativo200% en un perfil temporal: recorrido normal1280/390PASS y, como paso explícito, zoom con teclado siguiente/anterior, foco y sin overflow (DPR2, CSSzoom1,640/195CSS). No modificar aplicación ni controles del sistema.
-- [ ] Guiar a la persona autorizada en su sesión Google de producción hasta completar el smoke autenticado pendiente. Las referencias anteriores al zoom como pendiente quedan superadas por esta comprobación; MCP sigue indisponible y no se presenta como usado.
+- [x] Smoke autenticado representativo: Luis aportó capturas de Matches móvil y confirmó recálculo correcto. Paginación, decisiones/Undo y errores están cubiertos localmente; no se afirma esa ejecución en producción. Zoom nativo comprobado; MCP sigue indisponible y no se presenta como usado.
 
 El lanzador local existente compila y migra exclusivamente fixtures temporales. La sesión de prueba solo autentica contra el runtime local; no acredita el intercambio Google ni las operaciones autenticadas de producción.
+
+
+## Cierre de aceptación9-nov
+
+[Matriz completa](../../roadmap/work/BUS-14/validation-closeout.md). El alcance del diseño aprobado está cubierto:27pruebas focales actualesPASS y evidencias de suites/recorridos/publicación en ledger. Capturas y confirmación de Luis cierran el acceso/recálculo reales; se retira el bloqueo añadido de repetir mutaciones locales sobre producción, sin convertirlo enPASS ficticio. La aplicación de0037 y publicación del producto ya ocurrieron. Quedan integración/revisión/aprobación/publicación de los commits documentales y del ajuste del test; no pruebas funcionales pendientes ni nueva migración.

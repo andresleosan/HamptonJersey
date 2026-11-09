@@ -312,3 +312,6 @@ Q06 aprobada por Luis: alertas seis meses, una invitación de renovación al ter
 
 
 9-nov-2026 · Ayuda adicional de validación BUS-14: navegador independiente normal confirma producción pública1280/390, raíz/admin200, assets iguales al build publicado y Matches401 sin sesión; el403 del cliente HTTP no era un impedimento para este navegador. Recorrido local con fixtures nuevos1280/390 y zoom nativo200% (DPR2, CSSzoom1, paginación por teclado y sin overflow) comprobados. MCP sigue no disponible; no se cambia infraestructura. Continúa pendiente acompañar el smoke autenticado de producción con Google autorizado. No confundir sesión local de pruebas con acceso real; BUS-14 sigue parcial.
+
+
+9-nov-2026 · Cierre de BUS-14: [matriz de aceptación](work/BUS-14/validation-closeout.md) cubierta en el alcance aprobado sobre inventario residencial actual. Luis confirmó Matches y recálculo con sesión real móvil; decisiones/Undo, paginación y errores están comprobados con fixtures locales. La repetición de todas las mutaciones en producción no era un requisito del alcance y se retira como bloqueo añadido durante la guía manual, sin afirmar que se ejecutó. BUS-14 pasa a hecho en la fuente local; PAQ-03 y BUS-12/BUS-17 conservan sus etapas. El registro de cierre requiere todavía integración/revisión/aprobación/publicación de su SHA, sin nueva migración.

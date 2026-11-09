@@ -73,6 +73,12 @@ El [tablero público](../superpowers/specs/2026-11-08-tablero-publico-design.md)
 
 La recomendación se incluye en ESTADO antes del commit final revisado y se presenta al usuario al cerrar. Se conserva el motor, proveedor, modelo y esfuerzo comprobados de la tarea en curso. La prioridad vigente es Hermes directamente con GPT mientras esté disponible; DeepSeek en OpenCode solo al perder acceso GPT. Una recomendación histórica no cambia esa prioridad. La [rúbrica de modelo y esfuerzo](../../.agents/skills/avanzar/references/modelo-y-esfuerzo.md) se aplica cuando Luis elige Codex, después de pruebas y revisión. No inventar controles de esfuerzo de otros proveedores.
 
+## Preparar las pruebas como parte de cada tarea · 9-nov-2026
+
+Luis pide que las tareas no se queden abiertas por falta de preparar o ejecutar pruebas. El agente incluye en la entrega fixtures representativos, forma reproducible de ejecutar el recorrido, validaciones/errores, resultados y corrección de los fallos encontrados. Reutiliza primero el lanzador local y las herramientas disponibles; un fallo de una herramienta no sustituye la investigación de otra vía autorizada que compruebe el mismo comportamiento. Registra con precisión qué herramienta y entorno se usaron.
+
+Antes de pedir intervención humana, contrasta la matriz de aceptación con la evidencia real y concreta qué criterio falta. La comprobación manual se limita al acceso o comportamiento externo que de verdad la requiera; no se exige repetir en producción todos los casos ya comprobados localmente si el alcance aprobado no lo exige. Si un criterio requiere el servicio real, se prueba o se conserva ese bloqueo concreto: no se elimina para cerrar. Los datos ficticios y las mutaciones de ensayo van en fixtures locales; no se añaden administradores de producción ni se intercambian credenciales por chat para sustituir la preparación de pruebas. Se mantienen autorización de publicación, controles del entorno y evidencia honesta.
+
 ## E2E local reproducible
 
 `npm run test:e2e` prepara una base D1 nueva, aplica migraciones **solo locales**, carga fixtures, compila el panel y las Pages Functions, y ejecuta `tests/e2e.cjs`. Genera credenciales ficticias en una carpeta privada temporal y las elimina al cerrar; conserva intacto `.dev.vars`. `PW` y `CHROME` siguen señalando la instalación de Playwright y Chromium del equipo, como indica la cabecera del test. En el taller:

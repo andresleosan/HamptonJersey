@@ -4,10 +4,10 @@
   "titulo": "Orden explicable de coincidencias y alternativas, después de evaluar requisitos",
   "origen": "plan",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "9-nov-2026: código publicado en main72b3ad3be3bf49ea82cf3f8d56cfce169f6e26a7,0037 aplicada según registros de publicación, recuentos/integridad conservados. Todas las candidatas pertinentes sin mínimo35/tope25; score natural90 sin bonus. Páginas25, cursor/revisión y orden persistido común con Review; historial y decisiones conservados, Timeline/Widen globales. Construcción anterior:1068JS+14Python, build/release, general y focal1280/390, revisión independiente con1Important corregido. Nueva comprobación real: navegador público1280/390, raíz/admin200, assets idénticos al build publicado,0pageerrors y Matches401 sin sesión. Recorrido local actual1280/390PASS con fixtures nuevos: paginación, decisiones/Undo, recálculo legado, errores/carreras, Timeline y Widen. Zoom nativo200% vía preferencias de Chromium, DPR2/CSSzoom1/anchoCSS640/195, sin overflow y paginación por teclado. Google/producción autenticados aún sin verificar. Suite actual1068JS+14PythonPASS; test sincronizado con finalización real de Undo sin cambiar producto.",
-  "falta": "Acompañar a persona con sesión Google autorizada en Applicants→ficha→Matches: carga, recálculo de búsqueda antigua cuando corresponda, paginación y Shortlist/Undo sobre caso autorizado. El recorrido local y el zoom nativo ya están comprobados; no equivalen a sesión de producción. MCP bloqueado por sandbox/root; se usó Playwright independiente. D1 de esta ejecución rechazó listado7403; no repetir0037. Nuevas fuentes/EvaluationV1 pertenecen a BUS-12 y ranking del día21 a BUS-17. Reconciliación documental local revisada, pendiente de aprobación/publicación de su SHA exacto.",
+  "hecho": "9-nov-2026: alcance aprobado BUS-14 terminado y publicado en72b3ad3be3bf49ea82cf3f8d56cfce169f6e26a7,0037 aplicada según registros de publicación. Conserva todas las candidatas residenciales pertinentes sin mínimo35/tope25, páginas25 y orden persistido por cumplimiento/score, sin bonus de publicación. Historial y decisiones conservados; Timeline/Widen globales. Evidencia de construcción:1068JS+14Python, build/release, general y focal1280/390, revisión independiente corregida. Ayuda adicional: recorrido local actual1280/390 con páginas25/25/10, Shortlist/Reject/Undo, recálculo legado, errores/carreras y Widen; zoom nativo200% comprobado con teclado y capturasX11. Navegador público confirma assets publicados y protección401. Luis aportó capturas de Matches con sesión real móvil y confirmó recálculo correcto. Cierre:27pruebas focales actualesPASS, matriz de aceptación cubierta; Shortlist/Undo se verificó localmente, sin afirmar ejecución de esa acción en producción. Las ampliaciones del inventario/EvaluationV1 y ranking21d corresponden a BUS-12/BUS-17.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/matching.js",
@@ -20,7 +20,8 @@
     "tests/server/match-pages.test.mjs",
     "tests/server/bus14-widen.test.mjs",
     "tests/bus14-e2e.cjs",
-    "docs/superpowers/plans/2026-11-08-bus-14-match-ranking-ledger.md"
+    "docs/superpowers/plans/2026-11-08-bus-14-match-ranking-ledger.md",
+    "docs/roadmap/work/BUS-14/validation-closeout.md"
   ],
   "modulo": "M04",
   "deps": [
@@ -46,5 +47,5 @@
     "notifications-schema",
     "matching-review-ui"
   ],
-  "nextStep": "Completar el smoke con sesión Google de producción acompañando a la persona autorizada. Recorrido local/zoom nativo y smoke público ya comprobados; no reconstruir ni repetir0037. Publicar documentación solo con revisión y aprobación de su SHA exacto."
+  "nextStep": "Alcance aprobado de BUS-14 cerrado; no volver a pedir ficha de producción ni repetir0037. Continuar BUS-12 según sus dependencias técnicas. El registro de cierre y el ajuste del test siguen locales, pendientes de integración/revisión/aprobación/publicación de su SHA exacto."
 }
