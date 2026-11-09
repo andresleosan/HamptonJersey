@@ -1,17 +1,24 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lista 1–4 · Hampton</title><meta name="description" content="Consulta pública del progreso de las cuatro listas de tareas de Hampton.">
+<title>Avance del proyecto · Hampton</title><meta name="description" content="Progreso de Hampton por paquetes y listas, con etapas y recomendaciones para avanzar.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Open+Sans:wdth,wght@75..100,400..800&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap">
-<link rel="stylesheet" href="equipo.css"><script src="tablero-publico.js" defer></script></head><body>
-<a class="skip" href="#columns">Saltar a las listas</a>
-<header><p class="muted">Hampton · tareas del equipo</p><h1>Lista 1–4</h1>
-<p class="note">Consulta pública, sin clave. Se actualiza cada 15 segundos mientras está abierta. Al cerrar una tarea con <code>/avanzar</code>, su progreso aparecerá automáticamente en unos segundos.</p>
-<div class="connection-panel"><p id="connection" role="status" aria-live="polite">Conectando…</p><p id="updated" class="muted"></p><button id="refresh" type="button">Actualizar ahora</button></div>
-<p id="totals" class="summary"></p><div class="toolbar">
-<label>Buscar tarea<input id="search" type="search" placeholder="Código o título"></label>
+<link rel="stylesheet" href="equipo.css"><link rel="stylesheet" href="tablero-publico.css"><script src="tablero-publico.js" defer></script></head><body class="public-board">
+<a class="skip" href="#overview">Saltar al progreso</a>
+<header><p class="muted">Hampton · proyecto y equipo</p><h1>Qué hemos terminado y qué sigue</h1>
+<p class="note">Las tareas se agrupan en entregas para compartir trabajo y comprobaciones. Abre un paquete para ver sus etapas, o una tarea para entender qué falta y dónde conviene hacerla.</p>
+<div class="connection-panel"><div><p id="connection" role="status" aria-live="polite">Conectando…</p><p id="updated" class="muted"></p></div><button id="refresh" type="button">Actualizar ahora</button></div></header>
+<main id="overview" tabindex="-1">
+<section class="overview" aria-labelledby="progress-heading"><h2 id="progress-heading">Progreso del alcance vigente</h2><p id="progress-label" class="progress-label">Esperando datos del proyecto…</p><progress id="overall-progress" max="1" value="0" aria-label="Progreso del proyecto"></progress><p id="progress-breakdown" class="muted"></p>
+<details class="explanation"><summary>Cómo se calcula el avance</summary><p>Contamos las tareas marcadas como Hecho en el checklist. Una tarea parcial o un trabajo local completado todavía no cuenta como hecho. Replanteadas y descartadas quedan fuera del porcentaje.</p><p>Es una proporción de tareas, no una estimación de tiempo o esfuerzo. Los filtros no cambian la barra general. Los planes guardados no equivalen a producto construido.</p></details></section>
+<section class="reading-guide" aria-labelledby="guide-heading"><h2 id="guide-heading">Cómo continuar</h2><ol><li><strong>Abre un paquete.</strong> Reúne tareas relacionadas de cualquiera de las cuatro listas.</li><li><strong>Mira la etapa pendiente.</strong> Cada tarea conserva sus dependencias y comprobaciones.</li><li><strong>Continúa con <code>/avanzar PAQ-01</code>.</strong> El agente comprueba lo disponible y retoma el trabajo.</li></ol><p class="muted">Hermes programa con GPT Sol en Codex; al quedarse sin acceso a GPT usa DeepSeek v4 max en OpenCode. Las recomendaciones de entorno dependen de accesos y herramientas, no de una limitación de capacidad.</p></section>
+<section class="browser" aria-labelledby="browse-heading"><h2 id="browse-heading">Explorar el trabajo</h2><p id="totals" class="muted"></p>
+<div class="toolbar"><label>Buscar tarea o paquete<input id="search" type="search" placeholder="Código, título o paquete"></label><label>Organizar por<select id="view"><option value="packages">Paquetes de entrega</option><option value="lists">Las cuatro listas</option></select></label><button id="reset" type="button">Mostrar todas</button></div>
+<details class="extra-filters"><summary>Filtrar por estado, entorno o lista</summary><div class="toolbar">
+<label>Estado<select id="state"><option value="">Todos los estados</option><option value="pendiente">Pendiente</option><option value="parcial">Parcial</option><option value="bloqueado">Bloqueado</option><option value="hecho">Hecho</option><option value="replanteado">Replanteado</option><option value="descartado">Descartado</option></select></label>
+<label>Entorno recomendado<select id="environment"><option value="">Cualquier entorno</option><option>Hermes</option><option>VPS</option><option>VS Code</option></select></label>
 <label>Lista<select id="list"><option value="">Las cuatro listas</option><option value="1">Lista 1</option><option value="2">Lista 2</option><option value="3">Lista 3</option><option value="4">Lista 4</option></select></label>
-<label>Actividad<select id="activity"><option value="">Todas</option><option value="planning">Planificando</option><option value="active">En curso</option><option value="submitted">En revisión</option><option value="completed">Trabajo completado</option><option value="paused">Pausada</option><option value="stale">Sin contacto</option><option value="unreserved">Sin reserva</option></select></label>
-<button id="reset" type="button">Mostrar todas</button></div><p id="result" class="muted" role="status"></p></header>
-<main><div id="columns" class="columns" tabindex="-1"></div><noscript>Activa JavaScript para ver la actualización automática.</noscript></main>
-<footer><p>Cualquier herramienta puede trabajar en cualquiera de las cuatro listas. Las tareas se seleccionan y reservan desde <code>/avanzar</code>. El estado corresponde al checklist y la actividad al trabajo registrado. «Sin reserva» no confirma que una tarea esté habilitada para construir.</p></footer>
-</body></html>
+<label>Actividad<select id="activity"><option value="">Todas</option><option value="planning">Planificando</option><option value="active">En curso</option><option value="submitted">En revisión</option><option value="completed">Trabajo completado</option><option value="paused">Pausada</option><option value="stale">Sin contacto</option><option value="unreserved">Sin reserva</option></select></label></div></details>
+<p id="result" class="muted" role="status"></p><p id="package-status" class="notice" role="status">Cargando paquetes…</p><p id="package-coverage" class="notice"></p>
+<div id="package-view"><div id="packages" class="packages"></div><p id="packages-empty" class="empty" hidden></p></div><div id="list-view" hidden><div id="columns" class="columns" tabindex="-1"></div></div>
+<noscript>Activa JavaScript para consultar el progreso y sus actualizaciones.</noscript></section></main>
+<footer><p>Consulta pública de solo lectura. Se actualiza cada 15 segundos mientras está visible. Estado y actividad describen cosas distintas: «Trabajo completado» indica un cierre registrado; «Hecho» corresponde al checklist. Una reserva libre no acredita que la tarea esté habilitada para construir.</p></footer></body></html>

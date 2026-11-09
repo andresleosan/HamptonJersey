@@ -1,0 +1,1220 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-09",
+  "source": "catalog.json",
+  "policy": "Agrupación por etapas. Conserva códigos, listas, estados, dependencias y autorizaciones individuales.",
+  "defaultOrder": [
+    "PAQ-01",
+    "PAQ-03",
+    "PAQ-04",
+    "PAQ-02",
+    "PAQ-05",
+    "PAQ-06",
+    "PAQ-07",
+    "PAQ-08",
+    "PAQ-09",
+    "PAQ-10",
+    "PAQ-13",
+    "PAQ-11",
+    "PAQ-14",
+    "PAQ-15",
+    "PAQ-18",
+    "PAQ-19",
+    "PAQ-12",
+    "PAQ-16",
+    "PAQ-17",
+    "PAQ-20",
+    "PAQ-21",
+    "PAQ-22"
+  ],
+  "packages": [
+    {
+      "id": "PAQ-01",
+      "title": "Inbox y trabajo compartido",
+      "goal": "Una gestión por asunto, con responsable, plazo, historial y avisos conectados.",
+      "kind": "development",
+      "priority": 1,
+      "recommendation": {
+        "environment": "VPS",
+        "difficulty": "Alta",
+        "reason": "Conviene el entorno con integraciones, migraciones y pruebas del servidor disponibles. Hermes también puede programarlo con GPT Sol en Codex; la elección depende de sus accesos.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Base de eventos y tareas",
+          "tasks": [
+            "EST-18",
+            "NOT-11"
+          ]
+        },
+        {
+          "title": "Novedades y categorías",
+          "tasks": [
+            "NOT-01",
+            "NOT-08"
+          ]
+        },
+        {
+          "title": "Acciones y cobros según productores",
+          "tasks": [
+            "NOT-09",
+            "NOT-05"
+          ]
+        },
+        {
+          "title": "Avisos existentes e historial",
+          "tasks": [
+            "NOT-02",
+            "NOT-03",
+            "NOT-04",
+            "NOT-06",
+            "NOT-07",
+            "SPR-02"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-02",
+      "title": "Requisitos y registro",
+      "goal": "Completar los datos del aplicante reutilizando el registro existente.",
+      "kind": "development",
+      "priority": 2,
+      "recommendation": {
+        "environment": "VS Code",
+        "difficulty": "Media",
+        "reason": "El editor y el navegador local facilitan revisar interfaz y código visualmente. Hermes también puede implementarlo con las mismas comprobaciones.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Comprobar lo integrado",
+          "tasks": [
+            "REG-08",
+            "REG-11",
+            "REG-17"
+          ]
+        },
+        {
+          "title": "Campos y confirmación de alta",
+          "tasks": [
+            "REG-01",
+            "REG-02",
+            "REG-03",
+            "REG-04",
+            "REG-05",
+            "REG-06",
+            "REG-07",
+            "REG-09",
+            "REG-10",
+            "REG-12",
+            "REG-14"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-03",
+      "title": "Matching y revisión humana",
+      "goal": "Conservar candidatas válidas y explicar su evaluación sin perder decisiones humanas.",
+      "kind": "development",
+      "priority": 3,
+      "recommendation": {
+        "environment": "VPS",
+        "difficulty": "Alta",
+        "reason": "Conviene el entorno con integraciones, migraciones y pruebas del servidor disponibles. Hermes también puede programarlo con GPT Sol en Codex; la elección depende de sus accesos.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Orden sobre inventario actual",
+          "tasks": [
+            "BUS-14"
+          ]
+        },
+        {
+          "title": "Evaluación y aprobación",
+          "tasks": [
+            "BUS-12",
+            "BUS-13",
+            "BUS-15",
+            "BUS-16"
+          ]
+        },
+        {
+          "title": "Estados y ficha",
+          "tasks": [
+            "EST-13",
+            "EST-05",
+            "EST-06",
+            "EST-07",
+            "EST-08",
+            "SAP-02",
+            "SAP-03",
+            "SAP-04",
+            "SAP-05",
+            "SAP-06",
+            "SAP-07"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-04",
+      "title": "Fuentes y anunciantes",
+      "goal": "Consolidar fuentes y contactos con procedencia y restricciones visibles.",
+      "kind": "research",
+      "priority": 4,
+      "recommendation": {
+        "environment": "Hermes",
+        "difficulty": "Media",
+        "reason": "Trabajo guiado por chat, investigación o documentación. Hermes también programa con GPT Sol en Codex y puede asumir código complejo con las herramientas y accesos necesarios.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Directorio y fuentes permitidas",
+          "tasks": [
+            "AGE-04",
+            "BUS-19",
+            "PRE-01"
+          ]
+        },
+        {
+          "title": "Primera investigación",
+          "tasks": [
+            "BUS-21"
+          ]
+        },
+        {
+          "title": "Segunda tras aceptar la primera",
+          "tasks": [
+            "BUS-22"
+          ]
+        },
+        {
+          "title": "Tercera tras aceptar la segunda",
+          "tasks": [
+            "BUS-23"
+          ]
+        },
+        {
+          "title": "Casos especiales y supresión",
+          "tasks": [
+            "BUS-11",
+            "BUS-20",
+            "AGE-14"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-05",
+      "title": "Inventario único de mercado",
+      "goal": "Una propiedad común con anuncios, precios, fuentes y disponibilidad separada.",
+      "kind": "development",
+      "priority": 5,
+      "recommendation": {
+        "environment": "VPS",
+        "difficulty": "Alta",
+        "reason": "Conviene el entorno con integraciones, migraciones y pruebas del servidor disponibles. Hermes también puede programarlo con GPT Sol en Codex; la elección depende de sus accesos.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Carga por tandas tras investigaciones",
+          "tasks": [
+            "BUS-06"
+          ]
+        },
+        {
+          "title": "Normalización e identidad común",
+          "tasks": [
+            "BUS-09",
+            "BUS-10",
+            "BUS-07"
+          ]
+        },
+        {
+          "title": "Estados y filtros de procedencia",
+          "tasks": [
+            "EST-16",
+            "SPR-07"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-06",
+      "title": "Búsqueda diaria",
+      "goal": "Mantener resultados actualizados sin duplicar propiedades.",
+      "kind": "development",
+      "priority": 6,
+      "recommendation": {
+        "environment": "VPS",
+        "difficulty": "Alta",
+        "reason": "Conviene el entorno con integraciones, migraciones y pruebas del servidor disponibles. Hermes también puede programarlo con GPT Sol en Codex; la elección depende de sus accesos.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Barrido y comparación",
+          "tasks": [
+            "BUS-08"
+          ]
+        },
+        {
+          "title": "Disparo inicial y repetición",
+          "tasks": [
+            "BUS-01",
+            "BUS-04"
+          ]
+        },
+        {
+          "title": "Resultados y estados",
+          "tasks": [
+            "BUS-03",
+            "EST-01",
+            "EST-02",
+            "EST-03",
+            "SAP-01"
+          ]
+        },
+        {
+          "title": "Decisiones históricas sustituidas",
+          "tasks": [
+            "BUS-02",
+            "BUS-05"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-07",
+      "title": "Continuidad y disponibilidad",
+      "goal": "Separar seguimiento, indisponibilidad y cierre humano.",
+      "kind": "development",
+      "priority": 7,
+      "recommendation": {
+        "environment": "VPS",
+        "difficulty": "Alta",
+        "reason": "Conviene el entorno con integraciones, migraciones y pruebas del servidor disponibles. Hermes también puede programarlo con GPT Sol en Codex; la elección depende de sus accesos.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Ciclo y colas",
+          "tasks": [
+            "EST-09",
+            "EST-04",
+            "EST-10",
+            "EST-11",
+            "EST-12"
+          ]
+        },
+        {
+          "title": "Indisponibilidad acreditada",
+          "tasks": [
+            "EST-15"
+          ]
+        },
+        {
+          "title": "Revisión interna y seguimiento",
+          "tasks": [
+            "BUS-17",
+            "BUS-18",
+            "SAP-10",
+            "EST-14"
+          ]
+        },
+        {
+          "title": "Purga con política validada",
+          "tasks": [
+            "EST-19"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-08",
+      "title": "Consultas y respuestas de agencias",
+      "goal": "Consulta compartida, respuesta y llamada pendiente sin envíos duplicados.",
+      "kind": "development",
+      "priority": 8,
+      "recommendation": {
+        "environment": "VPS",
+        "difficulty": "Alta",
+        "reason": "Conviene el entorno con integraciones, migraciones y pruebas del servidor disponibles. Hermes también puede programarlo con GPT Sol en Codex; la elección depende de sus accesos.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Consulta aprobada y guardas",
+          "tasks": [
+            "AGE-03",
+            "AUT-11"
+          ]
+        },
+        {
+          "title": "Envío con canal operativo",
+          "tasks": [
+            "AGE-05"
+          ]
+        },
+        {
+          "title": "Respuesta y llamada",
+          "tasks": [
+            "AGE-06",
+            "AGE-08",
+            "AGE-09"
+          ]
+        },
+        {
+          "title": "Reglas históricas sustituidas",
+          "tasks": [
+            "AGE-01",
+            "AGE-02"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-09",
+      "title": "Ficha privada y presentación",
+      "goal": "Preparar la propiedad confirmada y una presentación revisada por el empleado.",
+      "kind": "development",
+      "priority": 9,
+      "recommendation": {
+        "environment": "VS Code",
+        "difficulty": "Alta",
+        "reason": "El editor y el navegador local facilitan revisar interfaz y código visualmente. Hermes también puede implementarlo con las mismas comprobaciones.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Captura y archivos privados",
+          "tasks": [
+            "SPR-03",
+            "SPR-04",
+            "SPR-05",
+            "SPR-08",
+            "AGE-10"
+          ]
+        },
+        {
+          "title": "Respuesta y presentación humana",
+          "tasks": [
+            "AGE-12",
+            "AGE-11",
+            "AGE-13"
+          ]
+        },
+        {
+          "title": "Acciones de la ficha",
+          "tasks": [
+            "SAP-08",
+            "SAP-09"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-10",
+      "title": "Visitas y agenda",
+      "goal": "Coordinar horarios y confirmaciones conservando reservas existentes.",
+      "kind": "development",
+      "priority": 10,
+      "recommendation": {
+        "environment": "VS Code",
+        "difficulty": "Alta",
+        "reason": "El editor y el navegador local facilitan revisar interfaz y código visualmente. Hermes también puede implementarlo con las mismas comprobaciones.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Base existente y reglas de agenda",
+          "tasks": [
+            "VIS-01",
+            "VIS-02",
+            "VIS-03",
+            "VIS-05",
+            "VIS-06",
+            "VIS-07",
+            "VIS-09",
+            "VIS-11",
+            "VIS-18"
+          ]
+        },
+        {
+          "title": "Restricciones y coordinación",
+          "tasks": [
+            "VIS-10",
+            "VIS-17",
+            "VIS-08",
+            "VIS-14"
+          ]
+        },
+        {
+          "title": "Resultados recordatorios e informes",
+          "tasks": [
+            "VIS-04",
+            "VIS-13",
+            "VIS-16"
+          ]
+        },
+        {
+          "title": "Calendario externo con acceso propio",
+          "tasks": [
+            "VIS-12"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-11",
+      "title": "Privacidad y decisiones de cumplimiento",
+      "goal": "Conectar permisos y solicitudes con decisiones y parámetros validados.",
+      "kind": "decision",
+      "priority": 11,
+      "recommendation": {
+        "environment": "Hermes",
+        "difficulty": "Alta",
+        "reason": "Trabajo guiado por chat, investigación o documentación. Hermes también programa con GPT Sol en Codex y puede asumir código complejo con las herramientas y accesos necesarios.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Decisiones y contratos",
+          "tasks": [
+            "PRE-03",
+            "PRE-28",
+            "PRE-29",
+            "PRE-13",
+            "PRE-33"
+          ]
+        },
+        {
+          "title": "Avisos y permisos",
+          "tasks": [
+            "PRE-09",
+            "PRE-10",
+            "PRE-11"
+          ]
+        },
+        {
+          "title": "Solicitudes y conservación",
+          "tasks": [
+            "PRE-12"
+          ]
+        },
+        {
+          "title": "Cumplimiento de alquiler y compraventa",
+          "tasks": [
+            "ADM-17",
+            "ADM-20",
+            "OFE-07"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-12",
+      "title": "Captación y alertas consentidas",
+      "goal": "Captar propietarios y búsquedas con consentimiento y origen trazables.",
+      "kind": "development",
+      "priority": 12,
+      "recommendation": {
+        "environment": "VS Code",
+        "difficulty": "Media",
+        "reason": "El editor y el navegador local facilitan revisar interfaz y código visualmente. Hermes también puede implementarlo con las mismas comprobaciones.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Captación y origen",
+          "tasks": [
+            "PUB-10",
+            "ANA-10"
+          ]
+        },
+        {
+          "title": "Alertas y valoraciones",
+          "tasks": [
+            "REG-15",
+            "REG-16"
+          ]
+        },
+        {
+          "title": "Demanda y campañas",
+          "tasks": [
+            "PUB-19",
+            "PUB-20"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-13",
+      "title": "Correo y conversaciones",
+      "goal": "Activar correo existente y ampliar conversaciones por canales verificables.",
+      "kind": "activation",
+      "priority": 13,
+      "recommendation": {
+        "environment": "VPS",
+        "difficulty": "Alta",
+        "reason": "Conviene el entorno con integraciones, migraciones y pruebas del servidor disponibles. Hermes también puede programarlo con GPT Sol en Codex; la elección depende de sus accesos.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Correo y resumen existentes",
+          "tasks": [
+            "AUT-17",
+            "NOT-10",
+            "PRE-23"
+          ]
+        },
+        {
+          "title": "Chat humano y alta desde conversación",
+          "tasks": [
+            "MSG-02",
+            "MSG-05"
+          ]
+        },
+        {
+          "title": "Meta y WhatsApp con permisos",
+          "tasks": [
+            "PRE-02",
+            "PRE-08",
+            "PRE-24",
+            "MSG-01",
+            "MSG-03"
+          ]
+        },
+        {
+          "title": "Bot tras decisiones de activación",
+          "tasks": [
+            "PRE-34",
+            "MSG-04"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-14",
+      "title": "Control de automatizaciones y criterios",
+      "goal": "Compartir modos, pruebas y revisión de cambios por el equipo.",
+      "kind": "development",
+      "priority": 14,
+      "recommendation": {
+        "environment": "VPS",
+        "difficulty": "Alta",
+        "reason": "Conviene el entorno con integraciones, migraciones y pruebas del servidor disponibles. Hermes también puede programarlo con GPT Sol en Codex; la elección depende de sus accesos.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Control y pruebas",
+          "tasks": [
+            "AUT-01",
+            "AUT-03",
+            "AUT-07",
+            "AUT-09",
+            "AUT-10"
+          ]
+        },
+        {
+          "title": "Propuestas con revisión humana",
+          "tasks": [
+            "AUT-19",
+            "REG-13"
+          ]
+        },
+        {
+          "title": "Decisión histórica de modelos",
+          "tasks": [
+            "AUT-02"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-15",
+      "title": "Hermes e integraciones privadas",
+      "goal": "Preparar capacidades del agente sin ampliar accesos por inferencia.",
+      "kind": "activation",
+      "priority": 15,
+      "recommendation": {
+        "environment": "VPS",
+        "difficulty": "Alta",
+        "reason": "Conviene el entorno con integraciones, migraciones y pruebas del servidor disponibles. Hermes también puede programarlo con GPT Sol en Codex; la elección depende de sus accesos.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Decisiones y capacidades",
+          "tasks": [
+            "PRE-30",
+            "PRE-31",
+            "PRE-32",
+            "AUT-05",
+            "AUT-06",
+            "AUT-08",
+            "AUT-12"
+          ]
+        },
+        {
+          "title": "Agente y comunicaciones",
+          "tasks": [
+            "AUT-13",
+            "AUT-14",
+            "AUT-15",
+            "AUT-16",
+            "AUT-18",
+            "AUT-04"
+          ]
+        },
+        {
+          "title": "Notas de voz privadas",
+          "tasks": [
+            "VIS-15"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-16",
+      "title": "Gestión completa del alquiler",
+      "goal": "Un expediente de alquiler para cobros, incidencias, renovación y salida.",
+      "kind": "development",
+      "priority": 16,
+      "recommendation": {
+        "environment": "VS Code",
+        "difficulty": "Alta",
+        "reason": "El editor y el navegador local facilitan revisar interfaz y código visualmente. Hermes también puede implementarlo con las mismas comprobaciones.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Ficha solicitud y contrato",
+          "tasks": [
+            "ADM-01",
+            "ADM-02",
+            "ADM-05",
+            "ADM-18",
+            "ADM-06",
+            "ADM-19"
+          ]
+        },
+        {
+          "title": "Cobros avisos y cumplimiento",
+          "tasks": [
+            "ADM-03",
+            "ADM-07",
+            "ADM-08",
+            "ADM-09",
+            "ADM-10",
+            "ADM-11"
+          ]
+        },
+        {
+          "title": "Mantenimiento e inspección",
+          "tasks": [
+            "ADM-12",
+            "ADM-13"
+          ]
+        },
+        {
+          "title": "Renovación salida y exportación",
+          "tasks": [
+            "ADM-14",
+            "ADM-15",
+            "ADM-16",
+            "ADM-21"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-17",
+      "title": "Ofertas y comisiones",
+      "goal": "Conectar oferta, cierre y cobro con las gestiones humanas.",
+      "kind": "development",
+      "priority": 17,
+      "recommendation": {
+        "environment": "VS Code",
+        "difficulty": "Alta",
+        "reason": "El editor y el navegador local facilitan revisar interfaz y código visualmente. Hermes también puede implementarlo con las mismas comprobaciones.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Oferta y expediente",
+          "tasks": [
+            "OFE-01",
+            "OFE-02",
+            "OFE-03",
+            "OFE-04",
+            "OFE-05"
+          ]
+        },
+        {
+          "title": "Seguimiento y cobro",
+          "tasks": [
+            "OFE-06",
+            "OFE-08",
+            "PRE-22"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-18",
+      "title": "Editor y catálogo propio",
+      "goal": "Completar datos, medios y validaciones en el mismo editor.",
+      "kind": "development",
+      "priority": 18,
+      "recommendation": {
+        "environment": "VS Code",
+        "difficulty": "Media",
+        "reason": "El editor y el navegador local facilitan revisar interfaz y código visualmente. Hermes también puede implementarlo con las mismas comprobaciones.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Datos y ficha",
+          "tasks": [
+            "PUB-01",
+            "PUB-04",
+            "PUB-05",
+            "PUB-06",
+            "PUB-07",
+            "PUB-08",
+            "PUB-09",
+            "SPR-01",
+            "SPR-06"
+          ]
+        },
+        {
+          "title": "Medios y validación",
+          "tasks": [
+            "PUB-11",
+            "PUB-12"
+          ]
+        },
+        {
+          "title": "Publicación y estados",
+          "tasks": [
+            "PUB-02",
+            "PUB-14",
+            "PUB-16",
+            "PUB-22",
+            "EST-17",
+            "ADM-04"
+          ]
+        },
+        {
+          "title": "Decisión descartada",
+          "tasks": [
+            "PUB-18"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-19",
+      "title": "Distribución e importación de propiedades",
+      "goal": "Reutilizar el editor para conectores y canales autorizados.",
+      "kind": "development",
+      "priority": 19,
+      "recommendation": {
+        "environment": "VPS",
+        "difficulty": "Alta",
+        "reason": "Conviene el entorno con integraciones, migraciones y pruebas del servidor disponibles. Hermes también puede programarlo con GPT Sol en Codex; la elección depende de sus accesos.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Importación desde Drive",
+          "tasks": [
+            "PUB-21"
+          ]
+        },
+        {
+          "title": "Asistencia de contenido",
+          "tasks": [
+            "PUB-13"
+          ]
+        },
+        {
+          "title": "Redes y portales",
+          "tasks": [
+            "PUB-03",
+            "PUB-15"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-20",
+      "title": "Analítica útil",
+      "goal": "Medir demanda, respuesta y conversión con fuentes disponibles.",
+      "kind": "development",
+      "priority": 20,
+      "recommendation": {
+        "environment": "VS Code",
+        "difficulty": "Media",
+        "reason": "El editor y el navegador local facilitan revisar interfaz y código visualmente. Hermes también puede implementarlo con las mismas comprobaciones.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Actividad y demanda",
+          "tasks": [
+            "ANA-01",
+            "ANA-02",
+            "ANA-03",
+            "ANA-04",
+            "ANA-05",
+            "ANA-06",
+            "ANA-07"
+          ]
+        },
+        {
+          "title": "Informes y salud de fichas",
+          "tasks": [
+            "ANA-08",
+            "PUB-17"
+          ]
+        },
+        {
+          "title": "Datos de referencia del negocio",
+          "tasks": [
+            "PRE-04",
+            "PRE-25"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-21",
+      "title": "Puesta en marcha y operación",
+      "goal": "Revisar dominio, límites, acceso y copias con autorización específica.",
+      "kind": "activation",
+      "priority": 21,
+      "recommendation": {
+        "environment": "VPS",
+        "difficulty": "Alta",
+        "reason": "Conviene el entorno con integraciones, migraciones y pruebas del servidor disponibles. Hermes también puede programarlo con GPT Sol en Codex; la elección depende de sus accesos.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Acceso límites y copias",
+          "tasks": [
+            "PRE-06",
+            "ANA-09",
+            "PRE-14"
+          ]
+        },
+        {
+          "title": "Dominio y decisiones existentes",
+          "tasks": [
+            "PRE-16",
+            "PRE-17",
+            "PRE-18",
+            "PRE-19",
+            "PRE-20",
+            "PRE-21",
+            "PRE-26"
+          ]
+        },
+        {
+          "title": "Decisiones descartadas",
+          "tasks": [
+            "PRE-05",
+            "PRE-15"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-22",
+      "title": "Aceptación del recorrido completo",
+      "goal": "Comprobar de extremo a extremo el recorrido de búsqueda.",
+      "kind": "verification",
+      "priority": 22,
+      "recommendation": {
+        "environment": "VPS",
+        "difficulty": "Alta",
+        "reason": "Conviene el entorno con integraciones, migraciones y pruebas del servidor disponibles. Hermes también puede programarlo con GPT Sol en Codex; la elección depende de sus accesos.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Aceptación integral",
+          "tasks": [
+            "AUT-20"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAQ-23",
+      "title": "Tours 3D aplazados",
+      "goal": "Conservar el alcance histórico sin reactivar trabajo aplazado.",
+      "kind": "deferred",
+      "priority": 23,
+      "recommendation": {
+        "environment": "VS Code",
+        "difficulty": "Alta",
+        "reason": "El editor y el navegador local facilitan revisar interfaz y código visualmente. Hermes también puede implementarlo con las mismas comprobaciones.",
+        "needs": "Repositorio verificado y herramientas propias; construcción con diseño, dependencias y reserva build. El entorno recomendado no concede acceso ni permisos."
+      },
+      "stages": [
+        {
+          "title": "Alcance aplazado",
+          "tasks": [
+            "T3D-01",
+            "T3D-02",
+            "T3D-03",
+            "T3D-04",
+            "T3D-05",
+            "T3D-06",
+            "T3D-07",
+            "T3D-08",
+            "T3D-09",
+            "T3D-10",
+            "T3D-11",
+            "T3D-12",
+            "PRE-27"
+          ]
+        }
+      ]
+    }
+  ],
+  "recommendations": {
+    "BUS-19": {
+      "environment": "Hermes",
+      "difficulty": "Media",
+      "reason": "Investigación o preparación documental; registrar evidencia y revisión humana.",
+      "needs": "Fuentes accesibles o información de Hampton. Acceso restringido solo con autorización."
+    },
+    "BUS-21": {
+      "environment": "Hermes",
+      "difficulty": "Media",
+      "reason": "Investigación o preparación documental; registrar evidencia y revisión humana.",
+      "needs": "Fuentes accesibles o información de Hampton. Acceso restringido solo con autorización."
+    },
+    "BUS-22": {
+      "environment": "Hermes",
+      "difficulty": "Media",
+      "reason": "Investigación o preparación documental; registrar evidencia y revisión humana.",
+      "needs": "Fuentes accesibles o información de Hampton. Acceso restringido solo con autorización."
+    },
+    "BUS-23": {
+      "environment": "Hermes",
+      "difficulty": "Media",
+      "reason": "Investigación o preparación documental; registrar evidencia y revisión humana.",
+      "needs": "Fuentes accesibles o información de Hampton. Acceso restringido solo con autorización."
+    },
+    "PRE-01": {
+      "environment": "Hermes",
+      "difficulty": "Media",
+      "reason": "Investigación o preparación documental; registrar evidencia y revisión humana.",
+      "needs": "Fuentes accesibles o información de Hampton. Acceso restringido solo con autorización."
+    },
+    "PRE-04": {
+      "environment": "Hermes",
+      "difficulty": "Media",
+      "reason": "Investigación o preparación documental; registrar evidencia y revisión humana.",
+      "needs": "Fuentes accesibles o información de Hampton. Acceso restringido solo con autorización."
+    },
+    "PRE-25": {
+      "environment": "Hermes",
+      "difficulty": "Media",
+      "reason": "Investigación o preparación documental; registrar evidencia y revisión humana.",
+      "needs": "Fuentes accesibles o información de Hampton. Acceso restringido solo con autorización."
+    },
+    "PRE-30": {
+      "environment": "Hermes",
+      "difficulty": "Media",
+      "reason": "Investigación o preparación documental; registrar evidencia y revisión humana.",
+      "needs": "Fuentes accesibles o información de Hampton. Acceso restringido solo con autorización."
+    },
+    "PRE-32": {
+      "environment": "Hermes",
+      "difficulty": "Media",
+      "reason": "Investigación o preparación documental; registrar evidencia y revisión humana.",
+      "needs": "Fuentes accesibles o información de Hampton. Acceso restringido solo con autorización."
+    },
+    "PRE-33": {
+      "environment": "Hermes",
+      "difficulty": "Media",
+      "reason": "Investigación o preparación documental; registrar evidencia y revisión humana.",
+      "needs": "Fuentes accesibles o información de Hampton. Acceso restringido solo con autorización."
+    },
+    "AUT-09": {
+      "environment": "Hermes",
+      "difficulty": "Media",
+      "reason": "Investigación o preparación documental; registrar evidencia y revisión humana.",
+      "needs": "Fuentes accesibles o información de Hampton. Acceso restringido solo con autorización."
+    },
+    "NOT-02": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "NOT-03": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "NOT-04": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "NOT-06": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "NOT-07": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "REG-04": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "REG-05": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "REG-06": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "REG-07": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "PUB-04": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "PUB-05": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "PUB-06": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "PUB-08": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "ANA-04": {
+      "environment": "Hermes",
+      "difficulty": "Baja",
+      "reason": "Revisión acotada sobre un patrón existente; reutilizar lo construido antes de editar.",
+      "needs": "Comprobar qué está ya hecho. Código pendiente exige las mismas comprobaciones y reserva que cualquier entorno."
+    },
+    "PUB-01": {
+      "environment": "VS Code",
+      "difficulty": "Media",
+      "reason": "Interfaz y estados visibles; facilita revisar escritorio y móvil.",
+      "needs": "Cliente incorporado al coordinador y navegador local. Si falta, usar VPS o Hermes habilitado con las mismas comprobaciones."
+    },
+    "PUB-11": {
+      "environment": "VS Code",
+      "difficulty": "Media",
+      "reason": "Interfaz y estados visibles; facilita revisar escritorio y móvil.",
+      "needs": "Cliente incorporado al coordinador y navegador local. Si falta, usar VPS o Hermes habilitado con las mismas comprobaciones."
+    },
+    "PUB-12": {
+      "environment": "VS Code",
+      "difficulty": "Media",
+      "reason": "Interfaz y estados visibles; facilita revisar escritorio y móvil.",
+      "needs": "Cliente incorporado al coordinador y navegador local. Si falta, usar VPS o Hermes habilitado con las mismas comprobaciones."
+    },
+    "PUB-14": {
+      "environment": "VS Code",
+      "difficulty": "Media",
+      "reason": "Interfaz y estados visibles; facilita revisar escritorio y móvil.",
+      "needs": "Cliente incorporado al coordinador y navegador local. Si falta, usar VPS o Hermes habilitado con las mismas comprobaciones."
+    },
+    "PUB-22": {
+      "environment": "VS Code",
+      "difficulty": "Media",
+      "reason": "Interfaz y estados visibles; facilita revisar escritorio y móvil.",
+      "needs": "Cliente incorporado al coordinador y navegador local. Si falta, usar VPS o Hermes habilitado con las mismas comprobaciones."
+    },
+    "SPR-01": {
+      "environment": "VS Code",
+      "difficulty": "Media",
+      "reason": "Interfaz y estados visibles; facilita revisar escritorio y móvil.",
+      "needs": "Cliente incorporado al coordinador y navegador local. Si falta, usar VPS o Hermes habilitado con las mismas comprobaciones."
+    },
+    "SPR-06": {
+      "environment": "VS Code",
+      "difficulty": "Media",
+      "reason": "Interfaz y estados visibles; facilita revisar escritorio y móvil.",
+      "needs": "Cliente incorporado al coordinador y navegador local. Si falta, usar VPS o Hermes habilitado con las mismas comprobaciones."
+    },
+    "NOT-08": {
+      "environment": "VS Code",
+      "difficulty": "Media",
+      "reason": "Interfaz y estados visibles; facilita revisar escritorio y móvil.",
+      "needs": "Cliente incorporado al coordinador y navegador local. Si falta, usar VPS o Hermes habilitado con las mismas comprobaciones."
+    },
+    "SAP-02": {
+      "environment": "VS Code",
+      "difficulty": "Media",
+      "reason": "Interfaz y estados visibles; facilita revisar escritorio y móvil.",
+      "needs": "Cliente incorporado al coordinador y navegador local. Si falta, usar VPS o Hermes habilitado con las mismas comprobaciones."
+    },
+    "SAP-03": {
+      "environment": "VS Code",
+      "difficulty": "Media",
+      "reason": "Interfaz y estados visibles; facilita revisar escritorio y móvil.",
+      "needs": "Cliente incorporado al coordinador y navegador local. Si falta, usar VPS o Hermes habilitado con las mismas comprobaciones."
+    },
+    "VIS-06": {
+      "environment": "VS Code",
+      "difficulty": "Media",
+      "reason": "Interfaz y estados visibles; facilita revisar escritorio y móvil.",
+      "needs": "Cliente incorporado al coordinador y navegador local. Si falta, usar VPS o Hermes habilitado con las mismas comprobaciones."
+    }
+  },
+  "engines": {
+    "hermesPrimary": "GPT Sol · Codex",
+    "hermesFallback": "DeepSeek v4 · max · OpenCode",
+    "fallbackWhen": "Solo cuando Hermes se quede sin acceso a GPT. Confirmar modelo exacto y esfuerzo visibles; no cambiar configuración ni credenciales."
+  }
+}

@@ -1,6 +1,6 @@
 ---
 description: Avanza una tarea de Hampton App tras verificar automáticamente el repositorio y su commit frente a GitHub.
-argument-hint: "[código del punto, p. ej. VIS-03]"
+argument-hint: "[paquete o código, p. ej. PAQ-01 o VIS-03]"
 ---
 
 Tarea de Luis: $ARGUMENTS
@@ -20,3 +20,5 @@ Solo al recibir encargo de construir: status, revisión coordinadora con alcance
 Para publicar en equipo: submit provisional → release acquire → integrar main/documentos/pruebas → submit final → release renew --sha FINAL → revisión y aprobación del SHA final → congelar con TALLER_SHA_APROBADO o --approved-sha → migraciones/push autorizados → release finish. No cambies el SHA después de aprobar ni canceles un resultado incierto; conserva y reconcilia ese turno.
 
 Un relevo no se acepta con init ni copiando sesión: en su destino usa `accept-handoff --claim <id> --generation <nueva>`, que valida procedencia, alcance y autenticación antes de guardar autoridad, conservando commits y archivos legítimos. La entrega provisional puede esperar la integración de un main que avanzó; solo submit/acquire provisionales y accept-handoff de esa misma reserva admiten esa divergencia sin aprobación, conservando autenticación y alcance. Una operación desconocida de una generación anterior revocada de esa misma reserva se archiva como desconocida, sin repetirla ni declarar éxito; otros pendientes siguen bloqueando. La entrega final exige main integrado y auditoría de commits propios/resoluciones con Git 2.36 o posterior. Tras el piloto operativo publicado en ESTADO, cualquier fallo de configuración local bloquea la incorporación a construcción, sin fallback individual para producto; no exige reservas para planificación.
+
+Decisión vigente9-nov: usar `references/paquetes.md` de la skill; /avanzar sin argumentos retoma/elige paquete y /avanzar PAQ-* resuelve etapas locales conservando reservas por código real. Hermes programa con GPT Sol en Codex, con DeepSeek v4 max en OpenCode solo al perder acceso GPT.

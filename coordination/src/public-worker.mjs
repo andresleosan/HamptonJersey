@@ -1,5 +1,5 @@
 import {publicBoard} from './public-board.mjs';
-const assets=new Set(['/','/index.html','/tablero-publico.js','/equipo.css']);
+const assets=new Set(['/','/index.html','/tablero-publico.js','/equipo.css','/tablero-publico.css','/paquetes.json']);
 function secure(response) {
   const headers=new Headers(response.headers);
   headers.set('Cache-Control','no-store');headers.set('X-Content-Type-Options','nosniff');

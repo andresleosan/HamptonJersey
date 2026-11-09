@@ -1,5 +1,7 @@
 # Activación de las cuatro listas
 
+Actualización de procedimiento9-nov-2026: Luis confirma Hermes con GPT Sol en Codex y, al perder acceso a GPT, DeepSeek v4 max en OpenCode. Las versiones/pruebas históricas de este documento no verifican esa ruta actual: confirmar metadatos y herramientas en cada ejecución sin cambiar configuración o credenciales por inferencia. Paquetes de entrega y recomendaciones en [PAQUETES.md](../docs/roadmap/PAQUETES.md); el protocolo de reservas conserva unidades reales.
+
 Las tareas se distribuyen en **Lista 1, Lista 2, Lista 3 y Lista 4**. Cualquier cliente autorizado puede elegir cualquiera, independientemente de la herramienta o teléfono. Cada lista admite dos reservas; cada actor, sesión o checkout mantiene una sola. El catálogo conserva las 250 tareas, sus asignaciones y dependencias. La elección de lista no concede permiso para editar ni publicar.
 
 ## Estado comprobado y pendientes

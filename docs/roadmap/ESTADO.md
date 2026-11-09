@@ -1,12 +1,15 @@
 # Estado de Hampton App
 
+9-nov-2026 · Reorganización local: [23paquetes](PAQUETES.md) cubren las250tareas sin cambiar sus estados ni listas. /avanzar retoma/elige un tramo viable; recomendaciones de dificultad/entorno por tarea. Tablero didáctico con progreso estricto, filtros y etapas preparado en esta entrega; publicación y verificación visual pendientes. Hermes: GPT Sol/Codex; al perder acceso GPT, DeepSeek v4 max/OpenCode. Esta nota no acredita nueva implementación de las250tareas.
+
+Siguiente recomendado Codex: /avanzar PAQ-01 · gpt-6.1-sol · high
+
 Cierre vigente de planificación Lista1,8-nov-2026: [plan maestro listo para construir](../superpowers/plans/2026-11-08-lista1-build-ready.md) e [índice59/59](../superpowers/plans/2026-11-08-lista1-tanda2-index.md). Preguntas de entrevista resueltas; los datos/textos se añadirán manualmente y los plazos configurables se validarán antes de activar. Presentación por email con texto breve/fotos adjuntas preparada por Hermes y revisada/enviada por empleado; privacidad por email/equipo; valoraciones soloemail; nombre Hampton Estates LTD; Qualified/Registered solo Lettings residencialJersey. Los registros previos de pendientes se conservan como historia, no como preguntas actuales. No construcción ni publicación de producto en esta sesión.
 
 Entrevista Lista1 posterior a las tandas: [cierre de decisiones](../superpowers/plans/2026-11-08-lista1-decision-closure.md). Q01/D05 aprobada: revisión humana final y envío explícito por empleado para cada presentación, aunque matches y disponibilidad estén confirmados. Solo actualización documental; próxima pregunta Q02, acceso del cliente a sus datos.
 
 Tandas de planificación Lista1, 8-nov-2026: [tanda anterior](../superpowers/plans/2026-11-08-lista1-batch-index.md) conservada y [segunda tanda](../superpowers/plans/2026-11-08-lista1-tanda2-index.md) preparada con ocho planes nuevos, ampliación REG-15 y guía para cinco entregas existentes. Solo documentación: estados de producto/catálogo sin cambiar, sin reservas, código, migración, envíos, borrados o publicación. AUT-19/REG-13: Luis aprueba núcleo de revisión con IA desactivada; REG-15: aprueba confirmación, resumen diario y cancelación, conservación pendiente. Gates concretos de Hampton/abogado/proveedor/portal/correo en cada spec. Base GitHub c26cc8e comprobada; Tours3D siguen aplazados.
 
-Siguiente recomendado Codex: /avanzar BUS-14 · gpt-6.1-terra · high
 
 Las decisiones de esta tanda ya están cerradas. El siguiente encargo de construcción recomendado es BUS14, una vez revisadas sus dependencias; la activación de IA queda fuera del alcance ya acordado.
 

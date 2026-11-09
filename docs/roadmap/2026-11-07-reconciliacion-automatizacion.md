@@ -7,6 +7,10 @@ Las respuestas finales de Luis están consolidadas en el [plan maestro vigente](
 
 Estado: **plan maestro en curso**. M03a (EST-09 y continuidad PRE-12) publicado y activado el 7-nov-2026 en `aea7eb5`, con migración 0024; los demás módulos conservan su estado por tarea. Base revisada: `origin/main` en `246300e`, incluidas las entregas de chat y correo. La especificación funcional v1 del 6-nov-2026 proporcionada por Luis es la autoridad para este recorrido. Su original privado no se incorpora al repositorio. Este documento sintetiza requisitos, evidencia y decisiones de implementación; no acredita que las nuevas funciones estén construidas o publicadas.
 
+## Agrupación de ejecución · 9-nov-2026
+
+[PAQUETES.md](PAQUETES.md) reúne los códigos por entregas transversales. Este orden funcional y las dependencias siguen vigentes; un paquete no hace simultáneos sus productores y consumidores ni sustituye evidencia. Investigación BUS21→BUS22→BUS23 secuencial. Selección automática solo entre tramos viables; criterio por código y alcance revisado conservados.
+
 ## 1. Cómo continuar con /avanzar
 
 Leer este documento, `ESTADO.md`, el JSON `datos` del checklist y la [skill versionada](../../.agents/skills/avanzar/SKILL.md). Los códigos existentes se conservan. Las fases F0–F8 indican áreas del producto; **el orden de ejecución de este recorrido es el de abajo**, no el número de fase ni el orden antiguo del 6-nov.

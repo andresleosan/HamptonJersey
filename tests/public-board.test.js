@@ -41,6 +41,8 @@ test('public handler permits read only and never forwards unknown paths or write
  assert.equal(calls,0);assert.equal(assets,0);
  const r=await worker.fetch(new Request('https://public.example/v1/board'),env);assert.equal(r.status,200);assert.equal(r.headers.get('Cache-Control'),'no-store');assert.match(r.headers.get('Content-Security-Policy'),/script-src 'self'/);assert.ok(!r.headers.get('Content-Security-Policy').includes('unsafe-inline'));assert.equal((await r.json()).tasks.length,250);assert.equal(calls,1);
  assert.equal((await worker.fetch(new Request('https://public.example/'),env)).status,200);assert.equal(assets,1);
+ for(const path of ['/paquetes.json','/tablero-publico.css'])assert.equal((await worker.fetch(new Request('https://public.example'+path),env)).status,200);
+ assert.equal(assets,3);
 });
 test('public failure is opaque and does not serialize a source exception',async()=>{
  const r=await worker.fetch(new Request('https://public.example/v1/board'),{BOARD_SOURCE:{getByName(){throw Error('PRIVATE_SENTINEL');}}});assert.equal(r.status,503);assert.ok(!(await r.text()).includes('PRIVATE_SENTINEL'));
@@ -73,7 +75,7 @@ test('expanded details refresh safely and dependency links reveal and open tasks
   const doc=w.document,card=doc.getElementById('task-'+source.code),destination=doc.getElementById('task-'+target.code);card.open=true;
   for(const [id,value] of [['search',source.code],['list',String(source.list)],['activity',source.activity]]){const field=doc.getElementById(id);field.value=value;field.dispatchEvent(new w.Event(id==='search'?'input':'change'));}
   assert.equal(card.hidden,false);assert.equal(destination.closest('.column').hidden,true);
-  assert.deepEqual([...card.querySelectorAll('h3')].map(n=>n.textContent),['Siguiente paso','Qué está hecho','Qué falta','Dependencias entre tareas','Trabajar esta tarea']);
+  assert.deepEqual([...card.querySelectorAll('h3')].map(n=>n.textContent),['Siguiente paso','Qué está hecho','Qué falta','Dependencias entre tareas','Dónde conviene hacerla','Trabajar esta tarea']);
   assert.ok(card.querySelector('.detail').textContent.includes(source.details.nextStep));
   card.querySelector('a[data-jump="'+target.code+'"]').focus();payload.revision++;
   payload.tasks.find(t=>t.code===source.code).details.pending='<img src=x onerror=alert(1)> Nueva información del checklist';
@@ -94,4 +96,69 @@ test('short cache shares only sanitized JSON; query/cookies cannot bypass it and
   now=5001;fail=true;assert.equal((await worker.fetch(new Request('https://public.example/v1/board'),env)).status,503);assert.equal(reads,2);
   fail=false;assert.equal((await worker.fetch(new Request('https://public.example/v1/board'),env)).status,200);assert.equal(reads,3);
  }finally{if(previous)Object.defineProperty(globalThis,'caches',previous);else delete globalThis.caches;}
+});
+
+
+test('package manifest covers every catalogue task once, including deferred work, and recommendations resolve for all tasks',()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../docs/roadmap/paquetes.json',import.meta.url)));
+ ui.validatePackages(manifest);
+ const codes=manifest.packages.flatMap(p=>p.stages.flatMap(s=>s.tasks));
+ assert.equal(codes.length,250);assert.equal(new Set(codes).size,250);
+ assert.deepEqual([...codes].sort(),catalog.tasks.map(t=>t.id).sort());
+ for(const code of codes){const r=ui.taskAdvice(code,manifest);assert.ok(['Hermes','VPS','VS Code'].includes(r.environment));assert.ok(['Baja','Media','Alta'].includes(r.difficulty));assert.ok(r.reason&&r.needs);}
+ assert.match(manifest.engines.hermesPrimary,/Sol.*Codex/);assert.match(manifest.engines.hermesFallback,/DeepSeek v4.*max.*OpenCode/);
+ for(const mutate of [m=>m.packages[1].stages[0].tasks.push(codes[0]),m=>m.packages[0].stages[0].tasks.push('javascript:bad'),m=>m.packages[0].recommendation.environment='unknown',m=>m.defaultOrder.push('PAQ-99')]){const invalid=structuredClone(manifest);mutate(invalid);assert.throws(()=>ui.validatePackages(invalid));}
+});
+
+test('progress measures checklist completion only, without weighting partial work, local closures or deferred work',()=>{
+ const tasks=[{state:'hecho'},{state:'parcial',activity:'completed'},{state:'pendiente'},{state:'bloqueado'},{state:'replanteado'},{state:'descartado'}];
+ assert.deepEqual(ui.progress(tasks),{done:1,total:4,partial:1,blocked:1,excluded:2,percent:25});
+ assert.deepEqual(ui.progress([]),{done:0,total:0,partial:0,blocked:0,excluded:0,percent:0});
+ assert.equal(ui.progress([{state:'replanteado'}]).total,0);
+ assert.equal(ui.progress([...Array.from({length:200},()=>({state:'hecho'})),{state:'pendiente'}]).percent,99);
+ assert.equal(ui.progress(Array.from({length:201},()=>({state:'hecho'}))).percent,100);
+});
+
+test('package overview, task guidance and progress preserve filters and focus across updates; links reveal exact tasks',async()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../docs/roadmap/paquetes.json',import.meta.url)));
+ const dom=new JSDOM(readFileSync(new URL('../docs/roadmap/tablero-publico.html',import.meta.url),'utf8'),{url:'https://public.example/',pretendToBeVisual:true}),w=dom.window;
+ let payload=publicBoard(fixture());w.fetch=async url=>({ok:true,json:async()=>structuredClone(url==='/paquetes.json'?manifest:payload)});
+ const app=ui.mount(w.document,w);await new Promise(resolve=>setImmediate(resolve));
+ try{
+  const doc=w.document;assert.equal(doc.querySelectorAll('.package').length,23);
+  const expected=ui.progress(payload.tasks);assert.equal(Number(doc.getElementById('overall-progress').value),expected.done);assert.equal(Number(doc.getElementById('overall-progress').max),expected.total);
+  const group=doc.getElementById('package-PAQ-01');group.open=true;const link=group.querySelector('a[data-jump="NOT-11"]');link.focus();
+  const search=doc.getElementById('search');search.value='NOT-11';search.dispatchEvent(new w.Event('input'));
+  assert.equal(doc.getElementById('overall-progress').max,expected.total);assert.equal(group.hidden,false);
+  payload.revision++;payload.tasks.find(t=>t.code==='NOT-11').state='hecho';await app.refresh();
+  assert.equal(group.open,true);assert.equal(doc.activeElement,link);assert.equal(search.value,'NOT-11');assert.equal(doc.getElementById('overall-progress').value,expected.done+1);
+  link.click();assert.equal(doc.getElementById('view').value,'lists');const card=doc.getElementById('task-NOT-11');assert.equal(card.open,true);assert.equal(card.hidden,false);assert.equal(doc.activeElement,card.querySelector('summary'));
+  assert.match(card.querySelector('.detail').textContent,/Dificultad orientativa: Alta/);assert.match(card.querySelector('.detail').textContent,/VPS/);
+  assert.match(card.querySelector('.detail').textContent,/Esta tarea figura como hecha/);payload.revision++;payload.tasks.find(t=>t.code==='NOT-11').state='replanteado';await app.refresh();assert.match(card.querySelector('.detail').textContent,/Fuera del alcance vigente/);assert.ok(!card.querySelector('.detail').textContent.includes('Esta tarea figura como hecha'));payload.revision++;payload.tasks.find(t=>t.code==='NOT-11').state='pendiente';await app.refresh();assert.ok(!card.querySelector('.detail').textContent.includes('Fuera del alcance vigente'));
+  doc.getElementById('environment').value='Hermes';doc.getElementById('environment').dispatchEvent(new w.Event('change'));assert.equal(card.hidden,true);
+  assert.equal(doc.getElementById('overall-progress').max,expected.total);
+  doc.getElementById('reset').click();assert.equal(card.hidden,false);assert.equal(doc.getElementById('environment').value,'');
+  doc.getElementById('search').value='nonsense';doc.getElementById('search').dispatchEvent(new w.Event('input'));assert.match(doc.getElementById('result').textContent,/0 de/);
+ }finally{app.stop();w.close();}
+});
+
+test('failed package metadata retains live lists and progress, and manual refresh recovers packages',async()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../docs/roadmap/paquetes.json',import.meta.url)));
+ const dom=new JSDOM(readFileSync(new URL('../docs/roadmap/tablero-publico.html',import.meta.url),'utf8'),{url:'https://public.example/',pretendToBeVisual:true}),w=dom.window;let fail=true;
+ w.fetch=async url=>{if(url==='/paquetes.json'&&fail)throw Error('offline');return {ok:true,json:async()=>url==='/paquetes.json'?manifest:publicBoard(fixture())};};
+ const app=ui.mount(w.document,w);await new Promise(resolve=>setImmediate(resolve));
+ try{assert.equal(w.document.getElementById('view').value,'lists');assert.match(w.document.getElementById('package-status').textContent,/No se pudo/);assert.equal(w.document.querySelectorAll('.task').length,250);
+ fail=false;await app.refresh();await new Promise(resolve=>setImmediate(resolve));assert.equal(w.document.querySelectorAll('.package').length,23);assert.equal(w.document.getElementById('package-status').textContent,'');
+ }finally{app.stop();w.close();}
+});
+
+
+test('local package planner preserves explicit task scope, filters lists and rejects mismatched selections',async()=>{
+ const {execFileSync,spawnSync}=await import('node:child_process');
+ const script=new URL('../scripts/plan-packages.mjs',import.meta.url);
+ const run=(...args)=>JSON.parse(execFileSync(process.execPath,[script.pathname,...args],{encoding:'utf8'}));
+ assert.deepEqual(run('--check'),{packages:23,tasks:250,coverage:'exact'});
+ const task=run('--task','BUS-14');assert.equal(task.scope,'explicit_task');assert.equal(task.reserved,false);assert.equal(task.buildAuthorized,false);assert.equal(task.packages.length,1);assert.equal(task.packages[0].id,'PAQ-03');
+ const list=run('--list','4');assert.ok(list.packages.every(p=>p.stages.some(s=>s.tasks.some(t=>t.list===4))));
+ for(const args of [['--package','PAQ-99'],['--task','BUS-999'],['--list','5'],['--package','PAQ-01','--task','BUS-14'],['--claim','NOT-11']])assert.equal(spawnSync(process.execPath,[script.pathname,...args],{encoding:'utf8'}).status,1);
 });

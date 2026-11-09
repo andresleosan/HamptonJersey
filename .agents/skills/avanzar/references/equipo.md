@@ -112,7 +112,7 @@ node scripts/avanzar-team.mjs release renew --sha "$SHA_FINAL"
 
 `release renew --sha` exige main y HEAD exactamente en ese SHA, copia limpia, main canónico actual incluido, alcance propio válido y que el servidor reconozca la última entrega. Solo cambia SHA mientras el turno siga `held`; un resultado incierto o una sincronización pendiente exige reconciliar el SHA anterior. `release renew` sin `--sha` solo renueva el turno y conserva su SHA aunque HEAD haya cambiado. `watch` renueva la reserva de trabajo, no el turno de publicación.
 
-Con la integración final ya revisada, obtener la aprobación de Luis para **ese SHA**. La autorización llega por los canales existentes. En Hermes, ni el trabajo directo con GPT, ni su revisor independiente, ni OpenCode cuando corresponda el respaldo reciben marcas de aprobación durante construcción/revisión. Solo el mandato separado de publicación, ejecutado por Hermes mediante los wrappers existentes para el SHA aprobado, recibe `TALLER_PUSH_APROBADO`, `TALLER_SHA_APROBADO` y, si procede, `TALLER_MIGRACION_APROBADA`. Fuera de Hermes puede fijarse explícitamente el SHA que ya fue aprobado; la opción no inventa esa aprobación:
+Con la integración final ya revisada, obtener la aprobación de Luis para **ese SHA**. La autorización llega por los canales existentes. En Hermes, ni Codex con GPT Sol, ni su revisor independiente, ni OpenCode cuando corresponda el respaldo reciben marcas de aprobación durante construcción/revisión. Solo el mandato separado de publicación, ejecutado por Hermes mediante los wrappers existentes para el SHA aprobado, recibe `TALLER_PUSH_APROBADO`, `TALLER_SHA_APROBADO` y, si procede, `TALLER_MIGRACION_APROBADA`. Fuera de Hermes puede fijarse explícitamente el SHA que ya fue aprobado; la opción no inventa esa aprobación:
 
 ```sh
 node scripts/check-avanzar.mjs --approved-sha "$SHA_APROBADO"
@@ -134,3 +134,7 @@ Elegir **una** salida. `published` comprueba main e importa el catálogo antes d
 Si se pierde la respuesta de un relevo, repetir el mismo mandato permite reconciliar solo si el tablero confirma exactamente la generación siguiente y todos los identificadores del destino; se limpia la operación vieja sin adoptar la autoridad del destino. Si no coincide, detenerse y diagnosticar.
 
 Si se pierde una respuesta, repetir **el mismo mandato y argumentos**: el cliente conserva el identificador y cuerpo de la operación. No borrar la sesión ni lanzar otra mutación para esquivar un resultado desconocido. `status` sigue disponible para diagnosticar. Un conflicto definitivo exige resolver su causa; nunca recrear una generación, mover trabajo aparcado ni declarar éxito sin confirmación del coordinador.
+
+## Paquetes de ejecución
+
+Desde9-nov, [paquetes.md](paquetes.md) organiza la selección del agente. El manifiesto no cambia este protocolo: una reserva real por actor, dependencias y evidencias por unidad. PAQ-* es un alias local del agente, nunca un ID aceptado por claim. Compartir diseño/pruebas no autoriza ampliar la reserva ni cerrar códigos sin evidencia.
