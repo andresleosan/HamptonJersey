@@ -3,6 +3,7 @@ import { AVAILABILITY, OPERATION, USE, KIND, TENURE, HOUSING, RESTRICTION, price
 import { createDraft } from "./createDraft.js";
 import { setUnsaved } from "./unsaved.js";
 import { decodeText, readPropertyText, draftBody, planFolder, readDrop } from "../../server/listing-import.js";
+import {isRentalMarketing} from '../../server/listing-editorial.js';
 
 // PUB-01 (spec 2026-11-03): a draft typed by hand, as before, or read from a folder: its property.txt and its own photos.
 const START = { title: "", use: "residential", operation: "sale", availability: "for_sale", country: "Jersey" };
@@ -131,7 +132,7 @@ export default function NewProperty({ rows, onClose }) {
       <div className="filters">
         <label>Use<select value={f.use} onChange={set("use")}>{Object.entries(USE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
         <label>Operation<select value={f.operation} onChange={set("operation")}>{Object.entries(OPERATION).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-        <label>Availability<select value={f.availability} onChange={set("availability")}>{Object.entries(AVAILABILITY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+        <label>Availability<select value={f.availability} onChange={set("availability")}>{Object.entries(AVAILABILITY).filter(([k])=>!isRentalMarketing(k)).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
         <label>Country<input value={f.country} onChange={set("country")} maxLength={100} /></label>
       </div>
       {err && <p role="alert" className="err">{err}</p>}

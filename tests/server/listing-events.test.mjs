@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, readdirSync } from 'node:fs';
-import { makeEnv, seedListing, call, adminCookie, T0 } from './helpers.mjs';
+import { makeEnv, seedListing, call, adminCookie, T0 } from './listing-client.mjs';
 
 const ADMIN = 'admin@example.test';
 const events = (env, id = 'HE-R001') => env.DB.raw.prepare(

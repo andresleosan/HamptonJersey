@@ -417,7 +417,10 @@ async function admin(browser) {
   const ctx = await browser.newContext();
   const page = await newPage(ctx, {width: 1280, height: 900});
   await page.goto(BASE + "admin/");
-  await page.waitForSelector("text=Sign in with Google");
+  await page.waitForSelector("text=Sign in with Google").catch(async error=>{
+    error.message+=`\nLogin diagnostics: ${JSON.stringify({errors:page.errors,text:(await page.textContent('body')).slice(0,300)})}`;
+    throw error;
+  });
   assert.equal(await page.getAttribute(".login a.home", "href"), "/", "login screen links back to the public site");
   await ctx.addCookies([{name: COOKIE, value: await signSession("admin@example.test", secret), domain: new URL(BASE).hostname, path: "/", secure: true, httpOnly: true, sameSite: "Strict"}]);
   await page.reload();
@@ -433,7 +436,7 @@ async function admin(browser) {
   await toConfirm.waitFor();
   assert.equal(await toConfirm.textContent(), "2 to confirm");
   const status = page.getByRole("group", {name: "Status"});
-  assert.match(await status.textContent(), /Published5To confirm2Drafts5/, "the tab comes after Published");
+  assert.match(await status.textContent(), /Published5To confirm2Ready for review0Drafts5/, "review stays separate from drafts and To confirm");
   await status.getByRole("button", {name: /^To confirm/}).click();
   const due = await page.locator("table.listings tbody tr").allTextContents();
   assert.deepEqual(due.map(r => r.match(/HE-[A-Z]\d+/)[0]), ["HE-C001", "HE-R018"]);

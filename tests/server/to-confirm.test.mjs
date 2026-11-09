@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, call, adminCookie, captured, plan, T0 } from "./helpers.mjs";
+import { makeEnv, seedListing, call, adminCookie, captured, plan, T0 } from "./listing-client.mjs";
 
 // ADM-04 (spec 2026-10-30): a listing on the website and still on the market, unconfirmed for 3 months (1 for a
 // rental), is To confirm until someone confirms it.

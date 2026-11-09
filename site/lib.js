@@ -57,7 +57,7 @@ const priceLabel = p => {
   if (a == null) return "Price not published";
   return money(a, p.currency) + (p.operation === "rent" ? ({month: " pcm", year: " p.a."}[p.rentPeriod] ?? "") : "");
 };
-const isSold = p => /sold/i.test(p.status);
+const isSold = p => /sold|^let(?: agreed)?$/i.test(p.status);
 // The listings the website shows: without a public photo a listing stays out of the public pages. The server uses it
 // too (server/seo.js), so the sitemap and /p/<id> list and answer exactly what the page can show.
 const shownOnSite = p => safeMedia(p.image) != null;

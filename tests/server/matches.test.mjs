@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, seedMedia, call, adminCookie, T0 } from "./helpers.mjs";
+import { makeEnv, seedListing, seedMedia, call, adminCookie, T0 } from "./listing-client.mjs";
 import { recomputeForApplicant } from "../../server/match-store.js";
 import { RECALC_BATCH } from "../../server/routes/matches.js";
 

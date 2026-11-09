@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, seedMedia, call, adminCookie, T0 } from "./helpers.mjs";
+import { makeEnv, seedListing, seedMedia, call, adminCookie, T0 } from "./listing-client.mjs";
 
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1]);
 async function world() {

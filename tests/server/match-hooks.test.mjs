@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, call, adminCookie, T0, ORIGIN } from "./helpers.mjs";
+import { makeEnv, seedListing, call, adminCookie, T0, ORIGIN } from "./listing-client.mjs";
 import { handleApi } from "../../server/api.js";
 
 const ADMIN = "admin@example.test";

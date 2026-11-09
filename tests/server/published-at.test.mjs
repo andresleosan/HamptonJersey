@@ -1,7 +1,7 @@
 // PUB-22: the date a listing last went on the website (migration 0021), which orders "newest" on the site.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, seedMedia, call, adminCookie } from "./helpers.mjs";
+import { makeEnv, seedListing, seedMedia, call, adminCookie } from "./listing-client.mjs";
 
 const at = (t, iso) => t.mock.timers.setTime(Date.parse(iso));
 const publishedAt = env => env.DB.raw.prepare("SELECT published_at FROM listings WHERE id = 'HE-R001'").get().published_at;

@@ -560,7 +560,7 @@ const track = (id, metric) => {
 
 // ---------- state ----------
 let PROPS = [], PUB = [], TEAM = [], filter = {region: "all", op: "all", beds: 0, max: 0};
-const pillCls = s => /sold/i.test(s) ? "sold" : /offer/i.test(s) ? "offer" : "";
+const pillCls = s => /^(sold|let)$/i.test(s) ? "sold" : /offer|let agreed/i.test(s) ? "offer" : "";
 const agentFor = p => TEAM[(amount(p) ?? 0) > 1e6 ? 0 : 1] || TEAM[0] || null;
 
 const facts = p => [priceLabel(p), p.beds && `${p.beds} bedroom${p.beds === 1 ? "" : "s"}`,

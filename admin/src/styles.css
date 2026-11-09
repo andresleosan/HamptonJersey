@@ -82,7 +82,7 @@ table.list{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .modal{position:fixed;inset:0;z-index:20;background:rgba(20,20,20,.55);display:grid;place-items:center;padding:16px}
 @media (max-width:760px){.list thead{display:none}.list tr{display:grid;grid-template-columns:72px 1fr;gap:4px 12px;padding:10px}.list td{border:0;padding:0}.list td:first-child{grid-row:span 6}}
 .new{display:grid;gap:12px;margin-bottom:16px}
-.editor{display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start}
+.editor{display:grid;grid-template-columns:280px minmax(0,1fr);gap:20px;align-items:start}
 .side{position:sticky;top:72px;display:grid;gap:10px}
 .side img,.thumb.big{width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--mist);border-radius:var(--r)}
 .side nav{display:grid;gap:2px;margin:0 -10px}
@@ -90,7 +90,7 @@ table.list{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .side nav .linkish:focus-visible{outline:2px solid var(--bronze)}
 .linkish{all:unset;cursor:pointer;color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 .linkish:focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
-.sections{display:grid;gap:16px}
+.sections{display:grid;gap:16px;min-width:0}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .field{display:grid;gap:4px}
 /* J6 Before you publish: compact, above the form; each line takes you to its field. */
@@ -528,3 +528,11 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .advertiser-review-history,.advertiser-review-history li{min-width:0;overflow-wrap:anywhere}
 .advertiser-review-meta{display:flex;flex-wrap:wrap;gap:4px 12px;min-width:0}
 .advertiser-review-meta>*{min-width:0;overflow-wrap:anywhere}
+/* EST-17: compact evidence form, reusing the panel's fields and focus styles. */
+.marketing-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;border:0;padding:0;margin:0;align-items:end}
+.marketing-fields label{min-width:0}
+.marketing-fields select,.marketing-fields input{max-width:100%;width:100%;box-sizing:border-box}
+.editor .grid2,.editor .prepub ul{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+.editor input,.editor select,.editor textarea{min-width:0;max-width:100%}
+.editor .field,.editor .card{min-width:0;overflow-wrap:anywhere}
+.editor .media-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}

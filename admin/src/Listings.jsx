@@ -6,7 +6,7 @@ import NewProperty from "./NewProperty.jsx";
 import { OPERATION_FILTER, bedsRange, passesExtra, bedsLabel, daysAgo } from "./listing-filters.js";
 
 // ADM-04: To confirm is the published listings on the market that nobody has confirmed lately (the server's to_confirm).
-const TABS = [["published", "Published"], ["to_confirm", "To confirm"], ["draft", "Drafts"], ["archived", "Archived"], ["all", "All"]];
+const TABS = [["published", "Published"], ["to_confirm", "To confirm"], ["ready_for_review","Ready for review"], ["draft", "Drafts"], ["archived", "Archived"], ["all", "All"]];
 const inTab = (l, tab) => tab === "all" || (tab === "to_confirm" ? l.to_confirm === 1 : stateOf(l) === tab);
 const REGIONS = { jersey: "Jersey", uk: "United Kingdom", international: "International" };
 // The Parish filter's value for listings whose parish is not known (no parish is called this).
@@ -29,7 +29,7 @@ export default function Listings({ onChange }) {
     if (action === "archive" && !confirm(`Archive "${l.title}"? It will leave the website; you can restore it later.`)) return;
     setMsg(null);
     try {
-      await api(`/admin/listings/${l.id}/${action}`, { method: "POST" }); setMsg({ ok: true, text: `${l.title}: ${done}` });
+      await api(`/admin/listings/${l.id}/${action}`, { method: "POST",body:{updated_at:l.updated_at} }); setMsg({ ok: true, text: `${l.title}: ${done}` });
       await load(); onChange?.(); // the bar's To confirm count
     }
     catch (e) { setMsg({ text: e.message }); }
@@ -101,7 +101,7 @@ export default function Listings({ onChange }) {
           title={l.featured_rank != null ? "In the Featured section of the home page. Click to remove." : "Click to show in the Featured section of the home page."}
           aria-label={`Featured on the home page: ${l.title}${featNo[l.id] ? `, number ${featNo[l.id]}` : ""}`} onClick={() => star(l)}>{l.featured_rank != null ? "★" : "☆"}
           {featNo[l.id] && <sup className="star-no" aria-hidden="true">{featNo[l.id]}</sup>}</button>
-          <div><a href={`#/p/${l.id}`}>{l.title}</a><div className="meta"><span>{l.id}</span><span>{OPERATION[l.operation]}</span>{bedsLabel(l.bedrooms) && <span>{bedsLabel(l.bedrooms)}</span>}</div></div></div></td>
+          <div><a href={`#/p/${l.id}`}>{l.title}</a>{stateOf(l)==='ready_for_review'&&<span className="badge attention">Ready for review</span>}<div className="meta"><span>{l.id}</span><span>{OPERATION[l.operation]}</span>{bedsLabel(l.bedrooms) && <span>{bedsLabel(l.bedrooms)}</span>}</div></div></div></td>
         <td>{l.location || l.country || "—"}</td>
         <td className="parish" data-label="Parish">{l.parish ?? "—"}</td>
         <td className="num">{priceText(l)}</td>
@@ -125,6 +125,7 @@ export default function Listings({ onChange }) {
       </tr>)}</tbody>
     </table> : <div className="empty card">{rows.length && filtered
       ? <><p>No listings match these filters.</p><button type="button" className="btn ghost sm" onClick={clear}>Clear filters</button></>
+      : tab === "ready_for_review" ? <p>No listings are ready for review.</p>
       : tab === "to_confirm" ? <p>No listings to confirm. A listing on the website asks for a call to its owner 3 months after its last confirmation, or 1 month for a rental.</p>
       : <><p>No {TABS.find(([k]) => k === tab)[1].toLowerCase()} listings.</p>
         {tab !== "archived" && <button type="button" className="btn sm" onClick={() => setCreating(true)}>Add new property</button>}</>}</div>}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, call, adminCookie, T0 } from "./helpers.mjs";
+import { makeEnv, seedListing, call, adminCookie, T0 } from "./listing-client.mjs";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
 import { MILESTONES } from "../../server/sales.js";
 

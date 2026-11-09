@@ -4,6 +4,7 @@ import { extractFeatures } from "../listing-features.js";
 import { afterSave, recomputeForListing } from "../match-store.js";
 import { interestSql, interestDates } from "../viewings.js";
 import { listingBatch, derivedListingFields, listingClock } from "../listing-events.js";
+import {checkMarketingEdit,transitionEditorialListing,recordRentalMarketingState} from '../listing-editorial.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -14,7 +15,7 @@ export const HAS_PUBLIC_PHOTO = `EXISTS (SELECT 1 FROM media m WHERE m.listing_i
     AND m.origin <> 'external' AND m.r2_key IS NOT NULL)`;
 const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availability, l.operation, l.sale_price, l.rent,
   l.rent_period, l.premium, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by, l.featured_rank,
-  l.parish, l.matchable, l.confirmed_at, l.bedrooms, (${TO_CONFIRM}) AS to_confirm, ${COVER_ID} AS cover_id,
+  l.parish, l.matchable, l.confirmed_at, l.bedrooms, l.review_requested_at, l.review_requested_by, (${TO_CONFIRM}) AS to_confirm, ${COVER_ID} AS cover_id,
   ${HAS_PUBLIC_PHOTO} AS has_public_photo,
   (SELECT COUNT(*) FROM matches mm WHERE mm.listing_id = l.id) AS matched, (${interestSql("l.id")}) AS interested
   FROM listings l`;
@@ -87,6 +88,7 @@ export async function createListing(env, admin, body, context = {}) {
   const r = validateListing(body);
   if (r.errors) return fieldErrors(r.errors);
   const priceErrors = checkPrice(r.value);
+  Object.assign(priceErrors,checkMarketingEdit(null,r.value));
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
   for (let attempt = 1; ; attempt++) {
     // Never reuse an id that research rows or deleted listings still point at.
@@ -123,6 +125,7 @@ async function update({ request, env, admin, params: [id] }) {
   const stored = await loadListing(env, id);
   const merged = { ...stored, specs: JSON.stringify(stored.specs), ...r.value };
   const priceErrors = checkPrice(merged);
+  Object.assign(priceErrors,checkMarketingEdit(stored,r.value));
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
   // The lock on updated_at also guarantees the features were read from the row this save replaces.
   const ts = now(), patch = withFeatures(merged, r.value, ts);
@@ -171,8 +174,10 @@ async function setFeatured({ request, env, admin, params: [id] }) {
 }
 
 // fromQueue: Properties Queue's Approve and publish (PUB-21), the only way to publish a listing still in review (C8).
-export async function setState({ env, admin, params: [id, action], fromQueue = false, related = {} }) {
+export async function setState({ request, env, admin, params: [id, action], fromQueue = false, related = {}, expectedAt }) {
   const l = await loadListing(env, id);
+  const version=expectedAt ?? (request ? (await readJson(request))?.updated_at : l.updated_at);
+  if(typeof version!=='string')fail(400,'Missing updated_at: reload the listing');
   if (action === "publish" && l.archived_at) fail(400, "Restore the listing before publishing it");
   if (action === "publish" && !fromQueue && await env.DB.prepare("SELECT 1 FROM drive_imports WHERE listing_id = ? AND status = 'review'")
     .bind(id).first()) fail(409, "Use Approve and publish in the queue");
@@ -189,7 +194,8 @@ export async function setState({ env, admin, params: [id, action], fromQueue = f
   // ADM-04 (T2): publishing confirms the listing is on the market.
   // PUB-22: published_at only moves when the listing was hidden (the CASE reads the row before this UPDATE).
   const patch = { publish: { published: 1, confirmed_at: ts, published_at: ts }, unpublish: { published: 0 }, archive: { published: 0, archived_at: ts, matchable: 0 },
-    restore: { archived_at: null } }[action];
+    restore: { published: 0, archived_at: null } }[action];
+  Object.assign(patch,{review_requested_at:null,review_requested_by:null});
   const cols = Object.keys(patch);
   const set = c => (c === "published_at" ? "published_at = CASE WHEN published = 0 THEN ? ELSE published_at END" : `${c} = ?`);
   // Another request may archive/restore after loadListing. Repeat that eligibility in the write.
@@ -198,7 +204,7 @@ export async function setState({ env, admin, params: [id, action], fromQueue = f
   const [res] = await listingBatch(env, id, { actor: admin, source: fromQueue ? 'queue' : 'panel', related,
     action: { publish: 'published', unpublish: 'unpublished', archive: 'archived', restore: 'restored' }[action] }, [
     env.DB.prepare(`UPDATE listings SET ${cols.map(set).join(", ")}, updated_at = ${listingClock}, updated_by = ?
-      WHERE id = ?${stateGuard}${archive ? ` AND NOT ${BUSY}` : ""}`).bind(...cols.map(c => patch[c]), ts, admin, id, ...(archive ? [id, id] : [])),
+      WHERE id = ? AND updated_at=?${stateGuard}${archive ? ` AND NOT ${BUSY}` : ""}`).bind(...cols.map(c => patch[c]), ts, admin, id, version, ...(archive ? [id, id] : [])),
   ]);
   if (!res.meta.changes) {
     const current = await loadListing(env, id);
@@ -252,6 +258,15 @@ export default [
   ["GET", new RegExp(`^/admin/listings/${ID}$`), detail, true],
   ["GET", new RegExp(`^/admin/listings/${ID}/offers$`), offers, true],
   ["PUT", new RegExp(`^/admin/listings/${ID}$`), update, true],
+  ['POST',new RegExp(`^/admin/listings/${ID}/review$`),async ({request,env,admin,params:[id]})=>{
+    const result=await transitionEditorialListing(env,{id,command:await readJson(request),actor:admin});
+    return json({...result,listing:await loadListing(env,id)});
+  },true],
+  ['POST',new RegExp(`^/admin/listings/${ID}/rental-marketing$`),async ({request,env,admin,params:[id]})=>{
+    const result=await recordRentalMarketingState(env,{id,command:await readJson(request),actor:admin});
+    await afterSave(recomputeForListing,env,id,admin);
+    return json({...result,listing:await loadListing(env,id)});
+  },true],
   ["DELETE", new RegExp(`^/admin/listings/${ID}$`), remove, true],
   ["POST", new RegExp(`^/admin/listings/${ID}/(publish|unpublish|archive|restore)$`), setState, true],
   ["POST", new RegExp(`^/admin/listings/${ID}/confirm$`), confirm, true],

@@ -10,6 +10,9 @@ import { jerseyToday } from "../../server/viewings.js";
 import { BuyerOffers } from "./Sales.jsx";
 import HermesDraft from "./HermesDraft.jsx";
 import ViewingAvailability from "./ViewingAvailability.jsx";
+import ListingReview from './ListingReview.jsx';
+import RentalMarketing from './RentalMarketing.jsx';
+import {isRentalMarketing} from '../../server/listing-editorial.js';
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "tenure_type", "housing_category", "restriction", "sale_price", "rent", "rent_period", "premium",
@@ -63,6 +66,8 @@ export default function ListingEditor({ id, onChange }) {
   const [matchForm, setMatchForm] = useState(null), [matchesErr, setMatchesErr] = useState(null);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [loadErr, setLoadErr] = useState(null), [confirmDel, setConfirmDel] = useState("");
   const [confirming, setConfirming] = useState(false); // ADM-04: its own flag, so Save never reads "Saving…" meanwhile
+  const marketingFocus=useRef(false);
+  useEffect(()=>{if(marketingFocus.current){document.getElementById('h-rental-marketing')?.focus();marketingFocus.current=false;}},[data?.listing.updated_at]);
   const load = () => api(`/admin/listings/${id}`).then(d => { setData(d); setForm(toForm(d.listing)); setMatchForm(toMatchForm(d.listing)); setErrors({}); },
     e => setLoadErr(e.message));
   useEffect(() => { load(); }, [id]);
@@ -110,22 +115,29 @@ export default function ListingEditor({ id, onChange }) {
     if (action === "archive" && !confirm("Archive this listing? It will leave the website; you can restore it later.")) return;
     setBusy(true); setMsg(null);
     try {
-      setListing((await api(`/admin/listings/${id}/${action}`, { method: "POST" })).listing); reloadMatches(); onChange?.();
+      setListing((await api(`/admin/listings/${id}/${action}`, { method: "POST",body:{updated_at:l.updated_at} })).listing); reloadMatches(); onChange?.();
       setMsg({ ok: true, text: action === "publish" && !publicPhoto
         ? "Published, but it won't appear on the website until it has a visible photo." : DONE[action] });
     }
-    catch (e) { setMsg({ text: e.message }); }
+    catch (e) { setMsg({ text: e.message,reload:e.status===409 }); }
     finally { setBusy(false); }
+  };
+  const review = async action => {
+    setBusy(true);setMsg(null);
+    try{setListing((await api(`/admin/listings/${id}/review`,{method:'POST',body:{action,updated_at:l.updated_at}})).listing);
+      onChange?.();setMsg({ok:true,text:action==='submit_review'?'Ready for review. Still hidden from the website.':'Returned to draft.'});}
+    catch(e){setMsg({text:e.message,reload:e.status===409});}
+    finally{setBusy(false);}
   };
   // PUB-21 (D11, C8): a draft from Properties Queue is published from here, with the queue's minimum.
   const approve = async () => {
     setBusy(true); setMsg(null);
     try {
-      setListing((await api(`/admin/queue/${data.queue.id}/approve`, { method: "POST" })).listing);
+      setListing((await api(`/admin/queue/${data.queue.id}/approve`, { method: "POST",body:{updated_at:l.updated_at} })).listing);
       setData(d => ({ ...d, queue: null })); reloadMatches(); onChange?.();
       setMsg({ ok: true, text: "Approved and published: now on the website (may take a minute)." });
     }
-    catch (e) { setMsg({ text: e.data?.missing ? `Complete before publishing: ${e.data.missing.join(", ")}.` : e.message }); }
+    catch (e) { setMsg({ text: e.data?.missing ? `Complete before publishing: ${e.data.missing.join(", ")}.` : e.message,reload:e.status===409 }); }
     finally { setBusy(false); }
   };
   // ADM-04: after a call to the owner. Only confirmed_at changes, so whatever is being typed stays (T11).
@@ -191,6 +203,10 @@ export default function ListingEditor({ id, onChange }) {
     </aside>
 
     <div className="sections">
+      <ListingReview listing={l} disabled={dirty||busy} onTransition={review}/>
+      {l.operation==='rent'&&!l.archived_at&&['to_let','lease','not_stated','let_agreed','let'].includes(l.availability)&&
+        <RentalMarketing key={l.updated_at} listing={l} media={data.media} sources={data.sources} disabled={dirty||busy}
+          onReload={load} onSaved={listing=>{marketingFocus.current=true;setListing(listing);reloadMatches();onChange?.();setMsg({ok:true,text:'Rental marketing state recorded.'});}}/>}
       {l.to_confirm === 1 && <div className="warn to-confirm" role="note">
         <p>Last confirmed {checked}: call the owner to check it is still available.</p>
         <button type="button" className="btn ghost sm" onClick={stillAvailable} disabled={confirming}>Still available</button></div>}
@@ -205,8 +221,9 @@ export default function ListingEditor({ id, onChange }) {
         {field("title", "Title", <input {...ctl("title")} maxLength={200} required />)}
         {field("property_type", "Type (house, flat, restaurant…)", <input {...ctl("property_type")} maxLength={100} />)}
         {field("use", "Use", <select {...ctl("use")}>{options(USE)}</select>)}
-        {field("operation", "Operation", <select {...ctl("operation")}>{options(OPERATION)}</select>)}
-        {field("availability", "Availability", <select {...ctl("availability")}>{options(AVAILABILITY)}</select>)}
+        {field("operation", "Operation", <select {...ctl("operation")} disabled={isRentalMarketing(l.availability)}>{options(OPERATION)}</select>)}
+        {field("availability", "Availability", <select {...ctl("availability")} disabled={isRentalMarketing(l.availability)}>
+          {options(Object.fromEntries(Object.entries(AVAILABILITY).filter(([k])=>!isRentalMarketing(k)||k===l.availability)))}</select>)}
         {field("tenure_type", "Tenure", <><select {...ctl("tenure_type", was ? { "aria-describedby": `d-tenure${errors.tenure_type ? " e-tenure_type" : ""}` } : {})}>
           <option value="">Not set</option>{options(TENURE)}</select>
           {was && <small id="d-tenure" className="muted">Was: {form.tenure}</small>}</>)}
@@ -317,7 +334,8 @@ export default function ListingEditor({ id, onChange }) {
     </div>
 
     <div className="actionbar" role="region" aria-label="Actions">
-      {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}
+        {msg.reload&&<button type="button" className="btn ghost sm" onClick={load}>Reload listing</button>}</p>}
       {dirty && <span className="unsaved">Unsaved changes</span>}
       <button type="button" className="btn" onClick={save} disabled={!dirty || busy}>{busy ? "Saving…" : "Save"}</button>
       {dirty && <button type="button" className="btn ghost" onClick={discard} disabled={busy}>Discard</button>}

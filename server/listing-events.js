@@ -4,7 +4,7 @@ import { EDITABLE } from './listing.js';
 
 const SOURCES = ['panel', 'queue', 'sales', 'media', 'recalculate'];
 const ACTIONS = ['created', 'updated', 'published', 'unpublished', 'archived', 'restored', 'confirmed',
-  'availability_changed', 'featured_changed', 'cover_changed', 'recalculated', 'deleted'];
+  'availability_changed', 'featured_changed', 'cover_changed', 'recalculated', 'deleted', 'review_requested', 'review_returned'];
 const DERIVED = ['parish', 'feat_pets', 'feat_parking', 'feat_furnished', 'feat_outdoor', 'feat_type', 'feat_evidence'];
 
 // The row exists only within this batch. The triggers see the real OLD/NEW; cleanup goes
@@ -39,7 +39,7 @@ export const listingClock = "MAX(?, strftime('%Y-%m-%dT%H:%M:%fZ', updated_at, '
 // DB-ready patches from trusted writers: HTTP validation/feature extraction stays with the route.
 // An operation identity is internal only; the current panel does not send one.
 export async function updateListingEvent(env, { id, actor, source, action, patch, expectedAt, operationId,
-  derivedFields = [], related = {} }) {
+  derivedFields = [], related = {}, additionalStatements = [], requestHash }) {
   const cols = Object.keys(patch ?? {}).sort();
   const allowed = [...EDITABLE, ...DERIVED, 'confirmed_at', 'features_at'];
   if (!cols.length || cols.some(k => !allowed.includes(k)) || cols.some(k => patch[k] !== null
@@ -48,7 +48,8 @@ export async function updateListingEvent(env, { id, actor, source, action, patch
     fail(400, 'Invalid internal listing update');
   const context = { actor, source, action, derivedFields, related };
   const identity = operationId ?? null;
-  const hash = await sha256(JSON.stringify([id, actor, source, action, expectedAt, cols.map(k => [k, patch[k]]),
+  if (requestHash !== undefined && !/^[a-f0-9]{64}$/.test(requestHash)) fail(400, 'Invalid internal request hash');
+  const hash = requestHash ?? await sha256(JSON.stringify([id, actor, source, action, expectedAt, cols.map(k => [k, patch[k]]),
     [...derivedFields].sort(), Object.entries(related).sort(([a], [b]) => a.localeCompare(b))]));
   const absent = 'NOT EXISTS(SELECT 1 FROM listing_event_operations WHERE actor=? AND operation_id=?)';
   const start = contextStatement(env, id, context, `WHERE ${absent}`, [actor, identity]);
@@ -62,6 +63,7 @@ export async function updateListingEvent(env, { id, actor, source, action, patch
   env.DB.prepare(`SELECT id FROM events WHERE entity_type='listing' AND entity_id=?
     AND CAST(json_extract(data,'$.revision') AS INTEGER) >
       (SELECT previous_revision FROM listing_event_context WHERE listing_id=?) ORDER BY id DESC LIMIT 1`).bind(id, id)];
+  stmts.push(...additionalStatements);
   if (identity !== null) stmts.push(env.DB.prepare(`INSERT INTO listing_event_operations(actor,operation_id,request_hash,event_id)
     SELECT ?,?,?,(SELECT id FROM events WHERE entity_type='listing' AND entity_id=c.listing_id
       AND CAST(json_extract(data,'$.revision') AS INTEGER)>c.previous_revision ORDER BY id DESC LIMIT 1)

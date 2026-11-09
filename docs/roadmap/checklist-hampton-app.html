@@ -3119,8 +3119,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Listings separa Draft, Published y Archived, y Availability guarda For sale, Under offer, Sold, To let, Lease, Not stated y Withdrawn; aceptar una oferta pone Under offer, completar la venta pone Sold y si se cae vuelve a For sale. Desde el 30-oct-2026, una ficha publicada y en el mercado que lleva 3 meses sin confirmar (1 en alquiler) sale como «To confirm» hasta que alguien la confirma (ADM-04).",
-   "falta": "Ready for review, y Let agreed y Let en alquileres.",
+   "hecho": "La base publicada separa Draft, Published y Archived, conserva el ciclo de ventas y To confirm de ADM-04. Construcción local del 9-nov-2026: Ready for review con filtro, envío y retorno a borrador; publicación y aprobación de Properties Queue comprueban la versión vista. Let agreed, Let y retorno a mercado se registran manualmente con fecha, empleado y evidencia de la ficha; evento, recibo y copia privada de metadatos son atómicos. Los estados coinciden en panel y web y quedan fuera de nuevas propuestas/visitas públicas. No crea contratos, cobros ni cierra búsquedas. Migración 0034 ensayada localmente conservando datos y relaciones.",
+   "falta": "Revisión y autorización del SHA final para aplicar 0034 y publicar; verificar despliegue e integración después. Playwright MCP pendiente por el sandbox del navegador; el runner local de escritorio/móvil es evidencia separada. La propagación futura al inventario compartido y a productores reales de contratos de alquiler continúa en sus propias tareas; los estados manuales no acreditan esa integración.",
    "bloqueo": "",
    "evidencia": [
     "migrations/0001_init.sql:7",
@@ -3129,7 +3129,14 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/routes/sales.js:177",
     "server/routes/sales.js:412",
     "server/routes/sales.js:430",
-    "server/listing.js:16-21"
+    "server/listing.js:16-21",
+    "server/listing-editorial.js",
+    "migrations/0034_listing_editorial.sql",
+    "tests/server/listing-editorial.test.mjs",
+    "tests/server/rental-marketing.test.mjs",
+    "tests/server/listing-editorial-migration.test.mjs",
+    "tests/listing-editorial.e2e.cjs",
+    "docs/roadmap/work/EST-17/implementation-evidence.md"
    ]
   },
   {

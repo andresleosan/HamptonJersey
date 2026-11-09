@@ -1,9 +1,10 @@
 import { CRITERIA, parsePriorities } from "../../site/requirements.js";
 import { OPTIONS } from "../../server/applicants.js";
 import { jerseyToday } from "../../server/viewings.js";
+import {editorialState} from '../../server/listing-editorial.js';
 
 export const AVAILABILITY = { for_sale: "For sale", under_offer: "Under offer", sold: "Sold", to_let: "To let",
-  lease: "Lease", not_stated: "Not stated", withdrawn: "Withdrawn" };
+  lease: "Lease", not_stated: "Not stated", withdrawn: "Withdrawn",let_agreed:'Let agreed',let:'Let' };
 export const OPERATION = { sale: "Sale", rent: "Rent", business: "Business" };
 export const USE = { residential: "Residential", commercial: "Commercial" };
 // J2: the Jersey fields' labels (server/listing.js ENUMS), shared by the editor and Add new property.
@@ -11,8 +12,8 @@ export const TENURE = { freehold: "Freehold", flying_freehold: "Flying freehold"
 export const HOUSING = { qualified: "Qualified", registered: "Registered" };
 export const RESTRICTION = { first_time_buyer: "First-time buyers only", over_55: "Over 55s only" };
 export const KIND = { photo: "Photo", floorplan: "Floor plan", aerial: "Aerial", document: "Document" };
-export const STATUS_LABEL = { published: "Published", draft: "Draft", archived: "Archived" };
-export const stateOf = l => (l.archived_at ? "archived" : l.published ? "published" : "draft");
+export const STATUS_LABEL = { published: "Published", draft: "Draft", archived: "Archived",ready_for_review:'Ready for review' };
+export const stateOf = editorialState;
 
 const SYM = { GBP: "£", EUR: "€" };
 export function priceText(l) {

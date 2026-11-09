@@ -1,7 +1,7 @@
 // PUB-21 (spec 2026-11-05): Properties Queue, the panel's side and Hermes's side of a Drive import.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, call, adminCookie, seedListing, seedMedia } from "./helpers.mjs";
+import { makeEnv, call, adminCookie, seedListing, seedMedia } from "./listing-client.mjs";
 import { fakeDrive, HOUSE } from "./fake-drive.mjs";
 
 const KEY = "k".repeat(40);

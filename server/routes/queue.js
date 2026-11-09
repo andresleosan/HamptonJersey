@@ -108,12 +108,15 @@ async function discard({ env, admin, params: [id] }) {
 
 // D11: the minimum for a listing that the website shows whole.
 const PRICE = { sale: "sale_price", rent: "rent", business: "premium" };
-async function approve({ env, admin, params: [id] }) {
+async function approve({ request, env, admin, params: [id] }) {
+  const version=(await readJson(request))?.updated_at;
+  if(typeof version!=='string')fail(400,'Missing updated_at: reload the listing');
   const row = await get(env, id);
   if (!row) fail(404, "Not in the queue");
   if (row.status !== "review" || !row.listing_id) fail(409, "Create the draft first");
   const l = await env.DB.prepare(`SELECT l.*, (SELECT COUNT(*) FROM media m WHERE m.listing_id = l.id AND m.public = 1
     AND m.kind = 'photo') AS photos FROM listings l WHERE l.id = ?`).bind(row.listing_id).first();
+  if(!l||l.updated_at!==version)fail(409,'The listing changed. Reload and review it before publishing.');
   const has = v => v != null && String(v).trim() !== "";
   const missing = [["Title", has(l.title)], ["Sale or rent", has(l.operation)],
     ["Price", has(l[PRICE[l.operation]]) || has(l.price_text)], ["Parish", has(l.parish)], ["A photo", l.photos > 0],
@@ -124,7 +127,7 @@ async function approve({ env, admin, params: [id] }) {
     WHERE id = ? AND status = 'review' RETURNING id`).bind(now(), admin, Number(id)).first();
   if (!done) fail(409, "This one is already closed");
   try { return await setState({ env, admin, params: [row.listing_id, "publish"], fromQueue: true,
-    related: { import_id: Number(id) } }); }
+    related: { import_id: Number(id) },expectedAt:version }); }
   catch (e) {
     await env.DB.prepare("UPDATE drive_imports SET status = 'review' WHERE id = ?").bind(Number(id)).run();
     throw e;

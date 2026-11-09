@@ -5,7 +5,7 @@ import { validWeeklyWindows } from "./viewings.js";
 export const ENUMS = {
   use: ["residential", "commercial"],
   operation: ["sale", "rent", "business"],
-  availability: ["for_sale", "under_offer", "sold", "to_let", "lease", "not_stated", "withdrawn"],
+  availability: ["for_sale", "under_offer", "sold", "to_let", "lease", "not_stated", "withdrawn", "let_agreed", "let"],
   rent_period: ["month", "year"],
   currency: ["GBP", "EUR"],
   parish: OPTIONS.parishes.map(([p]) => p), // blank = unknown
@@ -95,7 +95,7 @@ export function nextId(ids, prefix) {
 }
 
 const STATUS = { for_sale: "For Sale", under_offer: "Under Offer", sold: "Sold", to_let: "To Let", lease: "Lease",
-  not_stated: "Enquire", withdrawn: "Withdrawn" };
+  not_stated: "Enquire", withdrawn: "Withdrawn", let_agreed: "Let agreed", let: "Let" };
 const lines = s => (s || "").split("\n").map(x => x.trim()).filter(Boolean);
 const src = (m, thumb) => `/media/${m.id}${thumb ? "?thumb" : ""}`;
 const alt = (m, fallback) => (m.label || "").replace(/\.(png|jpe?g|webp)$/i, "").trim() || fallback;

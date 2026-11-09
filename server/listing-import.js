@@ -95,6 +95,10 @@ export function readPropertyText(text) {
         if (col === "currency") badCurrency = true;
         continue;
       }
+      if(col==='availability'&&['let_agreed','let'].includes(value)){
+        note(line,`${label}: "${clip(v)}" is an observation. Confirm the rental marketing state with recorded evidence in the editor.`);
+        continue;
+      }
     } else if (col === "country") value = own(COUNTRIES, fold(v)) ?? v;
     else if (col === "bedrooms" || col === "bathrooms") value = /^(\d+)(\s+[a-z][a-z\s]*)?$/i.test(v) ? parseInt(v, 10) : v;
     const r = validateListing({ [col]: value }, { partial: true });

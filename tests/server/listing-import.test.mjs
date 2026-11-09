@@ -4,6 +4,14 @@ import { readFileSync } from "node:fs";
 import { decodeText, readPropertyText, draftBody, labelFromName, planFolder, readDrop } from "../../server/listing-import.js";
 import { checkPrice } from "../../server/listing.js";
 
+test('EST-17: imported rental statuses are observations, never confirmed marketing states',()=>{
+  for(const state of ['Let agreed','Let']){
+    const result=readPropertyText(`Title: Rental fixture\nOperation: Rent\nAvailability: ${state}`);
+    assert.equal(result.fields.availability,undefined);
+    assert.ok(result.notes.some(message=>message.includes('recorded evidence')));
+  }
+});
+
 // PUB-01 (spec 2026-11-03): «Add new property» from a folder. Invented values only (public repo).
 const EX = ["Title: Le Clos Test", "Type: House", "Use: Residential", "Operation: Sale", "Availability: For sale", "Country: jersey",
   "Parish: st. brelade", "Location: St Aubin", "Road: Le Mont Test", "Bedrooms: 4 bedrooms", "Bathrooms: 3", "Tenure: Freehold",
