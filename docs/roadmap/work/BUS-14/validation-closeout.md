@@ -28,4 +28,4 @@ Shortlist/Undo y paginación con más de25resultados están cubiertos por fixtur
 
 ## Pendientes de entrega documental
 
-El producto ya está publicado. Los commits locales de documentación y sincronización del test necesitan incorporar el avance documental remoto42eda35, regenerar desde ambas fuentes, revisión y aprobación del SHA final antes de publicar. Se conserva todo el trabajo; esto no reabre la aceptación funcional ni autoriza un push o migración. BUS-12 y las demás etapas de PAQ-03 mantienen sus propios criterios.
+El producto ya está publicado. La entrega local de documentación y sincronización del test incorpora ahora el avance documental remoto42eda35 y regenera desde ambas fuentes. Tras la revisión final, requiere aprobación del SHA exacto para publicar y desplegar el catálogo que alimenta el tablero. Se conserva todo el trabajo; esto no reabre la aceptación funcional ni autoriza un push o migración. BUS-12 y las demás etapas de PAQ-03 mantienen sus propios criterios.

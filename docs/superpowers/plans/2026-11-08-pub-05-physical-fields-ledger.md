@@ -1,0 +1,47 @@
+> **Nota de vigencia (9-nov-2026):** documento histórico o de planificación. Antes de ejecutarlo, consultar [el índice vigente de Lista 4](../plans/2026-11-09-lista4-tandas-pendientes.md) y las decisiones registradas; no presupone que esté listo para construir ni reactiva tours 3D, redes automáticas, portales o Drive.
+
+# PUB-05 · Ledger de planificación
+
+Fecha: 8-nov-2026. Lista 4. Luis pidió continuar solo con planes y eligió PUB-05. No hay autorización para construir o publicar esta familia.
+
+## Base y procedimiento
+
+- Copia exclusiva [copia local de planificación]; main/base 93f8f25c0aa029f1850f0c46855fb89fd524a8e3. Verificador 2026-11-08T13:08:21Z salida 0, main/HEAD/GitHub iguales y copia limpia al iniciar.
+- PUB-06 conserva íntegros sus tres Markdown en la copia anterior. El remoto avanzó tres commits; no se mezclaron cambios ni se hizo fast-forward sobre sus documentos pendientes.
+- Skill canónica de esta base: planificación local sin reservas. El comando real `plan --list 4 --task PUB-05` devolvió reserved:false/buildAuthorized:false. No se inicializó sesión/credencial ni se crearon recursos o leases.
+- La primera consulta de estado fue parte del arranque desde la copia anterior, antes de leer la regla nueva. No se tocó BUS-21; después solo catálogo local, lecturas y documentos, ningún claim/scope/watch/submit/pause/complete/release.
+- [Spec](../specs/2026-11-08-pub-05-physical-fields-design.md) y [plan](2026-11-08-pub-05-physical-fields.md). Original privado de Luis ausente; fuentes públicas suficientes, sin copiarlo.
+
+## Decisiones y cobertura
+
+| Criterio | Decisiones y evidencia | Pruebas futuras |
+| --- | --- | --- |
+| A1/A5 datos | Tipos del spec y validateListing/checkPrice/loadListing actuales; D3/D5/D14. | Task 1 V1/V2/API1 y UI1. |
+| A2 superficie | PUB-06 propuso interior_area_sqft; D1/D2 reutilizan ese contrato y calculan m². | Conversión y ausencia de deriva, Tasks 1/5. |
+| A3 prioridad humana | withFeatures/recalc llaman extractFeatures; SELECT de recalc necesita override. D4/D6. | F1–F4/API2/UI3. |
+| A4 matching | server/requirements.js lee _requirements, no solo feat_*; legado conservador. D7/D8/D13. | M1–M3 y REG-08/legado. |
+| A5 fuente | Queue llama createListing con source queue; no convertir propuestas en confirmaciones. D12. | Q1 y recuperación ready. |
+| A6 historial | EST-18 enumera campos/JSON en triggers; guardado con versión/context/batch. D11. | EV1–EV4. |
+| A7 interfaz | DESIGN nota EST-09 y wrappers/CSS actuales. D14. | UI1–UI4 y MCP 1280/390. |
+| A8 límites | toPublic/importadores no amplían campos; regla de planificación local. | Shapes y revisión de archivos. |
+
+## Skills y límites
+
+Brainstorming/grill-me resuelven manual/automático, ausencia/null/0/[], patio/terraza, superficie y fuentes. Writing-plans estructura tareas. Impeccable/adapt, seguridad, antislop durante el trabajo, rendimiento y ponytail concretados en el plan. Taste/redesign no aplican a esta superficie existente. Sin assets, librerías, servicios ni cambios al VPS.
+
+## Comprobaciones
+
+- [x] Base propia y catálogo local verificados, sin nuevas reservas.
+- [x] Código, fuentes, escritores, matching, historial y contrato PUB-06 revisados por lectura.
+- [x] Revisión independiente `pub05_builder_check`: sin contradicciones bloqueantes. Precisados modos Unknown/None/Select values y bloqueo de Save al quitar la última selección; property_condition existing compartido con PUB-04 sin inferir good.
+- [x] Revisión propia adicional: null de API para feature_overrides se normaliza antes de blank general y persiste '{}'; modos incompletos solo en borrador, cloning para Discard y fuente efectiva guardada explícitos.
+- [x] Primera comprobación: enlaces válidos, D1–D14/A1–A8 y rutas de queue/requirements/escritores existentes; renderer --check salida 0 con 250 tareas/250 unidades. Repetir sobre los tres documentos preparados después de las precisiones.
+- [x] Comprobación final sobre los tres Markdown preparados: enlaces, cobertura y precisiones de revisión PASS; conversión decimal 1000 sq ft →92.90304 m² y salida 92.90 comprobadas; `git diff --cached --check` y renderer --check correctos. El detector de placeholders encontró la palabra española «todo» en mayúsculas; se normalizó la redacción y la comprobación pasó.
+- Playwright: no aplica a documentos. Tests de producto/build/e2e/migraciones: no ejecutados; Tasks 1–5 son trabajo futuro.
+- Sin publicación, despliegue, migración ni reservas. No marcar PUB-05 construida por terminar un borrador.
+
+## Siguiente paso
+
+Revisar propuesta y continuar planificación si Luis lo elige. Construcción futura en orden SPR-01 → PUB-06 → PUB-05, con bases/contratos revalidados y reserva build auténtica solo entonces. Los datos declarados no se convierten en certificados ni se alteran pendientes ajenos.
+
+Siguiente recomendado Codex: /avanzar PUB-04 · gpt-6.1-terra · high · solo planificación. PUB-04 pide dirección/código postal, estado y promotor; conviene cerrar ahora el contrato de property_condition compartido y distinguir datos internos de dirección publicable. Modelo/esfuerzo comprobados en catálogo local; no cambia la sesión actual.

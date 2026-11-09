@@ -68,8 +68,8 @@
         "pendiente": 8,
         "hecho": 9,
         "bloqueado": 3,
-        "descartado": 3,
-        "replanteado": 14
+        "descartado": 16,
+        "replanteado": 1
       }
     }
   ],
@@ -4292,7 +4292,7 @@
         "notifications-schema",
         "matching-review-ui"
       ],
-      "nextStep": "Alcance aprobado de BUS-14 cerrado; no volver a pedir ficha de producción ni repetir0037. Continuar BUS-12 según sus dependencias técnicas. El registro de cierre y el ajuste del test siguen locales, pendientes de integración/revisión/aprobación/publicación de su SHA exacto."
+      "nextStep": "Alcance aprobado de BUS-14 cerrado. Catálogo local integrado con main42eda35 y preparado para publicar el cierre con aprobación de su SHA exacto y desplegar el catálogo del tablero; sin nueva migración. No reconstruir ni repetir0037. Continuar BUS-12 según sus dependencias técnicas."
     },
     {
       "id": "BUS-15",
@@ -7974,10 +7974,10 @@
       "titulo": "Tours 3D más adelante",
       "origen": "texto",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "—",
       "hecho": "",
-      "falta": "Tours 3D más adelante.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/Tours.jsx:7-45",
@@ -8009,10 +8009,10 @@
       "titulo": "Alcance anterior aplazado",
       "origen": "texto",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "—",
       "hecho": "",
-      "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/ESTADO.md:16",
@@ -8037,10 +8037,10 @@
       "titulo": "Alcance anterior aplazado",
       "origen": "texto",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "—",
       "hecho": "",
-      "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:390",
@@ -8064,10 +8064,10 @@
       "titulo": "Alcance anterior aplazado",
       "origen": "texto",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "—",
       "hecho": "",
-      "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:384",
@@ -8092,10 +8092,10 @@
       "titulo": "Alcance anterior aplazado",
       "origen": "texto",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "—",
       "hecho": "",
-      "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:388",
@@ -8119,10 +8119,10 @@
       "titulo": "Alcance anterior aplazado",
       "origen": "texto",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "—",
       "hecho": "",
-      "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:387",
@@ -8146,10 +8146,10 @@
       "titulo": "Alcance anterior aplazado",
       "origen": "texto",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "—",
       "hecho": "",
-      "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:385-386"
@@ -8172,10 +8172,10 @@
       "titulo": "Alcance anterior aplazado",
       "origen": "plan",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "—",
       "hecho": "",
-      "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:389"
@@ -8198,10 +8198,10 @@
       "titulo": "Alcance anterior aplazado",
       "origen": "plan",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "—",
       "hecho": "",
-      "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:106",
@@ -8226,10 +8226,10 @@
       "titulo": "Alcance anterior aplazado",
       "origen": "plan",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "—",
       "hecho": "",
-      "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:391",
@@ -8255,10 +8255,10 @@
       "titulo": "Alcance anterior aplazado",
       "origen": "plan",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "—",
       "hecho": "",
-      "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:393",
@@ -8283,10 +8283,10 @@
       "titulo": "Alcance anterior aplazado",
       "origen": "plan",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "—",
       "hecho": "",
-      "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:395",
@@ -9528,7 +9528,7 @@
       "estado": "replanteado",
       "responsable": "Luis",
       "hecho": "P-01 aceptada (A5): inventario diario y matching en SQL, Deep Research solo en casos raros. AI Gateway (A1) y C3 en local (A2) encajan con API en lugar de suscripciones, y los estados en el match (F1-A) y los campos de Jersey en las fichas (4cd4001) ya están construidos. El 30-oct-2026 Luis cambió la puerta de la IA: Hermes con su plan de ChatGPT en lugar de AI Gateway (P-18).",
-      "falta": "La decisión anterior sobre tours queda aplazada. Las decisiones ya adoptadas del recorrido de búsqueda se conservan.",
+      "falta": "La decisión anterior sobre tours se descarta por ahora; las decisiones ya adoptadas del recorrido de búsqueda se conservan.",
       "bloqueo": "",
       "evidencia": [
         "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:27-31",
@@ -9750,10 +9750,10 @@
       "titulo": "Decisión anterior de tours aplazada",
       "origen": "plan",
       "fase": "F8",
-      "estado": "replanteado",
+      "estado": "descartado",
       "responsable": "Hampton",
       "hecho": "",
-      "falta": "Tours 3D más adelante.",
+      "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:702",

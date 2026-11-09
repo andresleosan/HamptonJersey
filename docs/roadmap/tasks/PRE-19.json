@@ -7,7 +7,7 @@
   "estado": "replanteado",
   "responsable": "Luis",
   "hecho": "P-01 aceptada (A5): inventario diario y matching en SQL, Deep Research solo en casos raros. AI Gateway (A1) y C3 en local (A2) encajan con API en lugar de suscripciones, y los estados en el match (F1-A) y los campos de Jersey en las fichas (4cd4001) ya están construidos. El 30-oct-2026 Luis cambió la puerta de la IA: Hermes con su plan de ChatGPT en lugar de AI Gateway (P-18).",
-  "falta": "La decisión anterior sobre tours queda aplazada. Las decisiones ya adoptadas del recorrido de búsqueda se conservan.",
+  "falta": "La decisión anterior sobre tours se descarta por ahora; las decisiones ya adoptadas del recorrido de búsqueda se conservan.",
   "bloqueo": "",
   "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:27-31",

@@ -1,0 +1,13 @@
+> **Nota de vigencia (9-nov-2026):** documento histórico o de planificación. Antes de ejecutarlo, consultar [el índice vigente de Lista 4](../plans/2026-11-09-lista4-tandas-pendientes.md) y las decisiones registradas; no presupone que esté listo para construir ni reactiva tours 3D, redes automáticas, portales o Drive.
+
+# Tanda 3 · Plan PUB-09 + SPR-02
+
+[Diseño](../specs/2026-11-08-tanda-3-estados-historial-design.md). Solo planificación. Antes de cada fase verificar base, alcance y coordinación build; migrar/publicar solo con autorización aplicable.
+
+1. En `admin/src/ListingEditor.jsx`, mostrar `published_at` del detalle sin cambiarlo ni presentar el backfill como fecha exacta. En tests de publicaciones, probar primera publicación, unpublish, republish y fecha heredada, con aviso global de que algunas fechas anteriores son estimadas. P1.
+2. Nueva migración aditiva de `withdrawal_reason`, siguiente número libre; conservar datos y recrear triggers desde la última versión integrada. Añadir campo TEXT 500 a `server/listing.js` y UI de editor manteniendo `toPublic` sin cambios. Validar null/omitido, longitud, concurrencia y que eventos solo contienen nombre. Ejecutar tests focalizados de listing, listing-events y public/seo. P2.
+3. Estados de alquiler: verificar e integrar EST-17 antes de consumirlo; probar operaciones, disponibilidad, ON_MARKET, UI, matching, transiciones Sales/Rentals y eventos. Dejar PUB-09 parcial en ausencia de EST-17, PUB-15 y productores reales de guardados/llamadas. P3.
+4. SPR-02: mantener registro ya existente y contratos de futuros productores por separado. Vista pendiente de decisión de Luis; si decide construirla, elaborar contrato de lectura y diseño concreto, pruebas de permisos y paginación, tombstone y retención antes de ejecutar, coordinado con EST-19 y productores. Probar eventos ya existentes y no-op/409 sin reconstrucción histórica. H1–H3.
+5. Cierre por fase: tests focalizados, npm test, build y check:release; interfaz en Playwright 390/1280, teclado, foco y zoom200; conservar estado parcial y registrar dependencias. No marcar hechos futuros por tener una spec.
+
+Diseño: panel Montserrat 14px/1.5, Tenor Sans H1 26px/H2 19px, tarjetas 24px radio14, grid min220/gap12, ink #151515, fondo #fff, línea #e3e0da, bronce #a56b3d, error #a32020; foco 2px offset2, contraste 4.5:1/3:1, objetivo propuesto 32px escritorio/44px móvil. Reutilizar controles nativos y aria-describedby; sin fuente ni dependencia externa. Skills avanzar, brainstorming, grill-me, writing-plans, impeccable, security-best-practices, frontend-security-coder, antislop, web-performance-optimization y ponytail; páginas nuevas y rediseño no aplican.

@@ -4,10 +4,10 @@
   "titulo": "Tours 3D más adelante",
   "origen": "texto",
   "fase": "F8",
-  "estado": "replanteado",
+  "estado": "descartado",
   "responsable": "—",
   "hecho": "",
-  "falta": "Tours 3D más adelante.",
+  "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/Tours.jsx:7-45",

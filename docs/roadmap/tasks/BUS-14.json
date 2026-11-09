@@ -47,5 +47,5 @@
     "notifications-schema",
     "matching-review-ui"
   ],
-  "nextStep": "Alcance aprobado de BUS-14 cerrado; no volver a pedir ficha de producción ni repetir0037. Continuar BUS-12 según sus dependencias técnicas. El registro de cierre y el ajuste del test siguen locales, pendientes de integración/revisión/aprobación/publicación de su SHA exacto."
+  "nextStep": "Alcance aprobado de BUS-14 cerrado. Catálogo local integrado con main42eda35 y preparado para publicar el cierre con aprobación de su SHA exacto y desplegar el catálogo del tablero; sin nueva migración. No reconstruir ni repetir0037. Continuar BUS-12 según sus dependencias técnicas."
 }
