@@ -474,7 +474,10 @@ async function admin(browser) {
   await page.fill("#f-title", "Le Bernage (edited)");
   // Review focus 2: session lost mid-edit → login dialog, typed text kept.
   await ctx.clearCookies();
-  await page.getByRole("button", {name: "Save", exact: true}).click();
+  // The session poll may show the dialog before Save can receive a click.
+  const expired=page.getByRole("dialog",{name:"Session expired"});
+  try {await page.getByRole("button",{name:"Save",exact:true}).click({timeout:5000});}
+  catch(e){if(e.name!=="TimeoutError"||!await expired.isVisible())throw e;}
   await page.waitForSelector('[role=dialog] >> text=Your session has expired');
   assert.equal(await page.inputValue("#f-title"), "Le Bernage (edited)");
   // M11: focus moves into the dialog and the page behind it is inert.

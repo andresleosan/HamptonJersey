@@ -36,8 +36,39 @@ function valueAllowed(field,v) {
   if(['feat_pets','feat_furnished'].includes(field))return ['yes','no'].includes(v);
   return typeof v==='boolean'||(typeof v==='number'&&Number.isFinite(v));
 }
+function validDay(v) {
+  if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;
+  const parsed=new Date(`${v}T00:00:00Z`);
+  return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===v;
+}
+function milestoneState(d) {
+  const before=object(d?.before)?d.before:{},after=object(d?.after)?d.after:{};
+  if(validDay(after.done_on))return 'completed';
+  if(after.not_needed===1)return 'not_needed';
+  if(after.done_on===null&&validDay(before.done_on))return 'completion_removed';
+  if(after.not_needed===0&&before.not_needed===1)return 'needed_again';
+  if(validDay(after.planned_on))return 'planned';
+  if(after.planned_on===null&&validDay(before.planned_on))return 'plan_removed';
+  return null;
+}
 function project(row) {
   let d;try{d=JSON.parse(row.data);}catch{}
+  if(row.type==='match.reviewed'&&row.history_kind==='related'){
+    const states=['found','shortlisted','rejected'],reasons=['price','area','size','condition','other'];
+    return {id:row.id,at:row.at,actor:row.actor,type:row.type,revision:null,source:null,
+      changes:[],related:{},evidence:[],decision:{from:states.includes(d?.from)?d.from:null,
+        to:states.includes(d?.to)?d.to:null,reason:reasons.includes(d?.reason)?d.reason:null},details_unavailable:false};
+  }
+  if(row.history_kind==='viewing')return {id:row.id,at:row.at,actor:row.actor,type:row.type,
+    revision:null,source:null,changes:[],related:{},evidence:[],details_unavailable:false};
+  if(row.history_kind==='related'){
+    const isOffer=row.type.startsWith('offer.'),key=d?.key;
+    const milestone=['lawyers','due_diligence','questionnaire','searches','mortgage','contract','funds','passing','settled'].includes(key)?key:null;
+    return {id:row.id,at:row.at,actor:row.actor,type:row.type,revision:null,source:null,
+      changes:[],related:isOffer?(positive(d?.offer_id)?{offer_id:d.offer_id}:{}):(positive(d?.sale_id)?{sale_id:d.sale_id}:{}),
+      evidence:[],...(row.type==='sale.milestone'?{milestone,milestone_state:milestone?milestoneState(d):null}:{}),
+      details_unavailable:false};
+  }
   const valid=object(d)&&Array.isArray(d.fields), known=ACTIONS.some(a=>row.type===`listing.${a}`);
   const changes=valid? [...new Set(d.fields.filter(k=>FIELDS.has(k)))].map(field=>{
     const c={field,derived:Array.isArray(d.derived_fields)&&d.derived_fields.includes(field)};
@@ -51,29 +82,102 @@ function project(row) {
     evidence:[],details_unavailable:!valid||!known};
 }
 
+const VIEWING_SQL=`SELECT h.event_id AS id,h.at AS at,e.actor,e.type,e.data,w.snapshot_id,'viewing' AS history_kind
+  FROM history_viewing_events h JOIN events e ON e.id=h.event_id CROSS JOIN window w
+  WHERE h.listing_id=? AND h.event_id<=w.snapshot_id`;
+
+const RELATED_SQL=`SELECT e.id,e.at,e.actor,e.type,e.data,w.snapshot_id,'related' AS history_kind
+  FROM events e CROSS JOIN window w WHERE e.entity_type='applicant'
+    AND e.type IN ('match.reviewed','offer.recorded','offer.updated','offer.countered','offer.rejected','offer.withdrawn','offer.accepted',
+      'sale.updated','sale.milestone','sale.completed','sale.fallen_through')
+    AND CASE WHEN json_valid(e.data) THEN json_extract(e.data,'$.listing_id') END=?
+    AND EXISTS(SELECT 1 FROM applicants a WHERE a.id=CAST(e.entity_id AS INTEGER) AND CAST(a.id AS TEXT)=e.entity_id)
+    AND (e.type='match.reviewed' OR e.type LIKE 'offer.%' AND EXISTS(SELECT 1 FROM offers o
+      WHERE o.id=CASE WHEN json_valid(e.data) THEN json_extract(e.data,'$.offer_id') END
+        AND o.listing_id=? AND CAST(o.applicant_id AS TEXT)=e.entity_id)
+      OR e.type LIKE 'sale.%' AND EXISTS(SELECT 1 FROM sales s
+      WHERE s.id=CASE WHEN json_valid(e.data) THEN json_extract(e.data,'$.sale_id') END
+        AND s.listing_id=? AND CAST(s.applicant_id AS TEXT)=e.entity_id))
+    AND e.id<=w.snapshot_id`;
+
+export async function validateListingHistoryRows(env,{id,ids}) {
+  if(!/^HE-[A-Z]\d{3,}$/.test(id))fail(404,'Listing not found');
+  if(!Array.isArray(ids)||!ids.length||ids.length>10000||ids.some(n=>!positive(n))||new Set(ids).size!==ids.length)
+    fail(400,'Invalid history rows');
+  const {n}=await env.DB.prepare(`SELECT COUNT(*) AS n FROM json_each(?) requested
+    CROSS JOIN events e WHERE e.id=CAST(requested.value AS INTEGER) AND (
+      e.entity_type='listing' AND e.entity_id=?
+      OR e.entity_type='viewing' AND EXISTS(SELECT 1 FROM history_viewing_events h
+        WHERE h.event_id=e.id AND h.listing_id=?)
+      OR e.entity_type='applicant'
+        AND CASE WHEN json_valid(e.data) THEN json_extract(e.data,'$.listing_id') END=?
+        AND EXISTS(SELECT 1 FROM applicants a WHERE a.id=CAST(e.entity_id AS INTEGER)
+          AND CAST(a.id AS TEXT)=e.entity_id)
+        AND (e.type='match.reviewed'
+          OR e.type IN ('offer.recorded','offer.updated','offer.countered','offer.rejected','offer.withdrawn','offer.accepted')
+            AND EXISTS(SELECT 1 FROM offers o WHERE o.id=json_extract(e.data,'$.offer_id')
+              AND o.listing_id=? AND CAST(o.applicant_id AS TEXT)=e.entity_id)
+          OR e.type IN ('sale.updated','sale.milestone','sale.completed','sale.fallen_through')
+            AND EXISTS(SELECT 1 FROM sales s WHERE s.id=json_extract(e.data,'$.sale_id')
+              AND s.listing_id=? AND CAST(s.applicant_id AS TEXT)=e.entity_id)))`)
+    .bind(JSON.stringify(ids),id,id,id,id,id).first();
+  if(n!==ids.length)fail(409,'History changed. Refresh history to continue.');
+  return {valid:true};
+}
+
 export async function readListingHistory(env,{id,cursor}) {
   if(!/^HE-[A-Z]\d{3,}$/.test(id))fail(404,'Listing not found');
   const c=decodeCursor(cursor,id);
   const listing=await env.DB.prepare(`SELECT 'present' AS state FROM listings WHERE id=?
     UNION ALL SELECT 'deleted' AS state FROM deleted_listings WHERE id=? LIMIT 1`).bind(id,id).first();
   if(!listing)fail(404,'Listing not found');
-  // Unbounded/non-ASCII legacy TEXT must not overflow btoa/the 512-character cursor.
-  // Its bounded ID anchor resolves at most one row, still scoped to this listing and window.
-  if(c?.before_at===null){
-    const anchor=await env.DB.prepare("SELECT at FROM events WHERE id=? AND entity_type='listing' AND entity_id=? AND id<=?")
-      .bind(c.before_id,id,c.snapshot_id).first();
+  // Resolve a legacy unprintable date through its PK. Every continuation also checks that
+  // its anchor is still attributable to this property after a related row is deleted.
+  if(c){
+    const anchor=await env.DB.prepare('SELECT at,type,entity_type,entity_id,data FROM events WHERE id=? AND id<=?')
+      .bind(c.before_id,c.snapshot_id).first();
     if(!anchor)fail(400,'Invalid history cursor');
-    c.before_at=anchor.at;
+    let data;try{data=JSON.parse(anchor.data);}catch{}
+    let belongs=anchor.entity_type==='listing'&&anchor.entity_id===id;
+    if(anchor.entity_type==='applicant'&&data?.listing_id===id&&/^[1-9]\d*$/.test(anchor.entity_id)){
+      const applicant=Number(anchor.entity_id);
+      if(Number.isSafeInteger(applicant)){
+        const alive=await env.DB.prepare('SELECT 1 FROM applicants WHERE id=?').bind(applicant).first();
+        if(alive&&anchor.type==='match.reviewed')belongs=true;
+        else if(alive&&anchor.type.startsWith('offer.')&&positive(data.offer_id))
+          belongs=!!(await env.DB.prepare('SELECT 1 FROM offers WHERE id=? AND listing_id=? AND applicant_id=?')
+            .bind(data.offer_id,id,applicant).first());
+        else if(alive&&anchor.type.startsWith('sale.')&&positive(data.sale_id))
+          belongs=!!(await env.DB.prepare('SELECT 1 FROM sales WHERE id=? AND listing_id=? AND applicant_id=?')
+            .bind(data.sale_id,id,applicant).first());
+      }
+    }
+    if(anchor.entity_type==='viewing')belongs=!!(await env.DB.prepare(
+      'SELECT 1 FROM history_viewing_events WHERE event_id=? AND listing_id=?').bind(c.before_id,id).first());
+    if(!belongs)fail(400,'Invalid history cursor');
+    if(c.before_at===null)c.before_at=anchor.at;
   }
   // Global rowid maximum is a PK lookup; filtering MAX by listing would scan its whole at-ordered history.
   // Fix it in this SQL snapshot. All listing reads remain scoped, and new events stay above this ceiling even with old clocks.
+  const before=c?'AND (e.at,e.id)<(?,?)':'',beforeArgs=c?[c.before_at,c.before_id]:[];
+  const viewingBefore=c?'AND h.at=? AND h.event_id<?':'',viewingOlder=c?`UNION ALL ${VIEWING_SQL} AND h.at<?`:'';
+  const viewingArgs=c?[id,c.before_at,c.before_id,id,c.before_at]:[id];
+  // On a deep page, an equality seek by (at,id) must not scan every event sharing the date.
+  const relatedBefore=c?'AND e.at=? AND e.id<?':'',relatedOlder=c?`UNION ALL ${RELATED_SQL} AND e.at<?`:'';
+  const relatedArgs=c?[id,id,id,c.before_at,c.before_id,id,id,id,c.before_at]:[id,id,id];
   const {results}=await env.DB.prepare(`WITH window AS MATERIALIZED (
-    SELECT COALESCE(?,(SELECT MAX(id) FROM events),0) AS snapshot_id)
-    SELECT e.id,e.at,e.actor,e.type,e.data,w.snapshot_id FROM events e CROSS JOIN window w
+    SELECT COALESCE(?,(SELECT MAX(id) FROM events),0) AS snapshot_id), history AS (
+    SELECT e.id,e.at,e.actor,e.type,e.data,w.snapshot_id,'listing' AS history_kind FROM events e CROSS JOIN window w
     WHERE e.entity_type='listing' AND e.entity_id=? AND e.id<=w.snapshot_id
-      AND (? IS NULL OR e.at<? OR (e.at=? AND e.id<?))
-    ORDER BY e.at DESC,e.id DESC LIMIT 51`)
-    .bind(c?.snapshot_id??null,id,c?.before_at??null,c?.before_at??null,c?.before_at??null,c?.before_id??null).all();
+      ${before}
+    UNION ALL
+    ${VIEWING_SQL} ${viewingBefore}
+    ${viewingOlder}
+    UNION ALL
+    ${RELATED_SQL} ${relatedBefore}
+    ${relatedOlder})
+    SELECT * FROM history ORDER BY at DESC,id DESC LIMIT 51`)
+    .bind(c?.snapshot_id??null,id,...beforeArgs,...viewingArgs,...relatedArgs).all();
   const rows=results.slice(0,50),items=rows.map(project);
   if(items.length){
     const {results:refs}=await env.DB.prepare(`SELECT event_id,evidence_ref,action,reason_code,occurred_at
