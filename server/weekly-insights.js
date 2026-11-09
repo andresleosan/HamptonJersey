@@ -28,5 +28,6 @@ export async function weeklyInsightsPass(env,ts) {
       'coverage',json_object('first_day',(SELECT MIN(day) FROM daily_stats)))
     WHERE NOT EXISTS(SELECT 1 FROM weekly_insights WHERE week_start=?1)
     ON CONFLICT(week_start) DO NOTHING`).bind(from,until,generated,startUtc,endUtc,to)]);
-  return {created:result.meta.changes===1,week_start:from};
+  // D1 counts the trigger writes too; a replay writes no rows at all.
+  return {created:result.meta.changes>0,week_start:from};
 }

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
+import {createRequire} from 'node:module';
 import {DatabaseSync} from 'node:sqlite';
 import {makeEnv,seedListing,call,adminCookie} from './helpers.mjs';
 import {weeklyPeriod,weeklyInsightsPass} from '../../server/weekly-insights.js';
@@ -122,4 +123,24 @@ test('unrelated events and invented collection IDs cannot create weekly links',a
   assert.equal(n.link,null);assert.equal(n.weekly_insights,undefined);
   const manual=await call(env,'POST','/admin/notification-tasks',{cookie:await adminCookie('admin@example.test'),body:{operation_id:crypto.randomUUID(),target:{kind:'collection',id:'weekly-insights:'+WEEK},title:'Invalid'}});
   assert.equal(manual.status,400);
+});
+
+test('real D1 returns created once with trigger side effects and rolls back an aborted notice',async()=>{
+  const require=createRequire(import.meta.url),{Miniflare,convertV4MiniflareOptions}=require('miniflare'),{unstable_splitSqlQuery}=require('wrangler');
+  const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:"export default {fetch(){return new Response('fixture')}}",compatibilityDate:'2025-10-01',host:'127.0.0.1',port:0,d1Databases:{DB:'ana08-runtime'}}));
+  try{
+    const DB=await mf.getD1Database('DB'),dir=new URL('../../migrations/',import.meta.url);
+    for(const name of readdirSync(dir).filter(f=>f.endsWith('.sql')).sort())await DB.batch(unstable_splitSqlQuery(readFileSync(new URL(name,dir),'utf8')).map(sql=>DB.prepare(sql)));
+    const pair=await Promise.all([weeklyInsightsPass({DB},TS),weeklyInsightsPass({DB},TS)]);
+    assert.equal(pair.filter(r=>r.created).length,1);
+    assert.equal((await weeklyInsightsPass({DB},TS)).created,false);
+    assert.equal((await DB.prepare('SELECT COUNT(*) AS n FROM weekly_insights').first()).n,1);
+    assert.equal((await DB.prepare("SELECT COUNT(*) AS n FROM notifications WHERE task_key LIKE 'insights:weekly:%'").first()).n,1);
+    assert.equal((await DB.prepare("SELECT COUNT(*) AS n FROM notification_task_history").first()).n,1);
+    await DB.prepare("CREATE TRIGGER fixture_fail BEFORE INSERT ON notifications WHEN NEW.task_key LIKE 'insights:weekly:%' BEGIN SELECT RAISE(ABORT,'fixture failure'); END").run();
+    await assert.rejects(weeklyInsightsPass({DB},'2026-11-16T08:00:00.000Z'));
+    assert.equal((await DB.prepare('SELECT COUNT(*) AS n FROM weekly_insights').first()).n,1);
+    assert.equal((await DB.prepare("SELECT COUNT(*) AS n FROM events WHERE type='analytics.weekly_created'").first()).n,1);
+    assert.deepEqual((await DB.prepare('PRAGMA foreign_key_check').all()).results,[]);
+  }finally{await mf.dispose();}
 });

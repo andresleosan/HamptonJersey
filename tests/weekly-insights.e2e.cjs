@@ -1,0 +1,66 @@
+// Local only: E2E_SCRIPT=tests/weekly-insights.e2e.cjs npm run test:e2e
+const {chromium}=require(process.env.PW||'playwright-core');
+const assert=require('node:assert/strict');
+const {readFileSync,mkdirSync}=require('node:fs');
+const {parseEnv}=require('node:util');
+const {execFileSync}=require('node:child_process');
+const {join,dirname}=require('node:path');
+const BASE=process.env.BASE,vars=parseEnv(readFileSync(process.env.E2E_VARS,'utf8'));
+const wrangler=join(dirname(require.resolve('wrangler')),'..','bin','wrangler.js');
+const sql=s=>execFileSync(process.execPath,[wrangler,'d1','execute','hampton','--local','--persist-to',process.env.E2E_PERSIST,'--json','--command',s],{stdio:'pipe'});
+const report=(from,to,views)=>({version:1,period:{days:7,from,to},generated_at:'2026-11-09T08:00:00.000Z',totals:{views,viewing_requests:2,new_applicants:3,viewings_completed:1},most_viewed:views?[{listing_id:'HE-R001',views}]:[],coverage:{first_day:null}});
+(async()=>{
+  assert.ok(BASE&&process.env.E2E_PERSIST,'isolated local fixture required');
+  for(const [from,until,to,views] of [['2026-11-02','2026-11-09','2026-11-08',5],['2026-10-26','2026-11-02','2026-11-01',0]])
+    sql(`INSERT INTO weekly_insights VALUES('${from}','${until}','2026-11-09T08:00:00.000Z','${JSON.stringify(report(from,to,views))}');`);
+  const {signSession,COOKIE}=await import('../server/auth.js');
+  const browser=await chromium.launch({executablePath:process.env.CHROME});
+  const shots=process.env.ANA08_SHOTS||'/tmp/hampton-ana08-shots';mkdirSync(shots,{recursive:true});
+  try{for(const width of [1280,390]){
+    const ctx=await browser.newContext({viewport:{width,height:900},timezoneId:'Europe/Jersey'});
+    await ctx.addCookies([{name:COOKIE,value:await signSession('admin@example.test',vars.SESSION_SECRET),domain:new URL(BASE).hostname,path:'/',httpOnly:true,secure:true,sameSite:'Strict'}]);
+    const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(8000);
+    await page.goto(new URL('admin/#/',BASE).href);await page.getByRole('heading',{name:'Inbox',exact:true}).waitFor();
+    await page.getByRole('group',{name:'Notices',exact:true}).getByRole('button',{name:'Feed',exact:true}).click();
+    await page.getByRole('group',{name:'Category',exact:true}).getByRole('button',{name:/^Messages/}).click();
+    await page.locator('.inbox-list button').filter({hasText:'2026-11-02'}).click();
+    const detail=page.locator('.inbox-detail');await detail.getByRole('link',{name:'Open weekly Insights',exact:true}).waitFor();
+    assert.equal(await detail.getByRole('combobox',{name:'Assigned to',exact:true}).count(),0);
+    assert.equal(await detail.getByRole('button',{name:'Done',exact:true}).count(),0);
+    assert.equal(await detail.getByRole('button',{name:'Claim task',exact:true}).count(),0);
+    await detail.getByRole('link',{name:'Open weekly Insights',exact:true}).click();
+    const weekly=page.getByRole('region',{name:'Weekly Insights',exact:true});await weekly.waitFor();
+    assert.match(page.url(),/insights\/weekly\/2026-11-02/);
+    assert.equal(await weekly.locator('.figures .card').filter({hasText:'Listing views'}).locator('dd').textContent(),'5');
+    await weekly.getByText('View counting may not cover the whole week.',{exact:true}).waitFor();
+    await weekly.getByRole('listitem').filter({hasText:'HE-R001'}).waitFor();
+    const retry=weekly.getByRole('button',{name:'Refresh report',exact:true});await retry.focus();
+    assert.equal(await retry.evaluate(e=>e===document.activeElement),true);
+    let fail=true;await page.route('**/api/admin/insights/weekly/2026-11-02',route=>fail?route.fulfill({status:503,contentType:'application/json',body:'{"error":"Report temporarily unavailable"}'}):route.continue());
+    await page.keyboard.press('Enter');await weekly.getByRole('alert').filter({hasText:'Report temporarily unavailable'}).waitFor();
+    assert.equal(await weekly.locator('.figures .card').filter({hasText:'Listing views'}).locator('dd').textContent(),'5');
+    fail=false;await weekly.getByRole('button',{name:'Try again',exact:true}).click();await weekly.getByRole('alert').waitFor({state:'hidden'});
+    await page.screenshot({path:join(shots,`ana08-${width}.png`),fullPage:true});
+    await page.evaluate(()=>{document.documentElement.style.zoom='2';});
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal overflow at 200%');
+    await page.screenshot({path:join(shots,`ana08-${width}-zoom.png`),fullPage:true});
+    await page.evaluate(()=>{document.documentElement.style.zoom='1';});
+    await page.goto(new URL('admin/#/insights/weekly/2026-10-26',BASE).href);await page.getByText('No listing views recorded for this week.',{exact:true}).waitFor();
+    await page.goto(new URL('admin/#/insights/weekly/2026-10-19',BASE).href);await page.getByRole('alert').filter({hasText:'Weekly Insights not found'}).waitFor();
+    await page.goto(new URL('admin/#/insights/weekly/2026-11-02',BASE).href);await page.getByRole('link',{name:'Open current Insights',exact:true}).click();
+    await page.getByRole('heading',{name:'Insights',exact:true}).waitFor();
+    await page.goto(new URL('admin/#/insights/weekly/2026-11-02',BASE).href);await page.getByRole('region',{name:'Weekly Insights',exact:true}).locator('.figures').waitFor();
+    let release,started,completed;const held=new Promise(r=>release=r),pending=new Promise(r=>started=r),done=new Promise(r=>completed=r);
+    const delayed=async route=>{const response=await route.fetch();started();await held;await route.fulfill({response});completed();};
+    await page.route('**/api/admin/insights/weekly/2026-11-02',delayed);
+    await page.getByRole('button',{name:'Refresh report',exact:true}).click();await pending;
+    await page.getByRole('link',{name:'Open current Insights',exact:true}).click();release();await done;
+    await page.getByRole('heading',{name:'Insights',exact:true}).waitFor();
+    assert.equal(await page.getByRole('heading',{name:'Weekly Insights',exact:true}).count(),0);await page.unroute('**/api/admin/insights/weekly/2026-11-02',delayed);
+    await page.goto(new URL('admin/#/insights/weekly/2026-11-02',BASE).href);await page.getByRole('region',{name:'Weekly Insights',exact:true}).locator('.figures').waitFor();
+    let unauthorized=0;await page.route('**/api/admin/insights/weekly/2026-11-02',route=>{unauthorized++;return route.fulfill({status:401,contentType:'application/json',body:'{"error":"Please sign in to continue"}'});});
+    await page.getByRole('button',{name:'Refresh report',exact:true}).click();await page.getByRole('dialog',{name:'Session expired',exact:true}).waitFor();
+    assert.equal(await page.locator('main.page').getAttribute('inert'),'');assert.equal(unauthorized,1);
+    assert.deepEqual(errors,[]);await ctx.close();console.log(`Weekly Insights ${width}px, keyboard, refresh error, empty, missing, stale response, session expiry and zoom: passed.`);
+  }}finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -17,3 +17,11 @@ Task1: calendario, tabla aditiva e INSERT SELECT implementados. RED observado po
 Task2: API, destino de colección tipado, recibos de lectura, prohibición de mutaciones y reloj implementados. RED real404/401 y enlace ausente; GREEN5/5 archivos focales (semanal, jobs, insights, tareas y categorías). La prueba del fallo de job comprueba el heartbeat real de email; el correo desactivado no necesariamente usa DB.batch.
 
 UI: el primer lanzamiento local se detuvo por EPERM al abrir127.0.0.1; se usa ejecución autorizada con mayor acceso solo para fixture local/navegador, sin modificar red ni permisos de servicios.
+
+Task3: detalle inmutable y navegación implementados con componentes/paleta/tipografía existentes (Tenor Sans, Montserrat; ink151515, mistf4f3f0, stone6b665e; foco2px bronze). RED navegador por enlace ausente; GREEN1280/390, teclado, error503 conservando datos, reintento, vacío,404, respuesta tardía descartada, sesión401 con modal e inert y zoom200 sin desbordamiento. Capturas privadas revisadas visualmente en /tmp/hampton-ana08-shots; no se publican datos/fixtures.
+
+## Revisión independiente
+
+Revisor de contexto nuevo, lectura sola: sin bloqueos de entrega, permisos, límites históricos, atomicidad o UI. Señaló un contrato de retorno incorrecto: D1 meta.changes cuenta también las escrituras de triggers; ===1 devolvía created:false en el primer insert. Se corrigió a>0. La prueba D1 real reprodujo RED (0 creaciones notificadas frente a1), luego GREEN8/8 del archivo semanal, incluida concurrencia, reintento,rollback/FK. Ningún hallazgo pendiente. No se atribuye al revisor haber ejecutado nuestras pruebas.
+
+Suite previa al arreglo de retorno:1019 Node +14 Python aprobadas. Se repite la suite completa después del arreglo y de actualizar documentación generada. La ejecución inicial en sandbox falló en6 archivos existentes por restricciones de localhost/procesos; la ejecución autorizada completa pasó. Sin modificar controles del sistema.
