@@ -68,7 +68,7 @@ export const ARREARS_SQL = `a_t AS (SELECT t.id, t.rental_id FROM tenancies t JO
 const STEP = Object.fromEntries(ARREARS_STEPS.map(([days, step, label]) => [step, { days, step, label }]));
 
 // R10, R13: the tenancy's own deadlines, from its dates (no rows): [key, label, from, days, done].
-const DEADLINES = [["deposit", "Deposit protected", "deposit_received_on", LEGAL.depositDays, "deposit_protected_on"],
+export const DEADLINES = [["deposit", "Deposit protected", "deposit_received_on", LEGAL.depositDays, "deposit_protected_on"],
   ["inventory_in", "Check-in report", "start_on", LEGAL.reportDays, "inventory_in_on"],
   ["inventory_out", "Check-out report", "ended_on", LEGAL.reportDays, "inventory_out_on"]];
 export const deadlines = (t, today) => DEADLINES.filter(d => t[d[2]]).map(([key, label, from, days, done]) => {
@@ -77,7 +77,7 @@ export const deadlines = (t, today) => DEADLINES.filter(d => t[d[2]]).map(([key,
 });
 
 // R10, R11, P4: the property checks that count, over c and r: properties not archived, gas only where there may be gas.
-const CHECKS = `FROM compliance_items c JOIN rentals r ON r.id = c.rental_id
+export const CHECKS = `FROM compliance_items c JOIN rentals r ON r.id = c.rental_id
   WHERE r.archived_at IS NULL AND (c.kind <> 'gas' OR r.has_gas IS NOT 0)`;
 // R10, R13: one SQL term per tenancy deadline not done whose due date `cmp` (e.g. "< ?1"), over t; the same rule as
 // deadlines(), from the same DEADLINES.
@@ -85,7 +85,7 @@ const pending = cmp => DEADLINES.map(([, , from, days, done]) =>
   `(t.${from} IS NOT NULL AND t.${done} IS NULL AND date(t.${from}, '+${days} days') ${cmp})`);
 // R12, R16, R24: a fixed term within LEGAL.renewalDays of its end, or past it, with no notice and no move-out set (over t;
 // ?1 = today). Renew moves end_on on or makes it periodic.
-const RENEWAL = `t.kind = 'fixed' AND t.ended_on IS NULL AND t.notice_given_on IS NULL
+export const RENEWAL = `t.kind = 'fixed' AND t.ended_on IS NULL AND t.notice_given_on IS NULL
   AND t.end_on <= date(?1, '+${LEGAL.renewalDays} days')`;
 const OPEN_REPAIR = "p.status NOT IN ('done', 'cancelled')"; // the repairs_open index
 
@@ -781,6 +781,11 @@ async function findTenancies({ request, env }) {
 }
 
 export default [
+  ['GET',/^\/admin\/payments\/(\d+)$/,async({env,params:[id]})=>{
+    const payment=await env.DB.prepare(`SELECT p.*,t.rental_id,t.tenant_name,r.address FROM payments p
+      LEFT JOIN tenancies t ON t.id=p.tenancy_id LEFT JOIN rentals r ON r.id=t.rental_id WHERE p.id=?`).bind(Number(id)).first();
+    if(!payment)fail(404,'Payment not found');return json({payment});
+  },true],
   ["GET", /^\/admin\/rentals$/, overview, true],
   ["GET", /^\/admin\/tenancies$/, findTenancies, true],
   ["GET", /^\/admin\/statements$/, statement, true],

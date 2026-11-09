@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { firebaseSignOut } from "./firebase.js";
 import Login from "./Login.jsx";
 import Inbox from "./Inbox.jsx";
+import BrowserAlerts from "./BrowserAlerts.jsx";
 import Applicants from "./Applicants.jsx";
 import NewApplicant from "./NewApplicant.jsx";
 import ApplicantDetail from "./ApplicantDetail.jsx";
@@ -99,9 +100,15 @@ export default function App() {
   const bar = useRef(null);
   useEffect(() => {
     if (!bar.current) return;
-    const ro = new ResizeObserver(([e]) => document.documentElement.style.setProperty("--bar-h", `${e.target.offsetHeight}px`));
-    ro.observe(bar.current);
-    return () => ro.disconnect();
+    const element=bar.current;
+    const measure=()=>{
+      // At high zoom a wrapped bar can occupy the viewport. Let it scroll away then.
+      element.style.position=element.getBoundingClientRect().height>window.innerHeight/2?'static':'';
+      const sticky=getComputedStyle(element).position==='sticky';
+      document.documentElement.style.setProperty('--bar-h',`${sticky?element.offsetHeight:0}px`);
+    };
+    const ro = new ResizeObserver(measure);ro.observe(element);window.addEventListener('resize',measure);measure();
+    return () => {ro.disconnect();window.removeEventListener('resize',measure);};
   }, [me]);
 
   const signedIn = email => { setMe(email); setExpired(false); };
@@ -117,16 +124,16 @@ export default function App() {
       ? <OwnerReport key={arg} id={decodeURIComponent(arg)} days={new URLSearchParams(query).get("days")} />
     : section === "listings" ? <Listings onChange={loadCounts} /> : section === "queue" ? <Queue onChange={loadCounts} /> : section === "viewings"
       ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} requestedId={new URLSearchParams(query).get("viewing")} />
-    : section === "sales" && /^\d+$/.test(arg) ? <SaleDetail key={arg} id={arg} onChange={loadCounts} />
-    : section === "sales" ? <Sales key={query ?? ""} buyer={new URLSearchParams(query).get("applicant")} onChange={loadCounts} />
+    : section === "sales" && /^\d+$/.test(arg) ? <SaleDetail key={arg} id={arg} requestedMilestone={new URLSearchParams(query).get('milestone')} onChange={loadCounts} />
+    : section === "sales" ? <Sales key={query ?? ""} buyer={new URLSearchParams(query).get("applicant")} requestedOffer={new URLSearchParams(query).get('offer')} onChange={loadCounts} />
     : section === "rentals" && arg === "new"
       ? <NewRental key={query ?? ""} landlordId={new URLSearchParams(query).get("landlord")} onChange={loadCounts} />
     : section === "rentals" && arg === "import" ? <RentImport onChange={loadCounts} />
     : section === "rentals" && arg === "statements"
       ? <Statement landlord={new URLSearchParams(query).get("landlord")} month={new URLSearchParams(query).get("month")} />
     : section === "rentals" && arg === "landlords" && /^\d+$/.test(sub) ? <Landlord key={sub} id={sub} />
-    : section === "rentals" && /^\d+$/.test(arg) ? <RentalDetail key={arg} id={arg} onChange={loadCounts} />
-    : section === "rentals" ? <Rentals onChange={loadCounts} />
+    : section === "rentals" && /^\d+$/.test(arg) ? <RentalDetail key={arg} id={arg} selection={query??''} onChange={loadCounts} />
+    : section === "rentals" ? <Rentals requestedPayment={new URLSearchParams(query).get('payment')} unmatched={new URLSearchParams(query).get('payments')==='unmatched'} onChange={loadCounts} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "advertisers" ? <Advertisers session={advertiserSession} />
     : section === "messages" ? <Messages paused={expired} onChange={loadCounts} />
@@ -175,7 +182,8 @@ export default function App() {
     <main className="page" inert={expired} onClickCapture={e => { if (e.target.closest("a[href^='#']")) leave(e); }}>
       {taskPending && pendingNavigation && <p role="alert" className="warn">Confirm the pending task result before leaving. Wait for the reply, or use the task's retry button if the result is uncertain.</p>}
       {counts.outbound && <Paused outbound={counts.outbound} onResumed={loadCounts} />}
-      {page}</main>
+      {page}
+      <BrowserAlerts paused={expired} onOpen={()=>{if(leave()){window.focus();location.hash='#/';}}}/></main>
     {/* Session expired mid-task: sign in again on top of the page so nothing typed is lost. */}
     {expired && <div className="modal" role="dialog" aria-modal="true" aria-label="Session expired">
       <Login title="Your session has expired" note="Sign in again; what you were editing is still here." onSignedIn={signedIn} home={false} />

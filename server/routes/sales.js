@@ -222,8 +222,8 @@ async function loadSale(env, id) {
 // V18: an open offer on a listing with a sale in progress is a backup. V9: an open offer untouched for longer than
 // OFFER_WAITING_MS is Waiting, unless it is a backup (binds the cutoff). Over offers o.
 const BACKUP = "EXISTS (SELECT 1 FROM sales bs WHERE bs.listing_id = o.listing_id AND bs.status = 'in_progress')";
-const WAITING = `o.status IN ${OPEN_SQL} AND o.updated_at < ? AND NOT ${BACKUP}`;
-const waitingCutoff = () => new Date(Date.now() - OFFER_WAITING_MS).toISOString();
+export const WAITING = `o.status IN ${OPEN_SQL} AND o.updated_at < ? AND NOT ${BACKUP}`;
+export const waitingCutoff = (at=Date.now()) => new Date(new Date(at).getTime() - OFFER_WAITING_MS).toISOString();
 
 // V10: the nav's Sales count, sales in progress with an overdue step (isOverdue in SQL, binds today) plus waiting offers.
 export const salesCount = env => env.DB.prepare(`SELECT (SELECT COUNT(*) FROM sales s WHERE s.status = 'in_progress'
@@ -437,6 +437,12 @@ async function fallThrough({ request, env, admin, params: [id] }) {
 }
 
 export default [
+  ['GET',/^\/admin\/offers\/(\d+)$/,async({env,params:[id]})=>{
+    const offer=await env.DB.prepare(`SELECT o.*,l.title AS listing_title,c.name AS buyer_name,a.buyer_position,a.mortgage_aip,
+      ${WAITING} AS waiting,${BACKUP} AS backup,(SELECT id FROM sales WHERE offer_id=o.id) AS sale_id
+      FROM offers o ${people('o')} WHERE o.id=?`).bind(waitingCutoff(),Number(id)).first();
+    if(!offer)fail(404,'Offer not found');return json({offer});
+  },true],
   ["POST", /^\/admin\/offers$/, create, true],
   ["PUT", /^\/admin\/offers\/(\d+)$/, update, true],
   ["POST", /^\/admin\/offers\/(\d+)\/accept$/, accept, true],

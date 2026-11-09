@@ -22,6 +22,23 @@ test("the Worker answers the clock and inbound email, with no public HTTP handle
   assert.deepEqual(Object.keys(worker).sort(), ["email", "scheduled"]);
 });
 
+test('notification queues use processing time and one failing pass does not stop the clock or email',async t=>{
+  t.mock.method(console,'log',()=>{});const errors=t.mock.method(console,'error',()=>{});
+  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-09T12:00:00.000Z')});
+  const env=makeEnv();env.DB.raw.exec(`INSERT INTO payments(received_on,amount,kind,source,created_at)
+    VALUES('2026-11-09',100,'rent','manual','${T0}');`);
+  const original=env.DB.batch.bind(env.DB);let failOnce=true,emailRead=false;
+  env.DB.batch=stmts=>{if(stmts.some(s=>/email|outbound/.test(s.sql)))emailRead=true;
+    if(failOnce&&stmts.some(s=>/UPDATE notification_cursor/.test(s.sql))){failOnce=false;return Promise.reject(new Error('Private customer message'));}return original(stmts);};
+  await tick(env,'2026-11-08T00:00:00.000Z');
+  assert.deepEqual(errors.mock.calls.map(c=>c.arguments),[['Notification pass failed']]);
+  assert.ok(setting(env,'clock'));assert.equal(emailRead,true);
+  await tick(env,'2026-11-08T00:10:00.000Z');
+  const observation=env.DB.raw.prepare("SELECT observed_at FROM notification_cursor WHERE key='queues'").get();
+  assert.equal(observation.observed_at,'2026-11-09T12:00:00.000Z');
+  assert.equal(env.DB.raw.prepare("SELECT COUNT(*) AS n FROM notifications WHERE title='Unmatched payment'").get().n,1);
+});
+
 test("Cloudflare's email execution context is not mistaken for the received timestamp", async () => {
   const env=emailEnv(), bytes=new TextEncoder().encode("From: team@example.test\r\nSubject: Received\r\n\r\nHello");
   await worker.email({from:"team@example.test",to:"replies@app.hamptonestatesjersey.com",rawSize:bytes.length,

@@ -85,7 +85,7 @@ export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,on
       <div className="inline">
         {open&&<button type="button" className="btn" disabled={disabled||dirty||createDirty||conflict||!task.target_exists} onClick={()=>save('done')}>Done</button>}
         {task.can_reopen&&<button type="button" className="btn" disabled={disabled||dirty||createDirty||conflict} onClick={()=>save('reopen')}>Reopen task</button>}
-        {task.link&&task.target_exists&&<a className="btn ghost" href={task.link}>{task.entity_type==='viewing'?'Open viewing':task.entity_type==='listing'?'Open property':task.category==='matched'?'Review matches':'Open applicant'}</a>}
+        {task.link&&task.target_exists&&<a className="btn ghost" href={task.link}>{({viewing:'Open viewing',listing:'Open property',offer:'Open offer',sale:'Open sale',rental:'Open rental',payment:'Open payment',collection:'Open unmatched payments'})[task.entity_type]||(task.category==='matched'?'Review matches':'Open applicant')}</a>}
         {task.phone&&<a className="btn ghost" href={`tel:${task.phone}`}>Call</a>}
       </div></div>
     {error&&<p role="alert" className="err">{error}</p>}
@@ -95,6 +95,7 @@ export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,on
     {(conflict||!loaded)&&!uncertain&&<p><button type="button" className="btn ghost" disabled={busy||paused} onClick={reload}>Reload task</button></p>}
     {!loaded&&!error&&<p role="status">Loading task details…</p>}
     {task.task_reason&&<p className="task-reason">{task.task_reason}</p>}
+    {task.context_label&&<p>{task.context_label}</p>}
     <dl className="kv">
       <div><dt>Received</dt><dd>{fmtDate(task.created_at)}</dd></div>
       <div><dt>Status</dt><dd>{open?'Needs action':task.resolved_at?(task.closed_by_source?'Resolved by source':'Done'):'For your information'}</dd></div>

@@ -66,7 +66,7 @@ async function dayOf(env, { negotiator_id, date, listing_id }, clock) {
   return a.negotiators.length ? { name: a.negotiators[0].name, slots: a.days[0].slots[negotiator_id], property_viewings_enabled: a.property_viewings_enabled } : null;
 }
 
-// C14: booked by the team, so confirmed at once and without an Inbox notice. Any listing still in the table will do.
+// C14: booked by the team, so confirmed at once; NOT-01 adds an informational Feed fact. Any existing listing will do.
 async function create({ request, env, admin }) {
   const body = await readJson(request), clock = jerseyNow();
   const r = validateViewing(body, { today: clock.date, panel: true });
@@ -175,9 +175,9 @@ async function update({ request, env, admin, params: [id] }) {
 // The request's personal data goes with it: its notices lose the name, its events their data (NULL, never '').
 async function remove({ env, admin, params: [id] }) {
   const ref = { entity_type: "viewing", entity_id: String(Number(id)) };
-  const [r] = await env.DB.batch([
-    env.DB.prepare("DELETE FROM viewing_requests WHERE id = ?").bind(Number(id)),
+  const [,r] = await env.DB.batch([
     resolveNotices(env, ref, admin),
+    env.DB.prepare("DELETE FROM viewing_requests WHERE id = ?").bind(Number(id)),
     env.DB.prepare(`UPDATE notifications SET title = 'Deleted viewing request', task_reason = NULL
       WHERE event_id IN (SELECT id FROM events WHERE entity_type = ? AND entity_id = ?)`).bind(ref.entity_type, ref.entity_id),
     env.DB.prepare("UPDATE events SET data = NULL WHERE entity_type = ? AND entity_id = ?").bind(ref.entity_type, ref.entity_id),

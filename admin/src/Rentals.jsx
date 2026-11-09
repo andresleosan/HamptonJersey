@@ -24,7 +24,7 @@ const daysTo = d => Math.round((Date.parse(d) - Date.parse(jerseyToday())) / 864
 let added = null;
 
 const Block = ({ id, title, rows, empty, head, children }) => <section className="block" aria-labelledby={id}>
-  <h3 id={id}>{title} <span className="muted">({rows.length})</span></h3>
+  <h3 id={id} tabIndex={-1}>{title} <span className="muted">({rows.length})</span></h3>
   {rows.length ? <div className="table-scroll" role="region" aria-labelledby={id} tabIndex={0}>
     <table className="list"><thead><tr>{head.map(h => <th key={h} scope="col">{h || <span className="sr">Actions</span>}</th>)}</tr></thead><tbody>{children}</tbody></table></div>
     : <p className="empty card slim">{empty}</p>}
@@ -37,11 +37,22 @@ export const checkState = c => c.status === "done" ? <span className="badge posi
   : <span className={`badge ${c.status === "due7" ? "attention" : "neutral"}`}>{inDays(daysTo(c.due_on))}</span>;
 const inDays = n => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : `In ${n} days`);
 
-export default function Rentals({ onChange }) {
+export default function Rentals({ onChange, requestedPayment, unmatched }) {
   const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(() => added && { text: added }), [dialog, setDialog] = useState(null);
   const [f, setF] = useState({ q: "", service: "", filter: "", archived: false }), [tick, setTick] = useState(0);
   const head = useRef(null), refocus = useRef(false), loaded = useRef(null);
+  const [linkedPayment,setLinkedPayment]=useState(null),[paymentError,setPaymentError]=useState(null);
+  const linkedHead=useRef(null),focusedLink=useRef(null);
+  useEffect(()=>{let live=true;setLinkedPayment(null);setPaymentError(null);
+    if(requestedPayment!=null){
+      if(!/^[1-9]\d*$/.test(requestedPayment)||!Number.isSafeInteger(Number(requestedPayment)))setPaymentError('Invalid payment link');
+      else api(`/admin/payments/${requestedPayment}`).then(d=>{if(live)setLinkedPayment(d.payment);},e=>{if(live)setPaymentError(e.message);});
+    }return()=>{live=false;};
+  },[requestedPayment,tick]);
+  useEffect(()=>{if(linkedPayment&&focusedLink.current!==`payment:${linkedPayment.id}`){linkedHead.current?.focus();focusedLink.current=`payment:${linkedPayment.id}`;}
+    else if(unmatched&&data&&focusedLink.current!=='unmatched'){document.getElementById('h-unmatched')?.focus();focusedLink.current='unmatched';}
+  },[linkedPayment,unmatched,data]);
   useEffect(() => { added = null; }, []);
   const query = new URLSearchParams(Object.entries({ q: f.q.trim(), service: f.service, filter: f.filter, archived: f.archived ? "1" : "" })
     .filter(([, v]) => v)).toString();
@@ -79,6 +90,17 @@ export default function Rentals({ onChange }) {
     {msg && <p role="status" className="ok">{msg.text}{msg.landlord && <> <a href={`#/rentals/new?landlord=${msg.landlord.id}`}>
       Add a property for {msg.landlord.name}</a></>}</p>}
     {loadErr && <p role="alert" className="err">{loadErr} <button type="button" className="btn ghost sm" onClick={reload}>Try again</button></p>}
+    {requestedPayment!=null&&<section id="linked-payment" className="card linked-target" aria-labelledby="h-linked-payment">
+      <h2 id="h-linked-payment" ref={linkedHead} tabIndex={-1}>Payment {requestedPayment}</h2>
+      {paymentError?<p role="alert" className="err">{paymentError} <button type="button" className="btn ghost sm" onClick={reload}>Try again</button></p>
+        :!linkedPayment?<p>Loading linked payment…</p>:<>
+          <p>{pence(linkedPayment.amount)} · {fmtDay(linkedPayment.received_on)} · {KIND[linkedPayment.kind]}</p>
+          {linkedPayment.description&&<p>{linkedPayment.description}</p>}
+          {linkedPayment.tenancy_id?<p>{linkedPayment.address} · {linkedPayment.tenant_name}{' '}
+            <a href={`#/rentals/${linkedPayment.rental_id}?tenancy=${linkedPayment.tenancy_id}`}>Open tenancy</a></p>
+            :<div className="inline"><p>Unmatched</p><button type="button" className="btn sm" onClick={open('assign',linkedPayment)}>Assign linked payment</button></div>}
+        </>}
+    </section>}
     {!data ? !loadErr && <p>Loading rentals…</p> : <>
       <p className="muted">{t.properties} {t.properties === 1 ? "property" : "properties"}, {t.occupied} with a tenancy · {pence(t.owed)} owed</p>
 

@@ -52,22 +52,31 @@ export const useFieldErrors = prefix => {
 };
 
 // buyer: an applicant id from #/sales?applicant=<id> (their record's Record offer), chosen in Record offer at once.
-export default function Sales({ buyer, onChange }) {
+export default function Sales({ buyer, requestedOffer, onChange }) {
   const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [msg, setMsg] = useState(null);
+  const [linked,setLinked]=useState(null),[linkedError,setLinkedError]=useState(null),[linkedTick,setLinkedTick]=useState(0);
+  const linkedHead=useRef(null);
+  useEffect(()=>{let live=true;setLinked(null);setLinkedError(null);
+    if(requestedOffer!==null&&requestedOffer!==undefined){
+      if(!/^[1-9]\d*$/.test(requestedOffer)||!Number.isSafeInteger(Number(requestedOffer)))setLinkedError('Invalid offer link');
+      else api(`/admin/offers/${requestedOffer}`).then(d=>{if(live)setLinked(d.offer);},e=>{if(live)setLinkedError(e.message);});
+    }return()=>{live=false;};
+  },[requestedOffer,linkedTick]);
+  useEffect(()=>{if(linked)linkedHead.current?.focus();},[linked?.id]);
   // { action, offer } or { action: "record", buyer }
   const [dialog, setDialog] = useState(buyer ? { action: "record", buyer } : null);
   const head = useRef(null), refocus = useRef(false);
   const load = () => api("/admin/sales").then(d => { setData(d); setLoadErr(null); }, e => setLoadErr(e.message));
   useEffect(() => { load(); }, []);
   // The buyer is used once: a reload, or Record offer again, starts with no one chosen. No hashchange, so nothing remounts.
-  useEffect(() => { if (buyer) history.replaceState(null, "", "#/sales"); }, []);
+  useEffect(() => { if (buyer&&!requestedOffer) history.replaceState(null, "", "#/sales"); }, []);
   // An offer that a change closed leaves the list, and with it the menu the focus went back to: the heading takes it.
   useEffect(() => {
     if (refocus.current && document.activeElement === document.body) head.current?.focus();
     refocus.current = false;
   }, [data]);
 
-  const done = text => { setDialog(null); setMsg(text); refocus.current = true; load(); onChange(); };
+  const done = text => { setDialog(null); setMsg(text); refocus.current = true; load(); setLinkedTick(n=>n+1); onChange(); };
   // The row menu closes and its button keeps the focus, so the dialog gives it back there.
   const open = (action, offer) => e => {
     const menu = e.currentTarget.closest("details");
@@ -80,6 +89,20 @@ export default function Sales({ buyer, onChange }) {
     <div className="head"><h1 id="t-sales">Sales</h1>
       <button type="button" className="btn" onClick={() => { setMsg(null); setDialog({ action: "record" }); }}>Record offer</button></div>
     {loadErr && <p role="alert" className="err">{loadErr} <button type="button" className="btn ghost sm" onClick={load}>Try again</button></p>}
+    {requestedOffer!=null&&<section id="linked-offer" className="card linked-target" aria-labelledby="h-linked-offer">
+      <h2 id="h-linked-offer" ref={linkedHead} tabIndex={-1}>Offer {requestedOffer}</h2>
+      {linkedError?<p role="alert" className="err">{linkedError} <button type="button" className="btn ghost sm" onClick={()=>setLinkedTick(n=>n+1)}>Try again</button></p>
+        :!linked?<p>Loading linked offer…</p>:<>
+          <p><a href={`#/p/${encodeURIComponent(linked.listing_id)}`}>{linked.listing_title}</a> · <a href={`#/applicants/${linked.applicant_id}`}>{linked.buyer_name}</a></p>
+          <p>{money(linked.amount)} <OfferBadge status={linked.status}/>{linked.counter_amount!=null&&<> · Countered {money(linked.counter_amount)}</>}</p>
+          {linked.conditions&&<p>{linked.conditions}</p>}
+          {linked.sale_id&&<p><a href={`#/sales/${linked.sale_id}`}>Open sale</a></p>}
+          {['pending','countered'].includes(linked.status)&&<div className="ctl">
+            {!linked.backup&&<button type="button" className="btn sm" onClick={open('accept',linked)}>Accept linked offer</button>}
+            {['edit','counter','reject','withdraw'].map(action=><button key={action} type="button" className="btn ghost sm" onClick={open(action,linked)}>{action[0].toUpperCase()+action.slice(1)} linked offer</button>)}
+          </div>}
+        </>}
+    </section>}
     {!data ? !loadErr && <p>Loading sales…</p> : <>
       <dl className="figures">{[["Open offers", t.open_offers], ["Sales in progress", t.in_progress],
         ["Fees in progress", money(t.fees_in_progress)], ["Fees completed this year", money(t.fees_completed_year)]].map(([k, v]) =>

@@ -1,12 +1,9 @@
 import {fail,now,sha256} from './http.js';
-import {NOTICE_SELECT,noticeDto,TASK_CATEGORIES} from './notification-query.js';
+import {NOTICE_SELECT,noticeDto,TASK_CATEGORIES,targetExists,taskTarget,sourceAllowsTarget,noticeTargetExists} from './notification-query.js';
+export {targetExists,taskTarget} from './notification-query.js';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export const targetExists=(kind,id)=>`((${kind}='applicant' AND EXISTS(SELECT 1 FROM applicants WHERE id=${id}))
-  OR (${kind}='viewing' AND EXISTS(SELECT 1 FROM viewing_requests WHERE id=${id}))
-  OR (${kind}='contact' AND EXISTS(SELECT 1 FROM contacts WHERE id=${id}))
-  OR (${kind}='listing' AND EXISTS(SELECT 1 FROM listings WHERE id=${id})))`;
-const currentTarget=targetExists('e.entity_type','e.entity_id');
+const currentTarget=noticeTargetExists('notifications','e');
 const keyText=(value,label,max)=>{
   if(typeof value!=='string'||!value.trim()||value.trim().length>max)fail(400,`Invalid ${label}`);
   return value.trim();
@@ -17,27 +14,20 @@ export function deadline(value) {
     ||!Number.isFinite(Date.parse(value))||new Date(value).toISOString()!==value)fail(400,'Use a valid UTC deadline');
   return value;
 }
-export function taskTarget(value,manual=false) {
-  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!['kind','id'].includes(k)))fail(400,'Choose a task target');
-  const kind=value.kind,id=String(value.id??'');
-  if(!(manual?['applicant','viewing']:['applicant','viewing','contact','listing']).includes(kind))fail(400,'Invalid task target');
-  if(kind==='listing'?!/^HE-[A-Z]\d{3,}$/.test(id):!(/^[1-9]\d*$/.test(id)&&Number.isSafeInteger(Number(id))))fail(400,'Invalid task target');
-  return {kind,id};
-}
 function projectDescriptor(d) {
   if(!d||typeof d!=='object')fail(400,'Invalid task descriptor');
   const target=taskTarget(d.target),taskKey=keyText(d.taskKey,'task key',200),title=keyText(d.title,'task title',200);
   if(!/^[A-Za-z0-9][A-Za-z0-9:._/-]*$/.test(taskKey)||!TASK_CATEGORIES.includes(d.category))fail(400,'Invalid task identity or category');
   if(d.sourceVersion!=null&&(!Number.isSafeInteger(d.sourceVersion)||d.sourceVersion<1))fail(400,'Invalid source version');
-  for(const field of ['requiresAction','resolved','reopen'])if(d[field]!==undefined&&typeof d[field]!=='boolean')fail(400,`Invalid ${field}`);
+  for(const field of ['requiresAction','resolved','reopen','preserveDone'])if(d[field]!==undefined&&typeof d[field]!=='boolean')fail(400,`Invalid ${field}`);
   const reason=d.reason==null?null:keyText(d.reason,'task reason',500);
   const dueSet=Object.hasOwn(d,'dueAt'),due=dueSet?deadline(d.dueAt):null;
   const urgencySet=Object.hasOwn(d,'urgency'),urgency=d.urgency??'normal';
   if(!['normal','urgent'].includes(urgency))fail(400,'Invalid urgency');
   const assigned=d.initialAssignedTo==null?null:keyText(d.initialAssignedTo,'assignee',254);
   const actor=d.actor==null?null:keyText(d.actor,'actor',254);
-  return {taskKey,title,category:d.category,target,reason,due,dueSet,urgency,urgencySet,assigned,actor,
-    version:d.sourceVersion??null,action:d.requiresAction===false?0:1,resolved:d.resolved===true?1:0,reopen:d.reopen===true?1:0};
+  return {taskKey,title,category:d.category,target,context:target.context?JSON.stringify(target.context):null,reason,due,dueSet,urgency,urgencySet,assigned,actor,
+    version:d.sourceVersion??null,action:d.requiresAction===false?0:1,resolved:d.resolved===true?1:0,reopen:d.reopen===true?1:0,preserveDone:d.preserveDone===true?1:0};
 }
 
 // One materialized source and one UPSERT also handle a group of projections. No later projection
@@ -51,42 +41,47 @@ export function taskStatements(env,descriptor,{ifInserted=false}={}) {
   if(descriptors.some(d=>(d.eventId??null)!==eventId))fail(400,'Grouped projections must reference one event');
   const values=descriptors.map(projectDescriptor);
   if(new Set(values.map(d=>d.taskKey)).size!==values.length)fail(400,'Duplicate task projection key');
-  const ts=now(),args=[eventId];
-  for(const d of values)args.push(d.taskKey,d.version,d.category,d.title,d.reason,
-    d.target.kind,d.target.id,d.action,d.resolved,d.due,Number(d.dueSet),d.assigned,d.actor,d.urgency,Number(d.urgencySet),d.reopen);
-  args.push(ts,ts);
-  const columns='task_key,source_version,category,title,reason,target_kind,target_id,requires_action,resolved,due_at,due_set,assigned_to,actor,urgency,urgency_set,reopen';
+  const ts=now(),incoming=values.map(d=>[d.taskKey,d.version,d.category,d.title,d.reason,
+    d.target.kind,d.target.id,d.action,d.resolved,d.due,Number(d.dueSet),d.assigned,d.actor,d.urgency,Number(d.urgencySet),d.reopen,d.context,d.preserveDone]);
+  const columns='task_key,source_version,category,title,reason,target_kind,target_id,requires_action,resolved,due_at,due_set,assigned_to,actor,urgency,urgency_set,reopen,target_context,preserve_done';
+  const holdClosed=`(SELECT preserve_done FROM incoming WHERE task_key=excluded.task_key)=1
+    OR notifications.closed_by_source=1`;
+  const sameTarget=`COALESCE(notifications.target_kind,previous.entity_type)=excluded.target_kind
+    AND COALESCE(notifications.target_id,previous.entity_id)=excluded.target_id
+    AND notifications.target_context IS excluded.target_context`;
   return [env.DB.prepare(`WITH source AS MATERIALIZED (
-      SELECT id,actor,entity_type,entity_id FROM events WHERE id=COALESCE(?,last_insert_rowid())${ifInserted?' AND changes()=1':''}
-    ),incoming(${columns}) AS (VALUES ${values.map(()=>`(${Array(16).fill('?').join(',')})`).join(',')})
+      SELECT id,actor,entity_type,entity_id,data FROM events WHERE id=COALESCE(?,last_insert_rowid())${ifInserted?' AND changes()=1':''}
+    ),incoming(${columns}) AS (SELECT ${incoming[0].map((_,i)=>`json_extract(value,'$[${i}]')`).join(',')} FROM json_each(?))
     INSERT INTO notifications(task_key,event_id,source_version,category,title,task_reason,action_required,created_at,
-      resolved_at,resolved_by,due_at,assigned_to,urgency,closed_by_source,task_actor,task_action)
+      resolved_at,resolved_by,due_at,assigned_to,urgency,closed_by_source,task_actor,task_action,target_kind,target_id,target_context)
     SELECT i.task_key,e.id,COALESCE(i.source_version,e.id),i.category,i.title,i.reason,i.requires_action,?,
       CASE WHEN i.resolved=1 THEN ? END,CASE WHEN i.resolved=1 THEN COALESCE(i.actor,e.actor) END,
-      i.due_at,i.assigned_to,i.urgency,i.resolved,COALESCE(i.actor,e.actor),CASE WHEN i.resolved=1 THEN 'source_resolved' ELSE 'source_update' END
+      i.due_at,i.assigned_to,i.urgency,i.resolved,COALESCE(i.actor,e.actor),CASE WHEN i.resolved=1 THEN 'source_resolved' ELSE 'source_update' END,
+      i.target_kind,i.target_id,i.target_context
     FROM incoming i CROSS JOIN source e
-    WHERE e.entity_type=i.target_kind AND e.entity_id=i.target_id AND ${currentTarget}
+    WHERE ${sourceAllowsTarget('i.target_kind','i.target_id')} AND ${targetExists('i.target_kind','i.target_id','i.target_context')}
       AND (i.assigned_to IS NULL OR EXISTS(SELECT 1 FROM admins WHERE email=i.assigned_to))
     ON CONFLICT(task_key) DO UPDATE SET event_id=excluded.event_id,source_version=excluded.source_version,
       category=excluded.category,title=excluded.title,task_reason=excluded.task_reason,action_required=excluded.action_required,
       due_at=CASE WHEN (SELECT due_set FROM incoming WHERE task_key=excluded.task_key)=1 THEN excluded.due_at ELSE notifications.due_at END,
       urgency=CASE WHEN (SELECT urgency_set FROM incoming WHERE task_key=excluded.task_key)=1 THEN excluded.urgency ELSE notifications.urgency END,
       resolved_at=CASE WHEN excluded.resolved_at IS NOT NULL THEN COALESCE(notifications.resolved_at,excluded.resolved_at)
-        WHEN notifications.closed_by_source=1 AND (SELECT reopen FROM incoming WHERE task_key=excluded.task_key)=0 THEN notifications.resolved_at ELSE NULL END,
+        WHEN (${holdClosed}) AND (SELECT reopen FROM incoming WHERE task_key=excluded.task_key)=0 THEN notifications.resolved_at ELSE NULL END,
       resolved_by=CASE WHEN excluded.resolved_at IS NOT NULL THEN COALESCE(notifications.resolved_by,excluded.resolved_by)
-        WHEN notifications.closed_by_source=1 AND (SELECT reopen FROM incoming WHERE task_key=excluded.task_key)=0 THEN notifications.resolved_by ELSE NULL END,
+        WHEN (${holdClosed}) AND (SELECT reopen FROM incoming WHERE task_key=excluded.task_key)=0 THEN notifications.resolved_by ELSE NULL END,
       closed_by_source=CASE WHEN excluded.resolved_at IS NOT NULL THEN 1
-        WHEN notifications.closed_by_source=1 AND (SELECT reopen FROM incoming WHERE task_key=excluded.task_key)=0 THEN 1 ELSE 0 END,
+        WHEN (${holdClosed}) AND (SELECT reopen FROM incoming WHERE task_key=excluded.task_key)=0 THEN notifications.closed_by_source ELSE 0 END,
+      target_kind=excluded.target_kind,target_id=excluded.target_id,target_context=excluded.target_context,
       task_actor=excluded.task_actor,task_action=excluded.task_action
-    WHERE excluded.source_version>notifications.source_version AND EXISTS(
+    WHERE notifications.target_deleted=0 AND excluded.source_version>notifications.source_version AND EXISTS(
       SELECT 1 FROM events previous JOIN source current ON current.entity_type=previous.entity_type AND current.entity_id=previous.entity_id
-      WHERE previous.id=notifications.event_id)`).bind(...args)];
+      WHERE previous.id=notifications.event_id AND ${sameTarget})`).bind(eventId,JSON.stringify(incoming),ts,ts)];
 }
 
 export async function syncTask(env,descriptor) {
   const descriptors=Array.isArray(descriptor)?descriptor:[descriptor];
   if(descriptors.some(d=>d.eventId==null))fail(400,'syncTask needs a concrete event ID');
-  const keys=descriptors.map(d=>d.taskKey);
+  const keys=descriptors.map(d=>projectDescriptor(d).taskKey);
   const results=await env.DB.batch([...taskStatements(env,descriptor),env.DB.prepare(
     `SELECT id,revision,source_version FROM notifications WHERE task_key IN (${keys.map(()=>'?').join(',')})`).bind(...keys)]);
   return {changed:results[0].meta.changes,tasks:results[1].results};
@@ -158,11 +153,11 @@ export async function createTask(env,actor,body) {
   const taskKey=`manual:${await sha256(actor)}:${body.operation_id}`,ts=now();
   const [created]=await env.DB.batch([
     env.DB.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
-      SELECT ?,?,?,?,'task.created','{"version":1,"manual":true}' WHERE ${targetExists('?','?')}
+      SELECT ?,?,?,?,'task.created','{"version":1,"manual":true}' FROM (SELECT ? AS kind,? AS id) target WHERE ${targetExists('target.kind','target.id')}
       AND (? IS NULL OR EXISTS(SELECT 1 FROM admins WHERE email=?))
       AND EXISTS(SELECT 1 FROM admins WHERE email=?)
       AND NOT EXISTS(SELECT 1 FROM notification_task_operations WHERE actor=? AND operation_id=?)`)
-      .bind(ts,actor,target.kind,target.id,...Array(4).fill([target.kind,target.id]).flat(),assigned,assigned,actor,actor,body.operation_id),
+      .bind(ts,actor,target.kind,target.id,target.kind,target.id,assigned,assigned,actor,actor,body.operation_id),
     ...taskStatements(env,{taskKey,eventId:null,category:'task',title,reason,target,requiresAction:true,resolved:false,
       dueAt:due,initialAssignedTo:assigned,actor},{ifInserted:true}),
     env.DB.prepare(`INSERT INTO notification_task_operations(actor,operation_id,task_id,payload_hash,result_revision)

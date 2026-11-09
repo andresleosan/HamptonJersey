@@ -41,14 +41,17 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
   const refocus = useRef(false);
   const load = useCallback(({pin = true} = {}) => {
     const n = ++seq.current;
-    return api(`/admin/notifications?box=${box}${cat ? `&category=${cat}` : ""}`).then(d => {
+    return api(`/admin/notifications?box=${box}${cat ? `&category=${cat}` : ""}`).then(async d => {
       if (n !== seq.current) return; // a newer request (another tab, a later poll) has the fresher answer
       const editing = current.current;
       // A colleague can move the selected task into another box. Keep its draft mounted
       // until an explicit reload/save or confirmed navigation, including an uncertain retry.
-      if (pin && editing.dirty.task && !d.notifications.some(x => x.id === editing.sel)) {
+      if (pin && editing.sel && !d.notifications.some(x => x.id === editing.sel)) {
         const previous = editing.data?.notifications.find(x => x.id === editing.sel);
-        if (previous) d = { ...d, notifications: [...d.notifications, { ...previous, moved: true }] };
+        let selected=previous;
+        if(!editing.dirty.task)try{selected=(await api(`/admin/notification-tasks/${editing.sel}`)).task;}catch{ /* Detail retains its own explicit error/retry. */ }
+        if(n!==seq.current)return;
+        if (selected) d = { ...d, notifications: [...d.notifications, { ...selected, moved: true }] };
       }
       setData(d); setCounts(d.counts); onCounts(d.counts); setLoadErr(null);
       setSel(id => (d.notifications.some(x => x.id === id) ? id : d.notifications[0]?.id ?? null));
@@ -83,7 +86,7 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
       const list = data.notifications, i = list.findIndex(x => x.id === task.id);
       setSel((list[i + 1] ?? list[i - 1])?.id ?? null);
     }
-    await load({pin: false});
+    await load({pin: action==='created'||action==='reopen'});
   };
   const n = data?.notifications.find(x => x.id === sel);
 

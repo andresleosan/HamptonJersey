@@ -28,12 +28,34 @@ const day = iso => fmtDay(jerseyToday(new Date(iso)));
 const FINAL = ["done", "cancelled"];
 const TONE = { reported: "active", awaiting_approval: "attention", approved: "active", in_progress: "active", done: "positive", cancelled: "neutral" };
 
-export default function RentalDetail({ id, onChange }) {
+function linkedSelection(data,query) {
+  const q=new URLSearchParams(query),out={};if(!data||!q.size)return out;
+  if([...q.keys()].some(k=>!['tenancy','repair','check','deadline'].includes(k)||q.getAll(k).length!==1))return {error:'Invalid rental link'};
+  for(const key of ['tenancy','repair'])if(q.has(key)){
+    const value=q.get(key);if(!/^[1-9]\d*$/.test(value)||!Number.isSafeInteger(Number(value)))return {error:`Invalid ${key} link`};out[key]=Number(value);
+  }
+  if(out.tenancy&&!data.tenancies.some(t=>t.id===out.tenancy))return {error:'The linked tenancy is no longer available on this property.'};
+  if(out.repair&&!data.repairs.some(p=>p.id===out.repair&&(!out.tenancy||p.tenancy_id===out.tenancy)))return {error:'The linked repair is no longer available on this property.'};
+  if(q.has('check')){out.check=q.get('check');if(!data.compliance.some(c=>c.kind===out.check))return {error:'The linked check is no longer available.'};}
+  if(q.has('deadline')){out.deadline=q.get('deadline');if(!out.tenancy||!['deposit','inventory_in','inventory_out'].includes(out.deadline))return {error:'The linked deadline is no longer available.'};}
+  if([out.repair,out.check,out.deadline].filter(Boolean).length>1)return {error:'Invalid rental link'};
+  out.target=out.repair?`repair-${out.repair}`:out.check?`check-${out.check}`:out.tenancy?`tenancy-${out.tenancy}`:null;
+  return out;
+}
+
+export default function RentalDetail({ id, selection='', onChange }) {
   const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [form, setForm] = useState(null);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [dialog, setDialog] = useState(null), [tick, setTick] = useState(0);
   const [adding, setAdding] = useState(false), [addDirty, setAddDirty] = useState(false), [pastOpen, setPastOpen] = useState(false);
   const { errors, setErrors, invalid, error } = useFieldErrors("rt");
   const formRef = useRef(null), heading = useRef(null), refocus = useRef(false);
+  const linked=linkedSelection(data,selection),focusedLink=useRef(null);
+  useEffect(()=>{if(!data||linked.error||!linked.target)return;
+    if(linked.tenancy&&data.tenancies.some(t=>t.id===linked.tenancy&&t.ended_on&&t.ended_on<=jerseyToday()))setPastOpen(true);
+    if(linked.deadline)return;
+    if(focusedLink.current===selection)return;
+    const target=document.getElementById(linked.target);if(target){target.focus();focusedLink.current=selection;}
+  },[data,selection,pastOpen,linked.error,linked.target,linked.tenancy,linked.deadline]);
   // fresh: the details form starts again from what is saved; otherwise it keeps what is being typed.
   const load = fresh => api(`/admin/rentals/${id}`).then(d => { setData(d); setLoadErr(null); if (fresh) { setForm(toForm(d.rental)); setErrors({}); } },
     e => setLoadErr(e.message));
@@ -102,11 +124,12 @@ export default function RentalDetail({ id, onChange }) {
           <a href={`#/rentals/landlords/${r.landlord_id}`}>{r.landlord_name}</a></span>{archived && <span><span className="badge neutral">Archived</span></span>}</p></div>
       <a href="#/rentals">Back to rentals</a>
     </div>
+    {linked.error&&<p role="alert" className="err">{linked.error}</p>}
 
     <div className="rental">
       <div className="sections">
         {running.map(t => <Tenancy key={t.id} id={t.id} tick={tick} note={note(t.id)} open={(kind, props) => open(kind, props, t.id)}
-          next={data.tenancies.some(x => x.id > t.id)} />)}
+          next={data.tenancies.some(x => x.id > t.id)} requestedDeadline={!linked.error&&linked.tenancy===t.id?linked.deadline:null} />)}
         {!running.some(t => !t.ended_on) && <section className="card" aria-labelledby="h-new-tenancy">
           <h2 id="h-new-tenancy">{running.length ? "Next tenancy" : "No tenancy"}</h2>
           {adding ? <NewTenancy rental={r} onClose={() => setAdding(false)} onDirty={setAddDirty} onRefused={reload}
@@ -118,7 +141,7 @@ export default function RentalDetail({ id, onChange }) {
         </section>}
 
         <section className="card" aria-labelledby="h-checks"><h2 id="h-checks">Checks</h2>{note("checks")}
-          <ul className="plain-list" id="checks">{data.compliance.map(c => <li key={c.kind} className={["overdue", "missing"].includes(c.status) ? "overdue" : undefined}>
+          <ul className="plain-list" id="checks">{data.compliance.map(c => <li key={c.kind} id={`check-${c.kind}`} tabIndex={-1} aria-current={!linked.error&&linked.check===c.kind?'location':undefined} className={["overdue", "missing"].includes(c.status) ? "overdue" : undefined}>
             <span>{c.label}<span className="muted cell-note">{c.done_on ? `Done ${fmtDay(c.done_on)}, expires ${fmtDay(c.expires_on)}` : "Not recorded yet"}
               {c.note && ` · ${c.note}`}</span></span>
             <span className="ctl">{checkState({ ...c, due_on: c.expires_on })}
@@ -135,7 +158,7 @@ export default function RentalDetail({ id, onChange }) {
             const live = !FINAL.includes(p.status);
             const facts = [p.contractor, p.quote != null && `quote ${money(p.quote)}`, p.cost != null && `cost ${money(p.cost)}`,
               p.done_on && `done ${fmtDay(p.done_on)}`, !p.charge_landlord && "not charged to the landlord"].filter(Boolean);
-            return <li key={p.id} className={live && p.urgency === "emergency" ? "overdue" : undefined}>
+            return <li key={p.id} id={`repair-${p.id}`} tabIndex={-1} aria-current={!linked.error&&linked.repair===p.id?'location':undefined} className={live && p.urgency === "emergency" ? "overdue" : undefined}>
               <span><strong>{p.title}</strong><span className="meta">{(facts.length ? facts : [`Reported ${day(p.created_at)}`])
                 .map((fact, i) => <span key={i}>{fact}</span>)}</span>
                 {p.approved_at && <span className="muted cell-note">The landlord approved it {day(p.approved_at)}</span>}</span>
@@ -172,10 +195,10 @@ export default function RentalDetail({ id, onChange }) {
       </div>
     </div>
 
-    {past.length > 0 && <section className="block" aria-labelledby="h-past"><details className="closed" onToggle={e => setPastOpen(e.currentTarget.open)}>
+    {past.length > 0 && <section className="block" aria-labelledby="h-past"><details className="closed" open={pastOpen} onToggle={e => setPastOpen(e.currentTarget.open)}>
       <summary><h2 id="h-past">Past tenancies <span className="muted">({past.length})</span></h2></summary>
       {pastOpen && <div className="sections">{past.map(t => <Tenancy key={t.id} id={t.id} tick={tick} note={note(t.id)}
-        open={(kind, props) => open(kind, props, t.id)} />)}</div>}
+        open={(kind, props) => open(kind, props, t.id)} requestedDeadline={!linked.error&&linked.tenancy===t.id?linked.deadline:null} />)}</div>}
     </details></section>}
 
     <section className="block" aria-labelledby="h-history"><details className="closed">
@@ -207,19 +230,24 @@ export default function RentalDetail({ id, onChange }) {
 const DONE = { deposit: ["deposit_protected_on", "Deposit protection"], inventory_in: ["inventory_in_on", "Check-in report"],
   inventory_out: ["inventory_out_on", "Check-out report"] };
 const SHORT = 6;
-function Tenancy({ id, tick, note, open, next }) {
+function Tenancy({ id, tick, note, open, next, requestedDeadline }) {
   const [d, setD] = useState(null), [err, setErr] = useState(null), [all, setAll] = useState(false);
   const load = () => api(`/admin/tenancies/${id}`).then(x => { setD(x); setErr(null); }, e => setErr(e.message));
   useEffect(() => { load(); }, [id, tick]);
   const h = `h-tenancy-${id}`;
-  if (!d) return <section className="card" id={`tenancy-${id}`} aria-labelledby={h}><h2 id={h}>Tenancy</h2>
+  const focusedDeadline=useRef(null);
+  useEffect(()=>{if(!d||!requestedDeadline||focusedDeadline.current===requestedDeadline)return;
+    const target=document.getElementById(`tenancy-${id}-deadline-${requestedDeadline}`);if(target){target.focus();focusedDeadline.current=requestedDeadline;}
+  },[d,requestedDeadline,id]);
+  if (!d) return <section className="card" id={`tenancy-${id}`} tabIndex={-1} aria-labelledby={h}><h2 id={h}>Tenancy</h2>
     {err ? <p role="alert" className="err">{err} <button type="button" className="btn ghost sm" onClick={load}>Try again</button></p>
       : <p>Loading tenancy…</p>}</section>;
   const t = d.tenancy, a = d.arrears, today = jerseyToday(), ended = !!t.ended_on && t.ended_on <= today, full = t.service === "full";
   const act = (kind, extra) => () => open(kind, { d, ...extra });
   const more = rows => rows.length > SHORT && <button type="button" className="linkish" aria-expanded={all} onClick={() => setAll(x => !x)}>
     {all ? "Show the newest only" : `Show all ${rows.length} (last 24 months)`}</button>;
-  return <section className="card tenancy" id={`tenancy-${id}`} aria-labelledby={h}>
+  return <section className="card tenancy" id={`tenancy-${id}`} tabIndex={-1} aria-labelledby={h}>
+    {requestedDeadline&&!d.deadlines.some(x=>x.key===requestedDeadline)&&<p role="alert" className="err">The linked deadline is no longer available.</p>}
     <div className="head">
       <div><h2 id={h}>{ended ? "Past tenancy" : "Tenancy"}: {t.tenant_name}</h2>
         <p className="meta">{[t.kind === "fixed" ? `Fixed term ${fmtDay(t.start_on)} to ${fmtDay(t.end_on)}` : `Periodic from ${fmtDay(t.start_on)}`,
@@ -264,7 +292,7 @@ function Tenancy({ id, tick, note, open, next }) {
       <button type="button" className="btn ghost sm" onClick={act("edit", { keys: DETAILS, title: "Tenancy details" })}>Edit details</button>
     </div>
 
-    {d.deadlines.length > 0 && <><h3>Deadlines</h3><ul className="plain-list">{d.deadlines.map(x => <li key={x.key} className={x.status === "overdue" ? "overdue" : undefined}>
+    {d.deadlines.length > 0 && <><h3>Deadlines</h3><ul className="plain-list">{d.deadlines.map(x => <li key={x.key} id={`tenancy-${id}-deadline-${x.key}`} tabIndex={-1} aria-current={requestedDeadline===x.key?'location':undefined} className={x.status === "overdue" ? "overdue" : undefined}>
       <span>{x.label}<span className="muted cell-note">{x.done_on ? `Done ${fmtDay(x.done_on)}` : `Due ${fmtDay(x.due_on)}`}</span></span>
       <span className="ctl">{checkState(x)}<button type="button" className="btn ghost sm" onClick={act("edit", { keys: [DONE[x.key][0]], title: DONE[x.key][1] })}>
         Update<span className="sr"> {x.label}</span></button></span></li>)}</ul></>}

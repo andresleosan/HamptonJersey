@@ -9,7 +9,7 @@ import { TO_CONFIRM } from "../listing.js";
 import { stoppedFlags } from "./automations.js";
 
 const BOXES = {
-  action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id",
+  action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id LIMIT 200",
   feed: "NOT (n.action_required = 1 AND n.resolved_at IS NULL) ORDER BY n.created_at DESC, n.id DESC LIMIT 200",
 };
 const CATEGORIES = TASK_CATEGORIES;

@@ -102,7 +102,8 @@ test("confirm closes the request's notice; complete records the outcome; each wr
   assert.deepEqual([row(env, id).status, row(env, id).outcome, row(env, id).outcome_note], ["completed", "proceed", "Wants a second look"]);
   e = events(env).at(-1);
   assert.deepEqual([e.type, JSON.parse(e.data)], ["viewing.completed", { outcome: "proceed" }]);
-  assert.equal(notices(env).length, 1, "no new notice");
+  assert.equal(notices(env).length, 3, "the request and two informational Feed facts");
+  assert.ok(notices(env).slice(1).every(n=>n.action_required===0));
 });
 
 test("cancel closes the notice; no-show marks a confirmed viewing; an outcome note is optional", async t => {
@@ -267,7 +268,7 @@ test("a reschedule losing the race to another booking is 409 and writes nothing"
   assert.deepEqual([row(env, id), counts(env)], [start[0], [start[1][0] + 1, ...start[1].slice(1)]], "only the other booking");
 });
 
-test("panel booking: any listing or none, today at a time still to come, confirmed with its event and no notice", async t => {
+test("panel booking: any listing or none, today at a time still to come, confirmed with its event and Feed fact", async t => {
   const { env, cookie } = await world(t);
   const book = o => call(env, "POST", "/admin/viewings", { cookie, body: { listing_id: "HE-R002", negotiator_id: 1,
     kind: "Live video call", date: TODAY, time: "14:00", name: "Walk In", phone: "07797 000111", notes: "  Called the office  ", ...o } });
@@ -280,7 +281,7 @@ test("panel booking: any listing or none, today at a time still to come, confirm
   assert.equal(more.length, 0);
   assert.deepEqual([e.type, e.actor, e.entity_id, JSON.parse(e.data)], ["viewing.booked", ADMIN, String(r.data.id),
     { listing_id: "HE-R002", date: TODAY, time: "14:00", kind: "Live video call", negotiator_id: 1 }]);
-  assert.equal(notices(env).length, 0);
+  assert.equal(notices(env).length, 1);assert.equal(notices(env)[0].action_required,0);
   // General enquiry, by email only.
   const g = await book({ listing_id: null, phone: null, email: "Walk@In.je", time: "16:00", notes: undefined });
   assert.equal(g.status, 201);

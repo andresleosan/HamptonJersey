@@ -14,7 +14,7 @@ async function fixture(over = {}) {
   return { env, cookie: await adminCookie() };
 }
 
-test('EST-18: a price edit records actual values and actor, without copying free text or creating notices', async () => {
+test('EST-18: a price edit records actual values and actor, without copying free text, and NOT-01 projects Feed', async () => {
   const { env, cookie } = await fixture();
   const r = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie,
     body: { updated_at: T0, sale_price: 800000, description: 'Private synthetic customer note' } });
@@ -27,7 +27,7 @@ test('EST-18: a price edit records actual values and actor, without copying free
   assert.equal(es[0].data.after.sale_price, 800000);
   assert.ok(es[0].data.fields.includes('description'));
   assert.ok(!JSON.stringify(es).includes('Private synthetic'));
-  assert.equal(env.DB.raw.prepare('SELECT count(*) AS n FROM notifications').get().n, 0);
+  assert.equal(env.DB.raw.prepare('SELECT count(*) AS n FROM notifications WHERE action_required=0 AND task_key=?').get(`event:${es[0].id}`).n, 1);
 });
 
 test('EST-18: no-op saves and rejected stale saves add no events', async () => {

@@ -118,7 +118,8 @@ test('missing targets and a key reused for another entity cannot overwrite task 
   await env.DB.batch(taskStatements(env,descriptor({eventId:e,sourceVersion:2,target:{kind:'applicant',id:'2'},title:'Wrong entity'})));
   env.DB.raw.exec('DELETE FROM applicants WHERE id=1');
   await env.DB.batch(taskStatements(env,descriptor({eventId:e,sourceVersion:3,title:'Should not restore deleted content'})));
-  const n=env.DB.raw.prepare('SELECT * FROM notifications').get();assert.equal(n.title,'Call about the reply');assert.equal(n.source_version,1);
+  const n=env.DB.raw.prepare('SELECT * FROM notifications').get();assert.equal(n.title,'Deleted applicant');assert.equal(n.source_version,1);
+  assert.equal(n.target_deleted,1);assert.ok(n.resolved_at);
 });
 
 test('a duplicate arriving after contact deletion cannot retain a task reason or leave actionable deleted work',async()=>{

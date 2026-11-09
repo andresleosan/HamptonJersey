@@ -48,6 +48,25 @@ async function savePreferences({env,admin,request}) {
   return json({revision:body.revision+1,feed_categories:categories});
 }
 
+async function alerts({env,request}) {
+  const q=new URL(request.url).searchParams,hasCursor=q.has('version')||q.has('id');
+  const valid=k=>/^\d+$/.test(q.get(k)??'')&&Number.isSafeInteger(Number(q.get(k)));
+  if([...q.keys()].some(k=>!['version','id'].includes(k))||hasCursor&&(!valid('version')||!valid('id')))
+    fail(400,'Send the complete alert cursor');
+  const cursor={version:Number(q.get('version')??0),id:Number(q.get('id')??0)};
+  // Both reads share a D1 batch snapshot. Baseline covers every notice, not a Feed window.
+  const [watermark,page]=await env.DB.batch([
+    env.DB.prepare('SELECT source_version AS version,id FROM notifications ORDER BY source_version DESC,id DESC LIMIT 1'),
+    env.DB.prepare(`SELECT source_version AS version,id FROM notifications
+      WHERE ?=1 AND action_required=1 AND resolved_at IS NULL AND urgency='urgent' AND target_deleted=0
+        AND (source_version>? OR (source_version=? AND id>?)) ORDER BY source_version,id LIMIT 201`)
+      .bind(Number(hasCursor),cursor.version,cursor.version,cursor.id),
+  ]);
+  const rows=page.results,hasMore=rows.length>200,items=rows.slice(0,200),max=watermark.results[0]??{version:0,id:0};
+  const next=hasMore?items.at(-1):max.version>cursor.version||max.version===cursor.version&&max.id>cursor.id?max:cursor;
+  return json({alerts:items,cursor:next,hasMore});
+}
+
 export default [
   ['POST',/^\/admin\/notification-tasks$/,create,true],
   ['GET',/^\/admin\/notification-tasks\/(\d+)$/,detail,true],
@@ -55,4 +74,5 @@ export default [
   ['PUT',/^\/admin\/notification-tasks\/(\d+)\/read$/,read,true],
   ['GET',/^\/admin\/notification-preferences$/,getPreferences,true],
   ['PUT',/^\/admin\/notification-preferences$/,savePreferences,true],
+  ['GET',/^\/admin\/notification-alerts$/,alerts,true],
 ];

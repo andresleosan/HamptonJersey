@@ -6,6 +6,7 @@
 .task-form,.task-history{border-top:1px solid var(--line);padding-top:16px}
 .task-form label+label,.task-form .task-fields{margin-top:12px}
 .task-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}
+.task-controls .kv{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
 .task-fields label,.task-fields label+label{margin:0}
 .task-actions{margin-top:16px;gap:12px}
 .task-controls .btn,.task-preferences .btn{min-height:36px}
@@ -34,3 +35,6 @@
   .task-controls .btn,.task-preferences .btn,.task-controls input,.task-controls select,.task-checks .check,
     .task-history summary,.inbox-preferences summary{min-height:44px}
 }
+.browser-alerts{margin-top:24px}
+.linked-target{margin-block:16px;overflow-wrap:anywhere}
+[aria-current="location"]{outline:2px solid var(--bronze-dk,#86542d);outline-offset:2px}

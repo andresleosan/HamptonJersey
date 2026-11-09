@@ -18,12 +18,17 @@ const toBody = f => Object.fromEntries(FIELDS.map(k => [k, MONEY.includes(k) ? p
 export const SALE_STATUS = { in_progress: ["In progress", "active"], completed: ["Completed", "positive"], fallen_through: ["Fell through", "neutral"] };
 const LAWYER = [["firm", "Firm"], ["name", "Lawyer"], ["email", "Email", "email"], ["phone", "Phone", "tel"]];
 
-export default function SaleDetail({ id, onChange }) {
+export default function SaleDetail({ id, requestedMilestone, onChange }) {
   const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [form, setForm] = useState(null);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [falling, setFalling] = useState(false);
   const [step, setStep] = useState(null), [stepDirty, setStepDirty] = useState(false), [stepMsg, setStepMsg] = useState(null);
   const { errors, setErrors, invalid, error } = useFieldErrors("s");
   const formRef = useRef(null), stepButtons = useRef({}), heading = useRef(null), refocus = useRef(false);
+  const focusedLink=useRef(null);
+  const linkedError=requestedMilestone!=null&&data&&!data.milestones.some(m=>m.key===requestedMilestone);
+  useEffect(()=>{if(!data||requestedMilestone==null||linkedError||focusedLink.current===requestedMilestone)return;
+    const target=document.getElementById(`step-${requestedMilestone}`);if(target){target.focus();focusedLink.current=requestedMilestone;}
+  },[data,requestedMilestone,linkedError]);
   const load = () => api(`/admin/sales/${id}`).then(d => { setData(d); setForm(toForm(d.sale)); setErrors({}); setLoadErr(null); },
     e => setLoadErr(e.message));
   useEffect(() => { load(); }, [id]);
@@ -85,6 +90,7 @@ export default function SaleDetail({ id, onChange }) {
           Listing {s.listing_id}</a></span><span>Agreed {fmtDate(s.created_at)}</span><span><span className={`badge ${tone}`}>{status}</span></span></p></div>
       <a href="#/sales">Back to sales</a>
     </div>
+    {linkedError&&<p role="alert" className="err">The linked milestone is no longer available.</p>}
     {s.status === "completed" && <p className="warn" role="note">Completed {fmtDate(s.closed_at)}. A completed sale can't be reopened
       here; if it was a mistake, correct the listing in Listings.</p>}
     {s.status === "fallen_through" && <p className="warn" role="note">Fell through {fmtDate(s.closed_at)}: {REASON[s.fell_through_reason]}
@@ -96,7 +102,7 @@ export default function SaleDetail({ id, onChange }) {
           <p role="status" className="ok">{stepMsg}</p>
           <ol className="steps">{data.milestones.map(m => {
             const label = milestoneLabel(m.key, s.route);
-            return <li key={m.key} className={m.overdue ? "overdue" : undefined}>
+            return <li key={m.key} id={`step-${m.key}`} tabIndex={-1} aria-current={m.key===requestedMilestone?'location':undefined} className={m.overdue ? "overdue" : undefined}>
               <div className="step-head"><span className="step-name">{label}</span>
                 <span className="step-state">{m.done_on ? <span className="ok">Done {fmtDay(m.done_on)}</span>
                   : m.not_needed ? <span className="muted">Not needed</span>
