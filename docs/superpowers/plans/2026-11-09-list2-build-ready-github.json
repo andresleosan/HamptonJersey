@@ -1,0 +1,1635 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-09",
+  "base_sha": "42eda35c2dc0c4f01bc90fdef1a067e6f63c8a2f",
+  "scope": "list2_defined_build_contracts_only",
+  "task_count": 33,
+  "base_plans": 33,
+  "complement_plans": 21,
+  "shared_design_count": 15,
+  "publication_requested": true,
+  "product_implementation": false,
+  "all_dependencies_integrated": false,
+  "all_operationally_complete": false,
+  "resolved_user_decisions": [
+    "L2C01",
+    "L2C02"
+  ],
+  "mailbox_alias": "configured_gmail_mailbox",
+  "tasks": [
+    {
+      "code": "AGE-03",
+      "title": "Consulta inicial aprobada y compartida con agencia, entidad o particular",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-age-03-shared-consultations.md",
+      "complement": null,
+      "build_after": "BUS-15 decisión humana; BUS-10 identidad; AGE-04 contactos; EST-09 búsqueda activa; AUT-11 guardia; NOT-11 contrato de gestión si se consume.",
+      "completion_gate": "Modelo de consulta integrado; al activar automático exigir EST-15. Ningún dato de hogar se envía por consulta general.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AGE-04",
+      "title": "Directorio de anunciantes, contactos y permisos de imágenes",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-age-04-advertiser-directory-completion.md",
+      "complement": "docs/superpowers/plans/2026-11-09-age-04-directory-links-and-call-contacts-closure.md",
+      "build_after": [],
+      "completion_gate": "Base independiente del mercado; links nuevos exigen entidades integradas y privacidad vigente.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AGE-05",
+      "title": "Enviar la consulta por un canal utilizable, con trazabilidad y sin duplicados",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-age-05-consultation-delivery.md",
+      "complement": null,
+      "build_after": "AGE-03 y AUT-11; correo real requiere AUT-17.",
+      "completion_gate": "Acuse inequívoco o evidencia manual fija sent_at; unknown no reenvía ni crea plazo de llamada falso.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AGE-06",
+      "title": "Respuestas y llamadas con evidencia, alcance y actualización de tareas",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-age-06-responses-and-calls.md",
+      "complement": null,
+      "build_after": "AGE-03/05, EST-13; hechos comerciales consumen EST-16/15.",
+      "completion_gate": "Personal valida respuesta y actualiza solo alcance confirmado; estado independiente. No hace falta IA para procesar manualmente.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AGE-08",
+      "title": "Dos días sin respuesta útil: tarea de llamada con todos los teléfonos",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-age-08-business-day-call-tasks.md",
+      "complement": null,
+      "build_after": "AGE-05/06/04; AUT-07 reloj existente; NOT-11 tareas/responsables/plazos.",
+      "completion_gate": "Probar jueves->lunes/viernes->martes, misma horaJersey desde envío real, respuesta útil cancela/actualiza. Decisión ya resuelta, no preguntar plazo.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AGE-09",
+      "title": "Prueba de presentación de aplicantes a cada agencia",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-age-09-consultation-evidence.md",
+      "complement": null,
+      "build_after": "AGE-03/05, EST-18 eventos; AGE-06 integra respuesta.",
+      "completion_gate": "Eventos mínimos enlazados sin confundir consulta general con presentación de cada cliente; no nueva vista global de historial.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AGE-10",
+      "title": "Fotografías aptas para presentación privada y originales con procedencia",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-age-10-private-image-permissions.md",
+      "complement": null,
+      "build_after": "SPR-03 captura compartida; AGE-04 referencia anunciante.",
+      "completion_gate": "Servicio construible; cada envío concreto necesita fotos/permisos reales, sin marcas eliminadas automáticamente.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AGE-11",
+      "title": "Presentación privada de una propiedad confirmada y recogida de interés",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-age-11-reviewed-private-presentations.md",
+      "complement": null,
+      "build_after": "BUS-15, AGE-06, SPR-03, AGE-10/12, AUT-11; NOT-11 si crea gestión; canal AUT-17 o entrega manual.",
+      "completion_gate": "Enviar snapshot revisado; grant dormant se activa con acuse/evidencia manual. La decisión del disparador ya está respondida.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AGE-12",
+      "title": "Respuesta del cliente a la propuesta privada sin repetir su solicitud",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-age-12-private-presentation-access.md",
+      "complement": null,
+      "build_after": "AGE-10; REG-17 preferencias; EST-13 estados; contrato de presentación que consumirá AGE-11.",
+      "completion_gate": "Enlace sin caducidad hasta revocación; parent revocation invalida sesiones; canje POST y no interés en GET. PRE-12 necesario solo para portal general completo.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AGE-14",
+      "title": "Supresión de datos personales de anunciantes",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-age-14-advertiser-personal-data-suppression.md",
+      "complement": "docs/superpowers/plans/2026-11-09-age-14-suppression-across-linked-copies-closure.md",
+      "build_after": [
+        "AGE-04"
+      ],
+      "completion_gate": "Mapa de copias concreto y barreras contra restauración obsoleta.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AUT-01",
+      "title": "Interfaz fácil para controlar cada automatización nueva (pantalla Automations)",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-aut-01-automation-controls.md",
+      "complement": "docs/superpowers/plans/2026-11-09-aut-01-automation-controls-and-actual-usage-closure.md",
+      "build_after": [
+        "AUT-09",
+        "AUT-10",
+        "AUT-04"
+      ],
+      "completion_gate": "Vista yuso consistentes conregistro, sinprometer control sobre serviciosausentes.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AUT-04",
+      "title": "Automatizaciones de cliente dentro de la web de Hampton, con los modelos adecuados",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-aut-04-automation-readiness.md",
+      "complement": "docs/superpowers/plans/2026-11-09-aut-04-readiness-from-actual-evidence-closure.md",
+      "build_after": [
+        "AUT-09",
+        "AUT-05:policy",
+        "AUT-13:capability-contract"
+      ],
+      "completion_gate": "Readiness construible sin cuentaactiva; las verificaciones no se aprueban por unbooleanoUI.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AUT-05",
+      "title": "Autorización y cuotas de la conexión central ChatGPT Pro mediante Hermes",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-aut-05-model-data-policy.md",
+      "complement": "docs/superpowers/plans/2026-11-09-aut-05-central-model-authorization-and-quota-closure.md",
+      "build_after": [
+        "AUT-09",
+        "AUT-10"
+      ],
+      "completion_gate": "Guardias, cupo y derivación humana definidos. Una incidencia genera un aviso único; la vía Pro requiere comprobación real antes de invocar.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AUT-09",
+      "title": "Ficha estándar de cada automatización, con pruebas y criterio de hecho",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-aut-09-automation-contracts.md",
+      "complement": "docs/superpowers/plans/2026-11-09-aut-09-automation-definition-registry-closure.md",
+      "build_after": [],
+      "completion_gate": "Definiciones y aceptación por ID existentes; no habilita servicio alguno.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AUT-10",
+      "title": "Modos Draft, Approve y Auto en cada automatización (autonomía graduable, P-10)",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-aut-10-operation-modes.md",
+      "complement": "docs/superpowers/plans/2026-11-09-aut-10-versioned-operation-modes-closure.md",
+      "build_after": [
+        "AUT-09"
+      ],
+      "completion_gate": "Gate servidor probado por operación; decisiones humanas conservadas incluso enAuto.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AUT-11",
+      "title": "Barandillas de envío y botón Pause all outbound",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-aut-11-outbound-guards.md",
+      "complement": "docs/superpowers/plans/2026-11-09-aut-11-one-outbound-guard-closure.md",
+      "build_after": [
+        "AUT-10"
+      ],
+      "completion_gate": "Autoridad de salida única y revalidación en todos los canales aplicables.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AUT-13",
+      "title": "Hermes, en el VPS, es el cerebro de IA que enlaza las automatizaciones (P-18)",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-aut-13-hermes-phase1b-completion.md",
+      "complement": "docs/superpowers/plans/2026-11-09-aut-13-hermes-dispatch-and-isolated-payloads-closure.md",
+      "build_after": [
+        "AUT-05",
+        "AUT-11"
+      ],
+      "completion_gate": "App y paquete con derivación humana especificados. Antes de operar con Pro: vía compatible, política y pruebas reales; unknown no autoriza repetir una inferencia.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AUT-14",
+      "title": "Avisos y resumen del día en un canal de Telegram del equipo; solo Luis da órdenes",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-aut-14-team-notifier-completion.md",
+      "complement": "docs/superpowers/plans/2026-11-09-aut-14-notifier-package-and-receipts-closure.md",
+      "build_after": [
+        "AUT-13:notifier-existing-contract"
+      ],
+      "completion_gate": "Código yexpediente definidos; cierre necesita aviso/resumen reales en destinosautorizados.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AUT-16",
+      "title": "Hampton Bot · fase 4: el asistente de Luis por Telegram (buscar fichas y recomendarlas, y si no hay, «lo buscamos»)",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-aut-16-luis-restricted-assistant.md",
+      "complement": "docs/superpowers/plans/2026-11-09-aut-16-luis-public-search-and-command-guard-closure.md",
+      "build_after": [
+        "AUT-13:identity",
+        "AUT-05:C0-policy"
+      ],
+      "completion_gate": "App/parser construibles; montaje y vía real delbot pendientes de aceptación externa.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "AUT-18",
+      "title": "Marca «Ready for the team» en la ficha del aplicante, anunciada en el resumen de las 8:00 del canal",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-aut-18-applicant-ready-summary.md",
+      "complement": "docs/superpowers/plans/2026-11-09-aut-18-human-ready-marker-and-summary-count-closure.md",
+      "build_after": [
+        "AUT-14",
+        "BUS-15:review-contract"
+      ],
+      "completion_gate": "Marca construible; cierreoperativoconresumen08:00real.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "BUS-01",
+      "title": "Búsqueda de casas que arranca sola al registrarse el aplicante",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-bus-01-inventory-matching.md",
+      "complement": null,
+      "build_after": "BUS-06, BUS-12, EST-09; BUS-10 identidad y legado compatibles; BUS-15 para revisión humana.",
+      "completion_gate": "Contrato de evaluación y versión integrados, progreso real y no duplicar/reabrir búsquedas. No investigación nueva por cada aplicante.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "BUS-03",
+      "title": "Base de datos y pantalla de casas encontradas (valor, habitaciones, lo que no cumple)",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-bus-03-inventory-browser.md",
+      "complement": "docs/superpowers/plans/2026-11-09-bus-03-inventory-evidence-browser-closure.md",
+      "build_after": [
+        "BUS-06:store",
+        "BUS-10:identity",
+        "BUS-12:eligibility-contract"
+      ],
+      "completion_gate": "Vista privada con evidencia y desconocidos; no confundir inventario parcial con cero mercado.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "BUS-04",
+      "title": "Nueva búsqueda pasadas 24 horas sin repetir propiedades ya encontradas",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-bus-04-material-changes-rematching.md",
+      "complement": null,
+      "build_after": "BUS-08/12/EST-09 y episodios/proyección BUS-01/03.",
+      "completion_gate": "Snapshot de precio al rechazar; legacy sin evidencia usa baseline y futura rebaja. Precio conflictivo entre fuentes a revisión, no escoger mínimo.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "BUS-07",
+      "title": "Las 264 fichas de agencias tratadas como co-listed (pregunta 1)",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-bus-07-legacy-agency-links.md",
+      "complement": null,
+      "build_after": "BUS-10 y AGE-04.",
+      "completion_gate": "Universo real conciliado con procedencia/identidad; no cambiar publicaciones/textos/fotos ni permisos por un título histórico.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "BUS-08",
+      "title": "Pasada diaria automática del mercado con comparación con el día anterior",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-bus-08-daily-market-sweep.md",
+      "complement": "docs/superpowers/plans/2026-11-09-bus-08-one-daily-jersey-sweep-closure.md",
+      "build_after": [
+        "BUS-06:runner",
+        "BUS-19:persisted-policy",
+        "BUS-09:normalization",
+        "BUS-10:identity"
+      ],
+      "completion_gate": "Run diario youtbox; activación espera consumidores reales de cambios/disponibilidad.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "BUS-10",
+      "title": "Casa física única (properties) con deduplicación entre fuentes",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-bus-10-property-identity.md",
+      "complement": "docs/superpowers/plans/2026-11-09-bus-10-physical-identity-and-reversible-aliases-closure.md",
+      "build_after": [
+        "BUS-06:store",
+        "BUS-09:normalization-contract"
+      ],
+      "completion_gate": "Identidad revisada y reversible sin perder decisiones, permisos o historial.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "BUS-19",
+      "title": "Política por fuente permitida del mercado, sin conectores Places/Properties en esta fase",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-bus-19-source-access-policy.md",
+      "complement": "docs/superpowers/plans/2026-11-09-bus-19-per-source-access-decisions-closure.md",
+      "build_after": [
+        "BUS-06:source-schema"
+      ],
+      "completion_gate": "Permiso real por fuente/canal, sin equivaler acceso público a permiso.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "BUS-20",
+      "title": "Investigar empresas propietarias (promotoras, caseros con cartera) con un asistente sin la llave de la app",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-bus-20-separate-company-research.md",
+      "complement": "docs/superpowers/plans/2026-11-09-bus-20-reviewed-company-candidates-closure.md",
+      "build_after": [
+        "AGE-04",
+        "AGE-14",
+        "BUS-19"
+      ],
+      "completion_gate": "Candidaturas y continuación manual definidos. El asistente necesita propósito, vía y permiso acreditados; ninguna candidatura equivale a inmueble disponible.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "MSG-02",
+      "title": "Hampton Bot · fase 1: chat web con respuesta humana desde el panel (Messages, sin IA)",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-msg-02-human-chat-completion.md",
+      "complement": "docs/superpowers/plans/2026-11-09-msg-02-shared-conversation-revision-guard-closure.md",
+      "build_after": [],
+      "completion_gate": "Chat humano yCASintegrados; avisoWAF/bot/encendido requierenverificaciónreal.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "MSG-03",
+      "title": "Bandeja Messages con chat web, respuestas de la app y reenvíos Gmail seleccionados",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-msg-03-unified-conversations.md",
+      "complement": "docs/superpowers/plans/2026-11-09-msg-03-channel-typed-unified-messages-closure.md",
+      "build_after": [
+        "MSG-02:CAS",
+        "AUT-17:email-contract"
+      ],
+      "completion_gate": "Proyección y respuestas especificadas para chat web, respuestas de la app y reenvíos seleccionados desde Gmail. Activación del canal y prueba real de recepción permanecen pendientes.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "MSG-04",
+      "title": "Hampton Bot · fases 2 y 3: el modelo en sombra y luego en vivo, con modos y objetivo de primera respuesta",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-msg-04-web-chat-shadow-assist.md",
+      "complement": "docs/superpowers/plans/2026-11-09-msg-04-intent-adapter-and-safe-model-handoff-closure.md",
+      "build_after": [
+        "MSG-02:CAS",
+        "AUT-05",
+        "AUT-13",
+        "PRE-32",
+        "PRE-34"
+      ],
+      "completion_gate": "Sombra y derivación humana especificadas. Assist requiere vía real, latencia, batería, tratamiento y sí de Luis antes de activarse; no respuestas fabricadas al bloquearse.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "MSG-05",
+      "title": "Create applicant desde una conversación con los datos ya rellenados",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-msg-05-chat-applicant-prefill.md",
+      "complement": "docs/superpowers/plans/2026-11-09-msg-05-chat-applicant-prefill-with-explicit-save-closure.md",
+      "build_after": [
+        "MSG-02:CAS",
+        "REG-11:registration-contract"
+      ],
+      "completion_gate": "Formulario/vínculo humanos; camposdelmodelosólopropuestaconprocedencia.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    },
+    {
+      "code": "PRE-22",
+      "title": "Acuerdos de comisión como gestión humana independiente",
+      "status": "build_contract_defined",
+      "plan": "docs/superpowers/plans/2026-11-08-pre-22-commission-records.md",
+      "complement": null,
+      "build_after": "AGE-04 base.",
+      "completion_gate": "Campos permiten unknown/null y equipo aporta evidencia por acuerdo. No inventar comisión ni bloquear inventario/contacto/fotos por falta de acuerdo comercial.",
+      "constructed_by_this_delivery": false,
+      "operationally_complete": false
+    }
+  ],
+  "files": [
+    {
+      "path": "docs/superpowers/plans/2026-11-08-age-03-shared-consultations.md",
+      "kind": "task_plan",
+      "original_sha256": "3b2a18a203dbd2885ab92a8a342d50abe951479b38ee4caaa8d340fa4e780b42",
+      "published_sha256": "89327ecdd23f365d2623549b12105673db9934ac327c50a680e41a86c4388b6a",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-age-04-advertiser-directory-completion.md",
+      "kind": "task_plan",
+      "original_sha256": "598a145408b4da12a216caca72ab8ef3197ec2434af78c93fdb37c00aba744a3",
+      "published_sha256": "4cef280b08c6456a661c5a4cded1c4d9245fa8c44140a3f102895f891c49bcef",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-models-connectors-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-age-05-consultation-delivery.md",
+      "kind": "task_plan",
+      "original_sha256": "692ad7b0f5f6966ce916e949e1b4d6d044b17ed98a2f3489d1615b1bc4a605cb",
+      "published_sha256": "11deda88217d89f7f956a33a7ee5cbc7b32f7e50ddabfd2f128a33a87fc94ebf",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-age-06-responses-and-calls.md",
+      "kind": "task_plan",
+      "original_sha256": "07058a3e2dbe9ea5b32f6c61513e3052e3f1cdbd920e58bf3bc5652e24288156",
+      "published_sha256": "00040ed2cf7f09723268ff741eb2a9fcc44da81776f5acbfef0293c630a981e3",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-age-08-business-day-call-tasks.md",
+      "kind": "task_plan",
+      "original_sha256": "386edfa1653b00982e8eae21ef24c8f912e2d0c99da63ff0ff5aa34dbf998249",
+      "published_sha256": "702348e6dbaa1c75ed974f2aa9dde22b3cf0ac58c22c8f8fb217a58e3bfb63c2",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-age-09-consultation-evidence.md",
+      "kind": "task_plan",
+      "original_sha256": "58ae357e2a00c69e8f515635f98ab94c36c493b09afe33e09878a978138b0ad9",
+      "published_sha256": "1e0cd4d53f1b4b6d9597d8b2b74cce97ce260b94c5b6379f321b5c07d792acc5",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-age-10-private-image-permissions.md",
+      "kind": "task_plan",
+      "original_sha256": "cc9d4c54e25d97061f6ceb9c89f6c686ff08a7c63eb7604c7f5578fc9d5e89f2",
+      "published_sha256": "3d6755dea86b4ff8c0fe779d0436d227b2486f7bad865395f87990400ab7d563",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-age-11-reviewed-private-presentations.md",
+      "kind": "task_plan",
+      "original_sha256": "3b99d69223282700cfb38bececb1abdf8194d64dbb45fe0fa5324d13dfe425cc",
+      "published_sha256": "64941679978f90613480c93da3299f1c09a2c931585aa97cc0cff3f19c37f11f",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-age-12-private-presentation-access.md",
+      "kind": "task_plan",
+      "original_sha256": "b4d8eddcba80e8595d699e59356a6741036ed119b54f1d8a70d9e7f328951f98",
+      "published_sha256": "e0c9c9d39e0f55b9c6006c2bae08329a9df1cda7a43cbfc17763d27a41cae331",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-age-14-advertiser-personal-data-suppression.md",
+      "kind": "task_plan",
+      "original_sha256": "03b78d663d7c0c0b219a336b766e5227a88ca61f79510dffa9d831b3cb5a2f6a",
+      "published_sha256": "51aaa0005801a73009f5053940cc70eca48984ebb51ca81463fa394b28331f7f",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-01-automation-controls.md",
+      "kind": "task_plan",
+      "original_sha256": "8c9d3f05731d55dc95c5ccd228a162af3f811671979f01b4fb2ba1a231bd15d1",
+      "published_sha256": "9bed96a67fea7d622963d766c870d88b58500b84ecac1d5328effa5b91d7c650",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-04-automation-readiness.md",
+      "kind": "task_plan",
+      "original_sha256": "8c30ce77c3c7fcc7f5d8f29c3828d8610fb051d5069d93772c86cea5aec6f4a9",
+      "published_sha256": "441fe275b3eeeb9854f2cc74b55d9ee85b335d967bb78c4f49392631d96b4198",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-models-connectors-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-05-model-data-policy.md",
+      "kind": "task_plan",
+      "original_sha256": "5b9e6e24421d91e8806c3e4b5ba802c9926b8708af3db84013e4d141cc2648e8",
+      "published_sha256": "dbbf7feef5349fb90953896d23ffffdba901d70b92c585066524a36cb06c216f",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-models-connectors-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-09-automation-contracts.md",
+      "kind": "task_plan",
+      "original_sha256": "37bcafeaff676e7cf7ea65431979ab3acf23594109e9a3a71d2cd26e992da344",
+      "published_sha256": "7096869e5183941d73cd589753083031d0e4a3d476c86babcd93c4c587f07ed2",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-10-operation-modes.md",
+      "kind": "task_plan",
+      "original_sha256": "1122d7fcb274a1c60317b84ac1d4965534b8dcf164b674381954d9223486adac",
+      "published_sha256": "2a58e5b829450d2789b793646cef805bd9cf8c75ca8298c3b4189a7359e9a038",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-11-outbound-guards.md",
+      "kind": "task_plan",
+      "original_sha256": "d840983c5e985e9f5ad66ab4c3a4c0edafe2338f848fc12d987d3c50f2d627bd",
+      "published_sha256": "ad96d77aedc647cae1f253ea5fc5102ed8e2aed1fb930be86a7bc76a83c5993b",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-13-hermes-phase1b-completion.md",
+      "kind": "task_plan",
+      "original_sha256": "d358947e9c686427331264d37177d1e92b58c259c0d0c30ee013cbbede077a2f",
+      "published_sha256": "178d14df20e5474040d745e668e60a9bd64f45124daa1fc81efbbd6d32ef8828",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-models-connectors-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-14-team-notifier-completion.md",
+      "kind": "task_plan",
+      "original_sha256": "10b2c852f9ab478dc250b560ef527a9d61017604549f2c92921f92ac9b744332",
+      "published_sha256": "ac346da42d426b9ae3305c59d7afcf2f9f295d72b534750bd4b5ee73eae1b516",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-messaging-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-16-luis-restricted-assistant.md",
+      "kind": "task_plan",
+      "original_sha256": "e443ee3950cf3630c7d0e10f2871349c8e2c9b005c7739578b322158c0c89f3a",
+      "published_sha256": "311291f578cf1f25e13619aa4c7b6c1eb6ef8e10e85ba924d56009dfc72799db",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-models-connectors-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-18-applicant-ready-summary.md",
+      "kind": "task_plan",
+      "original_sha256": "a023eb64b17f21bfbf908e07d5e90c3d09be3425de3bbb024a035902435daaa3",
+      "published_sha256": "eec95b15bb07dccd53bdd880a46ce4a732502c4c518d6cdbdc78592206745a60",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-messaging-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-01-inventory-matching.md",
+      "kind": "task_plan",
+      "original_sha256": "4e38c0970120599bd6d8b1b8980dd906aa937143b6b852d7520db270ad2e2063",
+      "published_sha256": "9dba2d33c7fdb6c1af5b1ea286ef49cdae2076471d1ba6473b471bcee01032a1",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-03-inventory-browser.md",
+      "kind": "task_plan",
+      "original_sha256": "d3bf4c8bd6c3821e620e65eafa4029bea7495a97b1e8ab795f17a2441776efc6",
+      "published_sha256": "1cb10474114dc76da96d4ca9194e006db6af5cb7bdd49b1dcc1b8f771543b9c9",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-04-material-changes-rematching.md",
+      "kind": "task_plan",
+      "original_sha256": "e0ea8c78582359619a44884086d865758ca848bfdfc47b296e1dc2dcc5a23bbd",
+      "published_sha256": "65a6d57728c1f5db6f0770e727f4f9d11199dd427fc89fd1320707aafe8deb70",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-07-legacy-agency-links.md",
+      "kind": "task_plan",
+      "original_sha256": "8c604286201cf07a9791484216935fdf2cfbd094c9b873fad8b353a9384cea93",
+      "published_sha256": "868c51e3b6a9817202aedd849d4686954f58b262e56b6fdfd9714d2c7f12c5d6",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-08-daily-market-sweep.md",
+      "kind": "task_plan",
+      "original_sha256": "43ddf14407e4c8ba2237fb711e939d0eeb6135e69f645c54487ab0cee1e79be9",
+      "published_sha256": "700feeec229b2fc23d06e0a017912661881966110e2e7134400faca5e4e63115",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-bus-09-source-readers-normalization.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-bus-06-initial-market-inventory.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-10-property-identity.md",
+      "kind": "task_plan",
+      "original_sha256": "cc5c545d8b33233ac77f7ab2c23dd31e67d3263ab71ee1b0cf65b8d6fe3c0e24",
+      "published_sha256": "eacea050e5af19e7cbaaf546913188f27cd3e42c3254a7ab6112d81dbcc7f8c7",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-bus-06-initial-market-inventory.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-bus-09-source-readers-normalization.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-19-source-access-policy.md",
+      "kind": "task_plan",
+      "original_sha256": "85d1f7be9f9543d91117f266f38300aff52a77f990a5a9289ff496c00c7259de",
+      "published_sha256": "9e968fd5535be8f3ec6ebda751b37775297b1f4bb686129fdd4a3364ad87a8f0",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-bus-06-initial-market-inventory.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-20-separate-company-research.md",
+      "kind": "task_plan",
+      "original_sha256": "7c404934e80903634d6e76b47f07d07f778668be49864b13013398d52c87f8b0",
+      "published_sha256": "8c58b19dc110d4a880f5517b3632f47c364003bd42c84edf106d9d7de5c57a3d",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-models-connectors-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-msg-02-human-chat-completion.md",
+      "kind": "task_plan",
+      "original_sha256": "6a5487df8b3b8098df858fdcc1620fad8264c4154560b39dfb81de524a9c9af2",
+      "published_sha256": "4c80bfcacac5a58b5d83821ab82d0b89b6db063dba429e7ef8dbab6a83bd372b",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-messaging-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-msg-03-unified-conversations.md",
+      "kind": "task_plan",
+      "original_sha256": "5b140bfbcc421265dd72ef764615a7af0db1a4a794fba61fa6dcc8c5c8c2bdec",
+      "published_sha256": "2d17cb1b61037961064b928a350b74d5ebd1fb4b7844f29a810f10dbbe6e21fd",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-messaging-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-msg-04-web-chat-shadow-assist.md",
+      "kind": "task_plan",
+      "original_sha256": "f4696287c4536d811ed0ff0d69ac435f506a792660e5f57b788eab804b560e4c",
+      "published_sha256": "7d52bee97f20de2b2914838ba2e628ed98a4fd95b23f5bb5aaa7ff8c7cec6e20",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-messaging-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-msg-05-chat-applicant-prefill.md",
+      "kind": "task_plan",
+      "original_sha256": "0a83a87b595049b2efe41b5a81e88e460cfc37581db827a05142717b457c60a2",
+      "published_sha256": "a480b777ae044f2ad410c9e1fae327609a0453bf0477243ce745b5135586719e",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-messaging-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-22-commission-records.md",
+      "kind": "task_plan",
+      "original_sha256": "176b7e9953c30006d794d2e2980b2b19a4acdd55b42e798bb67c3ebfa54a7e2b",
+      "published_sha256": "cca0fae677fd13fbf55e96b864514eac92b7ebb1d73c2e52d0cb6e5b3ca95a01",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-decisions.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-age-04-directory-links-and-call-contacts-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "4866797ea008504ae7833a5daddd74163f69f564b4c9ec21e62da50becf73811",
+      "published_sha256": "d61aa538a584893ad7ca1d9ec787c0966c87bd545ce5ab2542adc975853f2fd2",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-age-14-suppression-across-linked-copies-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "ce341a4ee9e987b54850e5af85f1ed49c1340e261ba446df7acfd7ab8c5ae20a",
+      "published_sha256": "4b4feef444e12d6a703cd8b11e96261975f90131ad2f34a6394091f06f45f0bb",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-aut-01-automation-controls-and-actual-usage-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "9542470550b509ae7f39271306f16298e54512b5d4e030ad736535015de69d79",
+      "published_sha256": "aed478409c384b94c55c41db5ad3a7b6cf124eaff756776f87b873170b232958",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-aut-04-readiness-from-actual-evidence-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "b36259c823b1c18dd1ab756e20b2e706479191170cb05c943d81acd112dbb5da",
+      "published_sha256": "71ace5a80bddbeb788341c3ed28b4ead1075a5b47f2cc8ffc805312090e52d77",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-aut-05-central-model-authorization-and-quota-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "c9da8d0108f86318d308883d63d2279fc3d3d9a42f7581ff19e3629d1c2e4bf0",
+      "published_sha256": "e47fd9486350e7e1c317d25fa98a95f8ed6b041cd044b776b441532ccd7740e8",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-aut-09-automation-definition-registry-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "720b2928ec34e361720428270f575e62e6e83fc512398c50505a0d2a936c9395",
+      "published_sha256": "d6945e2bf9e59398101f2e86cbc24669c59bb4b0bd5cf061d26a65cdf341495c",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-aut-10-versioned-operation-modes-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "63abe331da57a9d650f4a699c0ccc724b355fcbe39f2bd590d8b08e33ae38030",
+      "published_sha256": "c12b7cd6ed7f91933772d8442ec869d5fed45ad256e9ff374291341cc1c7a0a2",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-aut-11-one-outbound-guard-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "fbc8b46ba21c13b0185b58dfbadc8d8e7a5e372a6430ae615e3f1a193ef2b2b2",
+      "published_sha256": "0d9413b806db50e1fc58dfe2db451b6e1368689c1ac6508fed1c2dbfbc847e78",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-aut-13-hermes-dispatch-and-isolated-payloads-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "c7464aaed1f892c1c1820e61bba46771ccff03ff5485beb6edf1e7c97b7cf2b8",
+      "published_sha256": "79d3e6977c41e0031c45f7514ceb676cd8772bc6d8434fb9b39dd4603363013b",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-aut-14-notifier-package-and-receipts-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "74ba924ee3a20514747a77fd766ea8ca1aaf01cc741692bcc8514d91b6b98b9b",
+      "published_sha256": "a4ef6f148399a1d464e67af811ade4d674ab1ba9c58152148ab21ad26fb50924",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-aut-16-luis-public-search-and-command-guard-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "57b73dc7f00668250e0bb0be6be4b85c5d7e7a49741e6d6442667faf29d31a59",
+      "published_sha256": "42a8a99f3d175f14eefa62edfde0a15d98191d2bce4c4a8cbe0d1345d3a982c4",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-aut-18-human-ready-marker-and-summary-count-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "018376e66aca7866f535bdb080d3435c22dfbf5967d7a67953a84b4a6194a3ae",
+      "published_sha256": "0f96487a54727fa7414d497b8ff3cb8c1e12949f5918383ed6c93e0fea799f87",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-bus-03-inventory-evidence-browser-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "5fa722b2a7999b2a2f77b73f5f1bb4fab8fdd58199ef0712a939c79fe9f8f10a",
+      "published_sha256": "d295db02ebd377f3c526c514d4a4015908edca61cfbd5ffb1ed9c007d2ccbef1",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-bus-08-one-daily-jersey-sweep-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "3ea68d56c0b31f96ff9e9637c6ed629557702689188206a1bd19e00bf1065757",
+      "published_sha256": "93b65417d0b6a34bd86cbc25e614d24e9345d76b29038a671ad210930f5fb643",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-bus-10-physical-identity-and-reversible-aliases-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "849cf8254d92ddab6d7cf5aad6250580266d031fee4c279718e00b137cbfd026",
+      "published_sha256": "e358dfd753220b51d3dc8388109985cd3441285149f56b989b15958fc1702b60",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-bus-19-per-source-access-decisions-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "fbb20d64edcc5982b69098fdb0d77424345e9d481cc49f6769ad8b35b1f3179f",
+      "published_sha256": "4152b44512961f975a6f03c027123be69627880c524b7616f1e8226f538d5a72",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-bus-20-reviewed-company-candidates-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "beb5e8a691d6166cc655e9d5eeb6e6288e45da2289742405885d357842912026",
+      "published_sha256": "7c94e8d3880a3a30227f248e61328ce5eef0289a9f2be0428be525f02c8f2f38",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-msg-02-shared-conversation-revision-guard-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "2a695f230d49fd09acf62f55425c96e809152aaa0184923d80ad9b078a977318",
+      "published_sha256": "80700c1cd704b23bf7a094c32f304c6c3bcdea8d35154cefab5fe0d48c419562",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-msg-03-channel-typed-unified-messages-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "bc440e0a013a6673071b85f20de37af19761e8f5d1550986022d49ed989fcf68",
+      "published_sha256": "f8285df32971789084621e2061630c269c2f47ba6defbe099213755b133f9dc9",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-msg-04-intent-adapter-and-safe-model-handoff-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "6537fefb405dda47df02c5222f9d9556e720cff0c9efcc9288ed3cfd3d61fcc0",
+      "published_sha256": "0f932debf0dbbdd15dfaa46c803e32a3500c5a5e8911b881317bb4c83ef6457f",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-msg-05-chat-applicant-prefill-with-explicit-save-closure.md",
+      "kind": "task_plan",
+      "original_sha256": "6d5af519097b3ba0573173e9b3b22696826f5efd00b9dc54942a757da0e38286",
+      "published_sha256": "d6ff521c3df74c94d5a38ade5abc54096294a3a3fd78c82698c996bdbf17a8a5",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-09-list2-contract-closure-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-bus-06-initial-market-inventory-design.md",
+      "kind": "shared_design",
+      "original_sha256": "df8288d41b226e0edc401e77520c1d892116d8af5b8e516be95be3add6b51938",
+      "published_sha256": "e5d78812300ec03cdacbe75ed0e6278b305c0dd38079a20cca54e5d8e923fbf7",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "published_reference": "docs/roadmap/2026-11-09-list2-published-scope.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-bus-06-initial-market-inventory.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-bus-06-initial-market-inventory-ledger.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-bus-21-23-property-directory-gaps-design.md",
+      "kind": "shared_design",
+      "original_sha256": "d0149c0b8c486aae5629b58bc6bb579f7e80dfb8cb7850c12dcce38a8d1e6a05",
+      "published_sha256": "a16598bcc006d1834a255c510dfcf07d556ffea78f211a79395a483acb9636a8",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "published_reference": "docs/roadmap/2026-11-09-list2-published-scope.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-bus-21-property-directory-gaps.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-bus-22-property-directory-gaps.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-bus-23-property-directory-gaps.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-bus-21-23-property-directory-gaps-ledger.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-list2-agency-batch-design.md",
+      "kind": "shared_design",
+      "original_sha256": "59c67635cbfc02804cc986236ae7d58ae241e2b7c52291256fd3d7c18b4f2305",
+      "published_sha256": "ce4938e5390d1a58055b29044f813b959d3390c3989ed1b26ca7a585aa8d20ee",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "published_reference": "docs/roadmap/2026-11-09-list2-published-scope.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-market-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-list2-connectors-completion-design.md",
+      "kind": "shared_design",
+      "original_sha256": "6da103c540385aafc151397bdbd9b22c0002f92f155e3641764bb7c2d5d9b28f",
+      "published_sha256": "d486873517ea8b2a91c9d9837c246083946c5ffd825dbed44785e87746d1da1d",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "published_reference": "docs/roadmap/2026-11-09-list2-published-scope.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-models-connectors-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-list2-market-batch-design.md",
+      "kind": "shared_design",
+      "original_sha256": "1165b3a021cf84d37aa8244957183e62a4c7102d97e8074ff93ae7579e280199",
+      "published_sha256": "06cd405f0395b2b687fc723f4a4cfe0ecd653923a7321a5628f3fcc4a9aa5fec",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "published_reference": "docs/roadmap/2026-11-09-list2-published-scope.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-list2-messaging-batch-design.md",
+      "kind": "shared_design",
+      "original_sha256": "4596d85f3f6c27f56cb40f4760698b93059a974f6203a621133dbadbb8b6c2b5",
+      "published_sha256": "3884e5d246a24de1c295d55067009e5b224d5887a1cde7c5bfba3599c662ad21",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "published_reference": "docs/roadmap/2026-11-09-list2-published-scope.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-market-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-list2-models-batch-design.md",
+      "kind": "shared_design",
+      "original_sha256": "f7241e806d5d04316c84e16e07725a0d8ee897f46250b8c3e573fae500857ca9",
+      "published_sha256": "e411d5d4bb459ae8bc851e1c8bf4bc421e73a86acb2825240de3f460609bae35",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "published_reference": "docs/roadmap/2026-11-09-list2-published-scope.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-build-readiness.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-models-connectors-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-agency-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-messaging-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-list2-market-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-property-workspace-design.md",
+      "kind": "shared_design",
+      "original_sha256": "7a60b695667655085d035cb198bb6ce04d39461bc39417166071036c53a417bd",
+      "published_sha256": "46022e65c55cffa13fa1140c451ab984b28461b70d93f5aff72cd14f9ddc5cd0",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "published_reference": "docs/roadmap/2026-11-09-list2-published-scope.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-search-evaluation-batch-design.md",
+      "kind": "shared_design",
+      "original_sha256": "e405bdce48f5fee62b5471a1b22e59065fb0f63662d75b7ef920d31ab194a5e8",
+      "published_sha256": "e5c13842c638a99653201fdcbd7d8e43214a8f83a754b3fc1dfbd529a7492ef0",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-search-workflow-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        },
+        {
+          "original_reference": "docs/roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "published_reference": "docs/roadmap/2026-11-09-list2-published-scope.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-search-review-criteria-design.md",
+      "kind": "shared_design",
+      "original_sha256": "6c5043a6c4a1fc9300ebe3440ddf7d88583aa9b3cfa1cda388ccf5f0c8a81a9d",
+      "published_sha256": "612b0c14d5704588efc477ca421a75c8658cde714b95eca866153c30451d2141",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "published_reference": "docs/roadmap/2026-11-09-list2-published-scope.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-search-workflow-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-search-state-capture-design.md",
+      "kind": "shared_design",
+      "original_sha256": "54947b2b326ac6f65163291580bda2e5d92cada110e7d01a0986cc3a1337ba3d",
+      "published_sha256": "1af14902c8c567ef82b60b8d266d025af17a9803a5123b1d7e475c20088ae4d8",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-search-workflow-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-viewings-coordination-design.md",
+      "kind": "shared_design",
+      "original_sha256": "ed72a52c5787f4a4bb6e91e5c4d9e5accb6b403753c4904b2c19134a79eed3c1",
+      "published_sha256": "7253a9bae928f48d9371ea1af4d05d4e53022d67458d2bd53f5c08044ded2297",
+      "reference_adjustments": [
+        {
+          "original_reference": "docs/roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "published_reference": "docs/roadmap/2026-11-09-list2-published-scope.md"
+        },
+        {
+          "original_reference": "docs/superpowers/plans/2026-11-08-search-workflow-batch.md",
+          "published_reference": "docs/superpowers/plans/2026-11-09-list2-build-ready-github.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-09-list2-core-contracts-design.md",
+      "kind": "shared_design",
+      "original_sha256": "75125646a4edb7b5fa371334c155b296ef3521c665dac699a4fb331da5ad3bf7",
+      "published_sha256": "75125646a4edb7b5fa371334c155b296ef3521c665dac699a4fb331da5ad3bf7",
+      "reference_adjustments": []
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-09-list2-market-contracts-design.md",
+      "kind": "shared_design",
+      "original_sha256": "13ae30efda673411ac13c1df744d9bc13e5d3cd97acee1e244219635befe0121",
+      "published_sha256": "13ae30efda673411ac13c1df744d9bc13e5d3cd97acee1e244219635befe0121",
+      "reference_adjustments": []
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-09-list2-model-message-contracts-design.md",
+      "kind": "shared_design",
+      "original_sha256": "90bb2398e86d3561aa44e2a794c6d96da715de67bcf155ba52315ccd3b44ca3c",
+      "published_sha256": "90bb2398e86d3561aa44e2a794c6d96da715de67bcf155ba52315ccd3b44ca3c",
+      "reference_adjustments": []
+    }
+  ],
+  "excluded_pending_codes": [
+    "BUS-06",
+    "BUS-09",
+    "BUS-11",
+    "BUS-21",
+    "BUS-22",
+    "BUS-23",
+    "AUT-17",
+    "PRE-32",
+    "PRE-34"
+  ],
+  "activity": "unverified_activity_unavailable",
+  "private_files_included": false,
+  "publication_verified_at_preparation": false,
+  "independent_document_review": {
+    "reviewer": "list2_publication_review",
+    "critical": 0,
+    "important": 0,
+    "minor_corrected": 3,
+    "correction": "Títulos visibles MSG-03/AUT-05/BUS-19 actualizados al alcance vigente."
+  },
+  "eof_whitespace_normalized_files": 16
+}
