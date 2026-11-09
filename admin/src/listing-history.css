@@ -1,0 +1,19 @@
+/* Bath Street Gallery: the existing card frames a flat chronology; bronze is reserved for interaction. */
+.listing-history{min-width:0;overflow-wrap:anywhere}
+.listing-history .head h2{margin:0}
+.listing-history>ol{list-style:none;padding:0;margin:16px 0}
+.listing-history>ol>li{padding:12px 0;border-top:1px solid var(--line)}
+.listing-history h3{font-family:var(--body);font-size:14px;font-weight:600;margin:0 0 8px}
+.listing-history .meta{gap:8px 16px;margin:0 0 8px}
+.listing-history summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--ink);width:fit-content}
+.listing-history summary:hover{color:var(--bronze-dk)}
+.listing-history .btn{min-height:44px}
+.listing-history .history-changes{padding-left:16px;margin:8px 0}
+.listing-history .history-changes>li{margin-bottom:12px}
+.listing-history dl{display:flex;flex-wrap:wrap;gap:8px 16px;margin:8px 0}
+.listing-history dt{font-size:12px;font-weight:600;color:var(--stone)}
+.listing-history dd{margin:0}
+.listing-history .history-evidence{margin-top:16px}
+.listing-history .history-evidence p{margin:4px 0}
+.listing-history :focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
+@media(min-width:760px){.listing-history summary,.listing-history .btn{min-height:32px}}

@@ -10,7 +10,7 @@
     "itemCount": 250
   },
   "liveCoordination": false,
-  "policy": "Cada punto pertenece a un solo puesto; ayudar cambia el ejecutor con reserva. El reparto no acredita viabilidad inmediata. Dependencias por tramo requieren unidades y evidencia antes de ejecutar.",
+  "policy": "Reparto histórico del antiguo coordinador, no reserva ni exclusión vigente. El candado protege solo la copia de cada taller: acordar un turno único antes de editar recursos compartidos, integrar o publicar. Verificar dependencias técnicas y exigir revisión y sí para el SHA final.",
   "slots": [
     {
       "id": "vps",
@@ -991,16 +991,19 @@
       "fase": "—",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "La ficha enseña sus ofertas con su resultado, enlaza sus visitas (Active interest) y el botón Owner report resume interés, visitas y ofertas por periodo.",
-      "falta": "M13 · Reconciliación 7-nov: Una sección History con todo lo que le pasa a la ficha (alta, cambios de precio y de disponibilidad, publicación, archivado, matches, visitas, ofertas): las rutas de fichas no escriben eventos y events no admite listing. Conservar observaciones de fuente, confirmaciones humanas, capturas, consultas, llamadas y cambios por operación con su evidencia y fecha; el historial permanece accesible tras purgar archivos. Depende de: EST-18.",
+      "hecho": "9-nov-2026: etapa A construida y comprobada solo en h1 sobre la base main2084cb9; aún sin integrar ni publicar. History administrativo de eventos reales de la ficha (EST-18/EST-17) con cambios permitidos, referencias de evidencia sin snapshots/PII, cursor estable de50 y lectura tras tombstone sin depender de archivos R2. Panel con vacío/carga/error, Retry y borrador intacto; fecha heredada inválida se marca sin inventar edad. Pruebas focales12/12, npm test998/1023 (25 fallos basales del wrapper git push), Python14/14, build/release, e2e focal y MCP1280/390 con datos ficticios. La ficha ya enlazaba ofertas, visitas y Owner report; eso no equivale a una cronología unificada de esas gestiones.",
+      "falta": "Revisión final del SHA con documentación integrada y turno único entre talleres; pedir el sí de Luis para ese SHA antes de publicar y comprobar despliegues/activación. El e2e general de admin no se completó por fake Drive que escucha sin host explícito; zoom nativo200% pendiente (CSS zoom2 no lo sustituye). Etapa B: asociar matches, visitas y ofertas/ventas con referencias duraderas sin PII ni duplicados. Etapa C: productores de fuentes, captura, consultas, llamadas, respuesta útil y purga real cuando esos módulos existan. Mantener SPR-02 parcial; no atribuir llamadas, comprobaciones de disponibilidad ni purga por tener un evento de ficha.",
       "bloqueo": "",
       "evidencia": [
-        "admin/src/ListingEditor.jsx:25-26",
-        "admin/src/ListingEditor.jsx:143-153",
-        "admin/src/ListingEditor.jsx:226-232",
-        "server/routes/listings.js:1-5",
-        "migrations/0008_applicants.sql:63",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "server/listing-history.js",
+        "server/routes/listings.js",
+        "admin/src/ListingHistory.jsx",
+        "admin/src/ListingEditor.jsx",
+        "tests/server/listing-history.test.mjs",
+        "tests/listing-history.e2e.cjs",
+        "docs/roadmap/work/SPR-02/h1-history-validation.md",
+        "docs/superpowers/specs/2026-11-09-spr-02-h1-history-design.md",
+        "docs/superpowers/plans/2026-11-09-spr-02-h1-history-ledger.md"
       ],
       "modulo": "M13",
       "deps": [
@@ -1024,7 +1027,7 @@
         "events-contract",
         "listings-schema"
       ],
-      "nextStep": "Extender History con eventos de propiedad y evidencias, conservándolo tras purgar archivos."
+      "nextStep": "Revisar/confirmar turno único entre talleres, integrar main y publicar solo tras sí para SHA final de etapa A; después diseñar B/C para matches, visitas, ofertas y productores reales, sin declarar SPR-02 completa."
     },
     {
       "id": "SPR-03",

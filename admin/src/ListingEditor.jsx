@@ -12,6 +12,7 @@ import HermesDraft from "./HermesDraft.jsx";
 import ViewingAvailability from "./ViewingAvailability.jsx";
 import ListingReview from './ListingReview.jsx';
 import RentalMarketing from './RentalMarketing.jsx';
+import ListingHistory from './ListingHistory.jsx';
 import {isRentalMarketing} from '../../server/listing-editorial.js';
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
@@ -34,7 +35,7 @@ const toMatchForm = l => ({ parish: l.parish ?? "", matchable: l.matchable });
 const changedMatchForm = (f, l) => Object.fromEntries(IF_CHANGED.filter(k => f[k] !== toMatchForm(l)[k])
   .map(k => [k, k === "parish" ? f.parish || null : f.matchable]));
 const SECTIONS = [["details", "Details"], ["price", "Price"], ["description", "Description"], ["photos", "Photos"],
-  ["tour", "Tour and specification"], ["viewings", "Viewings"], ["offers", "Offers"], ["applicants", "Matched applicants"], ["research", "Research"]];
+  ["tour", "Tour and specification"], ["viewings", "Viewings"], ["offers", "Offers"], ["applicants", "Matched applicants"], ["research", "Research"], ["history", "History"]];
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
 // Match status, with its badge tone (DESIGN.md "Badges de estado": Found and Rejected neutral, Shortlisted active).
 const MATCH_STATUS = { found: ["Found", "neutral"], shortlisted: ["Shortlisted", "active"], rejected: ["Rejected", "neutral"] };
@@ -67,10 +68,30 @@ export default function ListingEditor({ id, onChange }) {
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [loadErr, setLoadErr] = useState(null), [confirmDel, setConfirmDel] = useState("");
   const [confirming, setConfirming] = useState(false); // ADM-04: its own flag, so Save never reads "Saving…" meanwhile
   const marketingFocus=useRef(false);
+  const [historyKey,setHistoryKey]=useState(0),[deleted,setDeleted]=useState(false);
+  const historyChanged=()=>setHistoryKey(k=>k+1);
+  const loadRequest=useRef(0);
   useEffect(()=>{if(marketingFocus.current){document.getElementById('h-rental-marketing')?.focus();marketingFocus.current=false;}},[data?.listing.updated_at]);
-  const load = () => api(`/admin/listings/${id}`).then(d => { setData(d); setForm(toForm(d.listing)); setMatchForm(toMatchForm(d.listing)); setErrors({}); },
-    e => setLoadErr(e.message));
-  useEffect(() => { load(); }, [id]);
+  const load = async () => {
+    const n=++loadRequest.current;
+    setLoadErr(null);
+    try {const d=await api(`/admin/listings/${id}`);if(n!==loadRequest.current)return;
+      setData(d);setForm(toForm(d.listing));setMatchForm(toMatchForm(d.listing));setErrors({});setDeleted(false);historyChanged();
+    } catch(e) {
+      if(n!==loadRequest.current)return;
+      if(e.status===404)try {
+        const h=await api(`/admin/listings/${id}/history`);if(n!==loadRequest.current)return;
+        if(h.listing.state==='deleted'){
+          // Same-ID Reload does not unmount this editor. Discard its obsolete draft and unsaved-photo registration.
+          matchesReq.current++;marketingFocus.current=false;photos.current={dirty:false};
+          setData(null);setForm(null);setMatchForm(null);setPhotosDirty(false);setOffers(null);
+          setErrors({});setMatchesErr(null);setMsg(null);setConfirmDel('');setDeleted(true);return;
+        }
+      } catch(historyError) {if(n===loadRequest.current)setLoadErr(historyError.message);return;}
+      setLoadErr(e.message);
+    }
+  };
+  useEffect(() => { load();return ()=>{loadRequest.current++;}; }, [id]);
   // F3-C: a listing for sale's open offers, sale in progress and every offer ({open, sale, offers}, or {failed}), once the
   // listing is loaded.
   const [offers, setOffers] = useState(null), forSale = data?.listing.operation === "sale";
@@ -83,9 +104,11 @@ export default function ListingEditor({ id, onChange }) {
   useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
 
   if (loadErr) return <p role="alert" className="err">{loadErr}<br /><a href="#/listings">Back to listings</a></p>;
+  if (deleted) return <div><h1>{id}</h1><p>Property deleted. Its recorded history is kept.</p>
+    <p><a href="#/listings">Back to listings</a></p><ListingHistory key={id} id={id}/></div>;
   if (!data) return <p>Loading listing…</p>;
   const l = data.listing, state = stateOf(l);
-  const setListing = listing => { setData(d => ({ ...d, listing })); setForm(toForm(listing)); setMatchForm(toMatchForm(listing)); setErrors({}); };
+  const setListing = listing => { setData(d => ({ ...d, listing })); setForm(toForm(listing)); setMatchForm(toMatchForm(listing)); setErrors({}); historyChanged(); };
   // A save or a state change recomputes the listing's matches; only the detail read returns them.
   // Only the latest read counts, so two quick saves can't leave the older list showing.
   const reloadMatches = () => {
@@ -146,6 +169,7 @@ export default function ListingEditor({ id, onChange }) {
     try {
       const { confirmed_at } = await api(`/admin/listings/${id}/confirm`, { method: "POST" });
       setData(d => ({ ...d, listing: { ...d.listing, confirmed_at, to_confirm: 0 } }));
+      historyChanged();
       setMsg({ ok: true, text: `${l.title}: confirmed as still available.` }); onChange?.();
     }
     catch (e) { setMsg({ text: e.message }); }
@@ -196,7 +220,8 @@ export default function ListingEditor({ id, onChange }) {
       {data.duplicates.length > 0 && <p className="warn" role="note">Possible duplicate of {data.duplicates.map((d, i) =>
         <span key={d}>{i ? ", " : ""}<a href={`#/p/${d}`}>{d}</a></span>)} according to the research.</p>}
       <nav aria-label="Listing sections">{SECTIONS.filter(([k]) => forSale || k !== "offers").map(([k, t]) =>
-        <button key={k} type="button" className="linkish" onClick={() => document.getElementById(`s-${k}`).scrollIntoView({ behavior: "smooth" })}>{t}</button>)}</nav>
+        <button key={k} type="button" className="linkish" onClick={() => k==='history'?goTo('h-history'):
+          document.getElementById(`s-${k}`).scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth' })}>{t}</button>)}</nav>
       {/* O1: the owner's printable report, 30 days by default. */}
       <a className="btn ghost sm" href={`#/listings/${encodeURIComponent(l.id)}/report?days=30`}>Owner report</a>
       <a href="#/listings">Back to listings</a>
@@ -265,9 +290,9 @@ export default function ListingEditor({ id, onChange }) {
       <section id="s-photos" className="card" aria-labelledby="h-photos"><h2 id="h-photos" tabIndex={-1}>Photos</h2>
         <MediaManager listingId={id} media={data.media} coverId={l.cover_media_id} updatedAt={l.updated_at}
           register={p => { photos.current = p; setPhotosDirty(p.dirty); }}
-          onChange={(media, coverId, saved) => setData(d => ({ ...d, media, listing: saved
+          onChange={(media, coverId, saved) => { historyChanged();setData(d => ({ ...d, media, listing: saved
             ? { ...d.listing, cover_media_id: saved.cover_media_id, updated_at: saved.updated_at, updated_by: saved.updated_by }
-            : { ...d.listing, cover_media_id: coverId } }))} />
+            : { ...d.listing, cover_media_id: coverId } })); }} />
       </section>
 
       <section id="s-tour" className="card" aria-labelledby="h-tour"><h2 id="h-tour">Tour and specification</h2>
@@ -331,6 +356,7 @@ export default function ListingEditor({ id, onChange }) {
       <section id="s-research" className="card" aria-labelledby="h-inv"><h2 id="h-inv">Research <span className="muted">(read only)</span></h2>
         <Research data={data} />
       </section>
+      <ListingHistory key={id} id={id} refreshKey={historyKey}/>
     </div>
 
     <div className="actionbar" role="region" aria-label="Actions">

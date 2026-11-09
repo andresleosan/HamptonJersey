@@ -3,6 +3,21 @@ description: Avanza una tarea de Hampton App tras verificar automáticamente el 
 argument-hint: "[paquete o código, p. ej. PAQ-01 o VIS-03]"
 ---
 
+<!-- LUIS-SIN-COORDINADOR-2026-11-09 -->
+## Regla vigente de Luis · coordinador desactivado para avanzar · 9-nov-2026
+
+Luis pidió expresamente desactivar el coordinador para poder avanzar las tareas. **Planificar, construir, retomar y entregar ya no requieren el coordinador.** Esta decisión posterior prevalece sobre todas las exigencias de reservas, evidencias remotas o turnos de las instrucciones siguientes y del clon, incluso después de releer una versión anterior desde GitHub.
+
+- Usa el taller/copia propios, verifica GitHub y conserva el candado local y un solo escritor por carpeta. Retoma planes y trabajo propios; no adoptes ni borres lo ajeno. Sin argumentos, retoma el tramo pendiente o elige uno viable y anúncialo sin repetir elecciones rutinarias.
+- No exijas init/status/claim/scope/watch/renew/submit/pause/complete/evidence/catalog/release ni credencial del coordinador para avanzar. No inicies renovación. Un 403, API caída, evidencia ausente o reserva antigua no bloquean la tarea. No cambies roles, claves o permisos para sortearlos.
+- Comprueba dependencias técnicas con código, commits, migraciones y pruebas, y deja la evidencia real en el ledger. Conserva los bloqueos técnicos reales y continúa con lo independiente autorizado. No reconstruyas REG-08 por faltar su registro remoto; verifica commit y 0031 antes de BUS-14. Un plan antiguo no reactiva tours descartados en PRE-11.
+- Los cambios locales de esta regla en las instrucciones de avanzar son mantenimiento autorizado por Luis. Identifícalos y consérvalos al clasificar Git; no los confundas con trabajo ajeno que impida retomar la tarea. Inclúyelos en la revisión del SHA que se proponga publicar, sin descartar otros cambios.
+- Mantén alcance revisado, pruebas, revisión y documentación. Guarda progreso real y pendientes en ESTADO/checklist y relevo privado. El tablero remoto pasa a ser histórico y puede estar desfasado. Conserva reservas y operaciones antiguas sin cancelarlas, completarlas ni apropiarte de su trabajo.
+- Publicar/migrar conserva el sí de Luis para el SHA exacto, integración de main, revisión, SHA congelado y wrappers existentes. Publica un solo equipo a la vez, acordándolo antes de integrar y revisar. Una publicación/migración incierta se comprueba antes de reintentar. Retirar el coordinador no autoriza push ni migraciones por sí solo.
+
+El protocolo remoto descrito más abajo queda como referencia histórica, fuera del flujo obligatorio. Esta regla persiste hasta una nueva decisión de Luis. Si existe `references/sin-coordinador.md` en la skill del clon, contiene el procedimiento actualizado.
+<!-- FIN LUIS-SIN-COORDINADOR-2026-11-09 -->
+
 Tarea de Luis: $ARGUMENTS
 
 Usa el contrato compartido de `.agents/skills/avanzar/SKILL.md` y `docs/roadmap/AVANZAR.md` del repositorio canónico `https://github.com/andresleosan/HamptonJersey.git`, rama main. Conserva el modelo y esfuerzo de esta sesión y usa las herramientas equivalentes de Claude cuando el contrato nombre herramientas de Codex.
@@ -13,12 +28,8 @@ Ejecuta automáticamente `node scripts/check-avanzar.mjs` desde la raíz verific
 
 Conserva cambios y commits pendientes. No uses reset, clean, stash automático, rebase ni force-push para igualar copias. Con un SHA aprobado usa `--approved-sha <SHA completo>` y no modifiques el commit. Verificar o actualizar la copia no autoriza publicar. Respeta wrappers, autenticación y controles existentes.
 
-Después del arranque, lee `.agents/skills/avanzar/references/equipo.md` del mismo clon. Decisión de Luis del8-nov: **la planificación no crea reservas**. Usa `node scripts/avanzar-team.mjs plan --list N --task CODIGO`: catálogo local y base verificada, sin init, credenciales, plazas, scope, lease o watch; no bloquea por otra sesión ni por una dependencia sin construir. Guarda spec/plan/ledger y relevo, sin submit/pause/complete. Cada participante conserva carpeta exclusiva y no modifica archivos ajenos.
+Después del arranque, lee `.agents/skills/avanzar/references/paquetes.md`, el spec/plan/ledger del código y `DESIGN.md`. Planificar no reserva ni autoriza producto. Para construir, exige decisión de Luis, revisión de alcance, dependencias técnicas, candado propio y turno exclusivo entre talleres; no uses el coordinador. Anota pruebas, fallos y límites reales en ledger y ESTADO/checklist, sin cambiar permisos o servicios.
 
-Solo al recibir encargo de construir: status, revisión coordinadora con alcance explícito sin reserva previa y claim --mode build. El servidor comprueba revisión, dependencias, identidad, capacidad y recursos antes de conceder build; entonces watch en primer plano. Cada Hermes conserva su propio taller, candado y credencial. Sin conexión autorizada, diagnosticar construcción sin afirmar reserva; la planificación local puede continuar si su base fue comprobada. Respetar generaciones, pausas, evidencia y turno de publicación; el cliente no concede autorización de push.
+Para publicar: acuerda un único turno con el otro taller, comprueba e integra main preservando trabajo, repite pruebas y revisión del SHA final, pide el sí escrito de Luis para ese SHA y migra/sube solo mediante wrappers con marcas aprobadas. No crees commits después de ese sí. Comprueba remoto, checks y web; un resultado incierto se reconcilia antes de repetir. Las reservas y generaciones antiguas se conservan sin usarlas, liberarlas ni adoptarlas.
 
-Para publicar en equipo: submit provisional → release acquire → integrar main/documentos/pruebas → submit final → release renew --sha FINAL → revisión y aprobación del SHA final → congelar con TALLER_SHA_APROBADO o --approved-sha → migraciones/push autorizados → release finish. No cambies el SHA después de aprobar ni canceles un resultado incierto; conserva y reconcilia ese turno.
-
-Un relevo no se acepta con init ni copiando sesión: en su destino usa `accept-handoff --claim <id> --generation <nueva>`, que valida procedencia, alcance y autenticación antes de guardar autoridad, conservando commits y archivos legítimos. La entrega provisional puede esperar la integración de un main que avanzó; solo submit/acquire provisionales y accept-handoff de esa misma reserva admiten esa divergencia sin aprobación, conservando autenticación y alcance. Una operación desconocida de una generación anterior revocada de esa misma reserva se archiva como desconocida, sin repetirla ni declarar éxito; otros pendientes siguen bloqueando. La entrega final exige main integrado y auditoría de commits propios/resoluciones con Git 2.36 o posterior. Tras el piloto operativo publicado en ESTADO, cualquier fallo de configuración local bloquea la incorporación a construcción, sin fallback individual para producto; no exige reservas para planificación.
-
-Decisión vigente9-nov: usar `references/paquetes.md` de la skill; /avanzar sin argumentos retoma/elige paquete y /avanzar PAQ-* resuelve etapas locales conservando reservas por código real. Hermes programa con GPT Sol en Codex, con DeepSeek v4 max en OpenCode solo al perder acceso GPT.
+Decisión vigente9-nov: usar `references/paquetes.md` de la skill; /avanzar sin argumentos retoma/elige paquete y /avanzar PAQ-* resuelve etapas locales sin crear reservas. Hermes programa con GPT Sol en Codex, con DeepSeek v4 max en OpenCode solo al perder acceso GPT.

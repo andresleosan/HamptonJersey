@@ -1,0 +1,87 @@
+# SPR-02 · History de ficha, por etapas
+
+9-nov-2026. **Diseño de etapa A aceptado por Luis, construido y revisado localmente; sin integración ni publicación.** PAQ-01, Lista 4. Base inicial `f2113769903548f4c5a4763a51c7962e84e80aef`; main verificado y usado para construcción `2084cb9ea895b729f8a28e3f2c42ce2057641389`, repo `/home/taller/proyectos/HamptonJersey`. El candado h1 lo gestiona Hermes. El histórico de 403 del coordinador no bloquea el avance tras la decisión posterior de Luis; no acredita despliegue.
+
+Plan: [implementación local](../plans/2026-11-09-spr-02-h1-history.md). Evidencia y límites: [ledger](../plans/2026-11-09-spr-02-h1-history-ledger.md).
+
+## Intención y evidencia de partida
+
+El equipo necesita saber qué cambió en una ficha, cuándo, por quién y con qué referencia verificable, incluso cuando sus archivos ya no estén disponibles. Se añade una sección de lectura a la ficha existente, conservando su formulario y sus gestiones actuales. No se introduce otro registro de auditoría ni un módulo de captura, consulta o llamada.
+
+Fuentes contrastadas: skill versionada y referencias `paquetes.md`/`equipo.md`; AVANZAR, ESTADO, JSON `datos` del checklist, reconciliación del 7-nov, arquitectura, DESIGN y código/pruebas citados abajo. No se trasladan textos privados ni datos de clientes.
+
+| Fuente | Hecho comprobable en esta base | Consecuencia |
+| --- | --- | --- |
+| `server/routes/listings.js`, `admin/src/ListingEditor.jsx` | El detalle devuelve medios, Research, matches e interés; la ficha muestra ofertas y enlaza visitas. No devuelve eventos ni tiene sección History. | Añadir lectura propia sin recargar ni reemplazar el borrador del editor. |
+| `server/listing-events.js`, `migrations/0029_listing_events.sql` | Eventos `entity_type='listing'`, revisión por ficha, batch transaccional, valores estructurados y nombres de campos libres. | Reutilizar EST-18; no reconstruir el pasado ni duplicar eventos. |
+| `server/listing-editorial.js`, `migrations/0034_listing_editorial.sql` | EST-17 añade review y marketing de alquiler. `listing_marketing_evidence` conserva evento, referencia, acción, motivo codificado, fecha efectiva y snapshot. | Incluir estos hechos si existen; leer solo metadatos permitidos, nunca devolver el snapshot completo. |
+| `migrations/0002_deleted_listings.sql`, `server/routes/listings.js:deleteListing` | Tombstone estable; los eventos no dependen de FK a listings. Borrado elimina filas de medios/listing antes de intentar R2; conserva archivos importados y Research. | Borrado de ficha y purga física son cosas distintas. Un `listing.deleted` no prueba que R2 terminó. |
+| `tests/server/listing-events.test.mjs` | Hay casos escritos de conservación, rollback, reintento interno, retención y concurrencia. | Reutilizar fixtures y probar la nueva lectura; estos tests no se han ejecutado aquí. |
+| Spec `2026-11-05-hampton-app-listing-tracking-design.md` | Su título y alcance son **SPR-07**: columnas y filtros; usa updated_at para siete días. | No es un diseño previo de SPR-02. No cambiar ese filtro en esta entrega. |
+
+Desfase al diseñar: el `falta` anterior de SPR-02 decía que events no admitía listing y las rutas no registraban eventos; el código de EST-18 ya lo contradecía. La vista quedó aplazada entonces; Luis aceptó construir A y el catálogo/checklist local se han actualizado para distinguirla del resto pendiente. Los registros anteriores del coordinador no son autoridad vigente tras la decisión posterior de Luis.
+
+## Etapas y límites de aceptación
+
+| Etapa | Resultado y productores | Dependencia / límite |
+| --- | --- | --- |
+| **A, primera entrega construida localmente** | History con eventos reales de **la ficha** ya emitidos por EST-18/EST-17, diferencias y referencias de evidencia existentes. Lectura paginada y acceso mínimo tras borrado. | Luis aceptó esta primera etapa el 9-nov-2026; revisada y comprobada localmente, sin publicación ni reserva remota. No completa «todas las actividades» de SPR-02. |
+| **B, gestiones existentes vinculadas** | Incorporar actividad de matches, visitas y ofertas/ventas desde sus registros reales, conservando su identidad y sin copiar PII. | Nueva revisión de alcance al terminar A: definir asociaciones duraderas, reglas de redacción y desduplicación. No basta unir por email/teléfono o por título de propiedad. Los enlaces y tablas actuales permanecen utilizables durante A. |
+| **C, productores del recorrido nuevo** | Observaciones multifuente/por operación, captura completa/parcial/fallida, consulta enviada, respuesta útil, llamada con resultado y purga confirmada. | BUS-10/08, SPR-03, AGE-03/05/06/08/09, EST-15/19 y módulos correspondientes, cada uno con evidencia real. Un adaptador o fixture de NOT-01 no demuestra esos productores operativos. |
+
+En A existen productores para alta, cambios materiales/precio/disponibilidad, publicación/confirmación, archivo/restauración, portada/destacados, recálculo derivado, borrado, revisión editorial y marketing manual de alquiler. No se añaden escritores. Subir/quitar/reordenar cada archivo no tiene actualmente un evento completo de archivo; cambiar portada sí. La confirmación `Still available` acredita la acción del empleado; no acredita por sí misma una llamada realizada. Queue acredita el hecho que se confirmó, no que todos sus pasos concluyeron.
+
+En B no se puede prometer conservar la asociación de una visita borrada: la retención actual pone `events.data=NULL` y elimina la visita. Si se necesitara una referencia permanente no personal, su diseño y sus escritores se revisarán antes de activarla, sin reconstruir relaciones ya perdidas. No crear ahora una tabla genérica de asociaciones ni triggers para módulos futuros.
+
+## Contrato propuesto para A
+
+Ruta autenticada `GET /api/admin/listings/:id/history`, registrada dentro de las rutas de listings con `requiresAdmin=true`. Helper propuesto `readListingHistory(env, {id, cursor})` en `server/listing-history.js`.
+
+- Reconocer ID mediante el patrón actual `HE-[A-Z]` seguido de al menos tres dígitos. Buscar listing vivo o tombstone. Si no existe ninguno: 404; si existe sin eventos: 200 vacío. No llamar obligatoriamente a `loadListing`, que excluye los borrados.
+- Respuesta: `{listing:{id,state}, items, next_cursor}`. `state` es `present` o `deleted`. Cada item contiene `id, at, actor, type, revision, source, changes, related, evidence`. Sin título ni dirección recuperados de snapshots para fichas borradas.
+- `changes` contiene `{field,before?,after?,derived}`. Valores solo para el conjunto estructurado permitido por EST-18; campos libres muestran únicamente su etiqueta («Description changed»). `null` se muestra como «Not recorded», distinto de cero o falso. Campos no reconocidos no vuelcan datos crudos. Review se representa por el tipo/fecha/actor existentes, sin copiar `review_requested_by` a nuevos datos.
+- `related` admite solo IDs internos `offer_id, sale_id, import_id`. En A son referencias de registro, sin fabricar enlaces a destinos eliminados. No hacer una consulta por item para enriquecer personas.
+- Evidencia EST-17: solo `evidence_ref`, clase media/source, `action`, `reason_code`, `occurred_at`. Indicar «Recorded reference». No devolver `evidence_snapshot`, etiqueta libre, URL, clave R2, bytes ni contenido documental. Distinguir `at` de registro y `occurred_at` del hecho declarado por empleado. Sin evidencia asociada: «No evidence reference recorded», no «Verified».
+- Cargar hasta **50** eventos y una fila extra para determinar continuación. Orden por el TEXT almacenado `at DESC, id DESC`; las fechas heredadas no se reconstruyen ni normalizan para ordenar. Cursor base64url JSON versión1 con `listing_id,snapshot_id,before_at,before_id`, máximo512 caracteres y enteros seguros positivos. `before_at` admite ASCII imprimible de0–128 caracteres, como valor SQL parametrizado, sin exigir que sea fecha. Para texto heredado largo, no ASCII o con controles, el emisor pone `before_at:null`: la continuación resuelve `at` mediante una sola búsqueda PK de `before_id`, limitada a la misma ficha y a `id<=snapshot_id`. Esto mantiene el cursor acotado sin impedir paginar esos datos. Ancla ausente/ajena, estructura/versión/ficha inválida o límites excedidos:400. El cursor no concede permisos ni se interpola como SQL; los cursores ISO anteriores siguen válidos.
+- Primera página fija `snapshot_id=(SELECT MAX(id) FROM events)` **global**, en la misma lectura SQL que obtiene sus filas, con acceso al último rowid por PK. Continuación filtra siempre `entity_type='listing'`, `entity_id` de la ruta, `id<=snapshot_id` y `(at,id)<(before_at,before_id)`. Así excluye eventos nuevos de la ficha, incluso con reloj igual o atrasado. «Refresh history» inicia otra ventana. El máximo filtrado por ficha se descarta porque su índice ordena por `at`, no por `id`, y escanea toda su historia. No hacer OFFSET, COUNT global ni polling.
+- Privacidad del techo global: solo la ruta admin autenticada/no-store devuelve ese entero dentro del cursor; puede indicar un techo de actividad global, no un recuento ni identidades/contenido de otras entidades. Los IDs globales ya forman parte de los eventos visibles. La proyección de filas/evidencias y el ancla permanecen limitados a la ficha; no se abre una consulta global de payloads ni se cambian permisos.
+- Usar el índice existente `events_entity(entity_type,entity_id,at)` para la página y `listing_marketing_listing` para evidencias de los hasta50 IDs, sin multiplicar filas ni N+1. Medir instrucciones VM y revisar VDBE además de EXPLAIN QUERY PLAN: la mención de un índice no demuestra máximo acotado. A no necesita migración nueva; el helper hace presencia/página/evidencias y, solo para una clave heredada no representable, una lectura PK adicional por página.
+- Los JSON heredados nulos o de forma inesperada se presentan como «Details unavailable» conservando tipo conocido, fecha e identidad; tipo desconocido: «Property event recorded». El índice `events_listing_revision` impide insertar normalmente JSON malformado de una ficha: comprobar ese caso defensivo con un mock aislado, no con una fixture D1 que falsee el esquema. No mostrar objeto JSON, mensajes SQL ni excepciones al usuario. Errores DB reales devuelven el error habitual y Retry, sin simular vacío.
+
+## Interfaz propuesta
+
+Añadir `History` a la navegación por secciones actual y al final de `.sections`, con H2 y lista semántica ordenada. No convertir la ficha en pestañas ni rehacer su navegación. Montar `ListingHistory` tras cargar la ficha y consultar su endpoint al abrir; la carga no bloquea el formulario. Cada fila muestra acción, fecha con zona Jersey, actor existente, origen y revisión; diferencias y referencias se despliegan con `details/summary` nativos. No añadir estadísticas, imágenes ni gráficos.
+
+Una fecha de registro que no sea timestamp UTC canónico (round-trip ISO con milisegundos y Z) muestra «Date unavailable», sin `time`, hora relativa ni «now» ficticio. Así tampoco se normaliza un30 de febrero o texto numérico a una fecha inventada. La clave SQL heredada sigue disponible para ordenar/paginar, independientemente de su presentación.
+
+Copy en inglés: «Loading property history…», «No property events recorded yet. Earlier activity was not reconstructed.», «Couldn't load property history. Try again.», «Load older events», «Refresh history», «Property deleted. Its recorded history is kept.». Para borrados, una lectura exitosa de History permite una vista mínima por ID en la misma ruta `#/p/:id`, sin controles de edición. Solo se intenta esa alternativa tras 404 de detalle; una sesión 401, red caída o 500 no se interpreta como borrado. Un ID desconocido sigue siendo 404.
+
+Refresh y paginación actualizan exclusivamente History. Los éxitos de guardar, portada, publicar/archivar/restaurar, review, Queue, confirmar y marketing invalidan su lectura, sin sustituir campos ni fotos sin guardar. Ignorar respuestas viejas al cambiar de ficha/recargar; no duplicar items por reintento. Un fallo al cargar más conserva las filas ya leídas y permite reintentar ese cursor. No anunciar un total global ni «complete history» cuando solo hay una ventana o faltan productores.
+
+Si «Reload listing» de la misma ficha viva confirma un tombstone después del404, limpiar data/form/matchForm, registro y estado sucio de fotos, mensajes/errores y lecturas de matches pendientes. El editor permanece montado por ID, por lo que no se presupone cleanup de App: la vista mínima no conserva borrador ni aviso global y permite volver a listings sin confirmación de salida.
+
+## Conservación, privacidad y concurrencia
+
+No almacenar PII nueva. Se usa el actor administrativo que ya contiene events; no se hacen copias de nombres, email/teléfono de clientes, notas de ofertas, mensajes o URLs. El endpoint administrativo hereda `no-store` de `server/api.js`. React renderiza texto, nunca HTML de eventos, snapshots o errores. Sin datos en localStorage, exportaciones, acceso Hermes o endpoint público.
+
+PRE-12 sigue en `server/retention.js`: contacto con búsqueda active/needs_review protegido, revisión a 11 meses; elegibles tras 12 meses y excepciones de ventas/ofertas; visitas con su propio plazo de 12 meses. Jobs y filas cerradas de Drive, 90 días; chats, 30 días; correo con su política propia. Este diseño no cambia plazos ni preserva payload personal después de una redacción. Seis meses de EST-19 afectan archivos de propiedades, no personas. D10 ya aprobó originales/derivados/paquetes sin uso activo, conservando mínimos y evidencia necesaria; formatos de exportación siguen fuera.
+
+History depende de events/tombstone/referencias, nunca de que exista una foto, archivo R2 o import cerrado. La prueba de eliminación local de medios acredita esa independencia, no la automatización de EST-19. Los snapshots existentes de EST-17 no se duplican y su conservación exacta deberá revisarse por EST-19. No ofrecer descarga desde el snapshot ni deducir éxito de purga de una ausencia. En C, la purga solo se mostrará completada con confirmación efectiva del productor; fallos parciales mantienen pendiente con referencias legibles y sin enlaces rotos.
+
+La vista es de lectura: no cambia CAS `updated_at`, revisión de events, recibos internos ni idempotencia HTTP. No escribe evento por abrir/recargar. Las operaciones concurrentes conservan las garantías de los productores, incluida distinción entre reintento identificado y dos confirmaciones legítimas. Dos lecturas o dos ticks no generan efectos nuevos. Los productores actuales guardan `at` UTC; orden/cursor comparan el TEXT almacenado sin normalizar claves heredadas, y la presentación usa `Europe/Jersey` solo para timestamps canónicos válidos. Probar DST y fechas límite sin convertirlos en plazos nuevos.
+
+## Diseño visual y criterios
+
+El plan contiene valores exactos y el contraste DESIGN/código, además de pruebas A01–A09. Son criterios futuros, no aceptación obtenida. Antislop se aplica **durante** el trabajo por decisión de Luis; sin wizard, instalación ni entrevista de estilo. Design Read: ficha operativa para el equipo Hampton, lenguaje Bath Street Gallery, ENERGY 1 / RHYTHM 1 / MOTION 1. Una lista cronológica permite leer secuencia; bronce solo orienta interacción; tipografía/densidad se heredan para que History pertenezca al editor.
+
+## Decisión de producto Q1, resuelta
+
+Luis respondió «Si» en este chat el 9-nov-2026 a la pregunta de construir primero History con eventos de propiedad ya registrados y dejar matches, visitas, ofertas y productores futuros para etapas posteriores. Etapa A autorizada como alcance de construcción; SPR-02 permanece parcial hasta cubrir y comprobar B/C. **Esta respuesta no aprueba un SHA, migración o publicación.**
+
+## Recursos y revisión para cierre
+
+Recursos antes definidos en el catálogo remoto, ahora históricos: `events-contract`, `listings-schema`, `path:docs/roadmap/tasks/SPR-02.json` y `path:docs/roadmap/work/SPR-02/`. El alcance local revisado está en el plan y se limita a A. NOT-08 ya está publicado en main2084cb9; no se tocaron `notifications-schema`, `inbox-ui`, `agency-consultations-contract`, `messages-contract` ni sus archivos. El catálogo/checklist local se actualizó para reflejar A; `work-units.json` permaneció intacto y no se creó migración nueva.
+
+Construir requiere encargo nuevo, Q1 resuelta, revisión real del diseño, base GitHub comprobada, candado propio, dependencias técnicas verificadas y sin otro escritor en este clon. **Actualización de Luis del 9-nov-2026:** el coordinador queda fuera del flujo obligatorio de avance; no exigir reserva build, scope ni evidencia remota (véase la regla local confirmada por Luis en `.agents/skills/avanzar/SKILL.md`). El intento histórico de evidence design devolvió 403 y no se presenta como permiso. EST-17/0034 deben estar en la base para leer sus referencias; su migración remota no se supone aplicada porque el código esté en main. Activar A requiere pruebas, revisión independiente, publicación/aplicación de esquema por el flujo autorizado y smokes. B/C requieren productores integrados/activados por separado; no autorizan construirlos aquí.
+
+Rutas de revisión y validación local ya existentes: `docs/roadmap/work/SPR-02/h1-history-design-review.md`, `docs/roadmap/work/SPR-02/h1-history-validation.md`, `docs/roadmap/tasks/SPR-02.json`. No se registró evidence remoto. El ledger distingue revisión documental, pruebas locales, integración pendiente y activación pendiente.

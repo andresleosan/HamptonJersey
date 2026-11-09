@@ -3,6 +3,22 @@ name: avanzar
 description: Avanza una tarea del checklist de Hampton App, con código, documentación, comprobaciones y relevo. Úsala con $avanzar, /avanzar o cuando Hermes transmita ese encargo desde Telegram.
 ---
 
+<!-- LUIS-SIN-COORDINADOR-2026-11-09 -->
+## Regla vigente de Luis · coordinador desactivado para avanzar · 9-nov-2026
+
+Luis pidió expresamente desactivar el coordinador para poder avanzar las tareas. **Planificar, construir, retomar y entregar ya no requieren el coordinador.** Esta decisión posterior prevalece sobre todas las exigencias de reservas, evidencias remotas o turnos de las instrucciones siguientes y del clon, incluso después de releer una versión anterior desde GitHub.
+
+- Usa el taller/copia propios, verifica GitHub y conserva el candado local y un solo escritor por carpeta. Retoma planes y trabajo propios; no adoptes ni borres lo ajeno. Sin argumentos, retoma el tramo pendiente o elige uno viable y anúncialo sin repetir elecciones rutinarias.
+- No exijas init/status/claim/scope/watch/renew/submit/pause/complete/evidence/catalog/release ni credencial del coordinador para avanzar. No inicies renovación. Un 403, API caída, evidencia ausente o reserva antigua no bloquean la tarea. No cambies roles, claves o permisos para sortearlos.
+- Comprueba dependencias técnicas con código, commits, migraciones y pruebas, y deja la evidencia real en el ledger. Conserva los bloqueos técnicos reales y continúa con lo independiente autorizado. No reconstruyas REG-08 por faltar su registro remoto; verifica commit y 0031 antes de BUS-14. Un plan antiguo no reactiva tours descartados en PRE-11.
+- Los cambios locales de esta regla en las instrucciones de avanzar son mantenimiento autorizado por Luis. Identifícalos y consérvalos al clasificar Git; no los confundas con trabajo ajeno que impida retomar la tarea. Inclúyelos en la revisión del SHA que se proponga publicar, sin descartar otros cambios.
+- Mantén alcance revisado, pruebas, revisión y documentación. Guarda progreso real y pendientes en ESTADO/checklist y relevo privado. El tablero remoto pasa a ser histórico y puede estar desfasado. Conserva reservas y operaciones antiguas sin cancelarlas, completarlas ni apropiarte de su trabajo.
+- Sin exclusión remota, el candado de un taller **no** protege al otro. Antes de editar recursos compartidos entre equipos, Luis asigna por este chat un único equipo y código; no supongas exclusividad por tener el candado local. Si no puede comprobarse el turno, conserva cambios locales sin integrar ni publicar. Antes de integrar/publicar, acuerda el turno con el otro equipo, verifica otra vez main y revisa el SHA resultante.
+- Publicar/migrar conserva el sí de Luis para el SHA exacto, integración de main, revisión, SHA congelado y wrappers existentes. Publica un solo equipo a la vez, acordándolo antes de integrar y revisar. Una publicación/migración incierta se comprueba antes de reintentar. Retirar el coordinador no autoriza push ni migraciones por sí solo.
+
+El protocolo remoto descrito más abajo queda como referencia histórica, fuera del flujo obligatorio. Esta regla persiste hasta una nueva decisión de Luis. Si existe `references/sin-coordinador.md` en la skill del clon, contiene el procedimiento actualizado.
+<!-- FIN LUIS-SIN-COORDINADOR-2026-11-09 -->
+
 # Avanzar Hampton App
 
 La invocación admite un código real, por ejemplo `AUT-17`, o un paquete, por ejemplo `PAQ-01`. El repositorio canónico es `https://github.com/andresleosan/HamptonJersey.git`, rama `main`. Hermes programa con GPT Sol en Codex; al quedarse sin acceso a GPT usa DeepSeek v4 max en OpenCode (decisión de Luis,9-nov-2026). Otros clientes pueden aplicar el mismo contrato con el motor que Luis haya elegido. **Antes de leer el roadmap o construir, aplica el arranque siguiente, también desde una copia instalada de esta skill.** Después lee la skill y [AVANZAR.md](../../../docs/roadmap/AVANZAR.md) del clon verificado; esa versión gobierna la tarea.
@@ -52,7 +68,9 @@ Decisión expresa de Luis, 8-nov-2026: **planificar no crea ninguna reserva**. E
 - Si faltan lista o tarea, conserva elecciones explícitas y aplica selección de paquetes de [paquetes.md](references/paquetes.md); pregunta solo si falta una decisión que cambia el alcance. No consultes ocupación como requisito para planificar y no presentes dependencias pendientes como impedimento para escribir el diseño.
 - Redacta spec, plan y ledger, resuelve decisiones con brainstorming/grill-me y realiza la revisión documental. Guarda progreso y pendientes en documentos/relevo. La revisión no declara producto integrado ni habilita código automáticamente.
 
-## Construcción y coordinación
+## Construcción y coordinación (protocolo remoto histórico, NO ejecutar)
+
+Los mandatos de esta sección describen el sistema anterior, no requisitos del avance vigente. La regla inicial lo sustituye. Para construir hoy se exige diseño revisado, alcance propio, dependencias técnicas, candado y exclusividad entre talleres; no se solicita reserva ni evidencia al servidor.
 
 Lee [equipo.md](references/equipo.md). Solo al recibir un encargo de construir, consulta status y recupera reservas build/operaciones/aprobaciones pendientes. Inicializa la copia de construcción por el procedimiento autorizado; elige Lista 1–4 y solicita `claim --task CODIGO --mode build`. Cada reserva build mantiene la capacidad y exclusión por actor/sesión/checkout/recursos y su renovación; las copias privadas y credenciales siguen siendo propias.
 
@@ -66,7 +84,7 @@ El servidor rechaza nuevas reservas plan y cambiar una reserva build a plan. Las
 2. Comprueba el resultado del arranque anterior y registra la base en el ledger. Conserva los cambios ajenos y el trabajo pendiente. Resuelve primero los pendientes de tu propia tarea; no publiques un commit antiguo sin aprobación.
 3. Lee `docs/roadmap/ESTADO.md`, el JSON `datos` de `docs/roadmap/checklist-hampton-app.html`, la [reconciliación del 7-nov-2026](../../../docs/roadmap/2026-11-07-reconciliacion-automatizacion.md), la [arquitectura](../../../docs/roadmap/2026-10-23-arquitectura-hampton-app.md) y el spec/plan de la tarea, si existen. Contrasta lo construido con código, migraciones y pruebas: una idea o un estado escrito no demuestra que funcione ni que esté publicado. Ante contradicciones, respeta las decisiones vigentes de Luis y registra qué documento quedó desfasado.
 4. Lee `docs/roadmap/Hampton APP.md` si está disponible. Contiene el texto privado de Luis: no lo edites, lo copies a documentos públicos ni lo añadas a Git. Usa sus requisitos sin trasladar datos personales. Si falta una decisión que solo está allí, pídela por el chat y continúa con lo independiente.
-5. Si la invocación incluye un código de tarea, trabaja en ese punto. Comprueba qué parte sigue pendiente: no reconstruyas una entrega existente ni confundas un bloqueo de activación con falta de código. Si está bloqueado por una dependencia externa, explica qué falta y ofrece otra tarea viable. Sin código de tarea, aplica el inicio guiado por paquetes y el orden local; para construir usa la unidad real que confirme el coordinador según equipo.md. Si este cliente aún no está habilitado o no puede consultar el coordinador, conserva el trabajo y diagnostica su incorporación; no elijas otra tarea ni simules una reserva compartida.
+5. Si la invocación incluye un código de tarea, trabaja en ese punto. Comprueba qué parte sigue pendiente: no reconstruyas una entrega existente ni confundas un bloqueo de activación con falta de código. Si está bloqueado por una dependencia externa, explica qué falta y ofrece otra tarea viable. Sin código de tarea, aplica el orden de paquetes y anuncia el tramo elegido; para construir usa el código real, no PAQ-* como unidad. La falta de conexión al coordinador no autoriza saltarse candado, exclusividad entre talleres, alcance, dependencias técnicas, pruebas o aprobación de publicación.
 
 ## Aclarar, planificar y construir
 
@@ -119,11 +137,9 @@ Presenta la recomendación al final, tanto desde la VPS como desde Hermes, junto
 
 ## Registrar el progreso al cerrar /avanzar
 
-**Solo planificación:** guarda spec/plan/ledger y relevo; no crees ni cierres reservas y no llames submit/pause/complete/watch. La ausencia de una entrada en el tablero no bloquea el plan ni acredita construcción.
+**Solo planificación:** guarda spec/plan/ledger y relevo; no crees ni cierres reservas. La ausencia de una entrada en el tablero no acredita construcción.
 
-**Construcción con reserva:** Antes de responder al usuario, actualizar el estado confirmado del coordinador: `submit` para una entrega en revisión, `pause` si queda trabajo pendiente y `complete` solo si existen las evidencias reales de cierre. Registrar el cierre de publicación y la importación del catálogo cuando corresponda. Consultar después `status` y anotar el resultado. No cambiar una tarea a terminada por haber acabado un turno de chat, ni abandonar una reserva con trabajo pendiente. Si falla la red, conservar el relevo y explicar que el tablero aún no confirmó el cambio.
-
-El tablero público previsto consulta automáticamente una proyección reducida del mismo estado. No hay que subir manualmente otro HTML, editar el tablero ni enviarle claves. La consulta pública no concede autoridad para tomar tareas o publicar código. Hasta desplegar la vista pública, el coordinador privado sigue siendo el origen de las operaciones.
+**Construcción sin coordinador:** registra en ledger, ESTADO y checklist lo construido, comprobado, publicado y pendiente por separado; conserva el trabajo local hasta revisión y aprobación del SHA exacto. El tablero remoto y las reservas antiguas son historia: no envíes submit/pause/complete/watch ni liberes reservas ajenas para aparentar progreso. Si el otro taller no ha confirmado su turno, no integres ni publiques. La aprobación y el resultado real de GitHub/despliegue siguen comprobándose por sus wrappers, nunca por el tablero.
 
 ## Relevo y respuesta
 

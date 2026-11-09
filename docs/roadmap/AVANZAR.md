@@ -1,6 +1,6 @@
 # Avanzar una tarea de Hampton App
 
-Contrato compartido por los clientes de Hampton, actualizado el 8-nov-2026. En Codex se invoca `$avanzar <código>`; por Telegram, `/avanzar <código>`. Para construir con coordinación activada, el agente recupera trabajo propio antes de proponer algo nuevo; para planificar consulta el catálogo local sin reserva; si faltan lista o tarea, retoma o selecciona un paquete viable y anuncia su primer tramo antes de reservar. Si el cliente todavía no está habilitado o falla su conexión, se diagnostica su incorporación sin tomar tareas fuera del coordinador.
+Contrato compartido por los clientes de Hampton. En Codex se invoca `$avanzar <código>`; por Telegram, `/avanzar <código>`. **Actualización confirmada por Luis el 9-nov-2026:** el coordinador ya no gobierna planificar, construir ni entregar. Verificar GitHub, candado local, exclusividad entre talleres, diseño, dependencias técnicas y pruebas; no usar claim/evidence/watch/release. Las reservas antiguas y el tablero remoto quedan como historia, sin modificarlas. Publicar/migrar sigue exigiendo turno único, revisión, sí para SHA exacto y wrappers. Las secciones de protocolo remoto de este documento describen el flujo anterior y no deben ejecutarse.
 
 La [skill versionada](../../.agents/skills/avanzar/SKILL.md) contiene el procedimiento completo. Se lee desde el clon actual de HamptonJersey, también cuando Hermes arranca una skill instalada en el taller. Esta guía enlaza el contrato; no instala ni sincroniza copias externas.
 
@@ -8,15 +8,17 @@ La [skill versionada](../../.agents/skills/avanzar/SKILL.md) contiene el procedi
 
 Decisión expresa de Luis, 8-nov-2026. **Planificar no crea reservas.** Usar `node scripts/avanzar-team.mjs plan --list N --task CODIGO` sobre una copia exclusiva y GitHub comprobado. No necesita init, credenciales o coordinador; no consulta ocupación ni modifica sesiones. Una dependencia sin construir no impide planificar. El alias claim --mode plan es local en el cliente actualizado; el servidor rechaza reservas nuevas de ese modo.
 
-Durante planificación guardar spec/plan/ledger y relevo sin scope/watch/submit/pause/complete ni turnos de publicación. La revisión de diseño puede registrar alcance explícito sin reservar; las reservas empiezan al solicitar construcción con claim --mode build y siguen exigiendo revisión, dependencias, capacidad, identidad y recursos. Reservas plan históricas se conservan hasta su cierre explícito. Esta regla prevalece sobre las descripciones históricas de pilotos de planificación de este documento.
+Durante planificación guardar spec/plan/ledger y relevo sin scope/watch/submit/pause/complete. Al construir tampoco se crean reservas: exigen diseño y alcance revisados, dependencias técnicas comprobadas, candado del taller y turno acordado entre talleres, no un claim. Las reservas antiguas se conservan sin operar sobre ellas; no se presentan como permisos actuales.
 
 ## Inicio guiado
 
 En Hermes puedes enviar `/new` y después `/avanzar`. Decisión de Luis del9-nov: sin argumentos, retomar paquete propio pendiente o seleccionar el primero viable sin volver a pedir elecciones rutinarias. `/avanzar PAQ-01` selecciona el paquete; `/avanzar BUS-14` conserva alcance de ese código. Las250tareas se agrupan en23paquetes transversales; las cuatro listas siguen como referencia. [Guía de paquetes](PAQUETES.md), [manifiesto](paquetes.json) y [procedimiento](../../.agents/skills/avanzar/references/paquetes.md). El CLI local `node scripts/plan-packages.mjs` consulta etapas sin reserva; PAQ-* no se envía al coordinador como unidad.
 
-Cada participante trabaja en su propia copia, con identidad y estado de coordinación propios. Las listas no pertenecen a herramientas. Cambiar de lista no permite iniciar otro agente en una carpeta ocupada.
+Cada participante trabaja en su propia copia y toma su candado local; ese candado no excluye al otro taller. Las listas no pertenecen a herramientas. Cambiar de lista no permite iniciar otro agente en una carpeta ocupada ni reemplaza el turno acordado entre talleres.
 
-## Trabajo de equipo
+## Trabajo de equipo (protocolo remoto histórico, NO ejecutar)
+
+Los comandos de este bloque pertenecen al coordinador desactivado para avanzar; la regla inicial y la skill local del9-nov prevalecen. La documentación histórica no concede permisos de producto ni de publicación.
 
 La referencia canónica [equipo.md](../../.agents/skills/avanzar/references/equipo.md) contiene los comandos concretos para las cuatro listas, inicialización privada, planificación, alcance, renovación, relevo y entrega. El cliente se ejecuta desde el repositorio con `node scripts/avanzar-team.mjs`; no necesita un binario global. Requiere Node 20.18.1 o posterior, Git 2.36 o posterior con `--remerge-diff` y `npm ci`. [Reparto de equipo](reparto-equipo.html) muestra el catálogo; como archivo local es una fotografía sin conexión.
 
@@ -42,7 +44,7 @@ El JSON deja fecha, ruta, rama, SHA local/main/remoto, relación entre commits y
 | --- | --- |
 | Codex en VS Code o terminal | `.agents/skills/avanzar/SKILL.md`, invocada con `$avanzar`. |
 | Claude Code, si se elige y está disponible | [`.claude/commands/avanzar.md`](../../.claude/commands/avanzar.md), invocada con `/avanzar`; conserva los argumentos y remite a la misma skill. |
-| Hermes con GPT y respaldo DeepSeek | Arranque instalado → candado → clon verificado → skill versionada → verificador. Hermes programa con GPT Sol en Codex; al perder acceso GPT usa DeepSeek v4 max en OpenCode. Conserva su taller y flujo de publicación. |
+| Hermes con GPT y respaldo DeepSeek | Arranque instalado → candado → clon verificado → skill versionada → verificador. Hermes trabaja directamente con GPT mientras esté disponible; OpenCode/DeepSeek solo ante indisponibilidad confirmada. Conserva su taller y flujo de publicación. |
 
 Estos archivos viajan con el repositorio. Una copia que nunca recibió este arranque necesita obtenerlo una vez mediante clon/actualización; una copia instalada antigua que ya remite a la skill del clon la relee tras alinear. No se requiere que Luis ejecute el verificador en cada tarea.
 
@@ -50,9 +52,9 @@ Leer [ESTADO](ESTADO.md), [checklist](checklist-hampton-app.html), [reconciliaci
 
 El texto original de Luis y el relevo privado permanecen fuera de Git. Los requisitos públicos pueden resumirse sin copiar datos personales, credenciales ni el documento privado completo.
 
-## Tablero público y cierre del turno
+## Tablero histórico y cierre local
 
-La entrega del [tablero público](../superpowers/specs/2026-11-08-tablero-publico-design.md) prepara un enlace sin login para consultar Lista1–4 y progreso anónimo. Se publica como servicio separado del coordinador; no cambiar las credenciales o el endpoint de los agentes por el enlace público. Al cerrar una construcción reservada, registrar el resultado real con submit/pause/complete y comprobar status. Al cerrar solo planificación, guardar documentos/relevo; no crear ni cerrar reservas para reflejarla en el tablero. La vista lo recoge automáticamente, normalmente en unos20s cuando está visible y conectada. No declarar una tarea terminada si faltan evidencias o publicación.
+El [tablero público](../superpowers/specs/2026-11-08-tablero-publico-design.md) fue diseñado para mostrar el estado del antiguo coordinador. Ya no acredita reservas ni exclusividad vigentes tras la decisión del9-nov: no enviar submit/pause/complete/status ni crear o cerrar reservas para actualizarlo. Al cerrar trabajo local, guardar evidencia real en ESTADO/checklist, ledger y relevo; distinguir código local de integración, publicación y activación. No declarar una tarea terminada si faltan evidencias o publicación.
 
 ## Ciclo y evidencia
 
@@ -65,7 +67,7 @@ La entrega del [tablero público](../superpowers/specs/2026-11-08-tablero-public
 | Revisión y cierre | Corregir hallazgos de la tarea, distinguir pruebas pasadas/fallidas/bloqueadas y actualizar documentación. Solo después analizar la próxima tarea y recomendar modelo y esfuerzo con una razón. |
 | Commit y publicación | Autorización vigente, SHA remoto y despliegue verificados por separado. No confundir implementación con activación real de una integración. |
 
-La recomendación se incluye en ESTADO antes del commit final revisado y se presenta al usuario al cerrar. Se conserva el motor, proveedor, modelo y esfuerzo elegidos para la tarea en curso. La prioridad corregida por Luis es Hermes con GPT Sol en Codex; DeepSeek v4 max en OpenCode al perder acceso GPT. Una recomendación histórica no cambia esa prioridad. La [rúbrica de modelo y esfuerzo](../../.agents/skills/avanzar/references/modelo-y-esfuerzo.md) se aplica cuando Luis elige Codex, después de pruebas y revisión. No inventar controles de esfuerzo de otros proveedores.
+La recomendación se incluye en ESTADO antes del commit final revisado y se presenta al usuario al cerrar. Se conserva el motor, proveedor, modelo y esfuerzo comprobados de la tarea en curso. La prioridad vigente es Hermes directamente con GPT mientras esté disponible; DeepSeek en OpenCode solo al perder acceso GPT. Una recomendación histórica no cambia esa prioridad. La [rúbrica de modelo y esfuerzo](../../.agents/skills/avanzar/references/modelo-y-esfuerzo.md) se aplica cuando Luis elige Codex, después de pruebas y revisión. No inventar controles de esfuerzo de otros proveedores.
 
 ## E2E local reproducible
 
@@ -81,9 +83,9 @@ Para un recorrido MCP separado, `npm run dev:e2e` acepta `E2E_PERSIST`, `E2E_VAR
 
 ## Hermes
 
-Hermes lee la skill del clon actualizado. Decisión de Luis del9-nov: **programa con GPT Sol en Codex; al quedarse sin acceso a GPT usa DeepSeek v4 max en OpenCode**. Confirma los datos reales del proceso, sin inventar esfuerzo de GPT ni variantes de DeepSeek. La indicación sustituye la ruta directa GPT y variantes Flash documentadas históricamente; este cambio no configura ni verifica instalaciones de los talleres.
+Hermes lee la skill del clon actualizado. Decisión vigente: **trabaja directamente con GPT mientras esté disponible; al perder acceso confirmado a GPT usa el respaldo OpenCode/DeepSeek**. Confirma los datos reales del proceso, sin inventar esfuerzo de GPT ni variantes de DeepSeek. Una recomendación de Codex para una tarea futura no activa automáticamente otro constructor ni cambia los talleres.
 
-Hermes puede realizar tareas complejas de programación. El detalle del tablero recomienda dificultad y entorno según herramientas, accesos y necesidad de revisión visual. VS Code y Codex escritorio deben estar incorporados al coordinador para construir; un modelo disponible no prueba esa incorporación. No compartir credenciales ni cambiar wrappers, candados o permisos por recomendar un entorno.
+Hermes puede realizar tareas complejas de programación. El detalle del tablero refleja recomendaciones históricas de dificultad y entorno, no autorizaciones actuales para construir. VS Code y Codex escritorio usan su propia copia verificada y las mismas reglas de candado, alcance, pruebas y aprobación; ya no se exige incorporación al coordinador. No compartir credenciales ni cambiar wrappers, candados o permisos por recomendar un entorno.
 
 Al iniciar/reanudar, anunciar motor, modelo y esfuerzo visibles. Revisión en sesión independiente del motor correspondiente; si no está disponible, registrar pendiente. OpenCode solo tras pérdida confirmada de acceso a GPT; fallos de Git, red o pruebas no activan el respaldo. Conservar trabajo y terminar/relevar de forma segura una ejecución previa antes de abrir otro escritor. Cuando corresponda OpenCode, usar el helper autorizado existente de build/review y sus sesiones propias, sin introducir flags o configuración por inferencia.
 

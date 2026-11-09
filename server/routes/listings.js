@@ -5,6 +5,7 @@ import { afterSave, recomputeForListing } from "../match-store.js";
 import { interestSql, interestDates } from "../viewings.js";
 import { listingBatch, derivedListingFields, listingClock } from "../listing-events.js";
 import {checkMarketingEdit,transitionEditorialListing,recordRentalMarketingState} from '../listing-editorial.js';
+import {readListingHistory} from '../listing-history.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -253,6 +254,8 @@ export async function deleteListing(env, id, admin, context = {}) {
 }
 
 export default [
+  ['GET',new RegExp(`^/admin/listings/${ID}/history$`),async ({request,env,params:[id]})=>
+    json(await readListingHistory(env,{id,cursor:new URL(request.url).searchParams.get('cursor')})),true],
   ["GET", /^\/admin\/listings$/, list, true],
   ["POST", /^\/admin\/listings$/, create, true],
   ["GET", new RegExp(`^/admin/listings/${ID}$`), detail, true],
