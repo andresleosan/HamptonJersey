@@ -4251,8 +4251,8 @@
       "fase": "F1-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "9-nov-2026: construido localmente sobre064aa7f. Conserva todas las candidatas pertinentes sin mínimo35 ni tope25; score natural90 sin bonus por publicación. Ficha con páginas25, cursor/revisión y orden persistido común con Review. Rejected conserva su historial, Shortlisted su decisión; eventos efectivos en concurrencia, Timeline y Widen independientes de las páginas. Migración0037 preparada, sin aplicar en remoto. Verificado con1068JS+14Python, build/release, e2e general completo y focal1280/390; revisión independiente con1Important corregido RED→GREEN. Prueba600candidatas, páginas25/25/10, carrerasHTTP, errores, foco y zoomCSS200 sin overflow.",
-      "falta": "Aprobar el SHA exacto y0037, publicar y comprobar despliegue/smoke autenticado. PlaywrightMCP no inicia por sandbox/root y el zoom nativo no queda acreditado. Nuevas fuentes/inventario canónico pertenecen a BUS-12; ranking del día21 pertenece a BUS-17, sin reconstruirlos aquí.",
+      "hecho": "9-nov-2026: publicado en main72b3ad3be3bf49ea82cf3f8d56cfce169f6e26a7. Conserva todas las candidatas pertinentes sin mínimo35 ni tope25; score natural90 sin bonus por publicación. Ficha con páginas25, cursor/revisión y orden persistido común con Review. Rejected conserva historial y Shortlisted su decisión; eventos efectivos en concurrencia, Timeline y Widen globales. Publicación anterior registra0037 aplicada una vez, recuentos conservados e integridad correcta. Reanudación: main/GitHub iguales y Pages/Jobs success para el SHA. Evidencia de construcción:1068JS+14Python, build/release, e2e general y focal1280/390; revisión independiente con1Important corregido RED→GREEN. Prueba600candidatas, páginas25/25/10, carrerasHTTP y zoomCSS200 sin overflow. Smoke público anterior sin sesión no acredita el recorrido autenticado.",
+      "falta": "Validar con sesión real Applicants→ficha→Matches, recálculo de búsqueda antigua, paginación y Shortlist/Undo; acreditar zoom nativo200%. MCP no inicia por sandbox/root. En esta reanudación D1 rechazó la consulta7403 y HTTP devolvió403: no se acredita una nueva validación remota. No repetir0037 ni publicar el código ya entregado. Nuevas fuentes/inventario canónico pertenecen a BUS-12 y ranking del día21 a BUS-17. La reconciliación documental de esta sesión está revisada, pendiente de aprobación/publicación de su propio SHA.",
       "bloqueo": "",
       "evidencia": [
         "server/matching.js",
@@ -4291,7 +4291,7 @@
         "notifications-schema",
         "matching-review-ui"
       ],
-      "nextStep": "Autorizar el SHA exacto y0037; publicar mediante los wrappers existentes y comprobar despliegue/smoke. Construcción local revisada, sin push ni migración remota."
+      "nextStep": "Cerrar la validación autenticada y el zoom nativo con persona/sesión autorizada. Código72b3ad3 ya publicado y0037 aplicada según registros; no reconstruir ni repetir migración. Conservar límites y publicar la reconciliación documental solo con aprobación de su nuevo SHA."
     },
     {
       "id": "BUS-15",

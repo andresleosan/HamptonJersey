@@ -118,3 +118,15 @@ Esta copia es una exportación solicitada por Luis. No es un commit ni una entre
 ## Estado de construcción9-nov
 
 Implementación Tasks1–5 terminada. Task6 conserva resultados reales en ledger: suite1068JS+14Python, build/release y focal1280/390 con errores, concurrencia, formulario sucio, respuesta antigua y zoomCSS200. Revisión independiente con1Important corregido RED→GREEN y suite posterior. E2E general serial completoPASS (public/urls/admin/reg17); primera ejecución inconclusa por assets recompilados y baseline diagnóstica detenida sin veredicto; PlaywrightMCP bloqueado antes de navegar.0037 remota y publicación necesitan aprobación del SHA final. No se convierten estas limitaciones en PASS ni se presenta el producto como publicado.
+
+
+## Reanudación9-nov · reconciliar publicación y validación
+
+La construcción anterior ya está publicada en72b3ad3; sus notas de «pendiente de publicación» describen aquel momento. Tramo actual acotado a documentación y comprobaciones operativas; sin cambios de producto, diseño o migración. DESIGN vigente permanece aplicable sin nuevos componentes/tokens.
+
+- [x] Contrastar main/GitHub y checks del SHA publicado; conservar evidencia histórica de0037 y comprobar dependencia REG-08/cfb3d3c/0031.
+- [x] Intentar validación disponible sin cambiar controles: MCP falla antes de navegar, consulta D1 rechazada7403 y HTTP403. Registrar estos límites; no considerar PASS ni repetir migración.
+- [x] Reconciliar ESTADO, fuente BUS-14, checklist/generados y ledger; verificar catálogo/paquetes/release y revisar el diff documental antes del commit local.
+- [ ] Persona con sesión autorizada: Applicants→ficha→Matches, recálculo explícito de búsqueda antigua que el equipo quiera actualizar, siguiente/anterior si existe otra página, Shortlist/Undo solo sobre decisión de prueba autorizada y zoom nativo200% en escritorio/móvil. No fabricar registros o sesiones en producción; si no hay caso autorizado, registrar esa parte pendiente.
+
+Ruling: no repetir suites de producto ni e2e locales ya acreditados para un ajuste exclusivamente documental; ejecutar comprobaciones de documentación/generación. No confundirlas con el smoke autenticado pendiente. Aplicar ponytail para reutilizar el generador; verification-before-completion para no cerrar tareas sin evidencia.
