@@ -1,5 +1,19 @@
 # SPR-02 · Ledger de planificación y construcción local h1
 
+## Reconciliación documental · 9-nov-2026 · `55c470026b1c1909acf68ec244f71a7286f2a16f`
+
+Hechos aportados por Hermes, comprobados el 9-nov-2026 entre 16:28 y 16:30 UTC: `node scripts/check-avanzar.mjs` exit 0; HEAD/main/GitHub iguales a `55c470026b1c1909acf68ec244f71a7286f2a16f` y copia limpia. Ese merge contiene SPR-02 A por su padre `933c8fbd1ced662ab414d6d87a95e9dd282e33da` e integra ANA-08. Check-runs de ese SHA: Cloudflare Pages completed/success y Workers Builds: hampton-jobs completed/success. La raíz HTTPS pública devolvió 200. `migrar-hampton ver`, solo lectura: «No migrations to apply». Por tanto, el código de A ya está publicado; las afirmaciones anteriores de «sin publicar» corresponden al estado de aquel momento. No se conoce quién hizo push ni si Luis lo autorizó; no se atribuye esa operación a esta corrección documental.
+
+Límites vigentes: esos checks y el 200 público no acreditan activación ni smoke autenticado de History. A no introduce migración nueva; no se infiere cuándo se aplicó 0034. El e2e general admin y zoom nativo 200% siguen sin acreditar. SPR-02 continúa parcial por B/C, sin marcar la unidad hecha ni activada. Esta sesión solo corrige documentación y regenera derivados necesarios con `npm run team:catalog`; no implementa B/C ni modifica producto, pruebas, controles o `work-units.json`. Sin push, migración, operaciones de servicio, API de escritura o coordinador; el candado local lo conserva Hermes. Ninguna nueva publicación sin sí escrito de Luis para el SHA exacto. Playwright no aplica a este ajuste y no se repite la suite de producto histórica. Modelo/esfuerzo del CLI: no visible en la salida de esta sesión.
+
+Revisión GPT independiente de este diff: sin P0–P2; se corrigió una imprecisión P3 que confundía el SHA base con el futuro commit documental. El ajuste se mantiene separado del SHA publicado de producto.
+
+Verificación de esta corrección documental: `npm run team:catalog` exit0 (250 tareas/unidades, sin assets); `npm run team:check` exit0 (250 tareas/unidades); `npm run check:packages` exit0 (23 paquetes, 250 tareas, cobertura exacta); `npm run check:release` exit0 («No TO CONFIRM markers in site/.»); `git diff --check` exit0. Revisión estructural del diff: solo hecho/falta/nextStep de SPR-02 y sus derivados, HTML/JS estático e historia previa intactos; `work-units.json` idéntico a HEAD y al hash inicial; relevo privado ignorado y sin versionar.
+
+## Historial previo · estado de aquel momento
+
+El contenido siguiente se conserva íntegro como historia de planificación, construcción y validación local; no expresa el estado actual de publicación.
+
 Fecha: 9-nov-2026. PAQ-01 · SPR-02 · Lista4. **A construida y revisada solo en h1, integrada localmente con ANA-08 f0d8eb7, sin publicación ni aceptación de B/C.** Las secciones iniciales conservan la historia de planificación; el resultado actual está en las secciones de construcción y en [validación](../../roadmap/work/SPR-02/h1-history-validation.md).
 
 - Spec: [diseño](../specs/2026-11-09-spr-02-h1-history-design.md).
