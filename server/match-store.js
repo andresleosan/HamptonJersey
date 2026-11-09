@@ -23,17 +23,20 @@ export const APPLICANT = `a.requirement_priorities, a.household_children, a.hous
 // The applicant's open matched notice; notices find their applicant through their event, so the lookup starts from the
 // applicant's events (events_entity, then notifications_event), never from every open notice: CROSS JOIN keeps that
 // order in SQLite, which would otherwise start from notifications_open. Bind: the applicant id.
-const OPEN_NOTICE = `id IN (SELECT n.id FROM events e CROSS JOIN notifications n ON n.event_id = e.id
-  WHERE e.entity_type = 'applicant' AND e.entity_id = ? AND n.category = 'matched' AND n.resolved_at IS NULL)`;
+const matchedNotice = condition => `id IN (SELECT n.id FROM events e CROSS JOIN notifications n ON n.event_id = e.id
+  WHERE e.entity_type = 'applicant' AND e.entity_id = ? AND n.category = 'matched' AND ${condition})`;
+const OPEN_NOTICE = matchedNotice('n.resolved_at IS NULL');
+const SOURCE_CLOSABLE_NOTICE = matchedNotice('(n.resolved_at IS NULL OR n.closed_by_source = 0)');
 // "<N> new matches for <name>" with N the found matches stored now (B14). Bind: the applicant id, the name.
 const TITLE = `(SELECT COUNT(*) || CASE WHEN COUNT(*) = 1 THEN ' new match for ' ELSE ' new matches for ' END
   FROM matches WHERE applicant_id = ? AND status = 'found') || ?`;
 
 // Resolves the applicant's open matched notice once none of its matches is found any more (B14).
 export const closeMatchedNoticeIfEmpty = (env, applicantId, by) => env.DB.prepare(
-  `UPDATE notifications SET resolved_at = ?, resolved_by = ? WHERE ${OPEN_NOTICE}
+  `UPDATE notifications SET resolved_at = COALESCE(resolved_at, ?), resolved_by = COALESCE(resolved_by, ?),
+    closed_by_source = 1, task_actor = ?, task_action = 'source_resolved' WHERE ${SOURCE_CLOSABLE_NOTICE}
    AND NOT EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found')`)
-  .bind(now(), by, String(applicantId), applicantId);
+  .bind(now(), by, by, String(applicantId), applicantId);
 
 // The writes for one applicant (a: an APPLICANT row).
 // results: the listings evaluated now, [{ listing_id, score, checks (JSON text), passing }].
@@ -92,8 +95,9 @@ function writesFor(env, a, results, stored, others, actor, ts) {
       a.id, a.name, ts, id));
   stmts.push(guarded(`UPDATE notifications SET title = ${TITLE} WHERE ${OPEN_NOTICE}
     AND EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found') AND ${guard}`, a.id, a.name, id, a.id),
-  guarded(`UPDATE notifications SET resolved_at = ?, resolved_by = ? WHERE ${OPEN_NOTICE}
-    AND NOT EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found') AND ${guard}`, ts, actor, id, a.id));
+  guarded(`UPDATE notifications SET resolved_at = COALESCE(resolved_at, ?), resolved_by = COALESCE(resolved_by, ?),
+    closed_by_source = 1, task_actor = ?, task_action = 'source_resolved' WHERE ${SOURCE_CLOSABLE_NOTICE}
+    AND NOT EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found') AND ${guard}`, ts, actor, actor, id, a.id));
   return { stmts, created };
 }
 

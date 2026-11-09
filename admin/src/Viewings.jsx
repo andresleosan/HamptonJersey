@@ -27,7 +27,7 @@ const couldCount = v => ["requested", "confirmed"].includes(v.status)
   || (v.status === "completed" && ["proceed", "more_info"].includes(v.outcome) && v.date >= plusDays(jerseyToday(), -30));
 
 // listing: the #/viewings?listing=<id> filter (the listing editor's "Active interest" link).
-export default function Viewings({ listing }) {
+export default function Viewings({ listing, requestedId }) {
   const [tab, setTab] = useState("requests"), [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null);
   const [sel, setSel] = useState(null), [msg, setMsg] = useState(null), [creating, setCreating] = useState(false);
   const [interest, setInterest] = useState(null), [interestErr, setInterestErr] = useState(null);
@@ -39,6 +39,8 @@ export default function Viewings({ listing }) {
   // A viewing that a refused action moved out of this tab while its notes were still unsaved: it stays open (as last
   // read) so the notes can be saved, instead of being dropped with it.
   const pinned = useRef(null);
+  const linked = requestedId != null;
+  const initialLinked = useRef(linked);
   const filter = listing ? `&listing_id=${encodeURIComponent(listing)}` : "";
 
   // VIS-02: the listing's interest card (and its title), read again with every list load: any change to a viewing can
@@ -50,12 +52,28 @@ export default function Viewings({ listing }) {
     }, e => { if (n === iseq.current) setInterestErr(e.message); });
   };
   // Resolves to the list read (undefined when it failed or a newer read superseded it), once the card is read too.
-  const load = (t = tab) => {
+  const load = (t = tab, followLinked = true) => {
     const n = ++seq.current;
-    const list = api(`/admin/viewings?tab=${t}${filter}`).then(d => {
+    if (linked && (!/^[1-9]\d*$/.test(requestedId) || !Number.isSafeInteger(Number(requestedId)))) {
+      setData(null); setLoadErr("Invalid viewing ID"); return Promise.resolve();
+    }
+    const list = Promise.all([api(`/admin/viewings?tab=${t}${filter}`),
+      linked ? api(`/admin/viewings/${encodeURIComponent(requestedId)}`).catch(error => {
+        if(error.status===404&&!initialLinked.current)return null;
+        throw error;
+      }) : Promise.resolve(null)]).then(([d, exact]) => {
       if (n !== seq.current) return;
+      if (exact && initialLinked.current && exact.tab !== t) {
+        if (!followLinked) { setLoadErr("This viewing changed while opening. Try again."); return; }
+        setTab(exact.tab); return load(exact.tab, false);
+      }
+      if (exact && exact.tab === t && !d.viewings.some(v => v.id === exact.viewing.id))
+        d = { ...d, viewings: [exact.viewing, ...d.viewings] };
+      const selectLinked = initialLinked.current && exact;
+      initialLinked.current = false;
       setData(d); setCounts(d.counts); setLoadErr(null);
-      setSel(id => (stillThere(d, id) || id === pinned.current?.id ? id : d.viewings[0]?.id ?? null));
+      setSel(id => selectLinked ? exact.viewing.id : (stillThere(d, id) || id === pinned.current?.id ? id : d.viewings[0]?.id ?? null));
+      if (selectLinked) setFocusTo({ to: "detail" });
       return d;
     }, e => { if (n === seq.current) setLoadErr(e.message); });
     return listing ? Promise.all([list, loadInterest()]).then(([d]) => d) : list;
@@ -145,6 +163,7 @@ export default function Viewings({ listing }) {
   return <section aria-labelledby="t-views">
     <div className="head"><h1 id="t-views" ref={headRef} tabIndex={-1}>Viewings</h1>
       {!creating && <button type="button" ref={newBtn} className="btn" onClick={() => { setCreating(true); setMsg(null); }}>New viewing</button>}</div>
+    {linked && <p className="view-filter"><a href="#/viewings">Show all viewings</a></p>}
     {listing && <p className="view-filter">Only the viewings of <a href={`#/p/${encodeURIComponent(listing)}`}>{interest ? `${interest.title} (${listing})` : listing}</a>.{" "}
       <a href="#/viewings">Show all viewings</a></p>}
     {/* The card's changes read the list again too; the list's last message is about something else by then. */}

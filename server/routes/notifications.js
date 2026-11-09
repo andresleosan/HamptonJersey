@@ -1,5 +1,6 @@
 import { json, fail, readJson, now } from "../http.js";
-import { normalizePhone, activeSql } from "../applicants.js";
+import { NOTICE_SELECT, noticeDto, TASK_CATEGORIES } from "../notification-query.js";
+import { getTask, mutateTask } from "../notification-tasks.js";
 import { salesCount } from "./sales.js";
 import { refreshRentalsCount } from "./rent.js";
 import { jerseyToday } from "../viewings.js";
@@ -11,29 +12,10 @@ const BOXES = {
   action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id",
   feed: "NOT (n.action_required = 1 AND n.resolved_at IS NULL) ORDER BY n.created_at DESC, n.id DESC LIMIT 200",
 };
-const CATEGORIES = ["new_applicant", "viewing", "matched"];
+const CATEGORIES = TASK_CATEGORIES;
 
 // The entity comes from the notice's event. A duplicate points to its contact: its search is the active one
 // (not archived, lost or completed) with the submitted operation, else the most recent (§3.3).
-const LIST_SQL = `
-  SELECT n.id, n.category, n.title, n.created_at, n.action_required, n.resolved_at, e.entity_type, e.entity_id,
-    COALESCE(c.phone, ac.phone, v.phone) AS raw_phone,
-    CASE WHEN e.entity_type = 'contact' THEN (SELECT s.id FROM applicants s WHERE s.contact_id = c.id
-      ORDER BY (${activeSql("s")}
-        AND COALESCE(s.search_operation, s.operation) IS COALESCE(json_extract(e.data, '$.search_operation'), json_extract(e.data, '$.operation'))
-        AND s.search_category = COALESCE(json_extract(e.data, '$.search_category'), 'residential')) DESC, s.created_at DESC, s.id DESC LIMIT 1) END AS search_id
-  FROM notifications n JOIN events e ON e.id = n.event_id
-  -- No CAST: comparing with the INTEGER id gives entity_id numeric affinity, so each join is a primary-key lookup.
-  LEFT JOIN applicants a ON e.entity_type = 'applicant' AND a.id = e.entity_id
-  LEFT JOIN contacts ac ON ac.id = a.contact_id
-  LEFT JOIN contacts c ON e.entity_type = 'contact' AND c.id = e.entity_id
-  LEFT JOIN viewing_requests v ON e.entity_type = 'viewing' AND v.id = e.entity_id`;
-
-function link({ category, entity_type, entity_id, search_id }) {
-  if (entity_type === "viewing") return "#/viewings";
-  if (entity_type === "applicant") return `#/applicants/${entity_id}${category === "matched" ? "/matches" : ""}`;
-  return search_id != null ? `#/applicants/${search_id}` : `#/applicants/new?contact=${entity_id}`;
-}
 
 // sales (V10), rentals (R16, cached: P16), expiring contacts (E8) and listings to confirm (ADM-04) are their screens'
 // own counts, not part of action. outbound: {at, by} while sending is paused (AUT-13, H11), else null. stalled: how many
@@ -65,15 +47,17 @@ export async function openCounts(env) {
 // E6: the panel polls the counts every 30 s, and the Inbox its list; each poll claims the day's retention pass in case
 // the clock has not (a failed one again, up to 3 attempts). It runs after the answer, the claim too, so the poll waits
 // for neither.
-async function list({ request, env, waitUntil }) {
+async function list({ request, env, waitUntil, admin }) {
   const q = new URL(request.url).searchParams, box = q.get("box"), category = q.get("category");
   if (!Object.hasOwn(BOXES, box ?? "")) fail(400, "Invalid box");
   if (category && !CATEGORIES.includes(category)) fail(400, "Invalid category");
   waitUntil(retentionPass(env, now()));
-  const { results } = await env.DB.prepare(`${LIST_SQL} WHERE ${category ? "n.category = ? AND " : ""}${BOXES[box]}`)
-    .bind(...(category ? [category] : [])).all();
-  const notifications = results.map(({ raw_phone, search_id, ...n }) =>
-    ({ ...n, phone: normalizePhone(raw_phone), link: link({ ...n, search_id }) }));
+  const preferences = box === "feed" ? `
+    (n.resolved_at IS NOT NULL OR n.category IN (SELECT value FROM json_each(COALESCE(
+      (SELECT feed_categories FROM notification_preferences WHERE admin=?),'${JSON.stringify(CATEGORIES)}')))) AND ` : "";
+  const { results } = await env.DB.prepare(`${NOTICE_SELECT} WHERE ${category ? "n.category = ? AND " : ""}${preferences}${BOXES[box]}`)
+    .bind(admin,...(category ? [category] : []),...(box === "feed" ? [admin] : [])).all();
+  const notifications = results.map(noticeDto);
   return json({ notifications, counts: await openCounts(env) });
 }
 
@@ -86,12 +70,11 @@ async function update({ request, env, admin, params: [id] }) {
   const body = await readJson(request);
   if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).length !== 1 || body.resolved !== true)
     fail(400, "Send resolved: true");
-  // Already resolved: keep who closed it and when.
-  const r = await env.DB.prepare(
-    `UPDATE notifications SET resolved_at = COALESCE(resolved_at, ?),
-     resolved_by = CASE WHEN resolved_at IS NULL THEN ? ELSE resolved_by END WHERE id = ?`)
-    .bind(now(), admin, Number(id)).run();
-  if (!r.meta.changes) fail(404, "Notice not found");
+  // Old clients have no observed revision. Only an untouched first revision can be closed safely.
+  const task = await getTask(env, Number(id), admin);
+  if (task.resolved_at != null) return json({ ok: true });
+  if (task.revision !== 1) fail(409, "This task changed. Reload before marking it done.");
+  await mutateTask(env, Number(id), admin, { operation_id: crypto.randomUUID(), revision: 1, action: "done" });
   return json({ ok: true });
 }
 

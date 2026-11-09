@@ -198,8 +198,10 @@ function duplicate(env, [c, other], contact, applicant, ts, touchContact = true)
       { category: "new_applicant", title: `${c.name} registered again${other ? " · email and phone match two contacts" : ""}`,
         action_required: true }),
     // Deleted from the panel (§3.4) since the lookup: these events keep no personal data either, as the delete did.
-    env.DB.prepare(`UPDATE notifications SET title = 'Deleted applicant' WHERE event_id IN (SELECT id FROM events
-      WHERE entity_type = 'contact' AND entity_id = ?) AND NOT EXISTS (SELECT 1 FROM contacts WHERE id = ?)`).bind(ref.entity_id, c.id),
+    env.DB.prepare(`UPDATE notifications SET title = 'Deleted applicant', task_reason = NULL,
+       resolved_at = COALESCE(resolved_at, ?), resolved_by = CASE WHEN resolved_at IS NULL THEN 'system' ELSE resolved_by END
+       WHERE event_id IN (SELECT id FROM events WHERE entity_type = 'contact' AND entity_id = ?)
+       AND NOT EXISTS (SELECT 1 FROM contacts WHERE id = ?)`).bind(ts, ref.entity_id, c.id),
     env.DB.prepare(`UPDATE events SET data = NULL WHERE entity_type = 'contact' AND entity_id = ?
       AND NOT EXISTS (SELECT 1 FROM contacts WHERE id = ?)`).bind(ref.entity_id, c.id),
   ];

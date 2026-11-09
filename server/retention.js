@@ -74,7 +74,7 @@ export async function runRetention(env, ts) {
     // json_extract on it), a deletion event per search and contact; matches and offers go with their searches.
     q(`UPDATE notifications SET resolved_at = ?1, resolved_by = 'system' WHERE resolved_at IS NULL
        AND event_id IN (${CONTACT_EVENTS})`),
-    q(`UPDATE notifications SET title = 'Deleted applicant' WHERE event_id IN (${CONTACT_EVENTS})`),
+    q(`UPDATE notifications SET title = 'Deleted applicant', task_reason = NULL WHERE event_id IN (${CONTACT_EVENTS})`),
     q(`UPDATE events SET data = NULL WHERE id IN (${CONTACT_EVENTS})`),
     q(deletedEvents("applicant", SEARCHES)),
     q(deletedEvents("contact", CONTACTS)),
@@ -83,7 +83,7 @@ export async function runRetention(env, ts) {
     // As the Inbox's Delete; the rows go last, since the set is read from them.
     q(`UPDATE notifications SET resolved_at = ?1, resolved_by = 'system' WHERE resolved_at IS NULL
        AND event_id IN (${VIEWING_EVENTS})`),
-    q(`UPDATE notifications SET title = 'Deleted viewing request' WHERE event_id IN (${VIEWING_EVENTS})`),
+    q(`UPDATE notifications SET title = 'Deleted viewing request', task_reason = NULL WHERE event_id IN (${VIEWING_EVENTS})`),
     q(`UPDATE events SET data = NULL WHERE id IN (${VIEWING_EVENTS})`),
     q(`DELETE FROM viewing_requests WHERE id IN (${VIEWINGS})`),
     env.DB.prepare(`DELETE FROM jobs WHERE id IN (${JOBS})`).bind(ts),

@@ -1,0 +1,50 @@
+# NOT-11 · tareas compartidas del Inbox
+
+9-nov-2026 · PAQ-01, primer tramo. Base de diseño b565121; construcción sobre main dd37cf5. Reconstrucción explícita del contrato sobre requisitos publicados y encargo de construir de Luis; no es copia del código f98532a ni del diseño local ausente. Se conserva Inbox común F0 A9 y la separación de búsqueda EST-09. No se crean reglas de asignación, cadencias o canales externos.
+
+## Alcance y decisiones
+
+Ampliar notifications y el Inbox existentes. La tarea es común al equipo; responsable y plazo son atributos del asunto. Leer es personal y nunca completa trabajo. Done/Reopen afectan solo la tarea. Una respuesta material actualiza la misma identidad de gestión, sin duplicados y conservando historial; un reintento o fuente vieja no sobrescribe el contexto nuevo.
+
+Conservar avisos legacy, IDs, eventos y contratos /admin/notifications. Añadir núcleo componible para productores y tareas manuales sobre un applicant/viewing existente. Las futuras consultas, pagos, canales y categorías específicas permanecen con sus módulos. EST-18 conserva su base; certificar aquí solo los productores presentes. No timeline de propiedades.
+
+La alternativa elegida extiende notifications con metadatos y tablas pequeñas de lectura/recibos/historial/preferencias. Otra cola o bandeja duplicaría la fuente de trabajo; tabla general de workflows no se justifica. Las decisiones técnicas de este documento son del implementador, sujetas a revisión independiente; las reglas de Inbox común y cierre humano ya estaban acordadas.
+
+## Modelo y migración
+
+Nueva0032_notification_tasks.sql, siempre comprobar siguiente número libre. Conservar columnas/IDs/FKs/índices legacy al ampliar CHECK categoría con task. Añadir task_key único, source_version monotónica, revision, assigned_to, due_at UTC, task_reason, closed_by_source y actor/acción transitorios para auditoría. Backfill key legacy:<id>, source_version=event_id, revision1, sin eventos históricos nuevos. Los INSERT legacy futuros reciben la misma metadata mediante trigger.
+
+Tablas notification_task_history(task_id,revision,at,actor,action), notification_task_operations(actor,operation_id,task_id,payload_hash,result_revision), notification_reads(admin,notification_id,read_revision), notification_preferences(admin,revision,feed_categories). Lecturas/preferencias por admin activo; al retirar su acceso se eliminan sus preferencias/lecturas, el historial operativo conserva el actor existente según política actual. Asignación a un usuario retirado se muestra como no disponible y puede corregirse, sin bloquear la baja ni borrar historial.
+
+Cada cambio material de metadata/estado/procedencia aumenta revision e inserta una entrada histórica sin título/motivo ni datos de cliente. No-op no aumenta revision. Los triggers preservan changes()/last_insert_rowid() del statement padre. En borrado/anominización de applicant/viewing se limpia también task_reason; una fuente retrasada no restaura datos si ya no existe la entidad. Done de dominio marca closed_by_source y no admite Reopen manual de una gestión ya resuelta por su productor; Done del equipo admite Reopen mientras la entidad siga existiendo.
+
+## Contratos backend
+
+server/notification-tasks.js exporta taskStatements(env,descriptor):sentencias D1 y syncTask(env,descriptor):resultado. Descriptor interno: taskKey, eventId (null solo evento recién insertado), sourceVersion, category, title, reason, target:{kind,id}, requiresAction, resolved, dueAt opcional y actor. No acepta SQL/URL libre; targets applicant/viewing/contact/listing validados y vinculados al evento. sourceVersion mayor actualiza; igual/vieja no cambia nada. Otra entidad/causa no reutiliza la clave. Conservar assigned_to y due_at al actualizar contexto salvo dueAt explícito. Todo se compone en el batch de negocio, nunca segundo batch presentado como atomicidad.
+
+La referencia null exige `{ifInserted:true}` y el evento INSERT inmediatamente anterior. Un CTE MATERIALIZED captura ID/evento y changes() antes de escribir notificaciones; descriptor o grupo de descriptores se proyectan con un solo INSERT/UPSERT. Así, múltiples proyecciones no leen un rowid cambiado por otra proyección o trigger. La inserción condicional omitida proyecta cero filas aunque el rowid anterior coincida. Fuera del mismo batch, syncTask exige eventId concreto. Añadir urgency normal/urgent al descriptor para compatibilidad NOT-01. Una tarea cerrada por dominio no se reabre por resolved:false: requiere nuevo episodio o reapertura explícita válida del productor.
+
+Rutas autenticadas/same-origin/no-store:
+- GET /admin/notification-tasks/:id: metadata actual, destino seguro y últimas50entradas históricas.
+- POST /admin/notification-tasks: tarea manual desde contexto de applicant/viewing existente; UUID operation_id, título1–200, motivo opcional≤500, responsable activo o null y plazo ISO UTC o null. Clave manual ligada al actor+UUID; replay no duplica evento/tarea.
+- PUT /admin/notification-tasks/:id: {operation_id,revision,action,...}, acciones claim/assign/deadline/edit/done/reopen. edit guarda assigned_to y due_at juntos en una única revisión; assign/deadline conservan sus operaciones individuales. Actor autenticado; expected revision obligatoria, asignación válida y condición de estado en la escritura. Batch incluye mutación+historial+recibo+evento task.<action> sin PII. Dos actores con la misma revisión: un cambio y un409; replay misma operación devuelve estado actual sin repetir; misma clave con payload distinto409. Errores/fallo de evento revierten todo.
+- PUT /admin/notification-tasks/:id/read: revision observada, upsert monotónico; no cambia metadata ni revisión compartida. Lectura obsoleta409 no marca como leído el contexto nuevo.
+- GET/PUT /admin/notification-preferences: solo propias, CAS de revisión; feed_categories allowlist, defaults todas. Las preferencias afectan únicamente informativos del Feed; no ocultan trabajo pendiente ni tareas completadas. No correo/WhatsApp/push por guardar estas preferencias.
+
+/admin/notifications conserva forma y añade metadata/read_state. Done legacy sin revisión solo puede cerrar por CAS una fila intacta revision1; una fila abierta con contexto modificado devuelve409. Si ya estaba cerrada, no se modifica ni se vuelve a emitir acción. Las operaciones nuevas siempre exigen revisión observada. Enlaces se generan en servidor por tipo e ID. /admin/users existente proporciona nombres de responsables. Contadores siguen siendo comunes y suman gestiones, sin duplicar por lecturas/persona; Sales/Rentals conservan sus contadores.
+
+Creación manual y proyección comprueban existencia/no eliminación de target dentro de la escritura, además de validar la petición. La carrera de duplicados en server/routes/public.js:200–204 también limpia motivo, no solo título/datos de evento. Recibos/eventos/historial no guardan motivos/títulos personales; el UUID y el snapshot del reintento solo viven en memoria del navegador, sin Web Storage. El UUID sí persiste en el recibo del servidor para idempotencia. Toda selección/operación revalida los datos actuales del servidor.
+
+## Interfaz
+
+Ampliar Inbox con responsable, deadline, leído personal y detalle/historial. Acciones Claim, Save task details, Done/Reopen, Add follow-up task desde contexto válido; preservar selección/foco al recargar. Formulario manual hereda entidad, no pide IDs técnicos al usuario. El pendiente de guardado conserva borrador y operación al reintentar; conflicto muestra recargar y nunca aplica automáticamente sobre otra versión. Polling30s existente, no sobrescribe formularios sucios, tampoco si se edita durante el GET o un colega mueve la tarea al Feed. Mientras hay operación en vuelo o resultado incierto, bloquear cambio de tarea/filtros, enlaces internos, hash y Sign out para conservar el UUID en memoria; cierre/recarga mantiene aviso nativo de cambios sin guardar. Respuesta2xx inválida también es incierta. Preferencias inline con guardar/cancelar y conflicto visible.
+
+Visita enlazada se abre exactamente por ID y en su pestaña real; añadir GET /admin/viewings/:id y query viewing consumido por App/Viewings. Inválido400 y ausente404, sin caer en otra visita. Funciona fuera del límite500 y con transición de pestaña según hora Jersey; el detalle exacto no depende de que aparezca en la primera página. Mantener notas/borradores y controles existentes.
+
+## Criterios de aceptación
+
+T01 migración poblada preserva avisos/eventos/FKs/IDs e índices; compatibilidad legacy. T02 dos empleados claim/done simultáneos dejan una gestión/acción; T03 replay/diferente payload y stale revision; T04 fuente nueva/igual/vieja y entidades distintas; T05 respuesta que resuelve retira la llamada, cierre y respuesta concurrentes conservan contexto; T06 fallo de historial/evento revierte negocio/tarea/recibo; T07 lecturas/preferencias independientes sin cerrar ni ocultar trabajo común; T08 assigned/deadline reales, permisos/body/URLs/XSS y desaparición de entidad/usuario; T09 id exacto de visita y error; T10 escritorio1280/móvil390, teclado/foco/zoom200%, estados/loading/error/conflicto y consola/red. Sin completar búsqueda por Done ni afirmar integración de productores futuros.
+
+## Diseño y skills
+
+Panel operativo Hampton, ENERGY1/RHYTHM1/MOTION1: reusar lista+detalle y tokens, controles nativos y estados en inglés. Impeccable ordena acciones y foco; antislop conserva decisiones funcionales y el estilo actual. Taste/redesign no aplican como página nueva ni rehacer pantalla. Security-best-practices/frontend-security-coder: allowlists, binds, auth/same-origin, IDs tipados, sin HTML/URL arbitrarios ni secretos/PII en storage/logs/eventos de tareas. Web-performance-optimization: joins indexados, historial50, preferencias/usuarios una carga, polling existente. Ponytail reutiliza DB.batch, eventos, api y componentes; sin dependencias/colas nuevas. Brainstorming/grill-me contrastan requisitos heredados; writing-plans fija archivos y pruebas; executing-plans/TDD y revisión independiente verifican la entrega.

@@ -1,62 +1,96 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { fmtAgo, fmtDate } from "./format.js";
+import { fmtAgo } from "./format.js";
 import { usePoll } from "./poll.js";
+import { setUnsaved } from "./unsaved.js";
+import InboxTask from "./InboxTask.jsx";
+import InboxPreferences from "./InboxPreferences.jsx";
+import "./inbox-tasks.css";
 
 const BOXES = { action: "Needs action", feed: "Feed" };
-const CATEGORIES = { "": "All", new_applicant: "New applicants", matched: "Matched", viewing: "Viewings" };
-const KIND = { new_applicant: "New applicant", matched: "New matches", viewing: "Viewing request" };
+const CATEGORIES = { "": "All", new_applicant: "New applicants", matched: "Matched", viewing: "Viewings", task: "Tasks" };
+const KIND = { new_applicant: "New applicant", matched: "New matches", viewing: "Viewing request", task: "Shared task" };
 const EMPTY = {
-  action: { "": "You're all caught up. New applicants, new matches and viewing requests that need a reply appear here.",
+  action: { "": "You're all caught up. New applicants, matches, viewing requests and shared tasks that need a reply appear here.",
     new_applicant: "You're all caught up. New applicants from the website appear here.",
     matched: "You're all caught up. When listings fit an applicant's search, the notice appears here until they are reviewed.",
-    viewing: "You're all caught up. Viewing requests from the website appear here." },
+    viewing: "You're all caught up. Viewing requests from the website appear here.", task: "No shared tasks need action." },
   feed: { "": "Nothing here yet. Notices marked done and updates for your information appear here.",
     new_applicant: "No applicant notices here yet.", matched: "No match notices here yet.",
-    viewing: "No viewing request notices here yet." },
+    viewing: "No viewing request notices here yet.", task: "No completed tasks or task updates here yet." },
 };
 const isOpen = n => n.action_required === 1 && n.resolved_at == null;
-const openLabel = n => (n.entity_type === "viewing" ? "Open viewings"
-  : n.link.startsWith("#/applicants/new") ? "Add a search for this contact" : n.category === "matched" ? "Review matches"
-  : "Open applicant");
-
-export default function Inbox({ paused, onCounts }) {
+export default function Inbox({ paused, onCounts, me, onPending }) {
   const [box, setBox] = useState("action"), [cat, setCat] = useState("");
   const [data, setData] = useState(null), [counts, setCounts] = useState({});
   const [sel, setSel] = useState(null), [msg, setMsg] = useState(null), [loadErr, setLoadErr] = useState(null);
+  const [users, setUsers] = useState([]), [usersErr, setUsersErr] = useState(null);
+  const [dirty, setDirty] = useState({ task: false, prefs: false });
+  const [pending, setPending] = useState(false);
+  const taskPending = useCallback(value => { setPending(value); onPending(value); }, [onPending]);
+  useEffect(() => () => onPending(false), [onPending]);
   const seq = useRef(0), listRef = useRef(null), headRef = useRef(null);
+  const current = useRef(null); current.current = { data, sel, dirty };
+  const taskDirty = useCallback(value => setDirty(d => d.task === value ? d : { ...d, task: value }), []);
+  const prefsDirty = useCallback(value => setDirty(d => d.prefs === value ? d : { ...d, prefs: value }), []);
+  useEffect(() => { setUnsaved(dirty.task || dirty.prefs); }, [dirty]);
+  useEffect(() => () => setUnsaved(false), []);
+  const loadUsers = useCallback(() => api("/admin/users").then(d => { setUsers(d.users); setUsersErr(null); }, e => setUsersErr(e.message)), []);
+  useEffect(() => { if (!paused) loadUsers(); }, [paused, loadUsers]);
   // Set by Done: once the list reloads, the focus goes to the selected notice (the next one), or the heading when none.
   const refocus = useRef(false);
-  const load = useCallback(() => {
+  const load = useCallback(({pin = true} = {}) => {
     const n = ++seq.current;
     return api(`/admin/notifications?box=${box}${cat ? `&category=${cat}` : ""}`).then(d => {
       if (n !== seq.current) return; // a newer request (another tab, a later poll) has the fresher answer
+      const editing = current.current;
+      // A colleague can move the selected task into another box. Keep its draft mounted
+      // until an explicit reload/save or confirmed navigation, including an uncertain retry.
+      if (pin && editing.dirty.task && !d.notifications.some(x => x.id === editing.sel)) {
+        const previous = editing.data?.notifications.find(x => x.id === editing.sel);
+        if (previous) d = { ...d, notifications: [...d.notifications, { ...previous, moved: true }] };
+      }
       setData(d); setCounts(d.counts); onCounts(d.counts); setLoadErr(null);
       setSel(id => (d.notifications.some(x => x.id === id) ? id : d.notifications[0]?.id ?? null));
     }, e => { if (n === seq.current) { setLoadErr(e.message); refocus.current = false; } });
   }, [box, cat, onCounts]);
   // Every 30 s while the tab is visible; stopped while the session has expired.
   usePoll(load, paused ? null : 30000);
-  const show = (b, c) => { if (b === box && c === cat) return; setBox(b); setCat(c); setData(null); setSel(null); setMsg(null); setLoadErr(null); };
+  const canLeaveTask = () => !pending && (!dirty.task || confirm("Discard unsaved task changes?"));
+  const show = (b, c) => {
+    if ((b === box && c === cat) || !canLeaveTask()) return;
+    taskDirty(false); seq.current++; setBox(b); setCat(c); setData(null); setSel(null); setMsg(null); setLoadErr(null);
+  };
+  const pick = id => { if (id !== sel && canLeaveTask()) { taskDirty(false); setSel(id); setMsg(null); } };
+  const read = useCallback((id, revision) => setData(d => d && ({ ...d,
+    notifications: d.notifications.map(n => n.id === id && n.revision === revision ? { ...n, is_read: 1 } : n) })), []);
   useEffect(() => {
     if (!refocus.current || !data) return;
     refocus.current = false;
     (listRef.current?.querySelector("[aria-current=true]") ?? headRef.current)?.focus();
   }, [data]);
-  const done = async n => {
-    setMsg(null);
-    try {
-      await api(`/admin/notifications/${n.id}`, { method: "PUT", body: { resolved: true } });
-      // The next notice in the list (the one before when it was the last) is selected once n leaves it.
-      const list = data.notifications, i = list.findIndex(x => x.id === n.id);
+  const changed = async ({ task, action }) => {
+    taskDirty(false);
+    const stillOpen = isOpen(task), messages = { edit: "Task details saved.", claim: "Task claimed.",
+      created: "Follow-up task created.", reopen: stillOpen ? "Task reopened." : "The source resolved this task again.",
+      done: stillOpen ? "New work remains in Needs action." : "Marked as done. It's in the Feed now." };
+    setMsg({ ok: true, text: messages[action] || "Task saved." }); refocus.current = true;
+    if (action === "created" || action === "reopen") {
+      const nextBox = stillOpen ? "action" : "feed", nextCat = action === "created" ? "task" : cat;
+      setSel(task.id);
+      if (nextBox !== box || nextCat !== cat) { seq.current++; setBox(nextBox); setCat(nextCat); setData(null); return; }
+    } else if (action === "done" && !stillOpen) {
+      const list = data.notifications, i = list.findIndex(x => x.id === task.id);
       setSel((list[i + 1] ?? list[i - 1])?.id ?? null);
-      setMsg({ ok: true, text: "Marked as done. It's in the Feed now." }); refocus.current = true; await load();
-    } catch (e) { setMsg({ text: e.message }); }
+    }
+    await load({pin: false});
   };
   const n = data?.notifications.find(x => x.id === sel);
 
-  return <section aria-labelledby="t-inbox">
+  return <section className="inbox-tasks" aria-labelledby="t-inbox">
     <h1 id="t-inbox" ref={headRef} tabIndex={-1}>Inbox</h1>
+    <details className="inbox-preferences"><summary>Feed preferences</summary>
+      <InboxPreferences paused={paused} blocked={dirty.task} onDirty={prefsDirty} onSaved={load} /></details>
     <div className="inbox-tabs">
       <div className="seg" role="group" aria-label="Notices">{Object.entries(BOXES).map(([k, t]) =>
         <button key={k} type="button" aria-pressed={box === k} onClick={() => show(k, cat)}>{t}{k === "action" && <span className="count">{counts.action ?? ""}</span>}</button>)}</div>
@@ -65,32 +99,16 @@ export default function Inbox({ paused, onCounts }) {
         <button key={k} type="button" aria-pressed={cat === k} onClick={() => show(box, k)}>{t}{box === "action" && <span className="count">{counts[k || "action"] ?? ""}</span>}</button>)}</div>
     </div>
     {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
-    {loadErr && <p role="alert" className="err">{loadErr}</p>}
+    {loadErr && <p role="alert" className="err">{loadErr} <button type="button" className="linkish" onClick={load}>Try again</button></p>}
+    {usersErr && <p role="alert" className="err">{usersErr} <button type="button" className="linkish" onClick={loadUsers}>Reload staff</button></p>}
     {!data ? !loadErr && <p>Loading notices…</p> : !data.notifications.length ? <p className="empty card">{EMPTY[box][cat]}</p> :
       <div className="inbox">
         <ul ref={listRef} className="inbox-list" aria-label={`${BOXES[box]}: ${CATEGORIES[cat]}`}>{data.notifications.map(x => <li key={x.id}>
-          <button type="button" aria-current={x.id === sel ? "true" : undefined} className={isOpen(x) ? "unread" : ""} onClick={() => setSel(x.id)}>
+          <button type="button" aria-current={x.id === sel ? "true" : undefined} className={x.is_read ? "" : "unread"} onClick={() => pick(x.id)}>
             <span className="who">{x.title}</span><time className="muted" dateTime={x.created_at}>{fmtAgo(x.created_at)}</time>
             <span className="what">{KIND[x.category]}</span>{box === "feed" && <span className="muted">{x.resolved_at ? "Done" : "For info"}</span>}
           </button></li>)}</ul>
-        {n && <Notice key={n.id} n={n} done={done} />}
+        {n && <InboxTask key={n.id} n={n} users={users} me={me} paused={paused} onChanged={changed} onRead={read} onDirty={taskDirty} onPending={taskPending} reloadUsers={loadUsers} />}
       </div>}
   </section>;
-}
-
-function Notice({ n, done }) {
-  const open = isOpen(n);
-  return <article className="card inbox-detail" aria-labelledby="n-title">
-    <div className="head"><div><h2 id="n-title">{n.title}</h2><p className="muted">{KIND[n.category]} · {fmtAgo(n.created_at)}</p></div>
-      <div className="inline">
-        {open && <button type="button" className="btn" onClick={() => done(n)}>Done</button>}
-        <a className="btn ghost" href={n.link}>{openLabel(n)}</a>
-        {n.phone && <a className="btn ghost" href={`tel:${n.phone}`}>Call</a>}
-      </div></div>
-    <dl className="kv">
-      <div><dt>Received</dt><dd>{fmtDate(n.created_at)}</dd></div>
-      {n.phone && <div><dt>Phone</dt><dd className="num">{n.phone}</dd></div>}
-      <div><dt>Status</dt><dd>{open ? "Needs action" : n.resolved_at ? `Done ${fmtAgo(n.resolved_at)}` : "For your information"}</dd></div>
-    </dl>
-  </article>;
 }

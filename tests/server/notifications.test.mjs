@@ -59,10 +59,12 @@ test("box=action lists open notices needing action, oldest first", async () => {
   assert.deepEqual(data.notifications[1], {
     id: ids.newApplicant, category: "new_applicant", title: "New applicant: Jane Le Brocq · To Let", created_at: at(2),
     action_required: 1, resolved_at: null, entity_type: "applicant", entity_id: String(a),
-    phone: "+447797123456", link: `#/applicants/${a}` });
+    phone: "+447797123456", link: `#/applicants/${a}`, event_id: 2, source_version: 2, revision: 1,
+    assigned_to: null, assigned_name: null, assigned_available: 0, due_at: null, task_reason: null,
+    urgency: "normal", closed_by_source: 0, resolved_by: null, is_read: 0, target_exists: true, can_reopen: false });
   assert.equal(data.notifications[0].entity_id, String(v));
-  assert.equal(data.notifications[0].link, "#/viewings");
-  assert.deepEqual(data.counts, { action: 3, new_applicant: 1, viewing: 2, matched: 0, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 });
+  assert.equal(data.notifications[0].link, `#/viewings?viewing=${v}`);
+  assert.deepEqual(data.counts, { action: 3, new_applicant: 1, viewing: 2, matched: 0, task: 0, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 });
 });
 
 test("box=feed lists the rest, newest first", async () => {
@@ -71,14 +73,14 @@ test("box=feed lists the rest, newest first", async () => {
   assert.equal(status, 200);
   assert.deepEqual(data.notifications.map(n => n.id), [ids.info, ids.done]);
   assert.equal(data.notifications[1].resolved_at, at(5));
-  assert.deepEqual(data.counts, { action: 3, new_applicant: 1, viewing: 2, matched: 0, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 });
+  assert.deepEqual(data.counts, { action: 3, new_applicant: 1, viewing: 2, matched: 0, task: 0, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 });
 });
 
 test("category narrows the list but not the counts", async () => {
   const { env, ids } = mixed();
   const viewings = await get(env, "?box=action&category=viewing");
   assert.deepEqual(viewings.data.notifications.map(n => n.id), [ids.oldViewing, ids.newerViewing]);
-  assert.deepEqual(viewings.data.counts, { action: 3, new_applicant: 1, viewing: 2, matched: 0, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 });
+  assert.deepEqual(viewings.data.counts, { action: 3, new_applicant: 1, viewing: 2, matched: 0, task: 0, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 });
   const applicants = await get(env, "?box=feed&category=new_applicant");
   assert.deepEqual(applicants.data.notifications.map(n => n.id), [ids.info, ids.done]);
   assert.deepEqual((await get(env, "?box=feed&category=viewing")).data.notifications, []);
@@ -106,9 +108,9 @@ test("counts has its own route", async () => {
   const { env } = mixed();
   const { status, data } = await call(env, "GET", "/admin/notifications/counts", { cookie: await adminCookie() });
   assert.equal(status, 200);
-  assert.deepEqual(data, { action: 3, new_applicant: 1, viewing: 2, matched: 0, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 });
+  assert.deepEqual(data, { action: 3, new_applicant: 1, viewing: 2, matched: 0, task: 0, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 });
   assert.deepEqual((await call(makeEnv(), "GET", "/admin/notifications/counts", { cookie: await adminCookie() })).data,
-    { action: 0, new_applicant: 0, viewing: 0, matched: 0, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 });
+    { action: 0, new_applicant: 0, viewing: 0, matched: 0, task: 0, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 });
 });
 
 test("phone is tel-safe: normalised from the viewing, null when it does not normalise", async () => {
@@ -185,7 +187,7 @@ test("PUT resolved:true closes the notice and it stops counting", async () => {
   const row = env.DB.raw.prepare("SELECT resolved_at, resolved_by FROM notifications WHERE id = ?").get(ids.oldViewing);
   assert.ok(row.resolved_at);
   assert.equal(row.resolved_by, ADMIN);
-  assert.deepEqual((await call(env, "GET", "/admin/notifications/counts", { cookie })).data, { action: 2, new_applicant: 1, viewing: 1, matched: 0, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 });
+  assert.deepEqual((await call(env, "GET", "/admin/notifications/counts", { cookie })).data, { action: 2, new_applicant: 1, viewing: 1, matched: 0, task: 0, sales: 0, rentals: 0, expiring: 0, retention_review: 0, to_confirm: 0, chats: 0, outbound: null, stalled: 1 });
   assert.ok((await get(env, "?box=feed")).data.notifications.some(n => n.id === ids.oldViewing));
 
   const again = await call(env, "PUT", `/admin/notifications/${ids.oldViewing}`,

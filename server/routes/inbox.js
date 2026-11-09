@@ -38,6 +38,20 @@ async function list({ request, env }) {
   return json({ viewings, counts });
 }
 
+// Task links resolve independently of the list's 500-row window and use the same Jersey tab clock.
+async function detail({ env, params: [value] }) {
+  if (!/^[1-9]\d*$/.test(value) || !Number.isSafeInteger(Number(value))) fail(400, "Invalid viewing ID");
+  const viewing = await env.DB.prepare(`SELECT v.*, COALESCE(l.title, v.listing_title_snapshot) AS listing_title,
+    COALESCE(n.name, v.agent) AS negotiator_name FROM viewing_requests v
+    LEFT JOIN listings l ON l.id = v.listing_id LEFT JOIN negotiators n ON n.id = v.negotiator_id WHERE v.id = ?`)
+    .bind(Number(value)).first();
+  if (!viewing) fail(404, "Viewing not found");
+  const clock = jerseyNow();
+  const upcoming = viewing.date > clock.date || (viewing.date === clock.date && (viewing.end_time ?? viewing.time) >= clock.time);
+  const tab = viewing.status === "requested" ? "requests" : viewing.status === "confirmed" ? (upcoming ? "upcoming" : "outcome") : "past";
+  return json({ viewing, tab });
+}
+
 function readNotes(body) {
   if (body.notes == null) return null;
   if (typeof body.notes !== "string") fail(400, "Notes must be text");
@@ -164,7 +178,7 @@ async function remove({ env, admin, params: [id] }) {
   const [r] = await env.DB.batch([
     env.DB.prepare("DELETE FROM viewing_requests WHERE id = ?").bind(Number(id)),
     resolveNotices(env, ref, admin),
-    env.DB.prepare(`UPDATE notifications SET title = 'Deleted viewing request'
+    env.DB.prepare(`UPDATE notifications SET title = 'Deleted viewing request', task_reason = NULL
       WHERE event_id IN (SELECT id FROM events WHERE entity_type = ? AND entity_id = ?)`).bind(ref.entity_type, ref.entity_id),
     env.DB.prepare("UPDATE events SET data = NULL WHERE entity_type = ? AND entity_id = ?").bind(ref.entity_type, ref.entity_id),
   ]);
@@ -174,6 +188,7 @@ async function remove({ env, admin, params: [id] }) {
 
 export default [
   ["GET", /^\/admin\/viewings$/, list, true],
+  ["GET", /^\/admin\/viewings\/([^/]+)$/, detail, true],
   ["POST", /^\/admin\/viewings$/, create, true],
   ["PUT", /^\/admin\/viewings\/(\d+)$/, update, true],
   ["DELETE", /^\/admin\/viewings\/(\d+)$/, remove, true],

@@ -482,7 +482,7 @@ async function remove({ request, env, admin, params: [id] }) {
   const refArgs = refs.flatMap(r => [r.entity_type, r.entity_id]);
   await env.DB.batch([
     ...refs.map(ref => resolveNotices(env, ref, admin)),
-    env.DB.prepare(`UPDATE notifications SET title = 'Deleted applicant' WHERE event_id IN (SELECT id FROM events WHERE ${ofRefs})`)
+    env.DB.prepare(`UPDATE notifications SET title = 'Deleted applicant', task_reason = NULL WHERE event_id IN (SELECT id FROM events WHERE ${ofRefs})`)
       .bind(...refArgs),
     // NULL, never '': the Inbox runs json_extract on it.
     env.DB.prepare(`UPDATE events SET data = NULL WHERE ${ofRefs}`).bind(...refArgs),

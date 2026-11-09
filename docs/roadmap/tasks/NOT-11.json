@@ -4,15 +4,23 @@
   "titulo": "Avisos con responsable, plazo y preferencias por persona",
   "origen": "plan",
   "fase": "F0",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "M13 · Reconciliación 7-nov: La tabla notifications no tiene destinatario, due_at ni leído: los avisos son comunes a todo el equipo (decisión A9 de F0) y no hay preferencias por persona de qué avisos recibir ni por qué canal. Definir identidad de tarea y coordinación entre empleados: responsable, causa, vencimiento y enlace directo; una respuesta nueva actualiza la tarea antigua. Reclamar/completar/reintentar sin duplicados; preservar historial. No crear una tarea diaria repetida para el top 20 sin una cadencia decidida. Aceptación: Dos empleados actuando sobre la misma gestión dejan una acción y una tarea coherentes; una respuesta recibida retira o actualiza la llamada pendiente.",
+  "hecho": "9-nov-2026: construido y probado localmente sobre main dd37cf5 el contrato de tareas compartidas sobre notifications: responsable/plazo con CAS, Claim/Done/Reopen, follow-up idempotente, historial sin motivo/título personal, leído y preferencias propios. Conserva avisos y eventos legacy; fuente nueva actualiza la misma tarea y cierre por dominio prevalece sobre Done humano. Inbox conserva borradores y UUID ante conflictos/respuestas inciertas; visita enlazada resuelve ID exacto. Revisión independiente sin hallazgos pendientes. Migración0032 todavía local; no publicado ni activado en producción.",
+  "falta": "Publicar el SHA revisado y aplicar0032 con aprobación concreta; verificar despliegue e integración. Recorrido Playwright MCP pendiente por fallo de arranque Chromium sandbox/root del entorno; runner e2e local separado sí comprobado. Los avisos/productores futuros y preferencias de canales externos corresponden a NOT-01/NOT-08 y sus módulos; no se activan correo/Meta ni cadencias de tareas diarias con esta entrega.",
   "bloqueo": "",
   "evidencia": [
-    "migrations/0009_matches.sql:46-54",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:35",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "migrations/0032_notification_tasks.sql",
+    "server/notification-tasks.js",
+    "server/notification-query.js",
+    "server/routes/notification-tasks.js",
+    "admin/src/InboxTask.jsx",
+    "admin/src/InboxPreferences.jsx",
+    "tests/server/notification-tasks.test.mjs",
+    "tests/server/notification-task-producers.test.mjs",
+    "tests/notification-tasks.e2e.cjs",
+    "docs/roadmap/work/NOT-11/producer-evidence.md",
+    "docs/superpowers/plans/2026-11-09-not-11-shared-tasks-ledger.md"
   ],
   "modulo": "M13",
   "deps": [],
@@ -37,5 +45,5 @@
     "matching-contract",
     "events-contract"
   ],
-  "nextStep": "Definir y construir responsable, vencimiento, reclamación y cierre consistente de gestiones del equipo Hampton."
+  "nextStep": "Aprobar y publicar la entrega revisada de NOT-11, aplicar0032 y verificar integración; después continuar PAQ-01 con productores NOT-01 sobre EST-18, sin dar por activados canales externos."
 }

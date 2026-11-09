@@ -129,6 +129,8 @@ test("create from the panel, then list filtered and sorted", async () => {
   assert.deepEqual({ ...notices[0], id: 0, event_id: 0, created_at: 0 }, {
     id: 0, event_id: 0, created_at: 0, category: "new_applicant", title: "New applicant: Jane Le Brocq · To Let",
     action_required: 0, resolved_at: null, resolved_by: null, type: "applicant.created", entity_id: String(a),
+    task_key: `legacy:${notices[0].id}`, source_version: notices[0].event_id, revision: 1,
+    assigned_to: null, due_at: null, task_reason: null, urgency: 'normal', closed_by_source: 0, task_actor: null, task_action: null,
     data: JSON.stringify({ operation: "rent", source: "phone" }), actor: ADMIN });
   assert.equal(notices[2].title, "New applicant: Ann Renouf · To Buy");
 

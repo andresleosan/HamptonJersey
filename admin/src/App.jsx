@@ -31,13 +31,20 @@ import { fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
 const Email = lazy(() => import("./Email.jsx"));
 
-function useHash() {
+function useHash(pending, onBlocked) {
   const [hash, setHash] = useState(location.hash);
+  const accepted = useRef(location.hash);
   useEffect(() => {
-    const f = () => setHash(location.hash);
+    const f = () => {
+      if (pending.current) {
+        history.replaceState(null, '', location.pathname + location.search + accepted.current);
+        onBlocked(true); return;
+      }
+      accepted.current = location.hash; setHash(location.hash);
+    };
     addEventListener("hashchange", f);
     return () => removeEventListener("hashchange", f);
-  }, []);
+  }, [pending, onBlocked]);
   return hash;
 }
 
@@ -70,7 +77,9 @@ export default function App() {
   const [me, setMe] = useState(undefined); // undefined = checking, null = signed out
   const [expired, setExpired] = useState(false);
   const [counts, setCounts] = useState({});
-  const hash = useHash();
+  const [taskPending, setTaskPending] = useState(false), [pendingNavigation, setPendingNavigation] = useState(false);
+  const pendingRef = useRef(false); pendingRef.current = taskPending;
+  const hash = useHash(pendingRef, setPendingNavigation);
   useEffect(() => {
     api("/me").then(d => setMe(d.email), () => setMe(null));
     const f = () => setExpired(true);
@@ -107,7 +116,7 @@ export default function App() {
     : section === "listings" && arg && sub === "report"
       ? <OwnerReport key={arg} id={decodeURIComponent(arg)} days={new URLSearchParams(query).get("days")} />
     : section === "listings" ? <Listings onChange={loadCounts} /> : section === "queue" ? <Queue onChange={loadCounts} /> : section === "viewings"
-      ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} />
+      ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} requestedId={new URLSearchParams(query).get("viewing")} />
     : section === "sales" && /^\d+$/.test(arg) ? <SaleDetail key={arg} id={arg} onChange={loadCounts} />
     : section === "sales" ? <Sales key={query ?? ""} buyer={new URLSearchParams(query).get("applicant")} onChange={loadCounts} />
     : section === "rentals" && arg === "new"
@@ -123,15 +132,19 @@ export default function App() {
     : section === "messages" ? <Messages paused={expired} onChange={loadCounts} />
     : section === "email" ? <Suspense fallback={<p>Loading email…</p>}><Email key={query??""} query={query} /></Suspense>
     : section === "tours" ? <Tours /> : section === "automations" ? <Automations stalled={counts.stalled} outbound={counts.outbound} onChange={loadCounts} />
-    : <Inbox paused={expired} onCounts={setCounts} />;
+    : <Inbox paused={expired} onCounts={setCounts} me={me} onPending={setTaskPending} />;
+  const leave = e => {
+    if (taskPending) { e?.preventDefault(); setPendingNavigation(true); return false; }
+    return confirmLeave(e);
+  };
   const logout = async () => {
-    if (!confirmLeave()) return;
+    if (!leave()) return;
     await api("/session", { method: "DELETE" }).catch(() => {});
     await firebaseSignOut().catch(() => {});
     setMe(null);
   };
   return <>
-    <header ref={bar} className="bar" inert={expired} onClick={e => { if (e.target.closest("a")) confirmLeave(e); }}>
+    <header ref={bar} className="bar" inert={expired} onClick={e => { if (e.target.closest("a")) leave(e); }}>
       <a href="#/" className="brand">Hampton Estates{" "}<span className="staff">Staff</span></a>
       <nav aria-label="Sections">
         <a href="#/" aria-current={current === "" ? "page" : undefined}>Inbox{counts.action > 0
@@ -159,7 +172,8 @@ export default function App() {
       <button type="button" className="btn ghost sm" title={`Signed in as ${me}`} onClick={logout}>Sign out</button>
     </header>
     {/* Every link in the page, like those in the header, asks first when there are unsaved changes. */}
-    <main className="page" inert={expired} onClickCapture={e => { if (e.target.closest("a[href^='#']")) confirmLeave(e); }}>
+    <main className="page" inert={expired} onClickCapture={e => { if (e.target.closest("a[href^='#']")) leave(e); }}>
+      {taskPending && pendingNavigation && <p role="alert" className="warn">Confirm the pending task result before leaving. Wait for the reply, or use the task's retry button if the result is uncertain.</p>}
       {counts.outbound && <Paused outbound={counts.outbound} onResumed={loadCounts} />}
       {page}</main>
     {/* Session expired mid-task: sign in again on top of the page so nothing typed is lost. */}
