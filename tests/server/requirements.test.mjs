@@ -94,12 +94,12 @@ test('the found pool puts a lower-score fulfilled requirement ahead of 27 altern
     published:i===27?0:1,...extractFeatures({description:i===27?'Parking for two cars':'Parking for one car'})});
   const made=await req(env,'POST','/admin/applicants',form({bedrooms_min:2,parking_spaces:2,requirement_priorities:priority({parking:'must',budget:'preferred',bedrooms:'preferred'})}));
   assert.equal(made.status,201,JSON.stringify(made.data));const id=made.data.id;
-  let d=(await req(env,'GET',`/admin/applicants/${id}`)).data;
+  let d=(await req(env,'GET',`/admin/applicants/${id}/matches?status=found`)).data;
   assert.equal(d.matches.length,25);assert.equal(d.matches[0].listing.id,'REG08-027');assert.equal(d.matches[0].requirements_status,'meets');
   const count=()=>env.DB.raw.prepare("SELECT COUNT(*) AS n FROM events WHERE type='applicant.matched'").get().n;
   const before=count();await recomputeForApplicant(env,id,'system');await recomputeForApplicant(env,id,'system');assert.equal(count(),before);
   await recomputeForListing(env,'REG08-000','system');
-  d=(await req(env,'GET',`/admin/applicants/${id}`)).data;assert.equal(d.matches[0].listing.id,'REG08-027');
+  d=(await req(env,'GET',`/admin/applicants/${id}/matches?status=found`)).data;assert.equal(d.matches[0].listing.id,'REG08-027');
   const next=(await req(env,'GET','/admin/review')).data;assert.equal(next.listing.id,'REG08-027');
 });
 
@@ -111,7 +111,7 @@ test('cards use current structured facts even when a stored check is old, withou
   const before=env.DB.raw.prepare('SELECT checks FROM matches WHERE applicant_id=?').get(made.data.id);
   const f=extractFeatures({description:'Parking for one car'});
   env.DB.raw.prepare('UPDATE listings SET feat_parking=?,feat_evidence=? WHERE id=?').run(f.feat_parking,f.feat_evidence,'REG08-live');
-  const card=(await req(env,'GET',`/admin/applicants/${made.data.id}`)).data.matches[0];
+  const card=(await req(env,'GET',`/admin/applicants/${made.data.id}/matches?status=found`)).data.matches[0];
   assert.equal(card.requirements_status,'alternative');assert.equal(card.checks.find(c=>c.key==='parking').result,'fails');
   assert.equal(card.requirements_refresh_needed,true);
   assert.deepEqual(env.DB.raw.prepare('SELECT checks FROM matches WHERE applicant_id=?').get(made.data.id),before);

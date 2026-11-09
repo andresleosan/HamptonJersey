@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, seedListing, T0 } from "./helpers.mjs";
 import { recomputeForApplicant, recomputeForListing, closeMatchedNoticeIfEmpty } from "../../server/match-store.js";
-import { evaluate, MIN_SCORE } from "../../server/matching.js";
+import { evaluate } from "../../server/matching.js";
 
 const ADMIN = "admin@example.test";
 const json = v => JSON.stringify(v);
@@ -76,7 +76,7 @@ test("first run creates found matches, one event and one notice", async () => {
   const env = makeEnv();
   const id = seedApplicant(env);
   listing(env, "HE-R001");
-  listing(env, "HE-R002", { published: 0, archived_at: T0 }); // archived co-listed houses are still offered (B2)
+  listing(env, "HE-R002", { published: 0 }); // unpublished candidates are offered
   listing(env, "HE-R003", { country: null, currency: null });
   listing(env, "HE-R004", { sale_price: 1200000 }); // over budget
   listing(env, "HE-R005", { operation: "rent", availability: "to_let", sale_price: null, rent: 3000, rent_period: "month" });
@@ -113,7 +113,7 @@ test("first run creates found matches, one event and one notice", async () => {
   assert.equal(notices(env, solo)[0].title, "1 new match for Tom Vibert");
   assert.equal(matchedEvents(env, solo)[0].actor, "public");
 
-  // A house that passes every filter but scores under MIN_SCORE is not stored.
+  // A passing house below35 is retained.
   const picky = seedApplicant(env, "Eva Noel", { parishes_wanted: json(["Trinity"]), bedrooms_ideal: 5,
     outdoor: json(["balcony"]), property_types: json(["flat"]) });
   run(env, "UPDATE listings SET matchable = 0");
@@ -121,10 +121,10 @@ test("first run creates found matches, one event and one notice", async () => {
   const a = env.DB.raw.prepare("SELECT * FROM applicants WHERE id = ?").get(picky);
   const r = evaluate(a, { ...l, feat_furnished: null, feat_pets: null, feat_parking: null, feat_evidence: null });
   assert.equal(r.pass, true);
-  assert.ok(r.score < MIN_SCORE);
-  assert.deepEqual(await recomputeForApplicant(env, picky, ADMIN), { created: 0 });
-  assert.deepEqual(matches(env, picky), []);
-  assert.deepEqual(notices(env, picky), []);
+  assert.ok(r.score < 35);
+  assert.deepEqual(await recomputeForApplicant(env, picky, ADMIN), { created: 1 });
+  assert.equal(matches(env, picky).length,1);
+  assert.equal(notices(env, picky).length,1);
 });
 
 test("second run adds new ones and updates the same notice title", async () => {
@@ -191,7 +191,7 @@ test("a shortlisted match that stops passing stays, with the failing check", asy
   assert.equal(m.status, "shortlisted");
   assert.deepEqual(JSON.parse(m.checks).find(c => c.key === "budget"),
     { key: "budget", result: "fails", evidence: "£900,000, over £800,000" });
-  assert.equal(m.score, 80); // 100 less the 20 the price scored
+  assert.equal(m.score, 70); // 90 less the 20 the price scored
 
   // Still refreshed once the listing leaves the candidates (sold), from either side.
   run(env, "UPDATE listings SET availability = 'sold', bedrooms = 2 WHERE id = 'HE-R001'");
@@ -286,34 +286,14 @@ test("inactive applicants keep all match history and receive no new matches", as
   assert.deepEqual(found(env, paused), ["HE-R001", "HE-R003"]);
 });
 
-test("only the 25 best found are kept", async () => {
-  const env = makeEnv();
-  const id = seedApplicant(env);
-  // 20 published (10 more points) and 10 not; ties go to the lower listing id.
-  const ids = Array.from({ length: 30 }, (_, i) => `HE-R${String(100 + i)}`);
-  ids.forEach((lid, i) => listing(env, lid, { published: i < 20 ? 1 : 0 }));
-
-  assert.deepEqual(await recomputeForApplicant(env, id, ADMIN), { created: 25 });
-  assert.deepEqual(found(env, id), ids.slice(0, 25));
-  assert.equal(notices(env, id)[0].title, "25 new matches for Ana Le Gros");
-
-  // A better house pushes out the worst found, from either side; shortlisted ones are not counted.
-  listing(env, "HE-R200");
-  assert.deepEqual(await recomputeForApplicant(env, id, ADMIN), { created: 1 });
-  assert.deepEqual(found(env, id), [...ids.slice(0, 24), "HE-R200"]);
-  listing(env, "HE-R201");
-  await recomputeForListing(env, "HE-R201", ADMIN);
-  assert.deepEqual(found(env, id), [...ids.slice(0, 23), "HE-R200", "HE-R201"]);
-  assert.deepEqual(matchedEvents(env, id).map(e => JSON.parse(e.data)), [{ new: 25 }, { new: 1 }, { new: 1 }]);
-  review(env, id, "HE-R100", "shortlisted");
-  assert.deepEqual(await recomputeForApplicant(env, id, ADMIN), { created: 1 });
-  assert.deepEqual(found(env, id), [...ids.slice(1, 24), "HE-R200", "HE-R201"]);
-  assert.equal(notices(env, id)[0].title, "25 new matches for Ana Le Gros");
-  // A worse house than the 25th is not stored.
-  listing(env, "HE-R202", { published: 0 });
-  await recomputeForListing(env, "HE-R202", ADMIN);
-  assert.equal(matches(env, id).some(m => m.listing_id === "HE-R202"), false);
-  assert.equal(matchedEvents(env, id).length, 4);
+test("all candidates are kept through both recompute paths, with no publication preference",async()=>{
+ const env=makeEnv(),id=seedApplicant(env);
+ const ids=Array.from({length:60},(_,i)=>`HE-R${100+i}`);
+ ids.forEach((lid,i)=>listing(env,lid,{published:i<20?1:0}));
+ assert.deepEqual(await recomputeForApplicant(env,id,ADMIN),{created:60});assert.deepEqual(found(env,id),ids);
+ listing(env,'HE-R200');await recomputeForListing(env,'HE-R200',ADMIN);assert.equal(found(env,id).length,61);
+ review(env,id,'HE-R100','shortlisted');assert.deepEqual(await recomputeForApplicant(env,id,ADMIN),{created:0});
+ assert.equal(found(env,id).length,60);assert.deepEqual(matchedEvents(env,id).map(e=>JSON.parse(e.data)),[{new:60},{new:1}]);
 });
 
 test("recomputeForListing updates the pair for every active applicant", async () => {
@@ -369,7 +349,7 @@ test("stores what evaluate() returns for the full rows", async () => {
     feat_pets: "yes", feat_parking: 1, feat_furnished: "yes", feat_type: "house", feat_evidence: evidence };
   listing(env, "HE-R001", rent);
   // £1,530 a month: in the band from budget_min, under it from 60 % of the stretch.
-  listing(env, "HE-R002", { ...rent, rent: 18360, bedrooms: 2, archived_at: T0, feat_furnished: "no", feat_type: "flat" });
+  listing(env, "HE-R002", { ...rent, rent: 18360, bedrooms: 2, feat_furnished: "no", feat_type: "flat" });
   listing(env, "HE-R003", { ...rent, parish: "St Helier" }); // excluded
   await recomputeForListing(env, "HE-R001", ADMIN);
   await recomputeForApplicant(env, id, ADMIN);

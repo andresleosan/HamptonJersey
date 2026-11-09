@@ -1,11 +1,13 @@
+import {CRITERIA,hasAnswer,notApplicable} from '../../site/requirements.js';
+const priorities=a=>({version:1,unknown:[],values:Object.fromEntries(Object.keys(CRITERIA).filter(k=>hasAnswer(k,a)&&!notApplicable(k,a)).map(k=>[k,['budget','bedrooms','area'].includes(k)?'must':'preferred']))});
 import test from "node:test";
 import assert from "node:assert/strict";
 import { widen } from "../../server/widen.js";
 
 // Rows as the database returns them (list columns are JSON text), as in matching.test.mjs.
-const applicant = (o = {}) => ({ operation: "buy", budget_min: null, budget_max: null, budget_stretch: null,
+const applicant = (o = {}) => {const a=({ operation: "buy", budget_min: null, budget_max: null, budget_stretch: null,
   property_types: null, bedrooms_min: null, bedrooms_ideal: null, bathrooms_min: null, parking_spaces: null,
-  outdoor: null, furnished: null, pets: null, parishes_wanted: null, parishes_excluded: null, ...o });
+  outdoor: null, furnished: null, pets: null, parishes_wanted: null, parishes_excluded: null, ...o });return {...a,requirement_priorities:JSON.stringify(priorities(a))};};
 let n = 0;
 const listing = (o = {}) => ({ id: `HE-R${String(++n).padStart(3, "0")}`, operation: "sale", sale_price: null, rent: null,
   rent_period: null, bedrooms: null, bathrooms: null, parish: null, feat_pets: null, feat_parking: null, feat_furnished: null,
@@ -14,22 +16,22 @@ const json = v => JSON.stringify(v);
 const alt = (list, key) => list.find(x => x.key === key);
 
 test("budget: +10 % on the top the matching uses, rounded up", () => {
-  assert.deepEqual(alt(widen(applicant({ budget_max: 900000 }), [], new Set(), 0), "budget"),
-    { key: "budget", field: "budget_max", from: 900000, to: 990000, added: 0 });
-  const stretch = alt(widen(applicant({ budget_max: 900000, budget_stretch: 950000 }), [], new Set(), 0), "budget");
+  assert.deepEqual(alt(widen(applicant({ budget_max: 900000 }), [], [], 0), "budget"),
+    { key: "budget", field: "budget_max", from: 900000, to: 990000, added: 0, fresh: 0, improved: 0 });
+  const stretch = alt(widen(applicant({ budget_max: 900000, budget_stretch: 950000 }), [], [], 0), "budget");
   assert.equal(stretch.field, "budget_stretch");
   assert.equal(stretch.to, 1045000);
-  assert.equal(alt(widen(applicant({ operation: "rent", budget_max: 2010 }), [], new Set(), 0), "budget").to, 2250);
+  assert.equal(alt(widen(applicant({ operation: "rent", budget_max: 2010 }), [], [], 0), "budget").to, 2250);
 });
 
 test("budget: hidden without a top or past the validation limit", () => {
-  assert.equal(alt(widen(applicant(), [], new Set(), 0), "budget"), undefined);
-  assert.equal(alt(widen(applicant({ budget_max: 95000000 }), [], new Set(), 0), "budget"), undefined);
+  assert.equal(alt(widen(applicant(), [], [], 0), "budget"), undefined);
+  assert.equal(alt(widen(applicant({ budget_max: 95000000 }), [], [], 0), "budget"), undefined);
 });
 
 test("budget: counts the listings the new top lets in", () => {
   const ls = [listing({ sale_price: 950000 }), listing({ sale_price: 950000 }), listing({ sale_price: 1200000 })];
-  assert.equal(alt(widen(applicant({ budget_max: 900000 }), ls, new Set(), 0), "budget").added, 2);
+  assert.equal(alt(widen(applicant({ budget_max: 900000 }), ls, [], 0), "budget").added, 2);
 });
 
 test("parish: the free parish that adds most, ties alphabetical", () => {
@@ -38,46 +40,46 @@ test("parish: the free parish that adds most, ties alphabetical", () => {
     property_types: json(["flat"]), outdoor: json(["garden"]) });
   const ls = ["St Clement", "Grouville", "St Clement", "Grouville", "St Saviour", "St Saviour", "St Saviour"]
     .map(parish => listing({ parish, sale_price: 500000, feat_type: "house", published: 0 }));
-  assert.deepEqual(alt(widen(a, ls, new Set(), 0), "parish"),
-    { key: "parish", field: "parishes_wanted", parish: "Grouville", to: ["St Helier", "Grouville"], added: 2 });
+  assert.deepEqual(alt(widen(a, ls, [], 0), "parish"),
+    { key: "parish", field: "parishes_wanted", parish: "Grouville", to: ["St Helier", "Grouville"], added: 2, fresh: 2, improved: 0 });
 });
 
 test("parish: never an excluded or wanted one; hidden when any parish is fine", () => {
-  assert.equal(alt(widen(applicant(), [listing({ parish: "Trinity" })], new Set(), 0), "parish"), undefined);
+  assert.equal(alt(widen(applicant(), [listing({ parish: "Trinity" })], [], 0), "parish"), undefined);
   const all = ["Grouville", "St Brelade", "St Clement", "St Helier", "St John", "St Lawrence", "St Martin", "St Mary",
     "St Ouen", "St Peter", "St Saviour", "Trinity"];
   const full = applicant({ parishes_wanted: json(all.slice(0, 6)), parishes_excluded: json(all.slice(6)) });
-  assert.equal(alt(widen(full, [listing({ parish: "Trinity" })], new Set(), 0), "parish"), undefined);
+  assert.equal(alt(widen(full, [listing({ parish: "Trinity" })], [], 0), "parish"), undefined);
 });
 
 test("parish: none adds any", () => {
   const a = applicant({ parishes_wanted: json(["St Helier"]), budget_max: 500000 });
-  assert.deepEqual(alt(widen(a, [listing({ parish: "Trinity", sale_price: 900000 })], new Set(), 0), "parish"),
-    { key: "parish", field: "parishes_wanted", parish: null, to: null, added: 0 });
+  assert.deepEqual(alt(widen(a, [listing({ parish: "Trinity", sale_price: 900000 })], [], 0), "parish"),
+    { key: "parish", field: "parishes_wanted", parish: null, to: null, added: 0, fresh: 0, improved: 0 });
 });
 
 test("bedrooms: one fewer, hidden at 1 or less", () => {
   const ls = [listing({ bedrooms: 2 }), listing({ bedrooms: 2 }), listing({ bedrooms: 1 })];
-  assert.deepEqual(alt(widen(applicant({ bedrooms_min: 3 }), ls, new Set(), 0), "bedrooms"),
-    { key: "bedrooms", field: "bedrooms_min", from: 3, to: 2, added: 2 });
-  assert.equal(alt(widen(applicant({ bedrooms_min: 1 }), ls, new Set(), 0), "bedrooms"), undefined);
-  assert.equal(alt(widen(applicant(), ls, new Set(), 0), "bedrooms"), undefined);
+  assert.deepEqual(alt(widen(applicant({ bedrooms_min: 3 }), ls, [], 0), "bedrooms"),
+    { key: "bedrooms", field: "bedrooms_min", from: 3, to: 2, added: 2, fresh: 2, improved: 0 });
+  assert.equal(alt(widen(applicant({ bedrooms_min: 1 }), ls, [], 0), "bedrooms"), undefined);
+  assert.equal(alt(widen(applicant(), ls, [], 0), "bedrooms"), undefined);
 });
 
 test("nothing to widen, and always in the same order", () => {
-  assert.deepEqual(widen(applicant(), [], new Set(), 0), []);
+  assert.deepEqual(widen(applicant(), [], [], 0), []);
   const a = applicant({ budget_max: 900000, parishes_wanted: json(["St Helier"]), bedrooms_min: 2 });
-  assert.deepEqual(widen(a, [], new Set(), 0).map(x => x.key), ["budget", "parish", "bedrooms"]);
+  assert.deepEqual(widen(a, [], [], 0).map(x => x.key), ["budget", "parish", "bedrooms"]);
 });
 
 test("taken listings are never counted", () => {
   const ls = [listing({ sale_price: 950000 }), listing({ sale_price: 950000 })];
-  assert.equal(alt(widen(applicant({ budget_max: 900000 }), ls, new Set([ls[0].id]), 0), "budget").added, 1);
+  assert.equal(alt(widen(applicant({ budget_max: 900000 }), ls, [{listing_id:ls[0].id,status:'rejected'}], 0), "budget").added, 1);
 });
 
-test("capped at the room left under MAX_FOUND", () => {
+test("all new improvements are counted without a quota", () => {
   const ls = Array.from({ length: 30 }, () => listing({ sale_price: 950000 }));
-  assert.equal(alt(widen(applicant({ budget_max: 900000 }), ls, new Set(), 2), "budget").added, 23);
+  assert.equal(alt(widen(applicant({ budget_max: 900000 }), ls, [], 2), "budget").added, 30);
 });
 
 // GET /admin/applicants/:id → widen (W1, W3).
@@ -88,7 +90,7 @@ const sql = (env, q, ...args) => env.DB.raw.prepare(q).run(...args);
 let people = 0;
 async function create(env, o = {}) {
   const r = await req(env, "POST", "/admin/applicants", { name: "Jane Le Brocq", email: `jane${++people}@example.je`,
-    source: "phone", operation: "buy", budget_max: 900000, ...o });
+    source: "phone", operation: "buy", budget_max: 900000, ...o,requirement_priorities:priorities({operation:"buy",budget_max:900000,...o}) });
   assert.equal(r.status, 201, JSON.stringify(r.data));
   return r.data.id;
 }
@@ -141,11 +143,11 @@ test("detail: the counted listings are the new found ones after saving the chang
   const alts = await getWiden(env, ids[0]);
   assert.deepEqual(alts.map(a => [a.key, a.added]), [["budget", 1], ["parish", 2], ["bedrooms", 1]]);
   for (const [i, alt] of alts.entries()) {
-    assert.deepEqual(found(env, ids[i]), []);
+    const beforeMeets=env.DB.raw.prepare("SELECT COUNT(*) n FROM matches WHERE applicant_id=? AND requirements_rank=0").get(ids[i]).n;
     const updated_at = env.DB.raw.prepare("SELECT updated_at FROM applicants WHERE id = ?").get(ids[i]).updated_at;
     const r = await req(env, "PUT", `/admin/applicants/${ids[i]}`, { updated_at, [alt.field]: alt.to });
     assert.equal(r.status, 200, JSON.stringify(r.data));
-    assert.equal(found(env, ids[i]).length, alt.added, alt.key);
+    assert.equal(env.DB.raw.prepare("SELECT COUNT(*) n FROM matches WHERE applicant_id=? AND requirements_rank=0").get(ids[i]).n-beforeMeets,alt.added,alt.key);
   }
 });
 
@@ -156,7 +158,7 @@ test("detail: a rejected listing is never counted again", async () => {
   const id = await create(env);
   sql(env, "UPDATE matches SET status = 'rejected', reject_reason = 'price' WHERE applicant_id = ?", id);
   sql(env, `INSERT INTO matches (applicant_id, listing_id, score, checks, status, reject_reason, created_at, updated_at)
-    VALUES (?, 'HE-R001', 50, '[]', 'rejected', 'price', ?, ?)`, id, T0, T0);
+    VALUES (?, 'HE-R001', 50, '[]', 'rejected', 'price', ?, ?) ON CONFLICT(applicant_id,listing_id) DO UPDATE SET status='rejected'`, id, T0, T0);
   assert.equal((await getWiden(env, id)).find(a => a.key === "budget").added, 0);
 });
 

@@ -102,14 +102,14 @@ test("archiving a listing (sold) removes its found matches for everyone and stop
   assert.deepEqual(foundFor(env, "HE-R001"), []);
 });
 
-test("publishing a listing rescores its matches", async () => {
+test("publication preserves the preference score", async () => {
   const env = world();
   run(env, "UPDATE listings SET published = 0 WHERE id = 'HE-R001'");
   const a = await createApplicant(env);
   const score = () => row(env, "SELECT score FROM matches WHERE applicant_id = ? AND listing_id = 'HE-R001'", a).score;
   const before = score();
   assert.equal((await req(env, "POST", "/admin/listings/HE-R001/publish")).status, 200);
-  assert.equal(score(), before + 10);
+  assert.equal(score(), before);
   assert.equal((await req(env, "POST", "/admin/listings/HE-R001/unpublish")).status, 200);
   assert.equal(score(), before);
 });
@@ -265,7 +265,8 @@ test("features come from the stored spec rows when a save does not send specs", 
 
 test("a recompute that fails leaves the save saved and answers as usual", async () => {
   const env = world();
-  run(env, "DROP TABLE matches");
+  const prepare=env.DB.prepare.bind(env.DB);
+  env.DB.prepare=sql=>{if(sql.includes('AS match_inputs_revision, id,')||sql.startsWith('SELECT a.match_inputs_revision,'))throw new Error('Fixture recompute failure');return prepare(sql);};
   const logged = [], error = console.error;
   console.error = (...args) => logged.push(args);
   try {

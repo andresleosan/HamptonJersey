@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { evaluate, monthlyRent, MIN_SCORE, MAX_FOUND } from "../../server/matching.js";
+import { evaluate, monthlyRent } from "../../server/matching.js";
 
 // Rows as the database returns them: list columns are JSON text, everything not said is NULL.
 const applicant = (o = {}) => ({ operation: "buy", budget_min: null, budget_max: null, budget_stretch: null,
@@ -12,9 +12,11 @@ const listing = (o = {}) => ({ operation: "sale", sale_price: null, rent: null, 
 const json = v => JSON.stringify(v);
 const check = (r, key) => r.checks.find(c => c.key === key);
 
-test("limits", () => {
-  assert.equal(MIN_SCORE, 35);
-  assert.equal(MAX_FOUND, 25);
+test("publication does not affect the preference score, whose natural maximum is 90", () => {
+  const a = applicant({budget_max:1000000});
+  const l = listing({sale_price:900000});
+  assert.equal(evaluate(a,{...l,published:1}).score,evaluate(a,{...l,published:0}).score);
+  assert.equal(evaluate(a,l).score,90);
 });
 
 test("hard filters", () => {
@@ -102,7 +104,7 @@ test("score follows the spec weights", () => {
   const best = listing({ operation: "rent", rent: 2000, rent_period: "month", bedrooms: 3, bathrooms: 2, parish: "St Helier",
     feat_outdoor: json(["garden", "terrace"]), feat_type: "house", feat_furnished: "yes", published: 1 });
   const r = evaluate(a, best);
-  assert.equal(r.score, 100);
+  assert.equal(r.score, 90);
   for (const c of r.checks) assert.equal(c.result, "meets", c.key);
 
   // By hand: parish unknown 15 + bedrooms under the ideal 0 + price under the band 8 + outdoor unknown 5
@@ -116,11 +118,11 @@ test("score follows the spec weights", () => {
 
   // A parish outside the wanted ones scores 0 for area and fails; no wish at all scores the full 30.
   const other = evaluate(a, { ...best, parish: "Trinity" });
-  assert.equal(other.score, 70);
+  assert.equal(other.score, 60);
   assert.equal(check(other, "area").result, "fails");
-  assert.equal(evaluate({ ...a, parishes_wanted: null }, { ...best, parish: "Trinity" }).score, 100);
+  assert.equal(evaluate({ ...a, parishes_wanted: null }, { ...best, parish: "Trinity" }).score, 90);
   // An unknown price scores 10 of 20.
-  assert.equal(evaluate(a, { ...best, rent: null, rent_period: null }).score, 90);
+  assert.equal(evaluate(a, { ...best, rent: null, rent_period: null }).score, 80);
 });
 
 test("price near the top scores higher than far below", () => {

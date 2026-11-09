@@ -13109,21 +13109,21 @@
       "fase": "F1-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "REG-08 ordena el pool de25 y Review por cumplimiento, pendiente y alternativa, con score dentro de cada grupo. Prueba28candidatos: uno válido con menor score precede a27alternativas. Una tarjeta cuyos datos cambiaron avisa que debe recalcularse la lista. Construido localmente.",
-      "falta": "REG-08/0031 ya están integrados en main; no reconstruir ni exigir publicación pendiente de aquella entrega. Próxima construcción recomendada: revisar el umbral35, tope25 y bonus de publicación para evitar perder opciones válidas antes del orden; explicar esos límites sobre inventario actual. Ranking de alternativas día21 y evidencia de nuevas fuentes siguen pendientes de sus módulos.",
+      "hecho": "9-nov-2026: construido localmente sobre064aa7f. Conserva todas las candidatas pertinentes sin mínimo35 ni tope25; score natural90 sin bonus por publicación. Ficha con páginas25, cursor/revisión y orden persistido común con Review. Rejected conserva su historial, Shortlisted su decisión; eventos efectivos en concurrencia, Timeline y Widen independientes de las páginas. Migración0037 preparada, sin aplicar en remoto. Verificado con1068JS+14Python, build/release, e2e general completo y focal1280/390; revisión independiente con1Important corregido RED→GREEN. Prueba600candidatas, páginas25/25/10, carrerasHTTP, errores, foco y zoomCSS200 sin overflow.",
+      "falta": "Aprobar el SHA exacto y0037, publicar y comprobar despliegue/smoke autenticado. PlaywrightMCP no inicia por sandbox/root y el zoom nativo no queda acreditado. Nuevas fuentes/inventario canónico pertenecen a BUS-12; ranking del día21 pertenece a BUS-17, sin reconstruirlos aquí.",
       "bloqueo": "",
       "evidencia": [
-        "server/matching.js:6-14",
-        "server/matching.js:118-183",
-        "server/match-store.js:96-100",
-        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:111",
-        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:275",
-        "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
-        "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
-        "migrations/0031_requirement_priorities.sql",
-        "tests/server/requirements.test.mjs",
-        "tests/reg08-e2e.cjs"
+        "server/matching.js",
+        "server/match-store.js",
+        "server/match-pages.js",
+        "server/routes/matches.js",
+        "admin/src/ApplicantMatches.jsx",
+        "migrations/0037_match_ranking.sql",
+        "tests/server/bus14-store.test.mjs",
+        "tests/server/match-pages.test.mjs",
+        "tests/server/bus14-widen.test.mjs",
+        "tests/bus14-e2e.cjs",
+        "docs/superpowers/plans/2026-11-08-bus-14-match-ranking-ledger.md"
       ],
       "modulo": "M04",
       "deps": [
@@ -13149,7 +13149,7 @@
         "notifications-schema",
         "matching-review-ui"
       ],
-      "nextStep": "Revisar umbral 35, límite 25 y bonus de publicación sobre el inventario actual sin descartar candidatos válidos antes de ordenarlos."
+      "nextStep": "Autorizar el SHA exacto y0037; publicar mediante los wrappers existentes y comprobar despliegue/smoke. Construcción local revisada, sin push ni migración remota."
     },
     {
       "id": "BUS-15",

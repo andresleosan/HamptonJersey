@@ -1007,19 +1007,19 @@ async function widenCriteria(page, phone, noSideScroll) {
   const others = ["Grouville", "St Brelade", "St Helier", "St John", "St Lawrence", "St Martin", "St Mary", "St Ouen", "St Peter", "St Saviour"];
   const a = await page.evaluate(body => fetch("/api/admin/applicants", {method: "POST", headers: {"content-type": "application/json"},
     body: JSON.stringify(body)}).then(async r => ({status: r.status, ...await r.json()})), {name: "Wendy Le Cornu", email: "wendy@example.je", source: "phone", operation: "buy",
-    budget_max: 900000, bedrooms_min: 6, parishes_wanted: ["Trinity"], parishes_excluded: others});
+    requirement_priorities:{version:1,values:{budget:"must",bedrooms:"must",area:"must"},unknown:[]}, budget_max: 900000, bedrooms_min: 6, parishes_wanted: ["Trinity"], parishes_excluded: others});
   assert.equal(a.status, 201, JSON.stringify(a));
   const url = BASE + `admin/#/applicants/${a.id}/matches`;
   await page.goto(url);
   const card = page.locator("section.widen");
   await card.getByRole("heading", {name: "Widen criteria"}).waitFor();
   const row = card.locator("li", {hasText: "Budget up 10%: £900,000 to £990,000"});
-  assert.equal(await row.locator(".added").textContent(), "1 more listing");
-  await card.locator("li", {hasText: "Minimum bedrooms down 1: 6 to 5"}).locator(".added").getByText("1 more listing").waitFor();
-  await card.locator("li", {hasText: "Add any other parish"}).getByText("No more listings").waitFor();
+  assert.equal(await row.locator(".added").textContent(), "0 new, 1 already found");
+  await card.locator("li", {hasText: "Minimum bedrooms down 1: 6 to 5"}).locator(".added").getByText("0 new, 1 already found").waitFor();
+  await card.locator("li", {hasText: "Add any other parish"}).getByText("No improvement").waitFor();
   const found = () => page.locator("#group-found .count").textContent();
   const before = Number(await found());
-  assert.equal(before, 2, "the two Trinity listings that fit");
+  assert.equal(before, 4, "all four candidates are retained, including two alternatives");
   // Unsaved changes: every "Use this" waits for Save or Discard.
   await page.getByRole("tab", {name: "Requirements"}).click();
   await page.fill("#a-requirements", "Quiet lane");
@@ -1035,13 +1035,13 @@ async function widenCriteria(page, phone, noSideScroll) {
   await page.getByRole("button", {name: "Save", exact: true}).click();
   await page.getByText("Changes saved.").waitFor();
   await page.getByRole("tab", {name: "Matches"}).click();
-  await page.waitForFunction(n => document.querySelector("#group-found .count")?.textContent === String(n), before + 1);
+  await page.waitForFunction(n => document.querySelector("#group-found .count")?.textContent === String(n), before);
   assert.equal(await card.count(), 0, "3 matches: nothing to widen");
   await page.getByRole("button", {name: "Reject Trinity farmhouse"}).click();
   await page.getByRole("group", {name: "Why reject Trinity farmhouse?"}).getByRole("button", {name: "Price"}).click();
   await page.getByText("Rejected Trinity farmhouse · Price.").waitFor();
-  await card.locator("li", {hasText: "Budget up 10%: £990,000 to £1,089,000"}).getByText("No more listings").waitFor();
-  await card.getByText("Fewer than 3 listings fit this search.").waitFor();
+  await card.locator("li", {hasText: "Budget up 10%: £990,000 to £1,089,000"}).getByText("No improvement").waitFor();
+  await card.getByText("Fewer than 3 offered listings meet the stated must-haves.").waitFor();
   await noSideScroll(url, "section.widen");
   await shot(phone, "admin-widen-mobile");
   // Stage remains independent; explicit resolution removes Widen without a reload.

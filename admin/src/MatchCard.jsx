@@ -20,7 +20,7 @@ const many = (n, word) => (n == null ? null : `${n} ${word}${n === 1 ? "" : "s"}
 // The Review queue also passes: shortcuts (shows each button's key, which the queue itself listens for), rejecting and
 // onRejecting (it opens the reasons on R), and children (more actions, after Reject).
 export default function MatchCard({ match, onReview, busy, disabled = null, shortcuts = false, rejecting: shown, onRejecting,
-  children }) {
+  children, legacy = false }) {
   const l = match.listing, title = l.title;
   const [own, setOwn] = useState(false);
   const rejecting = shown ?? own, setRejecting = onRejecting ?? setOwn;
@@ -40,7 +40,7 @@ export default function MatchCard({ match, onReview, busy, disabled = null, shor
     <div className="match-body">
       <div className="match-head">
         <h3 id={`match-${match.id}`} tabIndex={-1}><a href={`#/p/${l.id}`}>{title}</a></h3>
-        <span className="score num">Score {match.score}</span>
+        <span className="score num">{match.status==='rejected'?'Historical score':legacy||match.ranking_version===0?'Previous score':'Score'} {match.score}</span>
       </div>
       <p className="meta">{meta.map((fact, i) => <span key={i}>{fact}</span>)}</p>
       <p className="match-price"><span className="num">{priceText(l)}</span>

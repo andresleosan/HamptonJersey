@@ -1,10 +1,11 @@
+import ApplicantMatches from "./ApplicantMatches.jsx";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtAgo, fmtDate, fmtDay, fmtDayMonth, firstSentence, blank, show, AVAILABILITY, VIEWING_STATUS } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
 import { OPTIONS, normalizePhone, isActive } from "../../server/applicants.js";
 import ApplicantFields, { toForm, toBody } from "./ApplicantFields.jsx";
-import MatchCard, { REASON_LABEL } from "./MatchCard.jsx";
+import { REASON_LABEL } from "./MatchCard.jsx";
 import { OfferBadge, REASON, Received, money } from "./Sales.jsx";
 import { SALE_STATUS } from "./SaleDetail.jsx";
 import { milestoneLabel } from "../../server/sales.js";
@@ -18,7 +19,6 @@ const SEARCH = Object.keys(toForm()).filter(k => !CONTACT.includes(k));
 const COPY = [...SEARCH.filter(k => !["operation", "search_category"].includes(k)), "preferred_channel", "best_time"];
 // Offers only on To Buy searches (V1).
 const TABS = [["requirements", "Requirements"], ["matches", "Matches"], ["offers", "Offers"], ["timeline", "Timeline"]];
-const GROUPS = [["found", "Found"], ["shortlisted", "Shortlisted"], ["rejected", "Rejected"]];
 
 const LABEL = { requirement_priorities:"Requirement priorities", household_children_ages:"Children’s ages", household_ages_at:"Ages declared",  viewing_availability: "Usual viewing availability", operation: "To Let or To Buy", stage: "Stage", lost_reason: "Why it was lost", assigned_to: "Assigned to",
   source: "Source", budget_max: "Maximum budget", budget_min: "Minimum budget", budget_stretch: "Can stretch to",
@@ -60,6 +60,7 @@ const same = (k, a, b) => {
 // stage and owner, the requirements form, its matches and the history. tab: the part of the hash after the id.
 export default function ApplicantDetail({ id, tab, onChange }) {
   const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [users, setUsers] = useState([]);
+  const detailGeneration=useRef(0);
   const [form, setForm] = useState(null), [errors, setErrors] = useState({}), [busy, setBusy] = useState(false);
   // msg: Save, Copy fields, archive and delete (in the action bar). note: stage, owner and Dismiss (next to them).
   const [msg, setMsg] = useState(null), [note, setNote] = useState(null);
@@ -70,8 +71,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const [choice, setChoice] = useState({ stage: null, assigned_to: null });
   const tabs = useRef({}), formRef = useRef(null), lostRef = useRef(null), focusError = useRef(false);
   const stageRef = useRef(null), ownerRef = useRef(null);
-  // matchMsg: the last review, in the Matches tab. refocusMatch: the id to focus once the reviewed matches are shown.
-  const [matchMsg, setMatchMsg] = useState(null), [reviewing, setReviewing] = useState(false), refocusMatch = useRef(null);
+  const [reviewing,setReviewing]=useState(false);
   // The search's offers and sales ({offers, sales}), for the Offers tab and the listing titles in the timeline. The tab
   // shows for a To Buy search, or one that has offers or sales from when it was one.
   const [offers, setOffers] = useState(null), [offersErr, setOffersErr] = useState(null);
@@ -81,18 +81,24 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const tabList = hasOffers ? TABS : TABS.filter(([k]) => k !== "offers");
   const cur = tabList.some(([k]) => k === tab) ? tab : "requirements";
 
-  const fetchDetail = () => api(`/admin/applicants/${id}`).then(d => { setData(d); return d; });
+  // Every detail reader shares this generation. A recovery started before Save must never replace its result.
+  const fetchDetail=async()=>{
+    const generation=++detailGeneration.current,d=await api(`/admin/applicants/${id}`);
+    if(generation!==detailGeneration.current)return null;
+    setData(d);return d;
+  };
   const reloadSearch = async () => {
     const baseline = toForm(data.applicant, data.contact);
-    const d = await fetchDetail(), fresh = toForm(d.applicant, d.contact);
+    const d = await fetchDetail();if(!d)return;const fresh=toForm(d.applicant,d.contact);
     // Reconcile untouched fields with the new version; preserve anything typed locally during the request.
     setForm(current => Object.fromEntries(Object.keys(fresh).map(k => [k,
       JSON.stringify(current[k]) === JSON.stringify(baseline[k]) ? fresh[k] : current[k]])));
   };
   const load = () => fetchDetail().then(d => {
+    if(!d)return;
     setForm(toForm(d.applicant, d.contact)); setErrors({}); setMsg(null); setNote(null); setLost(null); setLoadErr(null);
   }, e => { setLoadErr(e.message); setNote({ text: e.message }); }); // a failed Reload keeps the page and says why
-  useEffect(() => { load(); api("/admin/users").then(d => setUsers(d.users), () => {}); }, []);
+  useEffect(() => { load(); api("/admin/users").then(d => setUsers(d.users), () => {}); return()=>{detailGeneration.current++;}; }, []);
 
   const body = form && toBody(form), saved = data && toBody(toForm(data.applicant, data.contact));
   const changed = keys => (data && form ? keys.filter(k => JSON.stringify(body[k]) !== JSON.stringify(saved[k])) : []);
@@ -110,9 +116,6 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   useEffect(() => {
     if (widenFocus.current && cur === "requirements") { document.querySelector(widenFocus.current)?.focus(); widenFocus.current = null; }
   }, [cur]);
-  useEffect(() => {
-    if (refocusMatch.current) { document.getElementById(refocusMatch.current)?.focus(); refocusMatch.current = null; }
-  }, [data]);
 
   if (loadErr && !data) return <p role="alert" className="err">{loadErr}<br /><a href="#/applicants">Back to applicants</a></p>;
   if (!data || !form) return <p>Loading applicant…</p>;
@@ -132,6 +135,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
 
   // Requirements and contact are saved apart (two records); whatever is still unsaved stays in the form.
   const save = async () => {
+    detailGeneration.current++;
     setBusy(true); setMsg(null);
     try {
       if (searchChanged.length) {
@@ -144,7 +148,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
           body: { ...pick(body, contactChanged), updated_at: c.updated_at } });
         setData(d => ({ ...d, contact })); setForm(f => ({ ...f, ...pick(toForm({}, contact), CONTACT) }));
       }
-      const d = await fetchDetail();
+      const d = await fetchDetail();if(!d)return;
       setForm(toForm(d.applicant, d.contact)); setErrors({}); setMsg({ ok: true, text: "Changes saved." });
     } catch (e) {
       const fields = e.data?.fields || {};
@@ -164,10 +168,12 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   // keeps the version the form started from, so an edit someone else made there never shows up as this user's
   // unsaved change (and a later Save cannot revert it); Save or Reload brings it in.
   const refresh = async saved => {
+    const generation=++detailGeneration.current;
     setData(x => ({ ...x, ...saved }));
     const d = await api(`/admin/applicants/${id}`);
+    if(generation!==detailGeneration.current)return;
     // A new stage can close or reopen the search, which recomputes its matches.
-    setData(x => ({ ...x, events: d.events, viewings: d.viewings, duplicates: d.duplicates, matches: d.matches,
+    setData(x => ({ ...x, events: d.events, viewings: d.viewings, duplicates: d.duplicates, matchCounts: d.matchCounts,
       retention: d.retention, widen: d.widen }));
     onChange?.(); // the save restarted the contact's 12 months: the bar's expiring count may drop
   };
@@ -229,45 +235,24 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     } catch (e) { setNote({ text: e.message }); }
   };
 
-  // A review moves the match to another group; the focus goes to the next card of the group it left (the one before
-  // when it was the last), or that group's heading when none is left. A 409 (someone else reviewed it, or the search
-  // is archived) or a 400 says why; either way the matches are loaded again.
-  const reviewMatch = async (m, { status, reject_reason }) => {
-    if (reviewing) return;
-    const group = data.matches.filter(x => x.status === m.status), i = group.findIndex(x => x.id === m.id);
-    const next = group[i + 1] ?? group[i - 1], title = m.listing.title;
-    setReviewing(true); setMatchMsg(null);
-    // A 404 is a match a recompute removed meanwhile: gone, like match null.
-    const gone = { ok: true, text: `${title} no longer fits this search, so it has left the list.` };
-    let msg;
-    try {
-      const { match } = await api(`/admin/matches/${m.id}`, { method: "PUT",
-        body: { status, from: m.status, ...(reject_reason && { reject_reason }) } });
-      msg = !match ? gone : { ok: true, text: status === "shortlisted" ? `Shortlisted ${title}.`
-        : status === "rejected" ? `Rejected ${title} · ${REASON_LABEL[reject_reason]}.` : `${title} is back in Found.` };
-    } catch (e) { msg = e.status === 404 ? gone : { text: e.message, refused: e.status === 409 || e.status === 400 }; }
-    // The message shows with the reloaded matches; a refused review's "Reload to see it" is done already.
-    try {
-      const d = await api(`/admin/applicants/${id}`);
-      if (msg.refused) msg = { text: `${firstSentence(msg.text)} The matches below are up to date.` };
-      const left = !d.matches.some(x => x.id === m.id && x.status === m.status);
-      if (msg.ok || left)
-        refocusMatch.current = next && d.matches.some(x => x.id === next.id && x.status === m.status) ? `match-${next.id}` : `group-${m.status}`;
-      setData(x => ({ ...x, applicant: d.applicant, events: d.events, matches: d.matches, widen: d.widen }));
-    } catch (e) { msg = { text: `${msg.text} ${e.message}` }; } // shown as an error even when the review was saved
-    finally { setMatchMsg(msg); setReviewing(false); }
+  const refreshMatches=async()=>{
+    const generation=++detailGeneration.current,d=await api(`/admin/applicants/${id}`);
+    if(generation!==detailGeneration.current)return null;
+    setData(x=>({...x,applicant:d.applicant,events:d.events,matchCounts:d.matchCounts,widen:d.widen}));
+    return d;
   };
 
   // E9: a talk with the contact restarts their 12 months; the new date, the history and the nav counts follow.
   const logConversation = async () => {
     if (busy) return;
+    const generation=++detailGeneration.current;
     setBusy(true); setNote(null);
     try {
       const { kept_until } = await api(`/admin/contacts/${c.id}/conversation`, { method: "POST" });
       onChange?.();
       setNote({ ok: true, text: `Conversation logged.${kept_until ? ` Kept until ${fmtDayMonth(kept_until)}.` : ""}` });
       const d = await api(`/admin/applicants/${id}`);
-      setData(x => ({ ...x, events: d.events, retention: d.retention }));
+      if(generation===detailGeneration.current)setData(x => ({ ...x, events: d.events, retention: d.retention }));
     } catch (e) { setNote({ text: e.message }); }
     finally { setBusy(false); }
   };
@@ -277,7 +262,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     setBusy(true); setMsg(null);
     try {
       await api(`/admin/applicants/${id}/${action}`, { method: "POST" });
-      const d = await fetchDetail(); setForm(toForm(d.applicant, d.contact));
+      const d = await fetchDetail();if(!d)return;setForm(toForm(d.applicant, d.contact));
       setMsg({ ok: true, text: action === "archive" ? "Archived. You can restore it from Archived." : "Restored." });
     } catch (e) { setMsg({ text: e.message }); }
     finally { setBusy(false); }
@@ -354,13 +339,13 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     <div role="tabpanel" id="panel-matches" aria-labelledby="tab-matches" hidden={cur !== "matches"} tabIndex={0}>
       {a.search_category === "commercial" ? <p>Commercial matching is not available yet. Please review this search manually.</p> : <>
         {data.widen && <Widen alternatives={data.widen} applicant={a} dirty={dirty} onUse={applyWiden} />}
-        <Matches matches={data.matches} applicant={a} msg={matchMsg} busy={reviewing} onReview={reviewMatch} /></>}
+        <ApplicantMatches applicantId={id} applicant={a} counts={data.matchCounts} onChange={refreshMatches} onBusy={setReviewing} /></>}
     </div>
     {hasOffers && <div role="tabpanel" id="panel-offers" aria-labelledby="tab-offers" hidden={cur !== "offers"} tabIndex={0}>
       <Offers id={id} data={offers} err={offersErr} canRecord={buyer && !archived} />
     </div>}
     <div role="tabpanel" id="panel-timeline" aria-labelledby="tab-timeline" hidden={cur !== "timeline"} tabIndex={0}>
-      <Timeline events={data.events} viewings={data.viewings} matches={data.matches} offers={offers?.offers} by={by} nameOf={nameOf} />
+      <Timeline events={data.events} viewings={data.viewings} matches={[]} offers={offers?.offers} by={by} nameOf={nameOf} />
     </div>
 
     <div className="actionbar" role="region" aria-label="Actions">
@@ -414,6 +399,7 @@ function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirm
 // BUS-17 (spec 2026-11-06): with fewer than 3 matches, what one change to the saved search would add. "Use this" waits
 // while the form has unsaved changes: each new value comes from the saved search.
 function Widen({ alternatives, applicant: a, dirty, onUse }) {
+  if(alternatives.confirmation_required)return <section className="card widen" aria-labelledby="widen-h"><h2 id="widen-h">Widen criteria</h2><p>Confirm the requirement priorities before comparing changes.</p></section>;
   const rent = a.operation === "rent";
   const what = w => (w.key === "budget" ? `Budget up 10%: ${money(w.from)} to ${money(w.to)}${rent ? " a month" : ""}`
     : w.key === "parish" ? (w.parish ? `Add ${w.parish}` : "Add any other parish")
@@ -425,11 +411,11 @@ function Widen({ alternatives, applicant: a, dirty, onUse }) {
   return <section className="card widen" aria-labelledby="widen-h">
     <h2 id="widen-h">Widen criteria</h2>
     {alternatives.length ? <>
-      <p className="muted">Fewer than 3 listings fit this search. Each change on its own would add:</p>
+      <p className="muted">Fewer than 3 offered listings meet the stated must-haves. Each change could improve:</p>
       {dirty && <p className="muted">You have unsaved changes in Requirements. Save or discard them to use these.</p>}
       <ul>{alternatives.map(w => <li key={w.key}>
         <span>{what(w)}</span>
-        <span className="added">{w.added ? `${w.added} more listing${w.added === 1 ? "" : "s"}` : "No more listings"}</span>
+        <span className="added">{w.added ? `${w.fresh} new, ${w.improved} already found` : "No improvement"}</span>
         {w.added > 0 && <button type="button" className="btn ghost sm" disabled={dirty} onClick={() => onUse(w)}>
           Use this<span className="sr"> ({what(w)})</span></button>}
       </li>)}</ul>
@@ -437,40 +423,9 @@ function Widen({ alternatives, applicant: a, dirty, onUse }) {
   </section>;
 }
 
-// Spec §5: Found, Shortlisted and Rejected, each best first (as the API orders them). Each empty group says why.
-// A resolved or legacy search keeps its matches as read-only history.
-function Matches({ matches, applicant: a, msg, busy, onReview }) {
-  const archived = !!a.archived_at, closed = !isActive(a) && !archived;
-  const readOnly = archived ? "Restore this search to review its matches" : closed ? "Reopen this search to review its matches" : null;
-  const reviewed = matches.some(m => m.status !== "found");
-  const empty = {
-    found: archived ? "Archived searches get no new matches. Restore it to look again."
-      : closed ? "Resolved searches and searches awaiting review get no new matches."
-      : reviewed ? "Nothing left to review. Listings that fit this search appear here when they are added or change."
-      : "No listing fits this search right now. Listings that fit appear here when they are added or change. Check the requirements if you expected some.",
-    shortlisted: "Nothing shortlisted yet.",
-    rejected: "Nothing rejected.",
-  };
-  // The status region stays mounted, so what it says next is announced (as in Review); an alert is announced on arrival.
-  return <div className="matches">
-    {readOnly && <p className="muted">{readOnly}.</p>}
-    <p role="status" className="ok">{msg?.ok && msg.text}</p>
-    {msg && !msg.ok && <p role="alert" className="err">{msg.text}</p>}
-    {GROUPS.map(([k, t]) => {
-      const list = matches.filter(m => m.status === k);
-      return <section key={k} className="match-group" aria-labelledby={`group-${k}`}>
-        <h2 id={`group-${k}`} tabIndex={-1}>{t} <span className="count">{list.length}</span></h2>
-        {list.length ? <ul className="match-list">{list.map(m => <li key={m.id}>
-          <MatchCard match={m} busy={busy} disabled={readOnly} onReview={r => onReview(m, r)} /></li>)}</ul>
-          : <p className="empty card">{empty[k]}</p>}
-      </section>;
-    })}
-  </div>;
-}
-
 // What a match.reviewed event did, with the listing's title when its match is still stored.
 function reviewed(e, matches) {
-  const d = e.data ?? {}, title = matches.find(m => m.listing.id === d.listing_id)?.listing.title ?? d.listing_id;
+  const d = e.data ?? {}, title = e.listing_title ?? d.listing_id;
   if (d.to === "shortlisted") return [`Shortlisted ${title}`];
   if (d.to === "rejected") return [`Rejected ${title} · ${REASON_LABEL[d.reason] ?? d.reason}`];
   return ["Moved back to Found", title];

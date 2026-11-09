@@ -1,10 +1,10 @@
+import {parsePriorities} from "../../site/requirements.js";
 import { json, fail, readJson, now } from "../http.js";
 import { validateApplicant, normalizePhone, OPTIONS, QUEUES, SEARCH_STATES, activeSql, isActive } from "../applicants.js";
 import { logEvent, resolveNotices } from "../events.js";
 import { afterSave, recomputeForApplicant, CANDIDATES_SQL, LISTING, LISTING_OPERATION } from "../match-store.js";
 import { widen } from "../widen.js";
-import { compareRequirements } from "../requirements.js";
-import { MATCHES_SQL, matchCard } from "./matches.js";
+import { pageMatches, MATCH_COUNTS_SQL, matchCounts } from "../match-pages.js";
 import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER } from "../retention.js";
 import { jerseyToday } from "../viewings.js";
 
@@ -170,8 +170,8 @@ async function detail({ env, params: [id] }) {
   // 9 digits. Catches "07797 123 456" for +447797123456; a foreign number sharing those 9 digits would match too,
   // and dots are not stripped. F3 links viewings to contacts for real (G4).
   const last9 = contact.phone ? contact.phone.slice(1).slice(-9) : null;
-  const [events, viewings, duplicates, matches, [retention], [live]] = (await env.DB.batch([
-    q(`SELECT * FROM events WHERE (entity_type = 'applicant' AND entity_id = ?) OR (entity_type = 'contact' AND entity_id = ?)
+  const [events, viewings, duplicates, totals, [retention], pairs] = (await env.DB.batch([
+    q(`SELECT e.*, (SELECT title FROM listings WHERE id=json_extract(e.data,'$.listing_id')) AS listing_title FROM events e WHERE (entity_type = 'applicant' AND entity_id = ?) OR (entity_type = 'contact' AND entity_id = ?)
        ORDER BY at DESC, id DESC`, String(applicant.id), String(contact.id)),
     q(`SELECT v.*, COALESCE(l.title, v.listing_title_snapshot) AS listing_title
        FROM viewing_requests v LEFT JOIN listings l ON l.id = v.listing_id
@@ -186,26 +186,35 @@ async function detail({ env, params: [id] }) {
        FROM notifications n JOIN events e ON e.id = n.event_id
        WHERE n.resolved_at IS NULL AND e.entity_type = 'contact' AND e.entity_id = ? AND e.type = 'applicant.duplicate_submitted'
        ORDER BY n.created_at DESC, n.id DESC`, contact.id, String(contact.id)),
-    // The Matches tab: Found, Shortlisted, Rejected, each best first.
-    q(`${MATCHES_SQL} WHERE m.applicant_id = ?
-       ORDER BY CASE m.status WHEN 'found' THEN 0 WHEN 'shortlisted' THEN 1 ELSE 2 END, m.score DESC, m.id`, applicant.id),
+    q(MATCH_COUNTS_SQL,applicant.id),
     q(RETENTION_SQL, jerseyToday(), contact.id),
-    // W1: Found and Shortlisted matches whose listing is still offered, for the search's operation.
-    q(`SELECT COUNT(*) AS n FROM matches WHERE applicant_id = ? AND status IN ('found', 'shortlisted')
-       AND listing_id IN (SELECT id FROM listings WHERE ${CANDIDATES_SQL} AND operation = ?)`,
-      applicant.id, LISTING_OPERATION[applicant.operation]),
+    q(`SELECT listing_id,status,requirements_rank FROM matches WHERE applicant_id=?`,applicant.id),
   ])).map(r => r.results);
-  const cards = matches.map(matchCard).sort((a,b) => ["found","shortlisted","rejected"].indexOf(a.status) - ["found","shortlisted","rejected"].indexOf(b.status) || compareRequirements(a,b));
   return json({ applicant: parsed(applicant), contact, events: events.map(withData), viewings, duplicates: duplicates.map(withData),
-    matches: cards, retention: keptFor(retention), widen: await widenFor(env, applicant, cards, live.n) });
+    matchCounts:matchCounts(totals), retention: keptFor(retention), widen: await widenFor(env, applicant, pairs) });
 }
 
-// BUS-17: the widen alternatives of an active search with fewer than 3 live matches, else null.
-async function widenFor(env, a, matches, live) {
-  if (!isActive(a) || a.search_category !== "residential" || live >= 3) return null;
-  const { results } = await env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE ${CANDIDATES_SQL} AND operation = ?`)
+// Widen inspects lightweight global pairs, independently of the visible page.
+async function widenFor(env,a,pairs) {
+  if(!isActive(a)||a.search_category!=="residential")return null;
+  if(!parsePriorities(a.requirement_priorities))return {confirmation_required:true};
+  const {results}=await env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE ${CANDIDATES_SQL} AND operation=?`)
     .bind(LISTING_OPERATION[a.operation]).all();
-  return widen(a, results, new Set(matches.map(m => m.listing.id)), matches.filter(m => m.status === "found").length);
+  const offered=new Set(results.map(l=>l.id));
+  const live=pairs.filter(m=>['found','shortlisted'].includes(m.status)&&m.requirements_rank===0&&offered.has(m.listing_id)).length;
+  if(live>=3)return null;
+  return widen(a,results,pairs);
+}
+async function recalculateMatches({env,admin,params:[id]}) {
+ const a=await loadApplicant(env,id);
+ if(!isActive(a)||a.search_category!=='residential')fail(409,'Reopen a residential search to recalculate its matches.');
+ return json(await recomputeForApplicant(env,Number(id),admin));
+}
+async function matchPage({request,env,params:[id]}) {
+ const q=new URL(request.url).searchParams;
+ if([...q.keys()].some(k=>!['status','after'].includes(k))||q.getAll('after').length>1||q.getAll('status').length!==1)
+  fail(400,'Invalid match page options');
+ return json(await pageMatches(env,Number(id),{status:q.get('status'),after:q.get('after')}));
 }
 
 async function create({ request, env, admin }) {
@@ -494,6 +503,8 @@ async function remove({ request, env, admin, params: [id] }) {
 }
 
 export default [
+  ["POST", /^\/admin\/applicants\/(\d+)\/matches\/recalculate$/, recalculateMatches, true],
+  ["GET", /^\/admin\/applicants\/(\d+)\/matches$/, matchPage, true],
   ["GET", /^\/admin\/applicants$/, list, true],
   ["POST", /^\/admin\/applicants$/, create, true],
   ["GET", /^\/admin\/applicants\/(\d+)$/, detail, true],

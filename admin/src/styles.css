@@ -228,12 +228,12 @@ fieldset.plain{border:0;padding:0;margin:0;min-width:0}
 .match{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:16px}
 .match-photo{aspect-ratio:4/3;border-radius:var(--r-sm);overflow:hidden;background:var(--mist);display:grid;place-items:center}
 .match-photo img{width:100%;height:100%;object-fit:cover;display:block}
-.match-body{display:grid;gap:6px;align-content:start;min-width:0} .match-body p{margin:0;overflow-wrap:anywhere}
-.match-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.match-body{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;align-content:start;min-width:0} .match-body p{margin:0;overflow-wrap:anywhere}
+.match-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:baseline}
 .match-head h3{font-size:17px;margin:0;min-width:0;overflow-wrap:anywhere} .match-head h3 a{text-decoration:none} .match-head h3 a:hover{text-decoration:underline}
 .match .score{font-weight:600;white-space:nowrap}
 .match-price{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-weight:600}
-.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:4px 16px;margin:4px 0}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr));gap:4px 16px;margin:4px 0}
 .checks div{display:flex;gap:8px;min-width:0} .checks dt{flex:none;width:76px;color:var(--stone);font-size:12px;line-height:21px}
 .checks dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .result{font-weight:600} .result.meets{color:var(--ok)} .result.fails{color:var(--err)} .result.unknown{color:var(--stone)}
@@ -536,3 +536,10 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .editor input,.editor select,.editor textarea{min-width:0;max-width:100%}
 .editor .field,.editor .card{min-width:0;overflow-wrap:anywhere}
 .editor .media-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}
+
+/* Matching pages use the panel spacing and full-size keyboard/touch controls. */
+.match-pagination{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
+.match-pagination .btn{min-height:44px}
+
+.match-list>li{min-width:0}
+@media(max-width:400px){.checks div{display:grid;gap:4px}.checks dt{width:auto}.match .score{white-space:normal}}

@@ -209,7 +209,7 @@ test("the review queue: oldest applicant first, best score first, after skips pa
 
   const next = async after => (await req(env, "GET", `/admin/review${after ? `?after=${after}` : ""}`)).data;
   const first = await next();
-  assert.deepEqual(first.match, { id: o2, applicant_id: older, status: "found", score: 80, checks: [], reject_reason: null,
+  assert.deepEqual(first.match, { id: o2, applicant_id: older, status: "found", score: 80, checks: [], reject_reason: null, ranking_version:0,
     reviewed_at: null, requirements_status:"pending", requirements_rank:1 });
   assert.deepEqual(first.listing, { id: "HE-R002", title: "Le Bernage", operation: "sale", availability: "for_sale",
     price_text: null, sale_price: 900000, rent: null, rent_period: null, currency: "GBP", parish: "St Saviour", bedrooms: 3,
@@ -371,10 +371,12 @@ test("the applicant record lists its matches with the listing card, found first"
   run(env, "UPDATE matches SET checks = ?, reviewed_at = ? WHERE id = ?",
     JSON.stringify([{ key: "budget", result: "meets", evidence: "£900,000" }]), at(4), s);
 
-  const d = (await req(env, "GET", `/admin/applicants/${a}`)).data;
+  const detail = (await req(env, "GET", `/admin/applicants/${a}`)).data;
+  assert.deepEqual(detail.matchCounts,{found:2,shortlisted:1,rejected:1});
+  const d={matches:[]};for(const status of ['found','shortlisted','rejected'])d.matches.push(...(await req(env,'GET',`/admin/applicants/${a}/matches?status=${status}`)).data.matches);
   assert.deepEqual(d.matches.map(m => m.id), [hi, lo, s, r]);
   const short = d.matches[2];
-  assert.deepEqual({ ...short, listing: undefined }, { id: s, applicant_id: a, status: "shortlisted", score: 90,
+  assert.deepEqual({ ...short, listing: undefined }, { id: s, applicant_id: a, status: "shortlisted", score: 90, ranking_version:0,
     checks: [{ key: "budget", result: "unknown", evidence: "£900,000", priority:"unknown", reason:"Confirm the saved requirement and property details" }], reject_reason: null, reviewed_at: at(4), listing: undefined, requirements_status:"pending", requirements_rank:1 });
   assert.equal(short.listing.title, "Shortlisted house");
   assert.equal(short.listing.cover_id, null);

@@ -1,17 +1,14 @@
 import { parsePriorities } from "../site/requirements.js";
 import { requirementChecks, requirementsSummary } from "./requirements.js";
-// One applicant against one listing (spec §4, B11): the hard filters, the checks a match shows and its 0–100 score.
+// One applicant against one listing (spec §4, B11): the hard filters, the checks a match shows and its 0–90 preference score.
 // The single source of truth for every matching rule: server/match-store.js only stores what evaluate() returns.
-// Pure ESM and cheap: it runs ~300 times per save inside the Worker's 10 ms CPU budget and never reads listing
-// text — the features come precomputed in the feat_* columns (B10). Unknown never excludes a house.
+// Pure ESM: it reads precomputed feat_* columns rather than listing text. Unknown never excludes a house.
 
-export const MIN_SCORE = 35; // a match is only stored from this score (B11)
-export const MAX_FOUND = 25; // at most this many found matches per applicant, the best first (B11)
 
 // The score table of spec §4, with price scored by band (B11). A row the applicant asked nothing about scores in
 // full; outdoor, type and furnished score half when the listing does not say.
 const POINTS = { area: 30, areaUnknown: 15, bedrooms: 15, priceInBand: 20, priceBelowBand: 8, priceUnknown: 10,
-  outdoor: 10, type: 10, furnished: 5, published: 10 };
+  outdoor: 10, type: 10, furnished: 5 };
 const BAND_START = 0.6; // without budget_min, the band starts at 60 % of the top
 const PRICE_FLOOR = 0.75; // a price under 75 % of budget_min excludes the house
 
@@ -116,7 +113,7 @@ const atLeast = (value, min, word) => (value == null ? { result: "unknown", evid
 
 // a: an applicants row, l: a listings row (JSON lists as text, as stored).
 // Returns { pass, score, checks: [{ key, result: 'meets'|'fails'|'unknown', evidence }] }; pass is the hard filters
-// only (MIN_SCORE is applied by the caller), and checks and score are filled even when pass is false.
+// only, and checks and score are filled even when pass is false.
 export function evaluate(a, l) {
   const said = l.feat_evidence ? JSON.parse(l.feat_evidence) : {};
   const priorities = parsePriorities(a.requirement_priorities);
@@ -184,7 +181,6 @@ export function evaluate(a, l) {
     : types.includes(l.feat_type) ? "meets" : "fails", said.type ?? null), POINTS.type);
 
   score += extras;
-  if (l.published === 1 && l.archived_at == null) score += POINTS.published; // on Hampton's website
   if (priorities) {
     pass = LISTING_OPERATION[a.operation] === l.operation && home?.result !== 'fails'
       && !list(a.parishes_excluded).includes(l.parish) && l.archived_at == null
