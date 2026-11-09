@@ -1,0 +1,18 @@
+{
+  "base": "2084cb9ea895b729f8a28e3f2c42ce2057641389",
+  "engine": "Python sqlite3 3.50.4",
+  "scope": "planning prototype only; no app modules implemented",
+  "checks": {
+    "existing_rows_and_ids_preserved": true,
+    "rollback_leaves_no_report_event_or_notice": true,
+    "two_concurrent_connections_create_one_triplet": true,
+    "all_four_metrics_respect_period": true,
+    "top_and_coverage_correct": true,
+    "event_notice_and_history_linked": true,
+    "replay_preserves_original_payload": true,
+    "foreign_keys_clean": true,
+    "no_personal_fixture_data_in_snapshot": true,
+    "reject_invalid_week_2026-11-03": true,
+    "reject_invalid_week_2026-02-30": true
+  }
+}
