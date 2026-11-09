@@ -17,7 +17,7 @@ export default {
         const key=new Request(new URL('/v1/board',request.url).href),cache=globalThis.caches?.default;
         let cached;try{cached=await cache?.match(key);}catch{}
         if(cached)return secure(new Response(request.method==='HEAD'?null:cached.body,{headers:cached.headers}));
-        const value=publicBoard(await env.BOARD_SOURCE.getByName('hampton').getBoard());
+        const value=publicBoard(await env.BOARD_SOURCE.getByName('hampton').getWorkBoard());
         const response=Response.json(value,{headers:{'Cache-Control':'public, max-age=5'}});
         // Only this reduced projection is cached. Failures never enter the cache.
         try{await cache?.put(key,response.clone());}catch{}

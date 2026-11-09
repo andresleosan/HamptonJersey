@@ -4252,7 +4252,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "REG-08 ordena el pool de25 y Review por cumplimiento, pendiente y alternativa, con score dentro de cada grupo. Prueba28candidatos: uno válido con menor score precede a27alternativas. Una tarjeta cuyos datos cambiaron avisa que debe recalcularse la lista. Construido localmente.",
-      "falta": "Publicar REG-08. Próxima construcción recomendada: revisar el umbral35, tope25 y bonus de publicación para evitar perder opciones válidas antes del orden; explicar esos límites sobre inventario actual. Ranking de alternativas día21 y evidencia de nuevas fuentes siguen pendientes de sus módulos.",
+      "falta": "REG-08/0031 ya están integrados en main; no reconstruir ni exigir publicación pendiente de aquella entrega. Próxima construcción recomendada: revisar el umbral35, tope25 y bonus de publicación para evitar perder opciones válidas antes del orden; explicar esos límites sobre inventario actual. Ranking de alternativas día21 y evidencia de nuevas fuentes siguen pendientes de sus módulos.",
       "bloqueo": "",
       "evidencia": [
         "server/matching.js:6-14",
@@ -5741,8 +5741,8 @@
       "fase": "F0",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "8-nov-2026: construido REG-08 ampliado con interruptores Must-have a la derecha en web y panel para parking, ubicación, tipo, rango de dormitorios, baños, exterior por opción, amueblado, mascotas, presupuesto, fechas, duración, cercanía, texto y adecuación al hogar. Guarda edades 0–17 o por confirmar sin nombres ni fechas de nacimiento. Contrato versionado, legado sin prioridades inventadas; las respuestas sobreviven al apagar el interruptor. Migración0031 integrada sobre AGE-04 9d4429c.",
-      "falta": "Publicar el SHA revisado y aplicar0031 con aprobación. Los checks desconocidos requieren confirmación; Children no filtra automáticamente por edad. El motor comercial y la verificación de disponibilidad siguen fuera de este alcance.",
+      "hecho": "8-nov-2026: construido REG-08 ampliado con interruptores Must-have a la derecha en web y panel para parking, ubicación, tipo, rango de dormitorios, baños, exterior por opción, amueblado, mascotas, presupuesto, fechas, duración, cercanía, texto y adecuación al hogar. Guarda edades 0–17 o por confirmar sin nombres ni fechas de nacimiento. Contrato versionado, legado sin prioridades inventadas; las respuestas sobreviven al apagar el interruptor. Migración0031 integrada sobre AGE-04 9d4429c. 9-nov-2026: verificado commitcfb3d3c2bb6660c6c68f5175c80cbedd8d6c2d1c en main, con0031. Comprobación local actual:36pruebas focales, e2e registro/panel1280/390 y conservación de47tablas al migrar0030→0031.",
+      "falta": "Código ya en main; no reconstruir prioridades ni volver a pedir publicar aquella entrega. Comprobación remota nueva de0031 no ejecutada en esta sesión: existe evidencia previa con0036 sin migraciones pendientes. MCP y revisión visual física siguen sin acreditar aquí; motor comercial y verificación de disponibilidad quedan fuera. Desconocidos requieren confirmación y Children no filtra por edad.",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js:128",
@@ -5754,7 +5754,8 @@
         "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
         "migrations/0031_requirement_priorities.sql",
         "tests/server/requirements.test.mjs",
-        "tests/reg08-e2e.cjs"
+        "tests/reg08-e2e.cjs",
+        "docs/superpowers/plans/2026-11-09-reg-08-verificacion-continuidad-ledger.md"
       ],
       "modulo": "M03",
       "deps": [],
@@ -5764,13 +5765,13 @@
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
       "dependencies": [],
-      "externalBlocker": "Verificar autorización del SHA y aplicación de 0031 mediante flujo existente; tener el código en Git no acredita activación.",
+      "externalBlocker": "Sin bloqueo de integración para BUS-14: commit y0031 presentes en main. Conservar por separado la comprobación operativa/remota, sin fabricar activación nueva.",
       "resources": [
         "registration-ui",
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Verificar SHA publicado y aplicación de 0031 mediante el flujo autorizado, sin reconstruir prioridades ya integradas."
+      "nextStep": "Reutilizar REG-08 integrado y avanzar el tramo aprobado BUS-14; para cierre operativo de REG-08 contrastar evidencia remota existente sin reaplicar0031 ni reconstruir la función."
     },
     {
       "id": "REG-09",

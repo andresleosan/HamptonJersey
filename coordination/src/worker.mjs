@@ -19,6 +19,17 @@ export default {
   async fetch(request,env) {
     try {
       const actor=await authenticate(request,env);const url=new URL(request.url);const path=url.pathname;
+      if(path==='/v1/activity'||path.startsWith('/v1/activity/')) {
+        if(!env.TEAM_COORDINATOR)fail(503,'COORDINATOR_CONFIGURATION','Activity storage is unavailable.');
+        const object=env.TEAM_COORDINATOR.getByName('hampton');
+        if(path==='/v1/activity'&&request.method==='GET')return secure(Response.json(await object.getActivity(actor,url.searchParams.get('operation'))));
+        const action=path.slice('/v1/activity/'.length);
+        if(!['start','update','offer-handoff','accept-handoff'].includes(action))fail(404,'UNKNOWN_ENDPOINT','Unknown activity endpoint.');
+        if(request.method!=='POST')fail(405,'METHOD_NOT_ALLOWED','POST required.');
+        if(actor.role==='viewer')fail(403,'READ_ONLY','Browser identities are read only.');
+        const result=await object.activity(actor,action,await readBody(request));
+        return secure(Response.json(result.body,{status:result.status}));
+      }
       if(path==='/v1/board') {
         if(request.method!=='GET')fail(405,'METHOD_NOT_ALLOWED','Read-only board endpoint.');
         if(!env.TEAM_COORDINATOR)fail(503,'COORDINATOR_CONFIGURATION','Coordinator binding is unavailable.');

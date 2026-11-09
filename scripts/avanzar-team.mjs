@@ -7,6 +7,7 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkAvanzar } from './check-avanzar.mjs';
 import { normalizeResource as normalizeCanonicalResource } from '../coordination/catalog.mjs';
+import {runActivity} from './avanzar-activity.mjs';
 
 const SLOTS = ['vps', 'hermes', 'vscode', 'codex-desktop'];
 const ACTOR_ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,159}$/;
@@ -180,6 +181,7 @@ async function safeScope(root, resource) {
 }
 
 export async function runCommand(argv, {cwd=process.cwd(),env=process.env,check=checkAvanzar}={}) {
+  if(argv[0]==='activity')return runActivity(argv.slice(1),{cwd,env,check,checkout,readPrivate,atomicPrivate,lock,validateEndpoint,TeamError,inspect,request});
   const {command,opts,positionals}=options(argv);
   if(!['plan','init','select-list','status','claim','renew','watch','scope','pause','resume','handoff','accept-handoff','submit','abandon','complete','evidence','catalog','release'].includes(command))fail('usage','Usage: node scripts/avanzar-team.mjs plan|init|select-list|status|claim|renew|watch|scope|pause|resume|handoff|accept-handoff|submit|abandon|complete|evidence|catalog|release');
   if(Object.hasOwn(opts,'slot')&&Object.hasOwn(opts,'list'))fail('usage','Choose either --list or legacy --slot, never both.');

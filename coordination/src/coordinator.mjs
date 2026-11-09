@@ -4,6 +4,8 @@ import { jsonError, identifier, fail } from './errors.mjs';
 import { authorizedTarget } from './auth.mjs';
 import { importCanonicalCatalog, verifyIntegrated } from './canonical.mjs';
 import { fingerprintOf, pruneHistory } from './retention.mjs';
+import {emptyActivity,applyActivity} from './activity.mjs';
+import activityCatalog from '../../docs/roadmap/catalog.json' with {type:'json'};
 export class TeamCoordinator extends DurableObject {
   constructor(ctx,env) {
     super(ctx,env);
@@ -11,6 +13,7 @@ export class TeamCoordinator extends DurableObject {
     ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS catalog (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
     ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS operations (actor TEXT NOT NULL, endpoint TEXT NOT NULL, operation_id TEXT NOT NULL, fingerprint TEXT NOT NULL, result TEXT, claim_id TEXT, generation INTEGER, session_id TEXT, created_at INTEGER NOT NULL, PRIMARY KEY(actor,endpoint,operation_id))');
     ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, actor TEXT NOT NULL, endpoint TEXT NOT NULL, operation_id TEXT NOT NULL, revision INTEGER NOT NULL, details TEXT)');
+    ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS work_activity (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
   }
   load() {
     const rows=this.ctx.storage.sql.exec('SELECT data FROM project WHERE id=1').toArray();
@@ -18,7 +21,36 @@ export class TeamCoordinator extends DurableObject {
     const catalog=this.ctx.storage.sql.exec('SELECT data FROM catalog WHERE id=1').toArray();
     state.catalog=catalog.length?JSON.parse(catalog[0].data):null;return state;
   }
-  getBoard() {return board(this.load());}
+  loadActivity() {
+    const row=this.ctx.storage.sql.exec('SELECT data FROM work_activity WHERE id=1').toArray()[0];
+    return row?JSON.parse(row.data):emptyActivity();
+  }
+  getBoard() {const activity=this.loadActivity();return {...board(this.load()),work:activity.records,activityRevision:activity.revision};}
+  getWorkBoard() {const activity=this.loadActivity();return {...board({...this.load(),catalog:activityCatalog}),work:activity.records,activityRevision:activity.revision};}
+  getActivity(actor,operationId) {
+    const activity=this.loadActivity();let operation=null;
+    if(operationId){
+      identifier(operationId,'operationId');
+      if(!actor||!['executor','coordinator'].includes(actor.role))fail(403,'READ_ONLY','Service executor identity required.');
+      const found=activity.operations.find(o=>o.actorId===actor.actorId&&o.operationId===operationId);
+      if(found)operation={action:found.action,body:found.body,recordId:found.result.record.id};
+    }
+    return {revision:activity.revision,records:activity.records,operation};
+  }
+  async activity(actor,action,body) {
+    try {
+      if(!actor||!['executor','coordinator'].includes(actor.role))fail(403,'READ_ONLY','Service executor identity required.');
+      const prepared={};
+      if(action==='offer-handoff')prepared.authorizedTarget=authorizedTarget(this.env,body?.target);
+      if(action==='update'&&body?.status==='published')prepared.verifiedSha=await verifyIntegrated(this.env,body.sha);
+      return this.ctx.storage.transactionSync(()=>{
+        const state=this.loadActivity();
+        const result=applyActivity(state,actor,action,body,activityCatalog,prepared);
+        this.ctx.storage.sql.exec('INSERT INTO work_activity(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',JSON.stringify(state));
+        return {status:200,body:result};
+      });
+    }catch(error){return jsonError(error);}
+  }
   replay(actor,path,body,fingerprint,now) {
     const row=this.ctx.storage.sql.exec('SELECT * FROM operations WHERE actor=? AND endpoint=? AND operation_id=?',actor.actorId,path,body.operationId).toArray()[0];
     if(!row)return null;

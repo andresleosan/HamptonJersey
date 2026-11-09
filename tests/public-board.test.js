@@ -35,7 +35,7 @@ test('public progress changes after closure; planning and obsolete completions n
  c.completionCurrent=true;assert.equal(publicBoard(b).tasks[0].activity,'completed');u.enabled=false;assert.equal(publicBoard(b).tasks[0].activity,'completed');c.completionCurrent=false;assert.equal(publicBoard(b).tasks[0].activity,'unreserved');b.tasks[0].estado='hecho';assert.equal(publicBoard(b).tasks[0].activity,'completed');assert.equal(publicBoard(b).lists.find(l=>l.number===publicBoard(b).tasks[0].list).activeCount,0);
 });
 test('public handler permits read only and never forwards unknown paths or write commands',async()=>{
- let calls=0,assets=0;const env={BOARD_SOURCE:{getByName(name){assert.equal(name,'hampton');return {getBoard:async()=>{calls++;return fixture();},command(){throw Error('write must never run');}};}},ASSETS:{fetch:async()=>{assets++;return new Response('public');}}};
+ let calls=0,assets=0;const env={BOARD_SOURCE:{getByName(name){assert.equal(name,'hampton');return {getWorkBoard:async()=>{calls++;return fixture();},command(){throw Error('write must never run');}};}},ASSETS:{fetch:async()=>{assets++;return new Response('public');}}};
  for(const method of ['POST','PUT','PATCH','DELETE','OPTIONS'])for(const path of ['/','/v1/board','/v1/claims','/v1/catalog'])assert.equal((await worker.fetch(new Request('https://public.example'+path,{method}),env)).status,405);
  for(const path of ['/v1/claims','/v1/catalog','/.env','/anything'])assert.equal((await worker.fetch(new Request('https://public.example'+path),env)).status,404);
  assert.equal(calls,0);assert.equal(assets,0);
@@ -89,7 +89,7 @@ test('expanded details refresh safely and dependency links reveal and open tasks
 test('short cache shares only sanitized JSON; query/cookies cannot bypass it and errors are not cached',async()=>{
  const previous=Object.getOwnPropertyDescriptor(globalThis,'caches');const entries=new Map();let now=0,reads=0,fail=false;
  globalThis.caches={default:{async match(key){const e=entries.get(key.url);return e&&e.expires>now?e.response.clone():undefined;},async put(key,response){assert.equal(response.headers.get('Cache-Control'),'public, max-age=5');assert.ok(!(await response.clone().text()).includes('PRIVATE_SENTINEL'));entries.set(key.url,{response:response.clone(),expires:now+5000});}}};
- const env={BOARD_SOURCE:{getByName(){return {getBoard:async()=>{reads++;if(fail)throw Error('PRIVATE_SENTINEL');return fixture();}};}}};
+ const env={BOARD_SOURCE:{getByName(){return {getWorkBoard:async()=>{reads++;if(fail)throw Error('PRIVATE_SENTINEL');return fixture();}};}}};
  try{
   assert.equal((await worker.fetch(new Request('https://public.example/v1/board?one=1',{headers:{Cookie:'arbitrary'}}),env)).status,200);
   const head=await worker.fetch(new Request('https://public.example/v1/board?other=2',{method:'HEAD'}),env);assert.equal(head.status,200);assert.equal(await head.text(),'');assert.equal(reads,1);assert.deepEqual([...entries.keys()],['https://public.example/v1/board']);

@@ -180,6 +180,7 @@ main.wrap { padding-block: 8px 56px; }
   <div class="wrap">
     <p class="kicker">Hampton App · seguimiento</p>
     <h1>Checklist</h1>
+    <p class="fuentes">Responsable y avance de cada tarea: <a href="https://hampton-tareas.andres-san1404.workers.dev/">tablero compartido</a>. Plan preparado, construcción y publicación son etapas distintas; un plan no marca la tarea como hecha. El registro ligero está preparado localmente y su activación sigue pendiente: consulta <a href="ESTADO.md">ESTADO</a> para comprobar la entrega publicada.</p>
     <p class="lead">Qué existe, qué sigue parcial y qué falta tras reconciliar el plan de arquitectura con la especificación de automatización del 6-nov. El estado refleja el código revisado; la documentación nueva no acredita funcionalidad ni despliegue.</p>
     <p class="fuentes">Plan: <a href="2026-10-23-arquitectura-hampton-app.html">Arquitectura Hampton App</a> · Recorrido vigente: <a href="2026-11-07-reconciliacion-automatizacion.md">Reconciliación de automatización · módulos y decisiones abiertas</a> · Estado por fase: <a href="ESTADO.md">ESTADO.md</a> · Actualizado el <span id="fecha"></span> · Código revisado: <code id="base"></code></p>
     <p class="fuentes">Orden vigente: M03 base de búsqueda y conservación (EST-09 + PRE-12); M01 directorio (BUS-21 → BUS-22 → BUS-23, secuenciales); M02 inventario; M04 criterios y revisión. M13a tareas y M12a exclusión de no disponibles preceden a activar M05 barrido y M06 consultas. Después M07 archivos, M08 presentación, M09 visitas, M10 revisión interna de 21 días y M11 dictado; M12b purga de archivos y AUT-20 validación integral cierran el recorrido. El plan enlazado precisa qué puede adelantarse.</p>
@@ -2561,7 +2562,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "REG-08 ordena el pool de25 y Review por cumplimiento, pendiente y alternativa, con score dentro de cada grupo. Prueba28candidatos: uno válido con menor score precede a27alternativas. Una tarjeta cuyos datos cambiaron avisa que debe recalcularse la lista. Construido localmente.",
-   "falta": "Publicar REG-08. Próxima construcción recomendada: revisar el umbral35, tope25 y bonus de publicación para evitar perder opciones válidas antes del orden; explicar esos límites sobre inventario actual. Ranking de alternativas día21 y evidencia de nuevas fuentes siguen pendientes de sus módulos.",
+   "falta": "REG-08/0031 ya están integrados en main; no reconstruir ni exigir publicación pendiente de aquella entrega. Próxima construcción recomendada: revisar el umbral35, tope25 y bonus de publicación para evitar perder opciones válidas antes del orden; explicar esos límites sobre inventario actual. Ranking de alternativas día21 y evidencia de nuevas fuentes siguen pendientes de sus módulos.",
    "bloqueo": "",
    "evidencia": [
     "server/matching.js:6-14",
@@ -3372,8 +3373,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "8-nov-2026: construido REG-08 ampliado con interruptores Must-have a la derecha en web y panel para parking, ubicación, tipo, rango de dormitorios, baños, exterior por opción, amueblado, mascotas, presupuesto, fechas, duración, cercanía, texto y adecuación al hogar. Guarda edades 0–17 o por confirmar sin nombres ni fechas de nacimiento. Contrato versionado, legado sin prioridades inventadas; las respuestas sobreviven al apagar el interruptor. Migración0031 integrada sobre AGE-04 9d4429c.",
-   "falta": "Publicar el SHA revisado y aplicar0031 con aprobación. Los checks desconocidos requieren confirmación; Children no filtra automáticamente por edad. El motor comercial y la verificación de disponibilidad siguen fuera de este alcance.",
+   "hecho": "8-nov-2026: construido REG-08 ampliado con interruptores Must-have a la derecha en web y panel para parking, ubicación, tipo, rango de dormitorios, baños, exterior por opción, amueblado, mascotas, presupuesto, fechas, duración, cercanía, texto y adecuación al hogar. Guarda edades 0–17 o por confirmar sin nombres ni fechas de nacimiento. Contrato versionado, legado sin prioridades inventadas; las respuestas sobreviven al apagar el interruptor. Migración0031 integrada sobre AGE-04 9d4429c. 9-nov-2026: verificado commitcfb3d3c2bb6660c6c68f5175c80cbedd8d6c2d1c en main, con0031. Comprobación local actual:36pruebas focales, e2e registro/panel1280/390 y conservación de47tablas al migrar0030→0031.",
+   "falta": "Código ya en main; no reconstruir prioridades ni volver a pedir publicar aquella entrega. Comprobación remota nueva de0031 no ejecutada en esta sesión: existe evidencia previa con0036 sin migraciones pendientes. MCP y revisión visual física siguen sin acreditar aquí; motor comercial y verificación de disponibilidad quedan fuera. Desconocidos requieren confirmación y Children no filtra por edad.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:128",
@@ -3385,7 +3386,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
     "migrations/0031_requirement_priorities.sql",
     "tests/server/requirements.test.mjs",
-    "tests/reg08-e2e.cjs"
+    "tests/reg08-e2e.cjs",
+    "docs/superpowers/plans/2026-11-09-reg-08-verificacion-continuidad-ledger.md"
    ],
    "modulo": "M03",
    "deps": [],

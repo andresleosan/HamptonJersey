@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "REG-08 ordena el pool de25 y Review por cumplimiento, pendiente y alternativa, con score dentro de cada grupo. Prueba28candidatos: uno válido con menor score precede a27alternativas. Una tarjeta cuyos datos cambiaron avisa que debe recalcularse la lista. Construido localmente.",
-  "falta": "Publicar REG-08. Próxima construcción recomendada: revisar el umbral35, tope25 y bonus de publicación para evitar perder opciones válidas antes del orden; explicar esos límites sobre inventario actual. Ranking de alternativas día21 y evidencia de nuevas fuentes siguen pendientes de sus módulos.",
+  "falta": "REG-08/0031 ya están integrados en main; no reconstruir ni exigir publicación pendiente de aquella entrega. Próxima construcción recomendada: revisar el umbral35, tope25 y bonus de publicación para evitar perder opciones válidas antes del orden; explicar esos límites sobre inventario actual. Ranking de alternativas día21 y evidencia de nuevas fuentes siguen pendientes de sus módulos.",
   "bloqueo": "",
   "evidencia": [
     "server/matching.js:6-14",
