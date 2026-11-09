@@ -25,3 +25,20 @@ Task3: detalle inmutable y navegación implementados con componentes/paleta/tipo
 Revisor de contexto nuevo, lectura sola: sin bloqueos de entrega, permisos, límites históricos, atomicidad o UI. Señaló un contrato de retorno incorrecto: D1 meta.changes cuenta también las escrituras de triggers; ===1 devolvía created:false en el primer insert. Se corrigió a>0. La prueba D1 real reprodujo RED (0 creaciones notificadas frente a1), luego GREEN8/8 del archivo semanal, incluida concurrencia, reintento,rollback/FK. Ningún hallazgo pendiente. No se atribuye al revisor haber ejecutado nuestras pruebas.
 
 Suite previa al arreglo de retorno:1019 Node +14 Python aprobadas. Se repite la suite completa después del arreglo y de actualizar documentación generada. La ejecución inicial en sandbox falló en6 archivos existentes por restricciones de localhost/procesos; la ejecución autorizada completa pasó. Sin modificar controles del sistema.
+
+## Validación final
+
+- `npm test`:1020 Node +14 Python, todos aprobados después del arreglo de D1.
+- `npm run build`, `npm run check:release`, `git diff --check` y catálogo `render-roadmap --check`: aprobados. Build conserva el aviso de bundle grande existente; no se introducen dependencias.
+- Worker jobs: empaquetado dry-run aprobado, mismo binding y cron, EMAIL_SERVICE_READY=false.
+- Navegador semanal1280/390: aprobado, teclado/foco,zoom200,503/reintento conservando informe,404/vacío,respuesta tardía y401/inert; sin errores JS.
+- Regresión notification-categories1280/390/zoom200: aprobada.
+- Revisión de contexto nuevo completada; hallazgo del retorno D1 resuelto con RED→GREEN de runtime real, sin otros hallazgos pendientes.
+- El helper Git del host referencia gh ausente. El conector GitHub permite lecturas pero su create_blob devolvió403por falta de escritura; no se repitió esa operación ni se cambian sus permisos. Se comprobó push --dry-run con el Git normal y el ejecutable gh temporal ya usado para entregas anteriores, conservando la autenticación existente y sin modificar configuración persistente ni mostrar credenciales. La subida será fast-forward de los commits locales revisados, sin force.
+- PRE-14, PUB-16 y ANA-06 siguen fuera de construcción; no se envía correo ni se activan servicios externos en esta entrega.
+
+E2E general final aprobado: `e2e OK (public, urls, admin, reg17)`. No fallos diferidos ni recorridos declarados aprobados por inferencia. El e2e continuó avanzando en su fixture; se esperó su final sin matar procesos ajenos. Segunda señal Centinela de cabecera de test revisada en informe privado: marcador de ejemplo, no credencial real; sin remediación. No se añade auditoría privada al repositorio público.
+
+## Preparación de publicación
+
+Main remoto comprobado2084cb9 e integrado en los commits de esta copia. Publicación autorizada por el mensaje de Luis de esta sesión. Migración pendiente remota: solo0036, aditiva, sin DROP/ALTER de tablas existentes. Marcador Time Travel y recuentos de54tablas de aplicación guardados en /tmp/hampton-ana08-*; se comprobarán integridad/recuentos al aplicar. Los resultados remotos pertenecen al relevo privado posterior al commit, para mantener el SHA congelado al publicar. No se afirman aún aquí como verificados.

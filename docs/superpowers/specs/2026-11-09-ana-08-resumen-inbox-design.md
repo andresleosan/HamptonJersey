@@ -1,6 +1,6 @@
 # ANA-08 · Resumen semanal de Insights en el Inbox de Staff
 
-Fecha: 2026-11-09. Estado: diseño técnico reconstruido; pendiente de revisión del usuario antes de construir.
+Fecha: 2026-11-09. Estado: diseño reconstruido, aprobado por Luis al autorizar construir y publicar el9-nov-2026.
 Base: `andresleosan/HamptonJersey`, `main` = `2084cb9ea895b729f8a28e3f2c42ce2057641389`.
 
 El directorio temporal del relevo no existía al retomar. Este documento es nuevo: no acredita recuperar el borrador anterior ni sus decisiones no transcritas.
@@ -31,7 +31,7 @@ Guardar además las cinco referencias de fichas más vistas y sus aperturas, ord
 
 Copy del detalle: `Figures for the previous calendar week, recorded at the time shown. Listing views count opens, not people.` y `New applicants counts searches that were not archived when this report was recorded.`. Las visitas completadas explican su criterio de fecha y estado. Si no hay datos, mostrar ceros y `No listing views recorded for this week.`. `coverage.first_day` procede de `MIN(day)` en daily_stats; si no existe o es posterior a `from`, advertir `View counting may not cover the whole week.`. Tener una fila anterior no demuestra cobertura continua: no prometerla.
 
-El embudo actual depende de etapas presentes, y la demanda es expresamente la foto de hoy. No presentarlos como historia de la semana anterior. Los tiempos de respuesta actuales también carecen de corte superior y pueden incorporar respuestas posteriores. Para este primer resumen se enlaza a Insights para consultar esos bloques actuales; añadir historia completa exigiría otro diseño de fuentes. La selección de cuatro cifras y cinco referencias es una propuesta técnica nueva, no una aprobación histórica atribuida al usuario.
+El embudo actual depende de etapas presentes, y la demanda es expresamente la foto de hoy. No presentarlos como historia de la semana anterior. Los tiempos de respuesta actuales también carecen de corte superior y pueden incorporar respuestas posteriores. Para este primer resumen se enlaza a Insights para consultar esos bloques actuales; añadir historia completa exigiría otro diseño de fuentes. La selección de cuatro cifras y cinco referencias se propuso en este diseño y quedó aprobada con la autorización de construir/publicar; no se atribuye al borrador perdido.
 
 ## Calendario y recuperación
 

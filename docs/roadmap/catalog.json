@@ -17409,15 +17409,19 @@
       "titulo": "Resumen semanal de Insights por email a la dirección",
       "origen": "plan",
       "fase": "F7-B",
-      "estado": "bloqueado",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "No se envía. Necesita el servicio de correo; el reloj que lo enviará cada semana ya existe (AUT-07).",
-      "bloqueo": "Correo (AUT-17)",
+      "hecho": "9-nov-2026: tramo Inbox de Staff construido: Feed → Messages informa una vez por semana desde el lunes08:00 Europe/Jersey, con cuatro totales y top5 referencias de la semana natural anterior. Foto inmutable, ambos bordes de fechas, evento/aviso atómicos, recibos por empleado y destino autenticado. Migración aditiva0036; sin correo. Pruebas de calendario GMT/BST, idempotencia, fallo/reintento, D1 real y navegador1280/390/zoom200. Autorización de construir/publicar recibida; evidencia de despliegue en relevo de esta entrega.",
+      "falta": "El tramo original de email a dirección continúa pendiente de AUT-17 operativo y su integración específica. No se declara hecho por entregar Inbox.",
+      "bloqueo": "Correo (AUT-17), solo tramo email",
       "evidencia": [
-        "docs/superpowers/specs/2026-10-24-hampton-app-f7a-design.md:15",
-        "docs/roadmap/ESTADO.md:15",
-        "jobs/wrangler.toml:1-24"
+        "server/weekly-insights.js",
+        "migrations/0036_weekly_insights.sql",
+        "server/routes/insights.js",
+        "admin/src/WeeklyInsights.jsx",
+        "tests/server/weekly-insights.test.mjs",
+        "tests/weekly-insights.e2e.cjs",
+        "docs/superpowers/plans/2026-11-09-ana-08-build-ledger.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -17427,9 +17431,9 @@
         {
           "id": "AUT-17",
           "requires": "activated",
-          "reason": "El resumen semanal exige correo operativo.",
+          "reason": "Solo el tramo de email necesita correo operativo; Inbox funciona con el reloj existente.",
           "basis": "explicit",
-          "scope": "whole"
+          "scope": "partial"
         },
         {
           "id": "AUT-07",
@@ -17439,13 +17443,13 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Correo (AUT-17)",
+      "externalBlocker": "Correo (AUT-17), solo tramo email",
       "resources": [
         "analytics-contract",
         "email-pipeline",
         "jobs-clock"
       ],
-      "nextStep": "Preparar resumen semanal sobre el reloj existente y enviarlo solo con correo operativo."
+      "nextStep": "Verificar publicación y primer resumen Inbox; para email, cerrar activación AUT-17 y su integración sin duplicar el snapshot."
     },
     {
       "id": "ANA-09",
