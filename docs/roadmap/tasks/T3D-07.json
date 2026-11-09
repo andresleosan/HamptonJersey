@@ -4,10 +4,10 @@
   "titulo": "Alcance anterior aplazado",
   "origen": "texto",
   "fase": "F8",
-  "estado": "replanteado",
+  "estado": "descartado",
   "responsable": "—",
   "hecho": "",
-  "falta": "Alcance anterior retirado del plan vigente; ver T3D-01.",
+  "falta": "Descartado por ahora por decisión de Luis del 9-nov-2026; no planificar ni construir salvo nueva decisión.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:385-386"
