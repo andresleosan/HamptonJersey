@@ -35,9 +35,10 @@ test('Hermes second phone cannot create a second active worker or reuse another 
   },{},1000+16*60*1000));
 });
 test('a lost build client retains its real catalogue resources and cannot resume an expired lease',()=>{
-  const state=reviewedFixture(),c=reserve(state,'vps',{taskId:'BUS-14'});
+  const state=reviewedFixture(),c=reserve(state,'vps');
+  const taskId=state.catalog.units.find(u=>u.id===c.unitId).parentTaskId;
   assert.equal(stateApi.board(state,1000+16*60*1000).claims[0].status,'stale');
-  assert.throws(()=>reserve(state,'vscode',{taskId:'BUS-14'}));
+  assert.throws(()=>reserve(state,'vscode',{taskId}));
   assert.throws(()=>stateApi.applyCommand(state,{actorId:'vps',role:'executor',slots:['vps']},`/v1/claims/${c.id}/resume`,{
     operationId:'resume-expired-build',generation:c.generation,sessionId:c.sessionId,mode:'build'
   },{},1000+16*60*1000));

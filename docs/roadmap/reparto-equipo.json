@@ -18,10 +18,10 @@
       "area": "Aplicantes, requisitos, matching y estados",
       "capacity": 2,
       "count": 59,
-      "openCount": 39,
+      "openCount": 38,
       "states": {
-        "parcial": 29,
-        "hecho": 14,
+        "parcial": 28,
+        "hecho": 15,
         "pendiente": 8,
         "replanteado": 6,
         "bloqueado": 2
@@ -4249,10 +4249,10 @@
       "titulo": "Orden explicable de coincidencias y alternativas, después de evaluar requisitos",
       "origen": "plan",
       "fase": "F1-A",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "9-nov-2026: construido localmente sobre064aa7f. Conserva todas las candidatas pertinentes sin mínimo35 ni tope25; score natural90 sin bonus por publicación. Ficha con páginas25, cursor/revisión y orden persistido común con Review. Rejected conserva su historial, Shortlisted su decisión; eventos efectivos en concurrencia, Timeline y Widen independientes de las páginas. Migración0037 preparada, sin aplicar en remoto. Verificado con1068JS+14Python, build/release, e2e general completo y focal1280/390; revisión independiente con1Important corregido RED→GREEN. Prueba600candidatas, páginas25/25/10, carrerasHTTP, errores, foco y zoomCSS200 sin overflow.",
-      "falta": "Aprobar el SHA exacto y0037, publicar y comprobar despliegue/smoke autenticado. PlaywrightMCP no inicia por sandbox/root y el zoom nativo no queda acreditado. Nuevas fuentes/inventario canónico pertenecen a BUS-12; ranking del día21 pertenece a BUS-17, sin reconstruirlos aquí.",
+      "hecho": "9-nov-2026: alcance aprobado BUS-14 terminado y publicado en72b3ad3be3bf49ea82cf3f8d56cfce169f6e26a7,0037 aplicada según registros de publicación. Conserva todas las candidatas residenciales pertinentes sin mínimo35/tope25, páginas25 y orden persistido por cumplimiento/score, sin bonus de publicación. Historial y decisiones conservados; Timeline/Widen globales. Evidencia de construcción:1068JS+14Python, build/release, general y focal1280/390, revisión independiente corregida. Ayuda adicional: recorrido local actual1280/390 con páginas25/25/10, Shortlist/Reject/Undo, recálculo legado, errores/carreras y Widen; zoom nativo200% comprobado con teclado y capturasX11. Navegador público confirma assets publicados y protección401. Luis aportó capturas de Matches con sesión real móvil y confirmó recálculo correcto. Cierre:27pruebas focales actualesPASS, matriz de aceptación cubierta; Shortlist/Undo se verificó localmente, sin afirmar ejecución de esa acción en producción. Las ampliaciones del inventario/EvaluationV1 y ranking21d corresponden a BUS-12/BUS-17.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "server/matching.js",
@@ -4265,7 +4265,8 @@
         "tests/server/match-pages.test.mjs",
         "tests/server/bus14-widen.test.mjs",
         "tests/bus14-e2e.cjs",
-        "docs/superpowers/plans/2026-11-08-bus-14-match-ranking-ledger.md"
+        "docs/superpowers/plans/2026-11-08-bus-14-match-ranking-ledger.md",
+        "docs/roadmap/work/BUS-14/validation-closeout.md"
       ],
       "modulo": "M04",
       "deps": [
@@ -4291,7 +4292,7 @@
         "notifications-schema",
         "matching-review-ui"
       ],
-      "nextStep": "Autorizar el SHA exacto y0037; publicar mediante los wrappers existentes y comprobar despliegue/smoke. Construcción local revisada, sin push ni migración remota."
+      "nextStep": "Alcance aprobado de BUS-14 cerrado. Catálogo local integrado con main42eda35 y preparado para publicar el cierre con aprobación de su SHA exacto y desplegar el catálogo del tablero; sin nueva migración. No reconstruir ni repetir0037. Continuar BUS-12 según sus dependencias técnicas."
     },
     {
       "id": "BUS-15",

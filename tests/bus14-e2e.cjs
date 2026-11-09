@@ -65,6 +65,9 @@ const {chromium}=require(process.env.PW||'playwright-core');
    const rejected=page.locator('.match-group').filter({has:page.locator('#group-rejected')});
    await rejected.getByText('Historical score 90',{exact:true}).waitFor();
    await rejected.getByRole('button',{name:/Undo.*BUS14 home 25.*Found/}).click();
+   await page.getByText('BUS14 home 25 is back in Found.',{exact:true}).waitFor();
+   await rejected.getByText('Nothing rejected yet.',{exact:true}).waitFor();
+   await page.waitForFunction(()=>[...document.querySelectorAll('.match-group')].every(e=>e.getAttribute('aria-busy')==='false')&&!document.querySelector('[aria-label="Next Found page"]').disabled);
    await shortlisted.getByText('Nothing shortlisted yet.',{exact:true}).waitFor();
    await found.getByRole('link',{name:'BUS14 home 0',exact:true}).waitFor();
    // Hold an old page response, save different requirements, then release it. It must never replace the new first page.
