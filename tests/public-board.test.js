@@ -115,8 +115,34 @@ test('progress measures checklist completion only, without weighting partial wor
  assert.deepEqual(ui.progress(tasks),{done:1,total:4,partial:1,blocked:1,excluded:2,percent:25});
  assert.deepEqual(ui.progress([]),{done:0,total:0,partial:0,blocked:0,excluded:0,percent:0});
  assert.equal(ui.progress([{state:'replanteado'}]).total,0);
- assert.equal(ui.progress([...Array.from({length:200},()=>({state:'hecho'})),{state:'pendiente'}]).percent,99);
+ assert.equal(ui.progress([...Array.from({length:200},()=>({state:'hecho'})),{state:'pendiente'}]).percent.toFixed(2),'99.50');
  assert.equal(ui.progress(Array.from({length:201},()=>({state:'hecho'}))).percent,100);
+});
+
+test('progress renders two Spanish decimals globally, per list and package, including refresh and boundaries',async()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../docs/roadmap/paquetes.json',import.meta.url)));
+ const dom=new JSDOM(readFileSync(new URL('../docs/roadmap/tablero-publico.html',import.meta.url),'utf8'),{url:'https://public.example/',pretendToBeVisual:true}),w=dom.window;
+ let payload=publicBoard(fixture());
+ payload.tasks.forEach((t,i)=>{t.state=i<52?'hecho':i<221?'pendiente':'replanteado';});
+ w.fetch=async url=>({ok:true,json:async()=>structuredClone(url==='/paquetes.json'?manifest:payload)});
+ const app=ui.mount(w.document,w);await new Promise(resolve=>setImmediate(resolve));
+ try{
+  const doc=w.document,label=doc.getElementById('progress-label'),bar=doc.getElementById('overall-progress');
+  assert.equal(label.textContent,'52 de 221 tareas hechas · 23,53%');
+  assert.equal(bar.getAttribute('aria-valuetext'),label.textContent);
+  assert.equal(bar.value,52);assert.equal(bar.max,221);
+  const labels=[...doc.querySelectorAll('.column-head progress + .muted,.package-count')];
+  assert.equal(labels.length,27);
+  for(const node of labels)assert.match(node.textContent,/^(?:\d+ de \d+ tareas hechas · \d+,\d{2}%|Sin tareas de alcance vigente)$/);
+  const search=doc.getElementById('search');search.value='BUS-14';search.dispatchEvent(new w.Event('input'));search.focus();
+  payload.tasks[52].state='hecho';payload.revision++;await app.refresh();
+  assert.equal(label.textContent,'53 de 221 tareas hechas · 23,98%');
+  assert.equal(doc.activeElement,search);assert.equal(search.value,'BUS-14');assert.equal(bar.max,221);
+  payload.tasks.forEach((t,i)=>{if(i<221)t.state='pendiente';});payload.revision++;await app.refresh();
+  assert.equal(label.textContent,'0 de 221 tareas hechas · 0,00%');
+  payload.tasks.forEach((t,i)=>{if(i<221)t.state='hecho';});payload.revision++;await app.refresh();
+  assert.equal(label.textContent,'221 de 221 tareas hechas · 100,00%');
+ }finally{app.stop();w.close();}
 });
 
 test('package overview, task guidance and progress preserve filters and focus across updates; links reveal exact tasks',async()=>{

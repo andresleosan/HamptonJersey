@@ -13,9 +13,10 @@
  }
  const AREAS=['Aplicantes, requisitos, matching y estados','Fuentes, agencias, integraciones y automatizaciones','Inbox, visitas, alquileres y ofertas','Propiedades, publicación, tours y analítica'];
  const EXCLUDED=new Set(['replanteado','descartado']);
+ const PERCENT=new Intl.NumberFormat('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2});
  function progress(tasks){
   const current=tasks.filter(t=>!EXCLUDED.has(t.state)),done=current.filter(t=>t.state==='hecho').length;
-  return {done,total:current.length,partial:current.filter(t=>t.state==='parcial').length,blocked:current.filter(t=>t.state==='bloqueado').length,excluded:tasks.length-current.length,percent:current.length?Math.floor(done/current.length*100):0};
+  return {done,total:current.length,partial:current.filter(t=>t.state==='parcial').length,blocked:current.filter(t=>t.state==='bloqueado').length,excluded:tasks.length-current.length,percent:current.length?done/current.length*100:0};
  }
  function validAdvice(r){return r&&['Hermes','VPS','VS Code'].includes(r.environment)&&['Baja','Media','Alta'].includes(r.difficulty)&&['reason','needs'].every(k=>typeof r[k]==='string'&&r[k].trim());}
  function validatePackages(m){
@@ -91,7 +92,7 @@
    $('connection').textContent=failures>0?'No se pudo actualizar. Reintentaremos automáticamente; se conserva el último dato válido.':lastSuccess===null?'Esperando la primera actualización.':stale?'Sin contacto. Se conserva la última actualización.':'En vivo · solo consulta · actualización automática.';
    $('updated').textContent=board?'Última respuesta válida: '+new Date(lastSuccess).toLocaleTimeString('es')+' · revisión '+board.revision:'';
   }
-  function describe(p){return p.total?p.done+' de '+p.total+' tareas hechas · '+p.percent+'%':'Sin tareas de alcance vigente';}
+  function describe(p){return p.total?p.done+' de '+p.total+' tareas hechas · '+PERCENT.format(p.percent)+'%':'Sin tareas de alcance vigente';}
   function updateBar(bar,p){bar.max=p.total||1;bar.value=p.done;bar.setAttribute('aria-valuetext',describe(p));}
   function matches(t){
    const q=$('search').value.trim().toLocaleLowerCase(),list=$('list').value,activity=$('activity').value,state=$('state').value,environment=$('environment').value;
