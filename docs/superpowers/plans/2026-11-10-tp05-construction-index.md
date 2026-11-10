@@ -170,7 +170,7 @@ Los planes copiados desde la otra carpeta de esta sesión se conservan allí int
 | ANA-10 | [Plan vigente de QR por propiedad](2026-11-10-ana-10-qr-agregado.md) | Alcance actualizado: conteo agregado de QR de pósteres; sin origen por contacto; dependencia PUB-16/caché antes de activar |
 | PRE-06 | [Plan](2026-11-09-tp01-pre-06-plan.md) | Contrato definido; activación por comprobar |
 | PRE-13 | [Plan](2026-11-09-tp01-pre-13-plan.md) | Gestión definida; sin construcción de producto |
-| PRE-14 | [Plan](2026-11-09-tp01-pre-14-plan.md) | Contrato definido; activación por comprobar |
+| PRE-14 | [Plan](2026-11-09-tp01-pre-14-plan.md) + [cierre](2026-11-10-tanda8-pre14-cierre.md) | Plan listo para construir; permisos, coste, prueba de pausa y restauración condicionan activación |
 | PRE-16 | [Plan](2026-11-09-tp01-pre-16-plan.md) | Código definido; gestión por comprobar |
 | PRE-28 | [Plan](2026-11-09-tp01-pre-28-plan.md) | Gestión definida; sin construcción de producto |
 | PRE-33 | [Plan](2026-11-08-pre-33-hermes-existing-agreements-handoff.md) | Gestión definida; sin construcción de producto |

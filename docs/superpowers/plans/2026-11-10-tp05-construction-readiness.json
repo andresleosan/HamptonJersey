@@ -6724,8 +6724,10 @@
       "build_verification_required": true,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "3392d94ec125ea753adba26f8f2f9d1ae8347f5d0b2080f88f7f53cafccf8f6a",
-      "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada."
+      "canonical_plan_sha256": "638b83c6bd5ac4c938b3d597bcfa67b6e18331dba9a68447b1e15c4d5308f436",
+      "scope_completion_note": "Plan y complemento de tanda 8 listos para construir; activación requiere comprobar cobertura, coste, permisos, pausa y restauración aislada.",
+      "supplement_plan": "docs/superpowers/plans/2026-11-10-tanda8-pre14-cierre.md",
+      "supplement_plan_sha256": "0a93804fed7c6dcb1f7b6aae24a503ba9fae694e939a9eb5a92fc4caba7388ed"
     },
     {
       "code": "PRE-15",
@@ -7267,5 +7269,6 @@
     "publication_verified_at_preparation": false
   },
   "decision_update_2026_11_10": "ANA-10 es QR de pósteres por propiedad sin atribución individual; PUB-20 folletos queda aplazada. Resúmenes numéricos del documento corresponden al corte histórico TP-05 y no se han recalculado.",
-  "tanda7_decision_update": "Fuentes y planes reconciliados en docs/superpowers/plans/2026-11-10-tanda7-estado.md; resúmenes agregados de TP-05 siguen siendo históricos."
+  "tanda7_decision_update": "Fuentes y planes reconciliados en docs/superpowers/plans/2026-11-10-tanda7-estado.md; resúmenes agregados de TP-05 siguen siendo históricos.",
+  "tanda8_decision_update": "PRE-14 se revisó con complemento de exportación D1, correo, sello durable y recuperación; los resúmenes globales conservan su fecha histórica."
 }
