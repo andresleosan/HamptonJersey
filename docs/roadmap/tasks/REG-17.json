@@ -6,11 +6,20 @@
   "fase": "F0",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Construido localmente: franjas semanales opcionales por búsqueda, con día, inicio y fin en Europe/Jersey, captura pública y edición en panel con control de concurrencia. Guardarlas no reserva ni confirma una visita.",
-  "falta": "Revisión independiente, publicación autorizada y migración 0026 en producción; VIS-17 debe consumir estas preferencias al proponer fechas y confirmar visitas. No se ha activado en producción.",
+  "hecho": "Franjas semanales opcionales por búsqueda, con día, inicio y fin en Europe/Jersey; captura pública y edición en panel con control de concurrencia. El código se publicó en 5e9c8609 y la reconciliación registra la migración 0026 aplicada. Guardarlas no reserva ni confirma una visita.",
+  "falta": "VIS-17 debe reutilizar estas preferencias al proponer fechas y coordinar las confirmaciones; hasta verificar esa integración, el criterio completo de REG-17 permanece parcial. No se ha consultado de nuevo la migración en producción en esta conciliación.",
   "bloqueo": "",
   "evidencia": [
-    "docs/superpowers/plans/2026-11-07-reg-17-availability-ledger.md"
+    "migrations/0026_search_viewing_availability.sql",
+    "server/applicants.js",
+    "server/routes/public.js",
+    "server/routes/applicants.js",
+    "tests/server/applicants-validate.test.mjs",
+    "tests/server/applicants-public.test.mjs",
+    "tests/server/applicants.test.mjs",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-07-reg-17-availability-ledger.md",
+    "docs/superpowers/plans/2026-11-10-reg-17-reconciliation.md"
   ],
   "modulo": "M03",
   "deps": [
@@ -22,11 +31,11 @@
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
   "dependencies": [],
-  "externalBlocker": "La reconciliación documenta publicación/0026 y contradice el checklist; verificar evidencia antes de actuar.",
+  "externalBlocker": "",
   "resources": [
     "applicants-schema",
     "viewings-contract",
     "registration-ui"
   ],
-  "nextStep": "Conciliar checklist con publicación 5e9c8609/0026 documentada y verificar cierre; VIS-17 consumirá las franjas existentes."
+  "nextStep": "VIS-17 debe consumir las franjas existentes y comprobar propuestas y confirmaciones; no reconstruir captura ni repetir la migración 0026."
 }

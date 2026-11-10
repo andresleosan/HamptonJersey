@@ -5213,7 +5213,7 @@
         }
       ],
       "acceptance": [
-        "Conciliar checklist con publicación 5e9c8609/0026 documentada y verificar cierre; VIS-17 consumirá las franjas existentes."
+        "VIS-17 debe consumir las franjas existentes y comprobar propuestas y confirmaciones; no reconstruir captura ni repetir la migración 0026."
       ]
     },
     {
