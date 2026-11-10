@@ -1,5 +1,7 @@
 # PUB-17 · Aviso de salud de las fichas — plan de implementación
 
+> **Actualización posterior:** el [plan revisado de tanda 7](2026-11-10-tanda7-pub-17-salud.md) prevalece sobre el contenido anterior incompatible.
+
 > Implementación futura con `superpowers:executing-plans`. Este documento es planificación, no habilita cambios de producción.
 
 **Objetivo:** ayudar al equipo a identificar fichas publicadas con muchas aperturas y pocas solicitudes de visita, sin atribuir una causa como certeza. **Arquitectura:** cálculo en la lectura autenticada de Insights sobre contadores y solicitudes existentes; resultado visible en el panel, sin generar tareas repetidas ni recopilar datos nuevos. **Stack:** Cloudflare Workers, D1, React y pruebas Node. **Base examinada:** `f0d8eb73905e32b3f283c180cfc12f9149a3cb93`; revalidar la base al construir.

@@ -161,10 +161,10 @@ Los planes copiados desde la otra carpeta de esta sesión se conservan allí int
 | Código | Plan vigente | Estado del alcance |
 |---|---|---|
 | ANA-01 | [Plan](2026-11-10-tp02-ana-01-plan.md) | Contrato definido |
-| ANA-03 | [Plan](2026-11-08-ana-03-web-analytics-source-activation.md) | Verificación/activación externa; plan definido |
-| ANA-04 | [Plan](2026-11-08-ana-04-aggregate-search-demand-series.md) | Contrato definido; verificar dependencias |
+| ANA-03 | [Plan](2026-11-10-tanda7-ana-03-cloudflare.md) | Componente construible; integración de datos y activación dependen de verificar cuenta y privacidad |
+| ANA-04 | [Plan](2026-11-10-tanda7-ana-04-filtros.md) | Contrato definido; verificar dependencias |
 | ANA-05 | [Plan](2026-11-10-tp02-ana-05-plan.md) | Contrato definido; dependencias por integrar |
-| ANA-06 | [Plan](2026-11-08-ana-06-agency-and-presentation-response-metrics.md) | Contrato definido; verificar dependencias |
+| ANA-06 | [Plan](2026-11-10-tanda7-ana-06-tiempos.md) | Contrato definido; verificar dependencias |
 | ANA-08 | [Plan](2026-11-09-ana-08-resumen-inbox.md) | Código existente; verificar continuidad y pendientes |
 | ANA-09 | [Plan](2026-11-08-ana-09-scoped-public-rate-limit.md) | Verificación/activación externa; plan definido |
 | ANA-10 | [Plan vigente de QR por propiedad](2026-11-10-ana-10-qr-agregado.md) | Alcance actualizado: conteo agregado de QR de pósteres; sin origen por contacto; dependencia PUB-16/caché antes de activar |
@@ -188,7 +188,7 @@ Los planes copiados desde la otra carpeta de esta sesión se conservan allí int
 | PUB-13 | [Plan](2026-11-08-pub-13-evidence-backed-web-copy-drafts.md) | Tramo definido; integración/evidencia pendiente |
 | PUB-14 | [Plan](2026-11-08-pub-14-existing-seo-search-console-activation.md) | Verificación/activación externa; plan definido |
 | PUB-16 | [Plan](2026-11-08-pub-16-website-state-propagation-only.md) | Contrato definido; verificar dependencias |
-| PUB-17 | [Plan](2026-11-08-pub-17-internal-listing-performance-review.md) | Contrato definido; verificar dependencias |
+| PUB-17 | [Plan](2026-11-10-tanda7-pub-17-salud.md) | Contrato definido; verificar dependencias |
 | PUB-19 | [Plan](2026-11-10-tp02-pub-19-plan.md) | Contrato definido; activación por comprobar |
 | PUB-20 | [Decisión vigente](2026-11-10-pub-20-folleto-qr.md) | Folletos de reparto aplazados; no construir ahora |
 | SPR-01 | [Plan](2026-11-08-spr-01-listing-tracking-card-completion.md) | Contrato definido; verificar dependencias |

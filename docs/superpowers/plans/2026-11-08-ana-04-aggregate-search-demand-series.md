@@ -1,5 +1,7 @@
 # ANA-04 · Entender tendencias y demanda para ofrecer más opciones a los usuarios Implementation Plan
 
+> **Actualización posterior:** el [plan revisado de tanda 7](2026-11-10-tanda7-ana-04-filtros.md) prevalece sobre el contenido anterior incompatible.
+
 > Reconciliación TP-05 · 10-nov-2026: alcance, decisiones y dependencias vigentes en [índice consolidado](2026-11-10-tp05-construction-index.md) y [maestro](../../roadmap/2026-11-10-plan-maestro-vigente.md). Este plan no acredita construcción, publicación o activación.
 
 
