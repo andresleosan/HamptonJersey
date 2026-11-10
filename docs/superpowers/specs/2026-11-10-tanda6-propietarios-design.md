@@ -1,0 +1,23 @@
+# Tanda 6 · Propietarios, demanda y folleto
+
+Planificación sobre GitHub `47dab2c17b1b235a3a3332862d68b72a51115f71`, 10-nov-2026. Esta entrega solo prepara documentación; no construye funciones, aplica migraciones, recopila datos ni despliega. El diseño histórico del 8-nov queda sustituido donde contradiga lo siguiente.
+
+## Decisiones vigentes de Luis
+
+La persona propietaria que desea vender o alquilar usa el mismo formulario y proporciona **nombre, teléfono, correo, dirección completa de la propiedad y elección vender/alquilar**. Hay una casilla opcional de valoración. Cada registro genera una tarea de contacto en Inbox de Staff, marcada según si pidió valoración. No implica una cita ni valoración realizada. La página actual de registro de buscadores y la reserva de visita son flujos distintos.
+
+Mostrar demanda real por parroquia y dormitorios como **contactos registrados distintos**, con supresión de grupos inferiores a cinco y protección frente a deducciones; Luis confirmó que se diga claramente que una persona puede tener más de un registro y que un correo puede ser compartido; no mostrar identidades ni precios privados. Folleto imprimible con QR a página Hampton que cuenta redirecciones; son aperturas, no personas únicas ni registros. El usuario puede llegar por QR sin aceptar seguimiento individual. Mantener PRE-03 (confirmación JOIC) y PRE-09 (aviso de privacidad de propietarios) como condiciones de activación documentadas, no resolverlas ni afirmar que están aprobadas.
+
+Ya existe un plan local previo de PUB-20 que cubre los QR y el conteo agregado, localizado en la copia `/tmp/hampton-list2-publish-o82mowjt`; no se encontró en main de GitHub ni código integrado. Su propuesta de implementación se reutiliza y reconcilia en esta tanda; no crear un segundo contador ni presentar el plan como producto construido. ANA-10 menciona carteles y atribución de cada contacto; Luis pidió primero buscar el plan existente. No atribuirle decisión sobre canales no respondidos. Tours/360 y portales siguen fuera de alcance; publicación social es manual.
+
+## Reutilización y límites
+
+`topUnmet` agrupa búsquedas y corta top10: no es un conteo público de personas. Reutilizar `activeSql`, `CANDIDATES_SQL`, categorías y parishes existentes, pero crear un cálculo agregado que cuente `COUNT(DISTINCT contacts.id)` usando relaciones existentes. Para cada pareja operación/parroquia/dormitorios, incluir un contacto registrado una vez si tiene al menos una búsqueda residencial activa de esa operación que desea esa parroquia y no tiene match found/shortlisted con ficha elegible, igual que ANA-07. Un contacto puede contarse en varias celdas diferentes: las celdas no se suman como personas únicas. No afirmar que los contactos representan personas físicas distintas. No presentar demanda como solicitudes de valoración ni propiedades ya reservadas. `Anywhere` no se atribuye a cada parroquia; dormitorio desconocido va a `Any number of bedrooms` y no a un número inventado.
+
+Sin snapshots históricos por URL pública, sin parámetros arbitrarios ni totales adicionales que puedan inferir celdas ocultas. Publicar una versión fija por trimestre de Jersey y solamente si pasa regla de privacidad del plan; resultados y definición llevan `as_of` y señalan que son una fotografía. No actualizar silenciosamente entre web y folleto: ambos leen mismo identificador de snapshot. Si no hay dato publicado o falla, `Demand figures are not available`; nunca mostrar cero inventado. Los datos reales solo se muestran después de activación y comprobaciones.
+
+Folleto sin direcciones, precios de viviendas ni individuos. El QR usa un código aleatorio de campaña, destino interno fijo, no parámetros ni URL arbitraria; respuesta redirige aunque el contador falle. Reparto, elección de parroquia, impresiones y gastos son acciones de Hampton, no se ejecutan automáticamente. No prometer que las aperturas miden personas.
+
+## Interfaz y seguridad
+
+Sitio existente: Tenor Sans titulares, Montserrat15px/1.65 cuerpo, ink #151515, paper #fff, mist #f4f3f0, line #e3e0da, stone #77736c, botón pill 13px28px, campos 13px14px/radio12. Panel: Montserrat14/1.5, Tenor Sans26, ink #141414, line #e2ddd4, bronze #8a6a3b, card radio14/padding24. Mantener accesibilidad: controles etiquetados, foco2px offset2, textos/error descriptivos, teclado, zoom200, 390/1280, contraste AA y reduced motion; copy en inglés. Reutilizar patrones actuales, sin datos personales en localStorage ni logs, sin enviar por defecto a proveedores externos nuevos. Formulario requiere Turnstile existente, validación de servidor y acceso Staff/no-store. Conteos no llevan ID de visitante, cookies ni huella de dispositivo.
