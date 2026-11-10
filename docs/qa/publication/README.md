@@ -3,12 +3,17 @@
 Esta entrega contiene código, pruebas, SQL/medios ficticios, recibos saneados y
 el traspaso. No instala ni activa nada en Cloudflare, Docker o la VPS.
 
-La rama de publicación es qa/agent-runner-handoff-2026-11-10. No se fusiona con
-main: el proyecto empresarial está conectado a GitHub y ese push podría desplegar
-producción. El repositorio es público; no se incluyen secretos, perfiles,
+El dueño autorizó publicar esta entrega en main después de que GitHub rechazara
+crear la rama de traspaso. El commit final usa el prefijo [CF-Pages-Skip] para
+omitir el despliegue automático de Cloudflare Pages sin cambiar su configuración.
+Referencia: https://developers.cloudflare.com/pages/configuration/git-integration/github-integration/.
+Comprobar el SHA remoto y el despliegue empresarial tras el push; publicar código
+no acredita activar QA ni ejecutar el piloto VPS. El repositorio es público;
+no se incluyen secretos, perfiles,
 dependencias, binarios gVisor/Docker, capturas o archivos de resultados privados.
 
-Después de obtener la rama en una copia propia y libre, ejecutar:
+Después de actualizar main en una copia propia, conservando trabajo pendiente,
+ejecutar desde la raíz del repositorio:
 
 ```sh
 python3 scripts/restore-qa-public-inputs.py
@@ -31,9 +36,8 @@ Una reconstrucción diferente no hereda autorización de ejecución/despliegue.
 El sexto JSON archivado, el manifiesto final V2, solo se consulta/verifica y no
 se restaura: así su constructor puede crear el directorio versionado sin colisión.
 
-Leer docs/qa/HANDOFF-2026-11-10.md antes de /avanzar. Si se sigue trabajando en
-main, se puede consultar el traspaso de esta rama mediante git show o su enlace
-GitHub, sin mezclarla ni ejecutar automáticamente su infraestructura.
+Leer docs/qa/HANDOFF-2026-11-10.md antes de /avanzar. El traspaso y las fuentes QA
+acompañan main; su disponibilidad no ejecuta ni autoriza su infraestructura.
 
 En Windows, clonar con core.autocrlf=false para conservar también el archivo
 .gitattributes original, cuya huella ya forma parte de la aprobación E histórica.
