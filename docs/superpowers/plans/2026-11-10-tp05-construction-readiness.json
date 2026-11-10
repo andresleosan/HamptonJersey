@@ -6059,8 +6059,8 @@
       "build_verification_required": false,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "d1deaa8c18d387546e5c06f06db100c0b61554d8c375b567c369724a05c87262",
-      "scope_completion_note": "Componente no configurado construible; cifras requieren dataset, permisos y privacidad verificados en cuenta.",
+      "canonical_plan_sha256": "3f840ab53cf5f29d15591295689978ba0fb18792fdfa56b1067fb03050ec9b7d",
+      "scope_completion_note": "Plan de construcción con consulta candidata concreta y pruebas; consulta y datos reales requieren verificación de esquema, permisos y privacidad de cuenta antes de activación.",
       "consolidated_source_sha256": "b707e2b06cece60126591fe98c8be9bf73f3c0c7b62604f2d6e655e3e7d5d1a5"
     },
     {
