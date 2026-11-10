@@ -125,7 +125,7 @@ const {chromium}=require(process.env.PW||'playwright-core');
    wsql.push(`INSERT INTO listings(id,title,use,operation,availability,matchable,sale_price,parish,bedrooms,published,created_at,updated_at,updated_by)
     VALUES('HE-R0${i}','Widen fixture ${i}','residential','sale','for_sale',1,${price},'Trinity',${beds},0,'2026-11-09','2026-11-09','fixture')`);
   execFileSync(process.execPath,[wrangler,'d1','execute','hampton','--local','--persist-to',process.env.E2E_PERSIST,'--command',wsql.join(';')],{stdio:'pipe'});
-  const madeWiden=await ctx.request.post(base+'api/admin/applicants',{headers:{origin:new URL(base).origin},data:{name:'Widen fixture',email:'widen-bus14@example.test',source:'phone',operation:'buy',budget_max:900000,bedrooms_min:6,parishes_wanted:['Trinity'],
+  const madeWiden=await ctx.request.post(base+'api/admin/applicants',{headers:{origin:new URL(base).origin},data:{name:'Widen fixture',email:'widen-bus14@example.test',source:'phone',operation:'buy',pets:[{kind:'none'}],budget_max:900000,bedrooms_min:6,parishes_wanted:['Trinity'],
    requirement_priorities:{version:1,values:{budget:'must',bedrooms:'must',area:'must'},unknown:[]}}});
   assert.equal(madeWiden.status(),201);const wid=(await madeWiden.json()).id;
   for(const width of [1280,390]){

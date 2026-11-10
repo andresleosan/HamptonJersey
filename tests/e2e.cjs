@@ -1010,7 +1010,7 @@ async function widenCriteria(page, phone, noSideScroll) {
   const others = ["Grouville", "St Brelade", "St Helier", "St John", "St Lawrence", "St Martin", "St Mary", "St Ouen", "St Peter", "St Saviour"];
   const a = await page.evaluate(body => fetch("/api/admin/applicants", {method: "POST", headers: {"content-type": "application/json"},
     body: JSON.stringify(body)}).then(async r => ({status: r.status, ...await r.json()})), {name: "Wendy Le Cornu", email: "wendy@example.je", source: "phone", operation: "buy",
-    requirement_priorities:{version:1,values:{budget:"must",bedrooms:"must",area:"must"},unknown:[]}, budget_max: 900000, bedrooms_min: 6, parishes_wanted: ["Trinity"], parishes_excluded: others});
+    pets:[{kind:"none"}], requirement_priorities:{version:1,values:{budget:"must",bedrooms:"must",area:"must"},unknown:[]}, budget_max: 900000, bedrooms_min: 6, parishes_wanted: ["Trinity"], parishes_excluded: others});
   assert.equal(a.status, 201, JSON.stringify(a));
   const url = BASE + `admin/#/applicants/${a.id}/matches`;
   await page.goto(url);

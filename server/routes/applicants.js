@@ -2,8 +2,9 @@ import {parsePriorities} from "../../site/requirements.js";
 import { json, fail, readJson, now } from "../http.js";
 import { validateApplicant, normalizePhone, OPTIONS, QUEUES, SEARCH_STATES, activeSql, isActive } from "../applicants.js";
 import { logEvent, resolveNotices } from "../events.js";
-import { afterSave, recomputeForApplicant, CANDIDATES_SQL, LISTING, LISTING_OPERATION } from "../match-store.js";
+import { afterSave, recomputeForApplicant, recomputeForApplicantWithStatus, CANDIDATES_SQL, LISTING, LISTING_OPERATION } from "../match-store.js";
 import { widen } from "../widen.js";
+import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts } from "../match-pages.js";
 import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER } from "../retention.js";
 import { jerseyToday } from "../viewings.js";
@@ -200,15 +201,30 @@ async function widenFor(env,a,pairs) {
   if(!parsePriorities(a.requirement_priorities))return {confirmation_required:true};
   const {results}=await env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE ${CANDIDATES_SQL} AND operation=?`)
     .bind(LISTING_OPERATION[a.operation]).all();
-  const offered=new Set(results.map(l=>l.id));
-  const live=pairs.filter(m=>['found','shortlisted'].includes(m.status)&&m.requirements_rank===0&&offered.has(m.listing_id)).length;
-  if(live>=3)return null;
-  return widen(a,results,pairs);
+  const offered=new Map(results.map(l=>[l.id,l]));
+  // Saved ranks can predate updated matching rules; don't count them as current facts.
+  try {
+    const currentPairs=[];
+    let live=0;
+    for(const m of pairs) {
+      const listing=offered.get(m.listing_id);
+      const current=listing&&['found','shortlisted'].includes(m.status)
+        ? {...m,requirements_rank:evaluate(a,listing).requirements_rank} : m;
+      if(listing&&['found','shortlisted'].includes(m.status)&&current.requirements_rank===0&&++live>=3)return null;
+      currentPairs.push(current);
+    }
+    return widen(a,results,currentPairs);
+  } catch (error) {
+    if (error instanceof SyntaxError || error instanceof TypeError) return {unavailable:true};
+    throw error;
+  }
 }
 async function recalculateMatches({env,admin,params:[id]}) {
  const a=await loadApplicant(env,id);
  if(!isActive(a)||a.search_category!=='residential')fail(409,'Reopen a residential search to recalculate its matches.');
- return json(await recomputeForApplicant(env,Number(id),admin));
+ const {created,completed}=await recomputeForApplicantWithStatus(env,Number(id),admin);
+ if(!completed)fail(409,'Search or property details changed during recalculation. Try again.');
+ return json({created});
 }
 async function matchPage({request,env,params:[id]}) {
  const q=new URL(request.url).searchParams;

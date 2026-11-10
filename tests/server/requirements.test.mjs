@@ -88,11 +88,89 @@ test('the database rejects priority objects without the required version and val
     assert.throws(()=>env.DB.raw.prepare('UPDATE applicants SET requirement_priorities=? WHERE id=?').run(JSON.stringify(contract),made.data.id));
 });
 
+test('pet details remain pending through review until the household confirms no pets',async()=>{
+  const env=makeEnv();
+  seedListing(env,{id:'REG07-pets',operation:'rent',availability:'to_let',rent:1800,rent_period:'month',sale_price:null,matchable:1,
+    ...extractFeatures({description:'No pets'})});
+  const made=await req(env,'POST','/admin/applicants',form({requirement_priorities:priority({budget:'preferred'})}));
+  assert.equal(made.status,201);
+  const id=made.data.id;
+  const found=(await req(env,'GET',`/admin/applicants/${id}/matches?status=found`)).data.matches;
+  assert.equal(found.length,1);assert.equal(found[0].requirements_status,'pending');
+  assert.equal(found[0].checks.find(c=>c.key==='pets')?.result,'unknown');
+  assert.equal((await req(env,'PUT',`/admin/matches/${found[0].id}`,{status:'shortlisted',from:'found'})).status,200);
+  const applicant=(await req(env,'GET',`/admin/applicants/${id}`)).data.applicant;
+  const saved=await req(env,'PUT',`/admin/applicants/${id}`,{updated_at:applicant.updated_at,pets:[{kind:'none'}]});
+  assert.equal(saved.status,200,JSON.stringify(saved.data));
+  const shortlisted=(await req(env,'GET',`/admin/applicants/${id}/matches?status=shortlisted`)).data.matches;
+  assert.equal(shortlisted.length,1);assert.equal(shortlisted[0].id,found[0].id);
+  assert.equal(shortlisted[0].requirements_status,'meets');
+  assert.equal(shortlisted[0].checks.find(c=>c.key==='pets'),undefined);
+});
+
+test('old pet rankings do not hide widening and rejected history survives recalculation',async()=>{
+  const env=makeEnv();
+  for(let i=0;i<4;i++)seedListing(env,{id:`REG07-old-${i}`,operation:'rent',availability:'to_let',rent:1800,rent_period:'month',sale_price:null,matchable:1,
+    ...extractFeatures({description:'No pets'})});
+  const made=await req(env,'POST','/admin/applicants',form({requirement_priorities:priority({budget:'preferred'})}));
+  assert.equal(made.status,201);const id=made.data.id;
+  env.DB.raw.prepare("UPDATE matches SET requirements_rank=0,checks='[]' WHERE applicant_id=?").run(id);
+  env.DB.raw.prepare("UPDATE matches SET status='rejected',reject_reason='area' WHERE applicant_id=? AND listing_id='REG07-old-3'").run(id);
+  const before={...env.DB.raw.prepare("SELECT id,status,reject_reason,checks,score,requirements_rank FROM matches WHERE applicant_id=? AND listing_id='REG07-old-3'").get(id)};
+  const page=(await req(env,'GET',`/admin/applicants/${id}/matches?status=found`)).data;
+  assert.equal(page.rankingVersion,1);assert.equal(page.matches.length,3);
+  assert.ok(page.matches.every(m=>m.requirements_status==='pending'&&m.requirements_refresh_needed));
+  assert.ok(Array.isArray((await req(env,'GET',`/admin/applicants/${id}`)).data.widen));
+  assert.equal((await req(env,'POST',`/admin/applicants/${id}/matches/recalculate`,{})).status,200);
+  await recomputeForListing(env,'REG07-old-3','system');
+  const after=(await req(env,'GET',`/admin/applicants/${id}/matches?status=found`)).data;
+  assert.ok(after.matches.every(m=>m.requirements_rank===1&&!m.requirements_refresh_needed));
+  assert.deepEqual({...env.DB.raw.prepare("SELECT id,status,reject_reason,checks,score,requirements_rank FROM matches WHERE applicant_id=? AND listing_id='REG07-old-3'").get(id)},before);
+});
+
+test('malformed historical evidence does not break the applicant detail or confirm pets',async()=>{
+  const env=makeEnv();
+  for(let i=0;i<3;i++)seedListing(env,{id:`REG07-bad-${i}`,operation:'rent',availability:'to_let',rent:1800,rent_period:'month',sale_price:null,matchable:1,
+    ...extractFeatures({description:'Pets allowed'})});
+  const made=await req(env,'POST','/admin/applicants',form({pets:[{kind:'dog',count:1}],requirement_priorities:priority({budget:'preferred',pets:'must'})}));
+  assert.equal(made.status,201);const id=made.data.id;
+  env.DB.raw.prepare("UPDATE listings SET feat_evidence='invalid-json' WHERE id='REG07-bad-0'").run();
+  const detail=await req(env,'GET',`/admin/applicants/${id}`);
+  assert.equal(detail.status,200);
+  const page=await req(env,'GET',`/admin/applicants/${id}/matches?status=found`);
+  assert.equal(page.status,200);
+  const card=page.data.matches.find(m=>m.listing.id==='REG07-bad-0');
+  assert.equal(card.requirements_status,'pending');
+  assert.equal(card.checks.find(c=>c.key==='pets')?.result,'unknown');
+});
+
+for (const kind of ['search','listing']) test(`recalculation reports a conflict when the ${kind} changes during its guarded write`,async()=>{
+  const env=makeEnv();
+  seedListing(env,{id:'REG07-race',operation:'rent',availability:'to_let',rent:1800,rent_period:'month',sale_price:null,matchable:1,
+    ...extractFeatures({description:'No pets'})});
+  const made=await req(env,'POST','/admin/applicants',form({requirement_priorities:priority({budget:'preferred'})}));
+  assert.equal(made.status,201);const id=made.data.id;
+  const batch=env.DB.batch.bind(env.DB);let injected=false;
+  env.DB.batch=async stmts=>{
+    if(!injected&&stmts.some(s=>s.sql.includes('UPDATE applicants SET match_ranking_version=1'))){
+      injected=true;
+      if(kind==='search')env.DB.raw.prepare('UPDATE applicants SET budget_max=2500 WHERE id=?').run(id);
+      else env.DB.raw.prepare("UPDATE listings SET rent=1900 WHERE id='REG07-race'").run();
+    }
+    return batch(stmts);
+  };
+  const response=await req(env,'POST',`/admin/applicants/${id}/matches/recalculate`,{});
+  assert.equal(injected,true);assert.equal(response.status,409);
+  assert.match(response.data.error,/changed|again/i);
+  const count=env.DB.raw.prepare('SELECT COUNT(*) AS n FROM matches WHERE applicant_id=?').get(id).n;
+  assert.equal(count,1);
+});
+
 test('the found pool puts a lower-score fulfilled requirement ahead of 27 alternatives, with no duplicate notices', async()=>{
   const env=makeEnv();
   for(let i=0;i<28;i++) seedListing(env,{id:`REG08-${String(i).padStart(3,'0')}`,operation:'rent',availability:'to_let',rent:1800,rent_period:'month',sale_price:null,bedrooms:2,bathrooms:1,matchable:1,
     published:i===27?0:1,...extractFeatures({description:i===27?'Parking for two cars':'Parking for one car'})});
-  const made=await req(env,'POST','/admin/applicants',form({bedrooms_min:2,parking_spaces:2,requirement_priorities:priority({parking:'must',budget:'preferred',bedrooms:'preferred'})}));
+  const made=await req(env,'POST','/admin/applicants',form({pets:[{kind:'none'}],bedrooms_min:2,parking_spaces:2,requirement_priorities:priority({parking:'must',budget:'preferred',bedrooms:'preferred'})}));
   assert.equal(made.status,201,JSON.stringify(made.data));const id=made.data.id;
   let d=(await req(env,'GET',`/admin/applicants/${id}/matches?status=found`)).data;
   assert.equal(d.matches.length,25);assert.equal(d.matches[0].listing.id,'REG08-027');assert.equal(d.matches[0].requirements_status,'meets');

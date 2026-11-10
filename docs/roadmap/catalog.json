@@ -4740,7 +4740,7 @@
         }
       ],
       "acceptance": [
-        "Verificar REG-08/0031 y ampliar condiciones comerciales conservando presupuesto y periodicidad separados."
+        "Ampliar las condiciones comerciales conservando presupuesto y periodicidad separados; no reconstruir REG-08."
       ]
     },
     {
@@ -4781,7 +4781,7 @@
         }
       ],
       "acceptance": [
-        "Verificar publicación y migración de REG-08/0031 antes de cerrar el alcance residencial ya construido."
+        "Revisar la evidencia de activación y los criterios residenciales existentes sin volver a publicar REG-08."
       ]
     },
     {
@@ -4817,7 +4817,7 @@
         }
       ],
       "acceptance": [
-        "Verificar REG-08/0031 y completar respuestas explícitas de zona sin interpretar vacíos heredados."
+        "Revisar la propuesta de zonas y, con diseño aprobado, integrar las respuestas explícitas con el orden de BUS-14."
       ]
     },
     {
@@ -4858,7 +4858,7 @@
         }
       ],
       "acceptance": [
-        "Verificar REG-08/0031 y confirmar omisiones de registros heredados sin inventar ausencia de mascotas."
+        "Completar revisión y validación visual de REG-07; después solicitar aprobación para su commit exacto."
       ]
     },
     {
@@ -4978,7 +4978,7 @@
         }
       ],
       "acceptance": [
-        "Conciliar checklist con publicación 9b8dbd41/0025 documentada en reconciliación y verificar cierre; matching comercial sigue en M04."
+        "Completar esenciales de zona en REG-06 y conservar el matching comercial pendiente en M04."
       ]
     },
     {
@@ -14420,8 +14420,8 @@
       "fase": "F0",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Compra y alquiler tienen búsquedas y presupuestos independientes desde REG-11. REG-08 añade prioridad del presupuesto y muestra el límite final, incluyendo solo el importe extra aceptado; £2000 con stretch£2200 evalúa techo£2200. Construido localmente.",
-      "falta": "Publicar REG-08 y0031. Ampliar en M04 las condiciones y periodicidades comerciales; el techo aceptado no cambia otros criterios.",
+      "hecho": "Compra y alquiler tienen búsquedas y presupuestos independientes desde REG-11. REG-08 añade prioridad del presupuesto y muestra el límite final, incluyendo solo el importe extra aceptado; £2000 con stretch£2200 evalúa techo£2200. El código y la migración 0031 están en main; existe evidencia previa de consulta de migraciones sin pendientes.",
+      "falta": "Ampliar en M04 las condiciones y periodicidades comerciales; el techo aceptado no cambia otros criterios. Esta conciliación no consultó de nuevo la base de producción.",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js:134-136",
@@ -14434,7 +14434,8 @@
         "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
         "migrations/0031_requirement_priorities.sql",
         "tests/server/requirements.test.mjs",
-        "tests/reg08-e2e.cjs"
+        "tests/reg08-e2e.cjs",
+        "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md"
       ],
       "modulo": "M03",
       "deps": [],
@@ -14447,7 +14448,7 @@
         {
           "id": "REG-08",
           "requires": "activated",
-          "reason": "Pendiente documental de publicación y aplicación de 0031; extensión comercial se divide aparte.",
+          "reason": "REG-08 y 0031 constan en main; existe evidencia anterior de migraciones sin pendientes.",
           "basis": "explicit",
           "scope": "partial"
         }
@@ -14458,7 +14459,8 @@
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Verificar REG-08/0031 y ampliar condiciones comerciales conservando presupuesto y periodicidad separados."
+      "nextStep": "Ampliar las condiciones comerciales conservando presupuesto y periodicidad separados; no reconstruir REG-08.",
+      "actualizado": "2026-11-10"
     },
     {
       "id": "REG-05",
@@ -14468,8 +14470,8 @@
       "fase": "F0",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Rango de dormitorios mínimo/máximo existente desde REG-11; REG-08 añade Must-have para ese rango y para baños. Dormitorios ideales conserva su función de preferencia. Incumplir un rango imprescindible produce alternativa, sin compensación por score. Construido localmente.",
-      "falta": "Publicar REG-08 y0031; alcance residencial actual.",
+      "hecho": "Rango de dormitorios mínimo/máximo existente desde REG-11; REG-08 añade Must-have para ese rango y para baños. Dormitorios ideales conserva su función de preferencia. Incumplir un rango imprescindible produce alternativa, sin compensación por score. El código y la migración 0031 están en main.",
+      "falta": "Conservar el alcance residencial y las limitaciones de verificación de REG-08; no se consultó de nuevo la base de producción en esta conciliación.",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js:125-127",
@@ -14480,7 +14482,8 @@
         "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
         "migrations/0031_requirement_priorities.sql",
         "tests/server/requirements.test.mjs",
-        "tests/reg08-e2e.cjs"
+        "tests/reg08-e2e.cjs",
+        "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md"
       ],
       "modulo": "M03",
       "deps": [],
@@ -14493,7 +14496,7 @@
         {
           "id": "REG-08",
           "requires": "activated",
-          "reason": "La entrega residencial ya construida se cierra al verificar publicación y 0031.",
+          "reason": "El alcance residencial y 0031 están integrados; la consulta de migraciones sin pendientes es evidencia anterior.",
           "basis": "explicit",
           "scope": "whole"
         }
@@ -14504,7 +14507,8 @@
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Verificar publicación y migración de REG-08/0031 antes de cerrar el alcance residencial ya construido."
+      "nextStep": "Revisar la evidencia de activación y los criterios residenciales existentes sin volver a publicar REG-08.",
+      "actualizado": "2026-11-10"
     },
     {
       "id": "REG-06",
@@ -14514,8 +14518,8 @@
       "fase": "F0",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Parroquias deseadas como alternativas y excluidas como veto. REG-08 añade Must-have al grupo de parroquias y a Near; este último queda pendiente de comprobación manual. Construido localmente.",
-      "falta": "Publicar REG-08 y0031. Completar respuestas explícitas Cualquier zona/No lo sé; un campo histórico vacío no expresa ninguna de ellas.",
+      "hecho": "Parroquias deseadas como alternativas y excluidas como veto. REG-08 añade Must-have al grupo de parroquias y a Near; este último queda pendiente de comprobación manual. El código y la migración 0031 están en main.",
+      "falta": "Completar respuestas explícitas Cualquier zona/No lo sé y la preferencia entre zonas aceptadas; un campo histórico vacío no expresa ninguna de ellas. La propuesta de REG-06 requiere aprobación antes de construirla.",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js:121-123",
@@ -14527,7 +14531,9 @@
         "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
         "migrations/0031_requirement_priorities.sql",
         "tests/server/requirements.test.mjs",
-        "tests/reg08-e2e.cjs"
+        "tests/reg08-e2e.cjs",
+        "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md",
+        "docs/superpowers/specs/2026-11-10-paq-02-reg-06-proposal.md"
       ],
       "modulo": "M03",
       "deps": [],
@@ -14540,7 +14546,7 @@
         {
           "id": "REG-08",
           "requires": "integrated",
-          "reason": "Completar solo lo pendiente sobre prioridades actuales; activación requiere 0031.",
+          "reason": "REG-08 y 0031 están integrados; la nueva respuesta de zona conserva su propia verificación y autorización.",
           "basis": "explicit",
           "scope": "partial"
         }
@@ -14551,7 +14557,8 @@
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Verificar REG-08/0031 y completar respuestas explícitas de zona sin interpretar vacíos heredados."
+      "nextStep": "Revisar la propuesta de zonas y, con diseño aprobado, integrar las respuestas explícitas con el orden de BUS-14.",
+      "actualizado": "2026-11-10"
     },
     {
       "id": "REG-07",
@@ -14561,8 +14568,8 @@
       "fase": "F0",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "REG-08 exige respuesta explícita en el formulario nuevo: sin mascotas, especies/cantidades o Not sure. Must-have no elimina el hecho de tener mascotas. No pets no es compatible y permisos condicionados quedan desconocidos. Construido localmente.",
-      "falta": "Publicar REG-08 y0031. Registros anteriores y clientes API antiguos pueden conservar omisiones, que se muestran pendientes de confirmar.",
+      "hecho": "REG-08 exige respuesta explícita en el formulario nuevo: sin mascotas, especies/cantidades o Not sure. Must-have no elimina el hecho de tener mascotas. Una propiedad que no admite mascotas es incompatible con un hogar que tiene mascotas; los permisos condicionados quedan desconocidos. El código original y la migración 0031 están en main. Corrección local 10-nov: una respuesta omitida o Not sure muestra Pets Unknown y queda pendiente; el recálculo conserva decisiones y detecta cambios concurrentes.",
+      "falta": "La corrección local requiere validación visual en navegador real, revisión final y aprobación/publicación de su commit. Registros sin prioridades siguen genéricamente pendientes; esta sesión no consultó la base de producción.",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js:131-133",
@@ -14573,7 +14580,16 @@
         "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
         "migrations/0031_requirement_priorities.sql",
         "tests/server/requirements.test.mjs",
-        "tests/reg08-e2e.cjs"
+        "tests/reg08-e2e.cjs",
+        "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md",
+        "server/requirements.js",
+        "server/matching.js",
+        "server/match-store.js",
+        "server/routes/applicants.js",
+        "admin/src/ApplicantMatches.jsx",
+        "tests/server/requirements-matching.test.mjs",
+        "tests/reg07-matches-dom.test.js",
+        "docs/superpowers/plans/2026-11-10-reg-07-pets-pending-fix.md"
       ],
       "modulo": "M03",
       "deps": [],
@@ -14586,7 +14602,7 @@
         {
           "id": "REG-08",
           "requires": "activated",
-          "reason": "Confirmar publicación/0031; no reconstruir las respuestas explícitas.",
+          "reason": "REG-08 y 0031 constan en main; existe evidencia anterior de migraciones sin pendientes.",
           "basis": "explicit",
           "scope": "whole"
         }
@@ -14597,7 +14613,8 @@
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Verificar REG-08/0031 y confirmar omisiones de registros heredados sin inventar ausencia de mascotas."
+      "nextStep": "Completar revisión y validación visual de REG-07; después solicitar aprobación para su commit exacto.",
+      "actualizado": "2026-11-10"
     },
     {
       "id": "REG-08",
@@ -14701,8 +14718,8 @@
       "fase": "F0",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "7-nov-2026: construidos localmente los registros residencial y comercial/negocio, traspaso, compra y alquiler simultáneos con presupuestos separados, datos comerciales D08, idioma, rango de dormitorios y respuestas del hogar con total solo cuando se conocen sus componentes. Una búsqueda activa por categoría y operación; duplicados públicos a revisión. Matching comercial queda pendiente de M04. Pruebas locales y límites en el ledger REG-11. E2E general completo aprobado dentro de Hermes con fixture aislado y proxy existente. MCP: envío comercial/traspaso a 1280 y residencial compra/alquiler a 390, errores de rango y obligatorios, foco, HTTP 201 y sin errores de página.",
-      "falta": "Cerrar la revisión de REG-11 y las comprobaciones específicas que indique, y obtener autorización del SHA exacto para aplicar 0025 y publicar. El bloqueo de Turnstile del entorno local está resuelto. El matching comercial se construirá en M04, no se considera activado por el registro.",
+      "hecho": "REG-11 está en el historial de main mediante 9b8dbd41; la reconciliación anterior registra publicación y aplicación de 0025. Incluye registros residencial y comercial/negocio, traspaso, compra y alquiler simultáneos con presupuestos separados, datos comerciales D08, idioma y respuestas del hogar con total solo cuando se conocen sus componentes. Una búsqueda activa por categoría y operación; duplicados públicos a revisión. El relevo anterior registra e2e general y envíos locales MCP de traspaso comercial a 1280 y compra/alquiler residencial a 390.",
+      "falta": "El matching comercial se construirá en M04 y no se considera activado por el registro. REG-06 debe completar las respuestas explícitas de zona y la preferencia; esta conciliación no consultó de nuevo la base de producción.",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js",
@@ -14712,7 +14729,8 @@
         "migrations/0025_registration_categories.sql",
         "tests/server/registration-categories.test.mjs",
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
-        "docs/superpowers/plans/2026-11-07-reg-11-registration-ledger.md"
+        "docs/superpowers/plans/2026-11-07-reg-11-registration-ledger.md",
+        "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md"
       ],
       "modulo": "M03",
       "deps": [],
@@ -14728,7 +14746,8 @@
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Conciliar checklist con publicación 9b8dbd41/0025 documentada en reconciliación y verificar cierre; matching comercial sigue en M04."
+      "nextStep": "Completar esenciales de zona en REG-06 y conservar el matching comercial pendiente en M04.",
+      "actualizado": "2026-11-10"
     },
     {
       "id": "REG-12",

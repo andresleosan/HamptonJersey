@@ -7,7 +7,7 @@ import { widen } from "../../server/widen.js";
 // Rows as the database returns them (list columns are JSON text), as in matching.test.mjs.
 const applicant = (o = {}) => {const a=({ operation: "buy", budget_min: null, budget_max: null, budget_stretch: null,
   property_types: null, bedrooms_min: null, bedrooms_ideal: null, bathrooms_min: null, parking_spaces: null,
-  outdoor: null, furnished: null, pets: null, parishes_wanted: null, parishes_excluded: null, ...o });return {...a,requirement_priorities:JSON.stringify(priorities(a))};};
+  outdoor: null, furnished: null, pets: '[{"kind":"none"}]', parishes_wanted: null, parishes_excluded: null, ...o });return {...a,requirement_priorities:JSON.stringify(priorities(a))};};
 let n = 0;
 const listing = (o = {}) => ({ id: `HE-R${String(++n).padStart(3, "0")}`, operation: "sale", sale_price: null, rent: null,
   rent_period: null, bedrooms: null, bathrooms: null, parish: null, feat_pets: null, feat_parking: null, feat_furnished: null,
@@ -90,7 +90,7 @@ const sql = (env, q, ...args) => env.DB.raw.prepare(q).run(...args);
 let people = 0;
 async function create(env, o = {}) {
   const r = await req(env, "POST", "/admin/applicants", { name: "Jane Le Brocq", email: `jane${++people}@example.je`,
-    source: "phone", operation: "buy", budget_max: 900000, ...o,requirement_priorities:priorities({operation:"buy",budget_max:900000,...o}) });
+    source: "phone", operation: "buy", pets:[{kind:'none'}], budget_max: 900000, ...o,requirement_priorities:priorities({operation:"buy",pets:[{kind:'none'}],budget_max:900000,...o}) });
   assert.equal(r.status, 201, JSON.stringify(r.data));
   return r.data.id;
 }
@@ -108,6 +108,26 @@ test("detail: widen with fewer than 3 live matches, null with 3", async () => {
   assert.equal(await getWiden(env, id), null);
   sql(env, "DELETE FROM matches WHERE applicant_id = ? AND listing_id = 'HE-R003'", id);
   assert.ok(Array.isArray(await getWiden(env, id)));
+});
+
+test("detail reports widening unavailable when historical listing features are malformed", async () => {
+  const env = makeEnv();
+  for (const id of ["HE-R001", "HE-R002", "HE-R003"]) fitting(env, id);
+  const id = await create(env, { outdoor: ['garden'] });
+  sql(env, "UPDATE listings SET feat_outdoor='invalid-json' WHERE id='HE-R001'");
+  const detail = await req(env, "GET", `/admin/applicants/${id}`);
+  assert.equal(detail.status, 200);
+  assert.deepEqual(detail.data.widen, { unavailable: true });
+});
+
+test("detail reports widening unavailable when saved priority unknowns are malformed", async () => {
+  const env = makeEnv();
+  for (const id of ["HE-R001", "HE-R002", "HE-R003"]) fitting(env, id);
+  const id = await create(env);
+  sql(env, "UPDATE applicants SET requirement_priorities=? WHERE id=?", JSON.stringify({version:1,values:{budget:'must'},unknown:{}}), id);
+  const detail = await req(env, "GET", `/admin/applicants/${id}`);
+  assert.equal(detail.status, 200);
+  assert.deepEqual(detail.data.widen, { unavailable: true });
 });
 
 test("detail: a shortlisted listing that left the candidates does not count", async () => {

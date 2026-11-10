@@ -33,7 +33,7 @@ test('must-have parish is any selected parish and failure cannot be compensated 
 test('a negotiable shortfall remains a candidate; a must shortfall is an alternative',()=>{
   const l=listing('',{bedrooms:1,bathrooms:1});
   for(const p of ['must','preferred']){
-    const r=result({bathrooms_min:2,requirement_priorities:priorities({bedrooms:p,bathrooms:p})},l);
+    const r=result({pets:'[{"kind":"none"}]',bathrooms_min:2,requirement_priorities:priorities({bedrooms:p,bathrooms:p})},l);
     assert.equal(r.pass,true);assert.equal(check(r,'bedrooms').result,'fails');
     assert.equal(r.requirements_status,p==='must'?'alternative':'meets');
   }
@@ -44,6 +44,31 @@ test('pets considered is pending and a refusal never becomes compatible when pri
     assert.equal(check(result(a,listing(description)),'pets').result,'unknown',description);
   assert.equal(check(result(a,listing('Pets allowed')),'pets').result,'meets');
   assert.equal(result({...a,requirement_priorities:priorities({pets:'preferred'})},listing('No pets')).requirements_status,'alternative');
+});
+test('unanswered pet ownership stays pending rather than implying compatibility',()=>{
+  const r=result({requirement_priorities:priorities({})},listing('No pets'));
+  assert.equal(r.requirements_status,'pending');
+  assert.equal(check(r,'pets')?.result,'unknown');
+  assert.equal(check(r,'pets')?.reason,'Confirm whether the household has pets');
+});
+test('a not-sure pet answer stays pending even when pets are preferred',()=>{
+  const r=result({requirement_priorities:priorities({pets:'preferred'},['pets'])},listing('No pets'));
+  assert.equal(r.requirements_status,'pending');
+  assert.equal(check(r,'pets')?.result,'unknown');
+  assert.equal(check(r,'pets')?.reason,'Confirm whether the household has pets');
+});
+test('an explicit no-pets answer does not create an unknown pet requirement',()=>{
+  const r=result({pets:'[{"kind":"none"}]',requirement_priorities:priorities({pets:'preferred'})},listing('No pets'));
+  assert.equal(r.requirements_status,'meets');
+  assert.equal(check(r,'pets'),undefined);
+});
+test('malformed feature evidence cannot confirm pet compatibility',()=>{
+  const a={pets:'[{"kind":"dog","count":1}]',requirement_priorities:priorities({pets:'must'})};
+  for(const evidence of ['not-json','null','[]']){
+    const r=result(a,listing('',{feat_pets:'yes',feat_evidence:evidence}));
+    assert.equal(r.requirements_status,'pending');
+    assert.equal(check(r,'pets')?.result,'unknown');
+  }
 });
 test('a negated garden and a balcony do not meet a required garden',()=>{
   const a={outdoor:'["garden","balcony"]',requirement_priorities:priorities({garden:'must',balcony:'preferred'})};
@@ -89,7 +114,7 @@ test('parking offered at additional cost is not confirmed capacity',()=>{
     assert.equal(check(parking(text),'parking').result,'unknown',text);
 });
 test('a budget must-have concerns the final ceiling; the legacy minimum remains a score preference',()=>{
-  const a={budget_min:1500,budget_max:2000,requirement_priorities:priorities({budget:'must'})};
+  const a={pets:'[{"kind":"none"}]',budget_min:1500,budget_max:2000,requirement_priorities:priorities({budget:'must'})};
   const low=result(a,listing('',{rent:1000}));
   assert.equal(check(low,'budget').result,'meets');assert.equal(low.requirements_status,'meets');
   assert.ok(low.score<result(a,listing('',{rent:1800})).score);

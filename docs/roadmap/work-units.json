@@ -4740,7 +4740,7 @@
         }
       ],
       "acceptance": [
-        "Verificar REG-08/0031 y ampliar condiciones comerciales conservando presupuesto y periodicidad separados."
+        "Ampliar las condiciones comerciales conservando presupuesto y periodicidad separados; no reconstruir REG-08."
       ]
     },
     {
@@ -4781,7 +4781,7 @@
         }
       ],
       "acceptance": [
-        "Verificar publicación y migración de REG-08/0031 antes de cerrar el alcance residencial ya construido."
+        "Revisar la evidencia de activación y los criterios residenciales existentes sin volver a publicar REG-08."
       ]
     },
     {
@@ -4817,7 +4817,7 @@
         }
       ],
       "acceptance": [
-        "Verificar REG-08/0031 y completar respuestas explícitas de zona sin interpretar vacíos heredados."
+        "Revisar la propuesta de zonas y, con diseño aprobado, integrar las respuestas explícitas con el orden de BUS-14."
       ]
     },
     {
@@ -4858,7 +4858,7 @@
         }
       ],
       "acceptance": [
-        "Verificar REG-08/0031 y confirmar omisiones de registros heredados sin inventar ausencia de mascotas."
+        "Completar revisión y validación visual de REG-07; después solicitar aprobación para su commit exacto."
       ]
     },
     {
@@ -4978,7 +4978,7 @@
         }
       ],
       "acceptance": [
-        "Conciliar checklist con publicación 9b8dbd41/0025 documentada en reconciliación y verificar cierre; matching comercial sigue en M04."
+        "Completar esenciales de zona en REG-06 y conservar el matching comercial pendiente en M04."
       ]
     },
     {

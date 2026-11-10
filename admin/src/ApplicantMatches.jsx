@@ -58,12 +58,16 @@ export default function ApplicantMatches({applicantId,applicant:a,counts,onChang
  });
  const recalculate=()=>run(async()=>{
   await api(`/admin/applicants/${applicantId}/matches/recalculate`,{method:'POST'});
-  const fresh=await onChange();if(!fresh)return;if(fresh.applicant.matches_revision===a.matches_revision)await Promise.all(GROUPS.map(([s])=>load(s)));setMsg({ok:true,text:'Matches recalculated.'});
+  focus.current='group-found';
+  let fresh;try{fresh=await onChange();}catch(error){focus.current=null;throw error;}
+  if(!fresh){focus.current=null;return;}
+  if(fresh.applicant.matches_revision===a.matches_revision)await Promise.all(GROUPS.map(([s])=>load(s)));setMsg({ok:true,text:'Matches recalculated.'});
  });
  const legacy=Object.values(pages).some(p=>p.rankingVersion===0);
+ const stale=Object.values(pages).some(p=>p.matches?.some(m=>m.requirements_refresh_needed));
  return <div className="matches">
   {readOnly&&<p className="muted">{readOnly}.</p>}
-  {legacy&&<div className="warn"><p>Previous order and scores. Recalculate to use the current ranking.</p>
+  {(legacy||stale)&&<div className="warn"><p>{legacy?'Previous order and scores. Recalculate to use the current ranking.':'Some match details have changed. Recalculate to update the order.'}</p>
    {!readOnly&&<button className="btn ghost" type="button" aria-disabled={busy} onClick={recalculate}>Recalculate matches</button>}</div>}
   <p role="status" className="ok">{msg?.ok&&msg.text}</p>
   {msg&&!msg.ok&&<p role="alert" className="err">{msg.text}</p>}

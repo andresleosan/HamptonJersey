@@ -1,5 +1,5 @@
 import { parsePriorities } from "../site/requirements.js";
-import { requirementChecks, requirementsSummary } from "./requirements.js";
+import { parseFeatureEvidence, requirementChecks, requirementsSummary } from "./requirements.js";
 // One applicant against one listing (spec §4, B11): the hard filters, the checks a match shows and its 0–90 preference score.
 // The single source of truth for every matching rule: server/match-store.js only stores what evaluate() returns.
 // Pure ESM: it reads precomputed feat_* columns rather than listing text. Unknown never excludes a house.
@@ -115,7 +115,7 @@ const atLeast = (value, min, word) => (value == null ? { result: "unknown", evid
 // Returns { pass, score, checks: [{ key, result: 'meets'|'fails'|'unknown', evidence }] }; pass is the hard filters
 // only, and checks and score are filled even when pass is false.
 export function evaluate(a, l) {
-  const said = l.feat_evidence ? JSON.parse(l.feat_evidence) : {};
+  const said = parseFeatureEvidence(l.feat_evidence);
   const priorities = parsePriorities(a.requirement_priorities);
   const checks = [];
   let pass = LISTING_OPERATION[a.operation] === l.operation;

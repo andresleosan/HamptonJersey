@@ -399,6 +399,7 @@ function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirm
 // BUS-17 (spec 2026-11-06): with fewer than 3 matches, what one change to the saved search would add. "Use this" waits
 // while the form has unsaved changes: each new value comes from the saved search.
 function Widen({ alternatives, applicant: a, dirty, onUse }) {
+  if(alternatives.unavailable)return <section className="card widen" aria-labelledby="widen-h"><h2 id="widen-h">Widen criteria</h2><p role="alert">Unable to compare changes. Check the search and property details, then try again.</p></section>;
   if(alternatives.confirmation_required)return <section className="card widen" aria-labelledby="widen-h"><h2 id="widen-h">Widen criteria</h2><p>Confirm the requirement priorities before comparing changes.</p></section>;
   const rent = a.operation === "rent";
   const what = w => (w.key === "budget" ? `Budget up 10%: ${money(w.from)} to ${money(w.to)}${rent ? " a month" : ""}`

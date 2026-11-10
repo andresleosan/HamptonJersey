@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {widen} from '../../server/widen.js';
-const a={operation:'buy',budget_max:900000,requirement_priorities:JSON.stringify({version:1,values:{budget:'must'}})};
+const a={operation:'buy',pets:'[{"kind":"none"}]',budget_max:900000,requirement_priorities:JSON.stringify({version:1,values:{budget:'must'}})};
 const ls=Array.from({length:35},(_,i)=>({id:`W-${i}`,operation:'sale',sale_price:950000,archived_at:null}));
 test('BUS-14 widening counts global improvements and new matches without a quota',()=>{
  const pairs=ls.slice(0,30).map(l=>({listing_id:l.id,status:'found',requirements_rank:2}));

@@ -102,10 +102,10 @@ export async function afterSave(recompute, ...args) {
 }
 
 // After an applicant is saved. actor: an admin email, 'public' or 'system'.
-export async function recomputeForApplicant(env, applicantId, actor, restoreNotice = false) {
+export async function recomputeForApplicantWithStatus(env, applicantId, actor, restoreNotice = false) {
   const a = await env.DB.prepare(`SELECT ${APPLICANT} WHERE a.id = ?`).bind(applicantId).first();
-  if (!a) return { created: 0 };
-  if (!isActive(a) || a.search_category !== "residential") return { created: 0 }; // Commercial matching belongs to M04.
+  if (!a) return { created: 0, completed: false };
+  if (!isActive(a) || a.search_category !== "residential") return { created: 0, completed: false }; // Commercial matching belongs to M04.
   // The candidates, and the shortlisted ones that left them (their checks still show what fails now).
   const [listings, stored] = (await env.DB.batch([
     env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE (${CANDIDATES_SQL} AND operation = ?)
@@ -115,6 +115,7 @@ export async function recomputeForApplicant(env, applicantId, actor, restoreNoti
   ])).map(r => r.results);
   const { stmts, inserts, search, guarded } = writesFor(env, a, listings.map(l => result(a, l)), byListing(stored), actor, now());
   const versions=JSON.stringify(listings.map(l=>({id:l.id,version:l.match_inputs_revision})));
+  const completion=stmts.length;
   stmts.push(guarded(`UPDATE applicants SET match_ranking_version=1 WHERE id=? AND NOT EXISTS
     (SELECT 1 FROM json_each(?) v LEFT JOIN listings l ON l.id=json_extract(v.value,'$.id')
     WHERE l.id IS NULL OR COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=l.id),0)<>json_extract(v.value,'$.version')) AND ${search}`,a.id,versions));
@@ -128,7 +129,12 @@ export async function recomputeForApplicant(env, applicantId, actor, restoreNoti
       AND NOT EXISTS (SELECT 1 FROM notifications WHERE ${OPEN_NOTICE})
     ORDER BY e.id DESC LIMIT 1`).bind(a.id, a.name, now(), String(a.id), a.id, a.updated_at, a.id, String(a.id)));
   const written = await env.DB.batch(stmts);
-  return { created:inserts.reduce((n,i)=>n+(written[i].meta.changes||0),0) };
+  return { created:inserts.reduce((n,i)=>n+(written[i].meta.changes||0),0), completed:written[completion].meta.changes===1 };
+}
+
+export async function recomputeForApplicant(env, applicantId, actor, restoreNotice = false) {
+  const {created}=await recomputeForApplicantWithStatus(env, applicantId, actor, restoreNotice);
+  return {created};
 }
 
 // After a listing is saved, archived or restored: its pair with every active applicant, in one batch.
