@@ -193,7 +193,7 @@
     {
       "id": "TP03-V01",
       "owner": "Hampton / operador autorizado",
-      "scope": "CASE_FILES privado, capacidad por caso, retención/borrado/backup registrados; no subir reales sin evidencia"
+      "scope": "Capacidad por caso para datos estructurados y referencias externas manuales revisadas; retención/borrado/backup de datos estructurados registrados. No repositorio de archivos ni subida de documentos."
     },
     {
       "id": "TP03-V02",
