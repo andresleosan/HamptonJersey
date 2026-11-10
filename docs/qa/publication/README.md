@@ -4,10 +4,11 @@ Esta entrega contiene código, pruebas, SQL/medios ficticios, recibos saneados y
 el traspaso. No instala ni activa nada en Cloudflare, Docker o la VPS.
 
 El dueño autorizó publicar esta entrega en main después de que GitHub rechazara
-crear la rama de traspaso. El commit final usa el prefijo [CF-Pages-Skip] para
-omitir el despliegue automático de Cloudflare Pages sin cambiar su configuración.
+crear la rama de traspaso. El commit final usa el prefijo [skip ci] para omitir
+los despliegues automáticos de Pages y hampton-jobs sin cambiar su configuración.
 Referencia: https://developers.cloudflare.com/pages/configuration/git-integration/github-integration/.
-Comprobar el SHA remoto y el despliegue empresarial tras el push; publicar código
+Workers Builds: https://github.com/cloudflare/workers-sdk/discussions/13216.
+Comprobar el SHA remoto y los despliegues empresariales tras el push; publicar código
 no acredita activar QA ni ejecutar el piloto VPS. El repositorio es público;
 no se incluyen secretos, perfiles,
 dependencias, binarios gVisor/Docker, capturas o archivos de resultados privados.
