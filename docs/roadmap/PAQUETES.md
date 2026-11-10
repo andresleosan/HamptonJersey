@@ -2,6 +2,8 @@
 
 9-nov-2026 · Agrupación de las250tareas en23paquetes, con códigos/listas/estados conservados. Fuente: [paquetes.json](paquetes.json).
 
+Los planes revisados de las nueve tandas de Lista 4 están enlazados por código en [Planes por paquete](PLANES-POR-PAQUETE.md) y en `planReferences` del manifiesto. Leer también los complementos obligatorios; las etapas no reactivan alcances aplazados.
+
 Usa `/avanzar` para retomar o elegir el siguiente tramo viable, `/avanzar PAQ-01` para un paquete o `$avanzar PAQ-01` en Codex. Un código real explícito mantiene alcance. Las etapas comparten diseño y pruebas cuando es posible; conservan dependencias y reservas individuales. Planificar no reserva.
 
 Orden inicial: Inbox/tareas compartidas, BUS-14 sobre inventario actual y fuentes por tandas independientes; correo operativo se resuelve por su autorización sin reconstruirlo. Las tres investigaciones siguen siendo secuenciales. El orden del manifiesto es preferencia, no evidencia de disponibilidad.
