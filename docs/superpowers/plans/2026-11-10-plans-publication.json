@@ -1,0 +1,679 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-10",
+  "repository": "andresleosan/HamptonJersey",
+  "branch": "main",
+  "parent_sha": "47dab2c17b1b235a3a3332862d68b72a51115f71",
+  "scope": "all_current_session_plans_specs_master_and_delivery_indices",
+  "document_count": 163,
+  "planning_documents": 161,
+  "delivery_documents": 2,
+  "github_account_verified": "Luismadef45",
+  "author": {
+    "name": "Luismadef45",
+    "email": "luismadef45@gmail.com"
+  },
+  "committer": {
+    "name": "Luismadef45",
+    "email": "luismadef45@gmail.com"
+  },
+  "coauthors": [],
+  "publication_verified_at_preparation": false,
+  "product_changes": false,
+  "documents": [
+    {
+      "path": "docs/roadmap/2026-11-10-plan-maestro-vigente.md",
+      "sha256": "66a35980c3b083f1255ad5766d87c2e2e219cb9fbe9b359da95292ab1717718a"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-ana-03-web-analytics-source-activation.md",
+      "sha256": "cbb6c06321fc6c4591f50b86b22b12c5a01f5b755e1e6b1db0b43f28eb6cba00"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-ana-04-aggregate-search-demand-series.md",
+      "sha256": "190154bfe97397adda7a281d813fefdc7fe206a7d7e39f5bae1c802f6e93ec2b"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-ana-06-agency-and-presentation-response-metrics.md",
+      "sha256": "ba241cf7f7b5e45049c0df3a630b403d670b4dd0031e304b77189edd11f7b33b"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-ana-08-internal-weekly-insights-digest.md",
+      "sha256": "4222b0b2c014b3b2ec89f9ac820dc0f0f31e51fa846324839fd12e1b463dca4a"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-ana-09-scoped-public-rate-limit.md",
+      "sha256": "acfc674351ea9238ce3c1b7649363b8666579bb140974eb8606cf0af4bc666f3"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-ana-10-typed-contact-acquisition-source.md",
+      "sha256": "07a48f5bb70ed48493c47593c6015fbcd9e3ef9bc8c3b8299d8572ce73f3db62"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-17-email-operational-completion.md",
+      "sha256": "f1eae1448e1b9d2cd09507fdb38f7a132e278e28753d7b0a935eeab4d7a03afc"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-19-versioned-criteria-proposals.md",
+      "sha256": "f2b56e932ffa7818b434b18caf45753e434414db48ecc7c068d7821622d96512"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-20-integrated-search-acceptance.md",
+      "sha256": "04667680c7bd85b3f807c1c3385e4f3af5bc88827ef369355604d55574931e90"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-11-special-cases-research.md",
+      "sha256": "e5744c73b3ee5182962c5c426732fa7d926bdc08fd14642228f2de66243e2aa1"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-12-canonical-search-evaluation.md",
+      "sha256": "13621fe4adc4d2bef93581b958532237bfc987931f261ca825e23b9c6baa0f2e"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-13-versioned-housing-eligibility.md",
+      "sha256": "71d6cc7c5d192eab35cf4d311753a6fef88a6b24c13e1bb7c7473fe9847e768e"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-14-explainable-candidate-ranking.md",
+      "sha256": "a507cd0bd95f50a18904d4e92c43c551fce8e1967ccf2cf29959a63d7bc5dedd"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-15-versioned-human-review.md",
+      "sha256": "e1c528472cbc310e8a0634d8d07eb9af4604cfa47e17bc9bd0a0cb4b8037d244"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-17-internal-21-day-review.md",
+      "sha256": "2e2c66830f927262d4a0e6df8274c5f9536098384a4ecf229dc48ba9f1cacef9"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-18-property-search-followup.md",
+      "sha256": "26875fa5a808b9300cfe4e609a5ddcdb9cca1d8362d703bd467fa11788e11be2"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-21-property-directory-gaps.md",
+      "sha256": "289d8e28b17cb70bcb66fcd524f76b7f05212b4f27c6c00763ac1913db2889e8"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-22-property-directory-gaps.md",
+      "sha256": "ecf56f26cd6e28ef359a9165a1e9e4afb28f6cb5437cce5949ed4456415ed658"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-23-property-directory-gaps.md",
+      "sha256": "79e300289cd4d7d943aec5a10b29f529e427b6a2ddbd2b25a291c180e3fd6b25"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-01-search-progress-projection.md",
+      "sha256": "938c485669efa1d2e625824d73759dc63961be775489d9dcef27b031c1db3599"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-04-derived-in-process-state.md",
+      "sha256": "5130d83d88aeab3bd2cd8e7bb424572d0d059d70d83a5c0b3e606532562cd23c"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-10-concurrent-search-work-labels.md",
+      "sha256": "e6b757be83fcadeb01763e78b4c189ae913d4fa7fed5ccba0017c85c402a6a7b"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-13-orthogonal-candidate-state.md",
+      "sha256": "e14997526df2f1e998d621b90219a10519fd98ec91c88dc34138967ed6b40086"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-14-match-journey-evidence.md",
+      "sha256": "5a69956643e930f830259fee6a1a1ffadde1ecc717c4e80a8f59b810c5669d44"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-15-scoped-unavailability.md",
+      "sha256": "db552c881e5e14d373f996634be03d62c3172e2e394b4a6b059b6003df6a49f8"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-16-commercial-facts-authority.md",
+      "sha256": "a48baa68ae492655990f3dd2e8321a4fc5512fbe8740edf0f2f6cc2107ece3fc"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-17-own-listing-state-completion.md",
+      "sha256": "c590c43d69b1e98645b00cbc75573adc1092d8e7f01f8bb42bbce68d5124fcc2"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-19-photo-only-trash-purge.md",
+      "sha256": "f737ce39f2a4e2331b133550d9978db2d1edbb3b4c6022e2a13b91864f728331"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-not-08-inbox-category-integration.md",
+      "sha256": "7a83f66dbeae42e56a1fa721adb3e095fbfec15daf12a4e0796c9eaa7e45acf2"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-not-09-typed-inbox-domain-actions.md",
+      "sha256": "94458c096a16e8254fffe5cdbc86604b692082fb73e0f6d3b358945836dba3c7"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-not-10-daily-digest-existing-activation.md",
+      "sha256": "a554a3159a1ae0c7e3eb35e371e984de5a0871148a0fad87bb9005e1785b47b3"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-not-11-shared-task-integration.md",
+      "sha256": "934e1883e6ca2dea7488e6dce077c5b1817ce06cc9643448d79dce7c8fbc6ae9"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-09-purpose-versioned-privacy-notices.md",
+      "sha256": "8f8e0ac5ea8ce564eaa6bbd5b957adca995ba69a14c7f5b73a59637daa469a62"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-10-purpose-scoped-marketing-objections.md",
+      "sha256": "ba5c387c99beebd276ea1db8abcb92937c98ed85a1a7a05becbfa7ea0e08d186"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-11-third-party-media-privacy.md",
+      "sha256": "160bca3fc006a60bd5614a6d5d966b3ad92292e82bedab612d2f75f2bf0520f1"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-32-hermes-plan-decision.md",
+      "sha256": "ba970b5430f4486320030a712f73efcc6e7d0481d4af1bf73c90e46a286e9429"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-33-hermes-existing-agreements-handoff.md",
+      "sha256": "59e94897d82e2a0f63f691dcd9c41c6580bb26124ed8a4cd8dd2ad4d3fef450a"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-34-chat-readiness.md",
+      "sha256": "a899bf2a71e49bcafd601d24826ca5903a793578b1d3d453fcf2f2c2548094c5"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-04-listing-address-condition.md",
+      "sha256": "2e40db15a24a849c0ec18258685ae9cc934dda8743ad0df1830b6246251ef1b0"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-05-structured-physical-features.md",
+      "sha256": "f75a351e84dbe906e9c9b54b1ef8a4d6c20d897dd44b8b79ed46757f607693ea"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-06-structured-economic-terms.md",
+      "sha256": "d0ecf45e3561b6b26f53d4530c3a3aca9991bcfc5a5fb9cc702033e78404c30a"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-07-technical-compliance-evidence.md",
+      "sha256": "70b77907085818fbb1be1e3dd30865d8e8d278201a4f70d1a64ae55eb18a587d"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-08-web-content-tags-video.md",
+      "sha256": "984843055afa238a56a78c0ab36c5c23513a81e7fb6bb96ab4ba499792caa89b"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-10-private-valuation-intake.md",
+      "sha256": "4c557f2252bb546fd71d68d5c9112098dfecbca2582005a615a4e167744a3274"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-11-media-quality-private-documents.md",
+      "sha256": "7809b1742bbc5ff4920afaa18200c369fee47ea2e6646561e31d19a7c7606e38"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-13-evidence-backed-web-copy-drafts.md",
+      "sha256": "2a1929553aeff0d80c4ec7f7e5d9328f1b571806f4123b6e8cbfa5a16a277ea1"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-14-existing-seo-search-console-activation.md",
+      "sha256": "b4a4340751b233f4579af0d01ebb555f1d0a4042fdfb2b5f0b95472afb543a30"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-16-website-state-propagation-only.md",
+      "sha256": "04dbfb59d64b6f5f5241b2175ac0bf8ce82c0298193a7369b4691c467a55fb4f"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-17-internal-listing-performance-review.md",
+      "sha256": "a43c961c57d23a16fdfce8f03945b0d4cf6ff24c9867ea59dcf5f508d140d315"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-04-budget-terms-completion.md",
+      "sha256": "db4324b2c5234b2813dca84433c2e6888b9cbf46a3b6082a7c24a577fca187ff"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-05-existing-room-range-verification.md",
+      "sha256": "f77cbfe00a221b428e80f867f374e7908fcd5daf29a38998e59b2fe4e0db5d53"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-06-explicit-area-answer.md",
+      "sha256": "ea8a9214d4d4d4e18ca645351586cf2534599269b97f5166e2e8337ff1dad174"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-07-nonnegotiable-household-pets.md",
+      "sha256": "156bfeb3d942986d4f0759e9cb31801921684ab8fc2d52f552e8970b81bfb0fe"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-12-search-registration-acknowledgement.md",
+      "sha256": "6eb01c64cff2bd2665c493e5fb37f01f9b0fe9b12015f05bc9ca5f391e7cf246"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-13-reviewed-requirements-extraction.md",
+      "sha256": "cba115f67051af7d99150ebad88a547fd4915960030da4e2811ab9e6a1ff9e96"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-15-reviewed-saved-search-alerts.md",
+      "sha256": "9b0533179414b4e44c1566a093a03a73068a86f67bf1a202d36d0550d6688f3d"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-16-permissioned-valuation-offers.md",
+      "sha256": "9f1be75f4be044edf9db23fc61e0268a00fc4d81fae3677113524f2fb9f2e86d"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-sap-01-applicant-search-progress-ui.md",
+      "sha256": "0a05e63bef711c731a6fbe290b236edf4523b33d3d95c9516ea3bc6782e94c09"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-sap-02-canonical-match-counts.md",
+      "sha256": "cfcb907e1358096a07a64821b4e779bd73e9301660b4882d3d4ff25f683889fd"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-sap-03-applicant-confirmed-match-groups.md",
+      "sha256": "85cb4b2f151b3b9e1862cce954715b30ef7729aaf26217c0f254aa5e8bbb9776"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-sap-08-applicant-messages-viewings-tabs.md",
+      "sha256": "a5349bb5a76277eb3015e2f4526ba174428d95bb8595989a637f99b580ca4814"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-sap-09-applicant-presentation-viewing-actions.md",
+      "sha256": "107221fbd410aa33b7ebb7bba6f57a0bd150e1c25d74343e67069478e80b2d69"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-sap-10-confirmed-criteria-changes-ui.md",
+      "sha256": "1cc83002adef87a208ccaaa1692637c6313058996d49bf66215b80af3b13afeb"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-spr-01-listing-tracking-card-completion.md",
+      "sha256": "857ce2b4d96735649a2f0586338c7477edc3a7a6f4b913511d51ceded17a9154"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-spr-02-property-local-history.md",
+      "sha256": "2cd40073ac1230ab80795fc325570e11a18330d5a6e3155802a2d3c097e6fdfd"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-spr-03-private-property-capture.md",
+      "sha256": "7ec104485032383c20c3b785646c9bc613eab0fb1d194a23522545dc9dabfd7d"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-spr-07-source-and-verification-filters.md",
+      "sha256": "fda0e670383fc7b90c25e6790b86d8a0321138e9c0c3256e329bba45ec2c3179"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-spr-08-property-notes-viewings-adverts.md",
+      "sha256": "7d48632fb504a8c820fc2c059523b28e6a19b1886e796be411c77615f3eb172b"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-04-reviewed-post-viewing-feedback.md",
+      "sha256": "5eb2bf1ef32d5ffc7a948addad6a8efb786eea72196a04b50c04e1c5376882c0"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-06-private-public-viewing-summary.md",
+      "sha256": "5ff351946ae4055b526e0b42101ee6b24213d07cc0e741b88ca7e513d33a00a4"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-08-viewing-lifecycle-milestones.md",
+      "sha256": "2c1a3a5b48710817b0c976bd878b7ef3a3f5463142c9e263b5d0c96593dbc6be"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-09-viewing-duration-travel-policy.md",
+      "sha256": "7f5b4991c514359ef271f0b8144733fff758f94d26e2d91cdb26b3130d1bfcc2"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-10-property-access-restrictions.md",
+      "sha256": "8201cbafbad1b697ef3b44f7e1e95e49f11794c5e600838a90709869d25aae7a"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-12-google-calendar-viewings.md",
+      "sha256": "c8a63e077d191502ccbc47c6ba0b075d6c52531b53f668c595ea86bbcba6a4ca"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-13-viewing-reminders-actions.md",
+      "sha256": "80a65c67b0d2aba96398d662d0620778411d0e3ec70a2976398386299ffa48a8"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-14-open-consecutive-viewing-groups.md",
+      "sha256": "8c75d77f84d8555d5ffe59417a875858bbb4060892944617c1f625b1a60f071e"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-17-multipart-viewing-coordination.md",
+      "sha256": "8eb57252840690e80f796649b86f1688d6fa2b4d504edb3f1619ac468068d420"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-03-rental-notices-on-the-shared-clock.md",
+      "sha256": "dfd4333a11e741ee9032f0fa72828c97442b59fb7d9e06d92e5975ae3dd95e32"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-06-tenancy-from-an-agreed-property.md",
+      "sha256": "950d1843c0d322c0044814279807e8f0712411659c7b0277e297a4db3ff7acf2"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-11-rental-obligations-and-evidence.md",
+      "sha256": "504fd752e3f3fd5f52c58c88a744bacc755108fe2e3c57809a8fa145f6ad2c20"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-13-internal-six-month-inspections.md",
+      "sha256": "a9acc5674bcab19704dea5d9e3878c80d9ca14350fcbd837475566e43cc6cf9e"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-16-move-out-inventory-and-deposit-tracking.md",
+      "sha256": "e65b77e8326f2fb0afd0b46ae55481978b038d22a153b159f0ef0393b1c92c8f"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-17-versioned-tenancy-rules.md",
+      "sha256": "92709487485203d764c8a409337ee009c575ae76a5aaac1d67930882f7108cc1"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-21-rental-accounting-csv-exports.md",
+      "sha256": "911de005b1b50f23202a0c7896ce22d956a9a09495fcf8d32e8e6002fb5bc56d"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-aut-17-email-activation-scope-and-proof-closure.md",
+      "sha256": "d5815147a963093e15ef9c4c8eaa69431eaf69216887b0c068a7ad80aa25e56e"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-not-05-missing-payments-from-real-balances.md",
+      "sha256": "bc12abcad540a98f8530613380ca43cc7a80f07d678720a89ac14573358b64dc"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-pre-03-activity-specific-registration-verification.md",
+      "sha256": "f6ad16978a4ea93de35557b0a224ecb935bb4a4ca5ec5628ae4e0c9ca9835be2"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-pre-04-honest-historical-team-baseline.md",
+      "sha256": "80975dc7ac9fc4655b796d3a0a8319613249d0c1109146c1066d2a9d116993f8"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-pre-25-measured-volume-and-capacity-assumptions.md",
+      "sha256": "76765b65c0b41f3c631713d43162c56ca09493bce5b0a5049a7aaddc9d8536be"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-pre-29-client-funds-and-tax-readiness.md",
+      "sha256": "4f7953277b8499ed9d9cbd58a370c6b3fa410e49d6c936c23778934a9486a389"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-pre-32-pro-route-verification-closure.md",
+      "sha256": "728dc4e32f9a3bed3824df3d668c4ba89213b9d06eea2fcdc25d69480caad944"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-pre-34-web-chat-activation-evidence-closure.md",
+      "sha256": "05c08d38924ae04c4a354d8f2beba4a0b810232a4df306c2c10d06ea88837a43"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-tp01-continuity-batch.md",
+      "sha256": "4b0cc27b261d56aaa7b16ed7bbf91a6e70e60c14404d39321e3ffcd3796b7482"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-tp01-continuity-ledger.md",
+      "sha256": "7fafd57a18fbd9e0fca1dd0abf78bcb8fab41b71eb98c7bb3f102b68e53b10fc"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-tp01-continuity-readiness.json",
+      "sha256": "b15b67c5607a958503016181c07be4695847799e177634df0882173a7e77dac0"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-tp01-pre-06-plan.md",
+      "sha256": "503b2a147cf6dca410d76052f8497b18ad7e6ad09ffbe69cb7a043e4a432a03a"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-tp01-pre-13-plan.md",
+      "sha256": "3f0362d8f81f6e217a470dfd9f62410711354bf295ff9233db7257fef51a5f93"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-tp01-pre-14-plan.md",
+      "sha256": "3392d94ec125ea753adba26f8f2f9d1ae8347f5d0b2080f88f7f53cafccf8f6a"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-tp01-pre-16-plan.md",
+      "sha256": "9094887fe5a9d88e4e84b39eacd4eafe99d36d38e5f50bd7742273da1226d3df"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-tp01-pre-28-plan.md",
+      "sha256": "5c7afa2d1618fc7d7d3ea990567702fcca7de564fd587d0b1f2ab3ec705db165"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp02-ana-01-plan.md",
+      "sha256": "c661d90fc2d8f711af1b9683210fe97d462642cb936e0f1b2c4cedd511a643ac"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp02-ana-05-plan.md",
+      "sha256": "3fc19e19f6fb282c8d58e9023cb167f90552f162610be53bdf44f71c981a5b42"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp02-pub-01-plan.md",
+      "sha256": "949c8d3b62bf458bebd3d89866d6129c2819d20cba6fdf151e9a899375fce5bc"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp02-pub-02-plan.md",
+      "sha256": "c69f7b444ce1ab56a88815bb7be0ffc2f16e019af972290e5cf3817c9cdfcad2"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp02-pub-12-plan.md",
+      "sha256": "596e7718065bd112f010bb766632849cf802bfe98fffdc55d044ca9d13cf48b2"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp02-pub-19-plan.md",
+      "sha256": "256cf4f8dbe15bc3f5f9f32d64b232fad9917cac8647d673b72df76823ba3bcf"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp02-pub-20-plan.md",
+      "sha256": "380bfef985243d80b392cbc7e76aa4cc0b913bc4f708ab390d820a6fc90590e7"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp02-pub-21-plan.md",
+      "sha256": "427d0b113fb3b64d6745f9cc15e70110a61213ebc8b45c1e7e325ee1c5b508b7"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp02-publication-batch.md",
+      "sha256": "efbbdb6c69bd40247b30d2e861ed2786b621c3eaec0b14c6b8f1856cea370eb2"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp02-publication-ledger.md",
+      "sha256": "a3106ddc078a24c770dc91fd8f7c28fe9ca70b56ef933a5e4a99c7eb4e2bf6ad"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp02-publication-readiness.json",
+      "sha256": "f66ddecb5f648ef1acfeaac35d6afd0f925188841c5ff1d6d6d17453429b1831"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-adm-05-plan.md",
+      "sha256": "100d092ef99710ae824d9e557dddd86c30cbef3fe0d267c79bc09a863d67f394"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-adm-09-plan.md",
+      "sha256": "ecaf82700e6403ed3b93703b2830a0a294d169acca8eec8a0be7bc4e274abed4"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-adm-10-plan.md",
+      "sha256": "b7663c94fe4d8a6566908145d8fe51891d55903e11509ff3d1b5a3df02286105"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-adm-12-plan.md",
+      "sha256": "26f1f1396b05e9fa4d90db144f1e6b195d7c548b13fffa19356c6e0e9b5747b2"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-adm-14-plan.md",
+      "sha256": "c1ea897e6ffca641cec429ceb1f6ca658733f82bc405bf4f6ec1d2903f4aa248"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-adm-15-plan.md",
+      "sha256": "4dd13f49e74ce46bde587f1a2dede8d70ae00e96a18a2e301fa4679a7c97caf0"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-adm-18-plan.md",
+      "sha256": "8f89ff932ab39c985e1a0cb76f831789748d847cbf1346f4120c05dfbd719790"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-adm-19-plan.md",
+      "sha256": "afa82ff09fe6bb80fe2578e63d89ce7de58b674aa3c64e127219235518921a38"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-adm-20-plan.md",
+      "sha256": "5d5d0d04c374495cd9b7e5622a792cacf535475be030450e8da57dc26fbcb91e"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-ofe-02-plan.md",
+      "sha256": "bd0973a28c09a92416b7f4c1acabe1add427edd9818284b55cd4159dc6947b43"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-ofe-06-plan.md",
+      "sha256": "590a006b190cf5373b0a020ba5492185cf53873d3df60000194cd6c2b4312683"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-ofe-07-plan.md",
+      "sha256": "7740e431dad5767c52876394a10d99f64e9178c569d8eba5836a193bcf28cf98"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-ofe-08-plan.md",
+      "sha256": "d72f180f6a000613f6ae82f881da16430593febbe4c050c8f5ddd96b7b6989c4"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-rental-sales-batch.md",
+      "sha256": "fedcc3989ba5593c66742d76d3e7aec9c8e62052fb664dbca2d53de97b46feff"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-rental-sales-ledger.md",
+      "sha256": "d6e38b12d0698e4243c49559cabce33780e42fe2d047173c1327d68a57d0bc7c"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp03-rental-sales-readiness.json",
+      "sha256": "6abbfd048a329f9f6cf524b8708abbaf6d609f3856e0e5db4e7c3f6d90208448"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp04-bus-06-plan.md",
+      "sha256": "e5b94b506608ee2a562aad71a6fcd6bc29020b00d13643ba8ec4b22888f3c2af"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp04-bus-09-plan.md",
+      "sha256": "efd8fdf6c00b68fad196a0647684e3402b49bbe4118dfd71b61d6de83bcda350"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp04-pub-09-plan.md",
+      "sha256": "5821e7291c45186c1a7c06156e01539f7aed6a55468022cd3a971547381fc4c0"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp04-pub-15-plan.md",
+      "sha256": "4b4792fa8a02c5973158bcb2279c7e39bd9a09baeb6965f6667816768ec85fae"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp04-sources-batch.md",
+      "sha256": "1e03fe3e2e42200a44cd239ecbd3dfdaa149a1d3358c12134fcaa3c7d14ea0b2"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp04-sources-ledger.md",
+      "sha256": "6b67443f3e91cf8fa82f66bd2a5ad4d805d4ce160e42ab73a1b22a4d488ef06a"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp04-sources-readiness.json",
+      "sha256": "4d8e0b42146d72a3b89aa1ad95746840c2d95b72bb78f687a5897cd33a54d9e9"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md",
+      "sha256": "8b2624bea08dfdc42be7bf2f453dbedfdb96e65e89ef8e05aec833d3def01893"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp05-construction-order.md",
+      "sha256": "7f157c6ee9cb926a97f78337a57aa62ec84c129854d86d1e8f2d9037638cbc57"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp05-construction-readiness.json",
+      "sha256": "fb4bd71ebf7ed8f5a67f1f9e85d3d846a46f985e3bde3acf3fb480a84b5a7d67"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp05-pre-22-manual-management.md",
+      "sha256": "9c979e4cc6763a800d4863649e637d5abe90887e7d4bbd0e21979d869e731f81"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp05-reference-provenance.json",
+      "sha256": "0efcf723dd56ef39604b515778fb2d8eec1f6cf51b7255bea0c510eb85f4a89f"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-tp05-review-ledger.md",
+      "sha256": "3fff576019957bb31f994fe15a107c5909aea93ad957f5da11d617230f2a22e9"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-inbox-actions-completion-design.md",
+      "sha256": "457b462e81e73a75818255f748ba1c55033699ed848eb25c75f0f39caf42c3e1"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-measurement-completion-design.md",
+      "sha256": "b4e2b57b6594eaf67210682c0864cf1f92b47d31548f82a2f0edca686dccef56"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-own-publication-completion-design.md",
+      "sha256": "6345d21c26973bc3c85ba5676cd862bc2d332afd158210cd285a6ec2c8d74257"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-public-acquisition-privacy-design.md",
+      "sha256": "35258693b3c0837595b67af6a7f817cb5026467f7b7cb3bda5881b7cf9681b23"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-publication-external-activation-design.md",
+      "sha256": "dc123b14eb5db535ab2a6f02d487231ca3bc97c150e229e7866ccf13030d89ca"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-09-rental-lifecycle-completion-design.md",
+      "sha256": "23dff628847ec6eb90bd7fd93bab9e57e3b032aac4b932147e6c3db265731374"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-09-tp01-accounts-and-custody-design.md",
+      "sha256": "278b284c1cd9b8442baa1412743d1954157b1f59ef2082a941fadc518cb63cd2"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-09-tp01-consistent-backup-design.md",
+      "sha256": "6341cacaa497e83ac467b29f8e85c75d447babf4726d61bc5d006bc03a7ab050"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-09-tp01-wix-cutover-design.md",
+      "sha256": "40afad665b3eceef3c89588274a222f7f91277f100f4ad5dc20510cc7bdefae0"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-10-tp02-demand-design.md",
+      "sha256": "96da5e784bdfe52a66c707edf92c95df37894e5b64e2c4a68d50e8a3d39ca164"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-10-tp02-measurement-design.md",
+      "sha256": "cdac5c7bd6fbba634a113c6fcaaba16b7bde40132a72f26393d9bbb2b306de7d"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-10-tp02-publication-design.md",
+      "sha256": "bf661cb629d5e3c07a368d375e40bfa42d2aac11bc45fcf5a216d31f712382a5"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-10-tp03-case-evidence-design.md",
+      "sha256": "69975c22ef1be948c50fd2c1993188dcbaf4220d15584f45b7f41d0cd18d537a"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-10-tp03-communications-design.md",
+      "sha256": "ff847d720778d51ca459d6bdca9b5d4f7c29d4b81250af0d91867c9b1a4c5729"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-10-tp03-finance-design.md",
+      "sha256": "a53e901112971ef550f42bce911457556c7d61d552644e0fb1d80f619b1eb45d"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-10-tp03-lifecycle-design.md",
+      "sha256": "d0b97a4f1ed812619397747c530cfb0a0ae55e561932f342242ebced83d76874"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-10-tp04-market-design.md",
+      "sha256": "002c21f337addb38db2e888cbae566355d7ec4dd411bada23ececdae4d533c7d"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-10-tp04-traceability-design.md",
+      "sha256": "3b599720a93d8de6678882fd22ee31c9b3ef5dae12a9de1ffa6b739bc950c354"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-10-tp05-access-design.md",
+      "sha256": "72588634af727b501b81e64a217c63bc4b3d5fb896a7ba31e8a219cbe736d718"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-10-tp05-continuity-scope-design.md",
+      "sha256": "495924dce916709b22f37d0ab7f6f899bbbee462307ae1ddee7573d3efe1dbea"
+    }
+  ],
+  "delivery_document_paths": [
+    "docs/superpowers/plans/2026-11-10-plans-publication.md",
+    "docs/superpowers/plans/2026-11-10-plans-publication.json"
+  ],
+  "catalog_codes": 250,
+  "current_scope_codes": 154,
+  "domain_active_plans": 26,
+  "domain_future_code_units": 58,
+  "original_source_preserved": true,
+  "reg17_capture_published_full_task_partial": true
+}

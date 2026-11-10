@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-10",
+  "batch": "TP-03",
+  "base_sha": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "planning_only": true,
+  "activity": "unverified_activity_unavailable",
+  "published": false,
+  "product_changes": false,
+  "decisions": {
+    "R01": {
+      "status": "resolved",
+      "value": "human_review_each_business_send"
+    },
+    "R02": {
+      "status": "resolved",
+      "value": "external_signature_manual_reference_evidence"
+    },
+    "R03": {
+      "status": "closed_by_task_withdrawal",
+      "value": "excluded_by_user_2026_11_10"
+    },
+    "R04": {
+      "status": "resolved",
+      "value": "mandatory_explicit_expiry_date_per_case"
+    },
+    "R05": {
+      "status": "resolved",
+      "value": "internal_staff_sale_followup_legal_matters_manual_outside_web",
+      "source": "Respuesta de Luis: solo personal Hampton gestiona información; abogado manual fuera de la web",
+      "scope_interpretation": "OFE06 solo seguimiento interno; no nuevo resumen comprador ni envíos/portal abogados en esta tanda"
+    },
+    "R06": {
+      "status": "closed_by_task_withdrawal",
+      "value": "excluded_by_user_2026_11_10"
+    }
+  },
+  "plans": [
+    {
+      "code": "OFE-02",
+      "title": "Ofertas al vendedor con revisión por envío",
+      "plan": "2026-11-10-tp03-ofe-02-plan.md",
+      "spec": "../specs/2026-11-10-tp03-communications-design.md",
+      "status": "build_contract_defined_dependencies_pending",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "open_decisions": [],
+      "constructed": false,
+      "activated": false
+    },
+    {
+      "code": "ADM-09",
+      "title": "Atrasos y ajustes sin pagos ficticios",
+      "plan": "2026-11-10-tp03-adm-09-plan.md",
+      "spec": "../specs/2026-11-10-tp03-finance-design.md",
+      "status": "build_contract_defined_dependencies_pending",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "open_decisions": [],
+      "constructed": false,
+      "activated": false
+    },
+    {
+      "code": "ADM-10",
+      "title": "Liquidaciones económicas cerradas y PDF",
+      "plan": "2026-11-10-tp03-adm-10-plan.md",
+      "spec": "../specs/2026-11-10-tp03-finance-design.md",
+      "status": "build_contract_defined_dependencies_pending",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "open_decisions": [],
+      "constructed": false,
+      "activated": false
+    },
+    {
+      "code": "ADM-12",
+      "title": "Reparaciones, evidencia y reporte acotado",
+      "plan": "2026-11-10-tp03-adm-12-plan.md",
+      "spec": "../specs/2026-11-10-tp03-lifecycle-design.md",
+      "status": "build_contract_defined_dependencies_pending",
+      "future_tasks": 3,
+      "code_tasks": 3,
+      "open_decisions": [],
+      "constructed": false,
+      "activated": false
+    },
+    {
+      "code": "ADM-14",
+      "title": "Renovaciones decididas por el empleado",
+      "plan": "2026-11-10-tp03-adm-14-plan.md",
+      "spec": "../specs/2026-11-10-tp03-lifecycle-design.md",
+      "status": "build_contract_defined_dependencies_pending",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "open_decisions": [],
+      "constructed": false,
+      "activated": false
+    },
+    {
+      "code": "ADM-18",
+      "title": "Solicitud privada y revisión humana de alquiler",
+      "plan": "2026-11-10-tp03-adm-18-plan.md",
+      "spec": "../specs/2026-11-10-tp03-lifecycle-design.md",
+      "status": "build_contract_defined_dependencies_pending",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "open_decisions": [],
+      "constructed": false,
+      "activated": false
+    },
+    {
+      "code": "ADM-19",
+      "title": "Referencias y contratos firmados fuera de Hampton",
+      "plan": "2026-11-10-tp03-adm-19-plan.md",
+      "spec": "../specs/2026-11-10-tp03-lifecycle-design.md",
+      "status": "build_contract_defined_dependencies_pending",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "open_decisions": [],
+      "constructed": false,
+      "activated": false
+    },
+    {
+      "code": "ADM-20",
+      "title": "Ámbito y validación de reglas de arrendamiento",
+      "plan": "2026-11-10-tp03-adm-20-plan.md",
+      "spec": "../specs/2026-11-10-tp03-lifecycle-design.md",
+      "status": "build_contract_defined_activation_pending",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "open_decisions": [],
+      "constructed": false,
+      "activated": false
+    },
+    {
+      "code": "ADM-15",
+      "title": "Avisos de renta con política y evidencia",
+      "plan": "2026-11-10-tp03-adm-15-plan.md",
+      "spec": "../specs/2026-11-10-tp03-lifecycle-design.md",
+      "status": "build_contract_defined_activation_pending",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "open_decisions": [],
+      "constructed": false,
+      "activated": false
+    },
+    {
+      "code": "OFE-06",
+      "title": "Seguimiento interno de compraventas",
+      "plan": "2026-11-10-tp03-ofe-06-plan.md",
+      "spec": "../specs/2026-11-10-tp03-communications-design.md",
+      "status": "build_contract_defined_dependencies_pending",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "open_decisions": [],
+      "constructed": false,
+      "activated": false
+    },
+    {
+      "code": "OFE-07",
+      "title": "Evidencia restringida y revisión humana de diligencia",
+      "plan": "2026-11-10-tp03-ofe-07-plan.md",
+      "spec": "../specs/2026-11-10-tp03-communications-design.md",
+      "status": "build_contract_defined_activation_pending",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "open_decisions": [],
+      "constructed": false,
+      "activated": false
+    }
+  ],
+  "plan_count": 11,
+  "future_tasks": 23,
+  "code_tasks": 23,
+  "all_whole_tasks_ready_to_build": false,
+  "open_user_decisions": [],
+  "builder_check": {
+    "status": "completed_technical_questions_resolved",
+    "reviewer": "tp03_builder_check",
+    "technical_questions_resolved": [
+      "Carril auth cuerpoefímero, metadatossin código y cuota100compartida",
+      "Entregamanualexterna de documentos sensibles, sin grantdocument_read ficticio",
+      "statement_source_clock yCAS quecubretodaslasfuentes",
+      "hashes contratoemitido/firmadodiferentes y revisiónhumanadecorrespondencia"
+    ],
+    "interface_correction": "sourceRef:CommunicationSource unificado",
+    "second_independent_review_after_fixes": false,
+    "self_review_after_fixes": true,
+    "new_user_questions_required": 0,
+    "withdrawal_delta_review": "completed_tp04_scope_builder_check_resolved_self_reviewed"
+  },
+  "verification_gates": [
+    {
+      "id": "TP03-V01",
+      "owner": "Hampton / operador autorizado",
+      "scope": "Capacidad por caso para datos estructurados y referencias externas manuales revisadas; retención/borrado/backup de datos estructurados registrados. No repositorio de archivos ni subida de documentos."
+    },
+    {
+      "id": "TP03-V02",
+      "owner": "Hampton; Hermes gestiona acuerdos con instrucciones existentes",
+      "scope": "Registros/ámbito/contratos/políticas aprobadas porcaso, sin búsquedas ni nuevas instrucciones aquí"
+    },
+    {
+      "id": "TP03-V03",
+      "owner": "Constructor OFE02/AUT17 y operador",
+      "scope": "Cada propósito y plantilla/transporte/recepción/código auth probados; revisiónporenvío, cuota100 y unknown; no canales ficticios"
+    },
+    {
+      "id": "TP03-V04",
+      "owner": "Hampton / asesor competente",
+      "scope": "Regla jurídica/plantilla/medio/servicioRPI/fiscalidad verificadas; fuentes consultadas no son aprobación delcaso"
+    },
+    {
+      "id": "TP03-V05",
+      "owner": "Constructor ADM10",
+      "scope": "PDF/Unicode/fuente/licencia/CPU/memoria Workers y bytes inmutables; fallbackimpresión explícito, sin renderremoto"
+    },
+    {
+      "id": "TP03-V06",
+      "owner": "Hampton",
+      "scope": "Umbral/basis/periodo asequibilidad si seusa, si falta revisiónhumana sin rechazoautomático"
+    }
+  ],
+  "counts": {
+    "active_plans": 11,
+    "excluded_by_user": 2,
+    "scope_questions": 0,
+    "conditional_policy_activation_plans": 3
+  },
+  "existing_answers_not_reasked": [
+    "P01",
+    "P02",
+    "P03"
+  ],
+  "withdrawn_codes": [
+    "ADM-05",
+    "OFE-08"
+  ],
+  "withdrawal_evidence": [
+    {
+      "code": "ADM-05",
+      "plan": "2026-11-10-tp03-adm-05-plan.md",
+      "status": "excluded_by_user_2026_11_10"
+    },
+    {
+      "code": "OFE-08",
+      "plan": "2026-11-10-tp03-ofe-08-plan.md",
+      "status": "excluded_by_user_2026_11_10"
+    }
+  ],
+  "withdrawal_reconciliation": "generic repository/uploads/keys/banks and commission extensions removed; external evidence references only; generated financial PDF remains ADM10-specific"
+}

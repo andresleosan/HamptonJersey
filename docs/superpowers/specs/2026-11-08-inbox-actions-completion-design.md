@@ -1,0 +1,40 @@
+# Inbox · Pestañas, acciones de dominio y resumen existente
+
+> Reconciliación TP-05 · 10-nov-2026: alcance, decisiones y dependencias vigentes en [índice consolidado](../plans/2026-11-10-tp05-construction-index.md) y [maestro](../../roadmap/2026-11-10-plan-maestro-vigente.md). Este plan no acredita construcción, publicación o activación.
+
+
+Solo planificación de NOT-08/09/10, sobre [NOT-01](2026-11-08-not-01-event-inbox-design.md) y [NOT-11](2026-11-08-search-state-capture-design.md). No segundo Inbox, cola de mensajes o reloj. NOT-02/03/04/07 ya terminadas se conservan y verifican como regresiones, sin nuevas tareas artificiales. Diseño/UI/seguridad del [workspace](2026-11-08-property-workspace-design.md) §2.
+
+## 1. Enfoque y registro cerrado
+
+Mantener notifications, task_key/source_version/revision/assigned_to/due_at y taskStatements componible. NOT-01 posee proyector común, NOT-11 persistencia/acciones básicas, NOT-08 categorías y filtros, NOT-09 despacho de acciones tipadas. Alternativas: lógica de dominio repetida dentro del Inbox, enlaces que no ejecutan nada o un dispatcher estrecho a los servicios propietarios. Se elige el tercero; evita otra autoridad de aprobación/visita/criterios.
+
+Unificar registro de NOT-01 y ampliaciones NOT-11 antes de integrar: targets applicant/contact/viewing/offer/sale/rental/listing/property_operation/consultation/capture. Cada tipo tiene resolver/permiso de dominio; no activar target cuyo dueño aún no esté integrado. Los tipos futuros no se aceptan desde API manual por inferencia. `resolveTaskTarget` verifica existencia, scope, operación, parentesco y source_revision dentro del batch. Categorías existentes new_applicant/viewing/matched/manual más agency/property/search_review/criteria_review/message/compliance (ampliación propuesta). Validar enum en tablas/rutas/preferences/counts en una migración compartida con NOT-11, no dos reconstrucciones concurrentes. Target interno no concede acceso a recursos de otro cliente.
+
+## 2. NOT-08 · Categorías y conteos coherentes
+
+`server/inbox-categories.js` posee `categoryForTask(descriptor)` y `listInboxCategory(env,{box,category,cursor,limit:200},actor)`. Tabs All/New applicants/Matched/Agency replies/Viewings/Messages/Compliance, y trabajo de captura/fuentes/revisión accesible desde All y filtros tipados sin bandejas nuevas. Definición de cada productor: consulta/respuesta/llamada ->agency; visita ->viewing; chat web/correo ->message; obligación real existente Rentals/retención ->compliance; captura/fuente ->property; día21 ->search_review; propuesta ->criteria_review. No crear obligación de cumplimiento a partir de un título o estado de portal. No duplicar un mismo task_key por renderizarlo en All y categoría.
+
+Conteo Needs action incluye todas las tareas abiertas aunque estén snoozed; lista distingue Active y Snoozed, manteniendo acceso a estas últimas y su contador. Preferencia personal no resuelve ni oculta obligación compartida. Feed informativo mantiene200, cursor estable y no convierte leer en Done. Categorías sin módulo no muestran simulaciones; vacío distingue no hay tareas de fuente pendiente o canal no activado. Web+correo, Meta fuera y WhatsApp después. Mantener badge separado Sales/Rentals/To confirm: no sumarlos otra vez al Inbox si representan mismos episodios.
+
+Enlaces del servidor por target abren selección exacta (viewing_id, offer_id, capture_id...) en pantalla ya existente, no solo lista vacía ni URL libre. Validar id y selección dentro del contexto al abrir; no mostrar una entidad ajena si un parámetro apunta a otro scope. La URL lleva IDs de entidad, nunca nombres/códigos/token personal.
+
+## 3. NOT-09 · Acción visible, ejecutada por su dueño
+
+`server/inbox-actions.js`: `getTaskActions(env,{task_id,revision},actor)->{actions,source_revision}` y `executeTaskAction(env,{task_id,revision,source_revision,action,payload,operation_id},actor)->{task,domain_result}`. Payload allowlist por acción, no estado/SQL/href arbitrario. Operación idempotente acotada task+actor+operation_id+hash, sin body libre guardado; receipt no reemplaza recibo de email ni idempotencia del dominio. Si resultado queda unknown, reconsultar identidad de la operación del dueño y mostrar pending_review; no repetir una acción de gasto/contacto sin reconciliar. Operación diferente con mismo ID409; versión antigua409 sin efectos.
+
+Approve llama `reviewCandidate` de BUS-15 con snapshot; unknownMUST solo permite autorizar aclaración por propósito, nunca presentación. Mostrar confirmación específica si acción autoriza contacto; no usar Done como aprobación. Reply abre borrador en MSG-03/AUT-17 o AGE-06 según target y conserva permiso del canal; enviar exige revisión y guardas AUT-11, no se envía por abrir. Call muestra todos los teléfonos de AGE-04/08 y selector, luego resultado con evidencia AGE-06; pulsar tel no acredita llamada realizada ni respuesta útil. Capture abre manifiesto SPR-03 parcial/completo; Criteria review enseña before/after y confirma AUT-19; Viewing usa VIS-17/08 y sus aceptaciones, no viejo confirm global.
+
+Snooze usa `{until_local,zone:'Europe/Jersey'}` validado, máximo30 días desde ahora como límite técnico, no cambia due_at, urgencia, responsable, búsqueda o hechos. Fold/gap manual rechaza hora ambigua/inexistente y pide hora exacta. Guardar snoozed_until/revision en NOT-11; reloj existente hace visible al vencer, persistencia no requiere reloj nuevo. Si hay actualización material source_version posterior, retirar snooze y mostrar motivo sin perder historial. Si se resuelve dominio mientras duerme, cerrar la misma tarea; al vencer no revivir. Toda tarea pospuesta continúa accesible en Snoozed. Done solo reconoce trabajo según contrato; no salta un resultado de dominio requerido ni elimina mensajes/historia.
+
+Permiso y versiones se revalidan al ejecutar, aunque botón estaba visible. El dominio aporta sentencias componibles y TASK resulta de la transición del dominio, en el mismo batch o reconciliación explícita sin falsa atomicidad. No llamar un servicio que ya hace batch independiente y afirmar rollback conjunto. Tests de dos empleados, reply tardío, renovación del link y retención prueban la integración.
+
+## 4. NOT-10 · Verificar y activar lo que existe
+
+El resumen diario08:00 Europe/Jersey ya está implementado en AUT-17/emailPass. Este plan es continuidad/activación, no nueva función cron. `server/email.js`, `server/jobs.js`, `admin/src/EmailSettings.jsx` y pruebas email existentes son fuentes. Revisar categorías nuevas como contadores genéricos si falta cobertura, sin nombres/direcciones de clientes, notas, feedback o fotos. Cada destinatario configurado recibe correo separado y enlace al panel; no informe a propietario ni correo de actividad externa.
+
+Mantener pausa/bajas/cuota, un resumen por destinatario/día, no enviar ayer después de medianoche, no repetir send unknown, y guardia de servicio verificado. NOT-08 no decide destinatarios por assigned_to ni habilita suscripciones al crear tarea. Activación posterior requiere configuración real de cuenta/dominio AUT-17, muestra aprobada y recepción por destinatario interno autorizado; sin credenciales ni envíos en esta sesión. La inferencia de IA no interviene en el resumen. Su8:00 no cambia el barrido01:00 ni los plazos laborables de llamadas.
+
+## 5. Pruebas y evidencia
+
+Reutilizar pruebas NOT-01/11 y añadir matriz de todos los targets/categorías registrados, conteos únicos incluyendo snoozed, close/reopen/source_revision viejo, versiones obsoletas, permiso revocado y dominio no integrado. Ensayar10 acciones concurrentes, rollback y un envío incierto sin duplicar. UI1280/390/zoom200/teclado, filtros/enlace exacto, borrador conservado y opciones disponibles. Transporte fake acredita contrato local, nunca email recibido o proveedor activado. Registrar construido/integrado/verificado/activado por separado. Los planes de visitas/captura/criterios aportan sus propios productores; esta tanda no inventa eventos ni crea canales excluidos.
