@@ -37,7 +37,7 @@ Mascotas imprescindibles delhogar no negociables, unknownpending; parking flexib
 
 Revisión deausencia21d y repetición7ddesdecierre, unaabierta, opcióncompleta/confirmadainterrumpeausencia. Bajadadeprecio material trasrechazo abre nuevo episodioFound para revisiónhumana. Papelera6meses purgasolofotos/derivados, nodocumentos/planos/historia y noassetscompartidosactivos. VisitasGoogleCalendarprimero,30min/base15/+15entreparroquias/máx8pordía configurables sincancelarreservas existentes.
 
-Publicaciónweb conmínimos+título/operación+foto pública, sinexigir100%, precio privadopermitido; Queue mantienerequisitos adicionales. Estadísticasgenerales sintrackingindividual ni embudo falso. Demanda/folleto conservados conumbral5/revisióncontrainferencias; QRmide redirecciones, nopersonasúnicas. Tours3D/equipo360 y sus tareasT3D/PRE27 descartados porahora; no reactivar porplanantiguo.
+Publicaciónweb conmínimos+título/operación+foto pública, sinexigir100%, precio privadopermitido; Queue mantienerequisitos adicionales. Estadísticasgenerales sintrackingindividual ni embudo falso. Demanda conservada con umbral 5/revisión contra inferencias. Folletos de reparto aplazados. Cada póster de propiedad para la ventana de la oficina lleva QR a su ficha; ANA-10 cuenta aperturas agregadas, no personas únicas ni origen individual de contactos. [Decisión y plan vigente](../superpowers/plans/2026-11-10-ana-10-qr-agregado.md). Tours3D/equipo360 y sus tareasT3D/PRE27 descartados porahora; no reactivar porplanantiguo.
 
 ## Programa de tandas y estado documental
 

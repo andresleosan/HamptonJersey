@@ -1,5 +1,7 @@
 # TP-02 · Estadísticas generales y hitos observados
 
+> **Decisión posterior de Luis, 10-nov:** folletos de reparto aplazados y sin atribución individual del origen de contactos. El único QR vigente es el de cada póster de propiedad, con conteo agregado; prevalece [el plan ANA-10 actualizado](../plans/2026-11-10-ana-10-qr-agregado.md). El texto antiguo incompatible es histórico, no una instrucción de construcción.
+
 ## Enfoque y alcance
 
 ANA-01/05 quedan en rama agregada, decisión de Luis ya publicada. Alternativas: seguimiento por visitante exige otro alcance expresamente rechazado para esta fase; pintar un embudo con totales inconexos produce una afirmación falsa; separar actividad web y hechos de negocio es la opción compatible. No introducir cookies, UUID de visitante, fingerprint, IP hash, backfill o correlación por email/teléfono.

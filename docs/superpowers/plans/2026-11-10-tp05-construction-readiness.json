@@ -5722,44 +5722,20 @@
       "code": "PUB-20",
       "list": 4,
       "title": "Folleto por parroquia con código QR, repartido sin lista de direcciones",
-      "disposition": "current_scope",
-      "planning_status": "build_contract_defined_activation_pending",
-      "canonical_plan": "docs/superpowers/plans/2026-11-10-tp02-pub-20-plan.md",
+      "disposition": "later_phase",
+      "planning_status": "later_phase",
+      "canonical_plan": "docs/superpowers/plans/2026-11-10-pub-20-folleto-qr.md",
       "planning_batch": "TP-02",
-      "construction_dependencies": [
-        {
-          "id": "ANA-10",
-          "requires": "integrated",
-          "reason": "Solo atribución real de contactos por QR requiere guardar origen; diseño del folleto puede avanzar.",
-          "basis": "explicit",
-          "scope": "partial"
-        },
-        {
-          "id": "PUB-10",
-          "requires": "integrated",
-          "reason": "Solo reparto con QR operativo requiere formulario; se puede preparar material antes.",
-          "basis": "explicit",
-          "scope": "partial"
-        },
-        {
-          "id": "ANA-07",
-          "requires": "integrated",
-          "reason": "Las cifras del folleto salen de demanda real por parroquia.",
-          "basis": "explicit",
-          "scope": "whole"
-        }
-      ],
-      "acceptance_gate_ids": [
-        "G-DEMAND"
-      ],
+      "construction_dependencies": [],
+      "acceptance_gate_ids": [],
       "observed_catalog_state": "pendiente",
       "observed_catalog_reference": "docs/roadmap/tasks/PUB-20.json",
       "historical_planning_state": "decision_pending",
       "build_verification_required": true,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "380bfef985243d80b392cbc7e76aa4cc0b913bc4f708ab390d820a6fc90590e7",
-      "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada."
+      "canonical_plan_sha256": "2bf1fb277c201ce8ee5a33773146272b744ea4da04a339417b3959928814ded2",
+      "scope_completion_note": "Folletos de reparto aplazados por decisión posterior. QR de pósteres cubierto por ANA-10."
     },
     {
       "code": "PUB-21",
@@ -6249,17 +6225,17 @@
     {
       "code": "ANA-10",
       "list": 4,
-      "title": "Origen de cada contacto nuevo: web, cartel con QR, folleto o recomendación",
+      "title": "QR de pósteres de propiedades con conteo agregado",
       "disposition": "current_scope",
       "planning_status": "build_contract_defined_dependencies_to_verify",
-      "canonical_plan": "docs/superpowers/plans/2026-11-08-ana-10-typed-contact-acquisition-source.md",
+      "canonical_plan": "docs/superpowers/plans/2026-11-10-ana-10-qr-agregado.md",
       "planning_batch": null,
       "construction_dependencies": [
         {
-          "id": "PUB-10",
-          "requires": "design",
-          "reason": "El tramo de captación de propietarios acuerda origen con valoración; otros contactos pueden medirse aparte.",
-          "basis": "inferred",
+          "id": "PUB-16",
+          "requires": "integrated",
+          "reason": "Verificar retirada, visibilidad y caché antes de activar QR.",
+          "basis": "explicit",
           "scope": "partial"
         }
       ],
@@ -6270,8 +6246,8 @@
       "build_verification_required": true,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "07a48f5bb70ed48493c47593c6015fbcd9e3ef9bc8c3b8299d8572ce73f3db62",
-      "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada.",
+      "canonical_plan_sha256": "30dad22eec6a28743790c9651cdab7c1940954bbda3ff71c387848559667f80d",
+      "scope_completion_note": "La decisión posterior de Luis limita el alcance a QR de pósteres por propiedad y conteo agregado; no atribuir origen a contactos.",
       "consolidated_source_sha256": "30affb97c130bf1421f8dcecc299777fac49f6d32381cbe268cc40c9c02f241c"
     },
     {
@@ -7289,5 +7265,6 @@
     "historical_planning_base_retained": "80ad03df7e095750f455aa4aa668573e9aac5db4",
     "reg17_latest_main_reconciled": true,
     "publication_verified_at_preparation": false
-  }
+  },
+  "decision_update_2026_11_10": "ANA-10 es QR de pósteres por propiedad sin atribución individual; PUB-20 folletos queda aplazada. Resúmenes numéricos del documento corresponden al corte histórico TP-05 y no se han recalculado."
 }
