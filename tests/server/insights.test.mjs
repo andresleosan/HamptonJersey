@@ -32,18 +32,27 @@ test("groupDemand and topUnmet: every wanted parish, Anywhere, Parish unknown an
     rent: [
       { parish: "Grouville", applicants: 1, unmatched: 1, median_budget: 1000, listings: 0 },
       { parish: "St Helier", applicants: 2, unmatched: 1, median_budget: 1500, listings: 2 },
-      { parish: "Anywhere", applicants: 2, unmatched: 2, median_budget: 3000, listings: null },
+      { parish: "Area to confirm", applicants: 2, unmatched: 2, median_budget: 3000, listings: null },
     ],
     buy: [{ parish: "Parish unknown", applicants: null, unmatched: null, median_budget: null, listings: 1 }],
   });
   assert.deepEqual(topUnmet(applicants), [
     { operation: "rent", parish: "Grouville", bedrooms_min: 2, applicants: 1, median_budget: 1000 },
     { operation: "rent", parish: "St Helier", bedrooms_min: 2, applicants: 1, median_budget: 1000 },
-    { operation: "rent", parish: "Anywhere", bedrooms_min: null, applicants: 1, median_budget: null },
-    { operation: "rent", parish: "Anywhere", bedrooms_min: 1, applicants: 1, median_budget: 3000 },
+    { operation: "rent", parish: "Area to confirm", bedrooms_min: null, applicants: 1, median_budget: null },
+    { operation: "rent", parish: "Area to confirm", bedrooms_min: 1, applicants: 1, median_budget: 3000 },
   ]);
   const many = Array.from({ length: 12 }, (_, i) => a("buy", null, i, 500000));
   assert.equal(topUnmet(many).length, 10);
+});
+
+test('area demand separates unknown and legacy blanks from explicit anywhere, including exclusions',()=>{
+  const base={operation:'rent',bedrooms_min:1,budget_max:1000,matched:0};
+  const rows=[{...base,area_answer:'any'},{...base,area_answer:'any',parishes_excluded:'["St Ouen"]'},
+    {...base,area_answer:'unknown'},{...base,area_answer:null},{...base,area_answer:null,parishes_wanted:'["Trinity"]'}];
+  const demand=groupDemand(rows,[]).rent;
+  assert.deepEqual(demand.map(r=>[r.parish,r.applicants]),[['Trinity',1],['Anywhere',1],['Anywhere, with exclusions',1],['Area to confirm',2]]);
+  assert.equal(topUnmet(rows).find(r=>r.parish==='Area to confirm').applicants,2);
 });
 
 test("jerseyDayStart: midnight in Jersey as ISO UTC, BST and GMT", () => {
@@ -110,7 +119,7 @@ function world() {
   const a2 = applicant(env, { name: "Bruno Vibert", created_at: OLD, operation: "rent",
     parishes_wanted: ["St Helier"], bedrooms_min: 2, budget_max: 2000 });
   applicant(env, { name: "Carla Renouf", created_at: OLD, operation: "rent", parishes_wanted: ["St Helier"] });
-  // Malformed JSON never fails the screen: Dario counts as Anywhere.
+  // Malformed JSON never fails the screen: Dario's area needs confirmation.
   const a4 = applicant(env, { name: "Dario Pallot", created_at: OLD, operation: "rent", budget_max: 1500, parishes_wanted: "[St Helier" });
   const a5 = applicant(env, { name: "Elena Querée", created_at: OLD, operation: "rent",
     parishes_wanted: ["St Clement"], bedrooms_min: 1, budget_max: 1200 });
@@ -208,17 +217,17 @@ test("insights: the 30-day figures, exactly", async t => {
     rent: [
       { parish: "St Clement", applicants: 2, unmatched: 1, median_budget: 1500, listings: 0 },
       { parish: "St Helier", applicants: 4, unmatched: 2, median_budget: 2000, listings: 2 },
-      { parish: "Anywhere", applicants: 1, unmatched: 0, median_budget: 1500, listings: null },
+      { parish: "Area to confirm", applicants: 1, unmatched: 0, median_budget: 1500, listings: null },
     ],
     buy: [
       { parish: "St Brelade", applicants: 3, unmatched: 1, median_budget: 800000, listings: 1 },
-      { parish: "Anywhere", applicants: 1, unmatched: 1, median_budget: 700000, listings: null },
+      { parish: "Area to confirm", applicants: 1, unmatched: 1, median_budget: 700000, listings: null },
       { parish: "Parish unknown", applicants: null, unmatched: null, median_budget: null, listings: 1 },
     ],
   });
   assert.deepEqual(d.unmet, [
     { operation: "buy", parish: "St Brelade", bedrooms_min: 3, applicants: 1, median_budget: 900000 },
-    { operation: "buy", parish: "Anywhere", bedrooms_min: 3, applicants: 1, median_budget: 700000 },
+    { operation: "buy", parish: "Area to confirm", bedrooms_min: 3, applicants: 1, median_budget: 700000 },
     { operation: "rent", parish: "St Clement", bedrooms_min: 1, applicants: 1, median_budget: 1200 },
     { operation: "rent", parish: "St Helier", bedrooms_min: null, applicants: 1, median_budget: null },
     { operation: "rent", parish: "St Helier", bedrooms_min: 2, applicants: 1, median_budget: 2000 },

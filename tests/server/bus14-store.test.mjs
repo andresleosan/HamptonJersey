@@ -62,7 +62,7 @@ test('BUS-14 full and single-listing recomputes share an effective event without
 
 test('BUS-14 migration preserves populated legacy scores, decisions and applicant timestamps',()=>{
  const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys=ON');const migrations=new URL('../../migrations/',import.meta.url);
- for(const name of readdirSync(migrations).filter(n=>n.endsWith('.sql')&&!n.startsWith('0037')).sort())db.exec(readFileSync(new URL(name,migrations),'utf8'));
+ for(const name of readdirSync(migrations).filter(n=>n.endsWith('.sql')&&!n.startsWith('0037')&&n<'0039').sort())db.exec(readFileSync(new URL(name,migrations),'utf8'));
  db.exec(`INSERT INTO contacts(name,email,last_activity_at,created_at,updated_at) VALUES('Legacy fixture','legacy-bus14@example.test','${T0}','${T0}','${T0}');
  INSERT INTO applicants(contact_id,operation,stage,source,created_at,updated_at) VALUES(1,'buy','searching','phone','${T0}','${T0}');`);
  for(const [i,status] of ['found','shortlisted','rejected'].entries()){

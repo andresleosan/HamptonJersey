@@ -52,7 +52,7 @@ export function fmtAgo(iso) {
 export const firstSentence = t => t.split(". ")[0].replace(/\.?$/, ".");
 
 export const blank = v => v == null || v === "" || (Array.isArray(v) && !v.length);
-const CHOICES = { operation: OPTIONS.operation, stage: OPTIONS.stages, source: OPTIONS.sources, furnished: OPTIONS.furnished,
+const CHOICES = { area_answer: [["selected", "Selected parishes"], ["any", "Anywhere in Jersey"], ["unknown", "Not sure yet"]], operation: OPTIONS.operation, stage: OPTIONS.stages, source: OPTIONS.sources, furnished: OPTIONS.furnished,
   property_types: OPTIONS.property_types, outdoor: OPTIONS.outdoor, parishes_wanted: OPTIONS.parishes, parishes_excluded: OPTIONS.parishes,
   buyer_position: OPTIONS.buyer_position, mortgage_aip: OPTIONS.mortgage_aip, housing_status: OPTIONS.housing_status,
   preferred_channel: OPTIONS.channels, parking_spaces: OPTIONS.parking };

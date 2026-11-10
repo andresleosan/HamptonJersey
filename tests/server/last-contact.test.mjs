@@ -82,8 +82,8 @@ test("filters by budget, parish and source", async t => {
   t.mock.timers.enable({ apis: ["Date"], now: NOW });
   const env = makeEnv();
   const cheap = await create(env, { budget_min: 1000, budget_max: 1500, parishes_wanted: ["St Helier"], source: "email" });
-  const stretch = await create(env, { budget_max: 1800, budget_stretch: 2200, parishes_excluded: ["St Helier"] });
-  const open = await create(env, { budget_max: null, source: "walk_in" });
+  const stretch = await create(env, { budget_max: 1800, budget_stretch: 2200, area_answer: "any", parishes_excluded: ["St Helier"] });
+  const open = await create(env, { budget_max: null, source: "walk_in", area_answer: "any" });
   assert.deepEqual(await ids(env, "?budget=2000"), [stretch, open], "up to the stretch; no budget: any");
   assert.deepEqual(await ids(env, "?budget=900"), [stretch, open], "under the minimum is out");
   assert.deepEqual(await ids(env, "?parish=St%20Helier"), [cheap, open], "wanted it, or wants anywhere; excluded is out");

@@ -20,10 +20,12 @@ export function requirementChecks(a, l, original) {
   const facts = evidence._requirements?.version === 1 ? evidence._requirements : {};
   const checks = original.filter(c => !Object.hasOwn(CRITERIA, c.key) && c.key !== 'outdoor');
   for (const key of Object.keys(CRITERIA)) {
-    if (notApplicable(key, a)) continue;
+    if (notApplicable(key, a) && !(key === 'area' && asList(a.parishes_excluded).length)) continue;
     // Missing pet details are not the same as a household without pets.
     const missingPets = key === 'pets' && !hasAnswer(key,a);
-    const active = missingPets || hasAnswer(key,a) || p.values[key] === 'must' || p.unknown?.includes(key);
+    const missingArea = key === 'area' && (a.area_answer === 'unknown' || (a.area_answer == null && !hasAnswer(key,a) && p.values[key] === 'must'));
+    const excludedAreaUnknown = key === 'area' && l.parish == null && asList(a.parishes_excluded).length > 0;
+    const active = missingPets || missingArea || excludedAreaUnknown || hasAnswer(key,a) || p.values[key] === 'must' || p.unknown?.includes(key);
     if (!active) continue;
     const priority = p.values[key] ?? 'unknown';
     let c = original.find(c => c.key === key) ?? { key, result:'unknown', evidence:null };
@@ -41,20 +43,27 @@ export function requirementChecks(a, l, original) {
         : 'The team needs to check this requirement' };
     }
     if (p.unknown?.includes(key)) c = { ...c, result:'unknown' };
+    if ((missingArea && (a.area_answer === 'unknown' || priority === 'must')) || excludedAreaUnknown) c = { ...c, confirmation_required:true };
     // A known household fact is never silently removed by making its acceptance negotiable.
-    checks.push({ ...c, priority, reason: missingPets ? 'Confirm whether the household has pets' : priority === 'unknown' ? 'Confirm how important this requirement is'
+    checks.push({ ...c, priority, reason: missingPets ? 'Confirm whether the household has pets'
+      : missingArea ? 'Confirm which areas are suitable' : excludedAreaUnknown ? 'Confirm the property is outside excluded areas'
+      : priority === 'unknown' ? 'Confirm how important this requirement is'
       : c.result === 'unknown' ? 'Needs confirmation' : c.result === 'fails' ? (priority === 'must' ? 'Must-have not met' : 'Preference not met') : 'Meets the stated requirement' });
   }
   return checks;
 }
 export function requirementsSummary(checks, pass = true, legacy = false) {
   const incompatible = checks.some(c => c.result === 'fails' && (c.priority === 'must' || c.key === 'pets'));
-  const pending = legacy || checks.some(c => c.priority === 'unknown' || ((c.priority === 'must' || c.key === 'pets') && c.result === 'unknown'));
+  const pending = legacy || checks.some(c => c.confirmation_required || c.priority === 'unknown' || ((c.priority === 'must' || c.key === 'pets') && c.result === 'unknown'));
   const requirements_status = !pass ? 'excluded' : incompatible ? 'alternative' : pending ? 'pending' : 'meets';
   return { requirements_status, requirements_rank: {meets:0,pending:1,alternative:2,excluded:3}[requirements_status] };
+}
+export function areaPreferenceRank(a,l) {
+  return a.area_answer === 'selected' && a.preferred_parish && a.preferred_parish === l.parish ? 0 : 1;
 }
 export function compareRequirements(a,b) {
   const rank = m => m.requirements_rank ?? requirementsSummary(typeof m.checks === 'string' ? JSON.parse(m.checks) : m.checks || [], true,
     !(typeof m.checks === 'string' ? m.checks.includes('"priority"') : m.checks?.some(c => c.priority))).requirements_rank;
-  return rank(a)-rank(b) || b.score-a.score || String(a.listing_id ?? a.listing?.id ?? a.id).localeCompare(String(b.listing_id ?? b.listing?.id ?? b.id));
+  return rank(a)-rank(b) || b.score-a.score || (a.area_preference_rank ?? 1)-(b.area_preference_rank ?? 1)
+    || String(a.listing_id ?? a.listing?.id ?? a.id).localeCompare(String(b.listing_id ?? b.listing?.id ?? b.id));
 }

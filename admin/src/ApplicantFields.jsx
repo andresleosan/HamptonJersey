@@ -6,7 +6,7 @@ import ViewingAvailability from "./ViewingAvailability.jsx";
 // The form value: API field names, inputs as strings, lists as arrays, pets as [{kind, count}].
 const TEXT = ["name", "email", "phone", "preferred_channel", "best_time", "operation", "furnished", "near", "move_in_date",
   "buyer_position", "mortgage_aip", "housing_status", "requirements", "search_category", "commercial_kind", "commercial_use",
-  "area_unit", "commercial_rent_period", "preferred_language", "household_children_status"];
+  "area_unit", "commercial_rent_period", "preferred_language", "household_children_status", "area_answer", "preferred_parish"];
 const NUM = ["budget_min", "budget_max", "budget_stretch", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "parking_spaces",
   "lease_term_months", "household_adults", "household_children", "area_min", "area_max", "commercial_purchase", "commercial_rent",
   "commercial_premium", "commercial_expenses"];
@@ -39,10 +39,27 @@ const HOUSING_WHY = "It decides which homes they can rent or buy in Jersey.";
 // The search's requirements and the person's contact details, grouped like the website's steps (§5).
 // operation: the search's operation; it decides the rent-only and buy-only fields and the budget wording.
 // contact: a saved contact the search is for; its details are shown, not edited.
-export default function ApplicantFields({ value, onChange, errors = {}, operation, contact, lockedCategory = false }) {
+export default function ApplicantFields({ value, onChange, errors = {}, operation, contact, lockedCategory = false, areaRequired = false }) {
   const set = (k, v) => onChange({ ...value, [k]: v, ...(k==='household_children' && value.household_children_ages && /^\d+$/.test(v) && Number(v)<=20
     ? {household_children_ages:Array.from({length:Number(v)},(_,i)=>value.household_children_ages[i]??null)} : {}) });
-  const keyFor={parishes_wanted:'area',property_types:'type',bedrooms_min:'bedrooms',bathrooms_min:'bathrooms',parking_spaces:'parking',furnished:'furnished',budget_max:'budget',move_in_date:'move_in_date',lease_term_months:'lease_term_months',near:'near',requirements:'requirements',household_children_status:'children'};
+  const keyFor={area_answer:'area',property_types:'type',bedrooms_min:'bedrooms',bathrooms_min:'bathrooms',parking_spaces:'parking',furnished:'furnished',budget_max:'budget',move_in_date:'move_in_date',lease_term_months:'lease_term_months',near:'near',requirements:'requirements',household_children_status:'children'};
+  const changeArea = (k, v, checked) => {
+    if (k === "area_answer") {
+      if (v !== "selected" && (value.parishes_wanted.length || value.preferred_parish)) {
+        if (!window.confirm("Changing this answer will remove the selected and preferred parishes. Continue?")) return;
+        onChange({ ...value, area_answer: v, parishes_wanted: [], preferred_parish: "" });
+      } else set(k, v);
+      return;
+    }
+    const other = k === "parishes_wanted" ? "parishes_excluded" : "parishes_wanted";
+    const moving = checked && value[other].includes(v);
+    const removingSelected = k === "parishes_wanted" && !checked;
+    const removingPreferred = value.preferred_parish === v && (removingSelected || (k === "parishes_excluded" && checked));
+    if ((moving || removingSelected) && !window.confirm(`This will remove ${v} from ${moving ? "the other parish list" : "the selected parishes"}${removingPreferred ? " and clear the preferred parish" : ""}. Continue?`)) return;
+    onChange({ ...value, [k]: checked ? [...value[k], v] : value[k].filter(x => x !== v),
+      ...(moving ? { [other]: value[other].filter(x => x !== v) } : {}),
+      ...(removingPreferred ? { preferred_parish: "" } : {}) });
+  };
   const changePriority=(key,p)=>{
     const old=value.requirement_priorities ?? {version:1,values:{},unknown:[]};
     const unknown=old.unknown.filter(k=>k!==key);
@@ -62,14 +79,20 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
   const money = (k, label) => input(k, label, { inputMode: "decimal", autoComplete: "off" });
   const select = (k, label, list, blank = "Not said") => <div className="field">
     {heading(k,label)}
-    <select id={`a-${k}`} value={value[k]} onChange={e => set(k, e.target.value)} {...aria(k)}>
+    <select id={`a-${k}`} value={value[k]} onChange={e => {
+      if (k === "preferred_parish" && value[k] && value[k] !== e.target.value
+        && !window.confirm("Change or remove the preferred parish?")) return;
+      set(k, e.target.value);
+    }} {...aria(k)}>
       <option value="">{blank}</option>{list.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select>{err(k)}</div>;
   // A list of real checkboxes (or radios) inside its own fieldset, the error under it.
   const choices = (k, legend, list, type = "checkbox") => <fieldset className="choices-set" aria-describedby={aria(k)["aria-describedby"]}>
     <legend className="req-heading"><span className="req-label">{legend}</span>{keyFor[k] && prioritySwitch(keyFor[k])}</legend>
     <div className="choices">{list.map(([v, t]) => <label key={v} className="check">
-      <input type={type} name={`a-${k}`} value={v} checked={type === "radio" ? value[k] === v : value[k].includes(v)} {...aria(k)}
-        onChange={e => set(k, type === "radio" ? v : e.target.checked ? [...value[k], v] : value[k].filter(x => x !== v))} />{t}</label>)}</div>
+      <input type={type} name={`a-${k}`} value={v} required={k === "area_answer" && areaRequired || undefined} checked={type === "radio" ? value[k] === v : value[k].includes(v)} {...aria(k)}
+        onChange={e => ["area_answer", "parishes_wanted", "parishes_excluded"].includes(k)
+          ? changeArea(k, v, e.target.checked)
+          : set(k, type === "radio" ? v : e.target.checked ? [...value[k], v] : value[k].filter(x => x !== v))} />{t}</label>)}</div>
     {err(k)}</fieldset>;
 
   const rent = operation === "rent", buy = operation === "buy", commercial = value.search_category === "commercial";
@@ -86,7 +109,13 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
     </section>
 
     <section className="card fields-group" aria-labelledby="g-where"><h2 id="g-where">Where</h2>
-      {choices("parishes_wanted", "Parishes they want", OPTIONS.parishes)}
+      {choices("area_answer", `Where are they looking?${areaRequired ? " (required)" : ""}`, [["selected", "Selected parishes"], ["any", "Anywhere in Jersey"], ["unknown", "Not sure yet"]], "radio")}
+      {!value.area_answer && <p className="muted">The area answer has not been confirmed.</p>}
+      {(value.area_answer === "selected" || (!value.area_answer && value.parishes_wanted.length > 0)) && <>
+        {choices("parishes_wanted", "Parishes they want", OPTIONS.parishes)}
+        {value.area_answer === "selected" && (value.parishes_wanted.length > 1 || value.preferred_parish) && select("preferred_parish", "Preferred parish (optional)",
+          OPTIONS.parishes.filter(([v]) => value.parishes_wanted.includes(v)), "No preference")}
+      </>}
       {choices("parishes_excluded", "Parishes they don't want", OPTIONS.parishes)}
       <div className="grid2">{input("near", "Near (work, school…)", { maxLength: 200 })}</div>
     </section>

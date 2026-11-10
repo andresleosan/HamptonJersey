@@ -140,16 +140,18 @@ export function evaluate(a, l) {
   const baths = atLeast(l.bathrooms, a.bathrooms_min, "bathroom");
   add("bathrooms", baths.result, baths.evidence, true);
 
-  const wanted = list(a.parishes_wanted);
+  const wanted = list(a.parishes_wanted), excluded = list(a.parishes_excluded);
+  const unknownArea = a.area_answer === 'unknown' || (a.area_answer == null && !wanted.length);
   if (l.parish == null) {
-    add("area", "unknown", null);
-    score += wanted.length ? POINTS.areaUnknown : POINTS.area;
+    add("area", a.area_answer === 'any' && !excluded.length ? 'meets' : 'unknown', null);
+    score += wanted.length || a.area_answer === 'unknown' ? POINTS.areaUnknown : POINTS.area;
   } else {
-    const excluded = list(a.parishes_excluded).includes(l.parish);
-    if (excluded) pass = false;
-    const ok = !excluded && (!wanted.length || wanted.includes(l.parish));
-    add("area", ok ? "meets" : "fails", l.parish);
-    if (ok) score += POINTS.area;
+    const veto = excluded.includes(l.parish);
+    if (veto) pass = false;
+    const result = veto ? 'fails' : unknownArea ? 'unknown' : !wanted.length || wanted.includes(l.parish) ? 'meets' : 'fails';
+    add("area", result, l.parish);
+    if (result === 'meets') score += POINTS.area;
+    else if (result === 'unknown') score += a.area_answer === 'unknown' ? POINTS.areaUnknown : POINTS.area;
   }
 
   // J4: a filter only, it scores nothing.

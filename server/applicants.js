@@ -144,6 +144,13 @@ export function validateApplicant(body, { publicForm, savedMoveInDate = null }, 
   const parishes_wanted = many("parishes_wanted", "parishes"), parishes_excluded = many("parishes_excluded", "parishes");
   if (parishes_wanted && parishes_excluded?.some(p => parishes_wanted.includes(p)))
     err("parishes_excluded", "A parish cannot be both wanted and excluded");
+  const area_answer = blank(b.area_answer) ? null : ['selected','any','unknown'].includes(b.area_answer)
+    ? b.area_answer : err('area_answer', 'Choose one of the options');
+  const preferred_parish = one('preferred_parish', 'parishes');
+  if (area_answer === 'selected' && !parishes_wanted?.length) err('parishes_wanted', 'Choose at least one parish');
+  if (['any','unknown'].includes(area_answer) && parishes_wanted?.length) err('parishes_wanted', 'Remove selected parishes for this answer');
+  if (preferred_parish && (area_answer !== 'selected' || !parishes_wanted?.includes(preferred_parish)
+    || parishes_excluded?.includes(preferred_parish))) err('preferred_parish', 'Choose a preferred parish from the selected areas');
 
   let pets = null;
   if (!blank(b.pets)) {
@@ -183,7 +190,7 @@ export function validateApplicant(body, { publicForm, savedMoveInDate = null }, 
     outdoor: many("outdoor", "outdoor"),
     furnished: rent ? one("furnished", "furnished") : null,
     pets,
-    parishes_wanted, parishes_excluded,
+    area_answer, preferred_parish, parishes_wanted, parishes_excluded,
     near: str("near", 200),
     move_in_date,
     lease_term_months: rent ? num("lease_term_months", 1, 120) : null,

@@ -3,8 +3,8 @@ import { OPTIONS } from "./applicants.js";
 import { jerseyNow } from "./viewings.js";
 
 const PARISHES = OPTIONS.parishes.map(([p]) => p);
-const ANYWHERE = "Anywhere", UNKNOWN = "Parish unknown";
-const ORDER = [...PARISHES, ANYWHERE]; // rows and groups follow it
+const ANYWHERE = "Anywhere", EXCLUSIONS = "Anywhere, with exclusions", TO_CONFIRM = "Area to confirm", UNKNOWN = "Parish unknown";
+const ORDER = [...PARISHES, ANYWHERE, EXCLUSIONS, TO_CONFIRM]; // rows and groups follow it
 const FUNNEL = ["viewing", "offer", "agreed", "completed"];
 const OPERATION = { rent: "rent", sale: "buy" }; // listing → applicant
 
@@ -33,10 +33,16 @@ const list = text => {
   try { const v = JSON.parse(text); return Array.isArray(v) ? v : []; } catch { return []; }
 };
 
-// The parishes an applicant row wants (parishes_wanted as stored: JSON list or NULL); none is Anywhere.
+// An empty historical answer remains unconfirmed; only an explicit answer represents anywhere.
 const wanted = a => {
   const parishes = list(a.parishes_wanted);
-  return parishes.length ? parishes : [ANYWHERE];
+  if (parishes.length) return parishes;
+  if (a.area_answer !== 'any') return [TO_CONFIRM];
+  if (a.parishes_excluded) {
+    try { const exclusions=JSON.parse(a.parishes_excluded); if (!Array.isArray(exclusions)) return [TO_CONFIRM];
+      if (exclusions.length) return [EXCLUSIONS]; } catch { return [TO_CONFIRM]; }
+  }
+  return [ANYWHERE];
 };
 
 // I6. applicants: active rows {operation, parishes_wanted, budget_max, matched}; listings: available counts
@@ -50,7 +56,7 @@ export function groupDemand(applicants, listings) {
     const table = ORDER.map(parish => {
       const who = rows.filter(a => a.operation === op && a.parishes.includes(parish));
       return { parish, applicants: who.length, unmatched: who.filter(a => !a.matched).length,
-        median_budget: budgetMedian(who), listings: parish === ANYWHERE ? null : count(op, parish) };
+        median_budget: budgetMedian(who), listings: PARISHES.includes(parish) ? count(op, parish) : null };
     });
     table.push({ parish: UNKNOWN, applicants: null, unmatched: null, median_budget: null, listings: count(op, null) });
     out[op] = table.filter(r => r.applicants || r.listings);

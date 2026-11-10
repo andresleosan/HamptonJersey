@@ -1,6 +1,6 @@
 # PAQ-02 / REG-06: respuestas explícitas de zona
 
-Estado: propuesta para revisión, no implementación. Base examinada: `main` y GitHub `47dab2c`; copia aislada `/tmp/hampton-paq02-15jls7Y1/repo`. Recupera únicamente el alcance REG-06 del [diseño anterior](2026-11-08-l1-registration-criteria-design.md) y su [plan](../plans/2026-11-08-l1-registration-criteria.md). No implica aprobar SAP-10 ni REG-12.
+Estado: diseño aprobado por Luis en este hilo el 10-nov-2026. Base original examinada `47dab2c`; al retomar se integró localmente GitHub `5779655` preservando REG-07. Recupera únicamente el alcance REG-06 del [diseño anterior](2026-11-08-l1-registration-criteria-design.md) y su [plan](../plans/2026-11-08-l1-registration-criteria.md). No implica aprobar SAP-10 ni REG-12, publicar o aplicar migraciones.
 
 ## Comportamiento propuesto
 
@@ -8,7 +8,7 @@ En el registro público y el panel, la persona puede elegir zonas concretas, cua
 
 Una respuesta «no sé» sigue pendiente; no significa «cualquier zona». Los registros antiguos se conservan sin inventar una respuesta. Las zonas excluidas se mantienen al cambiar de opción. Si un cambio borra zonas o una preferencia ya elegidas, se pide confirmación y cancelar conserva lo anterior.
 
-Propuesta del constructor para las altas nuevas de la web y el panel: pedir una de las tres respuestas sin preseleccionar ninguna; «no sé» permite continuar. Editar otro campo de un registro histórico no obliga a responder ni modifica su ausencia, y los clientes API antiguos conservan la compatibilidad. Esta regla se presenta para revisión y no se atribuye a una decisión anterior de Luis.
+Regla incluida en la propuesta aprobada: en las altas nuevas de la web y el panel se pide una de las tres respuestas sin preseleccionar ninguna; «no sé» permite continuar. Editar otro campo de un registro histórico no obliga a responder ni modifica su ausencia, y los clientes API antiguos conservan la compatibilidad.
 
 Si se acepta cualquier zona salvo una exclusión y se desconoce la parroquia de una propiedad, esa exclusión permanece pendiente de comprobación; no se declara cumplida por omitir el criterio. La misma prudencia se aplica a una respuesta «no sé» o a un dato histórico vacío cuando la zona es imprescindible.
 

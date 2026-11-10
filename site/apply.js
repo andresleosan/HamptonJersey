@@ -10,7 +10,7 @@ const PRIVATE = ["name", "email", "phone", "preferred_channel", "best_time", "re
   "marketing", "viewing_availability", "preferred_language", "household_adults", "household_children", "household_children_status", "household_children_ages"];
 const STEPS = [
   { title: "What are you looking for?", fields: ["operation", "search_category", "commercial_kind"] },
-  { title: "Where?", fields: ["parishes_wanted", "parishes_excluded", "near"] },
+  { title: "Where?", fields: ["area_answer", "parishes_wanted", "preferred_parish", "parishes_excluded", "near"] },
   { title: "Property details", fields: ["property_types", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "commercial_use", "area_min", "area_max", "area_unit"] },
   { title: "Parking, outdoor space and pets", fields: ["parking_spaces", "outdoor", "furnished", "pets", "pets_cat",
     "pets_dog", "pets_other", "requirement_priorities"] },
@@ -22,7 +22,7 @@ const STEPS = [
 ];
 const FIELDS = new Set(STEPS.flatMap(s => s.fields));
 const ONLY = { rent: ["furnished", "lease_term_months"], buy: ["buyer_position", "mortgage_aip"] };
-const CHOICES = ["operation", "furnished", "buyer_position", "mortgage_aip", "housing_status", "household_children_status", "preferred_channel", "search_category", "commercial_kind", "area_unit", "commercial_rent_period"];
+const CHOICES = ["operation", "furnished", "buyer_position", "mortgage_aip", "housing_status", "household_children_status", "preferred_channel", "search_category", "commercial_kind", "area_unit", "commercial_rent_period", "area_answer", "preferred_parish"];
 const TEXT = ["near", "move_in_date", "name", "email", "phone", "best_time", "requirements", "commercial_use", "preferred_language"];
 const LISTS = ["parishes_wanted", "parishes_excluded", "property_types", "outdoor"];
 const INTS = ["bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "parking_spaces", "lease_term_months",
@@ -88,6 +88,11 @@ function checkStep(i, a) {
   }
   if (has("operation")) missing("operation", "Choose To Let or To Buy");
   if (has("search_category")) missing("search_category", "Choose what you are looking for");
+  if (has('area_answer')) {
+    if (!['selected','any','unknown'].includes(a.area_answer)) e.area_answer='Choose an area answer, or Not sure yet';
+    if (a.area_answer==='selected' && !(a.parishes_wanted ?? []).length) e.parishes_wanted='Choose at least one parish';
+    if (a.preferred_parish && !(a.parishes_wanted ?? []).includes(a.preferred_parish)) e.preferred_parish='Choose a preferred parish from the selected areas';
+  }
   if (a.search_category !== "commercial" && has("bedrooms_min")) missing("bedrooms_min", "Choose the minimum bedrooms");
   if (a.search_category !== "commercial" && has("budget_max")) {
     if (a.operation === "both") { missing("budget_max_rent", "Enter your maximum rent"); missing("budget_max_buy", "Enter your maximum purchase price"); }
@@ -171,7 +176,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   // One choice from a short scale → a segmented bar ("seg"); any number of choices, or long labels → tiles.
   const pills = (name, items, type = "radio", req = false, cls = type === "checkbox" ? " tiles" : " seg") => `<div class="opts${cls}">${items.map(([v, l]) =>
     `<label><input type="${type}" name="${name}" value="${esc(v)}"${req ? " required" : ""}><span>${esc(l)}</span></label>`).join("")}</div>`;
-  const keyFor = {parishes_wanted:'area',property_types:'type',bedrooms_min:'bedrooms',bathrooms_min:'bathrooms',parking_spaces:'parking',furnished:'furnished',pets:'pets',budget_max:'budget',budget_max_rent:'budget',budget_max_buy:'budget',move_in_date:'move_in_date',lease_term_months:'lease_term_months',near:'near',requirements:'requirements',household_children_status:'children'};
+  const keyFor = {area_answer:'area',property_types:'type',bedrooms_min:'bedrooms',bathrooms_min:'bathrooms',parking_spaces:'parking',furnished:'furnished',pets:'pets',budget_max:'budget',budget_max_rent:'budget',budget_max_buy:'budget',move_in_date:'move_in_date',lease_term_months:'lease_term_months',near:'near',requirements:'requirements',household_children_status:'children'};
   const must = key => `<button type="button" class="req-switch" role="switch" aria-checked="false" data-must="${key}" aria-label="${esc(CRITERIA[key][0])} must-have"${key==='budget' ? ' aria-describedby="budget-limit"' : ''}><span>Must-have</span><span class="req-track" aria-hidden="true"></span><span class="req-state" aria-hidden="true">Off</span></button>`;
   const group = (name, legend, inner, only = "") =>
     `<fieldset class="field"${only ? ` data-only="${only}"` : ""}><legend${keyFor[name] ? ' class="req-heading"' : ''}><span class="req-label">${opt(legend)}</span>${keyFor[name] ? must(keyFor[name]) : ''}</legend>${inner}${err(name)}</fieldset>`;
@@ -191,7 +196,9 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       + `<div class="opts cards">${[...list("operation"), ["both", "Rent and buy"], ["transfer", "Business transfer"]].map(([v, l]) => `<label${v === "transfer" ? ' data-category="commercial"' : ""}><input type="radio" name="operation" value="${esc(v)}" required>
       <span class="opt"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[v] || ""}</svg><b>${esc(l)}</b><small>${esc(OP_NOTE[v] || "")}</small></span></label>`).join("")}</div>
       ${err("operation")}`,
-    group("parishes_wanted", "Parishes you'd like (optional)", pills("parishes_wanted", list("parishes"), "checkbox"))
+    group("area_answer", "Where would you consider? (required)", pills("area_answer", [["selected","Choose areas"],["any","Anywhere in Jersey"],["unknown","Not sure yet"]], "radio", true))
+      + `<div data-area-selected>${group("parishes_wanted", "Parishes you'd consider", pills("parishes_wanted", list("parishes"), "checkbox"))}
+        <div class="field" data-area-preferred><label for="f-preferred_parish">Preferred parish (optional)</label><select id="f-preferred_parish" name="preferred_parish"><option value="">No preference among these areas</option>${list("parishes").map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join("")}</select>${err("preferred_parish")}</div></div>`
       // Rarely used, so it waits behind a link; it opens by itself when it already has an answer (sync).
       + `<details class="more"><summary>Add parishes to avoid</summary>${group("parishes_excluded", "Parishes to avoid (optional)",
         pills("parishes_excluded", list("parishes"), "checkbox"))}</details>`
@@ -257,7 +264,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   const counter = $(".apply-progress p", body), bar = $(".pbar", body);
   const UNAVAILABLE = `Online registration is unavailable right now. Please call us on ${TEL}.`;
   const TS_FAILED = `Our anti-spam check didn't load. Please call us on ${TEL} to register, or try again later.`;
-  let step = 0, widget = null, tsAsked = false, tsFailed = false, sending = false;
+  let step = 0, widget = null, tsAsked = false, tsFailed = false, sending = false, lastAreaChoice = '', lastPreferred = '';
 
   const snapshot = () => {
     const a = {};
@@ -292,6 +299,11 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     form.querySelectorAll("[data-ph-buy]").forEach(i => { i.placeholder = op === "buy" ? i.dataset.phBuy : i.dataset.phRent; });
     form.querySelectorAll("[data-rent]").forEach(l => { l.innerHTML = opt(op === "buy" ? l.dataset.buy : l.dataset.rent); });
     const a = snapshot(), chosen = a.pets ?? [];
+    const areaSelected=a.area_answer==='selected', wanted=a.parishes_wanted ?? [], preferred=$('[name=preferred_parish]',form);
+    $('[data-area-selected]',form).hidden=!areaSelected && !(!a.area_answer && wanted.length);
+    $('[data-area-preferred]',form).hidden=!areaSelected || (wanted.length<2 && !preferred.value);
+    [...preferred.options].forEach(option=>{if(option.value){option.disabled=!wanted.includes(option.value);option.hidden=option.disabled;}});
+    if(preferred.value && !wanted.includes(preferred.value))preferred.value='';
     const limit=$('#budget-limit',form), note=budgetLimitNote(a);
     limit.textContent=note; limit.hidden=!note;
     const ages=$('[data-children-ages]',form), n=childStatus==='known' ? number(a.household_children) : null;
@@ -384,12 +396,34 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   form.addEventListener("change", e => {
     const t = e.target;
     if (t.name === "household_children_status" && t.value !== "known") $("[name=household_children]", form).value = "";
+    const preferred=$('[name=preferred_parish]',form);
+    if(t.name==='area_answer'){
+      if(t.value!=='selected' && (controls('parishes_wanted').some(x=>x.checked)||preferred.value)){
+        if(!window.confirm('Changing this answer removes the selected and preferred areas. Continue?')){
+          t.checked=false;const previous=controls('area_answer').find(x=>x.value===lastAreaChoice);if(previous)previous.checked=true;
+          sync();save();return;
+        }
+        controls('parishes_wanted').forEach(x=>{x.checked=false;});preferred.value='';
+      }
+      lastAreaChoice=t.value;
+    }
+    if(t.name==='preferred_parish' && lastPreferred && lastPreferred!==t.value
+      && !window.confirm('Change or remove your preferred parish?')){t.value=lastPreferred;sync();save();return;}
+    if(t.name==='parishes_wanted'&&!t.checked){
+      const clearsPreference=preferred.value===t.value;
+      if(!window.confirm(clearsPreference ? 'Removing this area also removes your preferred parish. Continue?' : 'Remove this selected parish?')){t.checked=true;sync();save();return;}
+      if(clearsPreference)preferred.value='';
+    }
     // "No pets" stands alone; a parish is either wanted or avoided.
     if (t.name === "pets" && t.checked)
       controls("pets").forEach(x => { if (x !== t && (["none","unknown"].includes(t.value) || ["none","unknown"].includes(x.value))) x.checked = false; });
     const other = { parishes_wanted: "parishes_excluded", parishes_excluded: "parishes_wanted" }[t.name];
-    if (other && t.checked) controls(other).forEach(x => { if (x.value === t.value) x.checked = false; });
-    sync(); save();
+    if (other && t.checked) for(const x of controls(other)) if(x.value===t.value&&x.checked){
+      const clearsPreference=other==='parishes_wanted'&&preferred.value===t.value;
+      if(!window.confirm(clearsPreference ? 'Moving this parish will also clear your preferred parish. Continue?' : 'This parish is already in the other list. Move it?')){t.checked=false;sync();save();return;}
+      x.checked=false;if(other==='parishes_wanted'&&preferred.value===t.value)preferred.value='';
+    }
+    sync(); lastPreferred=preferred.value; save();
   });
   // The link disappears once open, so the focus moves to the first parish rather than being lost.
   $("details.more summary", form).addEventListener("click", e =>
@@ -441,9 +475,12 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   if (saved?.a?.requirement_priorities?.values) form.querySelectorAll('[data-must]').forEach(btn=>{
     if (btn.dataset.must!=='children') btn.setAttribute('aria-checked',String(saved.a.requirement_priorities.values[btn.dataset.must]==='must'));
   });
+  lastAreaChoice=$('[name=area_answer]:checked',form)?.value || '';
+  lastPreferred=$('[name=preferred_parish]',form).value;
   sync();
   // Opening (or starting again) puts focus on the step's heading, as each step change does (WCAG 2.4.3).
-  go(Number.isInteger(saved?.step) && saved.step > 0 && saved.step <= last ? saved.step : 0);
+  const savedStep=Number.isInteger(saved?.step) && saved.step > 0 && saved.step <= last ? saved.step : 0;
+  go(savedStep > 1 && !lastAreaChoice ? 1 : savedStep);
 }
 
 // Controller details come from Hampton's current site (Luis, 2026-10-25): it publishes no legal entity or JOIC number,

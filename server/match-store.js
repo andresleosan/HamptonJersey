@@ -4,6 +4,7 @@
 import { now } from "./http.js";
 import { activeSql, isActive } from "./applicants.js";
 import { evaluate } from "./matching.js";
+import { areaPreferenceRank } from "./requirements.js";
 
 // Listings that may be offered: archived listings are excluded. The applicant's operation is evaluate()'s first filter.
 export const CANDIDATES_SQL = `archived_at IS NULL AND matchable = 1 AND use = 'residential' AND availability IN ('for_sale','to_let','lease')
@@ -17,7 +18,7 @@ export const LISTING = `COALESCE((SELECT version FROM listing_match_inputs WHERE
 // The applicant's search as evaluate() reads it, whether it is active, and the contact's name for the notice.
 export const APPLICANT = `a.match_inputs_revision, a.requirement_priorities, a.household_children, a.household_children_status, a.move_in_date, a.lease_term_months, a.near, a.requirements, a.id, a.archived_at, a.stage, a.search_state, a.search_category, a.updated_at, a.operation, a.budget_min, a.budget_max, a.budget_stretch,
   a.property_types, a.bedrooms_min, a.bedrooms_max, a.bedrooms_ideal, a.bathrooms_min, a.parking_spaces, a.outdoor, a.furnished, a.pets,
-  a.parishes_wanted, a.parishes_excluded, a.housing_status, a.buyer_position, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id`;
+  a.area_answer, a.preferred_parish, a.parishes_wanted, a.parishes_excluded, a.housing_status, a.buyer_position, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id`;
 
 // The applicant's open matched notice; notices find their applicant through their event, so the lookup starts from the
 // applicant's events (events_entity, then notifications_event), never from every open notice: CROSS JOIN keeps that
@@ -65,16 +66,16 @@ function writesFor(env, a, results, stored, actor, ts) {
     const guard=`${validListing} AND ${search}`;
     const args=[r.listing_id,r.version];
     if(m?.status==='shortlisted'||(m&&r.passing)) {
-      if(m.score!==r.score||m.checks!==r.checks||m.requirements_rank!==r.requirements_rank)
-        stmts.push(guarded(`UPDATE matches SET score=?,checks=?,requirements_rank=?,updated_at=?
-          WHERE id=? AND status<>'rejected' AND ${guard}`,r.score,r.checks,r.requirements_rank,ts,m.id,...args));
+      if(m.score!==r.score||m.checks!==r.checks||m.requirements_rank!==r.requirements_rank||m.area_preference_rank!==r.area_preference_rank)
+        stmts.push(guarded(`UPDATE matches SET score=?,checks=?,requirements_rank=?,area_preference_rank=?,updated_at=?
+          WHERE id=? AND status<>'rejected' AND ${guard}`,r.score,r.checks,r.requirements_rank,r.area_preference_rank,ts,m.id,...args));
     } else if(m) {
       stmts.push(guarded(`DELETE FROM matches WHERE id=? AND status='found' AND ${guard}`,m.id,...args));
     } else if(r.passing) {
       inserts.push(stmts.length);
-      stmts.push(guarded(`INSERT INTO matches(applicant_id,listing_id,score,checks,requirements_rank,status,created_at,updated_at)
-        SELECT ?,?,?,?,?,'found',?,? WHERE ${guard} ON CONFLICT(applicant_id,listing_id) DO NOTHING`,
-        a.id,r.listing_id,r.score,r.checks,r.requirements_rank,ts,ts,...args));
+      stmts.push(guarded(`INSERT INTO matches(applicant_id,listing_id,score,checks,requirements_rank,area_preference_rank,status,created_at,updated_at)
+        SELECT ?,?,?,?,?,?,'found',?,? WHERE ${guard} ON CONFLICT(applicant_id,listing_id) DO NOTHING`,
+        a.id,r.listing_id,r.score,r.checks,r.requirements_rank,r.area_preference_rank,ts,ts,...args));
     }
   }
   if(!fresh.length&&!results.some(r=>!r.passing&&stored.get(r.listing_id)?.status==='found'))return {stmts,inserts,search,guarded};
@@ -89,7 +90,7 @@ function writesFor(env, a, results, stored, actor, ts) {
 // A listing row (with its candidate flag) against an applicant.
 function result(a, l) {
   const r = evaluate(a, l);
-  return { listing_id: l.id, version:l.match_inputs_revision, score: r.score, requirements_rank:r.requirements_rank, checks: JSON.stringify(r.checks),
+  return { listing_id: l.id, version:l.match_inputs_revision, score: r.score, requirements_rank:r.requirements_rank, area_preference_rank:areaPreferenceRank(a,l), checks: JSON.stringify(r.checks),
     passing: l.candidate === 1 && r.pass };
 }
 
@@ -111,7 +112,7 @@ export async function recomputeForApplicantWithStatus(env, applicantId, actor, r
     env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE (${CANDIDATES_SQL} AND operation = ?)
       OR id IN (SELECT listing_id FROM matches WHERE applicant_id = ? AND status <> 'rejected')`)
       .bind(LISTING_OPERATION[a.operation], a.id),
-    env.DB.prepare("SELECT id, listing_id, status, score, checks, requirements_rank FROM matches WHERE applicant_id = ?").bind(a.id),
+    env.DB.prepare("SELECT id, listing_id, status, score, checks, requirements_rank, area_preference_rank FROM matches WHERE applicant_id = ?").bind(a.id),
   ])).map(r => r.results);
   const { stmts, inserts, search, guarded } = writesFor(env, a, listings.map(l => result(a, l)), byListing(stored), actor, now());
   const versions=JSON.stringify(listings.map(l=>({id:l.id,version:l.match_inputs_revision})));
@@ -146,7 +147,7 @@ export async function recomputeForListing(env, listingId, actor) {
     env.DB.prepare(`SELECT ${APPLICANT} WHERE ${activeSql("a")} AND a.search_category = 'residential'
       ${l.candidate ? "" : "AND a.id IN (SELECT applicant_id FROM matches WHERE listing_id = ?)"}`)
       .bind(...(l.candidate ? [] : [listingId])),
-    env.DB.prepare("SELECT id, applicant_id, listing_id, status, score, checks, requirements_rank FROM matches WHERE listing_id = ?")
+    env.DB.prepare("SELECT id, applicant_id, listing_id, status, score, checks, requirements_rank, area_preference_rank FROM matches WHERE listing_id = ?")
       .bind(listingId),
   ])).map(r => r.results);
   const mine = new Map(stored.map(m => [m.applicant_id, m]));

@@ -14,7 +14,7 @@ const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "B
 const JSON_FIELDS = ["requirement_priorities", "household_children_ages", "property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded", "viewing_availability"];
 // What an applicant edit may change; source stays as it was registered.
 const SEARCH_FIELDS = ["requirement_priorities", "household_children_ages", "viewing_availability", "operation", "budget_min", "budget_max", "budget_stretch", "property_types", "bedrooms_min",
-  "bedrooms_ideal", "bedrooms_max", "bathrooms_min", "parking_spaces", "outdoor", "furnished", "pets", "parishes_wanted", "parishes_excluded",
+  "bedrooms_ideal", "bedrooms_max", "bathrooms_min", "parking_spaces", "outdoor", "furnished", "pets", "area_answer", "preferred_parish", "parishes_wanted", "parishes_excluded",
   "near", "move_in_date", "lease_term_months", "buyer_position", "mortgage_aip", "housing_status", "household_adults",
   "household_children", "household_children_status", "requirements", "search_category", "commercial_kind", "commercial_use", "area_min", "area_max", "area_unit",
   "commercial_purchase", "commercial_rent", "commercial_rent_period", "commercial_premium", "commercial_expenses", "preferred_language"];
@@ -123,10 +123,11 @@ async function list({ request, env }) {
     where.push("a.search_category = 'residential' AND ? BETWEEN COALESCE(a.budget_min, 0) AND COALESCE(a.budget_stretch, a.budget_max, ?)");
     args.push(Number(budget), Number(budget));
   }
-  // L6: wanted, or no parish asked for (anywhere), and never one they excluded.
+  // L6: an explicit anywhere answer or a saved wanted parish, never an exclusion or an unanswered area.
   if (parish) {
     where.push(`NOT EXISTS (SELECT 1 FROM json_each(COALESCE(a.parishes_excluded, '[]')) WHERE value = ?)
-      AND (COALESCE(json_array_length(a.parishes_wanted), 0) = 0 OR EXISTS (SELECT 1 FROM json_each(a.parishes_wanted) WHERE value = ?))`);
+      AND (a.area_answer = 'any' OR ((a.area_answer = 'selected' OR a.area_answer IS NULL)
+        AND EXISTS (SELECT 1 FROM json_each(a.parishes_wanted) WHERE value = ?)))`);
     args.push(parish, parish);
   }
   if (source) { where.push("a.source = ?"); args.push(source); }

@@ -29,6 +29,11 @@ export default function NewApplicant({ contactId }) {
   useEffect(() => { formRef.current?.querySelector("[aria-invalid=true]")?.focus(); }, [errors]);
 
   const submit = async withContact => {
+    if (!["selected", "any", "unknown"].includes(form.area_answer)) {
+      setErrors({ area_answer: "Choose an area answer, or Not sure yet." });
+      setMsg("Please check the highlighted field.");
+      return;
+    }
     setBusy(true); setMsg(null); setFound(null);
     const body = { ...toBody(form), source: extra.source || null, ...(withContact
       ? { contact_id: withContact } : { privacy: extra.privacy, marketing: extra.marketing }) };
@@ -53,14 +58,14 @@ export default function NewApplicant({ contactId }) {
   return <div>
     <div className="head"><h1 id="t-new-app">{contact ? `New search for ${contact.name}` : "New applicant"}</h1>
       <a href="#/applicants">Back to applicants</a></div>
-    <p className="muted">Required: {contact ? "" : "a name, an email or phone number, "}the operation and how they contacted us. Leave anything unknown blank.</p>
+    <p className="muted">Required: {contact ? "" : "a name, an email or phone number, "}the operation, area answer and how they contacted us. Choose Not sure yet if the area is unknown.</p>
     <form ref={formRef} className="sections" noValidate onSubmit={e => { e.preventDefault(); submit(contact?.id); }}>
       <section className="card fields-group" aria-labelledby="g-source"><h2 id="g-source">How they contacted us</h2>
         <fieldset className="choices-set" aria-describedby={errors.source ? "ae-source" : undefined}><legend className="sr">Source</legend>
           <div className="choices">{SOURCES.map(([v, t]) => radio("source", v, t))}</div>
           {errors.source && <small id="ae-source" className="err">{errors.source}</small>}</fieldset>
       </section>
-      <ApplicantFields value={form} onChange={change} errors={errors} operation={form.operation} contact={contact} />
+      <ApplicantFields value={form} onChange={change} errors={errors} operation={form.operation} contact={contact} areaRequired />
       {!contact && <section className="card fields-group" aria-labelledby="g-consent"><h2 id="g-consent">Consent</h2>
         <p className="muted">Tick only what they agreed to. A box left unticked records nothing.</p>
         <div className="choices">

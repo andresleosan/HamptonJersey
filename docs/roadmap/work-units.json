@@ -4817,7 +4817,7 @@
         }
       ],
       "acceptance": [
-        "Revisar la propuesta de zonas y, con diseño aprobado, integrar las respuestas explícitas con el orden de BUS-14."
+        "Validar en navegador real las respuestas, exclusiones y preferencias; revisar y autorizar por separado el commit y la migración 0039 antes de publicar."
       ]
     },
     {

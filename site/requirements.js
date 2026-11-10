@@ -24,14 +24,21 @@ export const parsePriorities = value => {
     return p?.version === 1 && p.values && !Array.isArray(p.values) && typeof p.values === 'object' ? p : null;
   } catch { return null; }
 };
-export const asList = v => { try { return Array.isArray(v) ? v : JSON.parse(v || '[]'); } catch { return []; } };
+export const asList = v => { try { const list=Array.isArray(v) ? v : JSON.parse(v || '[]'); return Array.isArray(list) ? list : []; } catch { return []; } };
+export function locationAnswer(a) {
+  return { state:['selected','any','unknown'].includes(a.area_answer) ? a.area_answer : 'legacy',
+    wanted:asList(a.parishes_wanted), excluded:asList(a.parishes_excluded), preferred:a.preferred_parish || null };
+}
 export function hasAnswer(key, a) {
+  if (key === 'area' && a.area_answer === 'any') return true;
+  if (key === 'area' && a.area_answer === 'unknown') return false;
   if (['garden', 'terrace', 'balcony'].includes(key)) return asList(a.outdoor).includes(key);
   return CRITERIA[key][1].some(k => a[k] != null && a[k] !== '' && (!Array.isArray(a[k]) || a[k].length)
     && !(typeof a[k] === 'string' && ['[]', 'null'].includes(a[k])));
 }
 export function notApplicable(key, a) {
   return (a.operation === 'buy' && RENT_CRITERIA.includes(key))
+    || (key === 'area' && a.area_answer === 'any')
     || (key === 'parking' && a.parking_spaces != null && a.parking_spaces !== '' && Number(a.parking_spaces) === 0)
     || (key === 'pets' && asList(a.pets).some(p => p.kind === 'none'))
     || (key === 'furnished' && a.furnished === 'either')
@@ -44,7 +51,7 @@ export function prioritiesFor(p, a) {
   for (const key of Object.keys(CRITERIA)) {
     if (a.operation === 'buy' && RENT_CRITERIA.includes(key)) continue;
     if (Object.hasOwn(p.values, key)) values[key] = notApplicable(key, a) ? 'preferred' : p.values[key];
-    if (p.unknown?.includes(key) && !hasAnswer(key, a)) unknown.push(key);
+    if ((p.unknown?.includes(key) || (key === 'area' && values[key] === 'must')) && !hasAnswer(key, a)) unknown.push(key);
   }
   return { version: 1, values, unknown };
 }

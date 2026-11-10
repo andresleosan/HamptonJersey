@@ -22,15 +22,15 @@ export default function Review() {
 
   // The next match after `after` (a match id; null = from the top). The server counts the queue from the top and at
   // its end; in between, `left` is the page's own count. Returns what is left, or null when it failed.
-  const load = async (after, left) => {
+  const load = async (after, left, revision) => {
     refocus.current = true; setRejecting(false);
     try {
-      const d = await api(`/admin/review${after == null ? "" : `?after=${after}`}`);
+      const d = await api(`/admin/review${after == null ? "" : `?after=${after}${revision == null ? "" : `&revision=${revision}`}`}`);
       const remaining = d.remaining ?? left;
       setQ({ match: d.match && { ...d.match, listing: d.listing }, applicant: d.applicant ?? null, remaining });
       setFailed(null);
       return remaining;
-    } catch (e) { setFailed({ after, left, text: e.message }); return null; }
+    } catch (e) { setFailed({ after, left, revision, restart: e.status === 409, text: e.message }); return null; }
   };
   useEffect(() => { load(null); }, []);
   // After each step the focus goes to the card now shown (or what replaced it), so the next key works at once.
@@ -59,23 +59,25 @@ export default function Review() {
 
   const act = (status, reason) => run(async () => {
     const { match, applicant } = q;
-    let text, ok = true, done = null;
+    let text, ok = true, done = null, revision = applicant.matches_revision;
     if (status === "skip") { text = "Skipped."; done = { skip: true, match, applicant }; }
     else try {
       const r = await api(`/admin/matches/${match.id}`, { method: "PUT",
-        body: { status, from: "found", ...(reason && { reject_reason: reason }) } });
+        body: { status, from: "found", matches_revision: revision, ...(reason && { reject_reason: reason }) } });
+      revision = r.revision;
       if (r.match) {
         text = status === "shortlisted" ? "Shortlisted." : `Rejected · ${REASON_LABEL[reason]}.`;
-        done = { status, match: r.match, applicant };
+        done = { status, match: r.match, applicant, revision };
       } else text = GONE;
     } catch (e) {
       // 409: someone else reviewed it (or archived the search) first; 404: a recompute removed it. Either way, move on.
-      if (e.status === 404) text = GONE;
-      else if (e.status === 409) { text = firstSentence(e.message); ok = false; }
+      if (e.status === 404 || e.status === 409) {
+        await load(null); setMsg({ text: e.status === 404 ? GONE : firstSentence(e.message) }); return;
+      }
       else { setMsg({ text: e.message }); keepFocus(); return; } // nothing changed: stay on this match
     }
     // Reviewed, gone or reviewed by someone else, it has left the queue; a skipped one is still in it.
-    const n = await load(match.id, status === "skip" ? q.remaining : Math.max(0, q.remaining - 1));
+    const n = await load(match.id, status === "skip" ? q.remaining : Math.max(0, q.remaining - 1), revision);
     setMsg({ ok, text: n == null ? text : `${text} ${n} left.` });
     setUndo(done);
   });
@@ -83,17 +85,18 @@ export default function Review() {
   const undoLast = () => run(async () => {
     const u = undo, gone = { ok: true, text: "That match no longer fits its search, so it has left the queue." };
     // The undone match is shown again; the one that was next comes after it.
-    const back = (match, remaining, text) => {
+    const back = (match, remaining, text, applicant = u.applicant) => {
       refocus.current = true; setRejecting(false); setFailed(null);
-      setQ({ match, applicant: u.applicant, remaining });
+      setQ({ match, applicant: { ...applicant, matches_revision: u.revision ?? applicant.matches_revision }, remaining });
       setMsg({ ok: true, text: `${text} ${remaining} left.` });
     };
     // A skipped match never left the count; an undone review is one more to review.
     if (u.skip) return back(u.match, q.remaining, "Back to the skipped match.");
     try {
-      const r = await api(`/admin/matches/${u.match.id}`, { method: "PUT", body: { status: "found", from: u.status } });
+      const r = await api(`/admin/matches/${u.match.id}`, { method: "PUT", body: { status: "found", from: u.status, matches_revision: u.revision } });
       if (!r.match) { setMsg(gone); keepFocus(); return; }
-      back(r.match, q.remaining + 1, "Back in Found.");
+      u.revision = r.revision;
+      back(r.match, q.remaining + 1, "Back in Found.", r.applicant ?? u.applicant);
     } catch (e) {
       setMsg(e.status === 404 ? gone : { text: e.status === 409 ? firstSentence(e.message) : e.message });
       keepFocus();
@@ -136,7 +139,7 @@ export default function Review() {
         {undo && <button type="button" className="btn ghost sm" onClick={undoLast}>Undo</button>}</p>
       {msg && !msg.ok && <p role="alert" className="err">{msg.text}</p>}
       {failed ? <p role="alert" className="err">{failed.text}{" "}
-        <button type="button" ref={retryRef} className="btn ghost sm" onClick={() => run(() => load(failed.after, failed.left), false)}>Try again</button></p>
+        <button type="button" ref={retryRef} className="btn ghost sm" onClick={() => run(() => failed.restart ? load(null) : load(failed.after, failed.left, failed.revision), false)}>{failed.restart ? "Start again" : "Try again"}</button></p>
         : !q ? <p>Loading the queue…</p>
         : m ? <div className="review">
           <Summary a={q.applicant} />
@@ -166,7 +169,8 @@ function Summary({ a }) {
     ["Bedrooms, at least", show("bedrooms_min", a.bedrooms_min)], ["Bedrooms, ideally", show("bedrooms_ideal", a.bedrooms_ideal)],
     ["Bathrooms, at least", show("bathrooms_min", a.bathrooms_min)], ["Parking", show("parking_spaces", a.parking_spaces)],
     ["Furnished", show("furnished", a.furnished)], ["Outdoor space", show("outdoor", a.outdoor)],
-    ["Parishes they want", a.parishes_wanted?.length ? show("parishes_wanted", a.parishes_wanted) : "Any"],
+    ["Parishes they want", a.parishes_wanted?.length ? show("parishes_wanted", a.parishes_wanted) : a.area_answer === "any" ? "Anywhere in Jersey" : "To confirm"],
+    ...(a.preferred_parish ? [["Preferred parish", a.preferred_parish]] : []),
     ["Parishes they don't want", a.parishes_excluded?.length ? show("parishes_excluded", a.parishes_excluded) : "None"],
     ["Pets", show("pets", a.pets)]];
   return <aside className="card review-who" aria-labelledby="review-who">

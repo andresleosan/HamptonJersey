@@ -44,7 +44,7 @@ export default function ApplicantMatches({applicantId,applicant:a,counts,onChang
   const group=pages[m.status]?.matches??[],i=group.findIndex(x=>x.id===m.id),next=group[i+1]??group[i-1];
   let error=null;
   try{
-   const {match}=await api(`/admin/matches/${m.id}`,{method:'PUT',body:{...choice,from:m.status}});
+   const {match}=await api(`/admin/matches/${m.id}`,{method:'PUT',body:{...choice,from:m.status,matches_revision:pages[m.status]?.revision}});
    setMsg({ok:true,text:!match?`${m.listing.title} no longer fits this search, so it has left the list.`
     :choice.status==='shortlisted'?`Shortlisted ${m.listing.title}.`:choice.status==='rejected'
     ?`Rejected ${m.listing.title} · ${REASON_LABEL[choice.reject_reason]}.`:`${m.listing.title} is back in Found.`});

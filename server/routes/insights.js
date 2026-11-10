@@ -22,7 +22,7 @@ const TOTALS = `SELECT (SELECT COALESCE(SUM(n), 0) FROM daily_stats WHERE metric
   (SELECT COUNT(*) FROM viewing_requests WHERE status = 'completed' AND date BETWEEN ? AND ?) AS viewings_completed,
   (SELECT MIN(day) FROM daily_stats) AS first_day`;
 // I6, I7: today's active searches, never who they are.
-const DEMAND = `SELECT a.operation, a.parishes_wanted, a.bedrooms_min, a.budget_max, ${MATCHED} AS matched
+const DEMAND = `SELECT a.operation, a.area_answer, a.parishes_wanted, a.parishes_excluded, a.bedrooms_min, a.budget_max, ${MATCHED} AS matched
   FROM applicants a WHERE ${activeSql("a")} AND a.search_category = 'residential'`;
 const LISTINGS = `SELECT operation, parish, COUNT(*) AS n FROM listings WHERE ${AVAILABLE} GROUP BY operation, parish`;
 // I9. Bind order: since, from, to.

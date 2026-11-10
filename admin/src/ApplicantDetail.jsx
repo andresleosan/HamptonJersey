@@ -10,6 +10,7 @@ import { OfferBadge, REASON, Received, money } from "./Sales.jsx";
 import { SALE_STATUS } from "./SaleDetail.jsx";
 import { milestoneLabel } from "../../server/sales.js";
 import SearchLifecycle from "./SearchLifecycle.jsx";
+import { areaCopy } from "./area-copy.js";
 
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
 // Every form field that belongs to the search (the rest of the form is the contact).
@@ -23,7 +24,7 @@ const TABS = [["requirements", "Requirements"], ["matches", "Matches"], ["offers
 const LABEL = { requirement_priorities:"Requirement priorities", household_children_ages:"Children’s ages", household_ages_at:"Ages declared",  viewing_availability: "Usual viewing availability", operation: "To Let or To Buy", stage: "Stage", lost_reason: "Why it was lost", assigned_to: "Assigned to",
   source: "Source", budget_max: "Maximum budget", budget_min: "Minimum budget", budget_stretch: "Can stretch to",
   property_types: "Type", bedrooms_min: "Bedrooms, at least", bedrooms_ideal: "Bedrooms, ideally", bathrooms_min: "Bathrooms, at least",
-  parking_spaces: "Parking", furnished: "Furnished", outdoor: "Outdoor space", pets: "Pets", parishes_wanted: "Parishes they want",
+  parking_spaces: "Parking", furnished: "Furnished", outdoor: "Outdoor space", pets: "Pets", area_answer: "Area answer", preferred_parish: "Preferred parish", parishes_wanted: "Parishes they want",
   parishes_excluded: "Parishes they don't want", near: "Near", move_in_date: "Move-in date", lease_term_months: "Lease length (months)",
   buyer_position: "Buying position", mortgage_aip: "Mortgage agreed in principle", housing_status: "Housing status",
   household_adults: "Adults", household_children: "Children", requirements: "Anything else that matters?", name: "Name",
@@ -204,8 +205,11 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const cancelLost = () => { setLost(null); setChoice(x => ({ ...x, stage: null })); stageRef.current?.focus(); };
 
   const copy = sent => {
-    const from = toForm(sent, sent), keys = COPY.filter(k => !blank(sent[k]));
-    setForm(f => ({ ...f, ...pick(from, keys),
+    const result = areaCopy(form, sent, message => window.confirm(message));
+    if (result.cancelled) return;
+    if (result.error) { setMsg({ text: result.error }); return; }
+    const from = toForm(sent, sent), keys = COPY.filter(k => !["area_answer", "parishes_wanted", "preferred_parish", "parishes_excluded"].includes(k) && !blank(sent[k]));
+    setForm(f => ({ ...f, ...pick(from, keys), ...result.patch,
       ...(["unknown", "not_applicable"].includes(sent.household_children_status) ? { household_children: "" } : {}) })); setErrors({});
     setMsg({ ok: true, text: "What they sent is in the form. Check it, then save." });
     if (cur !== "requirements") go("requirements");
@@ -370,11 +374,14 @@ const Message = ({ m, onReload }) => m && <p role={m.ok ? "status" : "alert"} cl
   {m.stale && <> <button type="button" className="btn ghost sm" onClick={onReload}>Reload</button></>}</p>;
 
 // §3.3: a pending "registered again" from the website. Shows what they sent that differs from what is saved.
-function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirmMarketing, onDismiss }) {
+export function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirmMarketing, onDismiss }) {
   const original = dup.data ?? {};
   const sent = { ...original, operation: original.search_operation ?? original.operation };
   stored = { ...stored, operation: stored.search_operation ?? stored.operation };
-  const differs = k => !blank(sent[k]) && !same(k, sent[k], stored[k]);
+  const explicitArea = ["selected", "any", "unknown"].includes(sent.area_answer);
+  const differs = k => k === "parishes_excluded" ? (sent[k] ?? []).some(p => !(stored[k] ?? []).includes(p))
+    : explicitArea && ["area_answer", "parishes_wanted", "preferred_parish"].includes(k) ? !same(k, sent[k], stored[k])
+    : !blank(sent[k]) && !same(k, sent[k], stored[k]);
   // Sent for the other operation: that is a second search, not changes to this one.
   const keys = [...CONTACT, ...SEARCH].filter(differs);
   const copyable = (sent.operation == null || (sent.search_operation ?? sent.operation) === (stored.search_operation ?? stored.operation))
@@ -407,7 +414,7 @@ function Widen({ alternatives, applicant: a, dirty, onUse }) {
     : `Minimum bedrooms down 1: ${w.from} to ${w.to}`);
   // With nothing to widen, why: each of the three changes is out (spec W7).
   const [budget, parish, beds] = [(a.budget_stretch ?? a.budget_max) == null ? "has no budget limit" : "is at the highest budget the form accepts",
-    a.parishes_wanted?.length ? "has no parish left to add" : "accepts any parish",
+    a.parishes_wanted?.length ? "has no parish left to add" : a.area_answer === "any" ? "accepts any parish" : "has an area answer to confirm",
     a.bedrooms_min > 0 ? "asks for at least 1 bedroom" : "sets no minimum bedrooms"];
   return <section className="card widen" aria-labelledby="widen-h">
     <h2 id="widen-h">Widen criteria</h2>
