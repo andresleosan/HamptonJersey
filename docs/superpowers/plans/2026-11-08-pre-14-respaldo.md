@@ -1,3 +1,5 @@
+> **Plan vigente listo para construir:** [PRE-14 completo](2026-11-09-tp01-pre-14-plan.md) y [cierre de tanda 8](2026-11-10-tanda8-pre14-cierre.md). El documento siguiente conserva antecedentes históricos y decisiones, no es el plan vigente.
+
 > **Nota de vigencia (9-nov-2026):** documento histórico o de planificación. Antes de ejecutarlo, consultar [el índice vigente de Lista 4](../plans/2026-11-09-lista4-tandas-pendientes.md) y las decisiones registradas; no presupone que esté listo para construir ni reactiva tours 3D, redes automáticas, portales o Drive.
 
 # PRE-14 · Respaldo y restauración — plan preliminar

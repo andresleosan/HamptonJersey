@@ -15,6 +15,10 @@
 
 **Dependencies:** Instrucción expresa previa de Luis: Hermes tiene indicaciones; no buscar contratos ni pedirlos al usuario.
 
+El formato de estado/evidencia propuesto en este plan es interno: el responsable normaliza cualquier resultado que Hermes aporte por sus canales existentes, sin pedirle un formato nuevo ni enviar instrucciones adicionales.
+
+**Precedencia de alcance:** el diseño histórico de captación enlazado se consulta aquí solo para la responsabilidad y evidencia de acuerdos. Para formularios y QR prevalecen los planes posteriores de la tanda 6 y ANA-10: póster por propiedad, conteo agregado y sin folletos de entrega por ahora; tours 3D y equipo 360 quedan fuera. Las preguntas históricas de ese diseño no reabren decisiones de esta gestión.
+
 **Readiness:** management. Gestión delegada a Hermes por Luis; no tarea de código ni nuevo paquete legal de esta sesión. Decisiones pendientes: ninguna propia; respetar gates externos y decisiones transversales abiertas.
 
 ## Global Constraints
@@ -26,7 +30,7 @@
 - Copy inglés, labels/status/alert, ARIA/teclado/foco2-offset2/contraste4.5texto-3control/zoom200/reduced-motion; nuevos objetivos44pxmóvil propuestos,32escritorio. Sin fuentes, librerías, estilos o infra nuevos por defecto. Listas/historia50, Inbox200, JSON128KiB/poll30svisible; documentos20MiBstream, medios propios preservan16Mpx/10MiB y miniatura640, no1600obsoleto.
 - Sesión staff/actor servidor/same-origin, client scopes aislados, SQLparametrizado/enums cerrados y React texto/esc/textContent/safeHref. PII/códigos/tokens/documentos fuera de URL/storage/logs/Telegram. Privado no-store/attachment/nosniff y firmas/tipos reales; eventos metadata/ref sin cuerpo privado. GET/prefetch sin mutación. Recursos e inferencia tardíos revalidan fuente/versión/política y borrado.
 - Avanzar/writing-plans fijan archivos/contratos/evidencia; ponytail reutiliza; seguridad servidor/frontend aplica validación/permisos; impeccable/antislop conservan flujo/copy sin adornos; web-performance limita cardinalidad/queries/streams. Taste/redesign no suponen rediseño. Test reales por comportamiento y D1 para atomicidad, no tests espejo de texto o fixture como integración real.
-- P01/P02/P03 están preguntadas: decisiones pendientes no se resuelven por silencio. Contratos afectados son borradores hasta respuesta y actualización del spec. Las propuestas técnicas están marcadas en diseños y no se atribuyen a Luis.
+- Las preguntas históricas P01/P02/P03 no son pendientes propias de esta tarea: aplicar las decisiones consolidadas y el índice de tanda 9. Las condiciones externas de ejecución y activación siguen pendientes de verificación; no atribuir propuestas técnicas a Luis.
 
 ## Review Focus
 

@@ -1,5 +1,7 @@
 # TP-02 · Tanda 2: publicación, captación y medición
 
+> **Decisión posterior de Luis, 10-nov:** folletos de reparto aplazados y sin atribución individual del origen de contactos. El único QR vigente es el de cada póster de propiedad, con conteo agregado; prevalece [el plan ANA-10 actualizado](2026-11-10-ana-10-qr-agregado.md). El texto antiguo incompatible es histórico, no una instrucción de construcción.
+
 10-nov-2026. **Ocho códigos revisados: siete contratos de código preparados y PUB-21 conservada como fase posterior.** No son ocho tareas construidas ni siete activaciones autorizadas. [Estados por código](2026-11-10-tp02-publication-readiness.json) · [Ledger](2026-11-10-tp02-publication-ledger.md).
 
 | Código | Plan | Preparación |

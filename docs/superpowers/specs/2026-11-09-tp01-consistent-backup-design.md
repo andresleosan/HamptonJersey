@@ -1,5 +1,7 @@
 # TP-01 · PRE-14, copia cifrada coherente y restauración
 
+> **Actualización de tanda 8:** protocolo D1, admisión y cupo del spool, y verificación previa completa de recuperación se precisan en [complemento PRE-14](../plans/2026-11-10-tanda8-pre14-cierre.md), que prevalece si hay contradicción.
+
 ## Alcance y evidencia
 
 Sólo planificación solicitada por Luis para TP-01,9-nov-2026. Base main fdc9e657f58ca05f17ba80e439aace13aabedb84 verificada20:51:33UTC; actividad sin verificar (activity_unavailable). No crear recursos, activar controles, leer secretos, exportar datos, descargar fotos, ejecutar copias/restauraciones, migrar, construir o publicar por estos documentos. La publicación anterior estaba acotada a los33 planes de Lista2, no se presupone permiso de publicar esta nueva tanda.

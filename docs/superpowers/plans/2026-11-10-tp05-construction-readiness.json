@@ -1633,8 +1633,8 @@
       "build_verification_required": true,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "64941679978f90613480c93da3299f1c09a2c931585aa97cc0cff3f19c37f11f",
-      "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada."
+      "canonical_plan_sha256": "796e77484057ca8d7d8c0624f620ff48747cd6261281a1b201d405be34a51668",
+      "scope_completion_note": "Complemento de recepción manual verificable coordinado con ANA-06; no confundir aceptación de envío con recepción."
     },
     {
       "code": "AGE-12",
@@ -5643,7 +5643,7 @@
       "title": "Salud de la ficha: aviso con muchas vistas y pocas consultas",
       "disposition": "current_scope",
       "planning_status": "build_contract_defined_dependencies_to_verify",
-      "canonical_plan": "docs/superpowers/plans/2026-11-08-pub-17-internal-listing-performance-review.md",
+      "canonical_plan": "docs/superpowers/plans/2026-11-10-tanda7-pub-17-salud.md",
       "planning_batch": null,
       "construction_dependencies": [
         {
@@ -5661,8 +5661,8 @@
       "build_verification_required": true,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "a43c961c57d23a16fdfce8f03945b0d4cf6ff24c9867ea59dcf5f508d140d315",
-      "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada.",
+      "canonical_plan_sha256": "712a88b35fb565cad784290445c3221e1cb1752854673b2177c0f9e2ff296662",
+      "scope_completion_note": "Reconciliado en tanda 7; planificación no acredita construcción, integración ni activación.",
       "consolidated_source_sha256": "367d8d9c53b0810b33644879b99d66b3af51d81bbe2cbe9e83820dd02fa4a435"
     },
     {
@@ -5722,44 +5722,20 @@
       "code": "PUB-20",
       "list": 4,
       "title": "Folleto por parroquia con código QR, repartido sin lista de direcciones",
-      "disposition": "current_scope",
-      "planning_status": "build_contract_defined_activation_pending",
-      "canonical_plan": "docs/superpowers/plans/2026-11-10-tp02-pub-20-plan.md",
+      "disposition": "later_phase",
+      "planning_status": "later_phase",
+      "canonical_plan": "docs/superpowers/plans/2026-11-10-pub-20-folleto-qr.md",
       "planning_batch": "TP-02",
-      "construction_dependencies": [
-        {
-          "id": "ANA-10",
-          "requires": "integrated",
-          "reason": "Solo atribución real de contactos por QR requiere guardar origen; diseño del folleto puede avanzar.",
-          "basis": "explicit",
-          "scope": "partial"
-        },
-        {
-          "id": "PUB-10",
-          "requires": "integrated",
-          "reason": "Solo reparto con QR operativo requiere formulario; se puede preparar material antes.",
-          "basis": "explicit",
-          "scope": "partial"
-        },
-        {
-          "id": "ANA-07",
-          "requires": "integrated",
-          "reason": "Las cifras del folleto salen de demanda real por parroquia.",
-          "basis": "explicit",
-          "scope": "whole"
-        }
-      ],
-      "acceptance_gate_ids": [
-        "G-DEMAND"
-      ],
+      "construction_dependencies": [],
+      "acceptance_gate_ids": [],
       "observed_catalog_state": "pendiente",
       "observed_catalog_reference": "docs/roadmap/tasks/PUB-20.json",
       "historical_planning_state": "decision_pending",
       "build_verification_required": true,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "380bfef985243d80b392cbc7e76aa4cc0b913bc4f708ab390d820a6fc90590e7",
-      "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada."
+      "canonical_plan_sha256": "2bf1fb277c201ce8ee5a33773146272b744ea4da04a339417b3959928814ded2",
+      "scope_completion_note": "Folletos de reparto aplazados por decisión posterior. QR de pósteres cubierto por ANA-10."
     },
     {
       "code": "PUB-21",
@@ -6045,7 +6021,7 @@
       "build_verification_required": true,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "c661d90fc2d8f711af1b9683210fe97d462642cb936e0f1b2c4cedd511a643ac",
+      "canonical_plan_sha256": "902d1eae68cfc0c6d3c4ebcbb898df8aa68c62d5990047fe4d873d10310db382",
       "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada."
     },
     {
@@ -6071,7 +6047,7 @@
       "title": "Seguimiento del tráfico de la web y de dónde llegan las visitas",
       "disposition": "current_scope",
       "planning_status": "external_verification_or_activation_plan_defined",
-      "canonical_plan": "docs/superpowers/plans/2026-11-08-ana-03-web-analytics-source-activation.md",
+      "canonical_plan": "docs/superpowers/plans/2026-11-10-tanda7-ana-03-cloudflare.md",
       "planning_batch": null,
       "construction_dependencies": [],
       "acceptance_gate_ids": [
@@ -6083,8 +6059,8 @@
       "build_verification_required": false,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "cbb6c06321fc6c4591f50b86b22b12c5a01f5b755e1e6b1db0b43f28eb6cba00",
-      "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada.",
+      "canonical_plan_sha256": "3f840ab53cf5f29d15591295689978ba0fb18792fdfa56b1067fb03050ec9b7d",
+      "scope_completion_note": "Plan de construcción con consulta candidata concreta y pruebas; consulta y datos reales requieren verificación de esquema, permisos y privacidad de cuenta antes de activación.",
       "consolidated_source_sha256": "b707e2b06cece60126591fe98c8be9bf73f3c0c7b62604f2d6e655e3e7d5d1a5"
     },
     {
@@ -6093,7 +6069,7 @@
       "title": "Entender tendencias y demanda para ofrecer más opciones a los usuarios",
       "disposition": "current_scope",
       "planning_status": "build_contract_defined_dependencies_to_verify",
-      "canonical_plan": "docs/superpowers/plans/2026-11-08-ana-04-aggregate-search-demand-series.md",
+      "canonical_plan": "docs/superpowers/plans/2026-11-10-tanda7-ana-04-filtros.md",
       "planning_batch": null,
       "construction_dependencies": [],
       "acceptance_gate_ids": [
@@ -6105,8 +6081,8 @@
       "build_verification_required": true,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "190154bfe97397adda7a281d813fefdc7fe206a7d7e39f5bae1c802f6e93ec2b",
-      "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada.",
+      "canonical_plan_sha256": "ee530c28969b0ed782bfd379f67f21e74b80925adf3ab2885247af5d1a37d13c",
+      "scope_completion_note": "Reconciliado en tanda 7; planificación no acredita construcción, integración ni activación.",
       "consolidated_source_sha256": "6d8b321bca9409d0e50426376ad7ac9900c44ff1647e9df4098d3c4149ccb4a5"
     },
     {
@@ -6133,7 +6109,7 @@
       "build_verification_required": true,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "3fc19e19f6fb282c8d58e9023cb167f90552f162610be53bdf44f71c981a5b42",
+      "canonical_plan_sha256": "7e390b4daf49251a39faeb08a9793751d2835d6ca2913d86f8050f99d9ed62af",
       "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada."
     },
     {
@@ -6142,7 +6118,7 @@
       "title": "Tiempos de respuesta del equipo y de las agencias",
       "disposition": "current_scope",
       "planning_status": "build_contract_defined_dependencies_to_verify",
-      "canonical_plan": "docs/superpowers/plans/2026-11-08-ana-06-agency-and-presentation-response-metrics.md",
+      "canonical_plan": "docs/superpowers/plans/2026-11-10-tanda7-ana-06-tiempos.md",
       "planning_batch": null,
       "construction_dependencies": [
         {
@@ -6167,8 +6143,8 @@
       "build_verification_required": true,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "ba241cf7f7b5e45049c0df3a630b403d670b4dd0031e304b77189edd11f7b33b",
-      "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada.",
+      "canonical_plan_sha256": "6b428dbdb8e4844bace04246a8480307db35120dc39bc2afcc535f1707fabb19",
+      "scope_completion_note": "Tiempo laboral 9-17 lun-vie Jersey sin festivos; indicadores requieren hechos reales AGE-05/06/11 y recepción acreditada.",
       "consolidated_source_sha256": "aefb034c9073af55be541da5d66c6b18d7687eb9ce3ae6e3a2b67f85fbfe19ed"
     },
     {
@@ -6249,17 +6225,17 @@
     {
       "code": "ANA-10",
       "list": 4,
-      "title": "Origen de cada contacto nuevo: web, cartel con QR, folleto o recomendación",
+      "title": "QR de pósteres de propiedades con conteo agregado",
       "disposition": "current_scope",
       "planning_status": "build_contract_defined_dependencies_to_verify",
-      "canonical_plan": "docs/superpowers/plans/2026-11-08-ana-10-typed-contact-acquisition-source.md",
+      "canonical_plan": "docs/superpowers/plans/2026-11-10-ana-10-qr-agregado.md",
       "planning_batch": null,
       "construction_dependencies": [
         {
-          "id": "PUB-10",
-          "requires": "design",
-          "reason": "El tramo de captación de propietarios acuerda origen con valoración; otros contactos pueden medirse aparte.",
-          "basis": "inferred",
+          "id": "PUB-16",
+          "requires": "integrated",
+          "reason": "Verificar retirada, visibilidad y caché antes de activar QR.",
+          "basis": "explicit",
           "scope": "partial"
         }
       ],
@@ -6270,8 +6246,8 @@
       "build_verification_required": true,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "07a48f5bb70ed48493c47593c6015fbcd9e3ef9bc8c3b8299d8572ce73f3db62",
-      "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada.",
+      "canonical_plan_sha256": "30dad22eec6a28743790c9651cdab7c1940954bbda3ff71c387848559667f80d",
+      "scope_completion_note": "La decisión posterior de Luis limita el alcance a QR de pósteres por propiedad y conteo agregado; no atribuir origen a contactos.",
       "consolidated_source_sha256": "30affb97c130bf1421f8dcecc299777fac49f6d32381cbe268cc40c9c02f241c"
     },
     {
@@ -6748,8 +6724,10 @@
       "build_verification_required": true,
       "constructed_by_tp05": false,
       "activated_by_tp05": false,
-      "canonical_plan_sha256": "3392d94ec125ea753adba26f8f2f9d1ae8347f5d0b2080f88f7f53cafccf8f6a",
-      "scope_completion_note": "Conservar evidencia de main y pendientes del plan. Contrato definido no significa dependencias integradas ni activación comprobada."
+      "canonical_plan_sha256": "638b83c6bd5ac4c938b3d597bcfa67b6e18331dba9a68447b1e15c4d5308f436",
+      "scope_completion_note": "Plan y complemento de tanda 8 listos para construir; activación requiere comprobar cobertura, coste, permisos, pausa y restauración aislada.",
+      "supplement_plan": "docs/superpowers/plans/2026-11-10-tanda8-pre14-cierre.md",
+      "supplement_plan_sha256": "0a93804fed7c6dcb1f7b6aae24a503ba9fae694e939a9eb5a92fc4caba7388ed"
     },
     {
       "code": "PRE-15",
@@ -7289,5 +7267,8 @@
     "historical_planning_base_retained": "80ad03df7e095750f455aa4aa668573e9aac5db4",
     "reg17_latest_main_reconciled": true,
     "publication_verified_at_preparation": false
-  }
+  },
+  "decision_update_2026_11_10": "ANA-10 es QR de pósteres por propiedad sin atribución individual; PUB-20 folletos queda aplazada. Resúmenes numéricos del documento corresponden al corte histórico TP-05 y no se han recalculado.",
+  "tanda7_decision_update": "Fuentes y planes reconciliados en docs/superpowers/plans/2026-11-10-tanda7-estado.md; resúmenes agregados de TP-05 siguen siendo históricos.",
+  "tanda8_decision_update": "PRE-14 se revisó con complemento de exportación D1, correo, sello durable y recuperación; los resúmenes globales conservan su fecha histórica."
 }

@@ -72,11 +72,11 @@
     },
     {
       "code": "PUB-20",
-      "plan": "2026-11-10-tp02-pub-20-plan.md",
+      "plan": "2026-11-10-pub-20-folleto-qr.md",
       "spec": "../specs/2026-11-10-tp02-demand-design.md",
-      "status": "build_contract_defined_activation_pending",
-      "future_tasks": 3,
-      "code_tasks": 3,
+      "status": "deferred_by_existing_decision",
+      "future_tasks": 0,
+      "code_tasks": 0,
       "constructed": false,
       "activation_verified": false
     },
@@ -122,5 +122,6 @@
   },
   "resolved_in_tp05": [
     "TP01-A01 google_2fa_and_access"
-  ]
+  ],
+  "decision_update_2026_11_10": "PUB-20 aplazada; QR de pósteres por propiedad está cubierto por ANA-10. Las cifras agregadas del documento reflejan su corte histórico."
 }

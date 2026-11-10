@@ -1,3 +1,5 @@
+> **Actualización 10-nov posterior:** ANA-10 se limita a [QR de pósteres por propiedad](2026-11-10-ana-10-qr-agregado.md); PUB-20 folletos aplazada. Estos estados prevalecen sobre conteos históricos y archivos de readiness anteriores.
+
 # TP-05 · Índice consolidado para construcción
 
 10-nov-2026. Revisión transversal de las cuatro listas y de TP-01–04. Solo planificación local, sin commit/push ni producto. [Matriz completa](2026-11-10-tp05-construction-readiness.json) · [Registro de revisión](2026-11-10-tp05-review-ledger.md) · [Orden y contratos](2026-11-10-tp05-construction-order.md) · [Maestro](../../roadmap/2026-11-10-plan-maestro-vigente.md).
@@ -159,16 +161,16 @@ Los planes copiados desde la otra carpeta de esta sesión se conservan allí int
 | Código | Plan vigente | Estado del alcance |
 |---|---|---|
 | ANA-01 | [Plan](2026-11-10-tp02-ana-01-plan.md) | Contrato definido |
-| ANA-03 | [Plan](2026-11-08-ana-03-web-analytics-source-activation.md) | Verificación/activación externa; plan definido |
-| ANA-04 | [Plan](2026-11-08-ana-04-aggregate-search-demand-series.md) | Contrato definido; verificar dependencias |
+| ANA-03 | [Plan](2026-11-10-tanda7-ana-03-cloudflare.md) | Componente construible; integración de datos y activación dependen de verificar cuenta y privacidad |
+| ANA-04 | [Plan](2026-11-10-tanda7-ana-04-filtros.md) | Contrato definido; verificar dependencias |
 | ANA-05 | [Plan](2026-11-10-tp02-ana-05-plan.md) | Contrato definido; dependencias por integrar |
-| ANA-06 | [Plan](2026-11-08-ana-06-agency-and-presentation-response-metrics.md) | Contrato definido; verificar dependencias |
+| ANA-06 | [Plan](2026-11-10-tanda7-ana-06-tiempos.md) | Contrato definido; verificar dependencias |
 | ANA-08 | [Plan](2026-11-09-ana-08-resumen-inbox.md) | Código existente; verificar continuidad y pendientes |
 | ANA-09 | [Plan](2026-11-08-ana-09-scoped-public-rate-limit.md) | Verificación/activación externa; plan definido |
-| ANA-10 | [Plan](2026-11-08-ana-10-typed-contact-acquisition-source.md) | Contrato definido; verificar dependencias |
+| ANA-10 | [Plan vigente de QR por propiedad](2026-11-10-ana-10-qr-agregado.md) | Alcance actualizado: conteo agregado de QR de pósteres; sin origen por contacto; dependencia PUB-16/caché antes de activar |
 | PRE-06 | [Plan](2026-11-09-tp01-pre-06-plan.md) | Contrato definido; activación por comprobar |
 | PRE-13 | [Plan](2026-11-09-tp01-pre-13-plan.md) | Gestión definida; sin construcción de producto |
-| PRE-14 | [Plan](2026-11-09-tp01-pre-14-plan.md) | Contrato definido; activación por comprobar |
+| PRE-14 | [Plan](2026-11-09-tp01-pre-14-plan.md) + [cierre](2026-11-10-tanda8-pre14-cierre.md) | Plan listo para construir; permisos, coste, prueba de pausa y restauración condicionan activación |
 | PRE-16 | [Plan](2026-11-09-tp01-pre-16-plan.md) | Código definido; gestión por comprobar |
 | PRE-28 | [Plan](2026-11-09-tp01-pre-28-plan.md) | Gestión definida; sin construcción de producto |
 | PRE-33 | [Plan](2026-11-08-pre-33-hermes-existing-agreements-handoff.md) | Gestión definida; sin construcción de producto |
@@ -186,9 +188,9 @@ Los planes copiados desde la otra carpeta de esta sesión se conservan allí int
 | PUB-13 | [Plan](2026-11-08-pub-13-evidence-backed-web-copy-drafts.md) | Tramo definido; integración/evidencia pendiente |
 | PUB-14 | [Plan](2026-11-08-pub-14-existing-seo-search-console-activation.md) | Verificación/activación externa; plan definido |
 | PUB-16 | [Plan](2026-11-08-pub-16-website-state-propagation-only.md) | Contrato definido; verificar dependencias |
-| PUB-17 | [Plan](2026-11-08-pub-17-internal-listing-performance-review.md) | Contrato definido; verificar dependencias |
+| PUB-17 | [Plan](2026-11-10-tanda7-pub-17-salud.md) | Contrato definido; verificar dependencias |
 | PUB-19 | [Plan](2026-11-10-tp02-pub-19-plan.md) | Contrato definido; activación por comprobar |
-| PUB-20 | [Plan](2026-11-10-tp02-pub-20-plan.md) | Contrato definido; activación por comprobar |
+| PUB-20 | [Decisión vigente](2026-11-10-pub-20-folleto-qr.md) | Folletos de reparto aplazados; no construir ahora |
 | SPR-01 | [Plan](2026-11-08-spr-01-listing-tracking-card-completion.md) | Contrato definido; verificar dependencias |
 | SPR-02 | [Plan](2026-11-08-spr-02-property-local-history.md) | Código existente; verificar continuidad y pendientes |
 | SPR-03 | [Plan](2026-11-08-spr-03-private-property-capture.md) | Contrato definido; verificar dependencias |

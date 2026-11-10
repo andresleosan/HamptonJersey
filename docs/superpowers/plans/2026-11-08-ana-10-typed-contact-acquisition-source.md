@@ -1,5 +1,7 @@
 # ANA-10 · Origen de cada contacto nuevo: web, cartel con QR, folleto o recomendación Implementation Plan
 
+> **Decisión posterior de Luis, 10-nov:** folletos de reparto aplazados y sin atribución individual del origen de contactos. El único QR vigente es el de cada póster de propiedad, con conteo agregado; prevalece [el plan ANA-10 actualizado](2026-11-10-ana-10-qr-agregado.md). El texto antiguo incompatible es histórico, no una instrucción de construcción.
+
 > Reconciliación TP-05 · 10-nov-2026: alcance, decisiones y dependencias vigentes en [índice consolidado](2026-11-10-tp05-construction-index.md) y [maestro](../../roadmap/2026-11-10-plan-maestro-vigente.md). Este plan no acredita construcción, publicación o activación.
 
 

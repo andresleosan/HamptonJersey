@@ -1,5 +1,7 @@
 # TP-02 · Demanda pública y folleto revisado
 
+> **Decisión posterior de Luis, 10-nov:** folletos de reparto aplazados y sin atribución individual del origen de contactos. El único QR vigente es el de cada póster de propiedad, con conteo agregado; prevalece [el plan ANA-10 actualizado](../plans/2026-11-10-ana-10-qr-agregado.md). El texto antiguo incompatible es histórico, no una instrucción de construcción.
+
 ## Intención y enfoques
 
 PUB-19/20 permanecen: mostrar demanda verificada por parroquia/dormitorios, umbral mínimo5 y QR con redirecciones agregadas. Datos en tiempo real con filtros arbitrarios facilitan deducciones; reutilizar topUnmet directamente cuenta búsquedas y trunca10; propuesta elegida: snapshot inmutable revisado, publicado de manera expresa, mismo contenido web/folleto y ningún identificador de hogar. Cifras exactas no se declaran anónimas solo por superar5. No reparto, contratación, listas de domicilios ni informes a propietarios desde app.

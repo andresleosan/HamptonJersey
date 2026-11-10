@@ -37,7 +37,9 @@
       "tasks": 7,
       "code_tasks": 7,
       "product_constructed": false,
-      "external_verification_complete": false
+      "external_verification_complete": false,
+      "supplement": "2026-11-10-tanda8-pre14-cierre.md",
+      "update_note": "Listo para construir; activación condicionada a cobertura, permisos, costes y pruebas."
     },
     {
       "code": "PRE-16",

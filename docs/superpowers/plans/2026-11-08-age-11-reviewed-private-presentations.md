@@ -78,3 +78,7 @@
 
 
 **Decisión posterior B04/B05:** leer [evaluación y autorización de aclaración](../specs/2026-11-08-search-evaluation-batch-design.md). Se permite consulta general con autorización humana purpose clarification para datos imprescindibles desconocidos; evaluación sigue pending y no se presenta al cliente. La autorización es un registro propio, no shortlist automático. Mascotas incompatibles excluyen; parking flexible salvo MUST explícito conservado. AGE-03/AUT-11 aceptan referencia humana vigente y alcance de búsqueda; AGE-11 sigue exigiendo criterios/condiciones/disponibilidad/fotos y revisión extra, sin usar aclaración como aprobación de presentación.
+
+## Complemento ANA-06 · confirmación de recepción
+
+La métrica desde registro hasta primera propiedad **recibida** requiere evidencia de recepción además de envío aceptado. [El contrato vigente de tanda 7](2026-11-10-tanda7-ana-06-tiempos.md), sección 3, asigna a AGE-11 la captura manual auditada, sus relaciones, guardias y pruebas; integrarlo en esta tarea sin duplicar mensajería ni inferir que `accepted_at` prueba recepción. Hasta integrarlo el indicador muestra `Not integrated`.
