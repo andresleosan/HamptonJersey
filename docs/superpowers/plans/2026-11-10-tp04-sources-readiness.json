@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-10",
+  "batch": "TP-04",
+  "base_sha": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "planning_only": true,
+  "product_changes": false,
+  "published": false,
+  "activity": "unverified_activity_unavailable",
+  "withdrawn_codes": [
+    "ADM-05",
+    "OFE-08",
+    "PUB-15"
+  ],
+  "withdrawal_scope_reconciled": true,
+  "open_user_decisions": [],
+  "plans": [
+    {
+      "code": "BUS-06",
+      "title": "Inventario común reanudable y cobertura verificable",
+      "plan": "2026-11-10-tp04-bus-06-plan.md",
+      "spec": "../specs/2026-11-10-tp04-market-design.md",
+      "status": "core_build_contract_defined_external_acceptance_pending",
+      "future_tasks": 3,
+      "code_tasks": 3,
+      "constructed": false,
+      "activated": false
+    },
+    {
+      "code": "BUS-09",
+      "title": "Normalización y lectores Hampton/manual, anexos externos pendientes",
+      "plan": "2026-11-10-tp04-bus-09-plan.md",
+      "spec": "../specs/2026-11-10-tp04-market-design.md",
+      "status": "named_internal_manual_contracts_defined_external_reader_contracts_pending",
+      "future_tasks": 3,
+      "code_tasks": 3,
+      "constructed": false,
+      "activated": false
+    },
+    {
+      "code": "PUB-09",
+      "title": "Trazabilidad de publicación propia sin portales",
+      "plan": "2026-11-10-tp04-pub-09-plan.md",
+      "spec": "../specs/2026-11-10-tp04-traceability-design.md",
+      "status": "own_website_build_contract_defined_external_portals_excluded",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "constructed": false,
+      "activated": false,
+      "construction_dependencies": [
+        "PUB-02 publication guards integrated or composed without bypass",
+        "SPR-02 existing history and setState/listingBatch continuity",
+        "PUB-09 task 1 before task 2"
+      ],
+      "requires_external_market_manifest": false,
+      "requires_external_portal": false
+    }
+  ],
+  "plan_count": 3,
+  "active_plan_count": 3,
+  "deferred_count": 0,
+  "future_code_tasks": 8,
+  "future_continuity_tasks": 0,
+  "all_whole_tasks_ready_to_build": false,
+  "builtin_contracts": [
+    {
+      "reader_id": "hampton_internal_v1",
+      "contract_state": "defined",
+      "runtime_constructed": false,
+      "fixture_type": "synthetic_planned"
+    },
+    {
+      "reader_id": "manual_upload_v1",
+      "contract_state": "defined",
+      "runtime_constructed": false,
+      "fixture_type": "synthetic_planned"
+    }
+  ],
+  "external_source_contracts": [],
+  "external_contract_state": "source_contract_pending_no_accepted_artifact_located",
+  "missing_inputs": [
+    "Manifiesto aceptado deBUS21→BUS22→BUS23 conIDs/canales/evidencia reales",
+    "Permiso porcanal persistidoBUS19 antes deentradasexternas",
+    "Fixture real permitido/mapping/paginación porlectorexterno solicitado",
+    "Artefactos scripts/Assets deantiguos diseños ausentes enmain, reconciliar entrega autorizada sincopiarbaseprivada"
+  ],
+  "builder_check": {
+    "reviewer": "tp04_scope_builder_check",
+    "status": "completed_questions_resolved",
+    "technical_questions_resolved": [
+      "mapa Hampton paísJersey/conversióndecimallibras→minor ysubpeniquepending",
+      "reasonnull soloserverycorrecciónappend-only",
+      "ordenADM18capabilities→ADM12access→formularios",
+      "residuos carga/descarga documentos trasretiradaADM05"
+    ],
+    "post_fix_self_review": true,
+    "second_independent_review_after_fixes": false,
+    "new_user_questions": 0
+  },
+  "next_batch": null,
+  "activation_gates": [
+    "Permisos/fuentes nominales aceptadas; ownpilot no mercadoexterno",
+    "D1/migraciones/canal/reloj/consumidores deoutbox realmenteintegrados",
+    "Retención/clasificación/carril IA/autorización y seguimiento humanos",
+    "PUB15 retirada, no es puerta de activación ni destino por elegir"
+  ],
+  "withdrawal_evidence": [
+    {
+      "code": "PUB-15",
+      "plan": "2026-11-10-tp04-pub-15-plan.md",
+      "status": "excluded_by_user_current_scope",
+      "reason": "No publicación en ningún portal externo por ahora"
+    }
+  ],
+  "scope_amendment": {
+    "code": "PUB-15",
+    "date": "2026-11-10",
+    "status": "excluded_by_user_current_scope",
+    "external_collection_not_changed": true
+  },
+  "resumption": {
+    "request": "comienza la tanda 4",
+    "verified_at": "2026-11-10T12:52:31.920Z",
+    "head": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+    "remote_relation": "equal",
+    "preserved_local_documents": 55,
+    "planning_only": true,
+    "new_user_questions": 0,
+    "new_independent_review": false,
+    "handoff_matrix": "2026-11-10-tp04-sources-batch.md",
+    "next_batch_started": false
+  },
+  "tp05_review_reference": "2026-11-10-tp05-construction-index.md",
+  "tp05_documentary_review_completed": true
+}

@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-09",
+  "batch": "TP-01",
+  "base_sha": "fdc9e657f58ca05f17ba80e439aace13aabedb84",
+  "planning_only": true,
+  "plans": [
+    {
+      "code": "PRE-06",
+      "title": "Account access and recovery",
+      "plan": "2026-11-09-tp01-pre-06-plan.md",
+      "spec": "../specs/2026-11-10-tp05-access-design.md",
+      "status": "build_contract_defined_activation_pending",
+      "tasks": 3,
+      "code_tasks": 2,
+      "product_constructed": false,
+      "external_verification_complete": false,
+      "scope": "google_2fa_and_access"
+    },
+    {
+      "code": "PRE-13",
+      "title": "Existing agreements responsibility",
+      "plan": "2026-11-09-tp01-pre-13-plan.md",
+      "spec": "../specs/2026-11-09-tp01-accounts-and-custody-design.md",
+      "status": "management_plan_defined",
+      "tasks": 1,
+      "code_tasks": 0,
+      "product_constructed": false,
+      "external_verification_complete": false
+    },
+    {
+      "code": "PRE-14",
+      "title": "Consistent encrypted backups and recovery",
+      "plan": "2026-11-09-tp01-pre-14-plan.md",
+      "spec": "../specs/2026-11-09-tp01-consistent-backup-design.md",
+      "status": "build_contract_defined_activation_pending",
+      "tasks": 7,
+      "code_tasks": 7,
+      "product_constructed": false,
+      "external_verification_complete": false
+    },
+    {
+      "code": "PRE-16",
+      "title": "Team photos and Wix cutover acceptance",
+      "plan": "2026-11-09-tp01-pre-16-plan.md",
+      "spec": "../specs/2026-11-09-tp01-wix-cutover-design.md",
+      "status": "code_defined_operations_pending",
+      "tasks": 2,
+      "code_tasks": 1,
+      "product_constructed": false,
+      "external_verification_complete": false
+    },
+    {
+      "code": "PRE-28",
+      "title": "Account ownership transition",
+      "plan": "2026-11-09-tp01-pre-28-plan.md",
+      "spec": "../specs/2026-11-09-tp01-accounts-and-custody-design.md",
+      "status": "management_plan_defined",
+      "tasks": 2,
+      "code_tasks": 0,
+      "product_constructed": false,
+      "external_verification_complete": false
+    }
+  ],
+  "plan_count": 5,
+  "future_tasks": 15,
+  "open_user_decisions": [],
+  "activation_verifications": [
+    "Backup plan/coste/permisos/ubicación y pública de recuperación",
+    "Cobertura de todos los escritores/almacenamientos y congelación de operaciones externas",
+    "Restauración/pausa sintética medible y política de supresiones/recibos",
+    "Responsabilidad y resultados de acuerdos por Hermes, sin búsquedas de esta sesión",
+    "Titularidad por producto y ruta de recuperación real",
+    "Fotos/SEO/WAF/formularios y aceptación para baja Wix"
+  ],
+  "all_ready_to_build": false,
+  "product_changes": false,
+  "published": false,
+  "activity": "unverified_activity_unavailable",
+  "builder_check": {
+    "reviewer": "tp01_builder_check",
+    "important_question": "Autenticidad de manifiesto/certificado sin D1 disponible",
+    "resolution": "Ed25519 con clave de servicio separada, mensaje canónico, trust bundle externo aprobado y rotación/revocación; sin generar claves",
+    "additional_user_questions": []
+  },
+  "counts": {
+    "code_contract_defined": 3,
+    "management_plan_defined": 2,
+    "decision_pending": 0
+  },
+  "ready_scopes_not_whole_tasks": [
+    "PRE-06 validación/cobertura Access y plan 2FA, activación pendiente",
+    "PRE-14 contrato de código",
+    "PRE-16 fotos y plan de aceptación",
+    "PRE-13 plan de responsabilidad Hermes",
+    "PRE-28 plan de transición de cuentas"
+  ],
+  "resolved_user_decisions": [
+    {
+      "id": "TP01-A01",
+      "code": "PRE-06",
+      "answer": "Incluir también Cloudflare Access en esta fase",
+      "status": "resolved",
+      "verified_accounts": false
+    }
+  ],
+  "builder_check_access": {
+    "reviewer": "tp05_access_builder_check",
+    "status": "two_technical_questions_resolved",
+    "resolutions": [
+      "Staff media endpoint and panel consumers",
+      "Reauthenticate in separate tab, reconcile without mutation replay"
+    ],
+    "second_independent_review": false
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-10",
+  "batch": "TP-02",
+  "base_sha": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "planning_only": true,
+  "activity": "unverified_activity_unavailable",
+  "product_changes": false,
+  "published": false,
+  "open_user_decisions": [],
+  "inherited_unanswered_not_part_of_this_batch": [],
+  "plans": [
+    {
+      "code": "PUB-01",
+      "plan": "2026-11-10-tp02-pub-01-plan.md",
+      "spec": "../specs/2026-11-10-tp02-publication-design.md",
+      "status": "build_contract_defined_dependencies_pending",
+      "future_tasks": 3,
+      "code_tasks": 3,
+      "constructed": false,
+      "activation_verified": false
+    },
+    {
+      "code": "PUB-12",
+      "plan": "2026-11-10-tp02-pub-12-plan.md",
+      "spec": "../specs/2026-11-10-tp02-publication-design.md",
+      "status": "build_contract_defined",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "constructed": false,
+      "activation_verified": false
+    },
+    {
+      "code": "PUB-02",
+      "plan": "2026-11-10-tp02-pub-02-plan.md",
+      "spec": "../specs/2026-11-10-tp02-publication-design.md",
+      "status": "build_contract_defined",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "constructed": false,
+      "activation_verified": false
+    },
+    {
+      "code": "ANA-01",
+      "plan": "2026-11-10-tp02-ana-01-plan.md",
+      "spec": "../specs/2026-11-10-tp02-measurement-design.md",
+      "status": "build_contract_defined",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "constructed": false,
+      "activation_verified": false
+    },
+    {
+      "code": "ANA-05",
+      "plan": "2026-11-10-tp02-ana-05-plan.md",
+      "spec": "../specs/2026-11-10-tp02-measurement-design.md",
+      "status": "build_contract_defined_dependencies_pending",
+      "future_tasks": 2,
+      "code_tasks": 2,
+      "constructed": false,
+      "activation_verified": false
+    },
+    {
+      "code": "PUB-19",
+      "plan": "2026-11-10-tp02-pub-19-plan.md",
+      "spec": "../specs/2026-11-10-tp02-demand-design.md",
+      "status": "build_contract_defined_activation_pending",
+      "future_tasks": 3,
+      "code_tasks": 3,
+      "constructed": false,
+      "activation_verified": false
+    },
+    {
+      "code": "PUB-20",
+      "plan": "2026-11-10-tp02-pub-20-plan.md",
+      "spec": "../specs/2026-11-10-tp02-demand-design.md",
+      "status": "build_contract_defined_activation_pending",
+      "future_tasks": 3,
+      "code_tasks": 3,
+      "constructed": false,
+      "activation_verified": false
+    },
+    {
+      "code": "PUB-21",
+      "plan": "2026-11-10-tp02-pub-21-plan.md",
+      "spec": "../specs/2026-11-10-tp02-publication-design.md",
+      "status": "deferred_by_existing_decision",
+      "future_tasks": 1,
+      "code_tasks": 0,
+      "constructed": false,
+      "activation_verified": false
+    }
+  ],
+  "plan_count": 8,
+  "code_scopes_defined": 7,
+  "deferred_tasks": 1,
+  "future_tasks": 18,
+  "all_whole_tasks_ready_to_build": false,
+  "activation_conditions": [
+    "PUB19 identidad/contactos y revisión de inferencias/política/retención real",
+    "PUB20 snapshot aprobado, destino real, métricas y scan QR",
+    "ANA05 adaptadores de productores integrados y relación persistente",
+    "PUB01 familias futuras/documentos/HEIC/specs no se declaran implementados",
+    "PUB21 reanudación expresa y verificación propósito/acceso, posterior"
+  ],
+  "builder_check": {
+    "status": "completed_questions_resolved",
+    "reviewer": "tp02_builder_check",
+    "user_questions_required": 0,
+    "technical_questions_resolved": [
+      "autoridad de evidencia aceptada de divulgación y CAS",
+      "pointer por operación y ledger global de releases",
+      "as_of capturado por relojSQL, no histórico declarado",
+      "filtro comercial transfer real",
+      "404 tras purga no implica creación fallida"
+    ],
+    "code_corrections_applied": [
+      "destino /#book y adaptador functions/r/[code].js",
+      "preservar operación/PRICE.business de Queue, sin restricción rent|sale inventada"
+    ],
+    "post_review_fixes_self_checked": true
+  },
+  "resolved_in_tp05": [
+    "TP01-A01 google_2fa_and_access"
+  ]
+}

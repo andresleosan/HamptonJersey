@@ -1,0 +1,1430 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-10",
+  "source_id": "same_session_original_planning_copy",
+  "source_originals_preserved": true,
+  "copied_document_count": 98,
+  "documents": [
+    {
+      "path": "docs/superpowers/plans/2026-11-09-pre-34-web-chat-activation-evidence-closure.md",
+      "source_sha256": "42012b2fafa4f189854e0b538e03b0ed8549c1c732d8c51cbc94c1adbf05683c",
+      "current_sha256": "05c08d38924ae04c4a354d8f2beba4a0b810232a4df306c2c10d06ea88837a43",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-09-list2-contract-closure-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-34-chat-readiness.md",
+      "source_sha256": "f3bb4b733cf67860e1693436d2cd77cb245f776b17562fcdf17bfe09cd0ac7f1",
+      "current_sha256": "a899bf2a71e49bcafd601d24826ca5903a793578b1d3d453fcf2f2c2548094c5",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-list2-build-readiness.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "2026-11-08-list2-build-decisions.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "2026-11-08-list2-messaging-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-33-hermes-existing-agreements-handoff.md",
+      "source_sha256": "12b540dd9c11f0dd2240132b82ffcc279e529d1d252d694a8752ce159f85cf6e",
+      "current_sha256": "59e94897d82e2a0f63f691dcd9c41c6580bb26124ed8a4cd8dd2ad4d3fef450a",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-public-acquisition-privacy-design.md",
+      "source_sha256": "abddf501777482d901924150029cdcecfe843aa90e24728b16fd3599663b32c7",
+      "current_sha256": "35258693b3c0837595b67af6a7f817cb5026467f7b7cb3bda5881b7cf9681b23",
+      "reference_adjustments": [
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-own-publication-completion-design.md",
+      "source_sha256": "6921241ecc4cabc9ffc817d563dc6457f4964138059921ee77302e2dd2114ad1",
+      "current_sha256": "6345d21c26973bc3c85ba5676cd862bc2d332afd158210cd285a6ec2c8d74257",
+      "reference_adjustments": [
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-pre-32-pro-route-verification-closure.md",
+      "source_sha256": "f48aded90a3a818154536fd8bed19e52e75522ae98618e4c650e580f188c8b99",
+      "current_sha256": "728dc4e32f9a3bed3824df3d668c4ba89213b9d06eea2fcdc25d69480caad944",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-09-list2-contract-closure-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-32-hermes-plan-decision.md",
+      "source_sha256": "7286eca67a164ca3e8feca1765eda0ba005277a69c42eb895b11021789382bed",
+      "current_sha256": "ba970b5430f4486320030a712f73efcc6e7d0481d4af1bf73c90e46a286e9429",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-list2-build-readiness.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "2026-11-08-list2-build-decisions.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "2026-11-08-list2-models-connectors-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-pre-29-client-funds-and-tax-readiness.md",
+      "source_sha256": "a19be9e28dc88de21303979dfd6f48a0839b9df512acfe2f24de78098c863cc4",
+      "current_sha256": "4f7953277b8499ed9d9cbd58a370c6b3fa410e49d6c936c23778934a9486a389",
+      "reference_adjustments": [
+        {
+          "original": "../specs/2026-11-09-sales-communications-compliance-design.md",
+          "target": "docs/superpowers/specs/2026-11-10-tp03-communications-design.md"
+        },
+        {
+          "original": "2026-11-09-rentals-sales-completion-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-pre-25-measured-volume-and-capacity-assumptions.md",
+      "source_sha256": "73ae5fc8dc09f4cbbf683eb0661b69c3a47b32c82496b2a04c698734892c0e02",
+      "current_sha256": "76765b65c0b41f3c631713d43162c56ca09493bce5b0a5049a7aaddc9d8536be",
+      "reference_adjustments": [
+        {
+          "original": "../specs/2026-11-09-sales-communications-compliance-design.md",
+          "target": "docs/superpowers/specs/2026-11-10-tp03-communications-design.md"
+        },
+        {
+          "original": "2026-11-09-rentals-sales-completion-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-11-third-party-media-privacy.md",
+      "source_sha256": "461b60f67b34f23e7f1976a609ecc1ab2d61377b69521c224f4f1844d784d3ee",
+      "current_sha256": "160bca3fc006a60bd5614a6d5d966b3ad92292e82bedab612d2f75f2bf0520f1",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-10-purpose-scoped-marketing-objections.md",
+      "source_sha256": "a8c70534c53c775eedcc1c76cec5a3dd5250bac446cdb01d2d5e647dc11cf74f",
+      "current_sha256": "ba5c387c99beebd276ea1db8abcb92937c98ed85a1a7a05becbfa7ea0e08d186",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pre-09-purpose-versioned-privacy-notices.md",
+      "source_sha256": "a77af4437715e52a59832296156b315468aaded4ae644bf7085b9b24cc66a971",
+      "current_sha256": "8f8e0ac5ea8ce564eaa6bbd5b957adca995ba69a14c7f5b73a59637daa469a62",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-pre-04-honest-historical-team-baseline.md",
+      "source_sha256": "320e2b6585ac57b28e1c296771d4f6e7d25900f209a0a4f59f8e6703034a8807",
+      "current_sha256": "80975dc7ac9fc4655b796d3a0a8319613249d0c1109146c1066d2a9d116993f8",
+      "reference_adjustments": [
+        {
+          "original": "../specs/2026-11-09-sales-communications-compliance-design.md",
+          "target": "docs/superpowers/specs/2026-11-10-tp03-communications-design.md"
+        },
+        {
+          "original": "2026-11-09-rentals-sales-completion-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-pre-03-activity-specific-registration-verification.md",
+      "source_sha256": "d008d76112c872d11d5997c1b9198b592c1eaf7e07b90da5ae4a971ec4d36f75",
+      "current_sha256": "f6ad16978a4ea93de35557b0a224ecb935bb4a4ca5ec5628ae4e0c9ca9835be2",
+      "reference_adjustments": [
+        {
+          "original": "../specs/2026-11-09-sales-communications-compliance-design.md",
+          "target": "docs/superpowers/specs/2026-11-10-tp03-communications-design.md"
+        },
+        {
+          "original": "2026-11-09-rentals-sales-completion-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-ana-10-typed-contact-acquisition-source.md",
+      "source_sha256": "30affb97c130bf1421f8dcecc299777fac49f6d32381cbe268cc40c9c02f241c",
+      "current_sha256": "07a48f5bb70ed48493c47593c6015fbcd9e3ef9bc8c3b8299d8572ce73f3db62",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-measurement-completion-design.md",
+      "source_sha256": "f99703836c3dbe586037dc7b61fb33ae9a2dbfc167d1a14c73742336b7561016",
+      "current_sha256": "b4e2b57b6594eaf67210682c0864cf1f92b47d31548f82a2f0edca686dccef56",
+      "reference_adjustments": [
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-ana-09-scoped-public-rate-limit.md",
+      "source_sha256": "93514b7f9eb247250041611c5458ed30f34c6cec1fdc3912006fc5e90f575b00",
+      "current_sha256": "acfc674351ea9238ce3c1b7649363b8666579bb140974eb8606cf0af4bc666f3",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-ana-08-internal-weekly-insights-digest.md",
+      "source_sha256": "64b65ad32aa94763e6b7d85e1886f9b99f9272a96021eb83e1f89f685ab720d2",
+      "current_sha256": "4222b0b2c014b3b2ec89f9ac820dc0f0f31e51fa846324839fd12e1b463dca4a",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-ana-06-agency-and-presentation-response-metrics.md",
+      "source_sha256": "aefb034c9073af55be541da5d66c6b18d7687eb9ce3ae6e3a2b67f85fbfe19ed",
+      "current_sha256": "ba241cf7f7b5e45049c0df3a630b403d670b4dd0031e304b77189edd11f7b33b",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-ana-04-aggregate-search-demand-series.md",
+      "source_sha256": "6d8b321bca9409d0e50426376ad7ac9900c44ff1647e9df4098d3c4149ccb4a5",
+      "current_sha256": "190154bfe97397adda7a281d813fefdc7fe206a7d7e39f5bae1c802f6e93ec2b",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-ana-03-web-analytics-source-activation.md",
+      "source_sha256": "b707e2b06cece60126591fe98c8be9bf73f3c0c7b62604f2d6e655e3e7d5d1a5",
+      "current_sha256": "cbb6c06321fc6c4591f50b86b22b12c5a01f5b755e1e6b1db0b43f28eb6cba00",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-17-internal-listing-performance-review.md",
+      "source_sha256": "367d8d9c53b0810b33644879b99d66b3af51d81bbe2cbe9e83820dd02fa4a435",
+      "current_sha256": "a43c961c57d23a16fdfce8f03945b0d4cf6ff24c9867ea59dcf5f508d140d315",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-16-website-state-propagation-only.md",
+      "source_sha256": "66d7bde1117275fad7eff13d5fe97fa7e60bf22e2b82f41ec593487f70944466",
+      "current_sha256": "04dbfb59d64b6f5f5241b2175ac0bf8ce82c0298193a7369b4691c467a55fb4f",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-14-existing-seo-search-console-activation.md",
+      "source_sha256": "42a45447a7b43931f1fceb17015fdf022d0a6c2603ecdbe2166771d47285ca3a",
+      "current_sha256": "b4a4340751b233f4579af0d01ebb555f1d0a4042fdfb2b5f0b95472afb543a30",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-publication-external-activation-design.md",
+      "source_sha256": "72d1dba80981d8b20df79f1b149f5d9d45452575028cc1f87d94694fb488b65b",
+      "current_sha256": "dc123b14eb5db535ab2a6f02d487231ca3bc97c150e229e7866ccf13030d89ca",
+      "reference_adjustments": [
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-13-evidence-backed-web-copy-drafts.md",
+      "source_sha256": "26e7ae8f05c32d6bdc494b49407adcd51bf308337f60679a63c7a798a086f3ea",
+      "current_sha256": "2a1929553aeff0d80c4ec7f7e5d9328f1b571806f4123b6e8cbfa5a16a277ea1",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-11-media-quality-private-documents.md",
+      "source_sha256": "a8760c7300e97e64f516380c48a26cb6ecedf28d2f8eaf4ce8b4f8c0ae27c7cd",
+      "current_sha256": "7809b1742bbc5ff4920afaa18200c369fee47ea2e6646561e31d19a7c7606e38",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-10-private-valuation-intake.md",
+      "source_sha256": "9b119eeca013aedd51e8e50777f00e69d31099393650598ae8aeebc544116a68",
+      "current_sha256": "4c557f2252bb546fd71d68d5c9112098dfecbca2582005a615a4e167744a3274",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-08-web-content-tags-video.md",
+      "source_sha256": "dba79f020e827de101380cc0cdfbdf65d6ebd6f4bb199459e222e3c217a2aae2",
+      "current_sha256": "984843055afa238a56a78c0ab36c5c23513a81e7fb6bb96ab4ba499792caa89b",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-07-technical-compliance-evidence.md",
+      "source_sha256": "eb71e7429c24a8337f7b5a40097844e916f3ddd20b1b47de502d26c380cf7202",
+      "current_sha256": "70b77907085818fbb1be1e3dd30865d8e8d278201a4f70d1a64ae55eb18a587d",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-06-structured-economic-terms.md",
+      "source_sha256": "cd03bc52f95e146160ba619b9337934b87ebf1e91d912a3516f775640a806fce",
+      "current_sha256": "d0ecf45e3561b6b26f53d4530c3a3aca9991bcfc5a5fb9cc702033e78404c30a",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-05-structured-physical-features.md",
+      "source_sha256": "4269ac0b8ed7129a40ab17a3a646cd23ae478a31c7828a8e381ce8cb070b908c",
+      "current_sha256": "f75a351e84dbe906e9c9b54b1ef8a4d6c20d897dd44b8b79ed46757f607693ea",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-pub-04-listing-address-condition.md",
+      "source_sha256": "73149b5360d2adadaec6ce59ca78056be99f7eb7b0195c15f5bef994a2d0338a",
+      "current_sha256": "2e40db15a24a849c0ec18258685ae9cc934dda8743ad0df1830b6246251ef1b0",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-21-rental-accounting-csv-exports.md",
+      "source_sha256": "af1ba52f3878ebb17e4df16be136d72cb69bcd62b1317fff3f8132a6af7369fd",
+      "current_sha256": "911de005b1b50f23202a0c7896ce22d956a9a09495fcf8d32e8e6002fb5bc56d",
+      "reference_adjustments": [
+        {
+          "original": "../specs/2026-11-09-rental-finance-completion-design.md",
+          "target": "docs/superpowers/specs/2026-11-10-tp03-finance-design.md"
+        },
+        {
+          "original": "2026-11-09-rentals-sales-completion-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-17-versioned-tenancy-rules.md",
+      "source_sha256": "bc0583783c3f6d6dc545c9704030885b559cdb703206a5f041f86890cade9495",
+      "current_sha256": "92709487485203d764c8a409337ee009c575ae76a5aaac1d67930882f7108cc1",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-09-rentals-sales-completion-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-09-rental-lifecycle-completion-design.md",
+      "source_sha256": "d8720d14c448832accaa8947a1ee81b183d660a1469feab4a2474baa736444ca",
+      "current_sha256": "23dff628847ec6eb90bd7fd93bab9e57e3b032aac4b932147e6c3db265731374",
+      "reference_adjustments": [
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-16-move-out-inventory-and-deposit-tracking.md",
+      "source_sha256": "a7f7692ada1f094deb2c7b968adb288e12efd5f99e1fce55482b5c65ede44b73",
+      "current_sha256": "e65b77e8326f2fb0afd0b46ae55481978b038d22a153b159f0ef0393b1c92c8f",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-09-rentals-sales-completion-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-13-internal-six-month-inspections.md",
+      "source_sha256": "5281ae04f108212379d6c460b687b97d67d4a01305b42ebc6f7744606a255e09",
+      "current_sha256": "a9acc5674bcab19704dea5d9e3878c80d9ca14350fcbd837475566e43cc6cf9e",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-09-rentals-sales-completion-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-11-rental-obligations-and-evidence.md",
+      "source_sha256": "54fa0bcf6a1aa116a734f7fb0f6801ae21820061dfbee8c1a391b47e8684a009",
+      "current_sha256": "504fd752e3f3fd5f52c58c88a744bacc755108fe2e3c57809a8fa145f6ad2c20",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-09-rentals-sales-completion-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-06-tenancy-from-an-agreed-property.md",
+      "source_sha256": "07a12fbbc4ca489b5b4fda903f3ec8cccc317849ae889cedd9b615e3af97446c",
+      "current_sha256": "950d1843c0d322c0044814279807e8f0712411659c7b0277e297a4db3ff7acf2",
+      "reference_adjustments": [
+        {
+          "original": "../specs/2026-11-09-rental-case-evidence-design.md",
+          "target": "docs/superpowers/specs/2026-11-10-tp03-case-evidence-design.md"
+        },
+        {
+          "original": "2026-11-09-rentals-sales-completion-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-adm-03-rental-notices-on-the-shared-clock.md",
+      "source_sha256": "5aeda447edcd96df0928adeb2ec5ba8cd05e799103a08a53faab4642520d1703",
+      "current_sha256": "dfd4333a11e741ee9032f0fa72828c97442b59fb7d9e06d92e5975ae3dd95e32",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-09-rentals-sales-completion-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-16-permissioned-valuation-offers.md",
+      "source_sha256": "2bb35802e308d6e153b1a845670625d1ca163868ba66426451008c8d2929c3f5",
+      "current_sha256": "9f1be75f4be044edf9db23fc61e0268a00fc4d81fae3677113524f2fb9f2e86d",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-15-reviewed-saved-search-alerts.md",
+      "source_sha256": "a09a8c11668d6b454fab8cb3115ba557d7f774604d7670ef70cb07efc2486d23",
+      "current_sha256": "9b0533179414b4e44c1566a093a03a73068a86f67bf1a202d36d0550d6688f3d",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-publishing-acquisition-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-13-reviewed-requirements-extraction.md",
+      "source_sha256": "e4e2e96c6878f714b403b149f1dc0893db57a7d74c2725532dee3a140d4506f9",
+      "current_sha256": "cba115f67051af7d99150ebad88a547fd4915960030da4e2811ab9e6a1ff9e96",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-12-search-registration-acknowledgement.md",
+      "source_sha256": "2c85b681cf144a46abc11b60eff1b671fed6ea70ca1eccec5eebe710a303a193",
+      "current_sha256": "6eb01c64cff2bd2665c493e5fb37f01f9b0fe9b12015f05bc9ca5f391e7cf246",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-07-nonnegotiable-household-pets.md",
+      "source_sha256": "30806f478e01a2455f4aec245ba3e6640cdaf77bf0742d47822f0c365b88f9bb",
+      "current_sha256": "156bfeb3d942986d4f0759e9cb31801921684ab8fc2d52f552e8970b81bfb0fe",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-06-explicit-area-answer.md",
+      "source_sha256": "1d7b8bbdabd9036d27599ab3d45504931c6a71cba9062790309f8d420a12c604",
+      "current_sha256": "ea8a9214d4d4d4e18ca645351586cf2534599269b97f5166e2e8337ff1dad174",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-05-existing-room-range-verification.md",
+      "source_sha256": "6d4958457d03ded9103cfe598993c88c9316773970f4e95d3f3035c1ddb0ed7d",
+      "current_sha256": "f77cbfe00a221b428e80f867f374e7908fcd5daf29a38998e59b2fe4e0db5d53",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-reg-04-budget-terms-completion.md",
+      "source_sha256": "fcc8beb397282400712add37f871eb12a820b869b695befcc0e1b4a100824d4b",
+      "current_sha256": "db4324b2c5234b2813dca84433c2e6888b9cbf46a3b6082a7c24a577fca187ff",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-19-photo-only-trash-purge.md",
+      "source_sha256": "7d7ce15c179a6c95fc909a294f5f2158f5bbe8bacd57bb18676c31db9194b94e",
+      "current_sha256": "f737ce39f2a4e2331b133550d9978db2d1edbb3b4c6022e2a13b91864f728331",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-17-own-listing-state-completion.md",
+      "source_sha256": "63753391ce6bd06a4352eab467b7dfa7255ecb091998d092f06d5e3138d80a03",
+      "current_sha256": "c590c43d69b1e98645b00cbc75573adc1092d8e7f01f8bb42bbce68d5124fcc2",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-16-commercial-facts-authority.md",
+      "source_sha256": "0d24712b48313fe98ff3126a3738a450cf5c3a8bcaeda3f82735ade96ea23447",
+      "current_sha256": "a48baa68ae492655990f3dd2e8321a4fc5512fbe8740edf0f2f6cc2107ece3fc",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-15-scoped-unavailability.md",
+      "source_sha256": "7ce9fc63cf29a2ceeaf1f7c134be3d79b70daeead51c27e967f69e47fa0f4674",
+      "current_sha256": "db552c881e5e14d373f996634be03d62c3172e2e394b4a6b059b6003df6a49f8",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-14-match-journey-evidence.md",
+      "source_sha256": "6b2cfdfd729ed2b4e7e14e7d4d4bc793b0d264416445cd432a85533ce77c1333",
+      "current_sha256": "5a69956643e930f830259fee6a1a1ffadde1ecc717c4e80a8f59b810c5669d44",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-13-orthogonal-candidate-state.md",
+      "source_sha256": "6df3da7aa7e7d939ebab4fb84ed91302ae3155eb5b1fc38856e423a9799977d7",
+      "current_sha256": "e14997526df2f1e998d621b90219a10519fd98ec91c88dc34138967ed6b40086",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-10-concurrent-search-work-labels.md",
+      "source_sha256": "a0a6b1f6294190111759f5f921e142dd0c33346c6cc5934b0b0d7e34244c2e22",
+      "current_sha256": "e6b757be83fcadeb01763e78b4c189ae913d4fa7fed5ccba0017c85c402a6a7b",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-04-derived-in-process-state.md",
+      "source_sha256": "4f9efae1296ce664bb2757b8b674c9b093e41258d2c9187752ae6dd721bc6c13",
+      "current_sha256": "5130d83d88aeab3bd2cd8e7bb424572d0d059d70d83a5c0b3e606532562cd23c",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-est-01-search-progress-projection.md",
+      "source_sha256": "4a95c6cc4138309871c273cf45508936411aaf64244e8f78d2dfc076ce375738",
+      "current_sha256": "938c485669efa1d2e625824d73759dc63961be775489d9dcef27b031c1db3599",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-23-property-directory-gaps.md",
+      "source_sha256": "58cf213169e87bd984f2639defb42dca33d29cb01665a073eb12f3c3bff8111a",
+      "current_sha256": "79e300289cd4d7d943aec5a10b29f529e427b6a2ddbd2b25a291c180e3fd6b25",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-list2-build-readiness.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "2026-11-08-list2-build-decisions.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-22-property-directory-gaps.md",
+      "source_sha256": "b07c75665d23f54ea1b17f3f181109c09a67c7712556d905ff06458a42155511",
+      "current_sha256": "ecf56f26cd6e28ef359a9165a1e9e4afb28f6cb5437cce5949ed4456415ed658",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-list2-build-readiness.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "2026-11-08-list2-build-decisions.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-21-property-directory-gaps.md",
+      "source_sha256": "b85f6e9d7ea77d223029033796b92abd672b788b4e3ff27e737d4293c8fc010f",
+      "current_sha256": "289d8e28b17cb70bcb66fcd524f76b7f05212b4f27c6c00763ac1913db2889e8",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-list2-build-readiness.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "2026-11-08-list2-build-decisions.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-18-property-search-followup.md",
+      "source_sha256": "22361893c63d4bdcea86399ededad5efaaef20d6fdd44dd4c6b4e12d0d2f8472",
+      "current_sha256": "26875fa5a808b9300cfe4e609a5ddcdb9cca1d8362d703bd467fa11788e11be2",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-17-internal-21-day-review.md",
+      "source_sha256": "32df835aea081382fd79db9595eed586779e28618a27b14e0630a95b996bf7ac",
+      "current_sha256": "2e2c66830f927262d4a0e6df8274c5f9536098384a4ecf229dc48ba9f1cacef9",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-15-versioned-human-review.md",
+      "source_sha256": "8d65ade81eb77cf635eb3662187ad603b1806dbd01aa6645c918a2901573716c",
+      "current_sha256": "e1c528472cbc310e8a0634d8d07eb9af4604cfa47e17bc9bd0a0cb4b8037d244",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-14-explainable-candidate-ranking.md",
+      "source_sha256": "ae0f74fbefd3a13403d58645467a7e4cfc90436186548c2e1f886adce6dfafd8",
+      "current_sha256": "a507cd0bd95f50a18904d4e92c43c551fce8e1967ccf2cf29959a63d7bc5dedd",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-13-versioned-housing-eligibility.md",
+      "source_sha256": "f07fa9c792e6e2d95e737868790c40e6f80ac08e371f5790e08050c35c272d32",
+      "current_sha256": "71d6cc7c5d192eab35cf4d311753a6fef88a6b24c13e1bb7c7473fe9847e768e",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-12-canonical-search-evaluation.md",
+      "source_sha256": "83e14bbead53c2525e3e95f3f77c3bb2655957f4bb94713f82c5ab52916c1b3d",
+      "current_sha256": "13621fe4adc4d2bef93581b958532237bfc987931f261ca825e23b9c6baa0f2e",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-bus-11-special-cases-research.md",
+      "source_sha256": "5a597fed9d1e800dedfd538b861bce8ce3bd8b28d7f15a9153b6fffef03903e8",
+      "current_sha256": "e5744c73b3ee5182962c5c426732fa7d926bdc08fd14642228f2de66243e2aa1",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-list2-build-readiness.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "2026-11-08-list2-build-decisions.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-20-integrated-search-acceptance.md",
+      "source_sha256": "10c6beea39d865405321e19307761e6d11f7356ffcf25f4c5620ad2b097d2381",
+      "current_sha256": "04667680c7bd85b3f807c1c3385e4f3af5bc88827ef369355604d55574931e90",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-19-versioned-criteria-proposals.md",
+      "source_sha256": "52450c707c23a6e667d9c24084d950653772eec6b2694a2d3bd406571519a8f8",
+      "current_sha256": "f2b56e932ffa7818b434b18caf45753e434414db48ecc7c068d7821622d96512",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-aut-17-email-activation-scope-and-proof-closure.md",
+      "source_sha256": "6ff7f5bca783435da623f5a81d14b49d9a4134a67b4520ae82509c7c5a232102",
+      "current_sha256": "d5815147a963093e15ef9c4c8eaa69431eaf69216887b0c068a7ad80aa25e56e",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-09-list2-contract-closure-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-aut-17-email-operational-completion.md",
+      "source_sha256": "0b7240d6e653a0fab2372a62f7826255db8f3a56b3d271f83b4bf98a535ab141",
+      "current_sha256": "f1eae1448e1b9d2cd09507fdb38f7a132e278e28753d7b0a935eeab4d7a03afc",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-list2-build-readiness.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "2026-11-08-list2-build-decisions.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "2026-11-08-list2-messaging-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-17-multipart-viewing-coordination.md",
+      "source_sha256": "8a2869c1794a30e643acedf0a5eb3ca4f6a0a16706262ac6d620826a6fee6397",
+      "current_sha256": "8eb57252840690e80f796649b86f1688d6fa2b4d504edb3f1619ac468068d420",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-14-open-consecutive-viewing-groups.md",
+      "source_sha256": "3219e9d7148677222688e7ad547c9a325ccd9afe144109d4e87c5119bd2a4130",
+      "current_sha256": "8c75d77f84d8555d5ffe59417a875858bbb4060892944617c1f625b1a60f071e",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-13-viewing-reminders-actions.md",
+      "source_sha256": "2b36b88118192b72b70788a18854f92e6a59c8a89dc28c5cd2ae0c6dfddbf449",
+      "current_sha256": "80a65c67b0d2aba96398d662d0620778411d0e3ec70a2976398386299ffa48a8",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-12-google-calendar-viewings.md",
+      "source_sha256": "8edca1bdabdb5c9ac5cfadf4c60dd60a848360b93341a86655b1c66de0c54562",
+      "current_sha256": "c8a63e077d191502ccbc47c6ba0b075d6c52531b53f668c595ea86bbcba6a4ca",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-10-property-access-restrictions.md",
+      "source_sha256": "9d7df209c4fa4bd235e8ecfd970fb95afb8613dcb9776a0747facea393870432",
+      "current_sha256": "8201cbafbad1b697ef3b44f7e1e95e49f11794c5e600838a90709869d25aae7a",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-09-viewing-duration-travel-policy.md",
+      "source_sha256": "fef1acf80938972f12dc96e05ba8d00188524163af8f13c9cfdb2613627b6c3c",
+      "current_sha256": "7f5b4991c514359ef271f0b8144733fff758f94d26e2d91cdb26b3130d1bfcc2",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-08-viewing-lifecycle-milestones.md",
+      "source_sha256": "f3c4c68a49877302e2490b3a92f75eb247664c0fc56f43d74d8ce2752986a6ce",
+      "current_sha256": "2c1a3a5b48710817b0c976bd878b7ef3a3f5463142c9e263b5d0c96593dbc6be",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-06-private-public-viewing-summary.md",
+      "source_sha256": "72e66da58086b5fa6445c15192ae2b288cab551450e541712447a8469229fd48",
+      "current_sha256": "5ff351946ae4055b526e0b42101ee6b24213d07cc0e741b88ca7e513d33a00a4",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-vis-04-reviewed-post-viewing-feedback.md",
+      "source_sha256": "b99365cbe468af9ad3b08be765e20e6bd4853751ef9ff9209b74d8b9d2366e8a",
+      "current_sha256": "5eb2bf1ef32d5ffc7a948addad6a8efb786eea72196a04b50c04e1c5376882c0",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-spr-08-property-notes-viewings-adverts.md",
+      "source_sha256": "8c2ec8e4340f25080ade9aef3de6399dc9367bb0131a0dbf5fe720ef7da82a40",
+      "current_sha256": "7d48632fb504a8c820fc2c059523b28e6a19b1886e796be411c77615f3eb172b",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-spr-07-source-and-verification-filters.md",
+      "source_sha256": "ab82426eb181b91da32e2ac0fdfec93da551da344a80d0782d467ca405341783",
+      "current_sha256": "fda0e670383fc7b90c25e6790b86d8a0321138e9c0c3256e329bba45ec2c3179",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-spr-03-private-property-capture.md",
+      "source_sha256": "d9edaba0df880e18ae52c492757e8d45149efd9914a682bd39adec423e6e69f8",
+      "current_sha256": "7ec104485032383c20c3b785646c9bc613eab0fb1d194a23522545dc9dabfd7d",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-spr-02-property-local-history.md",
+      "source_sha256": "7285b389b4556644a109ba919959d3ee59be99c2339ecc34ff3461f824548334",
+      "current_sha256": "2cd40073ac1230ab80795fc325570e11a18330d5a6e3155802a2d3c097e6fdfd",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-spr-01-listing-tracking-card-completion.md",
+      "source_sha256": "57e6373a7b2c17e71bbd3071cc26e8e678649cd4601068af93d99c5f17d41275",
+      "current_sha256": "857ce2b4d96735649a2f0586338c7477edc3a7a6f4b913511d51ceded17a9154",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-sap-10-confirmed-criteria-changes-ui.md",
+      "source_sha256": "5a8bff385d2340d0fdd0b91e9024542a470eabd6c40f23b7ea49246c0828cfe2",
+      "current_sha256": "1cc83002adef87a208ccaaa1692637c6313058996d49bf66215b80af3b13afeb",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-sap-09-applicant-presentation-viewing-actions.md",
+      "source_sha256": "19a9556045da3ae6ca38d9d611cc982e2f49816ac55cee52e0f76af03e1a2620",
+      "current_sha256": "107221fbd410aa33b7ebb7bba6f57a0bd150e1c25d74343e67069478e80b2d69",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-sap-08-applicant-messages-viewings-tabs.md",
+      "source_sha256": "820bd8a9e469e76ae48512a50da482e5cd234659a20c2df31d3b3044f71debbc",
+      "current_sha256": "a5349bb5a76277eb3015e2f4526ba174428d95bb8595989a637f99b580ca4814",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-sap-03-applicant-confirmed-match-groups.md",
+      "source_sha256": "c245b204bca5c830d1f07a9f8e459d7ee2ba8ad7dae11475ad1c9337bdc5f84b",
+      "current_sha256": "85cb4b2f151b3b9e1862cce954715b30ef7729aaf26217c0f254aa5e8bbb9776",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-sap-02-canonical-match-counts.md",
+      "source_sha256": "e6f306ec3afe5d73eebab57f8bc41cc794e42ac5e4fa37e1642015b61ad95bc7",
+      "current_sha256": "cfcb907e1358096a07a64821b4e779bd73e9301660b4882d3d4ff25f683889fd",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-sap-01-applicant-search-progress-ui.md",
+      "source_sha256": "d14b1cde1d233041fc6079d26ce1914d636fd6956a3204d3d2bf095ddbeff68d",
+      "current_sha256": "0a05e63bef711c731a6fbe290b236edf4523b33d3d95c9516ea3bc6782e94c09",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-not-11-shared-task-integration.md",
+      "source_sha256": "d2a83c204194e31de70a8f647b9c816b922ac7c389d85c7476a9aea37dae64f9",
+      "current_sha256": "934e1883e6ca2dea7488e6dce077c5b1817ce06cc9643448d79dce7c8fbc6ae9",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-search-workflow-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-not-10-daily-digest-existing-activation.md",
+      "source_sha256": "75d1054b6f9d2c94831b38c000ccfc2ed492b97a31c87339227e6931b2ad9d21",
+      "current_sha256": "a554a3159a1ae0c7e3eb35e371e984de5a0871148a0fad87bb9005e1785b47b3",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-08-inbox-actions-completion-design.md",
+      "source_sha256": "75f41c89d57b1efc8afed485bce627acd6566d74d062d7f6f78954fd9c1b4360",
+      "current_sha256": "457b462e81e73a75818255f748ba1c55033699ed848eb25c75f0f39caf42c3e1",
+      "reference_adjustments": []
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-not-09-typed-inbox-domain-actions.md",
+      "source_sha256": "9059e0579b2cf0221ea3c49d7e27241c50782eb2e6b7a1f2039f12034ed22ad6",
+      "current_sha256": "94458c096a16e8254fffe5cdbc86604b692082fb73e0f6d3b358945836dba3c7",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-08-not-08-inbox-category-integration.md",
+      "source_sha256": "b57360c67844a8b3f2de943de28d89e62e6c750860ac6264321e3001f1604041",
+      "current_sha256": "7a83f66dbeae42e56a1fa721adb3e095fbfec15daf12a4e0796c9eaa7e45acf2",
+      "reference_adjustments": [
+        {
+          "original": "2026-11-08-viewings-workspace-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        },
+        {
+          "original": "../../roadmap/2026-11-08-plan-vigente-alcance-y-dependencias.md",
+          "target": "docs/roadmap/2026-11-10-plan-maestro-vigente.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-09-not-05-missing-payments-from-real-balances.md",
+      "source_sha256": "cf76384ca127cb3bb3e022855d6eb5e89dcb4e4ad878ab8c9c68788feb843ebb",
+      "current_sha256": "bc12abcad540a98f8530613380ca43cc7a80f07d678720a89ac14573358b64dc",
+      "reference_adjustments": [
+        {
+          "original": "../specs/2026-11-09-rental-finance-completion-design.md",
+          "target": "docs/superpowers/specs/2026-11-10-tp03-finance-design.md"
+        },
+        {
+          "original": "2026-11-09-rentals-sales-completion-batch.md",
+          "target": "docs/superpowers/plans/2026-11-10-tp05-construction-index.md"
+        }
+      ]
+    }
+  ]
+}
