@@ -2,6 +2,7 @@ import { json, fail, readJson } from "../http.js";
 import { verifyFirebaseToken, signSession, sessionCookie, SESSION_HOURS } from "../auth.js";
 
 async function signIn({ request, env }) {
+  if (env.QA_HISTORY_KEY && env.QA_HISTORY_KEY === env.SESSION_SECRET) fail(503, "Session unavailable");
   const { idToken } = (await readJson(request)) ?? {};
   if (typeof idToken !== "string" || !idToken) fail(400, "Missing Google token");
   let email;

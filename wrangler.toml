@@ -16,6 +16,18 @@ database_name = "hampton"
 database_id = "1da41b63-c61f-4491-9f8d-3a9afde6e0fb"
 migrations_dir = "migrations"
 
+# Synthetic QA database only; no business data or admin identities.
+[[d1_databases]]
+binding = "QA_DB"
+database_name = "hampton-qa-history"
+database_id = "9e17c73a-050c-4855-85ea-5b42236a0015"
+migrations_dir = "migrations"
+
 [[r2_buckets]]
 binding = "MEDIA"
 bucket_name = "hampton-media"
+
+# Previews are static-only: never bind business or QA data/storage there.
+[env.preview]
+d1_databases = []
+r2_buckets = []

@@ -47,6 +47,7 @@ export const getCookie = (request, name) =>
 
 // Signed cookie AND still listed in admins: removing someone takes effect on their next request.
 export async function currentAdmin(request, env) {
+  if (env.QA_HISTORY_KEY && env.QA_HISTORY_KEY === env.SESSION_SECRET) return null;
   const email = await readSession(getCookie(request, COOKIE), env.SESSION_SECRET);
   if (!email) return null;
   return (await env.DB.prepare("SELECT 1 FROM admins WHERE email = ?").bind(email).first()) ? email : null;

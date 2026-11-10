@@ -1,0 +1,8 @@
+name = "hampton-qa-import"
+compatibility_date = "2025-10-01"
+
+# Only the disposable synthetic QA database. Never the business database.
+[[d1_databases]]
+binding = "QA_DB"
+database_name = "hampton-qa-history"
+database_id = "9e17c73a-050c-4855-85ea-5b42236a0015"

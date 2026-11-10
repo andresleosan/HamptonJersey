@@ -13,6 +13,7 @@ const enc = new TextEncoder();
 // Constant time on the SHA-256 digests, so neither the key's length nor its content shows in the timing (H5).
 async function keyOk(request, env) {
   const key = env.HERMES_KEY, m = /^Bearer (\S+)$/.exec(request.headers.get("authorization") ?? "");
+  if (env.QA_HISTORY_KEY && env.QA_HISTORY_KEY === key) return false;
   if (typeof key !== "string" || key.length < 32 || !m) return false;
   const [a, b] = (await Promise.all([m[1], key].map(s => crypto.subtle.digest("SHA-256", enc.encode(s))))).map(d => new Uint8Array(d));
   let diff = 0;

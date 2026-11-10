@@ -1,5 +1,6 @@
 import { json, fail, HttpError } from "./http.js";
 import { currentAdmin, sameOrigin } from "./auth.js";
+import { qaRoute } from "./qa-history.js";
 import publicRoutes from "./routes/public.js";
 import sessionRoutes from "./routes/session.js";
 import listingRoutes from "./routes/listings.js";
@@ -34,7 +35,7 @@ const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRou
 export async function handleApi(request, env, segments, waitUntil = () => {}) {
   const res = await route(request, env, segments, waitUntil);
   // Admin, session and chat answers carry personal data: never cache them anywhere.
-  if (/^(admin|me|session|hermes|chat)$/.test(segments[0] ?? "")) res.headers.set("cache-control", "no-store");
+  if (/^(admin|me|session|hermes|chat|qa)$/.test(segments[0] ?? "")) res.headers.set("cache-control", "no-store");
   return res;
 }
 
@@ -47,6 +48,7 @@ async function route(request, env, segments, waitUntil) {
     // AUT-13: Hermes's door has its own key and no cookie, so the same-origin check (against cookie CSRF) is not its.
     if (segments[0] === "hermes") return await hermesDoor(request, env, path.slice("/hermes".length));
     if (method !== "GET" && method !== "HEAD" && !sameOrigin(request)) fail(403, "Cross-origin request blocked");
+    if (segments[0] === "qa") return await qaRoute({request, env, path, segments});
     for (const [m, re, handler, auth] of ROUTES) {
       const hit = m === method && re.exec(path);
       if (!hit) continue;

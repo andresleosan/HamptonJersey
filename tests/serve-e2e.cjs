@@ -10,8 +10,10 @@ const fromRepo = createRequire(join(repo, 'package.json'));
 const { unstable_readConfig } = fromRepo('wrangler');
 const { Miniflare, convertV4MiniflareOptions } = fromRepo('miniflare');
 const { EnvHttpProxyAgent, fetch: proxyFetch } = fromRepo('undici');
+const QA_TEST_DB_ID = 'a4a52a8c-98d3-4444-998a-000000000099';
 
-async function startFixture({ persist = process.env.E2E_PERSIST, varsFile = process.env.E2E_VARS, port = Number(process.env.PORT || 8788) } = {}) {
+async function startFixture({ persist = process.env.E2E_PERSIST, varsFile = process.env.E2E_VARS,
+  port = Number(process.env.PORT || 8788), qaDb = false } = {}) {
   if (!persist || !varsFile) throw Error('Set E2E_PERSIST and E2E_VARS to isolated local fixtures.');
   const vars = parseEnv(readFileSync(varsFile, 'utf8'));
   if (!/^1x0+AA$/.test(vars.TURNSTILE_SECRET || '') || !/^1x0+A[AB]$/.test(vars.TURNSTILE_SITE_KEY || '')) {
@@ -30,7 +32,8 @@ async function startFixture({ persist = process.env.E2E_PERSIST, varsFile = proc
       modules: true, modulesRoot: scratch, scriptPath: bundle, name: 'hampton-e2e',
       compatibilityDate: config.compatibility_date,
       bindings: { ...config.vars, ...vars },
-      d1Databases: Object.fromEntries(config.d1_databases.map(d => [d.binding, d.database_id])),
+      d1Databases: { ...Object.fromEntries(config.d1_databases.map(d => [d.binding, d.database_id])),
+        ...(qaDb ? { QA_DB: QA_TEST_DB_ID } : {}) },
       r2Buckets: Object.fromEntries(config.r2_buckets.map(b => [b.binding, b.bucket_name])),
       resourcePersistencePath: join(resolve(persist), 'v3'),
       assets: { directory: resolve(config.pages_build_output_dir), binding: 'ASSETS', run_worker_first: true, routerConfig: { has_user_worker: true } },
@@ -41,6 +44,7 @@ async function startFixture({ persist = process.env.E2E_PERSIST, varsFile = proc
     });
     mf = new Miniflare(options);
     const url = await mf.ready;
+    if (qaDb) await (await mf.getD1Database('QA_DB')).prepare('SELECT 1 FROM listings LIMIT 1').first();
     return { url, close: async () => { await mf.dispose(); await dispatcher.close(); rmSync(scratch, { recursive: true }); } };
   } catch (error) {
     if (mf) await mf.dispose();
@@ -58,4 +62,4 @@ if (require.main === module) {
     process.once('SIGINT', stop); process.once('SIGTERM', stop);
   }).catch(error => { console.error(error.message); process.exitCode = 1; });
 }
-module.exports = { startFixture };
+module.exports = { startFixture, QA_TEST_DB_ID };

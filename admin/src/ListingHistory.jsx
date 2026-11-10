@@ -42,26 +42,28 @@ function value(field,v) {
   return typeof v==='number'?v.toLocaleString('en-GB'):words(v);
 }
 
-export default function ListingHistory({id,refreshKey=0}) {
+export default function ListingHistory({id,refreshKey=0,historyEndpoint}) {
   const [page,setPage]=useState(null),[loading,setLoading]=useState(false),[error,setError]=useState(false),
     [invalidCursor,setInvalidCursor]=useState(false),[verificationFailed,setVerificationFailed]=useState(false);
   const request=useRef(0),failedCursor=useRef(null),focusAfter=useRef(null);
+  const path=historyEndpoint??`/admin/listings/${id}/history`;
+  const isolated=historyEndpoint!==undefined;
   const load=async(cursor=null,moveFocus=false)=>{
     const trigger=document.activeElement;
     const mayFocus=()=>moveFocus&&(document.activeElement===trigger||document.activeElement===document.body);
     focusAfter.current=null;
-    const visible=page?.items??[],withheld=visible.some(i=>!i.type.startsWith('listing.'));
+    const visible=page?.items??[],withheld=isolated||visible.some(i=>!i.type.startsWith('listing.'));
     const n=++request.current;let checking=false;
     setLoading(true);setError(false);setInvalidCursor(false);setVerificationFailed(false);failedCursor.current=cursor;
     if(withheld)setPage(null);
     try {
-      const next=await api(`/admin/listings/${id}/history${cursor?'?cursor='+encodeURIComponent(cursor):''}`);
+      const next=await api(`${path}${cursor?'?cursor='+encodeURIComponent(cursor):''}`);
       if(n!==request.current)return;
       const candidate=mergeHistoryPage(cursor?page:null,next);
       const ids=candidate.items.map(i=>i.id);
       if(ids.length){
         checking=true;
-        await api(`/admin/listings/${id}/history/validate`,{method:'POST',body:{ids}});
+        await api(`${path}/validate`,{method:'POST',body:{ids}});
         if(n!==request.current)return;
       }
       if(mayFocus())focusAfter.current=cursor&&next.items.length?`history-event-${next.items[0].id}`:'h-history';
@@ -69,11 +71,11 @@ export default function ListingHistory({id,refreshKey=0}) {
     } catch (e) {if(n===request.current){const invalid=e.status===409||!!cursor&&e.status===400,
       unverified=(checking||!!cursor&&withheld)&&!invalid;
       if(mayFocus())focusAfter.current=invalid||unverified?'history-refresh':'history-retry';
-      if(invalid||unverified)setPage(null);
+      if(invalid||unverified||isolated&&[401,403].includes(e.status))setPage(null);
       setInvalidCursor(invalid);setVerificationFailed(unverified);setError(true);}}
     finally {if(n===request.current)setLoading(false);}
   };
-  useEffect(()=>{load();return ()=>{request.current++;};},[id,refreshKey]);
+  useEffect(()=>{load();return ()=>{request.current++;};},[id,refreshKey,historyEndpoint]);
   useEffect(()=>{if(focusAfter.current){document.getElementById(focusAfter.current)?.focus();focusAfter.current=null;}},[page,error]);
   return <section id="s-history" className="card listing-history" aria-labelledby="h-history">
     <div className="head"><h2 id="h-history" tabIndex={-1}>History</h2>
