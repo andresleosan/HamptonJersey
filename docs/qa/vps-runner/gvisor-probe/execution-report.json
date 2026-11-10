@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-10",
+  "authorized_manifest_sha256": "7bd6db6fcaec7a7ba8ec63a9f680f4668645b66f46675a48f505e9f6e817e17a",
+  "status": "pilot-failed-no-sandbox-proof",
+  "single_pilot_attempt": true,
+  "container_exit_code": 1,
+  "OOMKilled": false,
+  "supervisor_exit_code_observed_before_cleanup": 2,
+  "supervisor_result_present": false,
+  "cause_determined": false,
+  "Chromium_sandbox_verified": false,
+  "live_host_cgroup_verified": false,
+  "cleanup": {
+    "manifest_sha256": "7bd6db6fcaec7a7ba8ec63a9f680f4668645b66f46675a48f505e9f6e817e17a",
+    "container_id": "74a8197f2f739c5d7a86b46289a67cfba45ecde9e190711e5b89ea313262fec2",
+    "probe_stopped_verified": true,
+    "PATH_launcher_removed_verified": true,
+    "other_runsc_consumers": 0,
+    "existing_container_state_changes": 0,
+    "new_container_ids": [
+      "74a8197f2f73"
+    ],
+    "existing_services_unchanged": true,
+    "configuration_metadata_unchanged": true,
+    "kernel_policy_unchanged": true,
+    "docker_defaults_unchanged": true,
+    "identity_absent": true,
+    "result_present": false,
+    "preserved_public_binaries_and_stopped_probe": true,
+    "retry_attempted": false
+  },
+  "transient_unit_unloaded": true,
+  "approved_artifact_unchanged": true,
+  "identity_values_read": false,
+  "identity_transferred": false,
+  "PC_runner_touched": false,
+  "published_application_tested": false,
+  "production_changes": false,
+  "existing_services_changed": false,
+  "push": false,
+  "retry_attempted": false,
+  "remaining": "Diagnose the missing startup/supervisor evidence locally before any separately authorized new pilot; shared QA runner remains unready"
+}

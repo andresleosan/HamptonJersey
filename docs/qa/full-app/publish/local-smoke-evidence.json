@@ -1,0 +1,1176 @@
+{
+  "mode": "local-Miniflare-virtual-origin",
+  "static_service": "fixed artifact-file ASSETS fixture; native Miniflare alpha asset router is separately unverified",
+  "source_sha": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "build_id": "704b463fed481fae874ddc152c24445af62e05c34aa5393121a77ff67fffafc2",
+  "artifact_sha256": "d4b2a57bd3036efc1718396d68edfb3912d59f8e35a2cd4dae765e8c6d43c30b",
+  "real_QA_credentials_read": false,
+  "published_requests": 0,
+  "runId": "run-64d004f2-8bc3-4119-9846-1b91dad8346f",
+  "passed": true,
+  "local_guard_matches": true,
+  "dispatch_statuses": [
+    {
+      "path": "/api/qa-app/state",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/me",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "path": "/api/session",
+      "method": "POST",
+      "status": 403
+    },
+    {
+      "path": "/api/admin/users",
+      "method": "POST",
+      "status": 403
+    },
+    {
+      "path": "/api/qa/production-check",
+      "method": "GET",
+      "status": 404
+    },
+    {
+      "path": "/api/hermes/status",
+      "method": "GET",
+      "status": 404
+    },
+    {
+      "path": "/api/admin/settings/csv-map",
+      "method": "GET",
+      "status": 400
+    },
+    {
+      "path": "/api/config",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/listings",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/applicants/options",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/tours",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/availability",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/users",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/applicants",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/viewings",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/negotiators",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/availability",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/notifications",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/notifications/counts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/notification-preferences",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/notification-alerts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/review",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/automations",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/jobs",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/queue",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/chats",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/advertisers",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/tours",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/sales",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/landlords",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/rentals",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/tenancies",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/insights",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/email/settings",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/email/preview",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/email",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/email",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/settings/rpi",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/settings/gst",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/settings/csv-map",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings",
+      "method": "POST",
+      "status": 201
+    },
+    {
+      "path": "/api/admin/listings/HE-R001",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings/HE-R001",
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings/HE-R001",
+      "method": "PUT",
+      "status": 409
+    },
+    {
+      "path": "/api/admin/listings/HE-R001/history",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings/HE-R001/offers",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings/HE-R001/interest",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings/HE-R001/report",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings/HE-R001/media",
+      "method": "POST",
+      "status": 201
+    },
+    {
+      "path": "/api/admin/listings/HE-R001",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/media/Ub61b49517ffb4362",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/media/Ub61b49517ffb4362",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/users",
+      "method": "POST",
+      "status": 201
+    },
+    {
+      "path": "/api/admin/users",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/users/run-64d004f2-8bc3-4119-9846-1b91dad8346f%40example.test",
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/users",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/qa-app/simulate",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/qa-app/simulate",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/qa-app/simulate",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings/HE-R001",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/media/Ub61b49517ffb4362",
+      "method": "DELETE",
+      "status": 200
+    },
+    {
+      "path": "/media/Ub61b49517ffb4362",
+      "method": "GET",
+      "status": 404
+    },
+    {
+      "path": "/api/admin/users",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/users/run-64d004f2-8bc3-4119-9846-1b91dad8346f%40example.test",
+      "method": "DELETE",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/users",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings/HE-R001",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings/HE-R001/archive",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings/HE-R001",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings/HE-R001",
+      "method": "DELETE",
+      "status": 200
+    },
+    {
+      "path": "/api/admin/listings/HE-R001",
+      "method": "GET",
+      "status": 404
+    }
+  ],
+  "api": {
+    "checks": [
+      {
+        "case": "state-build",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "anonymous-session",
+        "passed": true,
+        "mode": "security"
+      },
+      {
+        "case": "provider-login-disabled",
+        "passed": true,
+        "mode": "security"
+      },
+      {
+        "case": "csrf-missing-origin",
+        "passed": true,
+        "mode": "security"
+      },
+      {
+        "case": "old-qa-hidden",
+        "passed": true,
+        "mode": "security"
+      },
+      {
+        "case": "hermes-door-hidden",
+        "passed": true,
+        "mode": "security"
+      },
+      {
+        "case": "csv-header-required",
+        "passed": true,
+        "mode": "security"
+      },
+      {
+        "case": "read-config",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-public-listings",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-applicant-options",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-public-tours",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-public-availability",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-listings",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-users",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-applicants",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-viewings",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-negotiators",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-availability",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-notifications",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-notification-counts",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-notification-preferences",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-notification-alerts",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-matches-review",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-automations",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-jobs",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-queue",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-chats",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-advertisers",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-tours",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-sales",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-landlords",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-rentals",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-tenancies",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-insights",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-email-settings",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-email-preview",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-inbound-email",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-outbound-email",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-rpi-setting",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-gst-setting",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "read-csv-setting",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "listing-create",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "listing-create-ownership",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "listing-update",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "listing-stale-update",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "listing-history",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "listing-offers",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "listing-interest",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "listing-report",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "media-upload",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "media-upload-ownership",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "media-read-hash",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "media-thumb-hash",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "user-create",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "user-create-ownership",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "user-update",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "user-update-read",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "simulate-drive",
+        "passed": true,
+        "mode": "simulated"
+      },
+      {
+        "case": "simulate-email",
+        "passed": true,
+        "mode": "simulated"
+      },
+      {
+        "case": "simulate-jobs",
+        "passed": true,
+        "mode": "simulated"
+      },
+      {
+        "case": "cleanup-media-ownership",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "cleanup-media-delete",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "cleanup-media-absent",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "cleanup-user-ownership",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "cleanup-user-delete",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "cleanup-user-absent",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "cleanup-listing-ownership",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "cleanup-listing-archive",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "cleanup-listing-delete-ownership",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "cleanup-listing-delete",
+        "passed": true,
+        "mode": "qa-app"
+      },
+      {
+        "case": "cleanup-listing-absent",
+        "passed": true,
+        "mode": "qa-app"
+      }
+    ],
+    "cleanup": {
+      "attempted": true,
+      "listing": {
+        "created": true,
+        "ownershipVerified": true,
+        "deleted": true
+      },
+      "media": {
+        "created": true,
+        "ownershipVerified": true,
+        "deleted": true
+      },
+      "user": {
+        "created": true,
+        "ownershipVerified": true,
+        "deleted": true
+      },
+      "errors": []
+    },
+    "retained": [
+      {
+        "type": "scope",
+        "reason": "Hermes draft simulation skipped: initial smoke has no normal draft cleanup permission."
+      },
+      {
+        "type": "simulation-email",
+        "runId": "run-64d004f2-8bc3-4119-9846-1b91dad8346f",
+        "reason": "Synthetic inbound message and QA-prefixed receipt remain for inspection; no provider delivery."
+      },
+      {
+        "type": "simulation-jobs",
+        "runId": "run-64d004f2-8bc3-4119-9846-1b91dad8346f",
+        "reason": "Clock, retention, notification reconciliation and weekly insights use fixture data; their operational/audit rows remain."
+      },
+      {
+        "type": "listing-audit",
+        "runId": "run-64d004f2-8bc3-4119-9846-1b91dad8346f",
+        "reason": "Normal listing deletion retains History events and a deleted-listing tombstone."
+      }
+    ]
+  },
+  "ui": {
+    "origin": "https://hamptonjersey-qa.pages.dev",
+    "checks": [
+      {
+        "case": "public-home-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "public-properties-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "public-property-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "public-apply-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "public-privacy-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-inbox-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-messages-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-email-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-applicants-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-new-applicant-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-applicant-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-applicant-matches-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-review-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-advertisers-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-listings-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-listing-editor-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-owner-report-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-queue-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-viewings-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-sales-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-sale-detail-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-rentals-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-rental-detail-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-new-rental-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-rent-import-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-statement-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-landlord-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-insights-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-weekly-insights-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-availability-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-tours-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-users-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-automations-1280",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "public-home-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "public-properties-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "public-property-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "public-apply-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "public-privacy-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-inbox-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-messages-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-email-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-applicants-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-new-applicant-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-applicant-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-applicant-matches-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-review-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-advertisers-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-listings-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-listing-editor-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-owner-report-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-queue-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-viewings-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-sales-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-sale-detail-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-rentals-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-rental-detail-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-new-rental-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-rent-import-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-statement-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-landlord-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-insights-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-weekly-insights-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-availability-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-tours-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-users-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      },
+      {
+        "case": "admin-automations-390",
+        "passed": true,
+        "mode": "readonly-ui",
+        "consoleErrors": 0
+      }
+    ],
+    "consoleErrors": 0,
+    "widths": [
+      1280,
+      390
+    ],
+    "scope": "Readonly route rendering and layout; provider and delivery integrations are not exercised."
+  },
+  "off_origin_attempts": 0
+}

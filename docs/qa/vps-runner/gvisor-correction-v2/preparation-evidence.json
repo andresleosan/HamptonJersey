@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-10",
+  "manifest_sha256": "d9dccc95971daf16209a42d5ba5baa4b8dc642c872a3be93f4ee9022207c707c",
+  "archive_sha256": "f6eaf6bc624c3b8aa2ab796d8ba382b4a7211e5077814af43de4262820309d94",
+  "bundle_verified": true,
+  "files_including_manifest": 7,
+  "historical_cause_conclusive": false,
+  "old_real_Readable_reproduction": {
+    "token_accepted": true,
+    "stdin_destroyed": true
+  },
+  "v2_real_Readable_regression_passed": true,
+  "OCI_seccomp_true_pinned_and_Node_gate_tested": true,
+  "V2_tests": {
+    "Node": 8,
+    "Python": 8,
+    "failed": 0
+  },
+  "V1_regression_tests": {
+    "Node": 6,
+    "Python": 7,
+    "failed": 0
+  },
+  "retained_official_files_verified_readonly": 8,
+  "pilot_repeated": false,
+  "installed": false,
+  "identity_values_read": false,
+  "production_or_global_policy_changes": false,
+  "pushed": false
+}

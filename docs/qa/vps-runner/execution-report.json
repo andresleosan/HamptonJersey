@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-10",
+  "authorized_manifest_sha256": "2ed8614ed501ff04bfc71903f9a669f45b07754e6e3959067069eea2ea9cd232",
+  "status": "blocked-at-Chromium-isolation-before-identity",
+  "new_QA_resources_created": true,
+  "approved_archive_unchanged": true,
+  "isolation": {
+    "kind": "E-isolation-only",
+    "checks": {
+      "non_root": true,
+      "no_caps": true,
+      "no_new_privileges": true,
+      "root_readonly": true,
+      "code_readonly": true,
+      "no_profile_or_docker_socket": true,
+      "no_default_route": true,
+      "no_direct_internet": true,
+      "no_metadata": true,
+      "no_host_gateway": true,
+      "no_host_special_name": true,
+      "no_direct_lan": true,
+      "no_proxy_external_nic": true,
+      "no_external_dns": true,
+      "proxy_denies_arbitrary_host": true,
+      "proxy_denies_private_ip": true,
+      "proxy_denies_other_port": true,
+      "proxy_local_tls_handshake": true,
+      "proxy_denies_tls_host_switch": true,
+      "proxy_denies_tls_sni_switch": true,
+      "diagnostic_completed": false
+    },
+    "passed": false,
+    "credentials_loaded": false,
+    "application_smoke_run": false
+  },
+  "host_sandbox_readonly": {
+    "unprivileged_userns": "0",
+    "apparmor_userns_restriction": "1",
+    "max_user_namespaces": "256692",
+    "apparmor_enabled": "Y",
+    "runner": {
+      "id": "1cb34dbfc50f87207320d183b6b99f43178ecdbe3008b6f2873de6793a912e61",
+      "running": false,
+      "pid": 0,
+      "apparmor": "docker-default"
+    },
+    "egress": {
+      "id": "4fb326afa16c91bd11265a50579751198ab2d67548b8953a615b17ba2471ca04",
+      "running": false,
+      "pid": 0,
+      "apparmor": "docker-default"
+    },
+    "identity_present": false
+  },
+  "both_new_QA_containers_stopped_verified": true,
+  "identity_values_read": false,
+  "identity_transferred": false,
+  "PC_runner_stopped": false,
+  "PC_runner_observed_running": true,
+  "systemd_units_created": false,
+  "workshop_queues_created": false,
+  "published_smoke_executed": false,
+  "production_changes": false,
+  "existing_services_modified": false,
+  "push": false,
+  "retry_attempted": false,
+  "next": "Require compatible QA host or a separately reviewed infrastructure decision; do not disable sandbox or change shared-host kernel policy under this authorization"
+}

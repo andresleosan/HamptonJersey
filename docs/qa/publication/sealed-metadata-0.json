@@ -1,0 +1,159 @@
+{
+  "source_sha": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "build_id": "704b463fed481fae874ddc152c24445af62e05c34aa5393121a77ff67fffafc2",
+  "overlay_sha256": "4f0b9f8a93806adf6f92c00d357e7f5a0cc80387f6e5a3634e2be7ed08f2418c",
+  "dependency_lock_sha256": "e17e298e804514f352b50223e8d730a7898393a85aa4c0b33f6349c295e8d737",
+  "artifact_directory": "E:\\Proyectos\\HamptonJersey\\build\\qa-full-app-F\\artifact",
+  "canonical_tree_format": "UTF-8 sorted relative-path NUL size NUL lowercase-SHA256 LF",
+  "artifact_sha256": "d4b2a57bd3036efc1718396d68edfb3912d59f8e35a2cd4dae765e8c6d43c30b",
+  "artifact_bytes": 1810170,
+  "files": [
+    {
+      "file": "_headers",
+      "bytes": 407,
+      "sha256": "3fc71933da0a6a661365e19242dc910845310b181d3c1ab37ed30c0095d250eb"
+    },
+    {
+      "file": "_redirects",
+      "bytes": 42,
+      "sha256": "d6871d0a074ec375b688933de3244902ca95a2f7ebfcd25a491cb86c213a5e8e"
+    },
+    {
+      "file": "_routes.json",
+      "bytes": 44,
+      "sha256": "6a5235a7db8c26c17606b7f16516509989e8b2c8307280cc53c30e03e63d4a6a"
+    },
+    {
+      "file": "_worker.js",
+      "bytes": 891103,
+      "sha256": "ad63c0f87804a77070b6674a4cf9cdcaf3aaf09845dd7f7b3ea094a123678ab0"
+    },
+    {
+      "file": "admin/assets/App-C8FnvV3a.js",
+      "bytes": 454462,
+      "sha256": "f7c6aa67f2a3052e9b1988aa85492780f65acb1c177f682b2bf4d1c3f634986e"
+    },
+    {
+      "file": "admin/assets/App-D69kYXUD.css",
+      "bytes": 5858,
+      "sha256": "68f46c52d1f22be5763c739b2e44a19ec4e9f28cbbbe0fec78766d96d772bec1"
+    },
+    {
+      "file": "admin/assets/Email-4hu4kulb.js",
+      "bytes": 9224,
+      "sha256": "a31e2095bd32f1336750e2ff3e957396dc9f26f123d17677494186b287a6e0a8"
+    },
+    {
+      "file": "admin/assets/index-1VuZ88pa.js",
+      "bytes": 221446,
+      "sha256": "7a2d908030ad93c862334619356d29761a542359f428d6b94f06b99269d356eb"
+    },
+    {
+      "file": "admin/assets/index-BJ4y8TfY.css",
+      "bytes": 46104,
+      "sha256": "33b4cded022acf1f128d54994d841f58d304daa1044bcfcab475779cc2a3230a"
+    },
+    {
+      "file": "admin/index.html",
+      "bytes": 858,
+      "sha256": "57a5685a7debacda95b879b45c689828d2e6b3d3ddbc3061e63f032226335ce6"
+    },
+    {
+      "file": "admin/property.txt",
+      "bytes": 1487,
+      "sha256": "38fa314780d44bfcf1b44ec2155c9e6ea2dd7b85d156ec170410a938fe44b30f"
+    },
+    {
+      "file": "apply.js",
+      "bytes": 36957,
+      "sha256": "ab60a10edb87d1d26c8eaaa4bc58ff5dbddcf6b22b3798cbf0a61c1e80334a12"
+    },
+    {
+      "file": "chat.js",
+      "bytes": 15805,
+      "sha256": "0b8885fbe05a0576222b99dd4927ad06a9119bb893b28c60d6bdc9b3924f4498"
+    },
+    {
+      "file": "data/team.json",
+      "bytes": 319,
+      "sha256": "dd3708d04f1722b23a40a66ac76bdf0abddc68d74f6e46e82fca848f0316cfe1"
+    },
+    {
+      "file": "index.html",
+      "bytes": 99273,
+      "sha256": "d077c9c702024e9597828aedd3cc5a0df3117a03955b026bf75b726417349399"
+    },
+    {
+      "file": "lib.js",
+      "bytes": 7868,
+      "sha256": "ce2faed5e7bfa634e6302e8536109e95f5cd159961f6b9ff4b45b9c8c90a21d9"
+    },
+    {
+      "file": "qa-assets/qa-pattern-01.png",
+      "bytes": 3562,
+      "sha256": "8f7b868d78e352846f692651670b55fbc740c2279f48e8d2c5c3f82a8beefe79"
+    },
+    {
+      "file": "qa-assets/qa-pattern-02.png",
+      "bytes": 3562,
+      "sha256": "f3ddadced0b467375992f442e45c21c29d0d88884c917bcede1c470f4a59db59"
+    },
+    {
+      "file": "qa-assets/qa-pattern-03.png",
+      "bytes": 3562,
+      "sha256": "426040834026c2fdfb641cade566bbe8614d0ee1411688333812dc20de71e929"
+    },
+    {
+      "file": "qa-runtime.js",
+      "bytes": 2582,
+      "sha256": "4cd2259f153a2119fb930138619082e4d05c30e9ef48bee35599c71b1b4c3a9b"
+    },
+    {
+      "file": "requirements.css",
+      "bytes": 2354,
+      "sha256": "f3a480bdc1e7701d2b39b00be7865893acc7ac775dcd9eebaf12e5f8a3e9cc83"
+    },
+    {
+      "file": "requirements.js",
+      "bytes": 3291,
+      "sha256": "d12088414ebf7742e3bffd289e2f1a598c5ec202cd166a5083f3bde321d6643b"
+    }
+  ],
+  "frontend": {
+    "site_url": "https://hamptonjersey-qa.pages.dev",
+    "simulated_antispam": "qa-simulated-antispam",
+    "provider_authentication": false,
+    "external_frames": false,
+    "telemetry": false,
+    "team_records": 2,
+    "generated_asset_files": 3,
+    "runtime_sha256": "4cd2259f153a2119fb930138619082e4d05c30e9ef48bee35599c71b1b4c3a9b",
+    "limitations": [
+      "Anti-spam and provider login are simulated or unavailable.",
+      "Current seed exposes one photo-backed public listing.",
+      "3D embeds, outbound contact and external navigation are disabled."
+    ]
+  },
+  "backend": {
+    "status": "prepared",
+    "files": {
+      "server/email.js": "65d97b446c40eaa133492f4733faa7008593493389f0a36ba3f4e9a5a9798659",
+      "server/chat.js": "714fed1417f926daf84fdab24b22cc6f68d7f6376cc8dee0380654cd1ddd502a",
+      "server/drive.js": "56180d6de9f5ce7e65f1b7fd7c25627a212aabab5b92a62bb9d9a716f7b80e1c",
+      "server/turnstile.js": "f870e0c4730687dd16e13db1b6c0e38452108a359de373f81a2f9136162c9d14",
+      "server/qa-integrations.js": "e839517501b77bbfd48e3237f3fd0e3a1568f0e3b4990da82dd319948806572a"
+    },
+    "simulations": [
+      "drive",
+      "email",
+      "jobs",
+      "hermes"
+    ],
+    "network": "none",
+    "source_baseline": "80ad03df7e095750f455aa4aa668573e9aac5db4"
+  },
+  "destination_project": "hamptonjersey-qa",
+  "origin": "https://hamptonjersey-qa.pages.dev",
+  "deployed": false,
+  "real_QA_credentials_read": false
+}

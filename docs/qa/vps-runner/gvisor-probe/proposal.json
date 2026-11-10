@@ -1,0 +1,10 @@
+{
+  "manifest_sha256": "7bd6db6fcaec7a7ba8ec63a9f680f4668645b66f46675a48f505e9f6e817e17a",
+  "archive_sha256": "db7cb1b35df13176b35ef175044a44c27e4e12e62b6af79be07cfd5f169ffd1a",
+  "archive_file": "build/qa-vps-gvisor-probe/7bd6db6fcaec7a7ba8ec63a9f680f4668645b66f46675a48f505e9f6e817e17a.tar",
+  "manifest_file": "build/qa-vps-gvisor-probe/7bd6db6fcaec7a7ba8ec63a9f680f4668645b66f46675a48f505e9f6e817e17a/manifest.json",
+  "authorized": false,
+  "installed": false,
+  "tested_on_VPS": false,
+  "identity_values_read": false
+}

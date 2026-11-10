@@ -1,0 +1,43 @@
+{
+  "prepared_at": "2026-11-10",
+  "host": "optimyze-vps-de-prod.tail29c816.ts.net",
+  "source_sha": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "manifest_sha256": "2ed8614ed501ff04bfc71903f9a669f45b07754e6e3959067069eea2ea9cd232",
+  "archive_sha256": "064cbfa54593c51c314cc77d70d044c77561a8cf5e486192ab5043a8f7cc6226",
+  "archive_members_verified": true,
+  "files": 138,
+  "manifest_files_verified": true,
+  "windows_python": {
+    "run": 49,
+    "failed": 0,
+    "skipped": 6
+  },
+  "linux_public_temporary_python": {
+    "run": 49,
+    "failed": 0,
+    "skipped": 1,
+    "docker_operations_mocked": true
+  },
+  "node_offline": {
+    "run": 12,
+    "failed": 0
+  },
+  "original_QA_python_regression": {
+    "run": 58,
+    "failed": 0
+  },
+  "history_b_local_Miniflare": {
+    "api": 14,
+    "ui": 4,
+    "passed": true,
+    "ASSETS_fixture_adapter": true,
+    "published_requests": 0
+  },
+  "vps_docker_socket_present": true,
+  "both_actor_parent_directories_present": true,
+  "identity_values_read": false,
+  "installed": false,
+  "pushed": false,
+  "production_changed": false,
+  "next": "Independent final review and explicit destination-specific authorization before installation/identity transfer/tests/PC runner stop"
+}

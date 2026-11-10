@@ -1,0 +1,16 @@
+{
+  "runner": {
+    "tag": "mcr.microsoft.com/playwright:v1.65.0-noble",
+    "image": "mcr.microsoft.com/playwright@sha256:bc4fbb329a25287ed23e9216c97063646abdd1bf2da669a9895fa3e2078b2302",
+    "platform": "linux/amd64",
+    "index_digest": "sha256:6e3fb709361521eb27161606e6da6d2674e5e89fa16516cb37d6fdd91372273d",
+    "compressed_layer_bytes": 1002814156
+  },
+  "egress": {
+    "tag": "mitmproxy/mitmproxy:12.3.1",
+    "image": "mitmproxy/mitmproxy@sha256:e2f810b6e618258dd4980716da143c4a8de0edcb3243264baea398e2185bbbfb",
+    "platform": "linux/amd64",
+    "index_digest": "sha256:2711066c855659b5af8b1dbb84494ed3eff69b42ece439c60b4fe09a2db829d4",
+    "compressed_layer_bytes": 94112997
+  }
+}

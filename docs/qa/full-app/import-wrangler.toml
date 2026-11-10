@@ -1,0 +1,8 @@
+name = "hampton-app-qa-import"
+compatibility_date = "2025-10-01"
+
+# An explicit QA destination, not an access restriction on Wrangler credentials.
+[[d1_databases]]
+binding = "APP_QA_DB"
+database_name = "hampton-app-qa"
+database_id = "53bc4af9-7250-44fe-8f90-6e415fda1034"

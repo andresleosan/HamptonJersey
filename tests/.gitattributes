@@ -1,0 +1,2 @@
+# QA inputs included in approved manifests retain their original bytes.
+*qa* -text

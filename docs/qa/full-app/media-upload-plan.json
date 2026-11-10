@@ -1,0 +1,85 @@
+{
+  "operation": "upload-exactly-three-synthetic-QA-media-objects",
+  "proposal_version": 1,
+  "source_commit": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "source_manifest": "docs/qa/full-app/manifest.json",
+  "source_manifest_sha256": "1ed4994cb34151ca5abeff988b2f855ea07375d31168169bf3a0f7faf7e860b9",
+  "destination_bucket": "hampton-app-qa-media",
+  "account_verified_by_existing_hampton_resources": true,
+  "business_bucket_is_different": true,
+  "wrangler_version": "4.148.0",
+  "objects": [
+    {
+      "local_file": "docs/qa/full-app/media/qa-pattern-01.png",
+      "bucket": "hampton-app-qa-media",
+      "key": "qa/full-app-v1/qa-pattern-01.png",
+      "sha256": "8f7b868d78e352846f692651670b55fbc740c2279f48e8d2c5c3f82a8beefe79",
+      "bytes": 3562,
+      "content_type": "image/png",
+      "preflight_key_absent": true
+    },
+    {
+      "local_file": "docs/qa/full-app/media/qa-pattern-02.png",
+      "bucket": "hampton-app-qa-media",
+      "key": "qa/full-app-v1/qa-pattern-02.png",
+      "sha256": "f3ddadced0b467375992f442e45c21c29d0d88884c917bcede1c470f4a59db59",
+      "bytes": 3562,
+      "content_type": "image/png",
+      "preflight_key_absent": true
+    },
+    {
+      "local_file": "docs/qa/full-app/media/qa-pattern-03.png",
+      "bucket": "hampton-app-qa-media",
+      "key": "qa/full-app-v1/qa-pattern-03.png",
+      "sha256": "426040834026c2fdfb641cade566bbe8614d0ee1411688333812dc20de71e929",
+      "bytes": 3562,
+      "content_type": "image/png",
+      "preflight_key_absent": true
+    }
+  ],
+  "total_bytes": 10686,
+  "read_only_preflight": {
+    "checked_at_utc": "2026-11-10T04:51:08.002897Z",
+    "all_local_hashes_sizes_png_dimensions_and_CRCs_match": true,
+    "png_dimensions": [
+      600,
+      400
+    ],
+    "png_metadata_chunks_present": false,
+    "all_three_exact_remote_keys_absent": true,
+    "all_three_remote_D1_media_rows_match": true,
+    "qa_d1_id": "53bc4af9-7250-44fe-8f90-6e415fda1034",
+    "bucket_reported_object_count": 0,
+    "bucket_reported_size": "0 B",
+    "r2_dev_public_access_enabled": false,
+    "custom_domain_count": 0,
+    "reads_only": true
+  },
+  "remote_upload_authorized": false,
+  "remote_upload_performed": false,
+  "approval_scope": "Only these exact three file hashes, keys and MIME types in this bucket; no overwrites, other objects, database writes, public exposure, configuration changes, deployment, push or E/F.",
+  "before_each_future_put": [
+    "Require written approval for this proposal and exact bucket.",
+    "Recheck source hashes and unique account against known Hampton resources.",
+    "Recheck bucket privacy and absence of each exact key immediately before its put; stop on any uncertainty or collision.",
+    "Use an empty temporary working directory and explicit remote bucket/key; do not inherit business wrangler configuration."
+  ],
+  "put_metadata": {
+    "content_type": "image/png",
+    "storage_class": "inherit bucket default; no configuration changes",
+    "other_metadata": "none added"
+  },
+  "after_each_future_put": [
+    "GET that exact remote object into a temporary local file.",
+    "Compare full SHA-256 and byte count with this proposal; record result without credentials."
+  ],
+  "uncertain_result_policy": "Stop and GET the exact remote key before any retry. If matching bytes already exist, record verified without another PUT; if different or unreadable, stop. No blind replay or deletion.",
+  "wrangler_put_overwrite_limitation": "Wrangler PUT is not an atomic create-only guard; the exact-key absence check is a precondition, not protection against a concurrent writer. Stop if concurrent writes are suspected.",
+  "E_F_authorized": false,
+  "E_F_started": false,
+  "production_mutations": false,
+  "D1_mutations": false,
+  "bucket_public_access_changes": false,
+  "new_secrets_or_credentials": false,
+  "deployment_or_push": false
+}

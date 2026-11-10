@@ -1,0 +1,27 @@
+{
+  "verified_at_utc": "2026-11-10T06:43:53.426482+00:00",
+  "method": "read-only Cloudflare dashboard; DOM-visible destinations/policy overview",
+  "applications": [
+    {
+      "id": "33a0abb5-4f6b-4235-8160-8710b063966e",
+      "hostname": "hamptonjersey-qa.pages.dev"
+    },
+    {
+      "id": "2e15da5c-dcea-4c08-82dc-440f5d78702f",
+      "hostname": "*.hamptonjersey-qa.pages.dev"
+    }
+  ],
+  "policy": {
+    "id": "d05d1e3a-506f-4912-ad48-2f2cb7a91551",
+    "name": "Hampton App QA Service Only",
+    "action": "Service Auth",
+    "rules": 1,
+    "include": {
+      "Service Token": "hampton-app-qa-runner"
+    },
+    "used_by_applications": 2
+  },
+  "other_attached_policies": 0,
+  "settings_changed": false,
+  "credential_values_read": false
+}

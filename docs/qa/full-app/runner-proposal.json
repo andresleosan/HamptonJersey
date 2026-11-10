@@ -1,0 +1,226 @@
+{
+  "operation": "E-local-isolated-QA-runner-only",
+  "proposal_version": 1,
+  "prepared_at_utc": "2026-11-10T05:11:47.365792Z",
+  "source_commit": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "docker_context": "desktop-linux",
+  "docker_endpoint": "npipe:////./pipe/dockerDesktopLinuxEngine",
+  "platform": "linux/amd64",
+  "docker_server_version_checked": "29.9.1",
+  "compose_version_checked": "5.6.0",
+  "images": {
+    "runner": {
+      "tag": "mcr.microsoft.com/playwright:v1.65.0-noble",
+      "image": "mcr.microsoft.com/playwright@sha256:bc4fbb329a25287ed23e9216c97063646abdd1bf2da669a9895fa3e2078b2302",
+      "platform": "linux/amd64",
+      "index_digest": "sha256:6e3fb709361521eb27161606e6da6d2674e5e89fa16516cb37d6fdd91372273d",
+      "compressed_layer_bytes": 1002814156
+    },
+    "egress": {
+      "tag": "mitmproxy/mitmproxy:12.3.1",
+      "image": "mitmproxy/mitmproxy@sha256:e2f810b6e618258dd4980716da143c4a8de0edcb3243264baea398e2185bbbfb",
+      "platform": "linux/amd64",
+      "index_digest": "sha256:2711066c855659b5af8b1dbb84494ed3eff69b42ece439c60b4fe09a2db829d4",
+      "compressed_layer_bytes": 94112997
+    }
+  },
+  "compressed_image_layer_bytes_before_cache": 1096927153,
+  "compose_file": "docs/qa/full-app/runner/compose.json",
+  "containers": [
+    "hampton-app-qa-runner",
+    "hampton-app-qa-egress"
+  ],
+  "networks": {
+    "internal": {
+      "name": "hampton-app-qa-internal",
+      "driver": "bridge",
+      "internal": true,
+      "enable_ipv6": false,
+      "driver_opts": {
+        "com.docker.network.bridge.gateway_mode_ipv4": "isolated"
+      },
+      "ipam": {
+        "config": [
+          {
+            "subnet": "172.30.230.0/28"
+          }
+        ]
+      }
+    },
+    "egress": {
+      "name": "hampton-app-qa-outbound",
+      "driver": "bridge",
+      "enable_ipv6": false,
+      "ipam": {
+        "config": [
+          {
+            "subnet": "172.30.231.0/28"
+          }
+        ]
+      }
+    }
+  },
+  "bind_mounts": [
+    {
+      "service": "runner",
+      "type": "bind",
+      "source": "E:/Proyectos/HamptonJersey/test-results/qa-agent-runtime/runner-package",
+      "target": "/work",
+      "read_only": true,
+      "bind": {
+        "create_host_path": false
+      }
+    },
+    {
+      "service": "runner",
+      "type": "bind",
+      "source": "E:/Proyectos/HamptonJersey/test-results/qa-agent-runtime/results",
+      "target": "/results",
+      "read_only": false,
+      "bind": {
+        "create_host_path": false
+      }
+    },
+    {
+      "service": "egress",
+      "type": "bind",
+      "source": "E:/Proyectos/HamptonJersey/test-results/qa-agent-runtime/egress-package",
+      "target": "/policy",
+      "read_only": true,
+      "bind": {
+        "create_host_path": false
+      }
+    }
+  ],
+  "tmpfs": {
+    "runner": [
+      "/tmp:rw,nosuid,nodev,noexec,size=256m,mode=1777",
+      "/run/qa:rw,nosuid,nodev,noexec,size=32m,mode=0700,uid=1000,gid=1000"
+    ],
+    "egress": [
+      "/tmp:rw,nosuid,nodev,noexec,size=256m,mode=1777",
+      "/run/qa:rw,nosuid,nodev,noexec,size=32m,mode=0700,uid=1000,gid=1000",
+      "/home/mitmproxy/.mitmproxy:rw,nosuid,nodev,noexec,size=4m,mode=0700,uid=1000,gid=1000"
+    ]
+  },
+  "runtime_root": "E:/Proyectos/HamptonJersey/test-results/qa-agent-runtime",
+  "package_dependency": {
+    "name": "playwright-core",
+    "version": "1.65.0",
+    "lock_file": "docs/qa/full-app/runner/package-lock.json",
+    "install_hooks_executed": false
+  },
+  "network_allowed_https_hosts": [
+    "hamptonjersey-qa.pages.dev",
+    "challenges.cloudflare.com"
+  ],
+  "published_ports": [],
+  "user": "1000:1000",
+  "privileges": "cap_drop ALL; no-new-privileges; readonly root; no host namespaces or Docker socket",
+  "CA_policy": "Generate ephemeral inspection CA/private key in proxy tmpfs only after E approval; never install in Windows/export private key; proxy verifies upstream TLS.",
+  "credential_policy": "E loads no QA identity/session/Access/API/provider credentials. F must prepare and authorize its separate allowed package and stdin/tmpfs handoff.",
+  "files": [
+    {
+      "file": "docs/qa/full-app/runner/compose.json",
+      "bytes": 5379,
+      "sha256": "69df883f70c89c74ff9dcae967fdfb20d8b065d209af9cfe2ceb36766bc9eb8a"
+    },
+    {
+      "file": "docs/qa/full-app/runner/egress_addon.py",
+      "bytes": 2771,
+      "sha256": "e727ccbe09f4cb4dc783791715492a3a34d7133630844c47080a663aad9dc119"
+    },
+    {
+      "file": "docs/qa/full-app/runner/idle.mjs",
+      "bytes": 208,
+      "sha256": "6dc7aaf657f3f196931fbc1b00808c40f00720d91f9c39206b5dfc1b8bf43c17"
+    },
+    {
+      "file": "docs/qa/full-app/runner/images.json",
+      "bytes": 696,
+      "sha256": "10bdcbfecae310d4b12da545b70107ede606fd3db8d8618319e9db8d5454a482"
+    },
+    {
+      "file": "docs/qa/full-app/runner/isolation.mjs",
+      "bytes": 6720,
+      "sha256": "7e2ba1edaae986193d7d7c06b3ca0cabe54d6950d8aa2d3f17e25d633e2b9099"
+    },
+    {
+      "file": "docs/qa/full-app/runner/package-lock.json",
+      "bytes": 572,
+      "sha256": "96936103093ed7bc9e96f17138165a4af4feb37fa6d1900f89e9b0f8e207eb31"
+    },
+    {
+      "file": "docs/qa/full-app/runner/package.json",
+      "bytes": 144,
+      "sha256": "41e71d4d261a7843812b556a9bfd7baf6cfbfbf9b97151cf8629c091eee79212"
+    },
+    {
+      "file": "docs/qa/full-app/runner/policy.py",
+      "bytes": 1294,
+      "sha256": "a5572274fc44bc2a83aa746f337ea22ebeb9e527821936b9af9844a235656b7e"
+    },
+    {
+      "file": "docs/qa/full-app/runner/proxy_selftest.py",
+      "bytes": 2295,
+      "sha256": "8ea1a1d7ddd22c6f53dd0bb5eb9bc6c1f63b2c6e3103a02e80eead5a9c3dbb81"
+    },
+    {
+      "file": "docs/qa/full-app/runner/README.md",
+      "bytes": 8008,
+      "sha256": "357e9d3f6e3ccf54be5074cf1aec96a390a3205d7d3ace239d19efbe1f31949e"
+    },
+    {
+      "file": "docs/qa/full-app/runner/seccomp_profile.json",
+      "bytes": 12997,
+      "sha256": "cc3e61cabda6bbc1e53e54d27ba4d55a9d3be829b6dd1a596f4a7b31b1cc7849"
+    },
+    {
+      "file": "docs/qa/full-app/runner/stage.py",
+      "bytes": 4083,
+      "sha256": "432886b8fc350df13266134617f88a7ce579ec2b29ed1f3379f67e6d73fd01a9"
+    },
+    {
+      "file": "tests/test_full_app_qa_runner.py",
+      "bytes": 8395,
+      "sha256": "27d06149879aeda51e515dac9c4d0d0622e8dd9c23aabe56e7c1b3c8464a2326"
+    },
+    {
+      "file": ".gitattributes",
+      "bytes": 110,
+      "sha256": "19060b1b27df94a9843e0abfcde8606dcf6e2c66623b5010ffc8b53db2281aef"
+    }
+  ],
+  "preparation_checks": {
+    "offline_tests_passed": 10,
+    "offline_tests_total": 10,
+    "compose_config_valid": true,
+    "node_python_syntax_valid": true,
+    "independent_review": "material findings corrected and rechecked",
+    "docker_names_free": true,
+    "subnets_do_not_overlap_existing_docker_or_host_routes": true,
+    "pinned_images_present_locally": false,
+    "runtime_staging_exists": false,
+    "QA_containers_or_networks_created": false,
+    "image_layers_downloaded": false,
+    "runtime_isolation_executed": false,
+    "chromium_executed": false,
+    "credential_values_read": false
+  },
+  "future_E_sequence": [
+    "Verify proposal/files/context/platform and free names/subnets again.",
+    "Pull only these two image references by platform-specific digest; verify effective images.",
+    "Run stage.py with authorized proposal SHA-256: download integrity-pinned SDK; copy only allowlist, without install hooks.",
+    "Create/start exactly these two networks and containers; generate only ephemeral proxy CA in tmpfs.",
+    "Inspect effective configuration without dumping sensitive environment.",
+    "Run the 22-check Node isolation diagnostic and the proxy API/policy selftest without identity or application workflows.",
+    "Stop on any failure; inspect before retries; do not relax boundaries."
+  ],
+  "execution_authorized": false,
+  "executed": false,
+  "F_authorized": false,
+  "F_started": false,
+  "production_or_Cloudflare_mutations": false,
+  "D1_R2_mutations": false,
+  "deployment_or_push": false
+}

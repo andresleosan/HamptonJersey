@@ -1,0 +1,145 @@
+{
+  "operation": "authorized-F-execution",
+  "approved_manifest_sha256": "be67091b22cd5bdcab7d8dd7a91e5d5d6cd8cfbfed0e5011245049ccc6d37f96",
+  "source_sha": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "artifact_sha256": "d4b2a57bd3036efc1718396d68edfb3912d59f8e35a2cd4dae765e8c6d43c30b",
+  "runner_sha256": "81e70f0b63844dd9a0bbd36efc1cdf3af7e02a2722ce1516117a667e4324f1f0",
+  "started_at_utc": "2026-11-10T07:47:23.412368+00:00",
+  "authorization": "both SQL and QA publish/smoke, including sealed runner failure stop; explicit user approval in chat",
+  "Access_evidence": {
+    "prior_policy_details": "sealed publish/access-readback.json",
+    "fresh_user_screenshot": "codex-clipboard-592bddb1-a0bc-4558-ae73-d672f4b778be.png",
+    "root_and_wildcard_same_service_only_policy": true,
+    "browser_configuration_changes": false
+  },
+  "SQL_attempts": 1,
+  "deployment_attempts": 1,
+  "runner_attempts": 1,
+  "production_mutations": false,
+  "git_push": false,
+  "status": "QA-published-and-authenticated-smoke-passed-after-one-complete-repeat",
+  "SQL_started_at_utc": "2026-11-10T07:48:07.295151+00:00",
+  "SQL_cli_exit": 0,
+  "SQL_remote_readback": {
+    "guard_ok": 1,
+    "queues_cursor_rows": 1,
+    "initial_value_correct": true
+  },
+  "SQL_verified": true,
+  "deployment_started_at_utc": "2026-11-10T07:48:33.314427+00:00",
+  "deployment_cli_exit": 0,
+  "deployment_urls": [
+    "https://28800bf7.hamptonjersey-qa.pages.dev"
+  ],
+  "deployment_cli_success_signal": true,
+  "deployment_error_categories": [
+    "Worker"
+  ],
+  "deployment_verified": true,
+  "deployment_id": "28800bf7-eb1c-48ab-8e03-d8ee03ba57fb",
+  "QA_root": "https://hamptonjersey-qa.pages.dev",
+  "post_deploy_bindings_verified": true,
+  "preview_no_D1_R2_secrets": true,
+  "post_deploy_Access_denials": [
+    {
+      "host": "hamptonjersey-qa.pages.dev",
+      "invalid_identity": false,
+      "status": 403
+    },
+    {
+      "host": "hamptonjersey-qa.pages.dev",
+      "invalid_identity": true,
+      "status": 403
+    },
+    {
+      "host": "28800bf7.hamptonjersey-qa.pages.dev",
+      "invalid_identity": false,
+      "status": 403
+    },
+    {
+      "host": "28800bf7.hamptonjersey-qa.pages.dev",
+      "invalid_identity": true,
+      "status": 403
+    },
+    {
+      "host": "868e44b9.hamptonjersey-qa.pages.dev",
+      "invalid_identity": false,
+      "status": 403
+    },
+    {
+      "host": "868e44b9.hamptonjersey-qa.pages.dev",
+      "invalid_identity": true,
+      "status": 403
+    },
+    {
+      "host": "6323fc32.hamptonjersey-qa.pages.dev",
+      "invalid_identity": false,
+      "status": 403
+    },
+    {
+      "host": "6323fc32.hamptonjersey-qa.pages.dev",
+      "invalid_identity": true,
+      "status": 403
+    },
+    {
+      "host": "qa-access-bootstrap.hamptonjersey-qa.pages.dev",
+      "invalid_identity": false,
+      "status": 403
+    },
+    {
+      "host": "qa-access-bootstrap.hamptonjersey-qa.pages.dev",
+      "invalid_identity": true,
+      "status": 403
+    }
+  ],
+  "deployment_verified_at_utc": "2026-11-10T08:02:13.124480+00:00",
+  "run_id": "run-20261110T075007Z-ac002e5236",
+  "runner_staged": true,
+  "runner_started_at_utc": "2026-11-10T07:50:07.534120+00:00",
+  "runner_cli_exit": 1,
+  "runner_summary": {
+    "status": "passed",
+    "run_id": "run-20261110T080517Z-0fc4fc09e4",
+    "build_id": "704b463fed481fae874ddc152c24445af62e05c34aa5393121a77ff67fffafc2",
+    "api_checks": 71,
+    "ui_checks": 66,
+    "credentials_removed": true
+  },
+  "runner_finished_at_utc": "2026-11-10T07:50:08.861789+00:00",
+  "original_manifest_and_55_files_preserved": true,
+  "real_QA_credential_values_read": true,
+  "application_smoke_started": true,
+  "QA_tmpfs_empty": true,
+  "uncertain_execution_sentinel": false,
+  "runner_running_inert": true,
+  "launcher_diagnosis": {
+    "first_block": "path-reparse before private reads or application exec",
+    "canonical_existing_store_same_file_identities": true,
+    "private_directory_protected_owner_only": true,
+    "private_files_effective_owner_only_inheritance": true,
+    "old_check_grandparent_and_noninherited_files": "overly strict for effective owner-only ACLs",
+    "old_PowerShell5_child": "Security module autoload incompatible with inherited PowerShell7 environment",
+    "F1_metadata_audit": "PASS; no values read; no ACL/secret changes",
+    "F1_tests_passed": 7
+  },
+  "F1_proposal": "docs/qa/full-app/runner-correction-f1-proposal.json",
+  "F1_proposal_sha256": "cf8774c6c21f2d6c789c28da989704a78e030a2bfe18c2cbb84c007098ff5a9b",
+  "F1_execution_authorized": true,
+  "initial_host_attempt": {
+    "run_id": "run-20261110T075007Z-ac002e5236",
+    "summary": {
+      "status": "blocked",
+      "case": "path-reparse"
+    },
+    "reason": "blocked before credentials by Windows profile alias"
+  },
+  "host_execution_attempts": 3,
+  "authenticated_smoke_runs": 2,
+  "published_authenticated_smoke_passed": true,
+  "final_API_passed": 71,
+  "final_UI_passed": 66,
+  "credential_values_exposed": false,
+  "credentials_removed": true,
+  "final_report_file": "docs/qa/full-app/published-smoke-report.json",
+  "completed_at_utc": "2026-11-10T08:07:50.384518+00:00"
+}

@@ -1,0 +1,51 @@
+# Recuperar la preparación QA desde GitHub
+
+Esta entrega contiene código, pruebas, SQL/medios ficticios, recibos saneados y
+el traspaso. No instala ni activa nada en Cloudflare, Docker o la VPS.
+
+La rama de publicación es qa/agent-runner-handoff-2026-11-10. No se fusiona con
+main: el proyecto empresarial está conectado a GitHub y ese push podría desplegar
+producción. El repositorio es público; no se incluyen secretos, perfiles,
+dependencias, binarios gVisor/Docker, capturas o archivos de resultados privados.
+
+Después de obtener la rama en una copia propia y libre, ejecutar:
+
+```sh
+python3 scripts/restore-qa-public-inputs.py
+```
+
+Este paso SOLO local reconstruye un archivo ignorado desde la versión ya
+publicada del código base y recupera cinco JSON de metadatos sellados en build/.
+Comprueba huellas y se niega a sobrescribir contenido distinto. No descarga
+dependencias, accede a Cloudflare/Docker/SSH o copia credenciales.
+
+El overlay original incluía literales de contacto del código empresarial para
+sustituirlos por datos ficticios. Se publica una plantilla y referencias a la
+base conocida para no duplicar esos literales; su reconstrucción conserva la
+huella aprobada. No alterar los manifiestos históricos para aparentar permisos.
+
+Los paquetes grandes y node_modules se reconstruyen o descargan por sus huellas
+cuando corresponda. Los manifiestos históricos de build/ aquí archivados son
+metadatos públicos, no evidencia de que una copia nueva contenga el artefacto.
+Una reconstrucción diferente no hereda autorización de ejecución/despliegue.
+El sexto JSON archivado, el manifiesto final V2, solo se consulta/verifica y no
+se restaura: así su constructor puede crear el directorio versionado sin colisión.
+
+Leer docs/qa/HANDOFF-2026-11-10.md antes de /avanzar. Si se sigue trabajando en
+main, se puede consultar el traspaso de esta rama mediante git show o su enlace
+GitHub, sin mezclarla ni ejecutar automáticamente su infraestructura.
+
+En Windows, clonar con core.autocrlf=false para conservar también el archivo
+.gitattributes original, cuya huella ya forma parte de la aprobación E histórica.
+Las reglas adicionales viven en subdirectorios para no modificar ese archivo
+sellado. Los hashes de los blobs publicados se comprueban antes del push.
+
+Validación de esta publicación: build y check:release pasan. Pruebas focales QA:
+122 Python sin fallos (6 omitidas por plataforma) y47 Node pasan, incluyendo las
+integraciones Node ejecutadas por su harness Python. npm test no queda verde:
+1100 tests Node,1081 pasan,18 fallan y1 omitido en este PC. Los fallos aparecen
+en pruebas ya existentes (permisos/symlinks/Python3/fixture Git/red y aserciones
+previas); no se modifican controles ni se presenta la suite global como aprobada.
+
+La autorización de este push no autoriza el piloto V2. El runner compartido de
+VPS continúa pendiente; producción y sus políticas no se modifican.

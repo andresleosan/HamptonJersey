@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-10",
+  "manifest_sha256": "7bd6db6fcaec7a7ba8ec63a9f680f4668645b66f46675a48f505e9f6e817e17a",
+  "archive_sha256": "db7cb1b35df13176b35ef175044a44c27e4e12e62b6af79be07cfd5f169ffd1a",
+  "manifest_and_archive_verified": true,
+  "official_release_sha256_verified": true,
+  "node_offline_tests": 6,
+  "python_mock_tests": 7,
+  "tests_failed": 0,
+  "VPS_inventory_read_only": true,
+  "gvisor_installed": false,
+  "gvisor_executed": false,
+  "identity_values_read": false,
+  "host_policy_changes": false,
+  "production_changes": false,
+  "pushed": false,
+  "hypothesis": "gVisor systrap may permit nested Chromium sandbox without real host kernel policy changes; requires authorized offline compatibility pilot"
+}

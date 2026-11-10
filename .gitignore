@@ -11,3 +11,6 @@ coordination/build/
 
 coordination/public-board/
 coordination/build-public/
+
+# Reconstructed from the existing approved baseline; never duplicate contact literals.
+docs/qa/full-app/publish/overlay_backend.py

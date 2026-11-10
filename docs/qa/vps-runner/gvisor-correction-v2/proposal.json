@@ -1,0 +1,10 @@
+{
+  "manifest_sha256": "d9dccc95971daf16209a42d5ba5baa4b8dc642c872a3be93f4ee9022207c707c",
+  "archive_sha256": "f6eaf6bc624c3b8aa2ab796d8ba382b4a7211e5077814af43de4262820309d94",
+  "manifest_file": "build/qa-vps-gvisor-v2/d9dccc95971daf16209a42d5ba5baa4b8dc642c872a3be93f4ee9022207c707c/manifest.json",
+  "archive_file": "build/qa-vps-gvisor-v2/d9dccc95971daf16209a42d5ba5baa4b8dc642c872a3be93f4ee9022207c707c.tar",
+  "authorized": false,
+  "installed": false,
+  "pilot_repeated": false,
+  "identity_values_read": false
+}

@@ -1,0 +1,26 @@
+{
+  "operation": "one-bounded-repeat-of-identical-authorized-F1-smoke",
+  "approved_F1_manifest_sha256": "cf8774c6c21f2d6c789c28da989704a78e030a2bfe18c2cbb84c007098ff5a9b",
+  "run_id": "run-20261110T080517Z-0fc4fc09e4",
+  "started_at_utc": "2026-11-10T08:05:17.033834+00:00",
+  "status": "passed",
+  "prior_run_certain_complete_and_cleaned": true,
+  "reason": "Check reproducibility of three desktop UI failures; unchanged artifact and test bundle; preserve first results",
+  "SQL_or_deploy_repeated": false,
+  "production_mutations": false,
+  "git_push": false,
+  "host_exit": 0,
+  "summary": {
+    "status": "passed",
+    "run_id": "run-20261110T080517Z-0fc4fc09e4",
+    "build_id": "704b463fed481fae874ddc152c24445af62e05c34aa5393121a77ff67fffafc2",
+    "api_checks": 71,
+    "ui_checks": 66,
+    "credentials_removed": true
+  },
+  "finished_at_utc": "2026-11-10T08:06:19.672340+00:00",
+  "final_remote_cleanup_verified": true,
+  "QA_tmpfs_empty": true,
+  "final_runtime_verified": true,
+  "credential_values_exposed": false
+}

@@ -1,0 +1,35 @@
+{
+  "operation": "authorized-F1-original-published-QA-smoke",
+  "approved_F1_manifest_sha256": "cf8774c6c21f2d6c789c28da989704a78e030a2bfe18c2cbb84c007098ff5a9b",
+  "original_F_manifest_sha256": "be67091b22cd5bdcab7d8dd7a91e5d5d6cd8cfbfed0e5011245049ccc6d37f96",
+  "run_id": "run-20261110T080223Z-0c18818c8d",
+  "started_at_utc": "2026-11-10T08:02:23.199604+00:00",
+  "status": "failed",
+  "execution_attempts": 1,
+  "SQL_or_deploy_repeated": false,
+  "ACL_or_secret_values_changed": false,
+  "production_mutations": false,
+  "git_push": false,
+  "host_exit": 1,
+  "summary": {
+    "status": "failed",
+    "run_id": "run-20261110T080223Z-0c18818c8d",
+    "build_id": "704b463fed481fae874ddc152c24445af62e05c34aa5393121a77ff67fffafc2",
+    "api_checks": 71,
+    "ui_checks": 66,
+    "credentials_removed": true
+  },
+  "finished_at_utc": "2026-11-10T08:03:41.770897+00:00",
+  "first_run_remote_cleanup_readback": {
+    "guard_ok": 1,
+    "admins": 1,
+    "base_user": 1,
+    "run_users": 0,
+    "run_listings": 0,
+    "run_media": 0
+  },
+  "first_run_certain_complete": true,
+  "execution_authorized_in_chat": true,
+  "final_metadata_only_verification": true,
+  "credential_values_exposed": false
+}

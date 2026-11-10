@@ -1,0 +1,3 @@
+docs/qa/full-app/*.sql text eol=lf
+docs/qa/full-app/*.json text eol=lf
+docs/qa/full-app/runner/** text eol=lf

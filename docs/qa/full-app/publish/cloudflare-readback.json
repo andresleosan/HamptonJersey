@@ -1,0 +1,62 @@
+{
+  "verified_at_utc": "2026-11-10T06:43:34.646748+00:00",
+  "mode": "metadata-and-SELECT-only",
+  "project": "hamptonjersey-qa",
+  "production_branch": "main",
+  "current_QA_deployment": "868e44b9-a426-4613-afe0-137dc36ad475",
+  "database_name": "hampton-app-qa",
+  "database_id": "53bc4af9-7250-44fe-8f90-6e415fda1034",
+  "enterprise_D1_is_distinct": true,
+  "production_bindings_verified": true,
+  "production_secret_names": [
+    "SESSION_SECRET"
+  ],
+  "preview_D1_R2_secrets": 0,
+  "guard_and_sole_synthetic_admin": true,
+  "queues_cursor_rows": 0,
+  "R2_public_access_disabled": true,
+  "Access_negative_checks": [
+    {
+      "host": "hamptonjersey-qa.pages.dev",
+      "invalid_identity": false,
+      "status": 403
+    },
+    {
+      "host": "hamptonjersey-qa.pages.dev",
+      "invalid_identity": true,
+      "status": 403
+    },
+    {
+      "host": "868e44b9.hamptonjersey-qa.pages.dev",
+      "invalid_identity": false,
+      "status": 403
+    },
+    {
+      "host": "868e44b9.hamptonjersey-qa.pages.dev",
+      "invalid_identity": true,
+      "status": 403
+    },
+    {
+      "host": "6323fc32.hamptonjersey-qa.pages.dev",
+      "invalid_identity": false,
+      "status": 403
+    },
+    {
+      "host": "6323fc32.hamptonjersey-qa.pages.dev",
+      "invalid_identity": true,
+      "status": 403
+    },
+    {
+      "host": "qa-access-bootstrap.hamptonjersey-qa.pages.dev",
+      "invalid_identity": false,
+      "status": 403
+    },
+    {
+      "host": "qa-access-bootstrap.hamptonjersey-qa.pages.dev",
+      "invalid_identity": true,
+      "status": 403
+    }
+  ],
+  "secret_values_read": false,
+  "remote_mutations": false
+}

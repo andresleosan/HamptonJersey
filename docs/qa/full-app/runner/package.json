@@ -1,0 +1,8 @@
+{
+  "name": "hampton-app-qa-runner-private",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "playwright-core": "1.65.0"
+  }
+}

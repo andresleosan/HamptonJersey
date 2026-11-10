@@ -1,0 +1,276 @@
+{
+  "fixture_version": 1,
+  "source_commit": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "destination": {
+    "project": "hamptonjersey-qa",
+    "environment": "production",
+    "database_name": "hampton-app-qa",
+    "database_id": "53bc4af9-7250-44fe-8f90-6e415fda1034",
+    "import_binding": "APP_QA_DB",
+    "application_binding": "DB"
+  },
+  "remote_import_authorized": false,
+  "remote_import_performed": false,
+  "sql": {
+    "file": "setup.sql",
+    "sha256": "5024c26b87f676c28efb01a3fa7d111afd2bf790b6d6da169e38a92d9c8d6e95",
+    "bytes": 146527,
+    "encoding": "UTF-8",
+    "line_endings": "LF"
+  },
+  "migrations": [
+    {
+      "name": "0001_init.sql",
+      "canonical_lf_sha256": "e87784cb83290435fae29517b03c27bf26b9fbcbc35f5bb9ca8ada29d91e44a7"
+    },
+    {
+      "name": "0002_deleted_listings.sql",
+      "canonical_lf_sha256": "c754d64eb5e5ec066e44268b27acff137dfc7103d49d7af067fe7adc4f293f08"
+    },
+    {
+      "name": "0003_viewing_listing_snapshot.sql",
+      "canonical_lf_sha256": "a659283ba3c6fc96c799bdf341f9875398c5754279466aabaadce7bc2c0ee148"
+    },
+    {
+      "name": "0004_featured_rank.sql",
+      "canonical_lf_sha256": "42f3756fe60319c3f62cd6264c6d1e709aa61b2f383d8a69ec5f43a95204ef3e"
+    },
+    {
+      "name": "0005_viewing_notes.sql",
+      "canonical_lf_sha256": "af4df6f2d2e366265bbd896aaadafc1ccdf7a4cd5203b6c06ef2fdbe09867c11"
+    },
+    {
+      "name": "0006_home_order.sql",
+      "canonical_lf_sha256": "ee4dd1bd667ab944952419b4c1b2a38a8f7a082bb49fefe1381947b9b6a72edb"
+    },
+    {
+      "name": "0007_tours.sql",
+      "canonical_lf_sha256": "1dfccf89907c89b43a32225dc20d5d3ec3040574fc4f5376c62e00d5f4c809e1"
+    },
+    {
+      "name": "0008_applicants.sql",
+      "canonical_lf_sha256": "6c6fa1def87cf35009fba3b2d906e9424618becc55ce2edef232d98fddf5cb90"
+    },
+    {
+      "name": "0009_matches.sql",
+      "canonical_lf_sha256": "49b1b54a020381870ada399283980755fb24a38eb73a9085633e2c7b2568555d"
+    },
+    {
+      "name": "0010_viewings.sql",
+      "canonical_lf_sha256": "02fcbd1a68baf404951e411d8145d8e0fd1317e3e6188a24188a51033449b1d5"
+    },
+    {
+      "name": "0011_daily_stats.sql",
+      "canonical_lf_sha256": "0eba351fa1b52c7ba947ac3bdfaf44d0a41b7f4fe72dcad0e3fa15a231792a91"
+    },
+    {
+      "name": "0012_sales.sql",
+      "canonical_lf_sha256": "ed82bc0c611ab8eef672d962d43a04e643baabe8e2c11f42cf1b77e16eed74c8"
+    },
+    {
+      "name": "0013_rentals.sql",
+      "canonical_lf_sha256": "fcecd26aedbd54499d30efd99fe2b9d505736175bd3fbe4802fc4ccfebc9f998"
+    },
+    {
+      "name": "0014_retention.sql",
+      "canonical_lf_sha256": "a16035530edc021e7977abd0579aaaf0e9994c0180d723c50d1ba95356593e6e"
+    },
+    {
+      "name": "0015_jersey_fields.sql",
+      "canonical_lf_sha256": "fd856b51b7ed1f140254c2039f4a332f8b606c760af19af853cf559e4e99442b"
+    },
+    {
+      "name": "0016_interest_corrections.sql",
+      "canonical_lf_sha256": "440586d46a1dfa6ffaff1d0924f966ee6f26bc81c6b778cc8db6607cb183a391"
+    },
+    {
+      "name": "0017_to_confirm.sql",
+      "canonical_lf_sha256": "9788c1cdc80b7c576fd267ccaf33dc94c64333c93d3349bf99d8c8b94fc3de18"
+    },
+    {
+      "name": "0018_jobs.sql",
+      "canonical_lf_sha256": "568bb20f651241a55710079e6595d833d170307591d13ec08f1a56a4864a4893"
+    },
+    {
+      "name": "0019_last_contact.sql",
+      "canonical_lf_sha256": "2ee5becb0aa935a44de32eebd86ffae626eef7f5c69ec1761ac2d83ff108d941"
+    },
+    {
+      "name": "0020_drive_imports.sql",
+      "canonical_lf_sha256": "a8e7557b11027516bbed7dcdcff3d375fac5e04797eace727c05cf63b9734d7c"
+    },
+    {
+      "name": "0021_published_at.sql",
+      "canonical_lf_sha256": "c7c4b022265551f14540cca49953229b7c86ccf7e2452e65ad8822b1db44e51e"
+    },
+    {
+      "name": "0022_chats.sql",
+      "canonical_lf_sha256": "f6c8c0620a4c4c85dc68b8e8480f693b910bde2c3e828bd0e812e9c83785e5dd"
+    },
+    {
+      "name": "0023_email.sql",
+      "canonical_lf_sha256": "807f5b0106bf1dab5b8244687a4dad4fee196af89756474066610cfaa95b64ee"
+    },
+    {
+      "name": "0024_search_lifecycle.sql",
+      "canonical_lf_sha256": "a5ac470f437f744a67af785304b13366d668a3dcb2a2cd259734d1997c2aef0d"
+    },
+    {
+      "name": "0025_registration_categories.sql",
+      "canonical_lf_sha256": "90398d23fdf42723fb1ecfb80856d9e9bc80f0f64d0435166124779ccbda337f"
+    },
+    {
+      "name": "0026_search_viewing_availability.sql",
+      "canonical_lf_sha256": "fbe89b9c602fe5364655a374ee957de131d948240e64ff8e3da6a9b4b22abf60"
+    },
+    {
+      "name": "0027_property_viewings.sql",
+      "canonical_lf_sha256": "7521131318fd31fc23c37f8cd40287e2f0d741e060767dffe926422e26016c00"
+    },
+    {
+      "name": "0029_listing_events.sql",
+      "canonical_lf_sha256": "be2782a0502b81fa619af5fbc01f67ba3f5f0a2f7ce328492329fd29d310b182"
+    },
+    {
+      "name": "0030_advertisers.sql",
+      "canonical_lf_sha256": "1716ba23d2181579c68eea38496541849e8f614210cac7981eeac79948c5c7e4"
+    },
+    {
+      "name": "0031_requirement_priorities.sql",
+      "canonical_lf_sha256": "793617b197d915b0e2b45619934e0642b3d1d346eb662d842a387e31decefeb3"
+    },
+    {
+      "name": "0032_notification_tasks.sql",
+      "canonical_lf_sha256": "1c5c6af74897c0132d79778c1a6ed0572d20220a37040bf61fc9d3d91fb73c59"
+    },
+    {
+      "name": "0033_notification_events.sql",
+      "canonical_lf_sha256": "7a5669235309111318b2ac2f5598fab9641d30dea304dfc76bdeb268105d9b0f"
+    },
+    {
+      "name": "0034_listing_editorial.sql",
+      "canonical_lf_sha256": "0181d8542d58357ee7cc3f821fdcf22feae73f55beed4d8e7926421587fe691b"
+    },
+    {
+      "name": "0035_notification_categories.sql",
+      "canonical_lf_sha256": "2e97cab723d279d5c8ffa2621313669bbe06bb733a88019ad9f602082f2e2bf8"
+    },
+    {
+      "name": "0036_weekly_insights.sql",
+      "canonical_lf_sha256": "b90cce2d8987b926b168d821b996ae56d6dfbc4377d54c26e832e4bef6595951"
+    },
+    {
+      "name": "0037_match_ranking.sql",
+      "canonical_lf_sha256": "c95c68c7c0da89acaea86ca5baf7f94290e61aa4ba7fb2dad7397d1e70e6b5f8"
+    },
+    {
+      "name": "0038_history_related.sql",
+      "canonical_lf_sha256": "7a737e1e8869dd749cd7a2e5c5ab74d017317251ede0a657bdab4a4d0eef285a"
+    }
+  ],
+  "schema_objects": {
+    "table": 57,
+    "index": 66,
+    "view": 1,
+    "trigger": 30
+  },
+  "expected_table_counts": {
+    "admins": 1,
+    "advertiser_reviews": 1,
+    "advertisers": 1,
+    "app_settings": 3,
+    "applicants": 4,
+    "arrears_steps": 0,
+    "charges": 3,
+    "chat_messages": 3,
+    "chats": 2,
+    "compliance_items": 2,
+    "contacts": 4,
+    "d1_migrations": 37,
+    "daily_stats": 3,
+    "deleted_listings": 1,
+    "drive_imports": 1,
+    "email_attempts": 0,
+    "email_inbound": 1,
+    "email_inbound_keys": 0,
+    "email_suppressions": 0,
+    "events": 74,
+    "history_viewing_events": 1,
+    "jobs": 1,
+    "landlords": 1,
+    "listing_event_context": 0,
+    "listing_event_operations": 0,
+    "listing_marketing_evidence": 0,
+    "listing_match_inputs": 0,
+    "listings": 7,
+    "matches": 3,
+    "media": 3,
+    "negotiator_exceptions": 1,
+    "negotiators": 2,
+    "notification_cursor": 0,
+    "notification_observations": 0,
+    "notification_preferences": 0,
+    "notification_reads": 0,
+    "notification_task_history": 73,
+    "notification_task_operations": 0,
+    "notifications": 72,
+    "offers": 2,
+    "outbound": 1,
+    "payments": 2,
+    "qa_app_guard": 1,
+    "rent_changes": 3,
+    "rental_events": 1,
+    "rentals": 2,
+    "repairs": 1,
+    "research_facts": 1,
+    "research_financial_terms": 1,
+    "research_issues": 1,
+    "research_properties": 1,
+    "research_search_log": 1,
+    "research_sources": 1,
+    "sale_milestones": 9,
+    "sales": 1,
+    "tenancies": 2,
+    "tours": 1,
+    "viewing_requests": 3,
+    "weekly_insights": 1
+  },
+  "test_user": {
+    "email": "qa-agent@example.test",
+    "name": "QA Agent",
+    "table": "admins",
+    "scope": "QA D1 only",
+    "google_account": false
+  },
+  "dates": "Relative to qa_app_guard.seeded_at, recorded once at import (UTC); no stored business dates",
+  "media_bucket": "hampton-app-qa-media",
+  "media_objects": [
+    {
+      "file": "media/qa-pattern-01.png",
+      "r2_key": "qa/full-app-v1/qa-pattern-01.png",
+      "sha256": "8f7b868d78e352846f692651670b55fbc740c2279f48e8d2c5c3f82a8beefe79",
+      "bytes": 3562,
+      "content_type": "image/png"
+    },
+    {
+      "file": "media/qa-pattern-02.png",
+      "r2_key": "qa/full-app-v1/qa-pattern-02.png",
+      "sha256": "f3ddadced0b467375992f442e45c21c29d0d88884c917bcede1c470f4a59db59",
+      "bytes": 3562,
+      "content_type": "image/png"
+    },
+    {
+      "file": "media/qa-pattern-03.png",
+      "r2_key": "qa/full-app-v1/qa-pattern-03.png",
+      "sha256": "426040834026c2fdfb641cade566bbe8614d0ee1411688333812dc20de71e929",
+      "bytes": 3562,
+      "content_type": "image/png"
+    }
+  ],
+  "media_uploaded": false,
+  "sending_enabled": false,
+  "queued_jobs": 0,
+  "other_migration_data_copied": false,
+  "import_policy": "Empty database only. Not idempotent. Read remote state before retry after any uncertainty.",
+  "functional_application_smoke": false
+}

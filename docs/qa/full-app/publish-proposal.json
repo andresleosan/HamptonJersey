@@ -1,0 +1,345 @@
+{
+  "operation": "F-publish-exact-QA-artifact-and-run-isolated-synthetic-smoke",
+  "source_sha": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "build_id": "704b463fed481fae874ddc152c24445af62e05c34aa5393121a77ff67fffafc2",
+  "artifact_sha256": "d4b2a57bd3036efc1718396d68edfb3912d59f8e35a2cd4dae765e8c6d43c30b",
+  "runner_sha256": "81e70f0b63844dd9a0bbd36efc1cdf3af7e02a2722ce1516117a667e4324f1f0",
+  "destination": {
+    "pages_project": "hamptonjersey-qa",
+    "pages_environment": "Production",
+    "branch": "main",
+    "origin": "https://hamptonjersey-qa.pages.dev",
+    "D1": "hampton-app-qa",
+    "D1_id": "53bc4af9-7250-44fe-8f90-6e415fda1034",
+    "R2": "hampton-app-qa-media",
+    "test_identity": "qa-agent@example.test"
+  },
+  "artifact_manifest": {
+    "file": "build/qa-full-app-F/build-manifest.json",
+    "sha256": "3b7d7d06eb9e54de1e2eca28a450a2c7357a11985d0ff45f3aa450def453c11a"
+  },
+  "runner_manifest": {
+    "file": "build/qa-full-app-F/runner-manifest.json",
+    "sha256": "0108ab587a289bcb3a1f7d7550e068f07020a24d43ea558b783b17b9bade3af0"
+  },
+  "prerequisite_sql": {
+    "file": "docs/qa/full-app/publish/prerequisite.sql",
+    "sha256": "fbddccd91421a87b055f39e63054797dce9825fc680db323fafbfc836e00567d",
+    "database_name": "hampton-app-qa",
+    "database_id": "53bc4af9-7250-44fe-8f90-6e415fda1034",
+    "operation": "insert queues cursor if absent; guard-gated; no overwrite or reset"
+  },
+  "runner": {
+    "docker_context": "desktop-linux",
+    "container": "hampton-app-qa-runner",
+    "reuse_E1_images_networks_mounts": true,
+    "stage_only": "/work/qa-f",
+    "credentials": "existing QA-only files; private ACL check; stdin to owned tmpfs file 0600",
+    "cleanup": "supported APIs; only owned run listing/media/temporary user; retain synthetic audit/email/maintenance rows"
+  },
+  "failure_stop_runner": {
+    "container_id": "a22cfa82aff4423614f95097d12d56ca57629edb4e99a008b685234eb799408d",
+    "timeout_seconds": 10
+  },
+  "failure_policy": "stop only the sealed runner on uncertain execution; verify stopped; keep sentinel; no automatic retry/recreate/reset",
+  "coverage": {
+    "local_API": 71,
+    "local_UI": 66,
+    "published_smoke_executed": false,
+    "provider_integrations": "simulated or disabled",
+    "limits": [
+      "UI render/layout rather than all workflows",
+      "Drive descriptor only in initial smoke",
+      "Hermes initial smoke skipped",
+      "scheduled invocation does not prove each swallowed subjob succeeded",
+      "large catalog branch not covered",
+      "native Pages ASSETS router pending published smoke"
+    ]
+  },
+  "requires_written_authorization": [
+    "exact SQL hash and D1 UUID",
+    "exact artifact/proposal hashes to named QA Pages plus isolated test and failure-stop scope"
+  ],
+  "authorized": false,
+  "deployed": false,
+  "real_QA_credential_values_read": false,
+  "production_mutations": false,
+  "git_push": false,
+  "files": [
+    {
+      "file": "build/qa-full-app-F/build-manifest.json",
+      "bytes": 5476,
+      "sha256": "3b7d7d06eb9e54de1e2eca28a450a2c7357a11985d0ff45f3aa450def453c11a"
+    },
+    {
+      "file": "build/qa-full-app-F/runner-manifest.json",
+      "bytes": 24724,
+      "sha256": "0108ab587a289bcb3a1f7d7550e068f07020a24d43ea558b783b17b9bade3af0"
+    },
+    {
+      "file": "docs/qa/full-app/import-readback.json",
+      "bytes": 2489,
+      "sha256": "55b891daffb0c673dfbdbb6f05b7270ceb4de305ea137ae856fa9e0bd65653f9"
+    },
+    {
+      "file": "docs/qa/full-app/import-wrangler.toml",
+      "bytes": 272,
+      "sha256": "de381d17fba6dd81597c83b5886e818ceba68423d70c4f1f93519b5db3f83446"
+    },
+    {
+      "file": "docs/qa/full-app/manifest.json",
+      "bytes": 9089,
+      "sha256": "1ed4994cb34151ca5abeff988b2f855ea07375d31168169bf3a0f7faf7e860b9"
+    },
+    {
+      "file": "docs/qa/full-app/media-upload-receipt.json",
+      "bytes": 3163,
+      "sha256": "d052267c9b4fa73ac54d0b8f52cec3c1c6485fd34994f7e7d61be6be51f3fe80"
+    },
+    {
+      "file": "docs/qa/full-app/publish/README.md",
+      "bytes": 7620,
+      "sha256": "462b3ec607f8462a14baae364aaaf7fae35ae204b34fb596080036888d32e28e"
+    },
+    {
+      "file": "docs/qa/full-app/publish/access-readback.json",
+      "bytes": 780,
+      "sha256": "681212230fea5f75db9ed1f5c10ad447e16531f285778dba0e347c6548d08ec8"
+    },
+    {
+      "file": "docs/qa/full-app/publish/build.py",
+      "bytes": 8724,
+      "sha256": "797173e3076810a35420fe68531e51d23933667b573a09f1fff8e33309766a82"
+    },
+    {
+      "file": "docs/qa/full-app/publish/cloudflare-readback.json",
+      "bytes": 1701,
+      "sha256": "fc1c8133018bf55322eac14a2ae27989057c62a2811a7aff835cce3fc797debd"
+    },
+    {
+      "file": "docs/qa/full-app/publish/local-smoke-evidence.json",
+      "bytes": 26788,
+      "sha256": "ff3723ca11b8f1fe0ee26d2b5cb294f78e43a54d7aa72465d430c01848e4f7b0"
+    },
+    {
+      "file": "docs/qa/full-app/publish/local-test.mjs",
+      "bytes": 9977,
+      "sha256": "e17162b2054ecb2ccbe70164deefd0fc9dffe170124f0adf8be90eb501595c61"
+    },
+    {
+      "file": "docs/qa/full-app/publish/overlay_backend.py",
+      "bytes": 3514,
+      "sha256": "422c5e6f72201f8a90a356d3e590b12d82f7850a30f4b6236d09bf916e68a6e4"
+    },
+    {
+      "file": "docs/qa/full-app/publish/overlay_frontend.py",
+      "bytes": 16879,
+      "sha256": "72e0afd56bc54283324e26ceb04e78c012d7bc828712487dfef8808aedf40322"
+    },
+    {
+      "file": "docs/qa/full-app/publish/package_runner.py",
+      "bytes": 2370,
+      "sha256": "6d770abe8017728cf66fc0629e41aefd042040117e93b550b089b0565ff8e35d"
+    },
+    {
+      "file": "docs/qa/full-app/publish/preflight.py",
+      "bytes": 5225,
+      "sha256": "18ea52563477573d5a67331d13f96e82a7872aeb51cc2fce585545159cd29928"
+    },
+    {
+      "file": "docs/qa/full-app/publish/preparation-evidence.json",
+      "bytes": 2159,
+      "sha256": "bdf0fe06ba33c8c6272f6f59817bb02e172e64f2ec617e42d350a0d2ac56a8fb"
+    },
+    {
+      "file": "docs/qa/full-app/publish/prerequisite.sql",
+      "bytes": 778,
+      "sha256": "fbddccd91421a87b055f39e63054797dce9825fc680db323fafbfc836e00567d"
+    },
+    {
+      "file": "docs/qa/full-app/publish/qa-boundary.mjs",
+      "bytes": 4864,
+      "sha256": "174e081280adb3cf239a4755bb9bf5ce0ac1c75063493a126c1d8aad80c1d6da"
+    },
+    {
+      "file": "docs/qa/full-app/publish/qa-integrations.mjs",
+      "bytes": 8349,
+      "sha256": "e839517501b77bbfd48e3237f3fd0e3a1568f0e3b4990da82dd319948806572a"
+    },
+    {
+      "file": "docs/qa/full-app/publish/review.md",
+      "bytes": 5484,
+      "sha256": "5dbdb531923f4f99518a5653566fc0384985f1609695529693549a2e39d7007e"
+    },
+    {
+      "file": "docs/qa/full-app/publish/runner-readback.json",
+      "bytes": 202,
+      "sha256": "f77bb4980d56ddaff0d978351e268803e216f519049b5da703c2cc6d5cc0e406"
+    },
+    {
+      "file": "docs/qa/full-app/publish/runner/cases.mjs",
+      "bytes": 12122,
+      "sha256": "96beea21812f4a4262dbbd51164c2a15c4af23400a101c900bbf9369e36976c5"
+    },
+    {
+      "file": "docs/qa/full-app/publish/runner/input.mjs",
+      "bytes": 763,
+      "sha256": "86cff9086de4fb5c4257d83a93ec25117ff47bd34cc856dde631299086beea78"
+    },
+    {
+      "file": "docs/qa/full-app/publish/runner/live.mjs",
+      "bytes": 4002,
+      "sha256": "29f7ecfdc7f0ac9f6c32a2c5e1bd62339009961ec4532f74e75c45f880f7d434"
+    },
+    {
+      "file": "docs/qa/full-app/publish/runner/transport.mjs",
+      "bytes": 3038,
+      "sha256": "23e278a929b1981be65dd9f132e54e8480775be921c044ecae5fe539d66952cc"
+    },
+    {
+      "file": "docs/qa/full-app/publish/runner/ui-cases.mjs",
+      "bytes": 6703,
+      "sha256": "f6ae8d0341729ca7a58a4e739a368b960b0ce5990e2410ff4a2350c8af39bf5e"
+    },
+    {
+      "file": "docs/qa/full-app/publish/runner_host.py",
+      "bytes": 22806,
+      "sha256": "7b272e49eb63aaabb515f16e539336716bdfdb226dc6dbb913e11d6fe829a529"
+    },
+    {
+      "file": "docs/qa/full-app/publish/seal_proposal.py",
+      "bytes": 5046,
+      "sha256": "0ffc43bbf093c8e201ef1b1ba8126a1c1466e2fea7f3665d20a178ed1606cf08"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-e1-execution.json",
+      "bytes": 5093,
+      "sha256": "0222e0e9db2869b355a3debbb696a9e79ecec209dbbede648f7b488f49c22202"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-e1-proposal.json",
+      "bytes": 5534,
+      "sha256": "b46184c3b4b548e483e6411b3ec31f54da512f6205c08b54fb9cc5d3d35314da"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-e1/compose.json",
+      "bytes": 5393,
+      "sha256": "0d148595e460b2970134cb0a2e68cb9583debd533e4f1b6118b83231c64d1cb9"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-e1/proxy_selftest.py",
+      "bytes": 2427,
+      "sha256": "ca2f262cfb839e4e9312770aacfc83c2ab5fba715aec6e4b51aa6fddc18a2cc4"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-e1/seccomp_profile.json",
+      "bytes": 15998,
+      "sha256": "c4fef485853f4abe05f74b8a5bb8ded0f0df029d463886c1e3b3175976fefb58"
+    },
+    {
+      "file": "docs/qa/full-app/runner/egress_addon.py",
+      "bytes": 2771,
+      "sha256": "e727ccbe09f4cb4dc783791715492a3a34d7133630844c47080a663aad9dc119"
+    },
+    {
+      "file": "docs/qa/full-app/runner/idle.mjs",
+      "bytes": 208,
+      "sha256": "6dc7aaf657f3f196931fbc1b00808c40f00720d91f9c39206b5dfc1b8bf43c17"
+    },
+    {
+      "file": "docs/qa/full-app/runner/isolation.mjs",
+      "bytes": 6720,
+      "sha256": "7e2ba1edaae986193d7d7c06b3ca0cabe54d6950d8aa2d3f17e25d633e2b9099"
+    },
+    {
+      "file": "docs/qa/full-app/runner/policy.py",
+      "bytes": 1294,
+      "sha256": "a5572274fc44bc2a83aa746f337ea22ebeb9e527821936b9af9844a235656b7e"
+    },
+    {
+      "file": "docs/qa/full-app/setup.sql",
+      "bytes": 146527,
+      "sha256": "5024c26b87f676c28efb01a3fa7d111afd2bf790b6d6da169e38a92d9c8d6e95"
+    },
+    {
+      "file": "docs/superpowers/plans/2026-11-10-full-app-qa-step-f.md",
+      "bytes": 5232,
+      "sha256": "efbb81cea8954c6c9dc4c1846351199fbc3097ad29c0ffdde4ee8a90862684c1"
+    },
+    {
+      "file": "docs/superpowers/specs/2026-11-09-full-app-qa-design.md",
+      "bytes": 23462,
+      "sha256": "3ceeebdf7645e0ee2a5b04e44fbfbb051b0cecd4336f6645616ead429e9be8c7"
+    },
+    {
+      "file": "tests/full-app-qa-auth.test.mjs",
+      "bytes": 1631,
+      "sha256": "c3e70d791b8525acf6add67b7dc74bf43896ff3d1e4395a1bf1a85689fd9a4e5"
+    },
+    {
+      "file": "tests/full-app-qa-boundary.test.mjs",
+      "bytes": 4282,
+      "sha256": "4f96c8d5065f3aecbbee44e317cd4f82b0ed2df01a6b83b2133335f0cf9aecfb"
+    },
+    {
+      "file": "tests/full-app-qa-input.test.mjs",
+      "bytes": 1196,
+      "sha256": "0b279dfe34e44d57e14546f1fb26ce7a808bcd16195474b9c8cd1dd48ad985e3"
+    },
+    {
+      "file": "tests/full-app-qa-transport.test.mjs",
+      "bytes": 1887,
+      "sha256": "f17cacb4ee197fd641f486f4b120405a6453e4f4890c192e3bc339ff665d52c8"
+    },
+    {
+      "file": "tests/test_full_app_qa_bundle.py",
+      "bytes": 9981,
+      "sha256": "63a70c51f5e64e570f68f9385910c9846689d9dfbf741d49c4ef9f2d5d70dde1"
+    },
+    {
+      "file": "tests/test_full_app_qa_cases.mjs",
+      "bytes": 7813,
+      "sha256": "6b9f16823818a7f4470e0618b9a0b53c916079d82c9977abd1a11d178f3e21e3"
+    },
+    {
+      "file": "tests/test_full_app_qa_frontend.py",
+      "bytes": 10979,
+      "sha256": "5f8e66d29f69cfbc3d68165ca75acc0df0697e7e6054e78617c0aa3720440f6b"
+    },
+    {
+      "file": "tests/test_full_app_qa_integrations.mjs",
+      "bytes": 8338,
+      "sha256": "dd652f055047810a557cf4aef0ec1e53aab9271f80031f19fbc775e6205d4051"
+    },
+    {
+      "file": "tests/test_full_app_qa_integrations.py",
+      "bytes": 3228,
+      "sha256": "7163f0f9232f0e93a1dc7be1fcd7ffd3999d5b4e24b3d70843e84b3cc2315598"
+    },
+    {
+      "file": "tests/test_full_app_qa_prerequisite.py",
+      "bytes": 1741,
+      "sha256": "884446023931af60c444edb2bb18ea8eaf9bbb5d37a04ac278d3ce9fe284512a"
+    },
+    {
+      "file": "tests/test_full_app_qa_runner.py",
+      "bytes": 8395,
+      "sha256": "27d06149879aeda51e515dac9c4d0d0622e8dd9c23aabe56e7c1b3c8464a2326"
+    },
+    {
+      "file": "tests/test_full_app_qa_runner_correction.py",
+      "bytes": 2158,
+      "sha256": "0beaef85d2961cf0a96cf15e6681617ebdb35e2f0508e834d45dd4299402db18"
+    },
+    {
+      "file": "tests/test_full_app_qa_runner_host.py",
+      "bytes": 18768,
+      "sha256": "dcc850df7825d5e8b5b991a75fec61cce44f99a52c8a408c3ceba591ce73dcc9"
+    },
+    {
+      "file": "tests/test_full_app_qa_ui_cases.py",
+      "bytes": 3058,
+      "sha256": "0c4fc2a76307a50ae042f632c616b8487415334de8bf1c465f69c62f7f375222"
+    }
+  ]
+}

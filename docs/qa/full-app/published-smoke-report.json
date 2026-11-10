@@ -1,0 +1,115 @@
+{
+  "status": "QA-published-and-authenticated-smoke-passed-after-one-complete-repeat",
+  "verified_at_utc": "2026-11-10T08:06:55.497477+00:00",
+  "source_sha": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "build_id": "704b463fed481fae874ddc152c24445af62e05c34aa5393121a77ff67fffafc2",
+  "artifact_sha256": "d4b2a57bd3036efc1718396d68edfb3912d59f8e35a2cd4dae765e8c6d43c30b",
+  "runner_sha256": "81e70f0b63844dd9a0bbd36efc1cdf3af7e02a2722ce1516117a667e4324f1f0",
+  "approved_F1_manifest_sha256": "cf8774c6c21f2d6c789c28da989704a78e030a2bfe18c2cbb84c007098ff5a9b",
+  "project": "hamptonjersey-qa",
+  "origin": "https://hamptonjersey-qa.pages.dev",
+  "deployment_id": "28800bf7-eb1c-48ab-8e03-d8ee03ba57fb",
+  "test_identity": "qa-agent@example.test",
+  "runs": [
+    {
+      "run_id": "run-20261110T080223Z-0c18818c8d",
+      "passed": false,
+      "api_passed": 71,
+      "api_total": 71,
+      "ui_passed": 63,
+      "ui_total": 66,
+      "ui_failed": [
+        "admin-review-1280",
+        "admin-availability-1280",
+        "admin-automations-1280"
+      ],
+      "network": {
+        "off_origin_attempts": 0,
+        "redirects": 0,
+        "transport_failures": 2
+      },
+      "cleanup": {
+        "attempted": true,
+        "listing": {
+          "created": true,
+          "ownershipVerified": true,
+          "deleted": true
+        },
+        "media": {
+          "created": true,
+          "ownershipVerified": true,
+          "deleted": true
+        },
+        "user": {
+          "created": true,
+          "ownershipVerified": true,
+          "deleted": true
+        },
+        "errors": []
+      },
+      "credentials_removed": true,
+      "report_file": "test-results/qa-agent-runtime/results/full-app-run-20261110T080223Z-0c18818c8d.json"
+    },
+    {
+      "run_id": "run-20261110T080517Z-0fc4fc09e4",
+      "passed": true,
+      "api_passed": 71,
+      "api_total": 71,
+      "ui_passed": 66,
+      "ui_total": 66,
+      "ui_failed": [],
+      "network": {
+        "off_origin_attempts": 0,
+        "redirects": 0,
+        "transport_failures": 0
+      },
+      "cleanup": {
+        "attempted": true,
+        "listing": {
+          "created": true,
+          "ownershipVerified": true,
+          "deleted": true
+        },
+        "media": {
+          "created": true,
+          "ownershipVerified": true,
+          "deleted": true
+        },
+        "user": {
+          "created": true,
+          "ownershipVerified": true,
+          "deleted": true
+        },
+        "errors": []
+      },
+      "credentials_removed": true,
+      "report_file": "test-results/qa-agent-runtime/results/full-app-run-20261110T080517Z-0fc4fc09e4.json"
+    }
+  ],
+  "final_API_passed": 71,
+  "final_UI_passed": 66,
+  "final_total_passed": 137,
+  "initial_UI_failures_not_reproduced": true,
+  "initial_UI_failure_root_cause": "not established; two transport failures recorded; preserve first failed run",
+  "remote_cleanup_both_runs_verified": true,
+  "base_QA_user_preserved": true,
+  "runner_tmpfs_empty": true,
+  "uncertain_execution_sentinel": false,
+  "runner_E1_runtime_verified": true,
+  "runner_running_inert": true,
+  "provider_integrations": "simulated or disabled",
+  "production_mutations": false,
+  "git_push": false,
+  "source_tracked_files_unchanged": true,
+  "evidence_limits": [
+    "Smoke per module, not all workflows",
+    "UI render/layout at1280and390; initial3desktopfailures not reproduced",
+    "Drive initial descriptors only; Hermes initial smoke skipped",
+    "Scheduled invocation does not prove every internally caught job succeeded",
+    "Synthetic audit/email/maintenance rows retained by design; no general reset"
+  ],
+  "final_QA_bindings_verified": true,
+  "Preview_no_D1_R2_secrets": true,
+  "QA_deployment_still_canonical": true,
+  "Access_protected_hosts_negative_checks": 10
+}

@@ -1,0 +1,69 @@
+{
+  "operation": "F1-resume-original-QA-smoke-with-canonical-profile-and-owner-only-inheritance",
+  "original_F_proposal_sha256": "be67091b22cd5bdcab7d8dd7a91e5d5d6cd8cfbfed0e5011245049ccc6d37f96",
+  "private_directory": "canonical-current-user-profile/HamptonQA/full-app-access",
+  "source_sha": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "build_id": "704b463fed481fae874ddc152c24445af62e05c34aa5393121a77ff67fffafc2",
+  "artifact_sha256": "d4b2a57bd3036efc1718396d68edfb3912d59f8e35a2cd4dae765e8c6d43c30b",
+  "runner_sha256": "81e70f0b63844dd9a0bbd36efc1cdf3af7e02a2722ce1516117a667e4324f1f0",
+  "destination": {
+    "pages_project": "hamptonjersey-qa",
+    "pages_environment": "Production",
+    "branch": "main",
+    "origin": "https://hamptonjersey-qa.pages.dev",
+    "D1": "hampton-app-qa",
+    "D1_id": "53bc4af9-7250-44fe-8f90-6e415fda1034",
+    "R2": "hampton-app-qa-media",
+    "test_identity": "qa-agent@example.test"
+  },
+  "failure_stop_runner": {
+    "container_id": "a22cfa82aff4423614f95097d12d56ca57629edb4e99a008b685234eb799408d",
+    "timeout_seconds": 10
+  },
+  "scope": [
+    "use same existing QA private files via canonical current profile",
+    "require protected owner-only private directory and only current-owner Allow rules for every file; accept inheritance from that directory",
+    "use installed PowerShell7 for read-only ACL verification",
+    "verify original F55 sealed files, both original artifact trees, active staged bundle and E1 runtime",
+    "run unchanged original smoke as qa-agent@example.test through existing isolated runner; original stdin/tmpfs, locks, scoped cleanup and uncertain-execution stop remain"
+  ],
+  "SQL_or_deploy_repeated": false,
+  "ACL_permissions_or_secret_values_changed": false,
+  "production_mutations": false,
+  "execution_authorized": false,
+  "application_smoke_started": false,
+  "focal_tests_passed": 7,
+  "independent_material_open_findings": 0,
+  "files": [
+    {
+      "file": "docs/qa/full-app/runner-correction-f1/README.md",
+      "bytes": 2971,
+      "sha256": "e4ba5c6f0428d2197f44d2c93ce52f59256fc253307e3be6f35b4d9f72e26303"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-f1/execution-before-f1.json",
+      "bytes": 4159,
+      "sha256": "8cb02690dc06319d51fa8a5044d3f286eaa1a3b72837472bb6ffe3f763b3d70c"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-f1/host.py",
+      "bytes": 6049,
+      "sha256": "85d8e82c0b208e7553056d601611de2ae86799caeda6e802dd6f376104f0b3c3"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-f1/preflight.json",
+      "bytes": 284,
+      "sha256": "385d49dc3f57eab88ec52362ec2f68e18b7a226d37d44e1471568f6826c62c1e"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-f1/review.md",
+      "bytes": 5327,
+      "sha256": "95522a70e96e0d3cce991d7bbab7a4f62dad033c1a09ae1ecd5bf13abda283b5"
+    },
+    {
+      "file": "tests/test_full_app_qa_runner_f1.py",
+      "bytes": 5257,
+      "sha256": "8229f7528a3e462dd1ef66fe247bcb12349c2174025ecc38cdb8d92d04768433"
+    }
+  ]
+}

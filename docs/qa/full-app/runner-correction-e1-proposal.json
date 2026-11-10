@@ -1,0 +1,107 @@
+{
+  "operation": "E1-correct-Chromium-namespace-seccomp-and-diagnostic-only",
+  "prepared_at_utc": "2026-11-10T05:47:00.257147Z",
+  "source_commit": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "original_proposal_sha256": "6db42ba2693bd3740a1d6cb571a6a52cf54c30b9547aba5a1c4d452e4ebf5dcb",
+  "original_proposal_files_unchanged": true,
+  "docker_context": "desktop-linux",
+  "docker_endpoint": "npipe:////./pipe/dockerDesktopLinuxEngine",
+  "images": {
+    "runner": {
+      "tag": "mcr.microsoft.com/playwright:v1.65.0-noble",
+      "image": "mcr.microsoft.com/playwright@sha256:bc4fbb329a25287ed23e9216c97063646abdd1bf2da669a9895fa3e2078b2302",
+      "platform": "linux/amd64",
+      "index_digest": "sha256:6e3fb709361521eb27161606e6da6d2674e5e89fa16516cb37d6fdd91372273d",
+      "compressed_layer_bytes": 1002814156
+    },
+    "egress": {
+      "tag": "mitmproxy/mitmproxy:12.3.1",
+      "image": "mitmproxy/mitmproxy@sha256:e2f810b6e618258dd4980716da143c4a8de0edcb3243264baea398e2185bbbfb",
+      "platform": "linux/amd64",
+      "index_digest": "sha256:2711066c855659b5af8b1dbb84494ed3eff69b42ece439c60b4fe09a2db829d4",
+      "compressed_layer_bytes": 94112997
+    }
+  },
+  "new_image_download_or_build": false,
+  "SDK_download_or_change": false,
+  "existing_containers": {
+    "hampton-app-qa-runner": {
+      "id": "ae9c43e4097a04919fc38f41f488de0259c8152dc4bb0af1f1ceac2a7a1e0a27",
+      "status": "exited",
+      "image_id": "sha256:bc4fbb329a25287ed23e9216c97063646abdd1bf2da669a9895fa3e2078b2302"
+    },
+    "hampton-app-qa-egress": {
+      "id": "152f2874aa6b1eb5bb22004a373e2a423e5c01fccc5f89592439fc1d0d8a9db9",
+      "status": "exited",
+      "image_id": "sha256:e2f810b6e618258dd4980716da143c4a8de0edcb3243264baea398e2185bbbfb"
+    }
+  },
+  "existing_networks": {
+    "hampton-app-qa-internal": "26d22440599797c57a020cb07cd53d6f9ecddda2e276e4909205a190e52bcd6d",
+    "hampton-app-qa-outbound": "d918a10a6cd48158aa7968ebd38a5ddb7a7d0bcad95631c8f84d6a1c26a22148"
+  },
+  "compose_file": "docs/qa/full-app/runner-correction-e1/compose.json",
+  "original_seccomp_sha256": "cc3e61cabda6bbc1e53e54d27ba4d55a9d3be829b6dd1a596f4a7b31b1cc7849",
+  "custom_seccomp_sha256": "c4fef485853f4abe05f74b8a5bb8ded0f0df029d463886c1e3b3175976fefb58",
+  "seccomp_semantic_delta": "Only add chroot to existing unconditional SCMP_ACT_ALLOW namespace-syscall group; preserve all other rules. No cap_add, no privileged, no sandbox disable.",
+  "root_cause_evidence": "Original profile chroot rule gated by CAP_SYS_CHROOT is excluded under cap_drop ALL. Chromium fails sys_chroot; user namespace child UID mapping passes, chroot returns EPERM.",
+  "original_diagnostic_sha256": "8ea1a1d7ddd22c6f53dd0bb5eb9bc6c1f63b2c6e3103a02e80eead5a9c3dbb81",
+  "corrected_diagnostic_sha256": "ca2f262cfb839e4e9312770aacfc83c2ab5fba715aec6e4b51aa6fddc18a2cc4",
+  "diagnostic_delta": "Use Request.make headers keyword; set adversarial Host after constructor normalization. The same bytes passed via stdin in existing image with mocked DNS and zero real network requests.",
+  "diagnostic_runtime_target": "E:/Proyectos/HamptonJersey/test-results/qa-agent-runtime/egress-package/proxy_selftest.py",
+  "files": [
+    {
+      "file": "docs/qa/full-app/runner-correction-e1/.gitattributes",
+      "bytes": 14,
+      "sha256": "a79691a93b46e49ce460c26ef22afcc03d6eca1e63bf2edbc20e96159510f6c9"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-e1/apply_diagnostic.py",
+      "bytes": 2741,
+      "sha256": "33bee4a9c6a25d0f36f3695c30b775faa1171bf4c9abd558183ce1a04e75ffc0"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-e1/compose.json",
+      "bytes": 5393,
+      "sha256": "0d148595e460b2970134cb0a2e68cb9583debd533e4f1b6118b83231c64d1cb9"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-e1/proxy_selftest.py",
+      "bytes": 2427,
+      "sha256": "ca2f262cfb839e4e9312770aacfc83c2ab5fba715aec6e4b51aa6fddc18a2cc4"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-e1/README.md",
+      "bytes": 3874,
+      "sha256": "1f697b73c63c90fed6e2320a580d47f36e5a62e5d4db9e770cd48389211f4c35"
+    },
+    {
+      "file": "docs/qa/full-app/runner-correction-e1/seccomp_profile.json",
+      "bytes": 15998,
+      "sha256": "c4fef485853f4abe05f74b8a5bb8ded0f0df029d463886c1e3b3175976fefb58"
+    },
+    {
+      "file": "tests/test_full_app_qa_runner_correction.py",
+      "bytes": 2158,
+      "sha256": "0beaef85d2961cf0a96cf15e6681617ebdb35e2f0508e834d45dd4299402db18"
+    }
+  ],
+  "network_mount_images_UID_capabilities_limits_changed": false,
+  "future_operations": [
+    "Verify original and E1 hashes/files and exact stopped resources/network IDs.",
+    "Replace only the staged proxy diagnostic using guarded apply_diagnostic.py.",
+    "Restart existing hampton-app-qa-egress without recreation; ephemeral CA remains only tmpfs.",
+    "Recreate only hampton-app-qa-runner with custom seccomp profile and original unchanged images/networks/mounts/user/cap_drop/limits.",
+    "Verify effective inspect and execute corrected proxy test plus original 22-check runner diagnostic without QA identity.",
+    "Stop on any failure; no automatic downgrade, reset or further correction without review."
+  ],
+  "execution_authorized": false,
+  "applied": false,
+  "original_E_complete": false,
+  "Chromium_success_with_custom_profile_verified": false,
+  "production_or_Cloudflare_mutations": false,
+  "D1_R2_mutations": false,
+  "credential_values_read_or_loaded": false,
+  "F_started": false,
+  "deployment_or_push": false
+}

@@ -1,0 +1,56 @@
+{
+  "source_commit": "80ad03df7e095750f455aa4aa668573e9aac5db4",
+  "source_file": "server/email.js",
+  "source_sha256": "61843d3e87a7f479c92fbf61c6f46ee3abccb97708db1b699266dcc581678a18",
+  "generated_file": "docs/qa/full-app/publish/overlay_backend.py",
+  "generated_sha256": "422c5e6f72201f8a90a356d3e590b12d82f7850a30f4b6236d09bf916e68a6e4",
+  "template_file": "docs/qa/publication/overlay_backend.template.py",
+  "template_sha256": "bc0039555ed465c23862b6d7967145faab058155fd86e89437ed482051ba7379",
+  "references": [
+    {
+      "token": "@@BASE_EMAIL_0@@",
+      "source_email_ordinal": 0
+    },
+    {
+      "token": "@@BASE_EMAIL_1@@",
+      "source_email_ordinal": 1
+    },
+    {
+      "token": "@@BASE_EMAIL_2@@",
+      "source_email_ordinal": 2
+    }
+  ],
+  "metadata_files": [
+    {
+      "source": "docs/qa/publication/sealed-metadata-0.json",
+      "destination": "build/qa-full-app-F/build-manifest.json",
+      "sha256": "3b7d7d06eb9e54de1e2eca28a450a2c7357a11985d0ff45f3aa450def453c11a"
+    },
+    {
+      "source": "docs/qa/publication/sealed-metadata-1.json",
+      "destination": "build/qa-full-app-F/runner-manifest.json",
+      "sha256": "0108ab587a289bcb3a1f7d7550e068f07020a24d43ea558b783b17b9bade3af0"
+    },
+    {
+      "source": "docs/qa/publication/sealed-metadata-2.json",
+      "destination": "build/qa-vps-packages/2ed8614ed501ff04bfc71903f9a669f45b07754e6e3959067069eea2ea9cd232/manifest.json",
+      "sha256": "2ed8614ed501ff04bfc71903f9a669f45b07754e6e3959067069eea2ea9cd232"
+    },
+    {
+      "source": "docs/qa/publication/sealed-metadata-3.json",
+      "destination": "build/qa-vps-gvisor-probe/7bd6db6fcaec7a7ba8ec63a9f680f4668645b66f46675a48f505e9f6e817e17a/manifest.json",
+      "sha256": "7bd6db6fcaec7a7ba8ec63a9f680f4668645b66f46675a48f505e9f6e817e17a"
+    },
+    {
+      "source": "docs/qa/publication/sealed-metadata-4.json",
+      "destination": "build/qa-vps-gvisor-probe/7bd6db6fcaec7a7ba8ec63a9f680f4668645b66f46675a48f505e9f6e817e17a/container-create.json",
+      "sha256": "6bf85c5222e5db3f07b98abcd5405a780de424f1a1f2da045ac3b260923a5943"
+    },
+    {
+      "source": "docs/qa/publication/sealed-metadata-5.json",
+      "destination": "build/qa-vps-gvisor-v2/d9dccc95971daf16209a42d5ba5baa4b8dc642c872a3be93f4ee9022207c707c/manifest.json",
+      "sha256": "d9dccc95971daf16209a42d5ba5baa4b8dc642c872a3be93f4ee9022207c707c",
+      "restore": false
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "manifest_sha256": "2ed8614ed501ff04bfc71903f9a669f45b07754e6e3959067069eea2ea9cd232",
+  "archive_sha256": "064cbfa54593c51c314cc77d70d044c77561a8cf5e486192ab5043a8f7cc6226",
+  "archive_file": "build/qa-vps-packages/2ed8614ed501ff04bfc71903f9a669f45b07754e6e3959067069eea2ea9cd232.tar.gz",
+  "manifest_file": "build/qa-vps-packages/2ed8614ed501ff04bfc71903f9a669f45b07754e6e3959067069eea2ea9cd232/manifest.json",
+  "files": 138,
+  "bytes": 14118152,
+  "authorized": false,
+  "installed": false,
+  "identity_values_read": false
+}
