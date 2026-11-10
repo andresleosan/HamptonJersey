@@ -12,6 +12,13 @@ const { Miniflare, convertV4MiniflareOptions } = fromRepo('miniflare');
 const { EnvHttpProxyAgent, fetch: proxyFetch } = fromRepo('undici');
 const QA_TEST_DB_ID = 'a4a52a8c-98d3-4444-998a-000000000099';
 
+// An opt-in stub for the isolated, offline test fixture only; all other outbound calls retain the existing proxy.
+function offlineTurnstile(request, enabled) {
+  const url = new URL(request.url);
+  if (!enabled || url.origin !== 'https://challenges.cloudflare.com' || url.pathname !== '/turnstile/v0/siteverify') return null;
+  return Response.json({ success: true });
+}
+
 async function startFixture({ persist = process.env.E2E_PERSIST, varsFile = process.env.E2E_VARS,
   port = Number(process.env.PORT || 8788), qaDb = false } = {}) {
   if (!persist || !varsFile) throw Error('Set E2E_PERSIST and E2E_VARS to isolated local fixtures.');
@@ -28,7 +35,7 @@ async function startFixture({ persist = process.env.E2E_PERSIST, varsFile = proc
     const wrangler = join(dirname(fromRepo.resolve('wrangler')), '..', 'bin', 'wrangler.js');
     execFileSync(process.execPath, [wrangler, 'pages', 'functions', 'build', '--outdir', scratch], { cwd: repo, stdio: 'pipe' });
     const options = await convertV4MiniflareOptions({
-      host: '127.0.0.1', port,
+      host: '127.0.0.1', port, https: process.env.E2E_LOCAL_HTTPS === '1',
       modules: true, modulesRoot: scratch, scriptPath: bundle, name: 'hampton-e2e',
       compatibilityDate: config.compatibility_date,
       bindings: { ...config.vars, ...vars },
@@ -37,7 +44,7 @@ async function startFixture({ persist = process.env.E2E_PERSIST, varsFile = proc
       r2Buckets: Object.fromEntries(config.r2_buckets.map(b => [b.binding, b.bucket_name])),
       resourcePersistencePath: join(resolve(persist), 'v3'),
       assets: { directory: resolve(config.pages_build_output_dir), binding: 'ASSETS', run_worker_first: true, routerConfig: { has_user_worker: true } },
-      outboundService: request => proxyFetch(request.url, {
+      outboundService: request => offlineTurnstile(request, process.env.E2E_OFFLINE_TURNSTILE === '1') ?? proxyFetch(request.url, {
         method: request.method, headers: request.headers, body: request.body,
         duplex: 'half', redirect: 'manual', dispatcher,
       }),
@@ -62,4 +69,4 @@ if (require.main === module) {
     process.once('SIGINT', stop); process.once('SIGTERM', stop);
   }).catch(error => { console.error(error.message); process.exitCode = 1; });
 }
-module.exports = { startFixture, QA_TEST_DB_ID };
+module.exports = { startFixture, QA_TEST_DB_ID, offlineTurnstile };

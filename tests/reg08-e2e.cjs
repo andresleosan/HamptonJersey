@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const {readFileSync,writeFileSync,mkdirSync,existsSync}=require('node:fs');
 const {parseEnv}=require('node:util');
 const {chromium}=require(process.env.PW || 'playwright-core');
-const BASE=process.env.BASE, shots='/tmp/reg08-captures';
+const BASE=process.env.BASE, shots=process.env.E2E_SHOTS || '/tmp/reg08-captures';
 (async()=>{
   mkdirSync(shots,{recursive:true});
   const vars=parseEnv(readFileSync(process.env.E2E_VARS,'utf8'));
@@ -23,7 +23,7 @@ const BASE=process.env.BASE, shots='/tmp/reg08-captures';
       const form=page.locator('.apply form'), next=form.locator('button[type=submit]');
       const choice=async(name,value)=>form.locator(`input[name="${name}"][value="${value}"] + span`).click();
       await choice('search_category','residential');await choice('operation','rent');await next.click();
-      await choice('parishes_wanted','St Helier');await form.getByRole('switch',{name:'Location must-have',exact:true}).click();
+      await choice('area_answer','selected');await choice('parishes_wanted','St Helier');await form.getByRole('switch',{name:'Location must-have',exact:true}).click();
       await next.click();await choice('bedrooms_min','2');
       const beds=form.getByRole('switch',{name:'Bedrooms must-have',exact:true});await beds.focus();await page.keyboard.press('Space');assert.equal(await beds.getAttribute('aria-checked'),'true');
       await next.click();await next.click();assert.match(await form.locator('#e-parking_spaces').textContent(),/Choose/);

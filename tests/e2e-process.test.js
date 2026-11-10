@@ -5,6 +5,15 @@ const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
 const { run } = require('./e2e-process.cjs');
+const { offlineTurnstile } = require('./serve-e2e.cjs');
+
+test('the offline anti-spam stub is opt-in and restricted to the test verification endpoint', async () => {
+  const exact = {url:'https://challenges.cloudflare.com/turnstile/v0/siteverify'};
+  assert.equal(offlineTurnstile(exact,false),null);
+  assert.equal(offlineTurnstile({url:'https://example.test/turnstile/v0/siteverify'},true),null);
+  assert.equal(offlineTurnstile({url:'https://challenges.cloudflare.com/other'},true),null);
+  assert.equal((await offlineTurnstile(exact,true).json()).success,true);
+});
 
 test('cancelled E2E commands finish before their fixture can be removed', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'e2e-process-'));

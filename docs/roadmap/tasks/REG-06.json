@@ -6,9 +6,9 @@
   "fase": "F0",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Diseño aprobado el 10-nov. Implementación local de respuestas explícitas, zonas preferidas y exclusiones en web y panel; validación del servidor compatible con datos antiguos. El orden residencial de BUS-14 usa la preferencia solo para desempates; conserva rechazos y detecta revisiones simultáneas. Migración aditiva 0039 ensayada solo en bases locales.",
-  "falta": "Validar en navegador real los recorridos de web y panel en escritorio, móvil y zoom. La publicación y aplicación de 0039 en producción necesitan autorización separada del commit exacto. La integración futura con BUS-12/AUT-19 y el matching comercial siguen pendientes.",
-  "bloqueo": "El navegador local no inicia con su sandbox en este entorno; el e2e y la comprobación visual real no se acreditan.",
+  "hecho": "Diseño aprobado el 10-nov. Implementación local de respuestas explícitas, zonas preferidas y exclusiones en web y panel; validación del servidor compatible con datos antiguos. El orden residencial de BUS-14 usa la preferencia solo para desempates; conserva rechazos y detecta revisiones simultáneas. Migración aditiva 0039 ensayada solo en bases locales. Validación local con WebKit real en contenedor aislado: alta, panel, teclado, escritorio, móvil y zoom nativo superior al 200%.",
+  "falta": "Autorizar el SHA revisado, aplicar la migración 0039 y publicar; verificar después el funcionamiento en producción. La integración futura con BUS-12/AUT-19 y el matching comercial siguen pendientes.",
+  "bloqueo": "",
   "evidencia": [
     "site/apply.js:121-123",
     "site/apply.js:243-244",
@@ -28,7 +28,11 @@
     "tests/reg06-area-dom.test.js",
     "docs/superpowers/plans/2026-11-10-reg-06-area-build.md",
     "docs/superpowers/plans/2026-11-10-reg-06-area-ledger.md",
-    "tests/reg06-review-dom.test.js"
+    "tests/reg06-review-dom.test.js",
+    "scripts/test-e2e-isolated.sh",
+    "tests/reg06-area-e2e.cjs",
+    "tests/isolated-webkit.cjs",
+    "tests/production-readonly-e2e.cjs"
   ],
   "modulo": "M03",
   "deps": [],
@@ -52,6 +56,6 @@
     "applicants-schema",
     "requirements-contract"
   ],
-  "nextStep": "Verificar visualmente la web y el panel en un entorno con navegador aislado; después presentar el commit exacto para aprobación de publicación y migración.",
+  "nextStep": "Terminar las comprobaciones de REG-06/REG-07 y presentar el SHA exacto para autorización de publicación y migración 0039; verificar después en producción.",
   "actualizado": "2026-11-10"
 }

@@ -84,6 +84,11 @@ nav.main a:hover{color:var(--bronze-dk)}
 }
 @media (max-width:480px){.tel{display:none}.logo{font-size:16px;letter-spacing:.2em}}
 @media (max-width:360px){.logo{font-size:14px;letter-spacing:.16em}.logo small{letter-spacing:.28em}.menu-btn{padding-inline:10px;gap:8px;flex-shrink:0}}
+@media (max-width:260px){
+  header.top .wrap{height:auto;min-height:72px;flex-wrap:wrap;gap:4px 12px;padding-block:8px}
+  .logo{flex:1 1 100%;white-space:normal;overflow-wrap:anywhere}
+  .menu-btn{margin-left:auto}
+}
 .skip{position:absolute;left:12px;top:-60px;z-index:50;background:var(--ink);color:var(--paper);padding:10px 16px;text-decoration:none}
 .skip:focus{top:12px}
 [tabindex="-1"]:focus{outline:none}
@@ -459,6 +464,13 @@ fieldset.step>legend{padding:0;margin-bottom:24px}
 .apply-actions .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-color:var(--ink)}
 .apply-back{min-height:44px;border:0;background:none;padding:0 8px;font-size:13px;text-decoration:underline;cursor:pointer}
 @media (min-width:760px){.apply-actions{position:static;border-top:0;padding-bottom:0}.apply-actions .btn{flex:none;min-width:240px;margin-left:auto}}
+@media (max-width:260px){
+  footer .wrap{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
+  footer p{overflow-wrap:anywhere}
+  .apply .opts.seg{grid-auto-flow:row;grid-template-columns:1fr}
+  .apply .opts.seg label+label{border-left:0;border-top:1px solid var(--field-line)}
+  .apply-actions{flex-wrap:wrap}.apply-actions .btn{flex-basis:100%;min-width:0;padding-inline:12px}
+}
 @media (prefers-reduced-motion:reduce){.pbar i,.apply .field textarea{transition:none}}
 .legal h1{font-size:clamp(28px,4vw,40px);margin-bottom:16px}
 .legal h2{font-size:18px;margin:32px 0 8px}

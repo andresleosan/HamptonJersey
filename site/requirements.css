@@ -19,3 +19,5 @@
 .apply .req-heading>label,.apply .req-heading>.req-label{font-size:16px;line-height:1.35;text-transform:none;letter-spacing:0}
 .apply .field>legend.req-heading{display:flex;padding-bottom:12px}
 .apply .req-outdoor label{font-size:16px;font-weight:500}
+/* Keep the priority switch inside narrow cards at high browser zoom. */
+@media (max-width:260px){.req-switch{gap:4px;padding-left:0}}

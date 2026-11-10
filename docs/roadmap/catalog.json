@@ -4817,7 +4817,7 @@
         }
       ],
       "acceptance": [
-        "Validar en navegador real las respuestas, exclusiones y preferencias; revisar y autorizar por separado el commit y la migración 0039 antes de publicar."
+        "WebKit real verificó respuestas, exclusiones y preferencias en web y panel, con teclado y zoom. Autorizar el SHA revisado, aplicar 0039 y publicar antes de verificar en producción."
       ]
     },
     {
@@ -4858,7 +4858,7 @@
         }
       ],
       "acceptance": [
-        "Completar revisión y validación visual de REG-07; después solicitar aprobación para su commit exacto."
+        "WebKit real verificó Pets Unknown; autorizar y publicar el SHA revisado antes de verificar en producción."
       ]
     },
     {
@@ -14518,9 +14518,9 @@
       "fase": "F0",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Diseño aprobado el 10-nov. Implementación local de respuestas explícitas, zonas preferidas y exclusiones en web y panel; validación del servidor compatible con datos antiguos. El orden residencial de BUS-14 usa la preferencia solo para desempates; conserva rechazos y detecta revisiones simultáneas. Migración aditiva 0039 ensayada solo en bases locales.",
-      "falta": "Validar en navegador real los recorridos de web y panel en escritorio, móvil y zoom. La publicación y aplicación de 0039 en producción necesitan autorización separada del commit exacto. La integración futura con BUS-12/AUT-19 y el matching comercial siguen pendientes.",
-      "bloqueo": "El navegador local no inicia con su sandbox en este entorno; el e2e y la comprobación visual real no se acreditan.",
+      "hecho": "Diseño aprobado el 10-nov. Implementación local de respuestas explícitas, zonas preferidas y exclusiones en web y panel; validación del servidor compatible con datos antiguos. El orden residencial de BUS-14 usa la preferencia solo para desempates; conserva rechazos y detecta revisiones simultáneas. Migración aditiva 0039 ensayada solo en bases locales. Validación local con WebKit real en contenedor aislado: alta, panel, teclado, escritorio, móvil y zoom nativo superior al 200%.",
+      "falta": "Autorizar el SHA revisado, aplicar la migración 0039 y publicar; verificar después el funcionamiento en producción. La integración futura con BUS-12/AUT-19 y el matching comercial siguen pendientes.",
+      "bloqueo": "",
       "evidencia": [
         "site/apply.js:121-123",
         "site/apply.js:243-244",
@@ -14540,7 +14540,11 @@
         "tests/reg06-area-dom.test.js",
         "docs/superpowers/plans/2026-11-10-reg-06-area-build.md",
         "docs/superpowers/plans/2026-11-10-reg-06-area-ledger.md",
-        "tests/reg06-review-dom.test.js"
+        "tests/reg06-review-dom.test.js",
+        "scripts/test-e2e-isolated.sh",
+        "tests/reg06-area-e2e.cjs",
+        "tests/isolated-webkit.cjs",
+        "tests/production-readonly-e2e.cjs"
       ],
       "modulo": "M03",
       "deps": [],
@@ -14564,7 +14568,7 @@
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Verificar visualmente la web y el panel en un entorno con navegador aislado; después presentar el commit exacto para aprobación de publicación y migración.",
+      "nextStep": "Terminar las comprobaciones de REG-06/REG-07 y presentar el SHA exacto para autorización de publicación y migración 0039; verificar después en producción.",
       "actualizado": "2026-11-10"
     },
     {
@@ -14575,8 +14579,8 @@
       "fase": "F0",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "REG-08 exige respuesta explícita en el formulario nuevo: sin mascotas, especies/cantidades o Not sure. Must-have no elimina el hecho de tener mascotas. Una propiedad que no admite mascotas es incompatible con un hogar que tiene mascotas; los permisos condicionados quedan desconocidos. El código original y la migración 0031 están en main. Corrección local 10-nov: una respuesta omitida o Not sure muestra Pets Unknown y queda pendiente; el recálculo conserva decisiones y detecta cambios concurrentes.",
-      "falta": "La corrección local requiere validación visual en navegador real, revisión final y aprobación/publicación de su commit. Registros sin prioridades siguen genéricamente pendientes; esta sesión no consultó la base de producción.",
+      "hecho": "REG-08 exige respuesta explícita en el formulario nuevo: sin mascotas, especies/cantidades o Not sure. Must-have no elimina el hecho de tener mascotas. Una propiedad que no admite mascotas es incompatible con un hogar que tiene mascotas; los permisos condicionados quedan desconocidos. El código original y la migración 0031 están en main. Corrección local 10-nov: una respuesta omitida o Not sure muestra Pets Unknown y queda pendiente; el recálculo conserva decisiones y detecta cambios concurrentes. Validación local con WebKit real en contenedor aislado: la tarjeta conserva Pets Unknown en escritorio, móvil y zoom nativo superior al 200%.",
+      "falta": "Autorizar y publicar el SHA revisado que contiene la corrección; verificar después el funcionamiento en producción. Registros sin prioridades siguen genéricamente pendientes.",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js:131-133",
@@ -14596,7 +14600,10 @@
         "admin/src/ApplicantMatches.jsx",
         "tests/server/requirements-matching.test.mjs",
         "tests/reg07-matches-dom.test.js",
-        "docs/superpowers/plans/2026-11-10-reg-07-pets-pending-fix.md"
+        "docs/superpowers/plans/2026-11-10-reg-07-pets-pending-fix.md",
+        "scripts/test-e2e-isolated.sh",
+        "tests/reg06-area-e2e.cjs",
+        "tests/isolated-webkit.cjs"
       ],
       "modulo": "M03",
       "deps": [],
@@ -14620,7 +14627,7 @@
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Completar revisión y validación visual de REG-07; después solicitar aprobación para su commit exacto.",
+      "nextStep": "Cerrar junto con REG-06 las comprobaciones y presentar el SHA exacto para autorización; verificar después en producción.",
       "actualizado": "2026-11-10"
     },
     {

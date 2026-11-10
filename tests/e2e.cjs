@@ -27,7 +27,9 @@ async function newPage(ctx, viewport) {
   await page.setViewportSize(viewport);
   page.errors = [];
   page.on("pageerror", e => page.errors.push(e.message));
-  page.on("console", m => m.type() === "error" && !/Failed to load resource|turnstile|challenges/i.test(m.text()) && page.errors.push(m.text()));
+  page.on("console", m => m.type() === "error" && !/Failed to load resource|turnstile|challenges/i.test(m.text())
+    && !(process.env.E2E_OFFLINE_FONTS === "1" && /^Failed to preconnect to https:\/\/fonts\.(?:gstatic|googleapis)\.com\//.test(m.text()))
+    && page.errors.push(m.text()));
   await page.route(/matterport\.com/, r => r.abort());
   return page;
 }
@@ -157,7 +159,10 @@ async function publicSite(browser) {
   await page.waitForFunction(() => document.querySelector("#stage-note").textContent.includes("Photo 2 of 2"));
   assert.match(await page.textContent("#stage-note"), /Photo 2 of 2/);
   await page.click("#tab-tour");
-  assert.match(await page.getAttribute("#stage iframe", "src"), /my\.matterport\.com\/show\/\?m=TEST/);
+  if (process.env.E2E_OFFLINE_TURNSTILE === "1" && !(await page.locator("#stage iframe").count())) {
+    assert.match(await page.locator("#stage [role=alert]").textContent(), /offline|webgl/i);
+    assert.match(await page.getAttribute("#stage [role=alert] a", "href"), /my\.matterport\.com\/show\/\?m=TEST/);
+  } else assert.match(await page.getAttribute("#stage iframe", "src"), /my\.matterport\.com\/show\/\?m=TEST/);
   await page.click("#tab-aerial");
   assert.match(await page.getAttribute("#stage [aria-current=true] img, #stage > img", "src"), /A00003/);
   assert.match(await page.textContent(".detail"), /Property details[\s\S]*Oil-fired[\s\S]*Floor plans/);
@@ -947,13 +952,21 @@ async function webChatTabs(page) {
   });
   const vctx = await page.context().browser().newContext();
   const [one, two] = [await newPage(vctx, {width: 390, height: 844}), await newPage(vctx, {width: 1280, height: 800})];
+  // A navigation while WebKit is still loading availability raises a cancellation page error.
+  const bookingSettled = p => p.waitForFunction(() => {
+    const agents = document.querySelector("#book-slot .agents");
+    return agents && !agents.textContent.includes("Loading available times");
+  });
   await one.goto(BASE);
+  await bookingSettled(one);
   await one.evaluate(k => localStorage.setItem("hampton-chat", JSON.stringify({key: k, at: Date.now(), seen: 0})), keys[0]);
   await one.reload();
+  await bookingSettled(one);
   await one.getByRole("button", {name: /^Message us/}).click();
   const box = one.locator("dialog.chat");
   await box.getByText("Written in chat A").waitFor();
   await two.goto(BASE);
+  await bookingSettled(two);
   await two.evaluate(k => localStorage.setItem("hampton-chat", JSON.stringify({key: k, at: Date.now(), seen: 0})), keys[1]);
   await box.getByText("Written in chat B").waitFor();
   assert.equal(await box.getByText("Written in chat A").count(), 0, "the other tab's chat replaces this one, never mixed");
@@ -2035,7 +2048,7 @@ async function viewingAvailability(browser) {
   const form = page.locator(".apply form"), next = form.locator('button[type="submit"]');
   const choice = async (name, value) => form.locator(`input[name="${name}"][value="${value}"] + span`).click();
   await choice("search_category", "residential"); await choice("operation", "both"); await next.click();
-  await next.click(); await choice("bedrooms_min", "2"); await next.click();
+  await choice("area_answer", "any"); await next.click(); await choice("bedrooms_min", "2"); await next.click();
   await choice("parking_spaces", "unknown"); await choice("pets", "unknown"); await next.click();
   await form.locator('[name="budget_max_rent"]').fill("2000");
   await form.locator('[name="budget_max_buy"]').fill("500000");
@@ -2226,15 +2239,21 @@ async function advertiserMutationAcrossNavigation(browser, action) {
 }
 
 (async () => {
-  const browser = await chromium.launch({executablePath: process.env.CHROME});
+  let browser = await chromium.launch({executablePath: process.env.CHROME});
   try {
     const phases = process.env.E2E_ONLY === "reg17" ? ["reg17"] : (process.env.E2E_PHASES || "public,urls,admin,reg17").split(",");
     if (phases.some(p => !["public", "urls", "admin", "reg17", "advertisers"].includes(p)))
       throw new Error("E2E_PHASES accepts public, urls, admin, reg17 and advertisers.");
-    if (phases.includes("public")) await publicSite(browser);
-    if (phases.includes("urls")) await listingUrls(browser);
-    if (phases.includes("admin")) { await admin(browser); await advertiserDirectory(browser); }
-    if (phases.includes("reg17")) await viewingAvailability(browser);
+    const runPhase = async (name, fn) => {
+      console.log(`E2E phase: ${name}`);await fn(browser);
+      if (process.env.E2E_RECYCLE_BROWSER === '1') {
+        await browser.close();browser = await chromium.launch({executablePath: process.env.CHROME});
+      }
+    };
+    if (phases.includes("public")) await runPhase("public", publicSite);
+    if (phases.includes("urls")) await runPhase("urls", listingUrls);
+    if (phases.includes("admin")) await runPhase("admin", async browser => { await admin(browser); await advertiserDirectory(browser); });
+    if (phases.includes("reg17")) await runPhase("reg17", viewingAvailability);
     if (phases.includes("advertisers") && !phases.includes("admin")) await advertiserDirectory(browser);
     if (phases.includes("advertisers") || phases.includes("admin")) {
       await advertiserReloadLock(browser);

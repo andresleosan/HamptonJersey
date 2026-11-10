@@ -4817,7 +4817,7 @@
         }
       ],
       "acceptance": [
-        "Validar en navegador real las respuestas, exclusiones y preferencias; revisar y autorizar por separado el commit y la migración 0039 antes de publicar."
+        "WebKit real verificó respuestas, exclusiones y preferencias en web y panel, con teclado y zoom. Autorizar el SHA revisado, aplicar 0039 y publicar antes de verificar en producción."
       ]
     },
     {
@@ -4858,7 +4858,7 @@
         }
       ],
       "acceptance": [
-        "Completar revisión y validación visual de REG-07; después solicitar aprobación para su commit exacto."
+        "WebKit real verificó Pets Unknown; autorizar y publicar el SHA revisado antes de verificar en producción."
       ]
     },
     {

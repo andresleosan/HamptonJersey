@@ -5,7 +5,7 @@ Fecha: 10-nov-2026. Copia aislada `/tmp/hampton-paq02-15jls7Y1/repo`, rama `main
 ## Alcance y hallazgos
 
 - REG-08 `cfb3d3c`, REG-11 `9b8dbd41` y REG-17 `5e9c8609` son antecesores de la base verificada. Los archivos de migración 0031, 0025 y 0026 están en el árbol. No se reconstruyeron ni se ejecutaron migraciones.
-- La reconciliación anterior registra REG-11 publicado y 0025 aplicada, y REG-17 publicado con 0026 aplicada. La evidencia anterior de REG-08 registra una consulta sin migraciones pendientes después de 0036. La sesión actual no consultó producción: `migrar-hampton` no está disponible. No se atribuye una nueva comprobación ni activación remota.
+- La reconciliación anterior registra REG-11 publicado y 0025 aplicada, y REG-17 publicado con 0026 aplicada. La evidencia anterior de REG-08 registra una consulta sin migraciones pendientes después de 0036. Hasta esa conciliación no se había consultado producción y `migrar-hampton` no estaba disponible. La consulta de solo lectura posterior se registra más abajo; no se atribuye una nueva activación remota.
 - Se concilian las fichas REG-04/05/06/07/11 con la integración en GitHub; se conservan sus estados parciales y sus pendientes reales. REG-17 continúa parcial hasta que VIS-17 reutilice las franjas en la coordinación de visitas.
 - REG-06 conserva una [propuesta concreta](../specs/2026-11-10-paq-02-reg-06-proposal.md), separada del código y de la aprobación de publicación. La migración 0033 propuesta históricamente ya está ocupada; la última en esta base es 0038. La aprobación del diseño y la selección de migración al construir siguen pendientes.
 - BUS-14 ya está integrado y su orden de resultados es estable por grupo, puntuación, identificador de propiedad y match. Una preferencia futura debe respetar el orden, el cursor de paginación y las decisiones humanas; guardar un campo no basta para satisfacer el criterio.
@@ -24,3 +24,10 @@ Fecha: 10-nov-2026. Copia aislada `/tmp/hampton-paq02-15jls7Y1/repo`, rama `main
 ## Seguridad
 
 Centinela emitió dos alertas sobre salidas de diagnóstico. La primera correspondía a una marca de tiempo y la segunda al texto de una expresión del propio detector durante su inspección. Una alerta adicional durante la revisión correspondió a un valor fijo ficticio del helper de pruebas. No se consultaron contraseñas ni registros de inicio de sesión, y no hay evidencia en estas salidas de exposición o compromiso activo. No se realizó ninguna remediación.
+
+## 10 November: browser evidence and handoff
+
+- The earlier browser limitation is superseded for local checks: the isolated real WebKit run covers registration and panel at 1280/390, keyboard and native zoom above 200%, including the REG-07 Pets Unknown match card. See the [REG-06 browser ledger](2026-11-10-reg-06-area-ledger.md) for the environment and simulated dependencies.
+- A read-only migration listing now shows only 0039 pending in production. The migration and publication remain unperformed pending authorization of the reviewed exact SHA; production smoke checks follow the delivery.
+
+- The anonymous, read-only public production baseline now passes in real WebKit at 1280/390. REG-06 is not yet visible there; see the REG-06 ledger for exactly which operations the smoke check permits and its limits.

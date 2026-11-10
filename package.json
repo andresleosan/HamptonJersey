@@ -15,10 +15,12 @@
     "team:build": "node scripts/render-roadmap.mjs --assets && wrangler deploy --config coordination/wrangler.toml --dry-run --outdir coordination/build",
     "test": "node --test tests/*.test.js tests/server/*.test.mjs && python3 -m unittest tests/test_import.py",
     "test:e2e": "node tests/run-e2e.cjs",
+    "test:e2e:isolated": "bash scripts/test-e2e-isolated.sh",
     "dev:e2e": "node tests/serve-e2e.cjs",
     "team:public:build": "node scripts/build-public-team.mjs --dry-run",
     "plan:packages": "node scripts/plan-packages.mjs",
-    "check:packages": "node scripts/plan-packages.mjs --check"
+    "check:packages": "node scripts/plan-packages.mjs --check",
+    "test:production:readonly": "E2E_PRODUCTION_READONLY=1 bash scripts/test-e2e-isolated.sh"
   },
   "dependencies": {
     "firebase": "^12.19.0",

@@ -18,7 +18,7 @@
 - Sort by requirements group, score, preferred-parish tie-break, binary listing ID and match ID. Persist the tie-break, preserve rejected history and invalidate cursors on relevant search/property changes. Old v1 cursors continue only when their revision remains valid.
 - Staff APIs retain authentication, same-origin checks, optimistic concurrency and duplicate review; never send private data to logs or URLs. Changes to selected areas or preference ask before removal; cancel preserves the draft and exclusions.
 - Current panel: ink `#151515`, mist `#f4f3f0`, stone `#6b665e`, bronze `#a56b3d`, bronze-dk `#86542d`, error `#a32020`, field border `#8f8a82`; Montserrat 14px/1.5, Tenor Sans 26/19px, card padding 24px/radius 14px, button padding 10px 20px/radius 999px. Web: paper `#fff`, body 15px/1.65, input padding 13px 14px/radius 12px, button 13px 28px/radius 999px. Reuse native labels/radios, visible 2px focus and existing components; check 1280/390 and zoom 200%, with normal text ≥4.5:1 and controls ≥3:1. No visual restyle, new fonts or libraries.
-- Security guidance preserves server-side allowlists and React escaping; impeccable/antislop keep controls task-focused; web performance avoids per-row database queries; ponytail reuses current helpers. Playwright/browser limitations from REG-07 remain explicit; do not disable sandbox.
+- Security guidance preserves server-side allowlists and React escaping; impeccable/antislop keep controls task-focused; web performance avoids per-row database queries; ponytail reuses current helpers. The earlier Chromium limitation is historical; use the disposable network-isolated browser fixture described in the ledger and do not weaken host controls.
 
 ## Review focus
 
@@ -59,8 +59,9 @@
 
 ### 4. Verification and handoff
 
-- [ ] `npm test`, `npm run build`, `npm run check:release`, `npm run team:check`, `npm run check:packages` and populated migration integrity passed. The local e2e reached browser launch but Chromium's sandbox failed; real-browser flows remain pending.
-- [ ] Playwright MCP and the e2e browser could not launch with the sandbox enabled; 1280/390/200% real-browser verification remains pending. No sandbox or production configuration was changed.
+- [x] `npm test` passed 1,146 JavaScript and 14 Python tests; `npm run build`, `npm run check:release`, `npm run team:check`, `npm run check:packages`, populated local migration integrity and the general browser suite (public, urls, admin, reg17) passed.
+- [x] Real WebKit in a disposable isolated container verified the focused journeys at 1280/390 and native zoom above 200%, including keyboard use and REG-07 Pets Unknown. A separate anonymous read-only browser smoke passed against the existing public production site; the new choices are not yet there. No host security or production configuration was changed.
 - [x] Independent review and repeat review completed; important findings corrected and task sources/checklist/ESTADO and ledger updated.
-- [x] Commit the explicit implementation and documentation files locally.
-- [ ] Complete the pending real-browser verification. Do not claim publication, activation or completion while checks remain pending.
+- [x] Commit the initial implementation and documentation files locally.
+- [x] Prepare the final browser evidence and current documentation for the reviewed local commit.
+- [ ] Present the final reviewed SHA for separate authorization, then migrate, publish and verify production. Do not claim activation before those steps.
