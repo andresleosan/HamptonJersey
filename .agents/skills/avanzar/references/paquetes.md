@@ -8,6 +8,17 @@ Fuente única: [paquetes.json](../../../../docs/roadmap/paquetes.json). Guía le
 - Un código real explícito sigue limitando el encargo a ese código; consultar `node scripts/plan-packages.mjs --task BUS-14` para dar contexto sin ampliar su alcance. Respetar una lista indicada y preferencias anteriores; `--list N` filtra paquetes con tareas de esa lista, no cambia la lista privada ni habilita todas sus tareas.
 - `node scripts/plan-packages.mjs --check` valida cobertura. Los comandos son locales, reserved:false/buildAuthorized:false; no cargan credenciales ni sesiones. GitHub y la incorporación a construcción se comprueban por el flujo habitual. El manifiesto es organización, no autoridad remota de disponibilidad.
 
+## Evitar interrumpir construcciones paralelas
+
+1. Al comenzar `$avanzar` sin código explícito, primero retoma trabajo propio que ya empezaste. Si no hay uno, consulta el orden de `defaultOrder` y `docs/roadmap/PLANES-POR-PAQUETE.md`; revisa `planReferences`, dependencias y estado del paquete.
+2. Antes de elegir, busca señales locales del trabajo en curso: ledger/relevo de avance, ramas o worktrees propios y commits recientes que documenten código y paquete. Respeta el candado del taller y no inspecciones archivos privados, sesiones o credenciales ajenas. Si el registro confiable indica que otro agente está construyendo un paquete, déjalo continuar y selecciona el siguiente paquete viable e independiente del `defaultOrder`.
+3. No infieras «libre» porque no veas un candado remoto: Luis retiró el coordinador y sus estados históricos no determinan disponibilidad. Si no hay registro accesible para saber qué está construyendo otro agente, no declares que ningún paquete está ocupado ni abras una copia competidora en Hermes; trabaja en una tarea independiente ya asignada o pide el dato mínimo por el canal de coordinación. Fuera de Hermes, una copia nueva solo se usa si se comprueba que no duplica un escritor activo.
+4. Trata como ocupado el archivo compartido que otro tramo está modificando, aunque sean paquetes diferentes. Usa la tabla «Módulos compartidos y escritor único» de `2026-11-10-tp05-construction-order.md`; busca otro paquete que no dependa de ese archivo. Los cambios de contrato siguen el orden de integración en ese documento.
+5. Un paquete con dependencia técnica pendiente no está disponible para construir el tramo consumidor; salta al siguiente viable y deja anotado qué componente lo desbloquea. Una gestión externa puede avanzar aparte, pero no finjas que su evidencia o activación ocurrió.
+6. Anuncia el paquete y código elegidos, la señal de ocupación respetada y el siguiente alternativo. Mantén alcance explícito, trabajo de un escritor por copia, revisión y publicación conforme a las reglas vigentes. La selección automática elige una tarea; nunca autoriza construir todo el paquete de una vez.
+
+El orden base recomendado para frentes paralelos está en `docs/superpowers/plans/2026-11-10-tp05-construction-order.md` y la distribución de paquetes de Lista 4 en `docs/superpowers/plans/2026-11-10-tanda9-estado.md`. Son referencias de secuencia y contratos: el registro actual de actividad determina qué frente debe ceder el paso.
+
 ## Ejecutar sin rehacer lo existente
 
 1. Leer spec/plan/ledger existentes de los códigos del tramo y reconciliarlos con main. Recuperar y revisar las entregas locales documentadas antes de reconstruirlas. No importar ni adoptar archivos de otra sesión sin autorización.
