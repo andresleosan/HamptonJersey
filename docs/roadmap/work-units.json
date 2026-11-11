@@ -4750,7 +4750,7 @@
       "preferredSlot": "vps",
       "priority": 226,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -4781,7 +4781,7 @@
         }
       ],
       "acceptance": [
-        "Revisar la evidencia de activación y los criterios residenciales existentes sin volver a publicar REG-08."
+        "REG-05 completada: preservar los criterios residenciales y la evidencia de activación; no reconstruir REG-05 ni REG-08."
       ]
     },
     {

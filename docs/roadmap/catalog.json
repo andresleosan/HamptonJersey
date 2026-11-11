@@ -4750,7 +4750,7 @@
       "preferredSlot": "vps",
       "priority": 226,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -4781,7 +4781,7 @@
         }
       ],
       "acceptance": [
-        "Revisar la evidencia de activación y los criterios residenciales existentes sin volver a publicar REG-08."
+        "REG-05 completada: preservar los criterios residenciales y la evidencia de activación; no reconstruir REG-05 ni REG-08."
       ]
     },
     {
@@ -14469,10 +14469,10 @@
       "titulo": "Habitaciones y baños que busca el aplicante",
       "origen": "texto",
       "fase": "F0",
-      "estado": "parcial",
-      "responsable": "desarrollo",
-      "hecho": "Rango de dormitorios mínimo/máximo existente desde REG-11; REG-08 añade Must-have para ese rango y para baños. Dormitorios ideales conserva su función de preferencia. Incumplir un rango imprescindible produce alternativa, sin compensación por score. El código y la migración 0031 están en main.",
-      "falta": "Conservar el alcance residencial y las limitaciones de verificación de REG-08; no se consultó de nuevo la base de producción en esta conciliación.",
+      "estado": "hecho",
+      "responsable": "—",
+      "hecho": "REG-05 verificada local y remotamente el 11-nov-2026. El formulario conserva mínimo/máximo de dormitorios, dormitorios ideales y baños mínimos; Studio es 0 y se rechaza un máximo inferior al mínimo. El matching respeta el rango. Con prioridad Must-have, incumplir el máximo de dormitorios o mínimo de baños queda como Alternative para revisión humana, por debajo de una casa que cumple. REG-08/0031 está integrado; Wrangler confirmó que no hay migraciones pendientes y Pages publica main desde b544c2e. Sin leer o modificar datos de aplicantes.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js:125-127",
@@ -14484,7 +14484,9 @@
         "migrations/0031_requirement_priorities.sql",
         "tests/server/requirements.test.mjs",
         "tests/reg08-e2e.cjs",
-        "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md"
+        "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md",
+        "docs/roadmap/work/REG-05/acceptance.md",
+        "tests/server/match-store.test.mjs"
       ],
       "modulo": "M03",
       "deps": [],
@@ -14492,7 +14494,7 @@
       "assignedSlot": "vps",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [
         {
           "id": "REG-08",
@@ -14508,8 +14510,8 @@
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Revisar la evidencia de activación y los criterios residenciales existentes sin volver a publicar REG-08.",
-      "actualizado": "2026-11-10"
+      "nextStep": "Conservar como completada; no reconstruir REG-05 ni REG-08.",
+      "actualizado": "2026-11-11"
     },
     {
       "id": "REG-06",

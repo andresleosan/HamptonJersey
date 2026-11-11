@@ -52,6 +52,31 @@ test("a home above the applicant's maximum bedrooms is not offered as a match", 
   assert.deepEqual(found(env, id), []);
 });
 
+test("a residential must-have bedroom range marks homes above its maximum as alternatives", async () => {
+  const env = makeEnv();
+  const id = seedApplicant(env, "Must-have bedroom range", {
+    operation: "rent", budget_max: 2000, bedrooms_min: 1, bedrooms_max: 2, bathrooms_min: 1,
+    requirement_priorities: json({ version: 1, values: { bedrooms: "must", bathrooms: "must" }, unknown: [] }),
+  });
+  listing(env, "HE-R001", { operation: "rent", availability: "to_let", rent: 1800, rent_period: "month",
+    sale_price: null, bedrooms: 2, bathrooms: 1 });
+  listing(env, "HE-R002", { operation: "rent", availability: "to_let", rent: 1800, rent_period: "month",
+    sale_price: null, bedrooms: 3, bathrooms: 1 });
+  listing(env, "HE-R003", { operation: "rent", availability: "to_let", rent: 1800, rent_period: "month",
+    sale_price: null, bedrooms: 2, bathrooms: 0 });
+
+  await recomputeForApplicant(env, id, ADMIN);
+
+  assert.deepEqual(found(env, id), ["HE-R001", "HE-R002", "HE-R003"]);
+  const matchesByListing = new Map(matches(env, id).map(match => [match.listing_id, match]));
+  assert.ok(matchesByListing.get("HE-R001").requirements_rank < matchesByListing.get("HE-R002").requirements_rank);
+  assert.equal(JSON.parse(matchesByListing.get("HE-R001").checks).find(c => c.key === "bedrooms").result, "meets");
+  assert.equal(matchesByListing.get("HE-R002").requirements_rank, 2);
+  assert.equal(JSON.parse(matchesByListing.get("HE-R002").checks).find(c => c.key === "bedrooms").result, "fails");
+  assert.equal(matchesByListing.get("HE-R003").requirements_rank, 2);
+  assert.equal(JSON.parse(matchesByListing.get("HE-R003").checks).find(c => c.key === "bathrooms").result, "fails");
+});
+
 test("J4: the housing rule reads the listing's Jersey fields and the applicant's status as stored", async () => {
   const env = makeEnv();
   const std = seedApplicant(env, "Ana Le Gros", { housing_status: "standard" });
