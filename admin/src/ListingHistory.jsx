@@ -28,7 +28,9 @@ const LABEL = {title:'Title',use:'Use',property_type:'Property type',operation:'
   description:'Description',tour_url:'Tour URL',specs:'Specification',viewings_enabled:'Viewings enabled',viewing_hours:'Viewing hours',parish:'Parish',
   matchable:'Offered to applicants',featured_rank:'Featured position',published:'Published',archived_at:'Archived at',published_at:'Published at',
   confirmed_at:'Confirmed at',cover_media_id:'Cover media ID',feat_pets:'Pets allowed',feat_parking:'Parking spaces',feat_furnished:'Furnished',
-  feat_outdoor:'Outdoor space',feat_type:'Derived property type',feat_evidence:'Feature evidence',review_requested_at:'Review requested at'};
+  feat_outdoor:'Outdoor space',feat_type:'Derived property type',feat_evidence:'Feature evidence',review_requested_at:'Review requested at',
+  building_name_or_number:'Building name or number (internal)',postcode:'Postcode (internal)',property_condition:'Property condition',developer_name:'Developer (internal)',
+  public_address_publication:'Exact address publication'};
 const SOURCE = {panel:'Panel',queue:'Properties Queue',sales:'Sales',media:'Media',recalculate:'Recalculation'};
 const validDate = iso => typeof iso==='string' && Number.isFinite(Date.parse(iso)) && new Date(iso).toISOString()===iso;
 const date = iso => validDate(iso)?new Date(iso).toLocaleString('en-GB',{timeZone:'Europe/Jersey',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'}):'Date unavailable';

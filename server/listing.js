@@ -120,5 +120,7 @@ export function toPublic(l, media) {
     tourUrl: l.tour_url, specs: JSON.parse(l.specs || "[]"), featured: l.featured_rank ?? null, publishedAt: l.published_at ?? null,
     // §5.9: the website shows interest from 2 people, so 0 and 1 are never sent (P6).
     interest: l.active_interest >= 2 ? l.active_interest : null,
+    ...(typeof l.public_address_snapshot === "string" && l.public_address_snapshot
+      ? { exactAddress: l.public_address_snapshot } : {}),
   };
 }

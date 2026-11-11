@@ -964,7 +964,7 @@ function detail(id) {
   const cur = p.currency || "GBP", money0 = n => money(n, cur);
   const desc = p.description.filter(l => l.toLowerCase() !== p.title.toLowerCase());
   const similar = comparables(p, PUB);
-  const listingFacts = [["Location", p.place], ["Market", REGIONS[p.region]],
+  const listingFacts = [["Location", p.place], ...(p.exactAddress ? [["Exact address", p.exactAddress]] : []), ["Market", REGIONS[p.region]],
     ["Tenure", TENURE[p.tenureType] || p.tenure], ["Housing", housingLabel(p)]].filter(([, v]) => v);
   // First-time buyer schemes concern purchases only.
   const restriction = p.restriction === "first_time_buyer" && p.operation !== "sale" ? null : RESTRICTION[p.restriction];

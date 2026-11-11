@@ -14,6 +14,7 @@ import ListingReview from './ListingReview.jsx';
 import RentalMarketing from './RentalMarketing.jsx';
 import ListingHistory from './ListingHistory.jsx';
 import {isRentalMarketing} from '../../server/listing-editorial.js';
+import { normalizePostcode, PROPERTY_CONDITION_LABELS } from '../../server/listing-details.js';
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "tenure_type", "housing_category", "restriction", "sale_price", "rent", "rent_period", "premium",
@@ -24,6 +25,9 @@ const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium"];
 const toForm = l => ({ ...Object.fromEntries(FIELDS.map(k => [k, k === "specs" ? l.specs
   : k === "viewings_enabled" ? l[k] ?? 1 : k === "viewing_hours" ? l[k] ?? null : l[k] ?? ""])),
   viewing_hours_draft: l.viewing_hours ?? [] });
+const DETAIL_FIELDS = ["building_name_or_number", "postcode", "property_condition", "developer_name"];
+const toDetailsForm = d => Object.fromEntries(DETAIL_FIELDS.map(k => [k, d?.[k] ?? ""]));
+const toDetailsBody = d => Object.fromEntries(DETAIL_FIELDS.map(k => [k, d[k] === "" ? null : d[k]]));
 const toBody = f => Object.fromEntries(FIELDS.map(k => [k,
   NUMERIC.includes(k) ? (f[k] === "" ? null : Number(f[k]))
     : k === "specs" ? f.specs.filter(s => s.label.trim() || s.value.trim())
@@ -34,7 +38,7 @@ const IF_CHANGED = ["parish", "matchable"];
 const toMatchForm = l => ({ parish: l.parish ?? "", matchable: l.matchable });
 const changedMatchForm = (f, l) => Object.fromEntries(IF_CHANGED.filter(k => f[k] !== toMatchForm(l)[k])
   .map(k => [k, k === "parish" ? f.parish || null : f.matchable]));
-const SECTIONS = [["details", "Details"], ["price", "Price"], ["description", "Description"], ["photos", "Photos"],
+const SECTIONS = [["details", "Details"], ["internal-address", "Internal property details"], ["price", "Price"], ["description", "Description"], ["photos", "Photos"],
   ["tour", "Tour and specification"], ["viewings", "Viewings"], ["offers", "Offers"], ["applicants", "Matched applicants"], ["research", "Research"], ["history", "History"]];
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
 // Match status, with its badge tone (DESIGN.md "Badges de estado": Found and Rejected neutral, Shortlisted active).
@@ -64,19 +68,25 @@ const DONE = { publish: "Published: now on the website (may take a minute).", un
 
 export default function ListingEditor({ id, onChange }) {
   const [data, setData] = useState(null), [form, setForm] = useState(null), [errors, setErrors] = useState({});
+  const [detailsForm, setDetailsForm] = useState(null);
+  const [addressReview, setAddressReview] = useState(null), [addressReviewError, setAddressReviewError] = useState(null);
+  const [addressEvidenceRef, setAddressEvidenceRef] = useState(""), [addressReviewAuthorized, setAddressReviewAuthorized] = useState(false);
   const [matchForm, setMatchForm] = useState(null), [matchesErr, setMatchesErr] = useState(null);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [loadErr, setLoadErr] = useState(null), [confirmDel, setConfirmDel] = useState("");
   const [confirming, setConfirming] = useState(false); // ADM-04: its own flag, so Save never reads "Saving…" meanwhile
   const marketingFocus=useRef(false);
+  const errorFocus=useRef(null);
   const [historyKey,setHistoryKey]=useState(0),[deleted,setDeleted]=useState(false);
   const historyChanged=()=>setHistoryKey(k=>k+1);
   const loadRequest=useRef(0);
   useEffect(()=>{if(marketingFocus.current){document.getElementById('h-rental-marketing')?.focus();marketingFocus.current=false;}},[data?.listing.updated_at]);
+  useEffect(()=>{if(errorFocus.current){document.getElementById(`f-${errorFocus.current}`)?.focus();errorFocus.current=null;}},[errors]);
   const load = async () => {
     const n=++loadRequest.current;
     setLoadErr(null);
     try {const d=await api(`/admin/listings/${id}`);if(n!==loadRequest.current)return;
-      setData(d);setForm(toForm(d.listing));setMatchForm(toMatchForm(d.listing));setErrors({});setDeleted(false);historyChanged();
+      setData(d);setForm(toForm(d.listing));setDetailsForm(toDetailsForm(d.details));setAddressReview(null);setAddressReviewError(null);
+      setAddressEvidenceRef("");setAddressReviewAuthorized(false);setMatchForm(toMatchForm(d.listing));setErrors({});setDeleted(false);historyChanged();
     } catch(e) {
       if(n!==loadRequest.current)return;
       if(e.status===404)try {
@@ -84,7 +94,8 @@ export default function ListingEditor({ id, onChange }) {
         if(h.listing.state==='deleted'){
           // Same-ID Reload does not unmount this editor. Discard its obsolete draft and unsaved-photo registration.
           matchesReq.current++;marketingFocus.current=false;photos.current={dirty:false};
-          setData(null);setForm(null);setMatchForm(null);setPhotosDirty(false);setOffers(null);
+          setData(null);setForm(null);setDetailsForm(null);setAddressReview(null);setAddressReviewError(null);setAddressEvidenceRef("");
+          setAddressReviewAuthorized(false);setMatchForm(null);setPhotosDirty(false);setOffers(null);
           setErrors({});setMatchesErr(null);setMsg(null);setConfirmDel('');setDeleted(true);return;
         }
       } catch(historyError) {if(n===loadRequest.current)setLoadErr(historyError.message);return;}
@@ -100,7 +111,10 @@ export default function ListingEditor({ id, onChange }) {
   const photos = useRef({ dirty: false }), [photosDirty, setPhotosDirty] = useState(false);
   const fieldsDirty = !!data && !!form && (JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing)))
     || Object.keys(changedMatchForm(matchForm, data.listing)).length > 0);
-  const dirty = fieldsDirty || photosDirty;
+  const detailsDirty = !!data && !!detailsForm && JSON.stringify(toDetailsBody(detailsForm)) !== JSON.stringify(toDetailsBody(toDetailsForm(data.details)));
+  const saveDirty = fieldsDirty || detailsDirty || photosDirty;
+  const addressReviewDirty = !!addressReview && (!!addressReviewAuthorized || !!addressEvidenceRef.trim());
+  const dirty = saveDirty || addressReviewDirty;
   useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
 
   if (loadErr) return <p role="alert" className="err">{loadErr}<br /><a href="#/listings">Back to listings</a></p>;
@@ -108,7 +122,10 @@ export default function ListingEditor({ id, onChange }) {
     <p><a href="#/listings">Back to listings</a></p><ListingHistory key={id} id={id}/></div>;
   if (!data) return <p>Loading listing…</p>;
   const l = data.listing, state = stateOf(l);
-  const setListing = listing => { setData(d => ({ ...d, listing })); setForm(toForm(listing)); setMatchForm(toMatchForm(listing)); setErrors({}); historyChanged(); };
+  const setListing = (listing, details) => { setData(d => ({ ...d, listing, ...(details ? { details } : {}) }));
+    setForm(toForm(listing)); if (details) { setDetailsForm(toDetailsForm(details)); setAddressReview(null); setAddressReviewError(null);
+      setAddressEvidenceRef(""); setAddressReviewAuthorized(false); }
+    setMatchForm(toMatchForm(listing)); setErrors({}); historyChanged(); };
   // A save or a state change recomputes the listing's matches; only the detail read returns them.
   // Only the latest read counts, so two quick saves can't leave the older list showing.
   const reloadMatches = () => {
@@ -122,23 +139,29 @@ export default function ListingEditor({ id, onChange }) {
     setBusy(true); setMsg(null);
     try {
       let at = l.updated_at;
-      if (fieldsDirty) {
-        const body = { ...toBody(form), ...changedMatchForm(matchForm, l), updated_at: at };
-        const saved = (await api(`/admin/listings/${id}`, { method: "PUT", body })).listing;
-        setListing(saved); at = saved.updated_at; reloadMatches(); onChange?.(); // a new price or availability confirms it
+      if (fieldsDirty || detailsDirty) {
+        const body = { ...(fieldsDirty ? { ...toBody(form), ...changedMatchForm(matchForm, l) } : {}),
+          ...(detailsDirty ? { details: toDetailsBody(detailsForm) } : {}), updated_at: at };
+        const saved = await api(`/admin/listings/${id}`, { method: "PUT", body });
+        setListing(saved.listing, saved.details); at = saved.listing.updated_at;
+        if (fieldsDirty) reloadMatches(); onChange?.(); // a new price or availability confirms it
       }
       if (photos.current.dirty && !(await photos.current.save(at))) return setMsg({ text: "The photos weren't saved: see the message under Photos." });
       setMsg({ ok: true, text: "Changes saved." });
     }
-    catch (e) { setErrors(e.data?.fields || {}); setMsg({ text: e.message }); }
+    catch (e) { const fields=e.data?.fields || {};errorFocus.current=Object.keys(fields).find(k=>document.getElementById(`f-${k}`))??null;
+      setErrors(fields); setMsg({ text: e.message }); }
     finally { setBusy(false); }
   };
-  const discard = () => { setForm(toForm(l)); setMatchForm(toMatchForm(l)); setErrors({}); photos.current.discard?.(); setMsg(null); };
+  const discard = () => { setForm(toForm(l)); setDetailsForm(toDetailsForm(data.details)); setAddressReview(null); setAddressReviewError(null);
+    setAddressEvidenceRef(""); setAddressReviewAuthorized(false);
+    setMatchForm(toMatchForm(l)); setErrors({}); photos.current.discard?.(); setMsg(null); };
   const act = async action => {
     if (action === "archive" && !confirm("Archive this listing? It will leave the website; you can restore it later.")) return;
     setBusy(true); setMsg(null);
     try {
-      setListing((await api(`/admin/listings/${id}/${action}`, { method: "POST",body:{updated_at:l.updated_at} })).listing); reloadMatches(); onChange?.();
+      const result = await api(`/admin/listings/${id}/${action}`, { method: "POST",body:{updated_at:l.updated_at} });
+      setListing(result.listing, result.details); reloadMatches(); onChange?.();
       setMsg({ ok: true, text: action === "publish" && !publicPhoto
         ? "Published, but it won't appear on the website until it has a visible photo." : DONE[action] });
     }
@@ -151,6 +174,39 @@ export default function ListingEditor({ id, onChange }) {
       onChange?.();setMsg({ok:true,text:action==='submit_review'?'Ready for review. Still hidden from the website.':'Returned to draft.'});}
     catch(e){setMsg({text:e.message,reload:e.status===409});}
     finally{setBusy(false);}
+  };
+  const openAddressReview = async () => {
+    if (busy || dirty || state !== "published" || !publicPhoto) return;
+    setBusy(true); setAddressReviewError(null);
+    try {
+      const preview = await api(`/admin/listings/${id}/address-review`);
+      setAddressReview(preview); setAddressEvidenceRef(""); setAddressReviewAuthorized(false);
+    } catch (e) { setAddressReviewError(e.message); }
+    finally { setBusy(false); }
+  };
+  const authorizeAddressReview = async () => {
+    if (!addressReview || busy) return;
+    setBusy(true); setAddressReviewError(null); setMsg(null);
+    try {
+      const result = await api(`/admin/listings/${id}/address-review`, { method: "POST", body: {
+        action: "authorize", expected_at: addressReview.expected_at, public_snapshot_hash: addressReview.public_snapshot_hash,
+        address_publication_authorized: addressReviewAuthorized, evidence_ref: addressEvidenceRef.trim(),
+      } });
+      setListing(result.listing, result.details); onChange?.();
+      setMsg({ ok: true, text: "Public exact address reviewed and published." });
+    } catch (e) { setAddressReviewError(e.message); }
+    finally { setBusy(false); }
+  };
+  const revokeAddressReview = async () => {
+    setBusy(true); setAddressReviewError(null); setMsg(null);
+    try {
+      const result = await api(`/admin/listings/${id}/address-review`, { method: "POST", body: {
+        action: "revoke", expected_at: l.updated_at,
+      } });
+      setListing(result.listing, result.details); onChange?.();
+      setMsg({ ok: true, text: "Public exact address removed." });
+    } catch (e) { setAddressReviewError(e.message); }
+    finally { setBusy(false); }
   };
   // PUB-21 (D11, C8): a draft from Properties Queue is published from here, with the queue's minimum.
   const approve = async () => {
@@ -186,6 +242,11 @@ export default function ListingEditor({ id, onChange }) {
     onChange: e => setForm(f => ({ ...f, [k]: e.target.value })), ...extra });
   const field = (k, label, input) => <div className="field" key={k}><label htmlFor={`f-${k}`}>{label}</label>{input}
     {errors[k] && <small id={`e-${k}`} className="err">{errors[k]}</small>}</div>;
+  const detailCtl = (k, extra = {}) => ({ id: `f-${k}`, value: detailsForm[k], "aria-invalid": errors[k] ? true : undefined,
+    "aria-describedby": errors[k] ? `e-${k}` : undefined,
+    onChange: e => setDetailsForm(f => ({ ...f, [k]: e.target.value })), ...extra });
+  const detailField = (k, label, input) => <div className="field" key={k}><label htmlFor={`f-${k}`}>{label}</label>{input}
+    {errors[k] && <small id={`e-${k}`} className="err">{errors[k]}</small>}</div>;
   const options = obj => Object.entries(obj).map(([k, v]) => <option key={k} value={k}>{v}</option>);
   const publicPhotos = data.media.filter(m => m.public && m.kind === "photo" && m.r2_key && m.origin !== "external");
   const publicPhoto = publicPhotos.length > 0;
@@ -202,6 +263,17 @@ export default function ListingEditor({ id, onChange }) {
   // ADM-04: the Jersey day of the last confirmation, shown on a published listing still on the market (T12).
   const checked = l.confirmed_at && fmtDayMonth(jerseyToday(new Date(l.confirmed_at)));
   const onMarket = state === "published" && ON_MARKET.includes(l.availability) && checked;
+  const parishLabel = OPTIONS.parishes.find(([key]) => key === matchForm.parish)?.[1];
+  const internalParts = [detailsForm.building_name_or_number, form.road_name, form.location, parishLabel,
+    detailsForm.postcode, form.country].map(value => String(value ?? "").trim()).filter(Boolean);
+  const internalAddress = internalParts.filter((part, index) =>
+    internalParts.findIndex(value => value.toLowerCase() === part.toLowerCase()) === index).join(", ");
+  const savedPublicAddress = data.details.public_address_snapshot;
+  let postcodeHint = null;
+  if (form.country === "Jersey" && detailsForm.postcode.trim()) {
+    try { if (normalizePostcode(detailsForm.postcode, "Jersey")) postcodeHint = "Format checked only. The address has not been verified."; }
+    catch { /* Invalid codes are reported by the server on Save. */ }
+  }
 
   return <div className="editor">
     <aside className="side card">
@@ -260,14 +332,95 @@ export default function ListingEditor({ id, onChange }) {
           <option value="over_55">{RESTRICTION.over_55}</option></select>
           {salesOnly && <small id="d-restriction" className="muted">Applies to sales only.</small>}</>)}
         {field("country", "Country", <input {...ctl("country")} maxLength={100} />)}
-        {field("location", "Location", <input {...ctl("location")} maxLength={200} />)}
-        {field("road_name", "Road", <input {...ctl("road_name")} maxLength={200} />)}
+        {field("location", "Public location", <><input {...ctl("location")} maxLength={200} />
+          <small className="muted">Shown on the website. Enter only the location you want to publish.</small></>)}
+        {field("road_name", "Road (internal)", <input {...ctl("road_name")} maxLength={200} />)}
         {field("parish", "Parish", <select id="f-parish" value={matchForm.parish} aria-invalid={errors.parish ? true : undefined}
           aria-describedby={errors.parish ? "e-parish" : undefined} onChange={e => setMatchForm(x => ({ ...x, parish: e.target.value }))}>
           <option value="">Unknown</option>{OPTIONS.parishes.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>)}
         {field("bedrooms", "Bedrooms", <input {...ctl("bedrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
         {field("bathrooms", "Bathrooms", <input {...ctl("bathrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
       </div></section>
+
+      <section id="s-internal-address" className="card" aria-labelledby="h-internal-address">
+        <h2 id="h-internal-address">Internal property details</h2>
+        <p className="muted">For staff only. These fields are not shown on the website.</p>
+        <div className="grid2">
+          {detailField("building_name_or_number", "Building name or number (internal)",
+            <input {...detailCtl("building_name_or_number")} maxLength={200} />)}
+          {detailField("postcode", "Postcode (internal)", <><input {...detailCtl("postcode")} maxLength={32} />
+            {postcodeHint && <small className="muted">{postcodeHint}</small>}
+            {form.country === "Jersey" && <small><a href="https://www.jerseypost.com/tools/address-finder/" target="_blank"
+              rel="noopener noreferrer" referrerPolicy="no-referrer">Check with Jersey Post</a></small>}</>)}
+          {detailField("property_condition", "Property condition", <select {...detailCtl("property_condition")}>
+            <option value="">Not known</option>{Object.entries(PROPERTY_CONDITION_LABELS).map(([key, label]) =>
+              <option key={key} value={key}>{label}</option>)}</select>)}
+          {(detailsForm.property_condition === "new_build" || detailsForm.developer_name) &&
+            detailField("developer_name", "Developer (internal)", <><input {...detailCtl("developer_name")} maxLength={200} />
+              {detailsForm.property_condition !== "new_build" && <small className="muted">Only applies to new builds. Clear this value if it no longer applies.</small>}</>)}
+        </div>
+        <div className="field">
+          {savedPublicAddress
+            ? <p className="muted"><strong>Public exact address:</strong> {savedPublicAddress}</p>
+            : <p className="muted">The exact address stays internal until you review the full public preview and record the owner's agreement.</p>}
+          <button type="button" className="btn ghost sm" onClick={openAddressReview}
+            disabled={busy || dirty || state !== "published" || !publicPhoto}>
+            {savedPublicAddress ? "Review updated public snapshot" : "Review public snapshot"}
+          </button>
+          {(fieldsDirty || detailsDirty || photosDirty) && <small className="muted">Save or discard your edits before reviewing the public snapshot.</small>}
+          {addressReviewDirty && <small className="muted">Complete or close this address review before changing the listing.</small>}
+          {state !== "published" && <small className="muted">Publish this listing before reviewing its exact address.</small>}
+          {state === "published" && !publicPhoto && <small className="muted">Add a public photo before reviewing its exact address.</small>}
+          {savedPublicAddress && <button type="button" className="btn ghost sm" onClick={revokeAddressReview} disabled={busy || dirty}>
+            Remove public exact address
+          </button>}
+          {addressReviewError && <p role="alert" className="err">{addressReviewError}</p>}
+        </div>
+        {addressReview && <section className="card" aria-labelledby="h-address-review">
+          <h3 id="h-address-review">Review the public snapshot</h3>
+          <p className="muted">This review includes the listing, search and social metadata, structured data and linked Drive folder title.</p>
+          {addressReview.existing_review && <p className="muted" role="status">
+            {addressReview.existing_review.valid_for_current_content
+              ? "The current public content already has an approval."
+              : "Public content changed since the previous approval."}
+          </p>}
+          <dl>
+            <dt>Exact address</dt><dd>{addressReview.preview.listing.exactAddress}</dd>
+            <dt>Public title</dt><dd>{addressReview.preview.listing.title}</dd>
+            <dt>Public location</dt><dd>{addressReview.preview.listing.place}</dd>
+            <dt>Public summary</dt><dd>{addressReview.preview.listing.summary.join("\n") || "None"}</dd>
+            <dt>Public description</dt><dd>{addressReview.preview.listing.description.join("\n") || "None"}</dd>
+            <dt>Search and social title</dt><dd>{addressReview.preview.seo.title}</dd>
+            <dt>Search and social description</dt><dd>{addressReview.preview.seo.description}</dd>
+            <dt>Canonical URL</dt><dd>{addressReview.preview.seo.canonical}</dd>
+            <dt>Drive folder title</dt><dd>{addressReview.preview.drive_folder_name || "None"}</dd>
+          </dl>
+          <h4>Public media labels</h4>
+          <ul>{[...addressReview.preview.listing.photos, ...addressReview.preview.listing.floorplans,
+            ...(addressReview.preview.listing.aerial ? [addressReview.preview.listing.aerial] : [])]
+            .map((media, index) => <li key={`${media.src}-${index}`}>{media.alt || "No label"}</li>)}</ul>
+          <details open><summary>Review all public listing data and JSON-LD</summary>
+            <pre>{JSON.stringify({ listing: addressReview.preview.listing, seo: addressReview.preview.seo }, null, 2)}</pre>
+          </details>
+          <div className="field">
+            <label htmlFor="address-evidence-ref">Consent evidence reference</label>
+            <input id="address-evidence-ref" value={addressEvidenceRef} maxLength={128} autoComplete="off"
+              onChange={e => setAddressEvidenceRef(e.target.value)} />
+            <small className="muted">Reference ID only. Do not enter names, phone numbers or email addresses.</small>
+          </div>
+          <div className="field">
+            <label className="check"><input id="address-review-authorized" type="checkbox" checked={addressReviewAuthorized}
+              onChange={e => setAddressReviewAuthorized(e.target.checked)} />
+              I reviewed this snapshot and have the owner's agreement to publish the exact address
+            </label>
+          </div>
+          <button type="button" className="btn" onClick={authorizeAddressReview}
+            disabled={busy || !addressEvidenceRef.trim() || !addressReviewAuthorized}>Authorize and publish exact address</button>
+          <button type="button" className="btn ghost" onClick={() => { setAddressReview(null); setAddressReviewError(null);
+            setAddressEvidenceRef(""); setAddressReviewAuthorized(false); }}>Close preview</button>
+        </section>}
+        <p className="muted"><strong>Current address preview:</strong> {internalAddress || "Not known"}</p>
+      </section>
 
       <section id="s-price" className="card" aria-labelledby="h-price"><h2 id="h-price">Price</h2>
         <p className="muted">Leave unknown values blank: 0 is never shown. Sale price, rent and business premium are kept separate.</p><div className="grid2">
@@ -363,7 +516,7 @@ export default function ListingEditor({ id, onChange }) {
       {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}
         {msg.reload&&<button type="button" className="btn ghost sm" onClick={load}>Reload listing</button>}</p>}
       {dirty && <span className="unsaved">Unsaved changes</span>}
-      <button type="button" className="btn" onClick={save} disabled={!dirty || busy}>{busy ? "Saving…" : "Save"}</button>
+      <button type="button" className="btn" onClick={save} disabled={!saveDirty || busy}>{busy ? "Saving…" : "Save"}</button>
       {dirty && <button type="button" className="btn ghost" onClick={discard} disabled={busy}>Discard</button>}
       {state !== "archived" && (data.queue ? <button type="button" className="btn ghost" disabled={dirty || busy} title={dirty ? "Save first" : undefined}
         onClick={approve}>Approve and publish</button> : <button type="button" className="btn ghost" disabled={dirty || busy}

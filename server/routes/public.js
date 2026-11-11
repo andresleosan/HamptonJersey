@@ -1,5 +1,6 @@
 import { json, fail, readJson, now } from "../http.js";
 import { toPublic } from "../listing.js";
+import { buildPublicAddressReview, addressAppearsInPublicContent, addressDetailsFromListing } from "../public-address.js";
 import { validateViewing, jerseyNow, jerseyToday, isFree, realDate, plusDays, SLOT_MINUTES, PUBLIC_DAYS, MAX_DAYS,
   interestSql, interestDates } from "../viewings.js";
 import { loadAvailability, bookStatement } from "../viewing-store.js";
@@ -19,15 +20,37 @@ const LIVE = "l.published = 1 AND l.archived_at IS NULL";
 export async function readLive(env, id) {
   const one = id ? " AND l.id = ?" : "", args = id ? [id] : [];
   const [{ results: listings }, { results: media }] = await env.DB.batch([
-    env.DB.prepare(`SELECT l.*, (${interestSql("l.id")}) AS active_interest FROM listings l WHERE ${LIVE}${one} ORDER BY l.id`)
+    env.DB.prepare(`SELECT l.*, d.building_name_or_number,d.postcode,d.public_address_snapshot,d.public_address_snapshot_hash,
+      (SELECT folder_name FROM drive_imports di WHERE di.folder_id=l.drive_folder_id ORDER BY di.id DESC LIMIT 1) AS drive_folder_name,
+      (${interestSql("l.id")}) AS active_interest
+      FROM listings l LEFT JOIN listing_details d ON d.listing_id=l.id WHERE ${LIVE}${one} ORDER BY l.id`)
       .bind(...interestDates(), ...args),
     env.DB.prepare(`SELECT m.* FROM media m JOIN listings l ON l.id = m.listing_id
      WHERE ${LIVE} AND m.public = 1${one} ORDER BY m.position, m.id`).bind(...args),
   ]);
   const by = groupBy(media, "listing_id");
-  return listings.map(l => ({ row: l, pub: toPublic(l, by[l.id] || []) }));
+  const reviewed = await Promise.all(listings.map(async l => {
+    const publicMedia = by[l.id] || [];
+    let visible = { ...l, public_address_snapshot: null };
+    let authorized = false;
+    if (l.public_address_snapshot && l.public_address_snapshot_hash) {
+      const review = await buildPublicAddressReview(l, addressDetailsFromListing(l), publicMedia, l.drive_folder_name,
+        env.SITE_URL || 'https://hampton.test');
+      if (review.address === l.public_address_snapshot && review.public_snapshot_hash === l.public_address_snapshot_hash) {
+        visible = { ...l, public_address_snapshot: l.public_address_snapshot };
+        authorized = true;
+      }
+    }
+    const privateShape = toPublic(visible, publicMedia);
+    if (!authorized && addressAppearsInPublicContent(l, addressDetailsFromListing(l), privateShape)) return null;
+    return { row: l, pub: privateShape };
+  }));
+  return reviewed.filter(Boolean);
 }
-const listPublic = async ({ env }) => json((await readLive(env)).map(x => x.pub), 200, { "cache-control": "public, max-age=60" });
+const listPublic = async ({ env }) => {
+  const listings = (await readLive(env)).map(x => x.pub), exactAddress = listings.some(l => l.exactAddress);
+  return json(listings, 200, { "cache-control": exactAddress ? "no-store" : "public, max-age=60" });
+};
 
 // chat: whether the website offers new chats (MSG-02, C3); with the cache, a change shows within 5 minutes.
 const config = async ({ request, env }) => json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY, chat: await chatOn(env, request) }, 200,

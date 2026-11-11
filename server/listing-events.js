@@ -6,20 +6,23 @@ const SOURCES = ['panel', 'queue', 'sales', 'media', 'recalculate'];
 const ACTIONS = ['created', 'updated', 'published', 'unpublished', 'archived', 'restored', 'confirmed',
   'availability_changed', 'featured_changed', 'cover_changed', 'recalculated', 'deleted', 'review_requested', 'review_returned'];
 const DERIVED = ['parish', 'feat_pets', 'feat_parking', 'feat_furnished', 'feat_outdoor', 'feat_type', 'feat_evidence'];
+const EXTRA_FIELDS = ['building_name_or_number', 'postcode', 'developer_name', 'public_address_publication'];
 
 // The row exists only within this batch. The triggers see the real OLD/NEW; cleanup goes
 // after any caller statements that consume changes() from the listing write.
-function contextStatement(env, id, { actor, source, action, derivedFields = [], related = {} }, only = '', args = []) {
+function contextStatement(env, id, { actor, source, action, derivedFields = [], related = {}, extraFields = [] }, only = '', args = []) {
   if (!/^HE-[A-Z]\d{3,}$/.test(id) || typeof actor !== 'string' || !actor.trim()
     || !SOURCES.includes(source) || !ACTIONS.includes(action)
     || !Array.isArray(derivedFields) || derivedFields.some(k => !DERIVED.includes(k))
+    || !Array.isArray(extraFields) || extraFields.some(k => !EXTRA_FIELDS.includes(k))
     || !related || typeof related !== 'object' || Array.isArray(related)
     || Object.entries(related).some(([k, v]) => !['offer_id', 'sale_id', 'import_id'].includes(k) || !Number.isSafeInteger(v) || v <= 0))
     fail(400, 'Invalid listing event context');
-  return env.DB.prepare(`INSERT INTO listing_event_context(listing_id,actor,source,action,at,derived_fields,related,previous_revision)
+  return env.DB.prepare(`INSERT INTO listing_event_context(listing_id,actor,source,action,at,derived_fields,related,previous_revision,extra_fields)
     SELECT ?,?,?,?,?,?,?,(SELECT COALESCE(MAX(CAST(json_extract(data,'$.revision') AS INTEGER)),0)
-      FROM events WHERE entity_type='listing' AND entity_id=?) ${only}`)
-    .bind(id, actor, source, action, now(), JSON.stringify(derivedFields), JSON.stringify(related), id, ...args);
+      FROM events WHERE entity_type='listing' AND entity_id=?),? ${only}`)
+    .bind(id, actor, source, action, now(), JSON.stringify(derivedFields), JSON.stringify(related), id,
+      JSON.stringify(extraFields), ...args);
 }
 
 export function listingEventStatements(env, id, context, statements) {

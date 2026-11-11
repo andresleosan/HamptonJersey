@@ -6,6 +6,8 @@ import { interestSql, interestDates } from "../viewings.js";
 import { listingBatch, derivedListingFields, listingClock } from "../listing-events.js";
 import {checkMarketingEdit,transitionEditorialListing,recordRentalMarketingState} from '../listing-editorial.js';
 import {readListingHistory,validateListingHistoryRows} from '../listing-history.js';
+import { changedListingDetails, listingDetailsUpdateStatement, publicAddressReviewStatement, readListingDetails, validateListingDetails } from '../listing-details.js';
+import { buildPublicAddressReview } from '../public-address.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -49,7 +51,7 @@ async function list({ request, env }) {
 async function detail({ env, params: [id] }) {
   const listing = await loadListing(env, id);
   const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
-  const [media, research, sources, facts, terms, issues, searches, matched, [interest], [queue]] = (await env.DB.batch([
+  const [media, research, sources, facts, terms, issues, searches, matched, [interest], [queue], [details]] = (await env.DB.batch([
     q("SELECT * FROM media WHERE listing_id = ? ORDER BY position, id", id),
     q("SELECT * FROM research_properties WHERE property_id = ?", id),
     q("SELECT * FROM research_sources WHERE property_id = ? ORDER BY source_id", id),
@@ -63,11 +65,17 @@ async function detail({ env, params: [id] }) {
        ORDER BY CASE m.status WHEN 'shortlisted' THEN 0 WHEN 'found' THEN 1 ELSE 2 END, m.score DESC, m.id`, id),
     interestStatement(env, id),
     q("SELECT id, status FROM drive_imports WHERE listing_id = ? AND status = 'review'", id),
+    q(`SELECT d.building_name_or_number,d.postcode,l.property_condition,d.developer_name,d.public_address_snapshot,
+        d.public_address_snapshot_hash,d.public_address_evidence_ref,d.public_address_reviewed_by,d.public_address_reviewed_at FROM listings l
+      LEFT JOIN listing_details d ON d.listing_id=l.id WHERE l.id=?`, id),
   ])).map(r => r.results);
   const group = research[0]?.duplicate_group;
   const duplicates = group ? (await q("SELECT property_id FROM research_properties WHERE duplicate_group = ? AND property_id <> ? ORDER BY property_id", group, id).all())
     .results.map(r => r.property_id) : [];
-  return json({ listing, media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates,
+  return json({ listing, details: Object.fromEntries(['building_name_or_number','postcode','property_condition','developer_name',
+      'public_address_snapshot','public_address_snapshot_hash','public_address_evidence_ref','public_address_reviewed_by','public_address_reviewed_at']
+      .map(key => [key, details?.[key] ?? null])),
+    media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates,
     matched_applicants: matched, active_interest: interest.n, queue: queue ?? null });
 }
 
@@ -120,29 +128,126 @@ export async function createListing(env, admin, body, context = {}) {
 async function update({ request, env, admin, params: [id] }) {
   const body = await readJson(request, LISTING_BYTES);
   if (typeof body?.updated_at !== "string") fail(400, "Missing updated_at: reload the listing");
+  if (Object.hasOwn(body, 'address_publication'))
+    return fieldErrors({ address_publication: 'Use the reviewed public snapshot step to publish an exact address' });
   const r = validateListing(body, { partial: true });
   if (r.errors) return fieldErrors(r.errors);
-  if (!Object.keys(r.value).length) fail(400, "Nothing to save");
+  const hasDetails = Object.hasOwn(body, 'details');
+  if (!Object.keys(r.value).length && !hasDetails) fail(400, "Nothing to save");
   const stored = await loadListing(env, id);
+  const storedDetails = await readListingDetails(env, id);
+  const nextCountry = Object.hasOwn(r.value, 'country') ? r.value.country : stored.country;
+  let candidate = storedDetails;
+  let detailValues = {};
+  if (hasDetails) {
+    const validated = validateListingDetails(body.details, { partial: true, country: nextCountry || null });
+    if (validated.errors) return fieldErrors(validated.errors);
+    candidate = { ...storedDetails, ...validated.value };
+    if (Object.hasOwn(validated.value, 'developer_name') && candidate.property_condition !== 'new_build'
+      && storedDetails.developer_name == null && candidate.developer_name != null)
+      return fieldErrors({ developer_name: 'Only applies to new builds' });
+    detailValues = changedListingDetails(storedDetails, candidate);
+  }
+  // A retained foreign code must also fit Jersey format when a listing changes to Jersey.
+  if (nextCountry === 'Jersey' && stored.country !== 'Jersey' && candidate.postcode != null) {
+    const postcode = validateListingDetails({ postcode: candidate.postcode }, { country: nextCountry });
+    if (postcode.errors) return fieldErrors(postcode.errors);
+  }
+  if (!Object.keys(r.value).length && !Object.keys(detailValues).length)
+    return json({ listing: stored, details: storedDetails });
   const merged = { ...stored, specs: JSON.stringify(stored.specs), ...r.value };
   const priceErrors = checkPrice(merged);
   Object.assign(priceErrors,checkMarketingEdit(stored,r.value));
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
   // The lock on updated_at also guarantees the features were read from the row this save replaces.
-  const ts = now(), patch = withFeatures(merged, r.value, ts);
+  const ts = now(), patch = Object.keys(r.value).length ? withFeatures(merged, r.value, ts) : {};
+  if (Object.hasOwn(detailValues, 'property_condition')) patch.property_condition = detailValues.property_condition;
   // ADM-04 (T2): a new availability or price means the owner was spoken to. The editor sends every field on each save.
   if (["availability", "sale_price", "rent", "premium"].some(k => k in r.value && r.value[k] !== stored[k])) patch.confirmed_at = ts;
   const cols = Object.keys(patch);
+  const detailStatement = listingDetailsUpdateStatement(env, id, detailValues);
   const [res] = await listingBatch(env, id, { actor: admin, source: 'panel', action: 'updated',
-    derivedFields: derivedListingFields(patch).filter(k => !(k in r.value)) }, [env.DB.prepare(
-    `UPDATE listings SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ${listingClock}, updated_by = ? WHERE id = ? AND updated_at = ?`)
-    .bind(...cols.map(c => patch[c]), ts, admin, id, body.updated_at)]);
+    derivedFields: derivedListingFields(patch).filter(k => !(k in r.value)),
+    extraFields: Object.keys(detailValues).filter(k => k !== 'property_condition') }, [env.DB.prepare(
+    `UPDATE listings SET ${[...cols.map(c => `${c} = ?`), `updated_at = ${listingClock}`, 'updated_by = ?'].join(", ")} WHERE id = ? AND updated_at = ?`)
+    .bind(...cols.map(c => patch[c]), ts, admin, id, body.updated_at), ...(detailStatement ? [detailStatement] : [])]);
   if (!res.meta.changes) {
     await loadListing(env, id); // 404 if it no longer exists
     fail(409, "Someone else saved changes to this listing. Reload to see them (your changes were not saved).");
   }
-  await afterSave(recomputeForListing, env, id, admin);
-  return json({ listing: await loadListing(env, id) });
+  if (Object.keys(r.value).length) await afterSave(recomputeForListing, env, id, admin);
+  return json({ listing: await loadListing(env, id), details: await readListingDetails(env, id) });
+}
+
+async function loadPublicAddressReview(env, id) {
+  const listing = await loadListing(env, id), details = await readListingDetails(env, id);
+  const media = (await env.DB.prepare('SELECT * FROM media WHERE listing_id=? ORDER BY position,id').bind(id).all()).results;
+  const folder = listing.drive_folder_id == null ? null : await env.DB.prepare(`SELECT folder_name FROM drive_imports
+    WHERE folder_id=? ORDER BY id DESC LIMIT 1`).bind(listing.drive_folder_id).first();
+  return { listing, details, media, folderName: folder?.folder_name ?? null };
+}
+
+async function addressReviewPreview({ env, params: [id] }) {
+  const { listing, details, media, folderName } = await loadPublicAddressReview(env, id);
+  if (listing.published !== 1 || listing.archived_at) fail(409, 'Publish this listing before reviewing an exact address');
+  const review = await buildPublicAddressReview(listing, details, media, folderName, env.SITE_URL || 'https://hampton.test');
+  if (Object.keys(review.errors).length) return fieldErrors(review.errors);
+  if (!review.preview.listing.image) return fieldErrors({ public_photo: 'Add a public photo before reviewing an exact address' });
+  const currentReviewValid = details.public_address_snapshot === review.address
+    && details.public_address_snapshot_hash === review.public_snapshot_hash;
+  return json({ expected_at: listing.updated_at, public_snapshot_hash: review.public_snapshot_hash, preview: review.preview,
+    existing_review: details.public_address_snapshot ? { snapshot: details.public_address_snapshot,
+      valid_for_current_content: currentReviewValid, evidence_ref: details.public_address_evidence_ref,
+      reviewed_by: details.public_address_reviewed_by, reviewed_at: details.public_address_reviewed_at } : null },
+  200, { 'cache-control': 'private, no-store' });
+}
+
+async function reviewPublicAddress({ request, env, admin, params: [id] }) {
+  const body = await readJson(request, 32768);
+  if (body?.action === 'revoke') {
+    if (typeof body.expected_at !== 'string') fail(400, 'Send expected_at from the current preview');
+    const current = await loadListing(env, id), details = await readListingDetails(env, id);
+    if (current.updated_at !== body.expected_at) fail(409, 'The listing changed. Reload and review the current content.');
+    if (!details.public_address_snapshot) return json({ listing: current, details });
+    const at = now();
+    const [res] = await listingBatch(env, id, { actor: admin, source: 'panel', action: 'updated',
+      extraFields: ['public_address_publication'] }, [
+      env.DB.prepare(`UPDATE listings SET updated_at=${listingClock},updated_by=? WHERE id=? AND updated_at=?`)
+        .bind(at, admin, id, body.expected_at),
+      publicAddressReviewStatement(env, id),
+    ]);
+    if (!res.meta.changes) fail(409, 'The listing changed. Reload before removing its public address.');
+    return json({ listing: await loadListing(env, id), details: await readListingDetails(env, id) }, 200,
+      { 'cache-control': 'private, no-store' });
+  }
+  if (body?.action !== undefined && body.action !== 'authorize')
+    return fieldErrors({ action: 'Choose authorize or revoke' });
+  if (typeof body?.expected_at !== 'string' || !/^[a-f0-9]{64}$/.test(body?.public_snapshot_hash ?? ''))
+    return fieldErrors({ public_snapshot_hash: 'Review the current public preview before authorizing it' });
+  if (body.address_publication_authorized !== true)
+    return fieldErrors({ address_publication_authorized: 'Confirm the owner agreed and you reviewed the public preview' });
+  const evidenceRef = typeof body.evidence_ref === 'string' ? body.evidence_ref.trim() : '';
+  if (!/^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}$/.test(evidenceRef))
+    return fieldErrors({ evidence_ref: 'Enter a reference ID only, without names or contact details' });
+  const { listing, details, media, folderName } = await loadPublicAddressReview(env, id);
+  if (listing.updated_at !== body.expected_at) fail(409, 'The listing changed. Review the current public content again.');
+  if (listing.published !== 1 || listing.archived_at) fail(409, 'Publish this listing before reviewing an exact address');
+  const review = await buildPublicAddressReview(listing, details, media, folderName, env.SITE_URL || 'https://hampton.test');
+  if (Object.keys(review.errors).length) return fieldErrors(review.errors);
+  if (!review.preview.listing.image) return fieldErrors({ public_photo: 'Add a public photo before reviewing an exact address' });
+  if (review.public_snapshot_hash !== body.public_snapshot_hash)
+    fail(409, 'The public content changed. Review the current preview again.');
+  const at = now();
+  const [res] = await listingBatch(env, id, { actor: admin, source: 'panel', action: 'updated',
+    extraFields: ['public_address_publication'] }, [
+    env.DB.prepare(`UPDATE listings SET updated_at=${listingClock},updated_by=?
+      WHERE id=? AND updated_at=? AND published=1 AND archived_at IS NULL`).bind(at, admin, id, body.expected_at),
+    publicAddressReviewStatement(env, id, { snapshot: review.address, hash: review.public_snapshot_hash,
+      evidenceRef, actor: admin, at }),
+  ]);
+  if (!res.meta.changes) fail(409, 'The listing changed. Review the current public content again.');
+  return json({ listing: await loadListing(env, id), details: await readListingDetails(env, id) }, 200,
+    { 'cache-control': 'private, no-store' });
 }
 
 // The editor's Offers block (F3-C): how many offers are open, the sale in progress if any, and every offer, newest first.
@@ -191,6 +296,8 @@ export async function setState({ request, env, admin, params: [id, action], from
     OR EXISTS (SELECT 1 FROM sales WHERE listing_id = ? AND status = 'in_progress'))`;
   if (archive && (await env.DB.prepare(`SELECT ${BUSY} AS busy`).bind(id, id).first()).busy) fail(409, busy);
   const ts = now();
+  const clearPublicAddressSnapshot = ['unpublish', 'archive'].includes(action)
+    && !!(await readListingDetails(env, id)).public_address_snapshot;
   // Archived (sold, withdrawn) is no longer offered; restoring leaves the offer off, for the editor's switch (B9).
   // ADM-04 (T2): publishing confirms the listing is on the market.
   // PUB-22: published_at only moves when the listing was hidden (the CASE reads the row before this UPDATE).
@@ -202,11 +309,12 @@ export async function setState({ request, env, admin, params: [id, action], from
   // Another request may archive/restore after loadListing. Repeat that eligibility in the write.
   const stateGuard = action === 'restore' ? ' AND archived_at IS NOT NULL'
     : ['archive', 'publish'].includes(action) ? ' AND archived_at IS NULL' : '';
+  const statements = [env.DB.prepare(`UPDATE listings SET ${cols.map(set).join(", ")}, updated_at = ${listingClock}, updated_by = ?
+      WHERE id = ? AND updated_at=?${stateGuard}${archive ? ` AND NOT ${BUSY}` : ""}`).bind(...cols.map(c => patch[c]), ts, admin, id, version, ...(archive ? [id, id] : []))];
+  if (clearPublicAddressSnapshot) statements.push(publicAddressReviewStatement(env, id));
   const [res] = await listingBatch(env, id, { actor: admin, source: fromQueue ? 'queue' : 'panel', related,
-    action: { publish: 'published', unpublish: 'unpublished', archive: 'archived', restore: 'restored' }[action] }, [
-    env.DB.prepare(`UPDATE listings SET ${cols.map(set).join(", ")}, updated_at = ${listingClock}, updated_by = ?
-      WHERE id = ? AND updated_at=?${stateGuard}${archive ? ` AND NOT ${BUSY}` : ""}`).bind(...cols.map(c => patch[c]), ts, admin, id, version, ...(archive ? [id, id] : [])),
-  ]);
+    extraFields: clearPublicAddressSnapshot ? ['public_address_publication'] : [],
+    action: { publish: 'published', unpublish: 'unpublished', archive: 'archived', restore: 'restored' }[action] }, statements);
   if (!res.meta.changes) {
     const current = await loadListing(env, id);
     if (archive && !current.archived_at) fail(409, busy);
@@ -214,7 +322,7 @@ export async function setState({ request, env, admin, params: [id, action], from
   }
   // Publishing also counts: being on the website adds to the score.
   await afterSave(recomputeForListing, env, id, admin);
-  return json({ listing: await loadListing(env, id) });
+  return json({ listing: await loadListing(env, id), details: await readListingDetails(env, id) });
 }
 
 // ADM-04: Still available, after a call to the owner. Like the star, not a content edit: updated_at is
@@ -260,6 +368,8 @@ export default [
     json(await validateListingHistoryRows(env,{id,ids:(await readJson(request,262144))?.ids})),true],
   ["GET", /^\/admin\/listings$/, list, true],
   ["POST", /^\/admin\/listings$/, create, true],
+  ["GET", new RegExp(`^/admin/listings/${ID}/address-review$`), addressReviewPreview, true],
+  ["POST", new RegExp(`^/admin/listings/${ID}/address-review$`), reviewPublicAddress, true],
   ["GET", new RegExp(`^/admin/listings/${ID}$`), detail, true],
   ["GET", new RegExp(`^/admin/listings/${ID}/offers$`), offers, true],
   ["PUT", new RegExp(`^/admin/listings/${ID}$`), update, true],

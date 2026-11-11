@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, seedMedia, call, adminCookie, ORIGIN, captured, plan } from "./helpers.mjs";
+import { makeEnv, seedListing, seedMedia, call, adminCookie, ORIGIN, captured, plan, T0 } from "./helpers.mjs";
 import { serveMedia } from "../../server/media.js";
 import { jerseyToday, EMAIL, addMinutes, plusDays } from "../../server/viewings.js";
 import { verifyTurnstile } from "../../server/turnstile.js";
@@ -42,6 +42,21 @@ test("GET /listings: only published, not archived, public shape, cached 60s", as
   assert.equal(r.headers.get("cache-control"), "public, max-age=60");
   assert.deepEqual(r.data.map(p => p.id), ["HE-R001"]);
   assert.deepEqual(r.data[0].photos.map(p => p.src), ["/media/A00001"]);
+});
+
+test("GET /listings: an address snapshot without a matching review remains private", async () => {
+  const env = world();
+  env.DB.raw.prepare(`INSERT INTO listing_details (listing_id,building_name_or_number,postcode,public_address_snapshot,
+      public_address_snapshot_hash,public_address_evidence_ref,public_address_reviewed_by,public_address_reviewed_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run("HE-R001", "Fixture House", "JE2 3AB", "Fixture House, High Street, St Saviour, JE2 3AB, Jersey",
+      "0".repeat(64), "fixture-review-1", "admin@example.test", T0);
+  const r = await call(env, "GET", "/listings");
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get("cache-control"), "public, max-age=60");
+  assert.equal("exactAddress" in r.data[0], false);
+  assert.equal("building_name_or_number" in r.data[0], false);
+  assert.equal("postcode" in r.data[0], false);
 });
 
 test("GET /listings: interest is the panel's count from 2 people, null below, with no personal data", async () => {

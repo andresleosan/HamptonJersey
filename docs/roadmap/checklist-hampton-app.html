@@ -4192,15 +4192,20 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "En listings y en Details del editor: referencia HE-R, HE-C o HE-I automática, Use, Operation (venta, alquiler o traspaso de negocio), Availability, Country, Location (texto libre), Road y Parish.",
-   "falta": "Faltan código postal JE, dirección completa (número o nombre de la casa), estado del inmueble (obra nueva, segunda mano, a reformar) y promotor si es obra nueva. Replanteado para Jersey (§5.10), no falta: ciudad y zona o barrio pasan a la parroquia.",
+   "hecho": "En listings y Details: referencia HE-R/HE-C/HE-I, Use, Operation, Availability, Country, Location, Road y Parish. Localmente, `listing_details` añade edificio/unidad, postcode y promotor; `property_condition` se comparte con PUB-05. La dirección exacta puede publicarse por ficha tras preview completo, aceptación explícita y referencia de evidencia. Hash/CAS invalidan cambios; título de carpeta Drive forma parte de la revisión, sin renombrado automático; textos que ya revelan edificio y calle quedan ocultos hasta revisión.",
+   "falta": "Aplicar y verificar 0040, integrar en main y comprobar el despliegue autorizado. El E2E con navegador requiere Playwright disponible. Ninguna ficha existente tiene aprobación automática. Replanteado para Jersey (§5.10), no falta: ciudad y zona o barrio pasan a la parroquia.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/ListingEditor.jsx:165-189",
     "server/listing.js:4-21",
     "server/listing.js:77-82",
     "migrations/0001_init.sql:1-8",
-    "migrations/0009_matches.sql:1-3"
+    "migrations/0009_matches.sql:1-3",
+    "server/listing-details.js",
+    "migrations/0040_listing_address_details.sql",
+    "admin/src/ListingEditor.jsx",
+    "tests/server/listing-address.test.mjs",
+    "docs/superpowers/plans/2026-11-11-pub-04-internal-details-ledger.md"
    ]
   },
   {

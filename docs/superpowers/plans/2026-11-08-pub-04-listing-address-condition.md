@@ -2,12 +2,14 @@
 
 > Reconciliación TP-05 · 10-nov-2026: alcance, decisiones y dependencias vigentes en [índice consolidado](2026-11-10-tp05-construction-index.md) y [maestro](../../roadmap/2026-11-10-plan-maestro-vigente.md). Este plan no acredita construcción, publicación o activación.
 
+> **Revalidación · 11-nov-2026:** sobre `main` `37d0287a67d9776f050400bab595bd681ee43b39`, Luis autorizó publicar dirección exacta solo tras revisión explícita por ficha: consentimiento del propietario, referencia de evidencia y preview completo. El hash cubre DTO público, title/summary/description/media alt, SEO/JSON-LD y título actual de carpeta Drive; cualquier cambio requiere revisión nueva. Después autorizó push, unión a `main` y publicación en producción. La migración `0040` es necesaria antes de activar el código; el estado de ejecución se debe verificar. `property_condition` sigue compartido con PUB-05. Evidencia en [ledger](2026-11-11-pub-04-internal-details-ledger.md).
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans task-by-task solo tras encargo de construcción y decisiones de producto resueltas. Steps use checkbox (`- [ ]`) syntax. Esta entrega no ejecuta el plan.
 
-**Goal:** Completar dirección/JE/estado/promotor con visibilidad pública explícita.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans task-by-task. La decisión posterior del 11-nov permite publicación exacta solo con revisión por ficha y autoriza integrar en `main`. Steps use checkbox (`- [ ]`) syntax.
 
-**Architecture:** own-publication-completion conserva servicios existentes; límites y alternativas están en el diseño propietario. La tarea produce un módulo/continuidad/evidencia concreta según preparación, sin simular dependencias ausentes.
+**Goal:** Completar los datos internos de identificación y mantenerlos separados de los campos que ya son públicos.
+
+**Architecture:** `property_condition` vive en `listings` como campo único compartido con PUB-05, para conservar sus valores enum en el historial existente. Inmueble/unidad, código postal y promotor viven en una extensión `listing_details`. La ruta admin aplica validación y CAS de `listings.updated_at` en el mismo batch de historia. La proyección pública sigue usando su whitelist actual.
 
 **Tech Stack:** JavaScript/React/Workers/D1 y almacenamiento existente, node:test/D1 local. Gestión/activación solo documentación y evidencia cuando no requiere código. Sin dependencias nuevas por defecto.
 
@@ -15,11 +17,11 @@
 
 **Dependencies:** PUB-01 consume; BUS-10 identifica propio/externo; EST-18 versiona.
 
-**Readiness:** defined. Integrar dependencias y acreditar los criterios del alcance; activación externa se verifica aparte. Decisiones pendientes: ninguna propia; respetar gates externos y decisiones transversales abiertas.
+**Readiness:** datos internos, editor y revisión de dirección exacta construidos y revisados localmente. La integración y activación se ejecutan con la autorización posterior de Luis y requieren comprobar `0040` y el despliegue real.
 
 ## Global Constraints
 
-- Solo planificación. No construcción, reservas, migración, proveedor, campaña, WAF, DNS, cuenta o envío activos por crear estos documentos. Otra sesión revisa alcance/main/dependencias y obtiene reserva build. Elegir ordinal libre y no rehacer tablas o funciones existentes.
+- La regla original de solo planificación quedó superada por la construcción, push e integración autorizados el 11-nov. La activación usa `0040`; no implica cambios de proveedor, campaña, WAF, DNS, cuenta o envíos. No rehacer tablas o funciones existentes.
 - Maestro vigente: mascotas no negociables/parking flexible salvo MUST; match/consulta/presentación y cierre humanos; enlace privado hasta revocación; disponibilidad general hasta información nueva; barrido01:00; visitas30/15/+15/8; purga6meses solo fotos. No informes a propietarios, Meta/WhatsApp/Places-Properties/local actuales. IA central solo por vía/purpose/acuerdos autorizados; C3 nunca Hermes/Pro/Telegram. Hermes gestiona acuerdos sin nuevas órdenes o búsqueda de contratos.
 - Mantener listings/media/drive_imports/events/notifications/Insights existentes. No segundo inventario, motor, Inbox, reloj o cola. published_at/SEO/rango REG-08/servicios correo ya existen. Copias ajenas/env/secrets/bases privadas no se abren o copian; datos de pruebas sintéticos.
 - DESIGN.md paleta verificada y CSS: ink#151515/paper#ffffff/mist#f4f3f0/line#e3e0da/stone#6b665e/bronze#a56b3d foco-decoración/bronze-dk#86542d texto pequeño/ok#2f6b4f/err#a32020/warn#fff6e5/field-line#8f8a82. Tenor26/19px400, Montserrat14px/1.5 label12; wrap1240/página24px16px120px/card24/r14/inputr10/botón10px20px-r999/gaps8/12/16/24; reflujo760 e Inbox820. Web15/1.65,input16,field13x14/r12,botón13x28.
@@ -37,33 +39,37 @@
 
 ## Tarea 1 · Extensión tipada de identificación
 
-**Files:** Create server/listing-details.js y migración listing_details; Modify server/listing.js; Test tests/server/listing-address.test.mjs.
+**Files:** Create server/listing-details.js y migration `0040_listing_address_details.sql`; modify server/routes/listings.js y server/listing-events.js; test tests/server/listing-address.test.mjs.
 
-**Interfaces:** readListingDetails(env,id); saveListingDetails(env,{listing_id,expected_at,section:address,patch},actor).
+**Interfaces:** readListingDetails(env,id); validateListingDetails(input,{partial,country}); PUT admin con `details` parcial, CAS `updated_at` y escritura de extensión en el mismo batch.
 
-- [ ] Escribir/ajustar pruebas con aserciones de estos casos: JE_structure_by_country; international_not_forced_JE; developer_only_new_build; unknown_not_resale; existing_ref_stable; cubrir scope equivocado y revocación durante acción en el dueño de la ruta.
-- [ ] Ejecutar `node --test tests/server/listing-address.test.mjs` y verificar fallo por comportamiento ausente, o evidencia actual si es continuidad; no fabricar RED de una función ya construida.
-- [ ] Una extensión por listing, CAS listings.updated_at y revisión por cambio efectivo. No duplicar road/parish/country ni guardar dirección personal de propietario como dirección de la casa.
-- [ ] Ejecutar `node --test tests/server/listing-address.test.mjs` hasta PASS y regresiones de servicios afectados. Fixture de proveedor no acredita cuenta/permiso/envío/control activo.
+- [x] Escribir pruebas de formato Jersey/extranjero, condición unknown/existing, retención de promotor, CAS, fallo atómico, y restricción a lectura admin.
+- [x] Ejecutar RED inicial: seis pruebas fallaron por comportamiento ausente antes de implementar.
+- [x] Una extensión por listing para textos de dirección; `property_condition` único en `listings`; CAS `updated_at`, revisión por cambio efectivo y sin cambio de `confirmed_at` o matching. No duplicar road/parish/country ni guardar dirección personal de propietario.
+- [x] `node --test tests/server/listing-address.test.mjs` PASS 11/11; junto con History y Events, PASS 59/59. Incluye carrera con `updated_at` adelantado y restricción del promotor a obra nueva.
 - [ ] Revisar diff/evidencia de unidad y guardar archivos concretos con mensaje inglés cuando se construya; no gitaddgeneral/relevo/secretos.
 
 ## Tarea 2 · DTO público mínimo y editor
 
-**Files:** Modify server/routes/listings.js, server/listing.js, admin/src/ListingEditor.jsx; Test tests/listing-address-ui.test.js.
+**Files:** Modify server/routes/listings.js, server/listing-events.js, server/listing-history.js, admin/src/ListingEditor.jsx and admin/src/ListingHistory.jsx; test tests/server/listing-address.test.mjs and tests/listing-address.e2e.cjs.
 
-**Interfaces:** Address full interno por defecto; checkbox de publicación exacta requiere revisión/evidencia, Location vigente conserva regla.
+**Interfaces:** Dirección completa interna por defecto. La publicación requiere revisión por ficha del snapshot completo, aceptación explícita y referencia de evidencia; `Location` conserva su regla vigente.
 
-- [ ] Escribir/ajustar pruebas con aserciones de estos casos: full_address_private_default; explicit_public_choice; stale_keeps_draft; postcode_error_focus; no_geocoder_fetch; cubrir scope equivocado y revocación durante acción en el dueño de la ruta.
-- [ ] Ejecutar `node --test tests/listing-address-ui.test.js` y verificar fallo por comportamiento ausente, o evidencia actual si es continuidad; no fabricar RED de una función ya construida.
-- [ ] Añadir campos al paso/editor, con errores servidor y texto escapado. No publicar dirección completa por crear nuevo dato; no mapa tercero automático.
-- [ ] Ejecutar `node --test tests/listing-address-ui.test.js` hasta PASS y regresiones de servicios afectados. Fixture de proveedor no acredita cuenta/permiso/envío/control activo.
+La API de dirección pública solo añade `exactAddress` cuando coincide el snapshot autorizado con el contenido actual. Si el edificio y la calle ya aparecen juntos en texto público sin autorización vigente, la ficha pública se oculta. El editor permite previsualizar DTO/SEO/JSON-LD y el nombre de la carpeta Drive antes de autorizar. No renombra carpetas ni migra datos remotos.
+
+- [x] Pruebas cubren dirección privada por defecto, consentimiento/ref, snapshot obsoleto, título que contiene dirección, metadata/OG/JSON-LD y cambio de nombre Drive.
+- [x] API GET/POST admin para preview, autorización y revocación con CAS; cambios de contenido invalidan el hash y no se actualiza carpeta Drive automáticamente.
+- [x] Editor con preview completo y autorización deliberada; los campos internos mantienen Guardar/Descartar y enlace manual a Jersey Post.
+- [x] Las pruebas focales pasan; el E2E queda escrito y con sintaxis validada, sin navegador Playwright disponible.
+- [x] Decisión humana: publicación permitida por ficha tras revisión explícita. Una orden posterior autorizó integrar en `main` y publicar en producción.
 - [ ] Revisar diff/evidencia de unidad y guardar archivos concretos con mensaje inglés cuando se construya; no gitaddgeneral/relevo/secretos.
 
 ## Cierre futuro
 
 - [ ] Resolver las decisiones humanas que afectan la tarea y actualizar spec/plan/readiness antes de construir ese tramo. Una investigación/gestión/activación no se declara código completo por estar planificada.
-- [ ] Si hay código, npm test, npm run build y npm run check:release más regresiones focales. UI modificada: e2e y Playwright1280/390 con vacío/error/conflicto/teclado/foco/zoom200/consola/red; documentos puros no requieren producto artificial.
-- [ ] Evidencia separado construido/integrado/verificado/activado, ledger de tarea y checklist/ESTADO al construir; revisión independiente futura y publicación/activación bajo autorización real de esa sesión. Nada ejecutado en estas casillas.
+- [x] `npm run build`, `npm run check:release`, 14 pruebas Python y regresiones focales de servidor PASS. `npm test` reportó 1.142/1.148 PASS; seis pruebas UI no arrancaron por dependencia local ausente `jsdom`.
+- [ ] E2E/Playwright a 1280/390, foco/teclado/zoom200 y revisión visual: bloqueados en este entorno por ausencia local de `playwright-core`; el navegador conectado rechazó el arranque con sandbox como root. No se desactivó el sandbox.
+- [x] Actualizados ledger de ejecución, checklist y ESTADO con diferencias entre el checkpoint local, la integración y la activación por verificar.
 
 
-**Snapshot público en tarea2:** `reviewPublicSnapshot(env,{listing_id,expected_at,public_snapshot_hash,address_publication_authorized,evidence_ref},actor)` valida revisión del contenido público completo (title/summary/description/alt/OG/JSON-LD/previews/Drive). No cambiar título de carpeta automáticamente: el empleado autoriza dirección o corrige contenido. Cambios invalidan esa autorización; legacy sin despublicación masiva. Casos address_in_title_not_bypass, OG_same_authorized_snapshot, drive_folder_address_review y changed_address_requires_review.
+**Snapshot público:** implementado con revisión hashada por ficha. Ninguna ficha existente se autorizó automáticamente; las carpetas Drive no se renombraron. En el checkpoint previo al despliegue, `0040` era la única migración pendiente y se comprobó un punto de recuperación D1. La publicación y su resultado deben verificarse por separado de esta preparación.
