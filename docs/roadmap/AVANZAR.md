@@ -83,6 +83,8 @@ Antes de pedir intervención humana, contrasta la matriz de aceptación con la e
 
 ## Alternativa de navegador aislado
 
+Guía de requisitos, comandos y límites: [Pruebas de WebKit aislado](../PRUEBAS-WEBKIT.md).
+
 Si Playwright MCP no puede arrancar, `E2E_PRODUCTION_READONLY=0 npm run test:e2e:isolated` ejecuta los recorridos disponibles con Playwright y WebKit real en un contenedor temporal sin red, con fixtures locales. Para el recorrido de zonas y mascotas, usar `E2E_PRODUCTION_READONLY=0 E2E_SCRIPT=tests/reg06-area-e2e.cjs npm run test:e2e:isolated`. La asignación explícita de la variable evita heredar el modo de producción de otra ejecución. La ejecución debe cubrir los estados y dispositivos aplicables, conservar capturas y registrar el resultado. La suite general no vigila de forma completa los fallos de red: añade esa comprobación al recorrido afectado. El fixture aislado sustituye Turnstile, usa un certificado local, emula el portapapeles y no carga fuentes externas: no acredita esos servicios ni la producción. Si falta comprobar algún criterio, permanece pendiente.
 
 ## E2E local reproducible

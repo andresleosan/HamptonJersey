@@ -2,6 +2,8 @@
 
 Actualizado el 11-nov-2026.
 
+11-nov-2026 · **PRE-11: implementación local revisada, sin publicar.** Tours solo tras elección en portada y ficha; WebKit aislado validó zoom nativo y las fases public/urls y admin/reg17 por separado. Suite 1.188 JS + 14 Python y build aprobados. La prueba de galería también reproduce un aviso de ResizeObserver en main sin este cambio; queda separado. PRE-11 sigue parcial hasta integración, publicación y verificación. [Registro](../superpowers/plans/2026-11-08-l1-tour-privacy-ledger.md).
+
 11-nov-2026 · **PUB-12: construido localmente, sin integrar ni publicar.** El editor calcula porcentaje y faltantes desde los mismos criterios, usando cambios actuales y fotos guardadas elegibles; dormitorio cero y precio privado cuentan. Una política pura expresa los mínimos acordados (título, operación y una foto elegible); aún no modifica las rutas Publish ni Queue: esa integración corresponde a PUB-02. Pruebas focales 6/6 y navegador aislado 1280/390, foco, conflicto y zoom CSS 200 % aprobados; build y check:release aprobados. La suite general y los controles de catálogo constan en el [ledger](../superpowers/plans/2026-11-11-pub-12-build-ledger.md). Sin migración ni cambios en producción.
 
 Siguiente paso Codex: verificar PUB-04 en un navegador autorizado y ejecutar el E2E pendiente.

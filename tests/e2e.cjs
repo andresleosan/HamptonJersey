@@ -22,8 +22,24 @@ const shot = (page, name, o) => SHOTS && page.screenshot({path: `${SHOTS}/${name
 const secret = readFileSync(process.env.E2E_VARS || ".dev.vars", "utf8").match(/^SESSION_SECRET=(.+)$/m)[1].trim();
 const d1 = sql => execFileSync("npx", ["wrangler", "d1", "execute", "hampton", "--local", "--persist-to", process.env.E2E_PERSIST || process.env.E2E_STATE || ".wrangler/e2e", "--json", "--command", sql], {encoding: "utf8"});
 
+async function clickWhenStill(page, target) {
+  await target.scrollIntoViewIfNeeded();
+  await page.evaluate(() => new Promise((resolve, reject) => {
+    let previous = scrollY, stable = 0, frames = 0;
+    const tick = () => { const current=scrollY; stable=Math.abs(current-previous)<0.5 ? stable+1 : 0; previous=current;
+      if (stable>=12) return resolve(); if (++frames>=240) return reject(new Error('Page scrolling did not settle'));
+      requestAnimationFrame(tick);
+    }; requestAnimationFrame(tick);
+  }));
+  await target.click();
+}
+
 async function newPage(ctx, viewport) {
   const page = await ctx.newPage();
+  // The network-isolated fixture serves local requests and intercepts third-party providers.
+  if (process.env.E2E_OFFLINE_TURNSTILE === "1") await page.addInitScript(() => {
+    Object.defineProperty(navigator, "onLine", {value: true, configurable: true});
+  });
   await page.setViewportSize(viewport);
   page.errors = [];
   page.on("pageerror", e => page.errors.push(e.message));
@@ -124,13 +140,23 @@ async function publicSite(browser) {
   await page.waitForFunction(() => scrollY > 0);
   await page.$eval(".hero-track", t => { t.scrollLeft = 0; });
   await page.waitForFunction(() => document.querySelector("#hero-count").textContent === "1 of 5");
+  await page.evaluate(() => new Promise((resolve, reject) => {
+    const track = document.querySelector('.hero-track'); let previous = track.scrollLeft, stable = 0, frames = 0;
+    const tick = () => { const current = track.scrollLeft; stable = Math.abs(current-previous)<0.5 ? stable+1 : 0; previous=current;
+      if (stable >= 12) return resolve(); if (++frames >= 240) return reject(new Error('Hero scrolling did not settle'));
+      requestAnimationFrame(tick);
+    }; requestAnimationFrame(tick);
+  }));
   await page.click('.slide:first-child [data-book]');
+  await page.waitForFunction(() => document.querySelector('#book-slot select[name=prop]')?.value === 'HE-R001');
   assert.equal(await page.inputValue("#book-slot select[name=prop]"), "HE-R001", "slide booking preselects it");
-  // 3D tour beside the booking form: a poster until the visitor reaches it, then it plays by itself with wheel zoom off.
-  assert.equal(await page.$("#tour3d iframe"), null, "the tour does not load before it is reached");
-  await page.$eval("#tour3d", el => el.scrollIntoView({block: "center"}));
+  // The external tour waits for the visitor, including when it is scrolled into view.
+  assert.equal(await page.$("#tour3d iframe"), null);
+  await page.$eval("#tour3d", el => el.scrollIntoView({block: "center", behavior: "instant"}));
+  assert.equal(await page.$("#tour3d iframe"), null);
+  await clickWhenStill(page, page.getByRole('button', {name: 'Load Matterport tour'}));
   await page.waitForSelector("#tour3d iframe");
-  assert.match(await page.getAttribute("#tour3d iframe", "src"), /my\.matterport\.com\/show\/\?m=JGPnGQ6hosj.*play=1.*wh=0/);
+  assert.match(await page.getAttribute("#tour3d iframe", "src"), /my\.matterport\.com\/show\/\?m=JGPnGQ6hosj/);
   await shot(page, "home-tour");
 
   // I3: opening a listing counts a view; the counter answers 204 whether it counts or not.
@@ -159,10 +185,9 @@ async function publicSite(browser) {
   await page.waitForFunction(() => document.querySelector("#stage-note").textContent.includes("Photo 2 of 2"));
   assert.match(await page.textContent("#stage-note"), /Photo 2 of 2/);
   await page.click("#tab-tour");
-  if (process.env.E2E_OFFLINE_TURNSTILE === "1" && !(await page.locator("#stage iframe").count())) {
-    assert.match(await page.locator("#stage [role=alert]").textContent(), /offline|webgl/i);
-    assert.match(await page.getAttribute("#stage [role=alert] a", "href"), /my\.matterport\.com\/show\/\?m=TEST/);
-  } else assert.match(await page.getAttribute("#stage iframe", "src"), /my\.matterport\.com\/show\/\?m=TEST/);
+  assert.equal(await page.locator("#stage iframe").count(), 0);
+  await page.getByRole("button", {name: "Load Matterport tour"}).click();
+  assert.match(await page.getAttribute("#stage iframe", "src"), /my\.matterport\.com\/show\/\?m=TEST/);
   await page.click("#tab-aerial");
   assert.match(await page.getAttribute("#stage [aria-current=true] img, #stage > img", "src"), /A00003/);
   assert.match(await page.textContent(".detail"), /Property details[\s\S]*Oil-fired[\s\S]*Floor plans/);
@@ -217,10 +242,14 @@ async function publicSite(browser) {
   assert.equal(await page.inputValue("#detail-slot input[name=name]"), "Jane Le Brocq");
   assert.equal(await page.getAttribute(`#detail-slot [name=time][value="${first.time}"]`, "aria-label"), `${first.time}, booked`);
   assert.equal((await chosen()).time, null);
-  await page.click("#detail-slot [name=time]:not(:disabled) + span");
+  const nextTime = page.locator('#detail-slot [name=time]:not(:disabled) + span').first();
+  await clickWhenStill(page, nextTime);
   const second = await chosen();
+  assert.ok(second.time, 'a second available time must be selected before submission');
   await token();
+  const secondResponse = page.waitForResponse(r => r.url().endsWith('/api/viewings') && r.request().method() === 'POST');
   await page.click("#detail-slot button[type=submit]");
+  assert.equal((await secondResponse).status(), 201, 'second available time is accepted');
   await page.waitForSelector("#detail-slot .confirm");
   assert.match(await page.textContent("#detail-slot .confirm"), /Request received[\s\S]*Joshua Franco will contact you[\s\S]*Trinity rental/);
   assert.deepEqual(JSON.parse(d1("SELECT listing_id, negotiator_id, date, time FROM viewing_requests WHERE name = 'Jane Le Brocq'"))[0].results,
@@ -639,9 +668,11 @@ async function admin(browser) {
   await shot(page, "admin-tours");
   [hc, home] = await fresh();
   await home.waitForSelector("#tour3d");
-  await home.$eval("#tour3d", el => el.scrollIntoView({block: "center"}));
+  await home.$eval("#tour3d", el => el.scrollIntoView({block: "center", behavior: "instant"}));
+  assert.equal(await home.locator("#tour3d iframe").count(), 0);
+  await clickWhenStill(home, home.getByRole("button", {name: "Load YouTube tour"}));
   await home.waitForSelector("#tour3d iframe");
-  assert.match(await home.getAttribute("#tour3d iframe", "src"), /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ\?autoplay=1&mute=1/, "home shows only the visible tour");
+  assert.match(await home.getAttribute("#tour3d iframe", "src"), /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/, "home shows only the visible tour");
   await hc.close();
   // F7-A Insights. The seed's website opens are a day and forty days old and this run's are today's, so 30 days holds
   // the first and the last, 90 days all of them (the -20 days bound keeps clear of the UTC/Jersey date edge).
@@ -989,6 +1020,8 @@ async function webChatRecovers(page) {
   const vctx = await page.context().browser().newContext();
   const visitor = await newPage(vctx, {width: 390, height: 844});
   await visitor.goto(BASE);
+  // Finish the independent availability request before reloading to simulate the chat outage.
+  await visitor.waitForSelector('#book-slot [name=time]:checked');
   await visitor.evaluate(k => localStorage.setItem("hampton-chat", JSON.stringify({key: k, at: Date.now(), seen: 0})), key);
   const drop = r => r.request().method() === "GET" ? r.abort("internetdisconnected") : r.continue();
   await visitor.route("**/api/chat", drop);

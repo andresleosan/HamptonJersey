@@ -492,6 +492,8 @@ export function renderPrivacy(root) {
     <p>This notice explains how Hampton Estates uses the personal details you give us, for example when you register
       your search or ask for a viewing, and the rights you have under the Data Protection (Jersey) Law 2018.</p>
 
+    <p>External property tours load only when you choose to open them. The tour provider receives your IP address and may use its own storage.</p>
+
     <h2>Who we are</h2>
     <p>Hampton Estates, 42 Bath Street, St Helier, Jersey JE2 4ST. We decide how your details are used, so we are the
       controller of your data.</p>

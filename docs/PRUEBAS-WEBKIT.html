@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="crear-guias">
+<title>Pruebas de Hampton con WebKit aislado</title>
+<style>
+:root {
+  --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --border: #d1d9e0;
+  --accent: #0969da; --code-bg: #f6f8fa; --code-fg: #1f2328;
+  --quote-bar: #d1d9e0; --table-stripe: #f6f8fa; --sidebar-bg: #f6f8fa;
+  --maxw: 50rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --border: #30363d;
+    --accent: #4493f8; --code-bg: #161b22; --code-fg: #e6edf3;
+    --quote-bar: #30363d; --table-stripe: #161b22; --sidebar-bg: #161b22;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.layout { display: flex; gap: 2.5rem; max-width: 72rem; margin: 0 auto; padding: 2.5rem 1.5rem; }
+.toc {
+  position: sticky; top: 1.5rem; align-self: flex-start; flex: 0 0 15rem;
+  max-height: calc(100vh - 3rem); overflow-y: auto; font-size: 0.875rem;
+  background: var(--sidebar-bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 1rem 1.1rem;
+}
+.toc-title { margin: 0 0 .5rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .72rem; color: var(--muted); }
+.toc ul { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: .15rem 0; }
+.toc-h3 { padding-left: .9rem; }
+.toc a { color: var(--muted); text-decoration: none; display: block; padding: .15rem 0; border-radius: 4px; }
+.toc a:hover { color: var(--accent); }
+main { flex: 1 1 auto; min-width: 0; max-width: var(--maxw); }
+h1, h2, h3, h4, h5, h6 { line-height: 1.3; margin: 2rem 0 .75rem; font-weight: 700; scroll-margin-top: 1.5rem; }
+h1 { font-size: 2rem; margin-top: 0; }
+h2 { font-size: 1.5rem; padding-bottom: .3rem; border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.2rem; }
+h4 { font-size: 1.02rem; }
+p { margin: 0 0 1rem; }
+a { color: var(--accent); }
+ul, ol { margin: 0 0 1rem; padding-left: 1.6rem; }
+li { margin: .25rem 0; }
+li > ul, li > ol { margin: .25rem 0; }
+code { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: .88em; background: var(--code-bg); padding: .15em .4em; border-radius: 5px; }
+pre { background: var(--code-bg); color: var(--code-fg); padding: 1rem 1.1rem; border-radius: 10px; overflow-x: auto; border: 1px solid var(--border); margin: 0 0 1rem; }
+pre code { background: none; padding: 0; font-size: .86rem; line-height: 1.55; }
+blockquote { margin: 0 0 1rem; padding: .2rem 1rem; border-left: 4px solid var(--quote-bar); color: var(--muted); }
+blockquote p:last-child { margin-bottom: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+table { border-collapse: collapse; width: 100%; margin: 0 0 1rem; font-size: .94rem; display: block; overflow-x: auto; }
+th, td { border: 1px solid var(--border); padding: .5rem .75rem; text-align: left; }
+thead th { background: var(--code-bg); }
+tbody tr:nth-child(even) { background: var(--table-stripe); }
+img { max-width: 100%; height: auto; border-radius: 8px; }
+footer { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .8rem; }
+@media (max-width: 52rem) {
+  .layout { flex-direction: column; gap: 1.5rem; padding: 1.5rem 1rem; }
+  .toc { position: static; max-height: none; flex-basis: auto; width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc" aria-label="Tabla de contenidos">
+<p class="toc-title">Contenido</p>
+<ul>
+<li class="toc-h2"><a href="#requisitos">Requisitos</a></li>
+<li class="toc-h2"><a href="#ejecutar-pruebas-locales">Ejecutar pruebas locales</a></li>
+<li class="toc-h2"><a href="#comprobacion-publica-anonima">Comprobación pública anónima</a></li>
+<li class="toc-h2"><a href="#limites-conocidos">Límites conocidos</a></li>
+<li class="toc-h2"><a href="#problemas-frecuentes">Problemas frecuentes</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="pruebas-de-hampton-con-webkit-aislado">Pruebas de Hampton con WebKit aislado</h1>
+<p>El lanzador <code>scripts/test-e2e-isolated.sh</code> y el adaptador <code>tests/isolated-webkit.cjs</code> están versionados en <code>main</code> del repositorio HamptonJersey. Una copia anterior del proyecto puede no contenerlos: trabajar desde una copia actualizada de <code>main</code>, conservando cualquier cambio local. La referencia usada para esta guía es <code>e425911ceab89102d52e2748c3f20275830dfe5e</code>.</p>
+<h2 id="requisitos">Requisitos</h2>
+<ul>
+<li>Bash, Git, Node.js y npm; las dependencias del proyecto instaladas en <code>node_modules</code> dentro de la copia de trabajo. El proyecto y su archivo de dependencias determinan las versiones; aquí se usó Node 24.</li>
+<li>Docker disponible para el usuario que ejecuta la prueba. La imagen fijada por contenido en el lanzador debe existir localmente: el comando usa <code>--pull=never</code> y no la descarga. Comprobarla con <code>docker image inspect</code> y el identificador que aparece en el propio script. Si falta, obtener la imagen por el procedimiento autorizado para el entorno; no sustituir el identificador sin revisión.</li>
+<li>Playwright Core instalado y un WebKit de la <strong>misma revisión</strong> que la indicada en su <code>browsers.json</code>. El lanzador busca el ejecutable <code>playwright</code>; también acepta <code>HAMPTON_PLAYWRIGHT_CORE=/ruta/a/playwright-core</code>. Busca WebKit en la caché de Playwright del usuario; <code>HAMPTON_WEBKIT_DIR</code> permite indicar el directorio de esa revisión. El script comprueba ambos antes de crear el contenedor.</li>
+<li>El test indicado debe existir en <code>tests/</code>, llevar el sufijo <code>.cjs</code> y estar rastreado por Git o añadido al índice. El lanzador empaqueta los archivos rastreados según el contenido actual de la copia; los archivos nuevos que no estén en el índice no se incluyen.</li>
+</ul>
+<p>Para comprobar la imagen fijada en la versión examinada:</p>
+<pre><code class="language-bash">docker image inspect sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27</code></pre>
+<p>Si el proyecto cambia el identificador, prevalece el que esté escrito en el lanzador de la revisión usada.</p>
+<h2 id="ejecutar-pruebas-locales">Ejecutar pruebas locales</h2>
+<p>Desde la raíz de la copia actualizada:</p>
+<pre><code class="language-bash">E2E_PRODUCTION_READONLY=0 npm run test:e2e:isolated</code></pre>
+<p>Para un recorrido concreto, por ejemplo PUB-04:</p>
+<pre><code class="language-bash">E2E_PRODUCTION_READONLY=0 E2E_SCRIPT=tests/listing-address.e2e.cjs npm run test:e2e:isolated</code></pre>
+<p>Para seleccionar fases de la suite general:</p>
+<pre><code class="language-bash">E2E_PRODUCTION_READONLY=0 E2E_PHASES=public,urls,admin,reg17 npm run test:e2e:isolated</code></pre>
+<p>La asignación explícita de <code>E2E_PRODUCTION_READONLY=0</code> evita heredar accidentalmente el modo de producción. <code>E2E_PHASES</code> afecta a la suite general si el test seleccionado lo admite. El script indica el resultado mediante su código de salida. No considerar un recorrido aprobado si se interrumpe o falla.</p>
+<p>El lanzador crea un contenedor temporal con red deshabilitada, sistema de archivos raíz de solo lectura, usuario sin privilegios, capacidades eliminadas, <code>no-new-privileges</code>, límites de recursos y directorios temporales en memoria. El adaptador solicita <code>WEBKIT_FORCE_SANDBOX=1</code> y ejecuta WebKit con Xvfb. No configura un perfil seccomp propio; rige la política Docker del entorno. La ejecución satisfactoria acredita que ese conjunto pudo ejecutar la prueba; no constituye por sí sola una auditoría independiente del sandbox interno de WebKit.</p>
+<p>El runner genera una base D1 local nueva y credenciales de prueba efímeras. Emula Turnstile y portapapeles cuando corresponde, usa HTTPS local con certificado de prueba y no carga fuentes externas. No usa una base de producción para el fixture. Los archivos temporales y el contenedor se eliminan al terminar, sujetos a la comprobación de identidad del propio lanzador. Las capturas, si el test las produce, se conservan bajo <code>/tmp/hampton-browser-captures</code> o el directorio indicado por <code>E2E_ARTIFACT_DIR</code>: tratarlas como artefactos de prueba y no incluirlas en Git.</p>
+<h2 id="comprobacion-publica-anonima">Comprobación pública anónima</h2>
+<pre><code class="language-bash">npm run test:production:readonly</code></pre>
+<p>Este modo es diferente: usa red Docker <code>bridge</code> y el test limita las peticiones del navegador a GET/HEAD y a un origen y rutas explícitamente permitidos; no envía formularios ni usa una sesión guardada. La política de interceptación del test no es un cortafuegos general. Su alcance depende de <code>tests/production-readonly-e2e.cjs</code>: no demuestra que pasen los recorridos autenticados ni todos los flujos de producción.</p>
+<h2 id="limites-conocidos">Límites conocidos</h2>
+<ul>
+<li>La ejecución local valida WebKit y el fixture; no acredita Chromium, servicios externos, Turnstile real, fuentes remotas ni comportamiento autenticado en producción.</li>
+<li>Chromium sigue pendiente: en este entorno no arrancó con su sandbox. No usar <code>--no-sandbox</code>, desactivar <code>no-new-privileges</code> ni cambiar controles generales para forzar la prueba.</li>
+<li>La suite general no verifica exhaustivamente fallos de red, accesibilidad ni todos los tamaños y estados. Añadir pruebas focales cuando el cambio lo requiera. Zoom CSS no es equivalente a zoom nativo; registrar la técnica y cualquier desbordamiento observado.</li>
+<li>Los tests deben usar datos sintéticos. No imprimir credenciales, copiar archivos privados al repositorio ni versionar capturas, bases, registros o directorios temporales.</li>
+</ul>
+<h2 id="problemas-frecuentes">Problemas frecuentes</h2>
+<table>
+<thead>
+<tr>
+<th>Síntoma</th>
+<th>Qué comprobar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No se encuentra Playwright Core</td>
+<td>Que <code>playwright</code> esté en el <code>PATH</code> o que <code>HAMPTON_PLAYWRIGHT_CORE</code> apunte al directorio correcto.</td>
+</tr>
+<tr>
+<td>Falta la revisión de WebKit</td>
+<td>Comparar la revisión de <code>browsers.json</code> con la caché e indicar <code>HAMPTON_WEBKIT_DIR</code> cuando corresponda.</td>
+</tr>
+<tr>
+<td>Falta la imagen fijada</td>
+<td>Comprobar la imagen y el acceso al daemon Docker; el lanzador no descarga imágenes.</td>
+</tr>
+<tr>
+<td>El test nuevo no aparece</td>
+<td>Debe estar rastreado o añadido al índice de la copia desde la que se ejecuta.</td>
+</tr>
+<tr>
+<td>Chrome no inicia</td>
+<td>Usar la alternativa WebKit y registrar Chromium como pendiente; conservar sus controles de aislamiento.</td>
+</tr>
+<tr>
+<td>Un test del contenedor falla por conexión externa</td>
+<td>Revisar si necesita una respuesta simulada; la prueba local funciona deliberadamente sin red. No convertir el fallo en un aprobado.</td>
+</tr>
+</tbody>
+</table>
+<footer>Generado desde Markdown · fuente única de verdad: el archivo <code>.md</code></footer>
+</main>
+</div>
+</body>
+</html>

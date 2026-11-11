@@ -112,7 +112,7 @@ nav.main a:hover{color:var(--bronze-dk)}
 .hero-arrow:disabled{opacity:.4;cursor:default}
 .hero .meta{color:inherit;margin-block:16px 24px;font-size:14px;letter-spacing:0;gap:8px 16px}
 .hero .place{margin-bottom:8px;font-size:13px}
-@media (prefers-reduced-motion:reduce){.hero-track,.stage-track{scroll-behavior:auto}}
+@media (prefers-reduced-motion:reduce){html,.hero-track,.stage-track{scroll-behavior:auto}}
 .rv{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
 .rv.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.card,.card .ph,.opts span,.btn{transition:none}.card:hover{transform:none}}
@@ -147,7 +147,7 @@ section#book,section#detail-book{padding-top:clamp(40px,5vw,64px);background:var
 .place{font-size:13px;color:var(--stone);letter-spacing:0}
 .hero .place{color:inherit}
 @media (min-width:760px){.grid.balanced{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:40px 28px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:40px 28px}
 .card{text-decoration:none;display:grid;gap:14px;min-width:0}
 .card{transition:transform .35s ease}
 .card:hover{transform:translateY(-4px)}
@@ -193,11 +193,19 @@ section#book,section#detail-book{padding-top:clamp(40px,5vw,64px);background:var
 @media (max-width:560px){.agent{grid-template-columns:1fr}.agent img{aspect-ratio:4/3}}
 
 /* booking */
-.book{display:grid;grid-template-columns:1fr 1.4fr;gap:clamp(28px,5vw,72px)}
-@media (max-width:900px){.book{grid-template-columns:1fr}}
+.book{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:clamp(28px,5vw,72px)}
+@media (max-width:900px){.book{grid-template-columns:minmax(0,1fr)}}
 .tour3d{margin:28px 0 0;display:grid;gap:12px}
 .tour3d-stage{position:relative;aspect-ratio:4/5;max-height:560px;border-radius:var(--r-lg);overflow:hidden;background:radial-gradient(120% 90% at 30% 20%,#3a342d,#151515 70%);box-shadow:var(--shadow)}
 @media (max-width:900px){.tour3d-stage{aspect-ratio:4/3}}
+.tour-gate{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:16px;text-align:center;padding:24px;color:#fff;background:#151515;overflow:auto}
+.tour-gate>*{flex-shrink:0;max-width:100%}
+.tour-gate p{max-width:40ch;margin:0;font-size:14px;line-height:1.5;color:#fff}
+.tour-gate a,.tour-gate-error a{color:#fff;text-decoration:underline}
+.tour-gate-button{height:auto;line-height:1.4;scroll-margin-block:20px 130px;background:#fff;color:#151515;min-height:44px;cursor:pointer}
+.tour-gate-unload{position:absolute;z-index:3;right:12px;top:12px}
+.tour-gate-error{position:absolute;inset:0;z-index:4;display:grid;place-content:center;justify-items:center;gap:12px;padding:24px;background:#151515;color:#fff;text-align:center}
+.tour-gate-button:focus-visible,.tour-gate a:focus-visible,.tour-gate-error a:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .tour3d-stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .tour3d-play{all:unset;cursor:pointer;position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:18px;color:#fff;text-align:center}
 .tour3d-play:focus-visible{outline:2px solid var(--bronze);outline-offset:-6px;border-radius:var(--r-lg)}
@@ -212,24 +220,25 @@ section#book,section#detail-book{padding-top:clamp(40px,5vw,64px);background:var
 .tour3d figcaption b{font-size:14px;font-weight:600;color:var(--ink)}
 .tour3d .opts span{padding:7px 16px;font-size:12px}
 @media (prefers-reduced-motion:reduce){.tour3d-play .ring::before{animation:none}}
-form.tour{display:grid;gap:22px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(20px,3vw,36px);box-shadow:var(--shadow)}
+form.tour{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:22px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(20px,3vw,36px);box-shadow:var(--shadow)}
 form.tour .btn[type=submit]{width:100%;padding-block:16px}
 .field>legend i{font-style:normal;letter-spacing:.04em;text-transform:none;font-weight:500;margin-left:6px}
 .field{display:grid;gap:6px;min-width:0}
 fieldset.field{border:0;margin:0;padding:0}
+label.field:has(select){overflow:clip;overflow-clip-margin:4px}
 .field>span,.field>legend,.field>label{padding:0;font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--stone)}
-.field input,.field select{border:1px solid var(--field-line);border-radius:12px;background:#fbfaf8;padding:13px 14px;width:100%;transition:border-color .2s,box-shadow .2s,background .2s}
+.field input,.field select{min-width:0;border:1px solid var(--field-line);border-radius:12px;background:#fbfaf8;padding:13px 14px;width:100%;transition:border-color .2s,box-shadow .2s,background .2s}
 .field input:hover,.field select:hover{border-color:var(--stone)}
 .field input:focus,.field select:focus{outline:none;border-color:var(--bronze);background:#fff;box-shadow:0 0 0 3px rgba(165,107,61,.15)}
-.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr));gap:14px}
 .opts{display:flex;flex-wrap:wrap;gap:8px}
 .opts label{cursor:pointer;position:relative}
 .opts input{position:absolute;opacity:0;pointer-events:none}
 .opts span{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--field-line);border-radius:999px;padding:9px 18px;font-size:13px;background:#fff;transition:border-color .2s,background .2s,color .2s,box-shadow .2s,transform .15s}
 .opts label:hover span{border-color:var(--stone)}
 .opts label:active span{transform:scale(.97)}
-.opts.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px}
-.opts .opt{position:relative;display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:2px;align-items:center;align-content:center;border-radius:var(--r);padding:12px 40px 12px 12px;width:100%;height:100%}
+.opts.cards{min-width:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px}
+.opts .opt{position:relative;min-width:0;overflow-wrap:anywhere;display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:2px;align-items:center;align-content:center;border-radius:var(--r);padding:12px 40px 12px 12px;width:100%;height:100%}
 .opt img,.opt svg{grid-row:span 2;width:46px;height:46px;border-radius:50%;object-fit:cover}
 .opt svg{padding:11px;background:var(--mist);color:var(--ink);overflow:visible}
 .opt b{font-weight:600;font-size:14px;line-height:1.3}
@@ -265,7 +274,7 @@ form.tour .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-
 .crumbs{font-size:12px;color:var(--stone);padding-block:16px;letter-spacing:.06em}
 .crumbs a{text-decoration:none}
 .d-top{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:clamp(24px,3vw,40px);align-items:start}
-@media (max-width:980px){.d-top{grid-template-columns:1fr}}
+@media (max-width:980px){.d-top{grid-template-columns:minmax(0,1fr)}}
 .media-tabs{display:flex;gap:0;border-bottom:1px solid var(--line);overflow-x:auto}
 .media-tabs button{border:0;background:none;padding:12px 20px;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
 .media-tabs button[aria-selected=true]{border-color:var(--bronze);color:var(--bronze-dk)}
@@ -288,7 +297,7 @@ form.tour .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-
 .stage-msg a{color:#fff}
 @media (max-width:640px){.stage{aspect-ratio:4/3;max-height:none}}
 
-.summary{display:grid;gap:16px;align-content:start}
+.summary{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:16px;align-content:start}
 .summary h1{font-size:clamp(24px,2.6vw,32px);line-height:1.15}
 .summary .price{font-size:30px;line-height:1.1}
 .summary .price small{display:block;font:500 11px/1.4 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-top:6px}
@@ -298,11 +307,12 @@ form.tour .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-
 .keys span{font-size:13px;color:var(--stone)}
 .agent-mini{display:flex;gap:14px;align-items:center}
 .agent-mini img{width:52px;height:52px;border-radius:50%;object-fit:cover;filter:grayscale(1)}
-.summary .btns{display:grid;gap:8px}
+.summary .btns{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.summary .btn{min-width:0;overflow-wrap:anywhere}
 .interest{display:grid;gap:4px;margin:0;text-wrap:balance}
 .interest b{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
 .interest b::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:currentColor}
-.share{display:grid;grid-template-columns:1fr 1fr;column-gap:8px}
+.share{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px}
 .share .btn{padding-inline:12px}
 .share .hint{grid-column:1/-1;margin:8px 0 0}
 .share .hint:empty{margin:0}
@@ -364,7 +374,8 @@ body:has(dialog[open]){overflow:hidden}
 .mbar{display:none}
 @media (max-width:980px){.mbar{display:flex;position:sticky;bottom:0;z-index:15;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--paper);border-top:1px solid var(--line)}
 .mbar .price{font-family:var(--display);font-size:20px}}
-.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+@media (max-width:300px){.mbar{flex-wrap:wrap}.summary .share{grid-template-columns:minmax(0,1fr)}.agent-mini{flex-wrap:wrap}dl.facts-list{grid-template-columns:minmax(0,1fr)}dl.facts-list div,.specs dl div{display:grid;grid-template-columns:minmax(0,1fr)}dl.facts-list dd,.specs dd{text-align:left}}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:16px}
 .plans img{width:100%;background:#fff;border:1px solid var(--mist)}
 .bullets{margin:0 0 16px;padding-left:18px}
 .form-status{min-height:1.4em}
@@ -541,6 +552,7 @@ body:has(.chat-btn:not([hidden])) footer{padding-bottom:80px}
 
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstile" async defer></script>
 <script src="/lib.js"></script>
+<script src="/tour-privacy.js"></script>
 <script>
 // ---------- helpers (pure ones live in lib.js) ----------
 const $ = (s, el = document) => el.querySelector(s);
@@ -580,6 +592,7 @@ const agentFor = p => TEAM[(amount(p) ?? 0) > 1e6 ? 0 : 1] || TEAM[0] || null;
 const facts = p => [priceLabel(p), p.beds && `${p.beds} bedroom${p.beds === 1 ? "" : "s"}`,
   p.baths && `${p.baths} bathroom${p.baths === 1 ? "" : "s"}`, !/bed/i.test(p.type || "") && p.type].filter(Boolean);
 let galleryObserver, galleryResize, galleryResizeWindow;
+let clearTourGate = () => {};
 const clearGallery = () => { galleryObserver?.disconnect(); galleryObserver = null; galleryResize?.disconnect(); galleryResize = null;
   if (galleryResizeWindow) removeEventListener("resize", galleryResizeWindow); galleryResizeWindow = null; };
 function snapTrack(track, changed, initial = 0) {
@@ -748,6 +761,7 @@ function mountBooking(slot, pre = {}) {
 // ponytail: with only a few listings the home is a showcase and /properties has no filters; they come back at FEW_MAX + 1.
 const FEW_MAX = 5;
 function home() {
+  clearTourGate(); clearTourGate = () => {};
   clearGallery();
   const few = PUB.length <= FEW_MAX;
   const feat = few ? PUB[0] : PUB.find(p => p.featured) || PUB.find(p => p.tourUrl || p.aerial) || PUB[0];
@@ -834,28 +848,18 @@ function home() {
     $("#book").scrollIntoView(); $("select", slot).focus({preventScroll: true});
   });
   mountBooking($("#book-slot"));
-  // 3D tours from the panel: a poster first, the (heavy) player only loads on click.
+  // Each selected tour requires its own deliberate connection to its provider.
   const t3 = $("#tour3d");
   if (t3) {
     const stage = $(".tour3d-stage", t3);
-    let playing = false;
-    // Starts by itself: Matterport plays straight away and the mouse wheel can't zoom it (page scroll keeps the far view); YouTube/Vimeo start muted, as browsers require.
-    const auto = u => { const x = new URL(u), mp = x.hostname === "my.matterport.com";
-      Object.entries(mp ? {play: 1, qs: 1, wh: 0} : {autoplay: 1, mute: 1, muted: 1}).forEach(([k, v]) => x.searchParams.set(k, v)); return x.href; };
-    const show = i => {
+    const showTour = i => {
+      clearTourGate();
       const t = TOURS[i];
       $("figcaption", t3).innerHTML = `<b>${esc(t.title)}</b>${t.caption ? `<span>${esc(t.caption)}</span>` : ""}`;
-      stage.innerHTML = playing ? `<iframe src="${esc(auto(t.url))}" title="3D tour: ${esc(t.title)}" allow="fullscreen; xr-spatial-tracking; autoplay" allowfullscreen></iframe>`
-        : `<button type="button" class="tour3d-play" aria-label="Open the 3D tour: ${esc(t.title)}"><span class="ring"></span><span class="big">3D</span><small>Step inside</small></button>`;
+      clearTourGate = mountTourGate(stage, {url: t.url, title: t.title});
     };
-    stage.addEventListener("click", e => { if (e.target.closest(".tour3d-play")) { playing = true; show(+($("input:checked", t3)?.value ?? 0)); $("iframe", stage).focus(); } });
-    t3.addEventListener("change", e => show(+e.target.value));
-    show(0);
-    // Plays when the visitor reaches it (not with reduced motion: then the poster waits for a click).
-    if ("IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      const ob = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { ob.disconnect(); if (!playing) { playing = true; show(+($("input:checked", t3)?.value ?? 0)); } } }, {threshold: .35});
-      ob.observe(stage);
-    }
+    t3.addEventListener("change", e => showTour(+e.target.value));
+    showTour(0);
   }
   // PUB-22: the home shows the newest five still on the market; the rest are on /properties.
   const picks = homePicks(PUB);
@@ -898,6 +902,7 @@ function home() {
 const OP_BUTTONS = [["rent", "Rent", "Homes to let"], ["sale", "Buy", "Homes for sale"], ["business", "Commercial", "Commercial properties"], ["international", "International", "Properties abroad"]];
 const NO_FILTER = {region: "all", op: "all", beds: 0, max: 0};
 function properties() {
+  clearTourGate(); clearTourGate = () => {};
   clearGallery();
   const full = PUB.length > FEW_MAX;
   document.title = `Properties · ${BRAND}`;
@@ -950,6 +955,7 @@ function properties() {
 }
 
 function detail(id) {
+  clearTourGate(); clearTourGate = () => {};
   clearGallery();
   const p = PUB.find(x => x.id === id);
   if (!p) { // not published (any more), or a mistyped link: the server answered 404 too
@@ -973,7 +979,6 @@ function detail(id) {
   const restriction = p.restriction === "first_time_buyer" && p.operation !== "sale" ? null : RESTRICTION[p.restriction];
   // VIS-03 (§5.9): the real count of people interested, which the server sends only from 2. A sold house takes no viewings.
   const interest = isSold(p) ? null : p.interest;
-  const tour = embedUrl(p.tourUrl);
   const groups = p.specs.reduce((a, s) => ((a[s.group || "Details"] ||= []).push(s), a), {});
   const tabs = [["photo", "Photos"], ...(p.tourUrl ? [["tour", "3D tour"]] : []), ...(p.aerial ? [["aerial", "Aerial"]] : [])];
 
@@ -1045,15 +1050,9 @@ function detail(id) {
     <div id="detail-slot"></div></div></section>`}`;
 
   const stage = $("#stage"), note = $("#stage-note");
-  let gallery, timer, idx = Math.max(0, p.photos.findIndex(f => f.src === p.image)); // open on the chosen cover
-  const fail = (msg, retry) => {
-    stage.insertAdjacentHTML("beforeend", `<div class="stage-msg" role="alert"><div><p>${msg}</p>
-      <a href="${esc(p.tourUrl)}" target="_blank" rel="noopener noreferrer">Open the tour in a new tab</a>
-      ${retry ? `<button class="btn light" type="button" data-retry>Try again</button>` : ""}</div></div>`);
-  };
-  const webgl = () => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; } };
+  let gallery, idx = Math.max(0, p.photos.findIndex(f => f.src === p.image)); // open on the chosen cover
   const show = v => {
-    clearTimeout(timer); clearGallery(); gallery = null; stage.classList.remove("noimg"); stage.style.height = "";
+    clearTourGate(); clearTourGate = () => {}; clearGallery(); gallery = null; stage.classList.remove("noimg"); stage.style.height = "";
     document.querySelectorAll(".media-tabs button").forEach(b => { const on = b.dataset.v === v; b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; });
     if (tabs.length > 1) stage.setAttribute("aria-labelledby", `tab-${v}`);
     $("#thumbs").innerHTML = "";
@@ -1094,15 +1093,8 @@ function detail(id) {
     }
 
     if (v === "tour") {
-      track(p.id, "tour");
-      note.innerHTML = `<span>Drag to look around.</span><a href="${esc(p.tourUrl)}" target="_blank" rel="noopener noreferrer">Open the tour in a new tab</a>`;
-      stage.innerHTML = "";
-      if (!tour) return fail("This tour opens on the provider's website.");
-      if (!webgl()) return fail("This browser can't show 3D content (WebGL is off or unsupported).");
-      if (!navigator.onLine) return fail("You appear to be offline. The 3D tour needs a connection.", true);
-      stage.innerHTML = `<iframe src="${esc(tour)}" title="3D tour of ${esc(p.title)}" allow="fullscreen; xr-spatial-tracking" allowfullscreen></iframe>`;
-      timer = setTimeout(() => fail("The 3D tour is taking longer than usual to load.", true), 20000);
-      $("iframe", stage).addEventListener("load", () => { clearTimeout(timer); $(".stage-msg", stage)?.remove(); });
+      note.innerHTML = "";
+      clearTourGate = mountTourGate(stage, {url: p.tourUrl, title: p.title, onLoaded: () => track(p.id, "tour")});
     }
     if (v === "aerial") {
       stage.innerHTML = `<img src="${esc(p.aerial.src)}" alt="${esc(p.aerial.alt)}">`;
@@ -1128,7 +1120,6 @@ function detail(id) {
   }
   note.addEventListener("click", e => { if (e.target.closest("[data-all]")) openLb(); });
   stage.addEventListener("click", e => {
-    if (e.target.closest("[data-retry]")) return show("tour");
     const s = e.target.closest("[data-step]"); if (s) { step(+s.dataset.step); return gallery?.go(idx); }
     if (e.target.matches(".stage-frame img")) { idx = +e.target.closest("[data-photo]").dataset.photo; openLb(); }
   });
@@ -1220,10 +1211,10 @@ const reveal = () => io && document.querySelectorAll("#app .head, #app .card, #a
     el.addEventListener("transitionend", () => { el.style.transitionDelay = ""; }, {once: true}); io.observe(el); });
 // Register your search and the privacy notice live in apply.js, fetched only when one of them opens (spec §5).
 const SIDE_PAGES = {"#/apply": (m, root) => m.renderApply(root, {esc, tsKey: TS_KEY, tsReady}), "#/privacy": (m, root) => m.renderPrivacy(root)};
-const sidePage = h => import("/apply.js").then(m => { if (location.hash !== h) return; clearGallery(); SIDE_PAGES[h](m, $("#app")); scrollTo({top: 0, behavior: "instant"}); })
+const sidePage = h => import("/apply.js").then(m => { if (location.hash !== h) return; clearTourGate(); clearTourGate = () => {}; clearGallery(); SIDE_PAGES[h](m, $("#app")); scrollTo({top: 0, behavior: "instant"}); })
   .catch(() => {
     if (location.hash !== h) return;
-    clearGallery();
+    clearTourGate(); clearTourGate = () => {}; clearGallery();
     $("#app").innerHTML = `<section class="block"><div class="wrap empty" role="alert"><p>We couldn't load this page right now.</p>
       <button class="btn ghost" type="button">Try again</button></div></section>`;
     $("#app .empty button").addEventListener("click", () => location.reload());
