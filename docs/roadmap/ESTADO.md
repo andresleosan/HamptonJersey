@@ -2,7 +2,7 @@
 
 Actualizado el 11-nov-2026.
 
-11-nov-2026 · **VIS-06: construido localmente, sin integrar ni publicar.** El calendario muestra desde dos citas confirmadas futuras esta semana en Jersey, sin datos personales; solicita de nuevo al cambiar de propiedad y actualiza el dato cada 60 segundos y lo oculta ante un error. No se cuentan solicitudes. Quedan pendientes la revisión, autorización de publicación y la integración futura de visitas multiparte y grupos. [Registro](../superpowers/plans/2026-11-11-vis-06-ledger.md).
+11-nov-2026 · **VIS-06: avance parcial publicado en producción** (`a78188b`). El calendario muestra desde dos citas confirmadas futuras esta semana en Jersey, sin datos personales; solicita de nuevo al cambiar de propiedad y actualiza el dato cada 60 segundos y lo oculta ante un error. No se cuentan solicitudes. Queda pendiente la integración de visitas multiparte y grupos. Pages y Jobs terminaron correctamente; la API pública devuelve el campo con no-store y WebKit público pasó a 1280/390 sin enviar formularios. [Registro](../superpowers/plans/2026-11-11-vis-06-ledger.md).
 
 11-nov-2026 · **PRE-11 en producción** (`d0a9877`). Los tours de portada y ficha esperan una elección individual tras un aviso; el control permite cerrar el reproductor y Vimeo usa dnt=1. Portada verificada en producción a 1280/390 sin contactar al proveedor; no había una ficha pública con tour para comprobarla allí y el flujo de ficha pasó con datos ficticios. No se ha auditado el almacenamiento real de los proveedores. El aviso ResizeObserver de la galería también se reproduce en la base y se mantiene separado. [Registro](../superpowers/plans/2026-11-08-l1-tour-privacy-ledger.md).
 
