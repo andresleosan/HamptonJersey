@@ -272,11 +272,13 @@ form.tour .btn:disabled{opacity:.45;cursor:default;background:var(--ink);border-
 .listing-media{min-width:0}
 .stage{position:relative;aspect-ratio:3/2;max-height:calc(100vh - 250px);min-height:240px;width:100%;background:#111;overflow:hidden;border-radius:var(--r)}
 .stage>img,.stage iframe{width:100%;height:100%;object-fit:cover;border:0;display:block}
-.stage-track{height:100%}
+.stage-track{height:100%;grid-template-rows:minmax(0,1fr)}
 .stage-track:focus-visible{outline:none}
 .stage:has(.stage-track:focus-visible)::after{content:"";position:absolute;inset:4px;border:2px solid var(--bronze);border-radius:12px;box-shadow:0 0 0 2px var(--paper);pointer-events:none;z-index:2}
+.stage:has(.stage-track){max-height:none;transition:height .35s ease}
+@media (prefers-reduced-motion:reduce){.stage:has(.stage-track){transition:none}}
 .stage-frame{position:relative;min-width:0;height:100%;scroll-snap-align:start;scroll-snap-stop:always;background:var(--mist)}
-.stage-frame img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}
+.stage-frame img{width:100%;height:100%;object-fit:contain;cursor:zoom-in}
 .stage-nav:disabled{opacity:.4;cursor:default}
 .stage-note{margin:10px 0 0;font-size:12px;color:var(--stone);display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:space-between}
 .stage-note:empty{display:none}
@@ -577,8 +579,9 @@ const agentFor = p => TEAM[(amount(p) ?? 0) > 1e6 ? 0 : 1] || TEAM[0] || null;
 
 const facts = p => [priceLabel(p), p.beds && `${p.beds} bedroom${p.beds === 1 ? "" : "s"}`,
   p.baths && `${p.baths} bathroom${p.baths === 1 ? "" : "s"}`, !/bed/i.test(p.type || "") && p.type].filter(Boolean);
-let galleryObserver;
-const clearGallery = () => { galleryObserver?.disconnect(); galleryObserver = null; };
+let galleryObserver, galleryResize, galleryResizeWindow;
+const clearGallery = () => { galleryObserver?.disconnect(); galleryObserver = null; galleryResize?.disconnect(); galleryResize = null;
+  if (galleryResizeWindow) removeEventListener("resize", galleryResizeWindow); galleryResizeWindow = null; };
 function snapTrack(track, changed, initial = 0) {
   clearGallery();
   const slides = [...track.children];
@@ -1050,7 +1053,7 @@ function detail(id) {
   };
   const webgl = () => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; } };
   const show = v => {
-    clearTimeout(timer); clearGallery(); gallery = null; stage.classList.remove("noimg");
+    clearTimeout(timer); clearGallery(); gallery = null; stage.classList.remove("noimg"); stage.style.height = "";
     document.querySelectorAll(".media-tabs button").forEach(b => { const on = b.dataset.v === v; b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; });
     if (tabs.length > 1) stage.setAttribute("aria-labelledby", `tab-${v}`);
     $("#thumbs").innerHTML = "";
@@ -1064,8 +1067,18 @@ function detail(id) {
       note.innerHTML = many ? `<span></span><button type="button" class="linkbtn" data-all>View all ${photos.length} photos</button>` : "";
       if (many) $("#thumbs").innerHTML = photos.map((f, i) =>
         `<button type="button" data-i="${i}" aria-label="Show photo ${i + 1} of ${photos.length}" aria-pressed="${i === idx}"><img src="${esc(f.thumb)}" alt="" loading="lazy"></button>`).join("");
+      const frames = [...stage.querySelectorAll(".stage-frame")];
+      const resizePhoto = () => {
+        const img = frames[idx]?.querySelector("img");
+        if (!img?.naturalWidth || !img.naturalHeight) return;
+        stage.style.height = `${Math.max(240, Math.min(stage.clientWidth * img.naturalHeight / img.naturalWidth, innerHeight * .75))}px`;
+      };
+      frames.forEach(frame => frame.querySelector("img").addEventListener("load", () => {
+        if (+frame.dataset.photo === idx) resizePhoto();
+      }));
+      let lastWidth = 0;
       gallery = snapTrack($(".stage-track", stage), i => {
-        idx = i;
+        idx = i; resizePhoto();
         stage.querySelectorAll(".stage-frame").forEach((f, j) => f.setAttribute("aria-current", j === i));
         $("#thumbs").querySelectorAll("button").forEach((b, j) => b.setAttribute("aria-pressed", j === i));
         if (many) {
@@ -1073,6 +1086,11 @@ function detail(id) {
 
         }
       }, idx);
+      galleryResize = new ResizeObserver(() => {
+        if (stage.clientWidth !== lastWidth) { lastWidth = stage.clientWidth; resizePhoto(); }
+      });
+      galleryResize.observe(stage);
+      galleryResizeWindow = resizePhoto; addEventListener("resize", galleryResizeWindow);
     }
 
     if (v === "tour") {
@@ -1093,9 +1111,17 @@ function detail(id) {
   };
   const lb = $("#lightbox");
   const step = d => { idx = (idx + d + p.photos.length) % p.photos.length; };
-  const lbShow = () => { const f = p.photos[idx]; $("#lb-img").src = f.src; $("#lb-img").alt = f.alt; $("#lb-count").textContent = `${idx + 1} / ${p.photos.length}`; };
+  const lbShow = () => {
+    const f = p.photos[idx], img = $("#lb-img");
+    img.src = f.src; img.alt = f.alt; $("#lb-count").textContent = `${idx + 1} / ${p.photos.length}`;
+    img.getAnimations().forEach(a => a.cancel());
+  };
   const openLb = () => { if (lb) { lbShow(); lb.showModal(); track(p.id, "photos"); } };
   if (lb) {
+    $("#lb-img").addEventListener("load", e => {
+      if (lb.open && !matchMedia("(prefers-reduced-motion: reduce)").matches)
+        e.target.animate([{opacity: .4}, {opacity: 1}], {duration: 260, easing: "ease-out"});
+    });
     lb.addEventListener("click", e => { const a = e.target.closest("[data-lb]")?.dataset.lb; if (a === "close") lb.close(); else if (a) { step(+a); lbShow(); } });
     lb.addEventListener("keydown", e => { const d = {ArrowRight: 1, ArrowLeft: -1}[e.key]; if (d) { e.preventDefault(); step(d); lbShow(); } });
     lb.addEventListener("close", () => { show("photo"); $("[data-all]", note)?.focus(); }); // the gallery follows the last photo seen

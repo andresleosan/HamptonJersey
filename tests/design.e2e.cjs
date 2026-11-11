@@ -20,7 +20,9 @@ async function open(browser, width, data = fixture, path = '') {
   page.on('pageerror', e => page.errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|turnstile|challenges/i.test(m.text())) page.errors.push(m.text()); });
   await page.route('**/api/listings', r => r.fulfill({json: data}));
-  await page.route('**/media/DESIGN*', r => r.fulfill({body: image, contentType: 'image/jpeg'}));
+  await page.route('**/media/DESIGN*', r => /DESIGN1(?:\?|$)/.test(r.request().url())
+    ? r.fulfill({body: '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900"><rect width="600" height="900" fill="#876"/></svg>', contentType: 'image/svg+xml'})
+    : r.fulfill({body: image, contentType: 'image/jpeg'}));
   await page.route(/matterport\.com|challenges\.cloudflare\.com/, r => r.abort());
   await page.goto(BASE + path);
   await page.waitForSelector('#app > *');
@@ -180,11 +182,26 @@ async function shot(page, name, width) {
         assert.equal(await page.textContent('.summary .place'), 'For sale in St Saviour');
         assert.ok(!(await page.locator('.facts-list dt').allTextContents()).includes('Operation'));
         assert.equal(await page.locator('.stage-track > *').count(), 17);
+        await page.waitForFunction(() => document.querySelector('.stage-frame img').naturalWidth > 0);
+        const landscapeHeight = await page.$eval('#stage', el => el.getBoundingClientRect().height);
+        await page.evaluate(() => document.querySelector('#stage').scrollIntoView({block: 'center', behavior: 'instant'}));
+        await page.click('.stage-nav.next');
+        await page.waitForFunction(() => document.querySelector('#stage-note').textContent.includes('Photo 2 of 17') && document.querySelectorAll('.stage-frame img')[1].naturalWidth > 0);
+        assert.equal(await page.$eval('.stage-frame img', el => getComputedStyle(el).objectFit), 'contain', 'photos are not cropped');
+        assert.ok(await page.$eval('#stage', (el, h) => el.getBoundingClientRect().height > h, landscapeHeight), 'portrait expands the viewer');
+        await page.click('.stage-nav.prev');
+        await page.waitForFunction(() => document.querySelector('#stage-note').textContent.includes('Photo 1 of 17'));
+        assert.ok(await page.$eval('#stage', (el, h) => Math.abs(el.getBoundingClientRect().height - h) < 2, landscapeHeight), 'viewer returns to landscape height');
+        assert.equal(await page.$eval('#stage', el => getComputedStyle(el).transitionDuration), '0s', 'reduced motion disables height transition');
+        await page.emulateMedia({reducedMotion: 'no-preference'});
+        assert.equal(await page.$eval('#stage', el => getComputedStyle(el).transitionDuration), '0.35s', 'height change is animated');
+        await page.emulateMedia({reducedMotion: 'reduce'});
         await page.$eval('.stage-track', t => { t.scrollLeft = t.clientWidth * 2; });
         await page.waitForFunction(() => document.querySelector('#stage-note').textContent.includes('Photo 3 of 17'));
         await page.click('#thumbs [data-i="4"]');
         await page.waitForFunction(() => document.querySelector('#stage-note').textContent.includes('Photo 5 of 17'));
         await page.click('[data-all]'); assert.equal(await page.textContent('#lb-count'), '5 / 17');
+        assert.equal(await page.$eval('#lb-img', el => getComputedStyle(el).objectFit), 'contain');
         await shot(page, 'lightbox', width);
         await page.evaluate(() => { window.galleryClosed = new Promise(done => document.querySelector('#lightbox').addEventListener('close', () => done(true), {once: true})); });
         await page.keyboard.press('Escape'); await page.evaluate(() => window.galleryClosed);
