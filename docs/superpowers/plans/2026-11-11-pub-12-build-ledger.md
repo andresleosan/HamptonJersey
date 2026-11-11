@@ -24,3 +24,10 @@ Revisión independiente de la rama: dos hallazgos corregidos. El test de zoom co
 
 - Revisión del cambio local y eventual integración de PUB-12; PUB-02 conecta la política a las rutas con sus propias guardias. Ninguna ruta de publicación se modificó en este tramo.
 - La API actual falla la lectura completa ante error de D1; una respuesta incompleta de media se trata como error. No se deduce disponibilidad de medios de las pruebas sintéticas.
+
+
+## Reconciliación · 11-nov-2026
+
+El código de PUB-12 consta en `4947b0c`, ancestro de `2878719`; Cloudflare Pages y Workers Builds de este último SHA terminaron correctamente según la comprobación previa. El editor y la política pura corresponden al contrato TP-02. Pruebas focales: 6/6; WebKit aislado con datos ficticios pasó a 1280/390, foco con teclado, conflicto 409, respuesta de media incompleta y zoom CSS 200 %. No se comprobó zoom nativo, lector de pantalla ni flujo autenticado de producción. No se realizó acceso nuevo a producción en esta reconciliación.
+
+La conexión de la política a las rutas reales, guardias transaccionales y requisitos adicionales de Queue pertenece a PUB-02; no se atribuye a PUB-12 ni se afirma activada. El estado `hecho` de PUB-12 y la corrección de la dependencia de PUB-02 se registran en esta reconciliación; la recepción del catálogo por el tablero se verifica tras su despliegue.

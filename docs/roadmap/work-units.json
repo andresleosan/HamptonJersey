@@ -6220,7 +6220,7 @@
       "title": "Publicar la ficha en la web con un botón al tenerla completa",
       "preferredSlot": "codex-desktop",
       "priority": 266,
-      "kind": "decision",
+      "kind": "development",
       "enabled": true,
       "reviewRequired": true,
       "dependencies": [],
@@ -6243,7 +6243,7 @@
         }
       ],
       "acceptance": [
-        "Conservar publicación actual y aplicar únicamente la regla de completitud que Luis decida en PUB-12."
+        "Integrar los mínimos acordados en las vías de publicación y mantener los requisitos adicionales de Queue."
       ]
     },
     {
@@ -6555,7 +6555,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 276,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [

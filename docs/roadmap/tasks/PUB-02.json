@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Luis",
   "hecho": "Publish en el editor (o el interruptor Visible en Listings) pone la ficha al momento en la web de la app, en la portada y en /p/<id>, si tiene una foto pública. Desde el 1-nov-2026 eso es la web oficial, www.hamptonestatesjersey.com.",
-  "falta": "Publicar solo al tenerlo todo depende de los obligatorios (PUB-12).",
+  "falta": "Conectar la política mínima de PUB-12 a todas las vías de publicación con guardias atómicas, preservando los requisitos adicionales de Queue.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/ListingEditor.jsx:256-257",
@@ -23,16 +23,16 @@
   "dependencies": [
     {
       "id": "PUB-12",
-      "requires": "decision",
-      "reason": "Solo el eventual bloqueo por completitud depende de la decisión de Luis; publicación actual se conserva.",
+      "requires": "implementation",
+      "reason": "Consumir la política mínima construida de PUB-12 en las transiciones y guardias reales.",
       "basis": "explicit",
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Luis: decisión de si la completitud debe impedir publicar.",
+  "externalBlocker": "",
   "resources": [
     "listings-schema",
     "listing-editor"
   ],
-  "nextStep": "Conservar publicación actual y aplicar únicamente la regla de completitud que Luis decida en PUB-12."
+  "nextStep": "Integrar los mínimos acordados en las vías de publicación y mantener los requisitos adicionales de Queue."
 }

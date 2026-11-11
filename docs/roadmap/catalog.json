@@ -6220,7 +6220,7 @@
       "title": "Publicar la ficha en la web con un botón al tenerla completa",
       "preferredSlot": "codex-desktop",
       "priority": 266,
-      "kind": "decision",
+      "kind": "development",
       "enabled": true,
       "reviewRequired": true,
       "dependencies": [],
@@ -6243,7 +6243,7 @@
         }
       ],
       "acceptance": [
-        "Conservar publicación actual y aplicar únicamente la regla de completitud que Luis decida en PUB-12."
+        "Integrar los mínimos acordados en las vías de publicación y mantener los requisitos adicionales de Queue."
       ]
     },
     {
@@ -6555,7 +6555,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 276,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -16131,7 +16131,7 @@
       "estado": "parcial",
       "responsable": "Luis",
       "hecho": "Publish en el editor (o el interruptor Visible en Listings) pone la ficha al momento en la web de la app, en la portada y en /p/<id>, si tiene una foto pública. Desde el 1-nov-2026 eso es la web oficial, www.hamptonestatesjersey.com.",
-      "falta": "Publicar solo al tenerlo todo depende de los obligatorios (PUB-12).",
+      "falta": "Conectar la política mínima de PUB-12 a todas las vías de publicación con guardias atómicas, preservando los requisitos adicionales de Queue.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ListingEditor.jsx:256-257",
@@ -16147,18 +16147,18 @@
       "dependencies": [
         {
           "id": "PUB-12",
-          "requires": "decision",
-          "reason": "Solo el eventual bloqueo por completitud depende de la decisión de Luis; publicación actual se conserva.",
+          "requires": "implementation",
+          "reason": "Consumir la política mínima construida de PUB-12 en las transiciones y guardias reales.",
           "basis": "explicit",
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Luis: decisión de si la completitud debe impedir publicar.",
+      "externalBlocker": "",
       "resources": [
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Conservar publicación actual y aplicar únicamente la regla de completitud que Luis decida en PUB-12."
+      "nextStep": "Integrar los mínimos acordados en las vías de publicación y mantener los requisitos adicionales de Queue."
     },
     {
       "id": "PUB-03",
@@ -16479,10 +16479,10 @@
       "titulo": "Campos obligatorios por operación y porcentaje completado antes de Publish",
       "origen": "plan",
       "fase": "F4",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "«Missing from this listing» en el editor lista lo que falta según la operación (precio, parroquia, dormitorios, tenencia en venta, categoría, 5 fotos públicas, portada y resumen) y lleva a cada campo. En una copia local se construyó el porcentaje sobre los mismos criterios, con precio privado, dormitorio cero y fotos guardadas elegibles; falta integrarlo y publicarlo.",
-      "falta": "Integrar y publicar el porcentaje verificado localmente. La política mínima pura de PUB-12 está preparada; PUB-02 debe conectarla y proteger todas las vías de publicación, incluida Queue, sin rebajar sus requisitos adicionales.",
+      "hecho": "El editor calcula porcentaje y faltantes desde los mismos criterios, contempla precio privado, cero dormitorios y fotos guardadas elegibles. La política pura define título, operación y al menos una foto elegible como mínimos, sin exigir 100 %. Código integrado en main 4947b0c y desplegado en Pages; pruebas focales y WebKit aislado 1280/390 aprobados.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ListingEditor.jsx:33-49",
@@ -16493,7 +16493,8 @@
         "tests/listing-completeness.test.js",
         "tests/server/publication-policy.test.mjs",
         "tests/listing-completeness.e2e.cjs",
-        "docs/superpowers/plans/2026-11-11-pub-12-build-ledger.md"
+        "docs/superpowers/plans/2026-11-11-pub-12-build-ledger.md",
+        "docs/superpowers/plans/2026-11-11-pub-12-build-ledger.md#reconciliación--11-nov-2026"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -16505,7 +16506,7 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Revisar e integrar PUB-12; después construir PUB-02 sobre la política, sin confundir recomendaciones con requisitos mínimos."
+      "nextStep": ""
     },
     {
       "id": "PUB-13",
