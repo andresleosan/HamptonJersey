@@ -2,6 +2,8 @@
 
 Actualizado el 11-nov-2026.
 
+11-nov-2026 · **PUB-12: construido localmente, sin integrar ni publicar.** El editor calcula porcentaje y faltantes desde los mismos criterios, usando cambios actuales y fotos guardadas elegibles; dormitorio cero y precio privado cuentan. Una política pura expresa los mínimos acordados (título, operación y una foto elegible); aún no modifica las rutas Publish ni Queue: esa integración corresponde a PUB-02. Pruebas focales 6/6 y navegador aislado 1280/390, foco, conflicto y zoom CSS 200 % aprobados; build y check:release aprobados. La suite general y los controles de catálogo constan en el [ledger](../superpowers/plans/2026-11-11-pub-12-build-ledger.md). Sin migración ni cambios en producción.
+
 Siguiente paso Codex: verificar PUB-04 en un navegador autorizado y ejecutar el E2E pendiente.
 
 11-nov-2026 · **PUB-04: código integrado y desplegado; navegador pendiente.** La dirección exacta solo sale si consentimiento, referencia y hash del DTO/SEO/JSON-LD/medios/Drive están vigentes; textos con edificio y calle sin revisión ocultan la ficha. Ninguna ficha previa obtuvo permiso automático. `0040` se aplicó y verificó en D1; `main` avanzó a `13a1a51` y Pages/Jobs terminaron correctamente. Pasaron 97 tests focales, build y release. El E2E con navegador no se ejecutó porque falta `playwright-core`; el smoke HTTP automatizado recibió 403/1010 de Cloudflare. [Plan](../superpowers/plans/2026-11-08-pub-04-listing-address-condition.md) · [ledger](../superpowers/plans/2026-11-11-pub-04-internal-details-ledger.md).

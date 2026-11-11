@@ -16478,25 +16478,31 @@
       "fase": "F4",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "«Missing from this listing» en el editor lista lo que falta según la operación (precio, parroquia, dormitorios, tenencia en venta, categoría, 5 fotos públicas, portada y resumen) y lleva a cada campo.",
-      "falta": "Se puede hacer ya el porcentaje completado. Publish no se bloquea por debajo del 100 % («You can still publish without them», decisión J6 del spec de campos de Jersey), al revés que el plan: bloquearlo o no lo decide Luis.",
-      "bloqueo": "Decisión de Luis",
+      "hecho": "«Missing from this listing» en el editor lista lo que falta según la operación (precio, parroquia, dormitorios, tenencia en venta, categoría, 5 fotos públicas, portada y resumen) y lleva a cada campo. En una copia local se construyó el porcentaje sobre los mismos criterios, con precio privado, dormitorio cero y fotos guardadas elegibles; falta integrarlo y publicarlo.",
+      "falta": "Integrar y publicar el porcentaje verificado localmente. La política mínima pura de PUB-12 está preparada; PUB-02 debe conectarla y proteger todas las vías de publicación, incluida Queue, sin rebajar sus requisitos adicionales.",
+      "bloqueo": "",
       "evidencia": [
         "admin/src/ListingEditor.jsx:33-49",
         "admin/src/ListingEditor.jsx:158-164",
-        "docs/superpowers/specs/2026-10-25-hampton-app-jersey-fields-design.md:30"
+        "docs/superpowers/specs/2026-10-25-hampton-app-jersey-fields-design.md:30",
+        "admin/src/listing-completeness.js",
+        "server/publication-policy.js",
+        "tests/listing-completeness.test.js",
+        "tests/server/publication-policy.test.mjs",
+        "tests/listing-completeness.e2e.cjs",
+        "docs/superpowers/plans/2026-11-11-pub-12-build-ledger.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
       "dependencies": [],
-      "externalBlocker": "Luis: decidir bloqueo por completitud; porcentaje puede construirse sin anticipar esa decisión.",
+      "externalBlocker": "",
       "resources": [
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Construir porcentaje completado y dejar el bloqueo de publicación pendiente de decisión expresa de Luis."
+      "nextStep": "Revisar e integrar PUB-12; después construir PUB-02 sobre la política, sin confundir recomendaciones con requisitos mínimos."
     },
     {
       "id": "PUB-13",

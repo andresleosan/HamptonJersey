@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show, TENURE, HOUSING, RESTRICTION } from "./format.js";
 import MediaManager from "./MediaManager.jsx";
+import { listingCriteria, listingCompleteness } from "./listing-completeness.js";
 import Research from "./Research.jsx";
 import { setUnsaved } from "./unsaved.js";
 import { OPTIONS, isActive } from "../../server/applicants.js";
@@ -46,23 +47,6 @@ const MATCH_STATUS = { found: ["Found", "neutral"], shortlisted: ["Shortlisted",
 // J2: the Jersey fields (server/listing.js ENUMS, labels in format.js); blank = not set (for restriction, none).
 // Housing category and restriction concern homes in Jersey (Control of Housing and Work Law).
 const jerseyHome = f => f.use === "residential" && f.country === "Jersey";
-const AMOUNT = { sale: ["sale_price", "Add the sale price"], rent: ["rent", "Add the rent"], business: ["premium", "Add the business premium"] };
-const MIN_PHOTOS = 5;
-// J6 Before you publish: what the listing still lacks, from the form as typed and the photos as saved. [target id, text]:
-// a field's id (focused when clicked) or a section's.
-function missing(form, parish, photos, coverId) {
-  const out = [], blank = v => String(v ?? "").trim() === "";
-  const [price, addPrice] = AMOUNT[form.operation] ?? [];
-  if (price && blank(form[price])) out.push([`f-${price}`, addPrice]);
-  if (form.country === "Jersey" && !parish) out.push(["f-parish", "Choose the parish"]);
-  if (form.use === "residential" && blank(form.bedrooms)) out.push(["f-bedrooms", "Add the bedrooms"]);
-  if (form.operation === "sale" && !form.tenure_type) out.push(["f-tenure_type", "Choose the tenure"]);
-  if (jerseyHome(form) && !form.housing_category) out.push(["f-housing_category", "Choose the housing category"]);
-  if (photos.length < MIN_PHOTOS) out.push(["h-photos", `Add photos for the website (${photos.length} of ${MIN_PHOTOS})`]);
-  if (!photos.some(m => m.id === coverId)) out.push(["h-photos", "Choose a cover photo"]);
-  if (blank(form.summary)) out.push(["f-summary", "Add a summary"]);
-  return out;
-}
 const DONE = { publish: "Published: now on the website (may take a minute).", unpublish: "Unpublished: no longer on the website.",
   archive: "Archived. You can restore it from Archived.", restore: "Restored as a draft." };
 
@@ -85,6 +69,7 @@ export default function ListingEditor({ id, onChange }) {
     const n=++loadRequest.current;
     setLoadErr(null);
     try {const d=await api(`/admin/listings/${id}`);if(n!==loadRequest.current)return;
+      if (!Array.isArray(d.media)) throw new Error("Listing photos could not be loaded. Reload and try again.");
       setData(d);setForm(toForm(d.listing));setDetailsForm(toDetailsForm(d.details));setAddressReview(null);setAddressReviewError(null);
       setAddressEvidenceRef("");setAddressReviewAuthorized(false);setMatchForm(toMatchForm(d.listing));setErrors({});setDeleted(false);historyChanged();
     } catch(e) {
@@ -250,7 +235,9 @@ export default function ListingEditor({ id, onChange }) {
   const options = obj => Object.entries(obj).map(([k, v]) => <option key={k} value={k}>{v}</option>);
   const publicPhotos = data.media.filter(m => m.public && m.kind === "photo" && m.r2_key && m.origin !== "external");
   const publicPhoto = publicPhotos.length > 0;
-  const todo = missing(form, matchForm.parish, publicPhotos, l.cover_media_id);
+  const criteria = listingCriteria(form, matchForm.parish, data.media, l.cover_media_id);
+  const completeness = listingCompleteness(criteria);
+  const todo = criteria.filter(c => c.met === false);
   const goTo = id => {
     const el = document.getElementById(id), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
     el.focus({ preventScroll: true }); el.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "center" });
@@ -309,10 +296,12 @@ export default function ListingEditor({ id, onChange }) {
         <button type="button" className="btn ghost sm" onClick={stillAvailable} disabled={confirming}>Still available</button></div>}
       {state !== "archived" && <section className={`card prepub${todo.length ? "" : " done"}`} aria-labelledby="h-prepub">
         <h2 id="h-prepub">Missing from this listing</h2>
-        {todo.length ? <><p className="muted">You can still publish without them.</p>
-          <ul>{todo.map(([target, text]) => <li key={text}>
-            <button type="button" className="linkish" onClick={() => goTo(target)}>{text}</button></li>)}</ul></>
-          : <p className="muted">Nothing missing.</p>}
+        {completeness ? <p><strong>{completeness.percentage}% complete</strong> ({completeness.met} of {completeness.total})</p>
+          : <p role="status">Completeness is unavailable while photos are not loaded.</p>}
+        <p className="muted">Based on current edits and saved photos. You do not need 100% to publish. Save your changes before publishing.</p>
+        {todo.length ? <ul>{todo.map(({id, target, label}) => <li key={id}>
+          <button type="button" className="linkish" onClick={() => goTo(target)}>{label}</button></li>)}</ul>
+          : completeness && <p className="muted">Nothing missing.</p>}
       </section>}
       <section id="s-details" className="card" aria-labelledby="h-details"><h2 id="h-details">Details</h2><div className="grid2">
         {field("title", "Title", <input {...ctl("title")} maxLength={200} required />)}
