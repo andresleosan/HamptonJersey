@@ -2,7 +2,7 @@
 
 > Reconciliación TP-05 · 10-nov-2026: alcance, decisiones y dependencias vigentes en [índice consolidado](2026-11-10-tp05-construction-index.md) y [maestro](../../roadmap/2026-11-10-plan-maestro-vigente.md). Este plan no acredita construcción, publicación o activación.
 
-> **Revalidación · 11-nov-2026:** sobre `main` `37d0287a67d9776f050400bab595bd681ee43b39`, Luis autorizó publicar dirección exacta solo tras revisión explícita por ficha: consentimiento del propietario, referencia de evidencia y preview completo. El hash cubre DTO público, title/summary/description/media alt, SEO/JSON-LD y título actual de carpeta Drive; cualquier cambio requiere revisión nueva. Después autorizó push, unión a `main` y publicación en producción. La migración `0040` es necesaria antes de activar el código; el estado de ejecución se debe verificar. `property_condition` sigue compartido con PUB-05. Evidencia en [ledger](2026-11-11-pub-04-internal-details-ledger.md).
+> **Revalidación · 11-nov-2026:** sobre `main` `37d0287a67d9776f050400bab595bd681ee43b39`, Luis autorizó publicar dirección exacta solo tras revisión explícita por ficha: consentimiento del propietario, referencia de evidencia y preview completo. El hash cubre DTO público, title/summary/description/media alt, SEO/JSON-LD y título actual de carpeta Drive; cualquier cambio requiere revisión nueva. Luis autorizó push, unión a `main` y producción. `0040` se aplicó y verificó; el código `13a1a51486da948c9ed0a289b6cbb198c0fa81aa` llegó a `main`, con Pages y Jobs correctos. La comprobación HTTP automatizada recibió 403/1010 de Cloudflare y el E2E de navegador sigue pendiente. Evidencia en [ledger](2026-11-11-pub-04-internal-details-ledger.md).
 
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans task-by-task. La decisión posterior del 11-nov permite publicación exacta solo con revisión por ficha y autoriza integrar en `main`. Steps use checkbox (`- [ ]`) syntax.
@@ -17,7 +17,7 @@
 
 **Dependencies:** PUB-01 consume; BUS-10 identifica propio/externo; EST-18 versiona.
 
-**Readiness:** datos internos, editor y revisión de dirección exacta construidos y revisados localmente. La integración y activación se ejecutan con la autorización posterior de Luis y requieren comprobar `0040` y el despliegue real.
+**Readiness:** datos internos, editor y revisión de dirección exacta integrados y desplegados. Falta verificar el flujo en un navegador con acceso y completar el E2E pendiente.
 
 ## Global Constraints
 
@@ -66,10 +66,10 @@ La API de dirección pública solo añade `exactAddress` cuando coincide el snap
 
 ## Cierre futuro
 
-- [ ] Resolver las decisiones humanas que afectan la tarea y actualizar spec/plan/readiness antes de construir ese tramo. Una investigación/gestión/activación no se declara código completo por estar planificada.
+- [x] Resolver la política de dirección exacta e incorporar la autorización de integración y producción.
 - [x] `npm run build`, `npm run check:release`, 14 pruebas Python y regresiones focales de servidor PASS. `npm test` reportó 1.142/1.148 PASS; seis pruebas UI no arrancaron por dependencia local ausente `jsdom`.
 - [ ] E2E/Playwright a 1280/390, foco/teclado/zoom200 y revisión visual: bloqueados en este entorno por ausencia local de `playwright-core`; el navegador conectado rechazó el arranque con sandbox como root. No se desactivó el sandbox.
 - [x] Actualizados ledger de ejecución, checklist y ESTADO con diferencias entre el checkpoint local, la integración y la activación por verificar.
 
 
-**Snapshot público:** implementado con revisión hashada por ficha. Ninguna ficha existente se autorizó automáticamente; las carpetas Drive no se renombraron. En el checkpoint previo al despliegue, `0040` era la única migración pendiente y se comprobó un punto de recuperación D1. La publicación y su resultado deben verificarse por separado de esta preparación.
+**Snapshot público:** implementado con revisión hashada por ficha. Ninguna ficha existente se autorizó automáticamente; las carpetas Drive no se renombraron. `0040` se aplicó y comprobó en producción antes del avance de `main`; Pages y Jobs terminaron correctamente para `13a1a51`. El acceso HTTP automatizado recibió 403/1010, por lo que no se acredita un smoke público desde este entorno.

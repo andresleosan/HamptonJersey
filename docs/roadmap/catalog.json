@@ -16201,8 +16201,8 @@
       "fase": "F4",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "En listings y Details: referencia HE-R/HE-C/HE-I, Use, Operation, Availability, Country, Location, Road y Parish. Localmente, `listing_details` añade edificio/unidad, postcode y promotor; `property_condition` se comparte con PUB-05. La dirección exacta puede publicarse por ficha tras preview completo, aceptación explícita y referencia de evidencia. Hash/CAS invalidan cambios; título de carpeta Drive forma parte de la revisión, sin renombrado automático; textos que ya revelan edificio y calle quedan ocultos hasta revisión.",
-      "falta": "Aplicar y verificar 0040, integrar en main y comprobar el despliegue autorizado. El E2E con navegador requiere Playwright disponible. Ninguna ficha existente tiene aprobación automática. Replanteado para Jersey (§5.10), no falta: ciudad y zona o barrio pasan a la parroquia.",
+      "hecho": "En listings y Details: referencia HE-R/HE-C/HE-I, Use, Operation, Availability, Country, Location, Road y Parish. `listing_details` añade edificio/unidad, postcode y promotor; `property_condition` se comparte con PUB-05. La dirección exacta puede publicarse por ficha tras preview completo, aceptación explícita y referencia de evidencia. Hash/CAS invalidan cambios; el título Drive forma parte de la revisión y textos que ya revelan edificio y calle quedan ocultos hasta revisión. `0040` aplicada e integrada en main `13a1a51`; Pages y Jobs correctos.",
+      "falta": "Ejecutar el E2E y verificar el flujo en un navegador autorizado: el smoke automatizado recibió 403/1010 de Cloudflare. Ninguna ficha existente tiene aprobación automática. Replanteado para Jersey (§5.10), no falta: ciudad y zona o barrio pasan a la parroquia.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ListingEditor.jsx:165-189",
@@ -16226,7 +16226,7 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Aplicar y verificar 0040, integrar la rama PUB-04 en main y comprobar el despliegue autorizado."
+      "nextStep": "Verificar en navegador autorizado los flujos público y administrativo y ejecutar el E2E pendiente."
     },
     {
       "id": "PUB-05",

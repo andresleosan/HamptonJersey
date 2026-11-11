@@ -1,6 +1,6 @@
 # PUB-04 · Evidencia de construcción local de datos internos
 
-Fecha: 11-nov-2026. Estado: **construido localmente; no integrado ni activado**. PUB-04 sigue parcial.
+Fecha: 11-nov-2026. Estado: **código integrado y desplegado; verificación en navegador pendiente**. PUB-04 sigue parcial por esa comprobación.
 
 ## Revalidación de alcance · 11-nov-2026
 
@@ -32,11 +32,17 @@ Fecha: 11-nov-2026. Estado: **construido localmente; no integrado ni activado**.
 - Última `npm test` completa, ejecutada antes de añadir esas dos regresiones: 1.142/1.148 PASS. Seis suites DOM no arrancan porque falta el paquete local `jsdom`; no son fallos de aserciones. No se repitió la suite completa tras las dos regresiones; las pruebas backend focales sí se repitieron.
 - `python3 -m unittest tests/test_import.py`: 14/14 PASS.
 - `npm run build` y `git diff --check`: PASS tras el flujo de revisión. Vite conserva su aviso de chunk de más de 500 kB.
-- `node --check tests/listing-address.e2e.cjs`: PASS. `npm run test:e2e` no pudo cargar `playwright-core`. La migración 0040 se aplicó solo a la D1 temporal local del runner. El navegador conectado también rechazó el arranque porque su sandbox de Chromium no puede ejecutarse como root; no se desactivó el sandbox.
-- Los helpers de D1 en memoria aplicaron las migraciones para las pruebas de API/eventos. No se usaron datos de clientes ni servicios remotos.
+- `node --check tests/listing-address.e2e.cjs`: PASS. `npm run test:e2e` no pudo cargar `playwright-core`; el runner usó D1 temporal local. El navegador conectado también rechazó el arranque porque su sandbox de Chromium no puede ejecutarse como root; no se desactivó el sandbox.
+- Los helpers de D1 en memoria aplicaron las migraciones para las pruebas de API/eventos. Esas pruebas no usaron datos de clientes.
+
+## Integración y producción
+
+- Antes de aplicar `0040`, era la única migración pendiente en `hampton`; el esquema y el trigger coincidían con la base, y se obtuvo un punto de recuperación D1. Tras aplicarla, no quedaron migraciones pendientes y los objetos y el trigger coincidieron con la migración revisada.
+- GitHub impidió crear una rama nueva por su regla de creación. El árbol y commit remotos coincidieron exactamente con el local; `main` avanzó sin `force` desde `37d0287` a `13a1a51486da948c9ed0a289b6cbb198c0fa81aa`. Pages y Workers Builds `hampton-jobs` terminaron correctamente para ese SHA.
+- La comprobación HTTP automatizada del sitio recibió 403/1010 de Cloudflare por la firma del cliente. No se modificó el control ni se acredita un smoke público desde este entorno.
 
 ## Privacidad, Centinela y pendientes
 
 - La alerta `private-key-or-token-output` correspondió al patrón sintético ya conocido del arnés local de pruebas. Se clasificó como falso positivo, sin evidencia de credenciales de producción expuestas ni compromiso activo. No se hicieron cambios de seguridad ni se consultó el VPS.
 - La interfaz E2E no pudo ejecutarse sin `playwright-core`; su sintaxis pasa. Ninguna ficha existente recibió consentimiento ni se publicó automáticamente.
-- En el checkpoint previo a publicar, `0040` era la única migración pendiente en la base `hampton`; se comprobó el esquema esperado y se obtuvo un punto de recuperación D1. La aplicación, el merge y el despliegue deben verificarse tras ejecutarlos.
+- Falta ejecutar el E2E y verificar el flujo público y administrativo desde un navegador autorizado.
