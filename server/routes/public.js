@@ -10,7 +10,7 @@ import { validateApplicant, OPTIONS } from "../applicants.js";
 import { afterSave, recomputeForApplicant } from "../match-store.js";
 import { touchByViewing } from "../retention.js";
 import { chatOn } from "../chat.js";
-import { publicViewingSummary } from "../public-viewing-summary.js";
+import { confirmedViewingSql, confirmedViewingWindow } from "../public-viewing-summary.js";
 
 export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
 
@@ -18,17 +18,19 @@ const LIVE = "l.published = 1 AND l.archived_at IS NULL";
 
 // The live listings, all or the one with that id, each as its row (with its active interest, C10) and its public
 // shape: one D1 round trip (S2).
-export async function readLive(env, id) {
-  const one = id ? " AND l.id = ?" : "", args = id ? [id] : [];
-  const [{ results: listings }, { results: media }] = await env.DB.batch([
+export async function readLive(env, id, { viewingClock } = {}) {
+  const window = viewingClock ? confirmedViewingWindow(viewingClock) : null;
+  const one = id ? " AND l.id = ?" : "", args = id ? [id] : [], interest = interestDates();
+  const queries = () => [
     env.DB.prepare(`SELECT l.*, d.building_name_or_number,d.postcode,d.public_address_snapshot,d.public_address_snapshot_hash,
       (SELECT folder_name FROM drive_imports di WHERE di.folder_id=l.drive_folder_id ORDER BY di.id DESC LIMIT 1) AS drive_folder_name,
-      (${interestSql("l.id")}) AS active_interest
+      (${interestSql("l.id")}) AS active_interest${window ? `, (${confirmedViewingSql("l.id")}) AS confirmed_viewings` : ""}
       FROM listings l LEFT JOIN listing_details d ON d.listing_id=l.id WHERE ${LIVE}${one} ORDER BY l.id`)
-      .bind(...interestDates(), ...args),
+      .bind(...interest, ...(window?.binds ?? []), ...args),
     env.DB.prepare(`SELECT m.* FROM media m JOIN listings l ON l.id = m.listing_id
      WHERE ${LIVE} AND m.public = 1${one} ORDER BY m.position, m.id`).bind(...args),
-  ]);
+  ];
+  const [{ results: listings }, { results: media }] = await env.DB.batch(queries());
   const by = groupBy(media, "listing_id");
   const reviewed = await Promise.all(listings.map(async l => {
     const publicMedia = by[l.id] || [];
@@ -46,6 +48,15 @@ export async function readLive(env, id) {
     if (!authorized && addressAppearsInPublicContent(l, addressDetailsFromListing(l), privateShape)) return null;
     return { row: l, pub: privateShape };
   }));
+  if (window) {
+    // Address review hashes asynchronously. Fail closed if any public input or count changed while it ran.
+    const [currentListings, currentMedia] = await env.DB.batch(queries());
+    const currentClock = jerseyNow();
+    if (JSON.stringify(currentListings.results) !== JSON.stringify(listings) ||
+        JSON.stringify(currentMedia.results) !== JSON.stringify(media) ||
+        currentClock.date !== viewingClock.date || currentClock.time !== viewingClock.time)
+      fail(503, "Availability changed. Please try again.");
+  }
   return reviewed.filter(Boolean);
 }
 const listPublic = async ({ env }) => {
@@ -72,10 +83,11 @@ async function availability({ request, env }) {
   if (listingId && !(await readLive(env, listingId)).length) fail(404, "Unknown property");
   const a = await loadAvailability(env, { ...availabilityRange(q, plusDays(clock.date, 1)),
     now: clock, fromTomorrow: true, listingId });
-  const summary = listingId ? await publicViewingSummary(env, { listing_id: listingId }) : null;
-  // Visibility may have been revoked while availability and the aggregate were being read.
-  if (listingId && !(await readLive(env, listingId)).length) fail(404, "Unknown property");
-  return json({ ...(listingId ? { confirmed_viewings_this_week: summary?.booked_this_week ?? null } : {}), slot_minutes: SLOT_MINUTES, negotiators: a.negotiators.map(({ id, name, role }) => ({ id, name, role })),
+  // Count and visibility are read in one D1 batch, so they describe the same snapshot.
+  const visible = listingId ? (await readLive(env, listingId, {viewingClock: jerseyNow()}))[0] : null;
+  if (listingId && !visible) fail(404, "Unknown property");
+  const count = visible?.row.confirmed_viewings;
+  return json({ ...(listingId ? { confirmed_viewings_this_week: count >= 2 ? count : null } : {}), slot_minutes: SLOT_MINUTES, negotiators: a.negotiators.map(({ id, name, role }) => ({ id, name, role })),
     days: a.days, ...(listingId == null ? {} : { property_viewings_enabled: a.property_viewings_enabled }) }, 200, { "cache-control": "no-store" });
 }
 
