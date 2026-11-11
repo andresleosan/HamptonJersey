@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-09",
+  "updatedAt": "2026-11-10",
   "source": "catalog.json",
   "policy": "Agrupación por etapas. Conserva códigos, listas, estados, dependencias y autorizaciones individuales.",
   "defaultOrder": [
@@ -73,7 +73,26 @@
             "SPR-02"
           ]
         }
-      ]
+      ],
+      "planReferences": {
+        "SPR-02": {
+          "plan": "docs/superpowers/plans/2026-11-08-spr-02-property-local-history.md",
+          "requiredComplements": [],
+          "planningStatus": "existing_code_continuity_and_remaining_integration",
+          "originalBatch": 5,
+          "constructionDependencies": [
+            {
+              "id": "EST-18",
+              "requires": "integrated",
+              "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+              "basis": "explicit",
+              "scope": "whole"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        }
+      }
     },
     {
       "id": "PAQ-02",
@@ -243,7 +262,33 @@
             "SPR-07"
           ]
         }
-      ]
+      ],
+      "planReferences": {
+        "SPR-07": {
+          "plan": "docs/superpowers/plans/2026-11-08-spr-07-source-and-verification-filters.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 5,
+          "constructionDependencies": [
+            {
+              "id": "BUS-10",
+              "requires": "integrated",
+              "reason": "Solo la procedencia y filtros del inventario común esperan la propiedad normalizada; la tarjeta propia existe.",
+              "basis": "explicit",
+              "scope": "partial"
+            },
+            {
+              "id": "EST-16",
+              "requires": "integrated",
+              "reason": "Solo separar observación y confirmación del inventario común espera ese contrato.",
+              "basis": "explicit",
+              "scope": "partial"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        }
+      }
     },
     {
       "id": "PAQ-06",
@@ -417,7 +462,71 @@
             "SAP-09"
           ]
         }
-      ]
+      ],
+      "planReferences": {
+        "SPR-03": {
+          "plan": "docs/superpowers/plans/2026-11-08-spr-03-private-property-capture.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 5,
+          "constructionDependencies": [
+            {
+              "id": "AGE-06",
+              "requires": "integrated",
+              "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+              "basis": "explicit",
+              "scope": "whole"
+            },
+            {
+              "id": "BUS-10",
+              "requires": "integrated",
+              "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+              "basis": "explicit",
+              "scope": "whole"
+            },
+            {
+              "id": "EST-13",
+              "requires": "integrated",
+              "reason": "Dependencia indicada expresamente en el alcance pendiente del checklist.",
+              "basis": "explicit",
+              "scope": "whole"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "SPR-08": {
+          "plan": "docs/superpowers/plans/2026-11-08-spr-08-property-notes-viewings-adverts.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 5,
+          "constructionDependencies": [
+            {
+              "id": "BUS-10",
+              "requires": "integrated",
+              "reason": "El tramo Adverts consume propiedad/publicaciones comunes; Notes puede avanzar con contrato propio.",
+              "basis": "explicit",
+              "scope": "partial"
+            },
+            {
+              "id": "SPR-03",
+              "requires": "integrated",
+              "reason": "Solo estado y descargas de archivos capturados necesitan captura privada.",
+              "basis": "explicit",
+              "scope": "partial"
+            },
+            {
+              "id": "EST-18",
+              "requires": "integrated",
+              "reason": "Solo historial de notas/cambios requiere eventos; evitar bloquear el diseño de pestañas.",
+              "basis": "explicit",
+              "scope": "partial"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        }
+      }
     },
     {
       "id": "PAQ-10",
@@ -516,7 +625,44 @@
             "OFE-07"
           ]
         }
-      ]
+      ],
+      "planReferences": {
+        "PRE-28": {
+          "plan": "docs/superpowers/plans/2026-11-09-tp01-pre-28-plan.md",
+          "requiredComplements": [],
+          "planningStatus": "management_plan_defined_no_product_build",
+          "originalBatch": 9,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PRE-13": {
+          "plan": "docs/superpowers/plans/2026-11-09-tp01-pre-13-plan.md",
+          "requiredComplements": [],
+          "planningStatus": "management_plan_defined_no_product_build",
+          "originalBatch": 9,
+          "constructionDependencies": [
+            {
+              "id": "PRE-28",
+              "requires": "decision",
+              "reason": "Los acuerdos dependen de la titularidad de las cuentas.",
+              "basis": "explicit",
+              "scope": "whole"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PRE-33": {
+          "plan": "docs/superpowers/plans/2026-11-08-pre-33-hermes-existing-agreements-handoff.md",
+          "requiredComplements": [],
+          "planningStatus": "management_plan_defined_no_product_build",
+          "originalBatch": 9,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        }
+      }
     },
     {
       "id": "PAQ-12",
@@ -552,7 +698,90 @@
             "PUB-20"
           ]
         }
-      ]
+      ],
+      "planReferences": {
+        "PUB-10": {
+          "plan": "docs/superpowers/plans/2026-11-10-pub-10-registro-propietarios.md",
+          "requiredComplements": [],
+          "planningStatus": "defined_scope_activation_or_producer_evidence_pending",
+          "originalBatch": 6,
+          "constructionDependencies": [
+            {
+              "id": "PRE-03",
+              "requires": "decision",
+              "reason": "Formulario espera confirmación de registro JOIC de Hampton.",
+              "basis": "explicit",
+              "scope": "whole"
+            },
+            {
+              "id": "PRE-09",
+              "requires": "integrated",
+              "reason": "Aviso debe cubrir propietarios antes de recibir sus datos.",
+              "basis": "explicit",
+              "scope": "whole"
+            }
+          ],
+          "additionalChecks": [
+            "PRE-03",
+            "PRE-09"
+          ],
+          "buildAuthorized": false
+        },
+        "ANA-10": {
+          "plan": "docs/superpowers/plans/2026-11-10-ana-10-qr-agregado.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 6,
+          "constructionDependencies": [
+            {
+              "id": "PUB-16",
+              "requires": "integrated",
+              "reason": "Verificar retirada, visibilidad y caché antes de activar QR.",
+              "basis": "explicit",
+              "scope": "partial"
+            }
+          ],
+          "additionalChecks": [
+            "PUB-16"
+          ],
+          "buildAuthorized": false
+        },
+        "PUB-19": {
+          "plan": "docs/superpowers/plans/2026-11-10-pub-19-demanda-propietarios.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_activation_pending",
+          "originalBatch": 6,
+          "constructionDependencies": [
+            {
+              "id": "ANA-07",
+              "requires": "integrated",
+              "reason": "La página consume demanda agregada con umbral de privacidad.",
+              "basis": "explicit",
+              "scope": "whole"
+            },
+            {
+              "id": "PUB-10",
+              "requires": "integrated",
+              "reason": "Solo el enlace de conversión operativo necesita valoración disponible; cifras agregadas pueden diseñarse antes.",
+              "basis": "explicit",
+              "scope": "partial"
+            }
+          ],
+          "additionalChecks": [
+            "PRE-09"
+          ],
+          "buildAuthorized": false
+        },
+        "PUB-20": {
+          "plan": "docs/superpowers/plans/2026-11-10-pub-20-folleto-qr.md",
+          "requiredComplements": [],
+          "planningStatus": "later_phase",
+          "originalBatch": 6,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        }
+      }
     },
     {
       "id": "PAQ-13",
@@ -820,7 +1049,216 @@
             "PUB-18"
           ]
         }
-      ]
+      ],
+      "planReferences": {
+        "PUB-01": {
+          "plan": "docs/superpowers/plans/2026-11-10-tp02-pub-01-plan.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_pending",
+          "originalBatch": 2,
+          "constructionDependencies": [
+            {
+              "id": "PUB-04",
+              "requires": "design",
+              "reason": "Acordar identificación antes de añadir esa familia al alta; otras familias pueden avanzar.",
+              "basis": "explicit",
+              "scope": "partial"
+            },
+            {
+              "id": "PUB-05",
+              "requires": "design",
+              "reason": "Acordar características antes de añadir esa familia al alta; otras familias pueden avanzar.",
+              "basis": "explicit",
+              "scope": "partial"
+            },
+            {
+              "id": "PUB-06",
+              "requires": "design",
+              "reason": "Acordar economía antes de añadir esa familia al alta; otras familias pueden avanzar.",
+              "basis": "explicit",
+              "scope": "partial"
+            },
+            {
+              "id": "PUB-07",
+              "requires": "design",
+              "reason": "Acordar cumplimiento antes de añadir esa familia al alta; otras familias pueden avanzar.",
+              "basis": "explicit",
+              "scope": "partial"
+            },
+            {
+              "id": "PUB-08",
+              "requires": "design",
+              "reason": "Acordar contenidos antes de añadir esa familia al alta; otras familias pueden avanzar.",
+              "basis": "explicit",
+              "scope": "partial"
+            },
+            {
+              "id": "PUB-09",
+              "requires": "design",
+              "reason": "Acordar trazabilidad antes de añadir esa familia al alta; otras familias pueden avanzar.",
+              "basis": "explicit",
+              "scope": "partial"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PUB-04": {
+          "plan": "docs/superpowers/plans/2026-11-08-pub-04-listing-address-condition.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 1,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PUB-05": {
+          "plan": "docs/superpowers/plans/2026-11-08-pub-05-structured-physical-features.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 1,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PUB-06": {
+          "plan": "docs/superpowers/plans/2026-11-08-pub-06-structured-economic-terms.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 1,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PUB-07": {
+          "plan": "docs/superpowers/plans/2026-11-08-pub-07-technical-compliance-evidence.md",
+          "requiredComplements": [],
+          "planningStatus": "defined_scope_activation_or_producer_evidence_pending",
+          "originalBatch": 1,
+          "constructionDependencies": [
+            {
+              "id": "BUS-13",
+              "requires": "decision",
+              "reason": "Hampton proporciona la categoría de vivienda de sus fichas; no bloquea los demás campos.",
+              "basis": "explicit",
+              "scope": "partial"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PUB-08": {
+          "plan": "docs/superpowers/plans/2026-11-08-pub-08-web-content-tags-video.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 2,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PUB-09": {
+          "plan": "docs/superpowers/plans/2026-11-10-tp04-pub-09-plan.md",
+          "requiredComplements": [],
+          "planningStatus": "own_website_build_contract_defined_external_portals_excluded",
+          "originalBatch": 3,
+          "constructionDependencies": [
+            {
+              "id": "PUB-02",
+              "scope": "component:publication-guards",
+              "consumer_component": "withdrawal-composition",
+              "requires": "integrated",
+              "basis": "TP05 contracts, not whole-task completion"
+            },
+            {
+              "id": "SPR-02",
+              "scope": "component:existing-history-and-listingBatch",
+              "consumer_component": "traceability",
+              "requires": "integrated",
+              "basis": "TP05 contracts, not whole-task completion"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "SPR-01": {
+          "plan": "docs/superpowers/plans/2026-11-08-spr-01-listing-tracking-card-completion.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 1,
+          "constructionDependencies": [
+            {
+              "id": "PUB-06",
+              "requires": "design",
+              "reason": "Coordinar el campo de fecha de disponibilidad que también incorpora PUB-06.",
+              "basis": "inferred",
+              "scope": "partial"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PUB-11": {
+          "plan": "docs/superpowers/plans/2026-11-08-pub-11-media-quality-private-documents.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 4,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PUB-12": {
+          "plan": "docs/superpowers/plans/2026-11-10-tp02-pub-12-plan.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined",
+          "originalBatch": 2,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PUB-02": {
+          "plan": "docs/superpowers/plans/2026-11-10-tp02-pub-02-plan.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined",
+          "originalBatch": 2,
+          "constructionDependencies": [
+            {
+              "id": "PUB-12",
+              "scope": "component:publication-criteria",
+              "consumer_component": "publish-guards",
+              "requires": "integrated",
+              "basis": "TP05 contracts, not whole-task completion"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PUB-14": {
+          "plan": "docs/superpowers/plans/2026-11-08-pub-14-existing-seo-search-console-activation.md",
+          "requiredComplements": [],
+          "planningStatus": "external_verification_or_activation_plan_defined",
+          "originalBatch": 9,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PUB-16": {
+          "plan": "docs/superpowers/plans/2026-11-08-pub-16-website-state-propagation-only.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 3,
+          "constructionDependencies": [
+            {
+              "id": "EST-17",
+              "requires": "integrated",
+              "reason": "Los estados aún pendientes se implementan en el ciclo de ficha EST-17.",
+              "basis": "explicit",
+              "scope": "whole"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        }
+      }
     },
     {
       "id": "PAQ-19",
@@ -854,7 +1292,26 @@
             "PUB-15"
           ]
         }
-      ]
+      ],
+      "planReferences": {
+        "PUB-13": {
+          "plan": "docs/superpowers/plans/2026-11-08-pub-13-evidence-backed-web-copy-drafts.md",
+          "requiredComplements": [],
+          "planningStatus": "defined_scope_activation_or_producer_evidence_pending",
+          "originalBatch": 2,
+          "constructionDependencies": [
+            {
+              "id": "AUT-13",
+              "requires": "activated",
+              "reason": "La operación real de borradores espera Hermes autorizado.",
+              "basis": "explicit",
+              "scope": "whole"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        }
+      }
     },
     {
       "id": "PAQ-20",
@@ -895,7 +1352,113 @@
             "PRE-25"
           ]
         }
-      ]
+      ],
+      "planReferences": {
+        "ANA-01": {
+          "plan": "docs/superpowers/plans/2026-11-10-tp02-ana-01-plan.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined",
+          "originalBatch": 7,
+          "constructionDependencies": [
+            {
+              "id": "PRE-09",
+              "requires": "design",
+              "reason": "Definir aviso y base del vínculo identificable antes de implementarlo.",
+              "basis": "explicit",
+              "scope": "whole"
+            },
+            {
+              "id": "PRE-11",
+              "requires": "design",
+              "reason": "Si se guarda identificador no esencial, revisar consentimiento antes de activarlo.",
+              "basis": "explicit",
+              "scope": "partial"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "ANA-03": {
+          "plan": "docs/superpowers/plans/2026-11-10-tanda7-ana-03-cloudflare.md",
+          "requiredComplements": [],
+          "planningStatus": "external_verification_or_activation_plan_defined",
+          "originalBatch": 7,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "ANA-04": {
+          "plan": "docs/superpowers/plans/2026-11-10-tanda7-ana-04-filtros.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 7,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "ANA-05": {
+          "plan": "docs/superpowers/plans/2026-11-10-tp02-ana-05-plan.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_pending",
+          "originalBatch": 7,
+          "constructionDependencies": [
+            {
+              "id": "VIS-08",
+              "requires": "design",
+              "reason": "Solo medición del tramo de visitas necesita reconciliar su ciclo; tramo web puede avanzar.",
+              "basis": "inferred",
+              "scope": "partial"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "ANA-06": {
+          "plan": "docs/superpowers/plans/2026-11-10-tanda7-ana-06-tiempos.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 7,
+          "constructionDependencies": [
+            {
+              "id": "AGE-06",
+              "requires": "integrated",
+              "reason": "Solo indicador de respuesta de agencia consume esta evidencia; otras métricas del equipo ya existen.",
+              "basis": "inferred",
+              "scope": "partial"
+            },
+            {
+              "id": "AGE-11",
+              "requires": "integrated",
+              "reason": "Solo indicador de primera presentación consume envío real; tiempos de agencia pueden avanzar aparte.",
+              "basis": "explicit",
+              "scope": "partial"
+            }
+          ],
+          "additionalChecks": [
+            "AGE-05",
+            "AGE-06",
+            "AGE-11"
+          ],
+          "buildAuthorized": false
+        },
+        "PUB-17": {
+          "plan": "docs/superpowers/plans/2026-11-10-tanda7-pub-17-salud.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_dependencies_to_verify",
+          "originalBatch": 7,
+          "constructionDependencies": [
+            {
+              "id": "ANA-02",
+              "requires": "integrated",
+              "reason": "La regla consume medición de vistas existente.",
+              "basis": "inferred",
+              "scope": "whole"
+            }
+          ],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        }
+      }
     },
     {
       "id": "PAQ-21",
@@ -937,7 +1500,76 @@
             "PRE-15"
           ]
         }
-      ]
+      ],
+      "planReferences": {
+        "PRE-06": {
+          "plan": "docs/superpowers/plans/2026-11-09-tp01-pre-06-plan.md",
+          "requiredComplements": [],
+          "planningStatus": "build_contract_defined_activation_pending",
+          "originalBatch": 9,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "ANA-09": {
+          "plan": "docs/superpowers/plans/2026-11-08-ana-09-scoped-public-rate-limit.md",
+          "requiredComplements": [],
+          "planningStatus": "external_verification_or_activation_plan_defined",
+          "originalBatch": 9,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PRE-14": {
+          "plan": "docs/superpowers/plans/2026-11-09-tp01-pre-14-plan.md",
+          "requiredComplements": [
+            "docs/superpowers/plans/2026-11-10-tanda8-pre14-cierre.md"
+          ],
+          "planningStatus": "build_contract_defined_activation_pending",
+          "originalBatch": 8,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        },
+        "PRE-16": {
+          "plan": "docs/superpowers/plans/2026-11-09-tp01-pre-16-plan.md",
+          "requiredComplements": [
+            "docs/superpowers/plans/2026-11-09-pre-16-fotos-equipo.md"
+          ],
+          "planningStatus": "code_defined_operations_pending",
+          "originalBatch": 9,
+          "constructionDependencies": [
+            {
+              "id": "PUB-14",
+              "requires": "activated",
+              "reason": "Cerrar la parte de sitemap o WAF antes de dar por completada la transición.",
+              "basis": "explicit",
+              "scope": "partial"
+            },
+            {
+              "id": "ANA-09",
+              "requires": "activated",
+              "reason": "Cerrar la parte de sitemap o WAF antes de dar por completada la transición.",
+              "basis": "explicit",
+              "scope": "partial"
+            }
+          ],
+          "additionalChecks": [
+            "PUB-14",
+            "ANA-09"
+          ],
+          "buildAuthorized": false
+        },
+        "PRE-19": {
+          "plan": "docs/superpowers/plans/2026-11-10-tanda9-pre19-decisiones.md",
+          "requiredComplements": [],
+          "planningStatus": "documentation_defined_no_product_build",
+          "originalBatch": 9,
+          "constructionDependencies": [],
+          "additionalChecks": [],
+          "buildAuthorized": false
+        }
+      }
     },
     {
       "id": "PAQ-22",
@@ -1216,5 +1848,6 @@
     "hermesPrimary": "GPT Sol · Codex",
     "hermesFallback": "DeepSeek v4 · max · OpenCode",
     "fallbackWhen": "Solo cuando Hermes se quede sin acceso a GPT. Confirmar modelo exacto y esfuerzo visibles; no cambiar configuración ni credenciales."
-  }
+  },
+  "planningIndex": "docs/roadmap/PLANES-POR-PAQUETE.md"
 }
