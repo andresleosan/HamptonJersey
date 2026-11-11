@@ -18,10 +18,10 @@
       "area": "Aplicantes, requisitos, matching y estados",
       "capacity": 2,
       "count": 59,
-      "openCount": 35,
+      "openCount": 34,
       "states": {
-        "parcial": 25,
-        "hecho": 18,
+        "parcial": 24,
+        "hecho": 19,
         "pendiente": 8,
         "replanteado": 6,
         "bloqueado": 2
@@ -9301,10 +9301,10 @@
       "titulo": "Web pública sin cookies no esenciales (banner solo si se añaden)",
       "origen": "plan",
       "fase": "—",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "La web no pone cookies propias: el asistente guarda su avance en sessionStorage (lo explica el aviso) y la única cookie es la de sesión del panel. Cloudflare Web Analytics, si Luis lo activa, tampoco usa cookies. En copia local revisable, aún sin publicar: los tours de portada y ficha requieren una elección por proveedor; Vimeo usa dnt=1 y se puede cerrar el reproductor. La ficha se adapta a zoom nativo superior al 200 % en WebKit.",
-      "falta": "Integrar y publicar la implementación tras verificar la base y su despliegue; comprobar el flujo publicado y que el aviso describe la conexión al proveedor. La prueba de galería de main reproduce un aviso de ResizeObserver también sin este cambio y queda registrada por separado. No se ha auditado el almacenamiento real de proveedores.",
+      "hecho": "Los tours externos de portada y ficha esperan una elección individual tras un aviso antes de conectar con el proveedor; se pueden cerrar y Vimeo usa dnt=1. El control sin conexión ofrece reintento. En producción desde el 11-nov-2026 (d0a9877): portada verificada a 1280/390 sin contactar al proveedor; no había una ficha pública con tour para comprobarla en producción, y el recorrido de ficha pasó en WebKit con datos ficticios. No se ha auditado el almacenamiento real de los proveedores ni se afirma ausencia total de cookies.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js:184",
@@ -9327,7 +9327,7 @@
         "public-site",
         "tour-embeds"
       ],
-      "nextStep": "Revisar e integrar el parche, publicar cuando esté autorizado y verificar el flujo; mantener el aviso de galería separado."
+      "nextStep": "Mantener la elección por tour; la revisión del almacenamiento de cada proveedor y el aviso ResizeObserver de la galería son asuntos separados."
     },
     {
       "id": "PRE-12",

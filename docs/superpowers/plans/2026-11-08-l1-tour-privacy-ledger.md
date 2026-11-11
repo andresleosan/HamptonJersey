@@ -29,3 +29,9 @@ Una comprobación adicional de `tests/design.e2e.cjs` notificó `ResizeObserver 
 El control muestra un error y permite reintentar o volver al aviso si `navigator.onLine` indica desconexión; no crea iframe ni cuenta la apertura en ese caso. La prueba de unidad y WebKit verifican desconexión y reconexión simuladas, sin acceso a proveedores externos. En la suite aislada general, el indicador de conexión se simula como activo porque la red del contenedor está deshabilitada y las solicitudes locales siguen funcionando; la prueba focal conserva explícitamente ambos estados.
 
 Batería final tras este cambio: 1.188 JavaScript y 14 Python, build, release y catálogo aprobados. WebKit focal 1280/390 con zoom nativo superior al 200 % aprobado; public/urls aprobados en esta revisión. La ejecución admin/reg17 aprobada corresponde a la revisión inmediatamente anterior, antes de añadir el tratamiento sin conexión. La galería mantiene la advertencia de ResizeObserver reproducida también en la base; no se afirma que esa prueba haya pasado. No se ha publicado.
+
+## Publicación y comprobación · 11-nov-2026
+
+Luis autorizó integrar, publicar y actualizar el checklist. `d0a9877872d2e88d4629fb99b8655b953ee5f068` entró en main por avance normal; los checks Cloudflare Pages y Workers Builds: hampton-jobs terminaron con éxito. Sin migraciones.
+
+WebKit aislado en producción, anónimo y solo GET/HEAD: a 1280 y 390 la portada muestra el aviso, no crea iframe antes de elegir, lo crea al elegir y lo retira al cerrar. Las solicitudes al proveedor se bloquearon; no se enviaron formularios ni se auditó el almacenamiento del proveedor. No había una ficha pública con tour para repetir ese recorrido en producción; su flujo se probó localmente con datos ficticios. El aviso de ResizeObserver de la galería se reprodujo también en la base sin este cambio y queda separado.
