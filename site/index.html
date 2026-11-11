@@ -636,6 +636,7 @@ function bookingForm(pre = {}) {
     `<option value="${p.id}" ${p.id === pre.prop ? "selected" : ""}>${esc(p.title)}, ${esc(priceLabel(p))}</option>`).join("");
   return `${pre.msg ? `<p class="cancelled" role="status">${esc(pre.msg)}</p>` : ""}<form class="tour" novalidate>
     <label class="field"><span>Property</span><select name="prop"><option value="">General enquiry / valuation</option>${opts}</select></label>
+    <p class="hint" data-viewing-summary role="status" aria-live="polite"></p>
     <div class="agents"><p class="hint">Loading available times…</p></div>
     <fieldset class="field"><legend>Viewing type</legend><div class="opts cards">
       <label><input type="radio" name="kind" value="In person" checked><span class="opt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7M5 10v10h14V10M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><b>In person</b><small>At the property with your agent</small></span></label>
@@ -656,7 +657,26 @@ function mountBooking(slot, pre = {}) {
   const form = $("form", slot), el = form.elements, status = $(".form-status", slot), btn = $("button[type=submit]", form);
   const agents = $(".agents", form), when = $(".when", form);
   const v = n => form.querySelector(`[name=${n}]:checked`)?.value;
+  let summaryTimer;
+  const summary = $("[data-viewing-summary]", form);
   let widget = null, A = null, availabilityRequest = 0; // Ignore replies for a previously selected property.
+  const updateSummary = (x, request, query) => {
+    summary.textContent = Number.isSafeInteger(x?.confirmed_viewings_this_week) && x.confirmed_viewings_this_week >= 2
+      ? `${x.confirmed_viewings_this_week} confirmed viewings this week` : "";
+    clearTimeout(summaryTimer);
+    if (!query) return;
+    summaryTimer = setTimeout(async () => {
+      if (request !== availabilityRequest || !slot.contains(form)) return;
+      summary.textContent = "";
+      if (document.hidden) return updateSummary(null, request, query);
+      try {
+        const next = await getJSON("/api/availability" + query);
+        if (request === availabilityRequest && slot.contains(form)) updateSummary(next, request, query);
+      } catch {
+        if (request === availabilityRequest && slot.contains(form)) updateSummary(null, request, query);
+      }
+    }, 60000);
+  };
   if (TS_KEY) tsReady.then(() => { if ($(".ts", slot)) widget = turnstile.render($(".ts", slot), {sitekey: TS_KEY}); });
   // Script blocked (content blocker, network): don't leave the visitor at a check they can't complete.
   if (TS_KEY) setTimeout(() => { if (widget == null && document.body.contains(form))
@@ -691,10 +711,12 @@ function mountBooking(slot, pre = {}) {
   const load = want => {
     const request = ++availabilityRequest, keepId = A && +v("negotiator");
     A = null; btn.disabled = true; status.textContent = "";
+    clearTimeout(summaryTimer); summary.textContent = "";
     agents.innerHTML = '<p class="hint">Loading available times…</p>'; when.innerHTML = "";
     const query = el.prop.value ? `?listing_id=${encodeURIComponent(el.prop.value)}` : "";
     return getJSON("/api/availability" + query).then(x => {
       if (request !== availabilityRequest || !slot.contains(form)) return;
+      updateSummary(x, request, query);
       if (x.property_viewings_enabled === false) {
         agents.innerHTML = "";
         status.textContent = "Viewings are currently disabled for this property. Please contact the office on 01534 727582.";
@@ -705,6 +727,7 @@ function mountBooking(slot, pre = {}) {
       show(keepId, want);
     }).catch(() => {
       if (request !== availabilityRequest || !slot.contains(form)) return;
+      clearTimeout(summaryTimer); summary.textContent = "";
       A = null; agents.innerHTML = when.innerHTML = ""; btn.disabled = true; status.textContent = BOOKING_DOWN;
     });
   };

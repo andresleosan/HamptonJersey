@@ -10,6 +10,7 @@ import { validateApplicant, OPTIONS } from "../applicants.js";
 import { afterSave, recomputeForApplicant } from "../match-store.js";
 import { touchByViewing } from "../retention.js";
 import { chatOn } from "../chat.js";
+import { publicViewingSummary } from "../public-viewing-summary.js";
 
 export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
 
@@ -68,9 +69,13 @@ export function availabilityRange(q, defaultFrom) {
 async function availability({ request, env }) {
   const clock = jerseyNow(), q = new URL(request.url).searchParams, listingId = q.get("listing_id");
   if (listingId != null && !/^HE-[A-Z]\d{3,}$/.test(listingId)) fail(400, "Unknown property");
+  if (listingId && !(await readLive(env, listingId)).length) fail(404, "Unknown property");
   const a = await loadAvailability(env, { ...availabilityRange(q, plusDays(clock.date, 1)),
     now: clock, fromTomorrow: true, listingId });
-  return json({ slot_minutes: SLOT_MINUTES, negotiators: a.negotiators.map(({ id, name, role }) => ({ id, name, role })),
+  const summary = listingId ? await publicViewingSummary(env, { listing_id: listingId }) : null;
+  // Visibility may have been revoked while availability and the aggregate were being read.
+  if (listingId && !(await readLive(env, listingId)).length) fail(404, "Unknown property");
+  return json({ ...(listingId ? { confirmed_viewings_this_week: summary?.booked_this_week ?? null } : {}), slot_minutes: SLOT_MINUTES, negotiators: a.negotiators.map(({ id, name, role }) => ({ id, name, role })),
     days: a.days, ...(listingId == null ? {} : { property_viewings_enabled: a.property_viewings_enabled }) }, 200, { "cache-control": "no-store" });
 }
 

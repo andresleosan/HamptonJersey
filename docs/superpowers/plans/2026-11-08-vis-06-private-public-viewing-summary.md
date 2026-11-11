@@ -79,3 +79,8 @@
 - [ ] Registrar construido/integrado/verificado/activado por separado en ledger de la tarea, checklist y ESTADO cuando se construya. Revisión independiente futura; publicación/migración/activación solo bajo autorizaciones de esa sesión. Ninguna casilla está ejecutada ahora.
 
 **Conteo de grupos:** contar plazas de hogares confirmadas futuras, no el bloque interno del negociador además de sus plazas. No exponer asistentes ni confundir plazas con personas; una reserva por hogar cuenta una cita para la métrica pública. Añadir group_two_places_count_two_not_three y pending_group_place_not_confirmed a tarea1. Mantener distinto el contador VIS-01 de personas interesadas.
+
+
+## Avance local · 11-nov-2026
+
+Implementación parcial y pruebas registradas en [ledger](2026-11-11-vis-06-ledger.md). Los pasos de grupos y ciclo multiparte requieren VIS-14, VIS-17 y VIS-08; ninguna casilla de cierre o publicación se da por completada.

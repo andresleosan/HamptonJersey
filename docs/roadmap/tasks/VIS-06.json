@@ -6,14 +6,17 @@
   "fase": "F3-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Las horas ocupadas del negociador salen como «Booked» en la web y en el panel, sin nombre, email ni teléfono de nadie.",
-  "falta": "«Booked» marca la agenda del negociador y no dice si la cita es para esta casa. Falta el aviso por casa con números reales que caducan a los 14 días («2 viewings booked this week», §5.9).",
+  "hecho": "El calendario muestra las horas ocupadas sin datos personales. Implementación local: resumen de citas confirmadas futuras por propiedad pública y semana de Jersey, visible desde dos.",
+  "falta": "Pendiente revisión y publicación autorizada; integrar estados multiparte VIS-17/VIS-08 y plazas confirmadas de grupos VIS-14 cuando existan. No se contabilizan solicitudes como confirmadas.",
   "bloqueo": "",
   "evidencia": [
     "site/index.html:506-507",
     "server/routes/public.js:38-44",
     "server/viewing-store.js:19-22",
-    "admin/src/SlotPicker.jsx:84"
+    "admin/src/SlotPicker.jsx:84",
+    "server/public-viewing-summary.js",
+    "tests/server/public-viewing-summary.test.mjs",
+    "tests/vis-06.e2e.cjs"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -25,5 +28,5 @@
     "viewings-contract",
     "viewings-ui"
   ],
-  "nextStep": "Mostrar el número real de reservas por propiedad con caducidad de 14 días y sin datos personales."
+  "nextStep": "Revisar y publicar el cambio local con autorización; integrar futuras visitas multiparte y grupos cuando estén disponibles."
 }
