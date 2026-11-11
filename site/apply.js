@@ -1,4 +1,4 @@
-import { CRITERIA, hasAnswer, notApplicable, prioritiesFor, budgetLimitNote } from "./requirements.js";
+import { CRITERIA, hasAnswer, hasHouseholdPets, notApplicable, prioritiesFor, budgetLimitNote } from "./requirements.js";
 // "Register your search" (spec §5) and the privacy notice. index.html imports this module only on #/apply or
 // #/privacy, so the home page never downloads it. Values from the API or the visitor reach the page only through
 // esc() or textContent.
@@ -176,7 +176,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
   // One choice from a short scale → a segmented bar ("seg"); any number of choices, or long labels → tiles.
   const pills = (name, items, type = "radio", req = false, cls = type === "checkbox" ? " tiles" : " seg") => `<div class="opts${cls}">${items.map(([v, l]) =>
     `<label><input type="${type}" name="${name}" value="${esc(v)}"${req ? " required" : ""}><span>${esc(l)}</span></label>`).join("")}</div>`;
-  const keyFor = {area_answer:'area',property_types:'type',bedrooms_min:'bedrooms',bathrooms_min:'bathrooms',parking_spaces:'parking',furnished:'furnished',pets:'pets',budget_max:'budget',budget_max_rent:'budget',budget_max_buy:'budget',move_in_date:'move_in_date',lease_term_months:'lease_term_months',near:'near',requirements:'requirements',household_children_status:'children'};
+  const keyFor = {area_answer:'area',property_types:'type',bedrooms_min:'bedrooms',bathrooms_min:'bathrooms',parking_spaces:'parking',furnished:'furnished',budget_max:'budget',budget_max_rent:'budget',budget_max_buy:'budget',move_in_date:'move_in_date',lease_term_months:'lease_term_months',near:'near',requirements:'requirements',household_children_status:'children'};
   const must = key => `<button type="button" class="req-switch" role="switch" aria-checked="false" data-must="${key}" aria-label="${esc(CRITERIA[key][0])} must-have"${key==='budget' ? ' aria-describedby="budget-limit"' : ''}><span>Must-have</span><span class="req-track" aria-hidden="true"></span><span class="req-state" aria-hidden="true">Off</span></button>`;
   const group = (name, legend, inner, only = "") =>
     `<fieldset class="field"${only ? ` data-only="${only}"` : ""}><legend${keyFor[name] ? ' class="req-heading"' : ''}><span class="req-label">${opt(legend)}</span>${keyFor[name] ? must(keyFor[name]) : ''}</legend>${inner}${err(name)}</fieldset>`;
@@ -216,7 +216,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       + group("furnished", "Furnished (optional)", pills("furnished", list("furnished")), "rent")
       + group("pets", "Pets", pills("pets", [...list("pet_kinds"), ["unknown", "Not sure"]], "checkbox") + `<div class="row">${pets.map(([v, l]) =>
         `<div class="field" data-pet="${esc(v)}" hidden><label for="f-pets_${esc(v)}">How many: ${esc(l)}</label>
-          <input id="f-pets_${esc(v)}" name="pets_${esc(v)}" value="1" ${count}>${err(`pets_${esc(v)}`)}</div>`).join("")}</div>`)}</div><p data-category="commercial" class="hint">Leave unknown details blank; our team can confirm them with you.</p>`,
+          <input id="f-pets_${esc(v)}" name="pets_${esc(v)}" value="1" ${count}>${err(`pets_${esc(v)}`)}</div>`).join("")}</div><p class="req-note" data-pets-mandatory hidden>Pets must be accommodated.</p>`)}</div><p data-category="commercial" class="hint">Leave unknown details blank; our team can confirm them with you.</p>`,
     `<div data-category="residential"><div data-both="no">${input("budget_max", money("Maximum rent", "Maximum price"), `${count} required ${eg("£1,300", "£550,000")}`)
       + `<div class="row">${input("budget_min", money("Minimum rent", "Minimum price", " (optional)"), `${count} ${eg("£1,000", "£400,000")}`)}
         ${input("budget_stretch", money("I can stretch to", "I can stretch to", " (optional)"), `${count} ${eg("£1,500", "£600,000")}`)}</div>`}</div>`
@@ -314,6 +314,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
       ages.querySelectorAll('select').forEach((el,i)=>{el.value=previous[i]??'';});
     }
     const facts={...a,pets:chosen.map(kind=>({kind}))};
+    $('[data-pets-mandatory]',form).hidden=!hasHouseholdPets(facts);
     form.querySelectorAll('[data-must]').forEach(btn=>{
       btn.hidden=category==='commercial';
       btn.disabled=notApplicable(btn.dataset.must,facts);

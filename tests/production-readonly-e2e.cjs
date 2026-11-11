@@ -8,7 +8,7 @@ const SAFE_PATHS = new Set(['/', '/favicon.ico', '/requirements.css', '/lib.js',
 function permitsRequest(method, rawUrl) {
   try {
     const url = new URL(rawUrl);
-    return url.origin === ORIGIN && !url.username && !url.password && SAFE_PATHS.has(url.pathname)
+    return url.origin === ORIGIN && !url.username && !url.password && !url.search && SAFE_PATHS.has(url.pathname)
       && ['GET','HEAD'].includes(method);
   } catch { return false; }
 }
@@ -53,9 +53,17 @@ if (require.main === module) (async () => {
         await form.locator('button[type=submit]').click();
         const areaAnswers = await form.locator('[name=area_answer]').count();
         if (process.env.E2E_PROD_EXPECT_REG06 === '1') assert.equal(areaAnswers, 3, 'deployed area answers');
+        if (process.env.E2E_PROD_EXPECT_REG07 === '1') {
+          const choose = (name, value) => form.locator(`input[name="${name}"][value="${value}"] + span`).click();
+          await choose('area_answer','any');await form.locator('button[type=submit]').click();
+          await choose('bedrooms_min','2');await form.locator('button[type=submit]').click();
+          await choose('parking_spaces','unknown');await choose('pets','dog');
+          assert.equal(await form.locator('[data-pets-mandatory]').isVisible(),true,'declared pets are essential');
+          assert.equal(await form.locator('[aria-label="Pets must-have"]').count(),0,'pet priority cannot be downgraded');
+        }
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true,
           `no horizontal overflow at ${width}px`);
-        console.log(`Production public smoke ${width}: passed; REG-06 choices visible: ${areaAnswers === 3}`);
+        console.log(`Production public smoke ${width}: passed; REG-06 choices visible: ${areaAnswers === 3}; REG-07 interface checked without submission: ${process.env.E2E_PROD_EXPECT_REG07 === '1'}`);
       } finally { await ctx.close(); }
     }
     console.log(`Requests blocked by read-only browser policy: ${blocked}`);

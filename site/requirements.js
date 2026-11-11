@@ -25,6 +25,7 @@ export const parsePriorities = value => {
   } catch { return null; }
 };
 export const asList = v => { try { const list=Array.isArray(v) ? v : JSON.parse(v || '[]'); return Array.isArray(list) ? list : []; } catch { return []; } };
+export const hasHouseholdPets = a => asList(a.pets).some(p => p && ['cat','dog','other'].includes(p.kind));
 export function locationAnswer(a) {
   return { state:['selected','any','unknown'].includes(a.area_answer) ? a.area_answer : 'legacy',
     wanted:asList(a.parishes_wanted), excluded:asList(a.parishes_excluded), preferred:a.preferred_parish || null };
@@ -32,6 +33,15 @@ export function locationAnswer(a) {
 export function hasAnswer(key, a) {
   if (key === 'area' && a.area_answer === 'any') return true;
   if (key === 'area' && a.area_answer === 'unknown') return false;
+  if (key === 'pets') {
+    const pets = asList(a.pets);
+    if (pets.length === 1 && pets[0]?.kind === 'none') return true;
+    return pets.length > 0 && new Set(pets.map(p => p?.kind)).size === pets.length && pets.every(p => {
+      const n = typeof p?.count === 'string' && p.count.trim() === '' ? NaN : Number(p?.count);
+      return p && ['cat','dog','other'].includes(p.kind) && ['number','string'].includes(typeof p.count)
+        && Number.isInteger(n) && n >= 1 && n <= 20;
+    });
+  }
   if (['garden', 'terrace', 'balcony'].includes(key)) return asList(a.outdoor).includes(key);
   return CRITERIA[key][1].some(k => a[k] != null && a[k] !== '' && (!Array.isArray(a[k]) || a[k].length)
     && !(typeof a[k] === 'string' && ['[]', 'null'].includes(a[k])));
@@ -40,7 +50,7 @@ export function notApplicable(key, a) {
   return (a.operation === 'buy' && RENT_CRITERIA.includes(key))
     || (key === 'area' && a.area_answer === 'any')
     || (key === 'parking' && a.parking_spaces != null && a.parking_spaces !== '' && Number(a.parking_spaces) === 0)
-    || (key === 'pets' && asList(a.pets).some(p => p.kind === 'none'))
+    || (key === 'pets' && asList(a.pets).length === 1 && asList(a.pets)[0]?.kind === 'none')
     || (key === 'furnished' && a.furnished === 'either')
     || (key === 'children' && (a.household_children_status === 'not_applicable'
       || (a.household_children != null && a.household_children !== '' && Number(a.household_children) === 0)));
@@ -50,8 +60,9 @@ export function prioritiesFor(p, a) {
   const values = {}, unknown = [];
   for (const key of Object.keys(CRITERIA)) {
     if (a.operation === 'buy' && RENT_CRITERIA.includes(key)) continue;
-    if (Object.hasOwn(p.values, key)) values[key] = notApplicable(key, a) ? 'preferred' : p.values[key];
-    if ((p.unknown?.includes(key) || (key === 'area' && values[key] === 'must')) && !hasAnswer(key, a)) unknown.push(key);
+    if (key === 'pets' && hasHouseholdPets(a)) values[key] = 'must';
+    else if (Object.hasOwn(p.values, key)) values[key] = notApplicable(key, a) ? 'preferred' : p.values[key];
+    if ((p.unknown?.includes(key) || (['area','pets'].includes(key) && values[key] === 'must')) && !hasAnswer(key, a)) unknown.push(key);
   }
   return { version: 1, values, unknown };
 }

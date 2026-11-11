@@ -115,7 +115,7 @@ docker run -i --rm --pull=never --network="$task_network" --read-only --cap-drop
   -e PW=/work/tests/isolated-webkit.cjs -e "E2E_SCRIPT=$task_script" \
   -e "E2E_PHASES=${E2E_PHASES:-public,urls,admin,reg17}" -e E2E_OFFLINE_FONTS=1 -e E2E_OFFLINE_TURNSTILE=1 \
   -e E2E_LOCAL_HTTPS=1 -e E2E_SHOTS=/tmp/hampton-shots -e E2E_RECYCLE_BROWSER=1 \
-  -e "E2E_PROD_EXPECT_REG06=${E2E_PROD_EXPECT_REG06:-0}" \
+  -e "E2E_PROD_EXPECT_REG06=${E2E_PROD_EXPECT_REG06:-0}" -e "E2E_PROD_EXPECT_REG07=${E2E_PROD_EXPECT_REG07:-0}" \
   -e XDG_CONFIG_HOME=/tmp/hampton-config -e XDG_CACHE_HOME=/tmp/hampton-cache \
   "$task_image" sh -c "$task_inner" \
   < "$task_archive" > "$task_shots" &

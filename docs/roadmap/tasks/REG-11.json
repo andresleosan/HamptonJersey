@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "REG-11 está en el historial de main mediante 9b8dbd41; la reconciliación anterior registra publicación y aplicación de 0025. Incluye registros residencial y comercial/negocio, traspaso, compra y alquiler simultáneos con presupuestos separados, datos comerciales D08, idioma y respuestas del hogar con total solo cuando se conocen sus componentes. Una búsqueda activa por categoría y operación; duplicados públicos a revisión. El relevo anterior registra e2e general y envíos locales MCP de traspaso comercial a 1280 y compra/alquiler residencial a 390.",
-  "falta": "El matching comercial se construirá en M04 y no se considera activado por el registro. REG-06 debe completar las respuestas explícitas de zona y la preferencia; esta conciliación no consultó de nuevo la base de producción.",
+  "falta": "El matching comercial se construirá en M04 y no se considera activado por el registro. Las respuestas explícitas de zona y la preferencia de REG-06 están publicadas en fe9618f con 0039 aplicada; esta entrega no repitió la prueba autenticada de REG-11 en producción.",
   "bloqueo": "",
   "evidencia": [
     "site/apply.js",
@@ -34,6 +34,6 @@
     "applicants-schema",
     "requirements-contract"
   ],
-  "nextStep": "Completar esenciales de zona en REG-06 y conservar el matching comercial pendiente en M04.",
-  "actualizado": "2026-11-10"
+  "nextStep": "Mantener el matching comercial pendiente en M04 y verificar REG-11 con una sesión autorizada de producción cuando esté disponible.",
+  "actualizado": "2026-11-11"
 }

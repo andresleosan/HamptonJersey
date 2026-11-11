@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { REJECT_REASONS } from "../../server/applicants.js";
-import MatchCard, { REASON_LABEL } from "./MatchCard.jsx";
+import MatchCard, { REASON_LABEL, hasPetRefusal } from "./MatchCard.jsx";
 import { show, firstSentence } from "./format.js";
 
 const GONE = "This match is no longer proposed, so it has left the queue.";
@@ -112,6 +112,7 @@ export default function Review() {
     const k = e.key.toLowerCase(), reason = rejecting ? REJECT_REASONS[Number(e.key) - 1]?.[0] : undefined;
     if (reason) act("rejected", reason);
     else if (k === "escape" && rejecting) setRejecting(false);
+    else if (k === "a" && hasPetRefusal(q.match)) setMsg({ text: "Pets are not allowed at this property. Recalculate matches." });
     else if (k === "a") act("shortlisted");
     else if (k === "r") setRejecting(true);
     else if (k === "s") act("skip");

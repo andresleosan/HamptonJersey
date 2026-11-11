@@ -1,6 +1,6 @@
 import { evaluate } from "../matching.js";
-import { areaPreferenceRank } from "../requirements.js";
-import { CRITERIA, parsePriorities } from "../../site/requirements.js";
+import { areaPreferenceRank, petPolicy } from "../requirements.js";
+import { CRITERIA, hasAnswer, hasHouseholdPets, parsePriorities } from "../../site/requirements.js";
 // Reviewing a match (B6), the keyboard review queue (spec §5 Review) and "Recalculate all" (B12).
 import { json, fail, readJson, now } from "../http.js";
 import { listingEventStatements, derivedListingFields } from "../listing-events.js";
@@ -29,9 +29,10 @@ export const matchCard = m => {
   if(card.status==='rejected')return {...card,checks:JSON.parse(card.checks),
     requirements_status:['meets','pending','alternative','excluded'][card.requirements_rank],listing:JSON.parse(card.listing)};
   const current = !!parsePriorities(a.requirement_priorities);
+  const petsRefused = hasAnswer('pets',a) && hasHouseholdPets(a) && petPolicy(listing) === 'no';
   const refresh = current && (r.requirements_rank !== card.requirements_rank || r.score !== card.score || JSON.stringify(r.checks) !== card.checks
     || areaPreferenceRank(a,listing) !== area_preference_rank);
-  return {...card, score:card.score, checks:current ? r.checks : JSON.parse(card.checks).map(c =>
+  return {...card, ...(petsRefused ? {pets_refused:true} : {}), score:card.score, checks:current ? r.checks : JSON.parse(card.checks).map(c =>
     Object.hasOwn(CRITERIA,c.key) || c.key === 'outdoor' ? {...c,result:'unknown',priority:'unknown',reason:'Confirm the saved requirement and property details'} : c),
     requirements_status:r.requirements_status, requirements_rank:card.requirements_rank, ...(refresh ? {requirements_refresh_needed:true} : {}), listing:JSON.parse(card.listing)};
 };
@@ -72,7 +73,8 @@ async function review({ request, env, admin, params: [id] }) {
   if (status === "rejected" && !REASONS.includes(reason)) fail(400, "Choose why the match is rejected");
 
   const m = await env.DB.prepare(`SELECT m.id, m.applicant_id, m.listing_id, m.status, a.archived_at, a.stage, a.search_state,
-    a.updated_at AS applicant_updated_at, a.matches_revision
+    a.updated_at AS applicant_updated_at, a.matches_revision,
+    COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id = m.listing_id),0) AS listing_revision
     FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE m.id = ?`).bind(Number(id)).first();
   if (!m) fail(404, "Match not found");
   // Closed/legacy searches preserve their matches without further review until a human reopens them.
@@ -81,8 +83,19 @@ async function review({ request, env, admin, params: [id] }) {
   if (m.status !== from) fail(409, STALE);
   if (expected !== undefined && expected !== m.matches_revision) fail(409, "The search changed. Reload to see it.");
   const revision = expected ?? m.matches_revision;
+  if (status === "shortlisted") {
+    // Re-evaluate current facts: a previously found match may now explicitly forbid the household's pets.
+    // Listing changes advance matches_revision, so the guarded update below also catches a concurrent edit.
+    const current = await env.DB.prepare(`SELECT a.pets, l.feat_pets, l.feat_evidence FROM matches m
+      JOIN applicants a ON a.id=m.applicant_id JOIN listings l ON l.id=m.listing_id WHERE m.id=?`).bind(Number(id)).first();
+    if (!current) fail(409, "The property changed. Reload to see the current matches.");
+    if (hasAnswer("pets",current) && hasHouseholdPets(current) && petPolicy(current) === "no")
+      fail(409, "Pets are not allowed at this property. Recalculate matches.");
+  }
 
   const ts = now(), reviewed = status !== "found";
+  const listingGuard = status === "shortlisted"
+    ? "AND COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=matches.listing_id),0) = ?" : "";
   // Written only while the match is in its new status: a found match a recompute removed after our read is not reviewed
   // (hence the event's own INSERT, not logEvent's).
   const ifThere = "EXISTS (SELECT 1 FROM matches WHERE id = ? AND status = ?)";
@@ -92,9 +105,9 @@ async function review({ request, env, admin, params: [id] }) {
       // The status the client saw, checked inside the batch: a review landing after our read sets status to NULL, the
       // NOT NULL constraint fails and the whole batch rolls back.
       env.DB.prepare(`UPDATE matches SET status = CASE WHEN status = ? AND EXISTS (SELECT 1 FROM applicants a
-        WHERE a.id = matches.applicant_id AND a.updated_at = ? AND a.matches_revision = ? AND ${activeSql("a")}) THEN ? END, reject_reason = ?, reviewed_by = ?,
+        WHERE a.id = matches.applicant_id AND a.updated_at = ? AND a.matches_revision = ? AND ${activeSql("a")}) ${listingGuard} THEN ? END, reject_reason = ?, reviewed_by = ?,
         reviewed_at = ?, updated_at = ? WHERE id = ?`)
-        .bind(from, m.applicant_updated_at, revision, status, reason, reviewed ? admin : null, reviewed ? ts : null, ts, m.id),
+        .bind(from, m.applicant_updated_at, revision, ...(status === "shortlisted" ? [m.listing_revision] : []), status, reason, reviewed ? admin : null, reviewed ? ts : null, ts, m.id),
       // B13: the applicant's first review is kept, Undo included.
       ...(reviewed ? [env.DB.prepare(`UPDATE applicants SET first_reviewed_at = ? WHERE id = ? AND first_reviewed_at IS NULL
         AND ${ifThere}`).bind(ts, m.applicant_id, m.id, status)] : []),
@@ -109,6 +122,10 @@ async function review({ request, env, admin, params: [id] }) {
     const cur = await env.DB.prepare("SELECT status FROM matches WHERE id = ?").bind(m.id).first();
     if (cur && cur.status !== from) fail(409, STALE);
     if (!a || !isActive(a) || a.updated_at !== m.applicant_updated_at || a.matches_revision !== revision) fail(409, "The search changed. Reload to see it.");
+    if (status === "shortlisted") {
+      const listing = await env.DB.prepare("SELECT COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=listings.id),0) AS version FROM listings WHERE id=?").bind(m.listing_id).first();
+      if (!listing || listing.version !== m.listing_revision) fail(409, "The property changed. Reload to see the current matches.");
+    }
     throw e;
   }
   if (!results[0].meta.changes) fail(409, "This match is no longer proposed. Reload to see the current matches.");

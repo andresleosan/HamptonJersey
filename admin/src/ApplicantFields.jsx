@@ -1,5 +1,5 @@
 import RequirementSwitch from "./RequirementSwitch.jsx";
-import { CRITERIA, hasAnswer, notApplicable, prioritiesFor, budgetLimitNote } from "../../site/requirements.js";
+import { CRITERIA, hasAnswer, hasHouseholdPets, notApplicable, prioritiesFor, budgetLimitNote } from "../../site/requirements.js";
 import { OPTIONS } from "../../server/applicants.js";
 import ViewingAvailability from "./ViewingAvailability.jsx";
 
@@ -145,7 +145,7 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
         {rent && select("furnished", "Furnished", OPTIONS.furnished)}
       </div>
       <fieldset className="choices-set"><legend>Outdoor space</legend><div className="req-outdoor">{OPTIONS.outdoor.map(([k,label])=><div className="req-heading" key={k}><label><input type="checkbox" checked={value.outdoor.includes(k)} onChange={e=>set('outdoor',e.target.checked?[...value.outdoor,k]:value.outdoor.filter(v=>v!==k))}/>{label}</label>{prioritySwitch(k)}</div>)}</div></fieldset>
-      <Pets switchControl={prioritySwitch("pets")} value={value.pets} onChange={v => set("pets", v)} error={errors.pets} />
+      <Pets value={value.pets} onChange={v => set("pets", v)} error={errors.pets} />
     </section>
 
     <section className="card fields-group" aria-labelledby="g-budget"><h2 id="g-budget">Budget and timing</h2>
@@ -217,13 +217,14 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
 }
 
 // "No pets" on its own, or each kind once with how many.
-function Pets({ value, onChange, error, switchControl }) {
+function Pets({ value, onChange, error }) {
   const has = k => value.find(p => p.kind === k);
   const toggle = (k, on) => onChange(!on ? value.filter(p => p.kind !== k)
     : k === "none" ? [{ kind: "none" }] : [...value.filter(p => p.kind !== "none"), { kind: k, count: "1" }]);
   const aria = { "aria-invalid": error ? true : undefined, "aria-describedby": error ? "ae-pets" : undefined };
   return <fieldset className="choices-set" aria-describedby={aria["aria-describedby"]}>
-    <legend className="req-heading"><span className="req-label">Pets</span>{switchControl}</legend>
+    <legend>Pets</legend>
+    {hasHouseholdPets({pets:value}) && <p className="req-note">Pets must be accommodated.</p>}
     <div className="choices">{OPTIONS.pet_kinds.map(([k, t]) => <span key={k} className="pet">
       <label className="check"><input type="checkbox" checked={!!has(k)} onChange={e => toggle(k, e.target.checked)} {...aria} />{t}</label>
       {k !== "none" && has(k) && <input type="number" min={1} max={20} step={1} inputMode="numeric" className="pet-count"

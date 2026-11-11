@@ -32,3 +32,9 @@
 - The general browser suite passed `public`, `urls`, `admin` and `reg17` with the same isolated local fixture. A directed cancellation check confirmed the test runner removes its own temporary container. The final public smoke passed anonymously with the explicit read-only route allowlist.
 
 - Final automated checks: `npm test` 1,146 JavaScript and 14 Python passed; build, release, team catalog and package checks passed.
+
+## 11-nov-2026 · Publicación verificada
+
+- El commit `fe9618f23677c7fab4f8aa19a3f7f836dd290df2` llegó a main; la migración 0039 se aplicó y se verificaron registro, columnas, índice y triggers. El marcador previo de recuperación se conservó fuera del repositorio.
+- Cloudflare Pages y Workers Builds `hampton-jobs` terminaron correctamente. La prueba pública anónima de solo lectura, con WebKit aislado a 1280/390, confirmó las tres opciones de zona. No hubo envío de datos ni prueba autenticada del panel en producción.
+- REG-07 recibió después un ajuste local adicional de mascotas imprescindibles; su verificación y publicación se registran por separado.

@@ -1,7 +1,7 @@
 // Applicant validation and the closed lists, shared by the API, the panel (through Vite) and the website
 // (GET /api/applicants/options). Pure ESM: no database, no env, no Node- or Workers-only imports.
 import { EMAIL, jerseyToday, validWeeklyWindows } from "./viewings.js";
-import { CRITERIA, RENT_CRITERIA, hasAnswer, notApplicable } from "../site/requirements.js";
+import { CRITERIA, RENT_CRITERIA, hasAnswer, hasHouseholdPets, notApplicable } from "../site/requirements.js";
 
 const PARISHES = ["Grouville", "St Brelade", "St Clement", "St Helier", "St John", "St Lawrence", "St Martin",
   "St Mary", "St Ouen", "St Peter", "St Saviour", "Trinity"];
@@ -239,6 +239,7 @@ export function validateApplicant(body, { publicForm, savedMoveInDate = null }, 
     if (!valid) err('requirement_priorities', 'Choose valid requirement priorities');
     else {
       const values = { ...p.values }, unknown = [...p.unknown];
+      if (hasHouseholdPets(applicant)) values.pets = 'must';
       if (buy) for (const k of RENT_CRITERIA) { delete values[k]; const i = unknown.indexOf(k); if (i >= 0) unknown.splice(i,1); }
       for (const [k,v] of Object.entries(values)) {
         if (v === 'must' && (notApplicable(k,applicant) || (!hasAnswer(k,applicant) && !unknown.includes(k))))

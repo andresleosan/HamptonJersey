@@ -4791,7 +4791,7 @@
       "preferredSlot": "vps",
       "priority": 227,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -4817,7 +4817,7 @@
         }
       ],
       "acceptance": [
-        "WebKit real verificó respuestas, exclusiones y preferencias en web y panel, con teclado y zoom. Autorizar el SHA revisado, aplicar 0039 y publicar antes de verificar en producción."
+        "Conservar el criterio de zona publicado; el panel autenticado de producción permanece sin comprobar."
       ]
     },
     {
@@ -4858,7 +4858,7 @@
         }
       ],
       "acceptance": [
-        "WebKit real verificó Pets Unknown; autorizar y publicar el SHA revisado antes de verificar en producción."
+        "Terminar, revisar y publicar el ajuste de mascotas imprescindibles y verificar su despliegue."
       ]
     },
     {

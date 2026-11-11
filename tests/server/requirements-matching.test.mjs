@@ -38,12 +38,12 @@ test('a negotiable shortfall remains a candidate; a must shortfall is an alterna
     assert.equal(r.requirements_status,p==='must'?'alternative':'meets');
   }
 });
-test('pets considered is pending and a refusal never becomes compatible when priority is off',()=>{
+test('conditional pet permission is pending and a refusal excludes a household with pets',()=>{
   const a={pets:'[{"kind":"dog","count":2}]',requirement_priorities:priorities({pets:'must'})};
   for(const description of ['Pets considered','Pets by negotiation','Cats only','One dog allowed','No pets. Pets allowed'])
     assert.equal(check(result(a,listing(description)),'pets').result,'unknown',description);
   assert.equal(check(result(a,listing('Pets allowed')),'pets').result,'meets');
-  assert.equal(result({...a,requirement_priorities:priorities({pets:'preferred'})},listing('No pets')).requirements_status,'alternative');
+  assert.equal(result({...a,requirement_priorities:priorities({pets:'preferred'})},listing('No pets')).requirements_status,'excluded');
 });
 test('unanswered pet ownership stays pending rather than implying compatibility',()=>{
   const r=result({requirement_priorities:priorities({})},listing('No pets'));

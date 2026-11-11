@@ -31,3 +31,9 @@ Centinela emitió dos alertas sobre salidas de diagnóstico. La primera correspo
 - A read-only migration listing now shows only 0039 pending in production. The migration and publication remain unperformed pending authorization of the reviewed exact SHA; production smoke checks follow the delivery.
 
 - The anonymous, read-only public production baseline now passes in real WebKit at 1280/390. REG-06 is not yet visible there; see the REG-06 ledger for exactly which operations the smoke check permits and its limits.
+
+## 11-nov-2026 · Publicación verificada
+
+- El commit `fe9618f23677c7fab4f8aa19a3f7f836dd290df2` llegó a main; la migración 0039 se aplicó y se verificaron registro, columnas, índice y triggers. El marcador previo de recuperación se conservó fuera del repositorio.
+- Cloudflare Pages y Workers Builds `hampton-jobs` terminaron correctamente. La prueba pública anónima de solo lectura, con WebKit aislado a 1280/390, confirmó las tres opciones de zona. No hubo envío de datos ni prueba autenticada del panel en producción.
+- REG-07 recibió después un ajuste local adicional de mascotas imprescindibles; su verificación y publicación se registran por separado.

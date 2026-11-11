@@ -8,6 +8,7 @@ const CHECK_LABEL = { ...Object.fromEntries(Object.entries(CRITERIA).map(([k,[la
   pets: "Pets", parking: "Parking", furnished: "Furnished", outdoor: "Outdoor", type: "Type" };
 const RESULT = { meets: "Meets", fails: "Fails", unknown: "Unknown" };
 export const REASON_LABEL = Object.fromEntries(REJECT_REASONS);
+export const hasPetRefusal = match => match.pets_refused === true;
 const OFFERED = ["for_sale", "to_let", "lease"];
 // DESIGN.md "Badges de estado": a listing that is no longer offered.
 const AVAILABILITY_TONE = { under_offer: "attention", sold: "closed" };
@@ -30,7 +31,7 @@ export default function MatchCard({ match, onReview, busy, disabled = null, shor
   const review = (status, reject_reason) => { if (!busy) onReview({ status, ...(reject_reason && { reject_reason }) }); };
   const cancel = () => { setRejecting(false); rejectRef.current?.focus(); };
   const meta = [l.id, l.parish ?? "Parish unknown", many(l.bedrooms, "bedroom"), many(l.bathrooms, "bathroom")].filter(Boolean);
-  const why = disabled || undefined, off = !!disabled;
+  const why = disabled || undefined, off = !!disabled, petsRefused = hasPetRefusal(match);
   // On the website only when published, not archived and with a photo it shows (as the Listings page says).
   const offSite = !l.published || l.archived_at || !l.has_public_photo;
 
@@ -48,6 +49,7 @@ export default function MatchCard({ match, onReview, busy, disabled = null, shor
         {!OFFERED.includes(l.availability) && <span className={`badge ${AVAILABILITY_TONE[l.availability] ?? "neutral"}`}>{AVAILABILITY[l.availability] ?? l.availability}</span>}</p>
       <p className="criteria-summary"><span className={`badge ${match.requirements_status==='meets'?'positive':'attention'}`}>{({meets:'Stated must-haves met',pending:'Requirements to confirm',alternative:'Alternative · requirements not met',excluded:'Outside search criteria'})[match.requirements_status] ?? 'Requirements to confirm'}</span></p>
       {match.requirements_refresh_needed && <p className="muted">Details have changed. Recalculate matches to refresh the list and its order.</p>}
+      {petsRefused && match.status === "found" && <p id={`pets-refused-${match.id}`} className="req-note">Pets are not allowed at this property. Recalculate matches.</p>}
       <dl className="checks">{match.checks.map(c => <div key={c.key}>
         <dt>{CHECK_LABEL[c.key] ?? c.key}{c.priority && <small className="muted"> · {c.priority === "must" ? "Must-have" : c.priority === "preferred" ? "Preferred" : "Priority to confirm"}</small>}</dt>
         <dd><span className={`result ${c.result}`}>{RESULT[c.result] ?? c.result}</span>{c.reason && <span className="muted"> · {c.reason}</span>}{c.evidence && <span className="muted"> · {c.evidence}</span>}</dd>
@@ -55,8 +57,9 @@ export default function MatchCard({ match, onReview, busy, disabled = null, shor
       {match.status === "rejected" && <p className="muted">Rejected · {REASON_LABEL[match.reject_reason] ?? match.reject_reason}</p>}
       <div className="inline match-actions">
         {match.status === "found" ? <>
-          <button type="button" className="btn sm" disabled={off} title={why} aria-keyshortcuts={shortcuts ? "A" : undefined}
-            onClick={() => review("shortlisted")}>Shortlist<span className="sr"> {title}</span>{hint("A")}</button>
+          <button type="button" className="btn sm" disabled={off || petsRefused} title={petsRefused ? "Pets are not allowed at this property." : why}
+            aria-describedby={petsRefused ? `pets-refused-${match.id}` : undefined} aria-keyshortcuts={shortcuts && !petsRefused ? "A" : undefined}
+            onClick={() => review("shortlisted")}>Shortlist<span className="sr"> {title}</span>{!petsRefused && hint("A")}</button>
           <button type="button" ref={rejectRef} className="btn ghost sm" disabled={off} title={why} aria-expanded={rejecting}
             aria-keyshortcuts={shortcuts ? "R" : undefined}
             onClick={() => (rejecting ? cancel() : setRejecting(true))}>Reject<span className="sr"> {title}</span>{hint("R")}</button>

@@ -1,5 +1,5 @@
-import { parsePriorities } from "../site/requirements.js";
-import { parseFeatureEvidence, requirementChecks, requirementsSummary } from "./requirements.js";
+import { hasAnswer, hasHouseholdPets, parsePriorities } from "../site/requirements.js";
+import { parseFeatureEvidence, petPolicy, requirementChecks, requirementsSummary } from "./requirements.js";
 // One applicant against one listing (spec §4, B11): the hard filters, the checks a match shows and its 0–90 preference score.
 // The single source of truth for every matching rule: server/match-store.js only stores what evaluate() returns.
 // Pure ESM: it reads precomputed feat_* columns rather than listing text. Unknown never excludes a house.
@@ -158,9 +158,11 @@ export function evaluate(a, l) {
   const home = housing(a, l);
   if (home) add("housing", home.result, home.evidence, true);
 
-  // A pet owner never gets a listing that says no pets; one that does not say passes.
-  if (list(a.pets).some(p => p.kind !== "none"))
-    add("pets", l.feat_pets === "yes" ? "meets" : l.feat_pets === "no" ? "fails" : "unknown", said.pets ?? null, true);
+  // Exclude only an unequivocal refusal; missing or contradictory older evidence stays unknown.
+  if (hasAnswer("pets",a) && hasHouseholdPets(a)) {
+    const policy = petPolicy(l,said);
+    add("pets", policy === "yes" ? "meets" : policy === "no" ? "fails" : "unknown", said.pets ?? null, true);
+  }
 
   // Parking 0 means none wanted. "Garage" reads as 1 space, so fewer spaces than asked is Unknown; only 0 fails.
   const spaces = a.parking_spaces, has = l.feat_parking;
@@ -188,6 +190,7 @@ export function evaluate(a, l) {
       && !list(a.parishes_excluded).includes(l.parish) && l.archived_at == null
       && (l.availability == null || ['for_sale','to_let','lease'].includes(l.availability));
     const current = requirementChecks(a,l,checks);
+    if (hasHouseholdPets(a) && current.some(c => c.key === 'pets' && c.result === 'fails')) pass = false;
     return { pass, score: Math.round(score), checks:current, ...requirementsSummary(current,pass) };
   }
   return { pass, score: Math.round(score), checks, ...requirementsSummary(checks,pass,true) };

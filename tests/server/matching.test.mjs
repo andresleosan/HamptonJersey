@@ -45,13 +45,15 @@ test("hard filters", () => {
   assert.equal(pass({ parishes_excluded: json(["St Helier"]) }, { parish: "Trinity" }), true);
   // A pet owner and a listing that refuses pets; no pets, or a listing that does not say, passes.
   const dog = json([{ kind: "dog", count: 1 }]);
-  assert.equal(pass({ pets: dog }, { feat_pets: "no" }), false);
-  assert.equal(pass({ pets: dog }, { feat_pets: "yes" }), true);
+  const petEvidence = (policy, text) => json({ pets:text, _requirements:{version:1,pets:policy} });
+  assert.equal(pass({ pets: dog }, { feat_pets: "no", feat_evidence:petEvidence("no","Sorry, no pets.") }), false);
+  assert.equal(pass({ pets: dog }, { feat_pets: "yes", feat_evidence:petEvidence("yes","Pets allowed") }), true);
   assert.equal(pass({ pets: dog }, { feat_pets: null }), true);
+  assert.equal(pass({ pets: dog }, { feat_pets: "no", feat_evidence:null }), true, "unverified legacy evidence stays unknown");
   assert.equal(pass({ pets: json([{ kind: "none" }]) }, { feat_pets: "no" }), true);
   // A failed filter shows as a failed check.
   const r = evaluate(applicant({ pets: dog, bedrooms_min: 3 }),
-    listing({ feat_pets: "no", bedrooms: 2, feat_evidence: json({ pets: "Sorry, no pets." }) }));
+    listing({ feat_pets: "no", bedrooms: 2, feat_evidence: petEvidence("no","Sorry, no pets.") }));
   assert.deepEqual(check(r, "pets"), { key: "pets", result: "fails", evidence: "Sorry, no pets." });
   assert.deepEqual(check(r, "bedrooms"), { key: "bedrooms", result: "fails", evidence: "2 bedrooms" });
 });

@@ -70,6 +70,11 @@ const BASE = process.env.BASE, SHOTS = process.env.E2E_SHOTS || '/tmp/paq02-shot
       let form=page.locator('.apply form');await form.waitFor();
       let next=form.locator('button[type=submit]');
       const choice=(name,value)=>form.locator(`input[name="${name}"][value="${value}"] + span`).click();
+      const expectStep=async expected=>{
+        const state=await form.evaluate(f=>({step:[...f.querySelectorAll('fieldset.step')].findIndex(x=>!x.hidden),
+          invalid:[...f.querySelectorAll('[aria-invalid=true]')].map(x=>x.name),status:f.querySelector('.form-status')?.textContent}));
+        assert.equal(state.step,expected,JSON.stringify(state));
+      };
       // WebKitGTK can leave an accepted native confirmation painted above the page. Renew the
       // context after each dialog and restore only the synthetic registration draft.
       const renewRegistration=async()=>{
@@ -118,8 +123,19 @@ const BASE = process.env.BASE, SHOTS = process.env.E2E_SHOTS || '/tmp/paq02-shot
       await choice('area_answer','selected');await choice('parishes_wanted','St Saviour');await choice('parishes_wanted','St Helier');
       await form.locator('[name=preferred_parish]').selectOption('St Saviour');await next.click();
       await choice('bedrooms_min','2');await next.click();
-      await choice('parking_spaces','unknown');await choice('pets','unknown');await next.click();
-      await form.locator('[name=budget_max]').fill('2000');await next.click();await next.click();
+      await choice('parking_spaces','unknown');await choice('pets','dog');
+      assert.equal(await form.locator('[aria-label="Pets must-have"]').count(),0);
+      assert.equal(await form.locator('[data-pets-mandatory]').isVisible(),true);
+      const dogCount=form.locator('[name=pets_dog]');await dogCount.fill('0');await next.click();
+      assert.equal(await dogCount.getAttribute('aria-invalid'),'true');assert.equal(await dogCount.evaluate(el=>document.activeElement===el),true);
+      await dogCount.fill('2');await nativeZoom('registration-pets',width,'[name=pets_dog]',async()=>{
+        await dogCount.focus();await focusUnobscured(dogCount);
+      });
+      await next.click();await expectStep(4);await form.getByRole('button',{name:'Back',exact:true}).click();await expectStep(3);
+      assert.equal(await dogCount.inputValue(),'2');assert.equal(await form.locator('[name=pets][value=dog]').isChecked(),true);
+      await choice('pets','unknown');await next.click();await expectStep(4);
+      await form.locator('[name=budget_max]').fill('2000');await next.focus();await page.keyboard.press('Enter');await expectStep(5);
+      await next.focus();await page.keyboard.press('Enter');await expectStep(6);
       await form.locator('[name=name]').fill(`Area fixture ${width}`);
       await form.locator('[name=email]').fill(`area-browser-${width}@example.test`);
       await form.locator('[name=phone]').fill(width===1280?'07797000390':'07797000391');
@@ -166,6 +182,17 @@ const BASE = process.env.BASE, SHOTS = process.env.E2E_SHOTS || '/tmp/paq02-shot
       await page.locator('#a-preferred_parish').waitFor();
       assert.equal(await page.locator('#a-preferred_parish').inputValue(),'St Saviour');
       assert.equal(await page.locator('[name=a-parishes_excluded]:checked').inputValue(),'St Ouen');
+      const staffDog=page.getByLabel('Dog',{exact:true});await staffDog.check();
+      assert.equal(await page.locator('[aria-label="Pets must-have"]').count(),0);
+      assert.equal(await page.getByText('Pets must be accommodated.',{exact:true}).isVisible(),true);
+      await page.getByLabel('How many: Dog').fill('2');
+      await page.getByRole('button',{name:'Save',exact:true}).click();await page.getByText('Changes saved.',{exact:true}).waitFor();
+      await page.reload();await page.getByLabel('Dog',{exact:true}).waitFor();
+      assert.equal(await page.getByLabel('Dog',{exact:true}).isChecked(),true);
+      assert.equal(await page.getByLabel('How many: Dog').inputValue(),'2');
+      await page.getByLabel('Dog',{exact:true}).uncheck();
+      await page.getByRole('button',{name:'Save',exact:true}).click();await page.getByText('Changes saved.',{exact:true}).waitFor();
+      await page.reload();await page.locator('#a-preferred_parish').waitFor();
       const panelChoice=value=>page.locator(`[name="a-area_answer"][value="${value}"]`).click();
       await page.locator('#g-where').scrollIntoViewIfNeeded();await noOverflow();
       await page.screenshot({path:`${SHOTS}/panel-area-${width}.png`,fullPage:true});

@@ -4,10 +4,10 @@
   "titulo": "Zona ideal y zona no deseada del aplicante",
   "origen": "texto",
   "fase": "F0",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Diseño aprobado el 10-nov. Implementación local de respuestas explícitas, zonas preferidas y exclusiones en web y panel; validación del servidor compatible con datos antiguos. El orden residencial de BUS-14 usa la preferencia solo para desempates; conserva rechazos y detecta revisiones simultáneas. Migración aditiva 0039 ensayada solo en bases locales. Validación local con WebKit real en contenedor aislado: alta, panel, teclado, escritorio, móvil y zoom nativo superior al 200%.",
-  "falta": "Autorizar el SHA revisado, aplicar la migración 0039 y publicar; verificar después el funcionamiento en producción. La integración futura con BUS-12/AUT-19 y el matching comercial siguen pendientes.",
+  "hecho": "Respuestas explícitas de zona, preferencia opcional y exclusiones en web y panel; la preferencia solo desempata resultados residenciales y se conservan registros históricos y decisiones. Publicado en main fe9618f; migración 0039 aplicada y verificada. Pruebas locales y navegador aislado aprobados; el smoke público de producción confirmó las tres opciones a 1280/390.",
+  "falta": "La sesión autenticada del panel y el envío real no se probaron en producción; sí se probaron localmente con datos sintéticos. BUS-12/AUT-19 y el matching comercial son trabajos separados.",
   "bloqueo": "",
   "evidencia": [
     "site/apply.js:121-123",
@@ -56,6 +56,6 @@
     "applicants-schema",
     "requirements-contract"
   ],
-  "nextStep": "Terminar las comprobaciones de REG-06/REG-07 y presentar el SHA exacto para autorización de publicación y migración 0039; verificar después en producción.",
-  "actualizado": "2026-11-10"
+  "nextStep": "Conservar completado el criterio de zona; verificar el panel autenticado en producción cuando se disponga de una sesión autorizada.",
+  "actualizado": "2026-11-11"
 }

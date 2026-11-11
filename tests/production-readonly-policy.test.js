@@ -16,3 +16,8 @@ test('production browser policy permits only the exact anonymous smoke routes', 
     ['GET', 'https://example.invalid/apply.js'], ['GET', 'not a URL'],
   ]) assert.equal(permitsRequest(method, url), false, `${method} ${url}`);
 });
+
+test('production smoke blocks query strings on otherwise allowed routes',()=>{
+  for(const method of ['GET','HEAD']) for(const path of ['/','/api/config','/api/applicants/options'])
+    assert.equal(permitsRequest(method,base+path+'?draft=example'),false,`${method} ${path}`);
+});
