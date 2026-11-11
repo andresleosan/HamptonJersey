@@ -13,7 +13,7 @@ La clasificación se añade al motor existente que utiliza BUS-12; no se afirma 
 ## Verificación local
 
 - Suite final: 1.163 pruebas JavaScript y 14 Python; build, check:release, team:check y check:packages correctos.
-- WebKit aislado sin red pasó el recorrido de zonas y mascotas en 1280/390, teclado y zoom nativo superior al 200 %, incluida la visibilidad del foco; se corrigió el solapamiento de la navegación en anchos efectivos muy estrechos.
+- WebKit aislado sin red pasó el recorrido de zonas y mascotas en 1280/390, teclado y zoom nativo superior al 200 %, incluida la visibilidad del foco; se corrigió el solapamiento de la navegación en anchos efectivos muy estrechos. Playwright MCP no pudo iniciar Chromium con el sandbox del entorno; el recorrido alternativo usó Playwright y WebKit real en contenedor aislado. Las capturas sintéticas de la última ejecución local aprobada, con control de errores HTTP reforzado, quedaron en `/tmp/hampton-browser-captures/run-IPPGvv` (ubicación temporal). El fixture no incluye seis imágenes de muestra: sus 404 GET se aceptan por ruta explícita; otros errores HTTP locales deben fallar el recorrido.
 - Revisión independiente de matching, historial y privacidad: se incorporaron los casos de evidencia contradictoria o malformada, la versión de propiedad en Shortlist y el bloqueo de parámetros en el smoke público.
 - Al terminar la verificación local quedaban pendientes la publicación y su comprobación; se completaron según el apartado siguiente. La verificación autenticada del panel y los envíos en producción no se han realizado.
 

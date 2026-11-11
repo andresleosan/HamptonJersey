@@ -5,6 +5,8 @@ const {parseEnv} = require('node:util');
 const {execFileSync} = require('node:child_process');
 const {chromium} = require(process.env.PW || 'playwright-core');
 const BASE = process.env.BASE, SHOTS = process.env.E2E_SHOTS || '/tmp/paq02-shots';
+// The isolated database references these synthetic images, but the fixture has no R2 objects.
+const missingFixtureMedia = new Set(['A00002','A00006','A00007','A00008','A00010','A00012'].map(id=>`/media/${id}`));
 
 (async()=>{
   mkdirSync(SHOTS,{recursive:true});
@@ -26,7 +28,11 @@ const BASE = process.env.BASE, SHOTS = process.env.E2E_SHOTS || '/tmp/paq02-shot
       const url=new URL(request.url()), reason=request.failure()?.errorText ?? '';
       if(url.origin===new URL(BASE).origin && !/cancelled|aborted/i.test(reason))localFailures.push({path:url.pathname,reason});
     });
-    page.on('response',response=>{const url=new URL(response.url());if(url.origin===new URL(BASE).origin && response.status()>=500)localFailures.push(url.pathname);});
+    page.on('response',response=>{
+      const url=new URL(response.url()), status=response.status();
+      const expectedFixtureImage = status===404 && response.request().method()==='GET' && missingFixtureMedia.has(url.pathname);
+      if(url.origin===new URL(BASE).origin && status>=400 && !expectedFixtureImage)localFailures.push({path:url.pathname,status});
+    });
     await page.setViewportSize({width,height:900});
   };
   const withDialog=async(action,accept)=>{
