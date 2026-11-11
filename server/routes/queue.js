@@ -98,7 +98,10 @@ async function discard({ env, admin, params: [id] }) {
     const l = await env.DB.prepare(`SELECT published, EXISTS (SELECT 1 FROM sales WHERE listing_id = ?1) AS sale
       FROM listings WHERE id = ?1`).bind(row.listing_id).first();
     if (l?.published || l?.sale) fail(409, "Its listing is on the website: unpublish it first");
-    if (l) await deleteListing(env, row.listing_id, admin, { source: 'queue', related: { import_id: Number(id) } });
+    if (l) {
+      await deleteListing(env, row.listing_id, admin, { source: 'queue', related: { import_id: Number(id) } });
+      return json({ item: shape(await get(env, id)) });
+    }
   }
   const r = await env.DB.prepare(`UPDATE drive_imports SET status = 'discarded', decided_at = ?, decided_by = ?
     WHERE id = ? AND status IN ${IN_OPEN} RETURNING *`).bind(now(), admin, Number(id)).first();
@@ -115,23 +118,16 @@ async function approve({ request, env, admin, params: [id] }) {
   if (!row) fail(404, "Not in the queue");
   if (row.status !== "review" || !row.listing_id) fail(409, "Create the draft first");
   const l = await env.DB.prepare(`SELECT l.*, (SELECT COUNT(*) FROM media m WHERE m.listing_id = l.id AND m.public = 1
-    AND m.kind = 'photo') AS photos FROM listings l WHERE l.id = ?`).bind(row.listing_id).first();
+    AND m.kind = 'photo' AND m.origin <> 'external' AND m.r2_key IS NOT NULL AND m.r2_key <> '') AS photos FROM listings l WHERE l.id = ?`).bind(row.listing_id).first();
   if(!l||l.updated_at!==version)fail(409,'The listing changed. Reload and review it before publishing.');
   const has = v => v != null && String(v).trim() !== "";
   const missing = [["Title", has(l.title)], ["Sale or rent", has(l.operation)],
     ["Price", has(l[PRICE[l.operation]]) || has(l.price_text)], ["Parish", has(l.parish)], ["A photo", l.photos > 0],
     ["Description", has(l.description)]].filter(([, ok]) => !ok).map(([k]) => k);
   if (missing.length) return json({ error: "Complete before publishing", missing }, 400);
-  // The row closes first, so a Discard at the same moment can't leave a live listing behind a discarded row.
-  const done = await env.DB.prepare(`UPDATE drive_imports SET status = 'published', decided_at = ?, decided_by = ?
-    WHERE id = ? AND status = 'review' RETURNING id`).bind(now(), admin, Number(id)).first();
-  if (!done) fail(409, "This one is already closed");
-  try { return await setState({ env, admin, params: [row.listing_id, "publish"], fromQueue: true,
-    related: { import_id: Number(id) },expectedAt:version }); }
-  catch (e) {
-    await env.DB.prepare("UPDATE drive_imports SET status = 'review' WHERE id = ?").bind(Number(id)).run();
-    throw e;
-  }
+  // The listing write and queue transition share the same D1 transaction.
+  return setState({ env, admin, params: [row.listing_id, "publish"], fromQueue: true,
+    related: { import_id: Number(id) }, expectedAt: version });
 }
 
 export default [

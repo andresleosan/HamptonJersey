@@ -8,6 +8,7 @@ import {checkMarketingEdit,transitionEditorialListing,recordRentalMarketingState
 import {readListingHistory,validateListingHistoryRows} from '../listing-history.js';
 import { changedListingDetails, listingDetailsUpdateStatement, publicAddressReviewStatement, readListingDetails, validateListingDetails } from '../listing-details.js';
 import { buildPublicAddressReview } from '../public-address.js';
+import { publicationReadiness } from "../publication-policy.js";
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -15,7 +16,7 @@ export const COVER_ID = `COALESCE(l.cover_media_id, (SELECT cm.id FROM media cm 
   AND cm.kind = 'photo' AND cm.r2_key IS NOT NULL ORDER BY cm.position LIMIT 1))`;
 // Whether listing l has a photo the website shows (without one, a published listing is not on the website).
 export const HAS_PUBLIC_PHOTO = `EXISTS (SELECT 1 FROM media m WHERE m.listing_id = l.id AND m.kind = 'photo' AND m.public = 1
-    AND m.origin <> 'external' AND m.r2_key IS NOT NULL)`;
+    AND m.origin <> 'external' AND m.r2_key IS NOT NULL AND m.r2_key <> '')`;
 const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availability, l.operation, l.sale_price, l.rent,
   l.rent_period, l.premium, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by, l.featured_rank,
   l.parish, l.matchable, l.confirmed_at, l.bedrooms, l.review_requested_at, l.review_requested_by, (${TO_CONFIRM}) AS to_confirm, ${COVER_ID} AS cover_id,
@@ -279,14 +280,29 @@ async function setFeatured({ request, env, admin, params: [id] }) {
   return json({ ok: true });
 }
 
+// The public listing policy is evaluated from saved data and rechecked in the write.
+async function publicationMissing(env, listing) {
+  const photo = await env.DB.prepare(`SELECT ${HAS_PUBLIC_PHOTO} AS eligible FROM listings l WHERE l.id = ?`).bind(listing.id).first();
+  return publicationReadiness(listing, photo?.eligible ? 1 : 0).missing;
+}
+function failPublication(missing) {
+  const labels = {title: 'a title', operation: 'a valid operation', public_photo: 'a public photo'};
+  fail(400, `Add ${missing.map(k => labels[k]).join(', ')} before publishing.`);
+}
+
 // fromQueue: Properties Queue's Approve and publish (PUB-21), the only way to publish a listing still in review (C8).
 export async function setState({ request, env, admin, params: [id, action], fromQueue = false, related = {}, expectedAt }) {
   const l = await loadListing(env, id);
   const version=expectedAt ?? (request ? (await readJson(request))?.updated_at : l.updated_at);
   if(typeof version!=='string')fail(400,'Missing updated_at: reload the listing');
+  if (l.updated_at !== version) fail(409, 'The listing state changed. Reload before trying again.');
   if (action === "publish" && l.archived_at) fail(400, "Restore the listing before publishing it");
   if (action === "publish" && !fromQueue && await env.DB.prepare("SELECT 1 FROM drive_imports WHERE listing_id = ? AND status = 'review'")
     .bind(id).first()) fail(409, "Use Approve and publish in the queue");
+  if (action === "publish") {
+    const missing = await publicationMissing(env, l);
+    if (missing.length) failPublication(missing);
+  }
   if (action === "archive" && l.archived_at) fail(400, "The listing is already archived");
   if (action === "restore" && !l.archived_at) fail(400, "The listing isn't archived");
   // V16: an open offer or a sale in progress keeps it out of the archive: checked first for a quick answer, and again
@@ -309,8 +325,19 @@ export async function setState({ request, env, admin, params: [id, action], from
   // Another request may archive/restore after loadListing. Repeat that eligibility in the write.
   const stateGuard = action === 'restore' ? ' AND archived_at IS NOT NULL'
     : ['archive', 'publish'].includes(action) ? ' AND archived_at IS NULL' : '';
+  const publishGuard = action === 'publish' ? ` AND trim(COALESCE(title, '')) <> ''
+    AND operation IN ('sale','rent','business') AND ${HAS_PUBLIC_PHOTO.replace('l.id', 'listings.id')}` : '';
+  const queueId = fromQueue ? related.import_id : null;
+  if (fromQueue && (!Number.isSafeInteger(queueId) || queueId <= 0)) fail(400, 'Invalid queue item');
+  const queueGuard = action === 'publish' && fromQueue ? ` AND EXISTS (SELECT 1 FROM drive_imports q
+      WHERE q.id = ? AND q.listing_id = listings.id AND q.status = 'review') AND trim(COALESCE(parish,'')) <> ''
+    AND trim(COALESCE(description,'')) <> '' AND (trim(COALESCE(price_text,'')) <> ''
+      OR CASE operation WHEN 'sale' THEN sale_price WHEN 'rent' THEN rent WHEN 'business' THEN premium END IS NOT NULL)`
+    : action === 'publish' ? " AND NOT EXISTS (SELECT 1 FROM drive_imports q WHERE q.listing_id = listings.id AND q.status = 'review')" : '';
   const statements = [env.DB.prepare(`UPDATE listings SET ${cols.map(set).join(", ")}, updated_at = ${listingClock}, updated_by = ?
-      WHERE id = ? AND updated_at=?${stateGuard}${archive ? ` AND NOT ${BUSY}` : ""}`).bind(...cols.map(c => patch[c]), ts, admin, id, version, ...(archive ? [id, id] : []))];
+      WHERE id = ? AND updated_at=?${stateGuard}${archive ? ` AND NOT ${BUSY}` : ""}${publishGuard}${queueGuard}`).bind(...cols.map(c => patch[c]), ts, admin, id, version, ...(archive ? [id, id] : []), ...(fromQueue && action === 'publish' ? [queueId] : []))];
+  if (fromQueue && action === 'publish') statements.push(env.DB.prepare(`UPDATE drive_imports SET status = 'published', decided_at = ?, decided_by = ?
+    WHERE id = ? AND status = 'review' AND changes() > 0`).bind(ts, admin, queueId));
   if (clearPublicAddressSnapshot) statements.push(publicAddressReviewStatement(env, id));
   const [res] = await listingBatch(env, id, { actor: admin, source: fromQueue ? 'queue' : 'panel', related,
     extraFields: clearPublicAddressSnapshot ? ['public_address_publication'] : [],
@@ -318,6 +345,10 @@ export async function setState({ request, env, admin, params: [id, action], from
   if (!res.meta.changes) {
     const current = await loadListing(env, id);
     if (archive && !current.archived_at) fail(409, busy);
+    if (action === 'publish' && current.updated_at === version) {
+      const missing = await publicationMissing(env, current);
+      if (missing.length) failPublication(missing);
+    }
     fail(409, 'The listing state changed. Reload before trying again.');
   }
   // Publishing also counts: being on the website adds to the score.
@@ -351,11 +382,27 @@ async function remove({ request, env, admin, params: [id] }) {
 // Also Properties Queue's Discard (PUB-21, C7), for a draft that was never published.
 export async function deleteListing(env, id, admin, context = {}) {
   const { results } = await env.DB.prepare("SELECT r2_key, thumb_key FROM media WHERE listing_id = ? AND origin = 'upload'").bind(id).all();
-  await listingBatch(env, id, { actor: admin, source: 'panel', ...context, action: 'deleted' }, [
-    env.DB.prepare("DELETE FROM media WHERE listing_id = ?").bind(id),
-    env.DB.prepare("DELETE FROM listings WHERE id = ?").bind(id),
-    env.DB.prepare("INSERT INTO deleted_listings (id, deleted_at, deleted_by) VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING").bind(id, now(), admin),
-  ]);
+  const queueId = context.source === 'queue' ? context.related?.import_id : null;
+  const queueGuard = queueId ? [
+    env.DB.prepare(`UPDATE drive_imports SET status = 'discarded', decided_at = ?, decided_by = ?
+      WHERE id = ? AND listing_id = ? AND status IN ('queued','working','ready','review')
+      AND EXISTS (SELECT 1 FROM listings l WHERE l.id = ? AND l.published = 0
+        AND NOT EXISTS (SELECT 1 FROM sales WHERE listing_id = l.id))`).bind(now(), admin, queueId, id, id),
+    // A failed CAS aborts the entire batch before media, listing or R2 are removed.
+    env.DB.prepare("INSERT INTO listing_event_context(listing_id) SELECT NULL WHERE changes() = 0"),
+  ] : [];
+  try {
+    await listingBatch(env, id, { actor: admin, source: 'panel', ...context, action: 'deleted' }, [
+      ...queueGuard,
+      env.DB.prepare("DELETE FROM media WHERE listing_id = ?").bind(id),
+      env.DB.prepare("DELETE FROM listings WHERE id = ?").bind(id),
+      env.DB.prepare("INSERT INTO deleted_listings (id, deleted_at, deleted_by) VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING").bind(id, now(), admin),
+    ]);
+  } catch (error) {
+    if (queueId && /NOT NULL constraint failed: listing_event_context/i.test(String(error?.message)))
+      fail(409, "The queue item or listing changed. Reload before trying again.");
+    throw error;
+  }
   // Imported files stay in R2 (they also live in /root/Hampton_Database); research rows are kept.
   const keys = results.flatMap(m => [m.r2_key, m.thumb_key]).filter(Boolean);
   if (keys.length) await env.MEDIA.delete(keys);

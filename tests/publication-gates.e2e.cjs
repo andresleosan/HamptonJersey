@@ -1,0 +1,50 @@
+const {chromium}=require(process.env.PW||'playwright-core');
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const {parseEnv}=require('node:util');
+const {execFileSync}=require('node:child_process');
+const {join,dirname}=require('node:path');
+const BASE=process.env.BASE, vars=parseEnv(readFileSync(process.env.E2E_VARS,'utf8'));
+const wrangler=join(dirname(require.resolve('wrangler')),'..','bin','wrangler.js');
+const sql=statement=>execFileSync(process.execPath,[wrangler,'d1','execute','hampton','--local','--persist-to',process.env.E2E_PERSIST,'--json','--command',statement],{encoding:'utf8'});
+(async()=>{
+ const {signSession,COOKIE}=await import('../server/auth.js'); const browser=await chromium.launch();
+ try {for(const width of [1280,390]){
+  sql("UPDATE listings SET published=0,archived_at=NULL WHERE id='HE-R003'; UPDATE media SET public=0 WHERE id='A00009';");
+  const ctx=await browser.newContext({viewport:{width,height:900},reducedMotion:'reduce'});
+  await ctx.addCookies([{name:COOKIE,value:await signSession('admin@example.test',vars.SESSION_SECRET),domain:new URL(BASE).hostname,path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
+  const page=await ctx.newPage(), errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(BASE+'admin/#/p/HE-R003');await page.locator('#f-summary').waitFor();
+  const publish=page.getByRole('button',{name:'Publish',exact:true});
+  await page.locator('#f-summary').fill('Unsaved fixture text');assert.equal(await publish.isDisabled(),true);
+  await page.getByRole('button',{name:'Discard',exact:true}).click();
+  await publish.focus();await page.keyboard.press('Enter');
+  await page.getByRole('alert').filter({hasText:'Add a public photo before publishing'}).waitFor();
+  await page.goto(BASE+'admin/#/listings');
+  await page.getByRole('button',{name:/^Drafts/}).click();
+  const row=page.locator('tr').filter({hasText:'HE-R003'});await row.waitFor();
+  await row.getByRole('switch').click();await page.getByRole('alert').filter({hasText:'Add a public photo before publishing'}).waitFor();
+  sql("UPDATE media SET public=1 WHERE id='A00009'");
+  await page.goto(BASE+'admin/#/p/HE-R003');await page.locator('#f-summary').waitFor();
+  await page.getByRole('button',{name:'Publish',exact:true}).click();
+  await page.getByRole('status').filter({hasText:'Published: now on the website'}).waitFor();
+  await page.evaluate(()=>{document.documentElement.style.zoom='2';});
+  const dims=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));
+  assert.ok(dims.width<=dims.viewport+1,JSON.stringify(dims));assert.deepEqual(errors,[]);
+  const at='2026-11-01T00:00:00.000Z';
+  sql(`DELETE FROM drive_imports WHERE id=777; UPDATE listings SET published=0,parish='St Helier',description='Fixture',updated_at='${at}' WHERE id='HE-R003';
+    INSERT INTO drive_imports(id,folder_id,folder_name,status,listing_id,requested_by,created_at) VALUES(777,'fixture','Fixture','review','HE-R003','fixture','${at}');
+    CREATE TRIGGER fixture_fail_queue BEFORE UPDATE OF status ON drive_imports WHEN NEW.id=777 AND NEW.status='published'
+      BEGIN SELECT RAISE(ABORT,'fixture failure'); END;`);
+  const post=path=>page.evaluate(async ({path,at})=>{const r=await fetch(path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({updated_at:at})});return r.status;},{path,at});
+  assert.equal(await post('/api/admin/listings/HE-R003/publish'),409);
+  assert.equal(await post('/api/admin/queue/777/approve'),500);
+  const state=JSON.parse(sql("SELECT l.published,q.status FROM listings l JOIN drive_imports q ON q.listing_id=l.id WHERE q.id=777"))[0].results[0];
+  assert.equal(state.published,0);assert.equal(state.status,'review');
+  sql('DROP TRIGGER fixture_fail_queue');
+  assert.equal(await post('/api/admin/queue/777/approve'),200);
+  console.log(`PUB-02 ${width}: D1 Queue rollback and approval PASS`);
+  console.log(`PUB-02 ${width}: minimum, switch, unsaved edits, keyboard, success and CSS zoom PASS`);
+  await ctx.close();
+ }} finally {await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -4159,15 +4159,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "Luis",
-   "hecho": "Publish en el editor (o el interruptor Visible en Listings) pone la ficha al momento en la web de la app, en la portada y en /p/\u003cid>, si tiene una foto pública. Desde el 1-nov-2026 eso es la web oficial, www.hamptonestatesjersey.com.",
-   "falta": "Conectar la política mínima de PUB-12 a todas las vías de publicación con guardias atómicas, preservando los requisitos adicionales de Queue.",
+   "hecho": "Publish y el interruptor comparten la transición existente. En una copia local se integraron mínimos de título, operación y foto pública elegible, con guardias de versión y foto dentro de la escritura. Queue conserva sus requisitos adicionales y su aprobación y descarte se protegen transaccionalmente.",
+   "falta": "Completar la validación general del panel, integrar y publicar el cambio local y verificar su despliegue; producción mantiene el comportamiento anterior hasta entonces.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/ListingEditor.jsx:256-257",
     "admin/src/Listings.jsx:103-107",
     "server/routes/listings.js:181-203",
     "server/routes/public.js:13-26",
-    "wrangler.toml:10"
+    "wrangler.toml:10",
+    "server/publication-policy.js",
+    "tests/server/publication-gates.test.mjs",
+    "tests/publication-gates.e2e.cjs",
+    "docs/superpowers/plans/2026-11-12-pub-02-build-ledger.md"
    ]
   },
   {

@@ -547,11 +547,19 @@ async function admin(browser) {
   await page.waitForSelector("text=Changes saved.");
   await page.reload();
   await page.waitForSelector("text=no public photo");
-  // M1: publishing it says it will NOT show, and the table marks it.
+  // A new publication needs a visible photo; removing it afterwards retains the historical warning.
   await page.getByRole("button", {name: "Unpublish", exact: true}).click();
   await page.waitForSelector("text=Unpublished");
   await page.getByRole("button", {name: "Publish", exact: true}).click();
-  await page.waitForSelector("text=won't appear on the website");
+  await page.getByRole("alert").filter({hasText: "Add a public photo before publishing"}).waitFor();
+  await page.check(".media-grid li >> text=Visible on the website");
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector("text=Changes saved.");
+  await page.getByRole("button", {name: "Publish", exact: true}).click();
+  await page.waitForSelector("text=Published: now on the website");
+  await page.uncheck(".media-grid li >> text=Visible on the website");
+  await page.getByRole("button", {name: "Save", exact: true}).click();
+  await page.waitForSelector("text=Changes saved.");
   await page.goto(BASE + "admin/#/listings");
   await page.waitForSelector('tr:has-text("HE-C001") >> text=no photo');
 

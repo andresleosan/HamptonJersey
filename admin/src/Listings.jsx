@@ -111,7 +111,7 @@ export default function Listings({ onChange }) {
         <td className="stat num" data-label="Interested">{l.interested}</td>
         <td>{stateOf(l) === "archived" ? <span className="badge archived">{STATUS_LABEL.archived}</span>
           : <button type="button" role="switch" className="switch" aria-checked={stateOf(l) === "published"} aria-label={`Visible on the website: ${l.title}`}
-            onClick={e => act(e, l, l.published ? "unpublish" : "publish", l.published ? "hidden from the website." : l.has_public_photo ? "now visible on the website." : "published, but it needs a visible photo to appear.")}>
+            onClick={e => act(e, l, l.published ? "unpublish" : "publish", l.published ? "hidden from the website." : "now visible on the website (may take a minute).")}>
             <span className="knob" aria-hidden="true" />{stateOf(l) === "published" ? "Visible" : "Hidden"}</button>}
           {stateOf(l) === "published" && !l.has_public_photo && <div className="muted" title="Not shown on the website until it has a visible photo">no photo · not visible</div>}</td>
         <td className="muted">{fmtDate(l.updated_at)}</td>

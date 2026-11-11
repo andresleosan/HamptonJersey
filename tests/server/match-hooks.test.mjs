@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, call, adminCookie, T0, ORIGIN } from "./listing-client.mjs";
+import { makeEnv, seedListing, seedMedia, call, adminCookie, T0, ORIGIN } from "./listing-client.mjs";
 import { handleApi } from "../../server/api.js";
 
 const ADMIN = "admin@example.test";
@@ -103,7 +103,7 @@ test("archiving a listing (sold) removes its found matches for everyone and stop
 });
 
 test("publication preserves the preference score", async () => {
-  const env = world();
+  const env = world(); seedMedia(env);
   run(env, "UPDATE listings SET published = 0 WHERE id = 'HE-R001'");
   const a = await createApplicant(env);
   const score = () => row(env, "SELECT score FROM matches WHERE applicant_id = ? AND listing_id = 'HE-R001'", a).score;

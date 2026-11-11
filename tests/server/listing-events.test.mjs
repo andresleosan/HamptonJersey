@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, readdirSync } from 'node:fs';
-import { makeEnv, seedListing, call, adminCookie, T0 } from './listing-client.mjs';
+import { makeEnv, seedListing, seedMedia, call, adminCookie, T0 } from './listing-client.mjs';
 
 const ADMIN = 'admin@example.test';
 const events = (env, id = 'HE-R001') => env.DB.raw.prepare(
@@ -99,6 +99,7 @@ test('EST-18: fixed-clock edits conflict and explicit confirmations remain disti
 
 test('EST-18: publish, republish, unpublish, restore and featured record intentional state changes', async () => {
   const { env, cookie } = await fixture({ published: 0 });
+  seedMedia(env);
   const post = action => call(env, 'POST', `/admin/listings/HE-R001/${action}`, { cookie });
   assert.equal((await post('publish')).status, 200);
   const at = listing(env).published_at;
@@ -286,6 +287,7 @@ function holdListingWrite(env) {
 for (const firstAction of ['archive', 'publish']) test(`EST-18: concurrent archive rejects stale ${firstAction} without a second state event`, async t => {
   t.mock.timers.enable({ apis: ['Date'], now: new Date(T0) });
   const { env, cookie } = await fixture({ published: 0 });
+  seedMedia(env);
   const hold = holdListingWrite(env); t.after(hold.release);
   const first = call(env, 'POST', `/admin/listings/HE-R001/${firstAction}`, { cookie });
   await hold.reached;

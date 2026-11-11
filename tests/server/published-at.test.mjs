@@ -11,7 +11,7 @@ const act = async (env, action) =>
 test("publishing stamps published_at only when it was hidden", async t => {
   t.mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-11-06T09:00:00.000Z") });
   const env = makeEnv();
-  seedListing(env, { published: 0 });
+  seedListing(env, { published: 0 }); seedMedia(env);
   assert.equal(publishedAt(env), null);
   assert.equal(await act(env, "publish"), 200);
   assert.equal(publishedAt(env), "2026-11-06T09:00:00.000Z");

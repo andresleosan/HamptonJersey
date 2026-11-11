@@ -1,6 +1,8 @@
 # Estado de Hampton App
 
-Actualizado el 11-nov-2026.
+Actualizado el 12-nov-2026.
+
+12-nov-2026 · **PUB-02: construido y verificado localmente, sin integrar ni publicar.** Las transiciones aplican mínimos guardados y repiten las guardias en la escritura; Queue conserva sus requisitos y comparte transacción con aprobación o descarte. La corrección también repara una etiqueta de dependencia incompatible introducida en la reconciliación de PUB-12. [Registro y límites](../superpowers/plans/2026-11-12-pub-02-build-ledger.md).
 
 11-nov-2026 · **VIS-06: avance parcial publicado en producción** (`a78188b`). El calendario muestra desde dos citas confirmadas futuras esta semana en Jersey, sin datos personales; solicita de nuevo al cambiar de propiedad y actualiza el dato cada 60 segundos y lo oculta ante un error. No se cuentan solicitudes. Queda pendiente la integración de visitas multiparte y grupos. Pages y Jobs terminaron correctamente; la API pública devuelve el campo con no-store y WebKit público pasó a 1280/390 sin enviar formularios. [Registro](../superpowers/plans/2026-11-11-vis-06-ledger.md).
 

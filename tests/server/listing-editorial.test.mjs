@@ -23,7 +23,7 @@ test('EST-17: review is hidden, keeps availability and confirmation, edits keep 
 });
 
 test('EST-17: stale publication cannot publish a different revision; success clears review',async()=>{
-  const {env,cookie}=await setup();await review(env,cookie,'submit_review');
+  const {env,cookie}=await setup();seedMedia(env);await review(env,cookie,'submit_review');
   const post=at=>call(env,'POST','/admin/listings/HE-R001/publish',{cookie,body:{updated_at:at}});
   assert.equal((await post(T0)).status,409);assert.equal(row(env).published,0);
   assert.equal((await post(row(env).updated_at)).status,200);assert.equal(row(env).review_requested_at,null);

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, call, adminCookie, captured, plan, T0 } from "./listing-client.mjs";
+import { makeEnv, seedListing, seedMedia, call, adminCookie, captured, plan, T0 } from "./listing-client.mjs";
 
 // ADM-04 (spec 2026-10-30): a listing on the website and still on the market, unconfirmed for 3 months (1 for a
 // rental), is To confirm until someone confirms it.
@@ -99,7 +99,7 @@ test("publishing, a new availability or a new price confirms; other edits do not
   at(t, "2026-10-30T12:00:00.000Z");
   const env = makeEnv(), confirmedAt = () => stored(env, "HE-R001").confirmed_at;
   const clock = iso => t.mock.timers.setTime(Date.parse(iso));
-  seedListing(env, { id: "HE-R001", confirmed_at: OLD });
+  seedListing(env, { id: "HE-R001", confirmed_at: OLD }); seedMedia(env);
   // The price comes back as it was (stored as REAL): an unchanged price is no change.
   clock("2026-10-30T12:01:00.000Z");
   assert.equal((await save(env, "HE-R001", { title: "Le Bernage (edited)", summary: "New text" })).to_confirm, 1);

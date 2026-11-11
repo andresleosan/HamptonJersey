@@ -147,8 +147,7 @@ export default function ListingEditor({ id, onChange }) {
     try {
       const result = await api(`/admin/listings/${id}/${action}`, { method: "POST",body:{updated_at:l.updated_at} });
       setListing(result.listing, result.details); reloadMatches(); onChange?.();
-      setMsg({ ok: true, text: action === "publish" && !publicPhoto
-        ? "Published, but it won't appear on the website until it has a visible photo." : DONE[action] });
+      setMsg({ ok: true, text: DONE[action] });
     }
     catch (e) { setMsg({ text: e.message,reload:e.status===409 }); }
     finally { setBusy(false); }
