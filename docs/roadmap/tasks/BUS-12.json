@@ -6,8 +6,8 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "REG-08 implementa prioridades versionadas y checks residenciales actuales: imprescindibles satisfechos, pendientes, alternativas y exclusiones. Parking distingue cifra fiable de mínimo/ambigüedad; mascotas condicionadas y exteriores dudosos quedan pendientes. Las tarjetas evalúan datos estructurados actuales; Shortlist/Rejected conservan su decisión humana. Construido localmente.",
-  "falta": "Publicar REG-08 y0031. Continúa M04: inventario común y evidencia/fechas, confirmación de disponibilidad, criterios comerciales y negocios, fuentes M02. El estado Stated must-haves met solo certifica los imprescindibles declarados, no todo BUS-12.",
+  "hecho": "Las prioridades y checks residenciales de REG-08 están publicados con 0031. Parking distingue cifra fiable de ambigüedad; el criterio de mascotas queda por confirmar ante condiciones o evidencia contradictoria, sin acreditar compatibilidad. La negativa inequívoca de mascotas para un hogar con animales se excluye desde e589b16; Shortlist y Rejected conservan sus decisiones.",
+  "falta": "Continuar M04: inventario común y evidencia/fechas, confirmación de disponibilidad, criterios comerciales y negocios, y fuentes M02. El estado Stated must-haves met solo certifica los imprescindibles declarados, no todo BUS-12.",
   "bloqueo": "",
   "evidencia": [
     "server/matching.js:31-43",
@@ -71,5 +71,6 @@
     "requirements-contract",
     "market-inventory"
   ],
-  "nextStep": "Verificar REG-08/0031 y ampliar M04 a inventario común y condiciones comerciales sin rehacer los checks existentes."
+  "nextStep": "Verificar REG-08/0031 y ampliar M04 a inventario común y condiciones comerciales sin rehacer los checks existentes.",
+  "actualizado": "2026-11-11"
 }

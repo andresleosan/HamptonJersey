@@ -4827,7 +4827,7 @@
       "preferredSlot": "vps",
       "priority": 228,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -4858,7 +4858,7 @@
         }
       ],
       "acceptance": [
-        "Terminar, revisar y publicar el ajuste de mascotas imprescindibles y verificar su despliegue."
+        "Conservar completado el criterio de mascotas; el panel autenticado de producción permanece sin comprobar."
       ]
     },
     {

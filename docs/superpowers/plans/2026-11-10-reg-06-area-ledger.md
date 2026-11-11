@@ -38,3 +38,5 @@
 - El commit `fe9618f23677c7fab4f8aa19a3f7f836dd290df2` llegó a main; la migración 0039 se aplicó y se verificaron registro, columnas, índice y triggers. El marcador previo de recuperación se conservó fuera del repositorio.
 - Cloudflare Pages y Workers Builds `hampton-jobs` terminaron correctamente. La prueba pública anónima de solo lectura, con WebKit aislado a 1280/390, confirmó las tres opciones de zona. No hubo envío de datos ni prueba autenticada del panel en producción.
 - REG-07 recibió después un ajuste local adicional de mascotas imprescindibles; su verificación y publicación se registran por separado.
+
+- Actualización posterior: REG-07 y la regla quedaron publicados en `e589b167177f4ac6b1511858cbf4af15aa0f38a5`; Pages y `hampton-jobs` correctos, y smoke público anónimo sin envío correcto a 1280/390. El panel autenticado no se comprobó en producción.
