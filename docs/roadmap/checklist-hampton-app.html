@@ -4157,10 +4157,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Publicar la ficha en la web con un botón al tenerla completa",
    "origen": "texto",
    "fase": "F4",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "Luis",
-   "hecho": "Publish y el interruptor comparten la transición existente. En una copia local se integraron mínimos de título, operación y foto pública elegible, con guardias de versión y foto dentro de la escritura. Queue conserva sus requisitos adicionales y su aprobación y descarte se protegen transaccionalmente.",
-   "falta": "Completar la validación general del panel, integrar y publicar el cambio local y verificar su despliegue; producción mantiene el comportamiento anterior hasta entonces.",
+   "hecho": "Publish, el interruptor y Queue aplican los mínimos acordados desde datos guardados: título, operación y foto pública elegible. Las guardias de versión y foto se repiten en la escritura; Queue conserva sus requisitos adicionales y aprobación/descarte son transaccionales. Código desplegado en 6dfdbda; pruebas focales, D1 local y WebKit aislado aprobados.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "admin/src/ListingEditor.jsx:256-257",
@@ -4171,7 +4171,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/publication-policy.js",
     "tests/server/publication-gates.test.mjs",
     "tests/publication-gates.e2e.cjs",
-    "docs/superpowers/plans/2026-11-12-pub-02-build-ledger.md"
+    "docs/superpowers/plans/2026-11-12-pub-02-build-ledger.md",
+    "docs/superpowers/plans/2026-11-12-pub-02-build-ledger.md#publicación-autorizada"
    ]
   },
   {
