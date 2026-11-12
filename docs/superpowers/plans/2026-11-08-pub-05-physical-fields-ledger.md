@@ -63,3 +63,9 @@ Siguiente recomendado Codex: /avanzar PUB-04 · gpt-6.1-terra · high · solo pl
 - El recorrido WebKit aislado PASS a 1280 y 390 px con datos ficticios, sin red: validación, guardado, descarte, errores, foco y zoom CSS 200 % (no zoom nativo). Chromium continúa pendiente.
 - PUB-05 sigue parcial en el tablero hasta que exista autorización explícita para commit, push, migración y publicación y se verifiquen. La copia conserva cambios previos no publicados de PUB-04, que requieren separación al integrar.
 - Siguiente tarea recomendada: PUB-06, que puede reutilizar la superficie interior compartida al completar sus datos económicos.
+
+## Publicación autorizada · 12-nov-2026
+
+- Se aisló PUB-05 de los cambios pendientes de PUB-04. La migración remota 0041 se aplicó tras confirmar bookmark de recuperación, estado previo de triggers y que era la única pendiente; se verificaron 13 columnas, ninguna migración pendiente y cero violaciones de claves foráneas.
+- `main` avanzó sin force al commit `9297e5180647aa5ab5a7f3c66969459de4750b3b`; Cloudflare Pages y Workers Builds `hampton-jobs` terminaron correctamente para ese commit. No se modificaron fichas reales.
+- El cierre en el tablero se publica por separado tras verificar el catálogo y el coordinador; el recorrido autenticado en producción no se acredita con el smoke público.

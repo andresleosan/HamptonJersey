@@ -1,6 +1,8 @@
 # Estado de Hampton App
 
 
+12-nov-2026 · **PUB-05 publicada:** migración 0041 verificada, código `9297e51` en main con Pages y Jobs correctos. Campos físicos, correcciones manuales, historial y editor pasan 1.217 pruebas JS, 14 Python y WebKit aislado. Cierre del tablero pendiente de desplegar el catálogo. [Ledger](../superpowers/plans/2026-11-08-pub-05-physical-fields-ledger.md). Siguiente: PUB-06, datos económicos y área compartida.
+
 12-nov-2026 · **PUB-05 preparada localmente:** campos físicos, correcciones manuales, historial y editor con migración 0041 ensayada. Pasaron 1.217 pruebas JS, 14 Python y WebKit aislado 1280/390 con zoom CSS 200 %. Publicación y cierre pendientes de verificación. [Ledger](../superpowers/plans/2026-11-08-pub-05-physical-fields-ledger.md). Siguiente: PUB-06, datos económicos y área compartida.
 Actualizado el 12-nov-2026.
 

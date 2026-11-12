@@ -4222,18 +4222,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Familia 2 · Características físicas de la ficha",
    "origen": "texto",
    "fase": "F4",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "En listings y en el editor: Bedrooms, Bathrooms y Type (texto); listings guarda además parking, exterior (jardín, terraza, balcón), amueblado y mascotas leídos solos del texto para el matching, sin campo en el editor, y lo demás va en filas libres de Specification. Preparado localmente: campos físicos, área compartida en pies² y conversión, correcciones manuales con prioridad sobre texto, historial y editor; pendiente integración y publicación autorizadas.",
-   "falta": "Faltan como campos superficie interior en pies² y m², aseos, salones, trastero, planta y plantas, ascensor, año, estado de conservación, calefacción (gasoil, gas, eléctrica, bomba de calor, GLP), doble acristalamiento y comodidades, y parking, amueblado y mascotas no tienen campo propio (solo se leen del texto o de filas de Specification). Replanteado para Jersey (§5.10), no falta: superficies útil y construida pasan a superficie interior, y aire acondicionado, videovigilancia, domótica o panel solar no están en la lista de Jersey.",
+   "hecho": "Campos físicos estructurados y área interior única en pies² con conversión a m², edificio, habitaciones, calefacción y comodidades; editor con desconocidos y correcciones manuales de parking, mascotas, amueblado y exterior. Las correcciones prevalecen sobre texto y recálculo y conservan certeza e historial. Migración 0041 aplicada; código 9297e51 publicado con Pages y Jobs correctos. Pruebas locales y WebKit aislado aprobados.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "admin/src/ListingEditor.jsx:167",
-    "admin/src/ListingEditor.jsx:187-188",
-    "server/listing-features.js:143-158",
-    "server/listing-features.js:160-176",
-    "migrations/0009_matches.sql:6-14",
-    "admin/src/ListingEditor.jsx:287-298"
+    "admin/src/ListingEditor.jsx",
+    "server/listing-physical.js",
+    "server/listing-features.js",
+    "server/routes/listings.js",
+    "server/routes/matches.js",
+    "migrations/0041_listing_physical.sql",
+    "tests/server/listing-physical-api.test.mjs",
+    "tests/listing-physical.e2e.cjs",
+    "docs/superpowers/plans/2026-11-08-pub-05-physical-fields-ledger.md"
    ]
   },
   {
