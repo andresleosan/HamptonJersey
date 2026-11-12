@@ -306,3 +306,5 @@ Q06 aprobada por Luis: alertas seis meses, una invitación de renovación al ter
 ## PUB-06 · Integración local (12-nov-2026)
 
 Construido sobre main d565118: nuevos datos económicos y renta con premium, con trazabilidad que no copia textos libres. Migración local provisional 0042; pruebas integradas con Chromium y D1 local en escritorio y móvil. Pendiente verificar estado remoto y autorización para migración/publicación.
+
+**PUB-06 en producción (12-nov-2026):** migración 0042 aplicada y despliegue 2ba135b activo. Los campos económicos se editan en Price y aparecen en los detalles públicos; renta y premium pueden coexistir en negocios. Comprobados el recorrido integrado local en escritorio y móvil, el bundle publicado y la web pública anónima; sin cambios de prueba en fichas reales.

@@ -6354,7 +6354,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 270,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -16276,27 +16276,29 @@
       "titulo": "Familia 3 · Datos económicos de la ficha",
       "origen": "texto",
       "fase": "F4",
-      "estado": "parcial",
-      "responsable": "desarrollo",
-      "hecho": "En listings y en Price del editor: precio de venta, renta por mes o por año, premium del negocio, moneda (GBP o EUR) y un texto para cuando no hay importe.",
-      "falta": "Construido localmente sobre main d565118: precio por pie², depósito, parish rates, service charge, suministros incluidos, fecha de disponibilidad y renta junto al premium. Probado con D1 local y Chromium en escritorio y móvil. Pendiente autorización y verificación para aplicar migración provisional 0042 y publicar.",
+      "estado": "hecho",
+      "responsable": "—",
+      "hecho": "En producción desde el 12-nov-2026 con migración 0042 y código 2ba135b: editor y ficha pública con precio por pie², depósito, parish rates, service charge, suministros incluidos y fecha de disponibilidad; los negocios admiten renta y premium. Los cargos se describen con moneda y periodo en texto.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
-        "admin/src/ListingEditor.jsx:191-199",
-        "migrations/0001_init.sql:12-18",
-        "server/listing.js:69-74"
+        "admin/src/ListingEditor.jsx",
+        "server/listing.js",
+        "migrations/0042_listing_economics.sql",
+        "tests/pub06-economics.e2e.cjs",
+        "tests/server/listing-economics.test.mjs"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [],
       "externalBlocker": "",
       "resources": [
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Verificar main y migraciones remotas y publicar solo con autorización explícita."
+      "nextStep": "Conservar como terminado; revisar solo si se detecta una regresión."
     },
     {
       "id": "PUB-07",

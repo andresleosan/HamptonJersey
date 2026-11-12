@@ -5,3 +5,7 @@ Base local d565118, referencia main comprobada el 12-nov-2026. La migración 004
 Comprobado: 1219 pruebas Node, 14 Python, compilación, `team:check` y Playwright integrado con D1 ficticia en escritorio y móvil, tanto con Chromium como con WebKit. Chromium se ejecuta sin su sandbox propio únicamente en el contenedor local sin red ni privilegios, a petición de Luis; el modo de producción lo rechaza y se comprobó esa restricción.
 
 Pendiente comprobar de nuevo la referencia remota, migraciones y vía de recuperación; commit, push, migración y publicación requieren autorización explícita. El punto sigue parcial: tablero de main 59/221 (26,7 %) antes y después; el porcentaje público no se ha verificado.
+
+## Publicación
+
+El 12-nov-2026 se aplicó 0042 a D1 y se publicó 2ba135b. Cloudflare registra el despliegue correspondiente; el bundle público del panel contiene los campos y la comprobación pública anónima pasó a 1280 y 390 px. El recorrido autenticado se comprobó localmente con datos ficticios. Tablero: 59/221 (26,7 %) antes; 60/221 (27,1 %) después de este registro.
