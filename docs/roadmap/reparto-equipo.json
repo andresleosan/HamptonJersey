@@ -7386,7 +7386,7 @@
       "fase": "F4",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "En listings y en el editor: Bedrooms, Bathrooms y Type (texto); listings guarda además parking, exterior (jardín, terraza, balcón), amueblado y mascotas leídos solos del texto para el matching, sin campo en el editor, y lo demás va en filas libres de Specification.",
+      "hecho": "En listings y en el editor: Bedrooms, Bathrooms y Type (texto); listings guarda además parking, exterior (jardín, terraza, balcón), amueblado y mascotas leídos solos del texto para el matching, sin campo en el editor, y lo demás va en filas libres de Specification. Preparado localmente: campos físicos, área compartida en pies² y conversión, correcciones manuales con prioridad sobre texto, historial y editor; pendiente integración y publicación autorizadas.",
       "falta": "Faltan como campos superficie interior en pies² y m², aseos, salones, trastero, planta y plantas, ascensor, año, estado de conservación, calefacción (gasoil, gas, eléctrica, bomba de calor, GLP), doble acristalamiento y comodidades, y parking, amueblado y mascotas no tienen campo propio (solo se leen del texto o de filas de Specification). Replanteado para Jersey (§5.10), no falta: superficies útil y construida pasan a superficie interior, y aire acondicionado, videovigilancia, domótica o panel solar no están en la lista de Jersey.",
       "bloqueo": "",
       "evidencia": [
@@ -7407,7 +7407,7 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Completar campos físicos estructurados y revisar compatibilidad con matching."
+      "nextStep": "Revisar y autorizar commit, push, migración 0041 y publicación; verificar producción y cerrar el tablero solo tras confirmar el despliegue."
     },
     {
       "id": "PUB-06",

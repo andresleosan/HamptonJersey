@@ -176,7 +176,7 @@ export const RECALC_BATCH = { listings: 50, applicants: 5 };
 // replaced (B3), and a listing saved meanwhile keeps what its own save read. updated_at is left alone: no false 409s.
 async function recalcListings(env, after) {
   const [page, [{ n }]] = (await env.DB.batch([
-    env.DB.prepare(`SELECT id, updated_at, location, road_name, specs, summary, description, property_type, title
+    env.DB.prepare(`SELECT id, updated_at, location, road_name, specs, summary, description, property_type, title, feature_overrides
       FROM listings WHERE id > ? ORDER BY id LIMIT ?`).bind(after ?? "", RECALC_BATCH.listings),
     env.DB.prepare("SELECT COUNT(*) AS n FROM listings"),
   ])).map(r => r.results);

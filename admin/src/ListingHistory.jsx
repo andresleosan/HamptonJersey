@@ -30,7 +30,10 @@ const LABEL = {title:'Title',use:'Use',property_type:'Property type',operation:'
   confirmed_at:'Confirmed at',cover_media_id:'Cover media ID',feat_pets:'Pets allowed',feat_parking:'Parking spaces',feat_furnished:'Furnished',
   feat_outdoor:'Outdoor space',feat_type:'Derived property type',feat_evidence:'Feature evidence',review_requested_at:'Review requested at',
   building_name_or_number:'Building name or number (internal)',postcode:'Postcode (internal)',property_condition:'Property condition',developer_name:'Developer (internal)',
-  public_address_publication:'Exact address publication'};
+  public_address_publication:'Exact address publication', interior_area_sqft:'Interior area (sq ft)', separate_wcs:'Separate toilets',
+  reception_rooms:'Reception rooms', has_garage:'Garage', has_storage:'Storage', has_lift:'Lift', double_glazing:'Double glazing',
+  floor_level:'Floor level', building_floors:'Above-ground floors', year_built:'Year built', heating_types:'Heating', amenities:'Amenities',
+  feature_overrides:'Manual matching facts'};
 const SOURCE = {panel:'Panel',queue:'Properties Queue',sales:'Sales',media:'Media',recalculate:'Recalculation'};
 const validDate = iso => typeof iso==='string' && Number.isFinite(Date.parse(iso)) && new Date(iso).toISOString()===iso;
 const date = iso => validDate(iso)?new Date(iso).toLocaleString('en-GB',{timeZone:'Europe/Jersey',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'}):'Date unavailable';
@@ -41,6 +44,8 @@ function value(field,v) {
   if(field.endsWith('_at'))return `${date(v)} (Jersey)`;
   if(field==='viewing_hours')return v.map(w=>`${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][w.day]} ${w.start} to ${w.end}`).join('; ');
   if(Array.isArray(v))return v.map(words).join(', ')||'None';
+  if(typeof v==='object')return Object.entries(v).map(([k,item]) => `${words(k)}: ${item === null ? 'unknown' : typeof item === 'object'
+    ? Object.entries(item).map(([part,state]) => `${words(part)} ${words(state)}`).join(', ') : String(item)}`).join('; ') || 'From text';
   return typeof v==='number'?v.toLocaleString('en-GB'):words(v);
 }
 

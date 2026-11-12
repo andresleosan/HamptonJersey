@@ -45,3 +45,21 @@ Brainstorming/grill-me resuelven manual/automático, ausencia/null/0/[], patio/t
 Revisar propuesta y continuar planificación si Luis lo elige. Construcción futura en orden SPR-01 → PUB-06 → PUB-05, con bases/contratos revalidados y reserva build auténtica solo entonces. Los datos declarados no se convierten en certificados ni se alteran pendientes ajenos.
 
 Siguiente recomendado Codex: /avanzar PUB-04 · gpt-6.1-terra · high · solo planificación. PUB-04 pide dirección/código postal, estado y promotor; conviene cerrar ahora el contrato de property_condition compartido y distinguir datos internos de dirección publicable. Modelo/esfuerzo comprobados en catálogo local; no cambia la sesión actual.
+
+## Construcción local parcial · 12-nov-2026
+
+- Base `89c5c92`; se conservan los cambios locales anteriores de PUB-04. `interior_area_sqft` todavía no existe en el esquema y su contrato es compartido con PUB-06. La autorización actual de construcción sustituye la restricción histórica de solo planificación.
+- Se preparó `server/listing-physical.js` como módulo puro: validación de enteros, flags y listas; coherencia de plantas; conversión de área; normalización estricta de excepciones manuales y proyección de valores y certezas. Todavía no está conectado a ninguna ruta ni a matching, no guarda datos y no modifica la interfaz.
+- Pruebas: `node --test --test-reporter=dot tests/server/listing-physical.test.mjs tests/server/listing-features.test.mjs tests/server/requirements-matching.test.mjs`, 24/24 PASS. Se verificó RED→GREEN para el módulo ausente, el override y exterior parcialmente conocido.
+- Pendiente: integrar una sola superficie con PUB-06, migración local e historial EST-18, API y atomicidad, prioridad en extracción/recálculo/queue, editor y WebKit con datos ficticios. No se ha realizado migración remota ni publicación. Playwright: no aplica al módulo puro aún no integrado. PUB-05 sigue parcial.
+- Decisión: se conservó en esta copia el módulo puro sin conectarlo antes de que existan persistencia y auditoría; evita que el recálculo use cambios manuales sin poder conservarlos. Si el contrato del área compartida cambia, habrá que adaptar la conversión y sus pruebas antes de integrar.
+
+## Integración local · 12-nov-2026
+
+- Se integraron los campos en una migración local `0041`, con área única en pies² y visualización derivada en m², validación y eventos tipados. El campo `property_condition` existente se reutiliza. No se aplicó migración remota.
+- El editor permite guardar, descartar y validar los nuevos campos y decidir si cada hecho de matching procede del texto, es manual o desconocido. La extracción y recálculo conservan las correcciones; Queue no convierte una importación en confirmación manual. La API pública no añade los campos.
+- Pruebas: 1.217 JavaScript y 14 Python; migración sobre base poblada con `integrity_check` y claves foráneas; guardado, versión obsoleta, rollback por fallo de evento, recálculo, reinicio manual y fuente Queue. Build y `check:release` PASS.
+- Revisión independiente detectó ausencia de visualización del último valor y errores manuales poco visibles; se corrigieron con validación y mensajes de interfaz.
+- El recorrido WebKit aislado PASS a 1280 y 390 px con datos ficticios, sin red: validación, guardado, descarte, errores, foco y zoom CSS 200 % (no zoom nativo). Chromium continúa pendiente.
+- PUB-05 sigue parcial en el tablero hasta que exista autorización explícita para commit, push, migración y publicación y se verifiquen. La copia conserva cambios previos no publicados de PUB-04, que requieren separación al integrar.
+- Siguiente tarea recomendada: PUB-06, que puede reutilizar la superficie interior compartida al completar sus datos económicos.

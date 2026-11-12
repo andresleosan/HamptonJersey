@@ -1,6 +1,7 @@
 import { isPublicMedia } from "./visibility.js";
 import { OPTIONS } from "./applicants.js";
 import { validWeeklyWindows } from "./viewings.js";
+import { PHYSICAL_FIELDS, physicalValue, normalizeFeatureOverrides } from './listing-physical.js';
 
 export const ENUMS = {
   use: ["residential", "commercial"],
@@ -27,7 +28,7 @@ const MONEY = ["sale_price", "rent", "premium"];
 const REQUIRED = ["title", "use", "operation", "availability"];
 // matchable: whether the listing is offered to applicants (B9).
 export const EDITABLE = [...Object.keys(ENUMS), ...Object.keys(TEXT), ...INTS, ...MONEY, "featured_rank", "specs", "matchable",
-  "viewings_enabled", "viewing_hours"];
+  "viewings_enabled", "viewing_hours", ...PHYSICAL_FIELDS, "interior_area_sqft", "feature_overrides"];
 
 const blank = v => v === null || v === undefined || (typeof v === "string" && v.trim() === "");
 const bad = msg => { throw new Error(msg); };
@@ -43,6 +44,17 @@ function checkSpecs(v) {
 }
 
 function check(k, v) {
+  if (k === 'feature_overrides') return JSON.stringify(normalizeFeatureOverrides(v));
+  if (PHYSICAL_FIELDS.includes(k)) {
+    const value = physicalValue(k, v);
+    return ['heating_types', 'amenities'].includes(k) && value !== null ? JSON.stringify(value) : value;
+  }
+  if (k === 'interior_area_sqft') {
+    if (blank(v)) return null;
+    if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0 || v >= 1e8 || Math.abs(v * 100 - Math.round(v * 100)) > 1e-7)
+      bad('Enter an area above 0 with up to 2 decimal places, or leave blank');
+    return v;
+  }
   if (k === "matchable" || k === "viewings_enabled") return v === 0 || v === 1 ? v : bad("0 or 1");
   if (k === "viewing_hours") {
     if (v === null) return null;

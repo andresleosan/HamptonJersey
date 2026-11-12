@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+
+12-nov-2026 · **PUB-05 preparada localmente:** campos físicos, correcciones manuales, historial y editor con migración 0041 ensayada. Pasaron 1.217 pruebas JS, 14 Python y WebKit aislado 1280/390 con zoom CSS 200 %. Publicación y cierre pendientes de verificación. [Ledger](../superpowers/plans/2026-11-08-pub-05-physical-fields-ledger.md). Siguiente: PUB-06, datos económicos y área compartida.
 Actualizado el 12-nov-2026.
 
 12-nov-2026 · **PUB-02: implementado y desplegado** (`6dfdbda`). Las transiciones aplican mínimos guardados y repiten las guardias en la escritura; Queue conserva sus requisitos y comparte transacción con aprobación o descarte. La corrección también repara una etiqueta de dependencia incompatible introducida en la reconciliación de PUB-12. Pages y Jobs completaron el despliegue; el recorrido general del panel conserva el límite descrito en el registro. [Registro y límites](../superpowers/plans/2026-11-12-pub-02-build-ledger.md).

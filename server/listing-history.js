@@ -2,6 +2,7 @@ import {fail} from './http.js';
 import {EDITABLE,ENUMS} from './listing.js';
 import {validWeeklyWindows} from './viewings.js';
 import {LISTING_DETAIL_FIELDS,PROPERTY_CONDITION_LABELS} from './listing-details.js';
+import { physicalValue, normalizeFeatureOverrides } from './listing-physical.js';
 
 const ACTIONS = ['created','updated','published','unpublished','archived','restored','confirmed',
   'availability_changed','featured_changed','cover_changed','recalculated','deleted','review_requested','review_returned'];
@@ -30,6 +31,12 @@ function valueAllowed(field,v) {
   if(v===null)return true;
   if(FREE.includes(field))return false;
   if(field==='property_condition')return Object.hasOwn(PROPERTY_CONDITION_LABELS,v);
+  if(['heating_types','amenities'].includes(field)) {
+    try { return Array.isArray(v) && JSON.stringify(physicalValue(field,v)) === JSON.stringify(v); } catch { return false; }
+  }
+  if(field==='feature_overrides') {
+    try { return object(v) && JSON.stringify(normalizeFeatureOverrides(v)) === JSON.stringify(v); } catch { return false; }
+  }
   if(Object.hasOwn(ENUMS,field))return ENUMS[field].includes(v);
   if(field.endsWith('_at'))return iso(v);
   if(field==='cover_media_id')return typeof v==='string'&&/^[A-Za-z0-9_.-]{1,128}$/.test(v);

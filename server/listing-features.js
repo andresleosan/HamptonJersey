@@ -2,6 +2,7 @@
 // reads descriptions. Pure ESM; it runs inside the Worker's 10 ms budget, so every pattern is compiled once, here.
 // Unknown is always null: a feature the text does not mention is never "no".
 import { OPTIONS } from "./applicants.js";
+import { applyFeatureOverrides } from './listing-physical.js';
 
 const EVIDENCE_MAX = 120;
 
@@ -216,5 +217,7 @@ export function extractFeatures(listing) {
   const certainty = requirementEvidence(listing, out);
   if (certainty) evidence._requirements = certainty;
   out.feat_evidence = Object.keys(evidence).length ? JSON.stringify(evidence) : null;
-  return out;
+  const overrides = listing.feature_overrides === undefined ? {} : typeof listing.feature_overrides === 'string'
+    ? JSON.parse(listing.feature_overrides) : listing.feature_overrides;
+  return applyFeatureOverrides(out, overrides);
 }

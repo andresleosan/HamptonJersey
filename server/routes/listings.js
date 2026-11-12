@@ -9,6 +9,7 @@ import {readListingHistory,validateListingHistoryRows} from '../listing-history.
 import { changedListingDetails, listingDetailsUpdateStatement, publicAddressReviewStatement, readListingDetails, validateListingDetails } from '../listing-details.js';
 import { buildPublicAddressReview } from '../public-address.js';
 import { publicationReadiness } from "../publication-policy.js";
+import { checkPhysical } from '../listing-physical.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -28,7 +29,9 @@ const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availabi
 export async function loadListing(env, id) {
   const l = await env.DB.prepare(`SELECT l.*, (${TO_CONFIRM}) AS to_confirm FROM listings l WHERE l.id = ?`).bind(now(), id).first();
   if (!l) fail(404, "Listing not found");
-  return { ...l, specs: JSON.parse(l.specs || "[]"), viewing_hours: l.viewing_hours == null ? null : JSON.parse(l.viewing_hours) };
+  return { ...l, specs: JSON.parse(l.specs || "[]"), viewing_hours: l.viewing_hours == null ? null : JSON.parse(l.viewing_hours),
+    heating_types: l.heating_types == null ? null : JSON.parse(l.heating_types),
+    amenities: l.amenities == null ? null : JSON.parse(l.amenities), feature_overrides: JSON.parse(l.feature_overrides) };
 }
 
 // C10: the listing's active interest, as the website counts it (server/viewings.js).
@@ -97,7 +100,10 @@ const create = async ({ request, env, admin }) => createListing(env, admin, awai
 export async function createListing(env, admin, body, context = {}) {
   const r = validateListing(body);
   if (r.errors) return fieldErrors(r.errors);
+  if (context.source === 'queue' && r.value.feature_overrides && r.value.feature_overrides !== '{}')
+    return fieldErrors({ feature_overrides: 'Review manual facts in the listing editor' });
   const priceErrors = checkPrice(r.value);
+  Object.assign(priceErrors, checkPhysical(r.value));
   Object.assign(priceErrors,checkMarketingEdit(null,r.value));
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
   for (let attempt = 1; ; attempt++) {
@@ -158,6 +164,7 @@ async function update({ request, env, admin, params: [id] }) {
     return json({ listing: stored, details: storedDetails });
   const merged = { ...stored, specs: JSON.stringify(stored.specs), ...r.value };
   const priceErrors = checkPrice(merged);
+  Object.assign(priceErrors, checkPhysical(merged));
   Object.assign(priceErrors,checkMarketingEdit(stored,r.value));
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
   // The lock on updated_at also guarantees the features were read from the row this save replaces.

@@ -16,15 +16,19 @@ import RentalMarketing from './RentalMarketing.jsx';
 import ListingHistory from './ListingHistory.jsx';
 import {isRentalMarketing} from '../../server/listing-editorial.js';
 import { normalizePostcode, PROPERTY_CONDITION_LABELS } from '../../server/listing-details.js';
+import { squareMetres } from '../../server/listing-physical.js';
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "tenure_type", "housing_category", "restriction", "sale_price", "rent", "rent_period", "premium",
-  "currency", "price_text", "summary", "description", "tour_url", "specs", "viewings_enabled", "viewing_hours"];
-const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium"];
+  "currency", "price_text", "summary", "description", "tour_url", "specs", "viewings_enabled", "viewing_hours",
+  "interior_area_sqft", "separate_wcs", "reception_rooms", "has_garage", "has_storage", "has_lift", "double_glazing",
+  "floor_level", "building_floors", "year_built", "heating_types", "amenities", "feature_overrides"];
+const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium", "interior_area_sqft", "separate_wcs",
+  "reception_rooms", "has_garage", "has_storage", "has_lift", "double_glazing", "floor_level", "building_floors", "year_built"];
 // Keep custom hours while the form temporarily uses general availability. This draft-only key is not sent by toBody,
 // and toForm resets it on load, a successful save and Discard.
 const toForm = l => ({ ...Object.fromEntries(FIELDS.map(k => [k, k === "specs" ? l.specs
-  : k === "viewings_enabled" ? l[k] ?? 1 : k === "viewing_hours" ? l[k] ?? null : l[k] ?? ""])),
+  : k === "viewings_enabled" ? l[k] ?? 1 : k === "viewing_hours" ? l[k] ?? null : k === 'feature_overrides' ? structuredClone(l[k] ?? {}) : l[k] ?? ""])),
   viewing_hours_draft: l.viewing_hours ?? [] });
 const DETAIL_FIELDS = ["building_name_or_number", "postcode", "property_condition", "developer_name"];
 const toDetailsForm = d => Object.fromEntries(DETAIL_FIELDS.map(k => [k, d?.[k] ?? ""]));
@@ -39,7 +43,7 @@ const IF_CHANGED = ["parish", "matchable"];
 const toMatchForm = l => ({ parish: l.parish ?? "", matchable: l.matchable });
 const changedMatchForm = (f, l) => Object.fromEntries(IF_CHANGED.filter(k => f[k] !== toMatchForm(l)[k])
   .map(k => [k, k === "parish" ? f.parish || null : f.matchable]));
-const SECTIONS = [["details", "Details"], ["internal-address", "Internal property details"], ["price", "Price"], ["description", "Description"], ["photos", "Photos"],
+const SECTIONS = [["details", "Details"], ["internal-address", "Internal property details"], ["physical", "Physical details"], ["price", "Price"], ["description", "Description"], ["photos", "Photos"],
   ["tour", "Tour and specification"], ["viewings", "Viewings"], ["offers", "Offers"], ["applicants", "Matched applicants"], ["research", "Research"], ["history", "History"]];
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
 // Match status, with its badge tone (DESIGN.md "Badges de estado": Found and Rejected neutral, Shortlisted active).
@@ -121,6 +125,17 @@ export default function ListingEditor({ id, onChange }) {
 
   // One Save for fields and photos: fields first, then photos with the updated_at the fields save returned.
   const save = async () => {
+    const draftErrors = {};
+    for (const key of ['heating_types', 'amenities']) if (Array.isArray(form[key]) && form[key].includes(''))
+      draftErrors[key] = 'Choose at least one value, or choose None or Unknown';
+    for (const key of ['pets', 'parking', 'furnished']) if (form.feature_overrides[key] === '')
+      draftErrors[`manual_${key}`] = 'Choose a manual value or another mode';
+    if (typeof form.feature_overrides.parking === 'number' && (!Number.isInteger(form.feature_overrides.parking)
+      || form.feature_overrides.parking < 0 || form.feature_overrides.parking > 10000))
+      draftErrors.manual_parking = 'Enter a whole number from 0 to 10000';
+    if (Object.keys(draftErrors).length) {
+      errorFocus.current = Object.keys(draftErrors)[0]; setErrors(draftErrors); return;
+    }
     setBusy(true); setMsg(null);
     try {
       let at = l.updated_at;
@@ -304,7 +319,6 @@ export default function ListingEditor({ id, onChange }) {
       </section>}
       <section id="s-details" className="card" aria-labelledby="h-details"><h2 id="h-details">Details</h2><div className="grid2">
         {field("title", "Title", <input {...ctl("title")} maxLength={200} required />)}
-        {field("property_type", "Type (house, flat, restaurant…)", <input {...ctl("property_type")} maxLength={100} />)}
         {field("use", "Use", <select {...ctl("use")}>{options(USE)}</select>)}
         {field("operation", "Operation", <select {...ctl("operation")} disabled={isRentalMarketing(l.availability)}>{options(OPERATION)}</select>)}
         {field("availability", "Availability", <select {...ctl("availability")} disabled={isRentalMarketing(l.availability)}>
@@ -326,8 +340,6 @@ export default function ListingEditor({ id, onChange }) {
         {field("parish", "Parish", <select id="f-parish" value={matchForm.parish} aria-invalid={errors.parish ? true : undefined}
           aria-describedby={errors.parish ? "e-parish" : undefined} onChange={e => setMatchForm(x => ({ ...x, parish: e.target.value }))}>
           <option value="">Unknown</option>{OPTIONS.parishes.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>)}
-        {field("bedrooms", "Bedrooms", <input {...ctl("bedrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
-        {field("bathrooms", "Bathrooms", <input {...ctl("bathrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
       </div></section>
 
       <section id="s-internal-address" className="card" aria-labelledby="h-internal-address">
@@ -410,6 +422,61 @@ export default function ListingEditor({ id, onChange }) {
         <p className="muted"><strong>Current address preview:</strong> {internalAddress || "Not known"}</p>
       </section>
 
+      <section id="s-physical" className="card" aria-labelledby="h-physical"><h2 id="h-physical">Physical details</h2>
+        <p className="muted">Leave a field unknown when it has not been confirmed.</p>
+        <h3>Size and rooms</h3><div className="grid2">
+          {field("property_type", "Type (house, flat, restaurant…)", <input {...ctl("property_type")} maxLength={100} />)}
+          {field("bedrooms", "Bedrooms", <input {...ctl("bedrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
+          {field("bathrooms", "Bathrooms", <input {...ctl("bathrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
+          {field('interior_area_sqft', 'Interior area (sq ft)', <input {...ctl('interior_area_sqft')} type="number" min="0.01" step="0.01" inputMode="decimal" />)}
+          <div className="field"><span>Interior area (m²)</span><output>{squareMetres(Number(form.interior_area_sqft))?.toFixed(2) ?? 'Not known'}</output></div>
+          {field('separate_wcs', 'Separate toilets', <input {...ctl('separate_wcs')} type="number" min="0" max="100" step="1" />)}
+          {field('reception_rooms', 'Reception rooms', <input {...ctl('reception_rooms')} type="number" min="0" max="100" step="1" />)}
+        </div><h3>Building</h3><div className="grid2">
+          {field('floor_level', 'Floor level (ground floor is 0)', <input {...ctl('floor_level')} type="number" min="-20" max="200" step="1" />)}
+          {field('building_floors', 'Above-ground floors', <input {...ctl('building_floors')} type="number" min="1" max="200" step="1" />)}
+          {field('year_built', 'Year built', <input {...ctl('year_built')} type="number" min="1" max="9999" step="1" />)}
+          {['has_garage', 'has_storage', 'has_lift', 'double_glazing'].map((key, i) => field(key,
+            ['Garage', 'Storage', 'Lift', 'Double glazing'][i], <select {...ctl(key)}><option value="">Unknown</option><option value="1">Yes</option><option value="0">No</option></select>))}
+        </div><h3>Features</h3>
+        {[['heating_types', 'Heating', [['oil','Oil'],['gas','Gas'],['electric','Electric'],['heat_pump','Heat pump'],['lpg','LPG']]],
+          ['amenities', 'Amenities', [['pool','Pool'],['gym','Gym'],['communal_areas','Communal areas']]]].map(([key,label,choices]) => {
+          const values = form[key], mode = values === '' ? 'unknown' : values.length === 0 ? 'none' : 'values';
+          return <fieldset className="field" key={key}><legend>{label}</legend>
+            <label htmlFor={`f-${key}`}>Selection</label><select id={`f-${key}`} value={mode} aria-invalid={errors[key] ? true : undefined}
+              aria-describedby={errors[key] ? `e-${key}` : undefined} onChange={e => setForm(f => ({...f, [key]: e.target.value === 'unknown' ? '' : e.target.value === 'none' ? [] : ['']}))}>
+              <option value="unknown">Unknown</option><option value="none">None</option><option value="values">Select values</option></select>
+            {mode === 'values' && choices.map(([value,text]) => <label key={value}><input type="checkbox" checked={values.includes(value)}
+              onChange={e => setForm(f => { const selected = f[key].filter(x => x && x !== value); if (e.target.checked) selected.push(value);
+                return {...f, [key]: selected.length ? selected : ['']}; })} /> {text}</label>)}
+            {errors[key] && <small id={`e-${key}`} className="err">{errors[key]}</small>}</fieldset>;
+        })}
+        <h3 id="f-feature_overrides" tabIndex={-1}>Matching facts</h3><p className="muted">Manual values are kept when the text changes or matches are recalculated.</p>
+        {errors.feature_overrides && <p className="err" role="alert">{errors.feature_overrides}</p>}
+        {['pets','parking','furnished','outdoor'].map(key => {
+          const overrides = form.feature_overrides, present = Object.hasOwn(overrides, key), value = overrides[key];
+          const mode = !present ? 'auto' : value === null ? 'unknown' : 'manual';
+          let lastEvidence = null;
+          try { lastEvidence = JSON.parse(l.feat_evidence || '{}')[key] || null; } catch { /* Existing malformed evidence is not displayed. */ }
+          const lastValue = l[`feat_${key}`];
+          const update = next => setForm(f => { const facts = {...f.feature_overrides}; if (next === undefined) delete facts[key]; else facts[key] = next;
+            return {...f, feature_overrides: facts}; });
+          return <fieldset className="field" key={key}><legend>{key[0].toUpperCase() + key.slice(1)}</legend>
+            <label htmlFor={`f-manual_${key}`}>Source</label><select id={`f-manual_${key}`} value={mode} aria-invalid={errors[`manual_${key}`] ? true : undefined}
+              onChange={e => update(e.target.value === 'auto' ? undefined : e.target.value === 'unknown' ? null : key === 'outdoor' ?
+                {garden:'unknown',terrace:'unknown',balcony:'unknown',patio:'unknown'} : '')}>
+              <option value="auto">From text</option><option value="unknown">Unknown</option><option value="manual">Set manually</option></select>
+            {mode === 'auto' && <p className="muted">Last saved value: {lastValue == null ? 'Not known' : String(lastValue)}
+              {lastEvidence ? ` — ${lastEvidence}` : ''}</p>}
+            {mode === 'manual' && key === 'parking' && <label>Included spaces <input type="number" min="0" max="10000" step="1" value={value}
+              onChange={e => update(e.target.value === '' ? '' : Number(e.target.value))} /></label>}
+            {mode === 'manual' && ['pets','furnished'].includes(key) && <label>Value <select value={value} onChange={e => update(e.target.value)}>
+              <option value="">Choose a value</option><option value="yes">Yes</option><option value="no">No</option></select></label>}
+            {mode === 'manual' && key === 'outdoor' && ['garden','terrace','balcony','patio'].map(part => <label key={part}>{part[0].toUpperCase()+part.slice(1)}
+              <select value={value[part]} onChange={e => update({...value, [part]:e.target.value})}><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>)}
+            {errors[`manual_${key}`] && <small className="err" role="alert">{errors[`manual_${key}`]}</small>}</fieldset>;
+        })}
+      </section>
       <section id="s-price" className="card" aria-labelledby="h-price"><h2 id="h-price">Price</h2>
         <p className="muted">Leave unknown values blank: 0 is never shown. Sale price, rent and business premium are kept separate.</p><div className="grid2">
         {form.operation === "sale" && field("sale_price", "Sale price", <input {...ctl("sale_price")} type="number" min="1" step="any" />)}
