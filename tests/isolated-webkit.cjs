@@ -1,5 +1,5 @@
 // Existing Playwright journeys can use WebKit inside the disposable isolated test container.
-const {webkit} = require('../playwright-core');
+const {webkit, chromium} = require('../playwright-core');
 const {browsers} = require('../playwright-core/browsers.json');
 const revision = browsers.find(browser=>browser.name === 'webkit')?.revision;
 if (!revision) throw new Error('The Playwright Core WebKit revision is unavailable');
@@ -7,8 +7,12 @@ exports.chromium = { launch: async () => {
   const base=new URL(process.env.BASE);
   if (base.protocol !== 'https:' || !['127.0.0.1','localhost','[::1]'].includes(base.hostname))
     throw new Error('The isolated browser only connects to the local test fixture');
-  const browser=await webkit.launch({headless:false,executablePath:`/work/webkit-${revision}/pw_run.sh`,
-    env:{...process.env,WEBKIT_FORCE_SANDBOX:'1'}});
+  // Chromium's own sandbox is disabled only for this disposable, networkless test container.
+  // The container still drops capabilities and privileges and never mounts production data.
+  const browser = process.env.HAMPTON_E2E_BROWSER === 'chromium'
+    ? await chromium.launch({headless:true, executablePath:'/ms-playwright/chromium-1243/chrome-linux64/chrome', args:['--no-sandbox']})
+    : await webkit.launch({headless:false,executablePath:`/work/webkit-${revision}/pw_run.sh`,
+      env:{...process.env,WEBKIT_FORCE_SANDBOX:'1'}});
   const newContext=browser.newContext.bind(browser);
   browser.newContext=async options=>{
     // Miniflare's certificate is self-signed; the network namespace contains only this loopback fixture.

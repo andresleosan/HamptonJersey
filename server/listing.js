@@ -1,6 +1,6 @@
 import { isPublicMedia } from "./visibility.js";
 import { OPTIONS } from "./applicants.js";
-import { validWeeklyWindows } from "./viewings.js";
+import { validWeeklyWindows, realDate } from "./viewings.js";
 import { PHYSICAL_FIELDS, physicalValue, normalizeFeatureOverrides } from './listing-physical.js';
 
 export const ENUMS = {
@@ -22,12 +22,12 @@ export const ON_MARKET = ["for_sale", "to_let", "lease", "not_stated"];
 export const TO_CONFIRM = `l.published = 1 AND l.archived_at IS NULL AND l.availability IN (${ON_MARKET.map(a => `'${a}'`).join(", ")})
   AND l.confirmed_at IS NOT NULL AND strftime('%Y-%m-%dT%H:%M:%fZ', l.confirmed_at, CASE l.operation WHEN 'rent' THEN '+1 month' ELSE '+3 months' END) <= ?`;
 const TEXT = { title: 200, property_type: 100, country: 100, location: 200, road_name: 200, tenure: 100,
-  price_text: 200, summary: 5000, description: 20000, tour_url: 500 };
+  price_text: 200, price_per_sqft: 200, rental_deposit: 200, parish_rates: 200, service_charge: 200, utilities_included: 300, summary: 5000, description: 20000, tour_url: 500 };
 const INTS = ["bedrooms", "bathrooms"];
 const MONEY = ["sale_price", "rent", "premium"];
 const REQUIRED = ["title", "use", "operation", "availability"];
 // matchable: whether the listing is offered to applicants (B9).
-export const EDITABLE = [...Object.keys(ENUMS), ...Object.keys(TEXT), ...INTS, ...MONEY, "featured_rank", "specs", "matchable",
+export const EDITABLE = [...Object.keys(ENUMS), ...Object.keys(TEXT), ...INTS, ...MONEY, "available_on", "featured_rank", "specs", "matchable",
   "viewings_enabled", "viewing_hours", ...PHYSICAL_FIELDS, "interior_area_sqft", "feature_overrides"];
 
 const blank = v => v === null || v === undefined || (typeof v === "string" && v.trim() === "");
@@ -62,6 +62,7 @@ function check(k, v) {
     return JSON.stringify(v.map(({ day, start, end }) => ({ day, start, end })));
   }
   if (blank(v)) return REQUIRED.includes(k) ? bad("Required") : k === "specs" ? "[]" : null;
+  if (k === "available_on") return realDate(v) ? v : bad("Enter a valid date as YYYY-MM-DD");
   if (k in ENUMS) return ENUMS[k].includes(v) ? v : bad(`Invalid value (${ENUMS[k].join(", ")})`);
   if (k in TEXT) {
     if (typeof v !== "string") bad("Must be text");
@@ -118,6 +119,11 @@ export function toPublic(l, media) {
   const photos = pub.filter(m => m.kind === "photo");
   const cover = photos.find(m => m.id === l.cover_media_id) || photos[0];
   const aerial = pub.find(m => m.kind === "aerial");
+  const financial = [["Price per sq ft", l.price_per_sqft], ["Rental deposit", l.rental_deposit],
+    ["Parish rates", l.parish_rates], ["Service charge", l.service_charge], ["Utilities included", l.utilities_included],
+    ["Available from", l.available_on],
+    ...(l.operation === "business" && l.rent != null ? [["Rent", `${l.currency === "GBP" ? "£" : l.currency === "EUR" ? "€" : ""}${l.rent.toLocaleString("en-GB")} ${l.rent_period === "month" ? "per month" : "per year"}`]] : [])]
+    .filter(([, value]) => value).map(([label, value]) => ({ group: "Financial details", label, value }));
   return {
     id: l.id, title: l.title, status: STATUS[l.availability], region: regionOf(l.country),
     place: l.location || l.country || "", type: l.property_type, use: l.use, operation: l.operation,
@@ -129,7 +135,7 @@ export function toPublic(l, media) {
     photos: photos.map(m => ({ src: src(m), thumb: src(m, true), alt: alt(m, l.title) })),
     floorplans: pub.filter(m => m.kind === "floorplan").map(m => ({ src: src(m), alt: alt(m, "Floor plan") })),
     aerial: aerial ? { src: src(aerial), alt: alt(aerial, "Aerial view") } : null,
-    tourUrl: l.tour_url, specs: JSON.parse(l.specs || "[]"), featured: l.featured_rank ?? null, publishedAt: l.published_at ?? null,
+    tourUrl: l.tour_url, specs: [...JSON.parse(l.specs || "[]"), ...financial], featured: l.featured_rank ?? null, publishedAt: l.published_at ?? null,
     // §5.9: the website shows interest from 2 people, so 0 and 1 are never sent (P6).
     interest: l.active_interest >= 2 ? l.active_interest : null,
     ...(typeof l.public_address_snapshot === "string" && l.public_address_snapshot

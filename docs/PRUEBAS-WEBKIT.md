@@ -39,7 +39,7 @@ E2E_PRODUCTION_READONLY=0 E2E_PHASES=public,urls,admin,reg17 npm run test:e2e:is
 
 La asignación explícita de `E2E_PRODUCTION_READONLY=0` evita heredar accidentalmente el modo de producción. `E2E_PHASES` afecta a la suite general si el test seleccionado lo admite. El script indica el resultado mediante su código de salida. No considerar un recorrido aprobado si se interrumpe o falla.
 
-El lanzador crea un contenedor temporal con red deshabilitada, sistema de archivos raíz de solo lectura, usuario sin privilegios, capacidades eliminadas, `no-new-privileges`, límites de recursos y directorios temporales en memoria. El adaptador solicita `WEBKIT_FORCE_SANDBOX=1` y ejecuta WebKit con Xvfb. No configura un perfil seccomp propio; rige la política Docker del entorno. La ejecución satisfactoria acredita que ese conjunto pudo ejecutar la prueba; no constituye por sí sola una auditoría independiente del sandbox interno de WebKit.
+El lanzador crea un contenedor temporal con red deshabilitada, sistema de archivos raíz de solo lectura, usuario sin privilegios, capacidades eliminadas, `no-new-privileges`, límites de recursos y directorios temporales en memoria. Por defecto, el adaptador ejecuta Chromium sin su sandbox propio solo dentro del contenedor local sin red. Para WebKit, usa `HAMPTON_E2E_BROWSER=webkit`; este solicita `WEBKIT_FORCE_SANDBOX=1` y usa Xvfb. El modo de producción exige WebKit. No configura un perfil seccomp propio; rige la política Docker del entorno. La ejecución satisfactoria acredita que ese conjunto pudo ejecutar la prueba; no constituye por sí sola una auditoría independiente del sandbox interno de WebKit.
 
 El runner genera una base D1 local nueva y credenciales de prueba efímeras. Emula Turnstile y portapapeles cuando corresponde, usa HTTPS local con certificado de prueba y no carga fuentes externas. No usa una base de producción para el fixture. Los archivos temporales y el contenedor se eliminan al terminar, sujetos a la comprobación de identidad del propio lanzador. Las capturas, si el test las produce, se conservan bajo `/tmp/hampton-browser-captures` o el directorio indicado por `E2E_ARTIFACT_DIR`: tratarlas como artefactos de prueba y no incluirlas en Git.
 
@@ -54,7 +54,7 @@ Este modo es diferente: usa red Docker `bridge` y el test limita las peticiones 
 ## Límites conocidos
 
 - La ejecución local valida WebKit y el fixture; no acredita Chromium, servicios externos, Turnstile real, fuentes remotas ni comportamiento autenticado en producción.
-- Chromium sigue pendiente: en este entorno no arrancó con su sandbox. No usar `--no-sandbox`, desactivar `no-new-privileges` ni cambiar controles generales para forzar la prueba.
+- Chromium en los fixtures locales se ejecuta sin su sandbox propio por decisión de Luis; únicamente dentro del contenedor descrito, nunca en el host ni en el modo de producción. Conserva `no-new-privileges` y los demás controles del contenedor.
 - La suite general no verifica exhaustivamente fallos de red, accesibilidad ni todos los tamaños y estados. Añadir pruebas focales cuando el cambio lo requiera. Zoom CSS no es equivalente a zoom nativo; registrar la técnica y cualquier desbordamiento observado.
 - Los tests deben usar datos sintéticos. No imprimir credenciales, copiar archivos privados al repositorio ni versionar capturas, bases, registros o directorios temporales.
 
@@ -66,5 +66,5 @@ Este modo es diferente: usa red Docker `bridge` y el test limita las peticiones 
 | Falta la revisión de WebKit | Comparar la revisión de `browsers.json` con la caché e indicar `HAMPTON_WEBKIT_DIR` cuando corresponda. |
 | Falta la imagen fijada | Comprobar la imagen y el acceso al daemon Docker; el lanzador no descarga imágenes. |
 | El test nuevo no aparece | Debe estar rastreado o añadido al índice de la copia desde la que se ejecuta. |
-| Chrome no inicia | Usar la alternativa WebKit y registrar Chromium como pendiente; conservar sus controles de aislamiento. |
+| Chrome no inicia | Revisar el contenedor local; se puede seleccionar WebKit con `HAMPTON_E2E_BROWSER=webkit`. No ejecutar Chromium sin sandbox en el host. |
 | Un test del contenedor falla por conexión externa | Revisar si necesita una respuesta simulada; la prueba local funciona deliberadamente sin red. No convertir el fallo en un aprobado. |

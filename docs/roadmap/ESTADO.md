@@ -302,3 +302,7 @@ Cierre Q02 de Lista1 aprobado por Luis: solicitudes de copia o borrado por email
 Q05 aprobada por Luis el8-nov: si el email de aviso previo a limpieza falla o queda incierto, se detiene el borrado de ese contacto y se crea tarea para revisión del equipo. No se mueve last_activity_at ni se cierra búsqueda; resolver la tarea no es un DELETE. El contrato y sus pruebas futuras se incorporan a PRE12. Sin implementación, envío o borrado en esta entrevista.
 
 Q06 aprobada por Luis: alertas seis meses, una invitación de renovación al terminar, sin renovación se detienen. La vigencia del servicio no determina el plazo de conservación tras baja/expiración, que sigue pendiente. Solo documentos actualizados, sin activación/envíos.
+
+## PUB-06 · Integración local (12-nov-2026)
+
+Construido sobre main d565118: nuevos datos económicos y renta con premium, con trazabilidad que no copia textos libres. Migración local provisional 0042; pruebas integradas con Chromium y D1 local en escritorio y móvil. Pendiente verificar estado remoto y autorización para migración/publicación.

@@ -7421,7 +7421,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "En listings y en Price del editor: precio de venta, renta por mes o por año, premium del negocio, moneda (GBP o EUR) y un texto para cuando no hay importe.",
-      "falta": "Faltan precio por pie², depósito del alquiler, parish rates, service charge, suministros incluidos y fecha de disponibilidad, y el editor no deja poner premium más renta a un negocio. Replanteado para Jersey (§5.10), no falta: el IBI pasa a parish rates, los gastos de comunidad a service charge, y fianza y depósito son un solo depósito.",
+      "falta": "Construido localmente sobre main d565118: precio por pie², depósito, parish rates, service charge, suministros incluidos, fecha de disponibilidad y renta junto al premium. Probado con D1 local y Chromium en escritorio y móvil. Pendiente autorización y verificación para aplicar migración provisional 0042 y publicar.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ListingEditor.jsx:191-199",
@@ -7438,7 +7438,7 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Completar datos económicos y disponibilidad diferenciando vivienda, negocio, renta y premium."
+      "nextStep": "Verificar main y migraciones remotas y publicar solo con autorización explícita."
     },
     {
       "id": "PUB-07",

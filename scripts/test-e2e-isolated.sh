@@ -25,6 +25,9 @@ task_browser=${HAMPTON_WEBKIT_DIR:-$(node -p 'require("node:os").homedir()')/.ca
 docker image inspect "$task_image" >/dev/null || { printf 'The pinned Playwright image is not installed locally.\n' >&2; exit 1; }
 task_production=${E2E_PRODUCTION_READONLY:-0}
 [[ $task_production == 0 || $task_production == 1 ]] || { printf 'Invalid browser test mode.\n' >&2; exit 1; }
+task_browser_mode=${HAMPTON_E2E_BROWSER:-$([[ $task_production == 0 ]] && printf chromium || printf webkit)}
+[[ $task_browser_mode == chromium || $task_browser_mode == webkit ]] || { printf 'Invalid browser selection.\n' >&2; exit 1; }
+[[ $task_production == 0 || $task_browser_mode == webkit ]] || { printf 'Chromium without its sandbox is limited to local fixtures.\n' >&2; exit 1; }
 if [[ $task_production == 1 ]]; then
   task_script=tests/production-readonly-e2e.cjs
   task_network=bridge
@@ -112,7 +115,7 @@ docker run -i --rm --pull=never --network="$task_network" --read-only --cap-drop
   --security-opt=no-new-privileges --pids-limit=512 --memory=4g --cpus=2 --user=pwuser \
   --tmpfs /work:rw,exec,nosuid,nodev,size=900m,mode=1777 \
   --tmpfs /tmp:rw,noexec,nosuid,nodev,size=400m \
-  -e PW=/work/tests/isolated-webkit.cjs -e "E2E_SCRIPT=$task_script" \
+  -e PW=/work/tests/isolated-webkit.cjs -e "E2E_SCRIPT=$task_script" -e "HAMPTON_E2E_BROWSER=$task_browser_mode" \
   -e "E2E_PHASES=${E2E_PHASES:-public,urls,admin,reg17}" -e E2E_OFFLINE_FONTS=1 -e E2E_OFFLINE_TURNSTILE=1 \
   -e E2E_LOCAL_HTTPS=1 -e E2E_SHOTS=/tmp/hampton-shots -e E2E_RECYCLE_BROWSER=1 \
   -e "E2E_PROD_EXPECT_REG06=${E2E_PROD_EXPECT_REG06:-0}" -e "E2E_PROD_EXPECT_REG07=${E2E_PROD_EXPECT_REG07:-0}" \
