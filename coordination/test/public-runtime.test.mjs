@@ -3,25 +3,16 @@ import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {fileURLToPath} from 'node:url';
-const SHA='a'.repeat(40),slots=['vps','hermes','vscode','codex-desktop'];
-test('public Worker reads the SAME private SQLite object; historical claims do not impersonate current activity',async()=>{
- const entries=['public-worker.mjs','worker.mjs'];const bundles=await Promise.all(entries.map(file=>build({entryPoints:[fileURLToPath(new URL('../src/'+file,import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',external:['cloudflare:workers']})));
- const catalogue={schemaVersion:1,project:'hampton',slots:slots.map((id,i)=>({id,name:'Lista '+(i+1),area:'Test',capacity:2})),tasks:[{id:'PUB-01',titulo:'Public test task',estado:'parcial',assignedSlot:'vps',hecho:'Existing research',falta:'Accept the result',nextStep:'Review the research',dependencies:[]}],units:[{id:'PUB-01',parentTaskId:'PUB-01',title:'Test task',preferredSlot:'vps',priority:1,kind:'research',enabled:true,reviewRequired:false,dependencies:[],resources:[{key:'task:public-test',mode:'write'}],acceptance:['Accepted test research']}]};
- const owner={actorId:'operator',role:'coordinator',slots};
- const mf=new Miniflare(convertV4MiniflareOptions({workers:[{name:'public-view',modules:true,script:bundles[0].outputFiles[0].text,compatibilityDate:'2026-10-01',durableObjects:{BOARD_SOURCE:{className:'TeamCoordinator',scriptName:'private-coordinator'}},serviceBindings:{ASSETS:async()=>new Response('public asset')}},{name:'private-coordinator',modules:true,script:bundles[1].outputFiles[0].text,compatibilityDate:'2026-10-01',durableObjects:{TEAM_COORDINATOR:{className:'TeamCoordinator',useSQLite:true}},bindings:{ACCESS_TEAM_DOMAIN:'fixture.cloudflareaccess.com',ACCESS_AUD:'test',TEAM_IDENTITIES_JSON:JSON.stringify({service:owner})},outboundService:async request=>new URL(request.url).pathname.endsWith('/git/ref/heads/main')?Response.json({object:{sha:SHA}}):Response.json(catalogue)}]}));
+import {readFileSync} from 'node:fs';
+const catalog=JSON.parse(readFileSync(new URL('../../docs/roadmap/catalog.json',import.meta.url)));
+test('public Worker reads GitHub without any coordinator binding and blocks writes',async()=>{
+ const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/public-worker.mjs',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser'});
+ let calls=0;
+ const mf=new Miniflare(convertV4MiniflareOptions({workers:[{name:'public-view',modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-10-01',serviceBindings:{ASSETS:async()=>new Response('asset')},outboundService:async request=>{calls++;assert.equal(new URL(request.url).hostname,'raw.githubusercontent.com');return Response.json(catalog);}}]}));
  try{
-  const ns=await mf.getDurableObjectNamespace('TEAM_COORDINATOR','private-coordinator'),raw=ns.getByName('hampton');let op=0;
-  const command=async(path,body)=>JSON.parse(JSON.stringify(await raw.command(owner,path,{operationId:'public-test-'+(++op),...body})));
-  const imported=await command('/v1/catalog',{expectedRevision:0,sha:SHA});assert.equal(imported.status,200,JSON.stringify(imported));
-  const fetchBoard=async()=>{const r=await mf.dispatchFetch('https://public.example/v1/board');assert.equal(r.status,200);return r.json();};
-  const initial=await fetchBoard();assert.equal(initial.tasks.length,250);const target=initial.tasks.find(t=>t.code==='PUB-01');assert.equal(target.activity,'unreserved');assert.equal((await raw.getBoard()).tasks.length,1);
-  const claim=await command('/v1/claims',{expectedRevision:1,slot:'vps',sessionId:'PRIVATE_SENTINEL',checkoutId:'checkout-test',hostId:'host-test',mode:'build',baseSha:SHA});assert.equal(claim.status,200);const c=claim.body.claim;
-  await new Promise(resolve=>setTimeout(resolve,5100));const running=await fetchBoard();assert.equal(running.tasks.find(t=>t.code==='PUB-01').activity,'unreserved');assert.equal(running.lists[0].activeCount,0);assert.ok(!JSON.stringify(running).includes('PRIVATE_SENTINEL'));
-  const privateWorker=await mf.getWorker('private-coordinator');assert.equal((await privateWorker.fetch('https://private.example/v1/board')).status,401);
-  assert.equal((await mf.dispatchFetch('https://public.example/v1/claims',{method:'POST'})).status,405);
-  assert.equal((await command('/v1/evidence',{expectedRevision:(await raw.getBoard()).revision,unitId:'PUB-01',kind:'research_accepted',reference:'Trusted synthetic acceptance'})).status,200);
-  assert.equal((await command('/v1/claims/'+c.id+'/complete',{generation:c.generation,sessionId:c.sessionId})).status,200);
-  await new Promise(resolve=>setTimeout(resolve,5100));const closed=await fetchBoard();assert.equal(closed.tasks.find(t=>t.code==='PUB-01').activity,'unreserved');assert.equal(closed.lists[0].activeCount,0);assert.ok(closed.revision>running.revision);
-  catalogue.units[0].enabled=false;catalogue.tasks[0].estado='hecho';catalogue.tasks[0].falta='No remaining checklist work';assert.equal((await command('/v1/catalog',{expectedRevision:(await raw.getBoard()).revision,sha:SHA})).status,200);await new Promise(resolve=>setTimeout(resolve,5100));const published=await fetchBoard();assert.equal(published.tasks.length,250);assert.equal(published.tasks.find(t=>t.code==='PUB-01').state,target.state);assert.equal(published.tasks.find(t=>t.code==='PUB-01').details.pending,target.details.pending);assert.equal((await raw.getBoard()).tasks[0].estado,'hecho');
+  const response=await mf.dispatchFetch('https://public.example/v1/board');assert.equal(response.status,200);
+  const board=await response.json();assert.equal(board.tasks.length,250);assert.equal(board.tasks.find(t=>t.code==='PUB-06').state,'hecho');assert.ok(board.tasks.every(t=>t.activity==='unavailable'));assert.ok(board.lists.every(l=>l.activeCount===null));assert.equal(calls,1);
+  assert.equal((await mf.dispatchFetch('https://public.example/v1/catalog',{method:'POST'})).status,405);
+  assert.equal((await mf.dispatchFetch('https://public.example/v1/catalog')).status,404);
  }finally{await mf.dispose();}
 });

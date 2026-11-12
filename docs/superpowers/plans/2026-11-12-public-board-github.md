@@ -1,0 +1,5 @@
+# Tablero público desde GitHub
+
+Luis pidió eliminar la dependencia del coordinador y sincronizar el tablero con GitHub. El Worker público consulta el catálogo de `main`, valida su esquema, limita la respuesta y no modifica el coordinador ni sus datos. Expone únicamente la proyección pública existente. El tablero indica que la actividad en vivo no está disponible; no se infieren reservas, trabajo ni cantidades de personas activas. Un fallo o dato inválido devuelve error y la interfaz conserva el último resultado válido señalándolo como desactualizado.
+
+La respuesta pública no se guarda en el navegador; el Worker usa caché de 60 segundos para reducir consultas a GitHub. La fuente puede tener una breve demora por caché. Las rutas siguen siendo de solo lectura y conservan los encabezados de seguridad. La configuración elimina solo el vínculo del tablero al coordinador; no desinstala ni borra el servicio ni su historial. Cambios preparados y probados localmente antes de publicar; verificar después el recuento y la tarea PUB-06 en la dirección pública.

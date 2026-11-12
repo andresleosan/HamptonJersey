@@ -1,7 +1,7 @@
 (function(root){
  'use strict';
  const STATES={hecho:'Hecho',parcial:'Parcial',pendiente:'Pendiente',bloqueado:'Bloqueado',replanteado:'Replanteado',descartado:'Descartado'};
- const ACTIVITY={planning:'Planificando',planned:'Plan preparado',active:'En curso',paused:'Pausada',stale:'Sin contacto',submitted:'En revisión',review:'En revisión',built:'Construida · pendiente de publicar',published:'Publicada en main',completed:'Trabajo completado',unreserved:'Sin actividad registrada'};
+ const ACTIVITY={planning:'Planificando',planned:'Plan preparado',active:'En curso',paused:'Pausada',stale:'Sin contacto',submitted:'En revisión',review:'En revisión',built:'Construida · pendiente de publicar',published:'Publicada en main',completed:'Trabajo completado',unreserved:'Sin actividad registrada',unavailable:'Actividad no disponible'};
  const MILESTONES={plan:'Plan preparado',implementation:'Implementación',tests:'Pruebas',review:'Revisión',release:'Publicación',verification:'Comprobación'};
  const NEXT_STEPS={review:'Revisar la entrega',build:'Construir el plan',validate:'Completar comprobaciones',publish:'Publicar con autorización',dependency:'Resolver dependencia',decision:'Decisión pendiente',access:'Acceso pendiente',resume:'Retomar el trabajo',done:'Tramo terminado'};
  function validReference(v){return typeof v==='string'&&v.length<=300&&(/^https:\/\/github\.com\/andresleosan\/HamptonJersey\/commit\/[a-f0-9]{40}$/.test(v)||/^docs\/(?:superpowers\/(?:plans|specs)|roadmap\/work\/[A-Z0-9]+-\d+)\/[A-Za-z0-9_/-]+\.md$/.test(v)&&!v.split('/').some(p=>p==='..'||p==='.'||!p));}
@@ -36,7 +36,7 @@
  }
  function validateBoard(b){
   if(!b||b.schemaVersion!==1||!Number.isSafeInteger(b.revision)||b.revision<0||!Number.isFinite(Date.parse(b.updatedAt))||!Array.isArray(b.lists)||!Array.isArray(b.tasks))throw Error('Respuesta incompatible');
-  if(b.lists.length!==4||new Set(b.lists.map(l=>l.number)).size!==4||b.lists.some(l=>![1,2,3,4].includes(l.number)||l.name!=='Lista '+l.number||!Number.isInteger(l.capacity)||l.capacity<1||l.capacity>2||!Number.isInteger(l.activeCount)||l.activeCount<0))throw Error('Listas incompatibles');
+  if(b.lists.length!==4||new Set(b.lists.map(l=>l.number)).size!==4||b.lists.some(l=>![1,2,3,4].includes(l.number)||l.name!=='Lista '+l.number||!Number.isInteger(l.capacity)||l.capacity<1||l.capacity>2||(l.activeCount!==null&&(!Number.isInteger(l.activeCount)||l.activeCount<0))))throw Error('Listas incompatibles');
   const ids=new Set();for(const t of b.tasks){if(!t||typeof t.code!=='string'||! /^[A-Z0-9]+-\d+$/.test(t.code)||ids.has(t.code)||typeof t.title!=='string'||!t.title.trim()||![1,2,3,4].includes(t.list)||!Object.hasOwn(STATES,t.state)||!Object.hasOwn(ACTIVITY,t.activity))throw Error('Tarea incompatible');ids.add(t.code);
    if(t.details!==undefined){const d=t.details;if(!d||['done','pending','nextStep'].some(k=>typeof d[k]!=='string')||!Array.isArray(d.dependencies)||d.dependencies.some(code=>typeof code!=='string'||!/^[A-Z0-9]+-\d+$/.test(code)))throw Error('Detalle incompatible');}
    if(t.work!==undefined){if(!t.work||Object.keys(t.work).some(k=>!['build','plans','delivery'].includes(k))||!Array.isArray(t.work.plans)||t.work.plans.length>256)throw Error('Actividad incompatible');if(t.work.build!==null)validateWork(t.work.build,t.code,'build');for(const p of t.work.plans)validateWork(p,t.code,'plan');if(t.work.delivery){validateWork(t.work.delivery,t.code,'build');if(t.work.delivery.status!=='published')throw Error('Actividad incompatible');}}
@@ -89,8 +89,8 @@
   function freshness(){
    const stale=failures>0||lastSuccess===null||Date.now()-lastSuccess>=45000;
    $('connection').dataset.state=stale?'stale':'live';
-   $('connection').textContent=failures>0?'No se pudo actualizar. Reintentaremos automáticamente; se conserva el último dato válido.':lastSuccess===null?'Esperando la primera actualización.':stale?'Sin contacto. Se conserva la última actualización.':'En vivo · solo consulta · actualización automática.';
-   $('updated').textContent=board?'Última respuesta válida: '+new Date(lastSuccess).toLocaleTimeString('es')+' · revisión '+board.revision:'';
+   $('connection').textContent=failures>0?'No se pudo actualizar. Reintentaremos automáticamente; se conserva el último dato válido.':lastSuccess===null?'Esperando la primera actualización.':stale?'Sin contacto. Se conserva la última actualización.':(board?.source==='github'?'Catálogo de GitHub · solo consulta · actualización automática.':'En vivo · solo consulta · actualización automática.');
+   $('updated').textContent=board?'Última respuesta válida: '+new Date(lastSuccess).toLocaleTimeString('es')+(board.source==='github'?' · catálogo de GitHub':' · revisión '+board.revision):'';
   }
   function describe(p){return p.total?p.done+' de '+p.total+' tareas hechas · '+PERCENT.format(p.percent)+'%':'Sin tareas de alcance vigente';}
   function updateBar(bar,p){bar.max=p.total||1;bar.value=p.done;bar.setAttribute('aria-valuetext',describe(p));}
@@ -132,7 +132,7 @@
      renderDetail(c,t);if(col.tasks.children[index]!==c.node)col.tasks.insertBefore(c.node,col.tasks.children[index]||null);
      c.node.hidden=!matches(t);if(!c.node.hidden)shown++;
     }
-    col.count.textContent=shown+' visibles de '+tasks.length;col.presence.textContent=l.activeCount+' construcciones registradas';col.empty.hidden=shown>0;visible+=shown;
+    col.count.textContent=shown+' visibles de '+tasks.length;col.presence.textContent=l.activeCount===null?'Actividad en vivo no disponible':l.activeCount+' construcciones registradas';col.empty.hidden=shown>0;visible+=shown;
    }
    const p=progress(board.tasks);updateBar($('overall-progress'),p);$('progress-label').textContent=describe(p);
    $('progress-breakdown').textContent=p.partial+' parciales · '+p.blocked+' bloqueadas · '+(p.total-p.done-p.partial-p.blocked)+' pendientes · '+p.excluded+' replanteadas o descartadas';

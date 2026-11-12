@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {fileURLToPath} from 'node:url';
+import {readFileSync} from 'node:fs';
+const publishedCatalog=JSON.parse(readFileSync(new URL('../../docs/roadmap/catalog.json',import.meta.url)));
 const slots=['vps','hermes','vscode','codex-desktop'];
-test('real SQLite serializes two builders, retains a plan, and publishes only safe activity',async()=>{
+test('real SQLite serializes two builders while the public board exposes no live activity',async()=>{
  const bundles=await Promise.all(['public-worker.mjs','worker.mjs'].map(file=>build({entryPoints:[fileURLToPath(new URL('../src/'+file,import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',external:['cloudflare:workers']})));
  const owner={actorId:'runtime-owner',role:'coordinator',slots},other={actorId:'runtime-other',role:'executor',slots:['hermes']};
  const catalogue={schemaVersion:1,project:'hampton',slots:slots.map((id,i)=>({id,name:'Lista '+(i+1),area:'Test',capacity:2})),tasks:[{id:'REG-08',titulo:'Test registration',estado:'parcial',assignedSlot:'vps',hecho:'Existing work',falta:'Verify',nextStep:'Review',dependencies:[]}],units:[{id:'REG-08',parentTaskId:'REG-08',title:'Test registration',preferredSlot:'vps',priority:1,kind:'development',enabled:true,reviewRequired:false,dependencies:[],resources:[{key:'registration-ui',mode:'write'}],acceptance:['Verified registration']}]};
- const mf=new Miniflare(convertV4MiniflareOptions({workers:[{name:'public',modules:true,script:bundles[0].outputFiles[0].text,compatibilityDate:'2026-10-01',durableObjects:{BOARD_SOURCE:{className:'TeamCoordinator',scriptName:'private'}},serviceBindings:{ASSETS:async()=>new Response('asset')}},{name:'private',modules:true,script:bundles[1].outputFiles[0].text,compatibilityDate:'2026-10-01',durableObjects:{TEAM_COORDINATOR:{className:'TeamCoordinator',useSQLite:true}},bindings:{ACCESS_TEAM_DOMAIN:'fixture.cloudflareaccess.com',ACCESS_AUD:'test',TEAM_IDENTITIES_JSON:JSON.stringify({service:owner,second:other})},outboundService:async request=>new URL(request.url).pathname.endsWith('/git/ref/heads/main')?Response.json({object:{sha:'a'.repeat(40)}}):Response.json(catalogue)}]}));
+ const mf=new Miniflare(convertV4MiniflareOptions({workers:[{name:'public',modules:true,script:bundles[0].outputFiles[0].text,compatibilityDate:'2026-10-01',outboundService:async()=>Response.json(publishedCatalog),serviceBindings:{ASSETS:async()=>new Response('asset')}},{name:'private',modules:true,script:bundles[1].outputFiles[0].text,compatibilityDate:'2026-10-01',durableObjects:{TEAM_COORDINATOR:{className:'TeamCoordinator',useSQLite:true}},bindings:{ACCESS_TEAM_DOMAIN:'fixture.cloudflareaccess.com',ACCESS_AUD:'test',TEAM_IDENTITIES_JSON:JSON.stringify({service:owner,second:other})},outboundService:async request=>new URL(request.url).pathname.endsWith('/git/ref/heads/main')?Response.json({object:{sha:'a'.repeat(40)}}):Response.json(catalogue)}]}));
  try {
   const ns=await mf.getDurableObjectNamespace('TEAM_COORDINATOR','private'),raw=ns.get(ns.idFromName('hampton'));
   // Activity must work on a fresh object without importing the historical catalogue.
@@ -19,7 +21,7 @@ test('real SQLite serializes two builders, retains a plan, and publishes only sa
   const results=await Promise.all([start(owner,'build1'),start(other,'build2')]);
   assert.deepEqual(results.map(r=>r.status).sort(),[200,409]);
   const response=await mf.dispatchFetch('https://public.example/v1/board');assert.equal(response.status,200);
-  const value=await response.json(),task=value.tasks.find(t=>t.code==='REG-08');assert.equal(value.tasks.length,250);assert.equal(task.state,'parcial');assert.equal(task.activity,'active');assert.equal(task.work.plans[0].status,'planned');assert.ok(task.work.build.team);
+  const value=await response.json(),task=value.tasks.find(t=>t.code==='REG-08');assert.equal(value.tasks.length,250);assert.equal(task.state,'parcial');assert.equal(task.activity,'unavailable');assert.equal(task.work,undefined);assert.ok(value.lists.every(l=>l.activeCount===null));
   assert.equal(JSON.stringify(value).includes('runtime-owner'),false);assert.equal(JSON.stringify(value).includes('session-'),false);
   assert.equal(JSON.stringify((await raw.getBoard()).claims),old);
   const proof=await raw.getActivity(owner,'plan');assert.equal(proof.operation.recordId,plan.body.record.id);assert.equal(proof.operation.action,'start');

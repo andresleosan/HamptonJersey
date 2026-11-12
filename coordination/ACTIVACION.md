@@ -1,3 +1,5 @@
+> Actualización 12-nov-2026: el tablero público lee el catálogo de GitHub directamente y no muestra actividad en vivo. Su Worker no necesita el vínculo al coordinador. Las instrucciones históricas de esta página sobre el catálogo del coordinador no describen la fuente del tablero público actual. Los datos históricos del servicio se conservan. Véase `docs/superpowers/plans/2026-11-12-public-board-github.md`.
+
 # Activación de las cuatro listas
 
 Actualización de procedimiento9-nov-2026: Luis confirma Hermes con GPT Sol en Codex y, al perder acceso a GPT, DeepSeek v4 max en OpenCode. Las versiones/pruebas históricas de este documento no verifican esa ruta actual: confirmar metadatos y herramientas en cada ejecución sin cambiar configuración o credenciales por inferencia. Paquetes de entrega y recomendaciones en [PAQUETES.md](../docs/roadmap/PAQUETES.md); el protocolo de reservas conserva unidades reales.

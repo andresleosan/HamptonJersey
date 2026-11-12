@@ -34,18 +34,22 @@ test('public progress changes after closure; planning and obsolete completions n
  c.mode='build';c.completionCurrent=false;assert.equal(publicBoard(b).tasks[0].activity,'unreserved');
  c.completionCurrent=true;assert.equal(publicBoard(b).tasks[0].activity,'completed');u.enabled=false;assert.equal(publicBoard(b).tasks[0].activity,'completed');c.completionCurrent=false;assert.equal(publicBoard(b).tasks[0].activity,'unreserved');b.tasks[0].estado='hecho';assert.equal(publicBoard(b).tasks[0].activity,'completed');assert.equal(publicBoard(b).lists.find(l=>l.number===publicBoard(b).tasks[0].list).activeCount,0);
 });
-test('public handler permits read only and never forwards unknown paths or write commands',async()=>{
- let calls=0,assets=0;const env={BOARD_SOURCE:{getByName(name){assert.equal(name,'hampton');return {getWorkBoard:async()=>{calls++;return fixture();},command(){throw Error('write must never run');}};}},ASSETS:{fetch:async()=>{assets++;return new Response('public');}}};
- for(const method of ['POST','PUT','PATCH','DELETE','OPTIONS'])for(const path of ['/','/v1/board','/v1/claims','/v1/catalog'])assert.equal((await worker.fetch(new Request('https://public.example'+path,{method}),env)).status,405);
- for(const path of ['/v1/claims','/v1/catalog','/.env','/anything'])assert.equal((await worker.fetch(new Request('https://public.example'+path),env)).status,404);
- assert.equal(calls,0);assert.equal(assets,0);
- const r=await worker.fetch(new Request('https://public.example/v1/board'),env);assert.equal(r.status,200);assert.equal(r.headers.get('Cache-Control'),'no-store');assert.match(r.headers.get('Content-Security-Policy'),/script-src 'self'/);assert.ok(!r.headers.get('Content-Security-Policy').includes('unsafe-inline'));assert.equal((await r.json()).tasks.length,250);assert.equal(calls,1);
- assert.equal((await worker.fetch(new Request('https://public.example/'),env)).status,200);assert.equal(assets,1);
- for(const path of ['/paquetes.json','/tablero-publico.css'])assert.equal((await worker.fetch(new Request('https://public.example'+path),env)).status,200);
- assert.equal(assets,3);
+test('public handler permits read only and fetches only the canonical catalogue',async()=>{
+ let calls=0,assets=0;const previous=globalThis.fetch;globalThis.fetch=async url=>{calls++;assert.match(url,/raw\.githubusercontent\.com/);return Response.json(catalog);};
+ const env={ASSETS:{fetch:async()=>{assets++;return new Response('public');}}};
+ try {
+  for(const method of ['POST','PUT','PATCH','DELETE','OPTIONS'])for(const path of ['/','/v1/board','/v1/claims','/v1/catalog'])assert.equal((await worker.fetch(new Request('https://public.example'+path,{method}),env)).status,405);
+  for(const path of ['/v1/claims','/v1/catalog','/.env','/anything'])assert.equal((await worker.fetch(new Request('https://public.example'+path),env)).status,404);
+  assert.equal(calls,0);assert.equal(assets,0);
+  const r=await worker.fetch(new Request('https://public.example/v1/board'),env);assert.equal(r.status,200);assert.equal(r.headers.get('Cache-Control'),'no-store');assert.match(r.headers.get('Content-Security-Policy'),/script-src 'self'/);assert.ok(!r.headers.get('Content-Security-Policy').includes('unsafe-inline'));assert.equal((await r.json()).tasks.length,250);assert.equal(calls,1);
+  assert.equal((await worker.fetch(new Request('https://public.example/'),env)).status,200);assert.equal(assets,1);
+  for(const path of ['/paquetes.json','/tablero-publico.css'])assert.equal((await worker.fetch(new Request('https://public.example'+path),env)).status,200);
+  assert.equal(assets,3);
+ } finally {globalThis.fetch=previous;}
 });
 test('public failure is opaque and does not serialize a source exception',async()=>{
- const r=await worker.fetch(new Request('https://public.example/v1/board'),{BOARD_SOURCE:{getByName(){throw Error('PRIVATE_SENTINEL');}}});assert.equal(r.status,503);assert.ok(!(await r.text()).includes('PRIVATE_SENTINEL'));
+ const previous=globalThis.fetch;globalThis.fetch=async()=>{throw Error('PRIVATE_SENTINEL');};
+ try{const r=await worker.fetch(new Request('https://public.example/v1/board'),{});assert.equal(r.status,503);assert.ok(!(await r.text()).includes('PRIVATE_SENTINEL'));}finally{globalThis.fetch=previous;}
 });
 test('public browser polls without credentials and updates closure without reload, preserving focus and filters',async()=>{
  const html=readFileSync(new URL('../docs/roadmap/tablero-publico.html',import.meta.url),'utf8');
@@ -87,15 +91,15 @@ test('expanded details refresh safely and dependency links reveal and open tasks
 });
 
 test('short cache shares only sanitized JSON; query/cookies cannot bypass it and errors are not cached',async()=>{
- const previous=Object.getOwnPropertyDescriptor(globalThis,'caches');const entries=new Map();let now=0,reads=0,fail=false;
- globalThis.caches={default:{async match(key){const e=entries.get(key.url);return e&&e.expires>now?e.response.clone():undefined;},async put(key,response){assert.equal(response.headers.get('Cache-Control'),'public, max-age=5');assert.ok(!(await response.clone().text()).includes('PRIVATE_SENTINEL'));entries.set(key.url,{response:response.clone(),expires:now+5000});}}};
+ const previous=Object.getOwnPropertyDescriptor(globalThis,'caches'),oldFetch=globalThis.fetch;const entries=new Map();let now=0,reads=0,fail=false;globalThis.fetch=async()=>{reads++;if(fail)throw Error('PRIVATE_SENTINEL');return Response.json(catalog);};
+ globalThis.caches={default:{async match(key){const e=entries.get(key.url);return e&&e.expires>now?e.response.clone():undefined;},async put(key,response){assert.equal(response.headers.get('Cache-Control'),'public, max-age=60');assert.ok(!(await response.clone().text()).includes('PRIVATE_SENTINEL'));entries.set(key.url,{response:response.clone(),expires:now+60000});}}};
  const env={BOARD_SOURCE:{getByName(){return {getWorkBoard:async()=>{reads++;if(fail)throw Error('PRIVATE_SENTINEL');return fixture();}};}}};
  try{
   assert.equal((await worker.fetch(new Request('https://public.example/v1/board?one=1',{headers:{Cookie:'arbitrary'}}),env)).status,200);
   const head=await worker.fetch(new Request('https://public.example/v1/board?other=2',{method:'HEAD'}),env);assert.equal(head.status,200);assert.equal(await head.text(),'');assert.equal(reads,1);assert.deepEqual([...entries.keys()],['https://public.example/v1/board']);
-  now=5001;fail=true;assert.equal((await worker.fetch(new Request('https://public.example/v1/board'),env)).status,503);assert.equal(reads,2);
+  now=60001;fail=true;assert.equal((await worker.fetch(new Request('https://public.example/v1/board'),env)).status,503);assert.equal(reads,2);
   fail=false;assert.equal((await worker.fetch(new Request('https://public.example/v1/board'),env)).status,200);assert.equal(reads,3);
- }finally{if(previous)Object.defineProperty(globalThis,'caches',previous);else delete globalThis.caches;}
+ }finally{globalThis.fetch=oldFetch;if(previous)Object.defineProperty(globalThis,'caches',previous);else delete globalThis.caches;}
 });
 
 
@@ -187,4 +191,23 @@ test('local package planner preserves explicit task scope, filters lists and rej
  const task=run('--task','BUS-14');assert.equal(task.scope,'explicit_task');assert.equal(task.reserved,false);assert.equal(task.buildAuthorized,false);assert.equal(task.packages.length,1);assert.equal(task.packages[0].id,'PAQ-03');
  const list=run('--list','4');assert.ok(list.packages.every(p=>p.stages.some(s=>s.tasks.some(t=>t.list===4))));
  for(const args of [['--package','PAQ-99'],['--task','BUS-999'],['--list','5'],['--package','PAQ-01','--task','BUS-14'],['--claim','NOT-11']])assert.equal(spawnSync(process.execPath,[script.pathname,...args],{encoding:'utf8'}).status,1);
+});
+
+test('GitHub board shows current progress and clearly reports unavailable live activity',async()=>{
+ const {catalogBoard}=await import('../coordination/src/public-catalog.mjs');
+ const payload=await catalogBoard(async()=>Response.json(catalog),()=>new Date('2026-11-12T12:00:00Z'));
+ ui.validateBoard(payload);
+ const html=readFileSync(new URL('../docs/roadmap/tablero-publico.html',import.meta.url),'utf8');
+ const dom=new JSDOM(html,{url:'https://public.example/',pretendToBeVisual:true}),w=dom.window;
+ const manifest=JSON.parse(readFileSync(new URL('../docs/roadmap/paquetes.json',import.meta.url)));
+ w.fetch=async url=>({ok:true,json:async()=>structuredClone(url==='/paquetes.json'?manifest:payload)});
+ const app=ui.mount(w.document,w);
+ try{
+  await new Promise(resolve=>setTimeout(resolve,100));
+  const expected=ui.progress(payload.tasks);assert.ok(w.document.getElementById('progress-label').textContent.includes(`${expected.done} de ${expected.total}`));
+  w.document.getElementById('view').value='lists';w.document.getElementById('view').dispatchEvent(new w.Event('change'));
+  assert.match(w.document.body.textContent,/Actividad en vivo no disponible/);
+  assert.match(w.document.body.textContent,/Actividad no disponible/);
+  assert.ok(!w.document.body.textContent.includes('null construcciones'));
+ }finally{app.stop();dom.window.close();}
 });

@@ -1,4 +1,4 @@
-import {publicBoard} from './public-board.mjs';
+import {catalogBoard} from './public-catalog.mjs';
 const assets=new Set(['/','/index.html','/tablero-publico.js','/equipo.css','/tablero-publico.css','/paquetes.json']);
 function secure(response) {
   const headers=new Headers(response.headers);
@@ -17,8 +17,8 @@ export default {
         const key=new Request(new URL('/v1/board',request.url).href),cache=globalThis.caches?.default;
         let cached;try{cached=await cache?.match(key);}catch{}
         if(cached)return secure(new Response(request.method==='HEAD'?null:cached.body,{headers:cached.headers}));
-        const value=publicBoard(await env.BOARD_SOURCE.getByName('hampton').getWorkBoard());
-        const response=Response.json(value,{headers:{'Cache-Control':'public, max-age=5'}});
+        const value=await catalogBoard();
+        const response=Response.json(value,{headers:{'Cache-Control':'public, max-age=60'}});
         // Only this reduced projection is cached. Failures never enter the cache.
         try{await cache?.put(key,response.clone());}catch{}
         return secure(new Response(request.method==='HEAD'?null:response.body,{headers:response.headers}));

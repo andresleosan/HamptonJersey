@@ -4,11 +4,7 @@ compatibility_date = "2026-10-01"
 workers_dev = true
 preview_urls = false
 
-# Read the existing state; no new namespace, migrations, credentials or write routes.
-[[durable_objects.bindings]]
-name = "BOARD_SOURCE"
-class_name = "TeamCoordinator"
-script_name = "hampton-team-coordinator"
+# The public board reads the canonical public GitHub catalogue; no coordinator binding.
 
 [assets]
 directory = "./public-board"
