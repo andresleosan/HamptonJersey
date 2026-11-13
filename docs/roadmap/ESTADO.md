@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **BUS-09 parcial:** normalización pura y contrato de fuentes pendiente, sin lectores externos ni ingesta activa. Conserva originales, desconocidos y hechos humanos; pruebas y límites en [avance publicable](work/BUS-09/avance-publicable.md).
+
 13-nov-2026 · **Alcance del checklist reconciliado:** ADM-05, PUB-15, OFE-08 y VIS-16 se excluyen del total aplicable conforme a la decisión del [plan maestro vigente](2026-11-10-plan-maestro-vigente.md); se conservan datos y código existentes. El cálculo pasa de 63/221 (28,51 %) a 63/217 (29,03 %), sin nuevos cierres. NOT-05 continúa para alquileres y PUB-09 para la web propia. [Detalle](work/progreso/ajuste-alcance-2026-11-13.md).
 
 13-nov-2026 · **PUB-09 parcial:** retirada con motivo, historial privado y correcciones construidos y comprobados localmente; el flujo permanece desactivado por defecto y la migración 0044 solo se ha ensayado con datos ficticios. Faltan verificación del despliegue, migración remota, activación y verificación real, además de la política de supresión PRE-12. PUB-15 no es una dependencia vigente. [Evidencia](work/PUB-09/avance-publicable.md).

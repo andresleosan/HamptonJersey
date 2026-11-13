@@ -4021,14 +4021,18 @@
       "fase": "F1-B",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Para el catálogo propio, server/listing-features.js lee del texto de cada ficha la parroquia, mascotas, parking, amueblado, exterior y tipo con patrones fijos (sin IA) y guarda la frase que lo prueba. La renta anual se pasa a mensual al comparar.",
-      "falta": "M02 · Reconciliación 7-nov: Extender la extracción a cada fuente, conservando original, normalizado, URL y fecha; distinguir precio de venta, renta, traspaso y gastos. Mantener desconocidos, normalizar periodicidades y no inventar rasgos. Registrar contradicciones o extracción parcial para revisión; una observación web no sobrescribe una comprobación humana posterior. Elegir lectores y modelos en el diseño técnico, sin exigir dos modelos para todos los anuncios. Depende de: BUS-06. Aceptación: Una renta anual se compara mensualmente conservando su importe y periodo originales; ausencia de mascotas sigue desconocida.",
+      "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita.",
+      "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real.",
       "bloqueo": "",
       "evidencia": [
         "server/listing-features.js:1-30",
         "server/routes/listings.js:84-87",
         "server/matching.js:24-29",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "server/market-extraction.js",
+        "server/market-source-contracts.js",
+        "tests/server/bus-09-normalization.test.mjs",
+        "docs/roadmap/work/BUS-09/avance-publicable.md"
       ],
       "modulo": "M02",
       "deps": [
@@ -4053,7 +4057,8 @@
         "source-connectors",
         "market-inventory"
       ],
-      "nextStep": "Extender normalización por fuente conservando originales, desconocidos y contradicciones para revisión."
+      "nextStep": "Integrar con BUS-06 y definir cada lector únicamente después de verificar sus permisos, contrato y evidencia.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "BUS-10",
