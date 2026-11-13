@@ -57,7 +57,9 @@ const priceLabel = p => {
   if (a == null) return "Price not published";
   return money(a, p.currency) + (p.operation === "rent" ? ({month: " pcm", year: " p.a."}[p.rentPeriod] ?? "") : "");
 };
-const isSold = p => /sold|^let(?: agreed)?$/i.test(p.status);
+const isSold = p => /^(?:sold|let(?: agreed)?|withdrawn)$/i.test(p.status);
+// A closed booking policy does not make the property unavailable for other purposes.
+const canBook = p => !isSold(p) && p.viewingsEnabled !== false;
 // The listings the website shows: without a public photo a listing stays out of the public pages. The server uses it
 // too (server/seo.js), so the sitemap and /p/<id> list and answer exactly what the page can show.
 const shownOnSite = p => safeMedia(p.image) != null;
@@ -117,4 +119,4 @@ function catalogFilter(search, full, max) {
 // The category photo: newest matching operation, or international region, with the page fallback if absent.
 const buttonPhoto = (pub, op) => [...pub].sort(newestFirst).find(p => op === "international" ? p.region === op : p.operation === op)?.image ?? null;
 
-if (typeof module === "object") module.exports = {newestFirst, homePicks, readCatalogQuery, catalogQuery, catalogFilter, buttonPhoto, shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, matches, comparables, pmt};
+if (typeof module === "object") module.exports = {newestFirst, homePicks, readCatalogQuery, catalogQuery, catalogFilter, buttonPhoto, shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, canBook, matches, comparables, pmt};

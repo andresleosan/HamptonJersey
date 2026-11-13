@@ -126,6 +126,7 @@ export function toPublic(l, media) {
     .filter(([, value]) => value).map(([label, value]) => ({ group: "Financial details", label, value }));
   return {
     id: l.id, title: l.title, status: STATUS[l.availability], region: regionOf(l.country),
+    viewingsEnabled: l.viewings_enabled === 1,
     place: l.location || l.country || "", type: l.property_type, use: l.use, operation: l.operation,
     currency: l.currency, salePrice: l.sale_price, rent: l.rent, rentPeriod: l.rent_period, premium: l.premium,
     priceText: l.price_text, beds: l.bedrooms, baths: l.bathrooms, tenure: l.tenure,

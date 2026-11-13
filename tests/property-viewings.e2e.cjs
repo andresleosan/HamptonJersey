@@ -23,7 +23,7 @@ assert.ok(['localhost','127.0.0.1'].includes(new URL(BASE).hostname),'This test 
     await page.reload();await section.getByRole('button',{name:'Activate',exact:true}).waitFor();
     let av=await api('GET','/availability?listing_id=HE-R001');assert.equal(av.property_viewings_enabled,false);
     assert.ok(av.days.every(d=>Object.values(d.slots).every(s=>s.length===0)));
-    const pub=await ctx.newPage();await pub.goto(BASE+'p/HE-R001');await pub.getByText('Viewings are currently disabled for this property.',{exact:false}).waitFor();assert.ok(await pub.locator('#detail-slot button[type=submit]').isDisabled());
+    const pub=await ctx.newPage();await pub.goto(BASE+'p/HE-R001');await pub.locator('.summary').getByRole('link',{name:'Contact us'}).waitFor();assert.equal(await pub.locator('#detail-book').count(),0);
     const internal=await ctx.newPage();await internal.goto(BASE+'admin/#/viewings?listing=HE-R001');await internal.getByRole('button',{name:'New viewing',exact:true}).click();await internal.locator('.slot-picker').getByText('Viewings are disabled for this property.',{exact:false}).waitFor();await internal.close();
     await section.getByRole('button',{name:'Activate',exact:true}).click();await section.getByRole('combobox',{name:/Viewing hours/}).selectOption('custom');
     await page.getByRole('button',{name:'Save',exact:true}).click();await section.getByRole('alert').waitFor();

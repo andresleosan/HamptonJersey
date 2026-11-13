@@ -2,6 +2,7 @@ import { fail, now as stamp } from "./http.js";
 import { daySlots, addMinutes, plusDays, weekday, SLOT_MINUTES, BUFFER_MINUTES, ACTIVE, propertyAllows } from "./viewings.js";
 
 const ACTIVE_SQL = ACTIVE.map(s => `'${s}'`).join(", ");
+export const PUBLIC_BOOKING_BLOCKED_SQL = "'sold','let_agreed','let','withdrawn'";
 
 // The slots of `days` days from `from` (website, fromTomorrow: Monday to Saturday only, C11), per negotiator.
 // Three queries (plus an optional property policy) in one batch; exceptions and viewings are read through the (negotiator_id, date) indexes (the unary +
@@ -21,7 +22,7 @@ export async function loadAvailability(env, { from, days, now, fromTomorrow, inc
         excludeId == null ? "" : " AND id <> ?"}`)
       .bind(...args, ...range, ...(excludeId == null ? [] : [excludeId])),
     ...(listingId == null ? [] : [env.DB.prepare(`SELECT viewings_enabled, viewing_hours FROM listings WHERE id = ?${
-      fromTomorrow ? " AND published = 1 AND archived_at IS NULL AND availability NOT IN ('let_agreed','let')" : ""}`).bind(listingId)]),
+      fromTomorrow ? ` AND published = 1 AND archived_at IS NULL AND availability NOT IN (${PUBLIC_BOOKING_BLOCKED_SQL})` : ""}`).bind(listingId)]),
   ]).then(r => r.map(x => x.results));
   if (listingId != null && !properties.length) fail(404, "Unknown property");
   const property = properties?.[0];
@@ -56,7 +57,7 @@ export function clash({ negotiator_id, date, time }, excludeId) {
 export function propertyViewingGuard({ listing_id, date, time }, { publicOnly = false } = {}) {
   return {
     sql: `(? IS NULL OR EXISTS (SELECT 1 FROM listings p WHERE p.id = ? AND p.viewings_enabled = 1
-      ${publicOnly ? "AND p.published = 1 AND p.archived_at IS NULL AND p.availability NOT IN ('let_agreed','let')" : ""}
+      ${publicOnly ? `AND p.published = 1 AND p.archived_at IS NULL AND p.availability NOT IN (${PUBLIC_BOOKING_BLOCKED_SQL})` : ""}
       AND (p.viewing_hours IS NULL OR EXISTS (SELECT 1 FROM json_each(p.viewing_hours) w
         WHERE json_extract(w.value, '$.day') = CAST(strftime('%w', ?) AS INTEGER)
           AND json_extract(w.value, '$.start') <= ? AND json_extract(w.value, '$.end') >= ?))))`,

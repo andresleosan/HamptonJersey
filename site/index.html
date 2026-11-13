@@ -632,7 +632,7 @@ const teamOf = n => TEAM.find(t => t.name === n.name); // photo, role and office
 
 // Agents, days and times are filled in by mountBooking once the availability arrives.
 function bookingForm(pre = {}) {
-  const opts = PUB.filter(p => !isSold(p)).map(p =>
+  const opts = PUB.filter(canBook).map(p =>
     `<option value="${p.id}" ${p.id === pre.prop ? "selected" : ""}>${esc(p.title)}, ${esc(priceLabel(p))}</option>`).join("");
   return `${pre.msg ? `<p class="cancelled" role="status">${esc(pre.msg)}</p>` : ""}<form class="tour" novalidate>
     <label class="field"><span>Property</span><select name="prop"><option value="">General enquiry / valuation</option>${opts}</select></label>
@@ -708,7 +708,7 @@ function mountBooking(slot, pre = {}) {
     paint(want);
   };
   // want: the day and time to keep (see pickSlot). The agent stays the one chosen, while they are still offered.
-  const load = want => {
+  const load = (want, unavailableMessage = null) => {
     const request = ++availabilityRequest, keepId = A && +v("negotiator");
     A = null; btn.disabled = true; status.textContent = "";
     clearTimeout(summaryTimer); summary.textContent = "";
@@ -728,7 +728,7 @@ function mountBooking(slot, pre = {}) {
     }).catch(() => {
       if (request !== availabilityRequest || !slot.contains(form)) return;
       clearTimeout(summaryTimer); summary.textContent = "";
-      A = null; agents.innerHTML = when.innerHTML = ""; btn.disabled = true; status.textContent = BOOKING_DOWN;
+      A = null; agents.innerHTML = when.innerHTML = ""; btn.disabled = true; status.textContent = unavailableMessage || BOOKING_DOWN;
     });
   };
   load();
@@ -756,7 +756,7 @@ function mountBooking(slot, pre = {}) {
         // Taken or gone since the form opened: fresh slots, the same day if it still has a free time, and no time chosen.
         // A 400 is refused before the anti-spam check, so its token is still good.
         if (r.status === 409 && widget != null) turnstile.reset(widget);
-        await load({date, time});
+        await load({date, time}, data.fields?.listing_id);
         const why = gone ? gone.replace(/\.?$/, ".") : data.error || "That time was just booked. Please choose another.";
         if (A) status.textContent = `${why} Your details are still here.`;
         return;
@@ -805,7 +805,7 @@ function home() {
         <div class="wrap"><div class="place">${esc(p.place)}</div><h2>${esc(p.title)}</h2>
           <div class="meta num">${facts(p).map(f => `<span>${esc(f)}</span>`).join("")}</div>
           <div class="cta"><a class="btn light" href="/p/${esc(p.id)}">Explore the property</a>
-            <button class="btn ghost" type="button" data-book="${esc(p.id)}">Book a viewing</button></div></div>
+            ${!canBook(p) ? `<a class="btn ghost" href="/#team" data-scroll="team" data-contact-team>Contact us</a>` : `<button class="btn ghost" type="button" data-book="${esc(p.id)}">Book a viewing</button>`}</div></div>
       </article>`).join("")}</div>
       ${slides.length > 1 ? `<div class="hero-nav"><button type="button" class="hero-arrow" data-dir="-1" aria-label="Previous property" disabled>‹</button>
         <div class="hero-bars" aria-hidden="true">${slides.map((_, i) => `<span${i ? "" : ' class="is-current"'}></span>`).join("")}</div>
@@ -902,7 +902,7 @@ function home() {
       const booking = e.target.closest("[data-book]");
       if (!booking) return;
       const prop = $("#book-slot select[name=prop]"), now = slides.find(p => p.id === booking.dataset.book);
-      if (now && !isSold(now)) { prop.value = now.id; prop.dispatchEvent(new Event("change", {bubbles: true})); }
+      if (now && canBook(now)) { prop.value = now.id; prop.dispatchEvent(new Event("change", {bubbles: true})); }
       $("#book").scrollIntoView(); prop.focus({preventScroll: true});
     });
     return;
@@ -1028,7 +1028,7 @@ function detail(id) {
       ${p.beds || p.baths || p.type ? `<div class="keys num">${p.beds ? `<div><b>${p.beds}</b><span>Bedrooms</span></div>` : ""}${p.baths ? `<div><b>${p.baths}</b><span>Bathrooms</span></div>` : ""}${p.type ? `<div><b>${esc(p.type)}</b><span>Type</span></div>` : ""}</div>` : ""}
       ${agent ? `<div class="agent-mini">${agent.photo ? `<img src="${esc(wix(agent.photo, 120, 120))}" alt="">` : ""}<div><b>${esc(agent.name)}</b><div class="hint">${esc(agent.role)} · ${esc(agent.office)}</div></div></div>` : ""}
       ${interest ? `<p class="interest"><b>${interest} people interested</b> <span class="hint">Upcoming viewings, and those of the last 30 days that went well</span></p>` : ""}
-      <div class="btns">${isSold(p) ? "" : `<a class="btn" href="#detail-book" data-scroll="detail-book">Book a viewing</a>`}
+      <div class="btns">${!canBook(p) ? `<a class="btn" href="/#team" data-contact-team>Contact us</a>` : `<a class="btn" href="#detail-book" data-scroll="detail-book">Book a viewing</a>`}
         ${p.tourUrl ? `<button class="btn ghost" type="button" data-go="tour">Open the 3D tour</button>` : ""}</div>
       <div class="share"><button class="btn ghost" type="button" data-share>Share</button>
         <a class="btn ghost" href="https://wa.me/?text=${esc(encodeURIComponent(`${p.title} ${shareUrl}`))}" target="_blank" rel="noopener" aria-label="Share on WhatsApp">WhatsApp</a>
@@ -1059,7 +1059,7 @@ function detail(id) {
           <div class="split"><div><span>Loan</span><b id="r-loan"></b></div><div><span>Total interest</span><b id="r-int"></b></div>
             <div><span>Deposit</span><b id="r-dep"></b></div><div><span>Total repaid</span><b id="r-tot"></b></div></div>
           <p class="hint">Indicative capital-and-repayment estimate. Excludes stamp duty and lender fees; your lender's offer will differ.</p>
-          ${agent && !isSold(p) ? `<div><a class="btn ghost" href="#detail-book" data-scroll="detail-book">Talk to ${esc(agent.name.split(" ")[0])} about finance</a></div>` : ""}</div>
+          ${agent && canBook(p) ? `<div><a class="btn ghost" href="#detail-book" data-scroll="detail-book">Talk to ${esc(agent.name.split(" ")[0])} about finance</a></div>` : ""}</div>
       </div></div>` : ""}
   </div>
   ${similar.length ? `<section class="block" style="background:var(--mist)"><div class="wrap">
@@ -1067,8 +1067,8 @@ function detail(id) {
       <p>Compared only with other ${p.use} listings ${{sale: "for sale", rent: "to let", business: "offered as businesses"}[p.operation]} in the same market.</p></div></div>
     <div class="grid">${similar.map(s => card(s, `<span class="hint" style="font-family:var(--body);margin-right:8px">${amount(s) >= amount(p) ? "+" : "−"}${Math.round(Math.abs(amount(s) / amount(p) - 1) * 100)}%</span>`)).join("")}</div>
   </div></section>` : ""}
-  ${isSold(p) ? "" : `<div class="mbar"><span class="price num">${esc(priceLabel(p))}</span><a class="btn" href="#detail-book" data-scroll="detail-book">Book a viewing</a></div>`}
-  ${isSold(p) ? "" : `<section class="block" id="detail-book" tabindex="-1"><div class="wrap book">
+  ${!canBook(p) ? "" : `<div class="mbar"><span class="price num">${esc(priceLabel(p))}</span><a class="btn" href="#detail-book" data-scroll="detail-book">Book a viewing</a></div>`}
+  ${!canBook(p) ? "" : `<section class="block" id="detail-book" tabindex="-1"><div class="wrap book">
     <div><h2>Book a viewing</h2><p class="hint booking-hint">Choose your agent, the type of viewing and a slot that suits you.</p></div>
     <div id="detail-slot"></div></div></section>`}`;
 
@@ -1190,7 +1190,7 @@ function detail(id) {
     };
     $("#calc").addEventListener("input", calc); calc();
   }
-  if (!isSold(p)) mountBooking($("#detail-slot"), {prop: p.id, agent: agent?.name});
+  if (canBook(p)) mountBooking($("#detail-slot"), {prop: p.id, agent: agent?.name});
   scrollTo({top: 0, behavior: "instant"});
 }
 
@@ -1221,6 +1221,7 @@ addEventListener("click", e => {
   e.preventDefault();
   if (u.href === location.href) return scrollTo({top: 0}); // the logo on the home page: back to the top, as before
   navigate(u.href);
+  if (a.hasAttribute("data-contact-team")) document.getElementById("team")?.focus({preventScroll: true});
 });
 // After a registration the hash is still #/apply: "Register" then starts a new one (never while a form is open).
 addEventListener("click", e => { if (e.target.closest('a[href="#/apply"]') && location.hash === "#/apply" && !$("#app .apply form")) route(); });

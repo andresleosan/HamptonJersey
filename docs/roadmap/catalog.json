@@ -16643,9 +16643,9 @@
       "fase": "F3-C",
       "estado": "parcial",
       "responsable": "Luis",
-      "hecho": "Aceptar una oferta en Sales pone la ficha en Under offer, completar la venta en Sold y una venta caída la devuelve a For sale; la web lo muestra en la etiqueta de la ficha y quita Book a viewing cuando está vendida.",
-      "falta": "La publicación «Let agreed» en redes, que espera a Meta. Los estados que faltan en la ficha (Ready for review, Let agreed y Let) se siguen en EST-17.",
-      "bloqueo": "Trámite Meta",
+      "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn. El trabajo nuevo impide reservar públicamente propiedades vendidas, retiradas, alquiladas o acordadas, incluso si cambia su estado antes del guardado; si las visitas están deshabilitadas, la interfaz ofrece contacto en lugar de reserva. La ficha obsoleta conserva los datos y desactiva el formulario. Pruebas locales, D1 y navegador aislado aprobadas.",
+      "falta": "Verificar la integración y el despliegue de esta corrección. La restricción por aviso previo, llaves y negociadores de VIS-10 sigue pendiente para propiedades que sí admiten visitas. El alcance vigente es solo la web propia; no depende de Meta.",
+      "bloqueo": "",
       "evidencia": [
         "server/routes/sales.js:67-76",
         "server/routes/sales.js:176",
@@ -16653,7 +16653,13 @@
         "server/routes/sales.js:429",
         "site/index.html:447-453",
         "site/index.html:801",
-        "server/listing.js:7"
+        "server/listing.js:7",
+        "server/viewing-store.js",
+        "server/routes/public.js",
+        "site/lib.js",
+        "tests/server/public-listing-state-race.test.mjs",
+        "tests/public-listing-state-ui.e2e.cjs",
+        "docs/roadmap/work/PUB-16/avance-publicable.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -16663,24 +16669,40 @@
         {
           "id": "EST-17",
           "requires": "integrated",
-          "reason": "Los estados aún pendientes se implementan en el ciclo de ficha EST-17.",
+          "reason": "Consume los estados editoriales y comerciales de la ficha propia.",
           "basis": "explicit",
           "scope": "whole"
         },
         {
-          "id": "PRE-02",
-          "requires": "activated",
-          "reason": "La propagación a redes espera Meta; la web no.",
+          "id": "VIS-18",
+          "requires": "integrated",
+          "reason": "Reutiliza la disponibilidad y la política de visitas por propiedad.",
+          "basis": "explicit",
+          "scope": "whole"
+        },
+        {
+          "id": "VIS-10",
+          "requires": "integrated",
+          "reason": "Las restricciones por aviso, llaves y negociadores son una ampliación pendiente de disponibilidad.",
+          "basis": "explicit",
+          "scope": "partial"
+        },
+        {
+          "id": "EST-18",
+          "requires": "integrated",
+          "reason": "Reutiliza el registro de eventos de estado existente.",
           "basis": "explicit",
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Luis/Meta: permisos de publicación en redes.",
+      "externalBlocker": "",
       "resources": [
         "listings-schema",
-        "meta-channel"
+        "viewings-contract",
+        "public-site"
       ],
-      "nextStep": "Completar estados pendientes y propagación a redes cuando Meta esté operativo."
+      "nextStep": "Verificar el despliegue y completar la integración de restricciones de VIS-10 cuando estén disponibles.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "PUB-17",

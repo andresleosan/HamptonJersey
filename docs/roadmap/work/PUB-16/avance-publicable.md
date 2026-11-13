@@ -1,0 +1,9 @@
+# PUB-16 · Propagación web de estados
+
+13-nov-2026. La web muestra contacto en vez de reserva para propiedades vendidas, retiradas, con alquiler acordado o completado, o con visitas deshabilitadas. El servidor repite la regla al cargar franjas, al recibir el formulario y dentro de la escritura de la reserva; un cambio tardío no crea reserva ni efectos asociados. Si una ficha quedó obsoleta, el formulario conserva los datos, informa y se desactiva. Bajo oferta sigue sujeto a las reglas normales.
+
+La revisión independiente detectó cuatro incidencias: Withdrawn aún era reservable, el error de ficha obsoleta no recargaba, la política deshabilitada no ocultaba el botón y Contact us perdía el foco. Se reprodujeron y corrigieron con pruebas; los recorridos de navegador aislado verifican 1280 y 390 px, activación de contacto con teclado, estados cerrados, política y ficha obsoleta; WebKit comprueba además zoom nativo del 200 % a 1280 px. La prueba de VIS-18 también pasa en ambas anchuras. Suite integrada: 1.288 pruebas Node y 25 Python; build, release y catálogo correctos. Las pruebas usan datos ficticios; la actualización y el despliegue reales aún no se atribuyen a esta evidencia.
+
+Ruling: se proyecta únicamente un indicador público de visitas habilitadas; los horarios y motivos internos no se exponen. La API sigue siendo la autoridad para rechazar una reserva si el navegador conserva datos antiguos. El coste si el indicador quedara desactualizado en caché es un botón temporalmente visible, pero la escritura lo rechaza y el formulario se desactiva al recargar.
+
+Ruling: la dependencia previa de Meta se elimina de esta ficha conforme al plan vigente de propagación web. VIS-10 mantiene pendientes las restricciones de aviso, llaves y negociadores para propiedades aún disponibles; esta tarea permanece parcial hasta verificar la integración requerida.

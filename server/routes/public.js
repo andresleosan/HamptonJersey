@@ -1,9 +1,9 @@
-import { json, fail, readJson, now } from "../http.js";
+import { json, fail, HttpError, readJson, now } from "../http.js";
 import { toPublic } from "../listing.js";
 import { buildPublicAddressReview, addressAppearsInPublicContent, addressDetailsFromListing } from "../public-address.js";
 import { validateViewing, jerseyNow, jerseyToday, isFree, realDate, plusDays, SLOT_MINUTES, PUBLIC_DAYS, MAX_DAYS,
   interestSql, interestDates } from "../viewings.js";
-import { loadAvailability, bookStatement } from "../viewing-store.js";
+import { loadAvailability, bookStatement, PUBLIC_BOOKING_BLOCKED_SQL } from "../viewing-store.js";
 import { verifyTurnstile } from "../turnstile.js";
 import { logEvent } from "../events.js";
 import { validateApplicant, OPTIONS } from "../applicants.js";
@@ -102,10 +102,17 @@ async function createViewing({ request, env }) {
   if (r.errors) return fields(r.errors);
   const v = r.value;
   const listing = v.listing_id && await env.DB.prepare(
-    "SELECT 1 FROM listings WHERE id = ? AND published = 1 AND archived_at IS NULL").bind(v.listing_id).first();
-  if (v.listing_id && !listing) fail(400, "That property is no longer available. Choose another or send a general enquiry.");
+    `SELECT 1 FROM listings WHERE id = ? AND published = 1 AND archived_at IS NULL AND availability NOT IN (${PUBLIC_BOOKING_BLOCKED_SQL})`).bind(v.listing_id).first();
+  const propertyGone = () => fields({ listing_id: "That property is no longer available. Choose another or send a general enquiry." });
+  if (v.listing_id && !listing) return propertyGone();
   // The slot must be one the website offers (§4.6): an active negotiator, on the grid, inside their hours, not booked.
-  const a = await loadAvailability(env, { from: v.date, days: 1, now: clock, fromTomorrow: true, negotiatorId: v.negotiator_id, listingId: v.listing_id });
+  let a;
+  try {
+    a = await loadAvailability(env, { from: v.date, days: 1, now: clock, fromTomorrow: true, negotiatorId: v.negotiator_id, listingId: v.listing_id });
+  } catch (error) {
+    if (v.listing_id && error instanceof HttpError && error.status === 404) return propertyGone();
+    throw error;
+  }
   if (a.property_viewings_enabled === false) return fields({ listing_id: "Viewings are disabled for this property." });
   if (!a.negotiators.length) return fields({ negotiator_id: "Choose who will show you round" });
   const slots = a.days[0].slots[v.negotiator_id];
