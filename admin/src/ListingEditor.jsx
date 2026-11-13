@@ -1,3 +1,4 @@
+import { priceOperation } from "../../server/listing-pricing.js";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show, TENURE, HOUSING, RESTRICTION } from "./format.js";
@@ -22,11 +23,11 @@ import ListingContentFields from './ListingContentFields.jsx';
 import { CONTENT_TAGS } from '../../server/listing-content.js';
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
-  "bathrooms", "tenure", "tenure_type", "housing_category", "restriction", "sale_price", "rent", "rent_period", "premium",
+  "bathrooms", "tenure", "tenure_type", "housing_category", "restriction", "sale_price", "rent", "rent_period",
   "currency", "price_text", "price_per_sqft", "rental_deposit", "parish_rates", "service_charge", "utilities_included", "available_on", "summary", "description", "tour_url", "specs", "viewings_enabled", "viewing_hours",
   "interior_area_sqft", "separate_wcs", "reception_rooms", "has_garage", "has_storage", "has_lift", "double_glazing",
   "floor_level", "building_floors", "year_built", "heating_types", "amenities", "feature_overrides"];
-const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium", "interior_area_sqft", "separate_wcs",
+const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "interior_area_sqft", "separate_wcs",
   "reception_rooms", "has_garage", "has_storage", "has_lift", "double_glazing", "floor_level", "building_floors", "year_built"];
 // Keep custom hours while the form temporarily uses general availability. This draft-only key is not sent by toBody,
 // and toForm resets it on load, a successful save and Discard.
@@ -496,11 +497,10 @@ export default function ListingEditor({ id, onChange }) {
         })}
       </section>
       <section id="s-price" className="card" aria-labelledby="h-price"><h2 id="h-price">Price</h2>
-        <p className="muted">These details appear on the public listing. Leave unknown values blank; include the currency and period for charges. Sale price, rent and business premium are kept separate.</p><div className="grid2">
-        {form.operation === "sale" && field("sale_price", "Sale price", <input {...ctl("sale_price")} type="number" min="1" step="any" />)}
-        {["rent", "business"].includes(form.operation) && field("rent", "Rent", <input {...ctl("rent")} type="number" min="1" step="any" />)}
-        {["rent", "business"].includes(form.operation) && field("rent_period", "Period", <select {...ctl("rent_period")}><option value="">—</option><option value="month">Per month</option><option value="year">Per year</option></select>)}
-        {form.operation === "business" && field("premium", "Business premium", <input {...ctl("premium")} type="number" min="1" step="any" />)}
+        <p className="muted">These details appear on the public listing. Leave unknown values blank; include the currency and period for charges. Freehold businesses use the total sale price. Rentals use a rent and period.</p><div className="grid2">
+        {priceOperation(form) === "sale" && field("sale_price", "Sale price", <input {...ctl("sale_price")} type="number" min="1" step="any" />)}
+        {priceOperation(form) === "rent" && field("rent", "Rent", <input {...ctl("rent")} type="number" min="1" step="any" />)}
+        {priceOperation(form) === "rent" && field("rent_period", "Period", <select {...ctl("rent_period")}><option value="">—</option><option value="month">Per month</option><option value="year">Per year</option></select>)}
         {field("currency", "Currency", <select {...ctl("currency")}><option value="">—</option><option value="GBP">GBP £</option><option value="EUR">EUR €</option></select>)}
         {field("price_text", "Displayed text (when there is no amount)", <input {...ctl("price_text")} maxLength={200} placeholder="e.g. Negotiable" />)}
         {field("price_per_sqft", "Price per sq ft", <input {...ctl("price_per_sqft")} maxLength={200} placeholder="e.g. £25 per sq ft per year" />)}

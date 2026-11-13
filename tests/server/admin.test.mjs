@@ -183,11 +183,11 @@ test("users: add, refuse self-removal, remove others", async () => {
 
 test("a price needs its currency, and rent needs its period", async () => {
   const { env, cookie } = await world();
-  const base = { title: "Shop", use: "commercial", operation: "business", availability: "for_sale", country: "Jersey" };
-  const created = await call(env, "POST", "/admin/listings", { cookie, body: { ...base, premium: 50000 } });
+  const base = { title: "Shop", use: "commercial", operation: "business", tenure_type: "freehold", availability: "for_sale", country: "Jersey" };
+  const created = await call(env, "POST", "/admin/listings", { cookie, body: { ...base, sale_price: 50000 } });
   assert.equal(created.status, 400);
   assert.ok(created.data.fields.currency);
-  assert.equal((await call(env, "POST", "/admin/listings", { cookie, body: { ...base, premium: 50000, currency: "GBP" } })).status, 201);
+  assert.equal((await call(env, "POST", "/admin/listings", { cookie, body: { ...base, sale_price: 50000, currency: "GBP" } })).status, 201);
   // Partial update is checked against the stored row: HE-R026 has no currency stored.
   env.DB.raw.prepare("UPDATE listings SET currency = NULL, sale_price = NULL WHERE id = 'HE-R026'").run();
   const bad = await call(env, "PUT", "/admin/listings/HE-R026", { cookie, body: { sale_price: 200000, updated_at: T0 } });

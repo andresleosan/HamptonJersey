@@ -1,3 +1,4 @@
+import { listingAmount } from "../listing-pricing.js";
 import { json, fail, readJson, now } from "../http.js";
 import { folderIdFrom, folderInfo, walkFolder, photosIn, fileResponse, chooseEdited, insideRecords } from "../drive.js";
 import { setState, deleteListing, createListing } from "./listings.js";
@@ -110,7 +111,6 @@ async function discard({ env, admin, params: [id] }) {
 }
 
 // D11: the minimum for a listing that the website shows whole.
-const PRICE = { sale: "sale_price", rent: "rent", business: "premium" };
 async function approve({ request, env, admin, params: [id] }) {
   const version=(await readJson(request))?.updated_at;
   if(typeof version!=='string')fail(400,'Missing updated_at: reload the listing');
@@ -122,7 +122,7 @@ async function approve({ request, env, admin, params: [id] }) {
   if(!l||l.updated_at!==version)fail(409,'The listing changed. Reload and review it before publishing.');
   const has = v => v != null && String(v).trim() !== "";
   const missing = [["Title", has(l.title)], ["Sale or rent", has(l.operation)],
-    ["Price", has(l[PRICE[l.operation]]) || has(l.price_text)], ["Parish", has(l.parish)], ["A photo", l.photos > 0],
+    ["Price", has(listingAmount(l)) || has(l.price_text)], ["Parish", has(l.parish)], ["A photo", l.photos > 0],
     ["Description", has(l.description)]].filter(([, ok]) => !ok).map(([k]) => k);
   if (missing.length) return json({ error: "Complete before publishing", missing }, 400);
   // The listing write and queue transition share the same D1 transaction.

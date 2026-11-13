@@ -55,16 +55,16 @@ test('out-of-operation financial fields retain source values but cannot be compa
   assert.ok(sale.issues.includes('out_of_scope_financial_fields'));
 });
 
-test('own listings exclude International and map sale, rent and premium by operation', () => {
+test('own listings exclude International and map sale and rent by operation and tenure', () => {
   needExtraction();
   const listing = { id:'fixture-own', country:'Jersey', operation:'business', title:'Example',
     premium:5000, rent:12000, rent_period:'year', currency:'GBP', bedrooms:0,
     updated_at:'2026-11-13T12:00:00.000Z', private_notes:'fixture private note' };
   assert.equal(extraction.normalizeOwnListing({...listing,country:'International'}), null);
   const result = extraction.normalizeOwnListing(listing);
-  assert.deepEqual(result.financial_terms.map(t=>t.kind), ['premium','rent']);
+  assert.deepEqual(result.financial_terms.map(t=>t.kind), ['rent']);
   assert.equal(result.monthly_rent_minor, 100000);
-  assert.equal(result.source_financials[0].original_value, 5000);
+  assert.equal(result.source_financials[0].original_value, 12000);
   assert.equal(result.source_financials[0].original_unit, 'GBP_major');
   assert.equal(JSON.stringify(result).includes('fixture private note'), false);
   const sale = extraction.normalizeOwnListing({...listing, operation:'sale', sale_price:1.005});

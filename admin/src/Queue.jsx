@@ -101,7 +101,7 @@ function Proposal({ item, onClose }) {
   const five = { title: item.folder_name, use: fields.use ?? "residential", operation,
     availability: fields.availability ?? (operation === "rent" ? "to_let" : "for_sale"), country: fields.country ?? "Jersey" };
   const draft = draftBody(fields, five);
-  const values = { ...fields, operation, price: ["sale_price", "rent", "premium", "price_text"].some(k => draft.body[k] != null) ? priceText(draft.body) : null };
+  const values = { ...fields, operation, price: ["sale_price", "rent", "price_text"].some(k => draft.body[k] != null) ? priceText(draft.body) : null };
   const [out, setOut] = useState(() => new Set()), [busy, setBusy] = useState(false), [status, setStatus] = useState(null);
   const [progress, setProgress] = useState(null), [err, setErr] = useState(null), [done, setDone] = useState(null);
   const alive = useRef(true), running = useRef(false);

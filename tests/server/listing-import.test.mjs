@@ -82,11 +82,11 @@ test("text: a doubtful amount isn't imported", () => {
 test("draftBody: the price follows the form's operation; the form wins for its five fields", () => {
   const form = { title: "T", use: "residential", operation: "rent", availability: "to_let", country: "Jersey" }, sale = { ...form, operation: "sale", availability: "for_sale" };
   const pcm = readPropertyText("Title: From file\nPrice: £2,500 pcm").fields, plain = readPropertyText("Price: 850000").fields;
-  const cases = [draftBody(pcm, form), draftBody(pcm, sale), draftBody(plain, sale), draftBody(plain, { ...form, operation: "business" }), draftBody(plain, form)];
+  const cases = [draftBody(pcm, form), draftBody(pcm, sale), draftBody(plain, sale), draftBody(plain, { ...form, operation: "business", tenure_type: "freehold" }), draftBody(plain, form)];
   assert.deepEqual(cases[0], { body: { ...form, rent: 2500, currency: "GBP", rent_period: "month" }, notes: [] });
   assert.deepEqual(cases[1].body, { ...sale, currency: "GBP" }); assert.match(cases[1].notes[0], /pcm and pa are for rentals only/);
   assert.deepEqual(cases[2].body, { ...sale, sale_price: 850000, currency: "GBP" });
-  assert.equal(cases[3].body.premium, 850000);
+  assert.equal(cases[3].body.sale_price, 850000);
   assert.equal(cases[4].body.rent, undefined); assert.deepEqual(cases[4].notes, ["Rent: say per month or per year."]);
   for (const c of cases) assert.deepEqual(checkPrice(c.body), {});
 });

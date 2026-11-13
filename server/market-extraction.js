@@ -1,3 +1,4 @@
+import { priceOperation } from "./listing-pricing.js";
 // BUS-09 normalization is pure: it neither reads a source nor changes a listing.
 // Amounts remain in their original currency and no access decision is inferred.
 const MAX_MINOR = BigInt(Number.MAX_SAFE_INTEGER);
@@ -101,9 +102,8 @@ export function normalizeOwnListing(listing) {
   if (!listing || typeof listing !== 'object' || Array.isArray(listing) || listing.country !== 'Jersey') return null;
   if (typeof listing.id !== 'string' || !listing.id || !OPERATIONS.has(listing.operation) || !validTime(listing.updated_at))
     throw new TypeError('Invalid own listing');
-  const mapping = listing.operation === 'sale' ? [['sale_price', 'sale_price', 'sale']]
-    : listing.operation === 'rent' ? [['rent', 'rent', listing.rent_period]]
-    : [['premium', 'premium', 'sale'], ['rent', 'rent', listing.rent_period]];
+  const mapping = priceOperation(listing) === 'sale' ? [['sale_price', 'sale_price', 'sale']]
+    : [['rent', 'rent', listing.rent_period]];
   const used = new Set(mapping.map(([field]) => field)), financial_terms = [], source_financials = [], ownIssues = [];
   for (const [field, kind, proposedPeriod] of mapping) {
     if (!has(listing, field) || listing[field] == null) continue;

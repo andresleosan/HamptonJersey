@@ -28,7 +28,7 @@ test('counts only eligible saved photos and an eligible cover', async () => {
 test('operation and country change applicable criteria without changing the form', async () => {
   const {listingCriteria} = await load();
   const rent = {...form,operation:'rent',rent:1000,country:'UK'};
-  const business = {...rent,operation:'business',use:'commercial',premium:100};
+  const business = {...rent,operation:'business',use:'commercial',tenure_type:'leasehold',rent:100};
   assert.equal(listingCriteria(rent, '', [], null).length, 5);
   assert.equal(listingCriteria(business, '', [], null).length, 4);
   assert.equal(rent.bedrooms, 0);

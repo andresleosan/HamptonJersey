@@ -1,3 +1,4 @@
+import { listingAmount, priceOperation } from "../../server/listing-pricing.js";
 import { CRITERIA, parsePriorities } from "../../site/requirements.js";
 import { OPTIONS } from "../../server/applicants.js";
 import { jerseyToday } from "../../server/viewings.js";
@@ -17,9 +18,9 @@ export const stateOf = editorialState;
 
 const SYM = { GBP: "£", EUR: "€" };
 export function priceText(l) {
-  const a = { sale: l.sale_price, rent: l.rent, business: l.premium }[l.operation];
+  const a = listingAmount(l);
   if (a == null) return l.price_text || "—";
-  const per = l.operation === "rent" ? (l.rent_period === "year" ? " p.a." : " pcm") : "";
+  const per = priceOperation(l) === "rent" ? (l.rent_period === "year" ? " p.a." : " pcm") : "";
   return `${SYM[l.currency] ?? ""}${Math.round(a).toLocaleString("en-GB")}${per}`;
 }
 export const fmtDate = iso => (iso ? new Date(iso).toLocaleString("en-GB",

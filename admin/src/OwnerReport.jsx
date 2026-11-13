@@ -1,3 +1,4 @@
+import { listingAmount, priceOperation } from "../../server/listing-pricing.js";
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { AVAILABILITY, fmtDayMonth } from "./format.js";
@@ -17,10 +18,10 @@ const day = d => fmtDayMonth(d); // "18 Oct 2026"
 // published" (price_text is not used there either).
 const SYM = { GBP: "£", EUR: "€" };
 function price(l) {
-  const a = { sale: l.sale_price, rent: l.rent, business: l.premium }[l.operation] ?? null;
+  const a = listingAmount(l);
   if (a == null) return "Price not published";
   return (SYM[l.currency] ?? (l.currency ? `${l.currency} ` : "")) + Math.round(a).toLocaleString("en-GB")
-    + (l.operation === "rent" ? ({ month: " pcm", year: " p.a." }[l.rent_period] ?? "") : "");
+    + (priceOperation(l) === "rent" ? ({ month: " pcm", year: " p.a." }[l.rent_period] ?? "") : "");
 }
 const longDay = d => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 

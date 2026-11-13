@@ -1,3 +1,4 @@
+import { listingAmount, priceOperation } from "../../server/listing-pricing.js";
 // SPR-06 / SPR-07: the Listings screen's extra filters, on the list it already has. Pure, so tests pin them.
 export const OPERATION_FILTER = { sale: "To Buy", rent: "To Let", business: "Business" };
 const DAY = 864e5;
@@ -5,8 +6,8 @@ const PER_MONTH = { week: 52 / 12, year: 1 / 12 };
 
 // Sales and businesses by their total price; rentals by their rent per month. null when there is no amount.
 export function monthlyPrice(l) {
-  if (l.operation === "rent") return l.rent == null ? null : l.rent * (PER_MONTH[l.rent_period] ?? 1);
-  return (l.operation === "business" ? l.premium ?? l.sale_price : l.sale_price) ?? null;
+  if (priceOperation(l) === "rent") return l.rent == null ? null : l.rent * (PER_MONTH[l.rent_period] ?? 1);
+  return listingAmount(l);
 }
 
 // The two Bedrooms selects ("" = Any): a From above the To raises the To, so the search is never impossible.

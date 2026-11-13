@@ -1,3 +1,4 @@
+import { priceOperation } from "./listing-pricing.js";
 import { isPublicMedia } from "./visibility.js";
 import { OPTIONS } from "./applicants.js";
 import { validWeeklyWindows, realDate } from "./viewings.js";
@@ -25,7 +26,7 @@ export const TO_CONFIRM = `l.published = 1 AND l.archived_at IS NULL AND l.avail
 const TEXT = { title: 200, property_type: 100, country: 100, location: 200, road_name: 200, tenure: 100,
   price_text: 200, price_per_sqft: 200, rental_deposit: 200, parish_rates: 200, service_charge: 200, utilities_included: 300, summary: 5000, description: 20000, tour_url: 500 };
 const INTS = ["bedrooms", "bathrooms"];
-const MONEY = ["sale_price", "rent", "premium"];
+const MONEY = ["sale_price", "rent"];
 const REQUIRED = ["title", "use", "operation", "availability"];
 // matchable: whether the listing is offered to applicants (B9).
 export const EDITABLE = [...Object.keys(ENUMS), ...Object.keys(TEXT), ...INTS, ...MONEY, "available_on", "featured_rank", "specs", "matchable",
@@ -95,8 +96,8 @@ export function validateListing(input, { partial = false } = {}) {
 // Cross-field rules, checked on the full row (create, or stored row merged with an update).
 export function checkPrice(row) {
   const errors = {};
-  if (["sale_price", "rent", "premium"].some(k => row[k] != null) && !row.currency) errors.currency = "Choose the price currency";
-  if (row.rent != null && !row.rent_period) errors.rent_period = "Say whether the rent is per month or per year";
+  if (["sale_price", "rent"].some(k => row[k] != null) && !row.currency) errors.currency = "Choose the price currency";
+  if (priceOperation(row) !== "sale" && row.rent != null && !row.rent_period) errors.rent_period = "Say whether the rent is per month or per year";
   return errors;
 }
 
@@ -124,13 +125,13 @@ export function toPublic(l, media) {
   const financial = [["Price per sq ft", l.price_per_sqft], ["Rental deposit", l.rental_deposit],
     ["Parish rates", l.parish_rates], ["Service charge", l.service_charge], ["Utilities included", l.utilities_included],
     ["Available from", l.available_on],
-    ...(l.operation === "business" && l.rent != null ? [["Rent", `${l.currency === "GBP" ? "£" : l.currency === "EUR" ? "€" : ""}${l.rent.toLocaleString("en-GB")} ${l.rent_period === "month" ? "per month" : "per year"}`]] : [])]
+    ...(l.operation === "business" && priceOperation(l) === "rent" && l.rent != null ? [["Rent", `${l.currency === "GBP" ? "£" : l.currency === "EUR" ? "€" : ""}${l.rent.toLocaleString("en-GB")} ${l.rent_period === "month" ? "per month" : "per year"}`]] : [])]
     .filter(([, value]) => value).map(([label, value]) => ({ group: "Financial details", label, value }));
   return {
     id: l.id, title: l.title, status: STATUS[l.availability], region: regionOf(l.country),
     viewingsEnabled: l.viewings_enabled === 1,
     place: l.location || l.country || "", type: l.property_type, use: l.use, operation: l.operation,
-    currency: l.currency, salePrice: l.sale_price, rent: l.rent, rentPeriod: l.rent_period, premium: l.premium,
+    currency: l.currency, salePrice: priceOperation(l) === "sale" ? l.sale_price : null, rent: priceOperation(l) === "rent" ? l.rent : null, rentPeriod: priceOperation(l) === "rent" ? l.rent_period : null,
     priceText: l.price_text, beds: l.bedrooms, baths: l.bathrooms, tenure: l.tenure,
     tenureType: l.tenure_type ?? null, housingCategory: l.housing_category ?? null, restriction: l.restriction ?? null,
     summary: lines(l.summary), description: lines(l.description),

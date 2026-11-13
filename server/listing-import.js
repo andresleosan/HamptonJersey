@@ -1,3 +1,4 @@
+import { priceOperation, priceField } from "./listing-pricing.js";
 // PUB-01 (spec 2026-11-03): «Add new property» from a folder. Pure, so the panel shares it (like applicants.js) and node
 // tests it: no DOM, env or network. The server still validates the draft as for one typed by hand.
 import { validateListing, ENUMS } from "./listing.js";
@@ -134,18 +135,18 @@ export function readPropertyText(text) {
 }
 
 const FIVE = ["title", "use", "operation", "availability", "country"];
-const AMOUNT = { sale: "sale_price", rent: "rent", business: "premium" };
 
 // The POST /admin/listings body: the file's fields, the form's five (which win), and the amount under the form's operation.
 export function draftBody(fields, form) {
   const { price, ...rest } = fields, notes = [];
   for (const k of FIVE) delete rest[k];
   const body = { ...rest, ...form };
-  if (form.operation !== "rent") delete body.rent_period;
+  const operation = priceOperation(body);
+  if (operation !== "rent") delete body.rent_period;
   if (price) {
-    if (price.suffix && form.operation !== "rent") notes.push("Price: pcm and pa are for rentals only, so the amount wasn't imported.");
-    else if (form.operation === "rent" && !body.rent_period) notes.push("Rent: say per month or per year.");
-    else { body[AMOUNT[form.operation]] = price.amount; body.currency ??= "GBP"; }
+    if (price.suffix && operation !== "rent") notes.push("Price: pcm and pa are for rentals only, so the amount wasn't imported.");
+    else if (operation === "rent" && !body.rent_period) notes.push("Rent: say per month or per year.");
+    else { body[priceField(body)] = price.amount; body.currency ??= "GBP"; }
   }
   return { body, notes };
 }

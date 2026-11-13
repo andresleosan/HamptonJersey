@@ -21,7 +21,7 @@ test("title: listing · price as the website shows it · brand; no price, no pri
   assert.equal(listingMeta(rent, SITE).title, "Le Bernage · £2,500 pcm · Hampton Estates Jersey");
   assert.equal(listingMeta(P({ salePrice: null }), SITE).title, "Le Bernage · Hampton Estates Jersey");
   // The price text is site/lib.js's priceLabel itself, so the preview and the page always agree.
-  for (const p of [P(), rent, P({ operation: "business", premium: 90000, currency: "EUR" })])
+  for (const p of [P(), rent, P({ operation: "business", tenureType: "freehold", salePrice: 90000, currency: "EUR" })])
     assert.ok(listingMeta(p, SITE).title.includes(L.priceLabel(p)));
 });
 

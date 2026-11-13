@@ -1049,7 +1049,7 @@ function detail(id) {
     <aside class="summary" aria-label="Summary">
       <div class="place">${esc(status.charAt(0).toUpperCase() + status.slice(1).toLowerCase())} in ${esc(p.place)}</div>
       <h1>${esc(p.title)}</h1>
-      <div class="price num">${esc(priceLabel(p))}${p.operation === "business" ? "<small>Business, not freehold</small>" : ""}</div>
+      <div class="price num">${esc(priceLabel(p))}</div>
       ${restriction ? `<span class="tag restrict">${esc(restriction)}</span>` : ""}
       ${p.tags.length ? `<div aria-label="Property features">${p.tags.map(tag => `<span class="tag">${esc(tag)}</span>`).join(" ")}</div>` : ""}
       ${p.beds || p.baths || p.type ? `<div class="keys num">${p.beds ? `<div><b>${p.beds}</b><span>Bedrooms</span></div>` : ""}${p.baths ? `<div><b>${p.baths}</b><span>Bathrooms</span></div>` : ""}${p.type ? `<div><b>${esc(p.type)}</b><span>Type</span></div>` : ""}</div>` : ""}
@@ -1336,7 +1336,7 @@ Promise.allSettled([getJSON("/api/listings"), getJSON("/data/team.json"), getJSO
   if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
   const order = {jersey: 0, uk: 1, international: 2};
   PROPS = p.value.filter(x => x && /^HE-[A-Z]\d{3,}$/.test(x.id) && x.title && x.region in order && x.operation in OP_ONE)
-    .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "premium", "featured", "interest"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
+    .map(x => ({...x, ...Object.fromEntries(["beds", "baths", "salePrice", "rent", "featured", "interest"].map(k => [k, Number.isFinite(x[k]) ? x[k] : null])),
       use: x.use === "commercial" ? "commercial" : "residential", image: safeMedia(x.image), thumb: safeMedia(x.thumb),
       publishedAt: typeof x.publishedAt === "string" ? x.publishedAt : null,
       photos: (Array.isArray(x.photos) ? x.photos : []).filter(f => safeMedia(f?.src) && safeMedia(f?.thumb)),

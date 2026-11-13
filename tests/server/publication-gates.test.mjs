@@ -31,12 +31,12 @@ async function queueWorld(over={}) {
 }
 const approve=(env,cookie)=>call(env,'POST','/admin/queue/77/approve',{cookie,body:{updated_at:T0}});
 const queueState=env=>env.DB.raw.prepare('SELECT status FROM drive_imports WHERE id=77').get().status;
-test('Queue retains price, parish and description, and accepts the existing business price',async()=>{
- const missing=await queueWorld({operation:'business',use:'commercial',premium:null,price_text:null,parish:null,description:null});seedMedia(missing.env);
+test('Queue retains price, parish and description, and accepts freehold business sale prices without a rental period',async()=>{
+ const missing=await queueWorld({operation:'business',use:'commercial',tenure_type:'freehold',sale_price:null,premium:1000,price_text:null,parish:null,description:null});seedMedia(missing.env);
  const bad=await approve(missing.env,missing.cookie);assert.equal(bad.status,400);
  for(const label of ['Price','Parish','Description'])assert.ok(bad.data.missing.includes(label));
  assert.equal(queueState(missing.env),'review');assert.equal(listing(missing.env).published,0);
- const good=await queueWorld({operation:'business',use:'commercial',premium:12000,price_text:null});seedMedia(good.env);
+ const good=await queueWorld({operation:'business',use:'commercial',tenure_type:'freehold',sale_price:12000,rent:500,rent_period:null,price_text:null});seedMedia(good.env);
  assert.equal((await approve(good.env,good.cookie)).status,200);assert.equal(listing(good.env).published,1);assert.equal(queueState(good.env),'published');
 });
 test('Queue restores review when the last eligible photo disappears during approval',async()=>{

@@ -52,12 +52,14 @@ function parseAvailability(x) {
 const SYM = {GBP: "£", EUR: "€"};
 const money = (n, cur) => (SYM[cur] ?? (cur ? `${cur} ` : "")) + Math.round(n).toLocaleString("en-GB");
 
-// Sale price, rent and business premium are separate fields; unknown stays null (never 0).
-const amount = p => ({sale: p.salePrice, rent: p.rent, business: p.premium})[p.operation] ?? null;
+// Keep in step with server/listing-pricing.js; this file is also a classic browser script.
+const priceOperation = p => p.operation !== "business" ? p.operation
+  : String(p.tenureType || p.tenure_type || p.tenure || "").trim().toLowerCase() === "freehold" ? "sale" : "rent";
+const amount = p => ({sale: p.salePrice, rent: p.rent})[priceOperation(p)] ?? null;
 const priceLabel = p => {
   const a = amount(p);
   if (a == null) return "Price not published";
-  return money(a, p.currency) + (p.operation === "rent" ? ({month: " pcm", year: " p.a."}[p.rentPeriod] ?? "") : "");
+  return money(a, p.currency) + (priceOperation(p) === "rent" ? ({month: " pcm", year: " p.a."}[p.rentPeriod] ?? "") : "");
 };
 const isSold = p => /^(?:sold|let(?: agreed)?|withdrawn)$/i.test(p.status);
 // A closed booking policy does not make the property unavailable for other purposes.
@@ -73,7 +75,7 @@ function matches(p, f) {
   if (f.beds && !(p.beds >= f.beds)) return false;
   if (f.max && f.op !== "all") {
     const a = amount(p);
-    if (a == null || p.currency !== "GBP" || (p.operation === "rent" && p.rentPeriod !== "month") || a > f.max) return false;
+    if (a == null || p.currency !== "GBP" || (priceOperation(p) === "rent" && p.rentPeriod !== "month") || a > f.max) return false;
   }
   return true;
 }
@@ -84,7 +86,7 @@ function comparables(p, all, n = 3) {
   if (a == null) return [];
   const gap = x => Math.abs(Math.log(amount(x) / a));
   return all.filter(x => x.id !== p.id && !isSold(x) && x.region === p.region && x.operation === p.operation
-      && x.use === p.use && x.currency === p.currency && x.rentPeriod === p.rentPeriod && amount(x) != null
+      && priceOperation(x) === priceOperation(p) && x.use === p.use && x.currency === p.currency && x.rentPeriod === p.rentPeriod && amount(x) != null
       && gap(x) <= Math.LN2)
     .sort((x, y) => gap(x) - gap(y)).slice(0, n);
 }
@@ -136,4 +138,4 @@ function searchAction(f, visible, loaded) {
 // The category photo: newest matching operation, or international region, with the page fallback if absent.
 const buttonPhoto = (pub, op) => [...pub].sort(newestFirst).find(p => op === "international" ? p.region === op : p.operation === op)?.image ?? null;
 
-if (typeof module === "object") module.exports = {searchAction, newestFirst, homePicks, readCatalogQuery, catalogQuery, catalogFilter, buttonPhoto, shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, canBook, matches, comparables, pmt};
+if (typeof module === "object") module.exports = {searchAction, newestFirst, homePicks, readCatalogQuery, catalogQuery, catalogFilter, buttonPhoto, shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, priceOperation, amount, priceLabel, isSold, canBook, matches, comparables, pmt};

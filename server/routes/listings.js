@@ -1,3 +1,4 @@
+import { PRICE_SQL } from "../listing-pricing.js";
 import { json, fail, readJson, now } from "../http.js";
 import { validateListing, checkPrice, idPrefix, nextId, ENUMS, TO_CONFIRM } from "../listing.js";
 import { extractFeatures } from "../listing-features.js";
@@ -21,7 +22,7 @@ export const COVER_ID = `COALESCE(l.cover_media_id, (SELECT cm.id FROM media cm 
 export const HAS_PUBLIC_PHOTO = `EXISTS (SELECT 1 FROM media m WHERE m.listing_id = l.id AND m.kind = 'photo' AND m.public = 1
     AND m.origin <> 'external' AND m.r2_key IS NOT NULL AND m.r2_key <> '')`;
 const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availability, l.operation, l.sale_price, l.rent,
-  l.rent_period, l.premium, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by, l.featured_rank,
+  l.rent_period, l.tenure_type, l.tenure, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by, l.featured_rank,
   l.parish, l.matchable, l.confirmed_at, l.bedrooms, l.bathrooms, l.available_on, l.review_requested_at, l.review_requested_by, (${TO_CONFIRM}) AS to_confirm, ${COVER_ID} AS cover_id,
   ${HAS_PUBLIC_PHOTO} AS has_public_photo,
   (SELECT COUNT(*) FROM matches mm WHERE mm.listing_id = l.id) AS matched, (${interestSql("l.id")}) AS interested
@@ -370,7 +371,7 @@ export async function setState({ request, env, admin, params: [id, action], from
   const queueGuard = action === 'publish' && fromQueue ? ` AND EXISTS (SELECT 1 FROM drive_imports q
       WHERE q.id = ? AND q.listing_id = listings.id AND q.status = 'review') AND trim(COALESCE(parish,'')) <> ''
     AND trim(COALESCE(description,'')) <> '' AND (trim(COALESCE(price_text,'')) <> ''
-      OR CASE operation WHEN 'sale' THEN sale_price WHEN 'rent' THEN rent WHEN 'business' THEN premium END IS NOT NULL)`
+      OR ${PRICE_SQL} IS NOT NULL)`
     : action === 'publish' ? " AND NOT EXISTS (SELECT 1 FROM drive_imports q WHERE q.listing_id = listings.id AND q.status = 'review')" : '';
   const statements = [env.DB.prepare(`UPDATE listings SET ${cols.map(set).join(", ")}, updated_at = ${listingClock}, updated_by = ?
       WHERE id = ? AND updated_at=?${stateGuard}${archive ? ` AND NOT ${BUSY}` : ""}${publishGuard}${queueGuard}`).bind(...cols.map(c => patch[c]), ts, admin, id, version, ...(archive ? [id, id] : []), ...(fromQueue && action === 'publish' ? [queueId] : []))];

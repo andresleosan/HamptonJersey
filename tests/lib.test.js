@@ -7,7 +7,7 @@ const P = o => ({ id: "HE-R001", title: "Home", status: "For Sale", region: "jer
   currency: "GBP", salePrice: null, rent: null, rentPeriod: null, premium: null, beds: 3, ...o });
 const sale = P({ salePrice: 500000 });
 const rent = P({ id: "HE-R002", operation: "rent", rent: 1900, rentPeriod: "month" });
-const biz = P({ id: "HE-C001", use: "commercial", operation: "business", premium: 90000 });
+const biz = P({ id: "HE-C001", use: "commercial", operation: "business", tenureType: "freehold", salePrice: 90000, premium: 123 });
 const eur = P({ id: "HE-I001", region: "international", currency: "EUR", salePrice: 110000 });
 const uk = P({ id: "HE-R018", region: "uk", salePrice: 520000 });
 const near = P({ id: "HE-R003", salePrice: 600000 });
@@ -20,7 +20,7 @@ test("unknown prices are labelled, never shown as zero", () => {
   assert.equal(L.amount(noPrice), null);
 });
 
-test("sale, rent and business premium are separate fields", () => {
+test("freehold business sales use sale prices and rentals use rent", () => {
   assert.equal(L.priceLabel(rent), "£1,900 pcm");
   assert.equal(L.priceLabel(biz), "£90,000");
   assert.equal(L.priceLabel(eur), "€110,000");

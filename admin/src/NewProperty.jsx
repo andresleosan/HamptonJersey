@@ -91,7 +91,7 @@ export default function NewProperty({ rows, onClose }) {
   const counts = plan && [plural(count("photo"), "photo"), plural(count("floorplan"), "floor plan"), plural(count("aerial"), "aerial view")]
     .filter(s => !s.startsWith("0 "));
   const head = plan ? [counts.join(", "), plan.text && `details from ${plan.text.name}`].filter(Boolean) : [];
-  const values = { ...fields, price: ["sale_price", "rent", "premium", "price_text"].some(k => draft.body[k] != null) ? priceText(draft.body) : null };
+  const values = { ...fields, price: ["sale_price", "rent", "price_text"].some(k => draft.body[k] != null) ? priceText(draft.body) : null };
   const read = SHOWN.filter(([k]) => values[k] != null).map(([k, label, show]) => [label, show ? show(values[k]) : values[k]]);
   const left = [...notes, ...draft.notes, ...(plan?.skipped ?? []), ...(plan ? subfolders(plan) : [])];
   const same = f.title.trim() && (rows ?? []).find(l => l.title.trim().toLowerCase() === f.title.trim().toLowerCase());
