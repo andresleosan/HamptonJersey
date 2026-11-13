@@ -1,6 +1,6 @@
 import { json, fail, sha256 } from "../http.js";
 import { activeSql } from "../applicants.js";
-import { CANDIDATES_SQL } from "../match-store.js";
+import { DEMAND_AVAILABLE, demandMatchIn, DEMAND_MATCHED, INSIGHTS_DEMAND_SQL } from "../demand-query.js";
 import { jerseyToday, plusDays, realDate, weekday } from "../viewings.js";
 import { jerseyDayStart, groupDemand, topUnmet, funnel, responseTime, earliest, healthCursor, makeHealthCursor } from "../insights.js";
 import { getWebVolumes, webVolumesFromRow, WEB_VOLUME_COLUMNS } from "../measurement.js";
@@ -10,13 +10,9 @@ import { reviewPublicListing } from "./public.js";
 
 const DAYS = ["7", "30", "90"];
 // I8: offered to applicants and not archived; each query adds the operation.
-const AVAILABLE = `${CANDIDATES_SQL} AND archived_at IS NULL`;
-// A match in these statuses on an available listing of the applicant's operation. The listing subquery takes nothing
-// from the applicant, so SQLite builds it once instead of scanning listings per match.
-const matchIn = statuses => `EXISTS (SELECT 1 FROM matches m WHERE m.applicant_id = a.id AND m.status IN (${statuses})
-  AND (m.listing_id, CASE a.operation WHEN 'rent' THEN 'rent' ELSE 'sale' END)
-    IN (SELECT id, operation FROM listings WHERE ${AVAILABLE}))`;
-const MATCHED = matchIn("'found', 'shortlisted'"); // I6
+const AVAILABLE = DEMAND_AVAILABLE;
+const matchIn = demandMatchIn;
+const MATCHED = DEMAND_MATCHED;
 const OF_APPLICANT = "e.entity_type = 'applicant' AND e.entity_id = CAST(a.id AS TEXT)";
 const OF_VIEWING = "e.entity_type = 'viewing' AND e.entity_id = CAST(v.id AS TEXT)";
 
@@ -28,8 +24,7 @@ const TOTALS = `WITH activity AS (SELECT ${WEB_VOLUME_COLUMNS} FROM daily_stats
   (SELECT COUNT(*) FROM viewing_requests WHERE status = 'completed' AND date BETWEEN ? AND ?) AS viewings_completed,
   (SELECT MIN(day) FROM daily_stats) AS first_day FROM activity`;
 // I6, I7: today's active searches, never who they are.
-const DEMAND = `SELECT a.operation, a.area_answer, a.parishes_wanted, a.parishes_excluded, a.bedrooms_min, a.budget_max, ${MATCHED} AS matched
-  FROM applicants a WHERE ${activeSql("a")} AND a.search_category = 'residential'`;
+const DEMAND = INSIGHTS_DEMAND_SQL;
 const LISTINGS = `SELECT operation, parish, COUNT(*) AS n FROM listings WHERE ${AVAILABLE} GROUP BY operation, parish`;
 // I9. Bind order: since, from, to.
 const VIEWED = `SELECT s.listing_id, l.title, SUM(CASE s.metric WHEN 'view' THEN s.n ELSE 0 END) AS views,

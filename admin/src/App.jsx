@@ -32,6 +32,7 @@ import { confirmLeave } from "./unsaved.js";
 import { fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
 const Email = lazy(() => import("./Email.jsx"));
+const DemandCampaigns = lazy(() => import("./DemandCampaigns.jsx"));
 
 function useHash(pending, onBlocked) {
   const [hash, setHash] = useState(location.hash);
@@ -135,6 +136,7 @@ export default function App() {
     : section === "rentals" && arg === "landlords" && /^\d+$/.test(sub) ? <Landlord key={sub} id={sub} />
     : section === "rentals" && /^\d+$/.test(arg) ? <RentalDetail key={arg} id={arg} selection={query??''} onChange={loadCounts} />
     : section === "rentals" ? <Rentals requestedPayment={new URLSearchParams(query).get('payment')} unmatched={new URLSearchParams(query).get('payments')==='unmatched'} onChange={loadCounts} />
+    : section === "insights" && arg === "demand" ? <Suspense fallback={<p role="status">Loading demand review…</p>}><DemandCampaigns /></Suspense>
     : section === "insights" && arg === "weekly" ? <WeeklyInsights key={sub} weekStart={sub ?? ""} paused={expired} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "advertisers" ? <Advertisers session={advertiserSession} />

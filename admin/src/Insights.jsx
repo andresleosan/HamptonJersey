@@ -37,7 +37,7 @@ export default function Insights() {
 
   return <section className="insights" aria-labelledby="t-insights">
     <div className="head"><div><h1 id="t-insights">Insights</h1>
-      <p className="muted">Counts and medians only, never who.</p></div></div>
+      <p className="muted">Counts and medians only, never who.</p><a href="#/insights/demand">Review demand publication</a></div></div>
     <div className="seg" role="group" aria-label="Period">{PERIODS.map(p =>
       <button key={p} type="button" aria-pressed={days === p} onClick={() => setDays(p)}>{p} days</button>)}</div>
     <Activity data={data?.activity} busy={busy} error={error} onRetry={() => setAttempt(a => a + 1)} />

@@ -1,3 +1,4 @@
+import { prunePrivateDemandMatrices } from "./public-demand.js";
 import { pruneSearchMetrics } from "./search-measurement.js";
 import { now } from "./http.js";
 import { jerseyToday } from "./viewings.js";
@@ -71,6 +72,7 @@ export const touchByViewing = (env, { email, phone }, ts) => env.DB.prepare(
 const SEARCH_METRIC_RETENTION_READY = false;
 export async function runRetention(env, ts) {
   if (SEARCH_METRIC_RETENTION_READY) await pruneSearchMetrics(env, new Date(ts));
+  if (env.DEMAND_INTERNAL_READY === "1") await prunePrivateDemandMatrices(env);
   await cleanEmail(env, ts);
   const q = sql => env.DB.prepare(sql).bind(ts, jerseyToday(new Date(ts)));
   const r = await env.DB.batch([

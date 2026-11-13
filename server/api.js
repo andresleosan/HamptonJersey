@@ -27,9 +27,10 @@ import chatAdminRoutes from "./routes/chats.js";
 import emailRoutes from "./routes/email.js";
 import advertiserRoutes from "./routes/advertisers.js";
 import marketInventoryRoutes from "./routes/market-inventory.js";
+import demandRoutes from "./routes/demand.js";
 
 // [method, path regex, handler, requiresAdmin]
-const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes];
+const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes];
 
 // waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
 // promise still runs, unawaited; pass only promises that never reject.
