@@ -37,6 +37,42 @@ function prior(env,{key,rental,active=1,deleted=0,context={repair_id:1}}){
     VALUES(?,'repair','1',?,'fixture',?,'rental',?,?)`).run(key,cycle,active,String(rental),event);
 }
 
+test('inactive observation cannot make an open or merely source-closed other episode safe',()=>{
+  const env=fixture(),key='queue:repair:1:current';
+  prior(env,{key,rental:1,active:0});
+  assert.equal(env.DB.raw.prepare('SELECT resolved_at FROM notifications WHERE task_key=?').get(key).resolved_at,null);
+  let selected=episode(env,2);
+  assert.equal(selected.task_key,null,'an open task still blocks a different property');
+  assert.equal(selected.other_active,0);
+  assert.equal(selected.other_episode,1);
+  env.DB.raw.prepare("UPDATE notifications SET resolved_at=?,resolved_by='system',task_action='source_resolved' WHERE task_key=?").run(T0,key);
+  const closed=env.DB.raw.prepare('SELECT resolved_at,closed_by_source FROM notifications WHERE task_key=?').get(key);
+  assert.equal(closed.resolved_at,T0);assert.equal(closed.closed_by_source,1);
+  selected=episode(env,2);
+  assert.equal(selected.other_episode,1);
+  assert.equal(selected.task_key,null,'source-closure metadata alone does not prove a safe transition');
+});
+
+test('unobserved tasks on another property block a new candidate even outside canonical keys',()=>{
+  for(const key of ['queue:repair:1:current','queue:repair:1:rental:2','fixture:unexpected-key']){
+    const env=fixture();prior(env,{key,rental:2,active:0});
+    env.DB.raw.prepare('DELETE FROM notification_observations WHERE task_key=?').run(key);
+    const selected=episode(env,1);
+    assert.equal(selected.task_key,null,key);
+    assert.equal(selected.other_episode,1,key);
+    assert.equal(selected.identity_conflict,1,key);
+  }
+  const unrelated=fixture(),key='queue:repair:2:rental:2';
+  prior(unrelated,{key,rental:2,active:0,context:{repair_id:2}});
+  unrelated.DB.raw.prepare('DELETE FROM notification_observations WHERE task_key=?').run(key);
+  assert.equal(episode(unrelated,1).task_key,'queue:repair:1:current');
+  const inconsistent=fixture(),badKey='queue:repair:1:rental:2';
+  prior(inconsistent,{key:badKey,rental:2,active:0,context:{repair_id:2}});
+  inconsistent.DB.raw.prepare('DELETE FROM notification_observations WHERE task_key=?').run(badKey);
+  assert.equal(episode(inconsistent,1).task_key,null,'a repair key still blocks when its context is inconsistent');
+  assert.equal(episode(inconsistent,1).identity_conflict,1);
+});
+
 test('disconnected source guard checks actual repair, property and tenancy together',()=>{
   const env=fixture(),selected=snapshot(env);
   assert.equal(eligible(env,selected),true);
@@ -67,16 +103,16 @@ test('guarded write rechecks changed, revoked or deleted source at the write sta
   const env=fixture();assert.equal(insertIfCurrent(env,snapshot(env)),1,'unchanged valid source can pass the structural guard');
 });
 
-test('episode selection keeps an existing property task and blocks a second active property task',()=>{
+test('episode selection keeps the same task and blocks any unreconciled different episode',()=>{
   const env=fixture(),legacy='queue:repair:1:current',other='queue:repair:1:rental:2';
   assert.equal(episode(env,1).task_key,legacy);
   prior(env,{key:legacy,rental:1});
-  assert.deepEqual(episode(env,1),{task_key:legacy,other_active:0,identity_conflict:0,previously_observed:1});
-  assert.deepEqual(episode(env,2),{task_key:other,other_active:1,identity_conflict:0,previously_observed:0});
+  assert.deepEqual(episode(env,1),{task_key:legacy,other_active:0,other_episode:0,identity_conflict:0,previously_observed:1});
+  assert.deepEqual(episode(env,2),{task_key:null,other_active:1,other_episode:1,identity_conflict:0,previously_observed:0});
   env.DB.raw.prepare('UPDATE notification_observations SET active=0 WHERE task_key=?').run(legacy);
-  assert.deepEqual(episode(env,2),{task_key:other,other_active:0,identity_conflict:0,previously_observed:0});
+  assert.deepEqual(episode(env,2),{task_key:null,other_active:0,other_episode:1,identity_conflict:0,previously_observed:0});
   prior(env,{key:other,rental:2});
-  assert.deepEqual(episode(env,1),{task_key:legacy,other_active:1,identity_conflict:0,previously_observed:1});
+  assert.deepEqual(episode(env,1),{task_key:null,other_active:1,other_episode:1,identity_conflict:0,previously_observed:1});
 });
 
 test('episode selection reports a tombstone or incompatible identity instead of recycling it',()=>{
@@ -131,6 +167,7 @@ test('disconnected source and episode queries also run against local D1',async()
     await DB.batch([
       DB.prepare('INSERT INTO landlords(name,created_at,updated_at) VALUES(?,?,?)').bind('Fixture',T0,T0),
       DB.prepare("INSERT INTO rentals(landlord_id,address,parish,service,fee_percent,created_at,updated_at) VALUES(1,'Fixture','St Helier','full',10,?,?)").bind(T0,T0),
+      DB.prepare("INSERT INTO rentals(landlord_id,address,parish,service,fee_percent,created_at,updated_at) VALUES(1,'Fixture B','St Helier','full',10,?,?)").bind(T0,T0),
       DB.prepare("INSERT INTO tenancies(rental_id,tenant_name,kind,regime,start_on,end_on,rent,due_day,payment_ref,created_at,updated_at) VALUES(1,'Fixture','fixed','2025','2026-11-08','2026-12-31',100,1,'FIXTURE',?,?)").bind(T0,T0),
       DB.prepare("INSERT INTO repairs(rental_id,tenancy_id,title,urgency,created_at,updated_at) VALUES(1,1,'Fixture','emergency',?,?)").bind(T0,T0),
       DB.prepare('CREATE TABLE local_guard_fixture(repair_id INTEGER NOT NULL)'),
@@ -140,6 +177,20 @@ test('disconnected source and episode queries also run against local D1',async()
     const candidate=await DB.prepare(episodes).bind(1,1).first();
     assert.equal(candidate.task_key,'queue:repair:1:current');
     assert.equal(candidate.other_active,0);assert.equal(candidate.identity_conflict,0);
+    const priorEvent=await DB.prepare("INSERT INTO events(at,actor,entity_type,entity_id,type) VALUES(?,'system','rental','1','fixture.repair') RETURNING id").bind(T0).first();
+    const legacy='queue:repair:1:current';
+    await DB.batch([
+      DB.prepare(`INSERT INTO notifications(task_key,event_id,source_version,category,title,action_required,created_at,target_kind,target_id,target_context)
+        VALUES(?,?,?,'task','Emergency repair',1,?,'rental','1',?)`).bind(legacy,priorEvent.id,priorEvent.id,T0,JSON.stringify({repair_id:1})),
+      DB.prepare(`INSERT INTO notification_observations(task_key,kind,entity_id,cycle,signature,active,target_kind,target_id,event_id)
+        VALUES(?,'repair','1','current','fixture',0,'rental','1',?)`).bind(legacy,priorEvent.id),
+    ]);
+    const inactive=await DB.prepare(episodes).bind(1,2).first();
+    assert.equal(inactive.task_key,null);assert.equal(inactive.other_active,0);
+    assert.equal(inactive.other_episode,1);assert.equal(inactive.identity_conflict,0);
+    await DB.prepare('DELETE FROM notification_observations WHERE task_key=?').bind(legacy).run();
+    const unobserved=await DB.prepare(episodes).bind(1,2).first();
+    assert.equal(unobserved.task_key,null);assert.equal(unobserved.other_episode,1);assert.equal(unobserved.identity_conflict,1);
     await DB.prepare("UPDATE repairs SET tenancy_id=NULL WHERE id=1").run();
     const inserted=await DB.prepare(`INSERT INTO local_guard_fixture SELECT ?1 WHERE (${guard})`).bind(...args).run();
     assert.equal(inserted.meta.changes,0);
