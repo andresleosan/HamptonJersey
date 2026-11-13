@@ -1,6 +1,8 @@
 # Estado de Hampton App
 
-13-nov-2026 · **PUB-16 parcial:** reservas y CTA respetan estados cerrados y visitas deshabilitadas; cambios tardíos se rechazan al guardar. Comprobado con datos ficticios, pendiente de despliegue e integración de VIS-10. [Evidencia](work/PUB-16/avance-publicable.md).
+13-nov-2026 · **Conciliación de registro y estados:** REG-08 y EST-17 cumplen su alcance acreditado y pasan a hecho en el catálogo local; REG-11 permanece parcial hasta integrar y verificar la corrección local de fechas imposibles. El avance local pasa de 63/217 (29,03 %) a 65/217 (29,95 %); no se ha comprobado el tablero público. NOT-01 y NOT-08 siguen parciales por sus productores y canales pendientes. [Evidencia y límites](work/conciliacion/2026-11-13-reg-est-not.md).
+
+13-nov-2026 · **PUB-16 parcial:** reservas y CTA respetan estados cerrados y visitas deshabilitadas; cambios tardíos se rechazan al guardar. El coordinador verificó que el commit `1813b01` tiene Pages y Workers Builds `hampton-jobs` en completed/success; no se ha hecho smoke funcional de producción. La integración de VIS-10 sigue pendiente. [Evidencia local](work/PUB-16/avance-publicable.md).
 
 13-nov-2026 · **BUS-09 parcial:** normalización pura y contrato de fuentes pendiente, sin lectores externos ni ingesta activa. Conserva originales, desconocidos y hechos humanos; pruebas y límites en [avance publicable](work/BUS-09/avance-publicable.md).
 

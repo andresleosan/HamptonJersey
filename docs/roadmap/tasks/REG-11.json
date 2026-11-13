@@ -6,8 +6,8 @@
   "fase": "F0",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "REG-11 está en el historial de main mediante 9b8dbd41; la reconciliación anterior registra publicación y aplicación de 0025. Incluye registros residencial y comercial/negocio, traspaso, compra y alquiler simultáneos con presupuestos separados, datos comerciales D08, idioma y respuestas del hogar con total solo cuando se conocen sus componentes. Una búsqueda activa por categoría y operación; duplicados públicos a revisión. El relevo anterior registra e2e general y envíos locales MCP de traspaso comercial a 1280 y compra/alquiler residencial a 390.",
-  "falta": "El matching comercial se construirá en M04 y no se considera activado por el registro. Las respuestas explícitas de zona y la preferencia de REG-06 están publicadas en fe9618f con 0039 aplicada; esta entrega no repitió la prueba autenticada de REG-11 en producción.",
+  "hecho": "REG-11 está en el historial de main mediante 9b8dbd41; la reconciliación histórica registra publicación y aplicación de 0025. Incluye registro residencial y comercial/negocio, traspaso, compra y alquiler simultáneos con presupuestos separados, datos comerciales D08 y respuestas del hogar sin total inventado. La prueba aislada actual de hogar y ventas pasó con los scripts actualizados. Una corrección local rechaza fechas imposibles con error de campo sin alterar fechas históricas válidas.",
+  "falta": "Integrar y verificar el despliegue de la corrección local de fechas antes de cerrar la tarea. No se repitió el recorrido autenticado ni el envío en producción. El matching comercial pertenece a M04 y no bloquea el alcance del registro.",
   "bloqueo": "",
   "evidencia": [
     "site/apply.js",
@@ -18,7 +18,9 @@
     "tests/server/registration-categories.test.mjs",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
     "docs/superpowers/plans/2026-11-07-reg-11-registration-ledger.md",
-    "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md"
+    "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md",
+    "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md",
+    "tests/server/reg11-calendar-validation.test.mjs"
   ],
   "modulo": "M03",
   "deps": [],
@@ -28,12 +30,12 @@
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
   "dependencies": [],
-  "externalBlocker": "La reconciliación documenta publicación/0025 y contradice el checklist; verificar evidencia antes de actuar.",
+  "externalBlocker": "",
   "resources": [
     "registration-ui",
     "applicants-schema",
     "requirements-contract"
   ],
-  "nextStep": "Mantener el matching comercial pendiente en M04 y verificar REG-11 con una sesión autorizada de producción cuando esté disponible.",
-  "actualizado": "2026-11-11"
+  "nextStep": "Integrar la corrección local de fechas y verificar su despliegue; después reconciliar el cierre de REG-11.",
+  "actualizado": "2026-11-13"
 }

@@ -1,5 +1,7 @@
 # NOT-01 · productores y límites de la entrega
 
+**Conciliación del 13-nov-2026:** NOT-01 consta en main `79ddcb0`. La consulta histórica sin migraciones pendientes del 11-nov corresponde a un árbol que incluía 0033; véase [registro de conciliación](../conciliacion/2026-11-13-reg-est-not.md). No se ha repetido una consulta remota en esta sesión. El texto de construcción siguiente conserva la situación anterior a ese despliegue.
+
 9-nov-2026. Base publicada3213c16636f797b7253795390553c8a34b86e519 (NOT-11/0032) y EST-18. Construcción NOT-01 en copia/reserva propias; esta evidencia describe código local hasta la autorización y verificación del nuevo SHA. No prueba canales externos activos.
 
 | Fuente presente | Proyección | Comprobación |

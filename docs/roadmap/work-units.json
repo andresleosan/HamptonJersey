@@ -4517,7 +4517,7 @@
       "preferredSlot": "vps",
       "priority": 219,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -4868,7 +4868,7 @@
       "preferredSlot": "vps",
       "priority": 229,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [

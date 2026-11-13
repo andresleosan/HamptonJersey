@@ -1,5 +1,7 @@
 # NOT-08 · Manual Inbox categories
 
+**Conciliación del 13-nov-2026:** NOT-08 consta en main `2084cb9`. La consulta histórica sin migraciones pendientes del 11-nov corresponde a un árbol que incluía 0035; véase [registro de conciliación](../conciliacion/2026-11-13-reg-est-not.md). No se ha repetido una consulta remota en esta sesión. Las secciones siguientes conservan la situación anterior al despliegue.
+
 9 November 2026. Built locally on published EST-17 `f2113769903548f4c5a4763a51c7962e84e80aef`. Publication and remote migration0035 require approval of the final reviewed SHA. This document does not certify activated mail, Meta or future producers.
 
 ## Delivered behavior

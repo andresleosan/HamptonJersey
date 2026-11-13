@@ -6,9 +6,9 @@
   "fase": "—",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Construido localmente el9-nov-2026 sobre EST-17 publicado f211376: categorías Agency replies, Messages y Compliance junto a las existentes, contrato compartido UI/API/preferencias, filtros y contadores sobre todas las tareas. Follow-up manual clasificado con destino de aplicante, visita o alquiler/contexto validado; conserva asignación, plazo, recibos antiguos y borradores ante cambios de categoría. Checks/plazos actuales entran en Compliance sin duplicar eventos por reclasificar. Migración0035 ensayada con D1local poblada:55tablas conservadas,0erroresFK. No activa correo, Meta o productores futuros.",
-  "falta": "Publicar el SHA revisado y aplicar0035 con autorización; verificar despliegue después. Agency replies y Messages admiten tareas registradas manualmente; respuestas y mensajes reales se conectan por sus propios canales/productores. Consultas, llamadas, captura, fuentes pendientes, revisión día21 y dictado conservan adaptadores y gestión común, pero su operación real espera sus módulos. Playwright MCP sigue bloqueado antes de navegar; el runner local es evidencia separada.",
-  "bloqueo": "Activación del correo para respuestas reales · Meta solo para sus canales",
+  "hecho": "Categorías Agency replies, Messages y Compliance, filtros y tareas manuales integrados en main 2084cb9. La consulta histórica sin migraciones pendientes del 11-nov corresponde al árbol b544c2e, que incluía 0035. El ensayo local D1 poblado, las pruebas y el navegador anteriores no acreditan por sí solos canales externos activos.",
+  "falta": "Conectar respuestas y mensajes reales cuando existan sus canales y productores; las tareas manuales ya están integradas. Consultas, llamadas, captura, fuentes pendientes, revisión del día 21 y dictado siguen sus módulos. No se repitió una consulta remota ni una prueba MCP en esta conciliación; Meta está fuera de la fase vigente.",
+  "bloqueo": "Correo real sujeto a activación de AUT-17; productores futuros en sus módulos.",
   "evidencia": [
     "shared/notification-categories.js",
     "admin/src/Inbox.jsx",
@@ -20,7 +20,8 @@
     "migrations/0035_notification_categories.sql",
     "tests/server/notification-categories.test.mjs",
     "tests/notification-categories.e2e.cjs",
-    "docs/roadmap/work/NOT-08/implementation-evidence.md"
+    "docs/roadmap/work/NOT-08/implementation-evidence.md",
+    "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md"
   ],
   "modulo": "M13",
   "deps": [
@@ -52,21 +53,15 @@
       "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
       "basis": "explicit",
       "scope": "partial"
-    },
-    {
-      "id": "PRE-02",
-      "requires": "activated",
-      "reason": "Solo para los canales reales de Meta/WhatsApp; no bloquea las tareas manuales ni otros canales.",
-      "basis": "inferred",
-      "scope": "partial"
     }
   ],
-  "externalBlocker": "Activación del correo para respuestas reales · Meta solo para sus canales",
+  "externalBlocker": "El canal de correo real requiere la activación de AUT-17; las categorías y tareas manuales no dependen de Meta.",
   "resources": [
     "notifications-schema",
     "inbox-ui",
     "agency-consultations-contract",
     "messages-contract"
   ],
-  "nextStep": "Añadir categorías y enlaces de tareas manuales al Inbox; activar respuestas reales por canal cuando estén disponibles."
+  "nextStep": "Conectar los productores y el correo cuando estén disponibles; conservar operativas las categorías manuales ya integradas.",
+  "actualizado": "2026-11-13"
 }

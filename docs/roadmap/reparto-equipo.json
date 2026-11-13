@@ -18,10 +18,10 @@
       "area": "Aplicantes, requisitos, matching y estados",
       "capacity": 2,
       "count": 59,
-      "openCount": 34,
+      "openCount": 32,
       "states": {
-        "parcial": 24,
-        "hecho": 19,
+        "parcial": 22,
+        "hecho": 21,
         "pendiente": 8,
         "replanteado": 6,
         "bloqueado": 2
@@ -83,8 +83,8 @@
       "fase": "F0",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "9-nov-2026: construido localmente sobre NOT-11 publicado3213c166 y EST-18. Feed atómico para hechos reales de visitas, ofertas/ventas, fichas y alquileres, sin reconstrucción histórica ni duplicar avisos legacy. Pendientes actuales de atrasos, checks/plazos, renovaciones, emergencias, Unmatched, Waiting offers, hitos y To confirm se reconcilian en lotes de50 con CAS/revalidación, ciclos estables y Done humano conservado. Enlaces exactos incluyen ofertas cerradas, pagos antiguos y contratos pasados; borrados limpian contexto/enlace en la transacción. Alertas urgentes opcionales con permiso explícito, texto genérico, líder visible y cursor compuesto en memoria. Migración0033 solo local; publicación pendiente de aprobación específica. Verificado con987JS+14Python y focal local1280/390/zoom200; cuatro hallazgos de revisión corregidos con RED→GREEN, sin menores aplazados.",
-      "falta": "Publicar el SHA revisado/aplicar0033 con aprobación y verificar despliegues/integración. Integrar los productores aún no construidos de MUST desconocido, fuente fallida, llamada/respuesta útil, captura completa/parcial, revisión interna del día21 y propuesta dictada: existe adaptador interno y fixtures, no evidencia de esos módulos en producción. No se activa una cadencia de llamada por inferencia. Categorías extra y canales corresponden a NOT-08 y sus módulos. MCP sigue pendiente por sandbox/root; el recorrido local separado se registra sin declararlo MCP.",
+      "hecho": "Inbox de eventos y pendientes actuales construido y publicado en main 79ddcb0, con Feed atómico de hechos existentes, conciliación por lotes, destinos validados y alertas urgentes opcionales. La consulta histórica sin migraciones pendientes del 11-nov corresponde al árbol b544c2e, que incluía 0033. Las 987 pruebas JS, 14 Python y el navegador focal 1280/390/zoom son comprobaciones locales históricas, no pruebas nuevas en producción.",
+      "falta": "Integrar los productores aún no construidos de MUST desconocido, fuente fallida, llamada/respuesta útil, captura completa/parcial, revisión interna del día 21 y propuesta dictada. Existe adaptador interno y fixtures, no evidencia de esos módulos en producción. Los canales reales y categorías adicionales siguen sus propias tareas; no se repitió una prueba MCP o autenticada de producción en esta conciliación.",
       "bloqueo": "",
       "evidencia": [
         "migrations/0033_notification_events.sql",
@@ -98,7 +98,8 @@
         "tests/browser-alerts.test.js",
         "tests/notification-events.e2e.cjs",
         "docs/roadmap/work/NOT-01/producer-evidence.md",
-        "docs/superpowers/plans/2026-11-09-not-01-event-inbox-build-ledger.md"
+        "docs/superpowers/plans/2026-11-09-not-01-event-inbox-build-ledger.md",
+        "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md"
       ],
       "modulo": "M13",
       "deps": [
@@ -135,7 +136,8 @@
         "rentals-contract",
         "listings-contract"
       ],
-      "nextStep": "Aprobar/publicar la entrega exacta de NOT-01 con0033; después continuar PAQ-01 por NOT-08 manual y conectar cada productor futuro cuando exista, sin certificar canales ni módulos ausentes."
+      "nextStep": "Conectar los productores reales al contrato de Inbox cuando existan, sin repetir la publicación histórica ni acreditar módulos ausentes.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "NOT-02",
@@ -336,9 +338,9 @@
       "fase": "—",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Construido localmente el9-nov-2026 sobre EST-17 publicado f211376: categorías Agency replies, Messages y Compliance junto a las existentes, contrato compartido UI/API/preferencias, filtros y contadores sobre todas las tareas. Follow-up manual clasificado con destino de aplicante, visita o alquiler/contexto validado; conserva asignación, plazo, recibos antiguos y borradores ante cambios de categoría. Checks/plazos actuales entran en Compliance sin duplicar eventos por reclasificar. Migración0035 ensayada con D1local poblada:55tablas conservadas,0erroresFK. No activa correo, Meta o productores futuros.",
-      "falta": "Publicar el SHA revisado y aplicar0035 con autorización; verificar despliegue después. Agency replies y Messages admiten tareas registradas manualmente; respuestas y mensajes reales se conectan por sus propios canales/productores. Consultas, llamadas, captura, fuentes pendientes, revisión día21 y dictado conservan adaptadores y gestión común, pero su operación real espera sus módulos. Playwright MCP sigue bloqueado antes de navegar; el runner local es evidencia separada.",
-      "bloqueo": "Activación del correo para respuestas reales · Meta solo para sus canales",
+      "hecho": "Categorías Agency replies, Messages y Compliance, filtros y tareas manuales integrados en main 2084cb9. La consulta histórica sin migraciones pendientes del 11-nov corresponde al árbol b544c2e, que incluía 0035. El ensayo local D1 poblado, las pruebas y el navegador anteriores no acreditan por sí solos canales externos activos.",
+      "falta": "Conectar respuestas y mensajes reales cuando existan sus canales y productores; las tareas manuales ya están integradas. Consultas, llamadas, captura, fuentes pendientes, revisión del día 21 y dictado siguen sus módulos. No se repitió una consulta remota ni una prueba MCP en esta conciliación; Meta está fuera de la fase vigente.",
+      "bloqueo": "Correo real sujeto a activación de AUT-17; productores futuros en sus módulos.",
       "evidencia": [
         "shared/notification-categories.js",
         "admin/src/Inbox.jsx",
@@ -350,7 +352,8 @@
         "migrations/0035_notification_categories.sql",
         "tests/server/notification-categories.test.mjs",
         "tests/notification-categories.e2e.cjs",
-        "docs/roadmap/work/NOT-08/implementation-evidence.md"
+        "docs/roadmap/work/NOT-08/implementation-evidence.md",
+        "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md"
       ],
       "modulo": "M13",
       "deps": [
@@ -382,23 +385,17 @@
           "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
           "basis": "explicit",
           "scope": "partial"
-        },
-        {
-          "id": "PRE-02",
-          "requires": "activated",
-          "reason": "Solo para los canales reales de Meta/WhatsApp; no bloquea las tareas manuales ni otros canales.",
-          "basis": "inferred",
-          "scope": "partial"
         }
       ],
-      "externalBlocker": "Activación del correo para respuestas reales · Meta solo para sus canales",
+      "externalBlocker": "El canal de correo real requiere la activación de AUT-17; las categorías y tareas manuales no dependen de Meta.",
       "resources": [
         "notifications-schema",
         "inbox-ui",
         "agency-consultations-contract",
         "messages-contract"
       ],
-      "nextStep": "Añadir categorías y enlaces de tareas manuales al Inbox; activar respuestas reales por canal cuando estén disponibles."
+      "nextStep": "Conectar los productores y el correo cuando estén disponibles; conservar operativas las categorías manuales ya integradas.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "NOT-09",
@@ -5334,10 +5331,10 @@
       "titulo": "Estados de la ficha propia de Draft a Sold / Let, con Withdrawn y To confirm",
       "origen": "plan",
       "fase": "F4",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
       "hecho": "La base publicada separa Draft, Published y Archived, conserva el ciclo de ventas y To confirm de ADM-04. Publicado y verificado el9-nov-2026 en f2113769903548f4c5a4763a51c7962e84e80aef, con0034 aplicada: Ready for review con filtro, envío y retorno a borrador; publicación y aprobación de Properties Queue comprueban la versión vista. Let agreed, Let y retorno a mercado se registran manualmente con fecha, empleado y evidencia de la ficha; evento, recibo y copia privada de metadatos son atómicos. Los estados coinciden en panel y web y quedan fuera de nuevas propuestas/visitas públicas. No crea contratos, cobros ni cierra búsquedas. Migración0034 aplicada tras ensayo poblado;53tablas de aplicación conservan recuentos y FKs sin errores. Pages/Jobs correctos, web/panel200 y assets coincidentes con el build aprobado.",
-      "falta": "Playwright MCP pendiente por el sandbox del navegador; el runner local de escritorio/móvil es evidencia separada. La propagación futura al inventario compartido y a productores reales de contratos de alquiler continúa en sus propias tareas; los estados manuales no acreditan esa integración.",
+      "falta": "No se repitió en esta conciliación una prueba autenticada en producción; el intento histórico de Playwright MCP no pudo iniciar y el recorrido aislado es evidencia distinta. El inventario compartido y los futuros productores de contratos continúan en sus propias tareas.",
       "bloqueo": "",
       "evidencia": [
         "migrations/0001_init.sql:7",
@@ -5353,12 +5350,13 @@
         "tests/server/rental-marketing.test.mjs",
         "tests/server/listing-editorial-migration.test.mjs",
         "tests/listing-editorial.e2e.cjs",
-        "docs/roadmap/work/EST-17/implementation-evidence.md"
+        "docs/roadmap/work/EST-17/implementation-evidence.md",
+        "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md"
       ],
       "assignedSlot": "vps",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [],
       "externalBlocker": "",
       "resources": [
@@ -5366,7 +5364,8 @@
         "rentals-contract",
         "listing-editor"
       ],
-      "nextStep": "Revisar el SHA construido de EST-17; autorizar 0034 y publicación, comprobar el despliegue y conservar como pendientes las integraciones futuras de inventario/contratos."
+      "nextStep": "Conservar la publicación y los estados manuales comprobados; integrar inventario y contratos cuando sus productores existan.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "EST-18",
@@ -5796,10 +5795,10 @@
       "titulo": "Imprescindibles por requisito, parking y edades del hogar",
       "origen": "texto",
       "fase": "F0",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "8-nov-2026: construido REG-08 ampliado con interruptores Must-have a la derecha en web y panel para parking, ubicación, tipo, rango de dormitorios, baños, exterior por opción, amueblado, mascotas, presupuesto, fechas, duración, cercanía, texto y adecuación al hogar. Guarda edades 0–17 o por confirmar sin nombres ni fechas de nacimiento. Contrato versionado, legado sin prioridades inventadas; las respuestas sobreviven al apagar el interruptor. Migración0031 integrada sobre AGE-04 9d4429c. 9-nov-2026: verificado commitcfb3d3c2bb6660c6c68f5175c80cbedd8d6c2d1c en main, con0031. Comprobación local actual:36pruebas focales, e2e registro/panel1280/390 y conservación de47tablas al migrar0030→0031.",
-      "falta": "Código ya en main; no reconstruir prioridades ni volver a pedir publicar aquella entrega. Comprobación remota nueva de0031 no ejecutada en esta sesión: existe evidencia previa con0036 sin migraciones pendientes. MCP y revisión visual física siguen sin acreditar aquí; motor comercial y verificación de disponibilidad quedan fuera. Desconocidos requieren confirmación y Children no filtra por edad.",
+      "hecho": "Prioridades residenciales y edades del hogar implementadas en web, panel y evaluación: conservan respuestas, distinguen desconocidos y tratan el parking incierto sin inventar plazas. Las mascotas declaradas son imprescindibles según REG-07, mediante aviso en lugar del interruptor histórico. El código cfb3d3c y 0031 constan en main; Pages b544c2e y la consulta histórica sin migraciones pendientes acreditan su despliegue y migración. La prueba aislada actual pasó en 1280/390 con los scripts actualizados.",
+      "falta": "No se ha repetido una prueba autenticada en producción en esta conciliación; el matching comercial y la confirmación de disponibilidad siguen en sus propias tareas.",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js:128",
@@ -5812,7 +5811,10 @@
         "migrations/0031_requirement_priorities.sql",
         "tests/server/requirements.test.mjs",
         "tests/reg08-e2e.cjs",
-        "docs/superpowers/plans/2026-11-09-reg-08-verificacion-continuidad-ledger.md"
+        "docs/superpowers/plans/2026-11-09-reg-08-verificacion-continuidad-ledger.md",
+        "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md",
+        "docs/roadmap/work/REG-05/acceptance.md",
+        "docs/roadmap/tasks/REG-07.json"
       ],
       "modulo": "M03",
       "deps": [],
@@ -5820,15 +5822,16 @@
       "assignedSlot": "vps",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [],
-      "externalBlocker": "Sin bloqueo de integración para BUS-14: commit y0031 presentes en main. Conservar por separado la comprobación operativa/remota, sin fabricar activación nueva.",
+      "externalBlocker": "",
       "resources": [
         "registration-ui",
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Reutilizar REG-08 integrado y avanzar el tramo aprobado BUS-14; para cierre operativo de REG-08 contrastar evidencia remota existente sin reaplicar0031 ni reconstruir la función."
+      "nextStep": "Conservar los requisitos y la incertidumbre ya implementados; continuar BUS-12 con sus dependencias propias.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "REG-09",
@@ -5892,8 +5895,8 @@
       "fase": "F0",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "REG-11 está en el historial de main mediante 9b8dbd41; la reconciliación anterior registra publicación y aplicación de 0025. Incluye registros residencial y comercial/negocio, traspaso, compra y alquiler simultáneos con presupuestos separados, datos comerciales D08, idioma y respuestas del hogar con total solo cuando se conocen sus componentes. Una búsqueda activa por categoría y operación; duplicados públicos a revisión. El relevo anterior registra e2e general y envíos locales MCP de traspaso comercial a 1280 y compra/alquiler residencial a 390.",
-      "falta": "El matching comercial se construirá en M04 y no se considera activado por el registro. Las respuestas explícitas de zona y la preferencia de REG-06 están publicadas en fe9618f con 0039 aplicada; esta entrega no repitió la prueba autenticada de REG-11 en producción.",
+      "hecho": "REG-11 está en el historial de main mediante 9b8dbd41; la reconciliación histórica registra publicación y aplicación de 0025. Incluye registro residencial y comercial/negocio, traspaso, compra y alquiler simultáneos con presupuestos separados, datos comerciales D08 y respuestas del hogar sin total inventado. La prueba aislada actual de hogar y ventas pasó con los scripts actualizados. Una corrección local rechaza fechas imposibles con error de campo sin alterar fechas históricas válidas.",
+      "falta": "Integrar y verificar el despliegue de la corrección local de fechas antes de cerrar la tarea. No se repitió el recorrido autenticado ni el envío en producción. El matching comercial pertenece a M04 y no bloquea el alcance del registro.",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js",
@@ -5904,7 +5907,9 @@
         "tests/server/registration-categories.test.mjs",
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
         "docs/superpowers/plans/2026-11-07-reg-11-registration-ledger.md",
-        "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md"
+        "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md",
+        "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md",
+        "tests/server/reg11-calendar-validation.test.mjs"
       ],
       "modulo": "M03",
       "deps": [],
@@ -5914,14 +5919,14 @@
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
       "dependencies": [],
-      "externalBlocker": "La reconciliación documenta publicación/0025 y contradice el checklist; verificar evidencia antes de actuar.",
+      "externalBlocker": "",
       "resources": [
         "registration-ui",
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Mantener el matching comercial pendiente en M04 y verificar REG-11 con una sesión autorizada de producción cuando esté disponible.",
-      "actualizado": "2026-11-11"
+      "nextStep": "Integrar la corrección local de fechas y verificar su despliegue; después reconciliar el cierre de REG-11.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "REG-12",

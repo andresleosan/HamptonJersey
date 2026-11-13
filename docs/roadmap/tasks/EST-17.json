@@ -4,10 +4,10 @@
   "titulo": "Estados de la ficha propia de Draft a Sold / Let, con Withdrawn y To confirm",
   "origen": "plan",
   "fase": "F4",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
   "hecho": "La base publicada separa Draft, Published y Archived, conserva el ciclo de ventas y To confirm de ADM-04. Publicado y verificado el9-nov-2026 en f2113769903548f4c5a4763a51c7962e84e80aef, con0034 aplicada: Ready for review con filtro, envío y retorno a borrador; publicación y aprobación de Properties Queue comprueban la versión vista. Let agreed, Let y retorno a mercado se registran manualmente con fecha, empleado y evidencia de la ficha; evento, recibo y copia privada de metadatos son atómicos. Los estados coinciden en panel y web y quedan fuera de nuevas propuestas/visitas públicas. No crea contratos, cobros ni cierra búsquedas. Migración0034 aplicada tras ensayo poblado;53tablas de aplicación conservan recuentos y FKs sin errores. Pages/Jobs correctos, web/panel200 y assets coincidentes con el build aprobado.",
-  "falta": "Playwright MCP pendiente por el sandbox del navegador; el runner local de escritorio/móvil es evidencia separada. La propagación futura al inventario compartido y a productores reales de contratos de alquiler continúa en sus propias tareas; los estados manuales no acreditan esa integración.",
+  "falta": "No se repitió en esta conciliación una prueba autenticada en producción; el intento histórico de Playwright MCP no pudo iniciar y el recorrido aislado es evidencia distinta. El inventario compartido y los futuros productores de contratos continúan en sus propias tareas.",
   "bloqueo": "",
   "evidencia": [
     "migrations/0001_init.sql:7",
@@ -23,12 +23,13 @@
     "tests/server/rental-marketing.test.mjs",
     "tests/server/listing-editorial-migration.test.mjs",
     "tests/listing-editorial.e2e.cjs",
-    "docs/roadmap/work/EST-17/implementation-evidence.md"
+    "docs/roadmap/work/EST-17/implementation-evidence.md",
+    "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md"
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
-  "executionEligibility": "needs_scope_and_evidence_review",
+  "executionEligibility": "historical",
   "dependencies": [],
   "externalBlocker": "",
   "resources": [
@@ -36,5 +37,6 @@
     "rentals-contract",
     "listing-editor"
   ],
-  "nextStep": "Revisar el SHA construido de EST-17; autorizar 0034 y publicación, comprobar el despliegue y conservar como pendientes las integraciones futuras de inventario/contratos."
+  "nextStep": "Conservar la publicación y los estados manuales comprobados; integrar inventario y contratos cuando sus productores existan.",
+  "actualizado": "2026-11-13"
 }
