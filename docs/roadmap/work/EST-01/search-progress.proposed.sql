@@ -59,3 +59,36 @@ WHEN NEW.applicant_id IS NOT OLD.applicant_id OR NOT (
         AND NEW.last_success_inputs_revision IS OLD.last_attempt_inputs_revision AND NEW.last_success_seq=OLD.attempt_seq)))
 )
 BEGIN SELECT RAISE(ABORT,'search progress transition invalid'); END;
+
+-- Durable, non-reusable identities. These tables contain identifiers only and are
+-- deliberately not cascaded: deleting their contents would reopen ABA races.
+CREATE TABLE est01_applicant_ids (applicant_id INTEGER PRIMARY KEY);
+INSERT INTO est01_applicant_ids SELECT id FROM applicants;
+CREATE TRIGGER est01_applicant_ids_no_insert BEFORE INSERT ON est01_applicant_ids
+WHEN EXISTS(SELECT 1 FROM est01_applicant_ids WHERE applicant_id=NEW.applicant_id)
+BEGIN SELECT RAISE(ABORT,'applicant identity already used'); END;
+CREATE TRIGGER est01_applicant_ids_no_update BEFORE UPDATE ON est01_applicant_ids
+BEGIN SELECT RAISE(ABORT,'applicant identity immutable'); END;
+CREATE TRIGGER est01_applicant_ids_no_delete BEFORE DELETE ON est01_applicant_ids
+BEGIN SELECT RAISE(ABORT,'applicant identity immutable'); END;
+-- AFTER INSERT sees the actual automatically allocated ID. An abort also rolls
+-- back an INSERT OR REPLACE, including any implicit delete and cascades.
+CREATE TRIGGER est01_applicant_record_identity AFTER INSERT ON applicants
+BEGIN INSERT INTO est01_applicant_ids(applicant_id) VALUES(NEW.id); END;
+CREATE TRIGGER est01_applicant_id_immutable BEFORE UPDATE OF id ON applicants
+WHEN NEW.id IS NOT OLD.id
+BEGIN SELECT RAISE(ABORT,'applicant identity immutable'); END;
+
+CREATE TABLE est01_attempt_tokens (attempt_token TEXT PRIMARY KEY NOT NULL);
+CREATE TRIGGER est01_attempt_tokens_no_insert BEFORE INSERT ON est01_attempt_tokens
+WHEN EXISTS(SELECT 1 FROM est01_attempt_tokens WHERE attempt_token=NEW.attempt_token)
+BEGIN SELECT RAISE(ABORT,'attempt identity already used'); END;
+CREATE TRIGGER est01_attempt_tokens_no_update BEFORE UPDATE ON est01_attempt_tokens
+BEGIN SELECT RAISE(ABORT,'attempt identity immutable'); END;
+CREATE TRIGGER est01_attempt_tokens_no_delete BEFORE DELETE ON est01_attempt_tokens
+BEGIN SELECT RAISE(ABORT,'attempt identity immutable'); END;
+CREATE TRIGGER est01_attempt_record_insert AFTER INSERT ON applicant_search_progress
+BEGIN INSERT INTO est01_attempt_tokens(attempt_token) VALUES(NEW.attempt_token); END;
+CREATE TRIGGER est01_attempt_record_update AFTER UPDATE OF attempt_token ON applicant_search_progress
+WHEN NEW.attempt_token IS NOT OLD.attempt_token
+BEGIN INSERT INTO est01_attempt_tokens(attempt_token) VALUES(NEW.attempt_token); END;

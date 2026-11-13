@@ -59,14 +59,11 @@ test('changed inputs, closure or commercial conversion make the old ticket ineli
   }
 });
 
-test('delete and explicit id reuse cannot make an old ticket match a new search',async()=>{
-  assert.equal(typeof progress.beginFullCheck,'function');
+test('deleted search ID cannot be reused to revive its old ticket',async()=>{
   const env=setup(),old=await begin(env);
   env.DB.raw.exec("DELETE FROM applicants WHERE id=1");assert.equal(row(env),undefined);
-  env.DB.raw.prepare("INSERT INTO applicants(id,contact_id,operation,stage,source,created_at,updated_at) VALUES(1,1,'buy','searching','phone',?,?)").run(T0,T0);
-  const next=await begin(env);assert.equal(old.seq,next.seq);assert.notEqual(old.token,next.token);
+  assert.throws(()=>env.DB.raw.prepare("INSERT INTO applicants(id,contact_id,operation,stage,source,created_at,updated_at) VALUES(1,1,'buy','searching','phone',?,?)").run(T0,T0));
   assert.equal((await progress.fullCheckSuccessStatement(env,old,{finishedAt:B,checkedCount:0}).run()).meta.changes,0);
-  assert.equal(row(env).attempt_state,'running');
 });
 
 test('schema refuses incomplete success metadata instead of treating SQL NULL as true',async()=>{
