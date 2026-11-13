@@ -781,3 +781,25 @@ test('changing household count records its derived total and inferred status in 
   assert.equal(event.after.household_total,4);assert.equal(event.after.household_children_status,'known');
   assert.ok(event.criteria_confirmation.fields.includes('household_total'));assert.ok(event.criteria_confirmation.fields.includes('household_children_status'));
 });
+
+test('full commercial operation round trips preserve transfers while partial commands remain explicit', async () => {
+  for (const initial of ['transfer','rent','buy']) {
+    const env=makeEnv(), id=await create(env,{operation:initial, search_category:'commercial', commercial_kind:'business',budget_max:null});
+    const path=`/admin/applicants/${id}`, full=(await detail(env,id)).applicant;
+    assert.equal(full.search_operation ?? full.operation,initial);
+    if (initial==='transfer') { assert.equal(full.operation,'rent'); assert.equal(full.search_operation,'transfer'); }
+    const saved=await req(env,'PUT',path,{...full,stage:'searching'});
+    assert.equal(saved.status,200,`${initial}: ${JSON.stringify(saved.data)}`);
+    assert.equal(saved.data.applicant.search_operation ?? saved.data.applicant.operation,initial);
+    const event=JSON.parse(row(env,"SELECT data FROM events WHERE type='applicant.stage_changed' ORDER BY id DESC LIMIT 1").data);
+    assert.equal(event.criteria_confirmation,undefined); assert.deepEqual(event.after,{stage:'searching'});
+    const to=initial==='transfer' ? 'rent' : 'transfer';
+    const before=row(env,'SELECT * FROM applicants WHERE id=?',id);
+    const denied=await req(env,'PUT',path,{updated_at:before.updated_at,operation:to});
+    assert.equal(denied.status,400,JSON.stringify(denied.data)); assert.ok(denied.data.fields.criteria_confirmation);
+    assert.deepEqual(row(env,'SELECT * FROM applicants WHERE id=?',id),before);
+    const confirmed=await req(env,'PUT',path,{updated_at:before.updated_at,operation:to,criteria_confirmation:{confirmed:true}});
+    assert.equal(confirmed.status,200,JSON.stringify(confirmed.data));
+    assert.equal(confirmed.data.applicant.search_operation ?? confirmed.data.applicant.operation,to);
+  }
+});

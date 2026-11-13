@@ -302,7 +302,12 @@ async function update({ request, env, admin, params: [id] }) {
   // Fields left out of the body keep their stored value. A move-in date already saved may be in the past by now:
   // it is only checked when it changes. The stored contact and a panel source only complete the shared form check.
   const form = { ...parsed(pick(cur, SEARCH_FIELDS)), ...pick(body, SEARCH_FIELDS) };
-  if (!Object.hasOwn(body, "operation") && cur.search_operation) form.operation = cur.search_operation;
+  // GET returns the compatibility operation as well as the effective commercial operation.
+  // A full round-trip of both fields preserves that effective operation; a partial operation
+  // command remains explicit, including transfer -> rent, where the compatibility value is unchanged.
+  if (cur.search_operation && (!Object.hasOwn(body, "operation")
+    || (body.operation === cur.operation && body.search_operation === cur.search_operation)))
+    form.operation = cur.search_operation;
   const keepDate = form.move_in_date === cur.move_in_date;
   const r = validateApplicant({ ...form,
     name: contact.name, email: contact.email, phone: contact.phone, source: "phone" }, { publicForm: false, savedMoveInDate: cur.move_in_date });
@@ -337,7 +342,7 @@ async function update({ request, env, admin, params: [id] }) {
   const stored = parsed(pick(cur, SEARCH_FIELDS));
   stored.operation = cur.search_operation ?? cur.operation;
   const changed = SEARCH_FIELDS.filter(k => Object.hasOwn(body, k) && !(k === "operation"
-    ? body[k] === stored[k]
+    ? form.operation === stored[k]
     : JSON_FIELDS.includes(k) ? equal(body[k] ?? null, stored[k] ?? null)
     : body[k] === stored[k] || search[k] === cur[k]));
   const next = { stage, lost_reason, assigned_to };
