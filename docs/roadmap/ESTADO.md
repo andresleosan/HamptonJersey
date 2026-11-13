@@ -478,3 +478,7 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **SAP-01, presentación desconectada 13-nov:** preparados y revisados modelo y componente con estado verificable, recarga, avisos y foco. Chromium aislado probó un harness sintético en 1280/390, no el flujo real. Faltan lectura autorizada y atómica de progreso/contadores/hora, control de respuestas tardías, gate y esquema instalable. SAP-01 sigue parcial. [Evidencia](work/SAP-01/presentation-handoff.md).
 
 **Integración SAP-01 13-nov:** pasaron 2.137 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes. Chromium aislado aprobó el harness sintético en 1280/390; no hay flujo conectado ni prueba con lector real. La tarea sigue parcial y el catálogo conserva 68/215 (31,63 %).
+
+**EST-15, cálculo de bajas 13-nov:** preparado un núcleo desconectado con alcance jerárquico, prioridad humana y revisión de contradicciones; la revisión corrigió omisiones y coste cuadrático. No acredita autoridad ni evidencia real y no ejecuta efectos; faltan persistencia, reactivación CAS, propagación y avisos. EST-15 sigue parcial. [Evidencia](work/EST-15/scoped-calculation-evidence.md). Playwright: no aplica.
+
+**Integración EST-15 13-nov:** pasaron 2.150 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes. El cálculo no está conectado y EST-15 sigue parcial. El catálogo mantiene 68/215 (31,63 %). Playwright: no aplica.

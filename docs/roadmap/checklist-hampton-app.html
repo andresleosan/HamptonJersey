@@ -3235,8 +3235,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F1-A",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Poner la ficha en Withdrawn, Sold o Under offer, archivarla o apagar Offer to applicants borra sus matches Found de todos los aplicantes, y los Shortlisted muestran la insignia de su disponibilidad.",
-   "falta": "M12 · Reconciliación 7-nov: Registrar indisponibilidad confirmada con motivo, fecha, origen, evidencia, responsable y alcance (inmueble, operación, anunciante o publicación). Excluir solo lo afectado de propuestas, actualizar también los Shortlisted y avisar sobre visitas/gestiones en curso, preservando historial. Mover a papelera EST-19; un anuncio viejo no revoca la confirmación ni reabre la propiedad, y evidencia nueva genera revisión. Depende de: BUS-10, EST-16, EST-18. Aceptación: Confirmar baja de una operación retira sus propuestas y avisa las visitas; una publicación antigua no reactiva ni afecta sin fundamento a otra operación. La papelera de no disponibles es distinta del archivado editorial: hoy una ficha archivada puede seguir ofrecida a aplicantes. Esta exclusión confirmada y su prioridad humana deben funcionar antes de activar el barrido o contacto automáticos.",
+   "hecho": "Poner la ficha en Withdrawn, Sold o Under offer, archivarla o apagar Offer to applicants borra sus matches Found de todos los aplicantes, y los Shortlisted muestran la insignia de su disponibilidad. Se preparó un cálculo interno y revisado de bajas humanas por jerarquía de alcance y contradicciones, sin persistencia ni ruta activa.",
+   "falta": "M12 · Reconciliación 7-nov: Registrar indisponibilidad confirmada con motivo, fecha, origen, evidencia, responsable y alcance (inmueble, operación, anunciante o publicación). Excluir solo lo afectado de propuestas, actualizar también los Shortlisted y avisar sobre visitas/gestiones en curso, preservando historial. Mover a papelera EST-19; un anuncio viejo no revoca la confirmación ni reabre la propiedad, y evidencia nueva genera revisión. Depende de: BUS-10, EST-16, EST-18. Aceptación: Confirmar baja de una operación retira sus propuestas y avisa las visitas; una publicación antigua no reactiva ni afecta sin fundamento a otra operación. La papelera de no disponibles es distinta del archivado editorial: hoy una ficha archivada puede seguir ofrecida a aplicantes. Esta exclusión confirmada y su prioridad humana deben funcionar antes de activar el barrido o contacto automáticos. El cálculo no acredita identidad, autorización, evidencia ni procedencia; faltan persistencia atómica, reactivación humana con CAS, propagación, avisos e integración.",
    "bloqueo": "",
    "evidencia": [
     "server/match-store.js:9-11",
@@ -3245,7 +3245,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "admin/src/MatchCard.jsx:10-12",
     "admin/src/MatchCard.jsx:47",
     "admin/src/ListingEditor.jsx:235-240",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "server/est-15-scoped-unavailability.js",
+    "tests/server/est-15-scoped-unavailability.test.mjs",
+    "docs/roadmap/work/EST-15/scoped-calculation-evidence.md"
    ],
    "modulo": "M12",
    "deps": [
