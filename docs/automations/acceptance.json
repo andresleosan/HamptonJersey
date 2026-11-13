@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "automations": [
+    {
+      "id": "listing_text",
+      "version": 1,
+      "purpose": "listing_text",
+      "status": "pending",
+      "cases": [],
+      "required_passes": null,
+      "evidence_ref": null,
+      "hard_guards": [
+        "match_approval",
+        "unknown_required_consultation",
+        "search_resolution",
+        "presentation_review"
+      ]
+    },
+    {
+      "id": "market_ambiguity_v1",
+      "version": 1,
+      "purpose": "market_ambiguity_v1",
+      "status": "pending",
+      "cases": [],
+      "required_passes": null,
+      "evidence_ref": null,
+      "hard_guards": [
+        "match_approval",
+        "unknown_required_consultation",
+        "search_resolution",
+        "presentation_review"
+      ]
+    },
+    {
+      "id": "hampton_intent_v1",
+      "version": 1,
+      "purpose": "hampton_intent_v1",
+      "status": "pending",
+      "cases": [],
+      "required_passes": null,
+      "evidence_ref": null,
+      "hard_guards": [
+        "match_approval",
+        "unknown_required_consultation",
+        "search_resolution",
+        "presentation_review"
+      ]
+    }
+  ]
+}

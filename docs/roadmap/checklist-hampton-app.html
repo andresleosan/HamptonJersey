@@ -1998,15 +1998,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Ficha estándar de cada automatización, con pruebas y criterio de hecho",
    "origen": "plan",
    "fase": "—",
-   "estado": "pendiente",
+   "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "Ninguna automatización tiene su ficha: objetivo, disparador, entradas, pasos, modelo y clase de dato, punto humano y modo, salidas, qué hacer si falla, tope de coste mensual (al llegar pasa a Draft) y una batería de unos 30 casos reales que se repite al cambiar de modelo. Se escribe antes de construir cada una, con su criterio de hecho (p. ej. 27 de 30 aciertos).",
+   "hecho": "Registro declarativo cerrado con tres propósitos separados y sus guardas humanas; valida estructura y versión sin activar modelos, proveedores, cuentas ni rutas. Las fichas identifican como pendientes el coste y las baterías que aún carecen de evidencia.",
+   "falta": "Completar las fichas restantes, definir y acreditar con casos reales las baterías y criterios de aceptación, topes de coste y conexión con AUT-10/AUT-01. Los fixtures sintéticos no equivalen a pruebas reales ni autorizan activar una automatización. Antes de integrar consumidores, endurecer y revisar el límite de objetos JavaScript exóticos; la validación no es un sandbox.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:419-435",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:475"
-   ]
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:475",
+    "server/automation-contracts.js",
+    "docs/automations/index.md",
+    "docs/automations/acceptance.json",
+    "tests/server/automation-contracts.test.mjs",
+    "docs/superpowers/plans/2026-11-13-aut-09-registry-ledger.md"
+   ],
+   "actualizado": "2026-11-13"
   },
   {
    "id": "AUT-10",
