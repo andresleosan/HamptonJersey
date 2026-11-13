@@ -8,9 +8,9 @@ const ACTIONS = ['created','updated','published','unpublished','archived','resto
   'availability_changed','featured_changed','cover_changed','recalculated','deleted','review_requested','review_returned'];
 const SOURCES = ['panel','queue','sales','media','recalculate'];
 const FREE = ['title','property_type','country','location','road_name','tenure','price_text','summary','description','tour_url','specs','feat_evidence',
-  'building_name_or_number','postcode','developer_name','public_address_publication'];
+  'building_name_or_number','postcode','developer_name','public_address_publication','content_tags','video_url'];
 const FIELDS = new Set([...EDITABLE,...LISTING_DETAIL_FIELDS,'published','archived_at','published_at','confirmed_at','cover_media_id',
-  'feat_pets','feat_parking','feat_furnished','feat_outdoor','feat_type','feat_evidence','review_requested_at','public_address_publication']);
+  'feat_pets','feat_parking','feat_furnished','feat_outdoor','feat_type','feat_evidence','review_requested_at','public_address_publication','content_tags','video_url']);
 const iso = v => typeof v==='string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(v)
   && Number.isFinite(Date.parse(v)) && new Date(v).toISOString()===v;
 const positive = v => Number.isSafeInteger(v) && v>0;

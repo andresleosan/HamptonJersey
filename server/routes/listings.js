@@ -11,6 +11,7 @@ import { buildPublicAddressReview } from '../public-address.js';
 import { publicationReadiness } from "../publication-policy.js";
 import { checkPhysical } from '../listing-physical.js';
 import { recordListingWithdrawal,correctListingWithdrawal,readListingTraceability } from '../listing-traceability.js';
+import { validateListingContent,readListingContent,listingContentUpdateStatement } from '../listing-content.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -77,7 +78,9 @@ async function detail({ env, params: [id] }) {
   const group = research[0]?.duplicate_group;
   const duplicates = group ? (await q("SELECT property_id FROM research_properties WHERE duplicate_group = ? AND property_id <> ? ORDER BY property_id", group, id).all())
     .results.map(r => r.property_id) : [];
-  return json({ listing, ...(env.PUB09_WITHDRAWALS_READY === '1' ? { withdrawal_tracking: true } : {}), details: Object.fromEntries(['building_name_or_number','postcode','property_condition','developer_name',
+  const content=env.PUB08_CONTENT_READY === '1' ? await readListingContent(env,id) : null;
+  return json({ listing, ...(env.PUB09_WITHDRAWALS_READY === '1' ? { withdrawal_tracking: true } : {}),
+    ...(content ? {content_tracking:true,content} : {}), details: Object.fromEntries(['building_name_or_number','postcode','property_condition','developer_name',
       'public_address_snapshot','public_address_snapshot_hash','public_address_evidence_ref','public_address_reviewed_by','public_address_reviewed_at']
       .map(key => [key, details?.[key] ?? null])),
     media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates,
@@ -99,6 +102,7 @@ const LISTING_BYTES = 256 * 1024;
 const create = async ({ request, env, admin }) => createListing(env, admin, await readJson(request, LISTING_BYTES));
 // Also Properties Queue's draft (PUB-21), which ties the new listing to its row on the server.
 export async function createListing(env, admin, body, context = {}) {
+  if (body && Object.hasOwn(body,'content')) return fieldErrors({content:'Save content after creating the listing'});
   const r = validateListing(body);
   if (r.errors) return fieldErrors(r.errors);
   if (context.source === 'queue' && r.value.feature_overrides && r.value.feature_overrides !== '{}')
@@ -138,12 +142,27 @@ async function update({ request, env, admin, params: [id] }) {
   if (typeof body?.updated_at !== "string") fail(400, "Missing updated_at: reload the listing");
   if (Object.hasOwn(body, 'address_publication'))
     return fieldErrors({ address_publication: 'Use the reviewed public snapshot step to publish an exact address' });
+  const hasContent = Object.hasOwn(body,'content');
+  if (hasContent && env.PUB08_CONTENT_READY !== '1') fail(404,'Not found');
   const r = validateListing(body, { partial: true });
   if (r.errors) return fieldErrors(r.errors);
   const hasDetails = Object.hasOwn(body, 'details');
-  if (!Object.keys(r.value).length && !hasDetails) fail(400, "Nothing to save");
+  if (!Object.keys(r.value).length && !hasDetails && !hasContent) fail(400, "Nothing to save");
   const stored = await loadListing(env, id);
   const storedDetails = await readListingDetails(env, id);
+  let beforeContent=null,nextContent=null,contentFields=[],actorAt=null;
+  if (hasContent) {
+    if (stored.updated_at !== body.updated_at) fail(409,'Someone else saved changes to this listing. Reload to see them (your changes were not saved).');
+    const valid=validateListingContent(body.content);
+    if (valid.errors) return fieldErrors(valid.errors);
+    const actor=await env.DB.prepare('SELECT added_at FROM admins WHERE email=?').bind(admin).first();
+    if (!actor) fail(401,'Please sign in to continue');
+    actorAt=actor.added_at;
+    beforeContent=await readListingContent(env,id);
+    nextContent={...beforeContent,...valid.value};
+    if (JSON.stringify(beforeContent.tags)!==JSON.stringify(nextContent.tags)) contentFields.push('content_tags');
+    if (beforeContent.video_url!==nextContent.video_url) contentFields.push('video_url');
+  }
   const nextCountry = Object.hasOwn(r.value, 'country') ? r.value.country : stored.country;
   let candidate = storedDetails;
   let detailValues = {};
@@ -161,8 +180,8 @@ async function update({ request, env, admin, params: [id] }) {
     const postcode = validateListingDetails({ postcode: candidate.postcode }, { country: nextCountry });
     if (postcode.errors) return fieldErrors(postcode.errors);
   }
-  if (!Object.keys(r.value).length && !Object.keys(detailValues).length)
-    return json({ listing: stored, details: storedDetails });
+  if (!Object.keys(r.value).length && !Object.keys(detailValues).length && !contentFields.length)
+    return json({ listing: stored, details: storedDetails, ...(hasContent ? {content:beforeContent,content_tracking:true} : {}) });
   const merged = { ...stored, specs: JSON.stringify(stored.specs), ...r.value };
   const priceErrors = checkPrice(merged);
   Object.assign(priceErrors, checkPhysical(merged));
@@ -175,17 +194,20 @@ async function update({ request, env, admin, params: [id] }) {
   if (["availability", "sale_price", "rent", "premium"].some(k => k in r.value && r.value[k] !== stored[k])) patch.confirmed_at = ts;
   const cols = Object.keys(patch);
   const detailStatement = listingDetailsUpdateStatement(env, id, detailValues);
+  const contentStatement = contentFields.length ? listingContentUpdateStatement(env,id,nextContent) : null;
   const [res] = await listingBatch(env, id, { actor: admin, source: 'panel', action: 'updated',
     derivedFields: derivedListingFields(patch).filter(k => !(k in r.value)),
-    extraFields: Object.keys(detailValues).filter(k => k !== 'property_condition') }, [env.DB.prepare(
-    `UPDATE listings SET ${[...cols.map(c => `${c} = ?`), `updated_at = ${listingClock}`, 'updated_by = ?'].join(", ")} WHERE id = ? AND updated_at = ?`)
-    .bind(...cols.map(c => patch[c]), ts, admin, id, body.updated_at), ...(detailStatement ? [detailStatement] : [])]);
+    extraFields: [...Object.keys(detailValues).filter(k => k !== 'property_condition'),...contentFields] }, [env.DB.prepare(
+    `UPDATE listings SET ${[...cols.map(c => `${c} = ?`), `updated_at = ${listingClock}`, 'updated_by = ?'].join(", ")} WHERE id = ? AND updated_at = ?${hasContent ? ' AND EXISTS(SELECT 1 FROM admins WHERE email=? AND added_at=?)' : ''}`)
+    .bind(...cols.map(c => patch[c]), ts, admin, id, body.updated_at,...(hasContent ? [admin,actorAt] : [])),
+    ...(contentStatement ? [contentStatement] : []), ...(detailStatement ? [detailStatement] : [])]);
   if (!res.meta.changes) {
     await loadListing(env, id); // 404 if it no longer exists
     fail(409, "Someone else saved changes to this listing. Reload to see them (your changes were not saved).");
   }
   if (Object.keys(r.value).length) await afterSave(recomputeForListing, env, id, admin);
-  return json({ listing: await loadListing(env, id), details: await readListingDetails(env, id) });
+  return json({ listing: await loadListing(env, id), details: await readListingDetails(env, id),
+    ...(hasContent ? {content:await readListingContent(env,id),content_tracking:true} : {}) });
 }
 
 async function loadPublicAddressReview(env, id) {
@@ -193,7 +215,8 @@ async function loadPublicAddressReview(env, id) {
   const media = (await env.DB.prepare('SELECT * FROM media WHERE listing_id=? ORDER BY position,id').bind(id).all()).results;
   const folder = listing.drive_folder_id == null ? null : await env.DB.prepare(`SELECT folder_name FROM drive_imports
     WHERE folder_id=? ORDER BY id DESC LIMIT 1`).bind(listing.drive_folder_id).first();
-  return { listing, details, media, folderName: folder?.folder_name ?? null };
+  const publicListing=env.PUB08_CONTENT_READY === '1' ? {...listing,_pub08_content:await readListingContent(env,id)} : listing;
+  return { listing:publicListing, details, media, folderName: folder?.folder_name ?? null };
 }
 
 async function addressReviewPreview({ env, params: [id] }) {

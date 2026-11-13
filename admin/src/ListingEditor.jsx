@@ -18,6 +18,8 @@ import WithdrawalDialog, { WithdrawalHistory } from './WithdrawalDialog.jsx';
 import {isRentalMarketing} from '../../server/listing-editorial.js';
 import { normalizePostcode, PROPERTY_CONDITION_LABELS } from '../../server/listing-details.js';
 import { squareMetres } from '../../server/listing-physical.js';
+import ListingContentFields from './ListingContentFields.jsx';
+import { CONTENT_TAGS } from '../../server/listing-content.js';
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "tenure_type", "housing_category", "restriction", "sale_price", "rent", "rent_period", "premium",
@@ -34,6 +36,8 @@ const toForm = l => ({ ...Object.fromEntries(FIELDS.map(k => [k, k === "specs" ?
 const DETAIL_FIELDS = ["building_name_or_number", "postcode", "property_condition", "developer_name"];
 const toDetailsForm = d => Object.fromEntries(DETAIL_FIELDS.map(k => [k, d?.[k] ?? ""]));
 const toDetailsBody = d => Object.fromEntries(DETAIL_FIELDS.map(k => [k, d[k] === "" ? null : d[k]]));
+const toContentForm = c => ({tags:Array.isArray(c?.tags) ? [...c.tags] : [],video_url:c?.video_url ?? ''});
+const toContentBody = c => ({tags:Object.keys(CONTENT_TAGS).filter(tag=>c.tags.includes(tag)),video_url:c.video_url || null});
 const toBody = f => Object.fromEntries(FIELDS.map(k => [k,
   NUMERIC.includes(k) ? (f[k] === "" ? null : Number(f[k]))
     : k === "specs" ? f.specs.filter(s => s.label.trim() || s.value.trim())
@@ -58,6 +62,7 @@ const DONE = { publish: "Published: now on the website (may take a minute).", un
 export default function ListingEditor({ id, onChange }) {
   const [data, setData] = useState(null), [form, setForm] = useState(null), [errors, setErrors] = useState({});
   const [detailsForm, setDetailsForm] = useState(null);
+  const [contentForm,setContentForm] = useState(null);
   const [addressReview, setAddressReview] = useState(null), [addressReviewError, setAddressReviewError] = useState(null);
   const [addressEvidenceRef, setAddressEvidenceRef] = useState(""), [addressReviewAuthorized, setAddressReviewAuthorized] = useState(false);
   const [matchForm, setMatchForm] = useState(null), [matchesErr, setMatchesErr] = useState(null);
@@ -82,7 +87,7 @@ export default function ListingEditor({ id, onChange }) {
     setLoadErr(null);
     try {const d=await api(`/admin/listings/${id}`);if(n!==loadRequest.current)return;
       if (!Array.isArray(d.media)) throw new Error("Listing photos could not be loaded. Reload and try again.");
-      setData(d);setForm(toForm(d.listing));setDetailsForm(toDetailsForm(d.details));setAddressReview(null);setAddressReviewError(null);
+      setData(d);setForm(toForm(d.listing));setDetailsForm(toDetailsForm(d.details));setContentForm(d.content_tracking ? toContentForm(d.content) : null);setAddressReview(null);setAddressReviewError(null);
       setAddressEvidenceRef("");setAddressReviewAuthorized(false);setMatchForm(toMatchForm(d.listing));setErrors({});setDeleted(false);historyChanged();
     } catch(e) {
       if(n!==loadRequest.current)return;
@@ -91,7 +96,7 @@ export default function ListingEditor({ id, onChange }) {
         if(h.listing.state==='deleted'){
           // Same-ID Reload does not unmount this editor. Discard its obsolete draft and unsaved-photo registration.
           matchesReq.current++;marketingFocus.current=false;photos.current={dirty:false};
-          setData(null);setForm(null);setDetailsForm(null);setAddressReview(null);setAddressReviewError(null);setAddressEvidenceRef("");
+          setData(null);setForm(null);setDetailsForm(null);setContentForm(null);setAddressReview(null);setAddressReviewError(null);setAddressEvidenceRef("");
           setAddressReviewAuthorized(false);setMatchForm(null);setPhotosDirty(false);setOffers(null);
           setErrors({});setMatchesErr(null);setMsg(null);setConfirmDel('');setDeleted(true);return;
         }
@@ -109,7 +114,8 @@ export default function ListingEditor({ id, onChange }) {
   const fieldsDirty = !!data && !!form && (JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing)))
     || Object.keys(changedMatchForm(matchForm, data.listing)).length > 0);
   const detailsDirty = !!data && !!detailsForm && JSON.stringify(toDetailsBody(detailsForm)) !== JSON.stringify(toDetailsBody(toDetailsForm(data.details)));
-  const saveDirty = fieldsDirty || detailsDirty || photosDirty;
+  const contentDirty = !!data?.content_tracking && !!contentForm && JSON.stringify(toContentBody(contentForm)) !== JSON.stringify(toContentBody(toContentForm(data.content)));
+  const saveDirty = fieldsDirty || detailsDirty || contentDirty || photosDirty;
   const addressReviewDirty = !!addressReview && (!!addressReviewAuthorized || !!addressEvidenceRef.trim());
   const dirty = saveDirty || addressReviewDirty;
   useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
@@ -119,8 +125,9 @@ export default function ListingEditor({ id, onChange }) {
     <p><a href="#/listings">Back to listings</a></p><ListingHistory key={id} id={id}/></div>;
   if (!data) return <p>Loading listing…</p>;
   const l = data.listing, state = stateOf(l);
-  const setListing = (listing, details) => { setData(d => ({ ...d, listing, ...(details ? { details } : {}) }));
-    setForm(toForm(listing)); if (details) { setDetailsForm(toDetailsForm(details)); setAddressReview(null); setAddressReviewError(null);
+  const setListing = (listing, details, content) => { setData(d => ({ ...d, listing, ...(details ? { details } : {}), ...(content ? {content} : {}) }));
+    setForm(toForm(listing)); if (content) setContentForm(toContentForm(content));
+    if (details) { setDetailsForm(toDetailsForm(details)); setAddressReview(null); setAddressReviewError(null);
       setAddressEvidenceRef(""); setAddressReviewAuthorized(false); }
     setMatchForm(toMatchForm(listing)); setErrors({}); historyChanged(); };
   // A save or a state change recomputes the listing's matches; only the detail read returns them.
@@ -147,11 +154,12 @@ export default function ListingEditor({ id, onChange }) {
     setBusy(true); setMsg(null);
     try {
       let at = l.updated_at;
-      if (fieldsDirty || detailsDirty) {
+      if (fieldsDirty || detailsDirty || contentDirty) {
         const body = { ...(fieldsDirty ? { ...toBody(form), ...changedMatchForm(matchForm, l) } : {}),
-          ...(detailsDirty ? { details: toDetailsBody(detailsForm) } : {}), updated_at: at };
+          ...(detailsDirty ? { details: toDetailsBody(detailsForm) } : {}),
+          ...(contentDirty ? {content:toContentBody(contentForm)} : {}), updated_at: at };
         const saved = await api(`/admin/listings/${id}`, { method: "PUT", body });
-        setListing(saved.listing, saved.details); at = saved.listing.updated_at;
+        setListing(saved.listing, saved.details, saved.content); at = saved.listing.updated_at;
         if (fieldsDirty) reloadMatches(); onChange?.(); // a new price or availability confirms it
       }
       if (photos.current.dirty && !(await photos.current.save(at))) return setMsg({ text: "The photos weren't saved: see the message under Photos." });
@@ -161,7 +169,8 @@ export default function ListingEditor({ id, onChange }) {
       setErrors(fields); setMsg({ text: e.message }); }
     finally { setBusy(false); }
   };
-  const discard = () => { setForm(toForm(l)); setDetailsForm(toDetailsForm(data.details)); setAddressReview(null); setAddressReviewError(null);
+  const discard = () => { setForm(toForm(l)); setDetailsForm(toDetailsForm(data.details));
+    setContentForm(data.content_tracking ? toContentForm(data.content) : null); setAddressReview(null); setAddressReviewError(null);
     setAddressEvidenceRef(""); setAddressReviewAuthorized(false);
     setMatchForm(toMatchForm(l)); setErrors({}); photos.current.discard?.(); setMsg(null); };
   const act = async action => {
@@ -376,7 +385,7 @@ export default function ListingEditor({ id, onChange }) {
             disabled={busy || dirty || state !== "published" || !publicPhoto}>
             {savedPublicAddress ? "Review updated public snapshot" : "Review public snapshot"}
           </button>
-          {(fieldsDirty || detailsDirty || photosDirty) && <small className="muted">Save or discard your edits before reviewing the public snapshot.</small>}
+          {saveDirty && <small className="muted">Save or discard your edits before reviewing the public snapshot.</small>}
           {addressReviewDirty && <small className="muted">Complete or close this address review before changing the listing.</small>}
           {state !== "published" && <small className="muted">Publish this listing before reviewing its exact address.</small>}
           {state === "published" && !publicPhoto && <small className="muted">Add a public photo before reviewing its exact address.</small>}
@@ -509,6 +518,7 @@ export default function ListingEditor({ id, onChange }) {
           replacing={["title", "summary", "description"].some(k => form[k] !== toForm(l)[k])} />}
         {field("summary", "Summary (one bullet per line)", <textarea {...ctl("summary")} maxLength={5000} />)}
         {field("description", "Full description (one paragraph per line)", <textarea {...ctl("description")} maxLength={20000} rows={10} />)}
+        {data.content_tracking && contentForm && <ListingContentFields value={contentForm} onChange={setContentForm} errors={errors} busy={busy}/>}
       </section>
 
       <section id="s-photos" className="card" aria-labelledby="h-photos"><h2 id="h-photos" tabIndex={-1}>Photos</h2>

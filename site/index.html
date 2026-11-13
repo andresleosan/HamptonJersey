@@ -1003,7 +1003,8 @@ function detail(id) {
   // VIS-03 (§5.9): the real count of people interested, which the server sends only from 2. A sold house takes no viewings.
   const interest = isSold(p) ? null : p.interest;
   const groups = p.specs.reduce((a, s) => ((a[s.group || "Details"] ||= []).push(s), a), {});
-  const tabs = [["photo", "Photos"], ...(p.tourUrl ? [["tour", "3D tour"]] : []), ...(p.aerial ? [["aerial", "Aerial"]] : [])];
+  const tabs = [["photo", "Photos"], ...(p.tourUrl ? [["tour", "3D tour"]] : []),
+    ...(p.videoUrl ? [["video", "Video"]] : []), ...(p.aerial ? [["aerial", "Aerial"]] : [])];
 
   $("#app").innerHTML = `<div class="wrap crumbs"><a href="/">Home</a> / <a href="/properties?region=${p.region}">${esc(REGIONS[p.region])}</a> / ${esc(p.title)}</div>
   <div class="wrap d-top">
@@ -1025,6 +1026,7 @@ function detail(id) {
       <h1>${esc(p.title)}</h1>
       <div class="price num">${esc(priceLabel(p))}${p.operation === "business" ? "<small>Business, not freehold</small>" : ""}</div>
       ${restriction ? `<span class="tag restrict">${esc(restriction)}</span>` : ""}
+      ${p.tags.length ? `<div aria-label="Property features">${p.tags.map(tag => `<span class="tag">${esc(tag)}</span>`).join(" ")}</div>` : ""}
       ${p.beds || p.baths || p.type ? `<div class="keys num">${p.beds ? `<div><b>${p.beds}</b><span>Bedrooms</span></div>` : ""}${p.baths ? `<div><b>${p.baths}</b><span>Bathrooms</span></div>` : ""}${p.type ? `<div><b>${esc(p.type)}</b><span>Type</span></div>` : ""}</div>` : ""}
       ${agent ? `<div class="agent-mini">${agent.photo ? `<img src="${esc(wix(agent.photo, 120, 120))}" alt="">` : ""}<div><b>${esc(agent.name)}</b><div class="hint">${esc(agent.role)} · ${esc(agent.office)}</div></div></div>` : ""}
       ${interest ? `<p class="interest"><b>${interest} people interested</b> <span class="hint">Upcoming viewings, and those of the last 30 days that went well</span></p>` : ""}
@@ -1118,6 +1120,10 @@ function detail(id) {
     if (v === "tour") {
       note.innerHTML = "";
       clearTourGate = mountTourGate(stage, {url: p.tourUrl, title: p.title, onLoaded: () => track(p.id, "tour")});
+    }
+    if (v === "video") {
+      note.innerHTML = "";
+      clearTourGate = mountTourGate(stage, {url: p.videoUrl, title: p.title, kind: "video"});
     }
     if (v === "aerial") {
       stage.innerHTML = `<img src="${esc(p.aerial.src)}" alt="${esc(p.aerial.alt)}">`;
@@ -1311,6 +1317,8 @@ Promise.allSettled([getJSON("/api/listings"), getJSON("/data/team.json"), getJSO
       photos: (Array.isArray(x.photos) ? x.photos : []).filter(f => safeMedia(f?.src) && safeMedia(f?.thumb)),
       floorplans: (Array.isArray(x.floorplans) ? x.floorplans : []).filter(f => safeMedia(f?.src)),
       aerial: x.aerial && safeMedia(x.aerial.src) ? x.aerial : null, tourUrl: safeHttps(x.tourUrl),
+      videoUrl: listingVideoUrl(x.videoUrl),
+      tags: [...new Set(arr(x.tags).filter(tag => ["Renovated", "Sea view", "Town centre"].includes(tag)))],
       specs: (Array.isArray(x.specs) ? x.specs : []).filter(s => s && typeof s.label === "string" && typeof s.value === "string"),
       summary: liveSummary(arr(x.summary), jerseyToday()), description: arr(x.description)}))
     .sort((a, b) => order[a.region] - order[b.region] || (a.use === "commercial") - (b.use === "commercial"))

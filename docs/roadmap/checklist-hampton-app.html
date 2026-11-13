@@ -4362,16 +4362,22 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "En listings y en el editor: Title, Summary y Description; Photos con portada, orden, pies de foto y tipos Floor plan y Aerial; URL de tour 3D o vídeo (Matterport, Vimeo, YouTube); estrella de destacada y orden de portada en Listings.",
-   "falta": "Faltan etiquetas (renovated, sea view, town centre…), textos para redes y un vídeo aparte del tour (hoy comparten una sola URL). Replanteado para Jersey (§5.10), no falta: la descripción va solo en inglés (D19) y se traduce solo si Hampton lo pide, con la traducción revisada por una persona antes de publicarla.",
+   "hecho": "En listings y en el editor: Title, Summary y Description; Photos con portada, orden, pies de foto y tipos Floor plan y Aerial; URL de tour 3D o vídeo (Matterport, Vimeo, YouTube); estrella de destacada y orden de portada en Listings. Se prepararon etiquetas manuales cerradas y una URL de vídeo independiente con la puerta de privacidad existente, revisión de dirección y CAS. El nuevo flujo permanece desactivado por defecto.",
+   "falta": "Verificar la migración 0048, desplegar y activar el flujo solo cuando corresponda; la consulta de migraciones remotas de esta sesión fue denegada. Confirmar o ampliar el catálogo de etiquetas según necesidades reales. Los campos y publicaciones sociales están fuera del alcance vigente.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/ListingEditor.jsx:201-223",
     "admin/src/MediaManager.jsx:67-106",
     "admin/src/Listings.jsx:27-44",
     "admin/src/Listings.jsx:94-97",
-    "server/listing.js:91-108"
-   ]
+    "server/listing.js:91-108",
+    "server/listing-content.js",
+    "migrations/0048_listing_content.sql",
+    "tests/server/pub-08-content.test.mjs",
+    "tests/pub08-content.e2e.cjs",
+    "docs/roadmap/work/PUB-08/avance-publicable.md"
+   ],
+   "actualizado": "2026-11-13"
   },
   {
    "id": "PUB-09",

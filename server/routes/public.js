@@ -11,6 +11,7 @@ import { afterSave, recomputeForApplicant } from "../match-store.js";
 import { touchByViewing } from "../retention.js";
 import { chatOn } from "../chat.js";
 import { confirmedViewingSql, confirmedViewingWindow } from "../public-viewing-summary.js";
+import { contentFromStored } from '../listing-content.js';
 
 export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
 
@@ -21,11 +22,14 @@ const LIVE = "l.published = 1 AND l.archived_at IS NULL";
 export async function readLive(env, id, { viewingClock } = {}) {
   const window = viewingClock ? confirmedViewingWindow(viewingClock) : null;
   const one = id ? " AND l.id = ?" : "", args = id ? [id] : [], interest = interestDates();
+  const contentEnabled=env.PUB08_CONTENT_READY === '1';
   const queries = () => [
     env.DB.prepare(`SELECT l.*, d.building_name_or_number,d.postcode,d.public_address_snapshot,d.public_address_snapshot_hash,
+      ${contentEnabled ? 'c.tags AS pub08_tags,c.video_url AS pub08_video_url,' : ''}
       (SELECT folder_name FROM drive_imports di WHERE di.folder_id=l.drive_folder_id ORDER BY di.id DESC LIMIT 1) AS drive_folder_name,
       (${interestSql("l.id")}) AS active_interest${window ? `, (${confirmedViewingSql("l.id")}) AS confirmed_viewings` : ""}
-      FROM listings l LEFT JOIN listing_details d ON d.listing_id=l.id WHERE ${LIVE}${one} ORDER BY l.id`)
+      FROM listings l LEFT JOIN listing_details d ON d.listing_id=l.id
+      ${contentEnabled ? 'LEFT JOIN listing_content c ON c.listing_id=l.id' : ''} WHERE ${LIVE}${one} ORDER BY l.id`)
       .bind(...interest, ...(window?.binds ?? []), ...args),
     env.DB.prepare(`SELECT m.* FROM media m JOIN listings l ON l.id = m.listing_id
      WHERE ${LIVE} AND m.public = 1${one} ORDER BY m.position, m.id`).bind(...args),
@@ -34,13 +38,14 @@ export async function readLive(env, id, { viewingClock } = {}) {
   const by = groupBy(media, "listing_id");
   const reviewed = await Promise.all(listings.map(async l => {
     const publicMedia = by[l.id] || [];
-    let visible = { ...l, public_address_snapshot: null };
+    let visible = { ...l, public_address_snapshot: null,
+      ...(contentEnabled ? {_pub08_content:contentFromStored(l.pub08_tags,l.pub08_video_url)} : {}) };
     let authorized = false;
     if (l.public_address_snapshot && l.public_address_snapshot_hash) {
-      const review = await buildPublicAddressReview(l, addressDetailsFromListing(l), publicMedia, l.drive_folder_name,
+      const review = await buildPublicAddressReview(visible, addressDetailsFromListing(l), publicMedia, l.drive_folder_name,
         env.SITE_URL || 'https://hampton.test');
       if (review.address === l.public_address_snapshot && review.public_snapshot_hash === l.public_address_snapshot_hash) {
-        visible = { ...l, public_address_snapshot: l.public_address_snapshot };
+        visible = { ...visible, public_address_snapshot: l.public_address_snapshot };
         authorized = true;
       }
     }

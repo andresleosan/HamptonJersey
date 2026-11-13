@@ -2,6 +2,7 @@ import { isPublicMedia } from "./visibility.js";
 import { OPTIONS } from "./applicants.js";
 import { validWeeklyWindows, realDate } from "./viewings.js";
 import { PHYSICAL_FIELDS, physicalValue, normalizeFeatureOverrides } from './listing-physical.js';
+import { CONTENT_TAGS, validateListingContent } from './listing-content.js';
 
 export const ENUMS = {
   use: ["residential", "commercial"],
@@ -119,6 +120,7 @@ export function toPublic(l, media) {
   const photos = pub.filter(m => m.kind === "photo");
   const cover = photos.find(m => m.id === l.cover_media_id) || photos[0];
   const aerial = pub.find(m => m.kind === "aerial");
+  const content = l._pub08_content ? validateListingContent(l._pub08_content).value : null;
   const financial = [["Price per sq ft", l.price_per_sqft], ["Rental deposit", l.rental_deposit],
     ["Parish rates", l.parish_rates], ["Service charge", l.service_charge], ["Utilities included", l.utilities_included],
     ["Available from", l.available_on],
@@ -136,7 +138,9 @@ export function toPublic(l, media) {
     photos: photos.map(m => ({ src: src(m), thumb: src(m, true), alt: alt(m, l.title) })),
     floorplans: pub.filter(m => m.kind === "floorplan").map(m => ({ src: src(m), alt: alt(m, "Floor plan") })),
     aerial: aerial ? { src: src(aerial), alt: alt(aerial, "Aerial view") } : null,
-    tourUrl: l.tour_url, specs: [...JSON.parse(l.specs || "[]"), ...financial], featured: l.featured_rank ?? null, publishedAt: l.published_at ?? null,
+    tourUrl: l.tour_url, ...(content?.tags?.length ? {tags:content.tags.map(tag=>CONTENT_TAGS[tag])} : {}),
+    ...(content?.video_url ? {videoUrl:content.video_url} : {}),
+    specs: [...JSON.parse(l.specs || "[]"), ...financial], featured: l.featured_rank ?? null, publishedAt: l.published_at ?? null,
     // §5.9: the website shows interest from 2 people, so 0 and 1 are never sent (P6).
     interest: l.active_interest >= 2 ? l.active_interest : null,
     ...(typeof l.public_address_snapshot === "string" && l.public_address_snapshot

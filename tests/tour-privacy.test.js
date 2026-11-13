@@ -1,6 +1,6 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {tourProvider, privateEmbedUrl} = require('../site/tour-privacy.js');
+const {tourProvider, privateEmbedUrl, listingVideoUrl} = require('../site/tour-privacy.js');
 
 test('only approved HTTPS providers can be embedded; Vimeo retains parameters and forces dnt', () => {
   assert.equal(tourProvider('https://my.matterport.com/show/?m=abc'), 'Matterport');
@@ -12,6 +12,16 @@ test('only approved HTTPS providers can be embedded; Vimeo retains parameters an
     assert.equal(privateEmbedUrl(value), null);
     assert.equal(tourProvider(value), null);
   }
+});
+
+test('website video rejects unsupported hosts, paths, parameters and duplicate keys', () => {
+  assert.equal(listingVideoUrl('https://player.vimeo.com/video/123?dnt=0'), 'https://player.vimeo.com/video/123?dnt=1');
+  assert.equal(listingVideoUrl('https://www.youtube-nocookie.com/embed/fixture?start=12'),
+    'https://www.youtube-nocookie.com/embed/fixture?start=12');
+  for (const value of ['https://my.matterport.com/show/?m=abc', 'https://player.vimeo.com/account',
+    'https://player.vimeo.com:8443/video/123', 'https://player.vimeo.com/video/123?dnt=0&dnt=1',
+    'https://www.youtube-nocookie.com/embed/abc?tracking=1', 'https://player.vimeo.com.evil.test/video/123'])
+    assert.equal(listingVideoUrl(value),null);
 });
 
 test('gate waits for a click, can unload, and offers retry or unload on timeout', () => {
@@ -40,4 +50,24 @@ test('gate waits for a click, can unload, and offers retry or unload on timeout'
     assert.equal(stage.querySelector('iframe'),null); assert.match(stage.textContent,/Load Vimeo tour/);
     cleanup(); assert.equal(stage.children.length,0);
   } finally { Object.assign(global,old); dom.window.close(); }
+});
+
+test('independent video waits for a deliberate click and uses video-specific controls', () => {
+  const {JSDOM}=require('jsdom');
+  const {mountTourGate}=require('../site/tour-privacy.js');
+  const dom=new JSDOM('<div id="stage"></div>');
+  const old={document:global.document,requestAnimationFrame:global.requestAnimationFrame,
+    setTimeout:global.setTimeout,clearTimeout:global.clearTimeout};
+  try {
+    global.document=dom.window.document;global.requestAnimationFrame=fn=>fn();
+    global.setTimeout=()=>1;global.clearTimeout=()=>{};
+    const stage=dom.window.document.querySelector('#stage');
+    const dispose=mountTourGate(stage,{url:'https://player.vimeo.com/video/123',title:'Fixture',kind:'video'});
+    assert.equal(stage.querySelector('iframe'),null);
+    assert.match(stage.textContent,/Load Vimeo video/);
+    stage.querySelector('button').click();
+    assert.equal(stage.querySelector('iframe').title,'Video: Fixture');
+    assert.match(stage.textContent,/Unload video/);
+    dispose();assert.equal(stage.querySelector('iframe'),null);
+  } finally {Object.assign(global,old);dom.window.close();}
 });

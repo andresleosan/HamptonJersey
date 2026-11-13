@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **PUB-08 parcial:** etiquetas y vídeo web separados, protegidos por la puerta de privacidad y desactivados por defecto; pruebas locales y revisión independiente. Esta sesión no ejecutó 0048 y no pudo consultar el estado remoto de migraciones. [Evidencia](work/PUB-08/avance-publicable.md).
+
 13-nov-2026 · **AGE-04 parcial:** el directorio ya consta en un despliegue histórico con 0030; la ficha deja de pedir publicar ese código. Sigue pendiente enlazar anunciantes y teléfonos con fuentes y publicaciones. [Conciliación](work/AGE-04/reconciliacion-2026-11-13.md).
 
 13-nov-2026 · **PUB-04 hecho:** la migración 0040 y la entrega original están documentadas; la corrección de foco integrada en `67b78a5` tiene checks de Pages y Jobs correctos. El catálogo local pasa de 66/217 (30,41 %) a 67/217 (30,88 %). El smoke funcional de producción recibió 403/1010 históricamente y no se repitió; las pruebas de navegador usaron datos ficticios. [Evidencia](work/PUB-04/release-2026-11-13.md).

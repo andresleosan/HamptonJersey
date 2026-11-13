@@ -6,7 +6,7 @@ const SOURCES = ['panel', 'queue', 'sales', 'media', 'recalculate'];
 const ACTIONS = ['created', 'updated', 'published', 'unpublished', 'archived', 'restored', 'confirmed',
   'availability_changed', 'featured_changed', 'cover_changed', 'recalculated', 'deleted', 'review_requested', 'review_returned'];
 const DERIVED = ['parish', 'feat_pets', 'feat_parking', 'feat_furnished', 'feat_outdoor', 'feat_type', 'feat_evidence'];
-const EXTRA_FIELDS = ['building_name_or_number', 'postcode', 'developer_name', 'public_address_publication'];
+const EXTRA_FIELDS = ['building_name_or_number', 'postcode', 'developer_name', 'public_address_publication', 'content_tags', 'video_url'];
 
 // The row exists only within this batch. The triggers see the real OLD/NEW; cleanup goes
 // after any caller statements that consume changes() from the listing write.
