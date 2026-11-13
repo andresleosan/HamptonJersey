@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **OFE-06 parcial:** productor semanal desconectado probado con duplicados, rollback y fecha de nacimiento de la venta. Persistencia, autoridad, retención, cursor y permisos siguen sin acreditar; el SQL no está en migraciones. [Evidencia](work/OFE-06/nacimiento-venta-2026-11-13.md).
+
 13-nov-2026 · **SPR-01 parcial:** Chromium y WebKit aislados volvieron a pasar; la revisión detectó que el historial no guarda el valor anterior y nuevo de la fecha. Falta corregir la auditoría y cubrir específicamente el guardado solo de fecha. [Evidencia](work/SPR-01/implementation-evidence.md).
 
 13-nov-2026 · **AUT-10 parcial:** inspección de propuestas de modo con guardas humanas cerradas y sin conceder ejecución. Persistencia, CAS, actor y comprobación antes del efecto siguen pendientes. [Evidencia](work/AUT-10/policy-foundation-2026-11-13.md).
