@@ -500,3 +500,5 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **BUS-06, vista parcial:** recorridos y cobertura de solo lectura bajo el gate existente; 21 pruebas focales, 2.168 JavaScript y 29 Python en suite, build/release y navegador aislado sintético a 390/1280 y zoom 200 %, con revisión independiente. Montaje de ambas vistas en Automations probado con gate 404 simulado a 390/1280; no acredita el gate desplegado ni fuentes reales. [Evidencia](work/BUS-06/avance-publicable.md).
 
 **BUS-19, revisión parcial:** API y pantalla bajo gate existente, revisión independiente, D1 local y navegador aislado con datos sintéticos. Suite: 2.174 JavaScript y 29 Python; build/release, catálogo y paquetes correctos. Faltan aceptación del manifiesto, decisiones evidenciadas y lectores; no se activaron fuentes. [Evidencia](work/BUS-06/avance-publicable.md).
+
+**PUB-20, alcance reconciliado:** la decisión posterior de Luis aplaza la preparación e impresión de folletos; la ficha ya no ordena construirlos. Permanece pendiente y no se contabiliza como hecha. [Decisión](../superpowers/plans/2026-11-10-pub-20-folleto-qr.md). Playwright: no aplica.

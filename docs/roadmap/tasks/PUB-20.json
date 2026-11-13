@@ -7,43 +7,22 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "Un folleto imprimible con los números de demanda de la parroquia, sin direcciones ni precios de casas concretas, y un QR a Book a valuation con su origen (ANA-10). Lo reparte Jersey Post sin lista de direcciones (Direct2home), respetando a quien no quiere publicidad. Hampton elige la primera parroquia (la de más demanda en Insights) y pide presupuesto.",
-  "bloqueo": "",
+  "falta": "Luis aplazó la preparación, impresión y reparto de folletos parroquiales; no se construyen por ahora. Si se retoman por una decisión posterior, revisar entonces el alcance y las dependencias. La página de demanda PUB-19 es independiente y ANA-10 cubre solo el QR del póster de cada propiedad.",
+  "bloqueo": "Aplazado por decisión de Luis (10-nov-2026).",
   "evidencia": [
-    "server/insights.js"
+    "docs/superpowers/plans/2026-11-10-pub-20-folleto-qr.md",
+    "docs/superpowers/plans/2026-11-10-ana-10-qr-agregado.md"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
-  "dependencies": [
-    {
-      "id": "ANA-10",
-      "requires": "integrated",
-      "reason": "Solo atribución real de contactos por QR requiere guardar origen; diseño del folleto puede avanzar.",
-      "basis": "explicit",
-      "scope": "partial"
-    },
-    {
-      "id": "PUB-10",
-      "requires": "integrated",
-      "reason": "Solo reparto con QR operativo requiere formulario; se puede preparar material antes.",
-      "basis": "explicit",
-      "scope": "partial"
-    },
-    {
-      "id": "ANA-07",
-      "requires": "integrated",
-      "reason": "Las cifras del folleto salen de demanda real por parroquia.",
-      "basis": "explicit",
-      "scope": "whole"
-    }
-  ],
-  "externalBlocker": "Hampton: elegir parroquia y solicitar presupuesto de reparto; asignación no autoriza contratar.",
+  "dependencies": [],
+  "externalBlocker": "Decisión futura de Luis para retomar los folletos.",
   "resources": [
     "analytics-contract",
     "owner-contact",
     "marketing-material"
   ],
-  "nextStep": "Preparar folleto por parroquia con QR trazable; Hampton decide parroquia y contratación del reparto."
+  "nextStep": "Mantener aplazado; no preparar ni imprimir folletos sin una nueva decisión."
 }
