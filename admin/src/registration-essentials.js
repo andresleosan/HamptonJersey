@@ -11,6 +11,9 @@ const FIELDS = {
 export function focusSearchEssential(form, item) {
   if (!form || !item) return;
   if (item.reason === 'priority_missing') {
+    const choices = [...form.querySelectorAll('[data-priority-review]')].filter(el => !el.disabled);
+    const choice = item.key === 'requirement_priorities' ? choices[0] : choices.find(el => el.dataset.priorityReview === item.key);
+    if (choice) { choice.focus(); return; }
     const switches = [...form.querySelectorAll('[role="switch"]')].filter(el => !el.disabled);
     const target = item.key === 'requirement_priorities' ? switches[0]
       : switches.find(el => el.getAttribute('aria-label') === `${item.label} must-have`);

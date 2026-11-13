@@ -10,6 +10,8 @@
 .req-switch[aria-checked=true] .req-track{background:var(--ok,#2f6b4f);border-color:var(--ok,#2f6b4f)}
 .req-switch[aria-checked=true] .req-track:after{transform:translateX(16px);background:#fff}
 .req-switch:disabled{cursor:not-allowed;color:var(--stone,#6b665e)}
+.req-unconfirmed{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-left:auto;min-width:0;font-size:12px;color:var(--ink)}
+.req-unconfirmed .btn{min-height:44px}
 .req-state{min-width:20px;text-align:left}
 .req-note{color:var(--stone,#6b665e);font-size:12px;margin:4px 0 12px;line-height:1.5}
 .req-outdoor{display:grid;gap:8px}.req-outdoor .req-heading{border-bottom:1px solid var(--line);padding:4px 0}
