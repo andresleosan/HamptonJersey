@@ -14,3 +14,7 @@
 | E008 | Propuesta ya registrada | El relevo aceptado ya contiene `src-accommodation-centre-jersey`. | Conservar ese ID propuesto; E007 sigue abierto. |
 
 No se propone ninguna fuente nueva ni se da por terminado ninguno de los siete casos pendientes. El [registro de accesos](access-log.md) separa las consultas de esta sesión de estas conclusiones: ninguna de las aperturas sin condiciones previamente comprobadas se usa como evidencia sustantiva. Las respuestas de búsqueda que contenían fragmentos incidentales de anuncios no se abrieron como anuncios ni se incorporaron a estos artefactos.
+
+## Vías independientes
+
+El [precontraste por caso](source-preflight.md) revisó las restricciones conocidas e índices de condiciones antes de buscar una fuente independiente. No identificó una vía expresamente permitida para esta finalidad y herramienta que resuelva las siete dudas. Una restricción de automatización no se extrapola a toda consulta humana; cuando el método de esta sesión queda sin acreditar, se conserva el siguiente paso manual.

@@ -15,7 +15,7 @@
         "record_id": "lead-bus22-seeker",
         "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
       },
-      "access_limit": "La relación entre dominios y la cobertura JE no están verificadas; no se ha establecido un método autorizado de inventario.",
+      "access_limit": "La relación .je/.gg no está verificada. El índice de términos de .gg presenta un permiso limitado a visión personal no comercial; no se considera permiso para esta finalidad ni para un lector.",
       "conclusion": "Sigue pendiente: No se ha acreditado la cobertura inmobiliaria de Jersey frente a Guernsey."
     },
     {
@@ -32,7 +32,7 @@
         "record_id": "lead-bus22-property-in-jersey",
         "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
       },
-      "access_limit": "Meta y los grupos conservan revisión manual; no se entró en ellos ni se solicitaron cuentas.",
+      "access_limit": "Meta conserva revisión manual. El índice de condiciones del Gobierno menciona visión personal e investigación, pero robots no pudo consultarse con la herramienta y la autorización del método sigue sin determinarse.",
       "conclusion": "Sigue pendiente: El nombre se menciona sin identificador; podría coincidir con un grupo ya inventariado."
     },
     {
@@ -100,7 +100,7 @@
         "record_id": "lead-bus22-app-historica",
         "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
       },
-      "access_limit": "La propuesta y la app histórica precisan contraste de identidad y términos; no se instalaron aplicaciones.",
+      "access_limit": "La app figura en revisión manual; el índice de términos Apple de EE. UU. requiere determinar si aplica a la ficha web y a esta finalidad. No se instalaron aplicaciones.",
       "conclusion": "Sigue pendiente: La app propuesta tiene nombre semejante a una app histórica atribuida a otro editor; no se conoce su relación."
     },
     {

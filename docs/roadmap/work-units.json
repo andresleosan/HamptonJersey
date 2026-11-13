@@ -3481,8 +3481,8 @@
       "title": "Investigación complementaria de casos especiales, posterior al directorio común",
       "preferredSlot": "hermes",
       "priority": 190,
-      "kind": "development",
-      "enabled": true,
+      "kind": "research",
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {

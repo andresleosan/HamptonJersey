@@ -19,9 +19,11 @@ test('BUS-14 retains 60 candidates and a listing recompute never displaces other
  assert.equal(get(e,'SELECT COUNT(*) n FROM matches').n,61);
  assert.deepEqual(await recomputeForApplicant(e,1,'system'),{created:0});
 });
-test('BUS-14 concurrent recomputes count actual inserts and emit one effective event and notice',async()=>{
- const e=setup(2),r=await Promise.all([recomputeForApplicant(e,1,'system'),recomputeForApplicant(e,1,'system')]);
- assert.equal(r.reduce((n,x)=>n+x.created,0),2);
+test('BUS-14 concurrent recomputes detect a stale snapshot and emit one effective event and notice',async()=>{
+ const e=setup(2),r=await Promise.allSettled([recomputeForApplicant(e,1,'system'),recomputeForApplicant(e,1,'system')]);
+ const completed=r.filter(x=>x.status==='fulfilled'),conflicts=r.filter(x=>x.status==='rejected');
+ assert.equal(completed.length,1);assert.equal(completed[0].value.created,2);
+ assert.equal(conflicts.length,1);assert.equal(conflicts[0].reason.status,409);
  assert.equal(get(e,"SELECT COUNT(*) n FROM events WHERE type='applicant.matched'").n,1);
  assert.equal(get(e,"SELECT COUNT(*) n FROM notifications WHERE category='matched' AND resolved_at IS NULL").n,1);
  assert.equal(JSON.parse(get(e,"SELECT data FROM events WHERE type='applicant.matched'").data).new,2);
@@ -43,7 +45,7 @@ test('BUS-14 revisions preserve applicant timestamp and human decisions; archive
 test('BUS-14 a listing edit between evaluation and writing invalidates stale results',async()=>{
  const e=setup(1),batch=e.DB.batch.bind(e.DB);let changed=false;
  e.DB.batch=async stmts=>{if(!changed&&stmts.some(s=>s.sql.includes('INSERT INTO matches'))){changed=true;run(e,"UPDATE listings SET sale_price=2000000 WHERE id='BUS-000'");}return batch(stmts);};
- assert.deepEqual(await recomputeForApplicant(e,1,'system'),{created:0});
+ await assert.rejects(recomputeForApplicant(e,1,'system'),{status:409});
  assert.equal(get(e,'SELECT COUNT(*) n FROM matches').n,0);
  assert.equal(get(e,'SELECT match_ranking_version FROM applicants WHERE id=1').match_ranking_version,0);
  assert.equal(get(e,"SELECT COUNT(*) n FROM events WHERE type='applicant.matched'").n,0);
@@ -51,7 +53,7 @@ test('BUS-14 a listing edit between evaluation and writing invalidates stale res
 test('BUS-14 a search edit with the same timestamp invalidates the evaluated inputs',async()=>{
  const e=setup(1),batch=e.DB.batch.bind(e.DB);let changed=false;
  e.DB.batch=async stmts=>{if(!changed&&stmts.some(s=>s.sql.includes('INSERT INTO matches'))){changed=true;run(e,'UPDATE applicants SET budget_max=500000 WHERE id=1');}return batch(stmts);};
- assert.deepEqual(await recomputeForApplicant(e,1,'system'),{created:0});assert.equal(get(e,'SELECT COUNT(*) n FROM matches').n,0);
+ await assert.rejects(recomputeForApplicant(e,1,'system'),{status:409});assert.equal(get(e,'SELECT COUNT(*) n FROM matches').n,0);
  assert.equal(get(e,'SELECT match_ranking_version FROM applicants').match_ranking_version,0);
 });
 test('BUS-14 full and single-listing recomputes share an effective event without duplicates',async()=>{

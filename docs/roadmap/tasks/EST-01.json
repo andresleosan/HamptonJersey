@@ -4,17 +4,21 @@
   "titulo": "Estado Waiting for investigation: registrado y con la primera búsqueda en cola",
   "origen": "texto",
   "fase": "F1-A",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "M03 · Reconciliación 7-nov: Registrar búsqueda activa, alta, responsable, último intento de cruce y último éxito, con resultados o datos pendientes. El cruce inicial puede ser inmediato; una revisión pendiente de una fuente no equivale a una investigación terminada sin propiedades. Depende de: BUS-01, EST-09.",
+  "hecho": "El recálculo del inventario propio comprueba en la transacción la búsqueda, sus revisiones y el conjunto de candidatas; ante deriva evita resultados parciales y comunica conflicto. Si el resultado del transporte se pierde, lo señala como desconocido. El conjunto y sus límites se probaron con datos ficticios en SQLite y D1 local.",
+  "falta": "Registrar y mostrar por búsqueda la fecha, responsable, último intento, último éxito y datos pendientes, con concurrencia y fallos distinguibles. La corrección actual cubre solo el inventario propio y no acredita las fuentes de BUS-01; tampoco evita la reutilización maliciosa de un ID sin tumba ni consulta D1 remoto.",
   "bloqueo": "",
   "evidencia": [
     "server/applicants.js:29-31",
     "server/routes/applicants.js:64-67",
     "server/routes/applicants.js:203",
     "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:35",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "server/match-store.js",
+    "tests/server/est-01-candidate-snapshot-d1.test.mjs",
+    "tests/server/est-01-completion-races.test.mjs",
+    "docs/roadmap/work/EST-01/carrera-conjunto-2026-11-13.md"
   ],
   "modulo": "M03",
   "deps": [
@@ -46,5 +50,6 @@
     "search-lifecycle",
     "applicants-schema"
   ],
-  "nextStep": "Registrar actividad, responsable y último intento/éxito de cruce sin confundir fuente pendiente con búsqueda vacía."
+  "nextStep": "Persistir intento y éxito verificables por búsqueda e integrar su estado con BUS-01 sin confundir fuente pendiente con resultado vacío.",
+  "actualizado": "2026-11-13"
 }

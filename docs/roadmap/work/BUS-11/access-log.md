@@ -10,3 +10,7 @@ El 13-nov-2026 se iniciaron búsquedas descriptivas antes de terminar de cotejar
 - Algunas búsquedas devolvieron fragmentos incidentales de anuncios. No se abrieron anuncios individuales ni se incorporaron direcciones, importes, fotos o personas a los archivos de BUS-11.
 
 No se accedió a grupos de Meta, cuentas, canales privados ni inventarios mediante un lector; no se contactó a nadie ni se modificó ninguna base o servicio. Los hallazgos de [findings.json](findings.json) remiten únicamente a la evidencia aceptada anterior o al cotejo local del relevo.
+
+## Contraste posterior de condiciones
+
+Tras la instrucción de cotejar primero cada canal, se realizaron búsquedas en el índice para localizar textos de condiciones de organismos públicos, asociaciones y plataformas; no se abrieron páginas de inventario ni nuevas páginas descriptivas de fuentes dudosas. El índice devolvió posibles condiciones de gov.je, Seeker.gg y Apple, que se registran con su alcance y fecha en [source-preflight.md](source-preflight.md), sin atribuirles autorización para un lector. Se intentó obtener el `robots.txt` de gov.je como comprobación de condiciones; la herramienta respondió que no era accesible. No se usó otro método para superar ese resultado.

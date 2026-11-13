@@ -1,5 +1,11 @@
 # Estado de Hampton App
 
+13-nov-2026 · **Progreso: 68/215 tareas aplicables (31,63 %).** BUS-11 se acepta como investigación documental con siete casos manuales abiertos. La integración EST-01/BUS-12 pasó 1.909 pruebas Node, 25 Python y el recorrido de moneda en Chromium aislado; ambas tareas siguen parciales. No se verificó D1 remoto.
+
+13-nov-2026 · **EST-01 y BUS-12 parciales:** el recálculo valida el conjunto local y las revisiones en un batch, sin fingir éxito tras conflicto; moneda desconocida no acredita el presupuesto. Faltan la telemetría de intento/éxito, inventario común y tratamiento de EUR en candidatas nuevas. [Concurrencia](work/EST-01/carrera-conjunto-2026-11-13.md) · [Moneda](work/BUS-12/residential-currency-evidence.md).
+
+13-nov-2026 · **BUS-11 hecho como investigación documental:** revisión independiente aceptada; ocho preguntas trazables, una cubierta y siete pendientes de revisión manual. No se otorgan permisos, altas ni fusiones. [Aceptación y límites](work/BUS-11/revision-aceptacion-2026-11-13.md).
+
 13-nov-2026 · **ADM-20 parcial:** se conservan las etiquetas legales existentes sin asignar un régimen por la fecha de renovación, y el panel advierte que corresponde verificar el ámbito y los plazos. La ficha de alquiler también corrige el reflujo con zoom. [Fuentes y límites](work/ADM-20/aviso-2026-11-13.md) · [Reflujo](work/ADM-20/reflujo-2026-11-13.md).
 
 13-nov-2026 · **PUB-06 parcial:** costes estructurados privados preparados con gate apagado, revisión explícita de moneda y comprobación estricta de auditoría. El SQL combinado con SPR-01 sigue fuera de migraciones; A3/A4 y esquema real pendientes. [Evidencia](work/PUB-06/structured-economics-evidence-2026-11-13.md).

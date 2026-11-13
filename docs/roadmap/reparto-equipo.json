@@ -20,9 +20,9 @@
       "count": 59,
       "openCount": 31,
       "states": {
-        "parcial": 22,
+        "parcial": 23,
         "hecho": 22,
-        "pendiente": 7,
+        "pendiente": 6,
         "replanteado": 6,
         "bloqueado": 2
       }
@@ -33,12 +33,12 @@
       "area": "Fuentes, agencias, integraciones y automatizaciones",
       "capacity": 2,
       "count": 61,
-      "openCount": 46,
+      "openCount": 45,
       "states": {
         "replanteado": 8,
-        "pendiente": 19,
+        "pendiente": 18,
         "parcial": 20,
-        "hecho": 7,
+        "hecho": 8,
         "bloqueado": 7
       }
     },
@@ -4163,10 +4163,10 @@
       "titulo": "Investigación complementaria de casos especiales, posterior al directorio común",
       "origen": "plan",
       "fase": "F1-B",
-      "estado": "pendiente",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "M01 · Reconciliación 7-nov: Conservar como ampliación complementaria la investigación de casos especiales con validación de fuente, URL y fecha. No sustituye las tres investigaciones separadas y secuenciales del directorio BUS-21 → BUS-22 → BUS-23 ni dispara una investigación completa por cada cliente. La investigación existente de Hampton_Database puede ser un punto de partida trazable; no demuestra que las tres pasadas estén completas. Las condiciones técnicas de acceso del agente se concretan sin cambiar criterios ni contactar por iniciativa propia. Depende de: BUS-23.",
+      "hecho": "Investigación documental aceptada tras revisión independiente: cotejada la cadena BUS-21/22/23 y registradas siete dudas manuales y una propuesta ya cubierta, con hallazgos, huellas, condiciones de reintento y delta sin altas. El plan permite aceptar los casos restringidos con límites explícitos; no se otorga permiso a fuentes ni se integran lectores.",
+      "falta": "Los siete casos siguen sin resolver y conservan su siguiente paso manual. BUS-19 mantiene la revisión por fuente; BUS-20, Homely y las bases originales conservan sus restricciones.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/Research.jsx:11-27",
@@ -4174,7 +4174,16 @@
         "migrations/0001_init.sql:59-94",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:266",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:268",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "docs/roadmap/work/BUS-11/scope.md",
+        "docs/roadmap/work/BUS-11/cases.json",
+        "docs/roadmap/work/BUS-11/findings.json",
+        "docs/roadmap/work/BUS-11/directory-delta.json",
+        "docs/roadmap/work/BUS-11/handoff.md",
+        "docs/roadmap/work/BUS-11/access-log.md",
+        "docs/roadmap/work/BUS-11/source-preflight.md",
+        "docs/roadmap/work/BUS-11/source-preflight.json",
+        "docs/roadmap/work/BUS-11/revision-aceptacion-2026-11-13.md"
       ],
       "modulo": "M01",
       "deps": [
@@ -4197,7 +4206,8 @@
       "resources": [
         "sources-directory"
       ],
-      "nextStep": "Tras consolidar el directorio, investigar casos especiales con evidencia y sin contactar por iniciativa propia."
+      "nextStep": "Retomar cada caso manual cuando se cumpla su condición de reintento y revisar acceso en BUS-19 antes de usar cualquier fuente.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "BUS-12",
@@ -4207,8 +4217,8 @@
       "fase": "F1-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Las prioridades y checks residenciales de REG-08 están publicados con 0031. Parking distingue cifra fiable de ambigüedad; el criterio de mascotas queda por confirmar ante condiciones o evidencia contradictoria, sin acreditar compatibilidad. La negativa inequívoca de mascotas para un hogar con animales se excluye desde e589b16; Shortlist y Rejected conservan sus decisiones. Se preparó una instantánea interna de criterios y revisión de cambios de estado, desconectada de rutas y ensayada con datos ficticios.",
-      "falta": "Continuar M04: inventario común y evidencia/fechas, confirmación de disponibilidad, criterios comerciales y negocios, y fuentes M02. El estado Stated must-haves met solo certifica los imprescindibles declarados, no todo BUS-12. El CAS por revisión de criterios no está integrado: faltan el esquema aprobado, los escritores y consumidores, y revalidar generación de identidad y permisos. El SQL propuesto permanece fuera de la cola de migraciones.",
+      "hecho": "Las prioridades y checks residenciales de REG-08 están publicados con 0031. Parking distingue cifra fiable de ambigüedad; el criterio de mascotas queda por confirmar ante condiciones o evidencia contradictoria, sin acreditar compatibilidad. La negativa inequívoca de mascotas para un hogar con animales se excluye desde e589b16; Shortlist y Rejected conservan sus decisiones. Se preparó una instantánea interna de criterios y revisión de cambios de estado, desconectada de rutas y ensayada con datos ficticios. En el cruce residencial, moneda ausente o distinta de GBP se evalúa como precio desconocido; tarjetas y recálculos reciben la misma moneda, conservan decisiones humanas y señalan el orden pendiente de actualizar.",
+      "falta": "Continuar M04: inventario común y evidencia/fechas, confirmación de disponibilidad, criterios comerciales y negocios, y fuentes M02. El estado Stated must-haves met solo certifica los imprescindibles declarados, no todo BUS-12. El CAS por revisión de criterios no está integrado: faltan el esquema aprobado, los escritores y consumidores, y revalidar generación de identidad y permisos. El SQL propuesto permanece fuera de la cola de migraciones. El filtro actual sigue excluyendo EUR para candidatas nuevas: incorporarlas requiere coordinar inventario y avisos; una selección existente en EUR se muestra pendiente.",
       "bloqueo": "",
       "evidencia": [
         "server/matching.js:31-43",
@@ -4221,7 +4231,12 @@
         "tests/server/requirements.test.mjs",
         "tests/reg08-e2e.cjs",
         "server/search-criteria.js",
-        "docs/roadmap/work/BUS-12/foundation-evidence.md"
+        "docs/roadmap/work/BUS-12/foundation-evidence.md",
+        "tests/server/bus-12-currency.test.mjs",
+        "tests/server/bus-12-currency-store.test.mjs",
+        "tests/server/bus-12-currency-card.test.mjs",
+        "tests/bus-12-currency.e2e.cjs",
+        "docs/roadmap/work/BUS-12/residential-currency-evidence.md"
       ],
       "modulo": "M04",
       "deps": [
@@ -4275,7 +4290,7 @@
         "market-inventory"
       ],
       "nextStep": "Revisar el esquema y los escritores antes de integrar el CAS y los consumidores; continuar inventario común y condiciones comerciales sin activar la propuesta desconectada.",
-      "actualizado": "2026-11-11"
+      "actualizado": "2026-11-13"
     },
     {
       "id": "BUS-13",
@@ -4760,17 +4775,21 @@
       "titulo": "Estado Waiting for investigation: registrado y con la primera búsqueda en cola",
       "origen": "texto",
       "fase": "F1-A",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "M03 · Reconciliación 7-nov: Registrar búsqueda activa, alta, responsable, último intento de cruce y último éxito, con resultados o datos pendientes. El cruce inicial puede ser inmediato; una revisión pendiente de una fuente no equivale a una investigación terminada sin propiedades. Depende de: BUS-01, EST-09.",
+      "hecho": "El recálculo del inventario propio comprueba en la transacción la búsqueda, sus revisiones y el conjunto de candidatas; ante deriva evita resultados parciales y comunica conflicto. Si el resultado del transporte se pierde, lo señala como desconocido. El conjunto y sus límites se probaron con datos ficticios en SQLite y D1 local.",
+      "falta": "Registrar y mostrar por búsqueda la fecha, responsable, último intento, último éxito y datos pendientes, con concurrencia y fallos distinguibles. La corrección actual cubre solo el inventario propio y no acredita las fuentes de BUS-01; tampoco evita la reutilización maliciosa de un ID sin tumba ni consulta D1 remoto.",
       "bloqueo": "",
       "evidencia": [
         "server/applicants.js:29-31",
         "server/routes/applicants.js:64-67",
         "server/routes/applicants.js:203",
         "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:35",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "server/match-store.js",
+        "tests/server/est-01-candidate-snapshot-d1.test.mjs",
+        "tests/server/est-01-completion-races.test.mjs",
+        "docs/roadmap/work/EST-01/carrera-conjunto-2026-11-13.md"
       ],
       "modulo": "M03",
       "deps": [
@@ -4802,7 +4821,8 @@
         "search-lifecycle",
         "applicants-schema"
       ],
-      "nextStep": "Registrar actividad, responsable y último intento/éxito de cruce sin confundir fuente pendiente con búsqueda vacía."
+      "nextStep": "Persistir intento y éxito verificables por búsqueda e integrar su estado con BUS-01 sin confundir fuente pendiente con resultado vacío.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "EST-02",

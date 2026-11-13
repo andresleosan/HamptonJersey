@@ -1,0 +1,25 @@
+# BUS-11 · Comprobación de vías descriptivas
+
+Fecha de contraste: 13 de noviembre de 2026. Esta comprobación distingue una consulta puntual de una persona de un lector automatizado o de la reutilización de datos. Que un sitio restrinja un lector no demuestra por sí solo que prohíba toda consulta personal; tampoco demuestra que una herramienta automática pueda consultar para una finalidad empresarial. No se han creado decisiones BUS-19 ni se ha accedido a inventarios.
+
+[Registro estructurado](source-preflight.json): ocho comprobaciones y su relación con las siete dudas. Se consultó el índice de un buscador **solo para identificar posibles condiciones**; la fecha de consulta es de este contraste y no equivale a una apertura actual del documento de origen. Las referencias indexadas no son licencia para desplegar lectores ni una conclusión jurídica sobre un caso concreto.
+
+| Caso | Vía independiente examinada | Resultado y paso concreto |
+| --- | --- | --- |
+| BUS11-001 · Seeker | [Términos de Seeker.gg](https://seeker.gg/Home/Terms), resultado indexado, última modificación que muestra: 29-abr-2024. | El índice describe una licencia limitada a visión personal y no comercial; no acredita autorización para la finalidad de Hampton, ni que cubra el dominio `.je`. Mantener manual hasta aclarar identidad de dominios y método. |
+| BUS11-002 · grupo social | Gobierno de Jersey, [condiciones](https://www.gov.je/Pages/Terms.aspx) indexadas; referencia institucional anterior aceptada. | El índice contempla visión personal y ciertos usos de investigación. La fila heredada exige revisar condiciones y robots: el intento de consultar `robots.txt` no fue accesible con esta herramienta. No se abrió otra página ni se entró en Meta; buscar un identificador solo mediante un método comprobado. |
+| BUS11-003 · Quemard | Asociaciones JEAA y Propertymark del relevo aceptado. | Sus filas son `solo_referencia` y piden revisar condiciones y robots antes de nuevas consultas. La relación jurídica sigue sin probarse; conservar ID y restricción previa. |
+| BUS11-004 · Francis James | Posible fuente oficial o asociación independiente. | No se identificó una decisión aplicable a una fuente concreta y al método de este contraste. Mantener la consulta pendiente y no inferir continuidad o cese. |
+| BUS11-005 · Brennan | Posible fuente oficial o asociación independiente. | Tampoco se identificó una vía con condiciones establecidas; evitar homónimos de otras jurisdicciones y mantener pendiente. |
+| BUS11-006 · app histórica | [Condiciones de Apple Media Services para EE. UU.](https://www.apple.com/legal/internet-services/itunes/us/terms.html), resultado indexado. | El índice contiene reglas generales de uso personal no comercial y excepciones. No se estableció que ese texto o jurisdicción rijan la ficha descriptiva web sin cuenta y la finalidad concreta; no se instaló una app. |
+| BUS11-007 · alias Accommodation Centre | Relevo aceptado y posible cotejo del catálogo histórico. | La propuesta conserva términos pendientes y el acceso al CSV histórico fue rechazado en una revisión anterior. Un responsable debe cotejar por una vía autorizada, sin reintentar la lectura rechazada. |
+
+El índice de condiciones de gov.je también menciona usos de investigación y circulación interna, con límites y salvaguardas para material de terceros; no convierte ese sitio en inventario permitido. El fallo de la consulta a robots tampoco es prueba de prohibición general: deja sin establecer el método disponible **con esta herramienta**. Los enlaces anteriores identifican los documentos de política, no habilitan acceder a otros canales ni demuestran que el texto siga vigente.
+
+BUS11-008 continúa `covered` únicamente porque la propuesta ya figura en el relevo aceptado. Ninguno de los siete casos se reclasifica como cubierto por estos índices. La [revisión independiente](revision-aceptacion-2026-11-13.md) acepta la investigación con estos pendientes manuales, conforme al plan.
+
+## Contrastes que sí pudieron hacerse
+
+Se cotejaron localmente las siete filas aceptadas, la presencia de los IDs existentes y las huellas de la cadena BUS-21/22/23. Se reutilizaron como antecedentes, con sus fechas originales y sin nueva apertura, la referencia institucional aceptada sobre el grupo, la observación previa de denominaciones Quemard y la ficha descriptiva de Apple; ninguna resuelve la identidad pendiente. La comprobación local de que Accommodation Centre ya es una propuesta sí resuelve BUS11-008, sin resolver su posible alias.
+
+También se consultaron en el índice los posibles textos de condiciones descritos arriba y se intentó únicamente la comprobación de robots de gov.je, que la herramienta no pudo obtener. **No se identificó una consulta nueva a una fuente independiente cuyo método y finalidad estuvieran expresamente autorizados**; por eso no se atribuyen hallazgos nuevos de identidad o cobertura a esos índices. Los siete roles y sus condiciones de reintento proceden de la cola aceptada y se conservan en [cases.json](cases.json), junto con criterios más concretos para este alcance.

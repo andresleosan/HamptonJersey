@@ -4,10 +4,10 @@
   "titulo": "Investigación complementaria de casos especiales, posterior al directorio común",
   "origen": "plan",
   "fase": "F1-B",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Cotejada la cadena aceptada BUS-21/22/23 y registradas siete dudas especiales reales más una comprobación de duplicado ya cubierta, con referencias y huellas. Preparados casos, hallazgos, delta sin altas y relevo; la trazabilidad distingue consultas puntuales previas al cotejo de acceso.",
-  "falta": "Faltan la revisión independiente de la evidencia y la aceptación de esta investigación. Comprobar si existe algún método expresamente permitido para cada duda y, si no lo hay, mantener documentados el límite y el siguiente paso manual; el plan admite casos manuales sin resolver. No se autoriza lectura automática, fusión de alias ni alta de fuentes; BUS-20, Homely y las bases originales conservan sus restricciones.",
+  "hecho": "Investigación documental aceptada tras revisión independiente: cotejada la cadena BUS-21/22/23 y registradas siete dudas manuales y una propuesta ya cubierta, con hallazgos, huellas, condiciones de reintento y delta sin altas. El plan permite aceptar los casos restringidos con límites explícitos; no se otorga permiso a fuentes ni se integran lectores.",
+  "falta": "Los siete casos siguen sin resolver y conservan su siguiente paso manual. BUS-19 mantiene la revisión por fuente; BUS-20, Homely y las bases originales conservan sus restricciones.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/Research.jsx:11-27",
@@ -21,7 +21,10 @@
     "docs/roadmap/work/BUS-11/findings.json",
     "docs/roadmap/work/BUS-11/directory-delta.json",
     "docs/roadmap/work/BUS-11/handoff.md",
-    "docs/roadmap/work/BUS-11/access-log.md"
+    "docs/roadmap/work/BUS-11/access-log.md",
+    "docs/roadmap/work/BUS-11/source-preflight.md",
+    "docs/roadmap/work/BUS-11/source-preflight.json",
+    "docs/roadmap/work/BUS-11/revision-aceptacion-2026-11-13.md"
   ],
   "modulo": "M01",
   "deps": [
@@ -44,6 +47,6 @@
   "resources": [
     "sources-directory"
   ],
-  "nextStep": "Revisar independientemente los casos, huellas y límites; contrastar los casos con método expresamente permitido y aceptar o devolver el relevo, manteniendo explícitos los pendientes manuales.",
+  "nextStep": "Retomar cada caso manual cuando se cumpla su condición de reintento y revisar acceso en BUS-19 antes de usar cualquier fuente.",
   "actualizado": "2026-11-13"
 }

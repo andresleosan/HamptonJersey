@@ -25,7 +25,10 @@
       "gap_reason": "No se ha acreditado la cobertura inmobiliaria de Jersey frente a Guernsey.",
       "priority": "no_asignada",
       "status": "manual_pending",
-      "next_action": "Buscar una referencia pública inequívoca de cobertura inmobiliaria JE; revisar condiciones y robots antes de cualquier consulta a inventarios. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+      "next_action": "Revisar la identidad de los dominios y el alcance aplicable a la finalidad de Hampton: el índice de términos de .gg solo muestra una licencia de visión personal no comercial. No abrir inventario ni automatizar; si no hay método permitido, conservar la revisión manual.",
+      "owner": "investigación",
+      "retry_condition": "Nueva evidencia geográfica concreta o condiciones de acceso verificadas.",
+      "retry_condition_specific": "Nueva referencia geográfica inequívoca y comprobación expresa de condiciones para el dominio y el método de la consulta; no extrapolar de .gg a .je."
     },
     {
       "case_id": "BUS11-002",
@@ -49,7 +52,10 @@
       "gap_reason": "El nombre se menciona sin identificador; podría coincidir con un grupo ya inventariado.",
       "priority": "no_asignada",
       "status": "manual_pending",
-      "next_action": "Identificar mediante referencia pública independiente y comparar con los IDs sociales existentes; conservar revisión manual. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+      "next_action": "Conservar la referencia institucional aceptada, sin entrar en Meta. Un responsable puede contrastar un identificador mediante una fuente independiente solo cuando se comprueben sus condiciones y el método de consulta.",
+      "owner": "investigación",
+      "retry_condition": "Referencia pública que aporte un identificador sin requerir acceso restringido.",
+      "retry_condition_specific": "Referencia pública independiente que aporte un identificador comparable sin entrar en Meta, tras revisar sus condiciones aplicables."
     },
     {
       "case_id": "BUS11-003",
@@ -73,7 +79,10 @@
       "gap_reason": "El alias histórico no acredita si las dos denominaciones son la misma entidad jurídica.",
       "priority": "no_asignada",
       "status": "manual_pending",
-      "next_action": "Contrastar solo cuando haya una fuente pública apropiada de titularidad o sucesión; mantener el ID y condiciones existentes. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+      "next_action": "Mantener el ID y la relación histórica sin fusionar entidades. Verificar las condiciones de la asociación o de un registro independiente antes de consultar; la web de la agencia conserva su restricción específica.",
+      "owner": "investigación",
+      "retry_condition": "Nueva fuente pública fiable o autorización aplicable; no repetir accesos restringidos sin novedad.",
+      "retry_condition_specific": "Prueba fiable de la relación jurídica o sucesión de las dos denominaciones, procedente de un registro o asociación cuyo método de consulta esté permitido."
     },
     {
       "case_id": "BUS11-004",
@@ -97,7 +106,10 @@
       "gap_reason": "Una referencia histórica no demuestra continuidad ni cese.",
       "priority": "no_asignada",
       "status": "manual_pending",
-      "next_action": "Buscar una referencia pública nueva que identifique la marca y su situación; no darla de alta sin contrastar duplicados. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+      "next_action": "Buscar una prueba posterior de identidad o situación únicamente en una fuente independiente cuyo método descriptivo esté permitido; si no se acredita, conservar el caso manual sin darlo de alta ni declarar cese.",
+      "owner": "investigación",
+      "retry_condition": "Referencia posterior verificable o cambio documentado.",
+      "retry_condition_specific": "Referencia posterior fechada que identifique la marca de Jersey y su continuidad o situación, en una fuente independiente con consulta permitida."
     },
     {
       "case_id": "BUS11-005",
@@ -121,7 +133,10 @@
       "gap_reason": "Una referencia histórica no demuestra continuidad ni cese.",
       "priority": "no_asignada",
       "status": "manual_pending",
-      "next_action": "Buscar una referencia pública nueva que identifique la marca y su situación; no darla de alta sin contrastar duplicados. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+      "next_action": "Buscar una prueba posterior de identidad o situación únicamente en una fuente independiente cuyo método descriptivo esté permitido; descartar homónimos de otras jurisdicciones y no declarar cese.",
+      "owner": "investigación",
+      "retry_condition": "Referencia posterior verificable o cambio documentado.",
+      "retry_condition_specific": "Referencia posterior fechada que identifique la marca de Jersey y su continuidad o situación, en una fuente independiente con consulta permitida y sin confundir homónimos."
     },
     {
       "case_id": "BUS11-006",
@@ -145,7 +160,10 @@
       "gap_reason": "La app propuesta tiene nombre semejante a una app histórica atribuida a otro editor; no se conoce su relación.",
       "priority": "no_asignada",
       "status": "manual_pending",
-      "next_action": "Buscar una fuente pública que establezca continuidad o independencia antes de integrar la propuesta al catálogo. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+      "next_action": "Revisar qué condiciones y jurisdicción corresponden a una ficha descriptiva y contrastar la titularidad por una vía permitida. No instalar aplicaciones ni interpretar condiciones de otro servicio como una licencia para la ficha.",
+      "owner": "investigación",
+      "retry_condition": "Evidencia pública de titularidad o sucesión que distinga las aplicaciones.",
+      "retry_condition_specific": "Referencia pública autorizada que vincule inequívocamente identificadores o editores de las dos aplicaciones, sin instalación ni acceso a cuentas."
     },
     {
       "case_id": "BUS11-007",
@@ -169,7 +187,10 @@
       "gap_reason": "La propuesta no aparece en documentos aceptados; queda por contrastar el catálogo histórico completo y posibles alias.",
       "priority": "no_asignada",
       "status": "manual_pending",
-      "next_action": "Comprobar por vía autorizada alias y dominio antes de integrar; revisar condiciones y robots antes de consultar inventarios. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+      "next_action": "El responsable del directorio debe cotejar el posible alias por una vía ya autorizada; la lectura del CSV histórico rechazada anteriormente no se reintenta. Revisar condiciones antes de consultar o integrar la propuesta.",
+      "owner": "investigación",
+      "retry_condition": "Vía autorizada de revisión de alias y evidencia nueva sobre titularidad o condiciones.",
+      "retry_condition_specific": "Vía permitida para comparar el identificador propuesto con los aliases históricos y evidencia nueva de titularidad, sin reintentar el CSV cuya lectura fue rechazada."
     },
     {
       "case_id": "BUS11-008",

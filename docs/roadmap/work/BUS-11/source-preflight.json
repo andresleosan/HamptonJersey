@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "checks": [
+    {
+      "check_id": "P01",
+      "case_ids": [
+        "BUS11-001"
+      ],
+      "source": "Seeker.gg",
+      "policy_url": "https://seeker.gg/Home/Terms",
+      "checked_at": "2026-11-13",
+      "method": "search_index_only",
+      "observation": "El índice de los términos del operador presenta una licencia de visión transitoria personal y no comercial, y fecha de modificación de 2024-04-29.",
+      "limit": "Es una copia indexada; no se ha verificado el documento actual ni que cubra el dominio .je o la finalidad de Hampton. No autoriza un lector ni una consulta comercial.",
+      "decision": "no_new_source_opening"
+    },
+    {
+      "check_id": "P02",
+      "case_ids": [
+        "BUS11-002",
+        "BUS11-004",
+        "BUS11-005",
+        "BUS11-007"
+      ],
+      "source": "Government of Jersey",
+      "policy_url": "https://www.gov.je/Pages/Terms.aspx",
+      "checked_at": "2026-11-13",
+      "method": "search_index_only",
+      "observation": "El índice de condiciones menciona la consulta personal y un uso de materiales gubernamentales para investigación o circulación interna, con condiciones.",
+      "limit": "No se atribuye esa licencia a terceros, registros concretos o lectores; la fila aceptada es solo referencia y exige revisar condiciones y robots antes de nuevas consultas.",
+      "decision": "manual_method_not_established"
+    },
+    {
+      "check_id": "P03",
+      "case_ids": [
+        "BUS11-002",
+        "BUS11-004",
+        "BUS11-005",
+        "BUS11-007"
+      ],
+      "source": "Government of Jersey robots",
+      "policy_url": "https://www.gov.je/robots.txt",
+      "checked_at": "2026-11-13",
+      "method": "conditions_probe",
+      "observation": "El intento de recuperar robots.txt no fue accesible mediante la herramienta.",
+      "limit": "No se interpreta como permiso ni como prohibición general; no se intentaron métodos alternativos para eludir el fallo.",
+      "decision": "stop_for_this_tool"
+    },
+    {
+      "check_id": "P04",
+      "case_ids": [
+        "BUS11-006"
+      ],
+      "source": "Apple Media Services, EE. UU.",
+      "policy_url": "https://www.apple.com/legal/internet-services/itunes/us/terms.html",
+      "checked_at": "2026-11-13",
+      "method": "search_index_only",
+      "observation": "El índice describe reglas generales de uso personal no comercial y excepciones por servicio.",
+      "limit": "No se ha establecido que ese texto de otra jurisdicción rija la ficha web sin cuenta ni esta finalidad; no se instala ni consulta la app.",
+      "decision": "manual_method_not_established"
+    },
+    {
+      "check_id": "P05",
+      "case_ids": [
+        "BUS11-003"
+      ],
+      "source": "JEAA y Propertymark",
+      "policy_url": null,
+      "checked_at": "2026-11-13",
+      "method": "accepted_handoff_review",
+      "observation": "Las filas aceptadas de ambas asociaciones son solo referencia y piden revisar condiciones y robots antes de nuevas consultas.",
+      "limit": "La observación histórica de denominaciones no demuestra identidad jurídica ni permiso adicional.",
+      "decision": "no_new_source_opening"
+    },
+    {
+      "check_id": "P06",
+      "case_ids": [
+        "BUS11-004",
+        "BUS11-005"
+      ],
+      "source": "Registros o asociaciones independientes",
+      "policy_url": null,
+      "checked_at": "2026-11-13",
+      "method": "accepted_handoff_review",
+      "observation": "No se identificó en el relevo una decisión explícita de consulta para un registro independiente que resuelva estas dos identidades.",
+      "limit": "Una referencia pública o un dominio ausente del relevo no prueban permiso, inexistencia o cese.",
+      "decision": "manual_method_not_established"
+    },
+    {
+      "check_id": "P07",
+      "case_ids": [
+        "BUS11-002"
+      ],
+      "source": "Canal social",
+      "policy_url": null,
+      "checked_at": "2026-11-13",
+      "method": "accepted_handoff_review",
+      "observation": "Los canales sociales conservan su carril de revisión manual; la referencia institucional aceptada no identifica el grupo.",
+      "limit": "No se accede a Meta, grupos privados ni cuentas.",
+      "decision": "manual_review"
+    },
+    {
+      "check_id": "P08",
+      "case_ids": [
+        "BUS11-007"
+      ],
+      "source": "Accommodation Centre y catálogo histórico",
+      "policy_url": null,
+      "checked_at": "2026-11-13",
+      "method": "accepted_handoff_review",
+      "observation": "La propuesta mantiene términos y robots pendientes; el catálogo histórico completo conserva la limitación de lectura rechazada anteriormente.",
+      "limit": "No se reintenta el archivo bloqueado ni se considera duplicado por semejanza de nombre.",
+      "decision": "manual_review"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "BUS11-001",
+      "check_ids": [
+        "P01"
+      ],
+      "status": "manual_pending"
+    },
+    {
+      "case_id": "BUS11-002",
+      "check_ids": [
+        "P02",
+        "P03",
+        "P07"
+      ],
+      "status": "manual_pending"
+    },
+    {
+      "case_id": "BUS11-003",
+      "check_ids": [
+        "P05"
+      ],
+      "status": "manual_pending"
+    },
+    {
+      "case_id": "BUS11-004",
+      "check_ids": [
+        "P02",
+        "P03",
+        "P06"
+      ],
+      "status": "manual_pending"
+    },
+    {
+      "case_id": "BUS11-005",
+      "check_ids": [
+        "P02",
+        "P03",
+        "P06"
+      ],
+      "status": "manual_pending"
+    },
+    {
+      "case_id": "BUS11-006",
+      "check_ids": [
+        "P04"
+      ],
+      "status": "manual_pending"
+    },
+    {
+      "case_id": "BUS11-007",
+      "check_ids": [
+        "P02",
+        "P03",
+        "P08"
+      ],
+      "status": "manual_pending"
+    }
+  ]
+}

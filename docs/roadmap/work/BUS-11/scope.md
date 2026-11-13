@@ -1,6 +1,6 @@
 # BUS-11 · Alcance de los casos especiales
 
-Fecha de corte: 13 de noviembre de 2026. Investigación **parcial** y exclusivamente documental; no constituye una aceptación de BUS-11, autorización por fuente ni inventario de anuncios.
+Fecha de corte: 13 de noviembre de 2026. Investigación exclusivamente documental, [aceptada con siete casos manuales pendientes](revision-aceptacion-2026-11-13.md); no concede autorización por fuente ni constituye inventario de anuncios.
 
 ## Base y trazabilidad
 
@@ -23,4 +23,4 @@ La coincidencia de nombre o dominio no acredita identidad jurídica. La fuente p
 
 La política heredada por los 237 registros no contiene canales declarados automáticamente habilitados: conserva `solo_referencia`, términos y robots pendientes, revisiones específicas o manuales, exclusiones, claves y permisos escritos. Homely continúa excluido; Properties.je requiere permiso escrito y Places.je queda aplazado como conector. Los grupos y particulares conservan su revisión propia, y BUS-20 no se ejecuta desde este trabajo. No se ha usado una cuenta ni un canal privado, ni se ha contactado a terceros, consultado producción o modificado base/servicio alguno. No se interpretan ausencias de evidencia como ausencia de anuncios.
 
-El [registro de accesos](access-log.md) documenta una secuencia de consultas puntuales realizada antes de completar el cotejo de condiciones y el cese posterior de aperturas no autorizadas. No se reutiliza el contenido de las páginas problemáticas ni se infiere permiso. Los [hallazgos](findings.md) solo se basan en evidencia previamente aceptada y en la comparación local; fechas originales y límites se conservan.
+El [registro de accesos](access-log.md) documenta una secuencia de consultas puntuales realizada antes de completar el cotejo de condiciones y el cese posterior de aperturas no autorizadas. No se reutiliza el contenido de las páginas problemáticas ni se infiere permiso. Los [hallazgos de identidad](findings.md) solo se basan en evidencia previamente aceptada y en la comparación local; fechas originales y límites se conservan. El [precontraste de condiciones](source-preflight.md) registra por separado índices y el intento fallido de consultar robots, sin atribuirles permiso.
