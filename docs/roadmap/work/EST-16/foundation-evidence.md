@@ -18,3 +18,7 @@ Faltan persistencia versionada y su operación atómica, evidencia y autorizaci�
 La revisión independiente no detectó fallos graves del cálculo desconectado y ejecutó 46 comprobaciones sintéticas adicionales. Detectó que un array disperso podía omitir un hecho al procesarse: la regresión falló antes de la corrección y después la entrada incompleta se rechazó. Esta validación no es una barrera para objetos JavaScript hostiles; cualquier consumidor futuro debe validar el límite de entrada y procedencia.
 
 Verificación final de la copia integrada: `npm test` aprobó 1.483 pruebas JavaScript y 25 Python; `build`, `check:release`, `team:check` y `check:packages` aprobaron. Al añadir la guía de migraciones, una primera ejecución detectó que el helper Python leía cualquier archivo como SQL; se corrigió para cargar solo `.sql` y la suite completa se repitió correctamente.
+
+## Preparación de persistencia · 13-nov-2026
+
+La [propuesta de persistencia y dependencias](persistence-readiness.md) precisa las guardas transaccionales, el replay, el acceso y la retención pendientes. BUS-10 aún deniega su fachada; faltan autoridad durable ADM-18 y reglas verificables de evidencia y retención. No se añadió persistencia, migración ni acceso: implementar un escritor antes de esas dependencias no permitiría verificar sus guardas en la transacción. Se repitieron las 15 pruebas sintéticas focales del cálculo existente; todas aprobaron. No se ha probado una transacción D1 nueva ni datos o permisos reales. Playwright no aplica.
