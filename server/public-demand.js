@@ -22,7 +22,7 @@ export async function getDemandRecoveryScope(env,actor) {
   await ensureReady(env); assertInput(actorOk(actor)); const db=primary(env.DB), candidate=crypto.randomUUID();
   try {
     const result=await db.batch([
-      guards(db,'EXISTS(SELECT 1 FROM admins WHERE email=?)',actor),
+      guards(db,`${DEMAND_SCHEMA_GUARD} AND EXISTS(SELECT 1 FROM admins WHERE email=?)`,actor),
       db.prepare('INSERT OR IGNORE INTO demand_recovery_scopes(actor,scope) VALUES(?,?)').bind(actor,candidate),
       db.prepare('SELECT scope FROM demand_recovery_scopes WHERE actor=?').bind(actor),clear(db),
     ]);
@@ -82,7 +82,7 @@ export async function markDemandPageReviewed(env,{id,version,after},actor) {
   await ensureReady(env); assertInput(uuid(id)&&Number.isSafeInteger(version)&&version>0&&[0,50].includes(after)&&actorOk(actor));
   const db=primary(env.DB);
   try { await db.batch([
-    guards(db,`EXISTS(SELECT 1 FROM admins WHERE email=?) AND EXISTS(SELECT 1 FROM public_demand_snapshots s WHERE s.id=? AND s.version=? AND s.status='draft' AND s.private_payload IS NOT NULL AND s.as_of>strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days') AND (?=0 OR json_array_length(json_extract(s.private_payload,'$.cells'))>50))`,actor,id,version,after),
+    guards(db,`${DEMAND_SCHEMA_GUARD} AND EXISTS(SELECT 1 FROM admins WHERE email=?) AND EXISTS(SELECT 1 FROM public_demand_snapshots s WHERE s.id=? AND s.version=? AND s.status='draft' AND s.private_payload IS NOT NULL AND s.as_of>strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days') AND (?=0 OR json_array_length(json_extract(s.private_payload,'$.cells'))>50))`,actor,id,version,after),
     db.prepare("INSERT OR IGNORE INTO public_demand_page_reviews(snapshot_id,version,actor,page_start,reviewed_at) VALUES(?,?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now'))").bind(id,version,actor,after),clear(db),
   ]); } catch { fail(409,'Draft changed'); }
   return {id,version,after};
@@ -98,7 +98,7 @@ export async function approveDemandDraft(env,{id,version,authorization_id},actor
   const authorization=await readAcceptedReleaseAuthorization(env,expected,time.now);
   if(!authorization) fail(409,'Release review not available');
   try { await db.batch([
-    guards(db,`EXISTS(SELECT 1 FROM admins WHERE email=?) AND EXISTS(SELECT 1 FROM public_demand_snapshots s JOIN public_demand_release_state l ON l.id=1 JOIN demand_release_authorizations a ON a.id=? WHERE s.id=? AND s.status='draft' AND s.version=? AND s.private_payload IS NOT NULL AND EXISTS(SELECT 1 FROM public_demand_page_reviews r WHERE r.snapshot_id=s.id AND r.version=s.version AND r.actor=? AND r.page_start=0) AND (json_array_length(json_extract(s.private_payload,'$.cells'))<=50 OR EXISTS(SELECT 1 FROM public_demand_page_reviews r WHERE r.snapshot_id=s.id AND r.version=s.version AND r.actor=? AND r.page_start=50)) AND s.as_of>strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days') AND s.valid_until>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND l.ledger_version=? AND l.releases_sha256=? AND a.policy_version=? AND a.public_sha256=s.public_sha256 AND a.releases_sha256=l.releases_sha256 AND a.ledger_version=l.ledger_version AND a.identity_checked=1 AND a.inference_review='accepted' AND a.revoked_at IS NULL AND a.accepted_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now') AND a.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND a.source_ref=? AND a.approved_by_ref=? AND a.accepted_at=? AND a.expires_at=?)`,actor,authorization_id,id,version,actor,actor,state.ledger_version,state.releases_sha256,policy(env),authorization.source_ref,authorization.approved_by_ref,authorization.accepted_at,authorization.expires_at),
+    guards(db,`${DEMAND_SCHEMA_GUARD} AND EXISTS(SELECT 1 FROM admins WHERE email=?) AND EXISTS(SELECT 1 FROM public_demand_snapshots s JOIN public_demand_release_state l ON l.id=1 JOIN demand_release_authorizations a ON a.id=? WHERE s.id=? AND s.status='draft' AND s.version=? AND s.private_payload IS NOT NULL AND EXISTS(SELECT 1 FROM public_demand_page_reviews r WHERE r.snapshot_id=s.id AND r.version=s.version AND r.actor=? AND r.page_start=0) AND (json_array_length(json_extract(s.private_payload,'$.cells'))<=50 OR EXISTS(SELECT 1 FROM public_demand_page_reviews r WHERE r.snapshot_id=s.id AND r.version=s.version AND r.actor=? AND r.page_start=50)) AND s.as_of>strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days') AND s.valid_until>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND l.ledger_version=? AND l.releases_sha256=? AND a.policy_version=? AND a.public_sha256=s.public_sha256 AND a.releases_sha256=l.releases_sha256 AND a.ledger_version=l.ledger_version AND a.identity_checked=1 AND a.inference_review='accepted' AND a.revoked_at IS NULL AND a.accepted_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now') AND a.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND a.source_ref=? AND a.approved_by_ref=? AND a.accepted_at=? AND a.expires_at=?)`,actor,authorization_id,id,version,actor,actor,state.ledger_version,state.releases_sha256,policy(env),authorization.source_ref,authorization.approved_by_ref,authorization.accepted_at,authorization.expires_at),
     db.prepare(`UPDATE public_demand_snapshots SET status='approved',version=version+1,authorization_id=?,ledger_version=?,ledger_hash=?,approved_by=?,approved_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?`).bind(authorization_id,state.ledger_version,state.releases_sha256,actor,id),clear(db),
   ]); } catch { fail(409,'Draft or release review changed'); }
   return {id,version:version+1,status:'approved'};
@@ -122,7 +122,7 @@ export async function publishDemandDraft(env,{id,version},actor) {
   if(!authorization) fail(409,'Release review not available');
   const nextHash=await sha256(JSON.stringify([...list,[id,snap.public_sha256,snap.operation,time.now]]));
   try { await db.batch([
-    guards(db,`EXISTS(SELECT 1 FROM admins WHERE email=?) AND EXISTS(SELECT 1 FROM public_demand_snapshots s JOIN public_demand_release_state l ON l.id=1 JOIN demand_release_authorizations a ON a.id=s.authorization_id WHERE s.id=? AND s.status='approved' AND s.version=? AND s.private_payload IS NOT NULL AND s.as_of>strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days') AND s.valid_until>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND s.public_sha256=? AND s.ledger_version=l.ledger_version AND s.ledger_hash=l.releases_sha256 AND l.ledger_version=? AND l.releases_sha256=? AND a.policy_version=? AND a.public_sha256=s.public_sha256 AND a.releases_sha256=l.releases_sha256 AND a.ledger_version=l.ledger_version AND a.identity_checked=1 AND a.inference_review='accepted' AND a.revoked_at IS NULL AND a.accepted_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now') AND a.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND a.source_ref=? AND a.approved_by_ref=? AND a.accepted_at=? AND a.expires_at=?)`,actor,id,version,snap.public_sha256,state.ledger_version,state.releases_sha256,policy(env),authorization.source_ref,authorization.approved_by_ref,authorization.accepted_at,authorization.expires_at),
+    guards(db,`${DEMAND_SCHEMA_GUARD} AND EXISTS(SELECT 1 FROM admins WHERE email=?) AND EXISTS(SELECT 1 FROM public_demand_snapshots s JOIN public_demand_release_state l ON l.id=1 JOIN demand_release_authorizations a ON a.id=s.authorization_id WHERE s.id=? AND s.status='approved' AND s.version=? AND s.private_payload IS NOT NULL AND s.as_of>strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days') AND s.valid_until>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND s.public_sha256=? AND s.ledger_version=l.ledger_version AND s.ledger_hash=l.releases_sha256 AND l.ledger_version=? AND l.releases_sha256=? AND a.policy_version=? AND a.public_sha256=s.public_sha256 AND a.releases_sha256=l.releases_sha256 AND a.ledger_version=l.ledger_version AND a.identity_checked=1 AND a.inference_review='accepted' AND a.revoked_at IS NULL AND a.accepted_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now') AND a.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND a.source_ref=? AND a.approved_by_ref=? AND a.accepted_at=? AND a.expires_at=?)`,actor,id,version,snap.public_sha256,state.ledger_version,state.releases_sha256,policy(env),authorization.source_ref,authorization.approved_by_ref,authorization.accepted_at,authorization.expires_at),
     db.prepare('INSERT INTO public_demand_releases(ledger_sequence,id,public_sha256,operation,published_at,public_payload) VALUES(?,?,?,?,?,?)')
       .bind(state.ledger_version+1,id,snap.public_sha256,snap.operation,time.now,snap.public_payload),
     db.prepare(`INSERT INTO public_demand_pointer(operation,current_snapshot_id,version) VALUES(?,?,1)
@@ -136,7 +136,7 @@ export async function revokeDemandDraft(env,{id,version},actor) {
   await ensureReady(env); assertInput(uuid(id)&&Number.isSafeInteger(version)&&version>0&&actorOk(actor));
   const db=primary(env.DB);
   try { await db.batch([
-    guards(db,"EXISTS(SELECT 1 FROM admins WHERE email=?) AND EXISTS(SELECT 1 FROM public_demand_snapshots WHERE id=? AND version=? AND status IN ('draft','approved','published'))",actor,id,version),
+    guards(db,`${DEMAND_SCHEMA_GUARD} AND EXISTS(SELECT 1 FROM admins WHERE email=?) AND EXISTS(SELECT 1 FROM public_demand_snapshots WHERE id=? AND version=? AND status IN ('draft','approved','published'))`,actor,id,version),
     db.prepare('DELETE FROM public_demand_pointer WHERE current_snapshot_id=?').bind(id),
     db.prepare("UPDATE public_demand_snapshots SET status='revoked',version=version+1 WHERE id=?").bind(id),clear(db),
   ]); } catch { fail(409,'Snapshot changed'); }
@@ -145,7 +145,8 @@ export async function revokeDemandDraft(env,{id,version},actor) {
 export async function currentPublicDemand(env) {
   if(env.PUBLIC_DEMAND_READY!=='1' || !policy(env) || !await demandSchemaReady(env)) return {status:'not_available'};
   const db=primary(env.DB);
-  const [rows,time]=await db.batch([db.prepare(`SELECT s.id,s.operation,s.public_payload,s.public_sha256 FROM public_demand_pointer p
+  let schema,rows,time;
+  try { [schema,rows,time]=await db.batch([db.prepare(`SELECT CASE WHEN ${DEMAND_SCHEMA_GUARD} THEN 1 ELSE 0 END AS ready`),db.prepare(`SELECT s.id,s.operation,s.public_payload,s.public_sha256 FROM public_demand_pointer p
     JOIN public_demand_snapshots s ON s.id=p.current_snapshot_id AND s.operation=p.operation
     JOIN demand_release_authorizations a ON a.id=s.authorization_id
     WHERE s.status='published' AND s.valid_until>strftime('%Y-%m-%dT%H:%M:%fZ','now')
@@ -154,8 +155,10 @@ export async function currentPublicDemand(env) {
       AND a.ledger_version=s.ledger_version AND a.releases_sha256=s.ledger_hash AND length(a.source_ref) BETWEEN 1 AND 160 AND length(a.approved_by_ref) BETWEEN 1 AND 160
       AND substr(a.source_ref,1,1) GLOB '[A-Za-z0-9]' AND a.source_ref NOT GLOB '*[^A-Za-z0-9._:-]*'
       AND substr(a.approved_by_ref,1,1) GLOB '[A-Za-z0-9]' AND a.approved_by_ref NOT GLOB '*[^A-Za-z0-9._:-]*'
-    ORDER BY s.operation`).bind(policy(env)),qtime(db)]).then(r=>[r[0].results,r[1].results?.[0]]);
-  if(!Array.isArray(rows)||!time) return {status:'not_available'};
+    ORDER BY s.operation`).bind(policy(env)),qtime(db)]).then(r=>[r[0].results?.[0],r[1].results,r[2].results?.[0]]); }
+  catch { return {status:'not_available'}; }
+
+  if(schema?.ready!==1||!Array.isArray(rows)||!time) return {status:'not_available'};
   const snapshots=[];
   for(const row of rows) {
     if(await sha256(row.public_payload)!==row.public_sha256) continue;

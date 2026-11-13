@@ -151,7 +151,21 @@ test('D1 synthetic: release needs independent authority, respects ledger and clo
   assert.equal(completed.ok,true);assert.equal(completed.attempts,2);assert.ok(completed.purged>=1);
 
 
-  await db.prepare('DROP TRIGGER invalidate_demand_on_search_delete').run();
+  const contactTrigger=(await db.prepare("SELECT sql FROM sqlite_master WHERE type='trigger' AND name='invalidate_demand_on_contact_delete'").first()).sql;
+  let removedOnRead=false;
+  const publicRaceDB={prepare:sql=>db.prepare(sql),batch:async stmts=>{
+    if(!removedOnRead) {removedOnRead=true;await db.prepare('DROP TRIGGER invalidate_demand_on_contact_delete').run();}
+    return db.batch(stmts);
+  }};
+  assert.deepEqual(await currentPublicDemand({...env,DB:publicRaceDB}),{status:'not_available'});
+  await db.prepare(contactTrigger).run();
+  let removedOnWrite=false;
+  const mutationRaceDB={prepare:sql=>db.prepare(sql),batch:async stmts=>{
+    if(!removedOnWrite) {removedOnWrite=true;await db.prepare('DROP TRIGGER invalidate_demand_on_search_delete').run();}
+    return db.batch(stmts);
+  }};
+  await assert.rejects(()=>revokeDemandDraft({...env,DB:mutationRaceDB},{id:multiId,version:2},colleague));
+  assert.equal((await db.prepare('SELECT status FROM public_demand_snapshots WHERE id=?').bind(multiId).first()).status,'approved');
   const closedId='c0000000-0000-4000-8000-000000000007';
   await assert.rejects(()=>generateDemandDraft(env,{operation:'rent',operation_id:closedId},actor));
   assert.equal(await db.prepare('SELECT id FROM public_demand_snapshots WHERE id=?').bind(closedId).first(),null);
