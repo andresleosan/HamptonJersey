@@ -116,6 +116,15 @@ function writesFor(env, a, results, stored, actor, ts, requireEffects=false) {
     guarded(`UPDATE notifications SET resolved_at=COALESCE(resolved_at,?),resolved_by=COALESCE(resolved_by,?),
     closed_by_source=1,task_actor=?,task_action='source_resolved' WHERE ${SOURCE_CLOSABLE_NOTICE}
     AND NOT EXISTS(SELECT 1 FROM matches WHERE applicant_id=? AND status='found') AND ${search}`,ts,actor,actor,String(a.id),a.id));
+  if(requireEffects) {
+    // Confirm final notice state, including statements silently ignored by a trigger.
+    stmts.push(env.DB.prepare(`UPDATE applicants SET updated_at=NULL WHERE id=? AND (
+      (EXISTS(SELECT 1 FROM matches WHERE applicant_id=? AND status='found') AND EXISTS
+        (SELECT 1 FROM notifications WHERE ${OPEN_NOTICE} AND title IS NOT ${TITLE})) OR
+      (NOT EXISTS(SELECT 1 FROM matches WHERE applicant_id=? AND status='found') AND EXISTS
+        (SELECT 1 FROM notifications WHERE ${SOURCE_CLOSABLE_NOTICE})))`)
+      .bind(a.id,a.id,String(a.id),a.id,a.name,a.id,String(a.id)));
+  }
   return {stmts,search,guarded,newEventIndex};
 }
 
@@ -223,6 +232,10 @@ async function recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket) {
       AND EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found')
       AND NOT EXISTS (SELECT 1 FROM notifications WHERE ${OPEN_NOTICE})
     ORDER BY e.id DESC LIMIT 1`).bind(a.id, a.name, now(), String(a.id), a.id, a.updated_at, a.match_inputs_revision, a.id, String(a.id)));
+  if(ticket && restoreNotice) stmts.push(env.DB.prepare(`UPDATE applicants SET updated_at=NULL WHERE id=?
+    AND EXISTS(SELECT 1 FROM matches WHERE applicant_id=? AND status='found')
+    AND EXISTS(SELECT 1 FROM events WHERE entity_type='applicant' AND entity_id=? AND type='applicant.search_reopened')
+    AND NOT EXISTS(SELECT 1 FROM notifications WHERE ${OPEN_NOTICE})`).bind(a.id,a.id,String(a.id),String(a.id)));
   if(ticket){
     const checkedCount=listings.filter(l=>l.candidate===1 && l.operation===LISTING_OPERATION[a.operation]).length;
     stmts.push(fullCheckSuccessStatement(env,ticket,{checkedCount}));

@@ -112,6 +112,24 @@ test('D1 local: fenced progress, overlap, drift, rollback and uncertain transpor
     const start=performance.now(),capacity=await recomputeForApplicantWithStatus(env,11,'system');
     assert.equal(capacity.completed,true);assert.equal((await get(DB,'SELECT last_success_checked_count AS n FROM applicant_search_progress WHERE applicant_id=11')).n,102);
     console.log('EST-01 local D1 synthetic:',JSON.stringify({candidates:102,statements:scoped.statementCount(),ms:Math.round(performance.now()-start)}));
+    for(const [id,scenario] of [[12,'title'],[13,'close'],[14,'restore']]) {
+      await seedApplicant(DB,id);
+      assert.equal((await recomputeForApplicantWithStatus(env,id,'system')).completed,true);
+      const before=(await get(DB,'SELECT COUNT(*) AS n FROM matches WHERE applicant_id=?',id)).n;
+      if(scenario==='title') await seedListing(DB,'EST-D1-NOTICE-NEW');
+      if(scenario==='close') await DB.prepare('UPDATE listings SET matchable=0').run();
+      if(scenario==='restore') {
+        await DB.prepare("UPDATE notifications SET resolved_at=?,resolved_by='system' WHERE id IN (SELECT n.id FROM notifications n JOIN events e ON e.id=n.event_id WHERE e.entity_type='applicant' AND e.entity_id=? AND n.category='matched')").bind(time,String(id)).run();
+        await DB.prepare("INSERT INTO events(at,actor,entity_type,entity_id,type) VALUES(?,'system','applicant',?,'applicant.search_reopened')").bind(time,String(id)).run();
+      }
+      const action=scenario==='restore'?'INSERT':'UPDATE';
+      await DB.prepare(`CREATE TRIGGER fixture_ignore_existing BEFORE ${action} ON notifications WHEN NEW.category='matched' BEGIN SELECT RAISE(IGNORE); END`).run();
+      await assert.rejects(()=>recomputeForApplicantWithStatus(env,id,'system',scenario==='restore'));
+      assert.equal((await get(DB,'SELECT attempt_state FROM applicant_search_progress WHERE applicant_id=?',id)).attempt_state,'failed');
+      assert.equal((await get(DB,'SELECT COUNT(*) AS n FROM matches WHERE applicant_id=?',id)).n,before);
+      await DB.prepare('DROP TRIGGER fixture_ignore_existing').run();
+      if(scenario==='close') await DB.prepare('UPDATE listings SET matchable=1').run();
+    }
     assert.deepEqual((await DB.prepare('PRAGMA foreign_key_check').all()).results,[]);
   } finally {await mf.dispose();}
 });

@@ -239,3 +239,21 @@ test('public new and duplicate registration keep identical responses with progre
     }
   } finally {globalThis.fetch=originalFetch;console.error=originalLog;}
 });
+
+test('ignored notice updates or reopening cannot report a successful full check',async()=>{
+  for(const scenario of ['title','close','restore']) {
+    const env=setup();add(env,'EST-NOTICE-ONE');
+    await recomputeForApplicantWithStatus(env,1,'system');
+    if(scenario==='title') add(env,'EST-NOTICE-TWO');
+    if(scenario==='close') run(env,"UPDATE listings SET matchable=0 WHERE id='EST-NOTICE-ONE'");
+    if(scenario==='restore') {
+      run(env,"UPDATE notifications SET resolved_at=?,resolved_by='system' WHERE category='matched'",T0);
+      run(env,"INSERT INTO events(at,actor,entity_type,entity_id,type) VALUES(?,'system','applicant','1','applicant.search_reopened')",T0);
+    }
+    const action=scenario==='restore'?'INSERT':'UPDATE';
+    env.DB.raw.exec(`CREATE TRIGGER fixture_ignore_existing_notice BEFORE ${action} ON notifications WHEN NEW.category='matched' BEGIN SELECT RAISE(IGNORE); END`);
+    await assert.rejects(()=>recomputeForApplicantWithStatus(env,1,'system',scenario==='restore'),undefined,scenario);
+    assert.equal(progress(env).attempt_state,'failed',scenario);
+    assert.equal(get(env,'SELECT COUNT(*) AS n FROM matches').n,1,scenario);
+  }
+});
