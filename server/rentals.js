@@ -27,6 +27,15 @@ export function addMonths(date, n) {
   const last = new Date(Date.UTC(y, m + n, 0)).getUTCDate();
   return new Date(Date.UTC(y, m - 1 + n, Math.min(d, last))).toISOString().slice(0, 10);
 }
+
+// A date-only prompt for staff review, never a determination that a law applies.
+// Invalid or unrepresentable dates remain for the normal form validator.
+export function initialTermBeyondThreeYears(start, end) {
+  if (!realDate(start) || !realDate(end)) return false;
+  const year = Number(start.slice(0, 4));
+  if (year < 100 || year > 9996) return false;
+  return end > addMonths(start, 36);
+}
 const daysBetween = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / 864e5);
 
 // R27: the latest step already due, unless it is done (earlier ones need no marking). doneKeys: an array of steps.
@@ -43,10 +52,10 @@ export function complianceStatus(item, today) {
   return warn ? `due${warn}` : "ok";
 }
 
-// R12, R30. rpi: {percent, as_of} or null. Only 2025-law tenancies get a cap and the 12-month rule.
+// R12, R30. rpi: {percent, as_of} or null. The legacy label selects an estimate, not a verified legal determination.
 export function rentAssistant(tenancy, rpi, today) {
   if (tenancy.regime !== "2025") return { applies: false, max_rent: null, earliest_on: null,
-    notes: ["Rent changes follow the tenancy agreement (2011 law). Check with a lawyer"] };
+    notes: ["The recorded 2011 label does not confirm which law applies. Check the agreement and applicable rules with a Jersey lawyer."] };
   const after = addMonths(tenancy.last_rent_change_on ?? tenancy.start_on, LEGAL.rentIntervalMonths);
   const notice = addMonths(today, LEGAL.rentNoticeMonths);
   // In whole basis points, rounded down (a third decimal never lifts the cap), so whole pounds round down without
@@ -54,9 +63,9 @@ export function rentAssistant(tenancy, rpi, today) {
   const bp = rpi ? Math.floor(Math.round(rpi.percent * 1e6) / 1e4) : null;
   const max_rent = rpi ? Math.floor(tenancy.rent * (10000 + bp) / 10000) : null;
   return { applies: true, max_rent, earliest_on: after > notice ? after : notice, notes: [
-    ...(rpi ? [] : ["Enter Jersey's RPI to work out the maximum rent."]),
-    "The law allows a larger rise after improvements to the property or when the rent is well below the market. " +
-      "Check with a lawyer."] };
+    "This estimate uses the recorded 2025 label; it does not confirm which rules apply. Check with a Jersey lawyer.",
+    ...(rpi ? [] : ["Enter Jersey's RPI to work out the estimate."]),
+    "Exceptions may apply after improvements or when rent is below the market. Check with a Jersey lawyer."] };
 }
 
 // R13. notice: {given_on, by}. A fixed term ends on its end date; past it the tenancy runs on as periodic (R24).

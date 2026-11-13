@@ -180,7 +180,7 @@ test("rent change: only future charges not edited by hand take the new rent; pas
   assert.deepEqual(charges(env, fresh).map(c => c.slice(0, 2)), [[T, 100000], [charges(env, fresh)[1][0], 105000]]);
 });
 
-test("renew: same reference, new end or periodic, regime 2025 after 15 April 2026", async () => {
+test("renew: same reference and recorded law label, with no date-only reclassification", async () => {
   const env = makeEnv();
   const rid = await rental(env);
   const id = await tenancy(env, rid, { start_on: "2025-06-01", kind: "fixed", end_on: "2026-06-01", regime: "2011" });
@@ -192,7 +192,7 @@ test("renew: same reference, new end or periodic, regime 2025 after 15 April 202
   const before = stamp(env, "rentals", rid), end_on = addMonths(T, 12);
   const fixed = await req(env, "POST", path, { kind: "fixed", end_on });
   assert.equal(fixed.status, 200, JSON.stringify(fixed.data));
-  assert.deepEqual([fixed.data.tenancy.payment_ref, fixed.data.tenancy.end_on, fixed.data.tenancy.regime], [ref, end_on, "2025"]);
+  assert.deepEqual([fixed.data.tenancy.payment_ref, fixed.data.tenancy.end_on, fixed.data.tenancy.regime], [ref, end_on, "2011"]);
   assert.notEqual(stamp(env, "rentals", rid), before);
 
   assert.equal((await req(env, "POST", path, { kind: "periodic", rent: 1600 })).status, 400, "a new rent needs its date");
@@ -202,7 +202,7 @@ test("renew: same reference, new end or periodic, regime 2025 after 15 April 202
   assert.deepEqual([t.payment_ref, t.kind, t.end_on, t.rent, t.last_rent_change_on], [ref, "periodic", null, 1600, month(1)]);
   assert.equal(charges(env, id).at(-1)[1], 160000, "next month's charge takes the new rent");
   assert.deepEqual(events(env, "tenancy.renewed").map(e => [e.data.after.kind, e.data.after.end_on, e.data.after.regime]),
-    [["fixed", end_on, "2025"], ["periodic", null, "2025"]]);
+    [["fixed", end_on, "2011"], ["periodic", null, "2011"]]);
   assert.equal(row(env, "SELECT COUNT(*) AS n FROM tenancies").n, 1, "the same tenancy");
 });
 

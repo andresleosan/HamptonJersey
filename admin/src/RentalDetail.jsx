@@ -251,7 +251,7 @@ function Tenancy({ id, tick, note, open, next, requestedDeadline }) {
     <div className="head">
       <div><h2 id={h}>{ended ? "Past tenancy" : "Tenancy"}: {t.tenant_name}</h2>
         <p className="meta">{[t.kind === "fixed" ? `Fixed term ${fmtDay(t.start_on)} to ${fmtDay(t.end_on)}` : `Periodic from ${fmtDay(t.start_on)}`,
-          `${t.regime} law`, t.tenant_email, t.tenant_phone].filter(Boolean).map((fact, i) => <span key={i}>{fact}</span>)}</p></div>
+          `Recorded law label: ${t.regime} (not verified)`, t.tenant_email, t.tenant_phone].filter(Boolean).map((fact, i) => <span key={i}>{fact}</span>)}</p></div>
       <p className="ref"><span className="muted">Payment reference</span> <strong>{t.payment_ref}</strong></p>
     </div>
     {note}

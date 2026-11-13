@@ -1818,21 +1818,21 @@ async function property(page, phone, noSideScroll) {
   await page.locator(".timeline").getByText("Payment of £1,200.00 corrected: now £1,250.00").waitFor();
   await page.click("#h-history");
 
-  // Change rent with the assistant: the RPI is entered inside it, then the maximum rent and earliest date apply.
+  // Change rent with the legacy estimate: RPI is entered, then a person can copy the unverified estimate into the form.
   await t.getByRole("button", {name: "Change rent"}).click();
   dlg = page.getByRole("dialog", {name: "Change rent"});
-  await dlg.getByText("Enter Jersey's RPI to work out the maximum rent.").waitFor();
+  await dlg.getByText("Enter Jersey's RPI to work out the estimate.").waitFor();
   await dlg.getByLabel("Jersey RPI (%)").fill("3.2");
   await dlg.getByLabel("As of").fill(today);
   await dlg.getByRole("button", {name: "Save RPI"}).click();
   await dlg.locator(".assistant", {hasText: "£1,290 pcm"}).waitFor();
-  assert.match(await dlg.locator(".assistant").textContent(), /Jersey RPI: 3\.2% as of[\s\S]*Maximum rent£1,290 pcm[\s\S]*Earliest date/);
-  await dlg.getByRole("button", {name: /^Use £1,290 pcm from/}).click();
+  assert.match(await dlg.locator(".assistant").textContent(), /Jersey RPI: 3\.2% as of[\s\S]*Estimated rent limit£1,290 pcm[\s\S]*Estimated earliest date/);
+  await dlg.getByRole("button", {name: /^Use estimate in form \(£1,290 pcm from/}).click();
   await dlg.getByRole("button", {name: "Change rent"}).click();
   await page.waitForSelector("text=/Rent changes to £1,290 pcm from/");
   const start = JSON.parse(d1("SELECT start_on FROM tenancies WHERE id = 1"))[0].results[0].start_on;
   assert.deepEqual(JSON.parse(d1("SELECT effective_on, rent FROM rent_changes WHERE tenancy_id = 1 ORDER BY effective_on DESC LIMIT 1"))[0].results,
-    [{effective_on: addMonths(start, 12), rent: 1290}], "the change starts on the earliest date the assistant gave");
+    [{effective_on: addMonths(start, 12), rent: 1290}], "the saved change uses the date copied into the form");
   assert.match(await t.locator(".rent").textContent(), /^£1,250 pcm, rises to £1,290 from \w{3} \d{1,2} \w+ \d{4}Due on day/,
     "today's rent, then the rise and its date");
 

@@ -3,7 +3,7 @@ import { api } from "./api.js";
 import { fmtDate, fmtDay } from "./format.js";
 import { Modal, money, pounds, useFieldErrors } from "./Sales.jsx";
 import { KIND, REPAIR_STATUS, URGENCY, pence } from "./Rentals.jsx";
-import { LEGAL, REPAIR_NEXT, earliestMoveOut, parseMoney, rentAssistant } from "../../server/rentals.js";
+import { LEGAL, REPAIR_NEXT, earliestMoveOut, initialTermBeyondThreeYears, parseMoney, rentAssistant } from "../../server/rentals.js";
 import { jerseyToday } from "../../server/viewings.js";
 
 // The property page's dialogs (#/rentals/<id>) and the New tenancy form. Rent, deposits, quotes and costs in whole
@@ -89,8 +89,8 @@ export function RecordPayment({ d: { tenancy: t }, onClose, onDone, onRefused })
   </Sheet>;
 }
 
-// R12, R28, R30: the new rent from a date not before today. For the 2025 law the assistant gives the maximum (RPI, saved
-// here for everyone) and the earliest date; for the 2011 law, only its note. Neither stops the change: the law has exceptions.
+// R12, R28, R30: legacy estimates use the recorded label, not a verified legal determination.
+// They do not block manual changes; applicable rules need review.
 export function ChangeRent({ d: { tenancy: t, assistant, current_rent }, onClose, onDone, onRefused }) {
   const today = jerseyToday(), [rpi, setRpi] = useState(assistant.rpi), [editRpi, setEditRpi] = useState(!assistant.rpi);
   const help = rentAssistant(t, rpi, today);
@@ -104,7 +104,7 @@ export function ChangeRent({ d: { tenancy: t, assistant, current_rent }, onClose
   }, v => { setRpi(v); setEditRpi(false); });
   const rent = Number(pounds(a.f.rent));
   const lead = help.applies && <section className="assistant view-form" aria-labelledby="h-assistant">
-    <h3 id="h-assistant">Rent assistant (2025 law)</h3>
+    <h3 id="h-assistant">Rent estimate (recorded 2025 label)</h3>
     {editRpi ? <form ref={r.ref} className="inline" onSubmit={r.submit} noValidate>
       {r.field("percent", "Jersey RPI (%)", { inputMode: "decimal" })}{r.field("as_of", "As of", { type: "date", max: today })}
       <button className="btn sm">{r.busy ? "Saving…" : "Save RPI"}</button>
@@ -112,21 +112,21 @@ export function ChangeRent({ d: { tenancy: t, assistant, current_rent }, onClose
       {r.err && <p role="alert" className="err">{r.err}</p>}</form>
       : <p>Jersey RPI: {rpi.percent}% as of {fmtDay(rpi.as_of)}{" "}
         <button type="button" className="linkish" onClick={() => setEditRpi(true)}>Edit RPI</button></p>}
-    {t.last_rent_change_on > today && <p className="muted">Based on the rent from {fmtDay(t.last_rent_change_on)}, the next change allowed.</p>}
-    <dl className="kv"><div><dt>Maximum rent</dt><dd>{help.max_rent != null ? `${money(help.max_rent)} pcm` : "—"}</dd></div>
-      <div><dt>Earliest date</dt><dd>{fmtDay(help.earliest_on)}</dd></div></dl>
+    {t.last_rent_change_on > today && <p className="muted">Estimate based on the rent from {fmtDay(t.last_rent_change_on)}.</p>}
+    <dl className="kv"><div><dt>Estimated rent limit</dt><dd>{help.max_rent != null ? `${money(help.max_rent)} pcm` : "—"}</dd></div>
+      <div><dt>Estimated earliest date</dt><dd>{fmtDay(help.earliest_on)}</dd></div></dl>
     {help.notes.map(n => <p key={n} className="muted">{n}</p>)}
     {help.max_rent != null && <button type="button" className="btn ghost sm" onClick={() => a.setF({ rent: help.max_rent.toLocaleString("en-GB"),
-      effective_on: help.earliest_on })}>Use {money(help.max_rent)} pcm from {fmtDay(help.earliest_on)}</button>}
+      effective_on: help.earliest_on })}>Use estimate in form ({money(help.max_rent)} pcm from {fmtDay(help.earliest_on)})</button>}
   </section>;
   return <Sheet title="Change rent" a={a} button="Change rent" onClose={onClose}
     lead={<><Who t={t} /><p>Rent {rentLine(t, current_rent)}.</p>{lead || <p className="warn" role="note">{help.notes[0]}</p>}</>}>
     <div className="grid2">{a.field("rent", "New rent (£ pcm)", { inputMode: "numeric" })}
       {a.field("effective_on", "Starts on", { type: "date", min: today })}</div>
-    {help.applies && help.max_rent != null && rent > help.max_rent && <p className="warn" role="note">Above the maximum the RPI allows.
-      Check with a lawyer before you go ahead.</p>}
-    {help.applies && a.f.effective_on && a.f.effective_on < help.earliest_on && <p className="warn" role="note">Earlier than the law
-      allows: the earliest date is {fmtDay(help.earliest_on)}.</p>}
+    {help.applies && help.max_rent != null && rent > help.max_rent && <p className="warn" role="note">Above the estimate based on the recorded 2025 label.
+      Check the applicable rules with a Jersey lawyer before you go ahead.</p>}
+    {help.applies && a.f.effective_on && a.f.effective_on < help.earliest_on && <p className="warn" role="note">Earlier than the estimated date of {fmtDay(help.earliest_on)}.
+      Check the applicable rules with a Jersey lawyer.</p>}
     <p className="muted">Charges from that date not yet due change to the new rent, unless corrected by hand.</p>
   </Sheet>;
 }
@@ -141,12 +141,14 @@ export function Renew({ d: { tenancy: t }, onClose, onDone, onRefused }) {
   }, onDone, onRefused);
   return <Sheet title="Renew tenancy" a={a} button="Renew" onClose={onClose}>
     <Who t={t} />
-    <p>It keeps its payment reference.{t.regime === "2011" && jerseyToday() >= LEGAL.regime2025From && " Renewed now, it follows the 2025 law."}</p>
+    <p>It keeps its payment reference. The previously recorded law label stays on the record; it does not confirm which rules apply to this renewal.</p>
+    <p className="warn" role="note">Check the agreement date, accommodation and tenancy history with a Jersey lawyer. Under the amended law a continuing initial term may become periodic.</p>
     {a.radios("kind", "Renew as", [["fixed", "Fixed term"], ["periodic", "Periodic"]])}
+    {a.f.kind === "fixed" && <p className="warn" role="note">A further fixed term or extension may be restricted, depending on the tenancy and its history. Check with a Jersey lawyer.</p>}
     {a.f.kind === "fixed" && a.field("end_on", "New end date", { type: "date" })}
     <div className="grid2">{a.field("rent", "New rent (£ pcm, optional)", { inputMode: "numeric" })}
       {a.f.rent.trim() && a.field("effective_on", "New rent starts on", { type: "date", min: jerseyToday() })}</div>
-    <p className="muted">For a rent rise under the 2025 law, Change rent shows the maximum and the earliest date.</p>
+    <p className="muted">Change rent can show an estimate based on the recorded law label; it does not verify the applicable rules.</p>
   </Sheet>;
 }
 
@@ -355,10 +357,13 @@ export function NewTenancy({ rental, onClose, onDone, onDirty, onRefused }) {
   return <form ref={a.ref} id="new-tenancy" className="view-form" onSubmit={a.submit} noValidate aria-labelledby="h-new-tenancy">
     {group("Tenant", ["tenant_name", "tenant_email", "tenant_phone", "occupants"])}
     {a.radios("kind", "Kind", [["fixed", "Fixed term"], ["periodic", "Periodic"]])}
-    <div className="field">{a.radios("regime", "Law", [["2011", "2011 law"], ["2025", "2025 law"]])}
-      <small className="muted">Tenancies agreed from {fmtDay(LEGAL.regime2025From)} follow the 2025 law.</small></div>
+    <div className="field">{a.radios("regime", "Recorded law label", [["2011", "2011 law"], ["2025", "2025 law"]])}
+      <small className="muted">The amended law took effect on {fmtDay(LEGAL.regime2025From)}. Its application depends on the agreement, accommodation and tenancy history; this selection does not verify it. Check with a Jersey lawyer.</small></div>
+    {a.f.kind === "fixed" && <p className="muted">For a tenancy covered by the amended law, the initial fixed term may be up to three years; check the agreement and any transition with a Jersey lawyer.</p>}
+    {a.f.kind === "fixed" && initialTermBeyondThreeYears(a.f.start_on, a.f.end_on) && <p className="warn" role="note">The dates entered extend beyond three calendar years from the start. Check the applicable rule and dates with a Jersey lawyer.</p>}
     {group("Terms", ["start_on", ...(a.f.kind === "fixed" ? ["end_on"] : []), "rent", "due_day"])}
     {group("Deposit and check-in", ["deposit", "deposit_received_on", "deposit_protected_on", "deposit_ref", "inventory_in_on"])}
+    <p className="muted">For agreements covered by the amended law, tenants must not be required to pay premium or key money. Check proposed charges with a Jersey lawyer.</p>
     {full && group("Rent collection", ["collect_from", "opening_balance"])}
     {a.field("notes", ...TENANCY_FIELDS.notes)}
     {a.err && <p role="alert" className="err">{a.err}</p>}

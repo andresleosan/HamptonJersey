@@ -54,7 +54,7 @@ test("complianceStatus: missing, overdue, 7/30/60-day warnings and ok", () => {
   assert.equal(at("2026-12-24"), "ok");
 });
 
-test("rentAssistant: 2025 tenancy caps at RPI and waits 12 months and 2 months' notice; 2011 tenancy does not apply", () => {
+test("rentAssistant: the recorded label selects a legacy estimate but does not verify the applicable law", () => {
   const rpi = { percent: 3.2, as_of: "2026-09-30" };
   const t = { regime: "2025", rent: 1200, start_on: "2026-05-01", last_rent_change_on: null };
   // 12 months after the start is later than today + 2 months.
@@ -62,7 +62,7 @@ test("rentAssistant: 2025 tenancy caps at RPI and waits 12 months and 2 months' 
   assert.equal(a.applies, true);
   assert.equal(a.max_rent, 1238); // 1,238.40 rounded down to the pound
   assert.equal(a.earliest_on, "2027-05-01");
-  assert.ok(a.notes.length);
+  assert.match(a.notes[0], /does not confirm which rules apply/);
   // A year after the last change, today + 2 months is later.
   a = rentAssistant({ ...t, start_on: "2024-01-31", last_rent_change_on: "2025-08-31" }, rpi, "2026-10-24");
   assert.equal(a.earliest_on, "2026-12-24");
@@ -75,7 +75,7 @@ test("rentAssistant: 2025 tenancy caps at RPI and waits 12 months and 2 months' 
 
   a = rentAssistant({ ...t, regime: "2011" }, rpi, "2026-10-24");
   assert.deepEqual([a.applies, a.max_rent, a.earliest_on], [false, null, null]);
-  assert.deepEqual(a.notes, ["Rent changes follow the tenancy agreement (2011 law). Check with a lawyer"]);
+  assert.deepEqual(a.notes, ["The recorded 2011 label does not confirm which law applies. Check the agreement and applicable rules with a Jersey lawyer."]);
 });
 
 test("earliestMoveOut: a month from the tenant, a year from the landlord, the end date in a fixed term", () => {

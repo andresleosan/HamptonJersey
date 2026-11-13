@@ -330,8 +330,8 @@ async function changeRent({ request, env, admin, params: [id] }) {
 
 const notEnded = t => { if (t.ended_on) fail(409, "This tenancy already has an end date"); };
 
-// R24: the same tenancy (and payment reference) gets a new end or becomes periodic, optionally a new rent, and the
-// 2025 law when renewed from LEGAL.regime2025From.
+// R24: keep the tenancy and payment reference; a renewal alone cannot determine which law applies.
+// The legacy law label remains as recorded until scope and policy are reviewed.
 async function renew({ request, env, admin, params: [id] }) {
   const cur = await loadTenancy(env, id), today = jerseyToday();
   notEnded(cur);
@@ -341,17 +341,20 @@ async function renew({ request, env, admin, params: [id] }) {
   if (kind === "fixed" && !errors.end_on && !(end_on > after)) f.err("end_on", `Enter an end date after ${after}`);
   const rent = f.money("rent", false, MAX_POUNDS), effective_on = rent ? effectiveOn(f, today, cur) : null;
   if (Object.keys(errors).length) return fieldErrors(errors);
-  const regime = today >= LEGAL.regime2025From ? "2025" : cur.regime, ts = now();
+  const ts = now();
   await act(env, cur.id, [
-    env.DB.prepare(`UPDATE tenancies SET kind = ?, end_on = ?, regime = ?, updated_at = ?, updated_by = ?
-      WHERE id = ? AND ended_on IS NULL`).bind(kind, end_on, regime, ts, admin, cur.id),
+    env.DB.prepare(`UPDATE tenancies SET kind = ?, end_on = ?, updated_at = ?, updated_by = ?
+      WHERE id = ? AND ended_on IS NULL AND regime = ?`).bind(kind, end_on, ts, admin, cur.id, cur.regime),
     ensureChanged(env),
     ...(rent ? rentChange(env, admin, cur, rent, effective_on, today, ts) : []),
     bump(env, admin, cur.rental_id, ts),
     rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "tenancy.renewed", data: {
       before: { kind: cur.kind, end_on: cur.end_on, regime: cur.regime, rent: cur.rent },
-      after: { kind, end_on, regime, ...(rent ? { rent, effective_on } : {}) } } }),
-  ], notEnded);
+      after: { kind, end_on, regime: cur.regime, ...(rent ? { rent, effective_on } : {}) } } }),
+  ], current => {
+    notEnded(current);
+    if (current.regime !== cur.regime) fail(409, "The recorded law label changed meanwhile. Reload the tenancy.");
+  });
   return json(await detail(env, cur.id));
 }
 
