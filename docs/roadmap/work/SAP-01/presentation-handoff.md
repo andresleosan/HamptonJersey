@@ -18,3 +18,7 @@ Independent review confirmed the caller owns safe error reporting and cancellati
 
 Integration check on 13-Nov: 2,137 JavaScript tests and 25 Python tests passed, along with build, release, catalog and package checks. The isolated Chromium harness passed at 1280 and 390 pixels; it is not a product-flow or screen-reader test.
 The internal reader was tested against synthetic SQLite and disposable local D1, including a write immediately after the read. This establishes behavior for that fixture, not production schema readiness, access rights, or operational performance.
+
+Independent review found no blocking issue in the disconnected snapshot reader. Its D1 fixture did not exercise the `first-primary` session branch and introduced a write only after the SELECT; counts scale with the applicant’s matches. Authorization, operational measurement and late-response protection remain prerequisites.
+
+Integration with REG-12: 2,159 JavaScript tests and 25 Python tests passed, plus build, release, catalog and package checks. The reader remains internal; first-primary and production authorization are not verified by these tests.

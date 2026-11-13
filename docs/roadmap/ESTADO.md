@@ -482,3 +482,7 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **EST-15, cálculo de bajas 13-nov:** preparado un núcleo desconectado con alcance jerárquico, prioridad humana y revisión de contradicciones; la revisión corrigió omisiones y coste cuadrático. No acredita autoridad ni evidencia real y no ejecuta efectos; faltan persistencia, reactivación CAS, propagación y avisos. EST-15 sigue parcial. [Evidencia](work/EST-15/scoped-calculation-evidence.md). Playwright: no aplica.
 
 **Integración EST-15 13-nov:** pasaron 2.150 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes. El cálculo no está conectado y EST-15 sigue parcial. El catálogo mantiene 68/215 (31,63 %). Playwright: no aplica.
+
+**REG-12 y SAP-01, avances 13-nov:** REG-12 distingue prioridades desconocidas y preserva foco/validación; falta el progreso real de búsqueda. SAP-01 tiene un lector interno de progreso y contadores en una consulta, sin ruta ni autorización propia; faltan esquema instalable, snapshot autorizado en integración y verificación de lectura primaria y coste. Ambas tareas siguen parciales. [REG-12](work/REG-12/2026-11-13-prioridad-por-confirmar.md) · [SAP-01](work/SAP-01/presentation-handoff.md).
+
+**Integración REG-12/SAP-01 13-nov:** pasaron 2.159 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes; REG-12 pasó Chromium aislado sobre el conjunto integrado. La respuesta de error de interfaz fue simulada. Ambas tareas siguen parciales y el catálogo mantiene 68/215 (31,63 %).

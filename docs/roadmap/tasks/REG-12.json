@@ -6,8 +6,8 @@
   "fase": "F0",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "El alta muestra el mismo acuse para solicitudes nuevas, repetidas y comerciales, sin mostrar coincidencias ni datos previos, y conserva el compromiso de contacto en un día laborable. Requirements muestra criterios residenciales guardados por confirmar, incluidas prioridades desconocidas; el ajuste de cabecera y pie evita el desbordamiento móvil comprobado con zoom.",
-  "falta": "Informar del inicio y resultado reales de cada búsqueda sin prometer disponibilidad ni revelar coincidencias de contactos previos. BUS-01 debe cubrir el inventario común; EST-01 debe acreditar intentos, fallo y estado; BUS-12 debe clasificar el resultado y los datos esenciales por operación, incluida la comercial. El editor existente puede mostrar Off en una prioridad histórica desconocida y necesita una representación diferenciada; la nueva indicación no la convierte en opcional.",
+  "hecho": "El alta muestra el mismo acuse para solicitudes nuevas, repetidas y comerciales, sin mostrar coincidencias ni datos previos, y conserva el compromiso de contacto en un día laborable. Requirements muestra criterios residenciales guardados por confirmar, incluidas prioridades desconocidas; el ajuste de cabecera y pie evita el desbordamiento móvil comprobado con zoom. El editor distingue prioridades históricas desconocidas de Preferred/Off y exige elección explícita; la revisión cubrió foco y errores de validación.",
+  "falta": "Informar del inicio y resultado reales de cada búsqueda sin prometer disponibilidad ni revelar coincidencias de contactos previos. BUS-01 debe cubrir el inventario común; EST-01 debe acreditar intentos, fallo y estado; BUS-12 debe clasificar el resultado y los datos esenciales por operación, incluida la comercial.",
   "bloqueo": "",
   "evidencia": [
     "site/apply.js:264-271",
@@ -19,7 +19,9 @@
     "tests/reg12-registration.e2e.cjs",
     "tests/public-header-reflow.e2e.cjs",
     "docs/roadmap/work/REG-12/2026-11-13-acuse-y-criterios.md",
-    "docs/roadmap/work/REG-12/2026-11-13-reflujo-publico.md"
+    "docs/roadmap/work/REG-12/2026-11-13-reflujo-publico.md",
+    "tests/reg12-priority-focus.test.js",
+    "docs/roadmap/work/REG-12/2026-11-13-prioridad-por-confirmar.md"
   ],
   "modulo": "M03",
   "deps": [
@@ -53,6 +55,6 @@
     "applicants-schema",
     "requirements-contract"
   ],
-  "nextStep": "Integrar EST-01 y BUS-01 para comunicar progreso y resultado verificables por búsqueda, y diferenciar prioridad desconocida en el editor.",
+  "nextStep": "Integrar EST-01 y BUS-01 para comunicar progreso y resultado verificables por búsqueda.",
   "actualizado": "2026-11-13"
 }

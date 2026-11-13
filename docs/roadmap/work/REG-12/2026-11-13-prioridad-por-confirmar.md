@@ -9,3 +9,7 @@ Verificación local con datos ficticios: 26 pruebas focales Node pasaron, incluy
 ## Corrección de accesibilidad tras revisión
 
 Cuando se elige una prioridad, el foco pasa al interruptor que sustituye a la elección enfocada; cambios externos no capturan el foco. Un error de validación de prioridades marca las opciones, enlaza el mensaje y permite enfocar el primer control habilitado. Las dos opciones se verificaron con teclado a 1280 y 390 px; el error 400 del recorrido se simuló deliberadamente para verificar la respuesta de interfaz, no una incidencia real. El recorrido Chromium aislado pasó con reflujo a 390 px y zoom CSS 200 %. Pasaron 32 pruebas focales Node de foco, presentación, contrato y mascotas. No se ejecutaron WebKit, zoom nativo ni pruebas en producción.
+
+## Integración posterior
+
+El navegador aislado volvió a pasar sobre el conjunto integrado. La suite conjunta con SAP-01 pasó 2.159 pruebas JavaScript y 25 Python, build, release, catálogo y paquetes. La validación 400 del recorrido se simula para comprobar la interfaz; no es prueba de producción.
