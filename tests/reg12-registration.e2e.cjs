@@ -154,15 +154,40 @@ const BASE=process.env.BASE, shots=process.env.E2E_SHOTS || '/tmp/reg08-captures
     assert.equal(await nearPriority.getByRole('button',{name:'Near somewhere: choose Must-have'}).evaluate(el=>el===document.activeElement),true);
     await page.locator('#a-budget_max').fill('2100');
     await page.getByRole('checkbox',{name:'I confirm the applicant agreed to these changes.'}).check();
+    const validationRoute=`**/api/admin/applicants/${legacy.data.id}`;
+    const mockValidation=async route=>route.request().method()==='PUT'
+      ? route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({error:'Please check the highlighted fields',fields:{requirement_priorities:'Check priority details.'}})})
+      : route.continue();
+    await page.route(validationRoute,mockValidation);
+    await page.getByRole('button',{name:'Save',exact:true}).click();
+    await page.getByText('Check priority details.',{exact:true}).waitFor();
+    const invalid=page.locator('[aria-invalid=true]:not(:disabled)').first();
+    assert.equal(await invalid.evaluate(el=>el===document.activeElement),true);
+    assert.equal(await invalid.getAttribute('aria-describedby'),'ae-requirement_priorities');
+    assert.equal(await nearPriority.getByRole('button',{name:'Near somewhere: choose Preferred'}).getAttribute('aria-invalid'),'true');
+    await page.unroute(validationRoute,mockValidation);
     const savedUnknown=page.waitForResponse(r=>r.url().endsWith(`/admin/applicants/${legacy.data.id}`)&&r.request().method()==='PUT');
     await page.getByRole('button',{name:'Save',exact:true}).click();
     const result=await savedUnknown; assert.equal(result.status(),200);
     assert.deepEqual((await result.json()).applicant.requirement_priorities,
       {version:1,values:{near:'unknown',bedrooms:'unknown'},unknown:['pets']});
     await priorities.getByRole('button',{name:'Review Near somewhere must-have priority'}).waitFor();
+    for (const width of [1280,390]) {
+      await page.setViewportSize({width,height:900});
+      for (const [choice,state] of [['Must-have','true'],['Preferred','false']]) {
+        await page.reload(); await nearPriority.waitFor();
+        const button=nearPriority.getByRole('button',{name:`Near somewhere: choose ${choice}`});
+        await button.focus(); await page.keyboard.press('Enter');
+        const replacement=page.getByRole('switch',{name:'Near somewhere must-have'});
+        assert.equal(await replacement.getAttribute('aria-checked'),state);
+        assert.equal(await replacement.evaluate(el=>el===document.activeElement),true);
+      }
+    }
+    await page.reload(); await nearPriority.waitFor();
     await nearPriority.getByRole('button',{name:'Near somewhere: choose Preferred'}).focus();
     await page.keyboard.press('Enter');
     assert.equal(await page.getByRole('switch',{name:'Near somewhere must-have'}).getAttribute('aria-checked'),'false');
+    assert.equal(await page.getByRole('switch',{name:'Near somewhere must-have'}).evaluate(el=>el===document.activeElement),true);
     const bedroomsPriority=page.getByRole('group',{name:'Bedrooms priority to confirm'});
     await bedroomsPriority.getByRole('button',{name:'Bedrooms: choose Must-have'}).click();
     assert.equal(await page.getByRole('switch',{name:'Bedrooms must-have'}).getAttribute('aria-checked'),'true');

@@ -99,7 +99,7 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
   const per = rent ? " (£ per month)" : " (£)";
   return <>
     <p className="req-note">Turn on Must-have for essential requirements. Unanswered priorities on older searches stay unconfirmed.</p>
-    {errors.requirement_priorities && <p className="err" role="alert">{errors.requirement_priorities}</p>}
+    {errors.requirement_priorities && <p id="ae-requirement_priorities" className="err" role="alert">{errors.requirement_priorities}</p>}
     <ViewingAvailability value={value.viewing_availability} onChange={v => set("viewing_availability", v)} error={errors.viewing_availability} />
     <section className="card fields-group" aria-labelledby="g-search"><h2 id="g-search">What they're looking for</h2>
       {lockedCategory ? <p>Search type: {commercial ? "Commercial or business" : "Home"}</p>

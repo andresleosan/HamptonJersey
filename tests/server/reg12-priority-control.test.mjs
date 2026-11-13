@@ -32,3 +32,11 @@ test('known priorities retain binary switch and focus review reaches unknown cho
   focusSearchEssential(form,{key:'near',label:'Near somewhere',reason:'priority_missing'});
   assert.equal(doc.activeElement.getAttribute('data-priority-review'),'near');
 });
+
+test('validation marks each unknown choice and links the error message',()=>{
+  const doc=new JSDOM(renderToStaticMarkup(React.createElement(Control,{criterion:'near',priority:'unknown',invalid:true,onChange:()=>{}}))).window.document;
+  for (const button of doc.querySelectorAll('button')) {
+    assert.equal(button.getAttribute('aria-invalid'),'true');
+    assert.equal(button.getAttribute('aria-describedby'),'ae-requirement_priorities');
+  }
+});

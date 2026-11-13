@@ -142,7 +142,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   useEffect(() => { setUnsaved(dirty || decisionDirty); return () => setUnsaved(false); }, [dirty, decisionDirty]);
   // After a refused save, the first highlighted field gets the focus (once its tab is showing).
   useEffect(() => {
-    const el = focusError.current && cur === "requirements" && formRef.current?.querySelector("[aria-invalid=true]");
+    const el = focusError.current && cur === "requirements" && formRef.current?.querySelector("[aria-invalid=true]:not(:disabled)");
     if (el) { el.focus(); focusError.current = false; }
   }, [errors, cur]);
   useEffect(() => { if (lost === "") lostRef.current?.focus(); }, [lost]);
