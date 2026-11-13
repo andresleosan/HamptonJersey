@@ -4237,8 +4237,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F5-A",
    "estado": "pendiente",
    "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "No hay ninguna exportación: Rentals importa el extracto del banco y Statements se imprime desde el navegador. Falta descargar por periodo los cobros, los pagos con su referencia HE-T#### y las liquidaciones en un CSV que acepte cualquier programa de contabilidad; si Hampton usa uno concreto, se ajusta a su formato.",
+   "hecho": "Codificador CSV puro ensayado con datos ficticios: tipos cerrados, importes en peniques, escape y protección ante fórmulas. No hay descarga ni acceso a datos reales.",
+   "falta": "Integrar autoridad financiera ADM-09 y snapshot cerrado ADM-10, validar los límites de importes y tamaño total, construir descarga protegida y comprobar compatibilidad con programas contables.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Statement.jsx:9-11",
@@ -4246,7 +4246,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/routes/rent.js:737-771",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:579",
     "docs/superpowers/specs/2026-11-10-tp05-continuity-scope-design.md",
-    "docs/superpowers/plans/2026-11-10-tp05-construction-order.md"
+    "docs/superpowers/plans/2026-11-10-tp05-construction-order.md",
+    "server/rental-accounting-csv.js",
+    "tests/server/adm-21-csv.test.mjs",
+    "docs/roadmap/work/ADM-21/avance-publicable.md"
    ]
   },
   {
