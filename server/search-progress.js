@@ -89,6 +89,30 @@ export async function getSearchProgress(env,applicantId) {
   return projectSearchProgress(applicant,s.progress_applicant_id==null?null:{...s,applicant_id:s.progress_applicant_id},new Date().toISOString());
 }
 
+// Internal only: the caller must authorize the search before exposing this snapshot.
+// A single SQL statement binds counts and progress to the same applicant snapshot.
+// The readiness flag is not schema attestation; never expose this without the deployment guard.
+export async function getSearchProgressSnapshot(env,applicantId) {
+  if(!positive(applicantId))throw new TypeError('Invalid applicant ID');
+  if(!searchProgressEnabled(env))return null;
+  const db=typeof env.DB.withSession==='function'?env.DB.withSession('first-primary'):env.DB;
+  const row=await db.prepare(`SELECT a.id AS applicant_id,a.updated_at,a.match_inputs_revision,a.search_category,a.search_state,a.archived_at,
+    p.applicant_id AS progress_applicant_id,p.attempt_seq,p.last_attempt_at,p.last_attempt_updated_at,p.last_attempt_inputs_revision,
+    p.attempt_state,p.attempt_finished_at,p.error_code,p.last_success_at,p.last_success_updated_at,p.last_success_inputs_revision,
+    p.last_success_seq,p.last_success_checked_count,
+    (SELECT COUNT(*) FROM matches m WHERE m.applicant_id=a.id AND m.status='found') AS found,
+    (SELECT COUNT(*) FROM matches m WHERE m.applicant_id=a.id AND m.status='shortlisted') AS shortlisted,
+    (SELECT COUNT(*) FROM matches m WHERE m.applicant_id=a.id AND m.status='rejected') AS rejected
+    FROM applicants a LEFT JOIN applicant_search_progress p ON p.applicant_id=a.id WHERE a.id=?`).bind(applicantId).first();
+  if(!row)return null;
+  const server_time=new Date().toISOString();
+  const applicant={id:row.applicant_id,updated_at:row.updated_at,match_inputs_revision:row.match_inputs_revision,
+    search_category:row.search_category,search_state:row.search_state,archived_at:row.archived_at};
+  return {applicant_id:row.applicant_id,search_progress:projectSearchProgress(applicant,
+    row.progress_applicant_id==null?null:{...row,applicant_id:row.progress_applicant_id},server_time),
+    match_counts:{found:row.found,shortlisted:row.shortlisted,rejected:row.rejected},server_time};
+}
+
 export function projectSearchProgress(applicant,row,nowIso) {
   if(!iso(nowIso))throw new TypeError('Invalid projection time');
   const lifecycle=applicant?.search_category==='commercial'?'unsupported'
