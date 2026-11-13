@@ -24,6 +24,20 @@ const {chromium} = require(process.env.PW || 'playwright-core');
       await checkbox.check(); await page.getByRole('button',{name:'Save',exact:true}).click(); await page.getByText('Changes saved.',{exact:true}).waitFor(); assert.equal(writes,1);
       await page.close();
     }
+    const madeUnknown = await ctx.request.post(base+'api/admin/applicants',{headers:{origin:new URL(base).origin},data:{name:'SAP10 unknown fixture',email:'sap10-unknown@example.test',operation:'buy',source:'phone',budget_max:900000,requirement_priorities:{version:1,values:{parking:'must'},unknown:['parking']}}});
+    assert.equal(madeUnknown.status(),201); const unknownId=(await madeUnknown.json()).id;
+    for (const width of [1280,390]) {
+      const page=await ctx.newPage(); await page.setViewportSize({width,height:900});
+      await page.goto(base+`admin/#/applicants/${unknownId}`);
+      const parking=page.locator('#a-parking_spaces'); await parking.waitFor(); await parking.selectOption('1');
+      const review=page.getByRole('region',{name:'Confirm changes to search criteria'});
+      const text=await review.innerText();
+      assert.match(text,/Answers not yet known: Parking/); assert.match(text,/Answers not yet known: None/);
+      const checkbox=review.getByRole('checkbox',{name:'I confirm the applicant agreed to these changes.'});
+      await checkbox.focus(); await page.keyboard.press('Space'); assert.equal(await checkbox.isChecked(),true);
+      await parking.selectOption('2'); assert.equal(await checkbox.isChecked(),false);
+      await page.close();
+    }
     console.log('SAP-10 confirmation: 1280/390 passed');
   } finally { await browser.close(); }
 })().catch(e=>{console.error(e);process.exitCode=1;});

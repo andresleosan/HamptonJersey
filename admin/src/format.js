@@ -69,7 +69,9 @@ const MONEY = ["budget_min", "budget_max", "budget_stretch"];
 export function show(k, v, nameOf) {
   if (k === 'requirement_priorities') {
     const p=parsePriorities(v); if (!p) return 'Priorities to confirm';
-    return Object.entries(p.values).map(([key,priority])=>`${CRITERIA[key]?.[0] ?? key}: ${priority==='must'?'Must-have':priority==='preferred'?'Preferred':'To confirm'}`).join('; ') || 'Priorities to confirm';
+    const priorities = Object.entries(p.values).map(([key,priority])=>`${CRITERIA[key]?.[0] ?? key}: ${priority==='must'?'Must-have':priority==='preferred'?'Preferred':'To confirm'}`);
+    const unknown = Array.isArray(p.unknown) ? p.unknown.map(key => CRITERIA[key]?.[0] ?? key) : [];
+    return `${priorities.join('; ') || 'Priorities to confirm'}; Answers not yet known: ${unknown.length ? unknown.join(', ') : 'None'}`;
   }
   if (k === 'household_children_ages') {
     const ages=typeof v==='string'?JSON.parse(v):v;

@@ -330,10 +330,23 @@ async function update({ request, env, admin, params: [id] }) {
 
   const { source, ...search } = r.value.applicant;
   const next = { ...search, move_in_date: keepDate ? cur.move_in_date : search.move_in_date, stage, lost_reason, assigned_to };
+  const materialInput = SEARCH_FIELDS.some(k => !["preferred_language", "viewing_availability"].includes(k) && Object.hasOwn(body, k));
+  // Validation can infer legacy values. A stage, owner or communication-only edit must not silently rewrite them.
+  if (!materialInput) {
+    for (const k of SEARCH_FIELDS) if (!Object.hasOwn(body, k)) next[k] = cur[k];
+    next.search_operation = cur.search_operation;
+    next.household_ages_at = cur.household_ages_at;
+  }
+  // Do not infer a legacy answer while editing an unrelated criterion.
+  if ((!Object.hasOwn(body, "household_children_status") || body.household_children_status === cur.household_children_status)
+    && (!Object.hasOwn(body, "household_children") || search.household_children === cur.household_children))
+    next.household_children_status = cur.household_children_status;
   if (next.household_children_ages === cur.household_children_ages) next.household_ages_at = cur.household_ages_at;
   const { keys, data } = diff(cur, next);
   if (!keys.length) return json({ applicant: parsed(cur) });
-  const criteriaFields = keys.filter(k => SEARCH_FIELDS.includes(k) && !["preferred_language", "viewing_availability"].includes(k));
+  const criteriaFields = keys.filter(k => SEARCH_FIELDS.includes(k) && !["operation", "preferred_language", "viewing_availability"].includes(k));
+  // Commercial transfers use a separate column while the compatibility operation remains rent.
+  if ((cur.search_operation ?? cur.operation) !== (next.search_operation ?? next.operation)) criteriaFields.push("operation");
   if (criteriaFields.length && body.criteria_confirmation?.confirmed !== true)
     return fieldErrors({ criteria_confirmation: "Confirm the applicant agreed to these changes" });
 

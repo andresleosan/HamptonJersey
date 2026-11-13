@@ -701,3 +701,40 @@ test("criteria changes require a human declaration and stale requests have no ef
   const noncriteria = await req(env, "PUT", path, { updated_at: saved.data.applicant.updated_at, preferred_language: "French" });
   assert.equal(noncriteria.status, 200, JSON.stringify(noncriteria.data));
 });
+
+test('all changes of commercial operation require confirmation, including transfer and rent', async () => {
+  for (const [from, to] of [['transfer','rent'], ['rent','transfer'], ['buy','transfer'], ['transfer','buy'], ['buy','rent'], ['rent','buy']]) {
+    const env=makeEnv(), id=await create(env, {operation:from, search_category:'commercial', commercial_kind:'business', budget_max:null});
+    const before=row(env, 'SELECT * FROM applicants WHERE id=?', id), path=`/admin/applicants/${id}`;
+    const denied=await req(env,'PUT',path,{updated_at:before.updated_at,operation:to});
+    assert.equal(denied.status,400,`${from} to ${to}: ${JSON.stringify(denied.data)}`);
+    assert.ok(denied.data.fields.criteria_confirmation);
+    assert.deepEqual(row(env,'SELECT * FROM applicants WHERE id=?',id),before);
+    const saved=await req(env,'PUT',path,{updated_at:before.updated_at,operation:to,criteria_confirmation:{confirmed:true}});
+    assert.equal(saved.status,200,JSON.stringify(saved.data));
+    assert.equal(saved.data.applicant.search_operation ?? saved.data.applicant.operation,to);
+    const event=JSON.parse(row(env,"SELECT data FROM events WHERE type='applicant.updated' ORDER BY id DESC LIMIT 1").data);
+    assert.ok(event.criteria_confirmation.fields.includes('operation'));
+  }
+});
+
+test('legacy inferred children status survives stage, owner and communication-only edits', async () => {
+  const env=makeEnv(), id=await create(env), path=`/admin/applicants/${id}`;
+  env.DB.raw.prepare('UPDATE applicants SET household_children=2, household_children_status=NULL WHERE id=?').run(id);
+  for (const patch of [{stage:'searching'},{assigned_to:ADMIN},{preferred_language:'French'},
+    {viewing_availability:[{day:2,start:'09:00',end:'10:00'}]}]) {
+    const before=row(env,'SELECT * FROM applicants WHERE id=?',id);
+    const saved=await req(env,'PUT',path,{updated_at:before.updated_at,...patch});
+    assert.equal(saved.status,200,JSON.stringify(saved.data));
+    assert.equal(saved.data.applicant.household_children_status,null);
+    const ev=row(env,"SELECT data FROM events WHERE entity_type='applicant' AND entity_id=? ORDER BY id DESC LIMIT 1",String(id));
+    assert.equal(JSON.parse(ev.data).criteria_confirmation,undefined);
+  }
+  const full = (await detail(env,id)).applicant;
+  const fullSave = await req(env,'PUT',path,{...full,stage:'viewing'});
+  assert.equal(fullSave.status,200,JSON.stringify(fullSave.data));
+  assert.equal(fullSave.data.applicant.household_children_status,null);
+  const before=row(env,'SELECT * FROM applicants WHERE id=?',id);
+  assert.equal((await req(env,'PUT',path,{updated_at:before.updated_at,household_children_status:'known'})).status,400);
+  assert.equal((await req(env,'PUT',path,{updated_at:before.updated_at,household_children_status:'known',criteria_confirmation:{confirmed:true}})).status,200);
+});
