@@ -1,5 +1,13 @@
 # Estado de Hampton App
 
+13-nov-2026 · **Integración SPR-01, AUT-10 y REG-04:** 1.786 pruebas JavaScript, 25 Python y recorridos de History en Chromium/WebKit aislados. Las tres tareas continúan parciales. [Verificación](work/progreso/integracion-2026-11-13-spr01-aut10-reg04.md).
+
+13-nov-2026 · **SPR-01 parcial:** History prepara la presentación de fechas y el SQL propuesto registra valores anterior y nuevo, sin aplicar migraciones. El esquema y la retención requieren contraste; los eventos antiguos incompletos no se reconstruyen. [Evidencia](work/SPR-01/a5-history-proposal-evidence.md).
+
+13-nov-2026 · **AUT-10 parcial:** el ensayo de persistencia muestra una restauración ABA; lectura y escritura de políticas permanecen bloqueadas. [Evidencia](work/AUT-10/store-cas-bloqueado-2026-11-13.md).
+
+13-nov-2026 · **REG-04 parcial:** normalización de términos comerciales con límites compartidos y cálculo exacto, aún desconectada de matching y permisos. [Evidencia](work/REG-04/budget-normalization-evidence.md).
+
 13-nov-2026 · **OFE-06 parcial:** productor semanal desconectado probado con duplicados, rollback y fecha de nacimiento de la venta. Persistencia, autoridad, retención, cursor y permisos siguen sin acreditar; el SQL no está en migraciones. [Evidencia](work/OFE-06/nacimiento-venta-2026-11-13.md).
 
 13-nov-2026 · **SPR-01 parcial:** Chromium y WebKit aislados volvieron a pasar; la revisión detectó que el historial no guarda el valor anterior y nuevo de la fecha. Falta corregir la auditoría y cubrir específicamente el guardado solo de fecha. [Evidencia](work/SPR-01/implementation-evidence.md).

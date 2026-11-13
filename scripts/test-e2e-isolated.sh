@@ -113,7 +113,7 @@ task_result=0
 docker run -i --rm --pull=never --network="$task_network" --read-only --cap-drop=ALL \
   --name "$task_container" --cidfile "$task_session/cid" --label "io.hampton.e2e.session=$task_nonce" \
   --security-opt=no-new-privileges --pids-limit=512 --memory=4g --cpus=2 --user=pwuser \
-  --tmpfs /work:rw,exec,nosuid,nodev,size=900m,mode=1777 \
+  --tmpfs /work:rw,exec,nosuid,nodev,size=1500m,mode=1777 \
   --tmpfs /tmp:rw,noexec,nosuid,nodev,size=400m \
   -e PW=/work/tests/isolated-webkit.cjs -e "E2E_SCRIPT=$task_script" -e "HAMPTON_E2E_BROWSER=$task_browser_mode" \
   -e "E2E_PHASES=${E2E_PHASES:-public,urls,admin,reg17}" -e E2E_OFFLINE_FONTS=1 -e E2E_OFFLINE_TURNSTILE=1 \

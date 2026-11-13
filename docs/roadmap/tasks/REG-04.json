@@ -6,8 +6,8 @@
   "fase": "F0",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Compra y alquiler tienen búsquedas y presupuestos independientes desde REG-11. REG-08 añade prioridad del presupuesto y muestra el límite final, incluyendo solo el importe extra aceptado; £2000 con stretch£2200 evalúa techo£2200. El código y la migración 0031 están en main; existe evidencia previa de consulta de migraciones sin pendientes.",
-  "falta": "Ampliar en M04 las condiciones y periodicidades comerciales; el techo aceptado no cambia otros criterios. Esta conciliación no consultó de nuevo la base de producción.",
+  "hecho": "Compra y alquiler tienen búsquedas y presupuestos independientes desde REG-11. REG-08 añade prioridad del presupuesto y muestra el límite final, incluyendo solo el importe extra aceptado; £2000 con stretch£2200 evalúa techo£2200. El código y la migración 0031 están en main; existe evidencia previa de consulta de migraciones sin pendientes. Se preparó normalización comercial desconectada con límites compartidos, unidades explícitas, cero diferenciado y equivalencias mensuales exactas.",
+  "falta": "Integrar y revisar las condiciones y periodicidades comerciales con productores y consumidores autorizados; la normalización no ejecuta matching ni acredita identidad, permisos o vigencia. El techo aceptado no cambia otros criterios. Esta sesión no consultó la base de producción.",
   "bloqueo": "",
   "evidencia": [
     "site/apply.js:134-136",
@@ -21,7 +21,10 @@
     "migrations/0031_requirement_priorities.sql",
     "tests/server/requirements.test.mjs",
     "tests/reg08-e2e.cjs",
-    "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md"
+    "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md",
+    "server/budget-terms.js",
+    "tests/server/reg-04-budget-terms.test.mjs",
+    "docs/roadmap/work/REG-04/budget-normalization-evidence.md"
   ],
   "modulo": "M03",
   "deps": [],
@@ -45,6 +48,6 @@
     "applicants-schema",
     "requirements-contract"
   ],
-  "nextStep": "Ampliar las condiciones comerciales conservando presupuesto y periodicidad separados; no reconstruir REG-08.",
-  "actualizado": "2026-11-10"
+  "nextStep": "Integrar condiciones comerciales con BUS-12 y productores autorizados, manteniendo divisa y periodicidad explícitas y revalidando revisiones.",
+  "actualizado": "2026-11-13"
 }

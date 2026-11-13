@@ -974,8 +974,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "—",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas. Cloudflare Pages y Workers Builds figuran correctos para el commit 2005312; no se repitió un smoke funcional en producción. El error simulado de Available from y la recuperación del borrador tras un 409 se comprobaron con zoom nativo en 1280/390; la validación de servidor se comprobó aparte. En el main cd441, el recorrido aislado de listas volvió a pasar en Chromium y WebKit.",
-   "falta": "El criterio de auditoría exige registrar en el evento los valores anterior y nuevo de available_on: el trigger actual incluye el nombre del campo, pero omite esos valores tanto en creación como en edición. Falta cubrir específicamente los efectos de guardar solo la fecha. La incorporación de fichas externas corresponde a BUS-10/EST-16/SPR-07. No se ha repetido un smoke funcional autenticado en producción.",
+   "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas. Cloudflare Pages y Workers Builds figuran correctos para el commit 2005312; no se repitió un smoke funcional en producción. El error simulado de Available from y la recuperación del borrador tras un 409 se comprobaron con zoom nativo en 1280/390; la validación de servidor se comprobó aparte. En el main cd441, el recorrido aislado de listas volvió a pasar en Chromium y WebKit. Se prepararon y probaron la lectura y presentación de fechas civiles en History, con un SQL propuesto que registra anterior y nuevo sin copiar datos inválidos.",
+   "falta": "La corrección SQL de A5 aún no está integrada ni aplicada: antes debe contrastarse el esquema vigente y revisarse la retención. Los valores ausentes de eventos anteriores no se pueden reconstruir. El guardado de fecha actualiza updated_at y puede derivar una parroquia desconocida; A4 debe conciliarse con D4. La incorporación de fichas externas corresponde a BUS-10/EST-16/SPR-07. No se ha repetido un smoke funcional autenticado en producción.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Listings.jsx:81-108",
@@ -987,7 +987,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "tests/spr01-listings.e2e.cjs",
     "docs/roadmap/work/SPR-01/implementation-evidence.md",
     "migrations/0042_listing_economics.sql",
-    "docs/roadmap/work/SPR-01/implementation-evidence.md"
+    "docs/roadmap/work/SPR-01/implementation-evidence.md",
+    "docs/roadmap/work/SPR-01/a5-history-proposal-evidence.md"
    ],
    "actualizado": "2026-11-13"
   },
@@ -2040,8 +2041,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "—",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo.",
-   "falta": "M04/M06 · Reconciliación 7-nov: Concretar modos por operación sin convertirlos en autorización general. La automatización puede investigar, recalcular, preparar y ejecutar pasos ya autorizados; cada match requiere aprobación humana (BUS-15), cada cambio dictado confirmación (AUT-19) y el cierre por éxito acción expresa (EST-09). Ni confianza del modelo, ni porcentaje, ni un modo Auto pueden saltar esas decisiones. El disparador final de presentación se decide aparte. Aceptación: Activar Auto no aprueba matches, guarda criterios dictados ni resuelve búsquedas. Falta persistir políticas y versiones, comprobar actor, origen y capacidad, integrar la interfaz y revalidar antes de cada efecto; el módulo preparado no está conectado a rutas ni consumidores.",
+   "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1.",
+   "falta": "M04/M06 · Reconciliación 7-nov: Concretar modos por operación sin convertirlos en autorización general. La automatización puede investigar, recalcular, preparar y ejecutar pasos ya autorizados; cada match requiere aprobación humana (BUS-15), cada cambio dictado confirmación (AUT-19) y el cierre por éxito acción expresa (EST-09). Ni confianza del modelo, ni porcentaje, ni un modo Auto pueden saltar esas decisiones. El disparador final de presentación se decide aparte. Aceptación: Activar Auto no aprueba matches, guarda criterios dictados ni resuelve búsquedas. Falta persistir políticas y versiones, comprobar actor, origen y capacidad, integrar la interfaz y revalidar antes de cada efecto; el módulo preparado no está conectado a rutas ni consumidores. El ensayo D1 local detectó que restaurar una fila idéntica permite ABA; se necesita una identidad de generación protegida y una capacidad global verificable antes de habilitar persistencia.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:441",
@@ -2049,11 +2050,15 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
     "server/operation-policy.js",
     "tests/server/aut-10-operation-policy.test.mjs",
-    "docs/roadmap/work/AUT-10/policy-foundation-2026-11-13.md"
+    "docs/roadmap/work/AUT-10/policy-foundation-2026-11-13.md",
+    "server/operation-policy-store.js",
+    "tests/server/aut-10-store-d1.test.mjs",
+    "docs/roadmap/work/AUT-10/store-cas-bloqueado-2026-11-13.md"
    ],
    "modulo": "M04/M06",
    "deps": [],
-   "criterio_aceptacion": "Activar Auto no aprueba matches, guarda criterios dictados ni resuelve búsquedas."
+   "criterio_aceptacion": "Activar Auto no aprueba matches, guarda criterios dictados ni resuelve búsquedas.",
+   "actualizado": "2026-11-13"
   },
   {
    "id": "AUT-11",
@@ -3360,8 +3365,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Compra y alquiler tienen búsquedas y presupuestos independientes desde REG-11. REG-08 añade prioridad del presupuesto y muestra el límite final, incluyendo solo el importe extra aceptado; £2000 con stretch£2200 evalúa techo£2200. El código y la migración 0031 están en main; existe evidencia previa de consulta de migraciones sin pendientes.",
-   "falta": "Ampliar en M04 las condiciones y periodicidades comerciales; el techo aceptado no cambia otros criterios. Esta conciliación no consultó de nuevo la base de producción.",
+   "hecho": "Compra y alquiler tienen búsquedas y presupuestos independientes desde REG-11. REG-08 añade prioridad del presupuesto y muestra el límite final, incluyendo solo el importe extra aceptado; £2000 con stretch£2200 evalúa techo£2200. El código y la migración 0031 están en main; existe evidencia previa de consulta de migraciones sin pendientes. Se preparó normalización comercial desconectada con límites compartidos, unidades explícitas, cero diferenciado y equivalencias mensuales exactas.",
+   "falta": "Integrar y revisar las condiciones y periodicidades comerciales con productores y consumidores autorizados; la normalización no ejecuta matching ni acredita identidad, permisos o vigencia. El techo aceptado no cambia otros criterios. Esta sesión no consultó la base de producción.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:134-136",
@@ -3375,12 +3380,15 @@ document.addEventListener('DOMContentLoaded', () => {
     "migrations/0031_requirement_priorities.sql",
     "tests/server/requirements.test.mjs",
     "tests/reg08-e2e.cjs",
-    "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md"
+    "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md",
+    "server/budget-terms.js",
+    "tests/server/reg-04-budget-terms.test.mjs",
+    "docs/roadmap/work/REG-04/budget-normalization-evidence.md"
    ],
    "modulo": "M03",
    "deps": [],
    "criterio_aceptacion": "La misma persona puede buscar compra y alquiler con presupuestos independientes.",
-   "actualizado": "2026-11-10"
+   "actualizado": "2026-11-13"
   },
   {
    "id": "REG-05",
