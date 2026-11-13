@@ -7,6 +7,34 @@ import { analysePhoto, PHOTO_QUALITY_VERSION } from "./photo-quality.js";
 export const MAX_PIXELS = 16_000_000, MAX_FILE = 9.5 * 1024 * 1024;
 export const fullScale = (w, h) => Math.min(1, Math.sqrt(MAX_PIXELS / (w * h)));
 
+// Only for a freshly encoded sRGB canvas, never the original file. Chromium can
+// add an ICC APP2 profile even after drawing onto a new canvas. Remove application
+// metadata/comments before the scan without changing the compressed image data.
+async function prepareCanvasJpeg(blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const invalid = () => { throw new Error("couldn't prepare the image (use JPG, PNG or WebP)"); };
+  if (bytes[0] !== 255 || bytes[1] !== 216) invalid();
+  const parts = [bytes.subarray(0, 2)];
+  let offset = 2, removed = false;
+  while (offset + 4 <= bytes.length) {
+    const start = offset;
+    if (bytes[offset++] !== 255) invalid();
+    while (bytes[offset] === 255) offset++;
+    const marker = bytes[offset++];
+    if (offset + 2 > bytes.length) invalid();
+    const length = bytes[offset] * 256 + bytes[offset + 1], end = offset + length;
+    if (length < 2 || end > bytes.length) invalid();
+    if (marker === 218) {
+      parts.push(bytes.subarray(start));
+      return removed ? new Blob(parts, { type: 'image/jpeg' }) : blob;
+    }
+    if (marker === 254 || (marker >= 225 && marker <= 239 && marker !== 238)) removed = true;
+    else parts.push(bytes.subarray(start, end));
+    offset = end;
+  }
+  invalid();
+}
+
 async function encode(bmp, s, quality) {
   let w = Math.max(1, Math.round(bmp.width * s)), h = Math.max(1, Math.round(bmp.height * s));
   // Rounding both sides up can cross the agreed canvas limit even when the scale is exact.
@@ -15,11 +43,12 @@ async function encode(bmp, s, quality) {
     if (w >= h) w = Math.floor(MAX_PIXELS / h); else h = Math.floor(MAX_PIXELS / w);
   }
   const canvas = new OffscreenCanvas(w, h);
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { colorSpace: "srgb" });
   // JPEG has no transparency: without a white ground a transparent PNG (often a floor plan) comes out black.
   ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-  return { blob: await canvas.convertToBlob({ type: "image/jpeg", quality }), width: canvas.width, height: canvas.height };
+  const blob = await prepareCanvasJpeg(await canvas.convertToBlob({ type: "image/jpeg", quality }));
+  return { blob, width: canvas.width, height: canvas.height };
 }
 
 // max = longest side in px, or null for the full-resolution copy.
@@ -36,7 +65,8 @@ export async function resizeImage(file, max, quality = 0.85, inspect = null) {
   } finally { bmp.close(); }
 }
 
-// Panel uploads send canvas-encoded copies. Direct API uploads have separate, currently incomplete metadata validation.
+// Panel uploads send canvas-encoded copies. The upload route also checks container
+// structure, dimensions and its metadata allowlist; it does not re-encode pixels.
 export async function uploadPhoto(listingId, file, { kind = "photo", label = null, onQuality = () => {}, isCurrent = () => true } = {}) {
   if (!isCurrent()) throw new DOMException("Photo upload no longer current", "AbortError");
   if (file.size > 40 * 1024 * 1024) throw new Error("is larger than 40 MB");

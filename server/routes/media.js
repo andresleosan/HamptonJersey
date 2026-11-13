@@ -1,19 +1,11 @@
 import { json, fail, readJson, now } from "../http.js";
 import { loadListing } from "./listings.js";
 import { listingBatch, listingClock } from "../listing-events.js";
+import { inspectUploadImage } from "../upload-image.js";
 
 const KINDS = ["photo", "floorplan", "aerial", "document"];
 const MAX_BYTES = 10 * 1024 * 1024;
 const ordered = env => id => env.DB.prepare("SELECT * FROM media WHERE listing_id = ? ORDER BY position, id").bind(id).all();
-
-// Content sniffing: the file must really be JPEG, PNG or WebP, whatever its name says.
-export function sniff(buf) {
-  const b = new Uint8Array(buf.slice(0, 12));
-  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return ["image/jpeg", "jpg"];
-  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return ["image/png", "png"];
-  if (String.fromCharCode(...b.slice(0, 4)) === "RIFF" && String.fromCharCode(...b.slice(8, 12)) === "WEBP") return ["image/webp", "webp"];
-  return null;
-}
 
 async function save({ request, env, admin, params: [id] }) {
   await loadListing(env, id);
@@ -54,21 +46,25 @@ async function upload({ request, env, admin, params: [id] }) {
   if (!(file instanceof File) || !(thumb instanceof File)) fail(400, "Photo missing");
   if (file.size > MAX_BYTES || thumb.size > MAX_BYTES) fail(413, "The photo is larger than 10 MB");
   const [buf, tbuf] = await Promise.all([file.arrayBuffer(), thumb.arrayBuffer()]);
-  const type = sniff(buf), ttype = sniff(tbuf);
-  if (!type || !ttype) fail(400, "Only JPG, PNG or WebP photos are accepted");
+  // Validate both complete containers before storing either file. Client-provided
+  // dimensions and MIME types cannot establish an image's format or dimensions.
+  const image = inspectUploadImage(buf), thumbnail = inspectUploadImage(tbuf, { thumbnail: true });
+  for (const [part, verified] of [[file, image], [thumb, thumbnail]]) {
+    if (part.type && part.type !== 'application/octet-stream' && part.type !== verified.contentType)
+      fail(400, "The photo's declared type does not match its contents");
+  }
   const kind = ["photo", "floorplan", "aerial"].includes(form.get("kind")) ? form.get("kind") : "photo";
   const mid = "U" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
-  const key = `uploads/${mid}.${type[1]}`, tkey = `thumbs/uploads/${mid}.${ttype[1]}`;
-  await env.MEDIA.put(key, buf, { httpMetadata: { contentType: type[0] } });
-  await env.MEDIA.put(tkey, tbuf, { httpMetadata: { contentType: ttype[0] } });
+  const key = `uploads/${mid}.${image.extension}`, tkey = `thumbs/uploads/${mid}.${thumbnail.extension}`;
+  await env.MEDIA.put(key, buf, { httpMetadata: { contentType: image.contentType } });
+  await env.MEDIA.put(tkey, tbuf, { httpMetadata: { contentType: thumbnail.contentType } });
   const pos = (await env.DB.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS p FROM media WHERE listing_id = ?").bind(id).first()).p;
-  const int = v => (Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null);
   const label = String(form.get("label") || "").trim().slice(0, 200) || null;
   try {
     await env.DB.prepare(`INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, label, public, position,
         content_type, width, height, bytes, rights_status, created_at, created_by)
       VALUES (?, ?, ?, ?, 'upload', ?, ?, 1, ?, ?, ?, ?, ?, 'uploaded_by_team', ?, ?)`)
-      .bind(mid, id, key, tkey, kind, label, pos, type[0], int(form.get("width")), int(form.get("height")), file.size, now(), admin).run();
+      .bind(mid, id, key, tkey, kind, label, pos, image.contentType, image.width, image.height, file.size, now(), admin).run();
   } catch (e) {
     await env.MEDIA.delete([key, tkey]); // no orphan files when the row can't be written
     throw e;

@@ -2,6 +2,8 @@
 
 **Continuidad de Luis:** avanzar de forma autónoma entre tareas y sesiones, con commits y push autorizados y progreso honesto en el checklist. [Mandato y límites](CONTINUIDAD-AVANZAR.md).
 
+14-nov-2026 · **PUB-11 parcial:** validación de fotos y miniaturas integrada en la ruta existente, con dimensiones obtenidas de sus bytes y rechazo de metadatos opacos. La preparación del JPEG de canvas conserva su resolución y datos comprimidos; no se certifica decodificación universal. 2275 pruebas JavaScript, 29 Python, build/release, catálogo/paquetes y navegador sintético aislado Chromium/WebKit aprobados. Documentos privados, recuperación, atomicidad y calibración permanecen abiertos; no hubo migración ni verificación de producción. [Evidencia](work/PUB-11/2026-11-14-upload-validation-evidence.md).
+
 13-nov-2026 · **ANA-10 parcial:** generador SVG de QR preparado con el código fijado, formato M y lector independiente. La asociación, descarga Staff, impresión y activación siguen pendientes. [Evidencia](work/ANA-10/qr-svg-2026-11-13.md).
 
 13-nov-2026 · **PUB-16, BUS-10 y ANA-10 parciales:** preparados, con controles cerrados, el cierre temporal de alquiler, candidaturas de identidad y la redirección QR agregada. No se han aplicado los esquemas propuestos ni activado los flujos; sus dependencias y límites permanecen abiertos. [PUB-16](work/PUB-16/base-cierre-temporal-2026-11-13.md) · [BUS-10](work/BUS-10/candidaturas-internas-2026-11-13.md) · [ANA-10](work/ANA-10/qr-nucleo-2026-11-13.md).

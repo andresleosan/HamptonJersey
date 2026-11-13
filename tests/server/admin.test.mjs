@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { makeEnv, seedListing, seedMedia, call, adminCookie, T0 } from "./listing-client.mjs";
 
-const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1]);
+const JPEG = readFileSync(new URL('../fixtures/media-upload/baseline.jpg', import.meta.url));
 async function world() {
   const env = makeEnv();
   seedListing(env);
@@ -144,7 +145,7 @@ test("upload accepts real images only; delete only removes uploads", async () =>
   const up = await call(env, "POST", "/admin/listings/HE-R001/media", { cookie, form: fd(JPEG) });
   assert.equal(up.status, 201);
   const m = up.data.media;
-  assert.deepEqual([m.origin, m.public, m.position, m.width, m.label], ["upload", 1, 2, 1600, "Garden"]);
+  assert.deepEqual([m.origin, m.public, m.position, m.width, m.label], ["upload", 1, 2, 32, "Garden"]);
   assert.ok(env.MEDIA.store.has(m.r2_key) && env.MEDIA.store.has(m.thumb_key));
   assert.equal((await call(env, "POST", "/admin/listings/HE-R001/media", { cookie, form: fd(new TextEncoder().encode("<svg onload=x>")) })).status, 400);
   assert.equal((await call(env, "DELETE", "/admin/media/A00001", { cookie })).status, 400);

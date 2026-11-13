@@ -51,7 +51,10 @@ async function withSyntheticBrowser(bitmap, run, failSample = false) {
         return { width: this.width, height: this.height, data };
       } };
     }
-    async convertToBlob() { return new Blob(['encoded'], { type: 'image/jpeg' }); }
+    async convertToBlob() {
+      const { readFileSync } = await import('node:fs');
+      return new Blob([readFileSync(new URL('./fixtures/media-upload/baseline.jpg', import.meta.url))], { type: 'image/jpeg' });
+    }
   };
   globalThis.fetch = async () => new Response(JSON.stringify({ media: { id: 'synthetic' } }), { status: 201 });
   try { await run(); } finally { Object.assign(globalThis, old); }

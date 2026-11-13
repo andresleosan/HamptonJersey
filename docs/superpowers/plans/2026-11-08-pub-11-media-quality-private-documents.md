@@ -44,7 +44,7 @@
 
 - [ ] Escribir/ajustar pruebas con aserciones de estos casos: full_resolution_16Mpx; thumb640; no_GPS_reencoded; warning_not_fake_improvement; malformed_image_rejected; cubrir scope equivocado y revocación durante acción en el dueño de la ruta.
 - [ ] Ejecutar `node --test tests/photo-quality.test.js` y verificar fallo por comportamiento ausente, o evidencia actual si es continuidad; no fabricar RED de una función ya construida.
-- [ ] Conservar límite10MiB servido/fuente40MiB y reencode del cliente, comprobar firmas/dimensiones servidor. Rechazar EXIF/GPS no permitido en subida no reencodada en vez de prometer que el frontend cubre API directa.
+- [x] Conservar límite10MiB servido/fuente40MiB y reencode del cliente, comprobar firmas/dimensiones servidor. Rechazar EXIF/GPS no permitido en subida no reencodada en vez de prometer que el frontend cubre API directa.
 - [ ] Ejecutar `node --test tests/photo-quality.test.js` hasta PASS y regresiones de servicios afectados. Fixture de proveedor no acredita cuenta/permiso/envío/control activo.
 - [ ] Revisar diff/evidencia de unidad y guardar archivos concretos con mensaje inglés cuando se construya; no gitaddgeneral/relevo/secretos.
 
@@ -77,3 +77,15 @@
 - [ ] Resolver las decisiones humanas que afectan la tarea y actualizar spec/plan/readiness antes de construir ese tramo. Una investigación/gestión/activación no se declara código completo por estar planificada.
 - [ ] Si hay código, npm test, npm run build y npm run check:release más regresiones focales. UI modificada: e2e y Playwright1280/390 con vacío/error/conflicto/teclado/foco/zoom200/consola/red; documentos puros no requieren producto artificial.
 - [ ] Evidencia separado construido/integrado/verificado/activado, ledger de tarea y checklist/ESTADO al construir; revisión independiente futura y publicación/activación bajo autorización real de esa sesión. Nada ejecutado en estas casillas.
+
+## Ejecución parcial · 14-nov-2026
+
+Base comprobada: main `2b4c224bf3ac48c44d470a396090d37dab39b2b2`; copia aislada `/tmp/hampton-avanzar-20261114`. Se retoma Tarea 1 en la ruta de subida real, conservando el árbol de Luis.
+
+- [x] Verificar firmas, estructura de contenedor, dimensiones reales, límites de 16 Mpx/10 MiB y miniatura de lado máximo 640. Rechazar metadatos personales, MIME contradictorio y formatos fuera del flujo estático antes de escribir en R2/D1.
+- [x] Probar ruta completa con datos sintéticos y validar compatibilidad con el reencode real del navegador en el lanzador aislado.
+- [x] Revisión independiente, suite integrada, build/release, catálogo y paquetes; registrar limitaciones antes de commit/push.
+
+Decisión de alcance: se rechaza metadata no admitida y se conservan los bytes aceptados; no se instala un decodificador ni se certifica la integridad semántica de cada bitstream. Los documentos privados, staging durable, guardado atómico de orden/visibilidad, calibración con material representativo y activación/configuración remota quedan abiertos. Esta entrega no cierra PUB-11.
+
+Verificación de este lote: 2275 JavaScript/29 Python, build/release, catálogo/paquetes y E2E sintético Chromium/WebKit 1280/390/zoom aprobados; revisión independiente de módulo/ruta y ajuste canvas sin hallazgos pendientes. La inspección de contenedor no equivale a decoder completo. El resto de Tarea 1 y Tareas 2/3 permanece abierto.
