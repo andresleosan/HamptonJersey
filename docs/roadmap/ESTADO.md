@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **PUB-16, BUS-10 y ANA-10 parciales:** preparados, con controles cerrados, el cierre temporal de alquiler, candidaturas de identidad y la redirección QR agregada. No se han aplicado los esquemas propuestos ni activado los flujos; sus dependencias y límites permanecen abiertos. [PUB-16](work/PUB-16/base-cierre-temporal-2026-11-13.md) · [BUS-10](work/BUS-10/candidaturas-internas-2026-11-13.md) · [ANA-10](work/ANA-10/qr-nucleo-2026-11-13.md).
+
 13-nov-2026 · **Progreso: 68/215 tareas aplicables (31,63 %).** BUS-11 se acepta como investigación documental con siete casos manuales abiertos. La integración EST-01/BUS-12 pasó 1.909 pruebas Node, 25 Python y el recorrido de moneda en Chromium aislado; ambas tareas siguen parciales. No se verificó D1 remoto.
 
 13-nov-2026 · **EST-01 y BUS-12 parciales:** el recálculo valida el conjunto local y las revisiones en un batch, sin fingir éxito tras conflicto; moneda desconocida no acredita el presupuesto. Faltan la telemetría de intento/éxito, inventario común y tratamiento de EUR en candidatas nuevas. [Concurrencia](work/EST-01/carrera-conjunto-2026-11-13.md) · [Moneda](work/BUS-12/residential-currency-evidence.md).

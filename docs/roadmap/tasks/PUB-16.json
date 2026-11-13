@@ -6,8 +6,8 @@
   "fase": "F3-C",
   "estado": "parcial",
   "responsable": "Luis",
-  "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn. La corrección integrada en 1813b01 impide reservar propiedades cerradas o con visitas deshabilitadas y rechaza cambios tardíos; conserva los datos de formularios obsoletos. Las pruebas locales, D1 y navegador aislado pasaron; Cloudflare Pages y Workers Builds: hampton-jobs figuran completed/success para ese SHA.",
-  "falta": "Implementar la decisión de Luis para el cierre de alquiler: Let agreed durante 24 horas exactas con corrección concurrente segura y retirada de todas las superficies públicas al vencer, incluso sin cron. El reloj debe recuperar la retirada y crear una tarea urgente si falla. Tras las 24 horas sin corrección, cancelar las otras visitas y gestionar sus avisos idempotentes; para ventas también se espera 24 horas antes de cancelar y avisar, sin alterar los demás efectos de Sales. Coordinar cachés, medios, VIS-10 y AUT-17. No se ha comprobado el recorrido funcional en producción; el alcance de publicación es la web propia, sin Meta.",
+  "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn, y la corrección integrada en 1813b01 protege las reservas. Se preparó una ventana de alquiler de 24 horas, corrección, ocultación y recuperación con tarea urgente detrás de un control apagado; el SQL es una propuesta fuera de migraciones. SQLite, D1 efímero y navegador aislado verificaron su alcance con datos ficticios.",
+  "falta": "Antes de activar: revisar esquema, identidad y retención, coste y vigilancia del reloj, superficies y cachés anteriores o pestañas abiertas, y diseñar la reapertura posterior a la retirada. Tras las 24 horas sin corrección faltan cancelar otras visitas y gestionar avisos idempotentes; para ventas también se espera 24 horas antes de cancelar y avisar, sin alterar los demás efectos de Sales. Coordinar VIS-10 y AUT-17. No se ha comprobado el recorrido funcional en producción; el alcance es la web propia, sin Meta.",
   "bloqueo": "",
   "evidencia": [
     "server/routes/sales.js:67-76",
@@ -26,7 +26,10 @@
     "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md",
     "docs/superpowers/plans/2026-11-08-pub-16-estados-canales.md",
     "docs/superpowers/plans/2026-11-10-ana-10-qr-agregado.md",
-    "docs/roadmap/work/PUB-16/reconciliacion-24h-2026-11-13.md"
+    "docs/roadmap/work/PUB-16/reconciliacion-24h-2026-11-13.md",
+    "docs/roadmap/work/PUB-16/base-cierre-temporal-2026-11-13.md",
+    "docs/roadmap/work/PUB-16/rental-closure.proposed.sql",
+    "tests/pub16-timed-closure.e2e.cjs"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -82,6 +85,6 @@
     "viewings-contract",
     "public-site"
   ],
-  "nextStep": "Construir el cierre temporizado de alquiler, su corrección y retirada coherente; coordinar cancelaciones y avisos tras 24 horas sin corrección.",
+  "nextStep": "Acreditar esquema y cachés, vigilancia y reapertura; coordinar cancelaciones y avisos idempotentes antes de activar el cierre temporizado.",
   "actualizado": "2026-11-13"
 }
