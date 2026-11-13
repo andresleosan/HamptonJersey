@@ -4,16 +4,19 @@
   "titulo": "Estado publicado, disponibilidad y procedencia como dimensiones separadas",
   "origen": "plan",
   "fase": "F1-B",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "M02 · Reconciliación 7-nov: Separar estado observado de publicación (visible/modificada/no localizada) de disponibilidad comercial (sin confirmar/disponible/no disponible), con fechas y fuentes independientes. Priorizar confirmación humana posterior ante scraping; contradicciones y posible reaparición generan revisión. Registrar intentos fallidos sin afirmar vacío o baja. La vigencia de una disponibilidad compartida y los plazos Stale históricos de 7/30 días se deben decidir, no se dan por cerrados. Depende de: BUS-10. Aceptación: Anuncio no localizado y fallo de web nunca equivalen solos a no disponible; una observación antigua no reemplaza confirmación humana. Crear fechas propias de observación y confirmación comercial: no reutilizar como prueba del anunciante el confirmed_at del catálogo, que también cambia por publicación o precio.",
+  "hecho": "Cálculo puro y desconectado que separa observaciones de publicación y confirmaciones humanas por ámbito; rechaza entradas incompletas y conserva contradicciones para revisión. Las pruebas son sintéticas; no hay rutas, datos reales ni almacenamiento nuevos.",
+  "falta": "Construir persistencia versionada y autorización con evidencia, resolver ámbitos generales y específicos, condiciones por hogar, eventos y consumidores de BUS-06/BUS-09/BUS-10. Verificar el recorrido real sin confundir fallo o ausencia de fuente con indisponibilidad ni introducir caducidad no acordada.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:152-159",
     "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:31",
     "migrations/0001–0015: sin properties ni market_listings",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "server/property-facts.js",
+    "tests/server/property-facts.test.mjs",
+    "docs/roadmap/work/EST-16/foundation-evidence.md"
   ],
   "modulo": "M02",
   "deps": [
@@ -38,5 +41,5 @@
     "market-inventory",
     "availability-contract"
   ],
-  "nextStep": "Separar observación de publicación y confirmación comercial con fechas y evidencias propias."
+  "nextStep": "Construir almacenamiento y autoridad verificables para conectar hechos a inventario y consultas, conservando revisión ante conflictos."
 }

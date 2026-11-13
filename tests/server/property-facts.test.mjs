@@ -143,3 +143,9 @@ test('as-of results exclude facts not yet received and reject impossible receipt
   assert.throws(() => resolve([fact('human-2', 'availability', 'available', 'human', at(5), { received_at: at(4) })]));
   assert.throws(() => resolve([fact('human-3', 'availability', 'available', 'human', at(5), { received_at: null })]));
 });
+
+test('an incomplete sparse facts array fails closed', () => {
+  const sparse = [fact('human-1', 'availability', 'available', 'human', at(5))];
+  sparse.length = 2;
+  assert.throws(() => resolve(sparse));
+});

@@ -16,7 +16,7 @@ Fecha: 2026-11-13. Base de construcción: `a78ca4fc76d1714e8206f5e3c66503a6fe978
 1. Definir y comprobar autoridad de lectura/escritura por inmueble, actor y operación; enlazarla con identidad y versión de sesión y revalidarla en el mismo batch. Definir retención y auditoría sin filtrar instrucciones, antes de guardar o mostrar texto y referencias privadas.
 2. Integrar BUS-10, EST-16, VIS-09/18 y el dueño de reservas. Distinguir ocupación desconocida, ocupación acreditada y prueba válida/revocable de acceso. El aviso y la tarea manual requieren evidencia de su ejecución; no se ha contactado a ningún inquilino.
 3. Añadir el editor y sus pruebas de interfaz aisladas; asegurar que web pública, formularios, correo, calendario y eventos no reciben notas privadas. Coordinar VIS-17 antes de habilitar consumidores externos y AUT-17 antes de cualquier aviso automático.
-4. Verificar el estado remoto de migraciones, completar pruebas de integración y decidir la activación por separado. Una revisión independiente local ya detectó el problema de identidad corregido abajo. Esta migración solo se ha probado localmente; el estado remoto no está verificado y no se ha aplicado ninguna migración remota.
+4. Verificar el estado remoto de migraciones, completar pruebas de integración y decidir la activación por separado. Una revisión independiente local ya detectó el problema de identidad corregido abajo. Esta migración solo se ha probado localmente; el estado remoto no está verificado y esta sesión no ha aplicado ninguna migración remota.
 
 ## Verificación local
 

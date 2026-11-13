@@ -56,6 +56,9 @@ export function resolveCommercialFacts(facts, { scope, as_of } = {}) {
   const target = normalizedScope(scope);
   instant(as_of);
   if (!Array.isArray(facts) || facts.length > 5000) throw new TypeError('Invalid facts');
+  for (let i = 0; i < facts.length; i++) {
+    if (!Object.hasOwn(facts, i)) throw new TypeError('Incomplete facts');
+  }
   const ids = new Set();
   const inScope = facts.map(validateFact).filter(fact => {
     if (ids.has(fact.id)) throw new TypeError('Duplicate fact id');

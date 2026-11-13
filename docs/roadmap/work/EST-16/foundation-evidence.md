@@ -11,6 +11,10 @@
 
 ## Verificación y pendientes
 
-La prueba focal se escribió antes de la función: inicialmente falló por módulo ausente y después aprobó 14 casos sintéticos de límites de fuente, cronología, ámbitos y contradicciones. Playwright no aplica a este cambio sin interfaz.
+La prueba focal se escribió antes de la función: inicialmente falló por módulo ausente y después aprobó 15 casos sintéticos de límites de fuente, cronología, ámbitos y contradicciones. Playwright no aplica a este cambio sin interfaz.
 
 Faltan persistencia versionada y su operación atómica, evidencia y autorización acreditadas, resolución de hechos generales frente a ámbitos específicos, eventos EST-18, consumidores, revisión de permisos y retención, integración de BUS-06/BUS-09/BUS-10 y pruebas de extremo a extremo. Hasta entonces EST-16 no puede contarse como terminada y este cálculo no debe conectarse a acciones productivas.
+
+La revisión independiente no detectó fallos graves del cálculo desconectado y ejecutó 46 comprobaciones sintéticas adicionales. Detectó que un array disperso podía omitir un hecho al procesarse: la regresión falló antes de la corrección y después la entrada incompleta se rechazó. Esta validación no es una barrera para objetos JavaScript hostiles; cualquier consumidor futuro debe validar el límite de entrada y procedencia.
+
+Verificación final de la copia integrada: `npm test` aprobó 1.483 pruebas JavaScript y 25 Python; `build`, `check:release`, `team:check` y `check:packages` aprobaron. Al añadir la guía de migraciones, una primera ejecución detectó que el helper Python leía cualquier archivo como SQL; se corrigió para cargar solo `.sql` y la suite completa se repitió correctamente.

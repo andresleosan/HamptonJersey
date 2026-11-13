@@ -79,7 +79,7 @@ def schema_db():
     db = sqlite3.connect(":memory:")
     db.execute("PRAGMA foreign_keys = ON")
     mig = os.path.join(os.path.dirname(__file__), "..", "migrations")
-    for f in sorted(os.listdir(mig)):
+    for f in sorted(name for name in os.listdir(mig) if name.endswith(".sql")):
         with open(os.path.join(mig, f)) as fh:
             db.executescript(fh.read())
     return db
