@@ -70,14 +70,19 @@ function calculate(input, options) {
   const base = { scope: target, disposition: 'not_confirmed', confirmed_at: null, evidence_ref: null, needs_review: false };
   const negatives = relevant.filter(fact => fact.kind === 'human' && fact.status === 'unavailable' && covers(fact.scope, target));
   if (!negatives.length) return base;
-  negatives.sort((a, b) => b.observed_at.localeCompare(a.observed_at) || a.id.localeCompare(b.id));
-  const latest = negatives[0];
-  // A narrower or newer negative cannot resolve an earlier contradiction.
-  const needsReview = negatives.some(negative => relevant.some(fact =>
-    fact.observed_at >= negative.observed_at
-    && (covers(negative.scope, fact.scope) || covers(fact.scope, negative.scope))
+  // Every negative covers target; every relevant fact covers target or is
+  // covered by it. In this strict hierarchy, each relevant fact therefore
+  // overlaps every negative. The earliest negative detects every unresolved
+  // contradiction without comparing all pairs; a later negative cannot clear it.
+  let latest = negatives[0], earliest = latest.observed_at;
+  for (const negative of negatives) {
+    if (negative.observed_at < earliest) earliest = negative.observed_at;
+    if (negative.observed_at > latest.observed_at
+        || (negative.observed_at === latest.observed_at && negative.id.localeCompare(latest.id) < 0)) latest = negative;
+  }
+  const needsReview = relevant.some(fact => fact.observed_at >= earliest
     && ((fact.kind === 'web' && ['visible', 'modified'].includes(fact.status))
-      || (fact.kind === 'human' && fact.status === 'available'))));
+      || (fact.kind === 'human' && fact.status === 'available')));
   return { scope: target, disposition: 'blocked', confirmed_at: latest.observed_at, evidence_ref: latest.evidence_ref, needs_review: needsReview };
 }
 export function resolveScopedUnavailability(facts, options) {

@@ -107,3 +107,31 @@ test('contradictions in sibling advertisers or other operations do not affect a 
     }
   }
 });
+
+test('multiple nested negatives preserve only overlapping contradictions after a negative', () => {
+  const property = {...scope,operation:null,advertiser_id:null,publication_id:null};
+  const operation = {...scope,advertiser_id:null,publication_id:null};
+  const advertiser = {...scope,publication_id:null};
+  const negatives = [human('property','unavailable',5,{scope:property}),human('operation','unavailable',8,{scope:operation}),human('advertiser','unavailable',12,{scope:advertiser}),human('publication','unavailable',15)];
+  for (const overlap of [property,operation,advertiser,scope]) {
+    for (const day of [4,5,10,16]) {
+      const contradiction = human('positive','available',day,{scope:overlap});
+      for (const facts of [[...negatives,contradiction],[contradiction,...negatives].reverse()]) {
+        assert.equal(resolve(facts).needs_review,day >= 5, `day ${day}, scope ${JSON.stringify(overlap)}`);
+      }
+    }
+  }
+  for (const unrelated of [{...scope,publication_id:'publication-2'}, {...scope,advertiser_id:'advertiser-2'}, {...scope,operation:'sale'}]) {
+    assert.equal(resolve([...negatives,web('other','visible',16,{scope:unrelated})]).needs_review,false);
+  }
+});
+
+test('bounded 5000 declarations preserve temporal and scope semantics', () => {
+  const negativeScope = {...scope,advertiser_id:null,publication_id:null};
+  const negatives = Array.from({length:2500},(_,i)=>human(`n${i}`,'unavailable',15,{scope:negativeScope}));
+  const old = Array.from({length:2500},(_,i)=>human(`p${i}`,'available',5));
+  for (const facts of [[...negatives,...old],[...old,...negatives]]) {
+    const result = resolve(facts);
+    assert.equal(result.disposition,'blocked'); assert.equal(result.needs_review,false);
+  }
+});
