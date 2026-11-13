@@ -6,7 +6,7 @@ export function usePoll(fn, ms = 30000) {
   useEffect(() => {
     if (ms == null) return;
     const tick = () => { if (document.visibilityState === "visible") fn(); };
-    fn();
+    tick();
     const timer = setInterval(tick, ms);
     document.addEventListener("visibilitychange", tick);
     return () => { clearInterval(timer); document.removeEventListener("visibilitychange", tick); };
