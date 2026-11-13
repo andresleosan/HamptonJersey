@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { makeEnv, seedListing, T0 } from './helpers.mjs';
-import { createPropertyQrCode, isPropertyQrCode, propertyQrUrl, resolvePropertyQr,
+import { createPropertyQrCode, isPropertyQrCode, propertyQrUrl, propertyQrListingUrl, resolvePropertyQr,
   recordPropertyQrRedirect, readPropertyQrStats } from '../../server/property-qr.js';
 import { onRequestGet, onRequestHead } from '../../functions/r/[code].js';
 
@@ -40,8 +40,11 @@ test('128-bit tokens are canonical base64url and URLs are fixed to the approved 
 });
 
 test('corrupt stored listing identifiers never become redirect locations',async()=>{
-  for(const listing_id of ['HE-R100\n','HE-R100\u2028','https://attacker.example/','HE-R100?next=attacker']) {
+  for(const listing_id of ['HE-R100\r','HE-R100\n','HE-R100\r\n','HE-R100\u2028','HE-R100\u2029',
+    'https://attacker.example/','HE-R100?next=attacker']) {
     const DB={prepare:()=>({bind:()=>({first:async()=>({id:1,listing_id})})})};
+    await assert.rejects(()=>resolvePropertyQr(DB,A));
+    assert.throws(()=>propertyQrListingUrl({listing_id}));
     const response=await onRequestGet(context({DB},A));
     assert.equal(response.status,503);
     assert.equal(response.headers.get('location'),null);

@@ -4,7 +4,7 @@ import { jerseyToday, plusDays, realDate } from './viewings.js';
 const SITE = 'https://www.hamptonestatesjersey.com';
 const CODE = /^[A-Za-z0-9_-]{21}[AQgw]$/;
 const LISTING = /^HE-[A-Z][0-9]{3,}$/;
-const validListing = id => typeof id === 'string' && id.length <= 160 && LISTING.test(id);
+const validListing = id => typeof id === 'string' && id.length <= 160 && LISTING.exec(id)?.[0] === id;
 export const isPropertyQrCode = code => typeof code === 'string' && code.length === 22 && CODE.test(code);
 
 export function createPropertyQrCode() {
