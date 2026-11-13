@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "evidence": [
+    {
+      "evidence_id": "E001",
+      "case_id": "BUS11-001",
+      "url": "https://seeker.je/Home/FAQ",
+      "checked_at": "2026-11-13",
+      "method": "Reutilización documental de la cola y referencias aceptadas; no se atribuye una nueva verificación.",
+      "outcome": "historical",
+      "evidence_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus22-seeker",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "access_limit": "La relación entre dominios y la cobertura JE no están verificadas; no se ha establecido un método autorizado de inventario.",
+      "conclusion": "Sigue pendiente: No se ha acreditado la cobertura inmobiliaria de Jersey frente a Guernsey."
+    },
+    {
+      "evidence_id": "E002",
+      "case_id": "BUS11-002",
+      "url": "https://www.lawinstitute.ac.je/living-in-jersey/",
+      "checked_at": "2026-11-13",
+      "method": "Reutilización documental de la cola y referencias aceptadas; no se atribuye una nueva verificación.",
+      "outcome": "historical",
+      "evidence_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus22-property-in-jersey",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "access_limit": "Meta y los grupos conservan revisión manual; no se entró en ellos ni se solicitaron cuentas.",
+      "conclusion": "Sigue pendiente: El nombre se menciona sin identificador; podría coincidir con un grupo ya inventariado."
+    },
+    {
+      "evidence_id": "E003",
+      "case_id": "BUS11-003",
+      "url": null,
+      "checked_at": "2026-11-13",
+      "method": "Reutilización documental de la cola y referencias aceptadas; no se atribuye una nueva verificación.",
+      "outcome": "historical",
+      "evidence_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus22-quemard-relationship",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "access_limit": "La fuente heredada tiene condiciones específicas de acceso y reutilización; no se emplea la página consultada antes del cotejo.",
+      "conclusion": "Sigue pendiente: El alias histórico no acredita si las dos denominaciones son la misma entidad jurídica."
+    },
+    {
+      "evidence_id": "E004",
+      "case_id": "BUS11-004",
+      "url": null,
+      "checked_at": "2026-11-13",
+      "method": "Reutilización documental de la cola y referencias aceptadas; no se atribuye una nueva verificación.",
+      "outcome": "historical",
+      "evidence_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus22-francis-james",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "access_limit": "Falta identificar una fuente fiable y un método expresamente permitido; no atribuir continuidad o cese.",
+      "conclusion": "Sigue pendiente: Una referencia histórica no demuestra continuidad ni cese."
+    },
+    {
+      "evidence_id": "E005",
+      "case_id": "BUS11-005",
+      "url": null,
+      "checked_at": "2026-11-13",
+      "method": "Reutilización documental de la cola y referencias aceptadas; no se atribuye una nueva verificación.",
+      "outcome": "historical",
+      "evidence_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus22-brennan-property",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "access_limit": "Falta identificar una fuente fiable y un método expresamente permitido; evitar homónimos ajenos a Jersey.",
+      "conclusion": "Sigue pendiente: Una referencia histórica no demuestra continuidad ni cese."
+    },
+    {
+      "evidence_id": "E006",
+      "case_id": "BUS11-006",
+      "url": "https://apps.apple.com/us/app/jersey-property-app/id6762444379",
+      "checked_at": "2026-11-13",
+      "method": "Reutilización documental de la cola y referencias aceptadas; no se atribuye una nueva verificación.",
+      "outcome": "historical",
+      "evidence_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus22-app-historica",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "access_limit": "La propuesta y la app histórica precisan contraste de identidad y términos; no se instalaron aplicaciones.",
+      "conclusion": "Sigue pendiente: La app propuesta tiene nombre semejante a una app histórica atribuida a otro editor; no se conoce su relación."
+    },
+    {
+      "evidence_id": "E007",
+      "case_id": "BUS11-007",
+      "url": null,
+      "checked_at": "2026-11-13",
+      "method": "Reutilización documental de la cola y referencias aceptadas; no se atribuye una nueva verificación.",
+      "outcome": "historical",
+      "evidence_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus23-alias-accommodation",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "access_limit": "El cotejo del catálogo histórico completo sigue limitado por una revisión automática anterior; no reintentar la lectura rechazada.",
+      "conclusion": "Sigue pendiente: La propuesta no aparece en documentos aceptados; queda por contrastar el catálogo histórico completo y posibles alias."
+    },
+    {
+      "evidence_id": "E008",
+      "case_id": "BUS11-008",
+      "url": null,
+      "checked_at": "2026-11-13",
+      "method": "Cotejo local de la fila del relevo aceptado y de su huella.",
+      "outcome": "verified",
+      "evidence_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/property-directory-inventory-handoff.csv",
+        "record_id": "src-accommodation-centre-jersey",
+        "sha256": "6b510a0f8d8fa2a333e7360e959206590596731c238554fb2bceea392de2c36c"
+      },
+      "access_limit": "Confirma solo la presencia de una propuesta en el relevo, no actividad, unicidad jurídica o autorización.",
+      "conclusion": "El ID propuesto ya aparece; no crear una segunda fuente por esta mención."
+    }
+  ]
+}

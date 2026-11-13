@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "scope": "documental_no_ejecutable",
+  "as_of": "2026-11-13",
+  "cases": [
+    {
+      "case_id": "BUS11-001",
+      "source_id": null,
+      "family": "portal_classified",
+      "question": "¿Existe evidencia autorizada e inequívoca de cobertura inmobiliaria de Jersey frente a Guernsey?",
+      "existing_refs": [
+        {
+          "kind": "accepted_local",
+          "task": "BUS-23",
+          "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+          "record_id": "lead-bus22-seeker",
+          "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+        },
+        {
+          "kind": "accepted_local_reference",
+          "task": "BUS-23",
+          "reference": "evidencia-2026-11-13.md#e02-seeker; ../BUS-22/pendientes-complementarios.csv:lead-bus22-seeker"
+        }
+      ],
+      "gap_reason": "No se ha acreditado la cobertura inmobiliaria de Jersey frente a Guernsey.",
+      "priority": "no_asignada",
+      "status": "manual_pending",
+      "next_action": "Buscar una referencia pública inequívoca de cobertura inmobiliaria JE; revisar condiciones y robots antes de cualquier consulta a inventarios. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+    },
+    {
+      "case_id": "BUS11-002",
+      "source_id": null,
+      "family": "social",
+      "question": "¿Qué identificador público corresponde al grupo citado y coincide con otro grupo del relevo?",
+      "existing_refs": [
+        {
+          "kind": "accepted_local",
+          "task": "BUS-23",
+          "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+          "record_id": "lead-bus22-property-in-jersey",
+          "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+        },
+        {
+          "kind": "accepted_local_reference",
+          "task": "BUS-23",
+          "reference": "evidencia-2026-11-13.md#e04-canales-sociales-y-particulares; ../BUS-22/pendientes-complementarios.csv:lead-bus22-property-in-jersey"
+        }
+      ],
+      "gap_reason": "El nombre se menciona sin identificador; podría coincidir con un grupo ya inventariado.",
+      "priority": "no_asignada",
+      "status": "manual_pending",
+      "next_action": "Identificar mediante referencia pública independiente y comparar con los IDs sociales existentes; conservar revisión manual. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+    },
+    {
+      "case_id": "BUS11-003",
+      "source_id": "src-quemard-estates",
+      "family": "agency",
+      "question": "¿Qué relación identificable existe entre las denominaciones históricas, sin presumir identidad jurídica?",
+      "existing_refs": [
+        {
+          "kind": "accepted_local",
+          "task": "BUS-23",
+          "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+          "record_id": "lead-bus22-quemard-relationship",
+          "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+        },
+        {
+          "kind": "accepted_local_reference",
+          "task": "BUS-23",
+          "reference": "../BUS-22/evidencia-2026-11-13.md#e06-nombres-y-cobertura-de-agencias"
+        }
+      ],
+      "gap_reason": "El alias histórico no acredita si las dos denominaciones son la misma entidad jurídica.",
+      "priority": "no_asignada",
+      "status": "manual_pending",
+      "next_action": "Contrastar solo cuando haya una fuente pública apropiada de titularidad o sucesión; mantener el ID y condiciones existentes. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+    },
+    {
+      "case_id": "BUS11-004",
+      "source_id": null,
+      "family": "agency",
+      "question": "¿Existe evidencia posterior verificable de la marca y de su relación con una fuente ya registrada?",
+      "existing_refs": [
+        {
+          "kind": "accepted_local",
+          "task": "BUS-23",
+          "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+          "record_id": "lead-bus22-francis-james",
+          "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+        },
+        {
+          "kind": "accepted_local_reference",
+          "task": "BUS-23",
+          "reference": "../BUS-22/consultas-2026-11-13.md#candidatos-y-disconfirmación"
+        }
+      ],
+      "gap_reason": "Una referencia histórica no demuestra continuidad ni cese.",
+      "priority": "no_asignada",
+      "status": "manual_pending",
+      "next_action": "Buscar una referencia pública nueva que identifique la marca y su situación; no darla de alta sin contrastar duplicados. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+    },
+    {
+      "case_id": "BUS11-005",
+      "source_id": null,
+      "family": "agency",
+      "question": "¿Existe evidencia posterior verificable de la marca y de su relación con una fuente ya registrada?",
+      "existing_refs": [
+        {
+          "kind": "accepted_local",
+          "task": "BUS-23",
+          "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+          "record_id": "lead-bus22-brennan-property",
+          "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+        },
+        {
+          "kind": "accepted_local_reference",
+          "task": "BUS-23",
+          "reference": "../BUS-22/consultas-2026-11-13.md#candidatos-y-disconfirmación"
+        }
+      ],
+      "gap_reason": "Una referencia histórica no demuestra continuidad ni cese.",
+      "priority": "no_asignada",
+      "status": "manual_pending",
+      "next_action": "Buscar una referencia pública nueva que identifique la marca y su situación; no darla de alta sin contrastar duplicados. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+    },
+    {
+      "case_id": "BUS11-006",
+      "source_id": "src-jersey-property-app-raven",
+      "family": "portal_classified",
+      "question": "¿La aplicación propuesta y la histórica son la misma, sucesoras o independientes?",
+      "existing_refs": [
+        {
+          "kind": "accepted_local",
+          "task": "BUS-23",
+          "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+          "record_id": "lead-bus22-app-historica",
+          "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+        },
+        {
+          "kind": "accepted_local_reference",
+          "task": "BUS-23",
+          "reference": "evidencia-2026-11-13.md#e03-aplicaciones-de-nombre-similar; ../BUS-22/pendientes-complementarios.csv:lead-bus22-app-historica"
+        }
+      ],
+      "gap_reason": "La app propuesta tiene nombre semejante a una app histórica atribuida a otro editor; no se conoce su relación.",
+      "priority": "no_asignada",
+      "status": "manual_pending",
+      "next_action": "Buscar una fuente pública que establezca continuidad o independencia antes de integrar la propuesta al catálogo. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+    },
+    {
+      "case_id": "BUS11-007",
+      "source_id": "src-accommodation-centre-jersey",
+      "family": "agency",
+      "question": "¿La propuesta coincide con un alias o identidad ya registrada en el catálogo histórico completo?",
+      "existing_refs": [
+        {
+          "kind": "accepted_local",
+          "task": "BUS-23",
+          "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+          "record_id": "lead-bus23-alias-accommodation",
+          "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+        },
+        {
+          "kind": "accepted_local_reference",
+          "task": "BUS-23",
+          "reference": "evidencia-2026-11-13.md#e01-the-accommodation-centre"
+        }
+      ],
+      "gap_reason": "La propuesta no aparece en documentos aceptados; queda por contrastar el catálogo histórico completo y posibles alias.",
+      "priority": "no_asignada",
+      "status": "manual_pending",
+      "next_action": "Comprobar por vía autorizada alias y dominio antes de integrar; revisar condiciones y robots antes de consultar inventarios. Antes de nuevas aperturas, cotejar las restricciones por dominio y canal; no contactar ni activar lectores."
+    },
+    {
+      "case_id": "BUS11-008",
+      "source_id": "src-accommodation-centre-jersey",
+      "family": "agency",
+      "question": "¿La propuesta The Accommodation Centre ya está identificada en el relevo aceptado?",
+      "existing_refs": [
+        {
+          "kind": "accepted_local",
+          "task": "BUS-23",
+          "path": "docs/roadmap/work/BUS-23/property-directory-inventory-handoff.csv",
+          "record_id": "src-accommodation-centre-jersey",
+          "sha256": "6b510a0f8d8fa2a333e7360e959206590596731c238554fb2bceea392de2c36c"
+        }
+      ],
+      "gap_reason": "Una mención repetida podría convertirse equivocadamente en otra alta.",
+      "priority": "no_asignada",
+      "status": "covered",
+      "next_action": "Conservar el ID propuesto existente; resolver el posible alias histórico en BUS11-007 antes de integrar."
+    }
+  ]
+}

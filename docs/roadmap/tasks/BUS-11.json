@@ -4,10 +4,10 @@
   "titulo": "Investigación complementaria de casos especiales, posterior al directorio común",
   "origen": "plan",
   "fase": "F1-B",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "M01 · Reconciliación 7-nov: Conservar como ampliación complementaria la investigación de casos especiales con validación de fuente, URL y fecha. No sustituye las tres investigaciones separadas y secuenciales del directorio BUS-21 → BUS-22 → BUS-23 ni dispara una investigación completa por cada cliente. La investigación existente de Hampton_Database puede ser un punto de partida trazable; no demuestra que las tres pasadas estén completas. Las condiciones técnicas de acceso del agente se concretan sin cambiar criterios ni contactar por iniciativa propia. Depende de: BUS-23.",
+  "hecho": "Cotejada la cadena aceptada BUS-21/22/23 y registradas siete dudas especiales reales más una comprobación de duplicado ya cubierta, con referencias y huellas. Preparados casos, hallazgos, delta sin altas y relevo; la trazabilidad distingue consultas puntuales previas al cotejo de acceso.",
+  "falta": "Faltan la revisión independiente de la evidencia y la aceptación de esta investigación. Comprobar si existe algún método expresamente permitido para cada duda y, si no lo hay, mantener documentados el límite y el siguiente paso manual; el plan admite casos manuales sin resolver. No se autoriza lectura automática, fusión de alias ni alta de fuentes; BUS-20, Homely y las bases originales conservan sus restricciones.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/Research.jsx:11-27",
@@ -15,7 +15,13 @@
     "migrations/0001_init.sql:59-94",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:266",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:268",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/roadmap/work/BUS-11/scope.md",
+    "docs/roadmap/work/BUS-11/cases.json",
+    "docs/roadmap/work/BUS-11/findings.json",
+    "docs/roadmap/work/BUS-11/directory-delta.json",
+    "docs/roadmap/work/BUS-11/handoff.md",
+    "docs/roadmap/work/BUS-11/access-log.md"
   ],
   "modulo": "M01",
   "deps": [
@@ -38,5 +44,6 @@
   "resources": [
     "sources-directory"
   ],
-  "nextStep": "Tras consolidar el directorio, investigar casos especiales con evidencia y sin contactar por iniciativa propia."
+  "nextStep": "Revisar independientemente los casos, huellas y límites; contrastar los casos con método expresamente permitido y aceptar o devolver el relevo, manteniendo explícitos los pendientes manuales.",
+  "actualizado": "2026-11-13"
 }

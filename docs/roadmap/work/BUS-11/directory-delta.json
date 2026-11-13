@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "status": "propuesta_no_ejecutable",
+  "changes": [
+    {
+      "case_id": "BUS11-001",
+      "action": "no_change",
+      "source_id": null,
+      "previous_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus22-seeker",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "proposed_fields": {},
+      "evidence_refs": [
+        "E001"
+      ],
+      "requires_access_review": true
+    },
+    {
+      "case_id": "BUS11-002",
+      "action": "no_change",
+      "source_id": null,
+      "previous_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus22-property-in-jersey",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "proposed_fields": {},
+      "evidence_refs": [
+        "E002"
+      ],
+      "requires_access_review": true
+    },
+    {
+      "case_id": "BUS11-003",
+      "action": "no_change",
+      "source_id": "src-quemard-estates",
+      "previous_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus22-quemard-relationship",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "proposed_fields": {},
+      "evidence_refs": [
+        "E003"
+      ],
+      "requires_access_review": true
+    },
+    {
+      "case_id": "BUS11-004",
+      "action": "no_change",
+      "source_id": null,
+      "previous_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus22-francis-james",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "proposed_fields": {},
+      "evidence_refs": [
+        "E004"
+      ],
+      "requires_access_review": true
+    },
+    {
+      "case_id": "BUS11-005",
+      "action": "no_change",
+      "source_id": null,
+      "previous_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus22-brennan-property",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "proposed_fields": {},
+      "evidence_refs": [
+        "E005"
+      ],
+      "requires_access_review": true
+    },
+    {
+      "case_id": "BUS11-006",
+      "action": "no_change",
+      "source_id": "src-jersey-property-app-raven",
+      "previous_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus22-app-historica",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "proposed_fields": {},
+      "evidence_refs": [
+        "E006"
+      ],
+      "requires_access_review": true
+    },
+    {
+      "case_id": "BUS11-007",
+      "action": "no_change",
+      "source_id": "src-accommodation-centre-jersey",
+      "previous_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/pendientes-complementarios.csv",
+        "record_id": "lead-bus23-alias-accommodation",
+        "sha256": "e1a7cb896d600ff3a12812dc482eecdbf320daa46d7b2886977900fc1c740f90"
+      },
+      "proposed_fields": {},
+      "evidence_refs": [
+        "E007"
+      ],
+      "requires_access_review": true
+    },
+    {
+      "case_id": "BUS11-008",
+      "action": "no_change",
+      "source_id": "src-accommodation-centre-jersey",
+      "previous_reference": {
+        "kind": "accepted_local",
+        "task": "BUS-23",
+        "path": "docs/roadmap/work/BUS-23/property-directory-inventory-handoff.csv",
+        "record_id": "src-accommodation-centre-jersey",
+        "sha256": "6b510a0f8d8fa2a333e7360e959206590596731c238554fb2bceea392de2c36c"
+      },
+      "proposed_fields": {},
+      "evidence_refs": [
+        "E008"
+      ],
+      "requires_access_review": true
+    }
+  ]
+}
