@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFileSync,readdirSync } from 'node:fs';
+import { demandRetentionPass } from '../../server/demand-retention.js';
 import { generateDemandDraft,getDemandRecoveryScope,getActiveDemandDraft,readDemandDraft,markDemandPageReviewed,approveDemandDraft,publishDemandDraft,revokeDemandDraft,currentPublicDemand,prunePrivateDemandMatrices } from '../../server/public-demand.js';
 const require=createRequire(import.meta.url), {Miniflare,convertV4MiniflareOptions}=require('miniflare'), {unstable_splitSqlQuery}=require('wrangler');
 const authId='a0000000-0000-4000-8000-000000000001';
@@ -135,6 +136,19 @@ test('D1 synthetic: release needs independent authority, respects ledger and clo
   await db.prepare('DELETE FROM admins WHERE email=?').bind('new@example.test').run();
   await db.prepare("INSERT INTO admins(email,added_by,added_at) VALUES('new@example.test','fixture','2026-01-01T00:00:00.000Z')").run();
   assert.notEqual((await getDemandRecoveryScope(env,'new@example.test')).scope,original);
+
+
+  await db.prepare("UPDATE public_demand_snapshots SET as_of='2000-01-01T00:00:00.000Z' WHERE id=?").bind(exactId).run();
+  await db.prepare("CREATE TRIGGER fail_purge_fixture BEFORE UPDATE OF private_payload ON public_demand_snapshots BEGIN SELECT RAISE(ABORT,'fixture failure'); END").run();
+  const oldError=console.error;console.error=()=>{};
+  try { await demandRetentionPass(env,new Date().toISOString()); } finally { console.error=oldError; }
+  const failed=JSON.parse((await db.prepare("SELECT value FROM app_settings WHERE key='demand_retention_run'").first()).value);
+  assert.equal(failed.ok,false);assert.equal(failed.attempts,1);
+  await db.prepare('DROP TRIGGER fail_purge_fixture').run();
+  await db.prepare("UPDATE app_settings SET value=json_set(value,'$.lease_until','2000-01-01T00:00:00.000Z') WHERE key='demand_retention_run'").run();
+  await demandRetentionPass(env,new Date().toISOString());
+  const completed=JSON.parse((await db.prepare("SELECT value FROM app_settings WHERE key='demand_retention_run'").first()).value);
+  assert.equal(completed.ok,true);assert.equal(completed.attempts,2);assert.ok(completed.purged>=1);
 
   assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results,[]);
 

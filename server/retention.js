@@ -1,4 +1,3 @@
-import { prunePrivateDemandMatrices } from "./public-demand.js";
 import { pruneSearchMetrics } from "./search-measurement.js";
 import { now } from "./http.js";
 import { jerseyToday } from "./viewings.js";
@@ -95,8 +94,6 @@ export async function runRetention(env, ts) {
     env.DB.prepare(`DELETE FROM drive_imports WHERE id IN (${IMPORTS})`).bind(ts),
     env.DB.prepare(`DELETE FROM chats WHERE id IN (${CHATS})`).bind(ts),
   ]);
-  // Run after existing cleanups: a failure remains visible to the clock and is retried, without preventing them.
-  if (env.DEMAND_INTERNAL_READY === "1") await prunePrivateDemandMatrices(env);
   return { contacts: r[6].meta.changes, viewings: r[10].meta.changes, jobs: r[11].meta.changes, chats: r[13].meta.changes };
 }
 

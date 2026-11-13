@@ -1,5 +1,6 @@
 import { now } from "./http.js";
 import { retentionPass } from "./retention.js";
+import { demandRetentionPass } from "./demand-retention.js";
 import { emailPass } from "./email.js";
 import { receiveEmail } from "./email-inbound.js";
 import { weeklyInsightsPass } from './weekly-insights.js';
@@ -17,6 +18,7 @@ export default {
       VALUES ('clock', json_object('at', ?1), ?2, 'system')
       ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`).bind(ts, now()).run();
     await retentionPass(env, ts); // G2: the first tick of each Jersey day deletes what is 12 months inactive.
+    await demandRetentionPass(env, ts); // Separate claim, outcome and retry from the existing retention pass.
     try { await notificationsPass(env, now()); }
     catch { console.error('Notification pass failed'); } // No source/customer data in operational logs.
     try { await weeklyInsightsPass(env, now()); }
