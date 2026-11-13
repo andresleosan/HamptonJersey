@@ -2576,8 +2576,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F1-A",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Las prioridades y checks residenciales de REG-08 están publicados con 0031. Parking distingue cifra fiable de ambigüedad; el criterio de mascotas queda por confirmar ante condiciones o evidencia contradictoria, sin acreditar compatibilidad. La negativa inequívoca de mascotas para un hogar con animales se excluye desde e589b16; Shortlist y Rejected conservan sus decisiones.",
-   "falta": "Continuar M04: inventario común y evidencia/fechas, confirmación de disponibilidad, criterios comerciales y negocios, y fuentes M02. El estado Stated must-haves met solo certifica los imprescindibles declarados, no todo BUS-12.",
+   "hecho": "Las prioridades y checks residenciales de REG-08 están publicados con 0031. Parking distingue cifra fiable de ambigüedad; el criterio de mascotas queda por confirmar ante condiciones o evidencia contradictoria, sin acreditar compatibilidad. La negativa inequívoca de mascotas para un hogar con animales se excluye desde e589b16; Shortlist y Rejected conservan sus decisiones. Se preparó una instantánea interna de criterios y revisión de cambios de estado, desconectada de rutas y ensayada con datos ficticios.",
+   "falta": "Continuar M04: inventario común y evidencia/fechas, confirmación de disponibilidad, criterios comerciales y negocios, y fuentes M02. El estado Stated must-haves met solo certifica los imprescindibles declarados, no todo BUS-12. El CAS por revisión de criterios no está integrado: faltan el esquema aprobado, los escritores y consumidores, y revalidar generación de identidad y permisos. El SQL propuesto permanece fuera de la cola de migraciones.",
    "bloqueo": "",
    "evidencia": [
     "server/matching.js:31-43",
@@ -2588,7 +2588,9 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/superpowers/plans/2026-11-07-reg-08-parking-requirements-ledger.md",
     "migrations/0031_requirement_priorities.sql",
     "tests/server/requirements.test.mjs",
-    "tests/reg08-e2e.cjs"
+    "tests/reg08-e2e.cjs",
+    "server/search-criteria.js",
+    "docs/roadmap/work/BUS-12/foundation-evidence.md"
    ],
    "modulo": "M04",
    "deps": [

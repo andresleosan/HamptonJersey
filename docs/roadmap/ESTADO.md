@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **BUS-12 parcial:** instantánea y revisiones de criterios preparadas y revisadas, sin rutas activas ni migración incorporada. El CAS operativo, la identidad y los permisos siguen pendientes; una suite local inicial falló en dos pruebas D1 y esas pruebas pasaron al repetirse por separado. [Evidencia](work/BUS-12/foundation-evidence.md).
+
 13-nov-2026 · **PUB-11 parcial:** guarda de señales documentales conocidas en medios y revalidación de visibilidad antes de responder. No acredita detección completa, limpieza de metadatos ni invalidación de cachés previas; la entrega aún no es atómica. [Evidencia](work/PUB-11/2026-11-13-public-document-guard-evidence.md).
 
 13-nov-2026 · **PUB-06 parcial por discrepancia de alcance:** la entrega `2ba135b` y la migración 0042 siguen acreditadas históricamente. El cambio publicado `041188e` retiró premium del editor y de la proyección pública, mientras la aceptación A3 vigente exige premium y renta juntos; falta conciliar expresamente ese alcance. El catálogo local pasa de 68/215 (31,63 %) a 67/215 (31,16 %), sin cambios en el denominador ni en el producto. No se han comprobado datos reales ni el tablero público. [Evidencia](work/PUB-06/reconciliacion-2026-11-13.md).
