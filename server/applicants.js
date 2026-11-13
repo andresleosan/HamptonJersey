@@ -54,8 +54,11 @@ export function normalizePhone(s) {
 }
 
 const blank = v => v === undefined || v === null || (typeof v === "string" && !v.trim());
-const realDate = s => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s)
-  && new Date(s + "T12:00:00Z").toISOString().slice(0, 10) === s;
+const realDate = s => {
+  if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const date = new Date(s + "T12:00:00Z");
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === s;
+};
 
 // body: the form as JSON. publicForm: the website wizard (true) or the panel's New applicant (false).
 // now: ISO time used for the consent timestamps. Returns { value: { contact, applicant } } or { errors }.
