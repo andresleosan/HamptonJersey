@@ -1,4 +1,6 @@
 // Pure helpers (no DOM): loaded by index.html as a classic script and by tests/lib.test.js via require().
+const searchDimensionDefs = typeof module === "object" ? require("./measurement-dimensions.js")
+  : typeof SEARCH_DIMENSIONS !== "undefined" && typeof searchPriceCode === "function" ? {SEARCH_DIMENSIONS, searchPriceCode} : null;
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 // Only https URLs under a known prefix are allowed into src/href attributes (team photos on Wix).
@@ -99,7 +101,10 @@ const newestFirst = (a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt 
 // The home page's latest: the first n still on the market, from a list already newest first.
 const homePicks = (pub, n = 5) => pub.filter(p => !isSold(p)).slice(0, n);
 // /properties?op=…&region=…&beds=…&max=…: anything unknown falls back to "all" / 0, never to an empty page.
-const CATALOG = {op: ["sale", "rent", "business"], region: ["jersey", "uk", "international"], beds: [2, 3, 4]};
+// Keep catalogue navigation usable with cached older HTML or an unavailable measurement resource.
+// The compatibility values are checked against the canonical dimensions in tests.
+const CATALOG = searchDimensionDefs ? {op: searchDimensionDefs.SEARCH_DIMENSIONS.operations, region: searchDimensionDefs.SEARCH_DIMENSIONS.regions,
+  beds: searchDimensionDefs.SEARCH_DIMENSIONS.bedrooms} : {op: ["sale", "rent", "business"], region: ["jersey", "uk", "international"], beds: [2, 3, 4]};
 function readCatalogQuery(search) {
   const q = new URLSearchParams(search), beds = +q.get("beds"), max = q.get("max");
   return {op: CATALOG.op.includes(q.get("op")) ? q.get("op") : "all", region: CATALOG.region.includes(q.get("region")) ? q.get("region") : "all",
@@ -116,7 +121,19 @@ function catalogFilter(search, full, max) {
   if (!full) return {op: f.op, region: f.region === "international" ? f.region : "all", beds: 0, max: 0};
   return {...f, max: (max[f.op] || []).includes(f.max) ? f.max : 0};
 }
+// Only the filters actually shown after navigation, and an already loaded result set, may be measured.
+function searchAction(f, visible, loaded) {
+  if (!searchDimensionDefs) return null; // never measure using compatibility values
+  const D = searchDimensionDefs.SEARCH_DIMENSIONS;
+  if (loaded !== true || !Array.isArray(visible) || !f ||
+      !(f.op === "all" || D.operations.includes(f.op)) || !(f.region === "all" || D.regions.includes(f.region)) ||
+      !(f.beds === 0 || D.bedrooms.includes(f.beds)) ||
+      !(f.max === 0 || (D.max[f.op] || []).includes(f.max))) return null;
+  return {event: "search_applied", version: D.version, op: f.op === "all" ? null : f.op,
+    region: f.region === "all" ? null : f.region, beds: f.beds === 0 ? null : String(f.beds),
+    max: f.max === 0 ? null : searchDimensionDefs.searchPriceCode(f.op, f.max), zero_results: visible.length === 0};
+}
 // The category photo: newest matching operation, or international region, with the page fallback if absent.
 const buttonPhoto = (pub, op) => [...pub].sort(newestFirst).find(p => op === "international" ? p.region === op : p.operation === op)?.image ?? null;
 
-if (typeof module === "object") module.exports = {newestFirst, homePicks, readCatalogQuery, catalogQuery, catalogFilter, buttonPhoto, shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, canBook, matches, comparables, pmt};
+if (typeof module === "object") module.exports = {searchAction, newestFirst, homePicks, readCatalogQuery, catalogQuery, catalogFilter, buttonPhoto, shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, amount, priceLabel, isSold, canBook, matches, comparables, pmt};

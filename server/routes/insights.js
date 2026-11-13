@@ -223,7 +223,14 @@ async function activity({request, env}) {
   return json(await getWebVolumes(env, {from, to}));
 }
 
+// Until the source and policy are verified, never infer an absent counter is zero.
+async function searchTrends({request}) {
+  const selected = period(request);
+  return json({available: false, coverage: 'unknown', period: selected});
+}
+
 export default [
+  ["GET", /^\/admin\/insights\/search-trends$/, searchTrends, true],
   ["GET", /^\/admin\/insights$/, insights, true],
   ["GET", /^\/admin\/insights\/milestones$/, milestones, true],
   ["GET", /^\/admin\/insights\/listing-health$/, listingHealth, true],

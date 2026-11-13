@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { api } from "./api.js";
 import { show, fmtDay } from "./format.js";
 import Activity from "./Activity.js";
+import SearchTrends from "./SearchTrends.jsx";
 const SearchMilestones = lazy(() => import("./SearchMilestones.jsx"));
 
 // Spec §5 Insights (I5-I11): what people look at, what applicants ask for that the listings don't cover, and how fast the
@@ -40,6 +41,7 @@ export default function Insights() {
     <div className="seg" role="group" aria-label="Period">{PERIODS.map(p =>
       <button key={p} type="button" aria-pressed={days === p} onClick={() => setDays(p)}>{p} days</button>)}</div>
     <Activity data={data?.activity} busy={busy} error={error} onRetry={() => setAttempt(a => a + 1)} />
+    <SearchTrends days={days} />
     <ListingHealth />
     <Suspense fallback={<p role="status">Loading search measurement…</p>}><SearchMilestones days={days} /></Suspense>
     {error ? <p role="alert" className="err">{error}{" "}

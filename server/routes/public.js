@@ -1,3 +1,4 @@
+import { validSearchAction } from "../measurement-dimensions.js";
 import { json, fail, HttpError, readJson, now } from "../http.js";
 import { toPublic } from "../listing.js";
 import { buildPublicAddressReview, addressAppearsInPublicContent, addressDetailsFromListing } from "../public-address.js";
@@ -143,6 +144,13 @@ async function createViewing({ request, env }) {
 
 const options = () => json(OPTIONS, 200, { "cache-control": "public, max-age=86400" });
 
+// The producer and writer remain closed until privacy, schema and cost are verified.
+async function searchStats({request}) {
+  const body = await readJson(request, 1024);
+  if (!validSearchAction(body)) fail(400, "Invalid search measurement");
+  return json({error: "Search measurement is not available"}, 503, {"cache-control": "no-store"});
+}
+
 export const STAT_METRICS = ["view", "photos", "tour"];
 
 // I2: one open of a listing, its gallery or its tour. Only published listings count; 204 either way.
@@ -274,4 +282,5 @@ export default [
   ["GET", /^\/applicants\/options$/, options],
   ["POST", /^\/applicants$/, createApplicant],
   ["POST", /^\/stats$/, countStat],
+  ["POST", /^\/search-stats$/, searchStats],
 ];

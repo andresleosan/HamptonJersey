@@ -551,6 +551,7 @@ body:has(.chat-btn:not([hidden])) footer{padding-bottom:80px}
 <button class="btn chat-btn" type="button" aria-haspopup="dialog" aria-expanded="false" hidden>Message us</button>
 
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstile" async defer></script>
+<script src="/measurement-dimensions.js"></script>
 <script src="/lib.js"></script>
 <script src="/tour-privacy.js"></script>
 <script>
@@ -558,8 +559,16 @@ body:has(.chat-btn:not([hidden])) footer{padding-bottom:80px}
 const $ = (s, el = document) => el.querySelector(s);
 const wix = (url, w, h) => url ? `${url}/v1/fill/w_${w},h_${h},al_c,q_80/photo.jpg` : "";
 const fmtDate = iso => new Date(iso + "T12:00").toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"});
-const REGIONS = {all: "All", jersey: "Jersey", uk: "UK", international: "International"};
-const OPS = {all: "All", sale: "For sale", rent: "To let", business: "Businesses"};
+// Compatibility for a failed measurement resource, including when a cached older lib.js is used.
+// The catalogue values below must match the canonical module; the parity test protects updates.
+const UI_DIMENSIONS = typeof SEARCH_DIMENSIONS !== "undefined" ? SEARCH_DIMENSIONS : {
+  version: 1, operations: CATALOG.op, regions: CATALOG.region, bedrooms: CATALOG.beds,
+  operationLabels: {sale:"For sale", rent:"To let", business:"Businesses"},
+  regionLabels: {jersey:"Jersey", uk:"UK", international:"International"},
+  max: {sale:[400000,600000,900000,1500000], rent:[1500,2500,3500], business:[100000,250000,500000]},
+};
+const REGIONS = {all: "All", ...Object.fromEntries(UI_DIMENSIONS.regions.map(k => [k, UI_DIMENSIONS.regionLabels[k]]))};
+const OPS = {all: "All", ...Object.fromEntries(UI_DIMENSIONS.operations.map(k => [k, UI_DIMENSIONS.operationLabels[k]]))};
 const OP_ONE = {sale: "For sale", rent: "To let", business: "Business for sale"};
 // J3: the Jersey fields, as server/listing.js stores them. The category is described, never advised on.
 const TENURE = {freehold: "Freehold", flying_freehold: "Flying freehold", share_transfer: "Share transfer", leasehold: "Leasehold"};
@@ -567,7 +576,7 @@ const TENURE = {freehold: "Freehold", flying_freehold: "Flying freehold", share_
 const housingLabel = p => p.housingCategory === "qualified" ? "Qualified" : p.housingCategory !== "registered" ? null
   : p.operation !== "sale" || p.tenureType === "share_transfer" ? "Registered (open to all residential statuses)" : "Registered";
 const RESTRICTION = {first_time_buyer: "First-time buyers only", over_55: "Over 55s only"};
-const MAX = {sale: [400e3, 600e3, 900e3, 1.5e6], rent: [1500, 2500, 3500], business: [100e3, 250e3, 500e3]};
+const MAX = UI_DIMENSIONS.max;
 const BRAND = "Hampton Estates Jersey", HOME_TITLE = `${BRAND} · Property sales, lettings and valuations`; // as in <title>
 // S7: shared links always point at SITE_URL, which the page reads from <meta name="site-url"> (static on the home page,
 // set by functions/p/[id].js on a listing); failing that, the canonical link built from it, then this host.
@@ -577,6 +586,15 @@ const short = (n, op) => op === "rent" ? `£${n.toLocaleString("en-GB")} pcm` : 
 let TS_KEY = null, TOURS = [];
 const tsReady = new Promise(r => { window.onTurnstile = r; });
 // I3: one count per listing and metric until the page reloads, with no cookies; a failed count is ignored.
+// Disabled until the privacy notice, retention policy, D1 schema and operating cost are approved.
+const SEARCH_STATS_PRODUCER_ENABLED = false;
+function trackSearch(visible) {
+  if (!SEARCH_STATS_PRODUCER_ENABLED || typeof searchAction !== "function") return;
+  const body = searchAction(filter, visible, true);
+  if (!body) return;
+  try { fetch("/api/search-stats", {method:"POST", keepalive:true, credentials:"omit", referrerPolicy:"no-referrer",
+    headers:{"content-type":"application/json"}, body:JSON.stringify(body)}).catch(() => {}); } catch { /* navigation wins */ }
+}
 const tracked = new Set();
 const track = (id, metric) => {
   if (tracked.has(id + metric)) return; tracked.add(id + metric);
@@ -818,7 +836,7 @@ function home() {
     <form class="search" id="quick">
       <label>Location${sel("q-region", {...REGIONS, all: "Anywhere"}, filter.region)}</label>
       <label>Looking for${sel("q-op", {...OPS, all: "Any"}, filter.op)}</label>
-      <label>Bedrooms<select id="q-beds">${[0, 2, 3, 4].map(n => `<option value="${n}" ${n === filter.beds ? "selected" : ""}>${n ? n + "+" : "Any"}</option>`).join("")}</select></label>
+      <label>Bedrooms<select id="q-beds">${[0, ...UI_DIMENSIONS.bedrooms].map(n => `<option value="${n}" ${n === filter.beds ? "selected" : ""}>${n ? n + "+" : "Any"}</option>`).join("")}</select></label>
       <label>Max price<select id="q-max"></select></label>
       <button class="btn" type="submit">Search</button>
     </form></div></div>`}
@@ -918,6 +936,7 @@ function home() {
   $("#quick").addEventListener("submit", e => {
     e.preventDefault();
     navigate("/properties" + catalogQuery({op: $("#q-op").value, region: $("#q-region").value, beds: +$("#q-beds").value, max: +$("#q-max").value}));
+    trackSearch(PUB.filter(p => matches(p, filter)));
   });
 }
 
@@ -936,7 +955,7 @@ function properties() {
         <span class="op-txt"><b>${word}</b><small>${sub}</small></span></button>`).join("")}</div>
     ${full ? `<div class="catalog-filters">
       <div class="tabs" id="tabs-region" role="group" aria-label="Location">${Object.entries(REGIONS).map(([k, v]) => `<button type="button" data-region="${k}">${v}</button>`).join("")}</div>
-      <label class="field"><span>Bedrooms</span><select id="c-beds">${[0, 2, 3, 4].map(n => `<option value="${n}">${n ? n + "+" : "Any"}</option>`).join("")}</select></label>
+      <label class="field"><span>Bedrooms</span><select id="c-beds">${[0, ...UI_DIMENSIONS.bedrooms].map(n => `<option value="${n}">${n ? n + "+" : "Any"}</option>`).join("")}</select></label>
       <label class="field"><span>Max price</span><select id="c-max"></select></label></div>` : ""}
     <p class="count" aria-live="polite"><span id="count" class="num"></span><button class="linkbtn" type="button" id="show-all" hidden>Show all properties</button></p>
     <div class="grid" id="grid"></div>
@@ -962,8 +981,14 @@ function properties() {
       $("#c-beds").value = filter.beds; fillMax();
     }
     history.replaceState(null, "", "/properties" + catalogQuery(filter)); routed = location.href;
+    return list;
   };
-  const set = patch => { Object.assign(filter, patch); if ("op" in patch) filter.max = 0; render(); };
+  const set = patch => {
+    const before = {...filter};
+    Object.assign(filter, patch); if ("op" in patch) filter.max = 0;
+    const list = render();
+    if (Object.keys(NO_FILTER).some(k => before[k] !== filter[k])) trackSearch(list);
+  };
   $(".op-buttons").addEventListener("click", e => { const op = e.target.closest("button")?.dataset.op; if (!op) return;
     if (op === "international") set({region: filter.region === "international" ? "all" : "international", op: "all", beds: 0});
     else set({op: filter.op === op ? "all" : op, region: "all"}); });

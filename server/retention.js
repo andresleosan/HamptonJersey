@@ -1,3 +1,4 @@
+import { pruneSearchMetrics } from "./search-measurement.js";
 import { now } from "./http.js";
 import { jerseyToday } from "./viewings.js";
 import { normalizePhone } from "./applicants.js";
@@ -66,7 +67,10 @@ export const touchByViewing = (env, { email, phone }, ts) => env.DB.prepare(
   .bind(ts, email, normalizePhone(phone));
 
 // ts: the ISO time of the pass; the cutoffs are its Jersey date.
+// Deliberately closed until the proposed schema and retention policy are approved.
+const SEARCH_METRIC_RETENTION_READY = false;
 export async function runRetention(env, ts) {
+  if (SEARCH_METRIC_RETENTION_READY) await pruneSearchMetrics(env, new Date(ts));
   await cleanEmail(env, ts);
   const q = sql => env.DB.prepare(sql).bind(ts, jerseyToday(new Date(ts)));
   const r = await env.DB.batch([

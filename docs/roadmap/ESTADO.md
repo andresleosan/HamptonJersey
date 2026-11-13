@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **ANA-04 parcial:** tendencias agregadas preparadas con presupuesto diario y compatibilidad de archivos en caché; productor, lectura y retención siguen cerrados. Faltan política, protección de solicitudes y presupuesto/esquema D1. [Evidencia](work/ANA-04/evidence.md).
+
 13-nov-2026 · **ANA-05 parcial:** etapas registradas separadas de hitos aún no integrados, sin seguimiento individual ni inferencia de pasos. La lectura nueva permanece apagada hasta acreditar su presupuesto D1 y las fuentes. [Evidencia](../qa/ana-05-aggregate-evidence.md).
 
 13-nov-2026 · **ANA-01 hecho en el alcance agregado vigente:** actividad de fichas y galerías sin seguimiento individual, con cobertura desconocida y sin segunda lectura automática. `d03f0d3` tiene Pages y Workers Builds correctos; las pruebas funcionales fueron locales y no se verificaron el coste real de D1 ni la pantalla autenticada de producción. El catálogo pasa de 67/217 (30,88 %) a 68/217 (31,34 %). [Evidencia](../qa/ana01-evidencia-2026-11-13.md).

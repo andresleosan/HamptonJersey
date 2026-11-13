@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const ORIGIN = 'https://www.hamptonestatesjersey.com';
 // Only the static files and public queries needed by this particular journey.
-const SAFE_PATHS = new Set(['/', '/favicon.ico', '/requirements.css', '/lib.js', '/apply.js',
+const SAFE_PATHS = new Set(['/', '/favicon.ico', '/requirements.css', '/lib.js', '/measurement-dimensions.js', '/apply.js',
   '/requirements.js', '/data/team.json', '/api/listings', '/api/config', '/api/tours',
   '/api/applicants/options']);
 function permitsRequest(method, rawUrl) {

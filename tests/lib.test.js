@@ -173,3 +173,13 @@ test("International button uses the newest international property, regardless of
     at("HE-I001", "2026-11-04T10:00:00Z", {region: "international", operation: "rent", image: "/media/I"})];
   assert.equal(L.buttonPhoto(list, "international"), "/media/I");
 });
+
+test('search measurement uses visible filters and distinguishes a genuine empty result from unavailable data', () => {
+  const f = {op: 'rent', region: 'jersey', beds: 2, max: 2500};
+  assert.deepEqual(L.searchAction(f, [], true), {event:'search_applied',version:1,op:'rent',region:'jersey',beds:'2',max:'rent_gbp_month_2500',zero_results:true});
+  assert.equal(L.searchAction(f, null, false), null);
+  assert.equal(L.searchAction(f, [{id:'fixture'}], true).zero_results, false);
+  assert.equal(L.searchAction({...f, max:1234}, [], true), null);
+  assert.deepEqual(L.searchAction({op:'all',region:'all',beds:0,max:0}, [], true),
+    {event:'search_applied',version:1,op:null,region:null,beds:null,max:null,zero_results:true});
+});

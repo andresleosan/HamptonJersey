@@ -6,15 +6,21 @@
   "fase": "F7-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Insights, por periodos de 7, 30 o 90 días, muestra lo más visto, la demanda sin cubrir, el embudo y los tiempos del equipo.",
-  "falta": "No se cuenta lo que la gente busca y filtra en la portada (Location, Looking for, Bedrooms, Max price) ni las búsquedas sin resultado, y no hay evolución en el tiempo: solo el total de cada periodo.",
+  "hecho": "Insights conserva demanda y vistas existentes. Se preparó una medición agregada de filtros y tendencias, sin identificadores ni combinaciones persistidas, con pruebas de presupuesto y compatibilidad de caché. El productor, escritor, lector y retención nuevos permanecen cerrados.",
+  "falta": "Verificar aviso de privacidad, política de retención, protección de solicitudes y presupuesto/esquema D1 antes de activar; el SQL es una propuesta fuera de migrations. La cobertura real de estas métricas no se ha comprobado.",
   "bloqueo": "",
   "evidencia": [
     "site/index.html:610-613",
     "site/index.html:741-750",
     "server/routes/public.js:82",
     "docs/superpowers/specs/2026-10-24-hampton-app-f7a-design.md:22",
-    "admin/src/Insights.jsx:38-39"
+    "admin/src/Insights.jsx:38-39",
+    "site/measurement-dimensions.js",
+    "site/lib.js",
+    "server/search-measurement.js",
+    "tests/server/search-stats-d1.test.mjs",
+    "tests/search-compat.e2e.cjs",
+    "docs/roadmap/work/ANA-04/evidence.md"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -25,5 +31,5 @@
   "resources": [
     "analytics-contract"
   ],
-  "nextStep": "Añadir consultas y filtros agregados y evolución temporal a los datos existentes."
+  "nextStep": "Revisar privacidad, retención, protección y presupuesto D1 antes de integrar el esquema y activar la medición."
 }
