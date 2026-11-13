@@ -1640,14 +1640,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F3-A",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Visitas de 30 minutos con 15 minutos de margen antes y después de cada cita, fijados en el servidor.",
-   "falta": "Margen extra cuando el negociador cambia de parroquia, máximo de visitas por día y ajustar duración y margen desde Availability.",
+   "hecho": "El sistema actual utiliza visitas de 30 minutos y margen fijo. Se construyó y revisó una política interna para duración, márgenes, cambio de parroquia y máximo diario, con guarda transaccional y pruebas de concurrencia; permanece desconectada de las rutas existentes.",
+   "falta": "Integrar la política en disponibilidad, reservas y reprogramación, con permisos, horarios y versiones revalidados en la transacción; completar configuración e interfaz. Resolver el tratamiento de cambio horario con offset y datos históricos antes de activar. La migración 0047 no se ha aplicado remotamente.",
    "bloqueo": "",
    "evidencia": [
     "server/viewings.js:5-6",
     "server/viewings.js:47-52",
-    "admin/src/Availability.jsx:53"
-   ]
+    "admin/src/Availability.jsx:53",
+    "server/viewing-policy.js",
+    "migrations/0047_viewing_policy.sql",
+    "tests/server/viewing-policy.test.mjs",
+    "docs/roadmap/work/VIS-09/foundation-evidence.md"
+   ],
+   "actualizado": "2026-11-13"
   },
   {
    "id": "VIS-10",
