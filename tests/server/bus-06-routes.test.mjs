@@ -12,8 +12,17 @@ function seed(env) {
     .run('fixture-source', 'fixture-channel', 'fixture-rev', 'fixture-evidence', 'fixture-retention', '2000-01-01T00:00:00.000Z', '2999-01-01T00:00:00.000Z');
 }
 
+test('market routes remain unavailable by default, including before the migration is applied', async () => {
+  const env = makeEnv();
+  env.DB.raw.exec('DROP TABLE market_runs');
+  const cookie = await adminCookie();
+  const result = await call(env, 'GET', '/admin/market/runs', { cookie });
+  assert.equal(result.status, 404);
+  assert.equal((await call(env, 'GET', '/admin/automations', { cookie })).status, 200);
+});
+
 test('inventory routes require staff and same-origin; an accepted run exposes only coverage metadata', async () => {
-  const env = makeEnv(); seed(env);
+  const env = makeEnv(); env.MARKET_INVENTORY_READY = '1'; seed(env);
   const body = { kind: 'initial', manifest_revision: 'fixture-rev', operation_id: operation(1) };
   assert.equal((await call(env, 'GET', '/admin/market/runs')).status, 401);
   const cookie = await adminCookie();
@@ -32,7 +41,7 @@ test('inventory routes require staff and same-origin; an accepted run exposes on
 });
 
 test('pause and resume reject stale versions and reconcile duplicate actions', async () => {
-  const env = makeEnv(); seed(env);
+  const env = makeEnv(); env.MARKET_INVENTORY_READY = '1'; seed(env);
   const cookie = await adminCookie();
   const created = await call(env, 'POST', '/admin/market/runs', { cookie,
     body: { kind: 'initial', manifest_revision: 'fixture-rev', operation_id: operation(2) } });

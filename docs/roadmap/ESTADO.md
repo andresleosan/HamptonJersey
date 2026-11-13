@@ -1,5 +1,9 @@
 # Estado de Hampton App
 
+13-nov-2026 · **Forma de trabajo:** Luis autorizó a Codex a hacer commits y push de avances comprobados, actualizar el checklist y continuar sin pedir confirmación en cada paso. Cada tarea conserva su estado real: un avance parcial no cuenta como terminado.
+
+13-nov-2026 · **BUS-06 y BUS-19 parciales:** núcleo de inventario y revisión de acceso por canal construidos y comprobados localmente, con rutas nuevas desactivadas por defecto y migración ensayada solo en pruebas. No hay fuentes reales activadas. Pendientes de manifiesto reconciliado, lectores, revisión efectiva por canal y pantalla. Detalles: [avance publicable](work/BUS-06/avance-publicable.md).
+
 
 12-nov-2026 · **PUB-05 publicada:** migración 0041 verificada, código `9297e51` en main con Pages y Jobs correctos. Campos físicos, correcciones manuales, historial y editor pasan 1.217 pruebas JS, 14 Python y WebKit aislado. Cierre del tablero pendiente de desplegar el catálogo. [Ledger](../superpowers/plans/2026-11-08-pub-05-physical-fields-ledger.md). Siguiente: PUB-06, datos económicos y área compartida.
 

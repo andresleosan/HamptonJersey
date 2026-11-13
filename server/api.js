@@ -29,7 +29,7 @@ import advertiserRoutes from "./routes/advertisers.js";
 import marketInventoryRoutes from "./routes/market-inventory.js";
 
 // [method, path regex, handler, requiresAdmin]
-const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...marketInventoryRoutes];
+const ROUTES = [...publicRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes];
 
 // waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
 // promise still runs, unawaited; pass only promises that never reject.
@@ -50,7 +50,10 @@ async function route(request, env, segments, waitUntil) {
     if (segments[0] === "hermes") return await hermesDoor(request, env, path.slice("/hermes".length));
     if (method !== "GET" && method !== "HEAD" && !sameOrigin(request)) fail(403, "Cross-origin request blocked");
     if (segments[0] === "qa") return await qaRoute({request, env, path, segments});
-    for (const [m, re, handler, auth] of ROUTES) {
+    // Market tables require a separate migration and source review. New routes
+    // stay absent unless the deployment explicitly enables the completed slice.
+    const routes = env.MARKET_INVENTORY_READY === '1' ? [...ROUTES, ...marketInventoryRoutes] : ROUTES;
+    for (const [m, re, handler, auth] of routes) {
       const hit = m === method && re.exec(path);
       if (!hit) continue;
       const admin = auth ? await currentAdmin(request, env) : null;
