@@ -40,3 +40,7 @@ Sobre `3cbb3886076f826767b9ff2fb47e5b5f0f5515bb`, la propuesta añade sustituci�
 ### Corrección tras revisión independiente
 
 Con `recursive_triggers=OFF`, SQLite puede omitir los triggers DELETE de un `INSERT OR REPLACE`. La propuesta ahora rechaza antes de insertar cualquier colisión con las claves de candidato (ID, primer par y predecesor único) o de recibo (operación). La regresión sintética con claves foráneas activas comprueba cada guarda por su error, conserva íntegros los registros y mantiene `foreign_key_check` limpio; 24/24 pruebas SQLite de candidaturas pasan. Esto protege únicamente el esquema propuesto inactivo, no resuelve autorización ni política de retención. La focal D1 efímera pasó 1/1 con los cuatro rechazos y `foreign_key_check` limpio; no acredita D1 remoto.
+
+La revisión independiente confirmó las cuatro guardas de conflicto con claves foráneas activas y triggers recursivos apagados; el replay usa `WHERE NOT EXISTS`. La propuesta sigue inactiva y no define purga ni permisos duraderos.
+
+Integración conjunta con BUS-12: 2.083 pruebas JavaScript y 25 Python aprobadas; build, release, catálogo y paquetes correctos. El esquema sigue propuesto e inactivo. Playwright no aplica a BUS-10.
