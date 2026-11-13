@@ -488,3 +488,7 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **Integración REG-12/SAP-01 13-nov:** pasaron 2.159 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes; REG-12 pasó Chromium aislado sobre el conjunto integrado. La respuesta de error de interfaz fue simulada. Ambas tareas siguen parciales y el catálogo mantiene 68/215 (31,63 %).
 
 **SAP-01, lectura primaria 13-nov:** una prueba D1 efímera y revisión independiente verificaron la sesión `first-primary` y que el gate apagado no la abre; cinco pruebas focales pasaron sobre el conjunto integrado. La escritura de prueba fue posterior al SELECT, no demuestra concurrencia dentro de él. No verifica réplicas ni producción; SAP-01 sigue parcial. Playwright: no aplica a esta prueba de servidor.
+
+**VIS-09, offsets de Jersey 13-nov:** preparado y revisado un validador puro para horas con offset explícito; distingue horas repetidas y rechaza inexistentes. Sigue desconectado, no resuelve reservas históricas sin offset ni acredita tzdata de producción. VIS-09 permanece parcial. [Evidencia](work/VIS-09/foundation-evidence.md). Playwright: no aplica.
+
+**Integración VIS-09 13-nov:** pasaron 2.162 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes. El helper de offset sigue desconectado, y VIS-09 permanece parcial. El catálogo mantiene 68/215 (31,63 %). Playwright: no aplica.
