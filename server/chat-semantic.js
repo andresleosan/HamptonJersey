@@ -4,7 +4,9 @@
 // this module alone does not prove consent, session validity or delivery.
 import { CHAT_DB_NOW, TEAM_MAX, chatKeyCurrent, messageText } from './chat.js';
 
-export const CHAT_REPLY_RETRY_SECONDS = 86400; // Proposed only; no policy or activation is implied.
+// Proposed only. The database records whole seconds, so this is not an exact
+// 24-hour wall-clock duration from a fractional-second issuance instant.
+export const CHAT_REPLY_RETRY_SECONDS = 86400;
 export const CHAT_REPLY_MAX_PER_CHAT = 64;
 export const CHAT_REPLY_PURGE_BATCH = 64;
 const clockSeconds = "CAST(strftime('%s','now') AS INTEGER)";

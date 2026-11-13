@@ -7,6 +7,12 @@ CREATE TABLE chat_semantic_revisions (
   revision INTEGER NOT NULL DEFAULT 0 CHECK(typeof(revision)='integer' AND revision BETWEEN 0 AND 9007199254740991)
 );
 -- statement-breakpoint
+-- A BEFORE INSERT guard also covers REPLACE when recursive triggers are off.
+CREATE TRIGGER chat_semantic_insert_guard BEFORE INSERT ON chat_semantic_revisions
+WHEN EXISTS(SELECT 1 FROM chat_semantic_revisions WHERE chat_id=NEW.chat_id)
+  OR EXISTS(SELECT 1 FROM chat_semantic_revisions WHERE generation=NEW.generation)
+BEGIN SELECT RAISE(ABORT,'chat revision already exists'); END;
+-- statement-breakpoint
 CREATE TRIGGER chat_semantic_identity_guard BEFORE UPDATE OF chat_id,generation ON chat_semantic_revisions
 WHEN NEW.chat_id IS NOT OLD.chat_id OR NEW.generation IS NOT OLD.generation
 BEGIN SELECT RAISE(ABORT,'chat identity is immutable'); END;
@@ -20,7 +26,8 @@ WHEN EXISTS(SELECT 1 FROM chats WHERE id=OLD.chat_id)
 BEGIN SELECT RAISE(ABORT,'chat revision cannot be removed'); END;
 -- statement-breakpoint
 -- An operation is minted server-side, not accepted as a fresh ID from a caller.
--- It expires exactly 24h after issue. No message text, digest, or staff email is stored here.
+-- Expiry is issued_at + 86400 whole database-clock seconds; issuance is second-granular.
+-- No message text, digest, or staff email is stored here.
 CREATE TABLE chat_reply_operations (
   operation_id TEXT PRIMARY KEY NOT NULL,
   chat_id INTEGER REFERENCES chats(id) ON DELETE SET NULL,

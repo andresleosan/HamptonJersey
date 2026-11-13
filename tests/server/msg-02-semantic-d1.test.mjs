@@ -55,6 +55,18 @@ test('D1 local: revision, reply races, durable receipts and bounded expiry propo
     assert.deepEqual(results.map(x=>x.outcome).sort(),['committed','stale']);
     assert.equal((await DB.prepare('SELECT COUNT(*) AS n FROM chat_messages WHERE chat_id=?').bind(id).first()).n,1);
     assert.equal((await DB.prepare('SELECT status FROM chats WHERE id=?').bind(id).first()).status,'answered');
+    const staleOperation={...initial,operation_id:results[0].outcome==='stale'?one.operation_id:two.operation_id};
+    const afterRace=await readChatVersion(env,id);
+    await assert.rejects(DB.prepare(`INSERT OR REPLACE INTO chat_semantic_revisions(chat_id,generation,revision)
+      VALUES(?,?,?)`).bind(id,crypto.randomUUID().replaceAll('-',''),initial.expected_revision).run());
+    await assert.rejects(DB.prepare(`INSERT OR REPLACE INTO chat_semantic_revisions(chat_id,generation,revision)
+      VALUES(?,?,?)`).bind(id,initial.generation,initial.expected_revision).run());
+    await assert.rejects(DB.prepare(`INSERT OR REPLACE INTO chat_semantic_revisions(chat_id,generation,revision)
+      VALUES(?,?,?)`).bind(oldChat,initial.generation,initial.expected_revision).run());
+    assert.deepEqual(await readChatVersion(env,id),afterRace);
+    assert.equal(await readChatVersion(env,oldChat),null);
+    assert.equal((await commitChatReply(env,staleOperation,reply)).outcome,'stale');
+    assert.equal((await DB.prepare('SELECT COUNT(*) AS n FROM chat_messages WHERE chat_id=?').bind(id).first()).n,1);
 
     const retry=await issue(env,id), operation={...retry.context,operation_id:retry.operation_id};
     const simultaneous=await Promise.all([commitChatReply(env,operation,reply),commitChatReply(env,operation,reply)]);

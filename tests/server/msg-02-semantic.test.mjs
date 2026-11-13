@@ -55,6 +55,49 @@ test('only semantic changes advance the revision, not presence or no-op writes',
   assert.equal((await readChatVersion(env, id)).revision, 3);
 });
 
+test('replacing a revision by chat ID cannot make an old reply current again', async () => {
+  const { readChatVersion, issueChatReply, commitChatReply } = await core();
+  const { env, id } = prepare(), db = env.DB.raw;
+  db.exec('PRAGMA recursive_triggers=OFF');
+  assert.equal(db.prepare('PRAGMA recursive_triggers').get().recursive_triggers, 0);
+  const version = await readChatVersion(env, id);
+  const context = {chat_id:id,generation:version.generation,expected_revision:version.revision,actor_ref:crypto.randomUUID()};
+  const issued = await issueChatReply(env, context), operation = {...context,operation_id:issued.operation_id};
+  db.prepare("UPDATE chats SET status='handled' WHERE id=?").run(id);
+  const current = await readChatVersion(env, id);
+  assert.equal(current.revision, version.revision + 1);
+  assert.throws(() => db.prepare(`INSERT OR REPLACE INTO chat_semantic_revisions(chat_id,generation,revision)
+    VALUES(?,?,?)`).run(id,crypto.randomUUID().replaceAll('-',''),version.revision));
+  assert.throws(() => db.prepare(`INSERT OR REPLACE INTO chat_semantic_revisions(chat_id,generation,revision)
+    VALUES(?,?,?)`).run(id,version.generation,version.revision));
+  assert.deepEqual(await readChatVersion(env,id),current);
+  assert.equal((await commitChatReply(env,operation,{text:'Synthetic response',sent_by:'staff@example.test'})).outcome,'stale');
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM chat_messages WHERE chat_id=? AND role='team'").get(id).n,0);
+});
+
+test('replacing a generation cannot displace a different chat revision', async () => {
+  const { readChatVersion, issueChatReply, commitChatReply } = await core();
+  const env = makeEnv(), db = env.DB.raw, timestamp = new Date().toISOString();
+  const insert = db.prepare(`INSERT INTO chats(key_hash,name,email,privacy_ack_at,created_at,last_at)
+    VALUES(?,?,?,?,?,?)`);
+  const historical = Number(insert.run(crypto.randomUUID(),'Old fixture','old@example.test',timestamp,timestamp,timestamp).lastInsertRowid);
+  db.exec(readFileSync(schema,'utf8'));
+  db.exec('PRAGMA recursive_triggers=OFF');
+  assert.equal(db.prepare('PRAGMA recursive_triggers').get().recursive_triggers,0);
+  const id = Number(insert.run(crypto.randomUUID(),'New fixture','new@example.test',timestamp,timestamp,timestamp).lastInsertRowid);
+  const version = await readChatVersion(env,id);
+  const context = {chat_id:id,generation:version.generation,expected_revision:version.revision,actor_ref:crypto.randomUUID()};
+  const issued = await issueChatReply(env,context), operation = {...context,operation_id:issued.operation_id};
+  db.prepare("UPDATE chats SET status='handled' WHERE id=?").run(id);
+  const current = await readChatVersion(env,id);
+  assert.throws(() => db.prepare(`INSERT OR REPLACE INTO chat_semantic_revisions(chat_id,generation,revision)
+    VALUES(?,?,?)`).run(historical,version.generation,version.revision));
+  assert.deepEqual(await readChatVersion(env,id),current);
+  assert.equal(await readChatVersion(env,historical),null);
+  assert.equal((await commitChatReply(env,operation,{text:'Synthetic response',sent_by:'staff@example.test'})).outcome,'stale');
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM chat_messages WHERE chat_id=? AND role='team'").get(id).n,0);
+});
+
 test('existing chats remain closed until a separately authorized bounded backfill', async () => {
   const { readChatVersion } = await core();
   const env = makeEnv(), db = env.DB.raw, timestamp = new Date().toISOString();
@@ -180,6 +223,52 @@ test('a reserved operation cannot be replaced to rejuvenate or reset its receipt
   assert.throws(() => env.DB.raw.prepare(`INSERT OR REPLACE INTO chat_reply_operations
     SELECT * FROM chat_reply_operations WHERE operation_id=?`).run(issued.operation_id));
   assert.equal(env.DB.raw.prepare('SELECT state FROM chat_reply_operations WHERE operation_id=?').get(issued.operation_id).state,'issued');
+});
+
+test('the second-granularity window admits before expiry and rejects at and after expiry', async () => {
+  const { readChatVersion, issueChatReply, commitChatReply, purgeExpiredChatReplyOperations } = await core();
+  for (const [fractionMs, expectedDurationMs] of [[0,86400000],[999,86399001]]) {
+    const { env, id } = prepare(), db = env.DB.raw;
+    let nowMs = 1800000000000 + fractionMs;
+    // Only the database clock is controlled; all issuance, commit and purge SQL is real.
+    db.function('strftime',{varargs:true},(format,value) => {
+      assert.equal(value,'now');
+      if (format === '%s') return String(Math.floor(nowMs/1000));
+      if (format === '%Y-%m-%dT%H:%M:%fZ') return new Date(nowMs).toISOString();
+      throw new Error('Unexpected fixture clock format');
+    });
+    const ts = new Date().toISOString();
+    const insert = db.prepare(`INSERT INTO chats(key_hash,name,email,privacy_ack_at,created_at,last_at)
+      VALUES(?,?,?,?,?,?)`);
+    const nextChat = () => Number(insert.run(crypto.randomUUID(),'Synthetic visitor','visitor@example.test',ts,ts,ts).lastInsertRowid);
+    const ids = [id,nextChat(),nextChat()];
+    const operations = [];
+    for (const chat_id of ids) {
+      const version = await readChatVersion(env,chat_id);
+      const context = {chat_id,generation:version.generation,expected_revision:version.revision,actor_ref:crypto.randomUUID()};
+      const issued = await issueChatReply(env,context);
+      assert.equal(issued.outcome,'issued');
+      assert.equal(issued.expires_at,1800086400);
+      operations.push({...context,operation_id:issued.operation_id});
+    }
+    const reply = {text:'Synthetic response',sent_by:'staff@example.test'};
+    assert.equal(1800086400000-nowMs,expectedDurationMs);
+    assert.equal((await commitChatReply(env,operations[0],reply)).outcome,'committed');
+    nowMs = 1800086399999;
+    await purgeExpiredChatReplyOperations(env);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM chat_reply_operations').get().n,3);
+    assert.throws(() => db.prepare('DELETE FROM chat_reply_operations WHERE operation_id=?').run(operations[1].operation_id));
+    assert.equal((await commitChatReply(env,operations[1],reply)).outcome,'committed');
+    nowMs = 1800086400000;
+    assert.equal((await commitChatReply(env,operations[2],reply)).outcome,'unavailable');
+    assert.equal((await commitChatReply(env,operations[0],reply)).outcome,'unavailable');
+    await purgeExpiredChatReplyOperations(env);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM chat_reply_operations').get().n,0);
+    nowMs += 1;
+    assert.equal((await commitChatReply(env,operations[2],reply)).outcome,'unavailable');
+    for (const [index,expected] of [[0,1],[1,1],[2,0]])
+      assert.equal(db.prepare("SELECT COUNT(*) AS n FROM chat_messages WHERE chat_id=? AND role='team'").get(ids[index]).n,expected);
+  }
 });
 
 test('expired operation IDs cannot send or become new operations after bounded cleanup', async () => {
