@@ -43,7 +43,7 @@ test("an applicant saved in the panel gets its matches in the same request, and 
   assert.equal(e.actor, ADMIN);
 
   // A change of requirements.
-  assert.equal((await putApplicant(env, id, { bedrooms_min: 3 })).status, 200);
+  assert.equal((await putApplicant(env, id, { bedrooms_min: 3, criteria_confirmation: { confirmed: true } })).status, 200);
   assert.deepEqual(found(env, id), ["HE-R002"]);
   // A commercial stage change leaves the search active.
   assert.equal((await putApplicant(env, id, { stage: "lost", lost_reason: "Found elsewhere" })).status, 200);
@@ -89,7 +89,7 @@ test("archiving a listing (sold) removes its found matches for everyone and stop
   // A reviewed match is never lost.
   assert.equal(row(env, "SELECT status FROM matches WHERE applicant_id = ? AND listing_id = 'HE-R001'", b).status, "shortlisted");
   // Saving the applicant again does not propose it either.
-  assert.equal((await putApplicant(env, a, { budget_max: 2600 })).status, 200);
+  assert.equal((await putApplicant(env, a, { budget_max: 2600, criteria_confirmation: { confirmed: true } })).status, 200);
   assert.deepEqual(found(env, a), ["HE-R002"]);
 
   // Restoring keeps it off (B9); the editor's switch offers it again.

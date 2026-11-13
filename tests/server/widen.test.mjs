@@ -165,7 +165,7 @@ test("detail: the counted listings are the new found ones after saving the chang
   for (const [i, alt] of alts.entries()) {
     const beforeMeets=env.DB.raw.prepare("SELECT COUNT(*) n FROM matches WHERE applicant_id=? AND requirements_rank=0").get(ids[i]).n;
     const updated_at = env.DB.raw.prepare("SELECT updated_at FROM applicants WHERE id = ?").get(ids[i]).updated_at;
-    const r = await req(env, "PUT", `/admin/applicants/${ids[i]}`, { updated_at, [alt.field]: alt.to });
+    const r = await req(env, "PUT", `/admin/applicants/${ids[i]}`, { updated_at, [alt.field]: alt.to, criteria_confirmation: { confirmed: true } });
     assert.equal(r.status, 200, JSON.stringify(r.data));
     assert.equal(env.DB.raw.prepare("SELECT COUNT(*) n FROM matches WHERE applicant_id=? AND requirements_rank=0").get(ids[i]).n-beforeMeets,alt.added,alt.key);
   }
