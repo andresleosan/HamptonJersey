@@ -31,3 +31,7 @@ Tercero, un trigger podía conservar el comentario SPR-01 mientras omitía la fe
 - La primera ejecución del navegador falló porque el fixture de conflicto omitía `/api`; la segunda, porque el segundo tamaño intentaba guardar valores idénticos y el botón estaba correctamente desactivado. Se corrigió el test, sin presentar esas ejecuciones como aprobadas. El SQL y la bandera solo se cargan para esta prueba en el contenedor local aislado; el modo de producción se comprobó rechazado antes de preparar el fixture.
 
 Pendientes: revisión independiente del diff y del guardado, suite completa integrada, reconciliación de A3/A4, decisión y verificación del esquema remoto, migración/publicación si se autorizan, y cualquier recorrido autenticado real que se decida exigir. No se han consultado cuentas, datos reales ni producción, ni se ha hecho push.
+
+## Integración posterior
+
+Sobre `8ceb36b414f22864ca4e7ff35b0aa37b4ce65deb`, la revisión independiente identificó los tres casos corregidos arriba. La integración aprobó **1.852/1.852** pruebas Node y **25/25** Python, además del contrato generado, build, `check:release`, `team:check`, `check:packages` y `git diff --check`. Los recorridos aislados de costes estructurados y de la ficha BUS-10 terminaron con código 0 en Chromium con datos ficticios. El zoom comprobado fue CSS; no se verificaron WebKit, el runtime remoto ni producción. La capacidad permanece apagada, el SQL no está en la cola de migraciones y A3/A4 siguen pendientes.

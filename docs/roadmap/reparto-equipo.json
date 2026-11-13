@@ -7537,8 +7537,8 @@
       "fase": "F4",
       "estado": "parcial",
       "responsable": "—",
-      "hecho": "La entrega económica 2ba135b y la migración 0042 constan publicadas el 12-nov-2026: editor y ficha pública con precio por pie², depósito, parish rates, service charge, suministros incluidos y fecha de disponibilidad. Esa entrega admitía renta y premium juntos en negocios. El cambio publicado posterior 041188e retiró premium del editor y de la proyección pública y cambió la base del precio según la tenencia. El editor calcula ahora de forma informativa el precio por pie cuadrado a partir del precio y la superficie interior introducidos, con moneda y periodo; no modifica el texto manual guardado.",
-      "falta": "El criterio A3 sigue exigiendo editar y mostrar premium y renta juntos, pero el código publicado posterior ya no lo permite. Conciliar expresamente el alcance y el criterio con evidencia de la decisión de producto antes de declarar PUB-06 terminada; no se ha comprobado si hay datos reales afectados. Los gastos y sus periodos continúan como texto, por lo que los criterios estructurados A1/A2 del plan no se acreditan. El cálculo nuevo es informativo en el panel y no sustituye el campo manual existente.",
+      "hecho": "La entrega económica 2ba135b y la migración 0042 constan publicadas el 12-nov-2026: editor y ficha pública con precio por pie², depósito, parish rates, service charge, suministros incluidos y fecha de disponibilidad. Esa entrega admitía renta y premium juntos en negocios. El cambio publicado posterior 041188e retiró premium del editor y de la proyección pública y cambió la base del precio según la tenencia. El editor calcula ahora de forma informativa el precio por pie cuadrado a partir del precio y la superficie interior introducidos, con moneda y periodo; no modifica el texto manual guardado. Se prepararon costes estructurados privados con periodos independientes y auditoría combinada con SPR-01. La capacidad está desactivada y conserva los textos públicos y el cambio 041188e.",
+      "falta": "A3 y el ratio de premium de A4 siguen en conflicto con 041188e: conciliar la decisión de producto sin inferir pérdidas. Los gastos estructurados y la auditoría combinada con SPR-01 requieren contrastar el esquema real, revisar retención y preparar una migración coordinada antes de cualquier activación; no se ha consultado el esquema remoto ni producción.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ListingEditor.jsx",
@@ -7553,7 +7553,15 @@
         "docs/roadmap/work/PUB-06/reconciliacion-2026-11-13.md",
         "server/listing-price-area.js",
         "tests/server/listing-price-area.test.mjs",
-        "docs/roadmap/work/PUB-06/price-area-evidence-2026-11-13.md"
+        "docs/roadmap/work/PUB-06/price-area-evidence-2026-11-13.md",
+        "docs/roadmap/work/PUB-06/structured-economics-evidence-2026-11-13.md",
+        "docs/roadmap/work/PUB-06/structured-economics.proposed.sql",
+        "tests/server/pub-06-routes.test.mjs",
+        "tests/server/pub-06-schema.test.mjs",
+        "tests/pub06-structured.e2e.cjs",
+        "server/listing-economics.js",
+        "server/listing-economics-contract.js",
+        "tests/server/pub-06-structured-values.test.mjs"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -7565,7 +7573,8 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Conciliar el alcance de premium y renta con el cambio publicado; revisar los criterios de gastos estructurados y completar las verificaciones del módulo sin sobrescribir datos existentes."
+      "nextStep": "Conciliar A3/A4 y preparar una única migración de historial SPR-01/PUB-06 tras contrastar el esquema y la retención; mantener la capacidad apagada.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "PUB-07",

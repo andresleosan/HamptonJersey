@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **PUB-06 parcial:** costes estructurados privados preparados con gate apagado, revisión explícita de moneda y comprobación estricta de auditoría. El SQL combinado con SPR-01 sigue fuera de migraciones; A3/A4 y esquema real pendientes. [Evidencia](work/PUB-06/structured-economics-evidence-2026-11-13.md).
+
 13-nov-2026 · **REG-12 parcial:** acuse igual para altas nuevas y repetidas con contacto en un día laborable; el panel señala criterios residenciales sin confirmar. La cabecera y pie móviles se adaptan al zoom. Faltan estado y resultado reales de búsqueda. [Evidencia](work/REG-12/2026-11-13-acuse-y-criterios.md) · [Reflujo](work/REG-12/2026-11-13-reflujo-publico.md).
 
 13-nov-2026 · **BUS-10 parcial:** la ficha Staff muestra candidatos de investigación como indicios y señala revisiones contradictorias, sin fusionar propiedades. Se eliminó la dependencia de un nombre interno de índice; la búsqueda histórica sigue sin índice por grupo. [Evidencia](work/BUS-10/revision-investigacion-2026-11-13.md).
