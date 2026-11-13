@@ -14,11 +14,11 @@ test('derives a sale amount from the entered interior area without changing sour
 test('keeps monthly and yearly rent separate and formats only at presentation', () => {
   const month = { ...sale, operation: 'rent', rent: 1200, rent_period: 'month', interior_area_sqft: 800 };
   const year = { ...month, rent: 14400, rent_period: 'year', currency: 'EUR' };
-  assert.equal(formatPricePerArea(derivePricePerArea(month)), '£1.50 per sq ft per month');
-  assert.equal(formatPricePerArea(derivePricePerArea(year)), '€18.00 per sq ft per year');
+  assert.equal(formatPricePerArea(derivePricePerArea(month)), '£1.50 per sq ft pcm');
+  assert.equal(formatPricePerArea(derivePricePerArea(year)), '€18.00 per sq ft p.a.');
   const exact = derivePricePerArea({ ...month, rent: 1000, interior_area_sqft: 300 });
   assert.equal(exact.amount, 1000 / 300);
-  assert.equal(formatPricePerArea(exact), '£3.33 per sq ft per month');
+  assert.equal(formatPricePerArea(exact), '£3.33 per sq ft pcm');
 });
 test('uses the current business price basis and does not add a legacy premium', () => {
   const business = { ...sale, operation: 'business', tenure_type: 'freehold', rent: 1200, rent_period: 'month', premium: 90000 };

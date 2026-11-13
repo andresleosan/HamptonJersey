@@ -1,7 +1,6 @@
-import { listingAmount, priceOperation } from "../../server/listing-pricing.js";
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
-import { AVAILABILITY, fmtDayMonth } from "./format.js";
+import { AVAILABILITY, fmtDayMonth, priceText } from "./format.js";
 import { money, OfferBadge } from "./Sales.jsx";
 import { jerseyToday } from "../../server/viewings.js";
 
@@ -14,14 +13,10 @@ const OUTCOME = { proceed: "Wants to proceed", more_info: "Wants more informatio
 const n = v => v.toLocaleString("en-GB");
 const plural = (k, one, many = `${one}s`) => `${n(k)} ${k === 1 ? one : many}`;
 const day = d => fmtDayMonth(d); // "18 Oct 2026"
-// O3: the price as the website shows it (site/lib.js priceLabel): the amount of the listing's operation, else "Price not
-// published" (price_text is not used there either).
-const SYM = { GBP: "£", EUR: "€" };
+// O3 shares the panel's business label and the website's unknown-price fallback.
 function price(l) {
-  const a = listingAmount(l);
-  if (a == null) return "Price not published";
-  return (SYM[l.currency] ?? (l.currency ? `${l.currency} ` : "")) + Math.round(a).toLocaleString("en-GB")
-    + (priceOperation(l) === "rent" ? ({ month: " pcm", year: " p.a." }[l.rent_period] ?? "") : "");
+  const label = priceText({ ...l, price_text: null });
+  return label === "—" ? "Price not published" : label;
 }
 const longDay = d => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 

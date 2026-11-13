@@ -11,3 +11,5 @@ En la base local había 68 tareas hechas de 215 aplicables (31,63 %); después h
 ## Decisión de Luis · 13-nov-2026
 
 Luis confirma seguir la recomendación y el diseño aprobado D7–D9: premium y renta de negocios se editan y muestran como conceptos separados; el premium es la base de filtros y comparables, sin sumar renta. La ausencia del premium no equivale a cero. La decisión revierte el criterio de precio de negocio de 041188e: un precio de venta freehold existente se conserva, pero no sustituye al premium en comparaciones ni en la guarda de precio de Queue. Si solo hay precio de venta, la etiqueta de negocio vuelve al estado de precio no publicado; si solo hay renta se identifica que el premium no está publicado. No se infieren ni migran datos. Este cambio puede afectar la presentación y elegibilidad de fichas existentes; no se han consultado datos reales.
+
+El ratio de venta freehold permanece como información adicional de compatibilidad cuando existe `sale_price` y superficie interior; no reemplaza los ratios separados de premium y renta ni se usa como base de comparación de negocios. Los ratios de renta usan los sufijos pcm y p.a. de D6.

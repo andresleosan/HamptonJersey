@@ -54,7 +54,7 @@ export function formatPricePerArea(value) {
   const money = new Intl.NumberFormat('en-GB', { style: 'currency', currency: value.currency,
     minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const amount = value.belowMinimumUnit ? `Less than ${money.format(0.01)}` : money.format(value.minorUnits / 100);
-  const period = value.period === 'month' ? ' per month' : value.period === 'year' ? ' per year' : '';
+  const period = value.period === 'month' ? ' pcm' : value.period === 'year' ? ' p.a.' : '';
   return `${amount} per sq ft${period}`;
 }
 

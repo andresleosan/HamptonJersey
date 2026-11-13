@@ -215,6 +215,11 @@ async function update({ request, env, admin, params: [id] }) {
   const guardEconomics = economicInput || changingCurrencyWithCosts;
   const merged = { ...stored, specs: JSON.stringify(stored.specs), ...r.value };
   const priceErrors = checkPrice(merged);
+  // The editor submits every field. Permit an unchanged legacy rent without a period on unrelated edits,
+  // but require a consistent pair when the rent, period, or operation actually changes.
+  const rentChanged = ['rent', 'rent_period', 'operation'].some(k =>
+    Object.hasOwn(r.value, k) && r.value[k] !== stored[k]);
+  if (!rentChanged && stored.rent != null && !stored.rent_period) delete priceErrors.rent_period;
   Object.assign(priceErrors, checkPhysical(merged));
   Object.assign(priceErrors,checkMarketingEdit(stored,r.value));
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);

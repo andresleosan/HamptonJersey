@@ -199,6 +199,33 @@ test("a price needs its currency, and rent needs its period", async () => {
   assert.equal((await call(env, "PUT", "/admin/listings/HE-R001", { cookie, body: { operation: "rent", rent: 1500, rent_period: "month", updated_at: T0 } })).status, 200);
 });
 
+test("unchanged legacy rent without period permits unrelated edits but changes require coherence", async () => {
+  for (const operation of ["sale", "business", "rent"]) {
+    for (const patch of [{title:"Updated"}, {title:"Updated", rent:1500, rent_period:null, operation}]) {
+      const {env, cookie} = await world();
+      env.DB.raw.prepare("UPDATE listings SET operation=?, tenure_type='freehold', rent=1500, rent_period=NULL, currency='GBP' WHERE id='HE-R001'").run(operation);
+      const result = await call(env, "PUT", "/admin/listings/HE-R001", {cookie, body:{...patch,updated_at:T0}});
+      assert.equal(result.status, 200);
+      assert.equal(env.DB.raw.prepare("SELECT rent_period FROM listings WHERE id='HE-R001'").get().rent_period, null);
+    }
+    for (const patch of [{rent:1600}, {operation:operation === "rent" ? "sale" : "rent"}]) {
+      const {env, cookie} = await world();
+      env.DB.raw.prepare("UPDATE listings SET operation=?, tenure_type='freehold', rent=1500, rent_period=NULL, currency='GBP' WHERE id='HE-R001'").run(operation);
+      const result = await call(env, "PUT", "/admin/listings/HE-R001", {cookie, body:{...patch,updated_at:T0}});
+      assert.equal(result.status, 400);
+      assert.ok(result.data.fields.rent_period);
+    }
+    const {env, cookie} = await world();
+    env.DB.raw.prepare("UPDATE listings SET operation=?, rent=1500, rent_period=NULL, currency='GBP' WHERE id='HE-R001'").run(operation);
+    assert.equal((await call(env, "PUT", "/admin/listings/HE-R001", {cookie, body:{rent:1600,rent_period:"year",updated_at:T0}})).status, 200);
+  }
+  const {env, cookie} = await world();
+  env.DB.raw.prepare("UPDATE listings SET rent=1500, rent_period='month', currency='GBP' WHERE id='HE-R001'").run();
+  const cleared = await call(env, "PUT", "/admin/listings/HE-R001", {cookie, body:{rent_period:null,updated_at:T0}});
+  assert.equal(cleared.status, 400);
+  assert.ok(cleared.data.fields.rent_period);
+});
+
 test("a viewing request keeps its property reference after that listing is deleted", async () => {
   const { env, cookie } = await world();
   globalThis.fetch = async () => new Response(JSON.stringify({ success: true, hostname: "hampton.test" }));
