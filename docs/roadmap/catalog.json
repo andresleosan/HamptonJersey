@@ -18593,7 +18593,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "La limpieza general existente contempla 12 meses de inactividad, con excepciones para búsquedas activas o en revisión, ofertas abiertas y ventas. Applicants dispone de revisión de vencimientos y registro de conversación. El código actual protege contactos vinculados a ventas en cualquier estado; no implementa una purga de ventas a los cinco años.",
-      "falta": "Construir el aviso previo y la tramitación por email con verificación humana de identidad, asignación, holds y copia revisada. Una solicitud de borrado no ejecuta DELETE por sí sola; el portal de privacidad queda para más adelante. La política de conservación de alquileres y ventas debe introducirse cuando esté validada; no hay plazo sectorial nuevo aplicado. Los seis meses de EST-19 solo abarcan archivos de propiedades no disponibles y no autorizan borrar personas, criterios ni gestiones.",
+      "falta": "Construir el aviso previo y la tramitación por email con verificación humana de identidad, asignación, holds y copia revisada. Una solicitud de borrado no ejecuta DELETE por sí sola; el portal de privacidad queda para más adelante. La política de conservación de alquileres y ventas debe introducirse cuando esté validada; no hay plazo sectorial nuevo aplicado. Los seis meses de EST-19 solo abarcan archivos de propiedades no disponibles y no autorizan borrar personas, criterios ni gestiones. Los parámetros existentes serán introducidos manualmente por Luis; el plan no exige abrir una nueva consulta profesional.",
       "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "server/retention.js:51-92",
@@ -18610,6 +18610,7 @@
         "tests/server/search-lifecycle.test.mjs",
         "docs/superpowers/plans/2026-11-07-hampton-app-search-lifecycle-ledger.md",
         "docs/superpowers/specs/2026-11-08-l1b-privacy-requests-design.md",
+        "docs/superpowers/plans/2026-11-08-l1b-privacy-requests.md",
         "docs/superpowers/plans/2026-11-08-l1b-privacy-requests.md"
       ],
       "modulo": "M03/M12",
@@ -18625,13 +18626,6 @@
           "id": "AUT-17",
           "requires": "activated",
           "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
-          "basis": "explicit",
-          "scope": "partial"
-        },
-        {
-          "id": "PRE-33",
-          "requires": "decision",
-          "reason": "Fijar conservación de alquiler/venta tras terminar mediante revisión del abogado.",
           "basis": "explicit",
           "scope": "partial"
         }
