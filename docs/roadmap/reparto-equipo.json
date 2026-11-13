@@ -952,8 +952,8 @@
       "fase": "—",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas. Cloudflare Pages y Workers Builds figuran correctos para el commit 2005312; no se repitió un smoke funcional en producción.",
-      "falta": "Comprobar específicamente el foco del campo inválido y la recuperación del editor con zoom al 200 %. La incorporación de fichas externas y fuentes corresponde a BUS-10/EST-16/SPR-07.",
+      "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas. Cloudflare Pages y Workers Builds figuran correctos para el commit 2005312; no se repitió un smoke funcional en producción. El error simulado de Available from y la recuperación del borrador tras un 409 se comprobaron con zoom nativo en 1280/390; la validación de servidor se comprobó aparte.",
+      "falta": "La incorporación de fichas externas y fuentes corresponde a BUS-10/EST-16/SPR-07. No se ha repetido un smoke funcional autenticado en producción.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/Listings.jsx:81-108",
@@ -983,7 +983,7 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Completar la comprobación de foco/zoom y continuar la integración externa en sus tareas.",
+      "nextStep": "Continuar la integración externa en sus tareas; no inferir disponibilidad ni fuente.",
       "actualizado": "2026-11-13"
     },
     {
@@ -2291,7 +2291,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "El sistema actual utiliza visitas de 30 minutos y margen fijo. Se construyó y revisó una política interna para duración, márgenes, cambio de parroquia y máximo diario, con guarda transaccional y pruebas de concurrencia; permanece desconectada de las rutas existentes.",
-      "falta": "Integrar la política en disponibilidad, reservas y reprogramación, con permisos, horarios y versiones revalidados en la transacción; completar configuración e interfaz. Resolver el tratamiento de cambio horario con offset y datos históricos antes de activar. La migración 0047 no se ha aplicado remotamente.",
+      "falta": "Integrar la política en disponibilidad, reservas y reprogramación, con permisos, horarios y versiones revalidados en la transacción; completar configuración e interfaz. Resolver el tratamiento de cambio horario con offset y datos históricos antes de activar. Esta sesión no ejecutó la migración 0047; la consulta de su estado remoto fue denegada y no se pudo verificar.",
       "bloqueo": "",
       "evidencia": [
         "server/viewings.js:5-6",
@@ -6489,7 +6489,7 @@
       "fase": "F5-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia. Se construyó una autoridad financiera interna con ajustes, saldo FIFO y control por caso; permanece desconectada de las rutas actuales y sin migración remota. Se preparó una lectura interna por tenancy que reúne saldo, atrasos y movimientos con autorización transaccional; continúa sin ruta activa ni conciliación global.",
+      "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia. Se construyó una autoridad financiera interna con ajustes, saldo FIFO y control por caso; permanece desconectada de las rutas actuales y sin ejecutar migración remota en esta sesión. La consulta del estado remoto fue denegada. Se preparó una lectura interna por tenancy que reúne saldo, atrasos y movimientos con autorización transaccional; continúa sin ruta activa ni conciliación global.",
       "falta": "Unificar primero detalle, lista, contador y conciliación existentes con la autoridad financiera y sus permisos por caso; después completar escritura de deuda perdida y secuencia configurable. Los avisos reales y la carta siguen sujetos a correo y validación correspondiente. No activar ajustes mientras existan cálculos incompatibles.",
       "bloqueo": "Correo (AUT-17) · JFSC/abogado",
       "evidencia": [
@@ -7399,8 +7399,8 @@
       "fase": "F4",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "En listings y Details: referencia HE-R/HE-C/HE-I, Use, Operation, Availability, Country, Location, Road y Parish. `listing_details` añade edificio/unidad, postcode y promotor; `property_condition` se comparte con PUB-05. La dirección exacta puede publicarse por ficha tras preview completo, aceptación explícita y referencia de evidencia. Hash/CAS invalidan cambios; el título Drive forma parte de la revisión y textos que ya revelan edificio y calle quedan ocultos hasta revisión. `0040` aplicada e integrada en main `13a1a51`; Pages y Jobs correctos.",
-      "falta": "Ejecutar el E2E y verificar el flujo en un navegador autorizado: el smoke automatizado recibió 403/1010 de Cloudflare. Ninguna ficha existente tiene aprobación automática. Replanteado para Jersey (§5.10), no falta: ciudad y zona o barrio pasan a la parroquia.",
+      "hecho": "En listings y Details: referencia HE-R/HE-C/HE-I, Use, Operation, Availability, Country, Location, Road y Parish. `listing_details` añade edificio/unidad, postcode y promotor; `property_condition` se comparte con PUB-05. La dirección exacta puede publicarse por ficha tras preview completo, aceptación explícita y referencia de evidencia. Hash/CAS invalidan cambios; el título Drive forma parte de la revisión y textos que ya revelan edificio y calle quedan ocultos hasta revisión. `0040` aplicada e integrada en main `13a1a51`; Pages y Jobs correctos. La corrección local del editor mantiene visibles foco, etiqueta y error en móvil con zoom; el flujo de dirección pasó en Chromium y WebKit aislados.",
+      "falta": "Integrar y comprobar el despliegue de la corrección de accesibilidad. El smoke funcional en producción no se ha repetido tras el 403; las comprobaciones de navegador usan datos ficticios. Ninguna ficha existente recibió aprobación automática.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ListingEditor.jsx:165-189",
@@ -7412,7 +7412,9 @@
         "migrations/0040_listing_address_details.sql",
         "admin/src/ListingEditor.jsx",
         "tests/server/listing-address.test.mjs",
-        "docs/superpowers/plans/2026-11-11-pub-04-internal-details-ledger.md"
+        "docs/superpowers/plans/2026-11-11-pub-04-internal-details-ledger.md",
+        "tests/listing-address.e2e.cjs",
+        "docs/roadmap/work/PUB-04/verification-2026-11-13.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -7424,7 +7426,8 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Verificar en navegador autorizado los flujos público y administrativo y ejecutar el E2E pendiente."
+      "nextStep": "Publicar la corrección revisada y comprobar sus despliegues; conservar la limitación del smoke de producción.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "PUB-05",

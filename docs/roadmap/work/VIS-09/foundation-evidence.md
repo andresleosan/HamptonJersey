@@ -26,4 +26,6 @@ La migración aditiva propone configuración por negociador e instantáneas por 
 
 Revisión sin defectos bloqueantes del núcleo desconectado: 23 pruebas puras/SQLite y migración poblada con claves foráneas. La composición con la guarda pública conserva la exclusión de estados cerrados. La revisión no ejecutó D1 ni acredita uso en producción; las pruebas D1 del constructor siguen siendo evidencia local separada.
 
-Sobre el main `c42c8cb`, con las migraciones financieras presentes solo en código, la suite integrada pasó 1.373 pruebas Node y 25 Python, build, release y catálogo. No se aplicaron migraciones remotas.
+Sobre el main `c42c8cb`, con las migraciones financieras presentes solo en código, la suite integrada pasó 1.373 pruebas Node y 25 Python, build, release y catálogo. Esta sesión no ejecutó migraciones remotas; su estado no se pudo verificar.
+
+Consulta posterior de solo lectura de las migraciones remotas: denegada por permisos. Esta sesión no ejecutó 0047 y no pudo verificar su estado remoto.

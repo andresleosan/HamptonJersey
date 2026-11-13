@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "El sistema actual utiliza visitas de 30 minutos y margen fijo. Se construyó y revisó una política interna para duración, márgenes, cambio de parroquia y máximo diario, con guarda transaccional y pruebas de concurrencia; permanece desconectada de las rutas existentes.",
-  "falta": "Integrar la política en disponibilidad, reservas y reprogramación, con permisos, horarios y versiones revalidados en la transacción; completar configuración e interfaz. Resolver el tratamiento de cambio horario con offset y datos históricos antes de activar. La migración 0047 no se ha aplicado remotamente.",
+  "falta": "Integrar la política en disponibilidad, reservas y reprogramación, con permisos, horarios y versiones revalidados en la transacción; completar configuración e interfaz. Resolver el tratamiento de cambio horario con offset y datos históricos antes de activar. Esta sesión no ejecutó la migración 0047; la consulta de su estado remoto fue denegada y no se pudo verificar.",
   "bloqueo": "",
   "evidencia": [
     "server/viewings.js:5-6",

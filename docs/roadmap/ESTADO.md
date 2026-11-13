@@ -1,12 +1,14 @@
 # Estado de Hampton App
 
+13-nov-2026 · **PUB-04 y accesibilidad:** corrección local del foco y la barra del editor revisada con datos ficticios, incluido el campo de SPR-01 con zoom nativo. Pendiente de integrar y verificar el despliegue; el smoke de producción no se repitió. [Evidencia](work/PUB-04/verification-2026-11-13.md).
+
 13-nov-2026 · **Lectura financiera parcial:** adaptador interno por tenancy con permisos y control de cambios entre páginas, desconectado de rutas y avisos. La conciliación global permanece desactivada y los datos ausentes no se convierten en saldo cero. [Límites](../superpowers/plans/2026-11-13-adm-09-not-05-workspace-ledger.md).
 
 13-nov-2026 · **AUT-09 parcial:** registro declarativo de tres propósitos y guardas humanas, sin proveedores ni operaciones activadas. Casos reales, costes, fichas restantes y consumidores siguen pendientes. [Registro](../superpowers/plans/2026-11-13-aut-09-registry-ledger.md).
 
-13-nov-2026 · **VIS-09 parcial:** núcleo y guarda de política de visitas revisados y probados con datos ficticios. Siguen sin conectar a rutas; 0047 no está aplicada. La integración, permisos, horarios y cambio horario continúan pendientes. [Evidencia](work/VIS-09/foundation-evidence.md).
+13-nov-2026 · **VIS-09 parcial:** núcleo y guarda de política de visitas revisados y probados con datos ficticios. Siguen sin conectar a rutas; esta sesión no ejecutó 0047 y su estado remoto no se pudo verificar por falta de acceso. La integración, permisos, horarios y cambio horario continúan pendientes. [Evidencia](work/VIS-09/foundation-evidence.md).
 
-13-nov-2026 · **ADM-09 y NOT-05 parciales:** autoridad financiera y proyección de pagos pendientes preparadas con permisos por caso y pruebas locales. No se han aplicado las migraciones 0045/0046 ni se han conectado las rutas actuales; quedan pendientes su unificación, permisos, avisos y activación. [Límites](../superpowers/plans/2026-11-13-adm-09-not-05-integration-ledger.md).
+13-nov-2026 · **ADM-09 y NOT-05 parciales:** autoridad financiera y proyección de pagos pendientes preparadas con permisos por caso y pruebas locales. Esta sesión no ejecutó 0045/0046 y la consulta remota fue denegada; las rutas actuales no se han conectado a las nuevas lecturas; quedan pendientes su unificación, permisos, avisos y activación. [Límites](../superpowers/plans/2026-11-13-adm-09-not-05-integration-ledger.md).
 
 13-nov-2026 · **SPR-01 parcial:** la lista propia muestra baños y fecha civil de disponibilidad cuando corresponde; el commit 2005312 tiene Pages y Jobs correctos. La integración de fuentes externas y una comprobación menor de foco/zoom siguen pendientes; no se acredita smoke funcional en producción. [Evidencia](work/SPR-01/implementation-evidence.md).
 

@@ -18,3 +18,7 @@ La repetición sobre `e296405` pasó 1.392 pruebas Node y 25 Python, build, rele
 
 También pasó el E2E aislado de SPR-01 con WebKit a 1280/390 y las tres zonas horarias cubiertas por su fixture. El E2E de retirada PUB-09 pasó en Chromium a 1280/390 sobre la integración anterior `85e97b3`.
 La repetición de PUB-04 en Chromium aislado sobre `e296405` también pasó a 1280/390; el zoom nativo de las regresiones específicas se comprobó en WebKit.
+
+## Revisión independiente
+
+Sin defectos bloqueantes observados en foco, CSS y compatibilidad con PUB-09. La medición geométrica comprueba el centro de campo, etiqueta y error; la visibilidad completa se valoró en capturas locales. El 409 simulado acredita conservación y reintento del borrador, no una carrera CAS real. La revisión no ejecutó navegador ni comprobó producción.
