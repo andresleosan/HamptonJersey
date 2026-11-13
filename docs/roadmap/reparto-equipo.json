@@ -7525,8 +7525,8 @@
       "fase": "F4",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "En listings: Availability (For sale, Under offer, Sold, To let, Lease, Withdrawn) y el estado Draft, Published o Archived; daily_stats cuenta aperturas de página, galería y tour (Owner report e Insights) y el editor muestra Active interest y ofertas. Desde el 30-oct-2026 guarda cuándo se confirmó la ficha por última vez (confirmed_at), y a los 3 meses, o 1 en alquiler, pasa a «To confirm» (ADM-04).",
-      "falta": "Falta completar la trazabilidad y retirada editorial del sitio propio con motivo e historial. Las métricas no observadas se mantienen desconocidas; los portales y sus identificadores quedaron retirados con PUB-15.",
+      "hecho": "La ficha conserva estado editorial, disponibilidad, confirmación y métricas existentes. Retirada de la web con motivo, nota privada, historial y correcciones construidos y verificados localmente en editor y lista; conservan historial y disponibilidad. El nuevo flujo está desactivado por defecto y la migración 0044 se ha probado solo con datos ficticios.",
+      "falta": "Verificar la integración y el despliegue, incluida la migración 0044 y la activación posterior del flujo; comprobar el recorrido real cuando corresponda. Resolver la supresión física de notas conforme a PRE-12. Las métricas no observadas siguen como desconocidas. PUB-15 y los portales externos están retirados del alcance y no son dependencia de esta tarea.",
       "bloqueo": "",
       "evidencia": [
         "server/listing.js:7",
@@ -7537,7 +7537,14 @@
         "admin/src/Insights.jsx:86",
         "admin/src/ListingEditor.jsx:161-165",
         "migrations/0017_to_confirm.sql:1-7",
-        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
+        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5",
+        "docs/roadmap/work/PUB-09/avance-publicable.md",
+        "server/listing-traceability.js",
+        "server/routes/listings.js",
+        "admin/src/WithdrawalDialog.jsx",
+        "migrations/0044_listing_withdrawals.sql",
+        "tests/server/pub-09-tp04-1.test.mjs",
+        "tests/pub09-withdrawal.e2e.cjs"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -7549,7 +7556,7 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Completar retirada y trazabilidad del sitio propio, preservando el historial existente.",
+      "nextStep": "Verificar la integración y coordinar migración y activación antes de comprobar el recorrido real y cerrar la tarea.",
       "actualizado": "2026-11-13"
     },
     {

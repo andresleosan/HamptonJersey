@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, priceText, fmtDate } from "./format.js";
 import { OPTIONS } from "../../server/applicants.js";
 import NewProperty from "./NewProperty.jsx";
+import WithdrawalDialog from './WithdrawalDialog.jsx';
 import { OPERATION_FILTER, bedsRange, passesExtra, bedsLabel, daysAgo } from "./listing-filters.js";
 
 // ADM-04: To confirm is the published listings on the market that nobody has confirmed lately (the server's to_confirm).
@@ -18,14 +19,16 @@ const BEDS = [["0", "Studio"], ...[1, 2, 3, 4, 5, 6].map(n => [String(n), String
 
 export default function Listings({ onChange }) {
   const [rows, setRows] = useState(null), [error, setError] = useState(null), [creating, setCreating] = useState(false);
+  const [withdrawalTracking,setWithdrawalTracking]=useState(false),[withdrawal,setWithdrawal]=useState(null);
   const [tab, setTab] = useState("published"), [q, setQ] = useState(""), [use, setUse] = useState(""),
     [region, setRegion] = useState(""), [avail, setAvail] = useState(""), [parish, setParish] = useState("");
   const [extra, setExtra] = useState(NO_EXTRA), [msg, setMsg] = useState(null);
   const setX = patch => setExtra(x => ({ ...x, ...patch }));
-  const load = () => api("/admin/listings").then(d => setRows(d.listings), e => setError(e.message));
+  const load = () => api("/admin/listings").then(d => {setRows(d.listings);setWithdrawalTracking(d.withdrawal_tracking===true);}, e => setError(e.message));
   useEffect(() => { load(); }, []);
   const act = async (e, l, action, done) => {
     e.currentTarget.closest("details")?.removeAttribute("open");
+    if (action === 'unpublish' && withdrawalTracking) {setWithdrawal(l);return;}
     if (action === "archive" && !confirm(`Archive "${l.title}"? It will leave the website; you can restore it later.`)) return;
     setMsg(null);
     try {
@@ -129,5 +132,9 @@ export default function Listings({ onChange }) {
       : tab === "to_confirm" ? <p>No listings to confirm. A listing on the website asks for a call to its owner 3 months after its last confirmation, or 1 month for a rental.</p>
       : <><p>No {TABS.find(([k]) => k === tab)[1].toLowerCase()} listings.</p>
         {tab !== "archived" && <button type="button" className="btn sm" onClick={() => setCreating(true)}>Add new property</button>}</>}</div>}
+    {withdrawal&&<WithdrawalDialog listing={withdrawal} onClose={()=>setWithdrawal(null)} onSaved={async result=>{
+      setWithdrawal(null);setMsg({ok:true,text:result.listing.published
+        ?`${withdrawal.title}: currently visible on the website. Review its latest state.`:`${withdrawal.title}: hidden from the website.`});await load();onChange?.();
+    }}/>}
   </section>;
 }

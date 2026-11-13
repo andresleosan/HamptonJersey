@@ -10,6 +10,7 @@ import { changedListingDetails, listingDetailsUpdateStatement, publicAddressRevi
 import { buildPublicAddressReview } from '../public-address.js';
 import { publicationReadiness } from "../publication-policy.js";
 import { checkPhysical } from '../listing-physical.js';
+import { recordListingWithdrawal,correctListingWithdrawal,readListingTraceability } from '../listing-traceability.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -43,13 +44,13 @@ async function list({ request, env }) {
   if (q.get("slim") === "1") {
     const { results } = await env.DB.prepare(`SELECT id, title, published, archived_at FROM listings
       ORDER BY archived_at IS NOT NULL, published DESC, id`).all();
-    return json({ listings: results });
+    return json({ listings: results, ...(env.PUB09_WITHDRAWALS_READY === '1' ? { withdrawal_tracking: true } : {}) });
   }
   const parish = q.get("parish") || null;
   if (parish && !ENUMS.parish.includes(parish)) fail(400, "Invalid parish");
   const { results } = await env.DB.prepare(`${LIST_SQL} ${parish ? "WHERE l.parish = ?" : ""} ORDER BY l.id`)
     .bind(now(), ...interestDates(), ...(parish ? [parish] : [])).all();
-  return json({ listings: results });
+  return json({ listings: results, ...(env.PUB09_WITHDRAWALS_READY === '1' ? { withdrawal_tracking: true } : {}) });
 }
 
 async function detail({ env, params: [id] }) {
@@ -76,7 +77,7 @@ async function detail({ env, params: [id] }) {
   const group = research[0]?.duplicate_group;
   const duplicates = group ? (await q("SELECT property_id FROM research_properties WHERE duplicate_group = ? AND property_id <> ? ORDER BY property_id", group, id).all())
     .results.map(r => r.property_id) : [];
-  return json({ listing, details: Object.fromEntries(['building_name_or_number','postcode','property_condition','developer_name',
+  return json({ listing, ...(env.PUB09_WITHDRAWALS_READY === '1' ? { withdrawal_tracking: true } : {}), details: Object.fromEntries(['building_name_or_number','postcode','property_condition','developer_name',
       'public_address_snapshot','public_address_snapshot_hash','public_address_evidence_ref','public_address_reviewed_by','public_address_reviewed_at']
       .map(key => [key, details?.[key] ?? null])),
     media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates,
@@ -299,6 +300,13 @@ function failPublication(missing) {
 
 // fromQueue: Properties Queue's Approve and publish (PUB-21), the only way to publish a listing still in review (C8).
 export async function setState({ request, env, admin, params: [id, action], fromQueue = false, related = {}, expectedAt }) {
+  if (action === 'unpublish' && request && env.PUB09_WITHDRAWALS_READY === '1') {
+    const body = await readJson(request);
+    const result = await recordListingWithdrawal(env, { listing_id:id, expected_at:body?.updated_at,
+      reason_code:body?.reason_code, note:body?.note, operation_id:body?.operation_id }, admin);
+    if (!result.replayed) await afterSave(recomputeForListing, env, id, admin);
+    return json({ listing:await loadListing(env,id), details:await readListingDetails(env,id), ...result });
+  }
   const l = await loadListing(env, id);
   const version=expectedAt ?? (request ? (await readJson(request))?.updated_at : l.updated_at);
   if(typeof version!=='string')fail(400,'Missing updated_at: reload the listing');
@@ -424,6 +432,16 @@ export default [
   ["POST", /^\/admin\/listings$/, create, true],
   ["GET", new RegExp(`^/admin/listings/${ID}/address-review$`), addressReviewPreview, true],
   ["POST", new RegExp(`^/admin/listings/${ID}/address-review$`), reviewPublicAddress, true],
+  ['GET', new RegExp(`^/admin/listings/${ID}/traceability$`), async ({request,env,admin,params:[id]}) => {
+    if (env.PUB09_WITHDRAWALS_READY !== '1') fail(404, 'Not found');
+    return json(await readListingTraceability(env,{listing_id:id,cursor:new URL(request.url).searchParams.get('cursor')},admin));
+  }, true],
+  ['POST', new RegExp(`^/admin/listings/${ID}/withdrawals/([0-9a-fA-F-]{36})/correct$`), async ({request,env,admin,params:[id,withdrawalId]}) => {
+    if (env.PUB09_WITHDRAWALS_READY !== '1') fail(404, 'Not found');
+    const body=await readJson(request);
+    return json(await correctListingWithdrawal(env,{listing_id:id,withdrawal_id:withdrawalId,
+      expected_revision:body?.expected_revision,reason_code:body?.reason_code,note:body?.note,operation_id:body?.operation_id},admin));
+  }, true],
   ["GET", new RegExp(`^/admin/listings/${ID}$`), detail, true],
   ["GET", new RegExp(`^/admin/listings/${ID}/offers$`), offers, true],
   ["PUT", new RegExp(`^/admin/listings/${ID}$`), update, true],

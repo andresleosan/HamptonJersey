@@ -14,6 +14,7 @@ import ViewingAvailability from "./ViewingAvailability.jsx";
 import ListingReview from './ListingReview.jsx';
 import RentalMarketing from './RentalMarketing.jsx';
 import ListingHistory from './ListingHistory.jsx';
+import WithdrawalDialog, { WithdrawalHistory } from './WithdrawalDialog.jsx';
 import {isRentalMarketing} from '../../server/listing-editorial.js';
 import { normalizePostcode, PROPERTY_CONDITION_LABELS } from '../../server/listing-details.js';
 import { squareMetres } from '../../server/listing-physical.js';
@@ -62,6 +63,7 @@ export default function ListingEditor({ id, onChange }) {
   const [matchForm, setMatchForm] = useState(null), [matchesErr, setMatchesErr] = useState(null);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [loadErr, setLoadErr] = useState(null), [confirmDel, setConfirmDel] = useState("");
   const [confirming, setConfirming] = useState(false); // ADM-04: its own flag, so Save never reads "Saving…" meanwhile
+  const [withdrawalOpen,setWithdrawalOpen]=useState(false);
   const marketingFocus=useRef(false);
   const errorFocus=useRef(null);
   const [historyKey,setHistoryKey]=useState(0),[deleted,setDeleted]=useState(false);
@@ -157,6 +159,7 @@ export default function ListingEditor({ id, onChange }) {
     setAddressEvidenceRef(""); setAddressReviewAuthorized(false);
     setMatchForm(toMatchForm(l)); setErrors({}); photos.current.discard?.(); setMsg(null); };
   const act = async action => {
+    if (action === 'unpublish' && data.withdrawal_tracking) {setWithdrawalOpen(true);return;}
     if (action === "archive" && !confirm("Archive this listing? It will leave the website; you can restore it later.")) return;
     setBusy(true); setMsg(null);
     try {
@@ -571,6 +574,7 @@ export default function ListingEditor({ id, onChange }) {
         <Research data={data} />
       </section>
       <ListingHistory key={id} id={id} refreshKey={historyKey}/>
+      {data.withdrawal_tracking&&<WithdrawalHistory listing={l} refreshKey={historyKey}/>}
     </div>
 
     <div className="actionbar" role="region" aria-label="Actions">
@@ -589,6 +593,10 @@ export default function ListingEditor({ id, onChange }) {
         <input id="del-confirm" value={confirmDel} onChange={e => setConfirmDel(e.target.value)} autoComplete="off" />
         <button className="btn ghost danger" disabled={confirmDel !== l.id || busy}>Delete permanently</button></form>}
     </div>
+    {withdrawalOpen&&<WithdrawalDialog listing={l} onClose={()=>setWithdrawalOpen(false)} onSaved={result=>{
+      setWithdrawalOpen(false);setListing(result.listing,result.details);reloadMatches();onChange?.();
+      setMsg({ok:true,text:result.listing.published?'This listing is currently visible on the website. Review its latest state.':DONE.unpublish});
+    }}/>}
   </div>;
 }
 
