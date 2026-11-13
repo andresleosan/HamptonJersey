@@ -103,6 +103,28 @@ test('D1 synthetic: release needs independent authority, respects ledger and clo
   await markDemandPageReviewed(env,{id:multiId,version:1,after:50},colleague);
   assert.equal((await approveDemandDraft(env,{id:multiId,version:1,authorization_id:multiAuth},colleague)).status,'approved');
 
+
+  const exactId='c0000000-0000-4000-8000-000000000006', exactAuth='d0000000-0000-4000-8000-000000000006';
+  await generateDemandDraft(env,{operation:'rent',operation_id:exactId},colleague);
+  const exactDraft=await readDemandDraft(env,exactId,0,colleague),exactState=await db.prepare('SELECT * FROM public_demand_release_state WHERE id=1').first();
+  await db.prepare(`INSERT INTO demand_release_authorizations VALUES(?,?,?,?,?,1,'accepted','fixture-evidence','fixture-reviewer','2000-01-01T00:00:00.000Z','2999-01-01T00:00:00.000Z',NULL)`).bind(exactAuth,'fixture-v1',exactDraft.public_sha256,exactState.releases_sha256,exactState.ledger_version).run();
+  await markDemandPageReviewed(env,{id:exactId,version:1,after:0},colleague);
+  let exactCalls=0;
+  const exactDB={prepare:sql=>db.prepare(sql),batch:async stmts=>{
+    exactCalls++;if(exactCalls===2) await db.prepare('UPDATE demand_release_authorizations SET source_ref=? WHERE id=?').bind('changed-ref',exactAuth).run();
+    return db.batch(stmts);
+  }};
+  await assert.rejects(()=>approveDemandDraft({...env,DB:exactDB},{id:exactId,version:1,authorization_id:exactAuth},colleague));
+  assert.equal((await db.prepare('SELECT status FROM public_demand_snapshots WHERE id=?').bind(exactId).first()).status,'draft');
+  await approveDemandDraft(env,{id:exactId,version:1,authorization_id:exactAuth},colleague);
+  let publishCalls=0;
+  const publishDB={prepare:sql=>db.prepare(sql),batch:async stmts=>{
+    publishCalls++;if(publishCalls===2) await db.prepare('UPDATE demand_release_authorizations SET approved_by_ref=? WHERE id=?').bind('changed-reviewer',exactAuth).run();
+    return db.batch(stmts);
+  }};
+  await assert.rejects(()=>publishDemandDraft({...env,DB:publishDB},{id:exactId,version:2},colleague));
+  assert.equal((await db.prepare('SELECT status FROM public_demand_snapshots WHERE id=?').bind(exactId).first()).status,'approved');
+
   assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results,[]);
 
  } finally { await mf.dispose(); }

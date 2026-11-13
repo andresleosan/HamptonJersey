@@ -1,6 +1,7 @@
 import { OPTIONS } from './applicants.js';
 const parishes=new Set(OPTIONS.parishes.map(([name])=>name));
 const bands=new Set(['0','1','2','3','4+','Any']);
+const opaque=value=>typeof value==='string' && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/.test(value);
 const iso=x=>typeof x==='string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(x) && Number.isFinite(Date.parse(x)) && new Date(x).toISOString()===x;
 export function publicCells(cells) {
   if (!Array.isArray(cells)) throw new TypeError('Invalid cells');
@@ -16,7 +17,7 @@ export function isReleaseAuthorization(row,expected,now) {
     row.revoked_at==null && row.id===expected.authorization_id && row.policy_version===expected.policy_version &&
     row.public_sha256===expected.public_sha256 && row.releases_sha256===expected.releases_sha256 &&
     row.ledger_version===expected.ledger_version && row.identity_checked===1 && row.inference_review==='accepted' &&
-    typeof row.source_ref==='string' && row.source_ref.length>0 && typeof row.approved_by_ref==='string' && row.approved_by_ref.length>0);
+    opaque(row.source_ref) && opaque(row.approved_by_ref));
 }
 export async function readAcceptedReleaseAuthorization(env,expected,now) {
   const db=typeof env.DB.withSession==='function' ? env.DB.withSession('first-primary') : env.DB;

@@ -11,7 +11,7 @@ test('only accepted, matching, current and unrevoked authorization permits relea
  const x={id:'id',policy_version:'p1',public_sha256:'h',releases_sha256:'l',ledger_version:3,identity_checked:1,inference_review:'accepted',source_ref:'ref',approved_by_ref:'reviewer',accepted_at:'2026-01-01T00:00:00.000Z',expires_at:'2027-01-01T00:00:00.000Z',revoked_at:null};
  const expected={authorization_id:'id',policy_version:'p1',public_sha256:'h',releases_sha256:'l',ledger_version:3};
  assert.equal(isReleaseAuthorization(x,expected,'2026-11-01T00:00:00.000Z'),true);
- for(const bad of [{...x,revoked_at:'2026-02-01'}, {...x,ledger_version:2},{...x,identity_checked:0},{...x,expires_at:'2026-01-02T00:00:00.000Z'}, {...x,source_ref:''}]) assert.equal(isReleaseAuthorization(bad,expected,'2026-11-01T00:00:00.000Z'),false);
+ for(const bad of [{...x,revoked_at:'2026-02-01'}, {...x,ledger_version:2},{...x,identity_checked:0},{...x,expires_at:'2026-01-02T00:00:00.000Z'}, {...x,source_ref:''},{...x,source_ref:'https://example.invalid/private'}]) assert.equal(isReleaseAuthorization(bad,expected,'2026-11-01T00:00:00.000Z'),false);
  assert.equal(isReleaseAuthorization(null,expected,'2026-11-01T00:00:00.000Z'),false);
 });
 
