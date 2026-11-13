@@ -41,16 +41,28 @@ export async function prepareSaleFollowup(env,input,actor){
   const window=saleFollowupWindow(input.at,input.schedule);
   const due=window.state==='due'&&window.dueWindows.find(item=>item.weekStart===input.weekStart);
   if(!due)fail(400,'Follow-up window unavailable');
-  const {request,guard}=await authority(env,input,actor),token=crypto.randomUUID();
-  const key=`sale-followup:${input.saleId}:${input.weekStart}`;
+  const {request,guard}=await authority(env,input,actor);
+  // Read under the same capability snapshot and require an exact UTC birth date.
+  // The write batch below rechecks this value alongside identity and revision.
+  const source=env.DB.prepare(`SELECT s.created_at FROM sales s JOIN ofe06_sale_sources v ON v.sale_id=s.id
+    WHERE s.id=? AND s.status='in_progress' AND v.generation=? AND v.revision=?`)
+    .bind(input.saleId,input.sourceGeneration,input.sourceRevision);
+  const observed=await execute(env,request,actor,[guard.assertion,source,guard.release]);
+  const createdAt=observed[1].results[0]?.created_at;
+  if(typeof createdAt!=='string'||createdAt.startsWith('0000-'))return {state:'unavailable'};
+  try{deadline(createdAt);}catch{return {state:'unavailable'};}
+  // Equality does not establish whether creation preceded a deadline within the same millisecond.
+  if(createdAt>=due.dueAt)return {state:'unavailable'};
+  const token=crypto.randomUUID(),key=`sale-followup:${input.saleId}:${input.weekStart}`;
   const event=env.DB.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
     SELECT ?,?,'applicant',CAST(s.applicant_id AS TEXT),'sale.followup_due',
       json_object('version',1,'sale_id',s.id,'week_start',?,'due_at',?)
     FROM sales s JOIN ofe06_sale_sources v ON v.sale_id=s.id
     WHERE s.id=? AND s.status='in_progress' AND v.generation=? AND v.revision=?
+      AND s.created_at=? AND s.created_at<?
       AND NOT EXISTS(SELECT 1 FROM ofe06_followups f WHERE f.sale_id=s.id AND f.week_start=?)
       AND NOT EXISTS(SELECT 1 FROM notifications n WHERE n.task_key=?)`)
-    .bind(input.at,actor,input.weekStart,due.dueAt,input.saleId,input.sourceGeneration,input.sourceRevision,input.weekStart,key);
+    .bind(input.at,actor,input.weekStart,due.dueAt,input.saleId,input.sourceGeneration,input.sourceRevision,createdAt,due.dueAt,input.weekStart,key);
   const projection=taskStatements(env,{eventId:null,taskKey:key,target:{kind:'sale',id:String(input.saleId)},
     category:'task',title:'Review sale progress',dueAt:due.dueAt,preserveDone:true},{ifInserted:true});
   const insert=env.DB.prepare(`INSERT INTO ofe06_followups(sale_id,generation,week_start,scheduled_due_at,source_revision,task_id,event_id,status)
@@ -60,16 +72,18 @@ export async function prepareSaleFollowup(env,input,actor){
     JOIN sales s ON s.id=f.sale_id JOIN ofe06_sale_sources v ON v.sale_id=s.id
     JOIN notifications n ON n.id=f.task_id JOIN events e ON e.id=f.event_id AND e.id=n.event_id
     WHERE f.sale_id=? AND f.week_start=? AND f.generation=? AND v.generation=? AND v.revision=? AND s.status='in_progress'
+      AND s.created_at=? AND s.created_at<? AND s.created_at<f.scheduled_due_at
       AND f.status='open' AND f.source_revision<=v.revision AND n.task_key=? AND n.target_deleted=0
       AND n.target_kind='sale' AND n.target_id=CAST(s.id AS TEXT) AND e.type='sale.followup_due'
       AND e.entity_type='applicant' AND e.entity_id=CAST(s.applicant_id AS TEXT)
       AND CASE WHEN json_valid(e.data) THEN json_extract(e.data,'$.sale_id') END=s.id
       AND CASE WHEN json_valid(e.data) THEN json_extract(e.data,'$.week_start') END=f.week_start
       AND CASE WHEN json_valid(e.data) THEN json_extract(e.data,'$.due_at') END=f.scheduled_due_at`)
-    .bind(input.saleId,input.weekStart,input.sourceGeneration,input.sourceGeneration,input.sourceRevision,key);
+    .bind(input.saleId,input.weekStart,input.sourceGeneration,input.sourceGeneration,input.sourceRevision,createdAt,due.dueAt,key);
   const statements=[guard.assertion,event,marker(env,token),...projection,insert,assertion(env,token),read,...cleanup(env,token),guard.release];
   const result=await execute(env,request,actor,statements),row=result[statements.indexOf(read)].results[0];
-  if(!row)return {state:'unavailable'};
+  if(!row||typeof row.scheduled_due_at!=='string'||row.scheduled_due_at.startsWith('0000-'))return {state:'unavailable'};
+  try{deadline(row.scheduled_due_at);}catch{return {state:'unavailable'};}
   return {state:result[1].meta.changes===1?'created':row.source_revision===input.sourceRevision&&row.scheduled_due_at===due.dueAt?'existing':'needs_review',
     followupId:row.followup_id,taskId:row.task_id};
 }

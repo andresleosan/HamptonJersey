@@ -139,15 +139,22 @@ test('the disconnected transaction and uniqueness work in disposable local D1',a
       await DB.batch(unstable_splitSqlQuery(readFileSync(new URL(name,dir),'utf8')).map(sql=>DB.prepare(sql)));
     await DB.batch(unstable_splitSqlQuery(proposal).map(sql=>DB.prepare(sql)));await seed(DB);
     const env={DB};
+    await run(DB,'UPDATE sales SET created_at=? WHERE id=1','2026-11-02T09:00:00.001Z');
+    assert.equal((await prepareSaleFollowup(env,{...input,sourceRevision:2},ACTOR)).state,'unavailable');
+    await run(DB,'UPDATE sales SET created_at=? WHERE id=1','2026-11-02T08:59:59.999Z');
+    const valid={...input,sourceRevision:3};
+    const previous={...valid,weekStart:'2026-10-26',schedule:{...schedule,activatedAt:'2026-10-26T08:00:00.000Z'}};
+    assert.equal((await prepareSaleFollowup(env,previous,ACTOR)).state,'unavailable');
+    assert.equal((await followupEvents(DB)).n,0);assert.equal(await count(DB,'ofe06_followups'),0);
     await run(DB,"CREATE TRIGGER ofe06_ignore_d1_fixture BEFORE INSERT ON notifications WHEN NEW.task_key LIKE 'sale-followup:%' BEGIN SELECT RAISE(IGNORE); END");
-    await assert.rejects(create(env));
+    await assert.rejects(prepareSaleFollowup(env,valid,ACTOR));
     assert.equal((await followupEvents(DB)).n,0);assert.equal(await count(DB,'ofe06_followups'),0);
     await run(DB,'DROP TRIGGER ofe06_ignore_d1_fixture');
-    const [a,b]=await Promise.all([create(env),create(env)]);
+    const [a,b]=await Promise.all([prepareSaleFollowup(env,valid,ACTOR),prepareSaleFollowup(env,valid,ACTOR)]);
     assert.deepEqual([a.state,b.state].sort(),['created','existing']);assert.equal(a.taskId,b.taskId);
     assert.equal((await followupEvents(DB)).n,1);assert.equal(await count(DB,'ofe06_followups'),1);
     await run(DB,"UPDATE sales SET status='completed',closed_at=? WHERE id=1",AT);
-    const closed=await closeSaleFollowup(env,{saleId:1,weekStart:input.weekStart,sourceGeneration:GEN,sourceRevision:2,at:AT},ACTOR);
+    const closed=await closeSaleFollowup(env,{saleId:1,weekStart:input.weekStart,sourceGeneration:GEN,sourceRevision:4,at:AT},ACTOR);
     assert.equal(closed.state,'closed');assert.equal((await followupEvents(DB)).n,2);
     assert.ok((await first(DB,'SELECT resolved_at FROM notifications WHERE id=?',a.taskId)).resolved_at);
     assert.equal(await count(DB,'outbound'),0);
@@ -250,4 +257,109 @@ test('invalid calendar identities and processing times fail before any write',as
   await assert.rejects(closeSaleFollowup(env,{...input,weekStart:'0000-01-03'},ACTOR),e=>e.status===400);
   await assert.rejects(closeSaleFollowup(env,{...input,at:'2026-02-30T10:00:00.000Z'},ACTOR),e=>e.status===400);
   assert.equal((await followupEvents(env.DB)).n,0);assert.equal(await count(env.DB,'ofe06_followups'),0);
+});
+
+test('a weekly candidate must be strictly after the sale creation instant',async()=>{
+  for(const [createdAt,expected] of [
+    ['2026-11-02T08:59:59.999Z','created'],
+    ['2026-11-02T09:00:00.000Z','unavailable'],
+    ['2026-11-02T09:00:00.001Z','unavailable'],
+    ['2026-11-02T10:01:00.000Z','unavailable'],
+  ]){
+    const env=await fixture();
+    await run(env.DB,'UPDATE sales SET created_at=? WHERE id=1',createdAt);
+    const result=await prepareSaleFollowup(env,{...input,sourceRevision:2},ACTOR);
+    assert.equal(result.state,expected);
+    assert.equal((await followupEvents(env.DB)).n,expected==='created'?1:0);
+    assert.equal(await count(env.DB,'ofe06_followups'),expected==='created'?1:0);
+    assert.equal(await count(env.DB,'notifications'),expected==='created'?1:0);
+    assert.equal(await count(env.DB,'case_capability_batch_assertions'),0);assert.equal(await count(env.DB,'outbound'),0);
+  }
+});
+
+test('a prior-week candidate is excluded when the sale did not yet exist',async()=>{
+  const env=await fixture();await run(env.DB,'UPDATE sales SET created_at=? WHERE id=1','2026-11-01T12:00:00.000Z');
+  const active={...schedule,activatedAt:'2026-10-26T08:00:00.000Z'};
+  const base={...input,sourceRevision:2,schedule:active};
+  assert.equal((await prepareSaleFollowup(env,{...base,weekStart:'2026-10-26'},ACTOR)).state,'unavailable');
+  assert.equal((await followupEvents(env.DB)).n,0);
+  assert.equal((await prepareSaleFollowup(env,base,ACTOR)).state,'created');
+  assert.equal((await followupEvents(env.DB)).n,1);assert.equal(await count(env.DB,'ofe06_followups'),1);
+});
+
+test('missing, malformed or impossible creation dates fail closed without side effects',async()=>{
+  for(const createdAt of ['', 'invalid', '2026-02-30T09:00:00.000Z', '0000-01-01T00:00:00.000Z',
+    '2026-11-02T08:00:00Z', '2026-11-02T08:00:00+00:00']){
+    const env=await fixture();await run(env.DB,'UPDATE sales SET created_at=? WHERE id=1',createdAt);
+    assert.equal((await prepareSaleFollowup(env,{...input,sourceRevision:2},ACTOR)).state,'unavailable');
+    assert.equal((await followupEvents(env.DB)).n,0);assert.equal(await count(env.DB,'ofe06_followups'),0);
+    assert.equal(await count(env.DB,'notifications'),0);assert.equal(await count(env.DB,'case_capability_batch_assertions'),0);
+    assert.equal(await count(env.DB,'ofe06_pending'),0);assert.equal(await count(env.DB,'outbound'),0);
+  }
+});
+
+test('creation date or source identity changed after the read cannot create stale work',async()=>{
+  for(const kind of ['created_at','generation']){
+    const env=await fixture(),original=env.DB.batch.bind(env.DB);let injected=false;
+    env.DB.batch=stmts=>{
+      if(!injected&&stmts.some(s=>s.sql.includes('ofe06_pending'))){
+        injected=true;
+        if(kind==='created_at'){
+          env.DB.raw.exec('DROP TRIGGER ofe06_sale_changed');
+          env.DB.raw.prepare('UPDATE sales SET created_at=? WHERE id=1').run('2026-11-01T00:00:00.000Z');
+        }else{
+          env.DB.raw.exec('DROP TRIGGER ofe06_source_no_rewind');
+          env.DB.raw.prepare('UPDATE ofe06_sale_sources SET generation=? WHERE sale_id=1')
+            .run('00000000-0000-4000-8000-000000000003');
+        }
+      }
+      return original(stmts);
+    };
+    assert.deepEqual(await create(env),{state:'unavailable'});
+    assert.equal(injected,true);assert.equal((await followupEvents(env.DB)).n,0);
+    assert.equal(await count(env.DB,'ofe06_followups'),0);assert.equal(await count(env.DB,'outbound'),0);
+  }
+});
+
+test('an existing follow-up is not returned if the creation date changes after the read',async()=>{
+  const env=await fixture(),created=await create(env),original=env.DB.batch.bind(env.DB);let injected=false;
+  env.DB.batch=stmts=>{
+    if(!injected&&stmts.some(s=>s.sql.includes('ofe06_pending'))){
+      injected=true;env.DB.raw.exec('DROP TRIGGER ofe06_sale_changed');
+      env.DB.raw.prepare('UPDATE sales SET created_at=? WHERE id=1').run('2026-11-01T00:00:00.000Z');
+    }
+    return original(stmts);
+  };
+  assert.deepEqual(await create(env),{state:'unavailable'});assert.equal(injected,true);
+  assert.equal((await followupEvents(env.DB)).n,1);assert.equal(await count(env.DB,'ofe06_followups'),1);
+  assert.equal((await first(env.DB,'SELECT resolved_at FROM notifications WHERE id=?',created.taskId)).resolved_at,null);
+});
+
+test('an existing premature follow-up is not treated as valid after creation-date correction',async()=>{
+  const env=await fixture(),created=await create(env);
+  await run(env.DB,'UPDATE sales SET created_at=? WHERE id=1','2026-11-02T09:00:00.001Z');
+  assert.deepEqual(await prepareSaleFollowup(env,{...input,sourceRevision:2},ACTOR),{state:'unavailable'});
+  assert.equal((await followupEvents(env.DB)).n,1);assert.equal(await count(env.DB,'ofe06_followups'),1);
+  assert.equal((await first(env.DB,'SELECT resolved_at FROM notifications WHERE id=?',created.taskId)).resolved_at,null);
+});
+
+test('an absent creation date in the guarded source read fails closed',async()=>{
+  const env=await fixture(),original=env.DB.batch.bind(env.DB);let substituted=false;
+  env.DB.batch=async stmts=>{
+    const results=await original(stmts);
+    const index=stmts.findIndex(s=>s.sql.includes('SELECT s.created_at FROM sales s'));
+    if(index>=0){substituted=true;results[index].results[0].created_at=null;}
+    return results;
+  };
+  assert.deepEqual(await create(env),{state:'unavailable'});assert.equal(substituted,true);
+  assert.equal((await followupEvents(env.DB)).n,0);assert.equal(await count(env.DB,'notifications'),0);
+  assert.equal(await count(env.DB,'ofe06_followups'),0);assert.equal(await count(env.DB,'case_capability_batch_assertions'),0);
+});
+
+test('a later schedule cannot legitimize an existing task due before the sale was born',async()=>{
+  const env=await fixture();await create(env);
+  await run(env.DB,'UPDATE sales SET created_at=? WHERE id=1','2026-11-02T09:15:00.000Z');
+  const revised={...schedule,time:'09:30',activatedAt:'2026-11-02T08:30:00.000Z'};
+  assert.deepEqual(await prepareSaleFollowup(env,{...input,sourceRevision:2,schedule:revised},ACTOR),{state:'unavailable'});
+  assert.equal((await followupEvents(env.DB)).n,1);assert.equal(await count(env.DB,'ofe06_followups'),1);
 });
