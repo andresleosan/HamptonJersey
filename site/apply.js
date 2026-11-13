@@ -10,7 +10,7 @@ const STORE = "hampton-apply";
 export function showRegistrationConfirmation(body) {
   body.innerHTML = `<div class="confirm" role="status" tabindex="-1">
     <h2>Thank you. We have received your search request.</h2>
-    <p>Our team will review the information you provided. If you have registered before, the team will review this request alongside your existing searches. We will contact you about any details we need to confirm.</p>
+    <p>Our team will review the information you provided. If you have registered before, the team will review this request alongside your existing searches. We'll be in touch within one working day.</p>
     <div class="actions"><a class="btn ghost" href="#portfolio">See our properties</a></div></div>`;
   body.querySelector(".confirm").focus();
 }

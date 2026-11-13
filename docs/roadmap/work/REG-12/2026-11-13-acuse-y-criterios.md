@@ -1,5 +1,7 @@
 # REG-12: acuse y datos residenciales por confirmar
 
+> Corrección posterior: la descripción de abajo que califica el plazo de un día como no acreditado fue errónea. F0 §5 y §9 conserva ese compromiso como texto editable; el plazo se restituyó en una pasada posterior. El resto de este documento registra la entrega y las pruebas históricas de aquel momento.
+
 Base de trabajo: `dd63b56e59aa2098c4d2c33813526b7cac0fc89b`. REG-12 **permanece parcial**. Este tramo no modifica el catálogo, no aplica migraciones y no activa servicios externos.
 
 ## Entregado

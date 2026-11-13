@@ -153,7 +153,7 @@ test('the confirmation is the same accessible receipt regardless of registration
     const receipt = body.querySelector('[role=status]');
     assert.equal(dom.window.document.activeElement, receipt);
     assert.equal(receipt.querySelector('h2').textContent, 'Thank you. We have received your search request.');
-    assert.equal(receipt.querySelector('p').textContent, 'Our team will review the information you provided. If you have registered before, the team will review this request alongside your existing searches. We will contact you about any details we need to confirm.');
+    assert.equal(receipt.querySelector('p').textContent, "Our team will review the information you provided. If you have registered before, the team will review this request alongside your existing searches. We'll be in touch within one working day.");
     assert.equal(receipt.querySelector('a').getAttribute('href'), '#portfolio');
     assert.equal(receipt.textContent.includes('SYNTHETIC PRIVATE MARKER'), false);
     outputs.push(receipt.outerHTML);
@@ -161,20 +161,24 @@ test('the confirmation is the same accessible receipt regardless of registration
   assert.equal(outputs[0], outputs[1]);
 });
 
-test('the actual wizard acknowledges a new home search and an unsupported commercial request identically', async () => {
+test('the wizard gives new, repeated and commercial submissions the same one-day receipt', async () => {
   const { JSDOM } = require('jsdom');
   const { OPTIONS } = await import('../server/applicants.js');
   const { wizard } = await load();
   const originals = Object.fromEntries(['window','document','sessionStorage','fetch','jerseyToday'].map(k => [k,globalThis[k]]));
   const receipts = [];
   try {
-    for (const commercial of [false,true]) {
+    for (const {commercial,response} of [
+      {commercial:false,response:{ok:true}},
+      {commercial:false,response:{ok:true,duplicate:true,name:'SYNTHETIC PRIVATE MARKER',matches:['SYNTHETIC PRIVATE MARKER']}},
+      {commercial:true,response:{ok:true}},
+    ]) {
       const dom = new JSDOM('<!doctype html><main class="apply"><div class="apply-body"></div></main>',{url:'https://example.test/'});
       globalThis.window = dom.window; globalThis.document = dom.window.document;
       globalThis.sessionStorage = dom.window.sessionStorage;
       globalThis.jerseyToday = () => '2026-11-13';
       globalThis.fetch = async (url,options) => url === '/api/applicants/options'
-        ? {ok:true,json:async()=>OPTIONS} : {ok:true,json:async()=>({ok:true})};
+        ? {ok:true,json:async()=>OPTIONS} : {ok:true,json:async()=>response};
       dom.window.turnstile = {render(container) {
         const input = dom.window.document.createElement('input'); input.name='cf-turnstile-response'; input.value='synthetic';
         container.append(input); return 'fixture';
@@ -197,8 +201,9 @@ test('the actual wizard acknowledges a new home search and an unsupported commer
       receipts.push(receipt.textContent.replace(/\s+/g,' ').trim());
       dom.window.close();
     }
-    assert.equal(receipts[0],receipts[1]);
-    assert.doesNotMatch(receipts[0],/active|matches found|one working day/i);
+    assert.ok(receipts.every(receipt=>receipt===receipts[0]));
+    assert.match(receipts[0],/we'll be in touch within one working day/i);
+    assert.doesNotMatch(receipts[0],/active|matches found|SYNTHETIC PRIVATE MARKER/i);
   } finally {
     for(const [key,value] of Object.entries(originals)) {
       if(value===undefined) delete globalThis[key]; else globalThis[key]=value;

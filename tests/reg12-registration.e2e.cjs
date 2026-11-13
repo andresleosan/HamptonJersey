@@ -51,7 +51,8 @@ const BASE=process.env.BASE, shots=process.env.E2E_SHOTS || '/tmp/reg08-captures
       assert.equal(await receipt.getByRole('heading',{level:2}).textContent(),'Thank you. We have received your search request.');
       const text=await receipt.innerText();
       assert.match(text,/Our team will review the information you provided/);
-      assert.doesNotMatch(text,/Synthetic REG12|one working day|match found|viewing confirmed/i);
+      assert.match(text,/we'll be in touch within one working day/i);
+      assert.doesNotMatch(text,/Synthetic REG12|match found|viewing confirmed/i);
       receipts.push(text);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
       await receipt.getByRole('link',{name:'See our properties'}).focus();
