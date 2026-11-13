@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **PUB-16 parcial:** el checklist incorpora la decisión pendiente de 24 horas para corregir y retirar un alquiler, y la cancelación y avisos posteriores de visitas. El código actual no acredita ese recorrido. [Conciliación](work/PUB-16/reconciliacion-24h-2026-11-13.md).
+
 13-nov-2026 · **Integración SPR-01, AUT-10 y REG-04:** 1.786 pruebas JavaScript, 25 Python y recorridos de History en Chromium/WebKit aislados. Las tres tareas continúan parciales. [Verificación](work/progreso/integracion-2026-11-13-spr01-aut10-reg04.md).
 
 13-nov-2026 · **SPR-01 parcial:** History prepara la presentación de fechas y el SQL propuesto registra valores anterior y nuevo, sin aplicar migraciones. El esquema y la retención requieren contraste; los eventos antiguos incompletos no se reconstruyen. [Evidencia](work/SPR-01/a5-history-proposal-evidence.md).

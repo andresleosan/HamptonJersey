@@ -4603,7 +4603,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "Luis",
    "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn. La corrección integrada en 1813b01 impide reservar propiedades cerradas o con visitas deshabilitadas y rechaza cambios tardíos; conserva los datos de formularios obsoletos. Las pruebas locales, D1 y navegador aislado pasaron; Cloudflare Pages y Workers Builds: hampton-jobs figuran completed/success para ese SHA.",
-   "falta": "No se ha comprobado el uso funcional en producción. Las restricciones por aviso previo, llaves y negociadores de VIS-10 siguen pendientes para propiedades que sí admiten visitas. El alcance vigente es solo la web propia; no depende de Meta.",
+   "falta": "Implementar la decisión de Luis para el cierre de alquiler: Let agreed durante 24 horas exactas con corrección concurrente segura y retirada de todas las superficies públicas al vencer, incluso sin cron. El reloj debe recuperar la retirada y crear una tarea urgente si falla. Tras las 24 horas sin corrección, cancelar las otras visitas y gestionar sus avisos idempotentes; para ventas también se espera 24 horas antes de cancelar y avisar, sin alterar los demás efectos de Sales. Coordinar cachés, medios, VIS-10 y AUT-17. No se ha comprobado el recorrido funcional en producción; el alcance de publicación es la web propia, sin Meta.",
    "bloqueo": "",
    "evidencia": [
     "server/routes/sales.js:67-76",
@@ -4619,7 +4619,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "tests/server/public-listing-state-race.test.mjs",
     "tests/public-listing-state-ui.e2e.cjs",
     "docs/roadmap/work/PUB-16/avance-publicable.md",
-    "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md"
+    "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md",
+    "docs/superpowers/plans/2026-11-08-pub-16-estados-canales.md",
+    "docs/superpowers/plans/2026-11-10-ana-10-qr-agregado.md",
+    "docs/roadmap/work/PUB-16/reconciliacion-24h-2026-11-13.md"
    ],
    "actualizado": "2026-11-13"
   },
