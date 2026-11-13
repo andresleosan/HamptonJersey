@@ -110,10 +110,11 @@ test("first run creates found matches, one event and one notice", async () => {
   listing(env, "HE-R007", { use: "commercial" });
   listing(env, "HE-R008", { availability: "sold" });
   listing(env, "HE-R009", { country: "France" });
-  listing(env, "HE-R010", { currency: "EUR" });
+  listing(env, "HE-R010", { currency: "EUR" }); // candidate, with budget awaiting confirmation
 
-  assert.deepEqual(await recomputeForApplicant(env, id, ADMIN), { created: 3 });
-  assert.deepEqual(found(env, id), ["HE-R001", "HE-R002", "HE-R003"]);
+  assert.deepEqual(await recomputeForApplicant(env, id, ADMIN), { created: 4 });
+  assert.deepEqual(found(env, id), ["HE-R001", "HE-R002", "HE-R003", "HE-R010"]);
+  assert.equal(JSON.parse(matches(env,id).find(m=>m.listing_id === "HE-R010").checks).find(c=>c.key === "budget").result,"unknown");
   const [m] = matches(env, id);
   assert.equal(m.created_at, m.updated_at);
   assert.ok(m.score >= 35 && m.score <= 100);
@@ -123,16 +124,16 @@ test("first run creates found matches, one event and one notice", async () => {
   assert.equal(moreEvents.length, 0);
   assert.equal(e.actor, ADMIN);
   assert.equal(e.entity_type, "applicant");
-  assert.deepEqual(JSON.parse(e.data), { new: 3 });
+  assert.deepEqual(JSON.parse(e.data), { new: 4 });
   const [n, ...moreNotices] = notices(env, id);
   assert.equal(moreNotices.length, 0);
   assert.equal(n.event_id, e.id);
-  assert.equal(n.title, "3 new matches for Ana Le Gros");
+  assert.equal(n.title, "4 new matches for Ana Le Gros");
   assert.equal(n.action_required, 1);
   assert.equal(n.resolved_at, null);
 
-  // Isolate the singular notice from the unknown-currency candidate kept above for confirmation.
-  run(env, "UPDATE listings SET matchable = 0 WHERE id = 'HE-R003'");
+  // Isolate the singular notice from the uncertain-currency candidates kept for confirmation.
+  run(env, "UPDATE listings SET matchable = 0 WHERE id IN ('HE-R003','HE-R010')");
   const solo = seedApplicant(env, "Tom Vibert", { budget_max: 800000 });
   listing(env, "HE-R011", { sale_price: 750000 });
   assert.deepEqual(await recomputeForApplicant(env, solo, "public"), { created: 1 });

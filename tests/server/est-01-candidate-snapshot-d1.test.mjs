@@ -110,6 +110,16 @@ test('D1 local: direct changes, candidate drift, stale revision and transactiona
     assert.equal(uncertain.requirements_rank,1);
     assert.equal(JSON.parse(uncertain.checks).find(check=>check.key==='budget').result,'unknown');
 
+    // An EUR listing entering the candidate set after the read must abort the whole batch.
+    await DB.prepare("UPDATE listings SET matchable=0,currency='EUR' WHERE id='EST-D1-NO-CURRENCY'").run();
+    await seedApplicant(DB,9);
+    scoped.before(()=>DB.prepare("UPDATE listings SET matchable=1 WHERE id='EST-D1-NO-CURRENCY'").run());
+    assert.deepEqual(await recomputeForApplicantWithStatus(env,9,'system'),{created:0,completed:false});
+    assert.equal((await count(DB,'SELECT COUNT(*) AS n FROM matches WHERE applicant_id=9')).n,0);
+    assert.equal((await count(DB,"SELECT COUNT(*) AS n FROM events WHERE entity_type='applicant' AND entity_id='9' AND type='applicant.matched'")).n,0);
+    assert.equal((await count(DB,"SELECT COUNT(*) AS n FROM notifications n JOIN events e ON e.id=n.event_id WHERE e.entity_type='applicant' AND e.entity_id='9' AND n.category='matched'")).n,0);
+    await DB.prepare("UPDATE listings SET currency=NULL WHERE id='EST-D1-NO-CURRENCY'").run();
+
     await seedApplicant(DB,8);
     scoped.before(()=>DB.prepare(`UPDATE applicants SET search_state='resolved',resolved_at=?,resolved_by='system',
       resolution_reason='Fixture resolution',updated_at=? WHERE id=8`).bind(timestamp,timestamp).run());

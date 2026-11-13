@@ -48,6 +48,8 @@ export default function MatchCard({ match, onReview, busy, disabled = null, shor
         {offSite && <span className="badge neutral">Not on website</span>}
         {!OFFERED.includes(l.availability) && <span className={`badge ${AVAILABILITY_TONE[l.availability] ?? "neutral"}`}>{AVAILABILITY[l.availability] ?? l.availability}</span>}</p>
       <p className="criteria-summary"><span className={`badge ${match.requirements_status==='meets'?'positive':'attention'}`}>{({meets:'Stated must-haves met',pending:'Requirements to confirm',alternative:'Alternative · requirements not met',excluded:'Outside search criteria'})[match.requirements_status] ?? 'Requirements to confirm'}</span></p>
+      {match.requirements_status === "meets" && match.checks.some(c => c.key === "budget" && c.result === "unknown") &&
+        <p className="muted">Budget needs confirmation.</p>}
       {match.requirements_refresh_needed && <p className="muted">Details have changed. Recalculate matches to refresh the list and its order.</p>}
       {petsRefused && match.status === "found" && <p id={`pets-refused-${match.id}`} className="req-note">Pets are not allowed at this property. Recalculate matches.</p>}
       <dl className="checks">{match.checks.map(c => <div key={c.key}>

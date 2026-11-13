@@ -22,12 +22,13 @@ const { chromium } = require(process.env.PW || 'playwright-core');
   const browser = await chromium.launch({ executablePath: process.env.CHROME });
   try {
     for (const width of [1280, 390]) {
-      const unknownId = `BUS12-${width}-UNKNOWN`, gbpId = `BUS12-${width}-GBP`;
-      const unknownTitle = `Currency unknown ${width}`, gbpTitle = `Currency GBP ${width}`;
+      const unknownId = `BUS12-${width}-UNKNOWN`, gbpId = `BUS12-${width}-GBP`, eurId = `BUS12-${width}-EUR`;
+      const unknownTitle = `Currency unknown ${width}`, gbpTitle = `Currency GBP ${width}`, eurTitle = `Currency EUR ${width}`;
       execute(`UPDATE listings SET matchable=0;
         INSERT INTO listings(id,title,use,operation,availability,matchable,sale_price,currency,country,parish,published,created_at,updated_at,updated_by)
         VALUES('${unknownId}','${unknownTitle}','residential','sale','for_sale',1,1200000,NULL,'Jersey','St Helier',0,'2026-11-13','2026-11-13','fixture'),
-              ('${gbpId}','${gbpTitle}','residential','sale','for_sale',1,900000,'GBP','Jersey','St Helier',0,'2026-11-13','2026-11-13','fixture');`);
+              ('${gbpId}','${gbpTitle}','residential','sale','for_sale',1,900000,'GBP','Jersey','St Helier',0,'2026-11-13','2026-11-13','fixture'),
+              ('${eurId}','${eurTitle}','residential','sale','for_sale',1,1200000,'EUR','Jersey','St Helier',0,'2026-11-13','2026-11-13','fixture');`);
       const context = await browser.newContext({ viewport: { width, height: 900 } });
       const errors = [];
       try {
@@ -56,6 +57,25 @@ const { chromium } = require(process.env.PW || 'playwright-core');
         assert.doesNotMatch(await unknown.locator('.match-price').innerText(), /£/, 'the displayed listing price must not acquire a GBP symbol');
         await known.getByText('Stated must-haves met', {exact:true}).waitFor();
         assert.match(await budget(known).innerText(), /Budget.*Must-have[\s\S]*Meets[\s\S]*£900,000/);
+
+        const eur = card('found', eurTitle);
+        await eur.getByText('Requirements to confirm', {exact:true}).waitFor();
+        assert.match(await budget(eur).innerText(), /Unknown[\s\S]*Confirm the price currency/);
+        assert.doesNotMatch(await budget(eur).innerText(), /£/);
+
+        const preferred = await context.request.post(new URL('api/admin/applicants', base).href, {
+          headers:{origin:base.origin}, data:{name:`BUS12 preferred ${width}`, email:`bus12-pref-${width}@example.test`,
+            source:'phone',operation:'buy',budget_max:1000000,area_answer:'any',pets:[{kind:'none'}],
+            requirement_priorities:{version:1,values:{budget:'preferred'},unknown:[]}}});
+        assert.equal(preferred.status(),201);
+        const preferredId=(await preferred.json()).id;
+        const preferredPage=await context.newPage();
+        await preferredPage.goto(new URL(`admin/#/applicants/${preferredId}/matches`,base).href);
+        const preferredEur=preferredPage.locator('article.match').filter({has:preferredPage.getByRole('link',{name:eurTitle,exact:true})});
+        await preferredEur.getByText('Stated must-haves met',{exact:true}).waitFor();
+        await preferredEur.getByText('Budget needs confirmation.',{exact:true}).waitFor();
+        assert.match(await preferredEur.locator('dl.checks').innerText(),/Budget.*Preferred[\s\S]*Unknown/);
+        await preferredPage.close();
 
         // Navigate from the listing link to Shortlist with the keyboard, then keep that human decision through recalculation.
         const link = unknown.getByRole('link', {name:unknownTitle, exact:true});

@@ -122,7 +122,8 @@ function Report({ d }) {
     <section className="block" aria-labelledby="h-demand">
       <h2 id="h-demand">Unmet demand</h2>
       <p className="muted">Today's active applicants, whatever the period, and the listings available to match them. Without a
-        match: no found or shortlisted match on an available listing. Someone who wants several parishes counts in each.</p>
+        match: no found or shortlisted match on an available listing. These counts include candidates whose price or availability
+        still needs confirmation; a match does not establish that the budget is met. Someone who wants several parishes counts in each.</p>
       {OPERATIONS.map(([op, t, offered]) => <div key={op}><h3 id={`h-${op}`}>{t}</h3>{demand[op].length
         ? <div className="table-scroll" role="region" aria-label={`${t} demand`} tabIndex={0}>
           <table className="list" aria-labelledby={`h-${op}`}>

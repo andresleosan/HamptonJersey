@@ -192,3 +192,42 @@ for (const route of ['applicant','listing']) test(`${route} recompute does not p
   assert.equal(saved(env).requirements_rank,1);
   assert.equal(JSON.parse(saved(env).checks).find(c => c.key === 'budget').result,'unknown');
 });
+
+test('new EUR candidate is proposed with an unknown budget and contributes to review counts', async () => {
+  const env=setup();
+  env.DB.raw.prepare("UPDATE listings SET currency='EUR', sale_price=1200000 WHERE id='BUS12-001'").run();
+  const cookie=await adminCookie();
+  const before=await call(env,'GET','/admin/insights',{cookie});
+  const parishBefore=before.data.demand.buy.find(r=>r.parish==='St Helier');
+  assert.equal(parishBefore?.listings,1);
+  const outcome=await recomputeForApplicant(env,1,'system');
+  assert.equal(outcome.created,1);
+  assert.equal(saved(env).status,'found');
+  assert.equal(saved(env).requirements_rank,1);
+  assert.equal(JSON.parse(saved(env).checks).find(c=>c.key==='budget').result,'unknown');
+  assert.equal(env.DB.raw.prepare("SELECT COUNT(*) n FROM notifications WHERE category='matched' AND resolved_at IS NULL").get().n,1);
+  for (const card of await cards(env)) assert.equal(budget(card).result,'unknown');
+  const after=await call(env,'GET','/admin/insights',{cookie});
+  assert.equal(after.data.unmet.length,0);
+});
+
+test('listing recompute proposes EUR with preferred budget unknown and keeps rejected decisions', async () => {
+  const env=setup(['BUS12-001','BUS12-002']);
+  env.DB.raw.prepare('UPDATE applicants SET requirement_priorities=? WHERE id=1')
+    .run(JSON.stringify({version:1,values:{budget:'preferred'},unknown:[]}));
+  await recomputeForApplicant(env,1,'system');
+  env.DB.raw.prepare("UPDATE matches SET status='rejected',reject_reason='price',reviewed_by='human',reviewed_at=? WHERE listing_id='BUS12-002'").run(T0);
+  const rejected={...saved(env,'BUS12-002')};
+  env.DB.raw.prepare("DELETE FROM matches WHERE listing_id='BUS12-001'").run();
+  env.DB.raw.prepare("UPDATE listings SET currency='EUR',sale_price=1200000").run();
+  await recomputeForListing(env,'BUS12-001','system');
+  await recomputeForListing(env,'BUS12-002','system');
+  assert.equal(saved(env).status,'found');
+  assert.equal(JSON.parse(saved(env).checks).find(c=>c.key==='budget').result,'unknown');
+  for (const card of await cards(env)) {
+    assert.equal(card.requirements_status,'meets');
+    assert.equal(budget(card).result,'unknown');
+    assert.equal(budget(card).priority,'preferred');
+  }
+  assert.deepEqual({...saved(env,'BUS12-002')},rejected);
+});

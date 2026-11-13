@@ -9,7 +9,7 @@ import {searchProgressEnabled,beginFullCheck,fullCheckGuard,fullCheckSuccessStat
 
 // Listings that may be offered: archived listings are excluded. The applicant's operation is evaluate()'s first filter.
 export const CANDIDATES_SQL = `archived_at IS NULL AND matchable = 1 AND use = 'residential' AND availability IN ('for_sale','to_let','lease')
-  AND operation IN ('sale','rent') AND (country IS NULL OR country = 'Jersey') AND (currency IS NULL OR currency = 'GBP')`;
+  AND operation IN ('sale','rent') AND (country IS NULL OR country = 'Jersey') AND (currency IS NULL OR currency IN ('GBP','EUR'))`;
 export const LISTING_OPERATION = { rent: "rent", buy: "sale" };
 
 // Keep each JSON binding below D1's 2,000,000-byte string limit, including the larger event payload form.
