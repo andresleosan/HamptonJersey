@@ -23,6 +23,7 @@ import { normalizePostcode, PROPERTY_CONDITION_LABELS } from '../../server/listi
 import { squareMetres } from '../../server/listing-physical.js';
 import ListingContentFields from './ListingContentFields.jsx';
 import ResearchDuplicateReview from './ResearchDuplicateReview.jsx';
+import { listingGuideSteps, guideStepForSection } from "./listing-guide.js";
 import { CONTENT_TAGS } from '../../server/listing-content.js';
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
@@ -64,7 +65,9 @@ const jerseyHome = f => f.use === "residential" && f.country === "Jersey";
 const DONE = { publish: "Published: now on the website (may take a minute).", unpublish: "Unpublished: no longer on the website.",
   archive: "Archived. You can restore it from Archived.", restore: "Restored as a draft." };
 
-export default function ListingEditor({ id, onChange }) {
+export default function ListingEditor({ id, onChange, guide = false }) {
+  const [guideEnabled, setGuideEnabled] = useState(guide), [guideStep, setGuideStep] = useState(0);
+  useEffect(() => { setGuideEnabled(guide); setGuideStep(0); }, [id, guide]);
   const [data, setData] = useState(null), [form, setForm] = useState(null), [errors, setErrors] = useState({});
   const [detailsForm, setDetailsForm] = useState(null);
   const [contentForm,setContentForm] = useState(null);
@@ -76,6 +79,7 @@ export default function ListingEditor({ id, onChange }) {
   const [confirming, setConfirming] = useState(false); // ADM-04: its own flag, so Save never reads "Saving…" meanwhile
   const [withdrawalOpen,setWithdrawalOpen]=useState(false);
   const marketingFocus=useRef(false);
+  const guideToggle=useRef(null);
   const errorFocus=useRef(null);
   const [historyKey,setHistoryKey]=useState(0),[deleted,setDeleted]=useState(false);
   const historyChanged=()=>setHistoryKey(k=>k+1);
@@ -85,6 +89,7 @@ export default function ListingEditor({ id, onChange }) {
     if(!errorFocus.current) return;
     const element=document.getElementById(`f-${errorFocus.current}`);errorFocus.current=null;
     if(!element) return;
+    if (guideEnabled) { const step = guideStepForSection(element.closest("section[id]")?.id); if (step !== null) setGuideStep(step); }
     element.focus({preventScroll:true});
     (element.closest('.field') || element).scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
   },[errors]);
@@ -317,7 +322,7 @@ export default function ListingEditor({ id, onChange }) {
   return <div className="editor">
     <aside className="side card">
       {cover ? <img src={`/media/${cover.id}?thumb`} alt="" /> : <div className="thumb big" />}
-      <h1>{l.title}</h1>
+      <h1 id="h-editor" tabIndex={-1}>{l.title}</h1>
       <p className="meta"><span>{l.id}</span><span><span className={`badge ${state}`}>{STATUS_LABEL[state]}</span></span>
         {l.to_confirm === 1 && <span><span className="badge attention">To confirm</span></span>}</p>
       <p className="muted">Edited {fmtDate(l.updated_at)}</p>
@@ -329,6 +334,7 @@ export default function ListingEditor({ id, onChange }) {
         {offers.sale && <> · <a href={`#/sales/${offers.sale.id}`}>Sale in progress</a></>}</p>}
       {l.published === 1 && !publicPhoto && <p className="warn" role="note">Published, but with no public photo: it won't appear on the website until it has one.</p>}
       <ResearchDuplicateReview review={data.duplicate_review} legacyIds={data.duplicates}/>
+      <button ref={guideToggle} type="button" className="btn ghost sm" onClick={() => { setGuideEnabled(v => !v); setGuideStep(0); }}>{guideEnabled ? "Close property guide" : "Open property guide"}</button>
       <nav aria-label="Listing sections">{SECTIONS.filter(([k]) => forSale || k !== "offers").map(([k, t]) =>
         <button key={k} type="button" className="linkish" onClick={() => k==='history'?goTo('h-history'):
           document.getElementById(`s-${k}`).scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth' })}>{t}</button>)}</nav>
@@ -338,6 +344,22 @@ export default function ListingEditor({ id, onChange }) {
     </aside>
 
     <div className="sections">
+      {guideEnabled && <section className="card" aria-labelledby="h-guide">
+        <h2 id="h-guide">Property guide</h2>
+        <p role="status" aria-live="polite">Step {guideStep + 1} of 6: {listingGuideSteps({ review: state !== "archived" })[guideStep].label}</p>
+        <p className="muted">Navigate the existing fields below. Changes are saved only when you choose Save; finishing this guide does not publish.</p>
+        <nav aria-label="Property guide steps" style={{display:"flex",flexWrap:"wrap",gap:8}}>
+          {listingGuideSteps({ review: state !== "archived" }).map((step, index) => <button key={step.label} type="button" className="btn ghost sm"
+            aria-current={guideStep === index ? "step" : undefined} onClick={() => { setGuideStep(index); goTo(step.targets[0][1]); }}>{step.label}</button>)}
+        </nav>
+        {listingGuideSteps({ review: state !== "archived" })[guideStep].unavailable && <p className="muted">{listingGuideSteps({ review: state !== "archived" })[guideStep].unavailable}</p>}
+        <div className="inline">{listingGuideSteps({ review: state !== "archived" })[guideStep].targets.map(([label, target]) =>
+          <button key={target} type="button" className="btn ghost sm" onClick={() => goTo(target)}>Go to {label}</button>)}
+          <button type="button" className="btn ghost sm" disabled={guideStep === 0} onClick={() => { const n = guideStep - 1; setGuideStep(n); goTo(listingGuideSteps({ review: state !== "archived" })[n].targets[0][1]); }}>Previous step</button>
+          <button type="button" className="btn ghost sm" disabled={guideStep === 5} onClick={() => { const n = guideStep + 1; setGuideStep(n); goTo(listingGuideSteps({ review: state !== "archived" })[n].targets[0][1]); }}>Next step</button>
+          {guideStep === 5 && <button type="button" className="btn ghost sm" onClick={() => { setGuideEnabled(false); requestAnimationFrame(() => guideToggle.current?.focus()); }}>Finish guide</button>}
+        </div>
+      </section>}
       <ListingReview listing={l} disabled={dirty||busy} onTransition={review}/>
       {l.operation==='rent'&&!l.archived_at&&['to_let','lease','not_stated','let_agreed','let'].includes(l.availability)&&
         <RentalMarketing key={l.updated_at} listing={l} media={data.media} sources={data.sources} disabled={dirty||busy}
@@ -346,7 +368,7 @@ export default function ListingEditor({ id, onChange }) {
         <p>Last confirmed {checked}: call the owner to check it is still available.</p>
         <button type="button" className="btn ghost sm" onClick={stillAvailable} disabled={confirming}>Still available</button></div>}
       {state !== "archived" && <section className={`card prepub${todo.length ? "" : " done"}`} aria-labelledby="h-prepub">
-        <h2 id="h-prepub">Missing from this listing</h2>
+        <h2 id="h-prepub" tabIndex={-1}>Missing from this listing</h2>
         {completeness ? <p><strong>{completeness.percentage}% complete</strong> ({completeness.met} of {completeness.total})</p>
           : <p role="status">Completeness is unavailable while photos are not loaded.</p>}
         <p className="muted">Based on current edits and saved photos. You do not need 100% to publish. Save your changes before publishing.</p>
@@ -354,7 +376,7 @@ export default function ListingEditor({ id, onChange }) {
           <button type="button" className="linkish" onClick={() => goTo(target)}>{label}</button></li>)}</ul>
           : completeness && <p className="muted">Nothing missing.</p>}
       </section>}
-      <section id="s-details" className="card" aria-labelledby="h-details"><h2 id="h-details">Details</h2><div className="grid2">
+      <section id="s-details" className="card" aria-labelledby="h-details"><h2 id="h-details" tabIndex={-1}>Details</h2><div className="grid2">
         {field("title", "Title", <input {...ctl("title")} maxLength={200} required />)}
         {field("use", "Use", <select {...ctl("use")}>{options(USE)}</select>)}
         {field("operation", "Operation", <select {...ctl("operation")} disabled={isRentalMarketing(l.availability)}>{options(OPERATION)}</select>)}
@@ -459,7 +481,7 @@ export default function ListingEditor({ id, onChange }) {
         <p className="muted"><strong>Current address preview:</strong> {internalAddress || "Not known"}</p>
       </section>
 
-      <section id="s-physical" className="card" aria-labelledby="h-physical"><h2 id="h-physical">Physical details</h2>
+      <section id="s-physical" className="card" aria-labelledby="h-physical"><h2 id="h-physical" tabIndex={-1}>Physical details</h2>
         <p className="muted">Leave a field unknown when it has not been confirmed.</p>
         <h3>Size and rooms</h3><div className="grid2">
           {field("property_type", "Type (house, flat, restaurant…)", <input {...ctl("property_type")} maxLength={100} />)}
@@ -514,7 +536,7 @@ export default function ListingEditor({ id, onChange }) {
             {errors[`manual_${key}`] && <small className="err" role="alert">{errors[`manual_${key}`]}</small>}</fieldset>;
         })}
       </section>
-      <section id="s-price" className="card" aria-labelledby="h-price"><h2 id="h-price">Price</h2>
+      <section id="s-price" className="card" aria-labelledby="h-price"><h2 id="h-price" tabIndex={-1}>Price</h2>
         <p className="muted">These details appear on the public listing. Leave unknown values blank; include the currency and period for charges. Sale price, rent and business premium are kept separate.</p><div className="grid2">
         {priceOperation(form) === "sale" && field("sale_price", "Sale price", <input {...ctl("sale_price")} type="number" min="1" step="any" />)}
         {(priceOperation(form) === "rent" || form.operation === "business") && field("rent", "Rent", <input {...ctl("rent")} type="number" min="1" step="any" />)}
@@ -550,7 +572,7 @@ export default function ListingEditor({ id, onChange }) {
         </div>}
       </section>
 
-      <section id="s-description" className="card" aria-labelledby="h-desc"><h2 id="h-desc">Description</h2>
+      <section id="s-description" className="card" aria-labelledby="h-desc"><h2 id="h-desc" tabIndex={-1}>Description</h2>
         {/* AUT-13: on a listing on the website only (H9). A used draft fills the form like typing; Save is the approval (H10). */}
         {state === "published" && <HermesDraft listingId={id} onUse={text => setForm(f => ({ ...f, ...text }))}
           replacing={["title", "summary", "description"].some(k => form[k] !== toForm(l, data.structured_economics)[k])} />}
