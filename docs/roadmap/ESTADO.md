@@ -379,11 +379,11 @@ Las decisiones abiertas del MD tienen propuestas explícitas en el plan maestro.
 
 Fuera del nuevo recorrido permanecen las tareas de alquileres, ofertas, publicación propia, analítica y Hampton Bot; Tours 3D más adelante. El chat humano y el transporte de correo ya construidos se reutilizan. Sus pendientes operativos siguen abiertos. Places.je es opcional por fuente y PRE-22 no bloquea la consulta inicial ni la visita; la comisión es gestión humana separada.
 
-## Próxima tarea
+## Próximo paquete de trabajo
 
-Tras las pruebas y la revisión independiente favorable de AGE-04 parcial, BUS-21 es la primera investigación de fuentes por tandas: puede avanzar con fuentes accesibles y registrar las restricciones y tareas manuales de BUS-19 sin exigir acceso a todas. BUS-22 y BUS-23 esperan, respectivamente, a las pasadas anteriores. AGE-14 es la supresión aplazada y no forma parte de BUS-21. REG-17 ya fue publicado y migrado según el relevo; VIS-17 aún debe consumir sus franjas.
+Priorizar BUS-10 y BUS-12 para integrar identidad de viviendas, procedencia y evaluación sin fusionar unidades por dirección ni aprobar matches automáticamente; sus contratos desbloquean EST-13 y otras tareas de seguimiento. En paralelo, continuar REG-12 y PUB-06 en sus tramos independientes, y preparar PUB-16 para la retirada y corrección de alquileres a las 24 horas.
 
-BUS-21 requiere investigación verificable, procedencia por fuente y canales, tratamiento de acceso y deduplicación, además de evaluar cómo representar los resultados con los modelos existentes. Se mantiene como alternativa viable tras REG-08; la investigación no autoriza captura automatizada ni acceso restringido. Se conserva la recomendación de Claude en la cabecera.
+BUS-21, BUS-22 y BUS-23 tienen resultados aceptados en el catálogo; sus pendientes de acceso por fuente continúan en BUS-19 y no autorizan nuevas capturas. REG-17 conserva su implementación acreditada y sigue parcial hasta integrarse con VIS-17. El estado remoto de las migraciones que esta sesión no pudo consultar permanece desconocido.
 
 ## VIS-18 · Control de visitas por propiedad (urgente, 7-nov-2026)
 
