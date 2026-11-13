@@ -36,10 +36,10 @@ function world() {
   return env;
 }
 
-test("GET /listings: only published, not archived, public shape, cached 60s", async () => {
+test("GET /listings: only published, not archived, public shape and no-store", async () => {
   const r = await call(world(), "GET", "/listings");
   assert.equal(r.status, 200);
-  assert.equal(r.headers.get("cache-control"), "public, max-age=60");
+  assert.equal(r.headers.get("cache-control"), "no-store");
   assert.deepEqual(r.data.map(p => p.id), ["HE-R001"]);
   assert.deepEqual(r.data[0].photos.map(p => p.src), ["/media/A00001"]);
 });
@@ -53,10 +53,21 @@ test("GET /listings: an address snapshot without a matching review remains priva
       "0".repeat(64), "fixture-review-1", "admin@example.test", T0);
   const r = await call(env, "GET", "/listings");
   assert.equal(r.status, 200);
-  assert.equal(r.headers.get("cache-control"), "public, max-age=60");
+  assert.equal(r.headers.get("cache-control"), "no-store");
   assert.equal("exactAddress" in r.data[0], false);
   assert.equal("building_name_or_number" in r.data[0], false);
   assert.equal("postcode" in r.data[0], false);
+});
+
+test("ANA-10: catalog sends no-store before and after unpublish and republish", async () => {
+  const env = world();
+  for (const published of [1, 0, 1]) {
+    env.DB.raw.prepare("UPDATE listings SET published = ? WHERE id = ?").run(published, "HE-R001");
+    const r = await call(env, "GET", "/listings");
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get("cache-control"), "no-store");
+    assert.equal(r.data.some(p => p.id === "HE-R001"), Boolean(published));
+  }
 });
 
 test("GET /listings: interest is the panel's count from 2 people, null below, with no personal data", async () => {

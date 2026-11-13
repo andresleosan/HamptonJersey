@@ -71,8 +71,10 @@ export async function readLive(env, id, { viewingClock } = {}) {
   return reviewed.filter(Boolean);
 }
 const listPublic = async ({ env }) => {
-  const listings = (await readLive(env)).map(x => x.pub), exactAddress = listings.some(l => l.exactAddress);
-  return json(listings, 200, { "cache-control": exactAddress ? "no-store" : "public, max-age=60" });
+  const listings = (await readLive(env)).map(x => x.pub);
+  // Visibility can change independently of a visitor's next request. Instruct
+  // caches not to retain new catalogue responses while ANA-10 / PUB-16 are prepared.
+  return json(listings, 200, { "cache-control": "no-store" });
 };
 
 // chat: whether the website offers new chats (MSG-02, C3); with the cache, a change shows within 5 minutes.

@@ -23,10 +23,11 @@ export function seoHeaders(request, env, type) {
 export async function listingPage(request, env, id) {
   const p = /^HE-[A-Z]\d{3,}$/.test(id) ? (await readLive(env, id)).map(x => x.pub).find(shownOnSite) : null;
   const headers = seoHeaders(request, env);
-  // A short cache on the 404, so a listing published a minute later doesn't stay hidden for five.
+  // Ask caches not to retain either a live page or a 404. This does not
+  // invalidate older copies or control intermediary cache rules.
+  headers.set("cache-control", "no-store");
   const siteUrl = base(env.SITE_URL);
-  if (!p) { headers.set("cache-control", "public, max-age=60"); return { status: 404, headers, siteUrl, title: null, head: '<meta name="robots" content="noindex">' }; }
-  if (p.exactAddress) headers.set("cache-control", "no-store");
+  if (!p) return { status: 404, headers, siteUrl, title: null, head: '<meta name="robots" content="noindex">' };
   const m = listingMeta(p, env.SITE_URL);
   return { status: 200, headers, siteUrl, title: m.title, head: headTags(m) };
 }
