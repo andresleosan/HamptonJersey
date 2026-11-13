@@ -83,6 +83,16 @@ class ManifestReconciliationTests(unittest.TestCase):
         self.assertEqual(candidate['channels'][1]['review_state'], 'excluded_by_project')
         self.assertNotIn('https://fixture.invalid', json.dumps(candidate))
 
+    def test_duplicate_json_keys_are_rejected_even_when_hashes_match(self):
+        path = self.root / 'reviews.json'
+        raw = path.read_text(encoding='utf-8')
+        raw = raw.replace('"runtime_decisions_created": false',
+                          '"runtime_decisions_created": true, "runtime_decisions_created": false')
+        path.write_text(raw, encoding='utf-8')
+        self.manifest['decisions'] = {**self._item('reviews.json'), 'rows': 2}
+        self._write_json('review-manifest.json', self.manifest)
+        with self.assertRaises(ValueError): self.build()
+
     def test_tampered_accepted_handoff_is_rejected(self):
         (self.root / 'handoff.csv').write_text('modified\n')
         with self.assertRaises(ValueError): self.build()

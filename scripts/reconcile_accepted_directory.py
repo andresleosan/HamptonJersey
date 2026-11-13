@@ -80,6 +80,15 @@ def _bytes(path, *, root, root_fd):
         os.close(directory)
 
 
+def _unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('Duplicate evidence JSON key')
+        result[key] = value
+    return result
+
+
 def _identifier(value):
     return isinstance(value, str) and bool(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,159}', value))
 
@@ -113,7 +122,7 @@ def _build_candidate(root, root_fd, acceptance_path, review_manifest_path):
 
     def json_object(path):
         try:
-            value = json.loads(read(path))
+            value = json.loads(read(path), object_pairs_hook=_unique_object)
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
             raise ValueError('Invalid evidence JSON') from error
         if not isinstance(value, dict):
