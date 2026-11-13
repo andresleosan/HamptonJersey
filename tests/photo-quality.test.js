@@ -105,3 +105,150 @@ test('the 16 megapixel limit also holds for an extremely narrow image', async ()
     assert.ok(result.width * result.height <= 16_000_000);
   });
 });
+
+const deferred = () => {
+  let resolve;
+  const promise = new Promise(done => { resolve = done; });
+  return { promise, resolve };
+};
+
+test('draft stops after a pending file load and keeps previously confirmed photos', async () => {
+  await withSyntheticBrowser({ width: 800, height: 600 }, async () => {
+    const { createDraft } = await import('../admin/src/createDraft.js');
+    const started = deferred(), release = deferred(), calls = [];
+    let active = true;
+    globalThis.fetch = async (path, options) => {
+      calls.push([path, options.method]);
+      if (path === '/api/admin/listings') return Response.json({ id: 'HE-R123' }, { status: 201 });
+      return Response.json({ media: { id: 'U123', kind: 'photo' } }, { status: 201 });
+    };
+    const photos = [
+      { name: 'first.jpg', kind: 'photo', file: new Blob(['first']) },
+      { name: 'second.jpg', kind: 'photo', load: async () => { started.resolve(); await release.promise; return new Blob(['second']); } },
+    ];
+    const operation = createDraft({}, photos, { alive: () => active });
+    await started.promise; active = false; release.resolve();
+    const result = await operation;
+    assert.equal(result.uploaded, 1, 'the previously confirmed photo remains recorded');
+    assert.deepEqual(result.failed, []);
+    assert.equal(result.coverFailed, false);
+    assert.deepEqual(calls, [['/api/admin/listings', 'POST'], ['/api/admin/listings/HE-R123/media', 'POST']]);
+  });
+});
+
+test('upload stops before POST if the caller leaves during image encoding', async () => {
+  await withSyntheticBrowser({ width: 800, height: 600 }, async () => {
+    const started = deferred(), release = deferred();
+    const Canvas = globalThis.OffscreenCanvas;
+    globalThis.OffscreenCanvas = class extends Canvas {
+      async convertToBlob() { if (this.width === 800) { started.resolve(); await release.promise; } return super.convertToBlob(); }
+    };
+    let active = true, posts = 0;
+    globalThis.fetch = async () => { posts++; return Response.json({ media: { id: 'U123' } }, { status: 201 }); };
+    const operation = photo.uploadPhoto('HE-R001', new Blob(['fixture']), { isCurrent: () => active });
+    await started.promise; active = false; release.resolve();
+    await assert.rejects(operation, { name: 'AbortError' });
+    assert.equal(posts, 0);
+  });
+});
+
+test('draft does not report a failure or start a photo POST after leaving during encoding', async () => {
+  await withSyntheticBrowser({ width: 800, height: 600 }, async () => {
+    const { createDraft } = await import('../admin/src/createDraft.js');
+    const started = deferred(), release = deferred(), calls = [];
+    const Canvas = globalThis.OffscreenCanvas;
+    globalThis.OffscreenCanvas = class extends Canvas {
+      async convertToBlob() { if (this.width === 800) { started.resolve(); await release.promise; } return super.convertToBlob(); }
+    };
+    let active = true;
+    globalThis.fetch = async (path, options) => {
+      calls.push([path, options.method]);
+      if (path === '/api/admin/listings') return Response.json({ id: 'HE-R123' }, { status: 201 });
+      return Response.json({ media: { id: 'U123' } }, { status: 201 });
+    };
+    const operation = createDraft({}, [{ name: 'photo.jpg', kind: 'photo', file: new Blob(['fixture']) }], { alive: () => active });
+    await started.promise; active = false; release.resolve();
+    const result = await operation;
+    assert.equal(result.uploaded, 0);
+    assert.deepEqual(result.failed, []);
+    assert.deepEqual(calls, [['/api/admin/listings', 'POST']]);
+  });
+});
+
+test('draft does not change the cover after leaving during the listing GET', async () => {
+  await withSyntheticBrowser({ width: 800, height: 600 }, async () => {
+    const { createDraft } = await import('../admin/src/createDraft.js');
+    const started = deferred(), release = deferred(), calls = [];
+    let active = true;
+    globalThis.fetch = async (path, options) => {
+      calls.push([path, options.method]);
+      if (path === '/api/admin/listings') return Response.json({ id: 'HE-R123' }, { status: 201 });
+      if (path === '/api/admin/listings/HE-R123/media' && options.method === 'POST') return Response.json({ media: { id: 'U123' } }, { status: 201 });
+      if (path === '/api/admin/listings/HE-R123' && options.method === 'GET') {
+        started.resolve(); await release.promise; return Response.json({ listing: { updated_at: 'version' } });
+      }
+      return Response.json({});
+    };
+    const operation = createDraft({}, [{ name: 'photo.jpg', kind: 'photo', file: new Blob(['fixture']) }], { alive: () => active });
+    await started.promise; active = false; release.resolve();
+    const result = await operation;
+    assert.equal(result.uploaded, 1, 'a confirmed photo remains in the draft');
+    assert.equal(result.coverFailed, false);
+    assert.deepEqual(calls, [
+      ['/api/admin/listings', 'POST'], ['/api/admin/listings/HE-R123/media', 'POST'], ['/api/admin/listings/HE-R123', 'GET'],
+    ]);
+  });
+});
+
+test('a photo POST already sent may finish, but no cover request starts after leaving', async () => {
+  await withSyntheticBrowser({ width: 800, height: 600 }, async () => {
+    const { createDraft } = await import('../admin/src/createDraft.js');
+    const started = deferred(), release = deferred(), calls = [];
+    let active = true;
+    globalThis.fetch = async (path, options) => {
+      calls.push([path, options.method]);
+      if (path === '/api/admin/listings') return Response.json({ id: 'HE-R123' }, { status: 201 });
+      started.resolve(); await release.promise; return Response.json({ media: { id: 'U123' } }, { status: 201 });
+    };
+    const operation = createDraft({}, [{ name: 'photo.jpg', kind: 'photo', file: new Blob(['fixture']) }], { alive: () => active });
+    await started.promise; active = false; release.resolve();
+    const result = await operation;
+    assert.equal(result.uploaded, 1);
+    assert.deepEqual(result.failed, []);
+    assert.deepEqual(calls, [['/api/admin/listings', 'POST'], ['/api/admin/listings/HE-R123/media', 'POST']]);
+  });
+});
+
+test('a current draft still assigns its confirmed photo as cover', async () => {
+  await withSyntheticBrowser({ width: 800, height: 600 }, async () => {
+    const { createDraft } = await import('../admin/src/createDraft.js');
+    let cover;
+    globalThis.fetch = async (path, options) => {
+      if (path === '/api/admin/listings') return Response.json({ id: 'HE-R123' }, { status: 201 });
+      if (path.endsWith('/media') && options.method === 'POST') return Response.json({ media: { id: 'U123' } }, { status: 201 });
+      if (path.endsWith('/media') && options.method === 'PUT') { cover = JSON.parse(options.body); return Response.json({}); }
+      return Response.json({ listing: { updated_at: 'version' } });
+    };
+    const result = await createDraft({}, [{ name: 'photo.jpg', kind: 'photo', file: new Blob(['fixture']) }]);
+    assert.equal(result.uploaded, 1);
+    assert.equal(result.coverFailed, false);
+    assert.equal(cover.cover_media_id, 'U123');
+    assert.equal(cover.updated_at, 'version');
+  });
+});
+
+test('a file load that fails after leaving does not report a failed upload', async () => {
+  await withSyntheticBrowser({ width: 800, height: 600 }, async () => {
+    const { createDraft } = await import('../admin/src/createDraft.js');
+    const started = deferred(), release = deferred(), calls = [];
+    let active = true;
+    globalThis.fetch = async (path, options) => { calls.push([path, options.method]); return Response.json({ id: 'HE-R123' }, { status: 201 }); };
+    const operation = createDraft({}, [{ name: 'photo.jpg', kind: 'photo', load: async () => {
+      started.resolve(); await release.promise; throw new Error('fixture load failure');
+    } }], { alive: () => active });
+    await started.promise; active = false; release.resolve();
+    const result = await operation;
+    assert.deepEqual(result.failed, []);
+    assert.deepEqual(calls, [['/api/admin/listings', 'POST']]);
+  });
+});

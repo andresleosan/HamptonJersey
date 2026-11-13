@@ -127,14 +127,95 @@ function withSyntheticGps(jpeg) {
     await firstStarted;
     await page.evaluate(() => { location.hash = '#/p/HE-R001'; });
     await page.waitForURL(/#\/p\/HE-R001$/);
-    await page.getByRole('navigation', { name: 'Listing sections' }).waitFor();
+    await page.waitForFunction(() => document.querySelector('#f-title')?.value === 'Le Bernage');
     const firstResponse = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/HE-R003/media'));
     release();
-    await firstResponse;
+    const confirmed = (await (await firstResponse).json()).media;
     await page.waitForTimeout(500);
     assert.equal(posts, 1, 'no subsequent photo starts after leaving the listing');
+    const previousDraft = await page.evaluate(async () => (await (await fetch('/api/admin/listings/HE-R003')).json()));
+    assert.ok(previousDraft.media.some(item => item.id === confirmed.id), 'the already-sent photo remains in the original draft');
     assert.equal(await page.locator('#s-photos').getByText(/first\.jpg:/).count(), 0, 'no warning leaks to another listing');
     await page.unroute(uploadUrl);
+
+    // Also leave while decoding is paused, before any network request has started.
+    await page.goto(BASE + 'admin/#/p/HE-R003');
+    await page.locator('#s-photos input[type=file]').waitFor({ state: 'attached' });
+    await page.evaluate(() => {
+      const original = globalThis.createImageBitmap.bind(globalThis);
+      let releaseDecode;
+      const gate = new Promise(resolve => { releaseDecode = resolve; });
+      globalThis.__pub11DecodeWaiting = 0; globalThis.__pub11DecodeFinished = 0;
+      globalThis.__pub11ReleaseDecode = releaseDecode;
+      globalThis.createImageBitmap = async (...args) => {
+        const held = args[0] instanceof File && args[0].name === 'held.jpg';
+        if (held) { globalThis.__pub11DecodeWaiting++; await gate; }
+        const result = await original(...args);
+        if (held) globalThis.__pub11DecodeFinished++;
+        return result;
+      };
+    });
+    let prematurePosts = 0;
+    await page.route(uploadUrl, async route => {
+      if (route.request().method() === 'POST') prematurePosts++;
+      await route.continue();
+    });
+    await page.locator('#s-photos input[type=file]').setInputFiles({
+      name: 'held.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(smallBytes),
+    });
+    await page.waitForFunction(() => globalThis.__pub11DecodeWaiting === 2);
+    await page.evaluate(() => { location.hash = '#/p/HE-R001'; });
+    await page.waitForURL(/#\/p\/HE-R001$/);
+    await page.waitForFunction(() => document.querySelector('#f-title')?.value === 'Le Bernage');
+    await page.evaluate(() => globalThis.__pub11ReleaseDecode());
+    await page.waitForFunction(() => globalThis.__pub11DecodeFinished === 2);
+    await page.waitForTimeout(500);
+    assert.equal(prematurePosts, 0, 'leaving during image preparation prevents the first POST');
+    await page.unroute(uploadUrl);
+
+    // A new draft remains intact if its page is left while a selected photo is being prepared.
+    await page.goto(BASE + 'admin/#/listings');
+    await page.getByRole('button', { name: 'Add new property' }).first().click();
+    const pendingDraft = page.locator('.add-property');
+    await page.evaluate(() => {
+      const original = globalThis.createImageBitmap.bind(globalThis);
+      let releaseDecode;
+      const gate = new Promise(resolve => { releaseDecode = resolve; });
+      globalThis.__pub11DraftWaiting = 0; globalThis.__pub11DraftFinished = 0;
+      globalThis.__pub11ReleaseDraft = releaseDecode;
+      globalThis.createImageBitmap = async (...args) => {
+        const held = args[0] instanceof File && args[0].name === 'draft-held.jpg';
+        if (held) { globalThis.__pub11DraftWaiting++; await gate; }
+        const result = await original(...args);
+        if (held) globalThis.__pub11DraftFinished++;
+        return result;
+      };
+    });
+    let draftPhotoPosts = 0;
+    const anyMediaUrl = /\/api\/admin\/listings\/HE-[A-Z]\d+\/media$/;
+    await page.route(anyMediaUrl, async route => {
+      if (route.request().method() === 'POST') draftPhotoPosts++;
+      await route.continue();
+    });
+    await pendingDraft.locator('input[type=file][multiple]:not([webkitdirectory])').setInputFiles({
+      name: 'draft-held.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(smallBytes),
+    });
+    await pendingDraft.getByLabel('Title').fill(`Synthetic pending draft ${width}`);
+    const createdResponse = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/api/admin/listings'));
+    await pendingDraft.getByRole('button', { name: 'Create draft' }).click();
+    const createdId = (await (await createdResponse).json()).id;
+    await page.waitForFunction(() => globalThis.__pub11DraftWaiting === 2);
+    await page.evaluate(() => { location.hash = '#/p/HE-R001'; });
+    await page.waitForURL(/#\/p\/HE-R001$/);
+    await page.waitForFunction(() => document.querySelector('#f-title')?.value === 'Le Bernage');
+    await page.evaluate(() => globalThis.__pub11ReleaseDraft());
+    await page.waitForFunction(() => globalThis.__pub11DraftFinished === 2);
+    await page.waitForTimeout(500);
+    assert.equal(draftPhotoPosts, 0, 'a draft does not start a photo POST after its page is left');
+    const retained = await page.evaluate(async id => (await (await fetch('/api/admin/listings/' + id)).json()), createdId);
+    assert.equal(retained.listing.published, 0, 'the draft remains available and unpublished');
+    assert.equal(retained.media.length, 0);
+    await page.unroute(anyMediaUrl);
     assert.deepEqual(errors, []); await context.close();
   } } finally { await browser.close(); }
   console.log('PUB-11 synthetic upload, quality warning, keyboard and CSS zoom 1280/390: PASS');

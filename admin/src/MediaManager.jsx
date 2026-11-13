@@ -45,18 +45,19 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
   const upload = async files => {
     setBusy(true); setMsg(null);
     const added = [], failed = [], warnings = [];
+    const isCurrent = () => mounted.current && latest.current.listingId === listingId;
     for (const file of files) {
-      if (!mounted.current || latest.current.listingId !== listingId) return;
+      if (!isCurrent()) return;
       try {
         let report;
-        const media = await uploadPhoto(listingId, file, { label: file.name.replace(/\.[^.]+$/, ""), onQuality: value => { report = value; } });
+        const media = await uploadPhoto(listingId, file, { label: file.name.replace(/\.[^.]+$/, ""), isCurrent, onQuality: value => { report = value; } });
         added.push(media);
         const messages = report ? qualitySuggestions(report) : [];
         if (messages.length) warnings.push({ id: media.id, name: file.name, text: messages.join(" ") });
       }
       catch (e) { failed.push(`${file.name}: ${e.message}`); }
     }
-    if (!mounted.current || latest.current.listingId !== listingId) return;
+    if (!isCurrent()) return;
     if (added.length) {
       // New uploads are saved server-side (last position, as here); any unsaved local reorder is kept.
       const next = [...latest.current.saved, ...added];

@@ -37,7 +37,8 @@ export async function resizeImage(file, max, quality = 0.85, inspect = null) {
 }
 
 // Panel uploads send canvas-encoded copies. Direct API uploads have separate, currently incomplete metadata validation.
-export async function uploadPhoto(listingId, file, { kind = "photo", label = null, onQuality = () => {} } = {}) {
+export async function uploadPhoto(listingId, file, { kind = "photo", label = null, onQuality = () => {}, isCurrent = () => true } = {}) {
+  if (!isCurrent()) throw new DOMException("Photo upload no longer current", "AbortError");
   if (file.size > 40 * 1024 * 1024) throw new Error("is larger than 40 MB");
   let quality;
   const inspect = bitmap => {
@@ -50,6 +51,7 @@ export async function uploadPhoto(listingId, file, { kind = "photo", label = nul
   form.append("file", big.blob, "photo.jpg"); form.append("thumb", small.blob, "thumb.jpg");
   if (label) form.append("label", label);
   form.append("kind", kind); form.append("width", big.width); form.append("height", big.height);
+  if (!isCurrent()) throw new DOMException("Photo upload no longer current", "AbortError");
   const media = (await api(`/admin/listings/${listingId}/media`, { method: "POST", form })).media;
   // A presentation callback must never turn a successful upload into a reported failure.
   try { onQuality(quality); } catch { /* the upload has already succeeded */ }
