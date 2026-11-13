@@ -261,3 +261,18 @@ test('future observations, accessors and invalid source dates fail before any wr
   await assert.rejects(commit(db,lease,outOfOrder),e=>e.status===400);
   await noWrites(db);
 });
+
+test('legacy observations without derived exact rent do not emit a false material change',async()=>{
+  const {db,run,lease}=await setup(),first=page();
+  await commit(db,lease,first);
+  await sql(db,"UPDATE market_observations SET normalized_json=json_remove(normalized_json,'$.monthly_rent_exact')");
+  const next=await nextLease(db,run),second=structuredClone(first),later=stamp(-1000);
+  second.page_key='page-2';second.cursor='page-2';second.next_cursor='page-3';second.observed_at=later;
+  second.records[0].source_at=later;second.records[0].observation.observed_at=later;
+  await commit(db,next,second);
+  assert.equal(await count(db,'market_change_outbox'),1);
+  const thirdLease=await nextLease(db,run),third=structuredClone(second);
+  third.page_key='page-3';third.cursor='page-3';third.next_cursor='page-4';third.records[0].observation.financial_terms[0].amount_minor++;
+  await commit(db,thirdLease,third);
+  assert.equal(await count(db,'market_change_outbox'),2);
+});

@@ -6,8 +6,8 @@
   "fase": "F1-B",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos.",
-  "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real. Antes de conectar, resolver sesión e identidad durable del actor y compatibilidad de observaciones históricas: añadir monthly_rent_exact puede producir un cambio aparente sin cambios de hechos.",
+  "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos. La comparación manual ya admite el formato histórico sin el campo derivado de renta exacta y sigue detectando cambios en términos originales.",
+  "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real. Antes de conectar, resolver sesión e identidad durable del actor.",
   "bloqueo": "",
   "evidencia": [
     "server/listing-features.js:1-30",
@@ -46,6 +46,6 @@
     "source-connectors",
     "market-inventory"
   ],
-  "nextStep": "Resolver identidad durable y compatibilidad histórica antes de conectar el puente; definir lectores con permisos y evidencia.",
+  "nextStep": "Resolver identidad durable del actor antes de conectar el puente; definir lectores con permisos y evidencia.",
   "actualizado": "2026-11-13"
 }

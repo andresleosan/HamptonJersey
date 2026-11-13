@@ -1755,7 +1755,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "bloqueo": "",
    "evidencia": [
     "site/lib.js:20-26",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18"
+    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18",
+    "docs/superpowers/plans/2026-11-08-vis-14-open-consecutive-viewing-groups.md"
    ]
   },
   {
@@ -2506,8 +2507,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F1-B",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos.",
-   "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real. Antes de conectar, resolver sesión e identidad durable del actor y compatibilidad de observaciones históricas: añadir monthly_rent_exact puede producir un cambio aparente sin cambios de hechos.",
+   "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos. La comparación manual ya admite el formato histórico sin el campo derivado de renta exacta y sigue detectando cambios en términos originales.",
+   "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real. Antes de conectar, resolver sesión e identidad durable del actor.",
    "bloqueo": "",
    "evidencia": [
     "server/listing-features.js:1-30",
@@ -4201,7 +4202,9 @@ document.addEventListener('DOMContentLoaded', () => {
     "admin/src/Statement.jsx:9-11",
     "admin/src/RentImport.jsx:29-139",
     "server/routes/rent.js:737-771",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:579"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:579",
+    "docs/superpowers/specs/2026-11-10-tp05-continuity-scope-design.md",
+    "docs/superpowers/plans/2026-11-10-tp05-construction-order.md"
    ]
   },
   {

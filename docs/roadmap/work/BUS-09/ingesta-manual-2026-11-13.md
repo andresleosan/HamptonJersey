@@ -26,3 +26,7 @@ El método manual exige hosts/rutas explícitos aunque algunas políticas manual
 La revisión independiente del puente desconectado no encontró fallos bloqueantes confirmados. Antes de conectar observaciones históricas, reconciliar `monthly_rent_exact`: incorporar esa clave a normalizaciones antiguas puede generar un evento de cambio sin cambio de hechos. El actor textual no autentica una sesión.
 
 Integración conjunta del 13-nov: pasaron 2.050 pruebas JavaScript, 25 Python, build, `check:release`, `team:check`, `check:packages` y `git diff --check`. Playwright: no aplica a estos núcleos sin interfaz. Las funciones y esquemas propuestos siguen desactivados; no se verificó D1 remoto.
+
+**Compatibilidad histórica:** la ausencia del campo derivado de renta exacta en observaciones antiguas ya no genera por sí sola un evento material; los términos originales siguen comparándose. La prueba reprodujo el evento falso antes de corregirlo y verifica también un cambio real de importe. Revisión independiente sin hallazgos; 50 pruebas focales y D1 local pasaron. El puente sigue sin ruta y la identidad de sesión durable sigue pendiente.
+
+Integración posterior: 2.051 pruebas JavaScript y 25 Python aprobadas, además de build, release, catálogo y paquetes. Playwright: no aplica.

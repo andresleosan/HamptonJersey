@@ -257,7 +257,9 @@ export async function commitObservationPage(env, input, actor, clock = () => new
       (id,page_id,source_ref,channel_id,external_key,raw_json,normalized_json,normalized_sha256,source_at,origin_sha256)
       VALUES (?,?,?,?,?,?,?,?,?,?)`).bind(observationId, pageId, lease.source_ref, lease.channel_id,
       record.external_key, raw, normalized, normalizedHash, record.source_at, originHash));
-    const material=manual ? "json_remove(old.normalized_json,'$.observed_at')<>json_remove(?,'$.observed_at')" : 'old.normalized_sha256<>?';
+    // Exact monthly rent is derived from the retained financial terms. Older rows lack
+    // this field; comparing the source terms still detects real amount/period changes.
+    const material=manual ? "json_remove(old.normalized_json,'$.observed_at','$.monthly_rent_exact')<>json_remove(?,'$.observed_at','$.monthly_rent_exact')" : 'old.normalized_sha256<>?';
     statements.push(db.prepare(`INSERT INTO market_change_outbox(id,observation_id,observation_version,kind)
       SELECT ?,?,1,'observation_changed' WHERE COALESCE((SELECT
         CASE WHEN old.source_at<=? AND ${material} THEN 1 ELSE 0 END

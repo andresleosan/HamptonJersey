@@ -11,17 +11,68 @@
   "bloqueo": "",
   "evidencia": [
     "site/lib.js:20-26",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18"
+    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18",
+    "docs/superpowers/plans/2026-11-08-vis-14-open-consecutive-viewing-groups.md"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
-  "dependencies": [],
+  "dependencies": [
+    {
+      "id": "VIS-09",
+      "requires": "integrated",
+      "reason": "Política de duración, márgenes y capacidad por negociador.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "VIS-10",
+      "requires": "integrated",
+      "reason": "Permisos y restricciones revocables de acceso a la propiedad.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "VIS-17",
+      "requires": "integrated",
+      "reason": "Propuestas y confirmaciones individuales de participantes.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "VIS-08",
+      "requires": "integrated",
+      "reason": "Ciclo y cancelaciones de visitas coordinadas.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "AGE-12",
+      "requires": "integrated",
+      "reason": "Acceso privado de cada hogar a su propuesta.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "EST-16",
+      "requires": "integrated",
+      "reason": "Disponibilidad de la propiedad con autoridad y evidencia.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "NOT-11",
+      "requires": "integrated",
+      "reason": "Tareas y avisos vinculados al grupo.",
+      "basis": "explicit",
+      "scope": "partial"
+    }
+  ],
   "externalBlocker": "",
   "resources": [
     "viewings-contract",
     "viewings-ui"
   ],
-  "nextStep": "Añadir propuestas y reservas de visitas consecutivas o abiertas por propiedad."
+  "nextStep": "Integrar las guardas de acceso, capacidad y coordinación del plan antes de habilitar reservas de grupos."
 }
