@@ -508,3 +508,5 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **PRE-09, enlace parcial:** el formulario de visitas enlaza al aviso sin perder los datos introducidos; revisión independiente y E2E aislado 390/1280 con teclado en inicio y ficha. Siguen pendientes los datos confirmados y la cobertura restante del aviso.
 
 **PUB-01, guía parcial:** navegación de seis pasos en el editor de ficha existente, sin duplicar formulario ni publicar al terminar. Revisión independiente, suite 2.175 JavaScript y 29 Python, build/release y E2E aislado sintético en 390/1280 con zoom, guardado/descarte, errores y foco. Faltan alta recuperable y familias pendientes.
+
+**PUB-19, recorrido parcial:** cálculo, revisión paginada, ledger y página con controles apagados; D1 y navegador aislados con datos sintéticos y revisión independiente; suite 2.187 JavaScript y 29 Python, build/release, catálogo y paquetes correctos. Faltan identidad, revisión de inferencias, autorización real, costes y retención antes de migrar o activar. [Evidencia](work/PUB-19/avance-publicable.md).

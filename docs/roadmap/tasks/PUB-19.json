@@ -4,14 +4,20 @@
   "titulo": "Página para propietarios: «N personas buscan casa en tu parroquia», con enlace a Book a valuation",
   "origen": "plan",
   "fase": "—",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "Plan del 2-nov-2026 para captar propietarios, empezando por los que vienen solos. Una página pública que enseña cuántas personas buscan casa por parroquia y dormitorios, con los totales de Unmet demand (ANA-07), y oculta cualquier casilla de menos de 5 personas para que nadie se pueda identificar. Las cifras tienen que ser ciertas (ley de consumo). Enlaza a Book a valuation (PUB-10).",
+  "hecho": "Construido con controles desactivados: cálculo de contactos distintos por celda, borrador y revisión paginada, autorización y ledger con control de versión, revocación y página que solo consume el snapshot aprobado. D1 local y navegador aislado con datos sintéticos; no se ha publicado demanda real.",
+  "falta": "Acreditar identidad y deduplicación de contactos, revisión competente de inferencias y autorización de divulgación vinculada al contenido y ledger; revisar esquema, retención y costes D1 antes de una migración o activación autorizada. El límite de cinco no acredita por sí solo privacidad. El enlace a valoración requiere PUB-10 operativo. No se garantiza purga puntual si el reloj falla.",
   "bloqueo": "",
   "evidencia": [
-    "server/insights.js",
-    "admin/src/Insights.jsx"
+    "docs/superpowers/plans/2026-11-10-tp02-pub-19-plan.md",
+    "server/demand-query.js",
+    "server/public-demand.js",
+    "server/proposed-schema/public-demand.sql",
+    "admin/src/DemandCampaigns.jsx",
+    "site/demand.js",
+    "tests/server/pub19-demand-d1.test.mjs",
+    "tests/pub19-demand.e2e.cjs"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -38,5 +44,5 @@
     "analytics-contract",
     "public-site"
   ],
-  "nextStep": "Diseñar página de demanda agregada con umbral de privacidad y enlace al formulario de valoración."
+  "nextStep": "Acreditar identidad, revisión de privacidad y autorización de divulgación; verificar costes y retención antes de migrar o activar. Mantener controles apagados."
 }
