@@ -12917,8 +12917,8 @@
       "fase": "F1-B",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita.",
-      "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real.",
+      "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos.",
+      "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real. Antes de conectar, resolver sesión e identidad durable del actor y compatibilidad de observaciones históricas: añadir monthly_rent_exact puede producir un cambio aparente sin cambios de hechos.",
       "bloqueo": "",
       "evidencia": [
         "server/listing-features.js:1-30",
@@ -12928,7 +12928,11 @@
         "server/market-extraction.js",
         "server/market-source-contracts.js",
         "tests/server/bus-09-normalization.test.mjs",
-        "docs/roadmap/work/BUS-09/avance-publicable.md"
+        "docs/roadmap/work/BUS-09/avance-publicable.md",
+        "server/market-observation-ingest.js",
+        "server/market-manual-contract.js",
+        "tests/server/bus-09-ingestion-d1.test.mjs",
+        "docs/roadmap/work/BUS-09/ingesta-manual-2026-11-13.md"
       ],
       "modulo": "M02",
       "deps": [
@@ -12953,7 +12957,7 @@
         "source-connectors",
         "market-inventory"
       ],
-      "nextStep": "Integrar con BUS-06 y definir cada lector únicamente después de verificar sus permisos, contrato y evidencia.",
+      "nextStep": "Resolver identidad durable y compatibilidad histórica antes de conectar el puente; definir lectores con permisos y evidencia.",
       "actualizado": "2026-11-13"
     },
     {
@@ -13631,8 +13635,8 @@
       "fase": "F1-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "El recálculo del inventario propio comprueba en la transacción la búsqueda, sus revisiones y el conjunto de candidatas; ante deriva evita resultados parciales y comunica conflicto. Si el resultado del transporte se pierde, lo señala como desconocido. El conjunto y sus límites se probaron con datos ficticios en SQLite y D1 local.",
-      "falta": "Registrar y mostrar por búsqueda la fecha, responsable, último intento, último éxito y datos pendientes, con concurrencia y fallos distinguibles. La corrección actual cubre solo el inventario propio y no acredita las fuentes de BUS-01; tampoco evita la reutilización maliciosa de un ID sin tumba ni consulta D1 remoto.",
+      "hecho": "El recálculo del inventario propio comprueba en la transacción la búsqueda, sus revisiones y el conjunto de candidatas; ante deriva evita resultados parciales y comunica conflicto. Si el resultado del transporte se pierde, lo señala como desconocido. El conjunto y sus límites se probaron con datos ficticios en SQLite y D1 local. Se preparó el registro interno de intentos y último éxito con ticket cercado, comprobación de avisos y conteo del inventario propio; permanece apagado y su SQL es solo propuesta.",
+      "falta": "Integrar identidad durable y límites operativos, revisar y adoptar el esquema, conectar una API y pantalla autorizadas y mostrar fecha/responsable. El último éxito compara la versión de búsqueda y no acredita que el inventario no haya cambiado después. Integrar BUS-01 sin confundir cobertura pendiente con cero; no se verificó D1 remoto.",
       "bloqueo": "",
       "evidencia": [
         "server/applicants.js:29-31",
@@ -13643,7 +13647,11 @@
         "server/match-store.js",
         "tests/server/est-01-candidate-snapshot-d1.test.mjs",
         "tests/server/est-01-completion-races.test.mjs",
-        "docs/roadmap/work/EST-01/carrera-conjunto-2026-11-13.md"
+        "docs/roadmap/work/EST-01/carrera-conjunto-2026-11-13.md",
+        "server/search-progress.js",
+        "tests/server/est-01-progress-integration.test.mjs",
+        "tests/server/est-01-progress-d1.test.mjs",
+        "docs/roadmap/work/EST-01/avance-intentos-2026-11-13.md"
       ],
       "modulo": "M03",
       "deps": [
@@ -13675,7 +13683,7 @@
         "search-lifecycle",
         "applicants-schema"
       ],
-      "nextStep": "Persistir intento y éxito verificables por búsqueda e integrar su estado con BUS-01 sin confundir fuente pendiente con resultado vacío.",
+      "nextStep": "Resolver identidad ABA y límites operativos antes de conectar el registro y su pantalla; conservar la fecha y cobertura pendiente.",
       "actualizado": "2026-11-13"
     },
     {
