@@ -1,7 +1,7 @@
 import { json, fail, readJson, now } from "../http.js";
 import { verifyTurnstile } from "../turnstile.js";
 import { validateStart, messageText, chatOn, previewHost, newKey, keyHash, conversation, visitorConversation,
-  CHAT_DB_NOW, CHAT_KEY_CUTOFF, MAX_VISITOR, GAP_MS, VISITOR_MAX } from "../chat.js";
+  CHAT_DB_NOW, chatKeyCurrent, MAX_VISITOR, GAP_MS, VISITOR_MAX } from "../chat.js";
 
 // MSG-02 (spec 2026-11-06): the website's chat. No route carries an id: the chat is the one whose key hash matches the
 // Authorization header, while its last message is under KEY_DAYS old (C5). Any other key gets the same answer.
@@ -14,7 +14,7 @@ async function chatOf(request, env) {
   const key = /^Bearer ([A-Za-z0-9_-]{43})$/.exec(request.headers.get("authorization") ?? "")?.[1];
   if (!key) ended();
   const hash = await keyHash(key);
-  const c = await env.DB.prepare(`SELECT id FROM chats WHERE key_hash = ? AND last_at >= ${CHAT_KEY_CUTOFF}`)
+  const c = await env.DB.prepare(`SELECT id FROM chats WHERE key_hash = ? AND ${chatKeyCurrent()}`)
     .bind(hash).first();
   return c ? { ...c, hash } : ended();
 }
@@ -46,7 +46,7 @@ async function read({ request, env, waitUntil }) {
   if (!current) ended();
   if (!current.visitor_seen_at || current.visitor_seen_at < ago(60e3))
     waitUntil(env.DB.prepare(`UPDATE chats SET visitor_seen_at = ${CHAT_DB_NOW}
-      WHERE id = ? AND key_hash = ? AND last_at >= ${CHAT_KEY_CUTOFF}`).bind(c.id, c.hash).run().catch(() => {}));
+      WHERE id = ? AND key_hash = ? AND ${chatKeyCurrent()}`).bind(c.id, c.hash).run().catch(() => {}));
   return json(current.chat);
 }
 
@@ -58,7 +58,7 @@ async function say({ request, env }) {
   if (!text) fail(400, `Write your message (up to ${VISITOR_MAX} characters)`);
   const [ins] = await env.DB.batch([
     env.DB.prepare(`INSERT INTO chat_messages (chat_id, role, text, created_at)
-      SELECT id, 'visitor', ?2, ${CHAT_DB_NOW} FROM chats WHERE id = ?1 AND key_hash = ?3 AND last_at >= ${CHAT_KEY_CUTOFF}
+      SELECT id, 'visitor', ?2, ${CHAT_DB_NOW} FROM chats WHERE id = ?1 AND key_hash = ?3 AND ${chatKeyCurrent()}
         AND (SELECT COUNT(*) FROM chat_messages WHERE chat_id = ?1 AND role = 'visitor') < ${MAX_VISITOR}
         AND NOT EXISTS (SELECT 1 FROM chat_messages WHERE chat_id = ?1 AND role = 'visitor'
           AND created_at > strftime('%Y-%m-%dT%H:%M:%fZ','now','-${GAP_MS / 1000} seconds'))`)
@@ -69,16 +69,22 @@ async function say({ request, env }) {
   ]);
   if (!ins.meta.changes) {
     const current = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM chat_messages WHERE chat_id = chats.id AND role = 'visitor') AS n
-      FROM chats WHERE id = ? AND key_hash = ? AND last_at >= ${CHAT_KEY_CUTOFF}`).bind(c.id, c.hash).first();
+      FROM chats WHERE id = ? AND key_hash = ? AND ${chatKeyCurrent()}`).bind(c.id, c.hash).first();
     if (!current) ended();
     fail(429, current.n >= MAX_VISITOR ? "This chat is full. Please start a new one or call us." : "Please wait a moment before sending another message.");
   }
-  return json(await conversation(env, c.id), 201);
+  // The write has committed. Recheck before returning any conversation data;
+  // if that read fails or the key was revoked, acknowledge the accepted write
+  // without asking the visitor to retry it or exposing later messages.
+  let current;
+  try { current = await visitorConversation(env, c.id, c.hash); }
+  catch { return json({ accepted: true, chat_state: "unknown" }, 201); }
+  return json(current ? current.chat : { accepted: true, chat_state: "ended" }, 201);
 }
 
 async function remove({ request, env }) {
   const c = await chatOf(request, env);
-  const r = await env.DB.prepare(`DELETE FROM chats WHERE id = ? AND key_hash = ? AND last_at >= ${CHAT_KEY_CUTOFF}`)
+  const r = await env.DB.prepare(`DELETE FROM chats WHERE id = ? AND key_hash = ? AND ${chatKeyCurrent()}`)
     .bind(c.id, c.hash).run();
   if (!r.meta.changes) ended();
   return new Response(null, { status: 204 });

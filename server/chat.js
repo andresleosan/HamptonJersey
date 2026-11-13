@@ -6,7 +6,16 @@ import { sha256 } from "./http.js";
 export const KEY_DAYS = 7, KEEP_DAYS = 30, MAX_VISITOR = 40, GAP_MS = 3000, VISITOR_MAX = 1000, TEAM_MAX = 2000;
 // D1 evaluates these inside the statement, after any wait for another transaction.
 export const CHAT_DB_NOW = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
-export const CHAT_KEY_CUTOFF = `strftime('%Y-%m-%dT%H:%M:%fZ','now','-${KEY_DAYS} days')`;
+// SQLite can normalize an impossible calendar day, so validate the original
+// day as well as parsing the instant. Offsets and fractional seconds remain valid.
+export function chatKeyCurrent(column = "last_at") {
+  if (column !== "last_at" && column !== "c.last_at") throw new TypeError("Invalid chat timestamp column");
+  return `(julianday(${column}) IS NOT NULL
+    AND date(substr(${column},1,10),'+0 days') = substr(${column},1,10)
+    AND (substr(${column},12,2) <> '24' OR (substr(${column},15,2) = '00'
+      AND (substr(${column},17,1) <> ':' OR (substr(${column},18,2) = '00' AND CAST('0' || substr(${column},20) AS REAL) = 0))))
+    AND julianday(${column}) >= julianday('now','-${KEY_DAYS} days'))`;
+}
 
 const blank = v => v == null || (typeof v === "string" && !v.trim());
 const text = (v, max) => (typeof v === "string" && v.trim().length >= 1 && v.trim().length <= max ? v.trim() : null);
@@ -72,7 +81,7 @@ export async function visitorConversation(env, chatId, hash) {
     c.listing_id, l.title, m.id AS message_id, m.role, m.text, m.created_at, a.name
     FROM chats c LEFT JOIN listings l ON l.id = c.listing_id AND l.published = 1 AND l.archived_at IS NULL
     LEFT JOIN chat_messages m ON m.chat_id = c.id LEFT JOIN admins a ON a.email = m.sent_by
-    WHERE c.id = ? AND c.key_hash = ? AND c.last_at >= ${CHAT_KEY_CUTOFF} ORDER BY m.id`).bind(chatId, hash).all();
+    WHERE c.id = ? AND c.key_hash = ? AND ${chatKeyCurrent("c.last_at")} ORDER BY m.id`).bind(chatId, hash).all();
   if (!rows.length) return null;
   const c = rows[0];
   return { visitor_seen_at: c.visitor_seen_at, chat: { status: c.status,

@@ -74,9 +74,13 @@ function remember(c) {
 }
 
 // The chat has ended (7 days, or deleted elsewhere): forget it here; a new one can start if the website offers it.
-function ended(message) {
+function ended(message, { showWhenDisabled = false } = {}) {
   forget(); store = null; chat = null; shown = new Set(); clearTimeout(timer);
-  if (dlg?.open) o.chatOn ? startForm(message) : (dlg.close(), badge());
+  if (dlg?.open && o.chatOn) startForm(message);
+  else if (dlg?.open && showWhenDisabled) {
+    const note = el("p", "hint", message); note.setAttribute("role", "status"); note.tabIndex = -1;
+    body.replaceChildren(note); badge(); note.focus();
+  } else if (dlg?.open) { dlg.close(); badge(); }
   else badge();
 }
 
@@ -225,8 +229,20 @@ function conversation() {
     status.textContent = "";
     const btn = form.querySelector("button[type=submit]");
     btn.disabled = true;
-    try { remember(await call("POST", "/chat/messages", {text: area.value})); area.value = ""; area.dispatchEvent(new Event("input")); render(); schedule(); }
-    catch (err) { if (err.status === 401) return ended(err.message); status.textContent = err.message; }
+    try {
+      const result = await call("POST", "/chat/messages", {text: area.value});
+      const clear = () => { area.value = ""; area.dispatchEvent(new Event("input")); };
+      if (result?.accepted === true && (result.chat_state === "ended" || result.chat_state === "unknown")) {
+        clear();
+        if (adopt()) return; // Another tab replaced or ended this chat while the send was pending.
+        if (result.chat_state === "ended")
+          return ended("Your message was accepted. This chat is no longer available.", { showWhenDisabled: true });
+        store = { ...store, at: Date.now() }; save(store);
+        status.textContent = "Your message was accepted, but we couldn't refresh the chat. Trying again…";
+        schedule(); return;
+      }
+      remember(result); clear(); render(); schedule();
+    } catch (err) { if (err.status === 401) return ended(err.message); status.textContent = err.message; }
     finally { btn.disabled = false; }
   });
   form.querySelector("[data-end]").addEventListener("click", () => {

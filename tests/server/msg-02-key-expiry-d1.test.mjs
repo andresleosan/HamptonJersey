@@ -260,3 +260,115 @@ test('a presence update held across revocation does not mark the visitor online'
     await assert.rejects(read(db.DB), error => error.status === 401);
   } finally { await db.dispose(); }
 });
+
+function afterVisitorWrite(DB, action, { failResponseRead = false } = {}) {
+  let fired = false;
+  const wrap = (statement, sql) => ({
+    inner: statement,
+    bind: (...args) => wrap(statement.bind(...args), sql),
+    first: (...args) => statement.first(...args),
+    all: async (...args) => {
+      if (failResponseRead && fired && /FROM chats c LEFT JOIN listings/i.test(sql)) throw new Error('synthetic read failure');
+      return statement.all(...args);
+    },
+    run: (...args) => statement.run(...args),
+  });
+  return {
+    prepare: sql => wrap(DB.prepare(sql), sql),
+    batch: async statements => {
+      const result = await DB.batch(statements.map(statement => statement.inner ?? statement));
+      if (!fired) { fired = true; await action(); }
+      return result;
+    },
+  };
+}
+
+test('a committed visitor message is acknowledged without leaking a conversation revoked before the response', async () => {
+  const db = await database();
+  try {
+    const id = await seed(db.DB, 6);
+    const delayed = afterVisitorWrite(db.DB, async () => {
+      await db.DB.prepare("UPDATE chats SET key_hash='expired:'||id WHERE id=?").bind(id).run();
+      assert.equal((await reply(db.DB, id)).status, 201);
+    });
+    const response = await invoke(visitorRoutes, 'POST', '/chat/messages', { DB: delayed },
+      { bearer: key(1), body: { text: 'Accepted visitor message' } });
+    assert.equal(response.status, 201);
+    const payload = await response.json();
+    assert.deepEqual(payload, { accepted: true, chat_state: 'ended' });
+    assert.ok(!JSON.stringify(payload).includes('Human reply'));
+    assert.equal((await db.DB.prepare('SELECT COUNT(*) AS n FROM chat_messages WHERE chat_id=?').bind(id).first()).n, 3);
+  } finally { await db.dispose(); }
+});
+
+test('a response-read failure after commit acknowledges the write without inviting a duplicate', async () => {
+  const db = await database();
+  try {
+    const id = await seed(db.DB, 6), delayed = afterVisitorWrite(db.DB, async () => {}, { failResponseRead: true });
+    const response = await invoke(visitorRoutes, 'POST', '/chat/messages', { DB: delayed },
+      { bearer: key(1), body: { text: 'Accepted visitor message' } });
+    assert.equal(response.status, 201);
+    assert.deepEqual(await response.json(), { accepted: true, chat_state: 'unknown' });
+    assert.equal((await db.DB.prepare('SELECT COUNT(*) AS n FROM chat_messages WHERE chat_id=?').bind(id).first()).n, 2);
+  } finally { await db.dispose(); }
+});
+
+const offsetTimestamp = (time, offsetMinutes) => {
+  const shifted = new Date(time + offsetMinutes * 60000).toISOString().replace('Z', '');
+  const sign = offsetMinutes < 0 ? '-' : '+', absolute = Math.abs(offsetMinutes);
+  return `${shifted}456${sign}${String(Math.floor(absolute / 60)).padStart(2, '0')}:${String(absolute % 60).padStart(2, '0')}`;
+};
+
+test('unparseable or impossible last activity fails closed and a human reply invalidates the key', async () => {
+  const db = await database();
+  try {
+    const values = ['not-a-date', '9999-13-01T12:00:00.000Z', '9999-02-30T12:00:00.000Z', '9999-01-01T24:30:00Z', '9999-01-01T24:00:00.001Z'];
+    for (const [index, value] of values.entries()) {
+      const n = index + 10, id = await seed(db.DB, 6, n);
+      await db.DB.prepare('UPDATE chats SET last_at=? WHERE id=?').bind(value, id).run();
+      await assert.rejects(read(db.DB, n), error => error.status === 401);
+      await assert.rejects(invoke(visitorRoutes, 'POST', '/chat/messages', { DB: db.DB },
+        { bearer: key(n), body: { text: 'Message' } }), error => error.status === 401);
+      await assert.rejects(invoke(visitorRoutes, 'DELETE', '/chat', { DB: db.DB }, { bearer: key(n) }),
+        error => error.status === 401);
+      assert.equal((await reply(db.DB, id)).status, 201);
+      assert.equal((await db.DB.prepare("SELECT COUNT(*) AS n FROM chats WHERE id=? AND key_hash = 'expired:' || id").bind(id).first()).n, 1);
+      await assert.rejects(read(db.DB, n), error => error.status === 401);
+    }
+  } finally { await db.dispose(); }
+});
+
+test('expiry compares instants for valid historical timezone offsets and fractional seconds', async () => {
+  const db = await database();
+  try {
+    const live = await seed(db.DB, 6, 21), expired = await seed(db.DB, 6, 22);
+    const now = Date.now();
+    const liveAt = offsetTimestamp(now - 7 * 864e5 + 3 * 3600e3, -12 * 60);
+    const expiredAt = offsetTimestamp(now - 7 * 864e5 - 3 * 3600e3, 14 * 60);
+    await db.DB.batch([
+      db.DB.prepare('UPDATE chats SET last_at=? WHERE id=?').bind(liveAt, live),
+      db.DB.prepare('UPDATE chats SET last_at=? WHERE id=?').bind(expiredAt, expired),
+    ]);
+    assert.equal((await read(db.DB, 21)).status, 200);
+    assert.equal((await invoke(visitorRoutes, 'POST', '/chat/messages', { DB: db.DB },
+      { bearer: key(21), body: { text: 'Message' } })).status, 201);
+    await assert.rejects(read(db.DB, 22), error => error.status === 401);
+    await assert.rejects(invoke(visitorRoutes, 'DELETE', '/chat', { DB: db.DB }, { bearer: key(22) }),
+      error => error.status === 401);
+    assert.equal((await reply(db.DB, live)).status, 201);
+    assert.equal((await reply(db.DB, expired)).status, 201);
+    assert.equal((await db.DB.prepare("SELECT COUNT(*) AS n FROM chats WHERE id=? AND key_hash = 'expired:' || id").bind(live).first()).n, 0);
+    assert.equal((await db.DB.prepare("SELECT COUNT(*) AS n FROM chats WHERE id=? AND key_hash = 'expired:' || id").bind(expired).first()).n, 1);
+  } finally { await db.dispose(); }
+});
+
+
+test('a valid historical midnight at 24:00 with an offset remains interpretable', async () => {
+  const db = await database();
+  try {
+    const id = await seed(db.DB, 6, 23);
+    const day = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+    await db.DB.prepare('UPDATE chats SET last_at=? WHERE id=?').bind(`${day}T24:00:00.000+00:00`, id).run();
+    assert.equal((await read(db.DB, 23)).status, 200);
+  } finally { await db.dispose(); }
+});

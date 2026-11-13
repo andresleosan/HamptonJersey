@@ -1,5 +1,5 @@
 import { json, fail, readJson, now } from "../http.js";
-import { conversation, messageText, TEAM_MAX, CHAT_DB_NOW, CHAT_KEY_CUTOFF } from "../chat.js";
+import { conversation, messageText, TEAM_MAX, CHAT_DB_NOW, chatKeyCurrent } from "../chat.js";
 import { applicantDraftFromChat } from "../chat-applicant.js";
 
 // MSG-02 (spec 2026-11-06): the panel's Messages screen. Waiting chats first, oldest wait first (C7).
@@ -47,7 +47,7 @@ async function reply({ request, env, admin, params: [id] }) {
     env.DB.prepare(`INSERT INTO chat_messages (chat_id, role, sent_by, text, created_at)
       SELECT id, 'team', ?, ?, ${CHAT_DB_NOW} FROM chats WHERE id = ?`).bind(admin, text, Number(id)),
     env.DB.prepare(`UPDATE chats SET
-      key_hash = CASE WHEN last_at < ${CHAT_KEY_CUTOFF} THEN 'expired:' || id ELSE key_hash END,
+      key_hash = CASE WHEN ${chatKeyCurrent()} THEN key_hash ELSE 'expired:' || id END,
       status = 'answered', waiting_since = NULL, last_at = ${CHAT_DB_NOW} WHERE id = ? AND changes() = 1`)
       .bind(Number(id)),
   ]);
