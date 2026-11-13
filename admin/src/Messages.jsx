@@ -105,6 +105,7 @@ function Chat({ id, paused, onChanged, onGone }) {
       {c.listing && <p>About <a href={`#/p/${encodeURIComponent(c.listing.id)}`}>{c.listing.id} {c.listing.title}</a></p>}
     </div>
       <div className="inline">
+        {Number.isSafeInteger(id) && id > 0 && <a className="btn ghost sm" href={`#/applicants/new?chat=${id}`}>Review chat contact</a>}
         {tel && <a className="btn ghost sm" href={`tel:${tel}`}>Call</a>}
         {tel && <a className="btn ghost sm" href={`https://wa.me/${tel.slice(1)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
         {c.email && <a className="btn ghost sm" href={`mailto:${c.email}`}>Email</a>}

@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **MSG-05 parcial:** el equipo puede revisar el contacto de un chat sin copiar mensajes ni crear un aplicante. El formulario permanece en solo lectura hasta resolver CAS, idempotencia y registro atómico. [Evidencia](../superpowers/plans/2026-11-09-msg-05-partial-implementation-evidence.md).
+
 13-nov-2026 · **EST-16 parcial:** cálculo interno de observación y disponibilidad con prioridad humana y revisión de contradicciones, ensayado con datos ficticios. Está desconectado; faltan persistencia, evidencia, permisos y consumidores. [Evidencia](work/EST-16/foundation-evidence.md).
 
 13-nov-2026 · **BUS-10 y VIS-10 parciales:** bases internas de identidad de inmuebles y restricciones de visita revisadas, con correcciones de integridad y pruebas locales. No hay rutas ni autorización nuevas activas; las migraciones 0050/0051 solo se ensayaron localmente y su estado remoto no se conoce. Pendientes retención, permisos y conexión de los flujos. [Identidad](work/BUS-10/foundation-evidence.md) · [Visitas](work/VIS-10/foundation-evidence.md).

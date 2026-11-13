@@ -9,26 +9,73 @@ const SOURCES = OPTIONS.sources.filter(([v]) => v !== "web");
 const EXTRA = { source: "", privacy: false, marketing: false };
 const BLANK = JSON.stringify([toForm(), EXTRA]);
 
-// contactId: from #/applicants/new?contact=<id>, a new search for a saved contact.
-export default function NewApplicant({ contactId }) {
+// A chat opens a private, read-only proposal until its transactional Save contract exists.
+export default function NewApplicant({ contactId, chatId }) {
+  const fromChat = chatId != null;
+  const validChat = fromChat && /^[1-9]\d*$/.test(chatId) && Number.isSafeInteger(Number(chatId)) && !contactId;
   const [form, setForm] = useState(toForm), [extra, setExtra] = useState(EXTRA);
-  const [contact, setContact] = useState(null), [loadErr, setLoadErr] = useState(null);
+  const [contact, setContact] = useState(null), [loadErr, setLoadErr] = useState(null), [draftLoaded, setDraftLoaded] = useState(false);
   const [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
   // A 409: the email or phone is a saved contact ({contact_id}) or that contact already has this search ({applicant_id}).
   const [found, setFound] = useState(null);
-  const formRef = useRef(null);
+  const formRef = useRef(null), baseline = useRef(BLANK);
   // Editing the form after a 409 takes back the offer: the email or phone may no longer be that contact's.
   const change = f => { setForm(f); setFound(null); };
   useEffect(() => {
-    if (contactId) api(`/admin/contacts/${contactId}`).then(d => setContact(d.contact), e => setLoadErr(e.message));
-  }, [contactId]);
+    if (contactId && !fromChat) api(`/admin/contacts/${contactId}`).then(d => setContact(d.contact), e => setLoadErr(e.message));
+  }, [contactId, fromChat]);
+  useEffect(() => {
+    if (!validChat) return;
+    let active = true, invalid = false, sequence = 0, initial = null;
+    const clear = message => {
+      invalid = true;
+      const empty = toForm();
+      baseline.current = JSON.stringify([empty, EXTRA]);
+      setForm(empty); setExtra(EXTRA); setDraftLoaded(false); setLoadErr(message);
+    };
+    const load = async () => {
+      if (!active || invalid || document.visibilityState !== "visible") return;
+      const request = ++sequence;
+      try {
+        const d = await api(`/admin/chats/${chatId}/applicant-draft`);
+        if (!active || invalid) return;
+        const c = d?.contact;
+        if (d?.chat_id !== Number(chatId) || !c || typeof c.name !== "string" ||
+            ![c.email, c.phone].every(v => v == null || typeof v === "string")) {
+          clear("Couldn't load the chat details. Return to Messages and try again."); return;
+        }
+        const current = JSON.stringify([c.name, c.email, c.phone]);
+        if (initial !== null && initial !== current) {
+          clear("Chat details changed. Return to Messages and open them again."); return;
+        }
+        if (request !== sequence) return;
+        if (initial === null) {
+          initial = current;
+          const proposal = toForm({}, { name: c.name, email: c.email, phone: c.phone });
+          baseline.current = JSON.stringify([proposal, EXTRA]);
+          setForm(proposal); setDraftLoaded(true);
+        }
+      } catch (e) {
+        if (!active || invalid) return;
+        // Deletion is final for this never-reused chat ID, even if another request started later.
+        if (e.status === 404) { clear("This chat is no longer available. Return to Messages."); return; }
+        if (request !== sequence) return;
+        clear("Couldn't refresh the chat details. Return to Messages and try again.");
+      }
+    };
+    load();
+    const timer = setInterval(load, 30000);
+    document.addEventListener("visibilitychange", load);
+    return () => { active = false; clearInterval(timer); document.removeEventListener("visibilitychange", load); };
+  }, [chatId, validChat]);
   // Anything typed or ticked: leaving asks first (header links, the links below, closing the tab).
-  const dirty = JSON.stringify([form, extra]) !== BLANK;
+  const dirty = JSON.stringify([form, extra]) !== baseline.current;
   useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
   // After a refused save, the first highlighted field gets the focus.
   useEffect(() => { formRef.current?.querySelector("[aria-invalid=true]")?.focus(); }, [errors]);
 
   const submit = async withContact => {
+    if (fromChat) return; // No fallback to the ordinary create route without the chat guard.
     if (!["selected", "any", "unknown"].includes(form.area_answer)) {
       setErrors({ area_answer: "Choose an area answer, or Not sure yet." });
       setMsg("Please check the highlighted field.");
@@ -46,6 +93,9 @@ export default function NewApplicant({ contactId }) {
     }
   };
 
+  if (fromChat && !validChat) return <p role="alert" className="err">This chat link is invalid.<br /><a href="#/messages">Back to Messages</a></p>;
+  if (fromChat && loadErr) return <p role="alert" className="err">{loadErr}<br /><a href="#/messages">Back to Messages</a></p>;
+  if (fromChat && !draftLoaded) return <p>Loading chat details…</p>;
   if (contactId && loadErr) return <p role="alert" className="err">{loadErr}<br /><a href="#/applicants/new">Start a new applicant instead</a></p>;
   if (contactId && !contact) return <p>Loading contact…</p>;
   const radio = (k, v, t) => <label key={v} className="check"><input type="radio" name={`n-${k}`} value={v} checked={extra[k] === v}
@@ -56,10 +106,16 @@ export default function NewApplicant({ contactId }) {
 
   // A div, not a section: the entrance animation of `.page>section` would make it the box the fixed action bar sits in.
   return <div>
-    <div className="head"><h1 id="t-new-app">{contact ? `New search for ${contact.name}` : "New applicant"}</h1>
+    <div className="head"><h1 id="t-new-app">{fromChat ? "Review chat contact" : contact ? `New search for ${contact.name}` : "New applicant"}</h1>
       <a href="#/applicants">Back to applicants</a></div>
+    {fromChat && <><p role="status" className="warn">These contact details came from the chat. Review only: creating an applicant from chat is not yet available. No applicant has been created.</p>
+      <section className="card" aria-labelledby="g-chat-contact"><h2 id="g-chat-contact">Chat contact</h2>
+        <p className="muted">Provided when the chat began; confirm these details before use.</p>
+        <dl className="kv"><div><dt>Name</dt><dd>{form.name}</dd></div><div><dt>Email</dt><dd>{form.email || "Not provided"}</dd></div>
+          <div><dt>Phone</dt><dd>{form.phone || "Not provided"}</dd></div></dl></section></>}
     <p className="muted">Required: {contact ? "" : "a name, an email or phone number, "}the operation, area answer and how they contacted us. Choose Not sure yet if the area is unknown.</p>
     <form ref={formRef} className="sections" noValidate onSubmit={e => { e.preventDefault(); submit(contact?.id); }}>
+      <fieldset className="plain sections" disabled={fromChat}><legend className="sr">Applicant details</legend>
       <section className="card fields-group" aria-labelledby="g-source"><h2 id="g-source">How they contacted us</h2>
         <fieldset className="choices-set" aria-describedby={errors.source ? "ae-source" : undefined}><legend className="sr">Source</legend>
           <div className="choices">{SOURCES.map(([v, t]) => radio("source", v, t))}</div>
@@ -73,6 +129,7 @@ export default function NewApplicant({ contactId }) {
           {tick("marketing", "They agree to hear about new homes and news from Hampton Estates (optional)")}</div>
       </section>}
 
+      </fieldset>
       <div className="actionbar" role="region" aria-label="Actions">
         {msg && <p role="alert" className="err">{msg}</p>}
         {found && <p role="alert" className="err">{found.text}</p>}
@@ -80,7 +137,7 @@ export default function NewApplicant({ contactId }) {
           <button type="button" className="btn" disabled={busy} onClick={() => submit(found.contact_id)}>Add a new search for this contact</button>
           <span className="muted">Their saved contact details stay as they are.</span></>}
         {found?.applicant_id && <a className="btn ghost" href={`#/applicants/${found.applicant_id}`}>Open that search</a>}
-        {!found?.contact_id && <button className="btn" disabled={busy}>{busy ? "Saving…" : contact ? "Add search" : "Add applicant"}</button>}
+        {fromChat ? <button className="btn" disabled>Save applicant</button> : !found?.contact_id && <button className="btn" disabled={busy}>{busy ? "Saving…" : contact ? "Add search" : "Add applicant"}</button>}
         <a className="btn ghost" href="#/applicants">Cancel</a>
       </div>
     </form>

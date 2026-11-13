@@ -1,5 +1,6 @@
 import { json, fail, readJson, now } from "../http.js";
 import { conversation, messageText, TEAM_MAX } from "../chat.js";
+import { applicantDraftFromChat } from "../chat-applicant.js";
 
 // MSG-02 (spec 2026-11-06): the panel's Messages screen. Waiting chats first, oldest wait first (C7).
 const STATUSES = ["waiting", "answered", "handled"];
@@ -26,6 +27,15 @@ async function detail({ env, params: [id] }) {
   const { listing_id, title, ...chat } = c;
   const { messages } = await conversation(env, c.id, { team: true }) ?? deleted(); // deleted in between
   return json({ chat: { ...chat, listing: listing_id ? { id: listing_id, title } : null }, messages });
+}
+
+async function applicantDraft({ request, env, params: [id] }) {
+  // Browsers often omit Origin on a same-origin GET. Reject explicit cross-origin
+  // evidence without requiring headers that legitimate requests may not send.
+  const origin = request.headers.get("origin"), site = request.headers.get("sec-fetch-site");
+  if ((origin !== null && origin !== new URL(request.url).origin) ||
+      (site !== null && site !== "same-origin" && site !== "none")) fail(403, "Cross-origin request blocked");
+  return json(await applicantDraftFromChat(env, Number(id)) ?? deleted());
 }
 
 // C13: a reply is a person's, so Pause all outbound does not hold it. The insert finds the chat itself: a chat the visitor
@@ -77,6 +87,7 @@ async function setSwitch({ request, env, admin }) {
 export default [
   ["GET", /^\/admin\/chats$/, list, true],
   ["GET", /^\/admin\/chats\/(\d+)$/, detail, true],
+  ["GET", /^\/admin\/chats\/(\d+)\/applicant-draft$/, applicantDraft, true],
   ["POST", /^\/admin\/chats\/(\d+)\/reply$/, reply, true],
   ["POST", /^\/admin\/chats\/(\d+)\/handled$/, handled, true],
   ["DELETE", /^\/admin\/chats\/(\d+)$/, remove, true],

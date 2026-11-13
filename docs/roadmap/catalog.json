@@ -16082,14 +16082,20 @@
       "titulo": "Create applicant desde una conversación con los datos ya rellenados",
       "origen": "plan",
       "fase": "F6",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "Los chats de la web existen desde el 6-nov-2026 (MSG-02, pantalla Messages); falta el botón Create applicant que abra New applicant con el nombre y el contacto del chat. Hoy el aplicante se crea a mano en New applicant o llega por Register your search. Con Hampton Bot quedan los dos pasos del diseño: primero New applicant con ?chat=ID y el contacto; en la fase 3 los campos cerrados extraídos del chat, con requisitos truncados y marcados «from chat». Save es la aprobación; nada se crea solo.",
+      "hecho": "Messages permite revisar en privado el contacto actual de un chat en un formulario de solo lectura. El endpoint valida sesión y señales de origen, y no crea contactos ni búsquedas; las pruebas usaron datos ficticios.",
+      "falta": "Habilitar la creación solo tras incorporar revisión/CAS de MSG-02, intención idempotente y registro/deduplicación/vínculo atómicos; probar borrado y reintentos. Los campos propuestos por IA requieren MSG-04 y aprobación humana. El formulario de chat todavía no permite editar ni guardar.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/App.jsx:93-94",
-        "server/routes/public.js:104-133"
+        "server/routes/public.js:104-133",
+        "server/chat-applicant.js",
+        "server/routes/chats.js",
+        "admin/src/NewApplicant.jsx",
+        "tests/server/msg-05-draft.test.mjs",
+        "tests/msg-05-draft.e2e.cjs",
+        "docs/superpowers/plans/2026-11-09-msg-05-partial-implementation-evidence.md"
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
@@ -16109,7 +16115,7 @@
         "web-chat",
         "applicants-schema"
       ],
-      "nextStep": "Añadir Create applicant con el contacto del chat existente; dejar extracción IA para la fase aprobada."
+      "nextStep": "Integrar revisión y CAS de chat e intención idempotente antes de habilitar el guardado humano."
     },
     {
       "id": "PUB-01",

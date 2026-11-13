@@ -118,7 +118,7 @@ export default function App() {
 
   const page = section === "p" && arg ? <ListingEditor key={arg} id={decodeURIComponent(arg)} onChange={loadCounts} />
     : section === "applicants" && arg === "new"
-      ? <NewApplicant key={query ?? ""} contactId={new URLSearchParams(query).get("contact")} />
+      ? <NewApplicant key={query ?? ""} contactId={new URLSearchParams(query).get("contact")} chatId={new URLSearchParams(query).get("chat")} />
     : section === "applicants" && /^\d+$/.test(arg) ? <ApplicantDetail key={arg} id={arg} tab={sub} onChange={loadCounts} />
     : section === "applicants" ? <Applicants /> : section === "review" ? <Review />
     : section === "listings" && arg && sub === "report"
