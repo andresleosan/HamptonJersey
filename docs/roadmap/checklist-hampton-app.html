@@ -2834,8 +2834,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F1-B",
    "estado": "parcial",
    "responsable": "Luis",
-   "hecho": "Revisión documental local de 237 registros fuente/canal para 141 identificadores; servicio de revisión versionada construido y probado. No se han concedido permisos ni activado fuentes reales.",
-   "falta": "Faltan la revisión efectiva y evidencia por canal, la aplicación de las decisiones a los lectores y una pantalla de revisión. M01 · Reconciliación 7-nov: No hay lector de webs externas: hoy la app solo llama a Turnstile y a las claves públicas de Google del login. Antes de leer la web de una agencia hay que comprobar que sus términos lo permiten, y leerla con baja frecuencia, respetando robots.txt y con un user-agent identificado. Properties.je solo con permiso escrito; JEP property, OnTheMarket y Rightmove después de revisar sus términos; Homely.je nunca, porque sus términos lo prohíben. Actualizar esta revisión por fuente con canal utilizable, acceso público/restringido, última comprobación y trabajo manual pendiente. Las restricciones históricas se conservan hasta comprobar condiciones vigentes; no se exige obtener acceso a todas las fuentes para comenzar con las operativas. Una fuente inaccesible no se cuenta como fuente sin anuncios. Aceptación: Cada fuente indica método disponible o tarea manual; las restricciones se ven sin paralizar todas las demás.",
+   "hecho": "Revisión documental local de 237 registros fuente/canal para 141 identificadores; servicio de revisión versionada construido y probado. No se han concedido permisos ni activado fuentes reales. Rutas y pantalla de revisión por canal, bajo el gate existente, con versión, conflictos y conservación de borrador; verificación sintética y D1 local.",
+   "falta": "Faltan la revisión efectiva y evidencia por canal, la aplicación de las decisiones a los lectores y la verificación operativa de la pantalla de revisión. M01 · Reconciliación 7-nov: No hay lector de webs externas: hoy la app solo llama a Turnstile y a las claves públicas de Google del login. Antes de leer la web de una agencia hay que comprobar que sus términos lo permiten, y leerla con baja frecuencia, respetando robots.txt y con un user-agent identificado. Properties.je solo con permiso escrito; JEP property, OnTheMarket y Rightmove después de revisar sus términos; Homely.je nunca, porque sus términos lo prohíben. Actualizar esta revisión por fuente con canal utilizable, acceso público/restringido, última comprobación y trabajo manual pendiente. Las restricciones históricas se conservan hasta comprobar condiciones vigentes; no se exige obtener acceso a todas las fuentes para comenzar con las operativas. Una fuente inaccesible no se cuenta como fuente sin anuncios. Aceptación: Cada fuente indica método disponible o tarea manual; las restricciones se ven sin paralizar todas las demás.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:255-256",
@@ -2845,7 +2845,12 @@ document.addEventListener('DOMContentLoaded', () => {
     "wrangler.toml:1-20",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
     "docs/roadmap/work/BUS-06/avance-publicable.md",
-    "server/market-source-policy.js"
+    "server/market-source-policy.js",
+    "server/routes/market-inventory.js",
+    "admin/src/SourceAccessReview.jsx",
+    "tests/server/bus-19-policy-routes.test.mjs",
+    "tests/server/bus-19-policy-routes-d1.test.mjs",
+    "tests/bus19-source-review.e2e.cjs"
    ],
    "modulo": "M01",
    "deps": [],

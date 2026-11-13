@@ -498,3 +498,5 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **ADM-21, núcleo parcial 13-nov:** codificador CSV aislado revisado con datos sintéticos; sin lectura real ni descarga. Faltan ADM-09/10, límites de integración y validación contable. Lote BUS-06/ADM-21: 2.168 pruebas JavaScript y 29 Python, build, release, catálogo y paquetes correctos. [Evidencia](work/ADM-21/avance-publicable.md). Playwright: no aplica.
 
 **BUS-06, vista parcial:** recorridos y cobertura de solo lectura bajo el gate existente; 21 pruebas focales, 2.168 JavaScript y 29 Python en suite, build/release y navegador aislado sintético a 390/1280 y zoom 200 %, con revisión independiente. No acredita montaje completo ni fuentes reales. [Evidencia](work/BUS-06/avance-publicable.md).
+
+**BUS-19, revisión parcial:** API y pantalla bajo gate existente, revisión independiente, D1 local y navegador aislado con datos sintéticos. Suite: 2.174 JavaScript y 29 Python; build/release, catálogo y paquetes correctos. Faltan aceptación del manifiesto, decisiones evidenciadas y lectores; no se activaron fuentes. [Evidencia](work/BUS-06/avance-publicable.md).
