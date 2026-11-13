@@ -1,10 +1,11 @@
 // Recomputes and stores the matches of an applicant or of a listing (spec §4 «Recálculo», B2, B11, B14).
 // evaluate() decides every rule; this file only gates the candidates, stores all passing candidates,
 // with the applicant.matched event and the applicant's matched Inbox notice, in one batch.
-import { now, fail } from "./http.js";
+import { now, fail, HttpError } from "./http.js";
 import { activeSql, isActive } from "./applicants.js";
 import { evaluate } from "./matching.js";
 import { areaPreferenceRank } from "./requirements.js";
+import {searchProgressEnabled,beginFullCheck,fullCheckGuard,fullCheckSuccessStatement,finishFullCheckFailure} from './search-progress.js';
 
 // Listings that may be offered: archived listings are excluded. The applicant's operation is evaluate()'s first filter.
 export const CANDIDATES_SQL = `archived_at IS NULL AND matchable = 1 AND use = 'residential' AND availability IN ('for_sale','to_let','lease')
@@ -64,12 +65,14 @@ export const closeMatchedNoticeIfEmpty = (env, applicantId, by) => env.DB.prepar
   .bind(now(), by, by, String(applicantId), applicantId);
 
 // Every mutation rechecks the search inputs and the evaluated property's input revision inside the transaction.
-function writesFor(env, a, results, stored, actor, ts) {
+function writesFor(env, a, results, stored, actor, ts, requireEffects=false) {
   const search = `EXISTS (SELECT 1 FROM applicants a WHERE a.id = ? AND a.updated_at = ?
     AND a.match_inputs_revision = ? AND ${activeSql("a")})`;
   const guarded = (sql, ...args) => env.DB.prepare(sql).bind(...args,a.id,a.updated_at,a.match_inputs_revision);
   const validListing = `EXISTS (SELECT 1 FROM listings WHERE id = ? AND COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=listings.id),0) = ?)`;
   const stmts=[];
+  const requireOne=()=>env.DB.prepare('UPDATE applicants SET updated_at=NULL WHERE id=? AND changes()<>1').bind(a.id);
+  const matchWrite=statement=>{stmts.push(statement);if(requireEffects)stmts.push(requireOne());};
   let newEventIndex=null;
   const fresh=results.filter(r=>r.passing&&!stored.has(r.listing_id));
   if(fresh.length) {
@@ -83,9 +86,12 @@ function writesFor(env, a, results, stored, actor, ts) {
     stmts.push(guarded(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
       SELECT ?,?,'applicant',?,'applicant.matched',json_object('new',${missing}) WHERE ${missing}>0 AND ${search}`,
       ts,actor,String(a.id),payload,a.id,payload,a.id));
+    if(requireEffects)stmts.push(requireOne());
     stmts.push(guarded(`INSERT INTO notifications(event_id,category,title,action_required,created_at)
-      SELECT last_insert_rowid(),'matched',${TITLE},1,? WHERE changes()>0
+      SELECT last_insert_rowid(),'matched',${TITLE},1,? WHERE ${requireEffects?'1=1':'changes()>0'}
       AND NOT EXISTS(SELECT 1 FROM notifications WHERE ${OPEN_NOTICE}) AND ${search}`,a.id,a.name,ts,String(a.id)));
+    if(requireEffects)stmts.push(env.DB.prepare(`UPDATE applicants SET updated_at=NULL WHERE id=?
+      AND NOT EXISTS(SELECT 1 FROM notifications WHERE ${OPEN_NOTICE})`).bind(a.id,String(a.id)));
   }
   for(const r of results) {
     const m=stored.get(r.listing_id);
@@ -94,12 +100,12 @@ function writesFor(env, a, results, stored, actor, ts) {
     const args=[r.listing_id,r.version];
     if(m?.status==='shortlisted'||(m&&r.passing)) {
       if(m.score!==r.score||m.checks!==r.checks||m.requirements_rank!==r.requirements_rank||m.area_preference_rank!==r.area_preference_rank)
-        stmts.push(guarded(`UPDATE matches SET score=?,checks=?,requirements_rank=?,area_preference_rank=?,updated_at=?
+        matchWrite(guarded(`UPDATE matches SET score=?,checks=?,requirements_rank=?,area_preference_rank=?,updated_at=?
           WHERE id=? AND status<>'rejected' AND ${guard}`,r.score,r.checks,r.requirements_rank,r.area_preference_rank,ts,m.id,...args));
     } else if(m) {
-      stmts.push(guarded(`DELETE FROM matches WHERE id=? AND status='found' AND ${guard}`,m.id,...args));
+      matchWrite(guarded(`DELETE FROM matches WHERE id=? AND status='found' AND ${guard}`,m.id,...args));
     } else if(r.passing) {
-      stmts.push(guarded(`INSERT INTO matches(applicant_id,listing_id,score,checks,requirements_rank,area_preference_rank,status,created_at,updated_at)
+      matchWrite(guarded(`INSERT INTO matches(applicant_id,listing_id,score,checks,requirements_rank,area_preference_rank,status,created_at,updated_at)
         SELECT ?,?,?,?,?,?,'found',?,? WHERE ${guard} ON CONFLICT(applicant_id,listing_id) DO NOTHING`,
         a.id,r.listing_id,r.score,r.checks,r.requirements_rank,r.area_preference_rank,ts,ts,...args));
     }
@@ -125,16 +131,47 @@ const byListing = list => new Map(list.map(m => [m.listing_id, m]));
 // Runs a recompute once its save has committed. A failure is logged and leaves the save saved and its answer as
 // usual: the next save, or "Recalculate all", repairs the matches.
 export async function afterSave(recompute, ...args) {
-  try { await recompute(...args); } catch (e) { console.error("Match recompute failed", e); }
+  try { await recompute(...args); } catch (e) {
+    if(searchProgressEnabled(args[0]))console.error('Match recompute failed');
+    else console.error("Match recompute failed", e);
+  }
 }
 
 // After an applicant is saved. actor: an admin email, 'public' or 'system'.
 export async function recomputeForApplicantWithStatus(env, applicantId, actor, restoreNotice = false) {
-  const a = await env.DB.prepare(`SELECT ${APPLICANT} WHERE a.id = ?`).bind(applicantId).first();
+  const enabled=searchProgressEnabled(env);let a;
+  try {a=await env.DB.prepare(`SELECT ${APPLICANT} WHERE a.id = ?`).bind(applicantId).first();}
+  catch(error){if(enabled)fail(503,'The search check status could not be verified. Refresh before trying again.');throw error;}
   if (!a || !isActive(a) || a.search_category !== "residential")
     return { created: 0, completed: false, reason: 'not_applicable' }; // Commercial matching belongs to M04.
   if (!Number.isSafeInteger(a.matches_revision) || a.matches_revision < 0)
     return { created: 0, completed: false, reason: 'snapshot_invalid' };
+  let ticket=null;
+  if(enabled)try {ticket=await beginFullCheck(env,a,{nowIso:now()});}
+  catch {fail(503,'The search check status could not be verified. Refresh before trying again.');}
+  if(enabled && !ticket) {
+    let current;
+    try {current=await env.DB.prepare('SELECT archived_at,search_state,search_category FROM applicants WHERE id=?').bind(applicantId).first();}
+    catch {fail(503,'The search check status could not be verified. Refresh before trying again.');}
+    return !current || !isActive(current) || current.search_category!=='residential'
+      ? {created:0,completed:false,reason:'not_applicable'} : {created:0,completed:false};
+  }
+  const recordFailure=async()=>{
+    if(!ticket)return;
+    try {await finishFullCheckFailure(env,ticket);} catch {console.error('Search check failure not recorded');}
+  };
+  try {
+    const outcome=await recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket);
+    if(!outcome.completed)await recordFailure();
+    return outcome;
+  } catch(error) {
+    await recordFailure();
+    if(ticket && !(error instanceof HttpError))fail(500,'The search check could not be completed. Please try again.');
+    throw error;
+  }
+}
+
+async function recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket) {
   // The candidates, and the shortlisted ones that left them (their checks still show what fails now).
   const [listings, stored] = (await env.DB.batch([
     env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE (${CANDIDATES_SQL} AND operation = ?)
@@ -145,7 +182,7 @@ export async function recomputeForApplicantWithStatus(env, applicantId, actor, r
   const encoded=encodeMatchSnapshot(listings);
   if(encoded.issue)return {created:0,completed:false,reason:encoded.issue};
   const versions=encoded.json;
-  const { stmts, search, guarded, newEventIndex } = writesFor(env, a, listings.map(l => result(a, l)), byListing(stored), actor, now());
+  const { stmts, search, guarded, newEventIndex } = writesFor(env, a, listings.map(l => result(a, l)), byListing(stored), actor, now(),!!ticket);
   // The event's count is computed inside this transaction before the corresponding inserts. Read it directly:
   // D1's metadata can include trigger writes, and a SELECT preserves changes() for the following notice statement.
   let createdIndex=null;
@@ -161,8 +198,9 @@ export async function recomputeForApplicantWithStatus(env, applicantId, actor, r
     WHERE l.id IS NULL OR COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=l.id),0)<>json_extract(v.value,'$.version'))
     AND NOT EXISTS (SELECT id FROM listings WHERE ${CANDIDATES_SQL} AND operation=?
       EXCEPT SELECT json_extract(value,'$.id') FROM json_each(?))`;
-  const initialSearch = `${search} AND (SELECT matches_revision FROM applicants WHERE id=?) = ?`;
-  const snapshotArgs=[versions,LISTING_OPERATION[a.operation],versions,a.id,a.updated_at,a.match_inputs_revision,a.id,a.matches_revision];
+  const ticketFence=ticket?fullCheckGuard(ticket):null;
+  const initialSearch = `${search} AND (SELECT matches_revision FROM applicants WHERE id=?) = ?${ticketFence?` AND ${ticketFence.sql}`:''}`;
+  const snapshotArgs=[versions,LISTING_OPERATION[a.operation],versions,a.id,a.updated_at,a.match_inputs_revision,a.id,a.matches_revision,...(ticketFence?.args??[])];
   // The existing NOT NULL constraint is an atomic rollback barrier, not a progress record or a timestamp update.
   // Match writes advance matches_revision, so compare it only at this initial barrier.
   stmts.unshift(env.DB.prepare(`UPDATE applicants SET updated_at=CASE WHEN ${snapshot} AND ${initialSearch} THEN updated_at END WHERE id=?`)
@@ -174,15 +212,23 @@ export async function recomputeForApplicantWithStatus(env, applicantId, actor, r
   // A ranking trigger may add to D1 meta.changes; SQLite changes() reports this statement's direct row count.
   const completion=stmts.length;
   stmts.push(env.DB.prepare('SELECT changes() AS direct_changes'));
+  // A successful ticket needs a direct ranking write in this same batch; 0 aborts before success.
+  if(ticket)stmts.push(env.DB.prepare('UPDATE applicants SET updated_at=NULL WHERE id=? AND changes()<>1').bind(a.id));
   // Reopening may retain exactly the same Found matches. Give that decision its own Inbox notice even when
   // recalculation creates nothing, leaving the old resolved notice and its event intact.
   if (restoreNotice) stmts.push(env.DB.prepare(`INSERT INTO notifications (event_id, category, title, action_required, created_at)
     SELECT e.id, 'matched', ${TITLE}, 1, ? FROM events e
-    WHERE e.entity_type = 'applicant' AND e.entity_id = ? AND e.type = 'applicant.search_reopened' AND changes() = 1
+    WHERE e.entity_type = 'applicant' AND e.entity_id = ? AND e.type = 'applicant.search_reopened' ${ticket?'':'AND changes() = 1'}
       AND EXISTS (SELECT 1 FROM applicants a WHERE a.id = ? AND a.updated_at = ? AND a.match_inputs_revision = ? AND ${activeSql("a")})
       AND EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found')
       AND NOT EXISTS (SELECT 1 FROM notifications WHERE ${OPEN_NOTICE})
     ORDER BY e.id DESC LIMIT 1`).bind(a.id, a.name, now(), String(a.id), a.id, a.updated_at, a.match_inputs_revision, a.id, String(a.id)));
+  if(ticket){
+    const checkedCount=listings.filter(l=>l.candidate===1 && l.operation===LISTING_OPERATION[a.operation]).length;
+    stmts.push(fullCheckSuccessStatement(env,ticket,{checkedCount}));
+    // A superseded or invalid ticket must roll the entire batch back, not leave matches without progress.
+    stmts.push(env.DB.prepare('UPDATE applicants SET updated_at=NULL WHERE id=? AND changes()<>1').bind(a.id));
+  }
   let written;
   try { written = await env.DB.batch(stmts); }
   catch (error) {
