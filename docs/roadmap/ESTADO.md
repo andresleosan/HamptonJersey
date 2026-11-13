@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **PRE-10 parcial:** oposición manual y retirada pública con control de versión e identidad, probadas con datos ficticios. El historial se lee con límite; ante incertidumbre se registra una barrera conservadora. Faltan permisos por finalidad y reglas de los canales. [Evidencia](work/PRE-10/manual-objection-2026-11-13.md).
+
 13-nov-2026 · **OFE-06 pendiente:** el plan vigente sustituyó el correo semanal a abogados por seguimiento interno; se elimina el bloqueo de correo sin declarar construida la tarea semanal. El total permanece en 67/215 (31,16 %). [Conciliación](work/OFE-06/reconciliacion-2026-11-13.md).
 
 13-nov-2026 · **ADM-03 parcial:** el sondeo inicial de Inbox y del contador respeta las pestañas ocultas. El reloj ya tiene productores en código; faltan verificar su estado real, resolver reparaciones inconsistentes y acreditar permisos financieros. [Evidencia](work/ADM-03/2026-11-13-sondeo-y-limites.md).
