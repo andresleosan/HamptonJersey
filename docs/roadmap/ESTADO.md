@@ -1,6 +1,10 @@
 # Estado de Hampton App
 
-13-nov-2026 · **Alcance de IA y titularidad reconciliado:** AUT-12 y PRE-30 se conservan como replanteadas por la decisión de Hermes central; PRE-28 pasa a parcial porque el destino está decidido y falta verificar y ejecutar la transición por servicio. El catálogo pasa de 68/217 (31,34 %) a 68/215 (31,63 %), sin nuevas tareas terminadas. [Evidencia](work/progreso/ajuste-ia-2026-11-13.md).
+13-nov-2026 · **SPR-02 parcial:** la etapa B de History ya consta en main con checks de Pages y Workers correctos. El estado remoto de 0038 es desconocido y no se ha comprobado el recorrido autenticado; la etapa C sigue pendiente. [Conciliación](work/SPR-02/reconciliacion-2026-11-13.md).
+
+13-nov-2026 · **PUB-11 parcial:** avisos orientativos de resolución, exposición y enfoque en el panel y guardas para no iniciar cargas tardías al abandonar la pantalla. Fotos confirmadas se conservan; las peticiones ya enviadas pueden terminar. Faltan calibración, validación y metadatos del servidor, y documentos privados. E2E local aislado aprobado; el E2E general quedó bloqueado por un iframe externo. [Evidencia](../qa/pub11/2026-11-13-photo-quality-evidence.md).
+
+13-nov-2026 · **Alcance de IA y titularidad reconciliado:** AUT-12 y PRE-30 se conservan como replanteadas por la decisión de Hermes central; PRE-28 pasa a parcial porque el destino está decidido y falta verificar y ejecutar la transición por servicio; PRE-32 también pasa a parcial por la elección de Pro central, con condiciones y ajustes aún sin verificar. El catálogo pasa de 68/217 (31,34 %) a 68/215 (31,63 %), sin nuevas tareas terminadas. [Evidencia](work/progreso/ajuste-ia-2026-11-13.md).
 
 13-nov-2026 · **ANA-04 parcial:** tendencias agregadas preparadas con presupuesto diario y compatibilidad de archivos en caché; productor, lectura y retención siguen cerrados. Faltan política, protección de solicitudes y presupuesto/esquema D1. [Evidencia](work/ANA-04/evidence.md).
 

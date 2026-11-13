@@ -6,15 +6,16 @@
   "fase": "F4",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Photos sube JPG, PNG o WebP reducidas en el navegador (1600 px y miniatura), con orden, portada, visibilidad en la web y tipo Floor plan o Aerial.",
-  "falta": "No hay control de calidad (resolución, desenfoque, oscuridad, líneas torcidas) ni subida de PDF o documentos: el servidor solo acepta imágenes.",
+  "hecho": "Photos sube JPG, PNG o WebP con redimensionado en el navegador, miniatura, orden, portada, visibilidad y tipo Floor plan o Aerial. El panel ofrece avisos orientativos de resolución, exposición y enfoque al subir fotos, sin impedir continuar; se conservan los errores por archivo y las fotos confirmadas.",
+  "falta": "Calibrar las sugerencias con fotografías representativas y definir la detección de líneas; los avisos actuales no certifican calidad. Diseñar e implementar los documentos privados y sus formatos, la validación de imágenes y metadatos en el servidor, y la protección y recuperación de cargas y limpieza. Las peticiones ya enviadas pueden finalizar después de salir.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/MediaManager.jsx:39-54",
     "admin/src/image.js:1-27",
     "server/routes/media.js:11-13",
     "server/routes/media.js:58",
-    "migrations/0001_init.sql:25-40"
+    "migrations/0001_init.sql:25-40",
+    "docs/qa/pub11/2026-11-13-photo-quality-evidence.md"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -26,5 +27,5 @@
     "media-pipeline",
     "listing-editor"
   ],
-  "nextStep": "Ampliar medios y documentos con controles de calidad sobre la subida existente."
+  "nextStep": "Revisar el protocolo seguro de imágenes y documentos, su almacenamiento privado y recuperación antes de ampliar formatos; calibrar las sugerencias con material representativo."
 }

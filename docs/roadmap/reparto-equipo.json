@@ -36,8 +36,8 @@
       "openCount": 46,
       "states": {
         "replanteado": 8,
-        "pendiente": 21,
-        "parcial": 18,
+        "pendiente": 20,
+        "parcial": 19,
         "hecho": 7,
         "bloqueado": 7
       }
@@ -996,8 +996,8 @@
       "fase": "—",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "9-nov-2026: etapa A publicada en main/GitHub 55c470026b1c1909acf68ec244f71a7286f2a16f, con padre 933c8fb y merge ANA-08. Hermes comprobó HEAD/main/GitHub iguales, Pages/Jobs completed/success y raíz HTTPS pública 200; no se conoce autor ni autorización del push, ni hay smoke autenticado de History. History A muestra eventos reales de ficha con cursor estable de50, cambios/evidencia permitidos y tombstone; las pruebas A constan en su validación. Etapa B construida y probada SOLO LOCAL en h1 sobre main fdc9e657f58ca05f17ba80e439aace13aabedb84: match revisado, visita vinculada viva, oferta y venta sin cliente, importe ni JSON libre; al borrar visita desaparece la asociación, 0038 indexa hechos solo mientras el vínculo vive y backfill no inventa ficha. Validación de filas nuevas y anteriores antes de pintarlas, ventana móvil de10000; hitos muestran solo estado acreditado. Revisión GPT independiente del código P0=0/P1=0/P2=0; focal31/31, E2E A/B1280/390, general public/urls/admin/reg17 y MCP local tras UI exit0; zoom nativo200% Chromium local con22 filas, DPR2 y sin desbordamiento. npm test1063/1088:25 fallos de fixtures de push protegido, sin sortear la guardia; Python14/14 y build/checks exit0. B permanece sin push ni migración remota; el SHA local se presenta por separado.",
-      "falta": "A y B requieren smoke autenticado publicado; B requiere revisión del SHA final, sí escrito de Luis para ese SHA y migración 0038 antes de publicar. No inferir D1 remota ni screen reader de pruebas SQLite/navegador locales. Etapa C sigue pendiente de productores de fuentes, captura, consultas, llamadas, respuesta útil y purga real cuando existan; no atribuir esas gestiones por tener un evento de ficha. Mantener SPR-02 parcial. Las 25 fallas de npm test por fixtures de git push protegido se declaran, no se convierten en suite verde.",
+      "hecho": "9-nov-2026: etapa A publicada en main/GitHub 55c470026b1c1909acf68ec244f71a7286f2a16f, con padre 933c8fb y merge ANA-08. Hermes comprobó HEAD/main/GitHub iguales, Pages/Jobs completed/success y raíz HTTPS pública 200; no se conoce autor ni autorización del push, ni hay smoke autenticado de History. History A muestra eventos reales de ficha con cursor estable de50, cambios/evidencia permitidos y tombstone; las pruebas A constan en su validación. Etapa B construida y probada inicialmente en h1 sobre main fdc9e657f58ca05f17ba80e439aace13aabedb84 y después incorporada a main en 18e7e0bfc02d021f7c7dcdcc44493d1a4a97cbe8, con checks de Pages y Workers correctos: match revisado, visita vinculada viva, oferta y venta sin cliente, importe ni JSON libre; al borrar visita desaparece la asociación, 0038 indexa hechos solo mientras el vínculo vive y backfill no inventa ficha. Validación de filas nuevas y anteriores antes de pintarlas, ventana móvil de10000; hitos muestran solo estado acreditado. Revisión GPT independiente del código P0=0/P1=0/P2=0; focal31/31, E2E A/B1280/390, general public/urls/admin/reg17 y MCP local tras UI exit0; zoom nativo200% Chromium local con22 filas, DPR2 y sin desbordamiento. npm test1063/1088:25 fallos de fixtures de push protegido, sin sortear la guardia; Python14/14 y build/checks exit0. El código B está en main; esta sesión no ha comprobado el estado remoto de 0038 ni un recorrido autenticado de producción.",
+      "falta": "A y B requieren smoke autenticado de History. La migración 0038 y su estado remoto no se han podido comprobar en esta sesión; no inferir D1 remota ni screen reader de pruebas locales. Etapa C sigue pendiente de productores de fuentes, captura, consultas, llamadas, respuesta útil y purga real cuando existan; no atribuir esas gestiones por tener un evento de ficha. Mantener SPR-02 parcial. La suite histórica con 25 fallos de fixtures se conserva como evidencia de ese ensayo, no como una suite aprobada.",
       "bloqueo": "",
       "evidencia": [
         "server/listing-history.js",
@@ -1015,7 +1015,8 @@
         "tests/server/listing-history-window.test.mjs",
         "docs/roadmap/work/SPR-02/h1-linked-history-b-validation.md",
         "docs/superpowers/specs/2026-11-09-spr-02-h1-linked-history-b-design.md",
-        "docs/superpowers/plans/2026-11-09-spr-02-h1-linked-history-b-ledger.md"
+        "docs/superpowers/plans/2026-11-09-spr-02-h1-linked-history-b-ledger.md",
+        "docs/roadmap/work/SPR-02/reconciliacion-2026-11-13.md"
       ],
       "modulo": "M13",
       "deps": [
@@ -1039,7 +1040,7 @@
         "events-contract",
         "listings-schema"
       ],
-      "nextStep": "Preparar y revisar el SHA final de B con los documentos compartidos, pedir sí escrito de Luis para ese SHA y migración0038. Solo después aplicar migración autorizada, publicar, comprobar Pages/Jobs/raíz y hacer smoke autenticado de History. No se publicó B por construirlo ni por tener revisión técnica; C continúa como etapa aparte."
+      "nextStep": "Resolver por un canal autorizado la verificación del estado de 0038 y el smoke autenticado de History; continuar la etapa C cuando existan sus productores. No repetir la publicación del código B ya integrado."
     },
     {
       "id": "SPR-03",
@@ -2833,14 +2834,16 @@
       "fase": "—",
       "estado": "pendiente",
       "responsable": "Luis",
-      "hecho": "Desde el 29-oct-2026 Hermes corre en el VPS de Optimyze con el plan de ChatGPT de Luis (inicio de sesión de OpenAI Codex). El 30-oct Luis decidió que será el cerebro de IA de las automatizaciones (P-18, §6.6): es su regla original, una suscripción para lo que no es sensible. Ese mismo día decidió que lo será un Hermes propio de Hampton, aparte del de Optimyze (PRE-31), con su plan de ChatGPT y solo datos públicos (C0) y contadores (pregunta 16). Todavía no hace ninguna automatización de Hampton.",
-      "falta": "Antes de conectar el modelo, Luis dice qué plan es, comprueba que sus condiciones permiten usarlo en el trabajo de un cliente y apaga el entrenamiento con sus datos (PRE-32). Conectarlo a la app es AUT-13. No se ha revisado si Google (Gemini) tiene algo parecido; la vía por empleado de AUT-12 fue sustituida por la decisión de Hermes central.",
+      "hecho": "Desde el 29-oct-2026 Hermes corre en el VPS de Optimyze con el plan de ChatGPT de Luis (inicio de sesión de OpenAI Codex). El 30-oct Luis decidió que será el cerebro de IA de las automatizaciones (P-18, §6.6): es su regla original, una suscripción para lo que no es sensible. Ese mismo día decidió que lo será un Hermes propio de Hampton, aparte del de Optimyze (PRE-31), con su plan de ChatGPT y solo datos públicos (C0) y contadores (pregunta 16). Todavía no hace ninguna automatización de Hampton. El plan maestro posterior selecciona Pro central mediante Hermes para propósitos y condiciones verificados; esa selección no acredita una cuenta operativa ni una integración.",
+      "falta": "Antes de conectar el modelo, verificar la vía Pro central elegida, sus condiciones para trabajo de cliente y uso desatendido, los datos y propósitos permitidos, los acuerdos y el control de entrenamiento (PRE-32). Conectarlo a la app es AUT-13; faltan las guardas, el cupo y la continuación humana previstos en AUT-09 y AUT-10. No se ha revisado si Google (Gemini) tiene algo parecido; la vía por empleado de AUT-12 fue sustituida.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.3",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.5",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §10 P-17",
-        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6"
+        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
+        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:28",
+        "docs/superpowers/plans/2026-11-09-aut-05-central-model-authorization-and-quota-closure.md"
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
@@ -2859,7 +2862,7 @@
       "resources": [
         "model-data-policy"
       ],
-      "nextStep": "Recoger la comprobación de Luis sobre el plan y datos permitidos antes de conectar el modelo."
+      "nextStep": "Verificar con el responsable la vía Pro central, sus condiciones y datos permitidos; después completar guardas, cupo y derivación humana antes de conectar el modelo."
     },
     {
       "id": "AUT-06",
@@ -7692,15 +7695,16 @@
       "fase": "F4",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Photos sube JPG, PNG o WebP reducidas en el navegador (1600 px y miniatura), con orden, portada, visibilidad en la web y tipo Floor plan o Aerial.",
-      "falta": "No hay control de calidad (resolución, desenfoque, oscuridad, líneas torcidas) ni subida de PDF o documentos: el servidor solo acepta imágenes.",
+      "hecho": "Photos sube JPG, PNG o WebP con redimensionado en el navegador, miniatura, orden, portada, visibilidad y tipo Floor plan o Aerial. El panel ofrece avisos orientativos de resolución, exposición y enfoque al subir fotos, sin impedir continuar; se conservan los errores por archivo y las fotos confirmadas.",
+      "falta": "Calibrar las sugerencias con fotografías representativas y definir la detección de líneas; los avisos actuales no certifican calidad. Diseñar e implementar los documentos privados y sus formatos, la validación de imágenes y metadatos en el servidor, y la protección y recuperación de cargas y limpieza. Las peticiones ya enviadas pueden finalizar después de salir.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/MediaManager.jsx:39-54",
         "admin/src/image.js:1-27",
         "server/routes/media.js:11-13",
         "server/routes/media.js:58",
-        "migrations/0001_init.sql:25-40"
+        "migrations/0001_init.sql:25-40",
+        "docs/qa/pub11/2026-11-13-photo-quality-evidence.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -7712,7 +7716,7 @@
         "media-pipeline",
         "listing-editor"
       ],
-      "nextStep": "Ampliar medios y documentos con controles de calidad sobre la subida existente."
+      "nextStep": "Revisar el protocolo seguro de imágenes y documentos, su almacenamiento privado y recuperación antes de ampliar formatos; calibrar las sugerencias con material representativo."
     },
     {
       "id": "PUB-12",
@@ -10117,25 +10121,28 @@
       "titulo": "Respuesta a la pregunta 16: qué plan de ChatGPT usa Hermes y qué datos puede recibir",
       "origen": "plan",
       "fase": "—",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "Luis",
-      "hecho": "Luis (30-oct-2026): el Hermes de Hampton usa su plan de ChatGPT y solo recibe datos públicos (C0) y contadores.",
-      "falta": "Antes de conectar el modelo al Hermes de Hampton (fase 1b), Luis dice qué plan es (Plus, Pro…), comprueba que sus condiciones permiten usarlo en el trabajo de un cliente y que Hermes trabaje sin él delante (los borradores), y apaga en la configuración de datos de ChatGPT la opción de mejorar el modelo con su contenido. Desde el cambio del 2-nov-2026 el equipo no usa el plan: no habla con el bot y solo lee el canal (AUT-14). La fase 1a, el avisador, no usa ningún modelo ni espera a PRE-32. C1 y C2 seguirían necesitando un plan Business o Enterprise con acuerdo de tratamiento, o la vía API con acuerdo (P-09), y C3 nunca pasa por Hermes (§6.3, §6.5, §6.6).",
+      "hecho": "El plan maestro selecciona ChatGPT Pro central mediante Hermes para propósitos, vía y condiciones verificados; C3 queda fuera de Pro, Hermes y Telegram. Elegir el plan no acredita una cuenta operativa, una integración ni el estado de sus ajustes.",
+      "falta": "Verificar con el responsable la vía técnica, condiciones para trabajo de cliente y uso desatendido, propósitos y clases de datos admitidos, acuerdos aplicables y estado real del control de mejora o entrenamiento. No activar una vía sin esas verificaciones; no presumir que Pro incluye API ni activar una alternativa pagada automática. El avisador sin modelo puede avanzar por separado.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 16",
-        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6"
+        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
+        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:28-30",
+        "docs/superpowers/plans/2026-11-08-pre-32-hermes-plan-decision.md",
+        "docs/superpowers/plans/2026-11-09-pre-32-pro-route-verification-closure.md"
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
       "dependencies": [],
-      "externalBlocker": "Luis: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
+      "externalBlocker": "Responsable de la cuenta y del tratamiento: verificar condiciones, datos y ajustes mediante el canal correspondiente; no se ha comprobado el estado de la cuenta.",
       "resources": [
         "hermes-data-policy"
       ],
-      "nextStep": "Luis verifica el carril y condiciones de uso de Hermes y los datos admitidos antes de conectar su modelo."
+      "nextStep": "Recoger evidencia de vía, condiciones, datos, acuerdos y ajustes antes de conectar el modelo; la elección del plan por sí sola no satisface la evidencia operativa."
     },
     {
       "id": "PRE-33",

@@ -1,0 +1,5 @@
+# SPR-02 B · Conciliación de la publicación
+
+La ficha describía la etapa B como solo local. El commit `18e7e0bfc02d021f7c7dcdcc44493d1a4a97cbe8` es ancestro del main publicado verificado en esta sesión; incorpora History B y `0038_history_related.sql`. Los checks de Cloudflare Pages y Workers Builds para ese commit finalizaron correctamente. El commit posterior `80ad03df7`, que prepara un smoke aislado, también es ancestro y tiene ambos checks correctos.
+
+Esto acredita la presencia del código en main y los resultados de esos checks, no la aplicación de la migración ni el funcionamiento autenticado en producción. Esta sesión no aplicó 0038 y la consulta de migraciones remotas fue denegada; el estado remoto es desconocido. El plan de pruebas aislado no equivale a un smoke de producción. Los resultados históricos de pruebas y sus límites se conservan en [h1-linked-history-b-validation.md](h1-linked-history-b-validation.md). La etapa C y sus productores siguen pendientes, por lo que SPR-02 permanece parcial.
