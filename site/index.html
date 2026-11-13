@@ -668,7 +668,8 @@ function bookingForm(pre = {}) {
       <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="name@example.com"></label>
       <label class="field"><span>Phone (optional)</span><input name="phone" type="tel" autocomplete="tel" placeholder="07797 123456"></label></div>
     ${TS_KEY ? `<div class="ts"></div>` : ""}
-    <div><button class="btn" type="submit" disabled>Request viewing</button>
+    <div><p class="hint">Read our <a href="/#/privacy" target="_blank" rel="noopener noreferrer">privacy notice</a> (opens in a new tab).</p>
+      <button class="btn" type="submit" disabled>Request viewing</button>
       <p class="hint form-status" role="status" aria-live="polite">${TS_KEY ? "" : BOOKING_DOWN}</p></div>
   </form>`;
 }
