@@ -7315,11 +7315,11 @@
     {
       "id": "ANA-01",
       "parentTaskId": "ANA-01",
-      "title": "Ver la actividad de cada usuario en la web",
+      "title": "Actividad web agregada sin seguimiento individual",
       "preferredSlot": "codex-desktop",
       "priority": 299,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -7346,7 +7346,7 @@
         }
       ],
       "acceptance": [
-        "Diseñar actividad anónima y vínculo consentido al contacto sin introducir seguimiento individual implícito."
+        "Mostrar aperturas agregadas de ficha y galería con fuente y cobertura explícitas, sin identificar visitantes."
       ]
     },
     {

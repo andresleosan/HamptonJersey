@@ -63,11 +63,11 @@
       "area": "Propiedades, publicación, tours y analítica",
       "capacity": 2,
       "count": 65,
-      "openCount": 33,
+      "openCount": 32,
       "states": {
-        "parcial": 23,
+        "parcial": 22,
         "pendiente": 8,
-        "hecho": 14,
+        "hecho": 15,
         "bloqueado": 2,
         "descartado": 17,
         "replanteado": 1
@@ -8510,10 +8510,10 @@
       "titulo": "Actividad web agregada sin seguimiento individual",
       "origen": "texto",
       "fase": "F7-A",
-      "estado": "parcial",
-      "responsable": "desarrollo",
-      "hecho": "Construida y revisada una lectura Staff de aperturas de fichas y galerías como acciones agregadas, con unidad y cobertura desconocida explícitas. La decisión posterior de Luis sustituyó el alcance original de seguimiento por persona; no se vinculan visitas a contactos. Insights reutiliza su consulta existente para evitar una segunda lectura automática.",
-      "falta": "Completar integración y verificaciones de despliegue de la lectura agregada. No se conoce el consumo real de D1 ni se ha comprobado la pantalla autenticada en producción; filtros y Web Analytics siguen sus tareas independientes.",
+      "estado": "hecho",
+      "responsable": "—",
+      "hecho": "Alcance agregado vigente implementado y desplegado: Insights muestra aperturas de ficha y galería como acciones, con unidad y cobertura desconocida. No identifica visitantes ni los vincula a contactos; la actividad usa la misma agregación que las vistas existentes. La decisión posterior de Luis sustituyó el alcance original de seguimiento individual. Las comprobaciones funcionales fueron locales; el consumo real de D1 y la pantalla autenticada de producción no se verificaron en esta sesión.",
+      "falta": "No se comprobó la pantalla autenticada ni el consumo o latencia reales de D1 en esta sesión; las fuentes de filtros y Web Analytics continúan en ANA-04 y ANA-03.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ApplicantDetail.jsx:434-447",
@@ -8532,7 +8532,7 @@
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [
         {
           "id": "PRE-09",
@@ -8554,7 +8554,8 @@
         "analytics-contract",
         "privacy-policy"
       ],
-      "nextStep": "Verificar la integración y el despliegue de la actividad agregada sin seguimiento individual."
+      "nextStep": "Continuar ANA-05 para separar etapas registradas de hitos verificados, sin crear un embudo individual.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "ANA-02",
