@@ -6814,8 +6814,8 @@
       "fase": "F5-B",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Se prepararon un modelo interno para fechas, checklist y referencias externas revisadas, y un esquema SQL propuesto. La fachada devuelve 503 y no hay rutas ni persistencia activa; pruebas locales y revisión independiente cubrieron el núcleo.",
-      "falta": "Integrar propósito y autorización por entidad, persistencia y concurrencia D1, retención y revocación, avisos, reparación confirmada y pantalla móvil. El alcance vigente excluye el informe al propietario y un repositorio de fotos; las referencias externas son declaraciones revisadas, no archivos custodiados.",
+      "hecho": "Se prepararon un modelo interno para fechas, checklist y referencias externas revisadas, y un esquema SQL propuesto. La fachada devuelve 503 y no hay rutas ni persistencia activa; pruebas locales y revisión independiente cubrieron el núcleo. El SQL propuesto protege vínculos de alquiler y tenencia y evita sustituir evidencia revocada; una revisión independiente verificó ambas claves con SQLite sintético.",
+      "falta": "Integrar propósito y autorización por entidad, persistencia y concurrencia D1, retención y revocación, avisos, reparación confirmada y pantalla móvil. El alcance vigente excluye el informe al propietario y un repositorio de fotos; las referencias externas son declaraciones revisadas, no archivos custodiados. Las guardas de tenencia dependen de 0049; antes de activarlas hay que resolver supresión, idempotencia y pruebas D1 con conflictos de actualización.",
       "bloqueo": "",
       "evidencia": [
         "server/rentals.js:14-17",
@@ -6825,7 +6825,8 @@
         "docs/superpowers/specs/2026-11-10-tp05-continuity-scope-design.md",
         "docs/roadmap/work/ADM-13/foundation-evidence.md",
         "server/rental-inspections.js",
-        "tests/server/adm-13-inspections.test.mjs"
+        "tests/server/adm-13-inspections.test.mjs",
+        "tests/server/adm-13-ownership-proposal.test.mjs"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
