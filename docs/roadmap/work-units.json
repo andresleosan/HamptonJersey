@@ -6354,7 +6354,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 270,
       "kind": "development",
-      "enabled": false,
+      "enabled": true,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -6376,7 +6376,7 @@
         }
       ],
       "acceptance": [
-        "Completar datos económicos y disponibilidad diferenciando vivienda, negocio, renta y premium."
+        "Conciliar el criterio A3 y el alcance de premium y renta con el cambio publicado 041188e; registrar la decisión y el estado de producto acreditados antes de cerrar PUB-06."
       ]
     },
     {

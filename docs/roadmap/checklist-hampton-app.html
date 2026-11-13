@@ -4352,17 +4352,22 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Familia 3 · Datos económicos de la ficha",
    "origen": "texto",
    "fase": "F4",
-   "estado": "hecho",
+   "estado": "parcial",
    "responsable": "—",
-   "hecho": "En producción desde el 12-nov-2026 con migración 0042 y código 2ba135b: editor y ficha pública con precio por pie², depósito, parish rates, service charge, suministros incluidos y fecha de disponibilidad; los negocios admiten renta y premium. Los cargos se describen con moneda y periodo en texto.",
-   "falta": "",
+   "hecho": "La entrega económica 2ba135b y la migración 0042 constan publicadas el 12-nov-2026: editor y ficha pública con precio por pie², depósito, parish rates, service charge, suministros incluidos y fecha de disponibilidad. Esa entrega admitía renta y premium juntos en negocios. El cambio publicado posterior 041188e retiró premium del editor y de la proyección pública y cambió la base del precio según la tenencia.",
+   "falta": "El criterio A3 sigue exigiendo editar y mostrar premium y renta juntos, pero el código publicado posterior ya no lo permite. Conciliar expresamente el alcance y el criterio con evidencia de la decisión de producto antes de declarar PUB-06 terminada; no se ha comprobado si hay datos reales afectados.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/ListingEditor.jsx",
     "server/listing.js",
     "migrations/0042_listing_economics.sql",
     "tests/pub06-economics.e2e.cjs",
-    "tests/server/listing-economics.test.mjs"
+    "tests/server/listing-economics.test.mjs",
+    "server/listing-pricing.js",
+    "tests/server/listing-pricing.test.mjs",
+    "docs/superpowers/specs/2026-11-08-pub-06-financial-fields-design.md",
+    "docs/superpowers/plans/2026-11-12-pub-06-economics.md",
+    "docs/roadmap/work/PUB-06/reconciliacion-2026-11-13.md"
    ]
   },
   {

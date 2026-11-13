@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **PUB-06 parcial por discrepancia de alcance:** la entrega `2ba135b` y la migración 0042 siguen acreditadas históricamente. El cambio publicado `041188e` retiró premium del editor y de la proyección pública, mientras la aceptación A3 vigente exige premium y renta juntos; falta conciliar expresamente ese alcance. El catálogo local pasa de 68/215 (31,63 %) a 67/215 (31,16 %), sin cambios en el denominador ni en el producto. No se han comprobado datos reales ni el tablero público. [Evidencia](work/PUB-06/reconciliacion-2026-11-13.md).
+
 13-nov-2026 · **MSG-02 parcial:** mitigación ensayada para futuros problemas de expiración de llaves y acuses de mensajes guardados. Persisten la revisión de llaves históricas, la concurrencia y las verificaciones operativas del servicio; no se ha consultado D1 remota ni activado el chat. [Límites y pruebas](work/MSG-02/key-expiry-future-mitigation.md).
 
 13-nov-2026 · **SPR-02 parcial:** la etapa B de History ya consta en main con checks de Pages y Workers correctos. El estado remoto de 0038 es desconocido y no se ha comprobado el recorrido autenticado; la etapa C sigue pendiente. [Conciliación](work/SPR-02/reconciliacion-2026-11-13.md).
