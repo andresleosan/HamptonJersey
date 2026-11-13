@@ -10307,9 +10307,9 @@
       "fase": "F2",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Construcción local parcial: directorio, contactos, teléfonos, canales, referencias, notas y revisión humana a 11/12 meses. Sin eliminación manual ni automática en la app; supresión pendiente en AGE-14. Migración 0030 de anunciantes solo en fixtures; revisión independiente favorable de la integración bf30e863, sin P0/P1/P2; P3 heredado de VIS-18 en ledger.",
-      "falta": "M01 · Reconciliación 7-nov: La supresión se aborda por separado en AGE-14. La revisión independiente favorable cubre la integración local parcial; publicar y activar requieren autorización para el SHA final y la migración. Directorio de anunciantes: agencia, entidad o particular, webs y canales, contactos y todos los teléfonos identificados. Relacionarlo con fuentes y publicaciones. Conservar por separado acuerdos de comisión tratados personalmente y permisos de uso de fotos; no son requisitos generales para inventariar o consultar disponibilidad. Aceptación: La tarea de llamada puede mostrar todos los teléfonos y su titular, incluso con varios anuncios del mismo inmueble.",
-      "actualizado": "2026-11-07",
+      "hecho": "El directorio de anunciantes y sus contactos, teléfonos, canales y referencias está integrado en main. La evidencia histórica de REG-05 registra Pages en b544c2e y ninguna migración pendiente el 11-nov-2026; ese árbol contiene 0030 de anunciantes. La revisión y siete pruebas actuales del servicio usan datos ficticios; esta conciliación no consulta de nuevo la base remota.",
+      "falta": "Relacionar de forma verificable anunciantes y teléfonos con fuentes y publicaciones del inventario común para las tareas de llamada, conservando titulares y procedencia. La eliminación se aborda en AGE-14; acuerdos de comisión y permisos de imágenes permanecen separados y no son requisitos generales para inventariar.",
+      "actualizado": "2026-11-13",
       "bloqueo": "",
       "evidencia": [
         "admin/src/Advertisers.jsx",
@@ -10318,7 +10318,10 @@
         "admin/src/SaleDetail.jsx:139-140",
         "server/sales.js:52",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:94",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "tests/server/advertisers.test.mjs",
+        "docs/roadmap/work/REG-05/acceptance.md",
+        "docs/roadmap/work/AGE-04/reconciliacion-2026-11-13.md"
       ],
       "modulo": "M01",
       "deps": [],
@@ -10328,11 +10331,11 @@
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
       "dependencies": [],
-      "externalBlocker": "Publicación y activación requieren autorización vigente del SHA final y migración; verificar lo ya integrado.",
+      "externalBlocker": "",
       "resources": [
         "advertisers-directory"
       ],
-      "nextStep": "Reconciliar integración publicada y preparar activación del directorio ya construido para el SHA y migración finales."
+      "nextStep": "Integrar el directorio ya publicado con fuentes y publicaciones de BUS-06/BUS-10 y comprobar la tarea de llamada sin duplicar contactos."
     },
     {
       "id": "AGE-14",
