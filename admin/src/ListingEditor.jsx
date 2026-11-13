@@ -21,6 +21,7 @@ import {isRentalMarketing} from '../../server/listing-editorial.js';
 import { normalizePostcode, PROPERTY_CONDITION_LABELS } from '../../server/listing-details.js';
 import { squareMetres } from '../../server/listing-physical.js';
 import ListingContentFields from './ListingContentFields.jsx';
+import ResearchDuplicateReview from './ResearchDuplicateReview.jsx';
 import { CONTENT_TAGS } from '../../server/listing-content.js';
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
@@ -310,8 +311,7 @@ export default function ListingEditor({ id, onChange }) {
       {forSale && offers && !offers.failed && <p className="muted">Offers: <a href="#/sales">{offers.open} open {offers.open === 1 ? "offer" : "offers"}</a>
         {offers.sale && <> · <a href={`#/sales/${offers.sale.id}`}>Sale in progress</a></>}</p>}
       {l.published === 1 && !publicPhoto && <p className="warn" role="note">Published, but with no public photo: it won't appear on the website until it has one.</p>}
-      {data.duplicates.length > 0 && <p className="warn" role="note">Possible duplicate of {data.duplicates.map((d, i) =>
-        <span key={d}>{i ? ", " : ""}<a href={`#/p/${d}`}>{d}</a></span>)} according to the research.</p>}
+      <ResearchDuplicateReview review={data.duplicate_review} legacyIds={data.duplicates}/>
       <nav aria-label="Listing sections">{SECTIONS.filter(([k]) => forSale || k !== "offers").map(([k, t]) =>
         <button key={k} type="button" className="linkish" onClick={() => k==='history'?goTo('h-history'):
           document.getElementById(`s-${k}`).scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth' })}>{t}</button>)}</nav>

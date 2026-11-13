@@ -14,6 +14,7 @@ import { publicationReadiness } from "../publication-policy.js";
 import { checkPhysical } from '../listing-physical.js';
 import { recordListingWithdrawal,correctListingWithdrawal,readListingTraceability } from '../listing-traceability.js';
 import { validateListingContent,readListingContent,listingContentUpdateStatement } from '../listing-content.js';
+import { researchDuplicateReviewStatement, researchDuplicateReview } from '../research-duplicate-review.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -56,10 +57,10 @@ async function list({ request, env }) {
   return json({ listings: results, ...(env.PUB09_WITHDRAWALS_READY === '1' ? { withdrawal_tracking: true } : {}) });
 }
 
-async function detail({ env, params: [id] }) {
+async function detail({ env, admin, params: [id] }) {
   const listing = await loadListing(env, id);
   const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
-  const [media, research, sources, facts, terms, issues, searches, matched, [interest], [queue], [details]] = (await env.DB.batch([
+  const [media, research, sources, facts, terms, issues, searches, matched, [interest], [queue], [details], [authorized], [stillExists], candidateRows] = (await env.DB.batch([
     q("SELECT * FROM media WHERE listing_id = ? ORDER BY position, id", id),
     q("SELECT * FROM research_properties WHERE property_id = ?", id),
     q("SELECT * FROM research_sources WHERE property_id = ? ORDER BY source_id", id),
@@ -76,16 +77,20 @@ async function detail({ env, params: [id] }) {
     q(`SELECT d.building_name_or_number,d.postcode,l.property_condition,d.developer_name,d.public_address_snapshot,
         d.public_address_snapshot_hash,d.public_address_evidence_ref,d.public_address_reviewed_by,d.public_address_reviewed_at FROM listings l
       LEFT JOIN listing_details d ON d.listing_id=l.id WHERE l.id=?`, id),
+    q('SELECT 1 AS authorized FROM admins WHERE email=?',admin),
+    q('SELECT 1 AS present FROM listings WHERE id=?',id),
+    researchDuplicateReviewStatement(env,id,admin),
   ])).map(r => r.results);
-  const group = research[0]?.duplicate_group;
-  const duplicates = group ? (await q("SELECT property_id FROM research_properties WHERE duplicate_group = ? AND property_id <> ? ORDER BY property_id", group, id).all())
-    .results.map(r => r.property_id) : [];
+  if (!authorized) fail(401, 'Please sign in to continue');
+  if (!stillExists) fail(404, 'Listing not found');
+  const duplicateReview = researchDuplicateReview(candidateRows);
+  const duplicates = duplicateReview.candidates.map(candidate => candidate.listing_id);
   const content=env.PUB08_CONTENT_READY === '1' ? await readListingContent(env,id) : null;
   return json({ listing, ...(env.PUB09_WITHDRAWALS_READY === '1' ? { withdrawal_tracking: true } : {}),
     ...(content ? {content_tracking:true,content} : {}), details: Object.fromEntries(['building_name_or_number','postcode','property_condition','developer_name',
       'public_address_snapshot','public_address_snapshot_hash','public_address_evidence_ref','public_address_reviewed_by','public_address_reviewed_at']
       .map(key => [key, details?.[key] ?? null])),
-    media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates,
+    media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates, duplicate_review: duplicateReview,
     matched_applicants: matched, active_interest: interest.n, queue: queue ?? null });
 }
 

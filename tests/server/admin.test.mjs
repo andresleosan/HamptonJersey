@@ -39,7 +39,8 @@ test("list and detail include cover, research, issues and duplicate warning", as
   const d = (await call(env, "GET", "/admin/listings/HE-R001", { cookie })).data;
   assert.deepEqual(d.media.map(m => m.id), ["A00001", "A00002"]);
   assert.equal(d.research.match_status, "exact_property");
-  assert.deepEqual(d.duplicates, ["HE-R013"]);
+  assert.deepEqual(d.duplicates, []);
+  assert.equal(d.duplicate_review.unavailable, true, "a research-only ID is not an actionable listing link");
   assert.equal(d.issues.length, 1);
   assert.deepEqual(d.listing.specs, []);
   assert.equal((await call(env, "GET", "/admin/listings/HE-R999", { cookie })).status, 404);
