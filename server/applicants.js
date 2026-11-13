@@ -43,6 +43,14 @@ const values = list => OPTIONS[list].map(([v]) => v);
 // Budgets in GBP; renting is per month.
 export const BUDGET = { rent: [100, 50000], buy: [10000, 100000000] };
 
+// Shared bounds for commercial applicant amounts in their declared major unit.
+export const COMMERCIAL_BUDGET_LIMITS = Object.freeze({
+  commercial_purchase: Object.freeze([0.01, 100000000]),
+  commercial_rent: Object.freeze([0.01, 100000000]),
+  commercial_premium: Object.freeze([0, 100000000]),
+  commercial_expenses: Object.freeze([0, 100000000]),
+});
+
 // One stored form per number: "+" and digits only, which the DB CHECK also enforces; the length is checked only here.
 export function normalizePhone(s) {
   if (typeof s !== "string") return null;
@@ -212,7 +220,7 @@ export function validateApplicant(body, { publicForm, savedMoveInDate = null }, 
   const area_unit = commercial ? choice("area_unit", ["sqm", "sqft"]) : null;
   if ((area_min != null || area_max != null) && !area_unit) err("area_unit", "Choose an area unit");
   if (area_min != null && area_max != null && area_min > area_max) err("area_max", "Maximum cannot be below minimum");
-  const commercial_rent = commercial ? num("commercial_rent", 0.01, 100000000, { int: false }) : null;
+  const commercial_rent = commercial ? num("commercial_rent", ...COMMERCIAL_BUDGET_LIMITS.commercial_rent, { int: false }) : null;
   const commercial_rent_period = commercial ? choice("commercial_rent_period", ["month", "year"]) : null;
   if (commercial_rent != null && !commercial_rent_period) err("commercial_rent_period", "Choose a rent period");
   const children_status = choice("household_children_status", ["known", "unknown", "not_applicable"])
@@ -224,9 +232,9 @@ export function validateApplicant(body, { publicForm, savedMoveInDate = null }, 
     commercial_kind: commercial ? choice("commercial_kind", ["property", "business", "both"]) : null,
     commercial_use: commercial ? str("commercial_use", 200) : null,
     area_min, area_max, area_unit, commercial_rent, commercial_rent_period,
-    commercial_purchase: commercial ? num("commercial_purchase", 0.01, 100000000, { int: false }) : null,
-    commercial_premium: commercial ? num("commercial_premium", 0, 100000000, { int: false }) : null,
-    commercial_expenses: commercial ? num("commercial_expenses", 0, 100000000, { int: false }) : null,
+    commercial_purchase: commercial ? num("commercial_purchase", ...COMMERCIAL_BUDGET_LIMITS.commercial_purchase, { int: false }) : null,
+    commercial_premium: commercial ? num("commercial_premium", ...COMMERCIAL_BUDGET_LIMITS.commercial_premium, { int: false }) : null,
+    commercial_expenses: commercial ? num("commercial_expenses", ...COMMERCIAL_BUDGET_LIMITS.commercial_expenses, { int: false }) : null,
     household_total: applicant.household_adults != null && applicant.household_children != null
       ? applicant.household_adults + applicant.household_children : null,
     household_children_status: children_status,

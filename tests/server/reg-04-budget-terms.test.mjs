@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeBudgetTerms } from '../../server/search-criteria.js';
+import * as applicants from '../../server/applicants.js';
 
 const snapshot = (category, operation, criteria, extra = {}) => ({
-  search_category: category, operation, criteria, ...extra,
+  search_category: category, operation, criteria, currency: 'GBP', ...extra,
 });
 const issue = (result, field, reason) => result.unknowns.some(item => item.field === field && item.reason === reason);
 
@@ -149,4 +150,119 @@ test('an undeclared ceiling does not invent which field supplied it', () => {
   assert.equal(result.terms.budget_ceiling.amount_minor, null);
   assert.equal(result.terms.budget_ceiling.source_field, null);
   assert.ok(issue(result, 'budget_ceiling', 'not_declared'));
+});
+
+test('unbranded criteria with no declared currency remain unknown, regardless of asserted source labels', () => {
+  for (const extra of [{}, { source: 'applicants', trusted: true }, { source_contract: 'applicants_gbp' }]) {
+    const result = normalizeBudgetTerms({ search_category: 'residential', operation: 'rent', criteria: { budget_max: 2000 }, ...extra });
+    assert.equal(result.terms.budget_max.currency, null);
+    assert.equal(result.terms.budget_max.state, 'unknown');
+    assert.equal(result.terms.budget_max.amount_minor, null);
+    assert.ok(issue(result, 'budget_max', 'currency_unknown'));
+  }
+});
+
+test('residential limits apply independently to minimum, maximum and stretch for each operation', () => {
+  for (const [operation, lower, below, upper, above] of [
+    ['rent', 100, 99.99, 50000, 50000.01],
+    ['buy', 10000, 9999.99, 100000000, 100000000.01],
+  ]) for (const field of ['budget_min', 'budget_max', 'budget_stretch']) {
+    for (const amount of [lower, upper]) {
+      const result = normalizeBudgetTerms(snapshot('residential', operation, { [field]: amount }));
+      assert.equal(result.terms[field].state, 'known', `${operation} ${field} ${amount}`);
+      assert.equal(result.terms[field].amount_minor, amount * 100);
+    }
+    for (const amount of [below, above]) {
+      const result = normalizeBudgetTerms(snapshot('residential', operation, { [field]: amount }));
+      assert.equal(result.terms[field].state, 'unknown', `${operation} ${field} ${amount}`);
+      assert.equal(result.terms[field].amount_minor, null);
+      assert.equal(result.terms[field].original_value, amount);
+      assert.ok(issue(result, field, 'amount_out_of_range'));
+      assert.equal(result.terms.budget_ceiling.state, 'unknown');
+    }
+  }
+});
+
+test('commercial limits preserve zero only where it is permitted and reject both adjacent outliers', () => {
+  for (const [field, minimum] of [['commercial_purchase', 0.01], ['commercial_rent', 0.01],
+    ['commercial_premium', 0], ['commercial_expenses', 0]]) {
+    for (const amount of [minimum, 100000000]) {
+      const result = normalizeBudgetTerms(snapshot('commercial', 'transfer', { [field]: amount, commercial_rent_period: 'month' }));
+      assert.equal(result.terms[field].amount_minor, amount * 100, `${field} ${amount}`);
+      assert.equal(result.terms[field].original_value, amount);
+    }
+    for (const amount of [minimum === 0 ? -0.01 : 0, 100000000.01]) {
+      const result = normalizeBudgetTerms(snapshot('commercial', 'transfer', { [field]: amount, commercial_rent_period: 'month' }));
+      assert.equal(result.terms[field].state, 'unknown', `${field} ${amount}`);
+      assert.equal(result.terms[field].amount_minor, null);
+      assert.equal(result.terms[field].original_value, amount);
+      assert.ok(issue(result, field, 'amount_out_of_range'));
+    }
+  }
+});
+
+test('invalid originals stay bounded and primitives are preserved without traversing objects', () => {
+  const invalid = '1,234.56';
+  let invoked = false;
+  const object = { toString() { invoked = true; throw new Error('private'); } };
+  const long = '7'.repeat(10001);
+  for (const [value, original, status] of [[invalid, invalid, 'preserved'], [long, null, 'too_long'], [object, null, 'unsupported_type']]) {
+    const result = normalizeBudgetTerms(snapshot('residential', 'rent', { budget_max: value }));
+    assert.equal(result.terms.budget_max.state, 'unknown');
+    assert.equal(result.terms.budget_max.amount_minor, null);
+    assert.equal(result.terms.budget_max.original_value, original);
+    assert.equal(result.terms.budget_max.original_status, status);
+    assert.ok(issue(result, 'budget_max', 'invalid_amount'));
+  }
+  assert.equal(invoked, false);
+});
+
+test('hostile input properties fail closed without invoking getters or exposing their errors', () => {
+  let invoked = false;
+  const data = snapshot('residential', 'rent', {});
+  Object.defineProperty(data.criteria, 'budget_max', { get() { invoked = true; throw new Error('private'); } });
+  assert.throws(() => normalizeBudgetTerms(data), error => error instanceof TypeError && !error.message.includes('private'));
+  assert.equal(invoked, false);
+  const proxy = new Proxy({}, { getOwnPropertyDescriptor() { throw new Error('private'); } });
+  assert.throws(() => normalizeBudgetTerms(proxy), error => error instanceof TypeError && !error.message.includes('private'));
+});
+
+test('a nonzero amount too small for Number does not become an explicitly declared zero', () => {
+  for (const field of ['commercial_premium', 'commercial_expenses']) {
+    const result = normalizeBudgetTerms(snapshot('commercial', 'transfer', { [field]: '1e-400' }));
+    assert.equal(result.terms[field].original_value, '1e-400');
+    assert.equal(result.terms[field].state, 'unknown');
+    assert.equal(result.terms[field].amount_minor, null);
+    assert.ok(issue(result, field, 'sub_penny_review'));
+  }
+});
+
+test('commercial validation and normalization share immutable limits at every boundary', () => {
+  const limits = applicants.COMMERCIAL_BUDGET_LIMITS;
+  assert.ok(limits);
+  assert.ok(Object.isFrozen(limits));
+  for (const [field, minimum] of [['commercial_purchase', 0.01], ['commercial_rent', 0.01],
+    ['commercial_premium', 0], ['commercial_expenses', 0]]) {
+    assert.ok(Object.isFrozen(limits[field]));
+    assert.deepEqual(limits[field], [minimum, 100000000]);
+    for (const amount of [minimum, 100000000, minimum === 0 ? -0.01 : 0, 100000000.01]) {
+      const body = { operation: 'rent', search_category: 'commercial', source: 'phone', name: 'Synthetic',
+        email: 'limits@example.test', commercial_rent_period: 'month', [field]: amount };
+      const valid = !applicants.validateApplicant(body, { publicForm: false }).errors?.[field];
+      const result = normalizeBudgetTerms(snapshot('commercial', 'rent', { [field]: amount, commercial_rent_period: 'month' }));
+      assert.equal(result.terms[field].amount_minor !== null, valid, `${field} ${amount}`);
+    }
+  }
+});
+
+test('large malformed objects are rejected without copying or accessing their contents', () => {
+  let accessed = false;
+  const object = { payload: 'x'.repeat(100000) };
+  Object.defineProperty(object, 'private', { enumerable: true, get() { accessed = true; throw new Error('private'); } });
+  const result = normalizeBudgetTerms(snapshot('commercial', 'transfer', { commercial_premium: object }));
+  assert.equal(result.terms.commercial_premium.state, 'unknown');
+  assert.equal(result.terms.commercial_premium.amount_minor, null);
+  assert.equal(result.terms.commercial_premium.original_value, null);
+  assert.equal(result.terms.commercial_premium.original_status, 'unsupported_type');
+  assert.equal(accessed, false);
 });

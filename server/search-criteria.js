@@ -1,3 +1,8 @@
+import { createBudgetNormalizer } from './budget-terms.js';
+
+const { recordLoadedSnapshot, normalizeBudgetTerms } = createBudgetNormalizer();
+export { normalizeBudgetTerms };
+
 // Internal, read-only foundation for BUS-12. No route calls this yet: callers
 // must revalidate identity, permissions, state and both revisions in the same
 // transaction as any write, notification or dispatch authorization.
@@ -32,7 +37,7 @@ export async function loadCriteriaSnapshot(env, applicantId) {
     throw new Error('Invalid criteria revision');
   if (!Number.isSafeInteger(row.match_inputs_revision) || row.match_inputs_revision < 0)
     throw new Error('Invalid match inputs revision');
-  return {
+  return recordLoadedSnapshot({
     applicant_id: row.id,
     criteria_revision: row.criteria_revision,
     match_inputs_revision: row.match_inputs_revision,
@@ -41,7 +46,5 @@ export async function loadCriteriaSnapshot(env, applicantId) {
     operation: row.search_operation ?? row.operation,
     archived_at: row.archived_at,
     criteria: Object.fromEntries(CRITERIA_FIELDS.map(field => [field, row[field]])),
-  };
+  });
 }
-
-export { normalizeBudgetTerms } from "./budget-terms.js";

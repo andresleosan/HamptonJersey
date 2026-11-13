@@ -37,3 +37,61 @@ test('stored buy, rent and transfer searches normalize independently from the re
   assert.equal(db.prepare('SELECT budget_max FROM applicants WHERE id=?').get(rent).budget_max, 2000);
   assert.equal(db.prepare('SELECT budget_max FROM applicants WHERE id=?').get(buy).budget_max, 650000);
 });
+
+test('GBP provenance belongs only to the unchanged in-memory loader snapshot', async () => {
+  const env = makeEnv(), db = env.DB.raw;
+  db.exec('ALTER TABLE applicants ADD COLUMN criteria_revision INTEGER NOT NULL DEFAULT 0');
+  const timestamp = '2026-01-01T12:00:00.000Z';
+  const contact = db.prepare('INSERT INTO contacts (name,email,last_activity_at,created_at,updated_at) VALUES (?,?,?,?,?)')
+    .run('Synthetic', 'reg04-provenance@example.test', timestamp, timestamp, timestamp).lastInsertRowid;
+  const id = Number(db.prepare(`INSERT INTO applicants (contact_id,operation,source,budget_max,created_at,updated_at)
+    VALUES (?,'rent','phone',2000,?,?)`).run(contact, timestamp, timestamp).lastInsertRowid);
+  const snapshot = await loadCriteriaSnapshot(env, id);
+  assert.equal(normalizeBudgetTerms(snapshot).terms.budget_max.currency, 'GBP');
+  assert.equal(normalizeBudgetTerms(snapshot).terms.budget_max.amount_minor, 200000);
+  const copied = structuredClone(snapshot);
+  assert.equal(normalizeBudgetTerms(copied).terms.budget_max.currency, null);
+  assert.equal(normalizeBudgetTerms(copied).terms.budget_max.state, 'unknown');
+  snapshot.criteria.budget_max = 2100;
+  snapshot.currency = 'GBP';
+  const changed = normalizeBudgetTerms(snapshot);
+  assert.equal(changed.terms.budget_max.currency, null);
+  assert.equal(changed.terms.budget_max.amount_minor, null);
+  assert.equal(changed.terms.budget_max.state, 'unknown');
+  snapshot.criteria.budget_max = 2000;
+  delete snapshot.currency;
+  assert.equal(normalizeBudgetTerms(snapshot).terms.budget_max.currency, null);
+  const another = await loadCriteriaSnapshot(env, id);
+  another.criteria.parking_spaces = 2;
+  assert.equal(normalizeBudgetTerms(another).terms.budget_max.currency, null);
+});
+
+test('a tampered loader snapshot never executes an accessor to establish GBP provenance', async () => {
+  const env = makeEnv(), db = env.DB.raw;
+  db.exec('ALTER TABLE applicants ADD COLUMN criteria_revision INTEGER NOT NULL DEFAULT 0');
+  const timestamp = '2026-01-01T12:00:00.000Z';
+  const contact = db.prepare('INSERT INTO contacts (name,email,last_activity_at,created_at,updated_at) VALUES (?,?,?,?,?)')
+    .run('Synthetic', 'reg04-accessor@example.test', timestamp, timestamp, timestamp).lastInsertRowid;
+  const id = Number(db.prepare(`INSERT INTO applicants (contact_id,operation,source,budget_max,created_at,updated_at)
+    VALUES (?,'rent','phone',2000,?,?)`).run(contact, timestamp, timestamp).lastInsertRowid);
+  const snapshot = await loadCriteriaSnapshot(env, id);
+  let invoked = false;
+  Object.defineProperty(snapshot.criteria, 'budget_max', { get() { invoked = true; throw new Error('private'); } });
+  assert.throws(() => normalizeBudgetTerms(snapshot), error => error instanceof TypeError && !error.message.includes('private'));
+  assert.equal(invoked, false);
+});
+
+test('a mutated criteria prototype does not retain the loader currency hint', async () => {
+  const env = makeEnv(), db = env.DB.raw;
+  db.exec('ALTER TABLE applicants ADD COLUMN criteria_revision INTEGER NOT NULL DEFAULT 0');
+  const timestamp = '2026-01-01T12:00:00.000Z';
+  const contact = db.prepare('INSERT INTO contacts (name,email,last_activity_at,created_at,updated_at) VALUES (?,?,?,?,?)')
+    .run('Synthetic', 'reg04-prototype@example.test', timestamp, timestamp, timestamp).lastInsertRowid;
+  const id = Number(db.prepare(`INSERT INTO applicants (contact_id,operation,source,budget_max,created_at,updated_at)
+    VALUES (?,'rent','phone',2000,?,?)`).run(contact, timestamp, timestamp).lastInsertRowid);
+  const snapshot = await loadCriteriaSnapshot(env, id);
+  Object.setPrototypeOf(snapshot.criteria, { currency: 'GBP' });
+  const result = normalizeBudgetTerms(snapshot);
+  assert.equal(result.terms.budget_max.currency, null);
+  assert.equal(result.terms.budget_max.state, 'unknown');
+});
