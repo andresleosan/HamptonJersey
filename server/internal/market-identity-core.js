@@ -331,3 +331,94 @@ export async function readPropertyIdentityCore(env, input, actor, clock = () => 
   if (!row) throw new Error('Identity read missing');
   return {property_id:row.id,version:row.version,root_property_id:root.id};
 }
+
+// Candidate records below require a *proposed*, unapplied schema. They are not
+// human identity decisions and must never be used to authorize a merge.
+const candidateKeys = new Set(['left_property_id','right_property_id','left_evidence_observation_id',
+  'right_evidence_observation_id','expected_left_version','expected_right_version',
+  'expected_left_evidence_revision','expected_right_evidence_revision','signal','operation_id']);
+const candidateSignals = new Set(['shared_address','shared_reference','manual_review']);
+function candidateInput(input) {
+  if (!input || typeof input!=='object' || Array.isArray(input) ||
+      Object.keys(input).some(k=>!candidateKeys.has(k)) || !uuid(input.left_property_id) ||
+      !uuid(input.right_property_id) || !uuid(input.left_evidence_observation_id) ||
+      !uuid(input.right_evidence_observation_id) || !uuid(input.operation_id) ||
+      !version(input.expected_left_version) || !version(input.expected_right_version) ||
+      !version(input.expected_left_evidence_revision) || !version(input.expected_right_evidence_revision) ||
+      !candidateSignals.has(input.signal)) bad();
+  if (input.left_property_id===input.right_property_id) conflict();
+  const first={property:input.left_property_id,evidence:input.left_evidence_observation_id,
+    version:input.expected_left_version,evidenceVersion:input.expected_left_evidence_revision};
+  const second={property:input.right_property_id,evidence:input.right_evidence_observation_id,
+    version:input.expected_right_version,evidenceVersion:input.expected_right_evidence_revision};
+  return {left:first.property<second.property?first:second,right:first.property<second.property?second:first,
+    signal:input.signal,operationId:input.operation_id};
+}
+const candidateSignature = alias => `${alias}.left_property_id=? AND ${alias}.right_property_id=?
+  AND ${alias}.left_evidence_observation_id=? AND ${alias}.right_evidence_observation_id=?
+  AND ${alias}.expected_left_version=? AND ${alias}.expected_right_version=?
+  AND ${alias}.expected_left_evidence_revision=? AND ${alias}.expected_right_evidence_revision=? AND ${alias}.signal=?`;
+const candidateValues = x => [x.left.property,x.right.property,x.left.evidence,x.right.evidence,
+  x.left.version,x.right.version,x.left.evidenceVersion,x.right.evidenceVersion,x.signal];
+
+export async function proposePropertyIdentityCore(env,input,actor,clock = () => new Date()) {
+  const x=candidateInput(input);
+  if (!actorId(actor)) bad();
+  const db=primary(env.DB),at=now(clock),generation=await adminGeneration(db,actor);
+  const left=x.left.property,right=x.right.property,snapshot=await scopeSnapshot(db,left,right);
+  const policyGuardId=crypto.randomUUID(),stateGuardId=crypto.randomUUID(),candidateId=crypto.randomUUID();
+  const signature=candidateSignature('c'),values=candidateValues(x);
+  const statements=[guard(db,policyGuardId,actor,generation,groupAllowed,groupArgs(left,right,snapshot,at)),
+    guard(db,stateGuardId,actor,generation,`EXISTS (SELECT 1 FROM market_properties WHERE id=? AND version=?)
+      AND EXISTS (SELECT 1 FROM market_properties WHERE id=? AND version=?)
+      AND NOT EXISTS (SELECT 1 FROM market_identity_aliases WHERE source_property_id IN (?,?))
+      AND ${containsEvidence} AND ${containsEvidence}
+      AND EXISTS (SELECT 1 FROM market_observations WHERE id=? AND revision=?)
+      AND EXISTS (SELECT 1 FROM market_observations WHERE id=? AND revision=?)
+      AND NOT EXISTS (SELECT 1 FROM market_identity_candidates c WHERE c.left_property_id=? AND c.right_property_id=?
+        AND NOT (${signature}))
+      AND NOT EXISTS (SELECT 1 FROM market_identity_candidate_receipts r
+        LEFT JOIN market_identity_candidates c ON c.id=r.candidate_id WHERE r.operation_id=?
+          AND (r.actor<>? OR r.actor_added_at<>? OR c.id IS NULL OR NOT (${signature})))
+      AND NOT EXISTS (SELECT 1 FROM market_identity_receipts WHERE operation_id=?)
+      AND NOT EXISTS (SELECT 1 FROM market_identity_decisions WHERE operation_id=?)`,
+    [left,x.left.version,right,x.right.version,left,right,left,x.left.evidence,right,x.right.evidence,
+      x.left.evidence,x.left.evidenceVersion,x.right.evidence,x.right.evidenceVersion,left,right,...values,
+      x.operationId,actor,generation,...values,x.operationId,x.operationId]),
+    db.prepare(`INSERT INTO market_identity_candidates(id,left_property_id,right_property_id,left_evidence_observation_id,
+      right_evidence_observation_id,expected_left_version,expected_right_version,expected_left_evidence_revision,
+      expected_right_evidence_revision,signal,created_at,created_by)
+      SELECT ?,?,?,?,?,?,?,?,?,?,?,? WHERE NOT EXISTS
+        (SELECT 1 FROM market_identity_candidates WHERE left_property_id=? AND right_property_id=?)`)
+      .bind(candidateId,...values,at,actor,left,right),
+    db.prepare(`INSERT INTO market_identity_candidate_receipts(operation_id,candidate_id,actor,actor_added_at,created_at)
+      SELECT ?,c.id,?,?,? FROM market_identity_candidates c WHERE ${signature}
+        AND NOT EXISTS (SELECT 1 FROM market_identity_candidate_receipts WHERE operation_id=?)`)
+      .bind(x.operationId,actor,generation,at,...values,x.operationId),
+    db.prepare(`SELECT c.id FROM market_identity_candidate_receipts r JOIN market_identity_candidates c ON c.id=r.candidate_id
+      WHERE r.operation_id=? AND r.actor=? AND r.actor_added_at=?`).bind(x.operationId,actor,generation),
+    dropGuards(db,policyGuardId,stateGuardId)];
+  const results=await executeIdentityBatch(db,statements), row=results.at(-2)?.results?.[0];
+  if (!row) throw new Error('Identity candidate receipt missing');
+  return {candidate_id:row.id,status:'pending_review',evidence_state:'revalidate_before_decision'};
+}
+
+// This examines only caller-supplied synthetic evidence. There is not yet a
+// trusted match-to-market-property bridge, so even no conflict is unverified.
+export function inspectHumanMatchConflictsCore(input) {
+  if (!input || typeof input!=='object' || Array.isArray(input) ||
+      Object.keys(input).some(k=>k!=='left'&&k!=='right') ||
+      !Array.isArray(input.left) || !Array.isArray(input.right) || input.left.length>50 || input.right.length>50) bad();
+  const states=new Map();
+  for (const row of [...input.left,...input.right]) {
+    if (!row || typeof row!=='object' || Array.isArray(row) || Object.keys(row).length!==3 ||
+        Object.keys(row).some(k=>!['search_id','operation','status'].includes(k)) ||
+        !Number.isSafeInteger(row.search_id) || row.search_id<1 || !['sale','rent','business'].includes(row.operation) ||
+        !['found','shortlisted','rejected'].includes(row.status)) bad();
+    if (row.status==='found') continue;
+    const key=`${row.search_id}:${row.operation}`,bit=row.status==='shortlisted'?1:2;
+    states.set(key,(states.get(key)??0)|bit);
+  }
+  const count=[...states.values()].filter(state=>state===3).length;
+  return {status:count?'conflict_in_supplied_evidence':'unverified',conflict_count:count,can_auto_merge:false};
+}
