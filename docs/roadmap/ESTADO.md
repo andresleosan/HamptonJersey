@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **BUS-10 y VIS-10 parciales:** bases internas de identidad de inmuebles y restricciones de visita revisadas, con correcciones de integridad y pruebas locales. No hay rutas ni autorización nuevas activas; las migraciones 0050/0051 solo se ensayaron localmente y su estado remoto no se conoce. Pendientes retención, permisos y conexión de los flujos. [Identidad](work/BUS-10/foundation-evidence.md) · [Visitas](work/VIS-10/foundation-evidence.md).
+
 13-nov-2026 · **Permisos financieros parciales:** se ha preparado protección frente a reutilización de casos y lectura acotada por contrato, sin rutas activas. La propuesta 0049 necesita revisar su efecto sobre permisos previos y la retención antes de aplicarse; el estado remoto de migraciones no se conoce. [Límites](../superpowers/plans/2026-11-13-adm-18-case-lifecycle-finance-ledger.md).
 
 13-nov-2026 · **PUB-08 parcial:** etiquetas y vídeo web separados, protegidos por la puerta de privacidad y desactivados por defecto; pruebas locales y revisión independiente. Esta sesión no ejecutó 0048 y no pudo consultar el estado remoto de migraciones. [Evidencia](work/PUB-08/avance-publicable.md).

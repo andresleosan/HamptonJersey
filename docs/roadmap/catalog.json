@@ -11183,15 +11183,20 @@
       "titulo": "Restricciones de cada casa: aviso previo si hay inquilino, llaves y quién la enseña",
       "origen": "plan",
       "fase": "F3-A",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "Cualquier negociador activo enseña cualquier casa en cualquier hueco. Faltan el aviso mínimo si está alquilada (p. ej. 24 h), quién tiene las llaves y qué negociadores pueden enseñarla; el aviso automático al inquilino necesitará el servicio de correo.",
+      "hecho": "Base interna para reglas de aviso y negociadores por ficha y operación, con revisión transaccional y protección contra reutilización de identidad. No almacena instrucciones ni llaves ni está conectada a rutas o reservas; la migración 0051 se probó localmente y el estado remoto no se conoce.",
+      "falta": "Integrar permisos y evidencia revocable de acceso por inmueble, ocupación, reglas de reserva y visitas externas; construir gestión y pantalla privadas para instrucciones y llaves con retención y auditoría. El aviso automático al inquilino necesita AUT-17 y no se ha enviado ningún aviso.",
       "bloqueo": "",
       "evidencia": [
         "server/viewing-store.js:10-32",
         "migrations/0010_viewings.sql:2-9",
-        "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18"
+        "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18",
+        "migrations/0051_property_viewing_rules.sql",
+        "server/property-viewing-rules.js",
+        "tests/server/property-viewing-rules-d1.test.mjs",
+        "tests/server/property-viewing-rules-identity.test.mjs",
+        "docs/roadmap/work/VIS-10/foundation-evidence.md"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -11219,7 +11224,7 @@
         "viewings-ui",
         "listings-contract"
       ],
-      "nextStep": "Añadir restricciones de aviso, llaves y negociadores por propiedad; dejar el aviso automático condicionado al correo."
+      "nextStep": "Definir autorización por inmueble y conectar las reglas a reservas solo con evidencia de acceso y dependencias verificadas."
     },
     {
       "id": "VIS-11",
@@ -12947,16 +12952,21 @@
       "titulo": "Casa física única (properties) con deduplicación entre fuentes",
       "origen": "plan",
       "fase": "F1-B",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "M02 · Reconciliación 7-nov: Crear identidad común de propiedad y publicaciones separadas con todos sus anunciantes y contactos. Deduplicar conservando referencias; señales ambiguas generan revisión, sin fusionar unidades distintas por compartir dirección ni mezclar compra, alquiler o traspaso. Evitar duplicados en reintentos y conservar identidad mínima tras la futura purga EST-19. Depende de: BUS-06. Aceptación: Una propiedad en tres webs conserva una ficha y tres publicaciones; dos unidades de la misma dirección siguen separadas. La identidad mínima o marca de baja se define desde el inventario para reconocer reimportaciones antiguas; la purga física posterior se construye en EST-19.",
+      "hecho": "Base interna de identidad física y publicaciones por fuente, con observaciones preservadas, revisión humana versionada y reversible, reintentos idempotentes y rechazo de vínculos de operación incoherentes. La fachada permanece bloqueada con 503; la migración 0050 se probó localmente y el estado remoto no se conoce.",
+      "falta": "Completar candidatos y revisión de ambigüedades y conflictos entre matches, retención y bajas EST-19, autorización efectiva por fuente y sesión, integración con BUS-06/BUS-09, rutas y pantalla. No se han utilizado fuentes reales ni acreditado la operación de extremo a extremo.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:90-91",
         "admin/src/ListingEditor.jsx:148",
         "server/routes/listings.js:66-67",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "migrations/0050_market_identity.sql",
+        "server/internal/market-identity-core.js",
+        "server/market-identity.js",
+        "tests/server/bus-10-identity.test.mjs",
+        "docs/roadmap/work/BUS-10/foundation-evidence.md"
       ],
       "modulo": "M02",
       "deps": [
@@ -12981,7 +12991,7 @@
         "market-inventory",
         "property-identity"
       ],
-      "nextStep": "Crear identidad común de propiedad y publicaciones separadas con deduplicación conservadora."
+      "nextStep": "Resolver retención EST-19 y autoridad duradera antes de conectar candidatos, fuentes o interfaz."
     },
     {
       "id": "BUS-11",

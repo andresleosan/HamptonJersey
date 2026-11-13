@@ -4,15 +4,20 @@
   "titulo": "Restricciones de cada casa: aviso previo si hay inquilino, llaves y quién la enseña",
   "origen": "plan",
   "fase": "F3-A",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "Cualquier negociador activo enseña cualquier casa en cualquier hueco. Faltan el aviso mínimo si está alquilada (p. ej. 24 h), quién tiene las llaves y qué negociadores pueden enseñarla; el aviso automático al inquilino necesitará el servicio de correo.",
+  "hecho": "Base interna para reglas de aviso y negociadores por ficha y operación, con revisión transaccional y protección contra reutilización de identidad. No almacena instrucciones ni llaves ni está conectada a rutas o reservas; la migración 0051 se probó localmente y el estado remoto no se conoce.",
+  "falta": "Integrar permisos y evidencia revocable de acceso por inmueble, ocupación, reglas de reserva y visitas externas; construir gestión y pantalla privadas para instrucciones y llaves con retención y auditoría. El aviso automático al inquilino necesita AUT-17 y no se ha enviado ningún aviso.",
   "bloqueo": "",
   "evidencia": [
     "server/viewing-store.js:10-32",
     "migrations/0010_viewings.sql:2-9",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18"
+    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18",
+    "migrations/0051_property_viewing_rules.sql",
+    "server/property-viewing-rules.js",
+    "tests/server/property-viewing-rules-d1.test.mjs",
+    "tests/server/property-viewing-rules-identity.test.mjs",
+    "docs/roadmap/work/VIS-10/foundation-evidence.md"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -40,5 +45,5 @@
     "viewings-ui",
     "listings-contract"
   ],
-  "nextStep": "Añadir restricciones de aviso, llaves y negociadores por propiedad; dejar el aviso automático condicionado al correo."
+  "nextStep": "Definir autorización por inmueble y conectar las reglas a reservas solo con evidencia de acceso y dependencias verificadas."
 }
