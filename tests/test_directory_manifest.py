@@ -93,6 +93,38 @@ class ManifestReconciliationTests(unittest.TestCase):
         self._write_json('review-manifest.json', self.manifest)
         with self.assertRaises(ValueError): self.build()
 
+    def test_duplicate_nested_key_is_rejected(self):
+        path = self.root / 'reviews.json'
+        raw = path.read_text(encoding='utf-8')
+        raw = raw.replace('"review_state": "terms_and_method_review"',
+                          '"review_state": "excluded_by_project", "review_state": "terms_and_method_review"', 1)
+        path.write_text(raw, encoding='utf-8')
+        self.manifest['decisions'] = {**self._item('reviews.json'), 'rows': 2}
+        self._write_json('review-manifest.json', self.manifest)
+        with self.assertRaises(ValueError): self.build()
+
+    def test_escaped_equivalent_key_is_rejected_without_creating_or_overwriting_output(self):
+        path = self.root / 'review-manifest.json'
+        raw = path.read_text(encoding='utf-8')
+        raw = raw.replace('"status": "documentary_review_only_not_executable"',
+                          '"st\\u0061tus": "other", "status": "documentary_review_only_not_executable"', 1)
+        path.write_text(raw, encoding='utf-8')
+        output = self.root / 'candidate.local.json'
+        args = ['--workspace', str(self.root), '--acceptance', 'acceptance.json',
+                '--review-manifest', 'review-manifest.json', '--output', str(output)]
+        self.assertEqual(reconcile.main(args), 1)
+        self.assertFalse(output.exists())
+        output.write_text('existing output', encoding='utf-8')
+        self.assertEqual(reconcile.main(args), 1)
+        self.assertEqual(output.read_text(encoding='utf-8'), 'existing output')
+
+    def test_valid_unicode_evidence_remains_accepted(self):
+        self.reviews['note'] = 'Revisión sintética: café y 日本語'
+        self._write_json('reviews.json', self.reviews)
+        self.manifest['decisions'] = {**self._item('reviews.json'), 'rows': 2}
+        self._write_json('review-manifest.json', self.manifest)
+        self.assertEqual(self.build()['status'], 'candidate_not_authorized')
+
     def test_tampered_accepted_handoff_is_rejected(self):
         (self.root / 'handoff.csv').write_text('modified\n')
         with self.assertRaises(ValueError): self.build()
