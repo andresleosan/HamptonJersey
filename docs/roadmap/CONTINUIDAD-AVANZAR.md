@@ -1,0 +1,14 @@
+# Continuidad de `$avanzar`
+
+Luis pidió el 13-nov-2026 que Codex continúe el checklist de Hampton de forma autónoma entre invocaciones de `$avanzar`, usando los planes y especificaciones para resolver decisiones ya documentadas. Su objetivo es terminar las tareas aplicables o, como mínimo, **111 de las 221 tareas originales**. Una sesión nueva debe retomar desde el último estado comprobable; no se supone que trabaje en segundo plano cuando está cerrada.
+
+## Forma de trabajar
+
+- Leer este documento, [ESTADO.md](ESTADO.md), el catálogo, la ficha de cada tarea y sus planes/especificaciones vigentes. Comprobar `main`, sus cambios y el estado local antes de editar. El árbol de trabajo de Luis puede contener modificaciones ajenas: conservarlas y usar una copia aislada cuando haga falta.
+- Continuar con varias tareas viables en la misma sesión, priorizando las que puedan **terminarse realmente** y las dependencias que desbloqueen otras. Repartir trabajo independiente entre agentes cuando las reglas y herramientas de la sesión lo permitan, con un responsable por archivo compartido. Un bloqueo localizado no detiene las demás tareas.
+- Luis autoriza los **commits y pushes necesarios a `main`** para este avance, sin pedir una nueva aprobación por cada lote. Preparar cambios revisables, ejecutar las comprobaciones pertinentes, añadir solo los archivos propios, verificar que el remoto sigue en la base esperada y publicar sin forzar ni reescribir historial. Si hay cambios remotos concurrentes o un resultado incierto, reconciliar antes de seguir.
+- Agrupar pruebas completas y publicaciones de unidades compatibles para avanzar más rápido, manteniendo las comprobaciones específicas, la revisión necesaria y las pruebas de interfaz aisladas exigidas por el proyecto. No reducir cobertura ni desactivar controles para ahorrar tiempo.
+- Actualizar el checklist y la evidencia con lo terminado, lo parcial y sus dependencias. El porcentaje solo aumenta cuando la tarea cumple sus criterios reales; informar cantidad, total aplicable y porcentaje verificados. Mantener también visible la meta de 111 sobre las 221 originales para no confundirla con cambios del denominador.
+- La autorización de commit y push **no equivale** a permiso para aplicar migraciones remotas, activar servicios, cambiar credenciales o controles, enviar mensajes, restaurar datos o ejecutar acciones externas adicionales. Conservar las restricciones y resolver por la vía apropiada los bloqueos reales; no pedir ni publicar secretos.
+
+La continuidad depende de que la sesión esté activa y disponga de sus herramientas. Si llega a un límite técnico o de sesión, registrar el último commit, la verificación, las tareas en curso y los siguientes pasos concretos para que la próxima invocación de `$avanzar` pueda continuar sin reconstruir el trabajo.
