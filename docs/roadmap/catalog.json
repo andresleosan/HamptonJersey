@@ -9806,8 +9806,8 @@
       "fase": "—",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas. Cloudflare Pages y Workers Builds figuran correctos para el commit 2005312; no se repitió un smoke funcional en producción. El error simulado de Available from y la recuperación del borrador tras un 409 se comprobaron con zoom nativo en 1280/390; la validación de servidor se comprobó aparte.",
-      "falta": "La incorporación de fichas externas y fuentes corresponde a BUS-10/EST-16/SPR-07. No se ha repetido un smoke funcional autenticado en producción.",
+      "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas. Cloudflare Pages y Workers Builds figuran correctos para el commit 2005312; no se repitió un smoke funcional en producción. El error simulado de Available from y la recuperación del borrador tras un 409 se comprobaron con zoom nativo en 1280/390; la validación de servidor se comprobó aparte. En el main cd441, el recorrido aislado de listas volvió a pasar en Chromium y WebKit.",
+      "falta": "El criterio de auditoría exige registrar en el evento los valores anterior y nuevo de available_on: el trigger actual incluye el nombre del campo, pero omite esos valores tanto en creación como en edición. Falta cubrir específicamente los efectos de guardar solo la fecha. La incorporación de fichas externas corresponde a BUS-10/EST-16/SPR-07. No se ha repetido un smoke funcional autenticado en producción.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/Listings.jsx:81-108",
@@ -9817,6 +9817,8 @@
         "admin/src/listing-filters.js",
         "tests/server/listings-list.test.mjs",
         "tests/spr01-listings.e2e.cjs",
+        "docs/roadmap/work/SPR-01/implementation-evidence.md",
+        "migrations/0042_listing_economics.sql",
         "docs/roadmap/work/SPR-01/implementation-evidence.md"
       ],
       "assignedSlot": "codex-desktop",
@@ -9837,7 +9839,7 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Continuar la integración externa en sus tareas; no inferir disponibilidad ni fuente.",
+      "nextStep": "Preparar y probar una corrección aditiva de los triggers de auditoría y verificar el guardado solo de fecha; no modificar migraciones históricas ni presumir su estado remoto.",
       "actualizado": "2026-11-13"
     },
     {
@@ -11855,15 +11857,18 @@
       "titulo": "Modos Draft, Approve y Auto en cada automatización (autonomía graduable, P-10)",
       "origen": "plan",
       "fase": "—",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "M04/M06 · Reconciliación 7-nov: Concretar modos por operación sin convertirlos en autorización general. La automatización puede investigar, recalcular, preparar y ejecutar pasos ya autorizados; cada match requiere aprobación humana (BUS-15), cada cambio dictado confirmación (AUT-19) y el cierre por éxito acción expresa (EST-09). Ni confianza del modelo, ni porcentaje, ni un modo Auto pueden saltar esas decisiones. El disparador final de presentación se decide aparte. Aceptación: Activar Auto no aprueba matches, guarda criterios dictados ni resuelve búsquedas.",
+      "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo.",
+      "falta": "M04/M06 · Reconciliación 7-nov: Concretar modos por operación sin convertirlos en autorización general. La automatización puede investigar, recalcular, preparar y ejecutar pasos ya autorizados; cada match requiere aprobación humana (BUS-15), cada cambio dictado confirmación (AUT-19) y el cierre por éxito acción expresa (EST-09). Ni confianza del modelo, ni porcentaje, ni un modo Auto pueden saltar esas decisiones. El disparador final de presentación se decide aparte. Aceptación: Activar Auto no aprueba matches, guarda criterios dictados ni resuelve búsquedas. Falta persistir políticas y versiones, comprobar actor, origen y capacidad, integrar la interfaz y revalidar antes de cada efecto; el módulo preparado no está conectado a rutas ni consumidores.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:441",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:633",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "server/operation-policy.js",
+        "tests/server/aut-10-operation-policy.test.mjs",
+        "docs/roadmap/work/AUT-10/policy-foundation-2026-11-13.md"
       ],
       "modulo": "M04/M06",
       "deps": [],
@@ -11878,7 +11883,7 @@
         "automation-controls",
         "outbound-policy"
       ],
-      "nextStep": "Definir modos por operación conservando aprobación humana de matches, criterios y cierre."
+      "nextStep": "Integrar política versionada y sus guardas con autoridad verificable, manteniendo las decisiones humanas y sin activar operaciones desconocidas."
     },
     {
       "id": "AUT-11",
@@ -15146,8 +15151,8 @@
       "fase": "F5-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "El panel ofrece el contador de Rentals y avisos de plazos. El código del reloj compartido ya llama al productor común de notificaciones, que contempla atrasos, comprobaciones, plazos, renovaciones y emergencias; su activación remota no se ha verificado. El sondeo inicial de Inbox y del contador global respeta la visibilidad de la pestaña y se reanuda al volver a ella.",
-      "falta": "Verificar y corregir la pertenencia y deduplicación de avisos de reparaciones con referencias inconsistentes; integrar la autoridad financiera y permisos por caso antes de ampliar avisos de deuda; comprobar migraciones y funcionamiento del reloj en el entorno autorizado. Los canales externos siguen pendientes por separado. Una petición iniciada antes de ocultar la pestaña puede terminar.",
+      "hecho": "El panel ofrece el contador de Rentals y avisos de plazos. El código del reloj compartido ya llama al productor común de notificaciones, que contempla atrasos, comprobaciones, plazos, renovaciones y emergencias; su activación remota no se ha verificado. El sondeo inicial de Inbox y del contador global respeta la visibilidad de la pestaña y se reanuda al volver a ella. Se ensayaron consultas prototipo desconectadas para detectar referencias de reparación y episodios incompatibles.",
+      "falta": "Verificar y corregir la pertenencia y deduplicación de avisos de reparaciones con referencias inconsistentes; integrar la autoridad financiera y permisos por caso antes de ampliar avisos de deuda; comprobar migraciones y funcionamiento del reloj en el entorno autorizado. Los canales externos siguen pendientes por separado. Una petición iniciada antes de ocultar la pestaña puede terminar. Las consultas prototipo no se pueden activar: faltan identidad/revisión monotónica, capacidad por caso, saneamiento histórico y acceso indexado y acotado.",
       "bloqueo": "Correo (AUT-17) · Trámite Meta",
       "evidencia": [
         "admin/src/App.jsx:132-133",
@@ -15158,7 +15163,8 @@
         "server/routes/notifications.js:36-46",
         "server/jobs.js:1-15",
         "admin/src/poll.js",
-        "docs/roadmap/work/ADM-03/2026-11-13-sondeo-y-limites.md"
+        "docs/roadmap/work/ADM-03/2026-11-13-sondeo-y-limites.md",
+        "docs/roadmap/work/ADM-03/2026-11-13-reparaciones-base-desconectada.md"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",

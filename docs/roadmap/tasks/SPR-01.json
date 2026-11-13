@@ -6,8 +6,8 @@
   "fase": "—",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas. Cloudflare Pages y Workers Builds figuran correctos para el commit 2005312; no se repitió un smoke funcional en producción. El error simulado de Available from y la recuperación del borrador tras un 409 se comprobaron con zoom nativo en 1280/390; la validación de servidor se comprobó aparte.",
-  "falta": "La incorporación de fichas externas y fuentes corresponde a BUS-10/EST-16/SPR-07. No se ha repetido un smoke funcional autenticado en producción.",
+  "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas. Cloudflare Pages y Workers Builds figuran correctos para el commit 2005312; no se repitió un smoke funcional en producción. El error simulado de Available from y la recuperación del borrador tras un 409 se comprobaron con zoom nativo en 1280/390; la validación de servidor se comprobó aparte. En el main cd441, el recorrido aislado de listas volvió a pasar en Chromium y WebKit.",
+  "falta": "El criterio de auditoría exige registrar en el evento los valores anterior y nuevo de available_on: el trigger actual incluye el nombre del campo, pero omite esos valores tanto en creación como en edición. Falta cubrir específicamente los efectos de guardar solo la fecha. La incorporación de fichas externas corresponde a BUS-10/EST-16/SPR-07. No se ha repetido un smoke funcional autenticado en producción.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/Listings.jsx:81-108",
@@ -17,6 +17,8 @@
     "admin/src/listing-filters.js",
     "tests/server/listings-list.test.mjs",
     "tests/spr01-listings.e2e.cjs",
+    "docs/roadmap/work/SPR-01/implementation-evidence.md",
+    "migrations/0042_listing_economics.sql",
     "docs/roadmap/work/SPR-01/implementation-evidence.md"
   ],
   "assignedSlot": "codex-desktop",
@@ -37,6 +39,6 @@
     "listings-schema",
     "listing-editor"
   ],
-  "nextStep": "Continuar la integración externa en sus tareas; no inferir disponibilidad ni fuente.",
+  "nextStep": "Preparar y probar una corrección aditiva de los triggers de auditoría y verificar el guardado solo de fecha; no modificar migraciones históricas ni presumir su estado remoto.",
   "actualizado": "2026-11-13"
 }

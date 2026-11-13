@@ -36,3 +36,7 @@ Sobre el main `0c11720`, la suite final pasó 1.296 Node y 25 Python, build, rel
 El commit `2005312e2f3551043ccc62928fc5c334736f5a76` está en main; GitHub registra Cloudflare Pages y Workers Builds `hampton-jobs` completed/success. No se ha repetido un smoke funcional en producción. Los límites de foco/zoom y de integración externa permanecen.
 
 El recorrido de PUB-04 cubrió además Available from con 400 simulado y recuperación de borrador tras 409 simulado, con foco, etiqueta y error visibles a zoom nativo en 1280/390. La validación de servidor se comprobó aparte; no es prueba funcional de producción. La integración de fuentes externas sigue pendiente.
+
+## Revisión del 13-nov-2026
+
+En la copia `cd441334`, el recorrido `tests/spr01-listings.e2e.cjs` volvió a pasar en Chromium y WebKit con el lanzador aislado. Una revisión independiente comprobó en SQLite ficticio que el evento de cambio incluye `available_on` en la lista de campos, pero no en sus valores anterior y posterior; el evento de creación tampoco incluye ese valor. El criterio A5 permanece pendiente. Hace falta una prueba específica de guardar solo la fecha para A4. Las fuentes externas corresponden a otras tareas y no se ha hecho smoke autenticado en producción.

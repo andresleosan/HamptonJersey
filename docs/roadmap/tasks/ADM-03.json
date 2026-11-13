@@ -6,8 +6,8 @@
   "fase": "F5-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "El panel ofrece el contador de Rentals y avisos de plazos. El código del reloj compartido ya llama al productor común de notificaciones, que contempla atrasos, comprobaciones, plazos, renovaciones y emergencias; su activación remota no se ha verificado. El sondeo inicial de Inbox y del contador global respeta la visibilidad de la pestaña y se reanuda al volver a ella.",
-  "falta": "Verificar y corregir la pertenencia y deduplicación de avisos de reparaciones con referencias inconsistentes; integrar la autoridad financiera y permisos por caso antes de ampliar avisos de deuda; comprobar migraciones y funcionamiento del reloj en el entorno autorizado. Los canales externos siguen pendientes por separado. Una petición iniciada antes de ocultar la pestaña puede terminar.",
+  "hecho": "El panel ofrece el contador de Rentals y avisos de plazos. El código del reloj compartido ya llama al productor común de notificaciones, que contempla atrasos, comprobaciones, plazos, renovaciones y emergencias; su activación remota no se ha verificado. El sondeo inicial de Inbox y del contador global respeta la visibilidad de la pestaña y se reanuda al volver a ella. Se ensayaron consultas prototipo desconectadas para detectar referencias de reparación y episodios incompatibles.",
+  "falta": "Verificar y corregir la pertenencia y deduplicación de avisos de reparaciones con referencias inconsistentes; integrar la autoridad financiera y permisos por caso antes de ampliar avisos de deuda; comprobar migraciones y funcionamiento del reloj en el entorno autorizado. Los canales externos siguen pendientes por separado. Una petición iniciada antes de ocultar la pestaña puede terminar. Las consultas prototipo no se pueden activar: faltan identidad/revisión monotónica, capacidad por caso, saneamiento histórico y acceso indexado y acotado.",
   "bloqueo": "Correo (AUT-17) · Trámite Meta",
   "evidencia": [
     "admin/src/App.jsx:132-133",
@@ -18,7 +18,8 @@
     "server/routes/notifications.js:36-46",
     "server/jobs.js:1-15",
     "admin/src/poll.js",
-    "docs/roadmap/work/ADM-03/2026-11-13-sondeo-y-limites.md"
+    "docs/roadmap/work/ADM-03/2026-11-13-sondeo-y-limites.md",
+    "docs/roadmap/work/ADM-03/2026-11-13-reparaciones-base-desconectada.md"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",

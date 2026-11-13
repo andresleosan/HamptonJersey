@@ -30,3 +30,5 @@ El evento, la proyección y la observación deben quedar en una misma transacci�
 5. **Validación de integración.** Quedan pendientes implementación transaccional, pruebas de carreras y revocación con permisos reales sintéticos, migraciones locales y remotas acreditadas, revisión independiente y, si cambia UI, E2E con el lanzador aislado. No se extrapolan estos resultados a producción.
 
 La duplicación previa de eventos para una tenancy de otro inmueble y el enlace de tareas con contexto antiguo continúan en el código activo. Esta entrega no los presenta como corregidos.
+
+Integración documental y de pruebas sobre `cd44133`: 1.713 pruebas Node y 25 Python aprobadas, build y check:release aprobados. Los SQL siguen fuera del runtime y la incidencia activa permanece pendiente.

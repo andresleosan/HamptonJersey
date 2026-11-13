@@ -1,5 +1,11 @@
 # Estado de Hampton App
 
+13-nov-2026 · **SPR-01 parcial:** Chromium y WebKit aislados volvieron a pasar; la revisión detectó que el historial no guarda el valor anterior y nuevo de la fecha. Falta corregir la auditoría y cubrir específicamente el guardado solo de fecha. [Evidencia](work/SPR-01/implementation-evidence.md).
+
+13-nov-2026 · **AUT-10 parcial:** inspección de propuestas de modo con guardas humanas cerradas y sin conceder ejecución. Persistencia, CAS, actor y comprobación antes del efecto siguen pendientes. [Evidencia](work/AUT-10/policy-foundation-2026-11-13.md).
+
+13-nov-2026 · **ADM-03 parcial:** prototipos desconectados para referencias y episodios de reparaciones; no corrigen aún la incidencia activa. Faltan identidad, permisos, saneamiento y lecturas acotadas. [Evidencia](work/ADM-03/2026-11-13-reparaciones-base-desconectada.md).
+
 13-nov-2026 · **MSG-02 parcial:** propuesta desconectada de revisiones y recibos mínimos ensayada y revisada. Faltan actor autenticado, retención, control de reemisiones y borrado acotado; no hay rutas ni migración nuevas activas. [Evidencia](work/MSG-02/semantic-cas-evidence.md).
 
 13-nov-2026 · **OFE-06 parcial:** cálculo desconectado de ventanas semanales de Jersey con activación explícita, límite de dos semanas y tratamiento del cambio de hora. Faltan productor idempotente, permisos y revisión humana; no se crean tareas ni se activa el reloj. [Evidencia](work/OFE-06/revision-ventanas-2026-11-13.md).
