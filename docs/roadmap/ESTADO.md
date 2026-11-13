@@ -492,3 +492,5 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **VIS-09, offsets de Jersey 13-nov:** preparado y revisado un validador puro para horas con offset explícito; distingue horas repetidas y rechaza inexistentes. Sigue desconectado, no resuelve reservas históricas sin offset ni acredita tzdata de producción. VIS-09 permanece parcial. [Evidencia](work/VIS-09/foundation-evidence.md). Playwright: no aplica.
 
 **Integración VIS-09 13-nov:** pasaron 2.162 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes. El helper de offset sigue desconectado, y VIS-09 permanece parcial. El catálogo mantiene 68/215 (31,63 %). Playwright: no aplica.
+
+**BUS-06, reconciliación documental 13-nov:** el lector rechaza claves duplicadas, incluidas anidadas y escapadas equivalentes, sin sobrescribir salida; revisión independiente y 15 pruebas sintéticas. No se leyó el candidato privado ni se habilitaron fuentes; las huellas no autentican al revisor. BUS-06 sigue parcial. [Evidencia](work/BUS-06/avance-publicable.md). Playwright: no aplica.

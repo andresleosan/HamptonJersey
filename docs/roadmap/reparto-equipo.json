@@ -3929,8 +3929,8 @@
       "fase": "F1-B",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones compartidas, observaciones y registro transaccional. Rutas administrativas desactivadas por defecto; migración ensayada solo en bases locales. Candidato documental privado reconciliado con 141 identificadores y 237 canales, sin habilitar accesos.",
-      "falta": "Faltan la incorporación operativa del manifiesto, lectores controlados, pantalla y evidencia de captura real. M02 · Reconciliación 7-nov: Crear el inventario inicial por tandas desde el directorio revisado, usando las fuentes operativas disponibles y tareas manuales para las restringidas. Capturar datos suficientes para comparar: operación, tipo, precio y periodicidad originales, ubicación, dormitorios o superficie, ocupación, parking, mascotas, descripción, referencia, anunciante y contactos. La descarga completa de fotos espera a la disponibilidad confirmada (SPR-03). Places.je es un conector posible; PRE-01 no bloquea el inventario ni se exige un acuerdo de comisión para leer un feed utilizable. Depende de: BUS-23, BUS-19, AGE-04. Aceptación: Las fuentes accesibles producen inventario común y las inaccesibles quedan pendientes, sin registrarlas como vacías.",
+      "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones compartidas, observaciones y registro transaccional. Rutas administrativas desactivadas por defecto; migración ensayada solo en bases locales. Candidato documental privado reconciliado con 141 identificadores y 237 canales, sin habilitar accesos. El reconciliador documental rechaza claves JSON duplicadas, también anidadas o equivalentes por escape, y preserva la salida ante rechazo.",
+      "falta": "Faltan la incorporación operativa del manifiesto, lectores controlados, pantalla y evidencia de captura real. M02 · Reconciliación 7-nov: Crear el inventario inicial por tandas desde el directorio revisado, usando las fuentes operativas disponibles y tareas manuales para las restringidas. Capturar datos suficientes para comparar: operación, tipo, precio y periodicidad originales, ubicación, dormitorios o superficie, ocupación, parking, mascotas, descripción, referencia, anunciante y contactos. La descarga completa de fotos espera a la disponibilidad confirmada (SPR-03). Places.je es un conector posible; PRE-01 no bloquea el inventario ni se exige un acuerdo de comisión para leer un feed utilizable. Depende de: BUS-23, BUS-19, AGE-04. Aceptación: Las fuentes accesibles producen inventario común y las inaccesibles quedan pendientes, sin registrarlas como vacías. La validación y las huellas no autentican al revisor ni autorizan las fuentes.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/ESTADO.md:9",
@@ -3940,7 +3940,9 @@
         "docs/roadmap/work/BUS-06/avance-publicable.md",
         "server/market-inventory-store.js",
         "migrations/0043_market_inventory.sql",
-        "scripts/reconcile_accepted_directory.py"
+        "scripts/reconcile_accepted_directory.py",
+        "docs/roadmap/work/BUS-06/avance-publicable.md",
+        "tests/test_directory_manifest.py"
       ],
       "modulo": "M02",
       "deps": [
