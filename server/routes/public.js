@@ -72,9 +72,10 @@ export async function readLive(env, id, { viewingClock } = {}) {
 }
 const listPublic = async ({ env }) => {
   const listings = (await readLive(env)).map(x => x.pub);
-  // Visibility can change independently of a visitor's next request. Instruct
-  // caches not to retain new catalogue responses while ANA-10 / PUB-16 are prepared.
-  return json(listings, 200, { "cache-control": "no-store" });
+  // The ANA-10 switch stays off until its cost and CDN behavior are reviewed.
+  // Exact public addresses must never be cached, regardless of this switch.
+  const noStore = env.ANA10_QR_NO_STORE === '1' || listings.some(l => l.exactAddress);
+  return json(listings, 200, { "cache-control": noStore ? "no-store" : "public, max-age=60" });
 };
 
 // chat: whether the website offers new chats (MSG-02, C3); with the cache, a change shows within 5 minutes.

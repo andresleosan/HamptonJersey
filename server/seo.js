@@ -23,11 +23,13 @@ export function seoHeaders(request, env, type) {
 export async function listingPage(request, env, id) {
   const p = /^HE-[A-Z]\d{3,}$/.test(id) ? (await readLive(env, id)).map(x => x.pub).find(shownOnSite) : null;
   const headers = seoHeaders(request, env);
-  // Ask caches not to retain either a live page or a 404. This does not
-  // invalidate older copies or control intermediary cache rules.
-  headers.set("cache-control", "no-store");
+  // The ANA-10 switch remains off until its cost and CDN behavior are reviewed.
+  // It does not invalidate older copies or control intermediary cache rules.
+  const noStore = env.ANA10_QR_NO_STORE === '1';
   const siteUrl = base(env.SITE_URL);
-  if (!p) return { status: 404, headers, siteUrl, title: null, head: '<meta name="robots" content="noindex">' };
+  if (!p) { headers.set("cache-control", noStore ? "no-store" : "public, max-age=60");
+    return { status: 404, headers, siteUrl, title: null, head: '<meta name="robots" content="noindex">' }; }
+  if (noStore || p.exactAddress) headers.set("cache-control", "no-store");
   const m = listingMeta(p, env.SITE_URL);
   return { status: 200, headers, siteUrl, title: m.title, head: headTags(m) };
 }

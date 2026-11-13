@@ -6,8 +6,8 @@
   "fase": "—",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "La decisión del 10-nov sustituye la atribución de origen a contactos por aperturas agregadas de QR por propiedad. En código local, la ficha y el catálogo público responden no-store desde origen; pruebas sintéticas verifican publicación, retirada y republicación. Aún no hay QR ni contador nuevos activos.",
-  "falta": "Construir la generación y descarga Staff del QR, asociación estable por ficha pública, redirección, contadores agregados y consulta protegida. Acreditar privacidad, presupuesto y atomicidad, la elegibilidad y retirada temporal de PUB-16, las reglas CDN y la invalidación o vencimiento de cachés antiguas; probar también el QR físico. Las cabeceras locales no acreditan esos requisitos ni producción.",
+  "hecho": "La decisión del 10-nov sustituye la atribución de origen a contactos por aperturas agregadas de QR por propiedad. Se preparó no-store para ficha y catálogo mediante un gate desactivado por defecto; la caché existente y la protección de direcciones exactas se conservan. Aún no hay QR ni contador nuevos activos.",
+  "falta": "Construir la generación y descarga Staff del QR, asociación estable por ficha pública, redirección, contadores agregados y consulta protegida. Acreditar privacidad, presupuesto y atomicidad, la elegibilidad y retirada temporal de PUB-16, el coste adicional de las lecturas, las reglas CDN y la invalidación o vencimiento de cachés antiguas; probar también el QR físico. El gate preparado no acredita esos requisitos ni producción.",
   "bloqueo": "",
   "evidencia": [
     "server/routes/public.js",

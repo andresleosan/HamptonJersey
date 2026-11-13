@@ -98,11 +98,11 @@ function world() {
 }
 const req = (path, host = SITE) => new Request(host + path);
 
-test("listing page: a published listing gets its tags, 200, no-store", async () => {
+test("listing page: a published listing gets its tags, 200, cached five minutes by default", async () => {
   const r = await listingPage(req("/p/HE-R001"), world(), "HE-R001");
   assert.equal(r.status, 200);
   assert.equal(r.title, "Le Bernage · £769,000 · Hampton Estates Jersey");
-  assert.equal(r.headers.get("cache-control"), "no-store");
+  assert.equal(r.headers.get("cache-control"), "public, max-age=300");
   assert.equal(r.headers.get("x-robots-tag"), null);
   assert.equal(r.siteUrl, SITE, "the base of the page's shared links (meta site-url)");
   for (const t of ['property="og:title"', `property="og:image" content="${SITE}/media/A00001?thumb"`, 'application/ld+json',
@@ -118,13 +118,14 @@ test("listing page: missing, unpublished, archived or not shown by the website i
     assert.equal(r.status, 404, id);
     assert.equal(r.title, null);
     assert.equal(r.head, '<meta name="robots" content="noindex">');
-    // A listing published later is not hidden by a stored 404.
-    assert.equal(r.headers.get("cache-control"), "no-store", id);
+    // Default behavior keeps a short cache for a 404.
+    assert.equal(r.headers.get("cache-control"), "public, max-age=60", id);
   }
 });
 
 test("ANA-10: listing page sends no-store before and after unpublish and republish", async () => {
   const env = world();
+  env.ANA10_QR_NO_STORE = '1';
   for (const published of [1, 0, 1]) {
     env.DB.raw.prepare("UPDATE listings SET published = ? WHERE id = ?").run(published, "HE-R001");
     const page = await listingPage(req("/p/HE-R001"), env, "HE-R001");
@@ -134,25 +135,39 @@ test("ANA-10: listing page sends no-store before and after unpublish and republi
   }
 });
 
-test("ANA-10: the listing function preserves no-store for GET and HEAD, including missing listings", async () => {
+test("ANA-10: GET and HEAD preserve default and gated cache policy for live and missing listings", async () => {
   const env = { ...world(), ASSETS: { fetch: async () => new Response("<!doctype html><title>fixture</title>",
     { headers: { "cache-control": "public, max-age=600" } }) } };
   const previous = globalThis.HTMLRewriter;
   globalThis.HTMLRewriter = class { on() { return this; } transform(response) { return response; } };
   try {
-    for (const [id, status] of [["HE-R001", 200], ["HE-R002", 404]]) {
-      for (const handler of [listingFn, listingHead]) {
-        const method = handler === listingHead ? "HEAD" : "GET";
-        const ctx = { request: new Request(`${SITE}/p/${id}`, { method }), env, params: { id } };
-        const response = await handler(ctx);
-        assert.equal(response.status, status);
-        assert.equal(response.headers.get("cache-control"), "no-store");
-        if (handler === listingHead) assert.equal(await response.text(), "");
+    for (const setting of [undefined, '1']) {
+      env.ANA10_QR_NO_STORE = setting;
+      for (const [id, status, defaultCache] of [["HE-R001", 200, "public, max-age=300"], ["HE-R002", 404, "public, max-age=60"]]) {
+        for (const handler of [listingFn, listingHead]) {
+          const method = handler === listingHead ? "HEAD" : "GET";
+          const ctx = { request: new Request(`${SITE}/p/${id}`, { method }), env, params: { id } };
+          const response = await handler(ctx);
+          assert.equal(response.status, status);
+          assert.equal(response.headers.get("cache-control"), setting === '1' ? 'no-store' : defaultCache);
+          if (handler === listingHead) assert.equal(await response.text(), "");
+        }
       }
     }
   } finally {
     if (previous === undefined) delete globalThis.HTMLRewriter;
     else globalThis.HTMLRewriter = previous;
+  }
+});
+
+test("ANA-10: only the explicit setting changes default listing and missing-page caches", async () => {
+  const env = world();
+  for (const setting of [undefined, null, '0', 'true', 1]) {
+    env.ANA10_QR_NO_STORE = setting;
+    const visible = await listingPage(req("/p/HE-R001"), env, "HE-R001");
+    const missing = await listingPage(req("/p/HE-R002"), env, "HE-R002");
+    assert.equal(visible.headers.get("cache-control"), "public, max-age=300");
+    assert.equal(missing.headers.get("cache-control"), "public, max-age=60");
   }
 });
 
@@ -221,15 +236,19 @@ test("listing page: if D1 fails, the plain page with a 503, never cached, instea
   const errors = [], log = console.error;
   console.error = (...a) => errors.push(a.join(" "));
   try {
-    const ctx = { request: req("/p/HE-R001"), env, params: { id: "HE-R001" } };
-    const r = await listingFn(ctx);
-    assert.equal(r.status, 503);
-    assert.equal(r.headers.get("cache-control"), "no-store");
-    assert.equal(r.headers.get("content-type"), "text/html; charset=utf-8");
-    assert.equal(await r.text(), "<!doctype html><title>spa</title>");
-    const h = await listingHead(ctx);
-    assert.equal(h.status, 503);
-    assert.equal(await h.text(), "");
+    for (const setting of [undefined, '1']) {
+      env.ANA10_QR_NO_STORE = setting;
+      const ctx = { request: req("/p/HE-R001"), env, params: { id: "HE-R001" } };
+      const r = await listingFn(ctx);
+      assert.equal(r.status, 503);
+      assert.equal(r.headers.get("cache-control"), "no-store");
+      assert.equal(r.headers.get("content-type"), "text/html; charset=utf-8");
+      assert.equal(await r.text(), "<!doctype html><title>spa</title>");
+      const h = await listingHead(ctx);
+      assert.equal(h.status, 503);
+      assert.equal(h.headers.get("cache-control"), "no-store");
+      assert.equal(await h.text(), "");
+    }
   } finally { console.error = log; }
   assert.match(errors[0], /listing page HE-R001 .*D1 is down/);
 });

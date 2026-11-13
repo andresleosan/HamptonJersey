@@ -256,14 +256,18 @@ test('PUB-04: exact address publication requires reviewed full snapshot and unpu
   assert.equal(history.status, 200);
   assert.equal(JSON.stringify(history.data).includes('Harbour House'), false);
 
-  const publicResponse = await call(env, 'GET', '/listings');
-  assert.equal(publicResponse.data[0].exactAddress, approved.data.details.public_address_snapshot);
-  assert.equal(publicResponse.headers.get('cache-control'), 'no-store');
-  const page = await listingPage(new Request('https://hampton.test/p/HE-R001'), env, 'HE-R001');
-  assert.equal(page.status, 200);
-  assert.equal(page.headers.get('cache-control'), 'no-store');
-  assert.equal(page.head, headTags(preview.data.preview.seo), 'OG, canonical and JSON-LD match the reviewed preview');
-  assert.match(page.head, /Harbour House, High Street, St Saviour, JE2 3AB, Jersey/);
+  for (const setting of [undefined, '0', '1']) {
+    env.ANA10_QR_NO_STORE = setting;
+    const publicResponse = await call(env, 'GET', '/listings');
+    assert.equal(publicResponse.data[0].exactAddress, approved.data.details.public_address_snapshot);
+    assert.equal(publicResponse.headers.get('cache-control'), 'no-store');
+    const page = await listingPage(new Request('https://hampton.test/p/HE-R001'), env, 'HE-R001');
+    assert.equal(page.status, 200);
+    assert.equal(page.headers.get('cache-control'), 'no-store');
+    assert.equal(page.head, headTags(preview.data.preview.seo), 'OG, canonical and JSON-LD match the reviewed preview');
+    assert.match(page.head, /Harbour House, High Street, St Saviour, JE2 3AB, Jersey/);
+  }
+  delete env.ANA10_QR_NO_STORE;
 
   const privateEdit = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: {
     updated_at: approved.data.listing.updated_at, details: { building_name_or_number: 'Harbour Court' },
