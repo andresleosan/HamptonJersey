@@ -15,6 +15,8 @@ export const LISTING_OPERATION = { rent: "rent", buy: "sale" };
 export const MATCH_SNAPSHOT_MAX_BYTES = 1900000;
 export const MATCH_SNAPSHOT_LIMIT_MESSAGE = "The comparison exceeds the safe processing limit. Contact support.";
 export const MATCH_SNAPSHOT_INVALID_MESSAGE = "The comparison inputs could not be verified. Contact support.";
+export const MATCH_INCOMPLETE_MESSAGE = "The recalculation could not be confirmed. Refresh before trying again.";
+export const MATCH_RESULT_UNKNOWN_MESSAGE = "The recalculation outcome is unknown; it may have completed. Refresh before trying again.";
 const snapshotEncoder = new TextEncoder();
 export function encodeMatchSnapshot(listings, maxBytes=MATCH_SNAPSHOT_MAX_BYTES) {
   if(!Number.isSafeInteger(maxBytes)||maxBytes<2||maxBytes>MATCH_SNAPSHOT_MAX_BYTES) throw new RangeError('Invalid snapshot limit');
@@ -35,11 +37,11 @@ export const matchSnapshotMessage = reason => reason==='snapshot_too_large'
   ? MATCH_SNAPSHOT_LIMIT_MESSAGE : MATCH_SNAPSHOT_INVALID_MESSAGE;
 
 // Only the columns evaluate() reads (never the listing's text: B10), plus whether the listing is a candidate.
-export const LISTING = `COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=listings.id),0) AS match_inputs_revision, id, operation, availability, archived_at, bedrooms, bathrooms, parish, published, sale_price, rent, rent_period,
+export const LISTING = `COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=listings.id),0) AS match_inputs_revision, id, operation, availability, archived_at, bedrooms, bathrooms, parish, published, sale_price, rent, rent_period, currency,
   feat_pets, feat_parking, feat_furnished, feat_outdoor, feat_type, feat_evidence, tenure_type, housing_category, restriction,
   (${CANDIDATES_SQL}) AS candidate`;
 // The applicant's search as evaluate() reads it, whether it is active, and the contact's name for the notice.
-export const APPLICANT = `a.match_inputs_revision, a.requirement_priorities, a.household_children, a.household_children_status, a.move_in_date, a.lease_term_months, a.near, a.requirements, a.id, a.archived_at, a.stage, a.search_state, a.search_category, a.updated_at, a.operation, a.budget_min, a.budget_max, a.budget_stretch,
+export const APPLICANT = `a.match_inputs_revision, a.matches_revision, a.requirement_priorities, a.household_children, a.household_children_status, a.move_in_date, a.lease_term_months, a.near, a.requirements, a.id, a.archived_at, a.stage, a.search_state, a.search_category, a.updated_at, a.operation, a.budget_min, a.budget_max, a.budget_stretch,
   a.property_types, a.bedrooms_min, a.bedrooms_max, a.bedrooms_ideal, a.bathrooms_min, a.parking_spaces, a.outdoor, a.furnished, a.pets,
   a.area_answer, a.preferred_parish, a.parishes_wanted, a.parishes_excluded, a.housing_status, a.buyer_position, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id`;
 
@@ -129,8 +131,10 @@ export async function afterSave(recompute, ...args) {
 // After an applicant is saved. actor: an admin email, 'public' or 'system'.
 export async function recomputeForApplicantWithStatus(env, applicantId, actor, restoreNotice = false) {
   const a = await env.DB.prepare(`SELECT ${APPLICANT} WHERE a.id = ?`).bind(applicantId).first();
-  if (!a) return { created: 0, completed: false };
-  if (!isActive(a) || a.search_category !== "residential") return { created: 0, completed: false }; // Commercial matching belongs to M04.
+  if (!a || !isActive(a) || a.search_category !== "residential")
+    return { created: 0, completed: false, reason: 'not_applicable' }; // Commercial matching belongs to M04.
+  if (!Number.isSafeInteger(a.matches_revision) || a.matches_revision < 0)
+    return { created: 0, completed: false, reason: 'snapshot_invalid' };
   // The candidates, and the shortlisted ones that left them (their checks still show what fails now).
   const [listings, stored] = (await env.DB.batch([
     env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE (${CANDIDATES_SQL} AND operation = ?)
@@ -157,9 +161,11 @@ export async function recomputeForApplicantWithStatus(env, applicantId, actor, r
     WHERE l.id IS NULL OR COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=l.id),0)<>json_extract(v.value,'$.version'))
     AND NOT EXISTS (SELECT id FROM listings WHERE ${CANDIDATES_SQL} AND operation=?
       EXCEPT SELECT json_extract(value,'$.id') FROM json_each(?))`;
-  const snapshotArgs=[versions,LISTING_OPERATION[a.operation],versions,a.id,a.updated_at,a.match_inputs_revision];
+  const initialSearch = `${search} AND (SELECT matches_revision FROM applicants WHERE id=?) = ?`;
+  const snapshotArgs=[versions,LISTING_OPERATION[a.operation],versions,a.id,a.updated_at,a.match_inputs_revision,a.id,a.matches_revision];
   // The existing NOT NULL constraint is an atomic rollback barrier, not a progress record or a timestamp update.
-  stmts.unshift(env.DB.prepare(`UPDATE applicants SET updated_at=CASE WHEN ${snapshot} AND ${search} THEN updated_at END WHERE id=?`)
+  // Match writes advance matches_revision, so compare it only at this initial barrier.
+  stmts.unshift(env.DB.prepare(`UPDATE applicants SET updated_at=CASE WHEN ${snapshot} AND ${initialSearch} THEN updated_at END WHERE id=?`)
     .bind(...snapshotArgs,a.id));
   if(createdIndex!==null)createdIndex++;
   stmts.push(guarded(`UPDATE applicants SET match_ranking_version=1 WHERE id=? AND NOT EXISTS
@@ -183,21 +189,30 @@ export async function recomputeForApplicantWithStatus(env, applicantId, actor, r
     if (/NOT NULL constraint failed: applicants\.updated_at/i.test(String(error?.message))) {
       // A later unrelated constraint can have the same message. Only classify a conflict when the saved snapshot
       // is still demonstrably stale; otherwise preserve the original error.
-      let valid=null;
-      try { valid=(await env.DB.prepare(`SELECT CASE WHEN ${snapshot} AND ${search} THEN 1 ELSE 0 END AS valid`)
-        .bind(...snapshotArgs).first())?.valid; } catch { /* preserve the original batch failure */ }
-      if (valid===0) return {created:0,completed:false};
+      let state=null;
+      try { state=await env.DB.prepare(`SELECT CASE WHEN ${snapshot} AND ${initialSearch} THEN 1 ELSE 0 END AS valid,
+        EXISTS(SELECT 1 FROM applicants a WHERE a.id=? AND ${activeSql("a")} AND a.search_category='residential') AS applicable`)
+        .bind(...snapshotArgs,a.id).first(); } catch { /* preserve the original batch failure */ }
+      if (state?.valid===0) return state.applicable===0 ? {created:0,completed:false,reason:'not_applicable'} : {created:0,completed:false};
     }
+    // A transport failure may happen after the database committed; never claim it rolled back.
+    for (let cause=error, depth=0; cause && depth<4; cause=cause.cause, depth++)
+      if (cause.name === 'AbortError' || ['UND_ERR_SOCKET','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT','ECONNRESET','ETIMEDOUT'].includes(cause.code))
+        fail(503,MATCH_RESULT_UNKNOWN_MESSAGE);
     throw error;
   }
-  const created=createdIndex===null ? 0 : written[createdIndex]?.results?.[0]?.created;
-  if(!Number.isSafeInteger(created)||created<0) throw new Error('Match insertion count unavailable');
-  return {created,completed:written[completion]?.results?.[0]?.direct_changes===1};
+  const created=createdIndex===null ? 0 : written?.[createdIndex]?.results?.[0]?.created;
+  if(!Number.isSafeInteger(created)||created<0) fail(503,`Match insertion count unavailable. ${MATCH_RESULT_UNKNOWN_MESSAGE}`);
+  const direct=written?.[completion]?.results?.[0]?.direct_changes;
+  if (!Number.isSafeInteger(direct) || (direct !== 0 && direct !== 1)) fail(503,MATCH_RESULT_UNKNOWN_MESSAGE);
+  return {created,completed:direct===1};
 }
 
 export async function recomputeForApplicant(env, applicantId, actor, restoreNotice = false) {
-  const {created,reason}=await recomputeForApplicantWithStatus(env, applicantId, actor, restoreNotice);
+  const {created,completed,reason}=await recomputeForApplicantWithStatus(env, applicantId, actor, restoreNotice);
+  if(reason==='not_applicable')return {created:0};
   if(reason)fail(409,matchSnapshotMessage(reason));
+  if(!completed)fail(409,MATCH_INCOMPLETE_MESSAGE);
   return {created};
 }
 

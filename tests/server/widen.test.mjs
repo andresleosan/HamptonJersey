@@ -10,7 +10,7 @@ const applicant = (o = {}) => {const a=({ operation: "buy", budget_min: null, bu
   outdoor: null, furnished: null, pets: '[{"kind":"none"}]', parishes_wanted: null, parishes_excluded: null, ...o });return {...a,requirement_priorities:JSON.stringify(priorities(a))};};
 let n = 0;
 const listing = (o = {}) => ({ id: `HE-R${String(++n).padStart(3, "0")}`, operation: "sale", sale_price: null, rent: null,
-  rent_period: null, bedrooms: null, bathrooms: null, parish: null, feat_pets: null, feat_parking: null, feat_furnished: null,
+  rent_period: null, currency: "GBP", bedrooms: null, bathrooms: null, parish: null, feat_pets: null, feat_parking: null, feat_furnished: null,
   feat_outdoor: null, feat_type: null, feat_evidence: null, published: 1, archived_at: null, ...o });
 const json = v => JSON.stringify(v);
 const alt = (list, key) => list.find(x => x.key === key);

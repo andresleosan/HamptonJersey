@@ -2,7 +2,7 @@ import {parsePriorities} from "../../site/requirements.js";
 import { json, fail, readJson, now } from "../http.js";
 import { validateApplicant, normalizePhone, OPTIONS, QUEUES, SEARCH_STATES, activeSql, isActive } from "../applicants.js";
 import { logEvent, resolveNotices } from "../events.js";
-import { afterSave, recomputeForApplicant, recomputeForApplicantWithStatus, matchSnapshotMessage, CANDIDATES_SQL, LISTING, LISTING_OPERATION } from "../match-store.js";
+import { afterSave, recomputeForApplicant, recomputeForApplicantWithStatus, matchSnapshotMessage, MATCH_INCOMPLETE_MESSAGE, CANDIDATES_SQL, LISTING, LISTING_OPERATION } from "../match-store.js";
 import { widen } from "../widen.js";
 import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts } from "../match-pages.js";
@@ -225,8 +225,9 @@ async function recalculateMatches({env,admin,params:[id]}) {
  const a=await loadApplicant(env,id);
  if(!isActive(a)||a.search_category!=='residential')fail(409,'Reopen a residential search to recalculate its matches.');
  const {created,completed,reason}=await recomputeForApplicantWithStatus(env,Number(id),admin);
+ if(reason==='not_applicable')fail(409,'Reopen a residential search to recalculate its matches.');
  if(reason)fail(409,matchSnapshotMessage(reason));
- if(!completed)fail(409,'Search or property details changed during recalculation. Try again.');
+ if(!completed)fail(409,MATCH_INCOMPLETE_MESSAGE);
  return json({created});
 }
 async function matchPage({request,env,params:[id]}) {

@@ -6,7 +6,7 @@ import { evaluate, monthlyRent } from "../../server/matching.js";
 const applicant = (o = {}) => ({ operation: "buy", budget_min: null, budget_max: null, budget_stretch: null,
   property_types: null, bedrooms_min: null, bedrooms_ideal: null, bathrooms_min: null, parking_spaces: null,
   outdoor: null, furnished: null, pets: null, parishes_wanted: null, parishes_excluded: null, ...o });
-const listing = (o = {}) => ({ operation: "sale", sale_price: null, rent: null, rent_period: null, bedrooms: null,
+const listing = (o = {}) => ({ operation: "sale", sale_price: null, rent: null, rent_period: null, currency: "GBP", bedrooms: null,
   bathrooms: null, parish: null, feat_pets: null, feat_parking: null, feat_furnished: null, feat_outdoor: null,
   feat_type: null, feat_evidence: null, published: 0, archived_at: null, ...o });
 const json = v => JSON.stringify(v);

@@ -28,8 +28,15 @@ export function monthlyRent(listing) {
 }
 
 function budget(a, l) {
-  const price = l.operation === "rent" ? monthlyRent(l) : l.sale_price;
-  if (price == null) return { result: "unknown", evidence: null, points: POINTS.priceUnknown };
+  const source = l.operation === "rent" ? l.rent : l.sale_price;
+  if (typeof source !== "number" || !Number.isFinite(source) || source <= 0)
+    return { result: "unknown", evidence: null, points: POINTS.priceUnknown };
+  const price = l.operation === "rent" ? monthlyRent(l) : source;
+  if (typeof price !== "number" || !Number.isFinite(price) || price <= 0)
+    return { result: "unknown", evidence: null, points: POINTS.priceUnknown };
+  // Applicant budgets are GBP; no exchange rate or currency is inferred.
+  if (l.currency !== "GBP")
+    return { result: "unknown", evidence: "Confirm the price currency", points: POINTS.priceUnknown };
   const evidence = l.operation !== "rent" ? gbp(price)
     : `${gbp(price)} a month${l.rent_period === "year" ? ` (${gbp(l.rent)} a year)` : ""}`;
   const top = a.budget_stretch ?? a.budget_max;

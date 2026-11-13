@@ -131,7 +131,8 @@ test("first run creates found matches, one event and one notice", async () => {
   assert.equal(n.action_required, 1);
   assert.equal(n.resolved_at, null);
 
-  // One match reads in the singular.
+  // Isolate the singular notice from the unknown-currency candidate kept above for confirmation.
+  run(env, "UPDATE listings SET matchable = 0 WHERE id = 'HE-R003'");
   const solo = seedApplicant(env, "Tom Vibert", { budget_max: 800000 });
   listing(env, "HE-R011", { sale_price: 750000 });
   assert.deepEqual(await recomputeForApplicant(env, solo, "public"), { created: 1 });

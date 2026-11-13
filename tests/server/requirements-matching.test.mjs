@@ -4,7 +4,7 @@ import {evaluate} from '../../server/matching.js';
 import {extractFeatures} from '../../server/listing-features.js';
 const priorities = (values,unknown=[])=>JSON.stringify({version:1,values:{budget:'preferred',bedrooms:'preferred',...values},unknown});
 const applicant = o=>({operation:'rent',budget_max:2000,bedrooms_min:2,...o});
-const listing = (description='',o={})=>({operation:'rent',rent:1800,rent_period:'month',bedrooms:2,bathrooms:2,
+const listing = (description='',o={})=>({operation:'rent',rent:1800,rent_period:'month',currency:'GBP',bedrooms:2,bathrooms:2,
   published:1,archived_at:null,...extractFeatures({description}),parish:'St Helier',...o});
 const result = (a,l)=>evaluate(applicant(a),l);
 const parking = (description)=> result({parking_spaces:2,requirement_priorities:priorities({parking:'must'})},listing(description));

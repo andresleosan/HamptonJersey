@@ -17,7 +17,7 @@ const STALE = "Someone else reviewed this match. Reload to see it.";
 const object = (alias, keys, extra = []) => `json_object(${[...keys.map(k => `'${k}', ${alias}.${k}`), ...extra].join(", ")})`;
 // A match as its card shows it (spec §5), with its listing; from matches m JOIN listings l.
 const EVAL_APPLICANT = object("a", ["match_ranking_version", "operation", "budget_min", "budget_max", "budget_stretch", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "parking_spaces", "property_types", "outdoor", "furnished", "pets", "area_answer", "preferred_parish", "parishes_wanted", "parishes_excluded", "housing_status", "buyer_position", "requirement_priorities", "household_children", "household_children_status", "move_in_date", "lease_term_months", "near", "requirements"]);
-const EVAL_LISTING = object("l", ["operation", "availability", "sale_price", "rent", "rent_period", "bedrooms", "bathrooms", "parish", "published", "archived_at", "feat_parking", "feat_pets", "feat_outdoor", "feat_furnished", "feat_type", "feat_evidence", "tenure_type", "housing_category", "restriction"]);
+const EVAL_LISTING = object("l", ["operation", "availability", "sale_price", "rent", "rent_period", "currency", "bedrooms", "bathrooms", "parish", "published", "archived_at", "feat_parking", "feat_pets", "feat_outdoor", "feat_furnished", "feat_type", "feat_evidence", "tenure_type", "housing_category", "restriction"]);
 const CARD = `${EVAL_APPLICANT} AS eval_applicant, ${EVAL_LISTING} AS eval_listing, m.id, m.applicant_id, m.status, m.score, m.checks, m.requirements_rank, m.area_preference_rank, m.reject_reason, m.reviewed_at, ${object("l", ["id", "title",
   "operation", "availability", "price_text", "sale_price", "rent", "rent_period", "currency", "parish", "bedrooms", "bathrooms",
   "published", "archived_at"], [`'cover_id', ${COVER_ID}`, `'has_public_photo', ${HAS_PUBLIC_PHOTO}`])} AS listing`;
@@ -32,9 +32,11 @@ export const matchCard = m => {
   const petsRefused = hasAnswer('pets',a) && hasHouseholdPets(a) && petPolicy(listing) === 'no';
   const refresh = current && (r.requirements_rank !== card.requirements_rank || r.score !== card.score || JSON.stringify(r.checks) !== card.checks
     || areaPreferenceRank(a,listing) !== area_preference_rank);
-  return {...card, ...(petsRefused ? {pets_refused:true} : {}), score:card.score, checks:current ? r.checks : JSON.parse(card.checks).map(c =>
-    Object.hasOwn(CRITERIA,c.key) || c.key === 'outdoor' ? {...c,result:'unknown',priority:'unknown',reason:'Confirm the saved requirement and property details'} : c),
-    requirements_status:r.requirements_status, requirements_rank:card.requirements_rank, ...(refresh ? {requirements_refresh_needed:true} : {}), listing:JSON.parse(card.listing)};
+  const legacyChecks = () => JSON.parse(card.checks).map(c => Object.hasOwn(CRITERIA,c.key) || c.key === 'outdoor'
+    ? {...c,...(c.key === 'budget' ? {evidence:r.checks.find(check => check.key === 'budget')?.evidence ?? null} : {}),
+      result:'unknown',priority:'unknown',reason:'Confirm the saved requirement and property details'} : c);
+  return {...card, ...(petsRefused ? {pets_refused:true} : {}), score:card.score, checks:current ? r.checks : legacyChecks(),
+    requirements_status:r.requirements_status, requirements_rank:r.requirements_rank, ...(refresh ? {requirements_refresh_needed:true} : {}), listing:JSON.parse(card.listing)};
 };
 
 // The review queue: the found matches of active searches (spec §5), from matches m JOIN applicants a.
