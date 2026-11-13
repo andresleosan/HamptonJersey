@@ -17,16 +17,27 @@ const validSnapshot=async s=>{
   catch { return false; }
 };
 
+export async function getDemandRecoveryScope(env,actor) {
+  ensureReady(env); assertInput(actorOk(actor)); const db=primary(env.DB), candidate=crypto.randomUUID();
+  try {
+    const result=await db.batch([
+      guards(db,'EXISTS(SELECT 1 FROM admins WHERE email=?)',actor),
+      db.prepare('INSERT OR IGNORE INTO demand_recovery_scopes(actor,scope) VALUES(?,?)').bind(actor,candidate),
+      db.prepare('SELECT scope FROM demand_recovery_scopes WHERE actor=?').bind(actor),clear(db),
+    ]);
+    const scope=result?.[2]?.results?.[0]?.scope; if(!uuid(scope)) fail(409,'Recovery scope unavailable'); return {scope};
+  } catch { fail(409,'Recovery scope unavailable'); }
+}
 export async function getActiveDemandDraft(env,operation,actor) {
   ensureReady(env); assertInput(['rent','buy'].includes(operation)&&actorOk(actor));
   const db=primary(env.DB);
-  const row=await db.prepare("SELECT id,version,operation,status FROM public_demand_snapshots WHERE created_by=? AND operation=? AND status IN ('draft','approved')").bind(actor,operation).first();
+  const row=await db.prepare("SELECT s.id,s.version,s.operation,s.status FROM public_demand_snapshots s JOIN demand_recovery_scopes r ON r.scope=s.recovery_scope AND r.actor=s.created_by WHERE r.actor=? AND s.operation=? AND s.status IN ('draft','approved')").bind(actor,operation).first();
   return {draft:row ?? null};
 }
 export async function generateDemandDraft(env,{operation,operation_id},actor) {
   ensureReady(env); assertInput(actorOk(actor)&&['rent','buy'].includes(operation)&&uuid(operation_id));
-  const db=primary(env.DB), previous=await db.prepare('SELECT id,version,operation,created_by FROM public_demand_snapshots WHERE id=?').bind(operation_id).first();
-  if(previous) { if(previous.created_by!==actor || previous.operation!==operation) fail(409,'Operation belongs to another draft'); return {id:previous.id,version:previous.version}; }
+  const db=primary(env.DB), {scope}=await getDemandRecoveryScope(env,actor), previous=await db.prepare('SELECT id,version,operation,created_by,recovery_scope FROM public_demand_snapshots WHERE id=?').bind(operation_id).first();
+  if(previous) { if(previous.created_by!==actor || previous.recovery_scope!==scope || previous.operation!==operation) fail(409,'Operation belongs to another draft'); return {id:previous.id,version:previous.version}; }
   const draft=await buildDemandSnapshot(env,{operation});
   const id=operation_id, valid_until=new Date(Date.parse(draft.as_of)+31*86400000).toISOString();
   const payload={schema_version:1,id,as_of:draft.as_of,valid_until,definition_version:draft.definition_version,operation,
@@ -43,13 +54,13 @@ export async function generateDemandDraft(env,{operation,operation_id},actor) {
       .bind(...chunk.flatMap(c=>[id,c.contact_id,c.search_id,c.parish,c.bedroom_band])));
   }
   try { await db.batch([
-    guards(db,'EXISTS(SELECT 1 FROM admins WHERE email=?)',actor),
-    db.prepare(`INSERT INTO public_demand_snapshots(id,created_by,status,schema_version,as_of,valid_until,definition_version,operation,private_payload,public_payload,public_sha256)
-      VALUES (?,?,'draft',1,?,?,?,?,?,?,?)`).bind(id,actor,draft.as_of,valid_until,draft.definition_version,operation,JSON.stringify(privateDraft),public_payload,hash),
+    guards(db,'EXISTS(SELECT 1 FROM demand_recovery_scopes WHERE actor=? AND scope=?)',actor,scope),
+    db.prepare(`INSERT INTO public_demand_snapshots(id,created_by,recovery_scope,status,schema_version,as_of,valid_until,definition_version,operation,private_payload,public_payload,public_sha256)
+      VALUES (?,?,?,'draft',1,?,?,?,?,?,?,?)`).bind(id,actor,scope,draft.as_of,valid_until,draft.definition_version,operation,JSON.stringify(privateDraft),public_payload,hash),
     ...values,clear(db),
   ]); } catch {
-    const receipt=await db.prepare('SELECT id,version,operation,created_by FROM public_demand_snapshots WHERE id=?').bind(id).first();
-    if(receipt && receipt.created_by===actor && receipt.operation===operation) return {id:receipt.id,version:receipt.version};
+    const receipt=await db.prepare('SELECT id,version,operation,created_by,recovery_scope FROM public_demand_snapshots WHERE id=?').bind(id).first();
+    if(receipt && receipt.created_by===actor && receipt.recovery_scope===scope && receipt.operation===operation) return {id:receipt.id,version:receipt.version};
     fail(409,'An active draft or the underlying data changed');
   }
   return {id,version:1};

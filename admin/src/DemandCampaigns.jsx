@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from './api.js';
 
-const recoveryKey=operation=>`demand-draft-recovery-${operation}`; // UUID only, never draft content.
+const recoveryKey=(scope,operation)=>`demand-draft-recovery-${scope}-${operation}`; // UUID only, never draft content.
 export default function DemandCampaigns() {
   const [operation,setOperation]=useState('rent'),[draft,setDraft]=useState(null),[id,setId]=useState(''),[authorization,setAuthorization]=useState('');
+  const [availability,setAvailability]=useState(null),[statusAttempt,setStatusAttempt]=useState(0);
+  useEffect(()=>{let live=true;setAvailability(null);api('/admin/demand-snapshots/status').then(x=>{if(live) setAvailability(x.available===true?'available':'unavailable');},()=>{if(live) setAvailability('error');});return()=>{live=false;};},[statusAttempt]);
   const [after,setAfter]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
   const run=async action=>{setBusy(true);setError('');setNotice('');try {await action();} catch(e){setError(e.status===409?'The draft, policy or review changed. Reload before continuing.':e.message || 'Unable to confirm the result. Find the draft again before continuing.');} finally {setBusy(false);}};
   const load=async (target,page=0)=>{
@@ -12,15 +14,17 @@ export default function DemandCampaigns() {
     setDraft(d);setId(d.id);setAfter(page);return d;
   };
   const createOrFind=async()=>{
+    const {scope}=await api('/admin/demand-snapshots/recovery-scope',{method:'POST',body:{}});
     const found=await api(`/admin/demand-snapshots/active?operation=${operation}`);
-    if(found.draft) {localStorage.removeItem(recoveryKey(operation));await load(found.draft.id);setNotice('Opened the active draft.');return;}
-    let token=localStorage.getItem(recoveryKey(operation));
-    if(!token) {token=crypto.randomUUID();localStorage.setItem(recoveryKey(operation),token);}
+    if(found.draft) {localStorage.removeItem(recoveryKey(scope,operation));await load(found.draft.id);setNotice('Opened the active draft.');return;}
+    let token=localStorage.getItem(recoveryKey(scope,operation));
+    if(!token) {token=crypto.randomUUID();localStorage.setItem(recoveryKey(scope,operation),token);}
     const result=await api('/admin/demand-snapshots',{method:'POST',body:{operation,operation_id:token}});
-    await load(result.id);localStorage.removeItem(recoveryKey(operation));
+    await load(result.id);localStorage.removeItem(recoveryKey(scope,operation));
   };
   const reviewed=draft?.reviewed_pages || [];
   const allVisited=reviewed.includes(0) && (draft?.next===null ? after===0||reviewed.includes(after) : reviewed.includes(draft.next));
+  if(availability!=='available') return <section className="insights" aria-labelledby="demand-title"><h1 id="demand-title">Demand publication</h1>{availability===null ? <p role="status">Checking availability…</p> : availability==='unavailable' ? <p role="status">Demand publication is not available yet.</p> : <p role="alert">Unable to check availability. <button className="btn ghost" onClick={()=>setStatusAttempt(x=>x+1)}>Try again</button></p>}</section>;
   return <section className="insights" aria-labelledby="demand-title"><div className="head"><div><h1 id="demand-title">Demand publication</h1>
     <p className="muted">Publication requires a separately accepted identity and inference review. Counts are registered search contacts, not verified unique people.</p></div></div>
     {error && <p role="alert" className="err">{error}</p>}{notice && <p role="status">{notice}</p>}

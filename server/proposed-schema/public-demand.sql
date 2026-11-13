@@ -1,13 +1,17 @@
 -- Proposed only: do not install or activate without review and authorization.
 CREATE TABLE public_demand_snapshots (
- id TEXT PRIMARY KEY, created_by TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('draft','approved','published','revoked')),
+ id TEXT PRIMARY KEY, created_by TEXT NOT NULL, recovery_scope TEXT REFERENCES demand_recovery_scopes(scope) ON DELETE SET NULL, status TEXT NOT NULL CHECK(status IN ('draft','approved','published','revoked')),
  schema_version INTEGER NOT NULL, as_of TEXT NOT NULL, valid_until TEXT NOT NULL,
  definition_version TEXT NOT NULL, operation TEXT NOT NULL CHECK(operation IN ('rent','buy')),
  private_payload TEXT, public_payload TEXT NOT NULL, public_sha256 TEXT NOT NULL,
  version INTEGER NOT NULL DEFAULT 1, authorization_id TEXT, ledger_version INTEGER, ledger_hash TEXT,
  approved_by TEXT, approved_at TEXT, published_by TEXT, published_at TEXT
 );
-CREATE UNIQUE INDEX one_active_demand_draft_per_actor_operation ON public_demand_snapshots(created_by,operation) WHERE status IN ('draft','approved');
+CREATE TABLE demand_recovery_scopes (
+ actor TEXT PRIMARY KEY REFERENCES admins(email) ON DELETE CASCADE,
+ scope TEXT NOT NULL UNIQUE
+);
+CREATE UNIQUE INDEX one_active_demand_draft_per_actor_operation ON public_demand_snapshots(recovery_scope,operation) WHERE status IN ('draft','approved');
 CREATE UNIQUE INDEX demand_applicant_contact_pair ON applicants(id,contact_id);
 CREATE TABLE public_demand_contributions (
  snapshot_id TEXT NOT NULL REFERENCES public_demand_snapshots(id) ON DELETE CASCADE,

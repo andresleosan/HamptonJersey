@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFileSync,readdirSync } from 'node:fs';
-import { generateDemandDraft,readDemandDraft,markDemandPageReviewed,approveDemandDraft,publishDemandDraft,revokeDemandDraft,currentPublicDemand,prunePrivateDemandMatrices } from '../../server/public-demand.js';
+import { generateDemandDraft,getDemandRecoveryScope,getActiveDemandDraft,readDemandDraft,markDemandPageReviewed,approveDemandDraft,publishDemandDraft,revokeDemandDraft,currentPublicDemand,prunePrivateDemandMatrices } from '../../server/public-demand.js';
 const require=createRequire(import.meta.url), {Miniflare,convertV4MiniflareOptions}=require('miniflare'), {unstable_splitSqlQuery}=require('wrangler');
 const authId='a0000000-0000-4000-8000-000000000001';
 
@@ -79,10 +79,10 @@ test('D1 synthetic: release needs independent authority, respects ledger and clo
 
   await db.prepare("INSERT INTO admins(email,added_by,added_at) VALUES('colleague@example.test','fixture','2026-01-01T00:00:00.000Z')").run();
   const target=await db.prepare('SELECT id FROM applicants WHERE contact_id=2').first();
-  let interposed=false;
+  let interposed=false, queryBatches=0;
   const racingDB={prepare:sql=>db.prepare(sql),batch:async stmts=>{
     const result=await db.batch(stmts);
-    if(!interposed) {interposed=true;await db.prepare('DELETE FROM applicants WHERE id=?').bind(target.id).run();}
+    if(++queryBatches===2 && !interposed) {interposed=true;await db.prepare('DELETE FROM applicants WHERE id=?').bind(target.id).run();}
     return result;
   }};
   const raceId='c0000000-0000-4000-8000-000000000004';
@@ -124,6 +124,17 @@ test('D1 synthetic: release needs independent authority, respects ledger and clo
   }};
   await assert.rejects(()=>publishDemandDraft({...env,DB:publishDB},{id:exactId,version:2},colleague));
   assert.equal((await db.prepare('SELECT status FROM public_demand_snapshots WHERE id=?').bind(exactId).first()).status,'approved');
+
+
+  const scopeA=(await getDemandRecoveryScope(env,actor)).scope,scopeB=(await getDemandRecoveryScope(env,colleague)).scope;
+  assert.notEqual(scopeA,scopeB);assert.equal((await getDemandRecoveryScope(env,actor)).scope,scopeA);
+  assert.equal((await getActiveDemandDraft(env,'rent',actor)).draft,null);
+  assert.equal((await getActiveDemandDraft(env,'rent',colleague)).draft.id,exactId);
+  await db.prepare("INSERT INTO admins(email,added_by,added_at) VALUES('new@example.test','fixture','2026-01-01T00:00:00.000Z')").run();
+  const original=(await getDemandRecoveryScope(env,'new@example.test')).scope;
+  await db.prepare('DELETE FROM admins WHERE email=?').bind('new@example.test').run();
+  await db.prepare("INSERT INTO admins(email,added_by,added_at) VALUES('new@example.test','fixture','2026-01-01T00:00:00.000Z')").run();
+  assert.notEqual((await getDemandRecoveryScope(env,'new@example.test')).scope,original);
 
   assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results,[]);
 
