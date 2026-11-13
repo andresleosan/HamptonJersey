@@ -3876,7 +3876,7 @@
       "preferredSlot": "hermes",
       "priority": 41,
       "kind": "research",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": false,
       "dependencies": [],
       "resources": [
@@ -3908,7 +3908,7 @@
       "preferredSlot": "hermes",
       "priority": 42,
       "kind": "research",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": false,
       "dependencies": [
         {
@@ -3945,7 +3945,7 @@
       "preferredSlot": "hermes",
       "priority": 43,
       "kind": "research",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": false,
       "dependencies": [
         {

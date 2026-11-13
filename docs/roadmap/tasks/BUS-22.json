@@ -4,13 +4,14 @@
   "titulo": "Directorio de fuentes · segunda investigación independiente y contraste",
   "origen": "plan",
   "fase": "F1-B",
-  "estado": "pendiente",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "M01 · Reconciliación 7-nov: Después de terminar BUS-21, investigar de nuevo por tandas agencias, portales/clasificados y Facebook. Buscar fuentes adicionales, contrastar el directorio inicial, corregir enlaces y documentar añadidas, duplicadas, corregidas y pendientes. No repetir una lectura del mismo resultado ni ejecutarla en paralelo a la primera. Depende de: BUS-21. Aceptación: La segunda pasada tiene evidencia propia, fecha posterior a la primera y diferencias explícitas, aunque no encuentre nuevas fuentes.",
+  "hecho": "Segunda investigación aceptada localmente por Luis el 13-nov-2026: contraste posterior con evidencia propia, diferencias y dos fuentes propuestas.",
+  "falta": "Se conservan 370 requisitos pendientes y dudas de identidad; las propuestas no se integran ni autorizan acceso por su aceptación.",
   "bloqueo": "",
   "evidencia": [
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/roadmap/work/BUS-22/resumen-aceptacion-publicable.md"
   ],
   "modulo": "M01",
   "deps": [
@@ -20,7 +21,7 @@
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
-  "executionEligibility": "needs_scope_and_evidence_review",
+  "executionEligibility": "historical",
   "dependencies": [
     {
       "id": "BUS-21",
@@ -35,5 +36,6 @@
     "sources-directory",
     "research-pass-2"
   ],
-  "nextStep": "Tras aceptar BUS-21, realizar segunda investigación propia y registrar diferencias y correcciones."
+  "nextStep": "Conservar la investigación aceptada y sus límites; las autorizaciones por fuente se revisan por separado.",
+  "actualizado": "2026-11-13"
 }

@@ -33,12 +33,12 @@
       "area": "Fuentes, agencias, integraciones y automatizaciones",
       "capacity": 2,
       "count": 61,
-      "openCount": 51,
+      "openCount": 48,
       "states": {
         "replanteado": 6,
-        "pendiente": 29,
+        "pendiente": 26,
         "parcial": 13,
-        "hecho": 4,
+        "hecho": 7,
         "bloqueado": 9
       }
     },
@@ -4587,13 +4587,14 @@
       "titulo": "Directorio de fuentes · investigación inicial por tandas",
       "origen": "plan",
       "fase": "F1-B",
-      "estado": "pendiente",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "M01 · Reconciliación 7-nov: Hacer una investigación profunda inicial de Jersey, Islas del Canal, excluyendo Nueva Jersey. Recorrer por tandas agencias y sus webs, portales/clasificados y Facebook (páginas, Marketplace y grupos, incluidos particulares). Si existe una investigación trazable, reutilizarla como punto de partida sin afirmar cobertura no comprobada. Guardar nombre, tipo, URLs directas y de venta/alquiler, acceso, comprobación, evidencia y pendientes. Agrupar fuentes duplicadas conservando canales distintos; una restricción queda pendiente, no vacía. Aceptación: Existe un resultado fechado con método, tandas y evidencias; cada fuente tiene acceso o trabajo pendiente visible.",
+      "hecho": "Investigación inicial aceptada localmente por Luis el 12-nov-2026: 138 fuentes, matriz de 552 requisitos y 364 pendientes documentados; se acepta la limitación del historial no recuperado.",
+      "falta": "Los pendientes por fuente y sus condiciones de acceso continúan; la aceptación no concede permisos ni activa lectores.",
       "bloqueo": "",
       "evidencia": [
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "docs/roadmap/work/BUS-21/resumen-aceptacion-publicable.md"
       ],
       "modulo": "M01",
       "deps": [],
@@ -4601,14 +4602,15 @@
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [],
       "externalBlocker": "Accesos restringidos quedan como pendientes por fuente; no autorizan saltar controles ni detener fuentes utilizables.",
       "resources": [
         "sources-directory",
         "research-pass-1"
       ],
-      "nextStep": "Realizar la primera investigación por tandas con fuentes directas, fecha, método, evidencias y accesos pendientes."
+      "nextStep": "Conservar la investigación aceptada y sus límites; las autorizaciones por fuente se revisan por separado.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "BUS-22",
@@ -4616,13 +4618,14 @@
       "titulo": "Directorio de fuentes · segunda investigación independiente y contraste",
       "origen": "plan",
       "fase": "F1-B",
-      "estado": "pendiente",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "M01 · Reconciliación 7-nov: Después de terminar BUS-21, investigar de nuevo por tandas agencias, portales/clasificados y Facebook. Buscar fuentes adicionales, contrastar el directorio inicial, corregir enlaces y documentar añadidas, duplicadas, corregidas y pendientes. No repetir una lectura del mismo resultado ni ejecutarla en paralelo a la primera. Depende de: BUS-21. Aceptación: La segunda pasada tiene evidencia propia, fecha posterior a la primera y diferencias explícitas, aunque no encuentre nuevas fuentes.",
+      "hecho": "Segunda investigación aceptada localmente por Luis el 13-nov-2026: contraste posterior con evidencia propia, diferencias y dos fuentes propuestas.",
+      "falta": "Se conservan 370 requisitos pendientes y dudas de identidad; las propuestas no se integran ni autorizan acceso por su aceptación.",
       "bloqueo": "",
       "evidencia": [
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "docs/roadmap/work/BUS-22/resumen-aceptacion-publicable.md"
       ],
       "modulo": "M01",
       "deps": [
@@ -4632,7 +4635,7 @@
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [
         {
           "id": "BUS-21",
@@ -4647,7 +4650,8 @@
         "sources-directory",
         "research-pass-2"
       ],
-      "nextStep": "Tras aceptar BUS-21, realizar segunda investigación propia y registrar diferencias y correcciones."
+      "nextStep": "Conservar la investigación aceptada y sus límites; las autorizaciones por fuente se revisan por separado.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "BUS-23",
@@ -4655,13 +4659,14 @@
       "titulo": "Directorio de fuentes · tercera investigación y consolidación revisable",
       "origen": "plan",
       "fase": "F1-B",
-      "estado": "pendiente",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "M01 · Reconciliación 7-nov: Tras BUS-22, realizar una tercera investigación profunda por las mismas tandas contra el conjunto acumulado; buscar omisiones y revisar pendientes. Mantener resultados separados, diferencias y procedencia al consolidar un directorio único ampliable. Entregar las fuentes utilizables al inventario; pendientes manuales no se registran como cero anuncios. Depende de: BUS-22. Aceptación: Hay tres investigaciones separadas y secuenciales con método y contraste; el directorio consolidado preserva evidencia y canales.",
+      "hecho": "Tercera investigación y relevo aceptados localmente por Luis el 13-nov-2026: 141 IDs históricos o propuestos y 237 registros fuente/ruta.",
+      "falta": "Se conservan 373 requisitos pendientes, siete dudas complementarias y la reconciliación de alias, rutas y permisos.",
       "bloqueo": "",
       "evidencia": [
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "docs/roadmap/work/BUS-23/resumen-aceptacion-publicable.md"
       ],
       "modulo": "M01",
       "deps": [
@@ -4671,7 +4676,7 @@
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [
         {
           "id": "BUS-22",
@@ -4686,7 +4691,8 @@
         "sources-directory",
         "research-pass-3"
       ],
-      "nextStep": "Tras aceptar BUS-22, realizar tercera investigación y consolidar el directorio manteniendo procedencia y pendientes."
+      "nextStep": "Conservar la investigación aceptada y sus límites; las autorizaciones por fuente se revisan por separado.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "EST-01",
