@@ -9,3 +9,7 @@ Revisión independiente: el primer cálculo aceptaba un derivado de documento y 
 No se ha implementado el preview previsto con D1 ni bytes; faltan productores autorizados y garantías de scope, origen, clasificación, datos personales y referencias. Una comprobación previa no protege de reactivación o nuevas referencias: la futura integración necesita reserva y control de concurrencia vigente en el plan. No altera identidad ni historial.
 
 Prueba focal sintética: `node --test tests/server/photo-purge-policy.test.mjs` — 8/8 PASS. Se observaron RED para el derivado de documento, plazo exacto, transiciones y fiabilidad, seguidos de GREEN; `git diff --check` PASS. Sin suite completa por alcance del encargo; Playwright no aplica. No se ejecutaron D1, red, cron ni borrados; no se activó nada ni se declara EST-19 completa. Las pruebas de integración y almacenamiento siguen pendientes.
+
+La revisión independiente posterior comprobó el vencimiento exacto, fin de mes, gap/fold y exclusiones con ocho pruebas sintéticas. La fiabilidad del reloj y los productores sigue sin acreditarse; no hay consumidor ni borrado.
+
+Integración del 13-nov: pasaron 2.113 pruebas JavaScript y 25 Python, build, release, catálogo y paquetes. Playwright no aplica. No hay consumidor, migración ni borrado.

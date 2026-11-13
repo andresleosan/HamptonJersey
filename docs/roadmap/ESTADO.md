@@ -466,3 +466,7 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **BUS-12/BUS-17, opción completa 13-nov:** predicado puro revisado y endurecido ante entradas malformadas; 19 pruebas focales de elegibilidad y reloj pasaron. Sigue desconectado: false no acredita ausencia, y el futuro consumidor necesita cobertura completa, agregado triestado, DTO fiable y snapshot revalidado. Ambas tareas siguen parciales. [Evidencia](work/BUS-12/eligibility-foundation-evidence.md). Playwright: no aplica.
 
 **Integración de elegibilidad BUS-12/BUS-17 13-nov:** pasaron 2.105 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes. El predicado sigue desconectado; ambas tareas permanecen parciales. Playwright: no aplica. El catálogo conserva 68/215 (31,63 %).
+
+**EST-19, política sintética 13-nov:** preparado un cálculo puro y revisado para fotos y derivados con seis meses naturales en Jersey; no borra archivos ni tiene consumidor. Faltan productores y reloj fiables, referencias, autorización, preview, reserva y concurrencia. EST-19 queda parcial, no terminada. [Evidencia](work/EST-19/policy-synthetic-2026-11-13.md). Playwright: no aplica.
+
+**Integración EST-19 13-nov:** pasaron 2.113 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes. El cálculo sigue sin consumidor ni efectos; EST-19 pasa de pendiente a parcial, no a hecha. El catálogo mantiene 68/215 (31,63 %). Playwright: no aplica.

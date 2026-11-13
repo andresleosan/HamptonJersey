@@ -4,13 +4,16 @@
   "titulo": "Papelera de no disponibles y purga de archivos a los seis meses",
   "origen": "plan",
   "fase": "F1-B",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "M12 · Reconciliación 7-nov: Mover la propiedad/operación confirmada como no disponible a papelera con fecha de entrada, motivo, alcance y evidencia. A los seis meses purgar automáticamente los archivos definidos en la política, registrando resultado y reintentos sin duplicados. Concretar antes qué archivos y mínimos de identidad quedan; preservar referencias, historial de clientes, criterios, consultas y visitas. Mantener una huella o referencia que impida reimportar como nueva una propiedad purgada; nueva evidencia exige revisión antes de reactivar. No extender esta regla a la retención de personas PRE-12. Depende de: EST-15, SPR-03, BUS-10, EST-18, AUT-07. Aceptación: Al cumplir seis meses se borran solo archivos acordados; historial y referencias siguen legibles y un anuncio viejo no recrea ni reactiva la propiedad.",
+  "hecho": "Se preparó y revisó un cálculo puro de elegibilidad para fotos y derivados con plazo de seis meses en hora Jersey, referencias explícitas y rechazo de datos incompletos. No tiene consumidor ni ejecuta borrados.",
+  "falta": "M12 · Reconciliación 7-nov: Mover la propiedad/operación confirmada como no disponible a papelera con fecha de entrada, motivo, alcance y evidencia. A los seis meses purgar automáticamente los archivos definidos en la política, registrando resultado y reintentos sin duplicados. Concretar antes qué archivos y mínimos de identidad quedan; preservar referencias, historial de clientes, criterios, consultas y visitas. Mantener una huella o referencia que impida reimportar como nueva una propiedad purgada; nueva evidencia exige revisión antes de reactivar. No extender esta regla a la retención de personas PRE-12. Depende de: EST-15, SPR-03, BUS-10, EST-18, AUT-07. Aceptación: Al cumplir seis meses se borran solo archivos acordados; historial y referencias siguen legibles y un anuncio viejo no recrea ni reactiva la propiedad. El cálculo solo recibe declaraciones sintéticas: faltan productores y reloj fiables, autorización, reserva y control de concurrencia, preview, almacenamiento y reintentos antes de cualquier purga real.",
   "bloqueo": "",
   "evidencia": [
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "server/property-photo-purge.js",
+    "tests/server/photo-purge-policy.test.mjs",
+    "docs/roadmap/work/EST-19/policy-synthetic-2026-11-13.md"
   ],
   "modulo": "M12",
   "deps": [
@@ -76,5 +79,5 @@
     "media-private",
     "jobs-clock"
   ],
-  "nextStep": "Acordar archivos a purgar y conservar identidad/historial, después implementar papelera y purga de seis meses."
+  "nextStep": "Acreditar productores, reloj y referencias, y diseñar preview y reserva transaccional sin habilitar borrados hasta revisar retención."
 }
