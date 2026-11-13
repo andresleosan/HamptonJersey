@@ -124,3 +124,33 @@ WHEN OLD.status='open' AND NEW.status='completed' AND
    EXISTS(SELECT 1 FROM rental_inspection_items WHERE inspection_id=OLD.id AND result='not_checked') OR
    EXISTS(SELECT 1 FROM rental_inspection_evidence WHERE inspection_id=OLD.id AND status='revoked'))
 BEGIN SELECT RAISE(ABORT,'inspection checklist requires review'); END;
+
+-- Synthetic ownership and retention safeguards only. They preserve case identity
+-- while any inspection exists, including when foreign keys or recursive delete
+-- triggers are disabled. They intentionally do not implement an approved purge.
+CREATE TRIGGER inspection_linked_tenancy_update_guard BEFORE UPDATE OF id,rental_id ON tenancies
+WHEN (NEW.id<>OLD.id OR NEW.rental_id<>OLD.rental_id) AND
+  EXISTS(SELECT 1 FROM rental_inspections WHERE tenancy_id=OLD.id)
+BEGIN SELECT RAISE(ABORT,'inspection tenancy identity is retained'); END;
+CREATE TRIGGER inspection_linked_tenancy_delete_guard BEFORE DELETE ON tenancies
+WHEN EXISTS(SELECT 1 FROM rental_inspections WHERE tenancy_id=OLD.id)
+BEGIN SELECT RAISE(ABORT,'inspection tenancy identity is retained'); END;
+CREATE TRIGGER inspection_linked_tenancy_insert_guard BEFORE INSERT ON tenancies
+WHEN EXISTS(SELECT 1 FROM rental_inspections WHERE tenancy_id=NEW.id)
+BEGIN SELECT RAISE(ABORT,'inspection tenancy identity is retained'); END;
+CREATE TRIGGER inspection_linked_rental_update_guard BEFORE UPDATE OF id ON rentals
+WHEN NEW.id<>OLD.id AND EXISTS(SELECT 1 FROM rental_inspections WHERE rental_id=OLD.id)
+BEGIN SELECT RAISE(ABORT,'inspection rental identity is retained'); END;
+CREATE TRIGGER inspection_linked_rental_delete_guard BEFORE DELETE ON rentals
+WHEN EXISTS(SELECT 1 FROM rental_inspections WHERE rental_id=OLD.id)
+BEGIN SELECT RAISE(ABORT,'inspection rental identity is retained'); END;
+CREATE TRIGGER inspection_linked_rental_insert_guard BEFORE INSERT ON rentals
+WHEN EXISTS(SELECT 1 FROM rental_inspections WHERE rental_id=NEW.id)
+BEGIN SELECT RAISE(ABORT,'inspection rental identity is retained'); END;
+CREATE TRIGGER inspection_retention_delete_guard BEFORE DELETE ON rental_inspections
+BEGIN SELECT RAISE(ABORT,'inspection retention requires review'); END;
+-- REPLACE may bypass DELETE triggers; guard both primary and open-rental keys.
+CREATE TRIGGER inspection_retention_insert_guard BEFORE INSERT ON rental_inspections
+WHEN EXISTS(SELECT 1 FROM rental_inspections WHERE id=NEW.id OR
+  (NEW.status='open' AND status='open' AND rental_id=NEW.rental_id))
+BEGIN SELECT RAISE(ABORT,'UNIQUE inspection conflict requires explicit retention review'); END;
