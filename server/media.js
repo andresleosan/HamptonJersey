@@ -25,9 +25,11 @@ async function inspectPublicBody(body) {
     prefix.set(part, offset); offset += part.length;
   }
   let document = OFFICE_CONTAINERS.some(signature => signature.every((value, i) => prefix[i] === value));
-  for (let i = 0; !document && i <= prefix.length - PDF.length; i++) {
-    if (PDF.every((value, j) => prefix[i + j] === value)) document = true;
-  }
+  // Only a leading PDF header (optionally after BOM/whitespace) is a signal. Searching anywhere
+  // in an image prefix would mistake ordinary image comments for a document.
+  let start = prefix[0] === 0xef && prefix[1] === 0xbb && prefix[2] === 0xbf ? 3 : 0;
+  while ([0x09, 0x0a, 0x0c, 0x0d, 0x20].includes(prefix[start])) start++;
+  if (!document && PDF.every((value, j) => prefix[start + j] === value)) document = true;
   let index = 0;
   const replay = new ReadableStream({
     async pull(controller) {
@@ -46,22 +48,27 @@ async function inspectPublicBody(body) {
   return { body: replay, document };
 }
 
+const loadRow = (env, id) => env.DB.prepare(
+  "SELECT m.*, l.published, l.archived_at FROM media m JOIN listings l ON l.id = m.listing_id WHERE m.id = ?").bind(id).first();
+const selectedKey = (row, thumb) => thumb && row.thumb_key ? row.thumb_key : row.r2_key;
+const cancelBody = async body => { if (body instanceof ReadableStream && !body.locked) await body.cancel().catch(() => {}); };
+
 // 404 (not 403) for anything the caller may not see, so private files can't be confirmed to exist.
 export async function serveMedia(request, env, id) {
-  const row = await env.DB.prepare(
-    "SELECT m.*, l.published, l.archived_at FROM media m JOIN listings l ON l.id = m.listing_id WHERE m.id = ?").bind(id).first();
+  const row = await loadRow(env, id);
   if (!row?.r2_key) return notFound();
   let pub = isPublicMedia(row, row);
   if (!pub && !(await currentAdmin(request, env))) return notFound();
-  const key = new URL(request.url).searchParams.has("thumb") && row.thumb_key ? row.thumb_key : row.r2_key;
+  const thumb = new URL(request.url).searchParams.has("thumb"), key = selectedKey(row, thumb);
   const obj = await env.MEDIA.get(key);
   if (!obj) return notFound();
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
-  if (!headers.get("content-type") && row.content_type) headers.set("content-type", row.content_type);
+  const objectType = headers.get("content-type");
+  if (!objectType && row.content_type) headers.set("content-type", row.content_type);
   if (pub && !publicMediaTypeAllowed(headers.get('content-type'))) {
     if (!(await currentAdmin(request, env))) {
-      if (obj.body instanceof ReadableStream) await obj.body.cancel().catch(() => {});
+      await cancelBody(obj.body);
       return notFound();
     }
     pub = false;
@@ -75,6 +82,22 @@ export async function serveMedia(request, env, id) {
       if (!(await currentAdmin(request, env))) { await body.cancel().catch(() => {}); return notFound(); }
       pub = false;
     }
+  }
+  // The row and authorization may have changed while the object or its prefix was read.
+  // Never return bytes for a different resource or a removed row; downgrade a no-longer-public
+  // resource to private only after rechecking the staff session.
+  let latest;
+  try { latest = await loadRow(env, id); }
+  catch (error) { await cancelBody(body); throw error; }
+  if (!latest?.r2_key || latest.listing_id !== row.listing_id || latest.created_at !== row.created_at ||
+      latest.r2_key !== row.r2_key || latest.thumb_key !== row.thumb_key || selectedKey(latest, thumb) !== key) {
+    await cancelBody(body); return notFound();
+  }
+  pub = pub && isPublicMedia(latest, latest);
+  if (!pub && !(await currentAdmin(request, env))) { await cancelBody(body); return notFound(); }
+  if (!objectType) {
+    if (latest.content_type) headers.set("content-type", latest.content_type);
+    else headers.delete("content-type");
   }
   headers.set("etag", obj.httpEtag);
   headers.set("x-content-type-options", "nosniff");

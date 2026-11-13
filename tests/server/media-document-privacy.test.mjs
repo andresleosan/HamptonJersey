@@ -186,3 +186,143 @@ test('cancelling a valid photo response cancels its underlying stream', async ()
   await response.body.cancel();
   assert.equal(cancelled, true);
 });
+
+const deferred = () => {
+  let resolve;
+  const promise = new Promise(done => { resolve = done; });
+  return { promise, resolve };
+};
+
+// Pause the first public-body read while keeping the remaining synthetic photo available to stream.
+function pausePublicBody(env) {
+  const started = deferred(), release = deferred(), getObject = env.MEDIA.get;
+  let cancelled = false;
+  env.MEDIA.get = async key => {
+    const object = await getObject(key);
+    let position = 0;
+    return { ...object, body: new ReadableStream({
+      async pull(controller) {
+        if (position === 0) { started.resolve(); await release.promise; }
+        if (position >= jpeg.length) { controller.close(); return; }
+        controller.enqueue(jpeg.subarray(position, position + 1024)); position += 1024;
+      },
+      cancel() { cancelled = true; },
+    }, { highWaterMark: 0 }) };
+  };
+  return { started: started.promise, release: release.resolve, get cancelled() { return cancelled; } };
+}
+
+test('a visual label with a known document extension is private in the DTO and anonymous service', async () => {
+  const env = await make();
+  env.DB.raw.prepare('UPDATE media SET label=? WHERE id=?').run('Synthetic file.PDF  ', 'A00001');
+  assert.equal((await publicListing(env)).image, null);
+  assert.equal((await get(env)).status, 404);
+  const staff = await get(env, { cookie: await adminCookie() });
+  assert.equal(staff.status, 200);
+  assert.equal(staff.headers.get('cache-control'), 'private, no-store');
+});
+
+test('a valid JPEG with a comment containing a PDF marker remains available unchanged', async () => {
+  const comment = Buffer.from('Synthetic photo note: %PDF- is ordinary text', 'utf8');
+  const header = Buffer.from([0xff, 0xfe, 0, 0]); header.writeUInt16BE(comment.length + 2, 2);
+  const image = Buffer.concat([jpeg.subarray(0, 2), header, comment, jpeg.subarray(2)]);
+  const env = await make({ body: image });
+  const response = await get(env);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'public, max-age=86400');
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), image);
+});
+
+test('public access revoked while the prefix is read fails closed and cancels the stream', async () => {
+  for (const statement of [
+    "UPDATE media SET public=0 WHERE id='A00001'",
+    "UPDATE listings SET published=0 WHERE id='HE-R001'",
+    "UPDATE listings SET archived_at='2026-11-13T00:00:00.000Z' WHERE id='HE-R001'",
+  ]) {
+    const env = await make(), paused = pausePublicBody(env);
+    const pending = get(env); await paused.started;
+    env.DB.raw.exec(statement); paused.release();
+    const response = await pending;
+    assert.equal(response.status, 404);
+    assert.match(response.headers.get('cache-control') ?? '', /no-store/);
+    assert.equal(paused.cancelled, true);
+  }
+});
+
+test('a changed original or selected thumbnail key is not served from a stale object', async () => {
+  for (const thumb of [false, true]) {
+    const env = await make({ thumbKey: 'synthetic/thumb.jpg' }), paused = pausePublicBody(env);
+    const pending = get(env, { thumb }); await paused.started;
+    env.DB.raw.prepare(`UPDATE media SET ${thumb ? 'thumb_key' : 'r2_key'}=? WHERE id=?`).run('synthetic/replacement.jpg', 'A00001');
+    paused.release();
+    assert.equal((await pending).status, 404);
+    assert.equal(paused.cancelled, true);
+  }
+});
+
+test('a media row deleted while reading its prefix is not served', async () => {
+  const env = await make(), paused = pausePublicBody(env);
+  const pending = get(env); await paused.started;
+  env.DB.raw.prepare('DELETE FROM media WHERE id=?').run('A00001'); paused.release();
+  assert.equal((await pending).status, 404);
+  assert.equal(paused.cancelled, true);
+});
+
+test('a staff request becomes private and no-store when public visibility changes during the prefix', async () => {
+  const env = await make(), paused = pausePublicBody(env), cookie = await adminCookie();
+  const pending = get(env, { cookie }); await paused.started;
+  env.DB.raw.prepare('UPDATE media SET public=0 WHERE id=?').run('A00001'); paused.release();
+  const response = await pending;
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'private, no-store');
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), jpeg);
+});
+
+test('private media access is refused when staff access is revoked during object retrieval', async () => {
+  const env = await make(); env.DB.raw.prepare('UPDATE media SET public=0 WHERE id=?').run('A00001');
+  const started = deferred(), release = deferred(), getObject = env.MEDIA.get, cookie = await adminCookie();
+  env.MEDIA.get = async key => { const object = await getObject(key); started.resolve(); await release.promise; return object; };
+  const pending = get(env, { cookie }); await started.promise;
+  env.DB.raw.prepare('DELETE FROM admins WHERE email=?').run('admin@example.test'); release.resolve();
+  const response = await pending;
+  assert.equal(response.status, 404);
+  assert.match(response.headers.get('cache-control') ?? '', /no-store/);
+});
+
+test('unchanged private media remains available to authorized staff after object retrieval', async () => {
+  const env = await make(); env.DB.raw.prepare('UPDATE media SET public=0 WHERE id=?').run('A00001');
+  const started = deferred(), release = deferred(), getObject = env.MEDIA.get, cookie = await adminCookie();
+  env.MEDIA.get = async key => { const object = await getObject(key); started.resolve(); await release.promise; return object; };
+  const pending = get(env, { cookie }); await started.promise; release.resolve();
+  const response = await pending;
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'private, no-store');
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), jpeg);
+});
+
+test('a documentary label added while reading a public prefix revokes anonymous access', async () => {
+  const env = await make(), paused = pausePublicBody(env);
+  const pending = get(env); await paused.started;
+  env.DB.raw.prepare('UPDATE media SET label=? WHERE id=?').run('Synthetic document.docx', 'A00001');
+  paused.release();
+  assert.equal((await pending).status, 404);
+  assert.equal(paused.cancelled, true);
+});
+
+test('staff access is rechecked if a public item becomes private while reading its prefix', async () => {
+  const env = await make(), paused = pausePublicBody(env), cookie = await adminCookie();
+  const pending = get(env, { cookie }); await paused.started;
+  env.DB.raw.prepare('UPDATE media SET public=0 WHERE id=?').run('A00001');
+  env.DB.raw.prepare('DELETE FROM admins WHERE email=?').run('admin@example.test'); paused.release();
+  assert.equal((await pending).status, 404);
+  assert.equal(paused.cancelled, true);
+});
+
+test('a private resource key changed during retrieval is not served to staff from the stale object', async () => {
+  const env = await make(); env.DB.raw.prepare('UPDATE media SET public=0 WHERE id=?').run('A00001');
+  const started = deferred(), release = deferred(), getObject = env.MEDIA.get, cookie = await adminCookie();
+  env.MEDIA.get = async key => { const object = await getObject(key); started.resolve(); await release.promise; return object; };
+  const pending = get(env, { cookie }); await started.promise;
+  env.DB.raw.prepare('UPDATE media SET r2_key=? WHERE id=?').run('synthetic/replacement.jpg', 'A00001'); release.resolve();
+  assert.equal((await pending).status, 404);
+});

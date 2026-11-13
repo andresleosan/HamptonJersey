@@ -10,11 +10,11 @@ export const publicMediaTypeAllowed = type => {
   const normalized = type.split(';', 1)[0].trim().toLowerCase();
   return normalized === '' || normalized === 'application/octet-stream' || VISUAL_TYPES.has(normalized);
 };
-const documentName = key => typeof key === 'string' && DOCUMENT_NAME.test(key);
+const documentName = value => typeof value === 'string' && DOCUMENT_NAME.test(value.trim());
 
 // The one rule for what the public may see. External reference media never qualify
 // (also enforced by a CHECK constraint in D1).
 export const isPublicMedia = (m, l) =>
   m.origin !== 'external' && m.public === 1 && !!m.r2_key && l.published === 1 && !l.archived_at &&
   VISUAL_KINDS.has(m.kind) && publicMediaTypeAllowed(m.content_type) &&
-  !documentName(m.r2_key) && !documentName(m.thumb_key);
+  !documentName(m.r2_key) && !documentName(m.thumb_key) && !documentName(m.label);

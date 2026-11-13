@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
 import { makeEnv, call, adminCookie } from './helpers.mjs';
 import { applyListingHealthProposal } from './listing-health-support.mjs';
+import { isPublicMedia } from '../../server/visibility.js';
 
 // This is a local SQLite measurement, not evidence of a Cloudflare D1 budget or production traffic.
 test('10,000 complete candidates are paged and 10,001 fail closed', async t => {
@@ -44,6 +45,14 @@ test('10,000 complete candidates are paged and 10,001 fail closed', async t => {
   seed(10001);
   const after=await call(env,'GET','/admin/insights/listing-health',{cookie});
   assert.equal(after.status,503);assert.equal(after.data.error,'Too many listings to display');
+  // This is deliberately a pre-filter read bound: even if every candidate is later ineligible,
+  // the complete set is not returned or partially presented.
+  db.prepare('UPDATE media SET label=?').run('Synthetic document.pdf');
+  const sample=db.prepare('SELECT m.*,l.published,l.archived_at FROM media m JOIN listings l ON l.id=m.listing_id LIMIT 1').get();
+  assert.equal(isPublicMedia(sample,sample),false);
+  const ineligible=await call(env,'GET','/admin/insights/listing-health',{cookie});
+  assert.equal(ineligible.status,503);assert.equal(ineligible.data.error,'Too many listings to display');
+  assert.equal(ineligible.data.rows,undefined);
 });
 
 // Long text may be valid public content; neither it nor an incomplete set may exceed the response budget.

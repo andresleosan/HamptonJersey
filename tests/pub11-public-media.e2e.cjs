@@ -24,7 +24,15 @@ const sql = statement => execFileSync(process.execPath, [wrangler, 'd1', 'execut
     const uploaded = await page.evaluate(async () => {
       const canvas = new OffscreenCanvas(48, 32), ctx = canvas.getContext('2d');
       ctx.fillStyle = '#82909a'; ctx.fillRect(0, 0, 48, 32);
-      const blob = await canvas.convertToBlob({ type: 'image/jpeg' });
+      const original = new Uint8Array(await (await canvas.convertToBlob({ type: 'image/jpeg' })).arrayBuffer());
+      const comment = new TextEncoder().encode('Synthetic image note: %PDF- is ordinary text');
+      const bytes = new Uint8Array(original.length + comment.length + 4), length = comment.length + 2;
+      bytes.set(original.subarray(0, 2)); bytes.set([0xff, 0xfe, length >> 8, length & 255], 2);
+      bytes.set(comment, 6); bytes.set(original.subarray(2), 6 + comment.length);
+      const blob = new Blob([bytes], { type: 'image/jpeg' });
+      const bitmap = await createImageBitmap(blob);
+      if (bitmap.width !== 48 || bitmap.height !== 32) throw new Error('Synthetic JPEG failed to decode');
+      bitmap.close();
       const form = new FormData(); form.append('file', blob, 'photo.jpg'); form.append('thumb', blob, 'thumb.jpg');
       const response = await fetch('/api/admin/listings/HE-R001/media', { method: 'POST', body: form });
       return { status: response.status, media: (await response.json()).media, bytes: [...new Uint8Array(await blob.arrayBuffer())] };
