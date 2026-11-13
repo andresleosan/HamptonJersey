@@ -21,10 +21,12 @@ export async function renderOwner(root,{tsKey,tsReady}) {
  const fieldNames=['name','phone','email','address','operation','valuation_requested'];
  const clearFieldError=name=>{const field=form.elements.namedItem(name),message=form.querySelector(`#owner-error-${name}`);if(!field)return;field.removeAttribute('aria-invalid');field.removeAttribute('aria-describedby');message?.remove();};
  const clearFieldErrors=()=>fieldNames.forEach(clearFieldError);
- const showFieldErrors=errors=>{
+ const showFieldErrors=(errors,submitted)=>{
   clearFieldErrors();let first=null;
   if(!errors||typeof errors!=='object'||Array.isArray(errors))return false;
   for(const name of fieldNames){const field=form.elements.namedItem(name),text=errors[name];if(!field||typeof text!=='string'||!text.trim())continue;
+   const current=field.type==='checkbox'?field.checked:field.value;
+   if(current!==submitted[name])continue; // A late response belongs to the value actually submitted.
    const message=document.createElement('span');message.id=`owner-error-${name}`;message.className='err';message.textContent=text;
    field.setAttribute('aria-invalid','true');field.setAttribute('aria-describedby',message.id);field.closest('label').append(message);first??=field;
   }
@@ -46,7 +48,7 @@ export async function renderOwner(root,{tsKey,tsReady}) {
    const r=await fetch('/api/owner-requests',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
    const out=await r.json().catch(()=>({}));if(!alive())return;
    if(r.ok){root.querySelector('.wrap').innerHTML='<h1>Request received</h1><p role="status">Thank you. Hampton Estates will contact you.</p>';return;}
-   const highlighted=r.status===400&&showFieldErrors(out.fields);
+   const highlighted=r.status===400&&showFieldErrors(out.fields,payload);
    if(r.status>=500)frozen=withoutToken; else if(r.status===409)frozen=withoutToken;
    status.textContent=r.status===400&&!highlighted?'Please check your details and try again.':out.error||'Could not send your request. Please try again.';
   }catch{if(alive()){frozen=withoutToken;status.textContent='We could not confirm whether your request was sent. Please retry with the same details.';}}
