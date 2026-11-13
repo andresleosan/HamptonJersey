@@ -26,6 +26,18 @@ test('local D1 migration preserves historic children, rejects drift and supports
   await assert.rejects(d.batch(split(proposal).map(sql=>d.prepare(sql))));
   assert.equal(await count(d,'notifications'),1);assert.equal(await count(d,'notification_reads'),1);
   await run(d,'DROP TRIGGER fixture_schema_drift');
+  // New referencing tables may cascade on DROP and leave foreign_key_check clean.
+  // The proposed rebuild must reject them before touching either parent table.
+  await run(d,'CREATE TABLE fixture_extra_event(id INTEGER PRIMARY KEY,event_id INTEGER REFERENCES events(id) ON DELETE CASCADE)');
+  await run(d,'INSERT INTO fixture_extra_event VALUES(1,9001)');
+  await assert.rejects(d.batch(split(proposal).map(sql=>d.prepare(sql))));
+  assert.equal(await count(d,'fixture_extra_event'),1);assert.equal(await count(d,'events'),1);assert.equal(await count(d,'notifications'),1);
+  await run(d,'DROP TABLE fixture_extra_event');
+  await run(d,'CREATE TABLE fixture_extra_notice(id INTEGER PRIMARY KEY,notice_id INTEGER REFERENCES notifications(id) ON DELETE CASCADE)');
+  await run(d,'INSERT INTO fixture_extra_notice VALUES(1,9001)');
+  await assert.rejects(d.batch(split(proposal).map(sql=>d.prepare(sql))));
+  assert.equal(await count(d,'fixture_extra_notice'),1);assert.equal(await count(d,'events'),1);assert.equal(await count(d,'notifications'),1);
+  await run(d,'DROP TABLE fixture_extra_notice');
   await d.batch(split(proposal).map(sql=>d.prepare(sql)));
   await d.batch(split(readFileSync(new URL('../../server/proposed-schema/owner-requests.sql',import.meta.url),'utf8')).map(sql=>d.prepare(sql)));
   assert.equal(await count(d,'notifications'),1);assert.equal(await count(d,'notification_reads'),1);assert.equal(await count(d,'notification_task_operations'),1);

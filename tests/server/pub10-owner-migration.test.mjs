@@ -42,3 +42,41 @@ test('schema drift aborts rebuild without changing existing historical data',()=
  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
  db.close();
 });
+
+test('unexpected cascading foreign key to events fails closed before data loss',()=>{
+ const db=dbAtBaseline();
+ db.exec('CREATE TABLE synthetic_cascade(id INTEGER PRIMARY KEY,event_id INTEGER REFERENCES events(id) ON DELETE CASCADE); INSERT INTO synthetic_cascade VALUES(1,9001)');
+ db.exec('BEGIN');
+ assert.throws(()=>db.exec(readFileSync(proposal,'utf8')),/CHECK constraint failed/);
+ db.exec('ROLLBACK');
+ assert.deepEqual(db.prepare('SELECT * FROM synthetic_cascade').all().map(x=>({...x})),[{id:1,event_id:9001}]);
+ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM events WHERE id=9001').get().n,1);
+ assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
+ db.close();
+});
+
+test('unexpected cascading foreign key to notifications fails closed before data loss',()=>{
+ const db=dbAtBaseline();
+ db.exec('CREATE TABLE synthetic_notice_cascade(id INTEGER PRIMARY KEY,notice_id INTEGER REFERENCES notifications(id) ON DELETE CASCADE); INSERT INTO synthetic_notice_cascade VALUES(1,9001)');
+ db.exec('BEGIN');
+ assert.throws(()=>db.exec(readFileSync(proposal,'utf8')),/CHECK constraint failed/);
+ db.exec('ROLLBACK');
+ assert.deepEqual(db.prepare('SELECT * FROM synthetic_notice_cascade').all().map(x=>({...x})),[{id:1,notice_id:9001}]);
+ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE id=9001').get().n,1);
+ assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
+ db.close();
+});
+
+test('unrelated new table is rejected conservatively before a rebuild',()=>{
+ const db=dbAtBaseline(); db.exec('CREATE TABLE synthetic_unrelated(id INTEGER PRIMARY KEY); INSERT INTO synthetic_unrelated VALUES(1)');
+ db.exec('BEGIN'); assert.throws(()=>db.exec(readFileSync(proposal,'utf8')),/CHECK constraint failed/); db.exec('ROLLBACK');
+ assert.equal(db.prepare('SELECT COUNT(*) n FROM synthetic_unrelated').get().n,1);
+ assert.equal(db.prepare('SELECT COUNT(*) n FROM notifications WHERE id=9001').get().n,1); db.close();
+});
+
+test('unexpected metadata definition is rejected before a rebuild',()=>{
+ const db=dbAtBaseline(); db.exec('CREATE TABLE _cf_METADATA(key INTEGER PRIMARY KEY,value BLOB,event_id INTEGER REFERENCES events(id) ON DELETE CASCADE); INSERT INTO _cf_METADATA VALUES(1,NULL,9001)');
+ db.exec('BEGIN'); assert.throws(()=>db.exec(readFileSync(proposal,'utf8')),/CHECK constraint failed/); db.exec('ROLLBACK');
+ assert.equal(db.prepare('SELECT COUNT(*) n FROM _cf_METADATA').get().n,1);
+ assert.equal(db.prepare('SELECT COUNT(*) n FROM events WHERE id=9001').get().n,1); db.close();
+});
