@@ -17811,8 +17811,8 @@
       "fase": "—",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "La decisión vigente usa aperturas agregadas por propiedad, sin atribución a contactos. Se prepararon la redirección canónica y un contador con límite diario y sin datos de visitantes, probados con SQLite y D1 efímero; la ruta está apagada y el esquema es una propuesta fuera de migraciones. También se preparó no-store para ficha y catálogo con otro control desactivado.",
-      "falta": "Construir el escritor y descarga Staff del QR con elegibilidad completa, el SVG fijado por el plan y la consulta protegida. Acreditar privacidad y retención, elegibilidad y retirada temporal de PUB-16, costes reales, reglas CDN e invalidación o vencimiento de cachés antiguas; probar el QR físico. Los controles preparados no acreditan esos requisitos ni producción.",
+      "hecho": "La decisión vigente usa aperturas agregadas por propiedad, sin atribución a contactos. Se prepararon la redirección canónica, el contador y el generador SVG fijado por el plan; SQLite, D1 efímero y un lector QR independiente verificaron su alcance. La ruta está apagada, el esquema es una propuesta fuera de migraciones y no-store para ficha y catálogo usa otro control desactivado.",
+      "falta": "Construir el escritor y descarga Staff del QR con elegibilidad completa y la consulta protegida. Acreditar privacidad y retención, elegibilidad y retirada temporal de PUB-16, costes reales, reglas CDN e invalidación o vencimiento de cachés antiguas; probar el QR físico. Los controles preparados no acreditan esos requisitos ni producción.",
       "bloqueo": "",
       "evidencia": [
         "server/routes/public.js",
@@ -17823,7 +17823,10 @@
         "docs/superpowers/specs/2026-11-10-tanda7-analitica-design.md",
         "docs/roadmap/work/ANA-10/cache-origen-2026-11-13.md",
         "docs/roadmap/work/ANA-10/qr-nucleo-2026-11-13.md",
+        "docs/roadmap/work/ANA-10/qr-svg-2026-11-13.md",
         "server/property-qr.js",
+        "server/property-qr-svg.js",
+        "tests/server/property-qr-svg.test.mjs",
         "functions/r/[code].js",
         "tests/server/property-qr-d1.test.mjs"
       ],
@@ -17845,7 +17848,7 @@
         "analytics-contract",
         "public-site"
       ],
-      "nextStep": "Construir la asociación autorizada y el SVG Staff; acreditar PUB-16, privacidad, costes y cachés antes de activar.",
+      "nextStep": "Construir la asociación y descarga Staff autorizadas; acreditar PUB-16, privacidad, costes y cachés antes de activar.",
       "actualizado": "2026-11-13"
     },
     {
