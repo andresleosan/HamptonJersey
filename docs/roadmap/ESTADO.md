@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **Alcance de IA y titularidad reconciliado:** AUT-12 y PRE-30 se conservan como replanteadas por la decisión de Hermes central; PRE-28 pasa a parcial porque el destino está decidido y falta verificar y ejecutar la transición por servicio. El catálogo pasa de 68/217 (31,34 %) a 68/215 (31,63 %), sin nuevas tareas terminadas. [Evidencia](work/progreso/ajuste-ia-2026-11-13.md).
+
 13-nov-2026 · **ANA-04 parcial:** tendencias agregadas preparadas con presupuesto diario y compatibilidad de archivos en caché; productor, lectura y retención siguen cerrados. Faltan política, protección de solicitudes y presupuesto/esquema D1. [Evidencia](work/ANA-04/evidence.md).
 
 13-nov-2026 · **ANA-05 parcial:** etapas registradas separadas de hitos aún no integrados, sin seguimiento individual ni inferencia de pasos. La lectura nueva permanece apagada hasta acreditar su presupuesto D1 y las fuentes. [Evidencia](../qa/ana-05-aggregate-evidence.md).

@@ -4,22 +4,24 @@
   "titulo": "Respuesta a la pregunta 14: qué plan de ChatGPT tiene cada empleado",
   "origen": "plan",
   "fase": "—",
-  "estado": "bloqueado",
+  "estado": "replanteado",
   "responsable": "Hampton",
-  "hecho": "",
-  "falta": "Sin respuesta: qué plan tiene cada empleado (Free, Plus, Pro, Business o Enterprise) y quién lo paga. Decide si las automatizaciones pueden usar ese plan y con qué datos (AUT-12).",
-  "bloqueo": "Dato de Hampton",
+  "hecho": "La pregunta sobre planes individuales pertenecía a la vía por empleado, sustituida por la decisión posterior de usar Hermes central. No se ha obtenido ni se declara una respuesta a la pregunta anterior.",
+  "falta": "Las condiciones y los datos permitidos de la vía central siguen pendientes en PRE-32; esta pregunta individual deja de ser requisito vigente.",
+  "bloqueo": "",
   "evidencia": [
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 14"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 14",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:26",
+    "docs/superpowers/plans/2026-11-10-tp05-construction-readiness.json (PRE-30: superseded_by_central_hermes)"
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
-  "executionEligibility": "needs_scope_and_evidence_review",
+  "executionEligibility": "historical",
   "dependencies": [],
-  "externalBlocker": "Hampton: Dato de Hampton",
+  "externalBlocker": "",
   "resources": [
     "staff-ai-access"
   ],
-  "nextStep": "Hampton confirma los planes y su financiación antes de decidir el uso de automatizaciones por empleados."
+  "nextStep": "Mantener la pregunta como historial y continuar PRE-32 para la vía central."
 }

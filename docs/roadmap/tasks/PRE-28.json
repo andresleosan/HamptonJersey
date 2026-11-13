@@ -1,27 +1,30 @@
 {
   "id": "PRE-28",
   "seccion": "Acciones previas y cumplimiento",
-  "titulo": "Respuesta a la pregunta 12: Optimyze como operador y titular de las cuentas",
+  "titulo": "Titularidad de Hampton y operación autorizada de Optimyze",
   "origen": "plan",
   "fase": "—",
-  "estado": "bloqueado",
+  "estado": "parcial",
   "responsable": "Luis",
-  "hecho": "Optimyze construye y mantiene el sistema: el aviso de privacidad la nombra encargada de Hampton.",
-  "falta": "Decidir a nombre de quién van las cuentas (Cloudflare está en la de AndresLeoSan; Firebase y Meta después; el modelo de Hermes usa hoy el plan de ChatGPT de Luis) y firmar el acuerdo de tratamiento con Hampton (PRE-13).",
-  "bloqueo": "Decisión de Luis",
+  "hecho": "El destino de titularidad está decidido: Hampton será titular y Optimyze operador autorizado. La decisión no acredita por sí sola el estado actual de cada cuenta, una transferencia ni la firma de acuerdos.",
+  "falta": "Inventario privado por servicio y comprobación de titularidad, facturación, recuperación y acceso; transición y pruebas por producto cuando se autoricen; aceptación y cobertura contractual PRE-13. Verificar una vía soportada o excepción para la conexión Pro sin presumir que se puede transferir.",
+  "bloqueo": "Verificación y transición por servicio",
   "evidencia": [
     "site/apply.js:331-333",
     "docs/roadmap/ESTADO.md:8",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:703"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:703",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:28",
+    "docs/superpowers/plans/2026-11-09-tp01-pre-28-plan.md",
+    "docs/superpowers/specs/2026-11-09-tp01-accounts-and-custody-design.md"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
   "dependencies": [],
-  "externalBlocker": "Luis: Decisión de Luis",
+  "externalBlocker": "Titular y operador: verificar por canales correspondientes el estado y la recuperación por servicio; la ejecución y aceptación requieren sus autorizaciones.",
   "resources": [
     "account-ownership"
   ],
-  "nextStep": "Luis decide titularidad y operador de las cuentas; registrar esa decisión para preparar los acuerdos."
+  "nextStep": "Preparar la matriz privada de estado y próximos pasos por servicio; conservar como pendiente todo acceso o traslado no verificado."
 }

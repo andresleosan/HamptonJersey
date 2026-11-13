@@ -1850,7 +1850,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "En producción desde el 1-nov-2026, sin migración: la pantalla Automations, en el menú Settings, con una tarjeta por automatización. El reloj (AUT-07): su última vuelta, y «Stopped» si lleva más de 30 minutos sin dar una o no hay ninguna. El borrado de 12 meses: el último día, si salió bien y cuántos aplicantes, visitas y trabajos de Hermes borró (solo números). Los borradores de Hermes (AUT-13): la última vez que pidió trabajo o «Not connected yet», un aviso si deja de pedirlo más de 15 minutos después de haberse conectado, los usados, descartados y fallidos de los últimos 30 días con su porcentaje, los borradores por aprobar con enlace a la ficha y los 20 trabajos más recientes, sin sus textos ni el email de quien los pidió. Los envíos: activos o pausados, con «Pause all outbound» para cualquiera del equipo y «Resume sending». Cuando el reloj o Hermes se paran, el botón Settings de la barra lleva un número en todas las pantallas. Luis eligió el 1-nov esta primera versión, los avisos en Settings, los umbrales de 30 y 15 minutos y el borrado de los trabajos de Hermes a los 90 días, también los que nadie tomó. Añadido solo en local el 6-nov-2026 (AUT-17): tarjetas Email y Daily team summary con preparación externa, última comprobación del Worker, contadores, muestra y autorización del resumen, destinatarios y bajas; la sección Email revisa envíos y respuestas.",
-   "falta": "Llega con la primera automatización que lo necesite: el interruptor de las demás (el reloj y el borrado de 12 meses no se apagan; para Hermes, Luis prefirió no ponerlo el 1-nov), el modo Draft/Approve/Auto (AUT-10), el coste del mes, las plantillas, los parámetros editables (entre ellos los plazos de ADM-04: 3 meses, 1 en alquiler) y el registro de cada ejecución con su entrada y su salida (hoy, solo la lista de trabajos de Hermes). Aquí se verá también la vía que usó cada empleado (AUT-12).",
+   "falta": "Llega con la primera automatización que lo necesite: el interruptor de las demás (el reloj y el borrado de 12 meses no se apagan; para Hermes, Luis prefirió no ponerlo el 1-nov), el modo Draft/Approve/Auto (AUT-10), el coste del mes, las plantillas, los parámetros editables (entre ellos los plazos de ADM-04: 3 meses, 1 en alquiler) y el registro de cada ejecución con su entrada y su salida (hoy, solo la lista de trabajos de Hermes).",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Automations.jsx",
@@ -1934,7 +1934,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "Luis",
    "hecho": "Desde el 29-oct-2026 Hermes corre en el VPS de Optimyze con el plan de ChatGPT de Luis (inicio de sesión de OpenAI Codex). El 30-oct Luis decidió que será el cerebro de IA de las automatizaciones (P-18, §6.6): es su regla original, una suscripción para lo que no es sensible. Ese mismo día decidió que lo será un Hermes propio de Hampton, aparte del de Optimyze (PRE-31), con su plan de ChatGPT y solo datos públicos (C0) y contadores (pregunta 16). Todavía no hace ninguna automatización de Hampton.",
-   "falta": "Antes de conectar el modelo, Luis dice qué plan es, comprueba que sus condiciones permiten usarlo en el trabajo de un cliente y apaga el entrenamiento con sus datos (PRE-32). Conectarlo a la app es AUT-13. El plan de cada empleado sigue esperando a OpenAI (AUT-12), y no se ha revisado si Google (Gemini) tiene algo parecido.",
+   "falta": "Antes de conectar el modelo, Luis dice qué plan es, comprueba que sus condiciones permiten usarlo en el trabajo de un cliente y apaga el entrenamiento con sus datos (PRE-32). Conectarlo a la app es AUT-13. No se ha revisado si Google (Gemini) tiene algo parecido; la vía por empleado de AUT-12 fue sustituida por la decisión de Hermes central.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.3",
@@ -2081,15 +2081,17 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Los empleados usan su plan de ChatGPT en las automatizaciones (Sign in with ChatGPT)",
    "origen": "texto",
    "fase": "—",
-   "estado": "bloqueado",
+   "estado": "replanteado",
    "responsable": "Luis",
-   "hecho": "Revisado el 29-oct-2026 y documentado en el §6.5 del plan: qué ofrece OpenAI, por qué hoy no entra Hampton App, cómo encajaría y con qué datos. Es la siguiente tarea por decisión de Luis (P-17). Mientras tanto, Hermes usará el plan de ChatGPT de Luis para lo que no es sensible (AUT-05, P-18).",
-   "falta": "Primero, permiso de OpenAI: la vía que carga la IA al plan del usuario solo está documentada para apps de código abierto que corren en la máquina del usuario, el inicio de sesión web está en prueba limitada con lista de espera, y el DevKit tiene licencia no comercial. Luis rellena el formulario de interés de OpenAI para apps alojadas o de pago y pide un client ID; Hampton dice qué plan tiene cada empleado (PRE-30). Con el permiso: botón «Connect ChatGPT» por empleado con el token cifrado en D1, automatizaciones con IA que corren con el plan de quien las lanza o aprueba, vía API (AUT-02) cuando no hay plan válido, y la vía usada visible en Automations (AUT-01). Datos C0 sí; C1 y C2 solo con plan Business o Enterprise; C3 nunca.",
-   "bloqueo": "Aprobación de OpenAI",
+   "hecho": "La vía de inicio de sesión y planes individuales se estudió en el plan anterior. El plan maestro posterior decidió un sistema central mediante Hermes; la conexión por empleado queda sustituida, no implementada.",
+   "falta": "Las comprobaciones y la conexión de la vía central continúan en AUT-05, AUT-13 y PRE-32. No se atribuye a esta ficha permiso de proveedor ni ejecución de la vía individual.",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.5",
     "https://developers.openai.com/siwc",
-    "https://github.com/openai/sign-in-with-chatgpt-devkit (LICENSE: no comercial)"
+    "https://github.com/openai/sign-in-with-chatgpt-devkit (LICENSE: no comercial)",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:26",
+    "docs/superpowers/plans/2026-11-10-tp05-construction-readiness.json (AUT-12: superseded_by_central_hermes)"
    ]
   },
   {
@@ -5770,18 +5772,21 @@ document.addEventListener('DOMContentLoaded', () => {
   {
    "id": "PRE-28",
    "seccion": "Acciones previas y cumplimiento",
-   "titulo": "Respuesta a la pregunta 12: Optimyze como operador y titular de las cuentas",
+   "titulo": "Titularidad de Hampton y operación autorizada de Optimyze",
    "origen": "plan",
    "fase": "—",
-   "estado": "bloqueado",
+   "estado": "parcial",
    "responsable": "Luis",
-   "hecho": "Optimyze construye y mantiene el sistema: el aviso de privacidad la nombra encargada de Hampton.",
-   "falta": "Decidir a nombre de quién van las cuentas (Cloudflare está en la de AndresLeoSan; Firebase y Meta después; el modelo de Hermes usa hoy el plan de ChatGPT de Luis) y firmar el acuerdo de tratamiento con Hampton (PRE-13).",
-   "bloqueo": "Decisión de Luis",
+   "hecho": "El destino de titularidad está decidido: Hampton será titular y Optimyze operador autorizado. La decisión no acredita por sí sola el estado actual de cada cuenta, una transferencia ni la firma de acuerdos.",
+   "falta": "Inventario privado por servicio y comprobación de titularidad, facturación, recuperación y acceso; transición y pruebas por producto cuando se autoricen; aceptación y cobertura contractual PRE-13. Verificar una vía soportada o excepción para la conexión Pro sin presumir que se puede transferir.",
+   "bloqueo": "Verificación y transición por servicio",
    "evidencia": [
     "site/apply.js:331-333",
     "docs/roadmap/ESTADO.md:8",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:703"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:703",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:28",
+    "docs/superpowers/plans/2026-11-09-tp01-pre-28-plan.md",
+    "docs/superpowers/specs/2026-11-09-tp01-accounts-and-custody-design.md"
    ]
   },
   {
@@ -5809,13 +5814,15 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Respuesta a la pregunta 14: qué plan de ChatGPT tiene cada empleado",
    "origen": "plan",
    "fase": "—",
-   "estado": "bloqueado",
+   "estado": "replanteado",
    "responsable": "Hampton",
-   "hecho": "",
-   "falta": "Sin respuesta: qué plan tiene cada empleado (Free, Plus, Pro, Business o Enterprise) y quién lo paga. Decide si las automatizaciones pueden usar ese plan y con qué datos (AUT-12).",
-   "bloqueo": "Dato de Hampton",
+   "hecho": "La pregunta sobre planes individuales pertenecía a la vía por empleado, sustituida por la decisión posterior de usar Hermes central. No se ha obtenido ni se declara una respuesta a la pregunta anterior.",
+   "falta": "Las condiciones y los datos permitidos de la vía central siguen pendientes en PRE-32; esta pregunta individual deja de ser requisito vigente.",
+   "bloqueo": "",
    "evidencia": [
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 14"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 14",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:26",
+    "docs/superpowers/plans/2026-11-10-tp05-construction-readiness.json (PRE-30: superseded_by_central_hermes)"
    ]
   },
   {

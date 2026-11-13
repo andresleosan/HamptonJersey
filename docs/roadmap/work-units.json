@@ -2663,7 +2663,7 @@
       "preferredSlot": "hermes",
       "priority": 171,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -8717,7 +8717,7 @@
     {
       "id": "PRE-28",
       "parentTaskId": "PRE-28",
-      "title": "Respuesta a la pregunta 12: Optimyze como operador y titular de las cuentas",
+      "title": "Titularidad de Hampton y operación autorizada de Optimyze",
       "preferredSlot": "codex-desktop",
       "priority": 343,
       "kind": "decision",
@@ -8739,7 +8739,7 @@
         }
       ],
       "acceptance": [
-        "Luis decide titularidad y operador de las cuentas; registrar esa decisión para preparar los acuerdos."
+        "Preparar la matriz privada y registrar por servicio el estado, recuperación y próximos pasos; no acreditar traslados o acuerdos sin evidencia."
       ]
     },
     {
@@ -8781,7 +8781,7 @@
       "preferredSlot": "hermes",
       "priority": 345,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
