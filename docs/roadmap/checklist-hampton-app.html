@@ -3617,21 +3617,28 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Al enviar, la web confirma «Thank you, \u003cname>. We'll be in touch within one working day.» y el matching corre justo después de responder.",
-   "falta": "M03 · Reconciliación 7-nov: Confirmar el alta y el inicio real de la búsqueda sin prometer una propiedad adecuada ni una visita. Mostrar al equipo el resultado inicial y datos esenciales pendientes; gestionar solo el dato que falta. El portal pendiente AGE-12 no bloquea ese acuse de registro y no se revelan coincidencias de un contacto previo por una repetición del formulario. Depende de: BUS-01, EST-09. Aceptación: El formulario informa que la búsqueda está activa y el equipo ve cualquier esencial pendiente.",
+   "hecho": "El alta muestra el mismo acuse para solicitudes nuevas, repetidas y comerciales, sin mostrar coincidencias ni datos previos, y conserva el compromiso de contacto en un día laborable. Requirements muestra criterios residenciales guardados por confirmar, incluidas prioridades desconocidas; el ajuste de cabecera y pie evita el desbordamiento móvil comprobado con zoom.",
+   "falta": "Informar del inicio y resultado reales de cada búsqueda sin prometer disponibilidad ni revelar coincidencias de contactos previos. BUS-01 debe cubrir el inventario común; EST-01 debe acreditar intentos, fallo y estado; BUS-12 debe clasificar el resultado y los datos esenciales por operación, incluida la comercial. El editor existente puede mostrar Off en una prioridad histórica desconocida y necesita una representación diferenciada; la nueva indicación no la convierte en opcional.",
    "bloqueo": "",
    "evidencia": [
     "site/apply.js:264-271",
     "server/routes/public.js:101-133",
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:101",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "server/registration-result.js",
+    "admin/src/RegistrationEssentials.jsx",
+    "tests/reg12-registration.e2e.cjs",
+    "tests/public-header-reflow.e2e.cjs",
+    "docs/roadmap/work/REG-12/2026-11-13-acuse-y-criterios.md",
+    "docs/roadmap/work/REG-12/2026-11-13-reflujo-publico.md"
    ],
    "modulo": "M03",
    "deps": [
     "BUS-01",
     "EST-09"
    ],
-   "criterio_aceptacion": "El formulario informa que la búsqueda está activa y el equipo ve cualquier esencial pendiente."
+   "criterio_aceptacion": "El formulario informa que la búsqueda está activa y el equipo ve cualquier esencial pendiente.",
+   "actualizado": "2026-11-13"
   },
   {
    "id": "REG-13",

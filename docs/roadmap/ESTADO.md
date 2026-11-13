@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **REG-12 parcial:** acuse igual para altas nuevas y repetidas con contacto en un día laborable; el panel señala criterios residenciales sin confirmar. La cabecera y pie móviles se adaptan al zoom. Faltan estado y resultado reales de búsqueda. [Evidencia](work/REG-12/2026-11-13-acuse-y-criterios.md) · [Reflujo](work/REG-12/2026-11-13-reflujo-publico.md).
+
 13-nov-2026 · **BUS-10 parcial:** la ficha Staff muestra candidatos de investigación como indicios y señala revisiones contradictorias, sin fusionar propiedades. Se eliminó la dependencia de un nombre interno de índice; la búsqueda histórica sigue sin índice por grupo. [Evidencia](work/BUS-10/revision-investigacion-2026-11-13.md).
 
 13-nov-2026 · **ANA-10 parcial:** la decisión vigente usa QR por propiedad y aperturas agregadas, sin atribución a contactos. El control de caché está preparado y apagado por defecto; faltan QR, recuento, coste y verificación CDN. [Evidencia](work/ANA-10/cache-origen-2026-11-13.md).

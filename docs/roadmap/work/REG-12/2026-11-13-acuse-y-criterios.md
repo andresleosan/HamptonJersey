@@ -1,5 +1,7 @@
 # REG-12: acuse y datos residenciales por confirmar
 
+> Integración posterior: la cabecera y el pie se corrigieron y el recorrido completo pasó en la copia integrada, incluido 390 px con zoom CSS 200 %. Las ejecuciones fallidas descritas abajo se conservan como historial.
+
 > Corrección posterior: la descripción de abajo que califica el plazo de un día como no acreditado fue errónea. F0 §5 y §9 conserva ese compromiso como texto editable; el plazo se restituyó en una pasada posterior. El resto de este documento registra la entrega y las pruebas históricas de aquel momento.
 
 Base de trabajo: `dd63b56e59aa2098c4d2c33813526b7cac0fc89b`. REG-12 **permanece parcial**. Este tramo no modifica el catálogo, no aplica migraciones y no activa servicios externos.
@@ -25,3 +27,7 @@ Base de trabajo: `dd63b56e59aa2098c4d2c33813526b7cac0fc89b`. REG-12 **permanece 
 - `npm run build` pasó; Vite informó del aviso existente de tamaño de chunk.
 - El primer arranque del lanzador se detuvo antes de preparar el fixture porque el test aún no estaba staged. Después, el primer E2E aislado falló porque el fixture omitió dormitorios mínimos y el control siguiente quedó oculto. Se corrigió el fixture; la segunda ejecución alcanzó el acuse a 390 px pero falló el reflujo con zoom CSS 200 %.
 - La tercera ejecución aislada de Chromium llegó a su última aserción: completó altas nuevas y repetidas, dos operaciones, el acuse comercial, el aviso de matching comercial no disponible, teclado, anchos 1280/390 sin zoom y guardado de prioridad desconocida. Sin embargo, **la ejecución terminó fallida** por el reflujo público a 390 px con zoom CSS 200 %. En la misma página, tanto el acuse actual como el marcado/texto anterior ocuparon 652 px; el mayor desbordamiento correspondió a la cabecera (logo y botón de menú). La comparación restauró temporalmente el marcado anterior en el mismo DOM, no ejecutó un checkout anterior completo. En la ficha administrativa el ancho del documento fue 390 px con y sin la nueva indicación. El caso público con zoom no está aprobado; queda pendiente la cabecera compartida. No se ejecutó una suite completa en este tramo.
+
+## Verificación de la integración
+
+Sobre `d9cdac261be4410fdfbe8c405cf571dc7d82150c`, con la corrección de prioridades, reflujo y compromiso de un día laborable, pasaron **1.828/1.828** pruebas Node y **25/25** Python. Build, `check:release`, `team:check`, `check:packages` y `git diff --check` pasaron. Los recorridos aislados `tests/public-header-reflow.e2e.cjs` y `tests/reg12-registration.e2e.cjs` terminaron con código 0 en Chromium y datos ficticios; se comprobó zoom CSS, no zoom nativo ni WebKit. No se verificaron producción ni el inicio real del matching.
