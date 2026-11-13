@@ -60,7 +60,7 @@ const { chromium } = require(process.env.PW || 'playwright-core');
 
         const eur = card('found', eurTitle);
         await eur.getByText('Requirements to confirm', {exact:true}).waitFor();
-        assert.match(await budget(eur).innerText(), /Unknown[\s\S]*Confirm the price currency/);
+        assert.match(await budget(eur).innerText(), /Unknown[\s\S]*Confirm whether the EUR price fits the GBP budget/);
         assert.doesNotMatch(await budget(eur).innerText(), /£/);
 
         const preferred = await context.request.post(new URL('api/admin/applicants', base).href, {
@@ -74,7 +74,7 @@ const { chromium } = require(process.env.PW || 'playwright-core');
         const preferredEur=preferredPage.locator('article.match').filter({has:preferredPage.getByRole('link',{name:eurTitle,exact:true})});
         await preferredEur.getByText('Stated must-haves met',{exact:true}).waitFor();
         await preferredEur.getByText('Budget needs confirmation.',{exact:true}).waitFor();
-        assert.match(await preferredEur.locator('dl.checks').innerText(),/Budget.*Preferred[\s\S]*Unknown/);
+        assert.match(await preferredEur.locator('dl.checks').innerText(),/Budget.*Preferred[\s\S]*Unknown[\s\S]*Confirm whether the EUR price fits the GBP budget/);
         await preferredPage.close();
 
         // Navigate from the listing link to Shortlist with the keyboard, then keep that human decision through recalculation.

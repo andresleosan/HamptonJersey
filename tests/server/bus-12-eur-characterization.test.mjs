@@ -34,3 +34,9 @@ test('budget uncertainty excludes human decisions and preserves known GBP rental
   assert.equal(proposal.added,1);
   assert.equal(proposal.unknownPrices,1);
 });
+
+test('EUR budget asks to confirm compatibility while missing currency asks for the currency', () => {
+  const check = currency => evaluate(applicant,{...listing,currency}).checks.find(c=>c.key==='budget');
+  assert.deepEqual([check('EUR').result,check('EUR').evidence],['unknown','Confirm whether the EUR price fits the GBP budget']);
+  assert.deepEqual([check(null).result,check(null).evidence],['unknown','Confirm the price currency']);
+});

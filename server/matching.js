@@ -36,7 +36,7 @@ function budget(a, l) {
     return { result: "unknown", evidence: null, points: POINTS.priceUnknown };
   // Applicant budgets are GBP; no exchange rate or currency is inferred.
   if (l.currency !== "GBP")
-    return { result: "unknown", evidence: "Confirm the price currency", points: POINTS.priceUnknown };
+    return { result: "unknown", evidence: l.currency === "EUR" ? "Confirm whether the EUR price fits the GBP budget" : "Confirm the price currency", points: POINTS.priceUnknown };
   const evidence = l.operation !== "rent" ? gbp(price)
     : `${gbp(price)} a month${l.rent_period === "year" ? ` (${gbp(l.rent)} a year)` : ""}`;
   const top = a.budget_stretch ?? a.budget_max;
