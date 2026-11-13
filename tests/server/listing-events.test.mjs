@@ -191,13 +191,19 @@ test('EST-18: Queue draft, publication and discard carry the import identity', a
   assert.deepEqual(deleted.data.before, {}); assert.deepEqual(deleted.data.after, {});
 });
 
-test('EST-18: media cover commit stays recorded if later media steps fail; removal clears it', async () => {
+test('EST-18: a failed media save rolls back its cover event; removal clears a successful cover', async () => {
   const { env, cookie } = await fixture();
   const { seedMedia } = await import('./helpers.mjs'); seedMedia(env, { origin: 'upload' });
   env.DB.raw.exec("CREATE TRIGGER reject_media_update BEFORE UPDATE ON media BEGIN SELECT RAISE(ABORT,'synthetic media failure'); END");
+  const before = listing(env), history = events(env);
   const r = await call(env, 'PUT', '/admin/listings/HE-R001/media', { cookie, body: { updated_at: T0, cover_media_id: 'A00001',
     items: [{ id: 'A00001', position: 0, public: true, kind: 'photo' }] } });
-  assert.equal(r.status, 500); assert.equal(listing(env).cover_media_id, 'A00001');
+  assert.equal(r.status, 500); assert.equal(listing(env).cover_media_id, before.cover_media_id);
+  assert.equal(listing(env).updated_at, before.updated_at);
+  assert.deepEqual(events(env), history);
+  env.DB.raw.exec('DROP TRIGGER reject_media_update');
+  assert.equal((await call(env, 'PUT', '/admin/listings/HE-R001/media', { cookie, body: { updated_at: T0,
+    cover_media_id: 'A00001', items: [{ id: 'A00001', position: 0, public: true, kind: 'photo' }] } })).status, 200);
   assert.equal(events(env).at(-1)?.data.source, 'media');
   assert.equal(events(env).at(-1).data.after.cover_media_id, 'A00001');
   assert.equal((await call(env, 'DELETE', '/admin/media/A00001', { cookie })).status, 200);

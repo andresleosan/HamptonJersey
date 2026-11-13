@@ -26,7 +26,7 @@ La inspección valida estructura y cabeceras: no decodifica por completo los bit
 
 Siguen pendientes el flujo PDF privado y staging durable, limpieza recuperable tras fallos o respuestas inciertas, guardado atómico de orden/visibilidad/portada, autorización durable y revocación durante el efecto, límites totales de multipart y calibración con fotografías representativas. Los controles actuales de sesión y origen se conservan; esta entrega no acredita esas garantías nuevas ni cambia su contrato. PUB-11 permanece parcial, sin migración ni activación remota.
 
-Siguiente tramo concreto: Tarea 3 del plan PUB-11, agrupar el guardado de medios y su versión en el mismo batch, con rollback y conflicto comprobados; no confundirlo con la política de mínimos de publicación todavía pendiente.
+Siguiente tramo concreto: Tarea 3 del plan PUB-11, agrupar el guardado de medios y su versión en el mismo batch, con rollback y conflicto comprobados; conservar los mínimos de publicación ya acordados y las guardas publicadas de PUB-12/PUB-02.
 
 ## Decisiones de la revisión
 
@@ -35,4 +35,4 @@ Siguiente tramo concreto: Tarea 3 del plan PUB-11, agrupar el guardado de medios
 - Ruling: PDF privado, staging, atomicidad, permisos durante el efecto y calibración siguen en sus tramos del plan. No se atribuyen a este cambio garantías que no implementa ni se abren servicios para completarlas.
 - Ruling: los objetos existentes, cachés y producción permanecen sin evaluar; ninguna prueba sintética acredita su estado.
 
-Resultado del lote: PUB-11 permanece parcial. Catálogo local: 68/215 (31,63 %), sin cierres nuevos. No se aplicaron migraciones remotas, no se activaron servicios ni se verificaron datos reales. La publicación y el tablero se verifican después del commit.
+Resultado del lote: PUB-11 permanece parcial. Catálogo local: 68/215 (31,63 %), sin cierres nuevos. No se aplicaron migraciones remotas, no se activaron servicios ni se verificaron datos reales. Publicado en main `5c97061b15d560613d3913ada13b4fda2fc11288`; SHA remoto verificado. El endpoint público mostró el avance de PUB-11 y conservó 68/215 (31,63 %), con updatedAt `2026-11-13T23:47:42.269Z`. La consulta de checks de GitHub no devolvió estados; no se deduce despliegue ni prueba de producción.

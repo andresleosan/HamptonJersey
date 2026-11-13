@@ -125,6 +125,26 @@ function withSyntheticGps(jpeg) {
       }, { bytes: [...readFileSync(join(__dirname, 'fixtures/media-upload', filename))], type, thumbnail: stored.thumb.bytes });
       assert.deepEqual(decoded, { status: 201, width: 32, height: 24, stored: [32, 24] }, filename);
     }
+    const atomic = await page.evaluate(async () => {
+      const path = '/api/admin/listings/HE-R001', read = async () => (await (await fetch(path)).json());
+      const before = await read(), selected = before.media.filter(m => m.origin === 'upload').slice(0, 2);
+      if (selected.length !== 2) throw new Error('Synthetic media required');
+      const bodies = selected.map((cover, writer) => ({ updated_at: before.listing.updated_at, cover_media_id: cover.id,
+        items: selected.map((m, index) => ({ id: m.id, position: writer * 10 + index, public: true,
+          kind: m.kind, label: `Atomic fixture ${writer}/${index}` })) }));
+      const save = body => fetch(path + '/media', { method: 'PUT', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body) });
+      const responses = await Promise.all(bodies.map(save)), statuses = responses.map(r => r.status);
+      const winner = bodies[statuses.indexOf(200)], after = await read();
+      const complete = winner && after.listing.cover_media_id === winner.cover_media_id && winner.items.every(expected => {
+        const actual = after.media.find(m => m.id === expected.id);
+        return actual && actual.position === expected.position && actual.label === expected.label && actual.public === 1;
+      });
+      const snapshot = value => JSON.stringify([value.listing.cover_media_id, value.listing.updated_at, value.media]);
+      const stale = await save(bodies[0]), final = await read();
+      return { statuses: statuses.sort(), complete, stale: stale.status, unchanged: snapshot(final) === snapshot(after) };
+    });
+    assert.deepEqual(atomic, { statuses: [200, 409], complete: true, stale: 409, unchanged: true });
     const smallBytes = await page.evaluate(async () => {
       const canvas = new OffscreenCanvas(600, 400), ctx = canvas.getContext('2d');
       for (let x = 0; x < 600; x += 8) { ctx.fillStyle = x % 16 ? '#ccc' : '#444'; ctx.fillRect(x, 0, 8, 400); }

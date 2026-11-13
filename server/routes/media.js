@@ -6,35 +6,54 @@ import { inspectUploadImage } from "../upload-image.js";
 const KINDS = ["photo", "floorplan", "aerial", "document"];
 const MAX_BYTES = 10 * 1024 * 1024;
 const ordered = env => id => env.DB.prepare("SELECT * FROM media WHERE listing_id = ? ORDER BY position, id").bind(id).all();
+const MEDIA_SNAPSHOT = ['listing_id', 'origin', 'kind', 'position', 'public', 'label', 'r2_key', 'thumb_key',
+  'rights_status', 'created_at', 'content_type'];
+const snapshotWhere = `id = ? AND ${MEDIA_SNAPSHOT.map(field => `${field} IS ?`).join(' AND ')}`;
+const snapshotArgs = row => [row.id, ...MEDIA_SNAPSHOT.map(field => row[field])];
+// Like updateListingEvent: a failed assertion aborts this entire D1 batch.
+const assertChanged = env => env.DB.prepare(
+  'INSERT INTO listing_event_context(listing_id) SELECT NULL WHERE changes()=0');
 
 async function save({ request, env, admin, params: [id] }) {
   await loadListing(env, id);
   const { items, cover_media_id = null, updated_at } = (await readJson(request)) ?? {};
   if (!Array.isArray(items)) fail(400, "Invalid format");
   if (typeof updated_at !== "string") fail(400, "Missing updated_at: reload the listing");
-  const { results } = await env.DB.prepare("SELECT id, origin, kind FROM media WHERE listing_id = ?").bind(id).all();
+  const { results } = await env.DB.prepare(`SELECT id, ${MEDIA_SNAPSHOT.join(', ')} FROM media WHERE listing_id = ?`).bind(id).all();
   const mine = new Map(results.map(m => [m.id, m]));
-  const stmts = items.map(it => {
+  const seen = new Set();
+  const stmts = items.flatMap(it => {
     const m = mine.get(it?.id);
     if (!m) fail(400, "One of the photos doesn't belong to this listing");
+    if (seen.has(m.id)) fail(400, "A photo appears more than once");
+    seen.add(m.id);
     if (!KINDS.includes(it.kind)) fail(400, "Invalid file type");
     if (!Number.isInteger(it.position) || it.position < 0) fail(400, "Invalid order");
     if (typeof it.public !== "boolean") fail(400, "Invalid visibility");
     if (m.origin === "external" && it.public) fail(400, "External photos are reference only and can't be made public");
     const label = typeof it.label === "string" && it.label.trim() ? it.label.trim().slice(0, 200) : null;
-    return env.DB.prepare("UPDATE media SET position = ?, public = ?, kind = ?, label = ? WHERE id = ?")
-      .bind(it.position, it.public ? 1 : 0, it.kind, label, it.id);
+    return [env.DB.prepare(`UPDATE media SET position = ?, public = ?, kind = ?, label = ? WHERE ${snapshotWhere}`)
+      .bind(it.position, it.public ? 1 : 0, it.kind, label, ...snapshotArgs(m)), assertChanged(env)];
   });
+  const coverChecks = [];
   if (cover_media_id !== null) {
     const c = mine.get(cover_media_id);
     if (!c || c.origin === "external") fail(400, "The cover must be one of this listing's own photos");
+    // The cover need not be included in items. Revalidate it inside the same
+    // transaction before writing media, including its ownership and identity.
+    coverChecks.push(env.DB.prepare(`INSERT INTO listing_event_context(listing_id)
+      SELECT NULL WHERE NOT EXISTS (SELECT 1 FROM media WHERE ${snapshotWhere})`).bind(...snapshotArgs(c)));
   }
-  // Same optimistic lock as the listing fields: a stale editor gets 409 instead of overwriting.
-  const [claimed] = await listingBatch(env, id, { actor: admin, source: 'media', action: 'cover_changed' }, [env.DB.prepare(
-    `UPDATE listings SET cover_media_id = ?, updated_at = ${listingClock}, updated_by = ? WHERE id = ? AND updated_at = ?`)
-    .bind(cover_media_id, now(), admin, id, updated_at)]);
-  if (!claimed.meta.changes) fail(409, "Someone else saved changes to this listing. Reload to see them (your changes were not saved).");
-  if (stmts.length) await env.DB.batch(stmts);
+  // Cover, editor revision, event and media metadata commit or roll back together.
+  try {
+    await listingBatch(env, id, { actor: admin, source: 'media', action: 'cover_changed' }, [env.DB.prepare(
+      `UPDATE listings SET cover_media_id = ?, updated_at = ${listingClock}, updated_by = ? WHERE id = ? AND updated_at = ?`)
+      .bind(cover_media_id, now(), admin, id, updated_at), assertChanged(env), ...coverChecks, ...stmts]);
+  } catch (error) {
+    if (!/NOT NULL constraint failed: listing_event_context/.test(String(error?.message))) throw error;
+    await loadListing(env, id); // Preserve 404 when the listing was deleted in the race.
+    fail(409, "Someone else changed this listing or its photos. Reload to see them (your changes were not saved).");
+  }
   return json({ media: (await ordered(env)(id)).results, listing: await loadListing(env, id) });
 }
 

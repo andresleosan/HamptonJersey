@@ -16761,8 +16761,8 @@
       "fase": "F4",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Photos sube JPG, PNG o WebP con redimensionado en el navegador, miniatura, orden, portada, visibilidad y tipo Floor plan o Aerial. El panel ofrece avisos orientativos de resolución, exposición y enfoque al subir fotos, sin impedir continuar; se conservan los errores por archivo y las fotos confirmadas. Se añadió una guarda para señales documentales conocidas en la lista pública y en la entrega de medios; vuelve a comprobar visibilidad y acceso tras leer el recurso. La ruta de subida verifica estructura de contenedor, dimensiones reales y metadatos admitidos de foto y miniatura antes de almacenar; el cliente prepara el JPEG nuevo de canvas en sRGB sin conservar su perfil ICC opaco.",
-      "falta": "Calibrar las sugerencias con fotografías representativas y definir la detección de líneas; los avisos actuales no certifican calidad. Completar los documentos privados, staging durable y la protección/recuperación de cargas y limpieza. La inspección del servidor no decodifica íntegramente los flujos comprimidos ni examina objetos existentes; faltan límites totales de multipart, versión y guardado atómico de orden/visibilidad, revocación durante efectos e invalidación de respuestas cacheadas. La entrega conserva su revalidación no atómica.",
+      "hecho": "Photos sube JPG, PNG o WebP con redimensionado en el navegador, miniatura, orden, portada, visibilidad y tipo Floor plan o Aerial. El panel ofrece avisos orientativos de resolución, exposición y enfoque al subir fotos, sin impedir continuar; se conservan los errores por archivo y las fotos confirmadas. Se añadió una guarda para señales documentales conocidas en la lista pública y en la entrega de medios; vuelve a comprobar visibilidad y acceso tras leer el recurso. La ruta de subida verifica estructura de contenedor, dimensiones reales y metadatos admitidos de foto y miniatura antes de almacenar; el cliente prepara el JPEG nuevo de canvas en sRGB sin conservar su perfil ICC opaco. El PUT existente de portada, orden y visibilidad confirma versión, metadatos y evento aplicable en un único batch; deriva posterior al preflight devuelve conflicto y revierte el guardado completo.",
+      "falta": "Calibrar las sugerencias con fotografías representativas y definir la detección de líneas; los avisos actuales no certifican calidad. Completar los documentos privados, staging durable y la protección/recuperación de cargas y limpieza. La inspección del servidor no decodifica íntegramente los flujos comprimidos ni examina objetos existentes; faltan límites totales de multipart, versión común de todos los escritores de medios y auditoría de orden/visibilidad, revocación durante efectos e invalidación de respuestas cacheadas. La entrega conserva su revalidación no atómica.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/MediaManager.jsx:39-54",
@@ -16776,7 +16776,10 @@
         "tests/server/upload-image.test.mjs",
         "tests/server/media-upload-validation.test.mjs",
         "tests/canvas-jpeg.test.js",
-        "docs/roadmap/work/PUB-11/2026-11-14-upload-validation-evidence.md"
+        "docs/roadmap/work/PUB-11/2026-11-14-upload-validation-evidence.md",
+        "tests/server/media-save-atomic.test.mjs",
+        "tests/server/media-save-atomic-d1.test.mjs",
+        "docs/roadmap/work/PUB-11/2026-11-14-media-save-atomic-evidence.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -16788,7 +16791,7 @@
         "media-pipeline",
         "listing-editor"
       ],
-      "nextStep": "Completar el batch atómico del guardado de medios y su versión; mantener separados PDF privado, staging/recuperación y calibración con material representativo.",
+      "nextStep": "Integrar una versión común de medios en upload/remove y sus consumidores de publicación; continuar PDF privado, staging/recuperación y calibración con material representativo.",
       "actualizado": "2026-11-14"
     },
     {

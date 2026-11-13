@@ -26,7 +26,7 @@
 - Copy inglés, labels/status/alert, ARIA/teclado/foco2-offset2/contraste4.5texto-3control/zoom200/reduced-motion; nuevos objetivos44pxmóvil propuestos,32escritorio. Sin fuentes, librerías, estilos o infra nuevos por defecto. Listas/historia50, Inbox200, JSON128KiB/poll30svisible; documentos20MiBstream, medios propios preservan16Mpx/10MiB y miniatura640, no1600obsoleto.
 - Sesión staff/actor servidor/same-origin, client scopes aislados, SQLparametrizado/enums cerrados y React texto/esc/textContent/safeHref. PII/códigos/tokens/documentos fuera de URL/storage/logs/Telegram. Privado no-store/attachment/nosniff y firmas/tipos reales; eventos metadata/ref sin cuerpo privado. GET/prefetch sin mutación. Recursos e inferencia tardíos revalidan fuente/versión/política y borrado.
 - Avanzar/writing-plans fijan archivos/contratos/evidencia; ponytail reutiliza; seguridad servidor/frontend aplica validación/permisos; impeccable/antislop conservan flujo/copy sin adornos; web-performance limita cardinalidad/queries/streams. Taste/redesign no suponen rediseño. Test reales por comportamiento y D1 para atomicidad, no tests espejo de texto o fixture como integración real.
-- P01/P02/P03 están preguntadas: decisiones pendientes no se resuelven por silencio. Contratos afectados son borradores hasta respuesta y actualización del spec. Las propuestas técnicas están marcadas en diseños y no se atribuyen a Luis.
+- Las decisiones de Lista 4 constan en el maestro del 10-nov. Para publicación, P01 está resuelta: mínimos de título, operación y foto elegible, precio privado permitido y sin exigir 100 %. PUB-12 y PUB-02 constan hechos en sus fichas y ledgers del 11/12-nov; no reabrir la pregunta histórica ni confundir el trabajo de medios pendiente con una decisión de producto ausente.
 
 ## Review Focus
 
@@ -68,7 +68,8 @@
 
 - [ ] Escribir/ajustar pruebas con aserciones de estos casos: stale_media_no_partial_order; last_public_photo_publish_race; external_reference_never_public; removed_file_no_restore; cubrir scope equivocado y revocación durante acción en el dueño de la ruta.
 - [ ] Ejecutar `node --test tests/server/media-save-atomic.test.mjs` y verificar fallo por comportamiento ausente, o evidencia actual si es continuidad; no fabricar RED de una función ya construida.
-- [ ] Integrar guards reales de publicación cuandoP01 resuelta. Mostrar parcial y reintento por archivo; HEICmanualsinconversion oculta o ficticia.
+- [x] Conservar mínimos y guardas de publicación ya integrados por PUB-12/PUB-02, conforme a sus fichas y ledgers del 11/12-nov. P01 no es una pregunta pendiente.
+- [ ] Completar recuperación/reintento por archivo y versión común de medios; HEIC manual sin conversión oculta o ficticia. La atomicidad de este PUT no acredita todos esos escritores.
 - [ ] Ejecutar `node --test tests/server/media-save-atomic.test.mjs` hasta PASS y regresiones de servicios afectados. Fixture de proveedor no acredita cuenta/permiso/envío/control activo.
 - [ ] Revisar diff/evidencia de unidad y guardar archivos concretos con mensaje inglés cuando se construya; no gitaddgeneral/relevo/secretos.
 
@@ -89,3 +90,13 @@ Base comprobada: main `2b4c224bf3ac48c44d470a396090d37dab39b2b2`; copia aislada 
 Decisión de alcance: se rechaza metadata no admitida y se conservan los bytes aceptados; no se instala un decodificador ni se certifica la integridad semántica de cada bitstream. Los documentos privados, staging durable, guardado atómico de orden/visibilidad, calibración con material representativo y activación/configuración remota quedan abiertos. Esta entrega no cierra PUB-11.
 
 Verificación de este lote: 2275 JavaScript/29 Python, build/release, catálogo/paquetes y E2E sintético Chromium/WebKit 1280/390/zoom aprobados; revisión independiente de módulo/ruta y ajuste canvas sin hallazgos pendientes. La inspección de contenedor no equivale a decoder completo. El resto de Tarea 1 y Tareas 2/3 permanece abierto.
+
+## Ejecución parcial de Tarea 3 · 14-nov-2026
+
+Base: `5c97061b15d560613d3913ada13b4fda2fc11288`, publicado y tablero visible con 68/215 (31,63 %). Se implementa exclusivamente la atomicidad del PUT de medios existente, reutilizando listingBatch y la guarda de fallo ya usada por updateListingEvent, sin migración ni nueva política de publicación.
+
+- [x] Portada, updated_at, evento aplicable y cambios de medios en un mismo batch; rollback ante fallo o cero filas.
+- [x] Snapshot servidor de pertenencia, recurso y campos sobrescritos; revalidar también portada fuera de items; rechazar IDs duplicados antes de escribir.
+- [x] Regresiones SQLite y D1 local, revisión independiente, suite/build/release y recorrido afectado; publicación y tablero comprobados.
+
+RED observado: 30 pruebas contando subtests, 8 pasan y 22 fallan con el código previo. Final: 68 focales y revisión independiente correctos; 2305 JavaScript/29 Python, build/release, catálogo/paquetes y navegador HTTP Chromium aislado 1280/390/zoom PASS. Esta corrección no aporta media_revision común a upload/remove, auditoría completa de orden/visibilidad, recibo recuperable HTTP, autoridad durable; conserva los mínimos de publicación ya acordados e integrados en PUB-12/PUB-02 y no cierra Tarea 3 completa ni PUB-11.

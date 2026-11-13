@@ -2,6 +2,8 @@
 
 **Continuidad de Luis:** avanzar de forma autónoma entre tareas y sesiones, con commits y push autorizados y progreso honesto en el checklist. [Mandato y límites](CONTINUIDAD-AVANZAR.md).
 
+14-nov-2026 · **PUB-11 parcial, guardado de medios:** el PUT confirma portada, updated_at y metadatos en un único batch, con rollback ante fallo y conflicto si un medio cambia después del preflight. 68 focales SQLite/D1, revisión independiente, 2305 JavaScript/29 Python, build/release, catálogo/paquetes y E2E HTTP Chromium aislado 1280/390 aprobados. La versión común de upload/remove, auditoría completa y publicación conservan sus pendientes. [Evidencia](work/PUB-11/2026-11-14-media-save-atomic-evidence.md).
+
 14-nov-2026 · **PUB-11 parcial:** validación de fotos y miniaturas integrada en la ruta existente, con dimensiones obtenidas de sus bytes y rechazo de metadatos opacos. La preparación del JPEG de canvas conserva su resolución y datos comprimidos; no se certifica decodificación universal. 2275 pruebas JavaScript, 29 Python, build/release, catálogo/paquetes y navegador sintético aislado Chromium/WebKit aprobados. Documentos privados, recuperación, atomicidad y calibración permanecen abiertos; no hubo migración ni verificación de producción. [Evidencia](work/PUB-11/2026-11-14-upload-validation-evidence.md).
 
 13-nov-2026 · **ANA-10 parcial:** generador SVG de QR preparado con el código fijado, formato M y lector independiente. La asociación, descarga Staff, impresión y activación siguen pendientes. [Evidencia](work/ANA-10/qr-svg-2026-11-13.md).
