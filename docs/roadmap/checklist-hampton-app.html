@@ -606,7 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F5-A",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since \u003cfecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra. Hay una proyección interna de pagos pendientes que reutiliza saldo de alquiler, con gracia configurable; se ha probado solo con datos ficticios y no está conectada al Inbox.",
+   "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since \u003cfecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra. Hay una proyección interna de pagos pendientes que reutiliza saldo de alquiler, con gracia configurable; se ha probado solo con datos ficticios y no está conectada al Inbox. Se preparó una lectura interna por tenancy que reúne saldo, atrasos y movimientos con autorización transaccional; continúa sin ruta activa ni conciliación global.",
    "falta": "Integrar de forma coherente la autoridad financiera y las autorizaciones por caso en las rutas existentes; completar la categoría, conciliación, interfaz y configuración de gracia. Las comisiones entre agencias siguen fuera del alcance.",
    "bloqueo": "",
    "evidencia": [
@@ -622,7 +622,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5",
     "server/missing-payments.js",
     "tests/server/not-05-projection.test.mjs",
-    "docs/superpowers/plans/2026-11-13-adm-09-not-05-integration-ledger.md"
+    "docs/superpowers/plans/2026-11-13-adm-09-not-05-integration-ledger.md",
+    "server/finance-workspace.js",
+    "tests/server/adm-09-workspace.test.mjs",
+    "docs/superpowers/plans/2026-11-13-adm-09-not-05-workspace-ledger.md"
    ],
    "actualizado": "2026-11-13"
   },
@@ -3862,7 +3865,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F5-A",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia. Se construyó una autoridad financiera interna con ajustes, saldo FIFO y control por caso; permanece desconectada de las rutas actuales y sin migración remota.",
+   "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia. Se construyó una autoridad financiera interna con ajustes, saldo FIFO y control por caso; permanece desconectada de las rutas actuales y sin migración remota. Se preparó una lectura interna por tenancy que reúne saldo, atrasos y movimientos con autorización transaccional; continúa sin ruta activa ni conciliación global.",
    "falta": "Unificar primero detalle, lista, contador y conciliación existentes con la autoridad financiera y sus permisos por caso; después completar escritura de deuda perdida y secuencia configurable. Los avisos reales y la carta siguen sujetos a correo y validación correspondiente. No activar ajustes mientras existan cálculos incompatibles.",
    "bloqueo": "Correo (AUT-17) · JFSC/abogado",
    "evidencia": [
@@ -3876,7 +3879,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/arrears-policy.js",
     "server/case-capabilities.js",
     "tests/server/adm-09-guarded-read.test.mjs",
-    "docs/superpowers/plans/2026-11-13-adm-09-not-05-integration-ledger.md"
+    "docs/superpowers/plans/2026-11-13-adm-09-not-05-integration-ledger.md",
+    "server/finance-workspace.js",
+    "tests/server/adm-09-workspace.test.mjs",
+    "docs/superpowers/plans/2026-11-13-adm-09-not-05-workspace-ledger.md"
    ],
    "actualizado": "2026-11-13"
   },

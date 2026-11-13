@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **Lectura financiera parcial:** adaptador interno por tenancy con permisos y control de cambios entre páginas, desconectado de rutas y avisos. La conciliación global permanece desactivada y los datos ausentes no se convierten en saldo cero. [Límites](../superpowers/plans/2026-11-13-adm-09-not-05-workspace-ledger.md).
+
 13-nov-2026 · **AUT-09 parcial:** registro declarativo de tres propósitos y guardas humanas, sin proveedores ni operaciones activadas. Casos reales, costes, fichas restantes y consumidores siguen pendientes. [Registro](../superpowers/plans/2026-11-13-aut-09-registry-ledger.md).
 
 13-nov-2026 · **VIS-09 parcial:** núcleo y guarda de política de visitas revisados y probados con datos ficticios. Siguen sin conectar a rutas; 0047 no está aplicada. La integración, permisos, horarios y cambio horario continúan pendientes. [Evidencia](work/VIS-09/foundation-evidence.md).

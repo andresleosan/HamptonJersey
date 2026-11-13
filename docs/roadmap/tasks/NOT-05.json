@@ -6,7 +6,7 @@
   "fase": "F5-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since <fecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra. Hay una proyección interna de pagos pendientes que reutiliza saldo de alquiler, con gracia configurable; se ha probado solo con datos ficticios y no está conectada al Inbox.",
+  "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since <fecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra. Hay una proyección interna de pagos pendientes que reutiliza saldo de alquiler, con gracia configurable; se ha probado solo con datos ficticios y no está conectada al Inbox. Se preparó una lectura interna por tenancy que reúne saldo, atrasos y movimientos con autorización transaccional; continúa sin ruta activa ni conciliación global.",
   "falta": "Integrar de forma coherente la autoridad financiera y las autorizaciones por caso en las rutas existentes; completar la categoría, conciliación, interfaz y configuración de gracia. Las comisiones entre agencias siguen fuera del alcance.",
   "bloqueo": "",
   "evidencia": [
@@ -22,7 +22,10 @@
     "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5",
     "server/missing-payments.js",
     "tests/server/not-05-projection.test.mjs",
-    "docs/superpowers/plans/2026-11-13-adm-09-not-05-integration-ledger.md"
+    "docs/superpowers/plans/2026-11-13-adm-09-not-05-integration-ledger.md",
+    "server/finance-workspace.js",
+    "tests/server/adm-09-workspace.test.mjs",
+    "docs/superpowers/plans/2026-11-13-adm-09-not-05-workspace-ledger.md"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
