@@ -5,7 +5,7 @@ import { fmtDate } from "./format.js";
 const label = value => ({ own_pilot: "Internal pilot", initial: "Initial", daily: "Daily", open: "Open", paused: "Paused",
   completed: "Completed", partial: "Partial", cancelled: "Cancelled", pending: "Pending", running: "Running",
   manual_pending: "Manual review pending", blocked: "Blocked", complete: "Complete", failed: "Failed",
-  allowed: "Allowed", manual_only: "Manual only", denied: "Denied" }[value] || "Unknown");
+  allowed: "Allowed", manual_only: "Manual only", denied: "Denied", internal: "Internal", manual: "Manual", http: "Automatic" }[value] || "Unknown");
 
 // Refresh only while the page is visible; invalidate stale responses when page or selection changes.
 function usePage(path, validate) {
@@ -53,7 +53,7 @@ export default function MarketInventory() {
   const [pages, setPages] = useState([null]), [selected, setSelected] = useState(null);
   const after = pages.at(-1), [state, retry] = usePage(pathAfter("/admin/market/runs", after), runsValid);
   const changePage = next => { setSelected(null); setPages(p => next ? [...p, next] : p.slice(0, -1)); };
-  return <article className="card" aria-labelledby="a-market">
+  return <article className="card" aria-labelledby="a-market" style={{ overflowWrap: "anywhere" }}>
     <h2 id="a-market">Market inventory</h2>
     <p className="muted">Review recorded inventory runs and their source coverage. An unknown coverage does not mean there are no listings.</p>
     <LoadState state={state} retry={retry} unavailable />
@@ -80,6 +80,7 @@ function Coverage({ runId }) {
       <p>External coverage: <strong>{state.data.overall.external_coverage === "complete" ? "Complete for this run" : "Unknown"}</strong>.</p>
       {state.data.sources.length ? <ul>{state.data.sources.map(source => <li key={`${source.source_ref}:${source.channel_id}`}>
         <strong>{source.source_ref}</strong> · Channel {source.channel_id} · {label(source.status)} · Access {label(source.access_status)}
+        <br />Method: {label(source.method)} · Review due: {source.review_due_at ? fmtDate(source.review_due_at) : "Not recorded"}
         <br />Last capture: {source.last_capture_at ? fmtDate(source.last_capture_at) : "Not recorded"} · Last full pass: {source.last_full_pass_at ? fmtDate(source.last_full_pass_at) : "Not recorded"}
       </li>)}</ul> : <p>No sources recorded on this page.</p>}
       <PageControls previous={pages.length > 1} next={state.data.next} onPrevious={() => setPages(p => p.slice(0, -1))}
