@@ -112,10 +112,30 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   }, e => { setLoadErr(e.message); setNote({ text: e.message }); }); }; // a failed Reload keeps the page and says why
   useEffect(() => { load(); api("/admin/users").then(d => setUsers(d.users), () => {}); return()=>{detailGeneration.current++;}; }, []);
 
-  const body = form && toBody(form), saved = data && toBody(toForm(data.applicant, data.contact));
+  const baseline = data && toForm(data.applicant, data.contact);
+  const body = form && toBody(form), saved = baseline && toBody(baseline);
+  if (body && saved) {
+    if (body.household_children !== saved.household_children && body.household_children != null && body.household_children_status == null)
+      body.household_children_status = "known";
+    if (body.operation !== saved.operation) {
+      const inactive = body.operation === "buy" ? ["furnished", "lease_term_months"] : ["buyer_position", "mortgage_aip"];
+      for (const key of inactive) body[key] = null;
+    }
+    const raw = data.applicant.requirement_priorities;
+    const prioritiesChanged = JSON.stringify(form.requirement_priorities) !== JSON.stringify(baseline.requirement_priorities)
+      || JSON.stringify(body.requirement_priorities) !== JSON.stringify(saved.requirement_priorities)
+      || JSON.stringify(body.pets) !== JSON.stringify(saved.pets);
+    if (!prioritiesChanged) body.requirement_priorities = raw;
+    saved.requirement_priorities = raw;
+  }
   const changed = keys => (data && form ? keys.filter(k => JSON.stringify(body[k]) !== JSON.stringify(saved[k])) : []);
   const searchChanged = changed(SEARCH), contactChanged = changed(CONTACT);
   const criteriaChanged = searchChanged.filter(k => !["preferred_language", "viewing_availability"].includes(k));
+  if (body && saved && ["household_adults", "household_children"].some(k => searchChanged.includes(k))) {
+    saved.household_total = data.applicant.household_total;
+    body.household_total = body.household_adults != null && body.household_children != null ? body.household_adults + body.household_children : null;
+    if (body.household_total !== saved.household_total) criteriaChanged.push("household_total");
+  }
   const confirmationKey = JSON.stringify([data?.applicant.updated_at, criteriaChanged.map(k => [k, saved[k], body[k]])]);
   const confirmed = confirmation === confirmationKey;
   const dirty = searchChanged.length + contactChanged.length > 0;

@@ -329,24 +329,44 @@ async function update({ request, env, admin, params: [id] }) {
   if (Object.keys(errors).length) return fieldErrors(errors);
 
   const { source, ...search } = r.value.applicant;
-  const next = { ...search, move_in_date: keepDate ? cur.move_in_date : search.move_in_date, stage, lost_reason, assigned_to };
-  const materialInput = SEARCH_FIELDS.some(k => !["preferred_language", "viewing_availability"].includes(k) && Object.hasOwn(body, k));
-  // Validation can infer legacy values. A stage, owner or communication-only edit must not silently rewrite them.
-  if (!materialInput) {
-    for (const k of SEARCH_FIELDS) if (!Object.hasOwn(body, k)) next[k] = cur[k];
-    next.search_operation = cur.search_operation;
-    next.household_ages_at = cur.household_ages_at;
+  // Compare the submitted values with the stored answers, not the validator's inferred defaults.
+  // A full-form PUT is therefore equivalent to a partial PUT for unchanged fields.
+  const stable = v => Array.isArray(v) ? v.map(stable) : v && typeof v === "object"
+    ? Object.fromEntries(Object.keys(v).sort().map(k => [k, stable(v[k])])) : v;
+  const equal = (a, b) => JSON.stringify(stable(a)) === JSON.stringify(stable(b));
+  const stored = parsed(pick(cur, SEARCH_FIELDS));
+  stored.operation = cur.search_operation ?? cur.operation;
+  const changed = SEARCH_FIELDS.filter(k => Object.hasOwn(body, k) && !(k === "operation"
+    ? body[k] === stored[k]
+    : JSON_FIELDS.includes(k) ? equal(body[k] ?? null, stored[k] ?? null)
+    : body[k] === stored[k] || search[k] === cur[k]));
+  const next = { stage, lost_reason, assigned_to };
+  for (const k of changed) next[k] = search[k];
+  if (changed.includes("operation")) {
+    next.operation = search.operation; next.search_operation = search.search_operation;
+    // Operation changes explicitly clear fields which no longer apply.
+    for (const k of ["furnished", "lease_term_months", "buyer_position", "mortgage_aip"])
+      if (search[k] == null && cur[k] != null) next[k] = null;
   }
-  // Do not infer a legacy answer while editing an unrelated criterion.
-  if ((!Object.hasOwn(body, "household_children_status") || body.household_children_status === cur.household_children_status)
-    && (!Object.hasOwn(body, "household_children") || search.household_children === cur.household_children))
-    next.household_children_status = cur.household_children_status;
-  if (next.household_children_ages === cur.household_children_ages) next.household_ages_at = cur.household_ages_at;
+  if (changed.includes("household_adults") || changed.includes("household_children"))
+    next.household_total = search.household_total;
+  if (changed.includes("household_children") && !changed.includes("household_children_status"))
+    next.household_children_status = search.household_children_status;
+  if (changed.includes("household_children_ages")) next.household_ages_at = search.household_ages_at;
+  // A household with pets cannot have a negotiable pets priority. Persist this dependency only
+  // when pets or priorities actually change; unrelated edits must not backfill legacy priorities.
+  if (changed.includes("pets") && !changed.includes("requirement_priorities") && search.requirement_priorities !== cur.requirement_priorities)
+    next.requirement_priorities = search.requirement_priorities;
+  // Buying cannot retain rental-only priorities. Do not copy unrelated validator inferences.
+  if (changed.includes("operation") && search.operation === "buy" && !changed.includes("requirement_priorities") && cur.requirement_priorities) {
+    const priorities = JSON.parse(cur.requirement_priorities);
+    for (const key of ["furnished", "lease_term_months"]) { delete priorities.values[key]; priorities.unknown = priorities.unknown.filter(k => k !== key); }
+    next.requirement_priorities = JSON.stringify(priorities);
+  }
   const { keys, data } = diff(cur, next);
   if (!keys.length) return json({ applicant: parsed(cur) });
-  const criteriaFields = keys.filter(k => SEARCH_FIELDS.includes(k) && !["operation", "preferred_language", "viewing_availability"].includes(k));
-  // Commercial transfers use a separate column while the compatibility operation remains rent.
-  if ((cur.search_operation ?? cur.operation) !== (next.search_operation ?? next.operation)) criteriaFields.push("operation");
+  const criteriaFields = keys.filter(k => (SEARCH_FIELDS.includes(k) || k === "household_total") && !["operation", "preferred_language", "viewing_availability"].includes(k));
+  if ((cur.search_operation ?? cur.operation) !== (next.search_operation ?? next.operation ?? cur.search_operation ?? cur.operation)) criteriaFields.push("operation");
   if (criteriaFields.length && body.criteria_confirmation?.confirmed !== true)
     return fieldErrors({ criteria_confirmation: "Confirm the applicant agreed to these changes" });
 

@@ -738,3 +738,46 @@ test('legacy inferred children status survives stage, owner and communication-on
   assert.equal((await req(env,'PUT',path,{updated_at:before.updated_at,household_children_status:'known'})).status,400);
   assert.equal((await req(env,'PUT',path,{updated_at:before.updated_at,household_children_status:'known',criteria_confirmation:{confirmed:true}})).status,200);
 });
+
+test('legacy inferred fields are not silently written by full form, budget, or stage edits', async () => {
+  const env=makeEnv(), id=await create(env), path=`/admin/applicants/${id}`;
+  const legacy=JSON.stringify({version:1,values:{pets:'preferred'},unknown:[]});
+  env.DB.raw.prepare("UPDATE applicants SET pets=?, requirement_priorities=?, household_adults=2, household_children=1, household_total=NULL, household_children_status=NULL WHERE id=?")
+    .run(JSON.stringify([{kind:'dog',count:1}]),legacy,id);
+  const check=()=>{const r=row(env,'SELECT * FROM applicants WHERE id=?',id); assert.equal(r.requirement_priorities,legacy); assert.equal(r.household_total,null);assert.equal(r.household_children_status,null);return r;};
+  let before=check();
+  let r=await req(env,'PUT',path,{updated_at:before.updated_at,stage:'searching'});assert.equal(r.status,200,JSON.stringify(r.data));check();
+  const full=(await detail(env,id)).applicant;
+  r=await req(env,'PUT',path,{...full,stage:'viewing'});assert.equal(r.status,200,JSON.stringify(r.data));check();
+  before=check();r=await req(env,'PUT',path,{updated_at:before.updated_at,budget_max:2600});assert.equal(r.status,400);check();
+  r=await req(env,'PUT',path,{updated_at:before.updated_at,budget_max:2600,criteria_confirmation:{confirmed:true}});assert.equal(r.status,200,JSON.stringify(r.data));check();
+  const event=JSON.parse(row(env,"SELECT data FROM events WHERE type='applicant.updated' ORDER BY id DESC LIMIT 1").data);
+  assert.deepEqual(event.criteria_confirmation.fields,['budget_max']); assert.deepEqual(Object.keys(event.after),['budget_max']);
+  before=check();r=await req(env,'PUT',path,{updated_at:before.updated_at,pets:[{kind:'cat',count:1}]});assert.equal(r.status,400);check();
+  r=await req(env,'PUT',path,{updated_at:before.updated_at,pets:[{kind:'cat',count:1}],criteria_confirmation:{confirmed:true}});assert.equal(r.status,200,JSON.stringify(r.data));
+  assert.equal(r.data.applicant.requirement_priorities.values.pets,'must');
+  const petEvent=JSON.parse(row(env,"SELECT data FROM events WHERE type='applicant.updated' ORDER BY id DESC LIMIT 1").data);
+  assert.ok(petEvent.criteria_confirmation.fields.includes('requirement_priorities')); assert.ok(petEvent.criteria_confirmation.fields.includes('pets'));
+});
+
+test('explicit unknown priority changes require confirmation and retain their evidence', async () => {
+  const env=makeEnv(), id=await create(env), before=row(env,'SELECT * FROM applicants WHERE id=?',id), path=`/admin/applicants/${id}`;
+  const priorities={version:1,values:{parking:'must'},unknown:['parking']};
+  assert.equal((await req(env,'PUT',path,{updated_at:before.updated_at,requirement_priorities:priorities})).status,400);
+  const saved=await req(env,'PUT',path,{updated_at:before.updated_at,requirement_priorities:priorities,criteria_confirmation:{confirmed:true}});
+  assert.equal(saved.status,200,JSON.stringify(saved.data));assert.deepEqual(saved.data.applicant.requirement_priorities,priorities);
+  const ev=JSON.parse(row(env,"SELECT data FROM events WHERE type='applicant.updated' ORDER BY id DESC LIMIT 1").data);
+  assert.deepEqual(ev.after.requirement_priorities,priorities);
+});
+
+test('changing household count records its derived total and inferred status in the same confirmed event', async () => {
+  const env=makeEnv(), id=await create(env), path=`/admin/applicants/${id}`;
+  env.DB.raw.prepare('UPDATE applicants SET household_adults=2, household_children=1, household_children_status=NULL, household_total=NULL WHERE id=?').run(id);
+  const before=row(env,'SELECT * FROM applicants WHERE id=?',id);
+  assert.equal((await req(env,'PUT',path,{updated_at:before.updated_at,household_children:2})).status,400);
+  const saved=await req(env,'PUT',path,{updated_at:before.updated_at,household_children:2,criteria_confirmation:{confirmed:true}});
+  assert.equal(saved.status,200,JSON.stringify(saved.data));assert.equal(saved.data.applicant.household_total,4);assert.equal(saved.data.applicant.household_children_status,'known');
+  const event=JSON.parse(row(env,"SELECT data FROM events WHERE type='applicant.updated' ORDER BY id DESC LIMIT 1").data);
+  assert.equal(event.after.household_total,4);assert.equal(event.after.household_children_status,'known');
+  assert.ok(event.criteria_confirmation.fields.includes('household_total'));assert.ok(event.criteria_confirmation.fields.includes('household_children_status'));
+});

@@ -38,6 +38,25 @@ const {chromium} = require(process.env.PW || 'playwright-core');
       await parking.selectOption('2'); assert.equal(await checkbox.isChecked(),false);
       await page.close();
     }
+    // A real legacy record can contain a negotiable pets priority. Only edits to pets should infer it.
+    const madeLegacy=await ctx.request.post(base+'api/admin/applicants',{headers:{origin:new URL(base).origin},data:{name:'SAP10 legacy fixture',email:'sap10-legacy@example.test',operation:'buy',source:'phone',budget_max:900000}});
+    assert.equal(madeLegacy.status(),201); const legacyId=(await madeLegacy.json()).id;
+    const {execFileSync}=require('node:child_process'), path=require('node:path');
+    const wrangler=path.join(path.dirname(require.resolve('wrangler')),'..','bin','wrangler.js');
+    const sql=`UPDATE applicants SET pets='[{"kind":"dog","count":1}]', requirement_priorities='{"version":1,"values":{"pets":"preferred"},"unknown":[]}', household_adults=2, household_children=1, household_total=NULL, household_children_status=NULL WHERE id=${legacyId}`;
+    execFileSync(process.execPath,[wrangler,'d1','execute','hampton','--local','--persist-to',process.env.E2E_PERSIST,'--command',sql],{stdio:'pipe'});
+    const legacyPage=await ctx.newPage(); await legacyPage.goto(base+`admin/#/applicants/${legacyId}`);
+    await legacyPage.locator('#a-budget_max').fill('950000');
+    const review=legacyPage.getByRole('region',{name:'Confirm changes to search criteria'});
+    assert.equal(await review.getByText('Requirement priorities',{exact:true}).count(),0);
+    await review.getByRole('checkbox',{name:'I confirm the applicant agreed to these changes.'}).check();
+    await legacyPage.getByRole('button',{name:'Save',exact:true}).click();await legacyPage.getByText('Changes saved.',{exact:true}).waitFor();
+    const detail=await (await ctx.request.get(base+`api/admin/applicants/${legacyId}`)).json();
+    assert.equal(detail.applicant.requirement_priorities.values.pets,'preferred'); assert.equal(detail.applicant.household_total,null);
+    await legacyPage.getByLabel('How many: Dog').fill('2');
+    const summary=await review.innerText();
+    assert.match(summary,/Requirement priorities/); assert.match(summary,/Pets: Preferred/);assert.match(summary,/Pets: Must-have/);
+    await legacyPage.close();
     console.log('SAP-10 confirmation: 1280/390 passed');
   } finally { await browser.close(); }
 })().catch(e=>{console.error(e);process.exitCode=1;});
