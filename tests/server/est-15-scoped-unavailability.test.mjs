@@ -116,7 +116,7 @@ test('multiple nested negatives preserve only overlapping contradictions after a
   for (const overlap of [property,operation,advertiser,scope]) {
     for (const day of [4,5,10,16]) {
       const contradiction = human('positive','available',day,{scope:overlap});
-      for (const facts of [[...negatives,contradiction],[contradiction,...negatives].reverse()]) {
+      for (const facts of [[...negatives,contradiction],[contradiction,...negatives]]) {
         assert.equal(resolve(facts).needs_review,day >= 5, `day ${day}, scope ${JSON.stringify(overlap)}`);
       }
     }
