@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { aggregateFullAvailability } from '../../server/search-coverage.js';
+import { searchReviewClock } from '../../server/search-review-clock.js';
 
 const scope = () => ({searchId:'s', episodeId:'e', criteriaRevision:1, ruleVersion:'v'});
 const candidate = () => {
@@ -46,11 +47,35 @@ test('accessors and revoked proxies fail closed', () => {
   assert.deepEqual(aggregateFullAvailability(t), {state:'unknown'});
 });
 
-test('a malformed or unresolved second candidate prevents a positive aggregate', () => {
-  for (const mutate of [c=>c.evaluation.classification=null,c=>c.availability.status='unknown',c=>c.staffDecision.status='rejected']) {
-    const s=snapshot(), second=candidate();
-    for (const part of Object.values(second)) part.candidateKey='other:rent';
-    mutate(second); s.candidates.push(second);
-    assert.deepEqual(aggregateFullAvailability(s), {state:'unknown'});
+test('one full option establishes existence alongside unrelated negative or pending candidates in either order', () => {
+  for (const mutate of [c=>c.evaluation.classification='pending',c=>c.availability.status='unavailable',c=>c.staffDecision.status='rejected',c=>c.clientDecision.status='declined']) {
+    for (const reverse of [false,true]) {
+      const s=snapshot(), other=candidate();
+      for (const part of Object.values(other)) part.candidateKey='other:rent';
+      mutate(other); s.candidates.push(other); if (reverse) s.candidates.reverse();
+      assert.deepEqual(aggregateFullAvailability(s), {state:'full_available'});
+      s.candidates=[other]; assert.deepEqual(aggregateFullAvailability(s), {state:'unknown'});
+    }
   }
+});
+
+test('duplicates, inconsistent scope and malformed positive evidence remain unknown in either order', () => {
+  for (const change of [c=>{},c=>{for (const part of Object.values(c)) part.candidateKey='other:rent'; c.evaluation.episodeId='old';},c=>{for (const part of Object.values(c)) part.candidateKey='other:rent'; delete c.availability.evidenceRef;}]) {
+    for (const reverse of [false,true]) {
+      const s=snapshot(), other=candidate(); change(other); s.candidates.push(other);
+      if (reverse) s.candidates.reverse();
+      assert.deepEqual(aggregateFullAvailability(s), {state:'unknown'});
+    }
+  }
+  const s=snapshot(); delete s.candidates[0].availability.evidenceRef;
+  assert.deepEqual(aggregateFullAvailability(s), {state:'unknown'});
+});
+
+test('explicit test-only translation holds the clock for full and keeps unknown pending', () => {
+  const toClock = result => result.state === 'full_available' ? true : null;
+  const clock = input => searchReviewClock({now:'2026-11-13T12:00:00.000Z',fullAvailable:toClock(aggregateFullAvailability(input)),absence:{source:'activation',at:'2026-01-01T00:00:00.000Z'}});
+  assert.deepEqual(clock(snapshot()), {state:'held',noFullSince:null});
+  const s=snapshot(); s.candidates=[];
+  assert.deepEqual(clock(s), {state:'pending',reason:'eligibility_unknown'});
+  assert.equal(toClock(aggregateFullAvailability(s)), null);
 });

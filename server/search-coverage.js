@@ -65,10 +65,9 @@ export function aggregateFullAvailability(input) {
           seen.has(candidate.candidateKey) ||
           !['evaluation','availability','staffDecision','clientDecision'].every(part=>keys.every(k=>copy[part][k]===candidate[k]))) return unknown();
       seen.add(candidate.candidateKey);
-      // The boolean predicate cannot separate an invalid DTO from a proven
-      // negative. Be conservative even when another candidate is full.
-      if (!isFullAvailableCandidate(copy)) return unknown();
-      full=true;
+      // A positive establishes existence, but every record must still pass
+      // the global snapshot/identity checks above, even after a positive.
+      if (isFullAvailableCandidate(copy)) full=true;
     }
     return full ? {state:'full_available'} : unknown();
   } catch { return unknown(); }
