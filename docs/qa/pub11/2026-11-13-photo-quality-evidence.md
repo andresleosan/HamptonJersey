@@ -1,0 +1,30 @@
+# PUB-11: local photo-quality continuation
+
+## Scope and behavior
+
+This is a local implementation and synthetic-fixture evidence, not a deployment, production verification, or completion of the full PUB-11 plan. No migration, external service, or server upload route was changed.
+
+The panel samples the decoded, oriented image locally at a maximum longest side of 128 px. Version `2026-11-v1` suggests review for a longest source side below 1,200 px, an image with at least 85% of sampled luminance below 25 or above 235, or a Laplacian luminance variance below 45. Exposure and focus suggestions are omitted for floor plans; their resolution can still be flagged. The thresholds have only been checked against synthetic patterns, not calibrated against a representative collection of property photographs. Smooth surfaces, lighting choices, scaling and image content may produce false positives or negatives. These are suggestions, not quality certification, enhancement, a publication decision or an upload blocker. If sampling fails, the panel says the check was unavailable; uploading can still succeed.
+
+The editor shows suggestions for successful uploads, alongside existing per-file upload errors. Add new property and Properties Queue show the summary before the user opens the new draft. Suggestions live only in the current page, are removed with the relevant uploaded photo, and are not persisted or sent to the server. A reload or navigation loses them. Leaving the editor stops the remaining queued files; an upload already sent can still finish and the server does not revalidate access at its commit boundary. An actual decoding, size or upload error can still reject a file.
+
+The panel's existing JPEG canvas reencode remains in use. It preserves the full image when practical, reduces it to at most 16 million pixels and attempts the existing 9.5 MiB target when necessary, makes a thumbnail with a longest side of at most 640 px, and does not upscale small images. The 40 MiB source limit and server's 10 MiB per file remain; an output still over the server limit can be refused. A rounding edge case that could exceed 16 million pixels is now bounded. The browser test checked one synthetic EXIF/GPS-bearing JPEG and confirmed that the two reencoded outputs did not contain that synthetic EXIF block; it does not prove anything about direct API requests, every browser or every possible metadata format.
+
+## Security boundaries still open
+
+**The server route is not ready to guarantee privacy or image integrity for direct uploads.** Its existing checks recognize short header prefixes only; they do not decode and validate the entire JPEG, PNG or WebP, nor verify submitted dimensions, thumbnail dimensions or pixel counts against decoded content. A direct authenticated, same-origin upload can bypass panel reencoding and retain EXIF/GPS or other metadata. Filename, declared MIME and form dimensions must not be treated as authoritative. `nosniff` on media responses and existing session/same-origin checks do not provide metadata removal. No stronger guarantee is claimed by this change.
+
+A safe server-side guard needs an appropriate, bounded, reviewed decoder and metadata policy for every accepted format, including malformed and adversarial files, both full and thumbnail inputs, actual dimensions and a decision about rejecting or safely reencoding metadata. A partial signature parser would not establish those properties. It must also revalidate authorization and listing state at the relevant commit boundary and cover revocation during the operation. This work remains pending and no incomplete guard has been activated here.
+
+The existing upload can leave the first object behind if the second object write fails; its row-insert cleanup does not constitute durable staging or orphan reconciliation. PUB-11's private PDFs, scope checks, transactional media ordering/publication races and durable cleanup are also not implemented or verified here. PDFs have not been added to the public media route. Existing auto-visibility and publication behavior has not been modified.
+
+## Verification
+
+- TDD: initial quality, UI integration and pixel-rounding tests failed for the missing behavior and passed after implementation. Inputs were generated synthetic patterns and files.
+- `node --test tests/photo-quality.test.js tests/server/image.test.mjs`: 9 passed, 0 failed.
+- `npm test`: 1,535 Node tests passed, 0 failed; the Python unittest phase reported `OK`.
+- `npm run build`: passed. Vite reported the existing large-chunk advisory.
+- `npm run check:release`: passed.
+- `E2E_PRODUCTION_READONLY=0 E2E_SCRIPT=tests/pub11-photo-quality.e2e.cjs npm run test:e2e:isolated`: local Chromium in the prescribed networkless, capability-dropped temporary container; synthetic uploads at 1280 and 390 px, keyboard focus, CSS zoom 200%, small-photo non-upscaling, EXIF fixture reencode, full and thumbnail dimensions, upload despite suggestions, malformed input and alert behavior, and a delayed upload while navigating away to ensure the next queued file is not sent. The navigation race was observed failing before the lifecycle guard and passing afterwards. This is not native browser zoom, production, direct-API security validation or a representative photographic calibration.
+
+The broader existing `tests/e2e.cjs` admin phase did not reach its photo import and queue checks: it timed out while waiting for a YouTube iframe in the networkless fixture (`tests/e2e.cjs:682`). This unrelated prerequisite remains unverified; it is not counted as a pass.

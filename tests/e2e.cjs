@@ -1154,6 +1154,8 @@ async function driveQueue(page, phone, noSideScroll) {
     await shot(page, "admin-queue-review");
     await page.locator(".queue-photos li").nth(1).getByLabel("Leave out").check();
     await page.getByRole("button", {name: "Create draft"}).click();
+    await page.locator(".queue-review").getByText("Photo quality suggestions", {exact: true}).waitFor({timeout: 60000});
+    await page.locator(".queue-review").getByRole("link", {name: "Open the listing"}).click();
     await page.waitForSelector("#f-title");
     assert.equal(await page.inputValue("#f-title"), "Les Fougères Test", "the title is the folder's name");
     await page.waitForSelector(".media-grid img");
@@ -1278,6 +1280,8 @@ async function folderImport(page, phone) {
   await pick();
   await shot(page, "admin-add-property");
   await form.getByRole("button", {name: "Create draft"}).dblclick();
+  await page.locator("section.add-property").getByText("Photo quality suggestions", {exact: true}).waitFor({timeout: 60000});
+  await page.locator("section.add-property").getByRole("link", {name: "Open the listing"}).click();
   await page.waitForURL(/#\/p\/HE-R\d+$/, {timeout: 60000});
   const id = page.url().split("/").pop();
   assert.equal(JSON.parse(d1("SELECT COUNT(*) AS n FROM listings WHERE title = 'Le Clos Test'"))[0].results[0].n, 1, "a double click makes one listing");

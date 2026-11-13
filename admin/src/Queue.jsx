@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { fmtDate, fmtAgo, OPERATION, priceText } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
 import { createDraft } from "./createDraft.js";
+import PhotoQualitySuggestions from "./PhotoQualitySuggestions.jsx";
 import { readPropertyText, draftBody, labelFromName, kindsOf, pickCover } from "../../server/listing-import.js";
 
 // PUB-21 (spec 2026-11-05): Properties Queue. A Drive folder and a note go to Hermes; its proposal becomes a draft here
@@ -123,7 +124,7 @@ function Proposal({ item, onClose }) {
         onProgress: (i, n) => { setStatus(`Uploading photo ${i + 1} of ${n}…`); setProgress({ value: i, max: n }); } });
       if (!alive.current) return;
       setUnsaved(false);
-      if (!res.failed.length && !res.coverFailed) { location.hash = `#/p/${res.id}`; return; }
+      if (!res.failed.length && !res.coverFailed && !res.qualityWarnings.length) { location.hash = `#/p/${res.id}`; return; }
       setDone(res);
     }
     catch (x) {
@@ -137,9 +138,10 @@ function Proposal({ item, onClose }) {
 
   if (done) return <section className="card queue-review" aria-labelledby="t-review">
     <h1 id="t-review">{item.folder_name}</h1>
-    <div className="warn" role="alert"><p>Draft {done.id} created. {done.uploaded} of {done.total} photos uploaded.</p>
+    <div className="warn" role={done.failed.length || done.coverFailed ? "alert" : "status"}><p>Draft {done.id} created. {done.uploaded} of {done.total} photos uploaded.</p>
       {done.failed.length > 0 && <ul>{done.failed.map(x => <li key={x}>{x}</li>)}</ul>}
       {done.coverFailed && <p>Choose the cover in the editor.</p>}</div>
+    <PhotoQualitySuggestions items={done.qualityWarnings} />
     <div className="inline"><a className="btn" href={`#/p/${done.id}`}>Open the listing</a></div>
   </section>;
 

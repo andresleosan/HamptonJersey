@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AVAILABILITY, OPERATION, USE, KIND, TENURE, HOUSING, RESTRICTION, priceText } from "./format.js";
 import { createDraft } from "./createDraft.js";
+import PhotoQualitySuggestions from "./PhotoQualitySuggestions.jsx";
 import { setUnsaved } from "./unsaved.js";
 import { decodeText, readPropertyText, draftBody, planFolder, readDrop } from "../../server/listing-import.js";
 import {isRentalMarketing} from '../../server/listing-editorial.js';
@@ -66,21 +67,22 @@ export default function NewProperty({ rows, onClose }) {
       setErr(x.data?.fields ? Object.entries(x.data.fields).map(([k, v]) => `${k}: ${v}`).join(". ") : x.message);
       return;
     }
-    const { id, failed, coverFailed } = r;
+    const { id, failed, coverFailed, qualityWarnings } = r;
     if (!alive.current) return;
     setUnsaved(false);
-    if (!failed.length && !coverFailed) { location.hash = `#/p/${id}`; return; }
+    if (!failed.length && !coverFailed && !qualityWarnings.length) { location.hash = `#/p/${id}`; return; }
     setDone(r);
     setStatus(null); setProgress(null); setBusy(false);
   };
 
   if (done) return <section className="card new add-property" aria-labelledby="t-new">
     <h2 id="t-new">Add new property</h2>
-    <div className="warn" role="alert">
+    <div className="warn" role={done.failed.length || done.coverFailed ? "alert" : "status"}>
       <p>Draft {done.id} created. {done.uploaded} of {done.total} photos uploaded.</p>
       {done.failed.length > 0 && <ul>{done.failed.map(x => <li key={x}>{x}</li>)}</ul>}
       {done.coverFailed && <p>Choose the cover in the editor.</p>}
     </div>
+    <PhotoQualitySuggestions items={done.qualityWarnings} />
     <div className="inline"><a className="btn" href={`#/p/${done.id}`}>Open the listing</a>
       <button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
   </section>;

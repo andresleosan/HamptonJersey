@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { KIND, safeHref } from "./format.js";
 import { uploadPhoto } from "./image.js";
+import { qualitySuggestions } from "./photo-quality.js";
+import PhotoQualitySuggestions from "./PhotoQualitySuggestions.jsx";
 
 const pick = m => ({ id: m.id, public: !!m.public, kind: m.kind, label: m.label ?? "" });
 
@@ -10,8 +12,12 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
   const [saved, setSaved] = useState(media);         // last state the server confirmed
   const [items, setItems] = useState(media), [cover, setCover] = useState(coverId);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [drag, setDrag] = useState(null), [over, setOver] = useState(false);
+  const [qualityWarnings, setQualityWarnings] = useState([]);
+  const mounted = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const visual = items.filter(m => m.r2_key), links = items.filter(m => !m.r2_key);
-  const latest = useRef(); latest.current = { saved, coverId }; // read after awaits, so uploads/deletes never use stale lists
+  const latest = useRef(); latest.current = { saved, coverId, listingId }; // read after awaits, so uploads/deletes never use stale lists
+  useEffect(() => { setQualityWarnings([]); setBusy(false); }, [listingId]);
   const dirty = JSON.stringify(items.map(pick)) !== JSON.stringify(saved.map(pick)) || cover !== coverId;
 
   const move = (from, to) => {
@@ -38,17 +44,26 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
 
   const upload = async files => {
     setBusy(true); setMsg(null);
-    const added = [], failed = [];
+    const added = [], failed = [], warnings = [];
     for (const file of files) {
-      try { added.push(await uploadPhoto(listingId, file, { label: file.name.replace(/\.[^.]+$/, "") })); }
+      if (!mounted.current || latest.current.listingId !== listingId) return;
+      try {
+        let report;
+        const media = await uploadPhoto(listingId, file, { label: file.name.replace(/\.[^.]+$/, ""), onQuality: value => { report = value; } });
+        added.push(media);
+        const messages = report ? qualitySuggestions(report) : [];
+        if (messages.length) warnings.push({ id: media.id, name: file.name, text: messages.join(" ") });
+      }
       catch (e) { failed.push(`${file.name}: ${e.message}`); }
     }
+    if (!mounted.current || latest.current.listingId !== listingId) return;
     if (added.length) {
       // New uploads are saved server-side (last position, as here); any unsaved local reorder is kept.
       const next = [...latest.current.saved, ...added];
       setItems(list => [...list, ...added]); setSaved(next);
       onChange(next, latest.current.coverId);
     }
+    setQualityWarnings(previous => [...previous, ...warnings]);
     setMsg(failed.length ? { text: `Not uploaded: ${failed.join("; ")}` } : { ok: true, text: `${added.length} photo(s) uploaded.` });
     setBusy(false);
   };
@@ -59,6 +74,7 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
       await api(`/admin/media/${m.id}`, { method: "DELETE" });
       const { saved: s, coverId: c } = latest.current, keep = s.filter(x => x.id !== m.id);
       setItems(list => list.filter(x => x.id !== m.id)); setSaved(keep);
+      setQualityWarnings(previous => previous.filter(w => w.id !== m.id));
       if (cover === m.id) setCover(null);
       onChange(keep, c === m.id ? null : c); // an unsaved cover pick stays unsaved
     } catch (e) { setMsg({ text: e.message }); }
@@ -105,5 +121,6 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
       {busy && <span className="muted">Working…</span>}
     </label>
     {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
+    <PhotoQualitySuggestions items={qualityWarnings} />
   </div>;
 }
