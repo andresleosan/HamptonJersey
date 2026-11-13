@@ -65,3 +65,48 @@ test('a failed retry does not move focus on a later automatic refresh', async ()
     for(const [key,value] of Object.entries(saved)) value===undefined?delete global[key]:global[key]=value;
   }
 });
+
+test('retry is synchronously single-flight and immediate rejection cannot leave stale focus intent', async () => {
+  const {default:SearchProgress}=await load();
+  const dom=new JSDOM('<div id="root"></div>',{url:'https://hampton.test/'});
+  const saved={window:global.window,document:global.document,IS_REACT_ACT_ENVIRONMENT:global.IS_REACT_ACT_ENVIRONMENT};
+  global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+  const {createRoot}=require('react-dom/client'); const root=createRoot(document.getElementById('root'));
+  let calls=0,reject; const retry=()=>{calls++;return new Promise((_,r)=>{reject=r;});};
+  const render=stale=>React.act(async()=>root.render(React.createElement(SearchProgress,{snapshot,stale,onReload:retry})));
+  try {
+    await render(true); const button=document.querySelector('button'); button.focus();
+    await React.act(async()=>{button.click();button.click();}); assert.equal(calls,1);
+    await React.act(async()=>reject(new Error('synthetic failure')));
+    button.blur(); await render(false); assert.equal(document.activeElement,document.body);
+  } finally {await React.act(async()=>root.unmount());dom.window.close();for(const [k,v] of Object.entries(saved))v===undefined?delete global[k]:global[k]=v;}
+});
+
+test('automatic recovery restores focus only if the disappearing retry was focused', async () => {
+  const {default:SearchProgress}=await load();
+  const dom=new JSDOM('<div id="root"></div><button id="other">Other</button>',{url:'https://hampton.test/'});
+  const saved={window:global.window,document:global.document,IS_REACT_ACT_ENVIRONMENT:global.IS_REACT_ACT_ENVIRONMENT};
+  global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+  const {createRoot}=require('react-dom/client'); const root=createRoot(document.getElementById('root'));
+  const render=stale=>React.act(async()=>root.render(React.createElement(SearchProgress,{snapshot,stale,onReload:async()=>{}})));
+  try {
+    await render(true); document.querySelector('.search-progress-reload').focus(); await render(false);
+    assert.equal(document.activeElement.textContent,'Checking saved Hampton inventory…');
+    await render(true); document.getElementById('other').focus(); await render(false);
+    assert.equal(document.activeElement.id,'other');
+  } finally {await React.act(async()=>root.unmount());dom.window.close();for(const [k,v] of Object.entries(saved))v===undefined?delete global[k]:global[k]=v;}
+});
+
+test('synchronous retry failure permits another attempt and leaves no focus intent', async () => {
+  const {default:SearchProgress}=await load();
+  const dom=new JSDOM('<div id="root"></div>',{url:'https://hampton.test/'});
+  const saved={window:global.window,document:global.document,IS_REACT_ACT_ENVIRONMENT:global.IS_REACT_ACT_ENVIRONMENT};
+  global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+  const {createRoot}=require('react-dom/client');const root=createRoot(document.getElementById('root'));let calls=0;
+  const render=stale=>React.act(async()=>root.render(React.createElement(SearchProgress,{snapshot,stale,onReload:()=>{calls++;throw Error('synthetic');}})));
+  try {
+    await render(true);const button=document.querySelector('button');button.focus();
+    await React.act(async()=>button.click());await React.act(async()=>button.click());assert.equal(calls,2);
+    button.blur();await render(false);assert.equal(document.activeElement,document.body);
+  } finally {await React.act(async()=>root.unmount());dom.window.close();for(const [k,v] of Object.entries(saved))v===undefined?delete global[k]:global[k]=v;}
+});

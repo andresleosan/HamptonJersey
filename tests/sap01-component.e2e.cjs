@@ -39,6 +39,24 @@ const {chromium,webkit}=require(process.env.PW || 'playwright-core');
       assert.equal(await page.getByText('Retries: 1',{exact:true}).count(),1);
       assert.equal(await page.getByText("Couldn't refresh search status.").count(),0);
       assert.equal(await page.getByText('No inventory check recorded',{exact:true}).count(),1);
+      // Both clicks happen in one task, before React can render a busy state.
+      await page.evaluate(()=>window.syntheticSetStale(true)); await reload.waitFor();
+      await page.evaluate(()=>{const b=document.querySelector('.search-progress-reload');b.click();b.click();});
+      await page.getByText('Retries: 2',{exact:true}).waitFor();
+      await page.getByText("Couldn't refresh search status.").waitFor({state:'detached'});
+      assert.equal(await page.getByText('Retries: 2',{exact:true}).count(),1);
+      // Immediate rejected promise, followed by automatic recovery with no focused retry.
+      await page.evaluate(()=>{window.syntheticMode='reject';window.syntheticSetStale(true);}); await reload.waitFor();
+      await reload.focus(); await reload.press('Enter'); await page.getByText('Retries: 3',{exact:true}).waitFor();
+      await page.getByRole('button',{name:'Other control'}).focus();
+      await page.evaluate(()=>window.syntheticSetStale(false));
+      await page.getByText("Couldn't refresh search status.").waitFor({state:'detached'});
+      assert.equal(await page.evaluate(()=>document.activeElement.textContent),'Other control');
+      // Automatic recovery while the disappearing retry itself is focused.
+      await page.evaluate(()=>window.syntheticSetStale(true)); await reload.waitFor(); await reload.focus();
+      await page.evaluate(()=>window.syntheticSetStale(false));
+      await page.getByText("Couldn't refresh search status.").waitFor({state:'detached'});
+      assert.equal(await page.evaluate(()=>document.activeElement.textContent),'No inventory check recorded');
       assert.deepEqual(errors,[]); await page.close();
     }
   } finally { await browser.close(); }
