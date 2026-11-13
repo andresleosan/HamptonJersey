@@ -75,7 +75,7 @@ test("search: criteria, archive, restore and commercial writes invalidate prior 
   t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-07T12:00:00Z") });
   const env = world(), id = await create(env);
   let seen = applicant(env, id).updated_at;
-  assert.equal((await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: seen, budget_max: 950000 })).status, 200);
+  assert.equal((await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: seen, budget_max: 950000, criteria_confirmation: { confirmed: true } })).status, 200);
   assert.equal((await transition(env, id, "resolved", { updated_at: seen })).status, 409, "criteria edit invalidates the old version");
   seen = applicant(env, id).updated_at;
   assert.equal((await req(env, "POST", "/admin/offers", { listing_id: "HE-R001", applicant_id: id, amount: 750000 })).status, 201);

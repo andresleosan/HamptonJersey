@@ -69,6 +69,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const [msg, setMsg] = useState(null), [note, setNote] = useState(null);
   const [lost, setLost] = useState(null), [confirmDel, setConfirmDel] = useState(""); // lost: the reason being typed
   const [decisionDirty, setDecisionDirty] = useState(false);
+  const [confirmation, setConfirmation] = useState(null);
   // Stage and Assigned to as chosen but not yet applied (null = as stored): a select saves only on Apply or Enter,
   // so moving through its options with the arrow keys saves nothing.
   const [choice, setChoice] = useState({ stage: null, assigned_to: null });
@@ -98,21 +99,25 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     setData(d);setMarketingHistoryReady(true);return d;
   };
   const reloadSearch = async () => {
+    setConfirmation(null);
     const baseline = toForm(data.applicant, data.contact);
     const d = await fetchDetail();if(!d)return;const fresh=toForm(d.applicant,d.contact);
     // Reconcile untouched fields with the new version; preserve anything typed locally during the request.
     setForm(current => Object.fromEntries(Object.keys(fresh).map(k => [k,
       JSON.stringify(current[k]) === JSON.stringify(baseline[k]) ? fresh[k] : current[k]])));
   };
-  const load = () => fetchDetail().then(d => {
+  const load = () => { setConfirmation(null); return fetchDetail().then(d => {
     if(!d)return;
     setForm(toForm(d.applicant, d.contact)); setErrors({}); setMsg(null); setNote(null); setLost(null); setLoadErr(null);
-  }, e => { setLoadErr(e.message); setNote({ text: e.message }); }); // a failed Reload keeps the page and says why
+  }, e => { setLoadErr(e.message); setNote({ text: e.message }); }); }; // a failed Reload keeps the page and says why
   useEffect(() => { load(); api("/admin/users").then(d => setUsers(d.users), () => {}); return()=>{detailGeneration.current++;}; }, []);
 
   const body = form && toBody(form), saved = data && toBody(toForm(data.applicant, data.contact));
   const changed = keys => (data && form ? keys.filter(k => JSON.stringify(body[k]) !== JSON.stringify(saved[k])) : []);
   const searchChanged = changed(SEARCH), contactChanged = changed(CONTACT);
+  const criteriaChanged = searchChanged.filter(k => !["preferred_language", "viewing_availability"].includes(k));
+  const confirmationKey = JSON.stringify([data?.applicant.updated_at, criteriaChanged.map(k => [k, saved[k], body[k]])]);
+  const confirmed = confirmation === confirmationKey;
   const dirty = searchChanged.length + contactChanged.length > 0;
   useEffect(() => { setUnsaved(dirty || decisionDirty); return () => setUnsaved(false); }, [dirty, decisionDirty]);
   // After a refused save, the first highlighted field gets the focus (once its tab is showing).
@@ -145,12 +150,18 @@ export default function ApplicantDetail({ id, tab, onChange }) {
 
   // Requirements and contact are saved apart (two records); whatever is still unsaved stays in the form.
   const save = async () => {
+    if (criteriaChanged.length && !confirmed) {
+      setErrors(e => ({ ...e, criteria_confirmation: "Confirm the applicant agreed to these changes" }));
+      if (cur !== "requirements") go("requirements");
+      focusError.current = true;
+      return;
+    }
     detailGeneration.current++;
     setBusy(true); setMsg(null);
     try {
       if (searchChanged.length) {
         const { applicant } = await api(`/admin/applicants/${id}`, { method: "PUT",
-          body: { ...pick(body, searchChanged), updated_at: a.updated_at } });
+          body: { ...pick(body, searchChanged), updated_at: a.updated_at, ...(criteriaChanged.length ? { criteria_confirmation: { confirmed: true } } : {}) } });
         setData(d => ({ ...d, applicant })); setForm(f => ({ ...f, ...pick(toForm(applicant), SEARCH) }));
       }
       if (contactChanged.length) {
@@ -166,9 +177,10 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       if (Object.keys(fields).length) { focusError.current = true; if (cur !== "requirements") go("requirements"); }
     } finally { setBusy(false); }
   };
-  const discard = () => { setForm(toForm(a, c)); setErrors({}); setMsg(null); };
+  const discard = () => { setConfirmation(null); setForm(toForm(a, c)); setErrors({}); setMsg(null); };
   // W9: fills the one field in Requirements, unsaved; the team saves it after talking to the applicant.
   const applyWiden = w => {
+    setConfirmation(null);
     setForm(f => ({ ...f, [w.field]: w.key === "parish" ? w.to : String(w.to) }));
     widenFocus.current = w.key === "parish" ? `input[name="a-parishes_wanted"][value="${CSS.escape(w.parish)}"]` : `#a-${w.field}`;
     go("requirements");
@@ -214,6 +226,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const cancelLost = () => { setLost(null); setChoice(x => ({ ...x, stage: null })); stageRef.current?.focus(); };
 
   const copy = sent => {
+    setConfirmation(null);
     const result = areaCopy(form, sent, message => window.confirm(message));
     if (result.cancelled) return;
     if (result.error) { setMsg({ text: result.error }); return; }
@@ -437,8 +450,17 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       <form ref={formRef} noValidate onSubmit={e => { e.preventDefault(); if (dirty && !busy) save(); }}>
         {/* Archived: read only until restored. */}
         <fieldset className="sections plain" disabled={archived}>
-          <ApplicantFields value={form} onChange={setForm} errors={errors} operation={form.operation} lockedCategory />
+          <ApplicantFields value={form} onChange={change => { setConfirmation(null); setForm(change); }} errors={errors} operation={form.operation} lockedCategory />
         </fieldset>
+        {criteriaChanged.length > 0 && !archived && <section className="card" aria-labelledby="criteria-confirm-heading">
+          <h2 id="criteria-confirm-heading">Confirm changes to search criteria</h2>
+          <p>Review the saved and proposed values after speaking with the applicant.</p>
+          <dl>{criteriaChanged.map(k => <div key={k}><dt>{label(k)}</dt><dd>{value(k, saved[k], nameOf)} → {value(k, body[k], nameOf)}</dd></div>)}</dl>
+          <label><input type="checkbox" checked={confirmed} onChange={e => { setConfirmation(e.target.checked ? confirmationKey : null); setErrors(x => ({ ...x, criteria_confirmation: undefined })); }}
+            aria-invalid={!!errors.criteria_confirmation} aria-describedby={errors.criteria_confirmation ? "criteria-confirm-error" : undefined} />
+            I confirm the applicant agreed to these changes.</label>
+          {errors.criteria_confirmation && <p id="criteria-confirm-error" className="err">{errors.criteria_confirmation}</p>}
+        </section>}
       </form>
     </div>
     <div role="tabpanel" id="panel-matches" aria-labelledby="tab-matches" hidden={cur !== "matches"} tabIndex={0}>
@@ -454,7 +476,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     </div>
 
     <div className="actionbar" role="region" aria-label="Actions">
-      <Message m={msg} onReload={load} />
+      <Message m={msg} onReload={() => reloadSearch().then(() => { setMsg(null); setErrors({}); }, e => setMsg({ text: e.message, stale: true }))} />
       {dirty && <span className="unsaved">Unsaved changes</span>}
       <button type="button" className="btn" onClick={save} disabled={!dirty || busy}>{busy ? "Saving…" : "Save"}</button>
       {dirty && <button type="button" className="btn ghost" onClick={discard} disabled={busy}>Discard</button>}

@@ -45,7 +45,7 @@ test('the panel preserves a valid past date on unrelated edits but rejects a new
   assert.equal(created.status,201);
   const id=created.data.id;
   env.DB.raw.prepare('UPDATE applicants SET move_in_date=?,updated_at=? WHERE id=?').run('2020-02-29',T0,id);
-  const saved=await call(env,'PUT',`/admin/applicants/${id}`,{cookie,body:{updated_at:T0,requirements:'Fixture change'}});
+  const saved=await call(env,'PUT',`/admin/applicants/${id}`,{cookie,body:{updated_at:T0,requirements:'Fixture change',criteria_confirmation:{confirmed:true}}});
   assert.equal(saved.status,200);
   assert.equal(saved.data.applicant.move_in_date,'2020-02-29');
   const invalid=await call(env,'PUT',`/admin/applicants/${id}`,{cookie,body:{updated_at:saved.data.applicant.updated_at,move_in_date:'2026-99-99'}});

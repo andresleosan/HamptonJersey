@@ -52,7 +52,7 @@ test("one contact can keep residential and commercial searches for the same oper
   assert.equal(created.status, 201, JSON.stringify(created.data));
   const id = created.data.id;
   const before = row(env, "SELECT * FROM applicants WHERE id = ?", id);
-  const updated = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: before.updated_at, commercial_use: "Office" });
+  const updated = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: before.updated_at, commercial_use: "Office", criteria_confirmation: { confirmed: true } });
   assert.equal(updated.status, 200, JSON.stringify(updated.data));
   const after = row(env, "SELECT * FROM applicants WHERE id = ?", id);
   assert.equal(after.commercial_use, "Office");
@@ -88,7 +88,7 @@ test("a transfer and rental search for the same business are distinct and the tr
     budget_max: null, commercial_kind: "business", commercial_premium: 40000 }));
   assert.equal(r.status, 201, JSON.stringify(r.data));
   const before = row(env, "SELECT * FROM applicants WHERE id = ?", r.data.id);
-  const saved = await req(env, "PUT", `/admin/applicants/${r.data.id}`, { updated_at: before.updated_at, commercial_use: "Retail" });
+  const saved = await req(env, "PUT", `/admin/applicants/${r.data.id}`, { updated_at: before.updated_at, commercial_use: "Retail", criteria_confirmation: { confirmed: true } });
   assert.equal(saved.status, 200, JSON.stringify(saved.data));
   assert.equal(saved.data.applicant.search_operation, "transfer");
   assert.equal((await req(env, "POST", "/admin/applicants", form({ contact_id, search_category: "commercial", operation: "transfer" }))).status, 409);
@@ -214,7 +214,7 @@ test("update logs only the changed fields and refuses stale saves", async () => 
 
   // The panel sends the whole form back with one change.
   const first = await req(env, "PUT", `/admin/applicants/${id}`,
-    { ...applicant, budget_max: 2500, parishes_wanted: ["St Helier", "Trinity"] });
+    { ...applicant, budget_max: 2500, parishes_wanted: ["St Helier", "Trinity"], criteria_confirmation: { confirmed: true } });
   assert.equal(first.status, 200, JSON.stringify(first.data));
   assert.equal(first.data.applicant.budget_max, 2500);
   assert.notEqual(first.data.applicant.updated_at, applicant.updated_at);
@@ -225,7 +225,8 @@ test("update logs only the changed fields and refuses stale saves", async () => 
   assert.equal(ev.entity_id, String(id));
   assert.deepEqual(JSON.parse(ev.data), {
     before: { budget_max: 2000, parishes_wanted: ["St Helier"] },
-    after: { budget_max: 2500, parishes_wanted: ["St Helier", "Trinity"] } });
+    after: { budget_max: 2500, parishes_wanted: ["St Helier", "Trinity"] },
+    criteria_confirmation: { by: ADMIN, at: first.data.applicant.updated_at, fields: ["budget_max", "parishes_wanted"] } });
   assert.notEqual(row(env, "SELECT last_activity_at FROM contacts WHERE id = ?", contactId).last_activity_at, T0);
 
   // A second admin still holding the old version: refused, nothing written.
@@ -286,7 +287,7 @@ test("assigning closes the new-applicant notice", async () => {
   assert.equal(open(), 2);
 
   let { applicant } = await detail(env, id);
-  const req1 = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: applicant.updated_at, requirements: "Quiet street" });
+  const req1 = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: applicant.updated_at, requirements: "Quiet street", criteria_confirmation: { confirmed: true } });
   assert.equal(req1.status, 200);
   assert.equal(open(), 2, "editing requirements leaves the notice open");
 
@@ -428,7 +429,7 @@ test("an applicant deleted while its edit is saving: 404 and no data left in the
   const id = await create(env);
   const { applicant } = await detail(env, id);
   deletedMidFlight(env, id);
-  const r = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: applicant.updated_at, requirements: "Near the school" });
+  const r = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: applicant.updated_at, requirements: "Near the school", criteria_confirmation: { confirmed: true } });
   assert.equal(r.status, 404);
   assert.equal(r.data.error, "Applicant not found");
   assert.deepEqual(dataLeft(env), []);
@@ -501,7 +502,7 @@ test("permanent delete only from Archived, with the exact name, and wipes person
   const env = makeEnv();
   const id = await create(env, { requirements: "Jane's private notes" });
   const { applicant, contact } = await detail(env, id);
-  await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: applicant.updated_at, requirements: "Changed notes" });
+  await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: applicant.updated_at, requirements: "Changed notes", criteria_confirmation: { confirmed: true } });
   await req(env, "PUT", `/admin/contacts/${contact.id}`, { updated_at: contact.updated_at, best_time: "Evenings" });
   env.DB.raw.prepare("INSERT INTO events (at, actor, entity_type, entity_id, type, data) VALUES (?, 'public', 'contact', ?, 'applicant.duplicate_submitted', ?)")
     .run(T0, String(contact.id), JSON.stringify({ name: "Jane Le Brocq", phone: "+447797123456" }));
@@ -678,4 +679,25 @@ test("viewing availability is stored per search and stale edits cannot overwrite
   assert.deepEqual((await detail(env, id)).applicant.viewing_availability, tuesday);
   assert.equal((await detail(env, second.data.id)).applicant.viewing_availability, null);
   assert.equal(row(env, "SELECT COUNT(*) AS n FROM viewing_requests").n, 0);
+});
+
+
+test("criteria changes require a human declaration and stale requests have no effect", async () => {
+  const env = makeEnv(), id = await create(env), path = `/admin/applicants/${id}`;
+  const before = row(env, "SELECT * FROM applicants WHERE id = ?", id);
+  const eventCount = row(env, "SELECT COUNT(*) AS n FROM events").n;
+  const denied = await req(env, "PUT", path, { updated_at: before.updated_at, budget_max: 2500 });
+  assert.equal(denied.status, 400);
+  assert.ok(denied.data.fields.criteria_confirmation);
+  assert.deepEqual(row(env, "SELECT * FROM applicants WHERE id = ?", id), before);
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM events").n, eventCount);
+  const saved = await req(env, "PUT", path, { updated_at: before.updated_at, budget_max: 2500, criteria_confirmation: { confirmed: true, by: "forged", at: "forged" } });
+  assert.equal(saved.status, 200);
+  const event = JSON.parse(row(env, "SELECT data FROM events WHERE type = 'applicant.updated' ORDER BY id DESC LIMIT 1").data);
+  assert.deepEqual(event.criteria_confirmation, { by: ADMIN, at: saved.data.applicant.updated_at, fields: ["budget_max"] });
+  const stale = await req(env, "PUT", path, { updated_at: before.updated_at, bedrooms_min: 3, criteria_confirmation: { confirmed: true } }, OTHER);
+  assert.equal(stale.status, 409);
+  assert.equal(row(env, "SELECT bedrooms_min FROM applicants WHERE id = ?", id).bedrooms_min, before.bedrooms_min);
+  const noncriteria = await req(env, "PUT", path, { updated_at: saved.data.applicant.updated_at, preferred_language: "French" });
+  assert.equal(noncriteria.status, 200, JSON.stringify(noncriteria.data));
 });

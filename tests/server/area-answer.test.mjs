@@ -57,7 +57,7 @@ test('partial saves preserve area, exclusions and household details; stale versi
     parishes_excluded:['St Ouen'],preferred_parish:'Trinity',pets:[{kind:'dog',count:1}],parking_spaces:2}));
   assert.equal(made.status,201,JSON.stringify(made.data));const id=made.data.id;
   const original=(await req(env,'GET',`/admin/applicants/${id}`)).data.applicant;
-  const saved=await req(env,'PUT',`/admin/applicants/${id}`,{updated_at:original.updated_at,near:'Work'});
+  const saved=await req(env,'PUT',`/admin/applicants/${id}`,{updated_at:original.updated_at,near:'Work',criteria_confirmation:{confirmed:true}});
   assert.equal(saved.status,200,JSON.stringify(saved.data));
   for(const k of ['area_answer','preferred_parish','parishes_wanted','parishes_excluded','pets','parking_spaces'])
     assert.deepEqual(saved.data.applicant[k],original[k],k);

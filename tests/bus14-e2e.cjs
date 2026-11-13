@@ -78,7 +78,7 @@ const {chromium}=require(process.env.PW||'playwright-core');
    });
    try{
     await page.getByRole('button',{name:'Next Found page',exact:true}).click();await Promise.race([arrived,new Promise((_,reject)=>setTimeout(()=>reject(new Error("Next page request was not captured")),10000))]);
-    await page.locator('#tab-requirements').click();await page.getByRole('button',{name:'Save',exact:true}).click();
+    await page.locator('#tab-requirements').click();await page.getByRole('checkbox',{name:'I confirm the applicant agreed to these changes.'}).check();await page.getByRole('button',{name:'Save',exact:true}).click();
     await page.getByText('Changes saved.',{exact:true}).waitFor();console.log('BUS14 saved',width);await page.locator('#tab-matches').click();
     await found.getByRole('link',{name:'BUS14 home 0',exact:true}).waitFor();
    }finally{release();await Promise.race([finished,new Promise((_,reject)=>setTimeout(()=>reject(new Error("Held route did not finish")),10000))]);}
@@ -101,7 +101,7 @@ const {chromium}=require(process.env.PW||'playwright-core');
     await page.getByRole('button',{name:'Next Found page',exact:true}).click();
     await Promise.race([gotDetail,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Recovery detail was not captured')),10000))]);
     await page.locator('#tab-requirements').click();await page.locator('#a-budget_max').fill(String(Number(editedBudget)+1000));
-    await page.getByRole('button',{name:'Save',exact:true}).click();await page.getByText('Changes saved.',{exact:true}).waitFor();
+    await page.getByRole('checkbox',{name:'I confirm the applicant agreed to these changes.'}).check();await page.getByRole('button',{name:'Save',exact:true}).click();await page.getByText('Changes saved.',{exact:true}).waitFor();
    }finally{releaseDetail();await deliveredDetail;}
    await page.unroute(`**/api/admin/applicants/${id}`);await page.unroute('**/api/admin/applicants/*/matches?status=found*');
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
@@ -135,12 +135,16 @@ const {chromium}=require(process.env.PW||'playwright-core');
    if(width===390){await row.getByText('0 new, 1 already found',{exact:true}).waitFor();await page.close();continue;}
    await row.getByText('0 new, 1 already found',{exact:true}).waitFor();
    assert.equal(await page.locator('.match').getByRole('link',{name:'Widen fixture 70',exact:true}).count(),0);
-   await row.getByRole('button',{name:/Use this/}).click();assert.equal(await page.locator('#a-budget_max').inputValue(),'990000');
+   let writes=0;page.on('request',request=>{if(request.method()==='PUT' && request.url().includes(`/admin/applicants/${wid}`))writes++;});
+   await row.getByRole('button',{name:/Use this/}).click();assert.equal(await page.locator('#a-budget_max').inputValue(),'990000');assert.equal(writes,0);
+   await page.getByRole('button',{name:'Save',exact:true}).click();await page.getByText('Confirm the applicant agreed to these changes',{exact:true}).waitFor();assert.equal(writes,0);
+   const confirm=page.getByRole('checkbox',{name:'I confirm the applicant agreed to these changes.'});await confirm.check();
+   await page.locator('#a-budget_max').fill('995000');assert.equal(await confirm.isChecked(),false);await page.locator('#a-budget_max').fill('990000');assert.equal(await confirm.isChecked(),false);await confirm.check();
    await page.getByRole('button',{name:'Save',exact:true}).click();await page.getByText('Changes saved.',{exact:true}).waitFor();
    await page.locator('#tab-matches').click();assert.equal(await widen.count(),0);
    // Restore just this fixture's budget for the second width; it is an explicit staff save.
    const detail=await ctx.request.get(base+`api/admin/applicants/${wid}`),a=(await detail.json()).applicant;
-   const reset=await ctx.request.put(base+`api/admin/applicants/${wid}`,{headers:{origin:new URL(base).origin},data:{budget_max:900000,updated_at:a.updated_at}});assert.equal(reset.status(),200);
+   const reset=await ctx.request.put(base+`api/admin/applicants/${wid}`,{headers:{origin:new URL(base).origin},data:{budget_max:900000,updated_at:a.updated_at,criteria_confirmation:{confirmed:true}}});assert.equal(reset.status(),200);
    await page.close();
   }
   assert.deepEqual(errors,[]);console.log('BUS-14 E2E passed: 1280/390, pages, shortlist/Undo, Timeline and unsaved requirements.');

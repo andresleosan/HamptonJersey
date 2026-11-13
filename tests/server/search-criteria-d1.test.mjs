@@ -76,7 +76,7 @@ test('D1 local preserves existing rows and proposed revision is atomic; a test-o
     const env = { ...makeEnv(), DB }, cookie = await adminCookie('admin@example.test');
     const seen = (await DB.prepare('SELECT updated_at FROM applicants WHERE id=1').first()).updated_at;
     const save = budget_max => call(env, 'PUT', '/admin/applicants/1',
-      { cookie, body: { updated_at: seen, budget_max } });
+      { cookie, body: { updated_at: seen, budget_max, criteria_confirmation: { confirmed: true } } });
     const saves = await Promise.all([save(3000), save(3200)]);
     assert.deepEqual(saves.map(response => response.status).sort(), [200, 409]);
     const afterSaves = await loadCriteriaSnapshot({ DB }, 1);

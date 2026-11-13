@@ -57,7 +57,7 @@ test('saving another field preserves ages, date and priorities; stale save chang
   assert.equal(made.status,201,JSON.stringify(made.data));
   const id=made.data.id, detail=await req(env,'GET',`/admin/applicants/${id}`), a=detail.data.applicant;
   assert.deepEqual(a.requirement_priorities,p); assert.deepEqual(a.household_children_ages,[2,7]);
-  const saved=await req(env,'PUT',`/admin/applicants/${id}`,{updated_at:a.updated_at,near:'Work'});
+  const saved=await req(env,'PUT',`/admin/applicants/${id}`,{updated_at:a.updated_at,near:'Work',criteria_confirmation:{confirmed:true}});
   assert.equal(saved.status,200,JSON.stringify(saved.data));
   assert.deepEqual(saved.data.applicant.requirement_priorities,p);
   assert.deepEqual(saved.data.applicant.household_children_ages,[2,7]);
@@ -74,7 +74,7 @@ test('an unchanged past move-in must-have does not block an unrelated edit', asy
   env.DB.raw.prepare('UPDATE applicants SET move_in_date=?,requirement_priorities=? WHERE id=?')
     .run('2020-01-01',JSON.stringify(priority({move_in_date:'must'})),made.data.id);
   const a=(await req(env,'GET',`/admin/applicants/${made.data.id}`)).data.applicant;
-  const saved=await req(env,'PUT',`/admin/applicants/${a.id}`,{updated_at:a.updated_at,near:'Work'});
+  const saved=await req(env,'PUT',`/admin/applicants/${a.id}`,{updated_at:a.updated_at,near:'Work',criteria_confirmation:{confirmed:true}});
   assert.equal(saved.status,200,JSON.stringify(saved.data));
   assert.equal(saved.data.applicant.move_in_date,'2020-01-01');
   assert.equal(saved.data.applicant.requirement_priorities.values.move_in_date,'must');
@@ -100,7 +100,7 @@ test('pet details remain pending through review until the household confirms no 
   assert.equal(found[0].checks.find(c=>c.key==='pets')?.result,'unknown');
   assert.equal((await req(env,'PUT',`/admin/matches/${found[0].id}`,{status:'shortlisted',from:'found'})).status,200);
   const applicant=(await req(env,'GET',`/admin/applicants/${id}`)).data.applicant;
-  const saved=await req(env,'PUT',`/admin/applicants/${id}`,{updated_at:applicant.updated_at,pets:[{kind:'none'}]});
+  const saved=await req(env,'PUT',`/admin/applicants/${id}`,{updated_at:applicant.updated_at,pets:[{kind:'none'}],criteria_confirmation:{confirmed:true}});
   assert.equal(saved.status,200,JSON.stringify(saved.data));
   const shortlisted=(await req(env,'GET',`/admin/applicants/${id}/matches?status=shortlisted`)).data.matches;
   assert.equal(shortlisted.length,1);assert.equal(shortlisted[0].id,found[0].id);

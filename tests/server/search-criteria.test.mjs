@@ -188,7 +188,7 @@ test('the existing staff writer rejects a stale concurrent edit; the proposed tr
   const id = search(env), cookie = await adminCookie('admin@example.test');
   const initial = env.DB.raw.prepare('SELECT updated_at FROM applicants WHERE id=?').get(id).updated_at;
   const save = value => call(env, 'PUT', `/admin/applicants/${id}`,
-    { cookie, body: { updated_at: initial, budget_max: value } });
+    { cookie, body: { updated_at: initial, budget_max: value, criteria_confirmation: { confirmed: true } } });
   assert.equal((await save(2000)).status, 200);
   assert.equal((await save(2200)).status, 409);
   const snapshot = await loadCriteriaSnapshot(env, id);

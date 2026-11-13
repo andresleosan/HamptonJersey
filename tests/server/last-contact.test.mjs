@@ -38,7 +38,7 @@ test("a real contact moves last_contact_at; a team edit does not", async t => {
   quiet(env, id, 20);
   const was = contactOf(env, id).last_contact_at;
   const a = (await req(env, "GET", `/admin/applicants/${id}`)).data.applicant;
-  const ed = await req(env, "PUT", `/admin/applicants/${id}`, { ...a, bedrooms_min: 3 });
+  const ed = await req(env, "PUT", `/admin/applicants/${id}`, { ...a, bedrooms_min: 3, criteria_confirmation: { confirmed: true } });
   assert.equal(ed.status, 200, JSON.stringify(ed.data));
   assert.equal(contactOf(env, id).last_contact_at, was, "an edit is not a contact");
 

@@ -14,7 +14,7 @@ const STAGES = OPTIONS.stages.map(([v]) => v);
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" };
 const JSON_FIELDS = ["requirement_priorities", "household_children_ages", "property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded", "viewing_availability"];
 // What an applicant edit may change; source stays as it was registered.
-const SEARCH_FIELDS = ["requirement_priorities", "household_children_ages", "viewing_availability", "operation", "budget_min", "budget_max", "budget_stretch", "property_types", "bedrooms_min",
+export const SEARCH_FIELDS = ["requirement_priorities", "household_children_ages", "viewing_availability", "operation", "budget_min", "budget_max", "budget_stretch", "property_types", "bedrooms_min",
   "bedrooms_ideal", "bedrooms_max", "bathrooms_min", "parking_spaces", "outdoor", "furnished", "pets", "area_answer", "preferred_parish", "parishes_wanted", "parishes_excluded",
   "near", "move_in_date", "lease_term_months", "buyer_position", "mortgage_aip", "housing_status", "household_adults",
   "household_children", "household_children_status", "requirements", "search_category", "commercial_kind", "commercial_use", "area_min", "area_max", "area_unit",
@@ -333,8 +333,12 @@ async function update({ request, env, admin, params: [id] }) {
   if (next.household_children_ages === cur.household_children_ages) next.household_ages_at = cur.household_ages_at;
   const { keys, data } = diff(cur, next);
   if (!keys.length) return json({ applicant: parsed(cur) });
+  const criteriaFields = keys.filter(k => SEARCH_FIELDS.includes(k) && !["preferred_language", "viewing_availability"].includes(k));
+  if (criteriaFields.length && body.criteria_confirmation?.confirmed !== true)
+    return fieldErrors({ criteria_confirmation: "Confirm the applicant agreed to these changes" });
 
   const ts = nextVersion(cur.updated_at);
+  if (criteriaFields.length) data.criteria_confirmation = { by: admin, at: ts, fields: criteriaFields };
   const leftNew = cur.stage === "new" && stage !== "new";
   try { await saveVersioned(env, [
     env.DB.prepare(`UPDATE applicants SET ${keys.map(k => `${k} = ?`).join(", ")}, updated_by = ?, ${LOCK} WHERE id = ?`)
