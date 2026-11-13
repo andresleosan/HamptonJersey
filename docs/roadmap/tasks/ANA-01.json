@@ -1,19 +1,27 @@
 {
   "id": "ANA-01",
   "seccion": "Trazabilidad y analítica",
-  "titulo": "Ver la actividad de cada usuario en la web",
+  "titulo": "Actividad web agregada sin seguimiento individual",
   "origen": "texto",
   "fase": "F7-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "El Timeline de cada aplicante recoge lo que hizo desde la web (registro, registros repetidos, peticiones de visita) y sus ofertas; la web cuenta aperturas de fichas sin identificar a nadie.",
-  "falta": "El rastro por persona (fichas que miró, búsquedas): anónimo por defecto y unido al aplicante solo al registrarse o entrar en su portal con el aviso aceptado (§5.14), con consentimiento si guarda un identificador en el navegador. Hoy la web no guarda nada por visitante.",
+  "hecho": "Construida y revisada una lectura Staff de aperturas de fichas y galerías como acciones agregadas, con unidad y cobertura desconocida explícitas. La decisión posterior de Luis sustituyó el alcance original de seguimiento por persona; no se vinculan visitas a contactos. Insights reutiliza su consulta existente para evitar una segunda lectura automática.",
+  "falta": "Completar integración y verificaciones de despliegue de la lectura agregada. No se conoce el consumo real de D1 ni se ha comprobado la pantalla autenticada en producción; filtros y Web Analytics siguen sus tareas independientes.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/ApplicantDetail.jsx:434-447",
     "server/routes/public.js:82-96",
     "migrations/0011_daily_stats.sql:1-8",
-    "site/index.html:437-442"
+    "site/index.html:437-442",
+    "server/measurement.js",
+    "server/routes/insights.js",
+    "admin/src/Activity.js",
+    "tests/server/web-activity-scope.test.mjs",
+    "tests/server/measurement-d1.test.mjs",
+    "tests/ana01-activity.e2e.cjs",
+    "docs/qa/ana01-evidencia-2026-11-13.md",
+    "docs/superpowers/specs/2026-11-10-tp02-measurement-design.md"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -23,14 +31,14 @@
     {
       "id": "PRE-09",
       "requires": "design",
-      "reason": "Definir aviso y base del vínculo identificable antes de implementarlo.",
+      "reason": "Mantener el aviso aplicable a estadísticas generales; esta tarea no crea vínculo identificable.",
       "basis": "explicit",
-      "scope": "whole"
+      "scope": "partial"
     },
     {
       "id": "PRE-11",
       "requires": "design",
-      "reason": "Si se guarda identificador no esencial, revisar consentimiento antes de activarlo.",
+      "reason": "No se crea identificador de visitante ni un nuevo seguimiento sujeto a consentimiento.",
       "basis": "explicit",
       "scope": "partial"
     }
@@ -40,5 +48,5 @@
     "analytics-contract",
     "privacy-policy"
   ],
-  "nextStep": "Diseñar actividad anónima y vínculo consentido al contacto sin introducir seguimiento individual implícito."
+  "nextStep": "Verificar la integración y el despliegue de la actividad agregada sin seguimiento individual."
 }

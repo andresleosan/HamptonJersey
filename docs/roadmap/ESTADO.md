@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **ANA-01 en integración:** lectura de actividad agregada sin seguimiento individual, con cobertura desconocida y sin una segunda lectura automática de las estadísticas. La ficha se concilia con la decisión posterior de Luis; faltan comprobaciones y despliegue. [Evidencia](../qa/ana01-evidencia-2026-11-13.md).
+
 13-nov-2026 · **PUB-17 parcial:** aviso de fichas con muchas aperturas y pocas solicitudes preparado con cobertura incierta y límite conservador de respuesta. Sigue apagado; su SQL está fuera de la cola de migraciones hasta verificar presupuesto y esquema D1. [Evidencia](work/PUB-17/implementation-evidence.md).
 
 13-nov-2026 · **MSG-05 parcial:** el equipo puede revisar el contacto de un chat sin copiar mensajes ni crear un aplicante. El formulario permanece en solo lectura hasta resolver CAS, idempotencia y registro atómico. [Evidencia](../superpowers/plans/2026-11-09-msg-05-partial-implementation-evidence.md).

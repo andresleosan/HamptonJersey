@@ -322,6 +322,7 @@ textarea.short{min-height:72px}
 /* Insights: figures as cards, tables that scroll inside their box on phones (not turned into cards), funnel bars whose
    length (--share of Registered, set by Insights.jsx) sits beside the number in text. */
 .insights .block{margin-top:32px} .insights h3{font-size:16px;margin:16px 0 8px} .insights p{margin:0 0 8px}
+.insights .seg button:focus-visible{outline-offset:2px}
 .figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:8px 0}
 .figures .card{padding:16px 20px;min-width:0} .figures dd{margin:0}
 .figures dt{font-size:12px;color:var(--stone);font-weight:600}

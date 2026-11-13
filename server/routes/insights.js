@@ -3,7 +3,7 @@ import { activeSql } from "../applicants.js";
 import { CANDIDATES_SQL } from "../match-store.js";
 import { jerseyToday, plusDays, realDate, weekday } from "../viewings.js";
 import { jerseyDayStart, groupDemand, topUnmet, funnel, responseTime, earliest, healthCursor, makeHealthCursor } from "../insights.js";
-
+import { getWebVolumes, webVolumesFromRow, WEB_VOLUME_COLUMNS } from "../measurement.js";
 import { PUBLIC_BOOKING_BLOCKED_SQL } from "../viewing-store.js";
 import { reviewPublicListing } from "./public.js";
 
@@ -20,10 +20,12 @@ const OF_APPLICANT = "e.entity_type = 'applicant' AND e.entity_id = CAST(a.id AS
 const OF_VIEWING = "e.entity_type = 'viewing' AND e.entity_id = CAST(v.id AS TEXT)";
 
 // Bind order: from, to, since, from, to.
-const TOTALS = `SELECT (SELECT COALESCE(SUM(n), 0) FROM daily_stats WHERE metric = 'view' AND day BETWEEN ? AND ?) AS views,
+const TOTALS = `WITH activity AS (SELECT ${WEB_VOLUME_COLUMNS} FROM daily_stats
+    WHERE day BETWEEN ? AND ? AND metric IN ('view','photos'))
+  SELECT activity.view_count AS views, activity.view_count, activity.view_first, activity.photos_count, activity.photos_first,
   (SELECT COUNT(*) FROM viewing_requests WHERE created_at >= ?) AS viewing_requests,
   (SELECT COUNT(*) FROM viewing_requests WHERE status = 'completed' AND date BETWEEN ? AND ?) AS viewings_completed,
-  (SELECT MIN(day) FROM daily_stats) AS first_day`;
+  (SELECT MIN(day) FROM daily_stats) AS first_day FROM activity`;
 // I6, I7: today's active searches, never who they are.
 const DEMAND = `SELECT a.operation, a.area_answer, a.parishes_wanted, a.parishes_excluded, a.bedrooms_min, a.budget_max, ${MATCHED} AS matched
   FROM applicants a WHERE ${activeSql("a")} AND a.search_category = 'residential'`;
@@ -72,6 +74,7 @@ async function insights({ request, env }) {
   const counts = funnel(cohort);
   return json({
     period: { days, from, to },
+    activity: webVolumesFromRow(totals, {from, to}),
     totals: { views: totals.views, viewing_requests: totals.viewing_requests, new_applicants: counts.registered,
       viewings_completed: totals.viewings_completed },
     demand: groupDemand(active, available),
@@ -207,8 +210,14 @@ async function weekly({env,params:[weekStart]}) {
   return json(JSON.parse(row.payload));
 }
 
+async function activity({request, env}) {
+  const {from, to} = period(request);
+  return json(await getWebVolumes(env, {from, to}));
+}
+
 export default [
   ["GET", /^\/admin\/insights$/, insights, true],
   ["GET", /^\/admin\/insights\/listing-health$/, listingHealth, true],
+  ["GET", /^\/admin\/insights\/activity$/, activity, true],
   ["GET", /^\/admin\/insights\/weekly\/([^/]+)$/, weekly, true],
 ];

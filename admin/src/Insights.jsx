@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { show, fmtDay } from "./format.js";
+import Activity from "./Activity.js";
 
 // Spec §5 Insights (I5-I11): what people look at, what applicants ask for that the listings don't cover, and how fast the
 // team answers. Counts and medians only, never who.
@@ -37,6 +38,7 @@ export default function Insights() {
       <p className="muted">Counts and medians only, never who.</p></div></div>
     <div className="seg" role="group" aria-label="Period">{PERIODS.map(p =>
       <button key={p} type="button" aria-pressed={days === p} onClick={() => setDays(p)}>{p} days</button>)}</div>
+    <Activity data={data?.activity} busy={busy} error={error} onRetry={() => setAttempt(a => a + 1)} />
     <ListingHealth />
     {error ? <p role="alert" className="err">{error}{" "}
       <button type="button" className="btn ghost sm" onClick={() => setAttempt(a => a + 1)}>Retry</button></p>
@@ -103,8 +105,8 @@ function ListingHealth() {
 function Report({ d }) {
   const { period, totals, demand, unmet, views, funnel, times } = d;
   const these = `these ${period.days} days`;
-  // I9: counting started inside the period, so its first days have no views.
-  const counted = views.first_day && `Views are counted from ${fmtDay(views.first_day)}.`;
+  // An observed row cannot prove when measurement started or whether it was continuous.
+  const counted = views.first_day && `First stored activity observed ${fmtDay(views.first_day)}; coverage is unknown.`;
   return <>
     <p className="muted">{fmtDay(period.from)} to {fmtDay(period.to)}, today included.</p>
     <dl className="figures">{[["Listing views", totals.views], ["Viewing requests", totals.viewing_requests],
@@ -147,7 +149,7 @@ function Report({ d }) {
       <h2 id="h-views">Most viewed listings</h2>
       <p className="muted">Opens on the website, not people: a listing's page, its full-screen gallery and its 3D tour, once per
         page load. Viewing requests: created in the period for that listing, from any origin.
-        {counted && views.first_day > period.from && ` ${counted}`}</p>
+        {counted && ` ${counted}`}</p>
       <p><strong className="num">{plural(totals.views, "view")}</strong> in {these}.</p>
       {views.rows.length ? <div className="table-scroll" role="region" aria-label="Views by listing" tabIndex={0}>
         <table className="list">
@@ -159,8 +161,8 @@ function Report({ d }) {
             <td className="num">{n(r.views)}</td><td className="num">{n(r.photos)}</td><td className="num">{n(r.tour)}</td>
             <td className="num">{n(r.viewings)}</td></tr>)}</tbody>
         </table></div>
-        : <p className="empty card">{counted ? `No views in ${these}. ${counted}`
-          : "No views counted yet. The website counts them from the next release."}</p>}
+        : <p className="empty card">{counted ? `No views stored in ${these}. ${counted}`
+          : "No views stored yet. Coverage is unknown."}</p>}
     </section>
 
     <section className="block" aria-labelledby="h-funnel">

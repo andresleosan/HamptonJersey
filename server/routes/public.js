@@ -149,8 +149,11 @@ export const STAT_METRICS = ["view", "photos", "tour"];
 // ponytail: at most 20k writes a Jersey day (20% of D1 Free's 100k); a WAF rate limit replaces it once the domain is on
 // Cloudflare (I4).
 async function countStat({ request, env }) {
-  const b = await readJson(request);
-  if (!STAT_METRICS.includes(b?.metric) || !(typeof b?.listing_id === "string" && /^HE-[A-Z]\d{3,}$/.test(b.listing_id))) fail(400, "Unknown property or metric");
+  const b = await readJson(request, 1024);
+  if (!b || typeof b !== "object" || Array.isArray(b) || Object.keys(b).length !== 2 ||
+      !Object.hasOwn(b, "listing_id") || !Object.hasOwn(b, "metric") ||
+      !STAT_METRICS.includes(b.metric) || !(typeof b.listing_id === "string" && /^HE-[A-Z]\d{3,}$/.test(b.listing_id)))
+    fail(400, "Unknown property or metric");
   const day = jerseyToday();
   await env.DB.prepare(`INSERT INTO daily_stats (day, listing_id, metric, n) SELECT ?, id, ?, 1 FROM listings
     WHERE id = ? AND published = 1 AND archived_at IS NULL
