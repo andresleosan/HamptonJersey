@@ -2,6 +2,8 @@
 
 **Continuidad de Luis:** avanzar de forma autónoma entre tareas y sesiones, con commits y push autorizados y progreso honesto en el checklist. [Mandato y límites](CONTINUIDAD-AVANZAR.md).
 
+13-nov-2026 · **ANA-10 parcial:** generador SVG de QR preparado con el código fijado, formato M y lector independiente. La asociación, descarga Staff, impresión y activación siguen pendientes. [Evidencia](work/ANA-10/qr-svg-2026-11-13.md).
+
 13-nov-2026 · **PUB-16, BUS-10 y ANA-10 parciales:** preparados, con controles cerrados, el cierre temporal de alquiler, candidaturas de identidad y la redirección QR agregada. No se han aplicado los esquemas propuestos ni activado los flujos; sus dependencias y límites permanecen abiertos. [PUB-16](work/PUB-16/base-cierre-temporal-2026-11-13.md) · [BUS-10](work/BUS-10/candidaturas-internas-2026-11-13.md) · [ANA-10](work/ANA-10/qr-nucleo-2026-11-13.md).
 
 13-nov-2026 · **Progreso: 68/215 tareas aplicables (31,63 %).** BUS-11 se acepta como investigación documental con siete casos manuales abiertos. La integración EST-01/BUS-12 pasó 1.909 pruebas Node, 25 Python y el recorrido de moneda en Chromium aislado; ambas tareas siguen parciales. No se verificó D1 remoto.
