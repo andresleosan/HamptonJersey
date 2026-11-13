@@ -31,26 +31,39 @@ test('Review keeps decisions and Undo coherent, then restarts when a preference 
   const vite=await createServer({logLevel:'silent',server:{middlewareMode:true},appType:'custom'});
   let root;
   const tick=()=>new Promise(resolve=>setTimeout(resolve,30));
+  // API replies can take longer under the full parallel suite: wait for a real
+  // enabled control or expected state, rather than assuming a 30ms render.
+  const waitFor=async(condition,description)=>{
+    const deadline=Date.now()+5000;
+    while(Date.now()<deadline){
+      const value=condition();if(value)return value;
+      await React.act(async()=>{await tick();});
+    }
+    assert.fail(`Timed out waiting for ${description}`);
+  };
   const click=async(label,selector='button')=>{
-    const button=[...dom.window.document.querySelectorAll(selector)].find(b=>b.textContent.trim().startsWith(label));
-    assert.ok(button,`missing ${label}`);await React.act(async()=>{button.click();await tick();});
+    const button=await waitFor(()=>[...dom.window.document.querySelectorAll(selector)]
+      .find(b=>!b.disabled&&b.textContent.trim().startsWith(label)),label);
+    await React.act(async()=>{button.click();await tick();});
   };
   try{
     const {default:Review}=await vite.ssrLoadModule('/admin/src/Review.jsx');
     root=createRoot(dom.window.document.getElementById('root'));
     await React.act(async()=>{root.render(React.createElement(Review));await tick();});
     await React.act(async()=>{await tick();});
-    assert.match(dom.window.document.querySelector('.review-who').textContent,/Preferred parishTrinity/);
+    await waitFor(()=>dom.window.document.querySelector('.review-who')?.textContent.includes('Preferred parishTrinity'),'initial applicant');
     await click('Skip','.match-actions button');await click('Undo');
     await click('Shortlist','.match-actions button');await click('Undo');await click('Shortlist','.match-actions button');
+    await waitFor(()=>calls.filter(c=>c.method==='PUT').length>=3,'three saved decisions');
     assert.deepEqual(calls.filter(c=>c.method==='PUT').map(c=>c.status),[200,200,200]);
     env.DB.raw.prepare('UPDATE applicants SET preferred_parish=? WHERE id=1').run('St Helier');
     await recomputeForApplicant(env,1,'system');
     await click('Skip','.match-actions button');
+    await waitFor(()=>calls.at(-1)?.status===409,'stale decision conflict');
     assert.equal(calls.at(-1).status,409);
-    assert.match(dom.window.document.querySelector('[role="alert"]').textContent,/changed/i);
+    await waitFor(()=>/changed/i.test(dom.window.document.querySelector('[role="alert"]')?.textContent??''),'conflict message');
     await click('Start again');
-    assert.match(dom.window.document.querySelector('.review-who').textContent,/Preferred parishSt Helier/);
+    await waitFor(()=>dom.window.document.querySelector('.review-who')?.textContent.includes('Preferred parishSt Helier'),'refreshed applicant');
   }finally{
     if(root)await React.act(async()=>root.unmount());await vite.close();dom.window.close();
     for(const [k,v] of Object.entries(old))v===undefined?delete global[k]:global[k]=v;
