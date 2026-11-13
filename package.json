@@ -13,7 +13,7 @@
     "test:team:dom": "node tests/equipo.e2e.cjs --dom",
     "test:team:runtime": "node --test coordination/test/*.test.mjs",
     "team:build": "node scripts/render-roadmap.mjs --assets && wrangler deploy --config coordination/wrangler.toml --dry-run --outdir coordination/build",
-    "test": "node --test tests/*.test.js tests/server/*.test.mjs && python3 -m unittest tests/test_import.py",
+    "test": "node --test tests/*.test.js tests/server/*.test.mjs && python3 -m unittest tests/test_import.py tests/test_directory_manifest.py",
     "test:e2e": "node tests/run-e2e.cjs",
     "test:e2e:isolated": "bash scripts/test-e2e-isolated.sh",
     "dev:e2e": "node tests/serve-e2e.cjs",
