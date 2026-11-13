@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **Alcance del checklist reconciliado:** ADM-05, PUB-15, OFE-08 y VIS-16 se excluyen del total aplicable conforme a la decisión del [plan maestro vigente](2026-11-10-plan-maestro-vigente.md); se conservan datos y código existentes. El cálculo pasa de 63/221 (28,51 %) a 63/217 (29,03 %), sin nuevos cierres. NOT-05 continúa para alquileres y PUB-09 para la web propia. [Detalle](work/progreso/ajuste-alcance-2026-11-13.md).
+
 13-nov-2026 · **Forma de trabajo:** Luis autorizó a Codex a hacer commits y push de avances comprobados, actualizar el checklist y continuar sin pedir confirmación en cada paso. Cada tarea conserva su estado real: un avance parcial no cuenta como terminado.
 
 13-nov-2026 · **BUS-06 y BUS-19 parciales:** núcleo de inventario y revisión de acceso por canal construidos y comprobados localmente, con rutas nuevas desactivadas por defecto y migración ensayada solo en pruebas. No hay fuentes reales activadas. Pendientes de incorporación operativa del manifiesto, lectores, revisión efectiva por canal y pantalla. Detalles: [avance publicable](work/BUS-06/avance-publicable.md).

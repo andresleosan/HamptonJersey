@@ -4,30 +4,23 @@
   "titulo": "Factura de comisión con la otra agencia al cerrar y seguimiento de su cobro",
   "origen": "plan",
   "fase": "F3-C",
-  "estado": "parcial",
+  "estado": "descartado",
   "responsable": "desarrollo",
   "hecho": "Cada expediente guarda los honorarios de Hampton, la otra agencia y su parte; Sales suma Fees in progress y Fees completed this year (de ventas completadas, no de cobros reales).",
-  "falta": "Generar la factura de la parte acordada al cerrar con otra agencia, registrar su cobro y que pase a Missing payments si vence (esa cola del §5.1 aún no existe).",
+  "falta": "Retiradas la factura, registro, saldos y seguimiento de comisiones entre agencias; se conserva lo ya existente y la gestión se realiza fuera de la aplicación.",
   "bloqueo": "",
   "evidencia": [
     "migrations/0012_sales.sql:32-34",
     "server/routes/sales.js:233-266",
     "admin/src/SaleDetail.jsx:137-140",
-    "admin/src/Sales.jsx:84-87"
+    "admin/src/Sales.jsx:84-87",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
-  "executionEligibility": "needs_scope_and_evidence_review",
-  "dependencies": [
-    {
-      "id": "PRE-22",
-      "requires": "decision",
-      "reason": "Solo facturar/cobrar exige condiciones comerciales aportadas; no bloquea consultas ni visitas.",
-      "basis": "inferred",
-      "scope": "partial"
-    }
-  ],
+  "executionEligibility": "historical",
+  "dependencies": [],
   "externalBlocker": "",
   "resources": [
     "sales-contract",
@@ -35,5 +28,7 @@
     "agency-commercial-agreements",
     "notifications-schema"
   ],
-  "nextStep": "Generar factura y registrar cobro de la comisión pactada; conectar vencimientos al Inbox cuando exista su cola."
+  "nextStep": "Conservar lo existente y no construir el alcance retirado.",
+  "deps": [],
+  "actualizado": "2026-11-13"
 }

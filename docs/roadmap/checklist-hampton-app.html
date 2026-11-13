@@ -605,7 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since \u003cfecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra.",
-   "falta": "No hay categoría ni pestaña Missing payments en Inbox (notifications solo admite new_applicant, viewing y matched); falta el margen grace_days configurable (3 días por defecto; hoy el atraso sale al día siguiente del vencimiento, con el paso +1); y las comisiones que otras agencias deben a Hampton no se registran: Sales solo guarda los honorarios de Hampton y la parte que se lleva la otra agencia, sin fecha ni estado de cobro.",
+   "falta": "Falta una cola coherente de cobros de alquiler pendientes y un margen de gracia configurable, usando la autoridad financiera de alquileres. Las comisiones entre agencias quedan fuera de la aplicación por decisión del plan maestro.",
    "bloqueo": "",
    "evidencia": [
     "server/routes/notifications.js:12",
@@ -616,8 +616,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/routes/rent.js:716",
     "admin/src/App.jsx:132-133",
     "migrations/0012_sales.sql:32-34",
-    "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:34"
-   ]
+    "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:34",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
+   ],
+   "actualizado": "2026-11-13"
   },
   {
    "id": "NOT-06",
@@ -1745,19 +1747,22 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Informe para el propietario con vistas, visitas y feedback, enviado cada semana",
    "origen": "plan",
    "fase": "F3-A",
-   "estado": "parcial",
+   "estado": "descartado",
    "responsable": "desarrollo",
    "hecho": "Botón Owner report en cada ficha: página imprimible en A4 (7, 30 o 90 días) con aperturas en la web, visitas y su resultado, aplicantes que encajan y, en venta, ofertas numeradas y avance de la venta, sin datos de interesados.",
-   "falta": "El envío automático semanal al propietario (necesita correo; el reloj ya existe, AUT-07), un resumen de los temas del feedback y guardar el contacto del propietario en la ficha, que hoy no existe. Mientras tanto el equipo lo guarda como PDF y lo manda a mano.",
-   "bloqueo": "Correo (AUT-17)",
+   "falta": "Retirados los informes de actividad, visitas y feedback enviados a propietarios; se conserva el código existente y la actividad interna.",
+   "bloqueo": "",
    "evidencia": [
     "admin/src/ListingEditor.jsx:152-153",
     "server/routes/report.js:43-78",
     "admin/src/OwnerReport.jsx:27-66",
     "migrations/0001_init.sql:1-23",
     "commit fe098be",
-    "commit 7ff3158"
-   ]
+    "commit 7ff3158",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
+   ],
+   "deps": [],
+   "actualizado": "2026-11-13"
   },
   {
    "id": "VIS-17",
@@ -3738,18 +3743,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Alta de vivienda gestionada: propietario, servicio, honorarios, documentos y llaves",
    "origen": "plan",
    "fase": "F5-A",
-   "estado": "parcial",
+   "estado": "descartado",
    "responsable": "desarrollo",
    "hecho": "New landlord y New property (#/rentals/new) recogen propietario (nombre, email, teléfono, límite de aprobación), dirección, parroquia, servicio Full management o Let only, Management fee y gas; la vivienda nace con sus Checks en «Not recorded» y el propietario tiene su página (#/rentals/landlords/\u003cid>).",
-   "falta": "No se suben documentos de cumplimiento (Rentals no admite archivos) ni se registran llaves ni datos bancarios del propietario para liquidar (no-objetivo de F5-A; el plan los reservaba al rol owner, que no existe por la decisión de un solo rol).",
+   "falta": "Retirada la ampliación de alta de gestión, documentos, llaves, bancos y repositorio genérico de archivos; se conservan el alta y los datos existentes.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Rentals.jsx:274-294",
     "admin/src/Rentals.jsx:300-379",
     "admin/src/Rentals.jsx:382-435",
     "server/routes/rentals.js:164-185",
-    "migrations/0013_rentals.sql:1-27"
-   ]
+    "migrations/0013_rentals.sql:1-27",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
+   ],
+   "deps": [],
+   "actualizado": "2026-11-13"
   },
   {
    "id": "ADM-06",
@@ -4319,7 +4327,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "En listings: Availability (For sale, Under offer, Sold, To let, Lease, Withdrawn) y el estado Draft, Published o Archived; daily_stats cuenta aperturas de página, galería y tour (Owner report e Insights) y el editor muestra Active interest y ofertas. Desde el 30-oct-2026 guarda cuándo se confirmó la ficha por última vez (confirmed_at), y a los 3 meses, o 1 en alquiler, pasa a «To confirm» (ADM-04).",
-   "falta": "Faltan fecha de publicación, motivo de retirada, Let agreed y Let, guardados, llamadas e IDs en portales (PUB-15). Replanteado para Jersey (§5.10), no falta: Idealista, Fotocasa, Zillow o MLS pasan a los portales donde Hampton tenga cuenta, y la fecha de vencimiento a la confirmación de la ficha (ADM-04).",
+   "falta": "Falta completar la trazabilidad y retirada editorial del sitio propio con motivo e historial. Las métricas no observadas se mantienen desconocidas; los portales y sus identificadores quedaron retirados con PUB-15.",
    "bloqueo": "",
    "evidencia": [
     "server/listing.js:7",
@@ -4329,8 +4337,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "admin/src/OwnerReport.jsx:86-98",
     "admin/src/Insights.jsx:86",
     "admin/src/ListingEditor.jsx:161-165",
-    "migrations/0017_to_confirm.sql:1-7"
-   ]
+    "migrations/0017_to_confirm.sql:1-7",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
+   ],
+   "actualizado": "2026-11-13"
   },
   {
    "id": "PUB-10",
@@ -4443,15 +4453,18 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Publicación en portales por feed con su ID en la ficha",
    "origen": "plan",
    "fase": "F4",
-   "estado": "bloqueado",
+   "estado": "descartado",
    "responsable": "Hampton",
    "hecho": "",
-   "falta": "No hay feeds a portales ni campo para su ID en la ficha; el plan los limita a los portales donde Hampton tenga cuenta, y eso no se sabe.",
-   "bloqueo": "Dato de Hampton",
+   "falta": "Retiradas la publicación, feeds, sincronización e identificadores de portales externos; no queda pendiente elegir destinos ni cuentas.",
+   "bloqueo": "",
    "evidencia": [
     "server/listing.js:16-21",
-    "migrations/0001_init.sql:1-24"
-   ]
+    "migrations/0001_init.sql:1-24",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
+   ],
+   "deps": [],
+   "actualizado": "2026-11-13"
   },
   {
    "id": "PUB-16",
@@ -5113,17 +5126,20 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Factura de comisión con la otra agencia al cerrar y seguimiento de su cobro",
    "origen": "plan",
    "fase": "F3-C",
-   "estado": "parcial",
+   "estado": "descartado",
    "responsable": "desarrollo",
    "hecho": "Cada expediente guarda los honorarios de Hampton, la otra agencia y su parte; Sales suma Fees in progress y Fees completed this year (de ventas completadas, no de cobros reales).",
-   "falta": "Generar la factura de la parte acordada al cerrar con otra agencia, registrar su cobro y que pase a Missing payments si vence (esa cola del §5.1 aún no existe).",
+   "falta": "Retiradas la factura, registro, saldos y seguimiento de comisiones entre agencias; se conserva lo ya existente y la gestión se realiza fuera de la aplicación.",
    "bloqueo": "",
    "evidencia": [
     "migrations/0012_sales.sql:32-34",
     "server/routes/sales.js:233-266",
     "admin/src/SaleDetail.jsx:137-140",
-    "admin/src/Sales.jsx:84-87"
-   ]
+    "admin/src/Sales.jsx:84-87",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
+   ],
+   "deps": [],
+   "actualizado": "2026-11-13"
   },
   {
    "id": "PRE-01",

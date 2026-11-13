@@ -48,12 +48,13 @@
       "area": "Inbox, visitas, alquileres y ofertas",
       "capacity": 2,
       "count": 65,
-      "openCount": 41,
+      "openCount": 38,
       "states": {
-        "parcial": 24,
+        "parcial": 21,
         "hecho": 24,
         "pendiente": 8,
-        "bloqueado": 9
+        "bloqueado": 9,
+        "descartado": 3
       }
     },
     {
@@ -62,13 +63,13 @@
       "area": "Propiedades, publicación, tours y analítica",
       "capacity": 2,
       "count": 65,
-      "openCount": 35,
+      "openCount": 34,
       "states": {
         "parcial": 24,
         "pendiente": 8,
         "hecho": 13,
-        "bloqueado": 3,
-        "descartado": 16,
+        "bloqueado": 2,
+        "descartado": 17,
         "replanteado": 1
       }
     }
@@ -236,7 +237,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since <fecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra.",
-      "falta": "No hay categoría ni pestaña Missing payments en Inbox (notifications solo admite new_applicant, viewing y matched); falta el margen grace_days configurable (3 días por defecto; hoy el atraso sale al día siguiente del vencimiento, con el paso +1); y las comisiones que otras agencias deben a Hampton no se registran: Sales solo guarda los honorarios de Hampton y la parte que se lleva la otra agencia, sin fecha ni estado de cobro.",
+      "falta": "Falta una cola coherente de cobros de alquiler pendientes y un margen de gracia configurable, usando la autoridad financiera de alquileres. Las comisiones entre agencias quedan fuera de la aplicación por decisión del plan maestro.",
       "bloqueo": "",
       "evidencia": [
         "server/routes/notifications.js:12",
@@ -247,21 +248,14 @@
         "server/routes/rent.js:716",
         "admin/src/App.jsx:132-133",
         "migrations/0012_sales.sql:32-34",
-        "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:34"
+        "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:34",
+        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
-      "dependencies": [
-        {
-          "id": "OFE-08",
-          "requires": "integrated",
-          "reason": "Solo el tramo de comisiones requiere factura, vencimiento y cobro; los atrasos de alquiler pueden avanzar antes.",
-          "basis": "inferred",
-          "scope": "partial"
-        }
-      ],
+      "dependencies": [],
       "externalBlocker": "",
       "resources": [
         "notifications-schema",
@@ -269,7 +263,8 @@
         "rentals-contract",
         "sales-contract"
       ],
-      "nextStep": "Añadir la cola de cobros pendientes y el margen configurable; incorporar comisiones cuando exista su registro de cobro."
+      "nextStep": "Completar el saldo y la cola de alquileres sin incorporar comisiones entre agencias.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "NOT-06",
@@ -2527,33 +2522,26 @@
       "titulo": "Informe para el propietario con vistas, visitas y feedback, enviado cada semana",
       "origen": "plan",
       "fase": "F3-A",
-      "estado": "parcial",
+      "estado": "descartado",
       "responsable": "desarrollo",
       "hecho": "Botón Owner report en cada ficha: página imprimible en A4 (7, 30 o 90 días) con aperturas en la web, visitas y su resultado, aplicantes que encajan y, en venta, ofertas numeradas y avance de la venta, sin datos de interesados.",
-      "falta": "El envío automático semanal al propietario (necesita correo; el reloj ya existe, AUT-07), un resumen de los temas del feedback y guardar el contacto del propietario en la ficha, que hoy no existe. Mientras tanto el equipo lo guarda como PDF y lo manda a mano.",
-      "bloqueo": "Correo (AUT-17)",
+      "falta": "Retirados los informes de actividad, visitas y feedback enviados a propietarios; se conserva el código existente y la actividad interna.",
+      "bloqueo": "",
       "evidencia": [
         "admin/src/ListingEditor.jsx:152-153",
         "server/routes/report.js:43-78",
         "admin/src/OwnerReport.jsx:27-66",
         "migrations/0001_init.sql:1-23",
         "commit fe098be",
-        "commit 7ff3158"
+        "commit 7ff3158",
+        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
-      "dependencies": [
-        {
-          "id": "AUT-17",
-          "requires": "activated",
-          "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
-          "basis": "explicit",
-          "scope": "partial"
-        }
-      ],
-      "externalBlocker": "Correo (AUT-17)",
+      "executionEligibility": "historical",
+      "dependencies": [],
+      "externalBlocker": "",
       "resources": [
         "viewings-contract",
         "viewings-ui",
@@ -2561,7 +2549,9 @@
         "email-pipeline",
         "jobs-clock"
       ],
-      "nextStep": "Completar contacto del propietario y resumen del feedback; enviar el informe semanal solo con correo operativo."
+      "nextStep": "Conservar lo existente y no construir el alcance retirado.",
+      "deps": [],
+      "actualizado": "2026-11-13"
     },
     {
       "id": "VIS-17",
@@ -6338,29 +6328,32 @@
       "titulo": "Alta de vivienda gestionada: propietario, servicio, honorarios, documentos y llaves",
       "origen": "plan",
       "fase": "F5-A",
-      "estado": "parcial",
+      "estado": "descartado",
       "responsable": "desarrollo",
       "hecho": "New landlord y New property (#/rentals/new) recogen propietario (nombre, email, teléfono, límite de aprobación), dirección, parroquia, servicio Full management o Let only, Management fee y gas; la vivienda nace con sus Checks en «Not recorded» y el propietario tiene su página (#/rentals/landlords/<id>).",
-      "falta": "No se suben documentos de cumplimiento (Rentals no admite archivos) ni se registran llaves ni datos bancarios del propietario para liquidar (no-objetivo de F5-A; el plan los reservaba al rol owner, que no existe por la decisión de un solo rol).",
+      "falta": "Retirada la ampliación de alta de gestión, documentos, llaves, bancos y repositorio genérico de archivos; se conservan el alta y los datos existentes.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/Rentals.jsx:274-294",
         "admin/src/Rentals.jsx:300-379",
         "admin/src/Rentals.jsx:382-435",
         "server/routes/rentals.js:164-185",
-        "migrations/0013_rentals.sql:1-27"
+        "migrations/0013_rentals.sql:1-27",
+        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [],
       "externalBlocker": "",
       "resources": [
         "rentals-contract",
         "rentals-ui"
       ],
-      "nextStep": "Completar documentos, llaves y datos de liquidación con almacenamiento y acceso definidos."
+      "nextStep": "Conservar lo existente y no construir el alcance retirado.",
+      "deps": [],
+      "actualizado": "2026-11-13"
     },
     {
       "id": "ADM-06",
@@ -7533,7 +7526,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "En listings: Availability (For sale, Under offer, Sold, To let, Lease, Withdrawn) y el estado Draft, Published o Archived; daily_stats cuenta aperturas de página, galería y tour (Owner report e Insights) y el editor muestra Active interest y ofertas. Desde el 30-oct-2026 guarda cuándo se confirmó la ficha por última vez (confirmed_at), y a los 3 meses, o 1 en alquiler, pasa a «To confirm» (ADM-04).",
-      "falta": "Faltan fecha de publicación, motivo de retirada, Let agreed y Let, guardados, llamadas e IDs en portales (PUB-15). Replanteado para Jersey (§5.10), no falta: Idealista, Fotocasa, Zillow o MLS pasan a los portales donde Hampton tenga cuenta, y la fecha de vencimiento a la confirmación de la ficha (ADM-04).",
+      "falta": "Falta completar la trazabilidad y retirada editorial del sitio propio con motivo e historial. Las métricas no observadas se mantienen desconocidas; los portales y sus identificadores quedaron retirados con PUB-15.",
       "bloqueo": "",
       "evidencia": [
         "server/listing.js:7",
@@ -7543,27 +7536,21 @@
         "admin/src/OwnerReport.jsx:86-98",
         "admin/src/Insights.jsx:86",
         "admin/src/ListingEditor.jsx:161-165",
-        "migrations/0017_to_confirm.sql:1-7"
+        "migrations/0017_to_confirm.sql:1-7",
+        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
-      "dependencies": [
-        {
-          "id": "PUB-15",
-          "requires": "design",
-          "reason": "Solo el subtramo IDs de portales depende del contrato de feeds.",
-          "basis": "explicit",
-          "scope": "partial"
-        }
-      ],
+      "dependencies": [],
       "externalBlocker": "",
       "resources": [
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Contrastar los campos ya añadidos y completar solo retirada, estados y trazabilidad pendientes."
+      "nextStep": "Completar retirada y trazabilidad del sitio propio, preservando el historial existente.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "PUB-10",
@@ -7755,26 +7742,29 @@
       "titulo": "Publicación en portales por feed con su ID en la ficha",
       "origen": "plan",
       "fase": "F4",
-      "estado": "bloqueado",
+      "estado": "descartado",
       "responsable": "Hampton",
       "hecho": "",
-      "falta": "No hay feeds a portales ni campo para su ID en la ficha; el plan los limita a los portales donde Hampton tenga cuenta, y eso no se sabe.",
-      "bloqueo": "Dato de Hampton",
+      "falta": "Retiradas la publicación, feeds, sincronización e identificadores de portales externos; no queda pendiente elegir destinos ni cuentas.",
+      "bloqueo": "",
       "evidencia": [
         "server/listing.js:16-21",
-        "migrations/0001_init.sql:1-24"
+        "migrations/0001_init.sql:1-24",
+        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [],
-      "externalBlocker": "Hampton: portales contratados, cuentas y condiciones de feed.",
+      "externalBlocker": "",
       "resources": [
         "portal-feeds",
         "listings-schema"
       ],
-      "nextStep": "Recoger portales y cuentas de Hampton antes de definir sus feeds e identificadores."
+      "nextStep": "Conservar lo existente y no construir el alcance retirado.",
+      "deps": [],
+      "actualizado": "2026-11-13"
     },
     {
       "id": "PUB-16",
@@ -8996,30 +8986,23 @@
       "titulo": "Factura de comisión con la otra agencia al cerrar y seguimiento de su cobro",
       "origen": "plan",
       "fase": "F3-C",
-      "estado": "parcial",
+      "estado": "descartado",
       "responsable": "desarrollo",
       "hecho": "Cada expediente guarda los honorarios de Hampton, la otra agencia y su parte; Sales suma Fees in progress y Fees completed this year (de ventas completadas, no de cobros reales).",
-      "falta": "Generar la factura de la parte acordada al cerrar con otra agencia, registrar su cobro y que pase a Missing payments si vence (esa cola del §5.1 aún no existe).",
+      "falta": "Retiradas la factura, registro, saldos y seguimiento de comisiones entre agencias; se conserva lo ya existente y la gestión se realiza fuera de la aplicación.",
       "bloqueo": "",
       "evidencia": [
         "migrations/0012_sales.sql:32-34",
         "server/routes/sales.js:233-266",
         "admin/src/SaleDetail.jsx:137-140",
-        "admin/src/Sales.jsx:84-87"
+        "admin/src/Sales.jsx:84-87",
+        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
-      "dependencies": [
-        {
-          "id": "PRE-22",
-          "requires": "decision",
-          "reason": "Solo facturar/cobrar exige condiciones comerciales aportadas; no bloquea consultas ni visitas.",
-          "basis": "inferred",
-          "scope": "partial"
-        }
-      ],
+      "executionEligibility": "historical",
+      "dependencies": [],
       "externalBlocker": "",
       "resources": [
         "sales-contract",
@@ -9027,7 +9010,9 @@
         "agency-commercial-agreements",
         "notifications-schema"
       ],
-      "nextStep": "Generar factura y registrar cobro de la comisión pactada; conectar vencimientos al Inbox cuando exista su cola."
+      "nextStep": "Conservar lo existente y no construir el alcance retirado.",
+      "deps": [],
+      "actualizado": "2026-11-13"
     },
     {
       "id": "PRE-01",

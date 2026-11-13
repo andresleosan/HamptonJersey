@@ -2179,7 +2179,7 @@
       "preferredSlot": "vscode",
       "priority": 157,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -5367,7 +5367,7 @@
       "preferredSlot": "vscode",
       "priority": 243,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -6660,7 +6660,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 279,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -7899,7 +7899,7 @@
       "preferredSlot": "vscode",
       "priority": 316,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [

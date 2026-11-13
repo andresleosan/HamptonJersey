@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since <fecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra.",
-  "falta": "No hay categoría ni pestaña Missing payments en Inbox (notifications solo admite new_applicant, viewing y matched); falta el margen grace_days configurable (3 días por defecto; hoy el atraso sale al día siguiente del vencimiento, con el paso +1); y las comisiones que otras agencias deben a Hampton no se registran: Sales solo guarda los honorarios de Hampton y la parte que se lleva la otra agencia, sin fecha ni estado de cobro.",
+  "falta": "Falta una cola coherente de cobros de alquiler pendientes y un margen de gracia configurable, usando la autoridad financiera de alquileres. Las comisiones entre agencias quedan fuera de la aplicación por decisión del plan maestro.",
   "bloqueo": "",
   "evidencia": [
     "server/routes/notifications.js:12",
@@ -18,21 +18,14 @@
     "server/routes/rent.js:716",
     "admin/src/App.jsx:132-133",
     "migrations/0012_sales.sql:32-34",
-    "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:34"
+    "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:34",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
-  "dependencies": [
-    {
-      "id": "OFE-08",
-      "requires": "integrated",
-      "reason": "Solo el tramo de comisiones requiere factura, vencimiento y cobro; los atrasos de alquiler pueden avanzar antes.",
-      "basis": "inferred",
-      "scope": "partial"
-    }
-  ],
+  "dependencies": [],
   "externalBlocker": "",
   "resources": [
     "notifications-schema",
@@ -40,5 +33,6 @@
     "rentals-contract",
     "sales-contract"
   ],
-  "nextStep": "Añadir la cola de cobros pendientes y el margen configurable; incorporar comisiones cuando exista su registro de cobro."
+  "nextStep": "Completar el saldo y la cola de alquileres sin incorporar comisiones entre agencias.",
+  "actualizado": "2026-11-13"
 }
