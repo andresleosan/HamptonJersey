@@ -470,3 +470,7 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **EST-19, política sintética 13-nov:** preparado un cálculo puro y revisado para fotos y derivados con seis meses naturales en Jersey; no borra archivos ni tiene consumidor. Faltan productores y reloj fiables, referencias, autorización, preview, reserva y concurrencia. EST-19 queda parcial, no terminada. [Evidencia](work/EST-19/policy-synthetic-2026-11-13.md). Playwright: no aplica.
 
 **Integración EST-19 13-nov:** pasaron 2.113 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes. El cálculo sigue sin consumidor ni efectos; EST-19 pasa de pendiente a parcial, no a hecha. El catálogo mantiene 68/215 (31,63 %). Playwright: no aplica.
+
+**BUS-12/BUS-17, agregado de cobertura 13-nov:** preparado y revisado un agregado puro que reconoce una opción completa fiable y conserva unknown ante ausencia no acreditada o incoherencia. No hay productor, ausencia acreditada ni conexión al reloj; faltan identidad del episodio y revalidación transaccional. Ambas tareas siguen parciales. [Evidencia](work/BUS-12/coverage-foundation-evidence.md). Playwright: no aplica.
+
+**Integración de cobertura BUS-12/BUS-17 13-nov:** pasaron 2.121 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes; las tareas siguen parciales y el catálogo mantiene 68/215 (31,63 %). Sin consumidor, persistencia ni cambios de interfaz; Playwright no aplica.
