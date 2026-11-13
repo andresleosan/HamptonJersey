@@ -474,3 +474,7 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **BUS-12/BUS-17, agregado de cobertura 13-nov:** preparado y revisado un agregado puro que reconoce una opción completa fiable y conserva unknown ante ausencia no acreditada o incoherencia. No hay productor, ausencia acreditada ni conexión al reloj; faltan identidad del episodio y revalidación transaccional. Ambas tareas siguen parciales. [Evidencia](work/BUS-12/coverage-foundation-evidence.md). Playwright: no aplica.
 
 **Integración de cobertura BUS-12/BUS-17 13-nov:** pasaron 2.121 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes; las tareas siguen parciales y el catálogo mantiene 68/215 (31,63 %). Sin consumidor, persistencia ni cambios de interfaz; Playwright no aplica.
+
+**SAP-01, presentación desconectada 13-nov:** preparados y revisados modelo y componente con estado verificable, recarga, avisos y foco. Chromium aislado probó un harness sintético en 1280/390, no el flujo real. Faltan lectura autorizada y atómica de progreso/contadores/hora, control de respuestas tardías, gate y esquema instalable. SAP-01 sigue parcial. [Evidencia](work/SAP-01/presentation-handoff.md).
+
+**Integración SAP-01 13-nov:** pasaron 2.137 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes. Chromium aislado aprobó el harness sintético en 1280/390; no hay flujo conectado ni prueba con lector real. La tarea sigue parcial y el catálogo conserva 68/215 (31,63 %).
