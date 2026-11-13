@@ -1,6 +1,6 @@
 # Estado de Hampton App
 
-13-nov-2026 · **PUB-04 y accesibilidad:** corrección local del foco y la barra del editor revisada con datos ficticios, incluido el campo de SPR-01 con zoom nativo. Pendiente de integrar y verificar el despliegue; el smoke de producción no se repitió. [Evidencia](work/PUB-04/verification-2026-11-13.md).
+13-nov-2026 · **PUB-04 hecho:** la migración 0040 y la entrega original están documentadas; la corrección de foco integrada en `67b78a5` tiene checks de Pages y Jobs correctos. El catálogo local pasa de 66/217 (30,41 %) a 67/217 (30,88 %). El smoke funcional de producción recibió 403/1010 históricamente y no se repitió; las pruebas de navegador usaron datos ficticios. [Evidencia](work/PUB-04/release-2026-11-13.md).
 
 13-nov-2026 · **Lectura financiera parcial:** adaptador interno por tenancy con permisos y control de cambios entre páginas, desconectado de rutas y avisos. La conciliación global permanece desactivada y los datos ausentes no se convierten en saldo cero. [Límites](../superpowers/plans/2026-11-13-adm-09-not-05-workspace-ledger.md).
 
@@ -10,7 +10,7 @@
 
 13-nov-2026 · **ADM-09 y NOT-05 parciales:** autoridad financiera y proyección de pagos pendientes preparadas con permisos por caso y pruebas locales. Esta sesión no ejecutó 0045/0046 y la consulta remota fue denegada; las rutas actuales no se han conectado a las nuevas lecturas; quedan pendientes su unificación, permisos, avisos y activación. [Límites](../superpowers/plans/2026-11-13-adm-09-not-05-integration-ledger.md).
 
-13-nov-2026 · **SPR-01 parcial:** la lista propia muestra baños y fecha civil de disponibilidad cuando corresponde; el commit 2005312 tiene Pages y Jobs correctos. La integración de fuentes externas y una comprobación menor de foco/zoom siguen pendientes; no se acredita smoke funcional en producción. [Evidencia](work/SPR-01/implementation-evidence.md).
+13-nov-2026 · **SPR-01 parcial:** la lista propia muestra baños y fecha civil de disponibilidad cuando corresponde; el commit 2005312 tiene Pages y Jobs correctos. El foco y la recuperación del borrador con zoom se comprobaron en navegador aislado; las respuestas 400/409 fueron simuladas. La integración de fuentes externas sigue pendiente; no se acredita smoke funcional en producción. [Evidencia](work/SPR-01/implementation-evidence.md).
 
 13-nov-2026 · **REG-11 hecho:** la corrección de fechas quedó integrada y los checks de Pages y Workers Builds de `3e6191b` terminaron correctamente. La cifra local pasa de 65/217 (29,95 %) a 66/217 (30,41 %); no se ha comprobado el tablero público ni repetido el flujo autenticado o un envío en producción. M04 continúa como alcance independiente. [Evidencia](work/conciliacion/2026-11-13-release-reg11-pub.md).
 

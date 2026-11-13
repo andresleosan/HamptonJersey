@@ -6290,7 +6290,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 268,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [

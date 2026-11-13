@@ -1,5 +1,7 @@
 # SPR-01 · Baños y fecha de disponibilidad en Listings
 
+**Actualización posterior:** la corrección `1e1a149` comprobó foco y recuperación de fecha con zoom en WebKit aislado; las respuestas 400 y 409 del recorrido se simularon, y la validación de servidor se probó aparte. SPR-01 permanece parcial por inventario y fuentes externas; no se ha repetido un smoke funcional de producción. [Evidencia](../PUB-04/release-2026-11-13.md).
+
 Implementación local sobre `b25d0b4` (13-nov-2026). No se ha publicado, aplicado ninguna migración remota ni realizado ninguna prueba en producción. La revisión independiente y la integración corresponden al siguiente turno.
 
 ## Alcance y adaptación del diseño

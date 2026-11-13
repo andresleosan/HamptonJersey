@@ -6290,7 +6290,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 268,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -16254,10 +16254,10 @@
       "titulo": "Familia 1 · Identificación y ubicación de la ficha",
       "origen": "texto",
       "fase": "F4",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "En listings y Details: referencia HE-R/HE-C/HE-I, Use, Operation, Availability, Country, Location, Road y Parish. `listing_details` añade edificio/unidad, postcode y promotor; `property_condition` se comparte con PUB-05. La dirección exacta puede publicarse por ficha tras preview completo, aceptación explícita y referencia de evidencia. Hash/CAS invalidan cambios; el título Drive forma parte de la revisión y textos que ya revelan edificio y calle quedan ocultos hasta revisión. `0040` aplicada e integrada en main `13a1a51`; Pages y Jobs correctos. La corrección local del editor mantiene visibles foco, etiqueta y error en móvil con zoom; el flujo de dirección pasó en Chromium y WebKit aislados.",
-      "falta": "Integrar y comprobar el despliegue de la corrección de accesibilidad. El smoke funcional en producción no se ha repetido tras el 403; las comprobaciones de navegador usan datos ficticios. Ninguna ficha existente recibió aprobación automática.",
+      "hecho": "Identificación y ubicación de la ficha con referencia estable, uso, operación, disponibilidad, país, ubicación y parroquia. Edificio/unidad, código postal y promotor se conservan internamente; la dirección exacta requiere revisión individual del snapshot, consentimiento y referencia de evidencia. La entrega 13a1a51 y la migración 0040 constan desplegadas; la corrección 1e1a149 de foco y reflujo se integró en 67b78a5, con Pages y Workers Builds: hampton-jobs completed/success. El flujo y la accesibilidad pasaron en navegadores aislados con datos ficticios.",
+      "falta": "No se ha repetido el smoke funcional de producción tras el 403/1010 histórico. Las respuestas 400/409 de fecha utilizadas para comprobar foco y recuperación son simuladas; la validación de servidor se probó por separado.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ListingEditor.jsx:165-189",
@@ -16271,19 +16271,20 @@
         "tests/server/listing-address.test.mjs",
         "docs/superpowers/plans/2026-11-11-pub-04-internal-details-ledger.md",
         "tests/listing-address.e2e.cjs",
-        "docs/roadmap/work/PUB-04/verification-2026-11-13.md"
+        "docs/roadmap/work/PUB-04/verification-2026-11-13.md",
+        "docs/roadmap/work/PUB-04/release-2026-11-13.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [],
       "externalBlocker": "",
       "resources": [
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Publicar la corrección revisada y comprobar sus despliegues; conservar la limitación del smoke de producción.",
+      "nextStep": "Mantener la revisión explícita y por ficha de la dirección exacta; comprobar el recorrido funcional en producción cuando corresponda.",
       "actualizado": "2026-11-13"
     },
     {

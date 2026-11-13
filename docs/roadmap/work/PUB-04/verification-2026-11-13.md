@@ -1,5 +1,7 @@
 # PUB-04 · Verificación del navegador y foco del editor
 
+**Actualización posterior:** la corrección es antecesora de `67b78a5`, cuyos checks de Pages y Jobs terminaron correctamente. La [conciliación de despliegue](release-2026-11-13.md) conserva la limitación del smoke histórico 403/1010 y distingue respuestas simuladas de pruebas de servidor.
+
 13-nov-2026. La entrega `13a1a51486da948c9ed0a289b6cbb198c0fa81aa` y la migración 0040 constan históricamente como publicadas y verificadas en el [ledger](../../../superpowers/plans/2026-11-11-pub-04-internal-details-ledger.md). Ese registro también documenta el 403/1010 recibido por el smoke público; esta comprobación no lo repite ni acredita un recorrido autenticado en producción.
 
 ## Pruebas locales
