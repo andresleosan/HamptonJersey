@@ -5757,8 +5757,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F0",
    "estado": "parcial",
    "responsable": "Luis",
-   "hecho": "Desde el 1-nov-2026 www.hamptonestatesjersey.com sirve la app (web y panel); hamptonestatesjersey.com (301) y hamptonjersey.pages.dev (308) redirigen ahí desde Cloudflare. El 1-nov Luis añadió el dominio a Firebase (dominios autorizados), a la llave del navegador en Google Cloud y a los hostnames de Turnstile, y comprobó el login del panel y los formularios públicos en www. Las 30 redirecciones 301 de las URL de Wix (site/_redirects) sirven desde entonces, y desde c9ac1ec SITE_URL, la meta site-url, el canonical y el JSON-LD pasaron a www (PUB-14).",
-   "falta": "Meta; el sitemap en Search Console (PUB-14); las reglas WAF, incluida POST /api/stats (ANA-09); probar una reserva y un registro reales; y dejar de mantener Wix. Antes de dar de baja Wix, las fotos del equipo que la web carga desde static.wixstatic.com (site/lib.js:5) tienen que pasar a la app.",
+   "hecho": "Desde el 1-nov-2026 www.hamptonestatesjersey.com sirve la app (web y panel); hamptonestatesjersey.com (301) y hamptonjersey.pages.dev (308) redirigen ahí desde Cloudflare. El 1-nov Luis añadió el dominio a Firebase (dominios autorizados), a la llave del navegador en Google Cloud y a los hostnames de Turnstile, y comprobó el login del panel y los formularios públicos en www. Las 30 redirecciones 301 de las URL de Wix (site/_redirects) sirven desde entonces, y desde c9ac1ec SITE_URL, la meta site-url, el canonical y el JSON-LD pasaron a www (PUB-14). Las dos fotos públicas autorizadas del equipo se sirven desde archivos locales, con fallback en equipo, reserva y ficha.",
+   "falta": "Meta; el sitemap en Search Console (PUB-14); las reglas WAF, incluida POST /api/stats (ANA-09); probar una reserva y un registro reales; y la decisión posterior de Luis sobre dejar de mantener Wix. El traslado de fotos por sí solo no acredita estos pasos ni autoriza dar de baja servicios.",
    "bloqueo": "",
    "evidencia": [
     "site/_redirects:1-32",
@@ -5768,7 +5768,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "site/lib.js:5",
     "tests/server/seo.test.mjs:148-171",
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:164-169",
-    "docs/roadmap/ESTADO.md:8"
+    "docs/roadmap/ESTADO.md:8",
+    "docs/superpowers/plans/2026-11-09-pre-16-fotos-equipo.md",
+    "tests/pre16-team-photos.e2e.cjs",
+    "site/data/team.json"
    ]
   },
   {

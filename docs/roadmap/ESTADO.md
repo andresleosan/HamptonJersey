@@ -510,3 +510,5 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **PUB-01, guía parcial:** navegación de seis pasos en el editor de ficha existente, sin duplicar formulario ni publicar al terminar. Revisión independiente, suite 2.175 JavaScript y 29 Python, build/release y E2E aislado sintético en 390/1280 con zoom, guardado/descarte, errores y foco. Faltan alta recuperable y familias pendientes.
 
 **PUB-19, recorrido parcial:** cálculo, revisión paginada, ledger y página con controles apagados; D1 y navegador aislados con datos sintéticos y revisión independiente; suite 2.187 JavaScript y 29 Python, build/release, catálogo y paquetes correctos. Faltan identidad, revisión de inferencias, autorización real, costes y retención antes de migrar o activar. [Evidencia](work/PUB-19/avance-publicable.md).
+
+**PRE-16, fotos locales:** las dos fotos públicas autorizadas se sirven desde la app; revisión independiente, suite 2.188 JavaScript y 29 Python, build/release y E2E aislado en equipo, reserva y ficha, con fallos de imagen y caché antigua. No acredita el resto de la transición ni autoriza dar de baja Wix.
