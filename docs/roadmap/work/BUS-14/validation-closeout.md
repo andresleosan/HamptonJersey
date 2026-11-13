@@ -29,3 +29,7 @@ Shortlist/Undo y paginación con más de25resultados están cubiertos por fixtur
 ## Pendientes de entrega documental
 
 El producto ya está publicado. La entrega local de documentación y sincronización del test incorpora ahora el avance documental remoto42eda35 y regenera desde ambas fuentes. Tras la revisión final, requiere aprobación del SHA exacto para publicar y desplegar el catálogo que alimenta el tablero. Se conserva todo el trabajo; esto no reabre la aceptación funcional ni autoriza un push o migración. BUS-12 y las demás etapas de PAQ-03 mantienen sus propios criterios.
+
+## Reparación de prueba aislada · 13-nov-2026
+
+La prueba comparaba un score fijo anterior a Undo, aunque Undo recalcula. Ahora captura el score real de la misma tarjeta antes de rechazar y antes de marcar la versión antigua, y verifica que se conserva después. Los inmuebles sintéticos del tramo Widen declaran GBP para que el presupuesto sea comparable. La revisión independiente confirmó que se preservan las aserciones; no se cambió producto. Chromium aislado pasó 1280/390 tanto en la copia de reparación como sobre BUS-12 y SAP-10 integrados. No se probó producción. BUS-14 permanece hecho; no hay nuevo cierre.
