@@ -2909,8 +2909,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F1-A",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "El recálculo del inventario propio comprueba en la transacción la búsqueda, sus revisiones y el conjunto de candidatas; ante deriva evita resultados parciales y comunica conflicto. Si el resultado del transporte se pierde, lo señala como desconocido. El conjunto y sus límites se probaron con datos ficticios en SQLite y D1 local. Se preparó el registro interno de intentos y último éxito con ticket cercado, comprobación de avisos y conteo del inventario propio; permanece apagado y su SQL es solo propuesta.",
-   "falta": "Integrar identidad durable y límites operativos, revisar y adoptar el esquema, conectar una API y pantalla autorizadas y mostrar fecha/responsable. El último éxito compara la versión de búsqueda y no acredita que el inventario no haya cambiado después. Integrar BUS-01 sin confundir cobertura pendiente con cero; no se verificó D1 remoto.",
+   "hecho": "El recálculo del inventario propio comprueba en la transacción la búsqueda, sus revisiones y el conjunto de candidatas; ante deriva evita resultados parciales y comunica conflicto. Si el resultado del transporte se pierde, lo señala como desconocido. El conjunto y sus límites se probaron con datos ficticios en SQLite y D1 local. Se preparó el registro interno de intentos y último éxito con ticket cercado, comprobación de avisos y conteo del inventario propio; permanece apagado y su SQL es solo propuesta. Se propusieron guardas de identidad de búsqueda y ticket, revisadas en SQLite y D1 efímera; el SQL no debe instalarse todavía.",
+   "falta": "Integrar identidad durable y límites operativos, revisar y adoptar el esquema, conectar una API y pantalla autorizadas y mostrar fecha/responsable. El último éxito compara la versión de búsqueda y no acredita que el inventario no haya cambiado después. Integrar BUS-01 sin confundir cobertura pendiente con cero; no se verificó D1 remoto. Antes de instalar la propuesta, garantizar asignación durable para todos los escritores e imports, resolver IDs históricos, drenaje, retención y ABA de viviendas.",
    "bloqueo": "",
    "evidencia": [
     "server/applicants.js:29-31",
@@ -2925,7 +2925,9 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/search-progress.js",
     "tests/server/est-01-progress-integration.test.mjs",
     "tests/server/est-01-progress-d1.test.mjs",
-    "docs/roadmap/work/EST-01/avance-intentos-2026-11-13.md"
+    "docs/roadmap/work/EST-01/avance-intentos-2026-11-13.md",
+    "docs/roadmap/work/EST-01/identidad-aba-2026-11-13.md",
+    "tests/server/est-01-identity-ledger-d1.test.mjs"
    ],
    "modulo": "M03",
    "deps": [
