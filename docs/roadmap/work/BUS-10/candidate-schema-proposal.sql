@@ -22,6 +22,16 @@ CREATE TABLE market_identity_candidates (
 ) WITHOUT ROWID;
 CREATE UNIQUE INDEX market_identity_candidate_first_pair ON market_identity_candidates(left_property_id,right_property_id)
   WHERE supersedes_candidate_id IS NULL;
+-- REPLACE can bypass DELETE triggers when recursive_triggers is off. Guard
+-- every key that could select an existing row before conflict resolution.
+CREATE TRIGGER market_identity_candidate_no_replace BEFORE INSERT ON market_identity_candidates
+WHEN EXISTS (SELECT 1 FROM market_identity_candidates c WHERE c.id=NEW.id)
+  OR (NEW.supersedes_candidate_id IS NULL AND EXISTS (
+    SELECT 1 FROM market_identity_candidates c WHERE c.supersedes_candidate_id IS NULL
+      AND c.left_property_id=NEW.left_property_id AND c.right_property_id=NEW.right_property_id))
+  OR (NEW.supersedes_candidate_id IS NOT NULL AND EXISTS (
+    SELECT 1 FROM market_identity_candidates c WHERE c.supersedes_candidate_id=NEW.supersedes_candidate_id))
+BEGIN SELECT RAISE(ABORT, 'identity candidate key already exists'); END;
 -- A successor must refer to the same canonical pair. The unique predecessor
 -- and immutable, non-deletable history prevent forks in this proposal.
 CREATE TRIGGER market_identity_candidate_same_pair BEFORE INSERT ON market_identity_candidates
@@ -42,6 +52,9 @@ CREATE TABLE market_identity_candidate_receipts (
   actor_added_at TEXT NOT NULL,
   created_at TEXT NOT NULL
 ) WITHOUT ROWID;
+CREATE TRIGGER market_identity_candidate_receipt_no_replace BEFORE INSERT ON market_identity_candidate_receipts
+WHEN EXISTS (SELECT 1 FROM market_identity_candidate_receipts r WHERE r.operation_id=NEW.operation_id)
+BEGIN SELECT RAISE(ABORT, 'identity candidate receipt key already exists'); END;
 CREATE TRIGGER market_identity_candidate_receipt_no_update BEFORE UPDATE ON market_identity_candidate_receipts
 BEGIN SELECT RAISE(ABORT, 'identity candidate receipt is immutable'); END;
 

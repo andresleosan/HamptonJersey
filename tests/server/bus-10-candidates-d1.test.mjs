@@ -73,6 +73,15 @@ test('isolated local D1: candidate concurrency, revocation, rollback and post-co
     await assert.rejects(propose(db,x),err=>err.status===409);
     await assert.rejects(run(db,'DELETE FROM market_identity_candidates WHERE id=?',current.candidate_id));
     assert.equal(await count(db,'market_identity_candidates'),3);assert.equal(await count(db,'market_identity_candidate_receipts'),4);
+    const cols='id,left_property_id,right_property_id,left_evidence_observation_id,right_evidence_observation_id,expected_left_version,expected_right_version,expected_left_evidence_revision,expected_right_evidence_revision,signal,supersedes_candidate_id,created_at,created_by';
+    const selection='left_property_id,right_property_id,left_evidence_observation_id,right_evidence_observation_id,expected_left_version,expected_right_version,expected_left_evidence_revision,expected_right_evidence_revision';
+    for(const [replacement,source] of [[current.candidate_id,current.candidate_id],
+      [uid(4991),first.candidate_id],[uid(4992),current.candidate_id]]) {
+      await assert.rejects(run(db,`INSERT OR REPLACE INTO market_identity_candidates(${cols}) SELECT ?,${selection},'shared_reference',supersedes_candidate_id,created_at,created_by FROM market_identity_candidates WHERE id=?`,replacement,source),/identity candidate key already exists/);
+    }
+    await assert.rejects(run(db,`INSERT OR REPLACE INTO market_identity_candidate_receipts(operation_id,candidate_id,actor,actor_added_at,created_at)
+      SELECT operation_id,candidate_id,'attacker@example.test',actor_added_at,created_at FROM market_identity_candidate_receipts WHERE candidate_id=?`,current.candidate_id),/identity candidate receipt key already exists/);
+    assert.equal(await count(db,'market_identity_candidates'),3);assert.equal(await count(db,'market_identity_candidate_receipts'),4);
     const e=await observation(db,5,'source-a'),f=await observation(db,6,'source-b');
     const recordedSql=new WeakMap();
     const rollback={prepare:sql=>{const stmt=db.prepare(sql);return {bind(...args){

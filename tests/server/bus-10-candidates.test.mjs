@@ -290,3 +290,28 @@ test('superseded receipt is rejected even if its evidence versions did not chang
   await assert.rejects(propose(db,original),conflict);
   assert.equal(await count(db,'market_identity_candidates'),2);assert.equal(await count(db,'market_identity_candidate_receipts'),2);
 });
+
+test('REPLACE cannot rewrite candidate history or receipts with recursive triggers disabled',async()=>{
+  const db=setupDb();await seed(db);db.raw.exec('PRAGMA foreign_keys = ON; PRAGMA recursive_triggers = OFF');
+  assert.equal(db.raw.prepare('PRAGMA foreign_keys').get().foreign_keys,1);
+  assert.equal(db.raw.prepare('PRAGMA recursive_triggers').get().recursive_triggers,0);
+  const a=await observation(db,51),b=await observation(db,52,{source:'source-b'});
+  const original=input(a,b,4054),first=await propose(db,original);
+  const next={...input(a,b,4055,'manual_review'),supersedes_candidate_id:first.candidate_id};
+  const second=await propose(db,next);
+  const beforeCandidates=await db.prepare('SELECT * FROM market_identity_candidates ORDER BY id').all();
+  const beforeReceipts=await db.prepare('SELECT * FROM market_identity_candidate_receipts ORDER BY operation_id').all();
+  const cols='id,left_property_id,right_property_id,left_evidence_observation_id,right_evidence_observation_id,expected_left_version,expected_right_version,expected_left_evidence_revision,expected_right_evidence_revision,signal,supersedes_candidate_id,created_at,created_by';
+  const select='left_property_id,right_property_id,left_evidence_observation_id,right_evidence_observation_id,expected_left_version,expected_right_version,expected_left_evidence_revision,expected_right_evidence_revision';
+  // PK, unique initial pair and unique predecessor each induce SQLite REPLACE.
+  for(const [newId,source,signal] of [[second.candidate_id,second.candidate_id,'shared_reference'],
+    [id(4991),first.candidate_id,'shared_reference'],[id(4992),second.candidate_id,'shared_reference']]) {
+    await assert.rejects(exec(db,`INSERT OR REPLACE INTO market_identity_candidates(${cols}) SELECT ?,${select},?,supersedes_candidate_id,created_at,created_by FROM market_identity_candidates WHERE id=?`,newId,signal,source),/identity candidate key already exists/);
+  }
+  await assert.rejects(exec(db,`INSERT OR REPLACE INTO market_identity_candidate_receipts(operation_id,candidate_id,actor,actor_added_at,created_at)
+    SELECT operation_id,candidate_id,'attacker@example.test',actor_added_at,created_at FROM market_identity_candidate_receipts WHERE operation_id=?`,next.operation_id),/identity candidate receipt key already exists/);
+  assert.deepEqual(await db.prepare('SELECT * FROM market_identity_candidates ORDER BY id').all(),beforeCandidates);
+  assert.deepEqual(await db.prepare('SELECT * FROM market_identity_candidate_receipts ORDER BY operation_id').all(),beforeReceipts);
+  assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results,[]);
+  await assert.rejects(propose(db,original),conflict);
+});
