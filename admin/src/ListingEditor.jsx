@@ -70,7 +70,13 @@ export default function ListingEditor({ id, onChange }) {
   const historyChanged=()=>setHistoryKey(k=>k+1);
   const loadRequest=useRef(0);
   useEffect(()=>{if(marketingFocus.current){document.getElementById('h-rental-marketing')?.focus();marketingFocus.current=false;}},[data?.listing.updated_at]);
-  useEffect(()=>{if(errorFocus.current){document.getElementById(`f-${errorFocus.current}`)?.focus();errorFocus.current=null;}},[errors]);
+  useEffect(()=>{
+    if(!errorFocus.current) return;
+    const element=document.getElementById(`f-${errorFocus.current}`);errorFocus.current=null;
+    if(!element) return;
+    element.focus({preventScroll:true});
+    (element.closest('.field') || element).scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
+  },[errors]);
   const load = async () => {
     const n=++loadRequest.current;
     setLoadErr(null);
