@@ -98,7 +98,7 @@ async function list({ request, env }) {
   const p = new URL(request.url).searchParams;
   const operation = p.get("operation") || null, sort = p.get("sort") || "newest", stage = p.get("stage") || null;
   const assigned = p.get("assigned")?.trim().toLowerCase() || null, q = p.get("q")?.trim() || null;
-  const queue = p.get("queue") || null, budget = p.get("budget")?.trim() || null, parish = p.get("parish") || null;
+  const queue = p.get("queue") || null, workLabel = p.get("work_label") || null, budget = p.get("budget")?.trim() || null, parish = p.get("parish") || null;
   const source = p.get("source") || null, contact = p.get("contact") || null;
   const searchState = p.get("search_state") || null;
   if (searchState && !SEARCH_STATES.some(([s]) => s === searchState)) fail(400, "Invalid search state");
@@ -106,6 +106,8 @@ async function list({ request, env }) {
   if (!["newest", "oldest"].includes(sort)) fail(400, "Invalid sort");
   if (stage && !STAGES.includes(stage)) fail(400, "Invalid stage");
   if (queue && !QUEUES.includes(queue)) fail(400, "Invalid queue");
+  const workPredicates = { new: "fresh", review: "found > 0", shortlisted: "shortlisted > 0", no_pending: "found = 0 AND shortlisted = 0" };
+  if (workLabel && !Object.hasOwn(workPredicates, workLabel)) fail(400, "Invalid work label");
   if (budget && !(/^\d+(\.\d+)?$/.test(budget) && Number(budget) > 0)) fail(400, "Invalid budget");
   if (parish && !PARISHES.includes(parish)) fail(400, "Invalid parish");
   if (source && !SOURCES.includes(source)) fail(400, "Invalid source");
@@ -141,6 +143,9 @@ async function list({ request, env }) {
     args.push(like(q), like(q), like(phone));
   }
   const dir = sort === "oldest" ? "ASC" : "DESC";
+  const activeWork = "search_state = 'active' AND archived_at IS NULL AND search_category = 'residential'";
+  const workFilters = [queue && `${QUEUE} = ?`, workLabel && workPredicates[workLabel]].filter(Boolean);
+  const workWhere = workFilters.length ? `WHERE ${activeWork} AND ${workFilters.join(" AND ")}` : "";
   // ponytail: no paging; the team has hundreds of applicants, not tens of thousands.
   const { results } = await env.DB.prepare(
     // Materialized: each listed applicant's counts are read once, not once per use in QUEUE.
@@ -153,7 +158,7 @@ async function list({ request, env }) {
        WHERE ${where.join(" AND ")})
      SELECT id, operation, search_category, stage, search_state, lost_reason, created_at, assigned_to, assigned_name, name, phone, email,
        CASE WHEN search_state = 'active' AND archived_at IS NULL AND search_category = 'residential' THEN ${QUEUE} END AS queue,
-       found, shortlisted, expires_on, retention_review, archived_at, last_contact_at, gone_quiet FROM listed ${queue ? `WHERE search_state = 'active' AND archived_at IS NULL AND search_category = 'residential' AND ${QUEUE} = ?` : ""} ORDER BY created_at ${dir}, id ${dir}`)
+       found, shortlisted, expires_on, retention_review, archived_at, last_contact_at, gone_quiet FROM listed ${workWhere} ORDER BY created_at ${dir}, id ${dir}`)
     .bind(today, today, cutoff, ...args, ...(queue ? [queue] : [])).all();
   return json({ applicants: results });
 }

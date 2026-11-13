@@ -350,6 +350,12 @@ test("the list's queue follows B13's order, with found and shortlisted counts an
   for (const [queue, ids] of [["New properties found", [fresh]], ["Waiting for review", [waiting, undone, skipped]],
     ["In process", [inProcess]], ["No matches", [rejected, none]]])
     assert.deepEqual((await list(`&queue=${encodeURIComponent(queue)}`)).map(x => x.id), ids, queue);
+  // Composable work filters can include one search in several groups without changing legacy queue filters.
+  for (const [label, ids] of [["new", [fresh]], ["review", [fresh, waiting, undone, skipped]],
+    ["shortlisted", [fresh, undone, inProcess]], ["no_pending", [rejected, none]]])
+    assert.deepEqual((await list(`&work_label=${label}`)).map(x => x.id), ids, label);
+  assert.deepEqual((await list("&work_label=shortlisted&operation=rent")), []);
+  assert.equal((await req(env, "GET", "/admin/applicants?work_label=waiting_agent")).status, 400);
   assert.deepEqual((await list("&queue=In%20process&operation=rent")), [], "the queue filter adds to the others");
   assert.equal((await req(env, "GET", "/admin/applicants?queue=Done")).status, 400);
   assert.equal((await req(env, "GET", "/admin/applicants?queue=Done")).status, 400);

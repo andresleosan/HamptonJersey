@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
 import { fmtDate, fmtDayMonth } from "./format.js";
-import { OPTIONS, QUEUES, SEARCH_STATES } from "../../server/applicants.js";
+import { OPTIONS, SEARCH_STATES } from "../../server/applicants.js";
 
 const OPERATIONS = [["", "All"], ...OPTIONS.operation, ["transfer", "Business transfer"]];
 const OPERATION_LABEL = Object.fromEntries(OPERATIONS);
@@ -10,9 +10,14 @@ const STAGE_LABEL = Object.fromEntries(OPTIONS.stages);
 const TONE = { new: "attention", searching: "active", viewing: "active", offer: "active", agreed: "positive", completed: "positive",
   paused: "neutral", lost: "neutral" };
 const StageBadge = ({ stage }) => <span className={`badge ${TONE[stage]}`}>{STAGE_LABEL[stage]}</span>;
-// DESIGN.md "Badges de estado": the tone of each queue (B13).
-const QUEUE_TONE = { "New properties found": "attention", "Waiting for review": "attention", "In process": "active",
-  "No matches": "neutral" };
+// These labels describe only saved Hampton matches, independently; shortlist is not confirmation of availability.
+const WORK_LABELS = [["new", "New properties found"], ["review", "Waiting for review"], ["shortlisted", "Shortlisted"]];
+const WORK_FILTERS = [...WORK_LABELS, ["no_pending", "No matches awaiting review or shortlisted"]];
+const workLabels = a => a.queue == null ? null : [
+  ...(a.queue === "New properties found" ? [WORK_LABELS[0]] : []),
+  ...(a.found > 0 ? [WORK_LABELS[1]] : []),
+  ...(a.shortlisted > 0 ? [WORK_LABELS[2]] : []),
+];
 // E8: Expiring holds the searches of the contacts deleted within a month, archived ones too.
 const LISTS = [["current", "Current"], ["archived", "Archived"], ["retention_review", "Review retention"], ["expiring", "Expiring"]];
 const SEARCH_LABEL = Object.fromEntries(SEARCH_STATES);
@@ -31,7 +36,7 @@ export default function Applicants() {
   // The server filters and sorts; To Let / To Buy is split here so each tab can show its count.
   useEffect(() => {
     let stale = false;
-    const p = new URLSearchParams({ sort, ...(stage && { stage }), ...(assigned && { assigned }), ...(queue && { queue }),
+    const p = new URLSearchParams({ sort, ...(stage && { stage }), ...(assigned && { assigned }), ...(queue && { work_label: queue }),
       ...(q.trim() && { q: q.trim() }), ...(list !== "current" && { [list]: "1" }), ...(amount && { budget: amount }),
       ...(parish && { parish }), ...(source && { source }), ...(contact && { contact }), ...(searchState && { search_state: searchState }) });
     const t = setTimeout(() => api(`/admin/applicants?${p}`).then(d => { if (!stale) { setRows(d.applicants); setError(null); } },
@@ -62,8 +67,8 @@ export default function Applicants() {
         {SEARCH_STATES.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label>Stage<select value={stage} onChange={e => setStage(e.target.value)}><option value="">All</option>
         {OPTIONS.stages.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-      <label>Queue<select value={queue} onChange={e => setQueue(e.target.value)}><option value="">All</option>
-        {QUEUES.map(k => <option key={k} value={k}>{k}</option>)}</select></label>
+      <label>Work label<select value={queue} onChange={e => setQueue(e.target.value)}><option value="">All</option>
+        {WORK_FILTERS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
       <label>Assigned to<select value={assigned} onChange={e => setAssigned(e.target.value)}><option value="">Anyone</option>
         {users.map(u => <option key={u.email} value={u.email}>{u.name || u.email}</option>)}</select></label>
       <label>{op === "rent" ? "Home rent (£ pcm)" : op === "buy" ? "Home price (£)" : "Home budget (£)"}<input type="number" min="1" step="1"
@@ -80,13 +85,14 @@ export default function Applicants() {
     {amount && <p className="muted">Budget filtering covers home searches only.</p>}
     {list === "retention_review" && <p className="muted">Contacts with an open search and at least 11 months without recorded activity.
       Review whether they still need the search. They are protected from automatic deletion.</p>}
+    <p className="muted">Work labels describe saved Hampton matches; shortlisted does not mean availability is confirmed.</p>
     <p className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? "applicant" : "applicants"}</p>
     {error && <p role="alert" className="err">{error}</p>}
     {shown.length ? <table className="list applicants">
       <thead><tr><th scope="col">Name</th><th scope="col">Phone</th>
         <th scope="col" aria-sort={sort === "newest" ? "descending" : "ascending"}>
           <button type="button" className="sort" onClick={toggleSort}>Applied<span aria-hidden="true">{sort === "newest" ? " ↓" : " ↑"}</span></button></th>
-        <th scope="col">Stage</th><th scope="col">Queue</th><th scope="col">Matches</th><th scope="col">Last contact</th><th scope="col">Assigned to</th></tr></thead>
+        <th scope="col">Stage</th><th scope="col">Work labels</th><th scope="col">Matches</th><th scope="col">Last contact</th><th scope="col">Assigned to</th></tr></thead>
       <tbody>{shown.map(a => <tr key={a.id}>
         <td><a href={`#/applicants/${a.id}`}>{a.name}</a> <span className={`badge ${a.search_state === "active" ? "active" : a.search_state === "resolved" ? "positive" : "attention"}`}>{SEARCH_LABEL[a.search_state]}</span>{a.retention_review
           ? <> <span className="badge attention">Review retention</span></> : null}{a.expires_on
@@ -97,7 +103,9 @@ export default function Applicants() {
         {/* On phones a lost reason takes its own row, so it never squeezes the name. */}
         <td className={a.stage === "lost" && a.lost_reason ? "stage lost" : "stage"}><StageBadge stage={a.stage} />{a.stage === "lost"
           && a.lost_reason && <span className="muted"> {a.lost_reason}</span>}</td>
-        <td data-label="Queue">{a.queue ? <span className={`badge ${QUEUE_TONE[a.queue] ?? "neutral"}`}>{a.queue}</span> : <span className="muted">{a.search_category === "commercial" && a.search_state === "active" && !a.archived_at ? "Manual review" : "History only"}</span>}</td>
+        <td data-label="Work labels">{workLabels(a) === null ? <span className="muted">{a.search_category === "commercial" && a.search_state === "active" && !a.archived_at ? "Manual review" : "History only"}</span>
+          : workLabels(a).length ? <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{workLabels(a).map(([key, label]) => <span key={key} className={`badge ${key === "shortlisted" ? "active" : "attention"}`}>{label}</span>)}</div>
+          : <span className="muted">No matches awaiting review or shortlisted</span>}</td>
         <td className="num" data-label="Matches">{matchCounts(a)
           ? <a href={`#/applicants/${a.id}/matches`}>{matchCounts(a)}<span className="sr"> for {a.name}</span></a> : <span className="muted">—</span>}</td>
         <td data-label="Last contact"><time dateTime={a.last_contact_at}>{fmtDate(a.last_contact_at)}</time>{a.gone_quiet
