@@ -82,6 +82,40 @@ test('a failure after the listing update rolls back the listing and event before
   assert.equal(get(env,"SELECT COUNT(*) AS n FROM notifications WHERE task_key=? AND urgency='urgent' AND resolved_at IS NULL",`pub16:withdrawal:${w.closure_id}`).n,1);
 });
 
+test('an already unpublished listing closes the window only when the rental state is still consistent',async()=>{
+  const env=await setup(),w=get(env,"SELECT * FROM rental_closure_windows WHERE state='open'");dbClock(env,w.due_at);
+  env.DB.raw.exec("UPDATE listings SET published=0 WHERE id='HE-R001'");
+  assert.equal((await jobs.processExpiredRentalClosures(env)).withdrawn,1);
+  assert.equal(get(env,'SELECT state FROM rental_closure_windows WHERE closure_id=?',w.closure_id).state,'withdrawn');
+  assert.equal(get(env,"SELECT COUNT(*) AS n FROM events WHERE type='listing.unpublished'").n,0);
+});
+
+test('an unpublished listing with changed operation, availability or archive requires urgent review',async()=>{
+  for(const field of ['operation','availability','archived_at']){
+    const env=await setup(),w=get(env,"SELECT * FROM rental_closure_windows WHERE state='open'");dbClock(env,w.due_at);
+    const value=field==='operation'?'sale':field==='availability'?'to_let':'2026-11-01T00:00:00.000Z';
+    env.DB.raw.prepare(`UPDATE listings SET published=0,${field}=? WHERE id='HE-R001'`).run(value);
+    const result=await jobs.processExpiredRentalClosures(env);assert.equal(result.failed,1,field);
+    assert.equal(get(env,'SELECT state FROM rental_closure_windows WHERE closure_id=?',w.closure_id).state,'open',field);
+    assert.equal(get(env,"SELECT COUNT(*) AS n FROM notifications WHERE task_key=? AND urgency='urgent' AND resolved_at IS NULL",`pub16:withdrawal:${w.closure_id}`).n,1,field);
+  }
+});
+
+test('a concurrent change after reading an unpublished listing prevents falsely closing its window',async()=>{
+  const env=await setup(),w=get(env,"SELECT * FROM rental_closure_windows WHERE state='open'");dbClock(env,w.due_at);
+  env.DB.raw.exec("UPDATE listings SET published=0 WHERE id='HE-R001'");
+  const batch=env.DB.batch.bind(env.DB);let injected=false;
+  env.DB.batch=async statements=>{
+    if(!injected&&statements[0].sql.startsWith("UPDATE rental_closure_windows SET state='withdrawn'")){
+      injected=true;env.DB.raw.exec("UPDATE listings SET operation='sale' WHERE id='HE-R001'");
+    }
+    return batch(statements);
+  };
+  const result=await jobs.processExpiredRentalClosures(env);assert.equal(injected,true);assert.equal(result.failed,1);
+  assert.equal(get(env,'SELECT state FROM rental_closure_windows WHERE closure_id=?',w.closure_id).state,'open');
+  assert.equal(get(env,"SELECT COUNT(*) AS n FROM notifications WHERE task_key=? AND urgency='urgent' AND resolved_at IS NULL",`pub16:withdrawal:${w.closure_id}`).n,1);
+});
+
 test('a bounded page of repeated failures does not starve a later due closure',async()=>{
   const env=await setup(),raw=env.DB.raw,opened='2026-11-10T00:00:00.000Z',due='2026-11-11T00:00:00.000Z';
   for(let n=2;n<=27;n++){

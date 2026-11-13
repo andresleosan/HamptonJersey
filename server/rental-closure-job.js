@@ -25,18 +25,27 @@ async function reportFailure(env,row) {
 
 async function withdraw(env,row) {
   if(!row.live_id)throw new Error('Rental withdrawal target unavailable');
+  if(row.operation!=='rent'||row.availability!=='let_agreed'||row.archived_at!==null)
+    throw new Error('Rental withdrawal requires review');
   if(row.published===0) {
-    // If another actor already unpublished it, preserve that event and only close the overdue window.
+    // Preserve a prior unpublish only while this is still the expected, non-archived rental.
     const result=await env.DB.batch([
       env.DB.prepare(`UPDATE rental_closure_windows SET state='withdrawn',withdrawn_at=${DB_NOW}
         WHERE closure_id=? AND state='open' AND due_at<=${DB_NOW}
-        AND EXISTS(SELECT 1 FROM listings WHERE id=listing_id AND published=0)`).bind(row.closure_id),
+        AND EXISTS(SELECT 1 FROM listings l WHERE l.id=rental_closure_windows.listing_id AND l.published=0
+          AND l.operation='rent' AND l.availability='let_agreed' AND l.archived_at IS NULL AND l.updated_at=?)`)
+        .bind(row.closure_id,row.updated_at),
       env.DB.prepare('SELECT changes() AS direct_changes'),resolveFailure(env,row.closure_id),
     ]);
-    return result[1].results[0]?.direct_changes===1;
+    const changed=result[1].results[0]?.direct_changes;
+    if(changed===1)return true;
+    if(changed!==0)throw new Error('Rental withdrawal outcome unavailable');
+    // Another worker may have closed/corrected it. An overdue window still open needs a task.
+    const pending=await env.DB.prepare(`SELECT 1 AS pending FROM rental_closure_windows
+      WHERE closure_id=? AND state='open' AND due_at<=${DB_NOW}`).bind(row.closure_id).first();
+    if(pending)throw new Error('Rental withdrawal changed during processing');
+    return false;
   }
-  if(row.operation!=='rent'||row.availability!=='let_agreed'||row.archived_at!==null)
-    throw new Error('Rental withdrawal requires review');
   const guard=env.DB.prepare(`INSERT INTO listing_event_context(listing_id) SELECT NULL
     WHERE EXISTS(SELECT 1 FROM listing_event_context WHERE listing_id=?)
     AND NOT EXISTS(SELECT 1 FROM rental_closure_windows w JOIN listings l ON l.id=w.listing_id

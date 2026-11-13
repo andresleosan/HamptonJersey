@@ -67,6 +67,27 @@ test('disposable D1: gated close, replay, correction, rollback, deadline and rec
     await assert.rejects(execute(command('reopen',(await row()).updated_at,'return_to_market')),error=>error.status===409);
     await DB.prepare("UPDATE listings SET published=1,availability='to_let' WHERE id=?").bind(id).run();
     assert.equal((await readLive(env,id)).length,0,'an unrelated republication must not defeat withdrawal');
+
+    for(const [other,mediaId,inconsistent] of [['HE-R002','A00002',true],['HE-R003','A00003',false]]){
+      env.DB=DB;
+      await DB.prepare(`INSERT INTO listings(id,use,title,operation,availability,country,location,viewings_enabled,
+        published,specs,created_at,updated_at,updated_by) VALUES(?,'residential','Synthetic rental','rent','to_let',
+        'Jersey','St Saviour',1,1,'[]',?,?,'fixture')`).bind(other,T0,T0).run();
+      await DB.prepare(`INSERT INTO media(id,listing_id,r2_key,origin,kind,label,public,position,content_type,created_at)
+        VALUES(?,?,'synthetic/document.pdf','hampton','document','Synthetic',0,0,'application/pdf',?)`).bind(mediaId,other,T0).run();
+      await recordRentalMarketingState(env,{id:other,actor,command:{request_id:`close-${other}`,updated_at:T0,
+        action:'let',reason_code:'completed',occurred_at:T0,evidence_refs:[`media:${mediaId}`]}});
+      const w=await DB.prepare("SELECT * FROM rental_closure_windows WHERE listing_id=? AND state='open'").bind(other).first();
+      await DB.prepare(`UPDATE listings SET published=0${inconsistent?",operation='sale'":''} WHERE id=?`).bind(other).run();
+      clock=w.due_at;
+      env.DB={prepare:sql=>DB.prepare(sql.replaceAll(originalClock,`'${clock}'`)),batch:statements=>DB.batch(statements)};
+      await processExpiredRentalClosures(env);
+      const after=await DB.prepare('SELECT state FROM rental_closure_windows WHERE closure_id=?').bind(w.closure_id).first();
+      assert.equal(after.state,inconsistent?'open':'withdrawn');
+      const task=await DB.prepare("SELECT COUNT(*) AS n FROM notifications WHERE task_key=? AND urgency='urgent' AND resolved_at IS NULL")
+        .bind(`pub16:withdrawal:${w.closure_id}`).first();
+      assert.equal(task.n,inconsistent?1:0);
+    }
     assert.deepEqual((await DB.prepare('PRAGMA foreign_key_check').all()).results,[]);
   } finally {await mf.dispose();}
 });
