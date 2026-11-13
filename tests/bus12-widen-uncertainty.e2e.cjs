@@ -30,6 +30,22 @@ const {chromium}=require(process.env.PW||'playwright-core');
    await page.keyboard.press('Enter');await page.waitForFunction(()=>document.activeElement?.id==='a-budget_max');
    assert.equal(await page.locator('#a-budget_max').inputValue(),'990000');
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+   // Remove the known gain: an unknown price must not be presented as a certain zero.
+   sql(`UPDATE listings SET matchable=0 WHERE id='GBP-${width}'`);
+   await page.reload();
+   await page.getByRole('tab',{name:'Matches'}).click();
+   const uncertain=page.locator('section.widen li').filter({hasText:'Budget up 10%'});
+   await uncertain.getByText('No confirmed improvement',{exact:true}).waitFor();
+   await uncertain.getByText('1 property has a price to confirm before comparing the budget.').waitFor();
+   assert.equal(await uncertain.getByText('No improvement',{exact:true}).count(),0);
+   // With no uncertain prices, preserve the original zero-result wording.
+   sql(`UPDATE listings SET matchable=0 WHERE id='UNC-${width}'`);
+   await page.reload();
+   const certain=page.locator('section.widen li').filter({hasText:'Budget up 10%'});
+   await certain.getByText('No improvement',{exact:true}).waitFor();
+   assert.equal(await certain.getByText('No confirmed improvement',{exact:true}).count(),0);
+   assert.equal(await certain.getByText(/price to confirm/).count(),0);
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   }finally{await context.close();}
  }}finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
