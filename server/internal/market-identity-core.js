@@ -336,7 +336,7 @@ export async function readPropertyIdentityCore(env, input, actor, clock = () => 
 // human identity decisions and must never be used to authorize a merge.
 const candidateKeys = new Set(['left_property_id','right_property_id','left_evidence_observation_id',
   'right_evidence_observation_id','expected_left_version','expected_right_version',
-  'expected_left_evidence_revision','expected_right_evidence_revision','signal','operation_id']);
+  'expected_left_evidence_revision','expected_right_evidence_revision','signal','operation_id','supersedes_candidate_id']);
 const candidateSignals = new Set(['shared_address','shared_reference','manual_review']);
 function candidateInput(input) {
   if (!input || typeof input!=='object' || Array.isArray(input) ||
@@ -345,21 +345,23 @@ function candidateInput(input) {
       !uuid(input.right_evidence_observation_id) || !uuid(input.operation_id) ||
       !version(input.expected_left_version) || !version(input.expected_right_version) ||
       !version(input.expected_left_evidence_revision) || !version(input.expected_right_evidence_revision) ||
-      !candidateSignals.has(input.signal)) bad();
+      !candidateSignals.has(input.signal) ||
+      (input.supersedes_candidate_id!==undefined && !uuid(input.supersedes_candidate_id))) bad();
   if (input.left_property_id===input.right_property_id) conflict();
   const first={property:input.left_property_id,evidence:input.left_evidence_observation_id,
     version:input.expected_left_version,evidenceVersion:input.expected_left_evidence_revision};
   const second={property:input.right_property_id,evidence:input.right_evidence_observation_id,
     version:input.expected_right_version,evidenceVersion:input.expected_right_evidence_revision};
   return {left:first.property<second.property?first:second,right:first.property<second.property?second:first,
-    signal:input.signal,operationId:input.operation_id};
+    signal:input.signal,operationId:input.operation_id,supersedes:input.supersedes_candidate_id??null};
 }
 const candidateSignature = alias => `${alias}.left_property_id=? AND ${alias}.right_property_id=?
   AND ${alias}.left_evidence_observation_id=? AND ${alias}.right_evidence_observation_id=?
   AND ${alias}.expected_left_version=? AND ${alias}.expected_right_version=?
-  AND ${alias}.expected_left_evidence_revision=? AND ${alias}.expected_right_evidence_revision=? AND ${alias}.signal=?`;
+  AND ${alias}.expected_left_evidence_revision=? AND ${alias}.expected_right_evidence_revision=? AND ${alias}.signal=?
+  AND ${alias}.supersedes_candidate_id IS ?`;
 const candidateValues = x => [x.left.property,x.right.property,x.left.evidence,x.right.evidence,
-  x.left.version,x.right.version,x.left.evidenceVersion,x.right.evidenceVersion,x.signal];
+  x.left.version,x.right.version,x.left.evidenceVersion,x.right.evidenceVersion,x.signal,x.supersedes];
 
 export async function proposePropertyIdentityCore(env,input,actor,clock = () => new Date()) {
   const x=candidateInput(input);
@@ -375,22 +377,34 @@ export async function proposePropertyIdentityCore(env,input,actor,clock = () => 
       AND ${containsEvidence} AND ${containsEvidence}
       AND EXISTS (SELECT 1 FROM market_observations WHERE id=? AND revision=?)
       AND EXISTS (SELECT 1 FROM market_observations WHERE id=? AND revision=?)
-      AND NOT EXISTS (SELECT 1 FROM market_identity_candidates c WHERE c.left_property_id=? AND c.right_property_id=?
-        AND NOT (${signature}))
+      AND (
+        EXISTS (SELECT 1 FROM market_identity_candidate_receipts r JOIN market_identity_candidates c ON c.id=r.candidate_id
+          WHERE r.operation_id=? AND ${signature} AND NOT EXISTS
+            (SELECT 1 FROM market_identity_candidates successor WHERE successor.supersedes_candidate_id=c.id))
+        OR (NOT EXISTS (SELECT 1 FROM market_identity_candidate_receipts WHERE operation_id=?) AND (
+          (? IS NULL AND NOT EXISTS (SELECT 1 FROM market_identity_candidates c WHERE c.left_property_id=? AND c.right_property_id=?))
+          OR (? IS NULL AND EXISTS (SELECT 1 FROM market_identity_candidates c WHERE ${signature}
+            AND NOT EXISTS (SELECT 1 FROM market_identity_candidates successor WHERE successor.supersedes_candidate_id=c.id)))
+          OR (? IS NOT NULL AND EXISTS (SELECT 1 FROM market_identity_candidates c
+            WHERE c.id=? AND c.left_property_id=? AND c.right_property_id=? AND NOT EXISTS
+              (SELECT 1 FROM market_identity_candidates successor WHERE successor.supersedes_candidate_id=c.id)))
+        ))
+      )
       AND NOT EXISTS (SELECT 1 FROM market_identity_candidate_receipts r
         LEFT JOIN market_identity_candidates c ON c.id=r.candidate_id WHERE r.operation_id=?
           AND (r.actor<>? OR r.actor_added_at<>? OR c.id IS NULL OR NOT (${signature})))
       AND NOT EXISTS (SELECT 1 FROM market_identity_receipts WHERE operation_id=?)
       AND NOT EXISTS (SELECT 1 FROM market_identity_decisions WHERE operation_id=?)`,
     [left,x.left.version,right,x.right.version,left,right,left,x.left.evidence,right,x.right.evidence,
-      x.left.evidence,x.left.evidenceVersion,x.right.evidence,x.right.evidenceVersion,left,right,...values,
-      x.operationId,actor,generation,...values,x.operationId,x.operationId]),
+      x.left.evidence,x.left.evidenceVersion,x.right.evidence,x.right.evidenceVersion,
+      x.operationId,...values,x.operationId,x.supersedes,left,right,x.supersedes,...values,
+      x.supersedes,x.supersedes,left,right,x.operationId,actor,generation,...values,x.operationId,x.operationId]),
     db.prepare(`INSERT INTO market_identity_candidates(id,left_property_id,right_property_id,left_evidence_observation_id,
       right_evidence_observation_id,expected_left_version,expected_right_version,expected_left_evidence_revision,
-      expected_right_evidence_revision,signal,created_at,created_by)
-      SELECT ?,?,?,?,?,?,?,?,?,?,?,? WHERE NOT EXISTS
-        (SELECT 1 FROM market_identity_candidates WHERE left_property_id=? AND right_property_id=?)`)
-      .bind(candidateId,...values,at,actor,left,right),
+      expected_right_evidence_revision,signal,supersedes_candidate_id,created_at,created_by)
+      SELECT ?,?,?,?,?,?,?,?,?,?,?,?,? WHERE NOT EXISTS
+        (SELECT 1 FROM market_identity_candidates c WHERE ${signature})`)
+      .bind(candidateId,...values,at,actor,...values),
     db.prepare(`INSERT INTO market_identity_candidate_receipts(operation_id,candidate_id,actor,actor_added_at,created_at)
       SELECT ?,c.id,?,?,? FROM market_identity_candidates c WHERE ${signature}
         AND NOT EXISTS (SELECT 1 FROM market_identity_candidate_receipts WHERE operation_id=?)`)

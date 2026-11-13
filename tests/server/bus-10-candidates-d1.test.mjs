@@ -64,6 +64,15 @@ test('isolated local D1: candidate concurrency, revocation, rollback and post-co
     await assert.rejects(propose(lost,y),/receipt missing/i);
     assert.equal((await propose(db,y)).status,'pending_review');
     assert.equal(await count(db,'market_identity_candidates'),2);assert.equal(await count(db,'market_identity_candidate_receipts'),3);
+    const next={...makeInput(a,b,4010),signal:'manual_review',supersedes_candidate_id:first.candidate_id};
+    const concurrent=await Promise.allSettled([propose(db,next),
+      propose(db,{...next,operation_id:uid(4011),signal:'shared_reference'})]);
+    assert.equal(concurrent.filter(r=>r.status==='fulfilled').length,1);
+    assert.equal(concurrent.filter(r=>r.status==='rejected'&&r.reason.status===409).length,1);
+    const current=concurrent.find(r=>r.status==='fulfilled').value;
+    await assert.rejects(propose(db,x),err=>err.status===409);
+    await assert.rejects(run(db,'DELETE FROM market_identity_candidates WHERE id=?',current.candidate_id));
+    assert.equal(await count(db,'market_identity_candidates'),3);assert.equal(await count(db,'market_identity_candidate_receipts'),4);
     const e=await observation(db,5,'source-a'),f=await observation(db,6,'source-b');
     const recordedSql=new WeakMap();
     const rollback={prepare:sql=>{const stmt=db.prepare(sql);return {bind(...args){
@@ -74,13 +83,13 @@ test('isolated local D1: candidate concurrency, revocation, rollback and post-co
       return db.batch([...statements.slice(0,i+1),db.prepare("INSERT INTO market_commit_guard(id,allowed) VALUES('synthetic-failure',0)"),...statements.slice(i+1)]);
     }};
     await assert.rejects(propose(rollback,makeInput(e,f,4004)),err=>err.status===409);
-    assert.equal(await count(db,'market_identity_candidates'),2);assert.equal(await count(db,'market_identity_candidate_receipts'),3);
+    assert.equal(await count(db,'market_identity_candidates'),3);assert.equal(await count(db,'market_identity_candidate_receipts'),4);
     const revoked={prepare:db.prepare.bind(db),batch:async statements=>{
       await run(db,"UPDATE market_sources SET access_status='denied',policy_version=policy_version+1 WHERE source_ref='source-b'");
       return db.batch(statements);
     }};
     await assert.rejects(propose(revoked,makeInput(e,f,4005)),err=>err.status===409);
-    assert.equal(await count(db,'market_identity_candidates'),2);assert.equal(await count(db,'market_identity_candidate_receipts'),3);
+    assert.equal(await count(db,'market_identity_candidates'),3);assert.equal(await count(db,'market_identity_candidate_receipts'),4);
     const fk=await db.prepare('PRAGMA foreign_key_check').all();assert.deepEqual(fk.results,[]);
   } finally { await mf.dispose(); }
 });

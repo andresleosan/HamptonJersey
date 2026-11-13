@@ -232,3 +232,61 @@ test('the public facade remains unavailable',async()=>{
     await assert.rejects(facade[name]({}, {}, actor),error=>error.status===503);
   assert.equal('proposePropertyIdentity' in facade,false);
 });
+
+test('explicit replacement creates a version and rejects stale replacement or replay',async()=>{
+  const db=setupDb();await seed(db);const a=await observation(db,40),b=await observation(db,41,{source:'source-b'});
+  const firstInput=input(a,b,4040),first=await propose(db,firstInput);
+  await exec(db,'UPDATE market_observations SET revision=revision+1 WHERE id=?',b.obs);
+  const next={...input(a,b,4041),expected_right_evidence_revision:2,supersedes_candidate_id:first.candidate_id};
+  const second=await propose(db,next);
+  assert.notEqual(first.candidate_id,second.candidate_id);assert.equal(second.evidence_state,'revalidate_before_decision');
+  assert.deepEqual(await propose(db,next),second);
+  await assert.rejects(propose(db,{...next,operation_id:id(4042)}),conflict);
+  await assert.rejects(propose(db,firstInput),conflict);
+  assert.equal(await count(db,'market_identity_candidates'),2);assert.equal(await count(db,'market_identity_candidate_receipts'),2);
+  assert.equal(await count(db,'market_identity_decisions'),0);assert.equal(await count(db,'market_identity_aliases'),0);
+});
+
+test('concurrent replacements have one winner, and revocation rolls back replacement',async()=>{
+  const db=setupDb();await seed(db);const a=await observation(db,42),b=await observation(db,43,{source:'source-b'});
+  const first=await propose(db,input(a,b,4043));
+  const next={...input(a,b,4044,'manual_review'),supersedes_candidate_id:first.candidate_id};
+  const results=await Promise.allSettled([propose(db,next),propose(db,{...next,operation_id:id(4045),signal:'shared_reference'})]);
+  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(results.filter(r=>r.status==='rejected'&&conflict(r.reason)).length,1);
+  const winner=results.find(r=>r.status==='fulfilled').value;
+  const batch=db.batch.bind(db);db.batch=stmts=>{db.raw.prepare("UPDATE market_sources SET access_status='denied',policy_version=policy_version+1 WHERE source_ref='source-b'").run();return batch(stmts)};
+  await assert.rejects(propose(db,{...input(a,b,4046),supersedes_candidate_id:winner.candidate_id}),conflict);
+  assert.equal(await count(db,'market_identity_candidates'),2);assert.equal(await count(db,'market_identity_candidate_receipts'),2);
+});
+
+test('replacement requires the head of the same pair and checks actor and evidence at commit',async()=>{
+  const db=setupDb();await seed(db);const a=await observation(db,44),b=await observation(db,45,{source:'source-b'}),c=await observation(db,46,{source:'source-c'});
+  const first=await propose(db,input(a,b,4047));
+  await assert.rejects(propose(db,{...input(a,c,4048),supersedes_candidate_id:first.candidate_id}),conflict);
+  const batch=db.batch.bind(db);db.batch=stmts=>{db.raw.prepare('DELETE FROM admins WHERE email=?').run(actor);return batch(stmts)};
+  await assert.rejects(propose(db,{...input(a,b,4049),supersedes_candidate_id:first.candidate_id}),conflict);
+  assert.equal(await count(db,'market_identity_candidates'),1);assert.equal(await count(db,'market_identity_candidate_receipts'),1);
+});
+
+test('proposed history and receipts cannot be deleted to revive an earlier version',async()=>{
+  const db=setupDb();await seed(db);const a=await observation(db,47),b=await observation(db,48,{source:'source-b'});
+  const first=await propose(db,input(a,b,4050));
+  const next={...input(a,b,4051),supersedes_candidate_id:first.candidate_id};
+  const second=await propose(db,next);
+  await assert.rejects(exec(db,'DELETE FROM market_identity_candidates WHERE id=?',second.candidate_id));
+  await assert.rejects(exec(db,'DELETE FROM market_identity_candidate_receipts WHERE operation_id=?',next.operation_id));
+  await assert.rejects(propose(db,input(a,b,4050)),conflict);
+  assert.equal(await count(db,'market_identity_candidates'),2);assert.equal(await count(db,'market_identity_candidate_receipts'),2);
+});
+
+test('superseded receipt is rejected even if its evidence versions did not change',async()=>{
+  const db=setupDb();await seed(db);const a=await observation(db,49),b=await observation(db,50,{source:'source-b'});
+  const original=input(a,b,4052),first=await propose(db,original);
+  const next={...input(a,b,4053,'manual_review'),supersedes_candidate_id:first.candidate_id};
+  const batch=db.batch.bind(db);let inject=true;
+  db.batch=async stmts=>{const result=await batch(stmts);if(inject){inject=false;result.at(-2).results=[];}return result;};
+  await assert.rejects(propose(db,next),/receipt missing/i);
+  const second=await propose(db,next);assert.notEqual(first.candidate_id,second.candidate_id);
+  await assert.rejects(propose(db,original),conflict);
+  assert.equal(await count(db,'market_identity_candidates'),2);assert.equal(await count(db,'market_identity_candidate_receipts'),2);
+});
