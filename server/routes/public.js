@@ -14,6 +14,7 @@ import { touchByViewing } from "../retention.js";
 import { chatOn } from "../chat.js";
 import { confirmedViewingSql, confirmedViewingWindow } from "../public-viewing-summary.js";
 import { contentFromStored } from '../listing-content.js';
+import { rentalClosureEnabled, rentalClosureVisibleSql, noUnresolvedRentalClosureSql } from '../rental-closure.js';
 
 export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
 
@@ -44,28 +45,29 @@ export async function reviewPublicListing(env, l, publicMedia) {
 export async function readLive(env, id, { viewingClock } = {}) {
   const window = viewingClock ? confirmedViewingWindow(viewingClock) : null;
   const one = id ? " AND l.id = ?" : "", args = id ? [id] : [], interest = interestDates();
-  const contentEnabled=env.PUB08_CONTENT_READY === '1';
+  const contentEnabled=env.PUB08_CONTENT_READY === '1', timed=rentalClosureEnabled(env);
+  const live=timed ? `${LIVE} AND ${rentalClosureVisibleSql('l')}` : LIVE;
   const queries = () => [
     env.DB.prepare(`SELECT l.*, d.building_name_or_number,d.postcode,d.public_address_snapshot,d.public_address_snapshot_hash,
       ${contentEnabled ? 'c.tags AS pub08_tags,c.video_url AS pub08_video_url,' : ''}
       (SELECT folder_name FROM drive_imports di WHERE di.folder_id=l.drive_folder_id ORDER BY di.id DESC LIMIT 1) AS drive_folder_name,
       (${interestSql("l.id")}) AS active_interest${window ? `, (${confirmedViewingSql("l.id")}) AS confirmed_viewings` : ""}
       FROM listings l LEFT JOIN listing_details d ON d.listing_id=l.id
-      ${contentEnabled ? 'LEFT JOIN listing_content c ON c.listing_id=l.id' : ''} WHERE ${LIVE}${one} ORDER BY l.id`)
+      ${contentEnabled ? 'LEFT JOIN listing_content c ON c.listing_id=l.id' : ''} WHERE ${live}${one} ORDER BY l.id`)
       .bind(...interest, ...(window?.binds ?? []), ...args),
     env.DB.prepare(`SELECT m.* FROM media m JOIN listings l ON l.id = m.listing_id
-     WHERE ${LIVE} AND m.public = 1${one} ORDER BY m.position, m.id`).bind(...args),
+     WHERE ${live} AND m.public = 1${one} ORDER BY m.position, m.id`).bind(...args),
   ];
   const [{ results: listings }, { results: media }] = await env.DB.batch(queries());
   const by = groupBy(media, "listing_id");
   const reviewed = await Promise.all(listings.map(l => reviewPublicListing(env, l, by[l.id] || [])));
-  if (window) {
+  if (window || timed) {
     // Address review hashes asynchronously. Fail closed if any public input or count changed while it ran.
     const [currentListings, currentMedia] = await env.DB.batch(queries());
-    const currentClock = jerseyNow();
+    const currentClock = window ? jerseyNow() : null;
     if (JSON.stringify(currentListings.results) !== JSON.stringify(listings) ||
         JSON.stringify(currentMedia.results) !== JSON.stringify(media) ||
-        currentClock.date !== viewingClock.date || currentClock.time !== viewingClock.time)
+        (window && (currentClock.date !== viewingClock.date || currentClock.time !== viewingClock.time)))
       fail(503, "Availability changed. Please try again.");
   }
   return reviewed.filter(Boolean);
@@ -74,7 +76,7 @@ const listPublic = async ({ env }) => {
   const listings = (await readLive(env)).map(x => x.pub);
   // The ANA-10 switch stays off until its cost and CDN behavior are reviewed.
   // Exact public addresses must never be cached, regardless of this switch.
-  const noStore = env.ANA10_QR_NO_STORE === '1' || listings.some(l => l.exactAddress);
+  const noStore = env.ANA10_QR_NO_STORE === '1' || rentalClosureEnabled(env) || listings.some(l => l.exactAddress);
   return json(listings, 200, { "cache-control": noStore ? "no-store" : "public, max-age=60" });
 };
 
@@ -116,7 +118,8 @@ async function createViewing({ request, env }) {
   if (r.errors) return fields(r.errors);
   const v = r.value;
   const listing = v.listing_id && await env.DB.prepare(
-    `SELECT 1 FROM listings WHERE id = ? AND published = 1 AND archived_at IS NULL AND availability NOT IN (${PUBLIC_BOOKING_BLOCKED_SQL})`).bind(v.listing_id).first();
+    `SELECT 1 FROM listings WHERE id = ? AND published = 1 AND archived_at IS NULL AND availability NOT IN (${PUBLIC_BOOKING_BLOCKED_SQL})${
+      rentalClosureEnabled(env) ? ` AND ${noUnresolvedRentalClosureSql('listings')}` : ''}`).bind(v.listing_id).first();
   const propertyGone = () => fields({ listing_id: "That property is no longer available. Choose another or send a general enquiry." });
   if (v.listing_id && !listing) return propertyGone();
   // The slot must be one the website offers (§4.6): an active negotiator, on the grid, inside their hours, not booked.

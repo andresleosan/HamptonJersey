@@ -3,6 +3,7 @@
 import { readLive } from "./routes/public.js";
 import { BRAND, headTags, listingMeta } from "./listing-meta.js";
 import lib from "../site/lib.js";
+import { rentalClosureEnabled } from './rental-closure.js';
 export { headTags, listingMeta } from "./listing-meta.js";
 const { shownOnSite } = lib;
 const base = siteUrl => siteUrl.replace(/\/+$/, "");
@@ -11,7 +12,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;"
 // S5: only SITE_URL's host is indexed; previews and other hosts say noindex.
 export function seoHeaders(request, env, type) {
   // _headers doesn't reach Function responses: its site-wide headers are repeated here.
-  const h = new Headers({ "cache-control": "public, max-age=300", "x-content-type-options": "nosniff",
+  const h = new Headers({ "cache-control": rentalClosureEnabled(env) ? "no-store" : "public, max-age=300", "x-content-type-options": "nosniff",
     "referrer-policy": "strict-origin-when-cross-origin" });
   if (type) h.set("content-type", type);
   if (new URL(request.url).host !== new URL(env.SITE_URL).host) h.set("x-robots-tag", "noindex");
@@ -25,7 +26,7 @@ export async function listingPage(request, env, id) {
   const headers = seoHeaders(request, env);
   // The ANA-10 switch remains off until its cost and CDN behavior are reviewed.
   // It does not invalidate older copies or control intermediary cache rules.
-  const noStore = env.ANA10_QR_NO_STORE === '1';
+  const noStore = env.ANA10_QR_NO_STORE === '1' || rentalClosureEnabled(env);
   const siteUrl = base(env.SITE_URL);
   if (!p) { headers.set("cache-control", noStore ? "no-store" : "public, max-age=60");
     return { status: 404, headers, siteUrl, title: null, head: '<meta name="robots" content="noindex">' }; }

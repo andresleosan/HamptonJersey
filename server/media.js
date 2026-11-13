@@ -1,5 +1,6 @@
 import { isPublicMedia, publicMediaTypeAllowed } from "./visibility.js";
 import { currentAdmin } from "./auth.js";
+import { rentalClosureEnabled, rentalClosureVisibleSql } from './rental-closure.js';
 
 const notFound = () => new Response("Not found", { status: 404, headers: { "cache-control": "private, no-store" } });
 const PREFIX_BYTES = 1024, PDF = [0x25, 0x50, 0x44, 0x46, 0x2d];
@@ -49,7 +50,8 @@ async function inspectPublicBody(body) {
 }
 
 const loadRow = (env, id) => env.DB.prepare(
-  "SELECT m.*, l.published, l.archived_at FROM media m JOIN listings l ON l.id = m.listing_id WHERE m.id = ?").bind(id).first();
+  `SELECT m.*, l.published, l.archived_at${rentalClosureEnabled(env) ? `, (${rentalClosureVisibleSql('l')}) AS closure_visible` : ''}
+   FROM media m JOIN listings l ON l.id = m.listing_id WHERE m.id = ?`).bind(id).first();
 const selectedKey = (row, thumb) => thumb && row.thumb_key ? row.thumb_key : row.r2_key;
 const cancelBody = async body => { if (body instanceof ReadableStream && !body.locked) await body.cancel().catch(() => {}); };
 
@@ -57,7 +59,7 @@ const cancelBody = async body => { if (body instanceof ReadableStream && !body.l
 export async function serveMedia(request, env, id) {
   const row = await loadRow(env, id);
   if (!row?.r2_key) return notFound();
-  let pub = isPublicMedia(row, row);
+  let pub = isPublicMedia(row, row) && (!rentalClosureEnabled(env) || row.closure_visible === 1);
   if (!pub && !(await currentAdmin(request, env))) return notFound();
   const thumb = new URL(request.url).searchParams.has("thumb"), key = selectedKey(row, thumb);
   const obj = await env.MEDIA.get(key);
@@ -93,7 +95,7 @@ export async function serveMedia(request, env, id) {
       latest.r2_key !== row.r2_key || latest.thumb_key !== row.thumb_key || selectedKey(latest, thumb) !== key) {
     await cancelBody(body); return notFound();
   }
-  pub = pub && isPublicMedia(latest, latest);
+  pub = pub && isPublicMedia(latest, latest) && (!rentalClosureEnabled(env) || latest.closure_visible === 1);
   if (!pub && !(await currentAdmin(request, env))) { await cancelBody(body); return notFound(); }
   if (!objectType) {
     if (latest.content_type) headers.set("content-type", latest.content_type);
@@ -101,6 +103,6 @@ export async function serveMedia(request, env, id) {
   }
   headers.set("etag", obj.httpEtag);
   headers.set("x-content-type-options", "nosniff");
-  headers.set("cache-control", pub ? "public, max-age=86400" : "private, no-store");
+  headers.set("cache-control", pub ? (rentalClosureEnabled(env) ? "no-store" : "public, max-age=86400") : "private, no-store");
   return new Response(body, { headers });
 }

@@ -1,5 +1,6 @@
 import { fail, now as stamp } from "./http.js";
 import { daySlots, addMinutes, plusDays, weekday, SLOT_MINUTES, BUFFER_MINUTES, ACTIVE, propertyAllows } from "./viewings.js";
+import { rentalClosureEnabled, noUnresolvedRentalClosureSql } from './rental-closure.js';
 
 const ACTIVE_SQL = ACTIVE.map(s => `'${s}'`).join(", ");
 export const PUBLIC_BOOKING_BLOCKED_SQL = "'sold','let_agreed','let','withdrawn'";
@@ -22,7 +23,8 @@ export async function loadAvailability(env, { from, days, now, fromTomorrow, inc
         excludeId == null ? "" : " AND id <> ?"}`)
       .bind(...args, ...range, ...(excludeId == null ? [] : [excludeId])),
     ...(listingId == null ? [] : [env.DB.prepare(`SELECT viewings_enabled, viewing_hours FROM listings WHERE id = ?${
-      fromTomorrow ? ` AND published = 1 AND archived_at IS NULL AND availability NOT IN (${PUBLIC_BOOKING_BLOCKED_SQL})` : ""}`).bind(listingId)]),
+      fromTomorrow ? ` AND published = 1 AND archived_at IS NULL AND availability NOT IN (${PUBLIC_BOOKING_BLOCKED_SQL})${
+        rentalClosureEnabled(env) ? ` AND ${noUnresolvedRentalClosureSql('listings')}` : ''}` : ""}`).bind(listingId)]),
   ]).then(r => r.map(x => x.results));
   if (listingId != null && !properties.length) fail(404, "Unknown property");
   const property = properties?.[0];
@@ -54,10 +56,11 @@ export function clash({ negotiator_id, date, time }, excludeId) {
 
 // Re-read the property policy within the INSERT/UPDATE, so a concurrent settings save cannot admit a stale slot.
 // Dates and times are already Jersey wall-clock values; strftime('%w') uses Sunday = 0 just like the editor.
-export function propertyViewingGuard({ listing_id, date, time }, { publicOnly = false } = {}) {
+export function propertyViewingGuard({ listing_id, date, time }, { publicOnly = false, timedClosures = false } = {}) {
   return {
     sql: `(? IS NULL OR EXISTS (SELECT 1 FROM listings p WHERE p.id = ? AND p.viewings_enabled = 1
-      ${publicOnly ? `AND p.published = 1 AND p.archived_at IS NULL AND p.availability NOT IN (${PUBLIC_BOOKING_BLOCKED_SQL})` : ""}
+      ${publicOnly ? `AND p.published = 1 AND p.archived_at IS NULL AND p.availability NOT IN (${PUBLIC_BOOKING_BLOCKED_SQL})${
+        timedClosures ? ` AND ${noUnresolvedRentalClosureSql('p')}` : ''}` : ""}
       AND (p.viewing_hours IS NULL OR EXISTS (SELECT 1 FROM json_each(p.viewing_hours) w
         WHERE json_extract(w.value, '$.day') = CAST(strftime('%w', ?) AS INTEGER)
           AND json_extract(w.value, '$.start') <= ? AND json_extract(w.value, '$.end') >= ?))))`,
@@ -69,7 +72,7 @@ export function propertyViewingGuard({ listing_id, date, time }, { publicOnly = 
 // logEvent(…, { ifInserted: true }) and read meta.changes (0 = taken meanwhile). agent and the listing title are
 // copied from their rows, as the text the panel shows.
 export function bookStatement(env, v, { status, publicOnly = false }) {
-  const c = clash(v), property = propertyViewingGuard(v, { publicOnly });
+  const c = clash(v), property = propertyViewingGuard(v, { publicOnly, timedClosures:rentalClosureEnabled(env) });
   return env.DB.prepare(`INSERT INTO viewing_requests (listing_id, listing_ref, listing_title_snapshot, negotiator_id, agent,
       kind, date, time, end_time, name, email, phone, notes, status, created_at)
     SELECT ?, ?, (SELECT title FROM listings WHERE id = ?), ?, (SELECT name FROM negotiators WHERE id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?

@@ -1,5 +1,6 @@
 import {fail,now,sha256} from './http.js';
 import {listingBatch,listingClock,updateListingEvent} from './listing-events.js';
+import {rentalClosureEnabled,unresolvedRentalClosure,startClosureGuard,startClosureStatements,correctionGuard,correctionStatements} from './rental-closure.js';
 
 export const editorialState = l => l.archived_at ? 'archived' : l.published ? 'published'
   : l.review_requested_at ? 'ready_for_review' : 'draft';
@@ -51,17 +52,24 @@ function validateCommand(c) {
 }
 
 export async function recordRentalMarketingState(env,{id,command,actor}) {
-  const c=validateCommand(command), operationId=`rental.${id}.${c.request_id}`;
+  const c=validateCommand(command), operationId=`rental.${id}.${c.request_id}`,timed=rentalClosureEnabled(env);
   const requestHash=await sha256(JSON.stringify([id,actor,c]));
   const receipt=await env.DB.prepare('SELECT request_hash,event_id FROM listing_event_operations WHERE actor=? AND operation_id=?')
     .bind(actor,operationId).first();
   if(receipt){if(receipt.request_hash!==requestHash)fail(409,'This request was already used for a different change');
     return {event_id:receipt.event_id,replayed:true};}
-  const listing=await env.DB.prepare('SELECT * FROM listings WHERE id=?').bind(id).first();
+  const listing=await env.DB.prepare(timed ? `SELECT l.*,(SELECT COALESCE(MAX(CAST(json_extract(e.data,'$.revision') AS INTEGER)),0)
+    FROM events e WHERE e.entity_type='listing' AND e.entity_id=l.id) AS pub16_event_revision FROM listings l WHERE l.id=?`
+    : 'SELECT * FROM listings WHERE id=?').bind(id).first();
   if(!listing)fail(404,'Listing not found');
   if(listing.operation!=='rent')fail(400,'Rental marketing is only available for rentals');
   const allowed=c.action==='return_to_market'?['let_agreed','let']:c.action==='let'?['to_let','lease','not_stated','let_agreed']:['to_let','lease','not_stated'];
   if(listing.archived_at||!allowed.includes(listing.availability))fail(409,'The rental state changed. Reload before trying again.');
+  const closure=timed ? await unresolvedRentalClosure(env,id) : null;
+  if(closure && closure.state!=='open')fail(409,'A previous rental withdrawal needs review before further marketing changes.');
+  if(timed && c.action==='let' && closure)fail(409,'A rental closure is already recorded. Reload the listing.');
+  const starting=timed && c.action==='let', correcting=timed && c.action==='return_to_market' && !!closure;
+  const preconditions=starting ? [startClosureGuard(env,id,listing)] : correcting ? [correctionGuard(env,id,closure)] : [];
   const additional=[];
   for(const ref of c.evidence_refs){
     const [kind,key]=ref.split(':');
@@ -85,9 +93,13 @@ export async function recordRentalMarketingState(env,{id,command,actor}) {
   additional.unshift(env.DB.prepare(`INSERT INTO listing_event_context(listing_id) SELECT NULL
     WHERE EXISTS(SELECT 1 FROM listing_event_context WHERE listing_id=?)
     AND NOT EXISTS(SELECT 1 FROM listings WHERE id=? AND operation='rent' AND archived_at IS NULL)` ).bind(id,id));
+  if(starting) additional.push(...startClosureStatements(env,{id,closureId:await sha256(JSON.stringify([id,actor,c.request_id])),
+    listing,appliedConfirmedAt:c.occurred_at}));
+  if(correcting) additional.push(...correctionStatements(env,id,closure));
+  const patch=correcting ? {availability:closure.previous_availability,confirmed_at:closure.previous_confirmed_at}
+    : {availability:starting?'let_agreed':c.action==='return_to_market'?'to_let':c.action,confirmed_at:c.occurred_at};
   try{return await updateListingEvent(env,{id,actor,source:'panel',action:'availability_changed',
-      patch:{availability:c.action==='return_to_market'?'to_let':c.action,confirmed_at:c.occurred_at},
-      expectedAt:c.updated_at,operationId,requestHash,additionalStatements:additional});}
+      patch,expectedAt:c.updated_at,operationId,requestHash,preconditionStatements:preconditions,additionalStatements:additional});}
   catch(error){
     if(/NOT NULL constraint failed: listing_marketing_evidence\.(event_id|evidence_snapshot)/.test(String(error?.message)))
       fail(409,'Recorded evidence changed. Reload the listing before trying again.');

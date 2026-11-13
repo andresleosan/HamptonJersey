@@ -42,9 +42,10 @@ export const listingClock = "MAX(?, strftime('%Y-%m-%dT%H:%M:%fZ', updated_at, '
 // DB-ready patches from trusted writers: HTTP validation/feature extraction stays with the route.
 // An operation identity is internal only; the current panel does not send one.
 export async function updateListingEvent(env, { id, actor, source, action, patch, expectedAt, operationId,
-  derivedFields = [], related = {}, additionalStatements = [], requestHash }) {
+  derivedFields = [], related = {}, preconditionStatements = [], additionalStatements = [], requestHash }) {
   const cols = Object.keys(patch ?? {}).sort();
-  const allowed = [...EDITABLE, ...DERIVED, 'confirmed_at', 'features_at'];
+  const allowed = [...EDITABLE, ...DERIVED, 'confirmed_at', 'features_at',
+    ...(env.PUB16_TIMED_CLOSURE_READY==='1' && source==='recalculate' && action==='unpublished' ? ['published'] : [])];
   if (!cols.length || cols.some(k => !allowed.includes(k)) || cols.some(k => patch[k] !== null
     && typeof patch[k] !== 'string' && !(typeof patch[k] === 'number' && Number.isFinite(patch[k])))
     || typeof expectedAt !== 'string' || (operationId !== undefined && !/^[A-Za-z0-9_.-]{1,128}$/.test(operationId)))
@@ -57,7 +58,7 @@ export async function updateListingEvent(env, { id, actor, source, action, patch
   const absent = 'NOT EXISTS(SELECT 1 FROM listing_event_operations WHERE actor=? AND operation_id=?)';
   const start = contextStatement(env, id, context, `WHERE ${absent}`, [actor, identity]);
   // The guard aborts a stale/missing update, but does not abort a replay (which wrote no context).
-  const stmts = [start, env.DB.prepare(`UPDATE listings SET ${cols.map(k => `${k}=?`).join(',')},
+  const stmts = [start, ...preconditionStatements, env.DB.prepare(`UPDATE listings SET ${cols.map(k => `${k}=?`).join(',')},
     updated_at=${listingClock}, updated_by=? WHERE id=? AND updated_at=?
     AND EXISTS(SELECT 1 FROM listing_event_context WHERE listing_id=?)`)
     .bind(...cols.map(k => patch[k]), now(), actor, id, expectedAt, id),
@@ -66,6 +67,7 @@ export async function updateListingEvent(env, { id, actor, source, action, patch
   env.DB.prepare(`SELECT id FROM events WHERE entity_type='listing' AND entity_id=?
     AND CAST(json_extract(data,'$.revision') AS INTEGER) >
       (SELECT previous_revision FROM listing_event_context WHERE listing_id=?) ORDER BY id DESC LIMIT 1`).bind(id, id)];
+  const eventIndex=3+preconditionStatements.length;
   stmts.push(...additionalStatements);
   if (identity !== null) stmts.push(env.DB.prepare(`INSERT INTO listing_event_operations(actor,operation_id,request_hash,event_id)
     SELECT ?,?,?,(SELECT id FROM events WHERE entity_type='listing' AND entity_id=c.listing_id
@@ -83,6 +85,6 @@ export async function updateListingEvent(env, { id, actor, source, action, patch
   const receipt = identity === null ? null : await env.DB.prepare(
     'SELECT request_hash,event_id FROM listing_event_operations WHERE actor=? AND operation_id=?').bind(actor, identity).first();
   if (receipt && receipt.request_hash !== hash) fail(409, 'Operation identity already used for a different listing change');
-  const event_id = receipt?.event_id ?? results[3].results[0]?.id ?? null;
+  const event_id = receipt?.event_id ?? results[eventIndex].results[0]?.id ?? null;
   return { event_id, replayed: results[0].meta.changes === 0, changed: event_id !== null };
 }
