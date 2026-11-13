@@ -7701,8 +7701,8 @@
       "fase": "F4",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Photos sube JPG, PNG o WebP con redimensionado en el navegador, miniatura, orden, portada, visibilidad y tipo Floor plan o Aerial. El panel ofrece avisos orientativos de resolución, exposición y enfoque al subir fotos, sin impedir continuar; se conservan los errores por archivo y las fotos confirmadas.",
-      "falta": "Calibrar las sugerencias con fotografías representativas y definir la detección de líneas; los avisos actuales no certifican calidad. Diseñar e implementar los documentos privados y sus formatos, la validación de imágenes y metadatos en el servidor, y la protección y recuperación de cargas y limpieza. Las peticiones ya enviadas pueden finalizar después de salir.",
+      "hecho": "Photos sube JPG, PNG o WebP con redimensionado en el navegador, miniatura, orden, portada, visibilidad y tipo Floor plan o Aerial. El panel ofrece avisos orientativos de resolución, exposición y enfoque al subir fotos, sin impedir continuar; se conservan los errores por archivo y las fotos confirmadas. Se añadió una guarda para señales documentales conocidas en la lista pública y en la entrega de medios; vuelve a comprobar visibilidad y acceso tras leer el recurso.",
+      "falta": "Calibrar las sugerencias con fotografías representativas y definir la detección de líneas; los avisos actuales no certifican calidad. Diseñar e implementar los documentos privados y sus formatos, la validación de imágenes y metadatos en el servidor, y la protección y recuperación de cargas y limpieza. Las peticiones ya enviadas pueden finalizar después de salir. La guarda reconoce solo señales conocidas: no valida todos los archivos, no elimina metadatos y no invalida respuestas previamente cacheadas. La revalidación reduce carreras pero no es atómica con la entrega.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/MediaManager.jsx:39-54",
@@ -7710,7 +7710,8 @@
         "server/routes/media.js:11-13",
         "server/routes/media.js:58",
         "migrations/0001_init.sql:25-40",
-        "docs/qa/pub11/2026-11-13-photo-quality-evidence.md"
+        "docs/qa/pub11/2026-11-13-photo-quality-evidence.md",
+        "docs/roadmap/work/PUB-11/2026-11-13-public-document-guard-evidence.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -7722,7 +7723,7 @@
         "media-pipeline",
         "listing-editor"
       ],
-      "nextStep": "Revisar el protocolo seguro de imágenes y documentos, su almacenamiento privado y recuperación antes de ampliar formatos; calibrar las sugerencias con material representativo."
+      "nextStep": "Completar el protocolo de validación de imágenes y documentos, almacenamiento privado y recuperación; calibrar las sugerencias con material representativo."
     },
     {
       "id": "PUB-12",
