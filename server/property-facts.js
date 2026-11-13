@@ -39,7 +39,8 @@ function validateFact(fact) {
     && AVAILABILITY_STATES.has(fact.status);
   if (!publication && !availability) throw new TypeError('Invalid fact dimension or source');
   instant(fact.observed_at);
-  if (fact.received_at != null) instant(fact.received_at);
+  instant(fact.received_at);
+  if (fact.received_at < fact.observed_at) throw new TypeError('Receipt precedes observation');
   return { ...fact, scope };
 }
 
@@ -59,7 +60,7 @@ export function resolveCommercialFacts(facts, { scope, as_of } = {}) {
   const inScope = facts.map(validateFact).filter(fact => {
     if (ids.has(fact.id)) throw new TypeError('Duplicate fact id');
     ids.add(fact.id);
-    return sameScope(fact.scope, target) && fact.observed_at <= as_of;
+    return sameScope(fact.scope, target) && fact.observed_at <= as_of && fact.received_at <= as_of;
   });
   const confirmations = inScope.filter(fact => fact.dimension === 'availability');
   const observations = inScope.filter(fact => fact.dimension === 'publication');

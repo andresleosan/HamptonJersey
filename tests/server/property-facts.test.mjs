@@ -5,7 +5,7 @@ import { resolveCommercialFacts } from '../../server/property-facts.js';
 const scope = { property_id: 'property-1', operation: 'sale', advertiser_id: null, publication_id: null };
 const at = day => `2026-01-${String(day).padStart(2, '0')}T12:00:00.000Z`;
 const fact = (id, dimension, status, source_kind, observed_at, extra = {}) =>
-  ({ id, scope, dimension, status, source_kind, observed_at, ...extra });
+  ({ id, scope, dimension, status, source_kind, observed_at, received_at: observed_at, ...extra });
 const resolve = (facts, options = {}) => resolveCommercialFacts(facts, { scope, as_of: at(20), ...options });
 
 test('a missing advertisement or a failed source is not commercial unavailability', () => {
@@ -133,4 +133,13 @@ test('editorial dates and extra scope fields are never accepted as commercial fa
   assert.throws(() => resolve([fact('human-1', 'availability', 'available', 'human', at(10),
     { confirmed_at: at(10) })]));
   assert.throws(() => resolve([], { scope: { ...scope, household_id: 'household-1' } }));
+});
+
+
+test('as-of results exclude facts not yet received and reject impossible receipt ordering', () => {
+  const delayed = fact('human-1', 'availability', 'available', 'human', at(5), { received_at: at(19) });
+  assert.equal(resolve([delayed], { as_of: at(10) }).availability.status, 'unknown');
+  assert.equal(resolve([delayed], { as_of: at(20) }).availability.status, 'available');
+  assert.throws(() => resolve([fact('human-2', 'availability', 'available', 'human', at(5), { received_at: at(4) })]));
+  assert.throws(() => resolve([fact('human-3', 'availability', 'available', 'human', at(5), { received_at: null })]));
 });
