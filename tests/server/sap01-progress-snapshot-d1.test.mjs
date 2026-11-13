@@ -37,5 +37,17 @@ test('D1 synthetic snapshot keeps progress and counts from one query despite a s
   assert.equal(reads,1);assert.equal(snapshot.match_counts.found,0);assert.equal(snapshot.search_progress.state,'succeeded');
   assert.ok(snapshot.server_time>=afterRead);assert.equal((await DB.prepare('SELECT COUNT(*) AS n FROM matches').first()).n,1);
   assert.doesNotMatch(JSON.stringify(snapshot),/attempt_token|email|error_code/);
+  // Use Miniflare's real D1 session; wrapping only records which constraint the reader requests.
+  assert.equal(typeof DB.withSession,'function');
+  let constraint, sessionReads=0;
+  const sessionEnv={EST01_PROGRESS_READY:'1',DB:{withSession(value){
+   constraint=value;const session=DB.withSession(value);
+   return {prepare(sql){sessionReads++;return session.prepare(sql);}};
+  }}};
+  const sessionSnapshot=await getSearchProgressSnapshot(sessionEnv,1);
+  assert.equal(constraint,'first-primary');assert.equal(sessionReads,1);
+  assert.equal(sessionSnapshot.search_progress.state,'succeeded');assert.equal(sessionSnapshot.match_counts.found,1);
+  assert.ok(sessionSnapshot.server_time>=afterRead);
+
  } finally {await mf.dispose();}
 });

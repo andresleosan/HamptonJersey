@@ -39,6 +39,9 @@ test('legacy absence remains unrecorded even if counts exist; searches do not sh
 test('gate off does not touch schema; missing schema while enabled fails closed',async()=>{
  const {env,reads}=setup(false);delete env.EST01_PROGRESS_READY;
  assert.equal(await progress.getSearchProgressSnapshot(env,1),null);assert.equal(reads(),0);
+ env.DB.withSession=()=>{throw new Error('disabled gate must not open a session');};
+ assert.equal(await progress.getSearchProgressSnapshot(env,1),null);
+ delete env.DB.withSession;
  env.EST01_PROGRESS_READY='1';await assert.rejects(progress.getSearchProgressSnapshot(env,1));
  for(const id of [0,-1,1.5,'1',Number.MAX_SAFE_INTEGER+1]) await assert.rejects(progress.getSearchProgressSnapshot(env,id),TypeError);
 });

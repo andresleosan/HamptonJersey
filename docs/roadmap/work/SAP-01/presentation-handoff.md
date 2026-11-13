@@ -21,4 +21,5 @@ The internal reader was tested against synthetic SQLite and disposable local D1,
 
 Independent review found no blocking issue in the disconnected snapshot reader. Its D1 fixture did not exercise the `first-primary` session branch and introduced a write only after the SELECT; counts scale with the applicant’s matches. Authorization, operational measurement and late-response protection remain prerequisites.
 
-Integration with REG-12: 2,159 JavaScript tests and 25 Python tests passed, plus build, release, catalog and package checks. The reader remains internal; first-primary and production authorization are not verified by these tests.
+Integration with REG-12: 2,159 JavaScript tests and 25 Python tests passed, plus build, release, catalog and package checks. The reader remains internal; first-primary and production authorization were not verified by that integration suite.
+The internal reader was tested against synthetic SQLite and disposable local D1, including a real `withSession('first-primary')` call and a write after the SELECT has completed but before its result reaches the projection. That test does not interleave a write during the SELECT. This establishes behavior for that fixture, not production schema readiness, access rights, operational performance, or concurrent execution inside the SELECT.
