@@ -25,6 +25,8 @@ test('stale and unverified dates remain labelled and include a retry control', a
   assert.match(html,/Couldn&#x27;t refresh search status/); assert.match(html,/Last recorded status/);
   assert.match(html,/Inventory check status cannot be verified/); assert.match(html,/Unverified historical date/);
   assert.match(html,/Reload status/); assert.doesNotMatch(html,/minutes? ago|Checking saved/);
+  const live=renderToStaticMarkup(React.createElement(SearchProgress,{snapshot:broken,stale:true,announce:true,onReload:()=>{}})).match(/<div aria-live="polite"[^>]*>(.*?)<\/div>/s)[1];
+  assert.match(live,/Couldn&#x27;t refresh search status/); assert.match(live,/Inventory check status cannot be verified/);
 });
 
 test('reload action calls the provided read-only retry callback', async () => {
@@ -35,7 +37,29 @@ test('reload action calls the provided read-only retry callback', async () => {
   const {createRoot}=require('react-dom/client'); const root=createRoot(document.getElementById('root')); let calls=0;
   try {
     await React.act(async()=>root.render(React.createElement(SearchProgress,{snapshot,stale:true,onReload:()=>{calls++;}})));
-    await React.act(async()=>document.querySelector('button').click()); assert.equal(calls,1);
+    const button=document.querySelector('button'); button.focus();
+    await React.act(async()=>button.click()); assert.equal(calls,1);
+    await React.act(async()=>root.render(React.createElement(SearchProgress,{snapshot,stale:false,onReload:()=>{calls++;}})));
+    assert.equal(document.activeElement.textContent,'Checking saved Hampton inventory…');
+  } finally {
+    await React.act(async()=>root.unmount()); dom.window.close();
+    for(const [key,value] of Object.entries(saved)) value===undefined?delete global[key]:global[key]=value;
+  }
+});
+
+
+test('a failed retry does not move focus on a later automatic refresh', async () => {
+  const {default:SearchProgress}=await load();
+  const dom=new JSDOM('<div id="root"></div><button id="other">Other</button>',{url:'https://hampton.test/'});
+  const saved={window:global.window,document:global.document,IS_REACT_ACT_ENVIRONMENT:global.IS_REACT_ACT_ENVIRONMENT};
+  global.window=dom.window; global.document=dom.window.document; global.IS_REACT_ACT_ENVIRONMENT=true;
+  const {createRoot}=require('react-dom/client'); const root=createRoot(document.getElementById('root'));
+  const render=(stale,reloading)=>React.act(async()=>root.render(React.createElement(SearchProgress,{snapshot,stale,reloading,onReload:()=>{}})));
+  try {
+    await render(true,false); const button=document.querySelector('.search-progress-reload'); button.focus();
+    await React.act(async()=>button.click()); await render(true,true); await render(true,false);
+    button.blur(); assert.equal(document.activeElement,document.body); await render(false,false);
+    assert.equal(document.activeElement,document.body);
   } finally {
     await React.act(async()=>root.unmount()); dom.window.close();
     for(const [key,value] of Object.entries(saved)) value===undefined?delete global[key]:global[key]=value;

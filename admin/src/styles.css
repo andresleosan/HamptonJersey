@@ -573,5 +573,5 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .insights .health-pages{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 
 .search-progress{margin:16px 0}.search-progress p{margin:0 0 8px}.search-progress-compact{font-size:12px;margin:8px 0}
-.search-progress-error{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.search-progress-error .btn{min-height:32px}
-@media (max-width:760px){.search-progress-error .btn{min-height:44px}}
+.search-progress-reload{min-height:32px;margin-bottom:8px}.search-progress-reload[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+@media (max-width:760px){.search-progress-reload{min-height:44px}}
