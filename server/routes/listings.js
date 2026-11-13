@@ -1,4 +1,5 @@
-import { ECONOMICS_GUARD_SQL, hasEconomicInput, structuredEconomicsReady } from '../listing-economics.js';
+import { ECONOMICS_GUARD_SQL, ECONOMICS_GUARD_ARGS, hasEconomicInput, structuredEconomicsReady,
+  parseEconomicJson, checkEconomicCurrencyReview } from '../listing-economics.js';
 import { isValidInteriorArea } from '../listing-price-area.js';
 import { PRICE_SQL } from "../listing-pricing.js";
 import { json, fail, readJson, now } from "../http.js";
@@ -108,11 +109,12 @@ function withFeatures(row, patch, ts) {
 // A listing at its maximum lengths (description, summary, spec rows, multi-byte text) passes 32 KB.
 const LISTING_BYTES = 256 * 1024;
 
-const create = async ({ request, env, admin }) => createListing(env, admin, await readJson(request, LISTING_BYTES));
+const create = async ({ request, env, admin }) => createListing(env, admin, await readJson(request, LISTING_BYTES, parseEconomicJson));
 // Also Properties Queue's draft (PUB-21), which ties the new listing to its row on the server.
 export async function createListing(env, admin, body, context = {}) {
   if (body && Object.hasOwn(body,'content')) return fieldErrors({content:'Save content after creating the listing'});
   const economicInput = hasEconomicInput(body);
+  if (economicInput && context.source === 'queue') return fieldErrors({ structured_costs: 'Add staff-only costs in the listing editor' });
   if (economicInput && !(await structuredEconomicsReady(env))) fail(503, 'Structured costs are unavailable. Reload and try again.');
   const r = validateListing(body, { structuredEconomics: economicInput });
   if (r.errors) return fieldErrors(r.errors);
@@ -139,7 +141,7 @@ export async function createListing(env, admin, body, context = {}) {
         : `INSERT INTO listings (${cols.join(", ")}) VALUES (${insertValues})`;
       const [inserted] = await listingBatch(env, id, { actor: admin, source: 'panel', ...context, action: 'created',
         derivedFields: derivedListingFields(row).filter(k => !(k in r.value)) }, [
-        env.DB.prepare(insertSql).bind(...cols.map(c => row[c])),
+        env.DB.prepare(insertSql).bind(...cols.map(c => row[c]), ...(economicInput ? ECONOMICS_GUARD_ARGS : [])),
       ]);
       if (!inserted.meta.changes) fail(503, 'Structured costs are unavailable. Reload and try again.');
       await afterSave(recomputeForListing, env, id, admin);
@@ -153,7 +155,7 @@ export async function createListing(env, admin, body, context = {}) {
 }
 
 async function update({ request, env, admin, params: [id] }) {
-  const body = await readJson(request, LISTING_BYTES);
+  const body = await readJson(request, LISTING_BYTES, parseEconomicJson);
   if (typeof body?.updated_at !== "string") fail(400, "Missing updated_at: reload the listing");
   if (Object.hasOwn(body, 'address_publication'))
     return fieldErrors({ address_publication: 'Use the reviewed public snapshot step to publish an exact address' });
@@ -208,6 +210,8 @@ async function update({ request, env, admin, params: [id] }) {
     ['rental_deposit_amount', 'parish_rates_amount', 'service_charge_amount'].some(field => stored[field] != null);
   if (changingCurrencyWithCosts && !economicInput && !(await structuredEconomicsReady(env)))
     fail(503, 'Structured costs are unavailable. Reload and try again.');
+  const currencyReviewError = checkEconomicCurrencyReview(stored, body);
+  if (currencyReviewError) return fieldErrors({ currency: currencyReviewError });
   const guardEconomics = economicInput || changingCurrencyWithCosts;
   const merged = { ...stored, specs: JSON.stringify(stored.specs), ...r.value };
   const priceErrors = checkPrice(merged);
@@ -226,7 +230,8 @@ async function update({ request, env, admin, params: [id] }) {
     derivedFields: derivedListingFields(patch).filter(k => !(k in r.value)),
     extraFields: [...Object.keys(detailValues).filter(k => k !== 'property_condition'),...contentFields] }, [env.DB.prepare(
     `UPDATE listings SET ${[...cols.map(c => `${c} = ?`), `updated_at = ${listingClock}`, 'updated_by = ?'].join(", ")} WHERE id = ? AND updated_at = ?${hasContent ? ' AND EXISTS(SELECT 1 FROM admins WHERE email=? AND added_at=?)' : ''}${guardEconomics ? ` AND ${ECONOMICS_GUARD_SQL}` : ''}`)
-    .bind(...cols.map(c => patch[c]), ts, admin, id, body.updated_at,...(hasContent ? [admin,actorAt] : [])),
+    .bind(...cols.map(c => patch[c]), ts, admin, id, body.updated_at,...(hasContent ? [admin,actorAt] : []),
+      ...(guardEconomics ? ECONOMICS_GUARD_ARGS : [])),
     ...(contentStatement ? [contentStatement] : []), ...(detailStatement ? [detailStatement] : [])]);
   if (!res.meta.changes) {
     if (guardEconomics && !(await structuredEconomicsReady(env))) fail(503, 'Structured costs are unavailable. Reload and try again.');

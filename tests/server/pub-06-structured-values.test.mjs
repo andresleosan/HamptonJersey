@@ -61,12 +61,10 @@ test('structured editing stays disabled unless the explicit switch, columns, mar
   assert.equal(await structuredEconomicsReady({ DB: { prepare() { calls++; throw Error('not needed'); } } }), false);
   assert.equal(calls, 0);
   assert.equal(await structuredEconomicsReady({ PUB06_STRUCTURED_ECONOMICS_READY: '1' }), false);
-  const fields = ECONOMIC_FIELDS;
-  const insert = 'SPR01_AVAILABLE_ON_BEGIN ' + fields.map(field => `'${field}', NEW.${field}, '${field}'`).join(' ');
-  const update = 'SPR01_AVAILABLE_ON_BEGIN '.repeat(2) + fields.map(field =>
-    `'${field}', OLD.${field}, '${field}', NEW.${field}, '${field}', NEW.${field} IS NOT OLD.${field}`).join(' ');
-  const constraints = fields.map(field => `NEW.${field}`).join(' ') + " NEW.currency RAISE(ABORT,'Incomplete structured costs')";
-  const guards = [{ name: 'pub06_costs_guard_insert', sql: constraints }, { name: 'pub06_costs_guard_update', sql: constraints }];
+  const { PUB06_TRIGGER_SQL } = await import('../../server/listing-economics-contract.js');
+  const insert = PUB06_TRIGGER_SQL.listing_event_insert, update = PUB06_TRIGGER_SQL.listing_event_update;
+  const guards = [{ name: 'pub06_costs_guard_insert', sql: PUB06_TRIGGER_SQL.pub06_costs_guard_insert },
+    { name: 'pub06_costs_guard_update', sql: PUB06_TRIGGER_SQL.pub06_costs_guard_update }];
   function env({ marker = 1, triggerRows = [{ name: 'listing_event_insert', sql: insert },
     { name: 'listing_event_update', sql: update }, ...guards], failColumns = false } = {}) {
     return { PUB06_STRUCTURED_ECONOMICS_READY: '1', DB: { prepare(sql) {
@@ -87,13 +85,65 @@ test('structured editing stays disabled unless the explicit switch, columns, mar
 });
 
 test('the transactional schema guard references every audited term and the exact marker', async () => {
-  const { ECONOMICS_GUARD_SQL, hasEconomicInput } = await import('../../server/listing-economics.js');
+  const { ECONOMICS_GUARD_SQL, ECONOMICS_GUARD_ARGS, hasEconomicInput } = await import('../../server/listing-economics.js');
   assert.ok(ECONOMICS_GUARD_SQL.includes('pub06_structured_costs'));
   assert.ok(ECONOMICS_GUARD_SQL.includes('listing_event_insert'));
   assert.ok(ECONOMICS_GUARD_SQL.includes('listing_event_update'));
   assert.ok(ECONOMICS_GUARD_SQL.includes('pub06_costs_guard_insert'));
   assert.ok(ECONOMICS_GUARD_SQL.includes('pub06_costs_guard_update'));
-  for (const field of ECONOMIC_FIELDS) assert.ok(ECONOMICS_GUARD_SQL.includes(field));
+  for (const field of ECONOMIC_FIELDS) assert.ok(ECONOMICS_GUARD_ARGS.some(sql => sql.includes(field)));
   assert.equal(hasEconomicInput({ title: 'Example' }), false);
   for (const field of ECONOMIC_FIELDS) assert.equal(hasEconomicInput({ [field]: null }), true);
+});
+
+test('raw economic JSON numbers retain exact cents and reject numeric underflow or lost precision', async () => {
+  const { parseEconomicJson } = await import('../../server/listing-economics.js');
+  const { validateListing } = await import('../../server/listing.js');
+  for (const field of amounts) {
+    for (const token of ['1e-400', '-1e-400', '1.00000000000000001', '0.0001', '10000000000']) {
+      const value = parseEconomicJson(`{"${field}":${token}}`);
+      assert.ok(validateListing(value, { partial: true, structuredEconomics: true }).errors?.[field], `${field}: ${token}`);
+    }
+    for (const token of ['0', '-0', '0.29', '2.00', '1e2', '9999999999.99']) {
+      const value = parseEconomicJson(`{"${field}":${token}}`);
+      assert.equal(validateListing(value, { partial: true, structuredEconomics: true }).errors, undefined, `${field}: ${token}`);
+    }
+  }
+  const nested = parseEconomicJson('{"other":{"service_charge_amount":1e-400},"service_charge_amount":0.29}');
+  assert.equal(nested.other.service_charge_amount, 0);
+  assert.equal(nested.service_charge_amount, 0.29);
+});
+
+test('schema compatibility requires the exact reviewed trigger definitions, not copied comments', async () => {
+  const { ECONOMICS_GUARD_ARGS, structuredEconomicsReady, ECONOMICS_GUARD_SQL } = await import('../../server/listing-economics.js');
+  const { PUB06_TRIGGER_SQL } = await import('../../server/listing-economics-contract.js');
+  const names = ['listing_event_insert', 'listing_event_update', 'pub06_costs_guard_insert', 'pub06_costs_guard_update'];
+  assert.deepEqual(ECONOMICS_GUARD_ARGS, names.map(name => PUB06_TRIGGER_SQL[name]));
+  assert.equal((ECONOMICS_GUARD_SQL.match(/\bsql\s*=\s*\?/g) || []).length, 4);
+  const update = PUB06_TRIGGER_SQL.listing_event_update;
+  const modified = update.replace('THEN NEW.available_on', 'THEN NULL');
+  assert.notEqual(modified, update);
+  assert.ok(modified.includes('SPR01_AVAILABLE_ON_BEGIN'));
+  const env = sql => ({ PUB06_STRUCTURED_ECONOMICS_READY: '1', DB: { prepare(query) {
+    if (query.includes('pub06_structured_costs')) return { first: async () => ({ version: 1 }) };
+    if (query.includes('sqlite_master')) return { all: async () => ({ results: names.map(name =>
+      ({ name, sql: name === 'listing_event_update' ? sql : PUB06_TRIGGER_SQL[name] })) }) };
+    return { all: async () => ({ results: [] }) };
+  } } });
+  assert.equal(await structuredEconomicsReady(env(update)), true);
+  assert.equal(await structuredEconomicsReady(env(modified)), false);
+});
+
+test('changing currency with existing costs requires review of every field and explicit confirmation', async () => {
+  const { checkEconomicCurrencyReview } = await import('../../server/listing-economics.js');
+  const stored = { currency: 'GBP', rental_deposit_amount: 0, parish_rates_amount: 0.29, parish_rates_period: 'year',
+    service_charge_amount: null, service_charge_period: null };
+  const fields = Object.fromEntries(ECONOMIC_FIELDS.map(field => [field, stored[field]]));
+  assert.equal(checkEconomicCurrencyReview(stored, { currency: 'GBP' }), null);
+  assert.ok(checkEconomicCurrencyReview(stored, { currency: 'EUR' }));
+  assert.ok(checkEconomicCurrencyReview(stored, { currency: 'EUR', rental_deposit_amount: 0, confirm_structured_currency_change: true }));
+  assert.ok(checkEconomicCurrencyReview(stored, { currency: 'EUR', ...fields }));
+  assert.ok(checkEconomicCurrencyReview(stored, { currency: 'EUR', ...fields, confirm_structured_currency_change: 'true' }));
+  assert.equal(checkEconomicCurrencyReview(stored, { currency: 'EUR', ...fields, confirm_structured_currency_change: true }), null);
+  assert.equal(checkEconomicCurrencyReview({ currency: 'GBP' }, { currency: 'EUR' }), null);
 });

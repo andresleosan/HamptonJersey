@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { makeEnv, seedListing, adminCookie, call, T0 } from './helpers.mjs';
-import { structuredEconomicsReady, ECONOMICS_GUARD_SQL } from '../../server/listing-economics.js';
+import { structuredEconomicsReady, ECONOMICS_GUARD_SQL, ECONOMICS_GUARD_ARGS } from '../../server/listing-economics.js';
 import { listingBatch } from '../../server/listing-events.js';
 
 const require = createRequire(import.meta.url);
@@ -38,7 +38,7 @@ test('SQLite proposal preserves existing texts, SPR-01 date snapshots, and atomi
   assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
   await listingBatch(env, 'HE-R001', { actor: 'synthetic@example.test', source: 'panel', action: 'updated' }, [
     env.DB.prepare(`UPDATE listings SET rental_deposit_amount=0,parish_rates_amount=0.29,parish_rates_period='year',
-      available_on='2028-02-29',updated_at='2026-01-01T00:00:01.000Z' WHERE id='HE-R001' AND ${ECONOMICS_GUARD_SQL}`),
+      available_on='2028-02-29',updated_at='2026-01-01T00:00:01.000Z' WHERE id='HE-R001' AND ${ECONOMICS_GUARD_SQL}`).bind(...ECONOMICS_GUARD_ARGS),
   ]);
   const event = JSON.parse(db.prepare("SELECT data FROM events WHERE entity_type='listing' AND entity_id='HE-R001' ORDER BY id DESC LIMIT 1").get().data);
   assert.equal(event.before.rental_deposit_amount, null);
@@ -54,7 +54,7 @@ test('SQLite proposal preserves existing texts, SPR-01 date snapshots, and atomi
   assert.equal(db.prepare('SELECT parish_rates_period FROM listings WHERE id=?').get('HE-R001').parish_rates_period, 'year');
   db.exec('DROP TRIGGER pub06_costs_guard_update');
   assert.equal(await structuredEconomicsReady(env), false);
-  assert.equal(db.prepare(`UPDATE listings SET rental_deposit_amount=1 WHERE id='HE-R001' AND ${ECONOMICS_GUARD_SQL}`).run().changes, 0);
+  assert.equal(db.prepare(`UPDATE listings SET rental_deposit_amount=1 WHERE id='HE-R001' AND ${ECONOMICS_GUARD_SQL}`).run(...ECONOMICS_GUARD_ARGS).changes, 0);
 });
 
 test('D1 local installs the combined proposal without losing the row and records exact zero and dates', async () => {
@@ -76,7 +76,7 @@ test('D1 local installs the combined proposal without losing the row and records
     assert.equal(await structuredEconomicsReady(env), true);
     await listingBatch(env, 'HE-R001', { actor: 'synthetic@example.test', source: 'panel', action: 'updated' }, [
       DB.prepare(`UPDATE listings SET service_charge_amount=0,service_charge_period='month',available_on='2028-02-29'
-        WHERE id='HE-R001' AND ${ECONOMICS_GUARD_SQL}`),
+        WHERE id='HE-R001' AND ${ECONOMICS_GUARD_SQL}`).bind(...ECONOMICS_GUARD_ARGS),
     ]);
     const event = JSON.parse((await DB.prepare("SELECT data FROM events WHERE entity_type='listing' AND entity_id='HE-R001' ORDER BY id DESC LIMIT 1").first()).data);
     assert.equal(event.after.service_charge_amount, 0);
@@ -87,7 +87,7 @@ test('D1 local installs the combined proposal without losing the row and records
     await assert.rejects(DB.prepare("UPDATE listings SET service_charge_period=NULL WHERE id='HE-R001'").run());
     await DB.prepare('DROP TRIGGER pub06_costs_guard_update').run();
     assert.equal(await structuredEconomicsReady(env), false);
-    assert.equal((await DB.prepare(`UPDATE listings SET service_charge_amount=1 WHERE id='HE-R001' AND ${ECONOMICS_GUARD_SQL}`).run()).meta.changes, 0);
+    assert.equal((await DB.prepare(`UPDATE listings SET service_charge_amount=1 WHERE id='HE-R001' AND ${ECONOMICS_GUARD_SQL}`).bind(...ECONOMICS_GUARD_ARGS).run()).meta.changes, 0);
   } finally { await mf.dispose(); }
 });
 
@@ -102,9 +102,16 @@ test('D1 real routes enforce session, stale versions and an atomic guard if audi
       VALUES ('HE-R001','residential','Synthetic','rent','to_let','GBP',?,?)`).bind(T0,T0).run();
     await DB.prepare("INSERT INTO admins(email,added_at) VALUES ('admin@example.test',?)").bind(T0).run();
     await apply(DB, proposal);
+    const originalAudit = (await DB.prepare("SELECT sql FROM sqlite_master WHERE type='trigger' AND name='listing_event_update'").first()).sql;
+    const alteredAudit = originalAudit.replace('THEN NEW.available_on', 'THEN NULL');
+    assert.notEqual(alteredAudit, originalAudit);
+    assert.ok(alteredAudit.includes('SPR01_AVAILABLE_ON_BEGIN'));
     let sabotage = false;
     const wrapped = { prepare: sql => DB.prepare(sql), withSession: name => DB.withSession(name), batch: async statements => {
-      if (sabotage) { sabotage = false; await DB.prepare('DROP TRIGGER pub06_costs_guard_update').run(); }
+      if (sabotage) {
+        sabotage = false;
+        await DB.batch([DB.prepare('DROP TRIGGER listing_event_update'), DB.prepare(alteredAudit)]);
+      }
       return DB.batch(statements);
     } };
     const env = { ...makeEnv(), DB: wrapped, ...flag }, cookie = await adminCookie();
@@ -119,6 +126,13 @@ test('D1 real routes enforce session, stale versions and an atomic guard if audi
     const eventCount = (await DB.prepare("SELECT count(*) AS n FROM events WHERE entity_type='listing' AND entity_id='HE-R001'").first()).n;
     const stale = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: { updated_at: T0, rental_deposit_amount: 2 } });
     assert.equal(stale.status, 409);
+    await DB.prepare("CREATE TRIGGER pub06_test_reject_event BEFORE INSERT ON events WHEN NEW.entity_type='listing' BEGIN SELECT RAISE(ABORT,'synthetic event failure'); END").run();
+    const rolledBack = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: {
+      updated_at: saved.data.listing.updated_at, rental_deposit_amount: 3 } });
+    assert.equal(rolledBack.status, 500);
+    assert.equal((await DB.prepare("SELECT rental_deposit_amount FROM listings WHERE id='HE-R001'").first()).rental_deposit_amount, 0);
+    assert.equal((await DB.prepare("SELECT count(*) AS n FROM events WHERE entity_type='listing' AND entity_id='HE-R001'").first()).n, eventCount);
+    await DB.prepare('DROP TRIGGER pub06_test_reject_event').run();
     sabotage = true;
     const blocked = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: {
       updated_at: saved.data.listing.updated_at, rental_deposit_amount: 2, details: { building_name_or_number: 'Do not write' } } });

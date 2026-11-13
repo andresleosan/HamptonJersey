@@ -72,6 +72,7 @@ export default function ListingEditor({ id, onChange }) {
   const [addressEvidenceRef, setAddressEvidenceRef] = useState(""), [addressReviewAuthorized, setAddressReviewAuthorized] = useState(false);
   const [matchForm, setMatchForm] = useState(null), [matchesErr, setMatchesErr] = useState(null);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [loadErr, setLoadErr] = useState(null), [confirmDel, setConfirmDel] = useState("");
+  const [costCurrencyReview, setCostCurrencyReview] = useState(null);
   const [confirming, setConfirming] = useState(false); // ADM-04: its own flag, so Save never reads "Saving…" meanwhile
   const [withdrawalOpen,setWithdrawalOpen]=useState(false);
   const marketingFocus=useRef(false);
@@ -130,6 +131,9 @@ export default function ListingEditor({ id, onChange }) {
     <p><a href="#/listings">Back to listings</a></p><ListingHistory key={id} id={id}/></div>;
   if (!data) return <p>Loading listing…</p>;
   const l = data.listing, state = stateOf(l);
+  const needsCostCurrencyReview = data.structured_economics && (form.currency || null) !== (l.currency || null) &&
+    ['rental_deposit_amount', 'parish_rates_amount', 'service_charge_amount'].some(key => l[key] != null);
+  const costCurrencyReviewKey = JSON.stringify([l.updated_at, form.currency, ...ECONOMIC_FIELDS.map(key => form[key])]);
   const setListing = (listing, details, content) => { setData(d => ({ ...d, listing, ...(details ? { details } : {}), ...(content ? {content} : {}) }));
     setForm(toForm(listing, data.structured_economics)); if (content) setContentForm(toContentForm(content));
     if (details) { setDetailsForm(toDetailsForm(details)); setAddressReview(null); setAddressReviewError(null);
@@ -146,6 +150,8 @@ export default function ListingEditor({ id, onChange }) {
   // One Save for fields and photos: fields first, then photos with the updated_at the fields save returned.
   const save = async () => {
     const draftErrors = {};
+    if (needsCostCurrencyReview && costCurrencyReview !== costCurrencyReviewKey)
+      draftErrors.currency = 'Review all staff-only costs and confirm the currency change';
     if (data.structured_economics) for (const key of ['rental_deposit_amount', 'parish_rates_amount', 'service_charge_amount']) {
       const raw = form[key];
       if (raw === '') continue;
@@ -170,7 +176,8 @@ export default function ListingEditor({ id, onChange }) {
       if (fieldsDirty || detailsDirty || contentDirty) {
         const body = { ...(fieldsDirty ? { ...toBody(form), ...changedMatchForm(matchForm, l) } : {}),
           ...(detailsDirty ? { details: toDetailsBody(detailsForm) } : {}),
-          ...(contentDirty ? {content:toContentBody(contentForm)} : {}), updated_at: at };
+          ...(contentDirty ? {content:toContentBody(contentForm)} : {}),
+          ...(needsCostCurrencyReview ? {confirm_structured_currency_change:true} : {}), updated_at: at };
         const saved = await api(`/admin/listings/${id}`, { method: "PUT", body });
         setListing(saved.listing, saved.details, saved.content); at = saved.listing.updated_at;
         if (fieldsDirty) reloadMatches(); onChange?.(); // a new price or availability confirms it
@@ -527,13 +534,17 @@ export default function ListingEditor({ id, onChange }) {
         {data.structured_economics && <div><h3>Staff-only costs</h3>
           <p className="muted">These amounts are for staff. The public listing uses the text fields above and does not update from these amounts. Leave unknown amounts blank; 0 means none.</p>
           <div className="grid2">
-            {['rent', 'business'].includes(form.operation) && field('rental_deposit_amount', 'Rental deposit amount',
+            {(['rent', 'business'].includes(form.operation) || form.rental_deposit_amount !== '') && field('rental_deposit_amount', 'Rental deposit amount',
               <input {...ctl('rental_deposit_amount')} type="number" min="0" max="9999999999.99" step="0.01" inputMode="decimal" />)}
             {field('parish_rates_amount', 'Parish rates amount', <input {...ctl('parish_rates_amount')} type="number" min="0" max="9999999999.99" step="0.01" inputMode="decimal" />)}
             {field('parish_rates_period', 'Parish rates period', <select {...ctl('parish_rates_period')}><option value="">Unknown</option><option value="month">Per month</option><option value="year">Per year</option></select>)}
             {field('service_charge_amount', 'Service charge amount', <input {...ctl('service_charge_amount')} type="number" min="0" max="9999999999.99" step="0.01" inputMode="decimal" />)}
             {field('service_charge_period', 'Service charge period', <select {...ctl('service_charge_period')}><option value="">Unknown</option><option value="month">Per month</option><option value="year">Per year</option></select>)}
-          </div></div>}
+          </div>
+          {needsCostCurrencyReview && <label><input type="checkbox" checked={costCurrencyReview === costCurrencyReviewKey}
+            onChange={event => setCostCurrencyReview(event.target.checked ? costCurrencyReviewKey : null)} />
+            I have reviewed all staff-only costs in the new currency. Changing currency does not convert amounts.</label>}
+        </div>}
       </section>
 
       <section id="s-description" className="card" aria-labelledby="h-desc"><h2 id="h-desc">Description</h2>

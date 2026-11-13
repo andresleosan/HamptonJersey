@@ -36,6 +36,47 @@ const BASE = process.env.BASE, vars = parseEnv(readFileSync(process.env.E2E_VARS
       assert.equal(await page.getByLabel('Parish rates amount', { exact: true }).inputValue(), '0.29');
       assert.equal(await page.getByLabel('Parish rates period', { exact: true }).inputValue(), 'year');
       assert.equal(await page.getByLabel('Service charge amount', { exact: true }).inputValue(), privateCharge);
+      if (width === 1280) {
+        const beforeRaw = await page.evaluate(async () => (await (await fetch('/api/admin/listings/HE-C001')).json()).listing);
+        for (const field of ['rental_deposit_amount', 'parish_rates_amount', 'service_charge_amount']) {
+          for (const token of ['1e-400', '-1e-400', '1.00000000000000001']) {
+            const response = await page.evaluate(async ({ field, token, updatedAt }) => {
+              const body = `{"updated_at":${JSON.stringify(updatedAt)},"${field}":${token}}`;
+              const result = await fetch('/api/admin/listings/HE-C001', { method: 'PUT',
+                headers: { 'content-type': 'application/json' }, body });
+              return { status: result.status, data: await result.json() };
+            }, { field, token, updatedAt: beforeRaw.updated_at });
+            assert.equal(response.status, 400, `${field}: ${token}`);
+            assert.ok(response.data.fields[field]);
+          }
+        }
+        const badCreate = await page.evaluate(async () => {
+          const result = await fetch('/api/admin/listings', { method: 'POST', headers: { 'content-type': 'application/json' },
+            body: '{"title":"Synthetic","use":"residential","operation":"rent","availability":"to_let","currency":"GBP","rental_deposit_amount":1e-400}' });
+          return { status: result.status, data: await result.json() };
+        });
+        assert.equal(badCreate.status, 400);
+        assert.ok(badCreate.data.fields.rental_deposit_amount);
+        const afterRaw = await page.evaluate(async () => (await (await fetch('/api/admin/listings/HE-C001')).json()).listing);
+        assert.equal(afterRaw.updated_at, beforeRaw.updated_at);
+        assert.equal(afterRaw.service_charge_amount, beforeRaw.service_charge_amount);
+        await page.getByLabel('Currency', { exact: true }).selectOption('EUR');
+        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        await page.getByText('Review all staff-only costs and confirm the currency change', { exact: true }).waitFor();
+        const reviewed = page.getByLabel(/I have reviewed all staff-only costs/);
+        await reviewed.check();
+        await page.getByLabel('Service charge amount', { exact: true }).fill('1234.57');
+        assert.equal(await reviewed.isChecked(), false);
+        await page.getByLabel('Service charge amount', { exact: true }).fill(privateCharge);
+        await reviewed.check();
+        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        await page.getByRole('status').filter({ hasText: 'Changes saved.' }).waitFor();
+        assert.equal(await page.getByLabel('Service charge amount', { exact: true }).inputValue(), privateCharge);
+        await page.getByLabel('Currency', { exact: true }).selectOption('GBP');
+        await reviewed.check();
+        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        await page.getByRole('status').filter({ hasText: 'Changes saved.' }).waitFor();
+      }
       await page.getByLabel('Service charge amount', { exact: true }).fill('1.001');
       await page.getByRole('button', { name: 'Save', exact: true }).click();
       await page.getByText('Enter an amount with up to 2 decimal places', { exact: true }).waitFor();

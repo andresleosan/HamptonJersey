@@ -1,3 +1,4 @@
+import { PUB06_TRIGGER_SQL } from './listing-economics-contract.js';
 // Structured staff-only amounts are distinct from the existing public text.
 // Values are in the listing's declared major currency, not a converted total.
 const AMOUNTS = Object.freeze(['rental_deposit_amount', 'parish_rates_amount', 'service_charge_amount']);
@@ -35,8 +36,15 @@ export function checkEconomicTerms(row) {
   return errors;
 }
 
-// This is a schema-compatibility check, not an authorization or activation.
-// The switch is deliberately off until the combined, reviewed SQL is applied.
+// Verify the complete reviewed trigger definitions, never comments or field
+// fragments alone. This compatibility check does not authorize an action.
+const TRIGGER_NAMES = Object.freeze(['listing_event_insert', 'listing_event_update', 'pub06_costs_guard_insert', 'pub06_costs_guard_update']);
+export const ECONOMICS_GUARD_ARGS = Object.freeze(TRIGGER_NAMES.map(name => PUB06_TRIGGER_SQL[name]));
+export const ECONOMICS_GUARD_SQL = `(EXISTS(SELECT 1 FROM pub06_structured_costs WHERE singleton=1 AND version=1)
+  ${TRIGGER_NAMES.map(name => `AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='${name}' AND sql = ?)`).join('\n  ')})`;
+export const hasEconomicInput = body => Boolean(body && typeof body === 'object' && !Array.isArray(body) &&
+  ECONOMIC_FIELDS.some(field => Object.hasOwn(body, field)));
+
 export async function structuredEconomicsReady(env) {
   if (env?.PUB06_STRUCTURED_ECONOMICS_READY !== '1') return false;
   try {
@@ -47,37 +55,54 @@ export async function structuredEconomicsReady(env) {
     await db.prepare(`SELECT ${ECONOMIC_FIELDS.join(', ')} FROM listings LIMIT 0`).all();
     const rows = (await db.prepare(`SELECT name, sql FROM sqlite_master WHERE type='trigger'
       AND name IN ('listing_event_insert', 'listing_event_update', 'pub06_costs_guard_insert', 'pub06_costs_guard_update')`).all()).results;
-    if (!Array.isArray(rows) || rows.length !== 4) return false;
-    const insert = rows.find(row => row.name === 'listing_event_insert')?.sql;
-    const update = rows.find(row => row.name === 'listing_event_update')?.sql;
-    const guards = ['pub06_costs_guard_insert', 'pub06_costs_guard_update']
-      .map(name => rows.find(row => row.name === name)?.sql);
-    if (guards.some(sql => typeof sql !== 'string' || !sql.includes('NEW.currency') ||
-        !sql.includes("RAISE(ABORT,'Incomplete structured costs')") || ECONOMIC_FIELDS.some(field => !sql.includes(`NEW.${field}`)))) return false;
-    if (typeof insert !== 'string' || typeof update !== 'string' ||
-        !insert.includes('SPR01_AVAILABLE_ON_BEGIN') || !update.includes('SPR01_AVAILABLE_ON_BEGIN')) return false;
-    return ECONOMIC_FIELDS.every(field => insert.includes(`'${field}', NEW.${field},`) &&
-      insert.split(`'${field}'`).length >= 3 && update.includes(`'${field}', OLD.${field},`) &&
-      update.includes(`'${field}', NEW.${field},`) && update.includes(`'${field}', NEW.${field} IS NOT OLD.${field}`));
+    return Array.isArray(rows) && rows.length === TRIGGER_NAMES.length &&
+      TRIGGER_NAMES.every(name => rows.some(row => row.name === name && row.sql === PUB06_TRIGGER_SQL[name]));
   } catch { return false; }
 }
 
-// Rechecked inside the listing INSERT/UPDATE statement so a replaced trigger or
-// revoked schema marker between the read and the write fails closed.
-const sqlLiteral = value => `'${value.replaceAll("'", "''")}'`;
-const hasText = text => `INSTR(COALESCE(sql, ''), ${sqlLiteral(text)}) > 0`;
-const twice = text => `(LENGTH(COALESCE(sql, '')) - LENGTH(REPLACE(COALESCE(sql, ''), ${sqlLiteral(text)}, ''))) >= ${2 * text.length}`;
-const insertGuard = [hasText('SPR01_AVAILABLE_ON_BEGIN'), ...ECONOMIC_FIELDS.flatMap(field =>
-  [hasText(`'${field}', NEW.${field},`), twice(`'${field}'`)])].join(' AND ');
-const constraintGuard = [hasText('NEW.currency'), hasText("RAISE(ABORT,'Incomplete structured costs')"),
-  ...ECONOMIC_FIELDS.map(field => hasText(`NEW.${field}`))].join(' AND ');
-const updateGuard = [hasText('SPR01_AVAILABLE_ON_BEGIN'), ...ECONOMIC_FIELDS.flatMap(field => [
-  hasText(`'${field}', OLD.${field},`), hasText(`'${field}', NEW.${field},`),
-  hasText(`'${field}', NEW.${field} IS NOT OLD.${field}`)])].join(' AND ');
-export const ECONOMICS_GUARD_SQL = `(EXISTS(SELECT 1 FROM pub06_structured_costs WHERE singleton=1 AND version=1)
-  AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='listing_event_insert' AND ${insertGuard})
-  AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='listing_event_update' AND ${updateGuard})
-  AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='pub06_costs_guard_insert' AND ${constraintGuard})
-  AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='pub06_costs_guard_update' AND ${constraintGuard}))`;
-export const hasEconomicInput = body => Boolean(body && typeof body === 'object' && !Array.isArray(body) &&
-  ECONOMIC_FIELDS.some(field => Object.hasOwn(body, field)));
+// A parsed JavaScript number can already have lost a non-zero JSON token. Use
+// the engine's original source text; without source support, reject numeric
+// amounts rather than guess. Limits are bounded before any BigInt operation.
+function exactAmountToken(token) {
+  if (typeof token !== 'string' || token.length > 128) return false;
+  const match = /^(-?)(0|[1-9]\d*)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(token);
+  if (!match) return false;
+  const digits = BigInt(match[2] + (match[3] ?? ''));
+  if (digits === 0n) return true;
+  if (match[1] === '-') return false;
+  const exponent = Number(match[4] ?? 0) - (match[3]?.length ?? 0) + 2;
+  if (!Number.isSafeInteger(exponent) || exponent > 400 || exponent < -400) return false;
+  let minor;
+  if (exponent >= 0) minor = digits * 10n ** BigInt(exponent);
+  else {
+    const divisor = 10n ** BigInt(-exponent);
+    if (digits % divisor !== 0n) return false;
+    minor = digits / divisor;
+  }
+  return minor < 1000000000000n;
+}
+
+export function parseEconomicJson(text) {
+  const invalid = new WeakMap();
+  const body = JSON.parse(text, function (key, value, context) {
+    if (AMOUNTS.includes(key) && typeof value === 'number' && !exactAmountToken(context?.source)) {
+      const keys = invalid.get(this) ?? [];
+      keys.push(key);
+      invalid.set(this, keys);
+    }
+    return value;
+  });
+  if (body && typeof body === 'object' && !Array.isArray(body))
+    for (const key of invalid.get(body) ?? []) body[key] = {};
+  return body;
+}
+
+// The caller's confirmation is a staff assertion, not proof of identity or a
+// substitute for the route's authentication and optimistic concurrency check.
+export function checkEconomicCurrencyReview(stored, input) {
+  if (!stored || !input || !Object.hasOwn(input, 'currency') || input.currency === stored.currency ||
+      !AMOUNTS.some(field => stored[field] != null)) return null;
+  if (input.confirm_structured_currency_change !== true || !ECONOMIC_FIELDS.every(field => Object.hasOwn(input, field)))
+    return 'Review all staff-only costs and confirm the currency change';
+  return null;
+}

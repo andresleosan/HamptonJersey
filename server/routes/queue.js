@@ -1,3 +1,4 @@
+import { hasEconomicInput } from '../listing-economics.js';
 import { listingAmount } from "../listing-pricing.js";
 import { json, fail, readJson, now } from "../http.js";
 import { folderIdFrom, folderInfo, walkFolder, photosIn, fileResponse, chooseEdited, insideRecords } from "../drive.js";
@@ -52,6 +53,10 @@ async function list({ env }) {
 // so there is one draft per row, never a listing made elsewhere. A draft the listing rules refuse puts the row back.
 async function draft({ request, env, admin, params: [id] }) {
   const body = await readJson(request, 256 * 1024);
+  // Queue import does not own structured staff costs. Reject before claiming a
+  // row so even malformed numeric tokens cannot alter its state or metadata.
+  if (hasEconomicInput(body)) return json({ error: 'Please check the highlighted fields',
+    fields: { structured_costs: 'Add staff-only costs in the listing editor' } }, 400);
   const claimed = await env.DB.prepare(`UPDATE drive_imports SET status = 'review', decided_at = ?, decided_by = ?
     WHERE id = ? AND status = 'ready' RETURNING folder_id`).bind(now(), admin, Number(id)).first();
   if (!claimed) {

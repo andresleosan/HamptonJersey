@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { makeEnv, seedListing, adminCookie, call, T0 } from './helpers.mjs';
 import { toPublic } from '../../server/listing.js';
+import { handleApi } from '../../server/api.js';
 
 const proposal = readFileSync(new URL('../../docs/roadmap/work/PUB-06/structured-economics.proposed.sql', import.meta.url), 'utf8');
 const setup = async ({ install = false, enabled = false } = {}) => {
@@ -13,6 +14,15 @@ const setup = async ({ install = false, enabled = false } = {}) => {
   return { env, cookie: await adminCookie() };
 };
 const events = env => env.DB.raw.prepare("SELECT data FROM events WHERE entity_type='listing' AND entity_id='HE-R001' ORDER BY id").all().map(r=>JSON.parse(r.data));
+
+async function rawCall(env, cookie, method, path, body) {
+  const request = new Request(`https://hampton.test/api${path}`, { method,
+    headers: { origin: 'https://hampton.test', cookie, 'content-type': 'application/json' }, body });
+  const pending = [];
+  const response = await handleApi(request, env, path.slice(1).split('/'), promise => pending.push(promise));
+  await Promise.all(pending);
+  return { status: response.status, data: await response.json() };
+}
 
 test('disabled or missing schema rejects structured fields and leaves the existing editor usable', async () => {
   for (const options of [{}, { enabled: true }, { install: true }]) {
@@ -157,4 +167,111 @@ test('create obeys the capability and audits the new amounts once; repeating unc
     service_charge_period: 'month' } });
   assert.equal(unchanged.status, 200);
   assert.equal(getEvents().length, 1);
+});
+
+test('changing currency requires all structured terms, explicit review and the current listing version', async () => {
+  const { env, cookie } = await setup({ install: true, enabled: true });
+  const first = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: {
+    updated_at: T0, rental_deposit_amount: 0, parish_rates_amount: 0.29, parish_rates_period: 'year' } });
+  assert.equal(first.status, 200);
+  const at = first.data.listing.updated_at, count = events(env).length;
+  const fields = { rental_deposit_amount: 0, parish_rates_amount: 0.29, parish_rates_period: 'year',
+    service_charge_amount: null, service_charge_period: null };
+  for (const body of [
+    { updated_at: at, currency: 'EUR' },
+    { updated_at: at, currency: 'EUR', rental_deposit_amount: 0, confirm_structured_currency_change: true },
+    { updated_at: at, currency: 'EUR', ...fields },
+    { updated_at: at, currency: 'EUR', ...fields, confirm_structured_currency_change: 'true' },
+  ]) {
+    const result = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body });
+    assert.equal(result.status, 400);
+    assert.ok(result.data.fields.currency);
+    assert.equal(events(env).length, count);
+  }
+  const stale = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: {
+    updated_at: T0, currency: 'EUR', ...fields, confirm_structured_currency_change: true } });
+  assert.equal(stale.status, 409);
+  const reviewed = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: {
+    updated_at: at, currency: 'EUR', ...fields, confirm_structured_currency_change: true } });
+  assert.equal(reviewed.status, 200);
+  assert.equal(reviewed.data.listing.currency, 'EUR');
+  assert.equal(reviewed.data.listing.rental_deposit_amount, 0);
+  assert.equal(reviewed.data.listing.parish_rates_amount, 0.29);
+  assert.equal(reviewed.data.listing.parish_rates_period, 'year');
+});
+
+test('raw JSON cannot silently round or underflow costs on create, update or queue', async () => {
+  const { env, cookie } = await setup({ install: true, enabled: true });
+  const initial = { ...env.DB.raw.prepare("SELECT * FROM listings WHERE id='HE-R001'").get() };
+  for (const field of ['rental_deposit_amount', 'parish_rates_amount', 'service_charge_amount']) {
+    for (const token of ['1e-400', '-1e-400', '1.00000000000000001']) {
+      const patch = await rawCall(env, cookie, 'PUT', '/admin/listings/HE-R001', `{"updated_at":"${T0}","${field}":${token}}`);
+      assert.equal(patch.status, 400, `${field}: ${token}`);
+      assert.ok(patch.data.fields[field]);
+      const create = await rawCall(env, cookie, 'POST', '/admin/listings',
+        `{"title":"Synthetic","use":"residential","operation":"rent","availability":"to_let","currency":"GBP","${field}":${token}}`);
+      assert.equal(create.status, 400, `${field}: ${token}`);
+      assert.ok(create.data.fields[field]);
+    }
+  }
+  assert.deepEqual({ ...env.DB.raw.prepare("SELECT * FROM listings WHERE id='HE-R001'").get() }, initial);
+  assert.equal(events(env).length, 0);
+  env.DB.raw.prepare(`INSERT INTO drive_imports (id,folder_id,folder_name,status,requested_by,created_at)
+    VALUES (1,'SYNTHETIC','Synthetic','ready','admin@example.test',?)`).run(T0);
+  env.DB.raw.prepare("UPDATE drive_imports SET decided_at='2026-01-02', decided_by='synthetic' WHERE id=1").run();
+  const queueBefore = { ...env.DB.raw.prepare('SELECT * FROM drive_imports WHERE id=1').get() };
+  for (const field of ['rental_deposit_amount', 'parish_rates_amount', 'service_charge_amount']) {
+    const queue = await rawCall(env, cookie, 'POST', '/admin/queue/1/draft',
+      `{"title":"Synthetic","use":"residential","operation":"rent","availability":"to_let","currency":"GBP","${field}":1e-400}`);
+    assert.equal(queue.status, 400);
+    assert.deepEqual({ ...env.DB.raw.prepare('SELECT * FROM drive_imports WHERE id=1').get() }, queueBefore);
+  }
+  assert.equal(env.DB.raw.prepare('SELECT count(*) AS n FROM listings').get().n, 1);
+});
+
+test('an event failure rolls back the structured amount and listing version', async () => {
+  const { env, cookie } = await setup({ install: true, enabled: true });
+  const before = { ...env.DB.raw.prepare("SELECT * FROM listings WHERE id='HE-R001'").get() };
+  env.DB.raw.exec("CREATE TRIGGER pub06_test_reject_event BEFORE INSERT ON events WHEN NEW.entity_type='listing' BEGIN SELECT RAISE(ABORT,'synthetic event failure'); END");
+  const result = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie,
+    body: { updated_at: T0, rental_deposit_amount: 20 } });
+  assert.equal(result.status, 500);
+  assert.deepEqual({ ...env.DB.raw.prepare("SELECT * FROM listings WHERE id='HE-R001'").get() }, before);
+  assert.equal(events(env).length, 0);
+});
+
+test('a trigger with all old markers but a modified SPR-01 date clause fails closed', async () => {
+  const { env, cookie } = await setup({ install: true, enabled: true });
+  const db = env.DB.raw;
+  const original = db.prepare("SELECT sql FROM sqlite_master WHERE type='trigger' AND name='listing_event_update'").get().sql;
+  const altered = original.replace('THEN NEW.available_on', 'THEN NULL');
+  assert.notEqual(altered, original);
+  assert.ok(altered.includes('SPR01_AVAILABLE_ON_BEGIN'));
+  db.exec(`DROP TRIGGER listing_event_update; ${altered};`);
+  const detail = await call(env, 'GET', '/admin/listings/HE-R001', { cookie });
+  assert.equal(detail.data.structured_economics, false);
+  const result = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie,
+    body: { updated_at: T0, rental_deposit_amount: 0 } });
+  assert.equal(result.status, 503);
+  assert.equal(db.prepare("SELECT rental_deposit_amount FROM listings WHERE id='HE-R001'").get().rental_deposit_amount, null);
+  assert.equal(events(env).length, 0);
+});
+
+test('the write guard rechecks exact trigger identity after the earlier capability read', async () => {
+  const { env, cookie } = await setup({ install: true, enabled: true });
+  const db = env.DB.raw, prepare = env.DB.prepare.bind(env.DB);
+  const original = db.prepare("SELECT sql FROM sqlite_master WHERE type='trigger' AND name='listing_event_update'").get().sql;
+  let replaced = false;
+  env.DB.prepare = sql => {
+    if (!replaced && sql.startsWith('UPDATE listings SET') && sql.includes('rental_deposit_amount')) {
+      replaced = true;
+      db.exec(`DROP TRIGGER listing_event_update; ${original.replace('THEN NEW.available_on', 'THEN NULL')};`);
+    }
+    return prepare(sql);
+  };
+  const result = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie,
+    body: { updated_at: T0, rental_deposit_amount: 10 } });
+  assert.equal(result.status, 503);
+  assert.equal(db.prepare("SELECT rental_deposit_amount FROM listings WHERE id='HE-R001'").get().rental_deposit_amount, null);
+  assert.equal(events(env).length, 0);
 });
