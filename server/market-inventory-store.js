@@ -1,4 +1,5 @@
 import { HttpError, sha256 } from './http.js';
+import { manualScopeAllows, verifyPreparedManualPage } from './market-manual-contract.js';
 
 // This module owns the operational source projection. It creates no sources, grants
 // no permissions and makes no network requests; BUS-19 owns access review.
@@ -122,7 +123,7 @@ export async function claimSourcePage(env, input, clock = () => new Date()) {
     generation: row.lease_generation, policy_version: row.policy_version, run_version: row.run_version, cursor: row.cursor };
 }
 
-const receiptSql = `SELECT content_sha256,next_cursor,lease_token,lease_generation FROM market_pages
+const receiptSql = `SELECT content_sha256,next_cursor,lease_token,lease_generation,committed_by FROM market_pages
   WHERE run_id=? AND source_ref=? AND channel_id=? AND page_key=?`;
 async function readReceipt(db, lease, page) {
   return primary(db).prepare(receiptSql).bind(lease.run_id, lease.source_ref, lease.channel_id, page.page_key).first();
@@ -150,17 +151,67 @@ const eligible = `SELECT 1 FROM market_source_runs sr
          (r.kind IN ('initial','daily') AND s.source_kind='external' AND s.directory_revision=r.manifest_revision
           AND m.status='accepted' AND m.sha256=r.manifest_sha256))`;
 
+// Supplemental provenance guard for the disconnected BUS-09 manual bridge. A matching
+// admin row is not a session or durable actor authorization; no route may infer one from it.
+const manualAllowed = `SELECT 1 FROM market_sources s
+  JOIN market_runs r ON r.id=? AND r.manifest_revision=s.directory_revision
+  JOIN market_directory_manifests m ON m.revision=r.manifest_revision
+  JOIN admins a ON a.email=? AND a.added_at=?
+  WHERE s.source_ref=? AND s.channel_id=? AND s.policy_version=? AND s.allowed_hosts=? AND s.allowed_paths=?
+    AND s.source_kind='external' AND s.source_class='general' AND s.method='manual'
+    AND s.access_status IN ('allowed','manual_only') AND s.evidence_ref IS NOT NULL AND s.retention_ref IS NOT NULL
+    AND length(s.evidence_ref)>0 AND length(s.retention_ref)>0
+    AND s.reviewed_at=strftime('%Y-%m-%dT%H:%M:%fZ',s.reviewed_at,'+0 days')
+    AND s.review_due_at=strftime('%Y-%m-%dT%H:%M:%fZ',s.review_due_at,'+0 days')
+    AND s.reviewed_at<=? AND s.review_due_at>?
+    AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now') AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')
+    AND ?<=? AND ?<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+    AND r.kind IN ('initial','daily') AND m.status='accepted' AND m.sha256=r.manifest_sha256`;
+const manualArgs = (lease,page,actor,guard,at) => [lease.run_id,actor,guard.actor_added_at,lease.source_ref,
+  lease.channel_id,lease.policy_version,guard.allowed_hosts,guard.allowed_paths,at,at,page.observed_at,at,page.observed_at];
+const guardStatement = (db,guardId,lease,page,actor,guard,at) => db.prepare(`INSERT INTO market_commit_guard(id,allowed)
+  SELECT ?,CASE WHEN EXISTS (${manualAllowed}) THEN 1 ELSE 0 END`).bind(guardId,...manualArgs(lease,page,actor,guard,at));
+
+async function manualReplay(db,lease,page,actor,guard,hash,at) {
+  const guardId=crypto.randomUUID();
+  let result;
+  try {
+    result=await db.batch([
+      guardStatement(db,guardId,lease,page,actor,guard,at),
+      db.prepare(receiptSql).bind(lease.run_id,lease.source_ref,lease.channel_id,page.page_key),
+      db.prepare('DELETE FROM market_commit_guard WHERE id=?').bind(guardId),
+    ]);
+  } catch(error) {
+    if (/CHECK constraint failed: allowed\s*=\s*1|CHECK constraint failed: market_commit_guard/i.test(String(error?.message))) conflict();
+    throw error;
+  }
+  const receipt=result?.[1]?.results?.[0];
+  if (!receipt || receipt.committed_by!==actor) conflict();
+  return replay(receipt,lease,hash) ?? conflict();
+}
+
 export async function commitObservationPage(env, input, actor, clock = () => new Date()) {
-  const lease = input?.lease, page = input?.page;
+  let lease = input?.lease, page = input?.page, manual = input?.manual_guard ?? null;
   if (!lease || !uuid(lease.run_id) || !id(lease.source_ref) || !id(lease.channel_id) || !uuid(lease.token) ||
       !Number.isSafeInteger(lease.generation) || lease.generation < 1 ||
       !Number.isSafeInteger(lease.policy_version) || lease.policy_version < 1 ||
       !Number.isSafeInteger(lease.run_version) || lease.run_version < 1 || !cursor(lease.cursor) || !id(actor)) bad();
-  const body = validatePage(page), hash = await sha256(body);
+  let body=validatePage(page);
+  if (manual!==null) {
+    // Freeze a detached reconstruction before any await, and never trust a supplied normalized object.
+    lease=Object.freeze(JSON.parse(canonical(lease)));
+    manual=JSON.parse(canonical(manual));
+    if (Object.keys(manual).sort().join(',')!=='actor_added_at,allowed_hosts,allowed_paths' || !iso(manual.actor_added_at) ||
+        !manualScopeAllows(manual.allowed_hosts,manual.allowed_paths,JSON.parse(body).records.map(record=>record.raw.listing_url))) bad();
+    page=verifyPreparedManualPage(JSON.parse(body));
+    if (canonical(page)!==body) bad();
+    body=validatePage(page);
+  }
+  const hash = await sha256(body), db = env.DB;
   if (page.cursor !== lease.cursor) conflict();
   const previous = replay(await readReceipt(env.DB, lease, page), lease, hash);
-  if (previous) return previous;
-  const at = clockTime(clock), db = env.DB;
+  if (previous) return manual ? manualReplay(db,lease,page,actor,manual,hash,clockTime(clock)) : previous;
+  const at = clockTime(clock);
   const args = [lease.run_id, lease.source_ref, lease.channel_id, lease.token, lease.generation,
     lease.policy_version, lease.run_version, page.cursor, at, at, at, at];
   const policy = await primary(db).prepare('SELECT method FROM market_sources WHERE source_ref=? AND channel_id=?')
@@ -171,6 +222,19 @@ export async function commitObservationPage(env, input, actor, clock = () => new
   const guardIds = [guardId];
   const statements = [db.prepare(`INSERT INTO market_commit_guard(id,allowed)
     SELECT ?,CASE WHEN EXISTS (${eligible}) THEN 1 ELSE 0 END`).bind(guardId, ...args)];
+  if (manual) {
+    const manualId=crypto.randomUUID();guardIds.push(manualId);
+    statements.push(guardStatement(db,manualId,lease,page,actor,manual,at));
+    for (const record of page.records) {
+      const identityId=crypto.randomUUID();guardIds.push(identityId);
+      statements.push(db.prepare(`INSERT INTO market_commit_guard(id,allowed)
+        SELECT ?,CASE WHEN NOT EXISTS (SELECT 1 FROM market_observations o
+          WHERE o.source_ref=? AND o.channel_id=? AND o.external_key=?
+            AND (json_extract(o.raw_json,'$.listing_url') IS NOT ? OR json_extract(o.normalized_json,'$.operation') IS NOT ?))
+          THEN 1 ELSE 0 END`).bind(identityId,lease.source_ref,lease.channel_id,record.external_key,
+            record.raw.listing_url,record.normalized.operation));
+    }
+  }
   // Deleted observations are never resurrected by a delayed or repeated page.
   for (const record of page.records) {
     const recordGuardId = crypto.randomUUID();
@@ -193,12 +257,13 @@ export async function commitObservationPage(env, input, actor, clock = () => new
       (id,page_id,source_ref,channel_id,external_key,raw_json,normalized_json,normalized_sha256,source_at,origin_sha256)
       VALUES (?,?,?,?,?,?,?,?,?,?)`).bind(observationId, pageId, lease.source_ref, lease.channel_id,
       record.external_key, raw, normalized, normalizedHash, record.source_at, originHash));
+    const material=manual ? "json_remove(old.normalized_json,'$.observed_at')<>json_remove(?,'$.observed_at')" : 'old.normalized_sha256<>?';
     statements.push(db.prepare(`INSERT INTO market_change_outbox(id,observation_id,observation_version,kind)
       SELECT ?,?,1,'observation_changed' WHERE COALESCE((SELECT
-        CASE WHEN old.source_at<=? AND old.normalized_sha256<>? THEN 1 ELSE 0 END
+        CASE WHEN old.source_at<=? AND ${material} THEN 1 ELSE 0 END
         FROM market_observations old WHERE old.source_ref=? AND old.channel_id=? AND old.external_key=? AND old.id<>?
         ORDER BY old.source_at DESC,old.sequence DESC LIMIT 1),1)=1`).bind(crypto.randomUUID(), observationId,
-      record.source_at, normalizedHash, lease.source_ref, lease.channel_id, record.external_key, observationId));
+      record.source_at, manual ? normalized : normalizedHash, lease.source_ref, lease.channel_id, record.external_key, observationId));
   }
   statements.push(db.prepare(`UPDATE market_source_runs SET cursor=?,page_no=page_no+1,
     status=CASE WHEN ?=1 THEN 'complete' ELSE 'pending' END,lease_token=NULL,lease_until=NULL,
@@ -212,7 +277,7 @@ export async function commitObservationPage(env, input, actor, clock = () => new
     await db.batch(statements);
   } catch (error) {
     const found = replay(await readReceipt(db, lease, page), lease, hash);
-    if (found) return found;
+    if (found) return manual ? manualReplay(db,lease,page,actor,manual,hash,at) : found;
     const allowed = await primary(db).prepare(eligible).bind(...args).first();
     if (!allowed || /CHECK constraint failed: allowed=1/.test(String(error?.message))) conflict();
     throw error;

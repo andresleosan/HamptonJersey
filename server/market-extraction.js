@@ -49,7 +49,8 @@ function monthlyRent(term) {
   if (!factor) return null;
   const numerator = BigInt(term.amount_minor) * factor[0], denominator = factor[1];
   const rounded = (2n * numerator + denominator) / (2n * denominator);
-  return rounded <= MAX_MINOR ? Number(rounded) : null;
+  return rounded <= MAX_MINOR ? { rounded_minor:Number(rounded),
+    exact:{numerator_minor:String(numerator),denominator:Number(denominator),currency:term.currency} } : null;
 }
 
 function normalizeTerm(term) {
@@ -92,10 +93,10 @@ export function normalizeObservation(input) {
   if (rents.length > 1) issues.push('multiple_rents_review');
   if (rents.some(rent => rent.amount_minor != null && !knownCurrency(rent.currency))) issues.push('currency_unknown');
   if (input.operation === 'sale' && rents.length) issues.push('rent_not_for_operation_review');
-  const monthly_rent_minor = input.operation !== 'sale' && rents.length === 1 ? monthlyRent(rents[0]) : null;
+  const monthly = input.operation !== 'sale' && rents.length === 1 ? monthlyRent(rents[0]) : null;
   return { country_code: 'JE', territory_evidence: input.territory_evidence, operation: input.operation,
-    observed_at: input.observed_at, fields, present_fields, financial_terms, monthly_rent_minor,
-    monthly_rent_currency: monthly_rent_minor == null ? null : rents[0].currency, issues };
+    observed_at: input.observed_at, fields, present_fields, financial_terms, monthly_rent_minor:monthly?.rounded_minor ?? null,
+    monthly_rent_exact:monthly?.exact ?? null, monthly_rent_currency:monthly?.exact.currency ?? null, issues };
 }
 
 export function normalizeOwnListing(listing) {
