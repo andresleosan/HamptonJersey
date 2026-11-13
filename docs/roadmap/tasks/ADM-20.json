@@ -11,6 +11,7 @@
   "bloqueo": "JFSC/abogado",
   "evidencia": [
     "docs/roadmap/work/ADM-20/aviso-2026-11-13.md",
+    "docs/roadmap/work/ADM-20/reflujo-2026-11-13.md",
     "server/rentals.js",
     "server/routes/rent.js",
     "admin/src/RentalDialogs.jsx",

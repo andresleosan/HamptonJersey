@@ -36,9 +36,9 @@ const request = (page, path, method = 'GET', body) => page.evaluate(async ({ pat
       await form.getByText(/this selection does not verify it/i).waitFor();
       await form.getByText(/premium or key money/i).waitFor();
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'form fits at normal zoom');
-      if (width === 1280) {
+      if (width === 1280 || width === 390) {
         await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
-        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'form fits at 200% desktop zoom');
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'form fits at 200% zoom');
         await page.evaluate(() => { document.documentElement.style.zoom = '1'; });
       }
       await form.getByLabel("Tenant's name").fill(`Synthetic tenant ${width}`);
@@ -60,9 +60,10 @@ const request = (page, path, method = 'GET', body) => page.evaluate(async ({ pat
       await modal.getByText(/previously recorded law label stays/i).waitFor();
       await modal.getByText(/further fixed term or extension may be restricted/i).waitFor();
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'renewal fits at normal zoom');
-      if (width === 1280) {
+      if (width === 1280 || width === 390) {
         await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
-        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'renewal fits at 200% desktop zoom');
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'renewal page fits at 200% zoom');
+        assert.ok(await modal.evaluate(el => el.scrollWidth <= el.clientWidth + 1), 'renewal dialog fits at 200% zoom');
         await page.evaluate(() => { document.documentElement.style.zoom = '1'; });
       }
       await modal.getByRole('radio', { name: 'Periodic', exact: true }).check();
@@ -78,7 +79,31 @@ const request = (page, path, method = 'GET', body) => page.evaluate(async ({ pat
       if (width === 390) {
         await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
         const actual = await page.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }));
-        console.log(`KNOWN: 390px at CSS zoom 200% has legacy overflow (${actual.content}px content; ${actual.viewport}px viewport); not approved`);
+        assert.ok(actual.content <= actual.viewport + 1, `rental detail fits at 390px and 200% zoom: ${actual.content}px content in ${actual.viewport}px viewport`);
+        await page.evaluate(() => { document.documentElement.style.zoom = '1'; });
+        const second = await request(page, '/admin/rentals', 'POST', { landlord_id: owner.data.landlord.id,
+          address: 'Synthetic second ADM20 property', parish: 'St Helier', service: 'let_only' });
+        assert.equal(second.status, 201);
+        const secondTenancy = await request(page, `/admin/rentals/${second.data.rental.id}/tenancies`, 'POST', {
+          tenant_name: 'Synthetic second tenant', kind: 'fixed', regime: '2025', start_on: '2025-01-01', end_on: '2028-01-01', rent: 1000 });
+        assert.equal(secondTenancy.status, 201);
+        assert.equal((await request(page, '/admin/settings/rpi', 'PUT', { percent: 3.2, as_of: '2026-01-01' })).status, 200);
+        await page.goto(new URL(`admin/#/rentals/${second.data.rental.id}`, BASE).href);
+        const opener = page.locator(`#tenancy-${secondTenancy.data.tenancy.id}`).getByRole('button', { name: 'Change rent', exact: true });
+        await opener.click();
+        const rentDialog = page.getByRole('dialog', { name: 'Change rent', exact: true });
+        await rentDialog.getByText(/does not confirm which rules apply/i).waitFor();
+        const useEstimate = rentDialog.getByRole('button', { name: /^Use estimate in form/ });
+        await useEstimate.waitFor();
+        await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
+        assert.ok(await rentDialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1), 'rent estimate dialog fits at 200% zoom');
+        await useEstimate.click();
+        assert.ok(await rentDialog.getByLabel('New rent (£ pcm)').inputValue(), 'estimate is copied to the form');
+        const unchanged = await request(page, `/admin/tenancies/${secondTenancy.data.tenancy.id}`);
+        assert.equal(unchanged.data.tenancy.rent, 1000, 'copying an estimate does not save the rent');
+        await page.keyboard.press('Escape');
+        await rentDialog.waitFor({ state: 'hidden' });
+        assert.equal(await opener.evaluate(el => el === document.activeElement), true, 'focus returns to the opener');
       }
       assert.deepEqual(errors, []);
       await context.close();

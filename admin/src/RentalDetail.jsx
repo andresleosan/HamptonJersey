@@ -117,7 +117,7 @@ export default function RentalDetail({ id, selection='', onChange }) {
   const Dialog = dialog && DIALOGS[dialog.kind];
 
   // A div, not a section: the entrance animation of `.page>section` would make it the box the fixed action bar sits in.
-  return <div className="record">
+  return <div className="record rental-record">
     <div className="head">
       <div><h1 id="t-rental" ref={heading} tabIndex={-1}>{r.address}</h1>
         <p className="meta"><span>{r.parish}</span><span>{SERVICE[r.service]}{r.service === "full" && r.fee_percent != null && `, ${r.fee_percent}% fee`}</span><span>Landlord{" "}

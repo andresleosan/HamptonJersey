@@ -407,6 +407,10 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 /* The property page: the work column (tenancy, checks, repairs) first, so a phone shows it above the details; two columns
    from 1000px. The payment reference reads large, the balance and arrears sit together on a tinted strip. */
 .rental{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+/* Keep fixed minimum columns within the available width on the rental detail page. */
+.rental-record .kv{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+.rental-record .grid2{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+.rental-record .assistant .kv{grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr))}
 @media (min-width:1000px){.rental{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}}
 .record>.block{margin-top:24px}
 .tenancy{display:grid;gap:12px} .tenancy h3{font-size:16px;margin:8px 0 0} .tenancy p{margin:0} .tenancy>.head{margin:0;align-items:flex-start}
