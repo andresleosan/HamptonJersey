@@ -17,6 +17,26 @@ export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).
 
 const LIVE = "l.published = 1 AND l.archived_at IS NULL";
 
+// Review the exact snapshot read by the caller. Shared with staff Insights so that a listing
+// hidden by address privacy cannot reappear there. Callers must not serialize its private row.
+export async function reviewPublicListing(env, l, publicMedia) {
+  const contentEnabled = env.PUB08_CONTENT_READY === '1';
+  let visible = { ...l, public_address_snapshot: null,
+    ...(contentEnabled ? {_pub08_content:contentFromStored(l.pub08_tags,l.pub08_video_url)} : {}) };
+  let authorized = false;
+  if (l.public_address_snapshot && l.public_address_snapshot_hash) {
+    const review = await buildPublicAddressReview(visible, addressDetailsFromListing(l), publicMedia, l.drive_folder_name,
+      env.SITE_URL || 'https://hampton.test');
+    if (review.address === l.public_address_snapshot && review.public_snapshot_hash === l.public_address_snapshot_hash) {
+      visible = { ...visible, public_address_snapshot: l.public_address_snapshot };
+      authorized = true;
+    }
+  }
+  const privateShape = toPublic(visible, publicMedia);
+  if (!authorized && addressAppearsInPublicContent(l, addressDetailsFromListing(l), privateShape)) return null;
+  return { row: l, pub: privateShape };
+}
+
 // The live listings, all or the one with that id, each as its row (with its active interest, C10) and its public
 // shape: one D1 round trip (S2).
 export async function readLive(env, id, { viewingClock } = {}) {
@@ -36,23 +56,7 @@ export async function readLive(env, id, { viewingClock } = {}) {
   ];
   const [{ results: listings }, { results: media }] = await env.DB.batch(queries());
   const by = groupBy(media, "listing_id");
-  const reviewed = await Promise.all(listings.map(async l => {
-    const publicMedia = by[l.id] || [];
-    let visible = { ...l, public_address_snapshot: null,
-      ...(contentEnabled ? {_pub08_content:contentFromStored(l.pub08_tags,l.pub08_video_url)} : {}) };
-    let authorized = false;
-    if (l.public_address_snapshot && l.public_address_snapshot_hash) {
-      const review = await buildPublicAddressReview(visible, addressDetailsFromListing(l), publicMedia, l.drive_folder_name,
-        env.SITE_URL || 'https://hampton.test');
-      if (review.address === l.public_address_snapshot && review.public_snapshot_hash === l.public_address_snapshot_hash) {
-        visible = { ...visible, public_address_snapshot: l.public_address_snapshot };
-        authorized = true;
-      }
-    }
-    const privateShape = toPublic(visible, publicMedia);
-    if (!authorized && addressAppearsInPublicContent(l, addressDetailsFromListing(l), privateShape)) return null;
-    return { row: l, pub: privateShape };
-  }));
+  const reviewed = await Promise.all(listings.map(l => reviewPublicListing(env, l, by[l.id] || [])));
   if (window) {
     // Address review hashes asynchronously. Fail closed if any public input or count changed while it ran.
     const [currentListings, currentMedia] = await env.DB.batch(queries());

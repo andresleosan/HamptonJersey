@@ -326,7 +326,7 @@ textarea.short{min-height:72px}
 .figures .card{padding:16px 20px;min-width:0} .figures dd{margin:0}
 .figures dt{font-size:12px;color:var(--stone);font-weight:600}
 .figures dd.num{font:400 30px/1.25 var(--display);margin-top:4px}
-.figures.times{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))} .figures.times dt{font-size:14px;letter-spacing:0;text-transform:none;color:var(--ink)}
+.figures.times{grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr))} .figures.times dt{font-size:14px;letter-spacing:0;text-transform:none;color:var(--ink)}
 .figures.times dd.muted{margin-top:4px}
 /* A shadow on each edge with more columns behind it: the paper-coloured covers scroll with the table and hide the
    shadow once that edge is reached (so the table itself is transparent). */
@@ -563,3 +563,5 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
   .listings-screen .list.listings tr{grid-template-columns:minmax(0,1fr)}
   .listings-screen .list.listings td:first-child{grid-row:auto}
 }
+
+.insights .health-pages{display:flex;align-items:center;gap:12px;flex-wrap:wrap}

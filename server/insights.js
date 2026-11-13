@@ -98,3 +98,17 @@ export function responseTime(pairs) {
 
 // The earlier of two ISO times, either may be NULL.
 export const earliest = (a, b) => (a && b ? (a < b ? a : b) : a ?? b);
+
+// The cursor contains an aggregate-set fingerprint only. It is not an authorization credential.
+export function healthCursor(value) {
+  if (typeof value !== 'string' || value.length > 256 || !/^[A-Za-z0-9_-]+$/.test(value)) return null;
+  try {
+    const parsed = JSON.parse(atob(value.replace(/-/g, '+').replace(/_/g, '/')));
+    if (Object.keys(parsed).sort().join(',') !== 'hash,offset,version' || parsed.version !== 1 ||
+        !Number.isSafeInteger(parsed.offset) || parsed.offset < 50 || parsed.offset > 9950 || parsed.offset % 50 ||
+        !/^[0-9a-f]{64}$/.test(parsed.hash)) return null;
+    return parsed;
+  } catch { return null; }
+}
+export const makeHealthCursor = (offset, hash) => btoa(JSON.stringify({ version: 1, offset, hash }))
+  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

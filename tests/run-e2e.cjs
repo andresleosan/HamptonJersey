@@ -21,6 +21,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
     const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048,
       publicKeyEncoding: { type: 'spki', format: 'pem' }, privateKeyEncoding: { type: 'pkcs8', format: 'pem' } });
     const vars = {
+      ...(process.env.E2E_SCRIPT === "tests/listing-health.e2e.cjs" ? { LISTING_HEALTH_READY: "1" } : {}),
       SESSION_SECRET: randomBytes(32).toString('hex'),
       TURNSTILE_SITE_KEY: example.TURNSTILE_SITE_KEY,
       TURNSTILE_SECRET: example.TURNSTILE_SECRET,
@@ -37,6 +38,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
     await run(['scripts/check-release.mjs']);
     await run([vite, 'build', '--config', 'admin/vite.config.mjs']);
     await run([wrangler, 'd1', 'migrations', 'apply', 'hampton', '--local', '--persist-to', persist]);
+    // PUB-17 proposal is exercised only in this isolated synthetic fixture, never by migrations apply.
+    if (process.env.E2E_SCRIPT === 'tests/listing-health.e2e.cjs')
+      await run([wrangler, 'd1', 'execute', 'hampton', '--local', '--persist-to', persist, '--file', 'docs/roadmap/work/PUB-17/proposed-listing-health.sql']);
     await run([wrangler, 'd1', 'execute', 'hampton', '--local', '--persist-to', persist, '--file', 'tests/fixtures/seed.sql']);
     server = await startFixture({ persist, varsFile, port: 0 });
     await run([process.env.E2E_SCRIPT || 'tests/e2e.cjs'], { ...process.env, BASE: server.url.href, E2E_PERSIST: persist, E2E_VARS: varsFile });

@@ -37,9 +37,66 @@ export default function Insights() {
       <p className="muted">Counts and medians only, never who.</p></div></div>
     <div className="seg" role="group" aria-label="Period">{PERIODS.map(p =>
       <button key={p} type="button" aria-pressed={days === p} onClick={() => setDays(p)}>{p} days</button>)}</div>
+    <ListingHealth />
     {error ? <p role="alert" className="err">{error}{" "}
       <button type="button" className="btn ghost sm" onClick={() => setAttempt(a => a + 1)}>Retry</button></p>
       : !data ? <p>Loading insights…</p> : <div className="report" aria-busy={busy}><Report d={data} /></div>}
+  </section>;
+}
+
+// This block always uses its own fixed 30-day range, independently of the report selector.
+function ListingHealth() {
+  const [history, setHistory] = useState([null]);
+  const cursor = history.at(-1);
+  const [data, setData] = useState(null), [error, setError] = useState(null), [busy, setBusy] = useState(true);
+  const [attempt, setAttempt] = useState(0), [notice, setNotice] = useState(null), [shownPage, setShownPage] = useState(1);
+  useEffect(() => {
+    let stale = false;
+    const requestedPage = history.length;
+    setBusy(true); setError(null);
+    api(`/admin/insights/listing-health${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`).then(d => {
+      if (!stale) { setData(d); setShownPage(requestedPage); setBusy(false); }
+    }, e => {
+      if (stale) return;
+      if (e.status === 409 && cursor) {
+        setData(null); setNotice('Results changed; reloaded from the first page.'); setHistory([null]);
+      } else { setData(null); setError(e.message); setBusy(false); }
+    });
+    return () => { stale = true; };
+  }, [cursor, attempt]);
+  if (data?.enabled === false) return <section className="block listing-health" aria-labelledby="h-listing-health">
+    <h2 id="h-listing-health">Listings to review</h2><p className="muted">Listing health is not available yet.</p>
+  </section>;
+  return <section className="block listing-health" aria-labelledby="h-listing-health">
+    <h2 id="h-listing-health">Listings to review</h2>
+    <p className="muted">In the last 30 Jersey days, including today: at least 30 listing page opens and no more than one
+      viewing request. Opens are actions, not unique people. Requests include all sources and statuses, and do not include every enquiry.</p>
+    <p>Consider reviewing the photos and price.</p>
+    <p><strong>Counts may be incomplete</strong>. The available records do not establish complete coverage.</p>
+    <div aria-live="polite">{notice && <p>{notice}</p>}</div>
+    {error ? <p role="alert" className="err">{error}{' '}
+      <button type="button" className="btn ghost sm" onClick={() => setAttempt(a => a + 1)}>Retry</button></p>
+      : !data ? <p role="status">Loading listings…</p> : <div aria-busy={busy}>
+        <p className="muted">{fmtDay(data.period.from)} to {fmtDay(data.period.to)}, today included.
+          {' '}{data.first_day ? `First recorded view: ${fmtDay(data.first_day)}. ` : 'No view data recorded. '}
+          This observation does not establish when measurement began or whether every listing was counted.</p>
+        {data.rows.length ? <div className="table-scroll" role="region" aria-label="Listings to review table" tabIndex={0}>
+          <table className="list" aria-label="Listings to review">
+            <thead><tr><th scope="col">Listing</th><th scope="col">Reference</th>
+              <th scope="col" className="num">Views</th><th scope="col" className="num">Viewing requests</th></tr></thead>
+            <tbody>{data.rows.map(r => <tr key={r.listing_id}>
+              <th scope="row"><a href={`#/p/${encodeURIComponent(r.listing_id)}`}>{r.title || r.listing_id}</a></th>
+              <td>{r.listing_id}</td><td className="num">{n(r.views)}</td><td className="num">{n(r.viewing_requests)}</td>
+            </tr>)}</tbody>
+          </table></div> : <p className="empty card">No listings meet this rule in the available records.</p>}
+        <nav className="health-pages" aria-label="Listings to review pages">
+          <button type="button" className="btn ghost sm" disabled={busy || history.length === 1}
+            onClick={() => { setBusy(true); setNotice(null); setHistory(h => h.slice(0, -1)); }}>Previous page</button>
+          <span aria-live="polite">Page {shownPage}</span>
+          <button type="button" className="btn ghost sm" disabled={busy || !data.next_cursor}
+            onClick={() => { setBusy(true); setNotice(null); setHistory(h => [...h, data.next_cursor]); }}>Next page</button>
+        </nav>
+      </div>}
   </section>;
 }
 

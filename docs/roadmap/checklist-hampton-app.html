@@ -4596,14 +4596,20 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Insights (Most viewed listings) pone por ficha las vistas y las aperturas de galería y de tour junto a las solicitudes de visita del periodo, y el Owner report hace lo mismo con cada ficha: el equipo puede compararlas a mano.",
-   "falta": "No hay regla ni aviso: nada marca una ficha con muchas vistas y pocas consultas ni sugiere al equipo revisar el precio o las fotos.",
+   "hecho": "Insights y Owner report muestran vistas y solicitudes para comparación manual. Se preparó y revisó un aviso interno de fichas con 30 o más aperturas y como máximo una solicitud en 30 días, con cobertura desconocida explícita y pruebas locales. La función permanece apagada por defecto.",
+   "falta": "Verificar el esquema de soporte y presupuesto de lectura, transporte, memoria y CPU en D1 antes de activar; ensayar el recorrido real y ajustar la regla si procede. El SQL es una propuesta fuera de migrations y esta sesión no consultó ni modificó D1 remoto.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Insights.jsx:86-100",
     "admin/src/OwnerReport.jsx:86-98",
     "migrations/0011_daily_stats.sql:1-8",
-    "server/routes/report.js:14-23"
+    "server/routes/report.js:14-23",
+    "server/routes/insights.js",
+    "admin/src/Insights.jsx",
+    "tests/server/listing-health.test.mjs",
+    "tests/server/listing-health-scale.test.mjs",
+    "tests/listing-health.e2e.cjs",
+    "docs/roadmap/work/PUB-17/implementation-evidence.md"
    ]
   },
   {
