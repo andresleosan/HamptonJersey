@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **PUB-06 parcial:** el editor calcula de forma informativa el precio por superficie sin cambiar el texto manual. Pasaron pruebas locales y navegador aislado; siguen pendientes conciliar el criterio de premium y los gastos estructurados. [Evidencia](work/PUB-06/price-area-evidence-2026-11-13.md).
+
 13-nov-2026 · **BUS-12 parcial:** instantánea y revisiones de criterios preparadas y revisadas, sin rutas activas ni migración incorporada. El CAS operativo, la identidad y los permisos siguen pendientes; una suite local inicial falló en dos pruebas D1 y esas pruebas pasaron al repetirse por separado. [Evidencia](work/BUS-12/foundation-evidence.md).
 
 13-nov-2026 · **PUB-11 parcial:** guarda de señales documentales conocidas en medios y revalidación de visibilidad antes de responder. No acredita detección completa, limpieza de metadatos ni invalidación de cachés previas; la entrega aún no es atómica. [Evidencia](work/PUB-11/2026-11-13-public-document-guard-evidence.md).

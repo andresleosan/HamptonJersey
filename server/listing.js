@@ -1,3 +1,4 @@
+import { isValidInteriorArea } from './listing-price-area.js';
 import { priceOperation } from "./listing-pricing.js";
 import { isPublicMedia } from "./visibility.js";
 import { OPTIONS } from "./applicants.js";
@@ -53,7 +54,7 @@ function check(k, v) {
   }
   if (k === 'interior_area_sqft') {
     if (blank(v)) return null;
-    if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0 || v >= 1e8 || Math.abs(v * 100 - Math.round(v * 100)) > 1e-7)
+    if (typeof v !== 'number' || !isValidInteriorArea(v))
       bad('Enter an area above 0 with up to 2 decimal places, or leave blank');
     return v;
   }

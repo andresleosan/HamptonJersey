@@ -111,3 +111,26 @@ test('physical migration preserves existing rows and foreign keys', async () => 
   assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
   db.close();
 });
+
+test('an unchanged legacy area is preserved while unrelated edits and valid corrections remain possible', async () => {
+  const env = makeEnv(); seedListing(env); const cookie = await adminCookie();
+  env.DB.raw.prepare('UPDATE listings SET interior_area_sqft = ? WHERE id = ?').run(1e-10, 'HE-R001');
+  const first = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: {
+    updated_at: T0, title: 'Edited without changing the area', interior_area_sqft: 1e-10
+  } });
+  assert.equal(first.status, 200, first.text);
+  assert.equal(first.data.listing.interior_area_sqft, 1e-10);
+  const stale = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: {
+    updated_at: T0, title: 'Stale edit', interior_area_sqft: 1e-10
+  } });
+  assert.equal(stale.status, 409);
+  const bad = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: {
+    updated_at: first.data.listing.updated_at, interior_area_sqft: 1e-9
+  } });
+  assert.equal(bad.status, 400);
+  const fixed = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: {
+    updated_at: first.data.listing.updated_at, interior_area_sqft: 8495076.03
+  } });
+  assert.equal(fixed.status, 200, fixed.text);
+  assert.equal(fixed.data.listing.interior_area_sqft, 8495076.03);
+});

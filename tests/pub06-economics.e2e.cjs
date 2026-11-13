@@ -19,6 +19,19 @@ const BASE = process.env.BASE, vars = parseEnv(readFileSync(process.env.E2E_VARS
       await page.getByLabel('Period', { exact: true }).selectOption('year');
       assert.equal(await page.getByLabel('Business premium', { exact: true }).count(), 0);
       await page.getByLabel('Currency', { exact: true }).selectOption('GBP');
+      await page.getByLabel('Interior area (sq ft)', { exact: true }).fill('800');
+      await page.getByText('£15.00 per sq ft per year', { exact: true }).waitFor();
+      assert.equal(await page.getByLabel('Calculated price per sq ft', { exact: true }).textContent(), '£15.00 per sq ft per year');
+      await page.getByLabel('Tenure', { exact: true }).selectOption('');
+      await page.getByText('Not available with the current details', { exact: true }).waitFor();
+      await page.getByLabel('Tenure', { exact: true }).selectOption('leasehold');
+      await page.getByLabel('Rent', { exact: true }).fill('101009.09');
+      await page.getByLabel('Interior area (sq ft)', { exact: true }).fill('202');
+      await page.getByText('£500.05 per sq ft per year', { exact: true }).waitFor();
+      await page.getByLabel('Rent', { exact: true }).fill('12000');
+      await page.getByLabel('Interior area (sq ft)', { exact: true }).fill('');
+      await page.getByText('Not available with the current details', { exact: true }).waitFor();
+      await page.getByLabel('Interior area (sq ft)', { exact: true }).fill('800');
       await page.getByLabel('Price per sq ft', { exact: true }).fill('£25 per sq ft per year');
       await page.getByLabel('Rental deposit', { exact: true }).fill('£2,000');
       await page.getByLabel('Parish rates', { exact: true }).fill('£500 per year');
@@ -31,6 +44,8 @@ const BASE = process.env.BASE, vars = parseEnv(readFileSync(process.env.E2E_VARS
       await page.getByLabel('Rent', { exact: true }).waitFor();
       assert.equal(await page.getByLabel('Service charge', { exact: true }).inputValue(), `£${width} per month`);
       assert.equal(await page.getByLabel('Rent', { exact: true }).inputValue(), '12000');
+      assert.equal(await page.getByLabel('Price per sq ft', { exact: true }).inputValue(), '£25 per sq ft per year');
+      await page.getByText('£15.00 per sq ft per year', { exact: true }).waitFor();
       assert.equal(await page.getByLabel('Business premium', { exact: true }).count(), 0);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       await page.goto(BASE + 'p/HE-C001');
@@ -41,6 +56,7 @@ const BASE = process.env.BASE, vars = parseEnv(readFileSync(process.env.E2E_VARS
       await page.goto(BASE + 'admin/#/p/HE-C001');
       await page.getByLabel('Tenure', { exact: true }).selectOption('freehold');
       await page.getByLabel('Sale price', { exact: true }).fill('1250000');
+      await page.getByText('£1,562.50 per sq ft', { exact: true }).waitFor();
       assert.equal(await page.getByLabel('Rent', { exact: true }).count(), 0);
       assert.equal(await page.getByLabel('Period', { exact: true }).count(), 0);
       assert.equal(await page.getByLabel('Business premium', { exact: true }).count(), 0);

@@ -1,4 +1,5 @@
 import { priceOperation } from "../../server/listing-pricing.js";
+import { derivePricePerArea, formatPricePerArea } from "../../server/listing-price-area.js";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show, TENURE, HOUSING, RESTRICTION } from "./format.js";
@@ -504,6 +505,8 @@ export default function ListingEditor({ id, onChange }) {
         {field("currency", "Currency", <select {...ctl("currency")}><option value="">—</option><option value="GBP">GBP £</option><option value="EUR">EUR €</option></select>)}
         {field("price_text", "Displayed text (when there is no amount)", <input {...ctl("price_text")} maxLength={200} placeholder="e.g. Negotiable" />)}
         {field("price_per_sqft", "Price per sq ft", <input {...ctl("price_per_sqft")} maxLength={200} placeholder="e.g. £25 per sq ft per year" />)}
+        <div className="field"><span id="calculated-price-area-label">Calculated price per sq ft</span><output aria-labelledby="calculated-price-area-label">{formatPricePerArea(derivePricePerArea(form)) ?? "Not available with the current details"}</output>
+          <small className="muted">Calculated from the entered price and interior area. This does not change the text field.</small></div>
         {field("rental_deposit", "Rental deposit", <input {...ctl("rental_deposit")} maxLength={200} placeholder="e.g. £2,000" />)}
         {field("parish_rates", "Parish rates", <input {...ctl("parish_rates")} maxLength={200} placeholder="e.g. £500 per year" />)}
         {field("service_charge", "Service charge", <input {...ctl("service_charge")} maxLength={200} placeholder="e.g. £100 per month" />)}

@@ -1,3 +1,4 @@
+import { isValidInteriorArea } from '../listing-price-area.js';
 import { PRICE_SQL } from "../listing-pricing.js";
 import { json, fail, readJson, now } from "../http.js";
 import { validateListing, checkPrice, idPrefix, nextId, ENUMS, TO_CONFIRM } from "../listing.js";
@@ -145,11 +146,16 @@ async function update({ request, env, admin, params: [id] }) {
     return fieldErrors({ address_publication: 'Use the reviewed public snapshot step to publish an exact address' });
   const hasContent = Object.hasOwn(body,'content');
   if (hasContent && env.PUB08_CONTENT_READY !== '1') fail(404,'Not found');
-  const r = validateListing(body, { partial: true });
+  const stored = await loadListing(env, id);
+  // Keep an unchanged legacy value without permitting a new invalid value.
+  const validationBody = { ...body };
+  if (typeof validationBody.interior_area_sqft === 'number' &&
+      validationBody.interior_area_sqft === stored.interior_area_sqft &&
+      !isValidInteriorArea(validationBody.interior_area_sqft)) delete validationBody.interior_area_sqft;
+  const r = validateListing(validationBody, { partial: true });
   if (r.errors) return fieldErrors(r.errors);
   const hasDetails = Object.hasOwn(body, 'details');
   if (!Object.keys(r.value).length && !hasDetails && !hasContent) fail(400, "Nothing to save");
-  const stored = await loadListing(env, id);
   const storedDetails = await readListingDetails(env, id);
   let beforeContent=null,nextContent=null,contentFields=[],actorAt=null;
   if (hasContent) {
