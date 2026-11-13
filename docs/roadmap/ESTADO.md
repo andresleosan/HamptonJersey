@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **ADM-20 parcial:** se conservan las etiquetas legales existentes sin asignar un régimen por la fecha de renovación, y el panel advierte que corresponde verificar el ámbito y los plazos. La ficha de alquiler también corrige el reflujo con zoom. [Fuentes y límites](work/ADM-20/aviso-2026-11-13.md) · [Reflujo](work/ADM-20/reflujo-2026-11-13.md).
+
 13-nov-2026 · **PUB-06 parcial:** costes estructurados privados preparados con gate apagado, revisión explícita de moneda y comprobación estricta de auditoría. El SQL combinado con SPR-01 sigue fuera de migraciones; A3/A4 y esquema real pendientes. [Evidencia](work/PUB-06/structured-economics-evidence-2026-11-13.md).
 
 13-nov-2026 · **REG-12 parcial:** acuse igual para altas nuevas y repetidas con contacto en un día laborable; el panel señala criterios residenciales sin confirmar. La cabecera y pie móviles se adaptan al zoom. Faltan estado y resultado reales de búsqueda. [Evidencia](work/REG-12/2026-11-13-acuse-y-criterios.md) · [Reflujo](work/REG-12/2026-11-13-reflujo-publico.md).

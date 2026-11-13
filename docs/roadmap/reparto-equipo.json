@@ -50,10 +50,10 @@
       "count": 65,
       "openCount": 38,
       "states": {
-        "parcial": 23,
+        "parcial": 24,
         "hecho": 24,
         "bloqueado": 8,
-        "pendiente": 7,
+        "pendiente": 6,
         "descartado": 3
       }
     },
@@ -6997,17 +6997,22 @@
       "titulo": "Ley de alquiler de 2025: un solo plazo fijo inicial de hasta 3 años y nada de premium",
       "origen": "plan",
       "fase": "F5-A",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "Se puede hacer ya: avisar o impedir, en los contratos de la ley de 2025, un plazo fijo de más de 3 años y un segundo plazo fijo con Renew (al acabar el primero el contrato pasa a periódico); hoy New tenancy acepta cualquier duración y Renew deja poner otro. Espera a un abogado: que lo confirme junto con el resto de plazos (ADM-17) y que valide cualquier cargo al inquilino además de renta y depósito (por ejemplo por las referencias de F5-B), porque está prohibido cobrar premium o key money.",
+      "hecho": "New tenancy y Renew muestran avisos para revisión jurídica sobre ámbito, plazo fijo y premium/key money. Renew deja de cambiar la etiqueta 2011/2025 solo por fecha, conserva datos y detecta un cambio concurrente de esa etiqueta; la ficha y el asistente aclaran que es un dato registrado no verificado. Fuentes y límites en la evidencia ADM-20.",
+      "falta": "Depende de ADM-17 y de un abogado de Jersey: política versionada y evidencia aprobada, captura del ámbito y acuerdo con estado desconocido, revisión de etiquetas históricas, validación en todos los caminos de creación/edición/renovación y cargos, y controles de concurrencia y permisos completos. El asistente y otros plazos heredados no quedan jurídicamente validados. No recalificar ni borrar pagos o deudas históricas.",
       "bloqueo": "JFSC/abogado",
       "evidencia": [
-        "server/rentals.js:158-160",
-        "server/routes/rent.js:333-356",
-        "admin/src/RentalDialogs.jsx:134-151",
-        "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:86",
-        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:517-518"
+        "docs/roadmap/work/ADM-20/aviso-2026-11-13.md",
+        "docs/roadmap/work/ADM-20/reflujo-2026-11-13.md",
+        "server/rentals.js",
+        "server/routes/rent.js",
+        "admin/src/RentalDialogs.jsx",
+        "admin/src/RentalDetail.jsx",
+        "tests/server/adm-20-warnings.test.mjs",
+        "tests/adm-20-warnings.e2e.cjs",
+        "docs/superpowers/plans/2026-11-10-tp03-adm-20-plan.md",
+        "docs/superpowers/specs/2026-11-10-tp03-lifecycle-design.md"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -7028,7 +7033,8 @@
         "rentals-ui",
         "legal-parameters"
       ],
-      "nextStep": "Implementar las validaciones de contrato previstas y someter plazos y cargos a validación del abogado."
+      "nextStep": "Completar ADM-17 y la revisión del abogado; integrar ámbito y evidencia con validación y concurrencia en todos los caminos antes de dar la tarea por terminada.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "ADM-21",
