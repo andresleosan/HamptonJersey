@@ -5,7 +5,7 @@ const { execFileSync } = require("node:child_process");
 const assert = require("node:assert/strict");
 const BASE = process.env.BASE || "http://localhost:8789/";
 const persist = process.env.E2E_PERSIST || ".wrangler/e2e";
-const secret = readFileSync(".dev.vars", "utf8").match(/^SESSION_SECRET=(.+)$/m)[1].trim();
+const secret = readFileSync(process.env.E2E_VARS || ".dev.vars", "utf8").match(/^SESSION_SECRET=(.+)$/m)[1].trim();
 const d1 = sql => execFileSync("npx", ["wrangler", "d1", "execute", "hampton", "--local", "--persist-to", persist,
   "--json", "--command", sql], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 

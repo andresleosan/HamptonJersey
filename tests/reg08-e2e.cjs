@@ -29,7 +29,8 @@ const BASE=process.env.BASE, shots=process.env.E2E_SHOTS || '/tmp/reg08-captures
       await next.click();await next.click();assert.match(await form.locator('#e-parking_spaces').textContent(),/Choose/);
       await choice('parking_spaces','2');await choice('pets','dog');
       const park=form.getByRole('switch',{name:'Parking must-have',exact:true});await park.click();
-      await form.getByRole('switch',{name:'Pets must-have',exact:true}).click();
+      await form.locator('[data-pets-mandatory]').waitFor({state:'visible'});
+      assert.equal(await form.getByRole('switch',{name:'Pets must-have',exact:true}).count(),0);
       await park.click();assert.equal(await form.locator('[name=parking_spaces]:checked').inputValue(),'2');await park.click();
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
       const box=await park.boundingBox(), header=await park.locator('..').boundingBox();assert.ok(Math.abs(box.x+box.width-header.x-header.width)<3,'switch aligned right');
