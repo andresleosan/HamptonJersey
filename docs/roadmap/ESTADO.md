@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **ADM-03 parcial:** el sondeo inicial de Inbox y del contador respeta las pestañas ocultas. El reloj ya tiene productores en código; faltan verificar su estado real, resolver reparaciones inconsistentes y acreditar permisos financieros. [Evidencia](work/ADM-03/2026-11-13-sondeo-y-limites.md).
+
 13-nov-2026 · **PUB-06 parcial:** el editor calcula de forma informativa el precio por superficie sin cambiar el texto manual. Pasaron pruebas locales y navegador aislado; siguen pendientes conciliar el criterio de premium y los gastos estructurados. [Evidencia](work/PUB-06/price-area-evidence-2026-11-13.md).
 
 13-nov-2026 · **BUS-12 parcial:** instantánea y revisiones de criterios preparadas y revisadas, sin rutas activas ni migración incorporada. El CAS operativo, la identidad y los permisos siguen pendientes; una suite local inicial falló en dos pruebas D1 y esas pruebas pasaron al repetirse por separado. [Evidencia](work/BUS-12/foundation-evidence.md).

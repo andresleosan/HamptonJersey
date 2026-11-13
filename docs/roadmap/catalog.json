@@ -15151,8 +15151,8 @@
       "fase": "F5-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Solo hay avisos dentro del panel: el contador junto a Rentals (atrasos con paso pendiente, plazos vencidos o sin registrar, renovaciones, emergencias abiertas y pagos sin emparejar), que el sondeo del panel recalcula cada 30 s (caché de 10 min), y los avisos a 60, 30 y 7 días del bloque To do, que se calculan al abrir Rentals.",
-      "falta": "Se puede hacer ya: llevarlos al Inbox (hoy solo cuenta new_applicant, viewing y matched) y calcularlos en el reloj (AUT-07, ya en producción), para que salten aunque nadie abra el panel. Espera al correo y a Meta: enviar avisos por email o WhatsApp al equipo, al inquilino y al propietario (F5-B).",
+      "hecho": "El panel ofrece el contador de Rentals y avisos de plazos. El código del reloj compartido ya llama al productor común de notificaciones, que contempla atrasos, comprobaciones, plazos, renovaciones y emergencias; su activación remota no se ha verificado. El sondeo inicial de Inbox y del contador global respeta la visibilidad de la pestaña y se reanuda al volver a ella.",
+      "falta": "Verificar y corregir la pertenencia y deduplicación de avisos de reparaciones con referencias inconsistentes; integrar la autoridad financiera y permisos por caso antes de ampliar avisos de deuda; comprobar migraciones y funcionamiento del reloj en el entorno autorizado. Los canales externos siguen pendientes por separado. Una petición iniciada antes de ocultar la pestaña puede terminar.",
       "bloqueo": "Correo (AUT-17) · Trámite Meta",
       "evidencia": [
         "admin/src/App.jsx:132-133",
@@ -15161,7 +15161,9 @@
         "server/routes/rent.js:684-731",
         "server/routes/notifications.js:12",
         "server/routes/notifications.js:36-46",
-        "server/jobs.js:1-15"
+        "server/jobs.js:1-15",
+        "admin/src/poll.js",
+        "docs/roadmap/work/ADM-03/2026-11-13-sondeo-y-limites.md"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -15191,7 +15193,7 @@
         "jobs-clock",
         "email-pipeline"
       ],
-      "nextStep": "Llevar avisos de alquileres al Inbox y al reloj; los canales de correo y WhatsApp se activan por separado."
+      "nextStep": "Resolver la integridad de avisos de reparación y la autoridad financiera, y después verificar el reloj y los canales que correspondan."
     },
     {
       "id": "ADM-04",
