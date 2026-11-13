@@ -7461,8 +7461,8 @@
       "fase": "F4",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "«Add new property» (Listings) crea un borrador con título, uso, operación, disponibilidad y país, a mano o, desde el 3-nov-2026, desde una carpeta del ordenador: lee su property.txt (plantilla descargable en el mismo formulario) y sube las fotos sueltas de la carpeta en orden de nombre, reducidas en el navegador y sin GPS, con portada, planos y vista aérea según el nombre. Antes de crear enseña un resumen con lo que no se importa (líneas que no son campos, valores no válidos, HEIC, PDF, vídeos y subcarpetas, que no se leen) y avisa si el título ya existe o si el texto parece llevar un email o un teléfono. En el móvil se eligen fotos sueltas. El editor (#/p/<id>) reúne Details, Price, Description, Photos y Tour and specification con la caja «Missing from this listing».",
-      "falta": "No hay alta guiada «New instruction» por familias de datos pensada para el móvil durante la valoración, y varias familias no tienen sus campos (PUB-04 a PUB-09). La importación no convierte HEIC, no sube PDFs ni documentos (PUB-11) y no lee filas de especificación.",
+      "hecho": "«Add new property» (Listings) crea un borrador con título, uso, operación, disponibilidad y país, a mano o, desde el 3-nov-2026, desde una carpeta del ordenador: lee su property.txt (plantilla descargable en el mismo formulario) y sube las fotos sueltas de la carpeta en orden de nombre, reducidas en el navegador y sin GPS, con portada, planos y vista aérea según el nombre. Antes de crear enseña un resumen con lo que no se importa (líneas que no son campos, valores no válidos, HEIC, PDF, vídeos y subcarpetas, que no se leen) y avisa si el título ya existe o si el texto parece llevar un email o un teléfono. En el móvil se eligen fotos sueltas. El editor (#/p/<id>) reúne Details, Price, Description, Photos y Tour and specification con la caja «Missing from this listing». El editor de una ficha existente ofrece guía de seis pasos con el mismo formulario, guardado y descarte, sin publicar al terminar.",
+      "falta": "Falta integrar el alta nueva con recibo recuperable ante respuesta perdida y completar las familias de datos PUB-04 a PUB-09. La importación no convierte HEIC, no sube PDFs ni documentos (PUB-11) y no lee filas de especificación.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/Listings.jsx:68-69",
@@ -7475,7 +7475,10 @@
         "server/routes/listings.js:80-99",
         "tests/server/listing-import.test.mjs",
         "tests/e2e.cjs:816",
-        "docs/superpowers/specs/2026-11-03-hampton-app-folder-import-design.md"
+        "docs/superpowers/specs/2026-11-03-hampton-app-folder-import-design.md",
+        "docs/superpowers/plans/2026-11-10-tp02-pub-01-plan.md",
+        "admin/src/listing-guide.js",
+        "tests/pub01-guide.e2e.cjs"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -7530,7 +7533,7 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Diseñar alta móvil por familias sobre los campos existentes y coordinar los campos pendientes."
+      "nextStep": "Integrar el alta recuperable por recibo y coordinar las familias pendientes; la guía disponible solo cubre el editor de fichas existentes."
     },
     {
       "id": "PUB-02",
