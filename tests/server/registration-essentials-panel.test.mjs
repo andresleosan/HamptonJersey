@@ -42,3 +42,10 @@ test('missing priorities get one review action; no issues gives no all-clear mes
   assert.match(render({...base,requirement_priorities:null}), /Review must-have priorities/);
   assert.equal(render({...base,requirement_priorities:{version:1,values:{},unknown:[]}}), '');
 });
+
+test('contradictory answer and priority show distinct review actions without naming either optional', () => {
+  const html=render({...base,pets:[{kind:'none'}],requirement_priorities:{version:1,values:{pets:'unknown'},unknown:['pets']}});
+  assert.match(html,/Confirm Pets/);
+  assert.match(html,/Review Pets must-have priority/);
+  assert.doesNotMatch(html,/optional|preferred/i);
+});

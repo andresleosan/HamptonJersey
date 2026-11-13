@@ -74,3 +74,29 @@ test('reviewing an answered unknown priority does not turn it into preferred aft
   assert.equal(prioritiesFor(p,edited).values.near,'unknown');
   assert.deepEqual(p,{version:1,values:{near:'unknown'},unknown:[]});
 });
+
+test('unanswered unknown priorities and unknown answers without a priority require review', () => {
+  const applicant = search({ near:null, bedrooms_min:null, pets:[],
+    requirement_priorities:{version:1,values:{near:'unknown',bedrooms:'unknown'},unknown:['pets']} });
+  assert.deepEqual(compact(missingSearchEssentials(applicant)), [
+    {key:'bedrooms',field:'bedrooms_min',reason:'priority_missing'},
+    {key:'pets',field:'pets',reason:'priority_missing'},
+    {key:'near',field:'near',reason:'priority_missing'},
+  ]);
+});
+
+test('contradictory answer and priority metadata remain open without assuming optional', () => {
+  const applicant = search({area_answer:'any',parking_spaces:0,pets:[{kind:'none'}],
+    requirement_priorities:{version:1,values:{parking:'must',area:'preferred',pets:'unknown'},unknown:['area','pets']} });
+  assert.deepEqual(compact(missingSearchEssentials(applicant)), [
+    {key:'parking',field:'parking_spaces',reason:'priority_missing'},
+    {key:'area',field:'parishes_wanted',reason:'answer_missing'},
+    {key:'pets',field:'pets',reason:'answer_missing'},
+    {key:'pets',field:'pets',reason:'priority_missing'},
+  ]);
+});
+
+test('an explicitly preferred unanswered answer is not promoted to a must-have', () => {
+  const applicant=search({pets:[],requirement_priorities:{version:1,values:{pets:'preferred'},unknown:['pets']}});
+  assert.deepEqual(missingSearchEssentials(applicant),[]);
+});

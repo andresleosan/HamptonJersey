@@ -18,12 +18,15 @@ export function missingSearchEssentials(applicant) {
   const result = [];
   for (const key of keys) {
     if (applicant.operation === 'buy' && RENT_CRITERIA.includes(key)) continue;
-    const priority = priorities.values[key];
-    // A stored unknown remains unresolved even if the accompanying answer is contradictory.
-    if (priority === 'must' && priorities.unknown.includes(key)) result.push(missing(key, 'answer_missing'));
-    else if (notApplicable(key, applicant)) continue;
-    else if (priority === 'must' && !hasAnswer(key, applicant)) result.push(missing(key, 'answer_missing'));
-    else if (priority === 'unknown' && hasAnswer(key, applicant)) result.push(missing(key, 'priority_missing'));
+    const priority = priorities.values[key], answered = hasAnswer(key, applicant);
+    const unknown = priorities.unknown.includes(key), inapplicable = notApplicable(key, applicant);
+    // An explicit unknown conflicting with a saved answer is unresolved even for an otherwise optional criterion.
+    if (unknown && answered) result.push(missing(key, 'answer_missing'));
+    if (priority === 'must' && !answered) result.push(missing(key, 'answer_missing'));
+    else if (priority === 'must' && inapplicable && !unknown) result.push(missing(key, 'priority_missing'));
+    // Missing priority metadata never turns an explicit unknown answer into a preferred requirement.
+    if ((priority === 'unknown' || (unknown && !Object.hasOwn(priorities.values, key))) && (!inapplicable || unknown))
+      result.push(missing(key, 'priority_missing'));
   }
   return result;
 }

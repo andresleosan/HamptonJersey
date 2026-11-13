@@ -131,19 +131,22 @@ const BASE=process.env.BASE, shots=process.env.E2E_SHOTS || '/tmp/reg08-captures
       const response=await fetch('/api/admin/applicants',{method:'POST',headers:{'content-type':'application/json'},
         body:JSON.stringify({name:'Synthetic priority review',email:'reg12-priority@example.test',source:'phone',
           operation:'rent',near:'Work',budget_max:2000,
-          requirement_priorities:{version:1,values:{near:'unknown'},unknown:[]}})});
+          requirement_priorities:{version:1,values:{near:'unknown',bedrooms:'unknown'},unknown:['pets']}})});
       return {status:response.status,data:await response.json()};
     });
     assert.equal(legacy.status,201);
     await page.goto(BASE+`admin/#/applicants/${legacy.data.id}`);
     const priorities=page.locator('section[aria-labelledby="essential-heading"]');
     await priorities.getByRole('button',{name:'Review Near somewhere must-have priority'}).waitFor();
+    await priorities.getByRole('button',{name:'Review Bedrooms must-have priority'}).waitFor();
+    await priorities.getByRole('button',{name:'Review Pets must-have priority'}).waitFor();
     assert.doesNotMatch(await priorities.innerText(),/optional|preferred/i);
     await page.locator('#a-budget_max').fill('2100');
     const savedUnknown=page.waitForResponse(r=>r.url().endsWith(`/admin/applicants/${legacy.data.id}`)&&r.request().method()==='PUT');
     await page.getByRole('button',{name:'Save',exact:true}).click();
     const result=await savedUnknown; assert.equal(result.status(),200);
-    assert.equal((await result.json()).applicant.requirement_priorities.values.near,'unknown');
+    assert.deepEqual((await result.json()).applicant.requirement_priorities,
+      {version:1,values:{near:'unknown',bedrooms:'unknown'},unknown:['pets']});
     await priorities.getByRole('button',{name:'Review Near somewhere must-have priority'}).waitFor();
     assert.deepEqual(errors,[]);
     assert.deepEqual(reflowFailures,[],'200% reflow must fit in both screens');
