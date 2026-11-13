@@ -26,15 +26,8 @@ test('a web absence or failure never confirms commercial unavailability', () => 
 });
 
 test('no fact crosses property, operation, advertiser or publication scope', () => {
-  for (const changed of [{property_id:'property-2'}, {operation:'sale'}, {advertiser_id:'advertiser-2'}, {publication_id:'publication-2'}, {advertiser_id:null}, {publication_id:null}]) {
+  for (const changed of [{property_id:'property-2'}, {operation:'sale'}, {advertiser_id:'advertiser-2'}, {publication_id:'publication-2'}]) {
     assert.equal(resolve([human('h1','unavailable',10,{scope:{...scope,...changed}})]).disposition, 'not_confirmed');
-  }
-});
-
-test('only later human confirmation can supersede a negative; simultaneous conflict requires review', () => {
-  assert.equal(resolve([human('h1','unavailable',10), human('h2','available',11)]).disposition, 'not_confirmed');
-  for (const facts of [[human('h1','unavailable',10), human('h2','available',10)], [human('h2','available',10), human('h1','unavailable',10)]]) {
-    const result = resolve(facts); assert.equal(result.disposition, 'review'); assert.equal(result.needs_review, true);
   }
 });
 
@@ -45,4 +38,42 @@ test('future or unreceived facts do not take effect; malformed, duplicate and in
   assert.throws(() => resolve([human('h1','unavailable',10,{received_at:at(9)})]));
   assert.throws(() => resolve([human('h1','unavailable',10,{scope:{...scope,extra:'x'}})]));
   const sparse = [human('h1','unavailable',10)]; sparse.length = 2; assert.throws(() => resolve(sparse));
+});
+
+test('a property or operation negative covers only its descendants', () => {
+  const property = {...scope, operation:null, advertiser_id:null, publication_id:null};
+  const rental = {...scope, advertiser_id:null, publication_id:null};
+  const advertiser = {...scope, publication_id:null};
+  for (const broad of [property, rental, advertiser, scope]) {
+    assert.equal(resolve([human('h1','unavailable',10,{scope:broad})]).disposition, 'blocked');
+  }
+  assert.equal(resolve([human('h1','unavailable',10,{scope:rental})], {scope:{...scope, operation:'sale'}}).disposition, 'not_confirmed');
+  assert.equal(resolve([human('h1','unavailable',10,{scope})], {scope:rental}).disposition, 'not_confirmed');
+  assert.throws(() => resolve([], {scope:{...scope, advertiser_id:null}}));
+  assert.throws(() => resolve([], {scope:{...scope, operation:null, publication_id:null}}));
+});
+
+test('available is not a reviewed reactivation and tied conflict retains an exclusion', () => {
+  const negative = human('h1','unavailable',10);
+  for (const positive of [human('h2','available',10), human('h2','available',11)]) {
+    for (const facts of [[negative,positive],[positive,negative]]) {
+      const result = resolve(facts);
+      assert.equal(result.disposition,'blocked');
+      assert.equal(result.needs_review,true);
+      assert.equal(result.evidence_ref,'evidence-h1');
+    }
+  }
+});
+
+test('accessors, inherited values and hostile proxies cannot change validated facts', () => {
+  const flipping = human('h1','unavailable',10);
+  Object.defineProperty(flipping, 'status', {enumerable:true, get() { return 'unavailable'; }});
+  assert.throws(() => resolve([flipping]));
+  const inherited = Object.assign(Object.create({injected:true}),human('h1','unavailable',10));
+  assert.throws(() => resolve([inherited]));
+  const scopeGetter = {...scope}; Object.defineProperty(scopeGetter,'operation',{enumerable:true,get(){return 'rent';}});
+  assert.throws(() => resolve([human('h1','unavailable',10,{scope:scopeGetter})]));
+  assert.throws(() => resolve([new Proxy({}, {ownKeys(){throw new Error('hostile');}})]), TypeError);
+  const sparse = [human('h1','unavailable',10)]; Object.defineProperty(sparse,'0',{get(){return human('h1','unavailable',10);}});
+  assert.throws(() => resolve(sparse));
 });

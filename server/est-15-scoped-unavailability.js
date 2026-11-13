@@ -1,66 +1,83 @@
-// Pure, disconnected calculation over caller-supplied declarations. It does not
-// verify identity, authorization, evidence, completeness or permit any action.
+// Pure and disconnected. No caller, authority, evidence or completeness is verified.
+// Neither absence of a block nor a review result permits an action.
 const ID = /^[A-Za-z0-9_-]{1,100}$/;
 const operations = new Set(['sale', 'rent', 'business']);
 const scopeKeys = ['property_id', 'operation', 'advertiser_id', 'publication_id'];
 const commonKeys = ['id', 'scope', 'kind', 'status', 'observed_at', 'received_at'];
 
-function exactObject(value, keys) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)
-      || Object.keys(value).length !== keys.length || keys.some(key => !Object.hasOwn(value, key))) {
-    throw new TypeError('Invalid declaration');
-  }
+// Copy each own data descriptor once; never evaluate caller-controlled getters.
+function dto(value, keys) {
+  if (!value || typeof value !== 'object' || Object.getPrototypeOf(value) !== Object.prototype) throw new TypeError('Invalid declaration');
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const ownKeys = Reflect.ownKeys(descriptors);
+  if (ownKeys.length !== keys.length || keys.some(key => !Object.hasOwn(descriptors, key))
+      || ownKeys.some(key => typeof key !== 'string' || !Object.hasOwn(descriptors[key], 'value'))) throw new TypeError('Invalid declaration');
+  return Object.fromEntries(keys.map(key => [key, descriptors[key].value]));
 }
-function scopeValue(scope) {
-  exactObject(scope, scopeKeys);
-  if (!ID.test(scope.property_id) || typeof scope.property_id !== 'string' || !operations.has(scope.operation)
-      || !['advertiser_id', 'publication_id'].every(key => scope[key] === null
-        || (typeof scope[key] === 'string' && ID.test(scope[key])))) throw new TypeError('Invalid scope');
-  return Object.fromEntries(scopeKeys.map(key => [key, scope[key]]));
+function scopeValue(value) {
+  const scope = dto(value, scopeKeys);
+  if (typeof scope.property_id !== 'string' || !ID.test(scope.property_id)
+      || !(scope.operation === null || operations.has(scope.operation))
+      || !['advertiser_id', 'publication_id'].every(key => scope[key] === null || (typeof scope[key] === 'string' && ID.test(scope[key])))
+      || (scope.operation === null && (scope.advertiser_id !== null || scope.publication_id !== null))
+      || (scope.advertiser_id === null && scope.publication_id !== null)) throw new TypeError('Invalid scope');
+  return scope;
 }
 function instant(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value)) throw new TypeError('Invalid instant');
   const date = new Date(value);
   if (!Number.isFinite(date.getTime()) || date.toISOString() !== value) throw new TypeError('Invalid instant');
 }
-function validate(fact) {
-  if (!fact || typeof fact !== 'object') throw new TypeError('Invalid fact');
-  const human = fact.kind === 'human';
-  exactObject(fact, human ? [...commonKeys, 'reason', 'evidence_ref'] : commonKeys);
-  const scope = scopeValue(fact.scope);
+function validate(value) {
+  // Snapshot the complete set first, then choose and validate its schema.
+  if (!value || typeof value !== 'object' || Object.getPrototypeOf(value) !== Object.prototype) throw new TypeError('Invalid fact');
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const keys = Reflect.ownKeys(descriptors);
+  if (keys.some(key => typeof key !== 'string' || !Object.hasOwn(descriptors[key], 'value'))) throw new TypeError('Invalid fact');
+  const fact = Object.fromEntries(keys.map(key => [key, descriptors[key].value]));
+  const expected = fact.kind === 'human' ? [...commonKeys, 'reason', 'evidence_ref'] : commonKeys;
+  if (keys.length !== expected.length || expected.some(key => !Object.hasOwn(fact, key))) throw new TypeError('Invalid fact');
+  fact.scope = scopeValue(fact.scope);
   if (typeof fact.id !== 'string' || !ID.test(fact.id)) throw new TypeError('Invalid id');
-  if (human) {
-    if (!['available', 'unavailable'].includes(fact.status) || typeof fact.reason !== 'string'
-        || !fact.reason.trim() || fact.reason.length > 500 || typeof fact.evidence_ref !== 'string'
-        || !ID.test(fact.evidence_ref)) throw new TypeError('Invalid human confirmation');
-  } else if (fact.kind !== 'web' || !['visible', 'modified', 'not_found', 'source_failed'].includes(fact.status)) {
-    throw new TypeError('Invalid observation');
-  }
+  if (fact.kind === 'human') {
+    if (!['available', 'unavailable'].includes(fact.status) || typeof fact.reason !== 'string' || !fact.reason.trim()
+        || fact.reason.length > 500 || typeof fact.evidence_ref !== 'string' || !ID.test(fact.evidence_ref)) throw new TypeError('Invalid human confirmation');
+  } else if (fact.kind !== 'web' || !['visible', 'modified', 'not_found', 'source_failed'].includes(fact.status)) throw new TypeError('Invalid observation');
   instant(fact.observed_at); instant(fact.received_at);
   if (fact.received_at < fact.observed_at) throw new TypeError('Receipt precedes observation');
-  return { ...fact, scope };
+  return fact;
 }
-
-export function resolveScopedUnavailability(facts, { scope, as_of } = {}) {
+function covers(parent, child) {
+  return parent.property_id === child.property_id && scopeKeys.slice(1).every(key => parent[key] === null || parent[key] === child[key]);
+}
+function calculate(input, options) {
+  const { scope, as_of } = dto(options, ['scope', 'as_of']);
   const target = scopeValue(scope);
   instant(as_of);
-  if (!Array.isArray(facts) || facts.length > 5000) throw new TypeError('Invalid facts');
+  if (!Array.isArray(input) || Object.getPrototypeOf(input) !== Array.prototype) throw new TypeError('Invalid facts');
+  const descriptors = Object.getOwnPropertyDescriptors(input);
+  const length = descriptors.length?.value;
+  if (!Number.isSafeInteger(length) || length < 0 || length > 5000 || Reflect.ownKeys(descriptors).length !== length + 1) throw new TypeError('Invalid facts');
   const ids = new Set(), relevant = [];
-  for (let index = 0; index < facts.length; index++) {
-    if (!Object.hasOwn(facts, index)) throw new TypeError('Incomplete facts');
-    const fact = validate(facts[index]);
+  for (let index = 0; index < length; index++) {
+    const descriptor = descriptors[index];
+    if (!descriptor || !Object.hasOwn(descriptor, 'value')) throw new TypeError('Incomplete facts');
+    const fact = validate(descriptor.value);
     if (ids.has(fact.id)) throw new TypeError('Duplicate id');
     ids.add(fact.id);
-    if (scopeKeys.every(key => fact.scope[key] === target[key]) && fact.observed_at <= as_of && fact.received_at <= as_of) relevant.push(fact);
+    if (fact.observed_at <= as_of && fact.received_at <= as_of && (covers(fact.scope, target) || covers(target, fact.scope))) relevant.push(fact);
   }
-  const confirmations = relevant.filter(fact => fact.kind === 'human');
   const base = { scope: target, disposition: 'not_confirmed', confirmed_at: null, evidence_ref: null, needs_review: false };
-  if (!confirmations.length) return base;
-  const latest = confirmations.reduce((max, fact) => fact.observed_at > max ? fact.observed_at : max, confirmations[0].observed_at);
-  const current = confirmations.filter(fact => fact.observed_at === latest);
-  if (new Set(current.map(fact => fact.status)).size > 1) return { ...base, disposition: 'review', needs_review: true };
-  if (current[0].status !== 'unavailable') return base;
-  const evidence = current.map(fact => fact.evidence_ref).sort()[0];
-  const needsReview = relevant.some(fact => fact.kind === 'web' && ['visible', 'modified'].includes(fact.status) && fact.observed_at >= latest);
-  return { scope: target, disposition: 'blocked', confirmed_at: latest, evidence_ref: evidence, needs_review: needsReview };
+  const negatives = relevant.filter(fact => fact.kind === 'human' && fact.status === 'unavailable' && covers(fact.scope, target));
+  if (!negatives.length) return base;
+  negatives.sort((a, b) => b.observed_at.localeCompare(a.observed_at) || a.id.localeCompare(b.id));
+  const latest = negatives[0];
+  const needsReview = relevant.some(fact => fact.observed_at >= latest.observed_at
+    && ((fact.kind === 'web' && ['visible', 'modified'].includes(fact.status))
+      || (fact.kind === 'human' && fact.status === 'available' && covers(fact.scope, target))));
+  return { scope: target, disposition: 'blocked', confirmed_at: latest.observed_at, evidence_ref: latest.evidence_ref, needs_review: needsReview };
+}
+export function resolveScopedUnavailability(facts, options) {
+  try { return calculate(facts, options); }
+  catch { throw new TypeError('Invalid scoped unavailability input'); }
 }
