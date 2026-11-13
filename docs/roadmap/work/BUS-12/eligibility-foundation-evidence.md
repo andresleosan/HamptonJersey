@@ -17,3 +17,5 @@ Fixtures sintéticos de `tests/server/search-eligibility.test.mjs`: clasificaci�
 ## Endurecimiento de entrada
 
 La función solo acepta registros ordinarios (prototipo `Object.prototype` o nulo) y propiedades propias de datos para los campos requeridos; copia cada valor una vez y falla cerrado si su inspección produce una excepción. Rechaza arrays, funciones, propiedades heredadas y accessors. No existe detección general de proxies sofisticados: el adaptador debe entregar DTO fiables de un snapshot transaccional y revalidar antes de efectos. Las pruebas incluyen getters cambiantes y que lanzan, registros heredados y proxies revocados; no prueban la integridad de productores externos.
+
+Integración del 13-nov: pasaron 2.105 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes. Playwright: no aplica. El predicado sigue desconectado y requiere cobertura triestado, DTO fiable y snapshot coherente antes de utilizarse para concluir ausencia.

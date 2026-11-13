@@ -462,3 +462,7 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **BUS-17, reloj puro 13-nov:** preparados los plazos 21/7 días en hora Jersey con baseline explícita y pruebas de cambios de hora. Revisión independiente sin hallazgos; aún no hay consumidor, tareas ni garantía de opción completa o unicidad. BUS-17 sigue parcial. [Evidencia](work/BUS-17/reloj-jersey-2026-11-13.md). Playwright: no aplica.
 
 **Integración EUR/BUS-17 13-nov:** pasaron 2.095 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes; el navegador aislado del flujo EUR pasó en 1280/390. Ambas tareas siguen parciales y el catálogo conserva 68/215 (31,63 %). No se consultó producción ni se activó el reloj BUS-17.
+
+**BUS-12/BUS-17, opción completa 13-nov:** predicado puro revisado y endurecido ante entradas malformadas; 19 pruebas focales de elegibilidad y reloj pasaron. Sigue desconectado: false no acredita ausencia, y el futuro consumidor necesita cobertura completa, agregado triestado, DTO fiable y snapshot revalidado. Ambas tareas siguen parciales. [Evidencia](work/BUS-12/eligibility-foundation-evidence.md). Playwright: no aplica.
+
+**Integración de elegibilidad BUS-12/BUS-17 13-nov:** pasaron 2.105 pruebas JavaScript, 25 Python, build, release, catálogo y paquetes. El predicado sigue desconectado; ambas tareas permanecen parciales. Playwright: no aplica. El catálogo conserva 68/215 (31,63 %).
