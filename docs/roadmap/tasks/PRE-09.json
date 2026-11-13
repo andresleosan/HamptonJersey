@@ -6,8 +6,8 @@
   "fase": "F0",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "La web tiene #/privacy (responsable, usos, base legal, encargados, plazos, derechos y contacto), enlazado en el pie y obligatorio en el último paso de Register your search.",
-  "falta": "Faltan la razón social y el número de la JOIC (hoy dice Hampton Estates, 42 Bath Street) y el aviso en el portal, que no existe. Además, el formulario de visitas no lo enlaza junto a Request viewing (solo desde el pie), y el aviso no cubre a propietarios e inquilinos de Rentals (6 años, R19) ni nombra a Google (fuentes de la web) ni a los reproductores de tours, que reciben la IP del visitante.",
+  "hecho": "La web tiene #/privacy (responsable, usos, base legal, encargados, plazos, derechos y contacto), enlazado en el pie y obligatorio en el último paso de Register your search. El formulario de solicitud de visita enlaza al aviso junto al botón tanto en inicio como en la ficha; se abre en otra pestaña sin perder el formulario.",
+  "falta": "Faltan la razón social y el número de la JOIC (hoy dice Hampton Estates, 42 Bath Street) y el aviso en el portal, que no existe. Además, el aviso no cubre a propietarios e inquilinos de Rentals (6 años, R19) ni nombra a Google (fuentes de la web) ni a los reproductores de tours, que reciben la IP del visitante.",
   "bloqueo": "Dato de Hampton",
   "evidencia": [
     "site/apply.js:298-363",
@@ -17,7 +17,8 @@
     "site/index.html:30-32",
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:82",
     "docs/roadmap/ESTADO.md:8",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:489"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:489",
+    "tests/pre09-viewing-privacy.e2e.cjs"
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
