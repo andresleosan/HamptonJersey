@@ -496,3 +496,5 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **BUS-06, reconciliación documental 13-nov:** el lector rechaza claves duplicadas, incluidas anidadas y escapadas equivalentes, sin sobrescribir salida; revisión independiente y 15 pruebas sintéticas. No se leyó el candidato privado ni se habilitaron fuentes; las huellas no autentican al revisor. BUS-06 sigue parcial. [Evidencia](work/BUS-06/avance-publicable.md). Playwright: no aplica.
 
 **ADM-21, núcleo parcial 13-nov:** codificador CSV aislado revisado con datos sintéticos; sin lectura real ni descarga. Faltan ADM-09/10, límites de integración y validación contable. Lote BUS-06/ADM-21: 2.168 pruebas JavaScript y 29 Python, build, release, catálogo y paquetes correctos. [Evidencia](work/ADM-21/avance-publicable.md). Playwright: no aplica.
+
+**BUS-06, vista parcial:** recorridos y cobertura de solo lectura bajo el gate existente; 21 pruebas focales, 2.168 JavaScript y 29 Python en suite, build/release y navegador aislado sintético a 390/1280 y zoom 200 %, con revisión independiente. No acredita montaje completo ni fuentes reales. [Evidencia](work/BUS-06/avance-publicable.md).
