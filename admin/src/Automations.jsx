@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtDate, fmtDay } from "./format.js";
 import MarketInventory from "./MarketInventory.jsx";
+import SourceAccessReview from "./SourceAccessReview.jsx";
 import EmailSettings from "./EmailSettings.jsx";
 
 // AUT-01 (spec 2026-11-01): what runs on its own, when it last ran and whether it has stopped. The bar's counts poll
@@ -64,6 +65,7 @@ export default function Automations({ stalled, outbound, onChange }) {
     <WebChat initial={d.webchat} />
     <EmailSettings />
     <MarketInventory />
+    <SourceAccessReview />
     <Sending outbound={outbound} onChange={onChange} />
   </section>;
 }
