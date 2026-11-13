@@ -1,3 +1,4 @@
+import { ECONOMIC_FIELDS, economicValue } from '../../server/listing-economics.js';
 import { priceOperation } from "../../server/listing-pricing.js";
 import { derivePricePerArea, formatPricePerArea } from "../../server/listing-price-area.js";
 import { useEffect, useRef, useState } from "react";
@@ -30,10 +31,11 @@ const FIELDS = ["title", "use", "property_type", "operation", "availability", "c
   "interior_area_sqft", "separate_wcs", "reception_rooms", "has_garage", "has_storage", "has_lift", "double_glazing",
   "floor_level", "building_floors", "year_built", "heating_types", "amenities", "feature_overrides"];
 const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "interior_area_sqft", "separate_wcs",
-  "reception_rooms", "has_garage", "has_storage", "has_lift", "double_glazing", "floor_level", "building_floors", "year_built"];
+  "reception_rooms", "has_garage", "has_storage", "has_lift", "double_glazing", "floor_level", "building_floors", "year_built",
+  "rental_deposit_amount", "parish_rates_amount", "service_charge_amount"];
 // Keep custom hours while the form temporarily uses general availability. This draft-only key is not sent by toBody,
 // and toForm resets it on load, a successful save and Discard.
-const toForm = l => ({ ...Object.fromEntries(FIELDS.map(k => [k, k === "specs" ? l.specs
+const toForm = (l, structured = false) => ({ ...Object.fromEntries([...FIELDS, ...(structured ? ECONOMIC_FIELDS : [])].map(k => [k, k === "specs" ? l.specs
   : k === "viewings_enabled" ? l[k] ?? 1 : k === "viewing_hours" ? l[k] ?? null : k === 'feature_overrides' ? structuredClone(l[k] ?? {}) : l[k] ?? ""])),
   viewing_hours_draft: l.viewing_hours ?? [] });
 const DETAIL_FIELDS = ["building_name_or_number", "postcode", "property_condition", "developer_name"];
@@ -41,7 +43,7 @@ const toDetailsForm = d => Object.fromEntries(DETAIL_FIELDS.map(k => [k, d?.[k] 
 const toDetailsBody = d => Object.fromEntries(DETAIL_FIELDS.map(k => [k, d[k] === "" ? null : d[k]]));
 const toContentForm = c => ({tags:Array.isArray(c?.tags) ? [...c.tags] : [],video_url:c?.video_url ?? ''});
 const toContentBody = c => ({tags:Object.keys(CONTENT_TAGS).filter(tag=>c.tags.includes(tag)),video_url:c.video_url || null});
-const toBody = f => Object.fromEntries(FIELDS.map(k => [k,
+const toBody = f => Object.fromEntries([...FIELDS, ...ECONOMIC_FIELDS.filter(k => Object.hasOwn(f, k))].map(k => [k,
   NUMERIC.includes(k) ? (f[k] === "" ? null : Number(f[k]))
     : k === "specs" ? f.specs.filter(s => s.label.trim() || s.value.trim())
     : f[k] === "" ? null : f[k]]));
@@ -90,7 +92,7 @@ export default function ListingEditor({ id, onChange }) {
     setLoadErr(null);
     try {const d=await api(`/admin/listings/${id}`);if(n!==loadRequest.current)return;
       if (!Array.isArray(d.media)) throw new Error("Listing photos could not be loaded. Reload and try again.");
-      setData(d);setForm(toForm(d.listing));setDetailsForm(toDetailsForm(d.details));setContentForm(d.content_tracking ? toContentForm(d.content) : null);setAddressReview(null);setAddressReviewError(null);
+      setData(d);setForm(toForm(d.listing, d.structured_economics));setDetailsForm(toDetailsForm(d.details));setContentForm(d.content_tracking ? toContentForm(d.content) : null);setAddressReview(null);setAddressReviewError(null);
       setAddressEvidenceRef("");setAddressReviewAuthorized(false);setMatchForm(toMatchForm(d.listing));setErrors({});setDeleted(false);historyChanged();
     } catch(e) {
       if(n!==loadRequest.current)return;
@@ -114,7 +116,7 @@ export default function ListingEditor({ id, onChange }) {
   useEffect(() => { if (forSale) api(`/admin/listings/${id}/offers`).then(setOffers, () => setOffers({ failed: true })); }, [forSale]);
   const matchesReq = useRef(0);
   const photos = useRef({ dirty: false }), [photosDirty, setPhotosDirty] = useState(false);
-  const fieldsDirty = !!data && !!form && (JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing)))
+  const fieldsDirty = !!data && !!form && (JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing, data.structured_economics)))
     || Object.keys(changedMatchForm(matchForm, data.listing)).length > 0);
   const detailsDirty = !!data && !!detailsForm && JSON.stringify(toDetailsBody(detailsForm)) !== JSON.stringify(toDetailsBody(toDetailsForm(data.details)));
   const contentDirty = !!data?.content_tracking && !!contentForm && JSON.stringify(toContentBody(contentForm)) !== JSON.stringify(toContentBody(toContentForm(data.content)));
@@ -129,7 +131,7 @@ export default function ListingEditor({ id, onChange }) {
   if (!data) return <p>Loading listing…</p>;
   const l = data.listing, state = stateOf(l);
   const setListing = (listing, details, content) => { setData(d => ({ ...d, listing, ...(details ? { details } : {}), ...(content ? {content} : {}) }));
-    setForm(toForm(listing)); if (content) setContentForm(toContentForm(content));
+    setForm(toForm(listing, data.structured_economics)); if (content) setContentForm(toContentForm(content));
     if (details) { setDetailsForm(toDetailsForm(details)); setAddressReview(null); setAddressReviewError(null);
       setAddressEvidenceRef(""); setAddressReviewAuthorized(false); }
     setMatchForm(toMatchForm(listing)); setErrors({}); historyChanged(); };
@@ -144,6 +146,14 @@ export default function ListingEditor({ id, onChange }) {
   // One Save for fields and photos: fields first, then photos with the updated_at the fields save returned.
   const save = async () => {
     const draftErrors = {};
+    if (data.structured_economics) for (const key of ['rental_deposit_amount', 'parish_rates_amount', 'service_charge_amount']) {
+      const raw = form[key];
+      if (raw === '') continue;
+      // Keep decimal text exact until it has passed validation; do not let an
+      // exponent underflow or Infinity serialize to a fictitious zero/null.
+      if (!/^\d+(?:\.\d{1,2})?$/.test(String(raw))) { draftErrors[key] = 'Enter an amount with up to 2 decimal places'; continue; }
+      try { economicValue(key, Number(raw)); } catch (error) { draftErrors[key] = error.message; }
+    }
     for (const key of ['heating_types', 'amenities']) if (Array.isArray(form[key]) && form[key].includes(''))
       draftErrors[key] = 'Choose at least one value, or choose None or Unknown';
     for (const key of ['pets', 'parking', 'furnished']) if (form.feature_overrides[key] === '')
@@ -172,7 +182,7 @@ export default function ListingEditor({ id, onChange }) {
       setErrors(fields); setMsg({ text: e.message }); }
     finally { setBusy(false); }
   };
-  const discard = () => { setForm(toForm(l)); setDetailsForm(toDetailsForm(data.details));
+  const discard = () => { setForm(toForm(l, data.structured_economics)); setDetailsForm(toDetailsForm(data.details));
     setContentForm(data.content_tracking ? toContentForm(data.content) : null); setAddressReview(null); setAddressReviewError(null);
     setAddressEvidenceRef(""); setAddressReviewAuthorized(false);
     setMatchForm(toMatchForm(l)); setErrors({}); photos.current.discard?.(); setMsg(null); };
@@ -513,12 +523,23 @@ export default function ListingEditor({ id, onChange }) {
         {field("utilities_included", "Utilities included", <input {...ctl("utilities_included")} maxLength={300} placeholder="e.g. Water and heating" />)}
         {field("available_on", "Available from", <><input {...ctl("available_on", { "aria-describedby": `hint-available-on${errors.available_on ? " e-available_on" : ""}` })} type="date" />
           <small id="hint-available-on" className="muted">Leave blank if unknown. This does not confirm availability.</small></>)}
-      </div></section>
+      </div>
+        {data.structured_economics && <div><h3>Staff-only costs</h3>
+          <p className="muted">These amounts are for staff. The public listing uses the text fields above and does not update from these amounts. Leave unknown amounts blank; 0 means none.</p>
+          <div className="grid2">
+            {['rent', 'business'].includes(form.operation) && field('rental_deposit_amount', 'Rental deposit amount',
+              <input {...ctl('rental_deposit_amount')} type="number" min="0" max="9999999999.99" step="0.01" inputMode="decimal" />)}
+            {field('parish_rates_amount', 'Parish rates amount', <input {...ctl('parish_rates_amount')} type="number" min="0" max="9999999999.99" step="0.01" inputMode="decimal" />)}
+            {field('parish_rates_period', 'Parish rates period', <select {...ctl('parish_rates_period')}><option value="">Unknown</option><option value="month">Per month</option><option value="year">Per year</option></select>)}
+            {field('service_charge_amount', 'Service charge amount', <input {...ctl('service_charge_amount')} type="number" min="0" max="9999999999.99" step="0.01" inputMode="decimal" />)}
+            {field('service_charge_period', 'Service charge period', <select {...ctl('service_charge_period')}><option value="">Unknown</option><option value="month">Per month</option><option value="year">Per year</option></select>)}
+          </div></div>}
+      </section>
 
       <section id="s-description" className="card" aria-labelledby="h-desc"><h2 id="h-desc">Description</h2>
         {/* AUT-13: on a listing on the website only (H9). A used draft fills the form like typing; Save is the approval (H10). */}
         {state === "published" && <HermesDraft listingId={id} onUse={text => setForm(f => ({ ...f, ...text }))}
-          replacing={["title", "summary", "description"].some(k => form[k] !== toForm(l)[k])} />}
+          replacing={["title", "summary", "description"].some(k => form[k] !== toForm(l, data.structured_economics)[k])} />}
         {field("summary", "Summary (one bullet per line)", <textarea {...ctl("summary")} maxLength={5000} />)}
         {field("description", "Full description (one paragraph per line)", <textarea {...ctl("description")} maxLength={20000} rows={10} />)}
         {data.content_tracking && contentForm && <ListingContentFields value={contentForm} onChange={setContentForm} errors={errors} busy={busy}/>}

@@ -26,6 +26,8 @@ const title = item => item.type==='match.reviewed'&&item.decision?.to==='shortli
 const LABEL = {title:'Title',use:'Use',property_type:'Property type',operation:'Operation',availability:'Availability',country:'Country',location:'Location',
   road_name:'Road',bedrooms:'Bedrooms',bathrooms:'Bathrooms',tenure:'Tenure',tenure_type:'Tenure',housing_category:'Housing category',restriction:'Restriction',
   sale_price:'Sale price',rent:'Rent',rent_period:'Rent period',premium:'Business premium',currency:'Currency',price_text:'Displayed price text',available_on:'Available from',summary:'Summary',
+  rental_deposit_amount:'Rental deposit amount (staff only)',parish_rates_amount:'Parish rates amount (staff only)',
+  parish_rates_period:'Parish rates period (staff only)',service_charge_amount:'Service charge amount (staff only)',service_charge_period:'Service charge period (staff only)',
   description:'Description',tour_url:'Tour URL',specs:'Specification',viewings_enabled:'Viewings enabled',viewing_hours:'Viewing hours',parish:'Parish',
   matchable:'Offered to applicants',featured_rank:'Featured position',published:'Published',archived_at:'Archived at',published_at:'Published at',
   confirmed_at:'Confirmed at',cover_media_id:'Cover media ID',feat_pets:'Pets allowed',feat_parking:'Parking spaces',feat_furnished:'Furnished',

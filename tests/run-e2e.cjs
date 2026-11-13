@@ -6,6 +6,9 @@ const { randomBytes, generateKeyPairSync } = require('node:crypto');
 const { parseEnv } = require('node:util');
 const { startFixture } = require('./serve-e2e.cjs');
 const { run: runProcess } = require('./e2e-process.cjs');
+const structuredFixture = process.env.E2E_SCRIPT === 'tests/pub06-structured.e2e.cjs';
+if (structuredFixture && (process.env.E2E_PRODUCTION_READONLY !== '0' || process.env.HAMPTON_E2E_ISOLATED !== '1' ||
+    process.env.E2E_LOCAL_HTTPS !== '1')) throw new Error('PUB-06 fixtures require the isolated local browser runner');
 const controller = new AbortController();
 process.once('SIGINT', () => controller.abort());
 process.once('SIGTERM', () => controller.abort());
@@ -21,6 +24,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
     const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048,
       publicKeyEncoding: { type: 'spki', format: 'pem' }, privateKeyEncoding: { type: 'pkcs8', format: 'pem' } });
     const vars = {
+      ...(structuredFixture ? { PUB06_STRUCTURED_ECONOMICS_READY: '1' } : {}),
       ...(process.env.E2E_SCRIPT === "tests/listing-health.e2e.cjs" ? { LISTING_HEALTH_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/search-milestones.e2e.cjs" ? { SEARCH_MILESTONES_READY: "1" } : {}),
       SESSION_SECRET: randomBytes(32).toString('hex'),
@@ -39,6 +43,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
     await run(['scripts/check-release.mjs']);
     await run([vite, 'build', '--config', 'admin/vite.config.mjs']);
     await run([wrangler, 'd1', 'migrations', 'apply', 'hampton', '--local', '--persist-to', persist]);
+    // This proposal is loaded only into the isolated, disposable PUB-06 fixture.
+    if (structuredFixture)
+      await run([wrangler, 'd1', 'execute', 'hampton', '--local', '--persist-to', persist, '--file', 'docs/roadmap/work/PUB-06/structured-economics.proposed.sql']);
     // PUB-17 proposal is exercised only in this isolated synthetic fixture, never by migrations apply.
     if (process.env.E2E_SCRIPT === 'tests/listing-health.e2e.cjs')
       await run([wrangler, 'd1', 'execute', 'hampton', '--local', '--persist-to', persist, '--file', 'docs/roadmap/work/PUB-17/proposed-listing-health.sql']);

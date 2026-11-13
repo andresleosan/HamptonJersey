@@ -1,3 +1,4 @@
+import { ECONOMIC_FIELDS, economicValue, checkEconomicTerms } from './listing-economics.js';
 import { isValidInteriorArea } from './listing-price-area.js';
 import { priceOperation } from "./listing-pricing.js";
 import { isPublicMedia } from "./visibility.js";
@@ -47,6 +48,7 @@ function checkSpecs(v) {
 }
 
 function check(k, v) {
+  if (ECONOMIC_FIELDS.includes(k)) return economicValue(k, v);
   if (k === 'feature_overrides') return JSON.stringify(normalizeFeatureOverrides(v));
   if (PHYSICAL_FIELDS.includes(k)) {
     const value = physicalValue(k, v);
@@ -84,10 +86,10 @@ function check(k, v) {
 }
 
 // Whitelist validation: unknown or locked keys (id, published, archived_at…) are ignored.
-export function validateListing(input, { partial = false } = {}) {
+export function validateListing(input, { partial = false, structuredEconomics = false } = {}) {
   const src = input && typeof input === "object" && !Array.isArray(input) ? input : {};
   const value = {}, errors = {};
-  for (const k of EDITABLE) {
+  for (const k of structuredEconomics ? [...EDITABLE, ...ECONOMIC_FIELDS] : EDITABLE) {
     if (!(k in src)) { if (!partial && REQUIRED.includes(k)) errors[k] = "Required"; continue; }
     try { value[k] = check(k, src[k]); } catch (e) { errors[k] = e.message; }
   }
@@ -99,6 +101,7 @@ export function checkPrice(row) {
   const errors = {};
   if (["sale_price", "rent"].some(k => row[k] != null) && !row.currency) errors.currency = "Choose the price currency";
   if (priceOperation(row) !== "sale" && row.rent != null && !row.rent_period) errors.rent_period = "Say whether the rent is per month or per year";
+  Object.assign(errors, checkEconomicTerms(row));
   return errors;
 }
 

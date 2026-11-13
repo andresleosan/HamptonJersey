@@ -1,3 +1,4 @@
+import { ECONOMIC_FIELDS, economicValue } from './listing-economics.js';
 import {fail} from './http.js';
 import {EDITABLE,ENUMS} from './listing.js';
 import {realDate,validWeeklyWindows} from './viewings.js';
@@ -9,7 +10,7 @@ const ACTIONS = ['created','updated','published','unpublished','archived','resto
 const SOURCES = ['panel','queue','sales','media','recalculate'];
 const FREE = ['title','property_type','country','location','road_name','tenure','price_text','summary','description','tour_url','specs','feat_evidence',
   'building_name_or_number','postcode','developer_name','public_address_publication','content_tags','video_url'];
-const FIELDS = new Set([...EDITABLE,...LISTING_DETAIL_FIELDS,'published','archived_at','published_at','confirmed_at','cover_media_id',
+const FIELDS = new Set([...EDITABLE,...ECONOMIC_FIELDS,...LISTING_DETAIL_FIELDS,'published','archived_at','published_at','confirmed_at','cover_media_id',
   'feat_pets','feat_parking','feat_furnished','feat_outdoor','feat_type','feat_evidence','review_requested_at','public_address_publication','content_tags','video_url']);
 const iso = v => typeof v==='string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(v)
   && Number.isFinite(Date.parse(v)) && new Date(v).toISOString()===v;
@@ -31,6 +32,7 @@ function valueAllowed(field,v) {
   if(v===null)return true;
   if(FREE.includes(field))return false;
   if(field==='available_on')return realDate(v)&&!v.startsWith('0000');
+  if(ECONOMIC_FIELDS.includes(field)) { try { return economicValue(field,v)===v; } catch { return false; } }
   if(field==='property_condition')return Object.hasOwn(PROPERTY_CONDITION_LABELS,v);
   if(['heating_types','amenities'].includes(field)) {
     try { return Array.isArray(v) && JSON.stringify(physicalValue(field,v)) === JSON.stringify(v); } catch { return false; }
