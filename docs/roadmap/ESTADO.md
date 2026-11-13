@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **MSG-02 parcial:** propuesta desconectada de revisiones y recibos mínimos ensayada y revisada. Faltan actor autenticado, retención, control de reemisiones y borrado acotado; no hay rutas ni migración nuevas activas. [Evidencia](work/MSG-02/semantic-cas-evidence.md).
+
 13-nov-2026 · **OFE-06 parcial:** cálculo desconectado de ventanas semanales de Jersey con activación explícita, límite de dos semanas y tratamiento del cambio de hora. Faltan productor idempotente, permisos y revisión humana; no se crean tareas ni se activa el reloj. [Evidencia](work/OFE-06/revision-ventanas-2026-11-13.md).
 
 13-nov-2026 · **PRE-10 parcial:** oposición manual y retirada pública con control de versión e identidad, probadas con datos ficticios. El historial se lee con límite; ante incertidumbre se registra una barrera conservadora. Faltan permisos por finalidad y reglas de los canales. [Evidencia](work/PRE-10/manual-objection-2026-11-13.md).

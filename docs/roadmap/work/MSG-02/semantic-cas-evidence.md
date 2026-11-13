@@ -27,3 +27,5 @@ La revisión posterior detectó dos vías de sustitución de la revisión: con `
 En el primer tramo, las dos pruebas de eliminación y reemplazo anticipados fallaron inicialmente al faltar las guardas; pasaron después de añadirlas. Las regresiones focales `chat.test.mjs`, `chats-admin.test.mjs` y `msg-02-key-expiry-d1.test.mjs` pasaron 39/39 sobre el esquema actual, sin activar esta propuesta. `npm run build` y `npm run check:release` pasaron; el build avisó de un bundle mayor de 500 kB. No se ejecutó una prueba de navegador, pues esta unidad no cambia rutas ni interfaz.
 
 En la pasada correctiva, la suite JavaScript equivalente a la de `npm test`, limitada a dos procesos (`node --test --test-concurrency=2 tests/*.test.js tests/server/*.test.mjs`), pasó 1648/1648. La parte Python (`python3 -m unittest tests/test_import.py tests/test_directory_manifest.py`) pasó 25/25. No supone activación ni verificación remota.
+
+Integración sobre `06be281`: 1.693 pruebas Node y 25 Python aprobadas, build y check:release aprobados. No aplica navegador para este módulo desconectado; los resultados no acreditan actor, política de retención, rutas ni producción.
