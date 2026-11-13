@@ -6,8 +6,7 @@ export function priceOperation(listing) {
   return tenure === "freehold" ? "sale" : "rent";
 }
 export const priceField = listing => ({sale: "sale_price", rent: "rent"})[priceOperation(listing)];
-export const listingAmount = listing => listing[priceField(listing)] ?? null;
+export const listingAmount = listing => listing.operation === "business" ? listing.premium ?? null : listing[priceField(listing)] ?? null;
 // Same rule for the transactional publishing guard.
-export const PRICE_SQL = `CASE WHEN operation = 'sale' OR (operation = 'business'
-  AND lower(trim(COALESCE(NULLIF(tenure_type,''),tenure,''))) = 'freehold') THEN sale_price
-  WHEN operation IN ('rent','business') THEN rent END`;
+export const PRICE_SQL = `CASE WHEN operation = 'sale' THEN sale_price
+  WHEN operation = 'rent' THEN rent WHEN operation = 'business' THEN premium END`;

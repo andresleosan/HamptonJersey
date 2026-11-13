@@ -43,7 +43,7 @@ test("rent is compared per month", () => {
   assert.equal(monthlyPrice(L({ operation: "rent", sale_price: null, rent: 2000, rent_period: "month" })), 2000);
   assert.equal(Math.round(monthlyPrice(L({ operation: "rent", sale_price: null, rent: 500, rent_period: "week" }))), 2167);
   assert.equal(monthlyPrice(L({ operation: "rent", sale_price: null, rent: 24000, rent_period: "year" })), 2000);
-  assert.equal(monthlyPrice(L({ operation: "business", tenure_type: "freehold", sale_price: 90000, premium: 123 })), 90000);
+  assert.equal(monthlyPrice(L({ operation: "business", tenure_type: "freehold", sale_price: 90000, premium: 123 })), 123);
   assert.equal(keeps(L({ operation: "rent", sale_price: null, rent: 500, rent_period: "week" }), { max: 2200 }), true);
   assert.equal(keeps(L({ operation: "rent", sale_price: null, rent: 500, rent_period: "week" }), { max: 2100 }), false);
   assert.equal(keeps(L(), { min: 400000, max: 600000 }), true);

@@ -109,7 +109,7 @@ test("owner report: web, viewings, demand, offers and sale of a listing for sale
   const { status, data } = await get(env, "HE-S201", "?days=7");
   assert.equal(status, 200);
   assert.deepEqual(data.listing, { id: "HE-S201", title: "Bay House", operation: "sale", availability: "under_offer",
-    price_text: null, sale_price: 950000, rent: null, rent_period: null, tenure_type: null, tenure: null, currency: "GBP" });
+    price_text: null, sale_price: 950000, rent: null, rent_period: null, premium: null, tenure_type: null, tenure: null, currency: "GBP" });
   assert.deepEqual(data.period, { days: 7, from: "2026-10-18", to: "2026-10-24" });
 
   const { by_day, since, ...web } = data.web;

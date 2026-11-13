@@ -21,7 +21,7 @@ test("title: listing · price as the website shows it · brand; no price, no pri
   assert.equal(listingMeta(rent, SITE).title, "Le Bernage · £2,500 pcm · Hampton Estates Jersey");
   assert.equal(listingMeta(P({ salePrice: null }), SITE).title, "Le Bernage · Hampton Estates Jersey");
   // The price text is site/lib.js's priceLabel itself, so the preview and the page always agree.
-  for (const p of [P(), rent, P({ operation: "business", tenureType: "freehold", salePrice: 90000, currency: "EUR" })])
+  for (const p of [P(), rent, P({ operation: "business", tenureType: "freehold", premium: 90000, currency: "EUR" })])
     assert.ok(listingMeta(p, SITE).title.includes(L.priceLabel(p)));
 });
 
@@ -263,4 +263,13 @@ test("PUB-22: /properties has its own title, description and canonical, not the 
   assert.ok(page.head.includes(`<meta property="og:image" content="${SITE}/og-image.jpg">`));
   assert.equal(page.headers.get("x-robots-tag"), null, "indexed on the site's own host");
   assert.equal(propertiesPage(new Request("https://preview.pages.dev/properties"), { SITE_URL: SITE }).headers.get("x-robots-tag"), "noindex");
+});
+
+test("business rent appears in titles without a fictitious structured offer", () => {
+  for (const premium of [null, 90000]) {
+    const p = P({operation:"business", salePrice:null, premium, rent:1200, rentPeriod:"month"});
+    const meta = listingMeta(p, SITE);
+    assert.ok(meta.title.includes(L.priceLabel(p)));
+    assert.equal(JSON.parse(meta.jsonLd).offers, undefined);
+  }
 });

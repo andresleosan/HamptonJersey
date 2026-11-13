@@ -66,3 +66,11 @@ test('bounds numeric input work and does not coerce unsupported values', () => {
     assert.equal(derivePricePerArea({ ...sale, sale_price: value }), null);
   assert.equal(formatPricePerArea(derivePricePerArea({ ...sale, sale_price: '1e-300' })), 'Less than £0.01 per sq ft');
 });
+
+ test('business premium is calculated independently of tenure and rent', async () => {
+  const {formatPremiumPerArea} = await import('../../server/listing-price-area.js');
+  const row = {operation:'business', premium:10000, rent:1200, currency:'GBP', interior_area_sqft:800};
+  assert.equal(formatPremiumPerArea(row), '£12.50 premium per sq ft');
+  assert.equal(formatPremiumPerArea({...row, interior_area_sqft:null}), null);
+  assert.equal(formatPremiumPerArea({...row, premium:null}), null);
+});

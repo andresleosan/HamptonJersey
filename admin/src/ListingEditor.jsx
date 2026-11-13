@@ -1,6 +1,6 @@
 import { ECONOMIC_FIELDS, economicValue } from '../../server/listing-economics.js';
 import { priceOperation } from "../../server/listing-pricing.js";
-import { derivePricePerArea, formatPricePerArea } from "../../server/listing-price-area.js";
+import { derivePricePerArea, formatPricePerArea, formatPremiumPerArea } from "../../server/listing-price-area.js";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show, TENURE, HOUSING, RESTRICTION } from "./format.js";
@@ -26,11 +26,11 @@ import ResearchDuplicateReview from './ResearchDuplicateReview.jsx';
 import { CONTENT_TAGS } from '../../server/listing-content.js';
 
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
-  "bathrooms", "tenure", "tenure_type", "housing_category", "restriction", "sale_price", "rent", "rent_period",
+  "bathrooms", "tenure", "tenure_type", "housing_category", "restriction", "sale_price", "rent", "rent_period", "premium",
   "currency", "price_text", "price_per_sqft", "rental_deposit", "parish_rates", "service_charge", "utilities_included", "available_on", "summary", "description", "tour_url", "specs", "viewings_enabled", "viewing_hours",
   "interior_area_sqft", "separate_wcs", "reception_rooms", "has_garage", "has_storage", "has_lift", "double_glazing",
   "floor_level", "building_floors", "year_built", "heating_types", "amenities", "feature_overrides"];
-const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "interior_area_sqft", "separate_wcs",
+const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium", "interior_area_sqft", "separate_wcs",
   "reception_rooms", "has_garage", "has_storage", "has_lift", "double_glazing", "floor_level", "building_floors", "year_built",
   "rental_deposit_amount", "parish_rates_amount", "service_charge_amount"];
 // Keep custom hours while the form temporarily uses general availability. This draft-only key is not sent by toBody,
@@ -515,14 +515,17 @@ export default function ListingEditor({ id, onChange }) {
         })}
       </section>
       <section id="s-price" className="card" aria-labelledby="h-price"><h2 id="h-price">Price</h2>
-        <p className="muted">These details appear on the public listing. Leave unknown values blank; include the currency and period for charges. Freehold businesses use the total sale price. Rentals use a rent and period.</p><div className="grid2">
+        <p className="muted">These details appear on the public listing. Leave unknown values blank; include the currency and period for charges. Sale price, rent and business premium are kept separate.</p><div className="grid2">
         {priceOperation(form) === "sale" && field("sale_price", "Sale price", <input {...ctl("sale_price")} type="number" min="1" step="any" />)}
-        {priceOperation(form) === "rent" && field("rent", "Rent", <input {...ctl("rent")} type="number" min="1" step="any" />)}
-        {priceOperation(form) === "rent" && field("rent_period", "Period", <select {...ctl("rent_period")}><option value="">—</option><option value="month">Per month</option><option value="year">Per year</option></select>)}
+        {(priceOperation(form) === "rent" || form.operation === "business") && field("rent", "Rent", <input {...ctl("rent")} type="number" min="1" step="any" />)}
+        {(priceOperation(form) === "rent" || form.operation === "business") && field("rent_period", "Period", <select {...ctl("rent_period")}><option value="">—</option><option value="month">Per month</option><option value="year">Per year</option></select>)}
+        {form.operation === "business" && field("premium", "Business premium", <input {...ctl("premium")} type="number" min="1" step="any" />)}
         {field("currency", "Currency", <select {...ctl("currency")}><option value="">—</option><option value="GBP">GBP £</option><option value="EUR">EUR €</option></select>)}
         {field("price_text", "Displayed text (when there is no amount)", <input {...ctl("price_text")} maxLength={200} placeholder="e.g. Negotiable" />)}
         {field("price_per_sqft", "Price per sq ft", <input {...ctl("price_per_sqft")} maxLength={200} placeholder="e.g. £25 per sq ft per year" />)}
-        <div className="field"><span id="calculated-price-area-label">Calculated price per sq ft</span><output aria-labelledby="calculated-price-area-label">{formatPricePerArea(derivePricePerArea(form)) ?? "Not available with the current details"}</output>
+        {form.operation === "business" && priceOperation(form) === "sale" && <div className="field"><span id="rent-price-area-label">Calculated rent per sq ft</span><output aria-labelledby="rent-price-area-label">{formatPricePerArea(derivePricePerArea({ ...form, operation: "rent" })) ?? "Not available with the current details"}</output></div>}
+        {form.operation === "business" && <div className="field"><span id="premium-price-area-label">Calculated premium per sq ft</span><output aria-labelledby="premium-price-area-label">{formatPremiumPerArea(form) ?? "Not available with the current details"}</output></div>}
+        <div className="field"><span id="calculated-price-area-label">Calculated price per sq ft</span><output aria-labelledby="calculated-price-area-label">{formatPricePerArea(derivePricePerArea(form.operation === "business" && priceOperation(form) === "rent" ? { ...form, operation: "rent" } : form)) ?? "Not available with the current details"}</output>
           <small className="muted">Calculated from the entered price and interior area. This does not change the text field.</small></div>
         {field("rental_deposit", "Rental deposit", <input {...ctl("rental_deposit")} maxLength={200} placeholder="e.g. £2,000" />)}
         {field("parish_rates", "Parish rates", <input {...ctl("parish_rates")} maxLength={200} placeholder="e.g. £500 per year" />)}

@@ -10,36 +10,29 @@ const publicPrices = createRequire(import.meta.url)("../../site/lib.js");
 const business = {operation:"business", use:"commercial", property_type:"Lodging House",
   tenure_type:"freehold", sale_price:1250000, rent:2000, rent_period:null, premium:90000,
   currency:"GBP", specs:"[]"};
-test("freehold business uses total sale price everywhere, without requiring rent period", () => {
-  assert.equal(priceOperation(business), "sale");
-  assert.equal(listingAmount(business), 1250000);
-  assert.deepEqual(checkPrice(business), {});
-  assert.equal(monthlyPrice(business), 1250000);
-  const pub = toPublic(business, []);
-  assert.equal(publicPrices.priceLabel(pub), "£1,250,000");
-  assert.equal(pub.rent, null);
-  assert.equal(pub.rentPeriod, null);
-  assert.equal("premium" in pub, false);
-  assert.equal(pub.specs.some(s => s.label === "Rent"), false);
-  assert.equal(listingCriteria(business, "", [], null).find(c => c.id === "price").target, "f-sale_price");
-});
-test("legacy premium cannot supply a missing sale price", () => {
-  const row = {...business,sale_price:null};
-  assert.equal(listingAmount(row), null);
-  assert.equal(publicPrices.priceLabel(toPublic(row, [])), "Price not published");
-  assert.equal(listingCriteria(row, "", [], null).find(c => c.id === "price").met, false);
-  assert.equal("premium" in validateListing({premium:100}, {partial:true}).value, false);
-});
-test("commercial rentals keep rent and its period, even for freehold property", () => {
-  for (const row of [{...business,operation:"rent"}, {...business,tenure_type:"leasehold"}]) {
-    assert.equal(priceOperation(row), "rent");
-    assert.ok(checkPrice(row).rent_period);
-    for (const [rent_period,label] of [["month","£2,000 pcm"],["year","£2,000 p.a."]]) {
-      const rental = {...row,rent_period};
-      assert.equal(publicPrices.priceLabel(toPublic(rental, [])), label);
-      assert.deepEqual(checkPrice(rental), {});
-    }
+test("business prices keep premium and rent distinct across tenures", () => {
+  for (const tenure_type of ["freehold", "leasehold"]) {
+    const row = {...business, tenure_type, rent_period: "year"};
+    assert.equal(listingAmount(row), 90000);
+    assert.equal(monthlyPrice(row), 90000);
+    assert.deepEqual(checkPrice(row), {});
+    const pub = toPublic(row, []);
+    assert.equal(publicPrices.priceLabel(pub), "£90,000 premium + £2,000 p.a.");
+    assert.equal(pub.rent, 2000);
+    assert.equal(pub.premium, 90000);
+    assert.equal(listingCriteria(row, "", [], null).find(c => c.id === "price").target, "f-premium");
   }
+});
+test("partial business prices never fabricate a premium or combine amounts", () => {
+  const rental = {...business, premium:null, rent_period:"month"};
+  assert.equal(listingAmount(rental), null);
+  assert.equal(monthlyPrice(rental), null);
+  assert.equal(publicPrices.priceLabel(toPublic(rental, [])), "£2,000 pcm (premium not published)");
+  assert.equal(publicPrices.priceLabel(toPublic({...rental,rent:null}, [])), "Price not published");
+  assert.equal(publicPrices.priceLabel(toPublic({...rental,premium:90000,rent:null}, [])), "£90,000");
+  assert.equal(validateListing({premium:100}, {partial:true}).value.premium, 100);
+  assert.ok(checkPrice({...rental,rent_period:null}).rent_period);
+  assert.ok(checkPrice({...rental,currency:null}).currency);
 });
 test("legacy Freehold text works; explicit leasehold takes precedence", () => {
   assert.equal(priceOperation({...business,tenure_type:null,tenure:" Freehold "}), "sale");

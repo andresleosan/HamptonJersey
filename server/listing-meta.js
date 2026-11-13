@@ -13,7 +13,7 @@ function clip(s, n = 160) {
 
 // p: the public shape (server/listing.js toPublic). The metadata shares the approved address snapshot.
 export function listingMeta(p, siteUrl) {
-  const site = siteUrl.replace(/\/+$/, ""), price = amount(p) == null ? null : priceLabel(p);
+  const site = siteUrl.replace(/\/+$/, ""), price = amount(p) == null && !(p.operation === "business" && p.rent != null && ["month", "year"].includes(p.rentPeriod)) ? null : priceLabel(p);
   const lines = liveSummary(p.summary, jerseyToday());
   const text = lines.length ? lines.map(l => l.replace(/^[-•]\s*/, "").replace(/[.;:,]$/, "").replace(/[^!?]$/, "$&.")).join(" ") : p.description.join(" ");
   const canonical = `${site}/p/${p.id}`;
@@ -23,7 +23,7 @@ export function listingMeta(p, siteUrl) {
     description: text || undefined, image: photos.length ? photos : undefined,
     contentLocation: { "@type": "Place", address: { "@type": "PostalAddress", addressLocality: p.place || undefined,
       addressCountry: COUNTRY[p.region], ...(p.exactAddress ? { streetAddress: p.exactAddress } : {}) } },
-    offers: price ? { "@type": "Offer", price: amount(p), priceCurrency: p.currency,
+    offers: price && amount(p) != null && !(p.operation === "business" && p.rent != null) ? { "@type": "Offer", price: amount(p), priceCurrency: p.currency,
       ...(p.operation === "rent" && { priceSpecification: { "@type": "UnitPriceSpecification", price: amount(p),
         priceCurrency: p.currency, unitCode: { month: "MON", year: "ANN" }[p.rentPeriod] } }) } : undefined,
   };

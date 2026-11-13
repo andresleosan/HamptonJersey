@@ -55,8 +55,15 @@ const money = (n, cur) => (SYM[cur] ?? (cur ? `${cur} ` : "")) + Math.round(n).t
 // Keep in step with server/listing-pricing.js; this file is also a classic browser script.
 const priceOperation = p => p.operation !== "business" ? p.operation
   : String(p.tenureType || p.tenure_type || p.tenure || "").trim().toLowerCase() === "freehold" ? "sale" : "rent";
-const amount = p => ({sale: p.salePrice, rent: p.rent})[priceOperation(p)] ?? null;
+const amount = p => p.operation === "business" ? p.premium ?? null : ({sale: p.salePrice, rent: p.rent})[priceOperation(p)] ?? null;
 const priceLabel = p => {
+  if (p.operation === "business" && p.premium != null) {
+    const premium = money(p.premium, p.currency);
+    return p.rent != null && ["month", "year"].includes(p.rentPeriod)
+      ? `${premium} premium + ${money(p.rent, p.currency)}${p.rentPeriod === "year" ? " p.a." : " pcm"}` : premium;
+  }
+  if (p.operation === "business" && p.rent != null && ["month", "year"].includes(p.rentPeriod))
+    return `${money(p.rent, p.currency)}${p.rentPeriod === "year" ? " p.a." : " pcm"} (premium not published)`;
   const a = amount(p);
   if (a == null) return "Price not published";
   return money(a, p.currency) + (priceOperation(p) === "rent" ? ({month: " pcm", year: " p.a."}[p.rentPeriod] ?? "") : "");
@@ -75,7 +82,7 @@ function matches(p, f) {
   if (f.beds && !(p.beds >= f.beds)) return false;
   if (f.max && f.op !== "all") {
     const a = amount(p);
-    if (a == null || p.currency !== "GBP" || (priceOperation(p) === "rent" && p.rentPeriod !== "month") || a > f.max) return false;
+    if (a == null || p.currency !== "GBP" || (p.operation === "rent" && p.rentPeriod !== "month") || a > f.max) return false;
   }
   return true;
 }
@@ -86,7 +93,7 @@ function comparables(p, all, n = 3) {
   if (a == null) return [];
   const gap = x => Math.abs(Math.log(amount(x) / a));
   return all.filter(x => x.id !== p.id && !isSold(x) && x.region === p.region && x.operation === p.operation
-      && priceOperation(x) === priceOperation(p) && x.use === p.use && x.currency === p.currency && x.rentPeriod === p.rentPeriod && amount(x) != null
+      && x.use === p.use && x.currency === p.currency && (p.operation !== "rent" || x.rentPeriod === p.rentPeriod) && amount(x) != null
       && gap(x) <= Math.LN2)
     .sort((x, y) => gap(x) - gap(y)).slice(0, n);
 }

@@ -16,7 +16,7 @@ const BASE = process.env.BASE, vars = parseEnv(readFileSync(process.env.E2E_VARS
       page.on('pageerror', error => errors.push(error.message));
       await page.goto(BASE + 'admin/#/p/HE-C001');
       await page.getByRole('heading', { name: 'Staff-only costs' }).waitFor();
-      assert.equal(await page.getByLabel('Business premium', { exact: true }).count(), 0);
+      assert.equal(await page.getByLabel('Business premium', { exact: true }).count(), 1);
       await page.getByLabel('Currency', { exact: true }).selectOption('GBP');
       await page.getByLabel('Rental deposit', { exact: true }).fill('Legacy deposit text');
       await page.getByLabel('Rental deposit amount', { exact: true }).fill('0');

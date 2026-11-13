@@ -1,13 +1,13 @@
 import { priceOperation } from "../../server/listing-pricing.js";
 // Recommendations reflect the current form and saved media, never publication permission.
-const PRICE = {sale: ['sale_price', 'Add the sale price'], rent: ['rent', 'Add the rent']};
+const PRICE = {business: ['premium', 'Add the business premium'], sale: ['sale_price', 'Add the sale price'], rent: ['rent', 'Add the rent']};
 const blank = value => String(value ?? '').trim() === '';
 const eligiblePhoto = m => m && (m.public === 1 || m.public === true) && m.kind === 'photo' && !!m.r2_key && m.origin !== 'external';
 
 export function listingCriteria(form, parish, media, coverId) {
   const criteria = [];
   const add = (id, label, target, met) => criteria.push({id, label, target, met});
-  const [price, priceLabel] = PRICE[priceOperation(form)] ?? [];
+  const [price, priceLabel] = PRICE[form.operation === "business" ? "business" : priceOperation(form)] ?? [];
   if (price) add('price', priceLabel, `f-${price}`, !blank(form[price]) || !blank(form.price_text));
   if (form.country === 'Jersey') add('parish', 'Choose the parish', 'f-parish', !blank(parish));
   if (form.use === 'residential') add('bedrooms', 'Add the bedrooms', 'f-bedrooms', !blank(form.bedrooms));

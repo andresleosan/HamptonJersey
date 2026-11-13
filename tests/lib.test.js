@@ -22,7 +22,7 @@ test("unknown prices are labelled, never shown as zero", () => {
 
 test("freehold business sales use sale prices and rentals use rent", () => {
   assert.equal(L.priceLabel(rent), "£1,900 pcm");
-  assert.equal(L.priceLabel(biz), "£90,000");
+  assert.equal(L.priceLabel(biz), "£123");
   assert.equal(L.priceLabel(eur), "€110,000");
   assert.equal(L.money(500000, null), "500,000", "unknown currency: no 'null ' prefix");
 });

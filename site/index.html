@@ -1017,7 +1017,7 @@ function detail(id) {
     return scrollTo({top: 0, behavior: "instant"});
   }
   // S8: as the server titles the page (server/seo.js), so a listing opened inside the site reads the same.
-  document.title = [p.title, amount(p) == null ? null : priceLabel(p), BRAND].filter(Boolean).join(" · ");
+  document.title = [p.title, amount(p) == null && !(p.operation === "business" && p.rent != null && ["month", "year"].includes(p.rentPeriod)) ? null : priceLabel(p), BRAND].filter(Boolean).join(" · ");
   const shareUrl = `${SITE}/p/${p.id}`;
   const status = String(p.status || OP_ONE[p.operation]);
   const agent = agentFor(p);

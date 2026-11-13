@@ -57,3 +57,11 @@ export function formatPricePerArea(value) {
   const period = value.period === 'month' ? ' per month' : value.period === 'year' ? ' per year' : '';
   return `${amount} per sq ft${period}`;
 }
+
+// Premium and rent are separate concepts; never combine their ratios.
+export function formatPremiumPerArea(listing) {
+  if (listing?.operation !== 'business') return null;
+  const value = derivePricePerArea({ ...listing, operation: 'sale', sale_price: listing.premium });
+  const formatted = formatPricePerArea(value);
+  return formatted ? formatted.replace(' per sq ft', ' premium per sq ft') : null;
+}

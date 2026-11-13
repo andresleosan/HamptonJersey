@@ -6,7 +6,7 @@ const PER_MONTH = { week: 52 / 12, year: 1 / 12 };
 
 // Sales and businesses by their total price; rentals by their rent per month. null when there is no amount.
 export function monthlyPrice(l) {
-  if (priceOperation(l) === "rent") return l.rent == null ? null : l.rent * (PER_MONTH[l.rent_period] ?? 1);
+  if (l.operation === "rent") return l.rent == null ? null : l.rent * (PER_MONTH[l.rent_period] ?? 1);
   return listingAmount(l);
 }
 
