@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **Permisos financieros parciales:** se ha preparado protección frente a reutilización de casos y lectura acotada por contrato, sin rutas activas. La propuesta 0049 necesita revisar su efecto sobre permisos previos y la retención antes de aplicarse; el estado remoto de migraciones no se conoce. [Límites](../superpowers/plans/2026-11-13-adm-18-case-lifecycle-finance-ledger.md).
+
 13-nov-2026 · **PUB-08 parcial:** etiquetas y vídeo web separados, protegidos por la puerta de privacidad y desactivados por defecto; pruebas locales y revisión independiente. Esta sesión no ejecutó 0048 y no pudo consultar el estado remoto de migraciones. [Evidencia](work/PUB-08/avance-publicable.md).
 
 13-nov-2026 · **AGE-04 parcial:** el directorio ya consta en un despliegue histórico con 0030; la ficha deja de pedir publicar ese código. Sigue pendiente enlazar anunciantes y teléfonos con fuentes y publicaciones. [Conciliación](work/AGE-04/reconciliacion-2026-11-13.md).

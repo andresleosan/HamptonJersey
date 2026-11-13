@@ -20,3 +20,11 @@ Las rutas legadas, el contador global, la conciliación, avisos y escritura de a
 ## Verificación local
 
 Pasaron 135 regresiones de permisos, finanzas, alquileres y notificaciones; las 28 pruebas de esquema pasaron tras conservar el contrato de errores de unicidad. Después de las últimas protecciones, 86 pruebas focales y la suite completa (1.416 Node y 25 Python) pasaron, igual que `build` y `check:release`. En D1 local se probaron rollback, snapshots anteriores, borrado y recreación de los tres tipos, colisiones `REPLACE`, actualización con datos ficticios previos y lectura conjunta de diez casos. Las pruebas de ciclo de vida también cubren alias de rowid e índices únicos desconocidos. No hubo cambios de interfaz; navegador no aplica.
+
+## Revisión independiente de activación
+
+La revisión local no encontró bypass con las guardas presentes y no observó conexión a rutas. Antes de aplicar 0049 debe existir un plan coordinado: el código anterior o un rollback que no conozca la generación podría seguir aceptando membresías antiguas aunque la guarda nueva las rechace. También debe resolverse la supresión/retención de autoridad antes de bloquear sus DELETE.
+
+Un índice UNIQUE inesperado en una tabla de autoridad puede bloquear inserciones, cambios y revocaciones de esa tabla; en membresías o concesiones puede incluso abortar bajas de administrador/caso que disparen esas revocaciones. Antes de activar, revisar y probar el inventario completo de índices, bajas y recuperación. Estos son requisitos para aplicar la migración, no evidencia de producción ni permiso de activación. La consulta remota fue denegada y su estado actual es desconocido.
+
+La revisión independiente ejecutó 34 pruebas sintéticas y no identificó bloqueos para integrar el código desconectado. No ejecutó D1 ni producción y no autoriza aplicar 0049.
