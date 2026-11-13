@@ -5,6 +5,8 @@ ALTER TABLE applicants ADD COLUMN criteria_revision INTEGER NOT NULL DEFAULT 0
 
 -- A version cannot be reset or moved backwards. This does not authorize a
 -- caller to write criteria_revision directly: owners must retain field allowlists.
+-- Setting it to +1 while changing criteria would also fire the AFTER trigger,
+-- producing two increments; a future writer must not assign it explicitly.
 CREATE TRIGGER applicants_criteria_revision_guard BEFORE UPDATE OF criteria_revision ON applicants
 WHEN NEW.criteria_revision IS NOT OLD.criteria_revision + 1
 BEGIN

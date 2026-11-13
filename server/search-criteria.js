@@ -1,6 +1,6 @@
 // Internal, read-only foundation for BUS-12. No route calls this yet: callers
-// must authorize the particular search and revalidate its state in their own
-// transaction before using a snapshot to write, notify or dispatch anything.
+// must revalidate identity, permissions, state and both revisions in the same
+// transaction as any write, notification or dispatch authorization.
 // JSON columns remain in their stored form, as expected by the existing matcher;
 // null is not converted to an empty answer or a preferred priority.
 const CRITERIA_FIELDS = Object.freeze([
@@ -24,15 +24,18 @@ export async function loadCriteriaSnapshot(env, applicantId) {
 
   // Deliberately fail if the revision schema is absent. Guessing revision 0
   // would make a snapshot look concurrency-safe where it is not.
-  const row = await db.prepare(`SELECT id, criteria_revision, search_state, search_category,
+  const row = await db.prepare(`SELECT id, criteria_revision, match_inputs_revision, search_state, search_category,
     operation, search_operation, archived_at, ${CRITERIA_FIELDS.join(', ')} FROM applicants WHERE id = ?`)
     .bind(applicantId).first();
   if (!row) return null;
   if (!Number.isSafeInteger(row.criteria_revision) || row.criteria_revision < 0)
     throw new Error('Invalid criteria revision');
+  if (!Number.isSafeInteger(row.match_inputs_revision) || row.match_inputs_revision < 0)
+    throw new Error('Invalid match inputs revision');
   return {
     applicant_id: row.id,
     criteria_revision: row.criteria_revision,
+    match_inputs_revision: row.match_inputs_revision,
     search_state: row.search_state,
     search_category: row.search_category,
     operation: row.search_operation ?? row.operation,

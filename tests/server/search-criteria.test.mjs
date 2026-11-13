@@ -58,6 +58,17 @@ test('a missing revision schema fails closed rather than inventing revision zero
     await assert.rejects(loadCriteriaSnapshot(env, invalid), TypeError);
 });
 
+test('an invalid lifecycle revision fails closed rather than yielding a reusable snapshot', async () => {
+  const { loadCriteriaSnapshot } = await criteriaModule();
+  const env = makeEnv();
+  applyProposal(env);
+  const id = search(env);
+  env.DB.raw.exec('PRAGMA ignore_check_constraints=ON');
+  env.DB.raw.prepare('UPDATE applicants SET match_inputs_revision=-1 WHERE id=?').run(id);
+  env.DB.raw.exec('PRAGMA ignore_check_constraints=OFF');
+  await assert.rejects(loadCriteriaSnapshot(env, id), /Invalid match inputs revision/);
+});
+
 test('the proposed revision tracks material edits once and ignores repeated values, stage and search state', async () => {
   const { loadCriteriaSnapshot } = await criteriaModule();
   const env = makeEnv();
@@ -92,6 +103,68 @@ test('a criteria edit never reopens a resolved or archived search', async () => 
   assert.equal(snapshot.search_state, 'resolved');
   assert.equal(snapshot.archived_at, '2026-01-03T00:00:00.000Z');
   assert.equal(snapshot.criteria_revision, 1);
+});
+
+test('resolve and reopen invalidate the lifecycle token even when the visible state returns to its original value', async () => {
+  const { loadCriteriaSnapshot } = await criteriaModule();
+  const env = makeEnv();
+  applyProposal(env);
+  const id = search(env), cookie = await adminCookie('admin@example.test');
+  const before = await loadCriteriaSnapshot(env, id);
+  const transition = async state => {
+    const updated_at = env.DB.raw.prepare('SELECT updated_at FROM applicants WHERE id=?').get(id).updated_at;
+    return call(env, 'POST', `/admin/applicants/${id}/search`,
+      { cookie, body: { state, reason: 'Confirmed by staff', updated_at } });
+  };
+  assert.equal((await transition('resolved')).status, 200);
+  const resolved = await loadCriteriaSnapshot(env, id);
+  assert.equal((await transition('active')).status, 200);
+  const reopened = await loadCriteriaSnapshot(env, id);
+  assert.equal(reopened.search_state, before.search_state);
+  assert.equal(reopened.archived_at, before.archived_at);
+  assert.equal(reopened.criteria_revision, before.criteria_revision);
+  assert.ok(Number.isSafeInteger(before.match_inputs_revision));
+  assert.ok(resolved.match_inputs_revision > before.match_inputs_revision);
+  assert.ok(reopened.match_inputs_revision > resolved.match_inputs_revision);
+});
+
+test('archive and restore invalidate the lifecycle token without changing the criteria revision', async () => {
+  const { loadCriteriaSnapshot } = await criteriaModule();
+  const env = makeEnv();
+  applyProposal(env);
+  const id = search(env), cookie = await adminCookie('admin@example.test');
+  const updated_at = env.DB.raw.prepare('SELECT updated_at FROM applicants WHERE id=?').get(id).updated_at;
+  assert.equal((await call(env, 'POST', `/admin/applicants/${id}/search`,
+    { cookie, body: { state: 'resolved', reason: 'Confirmed by staff', updated_at } })).status, 200);
+  const before = await loadCriteriaSnapshot(env, id);
+  assert.equal((await call(env, 'POST', `/admin/applicants/${id}/archive`, { cookie })).status, 200);
+  const archived = await loadCriteriaSnapshot(env, id);
+  assert.equal((await call(env, 'POST', `/admin/applicants/${id}/restore`, { cookie })).status, 200);
+  const restored = await loadCriteriaSnapshot(env, id);
+  assert.equal(restored.search_state, before.search_state);
+  assert.equal(restored.archived_at, before.archived_at);
+  assert.equal(restored.criteria_revision, before.criteria_revision);
+  assert.ok(Number.isSafeInteger(before.match_inputs_revision));
+  assert.ok(archived.match_inputs_revision > before.match_inputs_revision);
+  assert.ok(restored.match_inputs_revision > archived.match_inputs_revision);
+});
+
+test('a revision token alone does not identify a deleted row recreated with an explicit ID', async () => {
+  const { loadCriteriaSnapshot } = await criteriaModule();
+  const env = makeEnv();
+  applyProposal(env);
+  const db = env.DB.raw, id = search(env);
+  const before = await loadCriteriaSnapshot(env, id);
+  const contact = db.prepare('SELECT contact_id FROM applicants WHERE id=?').get(id).contact_id;
+  db.prepare('DELETE FROM applicants WHERE id=?').run(id);
+  assert.equal(await loadCriteriaSnapshot(env, id), null);
+  db.prepare(`INSERT INTO applicants (id,contact_id,operation,source,created_at,updated_at)
+    VALUES (?,?,'rent','phone','2026-01-02T00:00:00.000Z','2026-01-02T00:00:00.000Z')`).run(id, contact);
+  const recreated = await loadCriteriaSnapshot(env, id);
+  assert.equal(recreated.applicant_id, before.applicant_id);
+  assert.equal(recreated.criteria_revision, before.criteria_revision);
+  assert.equal(recreated.match_inputs_revision, before.match_inputs_revision);
+  assert.equal(recreated.search_state, before.search_state);
 });
 
 test('equivalent priorities object formatting does not invent a criteria change', async () => {
@@ -181,6 +254,30 @@ test('ambiguous duplicate JSON keys cause an invalidation rather than hiding a c
   const id = search(env, { priorities: before });
   env.DB.raw.prepare('UPDATE applicants SET requirement_priorities=? WHERE id=?').run(after, id);
   assert.equal((await loadCriteriaSnapshot(env, id)).criteria_revision, 1);
+});
+
+test('reordered arrays are conservatively treated as a criteria change', async () => {
+  const { loadCriteriaSnapshot } = await criteriaModule();
+  const env = makeEnv();
+  applyProposal(env);
+  const before = '{"version":1,"values":{},"unknown":["parking","pets"]}';
+  const after = '{"version":1,"values":{},"unknown":["pets","parking"]}';
+  const id = search(env, { priorities: before });
+  const db = env.DB.raw;
+  db.prepare('UPDATE applicants SET requirement_priorities=? WHERE id=?').run(after, id);
+  assert.equal((await loadCriteriaSnapshot(env, id)).criteria_revision, 1);
+  db.prepare('UPDATE applicants SET property_types=? WHERE id=?').run('["house","flat"]', id);
+  db.prepare('UPDATE applicants SET property_types=? WHERE id=?').run('["flat","house"]', id);
+  assert.equal((await loadCriteriaSnapshot(env, id)).criteria_revision, 3);
+});
+
+test('an explicit revision increment combined with a criteria edit advances the proposed version twice', async () => {
+  const { loadCriteriaSnapshot } = await criteriaModule();
+  const env = makeEnv();
+  applyProposal(env);
+  const id = search(env);
+  env.DB.raw.prepare('UPDATE applicants SET budget_max=?, criteria_revision=criteria_revision+1 WHERE id=?').run(2000, id);
+  assert.equal((await loadCriteriaSnapshot(env, id)).criteria_revision, 2);
 });
 
 test('rollback preserves the prior revision and a direct version reset is rejected', async () => {

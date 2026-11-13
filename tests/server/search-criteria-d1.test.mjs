@@ -65,6 +65,7 @@ test('D1 local preserves existing rows and proposed revision is atomic; a test-o
     ]));
     const afterRollback = await loadCriteriaSnapshot({ DB }, 1);
     assert.equal(afterRollback.criteria_revision, committed.criteria_revision);
+    assert.equal(afterRollback.match_inputs_revision, committed.match_inputs_revision);
     assert.equal(afterRollback.criteria.budget_max, committed.criteria.budget_max);
     assert.equal(afterRollback.search_state, 'needs_review');
     assert.deepEqual((await DB.prepare('PRAGMA foreign_key_check').all()).results, []);
@@ -83,5 +84,42 @@ test('D1 local preserves existing rows and proposed revision is atomic; a test-o
     assert.equal(afterSaves.search_state, 'needs_review');
     const events = await DB.prepare("SELECT COUNT(*) AS n FROM events WHERE entity_type='applicant' AND entity_id='1' AND type='applicant.updated'").first();
     assert.equal(events.n, 1);
+
+    const transition = async state => {
+      const updated_at = (await DB.prepare('SELECT updated_at FROM applicants WHERE id=1').first()).updated_at;
+      return call(env, 'POST', '/admin/applicants/1/search',
+        { cookie, body: { state, reason: 'Confirmed by staff', updated_at } });
+    };
+    assert.equal((await transition('active')).status, 200);
+    const beforeReopen = await loadCriteriaSnapshot({ DB }, 1);
+    assert.equal((await transition('resolved')).status, 200);
+    const resolved = await loadCriteriaSnapshot({ DB }, 1);
+    assert.equal((await transition('active')).status, 200);
+    const reopened = await loadCriteriaSnapshot({ DB }, 1);
+    assert.equal(reopened.search_state, beforeReopen.search_state);
+    assert.equal(reopened.criteria_revision, beforeReopen.criteria_revision);
+    assert.ok(resolved.match_inputs_revision > beforeReopen.match_inputs_revision);
+    assert.ok(reopened.match_inputs_revision > resolved.match_inputs_revision);
+
+    // Demonstrate the stale token in a test-only conditional write. This is
+    // not an implementation of the future authorization or CAS contract.
+    const stale = await DB.prepare(`UPDATE applicants SET budget_max=? WHERE id=? AND criteria_revision=?
+      AND match_inputs_revision=? AND search_state=? AND archived_at IS ?`)
+      .bind(4000, 1, beforeReopen.criteria_revision, beforeReopen.match_inputs_revision,
+        beforeReopen.search_state, beforeReopen.archived_at).run();
+    assert.equal(stale.meta.changes, 0);
+    assert.equal((await loadCriteriaSnapshot({ DB }, 1)).criteria.budget_max, reopened.criteria.budget_max);
+
+    assert.equal((await transition('resolved')).status, 200);
+    const beforeArchive = await loadCriteriaSnapshot({ DB }, 1);
+    assert.equal((await call(env, 'POST', '/admin/applicants/1/archive', { cookie })).status, 200);
+    const archived = await loadCriteriaSnapshot({ DB }, 1);
+    assert.equal((await call(env, 'POST', '/admin/applicants/1/restore', { cookie })).status, 200);
+    const restored = await loadCriteriaSnapshot({ DB }, 1);
+    assert.equal(restored.search_state, beforeArchive.search_state);
+    assert.equal(restored.archived_at, beforeArchive.archived_at);
+    assert.equal(restored.criteria_revision, beforeArchive.criteria_revision);
+    assert.ok(archived.match_inputs_revision > beforeArchive.match_inputs_revision);
+    assert.ok(restored.match_inputs_revision > archived.match_inputs_revision);
   } finally { await mf.dispose(); }
 });
