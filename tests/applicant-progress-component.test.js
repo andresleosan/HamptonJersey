@@ -110,3 +110,18 @@ test('synchronous retry failure permits another attempt and leaves no focus inte
     button.blur();await render(false);assert.equal(document.activeElement,document.body);
   } finally {await React.act(async()=>root.unmount());dom.window.close();for(const [k,v] of Object.entries(saved))v===undefined?delete global[k]:global[k]=v;}
 });
+
+test('settling a pending retry after unmount does not update or move focus', async () => {
+  const {default:SearchProgress}=await load();
+  const dom=new JSDOM('<div id="root"></div><button id="other">Other</button>',{url:'https://hampton.test/'});
+  const saved={window:global.window,document:global.document,IS_REACT_ACT_ENVIRONMENT:global.IS_REACT_ACT_ENVIRONMENT};
+  global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+  const {createRoot}=require('react-dom/client');const root=createRoot(document.getElementById('root'));let finish;
+  try {
+    await React.act(async()=>root.render(React.createElement(SearchProgress,{snapshot,stale:true,onReload:()=>new Promise(resolve=>{finish=resolve;})})));
+    const button=document.querySelector('.search-progress-reload');button.focus();await React.act(async()=>button.click());
+    await React.act(async()=>root.unmount()); document.getElementById('other').focus();
+    await React.act(async()=>finish());
+    assert.equal(document.activeElement.id,'other');assert.equal(document.getElementById('root').childNodes.length,0);
+  } finally {dom.window.close();for(const [k,v] of Object.entries(saved))v===undefined?delete global[k]:global[k]=v;}
+});
