@@ -11,7 +11,7 @@ export function researchDuplicateReviewStatement(env, id, actor) {
     SELECT candidate.property_id AS candidate_id, l.id AS listing_id, l.operation,
       (SELECT count(*) FROM reviewed) AS checked,
       EXISTS (SELECT 1 FROM reviewed own WHERE EXISTS (
-        SELECT 1 FROM matches other INDEXED BY sqlite_autoindex_matches_1
+        SELECT 1 FROM matches other
         WHERE other.applicant_id=own.applicant_id AND other.listing_id=l.id
           AND ((own.status='shortlisted' AND other.status='rejected')
             OR (own.status='rejected' AND other.status='shortlisted')))) AS conflict

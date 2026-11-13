@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
 import {makeEnv,seedListing,call,adminCookie,T0} from './listing-client.mjs';
 
 function setup() {
@@ -174,4 +175,28 @@ test('BUS-10: matching opposite reviews in either direction is indexed and never
   const plan=env.DB.raw.prepare(`EXPLAIN QUERY PLAN ${stmt.sql}`).all('HE-R001','admin@example.test','HE-R001')
     .map(row=>row.detail).join('\n');
   assert.match(plan,/sqlite_autoindex_matches_1.*applicant_id=.*listing_id=/);
+});
+
+test('BUS-10: an equivalent named unique index can serve the review query',async()=>{
+  const db = new DatabaseSync(':memory:');
+  try {
+    db.exec(`CREATE TABLE matches(applicant_id INTEGER, listing_id TEXT, status TEXT);
+      CREATE UNIQUE INDEX matches_by_search_listing ON matches(applicant_id, listing_id);
+      CREATE TABLE research_properties(property_id TEXT PRIMARY KEY, duplicate_group TEXT);
+      CREATE TABLE listings(id TEXT PRIMARY KEY, operation TEXT);
+      CREATE TABLE admins(email TEXT PRIMARY KEY);
+      INSERT INTO listings VALUES('HE-R001','sale'),('HE-R002','rent');
+      INSERT INTO admins VALUES('staff@example.test');
+      INSERT INTO research_properties VALUES('HE-R001','test-group'),('HE-R002','test-group');
+      INSERT INTO matches VALUES(1,'HE-R001','shortlisted'),(1,'HE-R002','rejected');`);
+    const env = {DB:{prepare:sql=>({bind:(...args)=>({sql,args})})}};
+    const {researchDuplicateReviewStatement}=await import('../../server/research-duplicate-review.js');
+    const statement=researchDuplicateReviewStatement(env,'HE-R001','staff@example.test');
+    const rows=db.prepare(statement.sql).all(...statement.args);
+    assert.equal(rows.length,1);
+    assert.equal(rows[0].conflict,1);
+    const plan=db.prepare(`EXPLAIN QUERY PLAN ${statement.sql}`).all(...statement.args)
+      .map(row=>row.detail).join('\n');
+    assert.match(plan,/matches_by_search_listing.*applicant_id=.*listing_id=/);
+  } finally { db.close(); }
 });

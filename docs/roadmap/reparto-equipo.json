@@ -4112,8 +4112,8 @@
       "fase": "F1-B",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Base interna de identidad física y publicaciones por fuente, con observaciones preservadas, revisión humana versionada y reversible, reintentos idempotentes y rechazo de vínculos de operación incoherentes. La fachada permanece bloqueada con 503; la migración 0050 se probó localmente y el estado remoto no se conoce.",
-      "falta": "Completar candidatos y revisión de ambigüedades y conflictos entre matches, retención y bajas EST-19, autorización efectiva por fuente y sesión, integración con BUS-06/BUS-09, rutas y pantalla. No se han utilizado fuentes reales ni acreditado la operación de extremo a extremo.",
+      "hecho": "Base interna de identidad física y publicaciones por fuente con observaciones preservadas, revisión humana versionada y reversible, reintentos idempotentes y rechazo de vínculos de operación incoherentes. La ficha Staff muestra como indicios los grupos históricos de investigación, sin identificar contactos ni confirmar identidad; señala discrepancias de revisión y resultados incompletos. La fachada de identidad permanece bloqueada con 503; la migración 0050 se probó localmente y el estado remoto no se conoce.",
+      "falta": "Completar candidatos de mercado BUS-06/BUS-09, decisiones y conflictos entre matches, retención y bajas EST-19, autorización duradera por fuente y sesión, rutas y pantalla de identidad. Los grupos históricos no acreditan una única vivienda ni sustituyen ese flujo. No se han utilizado fuentes reales ni acreditado la operación de extremo a extremo.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:90-91",
@@ -4124,7 +4124,13 @@
         "server/internal/market-identity-core.js",
         "server/market-identity.js",
         "tests/server/bus-10-identity.test.mjs",
-        "docs/roadmap/work/BUS-10/foundation-evidence.md"
+        "docs/roadmap/work/BUS-10/foundation-evidence.md",
+        "server/research-duplicate-review.js",
+        "admin/src/ResearchDuplicateReview.jsx",
+        "tests/server/bus-10-research-review.test.mjs",
+        "tests/bus-10-research-review-ui.test.js",
+        "tests/bus-10-research-review.e2e.cjs",
+        "docs/roadmap/work/BUS-10/revision-investigacion-2026-11-13.md"
       ],
       "modulo": "M02",
       "deps": [
@@ -4149,7 +4155,7 @@
         "market-inventory",
         "property-identity"
       ],
-      "nextStep": "Resolver retención EST-19 y autoridad duradera antes de conectar candidatos, fuentes o interfaz."
+      "nextStep": "Resolver retención EST-19 y autoridad duradera antes de conectar candidatos de mercado y decisiones de identidad."
     },
     {
       "id": "BUS-11",

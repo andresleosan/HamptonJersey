@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **BUS-10 parcial:** la ficha Staff muestra candidatos de investigación como indicios y señala revisiones contradictorias, sin fusionar propiedades. Se eliminó la dependencia de un nombre interno de índice; la búsqueda histórica sigue sin índice por grupo. [Evidencia](work/BUS-10/revision-investigacion-2026-11-13.md).
+
 13-nov-2026 · **ANA-10 parcial:** la decisión vigente usa QR por propiedad y aperturas agregadas, sin atribución a contactos. El control de caché está preparado y apagado por defecto; faltan QR, recuento, coste y verificación CDN. [Evidencia](work/ANA-10/cache-origen-2026-11-13.md).
 
 13-nov-2026 · **PUB-16 parcial:** el checklist incorpora la decisión pendiente de 24 horas para corregir y retirar un alquiler, y la cancelación y avisos posteriores de visitas. El código actual no acredita ese recorrido. [Conciliación](work/PUB-16/reconciliacion-24h-2026-11-13.md).
