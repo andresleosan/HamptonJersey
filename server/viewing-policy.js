@@ -39,6 +39,25 @@ function minutes(value, end = false) {
   if (typeof value !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
   return Number(value.slice(0,2))*60+Number(value.slice(3,5));
 }
+// Convert only a supplied, verified offset (seconds east of UTC). Missing legacy
+// offsets are deliberately unresolved; neither an autumn fold nor its branch
+// can be reconstructed from a wall time alone. This helper does not enable
+// enforcement or alter historical rows.
+export function jerseyViewingInstant(date, time, offsetSeconds) {
+  if (!goodDay(date) || minutes(time) == null || !Number.isSafeInteger(offsetSeconds)
+      || Math.abs(offsetSeconds)>86400) return null;
+  try {
+    const instant = new Date(Date.parse(`${date}T${time}:00Z`) - offsetSeconds*1000);
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+      timeZone:'Europe/Jersey', year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23', era:'short',
+    }).formatToParts(instant).map(part=>[part.type,part.value]));
+    if (parts.era !== 'AD' || `${parts.year.padStart(4,'0')}-${parts.month}-${parts.day}` !== date
+        || `${parts.hour}:${parts.minute}:${parts.second}` !== `${time}:00`) return null;
+    return instant.toISOString();
+  } catch { return null; }
+}
+
 function validatePolicy(policy) {
   if (!policy || typeof policy !== 'object' || Array.isArray(policy)
       || POLICY_KEYS.some(key=>!Number.isSafeInteger(policy[key]))
