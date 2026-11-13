@@ -4600,14 +4600,20 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F4",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "La reserva pública deja elegir «General enquiry / valuation» con un hueco real de un negociador (llega al Inbox y a Viewings), e Insights muestra la demanda sin cubrir por parroquia (Unmet demand) para preparar la valoración.",
-   "falta": "No hay formulario Book a valuation que cree el contacto del propietario con los datos de su casa, y los comparables siguen pendientes: Places.je es una posible fuente cuyo acceso se verifica por separado, no un bloqueo obligatorio del inventario común. El formulario del propietario espera a que Hampton confirme su registro en la JOIC (PRE-03) y a que el aviso de privacidad cubra a los propietarios (PRE-09).",
+   "hecho": "La reserva pública deja elegir «General enquiry / valuation» con un hueco real de un negociador (llega al Inbox y a Viewings), e Insights muestra la demanda sin cubrir por parroquia (Unmet demand) para preparar la valoración. Se construyó el recorrido de solicitud privada, recibo idempotente, tarea en Inbox y pantalla Staff con recepción forzosamente cerrada; las pruebas usan datos ficticios. El esquema de reconstrucción es solo propuesta y no se ha aplicado.",
+   "falta": "Antes de recibir datos reales se requiere integrar y verificar supresión y conciliación de solicitudes, política de retención, confirmación JOIC y aviso de privacidad para propietarios. Revisar el esquema real y la propuesta de reconstrucción, que debe ejecutarse solo como lote transaccional y rechaza cualquier deriva; no se han aplicado migraciones remotas. Los comparables tienen sus propias dependencias.",
    "bloqueo": "Dato de Hampton",
    "evidencia": [
     "site/index.html:465-482",
     "server/routes/public.js:50-78",
     "admin/src/Insights.jsx:60",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-10-pub-10-registro-propietarios.md",
+    "server/owner-requests.js",
+    "server/proposed-schema/owner-requests-rebuild.sql",
+    "tests/server/pub10-owner-d1.test.mjs",
+    "tests/pub10-owner.e2e.cjs",
+    "docs/roadmap/work/PUB-10/avance-publicable.md"
    ]
   },
   {

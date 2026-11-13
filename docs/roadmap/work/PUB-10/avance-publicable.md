@@ -1,0 +1,7 @@
+# PUB-10 · avance parcial
+
+Está construido el formulario, recibo idempotente, registro de solicitud, evento y tarea de Inbox, además del detalle Staff. La recepción real permanece forzosamente cerrada porque aún no existe una supresión y conciliación de solicitudes verificables. No se han recibido datos reales. El acceso Staff a solicitudes anteriores no depende de que esté activa la recepción.
+
+La reconstrucción de esquema está fuera de migrations y no se ha aplicado remotamente. Una revisión detectó que una FK entrante nueva podía perder datos: la propuesta corregida compara antes de reconstruir las definiciones exactas de tablas y rechaza toda deriva, incluso legítima. La prueba D1 local con datos sintéticos conserva referencias históricas, índices, triggers y vistas, y revierte un fallo posterior a DROP. La propuesta solo es válida si todas sus sentencias se ejecutan en un único batch D1 transaccional; no acredita la forma ni el estado de la base remota. Debe revisarse el esquema real antes de una migración autorizada.
+
+Las pruebas aisladas de interfaz usan Turnstile y respuestas sintéticas; verifican reintentos, errores por campo y ausencia de datos personales en almacenamiento local. No acreditan proveedor ni recepción en producción. Antes de habilitar faltan supresión y conciliación reales, política de retención, confirmación JOIC, aviso de propietarios y revisión operativa del esquema. Las respuestas de validación tardías no marcan valores que ya cambiaron.
