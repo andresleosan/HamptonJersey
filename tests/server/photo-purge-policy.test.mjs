@@ -2,15 +2,32 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { assessPhotoPurge } from '../../server/property-photo-purge.js';
 
-const scope = { state: 'trashed', versionConfirmed: true, enteredAt: '2026-08-31T12:00:00.000Z' };
+const scope = { state: 'trashed', versionConfirmed: true, enteredAt: '2026-08-31T12:00:00.000Z', enteredAtReliable: true };
 const photo = { role: 'photo', origin: 'external', belongsToScope: true, personalData: false, referencesComplete: true, activeReferences: false };
-const assess = (asset = photo, changes = {}, now = '2027-03-01T12:00:00.000Z') => assessPhotoPurge({ scope: { ...scope, ...changes }, asset, now });
+const assess = (asset = photo, changes = {}, now = '2027-03-01T12:00:00.000Z') => assessPhotoPurge({ scope: { ...scope, ...changes }, asset, now, clockReliable: true });
 
-test('time eligibility stays pending without an approved Jersey time and DST resolution rule', () => {
-  for (const now of ['2027-02-28T11:59:59.999Z', '2027-02-28T12:00:00.000Z', '2027-03-01T12:00:00.000Z']) {
-    assert.equal(assess(photo, {}, now), 'pending');
-  }
-  assert.equal(assess({ ...photo, role: 'photo_derivative', originalRole: 'photo' }), 'pending');
+test('six months in Jersey become eligible at the exact clamped deadline', () => {
+  assert.equal(assess(photo, {}, '2027-02-28T12:59:59.999Z'), 'blocked');
+  assert.equal(assess(photo, {}, '2027-02-28T13:00:00.000Z'), 'eligible');
+  assert.equal(assess(photo, {}, '2027-02-28T13:00:00.001Z'), 'eligible');
+  assert.equal(assess(photo, { enteredAt: '2027-08-31T12:00:00.000Z' }, '2028-02-29T13:00:00.000Z'), 'eligible');
+  assert.equal(assess({ ...photo, role: 'photo_derivative', originalRole: 'photo' }), 'eligible');
+});
+
+test('spring gap resolves to first valid instant and autumn fold to first occurrence', () => {
+  const gap = { enteredAt: '2025-09-29T00:30:00.000Z' };
+  assert.equal(assess(photo, gap, '2026-03-29T00:59:59.999Z'), 'blocked');
+  assert.equal(assess(photo, gap, '2026-03-29T01:00:00.000Z'), 'eligible');
+  const fold = { enteredAt: '2026-04-25T00:30:00.000Z' };
+  assert.equal(assess(photo, fold, '2026-10-25T00:29:59.999Z'), 'blocked');
+  assert.equal(assess(photo, fold, '2026-10-25T00:30:00.000Z'), 'eligible');
+  assert.equal(assess(photo, fold, '2026-10-25T01:30:00.000Z'), 'eligible');
+});
+
+test('declared reliability of both entry and clock is required', () => {
+  assert.equal(assess(photo, { enteredAtReliable: false }), 'blocked');
+  assert.equal(assess(photo, { enteredAtReliable: null }), 'blocked');
+  assert.equal(assessPhotoPurge({scope, asset: photo, now: '2027-03-01T12:00:00.000Z'}), 'blocked');
 });
 
 test('a derivative requires explicit evidence that its original is a photo', () => {
