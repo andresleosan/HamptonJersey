@@ -60,10 +60,15 @@ const {chromium}=require(process.env.PW||'playwright-core');
    await found.getByRole('button',{name:'Retry Found',exact:true}).click();
    await found.getByRole('link',{name:'BUS14 home 25',exact:true}).waitFor();
    await page.unroute('**/api/admin/applicants/*/matches?status=found*');
+   // Undo recalculates matches, so preserve the current score instead of assuming the initial fixture value.
+   const card25=found.locator('.match').filter({has:page.getByRole('link',{name:'BUS14 home 25',exact:true})});
+   const scoreBeforeReject=await card25.locator('.score').textContent();
+   assert.match(scoreBeforeReject,/^Score \d+$/);
    await found.getByRole('button',{name:'Reject BUS14 home 25',exact:true}).click();
    await found.locator('.reasons').getByRole('button',{name:'Price',exact:true}).click();
    const rejected=page.locator('.match-group').filter({has:page.locator('#group-rejected')});
-   await rejected.getByText('Historical score 90',{exact:true}).waitFor();
+   const rejected25=rejected.locator('.match').filter({has:page.getByRole('link',{name:'BUS14 home 25',exact:true})});
+   await rejected25.getByText(scoreBeforeReject.replace(/^Score /,'Historical score '),{exact:true}).waitFor();
    await rejected.getByRole('button',{name:/Undo.*BUS14 home 25.*Found/}).click();
    await page.getByText('BUS14 home 25 is back in Found.',{exact:true}).waitFor();
    await rejected.getByText('Nothing rejected yet.',{exact:true}).waitFor();
@@ -112,9 +117,15 @@ const {chromium}=require(process.env.PW||'playwright-core');
    await page.evaluate(()=>document.documentElement.style.zoom='200%');
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
    await page.evaluate(()=>document.documentElement.style.zoom='');
+   // Requirements saves also recalculate scores; verify the same card becomes explicitly legacy.
+   const firstCard=found.locator('.match').first();
+   const firstTitle=await firstCard.locator('h3 a').textContent();
+   const firstScore=await firstCard.locator('.score').textContent();
+   assert.match(firstScore,/^Score \d+$/);
    execFileSync(process.execPath,[wrangler,'d1','execute','hampton','--local','--persist-to',process.env.E2E_PERSIST,'--command',`UPDATE applicants SET match_ranking_version=0 WHERE id=${id}`],{stdio:'pipe'});
    await page.reload();await page.getByRole('button',{name:'Recalculate matches',exact:true}).waitFor();
-   await found.getByText('Previous score 90',{exact:true}).first().waitFor();
+   const legacyCard=found.locator('.match').filter({has:page.getByRole('link',{name:firstTitle,exact:true})});
+   await legacyCard.getByText(firstScore.replace(/^Score /,'Previous score '),{exact:true}).waitFor();
    await page.getByRole('button',{name:'Recalculate matches',exact:true}).click();
    await page.getByText('Matches recalculated.',{exact:true}).waitFor();
    await page.waitForFunction(()=>![...document.querySelectorAll('.match .score')].some(e=>e.textContent.includes('Previous score')));
@@ -122,8 +133,8 @@ const {chromium}=require(process.env.PW||'playwright-core');
   }
   // Widen must see an alternative beyond the first25 cards and improve it without adding another pair.
   const wsql=[];for(const [i,beds,price] of [[70,6,950000],[71,5,800000],[72,6,850000],[73,6,860000]])
-   wsql.push(`INSERT INTO listings(id,title,use,operation,availability,matchable,sale_price,parish,bedrooms,published,created_at,updated_at,updated_by)
-    VALUES('HE-R0${i}','Widen fixture ${i}','residential','sale','for_sale',1,${price},'Trinity',${beds},0,'2026-11-09','2026-11-09','fixture')`);
+   wsql.push(`INSERT INTO listings(id,title,use,operation,availability,matchable,sale_price,currency,parish,bedrooms,published,created_at,updated_at,updated_by)
+    VALUES('HE-R0${i}','Widen fixture ${i}','residential','sale','for_sale',1,${price},'GBP','Trinity',${beds},0,'2026-11-09','2026-11-09','fixture')`);
   execFileSync(process.execPath,[wrangler,'d1','execute','hampton','--local','--persist-to',process.env.E2E_PERSIST,'--command',wsql.join(';')],{stdio:'pipe'});
   const madeWiden=await ctx.request.post(base+'api/admin/applicants',{headers:{origin:new URL(base).origin},data:{name:'Widen fixture',email:'widen-bus14@example.test',source:'phone',operation:'buy',pets:[{kind:'none'}],budget_max:900000,bedrooms_min:6,parishes_wanted:['Trinity'],
    requirement_priorities:{version:1,values:{budget:'must',bedrooms:'must',area:'must'},unknown:[]}}});
