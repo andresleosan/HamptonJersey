@@ -25,6 +25,7 @@ export function passesExtra(l, f, today = new Date()) {
 }
 
 export const bedsLabel = n => (n == null ? "" : n === 0 ? "Studio" : `${n} bed`);
+export const bathsLabel = n => (n == null ? "" : `${n} ${n === 1 ? "bath" : "baths"}`);
 
 export function daysAgo(iso, today = new Date()) {
   if (!iso) return "—";

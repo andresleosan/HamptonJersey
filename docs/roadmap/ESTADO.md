@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **SPR-01 parcial:** la lista propia muestra baños y fecha civil de disponibilidad cuando corresponde, con revisión y pruebas locales. La integración de fuentes externas y una comprobación menor de foco/zoom siguen pendientes. [Evidencia](work/SPR-01/implementation-evidence.md).
+
 13-nov-2026 · **REG-11 hecho:** la corrección de fechas quedó integrada y los checks de Pages y Workers Builds de `3e6191b` terminaron correctamente. La cifra local pasa de 65/217 (29,95 %) a 66/217 (30,41 %); no se ha comprobado el tablero público ni repetido el flujo autenticado o un envío en producción. M04 continúa como alcance independiente. [Evidencia](work/conciliacion/2026-11-13-release-reg11-pub.md).
 
 13-nov-2026 · **Conciliación anterior de registro y estados:** REG-08 y EST-17 cumplieron su alcance acreditado y pasaron a hecho; en ese corte REG-11 seguía parcial a la espera de la corrección de fechas. El avance entonces pasó de 63/217 (29,03 %) a 65/217 (29,95 %). NOT-01 y NOT-08 siguen parciales por sus productores y canales pendientes. [Evidencia y límites](work/conciliacion/2026-11-13-reg-est-not.md).

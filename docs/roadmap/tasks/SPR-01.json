@@ -6,14 +6,18 @@
   "fase": "—",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Listings muestra ubicación, parroquia, precio con su periodo, Availability y si se ve en la web (Visible/Hidden; pestañas Published, Drafts y Archived); desde el 6-nov-2026 los dormitorios salen en la línea gris de cada fila («3 bed», SPR-06); los baños solo se ven al abrir la ficha.",
-  "falta": "Baños en la lista, y la fecha desde la que está disponible, que no existe como campo en listings.",
+  "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas.",
+  "falta": "Publicar y verificar el despliegue. Queda pendiente una comprobación específica del foco del campo inválido y de la recuperación del editor con zoom al 200 %. La incorporación de fichas externas y fuentes corresponde a BUS-10/EST-16/SPR-07.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/Listings.jsx:81-108",
     "server/routes/listings.js:14-17",
     "admin/src/ListingEditor.jsx:187-188",
-    "migrations/0001_init.sql:1-23"
+    "migrations/0001_init.sql:1-23",
+    "admin/src/listing-filters.js",
+    "tests/server/listings-list.test.mjs",
+    "tests/spr01-listings.e2e.cjs",
+    "docs/roadmap/work/SPR-01/implementation-evidence.md"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -33,5 +37,6 @@
     "listings-schema",
     "listing-editor"
   ],
-  "nextStep": "Completar baños y fecha de disponibilidad en la tarjeta, reconciliando el campo con PUB-06."
+  "nextStep": "Publicar y verificar la tarjeta propia, completar la comprobación de foco/zoom y continuar la integración externa en sus tareas.",
+  "actualizado": "2026-11-13"
 }

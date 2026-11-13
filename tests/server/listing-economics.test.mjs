@@ -30,3 +30,27 @@ test("invalid dates and incomplete rent are rejected", () => {
   assert.ok(validateListing({ service_charge: "x".repeat(201) }, { partial: true }).errors.service_charge);
   assert.ok(checkPrice({ rent: 1000, currency: "GBP" }).rent_period);
 });
+
+test('SPR-01: available dates use real civil years 0001 to 9999 and preserve unknown values', () => {
+  const validate = value => validateListing({ available_on: value }, { partial: true });
+  for (const value of ['0001-01-01', '2028-02-29', '9999-12-31'])
+    assert.equal(validate(value).value.available_on, value);
+  for (const value of [null, '', '   ']) assert.equal(validate(value).value.available_on, null);
+  assert.equal('available_on' in validateListing({ title: 'Unchanged date' }, { partial: true }).value, false);
+  for (const value of ['0000-01-01', '2027-02-29', '2026-02-30', '2026-13-01', '2026-11-12T00:00:00Z',
+    ' 2026-11-12 ', 20261112, [], {}])
+    assert.equal(validate(value).errors?.available_on, 'Enter a valid date as YYYY-MM-DD', JSON.stringify(value));
+});
+
+test('SPR-01: rejecting a year-zero date does not change the listing or write an event', async () => {
+  const env = makeEnv();
+  seedListing(env, { available_on: '2026-11-12', confirmed_at: T0 });
+  const cookie = await adminCookie();
+  const before = { ...env.DB.raw.prepare('SELECT available_on, confirmed_at, updated_at FROM listings WHERE id=?').get('HE-R001') };
+  const eventCount = env.DB.raw.prepare('SELECT count(*) AS n FROM events').get().n;
+  const result = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: { available_on: '0000-01-01', updated_at: T0 } });
+  assert.equal(result.status, 400);
+  assert.equal(result.data.fields.available_on, 'Enter a valid date as YYYY-MM-DD');
+  assert.deepEqual({ ...env.DB.raw.prepare('SELECT available_on, confirmed_at, updated_at FROM listings WHERE id=?').get('HE-R001') }, before);
+  assert.equal(env.DB.raw.prepare('SELECT count(*) AS n FROM events').get().n, eventCount);
+});

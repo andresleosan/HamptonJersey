@@ -21,7 +21,7 @@ export const HAS_PUBLIC_PHOTO = `EXISTS (SELECT 1 FROM media m WHERE m.listing_i
     AND m.origin <> 'external' AND m.r2_key IS NOT NULL AND m.r2_key <> '')`;
 const LIST_SQL = `SELECT l.id, l.title, l.use, l.country, l.location, l.availability, l.operation, l.sale_price, l.rent,
   l.rent_period, l.premium, l.currency, l.price_text, l.published, l.archived_at, l.updated_at, l.updated_by, l.featured_rank,
-  l.parish, l.matchable, l.confirmed_at, l.bedrooms, l.review_requested_at, l.review_requested_by, (${TO_CONFIRM}) AS to_confirm, ${COVER_ID} AS cover_id,
+  l.parish, l.matchable, l.confirmed_at, l.bedrooms, l.bathrooms, l.available_on, l.review_requested_at, l.review_requested_by, (${TO_CONFIRM}) AS to_confirm, ${COVER_ID} AS cover_id,
   ${HAS_PUBLIC_PHOTO} AS has_public_photo,
   (SELECT COUNT(*) FROM matches mm WHERE mm.listing_id = l.id) AS matched, (${interestSql("l.id")}) AS interested
   FROM listings l`;

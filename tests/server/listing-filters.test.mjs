@@ -1,7 +1,7 @@
 // SPR-06 / SPR-07: the Listings screen's filter rules (admin/src/listing-filters.js).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { monthlyPrice, bedsRange, passesExtra, bedsLabel, daysAgo, OPERATION_FILTER } from "../../admin/src/listing-filters.js";
+import { monthlyPrice, bedsRange, passesExtra, bedsLabel, bathsLabel, daysAgo, OPERATION_FILTER } from "../../admin/src/listing-filters.js";
 
 const TODAY = new Date("2026-11-06T12:00:00.000Z");
 const L = o => ({ operation: "sale", bedrooms: 3, sale_price: 500000, rent: null, rent_period: null, premium: null,
@@ -69,4 +69,9 @@ test("bedsLabel and daysAgo wording", () => {
   assert.equal(daysAgo("2026-11-05T08:00:00.000Z", TODAY), "1 day ago");
   assert.equal(daysAgo("2026-10-25T08:00:00.000Z", TODAY), "12 days ago");
   assert.equal(daysAgo(null, TODAY), "—");
+});
+
+test("SPR-01: bathroom labels keep zero distinct from an unknown value", () => {
+  assert.deepEqual([0, 1, 2, null, undefined].map(bathsLabel),
+    ["0 baths", "1 bath", "2 baths", "", ""]);
 });

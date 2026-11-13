@@ -32,3 +32,28 @@ test("list carries bedrooms, matched and interested", async t => {
   const st = (await call(env, "GET", "/admin/listings?parish=St%20Helier", { cookie: await adminCookie() }));
   assert.equal(st.status, 200);
 });
+
+test('SPR-01: the normal list exposes exact bathrooms and available dates without changing slim results', async () => {
+  const env = makeEnv();
+  seedListing(env, { bedrooms: 0, bathrooms: 0, available_on: '2026-11-12' });
+  seedListing(env, { id: 'HE-R002', bathrooms: 1, available_on: null });
+  seedListing(env, { id: 'HE-R003', bathrooms: 2, available_on: '2027-02-28', availability: 'sold' });
+  seedListing(env, { id: 'HE-R004', bathrooms: null, available_on: '2026-01-01', archived_at: T0, published: 0 });
+  const cookie = await adminCookie();
+  const response = await call(env, 'GET', '/admin/listings', { cookie });
+  assert.equal(response.status, 200);
+  const byId = Object.fromEntries(response.data.listings.map(row => [row.id, row]));
+  for (const [id, baths, day] of [
+    ['HE-R001', 0, '2026-11-12'], ['HE-R002', 1, null],
+    ['HE-R003', 2, '2027-02-28'], ['HE-R004', null, '2026-01-01'],
+  ]) {
+    assert.equal(byId[id].bathrooms, baths, id);
+    assert.equal(byId[id].available_on, day, id);
+  }
+  assert.equal(byId['HE-R001'].bedrooms, 0);
+  const slim = await call(env, 'GET', '/admin/listings?slim=1', { cookie });
+  assert.equal(slim.status, 200);
+  assert.deepEqual(Object.keys(slim.data.listings.find(row => row.id === 'HE-R001')).sort(),
+    ['archived_at', 'id', 'published', 'title']);
+  assert.equal((await call(env, 'GET', '/admin/listings')).status, 401);
+});

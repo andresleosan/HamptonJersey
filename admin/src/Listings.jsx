@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
-import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, priceText, fmtDate } from "./format.js";
+import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, priceText, fmtDate, fmtDayMonth } from "./format.js";
 import { OPTIONS } from "../../server/applicants.js";
+import { ON_MARKET } from "../../server/listing.js";
 import NewProperty from "./NewProperty.jsx";
 import WithdrawalDialog from './WithdrawalDialog.jsx';
-import { OPERATION_FILTER, bedsRange, passesExtra, bedsLabel, daysAgo } from "./listing-filters.js";
+import { OPERATION_FILTER, bedsRange, passesExtra, bedsLabel, bathsLabel, daysAgo } from "./listing-filters.js";
 
 // ADM-04: To confirm is the published listings on the market that nobody has confirmed lately (the server's to_confirm).
 const TABS = [["published", "Published"], ["to_confirm", "To confirm"], ["ready_for_review","Ready for review"], ["draft", "Drafts"], ["archived", "Archived"], ["all", "All"]];
@@ -62,7 +63,7 @@ export default function Listings({ onChange }) {
   const filtered = needle || use || region || avail || parish || Object.entries(extra).some(([k, v]) => v !== NO_EXTRA[k]);
   const clear = () => { setQ(""); setUse(""); setRegion(""); setAvail(""); setParish(""); setExtra(NO_EXTRA); };
 
-  return <section aria-labelledby="t-props">
+  return <section className="listings-screen" aria-labelledby="t-props">
     <div className="head"><h1 id="t-props">Listings</h1>
       <div className="inline"><a className="btn ghost" href="#/queue">Properties Queue</a>
         <button type="button" className="btn" onClick={() => setCreating(true)}>Add new property</button></div></div>
@@ -104,11 +105,12 @@ export default function Listings({ onChange }) {
           title={l.featured_rank != null ? "In the Featured section of the home page. Click to remove." : "Click to show in the Featured section of the home page."}
           aria-label={`Featured on the home page: ${l.title}${featNo[l.id] ? `, number ${featNo[l.id]}` : ""}`} onClick={() => star(l)}>{l.featured_rank != null ? "★" : "☆"}
           {featNo[l.id] && <sup className="star-no" aria-hidden="true">{featNo[l.id]}</sup>}</button>
-          <div><a href={`#/p/${l.id}`}>{l.title}</a>{stateOf(l)==='ready_for_review'&&<span className="badge attention">Ready for review</span>}<div className="meta"><span>{l.id}</span><span>{OPERATION[l.operation]}</span>{bedsLabel(l.bedrooms) && <span>{bedsLabel(l.bedrooms)}</span>}</div></div></div></td>
+          <div><a href={`#/p/${l.id}`}>{l.title}</a>{stateOf(l)==='ready_for_review'&&<span className="badge attention">Ready for review</span>}<div className="meta"><span>{l.id}</span><span>{OPERATION[l.operation]}</span>{bedsLabel(l.bedrooms) && <span>{bedsLabel(l.bedrooms)}</span>}{bathsLabel(l.bathrooms) && <span>{bathsLabel(l.bathrooms)}</span>}</div></div></div></td>
         <td>{l.location || l.country || "—"}</td>
         <td className="parish" data-label="Parish">{l.parish ?? "—"}</td>
         <td className="num">{priceText(l)}</td>
-        <td>{AVAILABILITY[l.availability]}{l.to_confirm === 1 && <> <span className="badge attention">To confirm</span></>}</td>
+        <td>{AVAILABILITY[l.availability]}{l.to_confirm === 1 && <> <span className="badge attention">To confirm</span></>}
+          {l.available_on && l.archived_at == null && ON_MARKET.includes(l.availability) && <div className="muted">Available from {fmtDayMonth(l.available_on)}</div>}</td>
         <td className="stat" data-label="Checked">{daysAgo(l.confirmed_at)}</td>
         <td className="stat num" data-label="Matched">{l.matched}</td>
         <td className="stat num" data-label="Interested">{l.interested}</td>

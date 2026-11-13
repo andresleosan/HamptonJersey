@@ -543,3 +543,19 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 
 .match-list>li{min-width:0}
 @media(max-width:400px){.checks div{display:grid;gap:4px}.checks dt{width:auto}.match .score{white-space:normal}}
+
+/* SPR-01: keep the Listings filters and rows usable at narrow zoomed widths. */
+@media (max-width:400px){
+  .listings-screen .filters>label,.listings-screen .filters .range{max-width:100%;min-width:0}
+  .listings-screen .filters input,.listings-screen .filters select{max-width:100%}
+  .listings-screen .filters .range>div{flex-wrap:wrap}
+  .listings-screen .filters .range>div>label{flex:1 1 85px;min-width:0}
+  .listings-screen .filters .range input,.listings-screen .filters .range select{width:100%}
+  .listings-screen .list.listings{table-layout:fixed}
+  .listings-screen .list.listings tr{grid-template-columns:72px minmax(0,1fr)}
+  .listings-screen .list.listings td,.listings-screen .title-cell>div{min-width:0;overflow-wrap:anywhere}
+}
+@media (max-width:260px){
+  .listings-screen .list.listings tr{grid-template-columns:minmax(0,1fr)}
+  .listings-screen .list.listings td:first-child{grid-row:auto}
+}

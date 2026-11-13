@@ -62,7 +62,7 @@ function check(k, v) {
     return JSON.stringify(v.map(({ day, start, end }) => ({ day, start, end })));
   }
   if (blank(v)) return REQUIRED.includes(k) ? bad("Required") : k === "specs" ? "[]" : null;
-  if (k === "available_on") return realDate(v) ? v : bad("Enter a valid date as YYYY-MM-DD");
+  if (k === "available_on") return realDate(v) && v.slice(0, 4) !== "0000" ? v : bad("Enter a valid date as YYYY-MM-DD");
   if (k in ENUMS) return ENUMS[k].includes(v) ? v : bad(`Invalid value (${ENUMS[k].join(", ")})`);
   if (k in TEXT) {
     if (typeof v !== "string") bad("Must be text");

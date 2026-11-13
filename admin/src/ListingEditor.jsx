@@ -493,7 +493,8 @@ export default function ListingEditor({ id, onChange }) {
         {field("parish_rates", "Parish rates", <input {...ctl("parish_rates")} maxLength={200} placeholder="e.g. £500 per year" />)}
         {field("service_charge", "Service charge", <input {...ctl("service_charge")} maxLength={200} placeholder="e.g. £100 per month" />)}
         {field("utilities_included", "Utilities included", <input {...ctl("utilities_included")} maxLength={300} placeholder="e.g. Water and heating" />)}
-        {field("available_on", "Available from", <input {...ctl("available_on")} type="date" />)}
+        {field("available_on", "Available from", <><input {...ctl("available_on", { "aria-describedby": `hint-available-on${errors.available_on ? " e-available_on" : ""}` })} type="date" />
+          <small id="hint-available-on" className="muted">Leave blank if unknown. This does not confirm availability.</small></>)}
       </div></section>
 
       <section id="s-description" className="card" aria-labelledby="h-desc"><h2 id="h-desc">Description</h2>
