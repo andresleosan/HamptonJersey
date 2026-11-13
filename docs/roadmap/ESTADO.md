@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **MSG-02 parcial:** mitigación ensayada para futuros problemas de expiración de llaves y acuses de mensajes guardados. Persisten la revisión de llaves históricas, la concurrencia y las verificaciones operativas del servicio; no se ha consultado D1 remota ni activado el chat. [Límites y pruebas](work/MSG-02/key-expiry-future-mitigation.md).
+
 13-nov-2026 · **SPR-02 parcial:** la etapa B de History ya consta en main con checks de Pages y Workers correctos. El estado remoto de 0038 es desconocido y no se ha comprobado el recorrido autenticado; la etapa C sigue pendiente. [Conciliación](work/SPR-02/reconciliacion-2026-11-13.md).
 
 13-nov-2026 · **PUB-11 parcial:** avisos orientativos de resolución, exposición y enfoque en el panel y guardas para no iniciar cargas tardías al abandonar la pantalla. Fotos confirmadas se conservan; las peticiones ya enviadas pueden terminar. Faltan calibración, validación y metadatos del servidor, y documentos privados. E2E local aislado aprobado; el E2E general quedó bloqueado por un iframe externo. [Evidencia](../qa/pub11/2026-11-13-photo-quality-evidence.md).

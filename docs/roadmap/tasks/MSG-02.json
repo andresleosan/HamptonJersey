@@ -6,8 +6,8 @@
   "fase": "F6",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Construido e integrado solo en el taller el 6-nov-2026, fase 1 de Hampton Bot sin IA (spec 2026-11-06, decisiones de Luis «1 1 1 1» y «1 1», migración 0022, después de 0021_published_at.sql; sin aplicar ni publicar). En la portada y en cada ficha, el botón «Message us» abre el chat: nombre, email o móvil, el mensaje y la casilla del aviso de privacidad, con Turnstile. En el panel, la pantalla Messages (Waiting, Answered, Handled) con «Messages N» en la barra, la ficha por la que pregunta, si el visitante sigue en la web, Send reply (firmada «Nombre · Hampton Estates», nunca el email), Mark handled y Delete. El visitante vuelve a su conversación en ese navegador durante 7 días; «End chat» la olvida allí y «Delete chat» la borra. Se borra sola 30 días después del último mensaje. Interruptor «Web chat» en Automations, apagado al empezar; nunca en *.pages.dev. Hermes recibe solo el número de chats en espera (chats_waiting en news). Aviso de privacidad con la sección «Web chat».",
-  "falta": "Publicación pendiente de un permiso nuevo de Luis para el SHA integrado; el anterior era para otro SHA y no vale. Luis: regla WAF /api/chat* y /api/stats (ANA-09, PRE-34), token del bot nuevo en BotFather (PRE-34) y encendido posterior en Automations. Desarrollo: el avisador del VPS, fuera del repo (cuatro archivos de la jaula, prueba sin red, DM a Luis como mucho cada 10 minutos, verificar.sh sin FALLA y DM de prueba sin datos); sin ello MSG-02 sigue parcial. Falta Create applicant con el contacto (MSG-05); contestar a quien cerró la página requiere Cloudflare Email Service (AUT-17). El abogado revisa el párrafo Web chat (PRE-33, PRE-34); DPIA y JOIC antes de las fases con IA. La spec implementada exige el contacto al empezar y una llave válida durante 7 días, en lugar del mini-formulario posterior y las 24 h del documento de ideas. Los topes por IP dependen de la regla WAF pendiente; el límite con huella diaria y la ruta /api/chat/contact del documento de ideas no están implementados, y hoy no se guarda la IP. Nombre visible Hampton Bot pendiente: hoy el botón dice Message us. Criterio pendiente del recorrido real: visitante escribe desde el móvil, Messages 1 aparece en 30 s, respuesta humana visible y aviso del VPS sin datos personales.",
+  "hecho": "La fase 1 de Hampton Bot sin IA (spec 2026-11-06 y decisiones de Luis «1 1 1 1» y «1 1») está en main desde 0639e4e2f41f92d13c25228470688d393faa5a76; la migración 0022 consta en el repositorio, pero su estado remoto no se pudo verificar en esta sesión. El código ofrece en la portada y en cada ficha el botón «Message us» abre el chat: nombre, email o móvil, el mensaje y la casilla del aviso de privacidad, con Turnstile. En el panel, la pantalla Messages (Waiting, Answered, Handled) con «Messages N» en la barra, la ficha por la que pregunta, si el visitante sigue en la web, Send reply (firmada «Nombre · Hampton Estates», nunca el email), Mark handled y Delete. El visitante vuelve a su conversación en ese navegador durante 7 días; «End chat» la olvida allí y «Delete chat» la borra. La retención prevista es de 30 días desde el último mensaje; no se ha comprobado su ejecución remota. Interruptor «Web chat» en Automations, apagado por defecto si falta el ajuste; su estado real no se ha comprobado; nunca en *.pages.dev. Hermes recibe solo el número de chats en espera (chats_waiting en news). Aviso de privacidad con la sección «Web chat». Preparada una mitigación para evitar futuros problemas de expiración de llaves, con revalidación de lectura y acuse de mensaje guardado; las conversaciones históricas requieren análisis aparte.",
+  "falta": "Verificar por los canales autorizados la regla WAF para /api/chat* y /api/stats (ANA-09 y PRE-34), el bot y el estado real del interruptor antes de acreditar el servicio. Completar el avisador del VPS y el recorrido real de extremo a extremo sin datos personales en el aviso. Revisar llaves históricas, compatibilidad de integraciones y despliegue mixto; la mitigación futura no acredita reparación retroactiva. Faltan la revisión de concurrencia e idempotencia compartida, Create applicant (MSG-05) y el canal de correo AUT-17 para responder a quien cerró la página. La revisión jurídica del aviso y los requisitos previos a IA siguen pendientes. El nombre visible Hampton Bot y los límites adicionales por huella/ruta de contacto tampoco están implementados.",
   "bloqueo": "",
   "evidencia": [
     "migrations/0022_chats.sql",
@@ -16,7 +16,8 @@
     "site/chat.js",
     "admin/src/Messages.jsx",
     "docs/superpowers/specs/2026-11-06-hampton-app-web-chat-design.md",
-    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §4, §5 y §9"
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §4, §5 y §9",
+    "docs/roadmap/work/MSG-02/key-expiry-future-mitigation.md"
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
@@ -38,10 +39,10 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Luis: autorización vigente, WAF, bot y activación; abogado revisa aviso y requisitos IA se separan.",
+  "externalBlocker": "Verificación operativa autorizada de WAF, bot, migración y activación; revisión del aviso por el abogado y requisitos de IA separados.",
   "resources": [
     "web-chat",
     "telegram-notifier"
   ],
-  "nextStep": "Reconciliar publicación y completar WAF, avisador y recorrido real del chat existente con autorización vigente."
+  "nextStep": "Verificar las compuertas operativas por canales autorizados y continuar CAS, idempotencia y análisis histórico; mantener el chat parcial hasta acreditar el recorrido real."
 }
