@@ -42,6 +42,10 @@
 
 **Interfaces:** isFullAvailableCandidate(state) importado de server/search-eligibility.js; reviewSearchTick(env,now,{limit:50})->{opened,updated,closed,pending}.
 
+**Precondición de integración:** `false` del predicado por sí solo no acredita ausencia: también representa datos incompletos o inválidos. El adaptador debe producir DTO fiables desde un snapshot coherente, comprobar cobertura completa del conjunto y vigencia de cada evidencia y construir un agregado triestado (existe / ausencia acreditada / desconocido). Un error, cobertura parcial, revisión obsoleta o revocación no resuelta mantiene desconocido; no iniciar ni avanzar el reloj por inferencia. Revalidar identidad, revisiones y evidencia en la transacción antes de cualquier efecto. Los proxies sofisticados pueden aparentar registros ordinarios: las guardas del predicado no sustituyen una frontera DTO fiable.
+
+- [ ] Probar conjunto incompleto sin candidatos aptos, error de carga y revocación o evidencia obsoleta: agregado desconocido, sin acreditar ausencia ni abrir revisión. Probar recuperación con cobertura completa, evidencia vigente y revalidación transaccional; comprobar que un candidato apto acreditado suspende el reloj.
+
 - [ ] Preparar casos y aserciones: initial21_calendar_days; full_available_holds_clock; last_full_disappears_starts_absence_now; criteria_edit_no_silent_reset; legacy_unknown_baseline_not_fake_history; pets_incompatible_never_qualifies; staff_rejected_and_client_declined_do_not_hold_clock; stale_episode_does_not_count.
 - [ ] Escribir pruebas en `tests/server/search-review-cycle.test.mjs`; ejecutar `node --test tests/server/search-review-cycle.test.mjs` y comprobar fallo por comportamiento ausente, no por entorno/dependencias. Fixtures sintéticos.
 - [ ] Definir no_full_since y baseline evidenciado, comparar revisiones de hechos/criterios y usar díasJersey/misma hora. Reloj10min existente, no nueva programación.

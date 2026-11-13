@@ -68,3 +68,39 @@ test('a failed preference and low score do not override a complete evaluation', 
   s.evaluation.score=0;
   assert.equal(isFullAvailableCandidate(s), true);
 });
+
+test('inherited records and required properties cannot establish eligibility', () => {
+  const inheritedRoot=Object.create(valid());
+  assert.equal(isFullAvailableCandidate(inheritedRoot), false);
+  for (const part of ['current','evaluation','availability','staffDecision','clientDecision']) {
+    const s=valid(); s[part]=Object.create(s[part]);
+    assert.equal(isFullAvailableCandidate(s), false, part);
+  }
+  const s=valid();
+  const proto={classification:'meets'};
+  s.evaluation=Object.assign(Object.create(proto), s.evaluation);
+  delete s.evaluation.classification;
+  assert.equal(isFullAvailableCandidate(s), false);
+});
+
+test('accessors are never trusted even if they change or throw', () => {
+  const changing=valid(); let calls=0;
+  Object.defineProperty(changing.current, 'criteriaRevision', {get() { return ++calls === 1 ? 2 : 1; }});
+  assert.equal(isFullAvailableCandidate(changing), false);
+  assert.equal(calls, 0);
+  const throwing=valid();
+  Object.defineProperty(throwing, 'availability', {get() { throw new Error('unavailable'); }});
+  assert.equal(isFullAvailableCandidate(throwing), false);
+});
+
+test('arrays, functions and revoked proxies fail closed without throwing', () => {
+  const revoked=Proxy.revocable({}, {}); revoked.revoke();
+  for (const invalid of [[], () => {}, revoked.proxy]) {
+    assert.equal(isFullAvailableCandidate(invalid), false);
+    const s=valid(); s.evaluation=invalid;
+    assert.equal(isFullAvailableCandidate(s), false);
+  }
+  const s=valid();
+  s.current=new Proxy(s.current, { getPrototypeOf() { throw new Error('bad proxy'); } });
+  assert.equal(isFullAvailableCandidate(s), false);
+});

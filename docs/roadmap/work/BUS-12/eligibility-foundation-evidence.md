@@ -13,3 +13,7 @@ El booleano `false` engloba tanto inelegibilidad acreditada como información in
 ## Verificación
 
 Fixtures sintéticos de `tests/server/search-eligibility.test.mjs`: clasificación, imprescindibles, esenciales, condición legal, exclusión, evidencia y disponibilidad, decisiones, versiones/contexto y datos incompletos, además de preferencia fallida. Se ejecuta con `node --test tests/server/search-eligibility.test.mjs`. La suite integrada, D1, navegador, conexiones reales y producción quedan fuera de este trabajo delimitado.
+
+## Endurecimiento de entrada
+
+La función solo acepta registros ordinarios (prototipo `Object.prototype` o nulo) y propiedades propias de datos para los campos requeridos; copia cada valor una vez y falla cerrado si su inspección produce una excepción. Rechaza arrays, funciones, propiedades heredadas y accessors. No existe detección general de proxies sofisticados: el adaptador debe entregar DTO fiables de un snapshot transaccional y revalidar antes de efectos. Las pruebas incluyen getters cambiantes y que lanzan, registros heredados y proxies revocados; no prueban la integridad de productores externos.
