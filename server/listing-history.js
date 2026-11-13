@@ -1,6 +1,6 @@
 import {fail} from './http.js';
 import {EDITABLE,ENUMS} from './listing.js';
-import {validWeeklyWindows} from './viewings.js';
+import {realDate,validWeeklyWindows} from './viewings.js';
 import {LISTING_DETAIL_FIELDS,PROPERTY_CONDITION_LABELS} from './listing-details.js';
 import { physicalValue, normalizeFeatureOverrides } from './listing-physical.js';
 
@@ -30,6 +30,7 @@ function decodeCursor(cursor,id) {
 function valueAllowed(field,v) {
   if(v===null)return true;
   if(FREE.includes(field))return false;
+  if(field==='available_on')return realDate(v)&&!v.startsWith('0000');
   if(field==='property_condition')return Object.hasOwn(PROPERTY_CONDITION_LABELS,v);
   if(['heating_types','amenities'].includes(field)) {
     try { return Array.isArray(v) && JSON.stringify(physicalValue(field,v)) === JSON.stringify(v); } catch { return false; }

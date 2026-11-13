@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {api} from './api.js';
-import {fmtAgo} from './format.js';
+import {fmtAgo,fmtDayMonth} from './format.js';
+import {realDate} from '../../server/viewings.js';
 import {mergeHistoryPage} from './listing-history-window.mjs';
 import './listing-history.css';
 
@@ -24,7 +25,7 @@ const title = item => item.type==='match.reviewed'&&item.decision?.to==='shortli
   (RELATED[item.type]??'Property event recorded');
 const LABEL = {title:'Title',use:'Use',property_type:'Property type',operation:'Operation',availability:'Availability',country:'Country',location:'Location',
   road_name:'Road',bedrooms:'Bedrooms',bathrooms:'Bathrooms',tenure:'Tenure',tenure_type:'Tenure',housing_category:'Housing category',restriction:'Restriction',
-  sale_price:'Sale price',rent:'Rent',rent_period:'Rent period',premium:'Business premium',currency:'Currency',price_text:'Displayed price text',summary:'Summary',
+  sale_price:'Sale price',rent:'Rent',rent_period:'Rent period',premium:'Business premium',currency:'Currency',price_text:'Displayed price text',available_on:'Available from',summary:'Summary',
   description:'Description',tour_url:'Tour URL',specs:'Specification',viewings_enabled:'Viewings enabled',viewing_hours:'Viewing hours',parish:'Parish',
   matchable:'Offered to applicants',featured_rank:'Featured position',published:'Published',archived_at:'Archived at',published_at:'Published at',
   confirmed_at:'Confirmed at',cover_media_id:'Cover media ID',feat_pets:'Pets allowed',feat_parking:'Parking spaces',feat_furnished:'Furnished',
@@ -38,8 +39,17 @@ const SOURCE = {panel:'Panel',queue:'Properties Queue',sales:'Sales',media:'Medi
 const validDate = iso => typeof iso==='string' && Number.isFinite(Date.parse(iso)) && new Date(iso).toISOString()===iso;
 const date = iso => validDate(iso)?new Date(iso).toLocaleString('en-GB',{timeZone:'Europe/Jersey',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'}):'Date unavailable';
 const words = s => s.replaceAll('_',' ');
+const civilDate = v => realDate(v)&&!v.startsWith('0000');
+function changeLabel(item,c) {
+  if(c.field!=='available_on')return `${LABEL[c.field]} changed`;
+  if(item.type==='listing.created')return LABEL.available_on;
+  if(c.before===null&&civilDate(c.after))return 'Available from set';
+  if(civilDate(c.before)&&c.after===null)return 'Available from cleared';
+  return 'Available from changed';
+}
 function value(field,v) {
   if(v===null)return 'Not recorded';
+  if(field==='available_on')return civilDate(v)?<time dateTime={v}>{fmtDayMonth(v)}</time>:'Unknown in this event';
   if(typeof v==='boolean')return v?'Yes':'No';
   if(field.endsWith('_at'))return `${date(v)} (Jersey)`;
   if(field==='viewing_hours')return v.map(w=>`${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][w.day]} ${w.start} to ${w.end}`).join('; ');
@@ -87,7 +97,7 @@ export default function ListingHistory({id,refreshKey=0,historyEndpoint}) {
   return <section id="s-history" className="card listing-history" aria-labelledby="h-history">
     <div className="head"><h2 id="h-history" tabIndex={-1}>History</h2>
       <button id="history-refresh" type="button" className="btn ghost sm" disabled={loading} onClick={()=>load()}>Refresh history</button></div>
-    <p className="muted">Recorded property events. Earlier activity was not reconstructed. Dates are shown in Jersey time.</p>
+    <p className="muted">Recorded property events. Earlier activity was not reconstructed. Event times are shown in Jersey time; availability dates are calendar days.</p>
     <p role="status" className="muted">{loading?'Loading property history…':page?`${page.items.length} recorded ${page.items.length===1?'event':'events'} shown.`:''}</p>
     {page?.trimmed&&<p className="muted">Showing older events. Refresh history to return to the newest.</p>}
     {error&&<div><p role="alert" className="err">{invalidCursor?'History changed. Refresh history to continue.':verificationFailed?"Couldn't verify property history. Refresh history to continue.":"Couldn't load property history. Try again."}</p>
@@ -105,9 +115,10 @@ export default function ListingHistory({id,refreshKey=0,historyEndpoint}) {
         {item.milestone&&<p>Sale step: {words(item.milestone)}</p>}
         {item.type==='sale.milestone'&&<p>Step state: {MILESTONE_STATE[item.milestone_state]??'Not recorded in this event'}</p>}
         {item.changes.length>0&&<ul className="history-changes">{item.changes.map(c=><li key={c.field}>
-          <span>{LABEL[c.field]} changed{c.derived?' (derived)':''}</span>
-          {(Object.hasOwn(c,'before')||Object.hasOwn(c,'after'))&&<dl>
-            {['before','after'].filter(side=>Object.hasOwn(c,side)).map(side=><div key={side}><dt>{side==='before'?'Before':'After'}</dt><dd>{value(c.field,c[side])}</dd></div>)}
+          <span>{changeLabel(item,c)}{c.derived?' (derived)':''}</span>
+          {(c.field==='available_on'||Object.hasOwn(c,'before')||Object.hasOwn(c,'after'))&&<dl>
+            {(c.field==='available_on'?(item.type==='listing.created'?['after']:['before','after']):['before','after'].filter(side=>Object.hasOwn(c,side)))
+              .map(side=><div key={side}><dt>{side==='before'?'Before':'After'}</dt><dd>{Object.hasOwn(c,side)?value(c.field,c[side]):'Unknown in this event'}</dd></div>)}
           </dl>}</li>)}</ul>}
         {Object.entries(item.related).map(([k,v])=><p key={k}>{({offer_id:'Offer',sale_id:'Sale',import_id:'Import'})[k]} record: {v}</p>)}
         {item.evidence.length?item.evidence.map(e=><div key={e.evidence_ref} className="history-evidence">

@@ -90,7 +90,9 @@ test('SPR-01 A5 proposal preserves the deployed triggers and existing history wh
   assert.deepEqual(db.prepare('SELECT * FROM events ORDER BY id').all(),oldEvents);
   assert.deepEqual(db.prepare('SELECT * FROM notifications ORDER BY id').all(),oldNotices);
   assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
-  const modified=definitions(),strip=s=>s.replace(/'available_on', (?:OLD|NEW)\.available_on,\s*/g,'').replace(/\s+/g,' ').trim();
+  const modified=definitions(),strip=s=>s.replace(/\/\* SPR01_AVAILABLE_ON_BEGIN \*\/[\s\S]*?\/\* SPR01_AVAILABLE_ON_END \*\//g,'').replace(/\s+/g,' ').trim();
+  assert.equal((modified.listing_event_insert.match(/SPR01_AVAILABLE_ON_BEGIN/g)||[]).length,1);
+  assert.equal((modified.listing_event_update.match(/SPR01_AVAILABLE_ON_BEGIN/g)||[]).length,2);
   for(const name of Object.keys(oldTriggers))assert.equal(strip(modified[name]),strip(oldTriggers[name]),name);
   const created=await call(env,'POST','/admin/listings',{cookie,body:{title:'Synthetic listing',use:'residential',country:'Jersey',
     operation:'sale',availability:'for_sale',available_on:'2028-02-29'}});
@@ -119,6 +121,47 @@ test('SPR-01 A5: structured date values do not expose free-text fields in histor
   assert.ok(event.fields.includes('description'));
   assert.equal(event.before.available_on,'2026-11-12');assert.equal(event.after.available_on,'2027-02-28');
   assert.equal(JSON.stringify(event).includes('Synthetic private prose'),false);
+});
+
+test('SPR-01 A5: invalid legacy availability is not copied into new events or History',async()=>{
+  const marker='SYNTHETIC_PRIVATE_AVAILABILITY';
+  for(const legacy of [marker,`2028-02-29\0${marker}`])for(const next of ['2028-02-29',null]){
+    const env=makeEnv(),db=env.DB.raw,cookie=await adminCookie();
+    seedListing(env,{available_on:legacy,parish:'St Saviour'});install(db);
+    const result=await call(env,'PUT','/admin/listings/HE-R001',{cookie,body:{updated_at:T0,available_on:next}});
+    assert.equal(result.status,200);
+    const raw=history(db,'HE-R001').at(-1).data;
+    assert.equal(JSON.stringify(raw).includes(marker),false);
+    assert.deepEqual(raw.before.available_on,{unknown:true});
+    assert.equal(raw.after.available_on,next);
+    const response=await call(env,'GET','/admin/listings/HE-R001/history',{cookie});
+    assert.equal(response.status,200);assert.equal(JSON.stringify(response.data).includes(marker),false);
+    const date=response.data.items[0].changes.find(change=>change.field==='available_on');
+    assert.equal(Object.hasOwn(date,'before'),false,'unknown is not an explicit null');
+    assert.equal(Object.hasOwn(date,'after'),true);assert.equal(date.after,next);
+  }
+});
+
+test('SPR-01 A5: new snapshots accept only valid calendar dates or explicit null',()=>{
+  const env=makeEnv(),db=env.DB.raw,marker='SYNTHETIC_PRIVATE_AVAILABILITY';install(db);
+  const samples=[
+    ['0001-01-01','0001-01-01'],['2000-02-29','2000-02-29'],['2028-02-29','2028-02-29'],
+    ['9999-12-31','9999-12-31'],['0400-02-29','0400-02-29'],[null,null],['0000-01-01',{unknown:true}],
+    ['0100-02-29',{unknown:true}],['1900-02-29',{unknown:true}],['2100-02-29',{unknown:true}],
+    ['2027-02-29',{unknown:true}],['2026-04-31',{unknown:true}],['2028-2-29',{unknown:true}],
+    ['2028-02-29T00:00:00Z',{unknown:true}],['2028-02-29T00:00:00+14:00',{unknown:true}],[marker,{unknown:true}],
+    [`2028-02-29\0${marker}`,{unknown:true}],[20280229,{unknown:true}],[Buffer.from('2028-02-29'),{unknown:true}],
+  ];
+  const context=db.prepare(`INSERT INTO listing_event_context(listing_id,actor,source,action,at,derived_fields,related,previous_revision,extra_fields)
+    VALUES(?,'admin@example.test','panel','created',?,'[]','{}',0,'[]')`);
+  for(const [index,[input,expected]] of samples.entries()){
+    const id=`HE-R${String(index+1).padStart(3,'0')}`;
+    context.run(id,T0);seedListing(env,{id,available_on:input});
+    db.prepare('DELETE FROM listing_event_context WHERE listing_id=?').run(id);
+    const event=history(db,id)[0].data;
+    assert.deepEqual(event.after.available_on,expected,`case ${index}`);
+    assert.equal(JSON.stringify(event).includes(marker),false);
+  }
 });
 
 test('SPR-01 A5: no-op, stale write and event failure cannot append or leave a partial edit',async()=>{
@@ -166,12 +209,33 @@ test('SPR-01 A5 proposal preserves old history and atomic behavior in local D1',
     if(existsSync(proposal))await DB.batch(unstable_splitSqlQuery(readFileSync(proposal,'utf8')).map(sql=>DB.prepare(sql)));
     assert.deepEqual(await events(),oldHistory);assert.deepEqual(await notices(),oldNotices);
     assert.deepEqual((await DB.prepare('PRAGMA foreign_key_check').all()).results,[]);
-    const changedTriggers=await definitions(),strip=s=>s.replace(/'available_on', (?:OLD|NEW)\.available_on,\s*/g,'').replace(/\s+/g,' ').trim();
+    const changedTriggers=await definitions(),strip=s=>s.replace(/\/\* SPR01_AVAILABLE_ON_BEGIN \*\/[\s\S]*?\/\* SPR01_AVAILABLE_ON_END \*\//g,'').replace(/\s+/g,' ').trim();
+    assert.equal((changedTriggers.listing_event_insert.match(/SPR01_AVAILABLE_ON_BEGIN/g)||[]).length,1);
+    assert.equal((changedTriggers.listing_event_update.match(/SPR01_AVAILABLE_ON_BEGIN/g)||[]).length,2);
     for(const name of Object.keys(oldTriggers))assert.equal(strip(changedTriggers[name]),strip(oldTriggers[name]),name);
     const created=await call(env,'POST','/admin/listings',{cookie,body:{...body,title:'Another synthetic listing',available_on:'2028-02-29'}});
     assert.equal(created.status,201);
     const createdEvent=await DB.prepare("SELECT data FROM events WHERE entity_type='listing' AND entity_id=? ORDER BY id DESC LIMIT 1").bind(created.data.id).first();
     assert.equal(JSON.parse(createdEvent.data).after.available_on,'2028-02-29');
+    const marker='SYNTHETIC_PRIVATE_AVAILABILITY',invalidId='HE-R888',invalidDate=`2028-02-29\0${marker}`;
+    await DB.batch([
+      DB.prepare(`INSERT INTO listing_event_context(listing_id,actor,source,action,at,derived_fields,related,previous_revision,extra_fields)
+        VALUES(?,'admin@example.test','panel','created',?,'[]','{}',0,'[]')`).bind(invalidId,T0),
+      DB.prepare(`INSERT INTO listings(id,use,title,operation,availability,country,created_at,updated_at,updated_by,available_on)
+        VALUES(?,'residential','Synthetic legacy','sale','for_sale','Jersey',?,?,'fixture',?)`).bind(invalidId,T0,T0,invalidDate),
+      DB.prepare('DELETE FROM listing_event_context WHERE listing_id=?').bind(invalidId),
+    ]);
+    const invalidCreated=JSON.parse((await DB.prepare("SELECT data FROM events WHERE entity_type='listing' AND entity_id=? ORDER BY id DESC LIMIT 1").bind(invalidId).first()).data);
+    assert.deepEqual(invalidCreated.after.available_on,{unknown:true});assert.equal(JSON.stringify(invalidCreated).includes(marker),false);
+    const repaired=await call(env,'PUT',`/admin/listings/${invalidId}`,{cookie,body:{updated_at:T0,available_on:null}});
+    assert.equal(repaired.status,200);
+    const invalidChanged=JSON.parse((await DB.prepare("SELECT data FROM events WHERE entity_type='listing' AND entity_id=? ORDER BY id DESC LIMIT 1").bind(invalidId).first()).data);
+    assert.deepEqual(invalidChanged.before.available_on,{unknown:true});assert.equal(invalidChanged.after.available_on,null);
+    assert.equal(JSON.stringify(invalidChanged).includes(marker),false);
+    const safeHistory=await call(env,'GET',`/admin/listings/${invalidId}/history`,{cookie});
+    assert.equal(safeHistory.status,200);assert.equal(JSON.stringify(safeHistory.data).includes(marker),false);
+    const safeChange=safeHistory.data.items[0].changes.find(change=>change.field==='available_on');
+    assert.equal(Object.hasOwn(safeChange,'before'),false);assert.equal(safeChange.after,null);
     const initial=await DB.prepare('SELECT updated_at FROM listings WHERE id=?').bind(id).first();
     const saved=await call(env,'PUT',`/admin/listings/${id}`,{cookie,body:{updated_at:initial.updated_at,available_on:'2027-02-28'}});
     assert.equal(saved.status,200);

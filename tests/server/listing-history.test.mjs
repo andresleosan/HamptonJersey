@@ -33,6 +33,29 @@ test('A02: closed projection preserves real differences without free text or pri
   assert.equal(safe.changes.find(c=>c.field==='matchable').before,false);
   assert.deepEqual(safe.related,{offer_id:3});assert.ok(!JSON.stringify(safe).includes('PRIVATE'));
 });
+test('SPR-01: History exposes only real civil availability dates and distinguishes absent from null',async()=>{
+  const {env,cookie}=await fixture(),marker='SYNTHETIC_PRIVATE_MARKER';
+  const samples=[
+    ['0001-01-01',true],['2000-02-29',true],['2028-02-29',true],['9999-12-31',true],
+    ['0000-01-01',false],['0100-02-29',false],['0400-02-29',true],['1900-02-29',false],['2100-02-29',false],
+    ['2027-02-29',false],['2026-04-31',false],
+    ['2028-2-29',false],['2028-02-29T00:00:00Z',false],['2028-02-29T00:00:00+14:00',false],
+    [marker,false],[`2028-02-29\0${marker}`,false],[20280229,false],[true,false],[{},false],[[],false],
+  ];
+  const ids=samples.map(([value])=>event(env,{fields:['available_on'],before:{available_on:value},after:{available_on:null}}));
+  const missing=event(env,{fields:['available_on'],before:{},after:{}});
+  const r=await get(env,cookie);assert.equal(r.status,200);
+  for(const [index,[value,valid]] of samples.entries()){
+    const change=r.data.items.find(item=>item.id===ids[index]).changes[0];
+    assert.equal(change.field,'available_on');
+    assert.equal(Object.hasOwn(change,'before'),valid,`case ${index}`);
+    if(valid)assert.equal(change.before,value);
+    assert.equal(Object.hasOwn(change,'after'),true);assert.equal(change.after,null);
+  }
+  const unknown=r.data.items.find(item=>item.id===missing).changes[0];
+  assert.equal(Object.hasOwn(unknown,'before'),false);assert.equal(Object.hasOwn(unknown,'after'),false);
+  assert.equal(JSON.stringify(r.data).includes(marker),false);
+});
 test('A02: null, unexpected and unknown legacy events have safe fallbacks; DB errors stay errors',async()=>{
   const {env,cookie}=await fixture();event(env,null);event(env,[]);event(env,{fields:['<img>'],secret:'PRIVATE'},{type:'private.unrecognized'});
   const r=await get(env,cookie);assert.equal(r.status,200);

@@ -1,6 +1,7 @@
 -- DISCONNECTED PROPOSAL ONLY: not a migration and not applied remotely.
 -- Rebuilds the 0042 listing triggers, adding only date values to audit snapshots.
 -- Existing events are not rewritten; review current trigger definitions before any integration.
+-- Invalid non-null dates become {"unknown":true}; explicit NULL stays NULL.
 DROP TRIGGER listing_event_insert;
 CREATE TRIGGER listing_event_insert AFTER INSERT ON listings
 WHEN EXISTS(SELECT 1 FROM listing_event_context WHERE listing_id=NEW.id)
@@ -13,7 +14,17 @@ BEGIN
     'fields',json(json_array('review_requested_at','review_requested_by','published','archived_at','availability','published_at','confirmed_at','use','operation','sale_price','rent','rent_period','premium','currency','parish','tenure_type','housing_category','restriction','bedrooms','bathrooms','matchable','viewings_enabled','viewing_hours','featured_rank','cover_media_id','feat_pets','feat_parking','feat_furnished','feat_outdoor','feat_type','title','property_type','country','location','road_name','tenure','price_text','price_per_sqft','rental_deposit','parish_rates','service_charge','utilities_included','available_on','summary','description','tour_url','specs','feat_evidence','property_condition','interior_area_sqft','separate_wcs','reception_rooms','has_garage','has_storage','has_lift','double_glazing','floor_level','building_floors','year_built','heating_types','amenities','feature_overrides')),
     'before',json(json('{}')),
     'after',json(json_object(
-      'available_on', NEW.available_on,
+      /* SPR01_AVAILABLE_ON_BEGIN */
+      'available_on', CASE WHEN NEW.available_on IS NULL THEN NULL
+        WHEN typeof(NEW.available_on)='text' AND length(NEW.available_on)=10 AND length(CAST(NEW.available_on AS BLOB))=10
+          AND NEW.available_on GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+          AND CAST(substr(NEW.available_on,1,4) AS INTEGER) BETWEEN 1 AND 9999
+          AND CAST(substr(NEW.available_on,6,2) AS INTEGER) BETWEEN 1 AND 12
+          AND CAST(substr(NEW.available_on,9,2) AS INTEGER) BETWEEN 1 AND CASE CAST(substr(NEW.available_on,6,2) AS INTEGER)
+            WHEN 2 THEN CASE WHEN CAST(substr(NEW.available_on,1,4) AS INTEGER)%4=0 AND (CAST(substr(NEW.available_on,1,4) AS INTEGER)%100<>0 OR CAST(substr(NEW.available_on,1,4) AS INTEGER)%400=0) THEN 29 ELSE 28 END
+            WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+        THEN NEW.available_on ELSE json('{"unknown":true}') END,
+      /* SPR01_AVAILABLE_ON_END */
       'review_requested_at', NEW.review_requested_at,
       'review_requested_by', NEW.review_requested_by,
       'published', NEW.published,
@@ -88,7 +99,17 @@ BEGIN
     'related',json(c.related))
   FROM listing_event_context c, (SELECT
     json_object(
-      'available_on', OLD.available_on,
+      /* SPR01_AVAILABLE_ON_BEGIN */
+      'available_on', CASE WHEN OLD.available_on IS NULL THEN NULL
+        WHEN typeof(OLD.available_on)='text' AND length(OLD.available_on)=10 AND length(CAST(OLD.available_on AS BLOB))=10
+          AND OLD.available_on GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+          AND CAST(substr(OLD.available_on,1,4) AS INTEGER) BETWEEN 1 AND 9999
+          AND CAST(substr(OLD.available_on,6,2) AS INTEGER) BETWEEN 1 AND 12
+          AND CAST(substr(OLD.available_on,9,2) AS INTEGER) BETWEEN 1 AND CASE CAST(substr(OLD.available_on,6,2) AS INTEGER)
+            WHEN 2 THEN CASE WHEN CAST(substr(OLD.available_on,1,4) AS INTEGER)%4=0 AND (CAST(substr(OLD.available_on,1,4) AS INTEGER)%100<>0 OR CAST(substr(OLD.available_on,1,4) AS INTEGER)%400=0) THEN 29 ELSE 28 END
+            WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+        THEN OLD.available_on ELSE json('{"unknown":true}') END,
+      /* SPR01_AVAILABLE_ON_END */
       'review_requested_at', OLD.review_requested_at,
       'review_requested_by', OLD.review_requested_by,
       'published', OLD.published,
@@ -134,7 +155,17 @@ BEGIN
       'amenities', json(COALESCE(OLD.amenities,'null')),
       'feature_overrides', json(COALESCE(OLD.feature_overrides,'null'))) AS before_values,
     json_object(
-      'available_on', NEW.available_on,
+      /* SPR01_AVAILABLE_ON_BEGIN */
+      'available_on', CASE WHEN NEW.available_on IS NULL THEN NULL
+        WHEN typeof(NEW.available_on)='text' AND length(NEW.available_on)=10 AND length(CAST(NEW.available_on AS BLOB))=10
+          AND NEW.available_on GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+          AND CAST(substr(NEW.available_on,1,4) AS INTEGER) BETWEEN 1 AND 9999
+          AND CAST(substr(NEW.available_on,6,2) AS INTEGER) BETWEEN 1 AND 12
+          AND CAST(substr(NEW.available_on,9,2) AS INTEGER) BETWEEN 1 AND CASE CAST(substr(NEW.available_on,6,2) AS INTEGER)
+            WHEN 2 THEN CASE WHEN CAST(substr(NEW.available_on,1,4) AS INTEGER)%4=0 AND (CAST(substr(NEW.available_on,1,4) AS INTEGER)%100<>0 OR CAST(substr(NEW.available_on,1,4) AS INTEGER)%400=0) THEN 29 ELSE 28 END
+            WHEN 4 THEN 30 WHEN 6 THEN 30 WHEN 9 THEN 30 WHEN 11 THEN 30 ELSE 31 END
+        THEN NEW.available_on ELSE json('{"unknown":true}') END,
+      /* SPR01_AVAILABLE_ON_END */
       'review_requested_at', NEW.review_requested_at,
       'review_requested_by', NEW.review_requested_by,
       'published', NEW.published,
