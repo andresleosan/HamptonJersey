@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {readFileSync,readdirSync} from 'node:fs';
+import {createOwnerRequest} from '../../server/owner-requests.js';
+const require=createRequire(import.meta.url),at='2026-11-13T00:00:00.000Z';
+const run=(d,q,...a)=>d.prepare(q).bind(...a).run();
+const one=(d,q,...a)=>d.prepare(q).bind(...a).first();
+const count=async(d,t)=>(await one(d,`SELECT COUNT(*) n FROM ${t}`)).n;
+const syntheticPolicy=async env=>{const r=await env.DB.prepare("SELECT json_extract(value,'$.privacy_version') AS version FROM app_settings WHERE key='owner_enquiries' AND json_extract(value,'$.enabled')=1").first();return r?.version??null};
+const request=new Request('https://hampton.test/api/owner-requests',{method:'POST'});
+const body=()=>({request_id:crypto.randomUUID(),name:'Fixture Owner',phone:'07700123456',email:'owner@example.test',address:'12 Example Road',operation:'sale',valuation_requested:false,privacy_version:'reviewed-v1',token:'fixture'});
+test('local D1 migration preserves historic children, rejects drift and supports atomic concurrent owner intake',async()=>{
+ const {Miniflare,convertV4MiniflareOptions}=require('miniflare'),{unstable_splitSqlQuery:split}=require('wrangler');
+ const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:"export default {fetch(){return new Response('fixture')}}",compatibilityDate:'2025-10-01',host:'127.0.0.1',port:0,d1Databases:{DB:'pub10-owner-fixture'}}));
+ try{
+  const d=await mf.getD1Database('DB'),dir=new URL('../../migrations/',import.meta.url);
+  for(const file of readdirSync(dir).filter(x=>/^[0-9].*\.sql$/.test(x)).sort())await d.batch(split(readFileSync(new URL(file,dir),'utf8')).map(sql=>d.prepare(sql)));
+  await run(d,'INSERT INTO admins(email,added_at) VALUES(?,?)','admin@example.test',at);
+  await run(d,"INSERT INTO events(id,at,actor,entity_type,entity_id,type) VALUES(9001,?,'system','admin','fixture','fixture')",at);
+  await run(d,"INSERT INTO notifications(id,event_id,category,title,action_required,created_at,task_key) VALUES(9001,9001,'task','Fixture',1,?,'fixture:pub10')",at);
+  await run(d,"INSERT INTO notification_reads(admin,notification_id,read_revision) VALUES('admin@example.test',9001,1)");
+  await run(d,"INSERT INTO notification_task_operations(actor,operation_id,task_id,payload_hash,result_revision) VALUES('admin@example.test','fixture-operation',9001,'fixture',1)");
+  await run(d,"CREATE TRIGGER fixture_schema_drift AFTER INSERT ON events BEGIN SELECT 1; END");
+  const proposal=readFileSync(new URL('../../server/proposed-schema/owner-requests-rebuild.sql',import.meta.url),'utf8');
+  await assert.rejects(d.batch(split(proposal).map(sql=>d.prepare(sql))));
+  assert.equal(await count(d,'notifications'),1);assert.equal(await count(d,'notification_reads'),1);
+  await run(d,'DROP TRIGGER fixture_schema_drift');
+  await d.batch(split(proposal).map(sql=>d.prepare(sql)));
+  await d.batch(split(readFileSync(new URL('../../server/proposed-schema/owner-requests.sql',import.meta.url),'utf8')).map(sql=>d.prepare(sql)));
+  assert.equal(await count(d,'notifications'),1);assert.equal(await count(d,'notification_reads'),1);assert.equal(await count(d,'notification_task_operations'),1);
+  assert.deepEqual((await d.prepare('PRAGMA foreign_key_check').all()).results,[]);
+  await run(d,"INSERT INTO app_settings(key,value,updated_at,updated_by) VALUES('owner_enquiries',?,?,?)",JSON.stringify({enabled:true,privacy_version:'reviewed-v1'}),at,'fixture');
+  const env={DB:d,OWNER_REQUESTS_READY:'1'},b=body(),attempts=await Promise.all(Array.from({length:20},()=>createOwnerRequest(env,request,b,{verify:async()=>true,policyReader:syntheticPolicy})));
+  assert.equal(attempts.filter(x=>!x.replayed).length,1);assert.equal(await count(d,'owner_requests'),1);assert.equal(await count(d,'owner_request_receipts'),1);assert.equal(await count(d,'notifications'),2);
+  const old=await count(d,'events');await run(d,"CREATE TRIGGER fixture_owner_abort BEFORE INSERT ON notifications WHEN NEW.target_kind='owner_request' BEGIN SELECT RAISE(ABORT,'fixture abort'); END");
+  await assert.rejects(createOwnerRequest(env,request,body(),{verify:async()=>true,policyReader:syntheticPolicy}));assert.equal(await count(d,'owner_requests'),1);assert.equal(await count(d,'events'),old);
+  assert.deepEqual((await d.prepare('PRAGMA foreign_key_check').all()).results,[]);
+ }finally{await mf.dispose();}
+});

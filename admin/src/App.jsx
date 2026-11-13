@@ -19,6 +19,7 @@ import RentalDetail from "./RentalDetail.jsx";
 import RentImport from "./RentImport.jsx";
 import Statement from "./Statement.jsx";
 import OwnerReport from "./OwnerReport.jsx";
+import OwnerRequests from "./OwnerRequests.jsx";
 import Insights from "./Insights.jsx";
 import WeeklyInsights from "./WeeklyInsights.jsx";
 import Availability from "./Availability.jsx";
@@ -117,7 +118,7 @@ export default function App() {
   if (me === undefined) return <p className="center">Loading…</p>;
   if (me === null) return <main className="center"><Login onSignedIn={signedIn} /></main>;
 
-  const page = section === "p" && arg ? <ListingEditor key={arg} id={decodeURIComponent(arg)} guide={new URLSearchParams(query).get("guide") === "1"} onChange={loadCounts} />
+  const page = section === "owners" && /^[0-9a-f-]{36}$/i.test(arg ?? "") ? <OwnerRequests key={arg} id={arg} /> : section === "p" && arg ? <ListingEditor key={arg} id={decodeURIComponent(arg)} guide={new URLSearchParams(query).get("guide") === "1"} onChange={loadCounts} />
     : section === "applicants" && arg === "new"
       ? <NewApplicant key={query ?? ""} contactId={new URLSearchParams(query).get("contact")} chatId={new URLSearchParams(query).get("chat")} />
     : section === "applicants" && /^\d+$/.test(arg) ? <ApplicantDetail key={arg} id={arg} tab={sub} onChange={loadCounts} />

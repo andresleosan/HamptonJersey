@@ -29,7 +29,7 @@ export function taskTarget(value,manual=false) {
   return {kind,id,...(context&&Object.keys(context).length?{context}:{})};
 }
 
-export function targetExists(kind,id,context='NULL') {
+export function targetExists(kind,id,context='NULL',owner=false) {
   const tenancy=`json_extract(${context},'$.tenancy_id')`,repair=`json_extract(${context},'$.repair_id')`;
   return `(CASE ${kind}
     WHEN 'applicant' THEN EXISTS(SELECT 1 FROM applicants WHERE id=${id})
@@ -46,7 +46,7 @@ export function targetExists(kind,id,context='NULL') {
       AND (json_extract(${context},'$.compliance_kind') IS NULL OR EXISTS(SELECT 1 FROM compliance_items
         WHERE rental_id=${id} AND kind=json_extract(${context},'$.compliance_kind')))
     WHEN 'payment' THEN EXISTS(SELECT 1 FROM payments WHERE id=${id})
-    WHEN 'collection' THEN (${id}='unmatched-payments' OR EXISTS(SELECT 1 FROM weekly_insights wi WHERE ${id}='weekly-insights:'||wi.week_start)) ELSE 0 END)`;
+    WHEN 'collection' THEN (${id}='unmatched-payments' OR EXISTS(SELECT 1 FROM weekly_insights wi WHERE ${id}='weekly-insights:'||wi.week_start)) ${owner ? `WHEN 'owner_request' THEN EXISTS(SELECT 1 FROM owner_requests WHERE id=${id})` : ''} ELSE 0 END)`;
 }
 
 export const sourceAllowsTarget=(kind,id,event='e')=>`((${event}.entity_type=${kind} AND ${event}.entity_id=${id})
@@ -54,16 +54,16 @@ export const sourceAllowsTarget=(kind,id,event='e')=>`((${event}.entity_type=${k
     AND EXISTS(SELECT 1 FROM offers WHERE id=${id} AND applicant_id=${event}.entity_id))
   OR (${kind}='sale' AND ${event}.entity_type='applicant' AND CAST(json_extract(${event}.data,'$.sale_id') AS TEXT)=${id}
     AND EXISTS(SELECT 1 FROM sales WHERE id=${id} AND applicant_id=${event}.entity_id)))`;
-export const noticeTargetExists=(notice='n',event='e')=>`${notice}.target_deleted=0 AND ${targetExists(
-  `COALESCE(${notice}.target_kind,${event}.entity_type)`,`COALESCE(${notice}.target_id,${event}.entity_id)`,`${notice}.target_context`)}`;
+export const noticeTargetExists=(notice='n',event='e',owner=false)=>`${notice}.target_deleted=0 AND ${targetExists(
+  `COALESCE(${notice}.target_kind,${event}.entity_type)`,`COALESCE(${notice}.target_id,${event}.entity_id)`,`${notice}.target_context`,owner)}`;
 
-export const NOTICE_SELECT=`SELECT e.type AS source_type,e.entity_type AS source_entity_type,e.entity_id AS source_entity_id,n.id,n.event_id,n.category,n.title,n.created_at,n.action_required,n.resolved_at,n.resolved_by,
+export const notificationSelect=(owner=false)=>`SELECT e.type AS source_type,e.entity_type AS source_entity_type,e.entity_id AS source_entity_id,n.id,n.event_id,n.category,n.title,n.created_at,n.action_required,n.resolved_at,n.resolved_by,
   n.source_version,n.revision,n.assigned_to,n.due_at,n.task_reason,n.urgency,n.closed_by_source,
   owner.name AS assigned_name,owner.email IS NOT NULL AS assigned_available,
   CASE WHEN COALESCE(seen.read_revision,0)>=n.revision THEN 1 ELSE 0 END AS is_read,
   COALESCE(n.target_kind,e.entity_type) AS entity_type,COALESCE(n.target_id,e.entity_id) AS entity_id,
   n.target_context,n.target_deleted,COALESCE(c.phone,ac.phone,v.phone) AS raw_phone,
-  ${noticeTargetExists()} AS target_exists,
+  ${noticeTargetExists('n','e',owner)} AS target_exists,
   CASE WHEN n.target_kind IS NOT NULL THEN COALESCE(ol.title,sl.title,r.address,payment_rental.address,v.name,ac.name,c.name,l.title) END AS context_label,
   CASE WHEN e.entity_type='contact' THEN (SELECT s.id FROM applicants s WHERE s.contact_id=c.id
     ORDER BY (${activeSql('s')}
@@ -100,6 +100,7 @@ export function noticeDto({source_type,source_entity_type,source_entity_id,raw_p
   else if(numeric&&n.entity_type==='sale')link=`#/sales/${n.entity_id}`;
   else if(numeric&&n.entity_type==='rental')link=`#/rentals/${n.entity_id}`;
   else if(numeric&&n.entity_type==='payment')link=`#/rentals?payment=${n.entity_id}`;
+  else if(n.entity_type==='owner_request'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(n.entity_id))link=`#/owners/${n.entity_id}`;
   else if(weekly)link=`#/insights/weekly/${week}`;
   else if(n.entity_type==='collection'&&n.entity_id==='unmatched-payments')link='#/rentals?payments=unmatched';
   const context=target_context?JSON.parse(target_context):null;

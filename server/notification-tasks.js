@@ -1,10 +1,10 @@
+import {ownerStorageAvailable} from './owner-requests.js';
 import {fail,now,sha256} from './http.js';
-import {NOTICE_SELECT,noticeDto,TASK_CATEGORIES,targetExists,taskTarget,sourceAllowsTarget,noticeTargetExists} from './notification-query.js';
+import {notificationSelect,noticeDto,TASK_CATEGORIES,targetExists,taskTarget,sourceAllowsTarget,noticeTargetExists} from './notification-query.js';
 import {MANUAL_CATEGORIES} from '../shared/notification-categories.js';
 export {targetExists,taskTarget} from './notification-query.js';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const currentTarget=noticeTargetExists('notifications','e');
 const keyText=(value,label,max)=>{
   if(typeof value!=='string'||!value.trim()||value.trim().length>max)fail(400,`Invalid ${label}`);
   return value.trim();
@@ -88,7 +88,7 @@ export async function syncTask(env,descriptor) {
   return {changed:results[0].meta.changes,tasks:results[1].results};
 }
 export async function getTask(env,id,admin) {
-  const row=await env.DB.prepare(`${NOTICE_SELECT} WHERE n.id=?`).bind(admin,id).first();
+  const row=await env.DB.prepare(`${notificationSelect(await ownerStorageAvailable(env))} WHERE n.id=?`).bind(admin,id).first();
   if(!row)fail(404,'Task not found');return noticeDto(row);
 }
 export function operationInput(body,allowed) {
@@ -126,7 +126,7 @@ export async function mutateTask(env,id,actor,body) {
     ...(['deadline','edit'].includes(action)?{due_at:action==='edit'?args[1]:args[0]}:{})}));
   const prior=await replay(env,actor,body.operation_id,hash,id);if(prior)return prior;
   const extra=action==='claim'?[actor]:['assign','edit'].includes(action)?[body.assigned_to,body.assigned_to]:[];
-  const target=`EXISTS(SELECT 1 FROM events e WHERE e.id=notifications.event_id AND ${currentTarget})`;
+  const target=`EXISTS(SELECT 1 FROM events e WHERE e.id=notifications.event_id AND ${noticeTargetExists('notifications','e',await ownerStorageAvailable(env))})`;
   const [updated]=await env.DB.batch([
     env.DB.prepare(`UPDATE notifications SET ${set},task_actor=?,task_action=? WHERE id=? AND revision=?
       AND ${target}${condition} AND EXISTS(SELECT 1 FROM admins WHERE email=?)

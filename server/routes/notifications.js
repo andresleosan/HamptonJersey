@@ -1,5 +1,6 @@
+import { ownerStorageAvailable } from '../owner-requests.js';
 import { json, fail, readJson, now } from "../http.js";
-import { NOTICE_SELECT, noticeDto, TASK_CATEGORIES } from "../notification-query.js";
+import { notificationSelect, noticeDto, TASK_CATEGORIES } from "../notification-query.js";
 import { getTask, mutateTask } from "../notification-tasks.js";
 import { salesCount } from "./sales.js";
 import { refreshRentalsCount } from "./rent.js";
@@ -55,7 +56,7 @@ async function list({ request, env, waitUntil, admin }) {
   const preferences = box === "feed" ? `
     (n.resolved_at IS NOT NULL OR n.category IN (SELECT value FROM json_each(COALESCE(
       (SELECT feed_categories FROM notification_preferences WHERE admin=?),'${JSON.stringify(CATEGORIES)}')))) AND ` : "";
-  const { results } = await env.DB.prepare(`${NOTICE_SELECT} WHERE ${category ? "n.category = ? AND " : ""}${preferences}${BOXES[box]}`)
+  const { results } = await env.DB.prepare(`${notificationSelect(await ownerStorageAvailable(env))} WHERE ${category ? "n.category = ? AND " : ""}${preferences}${BOXES[box]}`)
     .bind(admin,...(category ? [category] : []),...(box === "feed" ? [admin] : [])).all();
   const notifications = results.map(noticeDto);
   return json({ notifications, counts: await openCounts(env) });

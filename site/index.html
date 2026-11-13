@@ -540,7 +540,7 @@ body:has(.chat-btn:not([hidden])) footer{padding-bottom:80px}
 <a class="skip" href="#app" data-scroll="app">Skip to content</a>
 <header class="top"><div class="wrap">
   <a class="logo" href="/">HAMPTON ESTATES<small>JERSEY · SINCE 1982</small></a>
-  <nav class="main" id="main-nav" aria-label="Main"><a href="/">Home</a><a href="/properties">Properties</a><a href="#team">Our team</a><a href="#book">Book a viewing</a><a href="#/apply">Register</a></nav>
+  <nav class="main" id="main-nav" aria-label="Main"><a href="/">Home</a><a href="/properties">Properties</a><a href="#team">Our team</a><a href="#book">Book a viewing</a><a href="#/apply">Register</a><a href="#/owners">Sell or let</a></nav>
   <span class="tel num">01534 727582</span>
   <button class="menu-btn" type="button" aria-expanded="false" aria-controls="main-nav"><i aria-hidden="true"></i>Menu</button>
 </div></header>
@@ -1271,8 +1271,8 @@ const reveal = () => io && document.querySelectorAll("#app .head, #app .card, #a
   .forEach(el => { if (el.classList.contains("rv")) return; el.classList.add("rv"); el.style.transitionDelay = `${([...el.parentElement.children].indexOf(el) % 4) * 80}ms`;
     el.addEventListener("transitionend", () => { el.style.transitionDelay = ""; }, {once: true}); io.observe(el); });
 // Register your search and the privacy notice live in apply.js, fetched only when one of them opens (spec §5).
-const SIDE_PAGES = {"#/apply": (m, root) => m.renderApply(root, {esc, tsKey: TS_KEY, tsReady}), "#/privacy": (m, root) => m.renderPrivacy(root), "#/demand": (m, root) => m.renderDemand(root)};
-const sidePage = h => (h === "#/demand" ? import("/demand.js") : import("/apply.js")).then(m => { if (location.hash !== h) return; clearTourGate(); clearTourGate = () => {}; clearGallery(); SIDE_PAGES[h](m, $("#app")); scrollTo({top: 0, behavior: "instant"}); })
+const SIDE_PAGES = {"#/apply": (m, root) => m.renderApply(root, {esc, tsKey: TS_KEY, tsReady}), "#/privacy": (m, root) => m.renderPrivacy(root), "#/demand": (m, root) => m.renderDemand(root), "#/owners": (m, root) => m.renderOwner(root, {tsKey: TS_KEY, tsReady})};
+const sidePage = h => import(h === "#/demand" ? "/demand.js" : h === "#/owners" ? "/owner.js" : "/apply.js").then(m => { if (location.hash !== h) return; clearTourGate(); clearTourGate = () => {}; clearGallery(); SIDE_PAGES[h](m, $("#app")); scrollTo({top: 0, behavior: "instant"}); })
   .catch(() => {
     if (location.hash !== h) return;
     clearTourGate(); clearTourGate = () => {}; clearGallery();
