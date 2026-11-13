@@ -40,7 +40,12 @@ const { chromium, webkit } = require(process.env.PW || 'playwright-core');
       const show=page.getByRole('button',{name:'Show coverage'}); await show.focus(); await page.keyboard.press('Enter');
       await page.getByText('Unknown',{exact:true}).waitFor();
       assert.match(await page.getByRole('region',{name:'Source coverage'}).innerText(),/Access Manual only.*Method: Manual.*Review due: Not recorded.*Last capture: Not recorded.*Last full pass: Not recorded/s);
-      const controls=page.getByRole('group',{name:'Source coverage pages'}); await controls.getByRole('button',{name:'Next page'}).click();
+      // Exercise reflow with populated runs, source details and pagination controls present.
+      await page.evaluate(()=>{document.body.style.zoom='2'});
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),'populated coverage has no horizontal overflow at 200%');
+      const controls=page.getByRole('group',{name:'Source coverage pages'});
+      assert.equal(await controls.getByRole('button',{name:'Next page'}).isVisible(),true);
+      await controls.getByRole('button',{name:'Next page'}).click();
       await page.getByText('No sources recorded on this page.').waitFor(); assert.equal(coverageCalls,2);
       await controls.getByRole('button',{name:'Previous page'}).click(); await page.getByText('source-fixture').waitFor();
       const runControls=page.getByRole('group',{name:'Inventory run pages'}); await runControls.getByRole('button',{name:'Next page'}).click();
