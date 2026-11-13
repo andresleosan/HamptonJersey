@@ -2,6 +2,7 @@ import {fail,sha256} from './http.js';
 import {realDate} from './viewings.js';
 import {ARREARS_BALANCE_CTES} from './arrears-policy.js';
 import {requireCaseCapability,prepareCaseCapabilityGuard} from './case-capabilities.js';
+import {financeSummary,financeRevisionSchema,validateFinanceRevisionSchema} from './finance-summary.js';
 
 // Internal case-scoped adapter only: there is no HTTP route or activation
 // switch here. A future owner must supply the authenticated actor and a
@@ -42,20 +43,17 @@ export async function readFinanceWorkspace(env,{tenancy_id,as_of,limit=50,cursor
     ) SELECT date,type,id,amount_pence,kind FROM transactions
     WHERE ?3 IS NULL OR date>?3 OR (date=?3 AND (type>?4 OR (type=?4 AND id>?5)))
     ORDER BY date,type,id LIMIT ?6`).bind(tenancy_id,as_of,cursor?.date??null,cursor?.type??null,cursor?.id??null,limit+1);
-  let state,transactions;
-  try{[,state,transactions]=await env.DB.batch([guard.assertion,summary,history,guard.release]);}
+  let schema,state,transactions;
+  try{[,schema,state,transactions]=await env.DB.batch([guard.assertion,financeRevisionSchema(env),summary,history,guard.release]);}
   catch(error){
     const current=await requireCaseCapability(env,request,actor);
     if(['grantId','grantVersion','membershipVersion','policyRevision'].some(k=>current[k]!==capability[k]))
       fail(403,'Case access unavailable');
     throw error;
   }
+  validateFinanceRevisionSchema(schema);
   const row=state.results[0];
-  if(!row)fail(403,'Case access unavailable');
-  const integers=['tenancy_id','rental_id','due_pence','adjustments_pence','paid_pence','debt_pence','credit_pence','source_revision','due_charge_count'];
-  if(row.invalid_amounts!==0||integers.some(k=>!Number.isSafeInteger(row[k]))||row.source_revision<1||
-    (row.oldest_unpaid_on!==null&&!realDate(row.oldest_unpaid_on))||
-    (row.days_late!==null&&!Number.isSafeInteger(row.days_late)))fail(503,'Financial data unavailable');
+  const summaryValue=financeSummary(row,as_of);
   let steps;
   try{steps=JSON.parse(row.steps);}catch{fail(503,'Financial data unavailable');}
   if(!Array.isArray(steps)||steps.length>100||steps.some(s=>!Array.isArray(s)||s.length!==2||
@@ -72,13 +70,5 @@ export async function readFinanceWorkspace(env,{tenancy_id,as_of,limit=50,cursor
     !Number.isSafeInteger(item.amount_pence)||item.amount_pence<1||typeof item.kind!=='string'))fail(503,'Financial data unavailable');
   const items=transactions.results.slice(0,limit),last=items.at(-1);
   const next=transactions.results.length>limit?{v:1,date:last.date,type:last.type,id:last.id,as_of,tag:await tagFor(last)}:null;
-  // Recorded charges do not prove the history is complete. Missing charges
-  // have no defensible zero balance or zero pending count.
-  const recorded=row.due_charge_count>0;
-  return {tenancy_id,as_of,source_revision:row.source_revision,financial_status:recorded?'recorded_only':'unknown',
-    balance:recorded?{due_pence:row.due_pence,adjustments_pence:row.adjustments_pence,paid_pence:row.paid_pence,
-      debt_pence:row.debt_pence,credit_pence:row.credit_pence}:null,
-    arrears:recorded?{oldest_unpaid_on:row.oldest_unpaid_on,days_late:row.days_late,next_step:row.next_step}:null,
-    recorded_pending_count:recorded?(row.next_step===null?0:1):null,
-    reconciliation_ready:false,transactions:items,next};
+  return {...summaryValue,transactions:items,next};
 }

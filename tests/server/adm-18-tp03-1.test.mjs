@@ -27,8 +27,8 @@ async function seedCases(db) {
 async function seedAuthority(db,{policyExpiry='2999-01-01T00:00:00.000Z',grantExpiry='2999-01-01T00:00:00.000Z'}={}) {
   await run(db, `INSERT INTO case_purpose_policies(purpose,revision,status,retention_ref,privacy_ref,approval_ref,approved_by,valid_from,expires_at)
     VALUES ('arrears_management',1,'approved','fixture-retention','fixture-privacy','fixture-policy-approval','fixture-operator','2000-01-01T00:00:00.000Z',?)`,policyExpiry);
-  await run(db, `INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at)
-    VALUES ('tenancy',1,?,'active',1,'fixture-member-approval','fixture-operator','2000-01-01T00:00:00.000Z')`,actor);
+  await run(db, `INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at,lifecycle_generation)
+    VALUES ('tenancy',1,?,'active',1,'fixture-member-approval','fixture-operator','2000-01-01T00:00:00.000Z',1)`,actor);
   await run(db, `INSERT INTO case_capability_grants(id,case_kind,case_id,staff_email,capability,purpose,status,version,
     membership_version,policy_revision,approval_ref,approved_by,valid_from,expires_at)
     VALUES ('fixture-grant','tenancy',1,?,'sensitive_finance','arrears_management','active',1,1,1,
@@ -74,8 +74,8 @@ test('a single rental capability cannot authorize an owner-wide financial statem
   const db=makeDb(); await seedCases(db);
   await run(db, `INSERT INTO case_purpose_policies(purpose,revision,status,retention_ref,privacy_ref,approval_ref,approved_by,valid_from)
     VALUES ('landlord_statement',1,'approved','fixture-retention','fixture-privacy','fixture-policy','fixture-operator','2000-01-01T00:00:00.000Z')`);
-  await run(db, `INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at)
-    VALUES ('rental',1,?,'active',1,'fixture-member','fixture-operator','2000-01-01T00:00:00.000Z')`,actor);
+  await run(db, `INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at,lifecycle_generation)
+    VALUES ('rental',1,?,'active',1,'fixture-member','fixture-operator','2000-01-01T00:00:00.000Z',1)`,actor);
   await run(db, `INSERT INTO case_capability_grants(id,case_kind,case_id,staff_email,capability,purpose,status,version,
     membership_version,policy_revision,approval_ref,approved_by,valid_from)
     VALUES ('fixture-statement','rental',1,?,'sensitive_finance','landlord_statement','active',1,1,1,
@@ -212,14 +212,14 @@ test('deleting and re-adding the same admin cannot revive grants or an earlier s
 test('admin deletion preserves already revoked membership and leaves other staff access intact', async () => {
   needCapabilities();
   const db=makeDb(); await seedCases(db); await seedAuthority(db);
-  await run(db, `INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at)
-    VALUES ('tenancy',2,?,'active',1,'fixture-second-member','fixture-operator','2000-01-01T00:00:00.000Z')`,actor);
+  await run(db, `INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at,lifecycle_generation)
+    VALUES ('tenancy',2,?,'active',1,'fixture-second-member','fixture-operator','2000-01-01T00:00:00.000Z',1)`,actor);
   await run(db, `INSERT INTO case_capability_grants(id,case_kind,case_id,staff_email,capability,purpose,status,version,
     membership_version,policy_revision,approval_ref,approved_by,valid_from,expires_at)
     VALUES ('fixture-second-grant','tenancy',2,?,'sensitive_finance','arrears_management','active',1,1,1,
       'fixture-second-approval','fixture-operator','2000-01-01T00:00:00.000Z','2999-01-01T00:00:00.000Z')`,actor);
-  await run(db, `INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at)
-    VALUES ('tenancy',2,?,'active',1,'fixture-other-member','fixture-operator','2000-01-01T00:00:00.000Z')`,other);
+  await run(db, `INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at,lifecycle_generation)
+    VALUES ('tenancy',2,?,'active',1,'fixture-other-member','fixture-operator','2000-01-01T00:00:00.000Z',1)`,other);
   await run(db, `INSERT INTO case_capability_grants(id,case_kind,case_id,staff_email,capability,purpose,status,version,
     membership_version,policy_revision,approval_ref,approved_by,valid_from,expires_at)
     VALUES ('fixture-other-grant','tenancy',2,?,'sensitive_finance','arrears_management','active',1,1,1,
@@ -270,8 +270,8 @@ for (const [operation,insertOrChange] of [
 ]) test(`${operation} does not auto-assign stale case permissions`, async () => {
   needCapabilities();
   const db=makeDb(),future='future@example.test'; await seedCases(db); await seedAuthority(db);
-  await run(db, `INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at)
-    VALUES ('tenancy',1,?,'active',1,'fixture-future-member','fixture-operator','2000-01-01T00:00:00.000Z')`,future);
+  await run(db, `INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at,lifecycle_generation)
+    VALUES ('tenancy',1,?,'active',1,'fixture-future-member','fixture-operator','2000-01-01T00:00:00.000Z',1)`,future);
   await run(db, `INSERT INTO case_capability_grants(id,case_kind,case_id,staff_email,capability,purpose,status,version,
     membership_version,policy_revision,approval_ref,approved_by,valid_from,expires_at)
     VALUES ('fixture-future-grant','tenancy',1,?,'sensitive_finance','arrears_management','active',1,1,1,

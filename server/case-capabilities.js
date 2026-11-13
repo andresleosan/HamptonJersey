@@ -4,7 +4,9 @@ import { HttpError } from './http.js';
 // no access and this module provides no grant, bootstrap or administration API.
 // `actor` must be the authenticated staff identity obtained by the calling route;
 // never accept it from the request body, query string or client-provided claims.
-const TABLES = Object.freeze({ rental:'rentals', tenancy:'tenancies', sale:'sales', rental_application:'rental_applications' });
+// rental_application is deliberately unavailable until its actual table and
+// lifecycle protections are implemented and independently verified.
+const TABLES = Object.freeze({ rental:'rentals', tenancy:'tenancies', sale:'sales' });
 const CAPABILITIES = new Set(['case_data_read','case_data_write','sensitive_finance']);
 const PURPOSE_CASES = Object.freeze({
   rental_application:new Set(['rental','rental_application']),
@@ -17,6 +19,32 @@ const PURPOSE_CASES = Object.freeze({
   landlord_statement:new Set(),
   sale_review:new Set(['sale']),
 });
+const UNIQUE_INDEXES=Object.freeze({
+  rentals:[],
+  tenancies:['tenancies_active','sqlite_autoindex_tenancies_1'],
+  sales:['sales_applicant_open','sales_listing_open','sqlite_autoindex_sales_1'],
+  case_purpose_policies:['sqlite_autoindex_case_purpose_policies_1'],
+  case_capability_memberships:['sqlite_autoindex_case_capability_memberships_1'],
+  case_capability_grants:['case_one_active_capability','sqlite_autoindex_case_capability_grants_1'],
+});
+const quote=s=>`'${s}'`; // all identifiers below come from the static whitelist
+function lifecycleSchemaSql(s){
+  const names=[`case_${s.kind}_delete_guard`,`case_${s.kind}_id_guard`,`case_${s.kind}_insert_guard`,`case_${s.kind}_insert_revoke`,
+    'case_membership_generation_guard','case_membership_case_insert_guard','case_membership_case_update_guard',
+    'case_policy_insert_guard','case_membership_insert_guard','case_grant_insert_guard',
+    'case_policy_delete_guard','case_membership_delete_guard','case_grant_delete_guard',
+    'case_policy_schema_insert_guard','case_policy_schema_update_guard',
+    'case_membership_schema_insert_guard','case_membership_schema_update_guard',
+    'case_grant_schema_insert_guard','case_grant_schema_update_guard'];
+  if(s.kind!=='rental')names.push(`case_${s.kind}_update_guard`);
+  const triggers=`(SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name IN (${names.map(quote).join(',')}))=${names.length}`;
+  const indices=[s.table,'case_purpose_policies','case_capability_memberships','case_capability_grants'].map(table=>{
+    const expected=UNIQUE_INDEXES[table],source=`pragma_index_list(${quote(table)})`;
+    const count=`(SELECT COUNT(*) FROM ${source} WHERE "unique"=1)=${expected.length}`;
+    return expected.length?`${count} AND (SELECT COUNT(*) FROM ${source} WHERE "unique"=1 AND name IN (${expected.map(quote).join(',')}))=${expected.length}`:count;
+  });
+  return `(${[triggers,...indices].join(' AND ')})`;
+}
 const deny = () => { throw new HttpError(403, 'Case access unavailable'); };
 const primary = db => typeof db.withSession === 'function' ? db.withSession('first-primary') : db;
 const database = env => {
@@ -33,22 +61,26 @@ function scope(input, actor) {
   return {kind,id,capability,purpose,actor,table:TABLES[kind]};
 }
 
-async function ensureSchema(db, table) {
+async function ensureSchema(db, s) {
   const required=['case_purpose_policies','case_capability_memberships','case_capability_grants',
-    'case_capability_batch_assertions',table];
+    'case_capability_batch_assertions',s.table];
   const result=await primary(db).prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name IN (?,?,?,?,?)`)
     .bind(...required).all();
   if (new Set(result.results.map(row=>row.name)).size!==required.length) deny();
+  const schema=await primary(db).prepare(`SELECT ${lifecycleSchemaSql(s)} AS ok`).first();
+  const columns=await primary(db).prepare('PRAGMA table_info(case_capability_memberships)').all();
+  if(schema?.ok!==1||!columns.results.some(row=>row.name==='lifecycle_generation'))deny();
 }
 
 function selection(table, constrained) {
   // `table` comes only from TABLES, never from a request or database value.
+  const kind=Object.keys(TABLES).find(key=>TABLES[key]===table);
   return `SELECT g.id AS grant_id,g.version AS grant_version,m.version AS membership_version,p.revision AS policy_revision
     FROM case_capability_memberships m
     JOIN admins a ON a.email=m.staff_email
     JOIN case_capability_grants g ON g.case_kind=m.case_kind AND g.case_id=m.case_id AND g.staff_email=m.staff_email
     JOIN case_purpose_policies p ON p.purpose=g.purpose
-    WHERE m.case_kind=? AND m.case_id=? AND m.staff_email=? AND m.status='active'
+    WHERE m.case_kind=? AND m.case_id=? AND m.staff_email=? AND m.status='active' AND m.lifecycle_generation=1
       AND g.capability=? AND g.purpose=? AND g.status='active' AND g.membership_version=m.version
       AND p.status='approved' AND p.revision=g.policy_revision
       AND p.retention_ref IS NOT NULL AND p.privacy_ref IS NOT NULL AND p.approval_ref IS NOT NULL AND p.approved_by IS NOT NULL
@@ -57,6 +89,7 @@ function selection(table, constrained) {
       AND g.valid_from<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
       AND (g.expires_at IS NULL OR g.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now'))
       AND EXISTS (SELECT 1 FROM ${table} c WHERE c.id=m.case_id)
+      AND ${lifecycleSchemaSql({kind,table})}
       ${constrained ? 'AND g.id=? AND g.version=? AND m.version=? AND p.revision=?' : ''}`;
 }
 const baseArgs = s => [s.kind,s.id,s.actor,s.capability,s.purpose];
@@ -65,7 +98,7 @@ const baseArgs = s => [s.kind,s.id,s.actor,s.capability,s.purpose];
 // must revalidate it inside the same DB.batch as each sensitive SELECT/mutation.
 export async function requireCaseCapability(env, input, actor) {
   const s=scope(input,actor), db=database(env);
-  await ensureSchema(db,s.table);
+  await ensureSchema(db,s);
   const found=await primary(db).prepare(selection(s.table,false)).bind(...baseArgs(s)).first();
   if (!found) deny();
   return Object.freeze({caseRef:Object.freeze({kind:s.kind,id:s.id}),capability:s.capability,purpose:s.purpose,
@@ -79,7 +112,7 @@ export async function prepareCaseCapabilityGuard(env, input, actor, snapshot) {
   if (!ref || ref.kind!==s.kind || ref.id!==s.id || snapshot.capability!==s.capability || snapshot.purpose!==s.purpose ||
       typeof snapshot.grantId!=='string' || !snapshot.grantId || snapshot.grantId.length>120 ||
       ![snapshot.grantVersion,snapshot.membershipVersion,snapshot.policyRevision].every(v=>Number.isSafeInteger(v)&&v>0)) deny();
-  await ensureSchema(db,s.table);
+  await ensureSchema(db,s);
   const assertionId=crypto.randomUUID(), args=[...baseArgs(s),snapshot.grantId,snapshot.grantVersion,
     snapshot.membershipVersion,snapshot.policyRevision];
   return Object.freeze({

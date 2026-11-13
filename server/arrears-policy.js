@@ -8,9 +8,9 @@ import { requireCaseCapability, prepareCaseCapabilityGuard } from './case-capabi
 // Source dates must be selected by the server: a past date re-evaluates mutable
 // charges/payments and is not a historical accounting snapshot.
 // Internal parameters: ?1 Jersey date, ?2 optional tenancy, optional cursor.
-const financialBalanceCtes = cursor => `finance_scope AS MATERIALIZED (
+const financialBalanceCtes = selection => `finance_scope AS MATERIALIZED (
   SELECT t.id AS tenancy_id,t.rental_id,t.financial_revision FROM tenancies t
-  JOIN rentals r ON r.id=t.rental_id WHERE (?2 IS NULL OR t.id=?2) AND (${cursor} IS NULL OR t.id>${cursor})
+  JOIN rentals r ON r.id=t.rental_id WHERE (?2 IS NULL OR t.id=?2) AND (${selection})
 ), adjusted AS MATERIALIZED (
   SELECT c.id,c.tenancy_id,c.due_on,c.amount,
     COALESCE((SELECT SUM(CASE a.kind WHEN 'writeoff' THEN a.amount_pence ELSE -a.amount_pence END)
@@ -48,15 +48,19 @@ const financialBalanceCtes = cursor => `finance_scope AS MATERIALIZED (
 // owns ?3; the arrears projection leaves ?3 and later binds to its caller.
 // Do not substitute this in legacy routes until every reader is case-scoped
 // and validates invalid_amounts in the same transaction as its operation.
-export const FINANCIAL_BALANCE_CTES = financialBalanceCtes('?3');
+export const FINANCIAL_BALANCE_CTES = financialBalanceCtes('?3 IS NULL OR t.id>?3');
 const dueStep=`CASE ${ARREARS_STEPS.toReversed().map(([days,key])=>`WHEN days_late >= ${days} THEN '${key}'`).join(' ')} END`;
-export const ARREARS_BALANCE_CTES = `${financialBalanceCtes('NULL')},
+const arrearsCtes=selection=>`${financialBalanceCtes(selection)},
   finance_late AS (SELECT tenancy_id,rental_id,debt_pence-credit_pence AS balance,oldest_unpaid_on,
     CAST(julianday(?1)-julianday(oldest_unpaid_on) AS INTEGER) AS days_late,source_revision,invalid_amounts
     FROM finance_balances),
   arrears AS (SELECT a.*,CASE WHEN NOT EXISTS (SELECT 1 FROM arrears_steps x WHERE x.tenancy_id=a.tenancy_id
     AND x.charge_due_on=a.oldest_unpaid_on AND x.step=a.due_step) THEN a.due_step END AS next_step
     FROM (SELECT *,${dueStep} AS due_step FROM finance_late) a)`;
+export const ARREARS_BALANCE_CTES = arrearsCtes('1');
+// Internal fixed-set selection only. ?3 is a JSON array of validated tenancy
+// IDs; the authorization guards for all IDs must run in the same batch.
+export const SELECTED_ARREARS_BALANCE_CTES = arrearsCtes('t.id IN (SELECT value FROM json_each(?3))');
 
 async function guardedFinancialRead(env, { tenancy_id, as_of } = {}, actor, projection) {
   if (!Number.isSafeInteger(tenancy_id) || tenancy_id <= 0 || !realDate(as_of)) fail(400, 'Invalid tenancy or date');

@@ -21,8 +21,8 @@ async function seed(db) {
   }
   await run(db,`INSERT INTO case_purpose_policies(purpose,revision,status,retention_ref,privacy_ref,approval_ref,approved_by,valid_from)
     VALUES('arrears_management',1,'approved','fixture-retention','fixture-privacy','fixture-policy','fixture','2000-01-01T00:00:00.000Z')`);
-  await run(db,`INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at)
-    VALUES('tenancy',1,?,'active',1,'fixture-membership','fixture','2000-01-01T00:00:00.000Z')`,actor);
+  await run(db,`INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at,lifecycle_generation)
+    VALUES('tenancy',1,?,'active',1,'fixture-membership','fixture','2000-01-01T00:00:00.000Z',1)`,actor);
   await run(db,`INSERT INTO case_capability_grants(id,case_kind,case_id,staff_email,capability,purpose,status,version,
     membership_version,policy_revision,approval_ref,approved_by,valid_from)
     VALUES('fixture-grant','tenancy',1,?,'sensitive_finance','arrears_management','active',1,1,1,
