@@ -16490,8 +16490,8 @@
       "fase": "F4",
       "estado": "parcial",
       "responsable": "—",
-      "hecho": "La entrega económica 2ba135b y la migración 0042 constan publicadas el 12-nov-2026: editor y ficha pública con precio por pie², depósito, parish rates, service charge, suministros incluidos y fecha de disponibilidad. Esa entrega admitía renta y premium juntos en negocios. El cambio publicado posterior 041188e retiró premium del editor y de la proyección pública y cambió la base del precio según la tenencia. El editor calcula ahora de forma informativa el precio por pie cuadrado a partir del precio y la superficie interior introducidos, con moneda y periodo; no modifica el texto manual guardado. Se prepararon costes estructurados privados con periodos independientes y auditoría combinada con SPR-01. La capacidad está desactivada y conserva los textos públicos y el cambio 041188e.",
-      "falta": "A3 y el ratio de premium de A4 siguen en conflicto con 041188e: conciliar la decisión de producto sin inferir pérdidas. Los gastos estructurados y la auditoría combinada con SPR-01 requieren contrastar el esquema real, revisar retención y preparar una migración coordinada antes de cualquier activación; no se ha consultado el esquema remoto ni producción.",
+      "hecho": "La entrega económica 2ba135b y la migración 0042 constan publicadas el 12-nov-2026: editor y ficha pública con precio por pie², depósito, parish rates, service charge, suministros incluidos y fecha de disponibilidad. Esa entrega admitía renta y premium juntos en negocios. El cambio publicado posterior 041188e retiró premium del editor y de la proyección pública y cambió la base del precio según la tenencia. El editor calcula ahora de forma informativa el precio por pie cuadrado a partir del precio y la superficie interior introducidos, con moneda y periodo; no modifica el texto manual guardado. Se prepararon costes estructurados privados con periodos independientes y auditoría combinada con SPR-01. La capacidad está desactivada y conserva los textos públicos y el cambio 041188e. Se ha restaurado la edición y presentación separada de premium y renta conforme a D7–D9, con ratio independiente y tratamiento de filas antiguas sin periodo. La revisión independiente cubrió regresiones de guardado e informe.",
+      "falta": "Los gastos estructurados y la auditoría combinada con SPR-01 requieren contrastar el esquema real, revisar retención y preparar una migración coordinada antes de cualquier activación; no se ha consultado el esquema remoto ni producción. La decisión D8 conserva el precio freehold existente, pero no lo usa como premium en comparaciones ni Queue.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ListingEditor.jsx",
@@ -16526,7 +16526,7 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Conciliar A3/A4 y preparar una única migración de historial SPR-01/PUB-06 tras contrastar el esquema y la retención; mantener la capacidad apagada.",
+      "nextStep": "Revisar esquema y retención de los gastos estructurados con SPR-01 antes de integrarlos o activarlos.",
       "actualizado": "2026-11-13"
     },
     {
