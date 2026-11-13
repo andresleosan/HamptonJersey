@@ -5,6 +5,15 @@ import { CRITERIA, hasAnswer, hasHouseholdPets, notApplicable, prioritiesFor, bu
 
 const TEL = "01534 727582";
 const STORE = "hampton-apply";
+
+// The receipt is intentionally independent of the person's answers and of any matching result.
+export function showRegistrationConfirmation(body) {
+  body.innerHTML = `<div class="confirm" role="status" tabindex="-1">
+    <h2>Thank you. We have received your search request.</h2>
+    <p>Our team will review the information you provided. If you have registered before, the team will review this request alongside your existing searches. We will contact you about any details we need to confirm.</p>
+    <div class="actions"><a class="btn ghost" href="#portfolio">See our properties</a></div></div>`;
+  body.querySelector(".confirm").focus();
+}
 // Answers kept in this tab so a reload loses nothing; personal details and consents never are (DESIGN.md).
 const PRIVATE = ["name", "email", "phone", "preferred_channel", "best_time", "requirements", "housing_status", "privacy",
   "marketing", "viewing_availability", "preferred_language", "household_adults", "household_children", "household_children_status", "household_children_ages"];
@@ -449,10 +458,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
     if (r?.ok) {
       try { sessionStorage.removeItem(STORE); } catch { /* nothing to clear */ }
       if (widget != null) window.turnstile.remove(widget);
-      body.innerHTML = `<div class="confirm" role="status" tabindex="-1"><h2></h2>
-        <div class="actions"><a class="btn ghost" href="#portfolio">See our properties</a></div></div>`;
-      $("h2", body).textContent = `Thank you, ${a.name.trim()}. We'll be in touch within one working day.`;
-      $(".confirm", body).focus();
+      showRegistrationConfirmation(body);
       return;
     }
     if (widget != null) window.turnstile.reset(widget);

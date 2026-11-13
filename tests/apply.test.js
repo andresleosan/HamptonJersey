@@ -43,7 +43,7 @@ test("both operations with a must-have budget validate as known separate ceiling
     assert.equal(JSON.parse(r.value.applicant.requirement_priorities).values.budget,'must');
   }
 });
-const load = () => import("data:text/javascript," + encodeURIComponent(src.replaceAll('"./requirements.js"', JSON.stringify(require("node:url").pathToFileURL(path.join(__dirname,"../site/requirements.js")).href)) + "\nexport { checkStep };"));
+const load = () => import("data:text/javascript," + encodeURIComponent(src.replaceAll('"./requirements.js"', JSON.stringify(require("node:url").pathToFileURL(path.join(__dirname,"../site/requirements.js")).href)) + "\nexport { checkStep, wizard };"));
 
 // What the wizard reads from the form: text as strings, radios as one value or "", checkbox groups as lists.
 const answers = o => ({
@@ -140,4 +140,68 @@ test('unknown parking/pets are explicit, and hidden priorities do not leak acros
   const commercial=toBody(answers({search_category:'commercial',requirement_priorities:p,household_children:'1',household_children_ages:['7']}));
   assert.equal(commercial.requirement_priorities,undefined);assert.equal(commercial.household_children_ages,undefined);
   assert.equal(toBody(answers({operation:'buy',requirement_priorities:p})).requirement_priorities.values.furnished,undefined);
+});
+
+test('the confirmation is the same accessible receipt regardless of registration or matching details', async () => {
+  const { JSDOM } = require('jsdom');
+  const { showRegistrationConfirmation } = await load();
+  const outputs = [];
+  for (const response of [{ ok:true }, { ok:true, duplicate:true, matches:['SYNTHETIC PRIVATE MARKER'] }]) {
+    const dom = new JSDOM('<!doctype html><main></main>');
+    const body = dom.window.document.querySelector('main');
+    showRegistrationConfirmation(body, response);
+    const receipt = body.querySelector('[role=status]');
+    assert.equal(dom.window.document.activeElement, receipt);
+    assert.equal(receipt.querySelector('h2').textContent, 'Thank you. We have received your search request.');
+    assert.equal(receipt.querySelector('p').textContent, 'Our team will review the information you provided. If you have registered before, the team will review this request alongside your existing searches. We will contact you about any details we need to confirm.');
+    assert.equal(receipt.querySelector('a').getAttribute('href'), '#portfolio');
+    assert.equal(receipt.textContent.includes('SYNTHETIC PRIVATE MARKER'), false);
+    outputs.push(receipt.outerHTML);
+  }
+  assert.equal(outputs[0], outputs[1]);
+});
+
+test('the actual wizard acknowledges a new home search and an unsupported commercial request identically', async () => {
+  const { JSDOM } = require('jsdom');
+  const { OPTIONS } = await import('../server/applicants.js');
+  const { wizard } = await load();
+  const originals = Object.fromEntries(['window','document','sessionStorage','fetch','jerseyToday'].map(k => [k,globalThis[k]]));
+  const receipts = [];
+  try {
+    for (const commercial of [false,true]) {
+      const dom = new JSDOM('<!doctype html><main class="apply"><div class="apply-body"></div></main>',{url:'https://example.test/'});
+      globalThis.window = dom.window; globalThis.document = dom.window.document;
+      globalThis.sessionStorage = dom.window.sessionStorage;
+      globalThis.jerseyToday = () => '2026-11-13';
+      globalThis.fetch = async (url,options) => url === '/api/applicants/options'
+        ? {ok:true,json:async()=>OPTIONS} : {ok:true,json:async()=>({ok:true})};
+      dom.window.turnstile = {render(container) {
+        const input = dom.window.document.createElement('input'); input.name='cf-turnstile-response'; input.value='synthetic';
+        container.append(input); return 'fixture';
+      },remove(){},reset(){}};
+      wizard(dom.window.document.querySelector('.apply-body'), OPTIONS, {esc:s=>String(s),tsKey:'synthetic',tsReady:Promise.resolve()});
+      const form = dom.window.document.querySelector('.apply form'); assert.ok(form);
+      const choice = (name,value) => { const el=form.querySelector(`[name="${name}"][value="${value}"]`); assert.ok(el); el.click(); };
+      const fill = (name,value) => {const el=form.querySelector(`[name="${name}"]`);el.value=value;el.dispatchEvent(new dom.window.Event('input',{bubbles:true}));};
+      const next=()=>form.querySelector('button[type=submit]').click();
+      choice('search_category',commercial?'commercial':'residential');
+      if(commercial) choice('commercial_kind','property');
+      choice('operation',commercial?'rent':'both'); next();
+      choice('area_answer','any'); next(); if(!commercial) choice('bedrooms_min','2'); next();
+      if(!commercial) { choice('parking_spaces','unknown'); choice('pets','unknown'); form.querySelector('[data-must="parking"]').click(); }
+      next();
+      if(!commercial) {fill('budget_max_rent','2000');fill('budget_max_buy','500000');}
+      next(); next(); fill('name','Synthetic Person'); fill('email','synthetic@example.test'); fill('phone','07797000997');
+      choice('privacy','yes'); await new Promise(setImmediate); next(); await new Promise(setImmediate);
+      const receipt=dom.window.document.querySelector('.confirm'); assert.ok(receipt,'valid fixture reaches receipt');
+      receipts.push(receipt.textContent.replace(/\s+/g,' ').trim());
+      dom.window.close();
+    }
+    assert.equal(receipts[0],receipts[1]);
+    assert.doesNotMatch(receipts[0],/active|matches found|one working day/i);
+  } finally {
+    for(const [key,value] of Object.entries(originals)) {
+      if(value===undefined) delete globalThis[key]; else globalThis[key]=value;
+    }
+  }
 });

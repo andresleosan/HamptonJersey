@@ -12,6 +12,7 @@ import { milestoneLabel } from "../../server/sales.js";
 import SearchLifecycle from "./SearchLifecycle.jsx";
 import { areaCopy } from "./area-copy.js";
 import { marketingHistory } from "./marketing-history.js";
+import RegistrationEssentials from "./RegistrationEssentials.jsx";
 
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
 // Every form field that belongs to the search (the rest of the form is the contact).
@@ -414,6 +415,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
         aria-controls={`panel-${k}`} tabIndex={cur === k ? 0 : -1} onClick={() => go(k)}>{t}</button>)}</div>
 
     <div role="tabpanel" id="panel-requirements" aria-labelledby="tab-requirements" hidden={cur !== "requirements"}>
+      <RegistrationEssentials applicant={a} formRef={formRef} />
       <section className="card" aria-labelledby="marketing-heading">
         <h2 id="marketing-heading" ref={marketingHeading} tabIndex={-1}>Marketing preference</h2>
         <p>{c.marketing_opt_in_at ? "Marketing consent recorded" : "Marketing consent not recorded"}</p>

@@ -144,7 +144,7 @@ export default function ApplicantFields({ value, onChange, errors = {}, operatio
         {select("parking_spaces", "Parking", OPTIONS.parking)}
         {rent && select("furnished", "Furnished", OPTIONS.furnished)}
       </div>
-      <fieldset className="choices-set"><legend>Outdoor space</legend><div className="req-outdoor">{OPTIONS.outdoor.map(([k,label])=><div className="req-heading" key={k}><label><input type="checkbox" checked={value.outdoor.includes(k)} onChange={e=>set('outdoor',e.target.checked?[...value.outdoor,k]:value.outdoor.filter(v=>v!==k))}/>{label}</label>{prioritySwitch(k)}</div>)}</div></fieldset>
+      <fieldset className="choices-set"><legend>Outdoor space</legend><div className="req-outdoor">{OPTIONS.outdoor.map(([k,label])=><div className="req-heading" key={k}><label><input id={`a-outdoor-${k}`} type="checkbox" checked={value.outdoor.includes(k)} onChange={e=>set('outdoor',e.target.checked?[...value.outdoor,k]:value.outdoor.filter(v=>v!==k))}/>{label}</label>{prioritySwitch(k)}</div>)}</div></fieldset>
       <Pets value={value.pets} onChange={v => set("pets", v)} error={errors.pets} />
     </section>
 
@@ -222,7 +222,7 @@ function Pets({ value, onChange, error }) {
   const toggle = (k, on) => onChange(!on ? value.filter(p => p.kind !== k)
     : k === "none" ? [{ kind: "none" }] : [...value.filter(p => p.kind !== "none"), { kind: k, count: "1" }]);
   const aria = { "aria-invalid": error ? true : undefined, "aria-describedby": error ? "ae-pets" : undefined };
-  return <fieldset className="choices-set" aria-describedby={aria["aria-describedby"]}>
+  return <fieldset id="a-pets" className="choices-set" aria-describedby={aria["aria-describedby"]}>
     <legend>Pets</legend>
     {hasHouseholdPets({pets:value}) && <p className="req-note">Pets must be accommodated.</p>}
     <div className="choices">{OPTIONS.pet_kinds.map(([k, t]) => <span key={k} className="pet">
