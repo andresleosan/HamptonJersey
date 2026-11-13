@@ -4,10 +4,10 @@
   "titulo": "Registro por modalidad, búsquedas separadas y datos esenciales explícitos",
   "origen": "plan",
   "fase": "F0",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "REG-11 está en el historial de main mediante 9b8dbd41; la reconciliación histórica registra publicación y aplicación de 0025. Incluye registro residencial y comercial/negocio, traspaso, compra y alquiler simultáneos con presupuestos separados, datos comerciales D08 y respuestas del hogar sin total inventado. La prueba aislada actual de hogar y ventas pasó con los scripts actualizados. Una corrección local rechaza fechas imposibles con error de campo sin alterar fechas históricas válidas.",
-  "falta": "Integrar y verificar el despliegue de la corrección local de fechas antes de cerrar la tarea. No se repitió el recorrido autenticado ni el envío en producción. El matching comercial pertenece a M04 y no bloquea el alcance del registro.",
+  "hecho": "Registro residencial y comercial/negocio, traspaso y compra/alquiler simultáneos con presupuestos separados, datos D08 y hogar sin total inventado. La entrega 9b8dbd41 y 0025 constan en la reconciliación histórica. La corrección de fechas 841f8be está integrada en 3e6191b; GitHub registró Cloudflare Pages y Workers Builds: hampton-jobs completed/success. Las pruebas locales cubren fechas imposibles, bisiestos y fechas históricas válidas.",
+  "falta": "No se repitieron el flujo autenticado ni un envío en producción durante esta verificación. El matching comercial pertenece a M04 y es independiente del cierre del registro.",
   "bloqueo": "",
   "evidencia": [
     "site/apply.js",
@@ -20,7 +20,8 @@
     "docs/superpowers/plans/2026-11-07-reg-11-registration-ledger.md",
     "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md",
     "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md",
-    "tests/server/reg11-calendar-validation.test.mjs"
+    "tests/server/reg11-calendar-validation.test.mjs",
+    "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md"
   ],
   "modulo": "M03",
   "deps": [],
@@ -28,7 +29,7 @@
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
-  "executionEligibility": "needs_scope_and_evidence_review",
+  "executionEligibility": "historical",
   "dependencies": [],
   "externalBlocker": "",
   "resources": [
@@ -36,6 +37,6 @@
     "applicants-schema",
     "requirements-contract"
   ],
-  "nextStep": "Integrar la corrección local de fechas y verificar su despliegue; después reconciliar el cierre de REG-11.",
+  "nextStep": "Conservar el registro comprobado; continuar el matching comercial en M04 según sus propias dependencias.",
   "actualizado": "2026-11-13"
 }

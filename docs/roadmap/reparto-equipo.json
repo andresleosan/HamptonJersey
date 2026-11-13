@@ -18,10 +18,10 @@
       "area": "Aplicantes, requisitos, matching y estados",
       "capacity": 2,
       "count": 59,
-      "openCount": 32,
+      "openCount": 31,
       "states": {
-        "parcial": 22,
-        "hecho": 21,
+        "parcial": 21,
+        "hecho": 22,
         "pendiente": 8,
         "replanteado": 6,
         "bloqueado": 2
@@ -5893,10 +5893,10 @@
       "titulo": "Registro por modalidad, búsquedas separadas y datos esenciales explícitos",
       "origen": "plan",
       "fase": "F0",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "REG-11 está en el historial de main mediante 9b8dbd41; la reconciliación histórica registra publicación y aplicación de 0025. Incluye registro residencial y comercial/negocio, traspaso, compra y alquiler simultáneos con presupuestos separados, datos comerciales D08 y respuestas del hogar sin total inventado. La prueba aislada actual de hogar y ventas pasó con los scripts actualizados. Una corrección local rechaza fechas imposibles con error de campo sin alterar fechas históricas válidas.",
-      "falta": "Integrar y verificar el despliegue de la corrección local de fechas antes de cerrar la tarea. No se repitió el recorrido autenticado ni el envío en producción. El matching comercial pertenece a M04 y no bloquea el alcance del registro.",
+      "hecho": "Registro residencial y comercial/negocio, traspaso y compra/alquiler simultáneos con presupuestos separados, datos D08 y hogar sin total inventado. La entrega 9b8dbd41 y 0025 constan en la reconciliación histórica. La corrección de fechas 841f8be está integrada en 3e6191b; GitHub registró Cloudflare Pages y Workers Builds: hampton-jobs completed/success. Las pruebas locales cubren fechas imposibles, bisiestos y fechas históricas válidas.",
+      "falta": "No se repitieron el flujo autenticado ni un envío en producción durante esta verificación. El matching comercial pertenece a M04 y es independiente del cierre del registro.",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js",
@@ -5909,7 +5909,8 @@
         "docs/superpowers/plans/2026-11-07-reg-11-registration-ledger.md",
         "docs/superpowers/plans/2026-11-10-paq-02-registro-ledger.md",
         "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md",
-        "tests/server/reg11-calendar-validation.test.mjs"
+        "tests/server/reg11-calendar-validation.test.mjs",
+        "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md"
       ],
       "modulo": "M03",
       "deps": [],
@@ -5917,7 +5918,7 @@
       "assignedSlot": "vps",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [],
       "externalBlocker": "",
       "resources": [
@@ -5925,7 +5926,7 @@
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Integrar la corrección local de fechas y verificar su despliegue; después reconciliar el cierre de REG-11.",
+      "nextStep": "Conservar el registro comprobado; continuar el matching comercial en M04 según sus propias dependencias.",
       "actualizado": "2026-11-13"
     },
     {
@@ -7535,8 +7536,8 @@
       "fase": "F4",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "La ficha conserva estado editorial, disponibilidad, confirmación y métricas existentes. Retirada de la web con motivo, nota privada, historial y correcciones construidos y verificados localmente en editor y lista; conservan historial y disponibilidad. El nuevo flujo está desactivado por defecto y la migración 0044 se ha probado solo con datos ficticios.",
-      "falta": "Verificar la integración y el despliegue, incluida la migración 0044 y la activación posterior del flujo; comprobar el recorrido real cuando corresponda. Resolver la supresión física de notas conforme a PRE-12. Las métricas no observadas siguen como desconocidas. PUB-15 y los portales externos están retirados del alcance y no son dependencia de esta tarea.",
+      "hecho": "El código de retirada con motivo, nota privada, historial y correcciones está integrado en 9054dd1; Cloudflare Pages y Workers Builds: hampton-jobs figuran completed/success para ese SHA. Se ha probado localmente en editor y lista y conserva historial y disponibilidad. El nuevo flujo está desactivado por defecto y la migración 0044 solo se ha ensayado con datos ficticios.",
+      "falta": "Comprobar y coordinar la migración 0044 y la activación del flujo antes de verificar el recorrido real. No se han verificado su uso ni la migración remota en esta sesión. Resolver la supresión física de notas conforme a PRE-12; las métricas no observadas siguen como desconocidas. PUB-15 y los portales externos no son dependencia vigente.",
       "bloqueo": "",
       "evidencia": [
         "server/listing.js:7",
@@ -7554,7 +7555,8 @@
         "admin/src/WithdrawalDialog.jsx",
         "migrations/0044_listing_withdrawals.sql",
         "tests/server/pub-09-tp04-1.test.mjs",
-        "tests/pub09-withdrawal.e2e.cjs"
+        "tests/pub09-withdrawal.e2e.cjs",
+        "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -7566,7 +7568,7 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Verificar la integración y coordinar migración y activación antes de comprobar el recorrido real y cerrar la tarea.",
+      "nextStep": "Coordinar y verificar migración y activación antes de comprobar el recorrido real y cerrar la tarea.",
       "actualizado": "2026-11-13"
     },
     {
@@ -7791,8 +7793,8 @@
       "fase": "F3-C",
       "estado": "parcial",
       "responsable": "Luis",
-      "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn. El trabajo nuevo impide reservar públicamente propiedades vendidas, retiradas, alquiladas o acordadas, incluso si cambia su estado antes del guardado; si las visitas están deshabilitadas, la interfaz ofrece contacto en lugar de reserva. La ficha obsoleta conserva los datos y desactiva el formulario. Pruebas locales, D1 y navegador aislado aprobadas.",
-      "falta": "Verificar la integración y el despliegue de esta corrección. La restricción por aviso previo, llaves y negociadores de VIS-10 sigue pendiente para propiedades que sí admiten visitas. El alcance vigente es solo la web propia; no depende de Meta.",
+      "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn. La corrección integrada en 1813b01 impide reservar propiedades cerradas o con visitas deshabilitadas y rechaza cambios tardíos; conserva los datos de formularios obsoletos. Las pruebas locales, D1 y navegador aislado pasaron; Cloudflare Pages y Workers Builds: hampton-jobs figuran completed/success para ese SHA.",
+      "falta": "No se ha comprobado el uso funcional en producción. Las restricciones por aviso previo, llaves y negociadores de VIS-10 siguen pendientes para propiedades que sí admiten visitas. El alcance vigente es solo la web propia; no depende de Meta.",
       "bloqueo": "",
       "evidencia": [
         "server/routes/sales.js:67-76",
@@ -7807,7 +7809,8 @@
         "site/lib.js",
         "tests/server/public-listing-state-race.test.mjs",
         "tests/public-listing-state-ui.e2e.cjs",
-        "docs/roadmap/work/PUB-16/avance-publicable.md"
+        "docs/roadmap/work/PUB-16/avance-publicable.md",
+        "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -7849,7 +7852,7 @@
         "viewings-contract",
         "public-site"
       ],
-      "nextStep": "Verificar el despliegue y completar la integración de restricciones de VIS-10 cuando estén disponibles.",
+      "nextStep": "Comprobar el recorrido real y completar las restricciones de VIS-10 cuando estén disponibles.",
       "actualizado": "2026-11-13"
     },
     {

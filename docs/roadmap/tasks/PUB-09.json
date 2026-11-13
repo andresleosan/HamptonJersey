@@ -6,8 +6,8 @@
   "fase": "F4",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "La ficha conserva estado editorial, disponibilidad, confirmación y métricas existentes. Retirada de la web con motivo, nota privada, historial y correcciones construidos y verificados localmente en editor y lista; conservan historial y disponibilidad. El nuevo flujo está desactivado por defecto y la migración 0044 se ha probado solo con datos ficticios.",
-  "falta": "Verificar la integración y el despliegue, incluida la migración 0044 y la activación posterior del flujo; comprobar el recorrido real cuando corresponda. Resolver la supresión física de notas conforme a PRE-12. Las métricas no observadas siguen como desconocidas. PUB-15 y los portales externos están retirados del alcance y no son dependencia de esta tarea.",
+  "hecho": "El código de retirada con motivo, nota privada, historial y correcciones está integrado en 9054dd1; Cloudflare Pages y Workers Builds: hampton-jobs figuran completed/success para ese SHA. Se ha probado localmente en editor y lista y conserva historial y disponibilidad. El nuevo flujo está desactivado por defecto y la migración 0044 solo se ha ensayado con datos ficticios.",
+  "falta": "Comprobar y coordinar la migración 0044 y la activación del flujo antes de verificar el recorrido real. No se han verificado su uso ni la migración remota en esta sesión. Resolver la supresión física de notas conforme a PRE-12; las métricas no observadas siguen como desconocidas. PUB-15 y los portales externos no son dependencia vigente.",
   "bloqueo": "",
   "evidencia": [
     "server/listing.js:7",
@@ -25,7 +25,8 @@
     "admin/src/WithdrawalDialog.jsx",
     "migrations/0044_listing_withdrawals.sql",
     "tests/server/pub-09-tp04-1.test.mjs",
-    "tests/pub09-withdrawal.e2e.cjs"
+    "tests/pub09-withdrawal.e2e.cjs",
+    "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -37,6 +38,6 @@
     "listings-schema",
     "listing-editor"
   ],
-  "nextStep": "Verificar la integración y coordinar migración y activación antes de comprobar el recorrido real y cerrar la tarea.",
+  "nextStep": "Coordinar y verificar migración y activación antes de comprobar el recorrido real y cerrar la tarea.",
   "actualizado": "2026-11-13"
 }

@@ -4952,7 +4952,7 @@
       "preferredSlot": "vps",
       "priority": 232,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [

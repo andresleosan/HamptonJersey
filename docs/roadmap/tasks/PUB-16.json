@@ -6,8 +6,8 @@
   "fase": "F3-C",
   "estado": "parcial",
   "responsable": "Luis",
-  "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn. El trabajo nuevo impide reservar públicamente propiedades vendidas, retiradas, alquiladas o acordadas, incluso si cambia su estado antes del guardado; si las visitas están deshabilitadas, la interfaz ofrece contacto en lugar de reserva. La ficha obsoleta conserva los datos y desactiva el formulario. Pruebas locales, D1 y navegador aislado aprobadas.",
-  "falta": "Verificar la integración y el despliegue de esta corrección. La restricción por aviso previo, llaves y negociadores de VIS-10 sigue pendiente para propiedades que sí admiten visitas. El alcance vigente es solo la web propia; no depende de Meta.",
+  "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn. La corrección integrada en 1813b01 impide reservar propiedades cerradas o con visitas deshabilitadas y rechaza cambios tardíos; conserva los datos de formularios obsoletos. Las pruebas locales, D1 y navegador aislado pasaron; Cloudflare Pages y Workers Builds: hampton-jobs figuran completed/success para ese SHA.",
+  "falta": "No se ha comprobado el uso funcional en producción. Las restricciones por aviso previo, llaves y negociadores de VIS-10 siguen pendientes para propiedades que sí admiten visitas. El alcance vigente es solo la web propia; no depende de Meta.",
   "bloqueo": "",
   "evidencia": [
     "server/routes/sales.js:67-76",
@@ -22,7 +22,8 @@
     "site/lib.js",
     "tests/server/public-listing-state-race.test.mjs",
     "tests/public-listing-state-ui.e2e.cjs",
-    "docs/roadmap/work/PUB-16/avance-publicable.md"
+    "docs/roadmap/work/PUB-16/avance-publicable.md",
+    "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -64,6 +65,6 @@
     "viewings-contract",
     "public-site"
   ],
-  "nextStep": "Verificar el despliegue y completar la integración de restricciones de VIS-10 cuando estén disponibles.",
+  "nextStep": "Comprobar el recorrido real y completar las restricciones de VIS-10 cuando estén disponibles.",
   "actualizado": "2026-11-13"
 }

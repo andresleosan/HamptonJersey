@@ -1,5 +1,7 @@
 # Conciliación de registro, estados y notificaciones
 
+**Actualización posterior:** REG-11 se reconcilia como completada tras la integración y los checks de `3e6191b`; los límites de producción se conservan en el [seguimiento de despliegue](2026-11-13-release-reg11-pub.md). El relato siguiente conserva el estado observado durante la conciliación anterior.
+
 13 de noviembre de 2026. Revisión documental en una copia aislada integrada después sobre la base local `1813b01`, sin consultar ni modificar producción. Los resultados históricos y las pruebas locales se distinguen a continuación; los compromisos posteriores del tablero pueden cambiar las cifras de progreso antes de publicar esta actualización.
 
 ## REG-08 · Requisitos y hogar

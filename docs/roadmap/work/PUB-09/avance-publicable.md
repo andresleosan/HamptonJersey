@@ -1,5 +1,7 @@
 # PUB-09 · Avance local de trazabilidad de la web propia
 
+**Actualización posterior:** los checks de Pages y Jobs de `9054dd1` terminaron correctamente. La migración, activación y uso en producción no se verifican con esos checks; véase la [conciliación de despliegue](../conciliacion/2026-11-13-release-reg11-pub.md). Las secciones siguientes registran la construcción y pruebas locales anteriores.
+
 13 de noviembre de 2026. Se construyó en una copia local la retirada editorial con motivo y nota privada desde el editor y la lista, junto con el historial privado y las correcciones que conservan el registro original. La retirada no cambia la disponibilidad física ni atribuye motivos a datos históricos desconocidos. Las métricas sin productor real siguen como desconocidas o no registradas.
 
 La retirada, su evento y su recibo se guardan en un único lote; las correcciones usan una revisión esperada y no generan otra retirada. Las comprobaciones locales cubren operaciones repetidas, respuesta perdida y republicación, conflictos, revocación de acceso antes de confirmar, aislamiento por ficha y ausencia de notas privadas en respuestas públicas y eventos generales. El historial permanece restringido al equipo autenticado.

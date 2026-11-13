@@ -1,5 +1,7 @@
 # PUB-16 · Propagación web de estados
 
+**Actualización posterior:** los checks de Pages y Jobs de `1813b01` terminaron correctamente. No se hizo smoke funcional de producción; véase la [conciliación de despliegue](../conciliacion/2026-11-13-release-reg11-pub.md). El relato siguiente conserva los resultados de construcción y prueba local.
+
 13-nov-2026. La web muestra contacto en vez de reserva para propiedades vendidas, retiradas, con alquiler acordado o completado, o con visitas deshabilitadas. El servidor repite la regla al cargar franjas, al recibir el formulario y dentro de la escritura de la reserva; un cambio tardío no crea reserva ni efectos asociados. Si una ficha quedó obsoleta, el formulario conserva los datos, informa y se desactiva. Bajo oferta sigue sujeto a las reglas normales.
 
 La revisión independiente detectó cuatro incidencias: Withdrawn aún era reservable, el error de ficha obsoleta no recargaba, la política deshabilitada no ocultaba el botón y Contact us perdía el foco. Se reprodujeron y corrigieron con pruebas; los recorridos de navegador aislado verifican 1280 y 390 px, activación de contacto con teclado, estados cerrados, política y ficha obsoleta; WebKit comprueba además zoom nativo del 200 % a 1280 px. La prueba de VIS-18 también pasa en ambas anchuras. Suite integrada: 1.288 pruebas Node y 25 Python; build, release y catálogo correctos. Las pruebas usan datos ficticios; la actualización y el despliegue reales aún no se atribuyen a esta evidencia.

@@ -1,6 +1,8 @@
 # Estado de Hampton App
 
-13-nov-2026 · **Conciliación de registro y estados:** REG-08 y EST-17 cumplen su alcance acreditado y pasan a hecho en el catálogo local; REG-11 permanece parcial hasta integrar y verificar la corrección local de fechas imposibles. El avance local pasa de 63/217 (29,03 %) a 65/217 (29,95 %); no se ha comprobado el tablero público. NOT-01 y NOT-08 siguen parciales por sus productores y canales pendientes. [Evidencia y límites](work/conciliacion/2026-11-13-reg-est-not.md).
+13-nov-2026 · **REG-11 hecho:** la corrección de fechas quedó integrada y los checks de Pages y Workers Builds de `3e6191b` terminaron correctamente. La cifra local pasa de 65/217 (29,95 %) a 66/217 (30,41 %); no se ha comprobado el tablero público ni repetido el flujo autenticado o un envío en producción. M04 continúa como alcance independiente. [Evidencia](work/conciliacion/2026-11-13-release-reg11-pub.md).
+
+13-nov-2026 · **Conciliación anterior de registro y estados:** REG-08 y EST-17 cumplieron su alcance acreditado y pasaron a hecho; en ese corte REG-11 seguía parcial a la espera de la corrección de fechas. El avance entonces pasó de 63/217 (29,03 %) a 65/217 (29,95 %). NOT-01 y NOT-08 siguen parciales por sus productores y canales pendientes. [Evidencia y límites](work/conciliacion/2026-11-13-reg-est-not.md).
 
 13-nov-2026 · **PUB-16 parcial:** reservas y CTA respetan estados cerrados y visitas deshabilitadas; cambios tardíos se rechazan al guardar. El coordinador verificó que el commit `1813b01` tiene Pages y Workers Builds `hampton-jobs` en completed/success; no se ha hecho smoke funcional de producción. La integración de VIS-10 sigue pendiente. [Evidencia local](work/PUB-16/avance-publicable.md).
 
@@ -8,7 +10,7 @@
 
 13-nov-2026 · **Alcance del checklist reconciliado:** ADM-05, PUB-15, OFE-08 y VIS-16 se excluyen del total aplicable conforme a la decisión del [plan maestro vigente](2026-11-10-plan-maestro-vigente.md); se conservan datos y código existentes. El cálculo pasa de 63/221 (28,51 %) a 63/217 (29,03 %), sin nuevos cierres. NOT-05 continúa para alquileres y PUB-09 para la web propia. [Detalle](work/progreso/ajuste-alcance-2026-11-13.md).
 
-13-nov-2026 · **PUB-09 parcial:** retirada con motivo, historial privado y correcciones construidos y comprobados localmente; el flujo permanece desactivado por defecto y la migración 0044 solo se ha ensayado con datos ficticios. Faltan verificación del despliegue, migración remota, activación y verificación real, además de la política de supresión PRE-12. PUB-15 no es una dependencia vigente. [Evidencia](work/PUB-09/avance-publicable.md).
+13-nov-2026 · **PUB-09 parcial:** retirada con motivo, historial privado y correcciones integrados en `9054dd1`, con checks de Pages y Jobs correctos. El flujo permanece desactivado por defecto y la migración 0044 solo se ha ensayado con datos ficticios. Faltan verificar migración remota, activación y uso real, además de la política de supresión PRE-12. PUB-15 no es una dependencia vigente. [Evidencia](work/conciliacion/2026-11-13-release-reg11-pub.md).
 
 13-nov-2026 · **Forma de trabajo:** Luis autorizó a Codex a hacer commits y push de avances comprobados, actualizar el checklist y continuar sin pedir confirmación en cada paso. Cada tarea conserva su estado real: un avance parcial no cuenta como terminado.
 
