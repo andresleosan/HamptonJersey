@@ -1,7 +1,7 @@
 // BUS-17: with fewer than 3 matches, what one change to the saved search would add (spec 2026-11-06, W2–W8).
 // Decides no matching rule: each change is run through evaluate() as it is. Pure ESM, nothing stored.
 import { parsePriorities } from "../site/requirements.js";
-import { evaluate } from "./matching.js";
+import { evaluate, monthlyRent } from "./matching.js";
 import { OPTIONS, BUDGET } from "./applicants.js";
 
 const PARISHES = OPTIONS.parishes.map(([p]) => p);
@@ -25,7 +25,27 @@ export function widen(a, listings, pairs=[]) {
   const field = a.budget_stretch != null ? "budget_stretch" : "budget_max", top = a[field];
   if (top != null) {
     const step = ROUND[a.operation], to = Math.ceil((top * 11) / (10 * step)) * step; // in whole numbers: 900000 * 1.1 is not 990000
-    if (to <= BUDGET[a.operation][1]) out.push({ key: "budget", field, from: top, to, ...added({ ...a, [field]: to }) });
+    if (to <= BUDGET[a.operation][1]) {
+      const expanded = { ...a, [field]: to };
+      // Attribute a gain to this change only when the budget check actually changes from
+      // a known failure to a known success. Unknown currency cannot prove either side.
+      const budgetResult = result => result.checks.find(c => c.key === 'budget')?.result;
+      let unknownPrices=0;
+      const improved = free.filter(l => {
+        const before=budgetResult(evaluate(a,l));
+        if (before === 'unknown') {
+          const amount=l.operation === 'rent' ? monthlyRent(l) : l.sale_price;
+          if (l.currency !== 'GBP' || typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0)
+            unknownPrices++;
+          return false;
+        }
+        if (before !== 'fails') return false;
+        const next=evaluate(expanded,l);
+        return next.pass && next.requirements_status === 'meets' && budgetResult(next) === 'meets';
+      });
+      out.push({ key: "budget", field, from: top, to, ...counted(improved),
+        ...(unknownPrices ? { unknownPrices } : {}) });
+    }
   }
 
   const wanted = list(a.parishes_wanted), excluded = list(a.parishes_excluded);

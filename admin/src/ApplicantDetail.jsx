@@ -571,6 +571,7 @@ function Widen({ alternatives, applicant: a, dirty, onUse }) {
       <ul>{alternatives.map(w => <li key={w.key}>
         <span>{what(w)}</span>
         <span className="added">{w.added ? `${w.fresh} new, ${w.improved} already found` : "No improvement"}</span>
+        {w.key === "budget" && w.unknownPrices > 0 && <span className="muted">{w.unknownPrices} {w.unknownPrices === 1 ? "property has" : "properties have"} a price to confirm before comparing the budget.</span>}
         {w.added > 0 && <button type="button" className="btn ghost sm" disabled={dirty} onClick={() => onUse(w)}>
           Use this<span className="sr"> ({what(w)})</span></button>}
       </li>)}</ul>
