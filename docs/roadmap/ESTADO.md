@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **OFE-06 pendiente:** el plan vigente sustituyó el correo semanal a abogados por seguimiento interno; se elimina el bloqueo de correo sin declarar construida la tarea semanal. El total permanece en 67/215 (31,16 %). [Conciliación](work/OFE-06/reconciliacion-2026-11-13.md).
+
 13-nov-2026 · **ADM-03 parcial:** el sondeo inicial de Inbox y del contador respeta las pestañas ocultas. El reloj ya tiene productores en código; faltan verificar su estado real, resolver reparaciones inconsistentes y acreditar permisos financieros. [Evidencia](work/ADM-03/2026-11-13-sondeo-y-limites.md).
 
 13-nov-2026 · **PUB-06 parcial:** el editor calcula de forma informativa el precio por superficie sin cambiar el texto manual. Pasaron pruebas locales y navegador aislado; siguen pendientes conciliar el criterio de premium y los gastos estructurados. [Evidencia](work/PUB-06/price-area-evidence-2026-11-13.md).

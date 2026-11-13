@@ -7814,18 +7814,13 @@
     {
       "id": "OFE-06",
       "parentTaskId": "OFE-06",
-      "title": "Correo semanal a los abogados con lo pendiente y resumen a comprador y vendedor",
+      "title": "Seguimiento interno semanal de compraventas",
       "preferredSlot": "vscode",
       "priority": 314,
       "kind": "development",
       "enabled": true,
       "reviewRequired": true,
-      "dependencies": [
-        {
-          "unitId": "AUT-17",
-          "requiredEvidence": "activated"
-        }
-      ],
+      "dependencies": [],
       "resources": [
         {
           "key": "sales-contract",
@@ -7836,7 +7831,7 @@
           "mode": "write"
         },
         {
-          "key": "email-pipeline",
+          "key": "notifications-schema",
           "mode": "write"
         },
         {
@@ -7853,7 +7848,7 @@
         }
       ],
       "acceptance": [
-        "Añadir el resumen semanal de hitos por correo sobre Sales y el reloj existentes."
+        "Construir seguimiento interno semanal por venta, con agenda configurable desactivada hasta que el equipo la fije, cierre consistente y referencias mínimas a gestiones externas."
       ]
     },
     {

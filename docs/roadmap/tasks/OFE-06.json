@@ -1,18 +1,23 @@
 {
   "id": "OFE-06",
   "seccion": "Ofertas y cierre",
-  "titulo": "Correo semanal a los abogados con lo pendiente y resumen a comprador y vendedor",
+  "titulo": "Seguimiento interno semanal de compraventas",
   "origen": "plan",
   "fase": "F3-B",
-  "estado": "bloqueado",
+  "estado": "pendiente",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "No se envía nada: el equipo persigue a los abogados a mano con los hitos de Sales. Necesita correo; el reloj (AUT-07) ya existe.",
-  "bloqueo": "Correo (AUT-17)",
+  "hecho": "Sales dispone de hitos y el código incluye un reloj y productor común de tareas. No se ha acreditado una tarea semanal por venta ni su activación real.",
+  "falta": "Construir una revisión interna semanal por venta y semana de Jersey, con día y hora configurables por el equipo y desactivada hasta configurarla. Revisar los hitos y registrar gestiones externas mediante referencias mínimas; resolver la tarea al cerrar o dar por caída la venta. No enviar mensajes a abogados ni añadir informes externos en esta tarea.",
+  "bloqueo": "",
   "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
     "docs/roadmap/ESTADO.md:11",
-    "jobs/wrangler.toml:1-24"
+    "jobs/wrangler.toml:1-24",
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:22",
+    "docs/superpowers/specs/2026-11-10-tp03-communications-design.md",
+    "docs/superpowers/plans/2026-11-10-tp03-ofe-06-plan.md",
+    "server/notification-tasks.js",
+    "server/jobs.js"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -20,19 +25,19 @@
   "executionEligibility": "needs_scope_and_evidence_review",
   "dependencies": [
     {
-      "id": "AUT-17",
-      "requires": "activated",
-      "reason": "Necesita correo operativo para completar la entrega real de mensajes.",
+      "id": "NOT-11",
+      "requires": "integrated",
+      "reason": "El seguimiento interno reutiliza el productor común de tareas; no requiere completar todos sus productores futuros.",
       "basis": "explicit",
-      "scope": "whole"
+      "scope": "partial"
     }
   ],
-  "externalBlocker": "Correo (AUT-17)",
+  "externalBlocker": "",
   "resources": [
     "sales-contract",
     "sales-ui",
-    "email-pipeline",
+    "notifications-schema",
     "jobs-clock"
   ],
-  "nextStep": "Añadir el resumen semanal de hitos por correo sobre Sales y el reloj existentes."
+  "nextStep": "Revisar las dependencias del productor común y construir el seguimiento interno semanal, con agenda desactivada hasta configuración del equipo."
 }
