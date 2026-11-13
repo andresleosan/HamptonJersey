@@ -27,7 +27,7 @@ export function priceText(l) {
   if (l.operation === "business" && l.rent != null && ["month", "year"].includes(l.rent_period))
     return `${SYM[l.currency] ?? ""}${Math.round(l.rent).toLocaleString("en-GB")}${l.rent_period === "year" ? " p.a." : " pcm"} (premium not published)`;
   if (a == null) return l.price_text || "—";
-  const per = priceOperation(l) === "rent" ? (l.rent_period === "year" ? " p.a." : " pcm") : "";
+  const per = priceOperation(l) === "rent" ? ({ month: " pcm", year: " p.a." }[l.rent_period] ?? "") : "";
   return `${SYM[l.currency] ?? ""}${Math.round(a).toLocaleString("en-GB")}${per}`;
 }
 export const fmtDate = iso => (iso ? new Date(iso).toLocaleString("en-GB",

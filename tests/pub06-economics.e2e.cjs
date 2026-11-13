@@ -58,6 +58,23 @@ const BASE = process.env.BASE, vars = parseEnv(readFileSync(process.env.E2E_VARS
       await page.getByRole('status').filter({ hasText: 'Changes saved.' }).waitFor();
       await page.goto(BASE + 'admin/#/listings/HE-C001/report?days=30');
       await page.getByText('£12,000 p.a. (premium not published)', { exact: true }).waitFor();
+      // The isolated report response is varied to cover legacy missing periods without changing stored data.
+      let reportPeriod = null;
+      const reportUrl = '**/api/admin/listings/HE-C001/report?*';
+      const reportFixture = async route => {
+        const response = await route.fetch();
+        const data = await response.json();
+        Object.assign(data.listing, { operation: 'rent', rent: 12000, rent_period: reportPeriod, premium: null });
+        await route.fulfill({ response, json: data });
+      };
+      await page.route(reportUrl, reportFixture);
+      for (const [period, label] of [[null, '£12,000'], ['month', '£12,000 pcm'], ['year', '£12,000 p.a.']]) {
+        reportPeriod = period;
+        await page.reload();
+        await page.locator('.report-sub .price').waitFor();
+        assert.equal(await page.locator('.report-sub .price').textContent(), label);
+      }
+      await page.unroute(reportUrl, reportFixture);
       await page.goto(BASE + 'admin/#/p/HE-C001');
       await page.getByLabel('Business premium', { exact: true }).fill('50000');
       await page.getByRole('button', { name: 'Save', exact: true }).click();

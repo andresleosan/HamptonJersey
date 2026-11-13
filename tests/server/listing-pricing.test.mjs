@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {createRequire} from "node:module";
 import {priceOperation, listingAmount} from "../../server/listing-pricing.js";
 import {checkPrice, toPublic, validateListing} from "../../server/listing.js";
+import {priceText} from "../../admin/src/format.js";
 import {listingCriteria} from "../../admin/src/listing-completeness.js";
 import {monthlyPrice} from "../../admin/src/listing-filters.js";
 import {draftBody} from "../../server/listing-import.js";
@@ -48,4 +49,12 @@ test("public and admin price basis agree across operations and tenures", () => {
   for (const operation of ["sale","rent","business"])
     for (const tenure_type of [null,"freehold","leasehold","share_transfer","flying_freehold"])
       assert.equal(publicPrices.priceOperation({operation,tenureType:tenure_type}), priceOperation({operation,tenure_type}));
+});
+
+test("rent labels do not invent a period in the panel or on the website", () => {
+  for (const [period, suffix] of [[null, ""], ["month", " pcm"], ["year", " p.a."]]) {
+    const row = {operation:"rent", rent:1200, rent_period:period, currency:"GBP"};
+    assert.equal(priceText(row), `£1,200${suffix}`);
+    assert.equal(publicPrices.priceLabel(toPublic({...row, specs:"[]"}, [])), `£1,200${suffix}`);
+  }
 });
