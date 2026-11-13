@@ -82,7 +82,12 @@ nav.main a:hover{color:var(--bronze-dk)}
   header.top .wrap{gap:12px}
   .tel{margin-left:auto}
 }
-@media (max-width:480px){.tel{display:none}.logo{font-size:16px;letter-spacing:.2em}}
+@media (max-width:480px){
+  .tel{display:none}
+  header.top .wrap{height:auto;min-height:72px;flex-wrap:wrap;gap:4px 12px;padding-block:8px}
+  .logo{font-size:16px;letter-spacing:.2em;min-width:0;white-space:normal;overflow-wrap:anywhere}
+  .menu-btn{margin-left:auto}
+}
 @media (max-width:360px){.logo{font-size:14px;letter-spacing:.16em}.logo small{letter-spacing:.28em}.menu-btn{padding-inline:10px;gap:8px;flex-shrink:0}}
 @media (max-width:260px){
   header.top .wrap{height:auto;min-height:72px;flex-wrap:wrap;gap:4px 12px;padding-block:8px}
@@ -352,7 +357,8 @@ dl.facts-list dd,.specs dd{margin:0;text-align:right;min-width:0;overflow-wrap:a
 .split span{color:var(--stone);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
 
 footer{background:var(--mist);padding-block:48px;font-size:13px;color:var(--stone)}
-footer .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}
+footer .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:24px}
+footer p{overflow-wrap:anywhere}
 footer b{color:var(--ink);font-family:var(--display);font-weight:400;letter-spacing:.2em;text-transform:uppercase}
 .thumbs{display:flex;gap:8px;overflow-x:auto;padding-top:10px}
 .thumbs button{all:unset;cursor:pointer;flex:0 0 88px;aspect-ratio:4/3;outline-offset:2px;border-radius:10px;overflow:hidden}
@@ -478,8 +484,6 @@ fieldset.step>legend{padding:0;margin-bottom:24px}
 .apply-back{min-height:44px;border:0;background:none;padding:0 8px;font-size:13px;text-decoration:underline;cursor:pointer}
 @media (min-width:760px){.apply-actions{position:static;border-top:0;padding-bottom:0}.apply-actions .btn{flex:none;min-width:240px;margin-left:auto}}
 @media (max-width:260px){
-  footer .wrap{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
-  footer p{overflow-wrap:anywhere}
   .apply .opts.seg{grid-auto-flow:row;grid-template-columns:1fr}
   .apply .opts.seg label+label{border-left:0;border-top:1px solid var(--field-line)}
   .apply-actions{position:static;flex-wrap:wrap}.apply-actions .btn{flex-basis:100%;min-width:0;padding-inline:12px}
