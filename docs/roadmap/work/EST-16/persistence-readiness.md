@@ -26,4 +26,4 @@ Con datos ficticios y D1 efímera: dos escritores con la misma versión (un gana
 
 ## Próximo paso
 
-Cerrar primero con BUS-10 el contrato de identidad y relaciones, acreditar el contrato de sesión, membresía y acceso por fuente, y resolver con EST-19 la retención de evidencia y referencias. Después diseñar la migración aditiva contra el estado integrado real y verificar las guardas y rollback en D1 efímera antes de cualquier conexión. No aplicar migraciones remotas ni abrir rutas como consecuencia de este documento. EST-16 permanece parcial; Playwright no aplica.
+Se puede diseñar y probar un prototipo aislado con datos ficticios. Para conectar datos reales hacen falta el contrato de identidad y relaciones de BUS-10, autoridad de sesión, membresía y acceso por fuente, y la retención de evidencia y referencias de EST-19. Antes de aplicar una migración o abrir rutas, contrastar el esquema integrado y verificar guardas y rollback en D1 efímera. No aplicar migraciones remotas ni abrir rutas como consecuencia de este documento. EST-16 permanece parcial; Playwright no aplica.

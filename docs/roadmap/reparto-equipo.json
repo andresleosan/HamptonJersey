@@ -895,14 +895,16 @@
       "fase": "F1-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "El selector Stage de la ficha permite poner la búsqueda en Paused con Apply. Desde el 6-nov-2026, Widen criteria (BUS-17): con menos de 3 casas, la pestaña Matches enseña cuántas casas más saldrían con un 10 % más de presupuesto, una parroquia más o un dormitorio menos, y «Use this» rellena el cambio sin guardar.",
-      "falta": "M10 · Reconciliación 7-nov: Conservar Use this como propuesta que no guarda y requerir confirmación humana tras hablar con el cliente; no aplicar cambios por click en interés o por dictado sin confirmar. El top 20 de BUS-17 permanece interno. El antiguo botón para detener por Paused queda fuera de este alcance hasta decidir pausa/retirada; no añadir pausa por inactividad y mantener la búsqueda hasta resolución expresa EST-09. Depende de: BUS-17, AUT-19, EST-09. Aceptación: Ver una alternativa o pulsar Use this no altera la búsqueda guardada ni termina su actividad.",
+      "hecho": "El selector Stage de la ficha permite poner la búsqueda en Paused con Apply. Desde el 6-nov-2026, Widen criteria (BUS-17): con menos de 3 casas, la pestaña Matches enseña cuántas casas más saldrían con un 10 % más de presupuesto, una parroquia más o un dormitorio menos, y «Use this» rellena el cambio sin guardar. Los cambios manuales materiales requieren confirmación explícita en servidor y panel; el resumen incluye cambios derivados y Use this no guarda. Se preservan datos legados y el round-trip de transfer.",
+      "falta": "Integrar las propuestas de AUT-19 con el mismo contrato y probar el recorrido completo; la pausa o retirada sigue fuera de alcance hasta decisión expresa. No se aplican cambios por interés o dictado sin confirmación.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ApplicantDetail.jsx:288-293",
         "server/applicants.js:35-39",
         "server/match-store.js:110-118",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "tests/sap10-confirmation.e2e.cjs",
+        "tests/server/applicants.test.mjs"
       ],
       "modulo": "M10",
       "deps": [
@@ -944,7 +946,7 @@
         "applicants-ui",
         "search-lifecycle"
       ],
-      "nextStep": "Integrar propuestas de criterios con confirmación humana; mantener fuera la pausa hasta decidirla."
+      "nextStep": "Integrar propuestas AUT-19 con la confirmación humana y mantener la pausa fuera del alcance vigente."
     },
     {
       "id": "SPR-01",
@@ -5432,7 +5434,7 @@
       "fase": "F1-B",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Cálculo puro y desconectado que separa observaciones de publicación y confirmaciones humanas por ámbito; rechaza entradas incompletas y conserva contradicciones para revisión. Las pruebas son sintéticas; no hay rutas, datos reales ni almacenamiento nuevos.",
+      "hecho": "Cálculo puro y desconectado que separa observaciones de publicación y confirmaciones humanas por ámbito; rechaza entradas incompletas y conserva contradicciones para revisión. Las pruebas son sintéticas; no hay rutas, datos reales ni almacenamiento nuevos. Se precisaron las guardas y dependencias para persistencia sin habilitar datos ni rutas reales.",
       "falta": "Construir persistencia versionada y autorización con evidencia, resolver ámbitos generales y específicos, condiciones por hogar, eventos y consumidores de BUS-06/BUS-09/BUS-10. Verificar el recorrido real sin confundir fallo o ausencia de fuente con indisponibilidad ni introducir caducidad no acordada.",
       "bloqueo": "",
       "evidencia": [
@@ -5442,7 +5444,8 @@
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
         "server/property-facts.js",
         "tests/server/property-facts.test.mjs",
-        "docs/roadmap/work/EST-16/foundation-evidence.md"
+        "docs/roadmap/work/EST-16/foundation-evidence.md",
+        "docs/roadmap/work/EST-16/persistence-readiness.md"
       ],
       "modulo": "M02",
       "deps": [

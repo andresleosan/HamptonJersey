@@ -6,7 +6,7 @@
   "fase": "F1-B",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Cálculo puro y desconectado que separa observaciones de publicación y confirmaciones humanas por ámbito; rechaza entradas incompletas y conserva contradicciones para revisión. Las pruebas son sintéticas; no hay rutas, datos reales ni almacenamiento nuevos.",
+  "hecho": "Cálculo puro y desconectado que separa observaciones de publicación y confirmaciones humanas por ámbito; rechaza entradas incompletas y conserva contradicciones para revisión. Las pruebas son sintéticas; no hay rutas, datos reales ni almacenamiento nuevos. Se precisaron las guardas y dependencias para persistencia sin habilitar datos ni rutas reales.",
   "falta": "Construir persistencia versionada y autorización con evidencia, resolver ámbitos generales y específicos, condiciones por hogar, eventos y consumidores de BUS-06/BUS-09/BUS-10. Verificar el recorrido real sin confundir fallo o ausencia de fuente con indisponibilidad ni introducir caducidad no acordada.",
   "bloqueo": "",
   "evidencia": [
@@ -16,7 +16,8 @@
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
     "server/property-facts.js",
     "tests/server/property-facts.test.mjs",
-    "docs/roadmap/work/EST-16/foundation-evidence.md"
+    "docs/roadmap/work/EST-16/foundation-evidence.md",
+    "docs/roadmap/work/EST-16/persistence-readiness.md"
   ],
   "modulo": "M02",
   "deps": [
