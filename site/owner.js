@@ -18,6 +18,20 @@ export async function renderOwner(root,{tsKey,tsReady}) {
  <p>See our <a href="#/privacy" target="_blank" rel="noopener noreferrer">privacy notice (opens in a new tab)</a>.</p>
  <div class="ts"></div><p role="alert"></p><button class="btn" type="submit">Send request</button></form>`;
  const form=root.querySelector('form'),status=form.querySelector('[role=alert]'),button=form.querySelector('button');
+ const fieldNames=['name','phone','email','address','operation','valuation_requested'];
+ const clearFieldError=name=>{const field=form.elements.namedItem(name),message=form.querySelector(`#owner-error-${name}`);if(!field)return;field.removeAttribute('aria-invalid');field.removeAttribute('aria-describedby');message?.remove();};
+ const clearFieldErrors=()=>fieldNames.forEach(clearFieldError);
+ const showFieldErrors=errors=>{
+  clearFieldErrors();let first=null;
+  if(!errors||typeof errors!=='object'||Array.isArray(errors))return false;
+  for(const name of fieldNames){const field=form.elements.namedItem(name),text=errors[name];if(!field||typeof text!=='string'||!text.trim())continue;
+   const message=document.createElement('span');message.id=`owner-error-${name}`;message.className='err';message.textContent=text;
+   field.setAttribute('aria-invalid','true');field.setAttribute('aria-describedby',message.id);field.closest('label').append(message);first??=field;
+  }
+  first?.focus();return !!first;
+ };
+ form.addEventListener('input',e=>{if(fieldNames.includes(e.target.name))clearFieldError(e.target.name);});
+ form.addEventListener('change',e=>{if(fieldNames.includes(e.target.name))clearFieldError(e.target.name);});
  let requestId=crypto.randomUUID(),widget=null,pending=false,frozen=null;
  if(tsKey&&tsReady)tsReady.then(()=>{if(alive()&&form.querySelector('.ts'))widget=turnstile.render(form.querySelector('.ts'),{sitekey:tsKey});});
  form.addEventListener('submit',async e=>{
@@ -32,8 +46,9 @@ export async function renderOwner(root,{tsKey,tsReady}) {
    const r=await fetch('/api/owner-requests',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
    const out=await r.json().catch(()=>({}));if(!alive())return;
    if(r.ok){root.querySelector('.wrap').innerHTML='<h1>Request received</h1><p role="status">Thank you. Hampton Estates will contact you.</p>';return;}
+   const highlighted=r.status===400&&showFieldErrors(out.fields);
    if(r.status>=500)frozen=withoutToken; else if(r.status===409)frozen=withoutToken;
-   status.textContent=out.error||'Could not send your request. Please try again.';
+   status.textContent=r.status===400&&!highlighted?'Please check your details and try again.':out.error||'Could not send your request. Please try again.';
   }catch{if(alive()){frozen=withoutToken;status.textContent='We could not confirm whether your request was sent. Please retry with the same details.';}}
   finally{pending=false;button.disabled=false;if(widget!==null)turnstile.reset(widget);}
  });
