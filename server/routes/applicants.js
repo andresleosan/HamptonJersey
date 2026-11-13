@@ -8,6 +8,7 @@ import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts } from "../match-pages.js";
 import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER } from "../retention.js";
 import { jerseyToday } from "../viewings.js";
+import { CONTACT_NEXT_VERSION } from "../contact-version.js";
 
 const STAGES = OPTIONS.stages.map(([v]) => v);
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" };
@@ -398,8 +399,9 @@ async function updateContact({ request, env, admin, params: [id] }) {
   const ref = { actor: admin, entity_type: "contact", entity_id: String(cur.id) };
   try {
     await saveVersioned(env, [
-      env.DB.prepare(`UPDATE contacts SET ${sets.map(k => `${k} = ?`).join(", ")}, last_activity_at = ?, updated_by = ?, ${LOCK} WHERE id = ?`)
-        .bind(...sets.map(k => values[k]), ts, admin, body.updated_at, ts, cur.id),
+      env.DB.prepare(`UPDATE contacts SET ${sets.map(k => `${k} = ?`).join(", ")}, last_activity_at = ?, updated_by = ?,
+        updated_at = CASE WHEN updated_at = ? THEN ${CONTACT_NEXT_VERSION} END WHERE id = ?`)
+        .bind(...sets.map(k => values[k]), ts, admin, body.updated_at, ts, ts, cur.id),
       ...(keys.length ? logEvent(env, { ...ref, type: "contact.updated", data }) : []),
       ...(consent ? logEvent(env, { ...ref, type: "contact.consent_changed",
         data: { before: { marketing_opt_in_at: cur.marketing_opt_in_at }, after: { marketing_opt_in_at: marketing } } }) : []),

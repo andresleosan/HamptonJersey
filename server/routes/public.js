@@ -1,4 +1,5 @@
 import { validSearchAction } from "../measurement-dimensions.js";
+import { CONTACT_NEXT_VERSION } from "../contact-version.js";
 import { json, fail, HttpError, readJson, now } from "../http.js";
 import { toPublic } from "../listing.js";
 import { buildPublicAddressReview, addressAppearsInPublicContent, addressDetailsFromListing } from "../public-address.js";
@@ -221,7 +222,16 @@ async function createApplicant({ request, env, waitUntil }) {
       if (!matches.length) throw e;
     }
   }
-  await env.DB.batch(applicants.flatMap((applicant, i) => duplicate(env, matches, contact, applicant, ts, i === 0)));
+  try {
+    await env.DB.batch(applicants.flatMap((applicant, i) => duplicate(env, matches, contact, applicant, ts, i === 0)));
+  } catch (error) {
+    // An identity can change after the duplicate lookup. No stale contact is
+    // changed or sent another person's data; a generic retry lets the next
+    // request perform the lookup again without revealing the match.
+    const current = await found();
+    if (!current.some(row => row.id === matches[0].id)) fail(503, "Please try again.");
+    throw error;
+  }
   return json({ ok: true }, 201);
 }
 
@@ -252,15 +262,29 @@ function duplicate(env, [c, other], contact, applicant, ts, touchContact = true)
     .filter(([k, v]) => v != null && !(k === "search_category" && v === "residential"))
     .map(([k, v]) => [k, JSON_FIELDS.includes(k) ? JSON.parse(v) : v]));
   const ref = { actor: "public", entity_type: "contact", entity_id: String(c.id) };
-  // §3.3 consent exception: an objection to marketing applies at once (a forged one only stops marketing). Nothing
-  // else unverified reaches the contact: a new opt-in or a privacy acknowledgement stays in the event, for the team.
-  const withdrawn = !marketing && c.marketing_opt_in_at != null;
+  // Abort the entire batch if the old match now belongs to someone else. A
+  // deleted contact still follows the existing event-redaction path below.
+  const identityGuard = touchContact ? [env.DB.prepare(`INSERT INTO contacts(name) SELECT NULL WHERE EXISTS (
+    SELECT 1 FROM contacts WHERE id = ? AND NOT (email IS ? OR phone IS ?))`)
+    .bind(c.id, contact.email, contact.phone)] : [];
+  // §3.3: an objection applies at once; the choice to withdraw and its event
+  // use the current row inside the batch, not the earlier duplicate lookup.
+  const objection = touchContact && !marketing ? [
+    env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
+      SELECT ?, 'public', 'contact', CAST(id AS TEXT), 'contact.consent_changed',
+        json_object('before',json_object('marketing_opt_in_at',marketing_opt_in_at),
+                    'after',json_object('marketing_opt_in_at',NULL))
+      FROM contacts WHERE id = ? AND marketing_opt_in_at IS NOT NULL`).bind(ts, c.id),
+    env.DB.prepare(`UPDATE contacts SET updated_at = CASE WHEN marketing_opt_in_at IS NOT NULL
+        THEN ${CONTACT_NEXT_VERSION} ELSE updated_at END,
+      updated_by = CASE WHEN marketing_opt_in_at IS NOT NULL THEN 'public' ELSE updated_by END,
+      marketing_opt_in_at = NULL, last_activity_at = ?, last_contact_at = ? WHERE id = ?`)
+      .bind(ts, ts, ts, ts, c.id),
+  ] : touchContact ? [env.DB.prepare("UPDATE contacts SET last_activity_at = ?, last_contact_at = ? WHERE id = ?")
+    .bind(ts, ts, c.id)] : [];
   return [
-    // A withdrawal is a change to the contact (a stale panel save then gets its 409); the retention clock always restarts.
-    ...(touchContact ? [env.DB.prepare(`UPDATE contacts SET ${withdrawn ? "marketing_opt_in_at = NULL, updated_at = ?, updated_by = 'public', " : ""}
-      last_activity_at = ?, last_contact_at = ? WHERE id = ?`).bind(...(withdrawn ? [ts] : []), ts, ts, c.id)] : []),
-    ...(touchContact && withdrawn ? logEvent(env, { ...ref, type: "contact.consent_changed",
-      data: { before: { marketing_opt_in_at: c.marketing_opt_in_at }, after: { marketing_opt_in_at: null } } }) : []),
+    ...identityGuard,
+    ...objection,
     ...logEvent(env, { ...ref, type: "applicant.duplicate_submitted", data: sent },
       { category: "new_applicant", title: `${c.name} registered again${other ? " · email and phone match two contacts" : ""}`,
         action_required: true }),

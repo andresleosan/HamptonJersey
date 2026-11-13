@@ -11,6 +11,7 @@ import { SALE_STATUS } from "./SaleDetail.jsx";
 import { milestoneLabel } from "../../server/sales.js";
 import SearchLifecycle from "./SearchLifecycle.jsx";
 import { areaCopy } from "./area-copy.js";
+import { marketingHistory } from "./marketing-history.js";
 
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
 // Every form field that belongs to the search (the rest of the form is the contact).
@@ -73,6 +74,13 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const tabs = useRef({}), formRef = useRef(null), lostRef = useRef(null), focusError = useRef(false);
   const stageRef = useRef(null), ownerRef = useRef(null);
   const [reviewing,setReviewing]=useState(false);
+  const [marketing,setMarketing]=useState({phase:"idle"}), [marketingHistoryReady,setMarketingHistoryReady]=useState(true);
+  const marketingGeneration=useRef(0), marketingInFlight=useRef(false), marketingHeading=useRef(null), marketingConfirm=useRef(null);
+  useEffect(() => {
+    const expired = () => { marketingGeneration.current++; detailGeneration.current++; marketingInFlight.current=false; setMarketing({phase:"idle"}); setMarketingHistoryReady(false); setBusy(false); };
+    addEventListener("hs:signed-out",expired);
+    return () => { marketingGeneration.current++; removeEventListener("hs:signed-out",expired); };
+  }, []);
   // The search's offers and sales ({offers, sales}), for the Offers tab and the listing titles in the timeline. The tab
   // shows for a To Buy search, or one that has offers or sales from when it was one.
   const [offers, setOffers] = useState(null), [offersErr, setOffersErr] = useState(null);
@@ -86,7 +94,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const fetchDetail=async()=>{
     const generation=++detailGeneration.current,d=await api(`/admin/applicants/${id}`);
     if(generation!==detailGeneration.current)return null;
-    setData(d);return d;
+    setData(d);setMarketingHistoryReady(true);return d;
   };
   const reloadSearch = async () => {
     const baseline = toForm(data.applicant, data.contact);
@@ -226,6 +234,76 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     } catch (e) { setNote({ text: e.message, stale: stale(e) }); }
     finally { setBusy(false); }
   };
+  // A contact preference is shared by all searches. Only the saved contact
+  // version is sent; pending search edits stay in the form.
+  const recordObjection = async () => {
+    if (busy || marketingInFlight.current || contactChanged.length || archived || !c.marketing_opt_in_at) return;
+    const generation=++marketingGeneration.current, contactId=c.id;
+    const current=()=>generation===marketingGeneration.current;
+    marketingInFlight.current=true; detailGeneration.current++; setBusy(true); setMarketing({phase:"pending"});
+    try {
+      const {contact}=await api(`/admin/contacts/${contactId}`,{method:"PUT",body:{updated_at:c.updated_at,marketing:false}});
+      if(!current())return;
+      if(contact.id!==contactId || contact.marketing_opt_in_at!==null) {
+        setMarketingHistoryReady(false);
+        setMarketing({phase:"stale",error:"Contact changed. Reload the contact before continuing."}); return;
+      }
+      setData(d=>d && d.contact.id===contactId ? {...d,contact} : d);
+      setMarketingHistoryReady(false);
+      setMarketing({phase:"idle",status:"Marketing objection recorded."});
+      requestAnimationFrame(()=>{if(current())marketingHeading.current?.focus();});
+      onChange?.();
+      // The PUT already committed. A failed history read must never invite a
+      // second write or claim that the recorded objection failed.
+      const detail=++detailGeneration.current;
+      try {
+        const d=await api(`/admin/applicants/${id}`);
+        if(current() && detail===detailGeneration.current) {
+          setData(x=>x && x.contact.id===contactId ? {...x,events:d.events,duplicates:d.duplicates,retention:d.retention} : x);
+          setMarketingHistoryReady(true);
+        }
+      } catch (error) {
+        if(current())setMarketing({phase:"idle",status:"Marketing objection recorded. History could not be refreshed."});
+      }
+    } catch (error) {
+      if(current()) {
+        if(error.status===409)setMarketingHistoryReady(false);
+        setMarketing(error.status===409 ? {phase:"stale",error:"Contact changed. Reload the contact before continuing."}
+          : {phase:"confirm",error:error.message});
+      }
+    } finally {
+      if(current()){marketingInFlight.current=false;setBusy(false);}
+    }
+  };
+  const reloadMarketingContact = async () => {
+    if(busy || marketingInFlight.current)return;
+    const generation=++marketingGeneration.current, contactId=c.id, previous=toForm({},c);
+    const current=()=>generation===marketingGeneration.current;
+    marketingInFlight.current=true;detailGeneration.current++;setBusy(true);
+    try {
+      const {contact}=await api(`/admin/contacts/${contactId}`);
+      if(!current() || contact.id!==contactId)return;
+      const fresh=toForm({},contact);
+      setData(d=>d && d.contact.id===contactId ? {...d,contact} : d);
+      setForm(f=>({...f,...Object.fromEntries(CONTACT.filter(k=>JSON.stringify(f[k])===JSON.stringify(previous[k])).map(k=>[k,fresh[k]]))}));
+      setMarketing({phase:"idle",status:"Contact reloaded. Review the preference before continuing."});
+      requestAnimationFrame(()=>{if(current())marketingHeading.current?.focus();});
+    } catch(error) { if(current())setMarketing({phase:"stale",error:error.message}); }
+    finally {if(current()){marketingInFlight.current=false;setBusy(false);}}
+  };
+  const refreshMarketingHistory = async () => {
+    if(busy || marketingInFlight.current)return;
+    const generation=++marketingGeneration.current;
+    try { await reloadSearch(); }
+    catch(error) { if(generation===marketingGeneration.current)setMarketing({phase:"idle",error:error.message}); }
+  };
+  const openObjection = () => {
+    setMarketing({phase:"confirm"}); requestAnimationFrame(()=>marketingConfirm.current?.focus());
+  };
+  const cancelObjection = () => {
+    setMarketing({phase:"idle"}); requestAnimationFrame(()=>marketingHeading.current?.focus());
+  };
+
   // The strip goes away: the focus goes to the next strip's heading (the one before when it was the last), or the
   // record's current tab when none is left. Those elements stay mounted, so they can take the focus at once.
   const dismiss = async dup => {
@@ -279,6 +357,8 @@ export default function ApplicantDetail({ id, tab, onChange }) {
 
   const tel = /^\+\d{8,15}$/.test(c.phone ?? "") ? c.phone : null;
   const owners = users.some(u => u.email === a.assigned_to) || !a.assigned_to ? users : [...users, { email: a.assigned_to }];
+  const history=marketingHistory(data.events,c.id), lastWithdrawalId=history.lastWithdrawalId;
+  const marketingHistoryUsable=marketingHistoryReady && history.known;
 
   // A div, not a section: the entrance animation of `.page>section` would make it the box the fixed action bar sits in.
   return <div className="record">
@@ -326,13 +406,32 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     <Message m={note} onReload={load} />
 
     {data.duplicates.map(d => <Duplicate key={d.id} dup={d} stored={{ ...a, ...c }} contactId={c.id} nameOf={nameOf}
-      archived={archived} onCopy={copy} onConfirmMarketing={confirmMarketing} onDismiss={dismiss} />)}
+      archived={archived} lastWithdrawalId={lastWithdrawalId} marketingHistoryReady={marketingHistoryUsable}
+      onCopy={copy} onConfirmMarketing={confirmMarketing} onDismiss={dismiss} />)}
 
     <div className="seg" role="tablist" aria-label="Applicant record" onKeyDown={onTabKey}>{tabList.map(([k, t]) =>
       <button key={k} ref={el => { tabs.current[k] = el; }} type="button" role="tab" id={`tab-${k}`} aria-selected={cur === k}
         aria-controls={`panel-${k}`} tabIndex={cur === k ? 0 : -1} onClick={() => go(k)}>{t}</button>)}</div>
 
     <div role="tabpanel" id="panel-requirements" aria-labelledby="tab-requirements" hidden={cur !== "requirements"}>
+      <section className="card" aria-labelledby="marketing-heading">
+        <h2 id="marketing-heading" ref={marketingHeading} tabIndex={-1}>Marketing preference</h2>
+        <p>{c.marketing_opt_in_at ? "Marketing consent recorded" : "Marketing consent not recorded"}</p>
+        <p className="muted">This preference applies to all searches for this contact.</p>
+        {contactChanged.length>0 && <p>Save or discard contact changes first.</p>}
+        {archived && <p>Restore this search to change its contact preference.</p>}
+        {marketing.error && <p role="alert" className="err">{marketing.error}</p>}
+        {marketing.status && <p role="status" className="ok">{marketing.status}</p>}
+        {!marketingHistoryUsable && <p>Marketing history needs a refresh before an earlier opt-in can be reviewed.{' '}
+          <button type="button" className="btn ghost sm" disabled={busy} onClick={refreshMarketingHistory}>Refresh marketing history</button></p>}
+        {marketing.phase==="stale" ? <button type="button" className="btn ghost sm" disabled={busy} onClick={reloadMarketingContact}>Reload contact</button>
+          : c.marketing_opt_in_at && (marketing.phase==="confirm" || marketing.phase==="pending" ? <div>
+            <p>Record that this contact objects to marketing?</p>
+            <div className="inline"><button ref={marketingConfirm} type="button" className="btn sm" disabled={busy || !!contactChanged.length || archived} onClick={recordObjection}>Confirm objection</button>
+              <button type="button" className="btn ghost sm" disabled={busy} onClick={cancelObjection}>Cancel</button></div>
+          </div> : <button type="button" className="btn ghost sm" disabled={busy || !!contactChanged.length || archived}
+            onClick={openObjection}>Record marketing objection</button>)}
+      </section>
       <form ref={formRef} noValidate onSubmit={e => { e.preventDefault(); if (dirty && !busy) save(); }}>
         {/* Archived: read only until restored. */}
         <fieldset className="sections plain" disabled={archived}>
@@ -374,7 +473,7 @@ const Message = ({ m, onReload }) => m && <p role={m.ok ? "status" : "alert"} cl
   {m.stale && <> <button type="button" className="btn ghost sm" onClick={onReload}>Reload</button></>}</p>;
 
 // §3.3: a pending "registered again" from the website. Shows what they sent that differs from what is saved.
-export function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, onConfirmMarketing, onDismiss }) {
+export function Duplicate({ dup, stored, contactId, nameOf, archived, lastWithdrawalId=0, marketingHistoryReady=true, onCopy, onConfirmMarketing, onDismiss }) {
   const original = dup.data ?? {};
   const sent = { ...original, operation: original.search_operation ?? original.operation };
   stored = { ...stored, operation: stored.search_operation ?? stored.operation };
@@ -386,7 +485,9 @@ export function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, on
   const keys = [...CONTACT, ...SEARCH].filter(differs);
   const copyable = (sent.operation == null || (sent.search_operation ?? sent.operation) === (stored.search_operation ?? stored.operation))
     && (sent.search_category ?? "residential") === stored.search_category && COPY.some(differs);
-  const optIn = sent.marketing === true && stored.marketing_opt_in_at == null;
+  const pendingOptIn = sent.marketing === true && stored.marketing_opt_in_at == null;
+  const staleOptIn = pendingOptIn && (!Number.isSafeInteger(dup.event_id) || dup.event_id <= lastWithdrawalId);
+  const optIn = pendingOptIn && marketingHistoryReady && !staleOptIn;
   return <section className="warn dup" aria-labelledby={`dup-${dup.id}`}>
     <h2 id={`dup-${dup.id}`} tabIndex={-1}>{dup.title}</h2>
     <p className="muted">{fmtAgo(dup.created_at)} · {keys.length ? "What they sent that differs from what is saved:" : "What they sent matches what is saved."}</p>
@@ -394,6 +495,8 @@ export function Duplicate({ dup, stored, contactId, nameOf, archived, onCopy, on
     {keys.length > 0 && <dl className="changes">{keys.map(k => <div key={k}><dt>{label(k)}</dt>
       <dd><span className="muted">Saved:</span> {show(k, stored[k], nameOf)} <span className="muted">· Sent:</span> {show(k, sent[k], nameOf)}</dd></div>)}</dl>}
     {optIn && <p>They agreed to marketing this time. The website doesn't check who sent this. Confirm with them before you record it.</p>}
+    {staleOptIn && marketingHistoryReady && <p>This marketing response was received before the last withdrawal.</p>}
+    {pendingOptIn && !marketingHistoryReady && <p>Refresh marketing history before reviewing this response.</p>}
     <div className="inline">
       {copyable && <button type="button" className="btn sm" disabled={archived} onClick={() => onCopy(sent)}>Copy fields</button>}
       {optIn && <button type="button" className="btn ghost sm" disabled={archived} onClick={() => onConfirmMarketing(dup)}>Confirm marketing opt-in</button>}
