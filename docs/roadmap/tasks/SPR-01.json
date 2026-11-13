@@ -6,8 +6,8 @@
   "fase": "—",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas.",
-  "falta": "Publicar y verificar el despliegue. Queda pendiente una comprobación específica del foco del campo inválido y de la recuperación del editor con zoom al 200 %. La incorporación de fichas externas y fuentes corresponde a BUS-10/EST-16/SPR-07.",
+  "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas. Cloudflare Pages y Workers Builds figuran correctos para el commit 2005312; no se repitió un smoke funcional en producción.",
+  "falta": "Comprobar específicamente el foco del campo inválido y la recuperación del editor con zoom al 200 %. La incorporación de fichas externas y fuentes corresponde a BUS-10/EST-16/SPR-07.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/Listings.jsx:81-108",
@@ -37,6 +37,6 @@
     "listings-schema",
     "listing-editor"
   ],
-  "nextStep": "Publicar y verificar la tarjeta propia, completar la comprobación de foco/zoom y continuar la integración externa en sus tareas.",
+  "nextStep": "Completar la comprobación de foco/zoom y continuar la integración externa en sus tareas.",
   "actualizado": "2026-11-13"
 }

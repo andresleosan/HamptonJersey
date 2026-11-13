@@ -30,3 +30,5 @@ Sobre la base 1813b01 se conservan los controles de retirada PUB-09 junto a bañ
 Pendiente menor de cobertura: la prueba del editor verifica el error y ARIA, pero no acredita el foco efectivo del campo inválido ni la recuperación 400/409 del editor con zoom al 200 %. No se presenta como validado. La integración externa de inventario y fuentes pertenece a BUS-10/EST-16/SPR-07.
 
 Sobre el main `0c11720`, la suite final pasó 1.296 Node y 25 Python, build, release y catálogo. WebKit aislado volvió a aprobar el recorrido integrado con PUB-09 y zoom nativo.
+
+El commit `2005312e2f3551043ccc62928fc5c334736f5a76` está en main; GitHub registra Cloudflare Pages y Workers Builds `hampton-jobs` completed/success. No se ha repetido un smoke funcional en producción. Los límites de foco/zoom y de integración externa permanecen.

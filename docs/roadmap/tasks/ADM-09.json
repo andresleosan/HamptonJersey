@@ -6,8 +6,8 @@
   "fase": "F5-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia.",
-  "falta": "Se puede hacer ya: dar una deuda por perdida (Written off, §4.6; Correct no admite 0) y hacer configurable la secuencia, hoy fija en ARREARS_STEPS. Esperan al correo y a un abogado: enviar los recordatorios y el aviso al propietario, y la carta formal con plantilla validada; hoy se hacen fuera y se marcan a mano.",
+  "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia. Se construyó una autoridad financiera interna con ajustes, saldo FIFO y control por caso; permanece desconectada de las rutas actuales y sin migración remota.",
+  "falta": "Unificar primero detalle, lista, contador y conciliación existentes con la autoridad financiera y sus permisos por caso; después completar escritura de deuda perdida y secuencia configurable. Los avisos reales y la carta siguen sujetos a correo y validación correspondiente. No activar ajustes mientras existan cálculos incompatibles.",
   "bloqueo": "Correo (AUT-17) · JFSC/abogado",
   "evidencia": [
     "admin/src/Rentals.jsx:86-95",
@@ -16,7 +16,11 @@
     "server/rentals.js:11-13",
     "server/routes/rent.js:48-67",
     "server/routes/rent.js:444-476",
-    "server/routes/rent.js:272-276"
+    "server/routes/rent.js:272-276",
+    "server/arrears-policy.js",
+    "server/case-capabilities.js",
+    "tests/server/adm-09-guarded-read.test.mjs",
+    "docs/superpowers/plans/2026-11-13-adm-09-not-05-integration-ledger.md"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -45,5 +49,6 @@
     "email-pipeline",
     "legal-parameters"
   ],
-  "nextStep": "Completar deuda dada por perdida y secuencia configurable; esperar validación de plantilla y correo para los envíos."
+  "nextStep": "Unificar lectores y permisos, revisar concurrencia y retención y después construir los flujos operativos de ajustes y avisos.",
+  "actualizado": "2026-11-13"
 }

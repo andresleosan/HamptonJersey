@@ -9095,8 +9095,8 @@
       "fase": "F5-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since <fecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra.",
-      "falta": "Falta una cola coherente de cobros de alquiler pendientes y un margen de gracia configurable, usando la autoridad financiera de alquileres. Las comisiones entre agencias quedan fuera de la aplicación por decisión del plan maestro.",
+      "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since <fecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra. Hay una proyección interna de pagos pendientes que reutiliza saldo de alquiler, con gracia configurable; se ha probado solo con datos ficticios y no está conectada al Inbox.",
+      "falta": "Integrar de forma coherente la autoridad financiera y las autorizaciones por caso en las rutas existentes; completar la categoría, conciliación, interfaz y configuración de gracia. Las comisiones entre agencias siguen fuera del alcance.",
       "bloqueo": "",
       "evidencia": [
         "server/routes/notifications.js:12",
@@ -9108,7 +9108,10 @@
         "admin/src/App.jsx:132-133",
         "migrations/0012_sales.sql:32-34",
         "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:34",
-        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
+        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5",
+        "server/missing-payments.js",
+        "tests/server/not-05-projection.test.mjs",
+        "docs/superpowers/plans/2026-11-13-adm-09-not-05-integration-ledger.md"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -9122,7 +9125,7 @@
         "rentals-contract",
         "sales-contract"
       ],
-      "nextStep": "Completar el saldo y la cola de alquileres sin incorporar comisiones entre agencias.",
+      "nextStep": "Unificar las lecturas autorizadas de alquileres antes de conectar la cola Missing payments al Inbox.",
       "actualizado": "2026-11-13"
     },
     {
@@ -9803,8 +9806,8 @@
       "fase": "—",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas.",
-      "falta": "Publicar y verificar el despliegue. Queda pendiente una comprobación específica del foco del campo inválido y de la recuperación del editor con zoom al 200 %. La incorporación de fichas externas y fuentes corresponde a BUS-10/EST-16/SPR-07.",
+      "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas. Cloudflare Pages y Workers Builds figuran correctos para el commit 2005312; no se repitió un smoke funcional en producción.",
+      "falta": "Comprobar específicamente el foco del campo inválido y la recuperación del editor con zoom al 200 %. La incorporación de fichas externas y fuentes corresponde a BUS-10/EST-16/SPR-07.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/Listings.jsx:81-108",
@@ -9834,7 +9837,7 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Publicar y verificar la tarjeta propia, completar la comprobación de foco/zoom y continuar la integración externa en sus tareas.",
+      "nextStep": "Completar la comprobación de foco/zoom y continuar la integración externa en sus tareas.",
       "actualizado": "2026-11-13"
     },
     {
@@ -15329,8 +15332,8 @@
       "fase": "F5-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia.",
-      "falta": "Se puede hacer ya: dar una deuda por perdida (Written off, §4.6; Correct no admite 0) y hacer configurable la secuencia, hoy fija en ARREARS_STEPS. Esperan al correo y a un abogado: enviar los recordatorios y el aviso al propietario, y la carta formal con plantilla validada; hoy se hacen fuera y se marcan a mano.",
+      "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia. Se construyó una autoridad financiera interna con ajustes, saldo FIFO y control por caso; permanece desconectada de las rutas actuales y sin migración remota.",
+      "falta": "Unificar primero detalle, lista, contador y conciliación existentes con la autoridad financiera y sus permisos por caso; después completar escritura de deuda perdida y secuencia configurable. Los avisos reales y la carta siguen sujetos a correo y validación correspondiente. No activar ajustes mientras existan cálculos incompatibles.",
       "bloqueo": "Correo (AUT-17) · JFSC/abogado",
       "evidencia": [
         "admin/src/Rentals.jsx:86-95",
@@ -15339,7 +15342,11 @@
         "server/rentals.js:11-13",
         "server/routes/rent.js:48-67",
         "server/routes/rent.js:444-476",
-        "server/routes/rent.js:272-276"
+        "server/routes/rent.js:272-276",
+        "server/arrears-policy.js",
+        "server/case-capabilities.js",
+        "tests/server/adm-09-guarded-read.test.mjs",
+        "docs/superpowers/plans/2026-11-13-adm-09-not-05-integration-ledger.md"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -15368,7 +15375,8 @@
         "email-pipeline",
         "legal-parameters"
       ],
-      "nextStep": "Completar deuda dada por perdida y secuencia configurable; esperar validación de plantilla y correo para los envíos."
+      "nextStep": "Unificar lectores y permisos, revisar concurrencia y retención y después construir los flujos operativos de ajustes y avisos.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "ADM-10",
