@@ -1,7 +1,7 @@
 // Recomputes and stores the matches of an applicant or of a listing (spec §4 «Recálculo», B2, B11, B14).
 // evaluate() decides every rule; this file only gates the candidates, stores all passing candidates,
 // with the applicant.matched event and the applicant's matched Inbox notice, in one batch.
-import { now } from "./http.js";
+import { now, fail } from "./http.js";
 import { activeSql, isActive } from "./applicants.js";
 import { evaluate } from "./matching.js";
 import { areaPreferenceRank } from "./requirements.js";
@@ -10,6 +10,29 @@ import { areaPreferenceRank } from "./requirements.js";
 export const CANDIDATES_SQL = `archived_at IS NULL AND matchable = 1 AND use = 'residential' AND availability IN ('for_sale','to_let','lease')
   AND operation IN ('sale','rent') AND (country IS NULL OR country = 'Jersey') AND (currency IS NULL OR currency = 'GBP')`;
 export const LISTING_OPERATION = { rent: "rent", buy: "sale" };
+
+// Keep each JSON binding below D1's 2,000,000-byte string limit, including the larger event payload form.
+export const MATCH_SNAPSHOT_MAX_BYTES = 1900000;
+export const MATCH_SNAPSHOT_LIMIT_MESSAGE = "The comparison exceeds the safe processing limit. Contact support.";
+export const MATCH_SNAPSHOT_INVALID_MESSAGE = "The comparison inputs could not be verified. Contact support.";
+const snapshotEncoder = new TextEncoder();
+export function encodeMatchSnapshot(listings, maxBytes=MATCH_SNAPSHOT_MAX_BYTES) {
+  if(!Number.isSafeInteger(maxBytes)||maxBytes<2||maxBytes>MATCH_SNAPSHOT_MAX_BYTES) throw new RangeError('Invalid snapshot limit');
+  const parts=[]; let bytes=2,eventBytes=2;
+  for(const listing of listings) {
+    if(typeof listing.id!=='string'||!listing.id.length||!Number.isSafeInteger(listing.match_inputs_revision)||listing.match_inputs_revision<0)
+      return {issue:'snapshot_invalid'};
+    const part=JSON.stringify({id:listing.id,version:listing.match_inputs_revision});
+    const size=snapshotEncoder.encode(part).byteLength+(parts.length?1:0);
+    bytes+=size; eventBytes+=size+8; // "listing_id" is eight ASCII bytes longer than "id".
+    if(bytes>maxBytes||eventBytes>maxBytes)return {issue:'snapshot_too_large'};
+    parts.push(part);
+  }
+  return {json:`[${parts.join(',')}]`};
+}
+
+export const matchSnapshotMessage = reason => reason==='snapshot_too_large'
+  ? MATCH_SNAPSHOT_LIMIT_MESSAGE : MATCH_SNAPSHOT_INVALID_MESSAGE;
 
 // Only the columns evaluate() reads (never the listing's text: B10), plus whether the listing is a candidate.
 export const LISTING = `COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=listings.id),0) AS match_inputs_revision, id, operation, availability, archived_at, bedrooms, bathrooms, parish, published, sale_price, rent, rent_period,
@@ -44,7 +67,8 @@ function writesFor(env, a, results, stored, actor, ts) {
     AND a.match_inputs_revision = ? AND ${activeSql("a")})`;
   const guarded = (sql, ...args) => env.DB.prepare(sql).bind(...args,a.id,a.updated_at,a.match_inputs_revision);
   const validListing = `EXISTS (SELECT 1 FROM listings WHERE id = ? AND COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=listings.id),0) = ?)`;
-  const stmts=[], inserts=[];
+  const stmts=[];
+  let newEventIndex=null;
   const fresh=results.filter(r=>r.passing&&!stored.has(r.listing_id));
   if(fresh.length) {
     // Count absent pairs in SQL, before inserting them. A second serialized transaction sees zero, even when
@@ -53,6 +77,7 @@ function writesFor(env, a, results, stored, actor, ts) {
       AND COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=l.id),0)=json_extract(r.value,'$.version') WHERE NOT EXISTS
       (SELECT 1 FROM matches WHERE applicant_id=? AND listing_id=l.id))`;
     const payload=JSON.stringify(fresh.map(r=>({listing_id:r.listing_id,version:r.version})));
+    newEventIndex=stmts.length;
     stmts.push(guarded(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
       SELECT ?,?,'applicant',?,'applicant.matched',json_object('new',${missing}) WHERE ${missing}>0 AND ${search}`,
       ts,actor,String(a.id),payload,a.id,payload,a.id));
@@ -72,19 +97,18 @@ function writesFor(env, a, results, stored, actor, ts) {
     } else if(m) {
       stmts.push(guarded(`DELETE FROM matches WHERE id=? AND status='found' AND ${guard}`,m.id,...args));
     } else if(r.passing) {
-      inserts.push(stmts.length);
       stmts.push(guarded(`INSERT INTO matches(applicant_id,listing_id,score,checks,requirements_rank,area_preference_rank,status,created_at,updated_at)
         SELECT ?,?,?,?,?,?,'found',?,? WHERE ${guard} ON CONFLICT(applicant_id,listing_id) DO NOTHING`,
         a.id,r.listing_id,r.score,r.checks,r.requirements_rank,r.area_preference_rank,ts,ts,...args));
     }
   }
-  if(!fresh.length&&!results.some(r=>!r.passing&&stored.get(r.listing_id)?.status==='found'))return {stmts,inserts,search,guarded};
+  if(!fresh.length&&!results.some(r=>!r.passing&&stored.get(r.listing_id)?.status==='found'))return {stmts,search,guarded,newEventIndex};
   stmts.push(guarded(`UPDATE notifications SET title=${TITLE} WHERE ${OPEN_NOTICE}
     AND EXISTS(SELECT 1 FROM matches WHERE applicant_id=? AND status='found') AND ${search}`,a.id,a.name,String(a.id),a.id),
     guarded(`UPDATE notifications SET resolved_at=COALESCE(resolved_at,?),resolved_by=COALESCE(resolved_by,?),
     closed_by_source=1,task_actor=?,task_action='source_resolved' WHERE ${SOURCE_CLOSABLE_NOTICE}
     AND NOT EXISTS(SELECT 1 FROM matches WHERE applicant_id=? AND status='found') AND ${search}`,ts,actor,actor,String(a.id),a.id));
-  return {stmts,inserts,search,guarded};
+  return {stmts,search,guarded,newEventIndex};
 }
 
 // A listing row (with its candidate flag) against an applicant.
@@ -114,27 +138,66 @@ export async function recomputeForApplicantWithStatus(env, applicantId, actor, r
       .bind(LISTING_OPERATION[a.operation], a.id),
     env.DB.prepare("SELECT id, listing_id, status, score, checks, requirements_rank, area_preference_rank FROM matches WHERE applicant_id = ?").bind(a.id),
   ])).map(r => r.results);
-  const { stmts, inserts, search, guarded } = writesFor(env, a, listings.map(l => result(a, l)), byListing(stored), actor, now());
-  const versions=JSON.stringify(listings.map(l=>({id:l.id,version:l.match_inputs_revision})));
-  const completion=stmts.length;
+  const encoded=encodeMatchSnapshot(listings);
+  if(encoded.issue)return {created:0,completed:false,reason:encoded.issue};
+  const versions=encoded.json;
+  const { stmts, search, guarded, newEventIndex } = writesFor(env, a, listings.map(l => result(a, l)), byListing(stored), actor, now());
+  // The event's count is computed inside this transaction before the corresponding inserts. Read it directly:
+  // D1's metadata can include trigger writes, and a SELECT preserves changes() for the following notice statement.
+  let createdIndex=null;
+  if(newEventIndex!==null) {
+    createdIndex=newEventIndex+1;
+    stmts.splice(createdIndex,0,env.DB.prepare(`SELECT CASE WHEN changes()=1 THEN
+      COALESCE((SELECT json_extract(data,'$.new') FROM events WHERE id=last_insert_rowid()),0) ELSE 0 END AS created`));
+  }
+  // A full run must cover the current candidate set, not only the rows that happened to be read. A guard at the
+  // start of the batch prevents partial matches and notices if that set or an evaluated input has changed.
+  const snapshot = `NOT EXISTS
+    (SELECT 1 FROM json_each(?) v LEFT JOIN listings l ON l.id=json_extract(v.value,'$.id')
+    WHERE l.id IS NULL OR COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=l.id),0)<>json_extract(v.value,'$.version'))
+    AND NOT EXISTS (SELECT id FROM listings WHERE ${CANDIDATES_SQL} AND operation=?
+      EXCEPT SELECT json_extract(value,'$.id') FROM json_each(?))`;
+  const snapshotArgs=[versions,LISTING_OPERATION[a.operation],versions,a.id,a.updated_at,a.match_inputs_revision];
+  // The existing NOT NULL constraint is an atomic rollback barrier, not a progress record or a timestamp update.
+  stmts.unshift(env.DB.prepare(`UPDATE applicants SET updated_at=CASE WHEN ${snapshot} AND ${search} THEN updated_at END WHERE id=?`)
+    .bind(...snapshotArgs,a.id));
+  if(createdIndex!==null)createdIndex++;
   stmts.push(guarded(`UPDATE applicants SET match_ranking_version=1 WHERE id=? AND NOT EXISTS
     (SELECT 1 FROM json_each(?) v LEFT JOIN listings l ON l.id=json_extract(v.value,'$.id')
     WHERE l.id IS NULL OR COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=l.id),0)<>json_extract(v.value,'$.version')) AND ${search}`,a.id,versions));
+  // A ranking trigger may add to D1 meta.changes; SQLite changes() reports this statement's direct row count.
+  const completion=stmts.length;
+  stmts.push(env.DB.prepare('SELECT changes() AS direct_changes'));
   // Reopening may retain exactly the same Found matches. Give that decision its own Inbox notice even when
   // recalculation creates nothing, leaving the old resolved notice and its event intact.
   if (restoreNotice) stmts.push(env.DB.prepare(`INSERT INTO notifications (event_id, category, title, action_required, created_at)
     SELECT e.id, 'matched', ${TITLE}, 1, ? FROM events e
-    WHERE e.entity_type = 'applicant' AND e.entity_id = ? AND e.type = 'applicant.search_reopened'
-      AND EXISTS (SELECT 1 FROM applicants a WHERE a.id = ? AND a.updated_at = ? AND ${activeSql("a")})
+    WHERE e.entity_type = 'applicant' AND e.entity_id = ? AND e.type = 'applicant.search_reopened' AND changes() = 1
+      AND EXISTS (SELECT 1 FROM applicants a WHERE a.id = ? AND a.updated_at = ? AND a.match_inputs_revision = ? AND ${activeSql("a")})
       AND EXISTS (SELECT 1 FROM matches WHERE applicant_id = ? AND status = 'found')
       AND NOT EXISTS (SELECT 1 FROM notifications WHERE ${OPEN_NOTICE})
-    ORDER BY e.id DESC LIMIT 1`).bind(a.id, a.name, now(), String(a.id), a.id, a.updated_at, a.id, String(a.id)));
-  const written = await env.DB.batch(stmts);
-  return { created:inserts.reduce((n,i)=>n+(written[i].meta.changes||0),0), completed:written[completion].meta.changes===1 };
+    ORDER BY e.id DESC LIMIT 1`).bind(a.id, a.name, now(), String(a.id), a.id, a.updated_at, a.match_inputs_revision, a.id, String(a.id)));
+  let written;
+  try { written = await env.DB.batch(stmts); }
+  catch (error) {
+    if (/NOT NULL constraint failed: applicants\.updated_at/i.test(String(error?.message))) {
+      // A later unrelated constraint can have the same message. Only classify a conflict when the saved snapshot
+      // is still demonstrably stale; otherwise preserve the original error.
+      let valid=null;
+      try { valid=(await env.DB.prepare(`SELECT CASE WHEN ${snapshot} AND ${search} THEN 1 ELSE 0 END AS valid`)
+        .bind(...snapshotArgs).first())?.valid; } catch { /* preserve the original batch failure */ }
+      if (valid===0) return {created:0,completed:false};
+    }
+    throw error;
+  }
+  const created=createdIndex===null ? 0 : written[createdIndex]?.results?.[0]?.created;
+  if(!Number.isSafeInteger(created)||created<0) throw new Error('Match insertion count unavailable');
+  return {created,completed:written[completion]?.results?.[0]?.direct_changes===1};
 }
 
 export async function recomputeForApplicant(env, applicantId, actor, restoreNotice = false) {
-  const {created}=await recomputeForApplicantWithStatus(env, applicantId, actor, restoreNotice);
+  const {created,reason}=await recomputeForApplicantWithStatus(env, applicantId, actor, restoreNotice);
+  if(reason)fail(409,matchSnapshotMessage(reason));
   return {created};
 }
 
