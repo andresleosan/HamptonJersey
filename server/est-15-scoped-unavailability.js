@@ -72,9 +72,12 @@ function calculate(input, options) {
   if (!negatives.length) return base;
   negatives.sort((a, b) => b.observed_at.localeCompare(a.observed_at) || a.id.localeCompare(b.id));
   const latest = negatives[0];
-  const needsReview = relevant.some(fact => fact.observed_at >= latest.observed_at
+  // A narrower or newer negative cannot resolve an earlier contradiction.
+  const needsReview = negatives.some(negative => relevant.some(fact =>
+    fact.observed_at >= negative.observed_at
+    && (covers(negative.scope, fact.scope) || covers(fact.scope, negative.scope))
     && ((fact.kind === 'web' && ['visible', 'modified'].includes(fact.status))
-      || (fact.kind === 'human' && fact.status === 'available' && covers(fact.scope, target))));
+      || (fact.kind === 'human' && fact.status === 'available'))));
   return { scope: target, disposition: 'blocked', confirmed_at: latest.observed_at, evidence_ref: latest.evidence_ref, needs_review: needsReview };
 }
 export function resolveScopedUnavailability(facts, options) {

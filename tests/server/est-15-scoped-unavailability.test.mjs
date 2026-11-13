@@ -77,3 +77,33 @@ test('accessors, inherited values and hostile proxies cannot change validated fa
   const sparse = [human('h1','unavailable',10)]; Object.defineProperty(sparse,'0',{get(){return human('h1','unavailable',10);}});
   assert.throws(() => resolve(sparse));
 });
+
+test('a narrower newer negative does not clear a broader negative reappearance review', () => {
+  const broad = {...scope, advertiser_id:null, publication_id:null};
+  const negative = human('broad','unavailable',1,{scope:broad});
+  const observation = web('web','visible',2);
+  const narrow = human('narrow','unavailable',3);
+  for (const facts of [[negative,observation,narrow], [narrow,observation,negative]]) {
+    const result = resolve(facts);
+    assert.equal(result.disposition,'blocked'); assert.equal(result.needs_review,true);
+  }
+});
+
+test('a positive on an overlapping descendant requires review of a broad negative', () => {
+  const property = {...scope, operation:null, advertiser_id:null, publication_id:null};
+  const negative = human('broad','unavailable',1,{scope:property});
+  const positive = human('positive','available',2);
+  for (const facts of [[negative,positive],[positive,negative]]) {
+    const result = resolve(facts, {scope:property});
+    assert.equal(result.disposition,'blocked'); assert.equal(result.needs_review,true);
+  }
+});
+
+test('contradictions in sibling advertisers or other operations do not affect a specific target', () => {
+  const negative = human('negative','unavailable',1);
+  for (const other of [{...scope,advertiser_id:'advertiser-2'}, {...scope,operation:'sale'}]) {
+    for (const item of [web('web','visible',2,{scope:other}), human('positive','available',2,{scope:other})]) {
+      assert.equal(resolve([negative,item]).needs_review,false);
+    }
+  }
+});
