@@ -80,6 +80,28 @@ const BASE=process.env.BASE, vars=parseEnv(readFileSync(process.env.E2E_VARS,'ut
     await later.getByRole('button',{name:'Confirm marketing opt-in',exact:true}).waitFor();
     assert.equal(await later.getByRole('button',{name:'Confirm marketing opt-in',exact:true}).count(),1,'a later submission can be reviewed');
     await later.close();
+
+    // A public opt-in request can predate a later refusal while the stored
+    // consent is already off. The older tab must not be able to confirm it.
+    const priorContact=await seed();
+    const priorContactInitial=(await request('GET',`/admin/applicants/${priorContact.id}`)).contact;
+    const priorContactOff=(await request('PUT',`/admin/contacts/${priorContact.contactId}`,
+      {updated_at:priorContactInitial.updated_at,marketing:false})).contact;
+    const publicRequest=marketing=>({name:priorContact.name,email:priorContact.email,phone:priorContact.phone,operation:'rent',
+      budget_max:2000,bedrooms_min:1,privacy:true,marketing,turnstile:'fixture'});
+    await request('POST','/applicants',publicRequest(true));
+    const stalePage=await ctx.newPage();await stalePage.goto(BASE+`admin/#/applicants/${priorContact.id}`);
+    await stalePage.getByRole('button',{name:'Confirm marketing opt-in',exact:true}).waitFor();
+    await request('POST','/applicants',publicRequest(false));
+    const denied=(await request('GET',`/admin/applicants/${priorContact.id}`)).contact;
+    assert.equal(denied.marketing_opt_in_at,null);assert.notEqual(denied.updated_at,priorContactOff.updated_at);
+    await stalePage.getByRole('button',{name:'Confirm marketing opt-in',exact:true}).click();
+    await stalePage.getByRole('alert').filter({hasText:'Someone else saved changes'}).waitFor();
+    assert.equal((await request('GET',`/admin/applicants/${priorContact.id}`)).contact.marketing_opt_in_at,null);
+    const freshPage=await ctx.newPage();await freshPage.goto(BASE+`admin/#/applicants/${priorContact.id}`);
+    await freshPage.getByText('This marketing response was received before the last withdrawal.',{exact:true}).waitFor();
+    assert.equal(await freshPage.getByRole('button',{name:'Confirm marketing opt-in',exact:true}).count(),0);
+    await stalePage.close();await freshPage.close();
     if(width===390){await page.evaluate(()=>{document.documentElement.style.zoom='2';});
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'zoom does not overflow');}
 

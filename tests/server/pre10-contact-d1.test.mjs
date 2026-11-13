@@ -122,3 +122,75 @@ test('D1 serializes contact versions, public withdrawal, events and rollback on 
     }
   }finally{await mf.dispose();}
 });
+
+test('D1 fences an older pending opt-in once and rejects an obsolete staff confirmation',async()=>{
+  const {mf,DB}=await database();
+  try{
+    const stamp=new Date().toISOString(),cookie=await adminCookie();
+    await DB.prepare('INSERT INTO admins(email,added_at) VALUES (?,?)').bind('admin@example.test',stamp).run();
+    await DB.prepare(`INSERT INTO contacts(name,email,phone,marketing_opt_in_at,last_activity_at,created_at,updated_at)
+      VALUES(?,?,?,NULL,?,?,?)`).bind(publicForm.name,publicForm.email,publicForm.phone,stamp,stamp,stamp).run();
+    for(const op of ['rent','buy'])await DB.prepare(`INSERT INTO applicants(contact_id,operation,source,search_state,created_at,updated_at)
+      VALUES(1,?,'phone','active',?,?)`).bind(op,stamp,stamp).run();
+    const env={...makeEnv(),DB};
+    await withClock(stamp,()=>withTurnstile(async()=>{
+      assert.equal((await call(env,'POST','/applicants',{body:{...publicForm,marketing:true}})).status,201);
+      let arrived=0,release;const gate=new Promise(r=>{release=r;});
+      const simultaneous={prepare:DB.prepare.bind(DB),batch:async stmts=>{if(++arrived===2)release();if(arrived<=2)await gate;return DB.batch(stmts);}};
+      const both=await Promise.all([call({...env,DB:simultaneous},'POST','/applicants',{body:publicForm}),
+        call({...env,DB:simultaneous},'POST','/applicants',{body:publicForm})]);
+      assert.deepEqual(both.map(r=>r.status),[201,201]);
+      const after=await DB.prepare('SELECT marketing_opt_in_at,updated_at FROM contacts WHERE id=1').first();
+      assert.equal(after.marketing_opt_in_at,null);assert.notEqual(after.updated_at,stamp);
+      assert.equal((await DB.prepare("SELECT COUNT(*) AS n FROM events WHERE type='contact.consent_changed'").first()).n,1);
+      assert.equal((await call(env,'PUT','/admin/contacts/1',{cookie,body:{updated_at:stamp,marketing:true}})).status,409);
+      assert.equal((await call(env,'POST','/applicants',{body:publicForm})).status,201);
+      assert.equal((await DB.prepare('SELECT updated_at FROM contacts WHERE id=1').first()).updated_at,after.updated_at);
+      assert.equal((await DB.prepare("SELECT COUNT(*) AS n FROM events WHERE type='contact.consent_changed'").first()).n,1);
+      assert.equal((await call(env,'POST','/applicants',{body:{...publicForm,marketing:true}})).status,201);
+      const faultDB={prepare:DB.prepare.bind(DB),batch:stmts=>DB.batch([...stmts.slice(0,2),DB.prepare('INSERT INTO contacts(name) VALUES(NULL)'),...stmts.slice(2)])};
+      const original=console.error;console.error=()=>{};
+      try {assert.equal((await call({...env,DB:faultDB},'POST','/applicants',{body:publicForm})).status,500);}
+      finally{console.error=original;}
+      assert.equal((await DB.prepare('SELECT updated_at FROM contacts WHERE id=1').first()).updated_at,after.updated_at);
+      assert.equal((await DB.prepare("SELECT COUNT(*) AS n FROM events WHERE type='contact.consent_changed'").first()).n,1);
+      assert.equal((await call(env,'POST','/applicants',{body:publicForm})).status,201);
+      assert.equal((await DB.prepare("SELECT COUNT(*) AS n FROM events WHERE type='contact.consent_changed'").first()).n,2);
+    }));
+  }finally{await mf.dispose();}
+});
+
+test('D1 uses the contact index and a 65-row budget for a long out-of-order history',async()=>{
+  const {mf,DB}=await database();
+  try{
+    const stamp=new Date().toISOString(),cookie=await adminCookie();
+    await DB.prepare('INSERT INTO admins(email,added_at) VALUES (?,?)').bind('admin@example.test',stamp).run();
+    await DB.prepare(`INSERT INTO contacts(name,email,phone,marketing_opt_in_at,last_activity_at,created_at,updated_at)
+      VALUES(?,?,?,NULL,?,?,?)`).bind(publicForm.name,publicForm.email,publicForm.phone,stamp,stamp,stamp).run();
+    const noise=Array.from({length:700},()=>DB.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
+      VALUES('2035-01-01T00:00:00.000Z','system','contact','1','contact.updated',NULL)`));
+    for(let i=0;i<noise.length;i+=50)await DB.batch(noise.slice(i,i+50));
+    // Higher ID but older timestamp: the bounded window must not treat its
+    // absence as proof that no proposal exists.
+    await DB.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
+      VALUES('2000-01-01T00:00:00.000Z','public','contact','1','applicant.duplicate_submitted',?)`)
+      .bind(JSON.stringify({marketing:true})).run();
+    const query=`SELECT id,type,data FROM events INDEXED BY events_entity WHERE entity_type='contact' AND entity_id=?
+      ORDER BY at DESC,id DESC LIMIT 65`;
+    const plan=(await DB.prepare(`EXPLAIN QUERY PLAN ${query}`).bind('1').all()).results.map(x=>x.detail).join(' ');
+    assert.match(plan,/events_entity/);assert.doesNotMatch(plan,/TEMP B-TREE/i);
+    const rows=await DB.prepare(query).bind('1').all();assert.equal(rows.results.length,65);
+    if(Number.isFinite(rows.meta.rows_read) && rows.meta.rows_read>0)assert.ok(rows.meta.rows_read<=130);
+    const env={...makeEnv(),DB};
+    await withClock(stamp,()=>withTurnstile(async()=>{
+      assert.equal((await call(env,'POST','/applicants',{body:publicForm})).status,201);
+      const state=await DB.prepare('SELECT updated_at,marketing_opt_in_at FROM contacts WHERE id=1').first();
+      assert.notEqual(state.updated_at,stamp);assert.equal(state.marketing_opt_in_at,null);
+      const last=await DB.prepare("SELECT data FROM events WHERE type='contact.consent_changed' ORDER BY id DESC LIMIT 1").first();
+      assert.equal(JSON.parse(last.data).objection_with_incomplete_history,true);
+      assert.equal((await call(env,'PUT','/admin/contacts/1',{cookie,body:{updated_at:stamp,marketing:true}})).status,409);
+      assert.equal((await call(env,'POST','/applicants',{body:publicForm})).status,201);
+      assert.equal((await DB.prepare("SELECT COUNT(*) AS n FROM events WHERE type='contact.consent_changed'").first()).n,2);
+    }));
+  }finally{await mf.dispose();}
+});

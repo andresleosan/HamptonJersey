@@ -252,6 +252,40 @@ function newApplicants(env, contact, applicants, ts) {
   ];
 }
 
+// At most 65 indexed records (64 decidable plus one overflow sentinel) are
+// considered. An overflowing or unreadable history is fenced conservatively.
+const PRIOR_CONSENT_DATE = `json_extract(payload, '$.before.marketing_opt_in_at')`;
+const SAFE_PRIOR_DATE = `date(substr(${PRIOR_CONSENT_DATE},1,10),'+0 days') = substr(${PRIOR_CONSENT_DATE},1,10)
+  AND julianday(${PRIOR_CONSENT_DATE}) IS NOT NULL
+  AND (length(${PRIOR_CONSENT_DATE}) = 10 OR substr(${PRIOR_CONSENT_DATE},12,2) BETWEEN '00' AND '23')`;
+const PENDING_MARKETING = `COALESCE((
+  WITH history AS MATERIALIZED (
+    SELECT id,type,CASE WHEN type IN ('applicant.duplicate_submitted','contact.consent_changed') AND typeof(data) = 'text'
+      THEN CASE WHEN length(CAST(substr(data,1,32769) AS BLOB)) <= 32768
+        THEN CASE WHEN json_valid(data) THEN data END END END AS payload
+    FROM events INDEXED BY events_entity WHERE entity_type = 'contact' AND entity_id = CAST(contacts.id AS TEXT)
+    ORDER BY at DESC,id DESC LIMIT 65
+  ), classified AS MATERIALIZED (
+    SELECT id,CASE
+      WHEN type = 'applicant.duplicate_submitted' THEN CASE
+        WHEN payload IS NULL THEN 3
+        WHEN json_type(payload,'$.marketing') = 'true' THEN 1
+        WHEN json_type(payload,'$.marketing') = 'false' THEN 0 ELSE 3 END
+      WHEN type = 'contact.consent_changed' THEN CASE
+        WHEN payload IS NULL THEN 3
+        WHEN json_type(payload,'$.after.marketing_opt_in_at') = 'null' THEN CASE
+          WHEN json_type(payload,'$.before.marketing_opt_in_at') = 'text' AND ${SAFE_PRIOR_DATE} THEN 2
+          WHEN json_type(payload,'$.before.marketing_opt_in_at') = 'null' AND
+            (json_type(payload,'$.objection_to_pending') = 'true' OR
+             json_type(payload,'$.objection_with_incomplete_history') = 'true') THEN 2 ELSE 3 END
+        ELSE 3 END
+      ELSE 0 END AS kind FROM history
+  )
+  SELECT CASE WHEN COUNT(*) > 64 THEN 2
+    WHEN MAX(CASE WHEN kind = 3 THEN id ELSE 0 END) > MAX(CASE WHEN kind = 2 THEN id ELSE 0 END) THEN 2
+    WHEN MAX(CASE WHEN kind = 1 THEN id ELSE 0 END) > MAX(CASE WHEN kind = 2 THEN id ELSE 0 END) THEN 1
+    ELSE 0 END FROM classified), 0)`;
+
 // matches: the contacts with that email or phone, oldest first (two when each points to a different one).
 function duplicate(env, [c, other], contact, applicant, ts, touchContact = true) {
   const { source, ...search } = applicant, marketing = contact.marketing_opt_in_at != null;
@@ -272,12 +306,19 @@ function duplicate(env, [c, other], contact, applicant, ts, touchContact = true)
   const objection = touchContact && !marketing ? [
     env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
       SELECT ?, 'public', 'contact', CAST(id AS TEXT), 'contact.consent_changed',
-        json_object('before',json_object('marketing_opt_in_at',marketing_opt_in_at),
-                    'after',json_object('marketing_opt_in_at',NULL))
-      FROM contacts WHERE id = ? AND marketing_opt_in_at IS NOT NULL`).bind(ts, c.id),
-    env.DB.prepare(`UPDATE contacts SET updated_at = CASE WHEN marketing_opt_in_at IS NOT NULL
+        CASE WHEN marketing_opt_in_at IS NOT NULL THEN
+          json_object('before',json_object('marketing_opt_in_at',marketing_opt_in_at),
+            'after',json_object('marketing_opt_in_at',NULL))
+        WHEN decision = 1 THEN json_object('before',json_object('marketing_opt_in_at',NULL),
+          'after',json_object('marketing_opt_in_at',NULL),'objection_to_pending',json('true'))
+        ELSE json_object('before',json_object('marketing_opt_in_at',NULL),
+          'after',json_object('marketing_opt_in_at',NULL),'objection_with_incomplete_history',json('true')) END
+      FROM (WITH snapshot AS MATERIALIZED (
+        SELECT id,marketing_opt_in_at,CASE WHEN marketing_opt_in_at IS NOT NULL THEN 1 ELSE ${PENDING_MARKETING} END AS decision
+        FROM contacts WHERE id = ?) SELECT * FROM snapshot) WHERE decision > 0`).bind(ts, c.id),
+    env.DB.prepare(`UPDATE contacts SET updated_at = CASE WHEN changes() = 1
         THEN ${CONTACT_NEXT_VERSION} ELSE updated_at END,
-      updated_by = CASE WHEN marketing_opt_in_at IS NOT NULL THEN 'public' ELSE updated_by END,
+      updated_by = CASE WHEN changes() = 1 THEN 'public' ELSE updated_by END,
       marketing_opt_in_at = NULL, last_activity_at = ?, last_contact_at = ? WHERE id = ?`)
       .bind(ts, ts, ts, ts, c.id),
   ] : touchContact ? [env.DB.prepare("UPDATE contacts SET last_activity_at = ?, last_contact_at = ? WHERE id = ?")

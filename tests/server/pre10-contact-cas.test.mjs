@@ -148,3 +148,125 @@ test('contact authorization, missing contact and timezone versions remain fail c
     assert.equal((await call(env,'PUT',`/admin/contacts/${id}`,{cookie,body:{updated_at:offset,marketing:true}})).status,409);
   });
 });
+
+
+test('a later public objection fences an earlier pending opt-in even when consent was already absent', async () => {
+  const env=makeEnv(),stamp=new Date().toISOString(),id=fixture(env,stamp,null),cookie=await adminCookie();
+  await withClock(stamp,()=>withTurnstile(async()=>{
+    assert.equal((await call(env,'POST','/applicants',{body:{...form,marketing:true}})).status,201);
+    assert.equal(contact(env,id).updated_at,stamp);
+    assert.equal((await call(env,'POST','/applicants',{body:form})).status,201);
+    const after=contact(env,id),events=consentEvents(env,id);
+    assert.equal(after.marketing_opt_in_at,null);assert.notEqual(after.updated_at,stamp);
+    assert.equal(events.length,1);assert.deepEqual(JSON.parse(events[0].data),
+      {before:{marketing_opt_in_at:null},after:{marketing_opt_in_at:null},objection_to_pending:true});
+    assert.equal((await call(env,'PUT',`/admin/contacts/${id}`,{cookie,body:{updated_at:stamp,marketing:true}})).status,409);
+    assert.equal((await call(env,'POST','/applicants',{body:form})).status,201);
+    assert.equal(contact(env,id).updated_at,after.updated_at,'a repeated objection with no new proposal is a true no-op');
+    assert.equal(consentEvents(env,id).length,1);
+    assert.equal((await call(env,'POST','/applicants',{body:{...form,marketing:true}})).status,201);
+    assert.equal((await call(env,'POST','/applicants',{body:form})).status,201);
+    assert.notEqual(contact(env,id).updated_at,after.updated_at);
+    assert.equal(consentEvents(env,id).length,2);
+  }));
+});
+
+test('two concurrent objections to one pending request create one fence and one event', async () => {
+  const env=makeEnv(),stamp=new Date().toISOString(),id=fixture(env,stamp,null);
+  await withTurnstile(async()=>{
+    assert.equal((await call(env,'POST','/applicants',{body:{...form,marketing:true}})).status,201);
+    const batch=env.DB.batch.bind(env.DB);let arrived=0,release;const gate=new Promise(r=>{release=r;});
+    env.DB.batch=async stmts=>{if(++arrived===2)release();if(arrived<=2)await gate;return batch(stmts);};
+    const results=await Promise.all([call(env,'POST','/applicants',{body:form}),call(env,'POST','/applicants',{body:form})]);
+    assert.deepEqual(results.map(r=>r.status),[201,201]);assert.equal(consentEvents(env,id).length,1);
+  });
+});
+
+test('a failed batch rolls back a fence for an outstanding opt-in request', async () => {
+  const env=makeEnv(),stamp=new Date().toISOString(),id=fixture(env,stamp,null);
+  await withTurnstile(async()=>{
+    assert.equal((await call(env,'POST','/applicants',{body:{...form,marketing:true}})).status,201);
+    const batch=env.DB.batch.bind(env.DB);
+    env.DB.batch=stmts=>batch([...stmts.slice(0,2),env.DB.prepare('INSERT INTO contacts(name) VALUES(NULL)'),...stmts.slice(2)]);
+    const original=console.error;console.error=()=>{};
+    try {assert.equal((await call(env,'POST','/applicants',{body:form})).status,500);} finally {console.error=original;}
+    assert.equal(contact(env,id).updated_at,stamp);assert.equal(consentEvents(env,id).length,0);
+  });
+});
+
+test('a public refusal without consent or an earlier request leaves the contact version unchanged', async () => {
+  const env=makeEnv(),stamp=new Date().toISOString(),id=fixture(env,stamp,null);
+  await withTurnstile(async()=>{
+    assert.equal((await call(env,'POST','/applicants',{body:form})).status,201);
+    assert.equal((await call(env,'POST','/applicants',{body:form})).status,201);
+    assert.equal(contact(env,id).updated_at,stamp);assert.equal(consentEvents(env,id).length,0);
+  });
+});
+
+test('an unreadable earlier submission is conservatively fenced without breaking the public request', async () => {
+  const env=makeEnv(),stamp=new Date().toISOString(),id=fixture(env,stamp,null);
+  env.DB.raw.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
+    VALUES(?,'public','contact',?,'applicant.duplicate_submitted',?)`).run(stamp,String(id),'not-json');
+  await withClock(stamp,()=>withTurnstile(async()=>{
+    assert.equal((await call(env,'POST','/applicants',{body:form})).status,201);
+    assert.notEqual(contact(env,id).updated_at,stamp);assert.equal(consentEvents(env,id).length,1);
+  }));
+});
+
+test('an invalid prior consent event is not treated as evidence that an old request was safely closed', async () => {
+  const env=makeEnv(),stamp=new Date().toISOString(),id=fixture(env,stamp,null),cookie=await adminCookie();
+  const db=env.DB.raw;
+  db.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data) VALUES(?,'public','contact',?,'applicant.duplicate_submitted',?)`)
+    .run(stamp,String(id),JSON.stringify({marketing:true}));
+  db.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data) VALUES(?,'public','contact',?,'contact.consent_changed',?)`)
+    .run(stamp,String(id),JSON.stringify({before:{marketing_opt_in_at:'2026-02-30T12:00:00Z'},after:{marketing_opt_in_at:null}}));
+  await withClock(stamp,()=>withTurnstile(async()=>{
+    assert.equal((await call(env,'POST','/applicants',{body:form})).status,201);
+    assert.notEqual(contact(env,id).updated_at,stamp);
+    assert.equal((await call(env,'PUT',`/admin/contacts/${id}`,{cookie,body:{updated_at:stamp,marketing:true}})).status,409);
+    const last=JSON.parse(consentEvents(env,id).at(-1).data);
+    assert.equal(last.objection_with_incomplete_history,true);
+  }));
+});
+
+test('long histories use the existing index and receive a conservative fence within a fixed row budget', async () => {
+  const env=makeEnv(),stamp=new Date().toISOString(),id=fixture(env,stamp,null),cookie=await adminCookie(),db=env.DB.raw;
+  const add=db.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data) VALUES(?,'system','contact',?,'contact.updated',NULL)`);
+  db.exec('BEGIN');for(let i=0;i<1000;i++)add.run(stamp,String(id));db.exec('COMMIT');
+  const plan=db.prepare(`EXPLAIN QUERY PLAN SELECT id,type,data FROM events INDEXED BY events_entity
+    WHERE entity_type='contact' AND entity_id=? ORDER BY at DESC,id DESC LIMIT 65`).all(String(id)).map(x=>x.detail).join(' ');
+  assert.match(plan,/events_entity/);assert.doesNotMatch(plan,/TEMP B-TREE/i);
+  await withClock(stamp,()=>withTurnstile(async()=>{
+    assert.equal((await call(env,'POST','/applicants',{body:form})).status,201);
+    assert.notEqual(contact(env,id).updated_at,stamp);
+    assert.equal(JSON.parse(consentEvents(env,id).at(-1).data).objection_with_incomplete_history,true);
+    assert.equal((await call(env,'PUT',`/admin/contacts/${id}`,{cookie,body:{updated_at:stamp,marketing:true}})).status,409);
+  }));
+});
+
+test('an oversized prior submission is treated as unknown and never grants an old opt-in',async()=>{
+  const env=makeEnv(),stamp=new Date().toISOString(),id=fixture(env,stamp,null),cookie=await adminCookie();
+  const data=JSON.stringify({marketing:true,extra:'x'.repeat(33000)});
+  env.DB.raw.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
+    VALUES(?,'public','contact',?,'applicant.duplicate_submitted',?)`).run(stamp,String(id),data);
+  await withClock(stamp,()=>withTurnstile(async()=>{
+    assert.equal((await call(env,'POST','/applicants',{body:form})).status,201);
+    assert.equal(JSON.parse(consentEvents(env,id).at(-1).data).objection_with_incomplete_history,true);
+    assert.notEqual(contact(env,id).updated_at,stamp);
+    assert.equal((await call(env,'PUT',`/admin/contacts/${id}`,{cookie,body:{updated_at:stamp,marketing:true}})).status,409);
+  }));
+});
+
+test('64 complete records allow a true no-op; the 65th makes the history conservatively unknown', async () => {
+  for (const n of [64,65]) {
+    const env=makeEnv(),stamp=new Date().toISOString(),id=fixture(env,stamp,null),db=env.DB.raw;
+    const add=db.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data) VALUES(?,'system','contact',?,'contact.updated',NULL)`);
+    db.exec('BEGIN');for(let i=0;i<n;i++)add.run(stamp,String(id));db.exec('COMMIT');
+    await withClock(stamp,()=>withTurnstile(async()=>{
+      assert.equal((await call(env,'POST','/applicants',{body:form})).status,201);
+      assert.equal(consentEvents(env,id).length,n===64?0:1);
+      if(n===64)assert.equal(contact(env,id).updated_at,stamp);
+      else assert.equal(JSON.parse(consentEvents(env,id)[0].data).objection_with_incomplete_history,true);
+    }));
+  }
+});
