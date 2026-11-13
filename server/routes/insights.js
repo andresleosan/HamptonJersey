@@ -4,6 +4,7 @@ import { CANDIDATES_SQL } from "../match-store.js";
 import { jerseyToday, plusDays, realDate, weekday } from "../viewings.js";
 import { jerseyDayStart, groupDemand, topUnmet, funnel, responseTime, earliest, healthCursor, makeHealthCursor } from "../insights.js";
 import { getWebVolumes, webVolumesFromRow, WEB_VOLUME_COLUMNS } from "../measurement.js";
+import { getSearchMilestones } from "../measurement-funnel.js";
 import { PUBLIC_BOOKING_BLOCKED_SQL } from "../viewing-store.js";
 import { reviewPublicListing } from "./public.js";
 
@@ -58,6 +59,13 @@ export function period(request) {
   if (!DAYS.includes(days)) fail(400, "Choose 7, 30 or 90 days");
   const to = jerseyToday();
   return { days: Number(days), from: plusDays(to, 1 - Number(days)), to };
+}
+
+// Separate search-record measurement: it does not join web activity to business outcomes.
+async function milestones({request, env}) {
+  const {from,to} = period(request), params = new URL(request.url).searchParams;
+  const operation = params.get('operation') ?? 'all', category = params.get('category') ?? 'all';
+  return json(await getSearchMilestones(env,{from,to,operation,category}));
 }
 
 // I12: one batch, counts and medians only.
@@ -217,6 +225,7 @@ async function activity({request, env}) {
 
 export default [
   ["GET", /^\/admin\/insights$/, insights, true],
+  ["GET", /^\/admin\/insights\/milestones$/, milestones, true],
   ["GET", /^\/admin\/insights\/listing-health$/, listingHealth, true],
   ["GET", /^\/admin\/insights\/activity$/, activity, true],
   ["GET", /^\/admin\/insights\/weekly\/([^/]+)$/, weekly, true],

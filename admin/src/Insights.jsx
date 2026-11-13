@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { api } from "./api.js";
 import { show, fmtDay } from "./format.js";
 import Activity from "./Activity.js";
+const SearchMilestones = lazy(() => import("./SearchMilestones.jsx"));
 
 // Spec §5 Insights (I5-I11): what people look at, what applicants ask for that the listings don't cover, and how fast the
 // team answers. Counts and medians only, never who.
@@ -40,6 +41,7 @@ export default function Insights() {
       <button key={p} type="button" aria-pressed={days === p} onClick={() => setDays(p)}>{p} days</button>)}</div>
     <Activity data={data?.activity} busy={busy} error={error} onRetry={() => setAttempt(a => a + 1)} />
     <ListingHealth />
+    <Suspense fallback={<p role="status">Loading search measurement…</p>}><SearchMilestones days={days} /></Suspense>
     {error ? <p role="alert" className="err">{error}{" "}
       <button type="button" className="btn ghost sm" onClick={() => setAttempt(a => a + 1)}>Retry</button></p>
       : !data ? <p>Loading insights…</p> : <div className="report" aria-busy={busy}><Report d={data} /></div>}
@@ -166,7 +168,7 @@ function Report({ d }) {
     </section>
 
     <section className="block" aria-labelledby="h-funnel">
-      <h2 id="h-funnel">Funnel</h2>
+      <h2 id="h-funnel">Legacy stage progression (includes inferred earlier stages)</h2>
       <p className="muted">Applicants registered in the period and not archived. A stage counts everyone who reached it, now or
         before: someone at Offer is also in Viewing. Lost: those whose stage is Lost today.</p>
       {funnel.registered ? <div className="card funnel">

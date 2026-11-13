@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **ANA-05 parcial:** etapas registradas separadas de hitos aún no integrados, sin seguimiento individual ni inferencia de pasos. La lectura nueva permanece apagada hasta acreditar su presupuesto D1 y las fuentes. [Evidencia](../qa/ana-05-aggregate-evidence.md).
+
 13-nov-2026 · **ANA-01 hecho en el alcance agregado vigente:** actividad de fichas y galerías sin seguimiento individual, con cobertura desconocida y sin segunda lectura automática. `d03f0d3` tiene Pages y Workers Builds correctos; las pruebas funcionales fueron locales y no se verificaron el coste real de D1 ni la pantalla autenticada de producción. El catálogo pasa de 67/217 (30,88 %) a 68/217 (31,34 %). [Evidencia](../qa/ana01-evidencia-2026-11-13.md).
 
 13-nov-2026 · **PUB-17 parcial:** aviso de fichas con muchas aperturas y pocas solicitudes preparado con cobertura incierta y límite conservador de respuesta. Sigue apagado; su SQL está fuera de la cola de migraciones hasta verificar presupuesto y esquema D1. [Evidencia](work/PUB-17/implementation-evidence.md).

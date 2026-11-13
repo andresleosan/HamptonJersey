@@ -17507,13 +17507,13 @@
     {
       "id": "ANA-05",
       "seccion": "Trazabilidad y analítica",
-      "titulo": "Embudo completo: de la visita a la web hasta el cierre",
+      "titulo": "Etapas registradas e hitos verificados por búsqueda",
       "origen": "plan",
       "fase": "F7-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Funnel en Insights sobre los aplicantes registrados en el periodo: Registered, Viewing, Offer, Agreed y Completed, más Lost aparte. Encima, totales sueltos de Listing views, Viewing requests, New applicants y Viewings completed.",
-      "falta": "El tramo web encadenado del §5.14 (visitas a la web → consulta o petición de visita → aplicante): la web solo cuenta aperturas de fichas, no visitas. Además, la barra Viewing solo cuenta a quien el equipo pasó a mano a esa etapa, porque reservar o hacer una visita no cambia la etapa (C16).",
+      "hecho": "Insights ya muestra su serie histórica de etapas. Se preparó una lectura separada por búsqueda que cuenta únicamente etapas registradas y presenta los hitos sin fuente como Not integrated. La decisión posterior de Luis sustituyó el embudo de seguimiento individual por estadísticas agregadas.",
+      "falta": "La nueva consulta permanece apagada hasta acreditar presupuesto de lecturas, CPU, memoria y frecuencia. Integrar y verificar las fuentes reales de visitas, ofertas y cierres por búsqueda; no asociarlas por correo o teléfono ni inferir pasos anteriores.",
       "bloqueo": "",
       "evidencia": [
         "server/insights.js:25-29",
@@ -17522,7 +17522,13 @@
         "server/routes/insights.js:34-43",
         "admin/src/Insights.jsx:53-55",
         "admin/src/Insights.jsx:105-113",
-        "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:46"
+        "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:46",
+        "server/measurement-funnel.js",
+        "admin/src/SearchMilestones.jsx",
+        "tests/server/measurement-funnel.test.mjs",
+        "tests/search-milestones.e2e.cjs",
+        "docs/qa/ana-05-aggregate-evidence.md",
+        "docs/superpowers/specs/2026-11-10-tp02-measurement-design.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -17542,7 +17548,7 @@
         "analytics-contract",
         "events-contract"
       ],
-      "nextStep": "Completar el tramo web del embudo y reconciliar la medición de visitas con el ciclo real."
+      "nextStep": "Acreditar presupuesto de la consulta e integrar fuentes verificadas antes de activar las cifras de hitos."
     },
     {
       "id": "ANA-06",

@@ -1,0 +1,34 @@
+# ANA-05: evidencia de construcción local agregada
+
+Base de construcción: `b1c474259852095a01d19b8079618becf2d47da7`. Esta evidencia describe una copia local para revisión; no acredita integración con la rama compartida, despliegue, activación, fuentes reales ni cierre de la tarea. El diseño vigente es [TP-02](../superpowers/specs/2026-11-10-tp02-measurement-design.md) y prevalece sobre propuestas anteriores de seguimiento individual o de un embudo entre actividad web y contactos.
+
+## Contrato y límites
+
+- La unidad es una búsqueda existente (`applicants.id`) creada durante el periodo Jersey. Se conservan búsquedas archivadas, y dos búsquedas del mismo contacto cuentan dos. No se reconstruyen búsquedas borradas ni historias ausentes; el inicio de medición y la pérdida histórica siguen siendo desconocidos.
+- Se cuentan solo etapas explícitas de eventos `applicant.stage_changed` y `applicant.updated`, una vez por búsqueda y etapa. La etapa actual y las etapas anteriores nunca se inventan. Un estado Viewing no confirma una visita completada. Los eventos inválidos atribuibles al periodo se cuentan sin devolver sus cuerpos; un sello temporal irrecuperable fuera del margen consultado no puede atribuirse a ningún periodo.
+- No se unen contactos ni datos web a hitos de negocio. El esquema actual no ofrece una categoría fiable de importación: la cohorte incluye los registros importados existentes y no los presenta como altas web. El panel conserva aparte la serie antigua con su inferencia claramente identificada.
+- El adaptador de hechos reales por defecto devuelve lista vacía y `not_integrated`. `viewing_completed`, `offer`, `agreed` y `completed` permanecen `null`: VIS-08/17 debe proporcionar una relación persistente y verificable visita-búsqueda; AGE-11/EST-14 y Sales/Rentals deben aportar sus hechos y permisos. Un futuro adaptador necesita sus propias pruebas de vínculo, pertenencia a la cohorte, corte y cobertura; las pruebas sintéticas de esta entrega no certifican tales integraciones.
+- El endpoint es Staff y `no-store`, con selección cerrada de 7/30/90 días, operación y categoría. La lectura está cerrada por defecto: solo `SEARCH_MILESTONES_READY=1` en el servidor habilita la consulta; con cualquier otro valor devuelve `{enabled:false,reason:"not_configured"}` sin ejecutar SQL de medición. El panel muestra ese estado como configuración pendiente, sin alerta ni reintento. No se ha añadido el flag a configuración productiva ni se ha activado. Solo devuelve agregados: no IDs, nombres, detalles de eventos, email o teléfono. No modifica etapas, criterios ni matching. La interfaz usa tablas accesibles y barras independientes con un denominador común, sin una tasa web→negocio.
+
+## Presupuesto y privacidad de consulta
+
+Sin migración nueva. Se usan los índices existentes `applicants_operation(operation,created_at)` y `events_entity(entity_type,entity_id,at)`. Los rangos de índice se amplían un día UTC a cada lado para admitir desplazamientos ISO y después se verifica el instante; el límite de candidatos se aplica antes de los filtros. Se examinan como máximo 5.001 candidatos de búsqueda y 50.001 eventos en ese margen, incluyendo los tipos de evento descartados, y un exceso produce 503 sin cifras parciales. Se rechazan cuerpos relevantes mayores de 131.072 bytes; las tablas intermedias conservan solamente etapa reconocida, fechas y banderas, no cuerpos completos. Estos límites no garantizan CPU, memoria, latencia ni coste de D1 en producción, especialmente con cuerpos grandes o distribución adversa.
+
+En D1 local, con 1.002 búsquedas y 5.001 eventos sintéticos, `EXPLAIN QUERY PLAN` confirmó búsquedas indexadas y la ejecución inicial registró **23 ms locales** y la repetición tras incorporar el gate registró **36 ms locales**. El metadato local **no informó `rows_read`**; no se ha medido el coste real ni se extrapola el tiempo a producción. La revisión independiente detectó que no había presupuesto D1 acreditado y motivó el gate cerrado. La medición de `rows_read`, el coste real, los controles de privacidad y las dependencias de fuentes siguen pendientes; los resultados locales no acreditan esos extremos. Los límites se comprueban en pruebas sintéticas con exceso de búsquedas, tipos de evento no seleccionados y un cuerpo sobredimensionado.
+
+## Verificaciones en la copia
+
+- RED inicial por módulo/panel ausentes; RED adicional para límites de filas filtradas, tipos de eventos ajenos, tamaño de cuerpo y carga diferida, seguidos de ejecución verde.
+- `node --test tests/server/measurement-funnel.test.mjs tests/funnel-metrics-ui.test.js`: 16 pruebas aprobadas, incluidos los cambios de hora Jersey de primavera y otoño.
+- `E2E_PRODUCTION_READONLY=0 E2E_SCRIPT=tests/search-milestones.e2e.cjs npm run test:e2e:isolated`: aprobado en 1280 y 390 píxeles; teclado, 200 % de zoom, filtros, carga diferida, error y reintento, ausencia de escrituras y parámetros personales. Worker y D1 eran locales, con datos ficticios, dentro del contenedor temporal sin red. La salida de workerd incluyó avisos de certificado TLS local; no hubo errores de página en la comprobación.
+- `npm test`: 1.512 pruebas Node aprobadas y pruebas Python aprobadas; el caso adicional de primavera se ejecutó después en las focalizadas. `npm run build` y `npm run check:release`: aprobados. Vite conserva un aviso de tamaño del bundle general; el nuevo panel se carga de forma diferida.
+
+Una alerta de salida detectó una constante ficticia del arnés durante una lectura previa. La evaluación acotada, redactada y con permisos privados se conservó en `/tmp/hampton-ana05-hgG7wJCN/centinela-evidence.md`; no se examinó el estado global del host ni se modificaron secretos.
+
+## Corrección tras revisión independiente
+
+Las 19 pruebas focalizadas posteriores a la corrección pasaron. La prueba de servidor verifica que los valores ausente, `0` y `true` no preparan consulta alguna y que la respuesta de Staff es normal y `no-store`; solo el valor exacto `1` habilita la lectura. Cuando está habilitado, un exceso real sigue produciendo 503. La variable se establece solo en el arnés del navegador para el caso ficticio habilitado; el caso deshabilitado no la define. No se ha aplicado configuración a un entorno real. Ambos recorridos de navegador aislado pasaron en 1280 y 390 píxeles, con teclado y zoom al 200 %; el habilitado comprobó además los errores y el reintento. `npm run build` y `npm run check:release` pasaron. La suite general posterior pasó con 1.516 pruebas Node y pruebas Python.
+
+## Integración posterior
+
+Sobre `92fdaadc12b70f9a29d92aecd245bd2a7fbd34f2`, `npm test` aprobó 1.527 pruebas JavaScript y 25 Python; `build`, `check:release`, `team:check` y `check:packages` aprobaron. Se repitieron los E2E aislados de ANA-05 apagado y habilitado con fixtures, y el de ANA-01 integrado; los tres pasaron. No se configuró el gate productivo ni se midió D1 remoto.

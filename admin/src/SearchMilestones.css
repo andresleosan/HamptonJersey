@@ -1,0 +1,9 @@
+.milestone-filters{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}
+.milestone-filters label{display:grid;gap:4px;max-width:100%}
+.milestone-filters select{min-height:32px;max-width:100%}
+.milestone-filters select:focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
+.search-milestones .milestone-bars{margin:12px 0}
+.search-milestones .milestone-bars ul{border:0;margin:0;padding:0}
+.search-milestones .milestone-bars li{grid-template-columns:minmax(90px,140px) minmax(0,1fr) 56px}
+.search-milestones .table-scroll{margin:12px 0}
+@media(max-width:760px){.milestone-filters select{min-height:44px}.search-milestones .milestone-bars li{grid-template-columns:minmax(85px,110px) minmax(0,1fr) 44px;gap:8px}}
