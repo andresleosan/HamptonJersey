@@ -1,5 +1,6 @@
 import { sha256, fail } from './http.js';
 import { buildDemandSnapshot } from './demand-snapshot.js';
+import { DEMAND_SCHEMA_GUARD, demandSchemaReady } from './demand-schema.js';
 import { publicCells, isPublicDemandPayload, readAcceptedReleaseAuthorization } from './demand-release-policy.js';
 
 const primary=db=>typeof db.withSession==='function' ? db.withSession('first-primary') : db;
@@ -7,7 +8,7 @@ const actorOk=actor=>typeof actor==='string' && actor.length>0 && actor.length<=
 const uuid=id=>typeof id==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 const policy=env=>typeof env.PUBLIC_DEMAND_POLICY_VERSION==='string' && env.PUBLIC_DEMAND_POLICY_VERSION.length<=100 ? env.PUBLIC_DEMAND_POLICY_VERSION : '';
 const assertInput=(v,m='Invalid demand request')=>{ if(!v) fail(400,m); };
-const ensureReady=env=>{ if(env.DEMAND_INTERNAL_READY!=='1') fail(404,'Not found'); };
+const ensureReady=async env=>{ if(env.DEMAND_INTERNAL_READY!=='1' || !await demandSchemaReady(env)) fail(404,'Not found'); };
 const guards=(db,condition,...args)=>db.prepare(`INSERT INTO public_demand_assert(ok) SELECT CASE WHEN (${condition}) THEN 1 ELSE 0 END`).bind(...args);
 const clear=db=>db.prepare('DELETE FROM public_demand_assert');
 const qtime=db=>db.prepare("SELECT strftime('%Y-%m-%dT%H:%M:%fZ','now') AS now");
@@ -18,7 +19,7 @@ const validSnapshot=async s=>{
 };
 
 export async function getDemandRecoveryScope(env,actor) {
-  ensureReady(env); assertInput(actorOk(actor)); const db=primary(env.DB), candidate=crypto.randomUUID();
+  await ensureReady(env); assertInput(actorOk(actor)); const db=primary(env.DB), candidate=crypto.randomUUID();
   try {
     const result=await db.batch([
       guards(db,'EXISTS(SELECT 1 FROM admins WHERE email=?)',actor),
@@ -29,13 +30,13 @@ export async function getDemandRecoveryScope(env,actor) {
   } catch { fail(409,'Recovery scope unavailable'); }
 }
 export async function getActiveDemandDraft(env,operation,actor) {
-  ensureReady(env); assertInput(['rent','buy'].includes(operation)&&actorOk(actor));
+  await ensureReady(env); assertInput(['rent','buy'].includes(operation)&&actorOk(actor));
   const db=primary(env.DB);
   const row=await db.prepare("SELECT s.id,s.version,s.operation,s.status FROM public_demand_snapshots s JOIN demand_recovery_scopes r ON r.scope=s.recovery_scope AND r.actor=s.created_by WHERE r.actor=? AND s.operation=? AND s.status IN ('draft','approved')").bind(actor,operation).first();
   return {draft:row ?? null};
 }
 export async function generateDemandDraft(env,{operation,operation_id},actor) {
-  ensureReady(env); assertInput(actorOk(actor)&&['rent','buy'].includes(operation)&&uuid(operation_id));
+  await ensureReady(env); assertInput(actorOk(actor)&&['rent','buy'].includes(operation)&&uuid(operation_id));
   const db=primary(env.DB), {scope}=await getDemandRecoveryScope(env,actor), previous=await db.prepare('SELECT id,version,operation,created_by,recovery_scope FROM public_demand_snapshots WHERE id=?').bind(operation_id).first();
   if(previous) { if(previous.created_by!==actor || previous.recovery_scope!==scope || previous.operation!==operation) fail(409,'Operation belongs to another draft'); return {id:previous.id,version:previous.version}; }
   const draft=await buildDemandSnapshot(env,{operation});
@@ -54,7 +55,7 @@ export async function generateDemandDraft(env,{operation,operation_id},actor) {
       .bind(...chunk.flatMap(c=>[id,c.contact_id,c.search_id,c.parish,c.bedroom_band])));
   }
   try { await db.batch([
-    guards(db,'EXISTS(SELECT 1 FROM demand_recovery_scopes WHERE actor=? AND scope=?)',actor,scope),
+    guards(db,`${DEMAND_SCHEMA_GUARD} AND EXISTS(SELECT 1 FROM demand_recovery_scopes WHERE actor=? AND scope=?)`,actor,scope),
     db.prepare(`INSERT INTO public_demand_snapshots(id,created_by,recovery_scope,status,schema_version,as_of,valid_until,definition_version,operation,private_payload,public_payload,public_sha256)
       VALUES (?,?,?,'draft',1,?,?,?,?,?,?,?)`).bind(id,actor,scope,draft.as_of,valid_until,draft.definition_version,operation,JSON.stringify(privateDraft),public_payload,hash),
     ...values,clear(db),
@@ -67,7 +68,7 @@ export async function generateDemandDraft(env,{operation,operation_id},actor) {
 }
 
 export async function readDemandDraft(env,id,after=0,actor) {
-  ensureReady(env); assertInput(uuid(id)&&[0,50].includes(after)&&actorOk(actor));
+  await ensureReady(env); assertInput(uuid(id)&&[0,50].includes(after)&&actorOk(actor));
   const db=primary(env.DB), row=await db.prepare(`SELECT id,status,version,as_of,valid_until,operation,definition_version,private_payload,public_payload,public_sha256 FROM public_demand_snapshots WHERE id=?`).bind(id).first();
   if(!row) fail(404,'Draft not found');
   const draft=row.private_payload && Date.parse(row.as_of)>Date.now()-7*86400000 ? JSON.parse(row.private_payload) : null;
@@ -78,7 +79,7 @@ export async function readDemandDraft(env,id,after=0,actor) {
     next:draft && draft.cells.length>after+50 ? after+50 : null, reviewed_pages:reviews.results.map(r=>r.page_start), quality:draft?.quality ?? null,public_payload:JSON.parse(row.public_payload)};
 }
 export async function markDemandPageReviewed(env,{id,version,after},actor) {
-  ensureReady(env); assertInput(uuid(id)&&Number.isSafeInteger(version)&&version>0&&[0,50].includes(after)&&actorOk(actor));
+  await ensureReady(env); assertInput(uuid(id)&&Number.isSafeInteger(version)&&version>0&&[0,50].includes(after)&&actorOk(actor));
   const db=primary(env.DB);
   try { await db.batch([
     guards(db,`EXISTS(SELECT 1 FROM admins WHERE email=?) AND EXISTS(SELECT 1 FROM public_demand_snapshots s WHERE s.id=? AND s.version=? AND s.status='draft' AND s.private_payload IS NOT NULL AND s.as_of>strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days') AND (?=0 OR json_array_length(json_extract(s.private_payload,'$.cells'))>50))`,actor,id,version,after),
@@ -87,7 +88,7 @@ export async function markDemandPageReviewed(env,{id,version,after},actor) {
   return {id,version,after};
 }
 export async function approveDemandDraft(env,{id,version,authorization_id},actor) {
-  ensureReady(env); assertInput(uuid(id)&&uuid(authorization_id)&&Number.isSafeInteger(version)&&version>0&&actorOk(actor));
+  await ensureReady(env); assertInput(uuid(id)&&uuid(authorization_id)&&Number.isSafeInteger(version)&&version>0&&actorOk(actor));
   const db=primary(env.DB), [snap,state,time]=await db.batch([
     db.prepare('SELECT * FROM public_demand_snapshots WHERE id=?').bind(id),
     db.prepare('SELECT * FROM public_demand_release_state WHERE id=1'),qtime(db),
@@ -104,7 +105,7 @@ export async function approveDemandDraft(env,{id,version,authorization_id},actor
 }
 
 export async function publishDemandDraft(env,{id,version},actor) {
-  ensureReady(env); assertInput(uuid(id)&&Number.isSafeInteger(version)&&version>0&&actorOk(actor));
+  await ensureReady(env); assertInput(uuid(id)&&Number.isSafeInteger(version)&&version>0&&actorOk(actor));
   if(env.PUBLIC_DEMAND_READY!=='1' || !policy(env)) fail(409,'Public release not available');
   const db=primary(env.DB), [snap,state,entries,time]=await db.batch([
     db.prepare('SELECT * FROM public_demand_snapshots WHERE id=?').bind(id),
@@ -132,7 +133,7 @@ export async function publishDemandDraft(env,{id,version},actor) {
   return {id,version:version+1,status:'published'};
 }
 export async function revokeDemandDraft(env,{id,version},actor) {
-  ensureReady(env); assertInput(uuid(id)&&Number.isSafeInteger(version)&&version>0&&actorOk(actor));
+  await ensureReady(env); assertInput(uuid(id)&&Number.isSafeInteger(version)&&version>0&&actorOk(actor));
   const db=primary(env.DB);
   try { await db.batch([
     guards(db,"EXISTS(SELECT 1 FROM admins WHERE email=?) AND EXISTS(SELECT 1 FROM public_demand_snapshots WHERE id=? AND version=? AND status IN ('draft','approved','published'))",actor,id,version),
@@ -142,7 +143,7 @@ export async function revokeDemandDraft(env,{id,version},actor) {
   return {id,version:version+1,status:'revoked'};
 }
 export async function currentPublicDemand(env) {
-  if(env.PUBLIC_DEMAND_READY!=='1' || !policy(env)) return {status:'not_available'};
+  if(env.PUBLIC_DEMAND_READY!=='1' || !policy(env) || !await demandSchemaReady(env)) return {status:'not_available'};
   const db=primary(env.DB);
   const [rows,time]=await db.batch([db.prepare(`SELECT s.id,s.operation,s.public_payload,s.public_sha256 FROM public_demand_pointer p
     JOIN public_demand_snapshots s ON s.id=p.current_snapshot_id AND s.operation=p.operation

@@ -150,6 +150,13 @@ test('D1 synthetic: release needs independent authority, respects ledger and clo
   const completed=JSON.parse((await db.prepare("SELECT value FROM app_settings WHERE key='demand_retention_run'").first()).value);
   assert.equal(completed.ok,true);assert.equal(completed.attempts,2);assert.ok(completed.purged>=1);
 
+
+  await db.prepare('DROP TRIGGER invalidate_demand_on_search_delete').run();
+  const closedId='c0000000-0000-4000-8000-000000000007';
+  await assert.rejects(()=>generateDemandDraft(env,{operation:'rent',operation_id:closedId},actor));
+  assert.equal(await db.prepare('SELECT id FROM public_demand_snapshots WHERE id=?').bind(closedId).first(),null);
+  assert.deepEqual(await currentPublicDemand(env),{status:'not_available'});
+
   assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results,[]);
 
  } finally { await mf.dispose(); }
