@@ -561,7 +561,8 @@ body:has(.chat-btn:not([hidden])) footer{padding-bottom:80px}
 <script>
 // ---------- helpers (pure ones live in lib.js) ----------
 const $ = (s, el = document) => el.querySelector(s);
-const wix = (url, w, h) => url ? `${url}/v1/fill/w_${w},h_${h},al_c,q_80/photo.jpg` : "";
+// A cached older lib.js has no photo allowlist: omit photos until the matching helper loads.
+const teamPhoto = typeof safeTeamPhoto === "function" ? safeTeamPhoto : () => null;
 const fmtDate = iso => new Date(iso + "T12:00").toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"});
 // Compatibility for a failed measurement resource, including when a cached older lib.js is used.
 // The catalogue values below must match the canonical module; the parity test protects updates.
@@ -724,7 +725,7 @@ function mountBooking(slot, pre = {}) {
   const show = (keepId, want) => {
     const pickN = A.negotiators.find(n => n.id === keepId) || A.negotiators.find(n => n.name === pre.agent) || A.negotiators[0];
     agents.innerHTML = `<fieldset class="field"><legend>Your agent</legend><div class="opts cards">${A.negotiators.map(n => { const t = teamOf(n);
-      return `<label><input type="radio" name="negotiator" value="${n.id}" data-name="${esc(n.name)}" ${n === pickN ? "checked" : ""}><span class="opt">${t?.photo ? `<img src="${esc(wix(t.photo, 96, 96))}" alt="">` : ""}<b>${esc(n.name)}</b><small>${esc(t?.role || n.role || "")}</small></span></label>`; }).join("")}</div></fieldset>`;
+      return `<label><input type="radio" name="negotiator" value="${n.id}" data-name="${esc(n.name)}" ${n === pickN ? "checked" : ""}><span class="opt">${t?.photo ? `<img src="${esc(t.photo)}" alt="">` : ""}<b>${esc(n.name)}</b><small>${esc(t?.role || n.role || "")}</small></span></label>`; }).join("")}</div></fieldset>`;
     when.innerHTML = `<fieldset class="field"><legend>Day <i>Monday to Saturday</i></legend><div class="opts days">${A.days.map(({date: d}) =>
       `<label><input type="radio" name="date" value="${d}"><span class="day"><small>${dayPart(d, {weekday: "short"})}</small><b class="num">${dayPart(d, {day: "numeric"})}</b><small>${dayPart(d, {month: "short"})}</small></span></label>`).join("")}</div></fieldset>
       <fieldset class="field"><legend>Time</legend><div class="times"></div></fieldset>`;
@@ -866,7 +867,7 @@ function home() {
     <h2>A family firm on Bath Street</h2>
     <p class="team-intro">Established in St Helier in 1982. Free local and international valuations. Viewings Monday to Saturday, in person or by live video.</p>
     ${TEAM.length ? `<div class="team-grid">${TEAM.map((t, i) => `<article class="agent">
-      <img src="${esc(wix(t.photo, 600, 760))}" alt="${esc(t.name)}">
+      ${t.photo ? `<img src="${esc(t.photo)}" alt="${esc(t.name)}">` : `<div aria-hidden="true"></div>`}
       <div class="info"><div><h3>${esc(t.name)}</h3><div class="role">${esc(t.role)}</div></div>
         <p>${bios[i] || ""}</p>
         <div class="contact num">${t.phone ? `<span>Mobile ${esc(t.phone)}</span>` : ""}<span>Office ${esc(t.office)}</span><span>francopropertiesjersey@gmail.com</span></div>
@@ -1058,7 +1059,7 @@ function detail(id) {
       ${restriction ? `<span class="tag restrict">${esc(restriction)}</span>` : ""}
       ${p.tags.length ? `<div aria-label="Property features">${p.tags.map(tag => `<span class="tag">${esc(tag)}</span>`).join(" ")}</div>` : ""}
       ${p.beds || p.baths || p.type ? `<div class="keys num">${p.beds ? `<div><b>${p.beds}</b><span>Bedrooms</span></div>` : ""}${p.baths ? `<div><b>${p.baths}</b><span>Bathrooms</span></div>` : ""}${p.type ? `<div><b>${esc(p.type)}</b><span>Type</span></div>` : ""}</div>` : ""}
-      ${agent ? `<div class="agent-mini">${agent.photo ? `<img src="${esc(wix(agent.photo, 120, 120))}" alt="">` : ""}<div><b>${esc(agent.name)}</b><div class="hint">${esc(agent.role)} · ${esc(agent.office)}</div></div></div>` : ""}
+      ${agent ? `<div class="agent-mini">${agent.photo ? `<img src="${esc(agent.photo)}" alt="">` : ""}<div><b>${esc(agent.name)}</b><div class="hint">${esc(agent.role)} · ${esc(agent.office)}</div></div></div>` : ""}
       ${interest ? `<p class="interest"><b>${interest} people interested</b> <span class="hint">Upcoming viewings, and those of the last 30 days that went well</span></p>` : ""}
       <div class="btns">${!canBook(p) ? `<a class="btn" href="/#team" data-contact-team>Contact us</a>` : `<a class="btn" href="#detail-book" data-scroll="detail-book">Book a viewing</a>`}
         ${p.tourUrl ? `<button class="btn ghost" type="button" data-go="tour">Open the 3D tour</button>` : ""}</div>
@@ -1355,7 +1356,7 @@ Promise.allSettled([getJSON("/api/listings"), getJSON("/data/team.json"), getJSO
     .sort(newestFirst); // PUB-22: newest on the website first; without a date, by region then homes before businesses
   PUB = PROPS.filter(shownOnSite); // without a public photo a listing stays out of the public pages
   TEAM = (t.status === "fulfilled" && Array.isArray(t.value) ? t.value : []).filter(a => a && a.name)
-    .map(a => ({...a, photo: safeUrl(a.photo, IMG_HOST)}));
+    .map(a => ({...a, photo: teamPhoto(a.photo)}));
   TOURS = (tr.status === "fulfilled" && Array.isArray(tr.value) ? tr.value : []).filter(x => x && typeof x.title === "string" && embedUrl(x.url))
     .map(x => ({title: x.title, url: embedUrl(x.url), caption: typeof x.caption === "string" ? x.caption : ""}));
   if (!PUB.length) throw new Error("no listings");

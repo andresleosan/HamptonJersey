@@ -183,3 +183,10 @@ test('search measurement uses visible filters and distinguishes a genuine empty 
   assert.deepEqual(L.searchAction({op:'all',region:'all',beds:0,max:0}, [], true),
     {event:'search_applied',version:1,op:null,region:null,beds:null,max:null,zero_results:true});
 });
+
+test('team photos accept only the two exact local paths', () => {
+  const paths = ['/assets/team/gilberto-franco.jpg', '/assets/team/joshua-franco.jpg'];
+  for (const path of paths) assert.equal(L.safeTeamPhoto(path), path);
+  for (const value of ['https://example.com/x.jpg', 'javascript:alert(1)', 'assets/team/gilberto-franco.jpg', '/assets/team/../team/gilberto-franco.jpg', '/assets/team/gilberto-franco.jpg?x=1', '/assets/team/gilberto-franco.jpg#x', '', null, 42])
+    assert.equal(L.safeTeamPhoto(value), null);
+});

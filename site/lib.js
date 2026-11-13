@@ -3,13 +3,15 @@ const searchDimensionDefs = typeof module === "object" ? require("./measurement-
   : typeof SEARCH_DIMENSIONS !== "undefined" && typeof searchPriceCode === "function" ? {SEARCH_DIMENSIONS, searchPriceCode} : null;
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-// Only https URLs under a known prefix are allowed into src/href attributes (team photos on Wix).
+// Only https URLs under a known prefix are allowed into src/href attributes.
 const IMG_HOST = "https://static.wixstatic.com/media/";
 const safeUrl = (u, prefix) => {
   // ' ( ) are percent-encoded too, so a URL can't break out of a CSS url('...') value.
   try { const x = new URL(u); return x.protocol === "https:" && x.href.startsWith(prefix) ? x.href.replace(/['()]/g, c => "%" + c.charCodeAt(0).toString(16)) : null; }
   catch { return null; }
 };
+const TEAM_PHOTOS = new Set(["/assets/team/gilberto-franco.jpg", "/assets/team/joshua-franco.jpg"]);
+const safeTeamPhoto = u => typeof u === "string" && TEAM_PHOTOS.has(u) ? u : null;
 // Listing media come from our own /media endpoint.
 const safeMedia = u => (typeof u === "string" && /^\/media\/[A-Za-z0-9]+(\?thumb)?$/.test(u) ? u : null);
 const safeHttps = u => { try { const x = new URL(u); return x.protocol === "https:" ? x.href : null; } catch { return null; } };
@@ -145,4 +147,4 @@ function searchAction(f, visible, loaded) {
 // The category photo: newest matching operation, or international region, with the page fallback if absent.
 const buttonPhoto = (pub, op) => [...pub].sort(newestFirst).find(p => op === "international" ? p.region === op : p.operation === op)?.image ?? null;
 
-if (typeof module === "object") module.exports = {searchAction, newestFirst, homePicks, readCatalogQuery, catalogQuery, catalogFilter, buttonPhoto, shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, priceOperation, amount, priceLabel, isSold, canBook, matches, comparables, pmt};
+if (typeof module === "object") module.exports = {searchAction, newestFirst, homePicks, readCatalogQuery, catalogQuery, catalogFilter, buttonPhoto, shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeTeamPhoto, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, priceOperation, amount, priceLabel, isSold, canBook, matches, comparables, pmt};
