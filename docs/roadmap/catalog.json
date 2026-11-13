@@ -17753,16 +17753,22 @@
     {
       "id": "ANA-10",
       "seccion": "Trazabilidad y analítica",
-      "titulo": "Origen de cada contacto nuevo: web, cartel con QR, folleto o recomendación",
+      "titulo": "QR de pósteres de propiedades y aperturas agregadas",
       "origen": "plan",
       "fase": "—",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "Para saber qué canal trae propietarios (plan del 2-nov-2026): cada QR de cartel o de folleto lleva su etiqueta, el contacto guarda de dónde llegó e Insights cuenta por origen. Los carteles van solo en la casa que Hampton anuncia, con permiso del dueño, y se quitan a los 14 días de la venta o el alquiler.",
+      "hecho": "La decisión del 10-nov sustituye la atribución de origen a contactos por aperturas agregadas de QR por propiedad. Se preparó no-store para ficha y catálogo mediante un gate desactivado por defecto; la caché existente y la protección de direcciones exactas se conservan. Aún no hay QR ni contador nuevos activos.",
+      "falta": "Construir la generación y descarga Staff del QR, asociación estable por ficha pública, redirección, contadores agregados y consulta protegida. Acreditar privacidad, presupuesto y atomicidad, la elegibilidad y retirada temporal de PUB-16, el coste adicional de las lecturas, las reglas CDN y la invalidación o vencimiento de cachés antiguas; probar también el QR físico. El gate preparado no acredita esos requisitos ni producción.",
       "bloqueo": "",
       "evidencia": [
-        "server/insights.js"
+        "server/routes/public.js",
+        "server/seo.js",
+        "tests/server/public.test.mjs",
+        "tests/server/seo.test.mjs",
+        "docs/superpowers/plans/2026-11-10-ana-10-qr-agregado.md",
+        "docs/superpowers/specs/2026-11-10-tanda7-analitica-design.md",
+        "docs/roadmap/work/ANA-10/cache-origen-2026-11-13.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -17770,19 +17776,20 @@
       "executionEligibility": "needs_scope_and_evidence_review",
       "dependencies": [
         {
-          "id": "PUB-10",
-          "requires": "design",
-          "reason": "El tramo de captación de propietarios acuerda origen con valoración; otros contactos pueden medirse aparte.",
-          "basis": "inferred",
+          "id": "PUB-16",
+          "requires": "integrated",
+          "reason": "Antes de activar el QR se requiere la retirada temporal de fichas, su visibilidad coherente y la solución de caché verificada.",
+          "basis": "explicit",
           "scope": "partial"
         }
       ],
       "externalBlocker": "",
       "resources": [
         "analytics-contract",
-        "owner-contact"
+        "public-site"
       ],
-      "nextStep": "Añadir origen de contacto y QR trazable con recuentos por canal."
+      "nextStep": "Construir el QR agregado sin datos de visitantes y acreditar PUB-16 y las cachés antes de activar.",
+      "actualizado": "2026-11-13"
     },
     {
       "id": "OFE-01",

@@ -1,5 +1,7 @@
 # Estado de Hampton App
 
+13-nov-2026 · **ANA-10 parcial:** la decisión vigente usa QR por propiedad y aperturas agregadas, sin atribución a contactos. El control de caché está preparado y apagado por defecto; faltan QR, recuento, coste y verificación CDN. [Evidencia](work/ANA-10/cache-origen-2026-11-13.md).
+
 13-nov-2026 · **PUB-16 parcial:** el checklist incorpora la decisión pendiente de 24 horas para corregir y retirar un alquiler, y la cancelación y avisos posteriores de visitas. El código actual no acredita ese recorrido. [Conciliación](work/PUB-16/reconciliacion-24h-2026-11-13.md).
 
 13-nov-2026 · **Integración SPR-01, AUT-10 y REG-04:** 1.786 pruebas JavaScript, 25 Python y recorridos de History en Chromium/WebKit aislados. Las tres tareas continúan parciales. [Verificación](work/progreso/integracion-2026-11-13-spr01-aut10-reg04.md).
