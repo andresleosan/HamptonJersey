@@ -10,13 +10,13 @@ test('10,000 complete candidates are paged and 10,001 fail closed', async t => {
   const env={...applyListingHealthProposal(makeEnv()),LISTING_HEALTH_READY:'1'}, db=env.DB.raw;
   const insertListing=db.prepare(`INSERT INTO listings(id,use,title,operation,availability,published,created_at,updated_at)
     VALUES(?,'residential','Synthetic home','sale','for_sale',1,'2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')`);
-  const insertMedia=db.prepare(`INSERT INTO media(id,listing_id,r2_key,origin,kind,public,created_at)
-    VALUES(?,?,?,'upload','photo',1,'2026-01-01T00:00:00.000Z')`);
+  const insertMedia=db.prepare(`INSERT INTO media(id,listing_id,r2_key,thumb_key,content_type,origin,kind,public,created_at)
+    VALUES(?,?,?,?,?,'upload','photo',1,'2026-01-01T00:00:00.000Z')`);
   const insertStat=db.prepare("INSERT INTO daily_stats(day,listing_id,metric,n) VALUES(?,?,'view',1)");
   const insertRequest=db.prepare(`INSERT INTO viewing_requests(listing_id,kind,date,time,name,email,status,created_at)
     VALUES(?,'In person','2026-10-20','10:00','Synthetic visitor','visitor@example.test','requested','2026-10-01T12:00:00.000Z')`);
   const days=Array.from({length:30},(_,i)=>new Date(Date.UTC(2026,8,26+i)).toISOString().slice(0,10));
-  const seed=i=>{const id=`LOAD-${String(i).padStart(5,'0')}`;insertListing.run(id);insertMedia.run(`M${String(i).padStart(5,'0')}`,id,'fixture/photo');
+  const seed=i=>{const id=`LOAD-${String(i).padStart(5,'0')}`;insertListing.run(id);insertMedia.run(`M${String(i).padStart(5,'0')}`,id,'fixture/photo','fixture/thumb','image/jpeg');
     for(const day of days)insertStat.run(day,id);insertRequest.run(id);};
   db.exec('BEGIN'); for(let i=1;i<=10000;i++)seed(i); db.exec('COMMIT');
   let query, bindValues, sqlMs, bytes, budget;

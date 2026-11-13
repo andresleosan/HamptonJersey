@@ -115,6 +115,8 @@ const HEALTH_LISTING_FIELDS = [
 ];
 const HEALTH_EXTRA_FIELDS = ['building_name_or_number','postcode','public_address_snapshot','public_address_snapshot_hash',
   'drive_folder_name','pub08_tags','pub08_video_url','active_interest'];
+// Compact array avoids repeating field names for each media item in the bounded D1 response.
+const HEALTH_MEDIA_FIELDS = ['id','origin','public','r2_key','thumb_key','kind','content_type','label','position'];
 // Six output bytes per UTF-8 input byte covers JSON escaping (including controls and supplementary Unicode).
 // 1 KiB per row plus a 4 MB margin below a 50 MB ceiling covers column names and transport wrappers.
 // This is a transport guard only, not evidence that D1 CPU, memory or row-read budgets are safe.
@@ -150,8 +152,8 @@ const HEALTH = contentEnabled => `WITH views AS (
       d.building_name_or_number,d.postcode,d.public_address_snapshot,d.public_address_snapshot_hash,
       (SELECT folder_name FROM drive_imports di WHERE di.folder_id=l.drive_folder_id ORDER BY di.id DESC LIMIT 1),
       ${contentEnabled ? 'c.tags,c.video_url' : 'NULL,NULL'},0) AS health_listing,
-    (SELECT json_group_array(json_object('id',id,'origin',origin,'public',public,'r2_key',r2_key,'kind',kind,'label',label,'position',position))
-      FROM (SELECT id,origin,public,r2_key,kind,label,position FROM media
+    (SELECT json_group_array(json_array(id,origin,public,r2_key,thumb_key,kind,content_type,label,position))
+      FROM (SELECT id,origin,public,r2_key,thumb_key,kind,content_type,label,position FROM media
             WHERE listing_id=l.id AND public=1 ORDER BY position,id)) AS health_media
   FROM views v JOIN listings l ON l.id=v.listing_id LEFT JOIN requests q ON q.listing_id=l.id
   LEFT JOIN listing_details d ON d.listing_id=l.id LEFT JOIN listing_health_revisions rev ON rev.listing_id=l.id
@@ -194,7 +196,8 @@ async function listingHealth({ request, env }) {
   const reviewed = await Promise.all(candidates.map(async row => {
     const values = JSON.parse(row.health_listing);
     const listing = Object.fromEntries([...HEALTH_LISTING_FIELDS,...HEALTH_EXTRA_FIELDS].map((key,i) => [key,values[i]]));
-    const visible = await reviewPublicListing(env, listing, JSON.parse(row.health_media));
+    const media = JSON.parse(row.health_media).map(values => Object.fromEntries(HEALTH_MEDIA_FIELDS.map((key, i) => [key, values[i]])));
+    const visible = await reviewPublicListing(env, listing, media);
     // Match site/lib.js shownOnSite: an unservable cover hides the listing, even if another photo exists.
     const shown = !!visible && typeof visible.pub.image === 'string' && /^\/media\/[A-Za-z0-9]+$/.test(visible.pub.image);
     return { row, listing, visible: shown };

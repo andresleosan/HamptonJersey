@@ -146,3 +146,16 @@ test('health follows the website visibility rule for the selected cover photo', 
   const response=await get(env);
   assert.deepEqual(response.data.rows.map(row=>row.listing_id),['GOOD']);
 });
+
+test('health agrees with public media eligibility for known documents and legacy photos', async t => {
+  const env = setup(t);
+  for (const id of ['GOOD', 'LEGACYNULL', 'DOCMIME', 'DOCNAME']) { listing(env, id); stat(env, id, 30); }
+  run(env, "UPDATE media SET content_type=NULL WHERE listing_id='LEGACYNULL'");
+  run(env, "UPDATE media SET content_type='application/pdf' WHERE listing_id='DOCMIME'");
+  run(env, "UPDATE media SET content_type=NULL,r2_key='synthetic/file.pdf' WHERE listing_id='DOCNAME'");
+  for (const id of ['GOOD', 'LEGACYNULL']) assert.ok((await readLive(env, id))[0].pub.image);
+  for (const id of ['DOCMIME', 'DOCNAME']) assert.equal((await readLive(env, id))[0].pub.image, null);
+  const health = await get(env);
+  assert.equal(health.status, 200);
+  assert.deepEqual(health.data.rows.map(row => row.listing_id), ['GOOD', 'LEGACYNULL']);
+});
