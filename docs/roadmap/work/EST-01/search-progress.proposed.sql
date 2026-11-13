@@ -75,7 +75,7 @@ BEGIN SELECT RAISE(ABORT,'applicant identity immutable'); END;
 -- back an INSERT OR REPLACE, including any implicit delete and cascades.
 CREATE TRIGGER est01_applicant_record_identity AFTER INSERT ON applicants
 BEGIN INSERT INTO est01_applicant_ids(applicant_id) VALUES(NEW.id); END;
-CREATE TRIGGER est01_applicant_id_immutable BEFORE UPDATE OF id ON applicants
+CREATE TRIGGER est01_applicant_id_immutable BEFORE UPDATE ON applicants
 WHEN NEW.id IS NOT OLD.id
 BEGIN SELECT RAISE(ABORT,'applicant identity immutable'); END;
 

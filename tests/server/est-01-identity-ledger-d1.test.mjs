@@ -25,5 +25,10 @@ test('D1 disposable: applicant and attempt identities persist and failed batches
   assert.equal((await fullCheckSuccessStatement(env,old,{finishedAt:time,checkedCount:0}).run()).meta.changes,0);
   await DB.prepare('DELETE FROM applicants WHERE id=1').run();await assert.rejects(()=>add().run());
   assert.equal(await beginFullCheck(env,snapshot,{nowIso:time}),null);
+  await DB.prepare("INSERT INTO applicants(id,contact_id,operation,stage,source,created_at,updated_at) VALUES(2,1,'buy','searching','phone',?,?)").bind(time,time).run();
+  for(const alias of ['rowid','_rowid_','oid']) {
+    await assert.rejects(()=>DB.prepare(`UPDATE applicants SET ${alias}=1 WHERE id=2`).run());
+    assert.equal((await DB.prepare('SELECT id FROM applicants').first()).id,2);
+  }
  } finally {await mf.dispose();}
 });

@@ -29,3 +29,14 @@ test('identity ledgers reject deletion, mutation and replacement with recursive 
  assert.equal(db.prepare('SELECT count(*) n FROM est01_applicant_ids').get().n,1);
  for(const sql of ['DELETE FROM est01_applicant_ids','UPDATE est01_applicant_ids SET applicant_id=2','INSERT OR REPLACE INTO est01_applicant_ids SELECT * FROM est01_applicant_ids','DELETE FROM est01_attempt_tokens',"UPDATE est01_attempt_tokens SET attempt_token='replacement'",'INSERT OR REPLACE INTO est01_attempt_tokens SELECT * FROM est01_attempt_tokens'])assert.throws(()=>db.exec(sql));
 });
+
+test('rowid aliases cannot change a live applicant identity to a previously deleted ID',()=>{
+ for(const alias of ['rowid','_rowid_','oid']){
+  const env=setup(),db=env.DB.raw;
+  db.exec('DELETE FROM applicants WHERE id=1');
+  db.prepare("INSERT INTO applicants(id,contact_id,operation,stage,source,created_at,updated_at) VALUES(2,1,'buy','searching','phone',?,?)").run(T0,T0);
+  assert.equal(db.prepare('PRAGMA foreign_keys').get().foreign_keys,1);
+  assert.throws(()=>db.exec(`UPDATE applicants SET ${alias}=1 WHERE id=2`));
+  assert.equal(db.prepare('SELECT id FROM applicants').get().id,2);
+ }
+});
