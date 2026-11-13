@@ -4,6 +4,9 @@ import { sha256 } from "./http.js";
 
 // MSG-02 (spec 2026-11-06): the rules of the website's chat, shared by its public routes and the panel's.
 export const KEY_DAYS = 7, KEEP_DAYS = 30, MAX_VISITOR = 40, GAP_MS = 3000, VISITOR_MAX = 1000, TEAM_MAX = 2000;
+// D1 evaluates these inside the statement, after any wait for another transaction.
+export const CHAT_DB_NOW = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
+export const CHAT_KEY_CUTOFF = `strftime('%Y-%m-%dT%H:%M:%fZ','now','-${KEY_DAYS} days')`;
 
 const blank = v => v == null || (typeof v === "string" && !v.trim());
 const text = (v, max) => (typeof v === "string" && v.trim().length >= 1 && v.trim().length <= max ? v.trim() : null);
@@ -60,4 +63,20 @@ export async function conversation(env, chatId, { team = false } = {}) {
   return { status: c.status, listing: c.title ? { id: c.listing_id, title: c.title } : null,
     messages: msgs.map(m => ({ id: m.id, role: m.role, from: m.role === "team" ? signature(m.name) : null, text: m.text,
       at: m.created_at, ...(team && m.role === "team" ? { sent_by: m.sent_by } : {}) })) };
+}
+
+// A visitor's key and its age are checked in the same read as the returned
+// messages, so a chat revoked or deleted after the initial lookup stays private.
+export async function visitorConversation(env, chatId, hash) {
+  const { results: rows } = await env.DB.prepare(`SELECT c.id AS chat_id, c.status, c.visitor_seen_at,
+    c.listing_id, l.title, m.id AS message_id, m.role, m.text, m.created_at, a.name
+    FROM chats c LEFT JOIN listings l ON l.id = c.listing_id AND l.published = 1 AND l.archived_at IS NULL
+    LEFT JOIN chat_messages m ON m.chat_id = c.id LEFT JOIN admins a ON a.email = m.sent_by
+    WHERE c.id = ? AND c.key_hash = ? AND c.last_at >= ${CHAT_KEY_CUTOFF} ORDER BY m.id`).bind(chatId, hash).all();
+  if (!rows.length) return null;
+  const c = rows[0];
+  return { visitor_seen_at: c.visitor_seen_at, chat: { status: c.status,
+    listing: c.title ? { id: c.listing_id, title: c.title } : null,
+    messages: rows.filter(m => m.message_id !== null).map(m => ({ id: m.message_id, role: m.role,
+      from: m.role === "team" ? signature(m.name) : null, text: m.text, at: m.created_at })) } };
 }

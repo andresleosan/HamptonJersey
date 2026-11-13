@@ -1,7 +1,7 @@
 import { json, fail, readJson, now } from "../http.js";
 import { verifyTurnstile } from "../turnstile.js";
-import { validateStart, messageText, chatOn, previewHost, newKey, keyHash, conversation,
-  KEY_DAYS, MAX_VISITOR, GAP_MS, VISITOR_MAX } from "../chat.js";
+import { validateStart, messageText, chatOn, previewHost, newKey, keyHash, conversation, visitorConversation,
+  CHAT_DB_NOW, CHAT_KEY_CUTOFF, MAX_VISITOR, GAP_MS, VISITOR_MAX } from "../chat.js";
 
 // MSG-02 (spec 2026-11-06): the website's chat. No route carries an id: the chat is the one whose key hash matches the
 // Authorization header, while its last message is under KEY_DAYS old (C5). Any other key gets the same answer.
@@ -13,9 +13,10 @@ async function chatOf(request, env) {
   if (previewHost(request)) notHere();
   const key = /^Bearer ([A-Za-z0-9_-]{43})$/.exec(request.headers.get("authorization") ?? "")?.[1];
   if (!key) ended();
-  const c = await env.DB.prepare("SELECT id, visitor_seen_at FROM chats WHERE key_hash = ? AND last_at >= ?")
-    .bind(await keyHash(key), ago(KEY_DAYS * 864e5)).first();
-  return c ?? ended();
+  const hash = await keyHash(key);
+  const c = await env.DB.prepare(`SELECT id FROM chats WHERE key_hash = ? AND last_at >= ${CHAT_KEY_CUTOFF}`)
+    .bind(hash).first();
+  return c ? { ...c, hash } : ended();
 }
 
 async function start({ request, env }) {
@@ -41,9 +42,12 @@ async function start({ request, env }) {
 // C14: a read tells the panel the visitor is on the website, written at most once a minute.
 async function read({ request, env, waitUntil }) {
   const c = await chatOf(request, env);
-  if (!c.visitor_seen_at || c.visitor_seen_at < ago(60e3))
-    waitUntil(env.DB.prepare("UPDATE chats SET visitor_seen_at = ? WHERE id = ?").bind(now(), c.id).run().catch(() => {}));
-  return json(await conversation(env, c.id));
+  const current = await visitorConversation(env, c.id, c.hash);
+  if (!current) ended();
+  if (!current.visitor_seen_at || current.visitor_seen_at < ago(60e3))
+    waitUntil(env.DB.prepare(`UPDATE chats SET visitor_seen_at = ${CHAT_DB_NOW}
+      WHERE id = ? AND key_hash = ? AND last_at >= ${CHAT_KEY_CUTOFF}`).bind(c.id, c.hash).run().catch(() => {}));
+  return json(current.chat);
 }
 
 // C7, C10: one statement checks the 40 and the 3 s, so two at once never make 41; the chat waits again from its first
@@ -52,26 +56,31 @@ async function say({ request, env }) {
   const c = await chatOf(request, env);
   const text = messageText((await readJson(request, 8192))?.text, VISITOR_MAX);
   if (!text) fail(400, `Write your message (up to ${VISITOR_MAX} characters)`);
-  const ts = now();
   const [ins] = await env.DB.batch([
-    env.DB.prepare(`INSERT INTO chat_messages (chat_id, role, text, created_at) SELECT ?1, 'visitor', ?2, ?3
-      WHERE (SELECT COUNT(*) FROM chat_messages WHERE chat_id = ?1 AND role = 'visitor') < ${MAX_VISITOR}
-        AND NOT EXISTS (SELECT 1 FROM chat_messages WHERE chat_id = ?1 AND role = 'visitor' AND created_at > ?4)`)
-      .bind(c.id, text, ts, ago(GAP_MS)),
-    env.DB.prepare(`UPDATE chats SET last_at = ?2,
-      waiting_since = CASE WHEN status = 'waiting' THEN COALESCE(waiting_since, ?2) ELSE ?2 END, status = 'waiting'
-      WHERE id = ?1 AND changes() = 1`).bind(c.id, ts),
+    env.DB.prepare(`INSERT INTO chat_messages (chat_id, role, text, created_at)
+      SELECT id, 'visitor', ?2, ${CHAT_DB_NOW} FROM chats WHERE id = ?1 AND key_hash = ?3 AND last_at >= ${CHAT_KEY_CUTOFF}
+        AND (SELECT COUNT(*) FROM chat_messages WHERE chat_id = ?1 AND role = 'visitor') < ${MAX_VISITOR}
+        AND NOT EXISTS (SELECT 1 FROM chat_messages WHERE chat_id = ?1 AND role = 'visitor'
+          AND created_at > strftime('%Y-%m-%dT%H:%M:%fZ','now','-${GAP_MS / 1000} seconds'))`)
+      .bind(c.id, text, c.hash),
+    env.DB.prepare(`UPDATE chats SET last_at = ${CHAT_DB_NOW},
+      waiting_since = CASE WHEN status = 'waiting' THEN COALESCE(waiting_since, ${CHAT_DB_NOW}) ELSE ${CHAT_DB_NOW} END,
+      status = 'waiting' WHERE id = ? AND changes() = 1`).bind(c.id),
   ]);
   if (!ins.meta.changes) {
-    const { n } = await env.DB.prepare("SELECT COUNT(*) AS n FROM chat_messages WHERE chat_id = ? AND role = 'visitor'").bind(c.id).first();
-    fail(429, n >= MAX_VISITOR ? "This chat is full. Please start a new one or call us." : "Please wait a moment before sending another message.");
+    const current = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM chat_messages WHERE chat_id = chats.id AND role = 'visitor') AS n
+      FROM chats WHERE id = ? AND key_hash = ? AND last_at >= ${CHAT_KEY_CUTOFF}`).bind(c.id, c.hash).first();
+    if (!current) ended();
+    fail(429, current.n >= MAX_VISITOR ? "This chat is full. Please start a new one or call us." : "Please wait a moment before sending another message.");
   }
   return json(await conversation(env, c.id), 201);
 }
 
 async function remove({ request, env }) {
   const c = await chatOf(request, env);
-  await env.DB.prepare("DELETE FROM chats WHERE id = ?").bind(c.id).run();
+  const r = await env.DB.prepare(`DELETE FROM chats WHERE id = ? AND key_hash = ? AND last_at >= ${CHAT_KEY_CUTOFF}`)
+    .bind(c.id, c.hash).run();
+  if (!r.meta.changes) ended();
   return new Response(null, { status: 204 });
 }
 
