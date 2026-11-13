@@ -502,3 +502,5 @@ Construido sobre main d565118: nuevos datos económicos y renta con premium, con
 **BUS-19, revisión parcial:** API y pantalla bajo gate existente, revisión independiente, D1 local y navegador aislado con datos sintéticos. Suite: 2.174 JavaScript y 29 Python; build/release, catálogo y paquetes correctos. Faltan aceptación del manifiesto, decisiones evidenciadas y lectores; no se activaron fuentes. [Evidencia](work/BUS-06/avance-publicable.md).
 
 **PUB-20, alcance reconciliado:** la decisión posterior de Luis aplaza la preparación e impresión de folletos; la ficha ya no ordena construirlos. Permanece pendiente y no se contabiliza como hecha. [Decisión](../superpowers/plans/2026-11-10-pub-20-folleto-qr.md). Playwright: no aplica.
+
+**EST-10, etiquetas parciales:** la lista presenta simultáneamente hechos de matches guardados y conserva filtros anteriores equivalentes. Revisión independiente, 51 pruebas focales, suite 2.174 JavaScript y 29 Python, build/release y E2E aislado sintético en 390/1280 y zoom 200 %. Faltan productores de visitas y revisión de 21 días; no acredita disponibilidad.

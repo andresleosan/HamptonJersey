@@ -14012,15 +14012,18 @@
       "fase": "F1-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "La cola se calcula a partir de los matches y sale en la columna Queue con filtro, con una sola etiqueta por prioridad (B13); No matches ya existe.",
-      "falta": "M13 · Reconciliación 7-nov: Separar las etiquetas simultáneas de trabajo de la actividad de la búsqueda. Añadir visita pendiente/confirmada y dato esencial sin comprobar. Sustituir la ampliación a los siete días por la revisión interna a los 21 días BUS-17; ninguna etiqueta cierra o cambia criterios. Depende de: EST-09, BUS-17, VIS-17.",
+      "hecho": "La lista muestra simultáneamente etiquetas basadas en matches guardados de Hampton: nuevas propiedades, pendientes de revisión y preseleccionadas; permite filtrar por etiqueta y conserva un filtro equivalente al anterior sin pendientes ni preselecciones. La preselección no confirma disponibilidad. El parámetro de cola anterior sigue aceptándose por compatibilidad.",
+      "falta": "Integrar señales reales de visita pendiente/confirmada, dato esencial sin comprobar y revisión interna a 21 días BUS-17; completar el contrato de etiquetas de trabajo sin cerrar búsquedas ni cambiar criterios. Depende de EST-09, BUS-17 y VIS-17.",
       "bloqueo": "",
       "evidencia": [
         "server/routes/applicants.js:64-71",
         "server/applicants.js:29-31",
         "admin/src/Applicants.jsx:56-57",
         "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:43",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "docs/superpowers/plans/2026-11-08-est-10-concurrent-search-work-labels.md",
+        "tests/est10-work-labels.e2e.cjs",
+        "tests/server/matches.test.mjs"
       ],
       "modulo": "M13",
       "deps": [
@@ -14061,7 +14064,7 @@
         "notifications-schema",
         "viewings-contract"
       ],
-      "nextStep": "Mostrar etiquetas de trabajo simultáneas y visitas sin cerrar búsqueda ni conservar la antigua ampliación automática a siete días."
+      "nextStep": "Integrar productores reales de BUS-17 y VIS-17 y completar las etiquetas pendientes sin inferir disponibilidad."
     },
     {
       "id": "EST-11",
