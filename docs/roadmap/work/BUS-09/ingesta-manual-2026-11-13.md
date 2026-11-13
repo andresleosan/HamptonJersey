@@ -24,3 +24,5 @@ El método manual exige hosts/rutas explícitos aunque algunas políticas manual
 - La última restricción de caracteres para `territory_evidence` se añadió después de la focal D1 y pasó en SQLite; **falta repetir D1 sobre el commit final**, además de la revisión independiente y la suite de integración completa. No hay cambios de interfaz; Playwright no aplica a este tramo.
 
 La revisión independiente del puente desconectado no encontró fallos bloqueantes confirmados. Antes de conectar observaciones históricas, reconciliar `monthly_rent_exact`: incorporar esa clave a normalizaciones antiguas puede generar un evento de cambio sin cambio de hechos. El actor textual no autentica una sesión.
+
+Integración conjunta del 13-nov: pasaron 2.050 pruebas JavaScript, 25 Python, build, `check:release`, `team:check`, `check:packages` y `git diff --check`. Playwright: no aplica a estos núcleos sin interfaz. Las funciones y esquemas propuestos siguen desactivados; no se verificó D1 remoto.

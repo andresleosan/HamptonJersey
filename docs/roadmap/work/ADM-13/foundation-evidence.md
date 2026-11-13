@@ -38,3 +38,9 @@ Se siguió el ciclo de prueba fallida y corrección: primero faltaban las interf
 3. Integrar ADM-03/NOT-11 para generar y reconciliar la tarea inicial y los avisos periódicos con el reloj compartido, sin inferir que un aviso acredita una inspección completada. Incorporar creación de reparación con confirmación humana e idempotencia.
 4. Construir rutas y UI móvil protegidas, con errores y conflictos que conserven la entrada no guardada, y verificar 1280/390 px, teclado y zoom en el lanzador aislado. Sin almacenamiento offline de datos personales ni informe al propietario.
 5. Ejecutar pruebas completas e integración, revisión independiente y reconciliar ficha/estado solo con evidencia del alcance realmente terminado.
+
+## Revisión independiente posterior
+
+La revisión independiente no encontró defectos bloqueantes para incorporar solo el núcleo inactivo; verificó 17/17 pruebas sintéticas. La fachada sigue devolviendo 503 y el esquema no es una migración. La ficha se reconcilió con el plan vigente; siguen pendientes capacidad, persistencia, concurrencia D1, retención, revocación, avisos y pantalla.
+
+Integración conjunta del 13-nov: pasaron 2.050 pruebas JavaScript, 25 Python, build, `check:release`, `team:check`, `check:packages` y `git diff --check`. Playwright: no aplica a estos núcleos sin interfaz. Las funciones y esquemas propuestos siguen desactivados; no se verificó D1 remoto.

@@ -32,3 +32,5 @@ Sobre `main` `1608fd725976a86007d3779ab35034c06ac04b50` se reprodujo en SQLite q
 La revisión independiente, la suite completa de integración, la identidad durable y los demás pendientes anteriores siguen abiertos. No se activó el gate ni se aplicó el esquema propuesto; este avance no cierra EST-01.
 
 La revisión independiente del diff no encontró hallazgos adicionales a los límites indicados. `last_success_current` compara la versión de búsqueda, no acredita que el inventario siga igual; el consumidor deberá presentar el conteo con la fecha del último éxito. No se comprobó D1 remoto.
+
+Integración conjunta del 13-nov: pasaron 2.050 pruebas JavaScript, 25 Python, build, `check:release`, `team:check`, `check:packages` y `git diff --check`. Playwright: no aplica a estos núcleos sin interfaz. Las funciones y esquemas propuestos siguen desactivados; no se verificó D1 remoto.

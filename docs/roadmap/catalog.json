@@ -15610,40 +15610,36 @@
     {
       "id": "ADM-13",
       "seccion": "Administración de propiedades",
-      "titulo": "Inspecciones cada 6 meses con lista en el móvil, fotos e informe al propietario",
+      "titulo": "Inspecciones internas cada 6 meses con checklist móvil",
       "origen": "plan",
       "fase": "F5-B",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "No existen la programación cada 6 meses, la lista de comprobación en el móvil, las fotos ni el informe al propietario (F5-B); el informe puede imprimirse como la liquidación y solo su envío necesita el servicio de correo.",
+      "hecho": "Se prepararon un modelo interno para fechas, checklist y referencias externas revisadas, y un esquema SQL propuesto. La fachada devuelve 503 y no hay rutas ni persistencia activa; pruebas locales y revisión independiente cubrieron el núcleo.",
+      "falta": "Integrar propósito y autorización por entidad, persistencia y concurrencia D1, retención y revocación, avisos, reparación confirmada y pantalla móvil. El alcance vigente excluye el informe al propietario y un repositorio de fotos; las referencias externas son declaraciones revisadas, no archivos custodiados.",
       "bloqueo": "",
       "evidencia": [
         "server/rentals.js:14-17",
         "migrations/0013_rentals.sql:118-126",
-        "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26"
+        "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26",
+        "docs/superpowers/plans/2026-11-09-adm-13-internal-six-month-inspections.md",
+        "docs/superpowers/specs/2026-11-10-tp05-continuity-scope-design.md",
+        "docs/roadmap/work/ADM-13/foundation-evidence.md",
+        "server/rental-inspections.js",
+        "tests/server/adm-13-inspections.test.mjs"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
-      "dependencies": [
-        {
-          "id": "AUT-17",
-          "requires": "activated",
-          "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
-          "basis": "explicit",
-          "scope": "partial"
-        }
-      ],
+      "dependencies": [],
       "externalBlocker": "",
       "resources": [
         "rentals-contract",
         "rentals-ui",
-        "rental-inspections",
-        "private-media"
+        "rental-inspections"
       ],
-      "nextStep": "Construir inspección periódica con lista móvil, fotos e informe imprimible; el envío por correo es una extensión."
+      "nextStep": "Definir capacidad de inspección y ciclo de referencias, después integrar almacenamiento transaccional y avisos sin activar hasta verificar permisos y retención."
     },
     {
       "id": "ADM-14",
