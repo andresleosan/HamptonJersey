@@ -4,10 +4,10 @@
   "titulo": "Inspecciones internas cada 6 meses con checklist móvil",
   "origen": "plan",
   "fase": "F5-B",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Se prepararon un modelo interno para fechas, checklist y referencias externas revisadas, y un esquema SQL propuesto. La fachada devuelve 503 y no hay rutas ni persistencia activa; pruebas locales y revisión independiente cubrieron el núcleo. El SQL propuesto protege vínculos de alquiler y tenencia y evita sustituir evidencia revocada; una revisión independiente verificó ambas claves con SQLite sintético.",
-  "falta": "Integrar propósito y autorización por entidad, persistencia y concurrencia D1, retención y revocación, avisos, reparación confirmada y pantalla móvil. El alcance vigente excluye el informe al propietario y un repositorio de fotos; las referencias externas son declaraciones revisadas, no archivos custodiados. Las guardas de tenencia dependen de 0049; antes de activarlas hay que resolver supresión, idempotencia y pruebas D1 con conflictos de actualización.",
+  "hecho": "Con ADM13_INSPECTIONS_READY (0060), en cada contrato activo la próxima inspección vence seis meses naturales después del inicio o de la última realizada; desde 30 días antes aparece en Rentals › To do y en la marca de la vivienda, y el contador cuenta las vencidas. En la tarjeta del contrato se registra desde el móvil (390 px, objetivos de 44 px) con fecha no futura, checklist por estancia (OK / Needs attention / Not checked con observaciones) y referencias externas revisadas que no pueden ser de otro contrato. Las reparaciones detectadas quedan pendientes hasta que una persona las crea en Repairs con su urgencia o las descarta. Registro y decisiones son idempotentes y por revisión (409 si otra pestaña se adelantó). Sin informe al propietario, sin repositorio de fotos y sin envíos, por decisión de Luis.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/rentals.js:14-17",
@@ -18,7 +18,16 @@
     "docs/roadmap/work/ADM-13/foundation-evidence.md",
     "server/rental-inspections.js",
     "tests/server/adm-13-inspections.test.mjs",
-    "tests/server/adm-13-ownership-proposal.test.mjs"
+    "migrations/0060_rental_inspections.sql",
+    "server/routes/rental-inspections.js",
+    "admin/src/RentalInspection.jsx",
+    "tests/server/adm-13-inspections-d1.test.mjs",
+    "tests/adm-13-inspections.e2e.cjs",
+    "Decisión (fuente: plan ADM-13 y maestro vigente): informe al propietario y repositorio de fotos excluidos; la primera inspección se cuenta desde el inicio del contrato (opción más simple); guardas de contrato propias en el batch en vez de 0049.",
+    "Revisión independiente 14-nov-2026: sin defectos graves; botón de registro oculto antes del inicio del contrato (055dff6); menores a MEJORAS.",
+    "14-nov-2026: npm test 2393/2393 + 29 Python, build y check:release correctos; e2e aislado Chromium 1280 y 390 correcto.",
+    "14-nov-2026: 0060 aplicada en remoto (Time Travel guardado antes), ADM13_INSPECTIONS_READY=1 en eeae101.",
+    "14-nov-2026 producción: GET /api/admin/rental-inspections y /api/admin/tenancies/1/inspections pasaron de 404 a 401 (montadas, exigen sesión) tras desplegar eeae101; 0060 ya no figura pendiente; test:production:readonly 1280 y 390 correcto. Recorrido con sesión: Rentals › vivienda › tarjeta del contrato › «Inspections», y Rentals › To do › «Checks and deadlines»."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -31,5 +40,6 @@
     "rentals-ui",
     "rental-inspections"
   ],
-  "nextStep": "Definir capacidad de inspección y ciclo de referencias, después integrar almacenamiento transaccional y avisos sin activar hasta verificar permisos y retención."
+  "nextStep": "Registrar con su fecha la última visita real de cada contrato con más de 6 meses, para que no salgan todos vencidos. Mejoras menores en MEJORAS.md.",
+  "actualizado": "2026-11-14"
 }

@@ -13,13 +13,22 @@
     "server/routes/public.js:104-133",
     "server/applicants.js:21-23",
     "migrations/0013_rentals.sql:30-63",
-    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26"
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26",
+    "docs/superpowers/plans/2026-11-10-tp03-adm-18-plan.md (Dependencies: ADM-06, PRE-03, PRE-29, AGE-12, ADM-12; «ADM17/PRE03/PRE29 aportan política/evidencia real; no se inventa al construir»)."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
-  "dependencies": [],
+  "dependencies": [
+    {
+      "id": "PRE-29",
+      "requires": "decision",
+      "reason": "Los criterios de asequibilidad y la política de registros de Hampton deben estar aprobados; el plan prohíbe inventarlos al construir.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
   "externalBlocker": "",
   "resources": [
     "rentals-contract",
@@ -27,5 +36,6 @@
     "tenant-portal",
     "applicants-contract"
   ],
-  "nextStep": "Definir y construir solicitud del inquilino y enlace al contrato con criterios de asequibilidad aprobados."
+  "nextStep": "Definir y construir solicitud del inquilino y enlace al contrato con criterios de asequibilidad aprobados.",
+  "actualizado": "2026-11-14"
 }
