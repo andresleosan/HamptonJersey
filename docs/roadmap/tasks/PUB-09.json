@@ -4,10 +4,10 @@
   "titulo": "Familia 6 · Estado y trazabilidad de la ficha",
   "origen": "texto",
   "fase": "F4",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "El código de retirada con motivo, nota privada, historial y correcciones está integrado en 9054dd1; Cloudflare Pages y Workers Builds: hampton-jobs figuran completed/success para ese SHA. Se ha probado localmente en editor y lista y conserva historial y disponibilidad. El nuevo flujo está desactivado por defecto y la migración 0044 solo se ha ensayado con datos ficticios.",
-  "falta": "Comprobar y coordinar la migración 0044 y la activación del flujo antes de verificar el recorrido real. No se han verificado su uso ni la migración remota en esta sesión. Resolver la supresión física de notas conforme a PRE-12; las métricas no observadas siguen como desconocidas. PUB-15 y los portales externos no son dependencia vigente.",
+  "hecho": "Retirada editorial con motivo y nota privada desde editor y lista, historial privado y correcciones que conservan el registro original, sin cambiar la disponibilidad física (9054dd1, 0044). Producción 14-nov-2026: 0052/0044 aplicadas solas desde directorio temporal (Time Travel guardado antes); DDL previo = huellas revisadas y triggers posteriores = contrato del código; Pages f8004ce con PUB09_WITHDRAWALS_READY=1 en la configuración efectiva; / y /api/listings HTTP 200 sin campos privados. 15 focales, navegador aislado pub09-withdrawal a 1280/390 y revisión independiente sin graves; e2e general y editorial adaptados al diálogo de motivo.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/listing.js:7",
@@ -26,7 +26,10 @@
     "migrations/0044_listing_withdrawals.sql",
     "tests/server/pub-09-tp04-1.test.mjs",
     "tests/pub09-withdrawal.e2e.cjs",
-    "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md"
+    "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md",
+    "wrangler.toml",
+    "tests/e2e.cjs",
+    "tests/listing-editorial.e2e.cjs"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -38,6 +41,6 @@
     "listings-schema",
     "listing-editor"
   ],
-  "nextStep": "Coordinar y verificar migración y activación antes de comprobar el recorrido real y cerrar la tarea.",
-  "actualizado": "2026-11-13"
+  "nextStep": "Ninguno. La supresión física de notas al borrar fichas es de PRE-12; mejoras en MEJORAS.md.",
+  "actualizado": "2026-11-14"
 }

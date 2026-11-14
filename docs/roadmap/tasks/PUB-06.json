@@ -4,10 +4,10 @@
   "titulo": "Familia 3 · Datos económicos de la ficha",
   "origen": "texto",
   "fase": "F4",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "—",
-  "hecho": "La entrega económica 2ba135b y la migración 0042 constan publicadas el 12-nov-2026: editor y ficha pública con precio por pie², depósito, parish rates, service charge, suministros incluidos y fecha de disponibilidad. Esa entrega admitía renta y premium juntos en negocios. El cambio publicado posterior 041188e retiró premium del editor y de la proyección pública y cambió la base del precio según la tenencia. El editor calcula ahora de forma informativa el precio por pie cuadrado a partir del precio y la superficie interior introducidos, con moneda y periodo; no modifica el texto manual guardado. Se prepararon costes estructurados privados con periodos independientes y auditoría combinada con SPR-01. La capacidad está desactivada y conserva los textos públicos y el cambio 041188e. Se ha restaurado la edición y presentación separada de premium y renta conforme a D7–D9, con ratio independiente y tratamiento de filas antiguas sin periodo. La revisión independiente cubrió regresiones de guardado e informe.",
-  "falta": "Los gastos estructurados y la auditoría combinada con SPR-01 requieren contrastar el esquema real, revisar retención y preparar una migración coordinada antes de cualquier activación; no se ha consultado el esquema remoto ni producción. La decisión D8 conserva el precio freehold existente, pero no lo usa como premium en comparaciones ni Queue.",
+  "hecho": "Editor y ficha pública con precio por pie², depósito, parish rates, service charge, suministros incluidos y fecha de disponibilidad (2ba135b, 0042), premium retirado y base de precio según tenencia (041188e). Costes estructurados privados con periodo propio, guardas en D1 y auditoría combinada con SPR-01 (0052). Producción 14-nov-2026: 0052/0044 aplicadas solas desde directorio temporal (Time Travel guardado antes); DDL previo = huellas revisadas y triggers posteriores = contrato del código; Pages f8004ce con PUB06_STRUCTURED_ECONOMICS_READY=1 en la configuración efectiva; / y /api/listings HTTP 200 sin campos privados. 110 focales, navegador aislado pub06-structured y pub06-economics a 1280/390 y revisión independiente sin graves.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "admin/src/ListingEditor.jsx",
@@ -30,7 +30,9 @@
     "tests/pub06-structured.e2e.cjs",
     "server/listing-economics.js",
     "server/listing-economics-contract.js",
-    "tests/server/pub-06-structured-values.test.mjs"
+    "tests/server/pub-06-structured-values.test.mjs",
+    "migrations/0052_listing_economics_history.sql",
+    "wrangler.toml"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -42,6 +44,6 @@
     "listings-schema",
     "listing-editor"
   ],
-  "nextStep": "Revisar esquema y retención de los gastos estructurados con SPR-01 antes de integrarlos o activarlos.",
-  "actualizado": "2026-11-13"
+  "nextStep": "Ninguno. Mejoras no bloqueantes en MEJORAS.md.",
+  "actualizado": "2026-11-14"
 }

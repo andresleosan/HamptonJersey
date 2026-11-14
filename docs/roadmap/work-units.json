@@ -819,7 +819,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 121,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -851,7 +851,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 122,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -6354,7 +6354,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 270,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -6450,7 +6450,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 273,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [

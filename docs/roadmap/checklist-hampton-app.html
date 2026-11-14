@@ -983,10 +983,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Tarjeta de propiedad con estado, precio, dirección, dormitorios, baños y disponibilidad",
    "origen": "texto",
    "fase": "—",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas. Cloudflare Pages y Workers Builds figuran correctos para el commit 2005312; no se repitió un smoke funcional en producción. El error simulado de Available from y la recuperación del borrador tras un 409 se comprobaron con zoom nativo en 1280/390; la validación de servidor se comprobó aparte. En el main cd441, el recorrido aislado de listas volvió a pasar en Chromium y WebKit. Se prepararon y probaron la lectura y presentación de fechas civiles en History, con un SQL propuesto que registra anterior y nuevo sin copiar datos inválidos.",
-   "falta": "La corrección SQL de A5 aún no está integrada ni aplicada: antes debe contrastarse el esquema vigente y revisarse la retención. Los valores ausentes de eventos anteriores no se pueden reconstruir. El guardado de fecha actualiza updated_at y puede derivar una parroquia desconocida; A4 debe conciliarse con D4. La incorporación de fichas externas corresponde a BUS-10/EST-16/SPR-07. No se ha repetido un smoke funcional autenticado en producción.",
+   "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños (incluidos cero y desconocido) y la fecha civil de disponibilidad sin inferir disponibilidad; el editor valida fechas imposibles. El historial registra la fecha anterior y la nueva con minimización (0052, corrección A5). Producción 14-nov-2026: 0052/0044 aplicadas solas desde directorio temporal (Time Travel guardado antes); DDL previo = huellas revisadas y triggers posteriores = contrato del código; Pages f8004ce con PUB06_STRUCTURED_ECONOMICS_READY=1 en la configuración efectiva; / y /api/listings HTTP 200 sin campos privados. Navegador aislado spr01-listings y spr01-history en verde.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Listings.jsx:81-108",
@@ -999,9 +999,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/work/SPR-01/implementation-evidence.md",
     "migrations/0042_listing_economics.sql",
     "docs/roadmap/work/SPR-01/implementation-evidence.md",
-    "docs/roadmap/work/SPR-01/a5-history-proposal-evidence.md"
+    "docs/roadmap/work/SPR-01/a5-history-proposal-evidence.md",
+    "migrations/0052_listing_economics_history.sql"
    ],
-   "actualizado": "2026-11-13"
+   "actualizado": "2026-11-14"
   },
   {
    "id": "SPR-02",
@@ -1009,10 +1010,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Historial de todas las actividades de la propiedad al abrir su ficha",
    "origen": "texto",
    "fase": "—",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "9-nov-2026: etapa A publicada en main/GitHub 55c470026b1c1909acf68ec244f71a7286f2a16f, con padre 933c8fb y merge ANA-08. Hermes comprobó HEAD/main/GitHub iguales, Pages/Jobs completed/success y raíz HTTPS pública 200; no se conoce autor ni autorización del push, ni hay smoke autenticado de History. History A muestra eventos reales de ficha con cursor estable de50, cambios/evidencia permitidos y tombstone; las pruebas A constan en su validación. Etapa B construida y probada inicialmente en h1 sobre main fdc9e657f58ca05f17ba80e439aace13aabedb84 y después incorporada a main en 18e7e0bfc02d021f7c7dcdcc44493d1a4a97cbe8, con checks de Pages y Workers correctos: match revisado, visita vinculada viva, oferta y venta sin cliente, importe ni JSON libre; al borrar visita desaparece la asociación, 0038 indexa hechos solo mientras el vínculo vive y backfill no inventa ficha. Validación de filas nuevas y anteriores antes de pintarlas, ventana móvil de10000; hitos muestran solo estado acreditado. Revisión GPT independiente del código P0=0/P1=0/P2=0; focal31/31, E2E A/B1280/390, general public/urls/admin/reg17 y MCP local tras UI exit0; zoom nativo200% Chromium local con22 filas, DPR2 y sin desbordamiento. npm test1063/1088:25 fallos de fixtures de push protegido, sin sortear la guardia; Python14/14 y build/checks exit0. El código B está en main; esta sesión no ha comprobado el estado remoto de 0038 ni un recorrido autenticado de producción.",
-   "falta": "A y B requieren smoke autenticado de History. La migración 0038 y su estado remoto no se han podido comprobar en esta sesión; no inferir D1 remota ni screen reader de pruebas locales. Etapa C sigue pendiente de productores de fuentes, captura, consultas, llamadas, respuesta útil y purga real cuando existan; no atribuir esas gestiones por tener un evento de ficha. Mantener SPR-02 parcial. La suite histórica con 25 fallos de fixtures se conserva como evidencia de ese ensayo, no como una suite aprobada.",
+   "hecho": "Al abrir la ficha, History muestra sus eventos reales con cursor estable de 50, cambios y evidencia permitidos y tombstone (etapa A, 55c4700), y además match revisado, visita vinculada, oferta y aceptación (etapa B, 18e7e0b). 14-nov-2026: cierre por aceptación propia (skill §3); migrations list --remote: 0038 aplicada; navegador aislado A y B a 1280 y 390 (flujo, borrador, errores, paginación, evidencia, borrado, foco, zoom, privacidad) y listing-history 30/30 en verde.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "server/listing-history.js",
@@ -1031,12 +1032,14 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/work/SPR-02/h1-linked-history-b-validation.md",
     "docs/superpowers/specs/2026-11-09-spr-02-h1-linked-history-b-design.md",
     "docs/superpowers/plans/2026-11-09-spr-02-h1-linked-history-b-ledger.md",
-    "docs/roadmap/work/SPR-02/reconciliacion-2026-11-13.md"
+    "docs/roadmap/work/SPR-02/reconciliacion-2026-11-13.md",
+    "tests/run-e2e.cjs (A fija PUB09 apagado: cubre el despublicado directo; el flujo con retirada es pub09-withdrawal.e2e.cjs)"
    ],
    "modulo": "M13",
    "deps": [
     "EST-18"
-   ]
+   ],
+   "actualizado": "2026-11-14"
   },
   {
    "id": "SPR-03",
@@ -1047,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "M07 · Reconciliación 7-nov: Al confirmar disponibilidad por correo útil o llamada registrada, enriquecer una ficha común con datos completos y fotos originales, URL, fecha y evidencia. Captura completa/parcial/fallida visible y reintentos sin duplicados; no afirmar éxito si falta algún archivo. Crear tarea Abrir ficha para revisar, corregir, ver incumplimientos/datos pendientes, abrir origen y descargar fotos individuales, selección o ZIP y datos en formato a concretar. La misma ficha sirve a varios clientes; las versiones aptas para el cliente se gestionan en AGE-10. Depende de: AGE-06, BUS-10, EST-13. Aceptación: Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: captura completa o parcial.",
+   "falta": "M07 · Reconciliación 7-nov: Al confirmar disponibilidad por correo útil o llamada registrada, enriquecer una ficha común con datos completos y fotos originales, URL, fecha y evidencia. Captura completa/parcial/fallida visible y reintentos sin duplicados; no afirmar éxito si falta algún archivo. Crear tarea Abrir ficha para revisar, corregir, ver incumplimientos/datos pendientes, abrir origen y descargar fotos individuales, selección o ZIP y datos en formato a concretar. La misma ficha sirve a varios clientes; las versiones aptas para el cliente se gestionan en AGE-10. Depende de: AGE-06, BUS-10, EST-13. Aceptación: Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: captura completa o parcial. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): captura.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:96",
@@ -1125,7 +1128,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Construido el 6-nov-2026 (sin migración; spec docs/superpowers/specs/2026-11-05-hampton-app-listing-tracking-design.md). La lista de Listings tiene tres columnas nuevas: Checked («12 days ago», desde la última confirmación), Matched (aplicantes con match, los mismos que la ficha) e Interested (el interés activo, con la regla de la web). Filtros Min price y Max price en £ (venta y negocio por el precio total; alquiler por la renta al mes, pasando la semanal o anual a mensual) y la casilla Changed in the last 7 days (cualquier cambio guardado). La ficha sigue mostrando Active interest y Matched applicants.",
-   "falta": "M02 · Reconciliación 7-nov: La fuente (Hampton o agencia), en columna y en filtro: llegará con la búsqueda del mercado. Luis decidió el 6-nov-2026 que esa búsqueda la hará Hermes, un agente, sin atarse a ninguna página; queda por diseñar. «Cambió en los últimos 7 días» podrá afinarse a precio y disponibilidad cuando exista el historial de la ficha (SPR-02). Distinguir la última observación web de la confirmación comercial con evidencia: Checked/confirmed_at del catálogo se refresca también al publicar o cambiar precio y no acredita por sí solo disponibilidad del anunciante. Fuentes y filtros se completan con el inventario común. Depende de: BUS-10, EST-16.",
+   "falta": "M02 · Reconciliación 7-nov: La fuente (Hampton o agencia), en columna y en filtro: llegará con la búsqueda del mercado. Luis decidió el 6-nov-2026 que esa búsqueda la hará Hermes, un agente, sin atarse a ninguna página; queda por diseñar. «Cambió en los últimos 7 días» podrá afinarse a precio y disponibilidad cuando exista el historial de la ficha (SPR-02). Distinguir la última observación web de la confirmación comercial con evidencia: Checked/confirmed_at del catálogo se refresca también al publicar o cambiar precio y no acredita por sí solo disponibilidad del anunciante. Fuentes y filtros se completan con el inventario común. Depende de: BUS-10, EST-16. Mostrar en la tarjeta SPR-01 las fichas externas que incorpore, con estado, precio, dirección, dormitorios, baños y disponibilidad.",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Listings.jsx",
@@ -1137,7 +1140,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "deps": [
     "BUS-10",
     "EST-16"
-   ]
+   ],
+   "actualizado": "2026-11-14"
   },
   {
    "id": "SPR-08",
@@ -1314,7 +1318,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "M06 · Reconciliación 7-nov: Vincular respuestas con la propiedad y la consulta, distinguir respuesta útil de acuse automático/ambigua y guardar evidencia, fuente y fecha. Confirmaciones humanas posteriores prevalecen ante anuncios antiguos; contradicciones van a revisión. El empleado puede registrar llamada disponible/no disponible/inconclusa, persona que confirma, alcance y condiciones. Repercutir disponibilidad y pendientes sobre matches y tareas relacionados; no inferir que una respuesta general acepta todos los hogares ni que confirma la visita. La IA, si se usa, extrae una propuesta revisable y no negocia comisión. Depende de: AGE-03, AGE-05, EST-13. Aceptación: Una respuesta automática mantiene pendiente; una llamada humana confirmada actualiza todas las gestiones afectadas sin cerrar búsquedas. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: respuesta útil recibida.",
+   "falta": "M06 · Reconciliación 7-nov: Vincular respuestas con la propiedad y la consulta, distinguir respuesta útil de acuse automático/ambigua y guardar evidencia, fuente y fecha. Confirmaciones humanas posteriores prevalecen ante anuncios antiguos; contradicciones van a revisión. El empleado puede registrar llamada disponible/no disponible/inconclusa, persona que confirma, alcance y condiciones. Repercutir disponibilidad y pendientes sobre matches y tareas relacionados; no inferir que una respuesta general acepta todos los hogares ni que confirma la visita. La IA, si se usa, extrae una propuesta revisable y no negocia comisión. Depende de: AGE-03, AGE-05, EST-13. Aceptación: Una respuesta automática mantiene pendiente; una llamada humana confirmada actualiza todas las gestiones afectadas sin cerrar búsquedas. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: respuesta útil recibida. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): consultas y respuesta útil.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297-299",
@@ -1339,7 +1343,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "M06 · Reconciliación 7-nov: Tras dos días desde el envío real sin respuesta útil, crear una única tarea de llamada con propiedad, anunciante, mensaje, historial, clientes y todos los teléfonos identificados. Una respuesta que llega antes de llamar actualiza o resuelve la tarea según lo confirmado. Registrar disponible, no disponible o inconcluso; una llamada sin contestar no prueba indisponibilidad. Sustituye el antiguo encadenamiento de recordatorios por correo. Naturales/laborables, hora y fines de semana siguen pendientes de decisión; conservar estadísticas de respuesta como mejora separada. Depende de: AGE-05, AGE-06, AGE-04, AUT-07, NOT-11. Aceptación: Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: llamada a los dos días sin respuesta.",
+   "falta": "M06 · Reconciliación 7-nov: Tras dos días desde el envío real sin respuesta útil, crear una única tarea de llamada con propiedad, anunciante, mensaje, historial, clientes y todos los teléfonos identificados. Una respuesta que llega antes de llamar actualiza o resuelve la tarea según lo confirmado. Registrar disponible, no disponible o inconcluso; una llamada sin contestar no prueba indisponibilidad. Sustituye el antiguo encadenamiento de recordatorios por correo. Naturales/laborables, hora y fines de semana siguen pendientes de decisión; conservar estadísticas de respuesta como mejora separada. Depende de: AGE-05, AGE-06, AGE-04, AUT-07, NOT-11. Aceptación: Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: llamada a los dos días sin respuesta. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): llamadas.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:295",
@@ -2449,7 +2453,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones compartidas, observaciones y registro transaccional. Rutas administrativas desactivadas por defecto; migración ensayada solo en bases locales. Candidato documental privado reconciliado con 141 identificadores y 237 canales, sin habilitar accesos. El reconciliador documental rechaza claves JSON duplicadas, también anidadas o equivalentes por escape, y preserva la salida ante rechazo. Vista administrativa de solo lectura para recorridos y cobertura, sujeta al gate existente; pruebas sintéticas y revisión independiente.",
-   "falta": "Faltan la incorporación operativa del manifiesto, lectores controlados, gestión/revisión de fuentes, carga manual y evidencia de captura real. M02 · Reconciliación 7-nov: Crear el inventario inicial por tandas desde el directorio revisado, usando las fuentes operativas disponibles y tareas manuales para las restringidas. Capturar datos suficientes para comparar: operación, tipo, precio y periodicidad originales, ubicación, dormitorios o superficie, ocupación, parking, mascotas, descripción, referencia, anunciante y contactos. La descarga completa de fotos espera a la disponibilidad confirmada (SPR-03). Places.je es un conector posible; PRE-01 no bloquea el inventario ni se exige un acuerdo de comisión para leer un feed utilizable. Depende de: BUS-23, BUS-19, AGE-04. Aceptación: Las fuentes accesibles producen inventario común y las inaccesibles quedan pendientes, sin registrarlas como vacías. La validación y las huellas no autentican al revisor ni autorizan las fuentes. La tarea de llamada debe leer anunciantes y teléfonos del directorio AGE-04 (GET /admin/advertisers?property_id=), sin duplicar contactos. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: fuente fallida.",
+   "falta": "Faltan la incorporación operativa del manifiesto, lectores controlados, gestión/revisión de fuentes, carga manual y evidencia de captura real. M02 · Reconciliación 7-nov: Crear el inventario inicial por tandas desde el directorio revisado, usando las fuentes operativas disponibles y tareas manuales para las restringidas. Capturar datos suficientes para comparar: operación, tipo, precio y periodicidad originales, ubicación, dormitorios o superficie, ocupación, parking, mascotas, descripción, referencia, anunciante y contactos. La descarga completa de fotos espera a la disponibilidad confirmada (SPR-03). Places.je es un conector posible; PRE-01 no bloquea el inventario ni se exige un acuerdo de comisión para leer un feed utilizable. Depende de: BUS-23, BUS-19, AGE-04. Aceptación: Las fuentes accesibles producen inventario común y las inaccesibles quedan pendientes, sin registrarlas como vacías. La validación y las huellas no autentican al revisor ni autorizan las fuentes. La tarea de llamada debe leer anunciantes y teléfonos del directorio AGE-04 (GET /admin/advertisers?property_id=), sin duplicar contactos. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: fuente fallida. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): fuentes leídas.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/ESTADO.md:9",
@@ -2566,7 +2570,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Base interna de identidad física y publicaciones por fuente con observaciones preservadas, revisión humana versionada y reversible, reintentos idempotentes y rechazo de vínculos de operación incoherentes. Se prepararon candidaturas pendientes y un detector conservador de conflictos suministrados, sin autorizar fusiones ni consultar matches reales. La ficha Staff muestra grupos históricos solo como indicios. La fachada permanece bloqueada con 503 y el esquema nuevo es una propuesta local. El núcleo inactivo admite sustitución explícita y versionada de candidaturas, con CAS y guardas contra reemplazo silencioso; SQLite y D1 efímera verificaron carreras y rollback.",
-   "falta": "Integrar candidaturas BUS-06/BUS-09 con ciclo de revisión y vínculo fiable a matches; añadir decisiones y guardas de conflicto, retención y bajas EST-19, autorización duradera por fuente y sesión, rutas y pantalla. Los grupos históricos no acreditan una única vivienda ni sustituyen ese flujo. No se han utilizado fuentes reales ni acreditado la operación de extremo a extremo; el estado remoto de 0050 es desconocido. La sustitución no invalida automáticamente evidencia posterior ni constituye una decisión humana; requiere política de purga y autoridad de sesión y fuente antes de conectarse.",
+   "falta": "Integrar candidaturas BUS-06/BUS-09 con ciclo de revisión y vínculo fiable a matches; añadir decisiones y guardas de conflicto, retención y bajas EST-19, autorización duradera por fuente y sesión, rutas y pantalla. Los grupos históricos no acreditan una única vivienda ni sustituyen ese flujo. No se han utilizado fuentes reales ni acreditado la operación de extremo a extremo; el estado remoto de 0050 es desconocido. La sustitución no invalida automáticamente evidencia posterior ni constituye una decisión humana; requiere política de purga y autoridad de sesión y fuente antes de conectarse. Mostrar en la tarjeta SPR-01 las fichas externas que incorpore, con estado, precio, dirección, dormitorios, baños y disponibilidad.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:90-91",
@@ -2592,7 +2596,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "deps": [
     "BUS-06"
    ],
-   "criterio_aceptacion": "Una propiedad en tres webs conserva una ficha y tres publicaciones; dos unidades de la misma dirección siguen separadas."
+   "criterio_aceptacion": "Una propiedad en tres webs conserva una ficha y tres publicaciones; dos unidades de la misma dirección siguen separadas.",
+   "actualizado": "2026-11-14"
   },
   {
    "id": "BUS-11",
@@ -3295,7 +3300,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Cálculo puro y desconectado que separa observaciones de publicación y confirmaciones humanas por ámbito; rechaza entradas incompletas y conserva contradicciones para revisión. Las pruebas son sintéticas; no hay rutas, datos reales ni almacenamiento nuevos. Se precisaron las guardas y dependencias para persistencia sin habilitar datos ni rutas reales.",
-   "falta": "Construir persistencia versionada y autorización con evidencia, resolver ámbitos generales y específicos, condiciones por hogar, eventos y consumidores de BUS-06/BUS-09/BUS-10. Verificar el recorrido real sin confundir fallo o ausencia de fuente con indisponibilidad ni introducir caducidad no acordada.",
+   "falta": "Construir persistencia versionada y autorización con evidencia, resolver ámbitos generales y específicos, condiciones por hogar, eventos y consumidores de BUS-06/BUS-09/BUS-10. Verificar el recorrido real sin confundir fallo o ausencia de fuente con indisponibilidad ni introducir caducidad no acordada. Mostrar en la tarjeta SPR-01 las fichas externas que incorpore, con estado, precio, dirección, dormitorios, baños y disponibilidad.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:152-159",
@@ -3311,7 +3316,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "deps": [
     "BUS-10"
    ],
-   "criterio_aceptacion": "Anuncio no localizado y fallo de web nunca equivalen solos a no disponible; una observación antigua no reemplaza confirmación humana."
+   "criterio_aceptacion": "Anuncio no localizado y fallo de web nunca equivalen solos a no disponible; una observación antigua no reemplaza confirmación humana.",
+   "actualizado": "2026-11-14"
   },
   {
    "id": "EST-17",
@@ -4500,10 +4506,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Familia 3 · Datos económicos de la ficha",
    "origen": "texto",
    "fase": "F4",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "—",
-   "hecho": "La entrega económica 2ba135b y la migración 0042 constan publicadas el 12-nov-2026: editor y ficha pública con precio por pie², depósito, parish rates, service charge, suministros incluidos y fecha de disponibilidad. Esa entrega admitía renta y premium juntos en negocios. El cambio publicado posterior 041188e retiró premium del editor y de la proyección pública y cambió la base del precio según la tenencia. El editor calcula ahora de forma informativa el precio por pie cuadrado a partir del precio y la superficie interior introducidos, con moneda y periodo; no modifica el texto manual guardado. Se prepararon costes estructurados privados con periodos independientes y auditoría combinada con SPR-01. La capacidad está desactivada y conserva los textos públicos y el cambio 041188e. Se ha restaurado la edición y presentación separada de premium y renta conforme a D7–D9, con ratio independiente y tratamiento de filas antiguas sin periodo. La revisión independiente cubrió regresiones de guardado e informe.",
-   "falta": "Los gastos estructurados y la auditoría combinada con SPR-01 requieren contrastar el esquema real, revisar retención y preparar una migración coordinada antes de cualquier activación; no se ha consultado el esquema remoto ni producción. La decisión D8 conserva el precio freehold existente, pero no lo usa como premium en comparaciones ni Queue.",
+   "hecho": "Editor y ficha pública con precio por pie², depósito, parish rates, service charge, suministros incluidos y fecha de disponibilidad (2ba135b, 0042), premium retirado y base de precio según tenencia (041188e). Costes estructurados privados con periodo propio, guardas en D1 y auditoría combinada con SPR-01 (0052). Producción 14-nov-2026: 0052/0044 aplicadas solas desde directorio temporal (Time Travel guardado antes); DDL previo = huellas revisadas y triggers posteriores = contrato del código; Pages f8004ce con PUB06_STRUCTURED_ECONOMICS_READY=1 en la configuración efectiva; / y /api/listings HTTP 200 sin campos privados. 110 focales, navegador aislado pub06-structured y pub06-economics a 1280/390 y revisión independiente sin graves.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "admin/src/ListingEditor.jsx",
@@ -4526,9 +4532,11 @@ document.addEventListener('DOMContentLoaded', () => {
     "tests/pub06-structured.e2e.cjs",
     "server/listing-economics.js",
     "server/listing-economics-contract.js",
-    "tests/server/pub-06-structured-values.test.mjs"
+    "tests/server/pub-06-structured-values.test.mjs",
+    "migrations/0052_listing_economics_history.sql",
+    "wrangler.toml"
    ],
-   "actualizado": "2026-11-13"
+   "actualizado": "2026-11-14"
   },
   {
    "id": "PUB-07",
@@ -4584,10 +4592,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Familia 6 · Estado y trazabilidad de la ficha",
    "origen": "texto",
    "fase": "F4",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "El código de retirada con motivo, nota privada, historial y correcciones está integrado en 9054dd1; Cloudflare Pages y Workers Builds: hampton-jobs figuran completed/success para ese SHA. Se ha probado localmente en editor y lista y conserva historial y disponibilidad. El nuevo flujo está desactivado por defecto y la migración 0044 solo se ha ensayado con datos ficticios.",
-   "falta": "Comprobar y coordinar la migración 0044 y la activación del flujo antes de verificar el recorrido real. No se han verificado su uso ni la migración remota en esta sesión. Resolver la supresión física de notas conforme a PRE-12; las métricas no observadas siguen como desconocidas. PUB-15 y los portales externos no son dependencia vigente.",
+   "hecho": "Retirada editorial con motivo y nota privada desde editor y lista, historial privado y correcciones que conservan el registro original, sin cambiar la disponibilidad física (9054dd1, 0044). Producción 14-nov-2026: 0052/0044 aplicadas solas desde directorio temporal (Time Travel guardado antes); DDL previo = huellas revisadas y triggers posteriores = contrato del código; Pages f8004ce con PUB09_WITHDRAWALS_READY=1 en la configuración efectiva; / y /api/listings HTTP 200 sin campos privados. 15 focales, navegador aislado pub09-withdrawal a 1280/390 y revisión independiente sin graves; e2e general y editorial adaptados al diálogo de motivo.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "server/listing.js:7",
@@ -4606,9 +4614,12 @@ document.addEventListener('DOMContentLoaded', () => {
     "migrations/0044_listing_withdrawals.sql",
     "tests/server/pub-09-tp04-1.test.mjs",
     "tests/pub09-withdrawal.e2e.cjs",
-    "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md"
+    "docs/roadmap/work/conciliacion/2026-11-13-release-reg11-pub.md",
+    "wrangler.toml",
+    "tests/e2e.cjs",
+    "tests/listing-editorial.e2e.cjs"
    ],
-   "actualizado": "2026-11-13"
+   "actualizado": "2026-11-14"
   },
   {
    "id": "PUB-10",
@@ -5702,7 +5713,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "La limpieza general existente contempla 12 meses de inactividad, con excepciones para búsquedas activas o en revisión, ofertas abiertas y ventas. Applicants dispone de revisión de vencimientos y registro de conversación. El código actual protege contactos vinculados a ventas en cualquier estado; no implementa una purga de ventas a los cinco años.",
-   "falta": "Construir el aviso previo y la tramitación por email con verificación humana de identidad, asignación, holds y copia revisada. Una solicitud de borrado no ejecuta DELETE por sí sola; el portal de privacidad queda para más adelante. La política de conservación de alquileres y ventas debe introducirse cuando esté validada; no hay plazo sectorial nuevo aplicado. Los seis meses de EST-19 solo abarcan archivos de propiedades no disponibles y no autorizan borrar personas, criterios ni gestiones. Los parámetros existentes serán introducidos manualmente por Luis; el plan no exige abrir una nueva consulta profesional. Incluir la supresión física de las notas privadas de retirada de PUB-09 (listing_withdrawals y sus revisiones) al borrar una ficha.",
+   "falta": "Construir el aviso previo y la tramitación por email con verificación humana de identidad, asignación, holds y copia revisada. Una solicitud de borrado no ejecuta DELETE por sí sola; el portal de privacidad queda para más adelante. La política de conservación de alquileres y ventas debe introducirse cuando esté validada; no hay plazo sectorial nuevo aplicado. Los seis meses de EST-19 solo abarcan archivos de propiedades no disponibles y no autorizan borrar personas, criterios ni gestiones. Los parámetros existentes serán introducidos manualmente por Luis; el plan no exige abrir una nueva consulta profesional. Incluir la supresión física de las notas privadas de retirada de PUB-09 (listing_withdrawals y sus revisiones) al borrar una ficha. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): purgas reales, sin borrar eventos históricos.",
    "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "server/retention.js:51-92",

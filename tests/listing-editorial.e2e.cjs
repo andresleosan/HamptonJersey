@@ -45,6 +45,8 @@ const SHOTS=process.env.EST17_SHOTS;
     await page.getByRole('status').filter({hasText:/Published, but|Published: now/}).waitFor();
     assert.equal((await api('/admin/listings/HE-R003')).data.listing.review_requested_at,null);
     await page.getByRole('button',{name:'Unpublish',exact:true}).click();
+    await page.getByRole('dialog').getByLabel('Reason').selectOption('data_correction');
+    await page.getByRole('dialog').getByRole('button',{name:'Remove from website'}).click();
     await page.getByRole('button',{name:'Submit for review',exact:true}).click();
     await page.getByRole('button',{name:'Return to draft',exact:true}).click();
     await page.getByRole('button',{name:'Submit for review',exact:true}).waitFor();

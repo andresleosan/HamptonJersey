@@ -4,10 +4,10 @@
   "titulo": "Tarjeta de propiedad con estado, precio, dirección, dormitorios, baños y disponibilidad",
   "origen": "texto",
   "fase": "—",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños, incluidos cero y desconocido. Reutiliza available_on de PUB-06 y muestra la fecha civil solo en fichas no archivadas y en mercado, sin inferir disponibilidad. El editor aclara que la fecha no confirma la disponibilidad; también valida fechas imposibles. Integración y revisión local completadas. Cloudflare Pages y Workers Builds figuran correctos para el commit 2005312; no se repitió un smoke funcional en producción. El error simulado de Available from y la recuperación del borrador tras un 409 se comprobaron con zoom nativo en 1280/390; la validación de servidor se comprobó aparte. En el main cd441, el recorrido aislado de listas volvió a pasar en Chromium y WebKit. Se prepararon y probaron la lectura y presentación de fechas civiles en History, con un SQL propuesto que registra anterior y nuevo sin copiar datos inválidos.",
-  "falta": "La corrección SQL de A5 aún no está integrada ni aplicada: antes debe contrastarse el esquema vigente y revisarse la retención. Los valores ausentes de eventos anteriores no se pueden reconstruir. El guardado de fecha actualiza updated_at y puede derivar una parroquia desconocida; A4 debe conciliarse con D4. La incorporación de fichas externas corresponde a BUS-10/EST-16/SPR-07. No se ha repetido un smoke funcional autenticado en producción.",
+  "hecho": "La lista administrativa muestra estado, precio, dirección, dormitorios y baños (incluidos cero y desconocido) y la fecha civil de disponibilidad sin inferir disponibilidad; el editor valida fechas imposibles. El historial registra la fecha anterior y la nueva con minimización (0052, corrección A5). Producción 14-nov-2026: 0052/0044 aplicadas solas desde directorio temporal (Time Travel guardado antes); DDL previo = huellas revisadas y triggers posteriores = contrato del código; Pages f8004ce con PUB06_STRUCTURED_ECONOMICS_READY=1 en la configuración efectiva; / y /api/listings HTTP 200 sin campos privados. Navegador aislado spr01-listings y spr01-history en verde.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "admin/src/Listings.jsx:81-108",
@@ -20,7 +20,8 @@
     "docs/roadmap/work/SPR-01/implementation-evidence.md",
     "migrations/0042_listing_economics.sql",
     "docs/roadmap/work/SPR-01/implementation-evidence.md",
-    "docs/roadmap/work/SPR-01/a5-history-proposal-evidence.md"
+    "docs/roadmap/work/SPR-01/a5-history-proposal-evidence.md",
+    "migrations/0052_listing_economics_history.sql"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -40,6 +41,6 @@
     "listings-schema",
     "listing-editor"
   ],
-  "nextStep": "Contrastar el esquema y la retención antes de una migración nueva; conciliar A4/D4 y verificar el historial autenticado sin presumir estado remoto.",
-  "actualizado": "2026-11-13"
+  "nextStep": "Ninguno. La incorporación de fichas externas es de BUS-10, EST-16 y SPR-07.",
+  "actualizado": "2026-11-14"
 }

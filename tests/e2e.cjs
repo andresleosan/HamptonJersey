@@ -549,6 +549,9 @@ async function admin(browser) {
   await page.waitForSelector("text=no public photo");
   // A new publication needs a visible photo; removing it afterwards retains the historical warning.
   await page.getByRole("button", {name: "Unpublish", exact: true}).click();
+  // PUB-09: with withdrawals on, unpublishing asks for a reason first.
+  await page.getByRole("dialog").getByLabel("Reason").selectOption("data_correction");
+  await page.getByRole("dialog").getByRole("button", {name: "Remove from website"}).click();
   await page.waitForSelector("text=Unpublished");
   await page.getByRole("button", {name: "Publish", exact: true}).click();
   await page.getByRole("alert").filter({hasText: "Add a public photo before publishing"}).waitFor();
@@ -597,6 +600,8 @@ async function admin(browser) {
   await page.click('tr:has-text("HE-R003") .switch');
   await page.waitForSelector('tr:has-text("HE-R003") .switch[aria-checked=true]');
   await page.click('tr:has-text("HE-R003") .switch');
+  await page.getByRole("dialog").getByLabel("Reason").selectOption("data_correction");
+  await page.getByRole("dialog").getByRole("button", {name: "Remove from website"}).click();
   await page.waitForSelector('tr:has-text("HE-R003") .switch[aria-checked=false]');
   await page.click('tr:has-text("HE-R001") .star');
   await page.waitForSelector('tr:has-text("HE-R001") .star[aria-pressed=true]');
@@ -609,6 +614,8 @@ async function admin(browser) {
   d1("UPDATE listings SET published = 0 WHERE id IN ('HE-R002', 'HE-R004'); UPDATE media SET public = 0 WHERE listing_id = 'HE-C001' AND kind = 'photo'");
   // PUB-22: the home page and the carousel start with the listing published last (hide, then show again).
   await page.click('tr:has-text("HE-R018") .switch');
+  await page.getByRole("dialog").getByLabel("Reason").selectOption("data_correction");
+  await page.getByRole("dialog").getByRole("button", {name: "Remove from website"}).click();
   await page.waitForSelector('tr:has-text("HE-R018") .switch[aria-checked=false]');
   await page.click('tr:has-text("HE-R018") .switch');
   await page.waitForSelector('tr:has-text("HE-R018") .switch[aria-checked=true]');
