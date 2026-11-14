@@ -6,8 +6,8 @@
   "fase": "—",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Los secretos (SESSION_SECRET, TURNSTILE_SECRET) viven en las variables de Cloudflare y .dev.vars no se sube al repo; antes de las migraciones remotas 0009–0015 se guardó un marcador de Time Travel, y la tabla events hace de auditoría (Timeline del aplicante, History de Rentals).",
-  "falta": "No existe la exportación semanal cifrada a un destino privado: faltan el código y el destino; el reloj (AUT-07) ya puede lanzarla cada semana. Comprobar el plazo de Time Travel: el spec del panel dice 30 días, pero el plan de F1-A asume el plan gratuito de Workers, que guarda menos (7 días).",
+  "hecho": "Los secretos (SESSION_SECRET, TURNSTILE_SECRET) viven en las variables de Cloudflare y .dev.vars no se sube al repo; antes de las migraciones remotas 0009–0015 se guardó un marcador de Time Travel, y la tabla events hace de auditoría (Timeline del aplicante, History de Rentals). Formato de copia HamptonBackupV1 construido (plan PRE-14, Task 2): cifrado por entrada con DEK AES-256-GCM envuelta en RSA-OAEP-3072, chunks de 4 MiB con nonce y AAD del spec, verificación completa y certificado firmado Ed25519 con trust bundle externo; aún no lo usa ningún proceso.",
+  "falta": "Destino y claves (bucket R2 privado, token solo de exportar D1, clave de recuperación de Luis y clave de firma; en COLA-LUIS). Código restante del plan: compuerta de escrituras y esquema backup_runs (Task 1), captura D1/R2 y sello (Task 3), Workflow y reloj (Task 4), aviso en Inbox (Task 5; el spool de correo solo hace falta cuando AUT-17 reciba correo), herramienta de inspección y restore-test (Task 6) y aceptación integrada con revisión independiente (Task 7). Comprobar el plazo de Time Travel: el spec del panel dice 30 días, pero el plan de F1-A asume el plan gratuito de Workers (7 días).",
   "bloqueo": "",
   "evidencia": [
     "wrangler.toml:5-10",
@@ -18,7 +18,10 @@
     "admin/src/RentalDetail.jsx:181",
     "registro de despliegues de Claude (privado, fuera del repositorio)",
     "docs/superpowers/specs/2026-10-07-panel-admin-design.md:222",
-    "docs/superpowers/plans/2026-10-23-hampton-app-f1a.md:19"
+    "docs/superpowers/plans/2026-10-23-hampton-app-f1a.md:19",
+    "server/backup-crypto.js",
+    "tests/server/backup-crypto.test.mjs (16 pruebas: roundtrip 0/1/16/17/48 bytes y 4 MiB+1, clave errónea, tag/truncado/ausente/reordenado, metadatos y envelope sustituidos, DEK y prefijo nuevos por intento, sin secretos en recibo, memoria de un chunk, firma ajena/clave desconocida/campo cambiado/copia distinta)",
+    "Decisión 14-nov: construir primero Task 2 por ser autocontenida y sin efecto en producción (fuente: plan PRE-14 y regla 5 de la skill)."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -30,5 +33,6 @@
     "database-backups",
     "jobs-clock"
   ],
-  "nextStep": "Definir destino privado y exportación cifrada y comprobar el plazo real de recuperación contratado."
+  "nextStep": "Construir Task 6 (inspección y restore-test sintético) sobre server/backup-crypto.js y después Task 1; activar solo cuando Luis cree bucket, token y claves.",
+  "actualizado": "2026-11-14"
 }
