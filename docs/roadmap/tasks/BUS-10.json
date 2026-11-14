@@ -6,8 +6,8 @@
   "fase": "F1-B",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Base interna de identidad física y publicaciones por fuente con observaciones preservadas, revisión humana versionada y reversible, reintentos idempotentes y rechazo de vínculos de operación incoherentes. Se prepararon candidaturas pendientes y un detector conservador de conflictos suministrados, sin autorizar fusiones ni consultar matches reales. La ficha Staff muestra grupos históricos solo como indicios. La fachada permanece bloqueada con 503 y el esquema nuevo es una propuesta local. El núcleo inactivo admite sustitución explícita y versionada de candidaturas, con CAS y guardas contra reemplazo silencioso; SQLite y D1 efímera verificaron carreras y rollback.",
-  "falta": "Integrar candidaturas BUS-06/BUS-09 con ciclo de revisión y vínculo fiable a matches; añadir decisiones y guardas de conflicto, retención y bajas EST-19, autorización duradera por fuente y sesión, rutas y pantalla. Los grupos históricos no acreditan una única vivienda ni sustituyen ese flujo. No se han utilizado fuentes reales ni acreditado la operación de extremo a extremo; el estado remoto de 0050 es desconocido. La sustitución no invalida automáticamente evidencia posterior ni constituye una decisión humana; requiere política de purga y autoridad de sesión y fuente antes de conectarse. Mostrar en la tarjeta SPR-01 las fichas externas que incorpore, con estado, precio, dirección, dormitorios, baños y disponibilidad. Traído de BUS-15 (14-nov): cuando el inventario común alimente las coincidencias, mostrar en la tarjeta de revisión la fuente de la ficha (canal y fecha de observación). Traído de BUS-06 (14-nov): al enlazar observaciones con la propiedad, añadir «fuentes leídas» al historial de la ficha (SPR-02, contrato EST-18). Traído de BUS-12 (14-nov): ofrecer al motor evaluate() las casas del inventario común con identidad revisada; hoy solo se cruzan las fichas listings. Un dato sin evidencia fechada entra como desconocido, nunca como cumplimiento.",
+  "hecho": "Casa única conectada al inventario real, apagada tras BUS10_IDENTITY_READY. En Automations › Market inventory, «Possible duplicate homes» propone pares de anuncios con su evidencia: fuente, referencia, enlace, operación, parroquia, dormitorios, baños, precio y fecha. Regla sin IA: misma operación, parroquia y dormitorios conocidos, más mismo precio o mismo título. Un empleado elige «Same home» o «Different homes»; nada se une solo. Un anuncio visto en tres fuentes queda como una casa con tres publicaciones; una segunda unidad rechazada sigue aparte y no se vuelve a proponer ni se une por otro anuncio de esa casa. Cada decisión queda con autor y fecha y se revierte con «Undo last link» o «Reopen»; el historial se conserva. Las observaciones no se tocan y la unión no dice nada de disponibilidad. Rutas con sesión de equipo: GET /admin/market/identity (candidatas, casas unidas y pares separados), POST …/identity/decisions y POST …/identity/undo. La migración 0050 sirve tal cual para unir y deshacer; 0068 (aditiva) añade el registro de rechazos. La ficha Staff sigue mostrando los grupos históricos de investigación solo como indicios.",
+  "falta": "Aplicar 0050 y 0068 en producción, encender BUS10_IDENTITY_READY y comprobar GET /admin/market/identity con sesión. La primera unión con anuncios reales espera a que Luis cargue dos canales; hasta entonces la lista sale vacía.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:90-91",
@@ -27,7 +27,21 @@
     "docs/roadmap/work/BUS-10/revision-investigacion-2026-11-13.md",
     "docs/roadmap/work/BUS-10/candidaturas-internas-2026-11-13.md",
     "tests/server/bus-10-candidates-d1.test.mjs",
-    "docs/roadmap/work/BUS-10/candidate-schema-proposal.sql"
+    "docs/roadmap/work/BUS-10/candidate-schema-proposal.sql",
+    "migrations/0068_market_identity_separations.sql",
+    "server/routes/market-inventory.js",
+    "admin/src/MarketInventory.jsx",
+    "tests/server/bus-10-review.test.mjs",
+    "tests/bus10-identity.e2e.cjs",
+    "Decisión 14-nov: 0050 y el núcleo sirven tal cual para unir y deshacer; solo faltaba registrar el rechazo, que va en 0068 aditiva sin tocar 0050 · fuente: CONTINUIDAD «Qué es una migración aditiva».",
+    "Decisión 14-nov: las candidaturas se calculan al leer el inventario y no se guardan; candidate-schema-proposal.sql y proposePropertyIdentityCore quedan sin uso · fuente: skill §5 (mínimo código) y §4.5.",
+    "Decisión 14-nov: el detector que existía (inspectHumanMatchConflictsCore) compara revisiones de matches, que las observaciones de mercado no tienen; no genera candidaturas y no se conectó. La regla nueva es una función pura en server/market-identity.js · fuente: skill §4.5.",
+    "Decisión 14-nov: autoridad duradera por fuente y sesión, versiones esperadas enviadas por el cliente y purga son endurecimientos y van a MEJORAS; las rutas usan la sesión de equipo del resto del inventario y el núcleo revalida cuenta, acceso, vigencia y manifiesto de cada fuente en cada unión, deshacer y rechazo · fuente: skill §3.",
+    "Decisión 14-nov: alcance propio = casa única con sus publicaciones y la lectura «homes» de GET /admin/market/identity. Pasan a otras tareas: cruce con evaluate() y fuente en la tarjeta de match (BUS-01), columna y filtro de fuente en propiedades (SPR-07), enlace de las fichas propias y co-listed con «fuentes leídas» en su historial (BUS-07), retención y purga (EST-19) y disponibilidad (EST-16) · fuente: skill §3 y plan maestro «Búsqueda, visitas y publicación propias».",
+    "Decisión 14-nov: un anuncio conserva la casa de su primera lectura decidida; lecturas posteriores del mismo anuncio no abren otra casa y la ficha muestra los datos de la última · fuente: docs/roadmap/work/BUS-10/foundation-evidence.md (publicación por fuente, canal, referencia y operación).",
+    "Verificación 14-nov: tests/server/bus-10-review.test.mjs 7/7 (interruptor apagado 404, sesión y mismo origen, evidencia, tres fuentes una casa, segunda unidad aparte, deshacer y reabrir, lectura posterior, fuente cerrada 409 y recorrido con la ruta real de carga manual). Focales bus-10, bus-06 y bus-19: 127 pruebas; fallan de forma intermitente solo pruebas Miniflare anteriores con la máquina cargada (bus-06-tp04-1 pasa 18/18 sola; bus-10-identity y bus-06-tp04-1 pasan 48/48 en serie).",
+    "Verificación 14-nov: tests/bus10-identity.e2e.cjs en Chromium aislado, con rutas y D1 reales del fixture y 0050+0068 aplicadas: PASS a 1280 y 390, teclado y 200 %. A 200 % y 390 la página Automations ya desborda sin esta sección (anterior a este cambio). bus06-coverage y automations-market siguen en PASS.",
+    "No comprobado: D1 remoto, estado real de 0050/0068 en producción y el recorrido con anuncios reales (aún no hay datos cargados)."
   ],
   "modulo": "M02",
   "deps": [
@@ -52,6 +66,6 @@
     "market-inventory",
     "property-identity"
   ],
-  "nextStep": "Resolver retención EST-19 y autoridad duradera antes de conectar candidatos de mercado y decisiones de identidad.",
+  "nextStep": "Aplicar 0050 y 0068 (aditivas, solo CREATE TABLE/INDEX/TRIGGER), encender BUS10_IDENTITY_READY en wrangler.toml y comprobar la lectura en producción.",
   "actualizado": "2026-11-14"
 }
