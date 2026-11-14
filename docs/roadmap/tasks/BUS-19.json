@@ -5,9 +5,9 @@
   "origen": "plan",
   "fase": "F1-B",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "Política por canal construida y probada: cada canal tiene decisión versionada (pendiente, permitido, solo manual, denegado, pausado), método, evidencia, fecha de revisión y hosts. La pantalla muestra por canal su tipo de fuente, la nota de la revisión documental (la tarea manual pendiente), el método y las fechas. Quien revisa clasifica la fuente en la misma decisión: solo una fuente general puede abrirse; Homely y JFSC nunca, y Places.je y Properties.je quedan para después; los dominios de Homely, Places.je y Properties.je se rechazan aunque la fuente se clasifique mal. Una restricción afecta solo a su canal. La decisión se aplica al único camino de entrada que existe, la carga manual: se revalida antes de tomar el canal, al tomarlo y al guardar; un canal pendiente, denegado, vencido o con otra versión no admite anuncios.",
-  "falta": "Activar junto a BUS-06: aplicar 0043 y encender MARKET_INVENTORY_READY, y comprobar la pantalla en producción. Después, solo Luis o Hampton: revisar con evidencia cada canal que se vaya a usar (términos comprobados, fecha de revisión, hosts); los permisos escritos solo afectan a sus fuentes. Trasladado a BUS-09: cada lector automático futuro debe revalidar esta decisión, leer con baja frecuencia, respetar robots.txt e identificarse.",
+  "falta": "Solo falta la revisión real por canal, que hace Luis o Hampton en el panel: tipo, decisión, evidencia, fecha de revisión y hosts de cada canal que se vaya a usar; los permisos escritos solo afectan a sus fuentes. Activada el 14-nov-2026 junto a BUS-06.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:255-256",
@@ -28,7 +28,8 @@
     "14-nov-2026: 62 pruebas focales de servidor pasan (BUS-19, BUS-06 y el puente manual de BUS-09, incluidas las de D1 local); navegador aislado a 1280 y 390 con tests/bus19-source-review.e2e.cjs y tests/bus06-coverage.e2e.cjs. Sin comprobar: la pantalla en producción (0043 sin aplicar e interruptor apagado) y ninguna revisión real de canal.",
     "Decisión: el tipo de fuente se elige dentro de la revisión del canal y solo «general» puede abrirse. Fuente: restricciones de migrations/0043_market_inventory.sql y plan BUS-19 («cada decisión conserva fuente, canal, método, hosts, frecuencia, fecha y evidencia»).",
     "Decisión: homely.je, places.je y properties.je no pueden abrirse con ninguna revisión en esta fase. Fuente: plan maestro («Places.je/Properties.je conectores posteriores; Homely fuera»).",
-    "Decisión: las decisiones se aplican a la carga manual, que es el único camino de entrada; los requisitos de lectura automática pasan a BUS-09 con sus lectores. Fuente: plan maestro («BUS-19 por canal antes de fuente externa») y skill avanzar, sección 3."
+    "Decisión: las decisiones se aplican a la carga manual, que es el único camino de entrada; los requisitos de lectura automática pasan a BUS-09 con sus lectores. Fuente: plan maestro («BUS-19 por canal antes de fuente externa») y skill avanzar, sección 3.",
+    "14-nov-2026: publicada en 0e75b51 y 0043 aplicada en producción con MARKET_INVENTORY_READY=1; revisión independiente con un hallazgo grave corregido antes de migrar (un directorio revocado ya no reabre canales; una clase restringida no se levanta en revisión). El recorrido automático (marketInventoryTick) pasa a BUS-08: hoy no hay lector automático que ejecutar. Solo falta la carga y revisión reales, que hace Luis con su sesión."
   ],
   "modulo": "M01",
   "deps": [],
@@ -46,10 +47,10 @@
       "basis": "TP05 contracts, not whole-task completion"
     }
   ],
-  "externalBlocker": "Luis: permisos escritos de las fuentes que los exijan; solo afectan a esas fuentes, no a la política ni a las fuentes ya permitidas.",
+  "externalBlocker": "Luis/Hampton: revisar en Automations › Market inventory cada canal que se vaya a usar (tipo, decisión, evidencia, fecha de revisión y hosts); los permisos escritos solo afectan a las fuentes que los exijan.",
   "resources": [
     "source-access-policy"
   ],
-  "nextStep": "Aplicar 0043 y encender MARKET_INVENTORY_READY con BUS-06; comprobar GET /api/admin/market/sources. Después Luis o Hampton revisan con evidencia los canales que se vayan a usar.",
+  "nextStep": "Tras la revisión real de los primeros canales, comprobar que cada fuente indica método o tarea manual y cerrar.",
   "actualizado": "2026-11-14"
 }

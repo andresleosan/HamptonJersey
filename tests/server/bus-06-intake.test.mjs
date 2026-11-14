@@ -105,11 +105,15 @@ test('a later revision never reopens a channel of a revoked directory nor one it
   const state = ref => Object.values(env.DB.raw.prepare('SELECT source_class,access_status FROM market_sources WHERE source_ref=?').get(ref));
   assert.deepEqual(state('agency-a'), ['general', 'pending'], 'a revoked directory leaves its decision behind');
   // The directory itself now says the channel is Homely: it closes and the reviewer cannot class it back to general.
-  const third = candidate('bus23-fixture-3', [channel('agency-a', 'web', { source_class: 'homely' })]);
+  const third = candidate('bus23-fixture-3', [channel('agency-a', 'web', { source_class: 'homely' }),
+    channel('agency-b', 'web', { source_class: 'jfsc' })]);
   assert.equal((await accept(env, cookie, third)).status, 201);
   assert.deepEqual(state('agency-a'), ['homely', 'pending']);
+  assert.deepEqual(state('agency-b'), ['jfsc', 'pending'], 'every class that cannot be granted closes the channel');
   assert.equal((await review(env, cookie, { version: 4, operation_id: op(92) })).status, 409);
+  assert.equal((await review(env, cookie, { source_ref: 'agency-b', version: 3, operation_id: op(93) })).status, 409);
   assert.deepEqual(state('agency-a'), ['homely', 'pending']);
+  assert.deepEqual(state('agency-b'), ['jfsc', 'pending']);
 });
 
 test('a reviewed channel takes a manual batch; unread channels stay pending and are never counted as empty', async () => {

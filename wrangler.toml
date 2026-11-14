@@ -19,6 +19,12 @@ ADM16_TENANCY_EXIT_READY = "1"
 ADM13_INSPECTIONS_READY = "1"
 # NOT-05: needs no migration; off until its tab is checked in production.
 NOT05_MISSING_PAYMENTS_READY = "1"
+# BUS-06 / BUS-19: market inventory and source review (migration 0043, applied 14-nov-2026).
+MARKET_INVENTORY_READY = "1"
+# PUB-07: listing compliance (migration 0061, applied 14-nov-2026).
+PUB07_COMPLIANCE_READY = "1"
+# ADM-17: versioned legal periods (migration 0063, applied 14-nov-2026); keep equal in jobs/wrangler.toml.
+ADM17_LEGAL_TERMS_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

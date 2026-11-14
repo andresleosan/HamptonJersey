@@ -1,5 +1,9 @@
 import { HttpError, sha256 } from './http.js';
 
+// Classes of external source that can never be opened in review; the only list, shared with the directory upsert.
+export const RESTRICTED_CLASSES = ['homely', 'jfsc', 'places', 'properties'];
+export const RESTRICTED_SQL = RESTRICTED_CLASSES.map(c => `'${c}'`).join(',');
+
 // Only reviewed, versioned channel decisions may change the BUS-06 source row.
 // This service performs no acquisition and treats unclassified sources as pending.
 const bad = () => { throw new HttpError(400, 'Invalid source access review'); };
@@ -103,8 +107,7 @@ export async function reviewSourceAccess(env, input, actor, expectedVersion, clo
   // The reviewer may classify an external channel in the same decision; only "general" can be granted.
   const sourceClass = next.source_class ?? current.source_class;
   // A class the directory marked as restricted is not the reviewer's to lift.
-  if (next.source_class && (current.source_kind !== 'external' ||
-      ['homely','places','properties'].includes(current.source_class))) conflict();
+  if (next.source_class && (current.source_kind !== 'external' || RESTRICTED_CLASSES.includes(current.source_class))) conflict();
   if (granting && (current.source_kind === 'external' ?
     sourceClass !== 'general' || current.manifest_status !== 'accepted' || next.method === 'internal' :
     current.source_class !== 'internal' || next.method !== 'internal')) conflict();
@@ -114,7 +117,8 @@ export async function reviewSourceAccess(env, input, actor, expectedVersion, clo
     checked_at: at, review_due_at: next.review_due_at, evidence_ref: next.evidence_ref, retention_ref: next.retention_ref };
   const guard = crypto.randomUUID();
   const condition = `SELECT 1 FROM market_sources s LEFT JOIN market_directory_manifests m ON m.revision=s.directory_revision
-    WHERE s.source_ref=? AND s.channel_id=? AND s.policy_version=? AND (? IS NULL OR s.source_kind='external') AND
+    WHERE s.source_ref=? AND s.channel_id=? AND s.policy_version=? AND
+      (? IS NULL OR (s.source_kind='external' AND s.source_class NOT IN (${RESTRICTED_SQL}))) AND
       (?=0 OR (? > strftime('%Y-%m-%dT%H:%M:%fZ','now') AND
        ((s.source_kind='internal' AND s.source_class='internal' AND ?='internal') OR
         (s.source_kind='external' AND COALESCE(?,s.source_class)='general' AND m.status='accepted' AND ?<>'internal'))))`;

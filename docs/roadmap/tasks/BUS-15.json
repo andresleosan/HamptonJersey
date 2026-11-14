@@ -4,10 +4,10 @@
   "titulo": "Cola de revisión rápida (Review) con teclas y aprobación en lote",
   "origen": "plan",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "La pantalla Review muestra una coincidencia cada vez (primero la búsqueda más antigua y, dentro de ella, la de mejor puntuación) con A = Shortlist, R = Reject con motivo 1–5, S = Skip (queda pendiente) y Undo. La pestaña Matches de la ficha ofrece Shortlist, Reject y Undo. 14-nov-2026 (M04): cada decisión guarda quién, cuándo y la versión revisada de la búsqueda y de la propiedad en su evento match.reviewed. La tarjeta muestra la comparación por criterio con su evidencia y sus dudas, la fecha en que se encontró, la última actualización de la propiedad y quién decidió y cuándo. Review y Matches dicen qué autoriza un Shortlist: solo la primera consulta de disponibilidad; no quita un imprescindible, no comparte datos del cliente ni cambia la búsqueda. Aprobación en lote en Matches: el empleado marca las coincidencias y pulsa «Shortlist selected»; cada una se guarda como decisión propia y ninguna puntuación aprueba sola. El servidor exporta APPROVED, la única condición desde la que podrá salir una consulta: Shortlisted con decisión registrada sobre las versiones vigentes y búsqueda activa. Rechazar no toca la propiedad ni las coincidencias de otros.",
-  "falta": "Integrar el commit en main; no lleva migración ni interruptor. Sin pendientes propios: el envío y la consulta aclaratoria son de AGE-03, el aviso de aprobación desfasada de EST-13 y la fuente de mercado de cada ficha de BUS-10.",
+  "hecho": "La pantalla Review muestra una coincidencia cada vez (primero la búsqueda más antigua y, dentro de ella, la de mejor puntuación) con A = Shortlist, R = Reject con motivo 1–5, S = Skip (queda pendiente) y Undo. La pestaña Matches de la ficha ofrece Shortlist, Reject y Undo. 14-nov-2026 (M04): cada decisión guarda quién, cuándo y la versión revisada de la búsqueda y de la propiedad en su evento match.reviewed. La tarjeta muestra la comparación por criterio con su evidencia y sus dudas, la fecha en que se encontró, la última actualización de la propiedad y quién decidió y cuándo. Review y Matches dicen qué autoriza un Shortlist: solo la primera consulta de disponibilidad; no quita un imprescindible, no comparte datos del cliente ni cambia la búsqueda. Aprobación en lote en Matches: el empleado marca las coincidencias y pulsa «Shortlist selected»; cada una se guarda como decisión propia y ninguna puntuación aprueba sola. El servidor exporta APPROVED, la única condición desde la que podrá salir una consulta: Shortlisted con decisión registrada sobre las versiones vigentes y búsqueda activa. Rechazar no toca la propiedad ni las coincidencias de otros. Cerrada el 14-nov-2026 por aceptación propia: sin migración ni interruptor; lo que corresponde al envío (AGE-03, AUT-11), a los estados (EST-13) y a las fuentes (BUS-10) está en esas fichas.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/routes/matches.js:44-51 (APPROVED) y :126-128 (versiones en match.reviewed)",
@@ -23,7 +23,8 @@
     "Decisión: los Shortlisted anteriores no llevan versión y no cuentan como aprobados hasta revisarse de nuevo. Fuente: criterio de aceptación (sin decisión registrada no hay envío).",
     "Decisión: la consulta aclaratoria D06 no se construye aquí. Fuente: plan maestro 10-nov (requiere empleado y no aprueba el match); el envío es de AGE-03.",
     "Decisión: la fecha de la propiedad es su última actualización, no confirmed_at. Fuente: reconciliación 7-nov M05 (confirmed_at no acredita confirmación comercial).",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "Cierre 14-nov-2026: publicada en 0e75b51; npm test 2456/2456, build y check:release; tests/bus15-review.e2e.cjs pasa a 1280 y 390 (tres pasadas seguidas tras corregir una carrera de la prueba); revisión independiente sin hallazgos graves."
   ],
   "modulo": "M04",
   "deps": [
@@ -57,6 +58,6 @@
     "outreach-contract",
     "matching-review-ui"
   ],
-  "nextStep": "Integrar en main y cerrar por aceptación propia; AGE-03 debe enviar solo desde APPROVED.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-14"
 }

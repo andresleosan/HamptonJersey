@@ -3641,7 +3641,7 @@
       "preferredSlot": "vps",
       "priority": 194,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -5811,7 +5811,7 @@
       "preferredSlot": "vscode",
       "priority": 255,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -6386,7 +6386,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 271,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -9929,7 +9929,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M07 · Reconciliación 7-nov: Al confirmar disponibilidad por correo útil o llamada registrada, enriquecer una ficha común con datos completos y fotos originales, URL, fecha y evidencia. Captura completa/parcial/fallida visible y reintentos sin duplicados; no afirmar éxito si falta algún archivo. Crear tarea Abrir ficha para revisar, corregir, ver incumplimientos/datos pendientes, abrir origen y descargar fotos individuales, selección o ZIP y datos en formato a concretar. La misma ficha sirve a varios clientes; las versiones aptas para el cliente se gestionan en AGE-10. Depende de: AGE-06, BUS-10, EST-13. Aceptación: Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: captura completa o parcial. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): captura.",
+      "falta": "M07 · Reconciliación 7-nov: Al confirmar disponibilidad por correo útil o llamada registrada, enriquecer una ficha común con datos completos y fotos originales, URL, fecha y evidencia. Captura completa/parcial/fallida visible y reintentos sin duplicados; no afirmar éxito si falta algún archivo. Crear tarea Abrir ficha para revisar, corregir, ver incumplimientos/datos pendientes, abrir origen y descargar fotos individuales, selección o ZIP y datos en formato a concretar. La misma ficha sirve a varios clientes; las versiones aptas para el cliente se gestionan en AGE-10. Depende de: AGE-06, BUS-10, EST-13. Aceptación: Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: captura completa o parcial. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): captura. Traído de BUS-06 (14-nov): la descarga de fotos de anuncios de mercado espera a la disponibilidad confirmada; BUS-06 no guarda fotos.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:96",
@@ -10244,7 +10244,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M06 · Reconciliación 7-nov: Crear la gestión compartida de disponibilidad por propiedad/operación y relacionar los matches aprobados. Revalidar búsqueda activa y datos vigentes antes de enviar. La consulta identifica el inmueble, expresa interés y pregunta disponibilidad y horarios; en vivienda solo puede incluir ocupantes de un caso concreto seleccionado, sin sumar familias ni divulgar nombres, contactos, presupuesto o documentos. Adaptar comercial sin inventar residentes. Reutilizar la disponibilidad general sin asumir aceptadas las condiciones de todos; vigencia por concretar. Si el canal no es utilizable, tarea manual con destinatario y contenido, sin marcar enviado. Consultas específicas desde la cola de MUST desconocido siguen como decisión abierta. Depende de: BUS-15, BUS-10, AGE-04, EST-09, AUT-11, EST-15. Aceptación: Cinco matches aprobados reutilizan una consulta general; un match sin aprobar no contacta y los datos de familias no se mezclan. Antes de activar envíos debe estar operativa la exclusión por indisponibilidad confirmada EST-15; la construcción y las tareas manuales no esperan a un proveedor de correo.",
+      "falta": "M06 · Reconciliación 7-nov: Crear la gestión compartida de disponibilidad por propiedad/operación y relacionar los matches aprobados. Revalidar búsqueda activa y datos vigentes antes de enviar. La consulta identifica el inmueble, expresa interés y pregunta disponibilidad y horarios; en vivienda solo puede incluir ocupantes de un caso concreto seleccionado, sin sumar familias ni divulgar nombres, contactos, presupuesto o documentos. Adaptar comercial sin inventar residentes. Reutilizar la disponibilidad general sin asumir aceptadas las condiciones de todos; vigencia por concretar. Si el canal no es utilizable, tarea manual con destinatario y contenido, sin marcar enviado. Consultas específicas desde la cola de MUST desconocido siguen como decisión abierta. Depende de: BUS-15, BUS-10, AGE-04, EST-09, AUT-11, EST-15. Aceptación: Cinco matches aprobados reutilizan una consulta general; un match sin aprobar no contacta y los datos de familias no se mezclan. Antes de activar envíos debe estar operativa la exclusión por indisponibilidad confirmada EST-15; la construcción y las tareas manuales no esperan a un proveedor de correo. Traído de BUS-15 (14-nov): enviar solo desde coincidencias que cumplen APPROVED (server/routes/matches.js) y revalidarlo al salir; los Shortlisted anteriores al 14-nov no llevan versión revisada y necesitan nueva revisión. La consulta aclaratoria de un imprescindible desconocido es una acción humana aparte que no aprueba el match.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/ESTADO.md:10",
@@ -10323,7 +10323,8 @@
         "matching-contract",
         "outbound-policy"
       ],
-      "nextStep": "Diseñar consulta compartida aprobada por propiedad/operación, con canal manual si no existe integración."
+      "nextStep": "Diseñar consulta compartida aprobada por propiedad/operación, con canal manual si no existe integración.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "AGE-04",
@@ -10534,7 +10535,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M06 · Reconciliación 7-nov: Tras dos días desde el envío real sin respuesta útil, crear una única tarea de llamada con propiedad, anunciante, mensaje, historial, clientes y todos los teléfonos identificados. Una respuesta que llega antes de llamar actualiza o resuelve la tarea según lo confirmado. Registrar disponible, no disponible o inconcluso; una llamada sin contestar no prueba indisponibilidad. Sustituye el antiguo encadenamiento de recordatorios por correo. Naturales/laborables, hora y fines de semana siguen pendientes de decisión; conservar estadísticas de respuesta como mejora separada. Depende de: AGE-05, AGE-06, AGE-04, AUT-07, NOT-11. Aceptación: Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: llamada a los dos días sin respuesta. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): llamadas.",
+      "falta": "M06 · Reconciliación 7-nov: Tras dos días desde el envío real sin respuesta útil, crear una única tarea de llamada con propiedad, anunciante, mensaje, historial, clientes y todos los teléfonos identificados. Una respuesta que llega antes de llamar actualiza o resuelve la tarea según lo confirmado. Registrar disponible, no disponible o inconcluso; una llamada sin contestar no prueba indisponibilidad. Sustituye el antiguo encadenamiento de recordatorios por correo. Naturales/laborables, hora y fines de semana siguen pendientes de decisión; conservar estadísticas de respuesta como mejora separada. Depende de: AGE-05, AGE-06, AGE-04, AUT-07, NOT-11. Aceptación: Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: llamada a los dos días sin respuesta. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): llamadas. Traído de BUS-06 (14-nov): la tarea de llamada lee anunciantes y teléfonos del directorio AGE-04 (GET /admin/advertisers?property_id=); el inventario de mercado no guarda contactos.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:295",
@@ -12022,7 +12023,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "La pausa general está en producción desde el 1-nov-2026 (AUT-01/AUT-13). Añadido en local el 6-nov-2026, sin publicar, para AUT-17: idempotencia por snapshot, cuota compartida de 100 intentos por día de Jersey con reserva atómica, interruptor de correo y del resumen, supresiones y comprobación de pausa antes de cada llamada. Resultados inciertos sin reenvío automático. La pausa también detiene el resumen interno y el panel lo explica.",
-      "falta": "M06 · Reconciliación 7-nov: Activar y probar AUT-17 en real. Topes por agencia y otros canales, horas de silencio de WhatsApp/SMS y barandillas particulares de cada futuro flujo se implementan con esos flujos; el tope compartido de correo no los sustituye. Solo una persona en el panel reanuda los envíos. El envío de consultas debe además revalidar aprobación, búsqueda activa, vigencia de propiedad y permisos antes de salir; un cambio de precio, requisitos o disponibilidad después de aprobar revisa las acciones pendientes. Dos empleados y los reintentos deben compartir la misma acción sin doble correo. Depende de: BUS-15, EST-09. Aceptación: Dos acciones concurrentes no envían dos veces y una propiedad invalidada no sale en una consulta pendiente.",
+      "falta": "M06 · Reconciliación 7-nov: Activar y probar AUT-17 en real. Topes por agencia y otros canales, horas de silencio de WhatsApp/SMS y barandillas particulares de cada futuro flujo se implementan con esos flujos; el tope compartido de correo no los sustituye. Solo una persona en el panel reanuda los envíos. El envío de consultas debe además revalidar aprobación, búsqueda activa, vigencia de propiedad y permisos antes de salir; un cambio de precio, requisitos o disponibilidad después de aprobar revisa las acciones pendientes. Dos empleados y los reintentos deben compartir la misma acción sin doble correo. Depende de: BUS-15, EST-09. Aceptación: Dos acciones concurrentes no envían dos veces y una propiedad invalidada no sale en una consulta pendiente. Traído de BUS-15 (14-nov): la revalidación previa al envío usa APPROVED; un cambio material de búsqueda o propiedad retira la aprobación sin tocar el estado Shortlisted.",
       "bloqueo": "Activación de AUT-17",
       "evidencia": [
         "admin/src/ApplicantDetail.jsx:279-281",
@@ -12846,9 +12847,9 @@
       "origen": "plan",
       "fase": "F1-B",
       "estado": "parcial",
-      "responsable": "desarrollo",
-      "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones compartidas, observaciones y registro transaccional. Rutas administrativas desactivadas por defecto; migración ensayada solo en bases locales. Candidato documental privado reconciliado con 141 identificadores y 237 canales, sin habilitar accesos. El reconciliador documental rechaza claves JSON duplicadas, también anidadas o equivalentes por escape, y preserva la salida ante rechazo. Vista administrativa de solo lectura para recorridos y cobertura, sujeta al gate existente; pruebas sintéticas y revisión independiente.",
-      "falta": "Faltan la incorporación operativa del manifiesto, lectores controlados, gestión/revisión de fuentes, carga manual y evidencia de captura real. M02 · Reconciliación 7-nov: Crear el inventario inicial por tandas desde el directorio revisado, usando las fuentes operativas disponibles y tareas manuales para las restringidas. Capturar datos suficientes para comparar: operación, tipo, precio y periodicidad originales, ubicación, dormitorios o superficie, ocupación, parking, mascotas, descripción, referencia, anunciante y contactos. La descarga completa de fotos espera a la disponibilidad confirmada (SPR-03). Places.je es un conector posible; PRE-01 no bloquea el inventario ni se exige un acuerdo de comisión para leer un feed utilizable. Depende de: BUS-23, BUS-19, AGE-04. Aceptación: Las fuentes accesibles producen inventario común y las inaccesibles quedan pendientes, sin registrarlas como vacías. La validación y las huellas no autentican al revisor ni autorizan las fuentes. La tarea de llamada debe leer anunciantes y teléfonos del directorio AGE-04 (GET /admin/advertisers?property_id=), sin duplicar contactos. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: fuente fallida. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): fuentes leídas.",
+      "responsable": "Luis",
+      "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones, observaciones y registro transaccional. Desde el panel (Automations, tras el interruptor): un admin acepta el manifiesto privado del directorio comprobando su huella, que el servidor verifica; todos los canales entran pendientes. Se abre una tanda, se suben a mano hasta 10 anuncios por envío para cada canal revisado como manual, y se pausa o se cierra la tanda para empezar la siguiente. La cobertura muestra por canal qué se ha leído: un canal no leído dice por qué y nunca cuenta como vacío. Una revisión posterior del manifiesto mueve sus canales y conserva las decisiones ya revisadas. El candidato privado real (237 canales, 141 fuentes) pasa la aceptación en una base local.",
+      "falta": "Solo falta la evidencia de captura real, que hace Luis con su sesión: cargar el directorio privado en el panel, abrir una tanda y subir el primer lote real de un canal revisado. Activada el 14-nov-2026 (0043 aplicada, MARKET_INVENTORY_READY=1). El recorrido automático por lectores está en BUS-08 y BUS-09.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/ESTADO.md:9",
@@ -12863,7 +12864,17 @@
         "tests/test_directory_manifest.py",
         "admin/src/MarketInventory.jsx",
         "tests/bus06-coverage.e2e.cjs",
-        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): dependencias por componente (TP-05)."
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): dependencias por componente (TP-05).",
+        "server/routes/market-inventory.js",
+        "tests/server/bus-06-intake.test.mjs",
+        "tests/server/bus-06-intake-d1.test.mjs",
+        "14-nov-2026: 62 pruebas focales de servidor pasan (BUS-06, BUS-19 y el puente manual de BUS-09, incluidas las de D1 local); navegador aislado a 1280 y 390 con tests/bus06-coverage.e2e.cjs, tests/bus19-source-review.e2e.cjs y tests/automations-market.e2e.cjs; npm run build. Sin comprobar: producción (0043 sin aplicar e interruptor apagado) y captura real.",
+        "Decisión: la entrada de anuncios es la carga manual; no se construye lector HTTP. Fuente: plan maestro («lectores nominales y carga manual como alternativa») y plan TP-04 BUS-06 («No construir HTTP fetch genérico»).",
+        "Decisión: el manifiesto se acepta desde el panel con huella verificada en el servidor; nunca va al repositorio ni a una migración. Fuente: diseño TP-04 de mercado («hashes sobre los bytes del artefacto recibido», «no seed»).",
+        "Decisión: el recorrido automático (TP-04 tarea 2) no se construye sin lectores automáticos ni reloj diario; pasa a BUS-08 y BUS-09. Fuente: skill avanzar, secciones 3 y 5 (dependencias por componente, mínimo código).",
+        "Decisión: cerrar tanda y mover canales con una revisión posterior del manifiesto, para no dejar el inventario bloqueado por una sola tanda abierta. Fuente: skill avanzar, sección 4.5 (opción más simple y reversible).",
+        "Decisión: el intervalo mínimo por canal (60 s) también vale para la carga manual; no se toca 0043. Fuente: encargo del lote y diseño TP-04 («mínimo 60 s entre adquisiciones de un canal»).",
+        "14-nov-2026: publicada en 0e75b51 y 0043 aplicada en producción con MARKET_INVENTORY_READY=1; revisión independiente con un hallazgo grave corregido antes de migrar (un directorio revocado ya no reabre canales; una clase restringida no se levanta en revisión). El recorrido automático (marketInventoryTick) pasa a BUS-08: hoy no hay lector automático que ejecutar. Solo falta la carga y revisión reales, que hace Luis con su sesión."
       ],
       "modulo": "M02",
       "deps": [
@@ -12913,13 +12924,13 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "",
+      "externalBlocker": "Luis: cargar el directorio privado de fuentes en Automations › Market inventory › Source directory, abrir una tanda y subir el primer lote real de anuncios de un canal revisado.",
       "resources": [
         "market-inventory",
         "sources-directory",
         "advertisers-contract"
       ],
-      "nextStep": "Revisar la incorporación operativa del candidato y construir lectores que apliquen las decisiones por canal.",
+      "nextStep": "Tras la primera carga real de Luis, comprobar la cobertura (fuentes no leídas como pendientes, nunca 0) y cerrar.",
       "actualizado": "2026-11-14"
     },
     {
@@ -12982,7 +12993,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M05 · Reconciliación 7-nov: Construir el barrido diario por tandas, independiente de clientes: nuevas publicaciones, cambios, anuncios no localizados y errores de fuente; guardar cada intento y la última revisión correcta. Un fallo o anuncio ausente genera revisión, nunca indisponibilidad confirmada. Reutilizar capturas sin descargar todas las fotos cada día, reintentar sin duplicados y emitir cambios hacia BUS-04. Una hora concreta o frecuencia superior a diaria queda por concretar. Depende de: BUS-06, BUS-09, BUS-10, EST-16, AUT-07, EST-15. Aceptación: Una fuente caída conserva sus propiedades y muestra el fallo; una bajada de precio actualiza la propiedad y recalcula búsquedas activas. La activación automática exige antes la exclusión por indisponibilidad y prioridad humana EST-15; el desarrollo puede avanzar con fuentes y datos de prueba.",
+      "falta": "M05 · Reconciliación 7-nov: Construir el barrido diario por tandas, independiente de clientes: nuevas publicaciones, cambios, anuncios no localizados y errores de fuente; guardar cada intento y la última revisión correcta. Un fallo o anuncio ausente genera revisión, nunca indisponibilidad confirmada. Reutilizar capturas sin descargar todas las fotos cada día, reintentar sin duplicados y emitir cambios hacia BUS-04. Una hora concreta o frecuencia superior a diaria queda por concretar. Depende de: BUS-06, BUS-09, BUS-10, EST-16, AUT-07, EST-15. Aceptación: Una fuente caída conserva sus propiedades y muestra el fallo; una bajada de precio actualiza la propiedad y recalcula búsquedas activas. La activación automática exige antes la exclusión por indisponibilidad y prioridad humana EST-15; el desarrollo puede avanzar con fuentes y datos de prueba. Traído de BUS-15 (14-nov): una bajada de precio material tras un rechazo abre un nuevo episodio Found para revisión humana (plan maestro); hoy un match rechazado no se vuelve a proponer. Traído de BUS-06 (14-nov): construir el recorrido automático reanudable (marketInventoryTick, TP-04 BUS-06 tarea 2) junto a la pasada diaria, cuando exista el primer lector automático; emitir desde ahí el aviso NOT-01 de fuente fallida.",
       "bloqueo": "",
       "evidencia": [
         "jobs/wrangler.toml:1-24",
@@ -13054,7 +13065,8 @@
         "source-connectors",
         "availability-contract"
       ],
-      "nextStep": "Construir barrido reanudable con fixtures; activar solo cuando exclusión y prioridad humana de EST-15 estén verificadas."
+      "nextStep": "Construir barrido reanudable con fixtures; activar solo cuando exclusión y prioridad humana de EST-15 estén verificadas.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "BUS-09",
@@ -13065,7 +13077,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos. La comparación manual ya admite el formato histórico sin el campo derivado de renta exacta y sigue detectando cambios en términos originales.",
-      "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real. Antes de conectar, resolver sesión e identidad durable del actor. Traído de AUT-09: casos reales y adversarios, umbral y evidencia de ejecución del propósito market_ambiguity_v1 en docs/automations/acceptance.json antes de activarlo.",
+      "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real. Antes de conectar, resolver sesión e identidad durable del actor. Traído de AUT-09: casos reales y adversarios, umbral y evidencia de ejecución del propósito market_ambiguity_v1 en docs/automations/acceptance.json antes de activarlo. Traído de BUS-06 (14-nov): ampliar el contrato de observación manual con tipo de inmueble, superficie, ocupación, descripción y referencia del anunciante. POST /admin/market/manual-pages ya conecta el puente manual con la sesión del admin; siguen pendientes el lector Hampton interno (own_pilot) y cada lector externo con su contrato. Todo lector automático revalida la decisión BUS-19, lee con baja frecuencia, respeta robots.txt y se identifica.",
       "bloqueo": "",
       "evidencia": [
         "server/listing-features.js:1-30",
@@ -13131,7 +13143,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Base interna de identidad física y publicaciones por fuente con observaciones preservadas, revisión humana versionada y reversible, reintentos idempotentes y rechazo de vínculos de operación incoherentes. Se prepararon candidaturas pendientes y un detector conservador de conflictos suministrados, sin autorizar fusiones ni consultar matches reales. La ficha Staff muestra grupos históricos solo como indicios. La fachada permanece bloqueada con 503 y el esquema nuevo es una propuesta local. El núcleo inactivo admite sustitución explícita y versionada de candidaturas, con CAS y guardas contra reemplazo silencioso; SQLite y D1 efímera verificaron carreras y rollback.",
-      "falta": "Integrar candidaturas BUS-06/BUS-09 con ciclo de revisión y vínculo fiable a matches; añadir decisiones y guardas de conflicto, retención y bajas EST-19, autorización duradera por fuente y sesión, rutas y pantalla. Los grupos históricos no acreditan una única vivienda ni sustituyen ese flujo. No se han utilizado fuentes reales ni acreditado la operación de extremo a extremo; el estado remoto de 0050 es desconocido. La sustitución no invalida automáticamente evidencia posterior ni constituye una decisión humana; requiere política de purga y autoridad de sesión y fuente antes de conectarse. Mostrar en la tarjeta SPR-01 las fichas externas que incorpore, con estado, precio, dirección, dormitorios, baños y disponibilidad.",
+      "falta": "Integrar candidaturas BUS-06/BUS-09 con ciclo de revisión y vínculo fiable a matches; añadir decisiones y guardas de conflicto, retención y bajas EST-19, autorización duradera por fuente y sesión, rutas y pantalla. Los grupos históricos no acreditan una única vivienda ni sustituyen ese flujo. No se han utilizado fuentes reales ni acreditado la operación de extremo a extremo; el estado remoto de 0050 es desconocido. La sustitución no invalida automáticamente evidencia posterior ni constituye una decisión humana; requiere política de purga y autoridad de sesión y fuente antes de conectarse. Mostrar en la tarjeta SPR-01 las fichas externas que incorpore, con estado, precio, dirección, dormitorios, baños y disponibilidad. Traído de BUS-15 (14-nov): cuando el inventario común alimente las coincidencias, mostrar en la tarjeta de revisión la fuente de la ficha (canal y fecha de observación). Traído de BUS-06 (14-nov): al enlazar observaciones con la propiedad, añadir «fuentes leídas» al historial de la ficha (SPR-02, contrato EST-18).",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:90-91",
@@ -13415,18 +13427,27 @@
       "titulo": "Cola de revisión rápida (Review) con teclas y aprobación en lote",
       "origen": "plan",
       "fase": "F1-A",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "La pantalla Review muestra una coincidencia cada vez (primero la búsqueda más antigua y, dentro de ella, la de mejor puntuación) con A = Shortlist, R = Reject con motivo 1–5, S = Skip y Undo. La pestaña Matches de la ficha ofrece Shortlist, Reject y Undo como botones, sin Skip ni teclas.",
-      "falta": "M04 · Reconciliación 7-nov: Mantener aprobación, rechazo con motivo y pendiente como decisiones humanas. Mostrar comparación, fuentes, fechas y dudas; registrar responsable y versión revisada. Al aprobar se autoriza únicamente la consulta inicial AGE-03. Una aprobación no elimina un MUST ni autoriza divulgar datos del cliente o cambiar criterios. La aprobación en lote, si se conserva, exige selección y acción explícitas del empleado; ningún umbral aprueba solo. Depende de: BUS-12, EST-09. Aceptación: Sin decisión humana registrada no se crea envío; rechazar un match no marca la propiedad no disponible para los demás.",
+      "hecho": "La pantalla Review muestra una coincidencia cada vez (primero la búsqueda más antigua y, dentro de ella, la de mejor puntuación) con A = Shortlist, R = Reject con motivo 1–5, S = Skip (queda pendiente) y Undo. La pestaña Matches de la ficha ofrece Shortlist, Reject y Undo. 14-nov-2026 (M04): cada decisión guarda quién, cuándo y la versión revisada de la búsqueda y de la propiedad en su evento match.reviewed. La tarjeta muestra la comparación por criterio con su evidencia y sus dudas, la fecha en que se encontró, la última actualización de la propiedad y quién decidió y cuándo. Review y Matches dicen qué autoriza un Shortlist: solo la primera consulta de disponibilidad; no quita un imprescindible, no comparte datos del cliente ni cambia la búsqueda. Aprobación en lote en Matches: el empleado marca las coincidencias y pulsa «Shortlist selected»; cada una se guarda como decisión propia y ninguna puntuación aprueba sola. El servidor exporta APPROVED, la única condición desde la que podrá salir una consulta: Shortlisted con decisión registrada sobre las versiones vigentes y búsqueda activa. Rechazar no toca la propiedad ni las coincidencias de otros. Cerrada el 14-nov-2026 por aceptación propia: sin migración ni interruptor; lo que corresponde al envío (AGE-03, AUT-11), a los estados (EST-13) y a las fuentes (BUS-10) está en esas fichas.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
-        "admin/src/Review.jsx:12-151",
-        "server/routes/matches.js:21-43",
-        "server/routes/matches.js:45-113",
-        "admin/src/App.jsx:127",
-        "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:45",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "server/routes/matches.js:44-51 (APPROVED) y :126-128 (versiones en match.reviewed)",
+        "admin/src/MatchCard.jsx:12-14, 62-65 (alcance, fechas y responsable)",
+        "admin/src/ApplicantMatches.jsx:60-72, 96-103 (lote con selección y acción explícitas)",
+        "admin/src/Review.jsx:139 (alcance de la aprobación en la cola)",
+        "tests/server/matches.test.mjs:438 y :474 (BUS-15) con :91 y :116 (dos empleados, una sola decisión): 16/16 el 14-nov",
+        "tests/bus15-review.e2e.cjs PASS en navegador aislado 1280/390 (14-nov): teclas, alcance, fechas, responsable, lote y su fallo parcial, rechazo sin afectar a otra búsqueda",
+        "Pruebas vecinas de rutas de coincidencias 159/159 y DOM de Review y Matches 9/9 (14-nov); no se corrió la suite completa ni nada contra producción",
+        "Decisión: la versión revisada va en el evento, sin migración. Fuente: skill §4.5 (lo más simple y reversible) y M04 de la reconciliación 7-nov.",
+        "Decisión: el lote se conserva solo como selección y acción del empleado en Matches, un guardado por coincidencia. Fuente: reconciliación 7-nov M04 y BUS-16.",
+        "Decisión: una aprobación vale para las versiones revisadas; un cambio material exige nueva revisión. Fuente: reconciliación 7-nov M04 (cambios posteriores invalidan la autorización).",
+        "Decisión: los Shortlisted anteriores no llevan versión y no cuentan como aprobados hasta revisarse de nuevo. Fuente: criterio de aceptación (sin decisión registrada no hay envío).",
+        "Decisión: la consulta aclaratoria D06 no se construye aquí. Fuente: plan maestro 10-nov (requiere empleado y no aprueba el match); el envío es de AGE-03.",
+        "Decisión: la fecha de la propiedad es su última actualización, no confirmed_at. Fuente: reconciliación 7-nov M05 (confirmed_at no acredita confirmación comercial).",
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "Cierre 14-nov-2026: publicada en 0e75b51; npm test 2456/2456, build y check:release; tests/bus15-review.e2e.cjs pasa a 1280 y 390 (tres pasadas seguidas tras corregir una carrera de la prueba); revisión independiente sin hallazgos graves."
       ],
       "modulo": "M04",
       "deps": [
@@ -13460,7 +13481,8 @@
         "outreach-contract",
         "matching-review-ui"
       ],
-      "nextStep": "Completar revisión humana versionada con fuentes, dudas y aprobación explícita, sin autoaprobación por puntuación."
+      "nextStep": "Hecha.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "BUS-16",
@@ -13633,9 +13655,9 @@
       "origen": "plan",
       "fase": "F1-B",
       "estado": "parcial",
-      "responsable": "desarrollo",
-      "hecho": "Revisión documental local de 237 registros fuente/canal para 141 identificadores; servicio de revisión versionada construido y probado. No se han concedido permisos ni activado fuentes reales. Rutas y pantalla de revisión por canal, bajo el gate existente, con versión, conflictos y conservación de borrador; verificación sintética y D1 local.",
-      "falta": "Faltan la revisión efectiva y evidencia por canal, la aplicación de las decisiones a los lectores y la verificación operativa de la pantalla de revisión. M01 · Reconciliación 7-nov: No hay lector de webs externas: hoy la app solo llama a Turnstile y a las claves públicas de Google del login. Antes de leer la web de una agencia hay que comprobar que sus términos lo permiten, y leerla con baja frecuencia, respetando robots.txt y con un user-agent identificado. Properties.je solo con permiso escrito; JEP property, OnTheMarket y Rightmove después de revisar sus términos; Homely.je nunca, porque sus términos lo prohíben. Actualizar esta revisión por fuente con canal utilizable, acceso público/restringido, última comprobación y trabajo manual pendiente. Las restricciones históricas se conservan hasta comprobar condiciones vigentes; no se exige obtener acceso a todas las fuentes para comenzar con las operativas. Una fuente inaccesible no se cuenta como fuente sin anuncios. Aceptación: Cada fuente indica método disponible o tarea manual; las restricciones se ven sin paralizar todas las demás.",
+      "responsable": "Luis",
+      "hecho": "Política por canal construida y probada: cada canal tiene decisión versionada (pendiente, permitido, solo manual, denegado, pausado), método, evidencia, fecha de revisión y hosts. La pantalla muestra por canal su tipo de fuente, la nota de la revisión documental (la tarea manual pendiente), el método y las fechas. Quien revisa clasifica la fuente en la misma decisión: solo una fuente general puede abrirse; Homely y JFSC nunca, y Places.je y Properties.je quedan para después; los dominios de Homely, Places.je y Properties.je se rechazan aunque la fuente se clasifique mal. Una restricción afecta solo a su canal. La decisión se aplica al único camino de entrada que existe, la carga manual: se revalida antes de tomar el canal, al tomarlo y al guardar; un canal pendiente, denegado, vencido o con otra versión no admite anuncios.",
+      "falta": "Solo falta la revisión real por canal, que hace Luis o Hampton en el panel: tipo, decisión, evidencia, fecha de revisión y hosts de cada canal que se vaya a usar; los permisos escritos solo afectan a sus fuentes. Activada el 14-nov-2026 junto a BUS-06.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:255-256",
@@ -13651,7 +13673,13 @@
         "tests/server/bus-19-policy-routes.test.mjs",
         "tests/server/bus-19-policy-routes-d1.test.mjs",
         "tests/bus19-source-review.e2e.cjs",
-        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la política por fuente y su pantalla se construyen; los permisos escritos solo afectan a sus fuentes. Vuelve a desarrollo: lo externo es condición de activación."
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la política por fuente y su pantalla se construyen; los permisos escritos solo afectan a sus fuentes. Vuelve a desarrollo: lo externo es condición de activación.",
+        "tests/server/bus-06-intake.test.mjs",
+        "14-nov-2026: 62 pruebas focales de servidor pasan (BUS-19, BUS-06 y el puente manual de BUS-09, incluidas las de D1 local); navegador aislado a 1280 y 390 con tests/bus19-source-review.e2e.cjs y tests/bus06-coverage.e2e.cjs. Sin comprobar: la pantalla en producción (0043 sin aplicar e interruptor apagado) y ninguna revisión real de canal.",
+        "Decisión: el tipo de fuente se elige dentro de la revisión del canal y solo «general» puede abrirse. Fuente: restricciones de migrations/0043_market_inventory.sql y plan BUS-19 («cada decisión conserva fuente, canal, método, hosts, frecuencia, fecha y evidencia»).",
+        "Decisión: homely.je, places.je y properties.je no pueden abrirse con ninguna revisión en esta fase. Fuente: plan maestro («Places.je/Properties.je conectores posteriores; Homely fuera»).",
+        "Decisión: las decisiones se aplican a la carga manual, que es el único camino de entrada; los requisitos de lectura automática pasan a BUS-09 con sus lectores. Fuente: plan maestro («BUS-19 por canal antes de fuente externa») y skill avanzar, sección 3.",
+        "14-nov-2026: publicada en 0e75b51 y 0043 aplicada en producción con MARKET_INVENTORY_READY=1; revisión independiente con un hallazgo grave corregido antes de migrar (un directorio revocado ya no reabre canales; una clase restringida no se levanta en revisión). El recorrido automático (marketInventoryTick) pasa a BUS-08: hoy no hay lector automático que ejecutar. Solo falta la carga y revisión reales, que hace Luis con su sesión."
       ],
       "modulo": "M01",
       "deps": [],
@@ -13669,11 +13697,11 @@
           "basis": "TP05 contracts, not whole-task completion"
         }
       ],
-      "externalBlocker": "Luis: permisos escritos de las fuentes que los exijan; solo afectan a esas fuentes, no a la política ni a las fuentes ya permitidas.",
+      "externalBlocker": "Luis/Hampton: revisar en Automations › Market inventory cada canal que se vaya a usar (tipo, decisión, evidencia, fecha de revisión y hosts); los permisos escritos solo afectan a las fuentes que los exijan.",
       "resources": [
         "source-access-policy"
       ],
-      "nextStep": "Acreditar la recepción del manifiesto, revisar cada canal utilizado con evidencia y conectar lectores que revaliden la decisión antes de leer y guardar.",
+      "nextStep": "Tras la revisión real de los primeros canales, comprobar que cada fuente indica método o tarea manual y cerrar.",
       "actualizado": "2026-11-14"
     },
     {
@@ -14239,7 +14267,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M06 · Reconciliación 7-nov: Representar por separado evaluación completa/pendiente/incumple, decisión del empleado, disponibilidad con evidencia, consulta compartida y espera del cliente. Una aprobación no confirma disponibilidad; una disponibilidad confirmada no implica envío al cliente ni visita cerrada. Mantener consultas de otros clientes cuando uno resuelve su búsqueda. Depende de: BUS-12, BUS-15, BUS-10, EST-09. Aceptación: Aprobar, confirmar disponibilidad, confirmar visita y resolver búsqueda son acciones y estados distintos.",
+      "falta": "M06 · Reconciliación 7-nov: Representar por separado evaluación completa/pendiente/incumple, decisión del empleado, disponibilidad con evidencia, consulta compartida y espera del cliente. Una aprobación no confirma disponibilidad; una disponibilidad confirmada no implica envío al cliente ni visita cerrada. Mantener consultas de otros clientes cuando uno resuelve su búsqueda. Depende de: BUS-12, BUS-15, BUS-10, EST-09. Aceptación: Aprobar, confirmar disponibilidad, confirmar visita y resolver búsqueda son acciones y estados distintos. Traído de BUS-15 (14-nov): mostrar en la tarjeta cuándo una aprobación quedó desfasada por un cambio material posterior y pedir nueva revisión; hoy sigue viéndose Shortlisted.",
       "bloqueo": "",
       "evidencia": [
         "migrations/0009_matches.sql:33",
@@ -14295,7 +14323,8 @@
         "outreach-contract",
         "availability-contract"
       ],
-      "nextStep": "Separar evaluación, decisión humana, disponibilidad acreditada y consulta compartida con historial por búsqueda."
+      "nextStep": "Separar evaluación, decisión humana, disponibilidad acreditada y consulta compartida con historial por búsqueda.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "EST-14",
@@ -15645,7 +15674,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia. Se construyó una autoridad financiera interna con ajustes, saldo FIFO y control por caso; permanece desconectada de las rutas actuales y sin ejecutar migración remota en esta sesión. La consulta del estado remoto fue denegada. Se preparó una lectura interna por tenancy que reúne saldo, atrasos y movimientos con autorización transaccional; continúa sin ruta activa ni conciliación global. Se preparó una lectura interna de hasta diez contratos autorizados y un refuerzo de ciclo de vida de permisos, todavía sin conectar a rutas.",
-      "falta": "Unificar primero detalle, lista, contador y conciliación existentes con la autoridad financiera y sus permisos por caso; después completar escritura de deuda perdida y secuencia configurable. Los avisos reales y la carta siguen sujetos a correo y validación correspondiente. No activar ajustes mientras existan cálculos incompatibles. La propuesta 0049 requiere revisar su efecto sobre permisos existentes y definir retención/supresión antes de cualquier aplicación; su estado remoto no se conoce. Traído de NOT-05: aplicar ajustes y write-offs (0045) también a la pestaña Missing payments, para que una deuda saldada con el depósito o condonada salga de ella, y la autorización por caso sensitive_finance.",
+      "falta": "Unificar primero detalle, lista, contador y conciliación existentes con la autoridad financiera y sus permisos por caso; después completar escritura de deuda perdida y secuencia configurable. Los avisos reales y la carta siguen sujetos a correo y validación correspondiente. No activar ajustes mientras existan cálculos incompatibles. La propuesta 0049 requiere revisar su efecto sobre permisos existentes y definir retención/supresión antes de cualquier aplicación; su estado remoto no se conoce. Traído de NOT-05: aplicar ajustes y write-offs (0045) también a la pestaña Missing payments, para que una deuda saldada con el depósito o condonada salga de ella, y la autorización por caso sensitive_finance. Traído de ADM-17 (14-nov): la secuencia +1/+5/+7/+10/+14 (ARREARS_STEPS) sigue en código y sin rótulo de validación; si pasa a ser configurable, reutilizar legal_settings (migración 0063).",
       "bloqueo": "Correo (AUT-17) · JFSC/abogado",
       "evidencia": [
         "admin/src/Rentals.jsx:86-95",
@@ -15705,7 +15734,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Statements (#/rentals/statements) da por propietario con gestión completa y mes las rentas cobradas, los honorarios, el GST si se configura, las reparaciones cargadas y el neto, y se imprime desde el navegador con Print.",
-      "falta": "No sale sola al cerrar el mes como PDF por email (F5-B), y el GST sigue en 0 hasta confirmar si Hampton está registrado.",
+      "falta": "No sale sola al cerrar el mes como PDF por email (F5-B), y el GST sigue en 0 hasta confirmar si Hampton está registrado. Traído de ADM-17 (14-nov): el GST de la liquidación sale de gst_percent (0 si no hay valor); enlazarlo con el registro GST de Legal terms y decir «not confirmed» en vez de asumir 0 % cuando sea unknown.",
       "bloqueo": "Correo (AUT-17) · Dato de Hampton",
       "evidencia": [
         "admin/src/Statement.jsx:15-71",
@@ -15745,7 +15774,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Checks de cada vivienda (Rental dwelling licence, EICR, Gas safety si hay gas, Smoke and CO alarms) con Update y caducidad, y plazos del contrato (depósito protegido en 30 días, Check-in y Check-out report en 7); avisan a 60, 30 y 7 días en Checks and deadlines, y lo vencido o «Not recorded» sale en rojo y suma en el contador.",
-      "falta": "No se siguen los 29 riesgos de la Order de 2018, la copia al inquilino en 28 días de la licencia y del EICR, el aviso de cambios de la licencia en 28 días, el checklist eléctrico anual o al cambiar de inquilino ni el aviso de datos prescritos que va con el depósito en sus 30 días (§7.3), y lo vencido sale en Rentals pero no en el Inbox.",
+      "falta": "No se siguen los 29 riesgos de la Order de 2018, la copia al inquilino en 28 días de la licencia y del EICR, el aviso de cambios de la licencia en 28 días, el checklist eléctrico anual o al cambiar de inquilino ni el aviso de datos prescritos que va con el depósito en sus 30 días (§7.3), y lo vencido sale en Rentals pero no en el Inbox. Traído de ADM-17 (14-nov): las ventanas de aviso a 60, 30 y 7 días y la renovación a 90 días siguen como constantes en LEGAL; si deben ser editables, añadirlas a los plazos de ADM-17. Lo calculado con plazos sin validar ya lleva el rótulo.",
       "bloqueo": "",
       "evidencia": [
         "server/rentals.js:8-17",
@@ -15932,7 +15961,7 @@
       "estado": "parcial",
       "responsable": "tercero",
       "hecho": "Change rent incluye el Rent assistant: con el RPI de Jersey que guarda el equipo calcula la renta máxima y la primera fecha posible (12 meses desde el último cambio y 2 meses de aviso) en contratos de la ley 2025; en los de 2011 pide consultar a un abogado.",
-      "falta": "No prepara la carta de aviso al inquilino, que necesita una plantilla validada por un abogado de Jersey (F5-B).",
+      "falta": "No prepara la carta de aviso al inquilino, que necesita una plantilla validada por un abogado de Jersey (F5-B). Traído de ADM-17 (14-nov): la carta de aviso de renta solo debe emitirse si los plazos están «validated» (readLegal(env).terms.status); el aviso y el intervalo de renta ya salen de los plazos guardados.",
       "bloqueo": "JFSC/abogado",
       "evidencia": [
         "server/rentals.js:46-60",
@@ -15958,7 +15987,8 @@
         "rentals-ui",
         "legal-parameters"
       ],
-      "nextStep": "Obtener la plantilla validada por el abogado y añadir la carta de revisión de renta."
+      "nextStep": "Obtener la plantilla validada por el abogado y añadir la carta de revisión de renta.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "ADM-16",
@@ -16017,17 +16047,30 @@
       "titulo": "Plazos legales como parámetros validados y registro JFSC antes de la gestión completa",
       "origen": "plan",
       "fase": "F5-A",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Los plazos (depósito 30 días, inventarios 7, licencia 2 años, EICR 5, preavisos de 1 y 12 meses, aviso de renta de 2) están en una sola constante, LEGAL, que el panel lee.",
-      "falta": "Falta confirmar el registro de Hampton en la JFSC por cobrar rentas en cuenta propia (R21), que un abogado de Jersey valide plazos y preavisos (R10, R13) y si Hampton está registrado en GST; además los plazos son código (cambiarlos exige publicar), no un ajuste del panel. Auditoría del 14-nov-2026 contra el plan maestro vigente: los plazos de server/rentals.js (LEGAL: fianza 30 días, informes 7, preaviso de inquilino 1 mes y de propietario 12, vigencia de licencias y revisiones) se aplican como hechos en Rentals, el Inbox y «Earliest move-out» sin decir que no están validados. Al construir las reglas versionadas, rotularlos «estimado, sin validar por abogado» hasta su validación.",
-      "bloqueo": "JFSC/abogado · Dato de Hampton",
+      "hecho": "Los plazos (fianza 30 días, informes 7, licencia 2 años, EICR 5, gas y alarmas 1, preavisos de 1 y 12 meses, aviso de renta de 2 e intervalo de 12) son parámetros versionados: en Settings › Legal terms cualquier admin los cambia sin publicar código, con quién, cuándo y estado «estimated · not validated by a lawyer» o «validated» (exige quién validó y la fecha). Sin nada guardado valen los de LEGAL, rotulados estimados. Rentals, la ficha de la vivienda y sus diálogos, «Earliest move-out» y el Inbox calculan con los plazos guardados y llevan el rótulo mientras no estén validados. El registro JFSC y GST de Hampton se marca sí, no o sin confirmar, con referencia, y no bloquea nada. Construido y apagado: migración 0063 (aditiva) e interruptor ADM17_LEGAL_TERMS_READY. Cerrada el 14-nov-2026 con la condición de cierre de su plan (motor, ruta, pantalla y consumidores; la aprobación legal real es verificación de activación): migración 0063 aplicada y ADM17_LEGAL_TERMS_READY=1 en la web y en el reloj. Mientras un abogado de Jersey no valide los plazos y Hampton no confirme JFSC y GST, todo sigue rotulado «Estimated · not validated by a lawyer» y «not confirmed»; se marca en Settings › Legal terms.",
+      "falta": "",
+      "bloqueo": "",
       "evidencia": [
         "server/rentals.js:6-10",
         "docs/roadmap/ESTADO.md:13",
         "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:73",
         "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93",
-        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): las reglas versionadas y parametrizadas se construyen; los valores los valida el abogado. Vuelve a desarrollo: lo externo es condición de activación."
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): las reglas versionadas y parametrizadas se construyen; los valores los valida el abogado. Vuelve a desarrollo: lo externo es condición de activación.",
+        "migrations/0063_legal_terms.sql · server/legal-terms.js · admin/src/LegalTerms.jsx",
+        "tests/server/adm-17-legal-terms.test.mjs: 10 de 10 el 14-nov-2026 (interruptor apagado sin cambios, tabla ausente, validación, versiones, 409, plazos aplicados, Inbox, registros).",
+        "tests/adm17-legal-terms.e2e.cjs: PASS a 1280 y 390 en el contenedor aislado el 14-nov-2026.",
+        "Decisión: mismo mecanismo que 0054 y 0047 (fila vigente, historial por trigger, revisión esperada, valores por defecto sin fila). Fuente: encargo de la sesión y CONTINUIDAD (migración aditiva).",
+        "Decisión: cualquier admin edita plazos y registros. Fuente: CONTINUIDAD, decisiones de producto (como AUT-10, 14-nov-2026).",
+        "Decisión: ningún valor legal nuevo ni fila sembrada; los de LEGAL son el valor por defecto, rotulado estimado. Fuente: externalBlocker de la ficha y specs/2026-11-10-tp03-lifecycle-design.md:21 (legacy_unverified).",
+        "Decisión: «validated» exige quién validó y la fecha; el dictamen no se guarda en la app. Fuente: specs/2026-11-10-tp03-lifecycle-design.md:21 (no aprobar sin evidencia, referencia privada).",
+        "Decisión: los registros JFSC y GST informan y no bloquean; «unknown» se muestra «not confirmed». Fuente: plan maestro («Unknown no significa aprobado») y plan 2026-11-09-adm-17 (no confirma registros).",
+        "Decisión: warnDays, renewalDays y regime2025From siguen en código; son ventanas de aviso del equipo y la fecha de la ley de 2025 (ADM-11, ADM-20). Fuente: skill §4.5, opción más simple.",
+        "Decisión: no se construyen aquí vigencias por fecha, ámbito del alojamiento ni validateTenancyOperation del plan del 9-nov; hoy no hay emisión legal que frenar y su integración es de ADM-20 y ADM-15, que leen el estado con readLegal(). Fuente: skill §3 y spec :21 y :47.",
+        "Sin comprobar: el rótulo del Inbox en navegador (sí en la prueba de servidor), npm test completo y producción.",
+        "Cierre 14-nov-2026: publicada en 0e75b51; 0063 (tablas y triggers nuevos, aditiva) aplicada en producción; tests/adm17-legal-terms.e2e.cjs pasa a 1280 y 390; revisión independiente: con el interruptor encendido y sin filas los plazos son idénticos a los de hoy.",
+        "Decisión 14-nov-2026 (skill §3, consumidores futuros): vigencias por fecha de acuerdo, ámbito del alojamiento y validateTenancyOperation del plan del 9-nov pasan a ADM-20 y ADM-15, que son quienes los consumen; hoy no existe emisión de documentos legales que frenar."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -16042,13 +16085,13 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Hampton: registro JFSC y GST · abogado de Jersey: validación de plazos y preavisos (los valores no se inventan).",
+      "externalBlocker": "",
       "resources": [
         "rentals-contract",
         "rentals-ui",
         "legal-parameters"
       ],
-      "nextStep": "Construir las reglas de plazos versionadas y parametrizadas según su plan, sin valores nuevos hasta su validación; Hampton y el abogado confirman después.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-14"
     },
     {
@@ -16170,7 +16213,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "New tenancy y Renew muestran avisos para revisión jurídica sobre ámbito, plazo fijo y premium/key money. Renew deja de cambiar la etiqueta 2011/2025 solo por fecha, conserva datos y detecta un cambio concurrente de esa etiqueta; la ficha y el asistente aclaran que es un dato registrado no verificado. Fuentes y límites en la evidencia ADM-20.",
-      "falta": "Depende de ADM-17 y de un abogado de Jersey: política versionada y evidencia aprobada, captura del ámbito y acuerdo con estado desconocido, revisión de etiquetas históricas, validación en todos los caminos de creación/edición/renovación y cargos, y controles de concurrencia y permisos completos. El asistente y otros plazos heredados no quedan jurídicamente validados. No recalificar ni borrar pagos o deudas históricas.",
+      "falta": "Depende de ADM-17 y de un abogado de Jersey: política versionada y evidencia aprobada, captura del ámbito y acuerdo con estado desconocido, revisión de etiquetas históricas, validación en todos los caminos de creación/edición/renovación y cargos, y controles de concurrencia y permisos completos. El asistente y otros plazos heredados no quedan jurídicamente validados. No recalificar ni borrar pagos o deudas históricas. Traído de ADM-17 (14-nov): las vigencias por fecha de acuerdo, el ámbito del alojamiento y la validación por operación (validateTenancyOperation) del plan de ADM-17 se construyen aquí, leyendo los plazos y su estado con readLegal() de server/legal-terms.js; regime2025From sigue como constante en LEGAL.",
       "bloqueo": "JFSC/abogado",
       "evidencia": [
         "docs/roadmap/work/ADM-20/aviso-2026-11-13.md",
@@ -16204,7 +16247,7 @@
         "legal-parameters"
       ],
       "nextStep": "Completar ADM-17 y la revisión del abogado; integrar ámbito y evidencia con validación y concurrencia en todos los caminos antes de dar la tarea por terminada.",
-      "actualizado": "2026-11-13"
+      "actualizado": "2026-11-14"
     },
     {
       "id": "ADM-21",
@@ -16501,7 +16544,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "«Add new property» (Listings) crea un borrador con título, uso, operación, disponibilidad y país, a mano o, desde el 3-nov-2026, desde una carpeta del ordenador: lee su property.txt (plantilla descargable en el mismo formulario) y sube las fotos sueltas de la carpeta en orden de nombre, reducidas en el navegador y sin GPS, con portada, planos y vista aérea según el nombre. Antes de crear enseña un resumen con lo que no se importa (líneas que no son campos, valores no válidos, HEIC, PDF, vídeos y subcarpetas, que no se leen) y avisa si el título ya existe o si el texto parece llevar un email o un teléfono. En el móvil se eligen fotos sueltas. El editor (#/p/<id>) reúne Details, Price, Description, Photos y Tour and specification con la caja «Missing from this listing». El editor de una ficha existente ofrece guía de seis pasos con el mismo formulario, guardado y descarte, sin publicar al terminar.",
-      "falta": "Falta integrar el alta nueva con recibo recuperable ante respuesta perdida y completar las familias de datos PUB-04 a PUB-09. La importación no convierte HEIC, no sube PDFs ni documentos (PUB-11) y no lee filas de especificación.",
+      "falta": "Falta integrar el alta nueva con recibo recuperable ante respuesta perdida y completar las familias de datos PUB-04 a PUB-09. La importación no convierte HEIC, no sube PDFs ni documentos (PUB-11) y no lee filas de especificación. Traído de PUB-07 (14-nov): el paso Legal de la guía (admin/src/listing-guide.js) aún dice que no hay campos legales: apuntarlo a la sección s-compliance cuando la ficha traiga compliance_tracking. El alta nueva y property.txt no recogen ocupación, licencia ni certificado.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/Listings.jsx:68-69",
@@ -16572,7 +16615,8 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Integrar el alta recuperable por recibo y coordinar las familias pendientes; la guía disponible solo cubre el editor de fichas existentes."
+      "nextStep": "Integrar el alta recuperable por recibo y coordinar las familias pendientes; la guía disponible solo cubre el editor de fichas existentes.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PUB-02",
@@ -16783,17 +16827,33 @@
       "titulo": "Familia 4 · Cumplimiento legal y técnico de la ficha",
       "origen": "texto",
       "fase": "F4",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "En listings, en Details del editor y en la web: Tenure (freehold, flying freehold, share transfer, leasehold), Housing category (Qualified, Registered) y Restriction (first-time buyers, over 55s), que el matching aplica.",
-      "falta": "Faltan licencia de vivienda en alquiler, certificado energético, ocupación (vacía o alquilada) y abogado del vendedor (hoy solo en el expediente de Sales); la categoría de HE-R001, HE-R003 y HE-R027 la pone Hampton (BUS-13). Replanteado para Jersey (§5.10), no falta: título, hipotecas y cargas los revisan los abogados en la venta; la ficha lleva tenencia y categoría.",
+      "hecho": "En listings, en Details del editor y en la web: Tenure (freehold, flying freehold, share transfer, leasehold), Housing category (Qualified, Registered) y Restriction (first-time buyers, over 55s), que el matching aplica. Construido y apagado (14-nov): sección «Legal and compliance (internal)» del editor con ocupación (Unknown, Vacant, Tenanted), licencia de vivienda en alquiler y certificado energético (Unknown, Provided, Verified, Not applicable) con referencia y fecha de caducidad, y el abogado del vendedor leído del expediente de Sales. Unknown es un valor guardado. Provided exige referencia; Verified exige además la caducidad; una caducidad pasada se avisa. Solo lo cambia el equipo desde el editor; el historial guarda qué campo cambió, sin su valor. Nada sale a la web. Cerrada el 14-nov-2026: migración 0061 aplicada y PUB07_COMPLIANCE_READY=1. La categoría de vivienda de HE-R001, HE-R003 y HE-R027 la pone Hampton y pertenece a BUS-13.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "migrations/0015_jersey_fields.sql:1-11",
         "admin/src/ListingEditor.jsx:171-180",
         "site/index.html:771-774",
         "migrations/0012_sales.sql:21-31",
-        "commit 4cd4001"
+        "commit 4cd4001",
+        "migrations/0061_listing_compliance.sql",
+        "server/listing.js:37-41",
+        "server/listing.js:115-127",
+        "server/routes/listings.js:92-96",
+        "server/routes/listings.js:183-185",
+        "admin/src/ListingEditor.jsx:300-309",
+        "admin/src/ListingEditor.jsx:589-601",
+        "tests/server/pub-07-compliance.test.mjs (8 pruebas, pasan)",
+        "tests/pub07-compliance.e2e.cjs (Chromium aislado, 1280 y 390, pasa)",
+        "Decisión (fuente: spec own-publication-completion §PUB-07): el abogado del vendedor no se guarda en la ficha; se lee del expediente de Sales (firma y nombre, sin correo ni teléfono) con enlace al expediente.",
+        "Decisión (fuente: plan PUB-07, tarea 1): estados unknown, provided, verified y not_applicable; verified exige referencia y caducidad y solo lo pone el equipo en el editor.",
+        "Decisión (fuente: encargo y PUB-11): los PDF no se suben aquí; la referencia es el número o el nombre del PDF en Private documents.",
+        "Decisión (fuente: 0052 y listing-economics.js): columnas en listings sin tocar los triggers de auditoría de PUB-06; el historial anota el campo por extra_fields, sin valor.",
+        "Decisión (fuente: plan maestro, publicación con mínimos): estos campos no cuentan en completeness ni en Listing health; son internos y opcionales.",
+        "Decisión (opción más simple): emisor y fecha de emisión, opcionales en el spec, quedan en el PDF; propuesto para MEJORAS.",
+        "Cierre 14-nov-2026: publicada en 0e75b51; 0061 (siete ADD COLUMN, aditiva) aplicada en producción tras marcador Time Travel; tests/pub07-compliance.e2e.cjs pasa a 1280 y 390; revisión independiente: nada sale por la API pública."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -16808,12 +16868,13 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Hampton: categorías de vivienda y datos de cumplimiento aplicables.",
+      "externalBlocker": "",
       "resources": [
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Completar campos legales/técnicos documentados y solicitar a Hampton las categorías de sus fichas."
+      "nextStep": "Hecha.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PUB-08",

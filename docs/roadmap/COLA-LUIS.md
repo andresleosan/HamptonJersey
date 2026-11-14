@@ -16,7 +16,8 @@ Ordenado por cuántas tareas abiertas desbloquea cada cosa (`node scripts/avanza
 | ANA-09 | 7 | Crear la regla de límite de peticiones en Cloudflare WAF. |
 | PRE-28 | 7 | Verificar titularidad de las cuentas de Hampton y la operación de Optimyze. |
 | BUS-13 | 3 | Hampton pone la categoría de vivienda de HE-R001, HE-R003 y HE-R027, y un abogado valida la tabla. |
-| BUS-19 | — | Permisos por escrito de las fuentes del mercado que los exijan; el resto de fuentes y el código ya no esperan. |
+| BUS-06 | 52 | Ya está en el panel (Settings › Automations › Market inventory). Cargar ahí el directorio privado de fuentes (`directorio-aceptado-verificado.local.json`) comparando la huella, abrir una tanda y subir el primer lote real de anuncios de un canal revisado. Con eso se cierra. |
+| BUS-19 | 52 | En la misma pantalla, revisar cada canal que se vaya a usar: tipo «general», decisión (permitido, solo manual o denegado), referencia de evidencia, fecha de revisión y sitio. Los permisos por escrito solo hacen falta para las fuentes que los exijan. Con los primeros canales revisados se cierra. |
 | PRE-06 | — | Configurar Cloudflare Access y comprobar la verificación en dos pasos de cada cuenta, cuando el código esté publicado. |
 | VIS-12 | — | Dar acceso a la cuenta de Google Calendar para activar la integración, cuando el código esté publicado. |
 | PRE-14 | 0 | Crear el bucket R2 privado de copias, un token con permiso solo de exportar D1 y la clave de recuperación que custodia Luis; sin eso la copia semanal cifrada no puede encenderse. |

@@ -16,6 +16,8 @@ preview_urls = false
 EMAIL_SERVICE_READY = "false"
 # OFE-06: weekly internal sale review (migration 0053); still off until the team sets a day and time.
 OFE06_WEEKLY_REVIEW_READY = "1"
+# ADM-17: versioned legal periods (migration 0063); keep equal in ../wrangler.toml.
+ADM17_LEGAL_TERMS_READY = "1"
 
 [triggers]
 crons = ["*/10 * * * *"]

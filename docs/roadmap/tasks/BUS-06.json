@@ -5,9 +5,9 @@
   "origen": "plan",
   "fase": "F1-B",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones, observaciones y registro transaccional. Desde el panel (Automations, tras el interruptor): un admin acepta el manifiesto privado del directorio comprobando su huella, que el servidor verifica; todos los canales entran pendientes. Se abre una tanda, se suben a mano hasta 10 anuncios por envío para cada canal revisado como manual, y se pausa o se cierra la tanda para empezar la siguiente. La cobertura muestra por canal qué se ha leído: un canal no leído dice por qué y nunca cuenta como vacío. Una revisión posterior del manifiesto mueve sus canales y conserva las decisiones ya revisadas. El candidato privado real (237 canales, 141 fuentes) pasa la aceptación en una base local.",
-  "falta": "Activar: aplicar la migración 0043 (aditiva) y encender MARKET_INVENTORY_READY. Después, solo Luis o Hampton: cargar el manifiesto privado en el panel, revisar canales y subir la primera tanda real; eso da la evidencia de captura real. No construido: el recorrido automático por lectores (TP-04 tarea 2), porque no existe ningún lector automático ni el reloj diario; corresponde a BUS-08 y BUS-09. Trasladado a otras tareas: más campos del anuncio (BUS-09), aviso de fuente fallida (BUS-08), historial de fuentes leídas en la ficha (BUS-10), anunciantes para la tarea de llamada (AGE-08) y fotos (SPR-03).",
+  "falta": "Solo falta la evidencia de captura real, que hace Luis con su sesión: cargar el directorio privado en el panel, abrir una tanda y subir el primer lote real de un canal revisado. Activada el 14-nov-2026 (0043 aplicada, MARKET_INVENTORY_READY=1). El recorrido automático por lectores está en BUS-08 y BUS-09.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/ESTADO.md:9",
@@ -31,7 +31,8 @@
     "Decisión: el manifiesto se acepta desde el panel con huella verificada en el servidor; nunca va al repositorio ni a una migración. Fuente: diseño TP-04 de mercado («hashes sobre los bytes del artefacto recibido», «no seed»).",
     "Decisión: el recorrido automático (TP-04 tarea 2) no se construye sin lectores automáticos ni reloj diario; pasa a BUS-08 y BUS-09. Fuente: skill avanzar, secciones 3 y 5 (dependencias por componente, mínimo código).",
     "Decisión: cerrar tanda y mover canales con una revisión posterior del manifiesto, para no dejar el inventario bloqueado por una sola tanda abierta. Fuente: skill avanzar, sección 4.5 (opción más simple y reversible).",
-    "Decisión: el intervalo mínimo por canal (60 s) también vale para la carga manual; no se toca 0043. Fuente: encargo del lote y diseño TP-04 («mínimo 60 s entre adquisiciones de un canal»)."
+    "Decisión: el intervalo mínimo por canal (60 s) también vale para la carga manual; no se toca 0043. Fuente: encargo del lote y diseño TP-04 («mínimo 60 s entre adquisiciones de un canal»).",
+    "14-nov-2026: publicada en 0e75b51 y 0043 aplicada en producción con MARKET_INVENTORY_READY=1; revisión independiente con un hallazgo grave corregido antes de migrar (un directorio revocado ya no reabre canales; una clase restringida no se levanta en revisión). El recorrido automático (marketInventoryTick) pasa a BUS-08: hoy no hay lector automático que ejecutar. Solo falta la carga y revisión reales, que hace Luis con su sesión."
   ],
   "modulo": "M02",
   "deps": [
@@ -81,12 +82,12 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "",
+  "externalBlocker": "Luis: cargar el directorio privado de fuentes en Automations › Market inventory › Source directory, abrir una tanda y subir el primer lote real de anuncios de un canal revisado.",
   "resources": [
     "market-inventory",
     "sources-directory",
     "advertisers-contract"
   ],
-  "nextStep": "Aplicar 0043, encender MARKET_INVENTORY_READY y comprobar con GET /api/admin/market/runs y /api/admin/market/manifests. Después Luis carga el manifiesto y sube la primera tanda real.",
+  "nextStep": "Tras la primera carga real de Luis, comprobar la cobertura (fuentes no leídas como pendientes, nunca 0) y cerrar.",
   "actualizado": "2026-11-14"
 }

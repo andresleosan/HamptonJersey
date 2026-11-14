@@ -4,10 +4,10 @@
   "titulo": "Familia 4 · Cumplimiento legal y técnico de la ficha",
   "origen": "texto",
   "fase": "F4",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "En listings, en Details del editor y en la web: Tenure (freehold, flying freehold, share transfer, leasehold), Housing category (Qualified, Registered) y Restriction (first-time buyers, over 55s), que el matching aplica. Construido y apagado (14-nov): sección «Legal and compliance (internal)» del editor con ocupación (Unknown, Vacant, Tenanted), licencia de vivienda en alquiler y certificado energético (Unknown, Provided, Verified, Not applicable) con referencia y fecha de caducidad, y el abogado del vendedor leído del expediente de Sales. Unknown es un valor guardado. Provided exige referencia; Verified exige además la caducidad; una caducidad pasada se avisa. Solo lo cambia el equipo desde el editor; el historial guarda qué campo cambió, sin su valor. Nada sale a la web.",
-  "falta": "Aplicar la migración 0061 (aditiva), encender PUB07_COMPLIANCE_READY y comprobar el recorrido en producción. La categoría de vivienda de HE-R001, HE-R003 y HE-R027 la pone Hampton y ya está en BUS-13. Replanteado para Jersey (§5.10), no falta: título, hipotecas y cargas los revisan los abogados en la venta.",
+  "hecho": "En listings, en Details del editor y en la web: Tenure (freehold, flying freehold, share transfer, leasehold), Housing category (Qualified, Registered) y Restriction (first-time buyers, over 55s), que el matching aplica. Construido y apagado (14-nov): sección «Legal and compliance (internal)» del editor con ocupación (Unknown, Vacant, Tenanted), licencia de vivienda en alquiler y certificado energético (Unknown, Provided, Verified, Not applicable) con referencia y fecha de caducidad, y el abogado del vendedor leído del expediente de Sales. Unknown es un valor guardado. Provided exige referencia; Verified exige además la caducidad; una caducidad pasada se avisa. Solo lo cambia el equipo desde el editor; el historial guarda qué campo cambió, sin su valor. Nada sale a la web. Cerrada el 14-nov-2026: migración 0061 aplicada y PUB07_COMPLIANCE_READY=1. La categoría de vivienda de HE-R001, HE-R003 y HE-R027 la pone Hampton y pertenece a BUS-13.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "migrations/0015_jersey_fields.sql:1-11",
@@ -29,7 +29,8 @@
     "Decisión (fuente: encargo y PUB-11): los PDF no se suben aquí; la referencia es el número o el nombre del PDF en Private documents.",
     "Decisión (fuente: 0052 y listing-economics.js): columnas en listings sin tocar los triggers de auditoría de PUB-06; el historial anota el campo por extra_fields, sin valor.",
     "Decisión (fuente: plan maestro, publicación con mínimos): estos campos no cuentan en completeness ni en Listing health; son internos y opcionales.",
-    "Decisión (opción más simple): emisor y fecha de emisión, opcionales en el spec, quedan en el PDF; propuesto para MEJORAS."
+    "Decisión (opción más simple): emisor y fecha de emisión, opcionales en el spec, quedan en el PDF; propuesto para MEJORAS.",
+    "Cierre 14-nov-2026: publicada en 0e75b51; 0061 (siete ADD COLUMN, aditiva) aplicada en producción tras marcador Time Travel; tests/pub07-compliance.e2e.cjs pasa a 1280 y 390; revisión independiente: nada sale por la API pública."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -44,11 +45,11 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Hampton: categorías de vivienda y datos de cumplimiento aplicables.",
+  "externalBlocker": "",
   "resources": [
     "listings-schema",
     "listing-editor"
   ],
-  "nextStep": "Aplicar 0061_listing_compliance.sql, encender PUB07_COMPLIANCE_READY en wrangler.toml y verificar el editor en producción; con eso la tarea cumple su criterio de hecho.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-14"
 }

@@ -1,5 +1,6 @@
 import { HttpError, sha256 } from './http.js';
 import { manualScopeAllows, verifyPreparedManualPage } from './market-manual-contract.js';
+import { RESTRICTED_SQL } from './market-source-policy.js';
 
 // This module owns the operational source projection. Sources enter only through an accepted
 // directory manifest, always pending: it grants no permissions and makes no network requests;
@@ -128,9 +129,9 @@ export async function acceptDirectoryManifest(env, input, actor, clock = () => n
         FROM json_each(?) WHERE true
         ON CONFLICT(source_ref,channel_id) DO UPDATE SET directory_revision=excluded.directory_revision,
           next_action=excluded.next_action,policy_version=market_sources.policy_version+1,
-          source_class=CASE WHEN excluded.source_class IN ('homely','places','properties') THEN excluded.source_class
+          source_class=CASE WHEN excluded.source_class IN (${RESTRICTED_SQL}) THEN excluded.source_class
             ELSE market_sources.source_class END,
-          access_status=CASE WHEN excluded.source_class IN ('homely','places','properties') OR COALESCE((SELECT status
+          access_status=CASE WHEN excluded.source_class IN (${RESTRICTED_SQL}) OR COALESCE((SELECT status
             FROM market_directory_manifests WHERE revision=market_sources.directory_revision),'')<>'accepted'
             THEN 'pending' ELSE market_sources.access_status END
         WHERE market_sources.source_kind='external'`).bind(parsed.revision, JSON.stringify(rows)),
