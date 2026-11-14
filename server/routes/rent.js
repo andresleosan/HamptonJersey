@@ -124,7 +124,7 @@ const loadTenancy = async (env, id) =>
 // The tenancy page (P1): the rent in force today, its charges brought up to date, charges and payments of the last 24 months, the balance (rent
 // charges due minus rent payments, R7, R26), the arrears (null without an unpaid charge due; steps done are those of
 // the oldest unpaid charge, R27), the rent assistant with the saved RPI (R12) and the deadlines.
-async function detail(env, id) {
+export async function detail(env, id) {
   id = Number(id);
   const today = jerseyToday(), since = addMonths(today, -24), q = (sql, ...b) => env.DB.prepare(sql).bind(...b);
   const [, [tenancy], charges, payments, [{ balance }], [setting], [late], steps, [now_]] = (await env.DB.batch([
@@ -171,10 +171,11 @@ async function act(env, id, stmts, check) {
 // R4, R5, R22: one tenancy without ended_on per property, not overlapping the last one, with its payment reference set
 // from the new id, its starting rent, and its charges (full service only: collect_from defaults to the start, but a
 // tenancy that started before this Jersey month must say from when Hampton collects, P22, or its past months would be
-// charged).
-async function createTenancy({ request, env, admin, params: [rid] }) {
-  const r = validateTenancy(asObject(await readJson(request)));
-  if (r.errors) return fieldErrors(r.errors);
+// charged). tenancyPlan checks `input` for property `rid` and returns {errors} or the batch's statements, and recheck()
+// to answer a failed batch (409 when the property moved on); ADM-06's commit runs the same statements in its own batch.
+export async function tenancyPlan(env, admin, rid, input) {
+  const r = validateTenancy(input);
+  if (r.errors) return { errors: r.errors };
   const state = () => env.DB.prepare(`SELECT id, service, archived_at,
     EXISTS (SELECT 1 FROM tenancies WHERE rental_id = r.id AND ended_on IS NULL) AS open,
     (SELECT MAX(ended_on) FROM tenancies WHERE rental_id = r.id) AS last FROM rentals r WHERE id = ?`).bind(Number(rid)).first();
@@ -185,30 +186,40 @@ async function createTenancy({ request, env, admin, params: [rid] }) {
     if (st.open) fail(409, "This property already has a tenancy. End it first");
   };
   check(s);
-  if (s.last > r.value.start_on) return fieldErrors({ start_on: `Start on ${s.last} or later, when the last tenancy ends` });
+  if (s.last > r.value.start_on) return { errors: { start_on: `Start on ${s.last} or later, when the last tenancy ends` } };
   if (s.service === "full" && !r.value.collect_from && r.value.start_on < `${jerseyToday().slice(0, 8)}01`)
-    return fieldErrors({ collect_from: COLLECT });
+    return { errors: { collect_from: COLLECT } };
   const ts = now(), value = { ...r.value, collect_from: s.service === "full" ? r.value.collect_from ?? r.value.start_on : null };
   const row = { ...value, rental_id: s.id, created_at: ts, created_by: admin, updated_at: ts, updated_by: admin };
-  let res;
-  try {
-    [res] = await env.DB.batch([
-      env.DB.prepare(`INSERT INTO tenancies (${Object.keys(row).join(", ")}) SELECT ${Object.keys(row).map(() => "?").join(", ")}
-        FROM rentals WHERE id = ? AND archived_at IS NULL AND service = ?
-        AND NOT EXISTS (SELECT 1 FROM tenancies WHERE rental_id = ? AND ended_on > ?)`)
-        .bind(...Object.values(row), s.id, s.service, s.id, row.start_on),
-      ensureChanged(env),
-      env.DB.prepare(`UPDATE tenancies SET payment_ref = printf('HE-T%04d', id) WHERE id = ${NEW}`),
-      env.DB.prepare(`INSERT INTO rent_changes (tenancy_id, effective_on, rent, created_at, created_by) VALUES (${NEW}, ?, ?, ?, ?)`)
-        .bind(row.start_on, row.rent, ts, admin),
-      ensureCharges(env, jerseyToday(), "newest"),
-      bump(env, admin, s.id, ts),
-      rentalEvent(env, { rental_id: s.id, actor: admin, type: "tenancy.created", data: value }, { tenancy_id: "tenancies" }),
-    ]);
-  } catch (e) {
+  const stmts = [
+    env.DB.prepare(`INSERT INTO tenancies (${Object.keys(row).join(", ")}) SELECT ${Object.keys(row).map(() => "?").join(", ")}
+      FROM rentals WHERE id = ? AND archived_at IS NULL AND service = ?
+      AND NOT EXISTS (SELECT 1 FROM tenancies WHERE rental_id = ? AND ended_on > ?)`)
+      .bind(...Object.values(row), s.id, s.service, s.id, row.start_on),
+    ensureChanged(env),
+    env.DB.prepare(`UPDATE tenancies SET payment_ref = printf('HE-T%04d', id) WHERE id = ${NEW}`),
+    env.DB.prepare(`INSERT INTO rent_changes (tenancy_id, effective_on, rent, created_at, created_by) VALUES (${NEW}, ?, ?, ?, ?)`)
+      .bind(row.start_on, row.rent, ts, admin),
+    ensureCharges(env, jerseyToday(), "newest"),
+    bump(env, admin, s.id, ts),
+    rentalEvent(env, { rental_id: s.id, actor: admin, type: "tenancy.created", data: value }, { tenancy_id: "tenancies" }),
+  ];
+  const recheck = async () => {
     const st = (await state()) ?? fail(404, "Property not found");
     check(st);
     if (st.last > row.start_on) fail(409, CHANGED); // a tenancy ending after this start was entered meanwhile
+  };
+  return { stmts, recheck };
+}
+
+async function createTenancy({ request, env, admin, params: [rid] }) {
+  const p = await tenancyPlan(env, admin, rid, asObject(await readJson(request)));
+  if (p.errors) return fieldErrors(p.errors);
+  let res;
+  try {
+    [res] = await env.DB.batch(p.stmts);
+  } catch (e) {
+    await p.recheck();
     throw e;
   }
   return json(await detail(env, res.meta.last_row_id), 201);

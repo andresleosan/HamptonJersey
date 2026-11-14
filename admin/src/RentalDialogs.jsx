@@ -339,12 +339,14 @@ export function RepairDialog({ rental, repair: p, onClose, onDone, onRefused }) 
 // with what is owed that day as one opening charge; never anything before it.
 const NEW_KEYS = ["tenant_name", "tenant_email", "tenant_phone", "occupants", "start_on", "end_on", "rent", "due_day", "deposit",
   "deposit_received_on", "deposit_protected_on", "deposit_ref", "inventory_in_on", "collect_from", "opening_balance", "notes"];
-export function NewTenancy({ rental, onClose, onDone, onDirty, onRefused }) {
-  const blank = { ...toTenancyForm(null, NEW_KEYS), kind: "", regime: "" }, full = rental.service === "full";
+// ADM-06: initial prefills the form, send(body) replaces the POST (it returns the tenancy), lead goes above the fields.
+export function NewTenancy({ rental, onClose, onDone, onDirty, onRefused, initial = null, send, lead, button = "Add tenancy" }) {
+  const blank = { ...toTenancyForm(initial, NEW_KEYS), kind: "", regime: "" }, full = rental.service === "full";
   const a = useForm("nt", blank, async f => {
     const keys = NEW_KEYS.filter(k => (f.kind === "fixed" || k !== "end_on") && (full || !["collect_from", "opening_balance"].includes(k)));
-    const d = await api(`/admin/rentals/${rental.id}/tenancies`, { method: "POST",
-      body: { ...toTenancyBody(f, keys), kind: f.kind || null, regime: f.regime || null } });
+    const body = { ...toTenancyBody(f, keys), kind: f.kind || null, regime: f.regime || null };
+    if (send) return send(body);
+    const d = await api(`/admin/rentals/${rental.id}/tenancies`, { method: "POST", body });
     return d.tenancy;
   }, onDone, onRefused);
   const dirty = JSON.stringify(a.f) !== JSON.stringify(blank);
@@ -355,6 +357,7 @@ export function NewTenancy({ rental, onClose, onDone, onDirty, onRefused }) {
   const collect = { collect_from: needed ? [label, { ...props, "aria-required": true }] : [`${label} (optional)`, props] };
   const group = (title, keys) => <fieldset className="choices-set"><legend>{title}</legend><div className="grid2">{fieldsOf(a, keys, collect)}</div></fieldset>;
   return <form ref={a.ref} id="new-tenancy" className="view-form" onSubmit={a.submit} noValidate aria-labelledby="h-new-tenancy">
+    {lead}
     {group("Tenant", ["tenant_name", "tenant_email", "tenant_phone", "occupants"])}
     {a.radios("kind", "Kind", [["fixed", "Fixed term"], ["periodic", "Periodic"]])}
     <div className="field">{a.radios("regime", "Recorded law label", [["2011", "2011 law"], ["2025", "2025 law"]])}
@@ -367,7 +370,7 @@ export function NewTenancy({ rental, onClose, onDone, onDirty, onRefused }) {
     {full && group("Rent collection", ["collect_from", "opening_balance"])}
     {a.field("notes", ...TENANCY_FIELDS.notes)}
     {a.err && <p role="alert" className="err">{a.err}</p>}
-    <div className="inline"><button className="btn sm">{a.busy ? "Adding…" : "Add tenancy"}</button>
+    <div className="inline"><button className="btn sm">{a.busy ? "Adding…" : button}</button>
       <button type="button" className="btn ghost sm" onClick={onClose}>Cancel</button></div>
   </form>;
 }

@@ -6,6 +6,7 @@ import { Received, money, useFieldErrors } from "./Sales.jsx";
 import { Assign, GAS, KIND, MarkStep, REPAIR_STATUS, SERVICE, URGENCY, checkState, pence } from "./Rentals.jsx";
 import { CancelMoveOut, ChangeRent, CorrectCharge, DETAILS, EditPayment, EditTenancy, EndTenancy, NewTenancy, RecordNotice, RecordPayment,
   Renew, RepairDialog, NEXT_DAY, UnassignPayment, UpdateCheck, needsApproval, rentLine } from "./RentalDialogs.jsx";
+import { FromLetAgreed, TenancyRecords, useOriginReady } from "./RentalOrigin.jsx";
 import { OPTIONS } from "../../server/applicants.js";
 import { ARREARS_STEPS, COMPLIANCE, LEGAL } from "../../server/rentals.js";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
@@ -47,6 +48,7 @@ export default function RentalDetail({ id, selection='', onChange }) {
   const [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null), [form, setForm] = useState(null);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [dialog, setDialog] = useState(null), [tick, setTick] = useState(0);
   const [adding, setAdding] = useState(false), [addDirty, setAddDirty] = useState(false), [pastOpen, setPastOpen] = useState(false);
+  const [fromAgreed, setFromAgreed] = useState(false), originReady = useOriginReady(); // ADM-06
   const { errors, setErrors, invalid, error } = useFieldErrors("rt");
   const formRef = useRef(null), heading = useRef(null), refocus = useRef(false);
   const linked=linkedSelection(data,selection),focusedLink=useRef(null);
@@ -134,10 +136,13 @@ export default function RentalDetail({ id, selection='', onChange }) {
           <h2 id="h-new-tenancy">{running.length ? "Next tenancy" : "No tenancy"}</h2>
           {adding ? <NewTenancy rental={r} onClose={() => setAdding(false)} onDirty={setAddDirty} onRefused={reload}
             onDone={t => { setAdding(false); finish(t.id)(`Tenancy added for ${t.tenant_name}. Payment reference ${t.payment_ref}.`); }} />
+            : fromAgreed ? <FromLetAgreed rental={r} onClose={() => setFromAgreed(false)} onDirty={setAddDirty} onRefused={reload}
+              onDone={t => { setFromAgreed(false); finish(t.id)(`Tenancy added for ${t.tenant_name} from the Let agreed listing. Payment reference ${t.payment_ref}.`); }} />
             : archived ? <p className="muted">Restore the property to add a tenancy.</p>
             : <div className="inline"><p className="muted">{running.length ? `The tenant moves out ${fmtDay(running[0].ended_on)}. Enter the next tenancy once it's agreed.`
               : "Nobody rents it through Hampton at the moment."}</p>
-              <button type="button" className="btn sm" onClick={() => { setMsg(null); setAdding(true); }}>New tenancy</button></div>}
+              <button type="button" className="btn sm" onClick={() => { setMsg(null); setAdding(true); }}>New tenancy</button>
+              {originReady && <button type="button" className="btn ghost sm" onClick={() => { setMsg(null); setFromAgreed(true); }}>From Let agreed</button>}</div>}
         </section>}
 
         <section className="card" aria-labelledby="h-checks"><h2 id="h-checks">Checks</h2>{note("checks")}
@@ -296,6 +301,7 @@ function Tenancy({ id, tick, note, open, next, requestedDeadline }) {
       <span>{x.label}<span className="muted cell-note">{x.done_on ? `Done ${fmtDay(x.done_on)}` : `Due ${fmtDay(x.due_on)}`}</span></span>
       <span className="ctl">{checkState(x)}<button type="button" className="btn ghost sm" onClick={act("edit", { keys: [DONE[x.key][0]], title: DONE[x.key][1] })}>
         Update<span className="sr"> {x.label}</span></button></span></li>)}</ul></>}
+    <TenancyRecords id={id} tick={tick} />
 
     {full && <><h3 id={`h-charges-${id}`}>Charges</h3>
       {d.charges.length ? <div className="table-scroll" role="region" aria-labelledby={`h-charges-${id}`} tabIndex={0}>
@@ -352,6 +358,9 @@ const EVENT = {
   "repair.updated": (d, { repairs }) => `Repair ${repairs.find(p => p.id === d.repair_id)?.title ?? ""} updated: ${d.after.status
     ? REPAIR_STATUS[d.after.status] : keys(d.after)}`,
   "tenancy.created": d => `Tenancy entered for ${d.tenant_name}`,
+  "tenancy.origin_linked": d => `Tenancy started from Let agreed listing ${d.listing_id}`,
+  "tenancy.signed_contract_recorded": d => `Signed contract reference recorded (revision ${d.revision})`,
+  "tenancy.entry_inventory_saved": d => `Entry inventory saved (revision ${d.revision}): ${d.rooms} rooms, ${d.meter_readings} meter readings`,
   "tenancy.updated": ({ before, after: { collect_from, ...rest }, removed }) => [collect_from
     && `Rent collected from ${fmtDay(collect_from)}, not ${fmtDay(before.collect_from)}`,
   Object.keys(rest).length && `Tenancy details changed: ${keys(rest)}`].filter(Boolean).join("; ") + gone(removed, "earlier"),
