@@ -2655,7 +2655,7 @@
       "estado": "descartado",
       "responsable": "desarrollo",
       "hecho": "Botón Owner report en cada ficha: página imprimible en A4 (7, 30 o 90 días) con aperturas en la web, visitas y su resultado, aplicantes que encajan y, en venta, ofertas numeradas y avance de la venta, sin datos de interesados.",
-      "falta": "Retirados los informes de actividad, visitas y feedback enviados a propietarios; se conserva el código existente y la actividad interna. Auditoría del 14-nov-2026 contra el plan maestro vigente: el botón «Owner report» de la ficha sigue activo y prepara un PDF con visitas, feedback, aplicantes que encajan y ofertas para enviarlo a mano al propietario. Pendiente de la decisión de Luis: ocultarlo o conservarlo.",
+      "falta": "Retirados los informes de actividad, visitas y feedback enviados a propietarios; se conserva el código existente y la actividad interna. Aplicado el 14-nov-2026 por decisión de Luis (aplicar el plan maestro): la ficha ya no enlaza al «Owner report» y su página dice que la actividad no se informa a propietarios; el código se conserva.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ListingEditor.jsx:152-153",
@@ -2664,7 +2664,8 @@
         "migrations/0001_init.sql:1-23",
         "commit fe098be",
         "commit 7ff3158",
-        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
+        "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5",
+        "admin/src/ListingEditor.jsx (sin enlace), admin/src/OwnerReport.jsx, tests/e2e.cjs (sin enlace en la ficha)"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -8536,7 +8537,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Pedido de Luis del 5-nov-2026, reglas con /grill-me. En producción desde el 5-nov-2026 (migración 0020): «Properties Queue» (botón en Listings, #/queue) recibe el link de la carpeta de una casa en Drive y una nota; la casa espera a Hermes, que pide a la app los documentos de esa carpeta (nunca «Records» ni las carpetas de fotos) y devuelve un property.txt, la descripción nueva, de qué documento sale cada dato y lo que se contradice. Las fotos salen solo de la subcarpeta «Edited»/«Editadas» y el título es el nombre de la carpeta. «Review» crea el borrador con las fotos reducidas y sin GPS; en el editor, «Approve and publish» lo publica si tiene título, venta o alquiler, precio, parroquia, una foto y descripción. Avisa si la carpeta ya se importó; Discard borra el borrador; las filas cerradas se borran a los 90 días. La app lee Drive con una cuenta de servicio de solo lectura y Hermes nunca tiene su clave.",
-      "falta": "Luis: crear la cuenta de servicio en Google Cloud, guardar su clave como secreto de Cloudflare (GOOGLE_SERVICE_ACCOUNT) y compartir la carpeta de las casas como lector desde la cuenta de Franco; sin eso la cola responde que Google Drive no está configurado. VPS (espera a PRE-32, el plan de ChatGPT): la instrucción de Hermes y las tres rutas /imports en el custodio. Hasta entonces las casas se quedan en «Waiting for Hermes». Auditoría del 14-nov-2026 contra el plan maestro vigente: la cola existente sigue en uso (3 importaciones, dos posteriores al plan) y entrega a Hermes el contenido de cada documento de la carpeta con un único filtro por nombre («Records» y fotos); no hay barrera por clase de dato. Pendiente de la decisión de Luis sobre su uso mientras PRE-32 no esté verificada.",
+      "falta": "Luis: crear la cuenta de servicio en Google Cloud, guardar su clave como secreto de Cloudflare (GOOGLE_SERVICE_ACCOUNT) y compartir la carpeta de las casas como lector desde la cuenta de Franco; sin eso la cola responde que Google Drive no está configurado. VPS (espera a PRE-32, el plan de ChatGPT): la instrucción de Hermes y las tres rutas /imports en el custodio. Hasta entonces las casas se quedan en «Waiting for Hermes». Pausada el 14-nov-2026 por decisión de Luis (aplicar el plan maestro): sin PUB21_DRIVE_READY=1 ninguna carpeta va a Hermes; las importaciones ya recibidas se pueden revisar y publicar. Antes de reactivarla: PRE-32 verificada y una barrera por clase de dato, porque hoy solo se filtra por nombre («Records» y fotos).",
       "bloqueo": "PRE-32 para que Hermes lea las carpetas",
       "evidencia": [
         "server/drive.js",
@@ -8549,7 +8550,8 @@
         "tests/server/drive.test.mjs",
         "tests/server/queue.test.mjs",
         "docs/superpowers/specs/2026-11-05-hampton-app-drive-queue-design.md",
-        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: conexión con Drive aplazada."
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: conexión con Drive aplazada.",
+        "server/routes/queue.js (driveImportReady), tests/server/queue.test.mjs (13/13), docs/automations/folder_import.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",

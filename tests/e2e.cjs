@@ -1537,7 +1537,9 @@ async function ownerReport(page, phone, noSideScroll) {
   const NOTE = "Wants a second viewing with their partner";
   await page.goto(BASE + "admin/#/p/HE-R001");
   await page.waitForSelector("#f-title");
-  await page.getByRole("link", {name: "Owner report"}).click();
+  // VIS-16 withdrawn (master plan): the editor no longer links to it; the kept page is opened by its address.
+  assert.equal(await page.getByRole("link", {name: "Owner report"}).count(), 0);
+  await page.goto(BASE + "admin/#/listings/HE-R001/report?days=30");
   await page.waitForFunction(() => location.hash === "#/listings/HE-R001/report?days=30");
   const report = page.locator("#owner-report");
   await report.waitFor();

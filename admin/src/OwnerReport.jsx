@@ -40,7 +40,7 @@ export default function OwnerReport({ id, days }) {
     <div className="head"><h1 id="t-report">Owner report</h1>
       <div className="ctl"><a className="btn ghost" href={`#/p/${encodeURIComponent(id)}`}>Back to listing</a>
         <button type="button" className="btn" onClick={() => print()} disabled={!data || busy}>Print</button></div></div>
-    <p className="muted screen-note">Print it and choose Save as PDF to send it to the owner. Nothing typed here is saved.</p>
+    <p className="muted screen-note">Internal summary: activity is not reported to owners (master plan, 10 Nov 2026). Nothing typed here is saved.</p>
     <div className="seg" role="group" aria-label="Period">{PERIODS.map(p =>
       <button key={p} type="button" aria-pressed={period === p} onClick={() => go(p)}>{p} days</button>)}</div>
     <form id="report-form" className="report-form" onSubmit={e => e.preventDefault()}>

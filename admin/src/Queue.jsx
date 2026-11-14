@@ -22,10 +22,11 @@ export default function Queue({ onChange }) {
   const [items, setItems] = useState(null), [hermesAt, setHermesAt] = useState(null), [err, setErr] = useState(null);
   const [link, setLink] = useState(""), [note, setNote] = useState(""), [sending, setSending] = useState(false);
   const [sent, setSent] = useState(null), [formErr, setFormErr] = useState(null), [open, setOpenRaw] = useState(null);
+  const [paused, setPaused] = useState(false); // master plan: Drive imports off until PUB21_DRIVE_READY is on
   // The view changes under the keyboard: its heading takes the focus (DESIGN.md, as the booking confirmation).
   const setOpen = item => { setOpenRaw(item); requestAnimationFrame(() => document.querySelector(item ? "#t-review" : "#t-queue")?.focus()); };
   const load = async () => {
-    try { const r = await api("/admin/queue"); setItems(r.items); setHermesAt(r.hermes_at); setErr(null); }
+    try { const r = await api("/admin/queue"); setItems(r.items); setHermesAt(r.hermes_at); setPaused(r.paused === true); setErr(null); }
     catch (e) { setErr(e.message); }
   };
   useEffect(() => { load(); }, []);
@@ -62,7 +63,8 @@ export default function Queue({ onChange }) {
       <label>Note for Hermes (optional)<textarea rows={3} maxLength={MAX_NOTE} value={note} onChange={e => setNote(e.target.value)}
         aria-describedby="d-note" placeholder="e.g. The price is the one in the Word document. 4 bedrooms, not 3." /></label>
       <small id="d-note" className="muted">{note.length} / {MAX_NOTE}</small>
-      <div className="inline"><button className="btn" disabled={sending}>{sending ? "Sending…" : "Send to Hermes"}</button>
+      {paused && <p className="warn" role="note">Paused: sending folders to Hermes is switched off for now. Add the property by hand in Listings. The imports already in the queue can still be reviewed.</p>}
+      <div className="inline"><button className="btn" disabled={sending || paused}>{sending ? "Sending…" : "Send to Hermes"}</button>
         <span role="status" className="muted">{sent && `${sent.item.folder_name} is in the queue.`}</span></div>
       {sent?.duplicate && <p className="warn" role="note">{sent.duplicate.listing_id
         ? <>This folder was already imported as <a href={`#/p/${sent.duplicate.listing_id}`}>{sent.duplicate.listing_id}</a>.</>

@@ -211,3 +211,26 @@ test("a Drive failure while Hermes claims is kept as the reason when the row fai
   assert.equal(row(env, 1).status, "failed");
   assert.match(row(env, 1).error, /Google Drive/);
 });
+
+// Master plan (10-Nov-2026): the Drive connection is postponed. Without PUB21_DRIVE_READY=1 no folder goes to Hermes,
+// while the imports already here can still be reviewed.
+test("paused without its switch: nothing is sent to or read by Hermes, the review side stays", async t => {
+  const { env } = await setup(t);
+  const id = await ready(env);
+  env.DB.raw.prepare("INSERT INTO drive_imports (folder_id, folder_name, note, requested_by, created_at, status) VALUES ('F_X', 'Queued house', '', 'a@example.test', '2026-11-14T00:00:00.000Z', 'queued')").run();
+  env.DB.raw.prepare("INSERT INTO drive_imports (folder_id, folder_name, note, requested_by, created_at, status, error) VALUES ('F_Y', 'Failed house', '', 'a@example.test', '2026-11-14T00:00:00.000Z', 'failed', 'x')").run();
+  delete env.PUB21_DRIVE_READY;
+  const list = await admin(env, "GET", "/admin/queue");
+  assert.equal(list.status, 200);
+  assert.equal(list.data.paused, true);
+  assert.equal(list.data.items.length, 3);
+  assert.equal((await admin(env, "POST", "/admin/queue", { link: LINK, note: "" })).status, 503);
+  assert.equal((await admin(env, "POST", `/admin/queue/${id + 2}/retry`)).status, 503);
+  assert.deepEqual((await hermes(env, "POST", "/hermes/imports/next")).data, { import: null });
+  assert.equal(row(env, id + 1).status, "queued");
+  assert.equal((await hermes(env, "GET", `/hermes/imports/${id}/files/F_DOC0000001`)).status, 503);
+  assert.equal((await hermes(env, "POST", `/hermes/imports/${id}/proposal`, PROPOSAL)).status, 503);
+  assert.equal((await draft(env, id)).status, 201, "an import already proposed can still become a draft");
+  env.PUB21_DRIVE_READY = "1";
+  assert.equal((await admin(env, "GET", "/admin/queue")).data.paused, false);
+});

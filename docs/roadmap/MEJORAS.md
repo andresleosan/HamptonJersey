@@ -8,7 +8,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [PUB-09] Despublicar una ficha ya oculta devuelve 409 en vez de éxito silencioso · cambio de conducta para scripts externos · 14-nov-2026
 - [PUB-06] Guardar importes en peniques enteros si algún día se suman · hoy REAL con dos decimales validados · 14-nov-2026
 - [PUB-08] La prueba general `tests/e2e.cjs` falla al cargar el tour YouTube del home (`#tour3d iframe` no aparece tras «Load YouTube tour»); ocurre igual en 9578528, antes del lote de 14-nov · revisar el fixture o la carga diferida · 14-nov-2026
-- [VIS-09] Al mover una visita a un negociador sin reglas queda el registro de márgenes anterior (inbox.js:129) · solo amplía huecos · 14-nov-2026
 - [VIS-09] Reprogramar una reserva antigua con listing_id no estándar da 500 en vez de mensaje claro (viewing-policy.js:153) · 14-nov-2026
 - [AUT-10] Con AUT10_MODES_READY encendido antes de 0054, la pantalla Automations da 500 (automations.js:41) · aplicar siempre la migración antes · 14-nov-2026
 - [OFE-06] La instantánea de pasos depende del orden de group_concat, que SQLite no garantiza · peor caso: «recargar» innecesario · 14-nov-2026
@@ -28,3 +27,5 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [NOT-05] Con el interruptor apagado, Inbox pide `/admin/missing-payments` y recibe 404 (ignorado) · exponer la disponibilidad en counts o /me · 14-nov-2026
 - [NOT-05] El cambio de gracia no deja `rental_event`, solo `updated_by` y hora · 14-nov-2026
 - [NOT-05] El número de la pestaña solo se refresca al abrir Inbox o dentro de la pestaña; la lectura depende de que el contador haya creado los cargos (ensureCharges) · 14-nov-2026
+- [PRE-14] `coordination/test/activity-runtime.test.mjs` («two builders») espera [200, 409] y devuelve [409, 409], también en una copia limpia de `main`; no está en `npm test` · el tablero de coordinación ya no se usa para repartir, revisar o retirar la prueba · 14-nov-2026
+- [PUB-21] Antes de reactivar `PUB21_DRIVE_READY`: barrera por clase de dato en los documentos que van a Hermes (hoy solo filtro por nombre) y prueba de navegador del aviso «Paused» de Properties Queue · auditoría contra el plan maestro · 14-nov-2026

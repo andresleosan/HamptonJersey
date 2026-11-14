@@ -4,14 +4,16 @@ Luis pidió comprobar si lo ya construido contradice el [plan maestro](../../202
 
 ## Resultado
 
+En los tres puntos que dependían de Luis respondió «lo que diga el plan maestro», y así se aplicó.
+
 | Regla del plan | Resultado | Qué se hizo |
 | --- | --- | --- |
 | Visitas: 30 min, 15 de margen, 15 más entre parroquias, máximo 8 al día | **Contradecía**: sin reglas guardadas no había margen entre parroquias ni máximo diario, y en producción nadie las tenía guardadas | Arreglado y publicado (`5a9917e`, VIS-09) |
-| Actividad solo interna, sin informes a propietarios (VIS-16) | **Contradice**: el botón «Owner report» sigue activo | Decisión de Luis; anotado en VIS-16 |
-| Drive aplazado; datos sensibles nunca a Hermes (PUB-21) | **Contradice en parte**: la cola existente sigue en uso y no filtra por clase de dato | Decisión de Luis; anotado en PUB-21 |
+| Actividad solo interna, sin informes a propietarios (VIS-16) | **Contradecía**: el botón «Owner report» seguía activo | Arreglado: la ficha ya no lo enlaza; el código se conserva |
+| Drive aplazado; datos sensibles nunca a Hermes (PUB-21) | **Contradecía en parte**: la cola seguía en uso y no filtra por clase de dato | Arreglado: pausada tras `PUB21_DRIVE_READY`; lo ya importado se puede revisar |
 | Un despacho incierto no se repite a ciegas | **Contradice**: un trabajo sin respuesta se reentrega hasta 3 veces | Anotado en AUT-13; se corrige con el contrato de despacho |
 | Plazos legales validados antes de usarse | **Contradice en parte**: se muestran como hechos sin rotular | Anotado en ADM-17; se corrige con las reglas versionadas |
-| Tours 3D descartados por ahora | La web sigue mostrando el tour de muestra publicado | Decisión de Luis |
+| Tours 3D descartados por ahora | La web mostraba el tour de muestra publicado | Arreglado: despublicado (reversible en Settings → 3D tours) |
 | Rechazo y bajada de precio (BUS-17) | Sin construir: un rechazo no se reabre | Anotado en BUS-17 |
 | Publicación con mínimos, sin exigir el 100 % | Cumple | — |
 | Estadísticas sin seguimiento individual | Cumple | — |

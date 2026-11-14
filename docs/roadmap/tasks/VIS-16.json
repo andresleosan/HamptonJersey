@@ -7,7 +7,7 @@
   "estado": "descartado",
   "responsable": "desarrollo",
   "hecho": "Botón Owner report en cada ficha: página imprimible en A4 (7, 30 o 90 días) con aperturas en la web, visitas y su resultado, aplicantes que encajan y, en venta, ofertas numeradas y avance de la venta, sin datos de interesados.",
-  "falta": "Retirados los informes de actividad, visitas y feedback enviados a propietarios; se conserva el código existente y la actividad interna. Auditoría del 14-nov-2026 contra el plan maestro vigente: el botón «Owner report» de la ficha sigue activo y prepara un PDF con visitas, feedback, aplicantes que encajan y ofertas para enviarlo a mano al propietario. Pendiente de la decisión de Luis: ocultarlo o conservarlo.",
+  "falta": "Retirados los informes de actividad, visitas y feedback enviados a propietarios; se conserva el código existente y la actividad interna. Aplicado el 14-nov-2026 por decisión de Luis (aplicar el plan maestro): la ficha ya no enlaza al «Owner report» y su página dice que la actividad no se informa a propietarios; el código se conserva.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/ListingEditor.jsx:152-153",
@@ -16,7 +16,8 @@
     "migrations/0001_init.sql:1-23",
     "commit fe098be",
     "commit 7ff3158",
-    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5"
+    "docs/roadmap/2026-11-10-plan-maestro-vigente.md:5",
+    "admin/src/ListingEditor.jsx (sin enlace), admin/src/OwnerReport.jsx, tests/e2e.cjs (sin enlace en la ficha)"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",

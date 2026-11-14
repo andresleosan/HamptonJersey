@@ -28,7 +28,7 @@ Pasos obligatorios: archivo publicado en `main` y leído entero, ensayo en D1 lo
 ## No autorizado: va a la cola de Luis
 
 - Migraciones no aditivas y restauraciones de datos.
-- Interruptores que empiezan a **enviar mensajes** (correo, WhatsApp, Meta, Telegram al equipo) o a **recoger datos personales del público** con un formulario nuevo: `EMAIL_SERVICE_READY`, `OWNER_REQUESTS_READY`, `PUBLIC_DEMAND_READY` y los equivalentes que aparezcan.
+- Interruptores que empiezan a **enviar mensajes** (correo, WhatsApp, Meta, Telegram al equipo) o a **recoger datos personales del público** con un formulario nuevo: `EMAIL_SERVICE_READY`, `OWNER_REQUESTS_READY`, `PUBLIC_DEMAND_READY` y los equivalentes que aparezcan. También `PUB21_DRIVE_READY`, que envía documentos de Drive a Hermes: pausado por el plan maestro hasta verificar PRE-32.
 - Credenciales, tokens, permisos, DNS, WAF, Cloudflare Access y configuración del VPS o de Hermes.
 - Cuentas y trámites externos (Meta, Google, JFSC, JOIC, abogado) y cualquier gasto.
 - Escrituras de prueba en producción y borrado de datos reales.

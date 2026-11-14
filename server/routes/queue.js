@@ -8,6 +8,10 @@ import { MAX_PHOTOS } from "../listing-import.js";
 // PUB-21 (spec 2026-11-05): Properties Queue. The panel sends a Drive folder and a note; Hermes reads its documents
 // through its door (the three functions exported at the end) and leaves a proposal; a person creates the draft from it
 // in the browser, reviews it in the editor and approves it, which publishes it (D11). Everyone in the panel (D10, C11).
+// Master plan (10-Nov-2026): the Drive connection is postponed. Only with PUB21_DRIVE_READY=1 does a folder go to
+// Hermes (send, retry and Hermes's three routes); the imports already here can still be reviewed and published.
+export const driveImportReady = env => env?.PUB21_DRIVE_READY === "1";
+const PAUSED = "Sending folders to Hermes is paused. The imports already in the queue can still be reviewed.";
 const OPEN = ["queued", "working", "ready", "review"], IN_OPEN = `(${OPEN.map(s => `'${s}'`).join(",")})`;
 // MAX_NOTE is also admin/src/Queue.jsx's counter.
 const STALE_MINUTES = 5, ATTEMPTS = 3, KEEP_DAYS = 14, MAX_NOTE = 2000;
@@ -20,6 +24,7 @@ const shape = r => ({ id: r.id, folder_name: r.folder_name, note: r.note, status
   result: r.result ? JSON.parse(r.result) : null });
 
 async function send({ request, env, admin }) {
+  if (!driveImportReady(env)) fail(503, PAUSED);
   const body = await readJson(request);
   const id = folderIdFrom(body?.link); // a null body has no link: 400
   if (!id) fail(400, "Paste the link of a Google Drive folder.");
@@ -46,7 +51,7 @@ async function list({ env }) {
       OR COALESCE(decided_at, ready_at, claimed_at, created_at) >= ? ORDER BY id DESC LIMIT 200`).bind(since),
     env.DB.prepare("SELECT json_extract(value, '$.at') AS at FROM app_settings WHERE key = 'hermes'"),
   ]);
-  return json({ items: results.map(shape), hermes_at: seen?.at ?? null });
+  return json({ items: results.map(shape), hermes_at: seen?.at ?? null, paused: !driveImportReady(env) });
 }
 
 // Review (Review Focus 4, bugs and security review): the server creates the draft and ties it to the row in one call,
@@ -89,6 +94,7 @@ async function photo({ env, params: [id, fileId] }) {
 }
 
 async function retry({ env, params: [id] }) {
+  if (!driveImportReady(env)) fail(503, PAUSED);
   const r = await env.DB.prepare(`UPDATE drive_imports SET status = 'queued', attempts = 0, error = NULL, claimed_at = NULL
     WHERE id = ? AND status = 'failed' RETURNING *`).bind(Number(id)).first();
   if (!r) fail(409, "Only a failed one can be tried again");
@@ -148,6 +154,7 @@ export default [
 // Hermes's side (server/routes/hermes.js DOOR). It gets the folder's name, the note and its documents, never who sent
 // it or any listing (D2). C6: a claim goes stale after 5 minutes; the third stale one fails (15 minutes).
 export async function nextImport({ env }) {
+  if (!driveImportReady(env)) return json({ import: null });
   const ts = now(), stale = minutesAgo(STALE_MINUTES);
   // A Drive failure kept while claiming (below) stays the reason; otherwise Hermes ran out of time.
   await env.DB.prepare(`UPDATE drive_imports SET status = 'failed', error = COALESCE(error, 'Hermes didn''t finish in 15 minutes')
@@ -180,6 +187,7 @@ const working = async (env, id) => {
 };
 
 export async function importFile({ env, params: [id, fileId] }) {
+  if (!driveImportReady(env)) fail(503, PAUSED);
   const w = await working(env, id);
   const doc = w?.walked?.documents.find(d => d.id === fileId);
   if (!doc) fail(404, "Not one of this import's documents");
@@ -203,6 +211,7 @@ function checkProposal(b) {
 }
 
 export async function importProposal({ request, env, params: [id] }) {
+  if (!driveImportReady(env)) fail(503, PAUSED);
   const p = checkProposal(await readJson(request, 200 * 1024));
   const w = await working(env, id);
   if (!w) fail(409, "This import is not being worked on");

@@ -61,6 +61,7 @@ export const SECRET = "test-secret-test-secret-test-secret-0123";
 export const makeEnv = (schema = {}) => ({
   DB: makeDb(schema), MEDIA: makeBucket(), SESSION_SECRET: SECRET,
   TURNSTILE_SECRET: "turnstile-test", TURNSTILE_SITE_KEY: "site-key", FIREBASE_PROJECT_ID: "hamptonestatesjersey",
+  PUB21_DRIVE_READY: "1", // the Properties Queue's Drive imports: on for the tests, off in production (master plan)
 });
 
 const insert = (env, table, row) => {
