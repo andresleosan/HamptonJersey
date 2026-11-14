@@ -67,3 +67,5 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [EST-01] Con el interruptor encendido cada recálculo añade dos escrituras a D1, también en «Recalculate all» · dentro del límite hoy · 14-nov-2026
 - [ADM-11] Cambiar `copyDays`, `changeDays` o `depositDays` en Legal terms no mueve los plazos de una vez ya abiertos; al encender, un conjunto de plazos ya validado vuelve a «estimated» hasta guardarlo con los tres nuevos · revisión independiente 14-nov · 14-nov-2026
 - [BUS-12] Redondeo en el límite de superficie (100 m² escritos como 1.076,39 sq ft dan 99,9999 m² y quedan como alternativa) · revisión independiente 14-nov · 14-nov-2026
+- [ADM-11] No se puede registrar con su fecha real una copia entregada en la firma si es anterior a la salida del inquilino previo; un depósito del entrante pagado por adelantado no se sigue hasta el relevo · la fila es por vivienda, no por contrato · 14-nov-2026
+- [ADM-11] Cuando el recálculo reabre una entrega borra `done_on` y la nota sin evento propio; la ficha de la vivienda no ejecuta el recálculo (el relevo se ve al cargar Rentals o en el siguiente tic) · segunda revisión 14-nov · 14-nov-2026

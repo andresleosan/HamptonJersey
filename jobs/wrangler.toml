@@ -18,6 +18,8 @@ EMAIL_SERVICE_READY = "false"
 OFE06_WEEKLY_REVIEW_READY = "1"
 # ADM-17: versioned legal periods (migration 0063); keep equal in ../wrangler.toml.
 ADM17_LEGAL_TERMS_READY = "1"
+# ADM-11: the rest of the rental compliance calendar; keep equal in ../wrangler.toml.
+ADM11_CALENDAR_READY = "1"
 
 [triggers]
 crons = ["*/10 * * * *"]

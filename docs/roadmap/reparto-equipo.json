@@ -49,10 +49,10 @@
       "area": "Inbox, visitas, alquileres y ofertas",
       "capacity": 2,
       "count": 65,
-      "openCount": 27,
+      "openCount": 26,
       "states": {
-        "hecho": 35,
-        "parcial": 14,
+        "hecho": 36,
+        "parcial": 13,
         "pendiente": 7,
         "bloqueado": 6,
         "descartado": 3
@@ -6988,10 +6988,10 @@
       "titulo": "Calendario de cumplimiento por vivienda con avisos a 60, 30 y 7 días",
       "origen": "plan",
       "fase": "F5-A",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Checks de cada vivienda (Rental dwelling licence, EICR, Gas safety si hay gas, Smoke and CO alarms) con Update y caducidad, y plazos del contrato (depósito protegido en 30 días, Check-in y Check-out report en 7); avisan a 60, 30 y 7 días en Checks and deadlines, y lo vencido o «Not recorded» sale en rojo, suma en el contador y llega al Inbox como aviso Compliance. Construido el 14-nov y apagado tras ADM11_CALENDAR_READY, sin migración: seis puntos más en el mismo calendario de la vivienda. Hazards check (los 29 riesgos: fecha, referencia del informe y fecha de la próxima revisión); Electrical checklist (un año, y vence al empezar un inquilino nuevo); Licence copy y EICR copy to the tenant (28 días desde el inicio del contrato o desde una licencia o EICR nuevos); Licence changes notified (28 días desde el cambio); Prescribed information with the deposit (los 30 días del depósito). Se registran con Update (fecha y referencia), avisan a 60, 30 y 7 días, lo vencido o «Not recorded» sale en rojo, cuenta y llega al Inbox por el mismo productor que los checks. Los tres plazos nuevos entran en Legal terms (ADM-17) y salen como estimados hasta que un abogado los valide.",
-      "falta": "Encender ADM11_CALENDAR_READY en wrangler.toml y en jobs/wrangler.toml (el reloj calcula los avisos del Inbox) y comprobar el recorrido en producción con lecturas. No lleva migración. Al encender, cada vivienda gana de 3 a 6 puntos «Not recorded» hasta que el equipo los registre, y un conjunto de plazos guardado antes en Legal terms vuelve a «estimated» hasta guardarlo con los tres nuevos. Sin comprobar en navegador: los avisos del Inbox, porque los calcula el reloj y el fixture local no lo ejecuta; están cubiertos en la prueba de servidor.",
+      "hecho": "Checks de cada vivienda (Rental dwelling licence, EICR, Gas safety si hay gas, Smoke and CO alarms) con Update y caducidad, y plazos del contrato (depósito protegido en 30 días, Check-in y Check-out report en 7); avisan a 60, 30 y 7 días en Checks and deadlines, y lo vencido o «Not recorded» sale en rojo, suma en el contador y llega al Inbox como aviso Compliance. Construido el 14-nov y apagado tras ADM11_CALENDAR_READY, sin migración: seis puntos más en el mismo calendario de la vivienda. Hazards check (los 29 riesgos: fecha, referencia del informe y fecha de la próxima revisión); Electrical checklist (un año, y vence al empezar un inquilino nuevo); Licence copy y EICR copy to the tenant (28 días desde lo más tardío entre el inicio del contrato en curso y la fecha de la licencia o del EICR); Licence changes notified (28 días desde el cambio); Prescribed information with the deposit (los 30 días del depósito). Se registran con Update (fecha y referencia), avisan a 60, 30 y 7 días, lo vencido o «Not recorded» sale en rojo, cuenta y llega al Inbox por el mismo productor que los checks. Los tres plazos nuevos entran en Legal terms (ADM-17) y salen como estimados hasta que un abogado los valide. Cerrada el 14-nov-2026: sin migración; ADM11_CALENDAR_READY=1 en la web y en el reloj. Los plazos nuevos (28 días de copia y de aviso de cambios, 1 año del checklist) van rotulados como estimados hasta que el abogado los valide (PRE-33); el envío automático al inquilino es de ADM-03 y el correo.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "server/rentals.js:8-17",
@@ -7006,16 +7006,19 @@
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:524-525",
         "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): necesita solo las capacidades de caso de ADM-18.",
         "14-nov · calendario ADM-11: server/rentals.js (CALENDAR, ONE_OFF, TENANT, CALENDAR_LEGAL), server/routes/rentals.js (updateCompliance, startChecks), server/routes/rent.js (checksSql, ensureChecks, avisos al crear contrato y al recibir depósito), server/notification-reconcile.js, server/notification-query.js, server/legal-terms.js, admin/src/RentalDialogs.jsx, admin/src/RentalDetail.jsx, admin/src/LegalTerms.jsx.",
-        "14-nov · pruebas: node --test tests/server/adm-11-calendar.test.mjs 11 de 11; en verde las de rentals, rentals-overview, rentals-rules, rental-marketing, tenancies, notification-reconcile, notification-categories, notification-tasks, notification-producers, notifications, adm-17-legal-terms, adm-13-inspections, adm-06-1, adm-06-2 y adm-16-1. Navegador aislado: tests/adm11-compliance.e2e.cjs y tests/adm17-legal-terms.e2e.cjs PASS a 1280 y 390.",
+        "14-nov · pruebas: node --test tests/server/adm-11-calendar.test.mjs 13 de 13; regresión focal adm-*, rental*, tenancies y notification*: 287 de 287. Navegador aislado: tests/adm11-compliance.e2e.cjs PASS a 1280 y 390 tras la corrección; tests/adm17-legal-terms.e2e.cjs PASS a 1280 y 390 antes de ella.",
         "Comprobado: lo vencido de checks y plazos ya llegaba al Inbox (server/notification-reconcile.js, colas check y deadline, categoría compliance, desde 42578e5); los puntos nuevos pasan por esa misma cola check, un aviso por punto, que se reabre si vuelve a vencer.",
         "Decisión: los 29 riesgos son una comprobación registrada (fecha, referencia del informe y fecha de la próxima revisión que pone quien registra), no 29 campos; §7.3 no les fija plazo. Fuente: arquitectura §7.3 (tabla del calendario) y plan maestro, TP-05 (solo datos estructurados y referencias externas).",
         "Decisión: sin tabla ni migración; los puntos nuevos son filas de compliance_items, cuya columna kind no tiene CHECK (migrations/0013_rentals.sql:119), y las viviendas anteriores reciben sus filas vacías al abrir Rentals o en el pase del reloj. Fuente: skill §5 (ponytail).",
         "Decisión: copias al inquilino, cambios de licencia y datos prescritos son plazos de una vez: vencen a los días de §7.3 desde lo que los inicia y, registrados, no vuelve a vencer nada hasta el siguiente inicio. Fuente: arquitectura §7.3 («en 28 días», «en 30 días»).",
-        "Decisión: para un inquilino nuevo los 28 días de las copias corren desde el inicio del contrato; §7.3 no lo precisa. Fuente: skill §4.5 (opción más simple); queda para la validación del abogado (ADM-17).",
+        "Decisión: los puntos del inquilino siguen al contrato en curso (el más antiguo sin terminar): la copia vence 28 días después de lo más tardío entre su inicio y la fecha de la licencia o del EICR, nunca antes; una entrega registrada vale mientras no sea anterior a esa licencia o EICR ni a la última salida. §7.3 no precisa desde cuándo corre; queda para la validación del abogado (ADM-17). Fuente: revisión independiente del 14-nov y skill §4.5.",
         "Decisión: los puntos del inquilino solo cuentan con un contrato en curso (el del depósito, con depósito recibido) y «Not recorded» nunca vale como hecho. Fuente: plan maestro («unknown no significa aprobado») y la regla existente del gas.",
         "Decisión: copyDays 28, changeDays 28 y checklistYears 1 salen de §7.3 tal cual y entran en los plazos versionados de ADM-17 solo con el interruptor; un conjunto guardado sin ellos conserva sus valores y se lee como «estimated». Fuente: arquitectura §7.3 y server/legal-terms.js.",
         "Decisión: las ventanas de 60, 30 y 7 días y la renovación a 90 siguen en código. Fuente: docs/roadmap/tasks/ADM-17.json (decisión del 14-nov) y el título de esta tarea.",
-        "Fuera de alcance, queda para el falta de su tarea: envío automático al inquilino (AUT-17, ADM-03), documentos adjuntos (PUB-11, ADM-19), inspecciones (ADM-13) y validación de los plazos nuevos (ADM-17)."
+        "Fuera de alcance, queda para el falta de su tarea: envío automático al inquilino (AUT-17, ADM-03), documentos adjuntos (PUB-11, ADM-19), inspecciones (ADM-13) y validación de los plazos nuevos (ADM-17).",
+        "14-nov · corrección tras revisión independiente (server/routes/rentals.js syncTenantChecks; server/routes/rent.js ensureChecks): la copia ya no vence desde una licencia o EICR anteriores al contrato, en ninguno de los dos órdenes de registro; dar de alta por adelantado el contrato siguiente no toca los puntos del inquilino que sigue dentro, y el nuevo los recibe en el pase de Rentals o del reloj cuando el anterior ha salido; corregir la fecha de una licencia o EICR a una no posterior a la entrega conserva la copia entregada; una entrega con fecha anterior a la licencia, al EICR o a la última salida se rechaza al guardar.",
+        "Límite conocido: la fila es por vivienda, así que una copia entregada al inquilino entrante antes de que salga el anterior hay que registrarla con fecha desde la salida.",
+        "Cierre 14-nov-2026: publicada (20bf7d6 y corrección 6a4aa03); npm test 2501/2501; tests/adm11-compliance.e2e.cjs y adm17-legal-terms.e2e.cjs pasan a 1280 y 390; la revisión independiente halló dos fechas mal calculadas (copia fechada antes del contrato; alta adelantada que ocultaba un vencido), corregidas con prueba y verificadas en una segunda pasada sin hallazgos graves."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -7043,7 +7046,7 @@
         "notifications-schema",
         "legal-parameters"
       ],
-      "nextStep": "Integrar el commit, encender ADM11_CALENDAR_READY en los dos wrangler.toml, desplegar, comprobar con lecturas que Rentals y el Inbox muestran los puntos nuevos y cerrar.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-14"
     },
     {

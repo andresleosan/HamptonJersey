@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+14-nov-2026 · **ADM-11 hecha:** el calendario de cada vivienda suma seis puntos: comprobación de los 29 riesgos, checklist eléctrico anual o al cambiar de inquilino, copia de la licencia y del EICR al inquilino en 28 días, aviso de cambios de la licencia en 28 días y datos prescritos con el depósito en sus 30 días. Se registran con Update, avisan a 60, 30 y 7 días y lo vencido sale en rojo, cuenta y llega al Inbox. Al encenderse, cada vivienda muestra los puntos nuevos sin registrar y el Inbox recibe sus avisos. Progreso 97 → 98 de 211.
+
 14-nov-2026 · **VIS-10 hecha:** cada casa tiene sus reglas de visita en la ficha («House rules for viewings»): horas de aviso si hay inquilino, dónde están las llaves y una nota privada de acceso, y quién la enseña. Con inquilino, la web no ofrece horas dentro del aviso y el panel pide marcar «Access is agreed with the tenant» antes de reservar o cambiar la hora. Nada de esto sale en la web. Migración 0066. Progreso 96 → 97 de 211.
 
 14-nov-2026 · **EST-01 y SAP-01 hechas:** cada búsqueda guarda cuándo se ejecutó por última vez y si terminó bien; en la lista de aplicantes y en la pestaña Matches se lee «Waiting for investigation», «No matches yet · last search 2 hours ago» o «Last search failed». Las búsquedas anteriores dicen «not recorded» hasta su siguiente recálculo. Migración 0067. Progreso 94 → 96 de 211.
