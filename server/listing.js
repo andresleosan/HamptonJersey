@@ -34,6 +34,12 @@ const REQUIRED = ["title", "use", "operation", "availability"];
 export const EDITABLE = [...Object.keys(ENUMS), ...Object.keys(TEXT), ...INTS, ...MONEY, "available_on", "featured_rank", "specs", "matchable",
   "viewings_enabled", "viewing_hours", ...PHYSICAL_FIELDS, "interior_area_sqft", "feature_overrides"];
 
+// PUB-07 (migration 0061): staff-only compliance, validated only with PUB07_COMPLIANCE_READY=1 and never part of
+// EDITABLE, so imports, new listings and internal writers cannot set it. 'unknown' is a stored value, not a blank.
+const EVIDENCE = ["unknown", "provided", "verified", "not_applicable"];
+export const COMPLIANCE = { occupancy: ["unknown", "vacant", "tenanted"], rental_licence: EVIDENCE, energy_certificate: EVIDENCE };
+export const COMPLIANCE_FIELDS = ["occupancy", ...["rental_licence", "energy_certificate"].flatMap(k => [k, `${k}_ref`, `${k}_valid_until`])];
+
 const blank = v => v === null || v === undefined || (typeof v === "string" && v.trim() === "");
 const bad = msg => { throw new Error(msg); };
 
@@ -66,13 +72,14 @@ function check(k, v) {
     if (!validWeeklyWindows(v)) bad("Choose 1 to 21 valid, non-overlapping times with an end after the start, or use general hours");
     return JSON.stringify(v.map(({ day, start, end }) => ({ day, start, end })));
   }
+  if (k in COMPLIANCE) return blank(v) ? "unknown" : COMPLIANCE[k].includes(v) ? v : bad(`Invalid value (${COMPLIANCE[k].join(", ")})`);
   if (blank(v)) return REQUIRED.includes(k) ? bad("Required") : k === "specs" ? "[]" : null;
-  if (k === "available_on") return realDate(v) && v.slice(0, 4) !== "0000" ? v : bad("Enter a valid date as YYYY-MM-DD");
+  if (k === "available_on" || k.endsWith("_valid_until")) return realDate(v) && v.slice(0, 4) !== "0000" ? v : bad("Enter a valid date as YYYY-MM-DD");
   if (k in ENUMS) return ENUMS[k].includes(v) ? v : bad(`Invalid value (${ENUMS[k].join(", ")})`);
-  if (k in TEXT) {
+  if (k in TEXT || k.endsWith("_ref")) {
     if (typeof v !== "string") bad("Must be text");
-    const s = v.trim();
-    if (s.length > TEXT[k]) bad(`At most ${TEXT[k]} characters`);
+    const s = v.trim(), max = TEXT[k] ?? 100;
+    if (s.length > max) bad(`At most ${max} characters`);
     if (k === "tour_url" && !/^https:\/\/\S+$/i.test(s)) bad("Must start with https://");
     return s;
   }
@@ -86,10 +93,10 @@ function check(k, v) {
 }
 
 // Whitelist validation: unknown or locked keys (id, published, archived_at…) are ignored.
-export function validateListing(input, { partial = false, structuredEconomics = false } = {}) {
+export function validateListing(input, { partial = false, structuredEconomics = false, compliance = false } = {}) {
   const src = input && typeof input === "object" && !Array.isArray(input) ? input : {};
   const value = {}, errors = {};
-  for (const k of structuredEconomics ? [...EDITABLE, ...ECONOMIC_FIELDS] : EDITABLE) {
+  for (const k of [...EDITABLE, ...(structuredEconomics ? ECONOMIC_FIELDS : []), ...(compliance ? COMPLIANCE_FIELDS : [])]) {
     if (!(k in src)) { if (!partial && REQUIRED.includes(k)) errors[k] = "Required"; continue; }
     try { value[k] = check(k, src[k]); } catch (e) { errors[k] = e.message; }
   }
@@ -102,6 +109,19 @@ export function checkPrice(row) {
   if (["sale_price", "rent", "premium"].some(k => row[k] != null) && !row.currency) errors.currency = "Choose the price currency";
   if (row.rent != null && !row.rent_period) errors.rent_period = "Say whether the rent is per month or per year";
   Object.assign(errors, checkEconomicTerms(row));
+  return errors;
+}
+
+// PUB-07: a status follows its evidence. Without a reference it stays unknown; verified also needs the expiry date.
+export function checkCompliance(row) {
+  const errors = {};
+  for (const k of ["rental_licence", "energy_certificate"]) {
+    const held = ["provided", "verified"].includes(row[k]), ref = `${k}_ref`, until = `${k}_valid_until`;
+    if (held && !row[ref]) errors[ref] = "Enter the reference of the document, or choose Unknown";
+    if (row[k] === "verified" && !row[until]) errors[until] = "Enter the expiry date to mark it as verified";
+    if (!held && row[ref]) errors[ref] = "Clear the reference, or choose Provided or Verified";
+    if (!held && row[until]) errors[until] = "Clear the date, or choose Provided or Verified";
+  }
   return errors;
 }
 

@@ -10,7 +10,7 @@ import { listingCriteria, listingCompleteness } from "./listing-completeness.js"
 import Research from "./Research.jsx";
 import { setUnsaved } from "./unsaved.js";
 import { OPTIONS, isActive } from "../../server/applicants.js";
-import { ON_MARKET } from "../../server/listing.js";
+import { ON_MARKET, COMPLIANCE, COMPLIANCE_FIELDS } from "../../server/listing.js";
 import { jerseyToday } from "../../server/viewings.js";
 import { BuyerOffers } from "./Sales.jsx";
 import HermesDraft from "./HermesDraft.jsx";
@@ -37,15 +37,17 @@ const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium", "inte
   "rental_deposit_amount", "parish_rates_amount", "service_charge_amount"];
 // Keep custom hours while the form temporarily uses general availability. This draft-only key is not sent by toBody,
 // and toForm resets it on load, a successful save and Discard.
-const toForm = (l, structured = false) => ({ ...Object.fromEntries([...FIELDS, ...(structured ? ECONOMIC_FIELDS : [])].map(k => [k, k === "specs" ? l.specs
-  : k === "viewings_enabled" ? l[k] ?? 1 : k === "viewing_hours" ? l[k] ?? null : k === 'feature_overrides' ? structuredClone(l[k] ?? {}) : l[k] ?? ""])),
+const toForm = (l, structured = false, compliance = false) => ({ ...Object.fromEntries([...FIELDS, ...(structured ? ECONOMIC_FIELDS : []),
+  ...(compliance ? COMPLIANCE_FIELDS : [])].map(k => [k, k === "specs" ? l.specs
+  : k === "viewings_enabled" ? l[k] ?? 1 : k === "viewing_hours" ? l[k] ?? null : k === 'feature_overrides' ? structuredClone(l[k] ?? {})
+  : l[k] ?? (k in COMPLIANCE ? "unknown" : "")])),
   viewing_hours_draft: l.viewing_hours ?? [] });
 const DETAIL_FIELDS = ["building_name_or_number", "postcode", "property_condition", "developer_name"];
 const toDetailsForm = d => Object.fromEntries(DETAIL_FIELDS.map(k => [k, d?.[k] ?? ""]));
 const toDetailsBody = d => Object.fromEntries(DETAIL_FIELDS.map(k => [k, d[k] === "" ? null : d[k]]));
 const toContentForm = c => ({tags:Array.isArray(c?.tags) ? [...c.tags] : [],video_url:c?.video_url ?? ''});
 const toContentBody = c => ({tags:Object.keys(CONTENT_TAGS).filter(tag=>c.tags.includes(tag)),video_url:c.video_url || null});
-const toBody = f => Object.fromEntries([...FIELDS, ...ECONOMIC_FIELDS.filter(k => Object.hasOwn(f, k))].map(k => [k,
+const toBody = f => Object.fromEntries([...FIELDS, ...[...ECONOMIC_FIELDS, ...COMPLIANCE_FIELDS].filter(k => Object.hasOwn(f, k))].map(k => [k,
   NUMERIC.includes(k) ? (f[k] === "" ? null : Number(f[k]))
     : k === "specs" ? f.specs.filter(s => s.label.trim() || s.value.trim())
     : f[k] === "" ? null : f[k]]));
@@ -55,9 +57,12 @@ const IF_CHANGED = ["parish", "matchable"];
 const toMatchForm = l => ({ parish: l.parish ?? "", matchable: l.matchable });
 const changedMatchForm = (f, l) => Object.fromEntries(IF_CHANGED.filter(k => f[k] !== toMatchForm(l)[k])
   .map(k => [k, k === "parish" ? f.parish || null : f.matchable]));
-const SECTIONS = [["details", "Details"], ["internal-address", "Internal property details"], ["physical", "Physical details"], ["price", "Price"], ["description", "Description"], ["photos", "Photos"],
+const SECTIONS = [["details", "Details"], ["internal-address", "Internal property details"], ["physical", "Physical details"], ["price", "Price"], ["compliance", "Legal and compliance"], ["description", "Description"], ["photos", "Photos"],
   ["tour", "Tour and specification"], ["viewings", "Viewings"], ["offers", "Offers"], ["applicants", "Matched applicants"], ["research", "Research"], ["history", "History"]];
 const OPERATION_LABEL = Object.fromEntries(OPTIONS.operation);
+// PUB-07: staff-only compliance (server/listing.js COMPLIANCE). Unknown is a value of its own, never a "no".
+const OCCUPANCY = { unknown: "Unknown", vacant: "Vacant", tenanted: "Tenanted" };
+const EVIDENCE = { unknown: "Unknown", provided: "Provided, not verified", verified: "Verified by staff", not_applicable: "Not applicable" };
 // Match status, with its badge tone (DESIGN.md "Badges de estado": Found and Rejected neutral, Shortlisted active).
 const MATCH_STATUS = { found: ["Found", "neutral"], shortlisted: ["Shortlisted", "active"], rejected: ["Rejected", "neutral"] };
 // J2: the Jersey fields (server/listing.js ENUMS, labels in format.js); blank = not set (for restriction, none).
@@ -99,7 +104,7 @@ export default function ListingEditor({ id, onChange, guide = false }) {
     setLoadErr(null);
     try {const d=await api(`/admin/listings/${id}`);if(n!==loadRequest.current)return;
       if (!Array.isArray(d.media)) throw new Error("Listing photos could not be loaded. Reload and try again.");
-      setData(d);setForm(toForm(d.listing, d.structured_economics));setDetailsForm(toDetailsForm(d.details));setContentForm(d.content_tracking ? toContentForm(d.content) : null);setAddressReview(null);setAddressReviewError(null);
+      setData(d);setForm(toForm(d.listing, d.structured_economics, d.compliance_tracking));setDetailsForm(toDetailsForm(d.details));setContentForm(d.content_tracking ? toContentForm(d.content) : null);setAddressReview(null);setAddressReviewError(null);
       setAddressEvidenceRef("");setAddressReviewAuthorized(false);setMatchForm(toMatchForm(d.listing));setErrors({});setDeleted(false);historyChanged();
     } catch(e) {
       if(n!==loadRequest.current)return;
@@ -123,7 +128,7 @@ export default function ListingEditor({ id, onChange, guide = false }) {
   useEffect(() => { if (forSale) api(`/admin/listings/${id}/offers`).then(setOffers, () => setOffers({ failed: true })); }, [forSale]);
   const matchesReq = useRef(0);
   const photos = useRef({ dirty: false }), [photosDirty, setPhotosDirty] = useState(false);
-  const fieldsDirty = !!data && !!form && (JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing, data.structured_economics)))
+  const fieldsDirty = !!data && !!form && (JSON.stringify(toBody(form)) !== JSON.stringify(toBody(toForm(data.listing, data.structured_economics, data.compliance_tracking)))
     || Object.keys(changedMatchForm(matchForm, data.listing)).length > 0);
   const detailsDirty = !!data && !!detailsForm && JSON.stringify(toDetailsBody(detailsForm)) !== JSON.stringify(toDetailsBody(toDetailsForm(data.details)));
   const contentDirty = !!data?.content_tracking && !!contentForm && JSON.stringify(toContentBody(contentForm)) !== JSON.stringify(toContentBody(toContentForm(data.content)));
@@ -141,7 +146,7 @@ export default function ListingEditor({ id, onChange, guide = false }) {
     ['rental_deposit_amount', 'parish_rates_amount', 'service_charge_amount'].some(key => l[key] != null);
   const costCurrencyReviewKey = JSON.stringify([l.updated_at, form.currency, ...ECONOMIC_FIELDS.map(key => form[key])]);
   const setListing = (listing, details, content) => { setData(d => ({ ...d, listing, ...(details ? { details } : {}), ...(content ? {content} : {}) }));
-    setForm(toForm(listing, data.structured_economics)); if (content) setContentForm(toContentForm(content));
+    setForm(toForm(listing, data.structured_economics, data.compliance_tracking)); if (content) setContentForm(toContentForm(content));
     if (details) { setDetailsForm(toDetailsForm(details)); setAddressReview(null); setAddressReviewError(null);
       setAddressEvidenceRef(""); setAddressReviewAuthorized(false); }
     setMatchForm(toMatchForm(listing)); setErrors({}); historyChanged(); };
@@ -195,7 +200,7 @@ export default function ListingEditor({ id, onChange, guide = false }) {
       setErrors(fields); setMsg({ text: e.message }); }
     finally { setBusy(false); }
   };
-  const discard = () => { setForm(toForm(l, data.structured_economics)); setDetailsForm(toDetailsForm(data.details));
+  const discard = () => { setForm(toForm(l, data.structured_economics, data.compliance_tracking)); setDetailsForm(toDetailsForm(data.details));
     setContentForm(data.content_tracking ? toContentForm(data.content) : null); setAddressReview(null); setAddressReviewError(null);
     setAddressEvidenceRef(""); setAddressReviewAuthorized(false);
     setMatchForm(toMatchForm(l)); setErrors({}); photos.current.discard?.(); setMsg(null); };
@@ -291,6 +296,16 @@ export default function ListingEditor({ id, onChange, guide = false }) {
   const detailField = (k, label, input) => <div className="field" key={k}><label htmlFor={`f-${k}`}>{label}</label>{input}
     {errors[k] && <small id={`e-${k}`} className="err">{errors[k]}</small>}</div>;
   const options = obj => Object.entries(obj).map(([k, v]) => <option key={k} value={k}>{v}</option>);
+  // PUB-07: a licence or certificate, with its reference and expiry only while one is held.
+  const evidence = (k, label, short) => {
+    const ref = `${k}_ref`, until = `${k}_valid_until`, held = v => ["provided", "verified"].includes(v);
+    return [field(k, label, <select {...ctl(k, { onChange: e => setForm(f => ({ ...f, [k]: e.target.value,
+      ...(held(e.target.value) ? {} : { [ref]: "", [until]: "" }) })) })}>{options(EVIDENCE)}</select>),
+    held(form[k]) && field(ref, `${short} reference`, <><input {...ctl(ref, { "aria-describedby": `d-${ref}${errors[ref] ? ` e-${ref}` : ""}` })} maxLength={100} />
+      <small id={`d-${ref}`} className="muted">Its number, or the name of its PDF under Private documents.</small></>),
+    held(form[k]) && field(until, `${short} valid until`, <><input {...ctl(until)} type="date" />
+      {form[until] && form[until] < jerseyToday() && <small className="warn" role="note">Expired on {fmtDayMonth(form[until])}. Ask for the current document.</small>}</>)];
+  };
   const publicPhotos = data.media.filter(m => m.public && m.kind === "photo" && m.r2_key && m.origin !== "external");
   const publicPhoto = publicPhotos.length > 0;
   const criteria = listingCriteria(form, matchForm.parish, data.media, l.cover_media_id);
@@ -336,7 +351,7 @@ export default function ListingEditor({ id, onChange, guide = false }) {
       {l.published === 1 && !publicPhoto && <p className="warn" role="note">Published, but with no public photo: it won't appear on the website until it has one.</p>}
       <ResearchDuplicateReview review={data.duplicate_review} legacyIds={data.duplicates}/>
       <button ref={guideToggle} type="button" className="btn ghost sm" onClick={() => { setGuideEnabled(v => !v); setGuideStep(0); }}>{guideEnabled ? "Close property guide" : "Open property guide"}</button>
-      <nav aria-label="Listing sections">{SECTIONS.filter(([k]) => forSale || k !== "offers").map(([k, t]) =>
+      <nav aria-label="Listing sections">{SECTIONS.filter(([k]) => (forSale || k !== "offers") && (data.compliance_tracking || k !== "compliance")).map(([k, t]) =>
         <button key={k} type="button" className="linkish" onClick={() => k==='history'?goTo('h-history'):
           document.getElementById(`s-${k}`).scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth' })}>{t}</button>)}</nav>
       <a href="#/listings">Back to listings</a>
@@ -570,6 +585,19 @@ export default function ListingEditor({ id, onChange, guide = false }) {
             I have reviewed all staff-only costs in the new currency. Changing currency does not convert amounts.</label>}
         </div>}
       </section>
+
+      {data.compliance_tracking && <section id="s-compliance" className="card" aria-labelledby="h-compliance">
+        <h2 id="h-compliance" tabIndex={-1}>Legal and compliance <span className="muted">(internal)</span></h2>
+        <p className="muted">For staff only: never shown on the website. Unknown means not confirmed yet. Tenure and housing category are under Details. Add the documents themselves under Private documents.</p>
+        <div className="grid2">
+          {field("occupancy", "Occupancy", <select {...ctl("occupancy")}>{options(OCCUPANCY)}</select>)}
+          {evidence("rental_licence", "Rented dwelling licence", "Licence")}
+          {evidence("energy_certificate", "Energy performance certificate", "Certificate")}
+        </div>
+        {(forSale || data.seller_solicitor) && <p>Seller's solicitor: {!data.seller_solicitor ? "recorded in the sale file once an offer is accepted."
+          : <>{[data.seller_solicitor.firm, data.seller_solicitor.name].filter(Boolean).join(", ") || "not recorded yet"}{" · "}
+            <a href={`#/sales/${data.seller_solicitor.sale_id}`}>Open the sale file</a></>}</p>}
+      </section>}
 
       <section id="s-description" className="card" aria-labelledby="h-desc"><h2 id="h-desc" tabIndex={-1}>Description</h2>
         {/* AUT-13: on a listing on the website only (H9). A used draft fills the form like typing; Save is the approval (H10). */}

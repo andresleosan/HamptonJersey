@@ -3,7 +3,7 @@ import { ECONOMICS_GUARD_SQL, ECONOMICS_GUARD_ARGS, hasEconomicInput, structured
 import { isValidInteriorArea } from '../listing-price-area.js';
 import { PRICE_SQL } from "../listing-pricing.js";
 import { json, fail, readJson, now } from "../http.js";
-import { validateListing, checkPrice, idPrefix, nextId, ENUMS, TO_CONFIRM } from "../listing.js";
+import { validateListing, checkPrice, checkCompliance, idPrefix, nextId, ENUMS, TO_CONFIRM, COMPLIANCE, COMPLIANCE_FIELDS } from "../listing.js";
 import { extractFeatures } from "../listing-features.js";
 import { afterSave, recomputeForListing } from "../match-store.js";
 import { interestSql, interestDates } from "../viewings.js";
@@ -89,7 +89,11 @@ async function detail({ env, admin, params: [id] }) {
   const duplicateReview = researchDuplicateReview(candidateRows);
   const duplicates = duplicateReview.candidates.map(candidate => candidate.listing_id);
   const content=env.PUB08_CONTENT_READY === '1' ? await readListingContent(env,id) : null;
-  return json({ listing, structured_economics: await structuredEconomicsReady(env),
+  // PUB-07: one source for the seller's solicitor, the listing's own sale file; contact details stay there.
+  const compliance = env.PUB07_COMPLIANCE_READY !== '1' ? {} : { compliance_tracking: true, seller_solicitor:
+    await env.DB.prepare(`SELECT id AS sale_id, seller_lawyer_firm AS firm, seller_lawyer_name AS name FROM sales
+      WHERE listing_id = ? ORDER BY status = 'in_progress' DESC, id DESC LIMIT 1`).bind(id).first() };
+  return json({ listing, structured_economics: await structuredEconomicsReady(env), ...compliance,
     ...(env.PUB09_WITHDRAWALS_READY === '1' ? { withdrawal_tracking: true } : {}),
     ...(documentsReady(env) ? { documents_enabled: true } : {}),
     ...(content ? {content_tracking:true,content} : {}), details: Object.fromEntries(['building_name_or_number','postcode','property_condition','developer_name',
@@ -171,10 +175,14 @@ async function update({ request, env, admin, params: [id] }) {
   if (typeof validationBody.interior_area_sqft === 'number' &&
       validationBody.interior_area_sqft === stored.interior_area_sqft &&
       !isValidInteriorArea(validationBody.interior_area_sqft)) delete validationBody.interior_area_sqft;
-  const r = validateListing(validationBody, { partial: true, structuredEconomics: economicInput });
+  const r = validateListing(validationBody, { partial: true, structuredEconomics: economicInput,
+    compliance: env.PUB07_COMPLIANCE_READY === '1' });
   if (r.errors) return fieldErrors(r.errors);
   const hasDetails = Object.hasOwn(body, 'details');
   if (!Object.keys(r.value).length && !hasDetails && !hasContent) fail(400, "Nothing to save");
+  // PUB-07: only a real change is written and recorded, so a save never depends on these columns otherwise.
+  const complianceFields = COMPLIANCE_FIELDS.filter(k => k in r.value && r.value[k] !== (stored[k] ?? (k in COMPLIANCE ? 'unknown' : null)));
+  for (const k of COMPLIANCE_FIELDS) if (!complianceFields.includes(k)) delete r.value[k];
   const storedDetails = await readListingDetails(env, id);
   let beforeContent=null,nextContent=null,contentFields=[],actorAt=null;
   if (hasContent) {
@@ -224,6 +232,7 @@ async function update({ request, env, admin, params: [id] }) {
   if (!rentChanged && stored.rent != null && !stored.rent_period) delete priceErrors.rent_period;
   Object.assign(priceErrors, checkPhysical(merged));
   Object.assign(priceErrors,checkMarketingEdit(stored,r.value));
+  if (complianceFields.length) Object.assign(priceErrors, checkCompliance(merged));
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
   // The lock on updated_at also guarantees the features were read from the row this save replaces.
   const ts = now(), patch = Object.keys(r.value).length ? withFeatures(merged, r.value, ts) : {};
@@ -235,7 +244,7 @@ async function update({ request, env, admin, params: [id] }) {
   const contentStatement = contentFields.length ? listingContentUpdateStatement(env,id,nextContent) : null;
   const [res] = await listingBatch(env, id, { actor: admin, source: 'panel', action: 'updated',
     derivedFields: derivedListingFields(patch).filter(k => !(k in r.value)),
-    extraFields: [...Object.keys(detailValues).filter(k => k !== 'property_condition'),...contentFields] }, [env.DB.prepare(
+    extraFields: [...Object.keys(detailValues).filter(k => k !== 'property_condition'),...contentFields,...complianceFields] }, [env.DB.prepare(
     `UPDATE listings SET ${[...cols.map(c => `${c} = ?`), `updated_at = ${listingClock}`, 'updated_by = ?'].join(", ")} WHERE id = ? AND updated_at = ?${hasContent ? ' AND EXISTS(SELECT 1 FROM admins WHERE email=? AND added_at=?)' : ''}${guardEconomics ? ` AND ${ECONOMICS_GUARD_SQL}` : ''}`)
     .bind(...cols.map(c => patch[c]), ts, admin, id, body.updated_at,...(hasContent ? [admin,actorAt] : []),
       ...(guardEconomics ? ECONOMICS_GUARD_ARGS : [])),

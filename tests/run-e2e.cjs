@@ -37,6 +37,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/adm-13-inspections.e2e.cjs" ? { ADM13_INSPECTIONS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/not-05-missing-payments.e2e.cjs" ? { NOT05_MISSING_PAYMENTS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/pub-11-documents.e2e.cjs" ? { PUB11_DOCUMENTS_READY: "1" } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/pub07-compliance.e2e.cjs" ? { PUB07_COMPLIANCE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/age-14-suppression.e2e.cjs" ? { AGE14_SUPPRESSION_READY: "1" } : {}),
       SESSION_SECRET: randomBytes(32).toString('hex'),
       TURNSTILE_SITE_KEY: example.TURNSTILE_SITE_KEY,
