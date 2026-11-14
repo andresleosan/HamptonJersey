@@ -5,6 +5,7 @@ import {ARREARS_SQL,DEADLINES,CHECKS,RENEWAL,ensureCharges} from './routes/rent.
 import {WAITING,waitingCutoff} from './routes/sales.js';
 import {TO_CONFIRM} from './listing.js';
 import {taskStatements} from './notification-tasks.js';
+import {readLegal} from './legal-terms.js';
 
 // One shared definition is used for the grouped read and the INSERT's domain revalidation.
 // Parameters: Jersey date, optional tenancy (always NULL here), processing ISO, Waiting cutoff.
@@ -17,10 +18,13 @@ const checkLabel=`CASE c.kind ${COMPLIANCE.map(([key,label])=>`WHEN '${key}' THE
 const sortKey=(a='')=>`${a}kind||':'||CASE WHEN ${a}target_kind='listing' THEN ${a}target_id ELSE printf('%020d',CAST(${a}entity_id AS INTEGER)) END||':'||${a}entity_id||':'||${a}cycle`;
 const columns='kind,entity_id,cycle,target_kind,target_id,target_context,title,due_at,urgency,signature,source_kind,source_id';
 // D1 limits compound SELECTs more tightly than ordinary SQLite. Materialize bounded groups.
-const deadlineRows=DEADLINES.map(([key,label,from,days,done])=>`SELECT 'deadline',CAST(t.id AS TEXT)||':${key}',t.${from},'rental',CAST(t.rental_id AS TEXT),
-  json_object('tenancy_id',t.id,'deadline','${key}'),${quote(label+' overdue')},date(t.${from},'+${days} days')||'T00:00:00.000Z','normal',json_array(t.${from}),'rental',CAST(t.rental_id AS TEXT)
-  FROM tenancies t JOIN rentals r ON r.id=t.rental_id WHERE r.archived_at IS NULL AND t.${from} IS NOT NULL AND t.${done} IS NULL AND date(t.${from},'+${days} days')<?1`).join('\nUNION ALL ');
-const PENDING=`${ARREARS_SQL},pending_deadlines(${columns}) AS MATERIALIZED (${deadlineRows}),rental_pending(${columns}) AS MATERIALIZED (
+// ADM-17: the deadline days come from the legal periods in force. A period other than the code's joins the signature,
+// so an open notice follows a changed period; with the code's periods the SQL is the one from before.
+const deadlineRows=legal=>DEADLINES.map(([key,label,from,period,done])=>{const days=legal[period],changed=days===LEGAL[period]?'':`,${days}`;
+  return `SELECT 'deadline',CAST(t.id AS TEXT)||':${key}',t.${from},'rental',CAST(t.rental_id AS TEXT),
+  json_object('tenancy_id',t.id,'deadline','${key}'),${quote(label+' overdue')},date(t.${from},'+${days} days')||'T00:00:00.000Z','normal',json_array(t.${from}${changed}),'rental',CAST(t.rental_id AS TEXT)
+  FROM tenancies t JOIN rentals r ON r.id=t.rental_id WHERE r.archived_at IS NULL AND t.${from} IS NOT NULL AND t.${done} IS NULL AND date(t.${from},'+${days} days')<?1`;}).join('\nUNION ALL ');
+const pendingSql=legal=>`${ARREARS_SQL},pending_deadlines(${columns}) AS MATERIALIZED (${deadlineRows(legal)}),rental_pending(${columns}) AS MATERIALIZED (
   SELECT 'arrears',CAST(a.tenancy_id AS TEXT),a.oldest_unpaid_on||':'||a.next_step,'rental',CAST(a.rental_id AS TEXT),
     json_object('tenancy_id',a.tenancy_id),${stepLabel},${stepDue},'normal',json_array(a.oldest_unpaid_on,a.next_step),'rental',CAST(a.rental_id AS TEXT)
     FROM arrears a JOIN rentals r ON r.id=a.rental_id WHERE a.next_step IS NOT NULL AND r.archived_at IS NULL
@@ -57,7 +61,7 @@ const reentry=`(o.active=0 OR (o.kind='repair' AND EXISTS(SELECT 1 FROM events x
 
 export async function notificationsPass(env,isoNow) {
   if(typeof isoNow!=='string'||!Number.isFinite(Date.parse(isoNow))||new Date(isoNow).toISOString()!==isoNow)fail(400,'Use a processing UTC time');
-  const args=[jerseyToday(new Date(isoNow)),null,isoNow,waitingCutoff(isoNow)];
+  const args=[jerseyToday(new Date(isoNow)),null,isoNow,waitingCutoff(isoNow)],PENDING=pendingSql((await readLegal(env)).periods);
   const q=(sql,...extra)=>env.DB.prepare(sql).bind(...args,...extra);
   const [,cursorRead,selection]=await env.DB.batch([
     // Existing idempotent rent generation: the same calculation used by Rentals, never a new money rule.

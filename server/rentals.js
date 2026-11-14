@@ -3,8 +3,8 @@ import { realDate, jerseyToday } from "./viewings.js";
 import { OPTIONS } from "./applicants.js";
 import { fields, blank, obj, result } from "./sales.js";
 
-// R10, R12, R13, R24, R30: the legal periods, to be checked by a Jersey lawyer. They live only here (§7.3: parameters,
-// not code); the panel reads them from the API.
+// R10, R12, R13, R24, R30: the legal periods, to be checked by a Jersey lawyer. These are the values used while none
+// is saved; ADM-17 (server/legal-terms.js) puts the saved ones over them and passes the result as `legal`.
 export const LEGAL = { depositDays: 30, reportDays: 7, licenceYears: 2, eicrYears: 5, gasYears: 1, alarmsYears: 1,
   warnDays: [60, 30, 7], renewalDays: 90, rentNoticeMonths: 2, rentIntervalMonths: 12, regime2025From: "2026-04-15",
   tenantNoticeMonths: 1, landlordNoticeMonths: 12 };
@@ -53,11 +53,11 @@ export function complianceStatus(item, today) {
 }
 
 // R12, R30. rpi: {percent, as_of} or null. The legacy label selects an estimate, not a verified legal determination.
-export function rentAssistant(tenancy, rpi, today) {
+export function rentAssistant(tenancy, rpi, today, legal = LEGAL) {
   if (tenancy.regime !== "2025") return { applies: false, max_rent: null, earliest_on: null,
     notes: ["The recorded 2011 label does not confirm which law applies. Check the agreement and applicable rules with a Jersey lawyer."] };
-  const after = addMonths(tenancy.last_rent_change_on ?? tenancy.start_on, LEGAL.rentIntervalMonths);
-  const notice = addMonths(today, LEGAL.rentNoticeMonths);
+  const after = addMonths(tenancy.last_rent_change_on ?? tenancy.start_on, legal.rentIntervalMonths);
+  const notice = addMonths(today, legal.rentNoticeMonths);
   // In whole basis points, rounded down (a third decimal never lifts the cap), so whole pounds round down without
   // float drift. Rounding at 1e6 first keeps 1.15 at 115, not 114.999….
   const bp = rpi ? Math.floor(Math.round(rpi.percent * 1e6) / 1e4) : null;
@@ -69,9 +69,9 @@ export function rentAssistant(tenancy, rpi, today) {
 }
 
 // R13. notice: {given_on, by}. A fixed term ends on its end date; past it the tenancy runs on as periodic (R24).
-export function earliestMoveOut(tenancy, notice) {
+export function earliestMoveOut(tenancy, notice, legal = LEGAL) {
   if (tenancy.kind === "fixed" && tenancy.end_on > notice.given_on) return tenancy.end_on;
-  return addMonths(notice.given_on, notice.by === "tenant" ? LEGAL.tenantNoticeMonths : LEGAL.landlordNoticeMonths);
+  return addMonths(notice.given_on, notice.by === "tenant" ? legal.tenantNoticeMonths : legal.landlordNoticeMonths);
 }
 
 const PARISHES = OPTIONS.parishes.map(([p]) => p);

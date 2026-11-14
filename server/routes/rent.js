@@ -6,6 +6,7 @@ import { jerseyToday, plusDays, realDate } from "../viewings.js";
 import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE } from "./rentals.js";
 import { exitReady } from "../tenancy-exits.js";
 import { NEXT_INSPECTION, inspectionDue, inspectionsReady } from "../rental-inspections.js";
+import { readLegal, legalLabel } from "../legal-terms.js";
 
 const MAX_POUNDS = 1000000, MAX_PENCE = 100 * MAX_POUNDS; // R20
 const ENDED = "This tenancy has ended", CHANGED = "This property changed meanwhile. Reload to see it";
@@ -73,12 +74,13 @@ const arrearsSql = running => `a_t AS (SELECT t.id, t.rental_id FROM tenancies t
 export const ARREARS_SQL = arrearsSql(true), OWED_SQL = arrearsSql(false);
 const STEP = Object.fromEntries(ARREARS_STEPS.map(([days, step, label]) => [step, { days, step, label }]));
 
-// R10, R13: the tenancy's own deadlines, from its dates (no rows): [key, label, from, days, done].
-export const DEADLINES = [["deposit", "Deposit protected", "deposit_received_on", LEGAL.depositDays, "deposit_protected_on"],
-  ["inventory_in", "Check-in report", "start_on", LEGAL.reportDays, "inventory_in_on"],
-  ["inventory_out", "Check-out report", "ended_on", LEGAL.reportDays, "inventory_out_on"]];
-export const deadlines = (t, today) => DEADLINES.filter(d => t[d[2]]).map(([key, label, from, days, done]) => {
-  const due_on = plusDays(t[from], days);
+// R10, R13: the tenancy's own deadlines, from its dates (no rows): [key, label, from, period, done]. period: its key
+// in the legal periods in force (`legal`: LEGAL, or with ADM-17 the saved ones over it).
+export const DEADLINES = [["deposit", "Deposit protected", "deposit_received_on", "depositDays", "deposit_protected_on"],
+  ["inventory_in", "Check-in report", "start_on", "reportDays", "inventory_in_on"],
+  ["inventory_out", "Check-out report", "ended_on", "reportDays", "inventory_out_on"]];
+export const deadlines = (t, today, legal = LEGAL) => DEADLINES.filter(d => t[d[2]]).map(([key, label, from, period, done]) => {
+  const due_on = plusDays(t[from], legal[period]);
   return { key, label, due_on, done_on: t[done], status: t[done] ? "done" : complianceStatus({ expires_on: due_on }, today) };
 });
 
@@ -87,8 +89,8 @@ export const CHECKS = `FROM compliance_items c JOIN rentals r ON r.id = c.rental
   WHERE r.archived_at IS NULL AND (c.kind <> 'gas' OR r.has_gas IS NOT 0)`;
 // R10, R13: one SQL term per tenancy deadline not done whose due date `cmp` (e.g. "< ?1"), over t; the same rule as
 // deadlines(), from the same DEADLINES.
-const pending = cmp => DEADLINES.map(([, , from, days, done]) =>
-  `(t.${from} IS NOT NULL AND t.${done} IS NULL AND date(t.${from}, '+${days} days') ${cmp})`);
+const pending = (cmp, legal) => DEADLINES.map(([, , from, period, done]) =>
+  `(t.${from} IS NOT NULL AND t.${done} IS NULL AND date(t.${from}, '+${legal[period]} days') ${cmp})`);
 // R12, R16, R24: a fixed term within LEGAL.renewalDays of its end, or past it, with no notice and no move-out set (over t;
 // ?1 = today). Renew moves end_on on or makes it periodic.
 export const RENEWAL = `t.kind = 'fixed' AND t.ended_on IS NULL AND t.notice_given_on IS NULL
@@ -105,13 +107,13 @@ const OPEN_REPAIR = "p.status NOT IN ('done', 'cancelled')"; // the repairs_open
 // month nobody opened Rentals for still counts.
 const COUNT_MS = 10 * 60 * 1000;
 const STALE = "NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'rentals_count' AND json_extract(value, '$.at') > ?3)";
-export const refreshRentalsCount = env => {
+export const refreshRentalsCount = (env, legal = LEGAL) => {
   const today = jerseyToday(), staleBefore = new Date(Date.now() - COUNT_MS).toISOString();
   return [ensureCharges(env, today, null, staleBefore), env.DB.prepare(`INSERT INTO app_settings (key, value, updated_at)
   WITH ${ARREARS_SQL} SELECT 'rentals_count', json_object('n',
     (SELECT COUNT(*) FROM arrears WHERE next_step IS NOT NULL)
     + (SELECT COUNT(*) ${CHECKS} AND (c.expires_on IS NULL OR c.expires_on < ?1))
-    + (SELECT COALESCE(SUM(${pending("< ?1").join(" + ")}), 0) FROM tenancies t JOIN rentals r ON r.id = t.rental_id
+    + (SELECT COALESCE(SUM(${pending("< ?1", legal).join(" + ")}), 0) FROM tenancies t JOIN rentals r ON r.id = t.rental_id
       WHERE r.archived_at IS NULL)
     + (SELECT COUNT(*) FROM tenancies t WHERE ${RENEWAL})${inspectionsReady(env) ? `
     + (SELECT COUNT(*) FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE r.archived_at IS NULL AND ${inspectionDue("< ?1")})` : ""}
@@ -133,6 +135,7 @@ const loadTenancy = async (env, id) =>
 // the oldest unpaid charge, R27), the rent assistant with the saved RPI (R12) and the deadlines.
 export async function detail(env, id) {
   id = Number(id);
+  const legal = await readLegal(env), { periods } = legal;
   const today = jerseyToday(), since = addMonths(today, -24), q = (sql, ...b) => env.DB.prepare(sql).bind(...b);
   const [, [tenancy], charges, payments, [{ balance }], [setting], [late], steps, [now_]] = (await env.DB.batch([
     ensureCharges(env, today, id),
@@ -154,8 +157,9 @@ export async function detail(env, id) {
   const rpi = setting ? JSON.parse(setting.value) : null;
   const notice = tenancy.notice_given_on && { given_on: tenancy.notice_given_on, by: tenancy.notice_by };
   // The rent in force today (tenancy.rent is the latest agreed, maybe from a later date); the starting rent before the start.
-  return { tenancy, current_rent: now_.rent, charges, payments, balance, arrears, assistant: { ...rentAssistant(tenancy, rpi, today), rpi },
-    deadlines: deadlines(tenancy, today), earliest_move_out: notice ? earliestMoveOut(tenancy, notice) : null };
+  return { tenancy, current_rent: now_.rent, charges, payments, balance, arrears, assistant: { ...rentAssistant(tenancy, rpi, today, periods), rpi },
+    deadlines: deadlines(tenancy, today, periods), earliest_move_out: notice ? earliestMoveOut(tenancy, notice, periods) : null,
+    ...legalLabel(legal) };
 }
 
 const getTenancy = async ({ env, params: [id] }) => json(await detail(env, id));
@@ -385,12 +389,13 @@ async function notice({ request, env, admin, params: [id] }) {
   if (given_on > today) f.err("given_on", "Use today or an earlier date");
   const by = ["tenant", "landlord"].includes(b.by) ? b.by : f.err("by", "Choose tenant or landlord");
   if (Object.keys(errors).length) return fieldErrors(errors);
+  const { periods } = await readLegal(env);
   await act(env, cur.id, [
     env.DB.prepare(`UPDATE tenancies SET notice_given_on = ?, notice_by = ?, updated_at = ?, updated_by = ?
       WHERE id = ? AND ${ACTIVE}`).bind(given_on, by, now(), admin, cur.id, today),
     ensureChanged(env),
     rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "notice.recorded",
-      data: { given_on, by, earliest_move_out: earliestMoveOut(cur, { given_on, by }) } }),
+      data: { given_on, by, earliest_move_out: earliestMoveOut(cur, { given_on, by }, periods) } }),
   ], check);
   return json(await detail(env, cur.id));
 }
@@ -675,13 +680,13 @@ const MARKS = ["arrears", "compliance", "renewals", "repairs"];
 // to decide, an open repair. Binds ?1 today, ?2 service, ?3 the search (LIKE) or NULL, ?4 a mark or NULL. q searches
 // address, landlord, and any tenant's name or payment reference.
 const has = col => `${col} LIKE ?3 ESCAPE '\\'`;
-const LIST = (archived, inspections) => `WITH x AS (SELECT r.id, r.address, r.parish, r.service, r.landlord_id, l.name AS landlord_name,
+const LIST = (archived, inspections, legal) => `WITH x AS (SELECT r.id, r.address, r.parish, r.service, r.landlord_id, l.name AS landlord_name,
     r.archived_at, t.id AS tenancy_id, t.tenant_name, t.payment_ref, ${rentNow("?1")} AS rent,
     CASE WHEN r.service = 'full' THEN t.id END AS full_id,
     r.archived_at IS NULL AND (EXISTS (SELECT 1 FROM compliance_items c WHERE c.rental_id = r.id
         AND (c.kind <> 'gas' OR r.has_gas IS NOT 0) AND (c.expires_on IS NULL OR c.expires_on <= date(?1, '+${WARN} days')))
       OR EXISTS (SELECT 1 FROM tenancies t WHERE t.rental_id = r.id
-        AND (${pending(`<= date(?1, '+${WARN} days')`).join(" OR ")}))${inspections ? `
+        AND (${pending(`<= date(?1, '+${WARN} days')`, legal).join(" OR ")}))${inspections ? `
       OR EXISTS (SELECT 1 FROM tenancies t WHERE t.rental_id = r.id AND ${inspectionDue(`<= date(?1, '+${INSPECTION_WARN} days')`)})` : ""}) AS compliance,
     EXISTS (SELECT 1 FROM tenancies t WHERE t.rental_id = r.id AND ${RENEWAL}) AS renewals,
     EXISTS (SELECT 1 FROM repairs p WHERE p.rental_id = r.id AND ${OPEN_REPAIR}) AS repairs
@@ -715,8 +720,8 @@ async function overview({ request, env }) {
   if (filter && !MARKS.includes(filter)) fail(400, "Invalid filter");
   if (!["", "0", "1"].includes(archived)) fail(400, "Invalid archived");
   const today = jerseyToday(), s = (sql, ...b) => env.DB.prepare(sql).bind(today, ...b);
-  const visits = inspectionsReady(env);
-  const list = s(LIST(archived === "1", visits), service, q && `%${q.replace(/[\\%_]/g, "\\$&")}%`, filter);
+  const visits = inspectionsReady(env), legal = await readLegal(env), { periods } = legal;
+  const list = s(LIST(archived === "1", visits, periods), service, q && `%${q.replace(/[\\%_]/g, "\\$&")}%`, filter);
   if (p.get("list") === "1") return json({ rentals: (await list.all()).results.map(marks) });
   const [, owing, checks, dues, renewals, repairs, unmatched, rentals, [totals], inspections = []] = (await env.DB.batch([
     ensureCharges(env, today),
@@ -727,7 +732,7 @@ async function overview({ request, env }) {
     s(`SELECT c.rental_id, r.address, c.kind, c.expires_on ${CHECKS}
       AND (c.expires_on IS NULL OR c.expires_on <= date(?1, '+${WARN} days'))`),
     s(`SELECT t.*, r.address FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE r.archived_at IS NULL
-      AND (${pending(`<= date(?1, '+${WARN} days')`).join(" OR ")})`),
+      AND (${pending(`<= date(?1, '+${WARN} days')`, periods).join(" OR ")})`),
     s(`SELECT t.id AS tenancy_id, t.rental_id, r.address, t.tenant_name, t.end_on FROM tenancies t
       JOIN rentals r ON r.id = t.rental_id WHERE ${RENEWAL} ORDER BY t.end_on, t.id`),
     env.DB.prepare(`SELECT p.id, p.rental_id, r.address, p.title, p.urgency, p.status, p.contractor, p.quote, p.created_at
@@ -745,7 +750,7 @@ async function overview({ request, env }) {
   const todo = {
     arrears: owing.filter(a => a.next_step).map(({ next_step, ...a }) => ({ ...a, next_step: STEP[next_step] })),
     compliance: [
-      ...dues.flatMap(t => deadlines(t, today).filter(d => d.status !== "done" && d.status !== "ok")
+      ...dues.flatMap(t => deadlines(t, today, periods).filter(d => d.status !== "done" && d.status !== "ok")
         .map(d => ({ rental_id: t.rental_id, address: t.address, tenancy_id: t.id, tenant_name: t.tenant_name, kind: d.key,
           label: d.label, due_on: d.due_on, status: d.status }))),
       ...checks.map(c => ({ rental_id: c.rental_id, address: c.address, tenancy_id: null, tenant_name: null, kind: c.kind,
@@ -759,7 +764,7 @@ async function overview({ request, env }) {
   };
   const owed = owing.reduce((sum, a) => sum + Math.max(a.balance, 0), 0);
   return json({ todo, rentals: rentals.map(marks), totals: { properties: totals.properties, occupied: totals.occupied, owed,
-    unmatched: totals.unmatched } });
+    unmatched: totals.unmatched }, ...legalLabel(legal) });
 }
 
 // R15, R26, R29: a landlord's statement for a Jersey calendar month (dates are already Jersey days), per full-service

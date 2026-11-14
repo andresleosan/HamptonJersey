@@ -40,6 +40,7 @@ import documentRoutes from "./routes/listing-documents.js";
 import { documentsReady } from "./listing-documents.js";
 import missingPaymentRoutes from "./routes/missing-payments.js";
 import { missingPaymentsReady } from "./missing-payments.js";
+import legalRoutes, { legalTermsReady } from "./legal-terms.js";
 
 // [method, path regex, handler, requiresAdmin]
 const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes];
@@ -74,6 +75,7 @@ async function route(request, env, segments, waitUntil) {
     if (inspectionsReady(env)) routes = [...routes, ...inspectionRoutes]; // ADM-13: needs migration 0060
     if (documentsReady(env)) routes = [...routes, ...documentRoutes]; // PUB-11: needs migration 0058
     if (missingPaymentsReady(env)) routes = [...routes, ...missingPaymentRoutes]; // NOT-05: no migration
+    if (legalTermsReady(env)) routes = [...routes, ...legalRoutes]; // ADM-17: saving needs migration 0063
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];
     for (const [m, re, handler, auth] of routes) {

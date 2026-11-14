@@ -8,6 +8,7 @@ import { jerseyToday } from "../viewings.js";
 import { retentionPass, EXPIRING, RETENTION_REVIEW } from "../retention.js";
 import { TO_CONFIRM } from "../listing.js";
 import { stoppedFlags } from "./automations.js";
+import { readLegal } from "../legal-terms.js";
 
 const BOXES = {
   action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id LIMIT 200",
@@ -21,11 +22,13 @@ const CATEGORIES = TASK_CATEGORIES;
 // sales (V10), rentals (R16, cached: P16), expiring contacts (E8) and listings to confirm (ADM-04) are their screens'
 // own counts, not part of action. outbound: {at, by} while sending is paused (AUT-13, H11), else null. stalled: how many
 // automations are stopped, the clock or Hermes (AUT-01, A3). chats: the website's chats waiting (MSG-02).
+// legal (ADM-17, with its switch): whether the legal periods behind the compliance dates are estimated or validated.
 export async function openCounts(env) {
+  const legal = await readLegal(env);
   const [{ results }, { results: [sales] }, , , { results: [rentals] }, { results: [expiring] }, { results: [toConfirm] },
     { results: [outbound] }, { results: seen }, { results: [chats] }, { results: [retentionReview] }] = await env.DB.batch([env.DB.prepare(
     "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category"),
-  salesCount(env), ...refreshRentalsCount(env),
+  salesCount(env), ...refreshRentalsCount(env, legal.periods),
   env.DB.prepare("SELECT json_extract(value, '$.n') AS n FROM app_settings WHERE key = 'rentals_count'"),
   // ponytail: rows read per poll ≈ 1 + 3 × the contacts in the band (each one's search, sale and open-offer lookups);
   // past ~100 contacts in it, cache the count like rentals_count.
@@ -42,7 +45,7 @@ export async function openCounts(env) {
   const at = Object.fromEntries(seen.map(r => [r.key, r.at])), stopped = stoppedFlags(at.clock, at.hermes, Date.now());
   return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by, sales: sales.n, rentals: rentals.n,
     expiring: expiring.n, retention_review: retentionReview.n, to_confirm: toConfirm.n, chats: chats.n,
-    outbound: outbound ?? null, stalled: stopped.clock + stopped.hermes };
+    outbound: outbound ?? null, stalled: stopped.clock + stopped.hermes, ...(legal.terms ? { legal: legal.terms.status } : {}) };
 }
 
 // E6: the panel polls the counts every 30 s, and the Inbox its list; each poll claims the day's retention pass in case

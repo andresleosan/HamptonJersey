@@ -3,6 +3,7 @@ import { validateLandlord, validateRental, validateRepair, COMPLIANCE, REPAIR_NE
 import { fields, result } from "../sales.js";
 import { LOCK } from "./applicants.js";
 import { jerseyToday, realDate } from "../viewings.js";
+import { readLegal, legalLabel } from "../legal-terms.js";
 
 export const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
 export const asObject = body => (body && typeof body === "object" && !Array.isArray(body) ? body : fail(400, "Invalid format"));
@@ -138,16 +139,17 @@ async function landlordState({ env, admin, params: [id, action] }) {
 }
 
 // R10, R11: the property's checks in COMPLIANCE order (gas only when it may have gas), each with its status today.
-const checks = (rental, rows, today) => COMPLIANCE.filter(([k]) => k !== "gas" || rental.has_gas !== 0)
-  .map(c => item(c, rows.find(i => i.kind === c[0]), today));
-const item = ([kind, label, years], row, today) => ({ kind, label, years, done_on: row?.done_on ?? null,
+// years: how long one lasts, from the periods in force (ADM-17).
+const checks = (rental, rows, today, periods) => COMPLIANCE.filter(([k]) => k !== "gas" || rental.has_gas !== 0)
+  .map(c => item(c, rows.find(i => i.kind === c[0]), today, periods));
+const item = ([kind, label], row, today, periods) => ({ kind, label, years: periods[`${kind}Years`], done_on: row?.done_on ?? null,
   expires_on: row?.expires_on ?? null, note: row?.note ?? null, updated_at: row?.updated_at ?? null,
   updated_by: row?.updated_by ?? null, status: complianceStatus(row ?? {}, today) });
 
 // The property page (P14): its data, its checks, its repairs (open ones first, then the newest), its tenancies (newest
 // first; charges and payments are on the tenancy's own GET) and its last 100 events.
 async function getRental({ env, params: [id] }) {
-  const q = sql => env.DB.prepare(sql).bind(Number(id));
+  const q = sql => env.DB.prepare(sql).bind(Number(id)), legal = await readLegal(env);
   const [[rental], rows, repairs, tenancies, events] = (await env.DB.batch([q(RENTAL_SQL),
     q("SELECT * FROM compliance_items WHERE rental_id = ?"),
     q("SELECT * FROM repairs WHERE rental_id = ? ORDER BY status IN ('done', 'cancelled'), id DESC"),
@@ -156,8 +158,8 @@ async function getRental({ env, params: [id] }) {
     q("SELECT id, tenancy_id, at, actor, type, data FROM rental_events WHERE rental_id = ? ORDER BY at DESC, id DESC LIMIT 100"),
   ])).map(r => r.results);
   if (!rental) fail(404, "Property not found");
-  return json({ rental, compliance: checks(rental, rows, jerseyToday()), repairs, tenancies,
-    events: events.map(e => ({ ...e, data: e.data == null ? null : JSON.parse(e.data) })) });
+  return json({ rental, compliance: checks(rental, rows, jerseyToday(), legal.periods), repairs, tenancies,
+    events: events.map(e => ({ ...e, data: e.data == null ? null : JSON.parse(e.data) })), ...legalLabel(legal) });
 }
 
 // R3, R11: the property and its empty checks ("Not recorded") in one batch, for a landlord not archived.
@@ -253,7 +255,8 @@ async function updateCompliance({ request, env, admin, params: [id, kind] }) {
   if (kind === "gas" && rental.has_gas === 0) fail(400, "This property has no gas: change that first");
   const before = await env.DB.prepare("SELECT done_on, expires_on, note FROM compliance_items WHERE rental_id = ? AND kind = ?")
     .bind(rental.id, kind).first();
-  const after = { done_on, expires_on: given ?? addMonths(done_on, c[2] * 12), note }, ts = now();
+  const { periods } = await readLegal(env);
+  const after = { done_on, expires_on: given ?? addMonths(done_on, periods[`${kind}Years`] * 12), note }, ts = now();
   await env.DB.batch([
     env.DB.prepare(`INSERT INTO compliance_items (rental_id, kind, done_on, expires_on, note, updated_at, updated_by)
       VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (rental_id, kind) DO UPDATE SET done_on = excluded.done_on,
@@ -261,7 +264,7 @@ async function updateCompliance({ request, env, admin, params: [id, kind] }) {
       .bind(rental.id, kind, after.done_on, after.expires_on, after.note, ts, admin),
     rentalEvent(env, { rental_id: rental.id, actor: admin, type: "compliance.updated", data: { kind, before, after } }),
   ]);
-  return json({ item: item(c, { ...after, updated_at: ts, updated_by: admin }, jerseyToday()) });
+  return json({ item: item(c, { ...after, updated_at: ts, updated_by: admin }, jerseyToday(), periods) });
 }
 
 const loadRepair = async (env, id) =>
