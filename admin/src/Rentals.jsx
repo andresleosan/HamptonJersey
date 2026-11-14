@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { fmtDay } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
 import { Modal, Received, money, pounds, useFieldErrors } from "./Sales.jsx";
+import { Estimated, REGISTERED } from "./LegalTerms.jsx";
 import { OPTIONS } from "../../server/applicants.js";
 import { LEGAL } from "../../server/rentals.js";
 import { jerseyToday } from "../../server/viewings.js";
@@ -23,8 +24,9 @@ const daysTo = d => Math.round((Date.parse(d) - Date.parse(jerseyToday())) / 864
 // What New property says once it has gone back to the list.
 let added = null;
 
-const Block = ({ id, title, rows, empty, head, children }) => <section className="block" aria-labelledby={id}>
+const Block = ({ id, title, rows, empty, head, note, children }) => <section className="block" aria-labelledby={id}>
   <h3 id={id} tabIndex={-1}>{title} <span className="muted">({rows.length})</span></h3>
+  {note}
   {rows.length ? <div className="table-scroll" role="region" aria-labelledby={id} tabIndex={0}>
     <table className="list"><thead><tr>{head.map(h => <th key={h} scope="col">{h || <span className="sr">Actions</span>}</th>)}</tr></thead><tbody>{children}</tbody></table></div>
     : <p className="empty card slim">{empty}</p>}
@@ -103,6 +105,9 @@ export default function Rentals({ onChange, requestedPayment, unmatched }) {
     </section>}
     {!data ? !loadErr && <p>Loading rentals…</p> : <>
       <p className="muted">{t.properties} {t.properties === 1 ? "property" : "properties"}, {t.occupied} with a tenancy · {pence(t.owed)} owed</p>
+      {/* ADM-17: what is and is not confirmed, with its switch. Not confirmed is not approval. */}
+      {data.legal && <p className="muted" id="legal-status">Legal periods: {data.legal.status === "estimated" ? "estimated, not validated by a lawyer" : "validated"}
+        {" "}· JFSC registration: {REGISTERED[data.legal.jfsc]} · GST registration: {REGISTERED[data.legal.gst]}. <a href="#/legal">Legal terms</a></p>}
 
       <h2 ref={head} tabIndex={-1} className="todo-title">To do</h2>
       <Block id="h-arrears" title="Arrears" rows={todo.arrears} empty="No tenant needs an arrears step today."
@@ -116,6 +121,7 @@ export default function Rentals({ onChange, requestedPayment, unmatched }) {
         </tr>)}
       </Block>
       <Block id="h-checks" title="Checks and deadlines" rows={todo.compliance} head={["Property", "Check", "Due", "Status"]}
+        note={data.legal?.status === "estimated" && <p><Estimated legal={data.legal} /></p>}
         empty={`Nothing falls due in the next ${WARN} days.`}>
         {todo.compliance.map(c => <tr key={`${c.rental_id}-${c.tenancy_id}-${c.kind}`} className={["overdue", "missing"].includes(c.status) ? "overdue" : undefined}>
           <td><a href={`#/rentals/${c.rental_id}`}>{c.address}</a></td>

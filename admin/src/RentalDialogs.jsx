@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { fmtDate, fmtDay } from "./format.js";
 import { Modal, money, pounds, useFieldErrors } from "./Sales.jsx";
 import { KIND, REPAIR_STATUS, URGENCY, pence } from "./Rentals.jsx";
+import { Estimated } from "./LegalTerms.jsx";
 import { LEGAL, REPAIR_NEXT, earliestMoveOut, initialTermBeyondThreeYears, parseMoney, rentAssistant } from "../../server/rentals.js";
 import { jerseyToday } from "../../server/viewings.js";
 
@@ -91,9 +92,11 @@ export function RecordPayment({ d: { tenancy: t }, onClose, onDone, onRefused })
 
 // R12, R28, R30: legacy estimates use the recorded label, not a verified legal determination.
 // They do not block manual changes; applicable rules need review.
-export function ChangeRent({ d: { tenancy: t, assistant, current_rent }, onClose, onDone, onRefused }) {
+// ADM-17: d.legal (with its switch) carries the periods in force and whether a lawyer has validated them.
+const periodsOf = legal => ({ ...LEGAL, ...legal?.periods });
+export function ChangeRent({ d: { tenancy: t, assistant, current_rent, legal }, onClose, onDone, onRefused }) {
   const today = jerseyToday(), [rpi, setRpi] = useState(assistant.rpi), [editRpi, setEditRpi] = useState(!assistant.rpi);
-  const help = rentAssistant(t, rpi, today);
+  const help = rentAssistant(t, rpi, today, periodsOf(legal));
   const a = useForm("cr", { rent: "", effective_on: "" }, async f => {
     await api(`/admin/tenancies/${t.id}/rent`, { method: "POST", body: { rent: pounds(f.rent), effective_on: f.effective_on || null } });
     return `Rent changes to ${money(Number(pounds(f.rent)))} pcm from ${fmtDay(f.effective_on)}.`;
@@ -114,7 +117,7 @@ export function ChangeRent({ d: { tenancy: t, assistant, current_rent }, onClose
         <button type="button" className="linkish" onClick={() => setEditRpi(true)}>Edit RPI</button></p>}
     {t.last_rent_change_on > today && <p className="muted">Estimate based on the rent from {fmtDay(t.last_rent_change_on)}.</p>}
     <dl className="kv"><div><dt>Estimated rent limit</dt><dd>{help.max_rent != null ? `${money(help.max_rent)} pcm` : "—"}</dd></div>
-      <div><dt>Estimated earliest date</dt><dd>{fmtDay(help.earliest_on)}</dd></div></dl>
+      <div><dt>Estimated earliest date</dt><dd>{fmtDay(help.earliest_on)} <Estimated legal={legal} /></dd></div></dl>
     {help.notes.map(n => <p key={n} className="muted">{n}</p>)}
     {help.max_rent != null && <button type="button" className="btn ghost sm" onClick={() => a.setF({ rent: help.max_rent.toLocaleString("en-GB"),
       effective_on: help.earliest_on })}>Use estimate in form ({money(help.max_rent)} pcm from {fmtDay(help.earliest_on)})</button>}
@@ -153,25 +156,25 @@ export function Renew({ d: { tenancy: t }, onClose, onDone, onRefused }) {
 }
 
 // R13: who gave notice and when, and the earliest move-out it allows.
-export function RecordNotice({ d: { tenancy: t }, onClose, onDone, onRefused }) {
+export function RecordNotice({ d: { tenancy: t, legal }, onClose, onDone, onRefused }) {
   const a = useForm("rno", { given_on: jerseyToday(), by: "" }, async f => {
     const res = await api(`/admin/tenancies/${t.id}/notice`, { method: "POST", body: { given_on: f.given_on || null, by: f.by || null } });
     return `Notice recorded. Earliest move-out: ${fmtDay(res.earliest_move_out)}.`;
   }, onDone, onRefused);
-  const earliest = a.f.given_on && a.f.by && earliestMoveOut(t, a.f);
+  const periods = periodsOf(legal), earliest = a.f.given_on && a.f.by && earliestMoveOut(t, a.f, periods);
   return <Sheet title="Record notice" a={a} button="Record notice" onClose={onClose}>
     <Who t={t} />
     {a.radios("by", "Given by", [["tenant", "Tenant"], ["landlord", "Landlord"]])}
     {a.field("given_on", "Given on", { type: "date", max: jerseyToday() })}
-    {earliest && <p role="status">Earliest move-out: <strong>{fmtDay(earliest)}</strong></p>}
-    <p className="muted">A tenant on a periodic tenancy gives {months(LEGAL.tenantNoticeMonths)}; a landlord without cause,
-      {" "}{months(LEGAL.landlordNoticeMonths)}. A fixed term runs to its end date. For other cases, check with a lawyer.</p>
+    {earliest && <p role="status">Earliest move-out: <strong>{fmtDay(earliest)}</strong> <Estimated legal={legal} /></p>}
+    <p className="muted">A tenant on a periodic tenancy gives {months(periods.tenantNoticeMonths)}; a landlord without cause,
+      {" "}{months(periods.landlordNoticeMonths)}. A fixed term runs to its end date. For other cases, check with a lawyer.</p>
   </Sheet>;
 }
 
 // R13, R24: the move-out, maybe ahead; later rent charges go and the property is free for the next tenancy. P22: a
 // planned move-out (still ahead) can move to another date from today.
-export function EndTenancy({ d: { tenancy: t, earliest_move_out }, onClose, onDone, onRefused }) {
+export function EndTenancy({ d: { tenancy: t, earliest_move_out, legal }, onClose, onDone, onRefused }) {
   const today = jerseyToday(), planned = !!t.ended_on;
   const a = useForm("et", { ended_on: t.ended_on ?? earliest_move_out ?? today }, async f => {
     await api(`/admin/tenancies/${t.id}/end`, { method: "POST", body: { ended_on: f.ended_on || null } });
@@ -184,7 +187,8 @@ export function EndTenancy({ d: { tenancy: t, earliest_move_out }, onClose, onDo
     {planned ? <p>Now {fmtDay(t.ended_on)}. Rent charges stop on the new date: a later one charges the months up to it again, an
       earlier one removes those from it.</p>
       : <p>Rent charges stop on that date and any already made from it are removed. The property is then free for the next tenancy,
-        and the check-out report is due within {LEGAL.reportDays} days. A date still ahead can be changed or cancelled until then.</p>}
+        and the check-out report is due within {periodsOf(legal).reportDays} days. A date still ahead can be changed or cancelled until then.{" "}
+        <Estimated legal={legal} /></p>}
   </Sheet>;
 }
 
@@ -284,7 +288,7 @@ export function EditTenancy({ d: { tenancy: t }, keys, title, note, over, onClos
 }
 
 // R10, R11: a property check done on a date; without an expiry it lasts its legal period.
-export function UpdateCheck({ rental, item: c, onClose, onDone, onRefused }) {
+export function UpdateCheck({ rental, item: c, legal, onClose, onDone, onRefused }) {
   const a = useForm("uc", { done_on: jerseyToday(), expires_on: "", note: c.note ?? "" }, async f => {
     await api(`/admin/rentals/${rental.id}/compliance/${c.kind}`, { method: "PUT", body: { done_on: f.done_on || null,
       expires_on: f.expires_on || null, note: f.note.trim() || null } });
@@ -293,7 +297,8 @@ export function UpdateCheck({ rental, item: c, onClose, onDone, onRefused }) {
   return <Sheet title={`Update ${c.label.toLowerCase()}`} a={a} button="Save check" onClose={onClose}>
     <p>{rental.address}{c.done_on && ` · last done ${fmtDay(c.done_on)}`}</p>
     <div className="grid2">{a.field("done_on", "Done on", { type: "date", max: jerseyToday() })}
-      {a.field("expires_on", "Expires on (optional)", { type: "date", hint: `Blank: ${c.years} year${c.years === 1 ? "" : "s"} after the date done.` })}</div>
+      {a.field("expires_on", "Expires on (optional)", { type: "date", hint: `Blank: ${c.years} year${c.years === 1 ? "" : "s"} after the date done${
+        legal?.status === "estimated" ? " (estimated, not validated by a lawyer)" : ""}.` })}</div>
     {a.field("note", "Note (optional)", { maxLength: 300, placeholder: "e.g. Certificate 48213" })}
   </Sheet>;
 }

@@ -2,6 +2,7 @@
 // only with ADM17_LEGAL_TERMS_READY === '1'. Nothing saved means the code's periods (LEGAL), marked estimated: a
 // period is "validated" only when someone records who validated it and when. The registrations start unknown, and
 // unknown is not approval. Nothing here blocks an existing action; it says what is and is not confirmed.
+// The switch goes in wrangler.toml and in jobs/wrangler.toml alike: the clock's Inbox pass works out the same deadlines.
 import { json, fail, readJson, now } from "./http.js";
 import { LEGAL } from "./rentals.js";
 import { jerseyToday, realDate } from "./viewings.js";

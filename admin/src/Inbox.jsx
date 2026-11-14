@@ -127,8 +127,11 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
           <button type="button" aria-current={x.id === sel ? "true" : undefined} className={x.is_read ? "" : "unread"} onClick={() => pick(x.id)}>
             <span className="who">{x.title}</span><time className="muted" dateTime={x.created_at}>{fmtAgo(x.created_at)}</time>
             <span className="what">{KIND[x.category]}</span>{box === "feed" && <span className="muted">{x.resolved_at ? "Done" : "For info"}</span>}
+            {/* ADM-17: compliance dates come from legal periods; said while no lawyer has validated them. */}
+            {x.estimated && <span className="muted estimated">Estimated · not validated by a lawyer</span>}
           </button></li>)}</ul>
-        {n && <InboxTask key={n.id} n={n} users={users} me={me} paused={paused} onChanged={changed} onRead={read} onDirty={taskDirty} onPending={taskPending} reloadUsers={loadUsers} />}
+        {n && <InboxTask key={n.id} n={n} users={users} me={me} paused={paused} onChanged={changed} onRead={read} onDirty={taskDirty} onPending={taskPending} reloadUsers={loadUsers}
+          estimated={n.estimated} />}
       </div>}
   </section>;
 }

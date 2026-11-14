@@ -9,6 +9,7 @@ import { CancelMoveOut, ChangeRent, CorrectCharge, DETAILS, EditPayment, EditTen
 import { FromLetAgreed, TenancyRecords, useOriginReady } from "./RentalOrigin.jsx";
 import { OUTCOME, TenancyExit } from "./TenancyExit.jsx";
 import { TenancyInspections } from "./RentalInspection.jsx";
+import { Estimated } from "./LegalTerms.jsx";
 import { OPTIONS } from "../../server/applicants.js";
 import { ARREARS_STEPS, COMPLIANCE, LEGAL } from "../../server/rentals.js";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
@@ -149,11 +150,12 @@ export default function RentalDetail({ id, selection='', onChange }) {
         </section>}
 
         <section className="card" aria-labelledby="h-checks"><h2 id="h-checks">Checks</h2>{note("checks")}
+          {data.legal?.status === "estimated" && <p><Estimated legal={data.legal} /></p>}
           <ul className="plain-list" id="checks">{data.compliance.map(c => <li key={c.kind} id={`check-${c.kind}`} tabIndex={-1} aria-current={!linked.error&&linked.check===c.kind?'location':undefined} className={["overdue", "missing"].includes(c.status) ? "overdue" : undefined}>
             <span>{c.label}<span className="muted cell-note">{c.done_on ? `Done ${fmtDay(c.done_on)}, expires ${fmtDay(c.expires_on)}` : "Not recorded yet"}
               {c.note && ` · ${c.note}`}</span></span>
             <span className="ctl">{checkState({ ...c, due_on: c.expires_on })}
-              <button type="button" className="btn ghost sm" onClick={() => open("check", { item: c }, "checks")}>Update<span className="sr"> {c.label}</span></button></span>
+              <button type="button" className="btn ghost sm" onClick={() => open("check", { item: c, legal: data.legal }, "checks")}>Update<span className="sr"> {c.label}</span></button></span>
           </li>)}</ul>
           {r.has_gas === 0 && <p className="muted">No gas supply, so no gas safety check.</p>}
         </section>
@@ -267,7 +269,7 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline }) {
       : t.kind === "fixed" && !t.notice_given_on && t.end_on <= plusDays(today, LEGAL.renewalDays) ? <p className="warn" role="note">
         {t.end_on < today ? `Fixed term ended ${fmtDay(t.end_on)}: renew it, or record notice.` : `Renewal due: the fixed term ends ${fmtDay(t.end_on)}.`}</p>
       : t.notice_given_on && <p className="warn" role="note">Notice given by the {t.notice_by} on {fmtDay(t.notice_given_on)}. Earliest move-out:
-        {" "}{fmtDay(d.earliest_move_out)}.</p>}
+        {" "}{fmtDay(d.earliest_move_out)}. <Estimated legal={d.legal} /></p>}
     <dl className="kv">
       <div><dt>Rent</dt><dd className="rent">{rentLine(t, d.current_rent)}
         <span className="muted cell-note">Due on day {t.due_day} of each month</span></dd></div>
@@ -300,7 +302,7 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline }) {
       <button type="button" className="btn ghost sm" onClick={act("edit", { keys: DETAILS, title: "Tenancy details" })}>Edit details</button>
     </div>
 
-    {d.deadlines.length > 0 && <><h3>Deadlines</h3><ul className="plain-list">{d.deadlines.map(x => <li key={x.key} id={`tenancy-${id}-deadline-${x.key}`} tabIndex={-1} aria-current={requestedDeadline===x.key?'location':undefined} className={x.status === "overdue" ? "overdue" : undefined}>
+    {d.deadlines.length > 0 && <><h3>Deadlines</h3>{d.legal?.status === "estimated" && <p><Estimated legal={d.legal} /></p>}<ul className="plain-list">{d.deadlines.map(x => <li key={x.key} id={`tenancy-${id}-deadline-${x.key}`} tabIndex={-1} aria-current={requestedDeadline===x.key?'location':undefined} className={x.status === "overdue" ? "overdue" : undefined}>
       <span>{x.label}<span className="muted cell-note">{x.done_on ? `Done ${fmtDay(x.done_on)}` : `Due ${fmtDay(x.due_on)}`}</span></span>
       <span className="ctl">{checkState(x)}<button type="button" className="btn ghost sm" onClick={act("edit", { keys: [DONE[x.key][0]], title: DONE[x.key][1] })}>
         Update<span className="sr"> {x.label}</span></button></span></li>)}</ul></>}

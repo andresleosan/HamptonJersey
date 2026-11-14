@@ -23,8 +23,8 @@ const CATEGORIES = TASK_CATEGORIES;
 // own counts, not part of action. outbound: {at, by} while sending is paused (AUT-13, H11), else null. stalled: how many
 // automations are stopped, the clock or Hermes (AUT-01, A3). chats: the website's chats waiting (MSG-02).
 // legal (ADM-17, with its switch): whether the legal periods behind the compliance dates are estimated or validated.
-export async function openCounts(env) {
-  const legal = await readLegal(env);
+export async function openCounts(env, legal) {
+  legal ??= await readLegal(env);
   const [{ results }, { results: [sales] }, , , { results: [rentals] }, { results: [expiring] }, { results: [toConfirm] },
     { results: [outbound] }, { results: seen }, { results: [chats] }, { results: [retentionReview] }] = await env.DB.batch([env.DB.prepare(
     "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category"),
@@ -61,8 +61,11 @@ async function list({ request, env, waitUntil, admin }) {
       (SELECT feed_categories FROM notification_preferences WHERE admin=?),'${JSON.stringify(CATEGORIES)}')))) AND ` : "";
   const { results } = await env.DB.prepare(`${notificationSelect(await ownerStorageAvailable(env))} WHERE ${category ? "n.category = ? AND " : ""}${preferences}${BOXES[box]}`)
     .bind(admin,...(category ? [category] : []),...(box === "feed" ? [admin] : [])).all();
-  const notifications = results.map(noticeDto);
-  return json({ notifications, counts: await openCounts(env) });
+  // ADM-17: a check or deadline the system worked out from legal periods no lawyer has validated says so (estimated).
+  const legal = await readLegal(env), estimated = legal.terms?.status === "estimated";
+  const notifications = results.map(r => (estimated && r.category === "compliance" && r.source_type === "notification.observed"
+    ? { ...noticeDto(r), estimated: true } : noticeDto(r)));
+  return json({ notifications, counts: await openCounts(env, legal) });
 }
 
 async function counts({ env, waitUntil }) {

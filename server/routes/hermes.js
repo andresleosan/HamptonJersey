@@ -50,7 +50,7 @@ async function status({ request, env }) {
     env.DB.prepare(`SELECT l.id, l.title FROM listings l WHERE ${TO_CONFIRM} ORDER BY l.id LIMIT 50`).bind(now()),
     env.DB.prepare("SELECT COUNT(*) AS n FROM jobs WHERE status = 'draft'"),
   ])]);
-  const { outbound, stalled, ...c } = counts; // stalled is the panel's (AUT-01)
+  const { outbound, stalled, legal, ...c } = counts; // stalled (AUT-01) and legal (ADM-17) are the panel's
   const by = outbound && (outbound.by === "hermes" ? "hermes" : "team"); // never a team member's email
   return json({ counts: c, drafts_waiting: drafts.n,
     to_confirm_listings: toConfirm.map(l => ({ id: l.id, title: l.title, link: panel(request, `p/${l.id}`) })),

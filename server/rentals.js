@@ -11,7 +11,7 @@ export const LEGAL = { depositDays: 30, reportDays: 7, licenceYears: 2, eicrYear
 // R8: [days after the oldest unpaid charge fell due, arrears_steps.step, label].
 export const ARREARS_STEPS = [[1, "reminder", "Friendly reminder"], [5, "firm", "Firm reminder"],
   [7, "call", "Call the tenant"], [10, "landlord", "Tell the landlord"], [14, "letter", "Formal letter"]];
-// R10, R11: [compliance_items.kind, label, years a check lasts].
+// R10, R11: [compliance_items.kind, label, years a check lasts while none is saved (in force: legal[`${kind}Years`])].
 export const COMPLIANCE = [["licence", "Rental dwelling licence", LEGAL.licenceYears],
   ["eicr", "Electrical safety (EICR)", LEGAL.eicrYears], ["gas", "Gas safety", LEGAL.gasYears],
   ["alarms", "Smoke and CO alarms", LEGAL.alarmsYears]];

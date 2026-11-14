@@ -4,6 +4,7 @@ import { makeEnv, call, adminCookie } from "./helpers.mjs";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
 import { LEGAL, addMonths, earliestMoveOut, rentAssistant } from "../../server/rentals.js";
 import { notificationsPass } from "../../server/notification-reconcile.js";
+import { readFileSync } from "node:fs";
 
 // ADM-17: the legal periods as versioned settings behind ADM17_LEGAL_TERMS_READY. Nothing saved means today's values
 // (LEGAL), marked estimated; Hampton's JFSC and GST registrations start unknown.
@@ -37,6 +38,11 @@ test("the rules take the periods as a parameter and default to LEGAL", () => {
   assert.equal(rentAssistant(t, null, "2026-02-01").earliest_on, "2027-01-10");
   assert.equal(rentAssistant(t, null, "2026-02-01", { ...LEGAL, rentIntervalMonths: 6 }).earliest_on, "2026-07-10");
   assert.equal(rentAssistant(t, null, "2027-02-01", { ...LEGAL, rentNoticeMonths: 3 }).earliest_on, "2027-05-01");
+});
+
+test("the website and the clock share the switch, so the Inbox and the panel never work with different periods", () => {
+  const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^ADM17_LEGAL_TERMS_READY = "([01])"$/m)?.[1] ?? "0";
+  assert.equal(flag("wrangler.toml"), flag("jobs/wrangler.toml"));
 });
 
 test("switch off: no route, no label, nothing read from the new tables", async () => {
@@ -170,6 +176,13 @@ test("the Inbox and the Rentals count follow a changed period at once", async ()
   assert.equal((await save(env, { values: { ...DEFAULTS, depositDays: 14 } })).status, 200);
   await notificationsPass(env, at);
   assert.deepEqual(open(), [{ title: "Deposit protected overdue", due_at: "2026-11-03T00:00:00.000Z" }]);
+  // The Inbox marks what the system worked out from estimated periods, not a task someone wrote with their own date.
+  const manual = await req(env, "POST", "/admin/notification-tasks", { operation_id: crypto.randomUUID(), category: "compliance",
+    target: { kind: "rental", id: "1", context: { compliance_kind: "gas" } }, title: "Ask for the gas certificate" });
+  assert.equal(manual.status, 201, JSON.stringify(manual.data));
+  const inbox = async () => (await req(env, "GET", "/admin/notifications?box=action&category=compliance")).data.notifications
+    .map(n => [n.title, n.estimated ?? false]).sort();
+  assert.deepEqual(await inbox(), [["Ask for the gas certificate", false], ["Deposit protected overdue", true]]);
   // The cached count is dropped by the save. (Its own clock is today's, so only its direction is compared.)
   assert.ok(await count() >= before);
   assert.equal(rows(env, "SELECT 1 FROM app_settings WHERE key = 'rentals_count'").length, 1);
@@ -177,7 +190,10 @@ test("the Inbox and the Rentals count follow a changed period at once", async ()
   assert.equal((await save(env, { values: { ...DEFAULTS, depositDays: 15 }, revision: 1 })).status, 200);
   await notificationsPass(env, at);
   assert.deepEqual(open(), [{ title: "Deposit protected overdue", due_at: "2026-11-04T00:00:00.000Z" }]);
-  assert.equal((await save(env, { revision: 2 })).status, 200);
+  assert.equal((await save(env, { values: { ...DEFAULTS, depositDays: 15 }, status: "validated", validated_ref: "Advice 12",
+    validated_on: T, revision: 2 })).status, 200);
+  assert.deepEqual(await inbox(), [["Ask for the gas certificate", false], ["Deposit protected overdue", false]], "validated: no label");
+  assert.equal((await save(env, { revision: 3 })).status, 200);
   await notificationsPass(env, at);
   assert.deepEqual(open(), [], "back to 30 days: not overdue again");
 });

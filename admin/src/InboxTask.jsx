@@ -18,7 +18,7 @@ function Owners({value,users,onChange,disabled,label='Assigned to'}) {
   </select></label>;
 }
 
-export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,onPending,reloadUsers}) {
+export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,onPending,reloadUsers,estimated}) {
   const [task,setTask]=useState(n),[draft,setDraft]=useState(()=>fields(n)),[history,setHistory]=useState([]);
   const [loaded,setLoaded]=useState(false),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false);
   const [error,setError]=useState(null),[message,setMessage]=useState(null),[conflict,setConflict]=useState(false);
@@ -101,7 +101,7 @@ export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,on
       <div><dt>Received</dt><dd>{fmtDate(task.created_at)}</dd></div>
       <div><dt>Status</dt><dd>{open?'Needs action':task.resolved_at?(task.closed_by_source?'Resolved by source':'Done'):'For your information'}</dd></div>
       {!task.weekly_insights&&<div><dt>Assigned to</dt><dd>{task.assigned_name||task.assigned_to||'Unassigned'}{task.assigned_to&&!task.assigned_available?' (no longer has access)':''}</dd></div>}
-      {!task.weekly_insights&&<div><dt>Deadline</dt><dd>{task.due_at?new Date(task.due_at).toLocaleString('en-GB'):'No deadline'}{task.due_at&&open&&Date.parse(task.due_at)<Date.now()?' · Overdue':''}</dd></div>}
+      {!task.weekly_insights&&<div><dt>Deadline</dt><dd>{task.due_at?new Date(task.due_at).toLocaleString('en-GB'):'No deadline'}{task.due_at&&open&&Date.parse(task.due_at)<Date.now()?' · Overdue':''}{estimated&&task.due_at&&<> <span className="badge neutral">Estimated · not validated by a lawyer</span></>}</dd></div>}
       {task.phone&&<div><dt>Phone</dt><dd className="num">{task.phone}</dd></div>}
     </dl>
     {!task.target_exists&&<p className="warn">The related record is no longer available.</p>}
