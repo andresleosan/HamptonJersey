@@ -7,9 +7,9 @@ import { candidates, commitTenancyOrigin, prepareTenancyFromAgreement, readRecor
   saveSignedContract } from "../tenancy-origins.js";
 
 const body = async request => asObject(await readJson(request));
-const answer = r => (r.errors ? fieldErrors(r.errors) : json(r));
+export const answer = r => (r.errors ? fieldErrors(r.errors) : json(r));
 // The path names the tenancy; a body for another one (a form left open on another page) is refused.
-const ownBody = async (request, id) => {
+export const ownBody = async (request, id) => {
   const b = await body(request);
   if ("tenancy_id" in b && Number(b.tenancy_id) !== Number(id)) fail(400, "This form is for another tenancy. Reload the page");
   return { ...b, tenancy_id: Number(id) };

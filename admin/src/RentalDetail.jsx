@@ -7,6 +7,7 @@ import { Assign, GAS, KIND, MarkStep, REPAIR_STATUS, SERVICE, URGENCY, checkStat
 import { CancelMoveOut, ChangeRent, CorrectCharge, DETAILS, EditPayment, EditTenancy, EndTenancy, NewTenancy, RecordNotice, RecordPayment,
   Renew, RepairDialog, NEXT_DAY, UnassignPayment, UpdateCheck, needsApproval, rentLine } from "./RentalDialogs.jsx";
 import { FromLetAgreed, TenancyRecords, useOriginReady } from "./RentalOrigin.jsx";
+import { OUTCOME, TenancyExit } from "./TenancyExit.jsx";
 import { OPTIONS } from "../../server/applicants.js";
 import { ARREARS_STEPS, COMPLIANCE, LEGAL } from "../../server/rentals.js";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
@@ -302,6 +303,7 @@ function Tenancy({ id, tick, note, open, next, requestedDeadline }) {
       <span className="ctl">{checkState(x)}<button type="button" className="btn ghost sm" onClick={act("edit", { keys: [DONE[x.key][0]], title: DONE[x.key][1] })}>
         Update<span className="sr"> {x.label}</span></button></span></li>)}</ul></>}
     <TenancyRecords id={id} tick={tick} />
+    <TenancyExit id={id} tick={tick} moveOut={t.ended_on} />
 
     {full && <><h3 id={`h-charges-${id}`}>Charges</h3>
       {d.charges.length ? <div className="table-scroll" role="region" aria-labelledby={`h-charges-${id}`} tabIndex={0}>
@@ -361,6 +363,11 @@ const EVENT = {
   "tenancy.origin_linked": d => `Tenancy started from Let agreed listing ${d.listing_id}`,
   "tenancy.signed_contract_recorded": d => `Signed contract reference recorded (revision ${d.revision})`,
   "tenancy.entry_inventory_saved": d => `Entry inventory saved (revision ${d.revision}): ${d.rooms} rooms, ${d.meter_readings} meter readings`,
+  "tenancy.exit_inventory_saved": d => `Exit inventory saved (revision ${d.revision}): ${d.rooms} rooms, ${d.changed} changed, ${d.entry_revision
+    ? `compared with entry inventory revision ${d.entry_revision}` : "no entry inventory to compare with"}${d.moved_out_on
+    ? `; keys back ${fmtDay(d.moved_out_on)}` : ""}`,
+  "deposit.proposal_saved": d => `Deposit deductions proposed: ${pence(d.total_pence)} of ${pence(d.deposit_pence)} (${d.lines} line${d.lines === 1 ? "" : "s"})`,
+  "deposit.outcome_recorded": d => `Deposit: ${OUTCOME[d.status].toLowerCase()} on ${fmtDay(d.occurred_on)}`,
   "tenancy.updated": ({ before, after: { collect_from, ...rest }, removed }) => [collect_from
     && `Rent collected from ${fmtDay(collect_from)}, not ${fmtDay(before.collect_from)}`,
   Object.keys(rest).length && `Tenancy details changed: ${keys(rest)}`].filter(Boolean).join("; ") + gone(removed, "earlier"),

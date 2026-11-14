@@ -22,7 +22,7 @@ export function useOriginReady() {
 
 const REF_HINT = "A folder or file name you checked. The app does not receive, store or open the document.";
 // A control's aria-describedby: its hint and, when there is one, its error.
-const described = (fe, k, hint) => [hint, fe.invalid(k)["aria-describedby"]].filter(Boolean).join(" ") || undefined;
+export const described = (fe, k, hint) => [hint, fe.invalid(k)["aria-describedby"]].filter(Boolean).join(" ") || undefined;
 
 export function FromLetAgreed({ rental, onClose, onDone, onDirty, onRefused }) {
   const [lists, setLists] = useState(null), [loadErr, setLoadErr] = useState(null), [preview, setPreview] = useState(null);
@@ -146,8 +146,8 @@ function SignedContract({ id, current, onSaved }) {
 }
 
 // Same lists as server/tenancy-origins.js (the server checks them): every reading names its unit, none is assumed.
-const METER = { electricity: "Electricity", gas: "Gas", water: "Water", oil: "Oil", other: "Other" };
-const UNIT = { kWh: "kWh", m3: "m³", ft3: "ft³", litres: "litres" };
+export const METER = { electricity: "Electricity", gas: "Gas", water: "Water", oil: "Oil", other: "Other" };
+export const UNIT = { kWh: "kWh", m3: "m³", ft3: "ft³", litres: "litres" };
 const toForm = c => ({ rooms: c?.rooms.length ? c.rooms.map(r => ({ ...r })) : [{ name: "", observations: "" }],
   meter_readings: (c?.meter_readings ?? []).map(m => ({ ...m })), refs: (c?.evidence_refs ?? []).map(r => r.evidence_ref).join("\n") });
 

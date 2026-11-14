@@ -182,7 +182,7 @@ export async function saveSignedContract(env, { tenancy_id, expectedRevision, ev
 }
 
 const text = v => (v == null ? "" : typeof v === "string" ? v.trim() : null);
-function validateInventory(b) {
+export function validateInventory(b) {
   const e = {};
   const list = (k, max, min, message) => {
     const a = b[k] ?? [];

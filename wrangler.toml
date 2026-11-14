@@ -13,6 +13,8 @@ LISTING_HEALTH_READY = "1"
 ADM06_TENANCY_ORIGIN_READY = "1"
 AGE14_SUPPRESSION_READY = "1"
 PUB11_DOCUMENTS_READY = "1"
+# ADM-16: off until migration 0059 is applied.
+ADM16_TENANCY_EXIT_READY = "0"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

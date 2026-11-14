@@ -32,6 +32,8 @@ import marketInventoryRoutes from "./routes/market-inventory.js";
 import demandRoutes from "./routes/demand.js";
 import saleFollowupRoutes, { followupReady } from "./sale-followup.js";
 import tenancyOriginRoutes from "./routes/tenancy-origins.js";
+import tenancyExitRoutes from "./routes/tenancy-exits.js";
+import { exitReady } from "./tenancy-exits.js";
 import documentRoutes from "./routes/listing-documents.js";
 import { documentsReady } from "./listing-documents.js";
 
@@ -64,6 +66,7 @@ async function route(request, env, segments, waitUntil) {
     // AUT-10: the mode switch exists only with its migration (0054) and flag.
     if (env.AUT10_MODES_READY === '1') routes = [...routes, ...modeRoutes];
     if (env.ADM06_TENANCY_ORIGIN_READY === '1') routes = [...routes, ...tenancyOriginRoutes]; // ADM-06: needs migration 0056
+    if (exitReady(env)) routes = [...routes, ...tenancyExitRoutes]; // ADM-16: needs migration 0059
     if (documentsReady(env)) routes = [...routes, ...documentRoutes]; // PUB-11: needs migration 0058
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];
