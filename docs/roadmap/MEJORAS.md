@@ -17,3 +17,7 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [PUB-10] `server/proposed-schema/owner-requests-rebuild.sql` fija la definición antigua de advertisers (sin `suppressed_at` de 0057) y fallará; las reconstrucciones futuras de listings/tenancies deben contar con las FK nuevas de 0056/0058 · 14-nov-2026
 - [PUB-11] Barrido periódico de restos `pending`/`removing`, inspección del interior del PDF, subida directa a R2 sin 20 MiB en memoria y botones de 44 px en móvil · 14-nov-2026
 - [PUB-11] Calibrar los avisos de calidad de foto (resolución, exposición, enfoque) con fotografías representativas de Hampton · hoy son orientativos · 14-nov-2026
+- [ADM-16] Si se borra el depósito del contrato, la pantalla oculta la propuesta y el historial de mydeposits aunque siguen en la base (TenancyExit.jsx:176) · mostrarlos siempre · 14-nov-2026
+- [ADM-16] Editar el inventario de salida antes del primer paso con mydeposits puede quitar referencias que ya cita una línea de la propuesta · revalidarlas al registrar el paso · 14-nov-2026
+- [ADM-16] Cambiar `start_on` después del inventario de salida puede dejar la devolución de llaves antes del inicio · sin pérdida de datos · 14-nov-2026
+- [ADM-16] La comprobación de referencias entre contratos lee el JSON de todos los inventarios sin índice · aceptable con el volumen actual · 14-nov-2026

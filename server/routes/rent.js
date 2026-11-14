@@ -4,6 +4,7 @@ import { validateTenancy, validatePayment, rentAssistant, earliestMoveOut, compl
 import { fields } from "../sales.js";
 import { jerseyToday, plusDays, realDate } from "../viewings.js";
 import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE } from "./rentals.js";
+import { exitReady } from "../tenancy-exits.js";
 
 const MAX_POUNDS = 1000000, MAX_PENCE = 100 * MAX_POUNDS; // R20
 const ENDED = "This tenancy has ended", CHANGED = "This property changed meanwhile. Reload to see it";
@@ -441,10 +442,15 @@ async function cancelEnd({ env, admin, params: [id] }) {
   if (!cur.ended_on) fail(409, "This tenancy has no move-out date");
   running(today)(cur);
   if (await nextStart(env, cur)) fail(409, "The next tenancy is already entered. Change the move-out date instead");
+  // ADM-16: once the keys are back, the move-out happened; cancelling it would bring rent back and hide the deposit record.
+  const KEYS_BACK = exitReady(env) ? `AND NOT EXISTS (SELECT 1 FROM tenancy_exit_inventories WHERE tenancy_id = tenancies.id
+      AND moved_out_on IS NOT NULL)` : "";
+  if (KEYS_BACK && await env.DB.prepare(`SELECT 1 FROM tenancy_exit_inventories WHERE tenancy_id = ? AND moved_out_on IS NOT NULL`)
+    .bind(cur.id).first()) fail(409, "The keys are already back, so this move-out cannot be cancelled");
   const ts = now();
   await moveOut(env, cur, today, null, [
     env.DB.prepare(`UPDATE tenancies SET ended_on = NULL, updated_at = ?, updated_by = ? WHERE id = ? AND ended_on > ?
-      AND NOT EXISTS (SELECT 1 FROM tenancies x WHERE x.rental_id = tenancies.rental_id AND x.id > tenancies.id)`)
+      AND NOT EXISTS (SELECT 1 FROM tenancies x WHERE x.rental_id = tenancies.rental_id AND x.id > tenancies.id) ${KEYS_BACK}`)
       .bind(ts, admin, cur.id, today),
     ensureChanged(env),
     rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "tenancy.end_cancelled",

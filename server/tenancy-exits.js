@@ -14,6 +14,7 @@ const STALE = "Someone else saved this meanwhile. Reload to see it (your changes
 const ENTRY_MOVED = "The entry inventory changed since this form was opened. Reload to compare again (your changes were not saved).";
 const HOLD = "The deposit's progress with mydeposits rests on this record, so it is kept as it was.";
 const RETURNED = "The deposit was returned: nothing more is recorded after that.";
+const DEPOSIT_MOVED = "The deposit amount changed since the deductions were proposed. Save the proposal again first.";
 // Any outcome holds the inventory and the proposal; a return closes the record.
 const HELD = "EXISTS (SELECT 1 FROM tenancy_deposit_outcomes WHERE tenancy_id = ?)";
 const IS_RETURNED = "EXISTS (SELECT 1 FROM tenancy_deposit_outcomes WHERE tenancy_id = ? AND status = 'returned')";
@@ -166,10 +167,11 @@ export async function saveDepositProposal(env, { tenancy_id, expectedRevision, l
 // day it happened, after the keys came back. Kept as recorded (0059's triggers); a return is the last step.
 export async function recordDepositOutcome(env, { tenancy_id, expectedRevision, status, evidence_ref, occurred_on }, actor) {
   const t = await tenancyRow(env, tenancy_id);
-  const [p, x] = await Promise.all([env.DB.prepare("SELECT revision FROM tenancy_deposit_proposals WHERE tenancy_id = ?").bind(t.id).first(),
+  const [p, x] = await Promise.all([env.DB.prepare("SELECT revision, deposit_pence FROM tenancy_deposit_proposals WHERE tenancy_id = ?").bind(t.id).first(),
     env.DB.prepare("SELECT moved_out_on FROM tenancy_exit_inventories WHERE tenancy_id = ?").bind(t.id).first()]);
   if (!p) fail(409, "Save the proposed deductions first, even when there are none.");
   if (!x.moved_out_on) fail(409, "Record the day the keys came back in the exit inventory first.");
+  if (t.deposit == null || p.deposit_pence !== t.deposit * 100) fail(409, DEPOSIT_MOVED);
   const e = {}, rev = revision(expectedRevision), ref = evidenceRef(evidence_ref);
   if (!OUTCOMES.includes(status)) e.status = "Choose what happened with mydeposits";
   if (!ref) e.evidence_ref = "Enter where the confirmation is kept (up to 120 characters): a step without one is not recorded";
@@ -181,12 +183,15 @@ export async function recordDepositOutcome(env, { tenancy_id, expectedRevision, 
   if (await ask(env, IS_RETURNED, t.id)) fail(409, RETURNED);
   const next = rev + 1;
   await casWrite(env, "tenancy_deposit_proposals", t, rev, [
-    env.DB.prepare(`UPDATE tenancy_deposit_proposals SET revision = ? WHERE tenancy_id = ? AND revision = ? AND NOT ${IS_RETURNED}`)
-      .bind(next, t.id, rev, t.id),
+    // The keys date and the deposit are re-read inside the write, so a concurrent edit cannot slip a step past them.
+    env.DB.prepare(`UPDATE tenancy_deposit_proposals SET revision = ? WHERE tenancy_id = ? AND revision = ? AND NOT ${IS_RETURNED}
+      AND EXISTS (SELECT 1 FROM tenancy_exit_inventories WHERE tenancy_id = ? AND moved_out_on IS NOT NULL AND moved_out_on <= ?)
+      AND deposit_pence = (SELECT deposit * 100 FROM tenancies WHERE id = ?)`)
+      .bind(next, t.id, rev, t.id, t.id, occurred_on, t.id),
     ensureChanged(env),
     env.DB.prepare(`INSERT INTO tenancy_deposit_outcomes (tenancy_id, revision, status, evidence_ref, occurred_on, recorded_at, recorded_by)
       VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(t.id, next, status, ref, occurred_on, now(), actor),
     rentalEvent(env, { rental_id: t.rental_id, tenancy_id: t.id, actor, type: "deposit.outcome_recorded", data: { revision: next, status, occurred_on } }),
-  ], async () => { if (await ask(env, IS_RETURNED, t.id)) fail(409, RETURNED); });
+  ], async () => { if (await ask(env, IS_RETURNED, t.id)) fail(409, RETURNED); fail(409, STALE); });
   return readExit(env, t.id);
 }

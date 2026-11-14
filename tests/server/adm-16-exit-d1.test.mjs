@@ -6,6 +6,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { call, adminCookie, SECRET } from "./helpers.mjs";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
+import { recordDepositOutcome } from "../../server/tenancy-exits.js";
 
 const TS = "2026-10-07T10:00:00.000Z", T = jerseyToday(), START = plusDays(T, -90), END = plusDays(T, 10);
 let mf, env;
@@ -57,4 +58,35 @@ test("D1: one exit save and one outcome win at once; the deposit limit and the k
   assert.equal(await n("payments"), 0);
   const r = await req("GET", "/admin/tenancies/1/exit");
   assert.deepEqual([r.data.status, r.data.tenancy.planned_move_out, r.data.exit.moved_out_on], ["requested", END, T]);
+});
+
+// Review fixes: the keys date and the deposit are re-read inside the write; a move-out with the keys back cannot be cancelled.
+test("D1: a step cannot slip past a concurrent keys-back edit, a changed deposit, or a cancelled move-out", async () => {
+  await env.DB.batch([
+    env.DB.prepare(`INSERT INTO rentals (landlord_id, address, parish, service, fee_percent, created_at, updated_at)
+      VALUES (1, '9 Rue des Exemples', 'St Helier', 'let_only', 10, ?, ?)`).bind(TS, TS),
+    env.DB.prepare(`INSERT INTO tenancies (rental_id, payment_ref, tenant_name, kind, regime, start_on, rent, due_day, deposit, ended_on,
+      created_at, updated_at) VALUES (2, 'HE-T0002', 'Sam Example', 'periodic', '2025', ?, 1200, 1, 1200, ?, ?, ?)`).bind(START, END, TS, TS),
+  ]);
+  const exit = (rev, moved) => ({ expectedRevision: rev, entry_inventory_revision: null, moved_out_on: moved, evidence_refs: [],
+    rooms: [{ name: "Kitchen", condition: "not_checked", observations: "" }], meter_readings: [] });
+  assert.equal((await req("PUT", "/admin/tenancies/2/exit-inventory", exit(0, T))).status, 200);
+  assert.equal((await req("PUT", "/admin/tenancies/2/deposit-proposal", { expectedRevision: 0, lines: [] })).status, 200);
+  let once = true;
+  const racing = { prepare: (...a) => env.DB.prepare(...a), batch: async stmts => {
+    if (once) { once = false; assert.equal((await req("PUT", "/admin/tenancies/2/exit-inventory", exit(1, null))).status, 200); }
+    return env.DB.batch(stmts);
+  } };
+  await assert.rejects(recordDepositOutcome({ DB: racing }, { tenancy_id: 2, expectedRevision: 1, status: "requested",
+    evidence_ref: "mydeposits R-9", occurred_on: T }, "admin@example.test"), e => e.status === 409);
+  assert.equal((await one("SELECT COUNT(*) AS n FROM tenancy_deposit_outcomes WHERE tenancy_id = 2")).n, 0);
+
+  await env.DB.prepare("UPDATE tenancies SET deposit = 1300 WHERE id = 1").run();
+  const moved = await req("POST", "/admin/tenancies/1/deposit-outcomes", { expectedRevision: 2, status: "agreed", evidence_ref: "R-4", occurred_on: T });
+  assert.equal(moved.status, 409, JSON.stringify(moved.data));
+  await env.DB.prepare("UPDATE tenancies SET deposit = 1400 WHERE id = 1").run();
+
+  const cancel = await req("DELETE", "/admin/tenancies/1/end");
+  assert.equal(cancel.status, 409, JSON.stringify(cancel.data));
+  assert.equal((await one("SELECT ended_on FROM tenancies WHERE id = 1")).ended_on, END);
 });
