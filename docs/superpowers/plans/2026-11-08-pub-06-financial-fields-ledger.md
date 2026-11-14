@@ -47,3 +47,7 @@ El plan define datos informativos y matemáticas, sin afirmar reglas legales sob
 - Commit/publicación: no hay autorización de push; documentos locales se conservan. No presentar SHA base como entrega que los contiene.
 
 Próxima construcción recomendada: SPR-01 antes de PUB-06 por el campo de fecha compartido. Codex `gpt-6.1-terra`, esfuerzo`high`: migración con triggers y guardado concurrente; después PUB-06 mantiene esa recomendación por costes, ratios, API, React y SEO. Valores disponibles en catálogo local; no se cambia el modelo de la sesión actual.
+
+## Integración combinada · 14-nov-2026
+
+La migración nueva `0052_listing_economics_history.sql` combina los cinco términos estructurados con los snapshots de fecha SPR-01. El generador del contrato compara las cuatro definiciones completas con esta migración canónica, no con una propuesta desconectada. A3/A4 premium/renta siguen la decisión D7–D9 de Luis registrada el 13-nov; esta integración no vuelve a decidir ni suma sus importes. La revisión de retención se resuelve mediante el mapa del ciclo existente de ficha/eventos, sin inventar TTL de propiedades ni ampliar EST-19/PRE-12. La tarea no se marca hecha desde esta copia; aplicación, activación y evidencia final corresponden al padre.

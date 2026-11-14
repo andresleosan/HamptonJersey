@@ -5,11 +5,11 @@ import { makeEnv, seedListing, adminCookie, call, T0 } from './helpers.mjs';
 import { toPublic } from '../../server/listing.js';
 import { handleApi } from '../../server/api.js';
 
-const proposal = readFileSync(new URL('../../docs/roadmap/work/PUB-06/structured-economics.proposed.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../../migrations/0052_listing_economics_history.sql', import.meta.url), 'utf8');
 const setup = async ({ install = false, enabled = false } = {}) => {
-  const env = makeEnv();
+  const env = makeEnv({ through: 51 });
   seedListing(env, { currency: 'GBP', confirmed_at: T0, rental_deposit: 'Public legacy text', parish_rates: 'Public rates' });
-  if (install) env.DB.raw.exec(proposal);
+  if (install) env.DB.raw.exec(migration);
   if (enabled) env.PUB06_STRUCTURED_ECONOMICS_READY = '1';
   return { env, cookie: await adminCookie() };
 };

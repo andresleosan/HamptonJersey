@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,existsSync,readdirSync} from 'node:fs';
+import {readFileSync,readdirSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {makeEnv,seedListing,seedMedia,adminCookie,call,T0} from './helpers.mjs';
 import {passesExtra} from '../../admin/src/listing-filters.js';
 import {stateOf} from '../../admin/src/format.js';
 
-// No application route loads this proposal. Tests apply it only to disposable databases.
-const proposal=new URL('../../docs/roadmap/work/SPR-01/available-on-history.proposed.sql',import.meta.url);
-const install=db=>{if(existsSync(proposal))db.exec(readFileSync(proposal,'utf8'));};
+// Normal tests consume the canonical migration chain; migration tests start at 0051.
+const migration=new URL('../../migrations/0052_listing_economics_history.sql',import.meta.url);
+const install=db=>db.exec(readFileSync(migration,'utf8'));
 const history=(db,id)=>db.prepare("SELECT id,data FROM events WHERE entity_type='listing' AND entity_id=? ORDER BY id")
   .all(id).map(row=>({id:row.id,data:JSON.parse(row.data)}));
 const listRow=async(env,cookie,id='HE-R001')=>{
@@ -73,8 +73,8 @@ test('SPR-01 A4: date-only save can derive a previously unknown parish and affec
   assert.deepEqual(event.derived_fields,['parish']);
 });
 
-test('SPR-01 A5 proposal preserves the deployed triggers and existing history while adding date values',async()=>{
-  const env=makeEnv(),db=env.DB.raw,cookie=await adminCookie();
+test('SPR-01 A5 canonical migration preserves existing history while adding date values',async()=>{
+  const env=makeEnv({through:51}),db=env.DB.raw,cookie=await adminCookie();
   seedListing(env,{available_on:'2026-11-12'});
   const previous=await call(env,'PUT','/admin/listings/HE-R001',{cookie,body:{updated_at:T0,sale_price:800000}});
   assert.equal(previous.status,200);
@@ -86,14 +86,13 @@ test('SPR-01 A5 proposal preserves the deployed triggers and existing history wh
   const oldTriggers=definitions();
   assert.deepEqual(Object.keys(oldTriggers),['listing_event_insert','listing_event_update']);
   install(db);
-  assert.deepEqual(history(db,'HE-R001'),oldHistory,'installing the proposal does not rewrite old events');
+  assert.deepEqual(history(db,'HE-R001'),oldHistory,'installing the migration does not rewrite old events');
   assert.deepEqual(db.prepare('SELECT * FROM events ORDER BY id').all(),oldEvents);
   assert.deepEqual(db.prepare('SELECT * FROM notifications ORDER BY id').all(),oldNotices);
   assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
-  const modified=definitions(),strip=s=>s.replace(/\/\* SPR01_AVAILABLE_ON_BEGIN \*\/[\s\S]*?\/\* SPR01_AVAILABLE_ON_END \*\//g,'').replace(/\s+/g,' ').trim();
+  const modified=definitions();
   assert.equal((modified.listing_event_insert.match(/SPR01_AVAILABLE_ON_BEGIN/g)||[]).length,1);
   assert.equal((modified.listing_event_update.match(/SPR01_AVAILABLE_ON_BEGIN/g)||[]).length,2);
-  for(const name of Object.keys(oldTriggers))assert.equal(strip(modified[name]),strip(oldTriggers[name]),name);
   const created=await call(env,'POST','/admin/listings',{cookie,body:{title:'Synthetic listing',use:'residential',country:'Jersey',
     operation:'sale',availability:'for_sale',available_on:'2028-02-29'}});
   assert.equal(created.status,201);
@@ -113,7 +112,7 @@ test('SPR-01 A5 proposal preserves the deployed triggers and existing history wh
 
 test('SPR-01 A5: structured date values do not expose free-text fields in history',async()=>{
   const env=makeEnv(),db=env.DB.raw,cookie=await adminCookie();
-  seedListing(env,{available_on:'2026-11-12'});install(db);
+  seedListing(env,{available_on:'2026-11-12'});
   const result=await call(env,'PUT','/admin/listings/HE-R001',{cookie,body:{updated_at:T0,
     available_on:'2027-02-28',description:'Synthetic private prose'}});
   assert.equal(result.status,200);
@@ -127,7 +126,7 @@ test('SPR-01 A5: invalid legacy availability is not copied into new events or Hi
   const marker='SYNTHETIC_PRIVATE_AVAILABILITY';
   for(const legacy of [marker,`2028-02-29\0${marker}`])for(const next of ['2028-02-29',null]){
     const env=makeEnv(),db=env.DB.raw,cookie=await adminCookie();
-    seedListing(env,{available_on:legacy,parish:'St Saviour'});install(db);
+    seedListing(env,{available_on:legacy,parish:'St Saviour'});
     const result=await call(env,'PUT','/admin/listings/HE-R001',{cookie,body:{updated_at:T0,available_on:next}});
     assert.equal(result.status,200);
     const raw=history(db,'HE-R001').at(-1).data;
@@ -143,7 +142,7 @@ test('SPR-01 A5: invalid legacy availability is not copied into new events or Hi
 });
 
 test('SPR-01 A5: new snapshots accept only valid calendar dates or explicit null',()=>{
-  const env=makeEnv(),db=env.DB.raw,marker='SYNTHETIC_PRIVATE_AVAILABILITY';install(db);
+  const env=makeEnv(),db=env.DB.raw,marker='SYNTHETIC_PRIVATE_AVAILABILITY';
   const samples=[
     ['0001-01-01','0001-01-01'],['2000-02-29','2000-02-29'],['2028-02-29','2028-02-29'],
     ['9999-12-31','9999-12-31'],['0400-02-29','0400-02-29'],[null,null],['0000-01-01',{unknown:true}],
@@ -166,7 +165,7 @@ test('SPR-01 A5: new snapshots accept only valid calendar dates or explicit null
 
 test('SPR-01 A5: no-op, stale write and event failure cannot append or leave a partial edit',async()=>{
   const env=makeEnv(),db=env.DB.raw,cookie=await adminCookie();
-  seedListing(env,{available_on:'2026-11-12'});install(db);
+  seedListing(env,{available_on:'2026-11-12'});
   const saved=await call(env,'PUT','/admin/listings/HE-R001',{cookie,body:{updated_at:T0,available_on:'2027-02-28'}});
   assert.equal(saved.status,200);assert.equal(history(db,'HE-R001').length,1);
   const noop=await call(env,'PUT','/admin/listings/HE-R001',{cookie,body:{updated_at:saved.data.listing.updated_at,available_on:'2027-02-28'}});
@@ -182,7 +181,7 @@ test('SPR-01 A5: no-op, stale write and event failure cannot append or leave a p
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM listing_event_context').get().n,0);
 });
 
-test('SPR-01 A5 proposal preserves old history and atomic behavior in local D1',async()=>{
+test('SPR-01 A5 canonical migration preserves old history and atomic behavior in local D1',async()=>{
   const require=createRequire(import.meta.url);
   const {Miniflare,convertV4MiniflareOptions}=require('miniflare'),{unstable_splitSqlQuery}=require('wrangler');
   const mf=new Miniflare(convertV4MiniflareOptions({modules:true,
@@ -190,7 +189,7 @@ test('SPR-01 A5 proposal preserves old history and atomic behavior in local D1',
     host:'127.0.0.1',port:0,d1Databases:{DB:'spr01-history-fixture'}}));
   try{
     const DB=await mf.getD1Database('DB'),dir=new URL('../../migrations/',import.meta.url);
-    for(const name of readdirSync(dir).filter(n=>n.endsWith('.sql')).sort())
+    for(const name of readdirSync(dir).filter(n=>n.endsWith('.sql')&&Number(n.slice(0,4))<52).sort())
       await DB.batch(unstable_splitSqlQuery(readFileSync(new URL(name,dir),'utf8')).map(sql=>DB.prepare(sql)));
     await DB.prepare("INSERT INTO admins(email,added_by,added_at) VALUES('admin@example.test','fixture',?)").bind(T0).run();
     const env=makeEnv();env.DB=DB;
@@ -206,13 +205,12 @@ test('SPR-01 A5 proposal preserves old history and atomic behavior in local D1',
     const definitions=async()=>Object.fromEntries((await DB.prepare("SELECT name,sql FROM sqlite_master WHERE type='trigger' AND name IN ('listing_event_insert','listing_event_update') ORDER BY name").all()).results.map(row=>[row.name,row.sql]));
     const oldTriggers=await definitions();
     assert.deepEqual(Object.keys(oldTriggers),['listing_event_insert','listing_event_update']);
-    if(existsSync(proposal))await DB.batch(unstable_splitSqlQuery(readFileSync(proposal,'utf8')).map(sql=>DB.prepare(sql)));
+    await DB.batch(unstable_splitSqlQuery(readFileSync(migration,'utf8')).map(sql=>DB.prepare(sql)));
     assert.deepEqual(await events(),oldHistory);assert.deepEqual(await notices(),oldNotices);
     assert.deepEqual((await DB.prepare('PRAGMA foreign_key_check').all()).results,[]);
-    const changedTriggers=await definitions(),strip=s=>s.replace(/\/\* SPR01_AVAILABLE_ON_BEGIN \*\/[\s\S]*?\/\* SPR01_AVAILABLE_ON_END \*\//g,'').replace(/\s+/g,' ').trim();
+    const changedTriggers=await definitions();
     assert.equal((changedTriggers.listing_event_insert.match(/SPR01_AVAILABLE_ON_BEGIN/g)||[]).length,1);
     assert.equal((changedTriggers.listing_event_update.match(/SPR01_AVAILABLE_ON_BEGIN/g)||[]).length,2);
-    for(const name of Object.keys(oldTriggers))assert.equal(strip(changedTriggers[name]),strip(oldTriggers[name]),name);
     const created=await call(env,'POST','/admin/listings',{cookie,body:{...body,title:'Another synthetic listing',available_on:'2028-02-29'}});
     assert.equal(created.status,201);
     const createdEvent=await DB.prepare("SELECT data FROM events WHERE entity_type='listing' AND entity_id=? ORDER BY id DESC LIMIT 1").bind(created.data.id).first();

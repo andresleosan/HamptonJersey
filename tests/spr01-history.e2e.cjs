@@ -13,8 +13,9 @@ const quote=s=>`'${s.replaceAll("'","''")}'`;
 (async()=>{
   assert.ok(BASE&&process.env.E2E_PERSIST,'isolated fixture required');
   const {signSession,COOKIE}=await import('../server/auth.js');
-  execFileSync(process.execPath,[wrangler,'d1','execute','hampton','--local','--persist-to',process.env.E2E_PERSIST,
-    '--json','--file','docs/roadmap/work/SPR-01/available-on-history.proposed.sql'],{encoding:'utf8'});
+  // The isolated runner installs canonical migrations, including combined 0052.
+  const marker=JSON.parse(sql('SELECT version FROM pub06_structured_costs WHERE singleton=1'));
+  assert.equal(marker[0].results[0].version,1,'canonical combined schema required');
   const browser=await chromium.launch({executablePath:process.env.CHROME});
   try{
     for(const [width,timezoneId] of [[1280,'Europe/Jersey'],[390,'America/Los_Angeles'],[390,'Pacific/Kiritimati']]){

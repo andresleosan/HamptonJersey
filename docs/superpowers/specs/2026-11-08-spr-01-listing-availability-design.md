@@ -14,7 +14,7 @@ El original privado de Luis no está en este clon aislado. Los requisitos anteri
 
 ## Alternativas y elección propuesta
 
-1. **Recomendada:** reutilizar `bathrooms` y añadir una sola fecha nullable `available_from` a `listings`. Cumple SPR-01 y deja un contrato reutilizable por PUB-06 con una migración y sin dependencias nuevas.
+1. **Recomendada:** reutilizar `bathrooms` y añadir una sola fecha nullable `available_on` a `listings`. Cumple SPR-01 y deja un contrato reutilizable por PUB-06 con una migración y sin dependencias nuevas.
 2. Guardar la fecha en `specs`: evita una columna, pero crea un contrato ambiguo de texto, no una fecha validada, y dificulta compartirla con PUB-06. Descartada.
 3. Esperar a completar todos los campos económicos de PUB-06: agranda innecesariamente el alcance y retrasa SPR-01. Descartada para este plan.
 
@@ -24,15 +24,15 @@ Luis eligió SPR-01 y solo planificación. La elección técnica y los detalles 
 
 | ID | Decisión propuesta |
 | --- | --- |
-| D1 | `listings.available_from: TEXT NULL`, sin valor por defecto ni backfill. API: `string` con fecha real `YYYY-MM-DD` o `null`. Todas las propiedades previas quedan en `null`. |
+| D1 | `listings.available_on: TEXT NULL`, sin valor por defecto ni backfill. API: `string` con fecha real `YYYY-MM-DD` o `null`. Todas las propiedades previas quedan en `null`. |
 | D2 | Reutilizar `realDate`, exigir año de `0001` a `9999` y formato exacto. Aceptar pasado, hoy y futuro: es un dato registrado, no una reserva de visita. Vacío, espacios y `null` se normalizan a `null` por la regla `blank` existente; fechas no vacías con espacios alrededor son inválidas. |
-| D3 | Crear con el campo omitido deja `null`. PUT parcial con el campo omitido lo conserva. PUT con `null` lo borra. Valor inválido produce HTTP 400 y `fields.available_from = "Enter a valid date as YYYY-MM-DD"`, sin escritura ni evento. |
+| D3 | Crear con el campo omitido deja `null`. PUT parcial con el campo omitido lo conserva. PUT con `null` lo borra. Valor inválido produce HTTP 400 y `fields.available_on = "Enter a valid date as YYYY-MM-DD"`, sin escritura ni evento. |
 | D4 | La fecha es opcional para venta, alquiler y negocio. No participa en `checkPrice`, no bloquea Publish ni cambia por sí misma `availability`, `published`, `confirmed_at` o las reglas de To confirm. No se añade como criterio de matching; se conserva la llamada actual a `afterSave(recomputeForListing, ...)` y sus reglas de recálculo, sin prometer invariancia de todos los efectos de guardar. Un guardado solo de fecha conserva `confirmed_at`; usa el control de concurrencia `updated_at` existente. |
 | D5 | Editor: campo nativo `type="date"` junto a Availability en Details, etiqueta `Available from`, hint `Leave blank if unknown. This does not confirm availability.` Conserva el valor al cambiar Operation o Availability; Discard restaura el valor guardado. |
 | D6 | Fila de Listings: baños en `.meta`, como span independiente: `0 baths`, `1 bath`, `2 baths`, etc. `null`/`undefined` no dibujan el dato ni se convierten en cero. Mantener `Studio` para 0 dormitorios y `N bed` para los demás. |
 | D7 | En la celda Availability, añadir `Available from {fmtDayMonth(date)}` solo si hay fecha, `archived_at == null` y `availability` pertenece a `ON_MARKET`. La fecha nunca sustituye el estado ni el badge To confirm. En filas archivadas o estados fuera del mercado, mantener la fecha almacenada y editable, pero no presentar una fecha de disponibilidad activa en la lista. Sin fecha no se añade línea ni se infiere "Available now". |
-| D8 | GET `/admin/listings` normal incluye `bathrooms` y `available_from`; `?slim=1` conserva su contrato mínimo. El detalle ya selecciona `l.*`. La proyección pública `toPublic` permanece sin este campo: publicar la fecha en la web pertenece a otro alcance. |
-| D9 | La migración nueva recrea `listing_event_insert` y `listing_event_update`, conservando su comportamiento y agregando `available_from` a fields/after de creación y a before/after/changed de actualización. No se modifica una migración histórica ni se inventan eventos anteriores. No-op y conflicto no crean eventos; un fallo del evento revierte el guardado. |
+| D8 | GET `/admin/listings` normal incluye `bathrooms` y `available_on`; `?slim=1` conserva su contrato mínimo. El detalle ya selecciona `l.*`. Se conserva la proyección pública de fecha existente de PUB-06/0042; esta integración no añade otra fecha ni amplía esa proyección. |
+| D9 | La migración nueva recrea `listing_event_insert` y `listing_event_update`, conservando su comportamiento y agregando `available_on` a fields/after de creación y a before/after/changed de actualización. No se modifica una migración histórica ni se inventan eventos anteriores. No-op y conflicto no crean eventos; un fallo del evento revierte el guardado. |
 | D10 | PUB-06 consumirá exactamente este campo y su validación; no añadirá otra fecha, otro editor ni una segunda migración para el mismo dato. Los otros campos económicos de PUB-06 siguen pendientes. |
 
 ## Revisión grill-me: cuestiones resueltas
@@ -54,7 +54,7 @@ No quedan decisiones funcionales abiertas para redactar el plan. Quedan revisió
 | A1 | Baños 0, 1 y 2 visibles con plural correcto; desconocidos omitidos; dormitorios conservados. | Pruebas de helpers + e2e de fila. |
 | A2 | Crear, editar, guardar, recargar y borrar la fecha conserva el día exacto, sin desplazamiento horario. | Validación, API y recorrido en dos zonas horarias. |
 | A3 | Fecha imposible, timestamp, tipos incorrectos y año cero producen error de campo sin escritura. | Pruebas de `validateListing` y rutas. |
-| A4 | Cambiar solo la fecha conserva `confirmed_at`, estado, visibilidad y filtros existentes. | API + e2e de To confirm y estados. |
+| A4 | Cambiar solo la fecha conserva `confirmed_at`, estado, visibilidad y reglas de los filtros existentes. Los filtros siguen evaluando los datos guardados: el de cambios recientes refleja `updated_at`, y el recálculo ordinario D4 puede completar una parroquia desconocida con evidencia y afectar ese filtro. La fecha no confirma disponibilidad ni sustituye por sí misma esos datos. | API + e2e de To confirm y estados; casos normalizado y parroquia desconocida, con recencia explícita. |
 | A5 | Base previa migra conservando filas; historial registra antes/después real; no-op/409/rollback no agregan eventos. | Migración SQLite + pruebas EST-18. |
 | A6 | Guardado, Discard, error 400 y conflicto 409 son utilizables a 1280 y 390 px con teclado y zoom 200 %. | E2E y Playwright MCP; consola/red y capturas. |
 | A7 | PUB-06 tiene un contrato único y SPR-01 se mantiene parcial hasta implementar, verificar y publicar. | Revisión documental y cierre del coordinador. |
@@ -64,3 +64,9 @@ No quedan decisiones funcionales abiertas para redactar el plan. Quedan revisió
 No rediseñar Listings como una nueva rejilla; no añadir filtros, exportaciones, capturas, automatizaciones, fuentes, nuevas reglas de publicación ni el resto de PUB-06. No descargar ni generar assets. Las pruebas y migraciones descritas se ejecutarán en la construcción, con fixtures locales. Esta entrega solo valida documentos.
 
 Reglas visuales, archivos exactos, pruebas y orden de ejecución: [plan](../plans/2026-11-08-spr-01-listing-availability.md). Estado y comprobaciones de esta planificación: [ledger](../plans/2026-11-08-spr-01-listing-availability-ledger.md).
+
+## Conciliación de integración · 14-nov-2026
+
+Ruling: se reutiliza `available_on` ya incorporado por PUB-06/0042, incluida su proyección pública existente, conforme al contrato real registrado en la implementación del 13-nov; no se crea `available_from`, otro editor ni una segunda columna. La migración combinada `0052_listing_economics_history.sql` incorpora A5 junto a los costes estructurados sin reescribir eventos anteriores. La propuesta de fecha aislada queda histórica y no debe aplicarse encima.
+
+Ruling A4/D4: conservar los filtros significa conservar sus reglas y evaluar los valores vigentes, junto a la invariancia de estado, visibilidad y confirmación exigida por A4. D4 manda conservar el recálculo ordinario del guardado y `updated_at`; ocultar esos efectos o suprimirlos alteraría el contrato existente. Las pruebas cubren tanto una ficha normalizada (solo cambia fecha/versión) como la parroquia desconocida derivada por el mecanismo existente y la recencia del guardado. No se atribuye esa derivación a una confirmación de disponibilidad.

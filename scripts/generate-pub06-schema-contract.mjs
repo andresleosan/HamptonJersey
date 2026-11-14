@@ -1,10 +1,10 @@
-// Generate the runtime identity check from the disconnected reviewed proposal.
+// Generate the runtime identity check from the canonical combined migration.
 // This never applies SQL. Run with --check to detect drift.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { unstable_splitSqlQuery } = require('wrangler');
-const source = new URL('../docs/roadmap/work/PUB-06/structured-economics.proposed.sql', import.meta.url);
+const source = new URL('../migrations/0052_listing_economics_history.sql', import.meta.url);
 const output = new URL('../server/listing-economics-contract.js', import.meta.url);
 const names = ['listing_event_insert', 'listing_event_update', 'pub06_costs_guard_insert', 'pub06_costs_guard_update'];
 const entries = new Map();

@@ -68,3 +68,7 @@ Luis autorizó resolver el bloqueo y después planificar PUB-06. La inspección 
 - `node --test tests/team-coordinator.test.js`: 25/25 PASS; advertencia previa de module type, sin modificación de package.json.
 - Comprobación adicional en memoria: sin evidencia se rechaza complete; tras evidencia documental vigente se cierra plan y libera recursos, sin evidencia integrated ni construcción. PASS.
 - Se corrige el procedimiento de cierre de este plan. Registrar únicamente la revisión documental real y cerrar esta fase; conservar archivos locales y preparar una copia limpia independiente para la reserva de PUB-06. El resultado de las operaciones reales se registra en el relevo privado.
+
+## Integración combinada · 14-nov-2026
+
+Se prepara `migrations/0052_listing_economics_history.sql` con PUB-06 para registrar antes/después de `available_on`, sin backfill ni segundo campo. El contrato efectivo sigue `available_on` de 0042 y conserva su proyección pública ya existente. A4 se concilia con D4 en el spec: mismas reglas de filtros, estado/visibilidad/confirmed_at conservados, recencia y derivación ordinaria de parroquia visibles y probadas. La preparación local no acredita aplicación remota ni cierre; la evidencia conjunta registra pruebas y revisión de retención.

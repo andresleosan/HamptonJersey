@@ -35,3 +35,7 @@ Pendientes: revisión independiente del diff y del guardado, suite completa inte
 ## Integración posterior
 
 Sobre `8ceb36b414f22864ca4e7ff35b0aa37b4ce65deb`, la revisión independiente identificó los tres casos corregidos arriba. La integración aprobó **1.852/1.852** pruebas Node y **25/25** Python, además del contrato generado, build, `check:release`, `team:check`, `check:packages` y `git diff --check`. Los recorridos aislados de costes estructurados y de la ficha BUS-10 terminaron con código 0 en Chromium con datos ficticios. El zoom comprobado fue CSS; no se verificaron WebKit, el runtime remoto ni producción. La capacidad permanece apagada, el SQL no está en la cola de migraciones y A3/A4 siguen pendientes.
+
+## Continuidad · 14-nov-2026
+
+La integración posterior prepara la migración canónica `0052_listing_economics_history.sql`, conjunta para PUB-06/SPR-01. La propuesta SQL de esta entrega queda histórica y no se debe aplicar por separado. La comparación DDL, el mapa concreto de retención, la conciliación A4/D4 y las pruebas actuales se registran en [evidencia conjunta](../PUB-06/2026-11-14-combined-schema-history-evidence.md). Esta nota no afirma aplicación ni activación remotas y conserva las comprobaciones anteriores como fotografía histórica.

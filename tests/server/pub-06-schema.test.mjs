@@ -9,9 +9,9 @@ import { listingBatch } from '../../server/listing-events.js';
 const require = createRequire(import.meta.url);
 const { Miniflare, convertV4MiniflareOptions } = require('miniflare');
 const { unstable_splitSqlQuery } = require('wrangler');
-const proposal = new URL('../../docs/roadmap/work/PUB-06/structured-economics.proposed.sql', import.meta.url);
+const migration = new URL('../../migrations/0052_listing_economics_history.sql', import.meta.url);
 const migrations = new URL('../../migrations/', import.meta.url);
-const source = readFileSync(proposal, 'utf8');
+const source = readFileSync(migration, 'utf8');
 const flag = { PUB06_STRUCTURED_ECONOMICS_READY: '1' };
 
 async function apply(DB, file) {
@@ -19,8 +19,8 @@ async function apply(DB, file) {
   if (statements.length) await DB.batch(statements);
 }
 
-test('SQLite proposal preserves existing texts, SPR-01 date snapshots, and atomic structured history', async () => {
-  const env = { ...makeEnv(), ...flag }, db = env.DB.raw;
+test('SQLite canonical migration preserves existing texts, SPR-01 date snapshots, and atomic structured history', async () => {
+  const env = { ...makeEnv({ through: 51 }), ...flag }, db = env.DB.raw;
   seedListing(env, { currency: 'GBP', available_on: '2026-11-12', rental_deposit: 'Synthetic legacy deposit',
     parish_rates: 'Synthetic rates', service_charge: 'Synthetic service', confirmed_at: T0 });
   const before = { ...db.prepare('SELECT * FROM listings WHERE id=?').get('HE-R001') };
@@ -57,17 +57,17 @@ test('SQLite proposal preserves existing texts, SPR-01 date snapshots, and atomi
   assert.equal(db.prepare(`UPDATE listings SET rental_deposit_amount=1 WHERE id='HE-R001' AND ${ECONOMICS_GUARD_SQL}`).run(...ECONOMICS_GUARD_ARGS).changes, 0);
 });
 
-test('D1 local installs the combined proposal without losing the row and records exact zero and dates', async () => {
+test('D1 local installs the combined migration without losing the row and records exact zero and dates', async () => {
   const mf = new Miniflare(convertV4MiniflareOptions({ modules: true,
     script: "export default { fetch() { return new Response('fixture') } }", compatibilityDate: '2025-10-01',
     host: '127.0.0.1', port: 0, d1Databases: { DB: 'pub06-structured-synthetic' } }));
   try {
     const DB = await mf.getD1Database('DB');
-    for (const file of readdirSync(migrations).filter(name => name.endsWith('.sql')).sort()) await apply(DB, new URL(file, migrations));
+    for (const file of readdirSync(migrations).filter(name => name.endsWith('.sql') && Number(name.slice(0, 4)) < 52).sort()) await apply(DB, new URL(file, migrations));
     await DB.prepare(`INSERT INTO listings (id,use,title,operation,availability,currency,available_on,rental_deposit,created_at,updated_at)
       VALUES ('HE-R001','residential','Synthetic','rent','to_let','GBP','2026-11-12','Legacy',?,?)`).bind(T0,T0).run();
     const before = await DB.prepare("SELECT * FROM listings WHERE id='HE-R001'").first();
-    await apply(DB, proposal);
+    await apply(DB, migration);
     const { rental_deposit_amount, parish_rates_amount, parish_rates_period, service_charge_amount, service_charge_period, ...after } =
       await DB.prepare("SELECT * FROM listings WHERE id='HE-R001'").first();
     assert.deepEqual(after, before);
@@ -97,11 +97,11 @@ test('D1 real routes enforce session, stale versions and an atomic guard if audi
     host: '127.0.0.1', port: 0, d1Databases: { DB: 'pub06-routes-synthetic' } }));
   try {
     const DB = await mf.getD1Database('DB');
-    for (const file of readdirSync(migrations).filter(name => name.endsWith('.sql')).sort()) await apply(DB, new URL(file, migrations));
+    for (const file of readdirSync(migrations).filter(name => name.endsWith('.sql') && Number(name.slice(0, 4)) < 52).sort()) await apply(DB, new URL(file, migrations));
     await DB.prepare(`INSERT INTO listings (id,use,title,operation,availability,currency,created_at,updated_at)
       VALUES ('HE-R001','residential','Synthetic','rent','to_let','GBP',?,?)`).bind(T0,T0).run();
     await DB.prepare("INSERT INTO admins(email,added_at) VALUES ('admin@example.test',?)").bind(T0).run();
-    await apply(DB, proposal);
+    await apply(DB, migration);
     const originalAudit = (await DB.prepare("SELECT sql FROM sqlite_master WHERE type='trigger' AND name='listing_event_update'").first()).sql;
     const alteredAudit = originalAudit.replace('THEN NEW.available_on', 'THEN NULL');
     assert.notEqual(alteredAudit, originalAudit);
