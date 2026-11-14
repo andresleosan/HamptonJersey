@@ -2,7 +2,7 @@ import {activeSql,normalizePhone} from './applicants.js';
 import {fail} from './http.js';
 import {MILESTONES} from './sales.js';
 import {realDate,weekday} from './viewings.js';
-import {COMPLIANCE} from './rentals.js';
+import {COMPLIANCE,CALENDAR} from './rentals.js';
 export {TASK_CATEGORIES} from '../shared/notification-categories.js';
 
 const positive=value=>/^[1-9]\d*$/.test(String(value))&&Number.isSafeInteger(Number(value));
@@ -20,7 +20,7 @@ export function taskTarget(value,manual=false) {
       const item=input[key];
       if(key.endsWith('_id')){if(!positive(item))fail(400,'Invalid context ID');context[key]=Number(item);}
       else if(key==='milestone'){if(!MILESTONES.some(([k])=>k===item))fail(400,'Invalid milestone');context[key]=item;}
-      else if(key==='compliance_kind'){if(!COMPLIANCE.some(([k])=>k===item))fail(400,'Invalid compliance kind');context[key]=item;}
+      else if(key==='compliance_kind'){if(![...COMPLIANCE,...CALENDAR].some(([k])=>k===item))fail(400,'Invalid compliance kind');context[key]=item;}
       else {if(!['deposit','inventory_in','inventory_out'].includes(item))fail(400,'Invalid deadline');context[key]=item;}
     }
     if(context.deadline&&!context.tenancy_id)fail(400,'A deadline needs its tenancy');

@@ -4,7 +4,7 @@ import { fmtDate, fmtDay } from "./format.js";
 import { Modal, money, pounds, useFieldErrors } from "./Sales.jsx";
 import { KIND, REPAIR_STATUS, URGENCY, pence } from "./Rentals.jsx";
 import { Estimated } from "./LegalTerms.jsx";
-import { LEGAL, REPAIR_NEXT, earliestMoveOut, initialTermBeyondThreeYears, parseMoney, rentAssistant } from "../../server/rentals.js";
+import { LEGAL, ONE_OFF, REPAIR_NEXT, earliestMoveOut, initialTermBeyondThreeYears, parseMoney, rentAssistant } from "../../server/rentals.js";
 import { jerseyToday } from "../../server/viewings.js";
 
 // The property page's dialogs (#/rentals/<id>) and the New tenancy form. Rent, deposits, quotes and costs in whole
@@ -287,19 +287,29 @@ export function EditTenancy({ d: { tenancy: t }, keys, title, note, over, onClos
   </Sheet>;
 }
 
-// R10, R11: a property check done on a date; without an expiry it lasts its legal period.
+// R10, R11: a property check done on a date; without an expiry it lasts its legal period. ADM-11: the hazards check
+// has no period and asks for its next review; a one-off (ONE_OFF) has no expiry; a licence change may instead start
+// with the date of the change, which sets the days to notify it.
 export function UpdateCheck({ rental, item: c, legal, onClose, onDone, onRefused }) {
-  const a = useForm("uc", { done_on: jerseyToday(), expires_on: "", note: c.note ?? "" }, async f => {
+  const oneOff = c.kind in ONE_OFF, change = c.kind === "licence_change", today = jerseyToday();
+  const estimated = legal?.status === "estimated" ? " (estimated, not validated by a lawyer)" : "";
+  const a = useForm("uc", { done_on: change ? "" : today, expires_on: "", changed_on: "", note: c.note ?? "" }, async f => {
     await api(`/admin/rentals/${rental.id}/compliance/${c.kind}`, { method: "PUT", body: { done_on: f.done_on || null,
-      expires_on: f.expires_on || null, note: f.note.trim() || null } });
+      expires_on: f.expires_on || null, ...(change ? { changed_on: f.changed_on || null } : {}), note: f.note.trim() || null } });
     return `${c.label} recorded.`;
   }, onDone, onRefused);
   return <Sheet title={`Update ${c.label.toLowerCase()}`} a={a} button="Save check" onClose={onClose}>
     <p>{rental.address}{c.done_on && ` · last done ${fmtDay(c.done_on)}`}</p>
-    <div className="grid2">{a.field("done_on", "Done on", { type: "date", max: jerseyToday() })}
-      {a.field("expires_on", "Expires on (optional)", { type: "date", hint: `Blank: ${c.years} year${c.years === 1 ? "" : "s"} after the date done${
-        legal?.status === "estimated" ? " (estimated, not validated by a lawyer)" : ""}.` })}</div>
-    {a.field("note", "Note (optional)", { maxLength: 300, placeholder: "e.g. Certificate 48213" })}
+    <div className="grid2">
+      {change && a.field("changed_on", "Change made on", { type: "date", max: today,
+        hint: `Starts the ${c.days} days to notify it${estimated}. Leave blank when recording the notification.` })}
+      {a.field("done_on", change ? "Notified on" : "Done on", { type: "date", max: today,
+        ...(change ? { hint: "Or the date it was checked that nothing has changed." } : {}) })}
+      {c.kind === "hazards" ? a.field("expires_on", "Next review on", { type: "date", min: today,
+        hint: "No legal period is set for this check: enter the date it will be reviewed again." })
+        : !oneOff && a.field("expires_on", "Expires on (optional)", { type: "date", hint: `Blank: ${c.years} year${c.years === 1 ? "" : "s"} after the date done${estimated}.` })}</div>
+    {a.field("note", c.kind === "hazards" ? "Report reference" : "Note (optional)", { maxLength: 300,
+      placeholder: c.kind === "hazards" ? "e.g. Assessment HZ-12, on file" : "e.g. Certificate 48213" })}
   </Sheet>;
 }
 

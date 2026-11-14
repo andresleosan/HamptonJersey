@@ -1,12 +1,12 @@
 import { json, fail, readJson, now, sha256 } from "../http.js";
 import { validateTenancy, validatePayment, rentAssistant, earliestMoveOut, complianceStatus, addMonths, LEGAL,
-  ARREARS_STEPS, COMPLIANCE, REF_RE, importKey, cleanDescription } from "../rentals.js";
+  ARREARS_STEPS, COMPLIANCE, CALENDAR, TENANT, REF_RE, importKey, cleanDescription } from "../rentals.js";
 import { fields } from "../sales.js";
 import { jerseyToday, plusDays, realDate } from "../viewings.js";
-import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE } from "./rentals.js";
+import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE, startChecks } from "./rentals.js";
 import { exitReady } from "../tenancy-exits.js";
 import { NEXT_INSPECTION, inspectionDue, inspectionsReady } from "../rental-inspections.js";
-import { readLegal, legalLabel } from "../legal-terms.js";
+import { readLegal, legalLabel, calendarReady } from "../legal-terms.js";
 
 const MAX_POUNDS = 1000000, MAX_PENCE = 100 * MAX_POUNDS; // R20
 const ENDED = "This tenancy has ended", CHANGED = "This property changed meanwhile. Reload to see it";
@@ -85,8 +85,21 @@ export const deadlines = (t, today, legal = LEGAL) => DEADLINES.filter(d => t[d[
 });
 
 // R10, R11, P4: the property checks that count, over c and r: properties not archived, gas only where there may be gas.
-export const CHECKS = `FROM compliance_items c JOIN rentals r ON r.id = c.rental_id
-  WHERE r.archived_at IS NULL AND (c.kind <> 'gas' OR r.has_gas IS NOT 0)`;
+// ADM-11 (calendar: its switch; ?1 = today): with it, the calendar's kinds too, without a one-off already done and,
+// for those of TENANT, only while a tenancy runs (the deposit's: one with its deposit received). Without it, the four
+// kinds only, whatever rows a switch turned off again left behind.
+const quoted = kinds => kinds.map(k => `'${k}'`).join(", ");
+const applies = calendar => `(c.kind <> 'gas' OR r.has_gas IS NOT 0) AND ${calendar
+  ? `(c.expires_on IS NOT NULL OR c.done_on IS NULL) AND (c.kind NOT IN (${quoted(TENANT)}) OR EXISTS (SELECT 1 FROM tenancies ct
+      WHERE ct.rental_id = r.id AND (ct.ended_on IS NULL OR ct.ended_on > ?1)
+      AND (c.kind <> 'deposit_info' OR ct.deposit_received_on IS NOT NULL)))`
+  : `c.kind IN (${quoted(COMPLIANCE.map(([k]) => k))})`}`;
+export const checksSql = calendar => `FROM compliance_items c JOIN rentals r ON r.id = c.rental_id
+  WHERE r.archived_at IS NULL AND ${applies(calendar)}`;
+// ADM-11: the calendar's rows ("Not recorded") for the properties entered before its switch. Run where the checks are
+// read (Rentals and the clock's Inbox pass); a row already there is left alone.
+export const ensureChecks = env => env.DB.prepare(`INSERT OR IGNORE INTO compliance_items (rental_id, kind)
+  SELECT r.id, k.value FROM rentals r, json_each(?) k`).bind(JSON.stringify(CALENDAR.map(([k]) => k)));
 // R10, R13: one SQL term per tenancy deadline not done whose due date `cmp` (e.g. "< ?1"), over t; the same rule as
 // deadlines(), from the same DEADLINES.
 const pending = (cmp, legal) => DEADLINES.map(([, , from, period, done]) =>
@@ -112,7 +125,7 @@ export const refreshRentalsCount = (env, legal = LEGAL) => {
   return [ensureCharges(env, today, null, staleBefore), env.DB.prepare(`INSERT INTO app_settings (key, value, updated_at)
   WITH ${ARREARS_SQL} SELECT 'rentals_count', json_object('n',
     (SELECT COUNT(*) FROM arrears WHERE next_step IS NOT NULL)
-    + (SELECT COUNT(*) ${CHECKS} AND (c.expires_on IS NULL OR c.expires_on < ?1))
+    + (SELECT COUNT(*) ${checksSql(calendarReady(env))} AND (c.expires_on IS NULL OR c.expires_on < ?1))
     + (SELECT COALESCE(SUM(${pending("< ?1", legal).join(" + ")}), 0) FROM tenancies t JOIN rentals r ON r.id = t.rental_id
       WHERE r.archived_at IS NULL)
     + (SELECT COUNT(*) FROM tenancies t WHERE ${RENEWAL})${inspectionsReady(env) ? `
@@ -202,6 +215,7 @@ export async function tenancyPlan(env, admin, rid, input) {
     return { errors: { collect_from: COLLECT } };
   const ts = now(), value = { ...r.value, collect_from: s.service === "full" ? r.value.collect_from ?? r.value.start_on : null };
   const row = { ...value, rental_id: s.id, created_at: ts, created_by: admin, updated_at: ts, updated_by: admin };
+  const periods = calendarReady(env) && (await readLegal(env)).periods;
   const stmts = [
     env.DB.prepare(`INSERT INTO tenancies (${Object.keys(row).join(", ")}) SELECT ${Object.keys(row).map(() => "?").join(", ")}
       FROM rentals WHERE id = ? AND archived_at IS NULL AND service = ?
@@ -214,6 +228,12 @@ export async function tenancyPlan(env, admin, rid, input) {
     ensureCharges(env, jerseyToday(), "newest"),
     bump(env, admin, s.id, ts),
     rentalEvent(env, { rental_id: s.id, actor: admin, type: "tenancy.created", data: value }, { tenancy_id: "tenancies" }),
+    // ADM-11: a new tenant starts the days for the copies and for the deposit's prescribed information again (no
+    // date until the deposit is received), and brings an electrical checklist done before them forward to the start.
+    ...(periods ? [startChecks(env, admin, s.id, ["licence_copy", "eicr_copy"], row.start_on, periods.copyDays),
+      startChecks(env, admin, s.id, ["deposit_info"], row.deposit_received_on ?? null, periods.depositDays),
+      env.DB.prepare(`UPDATE compliance_items SET expires_on = ?1 WHERE rental_id = ?2 AND kind = 'checklist'
+        AND done_on < ?1 AND expires_on > ?1`).bind(row.start_on, s.id)] : []),
   ];
   const recheck = async () => {
     const st = (await state()) ?? fail(404, "Property not found");
@@ -280,9 +300,13 @@ async function updateTenancy({ request, env, admin, params: [id] }) {
   if (why) errors.collect_from ??= why;
   if (opening && !collects) errors.opening_balance ??= NOT_COLLECTED;
   if (Object.keys(errors).length) return fieldErrors(errors);
+  // ADM-11: a deposit received (or its date corrected) starts the days for its prescribed information, unless given.
+  const info = calendarReady(env) && changed("deposit_received_on") && sent.value.deposit_received_on
+    ? [startChecks(env, admin, cur.rental_id, ["deposit_info"], sent.value.deposit_received_on,
+      (await readLegal(env)).periods.depositDays, true)] : [];
   const before = "tenancy_id = ? AND kind = 'rent' AND edited = 0 AND due_on < ?";
   await save(env, admin, "tenancies", cur, body, r.value, (keys, of) => [rentalEvent(env, { rental_id: cur.rental_id,
-    tenancy_id: cur.id, actor: admin, type: "tenancy.updated", data: { before: of(cur), after: of(r.value) } }),
+    tenancy_id: cur.id, actor: admin, type: "tenancy.updated", data: { before: of(cur), after: of(r.value) } }), ...info,
   ...(moved ? [removed(env, before, cur.id, to), env.DB.prepare(`DELETE FROM charges WHERE ${before}`).bind(cur.id, to),
     firstCharge(env, today, cur.id), ensureCharges(env, today, cur.id)] : []),
   ...(opening ? [env.DB.prepare(`INSERT INTO charges (tenancy_id, due_on, amount, kind) SELECT id, collect_from, opening_balance,
@@ -665,8 +689,8 @@ async function importPayments({ request, env, admin }) {
 
 // The Rentals screen's to-do order: overdue and missing first, then the nearest; checks in COMPLIANCE order.
 const RANK = ["overdue", "missing", "due7", "due30", "due60"];
-const KINDS = [...COMPLIANCE.map(([k]) => k), ...DEADLINES.map(([k]) => k)];
-const LABEL = Object.fromEntries(COMPLIANCE.map(([k, label]) => [k, label]));
+const KINDS = [...COMPLIANCE, ...CALENDAR, ...DEADLINES].map(([k]) => k);
+const LABEL = Object.fromEntries([...COMPLIANCE, ...CALENDAR].map(([k, label]) => [k, label]));
 const WARN = Math.max(...LEGAL.warnDays);
 const INSPECTION_WARN = 30; // ADM-13: an inspection every six months shows in the to-do from 30 days before it falls due
 const URGENCY = "CASE p.urgency WHEN 'emergency' THEN 0 WHEN 'urgent' THEN 1 ELSE 2 END";
@@ -680,11 +704,11 @@ const MARKS = ["arrears", "compliance", "renewals", "repairs"];
 // to decide, an open repair. Binds ?1 today, ?2 service, ?3 the search (LIKE) or NULL, ?4 a mark or NULL. q searches
 // address, landlord, and any tenant's name or payment reference.
 const has = col => `${col} LIKE ?3 ESCAPE '\\'`;
-const LIST = (archived, inspections, legal) => `WITH x AS (SELECT r.id, r.address, r.parish, r.service, r.landlord_id, l.name AS landlord_name,
+const LIST = (archived, inspections, legal, calendar) => `WITH x AS (SELECT r.id, r.address, r.parish, r.service, r.landlord_id, l.name AS landlord_name,
     r.archived_at, t.id AS tenancy_id, t.tenant_name, t.payment_ref, ${rentNow("?1")} AS rent,
     CASE WHEN r.service = 'full' THEN t.id END AS full_id,
     r.archived_at IS NULL AND (EXISTS (SELECT 1 FROM compliance_items c WHERE c.rental_id = r.id
-        AND (c.kind <> 'gas' OR r.has_gas IS NOT 0) AND (c.expires_on IS NULL OR c.expires_on <= date(?1, '+${WARN} days')))
+        AND ${applies(calendar)} AND (c.expires_on IS NULL OR c.expires_on <= date(?1, '+${WARN} days')))
       OR EXISTS (SELECT 1 FROM tenancies t WHERE t.rental_id = r.id
         AND (${pending(`<= date(?1, '+${WARN} days')`, legal).join(" OR ")}))${inspections ? `
       OR EXISTS (SELECT 1 FROM tenancies t WHERE t.rental_id = r.id AND ${inspectionDue(`<= date(?1, '+${INSPECTION_WARN} days')`)})` : ""}) AS compliance,
@@ -720,16 +744,17 @@ async function overview({ request, env }) {
   if (filter && !MARKS.includes(filter)) fail(400, "Invalid filter");
   if (!["", "0", "1"].includes(archived)) fail(400, "Invalid archived");
   const today = jerseyToday(), s = (sql, ...b) => env.DB.prepare(sql).bind(today, ...b);
-  const visits = inspectionsReady(env), legal = await readLegal(env), { periods } = legal;
-  const list = s(LIST(archived === "1", visits, periods), service, q && `%${q.replace(/[\\%_]/g, "\\$&")}%`, filter);
+  const visits = inspectionsReady(env), legal = await readLegal(env), { periods } = legal, calendar = calendarReady(env);
+  const list = s(LIST(archived === "1", visits, periods, calendar), service, q && `%${q.replace(/[\\%_]/g, "\\$&")}%`, filter);
   if (p.get("list") === "1") return json({ rentals: (await list.all()).results.map(marks) });
+  if (calendar) await ensureChecks(env).run();
   const [, owing, checks, dues, renewals, repairs, unmatched, rentals, [totals], inspections = []] = (await env.DB.batch([
     ensureCharges(env, today),
     s(`WITH ${ARREARS_SQL} SELECT a.tenancy_id, a.rental_id, r.address, t.tenant_name, t.payment_ref, a.balance,
       a.oldest_unpaid_on, a.days_late, a.next_step FROM arrears a JOIN tenancies t ON t.id = a.tenancy_id
       JOIN rentals r ON r.id = a.rental_id WHERE a.next_step IS NOT NULL OR a.balance > 0
       ORDER BY a.days_late DESC, r.address COLLATE NOCASE`, null),
-    s(`SELECT c.rental_id, r.address, c.kind, c.expires_on ${CHECKS}
+    s(`SELECT c.rental_id, r.address, c.kind, c.expires_on ${checksSql(calendar)}
       AND (c.expires_on IS NULL OR c.expires_on <= date(?1, '+${WARN} days'))`),
     s(`SELECT t.*, r.address FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE r.archived_at IS NULL
       AND (${pending(`<= date(?1, '+${WARN} days')`, periods).join(" OR ")})`),

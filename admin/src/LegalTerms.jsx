@@ -15,12 +15,15 @@ export const Estimated = ({ legal }) => (legal?.status === "estimated"
   ? <span className="badge neutral">Estimated · not validated by a lawyer</span> : null);
 export const REGISTERED = { yes: "confirmed", no: "not registered", unknown: "not confirmed" };
 
-const PERIODS = [["depositDays", "Deposit protected within (days)"], ["reportDays", "Check-in and check-out report within (days)"],
+const ALL_PERIODS = [["depositDays", "Deposit protected within (days)"], ["reportDays", "Check-in and check-out report within (days)"],
   ["licenceYears", "Rental dwelling licence lasts (years)"], ["eicrYears", "Electrical safety (EICR) lasts (years)"],
   ["gasYears", "Gas safety lasts (years)"], ["alarmsYears", "Smoke and CO alarms check lasts (years)"],
   ["tenantNoticeMonths", "Tenant's notice, periodic tenancy (months)"],
   ["landlordNoticeMonths", "Landlord's notice without cause (months)"],
-  ["rentNoticeMonths", "Notice before a rent change (months)"], ["rentIntervalMonths", "Between rent changes (months)"]];
+  ["rentNoticeMonths", "Notice before a rent change (months)"], ["rentIntervalMonths", "Between rent changes (months)"],
+  // ADM-11: sent by the server only with its switch.
+  ["copyDays", "Licence and EICR copy to the tenant within (days)"], ["changeDays", "Licence changes notified within (days)"],
+  ["checklistYears", "Electrical checklist lasts (years)"]];
 const BODIES = [["jfsc", "JFSC registration (collecting rent into Hampton's account)"], ["gst", "GST registration"]];
 const ANSWERS = [["yes", "Registered"], ["no", "Not registered"], ["unknown", "Not confirmed"]];
 const saved = x => (x.revision ? `Version ${x.revision}, saved by ${x.updated_by} on ${fmtDate(x.updated_at)}.` : null);
@@ -65,6 +68,7 @@ const Said = ({ a, reload }) => a.msg && <p ref={a.said} tabIndex={-1} role="ale
   {a.msg.stale && <> <button type="button" className="btn ghost sm" onClick={reload}>Reload</button></>}</p>;
 
 function Periods({ terms, onSaved, onDirty, reload }) {
+  const PERIODS = ALL_PERIODS.filter(([k]) => k in terms.values);
   const a = useSave("lt", { ...Object.fromEntries(PERIODS.map(([k]) => [k, String(terms.values[k])])), status: terms.status,
     validated_ref: terms.validated_ref ?? "", validated_on: terms.validated_on ?? "" },
   f => api("/admin/legal-terms", { method: "PUT", body: { values: Object.fromEntries(PERIODS.map(([k]) => [k, Number(f[k])])),

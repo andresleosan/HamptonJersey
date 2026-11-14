@@ -1,9 +1,10 @@
 import { json, fail, readJson, now } from "../http.js";
-import { validateLandlord, validateRental, validateRepair, COMPLIANCE, REPAIR_NEXT, addMonths, complianceStatus } from "../rentals.js";
+import { validateLandlord, validateRental, validateRepair, COMPLIANCE, CALENDAR, ONE_OFF, TENANT, REPAIR_NEXT, addMonths,
+  complianceStatus } from "../rentals.js";
 import { fields, result } from "../sales.js";
 import { LOCK } from "./applicants.js";
-import { jerseyToday, realDate } from "../viewings.js";
-import { readLegal, legalLabel } from "../legal-terms.js";
+import { jerseyToday, plusDays, realDate } from "../viewings.js";
+import { readLegal, legalLabel, calendarReady } from "../legal-terms.js";
 
 export const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
 export const asObject = body => (body && typeof body === "object" && !Array.isArray(body) ? body : fail(400, "Invalid format"));
@@ -139,26 +140,41 @@ async function landlordState({ env, admin, params: [id, action] }) {
 }
 
 // R10, R11: the property's checks in COMPLIANCE order (gas only when it may have gas), each with its status today.
-// years: how long one lasts, from the periods in force (ADM-17).
-const checks = (rental, rows, today, periods) => COMPLIANCE.filter(([k]) => k !== "gas" || rental.has_gas !== 0)
+// years: how long one lasts, from the periods in force (ADM-17). ADM-11, with its switch: the calendar's kinds after
+// them; those of TENANT only while a tenancy runs, and the deposit's only once one has its deposit.
+const kindsOf = env => (calendarReady(env) ? [...COMPLIANCE, ...CALENDAR] : COMPLIANCE);
+// running: its tenancies not ended, read only with that switch.
+const checks = (env, rental, rows, today, periods, running = []) => kindsOf(env)
+  .filter(([k]) => (k !== "gas" || rental.has_gas !== 0) && (!TENANT.includes(k)
+    || running.some(t => k !== "deposit_info" || t.deposit_received_on)))
   .map(c => item(c, rows.find(i => i.kind === c[0]), today, periods));
-const item = ([kind, label], row, today, periods) => ({ kind, label, years: periods[`${kind}Years`], done_on: row?.done_on ?? null,
+// ADM-11: one-off checks start (again), in a batch: due `days` after `from` and not done. open: only one not done yet.
+export const startChecks = (env, admin, rentalId, kinds, from, days, open = false) => env.DB.prepare(
+  `INSERT INTO compliance_items (rental_id, kind, expires_on, updated_at, updated_by)
+  SELECT ?1, value, date(?3, '+' || ?4 || ' days'), ?5, ?6 FROM json_each(?2) WHERE true
+  ON CONFLICT (rental_id, kind) DO UPDATE SET done_on = NULL, expires_on = excluded.expires_on, note = NULL,
+    updated_at = excluded.updated_at, updated_by = excluded.updated_by${open ? " WHERE compliance_items.done_on IS NULL" : ""}`)
+  .bind(rentalId, JSON.stringify(kinds), from, days, now(), admin);
+const item = ([kind, label], row, today, periods) => ({ kind, label, years: periods[`${kind}Years`], days: periods[ONE_OFF[kind]],
+  done_on: row?.done_on ?? null,
   expires_on: row?.expires_on ?? null, note: row?.note ?? null, updated_at: row?.updated_at ?? null,
   updated_by: row?.updated_by ?? null, status: complianceStatus(row ?? {}, today) });
 
 // The property page (P14): its data, its checks, its repairs (open ones first, then the newest), its tenancies (newest
 // first; charges and payments are on the tenancy's own GET) and its last 100 events.
 async function getRental({ env, params: [id] }) {
-  const q = sql => env.DB.prepare(sql).bind(Number(id)), legal = await readLegal(env);
-  const [[rental], rows, repairs, tenancies, events] = (await env.DB.batch([q(RENTAL_SQL),
+  const q = sql => env.DB.prepare(sql).bind(Number(id)), legal = await readLegal(env), today = jerseyToday();
+  const [[rental], rows, repairs, tenancies, events, running] = (await env.DB.batch([q(RENTAL_SQL),
     q("SELECT * FROM compliance_items WHERE rental_id = ?"),
     q("SELECT * FROM repairs WHERE rental_id = ? ORDER BY status IN ('done', 'cancelled'), id DESC"),
     q(`SELECT id, payment_ref, tenant_name, kind, regime, start_on, end_on, ended_on, rent, collect_from, notice_given_on,
       notice_by FROM tenancies WHERE rental_id = ? ORDER BY start_on DESC, id DESC`),
     q("SELECT id, tenancy_id, at, actor, type, data FROM rental_events WHERE rental_id = ? ORDER BY at DESC, id DESC LIMIT 100"),
+    ...(calendarReady(env) ? [env.DB.prepare(`SELECT deposit_received_on FROM tenancies WHERE rental_id = ? AND ${ACTIVE}`)
+      .bind(Number(id), today)] : []),
   ])).map(r => r.results);
   if (!rental) fail(404, "Property not found");
-  return json({ rental, compliance: checks(rental, rows, jerseyToday(), legal.periods), repairs, tenancies,
+  return json({ rental, compliance: checks(env, rental, rows, today, legal.periods, running), repairs, tenancies,
     events: events.map(e => ({ ...e, data: e.data == null ? null : JSON.parse(e.data) })), ...legalLabel(legal) });
 }
 
@@ -168,7 +184,7 @@ async function createRental({ request, env, admin }) {
   if (r.errors) return fieldErrors(r.errors);
   if (!(await openLandlord(env, r.value.landlord_id))) return fieldErrors(NO_LANDLORD);
   const ts = now(), row = { ...r.value, created_at: ts, created_by: admin, updated_at: ts, updated_by: admin };
-  const kinds = COMPLIANCE.map(([k]) => k).filter(k => k !== "gas" || row.has_gas !== 0);
+  const kinds = kindsOf(env).map(([k]) => k).filter(k => k !== "gas" || row.has_gas !== 0);
   let res;
   try {
     [res] = await env.DB.batch([
@@ -242,29 +258,38 @@ async function rentalState({ env, admin, params: [id, action] }) {
   return json({ rental: await loadRental(env, cur.id) });
 }
 
-// R10, R11: a check done on done_on (not after today); without expires_on it lasts its COMPLIANCE period.
+// R10, R11: a check done on done_on (not after today); without expires_on it lasts its COMPLIANCE period. ADM-11: the
+// hazards check has no period, so it needs the date of its next review; a one-off done has nothing more due; and a
+// licence change (changed_on, without done_on) starts the days to notify it.
 async function updateCompliance({ request, env, admin, params: [id, kind] }) {
-  const c = COMPLIANCE.find(([k]) => k === kind) ?? fail(404, "Check not found");
-  const errors = {}, f = fields(asObject(await readJson(request)), errors);
-  const done_on = f.date("done_on"), given = f.date("expires_on"), note = f.text("note", 300);
-  if (!done_on) f.err("done_on", "Enter the date it was done");
-  else if (done_on > jerseyToday()) f.err("done_on", "Use today or an earlier date");
+  const c = kindsOf(env).find(([k]) => k === kind) ?? fail(404, "Check not found");
+  const errors = {}, f = fields(asObject(await readJson(request)), errors), today = jerseyToday(), days = ONE_OFF[kind];
+  const done_on = f.date("done_on"), given = days ? null : f.date("expires_on"), note = f.text("note", 300);
+  const changed_on = kind === "licence_change" && !done_on ? f.date("changed_on") : null;
+  if (changed_on > today) f.err("changed_on", "Use today or an earlier date");
+  if (!done_on && !changed_on) f.err("done_on", "Enter the date it was done");
+  else if (done_on > today) f.err("done_on", "Use today or an earlier date");
   if (done_on && given && given <= done_on) f.err("expires_on", "The expiry must be after the date it was done");
+  if (kind === "hazards" && !given) errors.expires_on ??= "Enter the date of the next review";
   if (Object.keys(errors).length) return fieldErrors(errors);
   const rental = await loadRental(env, id);
   if (kind === "gas" && rental.has_gas === 0) fail(400, "This property has no gas: change that first");
   const before = await env.DB.prepare("SELECT done_on, expires_on, note FROM compliance_items WHERE rental_id = ? AND kind = ?")
     .bind(rental.id, kind).first();
   const { periods } = await readLegal(env);
-  const after = { done_on, expires_on: given ?? addMonths(done_on, periods[`${kind}Years`] * 12), note }, ts = now();
+  const after = { done_on, expires_on: changed_on ? plusDays(changed_on, periods[days])
+    : days ? null : given ?? addMonths(done_on, periods[`${kind}Years`] * 12), note }, ts = now();
   await env.DB.batch([
     env.DB.prepare(`INSERT INTO compliance_items (rental_id, kind, done_on, expires_on, note, updated_at, updated_by)
       VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (rental_id, kind) DO UPDATE SET done_on = excluded.done_on,
       expires_on = excluded.expires_on, note = excluded.note, updated_at = excluded.updated_at, updated_by = excluded.updated_by`)
       .bind(rental.id, kind, after.done_on, after.expires_on, after.note, ts, admin),
     rentalEvent(env, { rental_id: rental.id, actor: admin, type: "compliance.updated", data: { kind, before, after } }),
+    // ADM-11: a new licence or EICR starts the 28 days to give the tenant its copy.
+    ...(calendarReady(env) && ["licence", "eicr"].includes(kind) && done_on !== before?.done_on
+      ? [startChecks(env, admin, rental.id, [`${kind}_copy`], done_on, periods.copyDays)] : []),
   ]);
-  return json({ item: item(c, { ...after, updated_at: ts, updated_by: admin }, jerseyToday(), periods) });
+  return json({ item: item(c, { ...after, updated_at: ts, updated_by: admin }, today, periods) });
 }
 
 const loadRepair = async (env, id) =>
@@ -397,7 +422,7 @@ export default [
   ["GET", /^\/admin\/rentals\/(\d+)$/, getRental, true],
   ["PUT", /^\/admin\/rentals\/(\d+)$/, updateRental, true],
   ["POST", /^\/admin\/rentals\/(\d+)\/(archive|restore)$/, rentalState, true],
-  ["PUT", /^\/admin\/rentals\/(\d+)\/compliance\/([a-z]+)$/, updateCompliance, true],
+  ["PUT", /^\/admin\/rentals\/(\d+)\/compliance\/([a-z_]+)$/, updateCompliance, true],
   ["POST", /^\/admin\/rentals\/(\d+)\/repairs$/, createRepair, true],
   ["PUT", /^\/admin\/repairs\/(\d+)$/, updateRepair, true],
   ["GET", /^\/admin\/settings\/(rpi|gst|csv-map)$/, getSetting, true],

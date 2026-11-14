@@ -11,7 +11,7 @@ import { OUTCOME, TenancyExit } from "./TenancyExit.jsx";
 import { TenancyInspections } from "./RentalInspection.jsx";
 import { Estimated } from "./LegalTerms.jsx";
 import { OPTIONS } from "../../server/applicants.js";
-import { ARREARS_STEPS, COMPLIANCE, LEGAL } from "../../server/rentals.js";
+import { ARREARS_STEPS, COMPLIANCE, CALENDAR, LEGAL } from "../../server/rentals.js";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
 
 // Spec §4 property page (#/rentals/<id>): the work first (its tenancy with the payment reference, balance, arrears and
@@ -152,7 +152,7 @@ export default function RentalDetail({ id, selection='', onChange }) {
         <section className="card" aria-labelledby="h-checks"><h2 id="h-checks">Checks</h2>{note("checks")}
           {data.legal?.status === "estimated" && <p><Estimated legal={data.legal} /></p>}
           <ul className="plain-list" id="checks">{data.compliance.map(c => <li key={c.kind} id={`check-${c.kind}`} tabIndex={-1} aria-current={!linked.error&&linked.check===c.kind?'location':undefined} className={["overdue", "missing"].includes(c.status) ? "overdue" : undefined}>
-            <span>{c.label}<span className="muted cell-note">{c.done_on ? `Done ${fmtDay(c.done_on)}, expires ${fmtDay(c.expires_on)}` : "Not recorded yet"}
+            <span>{c.label}<span className="muted cell-note">{checkDates(c)}
               {c.note && ` · ${c.note}`}</span></span>
             <span className="ctl">{checkState({ ...c, due_on: c.expires_on })}
               <button type="button" className="btn ghost sm" onClick={() => open("check", { item: c, legal: data.legal }, "checks")}>Update<span className="sr"> {c.label}</span></button></span>
@@ -353,14 +353,18 @@ const keys = o => Object.keys(o ?? {}).map(k => k.replaceAll("_", " ")).join(", 
 // data.removed {count, amount}: the rent charges a change took away.
 const gone = (r, which) => r?.count ? `; ${r.count} ${which} rent charge${r.count === 1 ? "" : "s"} removed (${pence(r.amount)})` : "";
 const PAID = { amount: v => pence(v), received_on: v => `received ${fmtDay(v)}`, kind: v => KIND[v].toLowerCase() };
-const CHECK = Object.fromEntries(COMPLIANCE.map(([k, label]) => [k, label]));
+const CHECK = Object.fromEntries([...COMPLIANCE, ...CALENDAR].map(([k, label]) => [k, label]));
+// A check's dates. ADM-11: a one-off waiting has only its due date, and once done nothing more falls due.
+const checkDates = (c, done = "Done", due = "Due by") => (c.done_on
+  ? `${done} ${fmtDay(c.done_on)}${c.expires_on ? `, expires ${fmtDay(c.expires_on)}` : ""}`
+  : c.expires_on ? `${due} ${fmtDay(c.expires_on)}` : "Not recorded yet");
 const EVENT = {
   "rental.created": () => "Property added",
   "rental.updated": d => `Details changed: ${keys(d.after)}${d.collect_from ? `; rent collected from ${fmtDay(d.collect_from)}` : ""}${
     gone(d.removed, "future")}`,
   "rental.archived": () => "Property archived",
   "rental.restored": () => "Property restored",
-  "compliance.updated": d => `${CHECK[d.kind]} done ${fmtDay(d.after.done_on)}, expires ${fmtDay(d.after.expires_on)}`,
+  "compliance.updated": d => `${CHECK[d.kind]} ${checkDates(d.after, "done", "due by")}`,
   "repair.created": d => `Repair reported${d.inspection_id ? " from an inspection" : ""}: ${d.title}`,
   "repair.updated": (d, { repairs }) => `Repair ${repairs.find(p => p.id === d.repair_id)?.title ?? ""} updated: ${d.after.status
     ? REPAIR_STATUS[d.after.status] : keys(d.after)}`,

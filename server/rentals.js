@@ -15,6 +15,18 @@ export const ARREARS_STEPS = [[1, "reminder", "Friendly reminder"], [5, "firm", 
 export const COMPLIANCE = [["licence", "Rental dwelling licence", LEGAL.licenceYears],
   ["eicr", "Electrical safety (EICR)", LEGAL.eicrYears], ["gas", "Gas safety", LEGAL.gasYears],
   ["alarms", "Smoke and CO alarms", LEGAL.alarmsYears]];
+// ADM-11 (architecture §7.3), with ADM11_CALENDAR_READY: the rest of the property's calendar, in the same rows, and
+// its own periods, which join the legal periods in force (and ADM-17's saved ones) only with that switch.
+// §7.3 sets no period for the hazards, so whoever records that check enters the date of its next review.
+export const CALENDAR_LEGAL = { copyDays: 28, changeDays: 28, checklistYears: 1 };
+export const CALENDAR = [["hazards", "Hazards check (29 prescribed hazards)"],
+  ["checklist", "Electrical checklist"], ["licence_copy", "Licence copy to the tenant"],
+  ["eicr_copy", "EICR copy to the tenant"], ["licence_change", "Licence changes notified"],
+  ["deposit_info", "Prescribed information with the deposit"]];
+// A one-off check: due that many days (its period in `legal`) after what starts it, and once done nothing more falls
+// due until it starts again. Those of TENANT count only while a tenancy runs.
+export const ONE_OFF = { licence_copy: "copyDays", eicr_copy: "copyDays", licence_change: "changeDays", deposit_info: "depositDays" };
+export const TENANT = ["licence_copy", "eicr_copy", "deposit_info"];
 
 // R5, R9: the reference a tenant puts on the transfer, and how a bank description is searched for it.
 export const paymentRef = id => `HE-T${String(id).padStart(4, "0")}`;
@@ -44,9 +56,10 @@ export function nextStep(daysLate, doneKeys) {
   return due && !doneKeys.includes(due[1]) ? due : null;
 }
 
-// R10, R11: no expiry is "missing" (counts as overdue); otherwise the tightest warning it falls in, or ok.
+// R10, R11: no expiry is "missing" (counts as overdue), unless it is done (ADM-11: a one-off with nothing more due);
+// otherwise the tightest warning it falls in, or ok.
 export function complianceStatus(item, today) {
-  if (!item.expires_on) return "missing";
+  if (!item.expires_on) return item.done_on ? "ok" : "missing";
   if (item.expires_on < today) return "overdue";
   const warn = LEGAL.warnDays.findLast(n => daysBetween(today, item.expires_on) <= n);
   return warn ? `due${warn}` : "ok";

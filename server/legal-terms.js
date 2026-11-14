@@ -4,21 +4,28 @@
 // unknown is not approval. Nothing here blocks an existing action; it says what is and is not confirmed.
 // The switch goes in wrangler.toml and in jobs/wrangler.toml alike: the clock's Inbox pass works out the same deadlines.
 import { json, fail, readJson, now } from "./http.js";
-import { LEGAL } from "./rentals.js";
+import { LEGAL, CALENDAR_LEGAL } from "./rentals.js";
 import { jerseyToday, realDate } from "./viewings.js";
 
 export const legalTermsReady = env => env?.ADM17_LEGAL_TERMS_READY === "1";
+// ADM-11: the rest of the property calendar (CALENDAR in server/rentals.js). Like the switch above, it goes in
+// wrangler.toml and in jobs/wrangler.toml alike.
+export const calendarReady = env => env?.ADM11_CALENDAR_READY === "1";
 
 // [LEGAL key, the most a form may save]. The limits catch typing slips; they are not legal values.
 const PERIODS = [["depositDays", 365], ["reportDays", 365], ["licenceYears", 20], ["eicrYears", 20], ["gasYears", 20],
   ["alarmsYears", 20], ["tenantNoticeMonths", 60], ["landlordNoticeMonths", 60], ["rentNoticeMonths", 60],
   ["rentIntervalMonths", 60]];
+// ADM-11: the calendar's own periods (§7.3), versioned with the rest only while its switch is on.
+const CALENDAR_PERIODS = [["copyDays", 365], ["changeDays", 365], ["checklistYears", 20]];
+const periodsOf = env => (calendarReady(env) ? [...PERIODS, ...CALENDAR_PERIODS] : PERIODS);
+const codeOf = env => (calendarReady(env) ? { ...LEGAL, ...CALENDAR_LEGAL } : LEGAL);
 const ANSWERS = ["yes", "no", "unknown"];
-const DEFAULTS = {
-  terms: { values: Object.fromEntries(PERIODS.map(([k]) => [k, LEGAL[k]])), status: "estimated", validated_ref: null,
+const defaults = (periods, code) => ({
+  terms: { values: Object.fromEntries(periods.map(([k]) => [k, code[k]])), status: "estimated", validated_ref: null,
     validated_on: null },
   registration: { jfsc: "unknown", jfsc_ref: null, gst: "unknown", gst_ref: null },
-};
+});
 
 const obj = v => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
 // A reference: trimmed, up to 200 characters, or null.
@@ -33,9 +40,9 @@ const checked = (b, errors, value) => {
   return Object.keys(errors).length ? { errors } : { value, revision: b.revision };
 };
 
-export function validTerms(body) {
+export function validTerms(body, periods = PERIODS) {
   const b = obj(body), src = obj(b.values), errors = {}, values = {};
-  for (const [k, max] of PERIODS) {
+  for (const [k, max] of periods) {
     if (Number.isSafeInteger(src[k]) && src[k] >= 1 && src[k] <= max) values[k] = src[k];
     else errors[k] = `Enter a whole number from 1 to ${max}`;
   }
@@ -62,23 +69,29 @@ export function validRegistration(body) {
 }
 const CHECK = { terms: validTerms, registration: validRegistration };
 
-// {periods, terms, registration}. periods is what every date is worked out with: LEGAL with the saved values over it.
-// Switch off: LEGAL and nothing else, without a read. A missing table (0063 not applied) or a stored value that no
+// {periods, terms, registration}. periods is what every date is worked out with: LEGAL (and, with ADM-11's switch, the
+// calendar's own periods) with the saved values over it. Switch off: those and nothing else, without a read. A missing table (0063 not applied) or a stored value that no
 // longer passes the checks reads as nothing saved.
 export async function readLegal(env) {
-  if (!legalTermsReady(env)) return { periods: LEGAL, terms: null, registration: null };
+  const code = codeOf(env);
+  if (!legalTermsReady(env)) return { periods: code, terms: null, registration: null };
   let rows = [];
   try {
     rows = (await env.DB.prepare("SELECT key, value, revision, updated_at, updated_by FROM legal_settings").all()).results;
   } catch (e) { if (!/no such table/i.test(String(e?.message))) throw e; }
+  const periods = periodsOf(env), DEFAULTS = defaults(periods, code);
   const of = key => {
-    const row = rows.find(r => r.key === key);
-    const ok = row && CHECK[key]({ ...JSON.parse(row.value), revision: row.revision }).value;
+    const row = rows.find(r => r.key === key), stored = row && obj(JSON.parse(row.value));
+    // ADM-11: a set saved before a period existed keeps its values, takes the code's for the new ones and reads as
+    // estimated: nobody validated what it never held.
+    const short = key === "terms" && stored && periods.some(([k]) => !(k in obj(stored.values)));
+    const ok = row && CHECK[key]({ ...stored, ...(short ? { values: { ...DEFAULTS.terms.values, ...obj(stored.values) },
+      status: "estimated" } : {}), revision: row.revision }, periods).value;
     return { ...(ok || DEFAULTS[key]), revision: row?.revision ?? 0, updated_at: row?.updated_at ?? null,
       updated_by: row?.updated_by ?? null };
   };
   const terms = of("terms"), registration = of("registration");
-  return { periods: { ...LEGAL, ...terms.values }, terms, registration };
+  return { periods: { ...code, ...terms.values }, terms, registration };
 }
 
 // What a screen needs to label its dates and work them out; nothing while the switch is off.
@@ -87,7 +100,7 @@ export const legalLabel = ({ terms, registration }) => (terms ? { legal: { statu
 
 // A save made meanwhile by someone else is refused, never overwritten. Each save is a new version (the triggers of 0063).
 async function save(env, admin, key, request) {
-  const r = CHECK[key](await readJson(request, 4096));
+  const r = CHECK[key](await readJson(request, 4096), periodsOf(env));
   if (r.errors) return json({ error: "Please check the highlighted fields", fields: r.errors }, 400);
   const value = JSON.stringify(r.value), ts = now();
   let out;

@@ -1,11 +1,11 @@
 import {fail} from './http.js';
 import {jerseyToday} from './viewings.js';
-import {ARREARS_STEPS,COMPLIANCE,LEGAL} from './rentals.js';
-import {ARREARS_SQL,DEADLINES,CHECKS,RENEWAL,ensureCharges} from './routes/rent.js';
+import {ARREARS_STEPS,COMPLIANCE,CALENDAR,LEGAL} from './rentals.js';
+import {ARREARS_SQL,DEADLINES,checksSql,ensureChecks,RENEWAL,ensureCharges} from './routes/rent.js';
 import {WAITING,waitingCutoff} from './routes/sales.js';
 import {TO_CONFIRM} from './listing.js';
 import {taskStatements} from './notification-tasks.js';
-import {readLegal} from './legal-terms.js';
+import {readLegal,calendarReady} from './legal-terms.js';
 
 // One shared definition is used for the grouped read and the INSERT's domain revalidation.
 // Parameters: Jersey date, optional tenancy (always NULL here), processing ISO, Waiting cutoff.
@@ -14,7 +14,7 @@ const checkState=`CASE WHEN c.expires_on IS NULL THEN 'missing' WHEN c.expires_o
   ${LEGAL.warnDays.toReversed().map(d=>`WHEN c.expires_on<=date(?1,'+${d} days') THEN 'due${d}'`).join(' ')} ELSE 'ok' END`;
 const stepLabel=`CASE a.next_step ${ARREARS_STEPS.map(([,key,label])=>`WHEN '${key}' THEN ${quote('Arrears: '+label)}`).join(' ')} END`;
 const stepDue=`CASE a.next_step ${ARREARS_STEPS.map(([days,key])=>`WHEN '${key}' THEN date(a.oldest_unpaid_on,'+${days} days')||'T00:00:00.000Z'`).join(' ')} END`;
-const checkLabel=`CASE c.kind ${COMPLIANCE.map(([key,label])=>`WHEN '${key}' THEN ${quote('Check: '+label)}`).join(' ')} END`;
+const checkLabel=`CASE c.kind ${[...COMPLIANCE,...CALENDAR].map(([key,label])=>`WHEN '${key}' THEN ${quote('Check: '+label)}`).join(' ')} END`;
 const sortKey=(a='')=>`${a}kind||':'||CASE WHEN ${a}target_kind='listing' THEN ${a}target_id ELSE printf('%020d',CAST(${a}entity_id AS INTEGER)) END||':'||${a}entity_id||':'||${a}cycle`;
 const columns='kind,entity_id,cycle,target_kind,target_id,target_context,title,due_at,urgency,signature,source_kind,source_id';
 // D1 limits compound SELECTs more tightly than ordinary SQLite. Materialize bounded groups.
@@ -24,13 +24,14 @@ const deadlineRows=legal=>DEADLINES.map(([key,label,from,period,done])=>{const d
   return `SELECT 'deadline',CAST(t.id AS TEXT)||':${key}',t.${from},'rental',CAST(t.rental_id AS TEXT),
   json_object('tenancy_id',t.id,'deadline','${key}'),${quote(label+' overdue')},date(t.${from},'+${days} days')||'T00:00:00.000Z','normal',json_array(t.${from}${changed}),'rental',CAST(t.rental_id AS TEXT)
   FROM tenancies t JOIN rentals r ON r.id=t.rental_id WHERE r.archived_at IS NULL AND t.${from} IS NOT NULL AND t.${done} IS NULL AND date(t.${from},'+${days} days')<?1`;}).join('\nUNION ALL ');
-const pendingSql=legal=>`${ARREARS_SQL},pending_deadlines(${columns}) AS MATERIALIZED (${deadlineRows(legal)}),rental_pending(${columns}) AS MATERIALIZED (
+// ADM-11 (calendar: its switch): the calendar's checks come through the same rows and the same 'check' notices.
+const pendingSql=(legal,calendar)=>`${ARREARS_SQL},pending_deadlines(${columns}) AS MATERIALIZED (${deadlineRows(legal)}),rental_pending(${columns}) AS MATERIALIZED (
   SELECT 'arrears',CAST(a.tenancy_id AS TEXT),a.oldest_unpaid_on||':'||a.next_step,'rental',CAST(a.rental_id AS TEXT),
     json_object('tenancy_id',a.tenancy_id),${stepLabel},${stepDue},'normal',json_array(a.oldest_unpaid_on,a.next_step),'rental',CAST(a.rental_id AS TEXT)
     FROM arrears a JOIN rentals r ON r.id=a.rental_id WHERE a.next_step IS NOT NULL AND r.archived_at IS NULL
   UNION ALL SELECT 'check',CAST(c.rental_id AS TEXT)||':'||c.kind,COALESCE(c.done_on,'missing'),'rental',CAST(c.rental_id AS TEXT),
     json_object('compliance_kind',c.kind),${checkLabel},c.expires_on||'T00:00:00.000Z','normal',json_array(c.expires_on,${checkState}),'rental',CAST(c.rental_id AS TEXT)
-    ${CHECKS} AND (${checkState})<>'ok'
+    ${checksSql(calendar)} AND (${checkState})<>'ok'
   UNION ALL SELECT * FROM pending_deadlines
   UNION ALL SELECT 'renewal',CAST(t.id AS TEXT),t.end_on,'rental',CAST(t.rental_id AS TEXT),json_object('tenancy_id',t.id),
     'Decide renewal',NULL,'normal',json_array(t.end_on),'rental',CAST(t.rental_id AS TEXT)
@@ -61,7 +62,9 @@ const reentry=`(o.active=0 OR (o.kind='repair' AND EXISTS(SELECT 1 FROM events x
 
 export async function notificationsPass(env,isoNow) {
   if(typeof isoNow!=='string'||!Number.isFinite(Date.parse(isoNow))||new Date(isoNow).toISOString()!==isoNow)fail(400,'Use a processing UTC time');
-  const args=[jerseyToday(new Date(isoNow)),null,isoNow,waitingCutoff(isoNow)],PENDING=pendingSql((await readLegal(env)).periods);
+  const args=[jerseyToday(new Date(isoNow)),null,isoNow,waitingCutoff(isoNow)],calendar=calendarReady(env);
+  const PENDING=pendingSql((await readLegal(env)).periods,calendar);
+  if(calendar)await ensureChecks(env).run();
   const q=(sql,...extra)=>env.DB.prepare(sql).bind(...args,...extra);
   const [,cursorRead,selection]=await env.DB.batch([
     // Existing idempotent rent generation: the same calculation used by Rentals, never a new money rule.
