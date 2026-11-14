@@ -1270,20 +1270,25 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Supresión de datos personales de anunciantes",
    "origen": "decisión de Luis",
    "fase": "F2",
-   "estado": "pendiente",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "La acción de supresión se retiró de AGE-04; no está disponible en la aplicación.",
-   "falta": "Diseñar y verificar la supresión de datos personales de anunciantes, preservando referencias históricas y evitando exposición o restauración desde respuestas obsoletas entre pestañas, recargas y eventos perdidos. Mantener la decisión humana de revisión a 11 meses y decisión o justificación a 12, sin extenderla a otros datos.",
+   "hecho": "La acción de supresión se retiró de AGE-04; no está disponible en la aplicación. El equipo puede suprimir los datos personales de un anunciante con vista previa, motivo fijo y confirmación; la ficha queda de solo lectura con marca permanente (trigger) y las referencias históricas siguen funcionando. Versión y hash de vista previa evitan restaurar datos desde pestañas o respuestas antiguas; los correos en cola se cancelan en el mismo batch. Se conserva la revisión humana a 11 y 12 meses. 14-nov-2026: construida por subagente con plan vigente, integrada en main, suite 2.385/2.385, build, release, navegador aislado 1280/390 y revisión independiente sin graves; migración aplicada en producción con Time Travel previo, interruptor encendido en Pages 705398e, ruta montada (401 sin sesión frente a 404) y humo público de producción 1280/390 verde.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "docs/superpowers/specs/2026-11-07-age-04-directory-design.md",
-    "docs/superpowers/plans/2026-11-07-age-04-ledger.md"
+    "docs/superpowers/plans/2026-11-07-age-04-ledger.md",
+    "migrations/0057_advertiser_suppression.sql",
+    "server/advertiser-privacy.js",
+    "tests/age-14-suppression.e2e.cjs",
+    "docs/roadmap/work/AGE-14/2026-11-14-construccion.md"
    ],
    "modulo": "M01",
    "deps": [
     "AGE-04"
    ],
-   "criterio_aceptacion": "La solución y sus límites reciben pruebas y revisión independiente antes de ofrecer la supresión."
+   "criterio_aceptacion": "La solución y sus límites reciben pruebas y revisión independiente antes de ofrecer la supresión.",
+   "actualizado": "2026-11-14"
   },
   {
    "id": "AGE-05",
@@ -3971,17 +3976,23 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Contrato que nace de Let agreed, con contrato firmado e inventario de entrada",
    "origen": "plan",
    "fase": "F5-A",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "Solo se anota la fecha del Check-in report, con su plazo de 7 días en Deadlines de la tarjeta del contrato.",
-   "falta": "El contrato no nace de una ficha en Let agreed ni de un aplicante (viviendas, listings y applicants no están enlazados), y no se guardan el contrato firmado (no hay subida de archivos) ni el inventario de entrada con fotos y lecturas de contadores.",
+   "hecho": "Solo se anota la fecha del Check-in report, con su plazo de 7 días en Deadlines de la tarjeta del contrato. El contrato nace de una ficha en Let agreed con la ficha y el aplicante elegidos a mano, vista previa sin efectos y alta idempotente en un batch (409 si cambió algo o ya hay contrato activo); el alta manual New tenancy no cambia. Contrato firmado como referencia externa revisada (una fecha no basta) e inventario de entrada versionado con estancias, observaciones, lecturas con unidad y hasta 20 referencias. Decisión: sin subidas de archivos (contrato de continuidad TP-05). 14-nov-2026: construida por subagente con plan vigente, integrada en main, suite 2.385/2.385, build, release, navegador aislado 1280/390 y revisión independiente sin graves; migración aplicada en producción con Time Travel previo, interruptor encendido en Pages 705398e, ruta montada (401 sin sesión frente a 404) y humo público de producción 1280/390 verde.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "server/routes/rent.js:70-77",
     "admin/src/RentalDetail.jsx:266-269",
     "migrations/0013_rentals.sql:49",
-    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:51"
-   ]
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:51",
+    "migrations/0056_tenancy_origins.sql",
+    "server/tenancy-origins.js",
+    "admin/src/RentalOrigin.jsx",
+    "tests/adm-06-tenancy-origin.e2e.cjs",
+    "docs/roadmap/work/ADM-06/2026-11-14-construccion.md"
+   ],
+   "actualizado": "2026-11-14"
   },
   {
    "id": "ADM-07",
@@ -4661,10 +4672,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Subida de fotos con control de calidad, plano y documentos",
    "origen": "plan",
    "fase": "F4",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "Photos sube JPG, PNG o WebP con redimensionado en el navegador, miniatura, orden, portada, visibilidad y tipo Floor plan o Aerial. El panel ofrece avisos orientativos de resolución, exposición y enfoque al subir fotos, sin impedir continuar; se conservan los errores por archivo y las fotos confirmadas. Se añadió una guarda para señales documentales conocidas en la lista pública y en la entrega de medios; vuelve a comprobar visibilidad y acceso tras leer el recurso. La ruta de subida verifica estructura de contenedor, dimensiones reales y metadatos admitidos de foto y miniatura antes de almacenar; el cliente prepara el JPEG nuevo de canvas en sRGB sin conservar su perfil ICC opaco. El PUT existente de portada, orden y visibilidad confirma versión, metadatos y evento aplicable en un único batch; deriva posterior al preflight devuelve conflicto y revierte el guardado completo.",
-   "falta": "Calibrar las sugerencias con fotografías representativas y definir la detección de líneas; los avisos actuales no certifican calidad. Completar los documentos privados, staging durable y la protección/recuperación de cargas y limpieza. La inspección del servidor no decodifica íntegramente los flujos comprimidos ni examina objetos existentes; faltan límites totales de multipart, versión común de todos los escritores de medios y auditoría de orden/visibilidad, revocación durante efectos e invalidación de respuestas cacheadas. La entrega conserva su revalidación no atómica.",
+   "hecho": "Photos sube JPG, PNG o WebP con redimensionado en el navegador, miniatura, orden, portada, visibilidad y tipo Floor plan o Aerial. El panel ofrece avisos orientativos de resolución, exposición y enfoque al subir fotos, sin impedir continuar; se conservan los errores por archivo y las fotos confirmadas. Se añadió una guarda para señales documentales conocidas en la lista pública y en la entrega de medios; vuelve a comprobar visibilidad y acceso tras leer el recurso. La ruta de subida verifica estructura de contenedor, dimensiones reales y metadatos admitidos de foto y miniatura antes de almacenar; el cliente prepara el JPEG nuevo de canvas en sRGB sin conservar su perfil ICC opaco. El PUT existente de portada, orden y visibilidad confirma versión, metadatos y evento aplicable en un único batch; deriva posterior al preflight devuelve conflicto y revierte el guardado completo. Documentos PDF privados por ficha: subir, listar, descargar y retirar, solo para el equipo, en tabla propia y prefijo private-docs/ que /media nunca sirve; tipo y firma PDF comprobados en servidor, tope 20 MiB, descarga como adjunto no-store/nosniff. Los avisos de calidad de foto siguen orientativos; calibrarlos con fotos reales pasa a MEJORAS. 14-nov-2026: construida por subagente con plan vigente, integrada en main, suite 2.385/2.385, build, release, navegador aislado 1280/390 y revisión independiente sin graves; migración aplicada en producción con Time Travel previo, interruptor encendido en Pages 705398e, ruta montada (401 sin sesión frente a 404) y humo público de producción 1280/390 verde.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "admin/src/MediaManager.jsx:39-54",
@@ -4681,7 +4692,12 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/work/PUB-11/2026-11-14-upload-validation-evidence.md",
     "tests/server/media-save-atomic.test.mjs",
     "tests/server/media-save-atomic-d1.test.mjs",
-    "docs/roadmap/work/PUB-11/2026-11-14-media-save-atomic-evidence.md"
+    "docs/roadmap/work/PUB-11/2026-11-14-media-save-atomic-evidence.md",
+    "migrations/0058_listing_documents.sql",
+    "server/listing-documents.js",
+    "admin/src/ListingDocuments.jsx",
+    "tests/pub-11-documents.e2e.cjs",
+    "docs/roadmap/work/PUB-11/2026-11-14-documentos.md"
    ],
    "actualizado": "2026-11-14"
   },

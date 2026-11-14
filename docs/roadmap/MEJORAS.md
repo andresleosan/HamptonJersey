@@ -16,3 +16,4 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [AGE-14] Tras suprimir, canales, notas de comisión y fotos y motivos de revisión quedan congelados; si guardaban datos personales se quedan · la interfaz avisa de editarlos antes · 14-nov-2026
 - [PUB-10] `server/proposed-schema/owner-requests-rebuild.sql` fija la definición antigua de advertisers (sin `suppressed_at` de 0057) y fallará; las reconstrucciones futuras de listings/tenancies deben contar con las FK nuevas de 0056/0058 · 14-nov-2026
 - [PUB-11] Barrido periódico de restos `pending`/`removing`, inspección del interior del PDF, subida directa a R2 sin 20 MiB en memoria y botones de 44 px en móvil · 14-nov-2026
+- [PUB-11] Calibrar los avisos de calidad de foto (resolución, exposición, enfoque) con fotografías representativas de Hampton · hoy son orientativos · 14-nov-2026

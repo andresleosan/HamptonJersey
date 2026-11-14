@@ -4,16 +4,21 @@
   "titulo": "Contrato que nace de Let agreed, con contrato firmado e inventario de entrada",
   "origen": "plan",
   "fase": "F5-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Solo se anota la fecha del Check-in report, con su plazo de 7 días en Deadlines de la tarjeta del contrato.",
-  "falta": "El contrato no nace de una ficha en Let agreed ni de un aplicante (viviendas, listings y applicants no están enlazados), y no se guardan el contrato firmado (no hay subida de archivos) ni el inventario de entrada con fotos y lecturas de contadores.",
+  "hecho": "Solo se anota la fecha del Check-in report, con su plazo de 7 días en Deadlines de la tarjeta del contrato. El contrato nace de una ficha en Let agreed con la ficha y el aplicante elegidos a mano, vista previa sin efectos y alta idempotente en un batch (409 si cambió algo o ya hay contrato activo); el alta manual New tenancy no cambia. Contrato firmado como referencia externa revisada (una fecha no basta) e inventario de entrada versionado con estancias, observaciones, lecturas con unidad y hasta 20 referencias. Decisión: sin subidas de archivos (contrato de continuidad TP-05). 14-nov-2026: construida por subagente con plan vigente, integrada en main, suite 2.385/2.385, build, release, navegador aislado 1280/390 y revisión independiente sin graves; migración aplicada en producción con Time Travel previo, interruptor encendido en Pages 705398e, ruta montada (401 sin sesión frente a 404) y humo público de producción 1280/390 verde.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/routes/rent.js:70-77",
     "admin/src/RentalDetail.jsx:266-269",
     "migrations/0013_rentals.sql:49",
-    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:51"
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:51",
+    "migrations/0056_tenancy_origins.sql",
+    "server/tenancy-origins.js",
+    "admin/src/RentalOrigin.jsx",
+    "tests/adm-06-tenancy-origin.e2e.cjs",
+    "docs/roadmap/work/ADM-06/2026-11-14-construccion.md"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -27,5 +32,6 @@
     "listings-contract",
     "applicants-contract"
   ],
-  "nextStep": "Enlazar contrato, ficha y aplicante e incorporar contrato firmado e inventario de entrada."
+  "nextStep": "Hecha. ADM-16 (salida) puede construirse sobre este origen.",
+  "actualizado": "2026-11-14"
 }
