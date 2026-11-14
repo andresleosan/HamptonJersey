@@ -60,3 +60,5 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [ADM-11] Corregir la fecha de una licencia o EICR reinicia su copia aunque sea una errata; los reinicios automáticos no dejan evento propio en History · 14-nov-2026
 - [ADM-11] Las filas vacías se siembran en cada carga de Rentals y cada tic del reloj (idempotente); dos contratos solapados comparten fila por punto del inquilino · 14-nov-2026
 - [ADM-11] Una inspección (ADM-13) podría dejar registrado el Hazards check o el Electrical checklist · hoy se registran aparte con Update · 14-nov-2026
+- [BUS-12] Mostrar los criterios comerciales en el panel lateral de Review (hoy filas residenciales vacías); pedir periodo para los gastos; comparar el uso con una lista cerrada · sin eso uso y gastos quedan siempre por confirmar · 14-nov-2026
+- [BUS-12] «Comprar + negocio» solo ve ventas de inmueble, nunca traspasos · correspondencia estricta de operación; cambio de una línea si Hampton lo quiere · 14-nov-2026

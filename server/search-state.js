@@ -7,7 +7,7 @@ import { activeSql, isActive } from "./applicants.js";
 import * as engine from "./match-store.js";
 
 export const searchStateEnabled = env => env?.EST01_SEARCH_STATE_READY === "1";
-const APPLICABLE = `${activeSql("a")} AND a.search_category = 'residential'`;
+const APPLICABLE = activeSql("a"); // every active search: commercial ones are matched too (BUS-12)
 const RUNNING_MS = 120000; // an attempt with no recorded result after two minutes did not finish
 
 // Best effort: recording never changes what a save or a recompute answers. No error text is kept or logged.
@@ -67,9 +67,9 @@ export async function searchRunsWithoutMatch(env) {
     WHERE ${APPLICABLE} AND NOT EXISTS (SELECT 1 FROM matches m WHERE m.applicant_id = a.id)`);
   return rows && shown(rows, now());
 }
-// The record: an active home search's last run, with or without matches.
+// The record: an active search's last run, with or without matches.
 export async function searchRunFor(env, applicant) {
-  if (!isActive(applicant) || applicant.search_category !== "residential") return null;
+  if (!isActive(applicant)) return null;
   const rows = await read(env, `SELECT a.id, ${RUN} FROM applicants a LEFT JOIN applicant_search_runs r ON r.applicant_id = a.id
     WHERE a.id = ?`, applicant.id);
   return rows?.length ? shown(rows, now()).get(applicant.id) : null;

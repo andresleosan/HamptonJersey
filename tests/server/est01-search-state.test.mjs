@@ -157,13 +157,13 @@ test("a result that arrives after a newer attempt started does not overwrite it"
   assert.equal(run(env, id).last_success_at, null);
 });
 
-test("only active home searches are recorded, and a deleted search takes its record with it", async () => {
+test("only active searches are recorded, commercial ones included, and a deleted search takes its record with it", async () => {
   const env = envOn();
+  // Commercial searches are matched since BUS-12, so their last run is recorded like a home search's.
   const commercial = await create(env, { search_category: "commercial", commercial_kind: "business", budget_max: null,
     commercial_rent: 24000, commercial_rent_period: "year" });
-  assert.equal(run(env, commercial), undefined);
-  assert.equal("search_run" in await listed(env, commercial), false);
-  assert.equal("search_run" in await detail(env, commercial), false);
+  assert.ok(run(env, commercial).last_success_at);
+  assert.equal("search_run" in await detail(env, commercial), true);
   const id = await create(env, { email: "tom@example.je", phone: "07797 654321", name: "Tom Le Sueur" });
   assert.ok(run(env, id));
   env.DB.raw.prepare("UPDATE applicants SET archived_at = ? WHERE id = ?").run(T, id);
