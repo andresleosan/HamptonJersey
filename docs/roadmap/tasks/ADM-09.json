@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia. Se construyó una autoridad financiera interna con ajustes, saldo FIFO y control por caso; permanece desconectada de las rutas actuales y sin ejecutar migración remota en esta sesión. La consulta del estado remoto fue denegada. Se preparó una lectura interna por tenancy que reúne saldo, atrasos y movimientos con autorización transaccional; continúa sin ruta activa ni conciliación global. Se preparó una lectura interna de hasta diez contratos autorizados y un refuerzo de ciclo de vida de permisos, todavía sin conectar a rutas.",
-  "falta": "Unificar primero detalle, lista, contador y conciliación existentes con la autoridad financiera y sus permisos por caso; después completar escritura de deuda perdida y secuencia configurable. Los avisos reales y la carta siguen sujetos a correo y validación correspondiente. No activar ajustes mientras existan cálculos incompatibles. La propuesta 0049 requiere revisar su efecto sobre permisos existentes y definir retención/supresión antes de cualquier aplicación; su estado remoto no se conoce.",
+  "falta": "Unificar primero detalle, lista, contador y conciliación existentes con la autoridad financiera y sus permisos por caso; después completar escritura de deuda perdida y secuencia configurable. Los avisos reales y la carta siguen sujetos a correo y validación correspondiente. No activar ajustes mientras existan cálculos incompatibles. La propuesta 0049 requiere revisar su efecto sobre permisos existentes y definir retención/supresión antes de cualquier aplicación; su estado remoto no se conoce. Traído de NOT-05: aplicar ajustes y write-offs (0045) también a la pestaña Missing payments, para que una deuda saldada con el depósito o condonada salga de ella, y la autorización por caso sensitive_finance.",
   "bloqueo": "Correo (AUT-17) · JFSC/abogado",
   "evidencia": [
     "admin/src/Rentals.jsx:86-95",
@@ -56,5 +56,5 @@
     "legal-parameters"
   ],
   "nextStep": "Unificar lectores y permisos, revisar concurrencia y retención y después construir los flujos operativos de ajustes y avisos.",
-  "actualizado": "2026-11-13"
+  "actualizado": "2026-11-14"
 }

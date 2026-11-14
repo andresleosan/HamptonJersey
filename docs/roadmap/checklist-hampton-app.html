@@ -605,10 +605,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Pestaña Missing payments con los pagos que no han llegado",
    "origen": "texto",
    "fase": "F5-A",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "Los cobros impagados salen en Rentals › To do › Arrears (Owed, días de retraso «Since \u003cfecha>» y Next step +1/+5/+7/+10/+14 con Mark done) y suman en el contador Rentals de la barra. Hay una proyección interna de pagos pendientes que reutiliza saldo de alquiler, con gracia configurable; se ha probado solo con datos ficticios y no está conectada al Inbox. Se preparó una lectura interna por tenancy que reúne saldo, atrasos y movimientos con autorización transaccional; continúa sin ruta activa ni conciliación global. La lectura interna acotada revalida los permisos de todos los contratos y no devuelve resultados parciales; no constituye una conciliación global.",
-   "falta": "Integrar de forma coherente la autoridad financiera y las autorizaciones por caso en las rutas existentes; completar la categoría, conciliación, interfaz y configuración de gracia. Las comisiones entre agencias siguen fuera del alcance. Revisar el impacto y la política de retención de 0049 antes de aplicarla; la consulta de migraciones remotas fue denegada.",
+   "hecho": "En Inbox hay una pestaña Missing payments con la renta vencida que no se ha pagado entera: vivienda, inquilino y referencia, importe pendiente, días de retraso desde el cargo impagado más antiguo y siguiente paso de atrasos. Sale del mismo cálculo que Rentals › To do › Arrears y además conserva la deuda de contratos ya terminados, también si la vivienda pasa después a let-only; marcar un paso no la quita y un contrato en preaviso conserva su paso. El periodo de gracia (0 a 30 días, 3 por defecto) se cambia desde la pestaña con control de revisión y solo decide cuándo aparece la deuda, sin mover vencimientos ni pasos. Solo lectura, sin migración, detrás de NOT05_MISSING_PAYMENTS_READY.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "server/routes/notifications.js:12",
@@ -628,9 +628,19 @@ document.addEventListener('DOMContentLoaded', () => {
     "tests/server/adm-09-workspace.test.mjs",
     "docs/superpowers/plans/2026-11-13-adm-09-not-05-workspace-ledger.md",
     "server/finance-cases.js",
-    "docs/superpowers/plans/2026-11-13-adm-18-case-lifecycle-finance-ledger.md"
+    "docs/superpowers/plans/2026-11-13-adm-18-case-lifecycle-finance-ledger.md",
+    "server/routes/missing-payments.js",
+    "admin/src/MissingPayments.jsx",
+    "tests/server/not-05-missing-payments.test.mjs",
+    "tests/server/not-05-missing-payments-d1.test.mjs",
+    "tests/not-05-missing-payments.e2e.cjs",
+    "Decisión (fuente: skill §4.5, opción más simple y reversible): construida sin 0045/0046/0049, que añaden triggers sobre cobros existentes; usa el mismo SQL que Arrears (ARREARS_SQL idéntico) y la gracia en app_settings. Ajustes y autorización por caso pasan a ADM-09.",
+    "Revisión independiente 14-nov-2026: grave en pantalla (el preaviso ocultaba el paso de atrasos) y deuda que desaparecía al pasar a let-only, corregidos en 828110b con prueba unitaria y e2e; menores a MEJORAS.",
+    "14-nov-2026: npm test 2407/2407 + 29 Python, build y check:release correctos; e2e aislado Chromium 1280 y 390 correcto.",
+    "14-nov-2026: NOT05_MISSING_PAYMENTS_READY=1 en d099a56.",
+    "14-nov-2026 producción: GET /api/admin/missing-payments pasó de 404 a 401 (montada, exige sesión) tras desplegar d099a56; test:production:readonly 1280 y 390 correcto. Recorrido con sesión: Inbox › «Missing payments N» y comparar con Rentals › To do › Arrears."
    ],
-   "actualizado": "2026-11-13"
+   "actualizado": "2026-11-14"
   },
   {
    "id": "NOT-06",
@@ -4048,7 +4058,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia. Se construyó una autoridad financiera interna con ajustes, saldo FIFO y control por caso; permanece desconectada de las rutas actuales y sin ejecutar migración remota en esta sesión. La consulta del estado remoto fue denegada. Se preparó una lectura interna por tenancy que reúne saldo, atrasos y movimientos con autorización transaccional; continúa sin ruta activa ni conciliación global. Se preparó una lectura interna de hasta diez contratos autorizados y un refuerzo de ciclo de vida de permisos, todavía sin conectar a rutas.",
-   "falta": "Unificar primero detalle, lista, contador y conciliación existentes con la autoridad financiera y sus permisos por caso; después completar escritura de deuda perdida y secuencia configurable. Los avisos reales y la carta siguen sujetos a correo y validación correspondiente. No activar ajustes mientras existan cálculos incompatibles. La propuesta 0049 requiere revisar su efecto sobre permisos existentes y definir retención/supresión antes de cualquier aplicación; su estado remoto no se conoce.",
+   "falta": "Unificar primero detalle, lista, contador y conciliación existentes con la autoridad financiera y sus permisos por caso; después completar escritura de deuda perdida y secuencia configurable. Los avisos reales y la carta siguen sujetos a correo y validación correspondiente. No activar ajustes mientras existan cálculos incompatibles. La propuesta 0049 requiere revisar su efecto sobre permisos existentes y definir retención/supresión antes de cualquier aplicación; su estado remoto no se conoce. Traído de NOT-05: aplicar ajustes y write-offs (0045) también a la pestaña Missing payments, para que una deuda saldada con el depósito o condonada salga de ella, y la autorización por caso sensitive_finance.",
    "bloqueo": "Correo (AUT-17) · JFSC/abogado",
    "evidencia": [
     "admin/src/Rentals.jsx:86-95",
@@ -4069,7 +4079,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "tests/server/adm-18-case-lifecycle.test.mjs",
     "docs/superpowers/plans/2026-11-13-adm-18-case-lifecycle-finance-ledger.md"
    ],
-   "actualizado": "2026-11-13"
+   "actualizado": "2026-11-14"
   },
   {
    "id": "ADM-10",
