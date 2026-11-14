@@ -106,30 +106,89 @@ test("electrical checklist: yearly, and due again when a new tenant starts", asy
   assert.equal((await put(env, id, "checklist", { done_on: ago(9) })).data.item.expires_on, addMonths(ago(9), 12));
 });
 
-test("copies to the tenant: 28 days from the tenancy's start or from a new licence or EICR, then nothing until the next", async () => {
+test("copies to the tenant: 28 days from the later of the tenancy's start and the licence or EICR, then nothing until the next", async () => {
   const env = on(), id = await rental(env);
   await put(env, id, "licence", { done_on: ago(100) });
   assert.equal(await check(env, id, "licence_copy"), undefined, "no tenant, no copy to give");
   await tenancy(env, id, { start_on: ago(10) });
-  const due = plusDays(ago(10), 28);
+  const due = plusDays(ago(10), 28), copy = async kind => (({ done_on, expires_on, note, status }) => [done_on, expires_on, note, status])(await check(env, id, kind));
   assert.deepEqual((await page(env, id)).filter(c => /_copy$/.test(c.kind)).map(c => [c.kind, c.done_on, c.expires_on, c.status]),
     [["licence_copy", null, due, "due30"], ["eicr_copy", null, due, "due30"]]);
   assert.equal((await todo(env)).find(c => c.kind === "licence_copy").label, "Licence copy to the tenant");
   const given = await put(env, id, "licence_copy", { done_on: ago(2), note: "Emailed with the complaints route" });
   assert.deepEqual([given.data.item.done_on, given.data.item.expires_on, given.data.item.status], [ago(2), null, "ok"]);
   assert.equal((await todo(env)).find(c => c.kind === "licence_copy"), undefined);
-  // A renewed licence starts its copy's 28 days again; correcting its note alone does not.
+  // Correcting the licence's note, or its date to one not after the copy, keeps the copy given.
   await put(env, id, "licence", { done_on: ago(100), note: "LIC-1" });
-  assert.equal((await check(env, id, "licence_copy")).status, "ok");
+  await put(env, id, "licence", { done_on: ago(90), note: "LIC-1" });
+  assert.deepEqual(await copy("licence_copy"), [ago(2), null, "Emailed with the complaints route", "ok"]);
+  // A licence newer than the copy starts its 28 days again, and no copy can be dated before its licence.
   await put(env, id, "licence", { done_on: ago(1) });
-  assert.deepEqual((({ done_on, expires_on, note, status }) => [done_on, expires_on, note, status])(await check(env, id, "licence_copy")),
-    [null, plusDays(ago(1), 28), null, "due30"]);
+  assert.deepEqual(await copy("licence_copy"), [null, plusDays(ago(1), 28), null, "due30"]);
+  const early = await put(env, id, "licence_copy", { done_on: ago(5) });
+  assert.equal(early.status, 400);
+  assert.ok(early.data.fields.done_on);
+  // An EICR older than the tenancy never makes its copy due before the tenancy's own 28 days.
   await put(env, id, "eicr", { done_on: ago(40) });
-  assert.deepEqual([(await check(env, id, "eicr_copy")).expires_on, (await check(env, id, "eicr_copy")).status], [plusDays(ago(40), 28), "overdue"]);
+  assert.deepEqual(await copy("eicr_copy"), [null, due, null, "due30"]);
   // The tenancy over: nothing to give any more.
   env.DB.raw.prepare("UPDATE tenancies SET ended_on = ? WHERE rental_id = ?").run(ago(1), id);
   assert.deepEqual((await page(env, id)).filter(c => /_copy$/.test(c.kind)), []);
   assert.deepEqual((await todo(env)).filter(c => /_copy$/.test(c.kind)), []);
+});
+
+test("a copy's days never run from before the tenancy in place, whichever was entered first", async () => {
+  const off = makeEnv(), env = { ...off, ADM11_CALENDAR_READY: "1" };
+  const dates = async id => (await page(env, id)).filter(c => /_copy$/.test(c.kind)).map(c => [c.kind, c.expires_on, c.status]);
+  // The tenancy first, then a licence issued long before it: 28 days from the start, not overdue for months.
+  const a = await rental(env);
+  await tenancy(env, a, { start_on: ago(10) });
+  await put(env, a, "licence", { done_on: ago(300) });
+  await put(env, a, "eicr", { done_on: ago(300) });
+  assert.deepEqual(await dates(a), [["licence_copy", plusDays(ago(10), 28), "due30"], ["eicr_copy", plusDays(ago(10), 28), "due30"]]);
+  assert.deepEqual((await todo(env)).filter(c => c.rental_id === a && /_copy$/.test(c.kind)).map(c => c.status), ["due30", "due30"]);
+  // The licence first, then a tenancy entered with an earlier start: from whichever is later.
+  const b = await rental(env, { address: "2 Rue des Pres" });
+  await put(env, b, "licence", { done_on: ago(300) });
+  await put(env, b, "eicr", { done_on: ago(5) });
+  await tenancy(env, b, { start_on: ago(10) });
+  assert.deepEqual(await dates(b), [["licence_copy", plusDays(ago(10), 28), "due30"], ["eicr_copy", plusDays(ago(5), 28), "due30"]]);
+  // A tenancy from before the switch: Rentals dates its points the same way.
+  const c = await rental(off, { address: "3 Rue des Pres" });
+  await tenancy(off, c, { start_on: ago(50) });
+  assert.deepEqual((await todo(env)).filter(x => x.rental_id === c && /_copy$/.test(x.kind)).map(x => [x.due_on, x.status]),
+    [[plusDays(ago(50), 28), "overdue"], [plusDays(ago(50), 28), "overdue"]]);
+});
+
+test("a tenancy entered ahead leaves the points of the tenant still in alone, until it takes over", async () => {
+  const env = on(), id = await rental(env);
+  const state = async () => Object.fromEntries((await page(env, id)).filter(c => ["licence_copy", "eicr_copy", "deposit_info"].includes(c.kind))
+    .map(c => [c.kind, [c.done_on, c.expires_on, c.status]]));
+  await put(env, id, "licence", { done_on: ago(300) });
+  const t1 = await tenancy(env, id, { start_on: ago(100), deposit: 1500, deposit_received_on: ago(100) });
+  await put(env, id, "eicr_copy", { done_on: ago(60) });
+  const before = { licence_copy: [null, plusDays(ago(100), 28), "overdue"], eicr_copy: [ago(60), null, "ok"],
+    deposit_info: [null, plusDays(ago(100), 30), "overdue"] };
+  assert.deepEqual(await state(), before);
+  // They move out in 20 days and the next tenancy is entered today, deposit already in.
+  env.DB.raw.prepare("UPDATE tenancies SET ended_on = ? WHERE id = ?").run(ahead(20), t1);
+  const t2 = await tenancy(env, id, { start_on: ahead(20), deposit: 1500, deposit_received_on: ago(1) });
+  assert.deepEqual(await state(), before);
+  assert.deepEqual((await todo(env)).filter(c => c.rental_id === id && c.kind === "licence_copy").map(c => c.status), ["overdue"]);
+  await notificationsPass(env, new Date().toISOString());
+  assert.deepEqual(await state(), before, "neither Rentals nor the clock moves them");
+  // The day after the move-out the points are the new tenant's: dated from their start, the old copy no longer counts.
+  env.DB.raw.prepare("UPDATE tenancies SET ended_on = ? WHERE id = ?").run(ago(1), t1);
+  env.DB.raw.prepare("UPDATE tenancies SET start_on = ? WHERE id = ?").run(ago(1), t2);
+  await notificationsPass(env, new Date(Date.now() + 1000).toISOString());
+  const due = plusDays(ago(1), 28);
+  assert.deepEqual(await state(), { licence_copy: [null, due, "due30"], eicr_copy: [null, due, "due30"], deposit_info: [null, plusDays(ago(1), 30), "due30"] });
+  // Given to the new tenant, so not before the last one left: it stays given through later passes.
+  assert.ok((await put(env, id, "licence_copy", { done_on: ago(5) })).data.fields.done_on);
+  await put(env, id, "licence_copy", { done_on: T });
+  await todo(env);
+  await notificationsPass(env, new Date(Date.now() + 2000).toISOString());
+  assert.deepEqual((await state()).licence_copy, [T, null, "ok"]);
 });
 
 test("licence changes: a change starts 28 days to notify it; notified closes it", async () => {
@@ -159,14 +218,15 @@ test("prescribed information: with the deposit, in its 30 days", async () => {
   assert.equal((await req(env, "PUT", `/admin/tenancies/${t}`, { deposit_received_on: ago(6), updated_at: stamp() })).status, 200);
   assert.equal((await check(env, id, "deposit_info")).status, "ok");
   // The next tenant's deposit starts it again.
-  env.DB.raw.prepare("UPDATE tenancies SET ended_on = ? WHERE id = ?").run(ago(3), t);
-  await tenancy(env, id, { start_on: ago(2), deposit: 1500, deposit_received_on: ago(40) });
+  env.DB.raw.prepare("UPDATE tenancies SET ended_on = ? WHERE id = ?").run(T, t);
+  await tenancy(env, id, { start_on: T, deposit: 1500, deposit_received_on: ago(40) });
   assert.deepEqual([(await check(env, id, "deposit_info")).done_on, (await check(env, id, "deposit_info")).status], [null, "overdue"]);
 });
 
 test("the Inbox and the Rentals count take the calendar from the same rows, once each", async () => {
   const env = on(), id = await rental(env), at = new Date().toISOString();
   await allDone(env, id);
+  for (const k of ["licence", "eicr"]) await put(env, id, k, { done_on: ago(50) });
   await tenancy(env, id, { start_on: ago(40), inventory_in_on: ago(39) });
   const open = () => rows(env, "SELECT title, category FROM notifications WHERE task_key LIKE 'queue:check:%' AND resolved_at IS NULL ORDER BY title");
   const count = async () => { env.DB.raw.exec("DELETE FROM app_settings WHERE key = 'rentals_count'"); return (await req(env, "GET", "/admin/notifications/counts")).data.rentals; };
@@ -180,15 +240,15 @@ test("the Inbox and the Rentals count take the calendar from the same rows, once
   await notificationsPass(env, new Date(Date.parse(at) + 1000).toISOString());
   assert.equal(open().length, 5, "a second pass adds nothing");
   await put(env, id, "hazards", { done_on: T, expires_on: ahead(400), note: "Report HZ-12" });
-  await put(env, id, "licence_copy", { done_on: T });
+  await put(env, id, "licence_copy", { done_on: ago(2) });
   await put(env, id, "licence_change", { done_on: T, note: "Nothing changed" });
   await notificationsPass(env, new Date(Date.parse(at) + 2000).toISOString());
   assert.deepEqual(open().map(n => n.title), ["Check: EICR copy to the tenant", "Check: Electrical checklist"]);
   assert.equal(await count(), 2);
   const link = (await req(env, "GET", "/admin/notifications?box=action&category=compliance")).data.notifications.find(n => n.title === "Check: Electrical checklist");
   assert.match(link.link, new RegExp(`#/rentals/${id}\\?check=checklist$`));
-  // A licence with another date brings its copy's notice back; everything recorded clears the property's mark.
-  await put(env, id, "licence", { done_on: ago(1) });
+  // A licence newer than the copy brings the copy's notice back; everything recorded clears the property's mark.
+  await put(env, id, "licence", { done_on: T });
   await notificationsPass(env, new Date(Date.parse(at) + 3000).toISOString());
   assert.deepEqual(open().map(n => n.title), ["Check: EICR copy to the tenant", "Check: Electrical checklist", "Check: Licence copy to the tenant"]);
   assert.equal(rows(env, "SELECT COUNT(*) AS n FROM notifications WHERE task_key LIKE 'queue:check:%' AND title = 'Check: Licence copy to the tenant'")[0].n, 1, "the same notice, reopened");

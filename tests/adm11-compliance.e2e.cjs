@@ -58,18 +58,20 @@ const fits = page => page.evaluate(() => document.documentElement.scrollWidth <=
         for (const text of shows) await row(kind).getByText(text, { exact: false }).waitFor();
       };
 
-      // Rentals: opening it gives the seeded properties their calendar rows, not recorded and labelled as estimated.
+      // Rentals: opening it gives the seeded properties their calendar rows, labelled as estimated: not recorded, and
+      // the tenant's points dated from the tenancy in place (over a month old, so already overdue).
       await go('rentals');
       await page.getByRole('heading', { name: 'Rentals', exact: true }).waitFor();
       await block.getByText('Hazards check (29 prescribed hazards)', { exact: true }).first().waitFor();
       await block.getByText(LABEL, { exact: true }).waitFor();
       assert.ok(await fits(page), `Rentals fits at ${width}`);
       if (width === 1280) {
-        assert.deepEqual(await todo(), NEW.map(k => [k, 'missing']).sort(), 'not recorded is never approved');
+        assert.deepEqual(await todo(), [['checklist', 'missing'], ['deposit_info', 'overdue'], ['eicr_copy', 'overdue'],
+          ['hazards', 'missing'], ['licence_change', 'missing'], ['licence_copy', 'overdue']], 'not recorded is never approved');
         for (const label of ['Electrical checklist', 'Licence copy to the tenant', 'EICR copy to the tenant', 'Licence changes notified',
           'Prescribed information with the deposit']) await block.getByText(label, { exact: true }).first().waitFor();
-      } else assert.deepEqual(await todo(), [['checklist', 'missing'], ['deposit_info', 'missing'], ['eicr_copy', 'missing'],
-        ['hazards', 'due60'], ['licence_change', 'due30'], ['licence_copy', 'missing']]);
+      } else assert.deepEqual(await todo(), [['checklist', 'missing'], ['deposit_info', 'overdue'], ['eicr_copy', 'overdue'],
+        ['hazards', 'due60'], ['licence_change', 'due30'], ['licence_copy', 'overdue']]);
 
       // The property page: the four checks and the calendar's six, in order.
       await go('rentals/1');
@@ -82,6 +84,7 @@ const fits = page => page.evaluate(() => document.documentElement.scrollWidth <=
       if (width === 1280) {
         // Hazards: one check with its report's reference; no legal period, so the next review is asked for.
         await row('hazards').getByText('Not recorded', { exact: true }).waitFor();
+        await row('licence_copy').getByText('Overdue', { exact: true }).waitFor();
         let dialog = await update('Hazards check (29 prescribed hazards)');
         await dialog.getByText('No legal period is set for this check', { exact: false }).waitFor();
         await dialog.getByLabel('Report reference').fill('Assessment HZ-12, on file');
@@ -121,6 +124,12 @@ const fits = page => page.evaluate(() => document.documentElement.scrollWidth <=
         await save(dialog, 'licence_change', [`Done ${fmtDay(today)}`, 'Notified, reference EH-7', 'In date']);
         assert.equal(await row('licence_change').getByText('expires', { exact: false }).count(), 0);
 
+        // A renewed licence starts the 28 days for its copy again, from the licence's date.
+        await row('licence_copy').getByText('Overdue', { exact: true }).waitFor();
+        dialog = await update('Rental dwelling licence');
+        await save(dialog, 'licence', [`Done ${fmtDay(today)}, expires ${fmtDay(addMonths(today, 24))}`]);
+        for (const text of [`Due by ${fmtDay(plusDays(today, 28))}`, 'In 28 days']) await row('licence_copy').getByText(text, { exact: false }).waitFor();
+
         // A one-off has no expiry to enter; the yearly checklist keeps the usual one.
         for (const [kind, label] of [['licence_copy', 'Licence copy to the tenant'], ['deposit_info', 'Prescribed information with the deposit']]) {
           dialog = await update(label);
@@ -130,23 +139,19 @@ const fits = page => page.evaluate(() => document.documentElement.scrollWidth <=
         dialog = await update('Electrical checklist');
         await dialog.getByText('Blank: 1 year after the date done (estimated, not validated by a lawyer).').waitFor();
         await save(dialog, 'checklist', [`Done ${fmtDay(today)}, expires ${fmtDay(addMonths(today, 12))}`, 'In date']);
-        // A renewed licence starts the 28 days for its copy again.
-        dialog = await update('Rental dwelling licence');
-        await save(dialog, 'licence', [`Done ${fmtDay(today)}, expires ${fmtDay(addMonths(today, 24))}`]);
-        for (const text of [`Due by ${fmtDay(plusDays(today, 28))}`, 'In 28 days']) await row('licence_copy').getByText(text, { exact: false }).waitFor();
         await page.getByRole('heading', { name: /^History/ }).click();
         await page.getByText(`Licence copy to the tenant done ${fmtDay(today)}`, { exact: true }).waitFor();
         assert.ok(await fits(page), `the property page fits after recording at ${width}`);
 
-        // What is left for this property: the hazards review ahead and the EICR copy nobody has recorded.
-        assert.deepEqual(await todo(), [['eicr_copy', 'missing'], ['hazards', 'due60'], ['licence_copy', 'due30']]);
+        // What is left for this property: the hazards review ahead and the EICR copy nobody has given.
+        assert.deepEqual(await todo(), [['eicr_copy', 'overdue'], ['hazards', 'due60']]);
         await go('rentals');
         await block.getByText('In 45 days', { exact: true }).waitFor();
         assert.equal(await block.getByText('In 8 days', { exact: true }).count(), 0);
         assert.ok(await fits(page), `Rentals fits after recording at ${width}`);
       }
       assert.deepEqual(errors, []);
-      console.log(`ADM-11 ${width}: calendar rows, ${width === 1280 ? 'hazards review, licence change, legal periods' : 'notification, one-offs, checklist, licence renewal, history'}, layout PASS`);
+      console.log(`ADM-11 ${width}: calendar rows, ${width === 1280 ? 'hazards review, licence change, legal periods' : 'notification, licence renewal, one-offs, checklist, history'}, layout PASS`);
       await context.close();
     }
   } finally { await browser.close(); }

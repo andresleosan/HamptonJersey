@@ -3,7 +3,7 @@ import { validateTenancy, validatePayment, rentAssistant, earliestMoveOut, compl
   ARREARS_STEPS, COMPLIANCE, CALENDAR, TENANT, REF_RE, importKey, cleanDescription } from "../rentals.js";
 import { fields } from "../sales.js";
 import { jerseyToday, plusDays, realDate } from "../viewings.js";
-import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE, startChecks } from "./rentals.js";
+import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE, syncTenantChecks } from "./rentals.js";
 import { exitReady } from "../tenancy-exits.js";
 import { NEXT_INSPECTION, inspectionDue, inspectionsReady } from "../rental-inspections.js";
 import { readLegal, legalLabel, calendarReady } from "../legal-terms.js";
@@ -96,10 +96,13 @@ const applies = calendar => `(c.kind <> 'gas' OR r.has_gas IS NOT 0) AND ${calen
   : `c.kind IN (${quoted(COMPLIANCE.map(([k]) => k))})`}`;
 export const checksSql = calendar => `FROM compliance_items c JOIN rentals r ON r.id = c.rental_id
   WHERE r.archived_at IS NULL AND ${applies(calendar)}`;
-// ADM-11: the calendar's rows ("Not recorded") for the properties entered before its switch. Run where the checks are
-// read (Rentals and the clock's Inbox pass); a row already there is left alone.
-export const ensureChecks = env => env.DB.prepare(`INSERT OR IGNORE INTO compliance_items (rental_id, kind)
-  SELECT r.id, k.value FROM rentals r, json_each(?) k`).bind(JSON.stringify(CALENDAR.map(([k]) => k)));
+// ADM-11: a batch run where the checks are read (Rentals and the clock's Inbox pass, the same for both): the calendar's
+// rows ("Not recorded") for the properties entered before its switch, a row already there left alone; then the
+// tenant's points dated for the tenancy in place (syncTenantChecks), which is how a tenancy entered ahead takes them
+// over the day the tenant before has left.
+export const ensureChecks = (env, periods, today) => [env.DB.prepare(`INSERT OR IGNORE INTO compliance_items (rental_id, kind)
+  SELECT r.id, k.value FROM rentals r, json_each(?) k`).bind(JSON.stringify(CALENDAR.map(([k]) => k))),
+syncTenantChecks(env, periods, today)];
 // R10, R13: one SQL term per tenancy deadline not done whose due date `cmp` (e.g. "< ?1"), over t; the same rule as
 // deadlines(), from the same DEADLINES.
 const pending = (cmp, legal) => DEADLINES.map(([, , from, period, done]) =>
@@ -228,10 +231,9 @@ export async function tenancyPlan(env, admin, rid, input) {
     ensureCharges(env, jerseyToday(), "newest"),
     bump(env, admin, s.id, ts),
     rentalEvent(env, { rental_id: s.id, actor: admin, type: "tenancy.created", data: value }, { tenancy_id: "tenancies" }),
-    // ADM-11: a new tenant starts the days for the copies and for the deposit's prescribed information again (no
-    // date until the deposit is received), and brings an electrical checklist done before them forward to the start.
-    ...(periods ? [startChecks(env, admin, s.id, ["licence_copy", "eicr_copy"], row.start_on, periods.copyDays),
-      startChecks(env, admin, s.id, ["deposit_info"], row.deposit_received_on ?? null, periods.depositDays),
+    // ADM-11: with nobody else in, the copies and the deposit's prescribed information are dated for this tenant at
+    // once (otherwise when they take over); an electrical checklist done before them is brought forward to the start.
+    ...(periods ? [syncTenantChecks(env, periods, jerseyToday(), s.id),
       env.DB.prepare(`UPDATE compliance_items SET expires_on = ?1 WHERE rental_id = ?2 AND kind = 'checklist'
         AND done_on < ?1 AND expires_on > ?1`).bind(row.start_on, s.id)] : []),
   ];
@@ -300,10 +302,9 @@ async function updateTenancy({ request, env, admin, params: [id] }) {
   if (why) errors.collect_from ??= why;
   if (opening && !collects) errors.opening_balance ??= NOT_COLLECTED;
   if (Object.keys(errors).length) return fieldErrors(errors);
-  // ADM-11: a deposit received (or its date corrected) starts the days for its prescribed information, unless given.
-  const info = calendarReady(env) && changed("deposit_received_on") && sent.value.deposit_received_on
-    ? [startChecks(env, admin, cur.rental_id, ["deposit_info"], sent.value.deposit_received_on,
-      (await readLegal(env)).periods.depositDays, true)] : [];
+  // ADM-11: a deposit received (or its date corrected) dates its prescribed information, unless already given.
+  const info = calendarReady(env) && changed("deposit_received_on")
+    ? [syncTenantChecks(env, (await readLegal(env)).periods, today, cur.rental_id)] : [];
   const before = "tenancy_id = ? AND kind = 'rent' AND edited = 0 AND due_on < ?";
   await save(env, admin, "tenancies", cur, body, r.value, (keys, of) => [rentalEvent(env, { rental_id: cur.rental_id,
     tenancy_id: cur.id, actor: admin, type: "tenancy.updated", data: { before: of(cur), after: of(r.value) } }), ...info,
@@ -747,7 +748,7 @@ async function overview({ request, env }) {
   const visits = inspectionsReady(env), legal = await readLegal(env), { periods } = legal, calendar = calendarReady(env);
   const list = s(LIST(archived === "1", visits, periods, calendar), service, q && `%${q.replace(/[\\%_]/g, "\\$&")}%`, filter);
   if (p.get("list") === "1") return json({ rentals: (await list.all()).results.map(marks) });
-  if (calendar) await ensureChecks(env).run();
+  if (calendar) await env.DB.batch(ensureChecks(env, periods, today));
   const [, owing, checks, dues, renewals, repairs, unmatched, rentals, [totals], inspections = []] = (await env.DB.batch([
     ensureCharges(env, today),
     s(`WITH ${ARREARS_SQL} SELECT a.tenancy_id, a.rental_id, r.address, t.tenant_name, t.payment_ref, a.balance,

@@ -63,8 +63,8 @@ const reentry=`(o.active=0 OR (o.kind='repair' AND EXISTS(SELECT 1 FROM events x
 export async function notificationsPass(env,isoNow) {
   if(typeof isoNow!=='string'||!Number.isFinite(Date.parse(isoNow))||new Date(isoNow).toISOString()!==isoNow)fail(400,'Use a processing UTC time');
   const args=[jerseyToday(new Date(isoNow)),null,isoNow,waitingCutoff(isoNow)],calendar=calendarReady(env);
-  const PENDING=pendingSql((await readLegal(env)).periods,calendar);
-  if(calendar)await ensureChecks(env).run();
+  const {periods}=await readLegal(env),PENDING=pendingSql(periods,calendar);
+  if(calendar)await env.DB.batch(ensureChecks(env,periods,args[0]));
   const q=(sql,...extra)=>env.DB.prepare(sql).bind(...args,...extra);
   const [,cursorRead,selection]=await env.DB.batch([
     // Existing idempotent rent generation: the same calculation used by Rentals, never a new money rule.

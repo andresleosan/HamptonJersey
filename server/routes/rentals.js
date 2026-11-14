@@ -148,13 +148,26 @@ const checks = (env, rental, rows, today, periods, running = []) => kindsOf(env)
   .filter(([k]) => (k !== "gas" || rental.has_gas !== 0) && (!TENANT.includes(k)
     || running.some(t => k !== "deposit_info" || t.deposit_received_on)))
   .map(c => item(c, rows.find(i => i.kind === c[0]), today, periods));
-// ADM-11: one-off checks start (again), in a batch: due `days` after `from` and not done. open: only one not done yet.
-export const startChecks = (env, admin, rentalId, kinds, from, days, open = false) => env.DB.prepare(
-  `INSERT INTO compliance_items (rental_id, kind, expires_on, updated_at, updated_by)
-  SELECT ?1, value, date(?3, '+' || ?4 || ' days'), ?5, ?6 FROM json_each(?2) WHERE true
-  ON CONFLICT (rental_id, kind) DO UPDATE SET done_on = NULL, expires_on = excluded.expires_on, note = NULL,
-    updated_at = excluded.updated_at, updated_by = excluded.updated_by${open ? " WHERE compliance_items.done_on IS NULL" : ""}`)
-  .bind(rentalId, JSON.stringify(kinds), from, days, now(), admin);
+// ADM-11: the TENANT checks follow the tenancy in place: the earliest still running (for the deposit's, the earliest
+// with its deposit received). A copy is due copyDays after the later of that tenancy's start and its licence's or
+// EICR's date; the deposit's information, depositDays after the deposit. One given stays given unless it is older than
+// that licence or EICR or than the last move-out; anything else is dated again. So a tenancy entered ahead changes
+// nothing while the tenant before is still in, and takes the points over once they have left. rentalId: one property
+// (in the batch that changed it), or null for all (Rentals and the clock's pass, with ensureChecks).
+export const syncTenantChecks = (env, periods, today, rentalId = null) => env.DB.prepare(`UPDATE compliance_items
+  SET done_on = NULL, note = NULL, expires_on = x.due FROM (SELECT c.rental_id, c.kind,
+      date(CASE c.kind WHEN 'deposit_info' THEN t.deposit_received_on ELSE MAX(t.start_on, COALESCE(p.done_on, t.start_on)) END,
+        '+' || CASE c.kind WHEN 'deposit_info' THEN ?2 ELSE ?3 END || ' days') AS due,
+      c.done_on >= COALESCE(p.done_on, '') AND c.done_on >= COALESCE((SELECT MAX(e.ended_on) FROM tenancies e
+        WHERE e.rental_id = c.rental_id AND e.ended_on <= ?1), '') AS given
+    FROM compliance_items c JOIN tenancies t ON t.id = (SELECT n.id FROM tenancies n WHERE n.rental_id = c.rental_id
+        AND (n.ended_on IS NULL OR n.ended_on > ?1) AND (c.kind <> 'deposit_info' OR n.deposit_received_on IS NOT NULL)
+        ORDER BY n.start_on, n.id LIMIT 1)
+      LEFT JOIN compliance_items p ON p.rental_id = c.rental_id AND p.kind || '_copy' = c.kind
+    WHERE c.kind IN (${TENANT.map(k => `'${k}'`).join(", ")}) AND (?4 IS NULL OR c.rental_id = ?4)) x
+  WHERE compliance_items.rental_id = x.rental_id AND compliance_items.kind = x.kind AND x.given IS NOT 1
+    AND (compliance_items.done_on IS NOT NULL OR compliance_items.expires_on IS NOT x.due)`)
+  .bind(today, periods.depositDays, periods.copyDays, rentalId);
 const item = ([kind, label], row, today, periods) => ({ kind, label, years: periods[`${kind}Years`], days: periods[ONE_OFF[kind]],
   done_on: row?.done_on ?? null,
   expires_on: row?.expires_on ?? null, note: row?.note ?? null, updated_at: row?.updated_at ?? null,
@@ -276,6 +289,12 @@ async function updateCompliance({ request, env, admin, params: [id, kind] }) {
   if (kind === "gas" && rental.has_gas === 0) fail(400, "This property has no gas: change that first");
   const before = await env.DB.prepare("SELECT done_on, expires_on, note FROM compliance_items WHERE rental_id = ? AND kind = ?")
     .bind(rental.id, kind).first();
+  // ADM-11: what syncTenantChecks would not keep as given is refused here, not undone later.
+  const from = done_on && TENANT.includes(kind) && (await env.DB.prepare(`SELECT MAX(COALESCE((SELECT done_on FROM compliance_items
+    WHERE rental_id = ?1 AND kind || '_copy' = ?2), ''), COALESCE((SELECT MAX(ended_on) FROM tenancies
+    WHERE rental_id = ?1 AND ended_on <= ?3), '')) AS d`).bind(rental.id, kind, today).first()).d;
+  if (from > done_on) return fieldErrors({ done_on: `Use ${from} or later: not before the last move-out${
+    kind.endsWith("_copy") ? " or the date of what it copies" : ""}` });
   const { periods } = await readLegal(env);
   const after = { done_on, expires_on: changed_on ? plusDays(changed_on, periods[days])
     : days ? null : given ?? addMonths(done_on, periods[`${kind}Years`] * 12), note }, ts = now();
@@ -285,9 +304,8 @@ async function updateCompliance({ request, env, admin, params: [id, kind] }) {
       expires_on = excluded.expires_on, note = excluded.note, updated_at = excluded.updated_at, updated_by = excluded.updated_by`)
       .bind(rental.id, kind, after.done_on, after.expires_on, after.note, ts, admin),
     rentalEvent(env, { rental_id: rental.id, actor: admin, type: "compliance.updated", data: { kind, before, after } }),
-    // ADM-11: a new licence or EICR starts the 28 days to give the tenant its copy.
-    ...(calendarReady(env) && ["licence", "eicr"].includes(kind) && done_on !== before?.done_on
-      ? [startChecks(env, admin, rental.id, [`${kind}_copy`], done_on, periods.copyDays)] : []),
+    // ADM-11: a licence or EICR newer than the copy given starts the days to give the tenant its copy again.
+    ...(calendarReady(env) && ["licence", "eicr"].includes(kind) ? [syncTenantChecks(env, periods, today, rental.id)] : []),
   ]);
   return json({ item: item(c, { ...after, updated_at: ts, updated_by: admin }, today, periods) });
 }
