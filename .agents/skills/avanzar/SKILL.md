@@ -9,7 +9,7 @@ description: Avanza el checklist de Hampton App sin detenerse - elige por la rut
 
 Este archivo y [CONTINUIDAD-AVANZAR.md](../../../docs/roadmap/CONTINUIDAD-AVANZAR.md) (autorizaciones de Luis) son las únicas reglas vigentes. Sustituyen a todas las versiones anteriores de esta skill, al coordinador, a las reservas y a los turnos entre talleres: si un plan o ledger antiguo los menciona, es historia y no se ejecuta.
 
-Invocación: `/avanzar` (sigue la ruta), `/avanzar PUB-09` (esa tarea primero, luego la ruta) o `/avanzar PAQ-18` (las tareas de ese paquete primero).
+Invocación: `/avanzar` (sigue la ruta), `/avanzar PUB-09` (esa tarea primero, luego la ruta) o `/avanzar PAQ-18` (las tareas de ese paquete primero). En Claude Code, `/loop /avanzar` la relanza sola cada vez que termina un turno, hasta que no quede trabajo viable.
 
 ## 1. Arranque: un minuto, sin preguntas
 
@@ -89,9 +89,18 @@ Distingue fallo del cambio, fallo anterior y comprobación que el entorno no per
 1. Actualiza la ficha de cada tarea: `estado`, `hecho`, `falta`, `nextStep`, `evidencia`, `actualizado`. Frases cortas.
 2. `npm run team:catalog && npm run team:check && npm run check:packages`.
 3. Una línea por cierre arriba de `docs/roadmap/ESTADO.md`: fecha, código, qué cambió para el equipo y progreso antes → después.
-4. Commit corto en inglés con solo tus archivos, `git pull --ff-only origin main` y `git push origin main`. Solo se publica `main`. Si el remoto cambió en tus archivos, integra y repite las pruebas afectadas.
-5. Comprueba que `origin/main` tiene el commit y que `https://hampton-tareas.andres-san1404.workers.dev/v1/board` refleja el cierre. Anuncia `antes → después`.
-6. Vuelve al paso 3 del arranque y toma el siguiente lote.
+4. Commit corto en inglés con solo tus archivos y `git pull --ff-only origin main`. Si el remoto cambió en tus archivos, integra y repite las pruebas afectadas. Solo se publica `main`, sin esperar a nadie:
+
+   ```sh
+   env -u GIT_ASKPASS -u SSH_ASKPASS GIT_TERMINAL_PROMPT=0 timeout 90 git push origin main
+   ```
+
+   Si falla porque caducó la credencial de GitHub, no esperes ni pidas el token: deja los commits en local, sigue con el lote siguiente y reintenta el push al cerrar cada lote. Dilo en el mensaje final.
+5. Comprueba que `origin/main` tiene el commit y que `https://hampton-tareas.andres-san1404.workers.dev/v1/board` refleja el cierre (el tablero se actualiza solo desde GitHub). Anuncia `antes → después`.
+6. Sobrescribe `.claude/relevo-avanzar.md` con el estado tras este lote (formato de la sección 8). Así una compactación de contexto, un corte o una sesión nueva retoman sin perder nada.
+7. Vuelve al paso 3 del arranque y toma el siguiente lote.
+
+**Contexto largo.** El estado vive en archivos, no en la memoria de la conversación: fichas, relevo, cola y ruta. Tras una compactación de contexto, o si dudas de algo que «recuerdas», vuelve a leer esta skill, el relevo y la salida de la ruta antes de seguir; no reconstruyas de memoria SHAs, estados ni resultados de pruebas. Delegar la construcción en subagentes mantiene pequeño el contexto de quien orquesta.
 
 ## 8. Cuándo parar
 
