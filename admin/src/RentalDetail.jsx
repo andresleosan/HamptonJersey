@@ -8,6 +8,7 @@ import { CancelMoveOut, ChangeRent, CorrectCharge, DETAILS, EditPayment, EditTen
   Renew, RepairDialog, NEXT_DAY, UnassignPayment, UpdateCheck, needsApproval, rentLine } from "./RentalDialogs.jsx";
 import { FromLetAgreed, TenancyRecords, useOriginReady } from "./RentalOrigin.jsx";
 import { OUTCOME, TenancyExit } from "./TenancyExit.jsx";
+import { TenancyInspections } from "./RentalInspection.jsx";
 import { OPTIONS } from "../../server/applicants.js";
 import { ARREARS_STEPS, COMPLIANCE, LEGAL } from "../../server/rentals.js";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
@@ -84,6 +85,7 @@ export default function RentalDetail({ id, selection='', onChange }) {
   const switching = r.service === "let_only" && form.service === "full" && running.length > 0;
 
   const reload = () => { load(); setTick(n => n + 1); };
+  const refresh = () => { reload(); onChange(); }; // ADM-13: a repair created from an inspection shows in Repairs and the count
   const finish = where => text => { setDialog(null); setMsg({ where, text }); refocus.current = true; reload(); onChange(); };
   const open = (kind, props, where) => { setMsg(null); setDialog({ kind, props, where }); };
   const note = where => msg?.where === where && <p role="status" className="ok">{msg.text}</p>;
@@ -132,7 +134,7 @@ export default function RentalDetail({ id, selection='', onChange }) {
     <div className="rental">
       <div className="sections">
         {running.map(t => <Tenancy key={t.id} id={t.id} tick={tick} note={note(t.id)} open={(kind, props) => open(kind, props, t.id)}
-          next={data.tenancies.some(x => x.id > t.id)} requestedDeadline={!linked.error&&linked.tenancy===t.id?linked.deadline:null} />)}
+          refresh={refresh} next={data.tenancies.some(x => x.id > t.id)} requestedDeadline={!linked.error&&linked.tenancy===t.id?linked.deadline:null} />)}
         {!running.some(t => !t.ended_on) && <section className="card" aria-labelledby="h-new-tenancy">
           <h2 id="h-new-tenancy">{running.length ? "Next tenancy" : "No tenancy"}</h2>
           {adding ? <NewTenancy rental={r} onClose={() => setAdding(false)} onDirty={setAddDirty} onRefused={reload}
@@ -204,7 +206,7 @@ export default function RentalDetail({ id, selection='', onChange }) {
     {past.length > 0 && <section className="block" aria-labelledby="h-past"><details className="closed" open={pastOpen} onToggle={e => setPastOpen(e.currentTarget.open)}>
       <summary><h2 id="h-past">Past tenancies <span className="muted">({past.length})</span></h2></summary>
       {pastOpen && <div className="sections">{past.map(t => <Tenancy key={t.id} id={t.id} tick={tick} note={note(t.id)}
-        open={(kind, props) => open(kind, props, t.id)} requestedDeadline={!linked.error&&linked.tenancy===t.id?linked.deadline:null} />)}</div>}
+        open={(kind, props) => open(kind, props, t.id)} refresh={refresh} requestedDeadline={!linked.error&&linked.tenancy===t.id?linked.deadline:null} />)}</div>}
     </details></section>}
 
     <section className="block" aria-labelledby="h-history"><details className="closed">
@@ -236,7 +238,7 @@ export default function RentalDetail({ id, selection='', onChange }) {
 const DONE = { deposit: ["deposit_protected_on", "Deposit protection"], inventory_in: ["inventory_in_on", "Check-in report"],
   inventory_out: ["inventory_out_on", "Check-out report"] };
 const SHORT = 6;
-function Tenancy({ id, tick, note, open, next, requestedDeadline }) {
+function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline }) {
   const [d, setD] = useState(null), [err, setErr] = useState(null), [all, setAll] = useState(false);
   const load = () => api(`/admin/tenancies/${id}`).then(x => { setD(x); setErr(null); }, e => setErr(e.message));
   useEffect(() => { load(); }, [id, tick]);
@@ -302,6 +304,7 @@ function Tenancy({ id, tick, note, open, next, requestedDeadline }) {
       <span>{x.label}<span className="muted cell-note">{x.done_on ? `Done ${fmtDay(x.done_on)}` : `Due ${fmtDay(x.due_on)}`}</span></span>
       <span className="ctl">{checkState(x)}<button type="button" className="btn ghost sm" onClick={act("edit", { keys: [DONE[x.key][0]], title: DONE[x.key][1] })}>
         Update<span className="sr"> {x.label}</span></button></span></li>)}</ul></>}
+    <TenancyInspections id={id} tick={tick} onRepair={refresh} />
     <TenancyRecords id={id} tick={tick} />
     <TenancyExit id={id} tick={tick} moveOut={t.ended_on} />
 
@@ -356,7 +359,7 @@ const EVENT = {
   "rental.archived": () => "Property archived",
   "rental.restored": () => "Property restored",
   "compliance.updated": d => `${CHECK[d.kind]} done ${fmtDay(d.after.done_on)}, expires ${fmtDay(d.after.expires_on)}`,
-  "repair.created": d => `Repair reported: ${d.title}`,
+  "repair.created": d => `Repair reported${d.inspection_id ? " from an inspection" : ""}: ${d.title}`,
   "repair.updated": (d, { repairs }) => `Repair ${repairs.find(p => p.id === d.repair_id)?.title ?? ""} updated: ${d.after.status
     ? REPAIR_STATUS[d.after.status] : keys(d.after)}`,
   "tenancy.created": d => `Tenancy entered for ${d.tenant_name}`,
@@ -368,6 +371,9 @@ const EVENT = {
     ? `; keys back ${fmtDay(d.moved_out_on)}` : ""}`,
   "deposit.proposal_saved": d => `Deposit deductions proposed: ${pence(d.total_pence)} of ${pence(d.deposit_pence)} (${d.lines} line${d.lines === 1 ? "" : "s"})`,
   "deposit.outcome_recorded": d => `Deposit: ${OUTCOME[d.status].toLowerCase()} on ${fmtDay(d.occurred_on)}`,
+  "inspection.recorded": d => `Inspection of ${fmtDay(d.inspected_on)} recorded: ${d.rooms} room${d.rooms === 1 ? "" : "s"}, ${
+    d.attention} needing attention, ${d.not_checked} not checked${d.repairs ? `; ${d.repairs} repair${d.repairs === 1 ? "" : "s"} to confirm` : ""}`,
+  "inspection.repair_not_needed": d => `Repair found at the inspection of ${fmtDay(d.inspected_on)} set aside: ${d.room}`,
   "tenancy.updated": ({ before, after: { collect_from, ...rest }, removed }) => [collect_from
     && `Rent collected from ${fmtDay(collect_from)}, not ${fmtDay(before.collect_from)}`,
   Object.keys(rest).length && `Tenancy details changed: ${keys(rest)}`].filter(Boolean).join("; ") + gone(removed, "earlier"),

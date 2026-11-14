@@ -1,222 +1,237 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {makeDb} from './helpers.mjs';
-let domain={},facade={};
-try { domain=await import('../../server/internal/rental-inspections-domain.js'); }
-catch(e) { if(e.code!=='ERR_MODULE_NOT_FOUND')throw e; }
-try { facade=await import('../../server/rental-inspections.js'); }
-catch(e) { if(e.code!=='ERR_MODULE_NOT_FOUND')throw e; }
-const actor='admin@example.test', clock=()=>new Date('2026-07-01T23:30:00.000Z');
-const uid=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-const haveDomain=()=>{for(const name of ['nextInspectionDueCore','createInspectionDraftCore','rescheduleInspectionCore',
-  'saveInspectionDraftCore','reviewInspectionEvidenceCore','revokeInspectionEvidenceCore','completeInspectionCore',
-  'inspectionEvidenceStatusCore']) assert.equal(typeof domain[name],'function',`${name} is missing`);};
-const createInput=(extra={})=>({id:uid(1),rental_id:1,tenancy_id:null,last_completed_on:null,initial_due_on:'2026-06-30',
-  scheduled_on:null,template_version:1,items:[{id:uid(2),room:'Kitchen',check:'Condition'},{id:uid(3),room:'Hall',check:'Alarm'}],...extra});
-const create=(extra={})=>{haveDomain();return domain.createInspectionDraftCore(createInput(extra),actor,clock);};
-const req=(state,extra={})=>({inspection_id:state.id,rental_id:state.rental_id,expected_revision:state.revision,...extra});
-const conflict=e=>e.status===409;
+// ADM-13: internal inspections every six months of a running tenancy, recorded by room from a phone, with references to
+// photos checked outside the app and the repairs found waiting for a person. Synthetic fixtures only.
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { makeEnv, call, adminCookie } from "./helpers.mjs";
+import { addMonths } from "../../server/rentals.js";
+import { jerseyToday, plusDays } from "../../server/viewings.js";
+import { NEXT_INSPECTION } from "../../server/rental-inspections.js";
+import routes from "../../server/routes/rental-inspections.js";
 
-test('inspection core exists while its public service stays unavailable',async()=>{
-  haveDomain();
-  for(const name of ['scheduleInspection','saveInspection','completeInspection','reviewInspectionEvidence','revokeInspectionEvidence'])
-    await assert.rejects(facade[name]({}, {}, actor),e=>e.status===503);
-  assert.equal(Object.keys(facade).some(k=>/owner|report|send|upload|download/i.test(k)),false);
-});
+const T = jerseyToday(), START = addMonths(T, -7);
+const on = () => ({ ...makeEnv(), ADM13_INSPECTIONS_READY: "1" });
+const req = async (env, method, path, body, who) => call(env, method, path, { body, cookie: await adminCookie(who) });
+const row = (env, sql, ...a) => env.DB.raw.prepare(sql).get(...a);
+const rows = (env, sql, ...a) => env.DB.raw.prepare(sql).all(...a);
+const count = (env, table) => row(env, `SELECT COUNT(*) AS n FROM ${table}`).n;
+let ops = 0;
+const op = () => `test-op-${++ops}-${Date.now()}`;
 
-test('first date is explicit and six calendar months clamp at month end',()=>{
-  haveDomain();
-  assert.deepEqual(domain.nextInspectionDueCore({last_completed_on:null,initial_due_on:null}),{status:'baseline_required',due_on:null});
-  assert.deepEqual(domain.nextInspectionDueCore({last_completed_on:null,initial_due_on:'2026-02-28'}),{status:'ready',due_on:'2026-02-28'});
-  assert.deepEqual(domain.nextInspectionDueCore({last_completed_on:'2027-08-31',initial_due_on:'2020-01-01'}),{status:'ready',due_on:'2028-02-29'});
-  assert.deepEqual(domain.nextInspectionDueCore({last_completed_on:'2028-02-29',initial_due_on:null}),{status:'ready',due_on:'2028-08-29'});
-  for(const bad of ['2026-02-30','0000-01-01','9999-08-31','abc'])
-    assert.throws(()=>domain.nextInspectionDueCore({last_completed_on:bad,initial_due_on:null}),e=>e.status===400);
-});
-
-test('missing first due date requests a baseline and never invents completed history',()=>{
-  const out=create({initial_due_on:null});
-  assert.deepEqual(out,{status:'baseline_required',due_on:null});
-  const draft=create();assert.equal(draft.due_on,'2026-06-30');assert.equal(draft.last_completed_on,null);
-  assert.equal(draft.completed_on,null);assert.equal(draft.status,'open');
-  assert.deepEqual(draft.items.map(x=>x.result),['not_checked','not_checked']);
-});
-
-test('rescheduling does not change due date or record completion',()=>{
-  const before=create(),after=domain.rescheduleInspectionCore(before,req(before,{scheduled_on:'2026-07-05'}),actor,clock);
-  assert.equal(after.scheduled_on,'2026-07-05');assert.equal(after.due_on,before.due_on);assert.equal(after.completed_on,null);
-  assert.equal(after.revision,2);assert.equal(before.scheduled_on,null);assert.equal(before.revision,1);
-});
-
-test('draft saves are versioned, case-scoped and never silently mark missing checks OK',()=>{
-  const before=create(),save=req(before,{template_version:1,items:[{id:uid(2),result:'issue',note:'Synthetic crack'}],
-    meter_readings:[{name:'Electricity',value:'123.45',unit:'kWh'}]});
-  const after=domain.saveInspectionDraftCore(before,save,actor,clock);
-  assert.equal(after.items[0].result,'issue');assert.equal(after.items[1].result,'not_checked');
-  assert.equal(after.meter_readings[0].value,'123.45');assert.equal(before.items[0].result,'not_checked');
-  assert.throws(()=>domain.saveInspectionDraftCore(after,save,actor,clock),conflict);
-  assert.throws(()=>domain.saveInspectionDraftCore(after,req(after,{rental_id:2,template_version:1,items:[]}),actor,clock),conflict);
-  assert.throws(()=>domain.saveInspectionDraftCore(after,req(after,{template_version:2,items:[]}),actor,clock),conflict);
-});
-
-test('completion requires nonempty checked items and uses Jersey date for future checks',()=>{
-  let x=create();assert.throws(()=>domain.completeInspectionCore(x,req(x,{completed_on:'2026-07-02'}),actor,clock),e=>e.status===400);
-  x=domain.saveInspectionDraftCore(x,req(x,{template_version:1,items:[{id:uid(2),result:'ok',note:null},{id:uid(3),result:'issue',note:null}]}),actor,clock);
-  assert.throws(()=>domain.completeInspectionCore(x,req(x,{completed_on:'2026-07-03'}),actor,clock),e=>e.status===400);
-  const result=domain.completeInspectionCore(x,req(x,{completed_on:'2026-07-02'}),actor,clock);
-  assert.equal(result.inspection.status,'completed');assert.equal(result.next_due_on,'2027-01-02');assert.equal(result.inspection.completed_by,actor);
-  assert.equal(x.status,'open');
-  const empty=create({items:[]});assert.throws(()=>domain.completeInspectionCore(empty,req(empty,{completed_on:'2026-07-02'}),actor,clock),e=>e.status===400);
-});
-
-test('external evidence is opaque, server-attributed and cannot be supplied as a URL or foreign case',()=>{
-  const x=create();
-  for(const bad of ['https://example.test/photo','r2:private-object','x'.repeat(121),'../other'])
-    assert.throws(()=>domain.reviewInspectionEvidenceCore(x,req(x,{item_id:uid(2),evidence_ref:bad}),actor,clock),e=>e.status===400);
-  assert.throws(()=>domain.reviewInspectionEvidenceCore(x,req(x,{item_id:uid(2),evidence_ref:'external:abc',reviewed_by:'other'}),actor,clock),e=>e.status===400);
-  assert.throws(()=>domain.reviewInspectionEvidenceCore(x,req(x,{rental_id:2,item_id:uid(2),evidence_ref:'external:abc'}),actor,clock),conflict);
-  const y=domain.reviewInspectionEvidenceCore(x,req(x,{item_id:uid(2),evidence_ref:'external:abc'}),actor,clock);
-  const e=y.items[0].evidence[0];assert.equal(e.reviewed_by,actor);assert.equal(e.reviewed_at,clock().toISOString());assert.equal(e.revision,1);
-  assert.equal(domain.inspectionEvidenceStatusCore(y),'review_declared');assert.equal(x.items[0].evidence.length,0);
-});
-
-test('revoked evidence cannot support completion or be silently re-added',()=>{
-  let x=create();x=domain.reviewInspectionEvidenceCore(x,req(x,{item_id:uid(2),evidence_ref:'external:abc'}),actor,clock);
-  const evidence=x.items[0].evidence[0];
-  x=domain.revokeInspectionEvidenceCore(x,req(x,{item_id:uid(2),evidence_id:evidence.id,expected_evidence_revision:1}),actor,clock);
-  assert.equal(domain.inspectionEvidenceStatusCore(x),'review_required');
-  assert.throws(()=>domain.reviewInspectionEvidenceCore(x,req(x,{item_id:uid(3),evidence_ref:'external:abc'}),actor,clock),conflict);
-  x=domain.saveInspectionDraftCore(x,req(x,{template_version:1,items:[{id:uid(2),result:'ok',note:null},{id:uid(3),result:'ok',note:null}]}),actor,clock);
-  assert.throws(()=>domain.completeInspectionCore(x,req(x,{completed_on:'2026-07-02'}),actor,clock),conflict);
-});
-
-test('later revocation marks evidence for review without rewriting the historical completion',()=>{
-  let x=create();x=domain.reviewInspectionEvidenceCore(x,req(x,{item_id:uid(2),evidence_ref:'external:abc'}),actor,clock);
-  x=domain.saveInspectionDraftCore(x,req(x,{template_version:1,items:[{id:uid(2),result:'ok',note:null},{id:uid(3),result:'ok',note:null}]}),actor,clock);
-  const done=domain.completeInspectionCore(x,req(x,{completed_on:'2026-07-02'}),actor,clock),e=done.inspection.items[0].evidence[0];
-  const revised=domain.revokeInspectionEvidenceCore(done.inspection,req(done.inspection,{item_id:uid(2),evidence_id:e.id,expected_evidence_revision:1}),actor,clock);
-  assert.equal(revised.status,'completed');assert.equal(revised.completed_on,'2026-07-02');assert.equal(domain.inspectionEvidenceStatusCore(revised),'review_required');
-});
-
-test('proposal schema enforces one open inspection, tenancy belonging, and a real checklist at completion',()=>{
-  haveDomain();const db=makeDb().raw;
-  db.exec(readFileSync(new URL('../../docs/roadmap/work/ADM-13/inspection-schema-proposal.sql',import.meta.url),'utf8'));
-  db.exec("INSERT INTO landlords(id,name,created_at,updated_at) VALUES(1,'Synthetic','2026-01-01','2026-01-01')");
-  db.exec("INSERT INTO rentals(id,landlord_id,address,parish,service,created_at,updated_at) VALUES(1,1,'Synthetic 1','St Helier','let_only','2026-01-01','2026-01-01'),(2,1,'Synthetic 2','St Helier','let_only','2026-01-01','2026-01-01')");
-  db.exec("INSERT INTO tenancies(id,rental_id,tenant_name,kind,regime,start_on,rent,due_day,created_at,updated_at) VALUES(1,1,'Synthetic','periodic','2011','2026-01-01',1000,1,'2026-01-01','2026-01-01')");
-  const insert=db.prepare("INSERT INTO rental_inspections(id,rental_id,tenancy_id,due_on,template_version,created_at,created_by,updated_at,updated_by) VALUES(?,?,?,?,1,?,?,?,?)");
-  insert.run(uid(10),1,1,'2026-06-30',clock().toISOString(),actor,clock().toISOString(),actor);
-  assert.throws(()=>insert.run(uid(11),1,null,'2026-07-01',clock().toISOString(),actor,clock().toISOString(),actor),/UNIQUE/i);
-  assert.throws(()=>insert.run(uid(12),2,1,'2026-07-01',clock().toISOString(),actor,clock().toISOString(),actor),/tenancy/i);
-  const complete=db.prepare("UPDATE rental_inspections SET status='completed',completed_on='2026-07-02',completed_at=?,completed_by=?,revision=revision+1 WHERE id=?");
-  assert.throws(()=>complete.run(clock().toISOString(),actor,uid(10)),/checklist/i);
-  db.prepare("INSERT INTO rental_inspection_items(inspection_id,id,room,check_name) VALUES(?,?,?,?)").run(uid(10),uid(20),'Kitchen','Condition');
-  assert.throws(()=>complete.run(clock().toISOString(),actor,uid(10)),/checklist/i);
-  db.prepare("UPDATE rental_inspection_items SET result='ok',revision=revision+1 WHERE inspection_id=? AND id=?").run(uid(10),uid(20));
-  assert.equal(complete.run(clock().toISOString(),actor,uid(10)).changes,1);
-  insert.run(uid(11),1,null,'2027-01-02',clock().toISOString(),actor,clock().toISOString(),actor);
-  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
-});
-
-function proposalFixture() {
-  const db=makeDb().raw;
-  db.exec(readFileSync(new URL('../../docs/roadmap/work/ADM-13/inspection-schema-proposal.sql',import.meta.url),'utf8'));
-  db.exec("INSERT INTO landlords(id,name,created_at,updated_at) VALUES(1,'Synthetic','2026-01-01','2026-01-01')");
-  db.exec("INSERT INTO rentals(id,landlord_id,address,parish,service,created_at,updated_at) VALUES(1,1,'Synthetic 1','St Helier','let_only','2026-01-01','2026-01-01'),(2,1,'Synthetic 2','St Helier','let_only','2026-01-01','2026-01-01')");
-  const make=db.prepare("INSERT INTO rental_inspections(id,rental_id,due_on,template_version,created_at,created_by,updated_at,updated_by) VALUES(?,?,?,1,?,?,?,?)");
-  make.run(uid(10),1,'2026-06-30',clock().toISOString(),actor,clock().toISOString(),actor);
-  make.run(uid(11),2,'2026-07-01',clock().toISOString(),actor,clock().toISOString(),actor);
-  const addItem=db.prepare("INSERT INTO rental_inspection_items(inspection_id,id,room,check_name) VALUES(?,?,?,?)");
-  addItem.run(uid(10),uid(20),'Kitchen','Condition');
-  addItem.run(uid(10),uid(21),'Hall','Alarm');
-  addItem.run(uid(11),uid(22),'Kitchen','Condition');
-  return db;
+async function tenancy(env, over = {}, address = "5 Rue des Exemples") {
+  const l = await req(env, "POST", "/admin/landlords", { name: "Synthetic Owner" });
+  const r = await req(env, "POST", "/admin/rentals", { landlord_id: l.data.landlord.id, address, parish: "St Helier", service: "let_only" });
+  const t = await req(env, "POST", `/admin/rentals/${r.data.rental.id}/tenancies`, { tenant_name: "Tess Example", kind: "periodic",
+    regime: "2025", rent: 1500, deposit: 1500, start_on: START, ...over });
+  assert.equal(t.status, 201, JSON.stringify(t.data));
+  return { id: t.data.tenancy.id, rental: r.data.rental.id };
 }
+const read = (env, id) => req(env, "GET", `/admin/tenancies/${id}/inspections`);
+const record = (env, id, body, who) => req(env, "POST", `/admin/tenancies/${id}/inspections`, { expectedRevision: 0, operation_id: op(),
+  inspected_on: T, ...body }, who);
+const decide = (env, id, inspection, body) => req(env, "POST", `/admin/tenancies/${id}/inspections/${inspection}/repairs`, body);
+const ROOMS = [{ name: "Kitchen", condition: "attention", observations: "Tap dripping under the sink.", repair_needed: true },
+  { name: "Bedroom 1", condition: "ok", observations: "" }, { name: "Loft", condition: "not_checked", observations: "No ladder." }];
 
-test('revoking a reference invalidates all uses in the same inspection without affecting another case',()=>{
-  let x=create();
-  x=domain.reviewInspectionEvidenceCore(x,req(x,{item_id:uid(2),evidence_ref:'external:shared'}),actor,clock);
-  x=domain.reviewInspectionEvidenceCore(x,req(x,{item_id:uid(3),evidence_ref:'external:shared'}),actor,clock);
-  const e=x.items[0].evidence[0],before=x;
-  x=domain.revokeInspectionEvidenceCore(x,req(x,{item_id:uid(2),evidence_id:e.id,expected_evidence_revision:1}),actor,clock);
-  assert.deepEqual(x.items.map(i=>i.evidence[0].status),['revoked','revoked']);
-  assert.deepEqual(before.items.map(i=>i.evidence[0].status),['reviewed','reviewed']);
-  assert.throws(()=>domain.revokeInspectionEvidenceCore(x,req(x,{item_id:uid(3),evidence_id:x.items[1].evidence[0].id,expected_evidence_revision:1}),actor,clock),conflict);
-  let other=create({id:uid(100),rental_id:2});
-  other=domain.reviewInspectionEvidenceCore(other,req(other,{item_id:uid(2),evidence_ref:'external:shared'}),actor,clock);
-  assert.equal(domain.inspectionEvidenceStatusCore(other),'review_declared');
+test("flag off: no inspection route exists; on: staff session, same origin and no-store; the switch ships off", async () => {
+  const off = makeEnv(), a = await tenancy(off);
+  for (const [method, path] of [["GET", "/admin/rental-inspections"], ["GET", `/admin/tenancies/${a.id}/inspections`],
+    ["POST", `/admin/tenancies/${a.id}/inspections`], ["POST", `/admin/tenancies/${a.id}/inspections/1/repairs`]])
+    assert.equal((await req(off, method, path, method === "POST" ? {} : undefined)).status, 404, path);
+  const env = on(), b = await tenancy(env);
+  assert.equal((await call(env, "GET", `/admin/tenancies/${b.id}/inspections`)).status, 401);
+  assert.equal((await call(env, "POST", `/admin/tenancies/${b.id}/inspections`, { body: {} })).status, 401);
+  const foreign = await call(env, "POST", `/admin/tenancies/${b.id}/inspections`, { body: {}, cookie: await adminCookie(),
+    origin: "https://evil.example" });
+  assert.equal(foreign.status, 403);
+  const ok = await read(env, b.id);
+  assert.equal(ok.status, 200);
+  assert.equal(ok.headers.get("cache-control"), "no-store");
+  assert.equal((await req(env, "GET", "/admin/rental-inspections")).status, 200);
+  assert.equal((await read(env, 999)).status, 404);
+  assert.match(readFileSync(new URL("../../wrangler.toml", import.meta.url), "utf8"), /^ADM13_INSPECTIONS_READY = "0"$/m);
 });
 
-test('draft completion cannot predate or repeat the last actual completion',()=>{
-  let x=create({last_completed_on:'2026-01-04'});
-  assert.equal(x.due_on,'2026-07-04');
-  x=domain.saveInspectionDraftCore(x,req(x,{template_version:1,items:[{id:uid(2),result:'ok',note:null},{id:uid(3),result:'ok',note:null}]}),actor,clock);
-  for(const completed_on of ['2026-01-03','2026-01-04'])
-    assert.throws(()=>domain.completeInspectionCore(x,req(x,{completed_on}),actor,clock),e=>e.status===400);
-  assert.equal(domain.completeInspectionCore(x,req(x,{completed_on:'2026-01-05'}),actor,clock).next_due_on,'2026-07-05');
+test("no_owner_report_and_no_file_route: JSON routes only, nothing to send, print, upload or download", () => {
+  for (const [, re] of routes) assert.doesNotMatch(re.source, /report|owner|landlord|upload|download|file|photo|send|print/i);
+  assert.equal(routes.length, 4);
 });
 
-test('proposal rejects prechecked items and preserves completed schedules',()=>{
-  const db=proposalFixture();
-  assert.throws(()=>db.prepare("INSERT INTO rental_inspection_items(inspection_id,id,room,check_name,result) VALUES(?,?,?,?,'ok')").run(uid(10),uid(23),'Room','Check'),/item/i);
-  db.prepare("UPDATE rental_inspection_items SET result='ok',revision=revision+1 WHERE inspection_id=?").run(uid(10));
-  db.prepare("UPDATE rental_inspections SET status='completed',completed_on='2026-07-02',completed_at=?,completed_by=?,revision=revision+1 WHERE id=?").run(clock().toISOString(),actor,uid(10));
-  assert.throws(()=>db.prepare("UPDATE rental_inspections SET scheduled_on='2026-07-09',revision=revision+1 WHERE id=?").run(uid(10)),/inspection/i);
+test("six calendar months after the start, then after the last inspection, on the month's last day when shorter", async () => {
+  const env = on(), a = await tenancy(env);
+  const r0 = await read(env, a.id);
+  assert.deepEqual(r0.data.next, { due_on: addMonths(START, 6), status: "overdue" });
+  assert.deepEqual([r0.data.revision, r0.data.inspections, r0.data.suggested_rooms], [0, [], []]);
+  const day = plusDays(T, -3), s = await record(env, a.id, { inspected_on: day, rooms: ROOMS });
+  assert.equal(s.status, 201, JSON.stringify(s.data));
+  const r1 = await read(env, a.id);
+  assert.equal(r1.data.next.due_on, addMonths(day, 6));
+  assert.equal(r1.data.revision, 1);
+  assert.deepEqual(r1.data.suggested_rooms, ["Kitchen", "Bedroom 1", "Loft"]);
+  // The SQL used by the to-do and the count agrees with addMonths, month ends and leap days included.
+  for (const start of ["2025-08-31", "2027-08-31", "2028-02-29", "2026-01-15", "2026-12-31"]) {
+    const sql = row(env, `SELECT ${NEXT_INSPECTION} AS d FROM (SELECT 999999 AS id, ? AS start_on) t`, start).d;
+    assert.equal(sql, addMonths(start, 6), start);
+  }
+  assert.equal(addMonths("2025-08-31", 6), "2026-02-28");
 });
 
-test('proposal preserves reviewed-reference history and confines revocation to the same inspection',()=>{
-  const db=proposalFixture();
-  const add=db.prepare("INSERT INTO rental_inspection_evidence(id,inspection_id,item_id,evidence_ref,reviewed_at,reviewed_by) VALUES(?,?,?,?,?,?)");
-  add.run(uid(30),uid(10),uid(20),'external:shared',clock().toISOString(),actor);
-  add.run(uid(31),uid(10),uid(21),'external:shared',clock().toISOString(),actor);
-  add.run(uid(32),uid(11),uid(22),'external:shared',clock().toISOString(),actor);
-  assert.throws(()=>add.run(uid(33),uid(10),uid(22),'external:foreign',clock().toISOString(),actor),/FOREIGN KEY/i);
-  assert.throws(()=>add.run(uid(34),uid(10),uid(20),'.private',clock().toISOString(),actor),/CHECK/i);
-  assert.throws(()=>add.run(uid(35),uid(10),uid(20),'https://example.test/photo',clock().toISOString(),actor),/CHECK/i);
-  assert.throws(()=>add.run(uid(36),uid(10),uid(20),'x'.repeat(121),clock().toISOString(),actor),/CHECK/i);
-  db.prepare("UPDATE rental_inspection_evidence SET status='revoked',revoked_at=?,revoked_by=?,revision=revision+1 WHERE id=?").run(clock().toISOString(),actor,uid(30));
-  const status=db.prepare('SELECT id,status FROM rental_inspection_evidence ORDER BY id').all();
-  assert.deepEqual(status.map(x=>x.status),['revoked','revoked','reviewed']);
-  assert.throws(()=>db.prepare('DELETE FROM rental_inspection_evidence WHERE id=?').run(uid(30)),/evidence/i);
-  assert.throws(()=>add.run(uid(37),uid(10),uid(20),'external:shared',clock().toISOString(),actor),/evidence/i);
-  db.prepare("UPDATE rental_inspection_items SET result='ok',revision=revision+1 WHERE inspection_id=?").run(uid(10));
-  assert.throws(()=>db.prepare("UPDATE rental_inspections SET status='completed',completed_on='2026-07-02',completed_at=?,completed_by=?,revision=revision+1 WHERE id=?").run(clock().toISOString(),actor,uid(10)),/checklist/i);
-  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
+test("the overdue inspection shows in Rentals › To do, the property's mark and the nav count, only with the flag", async () => {
+  const env = on(), a = await tenancy(env), soon = await tenancy(env, { start_on: plusDays(addMonths(T, -6), 20) }, "6 Rue des Exemples");
+  const later = await tenancy(env, { start_on: plusDays(T, -10) }, "7 Rue des Exemples");
+  // The other checks and deadlines done, so only inspections can show.
+  env.DB.raw.prepare("UPDATE compliance_items SET done_on = ?, expires_on = ?").run(T, addMonths(T, 24));
+  env.DB.raw.prepare("UPDATE tenancies SET inventory_in_on = start_on").run();
+  const overview = async e => (await req(e, "GET", "/admin/rentals")).data;
+  const items = d => d.todo.compliance.filter(c => c.kind === "inspection").map(c => [c.tenancy_id, c.status]);
+  let d = await overview(env);
+  assert.deepEqual(items(d), [[a.id, "overdue"], [soon.id, "due30"]]);
+  assert.equal(d.todo.compliance.find(c => c.tenancy_id === a.id).label, "Inspection");
+  assert.ok(d.rentals.find(r => r.id === a.rental).marks.includes("compliance"));
+  assert.ok(!d.rentals.find(r => r.id === later.rental).marks.includes("compliance"));
+  const counts = async e => {
+    env.DB.raw.prepare("DELETE FROM app_settings WHERE key = 'rentals_count'").run();
+    return (await req(e, "GET", "/admin/notifications/counts")).data.rentals;
+  };
+  assert.equal(await counts(env), 1, "only the overdue one counts");
+  // Without the flag nothing reads the table: the same data, no inspection anywhere.
+  const off = { ...env, ADM13_INSPECTIONS_READY: "0" };
+  assert.deepEqual(items(await overview(off)), []);
+  assert.ok(!(await overview(off)).rentals.find(r => r.id === a.rental).marks.includes("compliance"));
+  assert.equal(await counts(off), 0);
+  // Recorded today: due again in six months, out of the to-do and the count.
+  assert.equal((await record(env, a.id, { rooms: ROOMS })).status, 201);
+  d = await overview(env);
+  assert.deepEqual(items(d), [[soon.id, "due30"]]);
+  assert.equal(await counts(env), 0);
+  // A tenancy moving out before the next inspection falls due has none to do.
+  assert.equal((await req(env, "POST", `/admin/tenancies/${soon.id}/end`, { ended_on: plusDays(T, 5) })).status, 200);
+  assert.deepEqual(items(await overview(env)), []);
+  assert.equal((await read(env, soon.id)).data.next, null);
 });
 
-test('proposal stores private meter readings per inspection and locks them after completion',()=>{
-  const db=proposalFixture();
-  const add=db.prepare('INSERT INTO rental_inspection_meter_readings(inspection_id,ordinal,name,value,unit) VALUES(?,?,?,?,?)');
-  add.run(uid(10),0,'Electricity','123.45','kWh');
-  assert.throws(()=>add.run(uid(10),0,'Gas','500','m3'),/UNIQUE/i);
-  assert.throws(()=>add.run(uid(99),0,'Gas','500','m3'),/inspection|FOREIGN KEY/i);
-  assert.throws(()=>db.prepare("UPDATE rental_inspection_meter_readings SET value='124' WHERE inspection_id=? AND ordinal=0").run(uid(10)),/revision/i);
-  db.prepare("UPDATE rental_inspection_items SET result='ok',revision=revision+1 WHERE inspection_id=?").run(uid(10));
-  db.prepare("UPDATE rental_inspections SET status='completed',completed_on='2026-07-02',completed_at=?,completed_by=?,revision=revision+1 WHERE id=?").run(clock().toISOString(),actor,uid(10));
-  assert.throws(()=>add.run(uid(10),1,'Gas','500','m3'),/inspection/i);
-  assert.throws(()=>db.prepare("UPDATE rental_inspection_meter_readings SET value='124',revision=revision+1 WHERE inspection_id=? AND ordinal=0").run(uid(10)),/inspection/i);
-  assert.throws(()=>db.prepare('DELETE FROM rental_inspection_meter_readings WHERE inspection_id=? AND ordinal=0').run(uid(10)),/inspection/i);
+test("validation: a day from the start to today, every room checked or said not checked, nothing written on error", async () => {
+  const env = on(), a = await tenancy(env);
+  const bad = async (body, field) => {
+    const r = await record(env, a.id, body);
+    assert.equal(r.status, 400, JSON.stringify(r.data));
+    assert.ok(r.data.fields[field], `${field}: ${JSON.stringify(r.data.fields)}`);
+  };
+  await bad({ inspected_on: plusDays(T, 1), rooms: ROOMS }, "inspected_on");
+  await bad({ inspected_on: plusDays(START, -1), rooms: ROOMS }, "inspected_on");
+  await bad({ inspected_on: "2026-02-30", rooms: ROOMS }, "inspected_on");
+  await bad({ rooms: [] }, "rooms");
+  await bad({ rooms: [{ name: "Hall", observations: "" }] }, "rooms.0.condition");
+  await bad({ rooms: [{ name: "Hall", condition: "fine", observations: "" }] }, "rooms.0.condition");
+  await bad({ rooms: [{ name: "Hall", condition: "attention", observations: " " }] }, "rooms.0.observations");
+  await bad({ rooms: [{ name: "Hall", condition: "ok", observations: "", repair_needed: true }] }, "rooms.0.repair_needed");
+  await bad({ rooms: ROOMS, evidence_refs: ["x".repeat(121)] }, "evidence_refs.0");
+  await bad({ rooms: ROOMS, evidence_refs: ["Folder A", "Folder A"] }, "evidence_refs");
+  await bad({ rooms: ROOMS, expectedRevision: -1 }, "expectedRevision");
+  assert.equal((await record(env, a.id, { rooms: ROOMS, operation_id: "short" })).status, 400);
+  assert.equal(count(env, "rental_inspections"), 0);
+  // not_checked_not_ok: a room not checked is kept as not checked, never as OK.
+  const s = await record(env, a.id, { rooms: ROOMS, evidence_refs: ["Inspection photos, folder I-0001"] });
+  assert.equal(s.status, 201, JSON.stringify(s.data));
+  assert.deepEqual(s.data.inspection.rooms.map(r => r.condition), ["attention", "ok", "not_checked"]);
+  assert.deepEqual(s.data.inspection.rooms.map(r => r.repair?.status ?? null), ["pending", null, null]);
 });
 
-test('proposal rejects year zero, a fabricated starting revision and completion before the baseline',()=>{
-  const db=proposalFixture();
-  db.exec("INSERT INTO rentals(id,landlord_id,address,parish,service,created_at,updated_at) VALUES(3,1,'Synthetic 3','St Helier','let_only','2026-01-01','2026-01-01')");
-  const make=db.prepare("INSERT INTO rental_inspections(id,rental_id,due_on,last_completed_on,template_version,revision,created_at,created_by,updated_at,updated_by) VALUES(?,3,?,?,1,?,?,?,?,?)");
-  assert.throws(()=>make.run(uid(40),'0000-06-30',null,1,clock().toISOString(),actor,clock().toISOString(),actor),/CHECK/i);
-  assert.throws(()=>make.run(uid(40),'2026-07-04','0000-01-04',1,clock().toISOString(),actor,clock().toISOString(),actor),/CHECK/i);
-  assert.throws(()=>make.run(uid(40),'2026-07-04','2026-01-04',2,clock().toISOString(),actor,clock().toISOString(),actor),/inspection/i);
-  make.run(uid(40),'2026-07-04','2026-01-04',1,clock().toISOString(),actor,clock().toISOString(),actor);
-  db.prepare('INSERT INTO rental_inspection_items(inspection_id,id,room,check_name) VALUES(?,?,?,?)').run(uid(40),uid(41),'Room','Check');
-  db.prepare("UPDATE rental_inspection_items SET result='ok',revision=revision+1 WHERE inspection_id=?").run(uid(40));
-  const complete=db.prepare("UPDATE rental_inspections SET status='completed',completed_on=?,completed_at=?,completed_by=?,revision=revision+1 WHERE id=?");
-  for(const day of ['0000-07-02','2026-01-03','2026-01-04'])
-    assert.throws(()=>complete.run(day,clock().toISOString(),actor,uid(40)),/CHECK/i);
-  assert.equal(complete.run('2026-01-05',clock().toISOString(),actor,uid(40)).changes,1);
+test("stale_revision409_no_write and a repeat is replayed: one inspection, one history line", async () => {
+  const env = on(), a = await tenancy(env), b = await tenancy(env, {}, "8 Rue des Exemples"), id = op();
+  const first = await record(env, a.id, { rooms: ROOMS, operation_id: id });
+  assert.equal(first.status, 201);
+  assert.equal(first.data.replayed, false);
+  const again = await record(env, a.id, { rooms: ROOMS, operation_id: id });
+  assert.equal(again.status, 200);
+  assert.deepEqual([again.data.replayed, again.data.inspection.id], [true, first.data.inspection.id]);
+  assert.equal((await record(env, b.id, { rooms: ROOMS, operation_id: id })).status, 409, "the form of another tenancy");
+  const stale = await record(env, a.id, { rooms: ROOMS, expectedRevision: 0 });
+  assert.equal(stale.status, 409);
+  assert.match(stale.data.error, /Someone else recorded an inspection meanwhile/);
+  assert.equal(count(env, "rental_inspections"), 1);
+  assert.equal(rows(env, "SELECT 1 FROM rental_events WHERE type = 'inspection.recorded'").length, 1);
+  const next = await record(env, a.id, { rooms: ROOMS, expectedRevision: 1 }, "colleague@example.test");
+  assert.equal(next.status, 201);
+  assert.deepEqual([next.data.inspection.seq, next.data.inspection.recorded_by], [2, "colleague@example.test"]);
+  // A body naming another tenancy is refused; an ended tenancy has no inspections to record.
+  assert.equal((await record(env, a.id, { rooms: ROOMS, expectedRevision: 2, tenancy_id: b.id })).status, 400);
+  env.DB.raw.prepare("UPDATE tenancies SET ended_on = ? WHERE id = ?").run(T, b.id);
+  assert.equal((await record(env, b.id, { rooms: ROOMS })).status, 409);
 });
 
-test('proposal does not rewrite the labels of a versioned checklist item',()=>{
-  const db=proposalFixture();
-  assert.throws(()=>db.prepare("UPDATE rental_inspection_items SET check_name='A different check',revision=revision+1 WHERE inspection_id=? AND id=?").run(uid(10),uid(20)),/revision|inspection/i);
-  assert.equal(db.prepare('SELECT check_name FROM rental_inspection_items WHERE inspection_id=? AND id=?').get(uid(10),uid(20)).check_name,'Condition');
+test("wrong_case_denied: a reference recorded for another tenancy is refused; server_actor_and_time on the rest", async () => {
+  const env = { ...on(), ADM06_TENANCY_ORIGIN_READY: "1" }, a = await tenancy(env), b = await tenancy(env, {}, "9 Rue des Exemples");
+  assert.equal((await req(env, "PUT", `/admin/tenancies/${b.id}/entry-inventory`, { expectedRevision: 0,
+    rooms: [{ name: "Kitchen", observations: "" }], evidence_refs: ["Check-in photos, folder B-1"] })).status, 200);
+  assert.equal((await record(env, b.id, { rooms: ROOMS, evidence_refs: ["Inspection photos, folder B-2"] })).status, 201);
+  for (const ref of ["Check-in photos, folder B-1", "Inspection photos, folder B-2"]) {
+    const r = await record(env, a.id, { rooms: ROOMS, evidence_refs: ["Inspection photos, folder A-1", ref] });
+    assert.equal(r.status, 400, ref);
+    assert.match(r.data.fields["evidence_refs.1"], /another tenancy/);
+  }
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM rental_inspections WHERE tenancy_id = ?", a.id).n, 0);
+  const s = await record(env, a.id, { rooms: ROOMS, evidence_refs: [{ evidence_ref: "x", reviewed_by: "someone@else" }] });
+  assert.equal(s.status, 400, "a reference is text, not a review");
+  const ok = await record(env, a.id, { rooms: ROOMS, evidence_refs: ["Inspection photos, folder A-1"] }, "colleague@example.test");
+  assert.equal(ok.status, 201);
+  const [ref] = ok.data.inspection.evidence_refs;
+  assert.deepEqual([ref.evidence_ref, ref.reviewed_by, ref.revision], ["Inspection photos, folder A-1", "colleague@example.test", 1]);
+  assert.ok(Math.abs(Date.parse(ref.reviewed_at) - Date.now()) < 60000);
+  // The same contract's reference can be cited again at its next inspection.
+  assert.equal((await record(env, a.id, { rooms: ROOMS, expectedRevision: 1, evidence_refs: ["Inspection photos, folder A-1"] })).status, 201);
+  // The history counts; observations and references stay out of it.
+  const e = rows(env, "SELECT data FROM rental_events WHERE type = 'inspection.recorded' AND tenancy_id = ? ORDER BY id", a.id)
+    .map(r => JSON.parse(r.data));
+  assert.deepEqual(e[0], { seq: 1, inspected_on: T, rooms: 3, attention: 1, not_checked: 1, repairs: 1, evidence_refs: 1 });
+  assert.ok(!/folder|dripping|ladder/.test(JSON.stringify(e)));
+});
+
+test("a found repair waits for a person: created once in Repairs, or set aside; stale and other cases refused", async () => {
+  const env = on(), a = await tenancy(env), b = await tenancy(env, {}, "10 Rue des Exemples");
+  const rooms = [ROOMS[0], { name: "Bathroom", condition: "attention", observations: "Extractor fan noisy.", repair_needed: true }, ROOMS[1]];
+  const x = (await record(env, a.id, { rooms })).data.inspection;
+  assert.equal(count(env, "repairs"), 0, "nothing is created before a person decides");
+  const y = (await record(env, b.id, { rooms })).data.inspection;
+  // Wrong case: the inspection is another tenancy's, or the room has nothing waiting.
+  assert.equal((await decide(env, a.id, y.id, { room: 0, expectedRevision: 1, decision: "repair", urgency: "routine" })).status, 404);
+  assert.equal((await decide(env, a.id, x.id, { room: 2, expectedRevision: 1, decision: "repair", urgency: "routine" })).status, 404);
+  assert.equal((await decide(env, a.id, x.id, { room: 9, expectedRevision: 1, decision: "repair", urgency: "routine" })).status, 404);
+  const none = await decide(env, a.id, x.id, { room: 0, expectedRevision: 1, decision: "repair" });
+  assert.equal(none.status, 400); assert.ok(none.data.fields.urgency);
+  assert.equal((await decide(env, a.id, x.id, { room: 0, expectedRevision: 1, decision: "maybe" })).status, 400);
+  const c = await decide(env, a.id, x.id, { room: 0, expectedRevision: 1, decision: "repair", urgency: "urgent" });
+  assert.equal(c.status, 201, JSON.stringify(c.data));
+  const p = row(env, "SELECT * FROM repairs WHERE id = ?", c.data.repair_id);
+  assert.deepEqual([p.rental_id, p.tenancy_id, p.title, p.detail, p.urgency, p.status],
+    [a.rental, a.id, "Kitchen: Tap dripping under the sink.", "Tap dripping under the sink.", "urgent", "reported"]);
+  assert.deepEqual(c.data.inspection.rooms[0].repair.status, "created");
+  assert.equal(c.data.inspection.revision, 2);
+  // duplicate_repair_action_replayed
+  const again = await decide(env, a.id, x.id, { room: 0, expectedRevision: 1, decision: "repair", urgency: "urgent" });
+  assert.deepEqual([again.status, again.data.replayed, again.data.repair_id], [200, true, c.data.repair_id]);
+  assert.equal((await decide(env, a.id, x.id, { room: 0, expectedRevision: 2, decision: "not_needed" })).status, 409);
+  assert.equal(count(env, "repairs"), 1);
+  const stale = await decide(env, a.id, x.id, { room: 1, expectedRevision: 1, decision: "not_needed" });
+  assert.equal(stale.status, 409);
+  assert.match(stale.data.error, /changed this inspection meanwhile/);
+  const aside = await decide(env, a.id, x.id, { room: 1, expectedRevision: 2, decision: "not_needed" });
+  assert.equal(aside.status, 201);
+  assert.deepEqual([aside.data.inspection.rooms[1].repair.status, aside.data.repair_id, count(env, "repairs")], ["not_needed", null, 1]);
+  // An archived property gets no new repair.
+  env.DB.raw.prepare("UPDATE rentals SET archived_at = ? WHERE id = ?").run(T, b.rental);
+  const archived = await decide(env, b.id, y.id, { room: 0, expectedRevision: 1, decision: "repair", urgency: "routine" });
+  assert.equal(archived.status, 409);
+  assert.equal(count(env, "repairs"), 1);
+  const types = rows(env, "SELECT type, data FROM rental_events WHERE tenancy_id = ? ORDER BY id", a.id).map(r => [r.type, JSON.parse(r.data)]);
+  assert.deepEqual(types.slice(-2).map(([t]) => t), ["repair.created", "inspection.repair_not_needed"]);
+  assert.equal(types.at(-2)[1].repair_id, c.data.repair_id);
+});
+
+test("inspections are kept as recorded: no delete, no rewritten date, checklist rows or references", async () => {
+  const env = on(), a = await tenancy(env);
+  assert.equal((await record(env, a.id, { rooms: ROOMS })).status, 201);
+  for (const sql of ["DELETE FROM rental_inspections", "UPDATE rental_inspections SET inspected_on = '2020-01-01'",
+    "UPDATE rental_inspections SET evidence_refs = '[]'", "UPDATE rental_inspections SET tenancy_id = 99"])
+    assert.throws(() => env.DB.raw.exec(sql), /kept as recorded/);
 });

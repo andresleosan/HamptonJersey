@@ -30,12 +30,12 @@ export const OUTCOME = { requested: "Repayment requested in mydeposits", agreed:
 const RELOADED = "The saved record is shown above; your entries are still in the form. Save again to replace it.";
 
 // A save's answer by its form; a conflict offers Reload and keeps what was typed.
-function Note({ msg, onReload }) {
+export function Note({ msg, onReload }) {
   return msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}
     {msg.stale && <> <button type="button" className="btn ghost sm" onClick={onReload}>Reload</button></>}</p>;
 }
 // A form's submit: its field errors (focus on the first) and its answer. run() resolves true once saved.
-function useSave(prefix) {
+export function useSave(prefix) {
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), fe = useFieldErrors(prefix), ref = useRef(null);
   useEffect(() => { ref.current?.querySelector("[aria-invalid=true]")?.focus(); }, [fe.errors]);
   const run = async (send, ok) => {

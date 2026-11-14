@@ -5,6 +5,7 @@ import { fields } from "../sales.js";
 import { jerseyToday, plusDays, realDate } from "../viewings.js";
 import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE } from "./rentals.js";
 import { exitReady } from "../tenancy-exits.js";
+import { NEXT_INSPECTION, inspectionDue, inspectionsReady } from "../rental-inspections.js";
 
 const MAX_POUNDS = 1000000, MAX_PENCE = 100 * MAX_POUNDS; // R20
 const ENDED = "This tenancy has ended", CHANGED = "This property changed meanwhile. Reload to see it";
@@ -91,8 +92,8 @@ export const RENEWAL = `t.kind = 'fixed' AND t.ended_on IS NULL AND t.notice_giv
 const OPEN_REPAIR = "p.status NOT IN ('done', 'cancelled')"; // the repairs_open index
 
 // R16: the nav's Rentals count: tenancies whose next arrears step is due, checks and tenancy deadlines overdue (a missing
-// check counts), renewals to decide, open emergencies and unmatched payments. P16: it is polled every 30 s, so it is
-// kept in app_settings as rentals_count {n, at} and worked out again only when older than COUNT_MS (which also covers
+// check counts; ADM-13: an inspection too, with its flag), renewals to decide, open emergencies and unmatched payments.
+// P16: it is polled every 30 s, so it is kept in app_settings as rentals_count {n, at} and worked out again only when older than COUNT_MS (which also covers
 // the day changing); any rental write drops it (the rental_events_count trigger), so the badge moves at once. Two
 // statements for the counts batch, each gated on the cache: ensureCharges joins a one-row gate before the tenancies, and
 // the count's INSERT has no FROM, so its WHERE is checked before the select list's subqueries run. While the cache is
@@ -108,7 +109,8 @@ export const refreshRentalsCount = env => {
     + (SELECT COUNT(*) ${CHECKS} AND (c.expires_on IS NULL OR c.expires_on < ?1))
     + (SELECT COALESCE(SUM(${pending("< ?1").join(" + ")}), 0) FROM tenancies t JOIN rentals r ON r.id = t.rental_id
       WHERE r.archived_at IS NULL)
-    + (SELECT COUNT(*) FROM tenancies t WHERE ${RENEWAL})
+    + (SELECT COUNT(*) FROM tenancies t WHERE ${RENEWAL})${inspectionsReady(env) ? `
+    + (SELECT COUNT(*) FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE r.archived_at IS NULL AND ${inspectionDue("< ?1")})` : ""}
     + (SELECT COUNT(*) FROM repairs p WHERE p.urgency = 'emergency' AND ${OPEN_REPAIR})
     + (SELECT COUNT(*) FROM payments WHERE tenancy_id IS NULL), 'at', ?3), ?3
   WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'rentals_count' AND json_extract(value, '$.at') > ?4)
@@ -657,6 +659,7 @@ const RANK = ["overdue", "missing", "due7", "due30", "due60"];
 const KINDS = [...COMPLIANCE.map(([k]) => k), ...DEADLINES.map(([k]) => k)];
 const LABEL = Object.fromEntries(COMPLIANCE.map(([k, label]) => [k, label]));
 const WARN = Math.max(...LEGAL.warnDays);
+const INSPECTION_WARN = 30; // ADM-13: an inspection every six months shows in the to-do from 30 days before it falls due
 const URGENCY = "CASE p.urgency WHEN 'emergency' THEN 0 WHEN 'urgent' THEN 1 ELSE 2 END";
 const MARKS = ["arrears", "compliance", "renewals", "repairs"];
 
@@ -664,16 +667,18 @@ const MARKS = ["arrears", "compliance", "renewals", "repairs"];
 // one still running (a later one may be waiting for a planned move-out), with its rent today and, under full service,
 // its balance (rent charges due minus rent payments). The marks: arrears when something due before today is unpaid
 // (owing and at least a day late, P25: the to-do keeps only a step due), checks when a property check or a tenancy
-// deadline is missing or due within WARN days, a renewal to decide, an open repair. Binds ?1 today, ?2 service, ?3 the
-// search (LIKE) or NULL, ?4 a mark or NULL. q searches address, landlord, and any tenant's name or payment reference.
+// deadline is missing or due within WARN days (ADM-13, with inspections: one due within INSPECTION_WARN days), a renewal
+// to decide, an open repair. Binds ?1 today, ?2 service, ?3 the search (LIKE) or NULL, ?4 a mark or NULL. q searches
+// address, landlord, and any tenant's name or payment reference.
 const has = col => `${col} LIKE ?3 ESCAPE '\\'`;
-const LIST = archived => `WITH x AS (SELECT r.id, r.address, r.parish, r.service, r.landlord_id, l.name AS landlord_name,
+const LIST = (archived, inspections) => `WITH x AS (SELECT r.id, r.address, r.parish, r.service, r.landlord_id, l.name AS landlord_name,
     r.archived_at, t.id AS tenancy_id, t.tenant_name, t.payment_ref, ${rentNow("?1")} AS rent,
     CASE WHEN r.service = 'full' THEN t.id END AS full_id,
     r.archived_at IS NULL AND (EXISTS (SELECT 1 FROM compliance_items c WHERE c.rental_id = r.id
         AND (c.kind <> 'gas' OR r.has_gas IS NOT 0) AND (c.expires_on IS NULL OR c.expires_on <= date(?1, '+${WARN} days')))
       OR EXISTS (SELECT 1 FROM tenancies t WHERE t.rental_id = r.id
-        AND (${pending(`<= date(?1, '+${WARN} days')`).join(" OR ")}))) AS compliance,
+        AND (${pending(`<= date(?1, '+${WARN} days')`).join(" OR ")}))${inspections ? `
+      OR EXISTS (SELECT 1 FROM tenancies t WHERE t.rental_id = r.id AND ${inspectionDue(`<= date(?1, '+${INSPECTION_WARN} days')`)})` : ""}) AS compliance,
     EXISTS (SELECT 1 FROM tenancies t WHERE t.rental_id = r.id AND ${RENEWAL}) AS renewals,
     EXISTS (SELECT 1 FROM repairs p WHERE p.rental_id = r.id AND ${OPEN_REPAIR}) AS repairs
     FROM rentals r JOIN landlords l ON l.id = r.landlord_id
@@ -706,9 +711,10 @@ async function overview({ request, env }) {
   if (filter && !MARKS.includes(filter)) fail(400, "Invalid filter");
   if (!["", "0", "1"].includes(archived)) fail(400, "Invalid archived");
   const today = jerseyToday(), s = (sql, ...b) => env.DB.prepare(sql).bind(today, ...b);
-  const list = s(LIST(archived === "1"), service, q && `%${q.replace(/[\\%_]/g, "\\$&")}%`, filter);
+  const visits = inspectionsReady(env);
+  const list = s(LIST(archived === "1", visits), service, q && `%${q.replace(/[\\%_]/g, "\\$&")}%`, filter);
   if (p.get("list") === "1") return json({ rentals: (await list.all()).results.map(marks) });
-  const [, owing, checks, dues, renewals, repairs, unmatched, rentals, [totals]] = (await env.DB.batch([
+  const [, owing, checks, dues, renewals, repairs, unmatched, rentals, [totals], inspections = []] = (await env.DB.batch([
     ensureCharges(env, today),
     s(`WITH ${ARREARS_SQL} SELECT a.tenancy_id, a.rental_id, r.address, t.tenant_name, t.payment_ref, a.balance,
       a.oldest_unpaid_on, a.days_late, a.next_step FROM arrears a JOIN tenancies t ON t.id = a.tenancy_id
@@ -729,6 +735,8 @@ async function overview({ request, env }) {
     s(`SELECT (SELECT COUNT(*) FROM rentals WHERE archived_at IS NULL) AS properties,
       (SELECT COUNT(DISTINCT rental_id) FROM tenancies WHERE ended_on IS NULL OR ended_on > ?1) AS occupied,
       (SELECT COUNT(*) FROM payments WHERE tenancy_id IS NULL) AS unmatched`),
+    ...(visits ? [s(`SELECT t.id, t.rental_id, t.tenant_name, r.address, ${NEXT_INSPECTION} AS due_on FROM tenancies t
+      JOIN rentals r ON r.id = t.rental_id WHERE r.archived_at IS NULL AND ${inspectionDue(`<= date(?1, '+${INSPECTION_WARN} days')`)}`)] : []),
   ])).map(r => r.results);
   const todo = {
     arrears: owing.filter(a => a.next_step).map(({ next_step, ...a }) => ({ ...a, next_step: STEP[next_step] })),
@@ -738,6 +746,8 @@ async function overview({ request, env }) {
           label: d.label, due_on: d.due_on, status: d.status }))),
       ...checks.map(c => ({ rental_id: c.rental_id, address: c.address, tenancy_id: null, tenant_name: null, kind: c.kind,
         label: LABEL[c.kind], due_on: c.expires_on, status: complianceStatus(c, today) })),
+      ...inspections.map(t => ({ rental_id: t.rental_id, address: t.address, tenancy_id: t.id, tenant_name: t.tenant_name,
+        kind: "inspection", label: "Inspection", due_on: t.due_on, status: complianceStatus({ expires_on: t.due_on }, today) })),
     ].sort((a, b) => RANK.indexOf(a.status) - RANK.indexOf(b.status) || (a.due_on ?? "").localeCompare(b.due_on ?? "")
       || a.rental_id - b.rental_id || KINDS.indexOf(a.kind) - KINDS.indexOf(b.kind)),
     renewals: renewals.map(r => ({ ...r, label: r.end_on < today ? "Fixed term ended" : "Renewal due" })),

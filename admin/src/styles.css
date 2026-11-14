@@ -415,6 +415,16 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .record>.block{margin-top:24px}
 .tenancy{display:grid;gap:12px} .tenancy h3{font-size:16px;margin:8px 0 0} .tenancy p{margin:0} .tenancy>.head{margin:0;align-items:flex-start}
 .tenancy .table-scroll{margin:0} .tenancy .table-scroll .list{min-width:480px;margin:0}
+/* ADM-13: the inspection checklist is filled in on a phone during the visit, so its controls reach 44px there (DESIGN.md:
+   32px in the panel; antislop R-03). */
+.inspections{display:grid;gap:12px} .inspections>p{margin:0}
+.inspection-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.inspection-list>li{display:grid;gap:8px;min-width:0;padding-top:12px;border-top:1px solid var(--line)} .inspection-list p{margin:0}
+.inspection-room{display:grid;gap:12px;min-width:0;margin:0;padding:12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--paper)}
+.inspection-room>legend{padding:0 4px;font-weight:600;overflow-wrap:anywhere}
+.badge-row{display:flex;flex-wrap:wrap;gap:6px}
+.repair-decision{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:end;width:100%}
+@media (max-width:760px){.inspections .btn,.inspections select,.inspections input[type=date],.inspections input:not([type]){min-height:44px}}
 .ref{display:grid;justify-items:end;gap:2px} .ref strong{font:400 22px/1.2 var(--display);letter-spacing:.06em}
 .owed{display:flex;flex-wrap:wrap;gap:12px 40px;align-items:flex-start;padding:12px 16px;background:var(--mist);border-radius:var(--r-sm)}
 .balance{display:grid;gap:2px} .balance strong{font:400 28px/1.2 var(--display)}
