@@ -1,34 +1,42 @@
-# Continuidad de `$avanzar`
+# Autorizaciones permanentes de Luis para `/avanzar`
 
-Luis pidió el 13-nov-2026 que Codex continúe el checklist de Hampton de forma autónoma entre invocaciones de `$avanzar`, usando los planes y especificaciones para resolver decisiones ya documentadas. Su objetivo es terminar las tareas aplicables o, como mínimo, **111 de las 221 tareas originales**. Una sesión nueva debe retomar desde el último estado comprobable; no se supone que trabaje en segundo plano cuando está cerrada.
+Aquí está lo que Luis ya autorizó y lo que no. `/avanzar` lo aplica sin volver a preguntar. El procedimiento está en la [skill](../../.agents/skills/avanzar/SKILL.md).
 
-## Forma de trabajar
+**Meta:** terminar las tareas aplicables lo antes posible. Hito intermedio: 111 de las 221 tareas originales. El porcentaje solo sube cuando una tarea cumple su criterio de hecho.
 
-- Leer este documento, [ESTADO.md](ESTADO.md), el catálogo, la ficha de cada tarea y sus planes/especificaciones vigentes. Comprobar `main`, sus cambios y el estado local antes de editar. El árbol de trabajo de Luis puede contener modificaciones ajenas: conservarlas y usar una copia aislada cuando haga falta.
-- Continuar con varias tareas viables en la misma sesión, priorizando las que puedan **terminarse realmente** y las dependencias que desbloqueen otras. Repartir trabajo independiente entre agentes cuando las reglas y herramientas de la sesión lo permitan, con un responsable por archivo compartido. Un bloqueo localizado no detiene las demás tareas.
-- Luis autoriza los **commits y pushes necesarios a `main`** para este avance, sin pedir una nueva aprobación por cada lote. Preparar cambios revisables, ejecutar las comprobaciones pertinentes, añadir solo los archivos propios, verificar que el remoto sigue en la base esperada y publicar sin forzar ni reescribir historial. Si hay cambios remotos concurrentes o un resultado incierto, reconciliar antes de seguir.
-- Agrupar pruebas completas y publicaciones de unidades compatibles para avanzar más rápido, manteniendo las comprobaciones específicas, la revisión necesaria y las pruebas de interfaz aisladas exigidas por el proyecto. No reducir cobertura ni desactivar controles para ahorrar tiempo.
-- Actualizar el checklist y la evidencia con lo terminado, lo parcial y sus dependencias. El porcentaje solo aumenta cuando la tarea cumple sus criterios reales; informar cantidad, total aplicable y porcentaje verificados. Mantener también visible la meta de 111 sobre las 221 originales para no confundirla con cambios del denominador.
-- La autorización de commit y push **no equivale** a permiso para aplicar migraciones remotas, activar servicios, cambiar credenciales o controles, enviar mensajes, restaurar datos o ejecutar acciones externas adicionales. Conservar las restricciones y resolver por la vía apropiada los bloqueos reales; no pedir ni publicar secretos.
+## Autorizado sin preguntar
 
-La continuidad depende de que la sesión esté activa y disponga de sus herramientas. Si llega a un límite técnico o de sesión, registrar el último commit, la verificación, las tareas en curso y los siguientes pasos concretos para que la próxima invocación de `$avanzar` pueda continuar sin reconstruir el trabajo.
+| Qué | Desde | Condiciones |
+| --- | --- | --- |
+| Commits y push a `main` | 13-nov-2026 | Solo archivos propios, pruebas del lote pasadas, remoto comprobado, sin forzar ni reescribir historial. |
+| Trabajar sin parar entre tareas y lotes | 13 y 14-nov-2026 | Decidir con los planes y la documentación. Un bloqueo localizado no detiene lo demás. |
+| Repartir el trabajo entre subagentes | 14-nov-2026 | Un escritor por archivo. |
+| Lecturas de producción: estado de migraciones D1, despliegues de Pages, peticiones GET | 14-nov-2026 | Sin escribir datos ni imprimir secretos. |
+| **Migraciones aditivas** en D1 `hampton` | 14-nov-2026 | Regla y pasos abajo. |
+| **Encender el interruptor** (`*_READY`) de una tarea ya migrada y verificada | 14-nov-2026 | Excepto los de la lista «No autorizado». |
+| Cerrar tareas por **aceptación propia** | 14-nov-2026 | Criterio de la sección 3 de la skill, con evidencia en la ficha. |
 
-## Mandato reiterado · 14-nov-2026
+### Qué es una migración aditiva
 
-Luis indicó: «que no vuelva a suceder», «debes seguir hasta resolver todas o la mayoría de las tareas» y que el porcentaje debe subir. No cerrar el encargo por terminar un lote parcial ni repetir confirmaciones rutinarias de trabajo ya autorizado. Antes de iniciar otra tarea, buscar una ruta concreta a cierre e integrar y comprobar su recorrido; después de publicar, verificar tablero y continuar inmediatamente.
+Solo añade: `CREATE TABLE`, `CREATE INDEX`, `CREATE VIEW`, `CREATE TRIGGER`, `ALTER TABLE … ADD COLUMN`, sustituir un trigger o una vista por su versión nueva, e insertar filas fijas de configuración en tablas que crea la propia migración. Las sentencias dentro del cuerpo de un trigger no cuentan como escritura de la migración.
 
-Un fallo de acceso histórico no acredita falta de acceso actual: comprobar por una consulta mínima legítima antes de tratarlo como dependencia. En esta sesión funcionaron las lecturas D1 y Pages. La revisión automática rechazó después aplicar 0048 remota por falta de autorización explícita para ese recurso; no se ejecutó. Esa restricción concreta no bloquea código, pruebas, revisión o los demás alcances independientes, y no se elude por otra herramienta. Preparar el lote completo y revisable antes de solicitar la autorización externa que ese control exige.
+**No es aditiva** y va a la [cola de Luis](COLA-LUIS.md): `DROP TABLE`, renombrar o reconstruir una tabla que ya tiene datos, `DELETE` o `UPDATE` directos sobre filas existentes, y cualquier cambio que borre, reescriba o caduque datos de personas.
 
-### Parada solicitada tras el siguiente cierre
+Pasos obligatorios: archivo publicado en `main` y leído entero, ensayo en D1 local, marcador de Time Travel guardado antes, aplicar solo los archivos revisados y en orden, comprobar después con `migrations list`. Un resultado incierto se investiga antes de repetir.
 
-En el mismo 14-nov, Luis precisó: «cuando termines una tarea y avancemos en porcentaje que hagas commit y push, guardas todo y te detienes para avanzar en otra sesión». Esta instrucción posterior sustituye la continuación inmediata después del próximo cierre real: terminar una tarea, verificar el aumento público, commit/push y continuidad, y detenerse. No cuenta como ese hito un lote parcial ni una propuesta. PUB-08 es el cierre seleccionado; PUB-06/SPR-01 quedan preparados para la sesión posterior.
+## No autorizado: va a la cola de Luis
 
-Luis respondió después «si autorizo» a la solicitud concreta de aplicar **solo `0048_listing_content.sql` en D1 `hampton` y activar `PUB08_CONTENT_READY=1`**. Esta autorización no se extiende a `0052_listing_economics_history.sql` ni a `PUB06_STRUCTURED_ECONOMICS_READY`; ambos quedan para la sesión posterior. 0048 se aplicó con salida 0 y se verificaron por lectura la tabla vacía, sus dos validadores y el registro de migración.
+- Migraciones no aditivas y restauraciones de datos.
+- Interruptores que empiezan a **enviar mensajes** (correo, WhatsApp, Meta, Telegram al equipo) o a **recoger datos personales del público** con un formulario nuevo: `EMAIL_SERVICE_READY`, `OWNER_REQUESTS_READY`, `PUBLIC_DEMAND_READY` y los equivalentes que aparezcan.
+- Credenciales, tokens, permisos, DNS, WAF, Cloudflare Access y configuración del VPS o de Hermes.
+- Cuentas y trámites externos (Meta, Google, JFSC, JOIC, abogado) y cualquier gasto.
+- Escrituras de prueba en producción y borrado de datos reales.
+- Publicar otras ramas: sus previews usan la base de producción.
 
-## Cierre y parada cumplidos · 14-nov-2026
+Si algo no está en ninguna de las dos listas y es difícil de revertir o sale del repositorio, se trata como no autorizado.
 
-PUB-08 cerrada en `9f4f884a63111860cadfa9b051abc518dee1bc75`, tras publicar la activación `faf43a34c75e04164be8515a95556d2cd792be80`. 0048 aplicada y verificada; Pages nativo acredita despliegue exitoso de faf43a3, configuración efectiva PUB08=1 y GET 200 en dominio y deployment exacto. El check GitHub de Pages aún mostraba Building en la última consulta; se distingue del resultado nativo real. Jobs success. Suite de 2.308 JavaScript y 29 Python, build/release/catálogo/paquetes/contrato y Chromium/WebKit aislados aprobados. No hubo escrituras ficticias en producción.
+## Estado de partida · 14-nov-2026
 
-Tablero público leído después del push, `updatedAt=2026-11-14T01:28:04.943Z`: **69/215 (32,09 %)** y PUB-08 hecha, desde **68/215 (31,63 %)**, con el mismo denominador. Se registra el resultado y se detiene esta sesión según Luis. El SHA del registro final queda en el historial de main y en el relevo local indicado por AGENTS.md.
-
-Siguiente sesión recomendada: **PUB-06/SPR-01**, por compartir el esquema canónico 0052 ya integrado y revisado en `09214cf`. La migración 0052 NO se aplicó y `PUB06_STRUCTURED_ECONOMICS_READY` sigue ausente; la autorización concreta de esta sesión solo cubrió 0048/PUB08. Retomar el mapa de retención y las decisiones reconciliadas de premium/renta y fecha sin volver a plantearlas. Comprobar estado remoto real, pruebas concretas de interfaz y autorización aplicable antes de esa operación nueva; no aplicar toda la cola pendiente.
+- Tablero: **69 de 215 (32,09 %)**. Última tarea cerrada: PUB-08 (`9f4f884`), con `0048` aplicada y `PUB08_CONTENT_READY=1`.
+- Migraciones publicadas en `main` y **pendientes en producción**: `0043`, `0044`, `0045`, `0046`, `0047`, `0049`, `0050`, `0051`, `0052`. Varias tareas construidas esperan solo esto y su interruptor.
+- Las decisiones anteriores de pedir un sí por cada migración (`0048`, `0052`) y de detenerse tras un cierre quedan sustituidas por este documento.

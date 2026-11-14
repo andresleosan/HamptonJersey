@@ -1,6 +1,8 @@
 # Estado de Hampton App
 
-**Continuidad de Luis:** avanzar de forma autónoma entre tareas y sesiones, con commits y push autorizados y progreso honesto en el checklist. [Mandato y límites](CONTINUIDAD-AVANZAR.md).
+**Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
+
+14-nov-2026 · **`/avanzar` reestructurado, sin cambios de producto:** una sola skill corta, migraciones aditivas e interruptores autorizados, cierre por aceptación propia, ruta calculada del catálogo y cola de Luis. Progreso sin cambio: 69/215 (32,09 %).
 
 14-nov-2026 · **PUB-08 hecha:** 0048 aplicada con autorización explícita, gate efectivo activo y Pages `faf43a3` publicado, con HTTP 200 del deployment exacto y del dominio público. Recorrido real API/D1/R2 sintético Chromium/WebKit, 2.308 JavaScript/29 Python y controles completos correctos. El tablero público confirmó el paso de **68/215 (31,63 %) a 69/215 (32,09 %)**, PUB-08 hecha, tras el push `9f4f884` (2026-11-14T01:28:04.943Z). PUB-06/SPR-01 quedan preparados, sin aplicar 0052 ni activar economía. Luis pidió guardar con commit/push y detenerse después del aumento verificado. [Evidencia y límites](work/PUB-08/2026-11-14-integracion-activacion.md).
 

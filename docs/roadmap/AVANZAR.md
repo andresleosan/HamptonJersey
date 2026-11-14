@@ -1,79 +1,21 @@
-# Avanzar una tarea de Hampton App
+# Avanzar Hampton App
 
-**Actualización posterior aprobada por Luis,9-nov-2026:** avanzar registra actividad compartida para que otro equipo continúe sin duplicar construcción. `node scripts/avanzar-team.mjs activity list|start|update|offer-handoff|accept-handoff` usa el registro ligero autenticado; no opera reservas históricas ni reactiva claim/evidence/watch/release. La [regla inicial de la skill](../../.agents/skills/avanzar/SKILL.md) contiene los comandos exactos y gobierna sobre descripciones antiguas siguientes.
+`/avanzar` (Claude Code y Hermes) o `$avanzar` (Codex) trabaja el checklist en bucle hasta que no quede trabajo viable. Las reglas viven en dos archivos; este documento solo orienta y guarda la referencia de pruebas.
 
-Las sesiones de solo planificación terminan como **Plan preparado**, con referencia, pendiente y relevo. No cuentan como producto hecho ni toman exclusividad de construcción. El inicio de construcción se confirma atómicamente para un solo equipo por tarea; pausa, revisión y entrega local conservan responsable hasta relevo aceptado o publicación verificada. Si el acceso no puede comprobarse, se permite planificación/diagnóstico local indicando «actividad sin verificar»; no se afirma exclusividad para iniciar producto. La referencia de un plan local no se presenta como un enlace publicado. No se cambian credenciales ni permisos para activar esta capacidad.
-
-**Actualización de Luis, 11-nov-2026:** completar las entregas autorizadas sin repetir aprobaciones ya concedidas; Codex directo aplica los medios autorizados de su sesión y Hermes conserva sus envoltorios. Se mantienen revisión, verificación de migraciones y recuperación, y preservación del trabajo ajeno. Si Luis ordena continuar una entrega sin esperar a Hermes, Codex usa su acceso propio y comprueba el remoto y la base, sin afirmar una exclusión global que no haya verificado. La [decisión inicial de la skill](../../.agents/skills/avanzar/SKILL.md) detalla su alcance.
-
-Contrato compartido por los clientes de Hampton. En Codex se invoca `$avanzar <código>`; por Telegram, `/avanzar <código>`. **Actualización confirmada por Luis el 9-nov-2026:** el coordinador ya no gobierna planificar, construir ni entregar. Verificar GitHub, candado local, exclusividad entre talleres, diseño, dependencias técnicas y pruebas; no usar claim/evidence/watch/release. Las reservas antiguas y el tablero remoto quedan como historia, sin modificarlas. Publicar/migrar sigue exigiendo turno único, revisión, sí para SHA exacto y wrappers. Las secciones de protocolo remoto de este documento describen el flujo anterior y no deben ejecutarse.
-
-La [skill versionada](../../.agents/skills/avanzar/SKILL.md) contiene el procedimiento completo. Se lee desde el clon actual de HamptonJersey, también cuando Hermes arranca una skill instalada en el taller. Esta guía enlaza el contrato; no instala ni sincroniza copias externas.
-
-## Planificación sin reservas
-
-Decisión expresa de Luis, 8-nov-2026. **Planificar no crea reservas.** Usar `node scripts/avanzar-team.mjs plan --list N --task CODIGO` sobre una copia exclusiva y GitHub comprobado. No necesita init, credenciales o coordinador; no consulta ocupación ni modifica sesiones. Una dependencia sin construir no impide planificar. El alias claim --mode plan es local en el cliente actualizado; el servidor rechaza reservas nuevas de ese modo.
-
-Durante planificación guardar spec/plan/ledger y relevo sin scope/watch/submit/pause/complete. Al construir tampoco se crean reservas: exigen diseño y alcance revisados, dependencias técnicas comprobadas, candado del taller y turno acordado entre talleres, no un claim. Las reservas antiguas se conservan sin operar sobre ellas; no se presentan como permisos actuales.
-
-## Inicio guiado
-
-En Hermes puedes enviar `/new` y después `/avanzar`. Decisión de Luis del9-nov: sin argumentos, retomar paquete propio pendiente o seleccionar el primero viable sin volver a pedir elecciones rutinarias. `/avanzar PAQ-01` selecciona el paquete; `/avanzar BUS-14` conserva alcance de ese código. Las250tareas se agrupan en23paquetes transversales; las cuatro listas siguen como referencia. [Guía de paquetes](PAQUETES.md), [manifiesto](paquetes.json) y [procedimiento](../../.agents/skills/avanzar/references/paquetes.md). El CLI local `node scripts/plan-packages.mjs` consulta etapas sin reserva; PAQ-* no se envía al coordinador como unidad. Antes de ejecutar una tarea, consultar su entrada `planReferences` en el paquete: usar el plan vigente y todos sus `requiredComplements`, revisar `constructionDependencies` y `additionalChecks`, y respetar `planningStatus` (incluido aplazado/gestión). El [índice de planes por paquete](PLANES-POR-PAQUETE.md) explica los cruces entre equipos; una referencia de plan no acredita disponibilidad, integración ni autorización.
-
-Cada participante trabaja en su propia copia y toma su candado local; ese candado no excluye al otro taller. Las listas no pertenecen a herramientas. Cambiar de lista no permite iniciar otro agente en una carpeta ocupada ni reemplaza el turno acordado entre talleres.
-
-## Trabajo de equipo (protocolo remoto histórico, NO ejecutar)
-
-Los comandos de este bloque pertenecen al coordinador desactivado para avanzar; la regla inicial y la skill local del9-nov prevalecen. La documentación histórica no concede permisos de producto ni de publicación.
-
-La referencia canónica [equipo.md](../../.agents/skills/avanzar/references/equipo.md) contiene los comandos concretos para las cuatro listas, inicialización privada, planificación, alcance, renovación, relevo y entrega. El cliente se ejecuta desde el repositorio con `node scripts/avanzar-team.mjs`; no necesita un binario global. Requiere Node 20.18.1 o posterior, Git 2.36 o posterior con `--remerge-diff` y `npm ci`. [Reparto de equipo](reparto-equipo.html) muestra el catálogo; como archivo local es una fotografía sin conexión.
-
-El coordinador está publicado y desplegado con el catálogo de `c2ef559bac59a2f6ccb1e5c6c527221f1a367568`: 250 tareas, Lista 1–4 y capacidad dos por lista. VPS y ambos Hermes tienen conexión autenticada comprobada; los dos talleres están actualizados y el piloto real reservó tareas distintas simultáneamente en Lista 2, rechazó una tarea ocupada y liberó las reservas sin cambios de producto. El turno de publicación de una reserva solo de planificación se rechazó correctamente con `PLAN_ONLY`; no se declara completo el piloto de construcción/publicación. VS Code y Codex escritorio conservan incorporación pendiente desde sus equipos. Cualquier cliente habilitado puede elegir cualquier lista. Para construir, sin repositorio, Git/Node, credencial propia o conexión verificada, diagnosticar la incorporación sin reservar ni editar producto. La planificación local verificada no necesita credencial o conexión del coordinador. Sigue pendiente el acceso humano al tablero mediante correos autorizados de Access. Una fotografía del tablero no concede permiso para editar.
-
-Las columnas son **Lista 1, Lista 2, Lista 3 y Lista 4**, cada una con capacidad dos. Cualquier actor autorizado puede elegir cualquiera desde su herramienta habitual. Los IDs históricos son detalles de compatibilidad, no nombres visibles ni asignaciones de equipo. Los comandos numéricos están publicados desde `c2ef559`; actualizar las copias anteriores antes de usarlos. Después, inicializa un checkout nuevo con `node scripts/avanzar-team.mjs init --list 1 --endpoint "$TEAM_ENDPOINT"`; cambia una preferencia existente con `node scripts/avanzar-team.mjs select-list --list 3`. La selección no reserva tareas ni cambia identidades y se rechaza con trabajo, operaciones, aprobación o turno propios pendientes. Solo para construir, `status` y `claim --mode build` consultan y reservan mediante la API; para planificar usar el comando local plan. El servidor prioriza la lista elegida y puede asignar ayuda temporal a otra sin alterar su reparto original.
-
-Hermes 1 y Hermes 2 tienen talleres, homes, clones, sesiones y credenciales independientes; el candado de una copia no bloquea la del otro taller. Cada actor, sesión o checkout mantiene una sola reserva. La API autenticada arbitra ocupación, dependencias y recursos. La planificación local solo produce documentos y declara el alcance que se revisará, sin reservarlo. Claim build exige evidencia de revisión ligada a esos recursos y dependencias satisfechas antes de editar código. Para e2e del mismo equipo se reserva `e2e:<hostId>` con `scope --resource`. Las pausas y caducidades conservan conflictos hasta resolverlos. El relevo se acepta explícitamente en su destino con `accept-handoff --claim <id> --generation <nueva>`: verifica procedencia, identidad autenticada y alcance antes de guardar la generación; conserva trabajo legítimo pendiente incluso en el checkout original recuperado. `watch` renueva cada 60 segundos en primer plano; no instala servicio. Consultar estado no renueva.
-
-Las entregas distinguen diseño, investigación aceptada, decisión, integración y activación real. El turno se toma sobre una entrega provisional para integrar main y documentos y ejecutar pruebas sin otra publicación simultánea. Si main avanzó, solo submit/adquisición provisionales y la aceptación explícita del relevo de esa misma reserva, sin aprobación, admiten esa divergencia comprobada. La recuperación archiva operaciones desconocidas de esa reserva cuya generación fue revocada, conservando su cuerpo e identificador sin repetirlas ni declararlas exitosas; los demás pendientes siguen bloqueando. La auditoría separa los commits propios y resoluciones de merge de los cambios ya publicados por otros, sin perder archivos preparados, sueltos o sin seguimiento. El SHA final debe incluir el main canónico actual y estar limpio. Después se entrega el SHA final y se actualiza ese turno con `release renew --sha FINAL`. Solo entonces se revisa y aprueba ese SHA concreto, que queda congelado por `TALLER_SHA_APROBADO` o `--approved-sha` hasta el cierre verificado. No se integra ni se añaden commits después del sí. El turno no sustituye las autorizaciones existentes, los wrappers ni el candado de Hermes. Un resultado de publicación incierto conserva el turno hasta reconciliar. El cliente nunca ejecuta push ni despliegue.
-
-## Contexto de cada tarea
-
-**Primero GitHub, en VPS, Hermes 1/Hermes 2 y PC/VS Code:** aplicar «Primero: verificar y alinear con GitHub» de la skill. Origen canónico `https://github.com/andresleosan/HamptonJersey.git`, rama main. Clonar si falta; fetch y comparación real si existe; fast-forward solo para main limpio atrasado. Conservar cambios/commits de la tarea al retomar. Para ramas o trabajo ajenos, copia aislada si el entorno la permite; en Hermes prevalecen candado y clon obligatorio. Sin red no declarar sincronización. Leer después la skill y los documentos de la copia verificada. Esto no publica ni transfiere cambios privados sin subir.
-
-Una instalación en otro equipo necesita poder descubrir `/avanzar` o `$avanzar` una primera vez. Las copias de arranque deben contener esta comprobación y remitir a la skill versionada, sin mantener otra política independiente. Publicar la skill en GitHub no acredita que ya se haya actualizado una instalación inaccesible; registrar cuáles se comprobaron.
-
-**Comprobación automática por invocación:** el agente ejecuta `node scripts/check-avanzar.mjs` desde la raíz del clon al iniciar o reanudar, y antes de preparar la publicación. Luis solo invoca avanzar. Requiere Git y Node, sin dependencias npm nuevas; admite `--repo <ruta>` para comprobar una copia desde otra carpeta. Funciona con raíces Git y worktrees, sin rutas fijas de VPS, Windows, VS Code o Hermes. El Git que resuelve el entorno conserva sus wrappers; en Hermes se toma primero el candado. Si una copia vieja todavía no contiene el script, el arranque de la skill la verifica y alinea antes de ejecutarlo.
-
-El JSON deja fecha, ruta, rama, SHA local/main/remoto, relación entre commits y recuentos de cambios preparados, sin preparar y sin seguimiento. Salida `0`: main limpio e igual; `2`: clasificar trabajo local o desalineación; `1`: sincronización no verificada. Un SHA igual con archivos modificados no es una copia idéntica. La skill define cómo continuar preservando la tarea. Antes de publicar un SHA aprobado se usa `--approved-sha <SHA completo>` (o `TALLER_SHA_APROBADO` en Hermes): comprueba que el commit sigue intacto e incluye lo publicado, sin autorizar el push.
-
-| Entorno | Entrada al contrato compartido |
+| Qué | Dónde |
 | --- | --- |
-| Codex en VS Code o terminal | `.agents/skills/avanzar/SKILL.md`, invocada con `$avanzar`. |
-| Claude Code, si se elige y está disponible | [`.claude/commands/avanzar.md`](../../.claude/commands/avanzar.md), invocada con `/avanzar`; conserva los argumentos y remite a la misma skill. |
-| Hermes con GPT y respaldo DeepSeek | Arranque instalado → candado → clon verificado → skill versionada → verificador. Hermes trabaja directamente con GPT mientras esté disponible; OpenCode/DeepSeek solo ante indisponibilidad confirmada. Conserva su taller y flujo de publicación. |
+| Procedimiento completo | [.agents/skills/avanzar/SKILL.md](../../.agents/skills/avanzar/SKILL.md) |
+| Lo que Luis autorizó y lo que no | [CONTINUIDAD-AVANZAR.md](CONTINUIDAD-AVANZAR.md) |
+| Qué tarea toca ahora | `node scripts/avanzar-ruta.mjs` |
+| Lo que espera a Luis, Hampton o terceros | [COLA-LUIS.md](COLA-LUIS.md) |
+| Mejoras que no bloquean un cierre | [MEJORAS.md](MEJORAS.md) |
+| Ficha y evidencia de cada tarea | `docs/roadmap/tasks/<CÓDIGO>.json` y `docs/roadmap/work/<CÓDIGO>/` |
+| Plan de cada tarea | `node scripts/plan-packages.mjs --task <CÓDIGO>` (campo `planReferences`) |
+| Registro de cierres | [ESTADO.md](ESTADO.md), una línea por cierre arriba del todo |
 
-Estos archivos viajan con el repositorio. Una copia que nunca recibió este arranque necesita obtenerlo una vez mediante clon/actualización; una copia instalada antigua que ya remite a la skill del clon la relee tras alinear. No se requiere que Luis ejecute el verificador en cada tarea.
+El 14-nov-2026 Luis pidió simplificar el flujo para terminar antes: se retiraron el coordinador, las reservas, los turnos entre talleres y el ciclo obligatorio de brainstorming, grill-me y spec por tarea. Los planes y ledgers anteriores que los mencionan son historia; su texto anterior está en el historial de Git.
 
-Leer [ESTADO](ESTADO.md), [checklist](checklist-hampton-app.html), [reconciliación y orden de automatización](2026-11-07-reconciliacion-automatizacion.md), [arquitectura](2026-10-23-arquitectura-hampton-app.md), spec/plan de la tarea y [DESIGN.md](../../DESIGN.md). Contrastar la documentación con código y pruebas; separar lo construido de lo que espera configuración, autorización o un proveedor externo.
-
-El texto original de Luis y el relevo privado permanecen fuera de Git. Los requisitos públicos pueden resumirse sin copiar datos personales, credenciales ni el documento privado completo.
-
-## Tablero histórico y cierre local
-
-El [tablero público](../superpowers/specs/2026-11-08-tablero-publico-design.md) fue diseñado para mostrar el estado del antiguo coordinador. Ya no acredita reservas ni exclusividad vigentes tras la decisión del9-nov: no enviar submit/pause/complete/status ni crear o cerrar reservas para actualizarlo. Al cerrar trabajo local, guardar evidencia real en ESTADO/checklist, ledger y relevo; distinguir código local de integración, publicación y activación. No declarar una tarea terminada si faltan evidencias o publicación.
-
-## Ciclo y evidencia
-
-| Paso | Resultado comprobable |
-| --- | --- |
-| Brainstorming y grill-me, por tarea | Spec con comportamiento, decisiones vigentes, dependencias y preguntas abiertas resueltas antes de implementar. Reutilizar respuestas ya dadas. |
-| Writing-plans | Archivos, criterios de aceptación y valores reales aplicables de DESIGN.md. Distinguir reglas vigentes de propuestas. |
-| Construcción con Superpowers | Tarea completa, ledger y uso concreto de impeccable, taste-skill, redesign-skill, security-best-practices, frontend-security-coder, antislop durante el trabajo, web-performance-optimization y ponytail, con «no aplica» razonado cuando corresponda. |
-| Pruebas y recorrido final | Para código: test, build y check:release. Para interfaz: e2e y Playwright MCP local a 1280 y 390, con estados, teclado, foco, zoom, consola/red y capturas. Si MCP no arranca, usar el recorrido equivalente con Playwright y navegador real en un entorno local aislado, documentando cualquier límite. En documentación sin interfaz, Playwright no aplica. |
-| Revisión y cierre | Corregir hallazgos de la tarea, distinguir pruebas pasadas/fallidas/bloqueadas y actualizar documentación. Solo después analizar la próxima tarea y recomendar modelo y esfuerzo con una razón. |
-| Commit y publicación | Autorización vigente, SHA remoto y despliegue verificados por separado. No confundir implementación con activación real de una integración. |
-
-La recomendación se incluye en ESTADO antes del commit final revisado y se presenta al usuario al cerrar. Se conserva el motor, proveedor, modelo y esfuerzo comprobados de la tarea en curso. La prioridad vigente es Hermes directamente con GPT mientras esté disponible; DeepSeek en OpenCode solo al perder acceso GPT. Una recomendación histórica no cambia esa prioridad. La [rúbrica de modelo y esfuerzo](../../.agents/skills/avanzar/references/modelo-y-esfuerzo.md) se aplica cuando Luis elige Codex, después de pruebas y revisión. No inventar controles de esfuerzo de otros proveedores.
+Cada entorno entra por su archivo de arranque y termina en la misma skill: Codex por `.agents/skills/avanzar/SKILL.md`, Claude Code por [`.claude/commands/avanzar.md`](../../.claude/commands/avanzar.md) y Hermes por la skill instalada en su taller, que lee la del clon actualizado y conserva su candado, sus envoltorios y el sí por Telegram.
 
 ## Preparar las pruebas como parte de cada tarea · 9-nov-2026
 
@@ -98,15 +40,3 @@ PW=/usr/local/lib/node_modules/@playwright/mcp/node_modules/playwright-core CHRO
 El servidor escucha solo en `127.0.0.1`. Sus llamadas externas usan el proxy ya configurado y sus exclusiones, mediante EnvHttpProxyAgent. Se mantiene la llamada real a Siteverify con el par oficial de claves de prueba; no se simula una respuesta aprobada. El DNS directo de workerd puede fallar aunque el navegador y el proxy sí alcancen Turnstile. No convertir esa diferencia en un bloqueo permanente ni cambiar controles de red para resolverla.
 
 Para un recorrido MCP separado, `npm run dev:e2e` acepta `E2E_PERSIST`, `E2E_VARS` y `PORT` de un fixture local ya preparado. Exige claves de prueba; nunca reutilizar variables o datos de producción. No ejecutar dos e2e generales simultáneos **en el mismo taller/host**: el proveedor Drive ficticio de esa suite ocupa el puerto local 8799. Build, reglas de servidor y aserciones del e2e siguen vigentes. El arreglo y la evidencia están en el [ledger del entorno](../superpowers/plans/2026-11-07-hermes-e2e-proxy-ledger.md).
-
-## Hermes
-
-Hermes lee la skill del clon actualizado. Decisión vigente: **trabaja directamente con GPT mientras esté disponible; al perder acceso confirmado a GPT usa el respaldo OpenCode/DeepSeek**. Confirma los datos reales del proceso, sin inventar esfuerzo de GPT ni variantes de DeepSeek. Una recomendación de Codex para una tarea futura no activa automáticamente otro constructor ni cambia los talleres.
-
-Hermes puede realizar tareas complejas de programación. El detalle del tablero refleja recomendaciones históricas de dificultad y entorno, no autorizaciones actuales para construir. VS Code y Codex escritorio usan su propia copia verificada y las mismas reglas de candado, alcance, pruebas y aprobación; ya no se exige incorporación al coordinador. No compartir credenciales ni cambiar wrappers, candados o permisos por recomendar un entorno.
-
-Al iniciar/reanudar, anunciar motor, modelo y esfuerzo visibles. Revisión en sesión independiente del motor correspondiente; si no está disponible, registrar pendiente. OpenCode solo tras pérdida confirmada de acceso a GPT; fallos de Git, red o pruebas no activan el respaldo. Conservar trabajo y terminar/relevar de forma segura una ejecución previa antes de abrir otro escritor. Cuando corresponda OpenCode, usar el helper autorizado existente de build/review y sus sesiones propias, sin introducir flags o configuración por inferencia.
-
-La publicación por Hermes conserva la revisión independiente y el sí de Luis por Telegram para el SHA completo. La construcción y revisión de OpenCode no reciben marcas de aprobación. Hermes aplica `TALLER_PUSH_APROBADO=1`, `TALLER_SHA_APROBADO=<sha completo>` y, si procede, `TALLER_MIGRACION_APROBADA=1` únicamente al mandato separado de publicación que ejecuta mediante los wrappers existentes para ese SHA. HEAD y main deben coincidir con el SHA aprobado; las migraciones aprobadas preceden al push. Si cambia el commit, se revisa y aprueba de nuevo. No se alteran candados, permisos, envoltorios, credenciales ni controles para completar el flujo.
-
-Fuera de Hermes se aplican las autorizaciones de la sesión; un push ya autorizado no exige repetir la misma pregunta. El resultado final distingue commit local, subida, despliegue y activación, con sus pendientes reales.

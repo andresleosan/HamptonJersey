@@ -93,7 +93,7 @@ No instalar servicios permanentes del cliente para renovar sesiones. `watch` se 
 
 ## Inicio guiado vigente
 
-Con GPT/Codex o Hermes directamente con GPT (OpenCode/DeepSeek solo cuando corresponda el respaldo), el cliente habilitado aplica [inicio-guiado.md](../.agents/skills/avanzar/references/inicio-guiado.md). `/new` abre la conversación de Hermes y `/avanzar` inicia la guía con anuncio de modelo/esfuerzo comprobados. La guía instalada ya se comprobó en ambos bots sin enviar mensajes ni hacer inferencias adicionales. No declara incorporados clientes sin su credencial y prueba real.
+Con GPT/Codex o Hermes directamente con GPT (OpenCode/DeepSeek solo cuando corresponda el respaldo), el cliente habilitado aplica la [skill de avanzar](../.agents/skills/avanzar/SKILL.md). `/new` abre la conversación de Hermes y `/avanzar` inicia la guía con anuncio de modelo/esfuerzo comprobados. La guía instalada ya se comprobó en ambos bots sin enviar mensajes ni hacer inferencias adicionales. No declara incorporados clientes sin su credencial y prueba real.
 
 OpenCode está fijado a `deepseek/deepseek-flash#max`; los perfiles de Hermes conservan GPT como principal y fallback `deepseek-flash` con `agent.reasoning_overrides` max. La API llama así a DeepSeek V4.1 Flash 1017. Se probaron respuestas reales con variante explícita en ambos talleres y clasificación simulada de errores 401/429; no se agotó GPT a propósito.
 
