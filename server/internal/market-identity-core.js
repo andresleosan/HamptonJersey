@@ -1,13 +1,13 @@
 import { HttpError } from '../http.js';
 
-// INTERNAL, NON-AUTHORIZING TRANSACTION CORE. Never connect this module to a
-// route or real consumer without the durable ADM-18 permission/session contract.
+// INTERNAL, NON-AUTHORIZING TRANSACTION CORE. Its only caller is server/market-identity.js,
+// reached from staff-session routes behind BUS10_IDENTITY_READY; actor text here is not authentication.
 // Each observation starts as a separate provisional physical identity.
 const bad = () => { throw new HttpError(400, 'Invalid identity request'); };
 const conflict = () => { throw new HttpError(409, 'Identity state or access changed'); };
-const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+export const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 const actorId = value => typeof value === 'string' && value.length > 0 && value.length <= 254 && !/[\u0000-\u001f\u007f]/.test(value);
-const primary = db => typeof db.withSession === 'function' ? db.withSession('first-primary') : db;
+export const primary = db => typeof db.withSession === 'function' ? db.withSession('first-primary') : db;
 const now = clock => {
   const date = new Date(clock());
   if (!Number.isFinite(date.getTime())) throw new Error('Invalid identity clock');

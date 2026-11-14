@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { fmtDate } from "./format.js";
+import { fmtDate, OPERATION, safeHref } from "./format.js";
 
 // What a channel has contributed to this batch. A channel that was not read says so: it is never shown as empty.
 const reading = s => s.status === "complete" ? `Fully read, ${s.listings} listings`
@@ -22,7 +22,7 @@ const label = value => ({ own_pilot: "Internal pilot", initial: "Initial", daily
   allowed: "Allowed", manual_only: "Manual only", denied: "Denied", internal: "Internal", manual: "Manual", http: "Automatic" }[value] || "Unknown");
 
 // Refresh only while the page is visible; invalidate stale responses when page or selection changes.
-function usePage(path, validate) {
+function usePage(path, validate, every = 30000) {
   const [result, setResult] = useState({ loading: true }), [retry, setRetry] = useState(0), shown = useRef(null);
   useEffect(() => {
     let alive = true, sequence = 0;
@@ -41,10 +41,10 @@ function usePage(path, validate) {
     };
     const refresh = () => { if (!document.hidden) load(); };
     load();
-    const timer = setInterval(refresh, 30000);
+    const timer = every && setInterval(refresh, every);
     document.addEventListener("visibilitychange", refresh);
     return () => { alive = false; clearInterval(timer); document.removeEventListener("visibilitychange", refresh); };
-  }, [path, retry, validate]);
+  }, [path, retry, validate, every]);
   return [result, () => setRetry(n => n + 1)];
 }
 const runsValid = data => data && Array.isArray(data.runs) && (data.next === null || typeof data.next === "string");
@@ -101,8 +101,82 @@ export default function MarketInventory() {
       </li>)}</ul> : <p>No inventory runs recorded on this page. External coverage is unknown.</p>}
       <PageControls previous={pages.length > 1} next={state.data.next} onPrevious={() => changePage(null)}
         onNext={() => changePage(state.data.next)} noun="Inventory run" />
+      <Duplicates />
     </>}
   </article>;
+}
+
+// BUS-10: listings that may be one home. The panel only proposes; a person links them or keeps them apart, and can
+// take either back. Linking keeps every listing as it was captured.
+const identityValid = data => data && Array.isArray(data.candidates) && Array.isArray(data.homes) && Array.isArray(data.separated);
+const count = (n, noun) => n == null ? `${noun}s not recorded` : `${n} ${noun}${n === 1 ? "" : "s"}`;
+const money = p => p ? new Intl.NumberFormat("en-GB", { style: "currency", currency: p.currency }).format(p.amount_minor / 100) +
+  ({ week: " per week", month: " per month", quarter: " per quarter", year: " per year" }[p.period] || "") : "Price not recorded";
+const both = new Intl.ListFormat("en-GB", { type: "conjunction" });
+// Two listings side by side when there is room, one under the other on a phone or at 200% zoom.
+const sideBySide = { gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,240px),1fr))" };
+function Listing({ p }) {
+  const title = p.title || "Untitled listing";
+  return <div><dt>{p.source_ref} · Channel {p.channel_id} · Ref {p.external_key}</dt>
+    <dd>{safeHref(p.listing_url) ? <a href={p.listing_url} target="_blank" rel="noreferrer">{title}</a> : title}
+      <br />{[OPERATION[p.operation] || "Unknown operation", p.parish || "Parish not recorded", count(p.bedrooms, "bedroom"),
+        count(p.bathrooms, "bathroom"), money(p.price)].join(" · ")}
+      <br /><span className="muted">{p.location} · Seen {fmtDate(p.observed_at)}</span></dd></div>;
+}
+function Duplicates() {
+  // No timer: this reading compares the whole inventory, so it reloads on return to the tab and after each decision.
+  const [state, retry] = usePage("/admin/market/identity", identityValid, 0);
+  const [busy, setBusy] = useState(false), [msg, setMsg] = useState(null);
+  const send = async (path, body, done) => {
+    setBusy(true); setMsg(null);
+    try { await api(path, { method: "POST", body: { ...body, operation_id: crypto.randomUUID() } }); setMsg({ ok: done }); }
+    catch (error) {
+      setMsg({ err: error.status === 409 ? "Nothing was recorded: these listings, their source access or an earlier decision had changed. The list is up to date now."
+        : "Couldn't record the decision. Please try again." });
+    } finally { setBusy(false); retry(); }
+  };
+  const decide = (c, action, done) => send("/admin/market/identity/decisions",
+    { action, left_observation_id: c.left.observation_id, right_observation_id: c.right.observation_id }, done);
+  const undo = (decision_id, done) => send("/admin/market/identity/undo", { decision_id }, done);
+  // Off in this deployment: the section is not shown at all.
+  if (state.loading || state.error?.status === 404) return null;
+  const pair = c => `${c.left.source_ref} ${c.left.external_key} and ${c.right.source_ref} ${c.right.external_key}`;
+  return <section aria-labelledby="a-market-duplicates">
+    <h3 id="a-market-duplicates">Possible duplicate homes</h3>
+    <p className="muted">Listings that may be the same home on different sources. Nothing is linked until someone decides here. Linking keeps every listing and does not confirm that the home is available.</p>
+    <LoadState state={state} retry={retry} />
+    {msg && <p role={msg.err ? "alert" : "status"} className={msg.err ? "err" : "ok"}>{msg.err || msg.ok}</p>}
+    {state.data && <>
+      {state.data.candidates.length ? <ul aria-label="Possible duplicates">{state.data.candidates.map(c => <li key={c.left.observation_id + c.right.observation_id}>
+        Same {both.format(c.same)}
+        <dl className="kv" style={sideBySide}><Listing p={c.left} /><Listing p={c.right} /></dl>
+        <div className="inline">
+          <button type="button" className="btn sm" disabled={busy} aria-label={`Same home: ${pair(c)}`}
+            onClick={() => decide(c, "same_property", "Linked as one home. Both listings are kept. You can undo it under Linked homes.")}>Same home</button>
+          <button type="button" className="btn ghost sm" disabled={busy} aria-label={`Different homes: ${pair(c)}`}
+            onClick={() => decide(c, "different_properties", "Kept as different homes. You can reopen it under Kept apart.")}>Different homes</button>
+        </div>
+      </li>)}</ul> : <p>No possible duplicates to review.</p>}
+      {state.data.truncated && <p className="muted">Not every possible duplicate is shown. More appear as these are decided.</p>}
+      {state.data.homes.length > 0 && <><h4>Linked homes</h4>
+        <ul aria-label="Linked homes">{state.data.homes.map(h => <li key={h.property_id}>
+          One home · {count(h.publications.length, "listing")}
+          {h.linked > h.publications.length && ` · ${h.linked - h.publications.length} more not shown, their source is not open now`}
+          {" "}· Last linked {fmtDate(h.last_decision.decided_at)}
+          <dl className="kv" style={sideBySide}>{h.publications.map(p => <Listing key={p.observation_id} p={p} />)}</dl>
+          <button type="button" className="btn ghost sm" disabled={busy}
+            aria-label={`Undo last link: ${h.publications.map(p => `${p.source_ref} ${p.external_key}`).join(", ")}`}
+            onClick={() => undo(h.last_decision.id, "Last link undone. The homes it joined are separate again.")}>Undo last link</button>
+        </li>)}</ul></>}
+      {state.data.separated.length > 0 && <><h4>Kept apart</h4>
+        <ul aria-label="Kept apart">{state.data.separated.map(s => <li key={s.id}>
+          Different homes · Decided {fmtDate(s.decided_at)}
+          <dl className="kv" style={sideBySide}><Listing p={s.left} /><Listing p={s.right} /></dl>
+          <button type="button" className="btn ghost sm" disabled={busy} aria-label={`Reopen: ${pair(s)}`}
+            onClick={() => undo(s.id, "Reopened. The pair is back under possible duplicates.")}>Reopen</button>
+        </li>)}</ul></>}
+    </>}
+  </section>;
 }
 
 // BUS-06: the accepted source directory. The file is private and never leaves the browser except to this

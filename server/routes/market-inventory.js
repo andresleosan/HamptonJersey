@@ -4,6 +4,7 @@ import { acceptDirectoryManifest, claimSourcePage, closeInventoryRun, createInve
 import { getSourceAccess, reviewSourceAccess } from '../market-source-policy.js';
 import { manualScopeAllows, prepareManualObservationPage } from '../market-manual-contract.js';
 import { ingestManualObservationPage } from '../market-observation-ingest.js';
+import { decideIdentity, readIdentityReview, undoIdentityDecision } from '../market-identity.js';
 
 const uuid = '[0-9a-fA-F-]{36}';
 const allowedKeys = (object, keys) => object && typeof object === 'object' && !Array.isArray(object) &&
@@ -122,6 +123,27 @@ async function sourceReview({ request, env, admin }) {
   return json({ decision, recorded_version: receipt.version });
 }
 
+// BUS-10: possible duplicate homes across sources, decided by a person. These routes are absent unless the
+// deployment has migrations 0050 and 0068 and sets BUS10_IDENTITY_READY.
+const identity = handler => context => context.env.BUS10_IDENTITY_READY === '1' ? handler(context) : fail(404, 'Not found');
+const identityBody = async (request, keys) => {
+  const body = await readJson(request, 4096);
+  if (!allowedKeys(body, keys)) fail(400, 'Invalid identity request');
+  return body;
+};
+async function identityReview({ env }) {
+  return json(await readIdentityReview(env));
+}
+async function identityDecision({ request, env, admin }) {
+  const body = await identityBody(request, ['action','left_observation_id','right_observation_id','operation_id']);
+  const { replayed, ...receipt } = await decideIdentity(env, body, admin);
+  return json(receipt, replayed ? 200 : 201);
+}
+async function identityUndo({ request, env, admin }) {
+  const { replayed, ...receipt } = await undoIdentityDecision(env, await identityBody(request, ['decision_id','operation_id']), admin);
+  return json(receipt);
+}
+
 export default [
   ['GET', /^\/admin\/market\/sources$/, sources, true],
   ['GET', /^\/admin\/market\/sources\/detail$/, sourceDetail, true],
@@ -133,4 +155,7 @@ export default [
   ['GET', /^\/admin\/market\/manifests$/, manifests, true],
   ['POST', /^\/admin\/market\/manifests$/, acceptManifest, true],
   ['POST', /^\/admin\/market\/manual-pages$/, manualPage, true],
+  ['GET', /^\/admin\/market\/identity$/, identity(identityReview), true],
+  ['POST', /^\/admin\/market\/identity\/decisions$/, identity(identityDecision), true],
+  ['POST', /^\/admin\/market\/identity\/undo$/, identity(identityUndo), true],
 ];
