@@ -2052,10 +2052,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Ficha estándar de cada automatización, con pruebas y criterio de hecho",
    "origen": "plan",
    "fase": "—",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "Registro declarativo cerrado con tres propósitos separados y sus guardas humanas; valida estructura y versión sin activar modelos, proveedores, cuentas ni rutas. Las fichas identifican como pendientes el coste y las baterías que aún carecen de evidencia.",
-   "falta": "Completar las fichas restantes, definir y acreditar con casos reales las baterías y criterios de aceptación, topes de coste y conexión con AUT-10/AUT-01. Los fixtures sintéticos no equivalen a pruebas reales ni autorizan activar una automatización. Antes de integrar consumidores, endurecer y revisar el límite de objetos JavaScript exóticos; la validación no es un sandbox.",
+   "hecho": "Cada automatización que existe en el código o tiene tarea propia tiene su ficha estándar en docs/automations: 18 (6 activas, 6 apagadas, 6 previstas), con disparador, datos, guardas humanas, interruptor, coste, pruebas y criterio de hecho; lo desconocido queda marcado. Una prueba hace fallar la suite si a una ficha le falta un campo, cita una prueba o archivo inexistente, su tarea dueña no existe o el índice no coincide. El registro de propósitos de IA sigue con sus tres entradas.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:419-435",
@@ -2064,9 +2064,13 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/automations/index.md",
     "docs/automations/acceptance.json",
     "tests/server/automation-contracts.test.mjs",
-    "docs/superpowers/plans/2026-11-13-aut-09-registry-ledger.md"
+    "docs/superpowers/plans/2026-11-13-aut-09-registry-ledger.md",
+    "docs/automations/TEMPLATE.md",
+    "tests/server/automation-cards.test.mjs",
+    "Decisión (fuente: acceptance de work-units.json): AUT-09 pide ficha y criterios de prueba antes de integrar; las baterías reales de cada propósito de IA pasan a sus dueñas BUS-09, MSG-04 y AUT-13.",
+    "14-nov-2026: node --test automation-cards + automation-contracts 16/16; npm test 2392/2392 + 29 Python, build y check:release correctos."
    ],
-   "actualizado": "2026-11-13"
+   "actualizado": "2026-11-14"
   },
   {
    "id": "AUT-10",
@@ -2157,7 +2161,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Hermes Agent v0.22.5 (Nous Research, código abierto) corre desde el 29-oct-2026 en el VPS de Optimyze. Es el Hermes de desarrollo de Optimyze. Está en un contenedor aislado, sin permisos de administrador ni Docker, solo sale a internet hacia una lista de dominios, su panel solo se abre por el tailnet y usa el plan de ChatGPT de Luis. El 30-oct Luis decidió que Hermes será el cerebro de IA de las automatizaciones (P-18) y aprobó el diseño del Hermes propio de Hampton (preguntas 15 y 16, §6.6): en el mismo VPS y en su propia jaula, sin herramientas de terminal ni de código, sin entrar nunca en la base de datos, con salida solo al modelo, Telegram y la app, y con el plan de ChatGPT de Luis solo para datos públicos y contadores. La parte de la app está en producción desde el 1-nov-2026 con la migración 0018, y la puerta está abierta desde el 3-nov-2026 (HERMES_KEY en Production), con el avisador de la fase 1a instalado en el VPS: la puerta /api/hermes con su propia llave (secreto HERMES_KEY; sin él, cerrada) y seis operaciones fijas. Son: el estado con los contadores y el resumen de las 8:00 ya escrito (con las fichas To confirm); los avisos «New applicant» y «New viewing request for …» con un enlace al panel y sin datos de la persona; pedir y tomar trabajo; devolver un borrador; y pausar los envíos. También la tabla jobs (migración 0018: un trabajo abierto por ficha, reintento a los 10 minutos y fallo al tercer intento), la hora de la última petición de Hermes (app_settings, clave hermes), el borrador de textos en el editor de la ficha (PUB-13) y la barra de pausa en todas las pantallas del panel, con «Resume sending», que solo existe en el panel. Además, el intermediario que guarda la llave fuera del contenedor de Hermes (hermes/key-proxy.mjs, decisión de Luis del 31-oct). Pruebas: la llave no abre nada más, la cookie del panel no abre la puerta y ninguna respuesta lleva nombres, emails, teléfonos ni números de personas. Desde el 1-nov-2026 la pantalla Automations (AUT-01) enseña la última petición de Hermes y avisa si deja de pedir trabajo, y el borrado diario quita los trabajos 90 días después de su última actividad: los cerrados y los que nadie tomó (decisión de Luis del 1-nov), y también los que Hermes dejó a medias; un borrador espera siempre a una persona (estas dos, decisión de Claude, spec A5). Desde el 3-nov-2026 el bloque del borrador solo lo ve quien está en la lista de borradores (AUT-15), vacía hasta la fase 1b.",
-   "falta": "Plan de Luis del 2-nov-2026, en dos fases. La fase 1a, sin IA, funciona desde el 3-nov-2026: el intermediario de la llave, su proxy de salida y un avisador que solo envía corren en el VPS, fuera del taller; el avisador pregunta a la puerta (news cada minuto y status a las 8:00 de Jersey) y publica en el canal del equipo (AUT-14). Fase 1b, tras PRE-32: el Hermes de Hampton en su jaula (sin terminal ni código, memoria y skills propias apagadas, conversaciones borradas a los 30 días, salida solo al modelo, a Telegram y al intermediario), con un segundo bot solo para los chats privados de las dos cuentas de Luis, la toma de trabajo (jobs/next) y Luis en la lista de borradores (AUT-15). Antes de la 1b, la puerta tiene que distinguir las llamadas del avisador de las de Hermes (dos llaves o una etiqueta del intermediario), para que Automations no tome al avisador por Hermes, y antes de añadir a Luis a la lista de borradores. El intermediario del avisador ya solo deja pasar news y status: con la misma llave el avisador no puede pausar ni pedir o escribir borradores. Con el dominio ya en Cloudflare (1-nov-2026), crear un límite de peticiones a /api/hermes en el WAF. El intermediario usa APP_ORIGIN=https://www.hamptonestatesjersey.com: hamptonjersey.pages.dev responde 308 y el dominio sin www 301, y el intermediario no sigue redirecciones. Todo envío futuro a clientes o agencias debe mirar la pausa antes de salir.",
+   "falta": "Plan de Luis del 2-nov-2026, en dos fases. La fase 1a, sin IA, funciona desde el 3-nov-2026: el intermediario de la llave, su proxy de salida y un avisador que solo envía corren en el VPS, fuera del taller; el avisador pregunta a la puerta (news cada minuto y status a las 8:00 de Jersey) y publica en el canal del equipo (AUT-14). Fase 1b, tras PRE-32: el Hermes de Hampton en su jaula (sin terminal ni código, memoria y skills propias apagadas, conversaciones borradas a los 30 días, salida solo al modelo, a Telegram y al intermediario), con un segundo bot solo para los chats privados de las dos cuentas de Luis, la toma de trabajo (jobs/next) y Luis en la lista de borradores (AUT-15). Antes de la 1b, la puerta tiene que distinguir las llamadas del avisador de las de Hermes (dos llaves o una etiqueta del intermediario), para que Automations no tome al avisador por Hermes, y antes de añadir a Luis a la lista de borradores. El intermediario del avisador ya solo deja pasar news y status: con la misma llave el avisador no puede pausar ni pedir o escribir borradores. Con el dominio ya en Cloudflare (1-nov-2026), crear un límite de peticiones a /api/hermes en el WAF. El intermediario usa APP_ORIGIN=https://www.hamptonestatesjersey.com: hamptonjersey.pages.dev responde 308 y el dominio sin www 301, y el intermediario no sigue redirecciones. Todo envío futuro a clientes o agencias debe mirar la pausa antes de salir. Traído de AUT-09: casos reales y adversarios, umbral y evidencia de ejecución del propósito listing_text en docs/automations/acceptance.json antes de activarlo.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
@@ -2172,7 +2176,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/superpowers/specs/2026-10-31-hampton-app-hermes-design.md",
     "server/retention.js (JOBS)",
     "docs/superpowers/specs/2026-11-03-hampton-app-hermes-drafters-design.md"
-   ]
+   ],
+   "actualizado": "2026-11-14"
   },
   {
    "id": "AUT-14",
@@ -2553,7 +2558,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos. La comparación manual ya admite el formato histórico sin el campo derivado de renta exacta y sigue detectando cambios en términos originales.",
-   "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real. Antes de conectar, resolver sesión e identidad durable del actor.",
+   "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real. Antes de conectar, resolver sesión e identidad durable del actor. Traído de AUT-09: casos reales y adversarios, umbral y evidencia de ejecución del propósito market_ambiguity_v1 en docs/automations/acceptance.json antes de activarlo.",
    "bloqueo": "",
    "evidencia": [
     "server/listing-features.js:1-30",
@@ -2574,7 +2579,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "BUS-06"
    ],
    "criterio_aceptacion": "Una renta anual se compara mensualmente conservando su importe y periodo originales; ausencia de mascotas sigue desconocida.",
-   "actualizado": "2026-11-13"
+   "actualizado": "2026-11-14"
   },
   {
    "id": "BUS-10",
@@ -4369,7 +4374,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "bloqueado",
    "responsable": "Luis",
    "hecho": "Diseño en el documento de ideas del 6-nov-2026 (§2, §5, §7, §8 y §9): el cerebro vive en la app (Pages Function) y usa Workers AI por binding; el modelo solo entiende qué pide el visitante y el código actúa con lo que ya existe; nunca aprueba, publica ni envía nada solo.",
-   "falta": "No hay asistente que responda solo con datos de las fichas publicadas, horario y enlaces de reserva y registro, diga que es automático y pase a una persona. Fase 2, en sombra: binding [ai] de Workers AI en wrangler.toml (modelo @cf/google/gemma-4-26b-a4b-it, sin entrenar ni retener) y un modelo falso HBOT_FAKE para las pruebas, porque el local llama a la cuenta real; server/hamptonbot.js con una sola llamada con tope de 10 s que devuelve un JSON fijo (intención, idioma, criterios, si pide persona) validado campo a campo; guardias antes del modelo (emails y teléfonos pasan a «[email]» y «[phone]», IBAN y tarjetas se bloquean, palabras C3 van a persona sin llamar al modelo); el código responde con plantillas y datos reales (fichas publicadas, huecos, horario como unión de los negociadores activos menos sus excepciones); modo shadow en app_settings.hamptonbot (la respuesta se guarda y el visitante no la ve), tarjeta «Hampton Bot · web chat» en Automations con modo, llamadas de hoy y neurons, tope diario de llamadas y de neurons, y obedece Pause all outbound (AUT-11); batería de 30 casos y 10 adversarios con el modelo real (≥ 27/30 y 10/10) y una semana o 30 chats revisados sin un dato inventado, con p95 por debajo de 15 s. Fase 3, en vivo (assist), con el «sí» de Luis tras medir: las intenciones de la lista blanca se contestan solas en menos de 10 s, botón y burbuja pasan a «Chat with Hampton Bot», tarjetas de fichas, hasta tres huecos reales y el formulario #book prellenado, registro prellenado en #/apply, valoración sin cifras, Suggested reply para lo que va a persona (Use / Edit / Discard, nunca se envía solo) y los campos extraídos en Create applicant (MSG-05); Hecho cuando: una reserva y un registro reales nacidos en el chat aparecen en Viewings y Applicants, y durante una semana la primera respuesta automática llega en menos de 10 s y la humana en menos de 2 h en horario. Meta y WhatsApp quedan descartados para el asistente (§10: Meta no admite asistentes de IA fuera del EEE); la bandeja Messages puede sumar esos canales si se pide (MSG-03). Bloqueado por PRE-34 (aviso, DPIA y JOIC antes de que entre texto de clientes en el modelo) y por la decisión 2 del documento (proveedor del modelo); la fase 3, además, por la semana en sombra y el «sí» de Luis. Modelo recomendado: claude-opus-5-5 · esfuerzo xhigh en la fase 2 (guardias de seguridad sobre texto hostil y batería adversaria) y high en la fase 3.",
+   "falta": "No hay asistente que responda solo con datos de las fichas publicadas, horario y enlaces de reserva y registro, diga que es automático y pase a una persona. Fase 2, en sombra: binding [ai] de Workers AI en wrangler.toml (modelo @cf/google/gemma-4-26b-a4b-it, sin entrenar ni retener) y un modelo falso HBOT_FAKE para las pruebas, porque el local llama a la cuenta real; server/hamptonbot.js con una sola llamada con tope de 10 s que devuelve un JSON fijo (intención, idioma, criterios, si pide persona) validado campo a campo; guardias antes del modelo (emails y teléfonos pasan a «[email]» y «[phone]», IBAN y tarjetas se bloquean, palabras C3 van a persona sin llamar al modelo); el código responde con plantillas y datos reales (fichas publicadas, huecos, horario como unión de los negociadores activos menos sus excepciones); modo shadow en app_settings.hamptonbot (la respuesta se guarda y el visitante no la ve), tarjeta «Hampton Bot · web chat» en Automations con modo, llamadas de hoy y neurons, tope diario de llamadas y de neurons, y obedece Pause all outbound (AUT-11); batería de 30 casos y 10 adversarios con el modelo real (≥ 27/30 y 10/10) y una semana o 30 chats revisados sin un dato inventado, con p95 por debajo de 15 s. Fase 3, en vivo (assist), con el «sí» de Luis tras medir: las intenciones de la lista blanca se contestan solas en menos de 10 s, botón y burbuja pasan a «Chat with Hampton Bot», tarjetas de fichas, hasta tres huecos reales y el formulario #book prellenado, registro prellenado en #/apply, valoración sin cifras, Suggested reply para lo que va a persona (Use / Edit / Discard, nunca se envía solo) y los campos extraídos en Create applicant (MSG-05); Hecho cuando: una reserva y un registro reales nacidos en el chat aparecen en Viewings y Applicants, y durante una semana la primera respuesta automática llega en menos de 10 s y la humana en menos de 2 h en horario. Meta y WhatsApp quedan descartados para el asistente (§10: Meta no admite asistentes de IA fuera del EEE); la bandeja Messages puede sumar esos canales si se pide (MSG-03). Bloqueado por PRE-34 (aviso, DPIA y JOIC antes de que entre texto de clientes en el modelo) y por la decisión 2 del documento (proveedor del modelo); la fase 3, además, por la semana en sombra y el «sí» de Luis. Modelo recomendado: claude-opus-5-5 · esfuerzo xhigh en la fase 2 (guardias de seguridad sobre texto hostil y batería adversaria) y high en la fase 3. Traído de AUT-09: casos reales y adversarios, umbral y evidencia de ejecución del propósito hampton_intent_v1 en docs/automations/acceptance.json antes de activarlo.",
    "bloqueo": "Decisión de Luis",
    "evidencia": [
     "docs/roadmap/2026-11-06-ideas-hampton-bot.md §7",
@@ -4377,7 +4382,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/2026-11-06-ideas-hampton-bot.md §9",
     "wrangler.toml:1-20",
     "docs/roadmap/ESTADO.md:14"
-   ]
+   ],
+   "actualizado": "2026-11-14"
   },
   {
    "id": "MSG-05",

@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+14-nov-2026 · **AUT-09 hecha:** cada automatización de la app tiene su ficha estándar en `docs/automations/` (18: 6 activas, 6 apagadas, 6 previstas) con disparador, datos, guardas humanas, interruptor, pruebas y criterio de hecho; una prueba avisa si una ficha queda incompleta o cita algo que no existe. Las baterías reales de IA pasan a BUS-09, MSG-04 y AUT-13. Progreso **86/215 (40,00 %) → 87/215 (40,47 %)**.
+
 14-nov-2026 · **ADM-06, PUB-11 y AGE-14 hechas:** el contrato de alquiler nace de una ficha en Let agreed con su aplicante, el contrato firmado como referencia e inventario de entrada con lecturas de contadores; cada ficha admite documentos PDF privados que nunca salen a la web; y el equipo puede suprimir los datos personales de un anunciante sin romper el historial. 0056, 0057 y 0058 aplicadas, interruptores encendidos en Pages `705398e`. Progreso **83/215 (38,60 %) → 86/215 (40,00 %)**.
 
 14-nov-2026 · **PUB-17 hecha:** Insights muestra «Listings to review» con las fichas de 30 o más aperturas y como mucho una solicitud de visita en 30 días, con el consejo de revisar fotos y precio. 0055 aplicada y `LISTING_HEALTH_READY` encendido en Pages `2585fb6`; hoy ninguna ficha cumple la regla. Progreso **82/215 (38,14 %) → 83/215 (38,60 %)**.
