@@ -52,10 +52,12 @@ export function ensureCharges(env, today, tenancyId = null, staleBefore = null) 
 // first charge due whose running total exceeds what was paid), days_late (from it) and next_step (the latest
 // ARREARS_STEPS key already due and not marked done for that charge, or NULL). Use: `WITH ${ARREARS_SQL} SELECT …`.
 // The running total (window) is only taken for tenancies that owe something, the rest are two indexed sums.
-// NOT-05's Missing payments reads the same CTEs over every full-service tenancy (OWED_SQL): one that ended still owes.
+// NOT-05's Missing payments reads the same CTEs over every full-service tenancy (OWED_SQL): one that ended still owes,
+// even after its property moved to let-only (an ended tenancy that was collected, collect_from set).
 const DUE_STEP = `CASE ${ARREARS_STEPS.toReversed().map(([d, k]) => `WHEN days_late >= ${d} THEN '${k}'`).join(" ")} END`;
 const arrearsSql = running => `a_t AS (SELECT t.id, t.rental_id FROM tenancies t JOIN rentals r ON r.id = t.rental_id
-    WHERE r.service = 'full'${running ? " AND (t.ended_on IS NULL OR t.ended_on > ?1)" : ""} AND (?2 IS NULL OR t.id = ?2)),
+    WHERE ${running ? "r.service = 'full' AND (t.ended_on IS NULL OR t.ended_on > ?1)"
+      : "(r.service = 'full' OR (t.ended_on <= ?1 AND t.collect_from IS NOT NULL))"} AND (?2 IS NULL OR t.id = ?2)),
   a_bal AS MATERIALIZED (SELECT id AS tenancy_id, rental_id,
     COALESCE((SELECT SUM(c.amount) FROM charges c WHERE c.tenancy_id = a_t.id AND c.due_on <= ?1), 0) AS due,
     COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.tenancy_id = a_t.id AND p.kind = 'rent'), 0) AS paid FROM a_t),

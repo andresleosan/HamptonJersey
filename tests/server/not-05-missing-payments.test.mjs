@@ -204,3 +204,12 @@ test("grace period: 0 to 30 whole days, compare-and-set on its revision, kept wi
   assert.deepEqual((await req(env, "GET", "/admin/missing-payments")).data.grace_days, 7);
   assert.deepEqual((await put({ grace_days: 0, expectedRevision: 1 })).data, { grace_days: 0, revision: 2 });
 });
+
+test("ended_debt_survives_service_change: a collected tenancy that ended owing stays after the property goes let-only", async () => {
+  const env = fixture({ ended_on: "2026-11-02" });
+  run(env, "UPDATE tenancies SET collect_from = '2026-11-01' WHERE id = 1");
+  run(env, "UPDATE rentals SET service = 'let_only', fee_percent = NULL WHERE id = 1");
+  const [p] = (await missingPayments(env, "2026-11-10")).payments;
+  assert.deepEqual([p.balance, p.ended_on, p.next_step], [10000, "2026-11-02", null]);
+  assert.deepEqual(arrears(env, "2026-11-10"), [], "Arrears is unchanged: running full-service tenancies only");
+});

@@ -9,7 +9,8 @@ import "./missing-payments.css";
 // in full once the grace period has passed, from the same balances as Rentals › To do › Arrears, ended tenancies too.
 // Read only: arrears steps are marked in Rentals; the one thing saved here is the grace period.
 const days = n => (n === 1 ? "1 day" : `${n} days`);
-const step = p => p.ended_on ? <>Tenancy ended<span className="muted cell-note">Moved out {fmtDay(p.ended_on)}. No arrears steps after
+// A move-out still to come (notice period) keeps its arrears step, as on the server.
+const step = (p, asOf) => p.ended_on && p.ended_on <= asOf ? <>Tenancy ended<span className="muted cell-note">Moved out {fmtDay(p.ended_on)}. No arrears steps after
   move-out</span></>
   : p.next_step ? <>{p.next_step.label}<span className="muted cell-note">Due from day {p.next_step.days}. Mark it done in Rentals</span></>
   : p.done_step ? <>{p.done_step.label}: done<span className="muted cell-note">Marking a step done does not record a payment</span></>
@@ -47,7 +48,7 @@ export default function MissingPayments({ paused, onCount }) {
               <span className="muted cell-note">{p.tenant_name} · {p.payment_ref}</span></td>
             <td className="num" data-label="Owed">{pence(p.balance)}</td>
             <td className="num" data-label="Late">{days(p.days_late)}<span className="muted cell-note">Since {fmtDay(p.oldest_unpaid_on)}</span></td>
-            <td data-label="Next step">{step(p)}</td>
+            <td data-label="Next step">{step(p, data.as_of)}</td>
           </tr>)}</tbody>
         </table>
       </>}

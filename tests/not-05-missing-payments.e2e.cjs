@@ -50,6 +50,9 @@ const plusDays = (date, n) => new Date(Date.parse(date + 'T12:00:00Z') + n * 864
       const part = `Synthetic part paid flat ${width}`, gone = `Synthetic ended flat ${width}`, fresh = `Synthetic due yesterday flat ${width}`;
       const partTenancy = await home(part, 9), goneTenancy = await home(gone, 20);
       await home(fresh, 1);
+      // Notice given: move-out in 20 days, rent unpaid 12 days. It keeps its arrears step until it moves out.
+      const leaving = `Synthetic leaving flat ${width}`, leavingTenancy = await home(leaving, 12);
+      assert.equal((await request(page, `/admin/tenancies/${leavingTenancy.id}/end`, 'POST', { ended_on: plusDays(today, 20) })).status, 200);
       assert.equal((await request(page, '/admin/payments', 'POST', { tenancy_id: partTenancy.id, received_on: ago(2), amount: 30000,
         kind: 'rent' })).status, 201);
       assert.equal((await request(page, `/admin/tenancies/${goneTenancy.id}/end`, 'POST', { ended_on: ago(4) })).status, 200);
@@ -79,6 +82,8 @@ const plusDays = (date, n) => new Date(Date.parse(date + 'T12:00:00Z') + n * 864
       await row(gone).getByText('£1,100.00').waitFor();
       await row(gone).getByText('Tenancy ended').waitFor();
       await row(gone).getByText('20 days').waitFor();
+      await row(leaving).getByText('Tell the landlord').waitFor();
+      assert.equal(await row(leaving).getByText('Tenancy ended').count(), 0, 'a move-out still to come is not an ended tenancy');
       assert.equal(await row(fresh).count(), 0, 'still in its grace period');
       const data = (await request(page, '/admin/missing-payments')).data;
       await page.getByText(new RegExp(`^${data.count} tenancies owe £[\\d,]+\\.\\d\\d · Rent shows here 3 days after it falls due$`)).waitFor();

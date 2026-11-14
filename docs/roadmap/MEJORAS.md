@@ -24,3 +24,7 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [ADM-13] El trigger de 0060 no protege la columna `rooms` frente a un UPDATE directo · desde la app no se llega · añadir trigger que compare sin `repair` · 14-nov-2026
 - [ADM-13] La comprobación de referencia ya usada en otro contrato va fuera del batch: dos registros simultáneos podrían compartirla · llevar el NOT EXISTS al INSERT · 14-nov-2026
 - [ADM-13] Una reparación decidida sobre la inspección de un contrato ya terminado se crea en ese contrato, no en el activo · decisión de diseño · 14-nov-2026
+- [NOT-05] Una deuda de contrato terminado saldada con el depósito o condonada no sale de Missing payments sin ajustes (0045, ADM-09); hoy solo con un pago `rent` · llega con ADM-09 · 14-nov-2026
+- [NOT-05] Con el interruptor apagado, Inbox pide `/admin/missing-payments` y recibe 404 (ignorado) · exponer la disponibilidad en counts o /me · 14-nov-2026
+- [NOT-05] El cambio de gracia no deja `rental_event`, solo `updated_by` y hora · 14-nov-2026
+- [NOT-05] El número de la pestaña solo se refresca al abrir Inbox o dentro de la pestaña; la lectura depende de que el contador haya creado los cargos (ensureCharges) · 14-nov-2026
