@@ -48,10 +48,10 @@
       "area": "Inbox, visitas, alquileres y ofertas",
       "capacity": 2,
       "count": 65,
-      "openCount": 32,
+      "openCount": 31,
       "states": {
-        "hecho": 30,
-        "parcial": 19,
+        "hecho": 31,
+        "parcial": 18,
         "bloqueado": 8,
         "pendiente": 5,
         "descartado": 3
@@ -7021,16 +7021,29 @@
       "titulo": "Salida: preaviso, inventario de salida y devolución del depósito",
       "origen": "plan",
       "fase": "F5-A",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Record notice calcula la salida más temprana (inquilino 1 mes, casero 12 meses, plazo fijo en su fin) y End tenancy fija la salida, detiene los cobros desde esa fecha y abre el plazo de 7 días del Check-out report.",
-      "falta": "No hay inventario de salida comparado con el de entrada y con fotos, ni propuesta de deducciones, ni seguimiento de la devolución del depósito a través de mydeposits.",
+      "hecho": "Record notice calcula la salida más temprana y End tenancy fija la salida y detiene los cobros. Con ADM16_TENANCY_EXIT_READY (0059), cada contrato con salida registrada muestra su inventario de salida: compara cada estancia con la revisión de entrada citada (si no hubo, se marca ausente, nunca se inventa), con lecturas fechadas con unidad, referencias de fotos revisadas y el día real de devolución de llaves, distinto de la salida prevista. Las deducciones se proponen por líneas en peniques enteros, con evidencia del mismo contrato y total nunca superior al depósito. El seguimiento de mydeposits es manual (solicitada, acordada, en disputa, devuelta), cada paso con referencia y fecha y solo se puede añadir; desde el primer paso inventario y propuesta quedan congelados. Nada crea pagos ni cambia cargos, saldo o depósito; con las llaves devueltas no se puede cancelar la salida.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "admin/src/RentalDialogs.jsx:153-187",
         "server/rentals.js:62-66",
         "server/routes/rent.js:358-406",
-        "server/routes/rent.js:70-77"
+        "server/routes/rent.js:70-77",
+        "migrations/0059_tenancy_exits.sql",
+        "server/tenancy-exits.js",
+        "server/routes/tenancy-exits.js",
+        "admin/src/TenancyExit.jsx",
+        "tests/server/adm-16-1.test.mjs",
+        "tests/server/adm-16-2.test.mjs",
+        "tests/server/adm-16-exit-d1.test.mjs",
+        "tests/adm-16-tenancy-exit.e2e.cjs",
+        "Decisión (fuente: plan ADM-16 y spec rental-lifecycle): mydeposits se sigue a mano con referencias, sin API; con el interruptor apagado las rutas no se montan (404), como ADM-06.",
+        "Revisión independiente 14-nov-2026: dos defectos de integridad (carrera con la fecha de llaves; cancelar salida tras devolver llaves) y depósito editado tras la propuesta, corregidos en 491526f con prueba D1 que falla sin el arreglo; menores a MEJORAS.",
+        "14-nov-2026: npm test 2406/2406 + 29 Python, build y check:release correctos; e2e aislado Chromium 1280 y 390 correcto (ADM-16 y regresión ADM-06).",
+        "14-nov-2026: 0059 aplicada en remoto (Time Travel guardado antes), ADM16_TENANCY_EXIT_READY=1 en 8953446.",
+        "14-nov-2026 producción: GET /api/admin/tenancy-exits pasó de 404 a 401 (montada, exige sesión) tras desplegar 8953446; migrations list sin 0059 pendiente; test:production:readonly 1280 y 390 correcto. Recorrido con sesión de staff: abrir #/rentals/<id> de un contrato con salida y ver «Exit inventory» y «Deposit»."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -7050,7 +7063,8 @@
         "rentals-contract",
         "rentals-ui"
       ],
-      "nextStep": "Comparar inventarios de entrada y salida y seguir deducciones y devolución del depósito."
+      "nextStep": "Ninguno. Mejoras menores en MEJORAS.md.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "ADM-17",
