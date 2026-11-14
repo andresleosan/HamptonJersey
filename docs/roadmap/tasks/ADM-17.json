@@ -6,15 +6,26 @@
   "fase": "F5-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Los plazos (depósito 30 días, inventarios 7, licencia 2 años, EICR 5, preavisos de 1 y 12 meses, aviso de renta de 2) están en una sola constante, LEGAL, que el panel lee.",
-  "falta": "Falta confirmar el registro de Hampton en la JFSC por cobrar rentas en cuenta propia (R21), que un abogado de Jersey valide plazos y preavisos (R10, R13) y si Hampton está registrado en GST; además los plazos son código (cambiarlos exige publicar), no un ajuste del panel. Auditoría del 14-nov-2026 contra el plan maestro vigente: los plazos de server/rentals.js (LEGAL: fianza 30 días, informes 7, preaviso de inquilino 1 mes y de propietario 12, vigencia de licencias y revisiones) se aplican como hechos en Rentals, el Inbox y «Earliest move-out» sin decir que no están validados. Al construir las reglas versionadas, rotularlos «estimado, sin validar por abogado» hasta su validación.",
+  "hecho": "Los plazos (fianza 30 días, informes 7, licencia 2 años, EICR 5, gas y alarmas 1, preavisos de 1 y 12 meses, aviso de renta de 2 e intervalo de 12) son parámetros versionados: en Settings › Legal terms cualquier admin los cambia sin publicar código, con quién, cuándo y estado «estimated · not validated by a lawyer» o «validated» (exige quién validó y la fecha). Sin nada guardado valen los de LEGAL, rotulados estimados. Rentals, la ficha de la vivienda y sus diálogos, «Earliest move-out» y el Inbox calculan con los plazos guardados y llevan el rótulo mientras no estén validados. El registro JFSC y GST de Hampton se marca sí, no o sin confirmar, con referencia, y no bloquea nada. Construido y apagado: migración 0063 (aditiva) e interruptor ADM17_LEGAL_TERMS_READY.",
+  "falta": "Aplicar la migración 0063 y encender ADM17_LEGAL_TERMS_READY en wrangler.toml y en jobs/wrangler.toml (el reloj calcula los mismos plazos para el Inbox); comprobar después el recorrido real. Condición posterior, externa: Hampton confirma su registro en la JFSC por cobrar rentas en cuenta propia (R21) y en GST y lo marca en Legal terms; un abogado de Jersey valida plazos y preavisos (R10, R13) y el equipo los marca «validated» con su referencia. Trasladado a otras tareas: vigencias por fecha de acuerdo, ámbito del alojamiento y validación por operación (ADM-20), carta de renta (ADM-15), ventanas de aviso 60/30/7 y renovación a 90 días (ADM-11), secuencia de atrasos (ADM-09) y GST de la liquidación (ADM-10).",
   "bloqueo": "JFSC/abogado · Dato de Hampton",
   "evidencia": [
     "server/rentals.js:6-10",
     "docs/roadmap/ESTADO.md:13",
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:73",
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): las reglas versionadas y parametrizadas se construyen; los valores los valida el abogado. Vuelve a desarrollo: lo externo es condición de activación."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): las reglas versionadas y parametrizadas se construyen; los valores los valida el abogado. Vuelve a desarrollo: lo externo es condición de activación.",
+    "migrations/0063_legal_terms.sql · server/legal-terms.js · admin/src/LegalTerms.jsx",
+    "tests/server/adm-17-legal-terms.test.mjs: 10 de 10 el 14-nov-2026 (interruptor apagado sin cambios, tabla ausente, validación, versiones, 409, plazos aplicados, Inbox, registros).",
+    "tests/adm17-legal-terms.e2e.cjs: PASS a 1280 y 390 en el contenedor aislado el 14-nov-2026.",
+    "Decisión: mismo mecanismo que 0054 y 0047 (fila vigente, historial por trigger, revisión esperada, valores por defecto sin fila). Fuente: encargo de la sesión y CONTINUIDAD (migración aditiva).",
+    "Decisión: cualquier admin edita plazos y registros. Fuente: CONTINUIDAD, decisiones de producto (como AUT-10, 14-nov-2026).",
+    "Decisión: ningún valor legal nuevo ni fila sembrada; los de LEGAL son el valor por defecto, rotulado estimado. Fuente: externalBlocker de la ficha y specs/2026-11-10-tp03-lifecycle-design.md:21 (legacy_unverified).",
+    "Decisión: «validated» exige quién validó y la fecha; el dictamen no se guarda en la app. Fuente: specs/2026-11-10-tp03-lifecycle-design.md:21 (no aprobar sin evidencia, referencia privada).",
+    "Decisión: los registros JFSC y GST informan y no bloquean; «unknown» se muestra «not confirmed». Fuente: plan maestro («Unknown no significa aprobado») y plan 2026-11-09-adm-17 (no confirma registros).",
+    "Decisión: warnDays, renewalDays y regime2025From siguen en código; son ventanas de aviso del equipo y la fecha de la ley de 2025 (ADM-11, ADM-20). Fuente: skill §4.5, opción más simple.",
+    "Decisión: no se construyen aquí vigencias por fecha, ámbito del alojamiento ni validateTenancyOperation del plan del 9-nov; hoy no hay emisión legal que frenar y su integración es de ADM-20 y ADM-15, que leen el estado con readLegal(). Fuente: skill §3 y spec :21 y :47.",
+    "Sin comprobar: el rótulo del Inbox en navegador (sí en la prueba de servidor), npm test completo y producción."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -35,6 +46,6 @@
     "rentals-ui",
     "legal-parameters"
   ],
-  "nextStep": "Construir las reglas de plazos versionadas y parametrizadas según su plan, sin valores nuevos hasta su validación; Hampton y el abogado confirman después.",
+  "nextStep": "Aplicar 0063, encender el interruptor en los dos wrangler y comprobar en producción Settings › Legal terms y el rótulo en Rentals. Después solo queda lo externo: Hampton (JFSC y GST) y el abogado (plazos).",
   "actualizado": "2026-11-14"
 }
