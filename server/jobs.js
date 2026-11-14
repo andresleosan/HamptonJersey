@@ -7,6 +7,7 @@ import { weeklyInsightsPass } from './weekly-insights.js';
 import { notificationsPass } from "./notification-reconcile.js";
 import { rentalClosureEnabled } from './rental-closure.js';
 import { processExpiredRentalClosures } from './rental-closure-job.js';
+import { followupReady, saleFollowupPass } from './sale-followup.js';
 
 // AUT-07: the clock. Cloudflare wakes this Worker (hampton-jobs, configured in jobs/wrangler.toml) every 10 minutes, on
 // the website's D1. Each tick leaves its time in app_settings.clock, then runs what is due. Each job claims its run in
@@ -23,6 +24,10 @@ export default {
     catch { console.error('Notification pass failed'); } // No source/customer data in operational logs.
     try { await weeklyInsightsPass(env, now()); }
     catch { console.error('Weekly Insights pass failed'); }
+    if (followupReady(env)) { // OFE-06: the weekly internal sale review, off until the team sets day and time.
+      try { await saleFollowupPass(env, now()); }
+      catch { console.error('Sale follow-up pass failed'); }
+    }
     if (rentalClosureEnabled(env)) {
       try { await processExpiredRentalClosures(env); }
       catch { console.error('Rental withdrawal pass failed'); }

@@ -5,6 +5,7 @@ import { setUnsaved } from "./unsaved.js";
 import { milestoneLabel } from "../../server/sales.js";
 import { jerseyToday } from "../../server/viewings.js";
 import { BuyerOffers, Modal, REASON, pounds, useFieldErrors } from "./Sales.jsx";
+import { WeeklyReview } from "./SaleFollowup.jsx";
 
 // Spec §4 sale file (#/sales/<id>): its data (V7, V3) on the left, saved with the panel's Save bar, and the work on the
 // right: the Jersey steps (V8), then the listing's other offers. The work comes first in the page, so on a phone (one
@@ -117,6 +118,7 @@ export default function SaleDetail({ id, requestedMilestone, onChange }) {
             </li>;
           })}</ol>
         </section>
+        <WeeklyReview saleId={id} open={open} version={JSON.stringify(data.milestones)} />
         <section className="card" aria-labelledby="h-others"><h2 id="h-others">Other offers on this listing</h2>
           {data.offers.length ? <BuyerOffers rows={data.offers} labelledBy="h-others" /> : <p className="muted">No other offers on this listing.</p>}
           {data.offers.some(o => o.status === "pending" || o.status === "countered") && <p><a href="#/sales">Answer open offers in Sales</a></p>}

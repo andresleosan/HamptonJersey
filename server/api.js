@@ -29,6 +29,7 @@ import emailRoutes from "./routes/email.js";
 import advertiserRoutes from "./routes/advertisers.js";
 import marketInventoryRoutes from "./routes/market-inventory.js";
 import demandRoutes from "./routes/demand.js";
+import saleFollowupRoutes, { followupReady } from "./sale-followup.js";
 
 // [method, path regex, handler, requiresAdmin]
 const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes];
@@ -54,7 +55,8 @@ async function route(request, env, segments, waitUntil) {
     if (segments[0] === "qa") return await qaRoute({request, env, path, segments});
     // Market tables require a separate migration and source review. New routes
     // stay absent unless the deployment explicitly enables the completed slice.
-    let routes = env.MARKET_INVENTORY_READY === '1' ? [...ROUTES, ...marketInventoryRoutes] : ROUTES;
+    let routes = [...ROUTES, ...(env.MARKET_INVENTORY_READY === '1' ? marketInventoryRoutes : []),
+      ...(followupReady(env) ? saleFollowupRoutes : [])]; // OFE-06: needs migration 0053
     // AUT-10: the mode switch exists only with its migration (0054) and flag.
     if (env.AUT10_MODES_READY === '1') routes = [...routes, ...modeRoutes];
     for (const [m, re, handler, auth] of routes) {
