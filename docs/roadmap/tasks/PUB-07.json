@@ -6,15 +6,30 @@
   "fase": "F4",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "En listings, en Details del editor y en la web: Tenure (freehold, flying freehold, share transfer, leasehold), Housing category (Qualified, Registered) y Restriction (first-time buyers, over 55s), que el matching aplica.",
-  "falta": "Faltan licencia de vivienda en alquiler, certificado energético, ocupación (vacía o alquilada) y abogado del vendedor (hoy solo en el expediente de Sales); la categoría de HE-R001, HE-R003 y HE-R027 la pone Hampton (BUS-13). Replanteado para Jersey (§5.10), no falta: título, hipotecas y cargas los revisan los abogados en la venta; la ficha lleva tenencia y categoría.",
+  "hecho": "En listings, en Details del editor y en la web: Tenure (freehold, flying freehold, share transfer, leasehold), Housing category (Qualified, Registered) y Restriction (first-time buyers, over 55s), que el matching aplica. Construido y apagado (14-nov): sección «Legal and compliance (internal)» del editor con ocupación (Unknown, Vacant, Tenanted), licencia de vivienda en alquiler y certificado energético (Unknown, Provided, Verified, Not applicable) con referencia y fecha de caducidad, y el abogado del vendedor leído del expediente de Sales. Unknown es un valor guardado. Provided exige referencia; Verified exige además la caducidad; una caducidad pasada se avisa. Solo lo cambia el equipo desde el editor; el historial guarda qué campo cambió, sin su valor. Nada sale a la web.",
+  "falta": "Aplicar la migración 0061 (aditiva), encender PUB07_COMPLIANCE_READY y comprobar el recorrido en producción. La categoría de vivienda de HE-R001, HE-R003 y HE-R027 la pone Hampton y ya está en BUS-13. Replanteado para Jersey (§5.10), no falta: título, hipotecas y cargas los revisan los abogados en la venta.",
   "bloqueo": "",
   "evidencia": [
     "migrations/0015_jersey_fields.sql:1-11",
     "admin/src/ListingEditor.jsx:171-180",
     "site/index.html:771-774",
     "migrations/0012_sales.sql:21-31",
-    "commit 4cd4001"
+    "commit 4cd4001",
+    "migrations/0061_listing_compliance.sql",
+    "server/listing.js:37-41",
+    "server/listing.js:115-127",
+    "server/routes/listings.js:92-96",
+    "server/routes/listings.js:183-185",
+    "admin/src/ListingEditor.jsx:300-309",
+    "admin/src/ListingEditor.jsx:589-601",
+    "tests/server/pub-07-compliance.test.mjs (8 pruebas, pasan)",
+    "tests/pub07-compliance.e2e.cjs (Chromium aislado, 1280 y 390, pasa)",
+    "Decisión (fuente: spec own-publication-completion §PUB-07): el abogado del vendedor no se guarda en la ficha; se lee del expediente de Sales (firma y nombre, sin correo ni teléfono) con enlace al expediente.",
+    "Decisión (fuente: plan PUB-07, tarea 1): estados unknown, provided, verified y not_applicable; verified exige referencia y caducidad y solo lo pone el equipo en el editor.",
+    "Decisión (fuente: encargo y PUB-11): los PDF no se suben aquí; la referencia es el número o el nombre del PDF en Private documents.",
+    "Decisión (fuente: 0052 y listing-economics.js): columnas en listings sin tocar los triggers de auditoría de PUB-06; el historial anota el campo por extra_fields, sin valor.",
+    "Decisión (fuente: plan maestro, publicación con mínimos): estos campos no cuentan en completeness ni en Listing health; son internos y opcionales.",
+    "Decisión (opción más simple): emisor y fecha de emisión, opcionales en el spec, quedan en el PDF; propuesto para MEJORAS."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -34,5 +49,6 @@
     "listings-schema",
     "listing-editor"
   ],
-  "nextStep": "Completar campos legales/técnicos documentados y solicitar a Hampton las categorías de sus fichas."
+  "nextStep": "Aplicar 0061_listing_compliance.sql, encender PUB07_COMPLIANCE_READY en wrangler.toml y verificar el editor en producción; con eso la tarea cumple su criterio de hecho.",
+  "actualizado": "2026-11-14"
 }
