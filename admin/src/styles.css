@@ -539,6 +539,9 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .advertiser-review-history,.advertiser-review-history li{min-width:0;overflow-wrap:anywhere}
 .advertiser-review-meta{display:flex;flex-wrap:wrap;gap:4px 12px;min-width:0}
 .advertiser-review-meta>*{min-width:0;overflow-wrap:anywhere}
+/* AGE-14: removal confirmation; radio rows keep a 44px target. */
+.advertiser-removal{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);overflow-wrap:anywhere}
+.advertiser-removal label{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;color:var(--ink)}
 /* EST-17: compact evidence form, reusing the panel's fields and focus styles. */
 .marketing-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;border:0;padding:0;margin:0;align-items:end}
 .marketing-fields label{min-width:0}

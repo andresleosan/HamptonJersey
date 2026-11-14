@@ -1,6 +1,7 @@
 import { json, fail, readJson, now } from '../http.js';
 import { jerseyToday, EMAIL } from '../viewings.js';
 
+const REMOVED = 'Personal data was removed from this record. It can no longer be changed.';
 class FieldError extends Error { constructor(field, message) { super(message); this.field = field; } }
 const validateResponse = e => { if (e instanceof FieldError) return json({ error: e.message, fields: { [e.field]: e.message } }, 400); throw e; };
 const clean = (v, label, max, required = false) => {
@@ -33,9 +34,9 @@ function monthAfter(date, months) {
   const last = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 0)).getUTCDate();
   base.setUTCDate(Math.min(d, last)); return base.toISOString().slice(0, 10);
 }
-function output(r) { const d = JSON.parse(r.details); return { ...r, details: undefined, ...d, review_on: monthAfter(r.activity_on, 11), due_on: monthAfter(r.activity_on, 12), today: jerseyToday() }; }
+export function output(r) { const d = JSON.parse(r.details); return { ...r, details: undefined, ...d, review_on: monthAfter(r.activity_on, 11), due_on: monthAfter(r.activity_on, 12), today: jerseyToday() }; }
 const columns = `a.*, (SELECT r.action FROM advertiser_reviews r WHERE r.advertiser_id=a.id ORDER BY r.id DESC LIMIT 1) AS last_review_action, (SELECT r.on_date FROM advertiser_reviews r WHERE r.advertiser_id=a.id ORDER BY r.id DESC LIMIT 1) AS last_review_on`;
-async function get(env, id) { const r = await env.DB.prepare(`SELECT ${columns} FROM advertisers a WHERE a.id = ?`).bind(id).first(); if (!r) fail(404, 'Advertiser not found'); return r; }
+export async function get(env, id) { const r = await env.DB.prepare(`SELECT ${columns} FROM advertisers a WHERE a.id = ?`).bind(id).first(); if (!r) fail(404, 'Advertiser not found'); return r; }
 async function refs(env, d, previous = []) {
   for (const id of d.source_ids) if (!await env.DB.prepare('SELECT source_id FROM research_sources WHERE source_id = ?').bind(id).first()) throw new FieldError('source_ids', 'Source not found');
   for (const id of d.listing_ids) {
@@ -51,7 +52,7 @@ async function all({ env, request }) {
     (SELECT 1 FROM json_each(a.details, '$.listing_ids') j WHERE j.value = ?)) AND (? = '' OR EXISTS
     (SELECT 1 FROM json_each(a.details, '$.source_ids') j JOIN research_sources s ON s.source_id = j.value WHERE s.property_id = ?))
     ORDER BY activity_on, name COLLATE NOCASE, id LIMIT 51 OFFSET ?`).bind(listing,listing,property,property,offset).all()).results;
-  return json({ advertisers: rows.slice(0, 50).map(output), more: rows.length > 50, offset });
+  return json({ advertisers: rows.slice(0, 50).map(output), more: rows.length > 50, offset, suppression: env.AGE14_SUPPRESSION_READY === '1' });
 }
 async function withHistory(env, row) {
   const a = output(row); a.deleted_listing_ids = [];
@@ -73,6 +74,7 @@ async function update({ request, env, admin, params: [id] }) {
   try { v = validate(body); } catch (e) { return validateResponse(e); }
   if (!Number.isInteger(body.version)) fail(400, 'Send version');
   const old = await get(env, id);
+  if (old.suppressed_at) fail(409, REMOVED); // AGE-14: absent (undefined) before migration 0057
   if (old.version !== body.version) fail(409, 'This record changed. Reload before saving.');
   try { await refs(env, v.details, JSON.parse(old.details).listing_ids); } catch (e) { return validateResponse(e); }
   const r = await env.DB.prepare('UPDATE advertisers SET name=?,kind=?,details=?,updated_at=?,updated_by=?,version=version+1 WHERE id=? AND version=?').bind(v.name,v.kind,JSON.stringify(v.details),now(),admin,id,body.version).run();
@@ -82,7 +84,8 @@ async function update({ request, env, admin, params: [id] }) {
 async function act({ request, env, admin, params: [id, action] }) {
   const b = await readJson(request); if (!Number.isInteger(b?.version)) fail(400,'Send version');
   const reason = action === 'retain' ? clean(b.reason,'reason',1000,true) : null;
-  const old = await get(env,id); if (old.version !== b.version) fail(409,'This record changed. Reload before continuing.');
+  const old = await get(env,id); if (old.suppressed_at) fail(409, REMOVED);
+  if (old.version !== b.version) fail(409,'This record changed. Reload before continuing.');
   const t = now();
   const sql = 'UPDATE advertisers SET activity_on=?,updated_at=?,updated_by=?,version=version+1 WHERE id=? AND version=?';
   const result = await env.DB.batch([

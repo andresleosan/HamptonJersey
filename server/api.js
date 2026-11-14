@@ -27,6 +27,7 @@ import chatRoutes from "./routes/chat.js";
 import chatAdminRoutes from "./routes/chats.js";
 import emailRoutes from "./routes/email.js";
 import advertiserRoutes from "./routes/advertisers.js";
+import advertiserPrivacyRoutes from "./advertiser-privacy.js";
 import marketInventoryRoutes from "./routes/market-inventory.js";
 import demandRoutes from "./routes/demand.js";
 import saleFollowupRoutes, { followupReady } from "./sale-followup.js";
@@ -64,6 +65,8 @@ async function route(request, env, segments, waitUntil) {
     if (env.AUT10_MODES_READY === '1') routes = [...routes, ...modeRoutes];
     if (env.ADM06_TENANCY_ORIGIN_READY === '1') routes = [...routes, ...tenancyOriginRoutes]; // ADM-06: needs migration 0056
     if (documentsReady(env)) routes = [...routes, ...documentRoutes]; // PUB-11: needs migration 0058
+    // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
+    if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];
     for (const [m, re, handler, auth] of routes) {
       const hit = m === method && re.exec(path);
       if (!hit) continue;
