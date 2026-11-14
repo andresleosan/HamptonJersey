@@ -98,6 +98,6 @@ Base: `5c97061b15d560613d3913ada13b4fda2fc11288`, publicado y tablero visible co
 - [x] Portada, updated_at, evento aplicable y cambios de medios en un mismo batch; rollback ante fallo o cero filas.
 - [x] Snapshot servidor de pertenencia, recurso y campos sobrescritos; revalidar también portada fuera de items; rechazar IDs duplicados antes de escribir.
 - [x] Regresiones SQLite y D1 local, revisión independiente, suite/build/release y recorrido afectado.
-- [ ] Publicar el SHA exacto y comprobar el tablero público.
+- [x] Código `4e1066c` publicado con registro `ae20b06`; SHA remoto y tablero público comprobados. 68/215 antes y después, sin cierre de PUB-11.
 
 RED observado: 30 pruebas contando subtests, 8 pasan y 22 fallan con el código previo. Final: 68 focales y revisión independiente correctos; 2305 JavaScript/29 Python, build/release, catálogo/paquetes y navegador HTTP Chromium aislado 1280/390/zoom PASS. Esta corrección no aporta media_revision común a upload/remove, auditoría completa de orden/visibilidad, recibo recuperable HTTP, autoridad durable; conserva los mínimos de publicación ya acordados e integrados en PUB-12/PUB-02 y no cierra Tarea 3 completa ni PUB-11.

@@ -15,7 +15,7 @@ Solo el error conocido de la guarda se convierte en 409; si la ficha desapareci�
 - RED previo: 30 pruebas contando subtests, 8 aciertos y 22 fallos. Reproducción en SQLite y D1 local de guardado parcial, writes ignorados y deriva de pertenencia/portada.
 - Focal final: 68/68, incluidos los 23 casos SQLite, seis subpruebas D1 efímero y las regresiones de administración e historial. El historial deja de exigir el guardado parcial y comprueba rollback, éxito posterior y retirada de portada.
 - Revisión independiente: sin hallazgos Critical/Important/Minor. Comprueba encadenamiento CAS/guard, predicados null-safe, portada omitida y manejo de errores.
-- Navegador Chromium aislado: PASS 1280/390/zoom y teclado, con subida/decodificación y dos PUT HTTP simultáneos: 200/409, contenido completo del ganador y reintento obsoleto 409 sin cambios. Capturas `/tmp/hampton-browser-captures/run-SubGxI`. Suite final: 2305 pruebas JavaScript y 29 Python PASS; build, release estricto, catálogo y paquetes PASS. La publicación y el tablero se verifican tras el commit.
+- Navegador Chromium aislado: PASS 1280/390/zoom y teclado, con subida/decodificación y dos PUT HTTP simultáneos: 200/409, contenido completo del ganador y reintento obsoleto 409 sin cambios. Capturas `/tmp/hampton-browser-captures/run-SubGxI`. Suite final: 2305 pruebas JavaScript y 29 Python PASS; build, release estricto, catálogo y paquetes PASS. Código en `4e1066c86fbe113bf7f25d7a20291aa87a31ffc4`, publicado con el registro `ae20b061c19b9029e8112a13b5d8573527a2d8ee`. SHA remoto verificado. El endpoint público confirma el avance y 68/215 (31,63 %), updatedAt `2026-11-14T00:04:18.817Z`. No se deduce una prueba de producción del push.
 
 ## Límites y decisiones
 
@@ -25,3 +25,9 @@ Solo el error conocido de la guarda se convierte en 409; si la ficha desapareci�
 - P01 está resuelta: PUB-12 y PUB-02 constan hechos con mínimos y guardas ya integrados. Este cambio conserva esa política; no reabre la decisión ni acredita por sí solo la versión común futura de todos los escritores o pruebas nuevas de sus carreras de publicación. Las pruebas sintéticas no acreditan producción ni cierran PUB-11.
 
 Siguiente paso: definir e integrar una versión común de medios con todos sus escritores y consumidores de publicación; después continuar PDF privado/staging con las autorizaciones y dependencias del plan.
+
+## Comprobación de continuidad
+
+El estado anterior y posterior es 68/215 (31,63 %), sin tareas nuevas cerradas. Tras los dos tramos integrados se contrastaron AUT-18, PUB-07, PRE-14 y REG-17: ninguna aporta un cierre completo con solo commit/push. AUT-18 requiere marca/contador y recepción real del resumen; PUB-07 necesita persistencia y trazabilidad privadas; PRE-14 necesita el recorrido coherente y ensayos de proveedor, coste y autorización de activación; REG-17 espera contratos de propuesta/aceptación y consumo VIS-17. No faltan las decisiones de calendario/destino de PRE-14 ni los mínimos PUB-02/PUB-12.
+
+El cierre de PUB-11 conserva las dependencias precisas anteriores: esquema/versión común de escritores y consumidores, autoridad y privacidad de documentos, staging/recuperación y calibración con material representativo. No se añaden prototipos desconectados para contarlos como avance ni se aplican esquemas/activaciones no autorizados. El siguiente alcance recomendado es PUB-11, versión común y recuperación de cargas, preparando y verificando el recorrido integral antes de cualquier migración autorizada.
