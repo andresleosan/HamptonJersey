@@ -2,6 +2,12 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+14-nov-2026 · **VIS-10 hecha:** cada casa tiene sus reglas de visita en la ficha («House rules for viewings»): horas de aviso si hay inquilino, dónde están las llaves y una nota privada de acceso, y quién la enseña. Con inquilino, la web no ofrece horas dentro del aviso y el panel pide marcar «Access is agreed with the tenant» antes de reservar o cambiar la hora. Nada de esto sale en la web. Migración 0066. Progreso 96 → 97 de 211.
+
+14-nov-2026 · **EST-01 y SAP-01 hechas:** cada búsqueda guarda cuándo se ejecutó por última vez y si terminó bien; en la lista de aplicantes y en la pestaña Matches se lee «Waiting for investigation», «No matches yet · last search 2 hours ago» o «Last search failed». Las búsquedas anteriores dicen «not recorded» hasta su siguiente recálculo. Migración 0067. Progreso 94 → 96 de 211.
+
+14-nov-2026 · **BUS-12 hecha:** el matching separa imprescindibles, exclusiones, rangos y datos desconocidos; una casa sin categoría de vivienda ya no sale como «Stated must-haves met», queda «Requirements to confirm». Las búsquedas comerciales y de negocio ya se cruzan con las fichas comerciales de Hampton (tipo, uso, superficie y cada límite económico por separado) en vez de decir «not available yet». Progreso 93 → 94 de 211.
+
 14-nov-2026 · **Inventario de mercado activado (BUS-06 y BUS-19, pendientes de la primera carga de Luis):** en Settings › Automations › Market inventory un admin carga el directorio privado de fuentes comprobando su huella, revisa cada canal (permitido, solo manual, denegado o pendiente, con evidencia y fecha) y sube anuncios a mano por tandas; las fuentes sin leer salen «not read», nunca 0. Homely, Places y Properties no se pueden abrir. Migración 0043 aplicada. Progreso sin cambio: siguen parciales hasta que Luis haga la primera carga y revisión reales.
 
 14-nov-2026 · **ADM-17 hecha:** los plazos legales de Rentals (fianza, informes, licencias, preavisos, revisión de renta) ya no son código: se cambian en Settings › Legal terms con versión, quién y cuándo, y todo lo calculado con ellos lleva «Estimated · not validated by a lawyer» hasta que se marquen validados; ahí mismo se anota si Hampton está registrada en JFSC y GST. Sin nada guardado valen los plazos de siempre. Migración 0063. Progreso 92 → 93 de 211.

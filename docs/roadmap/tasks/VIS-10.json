@@ -4,10 +4,10 @@
   "titulo": "Restricciones de cada casa: aviso previo si hay inquilino, llaves y quién la enseña",
   "origen": "plan",
   "fase": "F3-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Construido y apagado (14-nov): reglas de visita por casa. En la ficha, tarjeta «House rules for viewings (internal)»: horas de aviso si hay inquilino (0 a 168), quién la enseña (un negociador, o acompaña el propietario o el inquilino), llaves y nota de acceso, con quién y cuándo lo cambió. En Viewings se ven al reservar y en la visita. Con la ficha en Tenanted (ocupación de PUB-07), la web no ofrece ni acepta horas dentro del aviso; el panel las rechaza hasta que el empleado marca que el acceso está acordado, y eso queda en el evento. La regla se vuelve a leer dentro de la reserva o del cambio de hora. Llaves y nota solo salen por rutas con sesión de equipo; el registro de cambios guarda nombres de campo, nunca el texto. Apagado, o sin la migración 0066, todo funciona como antes. La base anterior (0051 y property-viewing-rules.js) queda sin usar.",
-  "falta": "Aplicar la migración 0066 en producción, encender VIS10_HOUSE_RULES_READY y comprobar el recorrido real.",
+  "hecho": "Construido y apagado (14-nov): reglas de visita por casa. En la ficha, tarjeta «House rules for viewings (internal)»: horas de aviso si hay inquilino (0 a 168), quién la enseña (un negociador, o acompaña el propietario o el inquilino), llaves y nota de acceso, con quién y cuándo lo cambió. En Viewings se ven al reservar y en la visita. Con la ficha en Tenanted (ocupación de PUB-07), la web no ofrece ni acepta horas dentro del aviso; el panel las rechaza hasta que el empleado marca que el acceso está acordado, y eso queda en el evento. La regla se vuelve a leer dentro de la reserva o del cambio de hora. Llaves y nota solo salen por rutas con sesión de equipo; el registro de cambios guarda nombres de campo, nunca el texto. Apagado, o sin la migración 0066, todo funciona como antes. La base anterior (0051 y property-viewing-rules.js) queda sin usar. Cerrada el 14-nov-2026: migración 0066 aplicada y VIS10_HOUSE_RULES_READY=1. El aviso automático al inquilino llega con el correo (AUT-17); imponer quién enseña la casa al reservar queda como mejora.",
+  "falta": "",
   "bloqueo": "",
   "actualizado": "2026-11-14",
   "evidencia": [
@@ -40,7 +40,9 @@
     "server/property-viewing-rules.js",
     "tests/server/property-viewing-rules-d1.test.mjs",
     "tests/server/property-viewing-rules-identity.test.mjs",
-    "docs/roadmap/work/VIS-10/foundation-evidence.md"
+    "docs/roadmap/work/VIS-10/foundation-evidence.md",
+    "Cierre 14-nov-2026: publicada en c6bfbc4; 0066 (dos tablas y un índice, aditiva) aplicada en producción; tests/vis10-house-rules.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (llaves, nota y ocupación no salen por ninguna ruta pública; el aviso no se salta por carrera ni cambio de hora).",
+    "Decisión 14-nov-2026 (skill §3 y ponytail): no se usa la base de 0051 (por operación, sin llaves, nota ni autor); la lista de negociadores permitidos impuesta y la tarea automática del plan del 8-nov se sustituyen por «quién la enseña» informativo y la confirmación expresa del empleado; lo demás está en MEJORAS."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -68,5 +70,5 @@
     "viewings-ui",
     "listings-contract"
   ],
-  "nextStep": "Aplicar 0066 (aditiva), encender VIS10_HOUSE_RULES_READY=1, desplegar y comprobar con lecturas que la ruta de reglas pide sesión y que la web sigue ofreciendo horas en las fichas sin regla."
+  "nextStep": "Hecha."
 }

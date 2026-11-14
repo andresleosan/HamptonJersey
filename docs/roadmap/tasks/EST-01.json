@@ -4,10 +4,10 @@
   "titulo": "Estado Waiting for investigation: registrado y con la primera búsqueda en cola",
   "origen": "texto",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Cada búsqueda residencial activa guarda la hora de su último intento, de su último éxito y de su último fallo (tabla applicant_search_runs, migración 0067, interruptor EST01_SEARCH_STATE_READY). Se registra alrededor del recálculo completo, sin tocar el motor: alta en el panel y en la web, edición, reapertura, cambios de etapa, Recalculate matches y Recalculate all. Un alta queda en «Waiting for investigation · First search queued» hasta que arranca su primera búsqueda. Un intento sin resultado a los dos minutos se lee como fallido. No se guarda texto de error ni datos de contacto, y la fila se borra con la búsqueda. Apagado, o sin la migración, no se lee ni escribe nada y el recálculo responde igual que antes. El equipo ve fecha y resultado en la lista y en la ficha (SAP-01). El recálculo ya protegía el conjunto de candidatas y comunicaba conflicto o resultado desconocido.",
-  "falta": "Aplicar la migración 0067 en producción, encender EST01_SEARCH_STATE_READY y comprobar el recorrido real con lecturas. Después conviene pulsar Recalculate all una vez para que las búsquedas anteriores dejen de leerse «not recorded». La búsqueda cubre solo las fichas guardadas de Hampton: el arranque contra el inventario común de mercado es de BUS-01.",
+  "hecho": "Cada búsqueda residencial activa guarda la hora de su último intento, de su último éxito y de su último fallo (tabla applicant_search_runs, migración 0067, interruptor EST01_SEARCH_STATE_READY). Se registra alrededor del recálculo completo, sin tocar el motor: alta en el panel y en la web, edición, reapertura, cambios de etapa, Recalculate matches y Recalculate all. Un alta queda en «Waiting for investigation · First search queued» hasta que arranca su primera búsqueda. Un intento sin resultado a los dos minutos se lee como fallido. No se guarda texto de error ni datos de contacto, y la fila se borra con la búsqueda. Apagado, o sin la migración, no se lee ni escribe nada y el recálculo responde igual que antes. El equipo ve fecha y resultado en la lista y en la ficha (SAP-01). El recálculo ya protegía el conjunto de candidatas y comunicaba conflicto o resultado desconocido. Cerrada el 14-nov-2026: migración 0067 aplicada y EST01_SEARCH_STATE_READY=1; también registra las búsquedas comerciales, que desde BUS-12 se cruzan. Las búsquedas anteriores se leen «not recorded» hasta su siguiente recálculo («Recalculate all» las pone al día). El arranque contra el inventario común de mercado es de BUS-01.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/applicants.js:29-31",
@@ -34,7 +34,8 @@
     "Decisión: la identidad durable, ABA, drenaje, réplicas y el esquema con ticket (EST01_PROGRESS_READY, search-progress.proposed.sql) quedan apagados y pasan a mejoras. Fuente: skill §3 (endurecimientos fuera del alcance del título no bloquean).",
     "Decisión: el recálculo de una ficha (una ficha contra todas las búsquedas) no cuenta como búsqueda completa y no mueve la hora. Fuente: docs/roadmap/work/EST-01/avance-intentos-2026-11-13.md.",
     "Decisión: sin relleno para las búsquedas anteriores; sin fila se lee «not recorded». Fuente: CONTINUIDAD-AVANZAR.md (migración aditiva, sin UPDATE sobre filas existentes).",
-    "Decisión: «Waiting for investigation» como badge neutral. Fuente: DESIGN.md, tabla «Badges de estado»."
+    "Decisión: «Waiting for investigation» como badge neutral. Fuente: DESIGN.md, tabla «Badges de estado».",
+    "Cierre 14-nov-2026: publicada en c6bfbc4; 0067 (una tabla nueva, aditiva) aplicada en producción tras marcador Time Travel; tests/est01-search-state.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (un fallo al registrar no tumba el alta pública ni el guardado)."
   ],
   "modulo": "M03",
   "deps": [
@@ -66,6 +67,6 @@
     "search-lifecycle",
     "applicants-schema"
   ],
-  "nextStep": "Aplicar 0067, encender EST01_SEARCH_STATE_READY y comprobar en producción con lecturas que la lista y la ficha muestran el estado.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-14"
 }

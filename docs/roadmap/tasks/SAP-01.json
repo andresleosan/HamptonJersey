@@ -4,10 +4,10 @@
   "titulo": "Estado de la búsqueda del aplicante mientras no tiene ningún match",
   "origen": "texto",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Mientras una búsqueda residencial activa no tiene ningún match, la columna Matches de Applicants dice qué hizo su última búsqueda: «Waiting for investigation · First search queued», «Searching now…», «No matches yet · last search 2 hours ago», «Last search failed · 2 hours ago · last completed 3 days ago» o «No matches yet · last search not recorded» para las anteriores a este cambio. La pestaña Matches de la ficha muestra la misma línea, con «Hampton's saved listings only», y solo la fecha cuando ya hay matches. Lee lo que registra EST-01 (EST01_SEARCH_STATE_READY) por las rutas del panel ya autorizadas; apagado, la lista y la ficha quedan como antes. Un match rechazado cuenta como match, así que no se dice «no matches yet». La línea se refresca al guardar la búsqueda y al recalcular.",
-  "falta": "Aplicar la migración 0067 y encender EST01_SEARCH_STATE_READY (los de EST-01) y comprobar la lista y la ficha en producción con lecturas.",
+  "hecho": "Mientras una búsqueda residencial activa no tiene ningún match, la columna Matches de Applicants dice qué hizo su última búsqueda: «Waiting for investigation · First search queued», «Searching now…», «No matches yet · last search 2 hours ago», «Last search failed · 2 hours ago · last completed 3 days ago» o «No matches yet · last search not recorded» para las anteriores a este cambio. La pestaña Matches de la ficha muestra la misma línea, con «Hampton's saved listings only», y solo la fecha cuando ya hay matches. Lee lo que registra EST-01 (EST01_SEARCH_STATE_READY) por las rutas del panel ya autorizadas; apagado, la lista y la ficha quedan como antes. Un match rechazado cuenta como match, así que no se dice «no matches yet». La línea se refresca al guardar la búsqueda y al recalcular. Cerrada el 14-nov-2026 junto a EST-01 (0067 aplicada, EST01_SEARCH_STATE_READY=1).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/routes/applicants.js:64-67",
@@ -27,7 +27,8 @@
     "14-nov: focal est01-search-state 11/11 (lista y ficha, apagado, sin migración, con y sin matches). Navegador aislado a 1280 y 390 con datos ficticios: los cinco estados en la lista y en la ficha, sin desplazamiento lateral. Sin verificar en producción.",
     "Decisión: el estado va en la columna Matches de la lista y sobre la pestaña Matches de la ficha, con un componente pequeño nuevo; el componente SearchProgress preparado antes queda sin montar. Fuente: arquitectura, fila «Aplicante sin match» (cola Waiting for investigation o No matches, con la hora de la última búsqueda) y skill §5 (ponytail).",
     "Decisión: la hora no se inventa para las búsquedas anteriores: «not recorded». Fuente: plan maestro (falta de fuente o error no significa 0 anuncios) y CONTINUIDAD-AVANZAR.md (sin relleno).",
-    "Decisión: el texto habla solo de las fichas guardadas de Hampton y solo al equipo. Fuente: plan maestro, sección «Búsqueda, visitas y publicación propias»."
+    "Decisión: el texto habla solo de las fichas guardadas de Hampton y solo al equipo. Fuente: plan maestro, sección «Búsqueda, visitas y publicación propias».",
+    "Cierre 14-nov-2026: publicada en c6bfbc4; lista y ficha comprobadas en tests/est01-search-state.e2e.cjs a 1280 y 390; revisión independiente sin hallazgos graves."
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
@@ -47,6 +48,6 @@
     "applicants-ui",
     "search-lifecycle"
   ],
-  "nextStep": "Con 0067 aplicada y EST01_SEARCH_STATE_READY encendido, comprobar en producción la lista y la ficha con lecturas.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-14"
 }

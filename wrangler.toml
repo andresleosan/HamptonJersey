@@ -25,6 +25,10 @@ MARKET_INVENTORY_READY = "1"
 PUB07_COMPLIANCE_READY = "1"
 # ADM-17: versioned legal periods (migration 0063, applied 14-nov-2026); keep equal in jobs/wrangler.toml.
 ADM17_LEGAL_TERMS_READY = "1"
+# VIS-10: house rules for viewings (migration 0066, applied 14-nov-2026); reads occupancy from PUB-07.
+VIS10_HOUSE_RULES_READY = "1"
+# EST-01 / SAP-01: last run of each search (migration 0067, applied 14-nov-2026). Never together with EST01_PROGRESS_READY.
+EST01_SEARCH_STATE_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
