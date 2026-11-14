@@ -103,6 +103,16 @@ export default function Review() {
     }
   });
 
+  // EST-13: approves or withdraws a clarification enquiry; the match stays in the queue, still to review.
+  const clarify = approved => run(async () => {
+    try {
+      const r = await api(`/admin/matches/${q.match.id}/clarification`, { method: "PUT", body: { approved } });
+      if (r.match) setQ(s => ({ ...s, match: r.match }));
+      setMsg({ ok: true, text: approved ? "Clarification approved. It shortlists nothing: this match is still to review." : "Clarification withdrawn." });
+    } catch (e) { setMsg({ text: e.status === 409 ? firstSentence(e.message) : e.message }); }
+    keepFocus();
+  });
+
   // From the top; asked while a review is saving (Recalculate all ending), it runs once that review is done.
   const restart = () => { if (working.current) reloadAfter.current = true; else run(async () => { await load(null); }); };
 
@@ -146,7 +156,7 @@ export default function Review() {
         : m ? <div className="review">
           <Summary a={q.applicant} />
           <MatchCard key={m.id} match={m} busy={busy} shortcuts rejecting={rejecting} onRejecting={setRejecting}
-            onReview={r => act(r.status, r.reject_reason)}>
+            onReview={r => act(r.status, r.reject_reason)} onClarify={clarify}>
             <button type="button" className="btn ghost sm" aria-keyshortcuts="S" onClick={() => act("skip")}>
               Skip<span className="sr"> {m.listing.title}</span><kbd aria-hidden="true">S</kbd></button>
           </MatchCard>

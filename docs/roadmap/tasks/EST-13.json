@@ -6,14 +6,21 @@
   "fase": "F2",
   "estado": "pendiente",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "M06 · Reconciliación 7-nov: Representar por separado evaluación completa/pendiente/incumple, decisión del empleado, disponibilidad con evidencia, consulta compartida y espera del cliente. Una aprobación no confirma disponibilidad; una disponibilidad confirmada no implica envío al cliente ni visita cerrada. Mantener consultas de otros clientes cuando uno resuelve su búsqueda. Depende de: BUS-12, BUS-15, BUS-10, EST-09. Aceptación: Aprobar, confirmar disponibilidad, confirmar visita y resolver búsqueda son acciones y estados distintos. Traído de BUS-15 (14-nov): mostrar en la tarjeta cuándo una aprobación quedó desfasada por un cambio material posterior y pedir nueva revisión; hoy sigue viéndose Shortlisted. Traído de BUS-12 (14-nov): consulta aclaratoria y aviso propio de Inbox ante un imprescindible desconocido, con aprobación expresa del empleado y sin aprobar el match; hoy el equipo lo ve en la tarjeta («Requirements to confirm»).",
+  "hecho": "14-nov-2026 (M06), construida en rama, sin publicar: cada match expone y muestra cuatro estados separados, cada uno con su valor y su acción (campo states de la tarjeta, server/candidate-state.js). Evaluación: completa, por confirmar o incumple; se calcula con los requisitos aunque la ficha haya dejado de ofrecerse. Decisión del empleado: sin decidir, aprobada vigente, aprobada desfasada o rechazada con motivo. La aprobación desfasada se dice en la tarjeta («Approval out of date») y su acción «Review again» devuelve el match a Found para decidir con los datos de hoy. Disponibilidad: siempre «Not confirmed» junto al estado publicado de la ficha («Listed as…»); el valor confirmado existe en el contrato y nada lo escribe todavía. Consulta: «Not sent». Con un imprescindible desconocido el empleado puede aprobar una consulta aclaratoria («Approve clarification») o retirarla: queda registrada con quién, cuándo, sobre qué y qué versiones (evento match.clarification), no aprueba el match, no envía nada y deja de valer con un cambio material. El servidor exporta CLARIFICATION_APPROVED, separado de APPROVED, para el envío futuro. Aprobar no cambia la ficha, su disponibilidad ni la etapa; rechazar no toca la ficha; resolver o archivar una búsqueda no toca los matches, decisiones ni aclaraciones de otras búsquedas. Sin migración ni interruptor.",
+  "falta": "Publicar en main con las comprobaciones del lote (npm test, build y check:release completos). Observado y sin corregir, porque exige sustituir el disparador de 0037 con una migración: cambiar la etapa de una búsqueda también retira sus aprobaciones, y cambiar criterios comerciales no las retira. Fuera de esta tarea y ya en su ficha o propuesto para ella: envío de la consulta (AGE-03), disponibilidad con evidencia (EST-16, EST-15), visita (VIS-17), interés y espera del cliente (EST-14, AGE-11), aviso de Inbox de la aclaración.",
   "bloqueo": "",
   "evidencia": [
     "migrations/0009_matches.sql:33",
     "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:36",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:147-148",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "Decisión: los estados se derivan al leer y no se guarda un estado único nuevo; sin tabla ni migración. Fuente: plan EST-13 del 8-nov (servicio de lectura compuesto, no otro status que sobrescriba hechos).",
+    "Decisión: la disponibilidad confirmada no se deduce del estado de la ficha, de una aprobación ni de la petición; hoy siempre es «not_confirmed». Fuente: reconciliación 7-nov M06 (no convertir confirmed_at ni una lectura web en confirmación comercial).",
+    "Decisión: la consulta aclaratoria se guarda como decisión propia del empleado en un evento, sin aprobar el match ni enviar nada. Fuente: plan maestro 10-nov (requiere empleado, sin aprobar match ni presentación); el envío es de AGE-03.",
+    "Decisión: «Review again» devuelve el match a Found en vez de reaprobar en un paso, para que el motor vuelva a comprobar la ficha antes de decidir. Fuente: reconciliación 7-nov M04 (un cambio posterior exige nueva revisión).",
+    "Decisión: la evaluación de una ficha que ya no se ofrece se calcula con sus requisitos y la retirada se muestra en disponibilidad. Fuente: criterio de aceptación (estados distintos).",
+    "Decisión: una búsqueda resuelta o archivada no aprueba nada y al reabrirla sus aprobaciones piden nueva revisión. Fuente: BUS-15 (APPROVED exige búsqueda activa y versiones vigentes).",
+    "Comprobado en rama el 14-nov-2026, antes de integrar: tests/server/candidate-state.test.mjs 6/6; pruebas focales de matches, requisitos, búsqueda e historial 268/268; tests/est13-match-states.e2e.cjs pasa a 1280 y 390 en el contenedor aislado; siguen pasando bus15-review, bus12-matching, bus-12-currency y bus14-e2e. Sin ejecutar: npm test completo, revisión independiente y producción."
   ],
   "modulo": "M06",
   "deps": [
@@ -63,6 +70,6 @@
     "outreach-contract",
     "availability-contract"
   ],
-  "nextStep": "Separar evaluación, decisión humana, disponibilidad acreditada y consulta compartida con historial por búsqueda.",
+  "nextStep": "Integrar el commit en main, pasar las comprobaciones del lote y cerrar; decidir si el disparador de versiones de búsqueda se corrige ahora o pasa a MEJORAS.",
   "actualizado": "2026-11-14"
 }

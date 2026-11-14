@@ -241,6 +241,8 @@ fieldset.plain{border:0;padding:0;margin:0;min-width:0}
 .checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr));gap:4px 16px;margin:4px 0}
 .checks div{display:flex;gap:8px;min-width:0} .checks dt{flex:none;width:76px;color:var(--stone);font-size:12px;line-height:21px}
 .checks dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.match-states{display:grid;gap:6px;margin:4px 0} .match-states div{display:flex;gap:8px;min-width:0}
+.match-states dt{flex:none;width:76px;color:var(--stone);font-size:12px;line-height:21px} .match-states dd{display:block;margin:0;min-width:0;overflow-wrap:anywhere}
 .result{font-weight:600} .result.meets{color:var(--ok)} .result.fails{color:var(--err)} .result.unknown{color:var(--stone)}
 .match-actions,.reasons{margin:4px 0 0;gap:8px;align-items:center}
 @media (max-width:600px){.match{grid-template-columns:1fr;padding:12px}.match-photo{aspect-ratio:2/1}}
@@ -568,7 +570,7 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .match-batch{margin:12px 0 0;align-items:center} .match-batch p{margin:0;flex:1 1 240px}
 
 .match-list>li{min-width:0}
-@media(max-width:400px){.checks div{display:grid;gap:4px}.checks dt{width:auto}.match .score{white-space:normal}}
+@media(max-width:400px){.checks div,.match-states div{display:grid;gap:4px}.checks dt,.match-states dt{width:auto}.match .score{white-space:normal}}
 
 /* SPR-01: keep the Listings filters and rows usable at narrow zoomed widths. */
 @media (max-width:400px){

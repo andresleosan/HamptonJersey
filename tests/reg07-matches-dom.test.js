@@ -23,6 +23,7 @@ test('a stale match offers a recalculate action and clears it after refresh', as
     const match = { id: 1, status: 'found', score: 90, requirements_status: 'pending',
       ...(stale ? { requirements_refresh_needed: true } : {}),
       checks: [{ key: 'pets', result: 'unknown', reason: 'Confirm whether the household has pets' }],
+      states: { evaluation: 'to_confirm', decision: 'undecided', availability: 'not_confirmed', enquiry: 'not_sent' },
       listing: { id: 'LOCAL-1', title: 'Local fixture', operation: 'rent', availability: 'to_let' } };
     return { ok: true, json: async () => ({ rankingVersion: 1, counts: { found: 1, shortlisted: 0, rejected: 0 },
       matches: status === 'found' ? [match] : [], next: null }) };

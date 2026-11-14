@@ -70,6 +70,20 @@ export default function ApplicantMatches({applicantId,applicant:a,counts,onChang
   const fresh=await onChange();
   if(fresh&&fresh.applicant.matches_revision===a.matches_revision)await Promise.all(GROUPS.map(([s])=>load(s)));
  });
+ // EST-13: a clarification is approved or withdrawn on its own; the match stays where it is, so only its page reloads
+ // (and the Timeline, through the parent).
+ const clarify=(m,approved)=>run(async()=>{
+  let error=null;
+  try{
+   await api(`/admin/matches/${m.id}/clarification`,{method:'PUT',body:{approved}});
+   setMsg({ok:true,text:approved?`Clarification approved for ${m.listing.title}. It shortlists nothing and nothing has been sent.`
+    :`Clarification withdrawn for ${m.listing.title}.`});
+  }catch(e){error=e;}
+  focus.current=`match-${m.id}`;
+  const fresh=await onChange();
+  if(fresh&&fresh.applicant.matches_revision===a.matches_revision)await load(m.status,pages[m.status]?.stack);
+  if(error)throw error;
+ });
  const recalculate=()=>run(async()=>{
   await api(`/admin/applicants/${applicantId}/matches/recalculate`,{method:'POST'});
   focus.current='group-found';
@@ -93,7 +107,7 @@ export default function ApplicantMatches({applicantId,applicant:a,counts,onChang
     {(!p||p.loading)&&<p role="status">Loading {title.toLowerCase()} matches…</p>}
     {p?.error?<div role="alert"><p className="err">{p.error}</p><button type="button" className="btn ghost" onClick={()=>load(status,stack)}>Retry {title}</button></div>
      :rows.length?<ul className="match-list">{rows.map(m=><li key={m.id}><MatchCard match={m} legacy={p.rankingVersion===0}
-      busy={busy||p.loading} disabled={readOnly} onReview={r=>review(m,r)}>
+      busy={busy||p.loading} disabled={readOnly} onReview={r=>review(m,r)} onClarify={approved=>clarify(m,approved)}>
       {!readOnly&&<label className="check"><input type="checkbox" checked={picked.has(m.id)} disabled={hasPetRefusal(m)}
        onChange={e=>setPicked(s=>{const n=new Set(s);if(e.target.checked)n.add(m.id);else n.delete(m.id);return n;})}/>Select<span className="sr"> {m.listing.title}</span></label>}
      </MatchCard></li>)}</ul>

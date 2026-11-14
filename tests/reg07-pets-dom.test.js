@@ -64,6 +64,7 @@ test('staff form does not let a known household pet be downgraded',async()=>envi
 
 const refusedMatch=()=>({id:7,status:'found',score:70,requirements_status:'excluded',requirements_refresh_needed:true,pets_refused:true,
   checks:[{key:'pets',result:'fails',priority:'must',reason:'Must-have not met'}],
+  states:{evaluation:'not_met',decision:'undecided',availability:'not_confirmed',enquiry:'not_sent'},
   listing:{id:'PET-7',title:'Fixture home',operation:'rent',availability:'to_let',published:1,has_public_photo:0}});
 
 test('a confirmed pet refusal disables Shortlist and explains why while keeping Reject available',async()=>environment(async w=>{

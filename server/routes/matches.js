@@ -9,6 +9,7 @@ import { extractFeatures } from "../listing-features.js";
 import { afterSave, closeMatchedNoticeIfEmpty } from "../match-store.js";
 import { recomputeForApplicant } from "../search-state.js"; // EST-01: the same recompute, its run recorded
 import { COVER_ID, HAS_PUBLIC_PHOTO } from "./listings.js";
+import { candidateState, unknownMusts } from "../candidate-state.js";
 
 const REASONS = REJECT_REASONS.map(([v]) => v);
 // The reviews a match in each status may get; back to found is Undo.
@@ -22,16 +23,35 @@ const EVAL_APPLICANT = object("a", ["match_ranking_version", "operation", "budge
   "commercial_rent_period", "commercial_premium", "commercial_expenses"]);
 const EVAL_LISTING = object("l", ["operation", "availability", "sale_price", "rent", "rent_period", "currency", "bedrooms", "bathrooms", "parish", "published", "archived_at", "feat_parking", "feat_pets", "feat_outdoor", "feat_furnished", "feat_type", "feat_evidence", "tenure_type", "housing_category", "restriction",
   "use", "premium", "interior_area_sqft", "property_type"]);
-const CARD = `${EVAL_APPLICANT} AS eval_applicant, ${EVAL_LISTING} AS eval_listing, m.id, m.applicant_id, m.status, m.score, m.checks, m.requirements_rank, m.area_preference_rank, m.reject_reason, m.reviewed_by, m.reviewed_at, m.created_at, ${object("l", ["id", "title",
+// EST-13: an event of this match's search (events_entity) recorded on the search and the property as they are now.
+const LISTING_VERSION = "COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id = m.listing_id), 0)";
+const OF_MATCH = `e.entity_type = 'applicant' AND e.entity_id = CAST(m.applicant_id AS TEXT) AND json_extract(e.data, '$.listing_id') = m.listing_id`;
+const AS_NOW = `json_extract(e.data, '$.search_version') = a.match_inputs_revision AND json_extract(e.data, '$.listing_version') = ${LISTING_VERSION}`;
+// BUS-15: the reviewer's own match.reviewed event covers both versions; a status nobody decided has none.
+const DECIDED_NOW = `EXISTS (SELECT 1 FROM events e WHERE ${OF_MATCH} AND e.type = 'match.reviewed' AND e.at = m.reviewed_at
+  AND e.actor = m.reviewed_by AND json_extract(e.data, '$.to') = 'shortlisted' AND ${AS_NOW})`;
+// The clarification approved for this match, while its last word is an approval of both versions: who, when, about
+// what. Newest first in events_entity's own order, so no sort.
+const CLARIFICATION = `(SELECT CASE WHEN json_extract(e.data, '$.approved') AND ${AS_NOW}
+  THEN json_object('by', e.actor, 'at', e.at, 'keys', json(json_extract(e.data, '$.keys'))) END
+  FROM events e WHERE ${OF_MATCH} AND e.type = 'match.clarification' ORDER BY e.at DESC, e.id DESC LIMIT 1)`;
+const CARD = `${EVAL_APPLICANT} AS eval_applicant, ${EVAL_LISTING} AS eval_listing, ${DECIDED_NOW} AS decision_current,
+  CASE WHEN m.status <> 'rejected' THEN ${CLARIFICATION} END AS clarification, m.id, m.applicant_id, m.status, m.score, m.checks, m.requirements_rank, m.area_preference_rank, m.reject_reason, m.reviewed_by, m.reviewed_at, m.created_at, ${object("l", ["id", "title",
   "operation", "availability", "price_text", "sale_price", "rent", "rent_period", "premium", "currency", "parish", "bedrooms", "bathrooms",
   "published", "archived_at", "updated_at"], [`'cover_id', ${COVER_ID}`, `'has_public_photo', ${HAS_PUBLIC_PHOTO}`])} AS listing`;
 export const MATCHES_SQL = `SELECT ${CARD} FROM matches m JOIN listings l ON l.id = m.listing_id JOIN applicants a ON a.id = m.applicant_id`;
 export const matchCard = m => {
-  const {eval_applicant,eval_listing,area_preference_rank,...card} = m;
+  const {eval_applicant,eval_listing,area_preference_rank,decision_current,clarification:asked,...card} = m;
   const a = JSON.parse(eval_applicant), listing = JSON.parse(eval_listing), r = evaluate(a,listing);
   card.ranking_version=a.match_ranking_version;
-  if(card.status==='rejected')return {...card,checks:JSON.parse(card.checks),
-    requirements_status:['meets','pending','alternative','excluded'][card.requirements_rank],listing:JSON.parse(card.listing)};
+  // EST-13: the candidate's four states, each from its own facts; the clarification still standing, if any.
+  const clarification = asked ? JSON.parse(asked) : undefined;
+  const states = requirements_status => ({states:candidateState({status:card.status,requirements_status,decision_current,clarification}),
+    ...(clarification ? {clarification} : {})});
+  if(card.status==='rejected'){
+    const requirements_status=['meets','pending','alternative','excluded'][card.requirements_rank];
+    return {...card,checks:JSON.parse(card.checks),requirements_status,...states(requirements_status),listing:JSON.parse(card.listing)};
+  }
   const current = a.search_category === 'commercial' || !!parsePriorities(a.requirement_priorities);
   const petsRefused = hasAnswer('pets',a) && hasHouseholdPets(a) && petPolicy(listing) === 'no';
   const refresh = current && (r.requirements_rank !== card.requirements_rank || r.score !== card.score || JSON.stringify(r.checks) !== card.checks
@@ -39,8 +59,13 @@ export const matchCard = m => {
   const legacyChecks = () => JSON.parse(card.checks).map(c => Object.hasOwn(CRITERIA,c.key) || c.key === 'outdoor'
     ? {...c,...(c.key === 'budget' ? {evidence:r.checks.find(check => check.key === 'budget')?.evidence ?? null} : {}),
       result:'unknown',priority:'unknown',reason:'Confirm the saved requirement and property details'} : c);
+  // EST-13: whether the listing is still offered is its availability, never its evaluation. A listing that left the
+  // offer keeps its order (rank) and says how it meets the requirements.
+  const requirements_status = r.requirements_status !== 'excluded' ? r.requirements_status
+    : evaluate(a,{...listing,archived_at:null,availability:null}).requirements_status;
   return {...card, ...(petsRefused ? {pets_refused:true} : {}), score:card.score, checks:current ? r.checks : legacyChecks(),
-    requirements_status:r.requirements_status, requirements_rank:r.requirements_rank, ...(refresh ? {requirements_refresh_needed:true} : {}), listing:JSON.parse(card.listing)};
+    requirements_status, requirements_rank:r.requirements_rank, ...states(requirements_status),
+    ...(refresh ? {requirements_refresh_needed:true} : {}), listing:JSON.parse(card.listing)};
 };
 
 // The review queue: the found matches of active searches (spec §5), from matches m JOIN applicants a.
@@ -48,11 +73,10 @@ const QUEUED = `m.status = 'found' AND ${activeSql("a")}`;
 // BUS-15 (M04): the only matches an enquiry (AGE-03) may start from. Shortlisted is not enough: the reviewer's own
 // match.reviewed event must cover the search and the property as they are now, so a material change after the
 // review, or a status nobody decided, approves nothing. From matches m JOIN applicants a.
-export const APPROVED = `m.status = 'shortlisted' AND ${activeSql("a")} AND EXISTS (SELECT 1 FROM events e
-  WHERE e.entity_type = 'applicant' AND e.entity_id = CAST(m.applicant_id AS TEXT) AND e.type = 'match.reviewed'
-  AND e.at = m.reviewed_at AND e.actor = m.reviewed_by AND json_extract(e.data, '$.listing_id') = m.listing_id
-  AND json_extract(e.data, '$.to') = 'shortlisted' AND json_extract(e.data, '$.search_version') = a.match_inputs_revision
-  AND json_extract(e.data, '$.listing_version') = COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id = m.listing_id), 0))`;
+export const APPROVED = `m.status = 'shortlisted' AND ${activeSql("a")} AND ${DECIDED_NOW}`;
+// EST-13 (M06): the only matches a clarification enquiry may be sent for (AGE-03), whatever their review says: one
+// approval is never read as the other. From matches m JOIN applicants a.
+export const CLARIFICATION_APPROVED = `m.status <> 'rejected' AND ${activeSql("a")} AND ${CLARIFICATION} IS NOT NULL`;
 const QUEUE_COUNT_SQL = `SELECT COUNT(*) AS n FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE ${QUEUED}`;
 // The search shown next to the match, its JSON lists as lists; from applicants a JOIN contacts c.
 const LISTS = ["requirement_priorities", "household_children_ages", "property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"];
@@ -158,6 +182,36 @@ async function review({ request, env, admin, params: [id] }) {
   return json({ match: row ? card : null, revision: finalRevision, ...(!reviewed && applicant ? { applicant } : {}) });
 }
 
+// EST-13 (M06): the employee's express approval to ask about the must-haves a property does not answer, or its
+// withdrawal. A decision of its own, recorded with who and on which versions: the match stays as it was reviewed (or
+// not), nothing is sent (AGE-03 sends) and no must-have is waived.
+async function clarification({ request, env, admin, params: [id] }) {
+  const body = await readJson(request);
+  if (typeof body?.approved !== "boolean") fail(400, "Invalid format");
+  const read = () => env.DB.prepare(`SELECT ${CARD}, m.listing_id, a.archived_at, a.stage, a.search_state, a.match_inputs_revision AS search_version,
+    ${LISTING_VERSION} AS listing_version FROM matches m JOIN listings l ON l.id = m.listing_id
+    JOIN applicants a ON a.id = m.applicant_id WHERE m.id = ?`).bind(Number(id)).first();
+  const card = ({ listing_id, archived_at, stage, search_state, search_version, listing_version, ...row }) => matchCard(row);
+  const m = await read();
+  if (!m) fail(404, "Match not found");
+  if (m.archived_at) fail(409, "Restore this search to review its matches");
+  if (!isActive(m)) fail(409, "Reopen this search to review its matches.");
+  if (m.status === "rejected") fail(409, "This match is rejected. Move it back to Found to ask about it.");
+  const keys = body.approved ? unknownMusts(card(m).checks) : [];
+  if (body.approved && !keys.length) fail(409, "No must-have is unknown for this property, so there is nothing to clarify.");
+  if (!body.approved && !m.clarification) fail(409, "There is no approved clarification to withdraw. Reload to see it.");
+  // Written only while the search and the property are the versions just read and the match can still be reviewed.
+  const { meta } = await env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
+    SELECT ?, ?, 'applicant', CAST(m.applicant_id AS TEXT), 'match.clarification', ? FROM matches m
+    JOIN applicants a ON a.id = m.applicant_id WHERE m.id = ? AND m.status <> 'rejected' AND ${activeSql("a")}
+    AND a.match_inputs_revision = ? AND ${LISTING_VERSION} = ?`)
+    .bind(now(), admin, JSON.stringify({ listing_id: m.listing_id, approved: body.approved, keys,
+      search_version: m.search_version, listing_version: m.listing_version }), m.id, m.search_version, m.listing_version).run();
+  if (!meta.changes) fail(409, "The search or the property changed. Reload to see it.");
+  const after = await read();
+  return json({ match: after ? card(after) : null });
+}
+
 // The next found match of the queue after `after` (a match id), with its search and listing. remaining (the whole queue)
 // is counted on a first call and when the queue has nothing after `after`; between, the page counts down by itself. A
 // pass that skipped some ends with match null and remaining above 0.
@@ -231,6 +285,7 @@ async function recalculate({ request, env }) {
 
 export default [
   ["PUT", /^\/admin\/matches\/(\d+)$/, review, true],
+  ["PUT", /^\/admin\/matches\/(\d+)\/clarification$/, clarification, true],
   ["POST", /^\/admin\/matches\/recalculate$/, recalculate, true],
   ["GET", /^\/admin\/review$/, next, true],
 ];

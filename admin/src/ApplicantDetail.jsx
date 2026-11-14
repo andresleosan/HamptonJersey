@@ -599,6 +599,8 @@ function ofOffer(e, offers) {
   return [h, [e.type !== "offer.recorded" && title, d.conditions, REASON[d.reason], d.note].filter(Boolean)];
 }
 const headline = (e, matches, offers) => (e.type === "match.reviewed" ? reviewed(e, matches)
+  // EST-13: a clarification enquiry approved or withdrawn; it shortlists nothing.
+  : e.type === "match.clarification" ? [`Clarification ${e.data?.approved ? "approved" : "withdrawn"}`, e.listing_title ?? e.data?.listing_id]
   : e.data?.offer_id != null ? ofOffer(e, offers)
   : e.type === "applicant.matched" && e.data?.new != null ? [`${e.data.new} new ${e.data.new === 1 ? "match" : "matches"} found`]
   : [EVENT[e.type] ?? e.type]);
