@@ -3,7 +3,7 @@ import { AVAILABILITY, OPERATION, USE, KIND, TENURE, HOUSING, RESTRICTION, price
 import { createDraft } from "./createDraft.js";
 import PhotoQualitySuggestions from "./PhotoQualitySuggestions.jsx";
 import { setUnsaved } from "./unsaved.js";
-import { decodeText, readPropertyText, draftBody, planFolder, readDrop } from "../../server/listing-import.js";
+import { decodeText, readPropertyText, draftBody, legalFields, planFolder, readDrop } from "../../server/listing-import.js";
 import {isRentalMarketing} from '../../server/listing-editorial.js';
 
 // PUB-01 (spec 2026-11-03): a draft typed by hand, as before, or read from a folder: its property.txt and its own photos.
@@ -14,14 +14,18 @@ const subfolders = plan => (plan.subfolders.length ? [`Subfolders not read: ${pl
 // What the summary lists from the file, in the template's order (the five above show in the form itself).
 const SHOWN = [["property_type", "Type"], ["parish", "Parish"], ["location", "Location"], ["road_name", "Road"], ["bedrooms", "Bedrooms"],
   ["bathrooms", "Bathrooms"], ["tenure_type", "Tenure", v => TENURE[v]], ["housing_category", "Housing category", v => HOUSING[v]],
-  ["restriction", "Restriction", v => RESTRICTION[v]], ["price", "Price"], ["tour_url", "Tour URL"], ["summary", "Summary", clip],
-  ["description", "Description", clip]];
+  ["restriction", "Restriction", v => RESTRICTION[v]], ["price", "Price"], ["tour_url", "Tour URL"],
+  ["occupancy", "Occupancy", v => (v === "tenanted" ? "Tenanted" : "Vacant")],
+  ...[["rental_licence", "Rented dwelling licence", "Licence"], ["energy_certificate", "Energy performance certificate", "Certificate"]]
+    .flatMap(([k, label, short]) => [[k, label, (v, all) => (v === "provided" ? `${all[`${k}_ref`]} (provided, not verified)` : "Not applicable")],
+      [`${k}_valid_until`, `${short} valid until`]]),
+  ["summary", "Summary", clip], ["description", "Description", clip]];
 
 export default function NewProperty({ rows, onClose }) {
   const [f, setF] = useState(START), [imp, setImp] = useState(null), [over, setOver] = useState(false);
   const [err, setErr] = useState(null), [status, setStatus] = useState(null), [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState(null), [done, setDone] = useState(null);
-  const running = useRef(false), alive = useRef(true), folderInput = useRef(null), photosInput = useRef(null);
+  const [progress, setProgress] = useState(null), [done, setDone] = useState(null), [unsure, setUnsure] = useState(false);
+  const running = useRef(false), alive = useRef(true), folderInput = useRef(null), photosInput = useRef(null), operation = useRef(null);
   useEffect(() => () => { alive.current = false; setUnsaved(false); }, []);
   const set = k => e => setF({ ...f, [k]: e.target.value });
   // Every pick, refusal and Remove starts again from START, so one house's details never meet another's photos.
@@ -57,33 +61,42 @@ export default function NewProperty({ rows, onClose }) {
     e.preventDefault();
     if (running.current) return; // a double click must not create two listings
     running.current = true; setBusy(true); setErr(null); setStatus("Creating the draft…"); setUnsaved(true);
+    // One operation per draft: while its answer is unknown the details stay locked, and trying again sends the same
+    // operation, so the server returns the draft it already created and never a second one.
+    operation.current ??= crypto.randomUUID();
     let r;
     try {
-      r = await createDraft(draftBody(imp?.fields ?? {}, f).body, imp?.plan.photos ?? [], { alive: () => alive.current,
+      r = await createDraft({ ...draftBody(imp?.fields ?? {}, f).body, operation_id: operation.current }, imp?.plan.photos ?? [], {
+        alive: () => alive.current, legal: legalFields(imp?.fields ?? {}),
         onProgress: (i, n) => { setStatus(`Uploading photo ${i + 1} of ${n}…`); setProgress({ value: i, max: n }); } });
     } catch (x) {
       if (!alive.current) return; // the unmount already cleared the flag: never touch another page's
-      setUnsaved(false); setStatus(null); setBusy(false); running.current = false;
-      setErr(x.data?.fields ? Object.entries(x.data.fields).map(([k, v]) => `${k}: ${v}`).join(". ") : x.message);
+      const lost = !x.status || x.status >= 500; // no answer, or one that doesn't say whether the draft exists
+      if (!lost) operation.current = null;
+      setUnsure(lost); setUnsaved(lost); setStatus(null); setBusy(false); running.current = false;
+      setErr(lost ? `${x.message.replace(/\.?$/, ".")} The draft may already exist: trying again never creates it twice.`
+        : x.data?.fields ? Object.entries(x.data.fields).map(([k, v]) => `${k}: ${v}`).join(". ") : x.message);
       return;
     }
-    const { id, failed, coverFailed, qualityWarnings } = r;
+    const { id, failed, coverFailed, legalFailed, qualityWarnings } = r;
     if (!alive.current) return;
     setUnsaved(false);
-    if (!failed.length && !coverFailed && !qualityWarnings.length) { location.hash = `#/p/${id}`; return; }
+    // The editor opens with its guide, which walks every family of data and ends on what is still missing.
+    if (!failed.length && !coverFailed && !legalFailed && !qualityWarnings.length) { location.hash = `#/p/${id}?guide=1`; return; }
     setDone(r);
     setStatus(null); setProgress(null); setBusy(false);
   };
 
   if (done) return <section className="card new add-property" aria-labelledby="t-new">
     <h2 id="t-new">Add new property</h2>
-    <div className="warn" role={done.failed.length || done.coverFailed ? "alert" : "status"}>
+    <div className="warn" role={done.failed.length || done.coverFailed || done.legalFailed ? "alert" : "status"}>
       <p>Draft {done.id} created. {done.uploaded} of {done.total} photos uploaded.</p>
       {done.failed.length > 0 && <ul>{done.failed.map(x => <li key={x}>{x}</li>)}</ul>}
       {done.coverFailed && <p>Choose the cover in the editor.</p>}
+      {done.legalFailed && <p>The occupancy, licence and certificate weren't saved: add them under Legal and compliance in the editor.</p>}
     </div>
     <PhotoQualitySuggestions items={done.qualityWarnings} />
-    <div className="inline"><a className="btn" href={`#/p/${done.id}`}>Open the listing</a>
+    <div className="inline"><a className="btn" href={`#/p/${done.id}?guide=1`}>Open the listing</a>
       <button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
   </section>;
 
@@ -94,15 +107,17 @@ export default function NewProperty({ rows, onClose }) {
     .filter(s => !s.startsWith("0 "));
   const head = plan ? [counts.join(", "), plan.text && `details from ${plan.text.name}`].filter(Boolean) : [];
   const values = { ...fields, price: ["sale_price", "rent", "price_text"].some(k => draft.body[k] != null) ? priceText(draft.body) : null };
-  const read = SHOWN.filter(([k]) => values[k] != null).map(([k, label, show]) => [label, show ? show(values[k]) : values[k]]);
+  const read = SHOWN.filter(([k]) => values[k] != null).map(([k, label, show]) => [label, show ? show(values[k], values) : values[k]]);
   const left = [...notes, ...draft.notes, ...(plan?.skipped ?? []), ...(plan ? subfolders(plan) : [])];
   const same = f.title.trim() && (rows ?? []).find(l => l.title.trim().toLowerCase() === f.title.trim().toLowerCase());
 
   return <form className="card new add-property" onSubmit={submit} aria-labelledby="t-new">
     <h2 id="t-new">Add new property</h2>
     <p className="muted">It's saved as a draft: nothing goes on the website until you publish it.</p>
-    {/* While it works every field and button is locked: what is typed then would never reach the listing. */}
+    {/* While it works every field and button is locked: what is typed then would never reach the listing. While the
+        answer to a creation is unknown the details stay locked, so Try again repeats exactly the same draft. */}
     <fieldset disabled={busy}>
+      <fieldset disabled={unsure}>
       <div className={`dropzone import${over ? " over" : ""}`} onDrop={drop} onDragLeave={() => setOver(false)}
         onDragOver={e => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setOver(true); } }}>
         <b>Import a folder (optional)</b>
@@ -137,8 +152,9 @@ export default function NewProperty({ rows, onClose }) {
         <label>Availability<select value={f.availability} onChange={set("availability")}>{Object.entries(AVAILABILITY).filter(([k])=>!isRentalMarketing(k)).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
         <label>Country<input value={f.country} onChange={set("country")} maxLength={100} /></label>
       </div>
+      </fieldset>
       {err && <p role="alert" className="err">{err}</p>}
-      <div className="inline actions"><button className="btn">{busy ? "Creating…" : "Create draft"}</button>
+      <div className="inline actions"><button className="btn">{busy ? "Creating…" : unsure ? "Try again" : "Create draft"}</button>
         <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
         {progress && <progress value={progress.value} max={progress.max} aria-label="Upload progress" />}
         <span role="status" className="muted">{status}</span></div>

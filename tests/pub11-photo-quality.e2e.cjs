@@ -179,12 +179,12 @@ function withSyntheticGps(jpeg) {
     await summary.getByText('Photo quality suggestions', { exact: true }).waitFor({ timeout: 30000 });
     await summary.getByText(/under 1,200 px/).waitFor();
     const open = summary.getByRole('link', { name: 'Open the listing' });
-    const id = (await open.getAttribute('href')).split('/').pop();
+    const id = (await open.getAttribute('href')).split('/').pop().split('?')[0]; // PUB-01: the link opens the guide
     const draft = await page.evaluate(async id => (await (await fetch('/api/admin/listings/' + id)).json()), id);
     assert.equal(draft.listing.published, 0, 'the warned upload remains in an unpublished draft');
     assert.equal(draft.media.length, 1);
     await open.focus(); await page.keyboard.press('Enter');
-    await page.waitForURL(new RegExp('#/p/' + id + '$'));
+    await page.waitForURL(new RegExp('#/p/' + id + '\\?guide=1$'));
 
     // Leaving a listing while one upload is pending must not start the next file for that old listing.
     await page.goto(BASE + 'admin/#/p/HE-R003');

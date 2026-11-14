@@ -42,6 +42,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/not-05-missing-payments.e2e.cjs" ? { NOT05_MISSING_PAYMENTS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/pub-11-documents.e2e.cjs" ? { PUB11_DOCUMENTS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/pub07-compliance.e2e.cjs" ? { PUB07_COMPLIANCE_READY: "1" } : {}),
+      // PUB-01's guide points at every family's section, so its test has them on as in production.
+      ...(process.env.E2E_SCRIPT === "tests/pub01-guided-intake.e2e.cjs"
+        ? { PUB07_COMPLIANCE_READY: "1", PUB08_CONTENT_READY: "1", PUB11_DOCUMENTS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/age-14-suppression.e2e.cjs" ? { AGE14_SUPPRESSION_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm17-legal-terms.e2e.cjs" ? { ADM17_LEGAL_TERMS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/est01-search-state.e2e.cjs" ? { EST01_SEARCH_STATE_READY: "1" } : {}),

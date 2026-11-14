@@ -6,8 +6,16 @@ import { pickCover } from "../../server/listing-import.js";
 // A new draft with its photos, for Add new property (PUB-01) and Properties Queue (PUB-21). photos: { name, kind, label,
 // file } or { …, load: () => Promise<Blob> } (fetched when its turn comes). The POST's error is thrown; a photo that
 // fails is listed. path: where the draft is created (the queue's own route ties it to its row on the server).
-export async function createDraft(body, photos, { alive = () => true, onProgress = () => {}, path = "/admin/listings" } = {}) {
+// legal (PUB-01): the occupancy, licence and certificate read from property.txt, saved by the editor's own route (PUB-07).
+export async function createDraft(body, photos, { alive = () => true, onProgress = () => {}, path = "/admin/listings", legal = {} } = {}) {
   const { id } = await api(path, { method: "POST", body });
+  let legalFailed = false;
+  if (Object.keys(legal).length) {
+    try {
+      const { listing } = await api(`/admin/listings/${id}`);
+      await api(`/admin/listings/${id}`, { method: "PUT", body: { ...legal, updated_at: listing.updated_at } });
+    } catch { legalFailed = true; }
+  }
   // One at a time and in order: the server gives each photo the next position as it arrives.
   const uploaded = [], failed = [], qualityWarnings = [];
   for (const [i, p] of photos.entries()) {
@@ -33,5 +41,5 @@ export async function createDraft(body, photos, { alive = () => true, onProgress
         body: { items: [], cover_media_id: uploaded[c].media.id, updated_at: listing.updated_at } });
     } catch { if (alive()) coverFailed = true; }
   }
-  return { id, uploaded: uploaded.length, total: photos.length, failed, coverFailed, qualityWarnings };
+  return { id, uploaded: uploaded.length, total: photos.length, failed, coverFailed, legalFailed, qualityWarnings };
 }

@@ -1,13 +1,20 @@
 import { priceOperation, priceField } from "./listing-pricing.js";
 // PUB-01 (spec 2026-11-03): «Add new property» from a folder. Pure, so the panel shares it (like applicants.js) and node
 // tests it: no DOM, env or network. The server still validates the draft as for one typed by hand.
-import { validateListing, ENUMS } from "./listing.js";
+import { validateListing, ENUMS, COMPLIANCE, COMPLIANCE_FIELDS } from "./listing.js";
 
 // The template's fields (admin/public/property.txt) and their columns. Nothing else can be set from the file.
 const FIELDS = { Title: "title", Type: "property_type", Use: "use", Operation: "operation", Availability: "availability",
   Country: "country", Parish: "parish", Location: "location", Road: "road_name", Bedrooms: "bedrooms", Bathrooms: "bathrooms",
   Tenure: "tenure_type", "Housing category": "housing_category", Restriction: "restriction", Price: "price",
-  "Rent period": "rent_period", Currency: "currency", "Tour URL": "tour_url", Summary: "summary", Description: "description" };
+  "Rent period": "rent_period", Currency: "currency", "Tour URL": "tour_url", Occupancy: "occupancy",
+  "Rented dwelling licence": "rental_licence", "Licence valid until": "rental_licence_valid_until",
+  "Energy performance certificate": "energy_certificate", "Certificate valid until": "energy_certificate_valid_until",
+  Summary: "summary", Description: "description" };
+// PUB-07's staff-only lines (PUB-01). A licence or certificate line holds the document's reference, saved as provided
+// (only staff mark it verified, in the editor), or "Not applicable". legalFields keeps them apart from the draft.
+const LISTS = { ...ENUMS, occupancy: COMPLIANCE.occupancy };
+const EVIDENCE = ["rental_licence", "energy_certificate"];
 const key = s => s.toLowerCase().replace(/[^a-z]/g, "");
 // Lookups by text read from the file use own keys only: «constructor» is not a field (security review).
 const BY_KEY = new Map(Object.keys(FIELDS).map(l => [key(l), l]));
@@ -15,7 +22,7 @@ const own = (o, k) => (Object.hasOwn(o, k) ? o[k] : undefined);
 const fold = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 const clip = s => (s.length > 60 ? `${s.slice(0, 57)}…` : s);
 // The panel's restriction labels (ListingEditor.jsx); the other labels fold to their stored values.
-const ALIASES = { restriction: { first_time_buyers_only: "first_time_buyer", over_55s_only: "over_55", none: null } };
+const ALIASES = { restriction: { first_time_buyers_only: "first_time_buyer", over_55s_only: "over_55", none: null }, occupancy: { unknown: null } };
 const COUNTRIES = { jersey: "Jersey", united_kingdom: "United Kingdom", uk: "United Kingdom" };
 const PERIODS = { month: ["per_month", "month", "monthly", "pcm", "pm", "a_month"],
   year: ["per_year", "year", "yearly", "annual", "annually", "pa", "p_a", "per_annum", "a_year"] };
@@ -40,7 +47,7 @@ function listValue(col, v) {
   }
   if (col === "rent_period") return Object.keys(PERIODS).find(p => PERIODS[p].includes(f));
   if (col === "currency") return own(CODES, v.trim().toLowerCase());
-  return ENUMS[col].find(x => x === f);
+  return LISTS[col].find(x => x === f);
 }
 
 // An amount like 850000, £850,000, 1 250 000 GBP, 1.25m or £2,500 pcm; words ("Offers over £850,000") are text to show.
@@ -87,10 +94,10 @@ export function readPropertyText(text) {
     const col = FIELDS[label], line = at[label];
     if (!v) continue; // blank = not known
     if (col === "price") { price = [v, line]; continue; }
-    let value = v;
-    if (col in ENUMS) {
+    let value = v, key = col;
+    if (col in LISTS) {
       value = listValue(col, v);
-      if (value === null) continue; // Restriction: None
+      if (value === null) continue; // Restriction: None, Occupancy: Unknown
       if (value === undefined) {
         note(line, `${label}: "${clip(v)}" isn't one of the accepted values.`);
         if (col === "currency") badCurrency = true;
@@ -102,14 +109,30 @@ export function readPropertyText(text) {
       }
     } else if (col === "country") value = own(COUNTRIES, fold(v)) ?? v;
     else if (col === "bedrooms" || col === "bathrooms") value = /^(\d+)(\s+[a-z][a-z\s]*)?$/i.test(v) ? parseInt(v, 10) : v;
-    const r = validateListing({ [col]: value }, { partial: true });
-    if (r.errors) { note(line, `${label}: ${r.errors[col]}`); continue; }
-    fields[col] = r.value[col];
+    else if (EVIDENCE.includes(col)) {
+      const f = fold(v);
+      if (f === "unknown") continue;
+      if (f === "provided" || f === "verified") {
+        note(line, `${label}: write the document's reference or Not applicable. Staff verify it in the editor.`);
+        continue;
+      }
+      if (f === "not_applicable" || f === "n_a") value = "not_applicable"; else key = `${col}_ref`;
+    }
+    const r = validateListing({ [key]: value }, { partial: true, compliance: true });
+    if (r.errors) { note(line, `${label}: ${r.errors[key]}`); continue; }
+    fields[key] = r.value[key];
+    if (key !== col) fields[col] = "provided";
     if (PUBLIC_TEXT.includes(col) && contact(fields[col])) {
       warn(line, `${label} seems to include an email address or phone number. It will be public once the listing is published.`);
     }
   }
 
+  // An expiry date belongs to a document that was given (server/listing.js checkCompliance).
+  for (const [label, col] of Object.entries(FIELDS)) if (col.endsWith("_valid_until") && fields[col]
+    && fields[col.replace("_valid_until", "")] !== "provided") {
+    delete fields[col];
+    note(at[label], `${label}: needs the reference of its document, so it wasn't imported.`);
+  }
   if (price) {
     const [v, line] = price, p = parsePrice(v);
     const amountError = p.amount !== undefined && validateListing({ sale_price: p.amount }, { partial: true }).errors?.sale_price;
@@ -139,7 +162,7 @@ const FIVE = ["title", "use", "operation", "availability", "country"];
 // The POST /admin/listings body: the file's fields, the form's five (which win), and the amount under the form's operation.
 export function draftBody(fields, form) {
   const { price, ...rest } = fields, notes = [];
-  for (const k of FIVE) delete rest[k];
+  for (const k of [...FIVE, ...COMPLIANCE_FIELDS]) delete rest[k];
   const body = { ...rest, ...form };
   const operation = priceOperation(body);
   if (operation !== "rent") delete body.rent_period;
@@ -150,6 +173,9 @@ export function draftBody(fields, form) {
   }
   return { body, notes };
 }
+
+// What the file says of occupancy, licence and certificate: saved by the editor's own route once the draft exists.
+export const legalFields = fields => Object.fromEntries(COMPLIANCE_FIELDS.filter(k => k in fields).map(k => [k, fields[k]]));
 
 // The folder (spec §3.3). Only the chosen folder's own files go up (Luis, decision 5): subfolders hold 360 photos, videos,
 // originals or documents. System files are ignored without a word.

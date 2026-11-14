@@ -12,6 +12,9 @@
 # Housing category: Qualified or Registered.   Restriction: First-time buyers only or Over 55s only.
 # Price: an amount like 850000, £850,000, 1.25m or £2,500 pcm. Words like "Offers over £850,000" are shown as written.
 # Rent period: Per month or Per year.   Currency: GBP or EUR (blank means GBP).   Tour URL: starts with https://
+# Occupancy: Vacant or Tenanted.   The licence and certificate lines are for staff only, never shown on the website:
+# write the document's number (it is saved as provided; staff verify it in the editor) or Not applicable.
+# Valid until: a date like 2027-06-30.
 
 Title:
 Type:
@@ -31,6 +34,11 @@ Price:
 Rent period:
 Currency:
 Tour URL:
+Occupancy:
+Rented dwelling licence:
+Licence valid until:
+Energy performance certificate:
+Certificate valid until:
 
 # Summary: one point per line, up to the Description line.
 Summary:

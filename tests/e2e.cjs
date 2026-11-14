@@ -1289,8 +1289,8 @@ async function folderImport(page, phone) {
   await form.getByRole("button", {name: "Create draft"}).dblclick();
   await page.locator("section.add-property").getByText("Photo quality suggestions", {exact: true}).waitFor({timeout: 60000});
   await page.locator("section.add-property").getByRole("link", {name: "Open the listing"}).click();
-  await page.waitForURL(/#\/p\/HE-R\d+$/, {timeout: 60000});
-  const id = page.url().split("/").pop();
+  await page.waitForURL(/#\/p\/HE-R\d+\?guide=1$/, {timeout: 60000}); // PUB-01: a new draft opens with its guide
+  const id = page.url().split("/").pop().split("?")[0];
   assert.equal(JSON.parse(d1("SELECT COUNT(*) AS n FROM listings WHERE title = 'Le Clos Test'"))[0].results[0].n, 1, "a double click makes one listing");
   await page.waitForSelector("#f-title");
   for (const [sel, want] of [["#f-country", "Jersey"], ["#f-parish", "St Brelade"], ["#f-bedrooms", "4"], ["#f-sale_price", "1250000"],

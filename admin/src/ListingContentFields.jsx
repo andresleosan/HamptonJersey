@@ -7,7 +7,7 @@ export default function ListingContentFields({value,onChange,errors={},busy=fals
   const changeTag=(tag,checked)=>onChange({...value,tags:checked
     ? [...value.tags,tag] : value.tags.filter(item=>item!==tag)});
   return <div className="content-fields" aria-labelledby="h-content">
-    <h3 id="h-content">Website content</h3>
+    <h3 id="h-content" tabIndex={-1}>Website content</h3>
     <p className="muted">Choose only details confirmed for this listing.</p>
     <fieldset id="f-tags" tabIndex={-1} aria-describedby={errors.tags ? 'e-tags' : undefined}>
       <legend>Property tags</legend>

@@ -2,7 +2,7 @@ import { ECONOMICS_GUARD_SQL, ECONOMICS_GUARD_ARGS, hasEconomicInput, structured
   parseEconomicJson, checkEconomicCurrencyReview } from '../listing-economics.js';
 import { isValidInteriorArea } from '../listing-price-area.js';
 import { PRICE_SQL } from "../listing-pricing.js";
-import { json, fail, readJson, now } from "../http.js";
+import { json, fail, readJson, now, sha256 } from "../http.js";
 import { validateListing, checkPrice, checkCompliance, idPrefix, nextId, ENUMS, TO_CONFIRM, COMPLIANCE, COMPLIANCE_FIELDS } from "../listing.js";
 import { extractFeatures } from "../listing-features.js";
 import { afterSave, recomputeForListing } from "../match-store.js";
@@ -116,8 +116,26 @@ function withFeatures(row, patch, ts) {
 const LISTING_BYTES = 256 * 1024;
 
 const create = async ({ request, env, admin }) => createListing(env, admin, await readJson(request, LISTING_BYTES, parseEconomicJson));
+// PUB-01: the receipt of a creation sent with an operation_id (a UUID from the panel), kept with the listing's other
+// operations (0029). A retry after a lost answer gets the same draft, never a second one, and a deleted one is not made again.
+const OPERATION = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+async function createdBefore(env, admin, operation, hash) {
+  const r = await env.DB.prepare(`SELECT o.request_hash, e.entity_id AS id, EXISTS(SELECT 1 FROM listings l WHERE l.id = e.entity_id) AS kept
+    FROM listing_event_operations o JOIN events e ON e.id = o.event_id WHERE o.actor = ? AND o.operation_id = ?`)
+    .bind(admin, `create.${operation}`).first();
+  if (!r) return null;
+  if (r.request_hash !== hash) fail(409, "This draft was already created with other details. Find it in Listings.");
+  if (!r.kept) fail(410, "This draft was created and later deleted. Start a new one.");
+  return json({ id: r.id, replayed: true });
+}
 // Also Properties Queue's draft (PUB-21), which ties the new listing to its row on the server.
-export async function createListing(env, admin, body, context = {}) {
+export async function createListing(env, admin, input, context = {}) {
+  const { operation_id, ...body } = input && typeof input === 'object' ? input : {};
+  const operation = context.source === 'queue' ? undefined : operation_id; // the queue's draft is tied to its own row
+  if (operation !== undefined && !OPERATION.test(operation)) fail(400, "Invalid operation. Reload and try again.");
+  const hash = operation && await sha256(JSON.stringify(body));
+  const before = operation && await createdBefore(env, admin, operation, hash);
+  if (before) return before;
   if (body && Object.hasOwn(body,'content')) return fieldErrors({content:'Save content after creating the listing'});
   const economicInput = hasEconomicInput(body);
   if (economicInput && context.source === 'queue') return fieldErrors({ structured_costs: 'Add staff-only costs in the listing editor' });
@@ -148,11 +166,19 @@ export async function createListing(env, admin, body, context = {}) {
       const [inserted] = await listingBatch(env, id, { actor: admin, source: 'panel', ...context, action: 'created',
         derivedFields: derivedListingFields(row).filter(k => !(k in r.value)) }, [
         env.DB.prepare(insertSql).bind(...cols.map(c => row[c]), ...(economicInput ? ECONOMICS_GUARD_ARGS : [])),
+        // The receipt joins the same batch: a second request with this operation fails here and undoes its own listing.
+        ...(operation ? [env.DB.prepare(`INSERT INTO listing_event_operations (actor, operation_id, request_hash, event_id)
+          SELECT ?, ?, ?, id FROM events WHERE entity_type = 'listing' AND entity_id = ? AND type = 'listing.created'`)
+          .bind(admin, `create.${operation}`, hash, id)] : []),
       ]);
       if (!inserted.meta.changes) fail(503, 'Structured costs are unavailable. Reload and try again.');
       await afterSave(recomputeForListing, env, id, admin);
       return json({ id }, 201);
     } catch (e) {
+      if (operation && /listing_event_operations/i.test(String(e?.message))) {
+        const first = await createdBefore(env, admin, operation, hash);
+        if (first) return first;
+      }
       // Another admin created a listing with the same id at the same moment: take the next one.
       if (attempt < 3 && /UNIQUE constraint failed: listings.id/i.test(String(e?.message))) continue;
       throw e;

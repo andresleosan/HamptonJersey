@@ -312,6 +312,9 @@ export default function ListingEditor({ id, onChange, guide = false }) {
   const criteria = listingCriteria(form, matchForm.parish, data.media, l.cover_media_id);
   const completeness = listingCompleteness(criteria);
   const todo = criteria.filter(c => c.met === false);
+  // PUB-01: one step per family of data, pointing only at the sections this listing shows.
+  const guideSteps = listingGuideSteps({ review: state !== "archived", compliance: !!data.compliance_tracking,
+    content: !!data.content_tracking && !!contentForm, documents: !!data.documents_enabled });
   const goTo = id => {
     const el = document.getElementById(id), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
     el.focus({ preventScroll: true }); el.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "center" });
@@ -361,17 +364,17 @@ export default function ListingEditor({ id, onChange, guide = false }) {
     <div className="sections">
       {guideEnabled && <section className="card" aria-labelledby="h-guide">
         <h2 id="h-guide">Property guide</h2>
-        <p role="status" aria-live="polite">Step {guideStep + 1} of 6: {listingGuideSteps({ review: state !== "archived" })[guideStep].label}</p>
+        <p role="status" aria-live="polite">Step {guideStep + 1} of 6: {guideSteps[guideStep].label}</p>
         <p className="muted">Navigate the existing fields below. Changes are saved only when you choose Save; finishing this guide does not publish.</p>
         <nav aria-label="Property guide steps" style={{display:"flex",flexWrap:"wrap",gap:8}}>
-          {listingGuideSteps({ review: state !== "archived" }).map((step, index) => <button key={step.label} type="button" className="btn ghost sm"
+          {guideSteps.map((step, index) => <button key={step.label} type="button" className="btn ghost sm"
             aria-current={guideStep === index ? "step" : undefined} onClick={() => { setGuideStep(index); goTo(step.targets[0][1]); }}>{step.label}</button>)}
         </nav>
-        {listingGuideSteps({ review: state !== "archived" })[guideStep].unavailable && <p className="muted">{listingGuideSteps({ review: state !== "archived" })[guideStep].unavailable}</p>}
-        <div className="inline">{listingGuideSteps({ review: state !== "archived" })[guideStep].targets.map(([label, target]) =>
+        {guideSteps[guideStep].unavailable && <p className="muted">{guideSteps[guideStep].unavailable}</p>}
+        <div className="inline">{guideSteps[guideStep].targets.map(([label, target]) =>
           <button key={target} type="button" className="btn ghost sm" onClick={() => goTo(target)}>Go to {label}</button>)}
-          <button type="button" className="btn ghost sm" disabled={guideStep === 0} onClick={() => { const n = guideStep - 1; setGuideStep(n); goTo(listingGuideSteps({ review: state !== "archived" })[n].targets[0][1]); }}>Previous step</button>
-          <button type="button" className="btn ghost sm" disabled={guideStep === 5} onClick={() => { const n = guideStep + 1; setGuideStep(n); goTo(listingGuideSteps({ review: state !== "archived" })[n].targets[0][1]); }}>Next step</button>
+          <button type="button" className="btn ghost sm" disabled={guideStep === 0} onClick={() => { const n = guideStep - 1; setGuideStep(n); goTo(guideSteps[n].targets[0][1]); }}>Previous step</button>
+          <button type="button" className="btn ghost sm" disabled={guideStep === 5} onClick={() => { const n = guideStep + 1; setGuideStep(n); goTo(guideSteps[n].targets[0][1]); }}>Next step</button>
           {guideStep === 5 && <button type="button" className="btn ghost sm" onClick={() => { setGuideEnabled(false); requestAnimationFrame(() => guideToggle.current?.focus()); }}>Finish guide</button>}
         </div>
       </section>}
@@ -417,7 +420,7 @@ export default function ListingEditor({ id, onChange, guide = false }) {
       </div></section>
 
       <section id="s-internal-address" className="card" aria-labelledby="h-internal-address">
-        <h2 id="h-internal-address">Internal property details</h2>
+        <h2 id="h-internal-address" tabIndex={-1}>Internal property details</h2>
         <p className="muted">For staff only. These fields are not shown on the website.</p>
         <div className="grid2">
           {detailField("building_name_or_number", "Building name or number (internal)",
@@ -618,7 +621,7 @@ export default function ListingEditor({ id, onChange, guide = false }) {
       </section>
       {data.documents_enabled && <ListingDocuments listingId={id} />}
 
-      <section id="s-tour" className="card" aria-labelledby="h-tour"><h2 id="h-tour">Tour and specification</h2>
+      <section id="s-tour" className="card" aria-labelledby="h-tour"><h2 id="h-tour" tabIndex={-1}>Tour and specification</h2>
         {field("tour_url", "3D tour or video URL (https://)", <input {...ctl("tour_url")} type="url" maxLength={500} placeholder="https://my.matterport.com/show/?m=…" />)}
         <p className="muted">Embedded when it is Matterport, Vimeo (player.vimeo.com) or YouTube (youtube-nocookie.com); others are shown as a link. Only use your own tours or ones you have permission for.</p>
         <h3>Specification</h3>
