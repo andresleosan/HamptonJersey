@@ -6,8 +6,8 @@
   "fase": "F1-B",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Revisión documental local de 237 registros fuente/canal para 141 identificadores; servicio de revisión versionada construido y probado. No se han concedido permisos ni activado fuentes reales. Rutas y pantalla de revisión por canal, bajo el gate existente, con versión, conflictos y conservación de borrador; verificación sintética y D1 local.",
-  "falta": "Faltan la revisión efectiva y evidencia por canal, la aplicación de las decisiones a los lectores y la verificación operativa de la pantalla de revisión. M01 · Reconciliación 7-nov: No hay lector de webs externas: hoy la app solo llama a Turnstile y a las claves públicas de Google del login. Antes de leer la web de una agencia hay que comprobar que sus términos lo permiten, y leerla con baja frecuencia, respetando robots.txt y con un user-agent identificado. Properties.je solo con permiso escrito; JEP property, OnTheMarket y Rightmove después de revisar sus términos; Homely.je nunca, porque sus términos lo prohíben. Actualizar esta revisión por fuente con canal utilizable, acceso público/restringido, última comprobación y trabajo manual pendiente. Las restricciones históricas se conservan hasta comprobar condiciones vigentes; no se exige obtener acceso a todas las fuentes para comenzar con las operativas. Una fuente inaccesible no se cuenta como fuente sin anuncios. Aceptación: Cada fuente indica método disponible o tarea manual; las restricciones se ven sin paralizar todas las demás.",
+  "hecho": "Política por canal construida y probada: cada canal tiene decisión versionada (pendiente, permitido, solo manual, denegado, pausado), método, evidencia, fecha de revisión y hosts. La pantalla muestra por canal su tipo de fuente, la nota de la revisión documental (la tarea manual pendiente), el método y las fechas. Quien revisa clasifica la fuente en la misma decisión: solo una fuente general puede abrirse; Homely y JFSC nunca, y Places.je y Properties.je quedan para después; los dominios de Homely, Places.je y Properties.je se rechazan aunque la fuente se clasifique mal. Una restricción afecta solo a su canal. La decisión se aplica al único camino de entrada que existe, la carga manual: se revalida antes de tomar el canal, al tomarlo y al guardar; un canal pendiente, denegado, vencido o con otra versión no admite anuncios.",
+  "falta": "Activar junto a BUS-06: aplicar 0043 y encender MARKET_INVENTORY_READY, y comprobar la pantalla en producción. Después, solo Luis o Hampton: revisar con evidencia cada canal que se vaya a usar (términos comprobados, fecha de revisión, hosts); los permisos escritos solo afectan a sus fuentes. Trasladado a BUS-09: cada lector automático futuro debe revalidar esta decisión, leer con baja frecuencia, respetar robots.txt e identificarse.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:255-256",
@@ -23,7 +23,12 @@
     "tests/server/bus-19-policy-routes.test.mjs",
     "tests/server/bus-19-policy-routes-d1.test.mjs",
     "tests/bus19-source-review.e2e.cjs",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la política por fuente y su pantalla se construyen; los permisos escritos solo afectan a sus fuentes. Vuelve a desarrollo: lo externo es condición de activación."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la política por fuente y su pantalla se construyen; los permisos escritos solo afectan a sus fuentes. Vuelve a desarrollo: lo externo es condición de activación.",
+    "tests/server/bus-06-intake.test.mjs",
+    "14-nov-2026: 62 pruebas focales de servidor pasan (BUS-19, BUS-06 y el puente manual de BUS-09, incluidas las de D1 local); navegador aislado a 1280 y 390 con tests/bus19-source-review.e2e.cjs y tests/bus06-coverage.e2e.cjs. Sin comprobar: la pantalla en producción (0043 sin aplicar e interruptor apagado) y ninguna revisión real de canal.",
+    "Decisión: el tipo de fuente se elige dentro de la revisión del canal y solo «general» puede abrirse. Fuente: restricciones de migrations/0043_market_inventory.sql y plan BUS-19 («cada decisión conserva fuente, canal, método, hosts, frecuencia, fecha y evidencia»).",
+    "Decisión: homely.je, places.je y properties.je no pueden abrirse con ninguna revisión en esta fase. Fuente: plan maestro («Places.je/Properties.je conectores posteriores; Homely fuera»).",
+    "Decisión: las decisiones se aplican a la carga manual, que es el único camino de entrada; los requisitos de lectura automática pasan a BUS-09 con sus lectores. Fuente: plan maestro («BUS-19 por canal antes de fuente externa») y skill avanzar, sección 3."
   ],
   "modulo": "M01",
   "deps": [],
@@ -45,6 +50,6 @@
   "resources": [
     "source-access-policy"
   ],
-  "nextStep": "Acreditar la recepción del manifiesto, revisar cada canal utilizado con evidencia y conectar lectores que revaliden la decisión antes de leer y guardar.",
+  "nextStep": "Aplicar 0043 y encender MARKET_INVENTORY_READY con BUS-06; comprobar GET /api/admin/market/sources. Después Luis o Hampton revisan con evidencia los canales que se vayan a usar.",
   "actualizado": "2026-11-14"
 }
