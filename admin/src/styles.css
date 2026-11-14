@@ -301,6 +301,7 @@ kbd{font:600 11px var(--body);letter-spacing:0;padding:0 5px;border:1px solid cu
 .warn.uncounted,.warn.to-confirm,.warn.paused{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center} .warn.uncounted p,.warn.to-confirm p,.warn.paused p{margin:0}
 .warn.to-confirm .btn,.warn.paused .btn{min-height:32px} /* ADM-04: the panel's 32px target (DESIGN.md) */
 .interest .btn{min-height:32px}
+.house-note{white-space:pre-line;overflow-wrap:anywhere} /* VIS-10: staff-only keys and access note */
 @media (max-width:760px){.interest li{grid-template-columns:1fr}.interest .btn{min-height:44px}}
 @media (max-width:760px){.check,.choices .check,.filters>.check{min-height:44px}}
 textarea.short{min-height:72px}

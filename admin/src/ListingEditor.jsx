@@ -6,6 +6,7 @@ import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show, TENURE, HOUSING, RESTRICTION } from "./format.js";
 import MediaManager from "./MediaManager.jsx";
 import ListingDocuments from "./ListingDocuments.jsx";
+import HouseRules from "./HouseRules.jsx";
 import { listingCriteria, listingCompleteness } from "./listing-completeness.js";
 import Research from "./Research.jsx";
 import { setUnsaved } from "./unsaved.js";
@@ -653,6 +654,8 @@ export default function ListingEditor({ id, onChange, guide = false }) {
           onChange={viewing_hours => setForm(f => ({ ...f, viewing_hours, viewing_hours_draft: viewing_hours }))} error={errors.viewing_hours} />}
         {form.viewing_hours === null && errors.viewing_hours && <small className="err" role="alert">{errors.viewing_hours}</small>}
       </section>
+      {/* VIS-10: saved on its own; renders nothing until the server reports the house rules enabled. */}
+      <HouseRules listingId={id} occupancy={l.occupancy} />
 
       {/* Spec §1: every offer on the listing with what became of it, newest first; they are answered in Sales. */}
       {forSale && <section id="s-offers" className="card" aria-labelledby="h-offers">

@@ -16,6 +16,7 @@ import { chatOn } from "../chat.js";
 import { confirmedViewingSql, confirmedViewingWindow } from "../public-viewing-summary.js";
 import { contentFromStored } from '../listing-content.js';
 import { rentalClosureEnabled, rentalClosureVisibleSql, noUnresolvedRentalClosureSql } from '../rental-closure.js';
+import { readHouseRules, noticeShort, noticeCheck } from '../house-rules.js';
 
 export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
 
@@ -104,8 +105,12 @@ async function availability({ request, env }) {
   const visible = listingId ? (await readLive(env, listingId, {viewingClock: jerseyNow()}))[0] : null;
   if (listingId && !visible) fail(404, "Unknown property");
   const count = visible?.row.confirmed_viewings;
+  // VIS-10: times short of a tenanted house's notice are left out, without saying why.
+  const house = await readHouseRules(env, listingId);
+  const days = !house ? a.days : a.days.map(d => ({ ...d, slots: Object.fromEntries(Object.entries(d.slots)
+    .map(([id, slots]) => [id, slots.filter(s => !noticeShort(house, { date: d.date, time: s.time }, clock))])) }));
   return json({ ...(listingId ? { confirmed_viewings_this_week: count >= 2 ? count : null } : {}), slot_minutes: SLOT_MINUTES, negotiators: a.negotiators.map(({ id, name, role }) => ({ id, name, role })),
-    days: a.days, ...(listingId == null ? {} : { property_viewings_enabled: a.property_viewings_enabled }) }, 200, { "cache-control": "no-store" });
+    days, ...(listingId == null ? {} : { property_viewings_enabled: a.property_viewings_enabled }) }, 200, { "cache-control": "no-store" });
 }
 
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
@@ -136,11 +141,14 @@ async function createViewing({ request, env }) {
   const slots = a.days[0].slots[v.negotiator_id], policy = a.policies?.[v.negotiator_id] ?? null;
   if (!isFree(slots, v.time))
     return slots.some(s => s.time === v.time) ? taken() : fields({ time: "That time is not available. Please choose another." });
+  // VIS-10: the website cannot confirm access with a tenant, so a time short of the house's notice is refused.
+  const notice = await noticeCheck(env, v, clock);
+  if (notice.error) return fields({ time: "That time is not available. Please choose another." });
   if (!(await verifyTurnstile(body.turnstile, env.TURNSTILE_SECRET, request.headers.get("cf-connecting-ip"), new URL(request.url).hostname)))
     fail(400, "The anti-spam check expired or failed. Please try again.");
   // C6: the insert re-checks the slot itself; if another booking took it since the check, nothing at all is written.
   const [booked] = await env.DB.batch([
-    bookStatement(env, v, { status: "requested", publicOnly: true, policy, parish: a.parish }),
+    bookStatement(env, v, { status: "requested", publicOnly: true, policy, parish: a.parish, notice: notice.guard }),
     ...(policy ? [policySnapshot(env, policy, a.parish)] : []),
     // Personal data stays in the request row; the event only says what was asked for.
     ...logEvent(env, { actor: "public", entity_type: "viewing", entity_id: null, type: "viewing.requested",

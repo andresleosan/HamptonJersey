@@ -3,6 +3,7 @@ import { logEvent, resolveNotices } from "../events.js";
 import { validateViewing, jerseyNow, isFree, addMinutes, SLOT_MINUTES, ACTIVE, OUTCOMES } from "../viewings.js";
 import { loadAvailability, bookStatement, slotGuard, policySnapshot, propertyViewingGuard } from "../viewing-store.js";
 import { touchByViewing } from "../retention.js";
+import houseRuleRoutes, { noticeCheck } from "../house-rules.js";
 
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
@@ -81,12 +82,16 @@ async function create({ request, env, admin }) {
   if (!slots) return fields({ negotiator_id: "Choose an active negotiator" });
   if (!isFree(slots, v.time))
     return slots.some(s => s.time === v.time) ? taken() : fields({ time: "That time is not available. Please choose another." });
+  // VIS-10: short of a tenanted house's notice, only once staff confirm that access is agreed (kept in the event).
+  const notice = await noticeCheck(env, v, clock, body.notice_confirmed === true);
+  if (notice.error) return fields({ notice_confirmed: notice.error });
   // C6, as on the website: if another booking took the slot since the check, nothing at all is written.
   const [booked] = await env.DB.batch([
-    bookStatement(env, v, { status: "confirmed", policy: day.policy, parish: day.parish, actor: admin }),
+    bookStatement(env, v, { status: "confirmed", policy: day.policy, parish: day.parish, actor: admin, notice: notice.guard }),
     ...(day.policy ? [policySnapshot(env, day.policy, day.parish)] : []),
     ...logEvent(env, { actor: admin, entity_type: "viewing", entity_id: null, type: "viewing.booked",
-      data: { listing_id: v.listing_id, date: v.date, time: v.time, kind: v.kind, negotiator_id: v.negotiator_id } }, null,
+      data: { listing_id: v.listing_id, date: v.date, time: v.time, kind: v.kind, negotiator_id: v.negotiator_id,
+        ...(notice.confirmed ? { notice_confirmed: true } : {}) } }, null,
     { ifInserted: true }),
     touchByViewing(env, v, now()),
   ]);
@@ -122,12 +127,17 @@ async function change(env, action, body, cur, clock, admin) {
   // its neighbours show as booked by itself, and clash() leaves it out.
   if (!who.slots.some(s => s.time === to.time)) return { errors: { time: "That time is not available. Please choose another." } };
   const { policy, parish } = who, duration = policy?.duration_minutes ?? SLOT_MINUTES;
+  // VIS-10: as for a new booking (create): the house's notice, or staff's confirmation that access is agreed.
+  const notice = await noticeCheck(env, propertySlot, clock, body.notice_confirmed === true);
+  if (notice.error) return { errors: { notice_confirmed: notice.error } };
+  const property = propertyViewingGuard(propertySlot, { duration }), n = notice.guard;
   return {
     set: { ...to, end_time: addMinutes(to.time, duration), agent: who.name },
     guard: slotGuard(env, propertySlot, { policy, parish, actor: admin, excludeId: cur.id }),
-    property: propertyViewingGuard(propertySlot, { duration }),
+    property: n ? { sql: `${property.sql} AND ${n.sql}`, binds: [...property.binds, ...n.binds] } : property,
     snapshot: policy ? policySnapshot(env, policy, parish, cur.id) : null,
-    data: { from: { negotiator_id: cur.negotiator_id, date: cur.date, time: cur.time }, to },
+    data: { from: { negotiator_id: cur.negotiator_id, date: cur.date, time: cur.time }, to,
+      ...(notice.confirmed ? { notice_confirmed: true } : {}) },
   };
 }
 
@@ -199,4 +209,5 @@ export default [
   ["POST", /^\/admin\/viewings$/, create, true],
   ["PUT", /^\/admin\/viewings\/(\d+)$/, update, true],
   ["DELETE", /^\/admin\/viewings\/(\d+)$/, remove, true],
+  ...houseRuleRoutes, // VIS-10: they answer { enabled: false } until VIS10_HOUSE_RULES_READY and migration 0066
 ];

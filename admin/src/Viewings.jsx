@@ -5,6 +5,7 @@ import { setUnsaved } from "./unsaved.js";
 import { KINDS, OUTCOMES, jerseyToday, plusDays } from "../../server/viewings.js";
 import SlotPicker from "./SlotPicker.jsx";
 import Interest from "./Interest.jsx";
+import { useHouseRules, HouseRulesFacts, NoticeConfirm, noticeShort } from "./HouseRules.jsx";
 
 // Spec §5: a viewing from the request to its outcome, and the team's own bookings (C14).
 const TABS = { requests: "Requests", upcoming: "Upcoming", outcome: "Needs outcome", past: "Past" };
@@ -199,6 +200,7 @@ function Detail({ v, gone, ended, filtered, headRef, count, act, saveNotes, remo
   const [notes, setNotes] = useState(v.notes ?? ""), [open, setOpen] = useState(null); // open: "complete" | "reschedule"
   const [err, setErr] = useState(null), [interest, setInterest] = useState(null), [refresh, setRefresh] = useState(0);
   const busy = useRef(false), notesRef = useRef(null), opener = useRef(null);
+  const house = useHouseRules(v.listing_id, refresh); // VIS-10: read again after a refused change
   const notesDirty = notes.trim() !== (v.notes ?? "");
   useEffect(() => { onDirty("notes", notesDirty); }, [notesDirty]);
   useEffect(() => () => onDirty("notes", false), []);
@@ -255,13 +257,14 @@ function Detail({ v, gone, ended, filtered, headRef, count, act, saveNotes, remo
         fmtDate(v.interest_removed_at)].filter(Boolean).map((fact, i) => <span key={i}>{fact}</span>)}</p>
       {!gone && v.listing_id && <button type="button" className="btn ghost sm" onClick={() => run(() => recount(v))}>Count again</button>}</div>}
     {active && open === "complete" && <OutcomeForm onSave={complete} onClose={close} onDirty={onDirty} />}
-    {active && open === "reschedule" && <RescheduleForm v={v} refresh={refresh} onSave={reschedule} onClose={close} onDirty={onDirty} />}
+    {active && open === "reschedule" && <RescheduleForm v={v} house={house} refresh={refresh} onSave={reschedule} onClose={close} onDirty={onDirty} />}
     <dl className="kv">
       <div><dt>Listing</dt><dd>{v.listing_id ? <a href={`#/p/${v.listing_id}`}>{listingOf(v)}</a>
         : v.listing_ref ? <>{listingOf(v)} <span className="muted">({v.listing_ref}, listing deleted)</span></> : listingOf(v)}</dd></div>
       <div><dt>When</dt><dd className="num">{fmtDay(v.date, true)} · {v.time}-{v.end_time}</dd></div>
       <div><dt>Negotiator</dt><dd>{v.negotiator_name ?? "No negotiator"}</dd></div>
       <div><dt>Viewing</dt><dd>{v.kind}</dd></div>
+      <HouseRulesFacts house={house} />
       {v.email && <div><dt>Email</dt><dd><a href={`mailto:${v.email}?subject=${subject}`}>{v.email}</a></dd></div>}
       {v.phone && <div><dt>Phone</dt><dd><a href={`tel:${tel(v.phone)}`}>{v.phone}</a></dd></div>}
       {v.listing_id && n != null && <div><dt>Interest in this listing</dt><dd>{filtered ? `${n} ${n === 1 ? "person" : "people"} interested`
@@ -315,22 +318,25 @@ function OutcomeForm({ onSave, onClose, onDirty }) {
   </form>;
 }
 
-function RescheduleForm({ v, refresh, onSave, onClose, onDirty }) {
+function RescheduleForm({ v, house, refresh, onSave, onClose, onDirty }) {
   const [slot, setSlot] = useState({ negotiator_id: v.negotiator_id, date: v.date >= jerseyToday() ? v.date : null, time: null });
-  const [err, setErr] = useState(null);
+  const [err, setErr] = useState(null), [agreed, setAgreed] = useState(false);
+  const short = noticeShort(house, slot); // VIS-10: sooner than a tenanted house's notice
   const head = useRef(null);
   useEffect(() => { head.current?.focus(); }, []);
   useStepDirty(onDirty, !!slot.time);
   const submit = e => {
     e.preventDefault();
     if (!slot.time) return setErr("Choose a day and a time");
-    onSave({ negotiator_id: slot.negotiator_id, date: slot.date, time: slot.time });
+    if (short && !agreed) return setErr("Confirm that access is agreed with the tenant, or choose a later time");
+    onSave({ negotiator_id: slot.negotiator_id, date: slot.date, time: slot.time, ...(short ? { notice_confirmed: true } : {}) });
   };
   return <form className="view-form" onSubmit={submit} aria-labelledby="h-resched">
     <h3 id="h-resched" ref={head} tabIndex={-1}>Reschedule</h3>
     <p className="muted">Now {fmtDay(v.date, true)} at {v.time}{v.negotiator_name ? ` with ${v.negotiator_name}` : ""}. Choose the new time.</p>
-    <SlotPicker value={slot} onChange={s => { setSlot(s); setErr(null); }} own={v} listingId={v.listing_id}
+    <SlotPicker value={slot} onChange={s => { setSlot(s); setErr(null); setAgreed(false); }} own={v} listingId={v.listing_id}
       refresh={refresh} errors={err ? { time: err } : {}} />
+    {short && <NoticeConfirm house={house} checked={agreed} onChange={b => { setAgreed(b); setErr(null); }} />}
     <div className="inline"><button className="btn">Save new time</button><button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
   </form>;
 }
@@ -341,6 +347,8 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
   const [slot, setSlot] = useState({ negotiator_id: null, date: null, time: null }), [listings, setListings] = useState(null);
   const [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [refresh, setRefresh] = useState(0);
   const head = useRef(null), form = useRef(null), focusErr = useRef(false);
+  // VIS-10: the chosen property's house rules; a time sooner than its notice needs staff to say access is agreed.
+  const house = useHouseRules(f.listing_id, refresh), [agreed, setAgreed] = useState(false), short = noticeShort(house, slot);
   useEffect(() => { head.current?.focus(); api("/admin/listings?slim=1").then(d => setListings(d.listings), e => setMsg({ text: e.message })); }, []);
   const dirty = !!(f.name.trim() || f.email.trim() || f.phone.trim() || f.notes.trim() || slot.time);
   useEffect(() => { onDirty("form", dirty); }, [dirty]);
@@ -358,17 +366,18 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
     if (!f.name.trim()) local.name = "Enter their name";
     if (!f.email.trim() && !f.phone.trim()) local.email = "Enter an email address or a phone number";
     if (!slot.time) local.time = "Choose a negotiator, a day and a time";
+    if (short && !agreed) local.notice_confirmed = "Confirm that access is agreed with the tenant, or choose a later time";
     if (Object.keys(local).length) { focusErr.current = true; setErrors(local); setMsg({ text: "Please check the highlighted fields." }); return; }
     setBusy(true); setMsg(null);
     try {
       const { id } = await api("/admin/viewings", { method: "POST", body: { listing_id: f.listing_id || null, kind: f.kind,
         negotiator_id: slot.negotiator_id, date: slot.date, time: slot.time, name: f.name, email: f.email.trim() || null,
-        phone: f.phone.trim() || null, notes: f.notes.trim() || null } });
+        phone: f.phone.trim() || null, notes: f.notes.trim() || null, ...(short ? { notice_confirmed: true } : {}) } });
       onBooked(id, `Viewing booked for ${fmtDay(slot.date, true)} at ${slot.time}.`);
     } catch (err) {
       focusErr.current = true; setErrors(err.data?.fields || {}); setMsg({ text: err.message });
       // A property can be disabled or its hours changed after these times were read.
-      if (err.status === 409 || err.data?.fields?.listing_id || err.data?.fields?.time) setRefresh(x => x + 1);
+      if (err.status === 409 || err.data?.fields?.listing_id || err.data?.fields?.time || err.data?.fields?.notice_confirmed) setRefresh(x => x + 1);
     } finally { setBusy(false); }
   };
   const state = l => (l.archived_at ? " · archived" : l.published ? "" : " · draft");
@@ -388,8 +397,11 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
       <label>Viewing type<select value={f.kind} onChange={set("kind")} {...invalid("kind")}>
         {KINDS.map(k => <option key={k}>{k}</option>)}</select>{error("kind")}</label>
     </div>
-    <SlotPicker value={slot} onChange={s => { setSlot(s); setErrors(({ negotiator_id, date, time, ...x }) => x); }}
+    <HouseRulesFacts house={house} own />
+    <SlotPicker value={slot} onChange={s => { setSlot(s); setAgreed(false); setErrors(({ negotiator_id, date, time, notice_confirmed, ...x }) => x); }}
       listingId={f.listing_id} refresh={refresh} errors={errors} />
+    {short ? <NoticeConfirm house={house} checked={agreed} error={errors.notice_confirmed} id="e-nv-notice_confirmed"
+      onChange={b => { setAgreed(b); setErrors(({ notice_confirmed, ...x }) => x); }} /> : error("notice_confirmed")}
     <div className="grid2">
       <label>Name<input value={f.name} maxLength={120} autoComplete="off" onChange={set("name")} {...invalid("name")} />{error("name")}</label>
       <label>Email<input type="email" value={f.email} maxLength={254} autoComplete="off" onChange={set("email")} {...invalid("email")} />{error("email")}</label>

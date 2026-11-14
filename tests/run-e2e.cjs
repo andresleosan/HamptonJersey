@@ -31,6 +31,8 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       // ponytail: SPR-02 A drives the gate-off direct unpublish 409; the gated withdrawal flow is pub09-withdrawal.e2e.cjs.
       ...(process.env.E2E_SCRIPT === 'tests/listing-history.e2e.cjs' ? { PUB09_WITHDRAWALS_READY: '0' } : {}),
       ...(process.env.E2E_SCRIPT === "tests/vis-09-viewing-rules.e2e.cjs" ? { VIS09_VIEWING_POLICY_READY: "1" } : {}),
+      // VIS-10 reads PUB-07's occupancy, so its test needs both families on.
+      ...(process.env.E2E_SCRIPT === "tests/vis10-house-rules.e2e.cjs" ? { VIS10_HOUSE_RULES_READY: "1", PUB07_COMPLIANCE_READY: "1" } : {}),
       PUB21_DRIVE_READY: "1", // Properties Queue's Drive imports: tested switched on, off in production (master plan)
       ...(process.env.E2E_SCRIPT === "tests/adm-06-tenancy-origin.e2e.cjs" ? { ADM06_TENANCY_ORIGIN_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm-16-tenancy-exit.e2e.cjs" ? { ADM16_TENANCY_EXIT_READY: "1" } : {}),
