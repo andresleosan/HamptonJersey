@@ -29,4 +29,12 @@ Luis autorizó expresamente solo 0048 en D1 `hampton` y `PUB08_CONTENT_READY=1`.
 
 ## Publicación y cierre
 
-Pendiente al preparar este commit: SHA remoto, despliegue Pages, variable efectiva de producción y aumento del tablero. Hasta que se acrediten, PUB-08 permanece parcial.
+- Commit de activación publicado y SHA remoto comprobado: **`faf43a34c75e04164be8515a95556d2cd792be80`**. La preparación canónica PUB-06/SPR-01 también está guardada en su ancestro `09214cf`, sin aplicar ni activar ese alcance.
+- Pages identifica producción/main con Source `faf43a3`, deployment `49df5d7a-e239-4473-a842-ebfb8f7e6f7a`. El estado nativo de Wrangler figura como antigüedad del despliegue: su implementación instalada solo presenta esa antigüedad cuando `latest_stage.status=success` y existe `ended_on`; los demás estados se presentan por su nombre. Se verificó además HTTP 200 en `/` y `/api/listings` del URL exacto de ese deployment.
+- La exportación nativa de configuración efectiva, limitada por Wrangler a variables `plain_text`, confirma **`PUB08_CONTENT_READY=1`**, la misma identidad DB y las mismas variables públicas anteriores. El gate `PUB06_STRUCTURED_ECONOMICS_READY` sigue ausente. No se consultaron ni publicaron valores `secret_text`.
+- GET anónimo del dominio de producción `/` y `/api/listings?check=pub08-activated-20261114`: HTTP 200, HTML y array JSON válidos. La nueva unión con la tabla de contenido está condicionada al gate comprobado. No se insertaron valores de prueba en fichas reales.
+- Jobs figura `completed/success`. El check de GitHub de Pages todavía mostraba `in_progress/Building` al contrastarlo por dos consultas diferenciadas; se conserva ese estado, separado de la publicación nativa y las respuestas reales ya verificadas. No se atribuye éxito a ese check pendiente.
+
+**PUB-08 cumple el alcance vigente y pasa a hecha.** Catálogo resultante: **69/215 (32,09 %)** frente a **68/215 (31,63 %)**. La cifra del endpoint público se comprobará después del push del cierre; hasta esa lectura no se presenta este cálculo local como verificación del tablero desplegado.
+
+Por la instrucción de Luis, después de publicar y verificar el aumento se guarda la continuidad y se detiene la sesión. Siguiente paquete: **PUB-06/SPR-01**, cuyo esquema 0052, mapa de retención y criterios reconciliados están preparados, con su migración y activación fuera de la autorización de esta sesión.

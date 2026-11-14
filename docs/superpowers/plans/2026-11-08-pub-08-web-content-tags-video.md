@@ -73,6 +73,6 @@ El encargo vigente de Luis sustituye la restricción histórica de solo planific
 - [x] Editor y vista pública integrados mediante API/D1/R2 reales sintéticos, 400/409, borrador/descarte, ausencia de iframe o petición externa antes del clic, offline, teclado, escritorio/móvil y zoom. Chromium y WebKit en el contenedor aislado exigido.
 - [x] Revisión independiente sin hallazgos pendientes y suite conjunta de 2.308 JavaScript/29 Python, build, release, catálogo, paquetes y contrato de esquema.
 - [x] Autorización explícita de Luis para solo 0048 y PUB08; aplicación de 0048 con comprobación posterior de tabla vacía, dos validadores y registro de migración.
-- [ ] Publicación, activación efectiva y cierre del tablero: se registran al verificarse en [la evidencia final](../../roadmap/work/PUB-08/2026-11-14-integracion-activacion.md).
+- [x] Publicación `faf43a3`, despliegue nativo exitoso, activación efectiva y HTTP 200 de la API pública; [evidencia final](../../roadmap/work/PUB-08/2026-11-14-integracion-activacion.md). Ficha y derivados se cierran con el siguiente push; el endpoint del tablero se comprueba después.
 
 Las referencias P01/P02/P03 de la plantilla no crean una decisión nueva para el alcance web vigente. Se conserva el catálogo inicial cerrado y versionado; una ampliación posterior se revisa al existir una necesidad real. Las piezas y campañas sociales no pertenecen a este cierre. PUB-06/SPR-01 quedan preparadas y sin activación; Luis pidió detenerse después del primer cierre real con aumento público y commit/push guardados.

@@ -21,7 +21,7 @@ La configuración fuente añade únicamente:
 PUB08_CONTENT_READY = "1"
 ```
 
-Se contrastaron las variables públicas y los identificadores de bindings efectivos de Pages: se conserva la configuración anterior. El vídeo sigue requiriendo elección del visitante antes de conectarse al proveedor. `PUB06_STRUCTURED_ECONOMICS_READY` permanece ausente. La activación efectiva y el SHA desplegado se verificarán después de publicar; añadir la variable al archivo fuente no los acredita por sí solo.
+Se contrastaron las variables públicas y los identificadores de bindings efectivos de Pages: se conserva la configuración anterior. El vídeo sigue requiriendo elección del visitante antes de conectarse al proveedor. `PUB06_STRUCTURED_ECONOMICS_READY` permanece ausente. Después del push `faf43a3`, la exportación nativa de configuración efectiva confirmó PUB08=1 y la misma identidad DB; Pages nativo acredita despliegue exitoso de ese Source y `/` y `/api/listings` responden HTTP 200 tanto en el deployment exacto como en el dominio público. El check GitHub de Pages seguía mostrando Building al contrastarlo; no se presenta como aprobado. [Detalle](../PUB-08/2026-11-14-integracion-activacion.md#publicación-y-cierre).
 
 ## Evidencia disponible y controles
 

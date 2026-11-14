@@ -63,11 +63,11 @@
       "area": "Propiedades, publicación, tours y analítica",
       "capacity": 2,
       "count": 65,
-      "openCount": 33,
+      "openCount": 32,
       "states": {
-        "parcial": 26,
+        "parcial": 25,
         "pendiente": 6,
-        "hecho": 14,
+        "hecho": 15,
         "bloqueado": 1,
         "descartado": 17,
         "replanteado": 1
@@ -7778,10 +7778,10 @@
       "titulo": "Familia 5 · Marketing y contenidos de la ficha",
       "origen": "texto",
       "fase": "F4",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "En listings y en el editor: Title, Summary y Description; Photos con portada, orden, pies de foto y tipos Floor plan y Aerial; URL de tour 3D o vídeo (Matterport, Vimeo, YouTube); estrella de destacada y orden de portada en Listings. Se prepararon etiquetas manuales cerradas y una URL de vídeo independiente con la puerta de privacidad existente, revisión de dirección y CAS. El nuevo flujo permanece desactivado por defecto.",
-      "falta": "Verificar la migración 0048, desplegar y activar el flujo solo cuando corresponda; la consulta de migraciones remotas de esta sesión fue denegada. Confirmar o ampliar el catálogo de etiquetas según necesidades reales. Los campos y publicaciones sociales están fuera del alcance vigente.",
+      "hecho": "Título, resumen, descripción, fotos con portada, orden, pies y tipos, destacadas y orden de portada integrados. Catálogo manual cerrado versión 1 de etiquetas y vídeo web independiente del tour, con validación de servidor, CAS, revisión de dirección y carga del proveedor solo tras elección del visitante. Migración 0048 aplicada y gate efectivo PUB08_CONTENT_READY=1 verificado; Pages faf43a3 y API pública HTTP 200. Recorrido real API/D1/R2 sintético aprobado en Chromium y WebKit aislados, suite conjunta de 2.308 JavaScript y 29 Python y revisión independiente sin hallazgos.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ListingEditor.jsx:201-223",
@@ -7793,7 +7793,11 @@
         "migrations/0048_listing_content.sql",
         "tests/server/pub-08-content.test.mjs",
         "tests/pub08-content.e2e.cjs",
-        "docs/roadmap/work/PUB-08/avance-publicable.md"
+        "docs/roadmap/work/PUB-08/avance-publicable.md",
+        "tests/pub08-integrated.e2e.cjs",
+        "tests/serve-e2e.cjs",
+        "wrangler.toml",
+        "docs/roadmap/work/PUB-08/2026-11-14-integracion-activacion.md"
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -7805,8 +7809,8 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Verificar migración y activación del contenido web y conservar separada cualquier integración social futura.",
-      "actualizado": "2026-11-13"
+      "nextStep": "Continuar en otra sesión con PUB-06/SPR-01, cuyo esquema canónico 0052 y criterios reconciliados están preparados; migración y activación siguen pendientes.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PUB-09",
