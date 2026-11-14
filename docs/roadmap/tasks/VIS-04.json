@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "El equipo cierra la visita en Viewings con Mark completed y elige Proceed, Need more information o Not interested con motivo opcional; el resultado se ve en el detalle de la visita (pestaña Past) y en el Owner report.",
-  "falta": "El formulario que recibe el aplicante una hora después de la visita para elegirlo él mismo (F3-B), que necesita enviarle un email. Sin dependencias: el Timeline del aplicante muestra la visita solo como Completed, sin el resultado.",
+  "falta": "El formulario que recibe el aplicante una hora después de la visita para elegirlo él mismo (F3-B), que necesita enviarle un email. Sin dependencias: el Timeline del aplicante muestra la visita solo como Completed, sin el resultado. Traído de VIS-08 (15-nov): el formulario del aplicante tras la visita escribe outcome, outcome_note, feedback_at y feedback_by = applicant sobre una visita completada sin respuesta; el panel ya distingue Completed de Feedback received.",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "admin/src/Viewings.jsx:249-270",
@@ -37,5 +37,6 @@
     "applicant-timeline",
     "email-pipeline"
   ],
-  "nextStep": "Mostrar primero el resultado de la visita en Timeline; enviar el formulario posterior cuando el correo esté operativo."
+  "nextStep": "Mostrar primero el resultado de la visita en Timeline; enviar el formulario posterior cuando el correo esté operativo.",
+  "actualizado": "2026-11-15"
 }

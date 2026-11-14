@@ -69,3 +69,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [BUS-12] Redondeo en el límite de superficie (100 m² escritos como 1.076,39 sq ft dan 99,9999 m² y quedan como alternativa) · revisión independiente 14-nov · 14-nov-2026
 - [ADM-11] No se puede registrar con su fecha real una copia entregada en la firma si es anterior a la salida del inquilino previo; un depósito del entrante pagado por adelantado no se sigue hasta el relevo · la fila es por vivienda, no por contrato · 14-nov-2026
 - [ADM-11] Cuando el recálculo reabre una entrega borra `done_on` y la nota sin evento propio; la ficha de la vivienda no ejecuta el recálculo (el relevo se ve al cargar Rentals o en el siguiente tic) · segunda revisión 14-nov · 14-nov-2026
+- [VIS-08] Contador o filtro de visitas completadas sin respuesta; una visita completada sin respuesta no cuenta en el interés de la casa hasta anotar el resultado · 15-nov-2026
+- [VIS-08] `viewing.reminded` y `viewing.feedback` no salen en el Feed ni en el historial de la ficha (triggers de 0035 y 0038 con tipos fijos) · 15-nov-2026
+- [VIS-08] `.inbox-detail .kv` desborda a 390 px con zoom 200 % (usar `minmax(min(100%,240px),1fr)`); «Reminder due» usa reloj local y se desvía una hora en los cambios de hora · 15-nov-2026
