@@ -4813,10 +4813,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Salud de la ficha: aviso con muchas vistas y pocas consultas",
    "origen": "plan",
    "fase": "F4",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "Insights y Owner report muestran vistas y solicitudes para comparación manual. Se preparó y revisó un aviso interno de fichas con 30 o más aperturas y como máximo una solicitud en 30 días, con cobertura desconocida explícita y pruebas locales. La función permanece apagada por defecto.",
-   "falta": "Verificar el esquema de soporte y presupuesto de lectura, transporte, memoria y CPU en D1 antes de activar; ensayar el recorrido real y ajustar la regla si procede. El SQL es una propuesta fuera de migrations y esta sesión no consultó ni modificó D1 remoto.",
+   "hecho": "Insights y Owner report muestran vistas y solicitudes para comparación manual. Se preparó y revisó un aviso interno de fichas con 30 o más aperturas y como máximo una solicitud en 30 días, con cobertura desconocida explícita y pruebas locales. La función permanece apagada por defecto. 14-nov-2026: el SQL propuesto pasó sin cambios a migrations/0055_listing_health.sql (revisión independiente sin bloqueos), aplicada en producción con Time Travel previo, y LISTING_HEALTH_READY=1 en Pages 2585fb6. Presupuesto real: 316 fichas frente al tope de 10.000; la consulta del endpoint ejecutada en producción como lectura leyó 135 filas en 1,5 ms, con 0 fichas que cumplan hoy la regla (estado vacío). Suite 2.334/2.334, build, release y navegador aislado 1280/390 (activo y apagado) verdes.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Insights.jsx:86-100",
@@ -4828,8 +4828,12 @@ document.addEventListener('DOMContentLoaded', () => {
     "tests/server/listing-health.test.mjs",
     "tests/server/listing-health-scale.test.mjs",
     "tests/listing-health.e2e.cjs",
-    "docs/roadmap/work/PUB-17/implementation-evidence.md"
-   ]
+    "docs/roadmap/work/PUB-17/implementation-evidence.md",
+    "migrations/0055_listing_health.sql",
+    "wrangler.toml:12",
+    "tests/listing-health.e2e.cjs"
+   ],
+   "actualizado": "2026-11-14"
   },
   {
    "id": "PUB-18",

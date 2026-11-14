@@ -6729,7 +6729,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 281,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
