@@ -1,32 +1,31 @@
-// VIS-09 foundation only. Nothing in this module enables policy enforcement or writes a booking.
+// VIS-09: viewing length, margins between homes and a daily maximum per negotiator. Availability and the booking
+// writers use it only with VIS09_VIEWING_POLICY_READY=1 and only for negotiators with saved rules (viewing-store.js).
 import { OPTIONS } from './applicants.js';
+
+export const viewingPolicyReady = env => env?.VIS09_VIEWING_POLICY_READY === '1';
 
 export const DEFAULT_VIEWING_POLICY = Object.freeze({
   duration_minutes:30, buffer_minutes:15, parish_extra_minutes:15, max_daily:8, revision:0,
 });
 const POLICY_KEYS = Object.keys(DEFAULT_VIEWING_POLICY);
-// Existing bookings have Jersey wall times but no UTC offset. Around a clock
-// change an apparent gap can be an hour shorter, or a wall time may occur
-// twice. Until offset-aware booking snapshots exist, fail closed for the
-// surrounding window rather than inventing an instant.
+// Bookings keep Jersey wall times; historical rows have no UTC offset and are never rewritten. Wall-clock arithmetic is
+// exact while no clock change falls within 6 hours of the candidate (more than the largest margin plus the lost or
+// repeated hour), so only such candidates are refused. The candidate's instant comes from its one valid offset (GMT or
+// BST, checked by jerseyViewingInstant): there is none in the spring gap and two in the autumn fold.
 const jerseyOffset = (() => {
   try { return new Intl.DateTimeFormat('en-GB', {
     timeZone:'Europe/Jersey', timeZoneName:'shortOffset', hour:'2-digit', hourCycle:'h23',
   }); } catch { return null; }
 })();
-const stableDates = new Map();
-function stableJerseyWindow(date) {
-  if (stableDates.has(date)) return stableDates.get(date);
-  let stable=false;
+const WINDOW_MS = 6*3600000;
+function stableJerseyTime(date, time, duration) {
   try {
-    const at=Date.parse(date+'T12:00:00Z');
-    const offsets=[-42,-12,12,42].map(hours=>jerseyOffset.formatToParts(new Date(at+hours*3600000))
-      .find(part=>part.type==='timeZoneName')?.value);
-    stable=offsets.every(offset=>typeof offset==='string' && offset===offsets[0]);
-  } catch { stable=false; }
-  if (stableDates.size>=512) stableDates.delete(stableDates.keys().next().value);
-  stableDates.set(date,stable);
-  return stable;
+    const instants=[0,3600].map(offset=>jerseyViewingInstant(date,time,offset)).filter(Boolean);
+    if (instants.length!==1) return false;
+    const at=Date.parse(instants[0]), names=[at-WINDOW_MS, at+duration*60000+WINDOW_MS]
+      .map(t=>jerseyOffset.formatToParts(new Date(t)).find(part=>part.type==='timeZoneName')?.value);
+    return typeof names[0]==='string' && names[0]===names[1];
+  } catch { return false; }
 }
 const STATUSES = new Set(['requested','confirmed','completed','no_show','cancelled']);
 const ACTIVE = new Set(['requested','confirmed','completed','no_show']);
@@ -68,6 +67,22 @@ function validatePolicy(policy) {
   return Object.fromEntries(POLICY_KEYS.map(key=>[key,policy[key]]));
 }
 
+// The staff form's rules (migration 0047's limits), each with its message; revision: the one the form was loaded with.
+const LIMITS = [['duration_minutes',10,180,5,'Choose 10 to 180 minutes, in steps of 5'],
+  ['buffer_minutes',0,120,1,'Choose 0 to 120 minutes'],['parish_extra_minutes',0,120,1,'Choose 0 to 120 minutes'],
+  ['max_daily',1,40,1,'Choose 1 to 40 viewings']];
+export function validViewingPolicy(body) {
+  const src = body && typeof body === 'object' && !Array.isArray(body) ? body : {};
+  const errors = {}, value = {};
+  for (const [key,min,max,step,message] of LIMITS) {
+    const n = src[key];
+    if (!Number.isSafeInteger(n) || n<min || n>max || n%step!==0) errors[key]=message; else value[key]=n;
+  }
+  if (!Number.isSafeInteger(src.revision) || src.revision<0) errors.revision='Reload the page and try again';
+  else value.revision=src.revision;
+  return Object.keys(errors).length ? {errors} : {value};
+}
+
 // No stored record means the explicitly approved defaults, not an unlimited policy.
 // The property is reserved for eventual property-specific rules; none are inferred here.
 export function resolveViewingPolicy(negotiator, property) {
@@ -90,7 +105,7 @@ export function canReserveViewing(snapshot, candidate, {excludeViewingId = null}
       || (excludeViewingId != null && (!Number.isSafeInteger(excludeViewingId) || excludeViewingId<1)))
     throw new TypeError('Invalid viewing candidate');
   const end = start+policy.duration_minutes, reasons = new Set(), warnings = new Set();
-  if (!stableJerseyWindow(candidate.date)) reasons.add('timezone_transition_review');
+  if (!stableJerseyTime(candidate.date, candidate.time, policy.duration_minutes)) reasons.add('timezone_transition_review');
   if (!parishKnown(candidate.parish)) warnings.add('parish_unconfirmed');
   let count = 0;
   for (const booking of snapshot.bookings) {
@@ -177,6 +192,7 @@ export function reservationPolicyGuard(candidate, selectedPolicy, {excludeViewin
               OR (c.start_minute < ${oldEnd} + ${gap} AND c.end_minute + ${gap} > ${oldStart}))))`,
     binds:[candidate.negotiator_id,candidate.date,start,start+policy.duration_minutes,candidate.listing_id ?? null,
       candidate.parish ?? null,policy.revision,policy.duration_minutes,policy.buffer_minutes,
-      policy.parish_extra_minutes,policy.max_daily,excludeViewingId,stableJerseyWindow(candidate.date)?1:0],
+      policy.parish_extra_minutes,policy.max_daily,excludeViewingId,
+      stableJerseyTime(candidate.date,candidate.time,policy.duration_minutes)?1:0],
   };
 }

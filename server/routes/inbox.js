@@ -1,7 +1,7 @@
 import { json, fail, readJson, now } from "../http.js";
 import { logEvent, resolveNotices } from "../events.js";
 import { validateViewing, jerseyNow, isFree, addMinutes, SLOT_MINUTES, ACTIVE, OUTCOMES } from "../viewings.js";
-import { loadAvailability, bookStatement, clash, propertyViewingGuard } from "../viewing-store.js";
+import { loadAvailability, bookStatement, slotGuard, policySnapshot, propertyViewingGuard } from "../viewing-store.js";
 import { touchByViewing } from "../retention.js";
 
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
@@ -61,9 +61,11 @@ function readNotes(body) {
 }
 
 // The name and slots of `negotiator_id` on `date`, today's still to come; null when inactive (they take no new viewings).
+// policy, parish: VIS-09's saved rules, read with those slots (null policy: the fixed rules).
 async function dayOf(env, { negotiator_id, date, listing_id }, clock) {
   const a = await loadAvailability(env, { from: date, days: 1, now: clock, fromTomorrow: false, negotiatorId: negotiator_id, listingId: listing_id });
-  return a.negotiators.length ? { name: a.negotiators[0].name, slots: a.days[0].slots[negotiator_id], property_viewings_enabled: a.property_viewings_enabled } : null;
+  return a.negotiators.length ? { name: a.negotiators[0].name, slots: a.days[0].slots[negotiator_id],
+    property_viewings_enabled: a.property_viewings_enabled, policy: a.policies?.[negotiator_id] ?? null, parish: a.parish ?? null } : null;
 }
 
 // C14: booked by the team, so confirmed at once; NOT-01 adds an informational Feed fact. Any existing listing will do.
@@ -81,7 +83,8 @@ async function create({ request, env, admin }) {
     return slots.some(s => s.time === v.time) ? taken() : fields({ time: "That time is not available. Please choose another." });
   // C6, as on the website: if another booking took the slot since the check, nothing at all is written.
   const [booked] = await env.DB.batch([
-    bookStatement(env, v, { status: "confirmed" }),
+    bookStatement(env, v, { status: "confirmed", policy: day.policy, parish: day.parish, actor: admin }),
+    ...(day.policy ? [policySnapshot(env, day.policy, day.parish)] : []),
     ...logEvent(env, { actor: admin, entity_type: "viewing", entity_id: null, type: "viewing.booked",
       data: { listing_id: v.listing_id, date: v.date, time: v.time, kind: v.kind, negotiator_id: v.negotiator_id } }, null,
     { ifInserted: true }),
@@ -95,7 +98,7 @@ const FROM = { confirm: ["requested"], cancel: ACTIVE, reschedule: ACTIVE, compl
 const TO = { confirm: "confirmed", cancel: "cancelled", complete: "completed", no_show: "no_show" };
 
 // The columns an action sets, its event data, and for a reschedule the clash its UPDATE must not have (C6).
-async function change(env, action, body, cur, clock) {
+async function change(env, action, body, cur, clock, admin) {
   if (action === "complete") {
     const errors = {};
     if (!OUTCOMES.includes(body.outcome)) errors.outcome = "Choose an outcome";
@@ -118,10 +121,12 @@ async function change(env, action, body, cur, clock) {
   // On the grid, inside the hours, still to come. Whether it is free is the UPDATE's call: the viewing's own slot and
   // its neighbours show as booked by itself, and clash() leaves it out.
   if (!who.slots.some(s => s.time === to.time)) return { errors: { time: "That time is not available. Please choose another." } };
+  const { policy, parish } = who, duration = policy?.duration_minutes ?? SLOT_MINUTES;
   return {
-    set: { ...to, end_time: addMinutes(to.time, SLOT_MINUTES), agent: who.name },
-    clash: clash(to, cur.id),
-    property: propertyViewingGuard(propertySlot),
+    set: { ...to, end_time: addMinutes(to.time, duration), agent: who.name },
+    guard: slotGuard(env, propertySlot, { policy, parish, actor: admin, excludeId: cur.id }),
+    property: propertyViewingGuard(propertySlot, { duration }),
+    snapshot: policy ? policySnapshot(env, policy, parish, cur.id) : null,
     data: { from: { negotiator_id: cur.negotiator_id, date: cur.date, time: cur.time }, to },
   };
 }
@@ -135,7 +140,7 @@ async function runAction({ env, admin, id, body }) {
   if (!cur) fail(404, "Viewing not found");
   if (!FROM[body.action].includes(cur.status)) fail(409, `This viewing is already ${cur.status === "no_show" ? "marked as a no-show" : cur.status}.`);
   if (cur.updated_at !== body.updated_at) fail(409, stale);
-  const ch = await change(env, body.action, body, cur, jerseyNow());
+  const ch = await change(env, body.action, body, cur, jerseyNow(), admin);
   if (ch.errors) return fields(ch.errors);
   const cols = Object.keys(ch.set), ref = { entity_type: "viewing", entity_id: String(id) }, ts = now();
   const type = `viewing.${body.action === "reschedule" ? "rescheduled" : TO[body.action]}`;
@@ -143,8 +148,10 @@ async function runAction({ env, admin, id, body }) {
   // the row.
   const [r] = await env.DB.batch([
     env.DB.prepare(`UPDATE viewing_requests SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ?
-      WHERE id = ? AND updated_at IS ?${ch.clash ? ` AND NOT ${ch.clash.sql} AND ${ch.property.sql}` : ""}`)
-      .bind(...Object.values(ch.set), ts, admin, id, body.updated_at, ...(ch.clash?.binds ?? []), ...(ch.property?.binds ?? [])),
+      WHERE id = ? AND updated_at IS ?${ch.guard ? ` AND ${ch.guard.sql} AND ${ch.property.sql}` : ""}`)
+      .bind(...Object.values(ch.set), ts, admin, id, body.updated_at, ...(ch.guard?.binds ?? []), ...(ch.property?.binds ?? [])),
+    // VIS-09: the margins it was moved with, only if the UPDATE wrote (the event below then still follows it).
+    ...(ch.snapshot ? [ch.snapshot] : []),
     ...logEvent(env, { actor: admin, ...ref, type, data: ch.data ?? null }, null, { ifInserted: true }),
     // G2: a viewing confirmed, moved or held is activity on the contact with its email or mobile; a no-show or a cancel
     // is not. Right after the event, so its changes() gate reads the event's insert.

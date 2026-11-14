@@ -1,20 +1,49 @@
 import { json, fail, readJson, now } from "../http.js";
 import { validHours, validException, jerseyNow, DEFAULT_HOURS, SLOT_MINUTES } from "../viewings.js";
 import { loadAvailability } from "../viewing-store.js";
+import { viewingPolicyReady, validViewingPolicy } from "../viewing-policy.js";
 import { availabilityRange } from "./public.js";
 
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
 const ID = /^[1-9]\d{0,8}$/;
 
 // Every negotiator, active or not (D9: they are deactivated, never deleted), with their exceptions from today on.
+// VIS-09, gate on: each also has viewing_policy, their saved viewing rules (null: none saved, the fixed rules apply).
 async function list({ env }) {
-  const [people, exceptions] = await env.DB.batch([
+  const ready = viewingPolicyReady(env);
+  const [people, exceptions, policies = []] = await env.DB.batch([
     env.DB.prepare("SELECT id, name, role, active, hours FROM negotiators ORDER BY id"),
     env.DB.prepare(`SELECT id, negotiator_id, date, kind, start_time, end_time, note, created_by FROM negotiator_exceptions
       WHERE date >= ? ORDER BY date, start_time, id`).bind(jerseyNow().date),
+    ...(ready ? [env.DB.prepare(`SELECT negotiator_id, duration_minutes, buffer_minutes, parish_extra_minutes, max_daily,
+      revision FROM viewing_policy_settings`)] : []),
   ]).then(r => r.map(x => x.results));
+  const policyOf = id => { const p = policies.find(x => x.negotiator_id === id); if (!p) return null;
+    const { negotiator_id, ...rules } = p; return rules; };
   return json({ negotiators: people.map(p => ({ ...p, hours: JSON.parse(p.hours),
-    exceptions: exceptions.filter(e => e.negotiator_id === p.id).map(({ negotiator_id, ...e }) => e) })) });
+    exceptions: exceptions.filter(e => e.negotiator_id === p.id).map(({ negotiator_id, ...e }) => e),
+    ...(ready ? { viewing_policy: policyOf(p.id) } : {}) })) });
+}
+
+// VIS-09: save a negotiator's viewing rules. revision is the one the form was loaded with (0: none saved yet); a save
+// made meanwhile by someone else is refused, never overwritten. Rules are edited in place, never removed (0047).
+async function savePolicy({ request, env, admin, params: [id] }) {
+  if (!viewingPolicyReady(env)) fail(404, "Not found");
+  const r = validViewingPolicy(await readJson(request));
+  if (r.errors) return fields(r.errors);
+  const { revision, ...p } = r.value, n = Number(id), ts = now();
+  const values = [p.duration_minutes, p.buffer_minutes, p.parish_extra_minutes, p.max_daily];
+  const out = revision === 0
+    ? await env.DB.prepare(`INSERT INTO viewing_policy_settings (negotiator_id, duration_minutes, buffer_minutes,
+        parish_extra_minutes, max_daily, revision, updated_at, updated_by)
+      SELECT id, ?, ?, ?, ?, 1, ?, ? FROM negotiators WHERE id = ?
+        AND NOT EXISTS (SELECT 1 FROM viewing_policy_settings WHERE negotiator_id = ?)`).bind(...values, ts, admin, n, n).run()
+    : await env.DB.prepare(`UPDATE viewing_policy_settings SET duration_minutes = ?, buffer_minutes = ?,
+        parish_extra_minutes = ?, max_daily = ?, revision = revision + 1, updated_at = ?, updated_by = ?
+      WHERE negotiator_id = ? AND revision = ?`).bind(...values, ts, admin, n, revision).run();
+  if (out.meta.changes) return json({ ok: true });
+  if (!(await env.DB.prepare("SELECT 1 FROM negotiators WHERE id = ?").bind(n).first())) fail(404, "Unknown negotiator");
+  fail(409, "Someone else changed these viewing rules. Reload to see them (your changes were not saved).");
 }
 
 // The fields of a create (name required, hours defaulting to C2's week) or of an update (only those sent).
@@ -109,6 +138,7 @@ export default [
   ["GET", /^\/admin\/negotiators$/, list, true],
   ["POST", /^\/admin\/negotiators$/, create, true],
   ["PUT", /^\/admin\/negotiators\/(\d+)$/, update, true],
+  ["PUT", /^\/admin\/negotiators\/(\d+)\/viewing-policy$/, savePolicy, true],
   ["POST", /^\/admin\/negotiators\/(\d+)\/exceptions$/, addException, true],
   ["DELETE", /^\/admin\/negotiators\/(\d+)\/exceptions\/(\d+)$/, removeException, true],
   ["GET", /^\/admin\/availability$/, availability, true],

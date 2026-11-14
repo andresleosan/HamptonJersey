@@ -5,7 +5,7 @@ import { toPublic } from "../listing.js";
 import { buildPublicAddressReview, addressAppearsInPublicContent, addressDetailsFromListing } from "../public-address.js";
 import { validateViewing, jerseyNow, jerseyToday, isFree, realDate, plusDays, SLOT_MINUTES, PUBLIC_DAYS, MAX_DAYS,
   interestSql, interestDates } from "../viewings.js";
-import { loadAvailability, bookStatement, PUBLIC_BOOKING_BLOCKED_SQL } from "../viewing-store.js";
+import { loadAvailability, bookStatement, policySnapshot, PUBLIC_BOOKING_BLOCKED_SQL } from "../viewing-store.js";
 import { verifyTurnstile } from "../turnstile.js";
 import { logEvent } from "../events.js";
 import { validateApplicant, OPTIONS } from "../applicants.js";
@@ -132,14 +132,15 @@ async function createViewing({ request, env }) {
   }
   if (a.property_viewings_enabled === false) return fields({ listing_id: "Viewings are disabled for this property." });
   if (!a.negotiators.length) return fields({ negotiator_id: "Choose who will show you round" });
-  const slots = a.days[0].slots[v.negotiator_id];
+  const slots = a.days[0].slots[v.negotiator_id], policy = a.policies?.[v.negotiator_id] ?? null;
   if (!isFree(slots, v.time))
     return slots.some(s => s.time === v.time) ? taken() : fields({ time: "That time is not available. Please choose another." });
   if (!(await verifyTurnstile(body.turnstile, env.TURNSTILE_SECRET, request.headers.get("cf-connecting-ip"), new URL(request.url).hostname)))
     fail(400, "The anti-spam check expired or failed. Please try again.");
   // C6: the insert re-checks the slot itself; if another booking took it since the check, nothing at all is written.
   const [booked] = await env.DB.batch([
-    bookStatement(env, v, { status: "requested", publicOnly: true }),
+    bookStatement(env, v, { status: "requested", publicOnly: true, policy, parish: a.parish }),
+    ...(policy ? [policySnapshot(env, policy, a.parish)] : []),
     // Personal data stays in the request row; the event only says what was asked for.
     ...logEvent(env, { actor: "public", entity_type: "viewing", entity_id: null, type: "viewing.requested",
       data: { listing_id: v.listing_id, date: v.date, time: v.time, kind: v.kind } },

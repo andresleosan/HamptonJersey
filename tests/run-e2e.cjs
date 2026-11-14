@@ -30,6 +30,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/search-milestones.e2e.cjs" ? { SEARCH_MILESTONES_READY: "1" } : {}),
       // ponytail: SPR-02 A drives the gate-off direct unpublish 409; the gated withdrawal flow is pub09-withdrawal.e2e.cjs.
       ...(process.env.E2E_SCRIPT === 'tests/listing-history.e2e.cjs' ? { PUB09_WITHDRAWALS_READY: '0' } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/vis-09-viewing-rules.e2e.cjs" ? { VIS09_VIEWING_POLICY_READY: "1" } : {}),
       SESSION_SECRET: randomBytes(32).toString('hex'),
       TURNSTILE_SITE_KEY: example.TURNSTILE_SITE_KEY,
       TURNSTILE_SECRET: example.TURNSTILE_SECRET,

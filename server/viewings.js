@@ -76,18 +76,20 @@ const overlaps = (a1, a2, b1, b2) => a1 < b2 && a2 > b1;
 // Spec §4, in its order. hours: negotiators.hours parsed; exceptions: that date's rows; bookings: that negotiator's
 // active viewings that day; now: jerseyNow(); fromTomorrow: the website books from tomorrow (C11).
 // ponytail: one span per day (C2), so only the first open exception counts; the team adds one per date.
-export function daySlots({ hours, exceptions, bookings, date, now, fromTomorrow }) {
+// VIS-09: duration (the negotiator's saved viewing length, still on the SLOT_MINUTES grid) and taken (time => whether
+// their saved rules refuse it) replace the fixed length and margin.
+export function daySlots({ hours, exceptions, bookings, date, now, fromTomorrow, duration = SLOT_MINUTES, taken }) {
   const open = exceptions.find(e => e.kind === "open");
   const span = open ? [open.start_time, open.end_time] : hours[weekday(date)];
   if (!span || date < now.date || (fromTomorrow && date === now.date)) return [];
   const blocks = exceptions.filter(e => e.kind === "block");
   const slots = [];
-  for (let t = span[0]; addMinutes(t, SLOT_MINUTES) <= span[1]; t = addMinutes(t, SLOT_MINUTES)) {
-    const end = addMinutes(t, SLOT_MINUTES);
+  for (let t = span[0]; addMinutes(t, duration) <= span[1]; t = addMinutes(t, SLOT_MINUTES)) {
+    const end = addMinutes(t, duration);
     if (blocks.some(b => !b.start_time || overlaps(t, end, b.start_time, b.end_time))) continue;
     if (date === now.date && t <= now.time) continue;
     const from = addMinutes(t, -BUFFER_MINUTES), to = addMinutes(end, BUFFER_MINUTES);
-    slots.push({ time: t, booked: bookings.some(b => overlaps(from, to, b.time, b.end_time)) });
+    slots.push({ time: t, booked: taken ? taken(t) : bookings.some(b => overlaps(from, to, b.time, b.end_time)) });
   }
   return slots;
 }
@@ -103,11 +105,11 @@ export function validWeeklyWindows(windows, { allowEmpty = false } = {}) {
 }
 
 // A full appointment must fit in one property window; NULL retains the general negotiator hours.
-export function propertyAllows({ viewings_enabled, viewing_hours }, date, time) {
+export function propertyAllows({ viewings_enabled, viewing_hours }, date, time, duration = SLOT_MINUTES) {
   if (viewings_enabled !== 1) return false;
   if (viewing_hours == null) return true;
   const day = new Date(date + "T12:00:00Z").getUTCDay();
-  return viewing_hours.some(w => w.day === day && w.start <= time && w.end >= addMinutes(time, SLOT_MINUTES));
+  return viewing_hours.some(w => w.day === day && w.start <= time && w.end >= addMinutes(time, duration));
 }
 
 const span = v => Array.isArray(v) && v.length === 2 && TIME.test(v[0]) && TIME.test(v[1]) && v[0] < v[1];

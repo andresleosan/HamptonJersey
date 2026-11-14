@@ -101,6 +101,14 @@ test('unrepresentable daylight-saving intervals fail closed until offset-aware b
   }
 });
 
+test('office hours beside a clock change stay bookable; only times near the change itself are refused', () => {
+  for (const [date,time] of [['2026-10-24','10:00'],['2026-10-25','10:00'],['2026-10-26','09:00'],['2026-03-29','12:00']])
+    assert.equal(canReserveViewing({policy:policy(),bookings:[]},candidate(time,'St Helier',{date})).allowed,true,date+' '+time);
+  for (const [date,time] of [['2026-10-25','01:00'],['2026-10-24','23:00'],['2026-03-29','03:30'],['2026-03-28','22:00']])
+    assert.ok(canReserveViewing({policy:policy(),bookings:[]},candidate(time,'St Helier',{date})).reasons
+      .includes('timezone_transition_review'),date+' '+time);
+});
+
 test('malformed candidate parish is rejected rather than treated as a known place', () => {
   assert.throws(()=>canReserveViewing({policy:policy(),bookings:[]},candidate('10:00',{})),/candidate/i);
 });

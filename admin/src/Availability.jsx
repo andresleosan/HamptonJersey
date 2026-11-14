@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { setUnsaved, unsaved, confirmLeave } from "./unsaved.js";
 import { fmtDay } from "./format.js";
 import { WEEKDAYS, DEFAULT_HOURS, SLOT_MINUTES, jerseyToday } from "../../server/viewings.js";
+import { DEFAULT_VIEWING_POLICY } from "../../server/viewing-policy.js";
 
 const DAY = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
 const exceptionText = e => (e.kind === "open" ? `Open ${e.start_time}-${e.end_time}`
@@ -14,6 +15,10 @@ const toWeek = hours => Object.fromEntries(WEEKDAYS.map(d => [d,
 const toHours = week => Object.fromEntries(WEEKDAYS.map(d => [d, week[d].off ? null : [week[d].from, week[d].to]]));
 const weekErrors = week => Object.fromEntries(WEEKDAYS.filter(d => !week[d].off && !(week[d].from && week[d].to
   && week[d].from < week[d].to)).map(d => [d, "Choose a day off, or opening before closing"]));
+// VIS-09's viewing rules: [field, label, min, max, step]. Unsaved, the form starts from the approved defaults.
+const RULES = [["duration_minutes", "Viewing length (minutes)", 10, 180, 5], ["buffer_minutes", "Margin between viewings (minutes)", 0, 120, 1],
+  ["parish_extra_minutes", "Extra margin for another parish (minutes)", 0, 120, 1], ["max_daily", "Most viewings in a day", 1, 40, 1]];
+const toRules = p => Object.fromEntries(RULES.map(([k]) => [k, String((p ?? DEFAULT_VIEWING_POLICY)[k])]));
 // id: set when the message can take the focus (after a save whose button goes disabled).
 const Msg = ({ m, id }) => m && <p id={id} tabIndex={id ? -1 : undefined} role={m.ok ? "status" : "alert"}
   className={m.ok ? "ok" : "err"}>{m.text}</p>;
@@ -99,6 +104,7 @@ function AddNegotiator({ onAdded, onCancel }) {
 function Negotiator({ n, reload, focus }) {
   const [name, setName] = useState(n.name), [role, setRole] = useState(n.role ?? "");
   const [week, setWeek] = useState(() => toWeek(n.hours)), [shown, setShown] = useState({});
+  const [rules, setRules] = useState(() => toRules(n.viewing_policy));
   const [exc, setExc] = useState({ date: "", kind: "block", allDay: true, from: "10:00", to: "11:00", note: "" });
   const [msgs, setMsgs] = useState({}), [errors, setErrors] = useState({}), [busy, setBusy] = useState(null);
   const heading = useRef(null), excHeading = useRef(null), focusMsg = useRef(null);
@@ -109,7 +115,10 @@ function Negotiator({ n, reload, focus }) {
   const detailsDirty = name.trim() !== n.name || role.trim() !== (n.role ?? "");
   const hoursDirty = JSON.stringify(toHours(week)) !== JSON.stringify(toHours(toWeek(n.hours)));
   const excDirty = exc.date !== "" || exc.note.trim() !== "";
-  const dirty = detailsDirty || hoursDirty || excDirty;
+  // viewing_policy is absent while VIS-09's gate is off, null when none is saved yet.
+  const rulesShown = n.viewing_policy !== undefined;
+  const rulesDirty = rulesShown && JSON.stringify(rules) !== JSON.stringify(toRules(n.viewing_policy));
+  const dirty = detailsDirty || hoursDirty || excDirty || rulesDirty;
   useEffect(() => { setUnsaved(dirty); return () => setUnsaved(false); }, [dirty]);
 
   // One request at a time (presses meanwhile are ignored; the buttons stay enabled so they keep the focus); its message
@@ -143,6 +152,12 @@ function Negotiator({ n, reload, focus }) {
     setShown(local);
     if (Object.keys(local).length) return setMsgs(m => ({ ...m, hours: { text: "Please check the highlighted days." } }));
     run("hours", () => put({ hours: toHours(week) }), "Hours saved. The website offers the new times straight away.", true);
+  };
+  const saveRules = e => {
+    e.preventDefault();
+    const body = { ...Object.fromEntries(RULES.map(([k]) => [k, Number(rules[k])])), revision: n.viewing_policy?.revision ?? 0 };
+    run("rules", () => api(`/admin/negotiators/${n.id}/viewing-policy`, { method: "PUT", body }),
+      "Viewing rules saved. New bookings follow them straight away.", true);
   };
   const addException = async e => {
     e.preventDefault();
@@ -206,6 +221,19 @@ function Negotiator({ n, reload, focus }) {
         {hoursDirty && <span className="unsaved">Unsaved changes</span>}</div>
       <Msg m={msgs.hours} id="m-hours" />
     </form>
+
+    {rulesShown && <form onSubmit={saveRules} aria-labelledby="h-rules" aria-describedby="d-rules">
+      <h3 id="h-rules">Viewing rules</h3>
+      <p id="d-rules" className="muted">{n.viewing_policy ? "Times that would break these rules are not offered, on the website or here."
+        : `Not set: ${n.name}'s viewings last ${SLOT_MINUTES} minutes with a 15-minute margin and no daily limit. Saving applies the rules below instead. They can be changed later, not removed.`}</p>
+      <div className="inline">{RULES.map(([k, label, min, max, step]) => <label key={k}>{label}
+        <input type="number" inputMode="numeric" required min={min} max={max} step={step} value={rules[k]}
+          onChange={e => setRules(r => ({ ...r, [k]: e.target.value }))} {...invalid(errors.rules?.[k], `e-rules-${k}`)} /></label>)}</div>
+      {RULES.map(([k]) => errors.rules?.[k] && <small key={k} id={`e-rules-${k}`} className="err">{errors.rules[k]}</small>)}
+      <div className="inline"><button className="btn" disabled={n.viewing_policy && !rulesDirty}>{busy === "rules" ? "Saving…" : "Save viewing rules"}</button>
+        {rulesDirty && <span className="unsaved">Unsaved changes</span>}</div>
+      <Msg m={msgs.rules} id="m-rules" />
+    </form>}
 
     <section aria-labelledby="h-exc">
       <h3 id="h-exc" ref={excHeading} tabIndex={-1}>Exceptions</h3>
