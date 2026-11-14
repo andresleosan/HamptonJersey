@@ -16,6 +16,7 @@ Ordenado por cuántas tareas abiertas desbloquea cada cosa (`node scripts/avanza
 | ANA-09 | 7 | Crear la regla de límite de peticiones en Cloudflare WAF. |
 | PRE-28 | 7 | Verificar titularidad de las cuentas de Hampton y la operación de Optimyze. |
 | PRE-33 | 7 | Preparar y enviar el paquete para el abogado de Jersey. |
+| PRE-14 | 0 | Crear el bucket R2 privado de copias, un token con permiso solo de exportar D1 y la clave de recuperación que custodia Luis; sin eso la copia semanal cifrada no puede encenderse. |
 
 ## Migraciones e interruptores que esperan su sí
 
