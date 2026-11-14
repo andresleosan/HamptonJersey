@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "New tenancy y Renew muestran avisos para revisión jurídica sobre ámbito, plazo fijo y premium/key money. Renew deja de cambiar la etiqueta 2011/2025 solo por fecha, conserva datos y detecta un cambio concurrente de esa etiqueta; la ficha y el asistente aclaran que es un dato registrado no verificado. Fuentes y límites en la evidencia ADM-20.",
-  "falta": "Depende de ADM-17 y de un abogado de Jersey: política versionada y evidencia aprobada, captura del ámbito y acuerdo con estado desconocido, revisión de etiquetas históricas, validación en todos los caminos de creación/edición/renovación y cargos, y controles de concurrencia y permisos completos. El asistente y otros plazos heredados no quedan jurídicamente validados. No recalificar ni borrar pagos o deudas históricas.",
+  "falta": "Depende de ADM-17 y de un abogado de Jersey: política versionada y evidencia aprobada, captura del ámbito y acuerdo con estado desconocido, revisión de etiquetas históricas, validación en todos los caminos de creación/edición/renovación y cargos, y controles de concurrencia y permisos completos. El asistente y otros plazos heredados no quedan jurídicamente validados. No recalificar ni borrar pagos o deudas históricas. Traído de ADM-17 (14-nov): las vigencias por fecha de acuerdo, el ámbito del alojamiento y la validación por operación (validateTenancyOperation) del plan de ADM-17 se construyen aquí, leyendo los plazos y su estado con readLegal() de server/legal-terms.js; regime2025From sigue como constante en LEGAL.",
   "bloqueo": "JFSC/abogado",
   "evidencia": [
     "docs/roadmap/work/ADM-20/aviso-2026-11-13.md",
@@ -41,5 +41,5 @@
     "legal-parameters"
   ],
   "nextStep": "Completar ADM-17 y la revisión del abogado; integrar ámbito y evidencia con validación y concurrencia en todos los caminos antes de dar la tarea por terminada.",
-  "actualizado": "2026-11-13"
+  "actualizado": "2026-11-14"
 }

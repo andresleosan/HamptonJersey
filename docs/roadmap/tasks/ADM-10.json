@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "Statements (#/rentals/statements) da por propietario con gestión completa y mes las rentas cobradas, los honorarios, el GST si se configura, las reparaciones cargadas y el neto, y se imprime desde el navegador con Print.",
-  "falta": "No sale sola al cerrar el mes como PDF por email (F5-B), y el GST sigue en 0 hasta confirmar si Hampton está registrado.",
+  "falta": "No sale sola al cerrar el mes como PDF por email (F5-B), y el GST sigue en 0 hasta confirmar si Hampton está registrado. Traído de ADM-17 (14-nov): el GST de la liquidación sale de gst_percent (0 si no hay valor); enlazarlo con el registro GST de Legal terms y decir «not confirmed» en vez de asumir 0 % cuando sea unknown.",
   "bloqueo": "Correo (AUT-17) · Dato de Hampton",
   "evidencia": [
     "admin/src/Statement.jsx:15-71",

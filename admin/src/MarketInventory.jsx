@@ -130,7 +130,7 @@ function Directory({ onStarted }) {
   };
   const accept = async () => {
     if (await send("/admin/market/manifests", { manifest: file.text, sha256: file.sha256 },
-      `Directory accepted. Its ${file.channels} channels are pending review; none can be read yet.`,
+      `Directory accepted. New channels are pending review; channels already reviewed keep their decision.`,
       "The directory was not accepted: the file is not valid, or this revision was already accepted with other contents.")) { setFile(null); retry(); }
   };
   const begin = async revision => {
@@ -149,7 +149,7 @@ function Directory({ onStarted }) {
     {file && <div>
       <p>Revision {file.revision} · {file.channels} channels from {file.sources} sources
         <br />Fingerprint (SHA-256): <code>{file.sha256}</code></p>
-      <p className="muted">Check the fingerprint against the one given with the file. Accepting adds every channel as pending review. It does not allow reading any source.</p>
+      <p className="muted">Check the fingerprint against the one given with the file. Accepting adds new channels as pending review and keeps decisions already reviewed. It does not allow reading any new source.</p>
       <button type="button" className="btn sm" disabled={busy} onClick={accept}>Accept directory</button>
     </div>}
     {msg && <p role={msg.err ? "alert" : "status"} className={msg.err ? "err" : "ok"}>{msg.err || msg.ok}</p>}

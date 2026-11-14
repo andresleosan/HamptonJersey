@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "Checks de cada vivienda (Rental dwelling licence, EICR, Gas safety si hay gas, Smoke and CO alarms) con Update y caducidad, y plazos del contrato (depósito protegido en 30 días, Check-in y Check-out report en 7); avisan a 60, 30 y 7 días en Checks and deadlines, y lo vencido o «Not recorded» sale en rojo y suma en el contador.",
-  "falta": "No se siguen los 29 riesgos de la Order de 2018, la copia al inquilino en 28 días de la licencia y del EICR, el aviso de cambios de la licencia en 28 días, el checklist eléctrico anual o al cambiar de inquilino ni el aviso de datos prescritos que va con el depósito en sus 30 días (§7.3), y lo vencido sale en Rentals pero no en el Inbox.",
+  "falta": "No se siguen los 29 riesgos de la Order de 2018, la copia al inquilino en 28 días de la licencia y del EICR, el aviso de cambios de la licencia en 28 días, el checklist eléctrico anual o al cambiar de inquilino ni el aviso de datos prescritos que va con el depósito en sus 30 días (§7.3), y lo vencido sale en Rentals pero no en el Inbox. Traído de ADM-17 (14-nov): las ventanas de aviso a 60, 30 y 7 días y la renovación a 90 días siguen como constantes en LEGAL; si deben ser editables, añadirlas a los plazos de ADM-17. Lo calculado con plazos sin validar ya lleva el rótulo.",
   "bloqueo": "",
   "evidencia": [
     "server/rentals.js:8-17",

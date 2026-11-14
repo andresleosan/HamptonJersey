@@ -102,7 +102,9 @@ export async function reviewSourceAccess(env, input, actor, expectedVersion, clo
   if (!current || current.policy_version !== expectedVersion) conflict();
   // The reviewer may classify an external channel in the same decision; only "general" can be granted.
   const sourceClass = next.source_class ?? current.source_class;
-  if (next.source_class && current.source_kind !== 'external') conflict();
+  // A class the directory marked as restricted is not the reviewer's to lift.
+  if (next.source_class && (current.source_kind !== 'external' ||
+      ['homely','places','properties'].includes(current.source_class))) conflict();
   if (granting && (current.source_kind === 'external' ?
     sourceClass !== 'general' || current.manifest_status !== 'accepted' || next.method === 'internal' :
     current.source_class !== 'internal' || next.method !== 'internal')) conflict();

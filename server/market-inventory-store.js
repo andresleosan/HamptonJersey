@@ -98,7 +98,8 @@ const manifestRow = (db, revision) => primary(db).prepare(
 
 // A signed-in admin accepts the exact bytes of a directory manifest: the fingerprint they confirmed is
 // checked here against what arrived. Access fields in the file are ignored; every new channel is pending.
-// A later revision moves the channels it lists and keeps each channel's reviewed decision and class.
+// A later revision moves the channels it lists and keeps each channel's reviewed decision and class, except that a
+// channel coming from a revoked directory, or one the new revision classes as restricted, goes back to pending.
 export async function acceptDirectoryManifest(env, input, actor, clock = () => new Date()) {
   if (!input || typeof input.manifest !== 'string' || typeof input.sha256 !== 'string' || !id(actor) ||
       await sha256(input.manifest) !== input.sha256) bad();
@@ -126,7 +127,12 @@ export async function acceptDirectoryManifest(env, input, actor, clock = () => n
         SELECT json_extract(value,'$[0]'),json_extract(value,'$[1]'),?,'external',json_extract(value,'$[2]'),json_extract(value,'$[3]')
         FROM json_each(?) WHERE true
         ON CONFLICT(source_ref,channel_id) DO UPDATE SET directory_revision=excluded.directory_revision,
-          next_action=excluded.next_action,policy_version=market_sources.policy_version+1
+          next_action=excluded.next_action,policy_version=market_sources.policy_version+1,
+          source_class=CASE WHEN excluded.source_class IN ('homely','places','properties') THEN excluded.source_class
+            ELSE market_sources.source_class END,
+          access_status=CASE WHEN excluded.source_class IN ('homely','places','properties') OR COALESCE((SELECT status
+            FROM market_directory_manifests WHERE revision=market_sources.directory_revision),'')<>'accepted'
+            THEN 'pending' ELSE market_sources.access_status END
         WHERE market_sources.source_kind='external'`).bind(parsed.revision, JSON.stringify(rows)),
     ]);
   } catch (error) {

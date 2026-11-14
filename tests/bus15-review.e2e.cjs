@@ -79,7 +79,10 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    await batch(2).focus();await page.keyboard.press('Enter');
    await page.getByRole('alert').filter({hasText:'Shortlisted 1 of 2. The search changed. Reload to see it.'}).waitFor();
    await page.unroute('**/api/admin/matches/*');
-   await batch(0).waitFor();assert.equal(await group('found').locator('.match').count(),1);
+   await batch(0).waitFor();
+   // The list reloads after the partial save: wait for it to settle instead of counting mid-reload.
+   for(let i=0;i<50&&await group('found').locator('.match').count()!==1;i++)await page.waitForTimeout(100);
+   assert.equal(await group('found').locator('.match').count(),1);
    assert.equal(await group('found').getByRole('checkbox',{name:`Select ${home(4)}`,exact:true}).isChecked(),false,'the selection never carries over');
    await group('found').getByRole('checkbox',{name:`Select ${home(4)}`,exact:true}).focus();await page.keyboard.press('Space');
    await batch(1).focus();await page.keyboard.press('Enter');

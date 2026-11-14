@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "tercero",
   "hecho": "Change rent incluye el Rent assistant: con el RPI de Jersey que guarda el equipo calcula la renta máxima y la primera fecha posible (12 meses desde el último cambio y 2 meses de aviso) en contratos de la ley 2025; en los de 2011 pide consultar a un abogado.",
-  "falta": "No prepara la carta de aviso al inquilino, que necesita una plantilla validada por un abogado de Jersey (F5-B).",
+  "falta": "No prepara la carta de aviso al inquilino, que necesita una plantilla validada por un abogado de Jersey (F5-B). Traído de ADM-17 (14-nov): la carta de aviso de renta solo debe emitirse si los plazos están «validated» (readLegal(env).terms.status); el aviso y el intervalo de renta ya salen de los plazos guardados.",
   "bloqueo": "JFSC/abogado",
   "evidencia": [
     "server/rentals.js:46-60",
@@ -33,5 +33,6 @@
     "rentals-ui",
     "legal-parameters"
   ],
-  "nextStep": "Obtener la plantilla validada por el abogado y añadir la carta de revisión de renta."
+  "nextStep": "Obtener la plantilla validada por el abogado y añadir la carta de revisión de renta.",
+  "actualizado": "2026-11-14"
 }

@@ -68,7 +68,7 @@ const { chromium, webkit } = require(process.env.PW || 'playwright-core');
       await page.getByText(fingerprint).waitFor();
       assert.equal(posted.length,0);
       await page.getByRole('button',{name:'Accept directory'}).click();
-      await page.getByText('Directory accepted. Its 2 channels are pending review; none can be read yet.').waitFor();
+      await page.getByText('Directory accepted. New channels are pending review; channels already reviewed keep their decision.').waitFor();
       assert.deepEqual(posted[0],['manifests',{manifest:directory,sha256:fingerprint}]);
       await page.getByText(/Revision bus23-synthetic · 2 channels · Accepted/).waitFor();
 

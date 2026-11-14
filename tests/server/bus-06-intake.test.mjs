@@ -94,6 +94,24 @@ test('a later revision moves the channels it lists and keeps each reviewed decis
     ['portal-h', 'bus23-fixture-1', 'homely', 'pending', 1, 'excluded_by_project']]);
 });
 
+test('a later revision never reopens a channel of a revoked directory nor one it classes as restricted', async () => {
+  const { env, cookie } = await ready();
+  await accept(env, cookie);
+  assert.equal((await review(env, cookie)).status, 200);
+  assert.equal((await review(env, cookie, { source_ref: 'agency-b', operation_id: op(91) })).status, 200);
+  env.DB.raw.prepare("UPDATE market_directory_manifests SET status='revoked' WHERE revision='bus23-fixture-1'").run();
+  const next = candidate('bus23-fixture-2', [channel('agency-a', 'web')]);
+  assert.equal((await accept(env, cookie, next)).status, 201);
+  const state = ref => Object.values(env.DB.raw.prepare('SELECT source_class,access_status FROM market_sources WHERE source_ref=?').get(ref));
+  assert.deepEqual(state('agency-a'), ['general', 'pending'], 'a revoked directory leaves its decision behind');
+  // The directory itself now says the channel is Homely: it closes and the reviewer cannot class it back to general.
+  const third = candidate('bus23-fixture-3', [channel('agency-a', 'web', { source_class: 'homely' })]);
+  assert.equal((await accept(env, cookie, third)).status, 201);
+  assert.deepEqual(state('agency-a'), ['homely', 'pending']);
+  assert.equal((await review(env, cookie, { version: 4, operation_id: op(92) })).status, 409);
+  assert.deepEqual(state('agency-a'), ['homely', 'pending']);
+});
+
 test('a reviewed channel takes a manual batch; unread channels stay pending and are never counted as empty', async () => {
   const { env, cookie } = await ready();
   await accept(env, cookie);

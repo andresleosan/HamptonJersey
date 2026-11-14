@@ -32,3 +32,16 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [BUS-15] Guardar las versiones revisadas también en columnas de `matches` · evita cruzar con `events` en cada comprobación de APPROVED y sobrevive a una purga de eventos · 14-nov-2026
 - [BUS-15] Registrar Skip como decisión «pendiente» con responsable · hoy dejar pendiente no deja rastro · 14-nov-2026
 - [BUS-15] Las casillas del lote siguen marcadas al volver a una página de Found; mostrar la versión revisada en el Timeline; e2e con comparación por criterio real y pasada en WebKit · 14-nov-2026
+- [PUB-07] Emisor y fecha de emisión de licencia y certificado; elegir la referencia entre los PDF de Private documents; historial con valor anterior y nuevo · el spec los da como opcionales · 14-nov-2026
+- [PUB-07] Permitir anotar el abogado del vendedor antes de que exista expediente de venta · hoy solo tras aceptar una oferta · 14-nov-2026
+- [PUB-07] Avisar de licencia o certificado caducado fuera del editor (Inbox o tarea) · hoy solo se ve al abrir la ficha · 14-nov-2026
+- [ADM-17] Mostrar el historial de versiones en Legal terms; exigir que quien marca «validated» no sea quien editó los valores · hoy basta un admin con referencia y fecha · 14-nov-2026
+- [ADM-17] Cambiar un plazo no recalcula las caducidades ya guardadas en `compliance_items` · avisarlo en pantalla · 14-nov-2026
+- [ADM-17] Rótulo del Inbox sin prueba de navegador (el fixture no dispara el reloj); el tercer elemento de `COMPLIANCE` (años) ya no se usa · 14-nov-2026
+- [E2E] El lanzador aislado no sigue un `node_modules` enlazado con symlink (tar guarda el enlace) · en worktrees de subagentes usar `cp -al` o `tar -h` · 14-nov-2026
+- [BUS-06] Formulario de anuncio campo a campo en vez de pegar JSON · el equipo de Hampton no es técnico · 14-nov-2026
+- [BUS-06] Eximir la carga manual del intervalo mínimo de 60 s por canal; un lote rechazado tras tomar el canal lo bloquea 2 minutos · hoy 10 anuncios por minuto y canal · 14-nov-2026
+- [BUS-06] Registrar quién cierra una tanda y hacer el cierre idempotente; ruta para revocar un manifiesto aceptado; etiqueta legible por canal (hoy hashes) · 14-nov-2026
+- [BUS-06] La cobertura muestra el acceso guardado, no el efectivo (una revisión vencida ofrece subir y el servidor responde 409); cualquier 409 al abrir tanda dice «A batch is already open» · 14-nov-2026
+- [BUS-06] El cambio de versión por manifiesto no deja fila en `market_source_policy_history`; un archivo con BOM nunca se acepta (falla cerrado) · revisión independiente 14-nov · 14-nov-2026
+- [BUS-19] Selector de fecha y ayuda en línea en la revisión («Review due» exige ISO UTC a mano; referencias sin espacios) · 14-nov-2026
