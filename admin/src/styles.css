@@ -492,6 +492,7 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .automations{display:grid;gap:16px} .automations .head{margin:0}
 .automations .card{display:grid;gap:8px} .automations .card :is(h2,h3,p,ul,.inline){margin:0} .automations h3{font-size:16px;margin-top:8px}
 .automations ul{padding-left:20px} .automations .inline{align-items:center} .automations .btn{min-height:32px}
+.automations select{max-width:100%;width:fit-content}
 @media (max-width:760px){.list.jobs tr{grid-template-columns:1fr auto;border-bottom:1px solid var(--line)}.list.jobs tr:last-child{border-bottom:0}.list.jobs td:first-child{grid-row:auto;overflow-wrap:anywhere}
   .list.jobs td[data-label]{grid-column:1/-1}.list.jobs td[data-label]::before{content:attr(data-label) ": ";color:var(--stone);font-size:12px}}
 /* PUB-01 Add new property: the import zone is a drop target, not a button; its two buttons open the pickers. */

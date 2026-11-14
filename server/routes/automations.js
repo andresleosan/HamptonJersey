@@ -1,4 +1,5 @@
-import { json, now } from "../http.js";
+import { json, now, readJson } from "../http.js";
+import { modesReady, readOperationModes, setOperationMode } from "../operation-modes.js";
 import { jobLastActivity } from "../retention.js";
 import { readWebchat } from "./chats.js";
 
@@ -14,7 +15,7 @@ export const stoppedFlags = (clockAt, hermesAt, nowMs) => ({
 
 const CLOSED_AT = jobLastActivity("j"); // A7: when a used, discarded or failed job closed
 
-async function automations({ env }) {
+async function automations({ env, admin }) {
   const since = new Date(Date.now() - 30 * 86400e3).toISOString();
   const [{ results: settings }, { results: month }, { results: waiting }, { results: recent }] = await env.DB.batch([
     env.DB.prepare("SELECT key, value FROM app_settings WHERE key IN ('clock', 'retention_run', 'hermes', 'webchat')"),
@@ -36,6 +37,8 @@ async function automations({ env }) {
     hermes: { at: hermes?.at ?? null, stopped: stopped.hermes, month: { used: n("used"), discarded: n("discarded"), failed: n("failed") },
       waiting, recent: recent.map(({ requested_by, ...j }) => ({ ...j, by: requested_by === "hermes" ? "Hermes" : "Team" })) },
     webchat: readWebchat(settings.find(s => s.key === "webchat")?.value),
+    // AUT-10: absent while the flag is off, so the screen is exactly as before.
+    ...(modesReady(env) && { modes: await readOperationModes(env, admin) }),
   });
 }
 
@@ -53,6 +56,13 @@ export async function pauseOutbound(env, by) {
 }
 
 const pause = async ({ env, admin }) => json({ outbound: await pauseOutbound(env, admin) });
+
+// AUT-10: mounted by server/api.js only when AUT10_MODES_READY is '1'.
+const setMode = async ({ request, env, admin }) => {
+  const { status, policy } = await setOperationMode(env, admin, await readJson(request, 1024));
+  return json(status === 409 ? { error: "Someone changed this mode first. Here is the current one.", policy } : { policy }, status);
+};
+export const modeRoutes = [["POST", /^\/admin\/automations\/modes$/, setMode, true]];
 
 export default [
   ["GET", /^\/admin\/automations$/, automations, true],

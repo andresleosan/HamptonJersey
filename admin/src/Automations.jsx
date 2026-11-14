@@ -4,6 +4,7 @@ import { fmtDate, fmtDay } from "./format.js";
 import MarketInventory from "./MarketInventory.jsx";
 import SourceAccessReview from "./SourceAccessReview.jsx";
 import EmailSettings from "./EmailSettings.jsx";
+import AutomationModes from "./AutomationModes.jsx";
 
 // AUT-01 (spec 2026-11-01): what runs on its own, when it last ran and whether it has stopped. The bar's counts poll
 // carries the stopped count and the pause (stalled and outbound, from App); the screen loads again when stalled changes,
@@ -62,6 +63,7 @@ export default function Automations({ stalled, outbound, onChange }) {
       </table> : <p className="muted">No jobs yet.</p>}
     </article>
 
+    {d.modes && <AutomationModes initial={d.modes} />}
     <WebChat initial={d.webchat} />
     <EmailSettings />
     <MarketInventory />

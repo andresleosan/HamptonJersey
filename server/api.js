@@ -21,7 +21,7 @@ import rentRoutes from "./routes/rent.js";
 import reportRoutes from "./routes/report.js";
 import interestRoutes from "./routes/interest.js";
 import hermesRoutes, { hermesDoor } from "./routes/hermes.js";
-import automationRoutes from "./routes/automations.js";
+import automationRoutes, { modeRoutes } from "./routes/automations.js";
 import queueRoutes from "./routes/queue.js";
 import chatRoutes from "./routes/chat.js";
 import chatAdminRoutes from "./routes/chats.js";
@@ -54,7 +54,9 @@ async function route(request, env, segments, waitUntil) {
     if (segments[0] === "qa") return await qaRoute({request, env, path, segments});
     // Market tables require a separate migration and source review. New routes
     // stay absent unless the deployment explicitly enables the completed slice.
-    const routes = env.MARKET_INVENTORY_READY === '1' ? [...ROUTES, ...marketInventoryRoutes] : ROUTES;
+    let routes = env.MARKET_INVENTORY_READY === '1' ? [...ROUTES, ...marketInventoryRoutes] : ROUTES;
+    // AUT-10: the mode switch exists only with its migration (0054) and flag.
+    if (env.AUT10_MODES_READY === '1') routes = [...routes, ...modeRoutes];
     for (const [m, re, handler, auth] of routes) {
       const hit = m === method && re.exec(path);
       if (!hit) continue;
