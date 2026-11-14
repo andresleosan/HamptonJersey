@@ -35,7 +35,7 @@
       "preferredSlot": "vscode",
       "priority": 100,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -1817,7 +1817,7 @@
       "preferredSlot": "vscode",
       "priority": 147,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -4714,7 +4714,7 @@
       "preferredSlot": "vps",
       "priority": 225,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -8933,10 +8933,10 @@
       "titulo": "Inbox en tiempo real con un aviso por cada novedad de la app y de la web",
       "origen": "texto",
       "fase": "F0",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Inbox de eventos y pendientes actuales construido y publicado en main 79ddcb0, con Feed atómico de hechos existentes, conciliación por lotes, destinos validados y alertas urgentes opcionales. La consulta histórica sin migraciones pendientes del 11-nov corresponde al árbol b544c2e, que incluía 0033. Las 987 pruebas JS, 14 Python y el navegador focal 1280/390/zoom son comprobaciones locales históricas, no pruebas nuevas en producción.",
-      "falta": "Integrar los productores aún no construidos de MUST desconocido, fuente fallida, llamada/respuesta útil, captura completa/parcial, revisión interna del día 21 y propuesta dictada. Existe adaptador interno y fixtures, no evidencia de esos módulos en producción. Los canales reales y categorías adicionales siguen sus propias tareas; no se repitió una prueba MCP o autenticada de producción en esta conciliación.",
+      "hecho": "Inbox de eventos y pendientes publicado (79ddcb0): Feed atómico de los hechos que la app ya produce, conciliación por lotes, destinos validados y alertas urgentes opcionales; contrato de productor listo para módulos nuevos. 14-nov-2026: cierre por aceptación propia (skill §3); migrations list --remote: 0033 aplicada. Pruebas focales actuales en verde. (notification-events/producers/reconcile, browser-alerts).",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "migrations/0033_notification_events.sql",
@@ -8951,7 +8951,8 @@
         "tests/notification-events.e2e.cjs",
         "docs/roadmap/work/NOT-01/producer-evidence.md",
         "docs/superpowers/plans/2026-11-09-not-01-event-inbox-build-ledger.md",
-        "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md"
+        "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md",
+        "Decisión: productores de otros módulos pasan al falta de su tarea (skill §3)."
       ],
       "modulo": "M13",
       "deps": [
@@ -8988,8 +8989,8 @@
         "rentals-contract",
         "listings-contract"
       ],
-      "nextStep": "Conectar los productores reales al contrato de Inbox cuando existan, sin repetir la publicación histórica ni acreditar módulos ausentes.",
-      "actualizado": "2026-11-13"
+      "nextStep": "Ninguno. Cada módulo nuevo emite su aviso con el contrato existente (anotado en BUS-12, BUS-06, AGE-06, AGE-08, SPR-03, BUS-17 y AUT-19).",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "NOT-02",
@@ -9916,7 +9917,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M07 · Reconciliación 7-nov: Al confirmar disponibilidad por correo útil o llamada registrada, enriquecer una ficha común con datos completos y fotos originales, URL, fecha y evidencia. Captura completa/parcial/fallida visible y reintentos sin duplicados; no afirmar éxito si falta algún archivo. Crear tarea Abrir ficha para revisar, corregir, ver incumplimientos/datos pendientes, abrir origen y descargar fotos individuales, selección o ZIP y datos en formato a concretar. La misma ficha sirve a varios clientes; las versiones aptas para el cliente se gestionan en AGE-10. Depende de: AGE-06, BUS-10, EST-13. Aceptación: Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos.",
+      "falta": "M07 · Reconciliación 7-nov: Al confirmar disponibilidad por correo útil o llamada registrada, enriquecer una ficha común con datos completos y fotos originales, URL, fecha y evidencia. Captura completa/parcial/fallida visible y reintentos sin duplicados; no afirmar éxito si falta algún archivo. Crear tarea Abrir ficha para revisar, corregir, ver incumplimientos/datos pendientes, abrir origen y descargar fotos individuales, selección o ZIP y datos en formato a concretar. La misma ficha sirve a varios clientes; las versiones aptas para el cliente se gestionan en AGE-10. Depende de: AGE-06, BUS-10, EST-13. Aceptación: Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: captura completa o parcial.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:96",
@@ -9965,7 +9966,8 @@
         "media-pipeline",
         "notifications-schema"
       ],
-      "nextStep": "Construir captura común tras confirmación, con estados parciales y descargas verificables."
+      "nextStep": "Construir captura común tras confirmación, con estados parciales y descargas verificables.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "SPR-04",
@@ -10455,7 +10457,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M06 · Reconciliación 7-nov: Vincular respuestas con la propiedad y la consulta, distinguir respuesta útil de acuse automático/ambigua y guardar evidencia, fuente y fecha. Confirmaciones humanas posteriores prevalecen ante anuncios antiguos; contradicciones van a revisión. El empleado puede registrar llamada disponible/no disponible/inconclusa, persona que confirma, alcance y condiciones. Repercutir disponibilidad y pendientes sobre matches y tareas relacionados; no inferir que una respuesta general acepta todos los hogares ni que confirma la visita. La IA, si se usa, extrae una propuesta revisable y no negocia comisión. Depende de: AGE-03, AGE-05, EST-13. Aceptación: Una respuesta automática mantiene pendiente; una llamada humana confirmada actualiza todas las gestiones afectadas sin cerrar búsquedas.",
+      "falta": "M06 · Reconciliación 7-nov: Vincular respuestas con la propiedad y la consulta, distinguir respuesta útil de acuse automático/ambigua y guardar evidencia, fuente y fecha. Confirmaciones humanas posteriores prevalecen ante anuncios antiguos; contradicciones van a revisión. El empleado puede registrar llamada disponible/no disponible/inconclusa, persona que confirma, alcance y condiciones. Repercutir disponibilidad y pendientes sobre matches y tareas relacionados; no inferir que una respuesta general acepta todos los hogares ni que confirma la visita. La IA, si se usa, extrae una propuesta revisable y no negocia comisión. Depende de: AGE-03, AGE-05, EST-13. Aceptación: Una respuesta automática mantiene pendiente; una llamada humana confirmada actualiza todas las gestiones afectadas sin cerrar búsquedas. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: respuesta útil recibida.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297-299",
@@ -10502,7 +10504,8 @@
         "inventory-contract",
         "notifications-schema"
       ],
-      "nextStep": "Registrar respuestas útiles y llamadas con alcance, evidencia y actualización coherente de gestiones."
+      "nextStep": "Registrar respuestas útiles y llamadas con alcance, evidencia y actualización coherente de gestiones.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "AGE-08",
@@ -10513,7 +10516,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M06 · Reconciliación 7-nov: Tras dos días desde el envío real sin respuesta útil, crear una única tarea de llamada con propiedad, anunciante, mensaje, historial, clientes y todos los teléfonos identificados. Una respuesta que llega antes de llamar actualiza o resuelve la tarea según lo confirmado. Registrar disponible, no disponible o inconcluso; una llamada sin contestar no prueba indisponibilidad. Sustituye el antiguo encadenamiento de recordatorios por correo. Naturales/laborables, hora y fines de semana siguen pendientes de decisión; conservar estadísticas de respuesta como mejora separada. Depende de: AGE-05, AGE-06, AGE-04, AUT-07, NOT-11. Aceptación: Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea.",
+      "falta": "M06 · Reconciliación 7-nov: Tras dos días desde el envío real sin respuesta útil, crear una única tarea de llamada con propiedad, anunciante, mensaje, historial, clientes y todos los teléfonos identificados. Una respuesta que llega antes de llamar actualiza o resuelve la tarea según lo confirmado. Registrar disponible, no disponible o inconcluso; una llamada sin contestar no prueba indisponibilidad. Sustituye el antiguo encadenamiento de recordatorios por correo. Naturales/laborables, hora y fines de semana siguen pendientes de decisión; conservar estadísticas de respuesta como mejora separada. Depende de: AGE-05, AGE-06, AGE-04, AUT-07, NOT-11. Aceptación: Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: llamada a los dos días sin respuesta.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:295",
@@ -10576,7 +10579,8 @@
         "jobs-clock",
         "notifications-schema"
       ],
-      "nextStep": "Crear una única llamada pendiente a los dos días sin respuesta útil, tras definir cómputo de días y horarios."
+      "nextStep": "Crear una única llamada pendiente a los dos días sin respuesta útil, tras definir cómputo de días y horarios.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "AGE-09",
@@ -11044,10 +11048,10 @@
       "titulo": "Ver en el calendario, sin datos, que otra persona ya tiene cita para esa casa",
       "origen": "texto",
       "fase": "F3-A",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "El calendario muestra horas ocupadas sin datos personales y, en producción, el total de visitas confirmadas futuras de la propiedad esta semana en Jersey, visible desde dos.",
-      "falta": "Pendiente integrar estados multiparte VIS-17/VIS-08 y plazas confirmadas de grupos VIS-14 cuando existan. No se contabilizan solicitudes como confirmadas.",
+      "hecho": "El calendario muestra horas ocupadas sin datos personales y, en producción, el total de visitas confirmadas futuras de la propiedad esta semana en Jersey, visible desde dos; las solicitudes no cuentan como confirmadas. 14-nov-2026: cierre por aceptación propia (skill §3); public-viewing-summary en verde.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "site/index.html:506-507",
@@ -11068,7 +11072,8 @@
         "viewings-contract",
         "viewings-ui"
       ],
-      "nextStep": "Integrar visitas multiparte y grupos cuando sus productores estén disponibles; mantener la tarea parcial hasta completar sus criterios."
+      "nextStep": "Ninguno. Los estados multiparte y las plazas de grupo se muestran cuando existan (VIS-17, VIS-08, VIS-14).",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "VIS-07",
@@ -11109,7 +11114,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Viewings tiene las pestañas Requests, Upcoming, Needs outcome y Past, los botones Confirm, Reschedule, Mark completed, No-show y Cancel viewing, y New viewing para reservas por teléfono ya confirmadas. Las peticiones antiguas se migraron (new → Requested, contacted → Confirmed).",
-      "falta": "M09 · Reconciliación 7-nov: Faltan los estados Reminded y Feedback received, que llegan con los recordatorios y el formulario al aplicante (F3-B). Extender el ciclo actual a propuestas de terceros y confirmaciones individuales: solicitada, por coordinar, propuesta, pendiente de confirmaciones, confirmada, realizada o cancelada. Mantener contactos e instrucciones juntos, actualizar reprogramaciones y no cerrar la búsqueda por ningún estado de visita. Depende de: VIS-17. Aceptación: Una propuesta incompleta no aparece confirmada ni provoca cierre de búsqueda.",
+      "falta": "M09 · Reconciliación 7-nov: Faltan los estados Reminded y Feedback received, que llegan con los recordatorios y el formulario al aplicante (F3-B). Extender el ciclo actual a propuestas de terceros y confirmaciones individuales: solicitada, por coordinar, propuesta, pendiente de confirmaciones, confirmada, realizada o cancelada. Mantener contactos e instrucciones juntos, actualizar reprogramaciones y no cerrar la búsqueda por ningún estado de visita. Depende de: VIS-17. Aceptación: Una propuesta incompleta no aparece confirmada ni provoca cierre de búsqueda. Reflejar sus estados confirmados o plazas en el calendario ocupado de VIS-06, sin datos personales.",
       "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "migrations/0010_viewings.sql:40",
@@ -11152,7 +11157,8 @@
         "agency-consultations-contract",
         "notifications-schema"
       ],
-      "nextStep": "Extender las visitas a propuestas y confirmaciones multiparte; añadir recordatorio y feedback cuando sus canales existan."
+      "nextStep": "Extender las visitas a propuestas y confirmaciones multiparte; añadir recordatorio y feedback cuando sus canales existan.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "VIS-09",
@@ -11345,7 +11351,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "El sistema no detecta varias peticiones para la misma casa ni propone huecos seguidos u open viewing con reserva. Hoy solo existe la línea de texto «Open viewing: fecha» en la ficha, que la web oculta cuando pasa el día.",
+      "falta": "El sistema no detecta varias peticiones para la misma casa ni propone huecos seguidos u open viewing con reserva. Hoy solo existe la línea de texto «Open viewing: fecha» en la ficha, que la web oculta cuando pasa el día. Reflejar sus estados confirmados o plazas en el calendario ocupado de VIS-06, sin datos personales.",
       "bloqueo": "",
       "evidencia": [
         "site/lib.js:20-26",
@@ -11412,7 +11418,8 @@
         "viewings-contract",
         "viewings-ui"
       ],
-      "nextStep": "Integrar las guardas de acceso, capacidad y coordinación del plan antes de habilitar reservas de grupos."
+      "nextStep": "Integrar las guardas de acceso, capacidad y coordinación del plan antes de habilitar reservas de grupos.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "VIS-15",
@@ -11505,7 +11512,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M09 · Reconciliación 7-nov: Coordinar visita con propiedad, búsqueda, anunciante y empleado. Reutilizar franjas REG-17 y permitir actualizarlas para esta cita; cruzar horarios de cliente, anunciante y empleado si asiste. Proponer opciones y guardar cada aceptación necesaria; confirmar solo cuando estén completas, sin condicionar la visita a un acuerdo de comisión. Reprogramación/cancelación actualizan la misma visita y tareas, y la búsqueda continúa. Depende de: REG-17, AGE-12, AGE-06, EST-13. Aceptación: Una hora propuesta por agencia sigue pendiente hasta aceptar cliente y demás participantes requeridos; la visita confirmada no cierra la búsqueda.",
+      "falta": "M09 · Reconciliación 7-nov: Coordinar visita con propiedad, búsqueda, anunciante y empleado. Reutilizar franjas REG-17 y permitir actualizarlas para esta cita; cruzar horarios de cliente, anunciante y empleado si asiste. Proponer opciones y guardar cada aceptación necesaria; confirmar solo cuando estén completas, sin condicionar la visita a un acuerdo de comisión. Reprogramación/cancelación actualizan la misma visita y tareas, y la búsqueda continúa. Depende de: REG-17, AGE-12, AGE-06, EST-13. Aceptación: Una hora propuesta por agencia sigue pendiente hasta aceptar cliente y demás participantes requeridos; la visita confirmada no cierra la búsqueda. Reflejar sus estados confirmados o plazas en el calendario ocupado de VIS-06, sin datos personales.",
       "bloqueo": "",
       "evidencia": [
         "server/routes/public.js:57-59",
@@ -11563,7 +11570,8 @@
         "agency-consultations-contract",
         "notifications-schema"
       ],
-      "nextStep": "Coordinar franjas y aceptaciones de propiedad, cliente, anunciante y empleado sin cerrar la búsqueda."
+      "nextStep": "Coordinar franjas y aceptaciones de propiedad, cliente, anunciante y empleado sin cerrar la búsqueda.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "VIS-18",
@@ -12299,7 +12307,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M11 · Reconciliación 7-nov: Después de hablar con el cliente, permitir al empleado introducir o dictar solo los cambios aceptados. El bot prepara valores anteriores/propuestos; el empleado confirma o corrige antes de guardar. Conservar versión, fecha, responsable y evidencia de la confirmación; recalcular matches y actualizar acciones/tareas afectadas. Resolver ediciones simultáneas sin sobrescribir silenciosamente. Usar un canal autenticado compatible con las fronteras actuales de datos de Hermes; este plan no habilita clientes ni criterios privados por Telegram. Depende de: REG-11, BUS-12, EST-18. Aceptación: Dictar subir presupuesto no cambia datos hasta confirmar; no altera parking ni otros MUST no mencionados, y al confirmar recalcula sin duplicados.",
+      "falta": "M11 · Reconciliación 7-nov: Después de hablar con el cliente, permitir al empleado introducir o dictar solo los cambios aceptados. El bot prepara valores anteriores/propuestos; el empleado confirma o corrige antes de guardar. Conservar versión, fecha, responsable y evidencia de la confirmación; recalcular matches y actualizar acciones/tareas afectadas. Resolver ediciones simultáneas sin sobrescribir silenciosamente. Usar un canal autenticado compatible con las fronteras actuales de datos de Hermes; este plan no habilita clientes ni criterios privados por Telegram. Depende de: REG-11, BUS-12, EST-18. Aceptación: Dictar subir presupuesto no cambia datos hasta confirmar; no altera parking ni otros MUST no mencionados, y al confirmar recalcula sin duplicados. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: propuesta dictada pendiente de confirmar.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
@@ -12351,7 +12359,8 @@
         "matching-contract",
         "events-contract"
       ],
-      "nextStep": "Diseñar propuesta de criterios con versión y confirmación humana antes de guardar o recalcular."
+      "nextStep": "Diseñar propuesta de criterios con versión y confirmación humana antes de guardar o recalcular.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "AUT-20",
@@ -12784,7 +12793,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones compartidas, observaciones y registro transaccional. Rutas administrativas desactivadas por defecto; migración ensayada solo en bases locales. Candidato documental privado reconciliado con 141 identificadores y 237 canales, sin habilitar accesos. El reconciliador documental rechaza claves JSON duplicadas, también anidadas o equivalentes por escape, y preserva la salida ante rechazo. Vista administrativa de solo lectura para recorridos y cobertura, sujeta al gate existente; pruebas sintéticas y revisión independiente.",
-      "falta": "Faltan la incorporación operativa del manifiesto, lectores controlados, gestión/revisión de fuentes, carga manual y evidencia de captura real. M02 · Reconciliación 7-nov: Crear el inventario inicial por tandas desde el directorio revisado, usando las fuentes operativas disponibles y tareas manuales para las restringidas. Capturar datos suficientes para comparar: operación, tipo, precio y periodicidad originales, ubicación, dormitorios o superficie, ocupación, parking, mascotas, descripción, referencia, anunciante y contactos. La descarga completa de fotos espera a la disponibilidad confirmada (SPR-03). Places.je es un conector posible; PRE-01 no bloquea el inventario ni se exige un acuerdo de comisión para leer un feed utilizable. Depende de: BUS-23, BUS-19, AGE-04. Aceptación: Las fuentes accesibles producen inventario común y las inaccesibles quedan pendientes, sin registrarlas como vacías. La validación y las huellas no autentican al revisor ni autorizan las fuentes. La tarea de llamada debe leer anunciantes y teléfonos del directorio AGE-04 (GET /admin/advertisers?property_id=), sin duplicar contactos.",
+      "falta": "Faltan la incorporación operativa del manifiesto, lectores controlados, gestión/revisión de fuentes, carga manual y evidencia de captura real. M02 · Reconciliación 7-nov: Crear el inventario inicial por tandas desde el directorio revisado, usando las fuentes operativas disponibles y tareas manuales para las restringidas. Capturar datos suficientes para comparar: operación, tipo, precio y periodicidad originales, ubicación, dormitorios o superficie, ocupación, parking, mascotas, descripción, referencia, anunciante y contactos. La descarga completa de fotos espera a la disponibilidad confirmada (SPR-03). Places.je es un conector posible; PRE-01 no bloquea el inventario ni se exige un acuerdo de comisión para leer un feed utilizable. Depende de: BUS-23, BUS-19, AGE-04. Aceptación: Las fuentes accesibles producen inventario común y las inaccesibles quedan pendientes, sin registrarlas como vacías. La validación y las huellas no autentican al revisor ni autorizan las fuentes. La tarea de llamada debe leer anunciantes y teléfonos del directorio AGE-04 (GET /admin/advertisers?property_id=), sin duplicar contactos. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: fuente fallida.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/ESTADO.md:9",
@@ -13145,7 +13154,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Las prioridades y checks residenciales de REG-08 están publicados con 0031. Parking distingue cifra fiable de ambigüedad; el criterio de mascotas queda por confirmar ante condiciones o evidencia contradictoria, sin acreditar compatibilidad. La negativa inequívoca de mascotas para un hogar con animales se excluye desde e589b16; Shortlist y Rejected conservan sus decisiones. Se preparó una instantánea interna de criterios y revisión de cambios de estado, desconectada de rutas y ensayada con datos ficticios. En el cruce residencial, moneda ausente o distinta de GBP se evalúa como precio desconocido; tarjetas y recálculos reciben la misma moneda, conservan decisiones humanas y señalan el orden pendiente de actualizar. La ampliación de presupuesto cuenta solo mejoras comprobables y señala precios cuya moneda o periodo impiden comparar; las otras alternativas conservan su cálculo. Las candidatas residenciales EUR se incluyen con presupuesto desconocido, sin conversión, y la interfaz explica que el precio debe contrastarse; las decisiones humanas se conservan. Se preparó un predicado interno conservador de opción completa con revisiones y disponibilidad explícitas, revisado y aún desconectado. Se preparó un agregado puro que reconoce una opción completa fiable y conserva unknown cuando no puede acreditar el estado; sigue sin productor ni consumidor operativo.",
-      "falta": "Continuar M04: inventario común y evidencia/fechas, confirmación de disponibilidad, criterios comerciales y negocios, y fuentes M02. El estado Stated must-haves met solo certifica los imprescindibles declarados, no todo BUS-12. El CAS por revisión de criterios no está integrado: faltan el esquema aprobado, los escritores y consumidores, y revalidar generación de identidad y permisos. El SQL propuesto permanece fuera de la cola de migraciones. El predicado no acredita la fuente ni la cobertura: antes de concluir ausencia se necesita agregado triestado, DTO fiable y snapshot revalidado. El agregado aún no emite ausencia acreditada y necesita cobertura real, identidad del episodio y revalidación transaccional antes de conectarse.",
+      "falta": "Continuar M04: inventario común y evidencia/fechas, confirmación de disponibilidad, criterios comerciales y negocios, y fuentes M02. El estado Stated must-haves met solo certifica los imprescindibles declarados, no todo BUS-12. El CAS por revisión de criterios no está integrado: faltan el esquema aprobado, los escritores y consumidores, y revalidar generación de identidad y permisos. El SQL propuesto permanece fuera de la cola de migraciones. El predicado no acredita la fuente ni la cobertura: antes de concluir ausencia se necesita agregado triestado, DTO fiable y snapshot revalidado. El agregado aún no emite ausencia acreditada y necesita cobertura real, identidad del episodio y revalidación transaccional antes de conectarse. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: imprescindible desconocido (MUST unknown). Consumir además las condiciones y periodicidades comerciales normalizadas de REG-04.",
       "bloqueo": "",
       "evidencia": [
         "server/matching.js:31-43",
@@ -13227,7 +13236,7 @@
         "market-inventory"
       ],
       "nextStep": "Revisar el esquema y los escritores antes de integrar el CAS y los consumidores; continuar inventario común y condiciones comerciales sin activar la propuesta desconectada.",
-      "actualizado": "2026-11-13"
+      "actualizado": "2026-11-14"
     },
     {
       "id": "BUS-13",
@@ -13404,7 +13413,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Construido el 6-nov-2026 (spec 2026-11-06, decisiones de Luis «1 1 1»). Con menos de 3 casas entre Found y Shortlisted (solo de casas que siguen en el mercado) y la búsqueda activa (Paused incluida), la pestaña Matches de la ficha enseña «Widen criteria»: presupuesto +10 % (sobre el estirado si lo hay; redondeado a £50 al mes o £1,000), la parroquia libre que más casas añade y un dormitorio menos, cada una con cuántas casas nuevas daría, con las mismas reglas del matching y sin contar las rechazadas. «Use this» rellena ese campo en Requirements sin guardar; el equipo lo habla con el aplicante y pulsa Save. Lo que no aplica se oculta. Se calcula al abrir la ficha, sin guardar nada. Se preparó y revisó un cálculo puro para 21 días y repetición a los 7 días en hora Jersey, sin crear tareas ni inferir disponibilidad. Se preparó un agregado puro que reconoce una opción completa fiable y conserva unknown cuando no puede acreditar el estado; sigue sin productor ni consumidor operativo.",
-      "falta": "M10 · Reconciliación 7-nov: La ampliación existente es solo una base parcial. Construir el reloj de 21 días sin coincidencia completa y una tarea interna con hasta 20 alternativas útiles, menos si no hay más. Cada alternativa explica requisitos satisfechos, incumplidos, pendientes y cambio concreto; distinguir restricciones del cliente de información o fuentes incompletas. El equipo elige qué tratar personalmente. No enviar top 20, mensajes de flexibilización ni aplicar criterios automáticamente; la búsqueda sigue activa. Quedan abiertas la comparación de diferencias, el reinicio del reloj y las revisiones posteriores. Depende de: EST-09, BUS-12, BUS-08, NOT-11. Aceptación: Al día 21 se crea una revisión interna explicable, sin correo al cliente ni cambio de criterios, y el día 22 continúa el matching. Para conectarlo faltan el predicado canónico de opción completa, identidad del episodio, una sola revisión abierta y protección transaccional del snapshot. Antes de iniciar ausencia, el consumidor debe acreditar cobertura completa y agregado triestado; false por candidato también puede significar datos insuficientes. El agregado aún no emite ausencia acreditada y necesita cobertura real, identidad del episodio y revalidación transaccional antes de conectarse.",
+      "falta": "M10 · Reconciliación 7-nov: La ampliación existente es solo una base parcial. Construir el reloj de 21 días sin coincidencia completa y una tarea interna con hasta 20 alternativas útiles, menos si no hay más. Cada alternativa explica requisitos satisfechos, incumplidos, pendientes y cambio concreto; distinguir restricciones del cliente de información o fuentes incompletas. El equipo elige qué tratar personalmente. No enviar top 20, mensajes de flexibilización ni aplicar criterios automáticamente; la búsqueda sigue activa. Quedan abiertas la comparación de diferencias, el reinicio del reloj y las revisiones posteriores. Depende de: EST-09, BUS-12, BUS-08, NOT-11. Aceptación: Al día 21 se crea una revisión interna explicable, sin correo al cliente ni cambio de criterios, y el día 22 continúa el matching. Para conectarlo faltan el predicado canónico de opción completa, identidad del episodio, una sola revisión abierta y protección transaccional del snapshot. Antes de iniciar ausencia, el consumidor debe acreditar cobertura completa y agregado triestado; false por candidato también puede significar datos insuficientes. El agregado aún no emite ausencia acreditada y necesita cobertura real, identidad del episodio y revalidación transaccional antes de conectarse. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: revisión interna del día 21.",
       "bloqueo": "",
       "evidencia": [
         "server/widen.js",
@@ -13469,7 +13478,8 @@
         "notifications-schema",
         "search-lifecycle"
       ],
-      "nextStep": "Definir el reloj de 21 días y crear revisión interna explicable de hasta 20 alternativas sin cambiar criterios ni enviar al cliente."
+      "nextStep": "Definir el reloj de 21 días y crear revisión interna explicable de hasta 20 alternativas sin cambiar criterios ni enviar al cliente.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "BUS-18",
@@ -14620,10 +14630,10 @@
       "titulo": "Presupuesto del aplicante",
       "origen": "texto",
       "fase": "F0",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Compra y alquiler tienen búsquedas y presupuestos independientes desde REG-11. REG-08 añade prioridad del presupuesto y muestra el límite final, incluyendo solo el importe extra aceptado; £2000 con stretch£2200 evalúa techo£2200. El código y la migración 0031 están en main; existe evidencia previa de consulta de migraciones sin pendientes. Se preparó normalización comercial desconectada con límites compartidos, unidades explícitas, cero diferenciado y equivalencias mensuales exactas.",
-      "falta": "Integrar y revisar las condiciones y periodicidades comerciales con productores y consumidores autorizados; la normalización no ejecuta matching ni acredita identidad, permisos o vigencia. El techo aceptado no cambia otros criterios. Esta sesión no consultó la base de producción.",
+      "hecho": "La misma persona busca compra y alquiler con búsquedas y presupuestos independientes (REG-11), con prioridad de presupuesto y techo con extra aceptado (REG-08; £2000 + stretch £2200 evalúa £2200). 14-nov-2026: cierre por aceptación propia (skill §3); migrations list --remote: 0031 aplicada. Pruebas focales actuales en verde. (applicants-public: «single registration creates linked rent and buy searches with separate budgets»; requirements, reg-04-budget-terms).",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "site/apply.js:134-136",
@@ -14664,8 +14674,8 @@
         "applicants-schema",
         "requirements-contract"
       ],
-      "nextStep": "Integrar condiciones comerciales con BUS-12 y productores autorizados, manteniendo divisa y periodicidad explícitas y revalidando revisiones.",
-      "actualizado": "2026-11-13"
+      "nextStep": "Ninguno. El uso de las condiciones comerciales normalizadas en el matching es de BUS-12.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "REG-05",
@@ -18610,7 +18620,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "La limpieza general existente contempla 12 meses de inactividad, con excepciones para búsquedas activas o en revisión, ofertas abiertas y ventas. Applicants dispone de revisión de vencimientos y registro de conversación. El código actual protege contactos vinculados a ventas en cualquier estado; no implementa una purga de ventas a los cinco años.",
-      "falta": "Construir el aviso previo y la tramitación por email con verificación humana de identidad, asignación, holds y copia revisada. Una solicitud de borrado no ejecuta DELETE por sí sola; el portal de privacidad queda para más adelante. La política de conservación de alquileres y ventas debe introducirse cuando esté validada; no hay plazo sectorial nuevo aplicado. Los seis meses de EST-19 solo abarcan archivos de propiedades no disponibles y no autorizan borrar personas, criterios ni gestiones. Los parámetros existentes serán introducidos manualmente por Luis; el plan no exige abrir una nueva consulta profesional.",
+      "falta": "Construir el aviso previo y la tramitación por email con verificación humana de identidad, asignación, holds y copia revisada. Una solicitud de borrado no ejecuta DELETE por sí sola; el portal de privacidad queda para más adelante. La política de conservación de alquileres y ventas debe introducirse cuando esté validada; no hay plazo sectorial nuevo aplicado. Los seis meses de EST-19 solo abarcan archivos de propiedades no disponibles y no autorizan borrar personas, criterios ni gestiones. Los parámetros existentes serán introducidos manualmente por Luis; el plan no exige abrir una nueva consulta profesional. Incluir la supresión física de las notas privadas de retirada de PUB-09 (listing_withdrawals y sus revisiones) al borrar una ficha.",
       "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "server/retention.js:51-92",
@@ -18633,7 +18643,7 @@
       "modulo": "M03/M12",
       "deps": [],
       "criterio_aceptacion": "La regla de seis meses no elimina historial de clientes; la limpieza general no cierra silenciosamente una búsqueda activa.",
-      "actualizado": "2026-11-13",
+      "actualizado": "2026-11-14",
       "assignedSlot": "vps",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",

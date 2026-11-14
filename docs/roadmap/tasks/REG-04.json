@@ -4,10 +4,10 @@
   "titulo": "Presupuesto del aplicante",
   "origen": "texto",
   "fase": "F0",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Compra y alquiler tienen búsquedas y presupuestos independientes desde REG-11. REG-08 añade prioridad del presupuesto y muestra el límite final, incluyendo solo el importe extra aceptado; £2000 con stretch£2200 evalúa techo£2200. El código y la migración 0031 están en main; existe evidencia previa de consulta de migraciones sin pendientes. Se preparó normalización comercial desconectada con límites compartidos, unidades explícitas, cero diferenciado y equivalencias mensuales exactas.",
-  "falta": "Integrar y revisar las condiciones y periodicidades comerciales con productores y consumidores autorizados; la normalización no ejecuta matching ni acredita identidad, permisos o vigencia. El techo aceptado no cambia otros criterios. Esta sesión no consultó la base de producción.",
+  "hecho": "La misma persona busca compra y alquiler con búsquedas y presupuestos independientes (REG-11), con prioridad de presupuesto y techo con extra aceptado (REG-08; £2000 + stretch £2200 evalúa £2200). 14-nov-2026: cierre por aceptación propia (skill §3); migrations list --remote: 0031 aplicada. Pruebas focales actuales en verde. (applicants-public: «single registration creates linked rent and buy searches with separate budgets»; requirements, reg-04-budget-terms).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "site/apply.js:134-136",
@@ -48,6 +48,6 @@
     "applicants-schema",
     "requirements-contract"
   ],
-  "nextStep": "Integrar condiciones comerciales con BUS-12 y productores autorizados, manteniendo divisa y periodicidad explícitas y revalidando revisiones.",
-  "actualizado": "2026-11-13"
+  "nextStep": "Ninguno. El uso de las condiciones comerciales normalizadas en el matching es de BUS-12.",
+  "actualizado": "2026-11-14"
 }

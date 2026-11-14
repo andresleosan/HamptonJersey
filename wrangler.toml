@@ -4,6 +4,8 @@ compatibility_date = "2025-10-01"
 
 [vars]
 PUB08_CONTENT_READY = "1"
+PUB06_STRUCTURED_ECONOMICS_READY = "1"
+PUB09_WITHDRAWALS_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

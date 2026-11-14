@@ -35,7 +35,7 @@
       "preferredSlot": "vscode",
       "priority": 100,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -1817,7 +1817,7 @@
       "preferredSlot": "vscode",
       "priority": 147,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -4714,7 +4714,7 @@
       "preferredSlot": "vps",
       "priority": 225,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [

@@ -4,10 +4,10 @@
   "titulo": "Inbox en tiempo real con un aviso por cada novedad de la app y de la web",
   "origen": "texto",
   "fase": "F0",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Inbox de eventos y pendientes actuales construido y publicado en main 79ddcb0, con Feed atómico de hechos existentes, conciliación por lotes, destinos validados y alertas urgentes opcionales. La consulta histórica sin migraciones pendientes del 11-nov corresponde al árbol b544c2e, que incluía 0033. Las 987 pruebas JS, 14 Python y el navegador focal 1280/390/zoom son comprobaciones locales históricas, no pruebas nuevas en producción.",
-  "falta": "Integrar los productores aún no construidos de MUST desconocido, fuente fallida, llamada/respuesta útil, captura completa/parcial, revisión interna del día 21 y propuesta dictada. Existe adaptador interno y fixtures, no evidencia de esos módulos en producción. Los canales reales y categorías adicionales siguen sus propias tareas; no se repitió una prueba MCP o autenticada de producción en esta conciliación.",
+  "hecho": "Inbox de eventos y pendientes publicado (79ddcb0): Feed atómico de los hechos que la app ya produce, conciliación por lotes, destinos validados y alertas urgentes opcionales; contrato de productor listo para módulos nuevos. 14-nov-2026: cierre por aceptación propia (skill §3); migrations list --remote: 0033 aplicada. Pruebas focales actuales en verde. (notification-events/producers/reconcile, browser-alerts).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "migrations/0033_notification_events.sql",
@@ -22,7 +22,8 @@
     "tests/notification-events.e2e.cjs",
     "docs/roadmap/work/NOT-01/producer-evidence.md",
     "docs/superpowers/plans/2026-11-09-not-01-event-inbox-build-ledger.md",
-    "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md"
+    "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md",
+    "Decisión: productores de otros módulos pasan al falta de su tarea (skill §3)."
   ],
   "modulo": "M13",
   "deps": [
@@ -59,6 +60,6 @@
     "rentals-contract",
     "listings-contract"
   ],
-  "nextStep": "Conectar los productores reales al contrato de Inbox cuando existan, sin repetir la publicación histórica ni acreditar módulos ausentes.",
-  "actualizado": "2026-11-13"
+  "nextStep": "Ninguno. Cada módulo nuevo emite su aviso con el contrato existente (anotado en BUS-12, BUS-06, AGE-06, AGE-08, SPR-03, BUS-17 y AUT-19).",
+  "actualizado": "2026-11-14"
 }

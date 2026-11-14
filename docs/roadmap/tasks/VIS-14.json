@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "El sistema no detecta varias peticiones para la misma casa ni propone huecos seguidos u open viewing con reserva. Hoy solo existe la línea de texto «Open viewing: fecha» en la ficha, que la web oculta cuando pasa el día.",
+  "falta": "El sistema no detecta varias peticiones para la misma casa ni propone huecos seguidos u open viewing con reserva. Hoy solo existe la línea de texto «Open viewing: fecha» en la ficha, que la web oculta cuando pasa el día. Reflejar sus estados confirmados o plazas en el calendario ocupado de VIS-06, sin datos personales.",
   "bloqueo": "",
   "evidencia": [
     "site/lib.js:20-26",
@@ -74,5 +74,6 @@
     "viewings-contract",
     "viewings-ui"
   ],
-  "nextStep": "Integrar las guardas de acceso, capacidad y coordinación del plan antes de habilitar reservas de grupos."
+  "nextStep": "Integrar las guardas de acceso, capacidad y coordinación del plan antes de habilitar reservas de grupos.",
+  "actualizado": "2026-11-14"
 }
