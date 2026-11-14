@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
 import { fmtDate, fmtDayMonth } from "./format.js";
 import { OPTIONS, SEARCH_STATES } from "../../server/applicants.js";
+import SearchRun from "./SearchRun.jsx";
 
 const OPERATIONS = [["", "All"], ...OPTIONS.operation, ["transfer", "Business transfer"]];
 const OPERATION_LABEL = Object.fromEntries(OPERATIONS);
@@ -107,7 +108,8 @@ export default function Applicants() {
           : workLabels(a).length ? <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{workLabels(a).map(([key, label]) => <span key={key} className={`badge ${key === "shortlisted" ? "active" : "attention"}`}>{label}</span>)}</div>
           : <span className="muted">No matches awaiting review or shortlisted</span>}</td>
         <td className="num" data-label="Matches">{matchCounts(a)
-          ? <a href={`#/applicants/${a.id}/matches`}>{matchCounts(a)}<span className="sr"> for {a.name}</span></a> : <span className="muted">—</span>}</td>
+          ? <a href={`#/applicants/${a.id}/matches`}>{matchCounts(a)}<span className="sr"> for {a.name}</span></a>
+          : a.search_run ? <SearchRun run={a.search_run} none /> : <span className="muted">—</span>}</td>
         <td data-label="Last contact"><time dateTime={a.last_contact_at}>{fmtDate(a.last_contact_at)}</time>{a.gone_quiet
           ? <> <span className="badge attention">Gone quiet</span></> : null}</td>
         <td data-label="Assigned to">{a.assigned_to ? a.assigned_name || a.assigned_to : <span className="muted">Unassigned</span>}</td>

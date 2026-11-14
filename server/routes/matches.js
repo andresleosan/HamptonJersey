@@ -6,7 +6,8 @@ import { json, fail, readJson, now } from "../http.js";
 import { listingEventStatements, derivedListingFields } from "../listing-events.js";
 import { activeSql, isActive, REJECT_REASONS } from "../applicants.js";
 import { extractFeatures } from "../listing-features.js";
-import { afterSave, recomputeForApplicant, closeMatchedNoticeIfEmpty } from "../match-store.js";
+import { afterSave, closeMatchedNoticeIfEmpty } from "../match-store.js";
+import { recomputeForApplicant } from "../search-state.js"; // EST-01: the same recompute, its run recorded
 import { COVER_ID, HAS_PUBLIC_PHOTO } from "./listings.js";
 
 const REASONS = REJECT_REASONS.map(([v]) => v);

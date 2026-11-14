@@ -2,7 +2,8 @@ import { json, fail, readJson, now } from "../http.js";
 import { validateOffer, validateSale, validateMilestone, MILESTONES, milestoneLabel, isOverdue, nextMilestone,
   OFFER_WAITING_MS } from "../sales.js";
 import { logEvent, resolveNotices } from "../events.js";
-import { afterSave, recomputeForListing, recomputeForApplicant } from "../match-store.js";
+import { afterSave, recomputeForListing } from "../match-store.js";
+import { recomputeForApplicant } from "../search-state.js"; // EST-01: the same recompute, its run recorded
 import { touch, contacted, LOCK } from "./applicants.js";
 import { jerseyToday } from "../viewings.js";
 import { jerseyDayStart } from "../insights.js";

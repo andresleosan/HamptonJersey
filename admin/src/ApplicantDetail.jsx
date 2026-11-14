@@ -1,4 +1,5 @@
 import ApplicantMatches from "./ApplicantMatches.jsx";
+import SearchRun from "./SearchRun.jsx";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtAgo, fmtDate, fmtDay, fmtDayMonth, firstSentence, blank, show, AVAILABILITY, VIEWING_STATUS } from "./format.js";
@@ -216,7 +217,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     if(generation!==detailGeneration.current)return;
     // A new stage can close or reopen the search, which recomputes its matches.
     setData(x => ({ ...x, events: d.events, viewings: d.viewings, duplicates: d.duplicates, matchCounts: d.matchCounts,
-      retention: d.retention, widen: d.widen }));
+      retention: d.retention, widen: d.widen, search_run: d.search_run }));
     onChange?.(); // the save restarted the contact's 12 months: the bar's expiring count may drop
   };
   // Stage and Assigned to save on their own; unsaved requirements stay in the form. Input while saving is ignored,
@@ -354,7 +355,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const refreshMatches=async()=>{
     const generation=++detailGeneration.current,d=await api(`/admin/applicants/${id}`);
     if(generation!==detailGeneration.current)return null;
-    setData(x=>({...x,applicant:d.applicant,events:d.events,matchCounts:d.matchCounts,widen:d.widen}));
+    setData(x=>({...x,applicant:d.applicant,events:d.events,matchCounts:d.matchCounts,widen:d.widen,search_run:d.search_run}));
     return d;
   };
 
@@ -485,6 +486,8 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     </div>
     <div role="tabpanel" id="panel-matches" aria-labelledby="tab-matches" hidden={cur !== "matches"} tabIndex={0}>
       {a.search_category === "commercial" ? <p>Commercial matching is not available yet. Please review this search manually.</p> : <>
+        {data.search_run && <p className="search-run"><SearchRun run={data.search_run} none={!Object.values(data.matchCounts).some(Boolean)} />
+          <span className="muted"> · Hampton's saved listings only</span></p>}
         {data.widen && <Widen alternatives={data.widen} applicant={a} dirty={dirty} onUse={applyWiden} />}
         <ApplicantMatches applicantId={id} applicant={a} counts={data.matchCounts} onChange={refreshMatches} onBusy={setReviewing} /></>}
     </div>

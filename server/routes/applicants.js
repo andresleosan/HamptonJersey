@@ -2,7 +2,9 @@ import {parsePriorities} from "../../site/requirements.js";
 import { json, fail, readJson, now } from "../http.js";
 import { validateApplicant, normalizePhone, OPTIONS, QUEUES, SEARCH_STATES, activeSql, isActive } from "../applicants.js";
 import { logEvent, resolveNotices } from "../events.js";
-import { afterSave, recomputeForApplicant, recomputeForApplicantWithStatus, matchSnapshotMessage, MATCH_INCOMPLETE_MESSAGE, CANDIDATES_SQL, LISTING, LISTING_OPERATION } from "../match-store.js";
+import { afterSave, matchSnapshotMessage, MATCH_INCOMPLETE_MESSAGE, CANDIDATES_SQL, LISTING, LISTING_OPERATION } from "../match-store.js";
+// EST-01: the same recomputes, with each search's last run recorded around them.
+import { recomputeForApplicant, recomputeForApplicantWithStatus, firstSearch, searchRunsWithoutMatch, searchRunFor } from "../search-state.js";
 import { widen } from "../widen.js";
 import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts } from "../match-pages.js";
@@ -160,7 +162,9 @@ async function list({ request, env }) {
        CASE WHEN search_state = 'active' AND archived_at IS NULL AND search_category = 'residential' THEN ${QUEUE} END AS queue,
        found, shortlisted, expires_on, retention_review, archived_at, last_contact_at, gone_quiet FROM listed ${workWhere} ORDER BY created_at ${dir}, id ${dir}`)
     .bind(today, today, cutoff, ...args, ...(queue ? [queue] : [])).all();
-  return json({ applicants: results });
+  // SAP-01: while a search has no match, what its last search did (EST-01); absent when switched off.
+  const runs = await searchRunsWithoutMatch(env);
+  return json({ applicants: runs ? results.map(a => (runs.has(a.id) ? { ...a, search_run: runs.get(a.id) } : a)) : results });
 }
 
 // E9: the day the contact's 12 months end, or none when a sale keeps it (E3) or an open offer does, for as long as it
@@ -198,8 +202,10 @@ async function detail({ env, params: [id] }) {
     q(RETENTION_SQL, jerseyToday(), contact.id),
     q(`SELECT listing_id,status,requirements_rank FROM matches WHERE applicant_id=?`,applicant.id),
   ])).map(r => r.results);
+  const search_run = await searchRunFor(env, applicant);
   return json({ applicant: parsed(applicant), contact, events: events.map(withData), viewings, duplicates: duplicates.map(withData),
-    matchCounts:matchCounts(totals), retention: keptFor(retention), widen: await widenFor(env, applicant, pairs) });
+    matchCounts:matchCounts(totals), retention: keptFor(retention), widen: await widenFor(env, applicant, pairs),
+    ...(search_run && { search_run }) });
 }
 
 // Widen inspects lightweight global pairs, independently of the visible page.
@@ -289,7 +295,7 @@ async function create({ request, env, admin }) {
     throw e;
   }
   const newId = results[contact ? 0 : 1].meta.last_row_id;
-  await afterSave(recomputeForApplicant, env, newId, admin);
+  await afterSave(firstSearch, env, newId, admin);
   return json({ id: newId }, 201);
 }
 

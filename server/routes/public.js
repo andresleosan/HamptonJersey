@@ -9,7 +9,8 @@ import { loadAvailability, bookStatement, policySnapshot, PUBLIC_BOOKING_BLOCKED
 import { verifyTurnstile } from "../turnstile.js";
 import { logEvent } from "../events.js";
 import { validateApplicant, OPTIONS } from "../applicants.js";
-import { afterSave, recomputeForApplicant } from "../match-store.js";
+import { afterSave } from "../match-store.js";
+import { firstSearch } from "../search-state.js"; // EST-01: the same recompute, its run recorded
 import { touchByViewing } from "../retention.js";
 import { chatOn } from "../chat.js";
 import { confirmedViewingSql, confirmedViewingWindow } from "../public-viewing-summary.js";
@@ -220,7 +221,7 @@ async function createApplicant({ request, env, waitUntil }) {
       const results = await env.DB.batch(newApplicants(env, contact, applicants, ts));
       // Only a new search is matched; a duplicate leaves the contact's searches as they are. The matching runs after
       // the answer is sent, so a new registration takes as long as a duplicate (afterSave never rejects).
-      for (let i = 0; i < applicants.length; i++) waitUntil(afterSave(recomputeForApplicant, env, results[1 + 3 * i].meta.last_row_id, "public"));
+      for (let i = 0; i < applicants.length; i++) waitUntil(afterSave(firstSearch, env, results[1 + 3 * i].meta.last_row_id, "public"));
       return json({ ok: true }, 201);
     } catch (e) {
       // The same person sent the form twice at once: the other request created the contact.

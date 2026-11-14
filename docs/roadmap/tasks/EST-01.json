@@ -6,8 +6,8 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "El recálculo del inventario propio comprueba en la transacción la búsqueda, sus revisiones y el conjunto de candidatas; ante deriva evita resultados parciales y comunica conflicto. Si el resultado del transporte se pierde, lo señala como desconocido. El conjunto y sus límites se probaron con datos ficticios en SQLite y D1 local. Se preparó el registro interno de intentos y último éxito con ticket cercado, comprobación de avisos y conteo del inventario propio; permanece apagado y su SQL es solo propuesta. Se propusieron guardas de identidad de búsqueda y ticket, revisadas en SQLite y D1 efímera; el SQL no debe instalarse todavía.",
-  "falta": "Integrar identidad durable y límites operativos, revisar y adoptar el esquema, conectar una API y pantalla autorizadas y mostrar fecha/responsable. El último éxito compara la versión de búsqueda y no acredita que el inventario no haya cambiado después. Integrar BUS-01 sin confundir cobertura pendiente con cero; no se verificó D1 remoto. Antes de instalar la propuesta, garantizar asignación durable para todos los escritores e imports, resolver IDs históricos, drenaje, retención y ABA de viviendas.",
+  "hecho": "Cada búsqueda residencial activa guarda la hora de su último intento, de su último éxito y de su último fallo (tabla applicant_search_runs, migración 0067, interruptor EST01_SEARCH_STATE_READY). Se registra alrededor del recálculo completo, sin tocar el motor: alta en el panel y en la web, edición, reapertura, cambios de etapa, Recalculate matches y Recalculate all. Un alta queda en «Waiting for investigation · First search queued» hasta que arranca su primera búsqueda. Un intento sin resultado a los dos minutos se lee como fallido. No se guarda texto de error ni datos de contacto, y la fila se borra con la búsqueda. Apagado, o sin la migración, no se lee ni escribe nada y el recálculo responde igual que antes. El equipo ve fecha y resultado en la lista y en la ficha (SAP-01). El recálculo ya protegía el conjunto de candidatas y comunicaba conflicto o resultado desconocido.",
+  "falta": "Aplicar la migración 0067 en producción, encender EST01_SEARCH_STATE_READY y comprobar el recorrido real con lecturas. Después conviene pulsar Recalculate all una vez para que las búsquedas anteriores dejen de leerse «not recorded». La búsqueda cubre solo las fichas guardadas de Hampton: el arranque contra el inventario común de mercado es de BUS-01.",
   "bloqueo": "",
   "evidencia": [
     "server/applicants.js:29-31",
@@ -24,7 +24,17 @@
     "tests/server/est-01-progress-d1.test.mjs",
     "docs/roadmap/work/EST-01/avance-intentos-2026-11-13.md",
     "docs/roadmap/work/EST-01/identidad-aba-2026-11-13.md",
-    "tests/server/est-01-identity-ledger-d1.test.mjs"
+    "tests/server/est-01-identity-ledger-d1.test.mjs",
+    "server/search-state.js",
+    "migrations/0067_applicant_search_runs.sql",
+    "tests/server/est01-search-state.test.mjs",
+    "tests/est01-search-state.e2e.cjs",
+    "14-nov: focal est01-search-state 11/11; regresiones de matches, applicants, public, sales, retention, est-01 y sap01 313/313 y de registro, búsqueda y esquema 189/189. Navegador aislado a 1280 y 390 con datos ficticios: pasó. Sin verificar en D1 remoto ni en producción.",
+    "Decisión: registrar desde fuera del motor, en una tabla propia de tres horas, sin cola ni máquina de estados. Fuente: spec F1-A B5 (el recálculo es síncrono; no hace falta cola ni cron) y skill §5 (ponytail).",
+    "Decisión: la identidad durable, ABA, drenaje, réplicas y el esquema con ticket (EST01_PROGRESS_READY, search-progress.proposed.sql) quedan apagados y pasan a mejoras. Fuente: skill §3 (endurecimientos fuera del alcance del título no bloquean).",
+    "Decisión: el recálculo de una ficha (una ficha contra todas las búsquedas) no cuenta como búsqueda completa y no mueve la hora. Fuente: docs/roadmap/work/EST-01/avance-intentos-2026-11-13.md.",
+    "Decisión: sin relleno para las búsquedas anteriores; sin fila se lee «not recorded». Fuente: CONTINUIDAD-AVANZAR.md (migración aditiva, sin UPDATE sobre filas existentes).",
+    "Decisión: «Waiting for investigation» como badge neutral. Fuente: DESIGN.md, tabla «Badges de estado»."
   ],
   "modulo": "M03",
   "deps": [
@@ -56,6 +66,6 @@
     "search-lifecycle",
     "applicants-schema"
   ],
-  "nextStep": "Resolver identidad ABA y límites operativos antes de conectar el registro y su pantalla; conservar la fecha y cobertura pendiente.",
-  "actualizado": "2026-11-13"
+  "nextStep": "Aplicar 0067, encender EST01_SEARCH_STATE_READY y comprobar en producción con lecturas que la lista y la ficha muestran el estado.",
+  "actualizado": "2026-11-14"
 }
