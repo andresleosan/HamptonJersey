@@ -236,3 +236,113 @@ test('listings typed in through the real upload route are proposed, linked and u
   // The inventory is as it was uploaded.
   assert.equal(count(env, 'market_observations'), 2);
 });
+
+// Review follow-ups (14-nov): directory revisions, and decisions that cross each other.
+const directory = revision => JSON.stringify({ schema_version: 1, status: 'candidate_not_authorized', revision,
+  channels: ['agency-a', 'agency-b', 'agency-c'].map(source_ref => ({ source_ref, channel_id: 'site', source_kind: 'external',
+    source_class: 'unclassified', access_status: 'pending', coverage_claim: 'unknown', channel_url_known: true,
+    review_state: 'terms_and_method_review', handoff_row: 2 })) }) + '\n';
+// Runs `between` once, right after the first read whose SQL matches: the other request lands in that gap.
+function interleave(env, match, between) {
+  const prepare = env.DB.prepare.bind(env.DB);
+  let fired = false;
+  const wrap = statement => ({ ...statement, bind: (...args) => wrap(statement.bind(...args)), first: async () => {
+    const row = await statement.first();
+    if (!fired) { fired = true; await between(); }
+    return row;
+  } });
+  env.DB.prepare = sql => match.test(sql) ? wrap(prepare(sql)) : prepare(sql);
+}
+
+test('a newer directory revision leaves earlier links decidable and reversible; an expired review or a revoked directory blocks all four actions', async () => {
+  const env = setup(), cookie = await adminCookie(), sql = text => env.DB.raw.prepare(text).run();
+  const a = listing(env, 'agency-a', 'A-1'), b = listing(env, 'agency-b', 'B-1'), c = listing(env, 'agency-c', 'C-1');
+  const joined = await decide(env, cookie, 'same_property', a, b);
+  const manifest = directory('fixture-rev-2');
+  assert.equal((await call(env, 'POST', '/admin/market/manifests', { cookie,
+    body: { manifest, sha256: createHash('sha256').update(manifest).digest('hex') } })).status, 201);
+  assert.deepEqual(env.DB.raw.prepare('SELECT DISTINCT directory_revision AS r,access_status AS s FROM market_sources').all()
+    .map(row => [row.r, row.s]), [['fixture-rev-2', 'allowed']]);
+
+  // The listings were read under the first revision; their channels are open today, and that is what counts.
+  assert.deepEqual((await review(env, cookie)).candidates.map(refs), ['A-1 + C-1']);
+  const second = await decide(env, cookie, 'same_property', a, c);
+  assert.equal(second.status, 201);
+  assert.equal((await undo(env, cookie, second.data.decision_id)).status, 200);
+  const refused = await decide(env, cookie, 'different_properties', a, c);
+  assert.equal(refused.status, 201);
+  assert.equal((await undo(env, cookie, refused.data.decision_id)).status, 200);
+  assert.equal((await undo(env, cookie, joined.data.decision_id)).status, 200);
+  assert.deepEqual((await review(env, cookie)).homes, []);
+
+  // One rule for linking, refusing, undoing and reopening: every channel of both homes is open and its review in date.
+  const again = await decide(env, cookie, 'same_property', a, b), apart = await decide(env, cookie, 'different_properties', a, c);
+  assert.deepEqual([again.status, apart.status], [201, 201]);
+  sql("UPDATE market_sources SET review_due_at='2001-01-01T00:00:00.000Z',policy_version=policy_version+1 WHERE source_ref='agency-b'");
+  assert.ok((await review(env, cookie)).homes[0].publications.every(p => p.external_key !== 'B-1'), 'an expired channel is not shown');
+  assert.equal((await undo(env, cookie, again.data.decision_id)).status, 409);
+  assert.equal((await undo(env, cookie, apart.data.decision_id)).status, 409);
+  sql("UPDATE market_sources SET review_due_at='2999-01-01T00:00:00.000Z',policy_version=policy_version+1 WHERE source_ref='agency-b'");
+  assert.equal((await undo(env, cookie, apart.data.decision_id)).status, 200);
+  assert.equal((await undo(env, cookie, again.data.decision_id)).status, 200);
+
+  const last = await decide(env, cookie, 'same_property', a, b);
+  sql("UPDATE market_directory_manifests SET status='revoked' WHERE revision='fixture-rev-2'");
+  const data = await review(env, cookie);
+  assert.deepEqual([data.candidates, data.homes[0].publications], [[], []]);
+  assert.equal((await decide(env, cookie, 'same_property', a, c)).status, 409);
+  assert.equal((await decide(env, cookie, 'different_properties', a, c)).status, 409);
+  assert.equal((await undo(env, cookie, last.data.decision_id)).status, 409);
+});
+
+test('two requests that cross never leave one listing with two homes', async () => {
+  const env = setup(), cookie = await adminCookie();
+  const older = listing(env, 'agency-a', 'A-1'), b = listing(env, 'agency-b', 'B-1'), c = listing(env, 'agency-c', 'C-1');
+  const newer = listing(env, 'agency-a', 'A-1', { seen: '2026-11-14T12:00:00.000Z' });
+  // While one request has just read "this listing has no home yet", another decides from an earlier reading of it.
+  let other;
+  interleave(env, /JOIN market_identity_observations io ON io\.observation_id=a\.id WHERE o\.id=\?/,
+    async () => { other = await decide(env, cookie, 'same_property', older, c); });
+  const crossed = await decide(env, cookie, 'same_property', newer, b);
+  assert.deepEqual([other.status, crossed.status], [201, 409]);
+  assert.equal(count(env, 'market_properties'), 2);
+  assert.equal(env.DB.raw.prepare(`SELECT count(*) AS n FROM market_identity_observations io JOIN market_observations o
+    ON o.id=io.observation_id WHERE o.external_key='A-1'`).get().n, 1);
+  assert.equal(count(env, 'market_identity_decisions'), 1);
+  // Asked again, the request finds the listing's home and joins it.
+  assert.equal((await decide(env, cookie, 'same_property', newer, b)).status, 201);
+  assert.equal(count(env, 'market_properties'), 3);
+});
+
+test('"same home" and "different homes" that cross leave only the first one recorded', async () => {
+  const cookie = await adminCookie(), gap = /SELECT added_at FROM admins WHERE email=\?/;
+  // The refusal lands while the link is on its way: the link is refused.
+  let env = setup(), a = listing(env, 'agency-a', 'A-1'), b = listing(env, 'agency-b', 'B-1'), other;
+  interleave(env, gap, async () => { other = await decide(env, cookie, 'different_properties', a, b); });
+  let crossed = await decide(env, cookie, 'same_property', a, b);
+  assert.deepEqual([other.status, crossed.status], [201, 409]);
+  assert.deepEqual([count(env, 'market_identity_aliases'), count(env, 'market_identity_decisions'), count(env, 'market_identity_separations')], [0, 0, 1]);
+  // The link lands while the refusal is on its way: the refusal is not recorded.
+  env = setup(); a = listing(env, 'agency-a', 'A-1'); b = listing(env, 'agency-b', 'B-1');
+  interleave(env, gap, async () => { other = await decide(env, cookie, 'same_property', a, b); });
+  crossed = await decide(env, cookie, 'different_properties', a, b);
+  assert.deepEqual([other.status, crossed.status], [201, 409]);
+  assert.deepEqual([count(env, 'market_identity_aliases'), count(env, 'market_identity_separations')], [1, 0]);
+});
+
+test('a reused operation id answers only the same request', async () => {
+  const env = setup(), cookie = await adminCookie();
+  const a = listing(env, 'agency-a', 'A-1'), b = listing(env, 'agency-b', 'B-1'), c = listing(env, 'agency-c', 'C-1');
+  const joined = await decide(env, cookie, 'same_property', a, b, id(41));
+  assert.equal((await decide(env, cookie, 'same_property', b, a, id(41))).status, 200);
+  assert.equal((await decide(env, cookie, 'same_property', a, c, id(41))).status, 409);
+  assert.equal((await decide(env, cookie, 'different_properties', a, b, id(41))).status, 409);
+  const refused = await decide(env, cookie, 'different_properties', a, c, id(42));
+  assert.equal((await decide(env, cookie, 'different_properties', c, a, id(42))).status, 200);
+  assert.equal((await decide(env, cookie, 'different_properties', b, c, id(42))).status, 409);
+  const body = decision_id => ({ cookie, body: { decision_id, operation_id: id(43) } });
+  assert.equal((await call(env, 'POST', '/admin/market/identity/undo', body(joined.data.decision_id))).status, 200);
+  assert.equal((await call(env, 'POST', '/admin/market/identity/undo', body(joined.data.decision_id))).status, 200);
+  assert.equal((await call(env, 'POST', '/admin/market/identity/undo', body(refused.data.decision_id))).status, 409);
+  assert.deepEqual([count(env, 'market_identity_decisions'), count(env, 'market_identity_separations'), count(env, 'market_identity_aliases')], [2, 1, 0]);
+});

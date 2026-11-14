@@ -17,6 +17,8 @@ const now = clock => {
 export async function resolvePropertyIdentityCore(env, input, actor, clock = () => new Date()) {
   if (!input || !uuid(input.observation_id) || !uuid(input.operation_id) || !actorId(actor)) bad();
   const db = primary(env.DB), at = now(clock);
+  // A source is judged by its channel as it stands now: open, review in date and its current directory accepted.
+  // The directory revision of the batch that read the observation does not matter; channels move to newer revisions.
   // The source evidence is read only to detect changes inside the transaction.
   const snapshot = await db.prepare(`SELECT o.source_ref,o.channel_id,o.external_key,o.revision,o.normalized_sha256,o.normalized_json,o.raw_json,
       json_extract(o.normalized_json,'$.operation') AS operation,s.policy_version,a.added_at AS actor_added_at
@@ -30,7 +32,7 @@ export async function resolvePropertyIdentityCore(env, input, actor, clock = () 
       JOIN market_sources s ON s.source_ref=o.source_ref AND s.channel_id=o.channel_id
       JOIN market_pages p ON p.id=o.page_id AND p.source_ref=o.source_ref AND p.channel_id=o.channel_id
       JOIN market_runs r ON r.id=p.run_id
-      LEFT JOIN market_directory_manifests m ON m.revision=r.manifest_revision
+      LEFT JOIN market_directory_manifests m ON m.revision=s.directory_revision
       JOIN admins a ON a.email=? AND a.added_at=?
       WHERE o.id=? AND o.source_ref=? AND o.channel_id=? AND o.external_key=?
         AND o.revision=? AND o.normalized_sha256=? AND o.normalized_json=? AND o.raw_json=? AND o.deleted_tombstone=0
@@ -46,8 +48,7 @@ export async function resolvePropertyIdentityCore(env, input, actor, clock = () 
         AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
         AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')
         AND ((r.kind='own_pilot' AND s.source_kind='internal') OR
-          (r.kind IN ('initial','daily') AND s.source_kind='external' AND s.directory_revision=r.manifest_revision
-           AND m.status='accepted' AND m.sha256=r.manifest_sha256))
+          (r.kind IN ('initial','daily') AND s.source_kind='external' AND m.status='accepted'))
         AND NOT EXISTS (SELECT 1 FROM market_observations old WHERE old.source_ref=o.source_ref
           AND old.channel_id=o.channel_id AND old.external_key=o.external_key AND old.deleted_tombstone=1)
     ) AND NOT EXISTS (SELECT 1 FROM market_identity_receipts receipt WHERE receipt.operation_id=?
@@ -57,6 +58,8 @@ export async function resolvePropertyIdentityCore(env, input, actor, clock = () 
       snapshot.policy_version,at,at,input.operation_id,input.observation_id,actor,snapshot.actor_added_at),
     // Existing links and prospective publication anchors must still describe
     // the same source scope and operation before any identity writes occur.
+    // With sole_home, a listing already anchored on another reading is refused here, so two requests that
+    // cross cannot open two homes for one listing.
     db.prepare(`INSERT INTO market_commit_guard(id,allowed)
       SELECT ?,CASE WHEN NOT EXISTS (
         SELECT 1 FROM market_identity_observations io WHERE io.observation_id=? AND NOT EXISTS (
@@ -71,8 +74,12 @@ export async function resolvePropertyIdentityCore(env, input, actor, clock = () 
         SELECT 1 FROM market_listings l JOIN market_observations anchor ON anchor.id=l.anchor_observation_id
         WHERE anchor.source_ref=? AND anchor.channel_id=? AND anchor.external_key=? AND l.operation=?
           AND json_extract(anchor.normalized_json,'$.operation') IS NOT l.operation
-      ) THEN 1 ELSE 0 END`).bind(scopeGuardId,input.observation_id,snapshot.source_ref,snapshot.channel_id,
-        snapshot.external_key,snapshot.operation),
+      ) AND (? IS NULL OR NOT EXISTS (
+        SELECT 1 FROM market_listings l JOIN market_observations anchor ON anchor.id=l.anchor_observation_id
+        WHERE anchor.source_ref=? AND anchor.channel_id=? AND anchor.external_key=? AND l.operation=? AND anchor.id<>?
+      )) THEN 1 ELSE 0 END`).bind(scopeGuardId,input.observation_id,snapshot.source_ref,snapshot.channel_id,
+        snapshot.external_key,snapshot.operation,input.sole_home===true?1:null,snapshot.source_ref,snapshot.channel_id,
+        snapshot.external_key,snapshot.operation,input.observation_id),
     db.prepare(`INSERT INTO market_listings(id,anchor_observation_id,operation,created_at,created_by)
       SELECT ?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM market_listings l
         JOIN market_observations anchor ON anchor.id=l.anchor_observation_id
@@ -155,7 +162,7 @@ const groupAllowed = `EXISTS (${groupMembers}
       JOIN market_sources s ON s.source_ref=o.source_ref AND s.channel_id=o.channel_id
       JOIN market_pages p ON p.id=o.page_id AND p.source_ref=o.source_ref AND p.channel_id=o.channel_id
       JOIN market_runs r ON r.id=p.run_id
-      LEFT JOIN market_directory_manifests m ON m.revision=r.manifest_revision
+      LEFT JOIN market_directory_manifests m ON m.revision=s.directory_revision
       JOIN json_each(?) snap ON json_extract(snap.value,'$.id')=member.id
         AND (o.revision,o.normalized_sha256,o.normalized_json,o.raw_json,o.source_ref,o.channel_id,
           o.external_key,o.page_id,s.policy_version) =
@@ -175,8 +182,7 @@ const groupAllowed = `EXISTS (${groupMembers}
           AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
           AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now'))
         AND ((r.kind='own_pilot' AND s.source_kind='internal') OR
-          (r.kind IN ('initial','daily') AND s.source_kind='external' AND s.directory_revision=r.manifest_revision
-            AND m.status='accepted' AND m.sha256=r.manifest_sha256))
+          (r.kind IN ('initial','daily') AND s.source_kind='external' AND m.status='accepted'))
         AND NOT EXISTS (SELECT 1 FROM market_observations old WHERE old.source_ref=o.source_ref
           AND old.channel_id=o.channel_id AND old.external_key=o.external_key AND old.deleted_tombstone=1)
     )))`;
@@ -189,6 +195,14 @@ const containsEvidence = `EXISTS (WITH RECURSIVE members(id) AS (
   SELECT ? UNION SELECT a.source_property_id FROM market_identity_aliases a JOIN members m ON a.target_property_id=m.id
 ) SELECT 1 FROM members JOIN market_identity_observations io ON io.property_id=members.id WHERE io.observation_id=?)`;
 const groupArgs = (first, second, snapshot, at) => [first,second,snapshot,snapshot,at,at];
+// 0068: a person's standing "different homes" between any member of one group and any member of the other.
+const descendants = name => `${name}(id) AS (SELECT ? UNION
+  SELECT a.source_property_id FROM market_identity_aliases a JOIN ${name} ON a.target_property_id=${name}.id)`;
+export const keptApart = `EXISTS (WITH RECURSIVE ${descendants('l')}, ${descendants('r')}
+  SELECT 1 FROM market_identity_separations s WHERE s.action='different_properties'
+    AND NOT EXISTS (SELECT 1 FROM market_identity_separations x WHERE x.reopens=s.id)
+    AND ((s.left_property_id IN (SELECT id FROM l) AND s.right_property_id IN (SELECT id FROM r))
+      OR (s.left_property_id IN (SELECT id FROM r) AND s.right_property_id IN (SELECT id FROM l))))`;
 async function executeIdentityBatch(db, statements) {
   try { return await db.batch(statements); }
   catch (error) {
@@ -250,9 +264,10 @@ export async function mergePropertyIdentitiesCore(env, input, actor, clock = () 
     AND EXISTS (SELECT 1 FROM market_properties WHERE id=? AND version=?)
     AND NOT EXISTS (SELECT 1 FROM market_identity_aliases WHERE source_property_id IN (?,?))
     AND ${containsEvidence} AND ${containsEvidence}
-    AND NOT EXISTS (SELECT 1 FROM market_identity_decisions WHERE operation_id=?)`,
+    AND NOT EXISTS (SELECT 1 FROM market_identity_decisions WHERE operation_id=?) AND NOT ${keptApart}`,
     [source,input.expected_source_version,target,input.expected_target_version,
-      source,target,source,input.source_evidence_observation_id,target,input.target_evidence_observation_id,input.operation_id]),
+      source,target,source,input.source_evidence_observation_id,target,input.target_evidence_observation_id,input.operation_id,
+      source,target]),
     db.prepare(`INSERT INTO market_identity_decisions(id,operation_id,action,source_property_id,target_property_id,
       source_evidence_observation_id,target_evidence_observation_id,expected_source_version,expected_target_version,
       actor,actor_added_at,created_at) VALUES(?,?,'same_property',?,?,?,?,?,?,?,?,?)`)

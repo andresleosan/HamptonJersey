@@ -131,7 +131,7 @@ function Duplicates() {
     setBusy(true); setMsg(null);
     try { await api(path, { method: "POST", body: { ...body, operation_id: crypto.randomUUID() } }); setMsg({ ok: done }); }
     catch (error) {
-      setMsg({ err: error.status === 409 ? "Nothing was recorded: these listings, their source access or an earlier decision had changed. The list is up to date now."
+      setMsg({ err: error.status === 409 ? "No decision was recorded: these listings, their source access or an earlier decision had changed. The list is up to date now."
         : "Couldn't record the decision. Please try again." });
     } finally { setBusy(false); retry(); }
   };

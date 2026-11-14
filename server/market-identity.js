@@ -1,6 +1,6 @@
 import { HttpError } from './http.js';
 import { mergePropertyIdentitiesCore, readPropertyIdentityCore, resolvePropertyIdentityCore,
-  undoPropertyIdentityDecisionCore, primary, uuid } from './internal/market-identity-core.js';
+  undoPropertyIdentityDecisionCore, keptApart, primary, uuid } from './internal/market-identity-core.js';
 
 // BUS-10: one physical home with its listings from each source. Closed unless the deployment has
 // migrations 0050 and 0068 and sets BUS10_IDENTITY_READY. Callers are routes with a staff session.
@@ -50,7 +50,9 @@ export const readIdentityReview = gated(async env => {
           ROW_NUMBER() OVER (PARTITION BY o.source_ref,o.channel_id,o.external_key ORDER BY o.source_at DESC,o.sequence DESC) AS n,
           MAX(o.deleted_tombstone) OVER (PARTITION BY o.source_ref,o.channel_id,o.external_key) AS gone
         FROM market_observations o JOIN market_sources s ON s.source_ref=o.source_ref AND s.channel_id=o.channel_id
-          AND s.access_status IN ('allowed','manual_only'))
+          AND s.access_status IN ('allowed','manual_only') AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+          AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND (s.source_kind='internal' OR EXISTS (SELECT 1
+            FROM market_directory_manifests m WHERE m.revision=s.directory_revision AND m.status='accepted')))
       WHERE n=1 AND gone=0 ORDER BY source_ref,channel_id,external_key LIMIT ?`).bind(READ + 1),
     db.prepare(`SELECT a.source_ref,a.channel_id,a.external_key,l.operation,io.property_id
       FROM market_listings l JOIN market_observations a ON a.id=l.anchor_observation_id
@@ -99,12 +101,17 @@ export const readIdentityReview = gated(async env => {
     truncated: latest.results.length > READ || candidates.length > SHOWN };
 });
 
-// A retried click returns the decision it already made.
-async function replayed(db, operationId, actor) {
-  const row = await db.prepare(`SELECT id,action,actor FROM market_identity_decisions WHERE operation_id=?
-    UNION ALL SELECT id,action,actor FROM market_identity_separations WHERE operation_id=?`).bind(operationId, operationId).first();
-  if (row && row.actor !== actor) conflict('Identity state or access changed');
-  return row && { decision_id: row.id, action: row.action, replayed: true };
+// A retried click returns the decision it already made; the same operation id for anything else is refused.
+async function replayed(db, operationId, actor, action, subject) {
+  const row = await db.prepare(`SELECT id,action,actor,source_evidence_observation_id AS a,target_evidence_observation_id AS b,
+      undo_of AS undone FROM market_identity_decisions WHERE operation_id=?
+    UNION ALL SELECT id,action,actor,left_property_id,right_property_id,reopens FROM market_identity_separations
+      WHERE operation_id=?`).bind(operationId, operationId).first();
+  if (!row) return null;
+  const same = ['undo', 'reopen'].includes(row.action) ? action === 'undo' && row.undone === subject
+    : row.action === action && [row.a, row.b].sort().join() === [...subject].sort().join();
+  if (row.actor !== actor || !same) conflict('Identity state or access changed');
+  return { decision_id: row.id, action: row.action, replayed: true };
 }
 // The home of the listing an observation belongs to. A listing keeps the home of its first decided reading,
 // so later readings of it never open a second one.
@@ -114,33 +121,31 @@ async function listingHome(env, db, observationId, actor) {
     JOIN market_listings l ON l.anchor_observation_id=a.id AND l.operation=json_extract(o.normalized_json,'$.operation')
     JOIN market_identity_observations io ON io.observation_id=a.id WHERE o.id=?`).bind(observationId).first();
   const own = linked ? { anchor: linked.anchor, property: linked.property_id } : { anchor: observationId,
-    property: (await resolvePropertyIdentityCore(env, { observation_id: observationId, operation_id: crypto.randomUUID() }, actor)).property_id };
+    property: (await resolvePropertyIdentityCore(env, { observation_id: observationId, operation_id: crypto.randomUUID(),
+      sole_home: true }, actor)).property_id };
   const root = await db.prepare(`WITH RECURSIVE up(id) AS (SELECT ? UNION
       SELECT a.target_property_id FROM market_identity_aliases a JOIN up ON a.source_property_id=up.id)
     SELECT p.id,p.version FROM up JOIN market_properties p ON p.id=up.id
     WHERE NOT EXISTS (SELECT 1 FROM market_identity_aliases a WHERE a.source_property_id=p.id)`).bind(own.property).first();
   return { ...own, root: root.id, version: root.version };
 }
-const group = name => `${name}(id) AS (SELECT ? UNION
-  SELECT a.source_property_id FROM market_identity_aliases a JOIN ${name} ON a.target_property_id=${name}.id)`;
+const ancestors = name => `${name}(id) AS (SELECT ? UNION
+  SELECT a.target_property_id FROM market_identity_aliases a JOIN ${name} ON a.source_property_id=${name}.id)`;
 
 // "Same home" links the two homes through the core (versioned, with every source still open); "different homes"
 // records the refusal so the pair is not proposed again. Neither is ever taken without this call.
 export const decideIdentity = gated(async (env, input, actor) => {
   if (!input || !['same_property', 'different_properties'].includes(input.action) || !uuid(input.left_observation_id) ||
       !uuid(input.right_observation_id) || !uuid(input.operation_id) || input.left_observation_id === input.right_observation_id) bad();
-  const db = primary(env.DB), again = await replayed(db, input.operation_id, actor);
-  if (again) return again;
+  const db = primary(env.DB);
   const left = await listingHome(env, db, input.left_observation_id, actor);
   const right = await listingHome(env, db, input.right_observation_id, actor);
+  const again = await replayed(db, input.operation_id, actor, input.action,
+    input.action === 'same_property' ? [left.anchor, right.anchor] : [left.property, right.property]);
+  if (again) return again;
   if (left.root === right.root) conflict('These listings are already linked as one home');
-  // A refusal stands for the whole home: it is not joined through another of its listings.
-  if (await db.prepare(`WITH RECURSIVE ${group('l')}, ${group('r')}
-      SELECT 1 FROM market_identity_separations s WHERE s.action='different_properties'
-        AND NOT EXISTS (SELECT 1 FROM market_identity_separations x WHERE x.reopens=s.id)
-        AND ((s.left_property_id IN (SELECT id FROM l) AND s.right_property_id IN (SELECT id FROM r))
-          OR (s.left_property_id IN (SELECT id FROM r) AND s.right_property_id IN (SELECT id FROM l))) LIMIT 1`)
-      .bind(left.root, right.root).first()) conflict('These homes were marked as different. Reopen that decision first');
+  // A refusal stands for the whole home: the core refuses, inside the link's own batch, to join two homes that
+  // a standing refusal keeps apart, so a link and a refusal that cross cannot both be recorded.
   if (input.action === 'same_property') return mergePropertyIdentitiesCore(env, { operation_id: input.operation_id,
     source_property_id: left.root, target_property_id: right.root, source_evidence_observation_id: left.anchor,
     target_evidence_observation_id: right.anchor, expected_source_version: left.version, expected_target_version: right.version }, actor);
@@ -148,21 +153,31 @@ export const decideIdentity = gated(async (env, input, actor) => {
   await readPropertyIdentityCore(env, { property_id: left.property }, actor);
   await readPropertyIdentityCore(env, { property_id: right.property }, actor);
   const id = crypto.randomUUID(), [first, second] = [left.property, right.property].sort();
-  await db.prepare(`INSERT INTO market_identity_separations(id,operation_id,action,left_property_id,right_property_id,actor,created_at)
-    VALUES(?,?,'different_properties',?,?,?,?)`).bind(id, input.operation_id, first, second, actor, new Date().toISOString()).run();
+  // One statement: nothing is recorded if the two became one home meanwhile, or are already kept apart.
+  const done = await db.prepare(`INSERT INTO market_identity_separations(id,operation_id,action,left_property_id,right_property_id,actor,created_at)
+    SELECT ?,?,'different_properties',?,?,?,? WHERE NOT ${keptApart}
+      AND NOT EXISTS (WITH RECURSIVE ${ancestors('l')}, ${ancestors('r')} SELECT 1 FROM l JOIN r ON r.id=l.id)`)
+    .bind(id, input.operation_id, first, second, actor, new Date().toISOString(), left.root, right.root, first, second).run();
+  if (!done.meta.changes) conflict('That decision had already changed');
   return { decision_id: id, action: 'different_properties' };
 });
 
 // Undo a link, or reopen a refusal. Both add a row; the earlier decision stays in the history.
 export const undoIdentityDecision = gated(async (env, input, actor) => {
   if (!input || !uuid(input.decision_id) || !uuid(input.operation_id)) bad();
-  const db = primary(env.DB), again = await replayed(db, input.operation_id, actor);
+  const db = primary(env.DB), again = await replayed(db, input.operation_id, actor, 'undo', input.decision_id);
   if (again) return again;
   const link = await db.prepare(`SELECT s.version AS source,t.version AS target FROM market_identity_decisions d
     JOIN market_properties s ON s.id=d.source_property_id JOIN market_properties t ON t.id=d.target_property_id
     WHERE d.id=? AND d.action='same_property'`).bind(input.decision_id).first();
   if (link) return undoPropertyIdentityDecisionCore(env, { decision_id: input.decision_id, operation_id: input.operation_id,
     expected_source_version: link.source, expected_target_version: link.target }, actor);
+  // Reopening follows the rule of undoing a link: the sources of both homes are open now (the core checks on read).
+  const refusal = await db.prepare(`SELECT left_property_id AS l,right_property_id AS r FROM market_identity_separations
+    WHERE id=? AND action='different_properties'`).bind(input.decision_id).first();
+  if (!refusal) conflict('That decision had already changed');
+  await readPropertyIdentityCore(env, { property_id: refusal.l }, actor);
+  await readPropertyIdentityCore(env, { property_id: refusal.r }, actor);
   const id = crypto.randomUUID();
   const done = await db.prepare(`INSERT INTO market_identity_separations(id,operation_id,action,left_property_id,right_property_id,reopens,actor,created_at)
     SELECT ?,?,'reopen',s.left_property_id,s.right_property_id,s.id,?,? FROM market_identity_separations s
