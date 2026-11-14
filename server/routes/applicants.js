@@ -234,9 +234,9 @@ async function widenFor(env,a,pairs) {
 }
 async function recalculateMatches({env,admin,params:[id]}) {
  const a=await loadApplicant(env,id);
- if(!isActive(a)||a.search_category!=='residential')fail(409,'Reopen a residential search to recalculate its matches.');
+ if(!isActive(a))fail(409,'Reopen the search to recalculate its matches.');
  const {created,completed,reason}=await recomputeForApplicantWithStatus(env,Number(id),admin);
- if(reason==='not_applicable')fail(409,'Reopen a residential search to recalculate its matches.');
+ if(reason==='not_applicable')fail(409,'Reopen the search to recalculate its matches.');
  if(reason)fail(409,matchSnapshotMessage(reason));
  if(!completed)fail(409,MATCH_INCOMPLETE_MESSAGE);
  return json({created});

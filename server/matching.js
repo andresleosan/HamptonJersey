@@ -1,5 +1,6 @@
 import { hasAnswer, hasHouseholdPets, parsePriorities } from "../site/requirements.js";
 import { parseFeatureEvidence, petPolicy, requirementChecks, requirementsSummary } from "./requirements.js";
+import { normalizeBudgetTerms } from "./search-criteria.js";
 // One applicant against one listing (spec §4, B11): the hard filters, the checks a match shows and its 0–90 preference score.
 // The single source of truth for every matching rule: server/match-store.js only stores what evaluate() returns.
 // Pure ESM: it reads precomputed feat_* columns rather than listing text. Unknown never excludes a house.
@@ -19,6 +20,7 @@ const POUNDS = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 }); // 
 const gbp = n => `£${POUNDS.format(n)}`;
 const count = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const share = (result, full) => (result === "meets" ? full : result === "unknown" ? full / 2 : 0);
+const currencyNote = currency => (currency === "EUR" ? "Confirm whether the EUR price fits the GBP budget" : "Confirm the price currency");
 
 // The rent per month, or null when there is no rent or its period is not said.
 export function monthlyRent(listing) {
@@ -36,7 +38,7 @@ function budget(a, l) {
     return { result: "unknown", evidence: null, points: POINTS.priceUnknown };
   // Applicant budgets are GBP; no exchange rate or currency is inferred.
   if (l.currency !== "GBP")
-    return { result: "unknown", evidence: l.currency === "EUR" ? "Confirm whether the EUR price fits the GBP budget" : "Confirm the price currency", points: POINTS.priceUnknown };
+    return { result: "unknown", evidence: currencyNote(l.currency), points: POINTS.priceUnknown };
   const evidence = l.operation !== "rent" ? gbp(price)
     : `${gbp(price)} a month${l.rent_period === "year" ? ` (${gbp(l.rent)} a year)` : ""}`;
   const top = a.budget_stretch ?? a.budget_max;
@@ -118,10 +120,64 @@ function housing(a, l) {
 const atLeast = (value, min, word) => (value == null ? { result: "unknown", evidence: null }
   : { result: min != null && value < min ? "fails" : "meets", evidence: count(value, word) });
 
+// BUS-12: a commercial or business search against a commercial listing. Its form has no priority switches, so every
+// stated criterion is binding: a known shortfall makes an alternative; missing or incomparable data stays unknown.
+// Each money term keeps its own limit (REG-04 terms): nothing is summed, converted or given a period it does not state.
+const COMMERCIAL_OPERATION = { rent: "rent", buy: "sale", transfer: "business" };
+const TERMS = { buy: ["purchase"], rent: ["rent"], transfer: ["premium", "rent"] };
+const SQM_PER_SQFT = 0.09290304;
+const REASON = { meets: "Meets the stated requirement", fails: "Must-have not met", unknown: "Needs confirmation" };
+
+function commercial(a, l) {
+  const operation = a.search_operation ?? a.operation;
+  const wanted = list(a.parishes_wanted), excluded = list(a.parishes_excluded);
+  const pass = l.use === "commercial" && COMMERCIAL_OPERATION[operation] === l.operation && !excluded.includes(l.parish)
+    && l.archived_at == null && (l.availability == null || ["for_sale", "to_let", "lease"].includes(l.availability));
+  const checks = [];
+  const add = (key, result, evidence = null) => checks.push({ key, result, evidence, priority: "must", reason: REASON[result] });
+
+  if (a.commercial_kind) {
+    const kind = l.operation === "business" ? "business" : "property";
+    add("kind", a.commercial_kind === "both" || a.commercial_kind === kind ? "meets" : "fails", kind === "business" ? "Business" : "Property");
+  }
+  if (a.commercial_use) add("use", "unknown", l.property_type ?? null); // free text: only the team can confirm it
+  if (a.area_min != null || a.area_max != null) {
+    const sqft = l.interior_area_sqft, metric = a.area_unit === "sqm", size = metric ? sqft * SQM_PER_SQFT : sqft;
+    add("floor_area", sqft == null || !["sqm", "sqft"].includes(a.area_unit) ? "unknown"
+      : (a.area_min != null && size < a.area_min) || (a.area_max != null && size > a.area_max) ? "fails" : "meets",
+      sqft == null ? null : `${POUNDS.format(sqft)} sq ft${metric ? ` (${size.toFixed(1)} sq m)` : ""}`);
+  }
+  if (wanted.length || excluded.length)
+    add("area", l.parish == null ? "unknown" : excluded.includes(l.parish) || (wanted.length && !wanted.includes(l.parish)) ? "fails" : "meets", l.parish);
+
+  const { terms } = normalizeBudgetTerms({ search_category: "commercial", operation, currency: "GBP", criteria: {
+    commercial_purchase: a.commercial_purchase, commercial_rent: a.commercial_rent, commercial_rent_period: a.commercial_rent_period,
+    commercial_premium: a.commercial_premium, commercial_expenses: a.commercial_expenses } });
+  const listed = { purchase: l.sale_price, rent: l.rent, premium: l.premium };
+  for (const key of TERMS[operation] ?? []) {
+    const limit = terms[`commercial_${key}`], amount = listed[key], rent = key === "rent";
+    if (limit.original_value == null) continue; // no limit stated for this term
+    if (typeof amount !== "number" || !(amount > 0) || (rent && !["month", "year"].includes(l.rent_period))) { add(key, "unknown"); continue; }
+    if (l.currency !== "GBP") { add(key, "unknown", currencyNote(l.currency)); continue; }
+    const said = `${gbp(amount)}${rent ? ` a ${l.rent_period}` : ""}`;
+    if (limit.state !== "known") { add(key, "unknown", said); continue; }
+    const minor = Math.round(amount * 100), monthly = limit.monthly_equivalent;
+    const over = rent ? minor * monthly.denominator > monthly.numerator_minor * (l.rent_period === "year" ? 12 : 1) : minor > limit.amount_minor;
+    add(key, over ? "fails" : "meets", over ? `${said}, over ${gbp(limit.original_value)}${rent ? ` a ${limit.period}` : ""}` : said);
+  }
+  // The search gives no period for its running costs, so they cannot be compared with any charge of the listing.
+  if (terms.commercial_expenses.original_value != null)
+    add("expenses", "unknown", `Up to ${gbp(terms.commercial_expenses.original_value)}, period not given`);
+
+  const score = checks.length ? Math.round(90 * checks.filter(c => c.result === "meets").length / checks.length) : 90;
+  return { pass, score, checks, ...requirementsSummary(checks, pass) };
+}
+
 // a: an applicants row, l: a listings row (JSON lists as text, as stored).
 // Returns { pass, score, checks: [{ key, result: 'meets'|'fails'|'unknown', evidence }] }; pass is the hard filters
 // only, and checks and score are filled even when pass is false.
 export function evaluate(a, l) {
+  if (a.search_category === "commercial") return commercial(a, l);
   const said = parseFeatureEvidence(l.feat_evidence);
   const priorities = parsePriorities(a.requirement_priorities);
   const checks = [];

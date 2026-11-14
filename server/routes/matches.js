@@ -17,10 +17,13 @@ const STALE = "Someone else reviewed this match. Reload to see it.";
 
 const object = (alias, keys, extra = []) => `json_object(${[...keys.map(k => `'${k}', ${alias}.${k}`), ...extra].join(", ")})`;
 // A match as its card shows it (spec §5), with its listing; from matches m JOIN listings l.
-const EVAL_APPLICANT = object("a", ["match_ranking_version", "operation", "budget_min", "budget_max", "budget_stretch", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "parking_spaces", "property_types", "outdoor", "furnished", "pets", "area_answer", "preferred_parish", "parishes_wanted", "parishes_excluded", "housing_status", "buyer_position", "requirement_priorities", "household_children", "household_children_status", "move_in_date", "lease_term_months", "near", "requirements"]);
-const EVAL_LISTING = object("l", ["operation", "availability", "sale_price", "rent", "rent_period", "currency", "bedrooms", "bathrooms", "parish", "published", "archived_at", "feat_parking", "feat_pets", "feat_outdoor", "feat_furnished", "feat_type", "feat_evidence", "tenure_type", "housing_category", "restriction"]);
+const EVAL_APPLICANT = object("a", ["match_ranking_version", "operation", "budget_min", "budget_max", "budget_stretch", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "parking_spaces", "property_types", "outdoor", "furnished", "pets", "area_answer", "preferred_parish", "parishes_wanted", "parishes_excluded", "housing_status", "buyer_position", "requirement_priorities", "household_children", "household_children_status", "move_in_date", "lease_term_months", "near", "requirements",
+  "search_category", "search_operation", "commercial_kind", "commercial_use", "area_min", "area_max", "area_unit", "commercial_purchase", "commercial_rent",
+  "commercial_rent_period", "commercial_premium", "commercial_expenses"]);
+const EVAL_LISTING = object("l", ["operation", "availability", "sale_price", "rent", "rent_period", "currency", "bedrooms", "bathrooms", "parish", "published", "archived_at", "feat_parking", "feat_pets", "feat_outdoor", "feat_furnished", "feat_type", "feat_evidence", "tenure_type", "housing_category", "restriction",
+  "use", "premium", "interior_area_sqft", "property_type"]);
 const CARD = `${EVAL_APPLICANT} AS eval_applicant, ${EVAL_LISTING} AS eval_listing, m.id, m.applicant_id, m.status, m.score, m.checks, m.requirements_rank, m.area_preference_rank, m.reject_reason, m.reviewed_by, m.reviewed_at, m.created_at, ${object("l", ["id", "title",
-  "operation", "availability", "price_text", "sale_price", "rent", "rent_period", "currency", "parish", "bedrooms", "bathrooms",
+  "operation", "availability", "price_text", "sale_price", "rent", "rent_period", "premium", "currency", "parish", "bedrooms", "bathrooms",
   "published", "archived_at", "updated_at"], [`'cover_id', ${COVER_ID}`, `'has_public_photo', ${HAS_PUBLIC_PHOTO}`])} AS listing`;
 export const MATCHES_SQL = `SELECT ${CARD} FROM matches m JOIN listings l ON l.id = m.listing_id JOIN applicants a ON a.id = m.applicant_id`;
 export const matchCard = m => {
@@ -29,7 +32,7 @@ export const matchCard = m => {
   card.ranking_version=a.match_ranking_version;
   if(card.status==='rejected')return {...card,checks:JSON.parse(card.checks),
     requirements_status:['meets','pending','alternative','excluded'][card.requirements_rank],listing:JSON.parse(card.listing)};
-  const current = !!parsePriorities(a.requirement_priorities);
+  const current = a.search_category === 'commercial' || !!parsePriorities(a.requirement_priorities);
   const petsRefused = hasAnswer('pets',a) && hasHouseholdPets(a) && petPolicy(listing) === 'no';
   const refresh = current && (r.requirements_rank !== card.requirements_rank || r.score !== card.score || JSON.stringify(r.checks) !== card.checks
     || areaPreferenceRank(a,listing) !== area_preference_rank);

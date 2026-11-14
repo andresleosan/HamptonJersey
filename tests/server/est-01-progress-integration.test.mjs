@@ -137,12 +137,14 @@ test('a lost begin response never starts untracked matching or invents a failure
 
 test('non-applicable searches do not begin full checks',async()=>{
   for(const change of ["UPDATE applicants SET search_state='needs_review' WHERE id=1",
-    "UPDATE applicants SET search_category='commercial' WHERE id=1",
     "UPDATE applicants SET archived_at='2026-11-01T00:00:00.000Z' WHERE id=1"]){
     const env=setup();env.DB.raw.exec(change);
     const outcome=await recomputeForApplicantWithStatus(env,1,'system');
     assert.equal(outcome.reason,'not_applicable');assert.equal(progress(env),undefined);
   }
+  // BUS-12: a commercial search is matched, but its check is not recorded here.
+  const env=setup();env.DB.raw.exec("UPDATE applicants SET search_category='commercial' WHERE id=1");
+  assert.equal((await recomputeForApplicantWithStatus(env,1,'system')).completed,true);assert.equal(progress(env),undefined);
 });
 
 test('incremental listing recomputation never changes a full-check record',async()=>{

@@ -5,7 +5,8 @@ import { REJECT_REASONS } from "../../server/applicants.js";
 
 // The checks of server/matching.js evaluate(), by key.
 const CHECK_LABEL = { ...Object.fromEntries(Object.entries(CRITERIA).map(([k,[label]])=>[k,label])), budget: "Budget", bedrooms: "Bedrooms", bathrooms: "Bathrooms", area: "Area", housing: "Housing",
-  pets: "Pets", parking: "Parking", furnished: "Furnished", outdoor: "Outdoor", type: "Type" };
+  pets: "Pets", parking: "Parking", furnished: "Furnished", outdoor: "Outdoor", type: "Type",
+  kind: "Property or business", use: "Use", floor_area: "Floor area", purchase: "Purchase price", rent: "Rent", premium: "Premium", expenses: "Running costs" };
 const RESULT = { meets: "Meets", fails: "Fails", unknown: "Unknown" };
 export const REASON_LABEL = Object.fromEntries(REJECT_REASONS);
 export const hasPetRefusal = match => match.pets_refused === true;

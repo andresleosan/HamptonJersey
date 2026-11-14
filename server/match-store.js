@@ -8,9 +8,15 @@ import { areaPreferenceRank } from "./requirements.js";
 import {searchProgressEnabled,beginFullCheck,fullCheckGuard,fullCheckSuccessStatement,finishFullCheckFailure} from './search-progress.js';
 
 // Listings that may be offered: archived listings are excluded. The applicant's operation is evaluate()'s first filter.
-export const CANDIDATES_SQL = `archived_at IS NULL AND matchable = 1 AND use = 'residential' AND availability IN ('for_sale','to_let','lease')
-  AND operation IN ('sale','rent') AND (country IS NULL OR country = 'Jersey') AND (currency IS NULL OR currency IN ('GBP','EUR'))`;
+const candidates = (use, operations) => `archived_at IS NULL AND matchable = 1 AND use = '${use}' AND availability IN ('for_sale','to_let','lease')
+  AND operation IN (${operations}) AND (country IS NULL OR country = 'Jersey') AND (currency IS NULL OR currency IN ('GBP','EUR'))`;
+export const CANDIDATES_SQL = candidates('residential', "'sale','rent'");
 export const LISTING_OPERATION = { rent: "rent", buy: "sale" };
+// BUS-12: a commercial search is offered commercial listings only; a business transfer, businesses only.
+const COMMERCIAL_SQL = candidates('commercial', "'sale','rent','business'");
+const commercial = a => a.search_category === 'commercial';
+const candidatesFor = a => (commercial(a) ? COMMERCIAL_SQL : CANDIDATES_SQL);
+const operationFor = a => (commercial(a) && a.search_operation === 'transfer' ? 'business' : LISTING_OPERATION[a.operation]);
 
 // Keep each JSON binding below D1's 2,000,000-byte string limit, including the larger event payload form.
 export const MATCH_SNAPSHOT_MAX_BYTES = 1900000;
@@ -40,11 +46,13 @@ export const matchSnapshotMessage = reason => reason==='snapshot_too_large'
 // Only the columns evaluate() reads (never the listing's text: B10), plus whether the listing is a candidate.
 export const LISTING = `COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=listings.id),0) AS match_inputs_revision, id, operation, availability, archived_at, bedrooms, bathrooms, parish, published, sale_price, rent, rent_period, currency,
   feat_pets, feat_parking, feat_furnished, feat_outdoor, feat_type, feat_evidence, tenure_type, housing_category, restriction,
-  (${CANDIDATES_SQL}) AS candidate`;
+  use, premium, interior_area_sqft, property_type, ((${CANDIDATES_SQL}) OR (${COMMERCIAL_SQL})) AS candidate`;
 // The applicant's search as evaluate() reads it, whether it is active, and the contact's name for the notice.
 export const APPLICANT = `a.match_inputs_revision, a.matches_revision, a.requirement_priorities, a.household_children, a.household_children_status, a.move_in_date, a.lease_term_months, a.near, a.requirements, a.id, a.archived_at, a.stage, a.search_state, a.search_category, a.updated_at, a.operation, a.budget_min, a.budget_max, a.budget_stretch,
   a.property_types, a.bedrooms_min, a.bedrooms_max, a.bedrooms_ideal, a.bathrooms_min, a.parking_spaces, a.outdoor, a.furnished, a.pets,
-  a.area_answer, a.preferred_parish, a.parishes_wanted, a.parishes_excluded, a.housing_status, a.buyer_position, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id`;
+  a.area_answer, a.preferred_parish, a.parishes_wanted, a.parishes_excluded, a.housing_status, a.buyer_position,
+  a.search_operation, a.commercial_kind, a.commercial_use, a.area_min, a.area_max, a.area_unit, a.commercial_purchase, a.commercial_rent,
+  a.commercial_rent_period, a.commercial_premium, a.commercial_expenses, c.name FROM applicants a JOIN contacts c ON c.id = a.contact_id`;
 
 // The applicant's open matched notice; notices find their applicant through their event, so the lookup starts from the
 // applicant's events (events_entity, then notifications_event), never from every open notice: CROSS JOIN keeps that
@@ -132,7 +140,7 @@ function writesFor(env, a, results, stored, actor, ts, requireEffects=false) {
 function result(a, l) {
   const r = evaluate(a, l);
   return { listing_id: l.id, version:l.match_inputs_revision, score: r.score, requirements_rank:r.requirements_rank, area_preference_rank:areaPreferenceRank(a,l), checks: JSON.stringify(r.checks),
-    passing: l.candidate === 1 && r.pass };
+    passing: l.candidate === 1 && (l.use === 'commercial') === commercial(a) && r.pass };
 }
 
 const byListing = list => new Map(list.map(m => [m.listing_id, m]));
@@ -151,14 +159,14 @@ export async function recomputeForApplicantWithStatus(env, applicantId, actor, r
   const enabled=searchProgressEnabled(env);let a;
   try {a=await env.DB.prepare(`SELECT ${APPLICANT} WHERE a.id = ?`).bind(applicantId).first();}
   catch(error){if(enabled)fail(503,'The search check status could not be verified. Refresh before trying again.');throw error;}
-  if (!a || !isActive(a) || a.search_category !== "residential")
-    return { created: 0, completed: false, reason: 'not_applicable' }; // Commercial matching belongs to M04.
+  if (!a || !isActive(a)) return { created: 0, completed: false, reason: 'not_applicable' };
   if (!Number.isSafeInteger(a.matches_revision) || a.matches_revision < 0)
     return { created: 0, completed: false, reason: 'snapshot_invalid' };
   let ticket=null;
-  if(enabled)try {ticket=await beginFullCheck(env,a,{nowIso:now()});}
+  const tracked=enabled && !commercial(a); // the search check record (EST-01) covers residential searches only
+  if(tracked)try {ticket=await beginFullCheck(env,a,{nowIso:now()});}
   catch {fail(503,'The search check status could not be verified. Refresh before trying again.');}
-  if(enabled && !ticket) {
+  if(tracked && !ticket) {
     let current;
     try {current=await env.DB.prepare('SELECT archived_at,search_state,search_category FROM applicants WHERE id=?').bind(applicantId).first();}
     catch {fail(503,'The search check status could not be verified. Refresh before trying again.');}
@@ -183,9 +191,9 @@ export async function recomputeForApplicantWithStatus(env, applicantId, actor, r
 async function recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket) {
   // The candidates, and the shortlisted ones that left them (their checks still show what fails now).
   const [listings, stored] = (await env.DB.batch([
-    env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE (${CANDIDATES_SQL} AND operation = ?)
+    env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE (${candidatesFor(a)} AND operation = ?)
       OR id IN (SELECT listing_id FROM matches WHERE applicant_id = ? AND status <> 'rejected')`)
-      .bind(LISTING_OPERATION[a.operation], a.id),
+      .bind(operationFor(a), a.id),
     env.DB.prepare("SELECT id, listing_id, status, score, checks, requirements_rank, area_preference_rank FROM matches WHERE applicant_id = ?").bind(a.id),
   ])).map(r => r.results);
   const encoded=encodeMatchSnapshot(listings);
@@ -205,11 +213,11 @@ async function recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket) {
   const snapshot = `NOT EXISTS
     (SELECT 1 FROM json_each(?) v LEFT JOIN listings l ON l.id=json_extract(v.value,'$.id')
     WHERE l.id IS NULL OR COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=l.id),0)<>json_extract(v.value,'$.version'))
-    AND NOT EXISTS (SELECT id FROM listings WHERE ${CANDIDATES_SQL} AND operation=?
+    AND NOT EXISTS (SELECT id FROM listings WHERE ${candidatesFor(a)} AND operation=?
       EXCEPT SELECT json_extract(value,'$.id') FROM json_each(?))`;
   const ticketFence=ticket?fullCheckGuard(ticket):null;
   const initialSearch = `${search} AND (SELECT matches_revision FROM applicants WHERE id=?) = ?${ticketFence?` AND ${ticketFence.sql}`:''}`;
-  const snapshotArgs=[versions,LISTING_OPERATION[a.operation],versions,a.id,a.updated_at,a.match_inputs_revision,a.id,a.matches_revision,...(ticketFence?.args??[])];
+  const snapshotArgs=[versions,operationFor(a),versions,a.id,a.updated_at,a.match_inputs_revision,a.id,a.matches_revision,...(ticketFence?.args??[])];
   // The existing NOT NULL constraint is an atomic rollback barrier, not a progress record or a timestamp update.
   // Match writes advance matches_revision, so compare it only at this initial barrier.
   stmts.unshift(env.DB.prepare(`UPDATE applicants SET updated_at=CASE WHEN ${snapshot} AND ${initialSearch} THEN updated_at END WHERE id=?`)
@@ -237,7 +245,7 @@ async function recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket) {
     AND EXISTS(SELECT 1 FROM events WHERE entity_type='applicant' AND entity_id=? AND type='applicant.search_reopened')
     AND NOT EXISTS(SELECT 1 FROM notifications WHERE ${OPEN_NOTICE})`).bind(a.id,a.id,String(a.id),String(a.id)));
   if(ticket){
-    const checkedCount=listings.filter(l=>l.candidate===1 && l.operation===LISTING_OPERATION[a.operation]).length;
+    const checkedCount=listings.filter(l=>l.candidate===1 && l.operation===operationFor(a)).length;
     stmts.push(fullCheckSuccessStatement(env,ticket,{checkedCount}));
     // A superseded or invalid ticket must roll the entire batch back, not leave matches without progress.
     stmts.push(env.DB.prepare('UPDATE applicants SET updated_at=NULL WHERE id=? AND changes()<>1').bind(a.id));
@@ -250,7 +258,7 @@ async function recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket) {
       // is still demonstrably stale; otherwise preserve the original error.
       let state=null;
       try { state=await env.DB.prepare(`SELECT CASE WHEN ${snapshot} AND ${initialSearch} THEN 1 ELSE 0 END AS valid,
-        EXISTS(SELECT 1 FROM applicants a WHERE a.id=? AND ${activeSql("a")} AND a.search_category='residential') AS applicable`)
+        EXISTS(SELECT 1 FROM applicants a WHERE a.id=? AND ${activeSql("a")}) AS applicable`)
         .bind(...snapshotArgs,a.id).first(); } catch { /* preserve the original batch failure */ }
       if (state?.valid===0) return state.applicable===0 ? {created:0,completed:false,reason:'not_applicable'} : {created:0,completed:false};
     }
@@ -281,9 +289,9 @@ export async function recomputeForListing(env, listingId, actor) {
   if (!l) return;
   // A listing that is not offered only concerns the applicants already matched with it.
   const [applicants, stored] = (await env.DB.batch([
-    env.DB.prepare(`SELECT ${APPLICANT} WHERE ${activeSql("a")} AND a.search_category = 'residential'
-      ${l.candidate ? "" : "AND a.id IN (SELECT applicant_id FROM matches WHERE listing_id = ?)"}`)
-      .bind(...(l.candidate ? [] : [listingId])),
+    env.DB.prepare(`SELECT ${APPLICANT} WHERE ${activeSql("a")} AND (${l.candidate ? "a.search_category = ? OR " : ""}
+      a.id IN (SELECT applicant_id FROM matches WHERE listing_id = ?))`)
+      .bind(...(l.candidate ? [l.use] : []), listingId),
     env.DB.prepare("SELECT id, applicant_id, listing_id, status, score, checks, requirements_rank, area_preference_rank FROM matches WHERE listing_id = ?")
       .bind(listingId),
   ])).map(r => r.results);

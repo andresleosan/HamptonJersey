@@ -485,11 +485,10 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       </form>
     </div>
     <div role="tabpanel" id="panel-matches" aria-labelledby="tab-matches" hidden={cur !== "matches"} tabIndex={0}>
-      {a.search_category === "commercial" ? <p>Commercial matching is not available yet. Please review this search manually.</p> : <>
-        {data.search_run && <p className="search-run"><SearchRun run={data.search_run} none={!Object.values(data.matchCounts).some(Boolean)} />
-          <span className="muted"> · Hampton's saved listings only</span></p>}
-        {data.widen && <Widen alternatives={data.widen} applicant={a} dirty={dirty} onUse={applyWiden} />}
-        <ApplicantMatches applicantId={id} applicant={a} counts={data.matchCounts} onChange={refreshMatches} onBusy={setReviewing} /></>}
+      {data.search_run && <p className="search-run"><SearchRun run={data.search_run} none={!Object.values(data.matchCounts).some(Boolean)} />
+        <span className="muted"> · Hampton's saved listings only</span></p>}
+      {data.widen && <Widen alternatives={data.widen} applicant={a} dirty={dirty} onUse={applyWiden} />}
+      <ApplicantMatches applicantId={id} applicant={a} counts={data.matchCounts} onChange={refreshMatches} onBusy={setReviewing} />
     </div>
     {hasOffers && <div role="tabpanel" id="panel-offers" aria-labelledby="tab-offers" hidden={cur !== "offers"} tabIndex={0}>
       <Offers id={id} data={offers} err={offersErr} canRecord={buyer && !archived} />

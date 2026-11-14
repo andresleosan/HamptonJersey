@@ -128,7 +128,7 @@ const BASE=process.env.BASE, shots=process.env.E2E_SHOTS || '/tmp/reg08-captures
     await page.locator('#a-commercial_use').waitFor();
     assert.equal(await page.locator('section[aria-labelledby="essential-heading"]').count(),0);
     await page.getByRole('tab',{name:'Matches',exact:true}).click();
-    await page.getByText('Commercial matching is not available yet. Please review this search manually.').waitFor();
+    await page.locator('#group-found').waitFor(); // BUS-12: commercial searches have matches of their own
     const legacy=await page.evaluate(async()=>{
       const response=await fetch('/api/admin/applicants',{method:'POST',headers:{'content-type':'application/json'},
         body:JSON.stringify({name:'Synthetic priority review',email:'reg12-priority@example.test',source:'phone',

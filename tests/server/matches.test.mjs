@@ -212,7 +212,7 @@ test("the review queue: oldest applicant first, best score first, after skips pa
   assert.deepEqual(first.match, { id: o2, applicant_id: older, status: "found", score: 80, checks: [], reject_reason: null, ranking_version:0,
     reviewed_by: null, reviewed_at: null, created_at: at(0), requirements_status:"pending", requirements_rank:1 });
   assert.deepEqual(first.listing, { id: "HE-R002", title: "Le Bernage", operation: "sale", availability: "for_sale",
-    price_text: null, sale_price: 900000, rent: null, rent_period: null, currency: "GBP", parish: "St Saviour", bedrooms: 3,
+    price_text: null, sale_price: 900000, rent: null, rent_period: null, premium: null, currency: "GBP", parish: "St Saviour", bedrooms: 3,
     bathrooms: 2, cover_id: "A00001", has_public_photo: 1, published: 1, archived_at: null, updated_at: T0 });
   assert.equal(first.applicant.id, older);
   assert.equal(first.applicant.name, "Ana Le Gros");
