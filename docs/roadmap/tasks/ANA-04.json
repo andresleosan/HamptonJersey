@@ -26,10 +26,26 @@
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
-  "dependencies": [],
+  "dependencies": [
+    {
+      "id": "PRE-09",
+      "requires": "integrated",
+      "reason": "Su plan exige el aviso de privacidad aprobado antes de activar las métricas.",
+      "basis": "explicit",
+      "scope": "whole"
+    },
+    {
+      "id": "PRE-12",
+      "requires": "integrated",
+      "reason": "Su plan exige la política de retención aprobada antes de activar las métricas.",
+      "basis": "explicit",
+      "scope": "whole"
+    }
+  ],
   "externalBlocker": "",
   "resources": [
     "analytics-contract"
   ],
-  "nextStep": "Revisar privacidad, retención, protección y presupuesto D1 antes de integrar el esquema y activar la medición."
+  "nextStep": "Revisar privacidad, retención, protección y presupuesto D1 antes de integrar el esquema y activar la medición.",
+  "actualizado": "2026-11-14"
 }
