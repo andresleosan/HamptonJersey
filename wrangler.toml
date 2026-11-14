@@ -9,6 +9,7 @@ PUB09_WITHDRAWALS_READY = "1"
 VIS09_VIEWING_POLICY_READY = "1"
 OFE06_WEEKLY_REVIEW_READY = "1"
 AUT10_MODES_READY = "1"
+LISTING_HEALTH_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
