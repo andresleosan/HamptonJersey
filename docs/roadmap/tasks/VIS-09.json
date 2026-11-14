@@ -4,10 +4,10 @@
   "titulo": "Duración de la visita, margen entre casas y máximo de visitas por día",
   "origen": "plan",
   "fase": "F3-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "El sistema actual utiliza visitas de 30 minutos y margen fijo. Se construyó y revisó una política interna para duración, márgenes, cambio de parroquia y máximo diario, con guarda transaccional y pruebas de concurrencia; permanece desconectada de las rutas existentes. Se preparó y revisó un validador puro de horas con offset explícito de Jersey: distingue el pliegue y rechaza horas inexistentes, sin modificar reservas. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Política aplicada en disponibilidad, reserva del panel y de la web y reprogramación, con revisión, máximo diario y márgenes revalidados dentro de la escritura; edición en Availability con CAS. Sin reglas guardadas se conserva el comportamiento actual.",
-  "falta": "Aplicar 0047 (aditiva) en producción, encender VIS09_VIEWING_POLICY_READY y comprobar el recorrido real.",
+  "hecho": "El sistema actual utiliza visitas de 30 minutos y margen fijo. Se construyó y revisó una política interna para duración, márgenes, cambio de parroquia y máximo diario, con guarda transaccional y pruebas de concurrencia; permanece desconectada de las rutas existentes. Se preparó y revisó un validador puro de horas con offset explícito de Jersey: distingue el pliegue y rechaza horas inexistentes, sin modificar reservas. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Política aplicada en disponibilidad, reserva del panel y de la web y reprogramación, con revisión, máximo diario y márgenes revalidados dentro de la escritura; edición en Availability con CAS. Sin reglas guardadas se conserva el comportamiento actual. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. GET /api/availability en producción responde con 2 negociadores y 12 días; sin reglas guardadas se mantiene la visita de 30 minutos.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/viewings.js:5-6",
@@ -21,7 +21,8 @@
     "docs/roadmap/work/VIS-09/foundation-evidence.md",
     "docs/roadmap/work/VIS-09/2026-11-14-integracion.md",
     "tests/server/viewing-policy-routes.test.mjs",
-    "tests/vis-09-viewing-rules.e2e.cjs"
+    "tests/vis-09-viewing-rules.e2e.cjs",
+    "wrangler.toml:9"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -33,6 +34,6 @@
     "viewings-contract",
     "viewings-ui"
   ],
-  "nextStep": "Aplicar 0047 desde directorio temporal, encender VIS09_VIEWING_POLICY_READY en wrangler.toml, publicar y verificar.",
+  "nextStep": "Hecha. El equipo guarda las reglas de cada negociador en Availability cuando quiera.",
   "actualizado": "2026-11-14"
 }

@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+14-nov-2026 · **VIS-09 y OFE-06 hechas; AUT-10 encendida:** reglas de visita por negociador en Availability (sin reglas, todo sigue a 30 minutos) y revisión semanal interna de cada venta en Sales (el equipo fija día y hora). 0047, 0053 y 0054 aplicadas, Pages `3217ea1` y hampton-jobs con los interruptores. Los modos de AUT-10 se ven; para cambiarlos falta que Luis designe gestores. Progreso **80/215 (37,21 %) → 82/215 (38,14 %)**.
+
 14-nov-2026 · **VIS-09, OFE-06 y AUT-10 construidas e integradas, apagadas:** política de visitas por negociador, revisión semanal interna de cada venta y modos Draft/Approve/Auto por operación. Esperan sus migraciones aditivas 0047/0053/0054 y su interruptor; AUT-10 además a que Luis designe gestores. Progreso sin cambio: 80/215 (37,21 %).
 
 14-nov-2026 · **PUB-06, SPR-01, PUB-09 y SPR-02 hechas:** costes estructurados de la ficha, tarjeta de propiedad con disponibilidad e historial de la fecha, retirada de la web con motivo y nota privada, e historial completo de la ficha. 0052 y 0044 aplicadas y comprobadas, Pages `f8004ce` con ambos interruptores activos y API pública sin campos privados. Las pruebas de navegador general y editorial recorren ahora el diálogo de motivo. Progreso **76/215 (35,35 %) → 80/215 (37,21 %)**.

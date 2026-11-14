@@ -1921,7 +1921,7 @@
       "preferredSlot": "vscode",
       "priority": 150,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -7818,7 +7818,7 @@
       "preferredSlot": "vscode",
       "priority": 314,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -11170,10 +11170,10 @@
       "titulo": "Duración de la visita, margen entre casas y máximo de visitas por día",
       "origen": "plan",
       "fase": "F3-A",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "El sistema actual utiliza visitas de 30 minutos y margen fijo. Se construyó y revisó una política interna para duración, márgenes, cambio de parroquia y máximo diario, con guarda transaccional y pruebas de concurrencia; permanece desconectada de las rutas existentes. Se preparó y revisó un validador puro de horas con offset explícito de Jersey: distingue el pliegue y rechaza horas inexistentes, sin modificar reservas. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Política aplicada en disponibilidad, reserva del panel y de la web y reprogramación, con revisión, máximo diario y márgenes revalidados dentro de la escritura; edición en Availability con CAS. Sin reglas guardadas se conserva el comportamiento actual.",
-      "falta": "Aplicar 0047 (aditiva) en producción, encender VIS09_VIEWING_POLICY_READY y comprobar el recorrido real.",
+      "hecho": "El sistema actual utiliza visitas de 30 minutos y margen fijo. Se construyó y revisó una política interna para duración, márgenes, cambio de parroquia y máximo diario, con guarda transaccional y pruebas de concurrencia; permanece desconectada de las rutas existentes. Se preparó y revisó un validador puro de horas con offset explícito de Jersey: distingue el pliegue y rechaza horas inexistentes, sin modificar reservas. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Política aplicada en disponibilidad, reserva del panel y de la web y reprogramación, con revisión, máximo diario y márgenes revalidados dentro de la escritura; edición en Availability con CAS. Sin reglas guardadas se conserva el comportamiento actual. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. GET /api/availability en producción responde con 2 negociadores y 12 días; sin reglas guardadas se mantiene la visita de 30 minutos.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "server/viewings.js:5-6",
@@ -11187,7 +11187,8 @@
         "docs/roadmap/work/VIS-09/foundation-evidence.md",
         "docs/roadmap/work/VIS-09/2026-11-14-integracion.md",
         "tests/server/viewing-policy-routes.test.mjs",
-        "tests/vis-09-viewing-rules.e2e.cjs"
+        "tests/vis-09-viewing-rules.e2e.cjs",
+        "wrangler.toml:9"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -11199,7 +11200,7 @@
         "viewings-contract",
         "viewings-ui"
       ],
-      "nextStep": "Aplicar 0047 desde directorio temporal, encender VIS09_VIEWING_POLICY_READY en wrangler.toml, publicar y verificar.",
+      "nextStep": "Hecha. El equipo guarda las reglas de cada negociador en Availability cuando quiera.",
       "actualizado": "2026-11-14"
     },
     {
@@ -11939,8 +11940,8 @@
       "fase": "—",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Modo Draft/Approve/Auto por operación, versionado con CAS e historial solo de añadir; la guarda deniega siempre las decisiones humanas (match, criterios dictados, cierre por éxito) en cualquier modo.",
-      "falta": "Aplicar 0054 (aditiva) y encender AUT10_MODES_READY. Luis debe decidir quién puede cambiar modos (tabla operation_policy_managers vacía; en COLA-LUIS). Los consumidores reales de la guarda son BUS-15, AUT-19, EST-09, AUT-13 y AUT-01.",
+      "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Modo Draft/Approve/Auto por operación, versionado con CAS e historial solo de añadir; la guarda deniega siempre las decisiones humanas (match, criterios dictados, cierre por éxito) en cualquier modo. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. Ruta POST /api/admin/automations/modes montada (401 sin sesión frente a 404).",
+      "falta": "Luis decide quién puede cambiar modos (operation_policy_managers vacía; en COLA-LUIS) y se comprueba un cambio de modo real. Los consumidores de la guarda (BUS-15, AUT-19, EST-09, AUT-13, AUT-01) lo llevan en su propio falta.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:441",
@@ -11956,7 +11957,8 @@
         "migrations/0054_operation_policies.sql",
         "server/operation-modes.js",
         "tests/server/aut-10-modes.test.mjs",
-        "tests/aut-10-modes.e2e.cjs"
+        "tests/aut-10-modes.e2e.cjs",
+        "wrangler.toml:11"
       ],
       "modulo": "M04/M06",
       "deps": [],
@@ -11971,7 +11973,7 @@
         "automation-controls",
         "outbound-policy"
       ],
-      "nextStep": "Aplicar 0054, encender el interruptor y, cuando Luis designe gestores, comprobar un cambio de modo real.",
+      "nextStep": "Cuando Luis designe gestores, añadirlos y comprobar un cambio de modo real.",
       "actualizado": "2026-11-14"
     },
     {
@@ -18185,10 +18187,10 @@
       "titulo": "Seguimiento interno semanal de compraventas",
       "origen": "plan",
       "fase": "F3-B",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Sales dispone de hitos y el código incluye un reloj y productor común de tareas. No se ha acreditado una tarea semanal por venta ni su activación real. Se preparó un cálculo puro de semana y horario de Jersey que permanece desconectado del reloj. Se ensayó un productor desconectado con unicidad por venta y semana, control de fecha de la venta y rollback en D1 local. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Revisión interna semanal por venta y semana de Jersey como tarea compartida NOT-11 idempotente, día y hora configurables (apagada sin configurar), pasos externos con referencia mínima y resolución al cerrar o caer la venta; nada se envía.",
-      "falta": "Aplicar 0053 (aditiva), encender OFE06_WEEKLY_REVIEW_READY en wrangler.toml y en jobs/wrangler.toml y comprobar el recorrido real; el equipo fija día y hora.",
+      "hecho": "Sales dispone de hitos y el código incluye un reloj y productor común de tareas. No se ha acreditado una tarea semanal por venta ni su activación real. Se preparó un cálculo puro de semana y horario de Jersey que permanece desconectado del reloj. Se ensayó un productor desconectado con unicidad por venta y semana, control de fecha de la venta y rollback en D1 local. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Revisión interna semanal por venta y semana de Jersey como tarea compartida NOT-11 idempotente, día y hora configurables (apagada sin configurar), pasos externos con referencia mínima y resolución al cerrar o caer la venta; nada se envía. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. hampton-jobs con OFE06_WEEKLY_REVIEW_READY=1 (versión 51e57d7f) y rutas /api/admin/sale-followups/* montadas (401 sin sesión frente a 404 de una ruta inexistente). Decisión: elegir día y hora es uso del equipo, no construcción (skill §3).",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
@@ -18207,7 +18209,9 @@
         "docs/roadmap/work/OFE-06/2026-11-14-integracion.md",
         "migrations/0053_sale_followup.sql",
         "tests/server/ofe-06-sale-followup.test.mjs",
-        "tests/ofe06-weekly-review.e2e.cjs"
+        "tests/ofe06-weekly-review.e2e.cjs",
+        "wrangler.toml:10",
+        "jobs/wrangler.toml:18"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -18229,7 +18233,7 @@
         "notifications-schema",
         "jobs-clock"
       ],
-      "nextStep": "Aplicar 0053 desde directorio temporal, encender el interruptor en Pages y en hampton-jobs, publicar y verificar.",
+      "nextStep": "Hecha. El equipo fija día y hora de la revisión semanal en Sales.",
       "actualizado": "2026-11-14"
     },
     {

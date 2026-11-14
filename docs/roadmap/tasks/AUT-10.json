@@ -6,8 +6,8 @@
   "fase": "—",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Modo Draft/Approve/Auto por operación, versionado con CAS e historial solo de añadir; la guarda deniega siempre las decisiones humanas (match, criterios dictados, cierre por éxito) en cualquier modo.",
-  "falta": "Aplicar 0054 (aditiva) y encender AUT10_MODES_READY. Luis debe decidir quién puede cambiar modos (tabla operation_policy_managers vacía; en COLA-LUIS). Los consumidores reales de la guarda son BUS-15, AUT-19, EST-09, AUT-13 y AUT-01.",
+  "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Modo Draft/Approve/Auto por operación, versionado con CAS e historial solo de añadir; la guarda deniega siempre las decisiones humanas (match, criterios dictados, cierre por éxito) en cualquier modo. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. Ruta POST /api/admin/automations/modes montada (401 sin sesión frente a 404).",
+  "falta": "Luis decide quién puede cambiar modos (operation_policy_managers vacía; en COLA-LUIS) y se comprueba un cambio de modo real. Los consumidores de la guarda (BUS-15, AUT-19, EST-09, AUT-13, AUT-01) lo llevan en su propio falta.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:441",
@@ -23,7 +23,8 @@
     "migrations/0054_operation_policies.sql",
     "server/operation-modes.js",
     "tests/server/aut-10-modes.test.mjs",
-    "tests/aut-10-modes.e2e.cjs"
+    "tests/aut-10-modes.e2e.cjs",
+    "wrangler.toml:11"
   ],
   "modulo": "M04/M06",
   "deps": [],
@@ -38,6 +39,6 @@
     "automation-controls",
     "outbound-policy"
   ],
-  "nextStep": "Aplicar 0054, encender el interruptor y, cuando Luis designe gestores, comprobar un cambio de modo real.",
+  "nextStep": "Cuando Luis designe gestores, añadirlos y comprobar un cambio de modo real.",
   "actualizado": "2026-11-14"
 }
