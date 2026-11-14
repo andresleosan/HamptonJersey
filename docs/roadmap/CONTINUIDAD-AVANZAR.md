@@ -12,3 +12,15 @@ Luis pidió el 13-nov-2026 que Codex continúe el checklist de Hampton de forma 
 - La autorización de commit y push **no equivale** a permiso para aplicar migraciones remotas, activar servicios, cambiar credenciales o controles, enviar mensajes, restaurar datos o ejecutar acciones externas adicionales. Conservar las restricciones y resolver por la vía apropiada los bloqueos reales; no pedir ni publicar secretos.
 
 La continuidad depende de que la sesión esté activa y disponga de sus herramientas. Si llega a un límite técnico o de sesión, registrar el último commit, la verificación, las tareas en curso y los siguientes pasos concretos para que la próxima invocación de `$avanzar` pueda continuar sin reconstruir el trabajo.
+
+## Mandato reiterado · 14-nov-2026
+
+Luis indicó: «que no vuelva a suceder», «debes seguir hasta resolver todas o la mayoría de las tareas» y que el porcentaje debe subir. No cerrar el encargo por terminar un lote parcial ni repetir confirmaciones rutinarias de trabajo ya autorizado. Antes de iniciar otra tarea, buscar una ruta concreta a cierre e integrar y comprobar su recorrido; después de publicar, verificar tablero y continuar inmediatamente.
+
+Un fallo de acceso histórico no acredita falta de acceso actual: comprobar por una consulta mínima legítima antes de tratarlo como dependencia. En esta sesión funcionaron las lecturas D1 y Pages. La revisión automática rechazó después aplicar 0048 remota por falta de autorización explícita para ese recurso; no se ejecutó. Esa restricción concreta no bloquea código, pruebas, revisión o los demás alcances independientes, y no se elude por otra herramienta. Preparar el lote completo y revisable antes de solicitar la autorización externa que ese control exige.
+
+### Parada solicitada tras el siguiente cierre
+
+En el mismo 14-nov, Luis precisó: «cuando termines una tarea y avancemos en porcentaje que hagas commit y push, guardas todo y te detienes para avanzar en otra sesión». Esta instrucción posterior sustituye la continuación inmediata después del próximo cierre real: terminar una tarea, verificar el aumento público, commit/push y continuidad, y detenerse. No cuenta como ese hito un lote parcial ni una propuesta. PUB-08 es el cierre seleccionado; PUB-06/SPR-01 quedan preparados para la sesión posterior.
+
+Luis respondió después «si autorizo» a la solicitud concreta de aplicar **solo `0048_listing_content.sql` en D1 `hampton` y activar `PUB08_CONTENT_READY=1`**. Esta autorización no se extiende a `0052_listing_economics_history.sql` ni a `PUB06_STRUCTURED_ECONOMICS_READY`; ambos quedan para la sesión posterior. 0048 se aplicó con salida 0 y se verificaron por lectura la tabla vacía, sus dos validadores y el registro de migración.

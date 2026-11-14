@@ -20,7 +20,7 @@ function offlineTurnstile(request, enabled) {
 }
 
 async function startFixture({ persist = process.env.E2E_PERSIST, varsFile = process.env.E2E_VARS,
-  port = Number(process.env.PORT || 8788), qaDb = false } = {}) {
+  port = Number(process.env.PORT || 8788), qaDb = false, seedMedia = false } = {}) {
   if (!persist || !varsFile) throw Error('Set E2E_PERSIST and E2E_VARS to isolated local fixtures.');
   const vars = parseEnv(readFileSync(varsFile, 'utf8'));
   if (!/^1x0+AA$/.test(vars.TURNSTILE_SECRET || '') || !/^1x0+A[AB]$/.test(vars.TURNSTILE_SITE_KEY || '')) {
@@ -51,6 +51,16 @@ async function startFixture({ persist = process.env.E2E_PERSIST, varsFile = proc
     });
     mf = new Miniflare(options);
     const url = await mf.ready;
+    if (seedMedia) {
+      if (process.env.E2E_PRODUCTION_READONLY !== '0' || process.env.HAMPTON_E2E_ISOLATED !== '1')
+        throw Error('Synthetic R2 media require the isolated local fixture.');
+      const DB=await mf.getD1Database('DB'), bucket=await mf.getR2Bucket('MEDIA');
+      const {results}=await DB.prepare('SELECT r2_key,thumb_key FROM media LIMIT 501').all();
+      if(results.length>500)throw Error('Unexpected media count in the disposable fixture.');
+      const image=readFileSync(join(repo,'tests/fixtures/media-upload/baseline.jpg'));
+      const keys=new Set(results.flatMap(row=>[row.r2_key,row.thumb_key]).filter(Boolean));
+      for(const key of keys)await bucket.put(key,image,{httpMetadata:{contentType:'image/jpeg'}});
+    }
     if (qaDb) await (await mf.getD1Database('QA_DB')).prepare('SELECT 1 FROM listings LIMIT 1').first();
     return { url, close: async () => { await mf.dispose(); await dispatcher.close(); rmSync(scratch, { recursive: true }); } };
   } catch (error) {

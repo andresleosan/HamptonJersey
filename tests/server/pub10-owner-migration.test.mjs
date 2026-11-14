@@ -5,9 +5,10 @@ import { readFileSync, readdirSync } from 'node:fs';
 
 const dir=new URL('../../migrations/',import.meta.url), proposal=new URL('../../server/proposed-schema/owner-requests-rebuild.sql',import.meta.url);
 const at='2026-11-13T00:00:00.000Z';
-function dbAtBaseline(){
+// This unactivated rebuild proposal deliberately accepts only its reviewed 0051 baseline.
+function dbAtBaseline(through=51){
  const db=new DatabaseSync(':memory:'); db.exec('PRAGMA foreign_keys=ON');
- for(const n of readdirSync(dir).filter(n=>/^[0-9].*\.sql$/.test(n)).sort())db.exec(readFileSync(new URL(n,dir),'utf8'));
+ for(const n of readdirSync(dir).filter(n=>/^[0-9].*\.sql$/.test(n)&&Number(n.slice(0,4))<=through).sort())db.exec(readFileSync(new URL(n,dir),'utf8'));
  db.exec(readFileSync(new URL('../fixtures/seed.sql',import.meta.url),'utf8'));
  db.exec(`INSERT INTO events(id,at,actor,entity_type,entity_id,type) VALUES(9001,'${at}','system','admin','fixture','fixture');
    INSERT INTO notifications(id,event_id,category,title,action_required,created_at,task_key) VALUES(9001,9001,'task','Fixture',1,'${at}','fixture:owner-migration');
@@ -39,6 +40,20 @@ test('schema drift aborts rebuild without changing existing historical data',()=
  db.exec('ROLLBACK');
  assert.deepEqual(db.prepare('SELECT * FROM notifications WHERE id=9001').get(),before);
  assert.ok(db.prepare("SELECT 1 FROM sqlite_schema WHERE type='trigger' AND name='synthetic_extra'").get());
+ assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
+ db.close();
+});
+
+test('canonical 0052 remains unreviewed drift for the 0051 owner rebuild proposal',()=>{
+ const db=dbAtBaseline(52);
+ const tables=db.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(x=>x.name);
+ const before=Object.fromEntries(tables.map(n=>[n,db.prepare(`SELECT * FROM ${n}`).all()]));
+ const structure=db.prepare("SELECT type,name,sql FROM sqlite_schema WHERE sql IS NOT NULL ORDER BY type,name").all();
+ db.exec('BEGIN');
+ assert.throws(()=>db.exec(readFileSync(proposal,'utf8')),/CHECK constraint failed/);
+ db.exec('ROLLBACK');
+ for(const n of tables)assert.deepEqual(db.prepare(`SELECT * FROM ${n}`).all(),before[n],n);
+ assert.deepEqual(db.prepare("SELECT type,name,sql FROM sqlite_schema WHERE sql IS NOT NULL ORDER BY type,name").all(),structure);
  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
  db.close();
 });

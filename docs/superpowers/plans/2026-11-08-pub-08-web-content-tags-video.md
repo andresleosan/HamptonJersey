@@ -64,3 +64,15 @@
 - [ ] Resolver las decisiones humanas que afectan la tarea y actualizar spec/plan/readiness antes de construir ese tramo. Una investigación/gestión/activación no se declara código completo por estar planificada.
 - [ ] Si hay código, npm test, npm run build y npm run check:release más regresiones focales. UI modificada: e2e y Playwright1280/390 con vacío/error/conflicto/teclado/foco/zoom200/consola/red; documentos puros no requieren producto artificial.
 - [ ] Evidencia separado construido/integrado/verificado/activado, ledger de tarea y checklist/ESTADO al construir; revisión independiente futura y publicación/activación bajo autorización real de esa sesión. Nada ejecutado en estas casillas.
+
+## Continuidad de ejecución · 14-nov-2026
+
+El encargo vigente de Luis sustituye la restricción histórica de solo planificación y cualquier reserva de Hermes. La implementación ya integrada y revisada se conserva; no se fabrica una prueba RED para comportamiento existente. Los paths efectivos son `server/listing-content.js`, `server/routes/listings.js`, `server/routes/public.js`, `admin/src/ListingContentFields.jsx`, `site/tour-privacy.js` y las pruebas `pub-08-content.test.mjs`, `pub08-content-dom.test.js`, `pub08-integrated.e2e.cjs`.
+
+- [x] Catálogo cerrado versión 1, validación de URLs y servidor, separación de tour, revisión de dirección, permisos, CAS e historial mínimo.
+- [x] Editor y vista pública integrados mediante API/D1/R2 reales sintéticos, 400/409, borrador/descarte, ausencia de iframe o petición externa antes del clic, offline, teclado, escritorio/móvil y zoom. Chromium y WebKit en el contenedor aislado exigido.
+- [x] Revisión independiente sin hallazgos pendientes y suite conjunta de 2.308 JavaScript/29 Python, build, release, catálogo, paquetes y contrato de esquema.
+- [x] Autorización explícita de Luis para solo 0048 y PUB08; aplicación de 0048 con comprobación posterior de tabla vacía, dos validadores y registro de migración.
+- [ ] Publicación, activación efectiva y cierre del tablero: se registran al verificarse en [la evidencia final](../../roadmap/work/PUB-08/2026-11-14-integracion-activacion.md).
+
+Las referencias P01/P02/P03 de la plantilla no crean una decisión nueva para el alcance web vigente. Se conserva el catálogo inicial cerrado y versionado; una ampliación posterior se revisa al existir una necesidad real. Las piezas y campañas sociales no pertenecen a este cierre. PUB-06/SPR-01 quedan preparadas y sin activación; Luis pidió detenerse después del primer cierre real con aumento público y commit/push guardados.

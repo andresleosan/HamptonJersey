@@ -15,7 +15,8 @@ test('local D1 migration preserves historic children, rejects drift and supports
  const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:"export default {fetch(){return new Response('fixture')}}",compatibilityDate:'2025-10-01',host:'127.0.0.1',port:0,d1Databases:{DB:'pub10-owner-fixture'}}));
  try{
   const d=await mf.getD1Database('DB'),dir=new URL('../../migrations/',import.meta.url);
-  for(const file of readdirSync(dir).filter(x=>/^[0-9].*\.sql$/.test(x)).sort())await d.batch(split(readFileSync(new URL(file,dir),'utf8')).map(sql=>d.prepare(sql)));
+  // The proposal's exact schema guard is reviewed through 0051, not future migrations.
+  for(const file of readdirSync(dir).filter(x=>/^[0-9].*\.sql$/.test(x)&&Number(x.slice(0,4))<=51).sort())await d.batch(split(readFileSync(new URL(file,dir),'utf8')).map(sql=>d.prepare(sql)));
   await run(d,'INSERT INTO admins(email,added_at) VALUES(?,?)','admin@example.test',at);
   await run(d,"INSERT INTO events(id,at,actor,entity_type,entity_id,type) VALUES(9001,?,'system','admin','fixture','fixture')",at);
   await run(d,"INSERT INTO notifications(id,event_id,category,title,action_required,created_at,task_key) VALUES(9001,9001,'task','Fixture',1,?,'fixture:pub10')",at);

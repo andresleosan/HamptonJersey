@@ -25,6 +25,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       publicKeyEncoding: { type: 'spki', format: 'pem' }, privateKeyEncoding: { type: 'pkcs8', format: 'pem' } });
     const vars = {
       ...(structuredFixture ? { PUB06_STRUCTURED_ECONOMICS_READY: '1' } : {}),
+      ...(process.env.E2E_SCRIPT === 'tests/pub08-integrated.e2e.cjs' ? { PUB08_CONTENT_READY: '1' } : {}),
       ...(process.env.E2E_SCRIPT === "tests/listing-health.e2e.cjs" ? { LISTING_HEALTH_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/search-milestones.e2e.cjs" ? { SEARCH_MILESTONES_READY: "1" } : {}),
       SESSION_SECRET: randomBytes(32).toString('hex'),
@@ -43,14 +44,13 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
     await run(['scripts/check-release.mjs']);
     await run([vite, 'build', '--config', 'admin/vite.config.mjs']);
     await run([wrangler, 'd1', 'migrations', 'apply', 'hampton', '--local', '--persist-to', persist]);
-    // This proposal is loaded only into the isolated, disposable PUB-06 fixture.
-    if (structuredFixture)
-      await run([wrangler, 'd1', 'execute', 'hampton', '--local', '--persist-to', persist, '--file', 'docs/roadmap/work/PUB-06/structured-economics.proposed.sql']);
+    // Canonical migrations include the combined PUB-06/SPR-01 schema (0052).
     // PUB-17 proposal is exercised only in this isolated synthetic fixture, never by migrations apply.
     if (process.env.E2E_SCRIPT === 'tests/listing-health.e2e.cjs')
       await run([wrangler, 'd1', 'execute', 'hampton', '--local', '--persist-to', persist, '--file', 'docs/roadmap/work/PUB-17/proposed-listing-health.sql']);
     await run([wrangler, 'd1', 'execute', 'hampton', '--local', '--persist-to', persist, '--file', 'tests/fixtures/seed.sql']);
-    server = await startFixture({ persist, varsFile, port: 0 });
+    server = await startFixture({ persist, varsFile, port: 0,
+      seedMedia: process.env.E2E_SCRIPT === 'tests/pub08-integrated.e2e.cjs' });
     await run([process.env.E2E_SCRIPT || 'tests/e2e.cjs'], { ...process.env, BASE: server.url.href, E2E_PERSIST: persist, E2E_VARS: varsFile });
   } finally {
     if (server) await server.close();
