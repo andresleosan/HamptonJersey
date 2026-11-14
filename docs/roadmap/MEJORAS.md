@@ -21,3 +21,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [ADM-16] Editar el inventario de salida antes del primer paso con mydeposits puede quitar referencias que ya cita una línea de la propuesta · revalidarlas al registrar el paso · 14-nov-2026
 - [ADM-16] Cambiar `start_on` después del inventario de salida puede dejar la devolución de llaves antes del inicio · sin pérdida de datos · 14-nov-2026
 - [ADM-16] La comprobación de referencias entre contratos lee el JSON de todos los inventarios sin índice · aceptable con el volumen actual · 14-nov-2026
+- [ADM-13] El trigger de 0060 no protege la columna `rooms` frente a un UPDATE directo · desde la app no se llega · añadir trigger que compare sin `repair` · 14-nov-2026
+- [ADM-13] La comprobación de referencia ya usada en otro contrato va fuera del batch: dos registros simultáneos podrían compartirla · llevar el NOT EXISTS al INSERT · 14-nov-2026
+- [ADM-13] Una reparación decidida sobre la inspección de un contrato ya terminado se crea en ese contrato, no en el activo · decisión de diseño · 14-nov-2026

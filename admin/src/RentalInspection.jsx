@@ -49,7 +49,7 @@ export function TenancyInspections({ id, tick, onRepair }) {
     <Note msg={msg} />
     {form ? <InspectionForm d={d} onClose={() => setForm(false)} onSaved={load}
       onDone={() => { setForm(false); setMsg({ ok: true, text: "Inspection recorded." }); load(); onRepair(); }} />
-      : d.tenancy.running && <div className="inline"><button type="button" className="btn sm" onClick={() => { setMsg(null); setForm(true); }}>
+      : d.tenancy.running && d.tenancy.start_on <= jerseyToday() && <div className="inline"><button type="button" className="btn sm" onClick={() => { setMsg(null); setForm(true); }}>
         Record inspection</button></div>}
     {d.inspections.length ? <ol className="inspection-list" aria-label="Inspections recorded">{d.inspections.map(x =>
       <Inspection key={x.id} x={x} tenancy={id} onDecided={decided} onStale={load} />)}</ol>

@@ -1,5 +1,7 @@
 # ADM-13 · Base interna de inspecciones, sin activación
 
+> **Histórico (14-nov-2026):** el núcleo descrito aquí (`server/internal/rental-inspections-domain.js` y su prueba de esquema propuesto) se retiró al construir el servicio real con la migración `0060_rental_inspections.sql`, `server/rental-inspections.js` y `tests/server/adm-13-inspections*.test.mjs`.
+
 Fecha: 2026-11-13. Base examinada: `ca60556eb40ece19691d1023fe4342e2ba1afe26`. El trabajo de este documento es **parcial** y no cierra ADM-13 ni cambia el porcentaje de tareas terminadas. Todos los datos usados en las pruebas son ficticios.
 
 ## Alcance y decisión
