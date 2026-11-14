@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show, TENURE, HOUSING, RESTRICTION } from "./format.js";
 import MediaManager from "./MediaManager.jsx";
+import ListingDocuments from "./ListingDocuments.jsx";
 import { listingCriteria, listingCompleteness } from "./listing-completeness.js";
 import Research from "./Research.jsx";
 import { setUnsaved } from "./unsaved.js";
@@ -588,6 +589,7 @@ export default function ListingEditor({ id, onChange, guide = false }) {
             ? { ...d.listing, cover_media_id: saved.cover_media_id, updated_at: saved.updated_at, updated_by: saved.updated_by }
             : { ...d.listing, cover_media_id: coverId } })); }} />
       </section>
+      {data.documents_enabled && <ListingDocuments listingId={id} />}
 
       <section id="s-tour" className="card" aria-labelledby="h-tour"><h2 id="h-tour">Tour and specification</h2>
         {field("tour_url", "3D tour or video URL (https://)", <input {...ctl("tour_url")} type="url" maxLength={500} placeholder="https://my.matterport.com/show/?m=…" />)}

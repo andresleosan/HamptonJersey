@@ -31,6 +31,8 @@ import marketInventoryRoutes from "./routes/market-inventory.js";
 import demandRoutes from "./routes/demand.js";
 import saleFollowupRoutes, { followupReady } from "./sale-followup.js";
 import tenancyOriginRoutes from "./routes/tenancy-origins.js";
+import documentRoutes from "./routes/listing-documents.js";
+import { documentsReady } from "./listing-documents.js";
 
 // [method, path regex, handler, requiresAdmin]
 const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes];
@@ -61,6 +63,7 @@ async function route(request, env, segments, waitUntil) {
     // AUT-10: the mode switch exists only with its migration (0054) and flag.
     if (env.AUT10_MODES_READY === '1') routes = [...routes, ...modeRoutes];
     if (env.ADM06_TENANCY_ORIGIN_READY === '1') routes = [...routes, ...tenancyOriginRoutes]; // ADM-06: needs migration 0056
+    if (documentsReady(env)) routes = [...routes, ...documentRoutes]; // PUB-11: needs migration 0058
     for (const [m, re, handler, auth] of routes) {
       const hit = m === method && re.exec(path);
       if (!hit) continue;

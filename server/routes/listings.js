@@ -17,6 +17,7 @@ import { checkPhysical } from '../listing-physical.js';
 import { recordListingWithdrawal,correctListingWithdrawal,readListingTraceability } from '../listing-traceability.js';
 import { validateListingContent,readListingContent,listingContentUpdateStatement } from '../listing-content.js';
 import { researchDuplicateReviewStatement, researchDuplicateReview } from '../research-duplicate-review.js';
+import { documentsReady, reconcileDocuments } from '../listing-documents.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -90,6 +91,7 @@ async function detail({ env, admin, params: [id] }) {
   const content=env.PUB08_CONTENT_READY === '1' ? await readListingContent(env,id) : null;
   return json({ listing, structured_economics: await structuredEconomicsReady(env),
     ...(env.PUB09_WITHDRAWALS_READY === '1' ? { withdrawal_tracking: true } : {}),
+    ...(documentsReady(env) ? { documents_enabled: true } : {}),
     ...(content ? {content_tracking:true,content} : {}), details: Object.fromEntries(['building_name_or_number','postcode','property_condition','developer_name',
       'public_address_snapshot','public_address_snapshot_hash','public_address_evidence_ref','public_address_reviewed_by','public_address_reviewed_at']
       .map(key => [key, details?.[key] ?? null])),
@@ -457,6 +459,12 @@ async function remove({ request, env, admin, params: [id] }) {
 
 // Also Properties Queue's Discard (PUB-21, C7), for a draft that was never published.
 export async function deleteListing(env, id, admin, context = {}) {
+  // PUB-11: private documents are kept; the foreign key is the last barrier.
+  if (documentsReady(env)) {
+    await reconcileDocuments(env, id);
+    if (await env.DB.prepare("SELECT 1 FROM listing_documents WHERE listing_id = ? LIMIT 1").bind(id).first())
+      fail(409, "This listing has private documents. Remove them first.");
+  }
   const { results } = await env.DB.prepare("SELECT r2_key, thumb_key FROM media WHERE listing_id = ? AND origin = 'upload'").bind(id).all();
   const queueId = context.source === 'queue' ? context.related?.import_id : null;
   const queueGuard = queueId ? [

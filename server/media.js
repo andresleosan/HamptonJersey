@@ -1,6 +1,7 @@
 import { isPublicMedia, publicMediaTypeAllowed } from "./visibility.js";
 import { currentAdmin } from "./auth.js";
 import { rentalClosureEnabled, rentalClosureVisibleSql } from './rental-closure.js';
+import { PRIVATE_DOCS } from './listing-documents.js';
 
 const notFound = () => new Response("Not found", { status: 404, headers: { "cache-control": "private, no-store" } });
 const PREFIX_BYTES = 1024, PDF = [0x25, 0x50, 0x44, 0x46, 0x2d];
@@ -58,7 +59,8 @@ const cancelBody = async body => { if (body instanceof ReadableStream && !body.l
 // 404 (not 403) for anything the caller may not see, so private files can't be confirmed to exist.
 export async function serveMedia(request, env, id) {
   const row = await loadRow(env, id);
-  if (!row?.r2_key) return notFound();
+  // PUB-11: private listing documents are never served here, not even to staff.
+  if (!row?.r2_key || [row.r2_key, row.thumb_key].some(key => key?.startsWith(PRIVATE_DOCS))) return notFound();
   let pub = isPublicMedia(row, row) && (!rentalClosureEnabled(env) || row.closure_visible === 1);
   if (!pub && !(await currentAdmin(request, env))) return notFound();
   const thumb = new URL(request.url).searchParams.has("thumb"), key = selectedKey(row, thumb);
