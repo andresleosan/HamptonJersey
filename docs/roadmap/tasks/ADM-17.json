@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "Los plazos (depósito 30 días, inventarios 7, licencia 2 años, EICR 5, preavisos de 1 y 12 meses, aviso de renta de 2) están en una sola constante, LEGAL, que el panel lee.",
-  "falta": "Falta confirmar el registro de Hampton en la JFSC por cobrar rentas en cuenta propia (R21), que un abogado de Jersey valide plazos y preavisos (R10, R13) y si Hampton está registrado en GST; además los plazos son código (cambiarlos exige publicar), no un ajuste del panel.",
+  "falta": "Falta confirmar el registro de Hampton en la JFSC por cobrar rentas en cuenta propia (R21), que un abogado de Jersey valide plazos y preavisos (R10, R13) y si Hampton está registrado en GST; además los plazos son código (cambiarlos exige publicar), no un ajuste del panel. Auditoría del 14-nov-2026 contra el plan maestro vigente: los plazos de server/rentals.js (LEGAL: fianza 30 días, informes 7, preaviso de inquilino 1 mes y de propietario 12, vigencia de licencias y revisiones) se aplican como hechos en Rentals, el Inbox y «Earliest move-out» sin decir que no están validados. Al construir las reglas versionadas, rotularlos «estimado, sin validar por abogado» hasta su validación.",
   "bloqueo": "JFSC/abogado · Dato de Hampton",
   "evidencia": [
     "server/rentals.js:6-10",

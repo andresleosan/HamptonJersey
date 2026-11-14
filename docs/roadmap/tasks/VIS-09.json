@@ -6,7 +6,7 @@
   "fase": "F3-A",
   "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "El sistema actual utiliza visitas de 30 minutos y margen fijo. Se construyó y revisó una política interna para duración, márgenes, cambio de parroquia y máximo diario, con guarda transaccional y pruebas de concurrencia; permanece desconectada de las rutas existentes. Se preparó y revisó un validador puro de horas con offset explícito de Jersey: distingue el pliegue y rechaza horas inexistentes, sin modificar reservas. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Política aplicada en disponibilidad, reserva del panel y de la web y reprogramación, con revisión, máximo diario y márgenes revalidados dentro de la escritura; edición en Availability con CAS. Sin reglas guardadas se conserva el comportamiento actual. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. GET /api/availability en producción responde con 2 negociadores y 12 días; sin reglas guardadas se mantiene la visita de 30 minutos.",
+  "hecho": "El sistema actual utiliza visitas de 30 minutos y margen fijo. Se construyó y revisó una política interna para duración, márgenes, cambio de parroquia y máximo diario, con guarda transaccional y pruebas de concurrencia; permanece desconectada de las rutas existentes. Se preparó y revisó un validador puro de horas con offset explícito de Jersey: distingue el pliegue y rechaza horas inexistentes, sin modificar reservas. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Política aplicada en disponibilidad, reserva del panel y de la web y reprogramación, con revisión, máximo diario y márgenes revalidados dentro de la escritura; edición en Availability con CAS. Sin reglas guardadas se conserva el comportamiento actual. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. GET /api/availability en producción responde con 2 negociadores y 12 días; sin reglas guardadas se mantiene la visita de 30 minutos. Corregido el 14-nov-2026: un negociador sin reglas guardadas tiene los valores del plan maestro (30 minutos, 15 de margen, 15 más entre parroquias y 8 al día); antes regían solo 30 y 15, sin máximo diario.",
   "falta": "",
   "bloqueo": "",
   "evidencia": [
@@ -22,7 +22,10 @@
     "docs/roadmap/work/VIS-09/2026-11-14-integracion.md",
     "tests/server/viewing-policy-routes.test.mjs",
     "tests/vis-09-viewing-rules.e2e.cjs",
-    "wrangler.toml:9"
+    "wrangler.toml:9",
+    "Auditoría del 14-nov-2026 contra el plan maestro vigente: en producción había 2 negociadores y ninguno con reglas guardadas.",
+    "server/viewing-store.js (reglas por defecto, revisión 0)",
+    "tests/server/viewing-policy-routes.test.mjs (9/9) y tests/vis-09-viewing-rules.e2e.cjs PASS a 1280 y 390"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",

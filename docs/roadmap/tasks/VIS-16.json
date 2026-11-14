@@ -7,7 +7,7 @@
   "estado": "descartado",
   "responsable": "desarrollo",
   "hecho": "Botón Owner report en cada ficha: página imprimible en A4 (7, 30 o 90 días) con aperturas en la web, visitas y su resultado, aplicantes que encajan y, en venta, ofertas numeradas y avance de la venta, sin datos de interesados.",
-  "falta": "Retirados los informes de actividad, visitas y feedback enviados a propietarios; se conserva el código existente y la actividad interna.",
+  "falta": "Retirados los informes de actividad, visitas y feedback enviados a propietarios; se conserva el código existente y la actividad interna. Auditoría del 14-nov-2026 contra el plan maestro vigente: el botón «Owner report» de la ficha sigue activo y prepara un PDF con visitas, feedback, aplicantes que encajan y ofertas para enviarlo a mano al propietario. Pendiente de la decisión de Luis: ocultarlo o conservarlo.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/ListingEditor.jsx:152-153",
@@ -33,5 +33,5 @@
   ],
   "nextStep": "Conservar lo existente y no construir el alcance retirado.",
   "deps": [],
-  "actualizado": "2026-11-13"
+  "actualizado": "2026-11-14"
 }

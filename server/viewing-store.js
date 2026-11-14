@@ -1,7 +1,7 @@
 import { fail, now as stamp } from "./http.js";
 import { daySlots, addMinutes, plusDays, weekday, SLOT_MINUTES, BUFFER_MINUTES, ACTIVE, propertyAllows } from "./viewings.js";
 import { rentalClosureEnabled, noUnresolvedRentalClosureSql } from './rental-closure.js';
-import { viewingPolicyReady, canReserveViewing, reservationPolicyGuard } from './viewing-policy.js';
+import { viewingPolicyReady, canReserveViewing, reservationPolicyGuard, DEFAULT_VIEWING_POLICY } from './viewing-policy.js';
 
 const ACTIVE_SQL = ACTIVE.map(s => `'${s}'`).join(", ");
 export const PUBLIC_BOOKING_BLOCKED_SQL = "'sold','let_agreed','let','withdrawn'";
@@ -26,14 +26,14 @@ export async function loadAvailability(env, { from, days, now, fromTomorrow, inc
     ...(listingId == null ? [] : [env.DB.prepare(`SELECT viewings_enabled, viewing_hours${ready ? ", parish" : ""} FROM listings WHERE id = ?${
       fromTomorrow ? ` AND published = 1 AND archived_at IS NULL AND availability NOT IN (${PUBLIC_BOOKING_BLOCKED_SQL})${
         rentalClosureEnabled(env) ? ` AND ${noUnresolvedRentalClosureSql('listings')}` : ''}` : ""}`).bind(listingId)]),
-    // VIS-09: the saved rules, and every non-cancelled viewing of those negotiators from the day before to the day after
+    // VIS-09: the saved rules, and every non-cancelled viewing of the negotiators from the day before to the day after
     // (margins cross midnight), with the parish and margins each was booked with.
     ...(ready ? [
       env.DB.prepare(`SELECT negotiator_id, duration_minutes, buffer_minutes, parish_extra_minutes, max_daily, revision
         FROM viewing_policy_settings WHERE negotiator_id IN (SELECT id FROM negotiators WHERE ${who})`).bind(...args),
       env.DB.prepare(`SELECT v.id, v.negotiator_id, v.date, v.time, v.end_time, v.status, s.parish, s.buffer_minutes,
           s.parish_extra_minutes, s.policy_revision FROM viewing_requests v LEFT JOIN viewing_policy_snapshots s ON s.viewing_id = v.id
-        WHERE v.negotiator_id IN (SELECT negotiator_id FROM viewing_policy_settings WHERE negotiator_id IN (SELECT id FROM negotiators WHERE ${who}))
+        WHERE v.negotiator_id IN (SELECT id FROM negotiators WHERE ${who})
           AND v.date BETWEEN ? AND ? AND v.status IS NOT 'cancelled'${excludeId == null ? "" : " AND v.id <> ?"}`)
         .bind(...args, plusDays(range[0], -1), plusDays(range[1], 1), ...(excludeId == null ? [] : [excludeId])),
     ] : []),
@@ -46,13 +46,16 @@ export async function loadAvailability(env, { from, days, now, fromTomorrow, inc
   const byDay = rows => rows.reduce((a, r) => ((a[`${r.negotiator_id} ${r.date}`] ||= []).push(r), a), {});
   const ex = byDay(exceptions), booked = byDay(bookings);
   const hours = Object.fromEntries(people.map(p => [p.id, JSON.parse(p.hours)]));
-  const policies = Object.fromEntries(settings.map(({ negotiator_id, ...p }) => [negotiator_id, p]));
+  // Master plan (10-Nov-2026): a negotiator without saved rules has the plan's defaults (30, 15, +15 between parishes,
+  // 8 a day; revision 0), not the bare fixed slot. reservationPolicyGuard reads a missing row as these same values.
+  const saved = Object.fromEntries(settings.map(({ negotiator_id, ...p }) => [negotiator_id, p]));
+  const policies = ready ? Object.fromEntries(people.map(({ id }) => [id, saved[id] ?? { ...DEFAULT_VIEWING_POLICY }])) : {};
   const parish = property?.parish ?? null;
   const taken = (id, date) => policies[id] && (time => !canReserveViewing({ policy: policies[id],
     bookings: nearby.filter(b => b.negotiator_id === id) }, { negotiator_id: id, date, time, parish }).allowed);
   return {
     ...(property ? { property_viewings_enabled: property.viewings_enabled === 1 } : {}),
-    // policies: the saved rules by negotiator id (none = the fixed rules); parish: the one a booking here records.
+    // policies: the rules by negotiator id (saved, or the plan's defaults); parish: the one a booking here records.
     ...(ready ? { policies, parish } : {}),
     negotiators: people.map(({ id, name, role, active }) => ({ id, name, role, active })),
     days: dates.map(date => ({ date, slots: Object.fromEntries(people.map(({ id }) => [id, daySlots({ hours: hours[id],

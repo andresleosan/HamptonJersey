@@ -61,7 +61,7 @@ function readNotes(body) {
 }
 
 // The name and slots of `negotiator_id` on `date`, today's still to come; null when inactive (they take no new viewings).
-// policy, parish: VIS-09's saved rules, read with those slots (null policy: the fixed rules).
+// policy, parish: VIS-09's saved rules, read with those slots (null policy: the gate is off, the fixed rules).
 async function dayOf(env, { negotiator_id, date, listing_id }, clock) {
   const a = await loadAvailability(env, { from: date, days: 1, now: clock, fromTomorrow: false, negotiatorId: negotiator_id, listingId: listing_id });
   return a.negotiators.length ? { name: a.negotiators[0].name, slots: a.days[0].slots[negotiator_id],

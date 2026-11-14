@@ -18,7 +18,7 @@ assert.ok(['localhost','127.0.0.1'].includes(new URL(BASE).hostname),'This test 
     await page.goto(BASE+'admin/#/availability');
     const form=page.locator('form[aria-labelledby="h-rules"]');
     await form.waitFor({timeout:8000}).catch(async e=>{console.error({errors,body:(await page.locator('body').innerText()).slice(0,800)});throw e;});
-    if(before.viewing_policy===null) await form.getByText('Not set:',{exact:false}).waitFor();
+    if(before.viewing_policy===null) await form.getByText('Not saved yet:',{exact:false}).waitFor();
     await form.getByLabel('Viewing length (minutes)').fill(length);
     await form.getByLabel('Most viewings in a day').fill(max);
     await form.getByText('Unsaved changes').waitFor();

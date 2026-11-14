@@ -8,7 +8,7 @@ const fields = f => json({ error: "Please check the highlighted fields.", fields
 const ID = /^[1-9]\d{0,8}$/;
 
 // Every negotiator, active or not (D9: they are deactivated, never deleted), with their exceptions from today on.
-// VIS-09, gate on: each also has viewing_policy, their saved viewing rules (null: none saved, the fixed rules apply).
+// VIS-09, gate on: each also has viewing_policy, their saved viewing rules (null: none saved, the plan's defaults apply).
 async function list({ env }) {
   const ready = viewingPolicyReady(env);
   const [people, exceptions, policies = []] = await env.DB.batch([

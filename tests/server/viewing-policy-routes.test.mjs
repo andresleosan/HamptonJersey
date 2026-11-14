@@ -63,15 +63,24 @@ test("gate off: saved rules are ignored and every route keeps the fixed 30-minut
     body: { duration_minutes: 30, buffer_minutes: 15, parish_extra_minutes: 15, max_daily: 8, revision: 0 } })).status, 404);
 });
 
-test("gate on without saved rules: the same fixed rules and no snapshot", async t => {
+// Master plan (10-Nov-2026): 30 minutes, 15 of margin, 15 more between parishes and 8 a day are the rules of every
+// negotiator; saving rules only changes them.
+test("gate on without saved rules: the plan's defaults apply, with their snapshot", async t => {
   const { env, cookie } = await world(t);
-  seedViewing(env);
-  const times = await free(env, cookie, WED, "HE-R002");
-  assert.ok(times.includes("11:00") && times.includes("17:00"), "another parish needs no extra margin");
-  for (const time of ["11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"])
-    assert.equal((await book(env, cookie, { time })).status, 201, time);
-  assert.equal(last(env).end_time, "17:30");
-  assert.equal(env.DB.raw.prepare("SELECT COUNT(*) n FROM viewing_policy_snapshots").get().n, 0);
+  seedViewing(env, { time: "10:00", end_time: "10:15" });
+  // A historical booking has no recorded parish: the larger margin (15 + 15) applies, so 10:30 is too soon.
+  const other = await free(env, cookie, WED, "HE-R002");
+  assert.ok(!other.includes("10:30") && other.includes("11:00"));
+  const r = await book(env, cookie, { time: "12:00" });
+  assert.equal(r.status, 201);
+  assert.equal(last(env).end_time, "12:30");
+  assert.deepEqual({ ...snap(env, r.data.id) }, { viewing_id: r.data.id, parish: "St Helier", buffer_minutes: 15,
+    parish_extra_minutes: 15, policy_revision: 0 });
+  assert.ok((await free(env, cookie, WED)).includes("17:00"), "two booked: the day is still open");
+  for (const time of ["13:00", "13:30", "14:00", "14:30", "15:00", "15:30"]) seedViewing(env, { time });
+  assert.deepEqual(await free(env, cookie, WED), [], "the eighth viewing of the day reaches the maximum of 8");
+  assert.equal((await book(env, cookie, { time: "17:00" })).status, 409);
+  assert.equal((await webBook(env, { time: "17:00" })).status, 409);
 });
 
 test("saved rules shape the slots: length, margins by parish and the daily maximum", async t => {

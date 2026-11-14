@@ -1,5 +1,5 @@
 // VIS-09: viewing length, margins between homes and a daily maximum per negotiator. Availability and the booking
-// writers use it only with VIS09_VIEWING_POLICY_READY=1 and only for negotiators with saved rules (viewing-store.js).
+// writers use it only with VIS09_VIEWING_POLICY_READY=1; without saved rules the defaults below apply (viewing-store.js).
 import { OPTIONS } from './applicants.js';
 
 export const viewingPolicyReady = env => env?.VIS09_VIEWING_POLICY_READY === '1';

@@ -225,7 +225,7 @@ function Negotiator({ n, reload, focus }) {
     {rulesShown && <form onSubmit={saveRules} aria-labelledby="h-rules" aria-describedby="d-rules">
       <h3 id="h-rules">Viewing rules</h3>
       <p id="d-rules" className="muted">{n.viewing_policy ? "Times that would break these rules are not offered, on the website or here."
-        : `Not set: ${n.name}'s viewings last ${SLOT_MINUTES} minutes with a 15-minute margin and no daily limit. Saving applies the rules below instead. They can be changed later, not removed.`}</p>
+        : `Not saved yet: ${n.name} has the standard rules shown below. Saving changes them. They can be changed later, not removed.`}</p>
       <div className="inline">{RULES.map(([k, label, min, max, step]) => <label key={k}>{label}
         <input type="number" inputMode="numeric" required min={min} max={max} step={step} value={rules[k]}
           onChange={e => setRules(r => ({ ...r, [k]: e.target.value }))} {...invalid(errors.rules?.[k], `e-rules-${k}`)} /></label>)}</div>
