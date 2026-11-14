@@ -9,7 +9,7 @@ Ordenado por cuántas tareas abiertas desbloquea cada cosa (`node scripts/avanza
 | Tarea | Desbloquea | Qué hace falta |
 | --- | --- | --- |
 | PRE-32 | 60 | Decir qué plan de ChatGPT usa Hermes y qué datos puede tratar; sin eso ninguna automatización con modelo se conecta. |
-| AUT-17 | 48 | Verificar cuenta y DNS de Cloudflare Email Service y autorizar encender `EMAIL_SERVICE_READY` con una prueba real de envío. |
+| AUT-17 | 48 | Verificar cuenta y DNS de Cloudflare Email Service y autorizar encender `EMAIL_SERVICE_READY` con una prueba real de envío. Esa misma prueba cierra AUT-11 (barandillas de envío), que ya no tiene código pendiente. |
 | PRE-03 | 21 | Hampton confirma sus registros en la JFSC (Schedule 2) y la JOIC. |
 | PRE-33 | 11 | Preparar y enviar el paquete para el abogado de Jersey. |
 | PRE-29 | 9 | Hampton responde la pregunta 13: registros y cobro de rentas en cuenta propia. |

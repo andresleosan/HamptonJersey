@@ -5,9 +5,9 @@
   "origen": "plan",
   "fase": "—",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "La pausa general está en producción desde el 1-nov-2026 (AUT-01/AUT-13). Añadido en local el 6-nov-2026, sin publicar, para AUT-17: idempotencia por snapshot, cuota compartida de 100 intentos por día de Jersey con reserva atómica, interruptor de correo y del resumen, supresiones y comprobación de pausa antes de cada llamada. Resultados inciertos sin reenvío automático. La pausa también detiene el resumen interno y el panel lo explica.",
-  "falta": "M06 · Reconciliación 7-nov: Activar y probar AUT-17 en real. Topes por agencia y otros canales, horas de silencio de WhatsApp/SMS y barandillas particulares de cada futuro flujo se implementan con esos flujos; el tope compartido de correo no los sustituye. Solo una persona en el panel reanuda los envíos. El envío de consultas debe además revalidar aprobación, búsqueda activa, vigencia de propiedad y permisos antes de salir; un cambio de precio, requisitos o disponibilidad después de aprobar revisa las acciones pendientes. Dos empleados y los reintentos deben compartir la misma acción sin doble correo. Depende de: BUS-15, EST-09. Aceptación: Dos acciones concurrentes no envían dos veces y una propiedad invalidada no sale en una consulta pendiente. Traído de BUS-15 (14-nov): la revalidación previa al envío usa APPROVED; un cambio material de búsqueda o propiedad retira la aprobación sin tocar el estado Shortlisted.",
+  "falta": "Solo falta probar las barandillas con un envío real, que exige AUT-17 activo. La pausa general, la idempotencia por snapshot, la cuota diaria compartida, las supresiones y la comprobación de pausa antes de cada llamada están en main (server/email.js). Las barandillas del flujo de consultas (revalidar aprobación, búsqueda activa, vigencia de la propiedad y permisos; una sola acción compartida entre empleados y reintentos) están en AGE-03 y AGE-05; los topes por agencia y de otros canales llegan con esos flujos.",
   "bloqueo": "Activación de AUT-17",
   "evidencia": [
     "admin/src/ApplicantDetail.jsx:279-281",
@@ -18,7 +18,8 @@
     "migrations/0023_email.sql",
     "tests/server/email.test.mjs",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo.",
+    "Evaluada el 14-nov-2026 (skill §2, quién mueve la tarea): no queda código propio; solo la activación de AUT-17, que es de Luis. La parte del flujo de consultas se trasladó a AGE-03 y AGE-05."
   ],
   "modulo": "M06",
   "deps": [
@@ -53,12 +54,12 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Activación de AUT-17",
+  "externalBlocker": "Luis: activar AUT-17 (cuenta y DNS de Cloudflare Email Service y autorizar EMAIL_SERVICE_READY) y hacer una prueba real de envío.",
   "resources": [
     "outbound-policy",
     "email-pipeline",
     "consultations-contract"
   ],
-  "nextStep": "Verificar activación real del correo y extender barandillas e idempotencia al flujo de consultas.",
+  "nextStep": "Cuando AUT-17 esté activo, comprobar con un envío real que dos acciones concurrentes no envían dos veces y cerrar.",
   "actualizado": "2026-11-14"
 }

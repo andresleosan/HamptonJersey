@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "M06 · Reconciliación 7-nov: Construir envío trazable por canal con referencia e identidad de consulta, usando AUT-17 para correo cuando esté activado y una tarea manual para otros canales sin integración operativa. Validar autorización y datos justo antes de salir, registrar envío real y manejar fallos sin iniciar el plazo de respuesta. Reintentos y acciones simultáneas no duplican el envío. La agrupación y horas fijas históricas quedan como opciones técnicas por concretar, sin mezclar clientes. Depende de: AGE-03, AUT-17, AUT-11. Aceptación: Dos empleados o un reintento producen una sola consulta enviada; un fallo no empieza el reloj de dos días.",
+  "falta": "M06 · Reconciliación 7-nov: Construir envío trazable por canal con referencia e identidad de consulta, usando AUT-17 para correo cuando esté activado y una tarea manual para otros canales sin integración operativa. Validar autorización y datos justo antes de salir, registrar envío real y manejar fallos sin iniciar el plazo de respuesta. Reintentos y acciones simultáneas no duplican el envío. La agrupación y horas fijas históricas quedan como opciones técnicas por concretar, sin mezclar clientes. Depende de: AGE-03, AUT-17, AUT-11. Aceptación: Dos empleados o un reintento producen una sola consulta enviada; un fallo no empieza el reloj de dos días. Traído de AUT-11 (14-nov): antes de salir, el envío revalida aprobación (APPROVED), búsqueda activa, vigencia de la propiedad y permisos; un cambio de precio, requisitos o disponibilidad después de aprobar revisa las acciones pendientes; dos empleados y los reintentos comparten la misma acción sin doble correo; una propiedad invalidada no sale en una consulta pendiente.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:291",
@@ -54,5 +54,6 @@
     "email-pipeline",
     "outbound-policy"
   ],
-  "nextStep": "Implementar envío idempotente con evidencia real y alternativa manual; activar correo solo cuando AUT-17 opere."
+  "nextStep": "Implementar envío idempotente con evidencia real y alternativa manual; activar correo solo cuando AUT-17 opere.",
+  "actualizado": "2026-11-14"
 }
