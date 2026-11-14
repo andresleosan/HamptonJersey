@@ -14,6 +14,8 @@ preview_urls = false
 [vars]
 # Set true only after real service/domain/routing setup and the approved activation check.
 EMAIL_SERVICE_READY = "false"
+# OFE-06: weekly internal sale review (migration 0053); still off until the team sets a day and time.
+OFE06_WEEKLY_REVIEW_READY = "1"
 
 [triggers]
 crons = ["*/10 * * * *"]
