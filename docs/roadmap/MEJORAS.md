@@ -56,3 +56,7 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [VIS-10] Retirar `server/property-viewing-rules.js`, sus pruebas y la migración 0051 sin aplicar · nada los usa tras 0066 · 14-nov-2026
 - [VIS-10] Vaciar llaves y nota al archivar o pasados N meses; aviso de cambios sin guardar en la tarjeta House rules · 14-nov-2026
 - [VIS-10] Calcular el aviso con instantes y no con hora local (se desvía una hora el fin de semana del cambio de hora); mensaje propio si la regla cambia durante la reserva; aviso en Inbox para fichas Tenanted sin horas de aviso · 14-nov-2026
+- [ADM-11] El rótulo «Estimated» cubre también la fecha de revisión del Hazards check, que pone el equipo; al crear un contrato la copia vence a inicio + 28 aunque la licencia sea posterior · 14-nov-2026
+- [ADM-11] Corregir la fecha de una licencia o EICR reinicia su copia aunque sea una errata; los reinicios automáticos no dejan evento propio en History · 14-nov-2026
+- [ADM-11] Las filas vacías se siembran en cada carga de Rentals y cada tic del reloj (idempotente); dos contratos solapados comparten fila por punto del inquilino · 14-nov-2026
+- [ADM-11] Una inspección (ADM-13) podría dejar registrado el Hazards check o el Electrical checklist · hoy se registran aparte con Update · 14-nov-2026

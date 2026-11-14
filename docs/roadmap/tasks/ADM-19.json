@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "No existen las referencias del inquilino por email con un enlace de acceso con caducidad elegida por el empleado (necesitan el correo, AUT-17, y el acceso de caso de ADM-12). Plan maestro (10-nov-2026): la firma del contrato se hace fuera de Hampton; la app solo registra la evidencia externa revisada, sin proveedor de firma ni subida de documentos. La plantilla de contrato necesita la revisión de un abogado de Jersey.",
+  "falta": "No existen las referencias del inquilino por email con un enlace de acceso con caducidad elegida por el empleado (necesitan el correo, AUT-17, y el acceso de caso de ADM-12). Plan maestro (10-nov-2026): la firma del contrato se hace fuera de Hampton; la app solo registra la evidencia externa revisada, sin proveedor de firma ni subida de documentos. La plantilla de contrato necesita la revisión de un abogado de Jersey. Traído de ADM-11 (14-nov): los puntos del calendario de cumplimiento guardan solo fecha y referencia de texto; adjuntar el documento queda aquí o en Private documents (PUB-11).",
   "bloqueo": "",
   "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26",

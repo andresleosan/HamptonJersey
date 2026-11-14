@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "Luis",
   "hecho": "",
-  "falta": "Claude prepara el borrador en inglés (2-nov-2026) y Luis se lo pasa a Hampton para su abogado. Lleva: la cláusula de protección de datos de los contratos de venta y de alquiler (informa, sin pedir consentimiento ni prometer que los datos se guardan para siempre); el esquema del contrato de encargo entre Hampton y Optimyze (art. 19, PRE-13), con las cláusulas tipo y la evaluación para el acceso desde Colombia; cuánto guardar un alquiler o una venta después de terminar (PRE-12); y las preguntas sobre captar propietarios: el texto del consentimiento para ofrecer valoraciones (REG-16), las cartas a «The Owner», los datos de ventas por dirección, los carteles, los folletos, las recomendaciones, la investigación de empresas (BUS-20), la publicidad por teléfono y correo en Jersey y si las agencias deben estar en un sistema de reclamaciones. Revisar también el nuevo párrafo Email sent to the app del aviso de privacidad (AUT-17), con conservación de contenido 30 días, metadatos y deduplicación 90 días y huella de baja mientras siga vigente.",
+  "falta": "Claude prepara el borrador en inglés (2-nov-2026) y Luis se lo pasa a Hampton para su abogado. Lleva: la cláusula de protección de datos de los contratos de venta y de alquiler (informa, sin pedir consentimiento ni prometer que los datos se guardan para siempre); el esquema del contrato de encargo entre Hampton y Optimyze (art. 19, PRE-13), con las cláusulas tipo y la evaluación para el acceso desde Colombia; cuánto guardar un alquiler o una venta después de terminar (PRE-12); y las preguntas sobre captar propietarios: el texto del consentimiento para ofrecer valoraciones (REG-16), las cartas a «The Owner», los datos de ventas por dirección, los carteles, los folletos, las recomendaciones, la investigación de empresas (BUS-20), la publicidad por teléfono y correo en Jersey y si las agencias deben estar en un sistema de reclamaciones. Revisar también el nuevo párrafo Email sent to the app del aviso de privacidad (AUT-17), con conservación de contenido 30 días, metadatos y deduplicación 90 días y huella de baja mientras siga vigente. Traído de ADM-11 (14-nov): incluir en el paquete del abogado los plazos del calendario de cumplimiento: 28 días para la copia de licencia y EICR al inquilino, 28 para notificar cambios de licencia y 1 año del checklist eléctrico; desde cuándo corren para un inquilino nuevo (hoy, inicio del contrato) y cada cuánto se revisan los 29 riesgos (hoy, fecha que pone el equipo). Se marcan validados en Settings › Legal terms.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
@@ -24,5 +24,6 @@
     "data-processing-agreements",
     "retention-policy"
   ],
-  "nextStep": "Preparar el borrador solicitado para revisión del abogado y entrega por Luis; no tratarlo como criterio legal validado."
+  "nextStep": "Preparar el borrador solicitado para revisión del abogado y entrega por Luis; no tratarlo como criterio legal validado.",
+  "actualizado": "2026-11-14"
 }
