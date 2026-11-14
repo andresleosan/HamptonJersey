@@ -6,8 +6,8 @@
   "fase": "F3-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Viewings tiene las pestañas Requests, Upcoming, Needs outcome y Past, los botones Confirm, Reschedule, Mark completed, No-show y Cancel viewing, y New viewing para reservas por teléfono ya confirmadas. Las peticiones antiguas se migraron (new → Requested, contacted → Confirmed).",
-  "falta": "M09 · Reconciliación 7-nov: Faltan los estados Reminded y Feedback received, que llegan con los recordatorios y el formulario al aplicante (F3-B). Extender el ciclo actual a propuestas de terceros y confirmaciones individuales: solicitada, por coordinar, propuesta, pendiente de confirmaciones, confirmada, realizada o cancelada. Mantener contactos e instrucciones juntos, actualizar reprogramaciones y no cerrar la búsqueda por ningún estado de visita. Depende de: VIS-17. Aceptación: Una propuesta incompleta no aparece confirmada ni provoca cierre de búsqueda. Reflejar sus estados confirmados o plazas en el calendario ocupado de VIS-06, sin datos personales. Traído de VIS-10 (14-nov): al confirmar una solicitud (Requested → Confirmed) no se vuelve a comprobar el aviso de la casa; decidirlo al ampliar el ciclo.",
+  "hecho": "Viewings tiene las pestañas Requests, Upcoming, Needs outcome y Past, los botones Confirm, Reschedule, Mark completed, No-show y Cancel viewing, y New viewing para reservas por teléfono ya confirmadas. Las peticiones antiguas se migraron (new → Requested, contacted → Confirmed). Construido y apagado (14-nov, VIS08_CYCLE_READY y migración 0071): los dos estados que faltaban, anotados por el equipo. Reminded: en Upcoming, «Mark reminded» guarda cuándo, quién y por qué canal (Phone, Email, WhatsApp o In person); una visita confirmada a menos de 24 h sin recordatorio lleva «Reminder due» y un aviso en el detalle; cambiarla de hora borra el recordatorio. Feedback received: «Mark completed» admite «No answer yet» y después «Record feedback» guarda la respuesta del cliente en el resultado de VIS-04 (Proceed, Need more information o Not interested, con motivo), con la fecha y quién la anotó; un resultado guardado antes cuenta como Feedback received sin fecha inventada. Confirm vuelve a aplicar el aviso de la casa (VIS-10) con la misma casilla «Access is agreed with the tenant». Ningún estado de visita cambia la etapa ni el estado de la búsqueda del aplicante (probado). Apagado, o sin la migración 0071, todo funciona como antes.",
+  "falta": "Aplicar la migración 0071 (aditiva: cinco columnas), encender VIS08_CYCLE_READY y comprobar el recorrido real. Pasa a otras tareas: propuestas de terceros, «por coordinar» y «pendiente de confirmaciones», con su aceptación de que una propuesta incompleta no aparece confirmada (VIS-17); recordatorio automático por correo, que escribe los mismos campos (AUT-17 y VIS-13); formulario del aplicante tras la visita (VIS-04, F3-B); visitas confirmadas en el calendario ocupado (VIS-06).",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "migrations/0010_viewings.sql:40",
@@ -16,7 +16,18 @@
     "server/routes/inbox.js:78-80",
     "admin/src/Viewings.jsx:9",
     "admin/src/Viewings.jsx:292-353",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "migrations/0071_viewing_cycle.sql",
+    "server/viewing-cycle.js",
+    "server/routes/inbox.js (acciones remind y feedback, completar sin respuesta, aviso de la casa al confirmar)",
+    "admin/src/Viewings.jsx (Mark reminded, Reminder due, Record feedback, casilla del aviso en Confirm)",
+    "tests/server/vis-08-viewing-cycle.test.mjs: 9 pruebas pasan (14-nov). Incluye la aceptación posible hoy: confirmar, recordar, cambiar de hora, completar, anotar Not interested, cancelar y no-show dejan intactas las filas de applicants (stage y search_state).",
+    "tests/vis08-viewing-cycle.e2e.cjs pasa a 1280 y 390 en el contenedor aislado (14-nov); zoom 200 % comprobado a 1280.",
+    "Decisión 14-nov (encargo de la sesión; spec 2026-11-08-viewings-coordination-design §3: «Reminded y Feedback received son hitos separados»; CONTINUIDAD, migración aditiva): son fechas junto al estado, no valores nuevos del CHECK de 0010.",
+    "Decisión 14-nov (encargo de la sesión; VIS-04, migrations/0010_viewings.sql:45-46): Feedback received se deriva del resultado de VIS-04 (outcome y outcome_note) más feedback_at y feedback_by; no se duplican campos.",
+    "Decisión 14-nov (ficha, «Traído de VIS-10»; server/house-rules.js noticeCheck): Confirm aplica la misma regla y la misma confirmación expresa que la reserva, y la vuelve a leer dentro del UPDATE.",
+    "Decisión 14-nov (skill §4.5, lo más simple y reversible): el recordatorio no se admite con la visita ya pasada y se borra al cambiar de hora; el feedback se anota una sola vez; el texto del resumen queda en la fila de la visita, nunca en eventos.",
+    "Contrato para AUT-17 (migrations/0071_viewing_cycle.sql): el recordatorio automático escribe reminded_at, reminded_by = 'automation' y reminded_channel = 'email' en la misma fila; no se construyó ningún envío."
   ],
   "modulo": "M09",
   "deps": [
@@ -50,6 +61,6 @@
     "agency-consultations-contract",
     "notifications-schema"
   ],
-  "nextStep": "Extender las visitas a propuestas y confirmaciones multiparte; añadir recordatorio y feedback cuando sus canales existan.",
+  "nextStep": "Aplicar la migración 0071, encender VIS08_CYCLE_READY y comprobar Upcoming y Past en producción con lecturas.",
   "actualizado": "2026-11-14"
 }

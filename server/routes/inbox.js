@@ -4,6 +4,7 @@ import { validateViewing, jerseyNow, isFree, addMinutes, SLOT_MINUTES, ACTIVE, O
 import { loadAvailability, bookStatement, slotGuard, policySnapshot, propertyViewingGuard } from "../viewing-store.js";
 import { touchByViewing } from "../retention.js";
 import houseRuleRoutes, { noticeCheck } from "../house-rules.js";
+import { cycleOn, REMINDER_CHANNELS } from "../viewing-cycle.js";
 
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
@@ -36,7 +37,8 @@ async function list({ request, env }) {
       FROM viewing_requests v WHERE 1${only}`)
       .bind(...Object.values(TABS).flatMap(([cond]) => bindsOf(cond, clock)), ...listing),
   ]).then(r => r.map(x => x.results));
-  return json({ viewings, counts });
+  // VIS-08: cycle tells the panel that reminders and feedback can be recorded (switched on and migrated).
+  return json({ viewings, counts, ...(await cycleOn(env, viewings[0]) ? { cycle: true } : {}) });
 }
 
 // Task links resolve independently of the list's 500-row window and use the same Jersey tab clock.
@@ -98,19 +100,40 @@ async function create({ request, env, admin }) {
   return booked.meta.changes ? json({ id: booked.meta.last_row_id }, 201) : taken();
 }
 
-// C7: the statuses each action leaves from, and where it goes (reschedule keeps the status).
-const FROM = { confirm: ["requested"], cancel: ACTIVE, reschedule: ACTIVE, complete: ["confirmed"], no_show: ["confirmed"] };
+// C7: the statuses each action leaves from, and where it goes (reschedule keeps the status). VIS-08: remind and
+// feedback keep it too, and exist only with the cycle on.
+const FROM = { confirm: ["requested"], cancel: ACTIVE, reschedule: ACTIVE, complete: ["confirmed"], no_show: ["confirmed"],
+  remind: ["confirmed"], feedback: ["completed"] };
 const TO = { confirm: "confirmed", cancel: "cancelled", complete: "completed", no_show: "no_show" };
 
-// The columns an action sets, its event data, and for a reschedule the clash its UPDATE must not have (C6).
-async function change(env, action, body, cur, clock, admin) {
-  if (action === "complete") {
-    const errors = {};
-    if (!OUTCOMES.includes(body.outcome)) errors.outcome = "Choose an outcome";
+// The columns an action sets, its event data (and name, when it is not the status), and the conditions its UPDATE
+// must still meet: for a reschedule the clash it must not have (C6). cycle: VIS-08 is on; ts: the time of the write.
+async function change(env, action, body, cur, clock, admin, cycle, ts) {
+  if (action === "remind") {
+    if (!REMINDER_CHANNELS.includes(body.channel)) return { errors: { channel: "Choose how you reminded them" } };
+    if (`${cur.date} ${cur.end_time ?? cur.time}` < `${clock.date} ${clock.time}`)
+      fail(409, "This viewing's time has passed. Record how it went instead.");
+    return { set: { reminded_at: ts, reminded_by: admin, reminded_channel: body.channel }, event: "reminded", data: { channel: body.channel } };
+  }
+  if (action === "complete" || action === "feedback") {
+    if (action === "feedback" && cur.outcome) fail(409, "Feedback is already recorded for this viewing.");
+    // VIS-08: a viewing can be completed before the client answers (outcome: null); the answer is then recorded later
+    // as feedback. Either way the outcome and its note are VIS-04's, with when and who (the note never in the event).
+    const waiting = cycle && action === "complete" && body.outcome === null, errors = {};
+    if (!waiting && !OUTCOMES.includes(body.outcome)) errors.outcome = "Choose an outcome";
     const note = body.outcome_note == null ? "" : body.outcome_note;
     if (typeof note !== "string" || note.trim().length > 500) errors.outcome_note = "Use 500 characters or fewer";
     if (Object.keys(errors).length) return { errors };
-    return { set: { status: "completed", outcome: body.outcome, outcome_note: note.trim() || null }, data: { outcome: body.outcome } };
+    return { set: { ...(action === "complete" ? { status: "completed" } : {}), outcome: body.outcome, outcome_note: note.trim() || null,
+        ...(cycle && !waiting ? { feedback_at: ts, feedback_by: admin } : {}) },
+      data: { outcome: body.outcome }, ...(action === "feedback" ? { event: "feedback" } : {}) };
+  }
+  if (action === "confirm" && cycle) {
+    // VIS-10's notice again, as for a booking (create): a request made in time can be short of it by now, and a
+    // request seeded by the team never passed it.
+    const notice = await noticeCheck(env, cur, clock, body.notice_confirmed === true);
+    if (notice.error) return { errors: { notice_confirmed: notice.error } };
+    return { set: { status: "confirmed" }, property: notice.guard, data: notice.confirmed ? { notice_confirmed: true } : null };
   }
   if (action !== "reschedule") return { set: { status: TO[action] } };
   // The panel's rules for negotiator, date and time (validateViewing's other fields are the booking's, already stored).
@@ -132,7 +155,9 @@ async function change(env, action, body, cur, clock, admin) {
   if (notice.error) return { errors: { notice_confirmed: notice.error } };
   const property = propertyViewingGuard(propertySlot, { duration }), n = notice.guard;
   return {
-    set: { ...to, end_time: addMinutes(to.time, duration), agent: who.name },
+    // VIS-08: a reminder was of the old time; at another one the client has not been reminded.
+    set: { ...to, end_time: addMinutes(to.time, duration), agent: who.name,
+      ...(cycle && (to.date !== cur.date || to.time !== cur.time) ? { reminded_at: null, reminded_by: null, reminded_channel: null } : {}) },
     guard: slotGuard(env, propertySlot, { policy, parish, actor: admin, excludeId: cur.id }),
     property: n ? { sql: `${property.sql} AND ${n.sql}`, binds: [...property.binds, ...n.binds] } : property,
     snapshot: policy ? policySnapshot(env, policy, parish, cur.id) : null,
@@ -148,24 +173,28 @@ async function runAction({ env, admin, id, body }) {
   if (!Object.hasOwn(FROM, body.action)) fail(400, "Unknown action");
   const cur = await env.DB.prepare("SELECT * FROM viewing_requests WHERE id = ?").bind(id).first();
   if (!cur) fail(404, "Viewing not found");
+  const cycle = await cycleOn(env, cur), ts = now();
+  if (!cycle && ["remind", "feedback"].includes(body.action)) fail(400, "Unknown action");
   if (!FROM[body.action].includes(cur.status)) fail(409, `This viewing is already ${cur.status === "no_show" ? "marked as a no-show" : cur.status}.`);
   if (cur.updated_at !== body.updated_at) fail(409, stale);
-  const ch = await change(env, body.action, body, cur, jerseyNow(), admin);
+  const ch = await change(env, body.action, body, cur, jerseyNow(), admin, cycle, ts);
   if (ch.errors) return fields(ch.errors);
-  const cols = Object.keys(ch.set), ref = { entity_type: "viewing", entity_id: String(id) }, ts = now();
-  const type = `viewing.${body.action === "reschedule" ? "rescheduled" : TO[body.action]}`;
+  const cols = Object.keys(ch.set), ref = { entity_type: "viewing", entity_id: String(id) };
+  const guards = [ch.guard, ch.property].filter(Boolean);
+  const type = `viewing.${ch.event ?? (body.action === "reschedule" ? "rescheduled" : TO[body.action])}`;
   // The lock and the slot check are part of the UPDATE; the event, the touch and the notice follow only if it changed
   // the row.
   const [r] = await env.DB.batch([
     env.DB.prepare(`UPDATE viewing_requests SET ${cols.map(c => `${c} = ?`).join(", ")}, updated_at = ?, updated_by = ?
-      WHERE id = ? AND updated_at IS ?${ch.guard ? ` AND ${ch.guard.sql} AND ${ch.property.sql}` : ""}`)
-      .bind(...Object.values(ch.set), ts, admin, id, body.updated_at, ...(ch.guard?.binds ?? []), ...(ch.property?.binds ?? [])),
+      WHERE id = ? AND updated_at IS ?${guards.map(g => ` AND ${g.sql}`).join("")}`)
+      .bind(...Object.values(ch.set), ts, admin, id, body.updated_at, ...guards.flatMap(g => g.binds)),
     // VIS-09: the margins it was moved with, only if the UPDATE wrote (the event below then still follows it).
     ...(ch.snapshot ? [ch.snapshot] : []),
     ...logEvent(env, { actor: admin, ...ref, type, data: ch.data ?? null }, null, { ifInserted: true }),
-    // G2: a viewing confirmed, moved or held is activity on the contact with its email or mobile; a no-show or a cancel
-    // is not. Right after the event, so its changes() gate reads the event's insert.
-    ...(["confirm", "reschedule", "complete"].includes(body.action) ? [touchByViewing(env, cur, ts)] : []),
+    // G2: a viewing confirmed, moved or held, or the client's answer about it, is activity on the contact with its
+    // email or mobile; a no-show, a cancel or the team's own reminder is not. Right after the event, so its changes()
+    // gate reads the event's insert.
+    ...(["confirm", "reschedule", "complete", "feedback"].includes(body.action) ? [touchByViewing(env, cur, ts)] : []),
     // Confirmed or cancelled, a website request has been dealt with: its Inbox notice is done. Gated on that event, since
     // after a touch changes() is the touch's (each of these actions happens once to a viewing).
     ...(["confirm", "cancel"].includes(body.action) ? [resolveNotices(env, { ...ref, category: "viewing" }, admin, { ifEvent: type })] : []),
@@ -175,6 +204,7 @@ async function runAction({ env, admin, id, body }) {
   const after = await env.DB.prepare("SELECT updated_at FROM viewing_requests WHERE id = ?").bind(id).first();
   if (!after) fail(404, "Viewing not found");
   if (after.updated_at !== body.updated_at) fail(409, stale);
+  if (body.action === "confirm") fail(409, "This property's notice changed while you were confirming. Check it and confirm again.");
   return taken();
 }
 

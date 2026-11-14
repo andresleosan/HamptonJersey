@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtDate, fmtDay, firstSentence, VIEWING_STATUS, OUTCOME, INTEREST_REASON } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
-import { KINDS, OUTCOMES, jerseyToday, plusDays } from "../../server/viewings.js";
+import { KINDS, OUTCOMES, jerseyToday, jerseyNow, plusDays } from "../../server/viewings.js";
+import { stageOf, reminderDue, REMINDER_CHANNELS } from "../../server/viewing-cycle.js";
 import SlotPicker from "./SlotPicker.jsx";
 import Interest from "./Interest.jsx";
 import { useHouseRules, HouseRulesFacts, NoticeConfirm, noticeShort } from "./HouseRules.jsx";
@@ -18,9 +19,15 @@ const EMPTY = {
 const listingOf = v => v.listing_title || v.listing_ref || "General enquiry / valuation";
 const tel = p => p.replace(/[^\d+]/g, "");
 const Msg = ({ m }) => m && <p role={m.ok ? "status" : "alert"} className={m.ok ? "ok" : "err"}>{m.text}</p>;
-const Badge = ({ status }) => { const [t, tone] = VIEWING_STATUS[status] ?? [status, "neutral"]; return <span className={`badge ${tone}`}>{t}</span>; };
+// VIS-08: the two stages that are dates beside the status (stageOf), named only once the server reports the cycle on.
+const STAGE = { reminded: ["Reminded", "positive"], feedback: ["Feedback received", "positive"] };
+const CHANNEL = { phone: "Phone", email: "Email", whatsapp: "WhatsApp", in_person: "In person" };
+const Badge = ({ v, cycle }) => {
+  const k = cycle ? stageOf(v) : v.status, [t, tone] = STAGE[k] ?? VIEWING_STATUS[k] ?? [k, "neutral"];
+  return <span className={`badge ${tone}`}>{t}</span>;
+};
 // A refusal once the list has been reloaded: a stale save's "Reload to see them" has been done already.
-const refusal = e => (/Reload to see/.test(e.message)
+const refusal = e => e.data?.fields?.notice_confirmed ?? (/Reload to see/.test(e.message)
   ? `${firstSentence(e.message)} This is the latest version; your change was not saved.` : e.message);
 const stillThere = (d, id) => !!d?.viewings.some(x => x.id === id);
 // VIS-02 (R9): a viewing that counts, or can once it is closed: still active, or gone well in the last 30 days.
@@ -160,6 +167,7 @@ export default function Viewings({ listing, requestedId }) {
   const v = data?.viewings.find(x => x.id === sel) ?? (data && pinned.current?.id === sel ? pinned.current : null);
   const groups = !data ? [] : tab !== "upcoming" ? [[null, data.viewings]]
     : Object.entries(data.viewings.reduce((a, x) => ((a[x.date] ||= []).push(x), a), {}));
+  const cycle = !!data?.cycle, clock = jerseyNow(); // VIS-08
 
   return <section aria-labelledby="t-views">
     <div className="head"><h1 id="t-views" ref={headRef} tabIndex={-1}>Viewings</h1>
@@ -184,11 +192,13 @@ export default function Viewings({ listing, requestedId }) {
               <span className="who">{x.name}</span>
               <span className="muted num">{tab === "upcoming" ? `${x.time}-${x.end_time}` : `${fmtDay(x.date)} · ${x.time}`}</span>
               <span className="what">{listingOf(x)}</span>
-              {tab === "past" ? <Badge status={x.status} /> : <span className="muted">{x.negotiator_name ?? "No negotiator"}</span>}
+              {tab === "past" ? <Badge v={x} cycle={cycle} /> : <span className="muted">{x.negotiator_name ?? "No negotiator"}</span>}
+              {cycle && tab === "upcoming" && (x.reminded_at ? <span><Badge v={x} cycle /></span>
+                : reminderDue(x, clock) && <span><span className="badge attention">Reminder due</span></span>)}
             </button></li>)}</ul>
         </div>)}</div>
         {v && <Detail key={v.id} v={v} gone={!stillThere(data, v.id) ? TABS[tab] : null} ended={tab === "outcome"} filtered={listing === v.listing_id} headRef={detailRef}
-          count={listing === v.listing_id ? interest?.active_interest ?? null : undefined}
+          count={listing === v.listing_id ? interest?.active_interest ?? null : undefined} cycle={cycle} due={cycle && reminderDue(v, clock)}
           act={act} saveNotes={saveNotes} remove={remove} recount={recount} onDirty={onDirty} />}
       </div>}
   </section>;
@@ -196,9 +206,11 @@ export default function Viewings({ listing, requestedId }) {
 
 // gone: the tab v has just left (see send); only its notes can still be saved. count: the listing's interest when the
 // screen reads it already (filtered by v's listing; null while it loads), else undefined and read here.
-function Detail({ v, gone, ended, filtered, headRef, count, act, saveNotes, remove, recount, onDirty }) {
-  const [notes, setNotes] = useState(v.notes ?? ""), [open, setOpen] = useState(null); // open: "complete" | "reschedule"
+// cycle: VIS-08 is on (reminders, feedback and the notice asked again on Confirm); due: a reminder is due.
+function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, act, saveNotes, remove, recount, onDirty }) {
+  const [notes, setNotes] = useState(v.notes ?? ""), [open, setOpen] = useState(null); // open: "complete" | "reschedule" | "remind" | "feedback"
   const [err, setErr] = useState(null), [interest, setInterest] = useState(null), [refresh, setRefresh] = useState(0);
+  const [agreed, setAgreed] = useState(false);
   const busy = useRef(false), notesRef = useRef(null), opener = useRef(null);
   const house = useHouseRules(v.listing_id, refresh); // VIS-10: read again after a refused change
   const notesDirty = notes.trim() !== (v.notes ?? "");
@@ -223,11 +235,17 @@ function Detail({ v, gone, ended, filtered, headRef, count, act, saveNotes, remo
     if (e) { setErr(e); setRefresh(x => x + 1); } else after?.();
   };
   const withNotes = done => ({ done, notes: notesDirty ? notes : undefined });
-  const confirmIt = () => run(() => act(v, "confirm", {}, withNotes("Confirmed. It's in Upcoming now.")));
+  // VIS-08: a request sooner than a tenanted house's notice is confirmed only once staff say access is agreed (VIS-10).
+  const short = cycle && v.status === "requested" && noticeShort(house, v);
+  const confirmIt = () => (short && !agreed ? setErr("Confirm that access is agreed with the tenant, or reschedule to a later time")
+    : run(() => act(v, "confirm", short ? { notice_confirmed: true } : {}, withNotes("Confirmed. It's in Upcoming now."))));
+  const remind = channel => run(() => act(v, "remind", { channel }, withNotes("Marked as reminded.")), () => setOpen(null));
+  const feedback = body => run(() => act(v, "feedback", body, withNotes("Feedback saved.")), () => setOpen(null));
   const noShow = () => run(() => act(v, "no_show", {}, withNotes("Marked as a no-show. It's in Past now.")));
   const cancel = () => confirm(`Cancel the viewing with ${v.name} on ${fmtDay(v.date, true)} at ${v.time}? Its time becomes free again.`)
     && run(() => act(v, "cancel", {}, withNotes("Viewing cancelled. Its time is free again.")));
-  const complete = body => run(() => act(v, "complete", body, withNotes("Outcome saved. It's in Past now.")));
+  const complete = body => run(() => act(v, "complete", body,
+    withNotes(body.outcome ? "Outcome saved. It's in Past now." : "Marked completed. It's in Past, waiting for their answer.")));
   const reschedule = slot => run(() => act(v, "reschedule", slot,
     withNotes(`Moved to ${fmtDay(slot.date, true)} at ${slot.time}.`)), () => setOpen(null));
   const toggle = (k, e) => { opener.current = e.currentTarget; setOpen(o => (o === k ? null : k)); setErr(null); };
@@ -236,15 +254,19 @@ function Detail({ v, gone, ended, filtered, headRef, count, act, saveNotes, remo
   const subject = encodeURIComponent(`Your viewing: ${listingOf(v)}`);
   const n = own ? interest : count;
   const active = !gone && (v.status === "requested" || v.status === "confirmed");
+  const awaiting = cycle && !gone && v.status === "completed" && !v.outcome; // held, the client's answer still to come
   return <article className="card inbox-detail" aria-labelledby="v-name">
     <div className="head"><div>
-      <h2 id="v-name" ref={headRef} tabIndex={-1}>{v.name} <Badge status={v.status} /></h2>
+      <h2 id="v-name" ref={headRef} tabIndex={-1}>{v.name} <Badge v={v} cycle={cycle} /></h2>
       <p className="muted">Added {fmtDate(v.created_at)}</p></div>
       <div className="inline">
         {active && v.status === "requested" && <button type="button" className="btn" onClick={confirmIt}>Confirm</button>}
         {active && v.status === "confirmed" && ended && <>
           <button type="button" className="btn" aria-expanded={open === "complete"} onClick={e => toggle("complete", e)}>Mark completed</button>
           <button type="button" className="btn ghost" onClick={noShow}>No-show</button></>}
+        {cycle && active && v.status === "confirmed" && !ended && !v.reminded_at
+          && <button type="button" className="btn" aria-expanded={open === "remind"} onClick={e => toggle("remind", e)}>Mark reminded</button>}
+        {awaiting && <button type="button" className="btn" aria-expanded={open === "feedback"} onClick={e => toggle("feedback", e)}>Record feedback</button>}
         {active && <button type="button" className="btn ghost" aria-expanded={open === "reschedule"} onClick={e => toggle("reschedule", e)}>Reschedule</button>}
       </div></div>
     {err && <p role="alert" className="err">{err}</p>}
@@ -256,7 +278,11 @@ function Detail({ v, gone, ended, filtered, headRef, count, act, saveNotes, remo
       <p>Not counted in this listing's interest:</p><p className="meta">{[INTEREST_REASON[v.interest_reason], v.interest_note,
         fmtDate(v.interest_removed_at)].filter(Boolean).map((fact, i) => <span key={i}>{fact}</span>)}</p>
       {!gone && v.listing_id && <button type="button" className="btn ghost sm" onClick={() => run(() => recount(v))}>Count again</button>}</div>}
-    {active && open === "complete" && <OutcomeForm onSave={complete} onClose={close} onDirty={onDirty} />}
+    {active && short && <NoticeConfirm house={house} checked={agreed} onChange={b => { setAgreed(b); setErr(null); }} />}
+    {active && due && <p className="warn" role="note">This viewing is in less than 24 hours and {v.name} has not been reminded yet.</p>}
+    {active && open === "complete" && <OutcomeForm waiting={cycle} onSave={complete} onClose={close} onDirty={onDirty} />}
+    {active && open === "remind" && <RemindForm v={v} onSave={remind} onClose={close} onDirty={onDirty} />}
+    {awaiting && open === "feedback" && <OutcomeForm feedback onSave={feedback} onClose={close} onDirty={onDirty} />}
     {active && open === "reschedule" && <RescheduleForm v={v} house={house} refresh={refresh} onSave={reschedule} onClose={close} onDirty={onDirty} />}
     <dl className="kv">
       <div><dt>Listing</dt><dd>{v.listing_id ? <a href={`#/p/${v.listing_id}`}>{listingOf(v)}</a>
@@ -269,8 +295,11 @@ function Detail({ v, gone, ended, filtered, headRef, count, act, saveNotes, remo
       {v.phone && <div><dt>Phone</dt><dd><a href={`tel:${tel(v.phone)}`}>{v.phone}</a></dd></div>}
       {v.listing_id && n != null && <div><dt>Interest in this listing</dt><dd>{filtered ? `${n} ${n === 1 ? "person" : "people"} interested`
         : <a href={`#/viewings?listing=${v.listing_id}`}>{n} {n === 1 ? "person" : "people"} interested</a>}</dd></div>}
-      {v.status === "completed" && <div><dt>Outcome</dt><dd>{OUTCOME[v.outcome] ?? "Not recorded"}
+      {cycle && (v.status === "confirmed" || v.reminded_at) && <div><dt>Reminder</dt><dd>{v.reminded_at
+        ? [CHANNEL[v.reminded_channel], fmtDate(v.reminded_at), v.reminded_by].filter(Boolean).join(" · ") : "Not reminded yet"}</dd></div>}
+      {v.status === "completed" && <div><dt>Outcome</dt><dd>{OUTCOME[v.outcome] ?? (cycle ? "Waiting for their answer" : "Not recorded")}
         {v.outcome_note && <span className="muted"> · {v.outcome_note}</span>}</dd></div>}
+      {cycle && v.feedback_at && <div><dt>Feedback received</dt><dd>{fmtDate(v.feedback_at)} · recorded by {v.feedback_by}</dd></div>}
     </dl>
     <div className="inline">{v.email && <a className="btn ghost sm" href={`mailto:${v.email}?subject=${subject}`}>Reply by email</a>}
       {v.phone && <a className="btn ghost sm" href={`tel:${tel(v.phone)}`}>Call</a>}</div>
@@ -295,7 +324,9 @@ const useStepDirty = (onDirty, dirty) => {
   useEffect(() => () => onDirty("step", false), []);
 };
 
-function OutcomeForm({ onSave, onClose, onDirty }) {
+// VIS-08: waiting adds "No answer yet" (the viewing is completed and the answer recorded later); feedback is that later
+// step, the same three answers for a viewing already completed.
+function OutcomeForm({ onSave, onClose, onDirty, waiting = false, feedback = false }) {
   const [outcome, setOutcome] = useState(null), [note, setNote] = useState(""), [err, setErr] = useState(null);
   const head = useRef(null), first = useRef(null);
   useEffect(() => { head.current?.focus(); }, []);
@@ -303,18 +334,42 @@ function OutcomeForm({ onSave, onClose, onDirty }) {
   const submit = e => {
     e.preventDefault();
     if (!outcome) { setErr("Choose an outcome"); first.current?.focus(); return; }
-    onSave({ outcome, outcome_note: note.trim() || null });
+    onSave({ outcome: outcome === "waiting" ? null : outcome, outcome_note: note.trim() || null });
   };
   return <form className="view-form" onSubmit={submit} aria-labelledby="h-outcome">
-    <h3 id="h-outcome" ref={head} tabIndex={-1}>Mark completed</h3>
-    <fieldset className="choices-set" aria-describedby={err ? "e-outcome" : undefined}><legend>How did it go?</legend>
-      <div className="choices">{OUTCOMES.map((k, i) => <label key={k} className="check">
+    <h3 id="h-outcome" ref={head} tabIndex={-1}>{feedback ? "Record feedback" : "Mark completed"}</h3>
+    <fieldset className="choices-set" aria-describedby={err ? "e-outcome" : undefined}><legend>{feedback ? "What did they say?" : "How did it go?"}</legend>
+      <div className="choices">{[...OUTCOMES, ...(waiting ? ["waiting"] : [])].map((k, i) => <label key={k} className="check">
         <input type="radio" name="outcome" ref={i ? undefined : first} value={k} checked={outcome === k} onChange={() => { setOutcome(k); setErr(null); }} />
-        {OUTCOME[k]}</label>)}</div>
+        {OUTCOME[k] ?? "No answer yet"}</label>)}</div>
       {err && <small id="e-outcome" className="err">{err}</small>}</fieldset>
     <label>Reason (optional)<textarea className="short" maxLength={500} value={note} onChange={e => setNote(e.target.value)}
       placeholder="e.g. Wants a second viewing with their partner" /></label>
-    <div className="inline"><button className="btn">Save outcome</button><button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
+    <div className="inline"><button className="btn">{feedback ? "Save feedback" : "Save outcome"}</button><button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
+  </form>;
+}
+
+// VIS-08: the team's own reminder of a confirmed viewing, recorded with how the client was told. Nothing is sent from
+// here: AUT-17's email reminder, once it exists, marks the viewing by itself.
+function RemindForm({ v, onSave, onClose, onDirty }) {
+  const [channel, setChannel] = useState(null), [err, setErr] = useState(null);
+  const head = useRef(null), first = useRef(null);
+  useEffect(() => { head.current?.focus(); }, []);
+  useStepDirty(onDirty, !!channel);
+  const submit = e => {
+    e.preventDefault();
+    if (!channel) { setErr("Choose how you reminded them"); first.current?.focus(); return; }
+    onSave(channel);
+  };
+  return <form className="view-form" onSubmit={submit} aria-labelledby="h-remind">
+    <h3 id="h-remind" ref={head} tabIndex={-1}>Mark reminded</h3>
+    <p className="muted">Record that you reminded {v.name} of {fmtDay(v.date, true)} at {v.time}. Nothing is sent from here.</p>
+    <fieldset className="choices-set" aria-describedby={err ? "e-remind" : undefined}><legend>How did you remind them?</legend>
+      <div className="choices">{REMINDER_CHANNELS.map((k, i) => <label key={k} className="check">
+        <input type="radio" name="channel" ref={i ? undefined : first} value={k} checked={channel === k} onChange={() => { setChannel(k); setErr(null); }} />
+        {CHANNEL[k]}</label>)}</div>
+      {err && <small id="e-remind" className="err">{err}</small>}</fieldset>
+    <div className="inline"><button className="btn">Save reminder</button><button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
   </form>;
 }
 
