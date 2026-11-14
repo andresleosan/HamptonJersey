@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "Cada aviso trae Done, Call con el número a la vista y el enlace a su ficha (Open applicant, Review matches, Open viewings o Add a search for this contact).",
-  "falta": "M13 · Reconciliación 7-nov: Approve sin salir del aviso, Reply y Snooze para posponerlo. Aprobar match debe autorizar la consulta definida, Call muestra todos los teléfonos y registra resultado, Abrir ficha muestra archivos parciales, y confirmar dictado enseña antes/después. Done no sustituye confirmación de disponibilidad ni cierre de búsqueda. Depende de: BUS-15, AGE-08, SPR-03, AUT-19.",
+  "falta": "M13 · Reconciliación 7-nov: Approve sin salir del aviso, Reply y Snooze para posponerlo. Aprobar match debe autorizar la consulta definida, Call muestra todos los teléfonos y registra resultado, Abrir ficha muestra archivos parciales, y confirmar dictado enseña antes/después. Done no sustituye confirmación de disponibilidad ni cierre de búsqueda. Depende de: BUS-15, AGE-08, SPR-03, AUT-19. Traído de EST-13 (15-nov): aviso propio de Inbox al aprobar una consulta aclaratoria o ante un imprescindible desconocido; hoy solo queda el evento match.clarification en el Timeline.",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "admin/src/Inbox.jsx:19-21",
@@ -72,5 +72,5 @@
     "dictation-contract"
   ],
   "nextStep": "Añadir acciones contextuales sobre las gestiones ya construidas, sin convertir Done en cierre de búsqueda.",
-  "actualizado": "2026-11-14"
+  "actualizado": "2026-11-15"
 }

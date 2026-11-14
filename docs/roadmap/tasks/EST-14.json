@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "M08/M09 · Reconciliación 7-nov: Relacionar interés, descarte con motivo, visita, oferta y acuerdo con el match correcto. Conservar historial de pasos; un descarte de cliente no cambia criterios automáticamente ni vuelve no disponible la propiedad. Una visita realizada, oferta o acuerdo mantiene activa la búsqueda hasta EST-09. Depende de: EST-13, AGE-12, VIS-17.",
+  "falta": "M08/M09 · Reconciliación 7-nov: Relacionar interés, descarte con motivo, visita, oferta y acuerdo con el match correcto. Conservar historial de pasos; un descarte de cliente no cambia criterios automáticamente ni vuelve no disponible la propiedad. Una visita realizada, oferta o acuerdo mantiene activa la búsqueda hasta EST-09. Depende de: EST-13, AGE-12, VIS-17. Traído de EST-13 (15-nov): añadir interés y espera del cliente como dimensión propia en candidateState (quinta dimensión de M06, no construida en EST-13).",
   "bloqueo": "",
   "evidencia": [
     "migrations/0009_matches.sql:33-35",
@@ -55,5 +55,6 @@
     "viewings-contract",
     "sales-contract"
   ],
-  "nextStep": "Relacionar interés, descarte, visita y oferta con el match correcto manteniendo búsqueda e historial."
+  "nextStep": "Relacionar interés, descarte, visita y oferta con el match correcto manteniendo búsqueda e historial.",
+  "actualizado": "2026-11-15"
 }
