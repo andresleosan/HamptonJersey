@@ -12,3 +12,7 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [VIS-09] Reprogramar una reserva antigua con listing_id no estándar da 500 en vez de mensaje claro (viewing-policy.js:153) · 14-nov-2026
 - [AUT-10] Con AUT10_MODES_READY encendido antes de 0054, la pantalla Automations da 500 (automations.js:41) · aplicar siempre la migración antes · 14-nov-2026
 - [OFE-06] La instantánea de pasos depende del orden de group_concat, que SQLite no garantiza · peor caso: «recargar» innecesario · 14-nov-2026
+- [AGE-14] Un correo ya en estado `sending` no se cancela al suprimir y puede salir a la dirección retirada; solo cuenta como «enviado» · cancelar o esperar antes de suprimir · 14-nov-2026
+- [AGE-14] Tras suprimir, canales, notas de comisión y fotos y motivos de revisión quedan congelados; si guardaban datos personales se quedan · la interfaz avisa de editarlos antes · 14-nov-2026
+- [PUB-10] `server/proposed-schema/owner-requests-rebuild.sql` fija la definición antigua de advertisers (sin `suppressed_at` de 0057) y fallará; las reconstrucciones futuras de listings/tenancies deben contar con las FK nuevas de 0056/0058 · 14-nov-2026
+- [PUB-11] Barrido periódico de restos `pending`/`removing`, inspección del interior del PDF, subida directa a R2 sin 20 MiB en memoria y botones de 44 px en móvil · 14-nov-2026
