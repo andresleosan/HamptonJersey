@@ -27,7 +27,7 @@ export default function AutomationModes({ initial }) {
   return <article className="card" aria-labelledby="a-modes">
     <h2 id="a-modes">Modes</h2>
     <p className="muted">How much review each automation's work gets. Approving a match, confirming dictated criteria and closing a search always need a person, in every mode.</p>
-    {!initial.can_edit && <p className="muted">Only people granted mode management can change these.</p>}
+    {!initial.can_edit && <p className="muted">Only admins can change these.</p>}
     {ops.map(o => <label key={`${o.automation_id}:${o.operation}`}>{name(o)}
       <select value={o.mode} disabled={busy || !initial.can_edit} onChange={e => change(o, e.target.value)}>
         {Object.entries(MODE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>

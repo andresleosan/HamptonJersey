@@ -26,6 +26,6 @@ Ninguno todavía. `/avanzar` añade aquí cada migración no aditiva o interrupt
 
 | Tarea | Desbloquea | Qué hace falta |
 | --- | --- | --- |
-| AUT-10 | 1 | Decidir qué personas del equipo pueden cambiar los modos Draft/Approve/Auto (se añaden a `operation_policy_managers`). Sin nadie, los modos se ven pero no se pueden cambiar. |
+| AUT-10 | 1 | Decidido el 14-nov: todos los admins pueden cambiar modos. Falta una prueba real con tu sesión: Settings → Automations → Modes, cambiar un modo y volver a Draft. |
 
 Solo entran las que los planes y la documentación no resuelven; mientras tanto se aplica la opción más simple y reversible y se anota aquí para que Luis pueda cambiarla.

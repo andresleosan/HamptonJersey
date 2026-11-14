@@ -6,8 +6,8 @@
   "fase": "—",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Modo Draft/Approve/Auto por operación, versionado con CAS e historial solo de añadir; la guarda deniega siempre las decisiones humanas (match, criterios dictados, cierre por éxito) en cualquier modo. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. Ruta POST /api/admin/automations/modes montada (401 sin sesión frente a 404).",
-  "falta": "Luis decide quién puede cambiar modos (operation_policy_managers vacía; en COLA-LUIS) y se comprueba un cambio de modo real. Los consumidores de la guarda (BUS-15, AUT-19, EST-09, AUT-13, AUT-01) lo llevan en su propio falta.",
+  "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Modo Draft/Approve/Auto por operación, versionado con CAS e historial solo de añadir; la guarda deniega siempre las decisiones humanas (match, criterios dictados, cierre por éxito) en cualquier modo. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. Ruta POST /api/admin/automations/modes montada (401 sin sesión frente a 404). Decisión de Luis (14-nov): cualquier admin, actual o futuro, puede cambiar modos; la autoridad se comprueba contra admins en la misma sentencia del cambio (operation_policy_managers deja de leerse).",
+  "falta": "Comprobar un cambio de modo real en producción con una sesión de admin (Settings → Automations → Modes: cambiar uno y volver a Draft); está en COLA-LUIS porque necesita su sesión. Los consumidores de la guarda (BUS-15, AUT-19, EST-09, AUT-13, AUT-01) lo llevan en su propio falta.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:441",
@@ -24,7 +24,11 @@
     "server/operation-modes.js",
     "tests/server/aut-10-modes.test.mjs",
     "tests/aut-10-modes.e2e.cjs",
-    "wrangler.toml:11"
+    "wrangler.toml:11",
+    "server/operation-modes.js (MANAGER = admins)",
+    "tests/server/aut-10-modes.test.mjs: cualquier admin cambia, sin sesión 401, quitar admin revoca, admin nuevo puede (31/31 AUT-10)",
+    "tests/aut-10-modes.e2e.cjs PASS 1280/390 (14-nov)",
+    "Decisión y fuente: instrucción de Luis en la sesión del 14-nov."
   ],
   "modulo": "M04/M06",
   "deps": [],
@@ -39,6 +43,6 @@
     "automation-controls",
     "outbound-policy"
   ],
-  "nextStep": "Cuando Luis designe gestores, añadirlos y comprobar un cambio de modo real.",
+  "nextStep": "Cuando Luis haga el cambio de modo, leer operation_policy_versions (solo lectura) y cerrar AUT-10.",
   "actualizado": "2026-11-14"
 }

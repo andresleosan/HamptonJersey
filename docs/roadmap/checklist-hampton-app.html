@@ -2090,8 +2090,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "—",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Modo Draft/Approve/Auto por operación, versionado con CAS e historial solo de añadir; la guarda deniega siempre las decisiones humanas (match, criterios dictados, cierre por éxito) en cualquier modo. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. Ruta POST /api/admin/automations/modes montada (401 sin sesión frente a 404).",
-   "falta": "Luis decide quién puede cambiar modos (operation_policy_managers vacía; en COLA-LUIS) y se comprueba un cambio de modo real. Los consumidores de la guarda (BUS-15, AUT-19, EST-09, AUT-13, AUT-01) lo llevan en su propio falta.",
+   "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Modo Draft/Approve/Auto por operación, versionado con CAS e historial solo de añadir; la guarda deniega siempre las decisiones humanas (match, criterios dictados, cierre por éxito) en cualquier modo. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. Ruta POST /api/admin/automations/modes montada (401 sin sesión frente a 404). Decisión de Luis (14-nov): cualquier admin, actual o futuro, puede cambiar modos; la autoridad se comprueba contra admins en la misma sentencia del cambio (operation_policy_managers deja de leerse).",
+   "falta": "Comprobar un cambio de modo real en producción con una sesión de admin (Settings → Automations → Modes: cambiar uno y volver a Draft); está en COLA-LUIS porque necesita su sesión. Los consumidores de la guarda (BUS-15, AUT-19, EST-09, AUT-13, AUT-01) lo llevan en su propio falta.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:441",
@@ -2108,7 +2108,11 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/operation-modes.js",
     "tests/server/aut-10-modes.test.mjs",
     "tests/aut-10-modes.e2e.cjs",
-    "wrangler.toml:11"
+    "wrangler.toml:11",
+    "server/operation-modes.js (MANAGER = admins)",
+    "tests/server/aut-10-modes.test.mjs: cualquier admin cambia, sin sesión 401, quitar admin revoca, admin nuevo puede (31/31 AUT-10)",
+    "tests/aut-10-modes.e2e.cjs PASS 1280/390 (14-nov)",
+    "Decisión y fuente: instrucción de Luis en la sesión del 14-nov."
    ],
    "modulo": "M04/M06",
    "deps": [],
@@ -5842,8 +5846,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "—",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Los secretos (SESSION_SECRET, TURNSTILE_SECRET) viven en las variables de Cloudflare y .dev.vars no se sube al repo; antes de las migraciones remotas 0009–0015 se guardó un marcador de Time Travel, y la tabla events hace de auditoría (Timeline del aplicante, History de Rentals). Formato de copia HamptonBackupV1 construido (plan PRE-14, Task 2): cifrado por entrada con DEK AES-256-GCM envuelta en RSA-OAEP-3072, chunks de 4 MiB con nonce y AAD del spec, verificación completa y certificado firmado Ed25519 con trust bundle externo; aún no lo usa ningún proceso.",
-   "falta": "Destino y claves (bucket R2 privado, token solo de exportar D1, clave de recuperación de Luis y clave de firma; en COLA-LUIS). Código restante del plan: compuerta de escrituras y esquema backup_runs (Task 1), captura D1/R2 y sello (Task 3), Workflow y reloj (Task 4), aviso en Inbox (Task 5; el spool de correo solo hace falta cuando AUT-17 reciba correo), herramienta de inspección y restore-test (Task 6) y aceptación integrada con revisión independiente (Task 7). Comprobar el plazo de Time Travel: el spec del panel dice 30 días, pero el plan de F1-A asume el plan gratuito de Workers (7 días).",
+   "hecho": "Los secretos (SESSION_SECRET, TURNSTILE_SECRET) viven en las variables de Cloudflare y .dev.vars no se sube al repo; antes de las migraciones remotas 0009–0015 se guardó un marcador de Time Travel, y la tabla events hace de auditoría (Timeline del aplicante, History de Rentals). Formato de copia HamptonBackupV1 construido (plan PRE-14, Task 2): cifrado por entrada con DEK AES-256-GCM envuelta en RSA-OAEP-3072, chunks de 4 MiB con nonce y AAD del spec, verificación completa y certificado firmado Ed25519 con trust bundle externo; aún no lo usa ningún proceso. Plazo de Time Travel comprobado el 14-nov: hay marcadores de hace 8, 20 y 29 días, así que la cuenta conserva 30 días (plan de pago), no 7.",
+   "falta": "Destino y claves (bucket R2 privado, token solo de exportar D1, clave de recuperación de Luis y clave de firma; en COLA-LUIS). Código restante del plan: compuerta de escrituras y esquema backup_runs (Task 1), captura D1/R2 y sello (Task 3), Workflow y reloj (Task 4), aviso en Inbox (Task 5; el spool de correo solo hace falta cuando AUT-17 reciba correo), herramienta de inspección y restore-test (Task 6) y aceptación integrada con revisión independiente (Task 7).",
    "bloqueo": "",
    "evidencia": [
     "wrangler.toml:5-10",
@@ -5857,7 +5861,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/superpowers/plans/2026-10-23-hampton-app-f1a.md:19",
     "server/backup-crypto.js",
     "tests/server/backup-crypto.test.mjs (16 pruebas: roundtrip 0/1/16/17/48 bytes y 4 MiB+1, clave errónea, tag/truncado/ausente/reordenado, metadatos y envelope sustituidos, DEK y prefijo nuevos por intento, sin secretos en recibo, memoria de un chunk, firma ajena/clave desconocida/campo cambiado/copia distinta)",
-    "Decisión 14-nov: construir primero Task 2 por ser autocontenida y sin efecto en producción (fuente: plan PRE-14 y regla 5 de la skill)."
+    "Decisión 14-nov: construir primero Task 2 por ser autocontenida y sin efecto en producción (fuente: plan PRE-14 y regla 5 de la skill).",
+    "npx wrangler d1 time-travel info hampton --timestamp=\u003chace 8/20/29 días> devuelve marcador (14-nov, solo lectura)"
    ],
    "actualizado": "2026-11-14"
   },

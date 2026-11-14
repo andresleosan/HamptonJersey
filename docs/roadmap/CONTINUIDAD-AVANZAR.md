@@ -15,6 +15,7 @@ Aquí está lo que Luis ya autorizó y lo que no. `/avanzar` lo aplica sin volve
 | **Migraciones aditivas** en D1 `hampton` | 14-nov-2026 | Regla y pasos abajo. |
 | **Encender el interruptor** (`*_READY`) de una tarea ya migrada y verificada | 14-nov-2026 | Excepto los de la lista «No autorizado». |
 | Cerrar tareas por **aceptación propia** | 14-nov-2026 | Criterio de la sección 3 de la skill, con evidencia en la ficha. |
+| **Decisiones de producto abiertas**: tomarlas según lo recomendado y documentado | 14-nov-2026 | Fuente anotada en la ficha; Luis puede cambiarlas después. Ejemplo: los modos de AUT-10 los cambia cualquier admin. |
 
 ### Qué es una migración aditiva
 

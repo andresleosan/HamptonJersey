@@ -10,8 +10,6 @@ const HUMAN = ["match_approval", "unknown_required_consultation", "dictated_crit
   "search_resolution", "presentation_review"];
 const on = () => ({ ...makeEnv(), AUT10_MODES_READY: "1" });
 const as = async (env, method, path, body, email = ADMIN) => call(env, method, path, { body, cookie: await adminCookie(email) });
-const grant = (env, email = ADMIN) => env.DB.raw.prepare(
-  "INSERT INTO operation_policy_managers (staff_email, granted_by, granted_at) VALUES (?, 'setup', ?)").run(email, T0);
 const row = env => ({ ...env.DB.raw.prepare(
   "SELECT mode, revision, updated_by FROM operation_policies WHERE automation_id = ? AND operation = ?").get(LT.automation_id, LT.operation) });
 const versions = env => env.DB.raw.prepare(
@@ -34,23 +32,21 @@ test("flag off: the screen, the route and the guard behave as before", async () 
     { allowed: false, mode: null, revision: null, reasons: ["modes_off"] });
 });
 
-test("flag on: three known operations start in Draft; signing in is not authority to change them", async () => {
+test("flag on: three known operations start in Draft; any admin may change them, nobody else", async () => {
   const env = on();
   const { data } = await as(env, "GET", "/admin/automations");
-  assert.equal(data.modes.can_edit, false);
+  assert.equal(data.modes.can_edit, true);
   assert.deepEqual(data.modes.operations.map(o => [o.automation_id, o.operation, o.mode, o.revision]), [
     ["hampton_intent_v1", "propose_intent", "Draft", 1],
     ["listing_text", "prepare_draft", "Draft", 1],
     ["market_ambiguity_v1", "propose_interpretation", "Draft", 1]]);
-  const r = await set(env, "Auto", 1);
-  assert.equal(r.status, 403);
-  assert.deepEqual(row(env), { mode: "Draft", revision: 1, updated_by: "migration" });
   assert.equal((await call(env, "POST", "/admin/automations/modes", { body: { ...LT, mode: "Auto", expected_revision: 1 } })).status, 401);
+  assert.equal((await set(env, "Auto", 1, "outsider@example.test")).status, 401);
+  assert.deepEqual(row(env), { mode: "Draft", revision: 1, updated_by: "migration" });
 });
 
 test("a manager changes a mode with CAS; each change is a new version and a stale revision gets 409", async () => {
   const env = on();
-  grant(env);
   assert.equal((await as(env, "GET", "/admin/automations")).data.modes.can_edit, true);
   let r = await set(env, "Approve", 1);
   assert.equal(r.status, 200);
@@ -70,7 +66,6 @@ test("a manager changes a mode with CAS; each change is a new version and a stal
 
 test("bad requests fail closed: unknown operation or mode, extra claims, cross-origin", async () => {
   const env = on();
-  grant(env);
   for (const body of [
     { automation_id: "listing_text", operation: "publish", mode: "Auto", expected_revision: 1 },
     { automation_id: "unknown", operation: "prepare_draft", mode: "Auto", expected_revision: 1 },
@@ -85,14 +80,14 @@ test("bad requests fail closed: unknown operation or mode, extra claims, cross-o
   assert.deepEqual(row(env), { mode: "Draft", revision: 1, updated_by: "migration" });
 });
 
-test("authority follows the admins list: removal revokes it and re-adding does not restore it", async () => {
-  const env = on();
-  grant(env, COLLEAGUE);
+test("authority follows the admins list: removal revokes it and adding someone grants it", async () => {
+  const env = on(), NEW = "new@example.test";
   assert.equal((await set(env, "Approve", 1, COLLEAGUE)).status, 200);
   env.DB.raw.prepare("DELETE FROM admins WHERE email = ?").run(COLLEAGUE);
-  env.DB.raw.prepare("INSERT INTO admins (email, added_by, added_at) VALUES (?, 'setup', ?)").run(COLLEAGUE, T0);
-  assert.equal((await set(env, "Auto", 2, COLLEAGUE)).status, 403);
-  assert.equal(row(env).mode, "Approve");
+  assert.equal((await set(env, "Auto", 2, COLLEAGUE)).status, 401);
+  env.DB.raw.prepare("INSERT INTO admins (email, added_by, added_at) VALUES (?, 'setup', ?)").run(NEW, T0);
+  assert.equal((await set(env, "Auto", 2, NEW)).status, 200);
+  assert.equal(row(env).mode, "Auto");
 });
 
 test("the schema keeps the history honest: no delete, no re-insert, no skipped or reused revision", () => {
@@ -110,7 +105,6 @@ test("the schema keeps the history honest: no delete, no re-insert, no skipped o
 
 test("acceptance: Auto approves no match, saves no dictated criteria and resolves no search", async () => {
   const env = on();
-  grant(env);
   const before = others(env);
   assert.equal((await set(env, "Auto", 1)).status, 200);
   assert.deepEqual(others(env), before, "switching to Auto writes nothing outside the policy");
@@ -125,7 +119,6 @@ test("acceptance: Auto approves no match, saves no dictated criteria and resolve
 
 test("the guard reads the stored mode for each operation and revalidates the revision before an effect", async () => {
   const env = on();
-  grant(env);
   const perform = extra => checkOperationMode(env, { ...LT, action: "perform_operation", ...extra });
   for (const [mode, review, rev] of [["Draft", "each", 1], ["Approve", "batch", 2], ["Auto", "sample", 3]]) {
     if (rev > 1) assert.equal((await set(env, mode, rev - 1)).status, 200);

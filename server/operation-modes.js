@@ -16,8 +16,9 @@ const TRIGGERS = ["operation_policies_no_insert", "operation_policies_no_delete"
 const SCHEMA_OK = `(SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger'
   AND name IN (${TRIGGERS.map(t => `'${t}'`).join(", ")})) = ${TRIGGERS.length}`;
 const COLUMNS = "automation_id, operation, definition_version, mode, revision, updated_at, updated_by";
-const MANAGER = `EXISTS (SELECT 1 FROM operation_policy_managers m JOIN admins a ON a.email = m.staff_email
-  WHERE m.staff_email = ?)`;
+// Luis, 14-nov-2026: every admin, current or added later, may change modes. Checked in the same statement as
+// the write, so someone removed from admins mid-request cannot. (operation_policy_managers is no longer read.)
+const MANAGER = `EXISTS (SELECT 1 FROM admins WHERE email = ?)`;
 
 const primary = db => typeof db.withSession === "function" ? db.withSession("first-primary") : db;
 
