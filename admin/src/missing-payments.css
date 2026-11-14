@@ -1,0 +1,21 @@
+/* NOT-05: the Inbox's Missing payments tab (MissingPayments.jsx). */
+.missing-payments-tab .summary{margin:0 0 12px}
+.missing-payments-tab .grace{margin:0 0 16px}
+.missing-payments-tab .grace summary{cursor:pointer;min-height:32px}
+.missing-payments-tab .grace form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 12px;padding:12px 0;max-width:760px}
+.missing-payments-tab .grace label{flex:0 1 auto}
+.missing-payments-tab .grace input{width:7em;max-width:100%;box-sizing:border-box}
+.missing-payments-tab .grace small,.missing-payments-tab .grace p{flex-basis:100%;margin:0}
+.list.missing-payments td{vertical-align:top}
+@media (max-width:760px){
+  .list.missing-payments tr{grid-template-columns:1fr;gap:6px;padding:12px 12px 12px 15px;border-bottom:1px solid var(--line)}
+  .list.missing-payments tr:last-child{border-bottom:0}
+  /* The overdue mark on the card's edge, not over the text of its first cell. */
+  .list.missing-payments tr.overdue{box-shadow:inset 3px 0 0 var(--err)}
+  .list.missing-payments tr.overdue td:first-child{box-shadow:none}
+  .list.missing-payments td:first-child{grid-row:auto;overflow-wrap:anywhere}
+  .list.missing-payments td[data-label]::before{content:attr(data-label) ": ";color:var(--stone);font-size:12px}
+  .list.missing-payments td:first-child a{display:inline-flex;align-items:center;min-height:44px}
+  .missing-payments-tab .btn,.missing-payments-tab input,.missing-payments-tab .grace summary{min-height:44px;box-sizing:border-box}
+  .missing-payments-tab .grace summary{padding:12px 0}
+}

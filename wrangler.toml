@@ -17,6 +17,8 @@ PUB11_DOCUMENTS_READY = "1"
 ADM16_TENANCY_EXIT_READY = "1"
 # ADM-13: off until migration 0060 is applied.
 ADM13_INSPECTIONS_READY = "1"
+# NOT-05: needs no migration; off until its tab is checked in production.
+NOT05_MISSING_PAYMENTS_READY = "0"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

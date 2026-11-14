@@ -5,10 +5,13 @@ import { usePoll } from "./poll.js";
 import { setUnsaved } from "./unsaved.js";
 import InboxTask from "./InboxTask.jsx";
 import InboxPreferences from "./InboxPreferences.jsx";
+import MissingPayments from "./MissingPayments.jsx";
 import {CATEGORY_LABELS} from "../../shared/notification-categories.js";
 import "./inbox-tasks.css";
 
 const BOXES = { action: "Needs action", feed: "Feed" };
+// NOT-05: a third tab, Missing payments, when the server has it (its route answers 404 while the switch is off).
+const PAYMENTS = "Missing payments";
 const CATEGORIES = { "": "All", ...CATEGORY_LABELS };
 const KIND = { ...CATEGORY_LABELS, new_applicant: "New applicant", matched: "New matches", viewing: "Viewing request", task: "Shared task" };
 const EMPTY = {
@@ -30,6 +33,7 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
   const [users, setUsers] = useState([]), [usersErr, setUsersErr] = useState(null);
   const [dirty, setDirty] = useState({ task: false, prefs: false });
   const [pending, setPending] = useState(false);
+  const [owing, setOwing] = useState(null); // NOT-05: how many tenancies the tab lists, null while it is unavailable
   const taskPending = useCallback(value => { setPending(value); onPending(value); }, [onPending]);
   useEffect(() => () => onPending(false), [onPending]);
   const seq = useRef(0), listRef = useRef(null), headRef = useRef(null);
@@ -43,8 +47,13 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
   useEffect(() => { if (!paused) loadUsers(); }, [paused, loadUsers]);
   // Set by Done: once the list reloads, the focus goes to the selected notice (the next one), or the heading when none.
   const refocus = useRef(false);
+  useEffect(() => { if (!paused) api("/admin/missing-payments").then(d => setOwing(d.count), () => {}); }, [paused]);
   const load = useCallback(({pin = true} = {}) => {
     const n = ++seq.current;
+    // On Missing payments the notices are not shown: the poll brings only the counts (the nav's included).
+    if (box === "payments") return api("/admin/notifications/counts").then(c => {
+      if (n === seq.current) { setCounts(c); onCounts(c); }
+    }, () => {});
     return api(`/admin/notifications?box=${box}${cat ? `&category=${cat}` : ""}`).then(async d => {
       if (n !== seq.current) return; // a newer request (another tab, a later poll) has the fresher answer
       const editing = current.current;
@@ -103,15 +112,16 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
       <InboxPreferences paused={paused} blocked={dirty.task} onDirty={prefsDirty} onSaved={load} /></details>
     <div className="inbox-tabs">
       <div className="seg" role="group" aria-label="Notices">{Object.entries(BOXES).map(([k, t]) =>
-        <button key={k} type="button" aria-pressed={box === k} onClick={() => show(k, cat)}>{t}{k === "action" && <span className="count">{counts.action ?? ""}</span>}</button>)}</div>
+        <button key={k} type="button" aria-pressed={box === k} onClick={() => show(k, cat)}>{t}{k === "action" && <span className="count">{counts.action ?? ""}</span>}</button>)}
+        {owing != null && <button type="button" aria-pressed={box === "payments"} onClick={() => show("payments", cat)}>{PAYMENTS}<span className="count">{owing}</span></button>}</div>
       {/* Counters are what still needs action, so they show in Needs action only. */}
-      <div className="seg" role="group" aria-label="Category">{Object.entries(CATEGORIES).map(([k, t]) =>
-        <button key={k} type="button" aria-pressed={cat === k} onClick={() => show(box, k)}>{t}{box === "action" && <span className="count">{counts[k || "action"] ?? ""}</span>}</button>)}</div>
+      {box !== "payments" && <div className="seg" role="group" aria-label="Category">{Object.entries(CATEGORIES).map(([k, t]) =>
+        <button key={k} type="button" aria-pressed={cat === k} onClick={() => show(box, k)}>{t}{box === "action" && <span className="count">{counts[k || "action"] ?? ""}</span>}</button>)}</div>}
     </div>
     {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
     {loadErr && <p role="alert" className="err">{loadErr} <button type="button" className="linkish" onClick={load}>Try again</button></p>}
     {usersErr && <p role="alert" className="err">{usersErr} <button type="button" className="linkish" onClick={loadUsers}>Reload staff</button></p>}
-    {!data ? !loadErr && <p>Loading notices…</p> : !data.notifications.length ? <p className="empty card">{EMPTY[box][cat]}</p> :
+    {box === "payments" ? <MissingPayments paused={paused} onCount={setOwing} /> : !data ? !loadErr && <p>Loading notices…</p> : !data.notifications.length ? <p className="empty card">{EMPTY[box][cat]}</p> :
       <div className="inbox">
         <ul ref={listRef} className="inbox-list" aria-label={`${BOXES[box]}: ${CATEGORIES[cat]}`}>{data.notifications.map(x => <li key={x.id}>
           <button type="button" aria-current={x.id === sel ? "true" : undefined} className={x.is_read ? "" : "unread"} onClick={() => pick(x.id)}>

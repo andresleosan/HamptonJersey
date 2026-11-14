@@ -38,6 +38,8 @@ import inspectionRoutes from "./routes/rental-inspections.js";
 import { inspectionsReady } from "./rental-inspections.js";
 import documentRoutes from "./routes/listing-documents.js";
 import { documentsReady } from "./listing-documents.js";
+import missingPaymentRoutes from "./routes/missing-payments.js";
+import { missingPaymentsReady } from "./missing-payments.js";
 
 // [method, path regex, handler, requiresAdmin]
 const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes];
@@ -71,6 +73,7 @@ async function route(request, env, segments, waitUntil) {
     if (exitReady(env)) routes = [...routes, ...tenancyExitRoutes]; // ADM-16: needs migration 0059
     if (inspectionsReady(env)) routes = [...routes, ...inspectionRoutes]; // ADM-13: needs migration 0060
     if (documentsReady(env)) routes = [...routes, ...documentRoutes]; // PUB-11: needs migration 0058
+    if (missingPaymentsReady(env)) routes = [...routes, ...missingPaymentRoutes]; // NOT-05: no migration
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];
     for (const [m, re, handler, auth] of routes) {
