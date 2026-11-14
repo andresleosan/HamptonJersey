@@ -4,10 +4,10 @@
   "titulo": "Cada cambio de estado deja su evento en la tabla events",
   "origen": "plan",
   "fase": "F0",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Publicado y verificado en esta sesión el7-nov-2026 con cf0c86d y migración0029 aplicada. Registro interno de propiedades sin vista nueva: actor, fecha, origen, revisión y diferencias estructuradas; cambios y evento atómicos, sin texto libre ni avisos. Pages, Jobs y smokes comprobados tras publicación;708 pruebasJS+14Python, build,release y e2e general. La observación posterior de Hermes no sustituye esta evidencia anterior.",
-  "falta": "Conectar los futuros productores y su evidencia en M13. La vista de historial sigue aplazada por Luis; no se reconstruye historial anterior ni se añade idempotencia HTTP del panel. NOT-11 sigue siendo entrega independiente.",
+  "hecho": "Registro interno de eventos de propiedades: actor, fecha, origen, revisión y diferencias estructuradas, escritos de forma atómica con el cambio; sin texto libre. Dos fuentes y las correcciones conservan procedencia y orden; la retención de contactos y visitas no borra el historial de la propiedad. Publicado en cf0c86d. 14-nov-2026: cierre por aceptación propia (skill §3). wrangler d1 migrations list --remote: 0029 aplicada, no pendiente. Pruebas focales actuales en verde. (listing-events 18/18).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/listing-events.js",
@@ -32,5 +32,6 @@
   "resources": [
     "events-contract"
   ],
-  "nextStep": "Conectar solo los futuros productores al registro de eventos ya publicado; conservar la vista de historial aplazada."
+  "nextStep": "Ninguno. Los productores futuros se conectan en NOT-01; la vista de historial es SPR-02.",
+  "actualizado": "2026-11-14"
 }

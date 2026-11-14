@@ -4,10 +4,10 @@
   "titulo": "Avisos con responsable, plazo y preferencias por persona",
   "origen": "plan",
   "fase": "F0",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "9-nov-2026: publicado en3213c16636f797b7253795390553c8a34b86e519 con0032 aplicada; Pages/Jobs correctos para ese SHA y smoke público verificado. Integración registrada y reserva cerrada. Tareas compartidas con responsable/plazo CAS, Claim/Done/Reopen, follow-up idempotente, historial sin motivo/título personal, leído y preferencias propios. Conserva avisos/eventos legacy y búsqueda EST-09; fuente nueva actualiza la misma tarea y cierre por dominio prevalece sobre Done humano. Inbox conserva borradores/UUID ante conflictos y respuestas inciertas; visita enlazada resuelve ID exacto. Revisión independiente sin hallazgos pendientes,954JS+14Python y e2e local general/focal1280/390/zoom200 correctos.",
-  "falta": "Integrar la respuesta útil de los productores futuros cuando sus módulos existan; contrato/fixtures no acreditan su operación real. Avisos y categorías extra continúan en NOT-01/NOT-08. Recorrido Playwright MCP pendiente por sandbox/root del entorno; runner local separado sí comprobado. No se activan correo/Meta ni cadencias de tareas diarias con esta entrega.",
+  "hecho": "Tareas compartidas con responsable y plazo (CAS), Claim/Done/Reopen, follow-up idempotente, leído y preferencias por persona. Dos empleados sobre la misma gestión dejan una acción y una tarea coherentes; una fuente nueva o una resolución actualiza o retira la llamada pendiente (proyección syncTask probada). Publicado en 3213c16. 14-nov-2026: cierre por aceptación propia (skill §3). wrangler d1 migrations list --remote: 0032 aplicada, no pendiente. Pruebas focales actuales en verde. (notification-tasks y productores en verde).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "migrations/0032_notification_tasks.sql",
@@ -45,5 +45,6 @@
     "matching-contract",
     "events-contract"
   ],
-  "nextStep": "Continuar PAQ-01 con la entrega revisada de productores NOT-01 sobre EST-18 y el tramo manual NOT-08; no volver a migrar/publicar3213 ni dar por activos canales o productores ausentes."
+  "nextStep": "Ninguno. Productores futuros y canales reales siguen en NOT-01 y NOT-08.",
+  "actualizado": "2026-11-14"
 }

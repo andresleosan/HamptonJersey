@@ -152,7 +152,7 @@ test('progress renders two Spanish decimals globally, per list and package, incl
 test('package overview, task guidance and progress preserve filters and focus across updates; links reveal exact tasks',async()=>{
  const manifest=JSON.parse(readFileSync(new URL('../docs/roadmap/paquetes.json',import.meta.url)));
  const dom=new JSDOM(readFileSync(new URL('../docs/roadmap/tablero-publico.html',import.meta.url),'utf8'),{url:'https://public.example/',pretendToBeVisual:true}),w=dom.window;
- let payload=publicBoard(fixture());w.fetch=async url=>({ok:true,json:async()=>structuredClone(url==='/paquetes.json'?manifest:payload)});
+ let payload=publicBoard(fixture());payload.tasks.find(t=>t.code==='NOT-11').state='parcial';w.fetch=async url=>({ok:true,json:async()=>structuredClone(url==='/paquetes.json'?manifest:payload)});
  const app=ui.mount(w.document,w);await new Promise(resolve=>setImmediate(resolve));
  try{
   const doc=w.document;assert.equal(doc.querySelectorAll('.package').length,23);

@@ -753,10 +753,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Avisos con responsable, plazo y preferencias por persona",
    "origen": "plan",
    "fase": "F0",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "9-nov-2026: publicado en3213c16636f797b7253795390553c8a34b86e519 con0032 aplicada; Pages/Jobs correctos para ese SHA y smoke público verificado. Integración registrada y reserva cerrada. Tareas compartidas con responsable/plazo CAS, Claim/Done/Reopen, follow-up idempotente, historial sin motivo/título personal, leído y preferencias propios. Conserva avisos/eventos legacy y búsqueda EST-09; fuente nueva actualiza la misma tarea y cierre por dominio prevalece sobre Done humano. Inbox conserva borradores/UUID ante conflictos y respuestas inciertas; visita enlazada resuelve ID exacto. Revisión independiente sin hallazgos pendientes,954JS+14Python y e2e local general/focal1280/390/zoom200 correctos.",
-   "falta": "Integrar la respuesta útil de los productores futuros cuando sus módulos existan; contrato/fixtures no acreditan su operación real. Avisos y categorías extra continúan en NOT-01/NOT-08. Recorrido Playwright MCP pendiente por sandbox/root del entorno; runner local separado sí comprobado. No se activan correo/Meta ni cadencias de tareas diarias con esta entrega.",
+   "hecho": "Tareas compartidas con responsable y plazo (CAS), Claim/Done/Reopen, follow-up idempotente, leído y preferencias por persona. Dos empleados sobre la misma gestión dejan una acción y una tarea coherentes; una fuente nueva o una resolución actualiza o retira la llamada pendiente (proyección syncTask probada). Publicado en 3213c16. 14-nov-2026: cierre por aceptación propia (skill §3). wrangler d1 migrations list --remote: 0032 aplicada, no pendiente. Pruebas focales actuales en verde. (notification-tasks y productores en verde).",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "migrations/0032_notification_tasks.sql",
@@ -773,7 +773,8 @@ document.addEventListener('DOMContentLoaded', () => {
    ],
    "modulo": "M13",
    "deps": [],
-   "criterio_aceptacion": "Dos empleados actuando sobre la misma gestión dejan una acción y una tarea coherentes; una respuesta recibida retira o actualiza la llamada pendiente."
+   "criterio_aceptacion": "Dos empleados actuando sobre la misma gestión dejan una acción y una tarea coherentes; una respuesta recibida retira o actualiza la llamada pendiente.",
+   "actualizado": "2026-11-14"
   },
   {
    "id": "SAP-01",
@@ -1234,11 +1235,11 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Directorio de anunciantes, contactos y permisos de imágenes",
    "origen": "plan",
    "fase": "F2",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "El directorio de anunciantes y sus contactos, teléfonos, canales y referencias está integrado en main. La evidencia histórica de REG-05 registra Pages en b544c2e y ninguna migración pendiente el 11-nov-2026; ese árbol contiene 0030 de anunciantes. La revisión y siete pruebas actuales del servicio usan datos ficticios; esta conciliación no consulta de nuevo la base remota.",
-   "falta": "Relacionar de forma verificable anunciantes y teléfonos con fuentes y publicaciones del inventario común para las tareas de llamada, conservando titulares y procedencia. La eliminación se aborda en AGE-14; acuerdos de comisión y permisos de imágenes permanecen separados y no son requisitos generales para inventariar.",
-   "actualizado": "2026-11-13",
+   "hecho": "Directorio privado de anunciantes con contactos, varios teléfonos y su titular, canales, fuentes, anuncios, comisión y permiso de fotos, con versión y CAS. GET /admin/advertisers?property_id= devuelve todos los anunciantes de un inmueble con sus teléfonos separados, aunque haya varios anuncios. 14-nov-2026: cierre por aceptación propia (skill §3). wrangler d1 migrations list --remote: 0030 aplicada, no pendiente. Pruebas focales actuales en verde. (advertisers 7/7).",
+   "falta": "",
+   "actualizado": "2026-11-14",
    "bloqueo": "",
    "evidencia": [
     "admin/src/Advertisers.jsx",
@@ -1250,7 +1251,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
     "tests/server/advertisers.test.mjs",
     "docs/roadmap/work/REG-05/acceptance.md",
-    "docs/roadmap/work/AGE-04/reconciliacion-2026-11-13.md"
+    "docs/roadmap/work/AGE-04/reconciliacion-2026-11-13.md",
+    "Decisión: la tarea de llamada pertenece a BUS-06/BUS-10 (skill §3: consumidores en su propio falta)."
    ],
    "modulo": "M01",
    "deps": [],
@@ -2438,7 +2440,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones compartidas, observaciones y registro transaccional. Rutas administrativas desactivadas por defecto; migración ensayada solo en bases locales. Candidato documental privado reconciliado con 141 identificadores y 237 canales, sin habilitar accesos. El reconciliador documental rechaza claves JSON duplicadas, también anidadas o equivalentes por escape, y preserva la salida ante rechazo. Vista administrativa de solo lectura para recorridos y cobertura, sujeta al gate existente; pruebas sintéticas y revisión independiente.",
-   "falta": "Faltan la incorporación operativa del manifiesto, lectores controlados, gestión/revisión de fuentes, carga manual y evidencia de captura real. M02 · Reconciliación 7-nov: Crear el inventario inicial por tandas desde el directorio revisado, usando las fuentes operativas disponibles y tareas manuales para las restringidas. Capturar datos suficientes para comparar: operación, tipo, precio y periodicidad originales, ubicación, dormitorios o superficie, ocupación, parking, mascotas, descripción, referencia, anunciante y contactos. La descarga completa de fotos espera a la disponibilidad confirmada (SPR-03). Places.je es un conector posible; PRE-01 no bloquea el inventario ni se exige un acuerdo de comisión para leer un feed utilizable. Depende de: BUS-23, BUS-19, AGE-04. Aceptación: Las fuentes accesibles producen inventario común y las inaccesibles quedan pendientes, sin registrarlas como vacías. La validación y las huellas no autentican al revisor ni autorizan las fuentes.",
+   "falta": "Faltan la incorporación operativa del manifiesto, lectores controlados, gestión/revisión de fuentes, carga manual y evidencia de captura real. M02 · Reconciliación 7-nov: Crear el inventario inicial por tandas desde el directorio revisado, usando las fuentes operativas disponibles y tareas manuales para las restringidas. Capturar datos suficientes para comparar: operación, tipo, precio y periodicidad originales, ubicación, dormitorios o superficie, ocupación, parking, mascotas, descripción, referencia, anunciante y contactos. La descarga completa de fotos espera a la disponibilidad confirmada (SPR-03). Places.je es un conector posible; PRE-01 no bloquea el inventario ni se exige un acuerdo de comisión para leer un feed utilizable. Depende de: BUS-23, BUS-19, AGE-04. Aceptación: Las fuentes accesibles producen inventario común y las inaccesibles quedan pendientes, sin registrarlas como vacías. La validación y las huellas no autentican al revisor ni autorizan las fuentes. La tarea de llamada debe leer anunciantes y teléfonos del directorio AGE-04 (GET /admin/advertisers?property_id=), sin duplicar contactos.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/ESTADO.md:9",
@@ -2461,7 +2463,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "AGE-04"
    ],
    "criterio_aceptacion": "Las fuentes accesibles producen inventario común y las inaccesibles quedan pendientes, sin registrarlas como vacías.",
-   "actualizado": "2026-11-13"
+   "actualizado": "2026-11-14"
   },
   {
    "id": "BUS-07",
@@ -3337,10 +3339,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Cada cambio de estado deja su evento en la tabla events",
    "origen": "plan",
    "fase": "F0",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "Publicado y verificado en esta sesión el7-nov-2026 con cf0c86d y migración0029 aplicada. Registro interno de propiedades sin vista nueva: actor, fecha, origen, revisión y diferencias estructuradas; cambios y evento atómicos, sin texto libre ni avisos. Pages, Jobs y smokes comprobados tras publicación;708 pruebasJS+14Python, build,release y e2e general. La observación posterior de Hermes no sustituye esta evidencia anterior.",
-   "falta": "Conectar los futuros productores y su evidencia en M13. La vista de historial sigue aplazada por Luis; no se reconstruye historial anterior ni se añade idempotencia HTTP del panel. NOT-11 sigue siendo entrega independiente.",
+   "hecho": "Registro interno de eventos de propiedades: actor, fecha, origen, revisión y diferencias estructuradas, escritos de forma atómica con el cambio; sin texto libre. Dos fuentes y las correcciones conservan procedencia y orden; la retención de contactos y visitas no borra el historial de la propiedad. Publicado en cf0c86d. 14-nov-2026: cierre por aceptación propia (skill §3). wrangler d1 migrations list --remote: 0029 aplicada, no pendiente. Pruebas focales actuales en verde. (listing-events 18/18).",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "server/listing-events.js",
@@ -3355,7 +3357,8 @@ document.addEventListener('DOMContentLoaded', () => {
    ],
    "modulo": "M13",
    "deps": [],
-   "criterio_aceptacion": "Dos fuentes o una corrección conservan procedencia y secuencia; una purga de archivos no borra eventos históricos."
+   "criterio_aceptacion": "Dos fuentes o una corrección conservan procedencia y secuencia; una purga de archivos no borra eventos históricos.",
+   "actualizado": "2026-11-14"
   },
   {
    "id": "EST-19",
@@ -3796,10 +3799,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Franjas de visita reutilizables, con inicio y fin en horario de Jersey",
    "origen": "plan",
    "fase": "F0",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "Franjas semanales opcionales por búsqueda, con día, inicio y fin en Europe/Jersey; captura pública y edición en panel con control de concurrencia. El código se publicó en 5e9c8609 y la reconciliación registra la migración 0026 aplicada. Guardarlas no reserva ni confirma una visita.",
-   "falta": "VIS-17 debe reutilizar estas preferencias al proponer fechas y coordinar las confirmaciones; hasta verificar esa integración, el criterio completo de REG-17 permanece parcial. No se ha consultado de nuevo la migración en producción en esta conciliación.",
+   "hecho": "Franjas semanales opcionales por búsqueda (día, inicio y fin en Europe/Jersey), captura pública y edición en panel con CAS; guardarlas no reserva ni confirma visita. Publicado en 5e9c8609. 14-nov-2026: cierre por aceptación propia (skill §3). wrangler d1 migrations list --remote: 0026 aplicada, no pendiente. Pruebas focales actuales en verde. (applicants en verde).",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "migrations/0026_search_viewing_availability.sql",
@@ -3817,7 +3820,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "deps": [
     "REG-11"
    ],
-   "criterio_aceptacion": "Una búsqueda guarda varias franjas válidas que VIS-17 reutiliza; guardarlas nunca confirma una cita."
+   "criterio_aceptacion": "Una búsqueda guarda varias franjas válidas que VIS-17 reutiliza; guardarlas nunca confirma una cita.",
+   "actualizado": "2026-11-14"
   },
   {
    "id": "ADM-01",

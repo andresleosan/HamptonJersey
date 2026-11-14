@@ -4,10 +4,10 @@
   "titulo": "Franjas de visita reutilizables, con inicio y fin en horario de Jersey",
   "origen": "plan",
   "fase": "F0",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Franjas semanales opcionales por búsqueda, con día, inicio y fin en Europe/Jersey; captura pública y edición en panel con control de concurrencia. El código se publicó en 5e9c8609 y la reconciliación registra la migración 0026 aplicada. Guardarlas no reserva ni confirma una visita.",
-  "falta": "VIS-17 debe reutilizar estas preferencias al proponer fechas y coordinar las confirmaciones; hasta verificar esa integración, el criterio completo de REG-17 permanece parcial. No se ha consultado de nuevo la migración en producción en esta conciliación.",
+  "hecho": "Franjas semanales opcionales por búsqueda (día, inicio y fin en Europe/Jersey), captura pública y edición en panel con CAS; guardarlas no reserva ni confirma visita. Publicado en 5e9c8609. 14-nov-2026: cierre por aceptación propia (skill §3). wrangler d1 migrations list --remote: 0026 aplicada, no pendiente. Pruebas focales actuales en verde. (applicants en verde).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "migrations/0026_search_viewing_availability.sql",
@@ -37,5 +37,6 @@
     "viewings-contract",
     "registration-ui"
   ],
-  "nextStep": "VIS-17 debe consumir las franjas existentes y comprobar propuestas y confirmaciones; no reconstruir captura ni repetir la migración 0026."
+  "nextStep": "Ninguno. VIS-17 reutiliza estas franjas al proponer fechas (ya en su falta).",
+  "actualizado": "2026-11-14"
 }

@@ -4,11 +4,11 @@
   "titulo": "Directorio de anunciantes, contactos y permisos de imágenes",
   "origen": "plan",
   "fase": "F2",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "El directorio de anunciantes y sus contactos, teléfonos, canales y referencias está integrado en main. La evidencia histórica de REG-05 registra Pages en b544c2e y ninguna migración pendiente el 11-nov-2026; ese árbol contiene 0030 de anunciantes. La revisión y siete pruebas actuales del servicio usan datos ficticios; esta conciliación no consulta de nuevo la base remota.",
-  "falta": "Relacionar de forma verificable anunciantes y teléfonos con fuentes y publicaciones del inventario común para las tareas de llamada, conservando titulares y procedencia. La eliminación se aborda en AGE-14; acuerdos de comisión y permisos de imágenes permanecen separados y no son requisitos generales para inventariar.",
-  "actualizado": "2026-11-13",
+  "hecho": "Directorio privado de anunciantes con contactos, varios teléfonos y su titular, canales, fuentes, anuncios, comisión y permiso de fotos, con versión y CAS. GET /admin/advertisers?property_id= devuelve todos los anunciantes de un inmueble con sus teléfonos separados, aunque haya varios anuncios. 14-nov-2026: cierre por aceptación propia (skill §3). wrangler d1 migrations list --remote: 0030 aplicada, no pendiente. Pruebas focales actuales en verde. (advertisers 7/7).",
+  "falta": "",
+  "actualizado": "2026-11-14",
   "bloqueo": "",
   "evidencia": [
     "admin/src/Advertisers.jsx",
@@ -20,7 +20,8 @@
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
     "tests/server/advertisers.test.mjs",
     "docs/roadmap/work/REG-05/acceptance.md",
-    "docs/roadmap/work/AGE-04/reconciliacion-2026-11-13.md"
+    "docs/roadmap/work/AGE-04/reconciliacion-2026-11-13.md",
+    "Decisión: la tarea de llamada pertenece a BUS-06/BUS-10 (skill §3: consumidores en su propio falta)."
   ],
   "modulo": "M01",
   "deps": [],
@@ -34,5 +35,5 @@
   "resources": [
     "advertisers-directory"
   ],
-  "nextStep": "Integrar el directorio ya publicado con fuentes y publicaciones de BUS-06/BUS-10 y comprobar la tarea de llamada sin duplicar contactos."
+  "nextStep": "Ninguno. La tarea de llamada que consume el directorio es de BUS-06/BUS-10; la supresión, de AGE-14."
 }

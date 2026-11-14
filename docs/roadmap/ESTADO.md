@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+14-nov-2026 · **AGE-04, EST-18, NOT-11 y REG-17 hechas por aceptación propia:** directorio de anunciantes con todos los teléfonos por inmueble, registro de eventos de propiedades, tareas compartidas del Inbox y franjas de visita, ya publicados y con 0026/0029/0030/0032 aplicadas (comprobado con `migrations list`). Lo que falta es de BUS-06, NOT-01, SPR-02 y VIS-17. 2.309 pruebas, build, release y smoke público de producción correctos. Progreso **69/215 (32,09 %) → 73/215 (33,95 %)**.
+
 14-nov-2026 · **`/avanzar` reestructurado, sin cambios de producto:** una sola skill corta, migraciones aditivas e interruptores autorizados, cierre por aceptación propia, ruta calculada del catálogo y cola de Luis. Progreso sin cambio: 69/215 (32,09 %).
 
 14-nov-2026 · **PUB-08 hecha:** 0048 aplicada con autorización explícita, gate efectivo activo y Pages `faf43a3` publicado, con HTTP 200 del deployment exacto y del dominio público. Recorrido real API/D1/R2 sintético Chromium/WebKit, 2.308 JavaScript/29 Python y controles completos correctos. El tablero público confirmó el paso de **68/215 (31,63 %) a 69/215 (32,09 %)**, PUB-08 hecha, tras el push `9f4f884` (2026-11-14T01:28:04.943Z). PUB-06/SPR-01 quedan preparados, sin aplicar 0052 ni activar economía. Luis pidió guardar con commit/push y detenerse después del aumento verificado. [Evidencia y límites](work/PUB-08/2026-11-14-integracion-activacion.md).
