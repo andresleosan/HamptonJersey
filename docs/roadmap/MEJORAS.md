@@ -72,3 +72,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [VIS-08] Contador o filtro de visitas completadas sin respuesta; una visita completada sin respuesta no cuenta en el interés de la casa hasta anotar el resultado · 15-nov-2026
 - [VIS-08] `viewing.reminded` y `viewing.feedback` no salen en el Feed ni en el historial de la ficha (triggers de 0035 y 0038 con tipos fijos) · 15-nov-2026
 - [VIS-08] `.inbox-detail .kv` desborda a 390 px con zoom 200 % (usar `minmax(min(100%,240px),1fr)`); «Reminder due» usa reloj local y se desvía una hora en los cambios de hora · 15-nov-2026
+- [PUB-01] Consultar el recibo de creación tras recargar la página (hoy la recuperación solo funciona con el formulario abierto; el plan TP02 pedía cinco rutas, caducidad a 24 h y purga a 7 días) · sustituido por un recibo sobre la tabla existente · 15-nov-2026
+- [PUB-01] Los controles de la guía quedan arriba al saltar a una sección en móvil; un 5xx persistente deja el formulario en «Try again» · 15-nov-2026
+- [PUB-01] `property.txt` no recoge código postal, edificio, superficie ni costes internos; no convierte HEIC ni sube PDFs; los recibos de creación no caducan; probar el recibo con dos peticiones simultáneas sobre D1 real · 15-nov-2026
