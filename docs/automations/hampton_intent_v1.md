@@ -1,10 +1,15 @@
 # hampton_intent_v1 · propuesta de intención de chat
 
-- **Estado:** propósito previsto para MSG-04; no se habilitan respuestas automáticas, cuenta, canal o modelo.
-- **Objetivo y disparador:** proponer una intención del mensaje al flujo de chat cuando se cumplan las políticas y autorizaciones del canal y del propósito.
-- **Entrada y clase:** ninguna clase de datos queda acreditada por esta ficha; clasificación, finalidad, política y autorización deben verificarse sobre la entrada real. C3 no se habilita en Hermes/Pro.
-- **Pasos, modo y salida:** proponer una intención y pasar al servicio dueño; errores, idioma no soportado o falta de vía llevan a una persona. La salida no guarda criterios ni crea una cita o cierre de búsqueda.
-- **Puertas humanas:** el equipo conserva las decisiones de match, consulta con imprescindible desconocido, cierre de búsqueda y revisión de presentación. Los modos y su aplicación efectiva corresponden a AUT-10 y MSG-04.
-- **Fallo y coste:** bloquear la ejecución y derivar a una persona ante política, cuota o vía no acreditadas. Tope y moneda pendientes (`null`); coste desconocido requiere revisión.
-- **Aceptación:** pendientes casos reales/adversarios, criterio por versión y evidencia. Las pruebas sintéticas no acreditan proveedor, latencia ni atención real.
-- **Servicio dueño:** MSG-04, con canal y política de datos gestionados por sus propios servicios. Este documento no concede permisos ni modifica la conversación.
+- **Id:** `hampton_intent_v1`
+- **Estado:** prevista — propósito para MSG-04; no se habilitan respuestas automáticas, cuenta, canal ni modelo.
+- **Tarea dueña:** MSG-04; canal y política de datos en sus propios servicios.
+- **Propósito:** proponer una intención del mensaje al flujo de chat cuando se cumplan las políticas y autorizaciones del canal y del propósito.
+- **Disparador:** previsto: un propósito de chat revisado (`reviewed_chat_purpose`).
+- **Entradas y clase de datos:** ninguna clase de datos queda acreditada (lista vacía en el registro); clasificación, finalidad, política y autorización deben verificarse sobre la entrada real. C3 no se habilita.
+- **Salidas y efectos:** prevista: una intención propuesta al servicio dueño; errores, idioma no soportado o falta de vía llevan a una persona. No guarda criterios ni crea una cita o un cierre de búsqueda.
+- **Guardas humanas y modo:** el equipo conserva las decisiones de match, consulta con imprescindible desconocido, cierre de búsqueda y revisión de presentación. Modo inicial Draft en `operation_policies`.
+- **Interruptor:** ninguno conectado; `AUT10_MODES_READY` solo gobierna los modos.
+- **Coste y límite:** tope y moneda `null`; coste desconocido requiere revisión.
+- **Código:** `server/automation-contracts.js`, `server/operation-policy.js`
+- **Pruebas que la cubren:** `tests/server/automation-contracts.test.mjs`, `tests/server/aut-10-operation-policy.test.mjs`
+- **Criterio de hecho:** casos reales y adversarios, criterio por versión y evidencia en `acceptance.json` (hoy `pending`); las pruebas sintéticas no acreditan proveedor, latencia ni atención real.

@@ -1,10 +1,15 @@
 # listing_text · borrador de texto de ficha
 
-- **Estado:** definición inicial; existe el tipo de trabajo en `server/routes/hermes.js`, sin acreditar conexión de un modelo.
-- **Objetivo y disparador:** preparar una propuesta de texto para una ficha a petición del equipo o de Hermes, con los datos públicos permitidos por el servicio propietario.
-- **Entrada y clase:** solo el DTO público permitido por la ruta existente; clasificación prevista C0. La clasificación y la revisión de la versión concreta deben comprobarse antes de cualquier ejecución futura.
-- **Pasos, modo y salida:** preparar un borrador para revisión. Draft/Approve/Auto no publican ni aprueban un texto por sí mismos; su política real pertenece a AUT-10 y no se implementa aquí.
-- **Puertas humanas:** revisión del borrador y decisión de publicación por el equipo. Una propuesta no aprueba un match, una consulta con imprescindibles desconocidos, el cierre de una búsqueda ni una presentación.
-- **Fallo y coste:** sin vía autorizada, cuota o datos suficientes, parar y derivar a revisión humana. Tope y moneda pendientes (`null`); no se autoriza gasto. Al alcanzar el tope configurado, el modo futuro deberá pasar a Draft; coste desconocido requiere revisión.
-- **Aceptación:** pendiente de casos reales/adversarios, umbral específico y evidencia. Los fixtures de este repositorio no demuestran conexión, calidad ni recepción real.
-- **Servicio dueño:** AUT-13, con autorización del modelo en AUT-05 y modo en AUT-10. Esta ficha no cambia sus rutas.
+- **Id:** `listing_text`
+- **Estado:** apagada — el tipo de trabajo existe en la puerta de Hermes, pero ningún modelo lo toma hasta la fase 1b (PRE-32) y la lista de borradores está vacía; no se acredita conexión de un modelo.
+- **Tarea dueña:** AUT-13; autorización del modelo en AUT-05, modo en AUT-10 y lista de borradores en AUT-15.
+- **Propósito:** preparar una propuesta de texto para una ficha a petición del equipo o de Hermes, con los datos públicos que permite el servicio propietario.
+- **Disparador:** una persona de la lista de borradores pulsa «Ask Hermes for a draft», o Hermes pide trabajo (`/api/hermes/jobs`, `/api/hermes/jobs/next`).
+- **Entradas y clase de datos:** solo el DTO público de la ficha publicada que entrega la ruta existente; clase prevista C0. La clasificación y la versión concretas deben comprobarse antes de cualquier ejecución futura.
+- **Salidas y efectos:** un borrador en la tabla `jobs` para revisión; nunca publica ni aprueba un texto por sí mismo.
+- **Guardas humanas y modo:** una persona usa o descarta el borrador en el panel. Una propuesta no aprueba un match, una consulta con imprescindibles desconocidos, el cierre de una búsqueda ni una presentación. Modo inicial Draft en `operation_policies` (migración 0054); el modo no autoriza ninguna de esas decisiones.
+- **Interruptor:** `HERMES_KEY` para la puerta, lista de borradores (AUT-15) y, para los modos, `AUT10_MODES_READY`.
+- **Coste y límite:** tope y moneda `null` (sin autorizar gasto); al alcanzar el tope futuro pasa a Draft y un coste desconocido requiere revisión. Un trabajo abierto por ficha y fallo al tercer intento.
+- **Código:** `server/routes/hermes.js`, `server/automation-contracts.js`, `migrations/0018_jobs.sql`, `migrations/0054_operation_policies.sql`
+- **Pruebas que la cubren:** `tests/server/hermes.test.mjs`, `tests/server/automation-contracts.test.mjs`, `tests/server/aut-10-operation-policy.test.mjs`, `tests/server/aut-10-modes.test.mjs`
+- **Criterio de hecho:** casos reales y adversarios con umbral propio y evidencia en `acceptance.json` (hoy `pending`); los fixtures de este repositorio no demuestran conexión, calidad ni recepción real.
