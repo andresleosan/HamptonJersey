@@ -29,3 +29,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [NOT-05] El número de la pestaña solo se refresca al abrir Inbox o dentro de la pestaña; la lectura depende de que el contador haya creado los cargos (ensureCharges) · 14-nov-2026
 - [PRE-14] `coordination/test/activity-runtime.test.mjs` («two builders») espera [200, 409] y devuelve [409, 409], también en una copia limpia de `main`; no está en `npm test` · el tablero de coordinación ya no se usa para repartir, revisar o retirar la prueba · 14-nov-2026
 - [PUB-21] Antes de reactivar `PUB21_DRIVE_READY`: barrera por clase de dato en los documentos que van a Hermes (hoy solo filtro por nombre) y prueba de navegador del aviso «Paused» de Properties Queue · auditoría contra el plan maestro · 14-nov-2026
+- [BUS-15] Guardar las versiones revisadas también en columnas de `matches` · evita cruzar con `events` en cada comprobación de APPROVED y sobrevive a una purga de eventos · 14-nov-2026
+- [BUS-15] Registrar Skip como decisión «pendiente» con responsable · hoy dejar pendiente no deja rastro · 14-nov-2026
+- [BUS-15] Las casillas del lote siguen marcadas al volver a una página de Found; mostrar la versión revisada en el Timeline; e2e con comparación por criterio real y pasada en WebKit · 14-nov-2026

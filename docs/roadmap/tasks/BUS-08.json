@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "M05 · Reconciliación 7-nov: Construir el barrido diario por tandas, independiente de clientes: nuevas publicaciones, cambios, anuncios no localizados y errores de fuente; guardar cada intento y la última revisión correcta. Un fallo o anuncio ausente genera revisión, nunca indisponibilidad confirmada. Reutilizar capturas sin descargar todas las fotos cada día, reintentar sin duplicados y emitir cambios hacia BUS-04. Una hora concreta o frecuencia superior a diaria queda por concretar. Depende de: BUS-06, BUS-09, BUS-10, EST-16, AUT-07, EST-15. Aceptación: Una fuente caída conserva sus propiedades y muestra el fallo; una bajada de precio actualiza la propiedad y recalcula búsquedas activas. La activación automática exige antes la exclusión por indisponibilidad y prioridad humana EST-15; el desarrollo puede avanzar con fuentes y datos de prueba.",
+  "falta": "M05 · Reconciliación 7-nov: Construir el barrido diario por tandas, independiente de clientes: nuevas publicaciones, cambios, anuncios no localizados y errores de fuente; guardar cada intento y la última revisión correcta. Un fallo o anuncio ausente genera revisión, nunca indisponibilidad confirmada. Reutilizar capturas sin descargar todas las fotos cada día, reintentar sin duplicados y emitir cambios hacia BUS-04. Una hora concreta o frecuencia superior a diaria queda por concretar. Depende de: BUS-06, BUS-09, BUS-10, EST-16, AUT-07, EST-15. Aceptación: Una fuente caída conserva sus propiedades y muestra el fallo; una bajada de precio actualiza la propiedad y recalcula búsquedas activas. La activación automática exige antes la exclusión por indisponibilidad y prioridad humana EST-15; el desarrollo puede avanzar con fuentes y datos de prueba. Traído de BUS-15 (14-nov): una bajada de precio material tras un rechazo abre un nuevo episodio Found para revisión humana (plan maestro); hoy un match rechazado no se vuelve a proponer.",
   "bloqueo": "",
   "evidencia": [
     "jobs/wrangler.toml:1-24",
@@ -79,5 +79,6 @@
     "source-connectors",
     "availability-contract"
   ],
-  "nextStep": "Construir barrido reanudable con fixtures; activar solo cuando exclusión y prioridad humana de EST-15 estén verificadas."
+  "nextStep": "Construir barrido reanudable con fixtures; activar solo cuando exclusión y prioridad humana de EST-15 estén verificadas.",
+  "actualizado": "2026-11-14"
 }

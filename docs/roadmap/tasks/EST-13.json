@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "M06 · Reconciliación 7-nov: Representar por separado evaluación completa/pendiente/incumple, decisión del empleado, disponibilidad con evidencia, consulta compartida y espera del cliente. Una aprobación no confirma disponibilidad; una disponibilidad confirmada no implica envío al cliente ni visita cerrada. Mantener consultas de otros clientes cuando uno resuelve su búsqueda. Depende de: BUS-12, BUS-15, BUS-10, EST-09. Aceptación: Aprobar, confirmar disponibilidad, confirmar visita y resolver búsqueda son acciones y estados distintos.",
+  "falta": "M06 · Reconciliación 7-nov: Representar por separado evaluación completa/pendiente/incumple, decisión del empleado, disponibilidad con evidencia, consulta compartida y espera del cliente. Una aprobación no confirma disponibilidad; una disponibilidad confirmada no implica envío al cliente ni visita cerrada. Mantener consultas de otros clientes cuando uno resuelve su búsqueda. Depende de: BUS-12, BUS-15, BUS-10, EST-09. Aceptación: Aprobar, confirmar disponibilidad, confirmar visita y resolver búsqueda son acciones y estados distintos. Traído de BUS-15 (14-nov): mostrar en la tarjeta cuándo una aprobación quedó desfasada por un cambio material posterior y pedir nueva revisión; hoy sigue viéndose Shortlisted.",
   "bloqueo": "",
   "evidencia": [
     "migrations/0009_matches.sql:33",
@@ -63,5 +63,6 @@
     "outreach-contract",
     "availability-contract"
   ],
-  "nextStep": "Separar evaluación, decisión humana, disponibilidad acreditada y consulta compartida con historial por búsqueda."
+  "nextStep": "Separar evaluación, decisión humana, disponibilidad acreditada y consulta compartida con historial por búsqueda.",
+  "actualizado": "2026-11-14"
 }
