@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "No hay conexión con calendarios: la cita no se escribe en la agenda del negociador, no se leen sus horas ocupadas personales y el aplicante no recibe invitación. Plan maestro (10-nov-2026): Google Calendar primero; Outlook es posterior.",
+  "falta": "No hay conexión con calendarios: la cita no se escribe en la agenda del negociador, no se leen sus horas ocupadas personales y el aplicante no recibe invitación. Plan maestro (10-nov-2026): Google Calendar primero; Outlook es posterior. Traído de VIS-10 (14-nov): no copiar llaves ni nota de acceso al evento de calendario; son solo del panel.",
   "bloqueo": "",
   "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:10",

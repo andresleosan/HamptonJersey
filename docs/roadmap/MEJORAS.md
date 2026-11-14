@@ -52,3 +52,7 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [EST-01] Retirar el mecanismo dormido (`server/search-progress.js`, ramas de ticket de `match-store.js`, `search-progress.proposed.sql`, `SearchProgress.js` y sus pruebas) · dos mecanismos para lo mismo y el antiguo nunca se instaló; no encender `EST01_PROGRESS_READY` · 14-nov-2026
 - [EST-01] Identidad durable, ABA, drenaje y réplicas; registrar también la comprobación por ficha (`recomputeForListing`); cola real para la primera búsqueda cuando BUS-01 la difiera · endurecimientos fuera del título · 14-nov-2026
 - [SAP-01] Filtro por estado de búsqueda en la lista; refresco automático de «Searching now…»; decir el motivo de «No matches yet» (sin candidatas, descartadas por requisito, cobertura pendiente) · 14-nov-2026
+- [VIS-10] Imponer quién enseña la casa al reservar y preseleccionar su negociador · el plan del 8-nov pedía lista de negociadores permitidos; hoy es informativo · 14-nov-2026
+- [VIS-10] Retirar `server/property-viewing-rules.js`, sus pruebas y la migración 0051 sin aplicar · nada los usa tras 0066 · 14-nov-2026
+- [VIS-10] Vaciar llaves y nota al archivar o pasados N meses; aviso de cambios sin guardar en la tarjeta House rules · 14-nov-2026
+- [VIS-10] Calcular el aviso con instantes y no con hora local (se desvía una hora el fin de semana del cambio de hora); mensaje propio si la regla cambia durante la reserva; aviso en Inbox para fichas Tenanted sin horas de aviso · 14-nov-2026
