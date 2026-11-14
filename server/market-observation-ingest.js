@@ -3,7 +3,8 @@ import { EMAIL } from './viewings.js';
 import { manualScopeAllows, prepareManualObservationPage } from './market-manual-contract.js';
 import { commitObservationPage } from './market-inventory-store.js';
 
-// Internal bridge only: caller-supplied actor text is not authentication. No route exposes this function.
+// Internal bridge: actor text is not authentication. Its only caller is POST /admin/market/manual-pages,
+// which passes the signed-in admin of the session.
 const bad=()=>{throw new HttpError(400,'Invalid manual observation page');};
 const conflict=()=>{throw new HttpError(409,'Source access or inventory state changed');};
 const uuid=value=>typeof value==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);

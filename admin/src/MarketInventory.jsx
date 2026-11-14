@@ -1,6 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtDate } from "./format.js";
+
+// What a channel has contributed to this batch. A channel that was not read says so: it is never shown as empty.
+const reading = s => s.status === "complete" ? `Fully read, ${s.listings} listings`
+  : s.listings != null ? `${s.listings} ${s.listings === 1 ? "listing" : "listings"} recorded, not a full pass`
+  : s.access_status === "denied" ? "Not permitted, not read"
+  : s.access_status === "paused" ? "Paused, not read"
+  : s.method === "manual" ? "Waiting for a manual upload, not read"
+  : s.method === "http" ? "Waiting for its reader, not read"
+  : "Waiting for access review, not read";
+const EXAMPLE = JSON.stringify([{ external_key: "REF-123", source_at: "2026-11-14T10:15:00.000Z",
+  listing_url: "https://www.example.je/properties/ref-123", observation: { country_code: "JE",
+    territory_evidence: "Address on the listing: St Helier, Jersey", operation: "rent", observed_at: "2026-11-14T10:15:00.000Z",
+    title: "Two bedroom flat", parish: "St Helier", bedrooms: 2, bathrooms: 1,
+    financial_terms: [{ kind: "rent", amount_minor: 150000, currency: "GBP", period: "month", raw_text: "£1,500 pcm" }] } }], null, 1);
 
 const label = value => ({ own_pilot: "Internal pilot", initial: "Initial", daily: "Daily", open: "Open", paused: "Paused",
   completed: "Completed", partial: "Partial", cancelled: "Cancelled", pending: "Pending", running: "Running",
@@ -9,17 +23,20 @@ const label = value => ({ own_pilot: "Internal pilot", initial: "Initial", daily
 
 // Refresh only while the page is visible; invalidate stale responses when page or selection changes.
 function usePage(path, validate) {
-  const [result, setResult] = useState({ loading: true }), [retry, setRetry] = useState(0);
+  const [result, setResult] = useState({ loading: true }), [retry, setRetry] = useState(0), shown = useRef(null);
   useEffect(() => {
     let alive = true, sequence = 0;
-    setResult({ loading: true });
+    // A reload of the same page keeps what is on screen (and any form inside it) until the answer arrives.
+    if (shown.current !== path) setResult({ loading: true });
+    shown.current = path;
     const load = () => {
       const request = ++sequence;
       api(path).then(data => {
         if (!validate(data)) throw new Error("Unexpected response");
         if (alive && request === sequence) setResult({ data });
       }).catch(error => {
-        if (alive && request === sequence) setResult({ error });
+        // A failed refresh keeps the page already shown, so a form being filled in is not lost.
+        if (alive && request === sequence) setResult(old => old.data ? old : { error });
       });
     };
     const refresh = () => { if (!document.hidden) load(); };
@@ -33,6 +50,7 @@ function usePage(path, validate) {
 const runsValid = data => data && Array.isArray(data.runs) && (data.next === null || typeof data.next === "string");
 const coverageValid = data => data && data.run && Array.isArray(data.sources) && data.overall &&
   (data.next === null || typeof data.next === "string");
+const manifestsValid = data => data && Array.isArray(data.manifests);
 const pathAfter = (path, after) => after ? `${path}?after=${encodeURIComponent(after)}` : path;
 
 function PageControls({ previous, next, onPrevious, onNext, noun }) {
@@ -53,17 +71,33 @@ export default function MarketInventory() {
   const [pages, setPages] = useState([null]), [selected, setSelected] = useState(null);
   const after = pages.at(-1), [state, retry] = usePage(pathAfter("/admin/market/runs", after), runsValid);
   const changePage = next => { setSelected(null); setPages(p => next ? [...p, next] : p.slice(0, -1)); };
+  const [busy, setBusy] = useState(false), [note, setNote] = useState(null);
+  // Pause, resume or close one batch. The version makes a stale button a refusal, never a second change.
+  const act = async (run, action) => {
+    if (action === "close" && !confirm("Close this batch? Uploads to it stop and its history is kept. You can then start the next batch.")) return;
+    setBusy(true); setNote(null);
+    try { await api(`/admin/market/runs/${encodeURIComponent(run.id)}/${action}`, { method: "POST", body: { version: run.version, operation_id: crypto.randomUUID() } }); }
+    catch (error) { setNote(error.status === 409 ? "That batch had already changed. The list is up to date now." : "Couldn't change the batch. Please try again."); }
+    finally { setBusy(false); retry(); }
+  };
   return <article className="card" aria-labelledby="a-market" style={{ overflowWrap: "anywhere" }}>
     <h2 id="a-market">Market inventory</h2>
     <p className="muted">Review recorded inventory runs and their source coverage. An unknown coverage does not mean there are no listings.</p>
     <LoadState state={state} retry={retry} unavailable />
     {state.data && <>
+      <Directory onStarted={retry} />
+      <h3>Batches</h3>
+      {note && <p role="alert" className="err">{note}</p>}
       {state.data.runs.length ? <ul>{state.data.runs.map(run => <li key={run.id}>
         {label(run.kind)} · {label(run.status)} · Created {fmtDate(run.created_at)}{" "}
         <button type="button" className="btn ghost sm" aria-expanded={selected === run.id}
           onClick={() => setSelected(selected === run.id ? null : run.id)}>
-          {selected === run.id ? "Hide coverage" : "Show coverage"}</button>
-        {selected === run.id && <Coverage key={run.id} runId={run.id} />}
+          {selected === run.id ? "Hide coverage" : "Show coverage"}</button>{" "}
+        {["open", "paused"].includes(run.status) && <>
+          <button type="button" className="btn ghost sm" disabled={busy} onClick={() => act(run, run.status === "open" ? "pause" : "resume")}>
+            {run.status === "open" ? "Pause" : "Resume"}</button>{" "}
+          <button type="button" className="btn ghost sm" disabled={busy} onClick={() => act(run, "close")}>Close batch</button></>}
+        {selected === run.id && <Coverage key={run.id} runId={run.id} open={run.status === "open"} />}
       </li>)}</ul> : <p>No inventory runs recorded on this page. External coverage is unknown.</p>}
       <PageControls previous={pages.length > 1} next={state.data.next} onPrevious={() => changePage(null)}
         onNext={() => changePage(state.data.next)} noun="Inventory run" />
@@ -71,7 +105,58 @@ export default function MarketInventory() {
   </article>;
 }
 
-function Coverage({ runId }) {
+// BUS-06: the accepted source directory. The file is private and never leaves the browser except to this
+// panel; its fingerprint is shown so the admin accepts exactly the file that was prepared.
+function Directory({ onStarted }) {
+  const [state, retry] = usePage("/admin/market/manifests", manifestsValid);
+  const [file, setFile] = useState(null), [busy, setBusy] = useState(false), [msg, setMsg] = useState(null);
+  const pick = async event => {
+    setMsg(null);
+    const chosen = event.target.files[0];
+    if (!chosen) return setFile(null);
+    try {
+      const bytes = await chosen.arrayBuffer(), text = new TextDecoder().decode(bytes), parsed = JSON.parse(text);
+      if (typeof parsed.revision !== "string" || !Array.isArray(parsed.channels) || !parsed.channels.length) throw new Error("format");
+      const sha256 = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map(b => b.toString(16).padStart(2, "0")).join("");
+      setFile({ text, sha256, revision: parsed.revision, channels: parsed.channels.length,
+        sources: new Set(parsed.channels.map(c => c?.source_ref)).size });
+    } catch { setFile(null); setMsg({ err: "That file is not a source directory. Choose the directory file prepared for Hampton." }); }
+  };
+  const send = async (path, body, done, refused) => {
+    setBusy(true); setMsg(null);
+    try { await api(path, { method: "POST", body }); setMsg({ ok: done }); return true; }
+    catch (error) { setMsg({ err: error.status === 409 || error.status === 400 ? refused : "Couldn't save. Please try again." }); return false; }
+    finally { setBusy(false); }
+  };
+  const accept = async () => {
+    if (await send("/admin/market/manifests", { manifest: file.text, sha256: file.sha256 },
+      `Directory accepted. Its ${file.channels} channels are pending review; none can be read yet.`,
+      "The directory was not accepted: the file is not valid, or this revision was already accepted with other contents.")) { setFile(null); retry(); }
+  };
+  const begin = async revision => {
+    if (await send("/admin/market/runs", { kind: "initial", manifest_revision: revision, operation_id: crypto.randomUUID() },
+      "Batch started. Open its coverage to add listings for the channels that allow a manual upload.",
+      "A batch is already open. Close it before starting another.")) onStarted();
+  };
+  return <section aria-labelledby="a-market-directory">
+    <h3 id="a-market-directory">Source directory</h3>
+    <LoadState state={state} retry={retry} />
+    {state.data && (state.data.manifests.length ? <ul>{state.data.manifests.map(m => <li key={m.revision}>
+      Revision {m.revision} · {m.channels} channels · {m.status === "accepted" ? `Accepted ${fmtDate(m.accepted_at)}` : "Revoked"}{" "}
+      {m.status === "accepted" && <button type="button" className="btn ghost sm" disabled={busy} onClick={() => begin(m.revision)}>Start a batch</button>}
+    </li>)}</ul> : <p>No directory accepted yet. Without one, no external source can be reviewed or read.</p>)}
+    <p><label>Directory file <input type="file" accept=".json,application/json" onChange={pick} disabled={busy} /></label></p>
+    {file && <div>
+      <p>Revision {file.revision} · {file.channels} channels from {file.sources} sources
+        <br />Fingerprint (SHA-256): <code>{file.sha256}</code></p>
+      <p className="muted">Check the fingerprint against the one given with the file. Accepting adds every channel as pending review. It does not allow reading any source.</p>
+      <button type="button" className="btn sm" disabled={busy} onClick={accept}>Accept directory</button>
+    </div>}
+    {msg && <p role={msg.err ? "alert" : "status"} className={msg.err ? "err" : "ok"}>{msg.err || msg.ok}</p>}
+  </section>;
+}
+
+function Coverage({ runId, open }) {
   const [pages, setPages] = useState([null]), after = pages.at(-1);
   const [state, retry] = usePage(pathAfter(`/admin/market/runs/${encodeURIComponent(runId)}/coverage`, after), coverageValid);
   return <section aria-label="Source coverage">
@@ -79,12 +164,55 @@ function Coverage({ runId }) {
     {state.data && <>
       <p>External coverage: <strong>{state.data.overall.external_coverage === "complete" ? "Complete for this run" : "Unknown"}</strong>.</p>
       {state.data.sources.length ? <ul>{state.data.sources.map(source => <li key={`${source.source_ref}:${source.channel_id}`}>
-        <strong>{source.source_ref}</strong> · Channel {source.channel_id} · {label(source.status)} · Access {label(source.access_status)}
+        <strong>{source.source_ref}</strong> · Channel {source.channel_id} · {reading(source)} · Access {label(source.access_status)}
         <br />Method: {label(source.method)} · Review due: {source.review_due_at ? fmtDate(source.review_due_at) : "Not recorded"}
         <br />Last capture: {source.last_capture_at ? fmtDate(source.last_capture_at) : "Not recorded"} · Last full pass: {source.last_full_pass_at ? fmtDate(source.last_full_pass_at) : "Not recorded"}
+        {open && source.method === "manual" && ["allowed", "manual_only"].includes(source.access_status) &&
+          <ManualUpload runId={runId} source={source} onSaved={retry} />}
       </li>)}</ul> : <p>No sources recorded on this page.</p>}
       <PageControls previous={pages.length > 1} next={state.data.next} onPrevious={() => setPages(p => p.slice(0, -1))}
         onNext={() => setPages(p => [...p, state.data.next])} noun="Source coverage" />
     </>}
   </section>;
+}
+
+// BUS-06: listings typed in by staff for a channel reviewed as manual. Up to 10 per upload; the server
+// checks every one again and saves all or none.
+function ManualUpload({ runId, source, onSaved }) {
+  const [text, setText] = useState(""), [busy, setBusy] = useState(false), [msg, setMsg] = useState(null);
+  const pageKey = useRef(null), name = `${source.source_ref} ${source.channel_id}`;
+  const save = async event => {
+    event.preventDefault();
+    let records = null;
+    try { const parsed = JSON.parse(text); records = Array.isArray(parsed) ? parsed : parsed?.records; } catch {}
+    const missing = r => ["external_key", "source_at", "listing_url"].find(k => typeof r?.[k] !== "string") ||
+      (typeof r.observation?.observed_at !== "string" ? "observation.observed_at" : null);
+    const incomplete = Array.isArray(records) ? records.findIndex(missing) : -1;
+    const problem = !Array.isArray(records) || !records.length ? "Paste a list of 1 to 10 listings in the format shown."
+      : records.length > 10 ? "An upload takes up to 10 listings. Split the list and send the rest in the next upload."
+      : incomplete >= 0 ? `Listing ${incomplete + 1} is missing ${missing(records[incomplete])}.` : null;
+    if (problem) return setMsg({ err: problem });
+    pageKey.current ||= `manual-${Date.now()}`;
+    setBusy(true); setMsg(null);
+    try {
+      await api("/admin/market/manual-pages", { method: "POST", body: { schema_version: 1, run_id: runId, source_ref: source.source_ref,
+        channel_id: source.channel_id, policy_version: source.policy_version, page_key: pageKey.current,
+        // The batch is dated by the latest moment one of its listings was seen.
+        observed_at: records.map(r => r.observation.observed_at).sort().at(-1), records } });
+      pageKey.current = null; setText(""); setMsg({ ok: `Saved ${records.length} ${records.length === 1 ? "listing" : "listings"}.` }); onSaved();
+    } catch (error) {
+      setMsg({ err: error.status === 400 ? `Nothing was saved. ${error.message}. Check every listing against the format; links must be on the hosts reviewed for this channel.`
+        : error.status === 409 ? "Nothing was saved. The channel is not open for manual upload, the batch is not open, or the channel was used within its minimum interval. Wait two minutes, reload and try again."
+        : error.status === 404 || error.status === 413 ? `Nothing was saved. ${error.message}.`
+        : "The result is unknown. Reload the coverage and check the listing count before sending this again." });
+    } finally { setBusy(false); }
+  };
+  return <form onSubmit={save}>
+    <p><label>Listings for {name} <textarea value={text} onChange={e => { setText(e.target.value); pageKey.current = null; }} disabled={busy} spellCheck={false} /></label></p>
+    <details><summary>Show the format</summary>
+      <p className="muted">A list of up to 10 listings. Dates are when the listing was seen, in UTC. Amounts are in pence. Territory evidence says why this is a Jersey property.</p>
+      <textarea readOnly value={EXAMPLE} aria-label="Example of one listing" /></details>
+    <button type="submit" className="btn sm" disabled={busy || !text.trim()}>Save listings</button>
+    {msg && <p role={msg.err ? "alert" : "status"} className={msg.err ? "err" : "ok"}>{msg.err || msg.ok}</p>}
+  </form>;
 }

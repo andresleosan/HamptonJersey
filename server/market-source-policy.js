@@ -35,6 +35,7 @@ function normalized(input) {
   if (!input || !identifier(input.source_ref) || !identifier(input.channel_id) || !uuid(input.operation_id) ||
       !['pending','allowed','manual_only','denied','paused'].includes(input.status) ||
       ![null,'internal','manual','http'].includes(input.method ?? null) ||
+      ![null,'general','unclassified','homely','jfsc','places','properties'].includes(input.source_class ?? null) ||
       !Number.isSafeInteger(input.min_interval_s) || input.min_interval_s < 60 || input.min_interval_s > 31536000) bad();
   const allowedHosts = hosts(input.allowed_hosts ?? []), allowedPaths = paths(input.allowed_paths ?? []);
   const redirectHosts = hosts(input.allowed_redirect_hosts ?? []);
@@ -46,9 +47,11 @@ function normalized(input) {
         !iso(input.review_due_at)) bad();
     if (input.status === 'manual_only' && input.method !== 'manual') bad();
     if (input.method === 'http' && (!allowedHosts.length || !allowedPaths.length)) bad();
+    // Master plan: Homely never; Places.je and Properties.je are later connectors. Whatever class a reviewer picks.
+    if ([...allowedHosts, ...redirectHosts].some(host => /(^|\.)(homely|places|properties)\.je$/.test(host))) bad();
   }
   return { source_ref: input.source_ref, channel_id: input.channel_id, operation_id: input.operation_id,
-    status: input.status, method: input.method ?? null, allowed_hosts: allowedHosts, allowed_paths: allowedPaths,
+    source_class: input.source_class ?? null, status: input.status, method: input.method ?? null, allowed_hosts: allowedHosts, allowed_paths: allowedPaths,
     allowed_redirect_hosts: redirectHosts, min_interval_s: input.min_interval_s, evidence_ref: input.evidence_ref ?? null,
     retention_ref: input.retention_ref ?? null, review_due_at: input.review_due_at ?? null };
 }
@@ -57,7 +60,8 @@ const sourceSql = `SELECT s.*,m.status AS manifest_status,strftime('%Y-%m-%dT%H:
   LEFT JOIN market_directory_manifests m ON m.revision=s.directory_revision WHERE s.source_ref=? AND s.channel_id=?`;
 const source = (db, ref, channel) => primary(db).prepare(sourceSql).bind(ref, channel).first();
 function project(row) {
-  return { source_ref: row.source_ref, channel_id: row.channel_id, version: row.policy_version, status: row.access_status,
+  return { source_ref: row.source_ref, channel_id: row.channel_id, version: row.policy_version,
+    source_class: row.source_class, next_action: row.next_action, status: row.access_status,
     method: row.method, allowed_hosts: JSON.parse(row.allowed_hosts), allowed_paths: JSON.parse(row.allowed_paths),
     allowed_redirect_hosts: JSON.parse(row.allowed_redirect_hosts), min_interval_s: row.min_interval_s,
     checked_at: row.reviewed_at, review_due_at: row.review_due_at, evidence_ref: row.evidence_ref, retention_ref: row.retention_ref };
@@ -96,28 +100,32 @@ export async function reviewSourceAccess(env, input, actor, expectedVersion, clo
   if (granting && next.review_due_at <= at) bad();
   const current = await source(db, next.source_ref, next.channel_id);
   if (!current || current.policy_version !== expectedVersion) conflict();
+  // The reviewer may classify an external channel in the same decision; only "general" can be granted.
+  const sourceClass = next.source_class ?? current.source_class;
+  if (next.source_class && current.source_kind !== 'external') conflict();
   if (granting && (current.source_kind === 'external' ?
-    current.source_class !== 'general' || current.manifest_status !== 'accepted' || next.method === 'internal' :
+    sourceClass !== 'general' || current.manifest_status !== 'accepted' || next.method === 'internal' :
     current.source_class !== 'internal' || next.method !== 'internal')) conflict();
   const snapshot = { source_ref: next.source_ref, channel_id: next.channel_id, version: expectedVersion + 1,
-    status: next.status, method: next.method, allowed_hosts: next.allowed_hosts, allowed_paths: next.allowed_paths,
+    source_class: sourceClass, status: next.status, method: next.method, allowed_hosts: next.allowed_hosts, allowed_paths: next.allowed_paths,
     allowed_redirect_hosts: next.allowed_redirect_hosts, min_interval_s: next.min_interval_s,
     checked_at: at, review_due_at: next.review_due_at, evidence_ref: next.evidence_ref, retention_ref: next.retention_ref };
   const guard = crypto.randomUUID();
   const condition = `SELECT 1 FROM market_sources s LEFT JOIN market_directory_manifests m ON m.revision=s.directory_revision
-    WHERE s.source_ref=? AND s.channel_id=? AND s.policy_version=? AND
+    WHERE s.source_ref=? AND s.channel_id=? AND s.policy_version=? AND (? IS NULL OR s.source_kind='external') AND
       (?=0 OR (? > strftime('%Y-%m-%dT%H:%M:%fZ','now') AND
        ((s.source_kind='internal' AND s.source_class='internal' AND ?='internal') OR
-        (s.source_kind='external' AND s.source_class='general' AND m.status='accepted' AND ?<>'internal'))))`;
-  const conditionArgs = [next.source_ref, next.channel_id, expectedVersion, granting ? 1 : 0, next.review_due_at, next.method, next.method];
+        (s.source_kind='external' AND COALESCE(?,s.source_class)='general' AND m.status='accepted' AND ?<>'internal'))))`;
+  const conditionArgs = [next.source_ref, next.channel_id, expectedVersion, next.source_class, granting ? 1 : 0,
+    next.review_due_at, next.method, next.source_class, next.method];
   try {
     await db.batch([
       db.prepare(`INSERT INTO market_commit_guard(id,allowed) SELECT ?,CASE WHEN EXISTS (${condition}) THEN 1 ELSE 0 END`)
         .bind(guard, ...conditionArgs),
-      db.prepare(`UPDATE market_sources SET access_status=?,method=?,policy_version=policy_version+1,
+      db.prepare(`UPDATE market_sources SET source_class=COALESCE(?,source_class),access_status=?,method=?,policy_version=policy_version+1,
         evidence_ref=?,retention_ref=?,reviewed_at=?,review_due_at=?,allowed_hosts=?,allowed_paths=?,allowed_redirect_hosts=?,min_interval_s=?
         WHERE source_ref=? AND channel_id=? AND policy_version=?`)
-        .bind(next.status, next.method, next.evidence_ref, next.retention_ref, at, next.review_due_at,
+        .bind(next.source_class, next.status, next.method, next.evidence_ref, next.retention_ref, at, next.review_due_at,
           JSON.stringify(next.allowed_hosts), JSON.stringify(next.allowed_paths), JSON.stringify(next.allowed_redirect_hosts),
           next.min_interval_s, next.source_ref, next.channel_id, expectedVersion),
       db.prepare(`INSERT INTO market_source_policy_history

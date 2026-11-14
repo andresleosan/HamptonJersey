@@ -5,7 +5,11 @@ import { fmtDate } from "./format.js";
 const choices = { pending: "Pending review", allowed: "Allowed", manual_only: "Manual only", denied: "Denied", paused: "Paused" };
 const date = value => value ? fmtDate(value) : "Not recorded";
 const lines = value => value.split("\n").map(s => s.trim()).filter(Boolean);
-const toForm = d => ({ status: d.status, method: d.method || "", evidence_ref: d.evidence_ref || "", retention_ref: d.retention_ref || "", review_due_at: d.review_due_at || "", min_interval_s: String(d.min_interval_s ?? 60), allowed_hosts: (d.allowed_hosts || []).join("\n"), allowed_paths: (d.allowed_paths || []).join("\n"), allowed_redirect_hosts: (d.allowed_redirect_hosts || []).join("\n") });
+// The family a channel belongs to. Only a "general" source can be opened; the others stay restricted by rule.
+const classes = { unclassified: "Not classified yet", general: "Agency or other source that can be reviewed", homely: "Homely.je (never allowed)",
+  jfsc: "JFSC register (never allowed)", places: "Places.je (later connector)", properties: "Properties.je (later connector)", internal: "Hampton's own listings" };
+const words = value => value.replace(/_/g, " ");
+const toForm = d => ({ source_class: d.source_class || "unclassified", status: d.status, method: d.method || "", evidence_ref: d.evidence_ref || "", retention_ref: d.retention_ref || "", review_due_at: d.review_due_at || "", min_interval_s: String(d.min_interval_s ?? 60), allowed_hosts: (d.allowed_hosts || []).join("\n"), allowed_paths: (d.allowed_paths || []).join("\n"), allowed_redirect_hosts: (d.allowed_redirect_hosts || []).join("\n") });
 
 export default function SourceAccessReview() {
   const [pages, setPages] = useState([null]), [page, setPage] = useState(null), [error, setError] = useState(null), [loading, setLoading] = useState(true), [selected, setSelected] = useState(null), [refresh, setRefresh] = useState(0), [listStale, setListStale] = useState(false);
@@ -30,7 +34,8 @@ export default function SourceAccessReview() {
     {error && (error.status === 404 ? <p>Source review is not available yet.</p> : <div role="alert"><p>Could not load sources.</p><button className="btn ghost sm" onClick={() => setRefresh(n => n + 1)}>Try again</button></div>)}
     {listStale && <p role="alert">The source list changed or could not be refreshed; displayed decisions may be out of date.</p>}
     {page && <>{rows.length ? <ul>{rows.map(s => <li key={JSON.stringify([s.source_ref,s.channel_id])}>
-      <strong>{s.source_ref}</strong> · {s.channel_id} · {choices[s.status] || "Unknown"} · Method: {s.method || "Unknown"} · Reviewed: {date(s.checked_at)} · Review due: {date(s.review_due_at)}{" "}
+      <strong>{s.source_ref}</strong> · {s.channel_id} · {choices[s.status] || "Unknown"} · Method: {s.method || "Unknown"} · Reviewed: {date(s.checked_at)} · Review due: {date(s.review_due_at)}
+      <br /><span className="muted">{classes[s.source_class] || "Not classified yet"}{s.next_action ? `. Directory note: ${words(s.next_action)}` : ""}</span>{" "}
       <button type="button" className="btn ghost sm" aria-expanded={selected?.source_ref === s.source_ref && selected?.channel_id === s.channel_id} aria-label={`${selected?.source_ref === s.source_ref && selected?.channel_id === s.channel_id ? "Close" : "Review"} ${s.source_ref} ${s.channel_id}`} onClick={() => setSelected(old => old?.source_ref === s.source_ref && old?.channel_id === s.channel_id ? null : s)}>{selected?.source_ref === s.source_ref && selected?.channel_id === s.channel_id ? "Close review" : "Review channel"}</button>
       {selected?.source_ref === s.source_ref && selected?.channel_id === s.channel_id && <ChannelReview key={JSON.stringify([s.source_ref,s.channel_id])} source={s} onChanged={() => setRefresh(n => n + 1)} />}
     </li>)}</ul> : <p>No source channels recorded on this page.</p>}
@@ -61,7 +66,7 @@ function ChannelReview({ source, onChanged }) {
   const save = async e => { e.preventDefault(); if (busy || stale) return;
     let due = null;
     if (form.review_due_at) { const d = new Date(form.review_due_at); if (!Number.isFinite(d.getTime())) { setError(new Error("Enter a valid review date.")); return; } due = d.toISOString(); }
-    const body = { source_ref: source.source_ref, channel_id: source.channel_id, version: decision.version, operation_id: operation.current || crypto.randomUUID(), status: form.status, method: form.method || null, evidence_ref: form.evidence_ref || null, retention_ref: form.retention_ref || null, review_due_at: due, min_interval_s: Number(form.min_interval_s), allowed_hosts: lines(form.allowed_hosts), allowed_paths: lines(form.allowed_paths), allowed_redirect_hosts: lines(form.allowed_redirect_hosts) };
+    const body = { source_ref: source.source_ref, channel_id: source.channel_id, version: decision.version, operation_id: operation.current || crypto.randomUUID(), ...(form.source_class === "internal" ? {} : { source_class: form.source_class }), status: form.status, method: form.method || null, evidence_ref: form.evidence_ref || null, retention_ref: form.retention_ref || null, review_due_at: due, min_interval_s: Number(form.min_interval_s), allowed_hosts: lines(form.allowed_hosts), allowed_paths: lines(form.allowed_paths), allowed_redirect_hosts: lines(form.allowed_redirect_hosts) };
     operation.current = body.operation_id; busyRef.current = true; setBusy(true); setError(null);
     try { await api("/admin/market/sources/review", { method: "POST", body }); onChanged(); }
     catch (err) { setError(err); if (err.status === 0 || err.status >= 500) setUncertain(true); }
@@ -74,7 +79,11 @@ function ChannelReview({ source, onChanged }) {
     {decision && form && <><p>{stale || error?.status === 409 ? "Last loaded (may be out of date)" : "Current"}: {choices[decision.status] || "Unknown"}; method: {decision.method || "Unknown"}; reviewed: {date(decision.checked_at)}; review due: {date(decision.review_due_at)}.</p>
       {decision.recorded_status && <p>Recorded decision: {choices[decision.recorded_status] || "Unknown"}. The effective decision is pending.</p>}
       <p>Evidence reference: {decision.evidence_ref || "Not recorded"}; retention reference: {decision.retention_ref || "Not recorded"}.</p>
+      {decision.next_action && <p>Directory note: {words(decision.next_action)}.</p>}
+      <p className="muted">To open a channel, record where its evidence and retention rule are kept as short references without spaces (for example terms-2026-11-14), a review date, and the site's hosts and paths (for example www.example.je and /). Denying or pausing needs none of them.</p>
       <form onSubmit={save}>
+        {form.source_class !== "internal" && <p><label>Source type <select name="source_class" value={form.source_class} onChange={edit} disabled={busy || uncertain}>
+          {Object.entries(classes).filter(([value]) => value !== "internal").map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select></label></p>}
         <label>Decision <select name="status" value={form.status} onChange={edit} disabled={busy || uncertain}><option value="pending">Pending review</option><option value="allowed">Allowed</option><option value="manual_only">Manual only</option><option value="denied">Denied</option><option value="paused">Paused</option></select></label>{" "}
         <label>Method <select name="method" value={form.method} onChange={edit} disabled={busy || uncertain}><option value="">Unknown</option><option value="internal">Internal</option><option value="manual">Manual</option><option value="http">HTTP</option></select></label>
         <p><label>Evidence reference <input name="evidence_ref" value={form.evidence_ref} onChange={edit} disabled={busy || uncertain} maxLength={200} /></label></p>

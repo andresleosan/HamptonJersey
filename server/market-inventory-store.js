@@ -1,8 +1,9 @@
 import { HttpError, sha256 } from './http.js';
 import { manualScopeAllows, verifyPreparedManualPage } from './market-manual-contract.js';
 
-// This module owns the operational source projection. It creates no sources, grants
-// no permissions and makes no network requests; BUS-19 owns access review.
+// This module owns the operational source projection. Sources enter only through an accepted
+// directory manifest, always pending: it grants no permissions and makes no network requests;
+// BUS-19 owns access review.
 const conflict = () => { throw new HttpError(409, 'Inventory state changed or is not available'); };
 const bad = () => { throw new HttpError(400, 'Invalid inventory request'); };
 const id = value => typeof value === 'string' && value.length > 0 && value.length <= 160 && !/[\u0000-\u001f\u007f]/.test(value);
@@ -89,6 +90,58 @@ export async function createInventoryRun(env, input, actor, clock = () => new Da
     throw error;
   }
   return await getRunByOperation(primary(env.DB), input.operation_id);
+}
+
+const CLASSES = ['general','unclassified','homely','jfsc','places','properties'];
+const manifestRow = (db, revision) => primary(db).prepare(
+  'SELECT sha256,accepted_at,status FROM market_directory_manifests WHERE revision=?').bind(revision).first();
+
+// A signed-in admin accepts the exact bytes of a directory manifest: the fingerprint they confirmed is
+// checked here against what arrived. Access fields in the file are ignored; every new channel is pending.
+// A later revision moves the channels it lists and keeps each channel's reviewed decision and class.
+export async function acceptDirectoryManifest(env, input, actor, clock = () => new Date()) {
+  if (!input || typeof input.manifest !== 'string' || typeof input.sha256 !== 'string' || !id(actor) ||
+      await sha256(input.manifest) !== input.sha256) bad();
+  let parsed;
+  try { parsed = JSON.parse(input.manifest); } catch { bad(); }
+  const channels = parsed?.channels;
+  if (parsed?.schema_version !== 1 || !id(parsed.revision) || !Array.isArray(channels) || !channels.length || channels.length > 2000) bad();
+  const seen = new Set(), rows = channels.map(c => {
+    const key = JSON.stringify([c?.source_ref, c?.channel_id]);
+    if (!c || !id(c.source_ref) || !id(c.channel_id) || seen.has(key) || (c.source_kind ?? 'external') !== 'external' ||
+        !CLASSES.includes(c.source_class ?? 'unclassified') || (c.review_state != null && !id(c.review_state))) bad();
+    seen.add(key);
+    return [c.source_ref, c.channel_id, c.source_class ?? 'unclassified', c.review_state ?? null];
+  });
+  const db = env.DB, at = clockTime(clock);
+  const receipt = (row, replayed) => row.sha256 === input.sha256 && row.status === 'accepted' ?
+    { revision: parsed.revision, sha256: row.sha256, accepted_at: row.accepted_at, channels: rows.length, replayed } : conflict();
+  const existing = await manifestRow(db, parsed.revision);
+  if (existing) return receipt(existing, true);
+  try {
+    await db.batch([
+      db.prepare(`INSERT INTO market_directory_manifests(revision,sha256,accepted_at,reviewer_ref,status)
+        VALUES (?,?,?,?,'accepted')`).bind(parsed.revision, input.sha256, at, actor),
+      db.prepare(`INSERT INTO market_sources(source_ref,channel_id,directory_revision,source_kind,source_class,next_action)
+        SELECT json_extract(value,'$[0]'),json_extract(value,'$[1]'),?,'external',json_extract(value,'$[2]'),json_extract(value,'$[3]')
+        FROM json_each(?) WHERE true
+        ON CONFLICT(source_ref,channel_id) DO UPDATE SET directory_revision=excluded.directory_revision,
+          next_action=excluded.next_action,policy_version=market_sources.policy_version+1
+        WHERE market_sources.source_kind='external'`).bind(parsed.revision, JSON.stringify(rows)),
+    ]);
+  } catch (error) {
+    const row = await manifestRow(db, parsed.revision);
+    if (row) return receipt(row, true);
+    throw error;
+  }
+  return receipt({ sha256: input.sha256, accepted_at: at, status: 'accepted' }, false);
+}
+
+export async function listDirectoryManifests(env) {
+  const { results } = await primary(env.DB).prepare(`SELECT m.revision,m.sha256,m.accepted_at,m.status,
+      (SELECT COUNT(*) FROM market_sources s WHERE s.directory_revision=m.revision) AS channels
+    FROM market_directory_manifests m ORDER BY m.accepted_at DESC,m.revision LIMIT 50`).all();
+  return { manifests: results };
 }
 
 export async function claimSourcePage(env, input, clock = () => new Date()) {
@@ -292,7 +345,12 @@ export async function getInventoryCoverage(env, { run_id, after = null } = {}) {
   const db = primary(env.DB), run = await db.prepare('SELECT id,kind,status,version,created_at FROM market_runs WHERE id=?').bind(run_id).first();
   if (!run) throw new HttpError(404, 'Inventory run not found');
   const { results } = await db.prepare(`SELECT sr.paging_key,sr.source_ref,sr.channel_id,sr.status,sr.last_capture_at,
-    sr.last_full_pass_at,s.access_status,s.method,s.review_due_at FROM market_source_runs sr
+    sr.last_full_pass_at,s.access_status,s.method,s.review_due_at,s.policy_version,s.next_action,
+    -- Listings recorded in this run; NULL (unknown), never 0, for a channel that has not been read.
+    CASE WHEN sr.last_capture_at IS NULL THEN NULL ELSE (SELECT COUNT(DISTINCT o.external_key)
+      FROM market_observations o JOIN market_pages p ON p.id=o.page_id
+      WHERE o.source_ref=sr.source_ref AND o.channel_id=sr.channel_id AND p.run_id=sr.run_id AND o.deleted_tombstone=0) END AS listings
+    FROM market_source_runs sr
     JOIN market_sources s ON s.source_ref=sr.source_ref AND s.channel_id=sr.channel_id
     WHERE sr.run_id=? AND (? IS NULL OR sr.paging_key>?)
     ORDER BY sr.paging_key LIMIT 51`).bind(run_id, after, after).all();
@@ -353,4 +411,14 @@ export async function transitionInventoryRun(env, input, actor, clock = () => ne
     throw error;
   }
   return { id: input.run_id, status, version: input.version+1 };
+}
+
+// Ends a batch so the next one can start. History stays; a late page can no longer commit (the run is
+// not open and its version moved). "completed" only when every channel finished a full pass.
+export async function closeInventoryRun(env, input) {
+  if (!input || !uuid(input.run_id) || !Number.isSafeInteger(input.version) || input.version < 1) bad();
+  const run = await env.DB.prepare(`UPDATE market_runs SET version=version+1,status=CASE WHEN EXISTS
+      (SELECT 1 FROM market_source_runs sr WHERE sr.run_id=market_runs.id AND sr.status<>'complete') THEN 'partial' ELSE 'completed' END
+    WHERE id=? AND version=? AND status IN ('open','paused') RETURNING id,status,version`).bind(input.run_id, input.version).first();
+  return run ?? conflict();
 }

@@ -15,17 +15,23 @@ const { chromium, webkit } = require(process.env.PW || 'playwright-core');
       if (mode==='unavailable') return route.fulfill({status:404,json:{error:'Not found'}});
       if (url.pathname.endsWith('/review')) { posted.push(route.request().postDataJSON()); attempt++; if(attempt===1) return route.fulfill({status:409,json:{error:'changed'}}); if(attempt===2) return route.abort(); return route.fulfill({json:{decision:{},recorded_version:2}}); }
       if (url.pathname.endsWith('/detail') && detailFail) return route.fulfill({status:500,json:{error:'fixture'}});
-      if (url.pathname.endsWith('/detail')) return route.fulfill({json:{decision:{source_ref:'fixture',channel_id:'web',version:detailVersion,status:detailStatus,method:detailStatus === 'allowed' ? 'manual' : null,allowed_hosts:[],allowed_paths:[],allowed_redirect_hosts:[],min_interval_s:60,checked_at:null,review_due_at:null,evidence_ref:null,retention_ref:null}}});
-      return route.fulfill({json:{sources:url.searchParams.has('after') || listMissing?[]:[{source_ref:'fixture',channel_id:'web',status:'pending',method:null,checked_at:null,review_due_at:null}],next:url.searchParams.has('after')?null:'nextfixture'}});
+      if (url.pathname.endsWith('/detail')) return route.fulfill({json:{decision:{source_ref:'fixture',channel_id:'web',version:detailVersion,status:detailStatus,method:detailStatus === 'allowed' ? 'manual' : null,allowed_hosts:[],allowed_paths:[],allowed_redirect_hosts:[],min_interval_s:60,checked_at:null,review_due_at:null,evidence_ref:null,retention_ref:null,source_class:'unclassified',next_action:'terms_and_method_review'}}});
+      return route.fulfill({json:{sources:url.searchParams.has('after') || listMissing?[]:[{source_ref:'fixture',channel_id:'web',status:'pending',method:null,checked_at:null,review_due_at:null,source_class:'unclassified',next_action:'terms_and_method_review'}],next:url.searchParams.has('after')?null:'nextfixture'}});
     });
     await page.route('**/bus19-synthetic',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><div id="root"></div></body></html>'}));
     await page.goto(new URL('bus19-synthetic',process.env.BASE).href); await page.addStyleTag({content:css}); await page.addScriptTag({content:bundle.outputFiles[0].text});
     await page.getByText('Source review is not available yet.').waitFor(); mode='ok'; await page.reload(); await page.addStyleTag({content:css}); await page.addScriptTag({content:bundle.outputFiles[0].text});
     await page.getByText(/fixture · web · Pending review/).waitFor();
+    // Each channel says what it is and what is still to do for it, before any decision.
+    await page.getByText('Not classified yet. Directory note: terms and method review').waitFor();
     const button=page.getByRole('button',{name:'Review fixture web'}); await button.focus(); await page.keyboard.press('Enter');
     await page.getByText(/Current: Pending review/).waitFor();
+    await page.getByText('Directory note: terms and method review.',{exact:true}).waitFor();
+    assert.equal(await page.getByLabel('Source type').inputValue(),'unclassified');
+    await page.getByLabel('Source type').selectOption('homely');
     await page.evaluate(()=>{document.body.style.zoom='2'}); assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),'no overflow at 200%');
     await page.getByRole('button',{name:'Save review'}).click(); await page.getByText(/This review changed/).waitFor();
+    assert.equal(posted[0].source_class,'homely');
     assert.equal(await page.getByRole('button',{name:'Save review'}).isDisabled(),true);
     await page.getByRole('button',{name:'Reload review'}).click(); await page.getByText(/Current: Pending review/).waitFor();
     await page.getByRole('button',{name:'Save review'}).click(); await page.getByText(/save result is unknown/i).waitFor();

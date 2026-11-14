@@ -77,3 +77,30 @@ test('cursor accepts long Unicode source and channel identifiers on the next pag
   assert.ok(first.data.next); const second=await call(env,'GET',`${path}?after=${encodeURIComponent(first.data.next)}`,{cookie});
   assert.equal(second.status,200); assert.equal(second.data.sources.length,1); assert.equal(second.data.next,null);
 });
+
+test('a reviewer classifies the channel in the decision; only a general channel can be opened, and restrictions stay per channel', async () => {
+  const env=makeEnv(); env.MARKET_INVENTORY_READY='1'; seed(env,2); const cookie=await adminCookie(), endpoint=path+'/review';
+  env.DB.raw.prepare("UPDATE market_sources SET source_class='unclassified',next_action='terms_and_method_review',policy_version=policy_version+1").run();
+  assert.equal((await call(env,'POST',endpoint,{cookie,body:review(20,{version:2})})).status,409);
+  assert.equal((await call(env,'POST',endpoint,{cookie,body:review(21,{version:2,source_class:'homely'})})).status,409);
+  assert.equal((await call(env,'POST',endpoint,{cookie,body:review(22,{version:2,source_class:'internal'})})).status,400);
+  const opened=await call(env,'POST',endpoint,{cookie,body:review(23,{version:2,source_class:'general'})});
+  assert.equal(opened.status,200); assert.equal(opened.data.decision.status,'allowed'); assert.equal(opened.data.decision.source_class,'general');
+  const excluded=await call(env,'POST',endpoint,{cookie,body:review(24,{source_ref:'source-001',version:2,source_class:'homely',status:'denied',method:null,
+    allowed_hosts:[],allowed_paths:[],evidence_ref:'fixture-terms',retention_ref:null,review_due_at:null})});
+  assert.equal(excluded.status,200); assert.equal(excluded.data.decision.status,'denied'); assert.equal(excluded.data.decision.evidence_ref,'fixture-terms');
+  const list=await call(env,'GET',path,{cookie});
+  assert.deepEqual(list.data.sources.map(s=>[s.source_ref,s.source_class,s.status,s.method,s.next_action]),
+    [['source-000','general','allowed','http','terms_and_method_review'],['source-001','homely','denied',null,'terms_and_method_review']]);
+  // Reclassifying an open channel as restricted cannot keep it open.
+  assert.equal((await call(env,'POST',endpoint,{cookie,body:review(25,{version:3,source_class:'places'})})).status,409);
+});
+
+test('Homely, Places.je and Properties.je hosts cannot be opened by any review', async () => {
+  const env=makeEnv(); env.MARKET_INVENTORY_READY='1'; seed(env); const cookie=await adminCookie();
+  for (const [n,over] of [[30,{allowed_hosts:['www.homely.je']}],[31,{allowed_hosts:['places.je']}],[32,{allowed_hosts:['properties.je']}],
+    [33,{allowed_redirect_hosts:['homely.je']}],[34,{status:'manual_only',method:'manual',allowed_hosts:['homely.je']}]])
+    assert.equal((await call(env,'POST',path+'/review',{cookie,body:review(n,over)})).status,400,JSON.stringify(over));
+  assert.equal(env.DB.raw.prepare('SELECT count(*) AS n FROM market_source_policy_history').get().n,0);
+  assert.equal((await call(env,'POST',path+'/review',{cookie,body:review(35,{allowed_hosts:['nothomely.je']})})).status,200);
+});
