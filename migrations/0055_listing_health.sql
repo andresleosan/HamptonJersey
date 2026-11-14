@@ -1,3 +1,5 @@
+-- PUB-17: listing health in Insights, read only with LISTING_HEALTH_READY=1. Additive: new tables, one fixed clock
+-- row in its own table, triggers and a partial index. Listings without a revision row read as revision 0.
 -- PUB-17: a non-identifying revision tracks title edits even if an importer does not update updated_at.
 CREATE TABLE listing_health_revisions (
   listing_id TEXT PRIMARY KEY REFERENCES listings(id) ON DELETE CASCADE,

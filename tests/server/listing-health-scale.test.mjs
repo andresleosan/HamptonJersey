@@ -2,13 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
 import { makeEnv, call, adminCookie } from './helpers.mjs';
-import { applyListingHealthProposal } from './listing-health-support.mjs';
 import { isPublicMedia } from '../../server/visibility.js';
 
 // This is a local SQLite measurement, not evidence of a Cloudflare D1 budget or production traffic.
 test('10,000 complete candidates are paged and 10,001 fail closed', async t => {
   t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-10-25T12:00:00Z')});
-  const env={...applyListingHealthProposal(makeEnv()),LISTING_HEALTH_READY:'1'}, db=env.DB.raw;
+  const env={...makeEnv(),LISTING_HEALTH_READY:'1'}, db=env.DB.raw;
   const insertListing=db.prepare(`INSERT INTO listings(id,use,title,operation,availability,published,created_at,updated_at)
     VALUES(?,'residential','Synthetic home','sale','for_sale',1,'2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')`);
   const insertMedia=db.prepare(`INSERT INTO media(id,listing_id,r2_key,thumb_key,content_type,origin,kind,public,created_at)
@@ -58,7 +57,7 @@ test('10,000 complete candidates are paged and 10,001 fail closed', async t => {
 // Long text may be valid public content; neither it nor an incomplete set may exceed the response budget.
 test('long descriptions are bounded or fail closed before leaving SQLite', async t => {
   t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-10-25T12:00:00Z')});
-  const env={...applyListingHealthProposal(makeEnv()),LISTING_HEALTH_READY:'1'},db=env.DB.raw;
+  const env={...makeEnv(),LISTING_HEALTH_READY:'1'},db=env.DB.raw;
   const listing=db.prepare(`INSERT INTO listings(id,use,title,description,operation,availability,published,created_at,updated_at)
     VALUES(?,'residential','Synthetic home',?,'sale','for_sale',1,'2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')`);
   const media=db.prepare(`INSERT INTO media(id,listing_id,r2_key,origin,kind,public,created_at)
@@ -76,7 +75,7 @@ test('long descriptions are bounded or fail closed before leaving SQLite', async
 // JSON can expand controls and quotes; UTF-8 can expand if the transport escapes Unicode.
 test('the bound covers multibyte text, control characters, quotes, backslashes and media labels', async t => {
   t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-10-25T12:00:00Z')});
-  const env={...applyListingHealthProposal(makeEnv()),LISTING_HEALTH_READY:'1'},db=env.DB.raw;
+  const env={...makeEnv(),LISTING_HEALTH_READY:'1'},db=env.DB.raw;
   const listing=db.prepare(`INSERT INTO listings(id,use,title,description,operation,availability,published,created_at,updated_at)
     VALUES(?,'residential',?,?,'sale','for_sale',1,'2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')`);
   const media=db.prepare(`INSERT INTO media(id,listing_id,r2_key,origin,kind,public,label,created_at)

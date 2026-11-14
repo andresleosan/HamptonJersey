@@ -13,7 +13,9 @@ const sql = statement => execFileSync(process.execPath,[wrangler,'d1','execute',
   assert.ok(BASE && process.env.E2E_PERSIST, 'isolated local fixture required');
   const day = new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Jersey',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
-  sql(`WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM seq WHERE n<55)
+  // The shared seed's HE-R001 has 31 opens in 30 days; this check counts only its own 55 listings.
+  sql(`DELETE FROM daily_stats WHERE metric='view';
+    WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM seq WHERE n<55)
     INSERT INTO listings(id,use,title,operation,availability,published,created_at,updated_at)
     SELECT 'PUB17-'||printf('%03d',n),'residential','Review home '||n,'sale','for_sale',1,
     '2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z' FROM seq;

@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { makeEnv, seedListing, seedMedia, call, adminCookie } from './helpers.mjs';
-import { applyListingHealthProposal } from './listing-health-support.mjs';
 import { buildPublicAddressReview } from '../../server/public-address.js';
 import { readLive } from '../../server/routes/public.js';
 
@@ -23,7 +22,7 @@ const request = (env, id, created = '2026-10-01T12:00:00.000Z', status = 'reques
 
 function setup(t) {
   t.mock.timers.enable({ apis: ['Date'], now: Date.parse(NOW) });
-  return { ...applyListingHealthProposal(makeEnv()), LISTING_HEALTH_READY: '1' };
+  return { ...makeEnv(), LISTING_HEALTH_READY: '1' };
 }
 
 test('health requires Staff and an explicit readiness gate', async t => {

@@ -48,9 +48,6 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
     await run([vite, 'build', '--config', 'admin/vite.config.mjs']);
     await run([wrangler, 'd1', 'migrations', 'apply', 'hampton', '--local', '--persist-to', persist]);
     // Canonical migrations include the combined PUB-06/SPR-01 schema (0052).
-    // PUB-17 proposal is exercised only in this isolated synthetic fixture, never by migrations apply.
-    if (process.env.E2E_SCRIPT === 'tests/listing-health.e2e.cjs')
-      await run([wrangler, 'd1', 'execute', 'hampton', '--local', '--persist-to', persist, '--file', 'docs/roadmap/work/PUB-17/proposed-listing-health.sql']);
     await run([wrangler, 'd1', 'execute', 'hampton', '--local', '--persist-to', persist, '--file', 'tests/fixtures/seed.sql']);
     server = await startFixture({ persist, varsFile, port: 0,
       seedMedia: process.env.E2E_SCRIPT === 'tests/pub08-integrated.e2e.cjs' });

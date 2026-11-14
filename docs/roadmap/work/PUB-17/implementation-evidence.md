@@ -2,7 +2,7 @@
 
 Estado: **implementación preparada y pendiente de acreditación de D1; no activar**. Este documento no marca la tarea como terminada. El endpoint exige `LISTING_HEALTH_READY=1`, que no se ha habilitado en ninguna configuración. Con la puerta apagada, el panel muestra un estado normal, sin alerta ni reintento; los fallos reales del servicio habilitado siguen mostrándose como errores.
 
-El SQL de soporte se conserva en [proposed-listing-health.sql](proposed-listing-health.sql), fuera de `migrations/`: no se aplicará automáticamente. Los tests de servidor lo ejecutan solo sobre SQLite en memoria y el lanzador de navegador lo aplica solamente para el recorrido PUB-17 a la base ficticia local. No se ha consultado ni modificado el estado remoto, ni se ha activado la función.
+14-nov-2026: el SQL de soporte pasó sin cambios a [0055_listing_health.sql](../../../../migrations/0055_listing_health.sql) y las pruebas lo cargan con el resto de migraciones. Producción tiene 316 fichas, 44 filas de vistas y 5 solicitudes, muy por debajo del tope de 10.000 candidatos. No se ha consultado ni modificado el estado remoto, ni se ha activado la función.
 
 ## Comportamiento
 
