@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Hampton",
   "hecho": "La comprobación Housing aplica las reglas de gov.je (Qualified o Registered, tenencia y restricción para primeros compradores o mayores de 55) al estatus que declara el aplicante. Excluye las casas que no puede ocupar y deja en Unknown lo que depende de su pareja o de datos que faltan.",
-  "falta": "Hampton tiene que poner la categoría de vivienda de HE-R001, HE-R003 y HE-R027; sin ella, la regla no sabe si son Qualified o Registered. Además, como pide el §7.3, un abogado de Jersey tiene que validar la tabla, que ya excluye casas sola y vive en el código (cambiarla exige publicar). Sobre todo las compras, donde se aparta del plan: el estatus Registered (Standard en el plan) puede comprar un share transfer Registered sin marcarse para revisión, y Licensed for Lease Only puede comprar (unknown o meets) cuando el plan lo deja solo en alquiler.",
+  "falta": "Hampton tiene que poner la categoría de vivienda de HE-R001, HE-R003 y HE-R027; sin ella, la regla no sabe si son Qualified o Registered. Además, como pide el §7.3, un abogado de Jersey tiene que validar la tabla, que ya excluye casas sola y vive en el código (cambiarla exige publicar). Sobre todo las compras, donde se aparta del plan: el estatus Registered (Standard en el plan) puede comprar un share transfer Registered sin marcarse para revisión, y Licensed for Lease Only puede comprar (unknown o meets) cuando el plan lo deja solo en alquiler. Traído de BUS-12 (14-nov): una casa sin categoría de vivienda queda «Requirements to confirm» para estatus Entitled for Work Only o Registered, en vez de «Stated must-haves met». Rellenar housing_category de las fichas importadas reduce esos pendientes.",
   "bloqueo": "Dato de Hampton · JFSC/abogado",
   "evidencia": [
     "server/matching.js:45-110",
@@ -30,5 +30,6 @@
     "matching-contract",
     "listings-schema"
   ],
-  "nextStep": "Obtener categorías de Hampton y validación de la tabla por abogado antes de cambiar o dar por cerradas reglas residenciales."
+  "nextStep": "Obtener categorías de Hampton y validación de la tabla por abogado antes de cambiar o dar por cerradas reglas residenciales.",
+  "actualizado": "2026-11-14"
 }

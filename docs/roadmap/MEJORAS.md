@@ -45,3 +45,7 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [BUS-06] La cobertura muestra el acceso guardado, no el efectivo (una revisión vencida ofrece subir y el servidor responde 409); cualquier 409 al abrir tanda dice «A batch is already open» · 14-nov-2026
 - [BUS-06] El cambio de versión por manifiesto no deja fila en `market_source_policy_history`; un archivo con BOM nunca se acepta (falla cerrado) · revisión independiente 14-nov · 14-nov-2026
 - [BUS-19] Selector de fecha y ayuda en línea en la revisión («Review due» exige ISO UTC a mano; referencias sin espacios) · 14-nov-2026
+- [BUS-12] Recalcular una vez las coincidencias tras publicar · el orden guardado de las casas con vivienda desconocida queda antiguo hasta entonces · 14-nov-2026
+- [BUS-12] Texto de motivo en la fila Housing desconocida; la barra fija «Save» tapa la primera tarjeta en la captura completa de Matches · 14-nov-2026
+- [BUS-12] Retirar o adjudicar `server/search-criteria.js`, `search-eligibility.js`, `search-coverage.js` y el SQL propuesto · código probado sin consumidor · 14-nov-2026
+- [BUS-12] Con presupuesto flexible, un precio por encima del máximo sigue mostrando «Stated must-haves met» · confirmar frente a «precio sobre máximo = alternativa» (M04) · 14-nov-2026

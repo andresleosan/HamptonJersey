@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "La columna Matches muestra «N found · M shortlisted» y enlaza a la pestaña Matches del aplicante.",
-  "falta": "Contar las confirmadas y las disponibles («12 found · 3 confirmed · 2 available»): Shortlisted es la preselección del equipo, no una disponibilidad confirmada, que no existe hasta EST-13.",
+  "falta": "Contar las confirmadas y las disponibles («12 found · 3 confirmed · 2 available»): Shortlisted es la preselección del equipo, no una disponibilidad confirmada, que no existe hasta EST-13. Traído de BUS-12 (14-nov): conectar isFullAvailableCandidate (server/search-eligibility.js) y el agregado de server/search-coverage.js; quedaron probados y sin consumidor.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/Applicants.jsx:18",
@@ -34,5 +34,6 @@
     "matching-contract",
     "outreach-contract"
   ],
-  "nextStep": "Añadir contadores de confirmadas y disponibles sin confundir preselección con disponibilidad."
+  "nextStep": "Añadir contadores de confirmadas y disponibles sin confundir preselección con disponibilidad.",
+  "actualizado": "2026-11-14"
 }
