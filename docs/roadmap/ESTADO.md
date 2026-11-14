@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+14-nov-2026 · **VIS-09, OFE-06 y AUT-10 construidas e integradas, apagadas:** política de visitas por negociador, revisión semanal interna de cada venta y modos Draft/Approve/Auto por operación. Esperan sus migraciones aditivas 0047/0053/0054 y su interruptor; AUT-10 además a que Luis designe gestores. Progreso sin cambio: 80/215 (37,21 %).
+
 14-nov-2026 · **PUB-06, SPR-01, PUB-09 y SPR-02 hechas:** costes estructurados de la ficha, tarjeta de propiedad con disponibilidad e historial de la fecha, retirada de la web con motivo y nota privada, e historial completo de la ficha. 0052 y 0044 aplicadas y comprobadas, Pages `f8004ce` con ambos interruptores activos y API pública sin campos privados. Las pruebas de navegador general y editorial recorren ahora el diálogo de motivo. Progreso **76/215 (35,35 %) → 80/215 (37,21 %)**.
 
 14-nov-2026 · **NOT-01, REG-04 y VIS-06 hechas por aceptación propia:** Inbox con los avisos que la app ya produce, compra y alquiler con presupuestos independientes y calendario de horas ocupadas sin datos personales. Los avisos de módulos nuevos pasan a sus tareas (BUS-06, BUS-12, BUS-17, AGE-06, AGE-08, SPR-03, AUT-19). Además 0044 y 0052 aplicadas en producción y `PUB06_STRUCTURED_ECONOMICS_READY` / `PUB09_WITHDRAWALS_READY` encendidos. Progreso **73/215 (33,95 %) → 76/215 (35,35 %)**.

@@ -6,8 +6,8 @@
   "fase": "F3-B",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Sales dispone de hitos y el código incluye un reloj y productor común de tareas. No se ha acreditado una tarea semanal por venta ni su activación real. Se preparó un cálculo puro de semana y horario de Jersey que permanece desconectado del reloj. Se ensayó un productor desconectado con unicidad por venta y semana, control de fecha de la venta y rollback en D1 local.",
-  "falta": "Construir una revisión interna semanal por venta y semana de Jersey, con día y hora configurables por el equipo y desactivada hasta configurarla. Revisar los hitos y registrar gestiones externas mediante referencias mínimas; resolver la tarea al cerrar o dar por caída la venta. No enviar mensajes a abogados ni añadir informes externos en esta tarea. Integrar y verificar persistencia, identidad de venta, permisos, revisión humana y la configuración real; el cálculo aislado no crea ni cierra tareas. El esquema de prueba no está listo para migrarse: faltan autoridad del actor automático, identidad y revisión fiables, configuración/cursor, permisos de Inbox, retención y borrado compatibles, y medir el coste del cálculo compartido.",
+  "hecho": "Sales dispone de hitos y el código incluye un reloj y productor común de tareas. No se ha acreditado una tarea semanal por venta ni su activación real. Se preparó un cálculo puro de semana y horario de Jersey que permanece desconectado del reloj. Se ensayó un productor desconectado con unicidad por venta y semana, control de fecha de la venta y rollback en D1 local. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Revisión interna semanal por venta y semana de Jersey como tarea compartida NOT-11 idempotente, día y hora configurables (apagada sin configurar), pasos externos con referencia mínima y resolución al cerrar o caer la venta; nada se envía.",
+  "falta": "Aplicar 0053 (aditiva), encender OFE06_WEEKLY_REVIEW_READY en wrangler.toml y en jobs/wrangler.toml y comprobar el recorrido real; el equipo fija día y hora.",
   "bloqueo": "",
   "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
@@ -22,7 +22,11 @@
     "tests/server/ofe-06-weekly-schedule.test.mjs",
     "docs/roadmap/work/OFE-06/semana-jersey-2026-11-13.md",
     "docs/roadmap/work/OFE-06/store-desconectado-2026-11-13.md",
-    "docs/roadmap/work/OFE-06/nacimiento-venta-2026-11-13.md"
+    "docs/roadmap/work/OFE-06/nacimiento-venta-2026-11-13.md",
+    "docs/roadmap/work/OFE-06/2026-11-14-integracion.md",
+    "migrations/0053_sale_followup.sql",
+    "tests/server/ofe-06-sale-followup.test.mjs",
+    "tests/ofe06-weekly-review.e2e.cjs"
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -44,5 +48,6 @@
     "notifications-schema",
     "jobs-clock"
   ],
-  "nextStep": "Resolver identidad, autoridad, retención y cursor antes de conectar el productor y configurar el reloj del equipo."
+  "nextStep": "Aplicar 0053 desde directorio temporal, encender el interruptor en Pages y en hampton-jobs, publicar y verificar.",
+  "actualizado": "2026-11-14"
 }

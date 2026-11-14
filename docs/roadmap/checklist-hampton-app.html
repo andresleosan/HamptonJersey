@@ -1673,8 +1673,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F3-A",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "El sistema actual utiliza visitas de 30 minutos y margen fijo. Se construyó y revisó una política interna para duración, márgenes, cambio de parroquia y máximo diario, con guarda transaccional y pruebas de concurrencia; permanece desconectada de las rutas existentes. Se preparó y revisó un validador puro de horas con offset explícito de Jersey: distingue el pliegue y rechaza horas inexistentes, sin modificar reservas.",
-   "falta": "Integrar la política en disponibilidad, reservas y reprogramación, con permisos, horarios y versiones revalidados en la transacción; completar configuración e interfaz. Resolver el tratamiento de cambio horario con offset y datos históricos antes de activar. Esta sesión no ejecutó la migración 0047; la consulta de su estado remoto fue denegada y no se pudo verificar. El validador no resuelve offsets ausentes de reservas históricas ni verifica tzdata de producción.",
+   "hecho": "El sistema actual utiliza visitas de 30 minutos y margen fijo. Se construyó y revisó una política interna para duración, márgenes, cambio de parroquia y máximo diario, con guarda transaccional y pruebas de concurrencia; permanece desconectada de las rutas existentes. Se preparó y revisó un validador puro de horas con offset explícito de Jersey: distingue el pliegue y rechaza horas inexistentes, sin modificar reservas. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Política aplicada en disponibilidad, reserva del panel y de la web y reprogramación, con revisión, máximo diario y márgenes revalidados dentro de la escritura; edición en Availability con CAS. Sin reglas guardadas se conserva el comportamiento actual.",
+   "falta": "Aplicar 0047 (aditiva) en producción, encender VIS09_VIEWING_POLICY_READY y comprobar el recorrido real.",
    "bloqueo": "",
    "evidencia": [
     "server/viewings.js:5-6",
@@ -1685,9 +1685,12 @@ document.addEventListener('DOMContentLoaded', () => {
     "tests/server/viewing-policy.test.mjs",
     "docs/roadmap/work/VIS-09/foundation-evidence.md",
     "tests/server/viewing-policy-offset.test.mjs",
-    "docs/roadmap/work/VIS-09/foundation-evidence.md"
+    "docs/roadmap/work/VIS-09/foundation-evidence.md",
+    "docs/roadmap/work/VIS-09/2026-11-14-integracion.md",
+    "tests/server/viewing-policy-routes.test.mjs",
+    "tests/vis-09-viewing-rules.e2e.cjs"
    ],
-   "actualizado": "2026-11-13"
+   "actualizado": "2026-11-14"
   },
   {
    "id": "VIS-10",
@@ -2067,8 +2070,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "—",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1.",
-   "falta": "M04/M06 · Reconciliación 7-nov: Concretar modos por operación sin convertirlos en autorización general. La automatización puede investigar, recalcular, preparar y ejecutar pasos ya autorizados; cada match requiere aprobación humana (BUS-15), cada cambio dictado confirmación (AUT-19) y el cierre por éxito acción expresa (EST-09). Ni confianza del modelo, ni porcentaje, ni un modo Auto pueden saltar esas decisiones. El disparador final de presentación se decide aparte. Aceptación: Activar Auto no aprueba matches, guarda criterios dictados ni resuelve búsquedas. Falta persistir políticas y versiones, comprobar actor, origen y capacidad, integrar la interfaz y revalidar antes de cada efecto; el módulo preparado no está conectado a rutas ni consumidores. El ensayo D1 local detectó que restaurar una fila idéntica permite ABA; se necesita una identidad de generación protegida y una capacidad global verificable antes de habilitar persistencia.",
+   "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Modo Draft/Approve/Auto por operación, versionado con CAS e historial solo de añadir; la guarda deniega siempre las decisiones humanas (match, criterios dictados, cierre por éxito) en cualquier modo.",
+   "falta": "Aplicar 0054 (aditiva) y encender AUT10_MODES_READY. Luis debe decidir quién puede cambiar modos (tabla operation_policy_managers vacía; en COLA-LUIS). Los consumidores reales de la guarda son BUS-15, AUT-19, EST-09, AUT-13 y AUT-01.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:441",
@@ -2079,12 +2082,17 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/work/AUT-10/policy-foundation-2026-11-13.md",
     "server/operation-policy-store.js",
     "tests/server/aut-10-store-d1.test.mjs",
-    "docs/roadmap/work/AUT-10/store-cas-bloqueado-2026-11-13.md"
+    "docs/roadmap/work/AUT-10/store-cas-bloqueado-2026-11-13.md",
+    "docs/roadmap/work/AUT-10/2026-11-14-integracion.md",
+    "migrations/0054_operation_policies.sql",
+    "server/operation-modes.js",
+    "tests/server/aut-10-modes.test.mjs",
+    "tests/aut-10-modes.e2e.cjs"
    ],
    "modulo": "M04/M06",
    "deps": [],
    "criterio_aceptacion": "Activar Auto no aprueba matches, guarda criterios dictados ni resuelve búsquedas.",
-   "actualizado": "2026-11-13"
+   "actualizado": "2026-11-14"
   },
   {
    "id": "AUT-11",
@@ -5452,8 +5460,8 @@ document.addEventListener('DOMContentLoaded', () => {
    "fase": "F3-B",
    "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "Sales dispone de hitos y el código incluye un reloj y productor común de tareas. No se ha acreditado una tarea semanal por venta ni su activación real. Se preparó un cálculo puro de semana y horario de Jersey que permanece desconectado del reloj. Se ensayó un productor desconectado con unicidad por venta y semana, control de fecha de la venta y rollback en D1 local.",
-   "falta": "Construir una revisión interna semanal por venta y semana de Jersey, con día y hora configurables por el equipo y desactivada hasta configurarla. Revisar los hitos y registrar gestiones externas mediante referencias mínimas; resolver la tarea al cerrar o dar por caída la venta. No enviar mensajes a abogados ni añadir informes externos en esta tarea. Integrar y verificar persistencia, identidad de venta, permisos, revisión humana y la configuración real; el cálculo aislado no crea ni cierra tareas. El esquema de prueba no está listo para migrarse: faltan autoridad del actor automático, identidad y revisión fiables, configuración/cursor, permisos de Inbox, retención y borrado compatibles, y medir el coste del cálculo compartido.",
+   "hecho": "Sales dispone de hitos y el código incluye un reloj y productor común de tareas. No se ha acreditado una tarea semanal por venta ni su activación real. Se preparó un cálculo puro de semana y horario de Jersey que permanece desconectado del reloj. Se ensayó un productor desconectado con unicidad por venta y semana, control de fecha de la venta y rollback en D1 local. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Revisión interna semanal por venta y semana de Jersey como tarea compartida NOT-11 idempotente, día y hora configurables (apagada sin configurar), pasos externos con referencia mínima y resolución al cerrar o caer la venta; nada se envía.",
+   "falta": "Aplicar 0053 (aditiva), encender OFE06_WEEKLY_REVIEW_READY en wrangler.toml y en jobs/wrangler.toml y comprobar el recorrido real; el equipo fija día y hora.",
    "bloqueo": "",
    "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
@@ -5468,8 +5476,13 @@ document.addEventListener('DOMContentLoaded', () => {
     "tests/server/ofe-06-weekly-schedule.test.mjs",
     "docs/roadmap/work/OFE-06/semana-jersey-2026-11-13.md",
     "docs/roadmap/work/OFE-06/store-desconectado-2026-11-13.md",
-    "docs/roadmap/work/OFE-06/nacimiento-venta-2026-11-13.md"
-   ]
+    "docs/roadmap/work/OFE-06/nacimiento-venta-2026-11-13.md",
+    "docs/roadmap/work/OFE-06/2026-11-14-integracion.md",
+    "migrations/0053_sale_followup.sql",
+    "tests/server/ofe-06-sale-followup.test.mjs",
+    "tests/ofe06-weekly-review.e2e.cjs"
+   ],
+   "actualizado": "2026-11-14"
   },
   {
    "id": "OFE-07",

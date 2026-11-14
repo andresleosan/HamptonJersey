@@ -23,4 +23,8 @@ Ninguno todavía. `/avanzar` añade aquí cada migración no aditiva o interrupt
 
 ## Decisiones de producto abiertas
 
-Ninguna todavía. Solo entran las que los planes y la documentación no resuelven; mientras tanto se aplica la opción más simple y reversible y se anota aquí para que Luis pueda cambiarla.
+| Tarea | Desbloquea | Qué hace falta |
+| --- | --- | --- |
+| AUT-10 | 1 | Decidir qué personas del equipo pueden cambiar los modos Draft/Approve/Auto (se añaden a `operation_policy_managers`). Sin nadie, los modos se ven pero no se pueden cambiar. |
+
+Solo entran las que los planes y la documentación no resuelven; mientras tanto se aplica la opción más simple y reversible y se anota aquí para que Luis pueda cambiarla.

@@ -6,8 +6,8 @@
   "fase": "—",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1.",
-  "falta": "M04/M06 · Reconciliación 7-nov: Concretar modos por operación sin convertirlos en autorización general. La automatización puede investigar, recalcular, preparar y ejecutar pasos ya autorizados; cada match requiere aprobación humana (BUS-15), cada cambio dictado confirmación (AUT-19) y el cierre por éxito acción expresa (EST-09). Ni confianza del modelo, ni porcentaje, ni un modo Auto pueden saltar esas decisiones. El disparador final de presentación se decide aparte. Aceptación: Activar Auto no aprueba matches, guarda criterios dictados ni resuelve búsquedas. Falta persistir políticas y versiones, comprobar actor, origen y capacidad, integrar la interfaz y revalidar antes de cada efecto; el módulo preparado no está conectado a rutas ni consumidores. El ensayo D1 local detectó que restaurar una fila idéntica permite ABA; se necesita una identidad de generación protegida y una capacidad global verificable antes de habilitar persistencia.",
+  "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Modo Draft/Approve/Auto por operación, versionado con CAS e historial solo de añadir; la guarda deniega siempre las decisiones humanas (match, criterios dictados, cierre por éxito) en cualquier modo.",
+  "falta": "Aplicar 0054 (aditiva) y encender AUT10_MODES_READY. Luis debe decidir quién puede cambiar modos (tabla operation_policy_managers vacía; en COLA-LUIS). Los consumidores reales de la guarda son BUS-15, AUT-19, EST-09, AUT-13 y AUT-01.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:441",
@@ -18,7 +18,12 @@
     "docs/roadmap/work/AUT-10/policy-foundation-2026-11-13.md",
     "server/operation-policy-store.js",
     "tests/server/aut-10-store-d1.test.mjs",
-    "docs/roadmap/work/AUT-10/store-cas-bloqueado-2026-11-13.md"
+    "docs/roadmap/work/AUT-10/store-cas-bloqueado-2026-11-13.md",
+    "docs/roadmap/work/AUT-10/2026-11-14-integracion.md",
+    "migrations/0054_operation_policies.sql",
+    "server/operation-modes.js",
+    "tests/server/aut-10-modes.test.mjs",
+    "tests/aut-10-modes.e2e.cjs"
   ],
   "modulo": "M04/M06",
   "deps": [],
@@ -33,6 +38,6 @@
     "automation-controls",
     "outbound-policy"
   ],
-  "nextStep": "Integrar política versionada y sus guardas con autoridad verificable, manteniendo las decisiones humanas y sin activar operaciones desconocidas.",
-  "actualizado": "2026-11-13"
+  "nextStep": "Aplicar 0054, encender el interruptor y, cuando Luis designe gestores, comprobar un cambio de modo real.",
+  "actualizado": "2026-11-14"
 }
