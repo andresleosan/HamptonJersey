@@ -62,3 +62,8 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [ADM-11] Una inspección (ADM-13) podría dejar registrado el Hazards check o el Electrical checklist · hoy se registran aparte con Update · 14-nov-2026
 - [BUS-12] Mostrar los criterios comerciales en el panel lateral de Review (hoy filas residenciales vacías); pedir periodo para los gastos; comparar el uso con una lista cerrada · sin eso uso y gastos quedan siempre por confirmar · 14-nov-2026
 - [BUS-12] «Comprar + negocio» solo ve ventas de inmueble, nunca traspasos · correspondencia estricta de operación; cambio de una línea si Hampton lo quiere · 14-nov-2026
+- [VIS-10] La disponibilidad pública de una casa con inquilino empieza en «ahora + aviso»: comparándola con otra ficha se deduce que hay inquilino · inherente a no ofrecer esas horas; revisión independiente 14-nov · 14-nov-2026
+- [VIS-10] Cambiar solo el negociador de una visita ya dentro del aviso vuelve a pedir la confirmación · 14-nov-2026
+- [EST-01] Con el interruptor encendido cada recálculo añade dos escrituras a D1, también en «Recalculate all» · dentro del límite hoy · 14-nov-2026
+- [ADM-11] Cambiar `copyDays`, `changeDays` o `depositDays` en Legal terms no mueve los plazos de una vez ya abiertos; al encender, un conjunto de plazos ya validado vuelve a «estimated» hasta guardarlo con los tres nuevos · revisión independiente 14-nov · 14-nov-2026
+- [BUS-12] Redondeo en el límite de superficie (100 m² escritos como 1.076,39 sq ft dan 99,9999 m² y quedan como alternativa) · revisión independiente 14-nov · 14-nov-2026
