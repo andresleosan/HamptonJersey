@@ -49,3 +49,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [BUS-12] Texto de motivo en la fila Housing desconocida; la barra fija «Save» tapa la primera tarjeta en la captura completa de Matches · 14-nov-2026
 - [BUS-12] Retirar o adjudicar `server/search-criteria.js`, `search-eligibility.js`, `search-coverage.js` y el SQL propuesto · código probado sin consumidor · 14-nov-2026
 - [BUS-12] Con presupuesto flexible, un precio por encima del máximo sigue mostrando «Stated must-haves met» · confirmar frente a «precio sobre máximo = alternativa» (M04) · 14-nov-2026
+- [EST-01] Retirar el mecanismo dormido (`server/search-progress.js`, ramas de ticket de `match-store.js`, `search-progress.proposed.sql`, `SearchProgress.js` y sus pruebas) · dos mecanismos para lo mismo y el antiguo nunca se instaló; no encender `EST01_PROGRESS_READY` · 14-nov-2026
+- [EST-01] Identidad durable, ABA, drenaje y réplicas; registrar también la comprobación por ficha (`recomputeForListing`); cola real para la primera búsqueda cuando BUS-01 la difiera · endurecimientos fuera del título · 14-nov-2026
+- [SAP-01] Filtro por estado de búsqueda en la lista; refresco automático de «Searching now…»; decir el motivo de «No matches yet» (sin candidatas, descartadas por requisito, cobertura pendiente) · 14-nov-2026

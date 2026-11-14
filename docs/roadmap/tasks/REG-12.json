@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "El alta muestra el mismo acuse para solicitudes nuevas, repetidas y comerciales, sin mostrar coincidencias ni datos previos, y conserva el compromiso de contacto en un día laborable. Requirements muestra criterios residenciales guardados por confirmar, incluidas prioridades desconocidas; el ajuste de cabecera y pie evita el desbordamiento móvil comprobado con zoom. El editor distingue prioridades históricas desconocidas de Preferred/Off y exige elección explícita; la revisión cubrió foco y errores de validación.",
-  "falta": "Informar del inicio y resultado reales de cada búsqueda sin prometer disponibilidad ni revelar coincidencias de contactos previos. BUS-01 debe cubrir el inventario común; EST-01 debe acreditar intentos, fallo y estado; BUS-12 debe clasificar el resultado y los datos esenciales por operación, incluida la comercial.",
+  "falta": "Informar del inicio y resultado reales de cada búsqueda sin prometer disponibilidad ni revelar coincidencias de contactos previos. BUS-01 debe cubrir el inventario común; EST-01 debe acreditar intentos, fallo y estado; BUS-12 debe clasificar el resultado y los datos esenciales por operación, incluida la comercial. Traído de EST-01 (14-nov): el mensaje al cliente tras registrarse no usa el estado de EST-01; si se quiere decir que la búsqueda está en marcha, leerlo de search_run sin prometer disponibilidad.",
   "bloqueo": "",
   "evidencia": [
     "site/apply.js:264-271",
@@ -56,5 +56,5 @@
     "requirements-contract"
   ],
   "nextStep": "Integrar EST-01 y BUS-01 para comunicar progreso y resultado verificables por búsqueda.",
-  "actualizado": "2026-11-13"
+  "actualizado": "2026-11-14"
 }
