@@ -1,10 +1,11 @@
 import {useEffect,useRef,useState} from 'react';
 import {api} from './api.js';
 import {isActive} from '../../server/applicants.js';
-import MatchCard,{REASON_LABEL} from './MatchCard.jsx';
+import MatchCard,{APPROVAL_SCOPE,REASON_LABEL,hasPetRefusal} from './MatchCard.jsx';
 const GROUPS=[['found','Found'],['shortlisted','Shortlisted'],['rejected','Rejected']];
 export default function ApplicantMatches({applicantId,applicant:a,counts,onChange,onBusy}){
  const [pages,setPages]=useState({}),[msg,setMsg]=useState(null),[busy,setBusy]=useState(false);
+ const [picked,setPicked]=useState(()=>new Set()); // BUS-15: the found matches ticked for one Shortlist; only a person ticks
  const generations=useRef({}),working=useRef(false),focus=useRef(null),mounted=useRef(true);
  const readOnly=a.archived_at?'Restore this search to review its matches':!isActive(a)?'Reopen this search to review its matches':null;
  const load=async(status,stack=[null],recover=true)=>{
@@ -56,6 +57,19 @@ export default function ApplicantMatches({applicantId,applicant:a,counts,onChang
   if(next&&document.getElementById(`match-${next.id}`))document.getElementById(`match-${next.id}`).focus();
   if(error&&![400,404,409].includes(error.status))throw error;
  });
+ // Each ticked match is its own review: same checks, its own event, each from the revision the one before left.
+ const chosen=(pages.found?.matches??[]).filter(m=>picked.has(m.id));
+ const shortlistChosen=()=>run(async()=>{
+  let revision=pages.found.revision,done=0,error=null;
+  try{for(const m of chosen){
+   revision=(await api(`/admin/matches/${m.id}`,{method:'PUT',body:{status:'shortlisted',from:'found',matches_revision:revision}})).revision;done++;
+  }}catch(e){error=e;}
+  setPicked(new Set());
+  setMsg(error?{text:`Shortlisted ${done} of ${chosen.length}. ${error.message}`}:{ok:true,text:`Shortlisted ${done} ${done===1?'match':'matches'}.`});
+  focus.current='group-found';
+  const fresh=await onChange();
+  if(fresh&&fresh.applicant.matches_revision===a.matches_revision)await Promise.all(GROUPS.map(([s])=>load(s)));
+ });
  const recalculate=()=>run(async()=>{
   await api(`/admin/applicants/${applicantId}/matches/recalculate`,{method:'POST'});
   focus.current='group-found';
@@ -79,8 +93,14 @@ export default function ApplicantMatches({applicantId,applicant:a,counts,onChang
     {(!p||p.loading)&&<p role="status">Loading {title.toLowerCase()} matches…</p>}
     {p?.error?<div role="alert"><p className="err">{p.error}</p><button type="button" className="btn ghost" onClick={()=>load(status,stack)}>Retry {title}</button></div>
      :rows.length?<ul className="match-list">{rows.map(m=><li key={m.id}><MatchCard match={m} legacy={p.rankingVersion===0}
-      busy={busy||p.loading} disabled={readOnly} onReview={r=>review(m,r)} /></li>)}</ul>
+      busy={busy||p.loading} disabled={readOnly} onReview={r=>review(m,r)}>
+      {!readOnly&&<label className="check"><input type="checkbox" checked={picked.has(m.id)} disabled={hasPetRefusal(m)}
+       onChange={e=>setPicked(s=>{const n=new Set(s);if(e.target.checked)n.add(m.id);else n.delete(m.id);return n;})}/>Select<span className="sr"> {m.listing.title}</span></label>}
+     </MatchCard></li>)}</ul>
      :p&&!p.loading&&<p className="empty card">{status==='found'?(readOnly?`${readOnly}.`:'No listings to review right now. Check the requirements if you expected some.'):`Nothing ${status} yet.`}</p>}
+    {status==='found'&&!readOnly&&rows.length>0&&<div className="inline match-batch">
+     <button type="button" className="btn" disabled={!chosen.length} aria-disabled={busy} onClick={shortlistChosen}>Shortlist selected ({chosen.length})</button>
+     <p className="muted">{APPROVAL_SCOPE}</p></div>}
     {p&&<nav className="match-pagination" aria-label={`${title} pages`}>
      <button type="button" className="btn ghost" disabled={busy||p.loading||!!p.error||stack.length===1} aria-label={`Previous ${title} page`} onClick={()=>move(stack.slice(0,-1))}>Previous</button>
      <span>Page {stack.length} · {total} {total===1?'match':'matches'}</span>

@@ -18,9 +18,9 @@ const object = (alias, keys, extra = []) => `json_object(${[...keys.map(k => `'$
 // A match as its card shows it (spec §5), with its listing; from matches m JOIN listings l.
 const EVAL_APPLICANT = object("a", ["match_ranking_version", "operation", "budget_min", "budget_max", "budget_stretch", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "parking_spaces", "property_types", "outdoor", "furnished", "pets", "area_answer", "preferred_parish", "parishes_wanted", "parishes_excluded", "housing_status", "buyer_position", "requirement_priorities", "household_children", "household_children_status", "move_in_date", "lease_term_months", "near", "requirements"]);
 const EVAL_LISTING = object("l", ["operation", "availability", "sale_price", "rent", "rent_period", "currency", "bedrooms", "bathrooms", "parish", "published", "archived_at", "feat_parking", "feat_pets", "feat_outdoor", "feat_furnished", "feat_type", "feat_evidence", "tenure_type", "housing_category", "restriction"]);
-const CARD = `${EVAL_APPLICANT} AS eval_applicant, ${EVAL_LISTING} AS eval_listing, m.id, m.applicant_id, m.status, m.score, m.checks, m.requirements_rank, m.area_preference_rank, m.reject_reason, m.reviewed_at, ${object("l", ["id", "title",
+const CARD = `${EVAL_APPLICANT} AS eval_applicant, ${EVAL_LISTING} AS eval_listing, m.id, m.applicant_id, m.status, m.score, m.checks, m.requirements_rank, m.area_preference_rank, m.reject_reason, m.reviewed_by, m.reviewed_at, m.created_at, ${object("l", ["id", "title",
   "operation", "availability", "price_text", "sale_price", "rent", "rent_period", "currency", "parish", "bedrooms", "bathrooms",
-  "published", "archived_at"], [`'cover_id', ${COVER_ID}`, `'has_public_photo', ${HAS_PUBLIC_PHOTO}`])} AS listing`;
+  "published", "archived_at", "updated_at"], [`'cover_id', ${COVER_ID}`, `'has_public_photo', ${HAS_PUBLIC_PHOTO}`])} AS listing`;
 export const MATCHES_SQL = `SELECT ${CARD} FROM matches m JOIN listings l ON l.id = m.listing_id JOIN applicants a ON a.id = m.applicant_id`;
 export const matchCard = m => {
   const {eval_applicant,eval_listing,area_preference_rank,...card} = m;
@@ -41,6 +41,14 @@ export const matchCard = m => {
 
 // The review queue: the found matches of active searches (spec §5), from matches m JOIN applicants a.
 const QUEUED = `m.status = 'found' AND ${activeSql("a")}`;
+// BUS-15 (M04): the only matches an enquiry (AGE-03) may start from. Shortlisted is not enough: the reviewer's own
+// match.reviewed event must cover the search and the property as they are now, so a material change after the
+// review, or a status nobody decided, approves nothing. From matches m JOIN applicants a.
+export const APPROVED = `m.status = 'shortlisted' AND ${activeSql("a")} AND EXISTS (SELECT 1 FROM events e
+  WHERE e.entity_type = 'applicant' AND e.entity_id = CAST(m.applicant_id AS TEXT) AND e.type = 'match.reviewed'
+  AND e.at = m.reviewed_at AND e.actor = m.reviewed_by AND json_extract(e.data, '$.listing_id') = m.listing_id
+  AND json_extract(e.data, '$.to') = 'shortlisted' AND json_extract(e.data, '$.search_version') = a.match_inputs_revision
+  AND json_extract(e.data, '$.listing_version') = COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id = m.listing_id), 0))`;
 const QUEUE_COUNT_SQL = `SELECT COUNT(*) AS n FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE ${QUEUED}`;
 // The search shown next to the match, its JSON lists as lists; from applicants a JOIN contacts c.
 const LISTS = ["requirement_priorities", "household_children_ages", "property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"];
@@ -75,7 +83,7 @@ async function review({ request, env, admin, params: [id] }) {
   if (status === "rejected" && !REASONS.includes(reason)) fail(400, "Choose why the match is rejected");
 
   const m = await env.DB.prepare(`SELECT m.id, m.applicant_id, m.listing_id, m.status, a.archived_at, a.stage, a.search_state,
-    a.updated_at AS applicant_updated_at, a.matches_revision,
+    a.updated_at AS applicant_updated_at, a.matches_revision, a.match_inputs_revision,
     COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id = m.listing_id),0) AS listing_revision
     FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE m.id = ?`).bind(Number(id)).first();
   if (!m) fail(404, "Match not found");
@@ -115,7 +123,9 @@ async function review({ request, env, admin, params: [id] }) {
         AND ${ifThere}`).bind(ts, m.applicant_id, m.id, status)] : []),
       env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
         SELECT ?, ?, 'applicant', ?, 'match.reviewed', ? WHERE ${ifThere}`)
-        .bind(ts, admin, String(m.applicant_id), JSON.stringify({ listing_id: m.listing_id, from, to: status, reason }), m.id, status),
+        .bind(ts, admin, String(m.applicant_id), JSON.stringify({ listing_id: m.listing_id, from, to: status, reason,
+          // BUS-15: the versions reviewed; the guards of the UPDATE above keep both current in this batch.
+          search_version: m.match_inputs_revision, listing_version: m.listing_revision }), m.id, status),
       closeMatchedNoticeIfEmpty(env, m.applicant_id, admin),
       env.DB.prepare("SELECT matches_revision FROM applicants WHERE id = ?").bind(m.applicant_id),
     ]);

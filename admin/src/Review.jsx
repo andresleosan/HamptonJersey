@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { REJECT_REASONS } from "../../server/applicants.js";
-import MatchCard, { REASON_LABEL, hasPetRefusal } from "./MatchCard.jsx";
+import MatchCard, { APPROVAL_SCOPE, REASON_LABEL, hasPetRefusal } from "./MatchCard.jsx";
 import { show, firstSentence } from "./format.js";
 
 const GONE = "This match is no longer proposed, so it has left the queue.";
@@ -136,6 +136,7 @@ export default function Review() {
         <dt><kbd>S</kbd></dt><dd>Skip</dd>
         <dt><kbd>Esc</kbd></dt><dd>Cancel</dd>
       </dl>
+      <p className="muted">{APPROVAL_SCOPE}</p>
       <p role="status" className="ok review-msg">{msg?.ok && msg.text}
         {undo && <button type="button" className="btn ghost sm" onClick={undoLast}>Undo</button>}</p>
       {msg && !msg.ok && <p role="alert" className="err">{msg.text}</p>}

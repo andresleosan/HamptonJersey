@@ -1,6 +1,6 @@
 import { CRITERIA } from "../../site/requirements.js";
 import { useEffect, useRef, useState } from "react";
-import { AVAILABILITY, priceText } from "./format.js";
+import { AVAILABILITY, fmtDate, priceText } from "./format.js";
 import { REJECT_REASONS } from "../../server/applicants.js";
 
 // The checks of server/matching.js evaluate(), by key.
@@ -9,6 +9,9 @@ const CHECK_LABEL = { ...Object.fromEntries(Object.entries(CRITERIA).map(([k,[la
 const RESULT = { meets: "Meets", fails: "Fails", unknown: "Unknown" };
 export const REASON_LABEL = Object.fromEntries(REJECT_REASONS);
 export const hasPetRefusal = match => match.pets_refused === true;
+// BUS-15 (M04): what a Shortlist approves, said wherever one can be given.
+export const APPROVAL_SCOPE = "Shortlisting approves a first availability enquiry about the property, nothing else: "
+  + "no must-have is waived, no client details are shared and the search stays as it is.";
 const OFFERED = ["for_sale", "to_let", "lease"];
 // DESIGN.md "Badges de estado": a listing that is no longer offered.
 const AVAILABILITY_TONE = { under_offer: "attention", sold: "closed" };
@@ -56,7 +59,10 @@ export default function MatchCard({ match, onReview, busy, disabled = null, shor
         <dt>{CHECK_LABEL[c.key] ?? c.key}{c.priority && <small className="muted"> · {c.priority === "must" ? "Must-have" : c.priority === "preferred" ? "Preferred" : "Priority to confirm"}</small>}</dt>
         <dd><span className={`result ${c.result}`}>{RESULT[c.result] ?? c.result}</span>{c.reason && <span className="muted"> · {c.reason}</span>}{c.evidence && <span className="muted"> · {c.evidence}</span>}</dd>
       </div>)}</dl>
-      {match.status === "rejected" && <p className="muted">Rejected · {REASON_LABEL[match.reject_reason] ?? match.reject_reason}</p>}
+      <p className="muted">Found {fmtDate(match.created_at)} · Property updated {fmtDate(l.updated_at)}</p>
+      {match.status !== "found" && <p className="muted">{match.status === "rejected"
+        ? `Rejected · ${REASON_LABEL[match.reject_reason] ?? match.reject_reason}` : "Shortlisted"}
+        {match.reviewed_by && ` by ${match.reviewed_by}`}{match.reviewed_at && ` · ${fmtDate(match.reviewed_at)}`}</p>}
       <div className="inline match-actions">
         {match.status === "found" ? <>
           <button type="button" className="btn sm" disabled={off || petsRefused} title={petsRefused ? "Pets are not allowed at this property." : why}

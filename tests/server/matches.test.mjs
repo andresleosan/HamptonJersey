@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, seedListing, seedMedia, call, adminCookie, T0 } from "./listing-client.mjs";
 import { recomputeForApplicant } from "../../server/match-store.js";
-import { RECALC_BATCH } from "../../server/routes/matches.js";
+import { RECALC_BATCH, APPROVED } from "../../server/routes/matches.js";
 
 const ADMIN = "admin@example.test", OTHER = "colleague@example.test";
 const at = min => new Date(Date.parse(T0) + min * 60e3).toISOString();
@@ -65,7 +65,7 @@ test("reviewing sets the status, who and when, the event and the first review; U
   assert.equal(first, s.reviewed_at);
   const events = () => rows(env, "SELECT actor, entity_type, entity_id, data FROM events WHERE type = 'match.reviewed' ORDER BY id");
   assert.deepEqual(events(), [{ actor: ADMIN, entity_type: "applicant", entity_id: String(a),
-    data: JSON.stringify({ listing_id: "HE-R001", from: "found", to: "shortlisted", reason: null }) }]);
+    data: JSON.stringify({ listing_id: "HE-R001", from: "found", to: "shortlisted", reason: null, search_version: 0, listing_version: 0 }) }]);
 
   // A rejection needs one of the reasons, and records it.
   for (const reject_reason of [undefined, null, "", "ugly"]) {
@@ -210,10 +210,10 @@ test("the review queue: oldest applicant first, best score first, after skips pa
   const next = async after => (await req(env, "GET", `/admin/review${after ? `?after=${after}` : ""}`)).data;
   const first = await next();
   assert.deepEqual(first.match, { id: o2, applicant_id: older, status: "found", score: 80, checks: [], reject_reason: null, ranking_version:0,
-    reviewed_at: null, requirements_status:"pending", requirements_rank:1 });
+    reviewed_by: null, reviewed_at: null, created_at: at(0), requirements_status:"pending", requirements_rank:1 });
   assert.deepEqual(first.listing, { id: "HE-R002", title: "Le Bernage", operation: "sale", availability: "for_sale",
     price_text: null, sale_price: 900000, rent: null, rent_period: null, currency: "GBP", parish: "St Saviour", bedrooms: 3,
-    bathrooms: 2, cover_id: "A00001", has_public_photo: 1, published: 1, archived_at: null });
+    bathrooms: 2, cover_id: "A00001", has_public_photo: 1, published: 1, archived_at: null, updated_at: T0 });
   assert.equal(first.applicant.id, older);
   assert.equal(first.applicant.name, "Ana Le Gros");
   assert.equal(first.applicant.operation, "buy");
@@ -383,7 +383,7 @@ test("the applicant record lists its matches with the listing card, found first"
   assert.deepEqual(d.matches.map(m => m.id), [hi, lo, s, r]);
   const short = d.matches[2];
   assert.deepEqual({ ...short, listing: undefined }, { id: s, applicant_id: a, status: "shortlisted", score: 90, ranking_version:0,
-    checks: [{ key: "budget", result: "unknown", evidence: "£900,000", priority:"unknown", reason:"Confirm the saved requirement and property details" }], reject_reason: null, reviewed_at: at(4), listing: undefined, requirements_status:"pending", requirements_rank:1 });
+    checks: [{ key: "budget", result: "unknown", evidence: "£900,000", priority:"unknown", reason:"Confirm the saved requirement and property details" }], reject_reason: null, reviewed_by: null, reviewed_at: at(4), created_at: at(0), listing: undefined, requirements_status:"pending", requirements_rank:1 });
   assert.equal(short.listing.title, "Shortlisted house");
   assert.equal(short.listing.cover_id, null);
   assert.deepEqual([d.matches[3].reject_reason, d.matches[3].listing.published, d.matches[3].listing.archived_at,
@@ -429,4 +429,73 @@ test("Undo brings a match back only while it still is one: an archived listing's
   assert.equal(k.data.match.status, "found");
   assert.notDeepEqual(k.data.match.checks, []);
   assert.notEqual(k.data.match.score, 36);
+});
+
+// BUS-15 (M04): what AGE-03 may send from. From matches m JOIN applicants a, as APPROVED asks.
+const approved = env => rows(env, `SELECT m.applicant_id, m.listing_id, m.reviewed_by FROM matches m
+  JOIN applicants a ON a.id = m.applicant_id WHERE ${APPROVED} ORDER BY m.id`);
+
+test("BUS-15: only a recorded human decision on the versions as they are now approves an enquiry; no score does", async () => {
+  const env = makeEnv();
+  listing(env, "HE-R001");
+  const a = seedApplicant(env);
+  await recomputeForApplicant(env, a, "system");
+  const m = matchId(env, a, "HE-R001");
+  assert.equal(match(env, m).status, "found", "a recompute only proposes");
+  assert.deepEqual(approved(env), []);
+  // Shortlisted with no decision on record (nothing in the app writes this): still no approval.
+  run(env, "UPDATE matches SET status = 'shortlisted', score = 100, reviewed_by = 'system', reviewed_at = ? WHERE id = ?", at(1), m);
+  assert.deepEqual(approved(env), []);
+  run(env, "UPDATE matches SET status = 'found', reviewed_by = NULL, reviewed_at = NULL WHERE id = ?", m);
+
+  const criteria = () => row(env, "SELECT budget_max, requirement_priorities, match_inputs_revision FROM applicants WHERE id = ?", a);
+  const before = criteria();
+  const r = await put(env, m, { status: "shortlisted", from: "found" });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.match.reviewed_by, ADMIN, "the card says who decided");
+  assert.ok(r.data.match.reviewed_at && r.data.match.created_at && r.data.match.listing.updated_at, "and its dates");
+  assert.deepEqual(criteria(), before, "approving changes no criterion");
+  assert.deepEqual(approved(env), [{ applicant_id: a, listing_id: "HE-R001", reviewed_by: ADMIN }]);
+
+  // The search changes: the approval was for the version reviewed, until someone reviews again.
+  run(env, "UPDATE applicants SET budget_max = 950000 WHERE id = ?", a);
+  assert.equal(match(env, m).status, "shortlisted");
+  assert.deepEqual(approved(env), []);
+  assert.equal((await put(env, m, { status: "found", from: "shortlisted" })).status, 200);
+  assert.equal((await put(env, m, { status: "shortlisted", from: "found" }, OTHER)).status, 200);
+  const last = rows(env, "SELECT actor, data FROM events WHERE type = 'match.reviewed' ORDER BY id").at(-1);
+  assert.deepEqual([last.actor, JSON.parse(last.data).search_version, JSON.parse(last.data).listing_version], [OTHER, 1, 0]);
+  assert.deepEqual(approved(env), [{ applicant_id: a, listing_id: "HE-R001", reviewed_by: OTHER }]);
+  // The property changes: the same.
+  run(env, "UPDATE listings SET sale_price = 850000 WHERE id = 'HE-R001'");
+  assert.deepEqual(approved(env), []);
+});
+
+test("BUS-15: rejecting a match leaves the property offered to everyone else; approving keeps a failed must-have failed", async () => {
+  const env = makeEnv();
+  listing(env, "HE-R001", { bedrooms: 3 });
+  const a = seedApplicant(env), b = seedApplicant(env, "Ben Le Sueur", { minute: 1, bedrooms_min: 1, bedrooms_max: 2,
+    requirement_priorities: JSON.stringify({ version: 1, values: { bedrooms: "must" }, unknown: [] }) });
+  await recomputeForApplicant(env, a, "system");
+  await recomputeForApplicant(env, b, "system");
+  const offered = () => row(env, `SELECT availability, archived_at, matchable, published, updated_at,
+    COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id = listings.id), 0) AS version FROM listings WHERE id = 'HE-R001'`);
+  const before = offered();
+  assert.equal((await put(env, matchId(env, a, "HE-R001"), { status: "rejected", reject_reason: "area", from: "found" })).status, 200);
+  assert.deepEqual(offered(), before, "the listing is untouched");
+  const mb = matchId(env, b, "HE-R001");
+  assert.equal(match(env, mb).status, "found", "still proposed to the other search");
+  const next = await req(env, "GET", "/admin/review");
+  assert.deepEqual([next.data.match.id, next.data.remaining], [mb, 1]);
+  // A new search still gets it.
+  const c = seedApplicant(env, "Cara Renouf", { minute: 2 });
+  await recomputeForApplicant(env, c, "system");
+  assert.equal(match(env, matchId(env, c, "HE-R001")).status, "found");
+
+  // Three bedrooms against a must-have maximum of two: an alternative before and after its approval.
+  assert.equal(next.data.match.requirements_status, "alternative");
+  const r = await put(env, mb, { status: "shortlisted", from: "found" });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.match.requirements_status, "alternative");
+  assert.equal(r.data.match.checks.find(k => k.key === "bedrooms").result, "fails");
 });

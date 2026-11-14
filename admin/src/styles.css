@@ -564,6 +564,7 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 /* Matching pages use the panel spacing and full-size keyboard/touch controls. */
 .match-pagination{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
 .match-pagination .btn{min-height:44px}
+.match-batch{margin:12px 0 0;align-items:center} .match-batch p{margin:0;flex:1 1 240px}
 
 .match-list>li{min-width:0}
 @media(max-width:400px){.checks div{display:grid;gap:4px}.checks dt{width:auto}.match .score{white-space:normal}}

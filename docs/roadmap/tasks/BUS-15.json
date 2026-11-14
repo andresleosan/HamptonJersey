@@ -6,15 +6,23 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "La pantalla Review muestra una coincidencia cada vez (primero la búsqueda más antigua y, dentro de ella, la de mejor puntuación) con A = Shortlist, R = Reject con motivo 1–5, S = Skip y Undo. La pestaña Matches de la ficha ofrece Shortlist, Reject y Undo como botones, sin Skip ni teclas.",
-  "falta": "M04 · Reconciliación 7-nov: Mantener aprobación, rechazo con motivo y pendiente como decisiones humanas. Mostrar comparación, fuentes, fechas y dudas; registrar responsable y versión revisada. Al aprobar se autoriza únicamente la consulta inicial AGE-03. Una aprobación no elimina un MUST ni autoriza divulgar datos del cliente o cambiar criterios. La aprobación en lote, si se conserva, exige selección y acción explícitas del empleado; ningún umbral aprueba solo. Depende de: BUS-12, EST-09. Aceptación: Sin decisión humana registrada no se crea envío; rechazar un match no marca la propiedad no disponible para los demás.",
+  "hecho": "La pantalla Review muestra una coincidencia cada vez (primero la búsqueda más antigua y, dentro de ella, la de mejor puntuación) con A = Shortlist, R = Reject con motivo 1–5, S = Skip (queda pendiente) y Undo. La pestaña Matches de la ficha ofrece Shortlist, Reject y Undo. 14-nov-2026 (M04): cada decisión guarda quién, cuándo y la versión revisada de la búsqueda y de la propiedad en su evento match.reviewed. La tarjeta muestra la comparación por criterio con su evidencia y sus dudas, la fecha en que se encontró, la última actualización de la propiedad y quién decidió y cuándo. Review y Matches dicen qué autoriza un Shortlist: solo la primera consulta de disponibilidad; no quita un imprescindible, no comparte datos del cliente ni cambia la búsqueda. Aprobación en lote en Matches: el empleado marca las coincidencias y pulsa «Shortlist selected»; cada una se guarda como decisión propia y ninguna puntuación aprueba sola. El servidor exporta APPROVED, la única condición desde la que podrá salir una consulta: Shortlisted con decisión registrada sobre las versiones vigentes y búsqueda activa. Rechazar no toca la propiedad ni las coincidencias de otros.",
+  "falta": "Integrar el commit en main; no lleva migración ni interruptor. Sin pendientes propios: el envío y la consulta aclaratoria son de AGE-03, el aviso de aprobación desfasada de EST-13 y la fuente de mercado de cada ficha de BUS-10.",
   "bloqueo": "",
   "evidencia": [
-    "admin/src/Review.jsx:12-151",
-    "server/routes/matches.js:21-43",
-    "server/routes/matches.js:45-113",
-    "admin/src/App.jsx:127",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:45",
+    "server/routes/matches.js:44-51 (APPROVED) y :126-128 (versiones en match.reviewed)",
+    "admin/src/MatchCard.jsx:12-14, 62-65 (alcance, fechas y responsable)",
+    "admin/src/ApplicantMatches.jsx:60-72, 96-103 (lote con selección y acción explícitas)",
+    "admin/src/Review.jsx:139 (alcance de la aprobación en la cola)",
+    "tests/server/matches.test.mjs:438 y :474 (BUS-15) con :91 y :116 (dos empleados, una sola decisión): 16/16 el 14-nov",
+    "tests/bus15-review.e2e.cjs PASS en navegador aislado 1280/390 (14-nov): teclas, alcance, fechas, responsable, lote y su fallo parcial, rechazo sin afectar a otra búsqueda",
+    "Pruebas vecinas de rutas de coincidencias 159/159 y DOM de Review y Matches 9/9 (14-nov); no se corrió la suite completa ni nada contra producción",
+    "Decisión: la versión revisada va en el evento, sin migración. Fuente: skill §4.5 (lo más simple y reversible) y M04 de la reconciliación 7-nov.",
+    "Decisión: el lote se conserva solo como selección y acción del empleado en Matches, un guardado por coincidencia. Fuente: reconciliación 7-nov M04 y BUS-16.",
+    "Decisión: una aprobación vale para las versiones revisadas; un cambio material exige nueva revisión. Fuente: reconciliación 7-nov M04 (cambios posteriores invalidan la autorización).",
+    "Decisión: los Shortlisted anteriores no llevan versión y no cuentan como aprobados hasta revisarse de nuevo. Fuente: criterio de aceptación (sin decisión registrada no hay envío).",
+    "Decisión: la consulta aclaratoria D06 no se construye aquí. Fuente: plan maestro 10-nov (requiere empleado y no aprueba el match); el envío es de AGE-03.",
+    "Decisión: la fecha de la propiedad es su última actualización, no confirmed_at. Fuente: reconciliación 7-nov M05 (confirmed_at no acredita confirmación comercial).",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
   ],
   "modulo": "M04",
@@ -49,5 +57,6 @@
     "outreach-contract",
     "matching-review-ui"
   ],
-  "nextStep": "Completar revisión humana versionada con fuentes, dudas y aprobación explícita, sin autoaprobación por puntuación."
+  "nextStep": "Integrar en main y cerrar por aceptación propia; AGE-03 debe enviar solo desde APPROVED.",
+  "actualizado": "2026-11-14"
 }
