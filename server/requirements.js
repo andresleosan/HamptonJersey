@@ -64,7 +64,9 @@ export function requirementChecks(a, l, original) {
 }
 export function requirementsSummary(checks, pass = true, legacy = false) {
   const incompatible = checks.some(c => c.result === 'fails' && (c.priority === 'must' || c.key === 'pets'));
-  const pending = legacy || checks.some(c => c.confirmation_required || c.priority === 'unknown' || ((c.priority === 'must' || c.key === 'pets') && c.result === 'unknown'));
+  // Housing eligibility is a legal filter, never negotiable: while it is unknown the match is not a full option.
+  const pending = legacy || checks.some(c => c.confirmation_required || c.priority === 'unknown'
+    || ((c.priority === 'must' || c.key === 'pets' || c.key === 'housing') && c.result === 'unknown'));
   const requirements_status = !pass ? 'excluded' : incompatible ? 'alternative' : pending ? 'pending' : 'meets';
   return { requirements_status, requirements_rank: {meets:0,pending:1,alternative:2,excluded:3}[requirements_status] };
 }

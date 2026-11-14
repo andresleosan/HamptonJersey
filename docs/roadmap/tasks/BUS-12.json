@@ -6,8 +6,8 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Las prioridades y checks residenciales de REG-08 están publicados con 0031. Parking distingue cifra fiable de ambigüedad; el criterio de mascotas queda por confirmar ante condiciones o evidencia contradictoria, sin acreditar compatibilidad. La negativa inequívoca de mascotas para un hogar con animales se excluye desde e589b16; Shortlist y Rejected conservan sus decisiones. Se preparó una instantánea interna de criterios y revisión de cambios de estado, desconectada de rutas y ensayada con datos ficticios. En el cruce residencial, moneda ausente o distinta de GBP se evalúa como precio desconocido; tarjetas y recálculos reciben la misma moneda, conservan decisiones humanas y señalan el orden pendiente de actualizar. La ampliación de presupuesto cuenta solo mejoras comprobables y señala precios cuya moneda o periodo impiden comparar; las otras alternativas conservan su cálculo. Las candidatas residenciales EUR se incluyen con presupuesto desconocido, sin conversión, y la interfaz explica que el precio debe contrastarse; las decisiones humanas se conservan. Se preparó un predicado interno conservador de opción completa con revisiones y disponibilidad explícitas, revisado y aún desconectado. Se preparó un agregado puro que reconoce una opción completa fiable y conserva unknown cuando no puede acreditar el estado; sigue sin productor ni consumidor operativo.",
-  "falta": "Continuar M04: inventario común y evidencia/fechas, confirmación de disponibilidad, criterios comerciales y negocios, y fuentes M02. El estado Stated must-haves met solo certifica los imprescindibles declarados, no todo BUS-12. El CAS por revisión de criterios no está integrado: faltan el esquema aprobado, los escritores y consumidores, y revalidar generación de identidad y permisos. El SQL propuesto permanece fuera de la cola de migraciones. El predicado no acredita la fuente ni la cobertura: antes de concluir ausencia se necesita agregado triestado, DTO fiable y snapshot revalidado. El agregado aún no emite ausencia acreditada y necesita cobertura real, identidad del episodio y revalidación transaccional antes de conectarse. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: imprescindible desconocido (MUST unknown). Consumir además las condiciones y periodicidades comerciales normalizadas de REG-04.",
+  "hecho": "Sobre las fichas propias de Hampton (listings residenciales) el motor separa cuatro resultados: cumple, por confirmar, alternativa y excluida. Imprescindibles: un imprescindible incumplido deja la casa como alternativa aunque el resto y la puntuación sean favorables; uno flexible incumplido se ve en la tarjeta y no cambia el resultado. Exclusiones: parroquia vetada, negativa inequívoca de mascotas con animales en el hogar, regla legal de vivienda incumplida, operación distinta, ficha archivada o no ofrecida. Las rechazadas no vuelven. Rangos: techo de presupuesto con el extra aceptado, mínimo y máximo de dormitorios (el máximo incluido) y mínimo de baños; alquiler anual comparado por mes. Desconocido: precio ausente o en otra moneda, parking ambiguo, mascotas sin política clara, dormitorios o zona sin dato quedan «Unknown» en la tarjeta y la casa pasa a «Requirements to confirm»; nunca cuenta como cumplimiento ni como rechazo. 14-nov: la elegibilidad legal de vivienda desconocida (categoría sin dato, estatus sin declarar, solo mayores de 55) ya no muestra «Stated must-haves met»: queda por confirmar. El recálculo conserva Shortlist y Rejected y está protegido por la versión de la búsqueda y de la ficha (0037). Sin migración ni interruptor nuevos.",
+  "falta": "Evaluar las búsquedas comerciales y de negocio (tarea 3 del plan): hoy no generan coincidencias y el panel dice «Commercial matching is not available yet». Publicar este cambio en main y comprobar el recorrido en producción con una lectura. Tras publicar, el orden guardado de las casas con vivienda desconocida se corrige al recalcular; mientras tanto la tarjeta ya muestra el estado correcto y el aviso «Recalculate matches».",
   "bloqueo": "",
   "evidencia": [
     "server/matching.js:31-43",
@@ -35,7 +35,16 @@
     "docs/roadmap/work/BUS-12/eligibility-foundation-evidence.md",
     "server/search-coverage.js",
     "tests/server/search-coverage.test.mjs",
-    "docs/roadmap/work/BUS-12/coverage-foundation-evidence.md"
+    "docs/roadmap/work/BUS-12/coverage-foundation-evidence.md",
+    "tests/server/bus-12-matching.test.mjs · 14-nov: 4 de 4. Criterio de aceptación (dos plazas imprescindibles: una plaza = alternativa, parking desconocido = por confirmar, resto favorable y misma puntuación), rangos, vivienda desconocida y lista real por la ruta del panel con tres casas excluidas fuera.",
+    "tests/bus12-matching.e2e.cjs · 14-nov: navegador aislado a 1280 y 390, datos ficticios. Orden cumple → por confirmar → alternativa, insignias y filas Unknown/Fails visibles, sin desplazamiento lateral ni errores de página.",
+    "Regresión focal 14-nov: 187 de 187 en 20 archivos de matching, requisitos, moneda, ampliación, páginas y regla de vivienda.",
+    "server/requirements.js requirementsSummary · Decisión: vivienda legal desconocida = por confirmar. Fuente: plan maestro («unknown pending») y reconciliación M04 (completo/pendiente/alternativa/excluido separados).",
+    "Decisión: la revisión solo de criterios (criteria_revision y su CAS) no es alcance de cierre. Nadie la consume; el recálculo y la aprobación ya se protegen con match_inputs_revision y updated_at (0037, BUS-15). Pasa a AUT-19, su consumidor previsto. Fuente: skill §3 y docs/roadmap/work/BUS-12/foundation-evidence.md. El SQL propuesto sigue fuera de la cola.",
+    "Decisión: el predicado de opción completa y el agregado de cobertura quedan desconectados; los conectan sus consumidores BUS-17 y SAP-02. Fuente: skill §3 y plan canónico («Predicado compartido»).",
+    "Decisión: inventario común (BUS-10), disponibilidad confirmada (EST-16), consulta y aviso por imprescindible desconocido (EST-13) son de sus tareas. Hoy el equipo ve lo desconocido en el aviso de coincidencias y en la tarjeta. Fuente: skill §3 y plan maestro («consulta aclaratoria requiere empleado»).",
+    "docs/superpowers/plans/2026-11-08-bus-12-canonical-search-evaluation.md · plan vigente: tareas 1, 2 y 4 cubiertas en lo residencial; tarea 3 (comercial) sin construir.",
+    "Sin comprobar: npm test completo y producción. El navegador aislado sí ejecutó check-release y la compilación del panel."
   ],
   "modulo": "M04",
   "deps": [
@@ -88,6 +97,6 @@
     "requirements-contract",
     "market-inventory"
   ],
-  "nextStep": "Revisar el esquema y los escritores antes de integrar el CAS y los consumidores; continuar inventario común y condiciones comerciales sin activar la propuesta desconectada.",
+  "nextStep": "Integrar el commit en main y comprobar con una lectura la lista de coincidencias de una búsqueda residencial real. Decidir si la evaluación comercial se construye aquí o se separa en una tarea propia.",
   "actualizado": "2026-11-14"
 }
