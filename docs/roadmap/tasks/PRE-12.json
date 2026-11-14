@@ -25,7 +25,8 @@
     "docs/superpowers/plans/2026-11-07-hampton-app-search-lifecycle-ledger.md",
     "docs/superpowers/specs/2026-11-08-l1b-privacy-requests-design.md",
     "docs/superpowers/plans/2026-11-08-l1b-privacy-requests.md",
-    "docs/superpowers/plans/2026-11-08-l1b-privacy-requests.md"
+    "docs/superpowers/plans/2026-11-08-l1b-privacy-requests.md",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la conservación tras terminar un alquiler o venta la fija el abogado (PRE-33), solo ese tramo."
   ],
   "modulo": "M03/M12",
   "deps": [],
@@ -40,6 +41,13 @@
       "id": "AUT-17",
       "requires": "activated",
       "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+      "basis": "explicit",
+      "scope": "partial"
+    },
+    {
+      "id": "PRE-33",
+      "requires": "decision",
+      "reason": "Fijar conservación de alquiler/venta tras terminar mediante revisión del abogado.",
       "basis": "explicit",
       "scope": "partial"
     }

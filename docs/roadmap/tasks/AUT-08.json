@@ -8,7 +8,7 @@
   "responsable": "Luis",
   "hecho": "Luis eligió el mecanismo (A2): Cloudflare Tunnel privado (Workers VPC o Access con token de servicio) hacia Ollama en el VPS, sin abrir puertos; Whisper ya corre en el VPS solo en 127.0.0.1:9300.",
   "falta": "No existe: ni tabla jobs, ni túnel o binding en wrangler.toml, ni cloudflared u Ollama en el Docker del VPS (docker ps -a, 28-oct), ni código que llame a un modelo local. Lo monta Luis y servirá a datos C3 (F5-B) y notas de voz (F3-B). Hermes (P-18) no es este carril: no alcanza los servicios del VPS y nunca recibe datos C3; pedirá a la app el trabajo de IA con datos públicos por su propia puerta (AUT-13, §6.6).",
-  "bloqueo": "",
+  "bloqueo": "Aplazada a una fase posterior por el plan maestro (10-nov-2026).",
   "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:28",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:68",
@@ -17,16 +17,18 @@
     "wrangler.toml:1-20",
     "docker ps (28-oct-2026): infra-whisper-1 en 127.0.0.1:9300",
     "docker ps -a (28-oct-2026): sin cloudflared ni Ollama",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: servidores y modelos locales, posteriores."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
-  "executionEligibility": "needs_scope_and_evidence_review",
+  "executionEligibility": "deferred_later_phase",
   "dependencies": [],
   "externalBlocker": "Luis: aprobación y montaje del carril privado; no modificar infraestructura como parte del reparto.",
   "resources": [
     "vps-private-services"
   ],
-  "nextStep": "Preparar alcance revisable del carril privado y esperar su montaje autorizado por Luis."
+  "nextStep": "Preparar alcance revisable del carril privado y esperar su montaje autorizado por Luis.",
+  "actualizado": "2026-11-14"
 }

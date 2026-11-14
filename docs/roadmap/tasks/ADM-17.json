@@ -5,7 +5,7 @@
   "origen": "plan",
   "fase": "F5-A",
   "estado": "parcial",
-  "responsable": "tercero",
+  "responsable": "desarrollo",
   "hecho": "Los plazos (depósito 30 días, inventarios 7, licencia 2 años, EICR 5, preavisos de 1 y 12 meses, aviso de renta de 2) están en una sola constante, LEGAL, que el panel lee.",
   "falta": "Falta confirmar el registro de Hampton en la JFSC por cobrar rentas en cuenta propia (R21), que un abogado de Jersey valide plazos y preavisos (R10, R13) y si Hampton está registrado en GST; además los plazos son código (cambiarlos exige publicar), no un ajuste del panel.",
   "bloqueo": "JFSC/abogado · Dato de Hampton",
@@ -13,7 +13,8 @@
     "server/rentals.js:6-10",
     "docs/roadmap/ESTADO.md:13",
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:73",
-    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93"
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): las reglas versionadas y parametrizadas se construyen; los valores los valida el abogado. Vuelve a desarrollo: lo externo es condición de activación."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -28,11 +29,12 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "tercero: JFSC/abogado · Dato de Hampton",
+  "externalBlocker": "Hampton: registro JFSC y GST · abogado de Jersey: validación de plazos y preavisos (los valores no se inventan).",
   "resources": [
     "rentals-contract",
     "rentals-ui",
     "legal-parameters"
   ],
-  "nextStep": "Coordinar confirmación de registros y GST y validación del abogado; después parametrizar plazos aprobados."
+  "nextStep": "Construir las reglas de plazos versionadas y parametrizadas según su plan, sin valores nuevos hasta su validación; Hampton y el abogado confirman después.",
+  "actualizado": "2026-11-14"
 }

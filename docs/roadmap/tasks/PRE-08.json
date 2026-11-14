@@ -4,19 +4,20 @@
   "titulo": "Verificar la firma de cada llamada de los webhooks de Meta y WhatsApp",
   "origen": "plan",
   "fase": "F6",
-  "estado": "bloqueado",
+  "estado": "descartado",
   "responsable": "Luis",
   "hecho": "",
-  "falta": "No hay webhooks (F6 sin empezar). Cada llamada de Meta y WhatsApp debe verificar su firma antes de tocar nada; espera al trámite de Meta (PRE-02).",
-  "bloqueo": "Trámite Meta",
+  "falta": "Retirada expresa del plan maestro vigente (10-nov-2026): la publicación, la mensajería y la integración o webhooks de Meta quedan fuera de la fase vigente. Reincorporarla exige una decisión nueva de Luis. Alcance anterior, solo como historia: No hay webhooks (F6 sin empezar). Cada llamada de Meta y WhatsApp debe verificar su firma antes de tocar nada; espera al trámite de Meta (PRE-02).",
+  "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:484",
-    "docs/roadmap/ESTADO.md:14"
+    "docs/roadmap/ESTADO.md:14",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): retirada expresa de Meta."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
-  "executionEligibility": "needs_scope_and_evidence_review",
+  "executionEligibility": "historical",
   "dependencies": [
     {
       "id": "PRE-02",
@@ -26,9 +27,10 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Luis: Trámite Meta",
+  "externalBlocker": "",
   "resources": [
     "meta-webhooks"
   ],
-  "nextStep": "Implementar y comprobar firma de webhooks cuando exista la integración autorizada de Meta."
+  "nextStep": "Conservar lo existente y no construir el alcance retirado.",
+  "actualizado": "2026-11-14"
 }

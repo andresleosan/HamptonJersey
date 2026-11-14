@@ -22,11 +22,17 @@ No leas `ESTADO.md` entero, el checklist HTML ni documentos de `docs/superpowers
 
 ## 2. Elegir: por la ruta, cerrando antes de abrir
 
-La salida de `avanzar-ruta.mjs` ya viene ordenada por lo que más desbloquea. Dentro del bloque «Cerrables ahora», toma en este orden:
+La salida de `avanzar-ruta.mjs` ya viene ordenada por lo que más desbloquea. Dentro del bloque «Construibles ahora», toma en este orden:
 
 1. **Cierres por aceptación propia** (marca «espera consumidores»): tareas cuyo trabajo propio está publicado y solo esperan a otras tareas. Se comprueban contra el criterio de hecho y se cierran o se deja escrito lo que de verdad les falta.
 2. **Construidas y apagadas** (marca «apagada»): código en `main` que espera migración e interruptor. Se aplica la sección 6 y se verifica el recorrido real.
 3. **Lo que más desbloquea**, después el resto.
+
+**Dependencias, según el [plan maestro](../../../docs/roadmap/2026-11-10-plan-maestro-vigente.md).** Una dependencia es un componente que la tarea necesita de otra, no la otra tarea entera. La ruta solo bloquea por una dependencia completa (`whole`) cuyo productor no ha empezado, o que exige activación, decisión o investigación aceptada. «Comprobar componentes X» se verifica al tomar la tarea: si el componente de X ya está en `main`, se sigue; si no, se construye primero ese componente dentro de X, sin completar X. Lo que solo depende de un servicio externo se construye apagado y esa condición queda nombrada en `falta`.
+
+**Quién mueve la tarea.** `responsable: desarrollo` significa que queda código por construir, aunque la activación dependa de Luis. Cuando lo **único** que falta es de Luis, Hampton o un tercero, `responsable` pasa a ese nombre, `externalBlocker` dice qué hace falta, se añade la fila a COLA-LUIS y la ruta deja de ofrecerla. Si en una tarea de la cola aparece código por construir, vuelve a `desarrollo`. Así ninguna tarea se evalúa dos veces sin cambios.
+
+**Fuera de la fase.** Las tareas que el plan maestro retiró están `descartado`; las aplazadas (bloque 5, `executionEligibility: deferred_later_phase`) ni se construyen ni bloquean. Ninguna se reactiva por un plan antiguo: hace falta una decisión nueva de Luis.
 
 Trabaja por **lotes de hasta 4 tareas** cuyos recursos de escritura (`resources` con `mode: write` en `docs/roadmap/work-units.json`) no se solapen. Una tarea que necesita a Luis, a Hampton o a un tercero no se espera: se apunta en la cola y se toma la siguiente. No abras una tarea nueva mientras quede otra del lote que pueda cerrarse; los avances parciales repartidos entre muchas tareas no suben el porcentaje.
 
@@ -49,6 +55,8 @@ No se usan herramientas de preguntas ni se espera respuesta. Cada decisión se t
 3. [Arquitectura](../../../docs/roadmap/2026-10-23-arquitectura-hampton-app.md) y [plan maestro](../../../docs/roadmap/2026-11-10-plan-maestro-vigente.md); `DESIGN.md` para interfaz.
 4. La recomendación ya escrita en esos documentos.
 5. Si nada lo resuelve: la opción más simple y reversible que cumpla el título de la tarea.
+
+El plan maestro declara que no quedan preguntas de producto abiertas: una duda de producto se resuelve con su texto y con el plan de la tarea, no se pregunta ni se apunta como bloqueo.
 
 Anota la decisión y su fuente en una línea de la evidencia de la tarea. Lo que **solo Luis puede hacer o decidir** (lista «No autorizado» de CONTINUIDAD, cuentas externas, datos de Hampton, abogado) se añade como una fila a [COLA-LUIS.md](../../../docs/roadmap/COLA-LUIS.md) con qué hace falta y qué desbloquea, y se sigue con otra tarea. Las observaciones de Centinela o de un revisor se tratan igual: grave se arregla ahora, lo demás a MEJORAS.
 

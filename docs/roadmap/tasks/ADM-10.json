@@ -5,14 +5,15 @@
   "origen": "plan",
   "fase": "F5-A",
   "estado": "parcial",
-  "responsable": "Luis",
+  "responsable": "desarrollo",
   "hecho": "Statements (#/rentals/statements) da por propietario con gestión completa y mes las rentas cobradas, los honorarios, el GST si se configura, las reparaciones cargadas y el neto, y se imprime desde el navegador con Print.",
   "falta": "No sale sola al cerrar el mes como PDF por email (F5-B), y el GST sigue en 0 hasta confirmar si Hampton está registrado.",
   "bloqueo": "Correo (AUT-17) · Dato de Hampton",
   "evidencia": [
     "admin/src/Statement.jsx:15-71",
     "admin/src/Statement.jsx:73-98",
-    "server/routes/rent.js:733-768"
+    "server/routes/rent.js:733-768",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): el snapshot y el PDF económico propio se construyen sin correo. Vuelve a desarrollo: lo externo es condición de activación."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -27,12 +28,13 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Luis: Correo (AUT-17) · Dato de Hampton",
+  "externalBlocker": "Correo (AUT-17) para el envío · Hampton confirma si está registrado en GST.",
   "resources": [
     "rentals-contract",
     "rentals-ui",
     "email-pipeline",
     "statement-ui"
   ],
-  "nextStep": "Confirmar GST con Hampton y completar liquidación automática por PDF/email cuando AUT-17 esté operativo."
+  "nextStep": "Construir el snapshot cerrado y el PDF económico propio de la liquidación (acceso financiero privado) según su plan; el envío por email espera a AUT-17 y el GST al dato de Hampton.",
+  "actualizado": "2026-11-14"
 }

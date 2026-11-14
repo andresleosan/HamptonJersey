@@ -4,15 +4,16 @@
   "titulo": "Bandeja única Messages: Messenger, Instagram, WhatsApp, chat web y email",
   "origen": "plan",
   "fase": "F6",
-  "estado": "bloqueado",
-  "responsable": "Luis",
+  "estado": "parcial",
+  "responsable": "desarrollo",
   "hecho": "",
-  "falta": "La pantalla Messages existe desde el 6-nov-2026, solo con el chat de la web (MSG-02), y las conversaciones no se unen a un contacto. Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas.",
-  "bloqueo": "Correo (AUT-17) · Trámite Meta",
+  "falta": "La pantalla Messages existe desde el 6-nov-2026, solo con el chat de la web (MSG-02), y las conversaciones no se unen a un contacto. Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas. Alcance vigente (plan maestro, 10-nov-2026): chat web, respuestas desde la app y reenvíos seleccionados de Gmail (alias configured_gmail_mailbox, sin conectar el buzón entero ni cambiar el remitente). Messenger e Instagram quedan retirados con Meta; WhatsApp y Outlook son posteriores.",
+  "bloqueo": "",
   "evidencia": [
     "admin/src/App.jsx:122-136",
     "admin/src/ApplicantDetail.jsx:279-281",
-    "server/api.js:3-21"
+    "server/api.js:3-21",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): alcance vigente de Messages sin Meta ni WhatsApp. Vuelve a desarrollo: lo externo es condición de activación."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
@@ -27,13 +28,6 @@
       "scope": "partial"
     },
     {
-      "id": "PRE-02",
-      "requires": "activated",
-      "reason": "Los canales Meta esperan verificación y permisos.",
-      "basis": "explicit",
-      "scope": "partial"
-    },
-    {
       "id": "PRE-24",
       "requires": "decision",
       "reason": "WhatsApp requiere número y decisión de Hampton.",
@@ -41,11 +35,12 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Luis/Meta y Hampton: permisos, número de WhatsApp y correo operativo por canal.",
+  "externalBlocker": "Correo operativo (AUT-17) solo para el tramo de email.",
   "resources": [
     "web-chat",
     "meta-channel",
     "email-pipeline"
   ],
-  "nextStep": "Integrar canales operativos con conversaciones y contactos, separando los bloqueos de correo y Meta."
+  "nextStep": "Unir las conversaciones del chat web a contactos e integrar los reenvíos seleccionados de Gmail cuando AUT-17 opere; sin Meta ni WhatsApp.",
+  "actualizado": "2026-11-14"
 }

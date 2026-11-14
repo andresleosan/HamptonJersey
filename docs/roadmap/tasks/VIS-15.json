@@ -8,16 +8,17 @@
   "responsable": "desarrollo",
   "hecho": "",
   "falta": "No hay subida de audio, tabla jobs ni proceso en el VPS con faster-whisper. ESTADO la agrupa en F3-B con correo y calendario, pero no depende de ellos: necesita el carril privado del VPS (§2). Con Hermes (AUT-13), la transcripción seguiría en local y el resumen lo haría Hermes, solo con un plan Business y su memoria apagada (pregunta 16), porque una nota de voz puede llevar datos personales. Hoy Hermes no llega a Whisper, porque su salida no alcanza los servicios del VPS (AUT-08).",
-  "bloqueo": "",
+  "bloqueo": "Aplazada a una fase posterior por el plan maestro (10-nov-2026).",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:68",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:107",
-    "docs/roadmap/ESTADO.md:11"
+    "docs/roadmap/ESTADO.md:11",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: notas de voz y transcripción con modelos locales, posteriores."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
-  "executionEligibility": "needs_scope_and_evidence_review",
+  "executionEligibility": "deferred_later_phase",
   "dependencies": [
     {
       "id": "AUT-08",
@@ -41,5 +42,6 @@
     "private-vps-processing",
     "voice-jobs"
   ],
-  "nextStep": "Diseñar subida y transcripción de notas por el carril privado permitido; validar antes el acceso y tratamiento de datos."
+  "nextStep": "Diseñar subida y transcripción de notas por el carril privado permitido; validar antes el acceso y tratamiento de datos.",
+  "actualizado": "2026-11-14"
 }

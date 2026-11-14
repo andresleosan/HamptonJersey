@@ -8,13 +8,14 @@
   "responsable": "desarrollo",
   "hecho": "New repair y Update en la vivienda: urgencia (Emergency, Urgent, Routine), proveedor, presupuesto, estados hasta Done, aprobación obligatoria por encima del límite del propietario y coste a su liquidación; las emergencias abiertas encabezan Repairs en To do y suman en el contador.",
   "falta": "El inquilino no puede avisar desde un portal ni por WhatsApp con fotos, no hay IA que clasifique urgencia y tipo, ni aviso inmediato al equipo, ni directorio de proveedores (es texto libre); la aprobación del propietario la marca el equipo a mano.",
-  "bloqueo": "Correo (AUT-17) · Trámite Meta",
+  "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "admin/src/RentalDialogs.jsx:299-334",
     "server/routes/rentals.js:270-336",
     "admin/src/Rentals.jsx:112-122",
     "server/routes/rent.js:111",
-    "migrations/0013_rentals.sql:128-149"
+    "migrations/0013_rentals.sql:128-149",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -29,19 +30,20 @@
       "scope": "partial"
     },
     {
-      "id": "PRE-02",
-      "requires": "activated",
-      "reason": "Solo para los canales reales de Meta/WhatsApp; no bloquea las tareas manuales ni otros canales.",
-      "basis": "inferred",
-      "scope": "partial"
+      "id": "ADM-18",
+      "scope": "component:case-capabilities",
+      "consumer_component": "case-access",
+      "requires": "integrated",
+      "basis": "TP05 contracts, not whole-task completion"
     }
   ],
-  "externalBlocker": "Correo (AUT-17) · Trámite Meta",
+  "externalBlocker": "Correo (AUT-17)",
   "resources": [
     "rentals-contract",
     "rentals-ui",
     "tenant-portal",
     "messages-contract"
   ],
-  "nextStep": "Definir portal, evidencias y proveedores de reparaciones; activar comunicaciones por sus canales disponibles."
+  "nextStep": "Definir portal, evidencias y proveedores de reparaciones; activar comunicaciones por sus canales disponibles.",
+  "actualizado": "2026-11-14"
 }

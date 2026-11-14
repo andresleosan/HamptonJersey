@@ -14,7 +14,8 @@
     "server/applicants.js:21-23",
     "migrations/0013_rentals.sql:30-63",
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26",
-    "docs/superpowers/plans/2026-11-10-tp03-adm-18-plan.md (Dependencies: ADM-06, PRE-03, PRE-29, AGE-12, ADM-12; «ADM17/PRE03/PRE29 aportan política/evidencia real; no se inventa al construir»)."
+    "docs/superpowers/plans/2026-11-10-tp03-adm-18-plan.md (Dependencies: ADM-06, PRE-03, PRE-29, AGE-12, ADM-12; «ADM17/PRE03/PRE29 aportan política/evidencia real; no se inventa al construir»).",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): necesita solo el acceso de caso de ADM-12; sus capacidades se construyen antes e independientes."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -27,6 +28,13 @@
       "reason": "Los criterios de asequibilidad y la política de registros de Hampton deben estar aprobados; el plan prohíbe inventarlos al construir.",
       "basis": "explicit",
       "scope": "whole"
+    },
+    {
+      "id": "ADM-12",
+      "scope": "component:case-access",
+      "consumer_component": "application-form",
+      "requires": "integrated",
+      "basis": "TP05 contracts, not whole-task completion"
     }
   ],
   "externalBlocker": "",

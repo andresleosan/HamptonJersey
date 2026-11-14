@@ -36,6 +36,16 @@ Pasos obligatorios: archivo publicado en `main` y leído entero, ensayo en D1 lo
 
 Si algo no está en ninguna de las dos listas y es difícil de revertir o sale del repositorio, se trata como no autorizado.
 
+## Alcance según el plan maestro · adaptación del 14-nov-2026
+
+Luis pidió adaptar las tareas pendientes al [plan maestro vigente](2026-11-10-plan-maestro-vigente.md), que prevalece sobre el catálogo antiguo:
+
+- **Retiradas** (pasan a `descartado`, el tablero baja de 215 a 211 aplicables): MSG-01, PUB-03, PRE-02 y PRE-08, todo lo de Meta.
+- **Aplazadas a una fase posterior** (siguen contando, pero ni se construyen ni bloquean): VIS-15, AUT-06, AUT-08, PUB-20, PUB-21, PRE-01 y PRE-24.
+- **Dependencias por componente**: la ruta ya no esconde una tarea porque otra esté sin cerrar; ver la sección 2 de la skill.
+- **Decisiones de producto**: el plan maestro las da por resueltas. Las fichas que anotaban una decisión pendiente llevan ahora la regla del plan.
+- **Tareas con código por construir que estaban en la cola** vuelven a `desarrollo`; lo externo es condición de activación: BUS-19, PUB-16, MSG-03, ADM-10, ADM-17, ADM-19, PRE-06 y VIS-12.
+
 ## Estado de partida · 14-nov-2026
 
 - Tablero: **69 de 215 (32,09 %)**. Última tarea cerrada: PUB-08 (`9f4f884`), con `0048` aplicada y `PUB08_CONTENT_READY=1`.

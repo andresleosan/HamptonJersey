@@ -10,16 +10,18 @@
   "falta": "Sin respuesta: si usan WhatsApp con clientes y si tienen un número que pueda pasar a WhatsApp Business (decide F6).",
   "bloqueo": "Dato de Hampton",
   "evidencia": [
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:699"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:699",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: WhatsApp es posterior."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
-  "executionEligibility": "needs_scope_and_evidence_review",
+  "executionEligibility": "deferred_later_phase",
   "dependencies": [],
   "externalBlocker": "Hampton: Dato de Hampton",
   "resources": [
     "whatsapp-integration"
   ],
-  "nextStep": "Hampton confirma uso y número disponible para WhatsApp Business."
+  "nextStep": "Hampton confirma uso y número disponible para WhatsApp Business.",
+  "actualizado": "2026-11-14"
 }

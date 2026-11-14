@@ -4,14 +4,15 @@
   "titulo": "Referencias del inquilino por email y contrato de plantilla con firma electrónica",
   "origen": "plan",
   "fase": "F5-B",
-  "estado": "bloqueado",
-  "responsable": "Luis",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
   "hecho": "",
-  "falta": "No existen: pedir referencias por email con un enlace necesita el servicio de correo, y el contrato de plantilla con firma electrónica necesita una plantilla revisada por un abogado de Jersey y un proveedor de firma.",
-  "bloqueo": "Correo (AUT-17) · JFSC/abogado",
+  "falta": "No existen las referencias del inquilino por email con un enlace de acceso con caducidad elegida por el empleado (necesitan el correo, AUT-17, y el acceso de caso de ADM-12). Plan maestro (10-nov-2026): la firma del contrato se hace fuera de Hampton; la app solo registra la evidencia externa revisada, sin proveedor de firma ni subida de documentos. La plantilla de contrato necesita la revisión de un abogado de Jersey.",
+  "bloqueo": "",
   "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26",
-    "migrations/0013_rentals.sql:30-63"
+    "migrations/0013_rentals.sql:30-63",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la firma se hace fuera de Hampton, sin proveedor de firma. Vuelve a desarrollo: lo externo es condición de activación."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -31,9 +32,23 @@
       "reason": "Solo las plantillas, plazos o cargos correspondientes necesitan validación del abogado; no acredita autorización por asignar tarea.",
       "basis": "inferred",
       "scope": "partial"
+    },
+    {
+      "id": "ADM-12",
+      "scope": "component:case-access",
+      "consumer_component": "reference-forms",
+      "requires": "integrated",
+      "basis": "TP05 contracts, not whole-task completion"
+    },
+    {
+      "id": "ADM-18",
+      "scope": "component:application-entity-and-capabilities",
+      "consumer_component": "reference-forms",
+      "requires": "integrated",
+      "basis": "TP05 contracts, not whole-task completion"
     }
   ],
-  "externalBlocker": "Luis: Correo (AUT-17) · JFSC/abogado",
+  "externalBlocker": "Correo (AUT-17) para enviar referencias · plantilla de contrato revisada por un abogado de Jersey.",
   "resources": [
     "rentals-contract",
     "rentals-ui",
@@ -41,5 +56,6 @@
     "electronic-signature",
     "legal-parameters"
   ],
-  "nextStep": "Coordinar correo, plantilla validada y proveedor de firma antes de activar referencias y contrato electrónico."
+  "nextStep": "Construir la solicitud de referencias sobre ADM-12 y ADM-18 y el registro de la evidencia de firma externa; activar el envío cuando AUT-17 opere.",
+  "actualizado": "2026-11-14"
 }

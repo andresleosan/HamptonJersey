@@ -8,18 +8,19 @@
   "responsable": "Luis",
   "hecho": "La regla se mantiene para C3 (documentos, ingresos, referencias, atrasos, datos bancarios) y Luis eligió Ollama en el VPS, al que solo llega Cloudflare por un túnel privado (A2); el plan deja los datos personales básicos (C2) por API con acuerdo de tratamiento y sin nombre ni teléfono.",
   "falta": "No hay ninguna automatización con IA sobre datos C3 ni conexión con un modelo local: F5-A trata atrasos y extractos sin IA, lo que la regla permite. En el Docker del VPS no hay contenedor de Ollama (docker ps -a, 28-oct; fuera de Docker no se pudo comprobar); llega con el carril privado (AUT-08). Con Hermes (P-18), los datos C3 nunca pasarán por él: siguen este camino de A2 (§6.6).",
-  "bloqueo": "",
+  "bloqueo": "Aplazada a una fase posterior por el plan maestro (10-nov-2026).",
   "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:28",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:462-463",
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:48",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:36",
-    "docker ps -a (28-oct-2026): sin contenedor de Ollama"
+    "docker ps -a (28-oct-2026): sin contenedor de Ollama",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: modelos locales, posteriores."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
-  "executionEligibility": "needs_scope_and_evidence_review",
+  "executionEligibility": "deferred_later_phase",
   "dependencies": [
     {
       "id": "AUT-08",
@@ -34,5 +35,6 @@
     "model-data-policy",
     "vps-private-services"
   ],
-  "nextStep": "Definir el uso local de datos C3 cuando exista el carril privado autorizado; no enviarlos a Hermes."
+  "nextStep": "Definir el uso local de datos C3 cuando exista el carril privado autorizado; no enviarlos a Hermes.",
+  "actualizado": "2026-11-14"
 }

@@ -8,13 +8,14 @@
   "responsable": "desarrollo",
   "hecho": "Existen Requirements (editable; al guardar se recalcula el matching), Matches, Offers (búsquedas To Buy) y Timeline, que incluye las visitas con el mismo email o teléfono.",
   "falta": "Una pestaña Viewings con las visitas ligadas al aplicante (hoy solo se cruzan por email o teléfono, G4) y la pestaña Messages con sus conversaciones (F6).",
-  "bloqueo": "Correo (AUT-17) · Trámite Meta",
+  "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "admin/src/ApplicantDetail.jsx:19",
     "admin/src/ApplicantDetail.jsx:312-330",
     "admin/src/ApplicantDetail.jsx:434-449",
     "server/routes/applicants.js:131-141",
-    "server/routes/applicants.js:261"
+    "server/routes/applicants.js:261",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
@@ -36,11 +37,12 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Activación de correo y permisos Meta solo para esos canales; no bloquear artificialmente visitas/chat independientes.",
+  "externalBlocker": "Activación de correo (AUT-17) solo para ese canal; visitas y chat son independientes.",
   "resources": [
     "applicants-ui",
     "viewings-contract",
     "messages-contract"
   ],
-  "nextStep": "Añadir vínculos persistentes de visitas y conversaciones a la búsqueda, separando canales todavía no activos."
+  "nextStep": "Añadir vínculos persistentes de visitas y conversaciones a la búsqueda, separando canales todavía no activos.",
+  "actualizado": "2026-11-14"
 }

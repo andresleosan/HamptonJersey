@@ -19,7 +19,8 @@
     "admin/src/Rentals.jsx:96-104",
     "migrations/0013_rentals.sql:47-48",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:515",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:524-525"
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:524-525",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): necesita solo las capacidades de caso de ADM-18."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -32,6 +33,12 @@
       "reason": "Validar controles y plazos antes de activarlos como cumplimiento exigible.",
       "basis": "inferred",
       "scope": "partial"
+    },
+    {
+      "id": "ADM-18",
+      "scope": "component:case-capabilities",
+      "requires": "integrated",
+      "basis": "TP05 no case-files"
     }
   ],
   "externalBlocker": "",
@@ -41,5 +48,6 @@
     "notifications-schema",
     "legal-parameters"
   ],
-  "nextStep": "Completar los controles y avisos de cumplimiento documentados y conectarlos al Inbox tras validación correspondiente."
+  "nextStep": "Completar los controles y avisos de cumplimiento documentados y conectarlos al Inbox tras validación correspondiente.",
+  "actualizado": "2026-11-14"
 }

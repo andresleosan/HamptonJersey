@@ -17,7 +17,8 @@
     "server/property-facts.js",
     "tests/server/property-facts.test.mjs",
     "docs/roadmap/work/EST-16/foundation-evidence.md",
-    "docs/roadmap/work/EST-16/persistence-readiness.md"
+    "docs/roadmap/work/EST-16/persistence-readiness.md",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): vigencia de la disponibilidad ya decidida."
   ],
   "modulo": "M02",
   "deps": [
@@ -37,11 +38,11 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Acordar vigencia de disponibilidad compartida y plazos Stale; no asumir los 7/30 días históricos.",
+  "externalBlocker": "",
   "resources": [
     "market-inventory",
     "availability-contract"
   ],
-  "nextStep": "Construir almacenamiento y autoridad verificables para conectar hechos a inventario y consultas, conservando revisión ante conflictos.",
+  "nextStep": "La disponibilidad general se reutiliza hasta nueva información con fecha y las condiciones del cliente van separadas (sin plazos fijos de 7 o 30 días). Construir almacenamiento y autoridad verificables para conectar hechos a inventario y consultas, conservando revisión ante conflictos.",
   "actualizado": "2026-11-14"
 }

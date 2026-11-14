@@ -13,7 +13,8 @@
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
     "server/property-photo-purge.js",
     "tests/server/photo-purge-policy.test.mjs",
-    "docs/roadmap/work/EST-19/policy-synthetic-2026-11-13.md"
+    "docs/roadmap/work/EST-19/policy-synthetic-2026-11-13.md",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): qué purga la papelera ya decidido."
   ],
   "modulo": "M12",
   "deps": [
@@ -72,12 +73,13 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Definir antes qué archivos se purgan y qué identidad/historial se conserva; no ampliar borrado de personas.",
+  "externalBlocker": "",
   "resources": [
     "market-inventory",
     "availability-contract",
     "media-private",
     "jobs-clock"
   ],
-  "nextStep": "Acreditar productores, reloj y referencias, y diseñar preview y reserva transaccional sin habilitar borrados hasta revisar retención."
+  "nextStep": "Papelera de 6 meses que purga solo fotos y derivados; nunca documentos, planos, historia ni recursos compartidos activos, y sin ampliar el borrado de personas. Acreditar productores, reloj y referencias, y diseñar preview y reserva transaccional sin habilitar borrados hasta revisar retención.",
+  "actualizado": "2026-11-14"
 }

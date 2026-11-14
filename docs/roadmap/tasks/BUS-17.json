@@ -21,7 +21,8 @@
     "docs/roadmap/work/BUS-17/reloj-jersey-2026-11-13.md",
     "server/search-coverage.js",
     "tests/server/search-coverage.test.mjs",
-    "docs/roadmap/work/BUS-12/coverage-foundation-evidence.md"
+    "docs/roadmap/work/BUS-12/coverage-foundation-evidence.md",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): reloj de ausencia y episodios ya decididos."
   ],
   "modulo": "M10",
   "deps": [
@@ -65,13 +66,13 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Acordar comparación de diferencias, reinicio del reloj y revisiones posteriores antes de cerrar diseño.",
+  "externalBlocker": "",
   "resources": [
     "matching-contract",
     "jobs-clock",
     "notifications-schema",
     "search-lifecycle"
   ],
-  "nextStep": "Definir el reloj de 21 días y crear revisión interna explicable de hasta 20 alternativas sin cambiar criterios ni enviar al cliente.",
+  "nextStep": "Construir la revisión de ausencia a los 21 días con repetición a los 7 días desde el cierre y una sola abierta; una opción completa o confirmada interrumpe la ausencia y una bajada de precio material tras un rechazo abre un episodio Found nuevo para revisión humana. Hasta 20 alternativas explicables, sin cambiar criterios ni enviar al cliente.",
   "actualizado": "2026-11-14"
 }

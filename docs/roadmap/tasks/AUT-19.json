@@ -10,7 +10,8 @@
   "falta": "M11 · Reconciliación 7-nov: Después de hablar con el cliente, permitir al empleado introducir o dictar solo los cambios aceptados. El bot prepara valores anteriores/propuestos; el empleado confirma o corrige antes de guardar. Conservar versión, fecha, responsable y evidencia de la confirmación; recalcular matches y actualizar acciones/tareas afectadas. Resolver ediciones simultáneas sin sobrescribir silenciosamente. Usar un canal autenticado compatible con las fronteras actuales de datos de Hermes; este plan no habilita clientes ni criterios privados por Telegram. Depende de: REG-11, BUS-12, EST-18. Aceptación: Dictar subir presupuesto no cambia datos hasta confirmar; no altera parking ni otros MUST no mencionados, y al confirmar recalcula sin duplicados. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: propuesta dictada pendiente de confirmar.",
   "bloqueo": "",
   "evidencia": [
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): vía del modelo ya decidida: Hermes central."
   ],
   "modulo": "M11",
   "deps": [
@@ -53,7 +54,7 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Definir carril autenticado apto para transcripción de criterios privados; Telegram no queda autorizado.",
+  "externalBlocker": "Vía Hermes/Pro verificada (PRE-32) solo para el tramo con modelo; sin ella el empleado continúa a mano. Telegram no autorizado.",
   "resources": [
     "applicants-schema",
     "matching-contract",

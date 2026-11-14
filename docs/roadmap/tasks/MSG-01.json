@@ -4,20 +4,21 @@
   "titulo": "Responder desde el panel los mensajes de Facebook e Instagram",
   "origen": "texto",
   "fase": "F6",
-  "estado": "bloqueado",
+  "estado": "descartado",
   "responsable": "Luis",
   "hecho": "",
-  "falta": "No hay conexión con Messenger ni con Instagram (webhooks de la API de Meta) ni pantalla Messages en el panel; responder en nombre de la página exige una app de Meta verificada y respetar la ventana de 24 horas.",
-  "bloqueo": "Trámite Meta",
+  "falta": "Retirada expresa del plan maestro vigente (10-nov-2026): la publicación, la mensajería y la integración o webhooks de Meta quedan fuera de la fase vigente. Reincorporarla exige una decisión nueva de Luis. Alcance anterior, solo como historia: No hay conexión con Messenger ni con Instagram (webhooks de la API de Meta) ni pantalla Messages en el panel; responder en nombre de la página exige una app de Meta verificada y respetar la ventana de 24 horas.",
+  "bloqueo": "",
   "evidencia": [
     "server/api.js:3-21",
     "admin/src/App.jsx:122-136",
-    "docs/roadmap/ESTADO.md:14"
+    "docs/roadmap/ESTADO.md:14",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): retirada expresa de Meta."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
-  "executionEligibility": "needs_scope_and_evidence_review",
+  "executionEligibility": "historical",
   "dependencies": [
     {
       "id": "PRE-02",
@@ -34,10 +35,11 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Luis/Meta: verificación de negocio y permisos operativos.",
+  "externalBlocker": "",
   "resources": [
     "web-chat",
     "meta-channel"
   ],
-  "nextStep": "Obtener trámite Meta y conectar sus canales a la pantalla Messages existente, sin reconstruirla."
+  "nextStep": "Conservar lo existente y no construir el alcance retirado.",
+  "actualizado": "2026-11-14"
 }

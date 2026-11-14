@@ -8,11 +8,12 @@
   "responsable": "desarrollo",
   "hecho": "Cada aviso trae Done, Call con el número a la vista y el enlace a su ficha (Open applicant, Review matches, Open viewings o Add a search for this contact).",
   "falta": "M13 · Reconciliación 7-nov: Approve sin salir del aviso, Reply y Snooze para posponerlo. Aprobar match debe autorizar la consulta definida, Call muestra todos los teléfonos y registra resultado, Abrir ficha muestra archivos parciales, y confirmar dictado enseña antes/después. Done no sustituye confirmación de disponibilidad ni cierre de búsqueda. Depende de: BUS-15, AGE-08, SPR-03, AUT-19.",
-  "bloqueo": "Correo (AUT-17) · Trámite Meta",
+  "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "admin/src/Inbox.jsx:19-21",
     "admin/src/Inbox.jsx:81-95",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
   ],
   "modulo": "M13",
   "deps": [
@@ -60,16 +61,9 @@
       "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
       "basis": "explicit",
       "scope": "partial"
-    },
-    {
-      "id": "PRE-02",
-      "requires": "activated",
-      "reason": "Solo para los canales reales de Meta/WhatsApp; no bloquea las tareas manuales ni otros canales.",
-      "basis": "inferred",
-      "scope": "partial"
     }
   ],
-  "externalBlocker": "Correo (AUT-17) · Trámite Meta",
+  "externalBlocker": "Correo (AUT-17)",
   "resources": [
     "notifications-schema",
     "inbox-ui",
@@ -77,5 +71,6 @@
     "agency-consultations-contract",
     "dictation-contract"
   ],
-  "nextStep": "Añadir acciones contextuales sobre las gestiones ya construidas, sin convertir Done en cierre de búsqueda."
+  "nextStep": "Añadir acciones contextuales sobre las gestiones ya construidas, sin convertir Done en cierre de búsqueda.",
+  "actualizado": "2026-11-14"
 }

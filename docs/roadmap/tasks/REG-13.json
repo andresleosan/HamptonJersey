@@ -12,7 +12,8 @@
   "evidencia": [
     "server/applicants.js:174",
     "migrations/0008_applicants.sql:51",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:18"
+    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:18",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): vía del modelo ya decidida: Hermes central; los modelos locales son posteriores."
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
@@ -41,11 +42,12 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Elegir Hermes con carril autorizado para requisitos C2 (PRE-32) o modelo local AUT-06; alternativas, no dos dependencias obligatorias.",
+  "externalBlocker": "Vía Hermes/Pro verificada (PRE-32) para requisitos C2; los modelos locales (AUT-06) son posteriores.",
   "resources": [
     "requirements-contract",
     "applicants-ui",
     "model-data-contract"
   ],
-  "nextStep": "Elegir carril de datos autorizado y proponer etiquetas extraídas que el empleado confirme antes de guardar."
+  "nextStep": "Proponer etiquetas extraídas que el empleado confirma antes de guardar, por la vía Hermes central cuando PRE-32 la verifique; mientras tanto, continuación humana.",
+  "actualizado": "2026-11-14"
 }

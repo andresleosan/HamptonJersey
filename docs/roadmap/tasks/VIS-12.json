@@ -4,26 +4,28 @@
   "titulo": "La cita en el Google o Outlook Calendar del negociador e invitación al aplicante",
   "origen": "plan",
   "fase": "F3-B",
-  "estado": "bloqueado",
-  "responsable": "Luis",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
   "hecho": "",
-  "falta": "No hay conexión con calendarios: la cita no se escribe en la agenda del negociador, no se leen sus horas ocupadas personales y el aplicante no recibe invitación.",
-  "bloqueo": "Calendario Google/Outlook",
+  "falta": "No hay conexión con calendarios: la cita no se escribe en la agenda del negociador, no se leen sus horas ocupadas personales y el aplicante no recibe invitación. Plan maestro (10-nov-2026): Google Calendar primero; Outlook es posterior.",
+  "bloqueo": "",
   "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:10",
     "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18",
-    "docs/roadmap/ESTADO.md:11"
+    "docs/roadmap/ESTADO.md:11",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Google Calendar primero; Outlook es posterior. Vuelve a desarrollo: lo externo es condición de activación."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
   "dependencies": [],
-  "externalBlocker": "Luis: Calendario Google/Outlook",
+  "externalBlocker": "Luis: credenciales y permiso de la cuenta de Google Calendar para activar; el código se construye antes, apagado.",
   "resources": [
     "viewings-contract",
     "viewings-ui",
     "calendar-integration"
   ],
-  "nextStep": "Luis debe habilitar la conexión de calendario; después integrar ocupaciones e invitaciones con la agenda actual."
+  "nextStep": "Construir la integración con Google Calendar según su plan, apagada; Luis habilita la conexión para activarla.",
+  "actualizado": "2026-11-14"
 }

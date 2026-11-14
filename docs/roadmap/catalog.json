@@ -6007,7 +6007,7 @@
       "preferredSlot": "hermes",
       "priority": 260,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -6253,7 +6253,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 267,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -7962,7 +7962,7 @@
       "preferredSlot": "hermes",
       "priority": 318,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -8106,7 +8106,7 @@
       "preferredSlot": "hermes",
       "priority": 323,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -9278,11 +9278,12 @@
       "responsable": "desarrollo",
       "hecho": "Cada aviso trae Done, Call con el número a la vista y el enlace a su ficha (Open applicant, Review matches, Open viewings o Add a search for this contact).",
       "falta": "M13 · Reconciliación 7-nov: Approve sin salir del aviso, Reply y Snooze para posponerlo. Aprobar match debe autorizar la consulta definida, Call muestra todos los teléfonos y registra resultado, Abrir ficha muestra archivos parciales, y confirmar dictado enseña antes/después. Done no sustituye confirmación de disponibilidad ni cierre de búsqueda. Depende de: BUS-15, AGE-08, SPR-03, AUT-19.",
-      "bloqueo": "Correo (AUT-17) · Trámite Meta",
+      "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "admin/src/Inbox.jsx:19-21",
         "admin/src/Inbox.jsx:81-95",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
       ],
       "modulo": "M13",
       "deps": [
@@ -9330,16 +9331,9 @@
           "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
           "basis": "explicit",
           "scope": "partial"
-        },
-        {
-          "id": "PRE-02",
-          "requires": "activated",
-          "reason": "Solo para los canales reales de Meta/WhatsApp; no bloquea las tareas manuales ni otros canales.",
-          "basis": "inferred",
-          "scope": "partial"
         }
       ],
-      "externalBlocker": "Correo (AUT-17) · Trámite Meta",
+      "externalBlocker": "Correo (AUT-17)",
       "resources": [
         "notifications-schema",
         "inbox-ui",
@@ -9347,7 +9341,8 @@
         "agency-consultations-contract",
         "dictation-contract"
       ],
-      "nextStep": "Añadir acciones contextuales sobre las gestiones ya construidas, sin convertir Done en cierre de búsqueda."
+      "nextStep": "Añadir acciones contextuales sobre las gestiones ya construidas, sin convertir Done en cierre de búsqueda.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "NOT-10",
@@ -9670,13 +9665,14 @@
       "responsable": "desarrollo",
       "hecho": "Existen Requirements (editable; al guardar se recalcula el matching), Matches, Offers (búsquedas To Buy) y Timeline, que incluye las visitas con el mismo email o teléfono.",
       "falta": "Una pestaña Viewings con las visitas ligadas al aplicante (hoy solo se cruzan por email o teléfono, G4) y la pestaña Messages con sus conversaciones (F6).",
-      "bloqueo": "Correo (AUT-17) · Trámite Meta",
+      "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "admin/src/ApplicantDetail.jsx:19",
         "admin/src/ApplicantDetail.jsx:312-330",
         "admin/src/ApplicantDetail.jsx:434-449",
         "server/routes/applicants.js:131-141",
-        "server/routes/applicants.js:261"
+        "server/routes/applicants.js:261",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
       ],
       "assignedSlot": "vps",
       "allocationStatus": "proposed",
@@ -9698,13 +9694,14 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Activación de correo y permisos Meta solo para esos canales; no bloquear artificialmente visitas/chat independientes.",
+      "externalBlocker": "Activación de correo (AUT-17) solo para ese canal; visitas y chat son independientes.",
       "resources": [
         "applicants-ui",
         "viewings-contract",
         "messages-contract"
       ],
-      "nextStep": "Añadir vínculos persistentes de visitas y conversaciones a la búsqueda, separando canales todavía no activos."
+      "nextStep": "Añadir vínculos persistentes de visitas y conversaciones a la búsqueda, separando canales todavía no activos.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "SAP-09",
@@ -9775,7 +9772,8 @@
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
         "tests/sap10-confirmation.e2e.cjs",
         "tests/server/applicants.test.mjs",
-        "docs/roadmap/work/SAP-10/confirmacion-manual-2026-11-13.md"
+        "docs/roadmap/work/SAP-10/confirmacion-manual-2026-11-13.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la pausa o retirada queda fuera del alcance vigente y no bloquea."
       ],
       "modulo": "M10",
       "deps": [
@@ -9811,13 +9809,14 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Definición de pausa/retirada sigue abierta y fuera del alcance vigente.",
+      "externalBlocker": "",
       "resources": [
         "requirements-contract",
         "applicants-ui",
         "search-lifecycle"
       ],
-      "nextStep": "Integrar propuestas AUT-19 con la confirmación humana y mantener la pausa fuera del alcance vigente."
+      "nextStep": "Integrar propuestas AUT-19 con la confirmación humana y mantener la pausa fuera del alcance vigente.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "SPR-01",
@@ -10540,7 +10539,8 @@
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:295",
         "docs/roadmap/ESTADO.md:10",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): cómputo de la llamada ya decidido."
       ],
       "modulo": "M06",
       "deps": [
@@ -10592,13 +10592,13 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Decisión de producto pendiente sobre días naturales/laborables, hora y fines de semana.",
+      "externalBlocker": "",
       "resources": [
         "consultations-contract",
         "jobs-clock",
         "notifications-schema"
       ],
-      "nextStep": "Crear una única llamada pendiente a los dos días sin respuesta útil, tras definir cómputo de días y horarios.",
+      "nextStep": "Crear una única llamada pendiente a los dos días laborables (lunes a viernes, misma hora de Jersey) contados desde el envío real y sin respuesta útil.",
       "actualizado": "2026-11-14"
     },
     {
@@ -10721,7 +10721,8 @@
       "evidencia": [
         "admin/src/ApplicantDetail.jsx:279-281",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:303-305",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): disparador de la presentación ya decidido."
       ],
       "modulo": "M08",
       "deps": [
@@ -10780,13 +10781,14 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Luis/equipo deben decidir el disparador final del envío de presentación.",
+      "externalBlocker": "",
       "resources": [
         "private-presentation",
         "matching-contract",
         "outbound-policy"
       ],
-      "nextStep": "Preparar presentación privada y concretar el disparador de envío antes de activarlo."
+      "nextStep": "Preparar la presentación privada con revisión humana adicional antes de cada envío y enlace válido hasta su revocación; la envía un empleado, nunca sola.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "AGE-12",
@@ -11304,28 +11306,30 @@
       "titulo": "La cita en el Google o Outlook Calendar del negociador e invitación al aplicante",
       "origen": "plan",
       "fase": "F3-B",
-      "estado": "bloqueado",
-      "responsable": "Luis",
+      "estado": "pendiente",
+      "responsable": "desarrollo",
       "hecho": "",
-      "falta": "No hay conexión con calendarios: la cita no se escribe en la agenda del negociador, no se leen sus horas ocupadas personales y el aplicante no recibe invitación.",
-      "bloqueo": "Calendario Google/Outlook",
+      "falta": "No hay conexión con calendarios: la cita no se escribe en la agenda del negociador, no se leen sus horas ocupadas personales y el aplicante no recibe invitación. Plan maestro (10-nov-2026): Google Calendar primero; Outlook es posterior.",
+      "bloqueo": "",
       "evidencia": [
         "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:10",
         "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:18",
-        "docs/roadmap/ESTADO.md:11"
+        "docs/roadmap/ESTADO.md:11",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Google Calendar primero; Outlook es posterior. Vuelve a desarrollo: lo externo es condición de activación."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
       "dependencies": [],
-      "externalBlocker": "Luis: Calendario Google/Outlook",
+      "externalBlocker": "Luis: credenciales y permiso de la cuenta de Google Calendar para activar; el código se construye antes, apagado.",
       "resources": [
         "viewings-contract",
         "viewings-ui",
         "calendar-integration"
       ],
-      "nextStep": "Luis debe habilitar la conexión de calendario; después integrar ocupaciones e invitaciones con la agenda actual."
+      "nextStep": "Construir la integración con Google Calendar según su plan, apagada; Luis habilita la conexión para activarla.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "VIS-13",
@@ -11454,16 +11458,17 @@
       "responsable": "desarrollo",
       "hecho": "",
       "falta": "No hay subida de audio, tabla jobs ni proceso en el VPS con faster-whisper. ESTADO la agrupa en F3-B con correo y calendario, pero no depende de ellos: necesita el carril privado del VPS (§2). Con Hermes (AUT-13), la transcripción seguiría en local y el resumen lo haría Hermes, solo con un plan Business y su memoria apagada (pregunta 16), porque una nota de voz puede llevar datos personales. Hoy Hermes no llega a Whisper, porque su salida no alcanza los servicios del VPS (AUT-08).",
-      "bloqueo": "",
+      "bloqueo": "Aplazada a una fase posterior por el plan maestro (10-nov-2026).",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:68",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:107",
-        "docs/roadmap/ESTADO.md:11"
+        "docs/roadmap/ESTADO.md:11",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: notas de voz y transcripción con modelos locales, posteriores."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "deferred_later_phase",
       "dependencies": [
         {
           "id": "AUT-08",
@@ -11487,7 +11492,8 @@
         "private-vps-processing",
         "voice-jobs"
       ],
-      "nextStep": "Diseñar subida y transcripción de notas por el carril privado permitido; validar antes el acceso y tratamiento de datos."
+      "nextStep": "Diseñar subida y transcripción de notas por el carril privado permitido; validar antes el acceso y tratamiento de datos.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "VIS-16",
@@ -11824,18 +11830,19 @@
       "responsable": "Luis",
       "hecho": "La regla se mantiene para C3 (documentos, ingresos, referencias, atrasos, datos bancarios) y Luis eligió Ollama en el VPS, al que solo llega Cloudflare por un túnel privado (A2); el plan deja los datos personales básicos (C2) por API con acuerdo de tratamiento y sin nombre ni teléfono.",
       "falta": "No hay ninguna automatización con IA sobre datos C3 ni conexión con un modelo local: F5-A trata atrasos y extractos sin IA, lo que la regla permite. En el Docker del VPS no hay contenedor de Ollama (docker ps -a, 28-oct; fuera de Docker no se pudo comprobar); llega con el carril privado (AUT-08). Con Hermes (P-18), los datos C3 nunca pasarán por él: siguen este camino de A2 (§6.6).",
-      "bloqueo": "",
+      "bloqueo": "Aplazada a una fase posterior por el plan maestro (10-nov-2026).",
       "evidencia": [
         "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:28",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:462-463",
         "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:48",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:36",
-        "docker ps -a (28-oct-2026): sin contenedor de Ollama"
+        "docker ps -a (28-oct-2026): sin contenedor de Ollama",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: modelos locales, posteriores."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "deferred_later_phase",
       "dependencies": [
         {
           "id": "AUT-08",
@@ -11850,7 +11857,8 @@
         "model-data-policy",
         "vps-private-services"
       ],
-      "nextStep": "Definir el uso local de datos C3 cuando exista el carril privado autorizado; no enviarlos a Hermes."
+      "nextStep": "Definir el uso local de datos C3 cuando exista el carril privado autorizado; no enviarlos a Hermes.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "AUT-07",
@@ -11893,7 +11901,7 @@
       "responsable": "Luis",
       "hecho": "Luis eligió el mecanismo (A2): Cloudflare Tunnel privado (Workers VPC o Access con token de servicio) hacia Ollama en el VPS, sin abrir puertos; Whisper ya corre en el VPS solo en 127.0.0.1:9300.",
       "falta": "No existe: ni tabla jobs, ni túnel o binding en wrangler.toml, ni cloudflared u Ollama en el Docker del VPS (docker ps -a, 28-oct), ni código que llame a un modelo local. Lo monta Luis y servirá a datos C3 (F5-B) y notas de voz (F3-B). Hermes (P-18) no es este carril: no alcanza los servicios del VPS y nunca recibe datos C3; pedirá a la app el trabajo de IA con datos públicos por su propia puerta (AUT-13, §6.6).",
-      "bloqueo": "",
+      "bloqueo": "Aplazada a una fase posterior por el plan maestro (10-nov-2026).",
       "evidencia": [
         "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:28",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:68",
@@ -11902,18 +11910,20 @@
         "wrangler.toml:1-20",
         "docker ps (28-oct-2026): infra-whisper-1 en 127.0.0.1:9300",
         "docker ps -a (28-oct-2026): sin cloudflared ni Ollama",
-        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6"
+        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: servidores y modelos locales, posteriores."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "deferred_later_phase",
       "dependencies": [],
       "externalBlocker": "Luis: aprobación y montaje del carril privado; no modificar infraestructura como parte del reparto.",
       "resources": [
         "vps-private-services"
       ],
-      "nextStep": "Preparar alcance revisable del carril privado y esperar su montaje autorizado por Luis."
+      "nextStep": "Preparar alcance revisable del carril privado y esperar su montaje autorizado por Luis.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "AUT-09",
@@ -12009,7 +12019,7 @@
       "responsable": "desarrollo",
       "hecho": "La pausa general está en producción desde el 1-nov-2026 (AUT-01/AUT-13). Añadido en local el 6-nov-2026, sin publicar, para AUT-17: idempotencia por snapshot, cuota compartida de 100 intentos por día de Jersey con reserva atómica, interruptor de correo y del resumen, supresiones y comprobación de pausa antes de cada llamada. Resultados inciertos sin reenvío automático. La pausa también detiene el resumen interno y el panel lo explica.",
       "falta": "M06 · Reconciliación 7-nov: Activar y probar AUT-17 en real. Topes por agencia y otros canales, horas de silencio de WhatsApp/SMS y barandillas particulares de cada futuro flujo se implementan con esos flujos; el tope compartido de correo no los sustituye. Solo una persona en el panel reanuda los envíos. El envío de consultas debe además revalidar aprobación, búsqueda activa, vigencia de propiedad y permisos antes de salir; un cambio de precio, requisitos o disponibilidad después de aprobar revisa las acciones pendientes. Dos empleados y los reintentos deben compartir la misma acción sin doble correo. Depende de: BUS-15, EST-09. Aceptación: Dos acciones concurrentes no envían dos veces y una propiedad invalidada no sale en una consulta pendiente.",
-      "bloqueo": "Activación de AUT-17; otros canales dependen de Meta",
+      "bloqueo": "Activación de AUT-17",
       "evidencia": [
         "admin/src/ApplicantDetail.jsx:279-281",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:444",
@@ -12018,7 +12028,8 @@
         "server/routes/email.js",
         "migrations/0023_email.sql",
         "tests/server/email.test.mjs",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
       ],
       "modulo": "M06",
       "deps": [
@@ -12053,13 +12064,14 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Activación de AUT-17; otros canales dependen de Meta",
+      "externalBlocker": "Activación de AUT-17",
       "resources": [
         "outbound-policy",
         "email-pipeline",
         "consultations-contract"
       ],
-      "nextStep": "Verificar activación real del correo y extender barandillas e idempotencia al flujo de consultas."
+      "nextStep": "Verificar activación real del correo y extender barandillas e idempotencia al flujo de consultas.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "AUT-12",
@@ -12348,7 +12360,8 @@
       "falta": "M11 · Reconciliación 7-nov: Después de hablar con el cliente, permitir al empleado introducir o dictar solo los cambios aceptados. El bot prepara valores anteriores/propuestos; el empleado confirma o corrige antes de guardar. Conservar versión, fecha, responsable y evidencia de la confirmación; recalcular matches y actualizar acciones/tareas afectadas. Resolver ediciones simultáneas sin sobrescribir silenciosamente. Usar un canal autenticado compatible con las fronteras actuales de datos de Hermes; este plan no habilita clientes ni criterios privados por Telegram. Depende de: REG-11, BUS-12, EST-18. Aceptación: Dictar subir presupuesto no cambia datos hasta confirmar; no altera parking ni otros MUST no mencionados, y al confirmar recalcula sin duplicados. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: propuesta dictada pendiente de confirmar.",
       "bloqueo": "",
       "evidencia": [
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): vía del modelo ya decidida: Hermes central."
       ],
       "modulo": "M11",
       "deps": [
@@ -12391,7 +12404,7 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Definir carril autenticado apto para transcripción de criterios privados; Telegram no queda autorizado.",
+      "externalBlocker": "Vía Hermes/Pro verificada (PRE-32) solo para el tramo con modelo; sin ella el empleado continúa a mano. Telegram no autorizado.",
       "resources": [
         "applicants-schema",
         "matching-contract",
@@ -12845,7 +12858,8 @@
         "docs/roadmap/work/BUS-06/avance-publicable.md",
         "tests/test_directory_manifest.py",
         "admin/src/MarketInventory.jsx",
-        "tests/bus06-coverage.e2e.cjs"
+        "tests/bus06-coverage.e2e.cjs",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): dependencias por componente (TP-05)."
       ],
       "modulo": "M02",
       "deps": [
@@ -12860,22 +12874,36 @@
       "executionEligibility": "needs_scope_and_evidence_review",
       "dependencies": [
         {
-          "id": "BUS-23",
-          "requires": "research_accepted",
-          "reason": "Dependencia declarada en el pendiente del checklist.",
-          "basis": "explicit",
-          "scope": "whole"
+          "id": "BUS-19",
+          "scope": "component:source-access-policy",
+          "consumer_component": "runner",
+          "requires": "integrated",
+          "basis": "TP05 contracts, not whole-task completion"
         },
         {
-          "id": "BUS-19",
-          "requires": "decision",
-          "reason": "Permiso/método de cada fuente utilizada; no exige resolver todas las fuentes para comenzar.",
-          "basis": "explicit",
-          "scope": "partial"
+          "id": "BUS-09",
+          "scope": "component:normalizer-and-readers",
+          "consumer_component": "runner",
+          "requires": "integrated",
+          "basis": "TP05 contracts, not whole-task completion"
+        },
+        {
+          "id": "BUS-08",
+          "scope": "component:daily-scheduler",
+          "consumer_component": "daily-activation",
+          "requires": "integrated",
+          "basis": "TP05 contracts, not whole-task completion"
         },
         {
           "id": "AGE-04",
+          "scope": "component:source-identity",
+          "consumer_component": "external-source-projection",
           "requires": "integrated",
+          "basis": "TP05 contracts, not whole-task completion"
+        },
+        {
+          "id": "BUS-23",
+          "requires": "research_accepted",
           "reason": "Dependencia declarada en el pendiente del checklist.",
           "basis": "explicit",
           "scope": "whole"
@@ -13047,7 +13075,8 @@
         "server/market-observation-ingest.js",
         "server/market-manual-contract.js",
         "tests/server/bus-09-ingestion-d1.test.mjs",
-        "docs/roadmap/work/BUS-09/ingesta-manual-2026-11-13.md"
+        "docs/roadmap/work/BUS-09/ingesta-manual-2026-11-13.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): dependencias por componente (TP-05)."
       ],
       "modulo": "M02",
       "deps": [
@@ -13061,10 +13090,24 @@
       "dependencies": [
         {
           "id": "BUS-06",
+          "scope": "component:inventory-store",
+          "consumer_component": "adapters-and-review",
           "requires": "integrated",
-          "reason": "Dependencia declarada en el pendiente del checklist.",
-          "basis": "explicit",
-          "scope": "whole"
+          "basis": "TP05 contracts, not whole-task completion"
+        },
+        {
+          "id": "BUS-19",
+          "scope": "component:source-access-policy",
+          "consumer_component": "manual-external-admission",
+          "requires": "integrated",
+          "basis": "TP05 contracts, not whole-task completion"
+        },
+        {
+          "id": "AUT-13",
+          "scope": "component:model-requests-dispatch",
+          "consumer_component": "ambiguity-model-port",
+          "requires": "integrated",
+          "basis": "TP05 contracts, not whole-task completion"
         }
       ],
       "externalBlocker": "",
@@ -13466,7 +13509,8 @@
         "docs/roadmap/work/BUS-17/reloj-jersey-2026-11-13.md",
         "server/search-coverage.js",
         "tests/server/search-coverage.test.mjs",
-        "docs/roadmap/work/BUS-12/coverage-foundation-evidence.md"
+        "docs/roadmap/work/BUS-12/coverage-foundation-evidence.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): reloj de ausencia y episodios ya decididos."
       ],
       "modulo": "M10",
       "deps": [
@@ -13510,14 +13554,14 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Acordar comparación de diferencias, reinicio del reloj y revisiones posteriores antes de cerrar diseño.",
+      "externalBlocker": "",
       "resources": [
         "matching-contract",
         "jobs-clock",
         "notifications-schema",
         "search-lifecycle"
       ],
-      "nextStep": "Definir el reloj de 21 días y crear revisión interna explicable de hasta 20 alternativas sin cambiar criterios ni enviar al cliente.",
+      "nextStep": "Construir la revisión de ausencia a los 21 días con repetición a los 7 días desde el cierre y una sola abierta; una opción completa o confirmada interrumpe la ausencia y una bajada de precio material tras un rechazo abre un episodio Found nuevo para revisión humana. Hasta 20 alternativas explicables, sin cambiar criterios ni enviar al cliente.",
       "actualizado": "2026-11-14"
     },
     {
@@ -13585,7 +13629,7 @@
       "origen": "plan",
       "fase": "F1-B",
       "estado": "parcial",
-      "responsable": "Luis",
+      "responsable": "desarrollo",
       "hecho": "Revisión documental local de 237 registros fuente/canal para 141 identificadores; servicio de revisión versionada construido y probado. No se han concedido permisos ni activado fuentes reales. Rutas y pantalla de revisión por canal, bajo el gate existente, con versión, conflictos y conservación de borrador; verificación sintética y D1 local.",
       "falta": "Faltan la revisión efectiva y evidencia por canal, la aplicación de las decisiones a los lectores y la verificación operativa de la pantalla de revisión. M01 · Reconciliación 7-nov: No hay lector de webs externas: hoy la app solo llama a Turnstile y a las claves públicas de Google del login. Antes de leer la web de una agencia hay que comprobar que sus términos lo permiten, y leerla con baja frecuencia, respetando robots.txt y con un user-agent identificado. Properties.je solo con permiso escrito; JEP property, OnTheMarket y Rightmove después de revisar sus términos; Homely.je nunca, porque sus términos lo prohíben. Actualizar esta revisión por fuente con canal utilizable, acceso público/restringido, última comprobación y trabajo manual pendiente. Las restricciones históricas se conservan hasta comprobar condiciones vigentes; no se exige obtener acceso a todas las fuentes para comenzar con las operativas. Una fuente inaccesible no se cuenta como fuente sin anuncios. Aceptación: Cada fuente indica método disponible o tarea manual; las restricciones se ven sin paralizar todas las demás.",
       "bloqueo": "",
@@ -13602,7 +13646,8 @@
         "admin/src/SourceAccessReview.jsx",
         "tests/server/bus-19-policy-routes.test.mjs",
         "tests/server/bus-19-policy-routes-d1.test.mjs",
-        "tests/bus19-source-review.e2e.cjs"
+        "tests/bus19-source-review.e2e.cjs",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la política por fuente y su pantalla se construyen; los permisos escritos solo afectan a sus fuentes. Vuelve a desarrollo: lo externo es condición de activación."
       ],
       "modulo": "M01",
       "deps": [],
@@ -13611,13 +13656,21 @@
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
-      "dependencies": [],
-      "externalBlocker": "Luis gestiona permisos que requieran autorización escrita; cada fuente conserva restricciones y revisión propia.",
+      "dependencies": [
+        {
+          "id": "BUS-06",
+          "scope": "component:source-schema",
+          "consumer_component": "source-policy-storage",
+          "requires": "integrated",
+          "basis": "TP05 contracts, not whole-task completion"
+        }
+      ],
+      "externalBlocker": "Luis: permisos escritos de las fuentes que los exijan; solo afectan a esas fuentes, no a la política ni a las fuentes ya permitidas.",
       "resources": [
         "source-access-policy"
       ],
       "nextStep": "Acreditar la recepción del manifiesto, revisar cada canal utilizado con evidencia y conectar lectores que revaliden la decisión antes de leer y guardar.",
-      "actualizado": "2026-11-13"
+      "actualizado": "2026-11-14"
     },
     {
       "id": "BUS-20",
@@ -14391,7 +14444,8 @@
         "server/property-facts.js",
         "tests/server/property-facts.test.mjs",
         "docs/roadmap/work/EST-16/foundation-evidence.md",
-        "docs/roadmap/work/EST-16/persistence-readiness.md"
+        "docs/roadmap/work/EST-16/persistence-readiness.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): vigencia de la disponibilidad ya decidida."
       ],
       "modulo": "M02",
       "deps": [
@@ -14411,12 +14465,12 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Acordar vigencia de disponibilidad compartida y plazos Stale; no asumir los 7/30 días históricos.",
+      "externalBlocker": "",
       "resources": [
         "market-inventory",
         "availability-contract"
       ],
-      "nextStep": "Construir almacenamiento y autoridad verificables para conectar hechos a inventario y consultas, conservando revisión ante conflictos.",
+      "nextStep": "La disponibilidad general se reutiliza hasta nueva información con fecha y las condiciones del cliente van separadas (sin plazos fijos de 7 o 30 días). Construir almacenamiento y autoridad verificables para conectar hechos a inventario y consultas, conservando revisión ante conflictos.",
       "actualizado": "2026-11-14"
     },
     {
@@ -14513,7 +14567,8 @@
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
         "server/property-photo-purge.js",
         "tests/server/photo-purge-policy.test.mjs",
-        "docs/roadmap/work/EST-19/policy-synthetic-2026-11-13.md"
+        "docs/roadmap/work/EST-19/policy-synthetic-2026-11-13.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): qué purga la papelera ya decidido."
       ],
       "modulo": "M12",
       "deps": [
@@ -14572,14 +14627,15 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Definir antes qué archivos se purgan y qué identidad/historial se conserva; no ampliar borrado de personas.",
+      "externalBlocker": "",
       "resources": [
         "market-inventory",
         "availability-contract",
         "media-private",
         "jobs-clock"
       ],
-      "nextStep": "Acreditar productores, reloj y referencias, y diseñar preview y reserva transaccional sin habilitar borrados hasta revisar retención."
+      "nextStep": "Papelera de 6 meses que purga solo fotos y derivados; nunca documentos, planos, historia ni recursos compartidos activos, y sin ampliar el borrado de personas. Acreditar productores, reloj y referencias, y diseñar preview y reserva transaccional sin habilitar borrados hasta revisar retención.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "REG-01",
@@ -15104,7 +15160,8 @@
       "evidencia": [
         "server/applicants.js:174",
         "migrations/0008_applicants.sql:51",
-        "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:18"
+        "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:18",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): vía del modelo ya decidida: Hermes central; los modelos locales son posteriores."
       ],
       "assignedSlot": "vps",
       "allocationStatus": "proposed",
@@ -15133,13 +15190,14 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Elegir Hermes con carril autorizado para requisitos C2 (PRE-32) o modelo local AUT-06; alternativas, no dos dependencias obligatorias.",
+      "externalBlocker": "Vía Hermes/Pro verificada (PRE-32) para requisitos C2; los modelos locales (AUT-06) son posteriores.",
       "resources": [
         "requirements-contract",
         "applicants-ui",
         "model-data-contract"
       ],
-      "nextStep": "Elegir carril de datos autorizado y proponer etiquetas extraídas que el empleado confirme antes de guardar."
+      "nextStep": "Proponer etiquetas extraídas que el empleado confirma antes de guardar, por la vía Hermes central cuando PRE-32 la verifique; mientras tanto, continuación humana.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "REG-14",
@@ -15360,7 +15418,7 @@
       "responsable": "desarrollo",
       "hecho": "El panel ofrece el contador de Rentals y avisos de plazos. El código del reloj compartido ya llama al productor común de notificaciones, que contempla atrasos, comprobaciones, plazos, renovaciones y emergencias; su activación remota no se ha verificado. El sondeo inicial de Inbox y del contador global respeta la visibilidad de la pestaña y se reanuda al volver a ella. Se ensayaron consultas prototipo desconectadas para detectar referencias de reparación y episodios incompatibles.",
       "falta": "Verificar y corregir la pertenencia y deduplicación de avisos de reparaciones con referencias inconsistentes; integrar la autoridad financiera y permisos por caso antes de ampliar avisos de deuda; comprobar migraciones y funcionamiento del reloj en el entorno autorizado. Los canales externos siguen pendientes por separado. Una petición iniciada antes de ocultar la pestaña puede terminar. Las consultas prototipo no se pueden activar: faltan identidad/revisión monotónica, capacidad por caso, saneamiento histórico y acceso indexado y acotado.",
-      "bloqueo": "Correo (AUT-17) · Trámite Meta",
+      "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "admin/src/App.jsx:132-133",
         "admin/src/App.jsx:76-77",
@@ -15371,7 +15429,8 @@
         "server/jobs.js:1-15",
         "admin/src/poll.js",
         "docs/roadmap/work/ADM-03/2026-11-13-sondeo-y-limites.md",
-        "docs/roadmap/work/ADM-03/2026-11-13-reparaciones-base-desconectada.md"
+        "docs/roadmap/work/ADM-03/2026-11-13-reparaciones-base-desconectada.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -15384,16 +15443,9 @@
           "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
           "basis": "explicit",
           "scope": "partial"
-        },
-        {
-          "id": "PRE-02",
-          "requires": "activated",
-          "reason": "Solo para los canales reales de Meta/WhatsApp; no bloquea las tareas manuales ni otros canales.",
-          "basis": "inferred",
-          "scope": "partial"
         }
       ],
-      "externalBlocker": "Correo (AUT-17) · Trámite Meta",
+      "externalBlocker": "Correo (AUT-17)",
       "resources": [
         "rentals-contract",
         "rentals-ui",
@@ -15401,7 +15453,8 @@
         "jobs-clock",
         "email-pipeline"
       ],
-      "nextStep": "Resolver la integridad de avisos de reparación y la autoridad financiera, y después verificar el reloj y los canales que correspondan."
+      "nextStep": "Resolver la integridad de avisos de reparación y la autoridad financiera, y después verificar el reloj y los canales que correspondan.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "ADM-04",
@@ -15646,14 +15699,15 @@
       "origen": "plan",
       "fase": "F5-A",
       "estado": "parcial",
-      "responsable": "Luis",
+      "responsable": "desarrollo",
       "hecho": "Statements (#/rentals/statements) da por propietario con gestión completa y mes las rentas cobradas, los honorarios, el GST si se configura, las reparaciones cargadas y el neto, y se imprime desde el navegador con Print.",
       "falta": "No sale sola al cerrar el mes como PDF por email (F5-B), y el GST sigue en 0 hasta confirmar si Hampton está registrado.",
       "bloqueo": "Correo (AUT-17) · Dato de Hampton",
       "evidencia": [
         "admin/src/Statement.jsx:15-71",
         "admin/src/Statement.jsx:73-98",
-        "server/routes/rent.js:733-768"
+        "server/routes/rent.js:733-768",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): el snapshot y el PDF económico propio se construyen sin correo. Vuelve a desarrollo: lo externo es condición de activación."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -15668,14 +15722,15 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Luis: Correo (AUT-17) · Dato de Hampton",
+      "externalBlocker": "Correo (AUT-17) para el envío · Hampton confirma si está registrado en GST.",
       "resources": [
         "rentals-contract",
         "rentals-ui",
         "email-pipeline",
         "statement-ui"
       ],
-      "nextStep": "Confirmar GST con Hampton y completar liquidación automática por PDF/email cuando AUT-17 esté operativo."
+      "nextStep": "Construir el snapshot cerrado y el PDF económico propio de la liquidación (acceso financiero privado) según su plan; el envío por email espera a AUT-17 y el GST al dato de Hampton.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "ADM-11",
@@ -15698,7 +15753,8 @@
         "admin/src/Rentals.jsx:96-104",
         "migrations/0013_rentals.sql:47-48",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:515",
-        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:524-525"
+        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:524-525",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): necesita solo las capacidades de caso de ADM-18."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -15711,6 +15767,12 @@
           "reason": "Validar controles y plazos antes de activarlos como cumplimiento exigible.",
           "basis": "inferred",
           "scope": "partial"
+        },
+        {
+          "id": "ADM-18",
+          "scope": "component:case-capabilities",
+          "requires": "integrated",
+          "basis": "TP05 no case-files"
         }
       ],
       "externalBlocker": "",
@@ -15720,7 +15782,8 @@
         "notifications-schema",
         "legal-parameters"
       ],
-      "nextStep": "Completar los controles y avisos de cumplimiento documentados y conectarlos al Inbox tras validación correspondiente."
+      "nextStep": "Completar los controles y avisos de cumplimiento documentados y conectarlos al Inbox tras validación correspondiente.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "ADM-12",
@@ -15732,13 +15795,14 @@
       "responsable": "desarrollo",
       "hecho": "New repair y Update en la vivienda: urgencia (Emergency, Urgent, Routine), proveedor, presupuesto, estados hasta Done, aprobación obligatoria por encima del límite del propietario y coste a su liquidación; las emergencias abiertas encabezan Repairs en To do y suman en el contador.",
       "falta": "El inquilino no puede avisar desde un portal ni por WhatsApp con fotos, no hay IA que clasifique urgencia y tipo, ni aviso inmediato al equipo, ni directorio de proveedores (es texto libre); la aprobación del propietario la marca el equipo a mano.",
-      "bloqueo": "Correo (AUT-17) · Trámite Meta",
+      "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "admin/src/RentalDialogs.jsx:299-334",
         "server/routes/rentals.js:270-336",
         "admin/src/Rentals.jsx:112-122",
         "server/routes/rent.js:111",
-        "migrations/0013_rentals.sql:128-149"
+        "migrations/0013_rentals.sql:128-149",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -15753,21 +15817,22 @@
           "scope": "partial"
         },
         {
-          "id": "PRE-02",
-          "requires": "activated",
-          "reason": "Solo para los canales reales de Meta/WhatsApp; no bloquea las tareas manuales ni otros canales.",
-          "basis": "inferred",
-          "scope": "partial"
+          "id": "ADM-18",
+          "scope": "component:case-capabilities",
+          "consumer_component": "case-access",
+          "requires": "integrated",
+          "basis": "TP05 contracts, not whole-task completion"
         }
       ],
-      "externalBlocker": "Correo (AUT-17) · Trámite Meta",
+      "externalBlocker": "Correo (AUT-17)",
       "resources": [
         "rentals-contract",
         "rentals-ui",
         "tenant-portal",
         "messages-contract"
       ],
-      "nextStep": "Definir portal, evidencias y proveedores de reparaciones; activar comunicaciones por sus canales disponibles."
+      "nextStep": "Definir portal, evidencias y proveedores de reparaciones; activar comunicaciones por sus canales disponibles.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "ADM-13",
@@ -15949,7 +16014,7 @@
       "origen": "plan",
       "fase": "F5-A",
       "estado": "parcial",
-      "responsable": "tercero",
+      "responsable": "desarrollo",
       "hecho": "Los plazos (depósito 30 días, inventarios 7, licencia 2 años, EICR 5, preavisos de 1 y 12 meses, aviso de renta de 2) están en una sola constante, LEGAL, que el panel lee.",
       "falta": "Falta confirmar el registro de Hampton en la JFSC por cobrar rentas en cuenta propia (R21), que un abogado de Jersey valide plazos y preavisos (R10, R13) y si Hampton está registrado en GST; además los plazos son código (cambiarlos exige publicar), no un ajuste del panel.",
       "bloqueo": "JFSC/abogado · Dato de Hampton",
@@ -15957,7 +16022,8 @@
         "server/rentals.js:6-10",
         "docs/roadmap/ESTADO.md:13",
         "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:73",
-        "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93"
+        "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): las reglas versionadas y parametrizadas se construyen; los valores los valida el abogado. Vuelve a desarrollo: lo externo es condición de activación."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -15972,13 +16038,14 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "tercero: JFSC/abogado · Dato de Hampton",
+      "externalBlocker": "Hampton: registro JFSC y GST · abogado de Jersey: validación de plazos y preavisos (los valores no se inventan).",
       "resources": [
         "rentals-contract",
         "rentals-ui",
         "legal-parameters"
       ],
-      "nextStep": "Coordinar confirmación de registros y GST y validación del abogado; después parametrizar plazos aprobados."
+      "nextStep": "Construir las reglas de plazos versionadas y parametrizadas según su plan, sin valores nuevos hasta su validación; Hampton y el abogado confirman después.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "ADM-18",
@@ -15996,7 +16063,8 @@
         "server/applicants.js:21-23",
         "migrations/0013_rentals.sql:30-63",
         "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26",
-        "docs/superpowers/plans/2026-11-10-tp03-adm-18-plan.md (Dependencies: ADM-06, PRE-03, PRE-29, AGE-12, ADM-12; «ADM17/PRE03/PRE29 aportan política/evidencia real; no se inventa al construir»)."
+        "docs/superpowers/plans/2026-11-10-tp03-adm-18-plan.md (Dependencies: ADM-06, PRE-03, PRE-29, AGE-12, ADM-12; «ADM17/PRE03/PRE29 aportan política/evidencia real; no se inventa al construir»).",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): necesita solo el acceso de caso de ADM-12; sus capacidades se construyen antes e independientes."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -16009,6 +16077,13 @@
           "reason": "Los criterios de asequibilidad y la política de registros de Hampton deben estar aprobados; el plan prohíbe inventarlos al construir.",
           "basis": "explicit",
           "scope": "whole"
+        },
+        {
+          "id": "ADM-12",
+          "scope": "component:case-access",
+          "consumer_component": "application-form",
+          "requires": "integrated",
+          "basis": "TP05 contracts, not whole-task completion"
         }
       ],
       "externalBlocker": "",
@@ -16027,14 +16102,15 @@
       "titulo": "Referencias del inquilino por email y contrato de plantilla con firma electrónica",
       "origen": "plan",
       "fase": "F5-B",
-      "estado": "bloqueado",
-      "responsable": "Luis",
+      "estado": "pendiente",
+      "responsable": "desarrollo",
       "hecho": "",
-      "falta": "No existen: pedir referencias por email con un enlace necesita el servicio de correo, y el contrato de plantilla con firma electrónica necesita una plantilla revisada por un abogado de Jersey y un proveedor de firma.",
-      "bloqueo": "Correo (AUT-17) · JFSC/abogado",
+      "falta": "No existen las referencias del inquilino por email con un enlace de acceso con caducidad elegida por el empleado (necesitan el correo, AUT-17, y el acceso de caso de ADM-12). Plan maestro (10-nov-2026): la firma del contrato se hace fuera de Hampton; la app solo registra la evidencia externa revisada, sin proveedor de firma ni subida de documentos. La plantilla de contrato necesita la revisión de un abogado de Jersey.",
+      "bloqueo": "",
       "evidencia": [
         "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26",
-        "migrations/0013_rentals.sql:30-63"
+        "migrations/0013_rentals.sql:30-63",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la firma se hace fuera de Hampton, sin proveedor de firma. Vuelve a desarrollo: lo externo es condición de activación."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -16054,9 +16130,23 @@
           "reason": "Solo las plantillas, plazos o cargos correspondientes necesitan validación del abogado; no acredita autorización por asignar tarea.",
           "basis": "inferred",
           "scope": "partial"
+        },
+        {
+          "id": "ADM-12",
+          "scope": "component:case-access",
+          "consumer_component": "reference-forms",
+          "requires": "integrated",
+          "basis": "TP05 contracts, not whole-task completion"
+        },
+        {
+          "id": "ADM-18",
+          "scope": "component:application-entity-and-capabilities",
+          "consumer_component": "reference-forms",
+          "requires": "integrated",
+          "basis": "TP05 contracts, not whole-task completion"
         }
       ],
-      "externalBlocker": "Luis: Correo (AUT-17) · JFSC/abogado",
+      "externalBlocker": "Correo (AUT-17) para enviar referencias · plantilla de contrato revisada por un abogado de Jersey.",
       "resources": [
         "rentals-contract",
         "rentals-ui",
@@ -16064,7 +16154,8 @@
         "electronic-signature",
         "legal-parameters"
       ],
-      "nextStep": "Coordinar correo, plantilla validada y proveedor de firma antes de activar referencias y contrato electrónico."
+      "nextStep": "Construir la solicitud de referencias sobre ADM-12 y ADM-18 y el registro de la evidencia de firma externa; activar el envío cuando AUT-17 opere.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "ADM-20",
@@ -16168,20 +16259,21 @@
       "titulo": "Responder desde el panel los mensajes de Facebook e Instagram",
       "origen": "texto",
       "fase": "F6",
-      "estado": "bloqueado",
+      "estado": "descartado",
       "responsable": "Luis",
       "hecho": "",
-      "falta": "No hay conexión con Messenger ni con Instagram (webhooks de la API de Meta) ni pantalla Messages en el panel; responder en nombre de la página exige una app de Meta verificada y respetar la ventana de 24 horas.",
-      "bloqueo": "Trámite Meta",
+      "falta": "Retirada expresa del plan maestro vigente (10-nov-2026): la publicación, la mensajería y la integración o webhooks de Meta quedan fuera de la fase vigente. Reincorporarla exige una decisión nueva de Luis. Alcance anterior, solo como historia: No hay conexión con Messenger ni con Instagram (webhooks de la API de Meta) ni pantalla Messages en el panel; responder en nombre de la página exige una app de Meta verificada y respetar la ventana de 24 horas.",
+      "bloqueo": "",
       "evidencia": [
         "server/api.js:3-21",
         "admin/src/App.jsx:122-136",
-        "docs/roadmap/ESTADO.md:14"
+        "docs/roadmap/ESTADO.md:14",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): retirada expresa de Meta."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [
         {
           "id": "PRE-02",
@@ -16198,12 +16290,13 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Luis/Meta: verificación de negocio y permisos operativos.",
+      "externalBlocker": "",
       "resources": [
         "web-chat",
         "meta-channel"
       ],
-      "nextStep": "Obtener trámite Meta y conectar sus canales a la pantalla Messages existente, sin reconstruirla."
+      "nextStep": "Conservar lo existente y no construir el alcance retirado.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "MSG-02",
@@ -16260,15 +16353,16 @@
       "titulo": "Bandeja única Messages: Messenger, Instagram, WhatsApp, chat web y email",
       "origen": "plan",
       "fase": "F6",
-      "estado": "bloqueado",
-      "responsable": "Luis",
+      "estado": "parcial",
+      "responsable": "desarrollo",
       "hecho": "",
-      "falta": "La pantalla Messages existe desde el 6-nov-2026, solo con el chat de la web (MSG-02), y las conversaciones no se unen a un contacto. Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas.",
-      "bloqueo": "Correo (AUT-17) · Trámite Meta",
+      "falta": "La pantalla Messages existe desde el 6-nov-2026, solo con el chat de la web (MSG-02), y las conversaciones no se unen a un contacto. Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas. Alcance vigente (plan maestro, 10-nov-2026): chat web, respuestas desde la app y reenvíos seleccionados de Gmail (alias configured_gmail_mailbox, sin conectar el buzón entero ni cambiar el remitente). Messenger e Instagram quedan retirados con Meta; WhatsApp y Outlook son posteriores.",
+      "bloqueo": "",
       "evidencia": [
         "admin/src/App.jsx:122-136",
         "admin/src/ApplicantDetail.jsx:279-281",
-        "server/api.js:3-21"
+        "server/api.js:3-21",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): alcance vigente de Messages sin Meta ni WhatsApp. Vuelve a desarrollo: lo externo es condición de activación."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
@@ -16283,13 +16377,6 @@
           "scope": "partial"
         },
         {
-          "id": "PRE-02",
-          "requires": "activated",
-          "reason": "Los canales Meta esperan verificación y permisos.",
-          "basis": "explicit",
-          "scope": "partial"
-        },
-        {
           "id": "PRE-24",
           "requires": "decision",
           "reason": "WhatsApp requiere número y decisión de Hampton.",
@@ -16297,13 +16384,14 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Luis/Meta y Hampton: permisos, número de WhatsApp y correo operativo por canal.",
+      "externalBlocker": "Correo operativo (AUT-17) solo para el tramo de email.",
       "resources": [
         "web-chat",
         "meta-channel",
         "email-pipeline"
       ],
-      "nextStep": "Integrar canales operativos con conversaciones y contactos, separando los bloqueos de correo y Meta."
+      "nextStep": "Unir las conversaciones del chat web a contactos e integrar los reenvíos seleccionados de Gmail cuando AUT-17 opere; sin Meta ni WhatsApp.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "MSG-04",
@@ -16531,20 +16619,21 @@
       "titulo": "Publicar la ficha en Facebook e Instagram",
       "origen": "texto",
       "fase": "F4",
-      "estado": "bloqueado",
+      "estado": "descartado",
       "responsable": "Luis",
       "hecho": "",
-      "falta": "No hay publicación por la API de Meta (carrusel, texto y enlace), ni textos para redes, ni el vídeo vertical opcional hecho con las fotos; Publish solo cambia la web.",
-      "bloqueo": "Trámite Meta",
+      "falta": "Retirada expresa del plan maestro vigente (10-nov-2026): la publicación, la mensajería y la integración o webhooks de Meta quedan fuera de la fase vigente. Reincorporarla exige una decisión nueva de Luis. Alcance anterior, solo como historia: No hay publicación por la API de Meta (carrusel, texto y enlace), ni textos para redes, ni el vídeo vertical opcional hecho con las fotos; Publish solo cambia la web.",
+      "bloqueo": "",
       "evidencia": [
         "server/routes/listings.js:193-198",
         "wrangler.toml:1-20",
-        "docs/roadmap/ESTADO.md:12"
+        "docs/roadmap/ESTADO.md:12",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): retirada expresa de Meta."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [
         {
           "id": "PRE-02",
@@ -16554,12 +16643,13 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Luis/Meta: trámite y permisos para publicar en redes.",
+      "externalBlocker": "",
       "resources": [
         "meta-channel",
         "listings-schema"
       ],
-      "nextStep": "Preparar publicación por Meta tras obtener acceso operativo, permisos y contenido revisado."
+      "nextStep": "Conservar lo existente y no construir el alcance retirado.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PUB-04",
@@ -17050,7 +17140,7 @@
       "origen": "plan",
       "fase": "F3-C",
       "estado": "parcial",
-      "responsable": "Luis",
+      "responsable": "desarrollo",
       "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn, y la corrección integrada en 1813b01 protege las reservas. Se preparó una ventana de alquiler de 24 horas, corrección, ocultación y recuperación con tarea urgente detrás de un control apagado; el SQL es una propuesta fuera de migraciones. SQLite, D1 efímero y navegador aislado verificaron su alcance con datos ficticios.",
       "falta": "Antes de activar: revisar esquema, identidad y retención, coste y vigilancia del reloj, superficies y cachés anteriores o pestañas abiertas, y diseñar la reapertura posterior a la retirada. Tras las 24 horas sin corrección faltan cancelar otras visitas y gestionar avisos idempotentes; para ventas también se espera 24 horas antes de cancelar y avisar, sin alterar los demás efectos de Sales. Coordinar VIS-10 y AUT-17. No se ha comprobado el recorrido funcional en producción; el alcance es la web propia, sin Meta.",
       "bloqueo": "",
@@ -17074,7 +17164,8 @@
         "docs/roadmap/work/PUB-16/reconciliacion-24h-2026-11-13.md",
         "docs/roadmap/work/PUB-16/base-cierre-temporal-2026-11-13.md",
         "docs/roadmap/work/PUB-16/rental-closure.proposed.sql",
-        "tests/pub16-timed-closure.e2e.cjs"
+        "tests/pub16-timed-closure.e2e.cjs",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): no tenía bloqueo externo. Vuelve a desarrollo: lo externo es condición de activación."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -17131,7 +17222,7 @@
         "public-site"
       ],
       "nextStep": "Acreditar esquema y cachés, vigilancia y reapertura; coordinar cancelaciones y avisos idempotentes antes de activar el cierre temporizado.",
-      "actualizado": "2026-11-13"
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PUB-17",
@@ -17268,12 +17359,13 @@
       "bloqueo": "Aplazado por decisión de Luis (10-nov-2026).",
       "evidencia": [
         "docs/superpowers/plans/2026-11-10-pub-20-folleto-qr.md",
-        "docs/superpowers/plans/2026-11-10-ana-10-qr-agregado.md"
+        "docs/superpowers/plans/2026-11-10-ana-10-qr-agregado.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: folletos de reparto aplazados."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "deferred_later_phase",
       "dependencies": [],
       "externalBlocker": "Decisión futura de Luis para retomar los folletos.",
       "resources": [
@@ -17281,7 +17373,8 @@
         "owner-contact",
         "marketing-material"
       ],
-      "nextStep": "Mantener aplazado; no preparar ni imprimir folletos sin una nueva decisión."
+      "nextStep": "Mantener aplazado; no preparar ni imprimir folletos sin una nueva decisión.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PUB-21",
@@ -17304,12 +17397,13 @@
         "migrations/0020_drive_imports.sql",
         "tests/server/drive.test.mjs",
         "tests/server/queue.test.mjs",
-        "docs/superpowers/specs/2026-11-05-hampton-app-drive-queue-design.md"
+        "docs/superpowers/specs/2026-11-05-hampton-app-drive-queue-design.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: conexión con Drive aplazada."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "deferred_later_phase",
       "dependencies": [
         {
           "id": "PRE-32",
@@ -17332,7 +17426,8 @@
         "hermes-gateway",
         "listing-editor"
       ],
-      "nextStep": "Completar configuración autorizada de Drive y conexión pendiente de Hermes sin rehacer la cola existente."
+      "nextStep": "Completar configuración autorizada de Drive y conexión pendiente de Hermes sin rehacer la cola existente.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PUB-22",
@@ -18335,12 +18430,13 @@
       "estado": "parcial",
       "responsable": "Luis",
       "hecho": "El expediente tiene el hito «Housing status and due diligence checked» con fecha prevista, fecha hecha y nota.",
-      "falta": "No se registran las comprobaciones de diligencia debida (Handbook de la JFSC, sección 18) ni sus documentos en almacenamiento restringido (clase C3, sin IA en la nube). Qué exigir depende del registro de Hampton en la JFSC (Schedule 2) y de un abogado de Jersey.",
+      "falta": "No se registran las comprobaciones de diligencia debida (Handbook de la JFSC, sección 18). Plan maestro (10-nov-2026): sin repositorio de documentos; solo una referencia mínima revisada por un empleado y guardas de dato estructurado (clase C3, sin IA en la nube). Qué exigir depende del registro de Hampton en la JFSC (Schedule 2) y de un abogado de Jersey.",
       "bloqueo": "JFSC/abogado",
       "evidencia": [
         "server/sales.js:5",
         "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:19",
-        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:532"
+        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:532",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): sin repositorio de documentos."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -18361,7 +18457,8 @@
         "sales-ui",
         "private-compliance-documents"
       ],
-      "nextStep": "Luis coordina con Hampton y el abogado las comprobaciones exigidas antes de construir su registro restringido."
+      "nextStep": "Luis coordina con Hampton y el abogado las comprobaciones exigidas antes de construir su registro restringido.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "OFE-08",
@@ -18407,24 +18504,26 @@
       "responsable": "Luis",
       "hecho": "",
       "falta": "M01 · Reconciliación 7-nov: Conservar la solicitud de acceso a Places.je como gestión opcional para ese conector; comprobar si hay credenciales y vía operativa cuando se aborde. El dato histórico del 401 no se vuelve a afirmar como comprobación de hoy. El directorio, otras fuentes accesibles y el inventario BUS-06 pueden avanzar sin esa clave.",
-      "bloqueo": "",
+      "bloqueo": "Aplazada a una fase posterior por el plan maestro (10-nov-2026).",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:590",
         "docs/roadmap/ESTADO.md:9",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: Places.je es un conector posterior."
       ],
       "modulo": "M01",
       "deps": [],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "deferred_later_phase",
       "dependencies": [],
       "externalBlocker": "Luis: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
       "resources": [
         "source-access:places"
       ],
-      "nextStep": "Luis verifica acceso y vía operativa de Places.je como conector opcional sin bloquear otras fuentes."
+      "nextStep": "Luis verifica acceso y vía operativa de Places.je como conector opcional sin bloquear otras fuentes.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PRE-02",
@@ -18432,26 +18531,28 @@
       "titulo": "Empezar el trámite de Meta: verificación del negocio y app con permisos",
       "origen": "plan",
       "fase": "—",
-      "estado": "pendiente",
+      "estado": "descartado",
       "responsable": "Luis",
       "hecho": "",
-      "falta": "No consta que se haya empezado. Es el trámite más lento y de él dependen publicar en Facebook e Instagram (F4), WhatsApp y la bandeja de mensajes (F6) y las firmas de webhooks (PRE-08).",
+      "falta": "Retirada expresa del plan maestro vigente (10-nov-2026): la publicación, la mensajería y la integración o webhooks de Meta quedan fuera de la fase vigente. Reincorporarla exige una decisión nueva de Luis. Alcance anterior, solo como historia: No consta que se haya empezado. Es el trámite más lento y de él dependen publicar en Facebook e Instagram (F4), WhatsApp y la bandeja de mensajes (F6) y las firmas de webhooks (PRE-08).",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:591",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:376",
-        "docs/roadmap/ESTADO.md:14"
+        "docs/roadmap/ESTADO.md:14",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): retirada expresa de Meta."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [],
-      "externalBlocker": "Luis: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
+      "externalBlocker": "",
       "resources": [
         "meta-integration"
       ],
-      "nextStep": "Luis gestiona verificación y permisos de Meta y registra el resultado comprobado del trámite."
+      "nextStep": "Conservar lo existente y no construir el alcance retirado.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PRE-03",
@@ -18544,28 +18645,30 @@
       "origen": "plan",
       "fase": "—",
       "estado": "pendiente",
-      "responsable": "Luis",
+      "responsable": "desarrollo",
       "hecho": "El panel exige login con una cuenta de Google verificada que esté en Users, con cookie HMAC __Host- de 8 horas (HttpOnly, Secure, SameSite=Strict).",
-      "falta": "No consta que cada cuenta de Users tenga la verificación en dos pasos (el panel no puede comprobarlo) ni que haya Cloudflare Access delante de /admin y /api/admin. Las dos se activan fuera del código, en Google y en Cloudflare.",
+      "falta": "Plan maestro (10-nov-2026): Luis eligió Cloudflare Access para esta fase. Falta el código que valida Access en origen, panel, API y medios privados con ruta Staff, y la reautenticación en otra pestaña (plan TP01 PRE-06). No consta que cada cuenta de Users tenga la verificación en dos pasos (el panel no puede comprobarlo) ni que haya Cloudflare Access delante de /admin y /api/admin. Las dos se activan fuera del código, en Google y en Cloudflare.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:482",
         "server/auth.js:7-14",
         "server/auth.js:16-17",
         "server/auth.js:42-53",
-        "server/routes/session.js:8-12"
+        "server/routes/session.js:8-12",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Luis eligió Cloudflare Access para esta fase. Vuelve a desarrollo: lo externo es condición de activación."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
       "dependencies": [],
-      "externalBlocker": "Luis: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
+      "externalBlocker": "Luis: configurar Cloudflare Access y comprobar la verificación en dos pasos de cada cuenta; el código no se activa hasta entonces.",
       "resources": [
         "staff-access-model",
         "account-security"
       ],
-      "nextStep": "Luis verifica y configura las barreras de cuenta y acceso por los canales autorizados, fuera del código."
+      "nextStep": "Construir la validación de Access, apagada, según su plan; Luis configura Access y la verificación en dos pasos fuera del código.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PRE-08",
@@ -18573,19 +18676,20 @@
       "titulo": "Verificar la firma de cada llamada de los webhooks de Meta y WhatsApp",
       "origen": "plan",
       "fase": "F6",
-      "estado": "bloqueado",
+      "estado": "descartado",
       "responsable": "Luis",
       "hecho": "",
-      "falta": "No hay webhooks (F6 sin empezar). Cada llamada de Meta y WhatsApp debe verificar su firma antes de tocar nada; espera al trámite de Meta (PRE-02).",
-      "bloqueo": "Trámite Meta",
+      "falta": "Retirada expresa del plan maestro vigente (10-nov-2026): la publicación, la mensajería y la integración o webhooks de Meta quedan fuera de la fase vigente. Reincorporarla exige una decisión nueva de Luis. Alcance anterior, solo como historia: No hay webhooks (F6 sin empezar). Cada llamada de Meta y WhatsApp debe verificar su firma antes de tocar nada; espera al trámite de Meta (PRE-02).",
+      "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:484",
-        "docs/roadmap/ESTADO.md:14"
+        "docs/roadmap/ESTADO.md:14",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): retirada expresa de Meta."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "historical",
       "dependencies": [
         {
           "id": "PRE-02",
@@ -18595,11 +18699,12 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Luis: Trámite Meta",
+      "externalBlocker": "",
       "resources": [
         "meta-webhooks"
       ],
-      "nextStep": "Implementar y comprobar firma de webhooks cuando exista la integración autorizada de Meta."
+      "nextStep": "Conservar lo existente y no construir el alcance retirado.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PRE-09",
@@ -18654,7 +18759,7 @@
       "responsable": "desarrollo",
       "hecho": "Register your search y New applicant piden el marketing en una casilla aparte y opcional, el aviso explica el derecho a oponerse y un registro repetido sin la casilla retira el consentimiento al momento. La ficha permite registrar una oposición para el contacto compartido con confirmación y control de versión; se preservan borradores y se impide confirmar solicitudes anteriores a una negativa posterior. La retirada pública se procesa con guarda de identidad y cambios atómicos.",
       "falta": "Completar la autorización y supresión de marketing por finalidad y canal en los emisores antes de cualquier envío promocional. Faltan los avisos aplicables en los canales que se integren y la revisión jurídica de sus reglas. La API administrativa genérica todavía permite registrar un opt-in explícito y no constituye un ledger completo por finalidad.",
-      "bloqueo": "Correo (AUT-17) · Trámite Meta · JFSC/abogado",
+      "bloqueo": "Correo (AUT-17) · JFSC/abogado",
       "evidencia": [
         "site/apply.js:154",
         "admin/src/NewApplicant.jsx:68",
@@ -18665,7 +18770,8 @@
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:490",
         "admin/src/marketing-history.js",
         "server/contact-version.js",
-        "docs/roadmap/work/PRE-10/manual-objection-2026-11-13.md"
+        "docs/roadmap/work/PRE-10/manual-objection-2026-11-13.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
       ],
       "assignedSlot": "vps",
       "allocationStatus": "proposed",
@@ -18678,22 +18784,16 @@
           "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
           "basis": "explicit",
           "scope": "partial"
-        },
-        {
-          "id": "PRE-02",
-          "requires": "activated",
-          "reason": "Solo para los canales reales de Meta/WhatsApp; no bloquea las tareas manuales ni otros canales.",
-          "basis": "inferred",
-          "scope": "partial"
         }
       ],
-      "externalBlocker": "Correo (AUT-17) · Trámite Meta · JFSC/abogado",
+      "externalBlocker": "Correo (AUT-17) · JFSC/abogado",
       "resources": [
         "marketing-preferences",
         "email-pipeline",
         "messages-contract"
       ],
-      "nextStep": "Integrar permisos por finalidad y revalidación previa al envío; completar textos y revisión jurídica de cada canal cuando corresponda."
+      "nextStep": "Integrar permisos por finalidad y revalidación previa al envío; completar textos y revisión jurídica de cada canal cuando corresponda.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PRE-11",
@@ -18756,7 +18856,8 @@
         "docs/superpowers/plans/2026-11-07-hampton-app-search-lifecycle-ledger.md",
         "docs/superpowers/specs/2026-11-08-l1b-privacy-requests-design.md",
         "docs/superpowers/plans/2026-11-08-l1b-privacy-requests.md",
-        "docs/superpowers/plans/2026-11-08-l1b-privacy-requests.md"
+        "docs/superpowers/plans/2026-11-08-l1b-privacy-requests.md",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la conservación tras terminar un alquiler o venta la fija el abogado (PRE-33), solo ese tramo."
       ],
       "modulo": "M03/M12",
       "deps": [],
@@ -18771,6 +18872,13 @@
           "id": "AUT-17",
           "requires": "activated",
           "reason": "Solo para el tramo de correo real; el alcance manual o independiente puede construirse antes.",
+          "basis": "explicit",
+          "scope": "partial"
+        },
+        {
+          "id": "PRE-33",
+          "requires": "decision",
+          "reason": "Fijar conservación de alquiler/venta tras terminar mediante revisión del abogado.",
           "basis": "explicit",
           "scope": "partial"
         }
@@ -18894,7 +19002,7 @@
       "estado": "parcial",
       "responsable": "Luis",
       "hecho": "Desde el 1-nov-2026 www.hamptonestatesjersey.com sirve la app (web y panel); hamptonestatesjersey.com (301) y hamptonjersey.pages.dev (308) redirigen ahí desde Cloudflare. El 1-nov Luis añadió el dominio a Firebase (dominios autorizados), a la llave del navegador en Google Cloud y a los hostnames de Turnstile, y comprobó el login del panel y los formularios públicos en www. Las 30 redirecciones 301 de las URL de Wix (site/_redirects) sirven desde entonces, y desde c9ac1ec SITE_URL, la meta site-url, el canonical y el JSON-LD pasaron a www (PUB-14). Las dos fotos públicas autorizadas del equipo se sirven desde archivos locales, con fallback en equipo, reserva y ficha.",
-      "falta": "Meta; el sitemap en Search Console (PUB-14); las reglas WAF, incluida POST /api/stats (ANA-09); probar una reserva y un registro reales; y la decisión posterior de Luis sobre dejar de mantener Wix. El traslado de fotos por sí solo no acredita estos pasos ni autoriza dar de baja servicios.",
+      "falta": "El sitemap en Search Console (PUB-14); las reglas WAF, incluida POST /api/stats (ANA-09); probar una reserva y un registro reales; y la decisión posterior de Luis sobre dejar de mantener Wix. El traslado de fotos por sí solo no acredita estos pasos ni autoriza dar de baja servicios.",
       "bloqueo": "",
       "evidencia": [
         "site/_redirects:1-32",
@@ -18907,7 +19015,8 @@
         "docs/roadmap/ESTADO.md:8",
         "docs/superpowers/plans/2026-11-09-pre-16-fotos-equipo.md",
         "tests/pre16-team-photos.e2e.cjs",
-        "site/data/team.json"
+        "site/data/team.json",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado del traslado de dominio."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -18935,7 +19044,8 @@
         "public-site",
         "waf-policy"
       ],
-      "nextStep": "Cerrar sitemap, WAF y pruebas reales; después Luis decide si deja Wix."
+      "nextStep": "Cerrar sitemap, WAF y pruebas reales; después Luis decide si deja Wix.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PRE-17",
@@ -19147,18 +19257,20 @@
       "falta": "Sin respuesta: si usan WhatsApp con clientes y si tienen un número que pueda pasar a WhatsApp Business (decide F6).",
       "bloqueo": "Dato de Hampton",
       "evidencia": [
-        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:699"
+        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:699",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: WhatsApp es posterior."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "needs_scope_and_evidence_review",
+      "executionEligibility": "deferred_later_phase",
       "dependencies": [],
       "externalBlocker": "Hampton: Dato de Hampton",
       "resources": [
         "whatsapp-integration"
       ],
-      "nextStep": "Hampton confirma uso y número disponible para WhatsApp Business."
+      "nextStep": "Hampton confirma uso y número disponible para WhatsApp Business.",
+      "actualizado": "2026-11-14"
     },
     {
       "id": "PRE-25",

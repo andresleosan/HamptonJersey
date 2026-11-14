@@ -6007,7 +6007,7 @@
       "preferredSlot": "hermes",
       "priority": 260,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -6253,7 +6253,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 267,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -7962,7 +7962,7 @@
       "preferredSlot": "hermes",
       "priority": 318,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -8106,7 +8106,7 @@
       "preferredSlot": "hermes",
       "priority": 323,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {

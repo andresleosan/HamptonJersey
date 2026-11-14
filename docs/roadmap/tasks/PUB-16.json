@@ -5,7 +5,7 @@
   "origen": "plan",
   "fase": "F3-C",
   "estado": "parcial",
-  "responsable": "Luis",
+  "responsable": "desarrollo",
   "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn, y la corrección integrada en 1813b01 protege las reservas. Se preparó una ventana de alquiler de 24 horas, corrección, ocultación y recuperación con tarea urgente detrás de un control apagado; el SQL es una propuesta fuera de migraciones. SQLite, D1 efímero y navegador aislado verificaron su alcance con datos ficticios.",
   "falta": "Antes de activar: revisar esquema, identidad y retención, coste y vigilancia del reloj, superficies y cachés anteriores o pestañas abiertas, y diseñar la reapertura posterior a la retirada. Tras las 24 horas sin corrección faltan cancelar otras visitas y gestionar avisos idempotentes; para ventas también se espera 24 horas antes de cancelar y avisar, sin alterar los demás efectos de Sales. Coordinar VIS-10 y AUT-17. No se ha comprobado el recorrido funcional en producción; el alcance es la web propia, sin Meta.",
   "bloqueo": "",
@@ -29,7 +29,8 @@
     "docs/roadmap/work/PUB-16/reconciliacion-24h-2026-11-13.md",
     "docs/roadmap/work/PUB-16/base-cierre-temporal-2026-11-13.md",
     "docs/roadmap/work/PUB-16/rental-closure.proposed.sql",
-    "tests/pub16-timed-closure.e2e.cjs"
+    "tests/pub16-timed-closure.e2e.cjs",
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): no tenía bloqueo externo. Vuelve a desarrollo: lo externo es condición de activación."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -86,5 +87,5 @@
     "public-site"
   ],
   "nextStep": "Acreditar esquema y cachés, vigilancia y reapertura; coordinar cancelaciones y avisos idempotentes antes de activar el cierre temporizado.",
-  "actualizado": "2026-11-13"
+  "actualizado": "2026-11-14"
 }
