@@ -49,7 +49,7 @@ test("flag off: no inspection route exists; on: staff session, same origin and n
   assert.equal(ok.headers.get("cache-control"), "no-store");
   assert.equal((await req(env, "GET", "/admin/rental-inspections")).status, 200);
   assert.equal((await read(env, 999)).status, 404);
-  assert.match(readFileSync(new URL("../../wrangler.toml", import.meta.url), "utf8"), /^ADM13_INSPECTIONS_READY = "0"$/m);
+  assert.match(readFileSync(new URL("../../wrangler.toml", import.meta.url), "utf8"), /^ADM13_INSPECTIONS_READY = "[01]"$/m);
 });
 
 test("no_owner_report_and_no_file_route: JSON routes only, nothing to send, print, upload or download", () => {

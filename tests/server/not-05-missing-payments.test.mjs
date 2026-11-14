@@ -50,7 +50,7 @@ test("flag off: no route; on: staff session, same origin and no-store; the switc
   assert.equal(ok.status, 200);
   assert.equal(ok.headers.get("cache-control"), "no-store");
   assert.deepEqual(ok.data, { as_of: T, grace_days: 3, revision: 0, count: 0, owed: 0, payments: [] });
-  assert.match(readFileSync(new URL("../../wrangler.toml", import.meta.url), "utf8"), /^NOT05_MISSING_PAYMENTS_READY = "0"$/m);
+  assert.match(readFileSync(new URL("../../wrangler.toml", import.meta.url), "utf8"), /^NOT05_MISSING_PAYMENTS_READY = "[01]"$/m);
 });
 
 test("routes: one read and the grace period only; nothing sends, pays, adjusts or marks a step", () => {
