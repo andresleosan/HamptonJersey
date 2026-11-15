@@ -8,7 +8,7 @@ import { areaPreferenceRank } from "./requirements.js";
 import {searchProgressEnabled,beginFullCheck,fullCheckGuard,fullCheckSuccessStatement,finishFullCheckFailure} from './search-progress.js';
 import { notConfirmedUnavailable } from "./property-facts.js";
 import { readMarketCandidates } from "./market-identity.js";
-import { parsePriorities } from "../site/requirements.js";
+import { asList, hasAnswer, hasHouseholdPets, parsePriorities } from "../site/requirements.js";
 
 // Listings that may be offered: archived listings are excluded. The applicant's operation is evaluate()'s first filter.
 const candidates = (use, operations) => `archived_at IS NULL AND matchable = 1 AND use = '${use}' AND availability IN ('for_sale','to_let','lease')
@@ -65,25 +65,28 @@ function marketResult(a, h) {
 const pairKey = (home, operation) => JSON.stringify([home, operation]);
 // The market part of a search's full run, once its listings are saved. Only results other than excluded are kept, and
 // only those that changed are written; a result is withdrawn when its home was evaluated again and fits no more, or is
-// gone (all of them when no source is open). Any failure, the table missing included, writes nothing and reads 'failed'.
+// gone or no longer among the best fitting (all of them when no source is open). Any failure, the table missing
+// included, writes nothing and reads 'failed'.
 // ponytail: the adverts are not fenced like listings are; an advert read meanwhile is evaluated by the next full run.
 async function matchMarket(env, a) {
   try {
-    const legacy = !parsePriorities(a.requirement_priorities);
+    const priorities = parsePriorities(a.requirement_priorities), wanted = asList(a.parishes_wanted);
+    const petsRule = hasHouseholdPets(a) && (!!priorities || hasAnswer('pets', a)); // when evaluate() checks pets at all
+    const fit = { top: a.budget_stretch ?? a.budget_max, bedrooms_min: a.bedrooms_min, bedrooms_max: a.bedrooms_max,
+      bathrooms_min: a.bathrooms_min, parking_spaces: a.parking_spaces, wanted, excluded: asList(a.parishes_excluded),
+      area: wanted.length > 0 && !['unknown', 'any'].includes(a.area_answer), pets: petsRule,
+      must: [...Object.entries(priorities?.values ?? {}).filter(([, v]) => v === 'must').map(([k]) => k), ...(petsRule ? ['pets'] : [])] };
     const [{ homes, open_sources }, { results: stored }] = await Promise.all([
-      readMarketCandidates(env, { operation: operationFor(a), excluded: a.parishes_excluded, top: a.budget_stretch ?? a.budget_max,
-        legacy: legacy && { bedrooms_min: a.bedrooms_min, bedrooms_max: a.bedrooms_max, bathrooms_min: a.bathrooms_min },
-        limit: MARKET_HOMES_LIMIT + 1 }),
+      readMarketCandidates(env, { operation: operationFor(a), legacy: !priorities, fit, limit: MARKET_HOMES_LIMIT + 1 }),
       env.DB.prepare('SELECT home_key,operation,result,score,requirements_rank,checks,observed_at FROM market_matches WHERE applicant_id=?')
         .bind(a.id).all()]);
     const capped = homes.length > MARKET_HOMES_LIMIT, evaluated = homes.slice(0, MARKET_HOMES_LIMIT).map(h => marketResult(a, h));
-    const kept = evaluated.filter(r => r.r !== 'excluded'), seen = new Set(evaluated.map(r => pairKey(r.k, r.o)));
+    const kept = evaluated.filter(r => r.r !== 'excluded');
     const before = new Map(stored.map(m => [pairKey(m.home_key, m.operation), m])), fits = new Set(kept.map(r => pairKey(r.k, r.o)));
     const changed = kept.filter(r => { const m = before.get(pairKey(r.k, r.o));
       return !m || m.result !== r.r || m.score !== r.s || m.requirements_rank !== r.q || m.checks !== r.c || m.observed_at !== r.t; });
-    // While the limit leaves homes unread, only the results of homes evaluated now can be withdrawn.
-    const gone = stored.filter(m => !fits.has(pairKey(m.home_key, m.operation)) && (!capped || seen.has(pairKey(m.home_key, m.operation))))
-      .slice(0, MARKET_HOMES_LIMIT).map(m => [m.home_key, m.operation]);
+    // What is kept is exactly this run's best fitting results, so at most the limit stays stored.
+    const gone = stored.filter(m => !fits.has(pairKey(m.home_key, m.operation))).map(m => [m.home_key, m.operation]);
     const search = `EXISTS (SELECT 1 FROM applicants x WHERE x.id=? AND x.updated_at=? AND x.match_inputs_revision=? AND ${activeSql('x')})`;
     const guard = [a.id, a.updated_at, a.match_inputs_revision];
     const writes = [

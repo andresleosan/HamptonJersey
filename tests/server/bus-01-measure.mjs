@@ -18,16 +18,19 @@ for (const s of ['agency-a', 'agency-b']) db.prepare(`INSERT INTO market_sources
 db.prepare(`INSERT INTO market_runs(id,kind,manifest_revision,manifest_sha256,operation_id,created_at,created_by)
   VALUES(?,'initial','rev',?,?,?,'x')`).run(id(1), 'a'.repeat(64), id(2), AT);
 const parishes = ['St Helier', 'Grouville', 'St Brelade', 'Trinity', 'St Clement'];
-for (let i = 0; i < 2000; i++) {
+// Readings per advert: node tests/server/bus-01-measure.mjs 10 for 20,000 readings of the same 2,000 adverts.
+const readings = Number(process.argv[2] ?? 1);
+for (let r = 0, k = 0; r < readings; r++) for (let i = 0; i < 2000; i++, k++) {
   const operation = i % 5 ? 'rent' : 'sale', amount = (100000 + (i % 30) * 10000) * (operation === 'sale' ? 300 : 1), source = i % 2 ? 'agency-a' : 'agency-b';
-  const n = normalizeObservation({ country_code: 'JE', territory_evidence: 'Jersey', operation, observed_at: AT, title: `Home ${i}`,
+  const seen = new Date(Date.parse(AT) - (readings - r) * 3600000).toISOString();
+  const n = normalizeObservation({ country_code: 'JE', territory_evidence: 'Jersey', operation, observed_at: seen, title: `Home ${i}`,
     parish: parishes[i % 5], bedrooms: 1 + (i % 4), bathrooms: 1, financial_terms: [operation === 'sale'
       ? { kind: 'sale_price', amount_minor: amount, currency: 'GBP', period: 'sale' } : { kind: 'rent', amount_minor: amount, currency: 'GBP', period: 'month' }] });
   db.prepare(`INSERT INTO market_pages(id,run_id,source_ref,channel_id,page_key,content_sha256,exhausted,observed_at,committed_at,committed_by,
-    lease_token,lease_generation,policy_version) VALUES(?,?,?,'site',?,?,0,?,?,'x','x',1,1)`).run(id(10000 + i), id(1), source, `p${i}`, 'b'.repeat(64), AT, AT);
+    lease_token,lease_generation,policy_version) VALUES(?,?,?,'site',?,?,0,?,?,'x','x',1,1)`).run(id(100000 + k), id(1), source, `p${k}`, 'b'.repeat(64), seen, seen);
   db.prepare(`INSERT INTO market_observations(id,page_id,source_ref,channel_id,external_key,raw_json,normalized_json,normalized_sha256,
-    source_at,origin_sha256) VALUES(?,?,?,'site',?,?,?,?,?,?)`).run(id(20000 + i), id(10000 + i), source, `K-${i}`,
-    JSON.stringify({ listing_url: `https://${source}.example.test/k-${i}` }), JSON.stringify(n), 'c'.repeat(64), AT, 'd'.repeat(64));
+    source_at,origin_sha256) VALUES(?,?,?,'site',?,?,?,?,?,?)`).run(id(300000 + k), id(100000 + k), source, `K-${i}`,
+    JSON.stringify({ listing_url: `https://${source}.example.test/k-${i}` }), JSON.stringify(n), 'c'.repeat(64), seen, 'd'.repeat(64));
 }
 // Time inside the database, statements per market batch and rows written to market_matches.
 let inDb = 0, depth = 0, since = 0;

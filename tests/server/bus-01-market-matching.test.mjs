@@ -3,7 +3,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { makeEnv, seedListing, call, adminCookie } from './helpers.mjs';
+import { readFileSync } from 'node:fs';
+import { makeEnv, seedListing, call, adminCookie, captured, plan } from './helpers.mjs';
 import { normalizeObservation } from '../../server/market-extraction.js';
 import { marketHomeFacts, MARKET_HOMES_LIMIT } from '../../server/match-store.js';
 import { recomputeForApplicant } from '../../server/search-state.js';
@@ -151,8 +152,8 @@ test('what fits is kept with what it does not meet; an excluded home is not kept
   assert.ok(!disputed.home_key.startsWith('['));
   assert.deepEqual([check(disputed, 'bedrooms').result, check(disputed, 'bedrooms').evidence], ['unknown', 'The adverts disagree']);
   assert.notEqual(disputed.result, 'meets');
-  // Over budget never reached evaluate() (a hard filter for this search); refused pets were evaluated and excluded.
-  assert.equal(runOf(env, applicant).market_homes, 2);
+  // Over budget (a hard filter for this search) and pets refused to a household with a dog never reached evaluate().
+  assert.equal(runOf(env, applicant).market_homes, 1);
 });
 
 test('no open source is recorded as such, not as an empty market, and a closed source takes its homes out', async () => {
@@ -345,4 +346,83 @@ test('a search that is closed or turns commercial is not shown on the inventory 
   env.DB.raw.prepare("UPDATE applicants SET archived_at=? WHERE id=?").run(AT, first);
   env.DB.raw.prepare("UPDATE applicants SET search_category='commercial' WHERE id=?").run(second);
   assert.deepEqual(await names(), []);
+});
+
+// A search with priorities: St Helier, a £2,000 budget and at least 2 bedrooms are must-haves; no pets.
+async function prioritySearch(env) {
+  const applicant = await register(env, { budget_max: 2000, bedrooms_min: 2 });
+  env.DB.raw.prepare(`UPDATE applicants SET requirement_priorities=?, area_answer='selected', parishes_wanted='["St Helier"]',
+    pets='[{"kind":"none"}]' WHERE id=?`).run(JSON.stringify({ version: 1, values: { budget: 'must', bedrooms: 'must', area: 'must' },
+    unknown: [] }), applicant);
+  await recomputeForApplicant(env, applicant, 'system');
+  return applicant;
+}
+const at = minutes => new Date(Date.parse(AT) - minutes * 60000).toISOString();
+
+test('the limit keeps the homes that fit best: recent near misses never push out an older home that meets everything', async () => {
+  const env = world();
+  for (let i = 0; i < 60; i++) advert(env, 'agency-a', `NEAR-${i}`, { seen: at(i), amount: 150000,
+    ...(i % 2 ? { parish: 'Trinity' } : { bedrooms: 1 }) });
+  advert(env, 'agency-b', 'GOOD', { seen: at(10000), amount: 150000, bedrooms: 2 });
+  const applicant = await prioritySearch(env);
+  for (let i = 0; i < 2; i++) await recomputeForApplicant(env, applicant, 'system');
+  const good = market(env, applicant).find(m => m.home_key.includes('"GOOD"'));
+  assert.equal(good?.result, 'meets');
+  assert.equal(runOf(env, applicant).market_state, 'incomplete');
+});
+
+test('when fewer homes meet everything than the limit, every one of them is kept', async () => {
+  const env = world();
+  for (let i = 0; i < 80; i++) advert(env, 'agency-a', `ALT-${i}`, { seen: at(i), amount: 150000, parish: i % 3 ? 'Trinity' : 'Grouville' });
+  for (let i = 0; i < 12; i++) advert(env, 'agency-b', `MEETS-${i}`, { seen: at(5000 + i), amount: 120000 + i * 1000, bedrooms: 2 + (i % 2) });
+  const applicant = await prioritySearch(env);
+  const kept = market(env, applicant);
+  assert.equal(kept.filter(m => m.result === 'meets').length, 12);
+  assert.ok(kept.length <= MARKET_HOMES_LIMIT);
+  // At the limit, a result whose home is no longer among the best is withdrawn, not kept from an older run.
+  for (let i = 0; i < 60; i++) advert(env, 'agency-b', `LATE-${i}`, { seen: AT, amount: 100000, bedrooms: 3 });
+  await recomputeForApplicant(env, applicant, 'system');
+  const now = market(env, applicant);
+  assert.ok(now.length <= MARKET_HOMES_LIMIT);
+  assert.equal(now.filter(m => m.home_key.includes('ALT-')).length, 0);
+});
+
+test('a search reads each advert once, never the history of its readings', async () => {
+  const env = world();
+  for (let i = 0; i < 20; i++) for (let r = 0; r < 5; r++) advert(env, 'agency-a', `H-${i}`, { seen: at(100 - r), amount: 150000 + r * 1000 });
+  const seen = captured(env, /market_latest_observations/);
+  const applicant = await prioritySearch(env);
+  assert.ok(seen.length >= 1);
+  for (const entry of seen) assert.doesNotMatch(plan(env, entry), /SCAN (obs|market_observations)\b/, entry.sql.slice(0, 80));
+  // Each advert at its latest reading: the newest price.
+  const { homes } = ok(await req(env, 'GET', '/admin/market/homes'));
+  assert.equal(homes.length, 20);
+  assert.ok(homes.every(h => h.facts.price.amount_minor === 154000));
+  assert.equal(market(env, applicant).length, 20);
+});
+
+test('0083 takes the readings recorded before it by the same rule, and the trigger keeps them after', async () => {
+  const env = world({ schema: { through: 82 } });
+  advert(env, 'agency-a', 'OLD', { seen: at(10), amount: 140000 });
+  advert(env, 'agency-a', 'OLD', { seen: at(5), amount: 150000 });
+  advert(env, 'agency-a', 'OLD', { seen: at(20), amount: 130000 }); // arrives last, read earlier: not the latest
+  env.DB.raw.exec(readFileSync(new URL('../../migrations/0083_market_matches.sql', import.meta.url), 'utf8'));
+  const latest = () => rows(env, `SELECT json_extract(o.normalized_json,'$.financial_terms[0].amount_minor') AS amount, x.gone
+    FROM market_latest_observations x JOIN market_observations o ON o.id=x.observation_id`);
+  assert.deepEqual(latest(), [{ amount: 150000, gone: 0 }]);
+  advert(env, 'agency-a', 'OLD', { seen: at(1), amount: 160000 });
+  advert(env, 'agency-a', 'OLD', { seen: at(30), amount: 120000 });
+  assert.deepEqual(latest(), [{ amount: 160000, gone: 0 }]);
+});
+
+test('small cases: the screen before 0083, and parishes written loosely', async () => {
+  const before = world({ schema: { through: 82 } });
+  assert.equal((await req(before, 'GET', '/admin/market/homes')).status, 404);
+  const env = world();
+  advert(env, 'agency-a', 'LOOSE', { parish: 'St.  Helier,' });
+  advert(env, 'agency-a', 'SAINT', { parish: "Saint-Brelade's" });
+  const { homes } = ok(await req(env, 'GET', '/admin/market/homes'));
+  const parish = key => homes.find(h => h.publications[0].external_key === key).facts.parish;
+  assert.equal(parish('LOOSE'), 'St Helier');
+  assert.equal(parish('SAINT'), null); // "st brelade s", as plain() reads it: not one of the twelve
 });

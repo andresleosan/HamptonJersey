@@ -249,11 +249,18 @@ export const readLinkedPublications = gated(async (env, links) => {
 
 
 // BUS-01 / BUS-03: the homes of the common inventory, one per operation, worked out in SQL so that a search or a page
-// reads a few rows, never the whole inventory. A home is a root BUS-10's decisions stand for, or an advert nobody
-// decided on yet (its own home); its adverts are their latest reading from a source open now. A fact counts when the
-// dated readings that state it agree; <fact>_disagree when they do not. A parish outside the twelve reads '?', so it
-// disagrees with any other. listing_id: the Hampton listing a person linked the home to (BUS-07), matched instead.
-const NORMAL = c => `trim(replace(replace(replace(replace(' '||lower(${c})||' ','.',' '),'-',' '),' saint ',' st '),'  ',' '))`;
+// reads a few rows, never the whole inventory nor the history of its readings. A home is a root BUS-10's decisions stand
+// for, or an advert nobody decided on yet (its own home); its adverts are their latest reading (market_latest_observations,
+// 0083, the same rule as LATEST) from a source open now. A fact counts when the dated readings that state it agree;
+// <fact>_disagree when they do not. A parish outside the twelve reads '?', so it disagrees with any other.
+// listing_id: the Hampton listing a person linked the home to (BUS-07), matched instead.
+// A parish as plain() compares it: lower case, "saint" as "st", punctuation as spaces, spaces collapsed.
+const NORMAL = c => {
+  let s = `' '||lower(${c})||' '`;
+  for (const mark of ['.', '-', ',', "''", '’', '(', ')', '/']) s = `replace(${s},'${mark}',' ')`;
+  for (let i = 0; i < 4; i++) s = `replace(${s},'  ',' ')`;
+  return `trim(replace(${s},' saint ',' st '))`;
+};
 const PARISHES = `(VALUES ${OPTIONS.parishes.map(([p]) => `('${p.toLowerCase()}','${p}')`).join(',')})`;
 const N = path => `json_extract(lt.normalized_json,'$.${path}')`;
 const MONTHLY_KNOWN = `lt.op='rent' AND ${N('monthly_rent_minor')} IS NOT NULL`;
@@ -267,6 +274,14 @@ const PRICE = `(SELECT CASE WHEN COUNT(*)=1 THEN json_array(CASE WHEN ${MONTHLY_
 const agree = f => `CASE WHEN COUNT(DISTINCT CASE WHEN observed_at IS NOT NULL THEN ${f} END)=1
     THEN MAX(CASE WHEN observed_at IS NOT NULL THEN ${f} END) END AS ${f},
   COUNT(DISTINCT CASE WHEN observed_at IS NOT NULL THEN ${f} END)>1 AS ${f}_disagree`;
+// Each advert once, at its latest reading, from a source open now; never one its source withdrew.
+const CURRENT = `SELECT obs.id,obs.source_ref,obs.channel_id,obs.external_key,obs.normalized_json,
+    json_extract(obs.raw_json,'$.listing_url') AS listing_url,json_extract(obs.normalized_json,'$.operation') AS op
+  FROM market_latest_observations x JOIN market_sources s ON s.source_ref=x.source_ref AND s.channel_id=x.channel_id
+    AND s.access_status IN ('allowed','manual_only') AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+    AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND (s.source_kind='internal' OR EXISTS (SELECT 1
+      FROM market_directory_manifests m WHERE m.revision=s.directory_revision AND m.status='accepted'))
+  JOIN market_observations obs ON obs.id=x.observation_id WHERE x.gone=0`;
 const HOMES = `WITH RECURSIVE
   up(start,id) AS (SELECT property_id,property_id FROM market_identity_observations
     UNION SELECT up.start,a.target_property_id FROM market_identity_aliases a JOIN up ON a.source_property_id=up.id),
@@ -280,7 +295,7 @@ const HOMES = `WITH RECURSIVE
       CASE WHEN ${N('fields.parish')} IS NOT NULL THEN COALESCE((SELECT v FROM parishes WHERE k=${NORMAL(N('fields.parish'))}),'?') END AS parish,
       ${N('fields.bedrooms')} AS bedrooms,${N('fields.bathrooms')} AS bathrooms,${N('fields.pets')} AS pets,${N('fields.parking')} AS parking,
       ${PRICE} AS price,COALESCE(r.id,json_array(lt.source_ref,lt.channel_id,lt.external_key,lt.op)) AS home
-    FROM (SELECT l.*,json_extract(l.normalized_json,'$.operation') AS op FROM (${LATEST}) l) lt
+    FROM (${CURRENT}) lt
     LEFT JOIN decided d ON d.source_ref=lt.source_ref AND d.channel_id=lt.channel_id AND d.external_key=lt.external_key AND d.operation=lt.op
     LEFT JOIN roots r ON r.start=d.property_id),
   homes AS MATERIALIZED (SELECT home,operation,MAX(observed_at) AS observed_at,COUNT(*) AS adverts,
@@ -296,22 +311,42 @@ const OPEN_SOURCES = `SELECT COUNT(*) AS n FROM market_sources s LEFT JOIN marke
 const MONTHLY = `CASE WHEN json_extract(price,'$[1]')='GBP' THEN CASE WHEN operation<>'rent' THEN json_extract(price,'$[0]')/100.0
   WHEN json_extract(price,'$[2]')='month' THEN json_extract(price,'$[0]')/100.0
   WHEN json_extract(price,'$[2]')='year' THEN json_extract(price,'$[0]')/1200.0 END END`;
+const number = v => v != null && v !== '' && Number.isFinite(Number(v)) ? String(Number(v)) : 'NULL';
 
-// BUS-01: the homes a search may be offered, best fitting first, at most limit. Left out here only what evaluate()
-// would exclude anyway: another operation, a home linked to a listing, an excluded parish and, for a search without
-// priorities (where they are hard filters), a stated price over its top, rooms outside its range. open_sources 0: no
-// source is open, which is not an empty market. Reading writes nothing.
-export const readMarketCandidates = gated(async (env, { operation, excluded, legacy, top, limit }) => {
-  const db = primary(env.DB), hard = legacy ?? {};
+// BUS-01: the homes a search may be offered, at most limit, best fitting first. Left out only what evaluate() excludes
+// anyway: another operation, a home linked to a listing, an excluded parish, refused pets for a household with pets
+// and, for a search without priorities (hard filters there), a stated price over its top or rooms out of range.
+// The order approximates what evaluate() rewards, with known data only: fewest must-haves known to fail, then most
+// must-haves known to be met, a known parish, most criteria known to be met, and only then the newest reading. A home
+// that meets every must-have therefore comes before any that fails one or leaves one unknown. fit: the search's own
+// terms (numbers, the wanted and excluded parishes as lists, the must-have keys). open_sources 0: no source is open,
+// which is not an empty market. Reading writes nothing.
+export const readMarketCandidates = gated(async (env, { operation, legacy, fit, limit }) => {
+  const db = primary(env.DB), top = number(fit.top), min = number(fit.bedrooms_min), max = number(fit.bedrooms_max);
+  const baths = number(fit.bathrooms_min), spaces = number(fit.parking_spaces);
+  // [known to fail, known to be met] per criterion the search states; NULL (data unknown) counts as neither.
+  const rule = {
+    budget: fit.top != null && [`monthly>${top}`, `monthly<=${top}`],
+    bedrooms: (fit.bedrooms_min != null || fit.bedrooms_max != null) &&
+      [`(${min} IS NOT NULL AND bedrooms<${min}) OR (${max} IS NOT NULL AND bedrooms>${max})`,
+        `bedrooms IS NOT NULL AND NOT ((${min} IS NOT NULL AND bedrooms<${min}) OR (${max} IS NOT NULL AND bedrooms>${max}))`],
+    bathrooms: fit.bathrooms_min != null && [`bathrooms<${baths}`, `bathrooms>=${baths}`],
+    area: fit.area && [`parish<>'?' AND parish NOT IN (SELECT v FROM wanted)`, `parish IN (SELECT v FROM wanted)`],
+    pets: fit.pets && ['pets=0', 'pets=1'],
+    parking: Number(fit.parking_spaces) > 0 && ['parking=0', `parking=1 AND ${spaces}<=1`],
+  };
+  const stated = Object.keys(rule).filter(k => rule[k]), must = stated.filter(k => fit.must.includes(k));
+  // NULL when nothing to add: a bare 0 in ORDER BY would name a column.
+  const sum = (keys, i) => keys.length ? keys.map(k => `COALESCE((${rule[k][i]}),0)`).join('+') : 'NULL';
+  const known = k => `NOT COALESCE((${rule[k][0]}),0)`;
   const [homes, open] = await db.batch([
-    db.prepare(`${HOMES} SELECT * FROM (SELECT h.*,${MONTHLY} AS monthly FROM homes h) WHERE operation=? AND listing_id IS NULL
-      AND (parish IS NULL OR parish NOT IN (SELECT value FROM json_each(?)))
-      ${legacy ? `AND NOT (monthly IS NOT NULL AND ? IS NOT NULL AND monthly>?)
-      AND NOT (bedrooms IS NOT NULL AND ((? IS NOT NULL AND bedrooms<?) OR (? IS NOT NULL AND bedrooms>?)))
-      AND NOT (bathrooms IS NOT NULL AND ? IS NOT NULL AND bathrooms<?)` : ''}
-      ORDER BY (monthly IS NULL OR ? IS NULL OR monthly<=?) DESC,observed_at DESC,home,operation LIMIT ?`)
-      .bind(operation, excluded ?? '[]', ...(legacy ? [top, top, hard.bedrooms_min, hard.bedrooms_min, hard.bedrooms_max,
-        hard.bedrooms_max, hard.bathrooms_min, hard.bathrooms_min] : []), top, top, limit),
+    db.prepare(`${HOMES}, wanted(v) AS (SELECT value FROM json_each(?)), unwanted(v) AS (SELECT value FROM json_each(?))
+      SELECT * FROM (SELECT h.*,${MONTHLY} AS monthly FROM homes h WHERE h.operation=? AND h.listing_id IS NULL) c
+      WHERE (parish IS NULL OR parish NOT IN (SELECT v FROM unwanted)) ${fit.pets ? 'AND COALESCE(pets,1)<>0' : ''}
+        ${legacy ? ['budget', 'bedrooms', 'bathrooms'].filter(k => rule[k]).map(k => `AND ${known(k)}`).join(' ') : ''}
+      ORDER BY ${sum(must, 0)},${sum(must, 1)} DESC,(parish IS NOT NULL AND parish<>'?') DESC,${sum(stated, 1)} DESC,
+        observed_at DESC,home,operation LIMIT ?`)
+      .bind(JSON.stringify(fit.wanted), JSON.stringify(fit.excluded), operation, limit),
     db.prepare(OPEN_SOURCES),
   ]);
   return { homes: homes.results, open_sources: open.results[0].n };

@@ -164,7 +164,10 @@ async function marketHomes({ request, env }) {
   if (!marketMatchingEnabled(env)) fail(404, 'Not found');
   const query = new URL(request.url).searchParams;
   if ([...query.keys()].some(k => k !== 'after') || query.getAll('after').length > 1) fail(400, 'Invalid inventory request');
-  const { homes, open_sources, more } = await readMarketHomesPage(env, homeCursor(query.get('after')), HOMES_PAGE);
+  const after = homeCursor(query.get('after'));
+  // Switched on before migration 0083: the screen is absent, as when off.
+  const { homes, open_sources, more } = await readMarketHomesPage(env, after, HOMES_PAGE)
+    .catch(e => { if (/no such table/.test(e?.message ?? '')) fail(404, 'Not found'); throw e; });
   const { results } = homes.length ? await primary(env.DB).prepare(`SELECT m.home_key,m.operation,m.applicant_id,c.name,m.result,
       m.score,m.checks,m.observed_at,m.changed_at FROM market_matches m JOIN applicants a ON a.id=m.applicant_id
       JOIN contacts c ON c.id=a.contact_id WHERE ${activeSql('a')} AND a.search_category='residential'
