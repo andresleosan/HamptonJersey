@@ -206,6 +206,55 @@ test("an answer is about the property; what it says about one household stays on
   assert.equal(rows(env2, "SELECT 1 FROM availability_confirmations").length, 0, "nothing written");
 });
 
+test("an answer about one operation is about the operation the enquiry asked about, never the one the property offers later", async () => {
+  // Scoped to the operation asked about (rent), it is recorded for rent.
+  const env = world(), { id } = await sentEnquiry(env);
+  ok(await respond(env, id, { outcome: "unavailable", reason: "let", scope: "operation" }));
+  assert.deepEqual(rows(env, "SELECT operation, status FROM availability_confirmations"), [{ operation: "rent", status: "unavailable" }]);
+  // The property is now offered for sale: an answer about the rent alone says nothing of the sale, so it is refused.
+  for (const outcome of ["unavailable", "available"]) {
+    const env2 = world(), sent = await sentEnquiry(env2);
+    run(env2, "UPDATE listings SET operation = 'sale', availability = 'for_sale', sale_price = 900000, rent = NULL, rent_period = NULL WHERE id = ?", HOME);
+    const before = stored(env2);
+    const r = await respond(env2, sent.id, { outcome, reason: "let", scope: "operation" });
+    assert.equal(r.status, 409, JSON.stringify(r.data));
+    assert.match(r.data.error, /no longer offered to let/i);
+    assert.equal(stored(env2), before, `${outcome}: nothing is written, no sale is confirmed or withdrawn`);
+    assert.equal(rows(env2, "SELECT 1 FROM availability_confirmations").length, 0);
+    // About the whole property it still holds, for every operation.
+    ok(await respond(env2, sent.id, { outcome, reason: "let", scope: "property" }));
+    assert.deepEqual(rows(env2, "SELECT operation, status FROM availability_confirmations"), [{ operation: null, status: outcome }]);
+  }
+});
+
+test("the same answer sent again repairs the propagation of what it confirmed", async () => {
+  const env = world(), { id } = await sentEnquiry(env), ben = await searching(env, "Ben Carter");
+  const again = answer({ outcome: "unavailable", reason: "let" });
+  ok(await req(env, "POST", `/admin/consultations/${id}/response`, again));
+  assert.equal(rows(env, "SELECT 1 FROM matches WHERE applicant_id = ? AND listing_id = ?", ben, HOME).length, 0);
+  // As if the recalculation had failed: the proposal is still there until the retried click.
+  run(env, "INSERT INTO matches (applicant_id, listing_id, score, checks, status, created_at, updated_at) VALUES (?, ?, 90, '[]', 'found', ?, ?)", ben, HOME, T0, T0);
+  ok(await req(env, "POST", `/admin/consultations/${id}/response`, again));
+  assert.equal(rows(env, "SELECT 1 FROM matches WHERE applicant_id = ? AND listing_id = ?", ben, HOME).length, 0);
+  assert.equal(rows(env, "SELECT 1 FROM availability_confirmations").length, 1);
+});
+
+test("switched off after use, an enquiry left waiting for an answer can still be cancelled once no match counts", async () => {
+  const env = world(), { id, ms: [m], agency } = await sentEnquiry(env);
+  const ben = await searching(env, "Ben Carter"), mb = await shortlist(env, ben, ASK);
+  const other = ok(await prepare(env, mb, agency), 201).consultation;
+  ok(await respond(env, id, { outcome: "no_answer", scope: undefined }));
+  delete env.AGE06_RESPONSES_READY;
+  for (const match of [m, mb]) ok(await req(env, "PUT", `/admin/matches/${match}`, { status: "found", from: "shortlisted" }));
+  const view = ok(await req(env, "GET", `/admin/listings/${HOME}/consultations`)).consultations.find(c => c.id === id);
+  assert.deepEqual([view.status, view.can_cancel, "can_answer" in view], ["awaiting_response", true, false]);
+  assert.equal(ok(await req(env, "POST", `/admin/consultations/${id}/cancel`, { revision: 1 })).consultation.status, "cancelled");
+  // Nothing else can be cancelled or answered while it is off.
+  assert.equal((await req(env, "POST", `/admin/consultations/${other.id}/cancel`, { revision: 1 })).status, 404);
+  assert.equal((await respond(env, id, { revision: 1 })).status, 404);
+  assert.equal(row(env, "SELECT status FROM consultations WHERE id = ?", other.id).status, "manual_pending");
+});
+
 test("needs more information opens a follow-up task, closed by the next answer; the same click again records nothing twice", async () => {
   const env = world(), { id } = await sentEnquiry(env);
   const more = answer({ outcome: "more_info", scope: undefined });

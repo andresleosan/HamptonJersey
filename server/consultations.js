@@ -228,7 +228,8 @@ export function enquiries(gates) {
       recipient: to, prepared_by, prepared_at, sent_at, sent_via, sent_by, sent_evidence_ref, matches: ids.length, blocked,
       ...(answers || c.response_outcome ? { response: c.response_outcome ? { outcome: c.response_outcome, at: c.response_at, via: c.response_via,
         from: c.response_from, scope: c.response_scope, evidence_ref: c.response_evidence_ref, by: c.response_by, recorded_at: c.response_recorded_at } : null } : {}),
-      ...(answers ? { can_answer: ANSWERABLE.includes(status), can_cancel: CANCELLABLE.includes(status) && !ids.length } : {}),
+      ...(answers ? { can_answer: ANSWERABLE.includes(status), can_cancel: CANCELLABLE.includes(status) && !ids.length }
+        : status === "awaiting_response" ? { can_cancel: !ids.length } : {}),
       ...(send ? { contact, approval: c.approved_revision === revision ? { by: c.approved_by, at: c.approved_at } : null, email_ref: c.email_ref,
         ...(c.status === "queued" ? { held: sendReady(env) ? await emailStop(env, true) : "Sending enquiries by email was switched off here. It "
           + "stops only once it is off for the clock too: then it returns to manual sending. Return it to manual now to be sure." } : {}) } : {}),
@@ -500,7 +501,11 @@ export function enquiries(gates) {
     const body = await readJson(request), ts = now(), fields = {}, outcome = body?.outcome;
     if (!UUID.test(body?.operation_id ?? "") || !Number.isSafeInteger(body.revision)) fail(400, "Invalid format");
     const c = await one(env, id);
-    if (c.response_operation_id === body.operation_id) return json({ consultation: await detail(env, c) }); // the same click again
+    // The same click again: what it confirmed is propagated again, as a confirmation recorded directly is (a failed recompute).
+    if (c.response_operation_id === body.operation_id) {
+      if (["available", "unavailable"].includes(c.response_outcome)) await propagate(env, c.listing_id, admin);
+      return json({ consultation: await detail(env, c) });
+    }
     if (!ANSWERABLE.includes(c.status)) fail(409, "Only an enquiry that was sent can have an answer recorded. Reload to see it.");
     if (c.revision !== body.revision) fail(409, CHANGED);
     const confirms = outcome === "available" || outcome === "unavailable", on = unavailabilityReady(env);
@@ -524,6 +529,13 @@ export function enquiries(gates) {
       if (notes.some(n => !counted.includes(n.match_id))) fields.case_notes = "A note is only for a match of this enquiry that still counts";
     }
     if (Object.keys(fields).length) return json({ error: "Please check the highlighted fields.", fields }, 400);
+    // An answer about one operation is about the one asked (the confirmation takes the listing's operation, so it must
+    // still be this one, here and in the batch): once the property offers another, it confirms nothing about either.
+    const scoped = confirms && body.scope === "operation";
+    const SAME_OPERATION = " AND EXISTS (SELECT 1 FROM listings l WHERE l.id = consultations.listing_id AND l.operation = consultations.operation)";
+    if (scoped && (await env.DB.prepare("SELECT operation FROM listings WHERE id = ?").bind(c.listing_id).first())?.operation !== c.operation)
+      fail(409, `This property is no longer offered ${OFFER[c.operation]}, so an answer about that operation alone confirms nothing now. `
+        + "If they spoke of the whole property, record it for the whole property.");
     const status = confirms || outcome === "answered" ? "answered" : "awaiting_response";
     const mine = { sql: " AND EXISTS (SELECT 1 FROM consultations WHERE id = ? AND response_operation_id = ?)", args: [c.id, body.operation_id] };
     const task = await followUp(env, c, outcome === "more_info" ? { reopen: true } : { resolved: true });
@@ -534,7 +546,7 @@ export function enquiries(gates) {
         response_scope = ?, response_evidence_ref = ?, response_by = ?, response_recorded_at = ?, response_operation_id = ?`,
       [status, outcome, body.answered_at, body.via, from, confirms ? body.scope : null, evidence, admin, ts, body.operation_id],
       { data: { outcome, via: body.via, ...(confirms && { scope: body.scope }) }, task: task.length ? task : null,
-        when: " AND response_operation_id IS ?", whenArgs: [c.response_operation_id] }),
+        when: ` AND response_operation_id IS ?${scoped ? SAME_OPERATION : ""}`, whenArgs: [c.response_operation_id] }),
       ...notes.map(n => env.DB.prepare(`UPDATE consultation_matches SET response_note = ? WHERE consultation_id = ? AND match_id = ?${mine.sql}`)
         .bind(short(n.note, 300), c.id, n.match_id, ...mine.args)),
       ...(confirms ? confirmationStatements(env, c.listing_id, { status: outcome, confirmed_at: body.answered_at,
@@ -551,6 +563,8 @@ export function enquiries(gates) {
     const body = await readJson(request);
     if (!Number.isSafeInteger(body?.revision)) fail(400, "Invalid format");
     const c = await one(env, id);
+    // Switched off after use, only an enquiry left waiting for an answer (which nothing could then answer) can be closed.
+    if (c.status !== "awaiting_response" && !(await answering(env))) fail(404, "Not found");
     if (c.status === "cancelled") return json({ consultation: await detail(env, c) }); // the same click again
     if (!CANCELLABLE.includes(c.status)) fail(409, "This enquiry can no longer be cancelled. Reload to see it.");
     if (c.revision !== body.revision) fail(409, CHANGED);
@@ -583,7 +597,7 @@ export function enquiries(gates) {
     ["POST", /^\/admin\/consultations\/(\d+)\/email-outcome$/, sends(outcome, true), true],
     ["POST", /^\/admin\/consultations\/(\d+)\/return-to-manual$/, sends(giveBack, true), true],
     ["POST", /^\/admin\/consultations\/(\d+)\/response$/, answers(respond), true],
-    ["POST", /^\/admin\/consultations\/(\d+)\/cancel$/, answers(cancel), true],
+    ["POST", /^\/admin\/consultations\/(\d+)\/cancel$/, guarded(cancel), true],
   ] };
 }
 export default gates => enquiries(gates).routes;

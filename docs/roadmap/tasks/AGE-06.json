@@ -17,13 +17,17 @@
     "server/consultations.js respond/cancel y rutas POST /admin/consultations/:id/response y /cancel; server/availability-confirmations.js confirmationStatements y propagate (record usa lo mismo)",
     "server/candidate-state.js enquiry: awaiting_response, answered_available, answered_unavailable, answered",
     "admin/src/Enquiries.jsx (formulario Record the answer y Cancel enquiry), admin/src/MatchCard.jsx (respuesta y nota del hogar en la fila Enquiry)",
-    "tests/server/age-06-responses.test.mjs: 9/9 (apagado y antes de 0082 igual que hoy; respuesta no útil sigue pendiente; confirmada actualiza todos los matches sin cerrar búsquedas; not available idéntico a EST-15; nota solo en su hogar y eventos sin texto; follow-up; validaciones; cancelación; aclaratoria)",
+    "tests/server/age-06-responses.test.mjs: 12/12 (apagado y antes de 0082 igual que hoy; respuesta no útil sigue pendiente; confirmada actualiza todos los matches sin cerrar búsquedas; not available idéntico a EST-15; nota solo en su hogar y eventos sin texto; follow-up; validaciones; cancelación; aclaratoria)",
     "Regresiones 15-nov: age-03 15/15, age-05 21/21, est-16 9/9, est-15 6/6 y 13/13, candidate-state 7/7, sap02 6/6, matches 16/16, notification* 75/75",
     "tests/age06-responses.e2e.cjs pasa a 1280 y 390 en el contenedor aislado; age03-enquiries y est15-unavailability e2e pasan con AGE06 apagado",
     "Decisión (skill §2, dependencias por componente): se construye sobre el envío manual de AGE-03 (status sent), no espera a AGE-05; la respuesta por correo queda para AUT-17",
     "Decisión (encargo AGE-06 15-nov y spec list2 §D): una respuesta no útil o inconclusa mantiene awaiting_response y no prueba indisponibilidad; needs_review (correo sin confirmar) sigue contando como espera en EST-04",
     "Decisión (plan maestro «Disponibilidad general reutilizable, condiciones del cliente separadas»): la respuesta se guarda en la consulta y en EST-16; lo de un hogar en consultation_matches.response_note",
-    "Decisión (opción más simple, skill §4.5): source agency salvo anunciante individual (owner); se guarda la última respuesta en la fila y cada respuesta como evento consultation.response_recorded con ids, resultado, canal y alcance"
+    "Decisión (opción más simple, skill §4.5): source agency salvo anunciante individual (owner); se guarda la última respuesta en la fila y cada respuesta como evento consultation.response_recorded con ids, resultado, canal y alcance",
+    "Corrección tras revisión independiente (15-nov): una respuesta de alcance «operation» confirma la operación de la consulta (c.operation); si la ficha ya ofrece otra, 409 y no se escribe nada (ni respuesta ni confirmación); la condición se repite en el UPDATE del batch, que es lo que habilita la confirmación. Alcance «property» sigue valiendo para toda la propiedad. Fuente: regla del revisor y plan AGE-06 «unavailable_only_this_operation»; elegí rechazar y no guardar sin confirmación porque guardarla como answered cerraría la consulta sin hecho comercial",
+    "El mismo clic repetido vuelve a llamar a propagate, como el registro directo de EST-16 (repara un recálculo fallido)",
+    "Con AGE06_RESPONSES_READY apagado tras usarse, solo una consulta awaiting_response sin matches vigentes puede cancelarse (solo cierra); todo lo demás sigue 404",
+    "Regresiones tras la corrección: age-06 12/12, est-16 9/9, est-15 6/6, age-03 15/15, age-05 21/21, candidate-state 7/7"
   ],
   "modulo": "M06",
   "deps": [
