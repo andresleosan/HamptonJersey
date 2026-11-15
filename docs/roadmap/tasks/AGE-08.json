@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "M06 · Reconciliación 7-nov: Tras dos días desde el envío real sin respuesta útil, crear una única tarea de llamada con propiedad, anunciante, mensaje, historial, clientes y todos los teléfonos identificados. Una respuesta que llega antes de llamar actualiza o resuelve la tarea según lo confirmado. Registrar disponible, no disponible o inconcluso; una llamada sin contestar no prueba indisponibilidad. Sustituye el antiguo encadenamiento de recordatorios por correo. Naturales/laborables, hora y fines de semana siguen pendientes de decisión; conservar estadísticas de respuesta como mejora separada. Depende de: AGE-05, AGE-06, AGE-04, AUT-07, NOT-11. Aceptación: Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: llamada a los dos días sin respuesta. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): llamadas. Traído de BUS-06 (14-nov): la tarea de llamada lee anunciantes y teléfonos del directorio AGE-04 (GET /admin/advertisers?property_id=); el inventario de mercado no guarda contactos.",
+  "falta": "M06 · Reconciliación 7-nov: Tras dos días desde el envío real sin respuesta útil, crear una única tarea de llamada con propiedad, anunciante, mensaje, historial, clientes y todos los teléfonos identificados. Una respuesta que llega antes de llamar actualiza o resuelve la tarea según lo confirmado. Registrar disponible, no disponible o inconcluso; una llamada sin contestar no prueba indisponibilidad. Sustituye el antiguo encadenamiento de recordatorios por correo. Naturales/laborables, hora y fines de semana siguen pendientes de decisión; conservar estadísticas de respuesta como mejora separada. Depende de: AGE-05, AGE-06, AGE-04, AUT-07, NOT-11. Aceptación: Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: llamada a los dos días sin respuesta. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): llamadas. Traído de BUS-06 (14-nov): la tarea de llamada lee anunciantes y teléfonos del directorio AGE-04 (GET /admin/advertisers?property_id=); el inventario de mercado no guarda contactos. Traído de AGE-03 (15-nov): la llamada a los dos días parte de consultations.sent_at, que hoy solo existe con envío anotado; los teléfonos se leen del directorio por advertiser_id.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:295",
@@ -72,5 +72,5 @@
     "notifications-schema"
   ],
   "nextStep": "Crear una única llamada pendiente a los dos días laborables (lunes a viernes, misma hora de Jersey) contados desde el envío real y sin respuesta útil.",
-  "actualizado": "2026-11-14"
+  "actualizado": "2026-11-15"
 }
