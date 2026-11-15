@@ -6,8 +6,8 @@
   "fase": "F7-B",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "9-nov-2026: tramo Inbox de Staff construido: Feed → Messages informa una vez por semana desde el lunes08:00 Europe/Jersey, con cuatro totales y top5 referencias de la semana natural anterior. Foto inmutable, ambos bordes de fechas, evento/aviso atómicos, recibos por empleado y destino autenticado. Migración aditiva0036; sin correo. Pruebas de calendario GMT/BST, idempotencia, fallo/reintento, D1 real y navegador1280/390/zoom200. Autorización de construir/publicar recibida; evidencia de despliegue en relevo de esta entrega.",
-  "falta": "El tramo original de email a dirección continúa pendiente de AUT-17 operativo y su integración específica. No se declara hecho por entregar Inbox.",
+  "hecho": "9-nov-2026: tramo Inbox de Staff construido: Feed → Messages informa una vez por semana desde el lunes08:00 Europe/Jersey, con cuatro totales y top5 referencias de la semana natural anterior. Foto inmutable, ambos bordes de fechas, evento/aviso atómicos, recibos por empleado y destino autenticado. Migración aditiva0036; sin correo. Pruebas de calendario GMT/BST, idempotencia, fallo/reintento, D1 real y navegador1280/390/zoom200. Autorización de construir/publicar recibida; evidencia de despliegue en relevo de esta entrega. 15-nov-2026: comprobado en main 88e4c3c que el tramo está publicado sin interruptor (server/jobs.js llama a weeklyInsightsPass en cada tick) y que 0036 consta aplicada (ESTADO 9 y 10-nov: «No migrations to apply» tras 0036). Histórico conservado: weekly_insights no se purga y cada semana deja su aviso con enlace a #/insights/weekly/<lunes>. Nada que construir.",
+  "falta": "Solo comprobar en producción, en lectura, que existe la foto de la semana 2026-11-02 (o la de 2026-11-09 desde el lunes 16-nov 08:00 de Jersey) y su aviso en Inbox → Feed → Messages. El envío por correo a dirección pasa al falta de AUT-17 (canal externo, sección 3 de la skill).",
   "bloqueo": "Correo (AUT-17), solo tramo email",
   "evidencia": [
     "server/weekly-insights.js",
@@ -16,7 +16,11 @@
     "admin/src/WeeklyInsights.jsx",
     "tests/server/weekly-insights.test.mjs",
     "tests/weekly-insights.e2e.cjs",
-    "docs/superpowers/plans/2026-11-09-ana-08-build-ledger.md"
+    "docs/superpowers/plans/2026-11-09-ana-08-build-ledger.md",
+    "15-nov-2026 · decisión: el correo semanal a dirección se traslada al falta de AUT-17 y deja de bloquear ANA-08. Fuente: skill avanzar §3 (canales externos van a la otra tarea) y encargo del orquestador de 15-nov.",
+    "15-nov-2026 · decisión: sin interruptor ni migración nuevos; el pase semanal ya corre sin interruptor y 0036 está aplicada. Fuente: server/jobs.js, ESTADO 9 y 10-nov; modo ponytail.",
+    "15-nov-2026 · verificación en 88e4c3c: node --test weekly-insights 8/8, insights 12/12, jobs 10/10, email 18/18, notification-reconcile 10/10.",
+    "15-nov-2026 · navegador aislado sin red: E2E_SCRIPT=tests/weekly-insights.e2e.cjs npm run test:e2e:isolated aprobado a 1280 y 390 (teclado, error de refresco, vacío, inexistente, respuesta tardía, sesión caducada y zoom)."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -44,5 +48,6 @@
     "email-pipeline",
     "jobs-clock"
   ],
-  "nextStep": "Verificar publicación y primer resumen Inbox; para email, cerrar activación AUT-17 y su integración sin duplicar el snapshot."
+  "nextStep": "Lectura de producción de weekly_insights y de su aviso; si existe la foto, cerrar ANA-08 por aceptación propia. El correo sigue en AUT-17.",
+  "actualizado": "2026-11-15"
 }
