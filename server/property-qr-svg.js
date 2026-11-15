@@ -1,10 +1,10 @@
 import { qrcodegen } from '../shared/vendor/nayuki-qrcodegen.mjs';
-import { propertyQrUrl } from './property-qr.js';
 
-// Pure rendering only: callers must establish the authorized, stable association first.
-// The input is a canonical QR code, never a caller-supplied URL or SVG fragment.
-export function propertyQrSvg(code) {
-  const url = propertyQrUrl(code);
+// ANA-10: pure rendering of a window poster's QR, in the panel. Only a listing page with the QR mark, as
+// server/poster-qr.js builds it from SITE_URL; anything else throws.
+const POSTER = /^https?:\/\/[a-z0-9.-]+(?::\d+)?\/p\/HE-[A-Z]\d{3,}\?src=qr$/;
+export function propertyQrSvg(url) {
+  if (typeof url !== 'string' || !POSTER.test(url)) throw new TypeError('Invalid poster QR address');
   const segments = qrcodegen.QrSegment.makeSegments(url);
   const qr = qrcodegen.QrCode.encodeSegments(segments, qrcodegen.QrCode.Ecc.MEDIUM, 1, 40, -1, false);
   const margin = 4, size = qr.size + margin * 2, runs = [];

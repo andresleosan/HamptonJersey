@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import jsQR from 'jsqr';
 import { propertyQrSvg } from '../../server/property-qr-svg.js';
-import { createPropertyQrCode, propertyQrUrl } from '../../server/property-qr.js';
 
-const codeA = 'AAAAAAAAAAAAAAAAAAAAAA';
-const codeB = 'AAAAAAAAAAAAAAAAAAAAAQ';
+// ANA-10: a poster QR carries a listing page with the QR mark, as server/poster-qr.js gives it to staff.
+const codeA = 'https://www.hamptonestatesjersey.com/p/HE-R001?src=qr';
+const codeB = 'https://www.hamptonestatesjersey.com/p/HE-L1234?src=qr';
 
 test('property QR is a self-contained, deterministic monochrome SVG with a four-module margin', () => {
   const svg = propertyQrSvg(codeA);
@@ -33,7 +33,7 @@ test('property QR is a self-contained, deterministic monochrome SVG with a four-
 });
 
 test('an independent reader decodes the rendered SVG as the exact property URL at correction level M', () => {
-  for (const code of [codeA, codeB, ...Array.from({length: 6}, createPropertyQrCode)]) {
+  for (const code of [codeA, codeB, 'http://127.0.0.1:8788/p/HE-S042?src=qr']) {
     const svg = propertyQrSvg(code), size = Number(svg.match(/viewBox="0 0 (\d+) \d+"/)[1]);
     const path = svg.match(/<path\s+d="([^"]+)"/)[1];
     const scale = 5, width = size * scale, pixels = new Uint8ClampedArray(width * width * 4).fill(255);
@@ -44,7 +44,7 @@ test('an independent reader decodes the rendered SVG as the exact property URL a
           pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = 0;
         }
     const decoded = jsQR(pixels, width, width);
-    assert.equal(decoded?.data, propertyQrUrl(code));
+    assert.equal(decoded?.data, code);
     // The unmasked format information carries the actual error-correction level (M = 00).
     const dark = (x, y) => pixels[((y + 4) * scale * width + (x + 4) * scale) * 4] === 0;
     let format = 0;
@@ -57,7 +57,8 @@ test('an independent reader decodes the rendered SVG as the exact property URL a
   }
 });
 
-test('property QR rejects arbitrary URLs and malformed codes', () => {
-  for (const invalid of [null, '', 'https://example.test/', `${codeA}\n`, `${codeA}"><script/>`])
+test('property QR rejects anything but a listing page with the QR mark', () => {
+  for (const invalid of [null, '', 'https://example.test/', 'https://example.test/p/HE-R001', 'javascript:alert(1)//p/HE-R001?src=qr',
+    'https://example.test/p/HE-R001?src=qr&next=https://evil.test', `${codeA}\n`, `${codeA}"><script/>`])
     assert.throws(() => propertyQrSvg(invalid), TypeError);
 });

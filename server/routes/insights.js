@@ -7,6 +7,7 @@ import { getWebVolumes, webVolumesFromRow, WEB_VOLUME_COLUMNS } from "../measure
 import { getSearchMilestones } from "../measurement-funnel.js";
 import { PUBLIC_BOOKING_BLOCKED_SQL } from "../viewing-store.js";
 import { reviewPublicListing } from "./public.js";
+import { posterQrEnabled, qrOpensTotal } from "../poster-qr.js";
 
 const DAYS = ["7", "30", "90"];
 // I8: offered to applicants and not archived; each query adds the operation.
@@ -66,20 +67,21 @@ async function milestones({request, env}) {
 // I12: one batch, counts and medians only.
 async function insights({ request, env }) {
   const { days, from, to } = period(request), since = jerseyDayStart(from);
-  const [[totals], active, available, viewed, cohort, webViewings] = await env.DB.batch([
+  const [[totals], active, available, viewed, cohort, webViewings, qr] = await env.DB.batch([
     env.DB.prepare(TOTALS).bind(from, to, since, from, to),
     env.DB.prepare(DEMAND),
     env.DB.prepare(LISTINGS),
     env.DB.prepare(VIEWED).bind(since, from, to),
     env.DB.prepare(COHORT).bind(since),
     env.DB.prepare(WEB_VIEWINGS).bind(since),
+    ...(posterQrEnabled(env) ? [qrOpensTotal(env, from, to)] : []), // ANA-10: needs migration 0091
   ]).then(r => r.map(x => x.results));
   const counts = funnel(cohort);
   return json({
     period: { days, from, to },
     activity: webVolumesFromRow(totals, {from, to}),
     totals: { views: totals.views, viewing_requests: totals.viewing_requests, new_applicants: counts.registered,
-      viewings_completed: totals.viewings_completed },
+      viewings_completed: totals.viewings_completed, ...(qr ? { qr_opens: qr[0].n } : {}) },
     demand: groupDemand(active, available),
     unmet: topUnmet(active),
     views: { first_day: totals.first_day, rows: viewed },

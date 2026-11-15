@@ -6,6 +6,7 @@ import { api } from "./api.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show, TENURE, HOUSING, RESTRICTION } from "./format.js";
 import MediaManager from "./MediaManager.jsx";
 import ListingDocuments from "./ListingDocuments.jsx";
+import PosterQr from "./PosterQr.jsx";
 import HouseRules from "./HouseRules.jsx";
 import ConfirmedAvailability from "./ConfirmedAvailability.jsx";
 import ListingEnquiries from "./Enquiries.jsx";
@@ -623,6 +624,7 @@ export default function ListingEditor({ id, onChange, guide = false }) {
             : { ...d.listing, cover_media_id: coverId } })); }} />
       </section>
       {data.documents_enabled && <ListingDocuments listingId={id} />}
+      <PosterQr listingId={id} refresh={`${l.published}:${l.updated_at}:${publicPhoto}`} />
 
       <section id="s-tour" className="card" aria-labelledby="h-tour"><h2 id="h-tour" tabIndex={-1}>Tour and specification</h2>
         {field("tour_url", "3D tour or video URL (https://)", <input {...ctl("tour_url")} type="url" maxLength={500} placeholder="https://my.matterport.com/show/?m=…" />)}

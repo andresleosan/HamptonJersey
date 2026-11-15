@@ -114,10 +114,12 @@ function Report({ d }) {
   return <>
     <p className="muted">{fmtDay(period.from)} to {fmtDay(period.to)}, today included.</p>
     <dl className="figures">{[["Listing views", totals.views], ["Viewing requests", totals.viewing_requests],
-      ["New applicants", totals.new_applicants], ["Viewings completed", totals.viewings_completed]].map(([t, v]) =>
+      ["New applicants", totals.new_applicants], ["Viewings completed", totals.viewings_completed],
+      ...(totals.qr_opens == null ? [] : [["Poster QR opens", totals.qr_opens]])].map(([t, v]) =>
       <div key={t} className="card"><dt>{t}</dt><dd className="num">{n(v)}</dd></div>)}</dl>
     <p className="muted">Listing pages opened on the website; viewing requests created, from any origin; applicants registered and
-      not archived; viewings completed, by the day of the viewing.</p>
+      not archived; viewings completed, by the day of the viewing.{totals.qr_opens != null && <> Poster QR opens: listing pages
+      opened from a window poster's QR, approximate, at most 200 a day per property, never who.</>}</p>
 
     <section className="block" aria-labelledby="h-demand">
       <h2 id="h-demand">Unmet demand</h2>

@@ -1213,6 +1213,9 @@ function detail(id) {
   });
   show("photo");
   track(p.id, "view");
+  // ANA-10: a window poster's QR opens /p/<id>?src=qr. One open is counted (the server refuses it while switched off),
+  // then the mark leaves the address bar, so a reload or a shared link is not counted again.
+  if (new URLSearchParams(location.search).get("src") === "qr") { track(p.id, "qr"); history.replaceState(null, "", `/p/${p.id}${location.hash}`); }
 
   if (canCalc) {
     const calc = () => {
