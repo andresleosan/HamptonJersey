@@ -6,7 +6,7 @@ import { Received, money, useFieldErrors } from "./Sales.jsx";
 import { Assign, GAS, KIND, MarkStep, REPAIR_STATUS, SERVICE, URGENCY, checkState, pence } from "./Rentals.jsx";
 import { CancelMoveOut, ChangeRent, CorrectCharge, DETAILS, EditPayment, EditTenancy, EndTenancy, NewTenancy, RecordNotice, RecordPayment,
   Renew, RepairDialog, NEXT_DAY, UnassignPayment, UpdateCheck, needsApproval, rentLine, NoticeDraft, ReverseWriteOff, WriteOff,
-  arrearsDraft } from "./RentalDialogs.jsx";
+  arrearsDraft, RenewalAnswer, answerLabel, renewalDraft } from "./RentalDialogs.jsx";
 import { FromLetAgreed, TenancyRecords, useOriginReady } from "./RentalOrigin.jsx";
 import { OUTCOME, TenancyExit } from "./TenancyExit.jsx";
 import { TenancyInspections } from "./RentalInspection.jsx";
@@ -29,7 +29,8 @@ const toBody = f => ({ address: f.address.trim() || null, parish: f.parish || nu
 const MovePayment = ({ d, p, onDone, ...rest }) => <Assign payment={p} from={d.tenancy} onDone={m => onDone(m.text)} {...rest} />;
 const DIALOGS = { payment: RecordPayment, rent: ChangeRent, renew: Renew, notice: RecordNotice, end: EndTenancy, charge: CorrectCharge,
   edit: EditTenancy, check: UpdateCheck, repair: RepairDialog, cancelEnd: CancelMoveOut, editPayment: EditPayment,
-  unassign: UnassignPayment, move: MovePayment, suppliers: Suppliers, writeOff: WriteOff, reverseWriteOff: ReverseWriteOff };
+  unassign: UnassignPayment, move: MovePayment, suppliers: Suppliers, writeOff: WriteOff, reverseWriteOff: ReverseWriteOff,
+  answer: RenewalAnswer };
 const day = iso => fmtDay(jerseyToday(new Date(iso)));
 const FINAL = ["done", "cancelled"];
 const TONE = { reported: "active", awaiting_approval: "attention", approved: "active", in_progress: "active", done: "positive", cancelled: "neutral" };
@@ -136,7 +137,7 @@ export default function RentalDetail({ id, selection='', onChange }) {
 
     <div className="rental">
       <div className="sections">
-        {running.map(t => <Tenancy key={t.id} id={t.id} tick={tick} note={note(t.id)} open={(kind, props) => open(kind, props, t.id)}
+        {running.map(t => <Tenancy key={t.id} id={t.id} tick={tick} note={note(t.id)} landlord={r.landlord_name} open={(kind, props) => open(kind, props, t.id)}
           refresh={refresh} next={data.tenancies.some(x => x.id > t.id)} requestedDeadline={!linked.error&&linked.tenancy===t.id?linked.deadline:null} />)}
         {!running.some(t => !t.ended_on) && <section className="card" aria-labelledby="h-new-tenancy">
           <h2 id="h-new-tenancy">{running.length ? "Next tenancy" : "No tenancy"}</h2>
@@ -249,7 +250,7 @@ const SHORT = 6;
 const SCOPE = { yes: "within the tenancy law", no: "outside the tenancy law", unknown: "scope not recorded" };
 const lawLine = (t, law) => <>{t.agreement_on ? `Agreed ${fmtDay(t.agreement_on)}: ${regimeOf(t.agreement_on, law)} rules`
   : `Agreement date not recorded (label ${t.regime}, not verified)`}, {SCOPE[t.law_scope]} {t.agreement_on && <Estimated legal={law} />}</>;
-function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline }) {
+function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landlord }) {
   const [d, setD] = useState(null), [err, setErr] = useState(null), [all, setAll] = useState(false);
   const load = () => api(`/admin/tenancies/${id}`).then(x => { setD(x); setErr(null); }, e => setErr(e.message));
   useEffect(() => { load(); }, [id, tick]);
@@ -310,6 +311,16 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline }) {
         && ` · Reversed ${fmtDay(w.reversed_on)}: ${w.reversal_reason}`}</span></span>
       {!w.reversed_on && <span className="ctl"><button type="button" className="btn ghost sm" onClick={act("reverseWriteOff", { w })}>
         Reverse<span className="sr"> the write-off of {pence(w.amount)}</span></button></span>}</li>)}</ul></>}
+    {/* ADM-14 (d.renewal: its switch): within the renewal window, the answers recorded for this term and the message to send. */}
+    {d.renewal && !t.notice_given_on && t.end_on <= plusDays(today, LEGAL.renewalDays) && <>
+      <h3>Renewal answers</h3><ul className="plain-list">{["landlord", "tenant"].map(p => { const x = d.renewal[p]; return <li key={p}>
+        <span>{p === "landlord" ? "Landlord" : "Tenant"}<span className="muted cell-note">{x ? `${answerLabel(x)} · answered ${fmtDay(x.answered_on)} · ${x.source}`
+          : "No answer recorded"}</span></span></li>; })}</ul>
+      <div className="ctl"><button type="button" className="btn ghost sm" onClick={act("answer")}>Record answer</button></div>
+      <NoticeDraft text={renewalDraft(d, landlord ?? "[Landlord]")} id={`renewal-draft-${id}`} label="Text to send"
+        title={d.renewal.landlord ? "Message to the tenant" : "Message to the landlord"}
+        badge={d.renewal.landlord ? "Draft · not validated by a lawyer" : "Draft · nothing is sent from the app"}
+        file={`${t.payment_ref}-renewal-${d.renewal.landlord ? "tenant" : "landlord"}.txt`} /></>}
     <div className="ctl">
       <button type="button" className="btn sm" onClick={act("payment")}>Record payment</button>
       {!ended && <button type="button" className="btn ghost sm" onClick={act("rent")}>Change rent</button>}
@@ -407,7 +418,8 @@ const EVENT = {
   "tenancy.renewed": d => (d.after.kind === "fixed" ? `Tenancy renewed until ${fmtDay(d.after.end_on)}` : "Tenancy renewed as periodic"),
   "tenancy.ended": d => `${d.before ? `Move-out moved from ${fmtDay(d.before)} to` : "Tenancy ends"} ${fmtDay(d.ended_on)}${gone(d.removed, "later")}`,
   "tenancy.end_cancelled": d => `Move-out of ${fmtDay(d.before)} cancelled: the tenancy goes on`,
-  "notice.recorded": d => `Notice given by the ${d.by} on ${fmtDay(d.given_on)}; earliest move-out ${fmtDay(d.earliest_move_out)}`,
+  "renewal.answered": d => `${d.party === "landlord" ? "Landlord" : "Tenant"} answered the renewal of the term ending ${fmtDay(d.end_on)}: ${answerLabel(d)}`,
+  "notice.recorded": d =>`Notice given by the ${d.by} on ${fmtDay(d.given_on)}; earliest move-out ${fmtDay(d.earliest_move_out)}`,
   // ADM-15 (d.review, with its switch): the RPI the limit was worked out with, and what the change went beyond.
   "rent.changed": ({ review: v, ...d }) => `Rent changed from ${money(d.before)} to ${money(d.rent)} pcm from ${fmtDay(d.effective_on)}${!v ? ""
     : v.cover === "no" ? "; no estimate, the 2025 rules are not recorded as covering it"

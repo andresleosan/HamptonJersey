@@ -18,7 +18,7 @@ import negotiatorRoutes from "./routes/negotiators.js";
 import insightRoutes from "./routes/insights.js";
 import saleRoutes from "./routes/sales.js";
 import rentalRoutes from "./routes/rentals.js";
-import rentRoutes, { arrearsReady, writeoffRoutes } from "./routes/rent.js";
+import rentRoutes, { arrearsReady, writeoffRoutes, renewalReady, renewalRoutes } from "./routes/rent.js";
 import statementRoutes, { closingRoutes, statementsReady } from "./statements.js";
 import reportRoutes from "./routes/report.js";
 import interestRoutes from "./routes/interest.js";
@@ -83,6 +83,7 @@ async function route(request, env, segments, waitUntil) {
     if (missingPaymentsReady(env)) routes = [...routes, ...missingPaymentRoutes]; // NOT-05: no migration
     if (legalTermsReady(env)) routes = [...routes, ...legalRoutes]; // ADM-17: saving needs migration 0063
     if (arrearsReady(env)) routes = [...routes, ...writeoffRoutes]; // ADM-09: needs migration 0045
+    if (renewalReady(env)) routes = [...routes, ...renewalRoutes]; // ADM-14: no migration
     if (statementsReady(env)) routes = [...routes, ...closingRoutes]; // ADM-10: needs migration 0090
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];

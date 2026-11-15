@@ -259,10 +259,52 @@ export function ChangeRent({ d: { tenancy: t, assistant, current_rent, legal, la
   </Sheet>;
 }
 
-// R24: the same tenancy and payment reference, a new fixed term or periodic, optionally a new rent.
-export function Renew({ d: { tenancy: t, law }, onClose, onDone, onRefused }) {
+// ADM-14 (d.renewal: its switch): the answers to a fixed term's renewal, recorded by hand with their date and where they
+// are recorded. Nothing is sent (email is AUT-17's); Renew and End tenancy act on them.
+export const RENEWAL_ANSWERS = { landlord: [["renew", "Renew, same rent"], ["rent", "Renew at a new rent"], ["end", "Not renew"]],
+  tenant: [["renew", "Wants to stay"], ["end", "Wants to leave"]] };
+export const answerLabel = x => `${RENEWAL_ANSWERS[x.party].find(([k]) => k === x.answer)[1]}${x.rent ? ` at ${money(x.rent)} pcm` : ""}`;
+export function RenewalAnswer({ d: { tenancy: t }, onClose, onDone, onRefused }) {
+  const today = jerseyToday();
+  const a = useForm("ra", { party: "landlord", answer: "", rent: "", answered_on: today, source: "" }, async f => {
+    await api(`/admin/tenancies/${t.id}/renewal-answer`, { method: "POST", body: { party: f.party, answer: f.answer || null,
+      rent: f.answer === "rent" ? pounds(f.rent) : null, answered_on: f.answered_on || null, source: f.source.trim() || null } });
+    return `The ${f.party}'s answer is recorded.`;
+  }, onDone, onRefused);
+  return <Sheet title="Record renewal answer" a={a} button="Record answer" onClose={onClose}>
+    <Who t={t} />
+    {a.radios("party", "From", [["landlord", "Landlord"], ["tenant", "Tenant"]])}
+    {a.radios("answer", "Answer", RENEWAL_ANSWERS[a.f.party])}
+    {a.f.party === "landlord" && a.f.answer === "rent" && a.field("rent", "New rent (£ pcm)", { inputMode: "numeric" })}
+    {a.field("answered_on", "Answered on", { type: "date", max: today })}
+    {a.field("source", "Where it is recorded", { maxLength: 200, placeholder: "e.g. Landlord's email of 3 November" })}
+    <p className="muted">Nothing is sent from the app. Renew or End tenancy then act on the answer.</p>
+  </Sheet>;
+}
+// ADM-14: the message to send by hand: to the landlord until they answer, then to the tenant with that answer. Dates
+// carry the year (the text leaves the screen); what tells the tenant the tenancy ends or changes says it is no
+// validated letter (ADM-17).
+export function renewalDraft({ tenancy: t, current_rent, renewal: { landlord: x } }, landlord) {
+  const end = fmtDayMonth(t.end_on), sign = ["", "Yours sincerely,", "[Name]", "Hampton"];
+  if (!x) return ["DRAFT · nothing is sent from the app", `Tenancy renewal · ${t.payment_ref} · ${t.address}`, "", `Dear ${landlord},`, "",
+    `The fixed term of ${t.tenant_name}'s tenancy at ${t.address} ends on ${end}. The rent is ${money(current_rent)} pcm.`,
+    "Please let us know whether you wish to renew it at the same rent, renew it at a new rent, or let it end, so that we can tell the tenant in good time.",
+    ...sign].join("\n");
+  return ["DRAFT · not validated by a lawyer · check it before it is sent", `Your tenancy · ${t.payment_ref} · ${t.address}`, "",
+    `Dear ${t.tenant_name},`, "", x.answer === "end"
+      ? `The landlord has decided not to renew your tenancy at ${t.address}. The fixed term ends on ${end}. We will contact you about the move-out, the check-out report and your deposit.`
+      : `The landlord would like to renew your tenancy at ${t.address}, whose fixed term ends on ${end}, ${x.answer === "rent"
+        ? `at a rent of ${money(x.rent)} pcm` : `at the same rent of ${money(current_rent)} pcm`}. Please let us know whether you would like to stay.`,
+    ...sign].join("\n");
+}
+
+// R24: the same tenancy and payment reference, a new fixed term or periodic, optionally a new rent. ADM-14 (renewal: its
+// switch): the rent the landlord answered comes filled in, and a new rent shows ADM-15's draft as Change rent does.
+export function Renew({ d: { tenancy: t, law, renewal, assistant, current_rent, legal }, onClose, onDone, onRefused }) {
   const check = f => lawOf(law, { operation: "renew", tenancy: { ...t, kind: f.kind, end_on: f.kind === "fixed" ? f.end_on || null : null }, before: t });
-  const a = useForm("rn", { kind: "fixed", end_on: "", rent: "", effective_on: "" }, async f => {
+  const agreed = renewal?.landlord?.answer === "rent" ? String(renewal.landlord.rent) : "", today = jerseyToday();
+  const policy = renewal && assistant.cover ? law : null, help = policy && rentAssistant(t, assistant.rpi, today, periodsOf(legal), policy);
+  const a = useForm("rn", { kind: "fixed", end_on: "", rent: agreed, effective_on: "" }, async f => {
     const rent = pounds(f.rent);
     await api(`/admin/tenancies/${t.id}/renew`, { method: "POST", body: { kind: f.kind, end_on: f.kind === "fixed" ? f.end_on || null : null,
       rent, effective_on: rent ? f.effective_on || null : null, ...lawBody(f, check(f)) } });
@@ -280,6 +322,8 @@ export function Renew({ d: { tenancy: t, law }, onClose, onDone, onRefused }) {
     <div className="grid2">{a.field("rent", "New rent (£ pcm, optional)", { inputMode: "numeric" })}
       {a.f.rent.trim() && a.field("effective_on", "New rent starts on", { type: "date", min: jerseyToday() })}</div>
     <p className="muted">Change rent can show an estimate based on the recorded law label; it does not verify the applicable rules.</p>
+    {help?.applies && Number(pounds(a.f.rent)) > 0 && a.f.effective_on && <NoticeDraft
+      text={noticeDraft(t, current_rent, Number(pounds(a.f.rent)), a.f.effective_on, help, periodsOf(legal), today)} />}
   </Sheet>;
 }
 
@@ -302,9 +346,11 @@ export function RecordNotice({ d: { tenancy: t, legal }, onClose, onDone, onRefu
 
 // R13, R24: the move-out, maybe ahead; later rent charges go and the property is free for the next tenancy. P22: a
 // planned move-out (still ahead) can move to another date from today.
-export function EndTenancy({ d: { tenancy: t, earliest_move_out, legal }, onClose, onDone, onRefused }) {
+export function EndTenancy({ d: { tenancy: t, earliest_move_out, legal, renewal }, onClose, onDone, onRefused }) {
   const today = jerseyToday(), planned = !!t.ended_on;
-  const a = useForm("et", { ended_on: t.ended_on ?? earliest_move_out ?? today }, async f => {
+  // ADM-14 (renewal: its switch): when the landlord or the tenant answered that the term ends, its end date comes filled in.
+  const ends = [renewal?.landlord, renewal?.tenant].some(x => x?.answer === "end") ? t.end_on : null;
+  const a = useForm("et", { ended_on: t.ended_on ?? earliest_move_out ?? ends ?? today }, async f => {
     await api(`/admin/tenancies/${t.id}/end`, { method: "POST", body: { ended_on: f.ended_on || null } });
     return f.ended_on > today ? `${t.tenant_name} moves out on ${fmtDay(f.ended_on)}.` : `Tenancy ended on ${fmtDay(f.ended_on)}.`;
   }, onDone, onRefused);

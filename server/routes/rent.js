@@ -59,6 +59,9 @@ export function ensureCharges(env, today, tenancyId = null, staleBefore = null) 
 // ADM-09 (adjusted: its switch, ADM09_ARREARS_READY, with migration 0045): a charge counts net of what was written off
 // on it by `date` (reversals add it back). Off, the charge's amount as before.
 export const arrearsReady = env => env?.ADM09_ARREARS_READY === "1";
+// ADM-14 (no migration; only the website reads it): the landlord's and the tenant's answer to a fixed term's renewal,
+// recorded by hand as rental events, and ADM-15's review kept with a rent agreed at Renew. Sends nothing.
+export const renewalReady = env => env?.ADM14_RENEWAL_READY === "1";
 const NET = (x = "x.") => `SUM(CASE ${x}kind WHEN 'writeoff' THEN ${x}amount_pence ELSE -${x}amount_pence END)`;
 const amountOf = (adjusted, c = "c", date = "?1") => adjusted
   ? `(${c}.amount - COALESCE((SELECT ${NET()} FROM charge_adjustments x WHERE x.charge_id = ${c}.id AND x.effective_on <= ${date}), 0))`
@@ -180,11 +183,12 @@ export async function detail(env, id) {
     q(`SELECT ${rentNow("?2")} AS rent FROM tenancies t WHERE t.id = ?1`, id, today),
     ...(net ? [q(WRITEOFFS, id)] : []),
     ...(law ? [lawHistory(env, id)] : []),
+    ...(renewalReady(env) ? [q(ANSWERS_SQL, id)] : []),
   ])).map(r => r.results);
   if (!tenancy) fail(404, "Tenancy not found");
   // ADM-09: the revision a write-off must still find; off, the tenancy reads as before 0045.
   if (!net) delete tenancy.financial_revision;
-  const writeoffs = net ? more.shift() : null, [[law_history] = []] = more;
+  const writeoffs = net ? more.shift() : null, [law_history] = law ? more.shift() : [], answers = more.shift();
   const arrears = late?.oldest_unpaid_on ? { oldest_unpaid_on: late.oldest_unpaid_on, days_late: late.days_late,
     next_step: STEP[late.next_step] ?? null,
     done: steps.filter(x => x.charge_due_on === late.oldest_unpaid_on).map(({ charge_due_on, ...x }) => x) } : null;
@@ -195,7 +199,38 @@ export async function detail(env, id) {
   return { tenancy, current_rent: now_.rent, charges, payments, balance, arrears,
     assistant: { ...rentAssistant(tenancy, rpi, today, periods, rentReviewReady(env) ? law : null), rpi },
     deadlines: deadlines(tenancy, today, periods), earliest_move_out: notice ? earliestMoveOut(tenancy, notice, periods) : null,
-    ...legalLabel(legal), ...(law ? { law, law_history } : {}), ...(net ? { writeoffs } : {}) };
+    ...legalLabel(legal), ...(law ? { law, law_history } : {}), ...(net ? { writeoffs } : {}),
+    ...(answers && tenancy.kind === "fixed" && !tenancy.ended_on ? { renewal: renewalOf(tenancy, answers) } : {}) };
+}
+
+// ADM-14: the answers recorded for a tenancy, newest first (through the rental_events_rental index); renewalOf keeps the
+// latest of each party for the term being renewed (its end date), so a renewal or a changed end date starts with none.
+const ANSWERS_SQL = `SELECT e.at, e.actor, e.data FROM rental_events e JOIN tenancies t ON e.rental_id = t.rental_id
+  WHERE t.id = ?1 AND e.tenancy_id = ?1 AND e.type = 'renewal.answered' ORDER BY e.id DESC`;
+const renewalOf = (t, rows) => {
+  const of = party => rows.map(({ data, ...e }) => ({ ...JSON.parse(data), ...e }))
+    .find(a => a.party === party && a.end_on === t.end_on) ?? null;
+  return { end_on: t.end_on, landlord: of("landlord"), tenant: of("tenant") };
+};
+const ANSWERS = { landlord: ["renew", "rent", "end"], tenant: ["renew", "end"] };
+
+// ADM-14: who answered (landlord or tenant), what (renew; renew at a new rent, the landlord only; or end), on which day
+// (today or earlier) and where it is recorded. It only records: Renew and End tenancy act on it.
+async function renewalAnswer({ request, env, admin, params: [id] }) {
+  const cur = await loadTenancy(env, id), today = jerseyToday();
+  notEnded(cur);
+  if (cur.kind !== "fixed") fail(409, "Only a fixed term is renewed");
+  const b = asObject(await readJson(request)), errors = {}, f = fields(b, errors);
+  const party = Object.hasOwn(ANSWERS, b.party) ? b.party : f.err("party", "Choose landlord or tenant");
+  const answer = party && ANSWERS[party].includes(b.answer) ? b.answer : f.err("answer", "Choose an answer");
+  const answered_on = f.date("answered_on") ?? f.err("answered_on", "Enter the date of the answer");
+  if (answered_on > today) f.err("answered_on", "Use today or an earlier date");
+  const source = f.text("source", 200) ?? f.err("source", "Say where the answer is recorded");
+  const rent = answer === "rent" ? f.money("rent", true, MAX_POUNDS) : null;
+  if (Object.keys(errors).length) return fieldErrors(errors);
+  await rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "renewal.answered",
+    data: { end_on: cur.end_on, party, answer, ...(rent ? { rent } : {}), answered_on, source } }).run();
+  return json(await detail(env, cur.id));
 }
 
 const getTenancy = async ({ env, params: [id] }) => json(await detail(env, id));
@@ -497,7 +532,8 @@ async function renew({ request, env, admin, params: [id] }) {
     bump(env, admin, cur.rental_id, ts),
     rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "tenancy.renewed", data: {
       before: { kind: cur.kind, end_on: cur.end_on, regime: cur.regime, rent: cur.rent },
-      after: { kind, end_on, regime: cur.regime, ...(rent ? { rent, effective_on } : {}) }, ...checked.note } }),
+      after: { kind, end_on, regime: cur.regime, ...(rent ? { rent, effective_on } : {}) }, ...checked.note,
+      ...(rent && renewalReady(env) ? await rentReview(env, cur, today) : {}) } }), // ADM-14: as Change rent keeps it
   ], current => {
     notEnded(current);
     if (current.regime !== cur.regime) fail(409, "The recorded law label changed meanwhile. Reload the tenancy.");
@@ -1010,6 +1046,8 @@ export default [
   ["POST", /^\/admin\/payments\/import$/, importPayments, true],
 ];
 // ADM-09: mounted by server/api.js only with ADM09_ARREARS_READY (migration 0045).
+// ADM-14: mounted by server/api.js only with ADM14_RENEWAL_READY.
+export const renewalRoutes = [["POST", /^\/admin\/tenancies\/(\d+)\/renewal-answer$/, renewalAnswer, true]];
 export const writeoffRoutes = [
   ["POST", /^\/admin\/tenancies\/(\d+)\/writeoffs$/, writeOff, true],
   ["POST", /^\/admin\/tenancies\/(\d+)\/writeoffs\/([0-9a-f-]{36})\/reverse$/, reverseWriteOff, true],
