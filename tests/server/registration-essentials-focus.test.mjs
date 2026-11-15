@@ -20,6 +20,19 @@ test('missing answers focus the corresponding control', () => {
   }
 });
 
+test('REG-12: a pending commercial detail focuses its control', () => {
+  const dom = new JSDOM(`<form><input type="radio" name="a-commercial_kind"><input name="a-area_answer">
+    <input id="a-commercial_use"><select id="a-area_unit"></select><input id="a-commercial_purchase"><input id="a-commercial_rent">
+    <select id="a-commercial_rent_period"></select><input id="a-commercial_premium"></form>`);
+  const doc = dom.window.document, form = doc.querySelector('form');
+  for (const [key, selector] of [['commercial_kind','[name="a-commercial_kind"]'],['area','[name="a-area_answer"]'],
+    ['commercial_use','#a-commercial_use'],['area_unit','#a-area_unit'],['commercial_purchase','#a-commercial_purchase'],
+    ['commercial_rent','#a-commercial_rent'],['commercial_rent_period','#a-commercial_rent_period'],['commercial_premium','#a-commercial_premium']]) {
+    focusSearchEssential(form, {key,reason:'answer_missing'});
+    assert.equal(doc.activeElement, form.querySelector(selector), key);
+  }
+});
+
 test('priority review focuses its switch, with a safe field fallback if disabled', () => {
   const {doc,form} = setup();
   focusSearchEssential(form, {key:'bedrooms',label:'Bedrooms',reason:'priority_missing'});

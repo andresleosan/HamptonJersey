@@ -153,7 +153,11 @@ test('the confirmation is the same accessible receipt regardless of registration
     const receipt = body.querySelector('[role=status]');
     assert.equal(dom.window.document.activeElement, receipt);
     assert.equal(receipt.querySelector('h2').textContent, 'Thank you. We have received your search request.');
-    assert.equal(receipt.querySelector('p').textContent, "Our team will review the information you provided. If you have registered before, the team will review this request alongside your existing searches. We'll be in touch within one working day.");
+    // REG-12: says the search is active and what happens next, with no promise of availability, count or prior-contact hint.
+    assert.deepEqual([...receipt.querySelectorAll('p')].map(p => p.textContent), [
+      'New searches are active straight away: we look for suitable properties while our team checks any missing details. If you have registered before, the team will review this request alongside your existing searches.',
+      "We'll be in touch within one working day and will ask about any details we need to confirm. We cannot promise that a suitable property is available now."]);
+    assert.doesNotMatch(receipt.textContent, /\d|match|found|already|on file|viewing/i);
     assert.equal(receipt.querySelector('a').getAttribute('href'), '#portfolio');
     assert.equal(receipt.textContent.includes('SYNTHETIC PRIVATE MARKER'), false);
     outputs.push(receipt.outerHTML);
@@ -203,7 +207,9 @@ test('the wizard gives new, repeated and commercial submissions the same one-day
     }
     assert.ok(receipts.every(receipt=>receipt===receipts[0]));
     assert.match(receipts[0],/we'll be in touch within one working day/i);
-    assert.doesNotMatch(receipts[0],/active|matches found|SYNTHETIC PRIVATE MARKER/i);
+    assert.match(receipts[0],/New searches are active straight away/);
+    assert.match(receipts[0],/cannot promise that a suitable property is available/);
+    assert.doesNotMatch(receipts[0],/matches found|SYNTHETIC PRIVATE MARKER/i);
   } finally {
     for(const [key,value] of Object.entries(originals)) {
       if(value===undefined) delete globalThis[key]; else globalThis[key]=value;

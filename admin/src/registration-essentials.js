@@ -6,6 +6,9 @@ const FIELDS = {
   pets: '#a-pets input', budget: '#a-budget_max', move_in_date: '#a-move_in_date',
   lease_term_months: '#a-lease_term_months', near: '#a-near', requirements: '#a-requirements',
   children: '#a-household_children_status',
+  commercial_kind: '[name="a-commercial_kind"]', commercial_use: '#a-commercial_use', area_unit: '#a-area_unit',
+  commercial_purchase: '#a-commercial_purchase', commercial_rent: '#a-commercial_rent',
+  commercial_rent_period: '#a-commercial_rent_period', commercial_premium: '#a-commercial_premium',
 };
 
 export function focusSearchEssential(form, item) {

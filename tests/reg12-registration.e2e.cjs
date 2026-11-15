@@ -50,9 +50,11 @@ const BASE=process.env.BASE, shots=process.env.E2E_SHOTS || '/tmp/reg08-captures
       assert.equal(await receipt.evaluate(el=>document.activeElement===el),true);
       assert.equal(await receipt.getByRole('heading',{level:2}).textContent(),'Thank you. We have received your search request.');
       const text=await receipt.innerText();
-      assert.match(text,/Our team will review the information you provided/);
-      assert.match(text,/we'll be in touch within one working day/i);
-      assert.doesNotMatch(text,/Synthetic REG12|match found|viewing confirmed/i);
+      assert.match(text,/New searches are active straight away: we look for suitable properties while our team checks any missing details\./);
+      assert.match(text,/If you have registered before, the team will review this request alongside your existing searches\./);
+      assert.match(text,/We'll be in touch within one working day and will ask about any details we need to confirm\./);
+      assert.match(text,/We cannot promise that a suitable property is available now\./);
+      assert.doesNotMatch(text,/Synthetic REG12|\d|match|found|already|on file|viewing/i);
       receipts.push(text);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
       await receipt.getByRole('link',{name:'See our properties'}).focus();
@@ -124,9 +126,29 @@ const BASE=process.env.BASE, shots=process.env.E2E_SHOTS || '/tmp/reg08-captures
       return response.json();
     });
     assert.equal(commercial.applicants.length,1);
-    await page.goto(BASE+`admin/#/applicants/${commercial.applicants[0].id}`);
-    await page.locator('#a-commercial_use').waitFor();
-    assert.equal(await page.locator('section[aria-labelledby="essential-heading"]').count(),0);
+    // REG-12: a commercial search shows the team the details its matching compares that the client did not give.
+    const pending=page.locator('section[aria-labelledby="essential-heading"]');
+    for (const width of [1280,390]) {
+      await page.setViewportSize({width,height:900});
+      await page.goto(BASE+`admin/#/applicants/${commercial.applicants[0].id}`);
+      await pending.getByRole('heading',{name:'Details to confirm',exact:true}).waitFor();
+      assert.match(await pending.innerText(),/Based on the saved commercial search/);
+      assert.match(await pending.innerText(),/Matches are not checked against details that were not given/);
+      assert.deepEqual(await pending.getByRole('button').allTextContents(),['Confirm Intended use','Confirm Maximum rent']);
+      await pending.getByRole('button',{name:'Confirm Intended use',exact:true}).focus(); await page.keyboard.press('Enter');
+      assert.equal(await page.locator('#a-commercial_use').evaluate(el=>el===document.activeElement),true);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+    }
+    await page.evaluate(()=>document.documentElement.style.zoom='2');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'commercial details to confirm must reflow at 390px and 200% CSS zoom');
+    await page.evaluate(()=>document.documentElement.style.zoom='1');
+    await page.locator('#a-commercial_use').fill('Synthetic cafe');
+    await page.locator('#a-commercial_rent').fill('1200'); await page.locator('#a-commercial_rent_period').selectOption('month');
+    await page.getByRole('checkbox',{name:'I confirm the applicant agreed to these changes.'}).check();
+    const commercialSaved=page.waitForResponse(r=>r.url().endsWith(`/admin/applicants/${commercial.applicants[0].id}`)&&r.request().method()==='PUT');
+    await page.getByRole('button',{name:'Save',exact:true}).click(); assert.equal((await commercialSaved).status(),200);
+    await page.getByText('Changes saved.',{exact:true}).waitFor();
+    await pending.waitFor({state:'detached'});
     await page.getByRole('tab',{name:'Matches',exact:true}).click();
     await page.locator('#group-found').waitFor(); // BUS-12: commercial searches have matches of their own
     const legacy=await page.evaluate(async()=>{
@@ -200,7 +222,7 @@ const BASE=process.env.BASE, shots=process.env.E2E_SHOTS || '/tmp/reg08-captures
     assert.ok(chosenPriorities.unknown.includes('bedrooms'));
     assert.deepEqual(errors,[]);
     assert.deepEqual(reflowFailures,[],'200% reflow must fit in both screens');
-    console.log('REG-12: identical public receipt, unsupported commercial and saved criteria review at 1280/390 with keyboard passed.');
+    console.log('REG-12: identical active-search receipt, commercial details to confirm and saved criteria review at 1280/390 with keyboard passed.');
     await ctx.close();
   } finally { await browser.close(); }
 })().catch(e=>{console.error(e);process.exitCode=1;});

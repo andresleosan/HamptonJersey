@@ -32,10 +32,22 @@ test('saved missing answers and priority review are visible without private valu
   assert.doesNotMatch(html, /matches found|check completed/i);
 });
 
-test('does not present a residential projection for commercial, resolved or archived searches', () => {
-  for (const override of [{search_category:'commercial'}, {search_state:'resolved'}, {search_state:'needs_review'}, {archived_at:'2026-11-01'}])
-    assert.equal(render({...base,...override}), '');
+test('does not present a projection for resolved, archived or review-pending searches', () => {
+  for (const override of [{search_state:'resolved'}, {search_state:'needs_review'}, {archived_at:'2026-11-01'}])
+    for (const search_category of ['residential', 'commercial']) assert.equal(render({...base,...override,search_category}), '');
   assert.equal(render(null), '');
+});
+
+test('REG-12: an active commercial search shows the details its matching still needs, without residential wording', () => {
+  const html = render({...base, search_category:'commercial', commercial_kind:'property', area_answer:'any',
+    commercial_use:null, commercial_rent:null});
+  assert.match(html, /Details to confirm/);
+  assert.match(html, /Based on the saved commercial search/);
+  assert.match(html, /Matches are not checked against details that were not given/);
+  assert.deepEqual([...html.matchAll(/<button[^>]*>([^<]+)<\/button>/g)].map(m => m[1]), ['Confirm Intended use', 'Confirm Maximum rent']);
+  assert.doesNotMatch(html, /residential|must-have|Pets|SYNTHETIC PRIVATE MARKER|matches found|check completed/i);
+  assert.equal(render({...base, search_category:'commercial', commercial_kind:'property', area_answer:'any',
+    commercial_use:'Cafe', commercial_rent:1200, commercial_rent_period:'month'}), '');
 });
 
 test('missing priorities get one review action; no issues gives no all-clear message', () => {

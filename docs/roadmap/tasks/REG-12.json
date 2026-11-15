@@ -6,12 +6,12 @@
   "fase": "F0",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "El alta muestra el mismo acuse para solicitudes nuevas, repetidas y comerciales, sin mostrar coincidencias ni datos previos, y conserva el compromiso de contacto en un día laborable. Requirements muestra criterios residenciales guardados por confirmar, incluidas prioridades desconocidas; el ajuste de cabecera y pie evita el desbordamiento móvil comprobado con zoom. El editor distingue prioridades históricas desconocidas de Preferred/Off y exige elección explícita; la revisión cubrió foco y errores de validación.",
-  "falta": "Informar del inicio y resultado reales de cada búsqueda sin prometer disponibilidad ni revelar coincidencias de contactos previos. BUS-01 debe cubrir el inventario común; EST-01 debe acreditar intentos, fallo y estado; BUS-12 debe clasificar el resultado y los datos esenciales por operación, incluida la comercial. Traído de EST-01 (14-nov): el mensaje al cliente tras registrarse no usa el estado de EST-01; si se quiere decir que la búsqueda está en marcha, leerlo de search_run sin prometer disponibilidad.",
+  "hecho": "El acuse del formulario dice que las búsquedas nuevas quedan activas al momento, qué hace el equipo después y que habrá contacto en un día laborable, sin prometer disponibilidad. Es idéntico para alta nueva, repetida, alquiler y compra a la vez, y comercial: la respuesta 201 {ok:true} y sus cabeceras no cambian aunque haya coincidencias o el contacto ya exista. Cada búsqueda nueva queda activa y con su primera búsqueda registrada (EST-01). En Requirements, «Details to confirm» muestra al equipo los esenciales pendientes: en residencial, imprescindibles sin respuesta y prioridades por confirmar; en comercial, lo que el motor compara y el cliente no dio (propiedad o negocio, zona, uso, precio según operación, periodo de renta, unidad de superficie). Cada aviso lleva al campo; al guardar el dato desaparece.",
+  "falta": "Publicar en main; sin migración ni interruptor. De otras tareas: BUS-01 amplía la búsqueda al inventario común; el correo de acuse es de AUT-17; el estado y resultado de la búsqueda visibles para el cliente son del portal (AGE-12).",
   "bloqueo": "",
   "evidencia": [
-    "site/apply.js:264-271",
-    "server/routes/public.js:101-133",
+    "site/apply.js:9-18",
+    "server/routes/public.js:193-252",
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:101",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
     "server/registration-result.js",
@@ -21,7 +21,17 @@
     "docs/roadmap/work/REG-12/2026-11-13-acuse-y-criterios.md",
     "docs/roadmap/work/REG-12/2026-11-13-reflujo-publico.md",
     "tests/reg12-priority-focus.test.js",
-    "docs/roadmap/work/REG-12/2026-11-13-prioridad-por-confirmar.md"
+    "docs/roadmap/work/REG-12/2026-11-13-prioridad-por-confirmar.md",
+    "tests/server/applicants-public.test.mjs (REG-12: misma respuesta y cabeceras; búsquedas activas con primera búsqueda)",
+    "tests/server/registration-result.test.mjs (esenciales comerciales por operación, contrastados con evaluate de BUS-12)",
+    "tests/server/registration-essentials-panel.test.mjs",
+    "tests/server/registration-essentials-focus.test.mjs",
+    "tests/apply.test.js (acuse idéntico nuevo/repetido/comercial)",
+    "15-nov: tests/reg12-registration.e2e.cjs pasó en Chromium aislado a 1280 y 390, con zoom CSS 200 % y teclado; datos ficticios, sin producción ni WebKit.",
+    "Decisión: «New searches are active…» en plural y condicional para repetidos, no «Your search is active». Fuente: docs/superpowers/specs/2026-11-08-l1-registration-criteria-design.md:39.",
+    "Decisión: se conserva «within one working day». Fuente: F0 §5 y §9, docs/roadmap/work/REG-12/2026-11-13-plazo-acuse.md.",
+    "Decisión: el acuse no lee search_run; el matching corre tras responder y leerlo distinguiría alta nueva de repetida. Fuente: spec L1 :37.",
+    "Decisión: esenciales comerciales = criterios que compara server/matching.js (BUS-12); sin move_in_date porque el motor no lo compara. Fuente: encargo del lote 15-nov y spec L1 :41."
   ],
   "modulo": "M03",
   "deps": [
@@ -55,6 +65,6 @@
     "applicants-schema",
     "requirements-contract"
   ],
-  "nextStep": "Integrar EST-01 y BUS-01 para comunicar progreso y resultado verificables por búsqueda.",
-  "actualizado": "2026-11-14"
+  "nextStep": "Integrar en main, desplegar y comprobar el acuse público con una lectura de site/apply.js en producción.",
+  "actualizado": "2026-11-15"
 }

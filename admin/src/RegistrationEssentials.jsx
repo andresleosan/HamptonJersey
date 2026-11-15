@@ -6,9 +6,11 @@ import { focusSearchEssential } from './registration-essentials.js';
 export default function RegistrationEssentials({ applicant, formRef }) {
   const essentials = applicant && isActive(applicant) ? missingSearchEssentials(applicant) : null;
   if (!essentials?.length) return null;
+  const commercial = applicant.search_category === 'commercial';
   return <section className="card" aria-labelledby="essential-heading">
     <h2 id="essential-heading">Details to confirm</h2>
-    <p>Based on the saved residential search. Save changes to update this list. This does not show matching progress.</p>
+    <p>Based on the saved {commercial ? 'commercial' : 'residential'} search. Save changes to update this list. This does not show matching progress.{
+      commercial && ' Matches are not checked against details that were not given.'}</p>
     <ul>{essentials.map(item => <li key={`${item.key}-${item.reason}`}>
       <button type="button" className="btn ghost sm" onClick={() => focusSearchEssential(formRef.current, item)}>
         {item.key === 'requirement_priorities' ? 'Review must-have priorities'

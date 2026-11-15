@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, call, adminCookie, T0 } from "./helpers.mjs";
+import { makeEnv, call, adminCookie, seedListing, T0 } from "./helpers.mjs";
 import { OPTIONS } from "../../server/applicants.js";
 
 // Turnstile stub: answers ok (or not) and counts how many tokens were spent.
@@ -293,4 +293,35 @@ test("repeat registration preserves viewing options as structured data for staff
   const duplicate = events(env).find(e => e.type === "applicant.duplicate_submitted");
   assert.deepEqual(duplicate.data.viewing_availability, slots);
   assert.equal(applicants(env)[0].viewing_availability, null);
+});
+
+// REG-12: the receipt says new searches are active. That holds for every kind of new search, and the answer itself
+// carries nothing a repeat or a search with matches would answer differently.
+test("REG-12: home, rent-and-buy, commercial and repeated registrations answer alike; each new search is active and searched", async () => {
+  const env = Object.assign(makeEnv(), { EST01_SEARCH_STATE_READY: "1" }); turnstile(true);
+  // A listing the first registration matches: a result must not change the answer either.
+  seedListing(env, { id: "HE-R002", matchable: 1, operation: "rent", availability: "to_let", rent: 2000, rent_period: "month",
+    bedrooms: 2, parish: "St Helier" });
+  const answers = [
+    await register(env, form()),
+    await register(env, form({ email: "both@example.je", phone: "+447797000001", searches: [
+      { operation: "rent", budget_max: 2500 }, { operation: "buy", budget_max: 650000 }] })),
+    await register(env, { search_category: "commercial", commercial_kind: "property", operation: "rent", area_answer: "any",
+      name: "Shop Tenant", email: "shop@example.je", phone: "+447797000002", preferred_channel: "email", privacy: true,
+      marketing: false, turnstile: "tok" }),
+    await register(env, form()), // the first person again
+  ];
+  const sent = r => JSON.stringify([r.status, r.text, [...r.headers].sort()]);
+  assert.deepEqual(answers.map(sent), Array(4).fill(sent(answers[0])));
+  assert.deepEqual([answers[0].status, answers[0].data], [201, { ok: true }]);
+  assert.ok(rows(env, "SELECT 1 FROM matches").length > 0, "the fixture produced a match the answer says nothing about");
+  // Four new searches (the repeat adds none), all active, each with a first search that finished.
+  const searches = rows(env, `SELECT a.search_category, a.operation, a.search_state, r.last_success_at IS NOT NULL AS searched,
+    r.last_failure_at FROM applicants a LEFT JOIN applicant_search_runs r ON r.applicant_id = a.id ORDER BY a.id`);
+  assert.deepEqual(searches.map(s => ({ ...s })), [
+    { search_category: "residential", operation: "rent", search_state: "active", searched: 1, last_failure_at: null },
+    { search_category: "residential", operation: "rent", search_state: "active", searched: 1, last_failure_at: null },
+    { search_category: "residential", operation: "buy", search_state: "active", searched: 1, last_failure_at: null },
+    { search_category: "commercial", operation: "rent", search_state: "active", searched: 1, last_failure_at: null },
+  ]);
 });
