@@ -45,6 +45,8 @@ EST16_AVAILABILITY_READY = "1"
 ADM20_TENANCY_LAW_READY = "1"
 # EST-15: a confirmed unavailability withdraws proposals and flags viewings (migration 0076, applied 15-nov-2026; needs EST16_AVAILABILITY_READY).
 EST15_UNAVAILABILITY_READY = "1"
+# AGE-03: shared property enquiries prepared from approved matches (migration 0077, applied 15-nov-2026). Sends nothing.
+AGE03_ENQUIRIES_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
