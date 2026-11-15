@@ -5931,7 +5931,7 @@
       "preferredSlot": "vscode",
       "priority": 258,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -16383,11 +16383,11 @@
       "titulo": "Ley de alquiler de 2025: un solo plazo fijo inicial de hasta 3 años y nada de premium",
       "origen": "plan",
       "fase": "F5-A",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "New tenancy y Renew muestran avisos para revisión jurídica sobre ámbito, plazo fijo y premium/key money. Renew no cambia la etiqueta 2011/2025 solo por fecha y detecta un cambio concurrente; la ficha aclara que es un dato registrado no verificado. Construido el 15-nov y apagado tras ADM20_TENANCY_LAW_READY (migración 0073, aditiva): cada contrato guarda la fecha del acuerdo y si el alojamiento entra en el ámbito de la ley (sí, no o desconocido). Las reglas de 2025 cubren un contrato solo si se acordó desde la fecha de entrada en vigor y el ámbito es «sí»; desconocido no cuenta como sí ni como no y pide revisión. New tenancy, Edit details, Renew, el saldo inicial y un cargo corregido al alza se comprueban con una sola función (validateTenancyOperation): plazo fijo inicial de más de 3 años, un plazo fijo posterior y cualquier suma añadida fuera de la renta. Con las reglas «Estimated» la app avisa y exige que el empleado marque la confirmación, que queda en el historial; con las reglas validadas por un abogado rechaza el plazo de más de 3 años y el segundo plazo fijo. La fecha de entrada en vigor y el tope de años son parámetros versionados en Legal terms. Los contratos existentes conservan su etiqueta, sus cargos y sus pagos.",
-      "falta": "Aplicar la migración 0073 y encender ADM20_TENANCY_LAW_READY en la web; comprobar el recorrido real. Externo, no bloquea el código: un abogado de Jersey valida la fecha de entrada en vigor, el tope de 3 años, el ámbito y qué sumas son premium (hasta entonces todo sale como estimado y solo pide confirmación); Hampton registra la fecha del acuerdo y el ámbito de sus contratos vigentes. No recalificar ni borrar pagos o deudas históricas.",
-      "bloqueo": "JFSC/abogado",
+      "hecho": "New tenancy y Renew muestran avisos para revisión jurídica sobre ámbito, plazo fijo y premium/key money. Renew no cambia la etiqueta 2011/2025 solo por fecha y detecta un cambio concurrente; la ficha aclara que es un dato registrado no verificado. Construido el 15-nov y apagado tras ADM20_TENANCY_LAW_READY (migración 0073, aditiva): cada contrato guarda la fecha del acuerdo y si el alojamiento entra en el ámbito de la ley (sí, no o desconocido). Las reglas de 2025 cubren un contrato solo si se acordó desde la fecha de entrada en vigor y el ámbito es «sí»; desconocido no cuenta como sí ni como no y pide revisión. New tenancy, Edit details, Renew, el saldo inicial y un cargo corregido al alza se comprueban con una sola función (validateTenancyOperation): plazo fijo inicial de más de 3 años, un plazo fijo posterior y cualquier suma añadida fuera de la renta. Con las reglas «Estimated» la app avisa y exige que el empleado marque la confirmación, que queda en el historial; con las reglas validadas por un abogado rechaza el plazo de más de 3 años y el segundo plazo fijo, tanto desde Renew como desde Edit details, y también cuando un contrato pasa a estar cubierto con un plazo que ya incumple. La fecha de entrada en vigor y el tope de años son parámetros versionados en Legal terms. Los contratos existentes conservan su etiqueta, sus cargos y sus pagos. Cerrada el 15-nov-2026: migración 0073 aplicada y ADM20_TENANCY_LAW_READY=1 (solo en la web). Mientras las reglas sigan «Estimated» la app avisa y exige confirmación expresa; rechazará cuando un abogado de Jersey las valide y se marquen en Settings › Legal terms (paquete PRE-33). El asistente de renta (ADM-15), las respuestas de renovación (ADM-14), el contrato de plantilla (ADM-19) y los cargos de atrasos (ADM-09) están en sus fichas.",
+      "falta": "",
+      "bloqueo": "",
       "evidencia": [
         "docs/roadmap/work/ADM-20/aviso-2026-11-13.md",
         "docs/roadmap/work/ADM-20/reflujo-2026-11-13.md",
@@ -16407,15 +16407,19 @@
         "tests/server/adm-20-tenancy-law.test.mjs",
         "tests/adm20-tenancy-law.e2e.cjs",
         "15-nov · construcción apagada: server/rentals.js (regimeOf, lawApplies, validateTenancyOperation, validateTenancy con agreement_on y law_scope), server/legal-terms.js (tenancyLaw; initialTermYears y regime2025From entre los parámetros versionados), server/routes/rent.js (tenancyPlan, updateTenancy, renew, updateCharge), server/routes/rentals.js, admin/src/RentalDialogs.jsx (LawCheck), admin/src/RentalDetail.jsx, admin/src/RentalOrigin.jsx, admin/src/LegalTerms.jsx. Interruptor apagado o 0073 sin aplicar: los caminos de contrato responden como antes.",
-        "15-nov · pruebas: node --test tests/server/adm-20-tenancy-law.test.mjs 14 de 14; regresión focal (adm-20-warnings, adm-17-legal-terms, adm-11-calendar, rentals, rentals-rules, rentals-overview, tenancies, payments, adm-06-1, adm-06-2, adm-06-origin-d1) 109 de 109. Navegador aislado: tests/adm20-tenancy-law.e2e.cjs PASS a 1280 (reglas estimadas) y 390 (reglas validadas); tests/adm17-legal-terms.e2e.cjs PASS a 1280 y 390. tests/adm-20-warnings.e2e.cjs (interruptor apagado) falla en 390 px con zoom 200 % («form fits at 200% zoom») igual que sobre 453c02f con el panel sin tocar: fallo anterior, no de este cambio. No se corrió npm test entero ni nada contra producción.",
+        "15-nov · pruebas (tras cerrar la revisión): node --test tests/server/adm-20-tenancy-law.test.mjs 19 de 19; regresión focal, de una en una (adm-20-warnings, adm-17-legal-terms, adm-11-calendar, rentals, rentals-rules, rentals-overview, rental-marketing, tenancies, payments, adm-06-1, adm-06-2, adm-06-origin-d1) 116 de 116; npm run build pasa. Navegador aislado: tests/adm20-tenancy-law.e2e.cjs PASS a 1280 (reglas estimadas) y 390 (reglas validadas, incluido el rechazo desde Edit details); tests/adm17-legal-terms.e2e.cjs PASS a 1280 y 390 antes de la revisión. tests/adm-20-warnings.e2e.cjs (interruptor apagado) falla en 390 px con zoom 200 % («form fits at 200% zoom») igual que sobre 453c02f con el panel sin tocar: fallo anterior, no de este cambio. No se corrió npm test entero ni nada contra producción.",
         "Decisión: con reglas «Estimated» se avisa y se exige la confirmación expresa del empleado; solo con reglas validadas se rechaza. Fuente: ADM-17 (server/legal-terms.js: nada bloquea una acción existente mientras no esté validado) y docs/superpowers/specs/2026-11-10-tp03-lifecycle-design.md (estado no verificado permite guardar y pide revisión).",
         "Decisión: fecha de acuerdo sin registrar o ámbito desconocido nunca se rechaza ni pasa en silencio: pide confirmación y la ficha avisa. Fuente: plan maestro («Unknown no significa aprobado») y spec TP-03 (fila antigua unknown requiere revisión, no migración).",
         "Decisión: el régimen sale de la fecha del acuerdo contra regime2025From, que deja de ser solo constante y se versiona dentro de «terms» de legal_settings junto con initialTermYears; sin tabla nueva porque 0063 solo admite las claves terms y registration. Un conjunto validado antes de existir estos parámetros vuelve a leerse como estimado, igual que con ADM-11. Fuente: traslado de ADM-17 anotado en esta ficha el 14-nov.",
         "Decisión: la etiqueta 2011/2025 de un contrato existente no se migra; solo cambia cuando un empleado registra su fecha de acuerdo, y el historial guarda el antes y el después. Cargos y pagos no se recalculan. Fuente: spec TP-03 y plan maestro.",
-        "Decisión: alargar el plazo desde Edit details se trata como corrección del registro (se confirma, no se rechaza); desde Renew se rechaza con reglas validadas; el tope de años se rechaza en los dos. Fuente: skill §4.5 (opción más simple y reversible: un error de fecha debe poder corregirse).",
+        "Decisión (revisada el 15-nov tras la revisión independiente): alargar un plazo fijo o pasar de periódico a fijo es un plazo fijo posterior tanto desde Renew como desde Edit details; con reglas validadas y contrato cubierto se rechaza en los dos, con reglas estimadas se confirma. Edit details solo corrige la fecha de fin sin esa incidencia mientras el contrato no ha empezado (sigue siendo el plazo inicial, dentro del tope de años); Renew cuenta siempre. Fuente: hallazgo 2 de la revisión y la regla propia de Renew; criterio mínimo que no deja el rodeo «crear corto y alargar».",
         "Decisión: la app no puede saber si una suma es premium; toda suma añadida a lo que se debe fuera de la serie de renta (saldo inicial, cargo corregido al alza) exige declarar que no es premium ni key money. Los pagos recibidos no se tocan. Fuente: docs/roadmap/work/ADM-20/aviso-2026-11-13.md (anexo 1 de la ley) y plan maestro (no recalificar pagos).",
         "Decisión: validateTenancyOperation no recibe today (ninguna regla depende del día en que se ejecuta) y sí before, charge y confirmed; no se añade initial_term_used porque Renew a plazo fijo siempre es un plazo posterior. Fuente: spec TP-03 (el régimen no cambia por fecha de ejecución) y ponytail.",
-        "Decisión: el interruptor va solo en wrangler.toml de la web; el reloj no calcula ninguna regla de ADM-20 y lee los mismos plazos con o sin él."
+        "Decisión: el interruptor va solo en wrangler.toml de la web; el reloj no calcula ninguna regla de ADM-20 y lee los mismos plazos con o sin él.",
+        "15-nov · revisión independiente, dos rodeos cerrados en server/rentals.js (validateTenancyOperation) y server/routes/rent.js (lawCheck, lawHistory, updateTenancy, updateCharge, withRegime), con pruebas previas que fallaban: sacar el contrato de las reglas y volver a meterlo, y alargar el plazo desde Edit details.",
+        "Decisión: un guardado que hace que el contrato pase a estar cubierto (de no cubierto a desconocido o cubierto, o de desconocido a cubierto) revisa lo guardado como si se acabara de introducir: el plazo vigente, el saldo inicial y, por el historial del contrato, un plazo alargado después de empezar (Renew o Edit) y un cargo subido a mano. Con reglas validadas se rechaza el plazo que incumple; con reglas estimadas, y para las sumas, se exige la confirmación. Consecuencia asumida: un contrato real que ya incumple no puede registrarse como cubierto con reglas validadas sin corregir antes el plazo; queda como «desconocido» con su aviso. Fuente: hallazgo 1 de la revisión.",
+        "Decisión: la confirmación solo vale si los códigos enviados son exactamente las incidencias halladas; un PUT con la etiqueta 2011/2025 y sin fecha se deriva de la fecha de acuerdo guardada; corregir un cargo exige que su importe siga siendo el leído (409 si cambió). Fuente: observaciones menores de la revisión.",
+        "Cierre 15-nov-2026: publicada en 3f85171 (07ccbb2 y corrección 9d90ca1); 0073 (dos ADD COLUMN, aditiva) aplicada en producción tras marcador Time Travel; npm test 2589/2589; tests/adm20-tenancy-law.e2e.cjs pasa a 1280 (reglas estimadas) y 390 (validadas); la revisión independiente halló dos rodeos de las reglas (subir la cobertura tras alargar; alargar desde Edit details), cerrados con prueba y verificados en una segunda pasada sin hallazgos graves; con el interruptor apagado, 40 peticiones idénticas a la versión anterior."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -16430,13 +16434,13 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "JFSC/abogado",
+      "externalBlocker": "",
       "resources": [
         "rentals-contract",
         "rentals-ui",
         "legal-parameters"
       ],
-      "nextStep": "Aplicar 0073, poner ADM20_TENANCY_LAW_READY = \"1\" en wrangler.toml y comprobar con lecturas que la ficha de un contrato muestra su fecha de acuerdo y ámbito; después solo queda la validación del abogado.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-15"
     },
     {
