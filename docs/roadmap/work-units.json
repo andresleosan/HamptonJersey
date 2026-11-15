@@ -5703,7 +5703,7 @@
       "preferredSlot": "vscode",
       "priority": 252,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [

@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+15-nov-2026 · **ADM-14 hecha:** a 90 días del fin de un plazo fijo, la tarjeta del contrato deja anotar lo que responden el propietario y el inquilino (con fecha y dónde consta), ofrece el mensaje para copiar y rellena Renew (con la revisión de renta de ADM-15) o End. Si el inquilino se va o el propietario no renueva, «Prepare listing draft» copia la ficha de origen y sus fotos en un borrador sin publicar, disponible desde el fin del plazo. Progreso 128 → 129 de 211.
+
 15-nov-2026 · **ANA-10 hecha:** cada ficha publicada tiene en el panel su QR de póster para descargar (SVG); el QR abre la ficha y cuenta la apertura solo como total por ficha y día, sin IP, navegador ni cookies, con topes para que no se pueda inflar; una ficha retirada o sin publicar da «Property not found» y no cuenta. Insights muestra el total. Migración 0091. Progreso 127 → 128 de 211.
 
 15-nov-2026 · **ADM-10 encendida, en la cola de Luis para cerrarla:** en Rentals › Statements el equipo cierra la liquidación de cada propietario al terminar el mes (rentas, comisión, reparaciones cargadas, write-offs y neto) como revisión fija; si algo cambia después se cierra una revisión nueva, que muestra lo ya pagado y lo pendiente. «Sent» y «paid» se marcan a mano; CSV e impresión desde el navegador; el Inbox recuerda los meses sin cerrar. Faltan las decisiones de Luis sobre GST y PDF, y el correo (AUT-17). Migración 0090.

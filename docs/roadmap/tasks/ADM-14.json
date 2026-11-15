@@ -4,11 +4,11 @@
   "titulo": "Renovación a 90 días del fin con respuesta del propietario y del inquilino",
   "origen": "plan",
   "fase": "F5-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Desde 90 días antes del fin de un plazo fijo el contrato sale en Renewals, en su tarjeta y como tarea «Decide renewal» del Inbox. Con ADM14_RENEWAL_READY (sin migración, apagado): la tarjeta muestra «Renewal answers» del propietario (renovar, renovar con renta nueva, no renovar) y del inquilino (quedarse, irse), registradas a mano con fecha y dónde constan; un borrador para copiar o descargar, al propietario hasta que responde y después al inquilino («not validated by a lawyer»); Renew llega con la renta respondida, muestra el borrador de ADM-15 y guarda su revisión, y End tenancy llega con la fecha de fin si alguien respondió que se va. Si la respuesta es que el plazo termina, «Prepare listing draft» crea una vez (después «Open listing draft») el borrador de la ficha de la que nació el contrato (Let agreed, ADM-06): sus campos, sin publicar, en alquiler y disponible desde el fin, con sus fotos como filas nuevas sobre los mismos archivos; un contrato creado a mano lo explica en una línea. No envía nada.",
-  "falta": "Encender ADM14_RENEWAL_READY en wrangler.toml (solo la web; el reloj no lo lee) y comprobar el recorrido en producción. Preguntar con botones al propietario y al inquilino y enviar los borradores por correo es de AUT-17.",
-  "bloqueo": "Correo (AUT-17)",
+  "hecho": "Desde 90 días antes del fin de un plazo fijo el contrato sale en Renewals, en su tarjeta y como tarea «Decide renewal» del Inbox. Con ADM14_RENEWAL_READY (sin migración, apagado): la tarjeta muestra «Renewal answers» del propietario (renovar, renovar con renta nueva, no renovar) y del inquilino (quedarse, irse), registradas a mano con fecha y dónde constan; un borrador para copiar o descargar, al propietario hasta que responde y después al inquilino («not validated by a lawyer»); Renew llega con la renta respondida, muestra el borrador de ADM-15 y guarda su revisión, y End tenancy llega con la fecha de fin si alguien respondió que se va. Si la respuesta es que el plazo termina, «Prepare listing draft» crea una vez (después «Open listing draft») el borrador de la ficha de la que nació el contrato (Let agreed, ADM-06): sus campos, sin publicar, en alquiler y disponible desde el fin, con sus fotos como filas nuevas sobre los mismos archivos; un contrato creado a mano lo explica en una línea. No envía nada. Cerrada el 15-nov-2026: ADM14_RENEWAL_READY=1 (sin migración). Preguntar con botones y enviar por correo es de AUT-17 (trasladado).",
+  "falta": "",
+  "bloqueo": "",
   "evidencia": [
     "server/routes/rent.js:211-296 (ADM-14: respuestas y borradores de ficha como eventos renewal.answered y renewal.listing_drafted de rental_events, por end_on del plazo; rutas montadas solo con el interruptor, server/api.js:86)",
     "server/routes/rent.js:232-259 (borrador de ficha: tenancy_origins de ADM-06 → createListing de New listing, filas media copiadas sin documentos ni bytes, portada, idempotente por el evento mientras la ficha exista)",
@@ -22,7 +22,8 @@
     "Decisión: no renovar abre End tenancy con la fecha de fin como sugerencia editable, sin regla legal nueva; renovar pasa por POST /renew, que ya aplica ADM-20 y law_confirmed (fuente: falta traído de ADM-20 y ADM-15)",
     "Decisión: el borrador al inquilino lleva «not validated by a lawyer» (fuente: ADM-17 y el borrador de atrasos de ADM-09)",
     "Pruebas 15-nov: node --test tests/server/adm-14-renewal.test.mjs 6/6; rentals 10, tenancies 17, payments 15, rentals-overview 15, adm-15-rent-review 11, adm-20-tenancy-law 19, adm-20-warnings 3, notification-reconcile 10, jobs 10, listing 11, listings-list 2, admin 19, publication-gates 10, media-save-atomic 23, media-document-privacy 27, media-upload-validation 26, listing-events 19, queue 13, hermes 17, spr-03-captures 12, todas pasan",
-    "Navegador 15-nov: tests/adm14-renewal-answers.e2e.cjs en el contenedor aislado, 1280 y 390, pasa (incluye Prepare/Open listing draft y el contrato creado a mano)"
+    "Navegador 15-nov: tests/adm14-renewal-answers.e2e.cjs en el contenedor aislado, 1280 y 390, pasa (incluye Prepare/Open listing draft y el contrato creado a mano)",
+    "Cierre 15-nov-2026: publicada en 9c7ed2a (2c09af7, 54e76b4); npm test 2809/2809; tests/adm14-renewal-answers.e2e.cjs pasa a 1280 y 390; revisión independiente sin graves: con el interruptor apagado, respuestas idénticas byte a byte en cuatro combinaciones de interruptores; unusedFiles solo deja de borrar archivos que otra fila media usa (corrige un borrado de archivo en uso que ya ocurría) y añade una subpetición fija; el borrador nace sin publicar, sin documentos ni datos del inquilino, y editarlo no toca la original. En producción hay 0 contratos, así que no hay respuesta real que comprobar."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -37,13 +38,13 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Correo (AUT-17)",
+  "externalBlocker": "",
   "resources": [
     "rentals-contract",
     "rentals-ui",
     "email-pipeline",
     "listings-contract"
   ],
-  "nextStep": "Publicar en main, poner ADM14_RENEWAL_READY = \"1\" en wrangler.toml (sin migración) y comprobar con GET /admin/tenancies/:id que un plazo fijo trae renewal (con origin si nació de Let agreed).",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }
