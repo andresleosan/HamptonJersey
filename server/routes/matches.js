@@ -76,7 +76,10 @@ const QUEUED = `m.status = 'found' AND ${activeSql("a")}`;
 export const APPROVED = `m.status = 'shortlisted' AND ${activeSql("a")} AND ${DECIDED_NOW}`;
 // EST-13 (M06): the only matches a clarification enquiry may be sent for (AGE-03), whatever their review says: one
 // approval is never read as the other. From matches m JOIN applicants a.
-export const CLARIFICATION_APPROVED = `m.status <> 'rejected' AND ${activeSql("a")} AND ${CLARIFICATION} IS NOT NULL`;
+// A property that left the offer (archived, let, sold, under offer) is not asked about; from matches m.
+const STILL_OFFERED = `EXISTS (SELECT 1 FROM listings o WHERE o.id = m.listing_id AND o.archived_at IS NULL
+  AND o.availability IN ('for_sale','to_let','lease'))`;
+export const CLARIFICATION_APPROVED = `m.status <> 'rejected' AND ${activeSql("a")} AND ${STILL_OFFERED} AND ${CLARIFICATION} IS NOT NULL`;
 const QUEUE_COUNT_SQL = `SELECT COUNT(*) AS n FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE ${QUEUED}`;
 // The search shown next to the match, its JSON lists as lists; from applicants a JOIN contacts c.
 const LISTS = ["requirement_priorities", "household_children_ages", "property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"];
@@ -197,6 +200,9 @@ async function clarification({ request, env, admin, params: [id] }) {
   if (m.archived_at) fail(409, "Restore this search to review its matches");
   if (!isActive(m)) fail(409, "Reopen this search to review its matches.");
   if (m.status === "rejected") fail(409, "This match is rejected. Move it back to Found to ask about it.");
+  const offer = JSON.parse(m.listing);
+  if (body.approved && (offer.archived_at || !["for_sale", "to_let", "lease"].includes(offer.availability)))
+    fail(409, "This property is no longer offered, so there is nothing to ask about.");
   const keys = body.approved ? unknownMusts(card(m).checks) : [];
   if (body.approved && !keys.length) fail(409, "No must-have is unknown for this property, so there is nothing to clarify.");
   if (!body.approved && !m.clarification) fail(409, "There is no approved clarification to withdraw. Reload to see it.");
@@ -204,7 +210,7 @@ async function clarification({ request, env, admin, params: [id] }) {
   const { meta } = await env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
     SELECT ?, ?, 'applicant', CAST(m.applicant_id AS TEXT), 'match.clarification', ? FROM matches m
     JOIN applicants a ON a.id = m.applicant_id WHERE m.id = ? AND m.status <> 'rejected' AND ${activeSql("a")}
-    AND a.match_inputs_revision = ? AND ${LISTING_VERSION} = ?`)
+    AND a.match_inputs_revision = ? AND ${LISTING_VERSION} = ?${body.approved ? ` AND ${STILL_OFFERED}` : ""}`)
     .bind(now(), admin, JSON.stringify({ listing_id: m.listing_id, approved: body.approved, keys,
       search_version: m.search_version, listing_version: m.listing_version }), m.id, m.search_version, m.listing_version).run();
   if (!meta.changes) fail(409, "The search or the property changed. Reload to see it.");

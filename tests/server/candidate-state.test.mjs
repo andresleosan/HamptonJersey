@@ -217,3 +217,24 @@ test("a rejected match or a closed search has no clarification to approve", asyn
   const closed = await clarify(env, matchId(env, ana, ASK), true);
   assert.deepEqual([closed.status, closed.data.error], [409, "Reopen this search to review its matches."]);
 });
+
+test("a clarification is never approved for a property that is no longer offered", async () => {
+  const env = makeEnv();
+  seedHomes(env);
+  const ana = await searching(env, "Ana Le Gros"), ask = matchId(env, ana, ASK);
+  const count = () => rows(env, "SELECT id FROM events WHERE type = 'match.clarification'").length;
+  for (const change of ["archived_at = '2026-11-01T00:00:00.000Z'", "archived_at = NULL, availability = 'let'"]) {
+    env.DB.raw.prepare(`UPDATE listings SET ${change} WHERE id = ?`).run(ASK);
+    const r = await clarify(env, ask, true);
+    assert.deepEqual([r.status, r.data.error], [409, "This property is no longer offered, so there is nothing to ask about."]);
+  }
+  assert.equal(count(), 0);
+  // The gate AGE-03 will read refuses it too, even if an event were written some other way.
+  env.DB.raw.prepare("UPDATE listings SET availability = 'to_let' WHERE id = ?").run(ASK);
+  assert.equal((await clarify(env, ask, true)).status, 200);
+  const gate = () => rows(env, `SELECT m.id FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE ${CLARIFICATION_APPROVED}`).length;
+  assert.equal(gate(), 1);
+  env.DB.raw.prepare("DROP TRIGGER listings_match_inputs").run(); // the version stays: only the offer changes
+  env.DB.raw.prepare("UPDATE listings SET archived_at = '2026-11-02T00:00:00.000Z' WHERE id = ?").run(ASK);
+  assert.equal(gate(), 0);
+});
