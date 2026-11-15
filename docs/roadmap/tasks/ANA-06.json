@@ -4,11 +4,11 @@
   "titulo": "Tiempos de respuesta del equipo y de las agencias",
   "origen": "plan",
   "fase": "F7-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Team response times en Insights (medianas, tiempo de reloj): aplicante nuevo de la web → primera atención, petición de visita → primera respuesta y aplicante → primera revisión de sus coincidencias. Con ANA06_AGENCY_TIMES_READY (apagado; índice en la migración aditiva 0092): «Agency response times», mediana en horas laborables (lunes a viernes 09:00–17:00 Europe/Jersey, sin festivos de Jersey) de las consultas enviadas en el periodo (AGE-03 a mano o AGE-05 aceptada por el proveedor) hasta su primera respuesta útil registrada (AGE-06: available, unavailable o aclaración respondida), con casos, en espera (enviadas sin respuesta útil) y no contadas (respuesta anterior al envío, o año sin calendario de festivos verificado). Una sola mediana para todos los anunciantes: ni nombres ni ranking. Solo lectura.",
-  "falta": "Aplicar 0092 en producción (con 0082 de AGE-06 ya aplicada), poner ANA06_AGENCY_TIMES_READY = \"1\" en wrangler.toml (solo la web; el reloj no lo lee) y comprobar GET /admin/insights. El tiempo de registro → primera propiedad recibida pasa a AGE-11 (dueño de la presentación y de su recepción).",
-  "bloqueo": "Correo (AUT-17)",
+  "hecho": "Team response times en Insights (medianas, tiempo de reloj): aplicante nuevo de la web → primera atención, petición de visita → primera respuesta y aplicante → primera revisión de sus coincidencias. Con ANA06_AGENCY_TIMES_READY (apagado; índice en la migración aditiva 0092): «Agency response times», mediana en horas laborables (lunes a viernes 09:00–17:00 Europe/Jersey, sin festivos de Jersey) de las consultas enviadas en el periodo (AGE-03 a mano o AGE-05 aceptada por el proveedor) hasta su primera respuesta útil registrada (AGE-06: available, unavailable o aclaración respondida), con casos, en espera (enviadas sin respuesta útil) y no contadas (respuesta anterior al envío, o año sin calendario de festivos verificado). Una sola mediana para todos los anunciantes: ni nombres ni ranking. Solo lectura. Cerrada el 15-nov-2026: migración 0092 (índice) aplicada y ANA06_AGENCY_TIMES_READY=1. Los tiempos del equipo ya existían; el tiempo hasta la primera propiedad recibida por el cliente es de AGE-11 (trasladado).",
+  "falta": "",
+  "bloqueo": "",
   "evidencia": [
     "server/routes/insights.js:34-48 y 98-104, admin/src/Insights.jsx:13-18 y 185-196 (tiempos del equipo ya existentes, sin cambios)",
     "server/working-time.js:1-30 (ANA-06: horas laborables Jersey 09:00–17:00 lunes a viernes; festivos 2025–2027 de gov.je comprobados el 15-nov-2026; año sin calendario → caso fuera de la mediana, nunca cero)",
@@ -23,7 +23,8 @@
     "Decisión: DST por la regla del Reino Unido (último domingo de marzo/octubre), comprobada contra Intl para cada día de 2026 en la prueba; festivos en el mismo archivo y no en jersey-holidays.js aparte (ponytail)",
     "Coste 15-nov: 5.000 consultas en 3 años en D1 local → EXPLAIN «SEARCH consultations USING INDEX consultations_sent (sent_at>?)», 408 filas en el rango de 90 días frente a 5.000 sin índice; workingResponseTime sobre 368 filas ≈1,2 ms de CPU; sin UNION y sin subpeticiones nuevas (mismo batch)",
     "Pruebas 15-nov: node --test tests/server/insights.test.mjs 12/12 (falló primero la de agency_reply); weekly-insights 8/8, age-06-responses 13/13, age-08-call-tasks 13/13, notification-tasks 14/14, ana10-poster-qr 8/8, owner-report 6/6",
-    "Navegador 15-nov: tests/ana06-agency-times.e2e.cjs en el contenedor aislado (ANA06_AGENCY_TIMES_READY=1 en tests/run-e2e.cjs), 1280 y 390, pasa: 3 working hours, 1 case, 1 waiting, sin el nombre del anunciante, sin desbordamiento"
+    "Navegador 15-nov: tests/ana06-agency-times.e2e.cjs en el contenedor aislado (ANA06_AGENCY_TIMES_READY=1 en tests/run-e2e.cjs), 1280 y 390, pasa: 3 working hours, 1 case, 1 waiting, sin el nombre del anunciante, sin desbordamiento",
+    "Cierre 15-nov-2026: publicada en f06c302 (f196d14, 3d29c39); 0092 (CREATE INDEX, aditiva) aplicada tras marcador Time Travel; npm test 2812/2812; tests/ana06-agency-times.e2e.cjs pasa a 1280 y 390; la consulta nueva se ejecutó en producción en solo lectura sin errores (0 consultas enviadas hoy, así que el indicador sale vacío y nunca como cero); sin nombres de agencias."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -45,11 +46,11 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Correo (AUT-17)",
+  "externalBlocker": "",
   "resources": [
     "analytics-contract",
     "consultations-contract"
   ],
-  "nextStep": "Publicar en main, aplicar 0092 (aditiva), encender ANA06_AGENCY_TIMES_READY y comprobar con GET /admin/insights?days=90 que times.agency_reply llega sin nombres.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

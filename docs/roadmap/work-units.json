@@ -7476,7 +7476,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 304,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
