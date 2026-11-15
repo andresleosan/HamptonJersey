@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { fmtDate, fmtDay } from "./format.js";
+import { fmtDate, fmtDay, fmtDayMonth } from "./format.js";
 import { Modal, money, pounds, useFieldErrors } from "./Sales.jsx";
 import { KIND, REPAIR_STATUS, URGENCY, pence } from "./Rentals.jsx";
 import { Estimated } from "./LegalTerms.jsx";
@@ -116,26 +116,68 @@ export function RecordPayment({ d: { tenancy: t }, onClose, onDone, onRefused })
 // They do not block manual changes; applicable rules need review.
 // ADM-17: d.legal (with its switch) carries the periods in force and whether a lawyer has validated them.
 const periodsOf = legal => ({ ...LEGAL, ...legal?.periods });
-export function ChangeRent({ d: { tenancy: t, assistant, current_rent, legal }, onClose, onDone, onRefused }) {
-  const today = jerseyToday(), [rpi, setRpi] = useState(assistant.rpi), [editRpi, setEditRpi] = useState(!assistant.rpi);
-  const help = rentAssistant(t, rpi, today, periodsOf(legal));
+// ADM-15 (assistant.cover: sent only with its switch): the estimate reads the 2025 rules in force (law) from the
+// agreement date and the scope, not the label; the RPI is saved with its source and the date it was published and
+// counts only with them; and the change being typed shows its facts as a draft to copy. That draft is no letter:
+// internal only while the periods are not validated or the rules are not known to apply, and nothing is sent.
+// Its dates carry the year (fmtDayMonth): the text leaves the screen.
+const noticeDraft = (t, current, rent, on, help, legal, today) => [
+  help.draft_only.length ? "DRAFT · internal only · not a notice letter" : "DRAFT · not a notice letter",
+  `Rent change for ${t.tenant_name} · ${t.payment_ref} · ${t.address}`,
+  `Agreement: ${t.agreement_on ? `made ${fmtDayMonth(t.agreement_on)}` : "date not recorded"}, ${help.cover === "yes"
+    ? "recorded as within the 2025 tenancy rules" : "not recorded whether the 2025 tenancy rules apply"}`,
+  `Current rent: ${rentLine(t, current)}`,
+  `New rent: ${money(rent)} pcm`,
+  `Starts on: ${fmtDayMonth(on)}`,
+  `Earliest date, worked out on ${fmtDayMonth(today)}: ${fmtDayMonth(help.earliest_on)} (${months(legal.rentNoticeMonths)}' notice from that day, ${
+    months(legal.rentIntervalMonths)} after ${t.last_rent_change_on ? "the last change" : "the start"})${
+    on < help.earliest_on ? ": the start is EARLIER" : ""}`,
+  help.rpi ? `Jersey RPI: ${help.rpi.percent}%, published ${fmtDayMonth(help.rpi.as_of)}, source: ${help.rpi.source}`
+    : "Jersey RPI: not entered with its source, so no limit is worked out",
+  ...(help.max_rent != null ? [`Limit worked out: ${money(help.max_rent)} pcm${rent > help.max_rent ? ": the new rent is ABOVE it" : ""}`] : []),
+  help.draft_only.length ? `Not for the tenant: ${help.draft_only.join("; ")}.`
+    : "The legal periods are validated and the tenancy is recorded under the 2025 rules.",
+  "No notice letter template validated by a Jersey lawyer exists yet. Nothing is sent from the app.",
+].join("\n");
+// The clipboard needs the browser's permission: without it the text is selected instead.
+function NoticeDraft({ text }) {
+  const box = useRef(null), [said, setSaid] = useState("");
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(text); setSaid("Draft copied."); }
+    catch { box.current?.select(); setSaid("Draft selected: copy it with your keyboard."); }
+  };
+  return <section className="assistant view-form" aria-labelledby="h-notice">
+    <h3 id="h-notice">Notice draft</h3>
+    <p><span className="badge neutral">Draft · not a notice letter</span></p>
+    <label>Facts of this change<textarea ref={box} id="cr-notice" readOnly rows={text.split("\n").length + 2} value={text} /></label>
+    <div className="inline"><button type="button" className="btn ghost sm" onClick={copy}>Copy draft</button>
+      <span role="status" className="muted">{said}</span></div>
+  </section>;
+}
+export function ChangeRent({ d: { tenancy: t, assistant, current_rent, legal, law }, onClose, onDone, onRefused }) {
+  const policy = assistant.cover ? law : null, usable = v => !!v && (!policy || !!v.source);
+  const today = jerseyToday(), [rpi, setRpi] = useState(assistant.rpi), [editRpi, setEditRpi] = useState(!usable(assistant.rpi));
+  const help = rentAssistant(t, rpi, today, periodsOf(legal), policy);
   const a = useForm("cr", { rent: "", effective_on: "" }, async f => {
     await api(`/admin/tenancies/${t.id}/rent`, { method: "POST", body: { rent: pounds(f.rent), effective_on: f.effective_on || null } });
     return `Rent changes to ${money(Number(pounds(f.rent)))} pcm from ${fmtDay(f.effective_on)}.`;
   }, onDone, onRefused);
-  const r = useForm("rpi", { percent: rpi ? String(rpi.percent) : "", as_of: rpi?.as_of ?? "" }, async f => {
-    const res = await api("/admin/settings/rpi", { method: "PUT", body: { percent: f.percent.trim() || null, as_of: f.as_of || null } });
+  const r = useForm("rpi", { percent: rpi ? String(rpi.percent) : "", as_of: rpi?.as_of ?? "", source: rpi?.source ?? "" }, async f => {
+    const res = await api("/admin/settings/rpi", { method: "PUT", body: { percent: f.percent.trim() || null, as_of: f.as_of || null,
+      ...(policy ? { source: f.source.trim() || null } : {}) } });
     return res.rpi;
   }, v => { setRpi(v); setEditRpi(false); });
   const rent = Number(pounds(a.f.rent));
   const lead = help.applies && <section className="assistant view-form" aria-labelledby="h-assistant">
-    <h3 id="h-assistant">Rent estimate (recorded 2025 label)</h3>
+    <h3 id="h-assistant">{!policy ? "Rent estimate (recorded 2025 label)" : help.cover === "yes" ? "Rent estimate (2025 rules)"
+      : "Rent estimate (only if the 2025 rules apply)"}</h3>
     {editRpi ? <form ref={r.ref} className="inline" onSubmit={r.submit} noValidate>
-      {r.field("percent", "Jersey RPI (%)", { inputMode: "decimal" })}{r.field("as_of", "As of", { type: "date", max: today })}
+      {r.field("percent", "Jersey RPI (%)", { inputMode: "decimal" })}{r.field("as_of", policy ? "Published on" : "As of", { type: "date", max: today })}
+      {policy && r.field("source", "Source", { maxLength: 200, placeholder: "e.g. the bulletin's title and where it was read" })}
       <button className="btn sm">{r.busy ? "Saving…" : "Save RPI"}</button>
-      {rpi && <button type="button" className="btn ghost sm" onClick={() => setEditRpi(false)}>Cancel</button>}
+      {usable(rpi) && <button type="button" className="btn ghost sm" onClick={() => setEditRpi(false)}>Cancel</button>}
       {r.err && <p role="alert" className="err">{r.err}</p>}</form>
-      : <p>Jersey RPI: {rpi.percent}% as of {fmtDay(rpi.as_of)}{" "}
+      : <p>Jersey RPI: {rpi.percent}% {policy ? `published ${fmtDay(rpi.as_of)} (${rpi.source})` : `as of ${fmtDay(rpi.as_of)}`}{" "}
         <button type="button" className="linkish" onClick={() => setEditRpi(true)}>Edit RPI</button></p>}
     {t.last_rent_change_on > today && <p className="muted">Estimate based on the rent from {fmtDay(t.last_rent_change_on)}.</p>}
     <dl className="kv"><div><dt>Estimated rent limit</dt><dd>{help.max_rent != null ? `${money(help.max_rent)} pcm` : "—"}</dd></div>
@@ -148,11 +190,12 @@ export function ChangeRent({ d: { tenancy: t, assistant, current_rent, legal }, 
     lead={<><Who t={t} /><p>Rent {rentLine(t, current_rent)}.</p>{lead || <p className="warn" role="note">{help.notes[0]}</p>}</>}>
     <div className="grid2">{a.field("rent", "New rent (£ pcm)", { inputMode: "numeric" })}
       {a.field("effective_on", "Starts on", { type: "date", min: today })}</div>
-    {help.applies && help.max_rent != null && rent > help.max_rent && <p className="warn" role="note">Above the estimate based on the recorded 2025 label.
+    {help.applies && help.max_rent != null && rent > help.max_rent && <p className="warn" role="note">Above the estimate{policy ? "d limit" : " based on the recorded 2025 label"}.
       Check the applicable rules with a Jersey lawyer before you go ahead.</p>}
     {help.applies && a.f.effective_on && a.f.effective_on < help.earliest_on && <p className="warn" role="note">Earlier than the estimated date of {fmtDay(help.earliest_on)}.
       Check the applicable rules with a Jersey lawyer.</p>}
     <p className="muted">Charges from that date not yet due change to the new rent, unless corrected by hand.</p>
+    {policy && help.applies && rent > 0 && a.f.effective_on && <NoticeDraft text={noticeDraft(t, current_rent, rent, a.f.effective_on, help, periodsOf(legal), today)} />}
   </Sheet>;
 }
 

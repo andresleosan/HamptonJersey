@@ -394,7 +394,13 @@ const EVENT = {
   "tenancy.ended": d => `${d.before ? `Move-out moved from ${fmtDay(d.before)} to` : "Tenancy ends"} ${fmtDay(d.ended_on)}${gone(d.removed, "later")}`,
   "tenancy.end_cancelled": d => `Move-out of ${fmtDay(d.before)} cancelled: the tenancy goes on`,
   "notice.recorded": d => `Notice given by the ${d.by} on ${fmtDay(d.given_on)}; earliest move-out ${fmtDay(d.earliest_move_out)}`,
-  "rent.changed": d => `Rent changed from ${money(d.before)} to ${money(d.rent)} pcm from ${fmtDay(d.effective_on)}`,
+  // ADM-15 (d.review, with its switch): the RPI the limit was worked out with, and what the change went beyond.
+  "rent.changed": ({ review: v, ...d }) => `Rent changed from ${money(d.before)} to ${money(d.rent)} pcm from ${fmtDay(d.effective_on)}${!v ? ""
+    : v.cover === "no" ? "; no estimate, the 2025 rules are not recorded as covering it"
+    : `; ${v.rpi ? `RPI ${v.rpi.percent}% published ${fmtDay(v.rpi.as_of)} (${v.rpi.source})` : "no RPI with its source"}${
+      v.max_rent == null ? "" : `, limit ${money(v.max_rent)}${d.rent > v.max_rent ? " (above it)" : ""}`}${
+      d.effective_on < v.earliest_on ? `, before the earliest date worked out (${fmtDay(v.earliest_on)})` : ""}${
+      v.cover === "unknown" ? ", not recorded whether the 2025 rules apply" : ""}`}`,
   "charge.edited": d => `Charge due ${fmtDay(d.due_on)} corrected from ${pence(d.before)} to ${pence(d.after)}`,
   "arrears.step_done": d => `${ARREARS_STEPS.find(x => x[1] === d.step)?.[2]} marked done${d.note ? `: ${d.note}` : ""}`,
   "payment.recorded": d => `${KIND[d.kind]} payment of ${pence(d.amount)} recorded`,

@@ -4,7 +4,7 @@ import { validateLandlord, validateRental, validateRepair, COMPLIANCE, CALENDAR,
 import { fields, result } from "../sales.js";
 import { LOCK } from "./applicants.js";
 import { jerseyToday, plusDays, realDate } from "../viewings.js";
-import { readLegal, legalLabel, calendarReady, tenancyLaw } from "../legal-terms.js";
+import { readLegal, legalLabel, calendarReady, tenancyLaw, rentReviewReady } from "../legal-terms.js";
 
 export const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
 export const asObject = body => (body && typeof body === "object" && !Array.isArray(body) ? body : fail(400, "Invalid format"));
@@ -392,11 +392,17 @@ function percent(b, errors) {
 // R9: a column of the bank file, by position (headers may repeat).
 const column = (b, k, errors) => (Number.isInteger(b[k]) && b[k] >= 0 && b[k] < 1000 ? b[k] : (errors[k] = "Choose a column", null));
 
-// [app_settings key for the request, check(body) → {value} | {errors}, the answer for a stored value (null if none)].
+// [app_settings key for the request, check(body, env) → {value} | {errors}, the answer for a stored value (null if none)].
 const SETTINGS = {
-  rpi: [() => "rpi", b => {
+  rpi: [() => "rpi", (b, env) => {
     const errors = {}, value = { percent: percent(b, errors), as_of: realDate(b.as_of) ? b.as_of : null };
     if (!value.as_of) errors.as_of = "Enter a date as YYYY-MM-DD";
+    // ADM-15: the figure is kept with where it was published and when, so a limit can be traced to it.
+    if (rentReviewReady(env)) {
+      value.source = typeof b.source === "string" && b.source.trim().length <= 200 ? b.source.trim() || null : null;
+      if (!value.source) errors.source = "Enter where the figure was published, in up to 200 characters";
+      if (value.as_of > jerseyToday()) errors.as_of = "Enter the date it was published, today or earlier";
+    }
     return result(value, errors);
   }, v => ({ rpi: v })],
   gst: [() => "gst_percent", b => { const errors = {}, p = percent(b, errors); return result(p, errors); },
@@ -421,7 +427,7 @@ async function getSetting({ request, env, params: [name] }) {
 
 async function putSetting({ request, env, admin, params: [name] }) {
   const [key, check, answer] = SETTINGS[name], k = key(request);
-  const r = check(asObject(await readJson(request)));
+  const r = check(asObject(await readJson(request)), env);
   if (r.errors) return fieldErrors(r.errors);
   await env.DB.batch([
     env.DB.prepare(`INSERT INTO app_settings (key, value, updated_at, updated_by) VALUES (?, ?, ?, ?)

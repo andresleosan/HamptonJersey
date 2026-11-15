@@ -7,7 +7,7 @@ import { jerseyToday, plusDays, realDate } from "../viewings.js";
 import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE, syncTenantChecks } from "./rentals.js";
 import { exitReady } from "../tenancy-exits.js";
 import { NEXT_INSPECTION, inspectionDue, inspectionsReady } from "../rental-inspections.js";
-import { readLegal, legalLabel, calendarReady, tenancyLaw } from "../legal-terms.js";
+import { readLegal, legalLabel, calendarReady, tenancyLaw, rentReviewReady } from "../legal-terms.js";
 
 const MAX_POUNDS = 1000000, MAX_PENCE = 100 * MAX_POUNDS; // R20
 const ENDED = "This tenancy has ended", CHANGED = "This property changed meanwhile. Reload to see it";
@@ -175,7 +175,9 @@ export async function detail(env, id) {
   const rpi = setting ? JSON.parse(setting.value) : null;
   const notice = tenancy.notice_given_on && { given_on: tenancy.notice_given_on, by: tenancy.notice_by };
   // The rent in force today (tenancy.rent is the latest agreed, maybe from a later date); the starting rent before the start.
-  return { tenancy, current_rent: now_.rent, charges, payments, balance, arrears, assistant: { ...rentAssistant(tenancy, rpi, today, periods), rpi },
+  // ADM-15: with its switch the assistant reads the 2025 rules (law), not the label.
+  return { tenancy, current_rent: now_.rent, charges, payments, balance, arrears,
+    assistant: { ...rentAssistant(tenancy, rpi, today, periods, rentReviewReady(env) ? law : null), rpi },
     deadlines: deadlines(tenancy, today, periods), earliest_move_out: notice ? earliestMoveOut(tenancy, notice, periods) : null,
     ...legalLabel(legal), ...(law ? { law, law_history } : {}) };
 }
@@ -410,6 +412,17 @@ const rentChange = (env, admin, t, rent, effective_on, today, ts) => [
     WHERE tenancy_id = ? AND kind = 'rent' AND edited = 0 AND due_on >= ? AND due_on > ?`).bind(t.id, effective_on, today),
 ];
 
+// ADM-15 (with its switch and ADM-20's rules): what the assistant said when the rent was changed, for the history: the
+// RPI used with its source (null without one), the limit, the earliest date, whether the 2025 rules cover the tenancy
+// and whether the periods were validated. It records; it never refuses the change.
+async function rentReview(env, t, today) {
+  const legal = rentReviewReady(env) && await readLegal(env), law = legal && await tenancyLaw(env, legal);
+  if (!law) return {};
+  const row = await env.DB.prepare("SELECT value FROM app_settings WHERE key = 'rpi'").first();
+  const { cover, rpi, max_rent, earliest_on } = rentAssistant(t, row && JSON.parse(row.value), today, legal.periods, law);
+  return { review: { cover, status: law.status, rpi, max_rent, earliest_on } };
+}
+
 async function changeRent({ request, env, admin, params: [id] }) {
   const cur = await loadTenancy(env, id), today = jerseyToday(), check = running(today);
   check(cur);
@@ -419,7 +432,7 @@ async function changeRent({ request, env, admin, params: [id] }) {
   if (Object.keys(errors).length) return fieldErrors(errors);
   await act(env, cur.id, [...rentChange(env, admin, cur, rent, effective_on, today, now()),
     rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "rent.changed",
-      data: { before: cur.rent, rent, effective_on } })], check);
+      data: { before: cur.rent, rent, effective_on, ...await rentReview(env, cur, today) } })], check);
   return json(await detail(env, cur.id));
 }
 

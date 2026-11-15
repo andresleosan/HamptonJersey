@@ -22,6 +22,9 @@ const CALENDAR_PERIODS = [["copyDays", 365], ["changeDays", 365], ["checklistYea
 // versioned with the rest only while its switch is on. Only the website reads them; the clock works out no tenancy rule.
 export const tenancyLawReady = env => env?.ADM20_TENANCY_LAW_READY === "1";
 const LAW_PERIODS = [["initialTermYears", 20], ["regime2025From", "date"]];
+// ADM-15: the rent review reads those rules, so it is on only with ADM-20's switch too (and its migration 0073, already
+// applied), and keeps the RPI with its source. No migration; only the website reads it: the clock works out no rent review.
+export const rentReviewReady = env => env?.ADM15_RENT_REVIEW_READY === "1" && tenancyLawReady(env);
 const periodsOf = env => [...PERIODS, ...(calendarReady(env) ? CALENDAR_PERIODS : []), ...(tenancyLawReady(env) ? LAW_PERIODS : [])];
 const codeOf = env => (calendarReady(env) ? { ...LEGAL, ...CALENDAR_LEGAL } : LEGAL);
 const ANSWERS = ["yes", "no", "unknown"];

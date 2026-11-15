@@ -65,6 +65,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/sap02-match-counts.e2e.cjs"
         ? { SAP02_COUNTS_READY: "1", EST16_AVAILABILITY_READY: "1", AGE03_ENQUIRIES_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm20-tenancy-law.e2e.cjs" ? { ADM20_TENANCY_LAW_READY: "1", ADM17_LEGAL_TERMS_READY: "1" } : {}),
+      // ADM-15 reads ADM-20's rules and ADM-17's validation, so its test has the three on.
+      ...(process.env.E2E_SCRIPT === "tests/adm15-rent-review.e2e.cjs"
+        ? { ADM15_RENT_REVIEW_READY: "1", ADM20_TENANCY_LAW_READY: "1", ADM17_LEGAL_TERMS_READY: "1" } : {}),
       // SPR-08 reads VIS-08's dates and EST-16's confirmation beside its own notes, so its test has the three on.
       ...(process.env.E2E_SCRIPT === "tests/spr08-listing-sections.e2e.cjs"
         ? { SPR08_SECTIONS_READY: "1", VIS08_CYCLE_READY: "1", EST16_AVAILABILITY_READY: "1" } : {}),

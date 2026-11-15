@@ -113,18 +113,29 @@ export function complianceStatus(item, today) {
 }
 
 // R12, R30. rpi: {percent, as_of} or null. The legacy label selects an estimate, not a verified legal determination.
-export function rentAssistant(tenancy, rpi, today, legal = LEGAL) {
-  if (tenancy.regime !== "2025") return { applies: false, max_rent: null, earliest_on: null,
-    notes: ["The recorded 2011 label does not confirm which law applies. Check the agreement and applicable rules with a Jersey lawyer."] };
+// ADM-15 (policy: tenancyLaw's answer, passed only with ADM15_RENT_REVIEW_READY): the rules come from the agreement
+// date and the scope (cover: lawApplies), never from the label; unknown works the estimate out as a condition, not as
+// rules that apply. An RPI figure counts only with its source ({percent, as_of, source}; rpi: the one used, or null).
+// draft_only: why the change's facts are an internal draft and no notice for the tenant; empty only for a covered
+// tenancy under validated periods.
+export function rentAssistant(tenancy, rpi, today, legal = LEGAL, policy = null) {
+  const cover = policy ? lawApplies(tenancy, policy) : tenancy.regime === "2025" ? "yes" : "no";
+  if (policy && (cover === "no" || !rpi?.source)) rpi = null;
+  const review = policy ? { cover, rpi, draft_only: [policy.status !== "validated" && "the legal periods are not validated by a lawyer",
+    cover !== "yes" && "it is not recorded whether the 2025 rules apply to this tenancy"].filter(Boolean) } : {};
+  if (cover === "no") return { applies: false, max_rent: null, earliest_on: null, ...review, notes: [policy
+    ? "The 2025 rules are not recorded as covering this tenancy (its agreement date or its scope), so no estimate is worked out. Check the agreement and applicable rules with a Jersey lawyer."
+    : "The recorded 2011 label does not confirm which law applies. Check the agreement and applicable rules with a Jersey lawyer."] };
   const after = addMonths(tenancy.last_rent_change_on ?? tenancy.start_on, legal.rentIntervalMonths);
   const notice = addMonths(today, legal.rentNoticeMonths);
   // In whole basis points, rounded down (a third decimal never lifts the cap), so whole pounds round down without
   // float drift. Rounding at 1e6 first keeps 1.15 at 115, not 114.999….
   const bp = rpi ? Math.floor(Math.round(rpi.percent * 1e6) / 1e4) : null;
   const max_rent = rpi ? Math.floor(tenancy.rent * (10000 + bp) / 10000) : null;
-  return { applies: true, max_rent, earliest_on: after > notice ? after : notice, notes: [
-    "This estimate uses the recorded 2025 label; it does not confirm which rules apply. Check with a Jersey lawyer.",
-    ...(rpi ? [] : ["Enter Jersey's RPI to work out the estimate."]),
+  return { applies: true, max_rent, earliest_on: after > notice ? after : notice, ...review, notes: [
+    ...(!policy ? ["This estimate uses the recorded 2025 label; it does not confirm which rules apply. Check with a Jersey lawyer."]
+      : cover === "unknown" ? ["It is not recorded whether the 2025 rules apply to this tenancy: add its agreement date and scope under Edit details. This estimate holds only if they do."] : []),
+    ...(rpi ? [] : [policy ? "Enter Jersey's RPI with its source and publication date to work out the limit." : "Enter Jersey's RPI to work out the estimate."]),
     "Exceptions may apply after improvements or when rent is below the market. Check with a Jersey lawyer."] };
 }
 
