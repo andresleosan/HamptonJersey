@@ -72,6 +72,8 @@ SPR03_CAPTURE_READY = "1"
 AGE10_PHOTOS_READY = "1"
 # AGE-12: a client's private link to the homes presented, with their answer on each (migration 0086; needs AGE10_PHOTOS_READY, SPR03_CAPTURE_READY and EST16_AVAILABILITY_READY). Public route that collects client answers: only Luis switches it on.
 AGE12_PRESENTATIONS_READY = "0"
+# NOT-08/NOT-09: Inbox Agency replies/Messages from real tasks, and Approve/Call/Reply/Snooze in each notice (migration 0088 first). Sends nothing.
+NOT0809_INBOX_READY = "0"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
