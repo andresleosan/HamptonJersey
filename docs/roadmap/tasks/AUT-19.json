@@ -6,12 +6,23 @@
   "fase": "F1-A",
   "estado": "pendiente",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "M11 · Reconciliación 7-nov: Después de hablar con el cliente, permitir al empleado introducir o dictar solo los cambios aceptados. El bot prepara valores anteriores/propuestos; el empleado confirma o corrige antes de guardar. Conservar versión, fecha, responsable y evidencia de la confirmación; recalcular matches y actualizar acciones/tareas afectadas. Resolver ediciones simultáneas sin sobrescribir silenciosamente. Usar un canal autenticado compatible con las fronteras actuales de datos de Hermes; este plan no habilita clientes ni criterios privados por Telegram. Depende de: REG-11, BUS-12, EST-18. Aceptación: Dictar subir presupuesto no cambia datos hasta confirmar; no altera parking ni otros MUST no mencionados, y al confirmar recalcula sin duplicados. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: propuesta dictada pendiente de confirmar. Traído de BUS-12 (14-nov): si la propuesta dictada necesita una revisión que cambie solo con los criterios, integrar criteria_revision y su guarda en los escritores (propuesta en docs/roadmap/work/BUS-12/criteria-revision.proposed.sql, sin ordinal); hoy match_inputs_revision también cambia con etapa y estado.",
+  "hecho": "Construida y apagada (migración 0074, interruptor AUT19_CRITERIA_PROPOSALS_READY). En la ficha del aplicante, los criterios que el empleado cambia en el formulario de búsqueda pueden dejarse como propuesta («Propose changes», con nota de origen opcional) en vez de guardarse: la búsqueda y sus matches no cambian. La propuesta pendiente muestra antes → después campo a campo y avisa de que lo no listado queda igual. «Confirm changes» (el mismo empleado u otro) aplica exactamente esos campos por el mismo guardado de la ficha y recalcula una vez; «Edit proposal» la lleva al formulario para corregirla y proponer de nuevo la sustituye; «Discard proposal» la cierra sin tocar nada. Si los criterios cambiaron entre medias, la confirmación se rechaza (409) y solo cabe rehacerla o descartarla. Quedan guardados la versión de criterios, la fecha, quién propuso, quién confirmó y la nota; el Timeline registra propuesta, confirmación y descarte. La lista de aplicantes («Changes to confirm») y el Inbox (tarea «Confirm proposed criteria changes», contrato de productor de NOT-01) señalan la propuesta; la tarea se cierra al confirmar o descartar. Un borrador de Hermes entrará por la misma función (proposeCriteria, con otro actor y origen); aquí no se llama a ningún modelo.",
+  "falta": "Aplicar la migración 0074 (aditiva), encender AUT19_CRITERIA_PROPOSALS_READY y comprobar el recorrido en producción con lecturas. El dictado interpretado por un modelo (voz o texto libre) no es de esta tarea: depende de la vía Hermes/Pro verificada (PRE-32) y del carril de AUT-13; mientras tanto el empleado indica los cambios a mano. Telegram no autorizado.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): vía del modelo ya decidida: Hermes central."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): vía del modelo ya decidida: Hermes central.",
+    "15-nov-2026 · Construcción: migrations/0074_criteria_proposals.sql (aditiva: una tabla y un índice), server/routes/applicants.js, admin/src/ApplicantDetail.jsx y Applicants.jsx; interruptor AUT19_CRITERIA_PROPOSALS_READY leído de env, apagado por defecto. Nada publicado, migrado ni encendido.",
+    "15-nov-2026 · Pruebas: node --test tests/server/aut19-criteria-proposals.test.mjs 9/9 (apagado o sin 0074 todo igual; proponer no cambia búsqueda ni matches; doble confirmación simultánea = una sola; parking y demás imprescindibles intactos; mismo match reevaluado sin duplicado; 409 si los criterios cambiaron; descarte; sustitución; borrador con actor Hermes; borrado en cascada). Regresión focal en verde: applicants 37/37, applicants-public 15, applicants-validate 25, matches 16, est-13-versions 5, est01-search-state 11, notification* 75, schema 28, retention 23.",
+    "15-nov-2026 · Navegador aislado (datos ficticios, sin red): E2E_SCRIPT=tests/aut19-criteria-proposal.e2e.cjs npm run test:e2e:isolated PASS a 1280 y 390: proponer por teclado, antes → después, lista e Inbox, corregir, confirmar, propuesta desfasada y descarte, sin desplazamiento lateral ni errores de página.",
+    "Decisión: alcance sin modelo. Fuente: reconciliación 7-nov, tanda 2 («revisión antes/después y adaptador IA desactivado») y plan vigente docs/superpowers/plans/2026-11-08-aut-19-versioned-criteria-proposals.md («texto definido; voz en etapa posterior»).",
+    "Decisión: la versión de la propuesta es match_inputs_revision y no hace falta instalar criteria_revision. Fuente: la migración 0069 sacó la etapa de esa revisión; lo que la mueve además de los criterios (resolver o archivar) también debe invalidar una propuesta. Los campos que el matching no lee se comparan con el «antes» guardado.",
+    "Decisión: confirmar reutiliza el guardado de criterios de la ficha (misma validación, bloqueo por updated_at, evento applicant.updated con criteria_confirmation) y añade quién propuso. Fuente: plan vigente, tarea 2 («no duplicar validación ni escritor») y SAP-10.",
+    "Decisión: solo confirma un empleado con sesión; el actor nunca viene del cuerpo. Fuente: server/operation-policy.js (dictated_criteria_confirmation es decisión humana, AUT-10).",
+    "Decisión: una propuesta pendiente por búsqueda; proponer de nuevo sustituye a la anterior. Fuente: skill, sección 4.5 (la opción más simple y reversible); la anterior queda como descartada con su autor.",
+    "Decisión: el aviso usa el productor reservado work «dictation» de server/notification-events.js (contrato NOT-01), una tarea por búsqueda que se reabre con cada propuesta. Lo calcula la propia ruta, no el reloj: jobs/ no necesita el interruptor.",
+    "Decisión: los eventos de propuesta y descarte guardan solo los nombres de los campos; valores y nota quedan en la propuesta, que se borra con su búsqueda. Fuente: repositorio público y regla de datos del plan vigente.",
+    "Acciones afectadas al confirmar: el recálculo es el del guardado manual y las aprobaciones de matches ligadas a la versión anterior caducan solas (EST-13, search_version)."
   ],
   "modulo": "M11",
   "deps": [
@@ -60,6 +71,6 @@
     "matching-contract",
     "events-contract"
   ],
-  "nextStep": "Diseñar propuesta de criterios con versión y confirmación humana antes de guardar o recalcular.",
-  "actualizado": "2026-11-14"
+  "nextStep": "Aplicar 0074, encender AUT19_CRITERIA_PROPOSALS_READY y verificar con lecturas; después cerrar por aceptación propia.",
+  "actualizado": "2026-11-15"
 }
