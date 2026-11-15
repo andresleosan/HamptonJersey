@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "Desde 90 días antes del fin de un plazo fijo el contrato sale en Renewals («Renewal due» o «Fixed term ended») y en su tarjeta; Renew lo prorroga o lo pasa a periódico con la misma referencia, renta nueva opcional y ley 2025.",
-  "falta": "No se pregunta al propietario ni al inquilino con botones (necesita correo o portal), y si el inquilino se va no se crea el borrador de ficha copiando la anterior, porque viviendas y listings no están enlazados. Traído de ADM-20 (15-nov): ejecutar una respuesta de renovación debe pasar por POST /admin/tenancies/:id/renew, que ya aplica ADM-20: nunca imponer un segundo plazo fijo y enviar law_confirmed cuando se pida.",
+  "falta": "No se pregunta al propietario ni al inquilino con botones (necesita correo o portal), y si el inquilino se va no se crea el borrador de ficha copiando la anterior, porque viviendas y listings no están enlazados. Traído de ADM-20 (15-nov): ejecutar una respuesta de renovación debe pasar por POST /admin/tenancies/:id/renew, que ya aplica ADM-20: nunca imponer un segundo plazo fijo y enviar law_confirmed cuando se pida. Traído de ADM-15 (15-nov): Renew con renta nueva cambia la renta sin la revisión de ADM-15 (no guarda el RPI usado ni ofrece el borrador de aviso); al construir la renovación, pasar ese cambio por rentReview/rentAssistant con policy.",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "server/routes/rent.js:86-89",
