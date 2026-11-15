@@ -64,11 +64,11 @@
       "area": "Propiedades, publicación, tours y analítica",
       "capacity": 2,
       "count": 65,
-      "openCount": 18,
+      "openCount": 17,
       "states": {
-        "hecho": 28,
+        "hecho": 29,
         "descartado": 18,
-        "parcial": 13,
+        "parcial": 12,
         "pendiente": 5,
         "replanteado": 1
       }
@@ -9926,10 +9926,10 @@
       "titulo": "QR de pósteres de propiedades y aperturas agregadas",
       "origen": "plan",
       "fase": "—",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Construido y apagado (15-nov): el panel muestra en cada ficha publicada con foto pública la tarjeta «Window poster QR» con el QR de https://www.hamptonestatesjersey.com/p/<id>?src=qr, generado en el navegador con Nayuki (corrección M, margen 4, 30 mm), su descarga SVG y las aperturas aproximadas de 90 días; una ficha que la web no muestra no ofrece QR. Al escanear, la web abre la ficha, cuenta una apertura (POST /api/stats, metric qr) y quita la marca de la barra de direcciones. Cada apertura escribe como mucho una fila en listing_qr_opens (día de Jersey, ficha, n), con tope de 200 por ficha y día y 5.000 por día; sin IP, agente, cookie ni identificador. Insights suma las aperturas del periodo. Una ficha retirada por PUB-16, sin publicar o archivada abre «Property not found» (404) y no cuenta. Migración aditiva 0091 e interruptor ANA10_QR_OPENS_READY, apagado. Se retiró la redirección /r/<code> sin usar.",
-      "falta": "Aplicar 0091 en D1 remota y encender ANA10_QR_OPENS_READY en wrangler.toml (autorizado por CONTINUIDAD: aditiva y sin datos personales del público); comprobar después con GET que el panel muestra el QR y que /p/<id>?src=qr responde no-store. Antes de colgar el póster, el equipo prueba el QR impreso con un móvil: no hay prueba física.",
+      "hecho": "Construido y apagado (15-nov): el panel muestra en cada ficha publicada con foto pública la tarjeta «Window poster QR» con el QR de https://www.hamptonestatesjersey.com/p/<id>?src=qr, generado en el navegador con Nayuki (corrección M, margen 4, 30 mm), su descarga SVG y las aperturas aproximadas de 90 días; una ficha que la web no muestra no ofrece QR. Al escanear, la web abre la ficha, cuenta una apertura (POST /api/stats, metric qr) y quita la marca de la barra de direcciones. Cada apertura escribe como mucho una fila en listing_qr_opens (día de Jersey, ficha, n), con tope de 200 por ficha y día y 5.000 por día; sin IP, agente, cookie ni identificador. Insights suma las aperturas del periodo. Una ficha retirada por PUB-16, sin publicar o archivada abre «Property not found» (404) y no cuenta. Migración aditiva 0091 e interruptor ANA10_QR_OPENS_READY, apagado. Se retiró la redirección /r/<code> sin usar. Cerrada el 15-nov-2026: migración 0091 aplicada y ANA10_QR_OPENS_READY=1. La prueba del QR impreso con un móvil es del equipo (COLA-LUIS, no bloquea).",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "migrations/0091_listing_qr_opens.sql",
@@ -9953,7 +9953,8 @@
         "Decisión: el panel no enlaza la dirección del QR para no contar aperturas propias; la consulta Staff no escribe nada.",
         "15-nov-2026: node --test ana10-poster-qr 8/8 (apagado, una sentencia por apertura, borradores y archivadas, sin columnas del visitante, topes 200 y 5.000, PUB-16 vencida, consulta Staff 90 días, total en Insights; la prueba PUB-16 falla si se quita el filtro de cierre), property-qr-svg 3/3 (jsQR decodifica la dirección exacta, corrección M), stats 6/6, public 22/22, seo 18/18, pub-16-closure 11/11, pub-16-closure-d1 1/1, pub-16-closure-job 13/13, pub-16-public-visibility 12/12, public-media-query 2/2, insights 10/10, weekly-insights 8/8, web-activity-scope 8/8, listing-address 15/15, schema 28/28; build del panel y check-release pasan.",
         "15-nov-2026: E2E aislado tests/ana10-poster-qr.e2e.cjs a 1280 y 390 px con ANA10_QR_OPENS_READY y PUB16_TIMED_CLOSURE_READY: el QR renderizado en el panel se decodifica con jsQR a la dirección mostrada, la descarga por teclado da HE-R001-poster-qr.svg, el escaneo responde no-store, cuenta 1 en D1 local y quita ?src=qr, la recarga no cuenta, el QR de un borrador da 404 «Property not found» sin enviar nada, e Insights muestra el total; sin desbordamiento horizontal ni errores de página.",
-        "No comprobado: D1 remota, el QR impreso con un móvil, el coste real en producción."
+        "No comprobado: D1 remota, el QR impreso con un móvil, el coste real en producción.",
+        "Cierre 15-nov-2026: publicada en 313ad1f (6ef3c78, 7a26ce5); 0091 (una tabla WITHOUT ROWID, aditiva) aplicada tras marcador Time Travel; npm test 2803/2803; tests/ana10-poster-qr.e2e.cjs pasa a 1280 y 390 (QR decodificado con jsQR, +1 en D1 local, recarga sin doble conteo, borrador 404); revisión independiente sin graves con el interruptor apagado (stats idéntico para view/photos/tour, canonical sin query, sin /r/ en producción ni QR impresos a /r/); el único grave depende de encender antes de aplicar 0091, que no ocurrió."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -9973,7 +9974,7 @@
         "analytics-contract",
         "public-site"
       ],
-      "nextStep": "Aplicar 0091, encender ANA10_QR_OPENS_READY y comprobar con lecturas GET; probar el QR impreso antes de colgarlo.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-15"
     },
     {

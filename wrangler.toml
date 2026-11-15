@@ -86,8 +86,8 @@ ADM12_SUPPLIERS_READY = "1"
 ADM09_ARREARS_READY = "1"
 # ADM-10: close each month's landlord statement as a frozen revision; record sent and paid by hand (migration 0090, applied 15-nov-2026). Sends nothing. Must match the other wrangler.toml.
 ADM10_STATEMENTS_READY = "1"
-# ANA-10: window poster QR per published property and aggregate opens per day (day, listing, count; no personal data) (migration 0091). Sends nothing.
-ANA10_QR_OPENS_READY = "0"
+# ANA-10: window poster QR per published property and aggregate opens per day (day, listing, count; no personal data) (migration 0091, applied 15-nov-2026). Sends nothing.
+ANA10_QR_OPENS_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+15-nov-2026 · **ANA-10 hecha:** cada ficha publicada tiene en el panel su QR de póster para descargar (SVG); el QR abre la ficha y cuenta la apertura solo como total por ficha y día, sin IP, navegador ni cookies, con topes para que no se pueda inflar; una ficha retirada o sin publicar da «Property not found» y no cuenta. Insights muestra el total. Migración 0091. Progreso 127 → 128 de 211.
+
 15-nov-2026 · **ADM-10 encendida, en la cola de Luis para cerrarla:** en Rentals › Statements el equipo cierra la liquidación de cada propietario al terminar el mes (rentas, comisión, reparaciones cargadas, write-offs y neto) como revisión fija; si algo cambia después se cierra una revisión nueva, que muestra lo ya pagado y lo pendiente. «Sent» y «paid» se marcan a mano; CSV e impresión desde el navegador; el Inbox recuerda los meses sin cerrar. Faltan las decisiones de Luis sobre GST y PDF, y el correo (AUT-17). Migración 0090.
 
 15-nov-2026 · **ADM-09 hecha:** en cada contrato, los pasos de atrasos +1, +5 y +14 traen su borrador para copiar o descargar (la carta formal marcada «not validated by a lawyer»), y el equipo puede condonar deuda con un motivo (write-off, reversible una vez), que nunca crea pagos ni borra cargos; la deuda neta es la misma en la ficha, Rentals, Missing payments y el Inbox. Envío por correo con AUT-17. Migración 0045. Progreso 126 → 127 de 211.
