@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "No hay portal ni solicitud del inquilino (empleo, ingresos, referencias, avalista) ni regla de asequibilidad (§5.15); el estatus de vivienda solo se pide en Register your search para el matching, sin enlace con el contrato, que se da de alta a mano con New tenancy.",
+  "falta": "No hay portal ni solicitud del inquilino (empleo, ingresos, referencias, avalista) ni regla de asequibilidad (§5.15); el estatus de vivienda solo se pide en Register your search para el matching, sin enlace con el contrato, que se da de alta a mano con New tenancy. Traído de ADM-12 (15-nov): case-access de ADM-12 consumirá las capacidades de case-capabilities con el propósito repair_report; necesita 0046 y 0049 revisadas y aplicadas en producción antes de construirse encendible.",
   "bloqueo": "",
   "evidencia": [
     "server/routes/public.js:104-133",
@@ -45,5 +45,5 @@
     "applicants-contract"
   ],
   "nextStep": "Definir y construir solicitud del inquilino y enlace al contrato con criterios de asequibilidad aprobados.",
-  "actualizado": "2026-11-14"
+  "actualizado": "2026-11-15"
 }
