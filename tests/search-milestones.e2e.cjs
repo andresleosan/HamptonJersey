@@ -20,7 +20,13 @@ const sql=statement=>execFileSync(process.execPath,[wrangler,'d1','execute','ham
     VALUES('${at}','fixture','applicant',last_insert_rowid(),'applicant.stage_changed','{"after":{"stage":"agreed"}}');
     INSERT INTO applicants(contact_id,operation,source,stage,search_category,search_operation,created_at,updated_at,archived_at)
     SELECT id,'rent','phone','new','commercial','transfer','${at}','${at}','${at}' FROM contacts
-    WHERE email='ana05-fixture@example.test';`);
+    WHERE email='ana05-fixture@example.test';
+    INSERT INTO contacts(name,email,last_activity_at,created_at,updated_at)
+    VALUES('Synthetic buyer','ana05-buyer@example.test','${at}','${at}','${at}');
+    INSERT INTO applicants(contact_id,operation,source,stage,created_at,updated_at)
+    VALUES(last_insert_rowid(),'buy','phone','offer','${at}','${at}');
+    INSERT INTO offers(listing_id,applicant_id,amount,status,created_at,updated_at)
+    SELECT (SELECT id FROM listings ORDER BY id LIMIT 1),last_insert_rowid(),500000,'pending','${at}','${at}';`);
   const {signSession,COOKIE}=await import('../server/auth.js');
   const browser=await chromium.launch({executablePath:process.env.CHROME});
   try { for(const width of [1280,390]) {
@@ -52,11 +58,19 @@ const sql=statement=>execFileSync(process.execPath,[wrangler,'d1','execute','ham
     const row=(table,name)=>region.getByRole('table',{name:table}).getByRole('row',{name:new RegExp(`^${name} `)});
     assert.match(await row('Recorded search stages','Agreed').textContent(),/Agreed\s*1/);
     assert.match(await row('Recorded search stages','Viewing').textContent(),/Viewing\s*0/);
-    assert.match(await row('Verified milestones','Viewing completed').textContent(),/Not integrated/);
+    assert.match(await row('Verified milestones','Viewing completed').textContent(),/Not recorded/);
     await page.getByRole('button',{name:'7 days',exact:true}).click();
     await region.getByText('2 search records',{exact:true}).waitFor();
     await operation.selectOption('rent');
     await region.getByText('0 search records',{exact:true}).waitFor();
+    // ANA-05: the buyer's offer, read by its own search id, with its source and date; a rent cohort has no offers source.
+    assert.match(await row('Verified milestones','Offer').textContent(),/Offer\s*Not recorded/);
+    await operation.selectOption('buy'); await category.selectOption('residential');
+    await region.getByText('1 search records',{exact:true}).waitFor();
+    assert.match(await row('Verified milestones','Offer').textContent(),/Offer\s*1\s*Offers\s*\d{1,2} \w{3} \d{4}/);
+    assert.match(await row('Verified milestones','Search closed').textContent(),/Search closed\s*0\s*Search state/);
+    await operation.selectOption('all');
+    await region.getByText(/^\d+ search records$/).waitFor();
     await page.evaluate(()=>{document.documentElement.style.zoom='2';});
     const geometry=await page.evaluate(()=>({viewport:innerWidth,document:document.documentElement.scrollWidth}));
     assert.ok(geometry.document<=geometry.viewport+1,'page should reflow at 200% zoom');
@@ -98,6 +112,8 @@ const sql=statement=>execFileSync(process.execPath,[wrangler,'d1','execute','ham
     const explain=execute('EXPLAIN QUERY PLAN '+bound)[0].results.map(row=>row.detail).join(' ');
     assert.match(explain,/SEARCH a USING INDEX applicants_operation/);
     assert.match(explain,/SEARCH e USING INDEX events_entity/);
+    assert.match(explain,/SEARCH o USING (COVERING )?INDEX offers_applicant/);
+    assert.match(explain,/SEARCH s USING (COVERING )?INDEX sales_applicant/);
     const result=execute(bound)[0];
     assert.equal(result.results[0].search_count,1002);
     assert.equal(result.results[0].agreed_count,1);

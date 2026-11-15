@@ -6,8 +6,8 @@
   "fase": "F7-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Insights ya muestra su serie histórica de etapas. Se preparó una lectura separada por búsqueda que cuenta únicamente etapas registradas y presenta los hitos sin fuente como Not integrated. La decisión posterior de Luis sustituyó el embudo de seguimiento individual por estadísticas agregadas.",
-  "falta": "La nueva consulta permanece apagada hasta acreditar presupuesto de lecturas, CPU, memoria y frecuencia. Integrar y verificar las fuentes reales de visitas, ofertas y cierres por búsqueda; no asociarlas por correo o teléfono ni inferir pasos anteriores.",
+  "hecho": "Insights muestra su serie histórica de etapas y, aparte, la lectura por búsqueda (unidad: registro de búsqueda, sin personas ni embudo). Cuenta solo etapas registradas. 15-nov: los hitos verificados salen de fuentes reales unidas por el id de la propia búsqueda: Offer (offers), Agreed (sales abiertas por oferta aceptada), Completed (sales completadas) y Search closed (search_state resolved), cada uno con su recuento, su fuente y su última fecha dentro del periodo. Viewing completed queda «Not recorded»: las visitas no guardan el id de la búsqueda y no se unen por correo ni teléfono. En alquiler, ofertas y ventas salen «Not recorded», no cero. Una sola consulta agregada con topes que fallan cerrados; tras SEARCH_MILESTONES_READY, apagado.",
+  "falta": "Publicar en main y encender SEARCH_MILESTONES_READY=1 en wrangler.toml (sin migración). El coste real en D1 remoto solo se verá con uso; el local está medido.",
   "bloqueo": "",
   "evidencia": [
     "server/insights.js:25-29",
@@ -22,7 +22,15 @@
     "tests/server/measurement-funnel.test.mjs",
     "tests/search-milestones.e2e.cjs",
     "docs/qa/ana-05-aggregate-evidence.md",
-    "docs/superpowers/specs/2026-11-10-tp02-measurement-design.md"
+    "docs/superpowers/specs/2026-11-10-tp02-measurement-design.md",
+    "server/measurement-funnel.js:10-14 y 95-130: fuentes por id de búsqueda (offers_applicant, sales_applicant, search_state) en la misma consulta; MAX_FACTS=20000 con 503 si se supera.",
+    "tests/server/measurement-funnel.test.mjs: 17/17; incluye hitos de offers/sales/search_state con fecha y fuente, exclusión fuera de cohorte y tras el corte, visita con el mismo correo no unida, alquiler Not recorded y tope de hechos (15-nov).",
+    "tests/server/ana05-milestones-d1.test.mjs: D1 local (Miniflare) con 54.000 búsquedas, 220.000 eventos, 27.000 ofertas y 5.500 ventas; periodo de 88 días con 4.000 búsquedas: una consulta, rows_read=99.516, rows_written=0, unos 200 ms locales. La versión anterior leía 304.003 filas solo para las etapas (una pasada por cifra) en la misma base.",
+    "Coste acotado: como mucho unas 4 lecturas por fila del periodo y nunca el resto de la base; peor caso estimado (no medido) con los topes de 5.000 búsquedas, 50.000 eventos y 20.000 ofertas o ventas: del orden de 300.000 filas. Frecuencia: una petición al abrir Insights o cambiar un filtro, sin sondeo.",
+    "tests/funnel-metrics-ui.test.js 3/3 y tests/search-milestones.e2e.cjs aprobado en navegador aislado a 1280 y 390: tabla con Source y Last recorded, Offer 1 · Offers · fecha en compra, Not recorded en alquiler (15-nov).",
+    "Decisión: las visitas quedan Not recorded hasta que VIS-17 guarde la relación visita-búsqueda (fuente: plan ANA-05, dependencias; consigna de no unir por correo o teléfono).",
+    "Decisión: ofertas y ventas solo cuentan en compra; en alquiler se muestra Not recorded para no fingir ceros (fuente: plan maestro, «sin embudo falso»).",
+    "Decisión: se reutiliza el interruptor SEARCH_MILESTONES_READY existente; sin migración (índices offers_applicant y sales_applicant ya existen)."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -42,5 +50,6 @@
     "analytics-contract",
     "events-contract"
   ],
-  "nextStep": "Acreditar presupuesto de la consulta e integrar fuentes verificadas antes de activar las cifras de hitos."
+  "nextStep": "Integrar en main, añadir SEARCH_MILESTONES_READY=\"1\" a wrangler.toml y comprobar Insights en producción con una lectura GET.",
+  "actualizado": "2026-11-15"
 }

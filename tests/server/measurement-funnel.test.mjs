@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeEnv, call, adminCookie, captured, plan } from './helpers.mjs';
-import { observedStageEntries, getSearchMilestones, readVerifiedSearchFacts } from '../../server/measurement-funnel.js';
+import { makeEnv, call, adminCookie, captured, plan, seedListing } from './helpers.mjs';
+import { observedStageEntries, getSearchMilestones } from '../../server/measurement-funnel.js';
 
 const enabledEnv = () => ({...makeEnv(), SEARCH_MILESTONES_READY:'1'});
 const stamp = '2026-10-25T12:00:00.000Z';
@@ -57,10 +57,13 @@ test('cohort is search records, retains archives and never infers stages or real
   assert.equal(d.coverage.excluded_invalid,1);
   assert.equal(d.coverage.deleted_history_unknown,true);
   assert.equal(d.coverage.measured_from,null);
-  for (const kind of ['viewing_completed','offer','agreed','completed']) {
-    assert.equal(d.verified_business[kind].count,null);
-    assert.equal(d.verified_business[kind].coverage,'not_integrated');
+  // No viewing is linked to a search, so it stays not recorded; the other milestones have a real source and are 0 here.
+  assert.deepEqual(d.verified_business.viewing_completed,{count:null,source:null,latest_at:null,coverage:'not_recorded'});
+  for (const kind of ['offer','agreed','completed','search_closed']) {
+    assert.equal(d.verified_business[kind].count,0);
+    assert.equal(d.verified_business[kind].coverage,'recorded');
   }
+  assert.deepEqual(d.coverage.missing_producers,['viewing_completed']);
   assert.equal(Object.hasOwn(d.cohort,'web_registrations'),false);
   assert.equal(JSON.stringify(d).includes('SYNTHETIC_PERSON'),false);
   assert.equal(JSON.stringify(d).includes('{broken'),false);
@@ -87,10 +90,61 @@ test('cutoff, Jersey DST, filters, and event scope are enforced independently', 
   assert.equal((await getSearchMilestones(env,{...window,operation:'buy',category:'residential'})).cohort.count,1);
 });
 
-test('default verified adapter does not invent or accept unrelated facts', async () => {
-  const result = await readVerifiedSearchFacts(enabledEnv(),{applicantIds:[1],cutoff:stamp});
-  assert.deepEqual(result.facts,[]);
-  assert.equal(result.coverage,'not_integrated');
+// ANA-05: offers and sales carry the search's own id (applicant_id); closure is the search's own state. Nothing is
+// joined by email or phone, and nothing outside the cohort or after the cutoff counts.
+let offerSerial = 0;
+function offer(env, applicantId, at, status='pending') {
+  return Number(run(env, `INSERT INTO offers(listing_id,applicant_id,amount,status,counter_amount,created_at,updated_at)
+    VALUES('HE-R001',?,500000,?,NULL,?,?)`, applicantId, status, at, at).lastInsertRowid) + 0 * ++offerSerial;
+}
+function sale(env, applicantId, offerId, at, closedAt=null) {
+  run(env, `INSERT INTO sales(listing_id,applicant_id,offer_id,price,status,closed_at,created_at,updated_at)
+    VALUES('HE-R001',?,?,500000,?,?,?,?)`, applicantId, offerId, closedAt ? 'completed' : 'in_progress', closedAt, at, at);
+}
+const resolved = at => ({search_state:'resolved',resolved_at:at,resolved_by:'admin@example.test',resolution_reason:'Bought'});
+
+test('verified milestones come from offers, sales and search state linked by the search itself', async () => {
+  const env = enabledEnv();
+  seedListing(env);
+  const pending = search(env,{operation:'buy'}), done = search(env,{operation:'buy'}), late = search(env,{operation:'buy'});
+  const outside = search(env,{operation:'buy',created_at:'2026-10-20T00:00:00.000Z'});
+  search(env,{operation:'buy',...resolved('2026-10-25T12:00:00.000Z')});
+  search(env,{operation:'rent',...resolved('2026-10-26T00:00:00.000Z')});
+  offer(env,pending,'2026-10-25T10:00:00.000Z');
+  sale(env,done,offer(env,done,'2026-10-25T09:00:00.000Z','accepted'),'2026-10-25T09:30:00.000Z','2026-10-25T20:00:00.000Z');
+  offer(env,late,'2026-10-26T00:00:00.000Z');
+  sale(env,outside,offer(env,outside,'2026-10-25T08:00:00.000Z','accepted'),'2026-10-25T08:30:00.000Z');
+  // A completed viewing booked with the same email as a search is not linked to it.
+  const email = env.DB.raw.prepare('SELECT c.email FROM contacts c JOIN applicants a ON a.contact_id=c.id WHERE a.id=?').get(done).email;
+  run(env, `INSERT INTO viewing_requests(listing_id,kind,date,time,name,email,status,created_at,outcome)
+    VALUES('HE-R001','viewing','2026-10-25','10:00','SYNTHETIC_PERSON',?,'completed',?, 'proceed')`, email, stamp);
+  const seen = captured(env,/WITH\s+cohort/i);
+  const d = await getSearchMilestones(env,window);
+  assert.equal(seen.length,1,'one aggregate query');
+  assert.equal(d.cohort.count,5);
+  const v = d.verified_business;
+  assert.deepEqual(v.offer,{count:2,source:'offers',latest_at:'2026-10-25T10:00:00.000Z',coverage:'recorded'});
+  assert.deepEqual(v.agreed,{count:1,source:'sales',latest_at:'2026-10-25T09:30:00.000Z',coverage:'recorded'});
+  assert.deepEqual(v.completed,{count:1,source:'sales',latest_at:'2026-10-25T20:00:00.000Z',coverage:'recorded'});
+  assert.deepEqual(v.search_closed,{count:1,source:'search_state',latest_at:'2026-10-25T12:00:00.000Z',coverage:'recorded'});
+  assert.equal(v.viewing_completed.count,null);
+  assert.equal(JSON.stringify(d).includes(email),false);
+  const details = plan(env,seen[0]);
+  assert.match(details,/USING (COVERING )?INDEX offers_applicant/);
+  assert.match(details,/USING (COVERING )?INDEX sales_applicant/);
+  // Offers and sales are recorded only for buying: a rent cohort says not recorded, not zero.
+  const rent = await getSearchMilestones(env,{...window,operation:'rent'});
+  for (const kind of ['offer','agreed','completed']) assert.equal(rent.verified_business[kind].coverage,'not_recorded');
+  assert.equal(rent.verified_business.search_closed.count,0);
+});
+
+test('verified milestone reads are bounded and fail closed', async () => {
+  const env = enabledEnv(), id = search(env,{operation:'buy'});
+  seedListing(env);
+  env.DB.raw.prepare(`WITH RECURSIVE seq(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM seq WHERE n<20001)
+    INSERT INTO offers(listing_id,applicant_id,amount,status,created_at,updated_at)
+    SELECT 'HE-R001',?,500000,'pending',?,? FROM seq`).run(id,stamp,stamp);
+  await assert.rejects(getSearchMilestones(env,window),e=>e.status===503);
 });
 
 test('staff endpoint validates filters and date ranges and is never cached', async t => {

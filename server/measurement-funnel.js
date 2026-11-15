@@ -4,10 +4,14 @@ import { plusDays, realDate } from './viewings.js';
 import { fail } from './http.js';
 
 const STAGES = OPTIONS.stages.map(([stage]) => stage);
-const KINDS = ['viewing_completed', 'offer', 'agreed', 'completed'];
+// ANA-05: each verified milestone and the record that proves it for a search, by the search's own id. Offers and sales
+// exist only for buying. A viewing carries no search id (VIS-17 owns that link), so it stays not recorded; it is
+// never joined by email or phone.
+const SOURCES = {viewing_completed:null, offer:'offers', agreed:'sales', completed:'sales', search_closed:'search_state'};
+const BUYING_ONLY = ['offers', 'sales'];
 const OPERATIONS = ['all', 'rent', 'buy', 'transfer'];
 const CATEGORIES = ['all', 'residential', 'commercial'];
-const MAX_SEARCHES = 5000, MAX_EVENTS = 50000, MAX_EVENT_BYTES = 131072;
+const MAX_SEARCHES = 5000, MAX_EVENTS = 50000, MAX_EVENT_BYTES = 131072, MAX_FACTS = 20000;
 
 // Events written by the app use UTC ISO timestamps. The pure projection also accepts ISO offsets.
 function validIso(value) {
@@ -44,11 +48,6 @@ export function observedStageEntries(events) {
   return new Map([...first].map(([id, entries]) => [id, new Map([...entries].map(([stage, entry]) => [stage, entry.at]))]));
 }
 
-// No producer in this base is approved to establish a search-to-business-event link.
-export async function readVerifiedSearchFacts(_env, _scope) {
-  return { facts: [], coverage: 'not_integrated' };
-}
-
 // Validate ISO calendar, clock and offset before using julianday; a malformed timestamp cannot be
 // assigned confidently to a period. Only the aggregate invalid count leaves the database.
 const ISO_VALID = `length(e.at)>=20 AND substr(e.at,1,4) GLOB '[0-9][0-9][0-9][0-9]'
@@ -71,8 +70,10 @@ const ISO_VALID = `length(e.at)>=20 AND substr(e.at,1,4) GLOB '[0-9][0-9][0-9][0
 // Both indexed range reads are widened one UTC day to admit valid ISO offsets, then checked by instant.
 // MATERIALIZED and LIMIT bound the intermediate rows, not just the final response. Event bodies are
 // reduced to short stage values and error flags before materialization. Overflow fails closed.
+const ELIGIBLE = `type IN ('applicant.stage_changed','applicant.updated') AND valid_at
+  AND julianday(at)>=julianday(created_at) AND julianday(at)<julianday(?4)`;
 const QUERY = `WITH cohort AS MATERIALIZED (
-  SELECT a.id,a.created_at,a.operation,a.search_operation,a.search_category FROM applicants a INDEXED BY applicants_operation
+  SELECT a.id,a.created_at,a.operation,a.search_operation,a.search_category,a.search_state,a.resolved_at FROM applicants a INDEXED BY applicants_operation
   WHERE a.operation IN ('rent','buy') AND a.created_at>=?1 AND a.created_at<?2 LIMIT ${MAX_SEARCHES + 1}
 ), selected AS MATERIALIZED (
   SELECT * FROM cohort a WHERE julianday(a.created_at)>=julianday(?3) AND julianday(a.created_at)<julianday(?4)
@@ -91,19 +92,40 @@ const QUERY = `WITH cohort AS MATERIALIZED (
   FROM selected a CROSS JOIN events e INDEXED BY events_entity
   WHERE e.entity_type='applicant' AND e.entity_id=CAST(a.id AS TEXT) AND e.at>=?1 AND e.at<?2
   LIMIT ${MAX_EVENTS + 1}
-), eligible AS MATERIALIZED (
-  SELECT * FROM candidate_events e WHERE e.type IN ('applicant.stage_changed','applicant.updated')
-    AND valid_at AND julianday(e.at)>=julianday(e.created_at) AND julianday(e.at)<julianday(?4)
+), offer_facts AS MATERIALIZED (
+  SELECT o.applicant_id,o.created_at AS at FROM selected a CROSS JOIN offers o INDEXED BY offers_applicant
+  WHERE o.applicant_id=a.id AND julianday(o.created_at)>=julianday(a.created_at) AND julianday(o.created_at)<julianday(?4)
+  LIMIT ${MAX_FACTS + 1}
+), sale_facts AS MATERIALIZED (
+  SELECT s.applicant_id,s.created_at AS at,
+    CASE WHEN s.status='completed' AND julianday(s.closed_at)<julianday(?4) THEN s.closed_at END AS completed_at
+  FROM selected a CROSS JOIN sales s INDEXED BY sales_applicant
+  WHERE s.applicant_id=a.id AND julianday(s.created_at)>=julianday(a.created_at) AND julianday(s.created_at)<julianday(?4)
+  LIMIT ${MAX_FACTS + 1}
+), event_groups AS MATERIALIZED (
+  -- One pass over the events: stage counts of eligible events, plus the error and size flags.
+  SELECT CASE WHEN ${ELIGIBLE} THEN stage END AS stage,COUNT(*) AS n_rows,
+    COUNT(DISTINCT CASE WHEN ${ELIGIBLE} THEN applicant_id END) AS n,
+    COALESCE(SUM(CASE WHEN ${ELIGIBLE} THEN oversized END),0) AS oversized,
+    COALESCE(SUM(CASE WHEN ${ELIGIBLE} THEN invalid_data END),0) AS invalid_data,
+    COALESCE(SUM(CASE WHEN type IN ('applicant.stage_changed','applicant.updated') AND NOT COALESCE(valid_at,0)
+      AND at>=?3 AND at<?4 THEN 1 ELSE 0 END),0) AS invalid_at
+  FROM candidate_events GROUP BY 1
 )
-SELECT (SELECT COUNT(*) FROM selected) AS search_count,
-  (SELECT COUNT(*) FROM cohort) AS candidate_count,
-  (SELECT COUNT(*) FROM candidate_events) AS event_count,
-  (SELECT COALESCE(SUM(oversized),0) FROM eligible) AS oversized_count,
-  (SELECT COALESCE(SUM(invalid_data),0) FROM eligible) +
-    (SELECT COUNT(*) FROM candidate_events WHERE type IN ('applicant.stage_changed','applicant.updated')
-      AND NOT COALESCE(valid_at,0) AND at>=?3 AND at<?4) AS invalid_count,
-  ${STAGES.map(stage => `(SELECT COUNT(DISTINCT applicant_id) FROM eligible
-    WHERE stage='${stage}') AS ${stage}_count`).join(',\n  ')}`;
+-- Each intermediate table is read once: D1 bills every row a step reads, so one pass per table, not one per figure.
+SELECT s.*,k.*,e.*,o.*,f.*,
+  ${STAGES.map(stage => `COALESCE((SELECT n FROM event_groups WHERE stage='${stage}'),0) AS ${stage}_count`).join(',\n  ')}
+FROM (SELECT COUNT(*) AS search_count,
+    COUNT(CASE WHEN search_state='resolved' AND julianday(resolved_at)<julianday(?4) THEN 1 END) AS fact_search_closed_count,
+    MAX(CASE WHEN search_state='resolved' AND julianday(resolved_at)<julianday(?4) THEN resolved_at END) AS fact_search_closed_latest
+    FROM selected) s,
+  (SELECT COUNT(*) AS candidate_count FROM cohort) k,
+  (SELECT COALESCE(SUM(n_rows),0) AS event_count,COALESCE(SUM(oversized),0) AS oversized_count,
+    COALESCE(SUM(invalid_data)+SUM(invalid_at),0) AS invalid_count FROM event_groups) e,
+  (SELECT COUNT(*) AS offer_rows,COUNT(DISTINCT applicant_id) AS fact_offer_count,MAX(at) AS fact_offer_latest FROM offer_facts) o,
+  (SELECT COUNT(*) AS sale_rows,COUNT(DISTINCT applicant_id) AS fact_agreed_count,MAX(at) AS fact_agreed_latest,
+    COUNT(DISTINCT CASE WHEN completed_at IS NOT NULL THEN applicant_id END) AS fact_completed_count,
+    MAX(completed_at) AS fact_completed_latest FROM sale_facts) f`;
 
 export async function getSearchMilestones(env, {from, to, operation='all', category='all'}) {
   if (!realDate(from) || !realDate(to) || from > to ||
@@ -115,16 +137,19 @@ export async function getSearchMilestones(env, {from, to, operation='all', categ
   const lower = new Date(Date.parse(start)-86400000).toISOString();
   const upper = new Date(Date.parse(cutoff)+86400000).toISOString();
   const row = await env.DB.prepare(QUERY).bind(lower,upper,start,cutoff,operation,category).first();
-  if (!row || row.candidate_count > MAX_SEARCHES || row.event_count > MAX_EVENTS || row.oversized_count > 0)
+  if (!row || row.candidate_count > MAX_SEARCHES || row.event_count > MAX_EVENTS || row.oversized_count > 0 ||
+      row.offer_rows > MAX_FACTS || row.sale_rows > MAX_FACTS)
     fail(503, 'Search measurement exceeds its safe reading budget');
-  const verified_business = Object.fromEntries(KINDS.map(kind => [kind,
-    {count:null, source:null, coverage:'not_integrated'}]));
+  const recorded = source => source && !(operation === 'rent' && BUYING_ONLY.includes(source));
+  const verified_business = Object.fromEntries(Object.entries(SOURCES).map(([kind, source]) => [kind, recorded(source)
+    ? {count:row[`fact_${kind}_count`], source, latest_at:row[`fact_${kind}_latest`], coverage:'recorded'}
+    : {count:null, source:null, latest_at:null, coverage:'not_recorded'}]));
   return {
     enabled:true,
     cohort:{unit:'search_record',count:row.search_count,from,to,operation,category},
     observed_stages:STAGES.map(stage => ({stage,count:row[`${stage}_count`]})),
     verified_business,
     coverage:{measured_from:null,observed_until:cutoff,excluded_invalid:row.invalid_count,
-      missing_producers:KINDS,deleted_history_unknown:true},
+      missing_producers:Object.keys(verified_business).filter(kind => verified_business[kind].count == null),deleted_history_unknown:true},
   };
 }

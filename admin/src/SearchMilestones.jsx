@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api } from './api.js';
-import { fmtDayMonth } from './format.js';
+import { fmtDate, fmtDayMonth } from './format.js';
 import './SearchMilestones.css';
 
 const STAGE_LABELS = {new:'New',searching:'Searching',viewing:'Viewing',offer:'Offer',agreed:'Agreed',
   completed:'Completed',paused:'Paused',lost:'Lost'};
-const MILESTONES = [['viewing_completed','Viewing completed'],['offer','Offer'],['agreed','Agreed'],['completed','Completed']];
+const MILESTONES = [['viewing_completed','Viewing completed'],['offer','Offer'],['agreed','Agreed'],['completed','Completed'],
+  ['search_closed','Search closed']];
+const SOURCE = {offers:'Offers',sales:'Sales',search_state:'Search state'};
 const OPERATION = {all:'All operations',rent:'Rent',buy:'Buy',transfer:'Transfer'};
 const CATEGORY = {all:'All categories',residential:'Residential',commercial:'Commercial'};
 const n = value => value.toLocaleString('en-GB');
@@ -52,18 +54,21 @@ function Bars({rows,total}) {
       <span className="num">{n(value)}</span></li>)}</ul></div>;
 }
 
-function MetricTable({title,rows}) {
+// rows: [label, count, source?, last date?]; a verified table adds the source and date columns.
+function MetricTable({title,rows,verified}) {
   return <div className="table-scroll" role="region" aria-label={`${title} table`} tabIndex={0}>
-    <table className="list" aria-label={title}><thead><tr><th scope="col">Measure</th><th scope="col" className="num">Search records</th></tr></thead>
-      <tbody>{rows.map(([label,value])=><tr key={label}><th scope="row">{label}</th>
-        <td className="num">{value == null ? 'Not integrated' : n(value)}</td></tr>)}</tbody></table>
+    <table className="list" aria-label={title}><thead><tr><th scope="col">Measure</th><th scope="col" className="num">Search records</th>
+      {verified && <><th scope="col">Source</th><th scope="col">Last recorded</th></>}</tr></thead>
+      <tbody>{rows.map(([label,value,source,at])=><tr key={label}><th scope="row">{label}</th>
+        <td className="num">{value == null ? 'Not recorded' : n(value)}</td>
+        {verified && <><td>{SOURCE[source] ?? '—'}</td><td>{fmtDate(at)}</td></>}</tr>)}</tbody></table>
   </div>;
 }
 
 export function MilestonesReport({data}) {
   const {cohort,coverage} = data;
   const stages = data.observed_stages.map(row=>[STAGE_LABELS[row.stage] ?? row.stage,row.count]);
-  const verified = MILESTONES.map(([key,label])=>[label,data.verified_business[key].count]);
+  const verified = MILESTONES.map(([key,label])=>{ const v = data.verified_business[key]; return [label,v.count,v.source,v.latest_at]; });
   const integrated = verified.filter(([,value])=>value != null);
   return <div>
     <p className="muted">{fmtDayMonth(cohort.from)} to {fmtDayMonth(cohort.to)} · Jersey · {OPERATION[cohort.operation]} · {CATEGORY[cohort.category]}</p>
@@ -77,10 +82,11 @@ export function MilestonesReport({data}) {
     </section>
     <section aria-labelledby="h-verified-milestones">
       <h3 id="h-verified-milestones">Verified milestones</h3>
-      <p className="muted">Business facts require an approved link to the search. Not integrated means the source is unavailable,
-        not that the count is zero. No web activity is linked to these records.</p>
+      <p className="muted">Searches with each fact recorded by the period end, read from the record that holds it for that
+        search. Offers and sales are recorded for buying only. Viewings are not linked to a search yet, so they are not
+        recorded; not recorded is not zero. No web activity is linked to these records.</p>
       {integrated.length > 0 && <Bars rows={integrated} total={cohort.count}/>}
-      <MetricTable title="Verified milestones" rows={verified}/>
+      <MetricTable title="Verified milestones" rows={verified} verified/>
     </section>
     <p className="muted">Measurement start is unknown. Deleted search records and missing history are unknown and cannot be reconstructed.
       {' '}{n(coverage.excluded_invalid)} invalid {coverage.excluded_invalid === 1 ? 'event was' : 'events were'} excluded.</p>
