@@ -51,6 +51,8 @@ AGE03_ENQUIRIES_READY = "1"
 SPR08_SECTIONS_READY = "1"
 # SAP-02 / SAP-03 / EST-04: confirmed and available counts, match filters and In process from open enquiries (no migration).
 SAP02_COUNTS_READY = "1"
+# ADM-15: rent review on the 2025 rules with a sourced RPI and a notice draft (no migration; needs ADM20_TENANCY_LAW_READY).
+ADM15_RENT_REVIEW_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

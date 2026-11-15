@@ -5,9 +5,9 @@
   "origen": "plan",
   "fase": "F5-A",
   "estado": "parcial",
-  "responsable": "tercero",
+  "responsable": "Hampton",
   "hecho": "Change rent incluye el Rent assistant: con el RPI de Jersey que guarda el equipo calcula la renta máxima y la primera fecha posible (intervalo y aviso de los plazos guardados). Construido tras ADM15_RENT_REVIEW_READY (apagado, sin migración; exige también ADM20_TENANCY_LAW_READY): el asistente decide por fecha de acuerdo y ámbito (lawApplies/tenancyLaw), ya no por la etiqueta regime; sin fecha o ámbito lo dice y calcula solo como condición; si las reglas de 2025 no cubren el contrato no calcula. El RPI se guarda con su fuente y fecha de publicación, y sin fuente no hay tope. Cada cambio de renta deja en el historial el RPI usado, el tope, la fecha más temprana, la cobertura y el estado de los plazos. Change rent ofrece un borrador de aviso para copiar con los datos del cambio, rotulado «Draft · not a notice letter» e «internal only» mientras los plazos no estén validados o no conste que las reglas aplican: no es una carta y nada se envía.",
-  "falta": "Integrar en main y encender ADM15_RENT_REVIEW_READY (sin migración). Después solo falta lo externo: la plantilla de carta de aviso validada por un abogado de Jersey; cuando exista, generar la carta con los datos del borrador. El borrador deja de ser «internal only» cuando el abogado valide los plazos (se registra en Legal terms) y el contrato tenga fecha de acuerdo y ámbito.",
+  "falta": "Solo falta lo externo: la plantilla de carta de aviso de revisión de renta validada por un abogado de Jersey (con ella queda un paso pequeño de código: generar la carta desde los datos del borrador). Activada el 15-nov-2026 (ADM15_RENT_REVIEW_READY=1): el asistente decide con la fecha de acuerdo y el ámbito, el RPI exige fuente y fecha, cada cambio guarda el RPI y el tope usados, y Change rent ofrece un borrador de aviso para copiar.",
   "bloqueo": "JFSC/abogado",
   "evidencia": [
     "server/rentals.js (rentAssistant con policy)",
@@ -27,7 +27,8 @@
     "15-nov · decisión: un RPI negativo no se acepta (rango 0–30 vigente) y entonces no hay tope · fuente: plan maestro, «no inflación inventada»: no se inventa la regla para inflación negativa.",
     "15-nov · el reloj (jobs/) no calcula la revisión de renta: el interruptor no va en jobs/wrangler.toml.",
     "15-nov · pruebas: node --test tests/server/adm-15-rent-review.test.mjs 11 de 11 (redondeo a la baja, RPI 0, sin fuente, renta que baja, intervalo no cumplido, ámbito desconocido, interruptor apagado); regresión focal de una en una (adm-20-tenancy-law, adm-17-legal-terms, adm-11-calendar, rentals-rules, rentals, rentals-overview, tenancies, payments, rental-marketing) 116 de 116. Navegador aislado: tests/adm15-rent-review.e2e.cjs PASS a 1280 (plazos estimados) y 390 (plazos validados); tests/adm20-tenancy-law.e2e.cjs PASS a 1280 y 390 tras el cambio. Interruptor apagado: Change rent comprobado en navegador a 390 con un guion temporal no versionado (etiqueta, RPI sin fuente, sin borrador, historial igual que antes).",
-    "15-nov · sin comprobar: nada en producción (interruptor apagado y sin desplegar); no se corrió npm test entero ni npm run build en el host (el panel se compiló dentro del contenedor de la prueba de navegador)."
+    "15-nov · sin comprobar: nada en producción (interruptor apagado y sin desplegar); no se corrió npm test entero ni npm run build en el host (el panel se compiló dentro del contenedor de la prueba de navegador).",
+    "15-nov-2026: publicada y activada (ADM15_RENT_REVIEW_READY=1, sin migración); npm test en verde; tests/adm15-rent-review.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (200.000 casos aleatorios: tope y fecha idénticos a la versión anterior donde la regla no cambia; con el interruptor apagado, todo igual). Pasa a la cola: lo único que falta es la plantilla del abogado (skill §2, quién mueve la tarea)."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -42,12 +43,12 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "tercero: JFSC/abogado",
+  "externalBlocker": "Abogado de Jersey (vía Hampton/Luis): plantilla de carta de aviso de revisión de renta validada, y validación de los plazos para que el borrador deje de ser «internal only».",
   "resources": [
     "rentals-contract",
     "rentals-ui",
     "legal-parameters"
   ],
-  "nextStep": "Integrar y encender ADM15_RENT_REVIEW_READY; pedir al abogado la plantilla de carta de aviso de renta y, con ella, generar la carta desde los datos del borrador.",
+  "nextStep": "Cuando llegue la plantilla validada, generar la carta desde el borrador y cerrar.",
   "actualizado": "2026-11-15"
 }

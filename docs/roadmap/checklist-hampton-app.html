@@ -4227,7 +4227,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "El panel ofrece el contador de Rentals y avisos de plazos. El código del reloj compartido ya llama al productor común de notificaciones, que contempla atrasos, comprobaciones, plazos, renovaciones y emergencias; su activación remota no se ha verificado. El sondeo inicial de Inbox y del contador global respeta la visibilidad de la pestaña y se reanuda al volver a ella. Se ensayaron consultas prototipo desconectadas para detectar referencias de reparación y episodios incompatibles.",
-   "falta": "Verificar y corregir la pertenencia y deduplicación de avisos de reparaciones con referencias inconsistentes; integrar la autoridad financiera y permisos por caso antes de ampliar avisos de deuda; comprobar migraciones y funcionamiento del reloj en el entorno autorizado. Los canales externos siguen pendientes por separado. Una petición iniciada antes de ocultar la pestaña puede terminar. Las consultas prototipo no se pueden activar: faltan identidad/revisión monotónica, capacidad por caso, saneamiento histórico y acceso indexado y acotado. Traído de ADM-11 (14-nov): envío automático al inquilino de la copia de licencia, la del EICR y los datos prescritos del depósito; hoy ADM-11 solo registra que se entregaron.",
+   "falta": "Verificar y corregir la pertenencia y deduplicación de avisos de reparaciones con referencias inconsistentes; integrar la autoridad financiera y permisos por caso antes de ampliar avisos de deuda; comprobar migraciones y funcionamiento del reloj en el entorno autorizado. Los canales externos siguen pendientes por separado. Una petición iniciada antes de ocultar la pestaña puede terminar. Las consultas prototipo no se pueden activar: faltan identidad/revisión monotónica, capacidad por caso, saneamiento histórico y acceso indexado y acotado. Traído de ADM-11 (14-nov): envío automático al inquilino de la copia de licencia, la del EICR y los datos prescritos del depósito; hoy ADM-11 solo registra que se entregaron. Traído de ADM-15 (15-nov): el aviso de subida de renta al inquilino no se envía; ADM-15 solo da un borrador para copiar. El envío con revisión humana pertenece aquí cuando haya plantilla validada y correo (AUT-17).",
    "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "admin/src/App.jsx:132-133",
@@ -4242,7 +4242,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/work/ADM-03/2026-11-13-reparaciones-base-desconectada.md",
     "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
    ],
-   "actualizado": "2026-11-14"
+   "actualizado": "2026-11-15"
   },
   {
    "id": "ADM-04",
@@ -4516,7 +4516,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Desde 90 días antes del fin de un plazo fijo el contrato sale en Renewals («Renewal due» o «Fixed term ended») y en su tarjeta; Renew lo prorroga o lo pasa a periódico con la misma referencia, renta nueva opcional y ley 2025.",
-   "falta": "No se pregunta al propietario ni al inquilino con botones (necesita correo o portal), y si el inquilino se va no se crea el borrador de ficha copiando la anterior, porque viviendas y listings no están enlazados. Traído de ADM-20 (15-nov): ejecutar una respuesta de renovación debe pasar por POST /admin/tenancies/:id/renew, que ya aplica ADM-20: nunca imponer un segundo plazo fijo y enviar law_confirmed cuando se pida.",
+   "falta": "No se pregunta al propietario ni al inquilino con botones (necesita correo o portal), y si el inquilino se va no se crea el borrador de ficha copiando la anterior, porque viviendas y listings no están enlazados. Traído de ADM-20 (15-nov): ejecutar una respuesta de renovación debe pasar por POST /admin/tenancies/:id/renew, que ya aplica ADM-20: nunca imponer un segundo plazo fijo y enviar law_confirmed cuando se pida. Traído de ADM-15 (15-nov): Renew con renta nueva cambia la renta sin la revisión de ADM-15 (no guarda el RPI usado ni ofrece el borrador de aviso); al construir la renovación, pasar ese cambio por rentReview/rentAssistant con policy.",
    "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "server/routes/rent.js:86-89",
@@ -4534,14 +4534,30 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F5-A",
    "estado": "parcial",
-   "responsable": "tercero",
-   "hecho": "Change rent incluye el Rent assistant: con el RPI de Jersey que guarda el equipo calcula la renta máxima y la primera fecha posible (12 meses desde el último cambio y 2 meses de aviso) en contratos de la ley 2025; en los de 2011 pide consultar a un abogado.",
-   "falta": "No prepara la carta de aviso al inquilino, que necesita una plantilla validada por un abogado de Jersey (F5-B). Traído de ADM-17 (14-nov): la carta de aviso de renta solo debe emitirse si los plazos están «validated» (readLegal(env).terms.status); el aviso y el intervalo de renta ya salen de los plazos guardados. Traído de ADM-20 (15-nov): el asistente de renta sigue usando la etiqueta regime; debe pasar a lawApplies/tenancyLaw de ADM-20 y no emitir la carta con reglas sin validar o ámbito desconocido.",
+   "responsable": "Hampton",
+   "hecho": "Change rent incluye el Rent assistant: con el RPI de Jersey que guarda el equipo calcula la renta máxima y la primera fecha posible (intervalo y aviso de los plazos guardados). Construido tras ADM15_RENT_REVIEW_READY (apagado, sin migración; exige también ADM20_TENANCY_LAW_READY): el asistente decide por fecha de acuerdo y ámbito (lawApplies/tenancyLaw), ya no por la etiqueta regime; sin fecha o ámbito lo dice y calcula solo como condición; si las reglas de 2025 no cubren el contrato no calcula. El RPI se guarda con su fuente y fecha de publicación, y sin fuente no hay tope. Cada cambio de renta deja en el historial el RPI usado, el tope, la fecha más temprana, la cobertura y el estado de los plazos. Change rent ofrece un borrador de aviso para copiar con los datos del cambio, rotulado «Draft · not a notice letter» e «internal only» mientras los plazos no estén validados o no conste que las reglas aplican: no es una carta y nada se envía.",
+   "falta": "Solo falta lo externo: la plantilla de carta de aviso de revisión de renta validada por un abogado de Jersey (con ella queda un paso pequeño de código: generar la carta desde los datos del borrador). Activada el 15-nov-2026 (ADM15_RENT_REVIEW_READY=1): el asistente decide con la fecha de acuerdo y el ámbito, el RPI exige fuente y fecha, cada cambio guarda el RPI y el tope usados, y Change rent ofrece un borrador de aviso para copiar.",
    "bloqueo": "JFSC/abogado",
    "evidencia": [
-    "server/rentals.js:46-60",
-    "admin/src/RentalDialogs.jsx:92-132",
-    "server/routes/rentals.js:347-353"
+    "server/rentals.js (rentAssistant con policy)",
+    "server/routes/rent.js (rentReview, changeRent, detail)",
+    "server/routes/rentals.js (SETTINGS.rpi)",
+    "server/legal-terms.js (rentReviewReady)",
+    "admin/src/RentalDialogs.jsx (ChangeRent, noticeDraft, NoticeDraft)",
+    "admin/src/RentalDetail.jsx (línea rent.changed del historial)",
+    "tests/server/adm-15-rent-review.test.mjs",
+    "tests/adm15-rent-review.e2e.cjs",
+    "15-nov · comprobado antes de construir: el RPI no era una constante ni se inventaba; lo teclea el empleado (PUT /admin/settings/rpi, 0–30 % con dos decimales y una fecha), pero sin fuente, y el cambio de renta no guardaba con qué cifra se calculó.",
+    "15-nov · decisión: la tarea no tiene plan propio (plan-packages no da planReferences); el alcance sale de la arquitectura §5.11 y §7.3 y de las reglas de alquileres del plan maestro.",
+    "15-nov · decisión: la «carta» es un borrador de datos para copiar, sin texto legal, sin PDF y sin envío · fuente: plan maestro («plantillas legales reales antes de datos reales», «nada se envía ahora», firma y documentos fuera de Hampton).",
+    "15-nov · decisión: sin fecha de acuerdo o ámbito la estimación se calcula solo como condición («only if the 2025 rules apply») y el borrador queda interno · fuente: regla de ADM-20 (unknown no es sí ni no).",
+    "15-nov · decisión: el RPI usado, el tope y la fecha más temprana se guardan en el evento rent.changed del historial, sin migración · fuente: skill §4.5, la opción más simple y reversible.",
+    "15-nov · decisión: el tope avisa y queda en el historial, pero no impide el cambio · fuente: arquitectura §7.3 (excepciones por mejoras o renta bajo mercado) y el comportamiento vigente R12.",
+    "15-nov · decisión: un RPI negativo no se acepta (rango 0–30 vigente) y entonces no hay tope · fuente: plan maestro, «no inflación inventada»: no se inventa la regla para inflación negativa.",
+    "15-nov · el reloj (jobs/) no calcula la revisión de renta: el interruptor no va en jobs/wrangler.toml.",
+    "15-nov · pruebas: node --test tests/server/adm-15-rent-review.test.mjs 11 de 11 (redondeo a la baja, RPI 0, sin fuente, renta que baja, intervalo no cumplido, ámbito desconocido, interruptor apagado); regresión focal de una en una (adm-20-tenancy-law, adm-17-legal-terms, adm-11-calendar, rentals-rules, rentals, rentals-overview, tenancies, payments, rental-marketing) 116 de 116. Navegador aislado: tests/adm15-rent-review.e2e.cjs PASS a 1280 (plazos estimados) y 390 (plazos validados); tests/adm20-tenancy-law.e2e.cjs PASS a 1280 y 390 tras el cambio. Interruptor apagado: Change rent comprobado en navegador a 390 con un guion temporal no versionado (etiqueta, RPI sin fuente, sin borrador, historial igual que antes).",
+    "15-nov · sin comprobar: nada en producción (interruptor apagado y sin desplegar); no se corrió npm test entero ni npm run build en el host (el panel se compiló dentro del contenedor de la prueba de navegador).",
+    "15-nov-2026: publicada y activada (ADM15_RENT_REVIEW_READY=1, sin migración); npm test en verde; tests/adm15-rent-review.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (200.000 casos aleatorios: tope y fecha idénticos a la versión anterior donde la regla no cambia; con el interruptor apagado, todo igual). Pasa a la cola: lo único que falta es la plantilla del abogado (skill §2, quién mueve la tarea)."
    ],
    "actualizado": "2026-11-15"
   },
@@ -4640,7 +4656,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No existen las referencias del inquilino por email con un enlace de acceso con caducidad elegida por el empleado (necesitan el correo, AUT-17, y el acceso de caso de ADM-12). Plan maestro (10-nov-2026): la firma del contrato se hace fuera de Hampton; la app solo registra la evidencia externa revisada, sin proveedor de firma ni subida de documentos. La plantilla de contrato necesita la revisión de un abogado de Jersey. Traído de ADM-11 (14-nov): los puntos del calendario de cumplimiento guardan solo fecha y referencia de texto; adjuntar el documento queda aquí o en Private documents (PUB-11). Traído de ADM-20 (15-nov): el contrato de plantilla toma agreement_on y law_scope del contrato y no se genera con ámbito o fecha de acuerdo desconocidos; al registrar el contrato firmado, proponer su fecha como agreement_on.",
+   "falta": "No existen las referencias del inquilino por email con un enlace de acceso con caducidad elegida por el empleado (necesitan el correo, AUT-17, y el acceso de caso de ADM-12). Plan maestro (10-nov-2026): la firma del contrato se hace fuera de Hampton; la app solo registra la evidencia externa revisada, sin proveedor de firma ni subida de documentos. La plantilla de contrato necesita la revisión de un abogado de Jersey. Traído de ADM-11 (14-nov): los puntos del calendario de cumplimiento guardan solo fecha y referencia de texto; adjuntar el documento queda aquí o en Private documents (PUB-11). Traído de ADM-20 (15-nov): el contrato de plantilla toma agreement_on y law_scope del contrato y no se genera con ámbito o fecha de acuerdo desconocidos; al registrar el contrato firmado, proponer su fecha como agreement_on. Traído de ADM-15 (15-nov): la plantilla validada de la carta de aviso de renta no existe ni tiene dónde registrarse; si esta tarea crea el registro de plantillas legales validadas, la carta de ADM-15 debe salir de ahí.",
    "bloqueo": "",
    "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26",

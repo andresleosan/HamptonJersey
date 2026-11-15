@@ -12,6 +12,7 @@ Ordenado por cuántas tareas abiertas desbloquea cada cosa (`node scripts/avanza
 | AUT-17 | 48 | Verificar cuenta y DNS de Cloudflare Email Service y autorizar encender `EMAIL_SERVICE_READY` con una prueba real de envío. Esa misma prueba cierra AUT-11 (barandillas de envío), que ya no tiene código pendiente. |
 | PRE-03 | 21 | Hampton confirma sus registros en la JFSC (Schedule 2) y la JOIC. |
 | PRE-33 | 11 | Preparar y enviar el paquete para el abogado de Jersey. |
+| ADM-15 | 0 | Pedir al abogado de Jersey (puede ir en el paquete de PRE-33) la plantilla de carta de aviso de revisión de renta. El asistente, el RPI con fuente y el borrador para copiar ya están en Rentals › Change rent; con la plantilla se genera la carta y se cierra. |
 | PRE-29 | 9 | Hampton responde la pregunta 13: registros y cobro de rentas en cuenta propia. |
 | ANA-09 | 7 | Crear la regla de límite de peticiones en Cloudflare WAF. |
 | PRE-28 | 7 | Verificar titularidad de las cuentas de Hampton y la operación de Optimyze. |

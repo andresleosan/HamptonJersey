@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+15-nov-2026 · **ADM-15 activada (pendiente del abogado):** en Rentals › Change rent el asistente decide con la fecha de acuerdo y el ámbito del contrato, el RPI se registra con su fuente y fecha de publicación (sin fuente no hay tope), cada cambio de renta guarda el RPI y el tope usados, y aparece un borrador de aviso para copiar, rotulado como borrador y «internal only» mientras los plazos no estén validados. Falta la plantilla de carta validada por un abogado de Jersey, ya en la cola. Progreso sin cambio: 113 de 211.
+
 15-nov-2026 · **SPR-08 hecha:** la ficha de la propiedad tiene tres secciones internas más: «Viewings of this property» (visitas próximas y pasadas con su estado, enlazadas a Viewings), «Notes» (notas del equipo con autor y fecha; solo su autor las corrige o retira, y queda rastro) y «Adverts» (las fuentes de la investigación con precio y fecha vistos, avisando si los precios difieren, junto a la disponibilidad confirmada). Migración 0079. Progreso 112 → 113 de 211.
 
 15-nov-2026 · **SAP-02, SAP-03 y EST-04 hechas:** la lista de aplicantes muestra por búsqueda «N found · N confirmed · N available» y, aparte, las confirmadas no disponibles; en la pestaña Matches hay un filtro «Show matches» (All, Confirmed, Available, Confirmed not available, Waiting for agency); y la etiqueta «In process» pasa a significar que alguna casa del aplicante tiene una consulta abierta a la agencia, en vez de «tiene Shortlisted». Progreso 109 → 112 de 211.
