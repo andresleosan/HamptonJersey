@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+15-nov-2026 · **ADM-03 hecha:** cada hito de la gestión de alquileres avisa al equipo en el Inbox (atrasos, pagos sin casar, cumplimiento, plazos de depósito y check-in/out, renovación, reparaciones de emergencia, liquidación del mes y, desde hoy, la inspección semestral 30 días antes), con sus borradores para copiar donde los hay. El correo llegará con AUT-17. Progreso 133 → 134 de 211.
+
 15-nov-2026 · **BUS-18 hecha:** en cada ficha propia, «Matched applicants» muestra por búsqueda su decisión (con «Approval out of date» si ya no vale), la disponibilidad confirmada y la consulta a la agencia, con el mismo cálculo que la tarjeta del aplicante; las casas del mercado ya lo tenían en Homes found. Progreso 132 → 133 de 211.
 
 15-nov-2026 · **ANA-08 hecha:** el resumen semanal de Insights (cuatro totales y las cinco fichas más vistas, sin datos de personas) se guarda cada lunes y llega a la dirección como aviso en el Inbox con su enlace; ya funcionaba desde el 9-nov y hoy se comprobó en producción. El correo llegará con AUT-17. Progreso 131 → 132 de 211.

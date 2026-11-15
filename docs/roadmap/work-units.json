@@ -5287,7 +5287,7 @@
       "preferredSlot": "vscode",
       "priority": 241,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
