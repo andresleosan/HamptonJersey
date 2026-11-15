@@ -84,8 +84,8 @@ EST19_PURGE_READY = "0"
 ADM12_SUPPLIERS_READY = "1"
 # ADM-09: arrears drafts (+1/+5/+14 letter, not validated by a lawyer) and recorded write-offs; net debt everywhere (migration 0045, applied 15-nov-2026). Sends nothing. Must match the other wrangler.toml.
 ADM09_ARREARS_READY = "1"
-# ADM-10: close each month's landlord statement as a frozen revision; record sent and paid by hand (migration 0090). Sends nothing. Must match the other wrangler.toml.
-ADM10_STATEMENTS_READY = "0"
+# ADM-10: close each month's landlord statement as a frozen revision; record sent and paid by hand (migration 0090, applied 15-nov-2026). Sends nothing. Must match the other wrangler.toml.
+ADM10_STATEMENTS_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

@@ -5,9 +5,9 @@
   "origen": "plan",
   "fase": "F5-A",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "Statements (#/rentals/statements) da por propietario con gestión completa y mes las rentas cobradas, los honorarios, el GST si se configura, las reparaciones cargadas y el neto, y se imprime desde el navegador con Print. Construido el 15-nov (2a1f1ba, apagado tras ADM10_STATEMENTS_READY con la migración aditiva 0090): cerrar un mes terminado guarda la liquidación como revisión congelada (statement_runs, instantánea JSON en peniques con su SHA-256); una corrección posterior no la cambia, el panel avisa «The figures changed» y se cierra la revisión siguiente; «sent» y «paid» al propietario se registran a mano una vez, con fecha y autor, solo en la última revisión, que muestra lo ya pagado en una anterior y la diferencia; descarga CSV en el navegador (fórmulas escapadas); los write-offs de ADM-09 del mes salen aparte, sin comisión y fuera del neto; el GST sin configurar sale como £0.00 «GST not configured»; y el Inbox pide «Close landlord statements» el día 1 hasta cerrar todos los del mes anterior. Nada se envía.",
-  "falta": "Aplicar 0090 y encender ADM10_STATEMENTS_READY=\"1\" en wrangler.toml y jobs/wrangler.toml a la vez (aditiva y sin envíos: autorizado por CONTINUIDAD), y comprobar el recorrido real. Envío por correo de la liquidación: AUT-17. PDF propio en servidor: no construido; el plan lo condiciona a una prueba real de CPU (10 ms del plan gratuito) y mientras tanto conserva la impresión del navegador, que puede guardar a PDF; según el plan, sin ese tramo no se anuncia ADM-10 completa. GST: sigue en 0 («GST not configured») hasta que Hampton diga si está registrada y a qué tipo; enlazarlo con el registro GST de Legal terms (ADM-17).",
+  "falta": "Decisiones de Luis: GST (¿registrada?, ¿tipo?) y PDF (navegador o servidor); envío por correo con AUT-17. El cierre mensual, sent/paid manual, CSV e impresión están encendidos desde el 15-nov-2026 (0090 aplicada, ADM10_STATEMENTS_READY=1 en web y reloj).",
   "bloqueo": "Correo (AUT-17) · Dato de Hampton",
   "evidencia": [
     "admin/src/Statement.jsx:15-81 (vista; con ADM-10 muestra la última revisión cerrada, write-offs aparte y GST «not configured»)",
@@ -25,7 +25,8 @@
     "Decisión (spec :21 y :23): los write-offs no son pagos; se muestran aparte, sin comisión y fuera del neto, como depósitos y otros cobros.",
     "Decisión (spec :42 y encargo del 15-nov): el plan no fija si la comisión lleva GST ni el tipo; no se inventa: £0.00 con «GST not configured». Decisión de Luis/Hampton: ¿Hampton está registrada para GST? ¿Qué tipo?",
     "Decisión (spec :25 y :40, encargo del 15-nov): sin PDF en servidor; impresión del navegador y CSV. Sin cuenta bancaria en el documento (spec :23).",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): el snapshot y el PDF económico propio se construyen sin correo. Vuelve a desarrollo: lo externo es condición de activación."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): el snapshot y el PDF económico propio se construyen sin correo. Vuelve a desarrollo: lo externo es condición de activación.",
+    "15-nov-2026: publicada en 4150d9a (34b5cff, 21a2d19, 9818e7c y la corrección del reloj); 0090 (tabla statement_runs y trigger de UPDATE; aditiva) aplicada tras marcador Time Travel; encendida en web y reloj; npm test 2809/2809; tests/adm10-statements.e2e.cjs pasa a 1280 y 390; dos pasadas de revisión: apagado idéntico en 90 combinaciones y en el reloj; la primera halló datos personales imborrables en la instantánea y riesgo de pagar dos veces (corregidos: solo {id,name}, sin trigger de DELETE, sent/paid solo en la última revisión, paid_before); la segunda halló que con el interruptor encendido el reloj pasaba de 5 términos por SELECT compuesto y D1 rechazaba todo el pase de notificaciones (corregido moviendo la fila al nivel superior; verificado con wrangler dev --local y 3 ticks sin errores)."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -40,13 +41,13 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Correo (AUT-17) para el envío · Hampton confirma si está registrado en GST.",
+  "externalBlocker": "Luis: decidir GST (registro y tipo) y si basta el PDF del navegador; el envío por correo depende de AUT-17.",
   "resources": [
     "rentals-contract",
     "rentals-ui",
     "email-pipeline",
     "statement-ui"
   ],
-  "nextStep": "Aplicar 0090 en D1 hampton, poner ADM10_STATEMENTS_READY = \"1\" en los dos wrangler.toml en el mismo commit y comprobar con lecturas (GET /admin/statements devuelve digest y runs; el Inbox muestra «Close landlord statements» del mes anterior); el primer cierre real lo hace el equipo. Después, decidir si la impresión del navegador cubre el PDF o se prueba pdf-lib contra 10 ms de CPU.",
+  "nextStep": "Cuando Luis decida GST y PDF (y AUT-17 esté activo), ajustar y cerrar.",
   "actualizado": "2026-11-15"
 }
