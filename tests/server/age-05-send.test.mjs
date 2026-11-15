@@ -508,7 +508,8 @@ test("a queued email held by the pause, the settings or a stopped sender says wh
     assert.deepEqual([events.length, events[0].actor, JSON.parse(events[0].data).reason], [1, OTHER, "returned"], label);
     run(env, "DELETE FROM app_settings WHERE key = 'outbound'"); configure(env); sender(env);
     await tick(env);
-    assert.equal(env.sent.length, 0, `${label}: the old approval never sends it later`);
+    // From 08:00 Jersey the clock also sends the team's daily summary: only the enquiry's email counts here.
+    assert.equal(env.sent.filter(m => m.to === DESK).length, 0, `${label}: the old approval never sends it later`);
   }
 });
 
