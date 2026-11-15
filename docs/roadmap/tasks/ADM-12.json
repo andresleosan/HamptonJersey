@@ -6,8 +6,8 @@
   "fase": "F5-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "New repair y Update en la vivienda: urgencia (Emergency, Urgent, Routine), proveedor, presupuesto, estados hasta Done, aprobación obligatoria por encima del límite del propietario y coste a su liquidación; las emergencias abiertas encabezan Repairs en To do y suman en el contador.",
-  "falta": "El inquilino no puede avisar desde un portal ni por WhatsApp con fotos, no hay IA que clasifique urgencia y tipo, ni aviso inmediato al equipo, ni directorio de proveedores (es texto libre); la aprobación del propietario la marca el equipo a mano.",
+  "hecho": "New repair y Update en la vivienda: urgencia (Emergency, Urgent, Routine), proveedor, presupuesto, estados hasta Done, aprobación obligatoria por encima del límite del propietario y coste a su liquidación; las emergencias abiertas encabezan Repairs en To do, suman en el contador y crean la tarea urgente «Emergency repair» en Inbox. Construido y apagado (ADM12_SUPPLIERS_READY, migración aditiva 0089): directorio mínimo de proveedores con contacto y estado (Suppliers en Repairs de la vivienda; archivar, nunca borrar), proveedor elegido del directorio que rellena el contratista sin tocar el texto antiguo, y aprobación del propietario anotada a mano por el equipo con importe, dónde consta y fecha; una cotización o coste por encima de lo aprobado, u otro proveedor o contratista, pide aprobarla otra vez, y una emergencia no se salta el límite.",
+  "falta": "Aplicar 0089 y encender ADM12_SUPPLIERS_READY (aditiva e interruptor sin envíos: autorizados por CONTINUIDAD), y comprobar el recorrido en producción. Queda el componente propio case-access y el formulario limitado para que el inquilino reporte una incidencia (plan Tareas 1 y 3): necesita las capacidades de ADM-18 aplicadas en producción (0046 y 0049, pendientes), una clave privada para los códigos (Luis), el envío del código por correo (AUT-17) y la decisión de Luis de abrir un formulario que recoge datos del público. La clasificación por IA y WhatsApp quedan fuera de esta fase (diseño tp03-lifecycle).",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "admin/src/RentalDialogs.jsx:299-334",
@@ -15,7 +15,14 @@
     "admin/src/Rentals.jsx:112-122",
     "server/routes/rent.js:111",
     "migrations/0013_rentals.sql:128-149",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo.",
+    "ADM-12 manual 15-nov-2026 (plan docs/superpowers/plans/2026-11-10-tp03-adm-12-plan.md, Tarea 2): migrations/0089_repair_suppliers.sql; server/rentals.js:250-284 (suppliersReady, validateSupplier, campos de aprobación); server/routes/rentals.js:322-436 (repairRules, badSupplier, rutas /admin/suppliers); admin/src/Suppliers.jsx; admin/src/RentalDialogs.jsx:396-447; admin/src/RentalDetail.jsx:164-178.",
+    "Pruebas: node --test tests/server/adm12-repair-approval.test.mjs 4/4 (primero en rojo); regresiones rentals-overview 15/15, rentals 10/10, rentals-rules 10/10, notification-producers 9/9, notification-reconcile 10/10, adm03-repair-prototype 11/11, listing-history 30/30, adm-13-inspections-d1 2/2 (Miniflare con todas las migraciones). Navegador aislado tests/adm12-repairs.e2e.cjs a 1280 y 390 px aprobado.",
+    "Decisión: la aprobación solo se anota en Awaiting approval → Approved y debe cubrir la cotización o el coste; fuera de ese paso sus datos no se pueden cambiar (evita ampliar el importe sin nueva aprobación). Fuente: plan Tarea 2 y diseño tp03-lifecycle «Cambio de quote/cost que supera aprobado invalida autorización anterior».",
+    "Decisión: cambiar de proveedor o de contratista retira la aprobación (wrong_supplier_approval_not_reusable). Fuente: plan Tarea 2.",
+    "Decisión: elegir un proveedor rellena el contratista con su nombre, visible y editable; el texto antiguo no se migra ni se enlaza solo. Fuente: plan Tarea 2 «Conservar el texto antiguo y sólo enlazarlo mediante confirmación».",
+    "Decisión: el aviso inmediato al equipo es la tarea urgente «Emergency repair» de Inbox ya existente; correo o Telegram quedan para AUT-17. Fuente: diseño tp03-lifecycle «Emergency crea aviso urgente interno».",
+    "Decisión: 0089 no depende de 0045, 0046 ni 0049 (comprobado aplicando todas las migraciones salvo esas tres); el componente case-access sí dependerá de 0046 (capacidades de ADM-18). Fuente: server/case-capabilities.js y plan ADM-18."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -44,6 +51,6 @@
     "tenant-portal",
     "messages-contract"
   ],
-  "nextStep": "Definir portal, evidencias y proveedores de reparaciones; activar comunicaciones por sus canales disponibles.",
-  "actualizado": "2026-11-14"
+  "nextStep": "Aplicar 0089, encender ADM12_SUPPLIERS_READY y verificar Suppliers y la aprobación en producción; después construir apagado case-access (plan Tarea 1) cuando 0046/0049 estén revisadas.",
+  "actualizado": "2026-11-15"
 }
