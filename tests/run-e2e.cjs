@@ -59,6 +59,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       // AGE-03 reuses EST-16's confirmed availability, so its test has both on.
       ...(process.env.E2E_SCRIPT === "tests/age03-enquiries.e2e.cjs" ? { AGE03_ENQUIRIES_READY: "1", EST16_AVAILABILITY_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm20-tenancy-law.e2e.cjs" ? { ADM20_TENANCY_LAW_READY: "1", ADM17_LEGAL_TERMS_READY: "1" } : {}),
+      // SPR-08 reads VIS-08's dates and EST-16's confirmation beside its own notes, so its test has the three on.
+      ...(process.env.E2E_SCRIPT === "tests/spr08-listing-sections.e2e.cjs"
+        ? { SPR08_SECTIONS_READY: "1", VIS08_CYCLE_READY: "1", EST16_AVAILABILITY_READY: "1" } : {}),
       SESSION_SECRET: randomBytes(32).toString('hex'),
       TURNSTILE_SITE_KEY: example.TURNSTILE_SITE_KEY,
       TURNSTILE_SECRET: example.TURNSTILE_SECRET,

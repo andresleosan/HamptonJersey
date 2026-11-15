@@ -9,6 +9,7 @@ import ListingDocuments from "./ListingDocuments.jsx";
 import HouseRules from "./HouseRules.jsx";
 import ConfirmedAvailability from "./ConfirmedAvailability.jsx";
 import ListingEnquiries from "./Enquiries.jsx";
+import PropertySections from "./PropertySections.jsx";
 import { listingCriteria, listingCompleteness } from "./listing-completeness.js";
 import Research from "./Research.jsx";
 import { setUnsaved } from "./unsaved.js";
@@ -665,6 +666,8 @@ export default function ListingEditor({ id, onChange, guide = false }) {
       <ConfirmedAvailability listingId={id} listing={l} />
       {/* AGE-03: the shared enquiries about this property; renders nothing until the server reports them enabled. */}
       <ListingEnquiries listingId={id} />
+      {/* SPR-08: the property's viewings, notes and adverts, once the server reports them enabled. */}
+      {data.sections_enabled && <PropertySections listingId={id} listing={l} sources={data.sources} />}
 
       {/* Spec §1: every offer on the listing with what became of it, newest first; they are answered in Sales. */}
       {forSale && <section id="s-offers" className="card" aria-labelledby="h-offers">
@@ -688,7 +691,8 @@ export default function ListingEditor({ id, onChange, guide = false }) {
       </section>
 
       <section id="s-research" className="card" aria-labelledby="h-inv"><h2 id="h-inv">Research <span className="muted">(read only)</span></h2>
-        <Research data={data} />
+        {/* SPR-08: with its sections on, the research's sources are listed once, under Adverts. */}
+        <Research data={data.sections_enabled ? { ...data, sources: [] } : data} />
       </section>
       <ListingHistory key={id} id={id} refreshKey={historyKey}/>
       {data.withdrawal_tracking&&<WithdrawalHistory listing={l} refreshKey={historyKey}/>}

@@ -18,6 +18,7 @@ import { recordListingWithdrawal,correctListingWithdrawal,readListingTraceabilit
 import { validateListingContent,readListingContent,listingContentUpdateStatement } from '../listing-content.js';
 import { researchDuplicateReviewStatement, researchDuplicateReview } from '../research-duplicate-review.js';
 import { documentsReady, reconcileDocuments } from '../listing-documents.js';
+import noteRoutes, { sectionsOn } from '../property-notes.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -96,6 +97,7 @@ async function detail({ env, admin, params: [id] }) {
   return json({ listing, structured_economics: await structuredEconomicsReady(env), ...compliance,
     ...(env.PUB09_WITHDRAWALS_READY === '1' ? { withdrawal_tracking: true } : {}),
     ...(documentsReady(env) ? { documents_enabled: true } : {}),
+    ...(await sectionsOn(env) ? { sections_enabled: true } : {}), // SPR-08: needs migration 0079
     ...(content ? {content_tracking:true,content} : {}), details: Object.fromEntries(['building_name_or_number','postcode','property_condition','developer_name',
       'public_address_snapshot','public_address_snapshot_hash','public_address_evidence_ref','public_address_reviewed_by','public_address_reviewed_at']
       .map(key => [key, details?.[key] ?? null])),
@@ -562,4 +564,5 @@ export default [
   ["POST", new RegExp(`^/admin/listings/${ID}/(publish|unpublish|archive|restore)$`), setState, true],
   ["POST", new RegExp(`^/admin/listings/${ID}/confirm$`), confirm, true],
   ["PUT", new RegExp(`^/admin/listings/${ID}/featured$`), setFeatured, true],
+  ...noteRoutes, // SPR-08: they answer 404 until SPR08_SECTIONS_READY and migration 0079
 ];
