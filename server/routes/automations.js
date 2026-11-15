@@ -2,6 +2,8 @@ import { json, now, readJson } from "../http.js";
 import { modesReady, readOperationModes, setOperationMode } from "../operation-modes.js";
 import { jobLastActivity } from "../retention.js";
 import { readWebchat } from "./chats.js";
+import { callsReady } from "../consultations.js";
+import { rentalClosureEnabled } from "../rental-closure.js";
 
 // AUT-01 (spec 2026-11-01): the Automations screen. What runs on its own and when it last ran, from app_settings (clock,
 // retention_run, hermes) and the jobs table. Counts, times and listing titles only: never who, nor a draft's text (A8).
@@ -17,8 +19,10 @@ const CLOSED_AT = jobLastActivity("j"); // A7: when a used, discarded or failed 
 
 async function automations({ env, admin }) {
   const since = new Date(Date.now() - 30 * 86400e3).toISOString();
-  const [{ results: settings }, { results: month }, { results: waiting }, { results: recent }] = await env.DB.batch([
-    env.DB.prepare("SELECT key, value FROM app_settings WHERE key IN ('clock', 'retention_run', 'hermes', 'webchat')"),
+  const [{ results: settings }, { results: month }, { results: waiting }, { results: recent }, { results: [runs] }] =
+    await env.DB.batch([
+    env.DB.prepare(`SELECT key, value, updated_at FROM app_settings
+      WHERE key IN ('clock', 'retention_run', 'hermes', 'webchat', 'pub16_closure_cursor', 'demand_retention_run')`),
     env.DB.prepare(`SELECT j.status, COUNT(*) AS n FROM jobs j WHERE j.status IN ('used', 'discarded', 'failed')
       AND ${CLOSED_AT} >= ? GROUP BY j.status`).bind(since),
     env.DB.prepare(`SELECT j.id, j.listing_id, l.title, j.drafted_at FROM jobs j JOIN listings l ON l.id = j.listing_id
@@ -26,17 +30,30 @@ async function automations({ env, admin }) {
     env.DB.prepare(`SELECT j.id, j.listing_id, l.title, j.status, j.requested_by, j.created_at,
       CASE WHEN j.status IN ('used', 'discarded', 'failed') THEN ${CLOSED_AT} END AS closed_at
       FROM jobs j JOIN listings l ON l.id = j.listing_id ORDER BY j.id DESC LIMIT 20`),
+    env.DB.prepare(`SELECT (SELECT NULLIF(observed_at, '') FROM notification_cursor WHERE key = 'queues') AS inbox,
+      (SELECT MAX(generated_at) FROM weekly_insights) AS weekly`),
   ]);
   const get = key => { const r = settings.find(s => s.key === key); return r ? JSON.parse(r.value) : null; };
   const clock = get("clock"), hermes = get("hermes"), retention = get("retention_run");
   const stopped = stoppedFlags(clock?.at, hermes?.at, Date.now());
   const n = status => month.find(m => m.status === status)?.n ?? 0;
+  const touched = key => settings.find(s => s.key === key)?.updated_at ?? null, demand = get("demand_retention_run");
   return json({
     clock: { at: clock?.at ?? null, stopped: stopped.clock },
     retention: retention && { ...retention, jobs: retention.jobs ?? 0, chats: retention.chats ?? 0 },
     hermes: { at: hermes?.at ?? null, stopped: stopped.hermes, month: { used: n("used"), discarded: n("discarded"), failed: n("failed") },
       waiting, recent: recent.map(({ requested_by, ...j }) => ({ ...j, by: requested_by === "hermes" ? "Hermes" : "Team" })) },
     webchat: readWebchat(settings.find(s => s.key === "webchat")?.value),
+    // The clock's other passes. On or off is the website's copy of each switch (both wrangler.toml keep them equal); the
+    // screen never turns one on. A pass that keeps no run of its own runs with each clock tick.
+    passes: [
+      { id: "inbox", on: true, at: runs.inbox },
+      { id: "weekly", on: true, at: runs.weekly },
+      { id: "calls", on: callsReady(env), at: null },
+      { id: "withdrawals", on: rentalClosureEnabled(env), at: touched("pub16_closure_cursor") },
+      { id: "demand", on: env.DEMAND_INTERNAL_READY === "1", at: touched("demand_retention_run"), ...(demand && { ok: demand.ok }) },
+      { id: "enquiries", on: env.AGE05_SEND_READY === "1", at: null },
+    ],
     // AUT-10: absent while the flag is off, so the screen is exactly as before.
     ...(modesReady(env) && { modes: await readOperationModes(env, admin) }),
   });

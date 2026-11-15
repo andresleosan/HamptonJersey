@@ -12,6 +12,15 @@ import { ReviewSchedule } from "./SaleFollowup.jsx";
 // so its cards and the Settings number agree.
 const JOB = { queued: ["Queued", "neutral"], working: ["Working", "active"], draft: ["Waiting for approval", "attention"],
   used: ["Used", "positive"], discarded: ["Discarded", "neutral"], failed: ["Failed", "neutral"] };
+// The clock's other passes: name, what it does, and whether it keeps a run of its own (else it runs with each tick).
+const PASS = {
+  inbox: ["Inbox tasks", "Keeps Inbox tasks and compliance deadlines up to date with the records.", true],
+  weekly: ["Weekly Insights", "Every Monday from 08:00, saves last week's numbers and leaves a note in the Inbox.", true],
+  calls: ["Call-back tasks", "An Inbox task to call the advertiser two working days after an enquiry with no useful answer.", false],
+  withdrawals: ["Let rentals leave the website", "A rental recorded as let shows Let agreed for 24 hours, then leaves the website; its other viewings get Inbox tasks.", true],
+  demand: ["Demand clean-up", "Once a day, deletes expired private demand records.", true],
+  enquiries: ["Enquiry emails", "Emails enquiries to advertisers. Held while sending is paused.", false],
+};
 
 export default function Automations({ stalled, outbound, onChange }) {
   const [d, setD] = useState(null), [err, setErr] = useState(null), seen = useRef(null);
@@ -43,6 +52,17 @@ export default function Automations({ stalled, outbound, onChange }) {
         : <span className="err">Last run {fmtDay(r.date)} failed (attempt {r.attempts} of 3). {r.attempts < 3 ? "It tries again in a few minutes."
           : "It tries again tomorrow; if that fails too, tell Optimyze."}</span>}</p>
     </article>
+
+    {d.passes && <article className="card" aria-labelledby="a-passes">
+      <h2 id="a-passes">Clock tasks</h2>
+      <p className="muted">Run by the clock. Optimyze switches each one on or off in the app's settings; this screen shows them.</p>
+      {d.passes.map(p => { const [name, what, kept] = PASS[p.id]; return <div key={p.id}>
+        <h3>{name} <span className={`badge ${p.on ? "positive" : "neutral"}`}>{p.on ? "On" : "Off"}</span></h3>
+        <p className="muted">{what}</p>
+        {p.on && <p>{p.ok === false ? <span className="err">Last run {fmtDate(p.at)} did not finish; it tries again later.</span>
+          : p.at ? `Last run ${fmtDate(p.at)}` : kept ? "No run yet." : "Runs with each clock tick."}</p>}
+      </div>; })}
+    </article>}
 
     <article className="card" aria-labelledby="a-hermes">
       <h2 id="a-hermes">Hermes text drafts</h2>

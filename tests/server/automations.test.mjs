@@ -82,6 +82,31 @@ test("GET /admin/automations: last runs, Hermes's month, waiting drafts and rece
   for (const secret of [ADMIN, "Secret draft title", "Another secret"]) assert.ok(!text.includes(secret), secret);
 });
 
+test("GET /admin/automations: each clock pass, on or off as its switch says, with its last run where one is kept", async t => {
+  at(t);
+  const env = makeEnv();
+  const pass = async () => Object.fromEntries((await admin(env, "GET", "/admin/automations")).data.passes.map(p => [p.id, p]));
+  let p = await pass();
+  assert.deepEqual(Object.keys(p), ["inbox", "weekly", "calls", "withdrawals", "demand", "enquiries"]);
+  assert.deepEqual(Object.values(p).map(x => [x.on, x.at]), [[true, null], [true, null], [false, null], [false, null],
+    [false, null], [false, null]], "no switch on and no run yet");
+
+  Object.assign(env, { AGE08_CALL_TASKS_READY: "1", PUB16_TIMED_CLOSURE_READY: "1", DEMAND_INTERNAL_READY: "1", AGE05_SEND_READY: "0" });
+  env.DB.raw.prepare("UPDATE notification_cursor SET observed_at = ? WHERE key = 'queues'").run(ago(4));
+  insert(env, "weekly_insights", { week_start: "2026-10-19", week_until: "2026-10-26", generated_at: daysAgo(13), payload: "{\"version\":1}" });
+  insert(env, "weekly_insights", { week_start: "2026-10-26", week_until: "2026-11-02", generated_at: daysAgo(6), payload: "{\"version\":1}" });
+  insert(env, "app_settings", { key: "pub16_closure_cursor", value: "{}", updated_at: ago(7), updated_by: "system" });
+  insert(env, "app_settings", { key: "demand_retention_run", value: JSON.stringify({ date: "2026-11-01", ok: false, attempts: 3 }),
+    updated_at: ago(600), updated_by: "system" });
+  p = await pass();
+  assert.deepEqual(p.inbox, { id: "inbox", on: true, at: ago(4) });
+  assert.deepEqual(p.weekly, { id: "weekly", on: true, at: daysAgo(6) });
+  assert.deepEqual(p.calls, { id: "calls", on: true, at: null }, "rides each clock tick; no run of its own is kept");
+  assert.deepEqual(p.withdrawals, { id: "withdrawals", on: true, at: ago(7) });
+  assert.deepEqual(p.demand, { id: "demand", on: true, at: ago(600), ok: false });
+  assert.deepEqual(p.enquiries, { id: "enquiries", on: false, at: null });
+});
+
 test("POST /admin/outbound/pause: any admin pauses; a pause already asked keeps who and when", async t => {
   at(t);
   const env = { ...makeEnv(), HERMES_KEY: KEY };
