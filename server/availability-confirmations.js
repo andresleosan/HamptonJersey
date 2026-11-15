@@ -12,7 +12,7 @@ import { json, fail, readJson, now } from "./http.js";
 import { instant, resolveCommercialFacts, unavailabilityReady, standsUnavailable } from "./property-facts.js";
 import { afterSave, recomputeForListing } from "./match-store.js";
 import { jerseyNow } from "./viewings.js";
-import { settleCaptures } from "./property-captures.js";
+import { capturesReady, settleCaptures } from "./property-captures.js";
 
 export const availabilityReady = env => env?.EST16_AVAILABILITY_READY === "1";
 const STATUSES = ["available", "unavailable", "unknown"], SOURCES = ["owner", "agency", "other"];
@@ -46,8 +46,8 @@ const view = ({ status, confirmed_at, source, channel, operation, recorded_by, r
 // The confirmation in force for a listing ({ id, operation }) among rows: the latest by its own date of those about
 // the whole property or about the operation the listing offers now. null: none, or the latest says unknown.
 // { status: "unknown", needs_review }: the latest disagree at the same moment, so neither stands until a person
-// records a new one.
-function inForce(listing, rows) {
+// records a new one. raw: the row itself, with its id (SPR-03).
+function inForce(listing, rows, raw = false) {
   const about = rows.filter(r => r.listing_id === listing.id && (r.operation === null || r.operation === listing.operation));
   if (!about.length) return null;
   const scope = { property_id: listing.id, operation: listing.operation };
@@ -55,7 +55,7 @@ function inForce(listing, rows) {
     status: r.status, source_kind: "human", observed_at: r.confirmed_at, received_at: r.recorded_at })), { scope, as_of: EVER });
   if (needs_review) return { status: "unknown", needs_review: true };
   const latest = about.findLast(r => r.confirmed_at === availability.confirmed_at);
-  return latest ? view(latest) : null;
+  return latest ? (raw ? latest : view(latest)) : null;
 }
 
 // For match cards: listing ({ id, operation }) => the confirmation in force for it, read once for all the ids.
@@ -138,12 +138,17 @@ export function confirmationStatements(env, id, v, admin, ts, guard = { sql: "",
     .bind(operation, ...same, ts, id, operation, ...same, ...guard.args), ...(on ? viewingTasks(env, id, admin, ts) : [])];
 }
 // EST-15: the listing's matches follow what is in force now, on a repeated click too (it repairs a failed recompute).
-// SPR-03: first, the latest confirmation recorded, if it says available, captures the property once (here and through
-// an enquiry's answer, AGE-06, which calls this too). If that fails, the capture stays queued and its "Check files
-// again" finishes it; nothing of the confirmation is undone.
+// SPR-03: first, the confirmation in force, if it says available, captures the property once, and if it says not
+// available closes its open capture tasks (here and through an enquiry's answer, AGE-06, which calls this too). If that
+// fails, the capture stays queued and its "Check files again" or the clock finishes it; no confirmation is undone.
 export async function propagate(env, id, admin) {
-  await settleCaptures(env, { listingId: id, admin }).catch(e => console.error("SPR-03 capture", e?.message));
+  if (capturesReady(env)) await captureInForce(env, id, admin).catch(e => console.error("SPR-03 capture", e?.message));
   return unavailabilityReady(env) && afterSave(recomputeForListing, env, id, admin);
+}
+async function captureInForce(env, id, admin) {
+  const listing = await env.DB.prepare("SELECT id, operation FROM listings WHERE id = ?").bind(id).first();
+  const rows = listing && await confirmations(env, [id]);
+  if (rows) await settleCaptures(env, { listingId: id, admin, current: inForce(listing, rows, true) });
 }
 
 // Adds one confirmation.

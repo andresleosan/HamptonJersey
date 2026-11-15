@@ -5,7 +5,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, seedListing, seedMedia, call, adminCookie, ORIGIN } from "./listing-client.mjs";
 import { handleApi } from "../../server/api.js";
-import { csvTextCell } from "../../server/property-captures.js";
+import { csvTextCell, settleQueuedCaptures } from "../../server/property-captures.js";
+import { crc32 } from "node:zlib";
 
 const ADMIN = "admin@example.test", OTHER = "colleague@example.test";
 const HOME = "HE-R001", PATH = `/admin/listings/${HOME}/availability`, CAPTURES = `/admin/listings/${HOME}/captures`;
@@ -37,7 +38,7 @@ async function raw(env, path, cookie) {
   const res = await handleApi(new Request(ORIGIN + "/api" + path, { headers: cookie ? { cookie } : {} }), env, path.split("?")[0].slice(1).split("/"));
   return { status: res.status, headers: res.headers, bytes: new Uint8Array(await res.arrayBuffer()) };
 }
-// The names and contents of a stored ZIP, read from its central directory.
+// The names and contents of a stored ZIP, read from its central directory; each CRC-32 must match its bytes.
 function unzip(b) {
   const v = new DataView(b.buffer, b.byteOffset, b.byteLength), files = {};
   let end = b.length - 22;
@@ -49,6 +50,8 @@ function unzip(b) {
     const name = new TextDecoder().decode(b.subarray(p + 46, p + 46 + nameLen));
     const start = local + 30 + v.getUint16(local + 26, true);
     files[name] = b.subarray(start, start + size);
+    assert.equal(v.getUint32(p + 16, true), crc32(files[name]), `CRC of ${name}`);
+    assert.equal(v.getUint32(local + 14, true), crc32(files[name]), `local CRC of ${name}`);
     p += 46 + nameLen + v.getUint16(p + 30, true) + v.getUint16(p + 32, true);
   }
   return files;
@@ -98,7 +101,7 @@ test("a confirmation that says available captures one shared record; a missing p
   assert.match(view.latest.assets[1].problem, /not found/);
   assert.equal(view.latest.assets[2].source_url, "https://agency.example.test/p/1.jpg");
   assert.ok(view.latest.missing.includes("road_name"));
-  assert.deepEqual(view.latest.counts, { files: 4, stored: 2 });
+  assert.deepEqual(view.latest.counts, { files: 4, stored: 2, waiting: 0 });
 });
 
 test("a not available confirmation captures nothing", async () => {
@@ -115,7 +118,7 @@ test("checking again stores what is now there without duplicates and updates the
   const id = rows(env, "SELECT id FROM property_captures")[0].id;
   env.DB.raw.prepare("UPDATE notifications SET resolved_at = '2026-11-15T10:00:00.000Z', resolved_by = ?").run(ADMIN);
   let view = ok(await req(env, "POST", `/admin/property-captures/${id}/check`, {}, OTHER));
-  assert.deepEqual([view.latest.state, view.latest.counts], ["partial", { files: 4, stored: 3 }], "the link-only photo still blocks it");
+  assert.deepEqual([view.latest.state, view.latest.counts], ["partial", { files: 4, stored: 3, waiting: 0 }], "the link-only photo still blocks it");
   assert.equal(rows(env, "SELECT 1 FROM property_capture_assets").length, 4);
   // Once the blocked one is gone from storage too, nothing more changes: no new event, one task.
   view = ok(await req(env, "POST", `/admin/property-captures/${id}/check`, {}));
@@ -176,4 +179,74 @@ test("a CSV cell never starts a formula and keeps quotes and lines", () => {
   assert.equal(csvTextCell('a "b"\nc'), '"\'a ""b""\nc"');
   assert.equal(csvTextCell(null), "");
   assert.equal(csvTextCell(3), "3");
+});
+
+// Review 15-nov: a photo deleted after the capture was complete.
+test("a stored photo deleted later: no download says complete, checking again makes it partial, the ZIP leaves it out", async () => {
+  const env = world(), cookie = await adminCookie();
+  env.DB.raw.prepare("DELETE FROM media WHERE id IN ('A3','A4')").run();
+  env.DB.raw.prepare("UPDATE media SET origin = 'upload' WHERE id = 'A2'").run();
+  env.MEDIA.store.set("media/a2.png", { body: new Uint8Array([0xff, 0xd8, 9, 9, 9]), type: "image/jpeg" });
+  ok(await confirm(env), 201);
+  const [{ id }] = rows(env, "SELECT id FROM property_captures"), base = `/admin/property-captures/${id}`;
+  assert.equal(rows(env, "SELECT state FROM property_captures")[0].state, "complete");
+  assert.equal((await raw(env, `${base}/photos.zip`, cookie)).headers.get("x-capture-complete"), "1");
+  ok(await req(env, "DELETE", "/admin/media/A2")); // the panel's delete removes the stored file too
+  assert.equal(env.MEDIA.store.has("media/a2.png"), false);
+
+  const view = ok(await req(env, "GET", CAPTURES)).latest;
+  assert.deepEqual([view.state, view.counts.stored, view.assets[1].state], ["partial", 1, "failed"]);
+  assert.match(view.assets[1].problem, /no longer in storage/);
+  const cookieGet = path => raw(env, `${base}/${path}`, cookie), text = async path => new TextDecoder().decode((await cookieGet(path)).bytes);
+  assert.equal(JSON.parse(await text("data.json")).complete, false);
+  assert.match(await text("data.csv"), /\r\ncomplete,no\r\n/);
+  const zip = await cookieGet("photos.zip");
+  assert.deepEqual([zip.status, zip.headers.get("x-capture-complete")], [200, "0"]);
+  assert.deepEqual(Object.keys(unzip(zip.bytes)), ["01-Kitchen.png"], "the gone file is left out before the answer starts");
+  assert.equal((await cookieGet(`photos.zip?ids=${rows(env, "SELECT id FROM property_capture_assets WHERE media_id = 'A2'")[0].id}`)).status, 400);
+
+  // Checking again also checks stored files: back to partial, one event and the task says so.
+  const checked = ok(await req(env, "POST", `${base}/check`, {})).latest;
+  assert.deepEqual([checked.state, checked.counts], ["partial", { files: 2, stored: 1, waiting: 0 }]);
+  assert.equal(rows(env, "SELECT state FROM property_captures")[0].state, "partial");
+  assert.deepEqual(rows(env, "SELECT title FROM notifications WHERE task_key LIKE 'work:capture:%'"),
+    [{ title: "Open property record: capture partial (1 of 2 files)" }]);
+});
+
+test("a file that changed since it was checked is not put in the ZIP until it is checked again", async () => {
+  const env = world(), cookie = await adminCookie();
+  ok(await confirm(env), 201);
+  const [{ id }] = rows(env, "SELECT id FROM property_captures");
+  env.MEDIA.store.set("media/a1.png", { body: new Uint8Array([1, 2, 3]), type: "image/png", etag: "changed" });
+  assert.equal((await raw(env, `/admin/property-captures/${id}/photos.zip`, cookie)).status, 404, "no stored photo is still the one checked");
+  ok(await req(env, "POST", `/admin/property-captures/${id}/check`, {}));
+  const zip = await raw(env, `/admin/property-captures/${id}/photos.zip`, cookie);
+  assert.deepEqual([...unzip(zip.bytes)["01-Kitchen.png"]], [1, 2, 3]);
+});
+
+test("files are checked a few at a time: the rest wait, visible in the Inbox, and are checked by the clock or again", async () => {
+  const env = world();
+  for (let i = 0; i < 6; i++) {
+    seedMedia(env, { id: `B${i}`, r2_key: `media/b${i}.png`, position: 10 + i, label: `Room ${i}` });
+    env.MEDIA.store.set(`media/b${i}.png`, { body: PNG, type: "image/png" });
+  }
+  ok(await confirm(env), 201);
+  assert.equal(rows(env, "SELECT state FROM property_captures")[0].state, "queued");
+  assert.deepEqual(rows(env, "SELECT title FROM notifications"),
+    [{ title: "Open property record: 5 of 10 files checked, the rest still to check" }]);
+  await settleQueuedCaptures(env);
+  assert.equal(rows(env, "SELECT state FROM property_captures")[0].state, "partial");
+  assert.deepEqual(rows(env, "SELECT title FROM notifications"), [{ title: "Open property record: capture partial (8 of 10 files)" }]);
+});
+
+test("only the confirmation in force captures; a later not available closes the open capture task", async () => {
+  const env = world();
+  ok(await confirm(env, { status: "unavailable", reason: "let", confirmed_at: "2025-04-01T09:00:00.000Z" }), 201);
+  ok(await confirm(env, { confirmed_at: "2025-03-01T09:00:00.000Z" }), 201); // older than the one in force
+  assert.equal(rows(env, "SELECT 1 FROM property_captures").length, 0);
+  ok(await confirm(env, { confirmed_at: "2025-05-01T09:00:00.000Z" }), 201);
+  assert.equal(rows(env, "SELECT 1 FROM property_captures").length, 1);
+  ok(await confirm(env, { status: "unavailable", reason: "let", confirmed_at: "2025-06-01T09:00:00.000Z" }), 201);
+  assert.deepEqual(rows(env, "SELECT resolved_by, closed_by_source FROM notifications WHERE task_key LIKE 'work:capture:%'"),
+    [{ resolved_by: "system", closed_by_source: 1 }]);
 });

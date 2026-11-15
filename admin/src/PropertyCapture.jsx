@@ -19,10 +19,11 @@ export default function PropertyCapture({ listingId }) {
   useEffect(() => {
     let live = true;
     setData(null); setPicked([]); setMsg(null);
-    api(`/admin/listings/${encodeURIComponent(listingId)}/captures`).then(d => { if (live) setData(d); }, e => { if (live) setMsg({ text: e.message }); });
+    // A failed read hides the card, as when it is switched off.
+    api(`/admin/listings/${encodeURIComponent(listingId)}/captures`).then(d => { if (live) setData(d); }, () => {});
     return () => { live = false; };
   }, [listingId]);
-  if (!data?.enabled && !msg) return null;
+  if (!data?.enabled) return null;
   const c = data?.latest, base = c && `/api/admin/property-captures/${c.id}`;
   const check = async () => {
     if (busy) return;
@@ -39,12 +40,12 @@ export default function PropertyCapture({ listingId }) {
   const conf = c?.data.confirmation, adverts = c ? [...(c.data.market_adverts ?? []), ...(c.data.adverts ?? [])].filter(a => safeHref(a.url)) : [];
   return <section id="s-capture" className="card fields-group" aria-labelledby="h-capture">
     <h2 id="h-capture">Captured record <span className="muted">(staff only)</span></h2>
-    {msg && !data && <p role="alert" className="err">The captured record couldn't be loaded: {msg.text}</p>}
-    {data && !c && <p className="muted">Nothing captured yet. The property is captured once it is confirmed available, here in
+    {!c && <p className="muted">Nothing captured yet. The property is captured once it is confirmed available, here in
       Confirmed availability or from an enquiry's answer.</p>}
     {c && <>
       <p><span className={`badge ${STATE[c.state][0]}`}>{STATE[c.state][1]}</span>{" "}
-        {c.counts.stored} of {c.counts.files} {c.counts.files === 1 ? "file" : "files"} stored · captured {fmtDate(c.created_at)}</p>
+        {c.counts.stored} of {c.counts.files} {c.counts.files === 1 ? "file" : "files"} stored{c.counts.waiting ? ` · ${c.counts.waiting} still to check` : ""}
+        {" "}· captured {fmtDate(c.created_at)}</p>
       <p className="muted">One record for every client of this property, as it stood when it was confirmed. Correct the property in
         the editor; this record keeps what was captured. Which photos a client may see is decided separately.</p>
       <dl className="kv">
@@ -72,7 +73,7 @@ export default function PropertyCapture({ listingId }) {
           Download {picked.length} selected (ZIP)</a>}
         <a className="btn ghost sm" href={`${base}/data.json`} download>Data (JSON)</a>
         <a className="btn ghost sm" href={`${base}/data.csv`} download>Data (CSV)</a>
-        {c.state !== "complete" && <button type="button" className="btn ghost sm" disabled={busy} onClick={check}>Check files again</button>}
+        <button type="button" className="btn ghost sm" disabled={busy} onClick={check}>Check files again</button>
       </div>
       {c.state !== "complete" && <p className="muted">Not complete: {c.counts.files ? `${c.counts.files - c.counts.stored} of ${c.counts.files} files are not stored`
         : "no file was captured"}, so a ZIP or the data is marked incomplete.</p>}

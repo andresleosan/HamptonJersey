@@ -75,6 +75,9 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    const zip=await ctx.request.get(new URL(await zipLink.getAttribute('href'),page.url()).href);
    assert.equal(zip.status(),200);assert.equal(zip.headers()['x-capture-complete'],'0');
    assert.match(zip.headers()['content-disposition'],/photos-incomplete\.zip"$/);
+   // Its one entry carries the CRC-32 worked out when the file was checked, in the platform's own runtime.
+   const zb=await zip.body(),size=zb.readUInt32LE(18),start=30+zb.readUInt16LE(26);
+   assert.equal(zb.readUInt32LE(14),require('node:zlib').crc32(zb.subarray(start,start+size)),'stored CRC matches the bytes');
    const csv=await ctx.request.get(new URL(await card.getByRole('link',{name:'Data (CSV)'}).getAttribute('href'),page.url()).href);
    assert.match(await csv.text(),/\r\ncomplete,no\r\n/);
 

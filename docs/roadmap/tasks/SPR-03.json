@@ -16,11 +16,14 @@
     "migrations/0001–0015: ninguna crea availability_snapshots",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
     "server/property-captures.js, server/private-zip.js, migrations/0084_property_captures.sql, admin/src/PropertyCapture.jsx",
-    "tests/server/spr-03-captures.test.mjs (7/7) y tests/server/age-06-responses.test.mjs (13/13, captura por respuesta)",
     "tests/spr03-capture.e2e.cjs a 1280 y 390 px",
     "Decisión (plan SPR-03, tarea 3): datos en JSON y CSV separados; ZIP solo fotos, sin documentos.",
     "Decisión (spec captura §4, ponytail): los archivos son los que la propiedad ya tiene guardados; una foto solo enlace queda blocked sin descarga externa.",
-    "Decisión (plan tarea 4 y AGE-10): corregir se hace en el editor; la captura conserva lo capturado; la aptitud para clientes es de AGE-10."
+    "Decisión (plan tarea 4 y AGE-10): corregir se hace en el editor; la captura conserva lo capturado; la aptitud para clientes es de AGE-10.",
+    "tests/server/spr-03-captures.test.mjs (11/11) y tests/server/age-06-responses.test.mjs (13/13, captura por respuesta)",
+    "Revisión 15-nov: una foto borrada tras una captura complete ya no da complete en ficha, JSON, CSV ni ZIP; «Check files again» revisa también las stored y baja a partial (prueba spr-03).",
+    "Revisión 15-nov: la captura sale de la confirmación vigente (regla EST-16) y una no disponible posterior cierra sus tareas abiertas; se comprueban 5 archivos por petición o por tic, y los que esperan se ven en el Inbox.",
+    "CPU medida en Node 24 (15-nov): ZIP de 25×2 MiB ≈ 3-4 ms de CPU en caliente (17 ms en frío), sin bucle por byte; el CRC por gzip nativo al comprobar cuesta ≈ 70 ms por archivo de 2 MiB."
   ],
   "modulo": "M07",
   "deps": [

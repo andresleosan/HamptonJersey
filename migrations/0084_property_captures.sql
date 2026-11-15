@@ -5,7 +5,8 @@
 -- server/property-captures.js with SPR03_CAPTURE_READY=1; the website never reads these tables and nothing here sends.
 -- Additive: two new tables and an index; no existing row changes.
 -- data: a JSON snapshot of the property's own fields (never a client's), written once and never rewritten.
--- state: queued until each file was checked, then complete (every file stored) or partial (one missing, or none).
+-- state: queued while files wait to be checked (a few per request), then complete (every file stored) or partial (one
+-- missing, or none). A file checked again that is gone sends it back to partial.
 -- Rows go with their listing when a draft is deleted, like its availability confirmations (0072).
 CREATE TABLE property_captures (
   id INTEGER PRIMARY KEY,
@@ -38,6 +39,10 @@ CREATE TABLE property_capture_assets (
   state TEXT NOT NULL DEFAULT 'pending' CHECK(state IN ('pending','stored','failed','blocked')),
   content_type TEXT,
   bytes INTEGER CHECK(bytes IS NULL OR bytes >= 0),
+  -- The stored file's CRC-32 and storage etag, worked out once when it was checked: the ZIP writes them without reading
+  -- the bytes, and a file whose etag or size changed since is not put in it.
+  crc32 INTEGER CHECK(crc32 IS NULL OR crc32 BETWEEN 0 AND 4294967295),
+  etag TEXT,
   attempts INTEGER NOT NULL DEFAULT 0,
   checked_at TEXT,
   UNIQUE(capture_id, media_id)

@@ -51,13 +51,14 @@ export function makeBucket() {
     async put(key, body, opts) { store.set(key, { body, type: opts?.httpMetadata?.contentType }); },
     async get(key) {
       const o = store.get(key);
-      return o && { body: o.body, httpEtag: '"test"', writeHttpMetadata: h => o.type && h.set("content-type", o.type) };
+      return o && { body: o.body, httpEtag: '"test"', etag: o.etag ?? "test", size: o.body.byteLength ?? o.body.length,
+        httpMetadata: { contentType: o.type }, writeHttpMetadata: h => o.type && h.set("content-type", o.type) };
     },
     async delete(keys) { for (const k of [].concat(keys)) store.delete(k); },
     async head(key) {
       const o = store.get(key);
       return o && { size: typeof o.body === "string" ? new TextEncoder().encode(o.body).length : o.body.byteLength,
-        httpEtag: '"test"', httpMetadata: { contentType: o.type } };
+        httpEtag: '"test"', etag: o.etag ?? "test", httpMetadata: { contentType: o.type } };
     },
   };
 }
