@@ -11,6 +11,7 @@ import { recomputeForApplicant } from "../search-state.js"; // EST-01: the same 
 import { COVER_ID, HAS_PUBLIC_PHOTO } from "./listings.js";
 import { candidateState, unknownMusts } from "../candidate-state.js";
 import availabilityRoutes, { confirmationReader } from "../availability-confirmations.js";
+import { notConfirmedUnavailable } from "../property-facts.js";
 
 const REASONS = REJECT_REASONS.map(([v]) => v);
 // The reviews a match in each status may get; back to found is Undo.
@@ -90,6 +91,9 @@ export const APPROVED = `m.status = 'shortlisted' AND ${activeSql("a")} AND ${DE
 const STILL_OFFERED = `EXISTS (SELECT 1 FROM listings o WHERE o.id = m.listing_id AND o.archived_at IS NULL
   AND o.availability IN ('for_sale','to_let','lease'))`;
 export const CLARIFICATION_APPROVED = `m.status <> 'rejected' AND ${activeSql("a")} AND ${STILL_OFFERED} AND ${CLARIFICATION} IS NOT NULL`;
+// EST-15: a property whose confirmation in force says not available is not asked about, whatever its match says.
+// Appended to APPROVED and CLARIFICATION_APPROVED wherever they are read ("" while EST15_UNAVAILABILITY_READY is off). From matches m.
+export const availableToAsk = env => notConfirmedUnavailable(env, "m.listing_id", "(SELECT operation FROM listings WHERE id = m.listing_id)");
 const QUEUE_COUNT_SQL = `SELECT COUNT(*) AS n FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE ${QUEUED}`;
 // The search shown next to the match, its JSON lists as lists; from applicants a JOIN contacts c.
 const LISTS = ["requirement_priorities", "household_children_ages", "property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"];
