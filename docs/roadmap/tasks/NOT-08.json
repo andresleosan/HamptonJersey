@@ -6,9 +6,9 @@
   "fase": "—",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Categorías Agency replies, Messages y Compliance, filtros y tareas manuales integrados en main 2084cb9. La consulta histórica sin migraciones pendientes del 11-nov corresponde al árbol b544c2e, que incluía 0035. El ensayo local D1 poblado, las pruebas y el navegador anteriores no acreditan por sí solos canales externos activos.",
-  "falta": "Conectar respuestas y mensajes reales cuando existan sus canales y productores; las tareas manuales ya están integradas. Consultas, llamadas, captura, fuentes pendientes, revisión del día 21 y dictado siguen sus módulos. No se repitió una consulta remota ni una prueba MCP en esta conciliación; Meta está fuera de la fase vigente.",
-  "bloqueo": "Correo real sujeto a activación de AUT-17; productores futuros en sus módulos.",
+  "hecho": "Categorías Agency replies, Messages y Compliance, filtros y tareas manuales integrados en main 2084cb9. La consulta histórica sin migraciones pendientes del 11-nov corresponde al árbol b544c2e, que incluía 0035. El ensayo local D1 poblado, las pruebas y el navegador anteriores no acreditan por sí solos canales externos activos. 15-nov-2026 (rama avanzar-not0809, apagado tras NOT0809_INBOX_READY): la pestaña Agency replies recibe las tareas reales de respuesta de agencia, la llamada de AGE-08 («Call … about …», consultation:*:call) y «Agency needs more information» de AGE-06 (consultation:*:reply), y Messages recibe la respuesta del cliente a la presentación privada de AGE-12 (presentation:*). Se clasifican al leer (lista, filtro, contadores y preferencias del Feed), sin reescribir la categoría guardada ni tocar productores ni el reloj: apagar el interruptor devuelve las pestañas de antes, y las tareas ya abiertas cambian de pestaña sin migrar datos. Viewings y Compliance ya tenían productores reales (solicitudes de visita, revisiones y plazos).",
+  "falta": "Encender NOT0809_INBOX_READY en la web tras aplicar la migración 0087 (la comparte con NOT-09) y comprobar en producción, con lecturas, que la llamada de AGE-08 cuenta en Agency replies. Correo entrante real de agencias y clientes: AUT-17. Consultas, captura, fuentes, revisión del día 21 y dictado siguen sus módulos.",
+  "bloqueo": "Activación: migración 0087 e interruptor NOT0809_INBOX_READY (autorizados por CONTINUIDAD). Correo real: AUT-17.",
   "evidencia": [
     "shared/notification-categories.js",
     "admin/src/Inbox.jsx",
@@ -21,7 +21,18 @@
     "tests/server/notification-categories.test.mjs",
     "tests/notification-categories.e2e.cjs",
     "docs/roadmap/work/NOT-08/implementation-evidence.md",
-    "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md"
+    "docs/roadmap/work/conciliacion/2026-11-13-reg-est-not.md",
+    "server/notification-query.js",
+    "server/routes/notifications.js",
+    "server/notification-tasks.js",
+    "admin/src/Inbox.jsx",
+    "admin/src/InboxTask.jsx",
+    "tests/server/notification-actions.test.mjs",
+    "tests/not0809-inbox-actions.e2e.cjs",
+    "Decisión: Agency replies = tareas de llamada y de más información de una consulta enviada (AGE-06/AGE-08); fuente: arquitectura 5.1 (pestañas por categoría) y encargo de la sesión 15-nov.",
+    "Decisión: la respuesta del cliente de AGE-12 va a Messages, por ser un mensaje del cliente; fuente: arquitectura 5.1 y regla 5 de la skill (lo más simple y reversible: clasificación al leer).",
+    "Decisión: clasificar al leer en vez de reescribir notifications.category; fuente: CONTINUIDAD (un UPDATE de filas existentes no es aditivo) y regla 5 de la skill.",
+    "Pruebas 15-nov: node --test tests/server/notification-actions.test.mjs 5/5; notification-* y notifications, jobs, age-08-call-tasks, age-06-responses, spr-03-captures pasan; navegador aislado tests/not0809-inbox-actions.e2e.cjs a 1280 y 390 pasa."
   ],
   "modulo": "M13",
   "deps": [
@@ -62,6 +73,6 @@
     "agency-consultations-contract",
     "messages-contract"
   ],
-  "nextStep": "Conectar los productores y el correo cuando estén disponibles; conservar operativas las categorías manuales ya integradas.",
-  "actualizado": "2026-11-13"
+  "nextStep": "Aplicar 0087 en D1 hampton, encender NOT0809_INBOX_READY en wrangler.toml y verificar por GET la pestaña Agency replies.",
+  "actualizado": "2026-11-15"
 }

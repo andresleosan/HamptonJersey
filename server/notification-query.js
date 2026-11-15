@@ -57,7 +57,19 @@ export const sourceAllowsTarget=(kind,id,event='e')=>`((${event}.entity_type=${k
 export const noticeTargetExists=(notice='n',event='e',owner=false)=>`${notice}.target_deleted=0 AND ${targetExists(
   `COALESCE(${notice}.target_kind,${event}.entity_type)`,`COALESCE(${notice}.target_id,${event}.entity_id)`,`${notice}.target_context`,owner)}`;
 
-export const notificationSelect=(owner=false)=>`SELECT e.type AS source_type,e.entity_type AS source_entity_type,e.entity_id AS source_entity_id,n.id,n.event_id,n.category,n.title,n.created_at,n.action_required,n.resolved_at,n.resolved_by,
+// NOT-08/NOT-09 (NOT0809_INBOX_READY, migration 0087). Off, or before 0087, the Inbox is as before: no SQL below runs.
+// On: the agency's call and reply tasks (AGE-08, AGE-06) read as Agency replies and a client's answer to a presentation
+// (AGE-12) as Messages, without rewriting what is stored; a task can be snoozed (Snooze, NOT-09).
+export const inboxActionsReady=env=>env?.NOT0809_INBOX_READY==='1';
+export const categorySql=(on,n='n')=>on?`CASE WHEN ${n}.category='task' AND (${n}.task_key GLOB 'consultation:*:call' OR ${n}.task_key GLOB 'consultation:*:reply')
+  THEN 'agency_reply' WHEN ${n}.category='task' AND ${n}.task_key GLOB 'presentation:*' THEN 'message' ELSE ${n}.category END`:`${n}.category`;
+// Snoozed: until its time and while nothing changed it since (its revision); a snoozed task is open but not in Needs action.
+export const snoozedSql=(n='n')=>`(${n}.snoozed_until IS NOT NULL AND ${n}.snoozed_revision IS ${n}.revision
+  AND ${n}.snoozed_until>strftime('%Y-%m-%dT%H:%M:%fZ','now'))`;
+const QUICK=[[/^consultation:[^:]+:call$/,'call'],[/^consultation:[^:]+:reply$/,'reply'],[/^work:dictation:applicant:\d+:criteria-proposal$/,'approve']];
+
+export const notificationSelect=(owner=false,on=false)=>`SELECT e.type AS source_type,e.entity_type AS source_entity_type,e.entity_id AS source_entity_id,n.id,n.event_id,${categorySql(on)} AS category,n.title,${
+  on?`n.task_key,CASE WHEN ${snoozedSql()} THEN n.snoozed_until END AS snoozed_until,`:''}n.created_at,n.action_required,n.resolved_at,n.resolved_by,
   n.source_version,n.revision,n.assigned_to,n.due_at,n.task_reason,n.urgency,n.closed_by_source,
   owner.name AS assigned_name,owner.email IS NOT NULL AS assigned_available,
   CASE WHEN COALESCE(seen.read_revision,0)>=n.revision THEN 1 ELSE 0 END AS is_read,
@@ -86,7 +98,7 @@ export const notificationSelect=(owner=false)=>`SELECT e.type AS source_type,e.e
   LEFT JOIN tenancies pt ON pt.id=p.tenancy_id
   LEFT JOIN rentals payment_rental ON payment_rental.id=pt.rental_id`;
 
-export function noticeDto({source_type,source_entity_type,source_entity_id,raw_phone,search_id,target_context,target_deleted,context_label,...n}) {
+export function noticeDto({source_type,source_entity_type,source_entity_id,raw_phone,search_id,target_context,target_deleted,context_label,task_key,...n}) {
   const numeric=/^[1-9]\d*$/.test(n.entity_id)&&Number.isSafeInteger(Number(n.entity_id));
   const week=n.entity_type==='collection'&&/^weekly-insights:\d{4}-\d{2}-\d{2}$/.test(n.entity_id)?n.entity_id.slice(16):null;
   const weekly=week&&realDate(week)&&weekday(week)==='mon'&&source_type==='analytics.weekly_created'
@@ -111,5 +123,8 @@ export function noticeDto({source_type,source_entity_type,source_entity_id,raw_p
   }
   const exists=Boolean(n.target_exists&&!target_deleted);
   return {...n,...(weekly?{weekly_insights:week}:{}),...(context?{context}:{}),...(context_label&&exists?{context_label}:{}),phone:exists?normalizePhone(raw_phone):null,link:exists?link:null,target_exists:exists,
-    can_reopen:Boolean(n.action_required&&n.resolved_at&&!n.closed_by_source&&n.target_exists)};
+    can_reopen:Boolean(n.action_required&&n.resolved_at&&!n.closed_by_source&&n.target_exists),
+    // NOT-09: the one-click action this task's source offers, and whether it can be snoozed (only when switched on).
+    ...(task_key!==undefined?{quick:QUICK.find(([re])=>re.test(task_key??''))?.[1]??null,
+      can_snooze:Boolean(n.action_required&&!n.resolved_at&&!n.snoozed_until&&exists)}:{})};
 }

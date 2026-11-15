@@ -1,6 +1,6 @@
 import {ownerStorageAvailable} from './owner-requests.js';
 import {fail,now,sha256} from './http.js';
-import {notificationSelect,noticeDto,TASK_CATEGORIES,targetExists,taskTarget,sourceAllowsTarget,noticeTargetExists} from './notification-query.js';
+import {notificationSelect,noticeDto,TASK_CATEGORIES,targetExists,taskTarget,sourceAllowsTarget,noticeTargetExists,inboxActionsReady} from './notification-query.js';
 import {MANUAL_CATEGORIES} from '../shared/notification-categories.js';
 export {targetExists,taskTarget} from './notification-query.js';
 
@@ -88,7 +88,7 @@ export async function syncTask(env,descriptor) {
   return {changed:results[0].meta.changes,tasks:results[1].results};
 }
 export async function getTask(env,id,admin) {
-  const row=await env.DB.prepare(`${notificationSelect(await ownerStorageAvailable(env))} WHERE n.id=?`).bind(admin,id).first();
+  const row=await env.DB.prepare(`${notificationSelect(await ownerStorageAvailable(env),inboxActionsReady(env))} WHERE n.id=?`).bind(admin,id).first();
   if(!row)fail(404,'Task not found');return noticeDto(row);
 }
 export function operationInput(body,allowed) {
@@ -103,7 +103,7 @@ async function replay(env,actor,operationId,hash,id=null) {
 }
 
 export async function mutateTask(env,id,actor,body) {
-  operationInput(body,['operation_id','revision','action','assigned_to','due_at']);
+  operationInput(body,['operation_id','revision','action','assigned_to','due_at','snoozed_until']);
   if(!Number.isSafeInteger(body.revision)||body.revision<1)fail(400,'Send the task revision you reviewed');
   const current=await getTask(env,id,actor);
   if(current.weekly_insights)fail(400,'Weekly Insights is an informational notice');
@@ -119,11 +119,19 @@ export async function mutateTask(env,id,actor,body) {
   } else if(action==='deadline'){if(!Object.hasOwn(body,'due_at'))fail(400,'Send a deadline or null');set='due_at=?';args=[deadline(body.due_at)];}
   else if(action==='done'){set='resolved_at=?,resolved_by=?';args=[now(),actor];condition=' AND action_required=1 AND resolved_at IS NULL';}
   else if(action==='reopen'){set='resolved_at=NULL,resolved_by=NULL';condition=' AND action_required=1 AND resolved_at IS NOT NULL AND closed_by_source=0';}
+  // NOT-09 (switched on, migration 0087): Snooze until a time in the next 30 days; it holds at the revision it creates
+  // (the trigger adds one), so new context, Done or Reopen end it. Wake (unsnooze) ends it now. Nothing else changes.
+  else if(action==='snooze'&&inboxActionsReady(env)){
+    const until=deadline(body.snoozed_until??'');const ms=Date.parse(until)-Date.now();
+    if(!(ms>0&&ms<=30*864e5))fail(400,'Choose a time within the next 30 days');
+    set='snoozed_until=?,snoozed_revision=revision+1';args=[until];condition=' AND action_required=1 AND resolved_at IS NULL';
+  } else if(action==='unsnooze'&&inboxActionsReady(env)){set='snoozed_until=NULL,snoozed_revision=NULL';condition=' AND snoozed_until IS NOT NULL';}
   else fail(400,'Invalid task action');
+  if(action!=='snooze'&&Object.hasOwn(body,'snoozed_until'))fail(400,'Unexpected task action fields');
   if(!['assign','edit'].includes(action)&&Object.hasOwn(body,'assigned_to')||!['deadline','edit'].includes(action)&&Object.hasOwn(body,'due_at'))fail(400,'Unexpected task action fields');
   const hash=await sha256(JSON.stringify({id,revision:body.revision,action,
     ...(['assign','edit'].includes(action)?{assigned_to:body.assigned_to}:{}),
-    ...(['deadline','edit'].includes(action)?{due_at:action==='edit'?args[1]:args[0]}:{})}));
+    ...(['deadline','edit'].includes(action)?{due_at:action==='edit'?args[1]:args[0]}:{}),...(action==='snooze'?{snoozed_until:args[0]}:{})}));
   const prior=await replay(env,actor,body.operation_id,hash,id);if(prior)return prior;
   const extra=action==='claim'?[actor]:['assign','edit'].includes(action)?[body.assigned_to,body.assigned_to]:[];
   const target=`EXISTS(SELECT 1 FROM events e WHERE e.id=notifications.event_id AND ${noticeTargetExists('notifications','e',await ownerStorageAvailable(env))})`;

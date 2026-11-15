@@ -300,7 +300,8 @@ export function MatchEnquiry({ match, onChange }) {
 }
 
 // The listing editor's card: every enquiry about this property, newest first. Where the Inbox task leads.
-export default function ListingEnquiries({ listingId }) {
+// onChange (NOT-09): the Inbox notice that shows it inline hears of each change too.
+export default function ListingEnquiries({ listingId, onChange }) {
   const [d, setD] = useState(null);
   const load = () => api(`/admin/listings/${encodeURIComponent(listingId)}/consultations`).then(x => setD(x.enabled ? x : null), () => {});
   useEffect(() => { setD(null); load(); }, [listingId]);
@@ -309,7 +310,7 @@ export default function ListingEnquiries({ listingId }) {
     <h2 id="h-enquiries">Enquiries <span className="muted">(internal)</span></h2>
     <p className="muted">For staff only. One enquiry per property is shared by every approved match of it, and names no client. It is prepared from an
       approved match, in a search's Matches; {d.send && !d.send.email_stop ? "the app sends only the version a person approves." : "the app sends nothing."}</p>
-    {d.consultations.length ? d.consultations.map(c => <EnquiryView key={c.id} c={c} advertisers={d.advertisers} send={d.send} onChange={load} />)
+    {d.consultations.length ? d.consultations.map(c => <EnquiryView key={c.id} c={c} advertisers={d.advertisers} send={d.send} onChange={() => { load(); onChange?.(); }} />)
       : <p className="muted">No enquiry has been prepared about this property yet.</p>}
   </section>;
 }

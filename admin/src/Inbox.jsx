@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { fmtAgo } from "./format.js";
+import { fmtAgo, fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
 import { setUnsaved } from "./unsaved.js";
 import InboxTask from "./InboxTask.jsx";
@@ -91,14 +91,16 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
     taskDirty(false);
     const stillOpen = isOpen(task), messages = { edit: "Task details saved.", claim: "Task claimed.",
       created: "Follow-up task created.", reopen: stillOpen ? "Task reopened." : "The source resolved this task again.",
-      done: stillOpen ? "New work remains in Needs action." : "Marked as done. It's in the Feed now." };
+      done: stillOpen ? "New work remains in Needs action." : "Marked as done. It's in the Feed now.",
+      snooze: "Snoozed until tomorrow. It waits in the Feed until then.", unsnooze: "Back in Needs action.",
+      approved: "Changes approved and saved. Matches recalculated.", recorded: "Answer recorded. This task is closed." };
     setMsg({ ok: true, text: messages[action] || "Task saved." }); refocus.current = true;
     if (action === "created" || action === "reopen") {
       const nextBox = stillOpen ? "action" : "feed", nextCat = action === "created" ? task.category : cat;
       selectedSnapshot.current=task;
       setSel(task.id);
       if (nextBox !== box || nextCat !== cat) { seq.current++; setBox(nextBox); setCat(nextCat); setData(null); return; }
-    } else if (action === "done" && !stillOpen) {
+    } else if (["done", "approved", "recorded"].includes(action) && !stillOpen || action === "snooze") {
       const list = data.notifications, i = list.findIndex(x => x.id === task.id);
       setSel((list[i + 1] ?? list[i - 1])?.id ?? null);
     }
@@ -126,7 +128,7 @@ export default function Inbox({ paused, onCounts, me, onPending }) {
         <ul ref={listRef} className="inbox-list" aria-label={`${BOXES[box]}: ${CATEGORIES[cat]}`}>{data.notifications.map(x => <li key={x.id}>
           <button type="button" aria-current={x.id === sel ? "true" : undefined} className={x.is_read ? "" : "unread"} onClick={() => pick(x.id)}>
             <span className="who">{x.title}</span><time className="muted" dateTime={x.created_at}>{fmtAgo(x.created_at)}</time>
-            <span className="what">{KIND[x.category]}</span>{box === "feed" && <span className="muted">{x.resolved_at ? "Done" : "For info"}</span>}
+            <span className="what">{KIND[x.category]}</span>{box === "feed" && <span className="muted">{x.resolved_at ? "Done" : x.snoozed_until ? `Snoozed until ${fmtDate(x.snoozed_until)}` : "For info"}</span>}
             {/* ADM-17: compliance dates come from legal periods; said while no lawyer has validated them. */}
             {x.estimated && <span className="muted estimated">Estimated · not validated by a lawyer</span>}
           </button></li>)}</ul>

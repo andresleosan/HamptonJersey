@@ -37,10 +37,10 @@ const LABEL = { requirement_priorities:"Requirement priorities", household_child
   // V11: offers, sales and their steps (any other key reads as itself: "seller_email" is "Seller email").
   counter_amount: "Seller's counter", planned_on: "Planned for", target_date: "Completion target", fee: "Hampton's fee", shared_agency: "Other agency",
   shared_fee: "Other agency's share" };
-const label = k => LABEL[k] ?? k[0].toUpperCase() + k.slice(1).replaceAll("_", " ");
+export const label = k => LABEL[k] ?? k[0].toUpperCase() + k.slice(1).replaceAll("_", " ");
 const ROUTE = { freehold: "Freehold or flying freehold", share_transfer: "Share transfer" };
 // A value in a change: an applicant's as show() gives it; an offer's or sale's pounds, days, route and listing availability.
-const value = (k, v, nameOf) => (v == null ? show(k, v, nameOf)
+export const value = (k, v, nameOf) => (v == null ? show(k, v, nameOf)
   : ["amount", "counter_amount", "price", "fee", "shared_fee"].includes(k) ? money(v)
   : ["planned_on", "done_on", "target_date"].includes(k) ? fmtDay(v) : k === "not_needed" ? (v ? "Yes" : "No")
   : k === "availability" ? AVAILABILITY[v] ?? v : k === "route" ? ROUTE[v] ?? v : show(k, v, nameOf));

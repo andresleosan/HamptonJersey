@@ -2,12 +2,16 @@ import {useEffect,useRef,useState} from 'react';
 import {api} from './api.js';
 import {fmtAgo,fmtDate} from './format.js';
 import {CATEGORY_LABELS,MANUAL_CATEGORIES} from '../../shared/notification-categories.js';
+import ListingEnquiries from './Enquiries.jsx';
+import {label,value} from './ApplicantDetail.jsx';
 
 const localTime=iso=>iso?new Date(new Date(iso).getTime()-new Date(iso).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
 const fields=t=>({assigned_to:t.assigned_to??'',due:localTime(t.due_at)});
 const same=(a,b)=>a.assigned_to===b.assigned_to&&a.due===b.due;
 const HISTORY={created:'Task created',claim:'Task claimed',assign:'Owner changed',deadline:'Deadline changed',edit:'Task details updated',
-  done:'Marked done',reopen:'Task reopened',source_update:'Context updated',source_resolved:'Resolved by source'};
+  done:'Marked done',reopen:'Task reopened',source_update:'Context updated',source_resolved:'Resolved by source',snooze:'Snoozed',unsnooze:'Snooze ended'};
+// NOT-09: Snooze is one click, to 09:00 tomorrow in the browser's own time zone (Jersey for the team).
+const tomorrowNine=()=>{const d=new Date();d.setDate(d.getDate()+1);d.setHours(9,0,0,0);return d.toISOString();};
 
 function Owners({value,users,onChange,disabled,label='Assigned to'}) {
   const unavailable=value&&!users.some(u=>u.email===value);
@@ -23,7 +27,7 @@ export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,on
   const [loaded,setLoaded]=useState(false),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false);
   const [error,setError]=useState(null),[message,setMessage]=useState(null),[conflict,setConflict]=useState(false);
   const [creating,setCreating]=useState(false),[createDirty,setCreateDirty]=useState(false);
-  const [createPending,setCreatePending]=useState(false);
+  const [createPending,setCreatePending]=useState(false),[panel,setPanel]=useState(null);
   const seq=useRef(0),lastLoaded=useRef(0),pending=useRef(null),state=useRef(null);
   const dirty=!same(draft,fields(task));state.current={task,draft,dirty,busy,uncertain};
   useEffect(()=>{onDirty(dirty||createDirty||busy||uncertain);},[dirty,createDirty,busy,uncertain,onDirty]);
@@ -79,6 +83,11 @@ export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,on
   const disabled=paused||busy||uncertain||!loaded;
   const open=task.action_required===1&&task.resolved_at==null;
   const actorName=actor=>users.find(u=>u.email===actor)?.name||({system:'System',public:'Website'}[actor])||actor;
+  const toggle=name=>setPanel(p=>p===name?null:name);
+  // NOT-09: an answer recorded or changes approved inline may close this task at its source.
+  const refreshed=async action=>{try{const d=await api(`/admin/notification-tasks/${n.id}`);
+    if(d.task.action_required===1&&d.task.resolved_at==null)await load(true);else await onChanged({task:d.task,action});}catch(e){setError(e.message);}};
+  const quiet=disabled||dirty||createDirty||conflict;
 
   return <article className="card inbox-detail task-controls" aria-labelledby="n-title">
     <div className="head"><div><h2 id="n-title">{task.title}</h2>
@@ -88,6 +97,10 @@ export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,on
         {task.can_reopen&&<button type="button" className="btn" disabled={disabled||dirty||createDirty||conflict} onClick={()=>save('reopen')}>Reopen task</button>}
         {task.link&&task.target_exists&&<a className="btn ghost" href={task.link}>{task.weekly_insights?'Open weekly Insights':({viewing:'Open viewing',listing:'Open property',offer:'Open offer',sale:'Open sale',rental:'Open rental',payment:'Open payment',collection:'Open unmatched payments'})[task.entity_type]||(task.category==='matched'?'Review matches':'Open applicant')}</a>}
         {task.phone&&<a className="btn ghost" href={`tel:${task.phone}`}>Call</a>}
+        {open&&task.target_exists&&task.quick==='approve'&&<button type="button" className="btn ghost" aria-expanded={panel==='approve'} disabled={quiet} onClick={()=>toggle('approve')}>Approve</button>}
+        {open&&task.target_exists&&['call','reply'].includes(task.quick)&&<button type="button" className="btn ghost" aria-expanded={panel==='enquiry'} disabled={quiet} onClick={()=>toggle('enquiry')}>{task.quick==='call'?'Call':'Reply'}</button>}
+        {task.can_snooze&&<button type="button" className="btn ghost" disabled={quiet} onClick={()=>save('snooze',{snoozed_until:tomorrowNine()})}>Snooze until tomorrow</button>}
+        {open&&task.snoozed_until&&<button type="button" className="btn ghost" disabled={quiet} onClick={()=>save('unsnooze')}>Wake now</button>}
       </div></div>
     {error&&<p role="alert" className="err">{error}</p>}
     {conflict&&<p role="alert" className="warn">This task has newer context. Reload to review it; your draft is kept.</p>}
@@ -99,12 +112,14 @@ export default function InboxTask({n,users,me,paused,onChanged,onRead,onDirty,on
     {task.context_label&&<p>{task.context_label}</p>}
     <dl className="kv">
       <div><dt>Received</dt><dd>{fmtDate(task.created_at)}</dd></div>
-      <div><dt>Status</dt><dd>{open?'Needs action':task.resolved_at?(task.closed_by_source?'Resolved by source':'Done'):'For your information'}</dd></div>
+      <div><dt>Status</dt><dd>{open&&task.snoozed_until?`Snoozed until ${new Date(task.snoozed_until).toLocaleString('en-GB')}`:open?'Needs action':task.resolved_at?(task.closed_by_source?'Resolved by source':'Done'):'For your information'}</dd></div>
       {!task.weekly_insights&&<div><dt>Assigned to</dt><dd>{task.assigned_name||task.assigned_to||'Unassigned'}{task.assigned_to&&!task.assigned_available?' (no longer has access)':''}</dd></div>}
       {!task.weekly_insights&&<div><dt>Deadline</dt><dd>{task.due_at?new Date(task.due_at).toLocaleString('en-GB'):'No deadline'}{task.due_at&&open&&Date.parse(task.due_at)<Date.now()?' · Overdue':''}{estimated&&task.due_at&&<> <span className="badge neutral">Estimated · not validated by a lawyer</span></>}</dd></div>}
       {task.phone&&<div><dt>Phone</dt><dd className="num">{task.phone}</dd></div>}
     </dl>
     {!task.target_exists&&<p className="warn">The related record is no longer available.</p>}
+    {panel==='enquiry'&&open&&<div className="task-form"><ListingEnquiries listingId={task.entity_id} onChange={()=>refreshed('recorded')}/></div>}
+    {panel==='approve'&&open&&<Approve applicantId={task.entity_id} users={users} onApproved={()=>refreshed('approved')}/>}
     {!task.weekly_insights&&<form className="task-form" onSubmit={e=>{e.preventDefault();save('edit',{assigned_to:draft.assigned_to||null,due_at:draft.due?new Date(draft.due).toISOString():null});}}>
       <fieldset disabled={disabled||!task.target_exists}><legend>Task details</legend>
         <div className="task-fields"><Owners value={draft.assigned_to} users={users} onChange={value=>setDraft(d=>({...d,assigned_to:value}))}/>
@@ -162,4 +177,30 @@ function Followup({task,users,paused,onDirty,onPending,onCreated,onCancel}) {
     {uncertain&&<p className="warn">The result could not be confirmed. <button type="button" className="linkish" disabled={busy||paused} onClick={()=>submit()}>Retry same task</button></p>}
     {busy&&<p role="status">Saving follow-up…</p>}
   </form>;
+}
+
+// NOT-09 · Approve: AUT-19's waiting criteria proposal, before and after, confirmed from the notice with the same route
+// and the same check of the version shown as the applicant's record. Its task closes in the same batch.
+function Approve({applicantId,users,onApproved}) {
+  const [d,setD]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false);
+  const nameOf=email=>users.find(u=>u.email===email)?.name||email;
+  useEffect(()=>{api(`/admin/applicants/${applicantId}`).then(setD,e=>setError(e.message));},[applicantId]);
+  const p=d?.criteria_proposal,link=`#/applicants/${applicantId}`;
+  const approve=async()=>{
+    if(busy)return;setBusy(true);setError(null);
+    try{await api(`/admin/applicants/${applicantId}/criteria-proposals/${p.id}/confirm`,{method:'POST',body:{updated_at:d.applicant.updated_at}});await onApproved();}
+    catch(e){setError(e.message);}finally{setBusy(false);}
+  };
+  return <section className="task-form" aria-labelledby="approve-h">
+    <h3 id="approve-h">Proposed criteria changes</h3>
+    {!d&&!error&&<p role="status">Loading the proposal…</p>}
+    {d&&!p&&<p>No proposal is waiting for this search. <a href={link}>Open applicant</a></p>}
+    {p&&<><p className="muted">Proposed by {p.source==='hermes'?'Hermes':nameOf(p.proposed_by)} · {fmtAgo(p.proposed_at)}{p.note&&` · ${p.note}`}</p>
+      <dl className="changes">{Object.keys(p.after).map(k=><div key={k}><dt>{label(k)}</dt>
+        <dd><span className="sr">from </span>{value(k,p.before[k],nameOf)} <span aria-hidden="true">→</span><span className="sr"> to</span> {value(k,p.after[k],nameOf)}</dd></div>)}</dl>
+      {p.stale?<p className="warn">The search changed after this proposal was made, so it can no longer be approved here. <a href={link}>Open applicant</a> to edit or discard it.</p>
+        :<p className="inline"><button type="button" className="btn" disabled={busy} onClick={approve}>Approve changes</button>
+          <span className="muted">Saves these criteria and recalculates matches. Nothing is sent.</span></p>}</>}
+    {error&&<p role="alert" className="err">{error}</p>}
+  </section>;
 }

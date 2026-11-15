@@ -6,14 +6,26 @@
   "fase": "F0",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Cada aviso trae Done, Call con el número a la vista y el enlace a su ficha (Open applicant, Review matches, Open viewings o Add a search for this contact).",
-  "falta": "M13 · Reconciliación 7-nov: Approve sin salir del aviso, Reply y Snooze para posponerlo. Aprobar match debe autorizar la consulta definida, Call muestra todos los teléfonos y registra resultado, Abrir ficha muestra archivos parciales, y confirmar dictado enseña antes/después. Done no sustituye confirmación de disponibilidad ni cierre de búsqueda. Depende de: BUS-15, AGE-08, SPR-03, AUT-19. Traído de EST-13 (15-nov): aviso propio de Inbox al aprobar una consulta aclaratoria o ante un imprescindible desconocido; hoy solo queda el evento match.clarification en el Timeline. Traído de AUT-19 (15-nov): confirmar una propuesta de criterios desde el propio aviso mostrando antes/después; hoy «Confirm proposed criteria changes» abre la ficha (ruta POST /admin/applicants/:id/criteria-proposals/:pid/confirm).",
-  "bloqueo": "Correo (AUT-17)",
+  "hecho": "Cada aviso trae Done, Call con el número a la vista y el enlace a su ficha (Open applicant, Review matches, Open viewings o Add a search for this contact). 15-nov-2026 (rama avanzar-not0809, apagado tras NOT0809_INBOX_READY y la migración aditiva 0087_notification_snooze.sql): Approve en el aviso «Confirm proposed criteria changes» (AUT-19) muestra antes→después y confirma con la ruta existente y la misma comprobación de versión; la tarea se cierra en la misma escritura. Call en la llamada de AGE-08 y Reply en «Agency needs more information» de AGE-06 abren dentro del aviso la consulta de la propiedad con todos los teléfonos del directorio como enlaces tel: y el formulario de respuesta de AGE-06; una respuesta útil cierra la tarea. Snooze «hasta mañana 09:00» la pasa al Feed con revisión, historial y evento propios; vale mientras la tarea siga en la revisión que creó, así que un contexto nuevo de su fuente, Done o Reopen la despiertan, y un tick del reloj sin cambios no escribe nada (ni reabre ni duplica). Wake now la devuelve. Done y Call (tel:) ya existían. Nada sale fuera.",
+  "falta": "Encender NOT0809_INBOX_READY en la web tras aplicar 0087 y comprobar en producción con lecturas. Reply por correo (contestar a la agencia o al cliente desde la app) depende de AUT-17. Approve de matches sigue en Review matches: un aviso agrupa varios matches y cada uno se revisa con sus comprobaciones (BUS-15). Traído de EST-13 (15-nov): aviso propio de Inbox al aprobar una consulta aclaratoria o ante un imprescindible desconocido; hoy solo queda el evento match.clarification en el Timeline. Abrir ficha con archivos parciales es de SPR-03/SPR-08 (la tarea «Open property record» ya lleva a la ficha).",
+  "bloqueo": "Activación: migración 0087 e interruptor NOT0809_INBOX_READY (autorizados por CONTINUIDAD). Reply por correo: AUT-17.",
   "evidencia": [
-    "admin/src/Inbox.jsx:19-21",
-    "admin/src/Inbox.jsx:81-95",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo.",
+    "server/notification-query.js",
+    "server/routes/notifications.js",
+    "server/notification-tasks.js",
+    "admin/src/Inbox.jsx",
+    "admin/src/InboxTask.jsx",
+    "tests/server/notification-actions.test.mjs",
+    "tests/not0809-inbox-actions.e2e.cjs",
+    "migrations/0087_notification_snooze.sql",
+    "admin/src/Enquiries.jsx",
+    "admin/src/ApplicantDetail.jsx",
+    "Decisión: Approve solo donde ya hay aprobación con tarea propia (propuesta de criterios de AUT-19); la aprobación de envío de AGE-05 es correo (AUT-17) y la de matches es por match (BUS-15); fuente: encargo 15-nov y AUT-19.",
+    "Decisión: Reply sin correo = abrir el formulario de respuesta existente de AGE-06 dentro del aviso; fuente: encargo 15-nov y AGE-06.",
+    "Decisión: Snooze de un clic hasta mañana 09:00 (hora del navegador), máximo 30 días en el servidor y ligado a la revisión; fuente: regla 5 de la skill (lo más simple y reversible) y aceptación M13 (dos ticks del reloj no duplican).",
+    "Pruebas 15-nov: node --test tests/server/notification-actions.test.mjs 5/5 (apagado, pestañas, Snooze/Wake con historial y evento, validación, reloj sin reabrir); notification-*, notifications, jobs, age-08-call-tasks, age-06-responses, spr-03-captures pasan; navegador aislado tests/not0809-inbox-actions.e2e.cjs a 1280 y 390 (Call y respuesta, Snooze por teclado y Wake, Approve) pasa."
   ],
   "modulo": "M13",
   "deps": [
@@ -71,6 +83,6 @@
     "agency-consultations-contract",
     "dictation-contract"
   ],
-  "nextStep": "Añadir acciones contextuales sobre las gestiones ya construidas, sin convertir Done en cierre de búsqueda.",
+  "nextStep": "Aplicar 0087 en D1 hampton, encender NOT0809_INBOX_READY y verificar por GET que los avisos traen quick y can_snooze.",
   "actualizado": "2026-11-15"
 }

@@ -1,6 +1,6 @@
 import { ownerStorageAvailable } from '../owner-requests.js';
 import { json, fail, readJson, now } from "../http.js";
-import { notificationSelect, noticeDto, TASK_CATEGORIES } from "../notification-query.js";
+import { notificationSelect, noticeDto, TASK_CATEGORIES, inboxActionsReady, categorySql, snoozedSql } from "../notification-query.js";
 import { getTask, mutateTask } from "../notification-tasks.js";
 import { salesCount } from "./sales.js";
 import { refreshRentalsCount } from "./rent.js";
@@ -10,9 +10,11 @@ import { TO_CONFIRM } from "../listing.js";
 import { stoppedFlags } from "./automations.js";
 import { readLegal } from "../legal-terms.js";
 
+// NOT-09 (switched on): a snoozed task waits in the Feed until its time.
+const OPEN = on => `n.action_required = 1 AND n.resolved_at IS NULL${on ? ` AND NOT ${snoozedSql()}` : ""}`;
 const BOXES = {
-  action: "n.action_required = 1 AND n.resolved_at IS NULL ORDER BY n.created_at, n.id LIMIT 200",
-  feed: "NOT (n.action_required = 1 AND n.resolved_at IS NULL) ORDER BY n.created_at DESC, n.id DESC LIMIT 200",
+  action: on => `${OPEN(on)} ORDER BY n.created_at, n.id LIMIT 200`,
+  feed: on => `NOT (${OPEN(on)}) ORDER BY n.created_at DESC, n.id DESC LIMIT 200`,
 };
 const CATEGORIES = TASK_CATEGORIES;
 
@@ -25,9 +27,10 @@ const CATEGORIES = TASK_CATEGORIES;
 // legal (ADM-17, with its switch): whether the legal periods behind the compliance dates are estimated or validated.
 export async function openCounts(env, legal) {
   legal ??= await readLegal(env);
+  const on = inboxActionsReady(env);
   const [{ results }, { results: [sales] }, , , { results: [rentals] }, { results: [expiring] }, { results: [toConfirm] },
     { results: [outbound] }, { results: seen }, { results: [chats] }, { results: [retentionReview] }] = await env.DB.batch([env.DB.prepare(
-    "SELECT category, COUNT(*) AS n FROM notifications WHERE action_required = 1 AND resolved_at IS NULL GROUP BY category"),
+    `SELECT ${categorySql(on)} AS category, COUNT(*) AS n FROM notifications n WHERE ${OPEN(on)} GROUP BY 1`),
   salesCount(env), ...refreshRentalsCount(env, legal.periods),
   env.DB.prepare("SELECT json_extract(value, '$.n') AS n FROM app_settings WHERE key = 'rentals_count'"),
   // ponytail: rows read per poll ≈ 1 + 3 × the contacts in the band (each one's search, sale and open-offer lookups);
@@ -56,10 +59,11 @@ async function list({ request, env, waitUntil, admin }) {
   if (!Object.hasOwn(BOXES, box ?? "")) fail(400, "Invalid box");
   if (category && !CATEGORIES.includes(category)) fail(400, "Invalid category");
   waitUntil(retentionPass(env, now()));
+  const on = inboxActionsReady(env);
   const preferences = box === "feed" ? `
-    (n.resolved_at IS NOT NULL OR n.category IN (SELECT value FROM json_each(COALESCE(
+    (n.resolved_at IS NOT NULL OR ${on ? `${snoozedSql()} OR ` : ""}${categorySql(on)} IN (SELECT value FROM json_each(COALESCE(
       (SELECT feed_categories FROM notification_preferences WHERE admin=?),'${JSON.stringify(CATEGORIES)}')))) AND ` : "";
-  const { results } = await env.DB.prepare(`${notificationSelect(await ownerStorageAvailable(env))} WHERE ${category ? "n.category = ? AND " : ""}${preferences}${BOXES[box]}`)
+  const { results } = await env.DB.prepare(`${notificationSelect(await ownerStorageAvailable(env), on)} WHERE ${category ? `${categorySql(on)} = ? AND ` : ""}${preferences}${BOXES[box](on)}`)
     .bind(admin,...(category ? [category] : []),...(box === "feed" ? [admin] : [])).all();
   // ADM-17: a check or deadline the system worked out from legal periods no lawyer has validated says so (estimated).
   const legal = await readLegal(env), estimated = legal.terms?.status === "estimated";
