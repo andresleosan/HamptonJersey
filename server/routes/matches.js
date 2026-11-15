@@ -103,7 +103,7 @@ export const CLARIFICATION_APPROVED = `m.status <> 'rejected' AND ${activeSql("a
 export const availableToAsk = env => notConfirmedUnavailable(env, "m.listing_id", "(SELECT operation FROM listings WHERE id = m.listing_id)");
 // AGE-03: what each kind of enquiry may start from, join and go out for. An approval given before the property left the
 // offer approves no enquiry about it.
-const ENQUIRY_GATES = { general: `${APPROVED} AND ${STILL_OFFERED}`, clarification: CLARIFICATION_APPROVED, asked: CLARIFICATION,
+export const ENQUIRY_GATES = { general: `${APPROVED} AND ${STILL_OFFERED}`, clarification: CLARIFICATION_APPROVED, asked: CLARIFICATION,
   card: async (env, id) => {
     const row = await env.DB.prepare(`${MATCHES_SQL} WHERE m.id = ?`).bind(id).first();
     return row ? (await matchCards(env, [row]))[0] : null;

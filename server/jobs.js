@@ -2,6 +2,7 @@ import { now } from "./http.js";
 import { retentionPass } from "./retention.js";
 import { demandRetentionPass } from "./demand-retention.js";
 import { emailPass } from "./email.js";
+import { enquiryEmailPass } from "./consultation-email.js";
 import { receiveEmail } from "./email-inbound.js";
 import { weeklyInsightsPass } from './weekly-insights.js';
 import { notificationsPass } from "./notification-reconcile.js";
@@ -33,7 +34,9 @@ export default {
       catch { console.error('Rental withdrawal pass failed'); }
     }
     // Use processing time for email: a delayed old trigger must not send yesterday's summary.
-    await emailPass(env, now());
+    // AGE-05: an enquiry that may no longer go out leaves the queue first (if that check fails, no email on this tick),
+    // and what happened to each enquiry's email is written on it after.
+    if (await enquiryEmailPass(env)) { await emailPass(env, now()); await enquiryEmailPass(env); }
   },
   async email(message, env) { await receiveEmail(message, env); },
 };

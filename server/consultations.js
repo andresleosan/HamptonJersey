@@ -2,18 +2,27 @@
 // that every approved match of it joins, and one per match to clarify a must-have the property does not answer. A
 // person starts or joins it from a match that passes its gate (server/routes/matches.js, which mounts these routes
 // and hands the gates in), chooses the recipient among the property's advertisers (AGE-04) and gets a text that
-// names the property and no client. Nothing here sends anything: the enquiry waits as "to send manually" with an
-// Inbox task, and becomes sent only when a person records having sent it (AGE-05 adds real channels).
+// names the property and no client. AGE-03 sends nothing: the enquiry waits as "to send manually" with an Inbox task,
+// and becomes sent only when a person records having sent it.
+// AGE-05 (migration 0080, AGE05_SEND_READY): a person also chooses the advertiser's contact, kept by reference, and
+// may approve sending exactly that version by email. It is then queued once in the app's email pipeline (AUT-17,
+// server/email.js), checked again before it leaves (settle, run by the clock) and marked sent only when the provider
+// accepted it. While that pipeline is off nothing is queued and the enquiry stays to send manually.
 // A match counts for an enquiry while it still passes its gate: a resolved search or an approval that no longer
 // stands leaves without a write, and the enquiry stays open for the others.
 // Off (AGE03_ENQUIRIES_READY) or before the migration, nothing is read and every card says Not sent.
-import { json, fail, readJson, now } from "./http.js";
-import { instant } from "./property-facts.js";
+import { json, fail, readJson, now, sha256 } from "./http.js";
+import { instant, unavailabilityReady } from "./property-facts.js";
+import { serviceReady, readEmailSettings, emailAddress } from "./email.js";
 import { confirmationReader } from "./availability-confirmations.js";
 import { taskStatements } from "./notification-tasks.js";
 import { CHECK_LABEL } from "./candidate-state.js";
 
 export const enquiriesReady = env => env?.AGE03_ENQUIRIES_READY === "1";
+// AGE-05 needs EST-15 too: a property confirmed as not available must take what is pending out before anything is sent.
+export const sendReady = env => env?.AGE05_SEND_READY === "1" && enquiriesReady(env) && unavailabilityReady(env);
+// On only with migration 0080 as well; before it every answer and every write is as AGE-03 left them.
+const sending = async env => sendReady(env) && env.DB.prepare("SELECT contact_key FROM consultations LIMIT 0").all().then(() => true, () => false);
 const missing = e => /no such table/.test(e?.message ?? "");
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const VIA = ["phone", "email", "in_person", "message"];
@@ -26,6 +35,24 @@ const NOT_APPROVED = { general: "Only a match approved on the search and the pro
   + "offered, can start or join an enquiry.", clarification: "Approve a clarification for this match first: only then can it be asked about." };
 const UNAVAILABLE = "This property was confirmed as not available, so no enquiry about it goes out.";
 const CHANGED = "This enquiry changed. Reload to review it.";
+const CHECK_TASK = { category: "task", title: "Check enquiry email", reason: "The email service did not confirm whether an enquiry about this "
+  + "property went out. Open the property: its Enquiries section says what to check. It is never sent again automatically." };
+const NOT_WAITING = "This enquiry is no longer waiting to be sent. Reload to see it.";
+const NO_EMAIL = "Choose a contact with an email address first. By phone or in person, send it yourself and record it.";
+const BY_HAND = "send it yourself and record it below.";
+// A contact is referred to by a digest of its name and email, never by a copy: one that is renamed, given another
+// address or removed no longer answers to it, and the enquiry waits for a person to choose again.
+const contactKey = c => sha256(JSON.stringify([c.name, c.email].map(v => String(v ?? "").trim().toLowerCase())));
+// Each contact that can be reached (an email or a phone) with its reference; the others are shown but cannot be chosen.
+const keyed = contacts => Promise.all(contacts.map(async c => (emailAddress(c.email) || c.phones?.length ? { ...c, key: await contactKey(c) } : c)));
+// Why the app cannot send an email now, in words for the panel; null when it can.
+async function emailStop(env) {
+  if (!serviceReady(env)) return `Email from the app is not switched on yet, so nothing is sent from here: ${BY_HAND}`;
+  if (!(await readEmailSettings(env)).enabled) return `Email sending is switched off in Email settings, so nothing is sent from here: ${BY_HAND}`;
+  if (await env.DB.prepare("SELECT 1 FROM app_settings WHERE key = 'outbound' AND json_extract(value, '$.paused') = 1").first())
+    return `Sending is paused (Pause all outbound), so nothing is queued: resume sending, or ${BY_HAND}`;
+  return null;
+}
 
 const OFFER = { sale: "for sale", rent: "to let", business: "as a business" };
 // The proposed text, the same for the same facts. It names the property by its reference, title and public place (never
@@ -59,7 +86,8 @@ export async function enquiryReader(env, ids) {
 
 // gates: { general, clarification } (SQL over matches m JOIN applicants a: what each kind may start from),
 // asked (SQL: the clarification standing for m, as JSON) and card(env, matchId) (the match as its card shows it).
-export default function consultationRoutes(gates) {
+// Gives { routes, settle }: settle is the clock's part of sending by email (server/consultation-email.js).
+export function enquiries(gates) {
   const live = `(CASE c.kind WHEN 'general' THEN (${gates.general}) ELSE (${gates.clarification}) END)`;
   // The match with what it may start now and, for a home, the size of its own household.
   const matchOf = async (env, id) => await env.DB.prepare(`SELECT m.id, m.listing_id, l.title, l.location, l.country, l.operation,
@@ -76,9 +104,19 @@ export default function consultationRoutes(gates) {
   // OF_PROPERTY: advertisers a advertises that property, itself or through one of its sources. Bind: the property, twice.
   const OF_PROPERTY = `(EXISTS (SELECT 1 FROM json_each(a.details, '$.listing_ids') j WHERE j.value = ?) OR EXISTS
     (SELECT 1 FROM json_each(a.details, '$.source_ids') j JOIN research_sources s ON s.source_id = j.value WHERE s.property_id = ?))`;
-  const recipient = ({ id, name, kind, details }) => { const { contacts, channels } = JSON.parse(details); return { id, name, kind, contacts, channels }; };
-  const recipients = async (env, listing) => (await env.DB.prepare(`SELECT a.* FROM advertisers a WHERE ${OF_PROPERTY}
-    ORDER BY a.name COLLATE NOCASE, a.id LIMIT 50`).bind(listing, listing).all()).results.filter(a => !a.suppressed_at).map(recipient);
+  // keys (AGE-05): each contact that can be reached carries the reference it is chosen by.
+  const recipient = async ({ id, name, kind, details }, keys) => { const { contacts, channels } = JSON.parse(details);
+    return { id, name, kind, contacts: keys ? await keyed(contacts) : contacts, channels }; };
+  const recipients = async (env, listing, keys) => Promise.all((await env.DB.prepare(`SELECT a.* FROM advertisers a WHERE ${OF_PROPERTY}
+    ORDER BY a.name COLLATE NOCASE, a.id LIMIT 50`).bind(listing, listing).all()).results.filter(a => !a.suppressed_at).map(a => recipient(a, keys)));
+  // The recipient among them and, with a contact named (AGE-05), that contact's reference: it must be one of its own.
+  const chosen = (list, { advertiser_id, contact_key: key }, keys) => {
+    const to = list.find(a => a.id === advertiser_id) ?? fail(400, "Choose a recipient among the advertisers of this property.");
+    if (keys && key != null && !to.contacts.some(p => p.key && p.key === key)) fail(400, "Choose a contact of that recipient with an email or a phone.");
+    return keys ? key ?? null : undefined;
+  };
+  // Matches of this enquiry (the consultations row an UPDATE is on) that still count, or the one named.
+  const counts = match => `EXISTS (SELECT 1 FROM ${LINKS} WHERE cm.consultation_id = consultations.id AND ${match} AND ${live})`;
   // The household of a match that still counts for this enquiry, as it is now. undefined: the match does not count.
   const caseOf = (env, c, matchId) => env.DB.prepare(`SELECT CASE WHEN a.search_category <> 'commercial' THEN COALESCE(a.household_total,
     a.household_adults + a.household_children) END AS occupants FROM ${LINKS} WHERE cm.consultation_id = ? AND cm.match_id = ? AND ${live}`)
@@ -97,14 +135,18 @@ export default function consultationRoutes(gates) {
   }
 
   // An enquiry as the panel shows it. matches: how many still count. blocked: why it must not go out now (asked
-  // again when a sending is recorded). With a match: whether it counts and whether its household is the one stated.
+  // again when a sending is recorded, approved or queued, and while its email waits in the queue). With a match:
+  // whether it counts and whether its household is the one stated. AGE-05 adds the contact chosen, as the directory
+  // has it now, the approval that covers this version and the reference of its email.
   async function detail(env, c, matchId) {
-    const pending = c.status === "manual_pending";
+    const pending = c.status === "manual_pending" || c.status === "queued", send = sendReady(env) && "contact_key" in c;
     const [{ results }, advertiser, confirmation] = await Promise.all([
       env.DB.prepare(`SELECT cm.match_id FROM ${LINKS} WHERE cm.consultation_id = ? AND ${live}`).bind(c.id).all(),
       env.DB.prepare(`SELECT a.*, ${OF_PROPERTY} AS of_property FROM advertisers a WHERE a.id = ?`).bind(c.listing_id, c.listing_id, c.advertiser_id).first(),
       confirmed(env, c.listing_id, c.operation)]);
     const ids = results.map(r => r.match_id), removed = !advertiser || !!advertiser.suppressed_at, unlinked = pending && !removed && !advertiser.of_property;
+    const to = removed ? { id: c.advertiser_id, removed: true } : { ...await recipient(advertiser, send), ...(unlinked ? { unlinked: true } : {}) };
+    const contact = send && c.contact_key ? to.contacts?.find(p => p.key === c.contact_key) ?? { missing: true } : null;
     // What the text would say now, with the household of its case as it is today: a text written from other facts waits.
     const stated = pending && c.occupants_match_id && ids.includes(c.occupants_match_id);
     const current = pending && await proposed(env, c, stated ? household(await caseOf(env, c, c.occupants_match_id)) : null, confirmation);
@@ -114,34 +156,37 @@ export default function consultationRoutes(gates) {
       : confirmation?.status === "unavailable" ? UNAVAILABLE
       : removed ? "The recipient's personal data was removed. Choose another recipient before sending."
       : unlinked ? "The recipient is no longer an advertiser of this property in the directory. Choose another recipient before sending."
+      : contact?.missing ? "The contact chosen is no longer in the directory as it was when it was chosen. Choose a contact again before sending."
       : current && current.text !== c.body ? (c.kind === "general"
         ? "The household stated, the property's details or its confirmed availability changed since this text was written. Save changes to update it before sending."
         : "The must-haves to clarify, or the property's details, changed since this text was written. Save changes to update it before sending.") : null;
     const { id, kind, status, revision, listing_id, operation, body: text, occupants, prepared_by, prepared_at, sent_at, sent_via, sent_by, sent_evidence_ref } = c;
     return { id, kind, status, revision, listing_id, operation, text, asks_availability: !!c.asks_availability, occupants,
-      recipient: removed ? { id: c.advertiser_id, removed: true } : { ...recipient(advertiser), ...(unlinked ? { unlinked: true } : {}) },
-      prepared_by, prepared_at, sent_at, sent_via, sent_by,
-      sent_evidence_ref, matches: ids.length, blocked,
+      recipient: to, prepared_by, prepared_at, sent_at, sent_via, sent_by, sent_evidence_ref, matches: ids.length, blocked,
+      ...(send ? { contact, approval: c.approved_revision === revision ? { by: c.approved_by, at: c.approved_at } : null, email_ref: c.email_ref } : {}),
       ...(matchId == null ? {} : { joined: ids.includes(matchId), occupants_from_this_match: c.occupants_match_id === matchId }) };
   }
 
   // What a match's card needs to start, join or show its enquiry.
   async function context({ env, params: [id] }) {
-    const m = await matchOf(env, id), can = m.general ? "general" : m.clarification ? "clarification" : null;
+    const m = await matchOf(env, id), can = m.general ? "general" : m.clarification ? "clarification" : null, send = await sending(env);
     const linked = await env.DB.prepare(`SELECT c.* FROM consultations c JOIN consultation_matches cm ON cm.consultation_id = c.id
       WHERE cm.match_id = ? AND c.${OPEN} AND (? IS NULL OR c.kind = ?) ORDER BY c.id DESC LIMIT 1`).bind(m.id, can, can).first();
     const c = linked ?? (can ? await openOf(env, scopeOf(m, can)) : null), availability = await confirmed(env, m.listing_id, m.operation);
     const text = occupants => enquiryText({ listing: { ...m, id: m.listing_id }, asks: availability?.status !== "available", occupants,
       keys: can === "clarification" ? JSON.parse(m.asked).keys : undefined });
     const occupants = can === "general" ? household(m) : null;
-    return json({ enabled: true, can, consultation: c ? await detail(env, c, m.id) : null, advertisers: await recipients(env, m.listing_id),
-      availability: availability ?? null, occupants, match: await gates.card(env, m.id),
+    return json({ enabled: true, can, consultation: c ? await detail(env, c, m.id) : null, advertisers: await recipients(env, m.listing_id, send),
+      availability: availability ?? null, occupants, match: await gates.card(env, m.id), ...(send ? { send: { email_stop: await emailStop(env) } } : {}),
       ...(can && !c ? { preview: { text: text(null), ...(occupants ? { text_with_occupants: text(occupants) } : {}) } } : {}) });
   }
 
-  const forListing = async ({ env, params: [id] }) => json({ enabled: true, advertisers: await recipients(env, id),
-    consultations: await Promise.all((await env.DB.prepare("SELECT * FROM consultations WHERE listing_id = ? ORDER BY id DESC LIMIT 20")
-      .bind(id).all()).results.map(c => detail(env, c))) });
+  const forListing = async ({ env, params: [id] }) => {
+    const send = await sending(env);
+    return json({ enabled: true, advertisers: await recipients(env, id, send), ...(send ? { send: { email_stop: await emailStop(env) } } : {}),
+      consultations: await Promise.all((await env.DB.prepare("SELECT * FROM consultations WHERE listing_id = ? ORDER BY id DESC LIMIT 20")
+        .bind(id).all()).results.map(c => detail(env, c))) });
+  };
 
   // Starts the enquiry of this match's property and operation, or joins the one already open: never a second one.
   async function prepare({ request, env, admin, params: [id] }) {
@@ -156,15 +201,15 @@ export default function consultationRoutes(gates) {
     if (!await openOf(env, scope)) {
       if (await env.DB.prepare("SELECT 1 FROM consultations WHERE operation_id = ?").bind(body.operation_id).first())
         fail(409, "That operation ID was already used for another enquiry.");
-      if (!(await recipients(env, m.listing_id)).some(a => a.id === body.advertiser_id)) fail(400, "Choose a recipient among the advertisers of this property.");
+      const send = await sending(env), contact = chosen(await recipients(env, m.listing_id, send), body, send);
       const text = enquiryText({ listing: { ...m, id: m.listing_id }, asks: availability?.status !== "available", occupants,
         keys: kind === "clarification" ? JSON.parse(m.asked).keys : undefined });
       create.push(
         env.DB.prepare(`INSERT OR IGNORE INTO consultations (kind, listing_id, operation, scope_key, status, advertiser_id, body, asks_availability,
-            occupants_match_id, occupants, prepared_by, prepared_at, operation_id)
-          SELECT ?, m.listing_id, ?, ?, 'manual_pending', ?, ?, ?, ?, ?, ?, ?, ? FROM matches m JOIN applicants a ON a.id = m.applicant_id
+            occupants_match_id, occupants, prepared_by, prepared_at, operation_id${contact ? ", contact_key" : ""})
+          SELECT ?, m.listing_id, ?, ?, 'manual_pending', ?, ?, ?, ?, ?, ?, ?, ?${contact ? ", ?" : ""} FROM matches m JOIN applicants a ON a.id = m.applicant_id
           WHERE m.id = ? AND ${gate}`).bind(kind, m.operation, scope, body.advertiser_id, text, kind === "general" && availability?.status !== "available" ? 1 : 0,
-          occupants && m.id, occupants, admin, ts, body.operation_id, m.id),
+          occupants && m.id, occupants, admin, ts, body.operation_id, ...(contact ? [contact] : []), m.id),
         // The event and the Inbox task exist only if this request created the enquiry; they carry ids, never its text.
         env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data) SELECT ?, ?, 'listing', ?, 'consultation.prepared',
           json_object('version', 1, 'consultation_id', last_insert_rowid(), 'kind', ?, 'operation', ?) WHERE changes() = 1`)
@@ -185,6 +230,7 @@ export default function consultationRoutes(gates) {
   // Another recipient, or the one household stated (occupants_match_id: a match of the enquiry, null for none, absent
   // to keep it while its match still counts and says its size), while it has not been sent: a new version, whose text
   // is written again from the facts of today (the household as it is now, the must-haves of the clarification standing).
+  // AGE-05: also the contact chosen (contact_key, or none). An approval to send covers one version, so never this new one.
   async function update({ request, env, admin, params: [id] }) {
     const body = await readJson(request), given = body?.occupants_match_id;
     if (!Number.isSafeInteger(body?.revision) || !Number.isSafeInteger(body.advertiser_id) || (given != null && !Number.isSafeInteger(given)))
@@ -192,7 +238,7 @@ export default function consultationRoutes(gates) {
     const c = await one(env, id), caseId = given === undefined ? c.occupants_match_id : given;
     if (c.status !== "manual_pending") fail(409, "This enquiry was already sent, so it can no longer be changed.");
     if (c.revision !== body.revision) fail(409, CHANGED);
-    if (!(await recipients(env, c.listing_id)).some(a => a.id === body.advertiser_id)) fail(400, "Choose a recipient among the advertisers of this property.");
+    const send = sendReady(env) && "contact_key" in c, contact = chosen(await recipients(env, c.listing_id, send), body, send);
     if (c.kind !== "general" && given != null) fail(400, "A clarification states no household.");
     let occupants = null;
     if (caseId != null) {
@@ -204,8 +250,9 @@ export default function consultationRoutes(gates) {
     }
     const { text, asks } = await proposed(env, c, occupants, await confirmed(env, c.listing_id, c.operation)) ?? { text: c.body, asks: c.asks_availability };
     const { meta } = await env.DB.prepare(`UPDATE consultations SET advertiser_id = ?, body = ?, asks_availability = ?, occupants_match_id = ?,
-      occupants = ?, prepared_by = ?, prepared_at = ?, revision = revision + 1 WHERE id = ? AND revision = ? AND status = 'manual_pending'`)
-      .bind(body.advertiser_id, text, asks, occupants && caseId, occupants, admin, now(), c.id, c.revision).run();
+      occupants = ?, prepared_by = ?, prepared_at = ?, revision = revision + 1${send ? ", contact_key = ?" : ""}
+      WHERE id = ? AND revision = ? AND status = 'manual_pending'`)
+      .bind(body.advertiser_id, text, asks, occupants && caseId, occupants, admin, now(), ...(send ? [contact] : []), c.id, c.revision).run();
     if (!meta.changes) fail(409, CHANGED);
     return json({ consultation: await detail(env, await one(env, id)) });
   }
@@ -230,7 +277,6 @@ export default function consultationRoutes(gates) {
       return json({ error: "Please check the highlighted fields.", fields: { sent_at: "Choose a date and time after this text was prepared" } }, 400);
     const { blocked } = await detail(env, c);
     if (blocked) fail(409, blocked);
-    const counts = match => `EXISTS (SELECT 1 FROM ${LINKS} WHERE cm.consultation_id = consultations.id AND ${match} AND ${live})`;
     const [{ meta }] = await env.DB.batch([
       env.DB.prepare(`UPDATE consultations SET status = 'sent', sent_at = ?, sent_via = ?, sent_by = ?, sent_evidence_ref = ?, sent_operation_id = ?,
         sent_recorded_at = ? WHERE id = ? AND revision = ? AND status = 'manual_pending' AND ${counts("1")}
@@ -245,17 +291,123 @@ export default function consultationRoutes(gates) {
     return json({ consultation: await detail(env, after) });
   }
 
+  // AGE-05. One step of an enquiry's email, written once whoever asks: the enquiry as it was read moves on (set), an
+  // event names it and its email by their ids only (data), and its Inbox task follows (task, over the manual one).
+  const step = (env, c, actor, type, set, args = [], { data, task, when = "" } = {}) => [
+    env.DB.prepare(`UPDATE consultations SET ${set} WHERE id = ? AND revision = ? AND status = ?${when}`).bind(...args, c.id, c.revision, c.status),
+    env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data) SELECT ?, ?, 'listing', ?, ?, ? WHERE changes() = 1`)
+      .bind(now(), actor, c.listing_id, `consultation.${type}`, JSON.stringify({ version: 1, consultation_id: c.id, consultation_revision: c.revision, ...data })),
+    ...(task ? taskStatements(env, { ...TASK, ...task, taskKey: `consultation:${c.operation_id}`, eventId: null,
+      target: { kind: "listing", id: c.listing_id }, actor }, { ifInserted: true }) : [])];
+  // Back to a person, unsent: a new version that nobody approved, with no email of its own, and its Inbox task open again.
+  const back = (env, c, actor, reason, when) => step(env, c, actor, "email_not_sent",
+    "status = 'manual_pending', revision = revision + 1, email_ref = NULL, sent_by = NULL", [], { data: { email_ref: c.email_ref, reason }, task: { reopen: true }, when });
+  // Sent by email at the time the provider took it (at), which is when the wait for an answer starts.
+  const emailed = (env, c, actor, type, at, task) => step(env, c, actor, type, "status = 'sent', sent_at = ?, sent_via = 'email', sent_recorded_at = ?",
+    [at, now()], { data: { email_ref: c.email_ref }, task });
+
+  // A person approves sending exactly this version by email: this recipient, this contact's address and this text. A
+  // second approval of the same version is the first one; any change after it is another version, approved by nobody.
+  async function approve({ request, env, admin, params: [id] }) {
+    const body = await readJson(request);
+    if (!Number.isSafeInteger(body?.revision)) fail(400, "Invalid format");
+    const c = await one(env, id);
+    if (c.status !== "manual_pending") fail(409, NOT_WAITING);
+    if (c.revision !== body.revision) fail(409, CHANGED);
+    const d = await detail(env, c);
+    if (d.blocked) fail(409, d.blocked);
+    if (!emailAddress(d.contact?.email)) fail(409, NO_EMAIL);
+    await env.DB.batch(step(env, c, admin, "send_approved", "approved_revision = revision, approved_by = ?, approved_at = ?", [admin, now()],
+      { when: " AND approved_revision IS NOT revision" }));
+    const after = await one(env, id);
+    if (after.approved_revision !== c.revision) fail(409, CHANGED);
+    return json({ consultation: await detail(env, after) });
+  }
+
+  // Queues the approved version in the app's email pipeline, once: two people and a retry find it already queued. Checked
+  // again first: the approval, what blocks the enquiry, the contact's address and whether the app may send email now.
+  // The pipeline asks the pause, the suppressions and the daily limit again before the provider is called.
+  async function sendEmail({ request, env, admin, params: [id] }) {
+    const body = await readJson(request);
+    if (!Number.isSafeInteger(body?.revision)) fail(400, "Invalid format");
+    const c = await one(env, id);
+    if (c.revision !== body.revision) fail(409, CHANGED);
+    if (c.email_ref && c.status !== "manual_pending") return json({ consultation: await detail(env, c) }); // the same send again
+    if (c.status !== "manual_pending") fail(409, NOT_WAITING);
+    if (c.approved_revision !== c.revision) fail(409, "Approve sending this version first: nothing goes out without it.");
+    const d = await detail(env, c), to = emailAddress(d.contact?.email), stop = d.blocked ?? (to ? await emailStop(env) : NO_EMAIL);
+    if (stop) fail(409, stop);
+    const hash = await sha256(to), ts = now(), ref = crypto.randomUUID().replaceAll("-", "");
+    if (await env.DB.prepare("SELECT 1 FROM email_suppressions WHERE address_hash = ?").bind(hash).first())
+      fail(409, `This address is on the email suppression list, so the app does not write to it: choose another contact, or ${BY_HAND}`);
+    const l = await env.DB.prepare("SELECT title, location, country FROM listings WHERE id = ?").bind(c.listing_id).first(), place = l.location || l.country;
+    await env.DB.batch([
+      // One email per version at most (dedupe_key), and only for the enquiry as it was just read: approved, with a match that counts.
+      env.DB.prepare(`INSERT INTO outbound (ref, dedupe_key, template, entity_id, version, recipient, recipient_hash, subject, text, status,
+          approved_by, approved_at, created_at, updated_at)
+        SELECT ?, ?, 'enquiry', ?, revision, ?, ?, ?, body, 'queued', approved_by, approved_at, ?, ? FROM consultations
+        WHERE id = ? AND revision = ? AND status = 'manual_pending' AND approved_revision = revision AND contact_key = ? AND ${counts("1")}
+          AND (occupants_match_id IS NULL OR ${counts("cm.match_id = consultations.occupants_match_id")})
+        ON CONFLICT (dedupe_key) DO NOTHING`).bind(ref, await sha256(`enquiry\0${c.id}\0${c.revision}`), String(c.id), to, hash,
+        `Enquiry about ${l.title}${place ? `, ${place}` : ""} (our reference ${c.listing_id})`.slice(0, 400), ts, ts, c.id, c.revision, c.contact_key),
+      ...step(env, c, admin, "email_queued", "status = 'queued', email_ref = ?, sent_by = ?", [ref, admin],
+        { data: { email_ref: ref }, task: { resolved: true }, when: " AND changes() = 1" })]);
+    const after = await one(env, id);
+    if (after.status === "manual_pending") fail(409, CHANGED);
+    return json({ consultation: await detail(env, after) });
+  }
+
+  // The email service did not say whether the email went out, and the app never sends it again by itself: a person
+  // checks and says which. Sent: at the time it was attempted. Not sent: back to a person, as a new version.
+  async function outcome({ request, env, admin, params: [id] }) {
+    const body = await readJson(request);
+    if (!Number.isSafeInteger(body?.revision) || typeof body.sent !== "boolean") fail(400, "Invalid format");
+    const c = await one(env, id);
+    if (c.status !== "needs_review") fail(409, "This enquiry is not waiting for its email to be checked. Reload to see it.");
+    if (c.revision !== body.revision) fail(409, CHANGED);
+    const tried = await env.DB.prepare("SELECT claimed_at FROM outbound WHERE ref = ?").bind(c.email_ref).first();
+    await env.DB.batch(body.sent ? emailed(env, c, admin, "email_confirmed", tried?.claimed_at ?? now(), { ...CHECK_TASK, resolved: true })
+      : back(env, c, admin, "checked"));
+    const after = await one(env, id);
+    if (after.status === "needs_review") fail(409, CHANGED);
+    return json({ consultation: await detail(env, after) });
+  }
+
+  // The clock's part, before and after each email dispatch (server/consultation-email.js), for every enquiry whose
+  // email waits or was tried. Still queued: checked again and, if blocked, taken out of the queue unsent. Accepted by
+  // the provider: sent, at that time. Uncertain: it waits for a person and is never sent again. Rejected, cancelled
+  // or gone: back to a person. An email being sent right now is left for the next pass.
+  async function settle(env) {
+    const { results } = await env.DB.prepare(`SELECT c.*, o.status AS email_status, o.updated_at AS email_at, o.error_code AS email_error
+      FROM consultations c LEFT JOIN outbound o ON o.ref = c.email_ref WHERE c.status = 'queued' ORDER BY c.id LIMIT 50`).all();
+    for (const { email_status: status, email_at, email_error, ...c } of results) {
+      if (status === "sending") continue;
+      if (status !== "queued") await env.DB.batch(status === "accepted" ? emailed(env, c, "system", "sent_by_email", email_at)
+        : status === "unknown" ? step(env, c, "system", "email_unknown", "status = 'needs_review'", [], { data: { email_ref: c.email_ref }, task: { ...CHECK_TASK, reopen: true } })
+        : back(env, c, "system", email_error ?? status ?? "missing"));
+      else if ((await detail(env, c)).blocked) await env.DB.batch([
+        env.DB.prepare("UPDATE outbound SET status = 'cancelled', updated_at = ? WHERE ref = ? AND status = 'queued'").bind(now(), c.email_ref),
+        ...back(env, c, "system", "blocked", " AND changes() = 1")]);
+    }
+  }
+
   // Off, or before migration 0077: reads answer { enabled: false } and writes 404, as if the routes were not there.
   const guarded = (handler, read) => async ctx => {
     const off = () => (read ? json({ enabled: false }) : fail(404, "Not found"));
     if (!enquiriesReady(ctx.env)) return off();
     try { return await handler(ctx); } catch (e) { if (missing(e)) return off(); throw e; }
   };
-  return [
+  // AGE-05's own routes are not there until its switch, EST-15 and migration 0080 are.
+  const sends = handler => guarded(async ctx => (await sending(ctx.env) ? handler(ctx) : fail(404, "Not found")));
+  return { settle, routes: [
     ["GET", /^\/admin\/matches\/(\d+)\/consultation$/, guarded(context, true), true],
     ["POST", /^\/admin\/matches\/(\d+)\/consultation$/, guarded(prepare), true],
     ["GET", /^\/admin\/listings\/(HE-[A-Z]\d{3,})\/consultations$/, guarded(forListing, true), true],
     ["PUT", /^\/admin\/consultations\/(\d+)$/, guarded(update), true],
     ["POST", /^\/admin\/consultations\/(\d+)\/manual-send$/, guarded(manualSend), true],
-  ];
+    ["POST", /^\/admin\/consultations\/(\d+)\/approve-sending$/, sends(approve), true],
+    ["POST", /^\/admin\/consultations\/(\d+)\/send-email$/, sends(sendEmail), true],
+    ["POST", /^\/admin\/consultations\/(\d+)\/email-outcome$/, sends(outcome), true],
+  ] };
 }
+export default gates => enquiries(gates).routes;

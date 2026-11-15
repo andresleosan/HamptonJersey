@@ -6,7 +6,10 @@ import { provenance } from "./ConfirmedAvailability.jsx";
 // AGE-03: the shared enquiry about a property (server/consultations.js). For staff only. The app sends nothing: the
 // panel gives the recipient and the text to copy, and a person records having sent it. Everything here stays empty
 // until the server reports enabled (AGE03_ENQUIRIES_READY and migration 0077).
-export const ENQUIRY = { manual_pending: ["attention", "To send manually"], sent: ["positive", "Sent manually"] };
+// AGE-05: when the server also reports send (AGE05_SEND_READY and migration 0080), a person chooses the advertiser's
+// contact and may approve and queue one email for exactly that version. Without it, nothing below changes.
+export const ENQUIRY = { manual_pending: ["attention", "To send manually"], sent: ["positive", "Sent manually"],
+  queued: ["attention", "Queued by email"], needs_review: ["attention", "Awaiting email check"] };
 export const VIA = { phone: "Phone", email: "Email", in_person: "In person", message: "Message" };
 export const KIND = { general: "Availability enquiry", clarification: "Clarification enquiry" };
 const many = n => `${n} approved ${n === 1 ? "match" : "matches"}`;
@@ -15,6 +18,14 @@ const people = n => `${n} ${n === 1 ? "person" : "people"}`;
 const localNow = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 
 const Options = ({ advertisers }) => advertisers.map(a => <option key={a.id} value={a.id}>{a.name}</option>);
+// AGE-05: how a contact is reached, and the contacts of the recipient chosen (to) that can be: the one this enquiry is for.
+const reach = p => [p.name, p.email || p.phones.map(t => `${t.label} ${t.number}`).join(", ")].filter(Boolean).join(" · ");
+function Contact({ advertisers, to, value, onChange }) {
+  const contacts = advertisers.find(a => String(a.id) === to)?.contacts.filter(p => p.key) ?? [];
+  return <label>Contact<select value={value} onChange={e => onChange(e.target.value)}>
+    <option value="">{contacts.length ? "Not chosen" : "No contact with an email or a phone"}</option>
+    {contacts.map(p => <option key={p.key} value={p.key}>{reach(p)}</option>)}</select></label>;
+}
 const NoRecipient = () => <p className="req-note">No advertiser of this property is in the directory with its contact details. Add it in{" "}
   <a href="#/advertisers">Advertisers</a> and link this property, then come back.</p>;
 // The text to copy. The clipboard needs the browser's permission: without it the text is selected instead.
@@ -33,15 +44,17 @@ function EnquiryText({ id, text, label = "Text to send" }) {
 
 // One enquiry: who it goes to, what it says, and what a person may still do with it. advertisers: the recipients to
 // choose from. match and household: the card it is shown on and the size of that search's household, if it has one.
-// onChange(consultation, match): after a change saved here.
-export function EnquiryView({ c, advertisers, match, household, onChange }) {
+// onChange(consultation, match): after a change saved here. send (AGE-05): { email_stop } once sending is switched on.
+export function EnquiryView({ c, advertisers, match, household, onChange, send }) {
   const id = `enq-${c.id}${match ? `-${match.id}` : ""}`, pending = c.status === "manual_pending", r = c.recipient;
   const gone = r.removed || r.unlinked; // another recipient must be chosen
-  const [to, setTo] = useState(""), [stated, setStated] = useState(false);
+  const [to, setTo] = useState(""), [who, setWho] = useState(""), [stated, setStated] = useState(false);
+  const mail = c.contact?.email, emailRef = `HE-OUT-${c.email_ref}`, emailed = c.status === "sent" && c.email_ref;
   const [sent, setSent] = useState(() => ({ sent_at: localNow(), via: "", evidence_ref: "" }));
   const [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
   const operation = useRef(crypto.randomUUID()); // one id for this record of sending, retries included
-  useEffect(() => { setTo(gone ? "" : String(r.id)); setStated(!!c.occupants_from_this_match); setErrors({}); }, [c.id, c.revision, c.status, gone]);
+  useEffect(() => { setTo(gone ? "" : String(r.id)); setWho(c.contact?.key ?? ""); setStated(!!c.occupants_from_this_match); setErrors({}); },
+    [c.id, c.revision, c.status, gone]);
   const run = async (action, done) => {
     if (busy) return;
     setBusy(true); setMsg(null);
@@ -51,10 +64,15 @@ export function EnquiryView({ c, advertisers, match, household, onChange }) {
   };
   // The household stated stays as it is unless this card's own tick changes it.
   const keeps = c.occupants != null && !c.occupants_from_this_match;
-  const save = e => { e.preventDefault(); run(() => api(`/admin/consultations/${c.id}`, { method: "PUT", body: { revision: c.revision, advertiser_id: Number(to),
-    occupants_match_id: stated ? match.id : keeps ? undefined : null } }), "Enquiry updated. Nothing has been sent."); };
-  const drop = () => run(() => api(`/admin/consultations/${c.id}`, { method: "PUT", body: { revision: c.revision, advertiser_id: Number(to), occupants_match_id: null } }),
-    "Household size removed from the text.");
+  const put = occupants_match_id => api(`/admin/consultations/${c.id}`, { method: "PUT", body: { revision: c.revision, advertiser_id: Number(to),
+    occupants_match_id, ...(send && { contact_key: who || null }) } });
+  const save = e => { e.preventDefault(); run(() => put(stated ? match.id : keeps ? undefined : null), "Enquiry updated. Nothing has been sent."); };
+  const drop = () => run(() => put(null), "Household size removed from the text.");
+  // AGE-05: approve this version, queue its one email, or say what became of an email the service did not confirm.
+  const act = (action, body, done) => run(() => api(`/admin/consultations/${c.id}/${action}`, { method: "POST", body: { revision: c.revision, ...body } }), done);
+  const checked = sent => confirm(sent ? "Record this email as sent? The wait for an answer starts from when it was tried."
+    : "Record this email as not sent? The enquiry goes back to be sent again, by a person or after a new approval.")
+    && act("email-outcome", { sent }, sent ? "Recorded as sent by email." : "Recorded as not sent. Nothing has been sent.");
   const record = e => {
     e.preventDefault();
     const at = new Date(sent.sent_at);
@@ -66,29 +84,58 @@ export function EnquiryView({ c, advertisers, match, household, onChange }) {
   const error = k => errors[k] && <small id={`${id}-e-${k}`} className="err">{errors[k]}</small>;
 
   return <div className="enquiry" role="group" aria-labelledby={`${id}-h`}>
-    <p id={`${id}-h`}><strong>{KIND[c.kind] ?? c.kind}</strong> <span className={`badge ${ENQUIRY[c.status]?.[0] ?? "neutral"}`}>{ENQUIRY[c.status]?.[1] ?? c.status}</span></p>
+    <p id={`${id}-h`}><strong>{KIND[c.kind] ?? c.kind}</strong> <span className={`badge ${ENQUIRY[c.status]?.[0] ?? "neutral"}`}>
+      {emailed ? "Sent by email" : ENQUIRY[c.status]?.[1] ?? c.status}</span></p>
     <p className="muted">{c.kind === "general" ? `One enquiry for this property, shared by ${many(c.matches)}.` : "Asks only about the must-have this property does not answer; it approves nothing."}
       {` Version ${c.revision} · prepared by ${c.prepared_by} · ${fmtDate(c.prepared_at)}.`}
       {c.occupants != null && ` It states one household of ${people(c.occupants)}${c.occupants_from_this_match ? ", this search's" : ""}.`}</p>
-    {c.sent_at && <p>Sent {fmtDate(c.sent_at)} by {(VIA[c.sent_via] ?? c.sent_via).toLowerCase()} · recorded by {c.sent_by}
-      <span className="muted"> · Evidence: {c.sent_evidence_ref}</span></p>}
+    {emailed ? <p>Sent {fmtDate(c.sent_at)} by email from the app{mail && ` to ${mail}`}{c.approval && ` · approved by ${c.approval.by}`} · sent by {c.sent_by}
+        <span className="muted"> · Reference: {emailRef}</span></p>
+      : c.sent_at && <p>Sent {fmtDate(c.sent_at)} by {(VIA[c.sent_via] ?? c.sent_via).toLowerCase()} · recorded by {c.sent_by}
+        <span className="muted"> · Evidence: {c.sent_evidence_ref}</span></p>}
+    {c.status === "queued" && <p role="status">Email queued{mail && ` for ${mail}`} by {c.sent_by}. It leaves within about ten minutes unless sending is
+      paused, and is checked again just before it leaves. <span className="muted">Reference: {emailRef}</span></p>}
+    {c.status === "needs_review" && <div className="fields-group" role="group" aria-label={`Check the email of enquiry ${c.id}`}>
+      <p className="req-note" role="alert">The email service did not confirm whether this email went out{mail && ` to ${mail}`} (reference {emailRef}). It is
+        never sent again automatically. Check with the recipient, or in <a href="#/email">Email</a>, then say what happened.</p>
+      <div className="inline"><button type="button" className="btn ghost sm" disabled={busy} onClick={() => checked(true)}>It was sent</button>
+        <button type="button" className="btn ghost sm" disabled={busy} onClick={() => checked(false)}>It was not sent</button></div>
+    </div>}
     {c.blocked && <p className="req-note" role="alert">{c.blocked}</p>}
     <div><strong>Recipient</strong>
       {r.removed ? <p className="muted">Personal data removed from the directory.</p> : <address>{r.name}
         {r.contacts.map((p, i) => <span key={i}><br />{[p.name, p.email, ...p.phones.map(t => `${t.label} ${t.number}`)].filter(Boolean).join(" · ")}</span>)}
         {r.channels.map((ch, i) => safeHref(ch.url) && <span key={i}><br /><a href={safeHref(ch.url)} target="_blank" rel="noopener noreferrer">{ch.label}</a></span>)}
-        {!r.contacts.length && !r.channels.length && <span className="muted"><br />No contact details in the directory yet.</span>}</address>}</div>
+        {!r.contacts.length && !r.channels.length && <span className="muted"><br />No contact details in the directory yet.</span>}</address>}
+      {send && !r.removed && <p>Contact for this enquiry: {!c.contact ? <span className="muted">not chosen</span>
+        : c.contact.missing ? <span className="muted">no longer in the directory as it was chosen</span> : reach(c.contact)}</p>}</div>
     <EnquiryText id={`${id}-text`} text={c.text} label={c.sent_at ? "Text sent" : "Text to send"} />
     {pending && <>
-      <p className="muted">The app sends nothing. Copy the text, send it yourself, then record it below.</p>
+      {!send && <p className="muted">The app sends nothing. Copy the text, send it yourself, then record it below.</p>}
       {advertisers.length ? <form className="fields-group" onSubmit={save} aria-label={`Change enquiry ${c.id}`}>
-        <div className="grid2"><label>Recipient<select value={to} onChange={e => setTo(e.target.value)} required>
-          {gone && <option value="">Choose…</option>}<Options advertisers={advertisers} /></select></label></div>
+        <div className="grid2"><label>Recipient<select value={to} onChange={e => { setTo(e.target.value); setWho(""); }} required>
+          {gone && <option value="">Choose…</option>}<Options advertisers={advertisers} /></select></label>
+          {send && <Contact advertisers={advertisers} to={to} value={who} onChange={setWho} />}</div>
         {c.kind === "general" && household != null && <label className="check"><input type="checkbox" checked={stated} onChange={e => setStated(e.target.checked)} />
           State this search's household size ({people(household)}); nothing else about the client is included</label>}
         <div className="inline"><button className="btn ghost sm" disabled={!to}>Save changes</button>
           {keeps && <button type="button" className="btn ghost sm" onClick={drop} disabled={!to}>Remove household size</button>}</div>
       </form> : gone && <NoRecipient />}
+      {send && <div className="fields-group" role="group" aria-label={`Send enquiry ${c.id} by email`}>
+        {send.email_stop ? <p className="muted">{send.email_stop}</p>
+          : !mail ? <p className="muted">To send it from the app, choose a contact with an email address and save. By phone or in person, send it
+            yourself and record it below.</p>
+          : <>
+            <p>{c.approval ? `Sending approved by ${c.approval.by} · ${fmtDate(c.approval.at)}, for this version only.`
+              : `Approving confirms this recipient, ${mail} and this exact text. Any change after it needs a new approval.`}</p>
+            <div className="inline">
+              {!c.approval && <button type="button" className="btn ghost sm" disabled={busy || !!c.blocked}
+                onClick={() => act("approve-sending", {}, "Sending approved. Nothing has been sent yet.")}>Approve sending</button>}
+              <button type="button" className="btn sm" disabled={busy || !c.approval || !!c.blocked}
+                onClick={() => act("send-email", {}, "Email queued.")}>Send by email</button>
+              <span className="muted">One email to {mail}, only after approval. Or send it yourself and record it below.</span></div>
+          </>}
+      </div>}
       <form className="fields-group" onSubmit={record} aria-label={`Record enquiry ${c.id} as sent`} noValidate>
         <div className="grid2">
           <label>Sent on (your time zone)<input type="datetime-local" max={localNow()} {...field("sent_at")} />{error("sent_at")}</label>
@@ -108,7 +155,7 @@ export function EnquiryView({ c, advertisers, match, household, onChange }) {
 // the one this match is part of. onChange(match): the card as it is after a change.
 export function MatchEnquiry({ match, onChange }) {
   const id = `enq-new-${match.id}`, [d, setD] = useState(null), [failed, setFailed] = useState(null);
-  const [to, setTo] = useState(""), [stated, setStated] = useState(false), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
+  const [to, setTo] = useState(""), [who, setWho] = useState(""), [stated, setStated] = useState(false), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
   const operation = useRef(crypto.randomUUID());
   // notify: after a change saved here, the card is told how the match is now.
   const load = notify => api(`/admin/matches/${match.id}/consultation`).then(x => {
@@ -121,14 +168,14 @@ export function MatchEnquiry({ match, onChange }) {
   if (!d) return <div className="enquiry"><p role="status">Loading the enquiry…</p></div>;
   if (!d.enabled) return null;
   const c = d.consultation;
-  if (c?.joined) return <EnquiryView c={c} advertisers={d.advertisers} match={match} household={d.occupants} onChange={() => load(true)} />;
+  if (c?.joined) return <EnquiryView c={c} advertisers={d.advertisers} match={match} household={d.occupants} send={d.send} onChange={() => load(true)} />;
   const submit = async e => {
     e.preventDefault();
     if (busy) return;
     setBusy(true); setMsg(null);
     try {
       const made = await api(`/admin/matches/${match.id}/consultation`, { method: "POST", body: { operation_id: operation.current, kind: d.can,
-        advertiser_id: Number(to) || undefined, include_occupants: stated || undefined } });
+        advertiser_id: Number(to) || undefined, include_occupants: stated || undefined, contact_key: (d.send && who) || undefined } });
       setD(x => ({ ...x, consultation: made.consultation })); onChange?.(made.match);
     } catch (err) { setMsg(err.message); load(); }
     finally { setBusy(false); }
@@ -145,12 +192,14 @@ export function MatchEnquiry({ match, onChange }) {
         enquiry is made and its text does not change.</p>
       <EnquiryText id={`${id}-text`} text={c.text} label="Text of the shared enquiry" />
     </> : <>
-      {d.advertisers.length ? <div className="grid2"><label>Recipient<select value={to} onChange={e => setTo(e.target.value)} required>
-        <Options advertisers={d.advertisers} /></select></label></div> : <NoRecipient />}
+      {d.advertisers.length ? <div className="grid2"><label>Recipient<select value={to} onChange={e => { setTo(e.target.value); setWho(""); }} required>
+        <Options advertisers={d.advertisers} /></select></label>
+        {d.send && <Contact advertisers={d.advertisers} to={to} value={who} onChange={setWho} />}</div> : <NoRecipient />}
       {d.occupants != null && <label className="check"><input type="checkbox" checked={stated} onChange={e => setStated(e.target.checked)} />
         State this search's household size ({people(d.occupants)}); nothing else about the client is included</label>}
       <EnquiryText id={`${id}-text`} text={stated ? d.preview.text_with_occupants : d.preview.text} label="Proposed text" />
-      <p className="muted">It names the property and no client. Preparing it sends nothing: it waits in the Inbox to be sent by a person.</p>
+      <p className="muted">It names the property and no client. Preparing it sends nothing: it waits in the Inbox to be sent by a person
+        {d.send && !d.send.email_stop ? " or, once approved, by email from the app." : "."}</p>
     </>}
     <div className="inline"><button className="btn sm" disabled={d.availability?.status === "unavailable" || (!c && !d.advertisers.length)}>
       {c ? "Join enquiry" : "Create enquiry"}<span className="sr"> for {match.listing.title}</span></button></div>
@@ -167,8 +216,8 @@ export default function ListingEnquiries({ listingId }) {
   return <section id="s-enquiries" className="card fields-group" aria-labelledby="h-enquiries">
     <h2 id="h-enquiries">Enquiries <span className="muted">(internal)</span></h2>
     <p className="muted">For staff only. One enquiry per property is shared by every approved match of it, and names no client. It is prepared from an
-      approved match, in a search's Matches; the app sends nothing.</p>
-    {d.consultations.length ? d.consultations.map(c => <EnquiryView key={c.id} c={c} advertisers={d.advertisers} onChange={load} />)
+      approved match, in a search's Matches; {d.send && !d.send.email_stop ? "the app sends only the version a person approves." : "the app sends nothing."}</p>
+    {d.consultations.length ? d.consultations.map(c => <EnquiryView key={c.id} c={c} advertisers={d.advertisers} send={d.send} onChange={load} />)
       : <p className="muted">No enquiry has been prepared about this property yet.</p>}
   </section>;
 }
