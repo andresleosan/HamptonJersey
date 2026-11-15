@@ -5,9 +5,9 @@
   "origen": "plan",
   "fase": "F2",
   "estado": "pendiente",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "15-nov (rama avanzar-age12, apagado): enlace privado por cliente con las casas elegidas por el equipo entre sus matches aprobados, todavía ofrecidos y con disponibilidad confirmada (server/presentation-access.js, migración aditiva 0086_presentation_access.sql, interruptor AGE12_PRESENTATIONS_READY). Token de 256 bits en el fragmento de la URL, solo su SHA-256 en D1, latente hasta que una persona registra el envío («I have sent it»), válido hasta revocación (expires_at null) y canje POST a cookie __Host-hp HttpOnly/Secure/SameSite=Strict de 7 días firmada con HMAC y renovable con el mismo enlace; cada lectura vuelve a comprobar el enlace, así que revocar bloquea las lecturas futuras. Página site/presentation.html sin terceros ni almacenamiento, no-store/noindex/no-referrer; el cliente ve solo sus casas y las fotos aptas de files() de AGE-10, comprobadas en R2 (etag y tamaño) al servirlas por /api/presentation/photos, nunca /media. Responde una vez por casa con POST explícito (interested, request_viewing, not_for_me, call_me, nota opcional ≤500): escribe su fila, un evento y una tarea del Inbox; no cambia matches, criterios, disponibilidad ni visitas. Tarjeta «Private presentation» en la ficha del aplicante para crear, copiar, marcar enviado y revocar. EST-04: filtro «Waiting for client» e In process incluyen casas enviadas sin respuesta.",
-  "falta": "Integrar avanzar-age12 en main y aplicar 0086 en producción (aditiva). Encender AGE12_PRESENTATIONS_READY: ruta pública que recoge respuestas y notas de clientes, solo la enciende Luis (CONTINUIDAD, «No autorizado»; ya lo decía el traslado de VIS-04). Tras encenderlo, comprobar el recorrido en producción con un enlace real y anotarlo. Trasladado fuera (15-nov): formulario del aplicante tras la visita (VIS-04) a VIS-17/VIS-04, porque los accesos de visita son de VIS-17 (plan AGE-12, «Precisión de integración»); estado y resultado de la búsqueda visibles al cliente (REG-12) a PRE-12, porque un portal general no se construye sin PRE-12 (spec lista2 de agencias, párrafo de PRE-12); envío del enlace por correo y marca de envío tras el acuse a AGE-11/AUT-17.",
+  "falta": "Encender AGE12_PRESENTATIONS_READY (Luis) y la prueba real en producción. Código publicado en f22faf9 y migración 0086 aplicada el 15-nov-2026.",
   "bloqueo": "",
   "evidencia": [
     "server/routes/public.js:178-186",
@@ -26,7 +26,8 @@
     "Decisión: el envío lo registra una persona («I have sent it») porque el equipo copia el enlace · fuente: encargo del 15-nov y spec lista2 (grant dormant, activación por evidencia manual)",
     "Decisión: una respuesta por casa, motivo opcional ≤500 caracteres, sin versión de presentación porque no hay AGE-11 todavía · fuente: plan AGE-12 tarea 2 y sección 4.5 de la skill (lo más simple y reversible)",
     "Decisión: solo casas con disponibilidad confirmada (AVAILABLE de match-pages) · fuente: reconciliación M08 (match aprobado y disponibilidad vigente)",
-    "Decisión: sin límite de peticiones propio porque la app no tiene mecanismo; el token de 256 bits impide adivinarlo · fuente: encargo del 15-nov; WAF a MEJORAS"
+    "Decisión: sin límite de peticiones propio porque la app no tiene mecanismo; el token de 256 bits impide adivinarlo · fuente: encargo del 15-nov; WAF a MEJORAS",
+    "15-nov-2026: publicada apagada en f22faf9 (e1c18da, 081b1a2, 6981b56, endurecida en f22faf9); 0086 (dos tablas nuevas, aditiva) aplicada tras marcador Time Travel; npm test 2756/2756; tests/age12-private-presentation.e2e.cjs pasa a 1280 y 390; revisión independiente de seguridad sin graves (apagado: mismo SQL y respuestas; token de 256 bits en el fragmento con SHA-256 en D1, cookie __Host firmada con HMAC separada por dominio, sin enumeración, mismo origen, no-store/noindex/no-referrer, sin XSS, fotos solo aptas de AGE-10 con etag y tamaño); sus menores corregidos con pruebas (encendido sin 0086 igual que apagado, casas no ofrecidas ocultas, solo JPEG/PNG/WebP, moneda) y una prueba intermitente de cookie falsificada arreglada."
   ],
   "modulo": "M08",
   "deps": [
@@ -62,11 +63,11 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "",
+  "externalBlocker": "Luis: decidir si encender AGE12_PRESENTATIONS_READY en wrangler.toml (ruta pública que recoge respuestas y notas de clientes: CONTINUIDAD no autoriza a /avanzar a encenderlo).",
   "resources": [
     "private-presentation",
     "applicants-schema"
   ],
-  "nextStep": "Integrar la rama, aplicar 0086 y dejar a Luis encender AGE12_PRESENTATIONS_READY; después, verificar en producción con un enlace creado, enviado, respondido y revocado.",
+  "nextStep": "Cuando Luis encienda AGE12_PRESENTATIONS_READY, hacer la prueba real (crear, marcar enviado, responder y revocar un enlace) y cerrar.",
   "actualizado": "2026-11-15"
 }
