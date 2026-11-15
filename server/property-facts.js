@@ -93,3 +93,19 @@ export function resolveCommercialFacts(facts, { scope, as_of } = {}) {
     reasons,
   };
 }
+
+// EST-15: the same rule as the confirmation in force (server/availability-confirmations.js), in SQL, for what reads
+// many listings at once: the candidates of a search (server/match-store.js) and the matches approved for an enquiry.
+// It needs EST-16's own switch and migrations 0072 and 0076; off, nothing reads the table and no query changes.
+export const unavailabilityReady = env => env?.EST15_UNAVAILABILITY_READY === '1' && env?.EST16_AVAILABILITY_READY === '1';
+// c (a row of availability_confirmations) says not available and stands for `operation`: none about the whole
+// property or that operation is later, or of the same moment saying otherwise (those are left for a person).
+export const standsUnavailable = (c, operation) => `${c}.status = 'unavailable' AND NOT EXISTS (
+  SELECT 1 FROM availability_confirmations newer WHERE newer.listing_id = ${c}.listing_id
+    AND (newer.operation IS NULL OR newer.operation = ${operation})
+    AND (newer.confirmed_at > ${c}.confirmed_at OR (newer.confirmed_at = ${c}.confirmed_at AND newer.status <> 'unavailable')))`;
+// ' AND …' for a query with the listing's id and operation in scope: only what a person confirmed keeps a property
+// out, for the operation it covers, until a person confirms otherwise. No advert, status or missing source does.
+export const notConfirmedUnavailable = (env, id = 'listings.id', operation = 'listings.operation') => (unavailabilityReady(env)
+  ? ` AND NOT EXISTS (SELECT 1 FROM availability_confirmations c WHERE c.listing_id = ${id}
+    AND (c.operation IS NULL OR c.operation = ${operation}) AND ${standsUnavailable('c', operation)})` : '');

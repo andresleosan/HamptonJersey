@@ -6,6 +6,7 @@ import { activeSql, isActive } from "./applicants.js";
 import { evaluate } from "./matching.js";
 import { areaPreferenceRank } from "./requirements.js";
 import {searchProgressEnabled,beginFullCheck,fullCheckGuard,fullCheckSuccessStatement,finishFullCheckFailure} from './search-progress.js';
+import { notConfirmedUnavailable } from "./property-facts.js";
 
 // Listings that may be offered: archived listings are excluded. The applicant's operation is evaluate()'s first filter.
 const candidates = (use, operations) => `archived_at IS NULL AND matchable = 1 AND use = '${use}' AND availability IN ('for_sale','to_let','lease')
@@ -15,7 +16,11 @@ export const LISTING_OPERATION = { rent: "rent", buy: "sale" };
 // BUS-12: a commercial search is offered commercial listings only; a business transfer, businesses only.
 const COMMERCIAL_SQL = candidates('commercial', "'sale','rent','business'");
 const commercial = a => a.search_category === 'commercial';
-const candidatesFor = a => (commercial(a) ? COMMERCIAL_SQL : CANDIDATES_SQL);
+// EST-15: a listing whose confirmation in force says not available is not offered either, for the operation it
+// covers. Nothing here lifts that: only a person's newer confirmation does, and its recompute proposes it again.
+// ponytail: a recompute already reading when the confirmation lands can still store its Found; the listing's own
+// recompute right after the confirmation, or the search's next one, removes it. Guard the INSERT if that ever shows.
+const candidatesFor = (env, a) => (commercial(a) ? COMMERCIAL_SQL : CANDIDATES_SQL) + notConfirmedUnavailable(env);
 const operationFor = a => (commercial(a) && a.search_operation === 'transfer' ? 'business' : LISTING_OPERATION[a.operation]);
 
 // Keep each JSON binding below D1's 2,000,000-byte string limit, including the larger event payload form.
@@ -44,9 +49,10 @@ export const matchSnapshotMessage = reason => reason==='snapshot_too_large'
   ? MATCH_SNAPSHOT_LIMIT_MESSAGE : MATCH_SNAPSHOT_INVALID_MESSAGE;
 
 // Only the columns evaluate() reads (never the listing's text: B10), plus whether the listing is a candidate.
-export const LISTING = `COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=listings.id),0) AS match_inputs_revision, id, operation, availability, archived_at, bedrooms, bathrooms, parish, published, sale_price, rent, rent_period, currency,
+const offeredListing = env => `COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=listings.id),0) AS match_inputs_revision, id, operation, availability, archived_at, bedrooms, bathrooms, parish, published, sale_price, rent, rent_period, currency,
   feat_pets, feat_parking, feat_furnished, feat_outdoor, feat_type, feat_evidence, tenure_type, housing_category, restriction,
-  use, premium, interior_area_sqft, property_type, ((${CANDIDATES_SQL}) OR (${COMMERCIAL_SQL})) AS candidate`;
+  use, premium, interior_area_sqft, property_type, (((${CANDIDATES_SQL}) OR (${COMMERCIAL_SQL}))${notConfirmedUnavailable(env)}) AS candidate`;
+export const LISTING = offeredListing(); // as before EST-15: what the listing itself says
 // The applicant's search as evaluate() reads it, whether it is active, and the contact's name for the notice.
 export const APPLICANT = `a.match_inputs_revision, a.matches_revision, a.requirement_priorities, a.household_children, a.household_children_status, a.move_in_date, a.lease_term_months, a.near, a.requirements, a.id, a.archived_at, a.stage, a.search_state, a.search_category, a.updated_at, a.operation, a.budget_min, a.budget_max, a.budget_stretch,
   a.property_types, a.bedrooms_min, a.bedrooms_max, a.bedrooms_ideal, a.bathrooms_min, a.parking_spaces, a.outdoor, a.furnished, a.pets,
@@ -191,7 +197,7 @@ export async function recomputeForApplicantWithStatus(env, applicantId, actor, r
 async function recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket) {
   // The candidates, and the shortlisted ones that left them (their checks still show what fails now).
   const [listings, stored] = (await env.DB.batch([
-    env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE (${candidatesFor(a)} AND operation = ?)
+    env.DB.prepare(`SELECT ${offeredListing(env)} FROM listings WHERE (${candidatesFor(env, a)} AND operation = ?)
       OR id IN (SELECT listing_id FROM matches WHERE applicant_id = ? AND status <> 'rejected')`)
       .bind(operationFor(a), a.id),
     env.DB.prepare("SELECT id, listing_id, status, score, checks, requirements_rank, area_preference_rank FROM matches WHERE applicant_id = ?").bind(a.id),
@@ -213,7 +219,7 @@ async function recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket) {
   const snapshot = `NOT EXISTS
     (SELECT 1 FROM json_each(?) v LEFT JOIN listings l ON l.id=json_extract(v.value,'$.id')
     WHERE l.id IS NULL OR COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=l.id),0)<>json_extract(v.value,'$.version'))
-    AND NOT EXISTS (SELECT id FROM listings WHERE ${candidatesFor(a)} AND operation=?
+    AND NOT EXISTS (SELECT id FROM listings WHERE ${candidatesFor(env, a)} AND operation=?
       EXCEPT SELECT json_extract(value,'$.id') FROM json_each(?))`;
   const ticketFence=ticket?fullCheckGuard(ticket):null;
   const initialSearch = `${search} AND (SELECT matches_revision FROM applicants WHERE id=?) = ?${ticketFence?` AND ${ticketFence.sql}`:''}`;
@@ -285,7 +291,7 @@ export async function recomputeForApplicant(env, applicantId, actor, restoreNoti
 
 // After a listing is saved, archived or restored: its pair with every active applicant, in one batch.
 export async function recomputeForListing(env, listingId, actor) {
-  const l = await env.DB.prepare(`SELECT ${LISTING} FROM listings WHERE id = ?`).bind(listingId).first();
+  const l = await env.DB.prepare(`SELECT ${offeredListing(env)} FROM listings WHERE id = ?`).bind(listingId).first();
   if (!l) return;
   // A listing that is not offered only concerns the applicants already matched with it.
   const [applicants, stored] = (await env.DB.batch([

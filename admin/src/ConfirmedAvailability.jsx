@@ -4,9 +4,12 @@ import { AVAILABILITY, fmtDate } from "./format.js";
 
 // EST-16: what the listing says, what a person was told and where each comes from, as three separate things. For
 // staff only. Everything here stays empty until the server reports enabled (EST16_AVAILABILITY_READY and migration 0072).
+// EST-15: once the server reports propagates (EST15_UNAVAILABILITY_READY and migration 0076), Not available asks why
+// and the card says what it does: the property is not proposed while it is in force and its viewings get a task.
 export const CONFIRMATION = { available: ["positive", "Available"], unavailable: ["neutral", "Not available"], unknown: ["neutral", "Unknown"] };
 const SOURCE = { owner: "Owner", agency: "Agency", other: "Other" };
 const CHANNEL = { phone: "Phone", email: "Email", in_person: "In person", message: "Message" };
+const REASON = { sold: "Sold", let: "Let", under_offer: "Under offer", withdrawn: "Withdrawn by the owner", other: "Other" };
 const ONLY = { sale: "Only its sale", rent: "Only its letting", business: "Only its business offer" };
 // When it was said, who said it and how, and who wrote it down.
 export const provenance = c => `${fmtDate(c.confirmed_at)} · ${SOURCE[c.source] ?? c.source} by ${(CHANNEL[c.channel] ?? c.channel).toLowerCase()} · recorded by ${c.recorded_by}`;
@@ -14,7 +17,7 @@ export const DISAGREE = "Two confirmations of the same moment disagree";
 const path = id => `/admin/listings/${encodeURIComponent(id)}/availability`;
 // This minute in the browser's own time zone, as a datetime-local input takes it.
 const localNow = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
-const blank = () => ({ status: "", confirmed_at: localNow(), source: "", channel: "", scope: "property", evidence_ref: "" });
+const blank = () => ({ status: "", confirmed_at: localNow(), source: "", channel: "", scope: "property", evidence_ref: "", reason: "" });
 
 // The listing editor's card. listing: the saved one (its status and operation are read from it, never copied).
 export default function ConfirmedAvailability({ listingId, listing }) {
@@ -40,23 +43,29 @@ export default function ConfirmedAvailability({ listingId, listing }) {
     try {
       const saved = await api(path(listingId), { method: "POST", body: { ...form, confirmed_at: Number.isFinite(at.getTime()) ? at.toISOString() : "" } });
       setData(saved.enabled ? saved : null); setForm(blank()); setErrors({});
-      setMsg({ ok: true, text: "Confirmation recorded. The listing's own status was not changed." });
+      const n = saved.notified, gone = saved.propagates && saved.current?.status === "unavailable";
+      setMsg({ ok: true, text: `Confirmation recorded. The listing's own status was not changed.${gone
+        ? ` It is no longer proposed as a new match${n ? `, and ${n} upcoming ${n === 1 ? "viewing has" : "viewings have"} a task in the Inbox` : ""}.` : ""}` });
     } catch (err) { setErrors(err.data?.fields ?? {}); setMsg({ text: err.message }); }
     finally { setBusy(false); }
   };
   const c = data.current, said = c && !c.needs_review;
   const covers = h => ` · ${h.operation ? ONLY[h.operation] ?? h.operation : "Whole property"}`;
+  const why = h => (h.reason ? ` · ${REASON[h.reason] ?? h.reason}` : "");
 
   return <section id="s-availability" className="card fields-group" aria-labelledby="h-confirmed-availability">
     <h2 id="h-confirmed-availability">Confirmed availability <span className="muted">(internal)</span></h2>
     <p className="muted">For staff only: never shown on the website. What the listing says and what someone confirmed are kept apart:
       recording a confirmation never changes the listing's status, and changing the status confirms nothing.</p>
+    {data.propagates && <p className="muted">While the confirmation in force says Not available, the property is not proposed as a new
+      match for what it covers, its shortlisted matches are kept and marked, and each upcoming viewing gets a task in the Inbox.
+      Nothing is cancelled, archived or sent to a client; it is proposed again only when a newer confirmation says otherwise.</p>}
     <dl className="kv">
       <div><dt>Published status</dt>
         <dd>{listing.archived_at ? "Archived · " : ""}{AVAILABILITY[listing.availability] ?? listing.availability}
           <span className="muted"> · Source: this listing's own Availability field</span></dd></div>
       <div><dt>Confirmed availability</dt>
-        <dd>{said ? <><span className={`badge ${CONFIRMATION[c.status][0]}`}>{CONFIRMATION[c.status][1]}</span>{` · ${provenance(c)}${covers(c)}`}</>
+        <dd>{said ? <><span className={`badge ${CONFIRMATION[c.status][0]}`}>{CONFIRMATION[c.status][1]}</span>{`${why(c)} · ${provenance(c)}${covers(c)}`}</>
           : <><span className="badge neutral">Not confirmed</span>
             {c?.needs_review && <span className="muted"> · {DISAGREE}: check and record a new one.</span>}</>}</dd></div>
     </dl>
@@ -65,6 +74,9 @@ export default function ConfirmedAvailability({ listingId, listing }) {
       <div className="grid2">
         <label>What was confirmed<select value={form.status} onChange={set("status")} {...invalid("status")}>
           <option value="">Choose…</option>{options(CONFIRMATION)}</select>{error("status")}</label>
+        {data.propagates && form.status === "unavailable" && <label>Why it is not available
+          <select value={form.reason} onChange={set("reason")} {...invalid("reason")}>
+            <option value="">Choose…</option>{options(REASON)}</select>{error("reason")}</label>}
         <label>Confirmed on (your time zone)<input type="datetime-local" value={form.confirmed_at} max={localNow()}
           onChange={set("confirmed_at")} {...invalid("confirmed_at")} />{error("confirmed_at")}</label>
         <label>Who confirmed it<select value={form.source} onChange={set("source")} {...invalid("source")}>
@@ -85,7 +97,7 @@ export default function ConfirmedAvailability({ listingId, listing }) {
     <h3 id="h-availability-history">Confirmation history <span className="muted">({data.history.length})</span></h3>
     {data.history.length ? <ul className="confirmations" aria-labelledby="h-availability-history">{data.history.map(h => <li key={h.id}>
       <span className={`badge ${CONFIRMATION[h.status]?.[0] ?? "neutral"}`}>{CONFIRMATION[h.status]?.[1] ?? h.status}</span>
-      {` · ${provenance(h)}${covers(h)}`}<br /><span className="muted">Evidence: {h.evidence_ref}</span></li>)}</ul>
+      {`${why(h)} · ${provenance(h)}${covers(h)}`}<br /><span className="muted">Evidence: {h.evidence_ref}</span></li>)}</ul>
       : <p className="muted">No confirmation recorded yet.</p>}
   </section>;
 }
