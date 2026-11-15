@@ -33,12 +33,12 @@
       "area": "Fuentes, agencias, integraciones y automatizaciones",
       "capacity": 2,
       "count": 61,
-      "openCount": 37,
+      "openCount": 36,
       "states": {
         "replanteado": 8,
-        "hecho": 13,
+        "hecho": 14,
         "pendiente": 15,
-        "parcial": 18,
+        "parcial": 17,
         "bloqueado": 4,
         "descartado": 3
       }
@@ -64,12 +64,12 @@
       "area": "Propiedades, publicación, tours y analítica",
       "capacity": 2,
       "count": 65,
-      "openCount": 21,
+      "openCount": 20,
       "states": {
-        "hecho": 25,
+        "hecho": 26,
         "pendiente": 6,
-        "parcial": 15,
         "descartado": 18,
+        "parcial": 14,
         "replanteado": 1
       }
     }
@@ -1250,10 +1250,10 @@
       "titulo": "Fuente, última verificación, interesados y filtros extra en el seguimiento de propiedades",
       "origen": "plan",
       "fase": "—",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Construido el 6-nov-2026 (sin migración; spec docs/superpowers/specs/2026-11-05-hampton-app-listing-tracking-design.md). La lista de Listings tiene tres columnas nuevas: Checked («12 days ago», desde la última confirmación), Matched (aplicantes con match, los mismos que la ficha) e Interested (el interés activo, con la regla de la web). Filtros Min price y Max price en £ (venta y negocio por el precio total; alquiler por la renta al mes, pasando la semanal o anual a mensual) y la casilla Changed in the last 7 days (cualquier cambio guardado). La ficha sigue mostrando Active interest y Matched applicants. Completado el 15-nov-2026 con BUS-07 (BUS07_PROVENANCE_READY, apagado): columna y filtro Source (Hampton, Co-listed o cada agencia); bajo Checked, «Confirmed <fecha> · <origen>» (EST-16 en vigor) aparte de «Seen on the web <fecha>» (investigación importada o casa de mercado enlazada) y de la fecha editorial; la casilla pasa a «Price or availability changed in the last 7 days», con el antes y después del historial (un retoque de texto o un cambio de periodo con el mismo equivalente mensual no cuentan). Una sola lectura agregada por página.",
-      "falta": "Encender BUS07_PROVENANCE_READY tras aplicar 0081 (BUS-07) y comprobar la lista con GET en producción. Las casas del inventario común sin ficha propia (filas con fuente, precio, parroquia, dormitorios, baños y disponibilidad; su confirmación y su alcance por anunciante o publicación, traídos de BUS-10, EST-16 y EST-15) pasan a BUS-03.",
+      "hecho": "Construido el 6-nov-2026 (sin migración; spec docs/superpowers/specs/2026-11-05-hampton-app-listing-tracking-design.md). La lista de Listings tiene tres columnas nuevas: Checked («12 days ago», desde la última confirmación), Matched (aplicantes con match, los mismos que la ficha) e Interested (el interés activo, con la regla de la web). Filtros Min price y Max price en £ (venta y negocio por el precio total; alquiler por la renta al mes, pasando la semanal o anual a mensual) y la casilla Changed in the last 7 days (cualquier cambio guardado). La ficha sigue mostrando Active interest y Matched applicants. Completado el 15-nov-2026 con BUS-07 (BUS07_PROVENANCE_READY, apagado): columna y filtro Source (Hampton, Co-listed o cada agencia); bajo Checked, «Confirmed <fecha> · <origen>» (EST-16 en vigor) aparte de «Seen on the web <fecha>» (investigación importada o casa de mercado enlazada) y de la fecha editorial; la casilla pasa a «Price or availability changed in the last 7 days», con el antes y después del historial (un retoque de texto o un cambio de periodo con el mismo equivalente mensual no cuentan). Una sola lectura agregada por página. Cerrada el 15-nov-2026 junto a BUS-07 (BUS07_PROVENANCE_READY=1): columna y filtro Source, «Confirmed <fecha>» separado de «Seen on the web <fecha>», y el filtro de cambios reales de precio o disponibilidad de los últimos 7 días. Las casas del inventario sin ficha propia pasan a BUS-03.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "admin/src/Listings.jsx",
@@ -1266,7 +1266,9 @@
         "tests/bus07-provenance.e2e.cjs: lista a 1280 y 390, filtros Source y 7 días, pasa el 15-nov",
         "Decisión: Checked conserva confirmed_at editorial; Confirmed es EST-16 y Seen on the web la observación. Fuente: plan SPR-07 tarea 3.",
         "Decisión: cambio material = precio mensual equivalente, moneda, operación o disponibilidad, leído del historial. Fuente: plan SPR-07 tarea 2.",
-        "Decisión: las casas de mercado sin ficha propia van a BUS-03 (pantalla de casas encontradas). Fuente: skill §3."
+        "Decisión: las casas de mercado sin ficha propia van a BUS-03 (pantalla de casas encontradas). Fuente: skill §3.",
+        "Revisión independiente 15-nov, corregido: en un negocio cuentan por separado el cambio de premium y el de alquiler (por su equivalente mensual), sin sumarlos. Prueba por la ruta real en tests/server/bus-07-provenance.test.mjs (11/11).",
+        "Cierre 15-nov-2026: publicada en 7c1dc32; lista comprobada en tests/bus07-provenance.e2e.cjs a 1280 y 390; tests/server/listing-filters.test.mjs 9/9; revisión independiente: halló dos defectos (enlace a una casa de una fuente cerrada; cambio de alquiler de un negocio no contado), corregidos con prueba y verificados en una segunda pasada sin hallazgos graves; con el interruptor apagado, lista y ficha idénticas."
       ],
       "modulo": "M02",
       "deps": [
@@ -1298,7 +1300,7 @@
         "inventory-contract",
         "listings-schema"
       ],
-      "nextStep": "Encender BUS07_PROVENANCE_READY y comprobar Source, Confirmed/Seen y el filtro de 7 días en producción.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-15"
     },
     {
@@ -4253,10 +4255,10 @@
       "titulo": "Las 264 fichas de agencias tratadas como co-listed (pregunta 1)",
       "origen": "plan",
       "fase": "F1-A",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Luis respondió el 23-oct (A4): se comercializan con la agencia que tiene el encargo. Las fichas HE-R028 a HE-R285 entraron archivadas, la migración 0009 las ofrece a los aplicantes y su tarjeta dice «Not on website». Construido el 15-nov-2026 (migración 0081, interruptor BUS07_PROVENANCE_READY apagado): cada ficha dice su procedencia, «Hampton» o «Co-listed · <anunciante>», derivada del directorio AGE-04 (listing_ids o source_ids, la misma regla que los destinatarios de AGE-03) o, sin él, de la importación del 8-oct (proveedor de sus fotos importadas o rango HE-R028–HE-R285); se corrige en Advertisers. La sección Adverts muestra esa procedencia, el permiso de fotos registrado tal cual (cubre solo esas fotos) y un enlace opcional con una casa del inventario de mercado, hecho y deshecho por una persona con quién y cuándo (listing_market_links, solo añadir), que suma los anuncios vivos de esa casa (fuente, precio y fecha observados) sin fusionar nada ni acreditar disponibilidad. Una prueba fija que solo AGE-03 contacta con la agencia.",
-      "falta": "Aplicar en producción la migración 0081 (aditiva), encender BUS07_PROVENANCE_READY y comprobar con GET la procedencia de las fichas importadas. El enlace con una casa de mercado solo podrá comprobarse en producción cuando el inventario tenga anuncios reales (BUS-06). El reparto de comisión es gestión humana fuera de la app y no bloquea.",
+      "hecho": "Luis respondió el 23-oct (A4): se comercializan con la agencia que tiene el encargo. Las fichas HE-R028 a HE-R285 entraron archivadas, la migración 0009 las ofrece a los aplicantes y su tarjeta dice «Not on website». Construido el 15-nov-2026 (migración 0081, interruptor BUS07_PROVENANCE_READY apagado): cada ficha dice su procedencia, «Hampton» o «Co-listed · <anunciante>», derivada del directorio AGE-04 (listing_ids o source_ids, la misma regla que los destinatarios de AGE-03) o, sin él, de la importación del 8-oct (proveedor de sus fotos importadas o rango HE-R028–HE-R285); se corrige en Advertisers. La sección Adverts muestra esa procedencia, el permiso de fotos registrado tal cual (cubre solo esas fotos) y un enlace opcional con una casa del inventario de mercado, hecho y deshecho por una persona con quién y cuándo (listing_market_links, solo añadir), que suma los anuncios vivos de esa casa (fuente, precio y fecha observados) sin fusionar nada ni acreditar disponibilidad. Una prueba fija que solo AGE-03 contacta con la agencia. Cerrada el 15-nov-2026: migración 0081 aplicada y BUS07_PROVENANCE_READY=1. Cada ficha dice si es Hampton o co-listed con su agencia; el equipo puede enlazarla, con deshacer, a una casa del inventario de mercado de una fuente abierta, y Adverts suma sus anuncios vivos. El enlace con anuncios reales se verá cuando Luis cargue el inventario (BUS-06). Las fotos nuevas siguen AGE-10.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
@@ -4272,7 +4274,12 @@
         "Decisión: procedencia derivada y corregible en el directorio AGE-04, sin tabla propia. Fuente: skill §4 punto 5 y regla OF_PROPERTY de server/consultations.js.",
         "Decisión: el enlace guarda la casa del anuncio elegido y lee su raíz al vuelo, para seguir las decisiones de BUS-10 y sus deshacer. Fuente: migraciones 0050 y 0068; reconciliación 7-nov M02 («enlazar catálogo propio sin republicar terceros»).",
         "Decisión: autorizaciones históricas = rights_status de las fotos importadas y photo_permission del directorio, mostradas tal cual, sin permiso nuevo. Fuente: falta de BUS-07 y AGE-10.",
-        "Decisión: comisión fuera de la app. Fuente: reconciliación 7-nov M02."
+        "Decisión: comisión fuera de la app. Fuente: reconciliación 7-nov M02.",
+        "Revisión independiente 15-nov, corregido: el enlace exige que la fuente del anuncio esté abierta ahora (permitida, revisión vigente, directorio aceptado) aunque el anuncio ya tenga casa, comprobado antes y en la propia escritura (OPEN_ADVERT, regla de acceso de BUS-10), y que su operación sea la de la ficha; si no, 409 sin escribir.",
+        "Revisión independiente 15-nov, corregido: un anunciante suprimido (AGE-14) ya no marca la ficha como co-listed, igual que AGE-03 lo excluye.",
+        "tests/server/bus-07-provenance.test.mjs: 11/11 el 15-nov (fuente denegada, vencida, pausada durante el enlace y directorio revocado; operación distinta; anunciante suprimido); tests/bus07-provenance.e2e.cjs vuelve a pasar a 1280 y 390.",
+        "Cierre 15-nov-2026: publicada en 7c1dc32 (9265622 y corrección b6a2df4); 0081 (tabla de solo añadir, índices y trigger, aditiva) aplicada en producción tras marcador Time Travel; npm test 2679/2679; tests/bus07-provenance.e2e.cjs pasa a 1280 y 390; revisión independiente: halló dos defectos (enlace a una casa de una fuente cerrada; cambio de alquiler de un negocio no contado), corregidos con prueba y verificados en una segunda pasada sin hallazgos graves; con el interruptor apagado, lista y ficha idénticas.",
+        "Una ficha co-listed solo puede consultarse a su agencia por el circuito de AGE-03 (prueba estática en tests/server/bus-07-provenance.test.mjs)."
       ],
       "modulo": "M02",
       "deps": [
@@ -4305,7 +4312,7 @@
         "advertisers-contract",
         "listings-schema"
       ],
-      "nextStep": "Aplicar 0081, encender BUS07_PROVENANCE_READY y comprobar con GET /admin/listings la procedencia de las fichas importadas.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-15"
     },
     {

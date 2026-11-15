@@ -74,7 +74,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
         ? { ADM15_RENT_REVIEW_READY: "1", ADM20_TENANCY_LAW_READY: "1", ADM17_LEGAL_TERMS_READY: "1" } : {}),
       // SPR-08 reads VIS-08's dates and EST-16's confirmation beside its own notes, so its test has the three on.
       ...(process.env.E2E_SCRIPT === "tests/spr08-listing-sections.e2e.cjs"
-        ? { SPR08_SECTIONS_READY: "1", VIS08_CYCLE_READY: "1", EST16_AVAILABILITY_READY: "1" } : {}),
+        ? { SPR08_SECTIONS_READY: "1", VIS08_CYCLE_READY: "1", EST16_AVAILABILITY_READY: "1", BUS07_PROVENANCE_READY: "0" } : {}),
       // BUS-07 reads BUS-10's homes, EST-16's confirmations and SPR-08's Adverts card, so its test has the four on.
       ...(process.env.E2E_SCRIPT === "tests/bus07-provenance.e2e.cjs" ? { BUS07_PROVENANCE_READY: "1", BUS10_IDENTITY_READY: "1",
         EST16_AVAILABILITY_READY: "1", SPR08_SECTIONS_READY: "1" } : {}),

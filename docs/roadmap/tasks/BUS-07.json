@@ -4,10 +4,10 @@
   "titulo": "Las 264 fichas de agencias tratadas como co-listed (pregunta 1)",
   "origen": "plan",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Luis respondió el 23-oct (A4): se comercializan con la agencia que tiene el encargo. Las fichas HE-R028 a HE-R285 entraron archivadas, la migración 0009 las ofrece a los aplicantes y su tarjeta dice «Not on website». Construido el 15-nov-2026 (migración 0081, interruptor BUS07_PROVENANCE_READY apagado): cada ficha dice su procedencia, «Hampton» o «Co-listed · <anunciante>», derivada del directorio AGE-04 (listing_ids o source_ids, la misma regla que los destinatarios de AGE-03) o, sin él, de la importación del 8-oct (proveedor de sus fotos importadas o rango HE-R028–HE-R285); se corrige en Advertisers. La sección Adverts muestra esa procedencia, el permiso de fotos registrado tal cual (cubre solo esas fotos) y un enlace opcional con una casa del inventario de mercado, hecho y deshecho por una persona con quién y cuándo (listing_market_links, solo añadir), que suma los anuncios vivos de esa casa (fuente, precio y fecha observados) sin fusionar nada ni acreditar disponibilidad. Una prueba fija que solo AGE-03 contacta con la agencia.",
-  "falta": "Aplicar en producción la migración 0081 (aditiva), encender BUS07_PROVENANCE_READY y comprobar con GET la procedencia de las fichas importadas. El enlace con una casa de mercado solo podrá comprobarse en producción cuando el inventario tenga anuncios reales (BUS-06). El reparto de comisión es gestión humana fuera de la app y no bloquea.",
+  "hecho": "Luis respondió el 23-oct (A4): se comercializan con la agencia que tiene el encargo. Las fichas HE-R028 a HE-R285 entraron archivadas, la migración 0009 las ofrece a los aplicantes y su tarjeta dice «Not on website». Construido el 15-nov-2026 (migración 0081, interruptor BUS07_PROVENANCE_READY apagado): cada ficha dice su procedencia, «Hampton» o «Co-listed · <anunciante>», derivada del directorio AGE-04 (listing_ids o source_ids, la misma regla que los destinatarios de AGE-03) o, sin él, de la importación del 8-oct (proveedor de sus fotos importadas o rango HE-R028–HE-R285); se corrige en Advertisers. La sección Adverts muestra esa procedencia, el permiso de fotos registrado tal cual (cubre solo esas fotos) y un enlace opcional con una casa del inventario de mercado, hecho y deshecho por una persona con quién y cuándo (listing_market_links, solo añadir), que suma los anuncios vivos de esa casa (fuente, precio y fecha observados) sin fusionar nada ni acreditar disponibilidad. Una prueba fija que solo AGE-03 contacta con la agencia. Cerrada el 15-nov-2026: migración 0081 aplicada y BUS07_PROVENANCE_READY=1. Cada ficha dice si es Hampton o co-listed con su agencia; el equipo puede enlazarla, con deshacer, a una casa del inventario de mercado de una fuente abierta, y Adverts suma sus anuncios vivos. El enlace con anuncios reales se verá cuando Luis cargue el inventario (BUS-06). Las fotos nuevas siguen AGE-10.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
@@ -26,7 +26,9 @@
     "Decisión: comisión fuera de la app. Fuente: reconciliación 7-nov M02.",
     "Revisión independiente 15-nov, corregido: el enlace exige que la fuente del anuncio esté abierta ahora (permitida, revisión vigente, directorio aceptado) aunque el anuncio ya tenga casa, comprobado antes y en la propia escritura (OPEN_ADVERT, regla de acceso de BUS-10), y que su operación sea la de la ficha; si no, 409 sin escribir.",
     "Revisión independiente 15-nov, corregido: un anunciante suprimido (AGE-14) ya no marca la ficha como co-listed, igual que AGE-03 lo excluye.",
-    "tests/server/bus-07-provenance.test.mjs: 11/11 el 15-nov (fuente denegada, vencida, pausada durante el enlace y directorio revocado; operación distinta; anunciante suprimido); tests/bus07-provenance.e2e.cjs vuelve a pasar a 1280 y 390."
+    "tests/server/bus-07-provenance.test.mjs: 11/11 el 15-nov (fuente denegada, vencida, pausada durante el enlace y directorio revocado; operación distinta; anunciante suprimido); tests/bus07-provenance.e2e.cjs vuelve a pasar a 1280 y 390.",
+    "Cierre 15-nov-2026: publicada en 7c1dc32 (9265622 y corrección b6a2df4); 0081 (tabla de solo añadir, índices y trigger, aditiva) aplicada en producción tras marcador Time Travel; npm test 2679/2679; tests/bus07-provenance.e2e.cjs pasa a 1280 y 390; revisión independiente: halló dos defectos (enlace a una casa de una fuente cerrada; cambio de alquiler de un negocio no contado), corregidos con prueba y verificados en una segunda pasada sin hallazgos graves; con el interruptor apagado, lista y ficha idénticas.",
+    "Una ficha co-listed solo puede consultarse a su agencia por el circuito de AGE-03 (prueba estática en tests/server/bus-07-provenance.test.mjs)."
   ],
   "modulo": "M02",
   "deps": [
@@ -59,6 +61,6 @@
     "advertisers-contract",
     "listings-schema"
   ],
-  "nextStep": "Aplicar 0081, encender BUS07_PROVENANCE_READY y comprobar con GET /admin/listings la procedencia de las fichas importadas.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

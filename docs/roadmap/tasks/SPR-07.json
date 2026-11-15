@@ -4,10 +4,10 @@
   "titulo": "Fuente, última verificación, interesados y filtros extra en el seguimiento de propiedades",
   "origen": "plan",
   "fase": "—",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Construido el 6-nov-2026 (sin migración; spec docs/superpowers/specs/2026-11-05-hampton-app-listing-tracking-design.md). La lista de Listings tiene tres columnas nuevas: Checked («12 days ago», desde la última confirmación), Matched (aplicantes con match, los mismos que la ficha) e Interested (el interés activo, con la regla de la web). Filtros Min price y Max price en £ (venta y negocio por el precio total; alquiler por la renta al mes, pasando la semanal o anual a mensual) y la casilla Changed in the last 7 days (cualquier cambio guardado). La ficha sigue mostrando Active interest y Matched applicants. Completado el 15-nov-2026 con BUS-07 (BUS07_PROVENANCE_READY, apagado): columna y filtro Source (Hampton, Co-listed o cada agencia); bajo Checked, «Confirmed <fecha> · <origen>» (EST-16 en vigor) aparte de «Seen on the web <fecha>» (investigación importada o casa de mercado enlazada) y de la fecha editorial; la casilla pasa a «Price or availability changed in the last 7 days», con el antes y después del historial (un retoque de texto o un cambio de periodo con el mismo equivalente mensual no cuentan). Una sola lectura agregada por página.",
-  "falta": "Encender BUS07_PROVENANCE_READY tras aplicar 0081 (BUS-07) y comprobar la lista con GET en producción. Las casas del inventario común sin ficha propia (filas con fuente, precio, parroquia, dormitorios, baños y disponibilidad; su confirmación y su alcance por anunciante o publicación, traídos de BUS-10, EST-16 y EST-15) pasan a BUS-03.",
+  "hecho": "Construido el 6-nov-2026 (sin migración; spec docs/superpowers/specs/2026-11-05-hampton-app-listing-tracking-design.md). La lista de Listings tiene tres columnas nuevas: Checked («12 days ago», desde la última confirmación), Matched (aplicantes con match, los mismos que la ficha) e Interested (el interés activo, con la regla de la web). Filtros Min price y Max price en £ (venta y negocio por el precio total; alquiler por la renta al mes, pasando la semanal o anual a mensual) y la casilla Changed in the last 7 days (cualquier cambio guardado). La ficha sigue mostrando Active interest y Matched applicants. Completado el 15-nov-2026 con BUS-07 (BUS07_PROVENANCE_READY, apagado): columna y filtro Source (Hampton, Co-listed o cada agencia); bajo Checked, «Confirmed <fecha> · <origen>» (EST-16 en vigor) aparte de «Seen on the web <fecha>» (investigación importada o casa de mercado enlazada) y de la fecha editorial; la casilla pasa a «Price or availability changed in the last 7 days», con el antes y después del historial (un retoque de texto o un cambio de periodo con el mismo equivalente mensual no cuentan). Una sola lectura agregada por página. Cerrada el 15-nov-2026 junto a BUS-07 (BUS07_PROVENANCE_READY=1): columna y filtro Source, «Confirmed <fecha>» separado de «Seen on the web <fecha>», y el filtro de cambios reales de precio o disponibilidad de los últimos 7 días. Las casas del inventario sin ficha propia pasan a BUS-03.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "admin/src/Listings.jsx",
@@ -21,7 +21,8 @@
     "Decisión: Checked conserva confirmed_at editorial; Confirmed es EST-16 y Seen on the web la observación. Fuente: plan SPR-07 tarea 3.",
     "Decisión: cambio material = precio mensual equivalente, moneda, operación o disponibilidad, leído del historial. Fuente: plan SPR-07 tarea 2.",
     "Decisión: las casas de mercado sin ficha propia van a BUS-03 (pantalla de casas encontradas). Fuente: skill §3.",
-    "Revisión independiente 15-nov, corregido: en un negocio cuentan por separado el cambio de premium y el de alquiler (por su equivalente mensual), sin sumarlos. Prueba por la ruta real en tests/server/bus-07-provenance.test.mjs (11/11)."
+    "Revisión independiente 15-nov, corregido: en un negocio cuentan por separado el cambio de premium y el de alquiler (por su equivalente mensual), sin sumarlos. Prueba por la ruta real en tests/server/bus-07-provenance.test.mjs (11/11).",
+    "Cierre 15-nov-2026: publicada en 7c1dc32; lista comprobada en tests/bus07-provenance.e2e.cjs a 1280 y 390; tests/server/listing-filters.test.mjs 9/9; revisión independiente: halló dos defectos (enlace a una casa de una fuente cerrada; cambio de alquiler de un negocio no contado), corregidos con prueba y verificados en una segunda pasada sin hallazgos graves; con el interruptor apagado, lista y ficha idénticas."
   ],
   "modulo": "M02",
   "deps": [
@@ -53,6 +54,6 @@
     "inventory-contract",
     "listings-schema"
   ],
-  "nextStep": "Encender BUS07_PROVENANCE_READY y comprobar Source, Confirmed/Seen y el filtro de 7 días en producción.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

@@ -1033,7 +1033,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 127,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -3302,7 +3302,7 @@
       "preferredSlot": "hermes",
       "priority": 186,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {

@@ -58,6 +58,8 @@ ADM15_RENT_REVIEW_READY = "1"
 AGE05_SEND_READY = "0"
 # ANA-05: per-search milestones in Insights from offers, sales and search state (no migration).
 SEARCH_MILESTONES_READY = "1"
+# BUS-07 / SPR-07: listing source, web sighting vs confirmation, and a reviewed market-home link (migration 0081, applied 15-nov-2026).
+BUS07_PROVENANCE_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
