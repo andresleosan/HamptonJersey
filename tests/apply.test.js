@@ -155,7 +155,7 @@ test('the confirmation is the same accessible receipt regardless of registration
     assert.equal(receipt.querySelector('h2').textContent, 'Thank you. We have received your search request.');
     // REG-12: says the search is active and what happens next, with no promise of availability, count or prior-contact hint.
     assert.deepEqual([...receipt.querySelectorAll('p')].map(p => p.textContent), [
-      'A new search is active straight away: we look for suitable properties while our team checks any missing details. If any of your contact details are already registered with us, the team will review this request alongside the earlier searches first.',
+      'A new search is active straight away: we look for suitable properties while our team checks any missing details. If any of your contact details were registered with us before, the team will review this request alongside the earlier searches first.',
       "We'll be in touch within one working day and will ask about any details we need to confirm. We cannot promise that a suitable property is available now."]);
     assert.doesNotMatch(receipt.textContent, /\d|match|found|already|on file|viewing/i);
     assert.equal(receipt.querySelector('a').getAttribute('href'), '#portfolio');

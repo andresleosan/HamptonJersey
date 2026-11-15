@@ -32,7 +32,7 @@
     "Decisión: se conserva «within one working day». Fuente: F0 §5 y §9, docs/roadmap/work/REG-12/2026-11-13-plazo-acuse.md.",
     "Decisión: el acuse no lee search_run; el matching corre tras responder y leerlo distinguiría alta nueva de repetida. Fuente: spec L1 :37.",
     "Decisión: esenciales comerciales = criterios que compara server/matching.js (BUS-12); sin move_in_date porque el motor no lo compara. Fuente: encargo del lote 15-nov y spec L1 :41.",
-    "Revisión independiente 15-nov-2026: el acuse afirmaba «New searches are active» también a quien comparte teléfono o email con otro contacto, caso que el sistema trata como repetición y no crea búsqueda. Texto corregido para que sea cierto en todos los casos sin revelar si el contacto existía: «A new search is active straight away… If any of your contact details are already registered with us, the team will review this request alongside the earlier searches first.»"
+    "Revisión independiente 15-nov-2026: el acuse afirmaba «New searches are active» también a quien comparte teléfono o email con otro contacto, caso que el sistema trata como repetición y no crea búsqueda. Texto corregido para que sea cierto en todos los casos sin revelar si el contacto existía: «A new search is active straight away… If any of your contact details were registered with us before, the team will review this request alongside the earlier searches first.»"
   ],
   "modulo": "M03",
   "deps": [

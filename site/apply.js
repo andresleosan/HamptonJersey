@@ -12,7 +12,7 @@ const STORE = "hampton-apply";
 export function showRegistrationConfirmation(body) {
   body.innerHTML = `<div class="confirm" role="status" tabindex="-1">
     <h2>Thank you. We have received your search request.</h2>
-    <p>A new search is active straight away: we look for suitable properties while our team checks any missing details. If any of your contact details are already registered with us, the team will review this request alongside the earlier searches first.</p>
+    <p>A new search is active straight away: we look for suitable properties while our team checks any missing details. If any of your contact details were registered with us before, the team will review this request alongside the earlier searches first.</p>
     <p>We'll be in touch within one working day and will ask about any details we need to confirm. We cannot promise that a suitable property is available now.</p>
     <div class="actions"><a class="btn ghost" href="#portfolio">See our properties</a></div></div>`;
   body.querySelector(".confirm").focus();
