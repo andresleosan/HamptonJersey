@@ -95,3 +95,5 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [EST-16] Desempatar confirmaciones del mismo minuto (una corrección inmediata queda «disagree»); señalar cuando la confirmación vigente y el estado publicado discrepan · 15-nov-2026
 - [EST-16] Leer solo las últimas confirmaciones por ficha en las tarjetas y paginar el historial del editor; enlace «Confirm availability» desde la tarjeta · 15-nov-2026
 - [EST-16] Emitir un evento al registrar una confirmación (sin el texto de evidencia); actualizar las notas de `docs/roadmap/work/EST-16/` y el nombre de la prueba «no writer yet» · 15-nov-2026
+- [ADM-20] Declaración al registrar un pago «other» en un contrato cubierto (hoy un premium cobrado fuera de la app puede anotarse sin aviso); lista en Rentals de contratos sin fecha de acuerdo o ámbito; referencia de evidencia de quién determinó el ámbito · 15-nov-2026
+- [ADM-20] New tenancy desborda a 390 px con zoom 200 % (fallo anterior que deja en rojo `tests/adm-20-warnings.e2e.cjs`, también en 453c02f); quitar el sondeo de columnas de `tenancyLaw` ahora que 0073 estará aplicada · 15-nov-2026
