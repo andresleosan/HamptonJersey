@@ -13,7 +13,8 @@ const TONE = { new: "attention", searching: "active", viewing: "active", offer: 
 const StageBadge = ({ stage }) => <span className={`badge ${TONE[stage]}`}>{STAGE_LABEL[stage]}</span>;
 // These labels describe only saved Hampton matches, independently; shortlist is not confirmation of availability.
 const WORK_LABELS = [["new", "New properties found"], ["review", "Waiting for review"], ["shortlisted", "Shortlisted"]];
-// EST-04: an enquiry about one of the search's homes waits for the agency (in_process: absent while enquiries are off).
+// EST-04: one of the search's homes waits for the agency (an open enquiry) or for the client (AGE-12's link, unanswered);
+// in_process is absent while both are off.
 const IN_PROCESS = ["in_process", "In process"];
 const NO_PENDING = ["no_pending", "No matches awaiting review or shortlisted"];
 const workLabels = a => a.queue == null ? null : [
@@ -94,7 +95,7 @@ export default function Applicants() {
     {list === "retention_review" && <p className="muted">Contacts with an open search and at least 11 months without recorded activity.
       Review whether they still need the search. They are protected from automatic deletion.</p>}
     <p className="muted">Work labels describe saved Hampton matches; shortlisted does not mean availability is confirmed.{shows.in_process
-      && " In process: an enquiry about one of the homes is waiting for the agency."}</p>
+      && " In process: one of the homes is waiting for the agency (an open enquiry) or for the client (a private link sent, not answered)."}</p>
     {shows.match_counts && <p className="muted">Matches: found counts every match not rejected; confirmed, the homes a person confirmed as
       available; available, the confirmed ones shortlisted on today's details and still offered.</p>}
     <p className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? "applicant" : "applicants"}</p>

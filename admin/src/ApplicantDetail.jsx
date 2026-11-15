@@ -1,4 +1,5 @@
 import ApplicantMatches from "./ApplicantMatches.jsx";
+import PresentationLinks from "./PresentationLinks.jsx";
 import SearchRun, { searchScope } from "./SearchRun.jsx";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
@@ -50,7 +51,8 @@ const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requi
   "offer.accepted": "Offer accepted", "offer.rejected": "Offer rejected", "offer.withdrawn": "Offer withdrawn",
   "sale.updated": "Sale file changed", "sale.completed": "Sale completed", "sale.fallen_through": "Sale fell through",
   "applicant.search_resolved": "Search resolved", "applicant.search_reopened": "Search made active",
-  "applicant.criteria_proposed": "Criteria changes proposed", "applicant.criteria_proposal_discarded": "Proposed criteria changes discarded" };
+  "applicant.criteria_proposed": "Criteria changes proposed", "applicant.criteria_proposal_discarded": "Proposed criteria changes discarded",
+  "applicant.presentation_answered": "Client answered on their private presentation" };
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" }, SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
 
 const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
@@ -554,6 +556,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
         <span className="muted"> · {searchScope(data.search_run)}</span></p>}
       {data.widen && <Widen alternatives={data.widen} applicant={a} dirty={dirty} onUse={applyWiden} />}
       <ApplicantMatches applicantId={id} applicant={a} counts={data.matchCounts} onChange={refreshMatches} onBusy={setReviewing} />
+      <PresentationLinks applicantId={id} />
     </div>
     {hasOffers && <div role="tabpanel" id="panel-offers" aria-labelledby="tab-offers" hidden={cur !== "offers"} tabIndex={0}>
       <Offers id={id} data={offers} err={offersErr} canRecord={buyer && !archived} />

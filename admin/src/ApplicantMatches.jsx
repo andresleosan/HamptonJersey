@@ -5,8 +5,9 @@ import MatchCard,{APPROVAL_SCOPE,REASON_LABEL,hasPetRefusal} from './MatchCard.j
 const GROUPS=[['found','Found'],['shortlisted','Shortlisted'],['rejected','Rejected']];
 // SAP-03: the same groups and cards, narrowed to what each card's own states say (the server counts them: summary,
 // absent while SAP02_COUNTS_READY is off). Confirmed: a confirmation in force says available. Available: confirmed,
-// shortlisted on today's details and still offered. EST-04: waiting for the agency while an enquiry is open.
-const ONLY=[['','All'],['confirmed','Confirmed'],['available','Available'],['unavailable','Confirmed not available'],['waiting_agent','Waiting for agency']];
+// shortlisted on today's details and still offered. EST-04: waiting for the agency while an enquiry is open, and for the
+// client while a private link sent to them (AGE-12) has no answer on that home.
+const ONLY=[['','All'],['confirmed','Confirmed'],['available','Available'],['unavailable','Confirmed not available'],['waiting_agent','Waiting for agency'],['waiting_applicant','Waiting for client']];
 export default function ApplicantMatches({applicantId,applicant:a,counts,onChange,onBusy}){
  const [pages,setPages]=useState({}),[msg,setMsg]=useState(null),[busy,setBusy]=useState(false);
  const [only,setOnly]=useState(''),[summary,setSummary]=useState(null);
@@ -108,7 +109,8 @@ export default function ApplicantMatches({applicantId,applicant:a,counts,onChang
   {summary&&<><div className="seg" role="group" aria-label="Show matches" style={{maxWidth:'100%',borderRadius:'var(--r)'}}>{ONLY.filter(([k])=>!k||summary[k]!==undefined).map(([k,t])=>
     <button key={k} type="button" aria-pressed={only===k} onClick={()=>setOnly(k)}>{t}{k&&<> <span className="count">{summary[k]}</span></>}</button>)}</div>
    <p className="muted">Confirmed: a person recorded that the property is available. Available: confirmed, shortlisted on today's details and still
-    offered.{summary.waiting_agent!==undefined&&' Waiting for agency: an enquiry about it is prepared or sent, with no answer recorded.'} None
+    offered.{summary.waiting_agent!==undefined&&' Waiting for agency: an enquiry about it is prepared or sent, with no answer recorded.'}
+    {summary.waiting_applicant!==undefined&&' Waiting for client: it is on a private link sent to the client, with no answer yet.'} None
     of them sends anything to the client.</p></>}
   {GROUPS.map(([status,title])=>{const p=pages[status],stack=p?.stack??[null],rows=p?.matches??[],total=p?.counts?.[status]??(only?0:counts?.[status])??0;
    const move=(to)=>{focus.current=`group-${status}`;load(status,to);};

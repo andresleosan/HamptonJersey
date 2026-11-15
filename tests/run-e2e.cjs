@@ -92,6 +92,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       // AGE-10 reviews the photos of SPR-03's capture, in SPR-08's sections.
       ...(process.env.E2E_SCRIPT === "tests/age10-photo-permissions.e2e.cjs" ? { AGE10_PHOTOS_READY: "1", SPR03_CAPTURE_READY: "1",
         EST16_AVAILABILITY_READY: "1", SPR08_SECTIONS_READY: "1", BUS07_PROVENANCE_READY: "0" } : {}),
+      // AGE-12 presents AGE-10's suitable photos of SPR-03's capture on a client's private link.
+      ...(process.env.E2E_SCRIPT === "tests/age12-private-presentation.e2e.cjs" ? { AGE12_PRESENTATIONS_READY: "1", AGE10_PHOTOS_READY: "1",
+        SPR03_CAPTURE_READY: "1", EST16_AVAILABILITY_READY: "1", SAP02_COUNTS_READY: "1" } : {}),
       SESSION_SECRET: randomBytes(32).toString('hex'),
       TURNSTILE_SITE_KEY: example.TURNSTILE_SITE_KEY,
       TURNSTILE_SECRET: example.TURNSTILE_SECRET,
