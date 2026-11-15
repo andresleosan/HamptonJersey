@@ -9,7 +9,8 @@ Ordenado por cuántas tareas abiertas desbloquea cada cosa (`node scripts/avanza
 | Tarea | Desbloquea | Qué hace falta |
 | --- | --- | --- |
 | PRE-32 | 60 | Decir qué plan de ChatGPT usa Hermes y qué datos puede tratar; sin eso ninguna automatización con modelo se conecta. |
-| AUT-17 | 48 | Verificar cuenta y DNS de Cloudflare Email Service y autorizar encender `EMAIL_SERVICE_READY` con una prueba real de envío. Esa misma prueba cierra AUT-11 (barandillas de envío), que ya no tiene código pendiente. |
+| AUT-17 | 48 | Verificar cuenta y DNS de Cloudflare Email Service y autorizar encender `EMAIL_SERVICE_READY` con una prueba real de envío. Esa misma prueba cierra AUT-11 (barandillas de envío), que ya no tiene código pendiente. Poner `EMAIL_SERVICE_READY` a true **a la vez** en `wrangler.toml` y `jobs/wrangler.toml`. |
+| AGE-05 | 16 | Decidir si encender `AGE05_SEND_READY` (en `wrangler.toml` y `jobs/wrangler.toml` a la vez; una prueba exige que coincidan): con AUT-17 activo deja salir por correo las consultas a agencias, cada una con aprobación individual en la ficha. Para pararlo, apagarlo también en el reloj. Después, la prueba real cierra AGE-05. |
 | PRE-03 | 21 | Hampton confirma sus registros en la JFSC (Schedule 2) y la JOIC. |
 | PRE-33 | 11 | Preparar y enviar el paquete para el abogado de Jersey. |
 | ADM-15 | 0 | Pedir al abogado de Jersey (puede ir en el paquete de PRE-33) la plantilla de carta de aviso de revisión de renta. El asistente, el RPI con fuente y el borrador para copiar ya están en Rentals › Change rent; con la plantilla se genera la carta y se cierra. |

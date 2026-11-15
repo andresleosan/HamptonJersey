@@ -558,3 +558,10 @@ test("each AGE-05 module loads first without an import cycle", async () => {
     assert.equal(execFileSync(process.execPath, ["--no-warnings", "--input-type=module", "-e",
       `await import(${JSON.stringify(new URL(`../../server/${m}.js`, import.meta.url).href)}); console.log("ok")`], { encoding: "utf8" }).trim(), "ok", m);
 });
+
+test("the website and the clock carry the same AGE05_SEND_READY, so switching it off stops what is queued", async () => {
+  const { readFileSync } = await import("node:fs");
+  const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^AGE05_SEND_READY = "(.*)"$/m)?.[1];
+  assert.ok(flag("wrangler.toml") !== undefined, "the website names the switch");
+  assert.equal(flag("wrangler.toml"), flag("jobs/wrangler.toml"));
+});

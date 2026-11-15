@@ -20,6 +20,8 @@ OFE06_WEEKLY_REVIEW_READY = "1"
 ADM17_LEGAL_TERMS_READY = "1"
 # ADM-11: the rest of the rental compliance calendar; keep equal in ../wrangler.toml.
 ADM11_CALENDAR_READY = "1"
+# AGE-05: enquiry emails to advertisers. Off; keep equal in ../wrangler.toml. To stop, switch off here first.
+AGE05_SEND_READY = "0"
 
 [triggers]
 crons = ["*/10 * * * *"]
