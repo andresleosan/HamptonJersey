@@ -24,6 +24,5 @@ WHEN NEW.landlord_id IS NOT OLD.landlord_id OR NEW.month IS NOT OLD.month OR NEW
   OR (OLD.sent_on IS NOT NULL AND (NEW.sent_on IS NOT OLD.sent_on OR NEW.sent_by IS NOT OLD.sent_by))
   OR (OLD.paid_on IS NOT NULL AND (NEW.paid_on IS NOT OLD.paid_on OR NEW.paid_by IS NOT OLD.paid_by))
 BEGIN SELECT RAISE(ABORT, 'statement_run_closed'); END;
-
-CREATE TRIGGER statement_runs_kept BEFORE DELETE ON statement_runs
-BEGIN SELECT RAISE(ABORT, 'statement_run_closed'); END;
+-- No guard on DELETE: a landlord's personal data must stay erasable. The snapshot holds the landlord's id and name
+-- only, never their email, phone or archive date.

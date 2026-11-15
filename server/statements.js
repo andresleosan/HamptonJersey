@@ -47,9 +47,14 @@ export async function buildStatement(env, id, month) {
     ...(writtenOff ? { written_off: sum(r => r.written_off) } : {}) } };
 }
 
+// What a close keeps (and its digest covers): the statement with the landlord's id and name only, so their email, phone
+// or archive date stay out of the kept document and correcting them needs no new revision.
+const kept = s => JSON.stringify({ ...s, landlord: { id: s.landlord.id, name: s.landlord.name } });
+const MAX_SNAPSHOT = 131072; // 0090's CHECK
 const RUN = "id, landlord_id, month, revision, source_digest, net_pence, closed_at, closed_by, sent_on, sent_by, paid_on, paid_by";
 // The statement and, with ADM-10, its digest (what a close must match), its revisions (newest first) and the latest
-// closed one as it was closed.
+// closed one as it was closed, with the newest earlier revision already paid (paid_before), so a new one shows the
+// difference still to pay and never the whole net again.
 async function statement({ request, env }) {
   const p = new URL(request.url).searchParams, month = p.get("month") ?? "", id = Number(p.get("landlord"));
   const errors = {};
@@ -60,9 +65,10 @@ async function statement({ request, env }) {
   if (!statementsReady(env)) return json(s);
   const { results: runs } = await env.DB.prepare(`SELECT ${RUN}, CASE WHEN revision = MAX(revision) OVER () THEN snapshot END AS snapshot
     FROM statement_runs WHERE landlord_id = ? AND month = ? ORDER BY revision DESC`).bind(id, month).all();
-  const list = runs.map(({ snapshot, ...r }) => r);
-  return json({ ...s, digest: await sha256(JSON.stringify(s)), runs: list,
-    closed: runs.length ? { ...list[0], statement: JSON.parse(runs[0].snapshot) } : null });
+  const list = runs.map(({ snapshot, ...r }) => r), paid = list.slice(1).find(r => r.paid_on);
+  return json({ ...s, digest: await sha256(kept(s)), runs: list, closed: runs.length ? { ...list[0],
+    paid_before: paid ? { revision: paid.revision, paid_on: paid.paid_on, net_pence: paid.net_pence } : null,
+    statement: JSON.parse(runs[0].snapshot) } : null });
 }
 
 // Close a month that has ended, as the page showed it: the digest it was given must be the current figures (409
@@ -72,8 +78,9 @@ async function close({ request, env, admin }) {
   if (!Number.isInteger(id) || id < 1 || typeof month !== "string" || !MONTH.test(month) || typeof b.digest !== "string")
     fail(400, "Choose a landlord and a month");
   if (month >= jerseyToday().slice(0, 7)) return fieldErrors({ month: "Close a month once it has ended" });
-  const s = await buildStatement(env, id, month), snapshot = JSON.stringify(s), digest = await sha256(snapshot);
+  const s = await buildStatement(env, id, month), snapshot = kept(s), digest = await sha256(snapshot);
   if (digest !== b.digest) fail(409, CHANGED);
+  if (snapshot.length > MAX_SNAPSHOT) fail(413, "This statement is too long to keep (over 128 KB). Shorten its addresses or repair titles");
   const meta = (await env.DB.prepare(`INSERT INTO statement_runs (landlord_id, month, revision, snapshot, source_digest,
       net_pence, closed_at, closed_by)
     SELECT ?1, ?2, COALESCE(MAX(revision), 0) + 1, ?3, ?4, ?5, ?6, ?7 FROM statement_runs WHERE landlord_id = ?1 AND month = ?2
@@ -85,13 +92,17 @@ async function close({ request, env, admin }) {
   return json({ run: await env.DB.prepare(`SELECT ${RUN} FROM statement_runs WHERE id = ?`).bind(meta.last_row_id).first() }, 201);
 }
 
-// Sent to or paid to the landlord, recorded by hand on a closed revision (today, Jersey), once each.
+// Sent to or paid to the landlord, recorded by hand on the latest closed revision of its month (today, Jersey), once each:
+// an older revision is superseded, so marking it could pay the landlord twice.
+const LATEST = `revision = (SELECT MAX(x.revision) FROM statement_runs x WHERE x.landlord_id = statement_runs.landlord_id
+  AND x.month = statement_runs.month)`;
 const mark = what => async ({ env, admin, params: [id] }) => {
-  const { meta } = await env.DB.prepare(`UPDATE statement_runs SET ${what}_on = ?, ${what}_by = ? WHERE id = ? AND ${what}_on IS NULL`)
-    .bind(jerseyToday(), admin, Number(id)).run();
-  const run = await env.DB.prepare(`SELECT ${RUN} FROM statement_runs WHERE id = ?`).bind(Number(id)).first();
+  const { meta } = await env.DB.prepare(`UPDATE statement_runs SET ${what}_on = ?, ${what}_by = ? WHERE id = ? AND ${what}_on IS NULL
+    AND ${LATEST}`).bind(jerseyToday(), admin, Number(id)).run();
+  const run = await env.DB.prepare(`SELECT ${RUN}, ${LATEST} AS latest FROM statement_runs WHERE id = ?`).bind(Number(id)).first();
   if (!run) fail(404, "Statement not found");
-  if (!meta.changes) fail(409, `This statement is already marked ${what}`);
+  if (!meta.changes) fail(409, run.latest ? `This statement is already marked ${what}` : "A newer revision of this statement exists. Reload to see it");
+  delete run.latest;
   return json({ run });
 };
 

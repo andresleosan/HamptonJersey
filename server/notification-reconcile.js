@@ -26,12 +26,14 @@ const deadlineRows=legal=>DEADLINES.map(([key,label,from,period,done])=>{const d
   json_object('tenancy_id',t.id,'deadline','${key}'),${quote(label+' overdue')},date(t.${from},'+${days} days')||'T00:00:00.000Z','normal',json_array(t.${from}${changed}),'rental',CAST(t.rental_id AS TEXT)
   FROM tenancies t JOIN rentals r ON r.id=t.rental_id WHERE r.archived_at IS NULL AND t.${from} IS NOT NULL AND t.${done} IS NULL AND date(t.${from},'+${days} days')<?1`;}).join('\nUNION ALL ');
 // ADM-11 (calendar: its switch): the calendar's checks come through the same rows and the same 'check' notices.
-// ADM-10 (statements: its switch, migration 0090): one task while a landlord with a full-management property from before
-// this month has no closed statement for last month. It resolves once every one is closed.
+// ADM-10 (statements: its switch, migration 0090): one task per month while a landlord with a full-management property
+// from before the month ended has no closed statement for it: last month, and any earlier month whose task is still
+// open, so a month left unclosed keeps its task after the calendar moves on. It resolves once every one is closed.
 const statementRow=`UNION ALL SELECT 'statement',m.month,m.month,'collection','landlord-statements:'||m.month,NULL,'Close landlord statements',
-    date(?1,'start of month')||'T00:00:00.000Z','normal',json_array(m.month),'collection','landlord-statements:'||m.month
-    FROM (SELECT strftime('%Y-%m',?1,'start of month','-1 month') AS month) m WHERE EXISTS(SELECT 1 FROM rentals r
-      WHERE r.service='full' AND r.archived_at IS NULL AND r.created_at<date(?1,'start of month')
+    date(m.month||'-01','+1 month')||'T00:00:00.000Z','normal',json_array(m.month),'collection','landlord-statements:'||m.month
+    FROM (SELECT strftime('%Y-%m',?1,'start of month','-1 month') AS month
+      UNION SELECT cycle FROM notification_observations WHERE kind='statement' AND active=1) m WHERE EXISTS(SELECT 1 FROM rentals r
+      WHERE r.service='full' AND r.archived_at IS NULL AND r.created_at<date(m.month||'-01','+1 month')
       AND NOT EXISTS(SELECT 1 FROM statement_runs s WHERE s.landlord_id=r.landlord_id AND s.month=m.month))`;
 const pendingSql=(legal,calendar,arrears,statements)=>`${arrears},pending_deadlines(${columns}) AS MATERIALIZED (${deadlineRows(legal)}),rental_pending(${columns}) AS MATERIALIZED (
   SELECT 'arrears',CAST(a.tenancy_id AS TEXT),a.oldest_unpaid_on||':'||a.next_step,'rental',CAST(a.rental_id AS TEXT),

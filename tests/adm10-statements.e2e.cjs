@@ -1,6 +1,6 @@
 // ADM-10, local synthetic fixture only (run through test:e2e:isolated with ADM10_STATEMENTS_READY=1 from run-e2e.cjs): last
 // month's statement closed from the panel, a late payment that leaves the closed statement as it was until revision 2,
-// sent and paid marked by hand, the CSV download (formula text escaped), GST shown as not configured and the closing
+// revision 1 paid so revision 2 shows only the difference, sent and paid marked by hand, the CSV download (formula text escaped), GST shown as not configured and the closing
 // panel left out of print, at 1280 and 390 px. The server's own answers are in tests/server/adm-10-statements.test.mjs.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PW || 'playwright-core');
@@ -64,6 +64,9 @@ const fits = page => page.evaluate(() => document.documentElement.scrollWidth <=
       await page.getByRole('status').getByText('Statement closed.', { exact: true }).waitFor();
       await panel.getByText(/revision 1, net £1,350\.00\./).waitFor();
       await page.getByText(/· revision 1$/).waitFor();
+      await panel.getByRole('button', { name: 'Mark as paid', exact: true }).click();
+      await panel.getByText(/^Paid to the landlord on .+ \(admin@example\.test\)\.$/).waitFor();
+      const first = (await request(page, `/admin/statements?landlord=${L}&month=${prev}`)).data.closed.id;
 
       // A late payment for that month: the closed statement stays as it was until revision 2 is closed.
       await pay(`${prev}-25`, 10000);
@@ -75,6 +78,11 @@ const fits = page => page.evaluate(() => document.documentElement.scrollWidth <=
       await panel.getByText(/revision 2, net £1,440\.00\./).waitFor();
       await panel.getByText(/^Revision 1: closed/).waitFor();
       assert.match(await totals.locator('tr.net').innerText(), /£1,440\.00/);
+
+      // Revision 1 was paid: revision 2 shows the difference, not the whole net, and revision 1 takes no more marks.
+      await panel.getByText(/^Revision 1 was paid on .+: £1,350\.00\. Still to pay: £90\.00\.$/).waitFor();
+      assert.equal(await panel.getByText('Not paid yet.', { exact: true }).count(), 0);
+      assert.equal((await request(page, `/admin/statement-runs/${first}/sent`, 'PUT', {})).status, 409);
 
       // Sent and paid, by hand.
       await panel.getByRole('button', { name: 'Mark as sent', exact: true }).click();

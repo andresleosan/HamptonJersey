@@ -51,7 +51,7 @@ export default function Statement({ landlord, month }) {
     : <article id="statement" className="card">
       <header className="statement-head"><h2>{doc.landlord.name}</h2>
         <p>Statement for {monthName(doc.month)}{data.closed && ` · revision ${data.closed.revision}`}</p><p>Hampton Estates</p>
-        {(doc.landlord.email || doc.landlord.phone) && <p className="muted">{[doc.landlord.email, doc.landlord.phone].filter(Boolean).join(" · ")}</p>}
+        {(data.landlord.email || data.landlord.phone) && <p className="muted">{[data.landlord.email, data.landlord.phone].filter(Boolean).join(" · ")}</p>}
       </header>
       {doc.rentals.length ? doc.rentals.map(r => <section key={r.id} className="statement-property" aria-labelledby={`sp-${r.id}`}>
         <h3 id={`sp-${r.id}`}>{r.address}</h3>
@@ -103,7 +103,7 @@ function Closing({ data, onDone }) {
         stays as it was closed.</p><button type="button" className="btn" onClick={closeIt} disabled={busy}>Close revision {c.revision + 1}</button></div>}
       {["sent", "paid"].map(w => <div key={w} className="inline">{c[`${w}_on`]
         ? <p>{w === "sent" ? "Sent to" : "Paid to"} the landlord on {fmtDay(c[`${w}_on`])} ({c[`${w}_by`]}).</p>
-        : <><p>{w === "sent" ? "Not sent yet." : "Not paid yet."}</p>
+        : <><p>{w === "sent" ? "Not sent yet." : c.paid_before ? paidBefore(c) : "Not paid yet."}</p>
           <button type="button" className="btn ghost" onClick={() => mark(w)} disabled={busy}>Mark as {w}</button></>}</div>)}
       {data.runs.length > 1 && <ul className="plain-list">{data.runs.slice(1).map(r => <li key={r.id}>Revision {r.revision}: closed
         {" "}{fmtDay(r.closed_at.slice(0, 10))}, net {pence(r.net_pence)}{r.sent_on && `, sent ${fmtDay(r.sent_on)}`}
@@ -111,6 +111,13 @@ function Closing({ data, onDone }) {
     </>}
     {msg && <p role="alert" className="err">{msg.text}</p>}
   </section>;
+}
+
+// A revision after one already paid: what was paid and the difference, never the whole net again.
+function paidBefore({ net_pence, paid_before: p }) {
+  const left = net_pence - p.net_pence;
+  return `Revision ${p.revision} was paid on ${fmtDay(p.paid_on)}: ${pence(p.net_pence)}. ${left > 0 ? `Still to pay: ${pence(left)}.`
+    : left < 0 ? `${pence(-left)} more than this revision was paid.` : "Nothing more to pay."}`;
 }
 
 // The statement shown, as CSV (RFC 4180, amounts in pence). Text that could start a spreadsheet formula gets an apostrophe.

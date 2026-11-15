@@ -79,12 +79,39 @@ test("closing keeps the month as it was: a later correction shows as changed and
   assert.equal(JSON.parse(kept.snapshot).totals.rent, 150000, "revision 1 stays as it was closed");
 });
 
-test("a closed statement cannot be rewritten or deleted in the database", async () => {
+test("a closed statement's figures cannot be rewritten; a run can still be deleted (personal data stays erasable)", async () => {
   const e = env(), { L } = await setup(e);
   const { id } = ok(await close(e, L), 201).run;
   assert.throws(() => run(e, "UPDATE statement_runs SET net_pence = 1 WHERE id = ?", id), /statement_run_closed/);
   assert.throws(() => run(e, "UPDATE statement_runs SET snapshot = '{}' WHERE id = ?", id), /statement_run_closed/);
-  assert.throws(() => run(e, "DELETE FROM statement_runs WHERE id = ?", id), /statement_run_closed/);
+  run(e, "DELETE FROM statement_runs WHERE id = ?", id);
+  assert.equal(rows(e, "SELECT COUNT(*) AS n FROM statement_runs")[0].n, 0);
+});
+
+test("the snapshot keeps no landlord email, phone or archive date, so correcting them needs no new revision", async () => {
+  const e = env(), L = ok(await req(e, "POST", "/admin/landlords", { name: "Pat Owner", email: "pat@example.je",
+    phone: "+44 1534 000000" }), 201).landlord.id;
+  ok(await req(e, "POST", "/admin/rentals", { landlord_id: L, address: "B Flat", parish: "St Helier", service: "full", fee_percent: 10 }), 201);
+  const before = ok(await get(e, L));
+  assert.equal(before.landlord.email, "pat@example.je", "the page still shows the contact");
+  ok(await close(e, L), 201);
+  const snap = rows(e, "SELECT snapshot FROM statement_runs")[0].snapshot;
+  assert.doesNotMatch(snap, /pat@example|1534|archived_at":"2/);
+  assert.deepEqual(JSON.parse(snap).landlord, { id: L, name: "Pat Owner" });
+  run(e, "UPDATE landlords SET phone = '+44 1534 999999', email = NULL, archived_at = ? WHERE id = ?", T, L);
+  const after = ok(await get(e, L));
+  assert.equal(after.digest, before.digest);
+  assert.equal(after.closed.source_digest, after.digest, "no figures changed");
+});
+
+test("a statement too long to keep is refused clearly, not a server error", async () => {
+  const e = env(), { L, R } = await setup(e);
+  for (let i = 0; i < 500; i++) run(e, `INSERT INTO repairs (rental_id, title, contractor, urgency, status, cost, done_on,
+    charge_landlord, created_at, updated_at) VALUES (?, ?, ?, 'routine', 'done', 10, ?, 1, ?, ?)`,
+  R, "t".repeat(120), "c".repeat(120), `${PREV}-10`, T, T);
+  const r = await close(e, L);
+  assert.equal(r.status, 413, JSON.stringify(r.data));
+  assert.match(r.data.error, /too long/);
 });
 
 test("sent and paid to the landlord are recorded by hand, once each, with who and when", async () => {
@@ -97,8 +124,28 @@ test("sent and paid to the landlord are recorded by hand, once each, with who an
     assert.equal((await req(e, "PUT", `/admin/statement-runs/${id}/${what}`, {})).status, 409);
   }
   assert.equal((await req(e, "PUT", "/admin/statement-runs/999/sent", {})).status, 404);
+  assert.equal(ok(await get(e, L)).closed.paid_before, null, "nothing paid on an earlier revision");
   assert.throws(() => run(e, "UPDATE statement_runs SET sent_on = NULL WHERE id = ?", id), /statement_run_closed/);
   assert.equal((await call(e, "PUT", `/admin/statement-runs/${id}/paid`, { body: {} })).status, 401);
+});
+
+test("after a paid revision: only the latest takes sent or paid, and it shows what was paid already", async () => {
+  const e = env(), { L, t } = await setup(e);
+  pay(e, t, `${PREV}-05`, 150000);
+  const first = ok(await close(e, L), 201).run;
+  ok(await req(e, "PUT", `/admin/statement-runs/${first.id}/paid`, {}));
+  pay(e, t, `${PREV}-20`, 10000);
+  const second = ok(await close(e, L), 201).run;
+  for (const what of ["sent", "paid"]) {
+    const r = await req(e, "PUT", `/admin/statement-runs/${first.id}/${what}`, {});
+    assert.equal(r.status, 409, what);
+    assert.match(r.data.error, /newer revision/);
+  }
+  const s = ok(await get(e, L));
+  assert.equal(s.closed.id, second.id);
+  assert.deepEqual(s.closed.paid_before, { revision: 1, paid_on: T, net_pence: 135000 });
+  assert.equal(s.closed.net_pence - s.closed.paid_before.net_pence, 9000, "£90.00 still to pay");
+  ok(await req(e, "PUT", `/admin/statement-runs/${second.id}/paid`, {}));
 });
 
 test("write-offs of the month show apart: no fee and not in the net", async () => {
@@ -123,9 +170,13 @@ test("the Inbox asks to close last month's statements and the task resolves once
   const item = ok(await req(e, "GET", "/admin/notifications?box=action&category=task")).notifications
     .find(n => n.title === "Close landlord statements");
   assert.equal(item?.link, `#/rentals/statements?month=${PREV}`);
+  // Still open next month while last month is not closed (the clock moved on); it resolves once it is.
+  const later = `${addMonths(`${THIS}-01`, 1)}T12:00:00.000Z`;
+  await notificationsPass(e, later);
+  assert.deepEqual(task().map(x => [x.target_id, x.open]), [[`landlord-statements:${PREV}`, 1], [`landlord-statements:${THIS}`, 1]]);
   ok(await close(e, L), 201);
-  await notificationsPass(e, new Date().toISOString());
-  assert.equal(task()[0].open, 0);
+  await notificationsPass(e, later);
+  assert.deepEqual(task().map(x => [x.target_id, x.open]), [[`landlord-statements:${PREV}`, 0], [`landlord-statements:${THIS}`, 1]]);
 
   const off = env({}), o = await setup(off);
   await notificationsPass(off, new Date().toISOString());
