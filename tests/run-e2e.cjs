@@ -53,7 +53,8 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/adm11-compliance.e2e.cjs" ? { ADM11_CALENDAR_READY: "1", ADM17_LEGAL_TERMS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/bus10-identity.e2e.cjs" ? { BUS10_IDENTITY_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/aut19-criteria-proposal.e2e.cjs" ? { AUT19_CRITERIA_PROPOSALS_READY: "1" } : {}),
-      ...(process.env.E2E_SCRIPT === "tests/est16-availability.e2e.cjs" ? { EST16_AVAILABILITY_READY: "1" } : {}),
+      // EST-16 on its own: EST-15 (on in wrangler.toml) would ask for a reason and withdraw proposals; its own check covers both.
+      ...(process.env.E2E_SCRIPT === "tests/est16-availability.e2e.cjs" ? { EST16_AVAILABILITY_READY: "1", EST15_UNAVAILABILITY_READY: "0" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/est15-unavailability.e2e.cjs" ? { EST16_AVAILABILITY_READY: "1", EST15_UNAVAILABILITY_READY: "1" } : {}),
       // AGE-03 reuses EST-16's confirmed availability, so its test has both on.
       ...(process.env.E2E_SCRIPT === "tests/age03-enquiries.e2e.cjs" ? { AGE03_ENQUIRIES_READY: "1", EST16_AVAILABILITY_READY: "1" } : {}),
