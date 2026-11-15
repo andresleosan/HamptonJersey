@@ -1,6 +1,6 @@
 import { ownerStorageAvailable } from '../owner-requests.js';
 import { json, fail, readJson, now } from "../http.js";
-import { notificationSelect, noticeDto, TASK_CATEGORIES, inboxActionsReady, categorySql, snoozedSql } from "../notification-query.js";
+import { notificationSelect, noticeDto, TASK_CATEGORIES, inboxActionsReady, categorySql, snoozedSql, missingSnooze } from "../notification-query.js";
 import { getTask, mutateTask } from "../notification-tasks.js";
 import { salesCount } from "./sales.js";
 import { refreshRentalsCount } from "./rent.js";
@@ -25,12 +25,18 @@ const CATEGORIES = TASK_CATEGORIES;
 // own counts, not part of action. outbound: {at, by} while sending is paused (AUT-13, H11), else null. stalled: how many
 // automations are stopped, the clock or Hermes (AUT-01, A3). chats: the website's chats waiting (MSG-02).
 // legal (ADM-17, with its switch): whether the legal periods behind the compliance dates are estimated or validated.
-export async function openCounts(env, legal) {
+// snooze: leave snoozed tasks out (NOT-09). The clock's summary asks for it whatever the switch; without migration 0088
+// it is as if no task were snoozed.
+export async function openCounts(env, legal, snooze = inboxActionsReady(env)) {
   legal ??= await readLegal(env);
+  try { return await counted(env, legal, snooze); }
+  catch (e) { if (!snooze || !missingSnooze(e)) throw e; return counted(env, legal, false); }
+}
+async function counted(env, legal, snooze) {
   const on = inboxActionsReady(env);
   const [{ results }, { results: [sales] }, , , { results: [rentals] }, { results: [expiring] }, { results: [toConfirm] },
     { results: [outbound] }, { results: seen }, { results: [chats] }, { results: [retentionReview] }] = await env.DB.batch([env.DB.prepare(
-    `SELECT ${categorySql(on)} AS category, COUNT(*) AS n FROM notifications n WHERE ${OPEN(on)} GROUP BY 1`),
+    `SELECT ${categorySql(on)} AS category, COUNT(*) AS n FROM notifications n WHERE ${OPEN(snooze)} GROUP BY 1`),
   salesCount(env), ...refreshRentalsCount(env, legal.periods),
   env.DB.prepare("SELECT json_extract(value, '$.n') AS n FROM app_settings WHERE key = 'rentals_count'"),
   // ponytail: rows read per poll ≈ 1 + 3 × the contacts in the band (each one's search, sale and open-offer lookups);
@@ -59,12 +65,13 @@ async function list({ request, env, waitUntil, admin }) {
   if (!Object.hasOwn(BOXES, box ?? "")) fail(400, "Invalid box");
   if (category && !CATEGORIES.includes(category)) fail(400, "Invalid category");
   waitUntil(retentionPass(env, now()));
-  const on = inboxActionsReady(env);
-  const preferences = box === "feed" ? `
-    (n.resolved_at IS NOT NULL OR ${on ? `${snoozedSql()} OR ` : ""}${categorySql(on)} IN (SELECT value FROM json_each(COALESCE(
-      (SELECT feed_categories FROM notification_preferences WHERE admin=?),'${JSON.stringify(CATEGORIES)}')))) AND ` : "";
-  const { results } = await env.DB.prepare(`${notificationSelect(await ownerStorageAvailable(env), on)} WHERE ${category ? `${categorySql(on)} = ? AND ` : ""}${preferences}${BOXES[box](on)}`)
+  const on = inboxActionsReady(env), owner = await ownerStorageAvailable(env);
+  const read = snooze => env.DB.prepare(`${notificationSelect(owner, on, snooze)} WHERE ${category ? `${categorySql(on)} = ? AND ` : ""}${box === "feed" ? `
+    (n.resolved_at IS NOT NULL OR ${snooze ? `${snoozedSql()} OR ` : ""}${categorySql(on)} IN (SELECT value FROM json_each(COALESCE(
+      (SELECT feed_categories FROM notification_preferences WHERE admin=?),'${JSON.stringify(CATEGORIES)}')))) AND ` : ""}${BOXES[box](snooze)}`)
     .bind(admin,...(category ? [category] : []),...(box === "feed" ? [admin] : [])).all();
+  // Switched on before migration 0088: as if Snooze were off.
+  const { results } = await read(on).catch(e => { if (on && missingSnooze(e)) return read(false); throw e; });
   // ADM-17: a check or deadline the system worked out from legal periods no lawyer has validated says so (estimated).
   const legal = await readLegal(env), estimated = legal.terms?.status === "estimated";
   const notifications = results.map(r => (estimated && r.category === "compliance" && r.source_type === "notification.observed"

@@ -1,4 +1,4 @@
-// NOT-08/NOT-09 (NOT0809_INBOX_READY, migration 0087): agency replies and client answers in their tabs, the one-click
+// NOT-08/NOT-09 (NOT0809_INBOX_READY, migration 0088): agency replies and client answers in their tabs, the one-click
 // actions each notice offers, and Snooze, which hides a task from Needs action until a time without the clock reopening it.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -8,8 +8,8 @@ import {taskStatements} from '../../server/notification-tasks.js';
 
 const ON={NOT0809_INBOX_READY:'1'},OP='9b2f7c1e-0d6a-4c3b-8f21-5a7e9d0c4b11';
 const tomorrow=()=>new Date(Date.now()+864e5).toISOString();
-async function fixture(on=true){
-  const env=Object.assign(makeEnv(),on?ON:{});seedListing(env);
+async function fixture(on=true,schema={}){
+  const env=Object.assign(makeEnv(schema),on?ON:{});seedListing(env);
   env.DB.raw.exec(`INSERT INTO contacts(name,email,phone,last_activity_at,created_at,updated_at)
       VALUES('Action fixture','action@example.test','+447700900123','${T0}','${T0}','${T0}');
     INSERT INTO applicants(contact_id,operation,source,created_at,updated_at) VALUES(1,'rent','phone','${T0}','${T0}');`);
@@ -97,4 +97,58 @@ test('new context from the source wakes a snoozed task; an unchanged clock tick 
     reason:'New context',target:{kind:'payment',id:'1'}}));
   assert.ok(env.DB.raw.prepare('SELECT revision FROM notifications WHERE id=?').get(n.id).revision>t);
   assert.ok(byTitle(await list(env,cookie,'action'),'Unmatched payment'));
+});
+
+test('snoozing again at the same time after another change still takes a revision, history and holds',async()=>{
+  const {env,cookie}=await fixture(),title='Agency needs more information',n=byTitle(await list(env,cookie,'action'),title),until=tomorrow();
+  const first=await change(env,cookie,n.id,{revision:n.revision,action:'snooze',snoozed_until:until});
+  const claimed=await change(env,cookie,n.id,{revision:first.data.task.revision,action:'claim'});
+  assert.equal(claimed.status,200);
+  const again=await change(env,cookie,n.id,{revision:claimed.data.task.revision,action:'snooze',snoozed_until:until});
+  assert.equal(again.status,200);assert.equal(again.data.task.revision,claimed.data.task.revision+1);assert.equal(again.data.task.snoozed_until,until);
+  const row=env.DB.raw.prepare('SELECT revision,snoozed_revision FROM notifications WHERE id=?').get(n.id);
+  assert.equal(row.snoozed_revision,row.revision);
+  assert.equal(env.DB.raw.prepare("SELECT COUNT(*) AS n FROM notification_task_history WHERE task_id=? AND action='snooze'").get(n.id).n,2);
+  assert.equal(byTitle(await list(env,cookie,'action'),title),undefined);
+  // New context from the source wakes it, never the reverse.
+  const key=env.DB.raw.prepare('SELECT task_key FROM notifications WHERE id=?').get(n.id).task_key;
+  await env.DB.batch([...logEvent(env,{actor:'system',entity_type:'listing',entity_id:'HE-R001',type:'fixture.task'},null),
+    ...taskStatements(env,{taskKey:key,eventId:null,category:'task',title,reason:'New context',target:{kind:'listing',id:'HE-R001'}},{ifInserted:true})]);
+  assert.ok(byTitle(await list(env,cookie,'action'),title));
+});
+
+test('Wake on a closed task is a conflict',async()=>{
+  const {env,cookie}=await fixture(),n=byTitle(await list(env,cookie,'action'),'Send enquiry manually');
+  const s=await change(env,cookie,n.id,{revision:n.revision,action:'snooze',snoozed_until:tomorrow()});
+  const d=await change(env,cookie,n.id,{revision:s.data.task.revision,action:'done'});assert.equal(d.status,200);
+  assert.equal((await change(env,cookie,n.id,{revision:d.data.task.revision,action:'unsnooze'})).status,409);
+});
+
+for(const on of [false,true])test(`task actions on a property's task never join its revision sequence (switch ${on?'on':'off'})`,async()=>{
+  const {env,cookie}=await fixture(on);
+  for(const r of [1,2,3])env.DB.raw.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
+    VALUES('${T0}','fixture','listing','HE-R001','listing.updated',json_object('revision',?))`).run(r);
+  const n=byTitle(await list(env,cookie,'action'),'Call the advertiser about Le Bernage (HE-R001)');
+  let revision=n.revision;
+  const steps=[{action:'claim'},{action:'assign',assigned_to:'colleague@example.test'},...(on?[{action:'snooze',snoozed_until:tomorrow()}]:[]),{action:'done'}];
+  for(const step of steps){const r=await change(env,cookie,n.id,{revision,...step});assert.equal(r.status,200,`${step.action}: ${JSON.stringify(r.data)}`);revision=r.data.task.revision;}
+  assert.equal(env.DB.raw.prepare("SELECT MAX(CAST(json_extract(data,'$.revision') AS INTEGER)) AS r FROM events WHERE entity_type='listing' AND entity_id='HE-R001'").get().r,3);
+  const e=env.DB.raw.prepare("SELECT data FROM events WHERE type='task.done'").get();
+  assert.equal(JSON.parse(e.data).task_revision,revision);
+});
+
+test('switched on before migration 0088, the Inbox works as if Snooze were off; the summary skips snoozed tasks',async()=>{
+  const {env,cookie}=await fixture(true,{through:86}),r=await list(env,cookie,'action');
+  assert.equal(r.status,200);assert.equal(r.data.counts.agency_reply,2);
+  const n=byTitle(r,'Agency needs more information');assert.equal(n.can_snooze,false);assert.equal(n.quick,'reply');
+  assert.equal((await list(env,cookie,'feed')).status,200);
+  assert.equal((await call(env,'GET',`/admin/notification-tasks/${n.id}`,{cookie})).status,200);
+  assert.equal((await change(env,cookie,n.id,{revision:n.revision,action:'snooze',snoozed_until:tomorrow()})).status,400);
+  const {openCounts}=await import('../../server/routes/notifications.js');
+  assert.equal((await openCounts(env,undefined,true)).action,5);
+  // With 0088 and the switch off (the clock), the summary leaves snoozed tasks out.
+  const off=(await fixture(false)).env;
+  // The trigger adds one revision, as Snooze does.
+  off.DB.raw.prepare("UPDATE notifications SET snoozed_until=?,snoozed_revision=revision+1 WHERE title='Send enquiry manually'").run(tomorrow());
+  assert.equal((await openCounts(off)).action,5);assert.equal((await openCounts(off,undefined,true)).action,4);
 });

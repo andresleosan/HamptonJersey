@@ -1,6 +1,6 @@
 import {ownerStorageAvailable} from './owner-requests.js';
 import {fail,now,sha256} from './http.js';
-import {notificationSelect,noticeDto,TASK_CATEGORIES,targetExists,taskTarget,sourceAllowsTarget,noticeTargetExists,inboxActionsReady} from './notification-query.js';
+import {notificationSelect,noticeDto,TASK_CATEGORIES,targetExists,taskTarget,sourceAllowsTarget,noticeTargetExists,inboxActionsReady,missingSnooze} from './notification-query.js';
 import {MANUAL_CATEGORIES} from '../shared/notification-categories.js';
 export {targetExists,taskTarget} from './notification-query.js';
 
@@ -88,7 +88,10 @@ export async function syncTask(env,descriptor) {
   return {changed:results[0].meta.changes,tasks:results[1].results};
 }
 export async function getTask(env,id,admin) {
-  const row=await env.DB.prepare(`${notificationSelect(await ownerStorageAvailable(env),inboxActionsReady(env))} WHERE n.id=?`).bind(admin,id).first();
+  const owner=await ownerStorageAvailable(env),on=inboxActionsReady(env);
+  const read=snooze=>env.DB.prepare(`${notificationSelect(owner,on,snooze)} WHERE n.id=?`).bind(admin,id).first();
+  // Switched on before migration 0088: as if Snooze were off.
+  const row=await read(on).catch(e=>{if(on&&missingSnooze(e))return read(false);throw e;});
   if(!row)fail(404,'Task not found');return noticeDto(row);
 }
 export function operationInput(body,allowed) {
@@ -119,13 +122,13 @@ export async function mutateTask(env,id,actor,body) {
   } else if(action==='deadline'){if(!Object.hasOwn(body,'due_at'))fail(400,'Send a deadline or null');set='due_at=?';args=[deadline(body.due_at)];}
   else if(action==='done'){set='resolved_at=?,resolved_by=?';args=[now(),actor];condition=' AND action_required=1 AND resolved_at IS NULL';}
   else if(action==='reopen'){set='resolved_at=NULL,resolved_by=NULL';condition=' AND action_required=1 AND resolved_at IS NOT NULL AND closed_by_source=0';}
-  // NOT-09 (switched on, migration 0087): Snooze until a time in the next 30 days; it holds at the revision it creates
+  // NOT-09 (switched on, migration 0088): Snooze until a time in the next 30 days; it holds at the revision it creates
   // (the trigger adds one), so new context, Done or Reopen end it. Wake (unsnooze) ends it now. Nothing else changes.
   else if(action==='snooze'&&inboxActionsReady(env)){
     const until=deadline(body.snoozed_until??'');const ms=Date.parse(until)-Date.now();
     if(!(ms>0&&ms<=30*864e5))fail(400,'Choose a time within the next 30 days');
     set='snoozed_until=?,snoozed_revision=revision+1';args=[until];condition=' AND action_required=1 AND resolved_at IS NULL';
-  } else if(action==='unsnooze'&&inboxActionsReady(env)){set='snoozed_until=NULL,snoozed_revision=NULL';condition=' AND snoozed_until IS NOT NULL';}
+  } else if(action==='unsnooze'&&inboxActionsReady(env)){set='snoozed_until=NULL,snoozed_revision=NULL';condition=' AND snoozed_until IS NOT NULL AND action_required=1 AND resolved_at IS NULL';}
   else fail(400,'Invalid task action');
   if(action!=='snooze'&&Object.hasOwn(body,'snoozed_until'))fail(400,'Unexpected task action fields');
   if(!['assign','edit'].includes(action)&&Object.hasOwn(body,'assigned_to')||!['deadline','edit'].includes(action)&&Object.hasOwn(body,'due_at'))fail(400,'Unexpected task action fields');
@@ -135,6 +138,7 @@ export async function mutateTask(env,id,actor,body) {
   const prior=await replay(env,actor,body.operation_id,hash,id);if(prior)return prior;
   const extra=action==='claim'?[actor]:['assign','edit'].includes(action)?[body.assigned_to,body.assigned_to]:[];
   const target=`EXISTS(SELECT 1 FROM events e WHERE e.id=notifications.event_id AND ${noticeTargetExists('notifications','e',await ownerStorageAvailable(env))})`;
+  // The task's revision is task_revision: a property's events keep their own revision sequence (events_listing_revision).
   const [updated]=await env.DB.batch([
     env.DB.prepare(`UPDATE notifications SET ${set},task_actor=?,task_action=? WHERE id=? AND revision=?
       AND ${target}${condition} AND EXISTS(SELECT 1 FROM admins WHERE email=?)
@@ -143,10 +147,10 @@ export async function mutateTask(env,id,actor,body) {
     env.DB.prepare(`INSERT INTO notification_task_operations(actor,operation_id,task_id,payload_hash,result_revision)
       SELECT ?,?,id,?,revision FROM notifications WHERE id=? AND changes()=1`).bind(actor,body.operation_id,hash,id),
     env.DB.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
-      SELECT ?,?,e.entity_type,e.entity_id,?,json_object('version',1,'task_id',n.id,'revision',n.revision,'operation_id',?)
+      SELECT ?,?,e.entity_type,e.entity_id,?,json_object('version',2,'task_id',n.id,'task_revision',n.revision,'operation_id',?)
       FROM notifications n JOIN events e ON e.id=n.event_id WHERE n.id=? AND n.revision>? AND changes()=1`)
       .bind(now(),actor,`task.${action}`,body.operation_id,id,body.revision),
-  ]);
+  ]).catch(e=>{if(missingSnooze(e))fail(400,'Invalid task action');throw e;});
   const result=await replay(env,actor,body.operation_id,hash,id);
   if(!result)fail(409,'This task changed or its target is no longer available. Reload before trying again.');
   return {...result,replayed:updated.meta.changes===0};

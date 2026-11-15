@@ -1,5 +1,6 @@
 -- NOT-09 (NOT0809_INBOX_READY): Snooze an Inbox task. Additive: two optional columns and the task trigger replaced by
--- its version that also counts a snooze as a task change (revision and history). No row is rewritten.
+-- its version that also counts every accepted snooze as a task change (revision and history), even at the same time.
+-- No row is rewritten.
 -- A snooze holds while the task stays at the revision it set (snoozed_revision) and until snoozed_until: new context
 -- from its source, Done or Reopen bump the revision and end it; an unchanged clock tick writes nothing and keeps it.
 ALTER TABLE notifications ADD COLUMN snoozed_until TEXT;
@@ -8,7 +9,7 @@ ALTER TABLE notifications ADD COLUMN snoozed_revision INTEGER;
 DROP TRIGGER notification_task_changed;
 CREATE TRIGGER notification_task_changed AFTER UPDATE OF event_id,category,title,action_required,
   resolved_at,resolved_by,assigned_to,due_at,task_reason,source_version,urgency,closed_by_source,
-  target_kind,target_id,target_context,target_deleted,snoozed_until ON notifications
+  target_kind,target_id,target_context,target_deleted,snoozed_until,snoozed_revision ON notifications
 WHEN OLD.task_key IS NOT NULL BEGIN
   UPDATE notifications SET revision=OLD.revision+1,
     closed_by_source=CASE WHEN NEW.resolved_at IS NULL THEN 0
@@ -22,7 +23,7 @@ WHEN OLD.task_key IS NOT NULL BEGIN
       OR OLD.urgency IS NOT NEW.urgency OR OLD.closed_by_source IS NOT NEW.closed_by_source
       OR OLD.target_kind IS NOT NEW.target_kind OR OLD.target_id IS NOT NEW.target_id
       OR OLD.target_context IS NOT NEW.target_context OR OLD.target_deleted IS NOT NEW.target_deleted
-      OR OLD.snoozed_until IS NOT NEW.snoozed_until);
+      OR OLD.snoozed_until IS NOT NEW.snoozed_until OR OLD.snoozed_revision IS NOT NEW.snoozed_revision);
   INSERT INTO notification_task_history(task_id,revision,at,actor,action)
     SELECT NEW.id,revision,strftime('%Y-%m-%dT%H:%M:%fZ','now'),
       COALESCE(NEW.task_actor,CASE WHEN OLD.resolved_at IS NULL AND NEW.resolved_at IS NOT NULL THEN NEW.resolved_by END,'system'),

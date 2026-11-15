@@ -7,8 +7,8 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "Categorías Agency replies, Messages y Compliance, filtros y tareas manuales integrados en main 2084cb9. La consulta histórica sin migraciones pendientes del 11-nov corresponde al árbol b544c2e, que incluía 0035. El ensayo local D1 poblado, las pruebas y el navegador anteriores no acreditan por sí solos canales externos activos. 15-nov-2026 (rama avanzar-not0809, apagado tras NOT0809_INBOX_READY): la pestaña Agency replies recibe las tareas reales de respuesta de agencia, la llamada de AGE-08 («Call … about …», consultation:*:call) y «Agency needs more information» de AGE-06 (consultation:*:reply), y Messages recibe la respuesta del cliente a la presentación privada de AGE-12 (presentation:*). Se clasifican al leer (lista, filtro, contadores y preferencias del Feed), sin reescribir la categoría guardada ni tocar productores ni el reloj: apagar el interruptor devuelve las pestañas de antes, y las tareas ya abiertas cambian de pestaña sin migrar datos. Viewings y Compliance ya tenían productores reales (solicitudes de visita, revisiones y plazos).",
-  "falta": "Encender NOT0809_INBOX_READY en la web tras aplicar la migración 0087 (la comparte con NOT-09) y comprobar en producción, con lecturas, que la llamada de AGE-08 cuenta en Agency replies. Correo entrante real de agencias y clientes: AUT-17. Consultas, captura, fuentes, revisión del día 21 y dictado siguen sus módulos.",
-  "bloqueo": "Activación: migración 0087 e interruptor NOT0809_INBOX_READY (autorizados por CONTINUIDAD). Correo real: AUT-17.",
+  "falta": "Encender NOT0809_INBOX_READY en la web tras aplicar la migración 0088 (la comparte con NOT-09) y comprobar en producción, con lecturas, que la llamada de AGE-08 cuenta en Agency replies. Correo entrante real de agencias y clientes: AUT-17. Consultas, captura, fuentes, revisión del día 21 y dictado siguen sus módulos.",
+  "bloqueo": "Activación: migración 0088 e interruptor NOT0809_INBOX_READY (autorizados por CONTINUIDAD). Correo real: AUT-17.",
   "evidencia": [
     "shared/notification-categories.js",
     "admin/src/Inbox.jsx",
@@ -73,6 +73,6 @@
     "agency-consultations-contract",
     "messages-contract"
   ],
-  "nextStep": "Aplicar 0087 en D1 hampton, encender NOT0809_INBOX_READY en wrangler.toml y verificar por GET la pestaña Agency replies.",
+  "nextStep": "Aplicar 0088 en D1 hampton, encender NOT0809_INBOX_READY en wrangler.toml y verificar por GET la pestaña Agency replies.",
   "actualizado": "2026-11-15"
 }
