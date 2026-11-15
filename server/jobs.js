@@ -13,6 +13,7 @@ const { callPass } = enquiries(ENQUIRY_GATES); // AGE-08: which matches count fo
 import { rentalClosureEnabled } from './rental-closure.js';
 import { processExpiredRentalClosures } from './rental-closure-job.js';
 import { followupReady, saleFollowupPass } from './sale-followup.js';
+import { settleQueuedCaptures } from "./property-captures.js";
 
 // AUT-07: the clock. Cloudflare wakes this Worker (hampton-jobs, configured in jobs/wrangler.toml) every 10 minutes, on
 // the website's D1. Each tick leaves its time in app_settings.clock, then runs what is due. Each job claims its run in
@@ -29,6 +30,7 @@ export default {
     catch { console.error('Notification pass failed'); } // No source/customer data in operational logs.
     try { await callPass(env, now()); } // AGE-08: the call task of an enquiry with no useful answer two working days on.
     catch { console.error('Enquiry call pass failed'); }
+    await settleQueuedCaptures(env); // SPR-03: more files of a queued capture; never throws, and returns before any read when off.
     try { await weeklyInsightsPass(env, now()); }
     catch { console.error('Weekly Insights pass failed'); }
     if (followupReady(env)) { // OFE-06: the weekly internal sale review, off until the team sets day and time.
