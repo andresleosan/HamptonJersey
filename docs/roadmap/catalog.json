@@ -1368,7 +1368,7 @@
       "preferredSlot": "hermes",
       "priority": 136,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -10647,10 +10647,10 @@
       "titulo": "Dos días sin respuesta útil: tarea de llamada con todos los teléfonos",
       "origen": "plan",
       "fase": "F2",
-      "estado": "pendiente",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Construida tras AGE08_CALL_TASKS_READY (sin migración): el reloj crea una sola tarea «Call <anunciante> about <propiedad>» a las dos fechas laborables (lunes-viernes, misma hora de Jersey) desde sent_at de consultas sent/awaiting_response; dice cuántos teléfonos hay y lleva a la sección Enquiries de la propiedad, que los lista todos del directorio con el texto enviado y el formulario de respuesta de AGE-06. Una respuesta útil (available/unavailable/answered) o la cancelación la cierran; no_answer y more_info la dejan abierta. Nada se envía.",
-      "falta": "Integrar en main, añadir AGE08_CALL_TASKS_READY = \"1\" en wrangler.toml y jobs/wrangler.toml (no envía nada: autorizado) y comprobar en producción que una consulta vencida genera una sola tarea. Historial en la ficha SPR-02 (EST-18): el evento consultation.call_due ya existe con ids; su presentación es de SPR-02/EST-18.",
+      "hecho": "Construida tras AGE08_CALL_TASKS_READY (sin migración): el reloj crea una sola tarea «Call <anunciante> about <propiedad>» a las dos fechas laborables (lunes-viernes, misma hora de Jersey) desde sent_at de consultas sent/awaiting_response; dice cuántos teléfonos hay y lleva a la sección Enquiries de la propiedad, que los lista todos del directorio con el texto enviado y el formulario de respuesta de AGE-06. Una respuesta útil (available/unavailable/answered) o la cancelación la cierran; no_answer y more_info la dejan abierta. Nada se envía. Cerrada el 15-nov-2026: AGE08_CALL_TASKS_READY=1 en la web y en el reloj (sin migración). Construida sobre el envío manual de AGE-03 (regla de dependencias por componente); con el correo de AGE-05/AUT-17 el plazo contará desde el envío real del correo sin cambiar nada.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:295",
@@ -10665,7 +10665,12 @@
         "Decisión: la pausa general (outbound) no aplica: la tarea no envía nada.",
         "Decisión: cálculo en JS (server/consultations.js callPass, desde server/jobs.js) con taskStatements de NOT-01, no en el SQL de notification-reconcile, porque la hora de Jersey con cambio de horario no cabe en SQLite.",
         "Pruebas 15-nov: tests/server/age-08-call-tasks.test.mjs 9/9 (viernes 16:00 → martes 16:00, cambios de hora de octubre y marzo, sábado, domingo, antes del plazo, dos ticks, Done humano, respuesta útil antes/después, no_answer/more_info, cancelación, sin teléfonos, particular, suprimido, reloj, interruptor igual en ambos wrangler.toml); age-03, age-05, age-06, jobs, advertisers, notification*, age-14-* en verde.",
-        "Navegador 15-nov: tests/age08-call-tasks.e2e.cjs en contenedor aislado a 1280 y 390: tarea en Inbox → Open property → tres teléfonos con enlaces tel:, respuesta útil cierra la tarea, anunciante sin teléfonos lo dice, nada enviado."
+        "Navegador 15-nov: tests/age08-call-tasks.e2e.cjs en contenedor aislado a 1280 y 390: tarea en Inbox → Open property → tres teléfonos con enlaces tel:, respuesta útil cierra la tarea, anunciante sin teléfonos lo dice, nada enviado.",
+        "Corrección tras revisión independiente (15-nov): título y motivo se cortan por caracteres completos y se normalizan como los guarda keyText (trim, máx. 200/500 unidades UTF-16); con un corte en espacio o dentro de un emoji, 4 ticks dan 1 evento y ninguna fila nueva de historial (antes, 4 eventos).",
+        "Corrección: no hay llamada (y se cierra la abierta, evento consultation.call_closed) si la confirmación vigente de EST-16 dice no disponible para esa propiedad y operación, o si ningún match aprobado cuenta ya; misma regla de AGE-03/AGE-06 (counts y notConfirmedUnavailable de settle). Si vuelve a contar, el reloj reabre la tarea que él cerró.",
+        "Corrección: respond() y cancel() cierran la llamada con una sentencia por clave dentro del mismo batch (solo si la consulta quedó answered/cancelled), sin lectura previa; callDue devuelve null con un sent_at que no es fecha.",
+        "Pruebas tras la corrección: age-08-call-tasks 13/13; age-06-responses 12, age-03-consultations 15, jobs 10, notification-tasks 14, notification-reconcile 10, est-16-availability 9, age-05-send 21 en verde; tests/age08-call-tasks.e2e.cjs aislado a 1280 y 390 en verde.",
+        "Cierre 15-nov-2026: publicada con la corrección 98f7147 (913688f y 99b266b); npm test en verde; tests/age08-call-tasks.e2e.cjs pasa a 1280 y 390; dos pasadas de revisión independiente: con el interruptor apagado el reloj da las mismas 57 sentencias que antes y el paquete carga sin TDZ; la primera halló que un título cortado en espacio o emoji hacía reescribir la tarea en cada tick y que se creaba la tarea aunque la propiedad estuviera confirmada no disponible, ambos corregidos con prueba; la segunda, sin graves."
       ],
       "modulo": "M06",
       "deps": [
@@ -10723,7 +10728,7 @@
         "jobs-clock",
         "notifications-schema"
       ],
-      "nextStep": "Integrar, encender AGE08_CALL_TASKS_READY en web y reloj, y verificar la primera tarea de llamada en el Inbox.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-15"
     },
     {

@@ -64,6 +64,8 @@ BUS07_PROVENANCE_READY = "1"
 AGE06_RESPONSES_READY = "1"
 # BUS-01/BUS-03: market inventory homes matched against active searches (migration 0083, applied 15-nov-2026). Sends nothing.
 BUS01_MARKET_MATCHING_READY = "1"
+# AGE-08: one Inbox task to call the advertiser two working days after an enquiry was sent with no useful answer (no migration; sends nothing). Must match the other wrangler.toml.
+AGE08_CALL_TASKS_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
