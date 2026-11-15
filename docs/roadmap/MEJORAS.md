@@ -89,3 +89,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [BUS-10] Una decisión rechazada con 409 puede dejar la casa provisional del primer anuncio (no es una decisión ni se muestra); el emparejado es cuadrático por grupo (15 s con 2.000 anuncios en un grupo) y el tope de 2.000 solo lo indica `truncated` · revisión independiente 15-nov · 15-nov-2026
 - [VIS-04] Permitir anotar la decisión final tras «Need more information»; cerrar sola la tarea «Wants to proceed» al registrar una oferta del mismo contacto; enlazar la tarea con la ficha del aplicante · 15-nov-2026
 - [VIS-04] Añadir `viewing.feedback` al historial de la casa y título propio en el Feed (triggers de 0038 y vista de 0035 con listas fijas) · pide migración aditiva de trigger · 15-nov-2026
+- [AUT-19] Nombrar al cliente en la lista del Inbox; filtro «Changes to confirm» en la lista de aplicantes; releer la propuesta al cambiar de pestaña · 15-nov-2026
+- [AUT-19] Caducidad de propuestas (hoy esperan indefinidamente; el plan antiguo proponía 24 h); archivar una búsqueda con propuesta pendiente cierra el aviso pero deja la propuesta · 15-nov-2026
+- [AUT-19] Prueba propia de cambio de operación y de búsquedas comerciales por propuesta; 404 en vez de 500 si el interruptor está encendido sin 0074; la casilla de confirmación se dibuja centrada sobre su texto · 15-nov-2026

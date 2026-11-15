@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "El selector Stage de la ficha permite poner la búsqueda en Paused con Apply. Desde el 6-nov-2026, Widen criteria (BUS-17): con menos de 3 casas, la pestaña Matches enseña cuántas casas más saldrían con un 10 % más de presupuesto, una parroquia más o un dormitorio menos, y «Use this» rellena el cambio sin guardar. Los cambios manuales materiales requieren confirmación explícita en servidor y panel; el resumen incluye cambios derivados y Use this no guarda. Se preservan datos legados y el round-trip de transfer.",
-  "falta": "Integrar las propuestas de AUT-19 con el mismo contrato y probar el recorrido completo; la pausa o retirada sigue fuera de alcance hasta decisión expresa. No se aplican cambios por interés o dictado sin confirmación.",
+  "falta": "Integrar las propuestas de AUT-19 con el mismo contrato y probar el recorrido completo; la pausa o retirada sigue fuera de alcance hasta decisión expresa. No se aplican cambios por interés o dictado sin confirmación. Traído de AUT-19 (15-nov): las propuestas de AUT-19 ya se confirman por el mismo guardado de criterios (criteria_confirmation); queda probar el recorrido completo con AUT-19 encendida. La pausa sigue fuera.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/ApplicantDetail.jsx:288-293",
@@ -60,5 +60,5 @@
     "search-lifecycle"
   ],
   "nextStep": "Integrar propuestas AUT-19 con la confirmación humana y mantener la pausa fuera del alcance vigente.",
-  "actualizado": "2026-11-14"
+  "actualizado": "2026-11-15"
 }
