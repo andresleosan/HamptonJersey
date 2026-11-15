@@ -4,7 +4,7 @@ import { validateViewing, jerseyNow, isFree, addMinutes, SLOT_MINUTES, ACTIVE, O
 import { loadAvailability, bookStatement, slotGuard, policySnapshot, propertyViewingGuard } from "../viewing-store.js";
 import { touchByViewing } from "../retention.js";
 import houseRuleRoutes, { noticeCheck } from "../house-rules.js";
-import { cycleOn, REMINDER_CHANNELS } from "../viewing-cycle.js";
+import { cycleOn, REMINDER_CHANNELS, outcomeReady, followUp } from "../viewing-cycle.js";
 
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
@@ -37,8 +37,10 @@ async function list({ request, env }) {
       FROM viewing_requests v WHERE 1${only}`)
       .bind(...Object.values(TABS).flatMap(([cond]) => bindsOf(cond, clock)), ...listing),
   ]).then(r => r.map(x => x.results));
-  // VIS-08: cycle tells the panel that reminders and feedback can be recorded (switched on and migrated).
-  return json({ viewings, counts, ...(await cycleOn(env, viewings[0]) ? { cycle: true } : {}) });
+  // VIS-08: cycle tells the panel that reminders and feedback can be recorded (switched on and migrated). VIS-04:
+  // follow_up, that a decision to proceed or to ask for more leaves a task in the Inbox.
+  return json({ viewings, counts, ...(await cycleOn(env, viewings[0]) ? { cycle: true } : {}),
+    ...(outcomeReady(env) ? { follow_up: true } : {}) });
 }
 
 // Task links resolve independently of the list's 500-row window and use the same Jersey tab clock.
@@ -126,7 +128,8 @@ async function change(env, action, body, cur, clock, admin, cycle, ts) {
     if (Object.keys(errors).length) return { errors };
     return { set: { ...(action === "complete" ? { status: "completed" } : {}), outcome: body.outcome, outcome_note: note.trim() || null,
         ...(cycle && !waiting ? { feedback_at: ts, feedback_by: admin } : {}) },
-      data: { outcome: body.outcome }, ...(action === "feedback" ? { event: "feedback" } : {}) };
+      data: { outcome: body.outcome }, ...(action === "feedback" ? { event: "feedback" } : {}),
+      notice: followUp(env, cur, body.outcome) }; // VIS-04: the team's next step, as an Inbox task
   }
   if (action === "confirm" && cycle) {
     // VIS-10's notice again, as for a booking (create): a request made in time can be short of it by now, and a
@@ -190,10 +193,10 @@ async function runAction({ env, admin, id, body }) {
       .bind(...Object.values(ch.set), ts, admin, id, body.updated_at, ...guards.flatMap(g => g.binds)),
     // VIS-09: the margins it was moved with, only if the UPDATE wrote (the event below then still follows it).
     ...(ch.snapshot ? [ch.snapshot] : []),
-    ...logEvent(env, { actor: admin, ...ref, type, data: ch.data ?? null }, null, { ifInserted: true }),
+    ...logEvent(env, { actor: admin, ...ref, type, data: ch.data ?? null }, ch.notice ?? null, { ifInserted: true }),
     // G2: a viewing confirmed, moved or held, or the client's answer about it, is activity on the contact with its
-    // email or mobile; a no-show, a cancel or the team's own reminder is not. Right after the event, so its changes()
-    // gate reads the event's insert.
+    // email or mobile; a no-show, a cancel or the team's own reminder is not. Right after the event (or its VIS-04
+    // task, written only with it), so its changes() gate reads that insert.
     ...(["confirm", "reschedule", "complete", "feedback"].includes(body.action) ? [touchByViewing(env, cur, ts)] : []),
     // Confirmed or cancelled, a website request has been dealt with: its Inbox notice is done. Gated on that event, since
     // after a touch changes() is the touch's (each of these actions happens once to a viewing).

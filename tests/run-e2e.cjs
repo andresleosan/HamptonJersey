@@ -35,6 +35,8 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/vis10-house-rules.e2e.cjs" ? { VIS10_HOUSE_RULES_READY: "1", PUB07_COMPLIANCE_READY: "1" } : {}),
       // VIS-08 asks VIS-10's notice again on Confirm, so its test needs both on.
       ...(process.env.E2E_SCRIPT === "tests/vis08-viewing-cycle.e2e.cjs" ? { VIS08_CYCLE_READY: "1", VIS10_HOUSE_RULES_READY: "1" } : {}),
+      // VIS-04's follow-up, on the cycle it completes (the answer recorded later).
+      ...(process.env.E2E_SCRIPT === "tests/vis04-after-viewing.e2e.cjs" ? { VIS04_OUTCOME_READY: "1", VIS08_CYCLE_READY: "1" } : {}),
       PUB21_DRIVE_READY: "1", // Properties Queue's Drive imports: tested switched on, off in production (master plan)
       ...(process.env.E2E_SCRIPT === "tests/adm-06-tenancy-origin.e2e.cjs" ? { ADM06_TENANCY_ORIGIN_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm-16-tenancy-exit.e2e.cjs" ? { ADM16_TENANCY_EXIT_READY: "1" } : {}),

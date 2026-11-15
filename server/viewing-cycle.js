@@ -25,3 +25,13 @@ export const stageOf = v => (v.status === "confirmed" && v.reminded_at ? "remind
 export const reminderDue = (v, clock) => v.status === "confirmed" && !v.reminded_at
   && `${v.date} ${v.end_time ?? v.time}` >= `${clock.date} ${clock.time}`
   && Date.parse(`${v.date}T${v.time}:00Z`) - Date.parse(`${clock.date}T${clock.time}:00Z`) < 24 * 3600000;
+
+// VIS-04: what the decision after a viewing asks of the team. Proceed and Need more information leave a follow-up task
+// in the Inbox with the viewing's event (category task: Hermes relays only new applicants and viewing requests, so
+// nothing is sent). Not interested leaves nothing, and no decision touches the search or a match (master plan). The
+// name in the title (last, as in "Viewing request: …", so a narrow list still shows the decision) goes when the viewing
+// is deleted, as a request's does. Off (VIS04_OUTCOME_READY): as before.
+export const outcomeReady = env => env?.VIS04_OUTCOME_READY === "1";
+const FOLLOW_UP = { proceed: "Wants to proceed", more_info: "Needs more information" };
+export const followUp = (env, v, outcome) => (outcomeReady(env) && Object.hasOwn(FOLLOW_UP, outcome ?? "")
+  ? { category: "task", title: `${FOLLOW_UP[outcome]}: ${v.name}`, action_required: true } : null);

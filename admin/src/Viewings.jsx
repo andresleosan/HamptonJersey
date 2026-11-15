@@ -22,6 +22,10 @@ const Msg = ({ m }) => m && <p role={m.ok ? "status" : "alert"} className={m.ok 
 // VIS-08: the two stages that are dates beside the status (stageOf), named only once the server reports the cycle on.
 const STAGE = { reminded: ["Reminded", "positive"], feedback: ["Feedback received", "positive"] };
 const CHANNEL = { phone: "Phone", email: "Email", whatsapp: "WhatsApp", in_person: "In person" };
+// VIS-04: the team's next step after each decision, shown once the server reports the follow-up on (follow_up). The
+// first two leave a task in the Inbox; Not interested asks nothing, and no decision closes a search or rejects a match.
+const NEXT = { proceed: "Take their offer or application", more_info: "Send them what they asked for",
+  not_interested: "None. This does not close their search or reject a match." };
 const Badge = ({ v, cycle }) => {
   const k = cycle ? stageOf(v) : v.status, [t, tone] = STAGE[k] ?? VIEWING_STATUS[k] ?? [k, "neutral"];
   return <span className={`badge ${tone}`}>{t}</span>;
@@ -199,6 +203,7 @@ export default function Viewings({ listing, requestedId }) {
         </div>)}</div>
         {v && <Detail key={v.id} v={v} gone={!stillThere(data, v.id) ? TABS[tab] : null} ended={tab === "outcome"} filtered={listing === v.listing_id} headRef={detailRef}
           count={listing === v.listing_id ? interest?.active_interest ?? null : undefined} cycle={cycle} due={cycle && reminderDue(v, clock)}
+          followUp={!!data.follow_up}
           act={act} saveNotes={saveNotes} remove={remove} recount={recount} onDirty={onDirty} />}
       </div>}
   </section>;
@@ -207,7 +212,8 @@ export default function Viewings({ listing, requestedId }) {
 // gone: the tab v has just left (see send); only its notes can still be saved. count: the listing's interest when the
 // screen reads it already (filtered by v's listing; null while it loads), else undefined and read here.
 // cycle: VIS-08 is on (reminders, feedback and the notice asked again on Confirm); due: a reminder is due.
-function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, act, saveNotes, remove, recount, onDirty }) {
+// followUp: VIS-04 is on (a decision to proceed or to ask for more leaves a task in the Inbox).
+function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, followUp, act, saveNotes, remove, recount, onDirty }) {
   const [notes, setNotes] = useState(v.notes ?? ""), [open, setOpen] = useState(null); // open: "complete" | "reschedule" | "remind" | "feedback"
   const [err, setErr] = useState(null), [interest, setInterest] = useState(null), [refresh, setRefresh] = useState(0);
   const [agreed, setAgreed] = useState(false);
@@ -240,12 +246,15 @@ function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, act, sav
   const confirmIt = () => (short && !agreed ? setErr("Confirm that access is agreed with the tenant, or reschedule to a later time")
     : run(() => act(v, "confirm", short ? { notice_confirmed: true } : {}, withNotes("Confirmed. It's in Upcoming now."))));
   const remind = channel => run(() => act(v, "remind", { channel }, withNotes("Marked as reminded.")), () => setOpen(null));
-  const feedback = body => run(() => act(v, "feedback", body, withNotes("Feedback saved.")), () => setOpen(null));
+  const tasked = o => followUp && ["proceed", "more_info"].includes(o); // VIS-04: this answer leaves a task
+  const feedback = body => run(() => act(v, "feedback", body,
+    withNotes(tasked(body.outcome) ? "Feedback saved. A follow-up task is in the Inbox." : "Feedback saved.")), () => setOpen(null));
   const noShow = () => run(() => act(v, "no_show", {}, withNotes("Marked as a no-show. It's in Past now.")));
   const cancel = () => confirm(`Cancel the viewing with ${v.name} on ${fmtDay(v.date, true)} at ${v.time}? Its time becomes free again.`)
     && run(() => act(v, "cancel", {}, withNotes("Viewing cancelled. Its time is free again.")));
   const complete = body => run(() => act(v, "complete", body,
-    withNotes(body.outcome ? "Outcome saved. It's in Past now." : "Marked completed. It's in Past, waiting for their answer.")));
+    withNotes(tasked(body.outcome) ? "Outcome saved. It's in Past now, with a follow-up task in the Inbox."
+      : body.outcome ? "Outcome saved. It's in Past now." : "Marked completed. It's in Past, waiting for their answer.")));
   const reschedule = slot => run(() => act(v, "reschedule", slot,
     withNotes(`Moved to ${fmtDay(slot.date, true)} at ${slot.time}.`)), () => setOpen(null));
   const toggle = (k, e) => { opener.current = e.currentTarget; setOpen(o => (o === k ? null : k)); setErr(null); };
@@ -280,9 +289,9 @@ function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, act, sav
       {!gone && v.listing_id && <button type="button" className="btn ghost sm" onClick={() => run(() => recount(v))}>Count again</button>}</div>}
     {active && short && <NoticeConfirm house={house} checked={agreed} onChange={b => { setAgreed(b); setErr(null); }} />}
     {active && due && <p className="warn" role="note">This viewing is in less than 24 hours and {v.name} has not been reminded yet.</p>}
-    {active && open === "complete" && <OutcomeForm waiting={cycle} onSave={complete} onClose={close} onDirty={onDirty} />}
+    {active && open === "complete" && <OutcomeForm waiting={cycle} followUp={followUp} onSave={complete} onClose={close} onDirty={onDirty} />}
     {active && open === "remind" && <RemindForm v={v} onSave={remind} onClose={close} onDirty={onDirty} />}
-    {awaiting && open === "feedback" && <OutcomeForm feedback onSave={feedback} onClose={close} onDirty={onDirty} />}
+    {awaiting && open === "feedback" && <OutcomeForm feedback followUp={followUp} onSave={feedback} onClose={close} onDirty={onDirty} />}
     {active && open === "reschedule" && <RescheduleForm v={v} house={house} refresh={refresh} onSave={reschedule} onClose={close} onDirty={onDirty} />}
     <dl className="kv">
       <div><dt>Listing</dt><dd>{v.listing_id ? <a href={`#/p/${v.listing_id}`}>{listingOf(v)}</a>
@@ -300,6 +309,7 @@ function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, act, sav
       {v.status === "completed" && <div><dt>Outcome</dt><dd>{OUTCOME[v.outcome] ?? (cycle ? "Waiting for their answer" : "Not recorded")}
         {v.outcome_note && <span className="muted"> · {v.outcome_note}</span>}</dd></div>}
       {cycle && v.feedback_at && <div><dt>Feedback received</dt><dd>{fmtDate(v.feedback_at)} · recorded by {v.feedback_by}</dd></div>}
+      {followUp && v.status === "completed" && NEXT[v.outcome] && <div><dt>Next step</dt><dd>{NEXT[v.outcome]}</dd></div>}
     </dl>
     <div className="inline">{v.email && <a className="btn ghost sm" href={`mailto:${v.email}?subject=${subject}`}>Reply by email</a>}
       {v.phone && <a className="btn ghost sm" href={`tel:${tel(v.phone)}`}>Call</a>}</div>
@@ -326,7 +336,7 @@ const useStepDirty = (onDirty, dirty) => {
 
 // VIS-08: waiting adds "No answer yet" (the viewing is completed and the answer recorded later); feedback is that later
 // step, the same three answers for a viewing already completed.
-function OutcomeForm({ onSave, onClose, onDirty, waiting = false, feedback = false }) {
+function OutcomeForm({ onSave, onClose, onDirty, waiting = false, feedback = false, followUp = false }) {
   const [outcome, setOutcome] = useState(null), [note, setNote] = useState(""), [err, setErr] = useState(null);
   const head = useRef(null), first = useRef(null);
   useEffect(() => { head.current?.focus(); }, []);
@@ -343,6 +353,7 @@ function OutcomeForm({ onSave, onClose, onDirty, waiting = false, feedback = fal
         <input type="radio" name="outcome" ref={i ? undefined : first} value={k} checked={outcome === k} onChange={() => { setOutcome(k); setErr(null); }} />
         {OUTCOME[k] ?? "No answer yet"}</label>)}</div>
       {err && <small id="e-outcome" className="err">{err}</small>}</fieldset>
+    {followUp && <p className="muted">Proceed and Need more information leave a follow-up task in the Inbox.</p>}
     <label>Reason (optional)<textarea className="short" maxLength={500} value={note} onChange={e => setNote(e.target.value)}
       placeholder="e.g. Wants a second viewing with their partner" /></label>
     <div className="inline"><button className="btn">{feedback ? "Save feedback" : "Save outcome"}</button><button type="button" className="btn ghost" onClick={onClose}>Close</button></div>

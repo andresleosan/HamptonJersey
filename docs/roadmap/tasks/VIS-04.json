@@ -6,8 +6,8 @@
   "fase": "F3-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "El equipo cierra la visita en Viewings con Mark completed y elige Proceed, Need more information o Not interested con motivo opcional; el resultado se ve en el detalle de la visita (pestaña Past) y en el Owner report.",
-  "falta": "El formulario que recibe el aplicante una hora después de la visita para elegirlo él mismo (F3-B), que necesita enviarle un email. Sin dependencias: el Timeline del aplicante muestra la visita solo como Completed, sin el resultado. Traído de VIS-08 (15-nov): el formulario del aplicante tras la visita escribe outcome, outcome_note, feedback_at y feedback_by = applicant sobre una visita completada sin respuesta; el panel ya distingue Completed de Feedback received.",
+  "hecho": "El equipo cierra la visita en Viewings con Mark completed y elige Proceed, Need more information o Not interested con motivo opcional; el resultado se ve en el detalle de la visita (pestaña Past), en la tarjeta de interés de la casa y en el Owner report. Desde VIS-08 puede completarse con «No answer yet» y anotar la respuesta después con Record feedback; con resultado, la visita es Feedback received, con fecha y quién la anotó. Construido y apagado (15-nov, VIS04_OUTCOME_READY, sin migración): Proceed y Need more information dejan una tarea en el Inbox («Wants to proceed: nombre» o «Needs more information: nombre», en Tasks, con Open viewing y Done); Not interested no deja nada, y ninguna decisión cambia la búsqueda ni un match. El detalle de la visita muestra «Next step» según la decisión, y el formulario y el mensaje al guardar avisan de la tarea. El motivo se queda en la fila de la visita: no va al evento ni a la tarea.",
+  "falta": "Integrar en el Timeline del aplicante la respuesta de cada visita, con fecha y quién la anotó: dos cambios en admin/src/ApplicantDetail.jsx, archivo de otro constructor en este lote (texto exacto en la evidencia). Encender VIS04_OUTCOME_READY (interno, sin migración) y comprobar el recorrido. Trasladado a otras tareas (decisión en la evidencia): formulario del propio aplicante, a AGE-12 y VIS-17; petición por correo una hora después, a AUT-17; relación de la respuesta con el match, a EST-14.",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "admin/src/Viewings.jsx:249-270",
@@ -15,7 +15,18 @@
     "migrations/0010_viewings.sql:45-46",
     "admin/src/format.js:28",
     "admin/src/OwnerReport.jsx:108-114",
-    "admin/src/ApplicantDetail.jsx:446-447"
+    "admin/src/ApplicantDetail.jsx:446-447",
+    "server/viewing-cycle.js (outcomeReady, followUp)",
+    "server/routes/inbox.js (la tarea se escribe con el evento viewing.completed o viewing.feedback; follow_up en la lista)",
+    "admin/src/Viewings.jsx (Next step, aviso en el formulario, mensajes al guardar)",
+    "tests/server/vis-04-after-viewing.test.mjs: 6 pruebas pasan (15-nov). Apagado no deja tarea; Proceed y Need more information dejan una tarea que abre la visita y se cierra con Done; Not interested no deja nada ni cambia applicants ni matches; el motivo no sale de la fila; Hermes no la retransmite; el contacto sigue marcando actividad; borrar la visita cierra la tarea y le quita el nombre.",
+    "tests/vis04-after-viewing.e2e.cjs pasa a 1280 y 390 en el contenedor aislado (15-nov) con la línea del Timeline aplicada de forma temporal y sin confirmar. Sin esa línea falla su último paso (Timeline). tests/run-e2e.cjs enciende VIS04_OUTCOME_READY y VIS08_CYCLE_READY para esta prueba.",
+    "Pendiente de integrar en admin/src/ApplicantDetail.jsx: importar OUTCOME de ./format.js y, en la fila de visita del Timeline, tras el span del estado: {v.status === \"completed\" && <span>{OUTCOME[v.outcome] ?? \"No answer yet\"}</span>}{v.feedback_at && <span>Feedback {fmtDate(v.feedback_at)} · recorded by {by(v.feedback_by)}</span>}. La ruta del aplicante ya devuelve outcome, feedback_at y feedback_by (SELECT v.*). No lleva interruptor: solo muestra datos que ya existen.",
+    "Decisión 15-nov (plan 2026-11-08-vis-04, «Architecture» y «Acceso de feedback»; spec 2026-11-08-viewings-coordination-design §6; CONTINUIDAD, «No autorizado»): el formulario del propio aplicante no se construye aquí. El plan lo define como componente del portal privado de AGE-12 con el grant de visita de VIS-17 y sin token en la URL; ninguna de las dos está construida y un formulario público nuevo no se enciende sin Luis. Un enlace firmado propio contradiría el plan. Se traslada a AGE-12 y VIS-17; la petición por correo, a AUT-17.",
+    "Decisión 15-nov (plan maestro, «Búsqueda, visitas y publicación propias»; spec §3: Not interested «no vuelve indisponible la casa para todos ni modifica criterios»; aceptación de VIS-08): ninguna decisión toca la búsqueda ni un match, y Not interested no deja tarea. Relacionar la respuesta con el match es de EST-14.",
+    "Decisión 15-nov (server/routes/hermes.js, news: solo retransmite new_applicant y viewing; CONTINUIDAD: no empezar a enviar mensajes): la tarea usa la categoría task, así no sale nada por Telegram.",
+    "Decisión 15-nov (server/events.js, logEvent con aviso, como viewing.requested en server/routes/public.js; skill §4.5, lo más simple): la tarea es un aviso del propio evento, sin tabla ni migración. El nombre va al final del título, como en «Viewing request: nombre», y se borra con la visita (borrado manual y retención).",
+    "Decisión 15-nov (plan VIS-04, tarea 1: reason_required_decline es del formulario del cliente): el motivo que anota el equipo sigue siendo opcional."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -37,6 +48,6 @@
     "applicant-timeline",
     "email-pipeline"
   ],
-  "nextStep": "Mostrar primero el resultado de la visita en Timeline; enviar el formulario posterior cuando el correo esté operativo.",
+  "nextStep": "Integrar la línea del Timeline, encender VIS04_OUTCOME_READY y comprobar el recorrido en Viewings, Inbox y Timeline.",
   "actualizado": "2026-11-15"
 }
