@@ -66,3 +66,14 @@ test("the states are read for the first 50 searches in the list's order, so the 
   assert.equal(rows.slice(0, 50).every(r => r.states), true);
   assert.equal(rows[50].states, undefined);
 });
+
+test("a search with damaged data leaves its states out, never the listing", async () => {
+  const env = makeEnv();
+  seedListing(env, { id: "HE-R001", matchable: 1, parish: "St Saviour", bedrooms: 3, bathrooms: 2, sale_price: 900000 });
+  const a = await search(env, contact(env, "Jane Le Brocq"));
+  env.DB.raw.prepare("UPDATE applicants SET parishes_wanted = 'St Helier' WHERE id = ?").run(a); // not JSON
+  const r = await req(env, "GET", "/admin/listings/HE-R001");
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.matched_applicants.length, 1);
+  assert.equal(r.data.matched_applicants[0].states, undefined);
+});
