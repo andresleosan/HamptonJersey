@@ -6,14 +6,24 @@
   "fase": "F7-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Team response times en Insights (medianas): aplicante nuevo de la web → primera atención, petición de visita → primera respuesta y aplicante → primera revisión de sus coincidencias.",
-  "falta": "El tiempo de respuesta de las agencias y el de la primera lista enviada al aplicante, que llegan con los correos a agencias y el portal (F2).",
+  "hecho": "Team response times en Insights (medianas, tiempo de reloj): aplicante nuevo de la web → primera atención, petición de visita → primera respuesta y aplicante → primera revisión de sus coincidencias. Con ANA06_AGENCY_TIMES_READY (apagado; índice en la migración aditiva 0092): «Agency response times», mediana en horas laborables (lunes a viernes 09:00–17:00 Europe/Jersey, sin festivos de Jersey) de las consultas enviadas en el periodo (AGE-03 a mano o AGE-05 aceptada por el proveedor) hasta su primera respuesta útil registrada (AGE-06: available, unavailable o aclaración respondida), con casos, en espera (enviadas sin respuesta útil) y no contadas (respuesta anterior al envío, o año sin calendario de festivos verificado). Una sola mediana para todos los anunciantes: ni nombres ni ranking. Solo lectura.",
+  "falta": "Aplicar 0092 en producción (con 0082 de AGE-06 ya aplicada), poner ANA06_AGENCY_TIMES_READY = \"1\" en wrangler.toml (solo la web; el reloj no lo lee) y comprobar GET /admin/insights. El tiempo de registro → primera propiedad recibida pasa a AGE-11 (dueño de la presentación y de su recepción).",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
-    "server/routes/insights.js:34-48",
-    "server/routes/insights.js:78-85",
-    "admin/src/Insights.jsx:10-15",
-    "admin/src/Insights.jsx:115-126"
+    "server/routes/insights.js:34-48 y 98-104, admin/src/Insights.jsx:13-18 y 185-196 (tiempos del equipo ya existentes, sin cambios)",
+    "server/working-time.js:1-30 (ANA-06: horas laborables Jersey 09:00–17:00 lunes a viernes; festivos 2025–2027 de gov.je comprobados el 15-nov-2026; año sin calendario → caso fuera de la mediana, nunca cero)",
+    "server/insights.js:100-113 (workingResponseTime: mediana en horas con un decimal, casos, en espera, invalid y calendar_pending)",
+    "server/routes/insights.js:51-56 y 76-106 (consulta ENQUIRIES por sent_at >= inicio del periodo Jersey, en el mismo batch de Insights, solo con el interruptor)",
+    "migrations/0092_consultations_sent_index.sql (CREATE INDEX consultations_sent ON consultations(sent_at): aditiva)",
+    "admin/src/Insights.jsx:197-218 (sección Agency response times, una tarjeta, sin anunciantes)",
+    "Decisión: definiciones de la spec tanda 7 (docs/superpowers/specs/2026-11-10-tanda7-analitica-design.md:5) y del plan (docs/superpowers/plans/2026-11-10-tanda7-ana-06-tiempos.md §1-2): envío acreditado → primera respuesta útil; horario 09:00–17:00 lunes a viernes Europe/Jersey sin festivos de Jersey; mediana; sin respuesta = en espera, no cero",
+    "Decisión: respuesta útil = la que deja la consulta answered en AGE-06 (available, unavailable o aclaración respondida); no_answer y more_info siguen en espera; canceladas fuera (fuente: server/consultations.js respond y la regla «useful answer» de AGE-08)",
+    "Decisión: cohorte por sent_at dentro del periodo de Insights (7/30/90 días Jersey), como los tiempos existentes (fuente: plan §2, server/routes/insights.js COHORT)",
+    "Decisión: una sola mediana sin nombres ni orden de agencias (fuente: plan §5 «no nombres ni ordenación de agencias»)",
+    "Decisión: DST por la regla del Reino Unido (último domingo de marzo/octubre), comprobada contra Intl para cada día de 2026 en la prueba; festivos en el mismo archivo y no en jersey-holidays.js aparte (ponytail)",
+    "Coste 15-nov: 5.000 consultas en 3 años en D1 local → EXPLAIN «SEARCH consultations USING INDEX consultations_sent (sent_at>?)», 408 filas en el rango de 90 días frente a 5.000 sin índice; workingResponseTime sobre 368 filas ≈1,2 ms de CPU; sin UNION y sin subpeticiones nuevas (mismo batch)",
+    "Pruebas 15-nov: node --test tests/server/insights.test.mjs 12/12 (falló primero la de agency_reply); weekly-insights 8/8, age-06-responses 13/13, age-08-call-tasks 13/13, notification-tasks 14/14, ana10-poster-qr 8/8, owner-report 6/6",
+    "Navegador 15-nov: tests/ana06-agency-times.e2e.cjs en el contenedor aislado (ANA06_AGENCY_TIMES_READY=1 en tests/run-e2e.cjs), 1280 y 390, pasa: 3 working hours, 1 case, 1 waiting, sin el nombre del anunciante, sin desbordamiento"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -40,5 +50,6 @@
     "analytics-contract",
     "consultations-contract"
   ],
-  "nextStep": "Añadir tiempos de respuesta de agencias y primera presentación cuando exista su trazabilidad."
+  "nextStep": "Publicar en main, aplicar 0092 (aditiva), encender ANA06_AGENCY_TIMES_READY y comprobar con GET /admin/insights?days=90 que times.agency_reply llega sin nombres.",
+  "actualizado": "2026-11-15"
 }
