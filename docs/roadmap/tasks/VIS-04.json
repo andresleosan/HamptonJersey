@@ -4,11 +4,11 @@
   "titulo": "Decidir tras la visita: Proceed, Need more information o Not interested",
   "origen": "texto",
   "fase": "F3-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "El equipo cierra la visita en Viewings con Mark completed y elige Proceed, Need more information o Not interested con motivo opcional; el resultado se ve en el detalle de la visita (pestaña Past), en la tarjeta de interés de la casa y en el Owner report. Desde VIS-08 puede completarse con «No answer yet» y anotar la respuesta después con Record feedback; con resultado, la visita es Feedback received, con fecha y quién la anotó. Construido y apagado (15-nov, VIS04_OUTCOME_READY, sin migración): Proceed y Need more information dejan una tarea en el Inbox («Wants to proceed: nombre» o «Needs more information: nombre», en Tasks, con Open viewing y Done); Not interested no deja nada, y ninguna decisión cambia la búsqueda ni un match. El detalle de la visita muestra «Next step» según la decisión, y el formulario y el mensaje al guardar avisan de la tarea. El motivo se queda en la fila de la visita: no va al evento ni a la tarea.",
-  "falta": "Integrar en el Timeline del aplicante la respuesta de cada visita, con fecha y quién la anotó: dos cambios en admin/src/ApplicantDetail.jsx, archivo de otro constructor en este lote (texto exacto en la evidencia). Encender VIS04_OUTCOME_READY (interno, sin migración) y comprobar el recorrido. Trasladado a otras tareas (decisión en la evidencia): formulario del propio aplicante, a AGE-12 y VIS-17; petición por correo una hora después, a AUT-17; relación de la respuesta con el match, a EST-14.",
-  "bloqueo": "Correo (AUT-17)",
+  "hecho": "El equipo cierra la visita en Viewings con Mark completed y elige Proceed, Need more information o Not interested con motivo opcional; el resultado se ve en el detalle de la visita (pestaña Past), en la tarjeta de interés de la casa y en el Owner report. Desde VIS-08 puede completarse con «No answer yet» y anotar la respuesta después con Record feedback; con resultado, la visita es Feedback received, con fecha y quién la anotó. Construido y apagado (15-nov, VIS04_OUTCOME_READY, sin migración): Proceed y Need more information dejan una tarea en el Inbox («Wants to proceed: nombre» o «Needs more information: nombre», en Tasks, con Open viewing y Done); Not interested no deja nada, y ninguna decisión cambia la búsqueda ni un match. El detalle de la visita muestra «Next step» según la decisión, y el formulario y el mensaje al guardar avisan de la tarea. El motivo se queda en la fila de la visita: no va al evento ni a la tarea. Cerrada el 15-nov-2026: sin migración; VIS04_OUTCOME_READY=1 y la respuesta de la visita en el Timeline del aplicante. El formulario del propio aplicante pertenece al portal privado (AGE-12, con el acceso de VIS-17) y su interruptor solo lo enciende Luis; la petición de feedback por correo es de AUT-17.",
+  "falta": "",
+  "bloqueo": "",
   "evidencia": [
     "admin/src/Viewings.jsx:249-270",
     "server/routes/inbox.js:83-91",
@@ -26,7 +26,9 @@
     "Decisión 15-nov (plan maestro, «Búsqueda, visitas y publicación propias»; spec §3: Not interested «no vuelve indisponible la casa para todos ni modifica criterios»; aceptación de VIS-08): ninguna decisión toca la búsqueda ni un match, y Not interested no deja tarea. Relacionar la respuesta con el match es de EST-14.",
     "Decisión 15-nov (server/routes/hermes.js, news: solo retransmite new_applicant y viewing; CONTINUIDAD: no empezar a enviar mensajes): la tarea usa la categoría task, así no sale nada por Telegram.",
     "Decisión 15-nov (server/events.js, logEvent con aviso, como viewing.requested en server/routes/public.js; skill §4.5, lo más simple): la tarea es un aviso del propio evento, sin tabla ni migración. El nombre va al final del título, como en «Viewing request: nombre», y se borra con la visita (borrado manual y retención).",
-    "Decisión 15-nov (plan VIS-04, tarea 1: reason_required_decline es del formulario del cliente): el motivo que anota el equipo sigue siendo opcional."
+    "Decisión 15-nov (plan VIS-04, tarea 1: reason_required_decline es del formulario del cliente): el motivo que anota el equipo sigue siendo opcional.",
+    "Cierre 15-nov-2026: publicada en ccbe2c3; npm test 2584/2584, build y check:release; tests/vis04-after-viewing.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (una sola tarea, nada para Not interested, ningún resultado toca applicants ni matches, nada sale por Hermes).",
+    "Decisión 15-nov-2026 (skill §3, productores de otros módulos): el formulario del aplicante se traslada a AGE-12/VIS-17 según el plan 2026-11-08-vis-04-reviewed-post-viewing-feedback.md; un formulario público nuevo no se enciende sin Luis."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -41,13 +43,13 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Correo (AUT-17)",
+  "externalBlocker": "",
   "resources": [
     "viewings-contract",
     "viewings-ui",
     "applicant-timeline",
     "email-pipeline"
   ],
-  "nextStep": "Integrar la línea del Timeline, encender VIS04_OUTCOME_READY y comprobar el recorrido en Viewings, Inbox y Timeline.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

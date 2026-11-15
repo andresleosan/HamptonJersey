@@ -35,6 +35,12 @@ ADM11_CALENDAR_READY = "1"
 VIS08_CYCLE_READY = "1"
 # BUS-10: one physical home per market listing, reviewed by a person (migrations 0050 and 0068, applied 15-nov-2026).
 BUS10_IDENTITY_READY = "1"
+# VIS-04: a follow-up task after a viewing's decision (no migration).
+VIS04_OUTCOME_READY = "1"
+# AUT-19: criteria proposals with before/after and confirmation (migration 0074, applied 15-nov-2026).
+AUT19_CRITERIA_PROPOSALS_READY = "1"
+# EST-16: confirmed availability apart from the listing's status (migration 0072, applied 15-nov-2026).
+EST16_AVAILABILITY_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

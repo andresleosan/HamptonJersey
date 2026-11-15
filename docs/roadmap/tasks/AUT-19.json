@@ -4,10 +4,10 @@
   "titulo": "Dictado de criterios: propuesta antes/después y confirmación del empleado",
   "origen": "plan",
   "fase": "F1-A",
-  "estado": "pendiente",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Construida y apagada (migración 0074, interruptor AUT19_CRITERIA_PROPOSALS_READY). En la ficha del aplicante, los criterios que el empleado cambia en el formulario de búsqueda pueden dejarse como propuesta («Propose changes», con nota de origen opcional) en vez de guardarse: la búsqueda y sus matches no cambian. La propuesta pendiente muestra antes → después campo a campo y avisa de que lo no listado queda igual. «Confirm changes» (el mismo empleado u otro) aplica exactamente esos campos por el mismo guardado de la ficha y recalcula una vez; «Edit proposal» la lleva al formulario para corregirla y proponer de nuevo la sustituye; «Discard proposal» la cierra sin tocar nada. Si los criterios cambiaron entre medias, la confirmación se rechaza (409) y solo cabe rehacerla o descartarla. Quedan guardados la versión de criterios, la fecha, quién propuso, quién confirmó y la nota; el Timeline registra propuesta, confirmación y descarte. La lista de aplicantes («Changes to confirm») y el Inbox (tarea «Confirm proposed criteria changes», contrato de productor de NOT-01) señalan la propuesta; la tarea se cierra al confirmar o descartar. Un borrador de Hermes entrará por la misma función (proposeCriteria, con otro actor y origen); aquí no se llama a ningún modelo.",
-  "falta": "Aplicar la migración 0074 (aditiva), encender AUT19_CRITERIA_PROPOSALS_READY y comprobar el recorrido en producción con lecturas. El dictado interpretado por un modelo (voz o texto libre) no es de esta tarea: depende de la vía Hermes/Pro verificada (PRE-32) y del carril de AUT-13; mientras tanto el empleado indica los cambios a mano. Telegram no autorizado.",
+  "hecho": "Construida y apagada (migración 0074, interruptor AUT19_CRITERIA_PROPOSALS_READY). En la ficha del aplicante, los criterios que el empleado cambia en el formulario de búsqueda pueden dejarse como propuesta («Propose changes», con nota de origen opcional) en vez de guardarse: la búsqueda y sus matches no cambian. La propuesta pendiente muestra antes → después campo a campo y avisa de que lo no listado queda igual. «Confirm changes» (el mismo empleado u otro) aplica exactamente esos campos por el mismo guardado de la ficha y recalcula una vez; «Edit proposal» la lleva al formulario para corregirla y proponer de nuevo la sustituye; «Discard proposal» la cierra sin tocar nada. Si los criterios cambiaron entre medias, la confirmación se rechaza (409) y solo cabe rehacerla o descartarla. Quedan guardados la versión de criterios, la fecha, quién propuso, quién confirmó y la nota; el Timeline registra propuesta, confirmación y descarte. La lista de aplicantes («Changes to confirm») y el Inbox (tarea «Confirm proposed criteria changes», contrato de productor de NOT-01) señalan la propuesta; la tarea se cierra al confirmar o descartar. Un borrador de Hermes entrará por la misma función (proposeCriteria, con otro actor y origen); aquí no se llama a ningún modelo. Cerrada el 15-nov-2026: migración 0074 aplicada y AUT19_CRITERIA_PROPOSALS_READY=1. La interpretación con modelo (voz o texto libre) queda para Hermes tras PRE-32 por la entrada proposeCriteria, ya anotada en AUT-13.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
@@ -22,7 +22,8 @@
     "Decisión: una propuesta pendiente por búsqueda; proponer de nuevo sustituye a la anterior. Fuente: skill, sección 4.5 (la opción más simple y reversible); la anterior queda como descartada con su autor.",
     "Decisión: el aviso usa el productor reservado work «dictation» de server/notification-events.js (contrato NOT-01), una tarea por búsqueda que se reabre con cada propuesta. Lo calcula la propia ruta, no el reloj: jobs/ no necesita el interruptor.",
     "Decisión: los eventos de propuesta y descarte guardan solo los nombres de los campos; valores y nota quedan en la propuesta, que se borra con su búsqueda. Fuente: repositorio público y regla de datos del plan vigente.",
-    "Acciones afectadas al confirmar: el recálculo es el del guardado manual y las aprobaciones de matches ligadas a la versión anterior caducan solas (EST-13, search_version)."
+    "Acciones afectadas al confirmar: el recálculo es el del guardado manual y las aprobaciones de matches ligadas a la versión anterior caducan solas (EST-13, search_version).",
+    "Cierre 15-nov-2026: publicada en ccbe2c3; npm test 2584/2584, build y check:release; 0074 (una tabla y un índice, aditiva) aplicada en producción tras marcador Time Travel; tests/aut19-criteria-proposal.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (60 escenarios del PUT del aplicante idénticos a la versión anterior; confirmar aplica solo los campos mostrados; tres confirmaciones simultáneas, una sola aplicación)."
   ],
   "modulo": "M11",
   "deps": [
@@ -65,12 +66,12 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Vía Hermes/Pro verificada (PRE-32) solo para el tramo con modelo; sin ella el empleado continúa a mano. Telegram no autorizado.",
+  "externalBlocker": "",
   "resources": [
     "applicants-schema",
     "matching-contract",
     "events-contract"
   ],
-  "nextStep": "Aplicar 0074, encender AUT19_CRITERIA_PROPOSALS_READY y verificar con lecturas; después cerrar por aceptación propia.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

@@ -4,10 +4,10 @@
   "titulo": "Estado publicado, disponibilidad y procedencia como dimensiones separadas",
   "origen": "plan",
   "fase": "F1-B",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "15-nov-2026, construida en rama y apagada (migración 0072 y EST16_AVAILABILITY_READY): tres dimensiones separadas, guardadas y visibles para las fichas propias. Estado publicado: lo que dice la ficha (listings.availability), rotulado «Published status» y «Listed as…». Disponibilidad confirmada: un hecho que registra una persona del equipo con resultado (available, not available, unknown), fecha y hora, quién lo dijo (owner, agency, other), canal (phone, email, in person, message), referencia de evidencia en texto corto y alcance (toda la propiedad o solo su operación). Procedencia: cada confirmación muestra fecha, quién, canal y quién la registró. Historial versionado en availability_confirmations: cada confirmación se añade y ninguna se reescribe (trigger); la vigente es la última por su propia fecha (server/property-facts.js); nada caduca; una antigua registrada tarde no pisa una más nueva; dos contradictorias del mismo instante quedan para revisión y ninguna rige. Rutas con sesión de equipo GET y POST /admin/listings/<id>/availability. La tarjeta de match escribe availability: confirmed o confirmed_unavailable con fecha y procedencia, y sigue en not_confirmed si no hay confirmación vigente. El editor de la ficha tiene la sección «Confirmed availability» con el formulario «Confirm availability» y el historial. Registrar una confirmación, también «Not available», no cambia la ficha, sus matches, eventos ni avisos. Apagado o sin migrar todo funciona como antes.",
-  "falta": "Aplicar la migración 0072, encender EST16_AVAILABILITY_READY y comprobar el recorrido real. Lo demás es de otras tareas: excluir de propuestas y avisar gestiones ante una indisponibilidad confirmada (EST-15); consulta y respuestas de agencia con condiciones por hogar (AGE-03, AGE-06); confirmación y tarjeta de casas del inventario de mercado (SPR-07); evento del hecho (EST-18); retención en papelera (EST-19).",
+  "hecho": "15-nov-2026, construida en rama y apagada (migración 0072 y EST16_AVAILABILITY_READY): tres dimensiones separadas, guardadas y visibles para las fichas propias. Estado publicado: lo que dice la ficha (listings.availability), rotulado «Published status» y «Listed as…». Disponibilidad confirmada: un hecho que registra una persona del equipo con resultado (available, not available, unknown), fecha y hora, quién lo dijo (owner, agency, other), canal (phone, email, in person, message), referencia de evidencia en texto corto y alcance (toda la propiedad o solo su operación). Procedencia: cada confirmación muestra fecha, quién, canal y quién la registró. Historial versionado en availability_confirmations: cada confirmación se añade y ninguna se reescribe (trigger); la vigente es la última por su propia fecha (server/property-facts.js); nada caduca; una antigua registrada tarde no pisa una más nueva; dos contradictorias del mismo instante quedan para revisión y ninguna rige. Rutas con sesión de equipo GET y POST /admin/listings/<id>/availability. La tarjeta de match escribe availability: confirmed o confirmed_unavailable con fecha y procedencia, y sigue en not_confirmed si no hay confirmación vigente. El editor de la ficha tiene la sección «Confirmed availability» con el formulario «Confirm availability» y el historial. Registrar una confirmación, también «Not available», no cambia la ficha, sus matches, eventos ni avisos. Apagado o sin migrar todo funciona como antes. Cerrada el 15-nov-2026: migración 0072 aplicada y EST16_AVAILABILITY_READY=1. Cubre las fichas propias; la confirmación de casas del inventario de mercado está en SPR-07, propagar una indisponibilidad en EST-15 y las condiciones por hogar en AGE-06.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:152-159",
@@ -29,7 +29,8 @@
     "Decisión: la confirmación de casas del inventario de mercado no entra; su identidad cambia con uniones y deshacer y una casa unida no acredita disponibilidad. Su estado publicado y procedencia ya se guardan como observaciones. Fuente: ficha EST-16 (traído de BUS-10) y work/EST-16/persistence-readiness.md.",
     "Decisión: «Not available» no cambia el estado publicado, no archiva ni retira matches. Fuente: ficha EST-15 (propagación) y plan maestro (dimensiones separadas).",
     "Decisión: sin plazo de caducidad; rige la última con fecha. Fuente: plan maestro, sección Búsqueda, visitas y publicación propias.",
-    "Decisión: el texto de evidencia solo sale en la ruta de la ficha con sesión; no va en tarjetas, eventos ni logs. Fuente: work/EST-16/persistence-readiness.md (lecturas y escrituras)."
+    "Decisión: el texto de evidencia solo sale en la ruta de la ficha con sesión; no va en tarjetas, eventos ni logs. Fuente: work/EST-16/persistence-readiness.md (lecturas y escrituras).",
+    "Cierre 15-nov-2026: publicada en ccbe2c3; npm test 2584/2584, build y check:release; 0072 (tabla de solo añadir, índice y trigger, aditiva) aplicada en producción; tests/est16-availability.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (75 respuestas idénticas con el interruptor apagado; la evidencia no sale por rutas públicas ni Hermes; una confirmación no cambia fichas, matches ni avisos)."
   ],
   "modulo": "M02",
   "deps": [
@@ -54,6 +55,6 @@
     "market-inventory",
     "availability-contract"
   ],
-  "nextStep": "Aplicar 0072 (aditiva), encender EST16_AVAILABILITY_READY y verificar con lecturas; después cerrar por aceptación propia.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }
