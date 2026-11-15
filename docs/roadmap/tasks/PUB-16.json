@@ -4,10 +4,10 @@
   "titulo": "Estados de la ficha y su propagación a la web: Under offer, Let agreed, Sold",
   "origen": "plan",
   "fase": "F3-C",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn, y la web solo reserva visitas en fichas disponibles (1813b01). Detrás de PUB16_TIMED_CLOSURE_READY, apagado: al registrar «Let» la ficha muestra «Let agreed» 24 horas exactas y el equipo puede corregirlo; al vencer sale de la web, SEO, sitemap, fotos y reservas aunque el reloj no haya corrido, y el reloj la retira con tarea urgente si falla. El esquema es la migración aditiva 0087. «Return to market» tras la retirada la reabre sin publicar, y se publica como siempre. 24 horas después de alquilar o vender, cada visita futura reservada antes recibe una tarea en el Inbox, una sola vez; no se cancela ni se envía nada. Los matches ya dejan de proponer fichas que no están en venta o alquiler. Pruebas Node, D1 efímero y navegador aislado a 1280 y 390 px con datos ficticios.",
-  "falta": "Aplicar la migración 0087, encender PUB16_TIMED_CLOSURE_READY en wrangler.toml y jobs/wrangler.toml y comprobar el recorrido en producción con lecturas. Lo demás es de otras tareas: el aviso por correo a los clientes de las visitas, de AUT-17; las restricciones de aviso, llaves y negociadores, de VIS-10. El alcance es la web propia, sin Meta.",
+  "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn, y la web solo reserva visitas en fichas disponibles (1813b01). Detrás de PUB16_TIMED_CLOSURE_READY, apagado: al registrar «Let» la ficha muestra «Let agreed» 24 horas exactas y el equipo puede corregirlo; al vencer sale de la web, SEO, sitemap, fotos y reservas aunque el reloj no haya corrido, y el reloj la retira con tarea urgente si falla. El esquema es la migración aditiva 0087. «Return to market» tras la retirada la reabre sin publicar, y se publica como siempre. 24 horas después de alquilar o vender, cada visita futura reservada antes recibe una tarea en el Inbox, una sola vez; no se cancela ni se envía nada. Los matches ya dejan de proponer fichas que no están en venta o alquiler. Pruebas Node, D1 efímero y navegador aislado a 1280 y 390 px con datos ficticios. Cerrada el 15-nov-2026: migración 0087 aplicada y PUB16_TIMED_CLOSURE_READY=1 en la web y el reloj. Los avisos por correo a clientes de visitas canceladas son de AUT-17 (trasladado).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/routes/sales.js:67-76",
@@ -43,7 +43,8 @@
     "Decisión: la venta sigue mostrando «Sold» como hasta ahora; la espera de 24 horas solo afecta a las tareas de visitas. Fuente: mismo plan, «no cambiar la visibilidad de venta durante ese periodo sin decisión adicional».",
     "Decisión SEO: una ficha retirada responde 404 con noindex y sale del sitemap, la regla actual de fichas no publicadas; ni 410 ni redirección. Fuente: plan 2026-11-08-pub-16-website-state-propagation-only, «catálogo/SEO conservan reglas actuales», y server/seo.js listingPage.",
     "Decisión: con el interruptor encendido, las fotos solo dejan de guardarse en caché si su ficha tiene una ventana sin resolver; una copia anterior a la ventana caduca (24 h) antes del vencimiento. Fuente: opción más simple y reversible (skill, sección 4.5), para no multiplicar peticiones de fotos.",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): no tenía bloqueo externo. Vuelve a desarrollo: lo externo es condición de activación."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): no tenía bloqueo externo. Vuelve a desarrollo: lo externo es condición de activación.",
+    "Cierre 15-nov-2026: publicada en 6942659 (ec2f2e3, a403ca9, cba29fa); 0087 (tabla WITHOUT ROWID y dos triggers, aditiva) aplicada tras marcador Time Travel; npm test 2775/2775; tests/pub16-timed-closure.e2e.cjs pasa a 1280 y 390; dos pasadas de revisión independiente: la primera halló que Return to market publicaba sola una ficha retirada y que /api/listings recorría toda la tabla media (unas 13.700 filas por carga; con el interruptor el doble): corregido (Publicar 409 con ventana sin resolver, reapertura siempre published:0, consulta de fotos por índice listings_live + media_listing: de 11.743 a 202 filas en local, respuestas idénticas byte a byte en 4 juegos aleatorios); la segunda, sin graves; con el interruptor apagado, el reloj da las mismas 61 sentencias."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -99,6 +100,6 @@
     "viewings-contract",
     "public-site"
   ],
-  "nextStep": "Aplicar 0087 según la sección 6 de la skill, encender PUB16_TIMED_CLOSURE_READY en los dos wrangler.toml y verificar con GET que /api/listings y /p/<id> responden no-store.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

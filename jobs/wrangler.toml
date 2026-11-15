@@ -15,6 +15,8 @@ preview_urls = false
 # Set true only after real service/domain/routing setup and the approved activation check.
 # AGE-08: one Inbox task to call the advertiser two working days after an enquiry was sent with no useful answer (no migration; sends nothing). Must match the other wrangler.toml.
 AGE08_CALL_TASKS_READY = "1"
+# PUB-16: a rental recorded as let shows Let agreed for 24 hours, then leaves the website; 24 hours after a letting or sale its other viewings get Inbox tasks (migration 0087, applied 15-nov-2026). Sends nothing. Must match the other wrangler.toml.
+PUB16_TIMED_CLOSURE_READY = "1"
 EMAIL_SERVICE_READY = "false"
 # OFE-06: weekly internal sale review (migration 0053); still off until the team sets a day and time.
 OFE06_WEEKLY_REVIEW_READY = "1"

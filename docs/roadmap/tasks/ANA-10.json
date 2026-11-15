@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "La decisión vigente usa aperturas agregadas por propiedad, sin atribución a contactos. Se prepararon la redirección canónica, el contador y el generador SVG fijado por el plan; SQLite, D1 efímero y un lector QR independiente verificaron su alcance. La ruta está apagada, el esquema es una propuesta fuera de migraciones y no-store para ficha y catálogo usa otro control desactivado.",
-  "falta": "Construir el escritor y descarga Staff del QR con elegibilidad completa y la consulta protegida. Acreditar privacidad y retención, elegibilidad y retirada temporal de PUB-16, costes reales, reglas CDN e invalidación o vencimiento de cachés antiguas; probar el QR físico. Los controles preparados no acreditan esos requisitos ni producción.",
+  "falta": "Construir el escritor y descarga Staff del QR con elegibilidad completa y la consulta protegida. Acreditar privacidad y retención, elegibilidad y retirada temporal de PUB-16, costes reales, reglas CDN e invalidación o vencimiento de cachés antiguas; probar el QR físico. Los controles preparados no acreditan esos requisitos ni producción. Traído de PUB-16 (15-nov): la retirada temporal está activa (0087, PUB16_TIMED_CLOSURE_READY); al activar el QR, comprobar que el de una ficha retirada lleva a un 404.",
   "bloqueo": "",
   "evidencia": [
     "server/routes/public.js",
@@ -44,5 +44,5 @@
     "public-site"
   ],
   "nextStep": "Construir la asociación y descarga Staff autorizadas; acreditar PUB-16, privacidad, costes y cachés antes de activar.",
-  "actualizado": "2026-11-13"
+  "actualizado": "2026-11-15"
 }

@@ -4,11 +4,11 @@
   "titulo": "Pestañas extra en Inbox: Agency replies, Viewings, Messages y Compliance",
   "origen": "plan",
   "fase": "—",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Categorías Agency replies, Messages y Compliance, filtros y tareas manuales integrados en main 2084cb9. La consulta histórica sin migraciones pendientes del 11-nov corresponde al árbol b544c2e, que incluía 0035. El ensayo local D1 poblado, las pruebas y el navegador anteriores no acreditan por sí solos canales externos activos. 15-nov-2026 (rama avanzar-not0809, apagado tras NOT0809_INBOX_READY): la pestaña Agency replies recibe las tareas reales de respuesta de agencia, la llamada de AGE-08 («Call … about …», consultation:*:call) y «Agency needs more information» de AGE-06 (consultation:*:reply), y Messages recibe la respuesta del cliente a la presentación privada de AGE-12 (presentation:*). Se clasifican al leer (lista, filtro, contadores y preferencias del Feed), sin reescribir la categoría guardada ni tocar productores ni el reloj: apagar el interruptor devuelve las pestañas de antes, y las tareas ya abiertas cambian de pestaña sin migrar datos. Viewings y Compliance ya tenían productores reales (solicitudes de visita, revisiones y plazos).",
-  "falta": "Encender NOT0809_INBOX_READY en la web tras aplicar la migración 0088 (la comparte con NOT-09) y comprobar en producción, con lecturas, que la llamada de AGE-08 cuenta en Agency replies. Correo entrante real de agencias y clientes: AUT-17. Consultas, captura, fuentes, revisión del día 21 y dictado siguen sus módulos.",
-  "bloqueo": "Activación: migración 0088 e interruptor NOT0809_INBOX_READY (autorizados por CONTINUIDAD). Correo real: AUT-17.",
+  "hecho": "Categorías Agency replies, Messages y Compliance, filtros y tareas manuales integrados en main 2084cb9. La consulta histórica sin migraciones pendientes del 11-nov corresponde al árbol b544c2e, que incluía 0035. El ensayo local D1 poblado, las pruebas y el navegador anteriores no acreditan por sí solos canales externos activos. 15-nov-2026 (rama avanzar-not0809, apagado tras NOT0809_INBOX_READY): la pestaña Agency replies recibe las tareas reales de respuesta de agencia, la llamada de AGE-08 («Call … about …», consultation:*:call) y «Agency needs more information» de AGE-06 (consultation:*:reply), y Messages recibe la respuesta del cliente a la presentación privada de AGE-12 (presentation:*). Se clasifican al leer (lista, filtro, contadores y preferencias del Feed), sin reescribir la categoría guardada ni tocar productores ni el reloj: apagar el interruptor devuelve las pestañas de antes, y las tareas ya abiertas cambian de pestaña sin migrar datos. Viewings y Compliance ya tenían productores reales (solicitudes de visita, revisiones y plazos). Cerrada el 15-nov-2026: migración 0088 aplicada y NOT0809_INBOX_READY=1 en la web. Reply por correo y aprobar envíos de AGE-05 en un clic son de AUT-17 (trasladado).",
+  "falta": "",
+  "bloqueo": "",
   "evidencia": [
     "shared/notification-categories.js",
     "admin/src/Inbox.jsx",
@@ -32,7 +32,8 @@
     "Decisión: Agency replies = tareas de llamada y de más información de una consulta enviada (AGE-06/AGE-08); fuente: arquitectura 5.1 (pestañas por categoría) y encargo de la sesión 15-nov.",
     "Decisión: la respuesta del cliente de AGE-12 va a Messages, por ser un mensaje del cliente; fuente: arquitectura 5.1 y regla 5 de la skill (lo más simple y reversible: clasificación al leer).",
     "Decisión: clasificar al leer en vez de reescribir notifications.category; fuente: CONTINUIDAD (un UPDATE de filas existentes no es aditivo) y regla 5 de la skill.",
-    "Pruebas 15-nov: node --test tests/server/notification-actions.test.mjs 5/5; notification-* y notifications, jobs, age-08-call-tasks, age-06-responses, spr-03-captures pasan; navegador aislado tests/not0809-inbox-actions.e2e.cjs a 1280 y 390 pasa."
+    "Pruebas 15-nov: node --test tests/server/notification-actions.test.mjs 5/5; notification-* y notifications, jobs, age-08-call-tasks, age-06-responses, spr-03-captures pasan; navegador aislado tests/not0809-inbox-actions.e2e.cjs a 1280 y 390 pasa.",
+    "Cierre 15-nov-2026: publicada en 6942659 (e0c4504, 80a1298); 0088 (dos ADD COLUMN y sustitución del trigger notification_task_changed por su versión nueva; comprobado antes que el de producción era idéntico al de 0035) aplicada tras marcador Time Travel; npm test 2775/2775; tests/not0809-inbox-actions.e2e.cjs pasa a 1280 y 390; dos pasadas de revisión independiente: la primera halló que posponer dos veces con la misma hora no subía la revisión y dejaba un pospuesto latente, y un error anterior en producción (Done/Claim/Assign daban 500 en tareas de ficha por el índice events_listing_revision): corregidos con pruebas (eventos task.* con task_revision); la segunda, sin graves; con el interruptor apagado el Inbox queda idéntico."
   ],
   "modulo": "M13",
   "deps": [
@@ -66,13 +67,13 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "El canal de correo real requiere la activación de AUT-17; las categorías y tareas manuales no dependen de Meta.",
+  "externalBlocker": "",
   "resources": [
     "notifications-schema",
     "inbox-ui",
     "agency-consultations-contract",
     "messages-contract"
   ],
-  "nextStep": "Aplicar 0088 en D1 hampton, encender NOT0809_INBOX_READY en wrangler.toml y verificar por GET la pestaña Agency replies.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

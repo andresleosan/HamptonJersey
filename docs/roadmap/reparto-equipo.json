@@ -49,10 +49,10 @@
       "area": "Inbox, visitas, alquileres y ofertas",
       "capacity": 2,
       "count": 65,
-      "openCount": 23,
+      "openCount": 21,
       "states": {
-        "hecho": 39,
-        "parcial": 10,
+        "hecho": 41,
+        "parcial": 8,
         "pendiente": 7,
         "bloqueado": 6,
         "descartado": 3
@@ -64,11 +64,11 @@
       "area": "Propiedades, publicación, tours y analítica",
       "capacity": 2,
       "count": 65,
-      "openCount": 19,
+      "openCount": 18,
       "states": {
-        "hecho": 27,
+        "hecho": 28,
         "descartado": 18,
-        "parcial": 14,
+        "parcial": 13,
         "pendiente": 5,
         "replanteado": 1
       }
@@ -355,11 +355,11 @@
       "titulo": "Pestañas extra en Inbox: Agency replies, Viewings, Messages y Compliance",
       "origen": "plan",
       "fase": "—",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Categorías Agency replies, Messages y Compliance, filtros y tareas manuales integrados en main 2084cb9. La consulta histórica sin migraciones pendientes del 11-nov corresponde al árbol b544c2e, que incluía 0035. El ensayo local D1 poblado, las pruebas y el navegador anteriores no acreditan por sí solos canales externos activos. 15-nov-2026 (rama avanzar-not0809, apagado tras NOT0809_INBOX_READY): la pestaña Agency replies recibe las tareas reales de respuesta de agencia, la llamada de AGE-08 («Call … about …», consultation:*:call) y «Agency needs more information» de AGE-06 (consultation:*:reply), y Messages recibe la respuesta del cliente a la presentación privada de AGE-12 (presentation:*). Se clasifican al leer (lista, filtro, contadores y preferencias del Feed), sin reescribir la categoría guardada ni tocar productores ni el reloj: apagar el interruptor devuelve las pestañas de antes, y las tareas ya abiertas cambian de pestaña sin migrar datos. Viewings y Compliance ya tenían productores reales (solicitudes de visita, revisiones y plazos).",
-      "falta": "Encender NOT0809_INBOX_READY en la web tras aplicar la migración 0088 (la comparte con NOT-09) y comprobar en producción, con lecturas, que la llamada de AGE-08 cuenta en Agency replies. Correo entrante real de agencias y clientes: AUT-17. Consultas, captura, fuentes, revisión del día 21 y dictado siguen sus módulos.",
-      "bloqueo": "Activación: migración 0088 e interruptor NOT0809_INBOX_READY (autorizados por CONTINUIDAD). Correo real: AUT-17.",
+      "hecho": "Categorías Agency replies, Messages y Compliance, filtros y tareas manuales integrados en main 2084cb9. La consulta histórica sin migraciones pendientes del 11-nov corresponde al árbol b544c2e, que incluía 0035. El ensayo local D1 poblado, las pruebas y el navegador anteriores no acreditan por sí solos canales externos activos. 15-nov-2026 (rama avanzar-not0809, apagado tras NOT0809_INBOX_READY): la pestaña Agency replies recibe las tareas reales de respuesta de agencia, la llamada de AGE-08 («Call … about …», consultation:*:call) y «Agency needs more information» de AGE-06 (consultation:*:reply), y Messages recibe la respuesta del cliente a la presentación privada de AGE-12 (presentation:*). Se clasifican al leer (lista, filtro, contadores y preferencias del Feed), sin reescribir la categoría guardada ni tocar productores ni el reloj: apagar el interruptor devuelve las pestañas de antes, y las tareas ya abiertas cambian de pestaña sin migrar datos. Viewings y Compliance ya tenían productores reales (solicitudes de visita, revisiones y plazos). Cerrada el 15-nov-2026: migración 0088 aplicada y NOT0809_INBOX_READY=1 en la web. Reply por correo y aprobar envíos de AGE-05 en un clic son de AUT-17 (trasladado).",
+      "falta": "",
+      "bloqueo": "",
       "evidencia": [
         "shared/notification-categories.js",
         "admin/src/Inbox.jsx",
@@ -383,7 +383,8 @@
         "Decisión: Agency replies = tareas de llamada y de más información de una consulta enviada (AGE-06/AGE-08); fuente: arquitectura 5.1 (pestañas por categoría) y encargo de la sesión 15-nov.",
         "Decisión: la respuesta del cliente de AGE-12 va a Messages, por ser un mensaje del cliente; fuente: arquitectura 5.1 y regla 5 de la skill (lo más simple y reversible: clasificación al leer).",
         "Decisión: clasificar al leer en vez de reescribir notifications.category; fuente: CONTINUIDAD (un UPDATE de filas existentes no es aditivo) y regla 5 de la skill.",
-        "Pruebas 15-nov: node --test tests/server/notification-actions.test.mjs 5/5; notification-* y notifications, jobs, age-08-call-tasks, age-06-responses, spr-03-captures pasan; navegador aislado tests/not0809-inbox-actions.e2e.cjs a 1280 y 390 pasa."
+        "Pruebas 15-nov: node --test tests/server/notification-actions.test.mjs 5/5; notification-* y notifications, jobs, age-08-call-tasks, age-06-responses, spr-03-captures pasan; navegador aislado tests/not0809-inbox-actions.e2e.cjs a 1280 y 390 pasa.",
+        "Cierre 15-nov-2026: publicada en 6942659 (e0c4504, 80a1298); 0088 (dos ADD COLUMN y sustitución del trigger notification_task_changed por su versión nueva; comprobado antes que el de producción era idéntico al de 0035) aplicada tras marcador Time Travel; npm test 2775/2775; tests/not0809-inbox-actions.e2e.cjs pasa a 1280 y 390; dos pasadas de revisión independiente: la primera halló que posponer dos veces con la misma hora no subía la revisión y dejaba un pospuesto latente, y un error anterior en producción (Done/Claim/Assign daban 500 en tareas de ficha por el índice events_listing_revision): corregidos con pruebas (eventos task.* con task_revision); la segunda, sin graves; con el interruptor apagado el Inbox queda idéntico."
       ],
       "modulo": "M13",
       "deps": [
@@ -417,14 +418,14 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "El canal de correo real requiere la activación de AUT-17; las categorías y tareas manuales no dependen de Meta.",
+      "externalBlocker": "",
       "resources": [
         "notifications-schema",
         "inbox-ui",
         "agency-consultations-contract",
         "messages-contract"
       ],
-      "nextStep": "Aplicar 0088 en D1 hampton, encender NOT0809_INBOX_READY en wrangler.toml y verificar por GET la pestaña Agency replies.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-15"
     },
     {
@@ -433,11 +434,11 @@
       "titulo": "Acciones de un clic en cada aviso: Approve, Reply, Call, Snooze y Done",
       "origen": "plan",
       "fase": "F0",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Cada aviso trae Done, Call con el número a la vista y el enlace a su ficha (Open applicant, Review matches, Open viewings o Add a search for this contact). 15-nov-2026 (rama avanzar-not0809, apagado tras NOT0809_INBOX_READY y la migración aditiva 0088_notification_snooze.sql): Approve en el aviso «Confirm proposed criteria changes» (AUT-19) muestra antes→después y confirma con la ruta existente y la misma comprobación de versión; la tarea se cierra en la misma escritura. Call en la llamada de AGE-08 y Reply en «Agency needs more information» de AGE-06 abren dentro del aviso la consulta de la propiedad con todos los teléfonos del directorio como enlaces tel: y el formulario de respuesta de AGE-06; una respuesta útil cierra la tarea. Snooze «hasta mañana 09:00» la pasa al Feed con revisión, historial y evento propios; vale mientras la tarea siga en la revisión que creó, así que un contexto nuevo de su fuente, Done o Reopen la despiertan, y un tick del reloj sin cambios no escribe nada (ni reabre ni duplica). Wake now la devuelve. Done y Call (tel:) ya existían. Nada sale fuera. Revisión independiente 15-nov: todo Snooze aceptado sube la revisión y deja historial aunque repita la hora (el trigger de 0088 cuenta también snoozed_revision); Wake sobre una tarea cerrada da 409; encendido sin 0088, el Inbox funciona como con Snooze apagado; el resumen por correo del reloj no cuenta las tareas pospuestas. Arreglo sin interruptor de un fallo previo: los eventos task.<acción> guardan la revisión de la tarea como task_revision (versión 2), así no chocan con events_listing_revision ni entran en la secuencia de revisiones de la ficha, y Claim, Done, Assign y Snooze ya no dan 500 en tareas de propiedades (AGE-06, AGE-08, SPR-03, AGE-10).",
-      "falta": "Encender NOT0809_INBOX_READY en la web tras aplicar 0088 y comprobar en producción con lecturas. Reply por correo (contestar a la agencia o al cliente desde la app) depende de AUT-17. Approve de matches sigue en Review matches: un aviso agrupa varios matches y cada uno se revisa con sus comprobaciones (BUS-15). Traído de EST-13 (15-nov): aviso propio de Inbox al aprobar una consulta aclaratoria o ante un imprescindible desconocido; hoy solo queda el evento match.clarification en el Timeline. Abrir ficha con archivos parciales es de SPR-03/SPR-08 (la tarea «Open property record» ya lleva a la ficha).",
-      "bloqueo": "Activación: migración 0088 e interruptor NOT0809_INBOX_READY (autorizados por CONTINUIDAD). Reply por correo: AUT-17.",
+      "hecho": "Cada aviso trae Done, Call con el número a la vista y el enlace a su ficha (Open applicant, Review matches, Open viewings o Add a search for this contact). 15-nov-2026 (rama avanzar-not0809, apagado tras NOT0809_INBOX_READY y la migración aditiva 0088_notification_snooze.sql): Approve en el aviso «Confirm proposed criteria changes» (AUT-19) muestra antes→después y confirma con la ruta existente y la misma comprobación de versión; la tarea se cierra en la misma escritura. Call en la llamada de AGE-08 y Reply en «Agency needs more information» de AGE-06 abren dentro del aviso la consulta de la propiedad con todos los teléfonos del directorio como enlaces tel: y el formulario de respuesta de AGE-06; una respuesta útil cierra la tarea. Snooze «hasta mañana 09:00» la pasa al Feed con revisión, historial y evento propios; vale mientras la tarea siga en la revisión que creó, así que un contexto nuevo de su fuente, Done o Reopen la despiertan, y un tick del reloj sin cambios no escribe nada (ni reabre ni duplica). Wake now la devuelve. Done y Call (tel:) ya existían. Nada sale fuera. Revisión independiente 15-nov: todo Snooze aceptado sube la revisión y deja historial aunque repita la hora (el trigger de 0088 cuenta también snoozed_revision); Wake sobre una tarea cerrada da 409; encendido sin 0088, el Inbox funciona como con Snooze apagado; el resumen por correo del reloj no cuenta las tareas pospuestas. Arreglo sin interruptor de un fallo previo: los eventos task.<acción> guardan la revisión de la tarea como task_revision (versión 2), así no chocan con events_listing_revision ni entran en la secuencia de revisiones de la ficha, y Claim, Done, Assign y Snooze ya no dan 500 en tareas de propiedades (AGE-06, AGE-08, SPR-03, AGE-10). Cerrada el 15-nov-2026: migración 0088 aplicada y NOT0809_INBOX_READY=1 en la web. Reply por correo y aprobar envíos de AGE-05 en un clic son de AUT-17 (trasladado).",
+      "falta": "",
+      "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
         "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo.",
@@ -456,7 +457,8 @@
         "Decisión: Snooze de un clic hasta mañana 09:00 (hora del navegador), máximo 30 días en el servidor y ligado a la revisión; fuente: regla 5 de la skill (lo más simple y reversible) y aceptación M13 (dos ticks del reloj no duplican).",
         "Pruebas 15-nov: node --test tests/server/notification-actions.test.mjs 5/5 (apagado, pestañas, Snooze/Wake con historial y evento, validación, reloj sin reabrir); notification-*, notifications, jobs, age-08-call-tasks, age-06-responses, spr-03-captures pasan; navegador aislado tests/not0809-inbox-actions.e2e.cjs a 1280 y 390 (Call y respuesta, Snooze por teclado y Wake, Approve) pasa.",
         "Decisión: renombrar data.revision a task_revision en los eventos task.*; nadie los lee por esa clave (grep de task.% en server y admin) y el historial de la ficha (EST-18) los muestra como listing.unknown sin revisión; fuente: revisión independiente del 15-nov y CONTINUIDAD (sin migración no aditiva).",
-        "Pruebas tras la revisión: notification-actions 10/10 (misma hora tras Claim, Wake cerrado 409, tareas de propiedad con revisiones 1..3 apagado y encendido, encendido sin 0088 y resumen); notification-*, notifications, jobs, age-08-call-tasks, age-06-responses, spr-03-captures, age-10-private-media, listing-history y email pasan; navegador aislado repetido."
+        "Pruebas tras la revisión: notification-actions 10/10 (misma hora tras Claim, Wake cerrado 409, tareas de propiedad con revisiones 1..3 apagado y encendido, encendido sin 0088 y resumen); notification-*, notifications, jobs, age-08-call-tasks, age-06-responses, spr-03-captures, age-10-private-media, listing-history y email pasan; navegador aislado repetido.",
+        "Cierre 15-nov-2026: publicada en 6942659 (e0c4504, 80a1298); 0088 (dos ADD COLUMN y sustitución del trigger notification_task_changed por su versión nueva; comprobado antes que el de producción era idéntico al de 0035) aplicada tras marcador Time Travel; npm test 2775/2775; tests/not0809-inbox-actions.e2e.cjs pasa a 1280 y 390; dos pasadas de revisión independiente: la primera halló que posponer dos veces con la misma hora no subía la revisión y dejaba un pospuesto latente, y un error anterior en producción (Done/Claim/Assign daban 500 en tareas de ficha por el índice events_listing_revision): corregidos con pruebas (eventos task.* con task_revision); la segunda, sin graves; con el interruptor apagado el Inbox queda idéntico."
       ],
       "modulo": "M13",
       "deps": [
@@ -506,7 +508,7 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Correo (AUT-17)",
+      "externalBlocker": "",
       "resources": [
         "notifications-schema",
         "inbox-ui",
@@ -514,7 +516,7 @@
         "agency-consultations-contract",
         "dictation-contract"
       ],
-      "nextStep": "Aplicar 0088 en D1 hampton, encender NOT0809_INBOX_READY y verificar por GET que los avisos traen quick y can_snooze.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-15"
     },
     {
@@ -3672,7 +3674,7 @@
       "estado": "parcial",
       "responsable": "Luis",
       "hecho": "Actualización 7-nov: código desplegado en aea7eb5 y migraciones remotas al día; activación del servicio pendiente. Evidencia de construcción: Construido y comprobado en local el 6-nov-2026, con diseño aprobado íntegramente por Luis y migración aditiva 0023_email.sql, sin aplicar en producción. Pages autentica preferencias y revisión; hampton-jobs envía con binding send_email restringido a hello@hamptonestatesjersey.com y recibe en replies@app.hamptonestatesjersey.com. Cola D1 con snapshot aprobado, idempotencia por plantilla/entidad/versión/destinatario, cuota atómica de 100 intentos por día de Jersey y comprobación de pausa, preferencias y baja antes de cada llamada. Solo rechazos explícitos de límite admiten hasta 3 intentos; timeouts y resultados inciertos esperan revisión, sin reenvío automático. Primer uso NOT-10: resumen de contadores a las 08:00 de Jersey, activado expresamente para las direcciones del equipo tras ver una muestra. Automations incluye Email y Daily team summary. Sección Email paginada con entrada/salida, texto literal, bajas, borrado y revisión de resultados desconocidos. MIME limitado a 1 MiB/50.000 caracteres, sin guardar adjuntos; huellas contra duplicados y referencias de hilo sin acciones de negocio. Contenido 30 días, metadatos 90; borrado diario y de contactos. Aviso de privacidad actualizado. Configuración de servicio false y preferencias apagadas por defecto; no se han enviado correos reales. Correcciones de revisión del 6-nov: contador global y filtro paginado Pending review de resultados inciertos sin revisar, visible después de medianoche y sin reenvío al reconocerlos. Asunto, In-Reply-To y References se resuelven conjuntamente; las contradicciones quedan sin hilo y References puede ser la única pista. El detalle conserva texto y ofrece reintento con aviso y foco si falla su refresco. Regresiones RED-GREEN; 622 pruebas Node y 14 Python, build, check:release, e2e de correo y Playwright MCP 1280/390 con zoom 200% aprobados; e2e general bloqueado por DNS de Turnstile.",
-      "falta": "Verificar Workers Paid y alta del dominio en Email Sending por el canal autenticado existente; el taller no pudo consultar la cuenta, no se afirma que falten. Configurar la recepción literal del subdominio sin alterar los MX del buzón habitual; confirmar sus registros de autenticación y las posibilidades de alta de la zona. Confirmar la preparación real en Pages y Worker con EMAIL_SERVICE_READY=true solo al completar ese montaje. El equipo elige destinatarios en Automations, revisa la muestra y activa el resumen. Falta una entrega real al equipo y una respuesta visible en Email; no se promete reintento automático del proveedor ante fallo de recepción. Consultas a agencias, correo a aplicantes/chats y los demás flujos dependientes se construyen aparte y conservan sus estados pendientes. Los menores restantes y bloqueos del taller están registrados en el ledger; H1/H2/H3 están corregidos. El código y las migraciones ya están publicados; la activación de correo y sus cambios DNS no se realizaron en esta entrega. Traído de VIS-10 (14-nov): aviso automático al inquilino antes de una visita (destinatario, canal, texto y evidencia por caso); hoy el empleado confirma el acceso a mano al reservar. Traído de ADM-11 (14-nov): ADM-11 solo registra que la copia de licencia, la del EICR y los datos prescritos del depósito se entregaron; el envío automático al inquilino llega con el correo (ADM-03). Traído de VIS-08 (15-nov): el recordatorio automático de visita escribe reminded_at, reminded_by = automation y reminded_channel = email en viewing_requests (contrato en la migración 0071); Viewings ya lo muestra como Reminded. Traído de VIS-04 (15-nov): petición de feedback por correo una hora después del fin de una visita marcada Completed, hasta 7 días, sin envío retroactivo a visitas antiguas ni tras no-show. Traído de REG-12 (15-nov): si se envía un correo de acuse del registro, usar el mismo texto que la pantalla (site/apply.js), idéntico para alta nueva y repetida, sin resultados ni disponibilidad. Traído de AGE-05 (15-nov): al activar, poner EMAIL_SERVICE_READY a true a la vez en wrangler.toml y jobs/wrangler.toml. Con AGE05_SEND_READY=1 la activación habilita también correos de consulta a anunciantes, cada uno con aprobación individual. Prueba real pendiente: dos pulsaciones simultáneas dan un correo; un resultado incierto queda en revisión. Traído de AGE-06 (15-nov): ligar la respuesta entrante (email_inbound.outbound_id → consultations.email_ref) a su consulta y proponerla al empleado; registrarla usa la ruta de AGE-06, nunca confirma sola. Traído de AGE-12 (15-nov): el correo de la presentación de AGE-11 lleva el enlace privado de AGE-12; su acuse de entrega es lo que debe marcar el enlace como enviado.",
+      "falta": "Verificar Workers Paid y alta del dominio en Email Sending por el canal autenticado existente; el taller no pudo consultar la cuenta, no se afirma que falten. Configurar la recepción literal del subdominio sin alterar los MX del buzón habitual; confirmar sus registros de autenticación y las posibilidades de alta de la zona. Confirmar la preparación real en Pages y Worker con EMAIL_SERVICE_READY=true solo al completar ese montaje. El equipo elige destinatarios en Automations, revisa la muestra y activa el resumen. Falta una entrega real al equipo y una respuesta visible en Email; no se promete reintento automático del proveedor ante fallo de recepción. Consultas a agencias, correo a aplicantes/chats y los demás flujos dependientes se construyen aparte y conservan sus estados pendientes. Los menores restantes y bloqueos del taller están registrados en el ledger; H1/H2/H3 están corregidos. El código y las migraciones ya están publicados; la activación de correo y sus cambios DNS no se realizaron en esta entrega. Traído de VIS-10 (14-nov): aviso automático al inquilino antes de una visita (destinatario, canal, texto y evidencia por caso); hoy el empleado confirma el acceso a mano al reservar. Traído de ADM-11 (14-nov): ADM-11 solo registra que la copia de licencia, la del EICR y los datos prescritos del depósito se entregaron; el envío automático al inquilino llega con el correo (ADM-03). Traído de VIS-08 (15-nov): el recordatorio automático de visita escribe reminded_at, reminded_by = automation y reminded_channel = email en viewing_requests (contrato en la migración 0071); Viewings ya lo muestra como Reminded. Traído de VIS-04 (15-nov): petición de feedback por correo una hora después del fin de una visita marcada Completed, hasta 7 días, sin envío retroactivo a visitas antiguas ni tras no-show. Traído de REG-12 (15-nov): si se envía un correo de acuse del registro, usar el mismo texto que la pantalla (site/apply.js), idéntico para alta nueva y repetida, sin resultados ni disponibilidad. Traído de AGE-05 (15-nov): al activar, poner EMAIL_SERVICE_READY a true a la vez en wrangler.toml y jobs/wrangler.toml. Con AGE05_SEND_READY=1 la activación habilita también correos de consulta a anunciantes, cada uno con aprobación individual. Prueba real pendiente: dos pulsaciones simultáneas dan un correo; un resultado incierto queda en revisión. Traído de AGE-06 (15-nov): ligar la respuesta entrante (email_inbound.outbound_id → consultations.email_ref) a su consulta y proponerla al empleado; registrarla usa la ruta de AGE-06, nunca confirma sola. Traído de AGE-12 (15-nov): el correo de la presentación de AGE-11 lleva el enlace privado de AGE-12; su acuse de entrega es lo que debe marcar el enlace como enviado. Traído de PUB-16 y NOT-09 (15-nov): (1) cuando el correo funcione, cancelar y avisar por correo a los clientes de las demás visitas de una ficha alquilada o vendida 24 h después del cierre (hoy tareas «Property let/sold, cancel the viewing» con evento viewing.property_closed; idempotente por visita, sin reenviar inciertos ni revelar quién la adquirió); (2) Reply por correo desde el aviso del Inbox y aprobar el envío de AGE-05 en un clic (NOT-09 ya abre el formulario de AGE-06 sin correo).",
       "bloqueo": "Activación y prueba real de Cloudflare Email Service",
       "evidencia": [
         "migrations/0023_email.sql",
@@ -8823,10 +8825,10 @@
       "titulo": "Estados de la ficha y su propagación a la web: Under offer, Let agreed, Sold",
       "origen": "plan",
       "fase": "F3-C",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn, y la web solo reserva visitas en fichas disponibles (1813b01). Detrás de PUB16_TIMED_CLOSURE_READY, apagado: al registrar «Let» la ficha muestra «Let agreed» 24 horas exactas y el equipo puede corregirlo; al vencer sale de la web, SEO, sitemap, fotos y reservas aunque el reloj no haya corrido, y el reloj la retira con tarea urgente si falla. El esquema es la migración aditiva 0087. «Return to market» tras la retirada la reabre sin publicar, y se publica como siempre. 24 horas después de alquilar o vender, cada visita futura reservada antes recibe una tarea en el Inbox, una sola vez; no se cancela ni se envía nada. Los matches ya dejan de proponer fichas que no están en venta o alquiler. Pruebas Node, D1 efímero y navegador aislado a 1280 y 390 px con datos ficticios.",
-      "falta": "Aplicar la migración 0087, encender PUB16_TIMED_CLOSURE_READY en wrangler.toml y jobs/wrangler.toml y comprobar el recorrido en producción con lecturas. Lo demás es de otras tareas: el aviso por correo a los clientes de las visitas, de AUT-17; las restricciones de aviso, llaves y negociadores, de VIS-10. El alcance es la web propia, sin Meta.",
+      "hecho": "Las etiquetas web reflejan Under offer, Sold, Let agreed, Let y Withdrawn, y la web solo reserva visitas en fichas disponibles (1813b01). Detrás de PUB16_TIMED_CLOSURE_READY, apagado: al registrar «Let» la ficha muestra «Let agreed» 24 horas exactas y el equipo puede corregirlo; al vencer sale de la web, SEO, sitemap, fotos y reservas aunque el reloj no haya corrido, y el reloj la retira con tarea urgente si falla. El esquema es la migración aditiva 0087. «Return to market» tras la retirada la reabre sin publicar, y se publica como siempre. 24 horas después de alquilar o vender, cada visita futura reservada antes recibe una tarea en el Inbox, una sola vez; no se cancela ni se envía nada. Los matches ya dejan de proponer fichas que no están en venta o alquiler. Pruebas Node, D1 efímero y navegador aislado a 1280 y 390 px con datos ficticios. Cerrada el 15-nov-2026: migración 0087 aplicada y PUB16_TIMED_CLOSURE_READY=1 en la web y el reloj. Los avisos por correo a clientes de visitas canceladas son de AUT-17 (trasladado).",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "server/routes/sales.js:67-76",
@@ -8862,7 +8864,8 @@
         "Decisión: la venta sigue mostrando «Sold» como hasta ahora; la espera de 24 horas solo afecta a las tareas de visitas. Fuente: mismo plan, «no cambiar la visibilidad de venta durante ese periodo sin decisión adicional».",
         "Decisión SEO: una ficha retirada responde 404 con noindex y sale del sitemap, la regla actual de fichas no publicadas; ni 410 ni redirección. Fuente: plan 2026-11-08-pub-16-website-state-propagation-only, «catálogo/SEO conservan reglas actuales», y server/seo.js listingPage.",
         "Decisión: con el interruptor encendido, las fotos solo dejan de guardarse en caché si su ficha tiene una ventana sin resolver; una copia anterior a la ventana caduca (24 h) antes del vencimiento. Fuente: opción más simple y reversible (skill, sección 4.5), para no multiplicar peticiones de fotos.",
-        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): no tenía bloqueo externo. Vuelve a desarrollo: lo externo es condición de activación."
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): no tenía bloqueo externo. Vuelve a desarrollo: lo externo es condición de activación.",
+        "Cierre 15-nov-2026: publicada en 6942659 (ec2f2e3, a403ca9, cba29fa); 0087 (tabla WITHOUT ROWID y dos triggers, aditiva) aplicada tras marcador Time Travel; npm test 2775/2775; tests/pub16-timed-closure.e2e.cjs pasa a 1280 y 390; dos pasadas de revisión independiente: la primera halló que Return to market publicaba sola una ficha retirada y que /api/listings recorría toda la tabla media (unas 13.700 filas por carga; con el interruptor el doble): corregido (Publicar 409 con ventana sin resolver, reapertura siempre published:0, consulta de fotos por índice listings_live + media_listing: de 11.743 a 202 filas en local, respuestas idénticas byte a byte en 4 juegos aleatorios); la segunda, sin graves; con el interruptor apagado, el reloj da las mismas 61 sentencias."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -8918,7 +8921,7 @@
         "viewings-contract",
         "public-site"
       ],
-      "nextStep": "Aplicar 0087 según la sección 6 de la skill, encender PUB16_TIMED_CLOSURE_READY en los dos wrangler.toml y verificar con GET que /api/listings y /p/<id> responden no-store.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-15"
     },
     {
@@ -9874,7 +9877,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "La decisión vigente usa aperturas agregadas por propiedad, sin atribución a contactos. Se prepararon la redirección canónica, el contador y el generador SVG fijado por el plan; SQLite, D1 efímero y un lector QR independiente verificaron su alcance. La ruta está apagada, el esquema es una propuesta fuera de migraciones y no-store para ficha y catálogo usa otro control desactivado.",
-      "falta": "Construir el escritor y descarga Staff del QR con elegibilidad completa y la consulta protegida. Acreditar privacidad y retención, elegibilidad y retirada temporal de PUB-16, costes reales, reglas CDN e invalidación o vencimiento de cachés antiguas; probar el QR físico. Los controles preparados no acreditan esos requisitos ni producción.",
+      "falta": "Construir el escritor y descarga Staff del QR con elegibilidad completa y la consulta protegida. Acreditar privacidad y retención, elegibilidad y retirada temporal de PUB-16, costes reales, reglas CDN e invalidación o vencimiento de cachés antiguas; probar el QR físico. Los controles preparados no acreditan esos requisitos ni producción. Traído de PUB-16 (15-nov): la retirada temporal está activa (0087, PUB16_TIMED_CLOSURE_READY); al activar el QR, comprobar que el de una ficha retirada lleva a un 404.",
       "bloqueo": "",
       "evidencia": [
         "server/routes/public.js",
@@ -9911,7 +9914,7 @@
         "public-site"
       ],
       "nextStep": "Construir la asociación y descarga Staff autorizadas; acreditar PUB-16, privacidad, costes y cachés antes de activar.",
-      "actualizado": "2026-11-13"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "OFE-01",
