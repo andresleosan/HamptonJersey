@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "No se repite ninguna casa: cada pareja aplicante–ficha es única, lo rechazado no se vuelve a proponer y lo nuevo tras la primera revisión sale como «New properties found». En vez de esperar 24 h, crear, editar o publicar una ficha la cruza al momento con todos los aplicantes activos, y «Recalculate all» en Review repite el cruce completo.",
-  "falta": "M05 · Reconciliación 7-nov: Conectar las altas y cambios relevantes del inventario externo con todas las búsquedas activas afectadas. Evitar propuestas y avisos idénticos; una bajada de precio sí permite revisar una opción anterior. Continúa durante consultas, visitas y negociaciones. Depende de: BUS-08, BUS-12, EST-09. Aceptación: Un cambio relevante recalcula solo lo afectado sin duplicar avisos; una visita no desactiva el cruce.",
+  "falta": "M05 · Reconciliación 7-nov: Conectar las altas y cambios relevantes del inventario externo con todas las búsquedas activas afectadas. Evitar propuestas y avisos idénticos; una bajada de precio sí permite revisar una opción anterior. Continúa durante consultas, visitas y negociaciones. Depende de: BUS-08, BUS-12, EST-09. Aceptación: Un cambio relevante recalcula solo lo afectado sin duplicar avisos; una visita no desactiva el cruce. Traído de BUS-01 (15-nov): los resultados de mercado se reemplazan en cada búsqueda completa, sin episodios ni decisión humana; las reaperturas por bajada de precio y la no repetición tendrán que partir de market_matches (0083).",
   "bloqueo": "",
   "evidencia": [
     "migrations/0009_matches.sql:38",
@@ -59,5 +59,6 @@
     "search-lifecycle",
     "notifications-schema"
   ],
-  "nextStep": "Recalcular búsquedas activas ante cambios materiales del barrido sin duplicar propuestas ni avisos."
+  "nextStep": "Recalcular búsquedas activas ante cambios materiales del barrido sin duplicar propuestas ni avisos.",
+  "actualizado": "2026-11-15"
 }
