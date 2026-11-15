@@ -53,8 +53,9 @@ export function EnquiryView({ c, advertisers, match, household, onChange, send }
   const [sent, setSent] = useState(() => ({ sent_at: localNow(), via: "", evidence_ref: "" }));
   const [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
   const operation = useRef(crypto.randomUUID()); // one id for this record of sending, retries included
-  useEffect(() => { setTo(gone ? "" : String(r.id)); setWho(c.contact?.key ?? ""); setStated(!!c.occupants_from_this_match); setErrors({}); },
-    [c.id, c.revision, c.status, gone]);
+  const takeBack = useRef(null); // one id per queued version taken back to manual sending, retries included
+  useEffect(() => { setTo(gone ? "" : String(r.id)); setWho(c.contact?.key ?? ""); setStated(!!c.occupants_from_this_match); setErrors({});
+    takeBack.current = crypto.randomUUID(); }, [c.id, c.revision, c.status, gone]);
   const run = async (action, done) => {
     if (busy) return;
     setBusy(true); setMsg(null);
@@ -93,8 +94,14 @@ export function EnquiryView({ c, advertisers, match, household, onChange, send }
         <span className="muted"> · Reference: {emailRef}</span></p>
       : c.sent_at && <p>Sent {fmtDate(c.sent_at)} by {(VIA[c.sent_via] ?? c.sent_via).toLowerCase()} · recorded by {c.sent_by}
         <span className="muted"> · Evidence: {c.sent_evidence_ref}</span></p>}
-    {c.status === "queued" && <p role="status">Email queued{mail && ` for ${mail}`} by {c.sent_by}. It leaves within about ten minutes unless sending is
-      paused, and is checked again just before it leaves. <span className="muted">Reference: {emailRef}</span></p>}
+    {c.status === "queued" && <div className="fields-group" role="group" aria-label={`Queued email of enquiry ${c.id}`}>
+      <p role="status">Email queued{mail && ` for ${mail}`} by {c.sent_by}. It is checked again just before it leaves, and goes back to you if it has not
+        left within a day. <span className="muted">Reference: {emailRef}</span></p>
+      {c.held ? <p className="req-note">{c.held}</p> : <p className="muted">It leaves within about ten minutes.</p>}
+      <div className="inline"><button type="button" className="btn ghost sm" disabled={busy} onClick={() => confirm("Return this enquiry to manual sending? "
+        + "Its email is cancelled if it has not left yet, and sending it again needs a new approval.") && act("return-to-manual",
+        { operation_id: takeBack.current }, "Returned to manual sending. Nothing has been sent.")}>Return to manual sending</button></div>
+    </div>}
     {c.status === "needs_review" && <div className="fields-group" role="group" aria-label={`Check the email of enquiry ${c.id}`}>
       <p className="req-note" role="alert">The email service did not confirm whether this email went out{mail && ` to ${mail}`} (reference {emailRef}). It is
         never sent again automatically. Check with the recipient, or in <a href="#/email">Email</a>, then say what happened.</p>

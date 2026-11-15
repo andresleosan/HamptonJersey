@@ -22,7 +22,10 @@ export const enquiriesReady = env => env?.AGE03_ENQUIRIES_READY === "1";
 // AGE-05 needs EST-15 too: a property confirmed as not available must take what is pending out before anything is sent.
 export const sendReady = env => env?.AGE05_SEND_READY === "1" && enquiriesReady(env) && unavailabilityReady(env);
 // On only with migration 0080 as well; before it every answer and every write is as AGE-03 left them.
-const sending = async env => sendReady(env) && env.DB.prepare("SELECT contact_key FROM consultations LIMIT 0").all().then(() => true, () => false);
+const migrated = env => env.DB.prepare("SELECT contact_key FROM consultations LIMIT 0").all().then(() => true, () => false);
+const sending = async env => sendReady(env) && migrated(env);
+// An approval to send lasts this long in the queue: an email that has not left by then goes back to a person.
+const QUEUE_LIMIT = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-24 hours')";
 const missing = e => /no such table/.test(e?.message ?? "");
 // The clock checks an enquiry email with EST-15's facts, as the panel that queued it had them (sendReady).
 const EST15_ON = { EST15_UNAVAILABILITY_READY: "1", EST16_AVAILABILITY_READY: "1" };
@@ -39,6 +42,10 @@ const UNAVAILABLE = "This property was confirmed as not available, so no enquiry
 const CHANGED = "This enquiry changed. Reload to review it.";
 const CHECK_TASK = { category: "task", title: "Check enquiry email", reason: "The email service did not confirm whether an enquiry about this "
   + "property went out. Open the property: its Enquiries section says what to check. It is never sent again automatically." };
+// While its email is queued: the task stays open until the email is sent, and says what to do if it does not leave.
+const QUEUED_TASK = { category: "task", title: "Enquiry email queued", reason: "An enquiry about this property was approved and queued by email. "
+  + "This closes when the email is sent. If it has not left, open the property: its Enquiries section says why, and it can be returned to "
+  + "manual sending." };
 const NOT_WAITING = "This enquiry is no longer waiting to be sent. Reload to see it.";
 const NO_EMAIL = "Choose a contact with an email address first. By phone or in person, send it yourself and record it.";
 const BY_HAND = "send it yourself and record it below.";
@@ -47,12 +54,19 @@ const BY_HAND = "send it yourself and record it below.";
 const contactKey = c => sha256(JSON.stringify([c.name, c.email].map(v => String(v ?? "").trim().toLowerCase())));
 // Each contact that can be reached (an email or a phone) with its reference; the others are shown but cannot be chosen.
 const keyed = contacts => Promise.all(contacts.map(async c => (emailAddress(c.email) || c.phones?.length ? { ...c, key: await contactKey(c) } : c)));
-// Why the app cannot send an email now, in words for the panel; null when it can.
-async function emailStop(env) {
-  if (!serviceReady(env)) return `Email from the app is not switched on yet, so nothing is sent from here: ${BY_HAND}`;
-  if (!(await readEmailSettings(env)).enabled) return `Email sending is switched off in Email settings, so nothing is sent from here: ${BY_HAND}`;
+// Why the app cannot send an email now, in words for the panel; null when it can. queued: said of an email that waits
+// in the queue, which a person can take back. The sender is the clock's (server/email.js emailPass writes email_worker
+// on each tick), which has its own switch: one that is off, or has not run for half an hour, sends nothing.
+async function emailStop(env, queued = false) {
+  const then = queued ? "it waits, or return it to manual sending and send it yourself." : BY_HAND;
+  if (!serviceReady(env)) return `Email from the app is not switched on yet, so nothing is sent from here: ${then}`;
+  if (!(await readEmailSettings(env)).enabled) return `Email sending is switched off in Email settings, so nothing is sent from here: ${then}`;
   if (await env.DB.prepare("SELECT 1 FROM app_settings WHERE key = 'outbound' AND json_extract(value, '$.paused') = 1").first())
-    return `Sending is paused (Pause all outbound), so nothing is queued: resume sending, or ${BY_HAND}`;
+    return queued ? `Sending is paused (Pause all outbound), so nothing leaves: it goes when sending resumes, or return it to manual sending and send it yourself.`
+      : `Sending is paused (Pause all outbound), so nothing is queued: resume sending, or ${then}`;
+  const sender = JSON.parse((await env.DB.prepare("SELECT value FROM app_settings WHERE key = 'email_worker'").first())?.value ?? "{}");
+  if (!sender.ready || !(Date.parse(sender.at) > Date.now() - 30 * 60e3))
+    return `The app's email sender is not running, so nothing is sent from here: ${then}`;
   return null;
 }
 
@@ -129,7 +143,7 @@ export function enquiries(gates) {
   // after the email was queued, when it was checked: else the email is not claimed and settle gives it back.
   const claimable = `EXISTS (SELECT 1 FROM consultations JOIN listings l ON l.id = consultations.listing_id
       JOIN advertisers ad ON ad.id = consultations.advertiser_id
-    WHERE consultations.email_ref = outbound.ref AND consultations.status = 'queued' AND consultations.revision = outbound.version
+    WHERE consultations.email_ref = outbound.ref AND consultations.status = 'queued' AND consultations.revision = outbound.version AND outbound.created_at > ${QUEUE_LIMIT}
       AND consultations.approved_revision = consultations.revision AND EXISTS (SELECT 1 FROM admins WHERE email = consultations.approved_by)
       AND ${counts("1")} AND (consultations.occupants_match_id IS NULL OR ${counts("cm.match_id = consultations.occupants_match_id")})
       ${notConfirmedUnavailable(EST15_ON, "consultations.listing_id", "consultations.operation")}
@@ -165,7 +179,9 @@ export function enquiries(gates) {
   // whether it counts and whether its household is the one stated. AGE-05 adds the contact chosen, as the directory
   // has it now, the approval that covers this version and the reference of its email.
   async function detail(env, c, matchId) {
-    const pending = c.status === "manual_pending" || c.status === "queued", send = sendReady(env) && "contact_key" in c;
+    // What was queued or left unconfirmed while sending was on is still shown, to be closed, once it is off.
+    const pending = c.status === "manual_pending" || c.status === "queued", send = "contact_key" in c
+      && (sendReady(env) || c.status === "queued" || c.status === "needs_review");
     const [{ results }, advertiser, confirmation] = await Promise.all([
       env.DB.prepare(`SELECT cm.match_id FROM ${LINKS} WHERE cm.consultation_id = ? AND ${live}`).bind(c.id).all(),
       env.DB.prepare(`SELECT a.*, ${OF_PROPERTY} AS of_property FROM advertisers a WHERE a.id = ?`).bind(c.listing_id, c.listing_id, c.advertiser_id).first(),
@@ -189,7 +205,9 @@ export function enquiries(gates) {
     const { id, kind, status, revision, listing_id, operation, body: text, occupants, prepared_by, prepared_at, sent_at, sent_via, sent_by, sent_evidence_ref } = c;
     return { id, kind, status, revision, listing_id, operation, text, asks_availability: !!c.asks_availability, occupants,
       recipient: to, prepared_by, prepared_at, sent_at, sent_via, sent_by, sent_evidence_ref, matches: ids.length, blocked,
-      ...(send ? { contact, approval: c.approved_revision === revision ? { by: c.approved_by, at: c.approved_at } : null, email_ref: c.email_ref } : {}),
+      ...(send ? { contact, approval: c.approved_revision === revision ? { by: c.approved_by, at: c.approved_at } : null, email_ref: c.email_ref,
+        ...(c.status === "queued" ? { held: sendReady(env) ? await emailStop(env, true) : "Sending enquiries by email was switched off, so this "
+          + "email does not leave: it returns to manual sending within ten minutes." } : {}) } : {}),
       ...(matchId == null ? {} : { joined: ids.includes(matchId), occupants_from_this_match: c.occupants_match_id === matchId }) };
   }
 
@@ -326,8 +344,13 @@ export function enquiries(gates) {
     ...(task ? taskStatements(env, { ...TASK, ...task, taskKey: `consultation:${c.operation_id}`, eventId: null,
       target: { kind: "listing", id: c.listing_id }, actor }, { ifInserted: true }) : [])];
   // Back to a person, unsent: a new version that nobody approved, with no email of its own, and its Inbox task open again.
-  const back = (env, c, actor, reason, when) => step(env, c, actor, "email_not_sent",
-    "status = 'manual_pending', revision = revision + 1, email_ref = NULL, sent_by = NULL", [], { data: { email_ref: c.email_ref, reason }, task: { reopen: true }, when });
+  const back = (env, c, actor, reason, when, extra) => step(env, c, actor, "email_not_sent",
+    "status = 'manual_pending', revision = revision + 1, email_ref = NULL, sent_by = NULL", [],
+    { data: { email_ref: c.email_ref, reason, ...extra }, task: { reopen: true }, when });
+  // Its email, still queued and not yet claimed by the sender, is cancelled with it in the same batch.
+  const unqueue = (env, c, actor, reason, extra) => [
+    env.DB.prepare("UPDATE outbound SET status = 'cancelled', updated_at = ? WHERE ref = ? AND status = 'queued'").bind(now(), c.email_ref),
+    ...back(env, c, actor, reason, " AND changes() = 1", extra)];
   // Sent by email at the time the provider took it (at), which is when the wait for an answer starts.
   const emailed = (env, c, actor, type, at, task) => step(env, c, actor, type, "status = 'sent', sent_at = ?, sent_via = 'email', sent_recorded_at = ?",
     [at, now()], { data: { email_ref: c.email_ref }, task });
@@ -377,7 +400,7 @@ export function enquiries(gates) {
         ON CONFLICT (dedupe_key) DO NOTHING`).bind(ref, await sha256(`enquiry\0${c.id}\0${c.revision}`), String(c.id), to, hash,
         `Enquiry about ${l.title}${place ? `, ${place}` : ""} (our reference ${c.listing_id})`.slice(0, 400), ts, ts, c.id, c.revision, c.contact_key),
       ...step(env, c, admin, "email_queued", "status = 'queued', email_ref = ?, sent_by = ?", [ref, admin],
-        { data: { email_ref: ref }, task: { resolved: true }, when: " AND changes() = 1" })]);
+        { data: { email_ref: ref }, task: QUEUED_TASK, when: " AND changes() = 1" })]);
     const after = await one(env, id);
     if (after.status === "manual_pending") fail(409, CHANGED);
     return json({ consultation: await detail(env, after) });
@@ -399,23 +422,43 @@ export function enquiries(gates) {
     return json({ consultation: await detail(env, after) });
   }
 
+  // A person takes back an email that has not left (sending paused, switched off, or anything else): if the sender has
+  // not claimed it yet, it is cancelled and the enquiry returns to manual sending as a new version that nobody approved.
+  // operation_id: the same click again finds it done.
+  async function giveBack({ request, env, admin, params: [id] }) {
+    const body = await readJson(request);
+    if (!UUID.test(body?.operation_id ?? "") || !Number.isSafeInteger(body.revision)) fail(400, "Invalid format");
+    const c = await one(env, id);
+    if (await env.DB.prepare(`SELECT 1 FROM events WHERE type = 'consultation.email_not_sent' AND entity_type = 'listing' AND entity_id = ?
+      AND json_extract(data, '$.consultation_id') = ? AND json_extract(data, '$.operation_id') = ?`).bind(c.listing_id, c.id, body.operation_id).first())
+      return json({ consultation: await detail(env, c) });
+    if (c.status !== "queued") fail(409, "This enquiry has no email waiting to leave. Reload to see it.");
+    if (c.revision !== body.revision) fail(409, CHANGED);
+    await env.DB.batch(unqueue(env, c, admin, "returned", { operation_id: body.operation_id }));
+    const after = await one(env, id);
+    if (after.status === "queued") fail(409, "This email is already being sent, or its result has just come in. Reload in a few minutes to see it.");
+    return json({ consultation: await detail(env, after) });
+  }
+
   // The clock's part, after each email dispatch (server/consultation-email.js), for every enquiry whose email waits or
-  // was tried. Still queued but no longer claimable, or blocked: taken out of the queue unsent. Accepted by the provider:
+  // was tried. Still queued but switched off (AGE05_SEND_READY in the clock's vars), queued for more than a day, no longer
+  // claimable, or blocked: taken out of the queue unsent. Accepted by the provider:
   // sent, at that time. Uncertain: it waits for a person and is never sent again. Rejected, cancelled or gone: back to
   // a person. An email being sent right now is left for the next pass. Safety does not rest on this pass: the claim
   // asks claimable itself. ponytail: 50 a pass, the rest on the next tick.
   async function settle(env) {
+    const on = env.AGE05_SEND_READY === "1";
     const { results } = await env.DB.prepare(`SELECT c.*, outbound.status AS email_status, outbound.updated_at AS email_at,
-      outbound.error_code AS email_error, ${claimable} AS claimable FROM consultations c LEFT JOIN outbound ON outbound.ref = c.email_ref
-      WHERE c.status = 'queued' ORDER BY outbound.id LIMIT 50`).all();
-    for (const { email_status: status, email_at, email_error, claimable: may, ...c } of results) {
+      outbound.error_code AS email_error, outbound.created_at <= ${QUEUE_LIMIT} AS expired, ${claimable} AS claimable
+      FROM consultations c LEFT JOIN outbound ON outbound.ref = c.email_ref WHERE c.status = 'queued' ORDER BY outbound.id LIMIT 50`).all();
+    for (const { email_status: status, email_at, email_error, expired, claimable: may, ...c } of results) {
       if (status === "sending") continue;
-      if (status !== "queued") await env.DB.batch(status === "accepted" ? emailed(env, c, "system", "sent_by_email", email_at)
+      if (status !== "queued") await env.DB.batch(status === "accepted" ? emailed(env, c, "system", "sent_by_email", email_at, { ...QUEUED_TASK, resolved: true })
         : status === "unknown" ? step(env, c, "system", "email_unknown", "status = 'needs_review'", [], { data: { email_ref: c.email_ref }, task: { ...CHECK_TASK, reopen: true } })
         : back(env, c, "system", email_error ?? status ?? "missing"));
-      else if (!may || (await detail(env, c)).blocked) await env.DB.batch([
-        env.DB.prepare("UPDATE outbound SET status = 'cancelled', updated_at = ? WHERE ref = ? AND status = 'queued'").bind(now(), c.email_ref),
-        ...back(env, c, "system", "blocked", " AND changes() = 1")]);
+      else if (!on) await env.DB.batch(unqueue(env, c, "system", "switched_off"));
+      else if (expired) await env.DB.batch(unqueue(env, c, "system", "expired"));
+      else if (!may || (await detail(env, c)).blocked) await env.DB.batch(unqueue(env, c, "system", "blocked"));
     }
   }
 
@@ -425,8 +468,9 @@ export function enquiries(gates) {
     if (!enquiriesReady(ctx.env)) return off();
     try { return await handler(ctx); } catch (e) { if (missing(e)) return off(); throw e; }
   };
-  // AGE-05's own routes are not there until its switch, EST-15 and migration 0080 are.
-  const sends = handler => guarded(async ctx => (await sending(ctx.env) ? handler(ctx) : fail(404, "Not found")));
+  // AGE-05's own routes are not there until its switch, EST-15 and migration 0080 are. Those that only close what was
+  // queued or left unconfirmed (closing) stay after it is switched off: nothing new can be sent through them.
+  const sends = (handler, closing) => guarded(async ctx => (await (closing ? migrated(ctx.env) : sending(ctx.env)) ? handler(ctx) : fail(404, "Not found")));
   return { settle, claimable, routes: [
     ["GET", /^\/admin\/matches\/(\d+)\/consultation$/, guarded(context, true), true],
     ["POST", /^\/admin\/matches\/(\d+)\/consultation$/, guarded(prepare), true],
@@ -435,7 +479,8 @@ export function enquiries(gates) {
     ["POST", /^\/admin\/consultations\/(\d+)\/manual-send$/, guarded(manualSend), true],
     ["POST", /^\/admin\/consultations\/(\d+)\/approve-sending$/, sends(approve), true],
     ["POST", /^\/admin\/consultations\/(\d+)\/send-email$/, sends(sendEmail), true],
-    ["POST", /^\/admin\/consultations\/(\d+)\/email-outcome$/, sends(outcome), true],
+    ["POST", /^\/admin\/consultations\/(\d+)\/email-outcome$/, sends(outcome, true), true],
+    ["POST", /^\/admin\/consultations\/(\d+)\/return-to-manual$/, sends(giveBack, true), true],
   ] };
 }
 export default gates => enquiries(gates).routes;

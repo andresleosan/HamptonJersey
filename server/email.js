@@ -1,6 +1,5 @@
 import { logEvent } from "./events.js";
 import { now, sha256 } from "./http.js";
-import { openCounts } from "./routes/notifications.js";
 
 export const EMAIL_FROM = "hello@hamptonestatesjersey.com";
 export const EMAIL_REPLY_TO = "replies@app.hamptonestatesjersey.com";
@@ -30,7 +29,7 @@ export async function readEmailSettings(env) {
 export const serviceReady = env => env.EMAIL_SERVICE_READY === "true";
 
 export async function summarySnapshot(env, ts) {
-  const c = await openCounts(env);
+  const c = await (await import("./routes/notifications.js")).openCounts(env);
   const { n: drafts } = await env.DB.prepare("SELECT COUNT(*) n FROM jobs WHERE status = 'draft'").first();
   const lines = ["Hampton summary", `Jersey date: ${emailDay(ts)}`, "",
     `${c.new_applicant} new applicants to review`, `${c.viewing} viewing requests to answer`,

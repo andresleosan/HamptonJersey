@@ -31,7 +31,7 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
     country:'Jersey',location:'St Helier',bedrooms:3,bathrooms:2,published:0,created_at:'2026-11-09T10:00:00.000Z',updated_at:'2026-11-09T10:00:00.000Z',
     updated_by:'fixture',...extractFeatures({description:'Parking for two cars'}),parish:'St Helier'};
    // The email service is set up in this fixture (EMAIL_SERVICE_READY), and the team has not enabled email sending yet.
-   d1("UPDATE listings SET matchable=0;DELETE FROM matches;DELETE FROM app_settings WHERE key IN ('email','outbound');"
+   d1("UPDATE listings SET matchable=0;DELETE FROM matches;DELETE FROM app_settings WHERE key IN ('email','outbound','email_worker');"
     +`INSERT INTO listings(${Object.keys(row)}) VALUES(${Object.values(row).map(value)});`);
    const post=async(path,data,expected=200,method='post')=>{const r=await ctx.request[method](base+'api'+path,{headers:{origin},data});
     assert.equal(r.status(),expected,await r.text());return r.json();};
@@ -93,9 +93,12 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    assert.deepEqual(outbound(),[]);
    await fits('email not enabled');await shot('not-enabled');
 
-   // The team enables email sending. On the property, a contact with a phone only cannot be written to by the app.
+   // The team enables email sending, and the clock's email sender reports itself running (no clock runs in this fixture).
+   // On the property, a contact with a phone only cannot be written to by the app.
+   const running=new Date().toISOString();
    d1(`INSERT INTO app_settings(key,value,updated_at,updated_by) VALUES('email','{"enabled":true,"summary":false,"recipients":[],"revision":1,`
-    +`"approved_by":"${ADMIN}","approved_at":"2026-11-15T09:00:00.000Z"}','2026-11-15T09:00:00.000Z','fixture')`);
+    +`"approved_by":"${ADMIN}","approved_at":"2026-11-15T09:00:00.000Z"}','2026-11-15T09:00:00.000Z','fixture');`
+    +`INSERT INTO app_settings(key,value,updated_at,updated_by) VALUES('email_worker','{"at":"${running}","ready":true}','${running}','system')`);
    await page.goto(base+`admin/#/p/${lid}`);
    const section=page.locator('#s-enquiries');
    await section.getByRole('heading',{name:'Enquiries (internal)'}).waitFor();
@@ -131,23 +134,52 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    await approve.click();
    await says(byEmail(section),'approved again',[`Sending approved by ${ADMIN}`]);
    await fits('approved');await shot('approved');
-   // Sent by email: one email is queued, the manual forms go away and the Inbox task closes.
+   // Sent by email: one email is queued, the manual forms go away and the Inbox task stays open until it is sent.
    await send.click();
    await says(head,'queued panel',['Availability enquiry Queued by email']);
-   await says(section.locator('div.enquiry > p[role=status]').first(),'queued note',[`Email queued for ${desk} by ${ADMIN}.`,'checked again just before it leaves','Reference: HE-OUT-']);
+   const queued=section.getByRole('group',{name:/^Queued email of enquiry \d+$/});
+   await says(queued.getByRole('status'),'queued note',[`Email queued for ${desk} by ${ADMIN}.`,'checked again just before it leaves','Reference: HE-OUT-']);
+   await queued.getByText('It leaves within about ten minutes.',{exact:true}).waitFor();
    assert.equal(await section.getByRole('button',{name:/Record as sent by me|Save changes|Send by email|Approve sending/}).count(),0);
    c=enquiry();
    assert.deepEqual([c.status,c.revision,c.sent_at,c.sent_by],['queued',3,null,ADMIN]);
    assert.deepEqual(outbound(),[{status:'queued',template:'enquiry',recipient:desk,version:3}]);
-   assert.deepEqual(task(),{title:'Send enquiry manually',done:1});
+   assert.deepEqual(task(),{title:'Enquiry email queued',done:0});
    await fits('queued');await shot('queued');
    await page.goto(base+`admin/#/applicants/${ana}/matches`);
    await settled('shortlisted',1);
    await says(state(card('shortlisted'),'Enquiry'),'queued card',['Queued by email · Availability enquiry']);
 
+   // Sending is paused: the panel says why it has not left, and a person takes it back to manual sending, by keyboard.
+   await post('/admin/outbound/pause',{});
+   await page.goto(base+`admin/#/p/${lid}`);
+   await section.scrollIntoViewIfNeeded();
+   await says(queued.locator('p.req-note'),'held',['Sending is paused (Pause all outbound), so nothing leaves: it goes when sending resumes, or return it to manual sending and send it yourself.']);
+   await fits('held');await shot('held');
+   await queued.getByRole('button',{name:'Return to manual sending'}).focus();
+   await page.keyboard.press('Enter');
+   await section.getByText('Returned to manual sending. Nothing has been sent.',{exact:true}).waitFor();
+   await says(head,'returned',['Availability enquiry To send manually']);
+   await says(facts,'returned version',['One enquiry for this property, shared by 1 approved match.','Version 4']);
+   c=enquiry();
+   assert.deepEqual([c.status,c.revision,c.approved_revision,c.email_ref,c.sent_at],['manual_pending',4,3,null,null]);
+   assert.deepEqual(outbound(),[{status:'cancelled',template:'enquiry',recipient:desk,version:3}]);
+   assert.deepEqual(task(),{title:'Send enquiry manually',done:0});
+   await says(byEmail(section),'still paused',['Sending is paused (Pause all outbound), so nothing is queued']);
+   await post('/admin/outbound/resume',{});
+   await page.reload();
+   await section.scrollIntoViewIfNeeded();
+   await says(byEmail(section),'resumed',['Approving confirms this recipient']);
+   assert.equal(await send.isDisabled(),true,'the old approval does not cover the new version');
+   await approve.click();
+   await says(byEmail(section),'approved after return',[`Sending approved by ${ADMIN}`]);
+   await send.click();
+   await says(head,'queued after return',['Availability enquiry Queued by email']);
+   c=enquiry();
+
    // What the clock writes when the email service does not confirm the result, set by hand: a person says what happened.
    d1(`UPDATE outbound SET status='unknown',error_code='UNKNOWN_RESULT' WHERE ref='${c.email_ref}';UPDATE consultations SET status='needs_review' WHERE id=${c.id}`);
-   await page.goto(base+`admin/#/p/${lid}`);
+   await page.reload();
    await section.scrollIntoViewIfNeeded();
    await says(head,'unconfirmed panel',['Availability enquiry Awaiting email check']);
    const check=section.getByRole('group',{name:/^Check the email of enquiry \d+$/});
@@ -157,9 +189,9 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    await check.getByRole('button',{name:'It was not sent'}).click();
    await section.getByText('Recorded as not sent. Nothing has been sent.',{exact:true}).waitFor();
    await says(head,'back to a person',['Availability enquiry To send manually']);
-   await says(facts,'new version',['One enquiry for this property, shared by 1 approved match.','Version 4']);
+   await says(facts,'new version',['One enquiry for this property, shared by 1 approved match.','Version 5']);
    c=enquiry();
-   assert.deepEqual([c.status,c.revision,c.email_ref,c.sent_at,c.sent_by],['manual_pending',4,null,null,null]);
+   assert.deepEqual([c.status,c.revision,c.email_ref,c.sent_at,c.sent_by],['manual_pending',5,null,null,null]);
    assert.deepEqual(task(),{title:'Send enquiry manually',done:0});
    // The new version is approved and queued in its turn: a second email, never the first one again.
    assert.equal(await send.isDisabled(),true);
@@ -167,7 +199,8 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    await says(byEmail(section),'approved once more',[`Sending approved by ${ADMIN}`]);
    await send.click();
    await says(head,'queued again',['Availability enquiry Queued by email']);
-   assert.deepEqual(outbound(),[{status:'unknown',template:'enquiry',recipient:desk,version:3},{status:'queued',template:'enquiry',recipient:desk,version:4}]);
+   assert.deepEqual(outbound(),[{status:'cancelled',template:'enquiry',recipient:desk,version:3},{status:'unknown',template:'enquiry',recipient:desk,version:4},
+    {status:'queued',template:'enquiry',recipient:desk,version:5}]);
    // What the clock writes once the provider accepts it, set by hand: sent by email, with who approved it and its reference.
    c=enquiry();
    d1(`UPDATE outbound SET status='accepted',message_id='fixture-${width}',updated_at='2026-11-15T10:00:00.000Z' WHERE ref='${c.email_ref}';`
@@ -184,7 +217,8 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
   }
   assert.deepEqual(errors,[]);
   console.log('AGE-05 E2E passed: 1280/390, contact chosen among those reachable and kept by reference, no approval or sending while email is not enabled, '
-   +'approval by keyboard bound to one version and lost on Save changes, one queued email with the manual forms gone, unconfirmed result answered by a person, '
+   +'approval by keyboard bound to one version and lost on Save changes, one queued email with the manual forms gone and its task open, '
+   +'paused email says why and is returned to manual sending by keyboard, unconfirmed result answered by a person, '
    +'new version approved and queued, sent by email with approver and reference, no sideways scroll, no client data');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

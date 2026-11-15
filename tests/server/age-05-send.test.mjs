@@ -29,12 +29,16 @@ function world({ send = true, service = false, schema } = {}) {
     env.sent = [];
     env.EMAIL = { async send(message) { env.sent.push(message); return { messageId: `provider-${env.sent.length}` }; } };
     configure(env, { summary: false, recipients: [] });
+    sender(env);
   }
   seedListing(env, { id: HOME, title: `Fixture home ${HOME}`, operation: "rent", availability: "to_let", rent: 1800, rent_period: "month", sale_price: null,
     bedrooms: 2, bathrooms: 2, housing_category: "registered", matchable: 1, ...extractFeatures({ description: "Parking for two cars" }),
     parish: "St Helier", location: "St Helier", road_name: "Rue de la Fixture" });
   return env;
 }
+// What the clock writes on each tick about the app's email sender (server/email.js emailPass): here, running just now.
+const sender = (env, ready = true, at = new Date().toISOString()) => run(env, `INSERT INTO app_settings (key, value, updated_at, updated_by)
+  VALUES ('email_worker', ?, ?, 'system') ON CONFLICT (key) DO UPDATE SET value = excluded.value`, JSON.stringify({ at, ready }), at);
 let people = 0;
 async function searching(env, name) {
   const n = ++people;
@@ -60,9 +64,9 @@ const offer = async (env, m) => ok(await req(env, "GET", `/admin/matches/${m}/co
 const post = (env, id, action, body, email) => req(env, "POST", `/admin/consultations/${id}/${action}`, body, email);
 const shown = async env => ok(await req(env, "GET", `/admin/listings/${HOME}/consultations`)).consultations[0];
 const task = env => row(env, "SELECT title, resolved_at FROM notifications WHERE task_key LIKE 'consultation:%'");
-// The clock (hampton-jobs) has its own vars: none of the panel's switches are set there.
-const tick = env => worker.scheduled({ cron: "*/10 * * * *", scheduledTime: Date.now() },
-  { DB: env.DB, MEDIA: env.MEDIA, EMAIL: env.EMAIL, EMAIL_SERVICE_READY: env.EMAIL_SERVICE_READY }, { waitUntil() {} });
+// The clock (hampton-jobs) has its own vars: of the panel's switches, only AGE05_SEND_READY (jobs/wrangler.toml).
+const tick = (env, clock = {}) => worker.scheduled({ cron: "*/10 * * * *", scheduledTime: Date.now() }, { DB: env.DB, MEDIA: env.MEDIA,
+  EMAIL: env.EMAIL, EMAIL_SERVICE_READY: env.EMAIL_SERVICE_READY, AGE05_SEND_READY: env.AGE05_SEND_READY, ...clock }, { waitUntil() {} });
 // An enquiry prepared for one approved match, to the desk's email, and approved to be sent as it is.
 // household: the text states this search's household size. by: who approves it.
 async function approved(env, { approve = true, household = false, by = ADMIN } = {}) {
@@ -83,8 +87,12 @@ test("switched off, without EST-15 or before migration 0080, enquiries are as AG
     const made = ok(await req(env, "POST", `/admin/matches/${m}/consultation`,
       { operation_id: randomUUID(), kind: "general", advertiser_id: agency, contact_key: "a".repeat(64) }), 201).consultation;
     for (const k of ["contact", "approval", "email_ref"]) assert.equal(k in made, false, `${label}: ${k}`);
-    for (const action of ["approve-sending", "send-email", "email-outcome"])
+    for (const action of ["approve-sending", "send-email"])
       assert.equal((await post(env, made.id, action, { revision: 1, sent: true })).status, 404, `${label}: ${action}`);
+    // Closing what was queued or left unconfirmed while it was on stays possible after 0080; here there is nothing to close.
+    for (const action of ["email-outcome", "return-to-manual"])
+      assert.equal((await post(env, made.id, action, { revision: 1, sent: true, operation_id: randomUUID() })).status,
+        label === "before 0080" ? 404 : 409, `${label}: ${action}`);
     const saved = ok(await req(env, "PUT", `/admin/consultations/${made.id}`, { revision: 1, advertiser_id: agency, occupants_match_id: null, contact_key: "a".repeat(64) }));
     assert.equal(saved.consultation.revision, 2);
     assert.equal("send" in ok(await req(env, "GET", `/admin/listings/${HOME}/consultations`)), false, label);
@@ -230,7 +238,7 @@ test("two people and a retry send one email, traced on the enquiry, with nothing
   assert.deepEqual([queued.template, queued.entity_id, queued.version, queued.recipient, queued.status, queued.approved_by], ["enquiry", String(id), 1, DESK, "queued", ADMIN]);
   assert.equal(rows(env, "SELECT 1 FROM events WHERE type = 'consultation.email_queued'").length, 1);
   assert.deepEqual(row(env, "SELECT status, sent_at, email_ref FROM consultations"), { status: "queued", sent_at: null, email_ref: queued.ref });
-  assert.ok(task(env).resolved_at, "nobody is asked to send it manually meanwhile");
+  assert.deepEqual(task(env), { title: "Enquiry email queued", resolved_at: null }, "open until the email is sent");
   // While it waits it is neither changed nor recorded as sent by hand.
   assert.equal((await req(env, "PUT", `/admin/consultations/${id}`, { revision: 1, advertiser_id: agency, occupants_match_id: null })).status, 409);
   assert.equal((await post(env, id, "manual-send", { operation_id: randomUUID(), revision: 1, sent_at: new Date().toISOString(), via: "email",
@@ -442,4 +450,111 @@ test("before migration 0080, as production is today, the clock sends the team's 
     EMAIL_SERVICE_READY: "true" }, { waitUntil() {} }); } finally { console.error = log; }
   assert.deepEqual(failed, []);
   assert.deepEqual(env.sent.map(m => m.to), ["team@example.test"], "the daily summary, at noon in Jersey");
+});
+
+const returned = (env, label) => {
+  const c = row(env, "SELECT status, revision, sent_at, email_ref FROM consultations");
+  assert.deepEqual([c.status, c.revision, c.sent_at, c.email_ref], ["manual_pending", 2, null, null], label);
+  assert.deepEqual(task(env), { title: "Send enquiry manually", resolved_at: null }, `${label}: a person is asked again`);
+};
+
+test("switching AGE05_SEND_READY off is a brake: a queued email does not go, and its enquiry returns to manual sending", async () => {
+  const env = world({ service: true }), { id } = await approved(env);
+  ok(await post(env, id, "send-email", { revision: 1 }));
+  delete env.AGE05_SEND_READY; // off in the panel and the clock
+  await tick(env); await tick(env);
+  assert.equal(env.sent.length, 0);
+  returned(env, "switched off");
+  assert.equal(row(env, "SELECT status FROM outbound").status, "cancelled");
+  assert.equal(JSON.parse(row(env, "SELECT data FROM events WHERE type = 'consultation.email_not_sent'").data).reason, "switched_off");
+  // Off in the clock alone is enough: the clock is the one that sends.
+  const other = world({ service: true }), made = await approved(other);
+  ok(await post(other, made.id, "send-email", { revision: 1 }));
+  await tick(other, { AGE05_SEND_READY: undefined });
+  assert.equal(other.sent.length, 0);
+  returned(other, "off in the clock");
+});
+
+test("a queued email held by the pause, the settings or a stopped sender says why, keeps its Inbox task open, and a person can take it back", async () => {
+  const holds = {
+    "Pause all outbound": [env => req(env, "POST", "/admin/outbound/pause", {}), /paused/i],
+    "Email settings": [env => configure(env, { enabled: false, summary: false, recipients: [] }), /switched off in Email settings/i],
+    "the sender has stopped": [env => sender(env, false), /sender/i],
+    "the sender has not run for an hour": [env => sender(env, true, new Date(Date.now() - 3600e3).toISOString()), /sender/i],
+  };
+  for (const [label, [hold, why]] of Object.entries(holds)) {
+    const env = world({ service: true }), { id } = await approved(env);
+    ok(await post(env, id, "send-email", { revision: 1 }));
+    await hold(env);
+    // A sender that has stopped is what the clock reports itself, so the ticks here are only the panel's reading.
+    if (!label.startsWith("the sender")) { await tick(env); await tick(env); await tick(env); }
+    assert.equal(env.sent.length, 0, label);
+    const c = await shown(env);
+    assert.equal(c.status, "queued", label);
+    assert.match(c.held, why, label);
+    assert.deepEqual(task(env), { title: "Enquiry email queued", resolved_at: null }, label);
+    // Return to manual sending: once, by a person of the team, while the email has not been claimed.
+    const back = { revision: 1, operation_id: randomUUID() };
+    assert.equal((await post(env, id, "return-to-manual", { revision: 1 })).status, 400, label);
+    assert.equal((await call(env, "POST", `/admin/consultations/${id}/return-to-manual`, { body: back })).status, 401, label);
+    assert.equal((await post(env, id, "return-to-manual", { ...back, revision: 7 })).status, 409, label);
+    const done = ok(await post(env, id, "return-to-manual", back, OTHER)).consultation;
+    assert.deepEqual([done.status, done.revision, done.approval, done.email_ref], ["manual_pending", 2, null, null], label);
+    returned(env, label);
+    assert.equal(row(env, "SELECT status FROM outbound").status, "cancelled", label);
+    assert.equal(ok(await post(env, id, "return-to-manual", back, OTHER)).consultation.revision, 2, `${label}: the same click again`);
+    assert.equal((await post(env, id, "return-to-manual", { revision: 2, operation_id: randomUUID() })).status, 409, `${label}: nothing queued`);
+    const events = rows(env, "SELECT actor, data FROM events WHERE type = 'consultation.email_not_sent'");
+    assert.deepEqual([events.length, events[0].actor, JSON.parse(events[0].data).reason], [1, OTHER, "returned"], label);
+    run(env, "DELETE FROM app_settings WHERE key = 'outbound'"); configure(env); sender(env);
+    await tick(env);
+    assert.equal(env.sent.length, 0, `${label}: the old approval never sends it later`);
+  }
+});
+
+test("an email the sender has already claimed is not taken back", async () => {
+  const env = world({ service: true }), { id } = await approved(env);
+  ok(await post(env, id, "send-email", { revision: 1 }));
+  run(env, "UPDATE outbound SET status = 'sending', claim_token = 'fixture', claimed_at = ?", new Date().toISOString());
+  const refused = await post(env, id, "return-to-manual", { revision: 1, operation_id: randomUUID() });
+  assert.equal(refused.status, 409, JSON.stringify(refused.data));
+  assert.match(refused.data.error, /already being sent/i);
+  assert.deepEqual([row(env, "SELECT status FROM consultations").status, row(env, "SELECT status FROM outbound").status], ["queued", "sending"]);
+});
+
+test("an approval expires: an email queued for more than a day goes back to a person instead of leaving", async () => {
+  const env = world({ service: true }), { id } = await approved(env);
+  ok(await post(env, id, "send-email", { revision: 1 }));
+  ok(await req(env, "POST", "/admin/outbound/pause", {}));
+  const old = new Date(Date.now() - 25 * 3600e3).toISOString();
+  run(env, "UPDATE outbound SET created_at = ?", old);
+  run(env, "UPDATE advertisers SET updated_at = ?", T0); // nothing else changed since it was queued
+  run(env, "DELETE FROM app_settings WHERE key = 'outbound'");
+  await tick(env);
+  assert.equal(env.sent.length, 0);
+  returned(env, "expired");
+  assert.equal(JSON.parse(row(env, "SELECT data FROM events WHERE type = 'consultation.email_not_sent'").data).reason, "expired");
+});
+
+test("switched off, an email left unconfirmed can still be closed by a person", async () => {
+  for (const wasSent of [true, false]) {
+    const env = world({ service: true }), { id } = await approved(env);
+    env.EMAIL.send = async message => { env.sent.push(message); throw new Error("connection lost"); };
+    ok(await post(env, id, "send-email", { revision: 1 }));
+    await tick(env);
+    assert.equal(row(env, "SELECT status FROM consultations").status, "needs_review");
+    delete env.AGE05_SEND_READY;
+    await tick(env);
+    assert.equal(row(env, "SELECT status FROM consultations").status, "needs_review", "the clock does not decide for a person");
+    const c = ok(await post(env, id, "email-outcome", { revision: 1, sent: wasSent })).consultation;
+    assert.equal(c.status, wasSent ? "sent" : "manual_pending");
+    assert.equal(env.sent.length, 1);
+  }
+});
+
+test("each AGE-05 module loads first without an import cycle", async () => {
+  const { execFileSync } = await import("node:child_process");
+  for (const m of ["consultations", "consultation-email", "email", "jobs", "routes/matches"])
+    assert.equal(execFileSync(process.execPath, ["--no-warnings", "--input-type=module", "-e",
+      `await import(${JSON.stringify(new URL(`../../server/${m}.js`, import.meta.url).href)}); console.log("ok")`], { encoding: "utf8" }).trim(), "ok", m);
 });
