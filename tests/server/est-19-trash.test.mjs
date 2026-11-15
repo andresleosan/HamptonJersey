@@ -36,6 +36,8 @@ function world(flags = FLAGS) {
   ext(env, "FP", L, { kind: "floorplan" });
   ext(env, "DOC", L, { kind: "document" });
   ext(env, "PRIV", L, { r2_key: "private-docs/HE-R010/priv.jpg" });
+  // A document stored as a photo: its name says so (server/visibility.js's rule), in the label or the file's key.
+  ext(env, "DOCN", L, { label: "Brochure.PDF " }); ext(env, "DOCK", L, { r2_key: "ext/DOCK.docx" });
   seedMedia(env, { id: "OWN", listing_id: L, r2_key: "media/own.jpg", thumb_key: "thumbs/own.jpg", origin: "hampton" });
   seedMedia(env, { id: "UP", listing_id: L, r2_key: "uploads/up.jpg", thumb_key: "thumbs/uploads/up.jpg", origin: "upload", public: 0 });
   ext(env, "SH", L, { r2_key: "ext/shared.jpg" }); ext(env, "SH2", "HE-R019", { r2_key: "ext/shared.jpg", thumb_key: null });
@@ -90,7 +92,7 @@ test("the trash lists what is confirmed not available, from when, why and what i
   assert.deepEqual(Object.keys(byId).sort(), ["HE-R010", "HE-R011", "HE-R012", "HE-R013", "HE-R014", "HE-R015", "HE-R016"]);
   const t = byId["HE-R010"];
   assert.deepEqual([t.entered_at, t.reason, t.scope, t.photos, t.kept, t.held, t.due],
-    [OLD, "sold", "property", 2, 10, null, true]);
+    [OLD, "sold", "property", 2, 12, null, true]);
   assert.equal(t.due_at, "2026-07-10T09:00:00.000Z"); // six calendar months in Jersey: 10:00 GMT → 10:00 BST
   assert.deepEqual(["HE-R011", "HE-R012", "HE-R013", "HE-R014", "HE-R015"].map(id => [byId[id].held, byId[id].photos]),
     [["published", 0], ["sale", 0], ["offer", 0], ["tenancy", 0], ["closure", 0]]);
@@ -104,10 +106,10 @@ test("the purge deletes only due external photos and their thumbnails, keeping e
   const r = ok(await req(env, "POST", "/admin/trash/purge"));
   assert.equal(r.deleted, 2);
   assert.deepEqual(media(env).filter(id => ["E1", "E2"].includes(id)), []);
-  for (const id of ["COV", "FP", "DOC", "PRIV", "OWN", "UP", "SH", "SH2", "CAP", "PERM", "LINK", "K11", "K12", "K13", "K14", "K15", "K16", "K17", "K18"])
+  for (const id of ["COV", "FP", "DOC", "PRIV", "DOCN", "DOCK", "OWN", "UP", "SH", "SH2", "CAP", "PERM", "LINK", "K11", "K12", "K13", "K14", "K15", "K16", "K17", "K18"])
     assert.ok(media(env).includes(id), `${id} kept`);
   assert.ok(!keys(env).some(k => /E[12]\.jpg$/.test(k)));
-  for (const k of ["ext/COV.jpg", "ext/FP.jpg", "ext/DOC.jpg", "ext/shared.jpg", "ext/CAP.jpg", "ext/PERM.jpg", "ext/K16.jpg"]) assert.ok(keys(env).includes(k), k);
+  for (const k of ["ext/COV.jpg", "ext/FP.jpg", "ext/DOC.jpg", "ext/DOCN.jpg", "ext/DOCK.docx", "ext/shared.jpg", "ext/CAP.jpg", "ext/PERM.jpg", "ext/K16.jpg"]) assert.ok(keys(env).includes(k), k);
   // The record says which photos went, never a person; the property, its confirmations and capture stay.
   const ev = rows(env, "SELECT entity_type, entity_id, type, actor, data FROM events WHERE type = 'listing.photos_purged'");
   assert.equal(ev.length, 1);
@@ -146,13 +148,51 @@ test("one click deletes at most 20 photos (40 files) in one storage call; the ne
   assert.equal(rows(env, "SELECT 1 FROM events WHERE type = 'listing.photos_purged'").length, 2);
 });
 
-test("a storage failure deletes no row and writes no record; the retry finishes once", async () => {
-  const env = world(), del = env.MEDIA.delete.bind(env.MEDIA);
+test("a storage failure leaves only orphan files, recorded on the property; the retry deletes nothing more", async () => {
+  const env = world();
   env.MEDIA.delete = async () => { throw new Error("R2 down"); };
-  assert.equal((await req(env, "POST", "/admin/trash/purge")).status, 500);
-  assert.ok(media(env).includes("E1"));
-  assert.equal(rows(env, "SELECT 1 FROM events WHERE type = 'listing.photos_purged'").length, 0);
-  env.MEDIA.delete = del;
-  assert.equal(ok(await req(env, "POST", "/admin/trash/purge")).deleted, 2);
+  const r = await req(env, "POST", "/admin/trash/purge");
+  assert.equal(r.status, 502, JSON.stringify(r.data));
+  assert.ok(!media(env).includes("E1") && !media(env).includes("E2"));
+  assert.ok(keys(env).includes("ext/E1.jpg"), "the file is left, never a row deleted without its check");
+  const left = rows(env, "SELECT entity_id, data FROM events WHERE type = 'listing.photo_files_left'");
+  assert.deepEqual(left.map(e => [e.entity_id, JSON.parse(e.data).files]),
+    [["HE-R010", ["ext/E1.jpg", "thumbs/ext/E1.jpg", "ext/E2.jpg", "thumbs/ext/E2.jpg"]]]);
+  assert.equal(ok(await req(env, "POST", "/admin/trash/purge")).deleted, 0);
   assert.equal(rows(env, "SELECT 1 FROM events WHERE type = 'listing.photos_purged'").length, 1);
+});
+
+// What changes between reading the candidates and deleting them is checked again when deleting: before any file goes.
+for (const [name, change, kept] of [
+  ["confirmed available again", env => confirm(env, "HE-R010", "available", "2026-11-10T09:30:00.000Z"), ["E1", "E2"]],
+  ["published", env => run(env, "UPDATE listings SET published = 1 WHERE id = 'HE-R010'"), ["E1", "E2"]],
+  ["given an offer", env => run(env, "INSERT INTO offers (listing_id, applicant_id, amount, status, created_at, updated_at) VALUES ('HE-R010', 1, 1000, 'pending', ?, ?)", OLD, OLD), ["E1", "E2"]],
+  ["given a new row with the same file", env => seedMedia(env, { id: "NEW", listing_id: "HE-R019", r2_key: "ext/E1.jpg", thumb_key: null, origin: "external", public: 0 }), ["E1"]],
+]) test(`a property ${name} while its purge runs keeps those photos and their files`, async () => {
+  const env = world(), batch = env.DB.batch.bind(env.DB), del = env.MEDIA.delete.bind(env.MEDIA);
+  let raced = false;
+  const race = () => { if (!raced) { raced = true; unsafe(env, () => change(env)); } };
+  env.DB.batch = stmts => { race(); return batch(stmts); };
+  env.MEDIA.delete = k => { race(); return del(k); };
+  ok(await req(env, "POST", "/admin/trash/purge"));
+  assert.ok(raced);
+  for (const id of kept) {
+    assert.ok(media(env).includes(id), `${id} row kept`);
+    assert.ok(keys(env).includes(`ext/${id}.jpg`) && keys(env).includes(`thumbs/ext/${id}.jpg`), `${id} files kept`);
+  }
+  const ev = rows(env, "SELECT data FROM events WHERE type = 'listing.photos_purged'").map(e => JSON.parse(e.data).media_ids);
+  assert.deepEqual(ev, kept.length === 2 ? [] : [["E2"]]);
+});
+
+test("a file another row starts using after the rows went is not deleted from storage", async () => {
+  const env = world(), batch = env.DB.batch.bind(env.DB);
+  env.DB.batch = async stmts => {
+    const out = await batch(stmts);
+    if (!rows(env, "SELECT 1 FROM media WHERE id = 'NEW'").length)
+      seedMedia(env, { id: "NEW", listing_id: "HE-R019", r2_key: "ext/E1.jpg", thumb_key: null, origin: "external", public: 0 });
+    return out;
+  };
+  assert.equal(ok(await req(env, "POST", "/admin/trash/purge")).deleted, 2);
+  assert.ok(keys(env).includes("ext/E1.jpg"));
+  assert.ok(!keys(env).includes("thumbs/ext/E1.jpg") && !keys(env).includes("ext/E2.jpg"));
 });

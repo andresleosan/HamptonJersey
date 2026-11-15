@@ -15,6 +15,7 @@ import { unavailabilityReady, standsUnavailable } from "./property-facts.js";
 import { PRIVATE_DOCS } from "./listing-documents.js";
 import { noUnresolvedRentalClosureSql } from "./rental-closure.js";
 import { jerseyToday } from "./viewings.js";
+import { DOCUMENT_NAME } from "./visibility.js";
 
 export const trashReady = env => env?.EST19_TRASH_READY === "1" && unavailabilityReady(env);
 export const purgeReady = env => trashReady(env) && env?.EST19_PURGE_READY === "1";
@@ -84,8 +85,18 @@ const TRASH = `trash AS (SELECT l.id, l.title, l.operation, l.availability, l.ar
     WHERE k IS NOT NULL AND k <> '' GROUP BY k HAVING COUNT(*) > 1),
   captured AS (SELECT blob_key AS k FROM property_capture_assets WHERE blob_key IS NOT NULL)`;
 const N = PRIVATE_DOCS.length;
+// A file named as a document is never a photo, whatever its kind: the website's rule (server/visibility.js
+// DOCUMENT_NAME), as a list for SQL; tests/server/photo-purge-policy.test.mjs checks they are the same.
+export const DOCUMENT_EXTENSIONS = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "rtf", "txt", "csv",
+  "htm", "html", "xml", "svg"];
+const documentName = value => typeof value === "string" && DOCUMENT_NAME.test(value.trim());
+// One subquery, not 51 LIKEs: D1 refuses an expression tree deeper than 100.
+const NOT_DOCUMENT = `NOT EXISTS (SELECT 1 FROM json_each('${JSON.stringify(DOCUMENT_EXTENSIONS)}') e,
+  json_each(json_array(m.r2_key, m.thumb_key, m.label)) f
+  WHERE lower(rtrim(COALESCE(f.value, ''), ' ' || char(9, 10, 11, 12, 13))) LIKE '%.' || e.value)`;
 // A media row m of trash t that the purge may delete once t is due.
 const PURGEABLE = `(t.held IS NULL AND m.kind = 'photo' AND m.origin = 'external' AND COALESCE(m.r2_key, '') <> ''
+  AND ${NOT_DOCUMENT}
   AND m.id IS NOT t.cover_media_id
   AND substr(m.r2_key, 1, ${N}) <> '${PRIVATE_DOCS}' AND COALESCE(substr(m.thumb_key, 1, ${N}), '') <> '${PRIVATE_DOCS}'
   AND m.r2_key NOT IN (SELECT k FROM shared) AND COALESCE(m.thumb_key, '') NOT IN (SELECT k FROM shared)
@@ -111,27 +122,50 @@ async function list({ env }) {
   return json(trashReady(env) ? await view(env) : { enabled: false });
 }
 
-// One click: the oldest due photos, at most PURGE_BATCH, read again here (never from the request).
+// The rows picked (? = JSON [[id, entered_at], …]) that still pass every check now, inside the deleting batch: a
+// confirmation, publication, sale or row sharing the file recorded since they were read keeps them.
+const GONE = `gone AS (SELECT m.id, m.listing_id, m.r2_key, m.thumb_key, t.entered_at FROM trash t JOIN media m ON m.listing_id = t.id
+  WHERE ${PURGEABLE} AND (m.id, t.entered_at) IN (SELECT json_extract(value, '$[0]'), json_extract(value, '$[1]') FROM json_each(?)))`;
+const byListing = rows => rows.reduce((map, m) => map.set(m.listing_id, [...(map.get(m.listing_id) ?? []), m]), new Map());
+
+// One click: the oldest due photos, at most PURGE_BATCH, read again here (never from the request). The rows go first,
+// with their record, in one batch that checks everything again; then only their files no row or capture uses by now.
+// If storage fails, the files are left (recorded on each property) and no row is ever deleted without its check.
 async function purge({ env, admin }) {
   if (!purgeReady(env)) fail(404, "Not found");
-  const ts = now(), { results } = await env.DB.prepare(`WITH ${TRASH}
-    SELECT m.id, m.listing_id, m.r2_key, m.thumb_key, t.entered_at FROM trash t JOIN media m ON m.listing_id = t.id
-    WHERE ${PURGEABLE} ORDER BY t.entered_at, t.id, m.position, m.id LIMIT ${PURGE_BATCH}`).bind(jerseyToday()).all();
+  const ts = now(), today = jerseyToday(), { results } = await env.DB.prepare(`WITH ${TRASH}
+    SELECT m.id, m.label, m.r2_key, m.thumb_key, t.entered_at FROM trash t JOIN media m ON m.listing_id = t.id
+    WHERE ${PURGEABLE} ORDER BY t.entered_at, t.id, m.position, m.id LIMIT ${PURGE_BATCH}`).bind(today).all();
   const dueAt = new Map(), isDue = at => {
     if (!dueAt.has(at)) dueAt.set(at, purgeDueAt(at));
     return Boolean(dueAt.get(at) && dueAt.get(at) <= ts);
   };
-  const gone = results.filter(m => isDue(m.entered_at));
-  if (gone.length) {
-    await env.MEDIA.delete(gone.flatMap(m => [m.r2_key, m.thumb_key]).filter(Boolean));
-    const byListing = new Map();
-    for (const m of gone) byListing.set(m.listing_id, [...(byListing.get(m.listing_id) ?? []), m]);
-    await env.DB.batch([
-      env.DB.prepare("DELETE FROM media WHERE id IN (SELECT value FROM json_each(?))").bind(JSON.stringify(gone.map(m => m.id))),
-      ...[...byListing].map(([id, ms]) => env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
-        VALUES (?, ?, 'listing', ?, 'listing.photos_purged', json_object('version', 1, 'fields', json('[]'),
-          'media_ids', json(?), 'entered_at', ?))`).bind(ts, admin, id, JSON.stringify(ms.map(m => m.id)), ms[0].entered_at)),
-    ]);
+  const picked = results.filter(m => isDue(m.entered_at) && ![m.r2_key, m.thumb_key, m.label].some(documentName));
+  if (!picked.length) return json({ ...await view(env), deleted: 0 });
+  const pairs = JSON.stringify(picked.map(m => [m.id, m.entered_at]));
+  const [, removed] = await env.DB.batch([
+    env.DB.prepare(`WITH ${TRASH}, ${GONE} INSERT INTO events (at, actor, entity_type, entity_id, type, data)
+      SELECT ?, ?, 'listing', g.listing_id, 'listing.photos_purged', json_object('version', 1, 'fields', json('[]'),
+        'media_ids', json_group_array(g.id), 'entered_at', g.entered_at)
+      FROM (SELECT * FROM gone ORDER BY id) g GROUP BY g.listing_id`).bind(today, pairs, ts, admin),
+    env.DB.prepare(`WITH ${TRASH}, ${GONE} DELETE FROM media WHERE id IN (SELECT id FROM gone)
+      RETURNING id, listing_id, r2_key, thumb_key`).bind(today, pairs),
+  ]);
+  const gone = removed.results.sort((a, b) => (a.id < b.id ? -1 : 1));
+  const { results: free } = await env.DB.prepare(`SELECT value AS k FROM json_each(?) WHERE value NOT IN
+      (SELECT r2_key FROM media WHERE r2_key IS NOT NULL UNION SELECT thumb_key FROM media WHERE thumb_key IS NOT NULL
+       UNION SELECT blob_key FROM property_capture_assets WHERE blob_key IS NOT NULL)`)
+    .bind(JSON.stringify(gone.flatMap(m => [m.r2_key, m.thumb_key]).filter(Boolean))).all();
+  const files = new Set(free.map(f => f.k));
+  try {
+    if (files.size) await env.MEDIA.delete([...files]);
+  } catch (e) {
+    console.error("EST-19 purge storage", e?.message);
+    await env.DB.batch([...byListing(gone)].map(([id, ms]) => env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id,
+      type, data) VALUES (?, ?, 'listing', ?, 'listing.photo_files_left', json_object('version', 1, 'fields', json('[]'), 'files', json(?)))`)
+      .bind(ts, admin, id, JSON.stringify(ms.flatMap(m => [m.r2_key, m.thumb_key]).filter(k => files.has(k))))));
+    return json({ ...await view(env), deleted: gone.length,
+      error: "The photos were removed, but their files could not be deleted from storage. They are listed in each property's history." }, 502);
   }
   return json({ ...await view(env), deleted: gone.length });
 }
