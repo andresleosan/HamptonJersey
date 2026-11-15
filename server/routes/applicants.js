@@ -8,7 +8,7 @@ import { afterSave, matchSnapshotMessage, MATCH_INCOMPLETE_MESSAGE, CANDIDATES_S
 import { recomputeForApplicant, recomputeForApplicantWithStatus, firstSearch, searchRunsWithoutMatch, searchRunFor } from "../search-state.js";
 import { widen } from "../widen.js";
 import { evaluate } from "../matching.js";
-import { pageMatches, MATCH_COUNTS_SQL, matchCounts } from "../match-pages.js";
+import { pageMatches, MATCH_COUNTS_SQL, matchCounts, countsReady, candidateCounts, waitingSearches } from "../match-pages.js";
 import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER } from "../retention.js";
 import { jerseyToday } from "../viewings.js";
 import { CONTACT_NEXT_VERSION } from "../contact-version.js";
@@ -80,7 +80,8 @@ const PARISHES = OPTIONS.parishes.map(([v]) => v), SOURCES = OPTIONS.sources.map
 
 // B13: the applicant's work queue, one label in this order: New properties found (found ones created after the first
 // review), Waiting for review (found ones left), In process (shortlisted ones), No matches (everything else).
-const QUEUE = `CASE WHEN fresh THEN '${QUEUES[0]}' WHEN found > 0 THEN '${QUEUES[1]}' WHEN shortlisted > 0 THEN '${QUEUES[2]}'
+// EST-04: with enquiries read (waiting), In process is a home waiting for the agency, no longer the shortlist.
+const queueSql = waiting => `CASE WHEN fresh THEN '${QUEUES[0]}' WHEN found > 0 THEN '${QUEUES[1]}' WHEN ${waiting ? "in_process" : "shortlisted > 0"} THEN '${QUEUES[2]}'
   ELSE '${QUEUES[3]}' END`;
 // Per listed applicant, through the (status, applicant_id) index: rejected history is never read.
 const count = status => `(SELECT COUNT(*) FROM matches m WHERE m.status = '${status}' AND m.applicant_id = a.id)`;
@@ -109,7 +110,10 @@ async function list({ request, env }) {
   if (!["newest", "oldest"].includes(sort)) fail(400, "Invalid sort");
   if (stage && !STAGES.includes(stage)) fail(400, "Invalid stage");
   if (queue && !QUEUES.includes(queue)) fail(400, "Invalid queue");
-  const workPredicates = { new: "fresh", review: "found > 0", shortlisted: "shortlisted > 0", no_pending: "found = 0 AND shortlisted = 0" };
+  // SAP-02, EST-04: switched off, or with enquiries off, the list is read exactly as before.
+  const counted = countsReady(env), waitingSql = counted ? waitingSearches(env) : null;
+  const workPredicates = { new: "fresh", review: "found > 0", shortlisted: "shortlisted > 0", no_pending: "found = 0 AND shortlisted = 0",
+    ...(waitingSql && { in_process: "in_process" }) };
   if (workLabel && !Object.hasOwn(workPredicates, workLabel)) fail(400, "Invalid work label");
   if (budget && !(/^\d+(\.\d+)?$/.test(budget) && Number(budget) > 0)) fail(400, "Invalid budget");
   if (parish && !PARISHES.includes(parish)) fail(400, "Invalid parish");
@@ -147,13 +151,16 @@ async function list({ request, env }) {
   }
   const dir = sort === "oldest" ? "ASC" : "DESC";
   const activeWork = "search_state = 'active' AND archived_at IS NULL AND search_category = 'residential'";
-  const workFilters = [queue && `${QUEUE} = ?`, workLabel && workPredicates[workLabel]].filter(Boolean);
-  const workWhere = workFilters.length ? `WHERE ${activeWork} AND ${workFilters.join(" AND ")}` : "";
   // ponytail: no paging; the team has hundreds of applicants, not tens of thousands.
-  const { results } = await env.DB.prepare(
+  // waiting: the searches with a home waiting for the agency (EST-04), read once inside this query; null = as before.
+  const read = waiting => {
+    const QUEUE = queueSql(waiting);
+    const workFilters = [queue && `${QUEUE} = ?`, workLabel && workPredicates[workLabel]].filter(Boolean);
+    const workWhere = workFilters.length ? `WHERE ${activeWork} AND ${workFilters.join(" AND ")}` : "";
+    return env.DB.prepare(
     // Materialized: each listed applicant's counts are read once, not once per use in QUEUE.
     `WITH listed AS MATERIALIZED (SELECT a.id, COALESCE(a.search_operation, a.operation) AS operation, a.search_category, a.stage, a.search_state, a.lost_reason, a.created_at, a.archived_at, a.assigned_to,
-       ad.name AS assigned_name, c.name, c.phone, c.email, ${MATCH_COUNTS},
+       ad.name AS assigned_name, c.name, c.phone, c.email, ${MATCH_COUNTS},${waiting ? ` a.id IN (${waiting}) AS in_process,` : ""}
        CASE WHEN ${EXPIRING} THEN ${KEPT_UNTIL} END AS expires_on,
        CASE WHEN ${RETENTION_REVIEW} THEN 1 ELSE 0 END AS retention_review,
        COALESCE(c.last_contact_at, c.created_at) AS last_contact_at, CASE WHEN ${QUIET} THEN 1 ELSE 0 END AS gone_quiet
@@ -161,14 +168,27 @@ async function list({ request, env }) {
        WHERE ${where.join(" AND ")})
      SELECT id, operation, search_category, stage, search_state, lost_reason, created_at, assigned_to, assigned_name, name, phone, email,
        CASE WHEN search_state = 'active' AND archived_at IS NULL AND search_category = 'residential' THEN ${QUEUE} END AS queue,
-       found, shortlisted, expires_on, retention_review, archived_at, last_contact_at, gone_quiet FROM listed ${workWhere} ORDER BY created_at ${dir}, id ${dir}`)
+       found, shortlisted,${waiting ? " in_process," : ""} expires_on, retention_review, archived_at, last_contact_at, gone_quiet FROM listed ${workWhere} ORDER BY created_at ${dir}, id ${dir}`)
     .bind(today, today, cutoff, ...args, ...(queue ? [queue] : [])).all();
+  };
+  let waiting = waitingSql, results;
+  try { ({ results } = await read(waiting)); } catch (e) {
+    // Enquiries switched on before their migration: the list as it is without them.
+    if (!waiting || !/no such table/.test(e?.message ?? "")) throw e;
+    if (workLabel === "in_process") fail(400, "Invalid work label");
+    ({ results } = await read(waiting = null));
+  }
+  // SAP-02: per search, the homes a person confirmed as available, those of them still proposable and those
+  // confirmed not available, in one read for the whole list.
+  const counts = counted ? await candidateCounts(env) : null;
+  const counting = counts ? results.map(a => ({ ...a, ...counts(a.id) })) : results;
   // SAP-01: while a search has no match, what its last search did (EST-01); absent when switched off.
   const runs = await searchRunsWithoutMatch(env);
-  const listed = runs ? results.map(a => (runs.has(a.id) ? { ...a, search_run: runs.get(a.id) } : a)) : results;
+  const listed = runs ? counting.map(a => (runs.has(a.id) ? { ...a, search_run: runs.get(a.id) } : a)) : counting;
   // AUT-19: the searches with a proposal waiting to be confirmed; absent when switched off.
-  const waiting = await searchesWithProposal(env);
-  return json({ applicants: waiting?.size ? listed.map(a => (waiting.has(a.id) ? { ...a, criteria_proposal: true } : a)) : listed });
+  const proposed = await searchesWithProposal(env);
+  return json({ applicants: proposed?.size ? listed.map(a => (proposed.has(a.id) ? { ...a, criteria_proposal: true } : a)) : listed,
+    ...(counted && { match_counts: true }), ...(waiting && { in_process: true }) });
 }
 
 // E9: the day the contact's 12 months end, or none when a sale keeps it (E3) or an open offer does, for as long as it
@@ -247,9 +267,11 @@ async function recalculateMatches({env,admin,params:[id]}) {
 }
 async function matchPage({request,env,params:[id]}) {
  const q=new URL(request.url).searchParams;
- if([...q.keys()].some(k=>!['status','after'].includes(k))||q.getAll('after').length>1||q.getAll('status').length!==1)
+ // SAP-03: only narrows the group to its confirmed, available, confirmed not available or waiting matches.
+ const keys=['status','after',...(countsReady(env)?['only']:[])];
+ if([...q.keys()].some(k=>!keys.includes(k))||q.getAll('after').length>1||q.getAll('status').length!==1||q.getAll('only').length>1)
   fail(400,'Invalid match page options');
- return json(await pageMatches(env,Number(id),{status:q.get('status'),after:q.get('after')}));
+ return json(await pageMatches(env,Number(id),{status:q.get('status'),after:q.get('after'),only:q.get('only')}));
 }
 
 async function create({ request, env, admin }) {

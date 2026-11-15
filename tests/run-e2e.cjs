@@ -58,6 +58,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/est15-unavailability.e2e.cjs" ? { EST16_AVAILABILITY_READY: "1", EST15_UNAVAILABILITY_READY: "1" } : {}),
       // AGE-03 reuses EST-16's confirmed availability, so its test has both on.
       ...(process.env.E2E_SCRIPT === "tests/age03-enquiries.e2e.cjs" ? { AGE03_ENQUIRIES_READY: "1", EST16_AVAILABILITY_READY: "1" } : {}),
+      // SAP-02/SAP-03/EST-04 count what EST-16's confirmations and AGE-03's enquiries say, so its test has the three on.
+      ...(process.env.E2E_SCRIPT === "tests/sap02-match-counts.e2e.cjs"
+        ? { SAP02_COUNTS_READY: "1", EST16_AVAILABILITY_READY: "1", AGE03_ENQUIRIES_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm20-tenancy-law.e2e.cjs" ? { ADM20_TENANCY_LAW_READY: "1", ADM17_LEGAL_TERMS_READY: "1" } : {}),
       // SPR-08 reads VIS-08's dates and EST-16's confirmation beside its own notes, so its test has the three on.
       ...(process.env.E2E_SCRIPT === "tests/spr08-listing-sections.e2e.cjs"
