@@ -6,14 +6,20 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "La columna Matches muestra «N found · M shortlisted» y enlaza a la pestaña Matches del aplicante.",
-  "falta": "Contar las confirmadas y las disponibles («12 found · 3 confirmed · 2 available»): Shortlisted es la preselección del equipo, no una disponibilidad confirmada, que no existe hasta EST-13. Traído de BUS-12 (14-nov): conectar isFullAvailableCandidate (server/search-eligibility.js) y el agregado de server/search-coverage.js; quedaron probados y sin consumidor.",
+  "hecho": "15-nov-2026, construida en rama y apagada (SAP02_COUNTS_READY, sin migración). La columna Matches de la lista dice «12 found · 3 confirmed · 2 available» por búsqueda y, aparte, «N confirmed not available». Found cuenta los matches no rechazados. Confirmed, los que tienen una confirmación vigente de disponible (EST-16). Available, los confirmados que además están aprobados sobre la búsqueda y la ficha de hoy, con la búsqueda activa y la ficha aún ofrecida. Shortlisted sigue como etiqueta de trabajo y no cuenta como confirmada. El servidor lo calcula con una sola lectura agregada para toda la lista, desde las fichas que tienen confirmación. Con EST-16 apagado o sin confirmaciones dice «0 confirmed · 0 available». Apagada, la lista responde y se ve como antes («N found · M shortlisted»).",
+  "falta": "Integrar en main, publicar y encender SAP02_COUNTS_READY; después comprobar el recorrido real con lecturas.",
   "bloqueo": "",
   "evidencia": [
-    "admin/src/Applicants.jsx:18",
-    "admin/src/Applicants.jsx:80-81",
-    "server/routes/applicants.js:68-71",
-    "migrations/0009_matches.sql:33"
+    "server/match-pages.js: reglas ONLY y candidateCounts (una lectura agregada)",
+    "server/routes/applicants.js: list() añade confirmed, available y unavailable por búsqueda",
+    "admin/src/Applicants.jsx: matchCounts y la línea «confirmed not available»",
+    "tests/server/sap02-match-counts.test.mjs: 6 pruebas pasan (15-nov-2026); incluye la coherencia lista = ficha = contar tarjetas con 8 búsquedas en todos los estados, también con EST-15 encendido",
+    "tests/sap02-match-counts.e2e.cjs: pasa a 1280 y 390 en el contenedor aislado (15-nov-2026), datos ficticios",
+    "Decisión: found = matches no rechazados (found + shortlisted). Fuente: arquitectura §5.2 («12 found · 3 confirmed · 2 available») y título de la tarea.",
+    "Decisión: confirmed = confirmación vigente de disponible, la misma regla de la tarjeta (availabilityState, EST-16). Fuente: plan maestro («una aprobación no confirma disponibilidad»).",
+    "Decisión: available = confirmed + aprobación vigente (APPROVED, BUS-15) + ficha aún ofrecida; no implica envío al cliente. Fuente: encargo del lote 15-nov y plan maestro M04/M06.",
+    "Decisión: lo confirmado no disponible no cuenta en confirmed ni en available y se ve aparte. Fuente: EST-15 y EST-16.",
+    "Decisión: isFullAvailableCandidate y search-coverage (traídos de BUS-12) no se conectan aquí: piden identidad de episodio, decisión del cliente y cobertura completa, que no tienen productor. Fuente: sus propios comentarios; frase trasladada a BUS-17."
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
@@ -34,6 +40,6 @@
     "matching-contract",
     "outreach-contract"
   ],
-  "nextStep": "Añadir contadores de confirmadas y disponibles sin confundir preselección con disponibilidad.",
-  "actualizado": "2026-11-14"
+  "nextStep": "Publicar y encender SAP02_COUNTS_READY; comprobar la lista con lecturas.",
+  "actualizado": "2026-11-15"
 }

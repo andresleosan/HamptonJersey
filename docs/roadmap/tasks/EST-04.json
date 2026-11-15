@@ -6,13 +6,18 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Queue marca In process cuando el aplicante tiene alguna casa Shortlisted.",
-  "falta": "Calcularlo con los matches en Waiting for agent confirmation o Waiting for applicant response (EST-13), que aún no existen; hoy solo refleja la preselección del equipo.",
+  "hecho": "Queue marca In process cuando el aplicante tiene alguna casa Shortlisted; así sigue mientras SAP02_COUNTS_READY o AGE03_ENQUIRIES_READY estén apagados. 15-nov-2026, construido en rama y apagado (sin migración): con los dos encendidos, In process significa que alguna casa del aplicante espera a la agencia. Es decir, su match cuenta en una consulta abierta: preparada o registrada como enviada, sin respuesta ni cancelación. La lista muestra la etiqueta In process junto a Shortlisted y permite filtrar por ella. La etiqueta única antigua (queue) usa la misma regla. La ficha filtra las casas en espera con Waiting for agency.",
+  "falta": "Integrar en main, publicar y encender SAP02_COUNTS_READY. Con AGE-03 migrada (0077) y encendida, comprobar el recorrido real con lecturas.",
   "bloqueo": "",
   "evidencia": [
-    "server/routes/applicants.js:64-67",
-    "migrations/0009_matches.sql:33",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:43"
+    "server/match-pages.js: regla WAITING y waitingSearches",
+    "server/routes/applicants.js: queueSql, columna in_process y filtro work_label=in_process",
+    "admin/src/Applicants.jsx: etiqueta y filtro In process",
+    "tests/server/sap02-match-counts.test.mjs: 6 pruebas pasan (15-nov-2026); incluye la coherencia lista = ficha = contar tarjetas con 8 búsquedas en todos los estados, también con EST-15 encendido",
+    "tests/sap02-match-counts.e2e.cjs: pasa a 1280 y 390 en el contenedor aislado (15-nov-2026), datos ficticios",
+    "Decisión: In process = el match cuenta en una consulta abierta (prepared o sent_manually) según la puerta de AGE-03; una respuesta o una cancelación lo cierra. Fuente: arquitectura §4.1 original (matches en Waiting for agent confirmation) y encargo del lote 15-nov.",
+    "Decisión: la rama «espera al aplicante» no se construye: no hay fuente hasta AGE-12 y EST-14. El contrato queda en server/match-pages.js (In process es cualquiera de las dos esperas). Fuente: plan maestro y §3 de la skill; frase trasladada a AGE-12, EST-14 y AGE-06.",
+    "Decisión: con la regla nueva, quien solo tiene Shortlisted y ninguna consulta queda como «No matches» en la etiqueta única antigua (B13: «todo lo demás»); la lista no enseña esa etiqueta, enseña Shortlisted. Fuente: spec F1-A B13 y EST-10."
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
@@ -32,5 +37,6 @@
     "search-lifecycle",
     "outreach-contract"
   ],
-  "nextStep": "Calcular la espera real de agencia o cliente usando EST-13 en lugar de la mera preselección."
+  "nextStep": "Publicar y encender SAP02_COUNTS_READY; comprobar In process cuando AGE-03 esté encendida.",
+  "actualizado": "2026-11-15"
 }
