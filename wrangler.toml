@@ -76,6 +76,10 @@ AGE12_PRESENTATIONS_READY = "0"
 NOT0809_INBOX_READY = "1"
 # PUB-16: a rental recorded as let shows Let agreed for 24 hours, then leaves the website; 24 hours after a letting or sale its other viewings get Inbox tasks (migration 0087, applied 15-nov-2026). Sends nothing. Must match the other wrangler.toml.
 PUB16_TIMED_CLOSURE_READY = "1"
+# EST-19: Listings shows properties confirmed not available and what the six-month photo purge would delete and when (no migration; needs EST15_UNAVAILABILITY_READY and EST16_AVAILABILITY_READY). Deletes nothing.
+EST19_TRASH_READY = "0"
+# EST-19: a person deletes, a batch per click, the external reference photos due six months after a property entered the trash (no migration; needs EST19_TRASH_READY). Deletes production files: only Luis switches it on.
+EST19_PURGE_READY = "0"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
