@@ -1,7 +1,8 @@
 import {fail} from './http.js';
 import {jerseyToday} from './viewings.js';
 import {ARREARS_STEPS,COMPLIANCE,CALENDAR,LEGAL} from './rentals.js';
-import {arrearsOf,DEADLINES,checksSql,ensureChecks,RENEWAL,ensureCharges} from './routes/rent.js';
+import {arrearsOf,DEADLINES,checksSql,ensureChecks,RENEWAL,ensureCharges,INSPECTION_WARN} from './routes/rent.js';
+import {NEXT_INSPECTION,inspectionDue,inspectionsReady} from './rental-inspections.js';
 import {WAITING,waitingCutoff} from './routes/sales.js';
 import {TO_CONFIRM} from './listing.js';
 import {taskStatements} from './notification-tasks.js';
@@ -35,7 +36,13 @@ const statementRow=`UNION ALL SELECT 'statement',m.month,m.month,'collection','l
       UNION SELECT cycle FROM notification_observations WHERE kind='statement' AND active=1) m WHERE EXISTS(SELECT 1 FROM rentals r
       WHERE r.service='full' AND r.archived_at IS NULL AND r.created_at<date(m.month||'-01','+1 month')
       AND NOT EXISTS(SELECT 1 FROM statement_runs s WHERE s.landlord_id=r.landlord_id AND s.month=m.month))`;
-const pendingSql=(legal,calendar,arrears,statements)=>`${arrears},pending_deadlines(${columns}) AS MATERIALIZED (${deadlineRows(legal)}),rental_pending(${columns}) AS MATERIALIZED (
+// ADM-03 (ADM-13's switch, migration 0060): a running tenancy's six-monthly inspection, from the day it shows in
+// Rentals › To do (30 days before) until one is recorded, which moves the due day and so resolves this cycle.
+const inspectionRow=`UNION ALL SELECT 'inspection',CAST(i.id AS TEXT),i.due_on,'rental',CAST(i.rental_id AS TEXT),json_object('tenancy_id',i.id),
+    'Inspection due',i.due_on||'T00:00:00.000Z','normal',json_array(i.due_on),'rental',CAST(i.rental_id AS TEXT)
+    FROM (SELECT t.id,t.rental_id,${NEXT_INSPECTION} AS due_on FROM tenancies t JOIN rentals r ON r.id=t.rental_id
+      WHERE r.archived_at IS NULL AND ${inspectionDue(`<= date(?1,'+${INSPECTION_WARN} days')`)}) i`;
+const pendingSql=(legal,calendar,arrears,statements,inspections)=>`${arrears},pending_deadlines(${columns}) AS MATERIALIZED (${deadlineRows(legal)}),rental_pending(${columns}) AS MATERIALIZED (
   SELECT 'arrears',CAST(a.tenancy_id AS TEXT),a.oldest_unpaid_on||':'||a.next_step,'rental',CAST(a.rental_id AS TEXT),
     json_object('tenancy_id',a.tenancy_id),${stepLabel},${stepDue},'normal',json_array(a.oldest_unpaid_on,a.next_step),'rental',CAST(a.rental_id AS TEXT)
     FROM arrears a JOIN rentals r ON r.id=a.rental_id WHERE a.next_step IS NOT NULL AND r.archived_at IS NULL
@@ -46,8 +53,8 @@ const pendingSql=(legal,calendar,arrears,statements)=>`${arrears},pending_deadli
   UNION ALL SELECT 'renewal',CAST(t.id AS TEXT),t.end_on,'rental',CAST(t.rental_id AS TEXT),json_object('tenancy_id',t.id),
     'Decide renewal',NULL,'normal',json_array(t.end_on),'rental',CAST(t.rental_id AS TEXT)
     FROM tenancies t JOIN rentals r ON r.id=t.rental_id WHERE r.archived_at IS NULL AND ${RENEWAL}
-  UNION ALL SELECT 'repair',CAST(p.id AS TEXT),'current','rental',CAST(p.rental_id AS TEXT),
-    json_patch('{}',json_object('tenancy_id',p.tenancy_id,'repair_id',p.id)),'Emergency repair',NULL,'urgent',json_array(p.status,p.urgency),'rental',CAST(p.rental_id AS TEXT)
+  UNION ALL SELECT 'repair',CAST(p.id AS TEXT),'current','rental',CAST(p.rental_id AS TEXT), -- ADM-03: a tenancy of another property is left out, so the task still opens
+    json_patch('{}',json_object('tenancy_id',(SELECT t.id FROM tenancies t WHERE t.id=p.tenancy_id AND t.rental_id=p.rental_id),'repair_id',p.id)),'Emergency repair',NULL,'urgent',json_array(p.status,p.urgency),'rental',CAST(p.rental_id AS TEXT)
     FROM repairs p JOIN rentals r ON r.id=p.rental_id WHERE r.archived_at IS NULL AND p.urgency='emergency' AND p.status NOT IN ('done','cancelled')
 ),other_pending(${columns}) AS MATERIALIZED (
   SELECT 'payment',CAST(p.id AS TEXT),'current','payment',CAST(p.id AS TEXT),NULL,
@@ -61,7 +68,7 @@ const pendingSql=(legal,calendar,arrears,statements)=>`${arrears},pending_deadli
     strftime('%Y-%m-%dT%H:%M:%fZ',l.confirmed_at,CASE l.operation WHEN 'rent' THEN '+1 month' ELSE '+3 months' END),
     'normal',json_array(l.confirmed_at,l.operation),'listing',l.id FROM listings l WHERE ${TO_CONFIRM.replace('?', '?3')}
 ),raw_pending AS MATERIALIZED (SELECT * FROM rental_pending UNION ALL SELECT * FROM other_pending
-  ${statements?statementRow:''}), -- ADM-10: here, not in rental_pending, which already holds D1's five compound terms
+  ${statements?statementRow:''} ${inspections?inspectionRow:''}), -- ADM-10, ADM-03: here, not in rental_pending, which already holds D1's five compound terms
 pending AS MATERIALIZED (SELECT *,'queue:'||kind||':'||entity_id||':'||cycle AS task_key,${sortKey()} AS sort_key FROM raw_pending)`;
 
 const reentry=`(o.active=0 OR (o.kind='repair' AND EXISTS(SELECT 1 FROM events x
@@ -74,7 +81,7 @@ const reentry=`(o.active=0 OR (o.kind='repair' AND EXISTS(SELECT 1 FROM events x
 export async function notificationsPass(env,isoNow) {
   if(typeof isoNow!=='string'||!Number.isFinite(Date.parse(isoNow))||new Date(isoNow).toISOString()!==isoNow)fail(400,'Use a processing UTC time');
   const args=[jerseyToday(new Date(isoNow)),null,isoNow,waitingCutoff(isoNow)],calendar=calendarReady(env);
-  const {periods}=await readLegal(env),PENDING=pendingSql(periods,calendar,arrearsOf(env),statementsReady(env));
+  const {periods}=await readLegal(env),PENDING=pendingSql(periods,calendar,arrearsOf(env),statementsReady(env),inspectionsReady(env));
   if(calendar)await env.DB.batch(ensureChecks(env,periods,args[0]));
   const q=(sql,...extra)=>env.DB.prepare(sql).bind(...args,...extra);
   const [,cursorRead,selection]=await env.DB.batch([
@@ -101,13 +108,13 @@ export async function notificationsPass(env,isoNow) {
     .bind(hasMore?selected.at(-1).sort_key:'',isoNow,cursor.revision,isoNow,cursor.source_max),
     env.DB.prepare("INSERT INTO notification_cursor(key,revision,after_key,observed_at) SELECT 'contended',0,'','' WHERE changes()=0")];
   for(const row of selected){
-    const category=['check','deadline'].includes(row.kind)?'compliance':'task';
+    const category=['check','deadline','inspection'].includes(row.kind)?'compliance':'task';
     if(row.pending&&row.prior_active===1&&row.signature===row.prior_signature&&!row.reentered){
       // Classification changes preserve the observed source event and human Done.
       if(category==='compliance'&&row.prior_category!==category)statements.push(q(`WITH ${PENDING}
         UPDATE notifications SET category=?5,task_actor='system',task_action='source_update'
         WHERE task_key=?6 AND revision=?7 AND resolved_at IS NULL AND action_required=1 AND target_deleted=0
-          AND EXISTS(SELECT 1 FROM pending p WHERE p.task_key=notifications.task_key AND p.signature=?8 AND p.kind IN ('check','deadline'))`,
+          AND EXISTS(SELECT 1 FROM pending p WHERE p.task_key=notifications.task_key AND p.signature=?8 AND p.kind IN ('check','deadline','inspection'))`,
         category,row.task_key,row.prior_revision,row.signature));
       continue;
     }

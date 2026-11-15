@@ -953,7 +953,7 @@ const RANK = ["overdue", "missing", "due7", "due30", "due60"];
 const KINDS = [...COMPLIANCE, ...CALENDAR, ...DEADLINES].map(([k]) => k);
 const LABEL = Object.fromEntries([...COMPLIANCE, ...CALENDAR].map(([k, label]) => [k, label]));
 const WARN = Math.max(...LEGAL.warnDays);
-const INSPECTION_WARN = 30; // ADM-13: an inspection every six months shows in the to-do from 30 days before it falls due
+export const INSPECTION_WARN = 30; // ADM-13: an inspection every six months shows in the to-do from 30 days before it falls due
 const URGENCY = "CASE p.urgency WHEN 'emergency' THEN 0 WHEN 'urgent' THEN 1 ELSE 2 END";
 const MARKS = ["arrears", "compliance", "renewals", "repairs"];
 
