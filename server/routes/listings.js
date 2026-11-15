@@ -24,6 +24,7 @@ import provenanceRoutes, { provenanceReady, listProvenance } from '../listing-pr
 import captureRoutes from '../property-captures.js';
 import privateMediaRoutes from '../private-media.js';
 import { posterQrRoutes } from "../poster-qr.js";
+import { unusedFiles } from './media.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -539,7 +540,7 @@ export async function deleteListing(env, id, admin, context = {}) {
     throw error;
   }
   // Imported files stay in R2 (they also live in /root/Hampton_Database); research rows are kept.
-  const keys = results.flatMap(m => [m.r2_key, m.thumb_key]).filter(Boolean);
+  const keys = await unusedFiles(env, results.flatMap(m => [m.r2_key, m.thumb_key]).filter(Boolean)); // ADM-14: shared files stay
   if (keys.length) await env.MEDIA.delete(keys);
 }
 

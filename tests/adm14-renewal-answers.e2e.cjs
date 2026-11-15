@@ -7,8 +7,13 @@ const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PW || 'playwright-core');
 const { readFileSync } = require('node:fs');
 const { parseEnv } = require('node:util');
-const { join } = require('node:path');
+const { execFileSync } = require('node:child_process');
+const { join, dirname } = require('node:path');
 const BASE = process.env.BASE;
+// The fixture's local D1, for what only ADM-06's Let agreed flow writes (tenancy_origins) and a photo row.
+const wrangler = join(dirname(require.resolve('wrangler')), '..', 'bin', 'wrangler.js');
+const sql = statement => execFileSync(process.execPath, [wrangler, 'd1', 'execute', 'hampton', '--local',
+  '--persist-to', process.env.E2E_PERSIST, '--command', statement], { stdio: 'pipe' });
 const shot = (target, name) => (process.env.E2E_SHOTS ? target.screenshot({ path: join(process.env.E2E_SHOTS, name) }).catch(() => {}) : null);
 const request = (page, path, method = 'GET', body) => page.evaluate(async ({ path, method, body }) => {
   const response = await fetch('/api' + path, { method, credentials: 'same-origin',
@@ -107,8 +112,19 @@ const fits = page => page.evaluate(() => document.documentElement.scrollWidth <=
       await page.getByText('History', { exact: false }).first().click();
       await page.getByText(`Landlord answered the renewal of the term ending ${fmtDay(end)}: Renew at a new rent at £1,050 pcm`, { exact: true }).waitFor();
 
-      // Not renewed: the tenant's message says so and End tenancy comes with the term's end date.
+      // Not renewed: the tenant's message says so and End tenancy comes with the term's end date. This tenancy started
+      // from a Let agreed listing (ADM-06), whose draft is prepared once.
       const ended = await make('ended');
+      const source = await request(page, '/admin/listings', 'POST', { title: `Synthetic ADM14 flat ${width}`, use: 'residential',
+        operation: 'rent', availability: 'to_let', country: 'Jersey', rent: 1000, rent_period: 'month', currency: 'GBP', bedrooms: 2 });
+      assert.equal(source.status, 201, JSON.stringify(source.data));
+      const src = source.data.id, M = `Uadm14x${width}`, TS = `${today}T09:00:00.000Z`;
+      sql(`INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, public, position, created_at)
+          VALUES ('${M}', '${src}', 'uploads/${M}.jpg', 'thumbs/uploads/${M}.jpg', 'upload', 'photo', 1, 0, '${TS}');
+        UPDATE listings SET cover_media_id = '${M}', availability = 'let_agreed' WHERE id = '${src}';
+        INSERT INTO tenancy_origins (tenancy_id, operation_id, rental_id, listing_id, applicant_id, listing_updated_at,
+          applicant_updated_at, created_at, created_by) VALUES (${ended.id}, 'synthetic-adm14-${width}', ${ended.rid}, '${src}', 1,
+          '${TS}', '${TS}', '${TS}', 'admin@example.test');`);
       await go(`rentals/${ended.rid}`);
       card = await answer(ended, { party: 'Landlord', label: 'Not renew', source: 'Phone call, noted in the file' });
       await card.getByText(`Not renew · answered ${fmtDay(today)} · Phone call, noted in the file`, { exact: true }).waitFor();
@@ -120,6 +136,32 @@ const fits = page => page.evaluate(() => document.documentElement.scrollWidth <=
       assert.equal(await dialog.getByLabel('Move-out date').inputValue(), end);
       await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       assert.ok(await fits(page), `the page fits at ${width}`);
+      // Prepare listing draft: a new unpublished listing to let from the end date, with the source's photo row; the
+      // next click opens the same one.
+      await card.getByRole('button', { name: 'Prepare listing draft', exact: true }).click();
+      await page.waitForURL(/#\/p\/HE-/);
+      const draftId = decodeURIComponent(page.url().split('#/p/')[1]);
+      assert.notEqual(draftId, src);
+      const made = (await request(page, `/admin/listings/${draftId}`)).data;
+      assert.deepEqual([made.listing.title, made.listing.published, made.listing.operation, made.listing.availability, made.listing.available_on],
+        [`Synthetic ADM14 flat ${width}`, 0, 'rent', 'to_let', end]);
+      assert.deepEqual(made.media.map(m => m.r2_key), [`uploads/${M}.jpg`]);
+      await page.getByRole('heading', { name: 'Physical details', exact: true }).waitFor(); // the listing editor
+      assert.equal(await page.locator('input[maxlength="200"][required]').first().inputValue(), `Synthetic ADM14 flat ${width}`);
+      await shot(page, `adm14-listing-draft-${width}.png`);
+      await go(`rentals/${ended.rid}`);
+      await card.getByRole('button', { name: 'Open listing draft', exact: true }).click();
+      await page.waitForURL(new RegExp(`#/p/${draftId}$`));
+      assert.equal(made.listing.cover_media_id === null, false, 'the cover follows');
+      // Entered by hand: nothing to copy, said in one line.
+      const manual = await make('manual');
+      assert.equal((await request(page, `/admin/tenancies/${manual.id}/renewal-answer`, 'POST', { party: 'landlord', answer: 'end',
+        answered_on: today, source: 'Letter' })).status, 200);
+      await go(`rentals/${manual.rid}`);
+      card = page.locator(`#tenancy-${manual.id}`);
+      await card.getByText('Entered by hand, not from a Let agreed listing: there is no listing to copy.', { exact: false }).waitFor();
+      assert.equal(await card.getByRole('button', { name: 'Prepare listing draft', exact: true }).count(), 0);
+      assert.ok(await fits(page), `the hand-entered tenancy fits at ${width}`);
       assert.deepEqual(errors, []);
       await context.close();
     }

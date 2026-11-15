@@ -239,6 +239,22 @@ export default function RentalDetail({ id, selection='', onChange }) {
   </div>;
 }
 
+// ADM-14 (§5.11): the term ends, so the listing the tenancy started from (Let agreed) is drafted again, unpublished, to
+// advertise it before the property is empty; the same draft is opened on every click. Entered by hand: none to copy.
+function ListingDraft({ t, r }) {
+  const [busy, setBusy] = useState(false), [err, setErr] = useState(null);
+  if (!r.origin && !r.draft) return <p className="muted">Entered by hand, not from a Let agreed listing: there is no listing to copy.
+    Start one with New listing in Listings.</p>;
+  const prepare = async () => {
+    setBusy(true); setErr(null);
+    try { location.hash = `#/p/${encodeURIComponent((await api(`/admin/tenancies/${t.id}/listing-draft`, { method: "POST" })).id)}`; }
+    catch (x) { setErr(x.message); setBusy(false); }
+  };
+  return <><button type="button" className="btn ghost sm" onClick={prepare} disabled={busy}>
+    {busy ? "Preparing…" : r.draft ? "Open listing draft" : "Prepare listing draft"}</button>
+    {err && <p role="alert" className="err">{err}</p>}</>;
+}
+
 // One tenancy, loaded on its own (P1): the payment reference, balance and arrears (full management), its deadlines, and
 // the charges and payments of the last 24 months (the newest six until asked for all). next: a later tenancy is entered
 // (a planned move-out can then only move, not be cancelled).
@@ -316,7 +332,8 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
       <h3>Renewal answers</h3><ul className="plain-list">{["landlord", "tenant"].map(p => { const x = d.renewal[p]; return <li key={p}>
         <span>{p === "landlord" ? "Landlord" : "Tenant"}<span className="muted cell-note">{x ? `${answerLabel(x)} · answered ${fmtDay(x.answered_on)} · ${x.source}`
           : "No answer recorded"}</span></span></li>; })}</ul>
-      <div className="ctl"><button type="button" className="btn ghost sm" onClick={act("answer")}>Record answer</button></div>
+      <div className="ctl"><button type="button" className="btn ghost sm" onClick={act("answer")}>Record answer</button>
+        {[d.renewal.landlord, d.renewal.tenant].some(x => x?.answer === "end") && <ListingDraft t={t} r={d.renewal} />}</div>
       <NoticeDraft text={renewalDraft(d, landlord ?? "[Landlord]")} id={`renewal-draft-${id}`} label="Text to send"
         title={d.renewal.landlord ? "Message to the tenant" : "Message to the landlord"}
         badge={d.renewal.landlord ? "Draft · not validated by a lawyer" : "Draft · nothing is sent from the app"}
@@ -419,6 +436,7 @@ const EVENT = {
   "tenancy.ended": d => `${d.before ? `Move-out moved from ${fmtDay(d.before)} to` : "Tenancy ends"} ${fmtDay(d.ended_on)}${gone(d.removed, "later")}`,
   "tenancy.end_cancelled": d => `Move-out of ${fmtDay(d.before)} cancelled: the tenancy goes on`,
   "renewal.answered": d => `${d.party === "landlord" ? "Landlord" : "Tenant"} answered the renewal of the term ending ${fmtDay(d.end_on)}: ${answerLabel(d)}`,
+  "renewal.listing_drafted": d => `Listing draft ${d.listing_id} prepared from ${d.from}, to let from ${fmtDay(d.end_on)}`,
   "notice.recorded": d =>`Notice given by the ${d.by} on ${fmtDay(d.given_on)}; earliest move-out ${fmtDay(d.earliest_move_out)}`,
   // ADM-15 (d.review, with its switch): the RPI the limit was worked out with, and what the change went beyond.
   "rent.changed": ({ review: v, ...d }) => `Rent changed from ${money(d.before)} to ${money(d.rent)} pcm from ${fmtDay(d.effective_on)}${!v ? ""

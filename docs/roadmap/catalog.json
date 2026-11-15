@@ -16391,15 +16391,23 @@
       "fase": "F5-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Desde 90 días antes del fin de un plazo fijo el contrato sale en Renewals («Renewal due» o «Fixed term ended») y en su tarjeta; Renew lo prorroga o lo pasa a periódico con la misma referencia, renta nueva opcional y ley 2025.",
-      "falta": "No se pregunta al propietario ni al inquilino con botones (necesita correo o portal), y si el inquilino se va no se crea el borrador de ficha copiando la anterior, porque viviendas y listings no están enlazados. Traído de ADM-20 (15-nov): ejecutar una respuesta de renovación debe pasar por POST /admin/tenancies/:id/renew, que ya aplica ADM-20: nunca imponer un segundo plazo fijo y enviar law_confirmed cuando se pida. Traído de ADM-15 (15-nov): Renew con renta nueva cambia la renta sin la revisión de ADM-15 (no guarda el RPI usado ni ofrece el borrador de aviso); al construir la renovación, pasar ese cambio por rentReview/rentAssistant con policy.",
+      "hecho": "Desde 90 días antes del fin de un plazo fijo el contrato sale en Renewals, en su tarjeta y como tarea «Decide renewal» del Inbox. Con ADM14_RENEWAL_READY (sin migración, apagado): la tarjeta muestra «Renewal answers» del propietario (renovar, renovar con renta nueva, no renovar) y del inquilino (quedarse, irse), registradas a mano con fecha y dónde constan; un borrador para copiar o descargar, al propietario hasta que responde y después al inquilino («not validated by a lawyer»); Renew llega con la renta respondida, muestra el borrador de ADM-15 y guarda su revisión, y End tenancy llega con la fecha de fin si alguien respondió que se va. Si la respuesta es que el plazo termina, «Prepare listing draft» crea una vez (después «Open listing draft») el borrador de la ficha de la que nació el contrato (Let agreed, ADM-06): sus campos, sin publicar, en alquiler y disponible desde el fin, con sus fotos como filas nuevas sobre los mismos archivos; un contrato creado a mano lo explica en una línea. No envía nada.",
+      "falta": "Encender ADM14_RENEWAL_READY en wrangler.toml (solo la web; el reloj no lo lee) y comprobar el recorrido en producción. Preguntar con botones al propietario y al inquilino y enviar los borradores por correo es de AUT-17.",
       "bloqueo": "Correo (AUT-17)",
       "evidencia": [
-        "server/routes/rent.js:86-89",
-        "admin/src/Rentals.jsx:105-111",
-        "admin/src/RentalDetail.jsx:229-231",
-        "admin/src/RentalDialogs.jsx:134-151",
-        "server/routes/rent.js:333-356"
+        "server/routes/rent.js:211-296 (ADM-14: respuestas y borradores de ficha como eventos renewal.answered y renewal.listing_drafted de rental_events, por end_on del plazo; rutas montadas solo con el interruptor, server/api.js:86)",
+        "server/routes/rent.js:232-259 (borrador de ficha: tenancy_origins de ADM-06 → createListing de New listing, filas media copiadas sin documentos ni bytes, portada, idempotente por el evento mientras la ficha exista)",
+        "server/routes/media.js:95-102 y server/routes/listings.js:542 (un archivo de R2 solo se borra cuando ninguna fila media lo usa: el borrador comparte los de la ficha original)",
+        "server/routes/rent.js:581 (Renew con renta nueva guarda rentReview de ADM-15, como Change rent; regla de ADM-15 sin cambios)",
+        "admin/src/RentalDialogs.jsx:260-310 y 350-353 (RenewalAnswer, renewalDraft, Renew y End tenancy rellenados)",
+        "admin/src/RentalDetail.jsx:244-258 y 330-345 (Prepare/Open listing draft y bloque Renewal answers dentro de la ventana de renovación)",
+        "Decisión: el borrador copia los campos editables de la ficha (no cumplimiento PUB-07, ni detalles internos, contenido PUB-08 o destacado) y las fotos, planos y vistas aéreas, nunca documentos (fuente: encargo del coordinador 15-nov y arquitectura §5.11)",
+        "Decisión: sin migración; la respuesta es un evento de rental_events (fuente: brief «migración solo si es imprescindible»; el puente notification_rental_bridge no lo copia a events)",
+        "Decisión: el reloj y «Decide renewal» no cambian (fuente: brief «aviso a 90 días ya existe»; LEGAL.renewalDays = 90); así el interruptor solo va en wrangler.toml",
+        "Decisión: no renovar abre End tenancy con la fecha de fin como sugerencia editable, sin regla legal nueva; renovar pasa por POST /renew, que ya aplica ADM-20 y law_confirmed (fuente: falta traído de ADM-20 y ADM-15)",
+        "Decisión: el borrador al inquilino lleva «not validated by a lawyer» (fuente: ADM-17 y el borrador de atrasos de ADM-09)",
+        "Pruebas 15-nov: node --test tests/server/adm-14-renewal.test.mjs 6/6; rentals 10, tenancies 17, payments 15, rentals-overview 15, adm-15-rent-review 11, adm-20-tenancy-law 19, adm-20-warnings 3, notification-reconcile 10, jobs 10, listing 11, listings-list 2, admin 19, publication-gates 10, media-save-atomic 23, media-document-privacy 27, media-upload-validation 26, listing-events 19, queue 13, hermes 17, spr-03-captures 12, todas pasan",
+        "Navegador 15-nov: tests/adm14-renewal-answers.e2e.cjs en el contenedor aislado, 1280 y 390, pasa (incluye Prepare/Open listing draft y el contrato creado a mano)"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -16421,7 +16429,7 @@
         "email-pipeline",
         "listings-contract"
       ],
-      "nextStep": "Completar respuestas a renovación y enlace con la ficha; activar comunicaciones cuando exista correo o portal.",
+      "nextStep": "Publicar en main, poner ADM14_RENEWAL_READY = \"1\" en wrangler.toml (sin migración) y comprobar con GET /admin/tenancies/:id que un plazo fijo trae renewal (con origin si nació de Let agreed).",
       "actualizado": "2026-11-15"
     },
     {

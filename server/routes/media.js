@@ -91,6 +91,15 @@ async function upload({ request, env, admin, params: [id] }) {
   return json({ media: await env.DB.prepare("SELECT * FROM media WHERE id = ?").bind(mid).first() }, 201);
 }
 
+// ADM-14: a listing drafted from another one has rows on the same files, so a file goes only once no row uses it.
+export async function unusedFiles(env, keys) {
+  if (!keys.length) return [];
+  const { results } = await env.DB.prepare(`SELECT value AS k FROM json_each(?) WHERE value NOT IN
+    (SELECT r2_key FROM media WHERE r2_key IS NOT NULL UNION SELECT thumb_key FROM media WHERE thumb_key IS NOT NULL)`)
+    .bind(JSON.stringify(keys)).all();
+  return results.map(r => r.k);
+}
+
 async function remove({ env, admin, params: [mid] }) {
   const m = await env.DB.prepare("SELECT * FROM media WHERE id = ?").bind(mid).first();
   if (!m) fail(404, "Photo not found");
@@ -99,7 +108,8 @@ async function remove({ env, admin, params: [mid] }) {
     env.DB.prepare("UPDATE listings SET cover_media_id = NULL WHERE cover_media_id = ?").bind(mid),
     env.DB.prepare("DELETE FROM media WHERE id = ?").bind(mid),
   ]);
-  await env.MEDIA.delete([m.r2_key, m.thumb_key].filter(Boolean));
+  const files = await unusedFiles(env, [m.r2_key, m.thumb_key].filter(Boolean));
+  if (files.length) await env.MEDIA.delete(files);
   return json({ ok: true });
 }
 

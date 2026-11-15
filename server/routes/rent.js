@@ -8,6 +8,11 @@ import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE, syncTe
 import { exitReady } from "../tenancy-exits.js";
 import { NEXT_INSPECTION, inspectionDue, inspectionsReady } from "../rental-inspections.js";
 import { readLegal, legalLabel, calendarReady, tenancyLaw, rentReviewReady } from "../legal-terms.js";
+import { createListing, loadListing } from "./listings.js";
+import { EDITABLE as LISTING_FIELDS } from "../listing.js";
+import { ECONOMIC_FIELDS, structuredEconomicsReady } from "../listing-economics.js";
+import { listingBatch, listingClock } from "../listing-events.js";
+import { originReady } from "../tenancy-origins.js";
 
 const MAX_POUNDS = 1000000, MAX_PENCE = 100 * MAX_POUNDS; // R20
 const ENDED = "This tenancy has ended", CHANGED = "This property changed meanwhile. Reload to see it";
@@ -183,12 +188,12 @@ export async function detail(env, id) {
     q(`SELECT ${rentNow("?2")} AS rent FROM tenancies t WHERE t.id = ?1`, id, today),
     ...(net ? [q(WRITEOFFS, id)] : []),
     ...(law ? [lawHistory(env, id)] : []),
-    ...(renewalReady(env) ? [q(ANSWERS_SQL, id)] : []),
+    ...(renewalReady(env) ? renewalReads(env, id) : []),
   ])).map(r => r.results);
   if (!tenancy) fail(404, "Tenancy not found");
   // ADM-09: the revision a write-off must still find; off, the tenancy reads as before 0045.
   if (!net) delete tenancy.financial_revision;
-  const writeoffs = net ? more.shift() : null, [law_history] = law ? more.shift() : [], answers = more.shift();
+  const writeoffs = net ? more.shift() : null, [law_history] = law ? more.shift() : [], answers = more.shift(), [origin] = more.shift() ?? [];
   const arrears = late?.oldest_unpaid_on ? { oldest_unpaid_on: late.oldest_unpaid_on, days_late: late.days_late,
     next_step: STEP[late.next_step] ?? null,
     done: steps.filter(x => x.charge_due_on === late.oldest_unpaid_on).map(({ charge_due_on, ...x }) => x) } : null;
@@ -200,18 +205,58 @@ export async function detail(env, id) {
     assistant: { ...rentAssistant(tenancy, rpi, today, periods, rentReviewReady(env) ? law : null), rpi },
     deadlines: deadlines(tenancy, today, periods), earliest_move_out: notice ? earliestMoveOut(tenancy, notice, periods) : null,
     ...legalLabel(legal), ...(law ? { law, law_history } : {}), ...(net ? { writeoffs } : {}),
-    ...(answers && tenancy.kind === "fixed" && !tenancy.ended_on ? { renewal: renewalOf(tenancy, answers) } : {}) };
+    ...(answers && tenancy.kind === "fixed" && !tenancy.ended_on ? { renewal: renewalOf(tenancy, answers, origin) } : {}) };
 }
 
-// ADM-14: the answers recorded for a tenancy, newest first (through the rental_events_rental index); renewalOf keeps the
-// latest of each party for the term being renewed (its end date), so a renewal or a changed end date starts with none.
-const ANSWERS_SQL = `SELECT e.at, e.actor, e.data FROM rental_events e JOIN tenancies t ON e.rental_id = t.rental_id
-  WHERE t.id = ?1 AND e.tenancy_id = ?1 AND e.type = 'renewal.answered' ORDER BY e.id DESC`;
-const renewalOf = (t, rows) => {
-  const of = party => rows.map(({ data, ...e }) => ({ ...JSON.parse(data), ...e }))
-    .find(a => a.party === party && a.end_on === t.end_on) ?? null;
-  return { end_on: t.end_on, landlord: of("landlord"), tenant: of("tenant") };
+// ADM-14: the answers and listing drafts recorded for a tenancy, newest first (through the rental_events_rental index),
+// a draft with whether its listing is still there; and, with ADM-06's switch, the listing it started from (Let agreed,
+// tenancy_origins), while that listing exists. renewalOf keeps, for the term being renewed (its end date), the latest
+// answer of each party and the draft still there, so a renewal or a changed end date starts with none.
+const RENEWAL_SQL = `SELECT e.at, e.actor, e.type, e.data, l.id IS NOT NULL AS kept FROM rental_events e
+  JOIN tenancies t ON e.rental_id = t.rental_id LEFT JOIN listings l ON l.id = json_extract(e.data, '$.listing_id')
+  WHERE t.id = ?1 AND e.tenancy_id = ?1 AND e.type IN ('renewal.answered', 'renewal.listing_drafted') ORDER BY e.id DESC`;
+const ORIGIN_SQL = `SELECT o.listing_id FROM tenancy_origins o JOIN listings l ON l.id = o.listing_id WHERE o.tenancy_id = ?`;
+const renewalReads = (env, id) => [env.DB.prepare(RENEWAL_SQL).bind(Number(id)),
+  ...(originReady(env) ? [env.DB.prepare(ORIGIN_SQL).bind(Number(id))] : [])];
+const renewalOf = (t, rows, origin) => {
+  const mine = rows.map(({ data, type, kept, ...e }) => ({ type, kept, a: { ...JSON.parse(data), ...e } })).filter(x => x.a.end_on === t.end_on);
+  const of = party => mine.find(x => x.type === "renewal.answered" && x.a.party === party)?.a ?? null;
+  return { end_on: t.end_on, landlord: of("landlord"), tenant: of("tenant"), origin: origin?.listing_id ?? null,
+    draft: mine.find(x => x.type === "renewal.listing_drafted" && x.kept)?.a.listing_id ?? null };
 };
+
+// ADM-14: when the landlord or the tenant answered that the term ends, a draft of the listing the tenancy started from,
+// made by New listing's own createListing: its fields (not its compliance, staff costs only with their switch, never its
+// featured place), unpublished, to let from the term's end; then its photos, floorplans and aerials as new rows on the
+// same files (no file is read or copied; documents stay), with its cover. A second click answers the same draft.
+async function listingDraft({ env, admin, params: [id] }) {
+  const cur = await loadTenancy(env, id);
+  notEnded(cur);
+  if (cur.kind !== "fixed") fail(409, "Only a fixed term is renewed");
+  const [{ results: rows }, { results: [origin] } = { results: [] }] = await env.DB.batch(renewalReads(env, id));
+  const r = renewalOf(cur, rows, origin);
+  if (r.draft) return json({ id: r.draft });
+  if (![r.landlord, r.tenant].some(x => x?.answer === "end")) fail(409, "Record first that the tenancy ends");
+  if (!r.origin) fail(409, "This tenancy did not start from a listing, so there is none to copy");
+  const src = await loadListing(env, r.origin), economics = await structuredEconomicsReady(env);
+  const body = Object.fromEntries([...LISTING_FIELDS, ...(economics ? ECONOMIC_FIELDS : [])]
+    .filter(k => k !== "featured_rank" && src[k] != null).map(k => [k, src[k]]));
+  const made = await createListing(env, admin, { ...body, operation: "rent", availability: "to_let", available_on: cur.end_on });
+  if (made.status !== 201) return made;
+  const { id: listing } = await made.json(), key = listing.replace("-", ""), ts = now();
+  await listingBatch(env, listing, { actor: admin, source: "media", action: "cover_changed" }, [
+    env.DB.prepare(`INSERT INTO media (id, listing_id, r2_key, thumb_key, origin, kind, label, public, position, content_type,
+      width, height, bytes, source_url, provider, rights_status, created_at, created_by)
+      SELECT ?1 || id, ?2, r2_key, thumb_key, origin, kind, label, public, position, content_type, width, height, bytes,
+      source_url, provider, rights_status, ?3, ?4 FROM media WHERE listing_id = ?5 AND kind <> 'document'`)
+      .bind(key, listing, ts, admin, src.id),
+    env.DB.prepare(`UPDATE listings SET cover_media_id = (SELECT id FROM media WHERE id = ?1 || ?2),
+      updated_at = ${listingClock.replace("?", "?3")}, updated_by = ?4 WHERE id = ?5`).bind(key, src.cover_media_id, ts, admin, listing),
+    rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "renewal.listing_drafted",
+      data: { end_on: cur.end_on, listing_id: listing, from: src.id } }),
+  ]);
+  return json({ id: listing }, 201);
+}
 const ANSWERS = { landlord: ["renew", "rent", "end"], tenant: ["renew", "end"] };
 
 // ADM-14: who answered (landlord or tenant), what (renew; renew at a new rent, the landlord only; or end), on which day
@@ -1047,7 +1092,8 @@ export default [
 ];
 // ADM-09: mounted by server/api.js only with ADM09_ARREARS_READY (migration 0045).
 // ADM-14: mounted by server/api.js only with ADM14_RENEWAL_READY.
-export const renewalRoutes = [["POST", /^\/admin\/tenancies\/(\d+)\/renewal-answer$/, renewalAnswer, true]];
+export const renewalRoutes = [["POST", /^\/admin\/tenancies\/(\d+)\/renewal-answer$/, renewalAnswer, true],
+  ["POST", /^\/admin\/tenancies\/(\d+)\/listing-draft$/, listingDraft, true]];
 export const writeoffRoutes = [
   ["POST", /^\/admin\/tenancies\/(\d+)\/writeoffs$/, writeOff, true],
   ["POST", /^\/admin\/tenancies\/(\d+)\/writeoffs\/([0-9a-f-]{36})\/reverse$/, reverseWriteOff, true],
