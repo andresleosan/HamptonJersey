@@ -3767,7 +3767,7 @@
       "preferredSlot": "vps",
       "priority": 197,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
