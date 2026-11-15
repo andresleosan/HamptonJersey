@@ -171,13 +171,16 @@ async function list({ request, env }) {
        found, shortlisted,${waiting ? " in_process," : ""} expires_on, retention_review, archived_at, last_contact_at, gone_quiet FROM listed ${workWhere} ORDER BY created_at ${dir}, id ${dir}`)
     .bind(today, today, cutoff, ...args, ...(queue ? [queue] : [])).all();
   };
+  // AGE-12 or enquiries switched on before their migration: the list without AGE-12's part, then without both.
   let waiting = waitingSql, results;
-  try { ({ results } = await read(waiting)); } catch (e) {
-    // Enquiries switched on before their migration: the list as it is without them.
-    if (!waiting || !/no such table/.test(e?.message ?? "")) throw e;
-    if (workLabel === "in_process") fail(400, "Invalid work label");
-    ({ results } = await read(waiting = null));
+  for (const next of [waitingSearches(env, false), null]) {
+    try { ({ results } = await read(waiting)); break; } catch (e) {
+      if (!waiting || !/no such table/.test(e?.message ?? "")) throw e;
+      waiting = next === waiting ? null : next;
+      if (!waiting && workLabel === "in_process") fail(400, "Invalid work label");
+    }
   }
+  if (!results) ({ results } = await read(waiting));
   // SAP-02: per search, the homes a person confirmed as available, those of them still proposable and those
   // confirmed not available, in one read for the whole list.
   const counts = counted ? await candidateCounts(env) : null;

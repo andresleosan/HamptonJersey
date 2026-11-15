@@ -63,24 +63,28 @@ async function redeem({ request, env }) {
 }
 
 // The homes of this link only, in the order chosen, with their suitable photos (files() of AGE-10) and the answer given.
+// A home no longer offered (archived, let, sold) shows nothing of itself: listing null and no photos.
 async function options({ env, grant }) {
   const homes = (await env.DB.prepare(`SELECT o.match_id, o.choice, o.answered_at, l.id, l.title, l.location, l.bedrooms, l.bathrooms,
       l.operation, l.sale_price, l.rent, l.rent_period, l.currency, l.summary, ${OFFERED} AS offered
     FROM presentation_options o JOIN listings l ON l.id = o.listing_id WHERE o.grant_id = ? ORDER BY o.position`).bind(grant.id).all()).results;
-  const photos = await Promise.all(homes.map(h => files(env, h.id)));
+  const photos = await Promise.all(homes.map(h => (h.offered ? files(env, h.id) : { files: [] })));
   return json({ options: homes.map(({ match_id, choice, answered_at, offered, ...listing }, i) => ({ match_id, choice, answered_at,
-    offered: Boolean(offered), listing, photos: photos[i].files.filter(f => f.decision?.status === "private_approved")
+    offered: Boolean(offered), listing: offered ? listing : null, photos: photos[i].files.filter(f => f.decision?.status === "private_approved")
       .map(f => ({ id: f.asset_id, label: f.label })) })) });
 }
 
-// One photo of a home of this link, while files() says it is suitable and storage still holds the file it was checked as.
+// One photo of a home of this link still offered, while files() says it is suitable and storage still holds the file it
+// was checked as. Only JPEG, PNG or WebP: never an SVG, which can carry script.
+const TYPES = ["image/jpeg", "image/png", "image/webp"];
 async function photo({ env, grant, params: [id] }) {
   const a = await env.DB.prepare(`SELECT a.blob_key, c.listing_id FROM property_capture_assets a JOIN property_captures c ON c.id = a.capture_id
-    WHERE a.id = ? AND EXISTS (SELECT 1 FROM presentation_options o WHERE o.grant_id = ? AND o.listing_id = c.listing_id)`)
+    WHERE a.id = ? AND EXISTS (SELECT 1 FROM presentation_options o JOIN listings l ON l.id = o.listing_id
+      WHERE o.grant_id = ? AND o.listing_id = c.listing_id AND ${OFFERED})`)
     .bind(Number(id), grant.id).first();
   const f = a && (await files(env, a.listing_id)).files.find(x => x.asset_id === Number(id) && x.decision?.status === "private_approved");
   const obj = f && await env.MEDIA.get(a.blob_key), type = obj?.httpMetadata?.contentType ?? "";
-  if (!obj || obj.etag !== f.etag || obj.size !== f.bytes || !type.startsWith("image/")) {
+  if (!obj || obj.etag !== f.etag || obj.size !== f.bytes || !TYPES.includes(type)) {
     if (obj?.body instanceof ReadableStream) await obj.body.cancel();
     fail(404, "Photo not available");
   }

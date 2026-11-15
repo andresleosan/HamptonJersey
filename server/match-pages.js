@@ -30,9 +30,9 @@ const OPEN_ENQUIRY_MATCHES=`SELECT cm.match_id FROM consultation_matches cm JOIN
   WHERE c.status NOT IN ('answered','cancelled')`;
 const FROM=`FROM matches m JOIN listings l ON l.id=m.listing_id JOIN applicants a ON a.id=m.applicant_id`;
 // EST-04, waiting for the client (AGE-12, migration 0086): on a link a person recorded as sent, not revoked, with no
-// answer yet on that home. A dormant link waits for nobody.
+// answer yet on that home, still offered. A dormant link waits for nobody. From matches m JOIN listings l.
 const presentationsReady=env=>env?.AGE12_PRESENTATIONS_READY==='1';
-const WAITING_CLIENT=`m.status<>'rejected' AND m.id IN (SELECT o.match_id FROM presentation_options o JOIN presentation_grants g ON g.id=o.grant_id
+const WAITING_CLIENT=`m.status<>'rejected' AND l.archived_at IS NULL AND l.availability IN ('for_sale','to_let','lease') AND m.id IN (SELECT o.match_id FROM presentation_options o JOIN presentation_grants g ON g.id=o.grant_id
   WHERE o.choice IS NULL AND g.sent_at IS NOT NULL AND g.revoked_at IS NULL
    AND (g.expires_at IS NULL OR g.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')))`;
 // Confirmed: a person's confirmation in force says available. Available: confirmed and still proposable. Confirmed
@@ -45,9 +45,10 @@ const ONLY={
  waiting_applicant:[presentationsReady,WAITING_CLIENT],
 };
 // The searches with a home waiting for the agency or for the client, for the list's own query: read once, from the
-// open enquiries and the links sent. null: both are switched off.
-export const waitingSearches=env=>[enquiriesReady(env)&&`SELECT m.applicant_id ${FROM} WHERE m.id IN (${OPEN_ENQUIRY_MATCHES}) AND ${WAITING}`,
- presentationsReady(env)&&`SELECT m.applicant_id FROM matches m WHERE ${WAITING_CLIENT}`].filter(Boolean).join(' UNION ')||null;
+// open enquiries and the links sent. null: both are switched off. client false: without AGE-12's part (its migration
+// missing), so the list keeps the enquiries'.
+export const waitingSearches=(env,client=true)=>[enquiriesReady(env)&&`SELECT m.applicant_id ${FROM} WHERE m.id IN (${OPEN_ENQUIRY_MATCHES}) AND ${WAITING}`,
+ client&&presentationsReady(env)&&`SELECT m.applicant_id ${FROM} WHERE ${WAITING_CLIENT}`].filter(Boolean).join(' UNION ')||null;
 // counts(id) => { confirmed, available, unavailable } and, for one search, waiting_agent while enquiries are on and
 // waiting_applicant while AGE-12 is. One
 // read of each for every search (or the one given), from the listings with a confirmation and the open enquiries;
@@ -64,7 +65,7 @@ export async function candidateCounts(env,applicantId=null){
    .map(k=>`COUNT(CASE WHEN ${ONLY[k][1]} THEN 1 END) AS ${k}`)} ${FROM} WHERE m.listing_id IN (SELECT listing_id FROM availability_confirmations)`),
   read(applicantId!==null&&enquiriesReady(env),`SELECT m.applicant_id AS id,COUNT(*) AS waiting_agent ${FROM}
    WHERE m.id IN (${OPEN_ENQUIRY_MATCHES}) AND ${WAITING}`),
-  read(applicantId!==null&&presentationsReady(env),`SELECT m.applicant_id AS id,COUNT(*) AS waiting_applicant FROM matches m WHERE ${WAITING_CLIENT}`)]);
+  read(applicantId!==null&&presentationsReady(env),`SELECT m.applicant_id AS id,COUNT(*) AS waiting_applicant ${FROM} WHERE ${WAITING_CLIENT}`)]);
  return id=>{
   const {confirmed:c=0,available=0,unavailable=0}=confirmed?.find(r=>r.id===id)??{};
   return {confirmed:c,available,unavailable,...(waiting&&{waiting_agent:waiting.find(r=>r.id===id)?.waiting_agent??0}),
@@ -94,9 +95,10 @@ export async function pageMatches(env,applicantId,{status,after=null,only=null})
  if(!['found','shortlisted','rejected'].includes(status))fail(400,'Choose Found, Shortlisted or Rejected.');
  if(only!==null&&!(countsReady(env)&&Object.hasOwn(ONLY,only)))fail(400,'Invalid match page options');
  const c=after===null?null:decode(after,applicantId,status);
- const narrowed=only===null?'':ONLY[only][0](env)?ONLY[only][1]:'0';
+ // A rule switched on before its migration reads as switched off: nothing matches.
+ const rule=only===null?'':ONLY[only][0](env)?ONLY[only][1]:'0';
  // Reading metadata, counts and rows in a single batch prevents a revision from being mixed with another snapshot.
- const [meta,totals,page]=await env.DB.batch([
+ const read=narrowed=>env.DB.batch([
   env.DB.prepare('SELECT matches_revision,match_ranking_version FROM applicants WHERE id=?').bind(applicantId),
   env.DB.prepare(narrowed?`SELECT m.status,COUNT(*) AS n ${FROM} WHERE m.applicant_id=? AND (${narrowed}) GROUP BY m.status`:MATCH_COUNTS_SQL).bind(applicantId),
   env.DB.prepare(`${MATCHES_SQL} WHERE m.applicant_id=? AND m.status=? ${narrowed&&`AND (${narrowed}) `}${c?`AND
@@ -106,6 +108,7 @@ export async function pageMatches(env,applicantId,{status,after=null,only=null})
     (m.requirements_rank=? AND m.score=? AND m.area_preference_rank=? AND m.listing_id COLLATE BINARY=? AND m.id>?))`:''}
    ${MATCH_ORDER} LIMIT 26`).bind(applicantId,status,...(c?[c.rank,c.rank,c.score,c.rank,c.score,c.areaRank,c.rank,c.score,c.areaRank,c.listingId,c.rank,c.score,c.areaRank,c.listingId,c.id]:[])),
  ]);
+ const [meta,totals,page]=await read(rule).catch(e=>{if(rule&&rule!=='0'&&missing(e))return read('0');throw e;});
  const a=meta.results[0];if(!a)fail(404,'Search not found');
  if(c&&c.revision!==a.matches_revision)fail(409,'Matches changed. Start again from the first page.');
  const rows=page.results.slice(0,25),last=rows.at(-1);

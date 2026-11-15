@@ -136,7 +136,8 @@ test("the client sees only the homes of their link and AGE-10's suitable photos,
   assert.equal((await photo(asset("P1"))).status, 404);
   // Without a session, or with a forged one, nothing.
   assert.equal((await call(env, "GET", `/presentation/photos/${asset("P3")}`)).status, 404);
-  assert.equal((await as(env, cookie.replace(/.$/, c => (c === "A" ? "B" : "A")), "GET", "/presentation/options")).status, 404);
+  // A signature changed in its first character (the last one's low bits are padding, which decoding ignores).
+  assert.equal((await as(env, cookie.replace(/\.(\d+)\.(.)/, (_, exp, c) => `.${exp}.${c === "A" ? "B" : "A"}`), "GET", "/presentation/options")).status, 404);
   assert.equal((await as(env, cookie.replace(/^__Host-hp=\d+/, "__Host-hp=2"), "GET", "/presentation/options")).status, 404);
 });
 
@@ -201,4 +202,44 @@ test("EST-04: In process counts a home presented and waiting for the client's an
   assert.equal(list.applicants.find(x => x.id === a).in_process, 1);
   ok(await as(env, cookie, "POST", "/presentation/respond", { match_id: matchOf(env, a, HOME), choice: "interested" }));
   assert.equal((await waiting()).counts.shortlisted, 0);
+});
+
+test("switched on before migration 0086, the list and the match pages answer as switched off, enquiries' In process kept", async () => {
+  const answers = [];
+  for (const [ready, schema] of [[false, undefined], [true, { through: 85 }]]) {
+    const { env, a } = await world({ ready, schema });
+    env.AGE03_ENQUIRIES_READY = "1";
+    const agency = ok(await req(env, "POST", "/admin/advertisers", { name: "Fixture Agency", kind: "agency", channels: [], source_ids: [],
+      listing_ids: [HOME], commission: "", photo_permission: "", contacts: [{ name: "Desk", email: "desk@agency.example.test", phones: [] }] }), 201).advertiser.id;
+    ok(await req(env, "POST", `/admin/matches/${matchOf(env, a, HOME)}/consultation`, { operation_id: crypto.randomUUID(), kind: "general",
+      advertiser_id: agency }), 201);
+    const list = ok(await req(env, "GET", "/admin/applicants")), page = ok(await req(env, "GET",
+      `/admin/applicants/${a}/matches?status=shortlisted&only=waiting_applicant`));
+    answers.push({ in_process: list.in_process, mine: list.applicants.find(x => x.id === a).in_process, counts: page.counts, summary: page.summary,
+      shown: page.matches.length, filtered: ok(await req(env, "GET", "/admin/applicants?work_label=in_process")).applicants.map(x => x.id) });
+  }
+  assert.equal(answers[0].mine, 1);
+  assert.deepEqual(answers[1], answers[0]);
+});
+
+test("a home no longer offered stops waiting for the client and is shown only as no longer available, without its photos", async () => {
+  const { env, a, asset } = await world();
+  const cookie = await session(env, tokenOf((await sentLink(env, a)).link));
+  const waiting = async () => ok(await req(env, "GET", `/admin/applicants/${a}/matches?status=shortlisted&only=waiting_applicant`)).counts.shortlisted;
+  assert.equal(await waiting(), 1);
+  run(env, "UPDATE listings SET archived_at = ? WHERE id = ?", "2026-11-14T10:00:00.000Z", HOME);
+  assert.equal(await waiting(), 0);
+  assert.equal(ok(await req(env, "GET", "/admin/applicants")).applicants.find(x => x.id === a).in_process, 0);
+  const [o] = ok(await as(env, cookie, "GET", "/presentation/options")).options;
+  assert.deepEqual(o, { match_id: matchOf(env, a, HOME), choice: null, answered_at: null, offered: false, listing: null, photos: [] });
+  assert.equal((await as(env, cookie, "GET", `/presentation/photos/${asset("P1")}`)).status, 404);
+});
+
+test("only JPEG, PNG and WebP photos are served, never SVG", async () => {
+  const { env, a, asset } = await world();
+  const cookie = await session(env, tokenOf((await sentLink(env, a)).link));
+  for (const [type, status] of [["image/webp", 200], ["image/svg+xml", 404], ["image/gif", 404], ["image/jpeg", 200]]) {
+    env.MEDIA.store.set("uploads/P1.png", { body: PNG, type });
+    assert.equal((await as(env, cookie, "GET", `/presentation/photos/${asset("P1")}`)).status, status, type);
+  }
 });

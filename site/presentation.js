@@ -18,7 +18,9 @@ function el(tag, props = {}, ...children) {
   return node;
 }
 const status = text => app.replaceChildren(el("h1", { textContent: "Your selection" }), el("p", { role: "status", textContent: text }));
-const money = (amount, currency) => new Intl.NumberFormat("en-GB", { style: "currency", currency: currency || "GBP", maximumFractionDigits: 0 }).format(amount);
+// A currency that is not an ISO code shows the number alone.
+const money = (amount, currency = "GBP") => new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0,
+  ...(/^[A-Z]{3}$/.test(currency ?? "GBP") && { style: "currency", currency: currency ?? "GBP" }) }).format(amount);
 function price(l) {
   if (l.operation === "rent" && l.rent != null) return `${money(l.rent, l.currency)}${l.rent_period ? ` per ${l.rent_period}` : ""}`;
   return l.sale_price != null ? money(l.sale_price, l.currency) : null;
@@ -59,6 +61,8 @@ function render(options) {
       + "your search details stay as they are." : "There are no homes in this selection." }));
   if (!options.length) return;
   app.append(el("ul", { className: "homes" }, ...options.map(o => {
+    // A home no longer offered: the server sends nothing of it.
+    if (!o.listing) return el("li", { className: "home" }, el("p", { className: "facts", textContent: "This home is no longer available." }));
     const l = o.listing, item = el("li", { className: "home" });
     item.setAttribute("aria-labelledby", `h${o.match_id}`);
     // A photo withdrawn or changed since the page loaded is refused by the server: it just disappears.
@@ -68,7 +72,7 @@ function render(options) {
     el("h2", { id: `h${o.match_id}`, textContent: l.title || "Home" }), el("p", { className: "facts", textContent: facts(l) }),
     price(l) && el("p", { className: "price", textContent: price(l) }), l.summary && el("p", { textContent: l.summary }),
     o.choice ? el("p", { className: "answered", textContent: `You answered: ${CHOICES.find(c => c[0] === o.choice)[1]}.` })
-      : !o.offered ? el("p", { className: "facts", textContent: "This home is no longer available." }) : answerForm(o, item)].filter(Boolean));
+      : answerForm(o, item)].filter(Boolean));
     return item;
   })));
 }

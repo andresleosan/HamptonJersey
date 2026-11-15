@@ -120,6 +120,12 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    await says(home,'kept',["You answered: I'd like to view it."]);
    assert.equal(await home.getByRole('button',{name:'Send answer'}).count(),0);
    if(shots)await client.screenshot({path:join(shots,`age12-answered-${width}.png`),fullPage:true});
+   // Archived since: nothing of the home is shown, not even its photo.
+   d1(`UPDATE listings SET archived_at='2026-11-14T10:00:00.000Z' WHERE id='${lid}';`);
+   await client.reload();
+   await says(home,'archived',['This home is no longer available.']);
+   assert.equal((await text(home)).includes(title),false);assert.equal(await home.locator('img').count(),0);
+   d1(`UPDATE listings SET archived_at=NULL WHERE id='${lid}';`);
 
    // The team sees the answer, then revokes the link: the client's next read is refused.
    await page.reload();

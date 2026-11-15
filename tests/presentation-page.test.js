@@ -18,6 +18,16 @@ test("no third party, no storage, no HTML from data, no application form", () =>
   assert.match(html, /<meta name="robots" content="noindex, nofollow">/);
 });
 
+test("a price in a currency that is not an ISO code shows the number alone instead of breaking the page", () => {
+  const code = js.slice(js.indexOf("const money"), js.indexOf("const facts"));
+  const price = new Function(`${code}; return price;`)();
+  assert.equal(price({ operation: "sale", sale_price: 900000, currency: "GBP" }), "£900,000");
+  assert.equal(price({ operation: "rent", rent: 1800, rent_period: "month", currency: "EUR" }), "€1,800 per month");
+  assert.equal(price({ operation: "sale", sale_price: 900000, currency: "pounds" }), "900,000");
+  assert.equal(price({ operation: "sale", sale_price: 900000, currency: "XX" }), "900,000");
+  assert.equal(price({ operation: "sale", sale_price: 900000, currency: null }), "£900,000");
+});
+
 test("_headers keeps the page out of caches and search engines, with no referrer", () => {
   const rule = readFileSync(join(__dirname, "../site/_headers"), "utf8").split(/^(?=\S)/m).find(b => b.startsWith("/presentation\n"));
   for (const line of ["! Referrer-Policy", "Referrer-Policy: no-referrer", "Cache-Control: no-store", "X-Robots-Tag: noindex"])
