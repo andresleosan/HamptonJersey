@@ -124,3 +124,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [EST-10] Retirar la etiqueta única `queue` y su parámetro: con EST-04 encendida deja «No matches» a quien solo tiene Shortlisted, y ninguna pantalla la muestra · 15-nov-2026
 - [SAP-02] La columna Matches se parte en tres líneas a 1280; exportar desde `property-facts.js` la regla SQL de confirmación vigente (hoy `IN_FORCE` en `match-pages.js` la repite); leer `summary` una vez por carga de pestaña · 15-nov-2026
 - [AGE-03] No ofrecer «Prepare enquiry» en una tarjeta aprobada cuya ficha está confirmada no disponible (el servidor responde 409) · 15-nov-2026
+- [EST-04] Una vez preparada una consulta, «In process» y «Waiting for agency» no se apagan hasta que AGE-06 permita registrar la respuesta o cancelar; un match con una general contestada y una aclaración abierta cuenta como espera · revisión independiente 15-nov · 15-nov-2026
+- [SAP-02] Encendido, la columna Matches deja de mostrar cuántos hay por revisar y cuántos shortlisted (quedan como etiquetas sin número); la lectura agregada evalúa la regla de vigencia hasta tres veces por match (200 ms con 24.000 matches en local) · revisión independiente 15-nov · 15-nov-2026
+- [SPR-08] Una nota con texto NUL devuelve 500 en vez de 400; un PUT con el mismo texto crea una versión idéntica · revisión independiente 15-nov · 15-nov-2026
