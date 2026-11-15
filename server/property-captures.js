@@ -8,12 +8,10 @@
 // Off, or before the migration, a confirmation captures nothing and the routes answer as switched off.
 import { json, fail, now } from "./http.js";
 import { futureTaskStatements } from "./notification-events.js";
-import { streamZip } from "./private-zip.js";
 import { PRIVATE_DOCS } from "./listing-documents.js";
 
 export const capturesReady = env => env?.SPR03_CAPTURE_READY === "1" && env?.EST16_AVAILABILITY_READY === "1";
 const missingTable = e => /no such table/.test(e?.message ?? "");
-const ZIP_FILES = 25, ZIP_BYTES = 50 * 1024 * 1024;
 // The property's own fields kept in the capture; the ones still empty are shown as data to complete.
 const FIELDS = ["title", "use", "property_type", "operation", "availability", "country", "location", "road_name", "bedrooms",
   "bathrooms", "tenure", "sale_price", "rent", "rent_period", "premium", "currency", "price_text", "summary", "description", "tour_url"];
@@ -46,34 +44,21 @@ const captureStatements = (env, id, confirmationId, admin, ts) => [env.DB.prepar
       AND COALESCE(substr(m.r2_key, 1, ?), '') <> ?
       AND NOT EXISTS (SELECT 1 FROM property_capture_assets a WHERE a.capture_id = p.id)`).bind(id, ts, PRIVATE_DOCS.length, PRIVATE_DOCS)];
 
-// The CRC-32 and size of a body, from the trailer of the platform's own gzip: no loop over its bytes here.
-async function crcOf(body) {
-  const reader = (body instanceof ReadableStream ? body : new Response(body).body).pipeThrough(new CompressionStream("gzip")).getReader();
-  let tail = new Uint8Array(0);
-  for (let r; !(r = await reader.read()).done;) {
-    const t = new Uint8Array(tail.length + r.value.length);
-    t.set(tail); t.set(r.value, tail.length); tail = t.subarray(Math.max(0, t.length - 8));
-  }
-  const v = new DataView(tail.buffer, tail.byteOffset, 8);
-  return { crc: v.getUint32(0, true), size: v.getUint32(4, true) };
-}
-// What one file is now: stored (with its size, type, etag and CRC), failed (not in storage) or blocked (only a link).
+// What one file is now, from a HEAD (its bytes are never read here): stored with its size, type and etag, failed (not
+// in storage) or blocked (only a link).
 async function inspect(env, a) {
   if (!a.blob_key) return { state: a.source_url ? "blocked" : "failed" };
-  const obj = await env.MEDIA.get(a.blob_key);
-  if (!obj) return { state: "failed" };
-  const { crc, size } = await crcOf(obj.body);
-  if (size !== obj.size % 2 ** 32) return { state: "failed" };
-  return { state: "stored", bytes: obj.size, type: obj.httpMetadata?.contentType ?? null, etag: obj.etag, crc };
+  const head = await env.MEDIA.head(a.blob_key);
+  return head ? { state: "stored", bytes: head.size, type: head.httpMetadata?.contentType ?? null, etag: head.etag } : { state: "failed" };
 }
-// Files checked per request: working out a CRC reads the whole file, so the rest wait for the next request or the clock.
-const BATCH = 5;
+// HEADs per request at most: the free plan allows 50 subrequests, so the rest wait for the next request or the clock.
+export const HEADS = 40;
 
 // After a confirmation is recorded (server/availability-confirmations.js: listingId, admin and current, the
 // confirmation in force with its id), or for one capture checked again (captureId, recheck): captures the property if
-// the one in force says available, closes its open capture tasks if it says not available, checks up to BATCH files
+// the one in force says available, closes its open capture tasks if it says not available, checks up to HEADS files
 // still pending and writes each capture's state: queued while files wait, then complete when every one is stored,
-// partial otherwise (none at all is partial too). Checked again, a stored file that is gone or changed is checked anew.
+// partial otherwise (none at all is partial too). Checked again, every file but a link-only one is checked anew.
 // A change writes one event to the property's history and opens or updates its one Inbox task. Running it again
 // changes nothing. Before migration 0084 it does nothing.
 export async function settleCaptures(env, { listingId, captureId, admin, current, recheck = false }) {
@@ -84,23 +69,19 @@ export async function settleCaptures(env, { listingId, captureId, admin, current
     if (current?.status === "unavailable") await env.DB.prepare(`UPDATE notifications SET resolved_at = ?, resolved_by = 'system',
       closed_by_source = 1, task_actor = 'system', task_action = 'source_resolved' WHERE task_key LIKE ? AND resolved_at IS NULL`)
       .bind(ts, `work:capture:listing:${listingId}:%`).run();
-    if (recheck) {
-      const stored = (await env.DB.prepare(`SELECT a.id, a.blob_key, a.etag FROM property_capture_assets a JOIN property_captures p
-        ON p.id = a.capture_id WHERE ${where} AND a.state = 'stored'`).bind(arg).all()).results;
-      const heads = await Promise.all(stored.map(a => env.MEDIA.head(a.blob_key)));
-      await env.DB.batch([env.DB.prepare(`UPDATE property_capture_assets SET state = 'pending' WHERE capture_id IN
-          (SELECT p.id FROM property_captures p WHERE ${where}) AND state = 'failed'`).bind(arg),
-        ...stored.filter((a, i) => heads[i]?.etag !== a.etag).map(a =>
-          env.DB.prepare("UPDATE property_capture_assets SET state = 'pending' WHERE id = ? AND state = 'stored'").bind(a.id))]);
-    }
+    // A check starts over only once the previous one has finished; until then it goes on with the files still waiting.
+    if (recheck) await env.DB.prepare(`UPDATE property_capture_assets SET state = 'pending' WHERE capture_id IN
+      (SELECT p.id FROM property_captures p WHERE ${where}) AND state IN ('stored', 'failed') AND NOT EXISTS (SELECT 1
+      FROM property_capture_assets w WHERE w.capture_id = property_capture_assets.capture_id AND w.state = 'pending')`).bind(arg).run();
   } catch (e) { if (missingTable(e)) return; throw e; }
-  const pending = (await env.DB.prepare(`SELECT a.id, a.blob_key, a.source_url FROM property_capture_assets a
-    JOIN property_captures p ON p.id = a.capture_id WHERE ${where} AND a.state = 'pending' ORDER BY a.id LIMIT ${BATCH}`).bind(arg).all()).results;
-  const checked = [];
-  for (const a of pending) checked.push({ id: a.id, bytes: null, type: null, etag: null, crc: null, ...await inspect(env, a) });
-  if (checked.length) await env.DB.batch(checked.map(c => env.DB.prepare(`UPDATE property_capture_assets SET state = ?, bytes = ?,
-    content_type = ?, etag = ?, crc32 = ?, attempts = attempts + 1, checked_at = ? WHERE id = ? AND state = 'pending'`)
-    .bind(c.state, c.bytes, c.type, c.etag, c.crc, ts, c.id)));
+  const pending = (await env.DB.prepare(`SELECT a.id, a.capture_id, a.blob_key, a.source_url FROM property_capture_assets a
+    JOIN property_captures p ON p.id = a.capture_id WHERE ${where} AND a.state = 'pending' ORDER BY a.id LIMIT ${HEADS}`).bind(arg).all()).results;
+  const checked = await Promise.all(pending.map(async a => ({ id: a.id, bytes: null, type: null, etag: null, ...await inspect(env, a) })));
+  if (checked.length) await env.DB.batch([...checked.map(c => env.DB.prepare(`UPDATE property_capture_assets SET state = ?, bytes = ?,
+    content_type = ?, etag = ?, attempts = attempts + 1, checked_at = ? WHERE id = ? AND state = 'pending'`)
+    .bind(c.state, c.bytes, c.type, c.etag, ts, c.id)),
+    env.DB.prepare(`UPDATE property_captures SET checked_at = ? WHERE id IN (SELECT value FROM json_each(?))`)
+      .bind(ts, JSON.stringify([...new Set(pending.map(a => a.capture_id))]))]);
   const captures = (await env.DB.prepare(`SELECT p.id, p.listing_id, p.state, p.files_stored, COUNT(a.id) AS files,
       COUNT(CASE WHEN a.state = 'stored' THEN 1 END) AS stored, COUNT(CASE WHEN a.state = 'pending' THEN 1 END) AS waiting
     FROM property_captures p LEFT JOIN property_capture_assets a ON a.capture_id = p.id WHERE ${where} GROUP BY p.id`).bind(arg).all()).results;
@@ -122,32 +103,29 @@ export async function settleCaptures(env, { listingId, captureId, admin, current
     ]);
   }
 }
-// For the clock (server/jobs.js): one capture still waiting for its files, BATCH files per tick.
+// For the clock (server/jobs.js): one capture still waiting for its files, HEADS files per tick. Switched off it reads
+// nothing; it never throws, so the clock's other work goes on.
 export async function settleQueuedCaptures(env) {
   if (!capturesReady(env)) return;
-  let p;
-  try { p = await env.DB.prepare("SELECT id FROM property_captures WHERE state = 'queued' ORDER BY id LIMIT 1").first(); }
-  catch (e) { if (missingTable(e)) return; throw e; }
-  if (p) await settleCaptures(env, { captureId: p.id });
+  try {
+    const p = await env.DB.prepare("SELECT id FROM property_captures WHERE state = 'queued' ORDER BY id LIMIT 1").first();
+    if (p) await settleCaptures(env, { captureId: p.id });
+  } catch (e) { if (!missingTable(e)) console.error("SPR-03 capture clock", e?.message); }
 }
 
 const PROBLEM = { failed: "The file was not found in storage.", pending: "Still to check: use Check files again.",
   blocked: "Only a link to the source: the file was never stored here, and downloading it needs that source's permission.",
   gone: "The file is no longer in storage, or changed since it was checked: check files again." };
-// The capture with its files. Every stored file is looked up again (a HEAD each): one deleted or changed since it was
-// checked is shown failed and the capture partial, so nothing read from here says complete when a file is gone.
+// The capture with its files as last checked (checked_at): reading it looks nothing up in storage.
 async function manifest(env, p) {
   const rows = (await env.DB.prepare(`SELECT id, role, position, label, state, content_type, bytes, source_url, checked_at, blob_key,
-    etag, crc32 FROM property_capture_assets WHERE capture_id = ? ORDER BY position, id`).bind(p.id).all()).results;
-  const heads = await Promise.all(rows.map(a => (a.state === "stored" ? env.MEDIA.head(a.blob_key) : null)));
-  const assets = rows.map((a, i) => {
-    const gone = a.state === "stored" && heads[i]?.etag !== a.etag, state = gone ? "failed" : a.state;
-    return { ...a, n: i + 1, state, ...((gone || PROBLEM[state]) && { problem: PROBLEM[gone ? "gone" : state] }) };
-  });
-  const data = JSON.parse(p.data), stored = assets.filter(a => a.state === "stored").length;
-  return { id: p.id, state: p.state === "complete" && stored < assets.length ? "partial" : p.state, created_at: p.created_at,
-    created_by: p.created_by, checked_at: p.checked_at, data, missing: NEEDED.filter(f => data.property?.[f] == null || data.property[f] === ""),
-    counts: { files: assets.length, stored, waiting: assets.filter(a => a.state === "pending").length }, assets };
+    etag FROM property_capture_assets WHERE capture_id = ? ORDER BY position, id`).bind(p.id).all()).results;
+  const assets = rows.map((a, i) => ({ ...a, n: i + 1, ...(PROBLEM[a.state] && { problem: PROBLEM[a.state] }) }));
+  const data = JSON.parse(p.data);
+  return { id: p.id, state: p.state, created_at: p.created_at, created_by: p.created_by, checked_at: p.checked_at, data,
+    missing: NEEDED.filter(f => data.property?.[f] == null || data.property[f] === ""),
+    counts: { files: assets.length, stored: assets.filter(a => a.state === "stored").length,
+      waiting: assets.filter(a => a.state === "pending").length }, assets };
 }
 async function capture(env, id) {
   if (!capturesReady(env)) fail(404, "Not found");
@@ -159,7 +137,7 @@ async function capture(env, id) {
 }
 
 // The storage key stays on the server.
-const shown = m => ({ ...m, assets: m.assets.map(({ blob_key, etag, crc32, ...a }) => a) });
+const shown = m => ({ ...m, assets: m.assets.map(({ blob_key, etag, ...a }) => a) });
 
 // The property's latest capture in full, and the earlier ones by date.
 async function list({ env, params: [id] }) {
@@ -172,58 +150,50 @@ async function list({ env, params: [id] }) {
     earlier: rows.slice(1).map(({ id, state, created_at }) => ({ id, state, created_at })) });
 }
 
-// Checks every file again: one not found before and back now is stored, a stored one gone or changed is checked anew,
-// a link-only photo stays blocked.
+// Checks every file again (HEADS at a time; the rest wait and the clock goes on): one back now is stored, one gone is
+// failed, a link-only photo stays blocked.
 async function check({ env, params: [id] }) {
   const m = await capture(env, id);
   await settleCaptures(env, { captureId: m.id, recheck: true });
   return json({ enabled: true, latest: shown(await capture(env, id)) });
 }
 
-const safeName = s => String(s ?? "").replace(/\.[A-Za-z0-9]{2,5}$/, "").replace(/[^A-Za-z0-9 _-]+/g, " ").trim().replace(/\s+/g, "-").slice(0, 60) || "photo";
 const attachment = (name, type) => ({ "content-type": type, "content-disposition": `attachment; filename="${name}"`,
   "cache-control": "no-store", "x-content-type-options": "nosniff" });
 const fileName = (m, a) => `${m.data.property.id}-capture-${m.id}-${a.n}.${EXT[a.content_type] ?? "bin"}`;
 
-// One stored file, as an attachment. Only from this capture's own row: the public media route never serves it.
+// One stored file, as an attachment, only while it is the one checked (same etag and size). Only from this capture's
+// own row: the public media route never serves it. The panel builds its ZIPs from these, in the browser.
 async function file({ env, params: [id, assetId] }) {
   const m = await capture(env, id), a = m.assets.find(x => x.id === Number(assetId) && x.state === "stored");
   const obj = a && await env.MEDIA.get(a.blob_key);
+  if (obj && (obj.etag !== a.etag || obj.size !== a.bytes)) {
+    if (obj.body instanceof ReadableStream) await obj.body.cancel();
+    fail(404, "This file is no longer in storage, or changed since it was checked: check files again");
+  }
   if (!obj) fail(404, "This file is not stored");
   return new Response(obj.body, { headers: attachment(fileName(m, a), a.content_type ?? "application/octet-stream") });
 }
 
-// The stored photos (never floor plans) as one ZIP: all of them, or the ones chosen (?ids=1,2). Each file is opened
-// before answering; one gone or changed since it was checked is left out, and the ZIP then says it is incomplete, in its
-// name and a header, as it does whenever a photo of the capture is not in it. A choice that is not a stored photo, or a
-// ZIP over the limit, is refused, never silently cut.
-async function photos({ request, env, params: [id] }) {
-  const m = await capture(env, id), all = m.assets.filter(a => a.role === "photo");
-  const ids = new URL(request.url).searchParams.get("ids");
-  const chosen = ids ? [...new Set(ids.split(",").map(Number))] : all.filter(a => a.state === "stored").map(a => a.id);
-  const picked = chosen.map(n => all.find(a => a.id === n && a.state === "stored"));
-  if (picked.some(a => !a)) fail(400, "Choose stored photos of this capture only");
-  if (picked.length > ZIP_FILES || picked.reduce((s, a) => s + (a.bytes ?? 0), 0) > ZIP_BYTES)
-    fail(400, `One ZIP holds ${ZIP_FILES} photos and 50 MB at most: choose fewer`);
-  const opened = await Promise.all(picked.map(a => env.MEDIA.get(a.blob_key))), entries = [];
-  for (const [i, a] of picked.entries()) {
-    const obj = opened[i];
-    if (obj && obj.etag === a.etag && obj.size === a.bytes && a.crc32 != null) entries.push({ size: a.bytes, crc: a.crc32, body: obj.body,
-      name: `${String(a.n).padStart(2, "0")}-${safeName(a.label)}.${EXT[a.content_type] ?? "bin"}` });
-    else if (obj?.body instanceof ReadableStream) await obj.body.cancel();
-  }
-  if (!entries.length) fail(404, "No photo of this capture is stored as it was checked: check files again");
-  const complete = entries.length === all.length && m.state === "complete";
-  return new Response(streamZip(entries), { headers: { ...attachment(`${m.data.property.id}-capture-${m.id}-photos${complete ? "" : "-incomplete"}.zip`,
-    "application/zip"), "x-capture-complete": complete ? "1" : "0" } });
+// For the data downloads: complete only when, in this same request, every stored file is found as it was checked (a
+// HEAD each, HEADS at most); otherwise complete is false with the reason.
+async function verified(env, m) {
+  const stored = m.assets.filter(a => a.state === "stored");
+  if (stored.length > HEADS) return { ...m, complete: false, complete_reason: "too many files to verify at once; use Check files again" };
+  const heads = await Promise.all(stored.map(a => env.MEDIA.head(a.blob_key)));
+  const gone = new Set(stored.filter((a, i) => heads[i]?.etag !== a.etag || heads[i]?.size !== a.bytes).map(a => a.id));
+  return { ...m, complete: m.state === "complete" && !gone.size,
+    assets: m.assets.map(a => (gone.has(a.id) ? { ...a, state: "failed", problem: PROBLEM.gone } : a)),
+    ...(m.state !== "complete" ? { complete_reason: "not every file is stored" }
+      : gone.size ? { complete_reason: "a file is no longer in storage, or changed since it was checked; use Check files again" } : {}) };
 }
 
-// The captured data, as it was captured, with each file's state; complete says whether every file is stored.
-const exported = m => ({ capture_id: m.id, captured_at: m.created_at, state: m.state, complete: m.state === "complete",
-  missing_data: m.missing, ...m.data, files: m.assets.map(({ n, role, label, state, content_type, bytes, source_url }) =>
-    ({ n, role, label, state, content_type, bytes, source_url })) });
+// The captured data, as it was captured, with each file's state.
+const exported = m => ({ capture_id: m.id, captured_at: m.created_at, checked_at: m.checked_at, state: m.state, complete: m.complete,
+  ...(m.complete_reason && { complete_reason: m.complete_reason }), missing_data: m.missing, ...m.data,
+  files: m.assets.map(({ n, role, label, state, content_type, bytes, source_url }) => ({ n, role, label, state, content_type, bytes, source_url })) });
 async function dataJson({ env, params: [id] }) {
-  const m = await capture(env, id);
+  const m = await verified(env, await capture(env, id));
   return new Response(JSON.stringify(exported(m), null, 2), { headers: attachment(`${m.data.property.id}-capture-${m.id}.json`, "application/json") });
 }
 
@@ -237,9 +207,10 @@ export function csvTextCell(value) {
 }
 // field,value rows: fixed names from the capture's own structure, never a field a source chose.
 async function dataCsv({ env, params: [id] }) {
-  const m = await capture(env, id), e = exported(m), lines = [["field", "value"]];
+  const m = await verified(env, await capture(env, id)), e = exported(m), lines = [["field", "value"]];
   const add = (field, value) => lines.push([field, value]);
-  add("capture_id", m.id); add("captured_at", e.captured_at); add("state", e.state); add("complete", e.complete ? "yes" : "no");
+  add("capture_id", m.id); add("captured_at", e.captured_at); add("checked_at", e.checked_at); add("state", e.state);
+  add("complete", e.complete ? "yes" : "no"); add("complete_reason", e.complete_reason);
   add("missing_data", e.missing_data.join(" "));
   for (const f of ["id", ...FIELDS, "updated_at"]) add(`property.${f}`, e.property?.[f]);
   for (const [k, v] of Object.entries(e.confirmation ?? {})) add(`confirmation.${k}`, v);
@@ -256,7 +227,6 @@ export default [
   ["GET", new RegExp(`^/admin/listings/${ID}/captures$`), list, true],
   ["POST", new RegExp(`^${CAP}/check$`), check, true],
   ["GET", new RegExp(`^${CAP}/files/(\\d+)$`), file, true],
-  ["GET", new RegExp(`^${CAP}/photos\\.zip$`), photos, true],
   ["GET", new RegExp(`^${CAP}/data\\.json$`), dataJson, true],
   ["GET", new RegExp(`^${CAP}/data\\.csv$`), dataCsv, true],
 ];

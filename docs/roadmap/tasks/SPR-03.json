@@ -6,7 +6,7 @@
   "fase": "F2",
   "estado": "pendiente",
   "responsable": "desarrollo",
-  "hecho": "Construida apagada (SPR03_CAPTURE_READY, migración 0084): una confirmación EST-16 «available», directa o desde la respuesta de AGE-06, captura una sola ficha compartida por confirmación con los datos de la propiedad, la evidencia, sus anuncios (research y anuncio enlazado BUS-07) y una fila por foto o plano con su estado (stored, failed, blocked). Captura complete o partial visible en la ficha (tarjeta Captured record junto a Adverts), con datos por completar, «Check files again» sin duplicados, descargas privadas individuales, selección o ZIP (solo fotos, 25/50 MB) y datos JSON/CSV que se marcan incompletos si falta un archivo. Tarea única «Open property record» en el Inbox (contrato NOT-01, work capture) y evento listing.captured en el historial (EST-18).",
+  "hecho": "Construida apagada (SPR03_CAPTURE_READY, migración 0084): una confirmación EST-16 «available», directa o desde la respuesta de AGE-06, captura una sola ficha compartida por confirmación con los datos de la propiedad, la evidencia, sus anuncios (research y anuncio enlazado BUS-07) y una fila por foto o plano con su estado (stored, failed, blocked). Captura complete o partial visible en la ficha (tarjeta Captured record junto a Adverts), con datos por completar, «Check files again» sin duplicados, descargas privadas individuales, selección o ZIP armado en el navegador (solo fotos, 25/50 MB) y datos JSON/CSV que se marcan incompletos si falta un archivo. Tarea única «Open property record» en el Inbox (contrato NOT-01, work capture) y evento listing.captured en el historial (EST-18).",
   "falta": "Integrar en main, aplicar 0084 y encender SPR03_CAPTURE_READY (aditiva, sin envíos: autorizado por CONTINUIDAD); comprobar el recorrido en producción. Criterio que queda abierto: descargar las fotos de un anuncio de mercado confirmado; BUS-06 no guarda fotos y descargar de una fuente exige su permiso (BUS-19) y un adaptador que dé las URLs. Hasta entonces una foto que es solo un enlace queda «blocked» y la captura, partial.",
   "bloqueo": "",
   "evidencia": [
@@ -15,15 +15,16 @@
     "admin/src/ListingEditor.jsx:25-26",
     "migrations/0001–0015: ninguna crea availability_snapshots",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
-    "server/property-captures.js, server/private-zip.js, migrations/0084_property_captures.sql, admin/src/PropertyCapture.jsx",
     "tests/spr03-capture.e2e.cjs a 1280 y 390 px",
     "Decisión (plan SPR-03, tarea 3): datos en JSON y CSV separados; ZIP solo fotos, sin documentos.",
     "Decisión (spec captura §4, ponytail): los archivos son los que la propiedad ya tiene guardados; una foto solo enlace queda blocked sin descarga externa.",
     "Decisión (plan tarea 4 y AGE-10): corregir se hace en el editor; la captura conserva lo capturado; la aptitud para clientes es de AGE-10.",
-    "tests/server/spr-03-captures.test.mjs (11/11) y tests/server/age-06-responses.test.mjs (13/13, captura por respuesta)",
     "Revisión 15-nov: una foto borrada tras una captura complete ya no da complete en ficha, JSON, CSV ni ZIP; «Check files again» revisa también las stored y baja a partial (prueba spr-03).",
-    "Revisión 15-nov: la captura sale de la confirmación vigente (regla EST-16) y una no disponible posterior cierra sus tareas abiertas; se comprueban 5 archivos por petición o por tic, y los que esperan se ven en el Inbox.",
-    "CPU medida en Node 24 (15-nov): ZIP de 25×2 MiB ≈ 3-4 ms de CPU en caliente (17 ms en frío), sin bucle por byte; el CRC por gzip nativo al comprobar cuesta ≈ 70 ms por archivo de 2 MiB."
+    "server/property-captures.js, migrations/0084_property_captures.sql, admin/src/PropertyCapture.jsx, admin/src/capture-zip.js",
+    "tests/server/spr-03-captures.test.mjs (12/12), tests/spr03-capture-zip.test.js (2/2) y tests/server/age-06-responses.test.mjs (13/13)",
+    "Revisión 15-nov: la captura sale de la confirmación vigente (regla EST-16) y una no disponible posterior cierra sus tareas abiertas.",
+    "Decisión del coordinador (15-nov, plan gratuito de Workers): el servidor no calcula CRC ni arma ZIP; el panel descarga cada archivo y arma el ZIP con CRC-32 en el navegador; la comprobación es solo HEAD (etag y tamaño), 40 como máximo por petición; la ficha no consulta R2 y muestra «checked …»; JSON y CSV solo dicen complete tras comprobar en esa petición (más de 40: complete false con motivo).",
+    "CPU por petición medida en Node con D1 en memoria (cota superior, 15-nov): ficha 0,95 ms; data.json con 25 archivos 0,72 ms; «Check files again» con 40 HEAD 3,4 ms de mediana (máx. 8,1)."
   ],
   "modulo": "M07",
   "deps": [

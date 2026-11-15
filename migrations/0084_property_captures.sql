@@ -19,6 +19,7 @@ CREATE TABLE property_captures (
   files_stored INTEGER CHECK(files_stored IS NULL OR files_stored >= 0),
   created_at TEXT NOT NULL,
   created_by TEXT NOT NULL,
+  -- When its files were last checked: the panel shows the state as of then, without looking in storage.
   checked_at TEXT
 );
 CREATE INDEX property_captures_listing ON property_captures(listing_id, id);
@@ -39,9 +40,8 @@ CREATE TABLE property_capture_assets (
   state TEXT NOT NULL DEFAULT 'pending' CHECK(state IN ('pending','stored','failed','blocked')),
   content_type TEXT,
   bytes INTEGER CHECK(bytes IS NULL OR bytes >= 0),
-  -- The stored file's CRC-32 and storage etag, worked out once when it was checked: the ZIP writes them without reading
-  -- the bytes, and a file whose etag or size changed since is not put in it.
-  crc32 INTEGER CHECK(crc32 IS NULL OR crc32 BETWEEN 0 AND 4294967295),
+  -- The stored file's etag when it was checked (a HEAD, its bytes are never read): a file whose etag or size changed
+  -- since is not downloaded, and the data never say complete for it.
   etag TEXT,
   attempts INTEGER NOT NULL DEFAULT 0,
   checked_at TEXT,
