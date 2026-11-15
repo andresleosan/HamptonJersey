@@ -151,3 +151,9 @@ test("approval: switched on before migration 0089, repairs work as switched off"
   assert.ok(r.approved_at);
   assert.equal(ok(await req(env, "GET", `/admin/rentals/${id}`)).suppliers, undefined);
 });
+
+test("approval: switched on before migration 0089, a repair without a supplier is created as switched off", async () => {
+  const env = { ...makeEnv({ through: 88 }), ADM12_SUPPLIERS_READY: "1" }, id = await rental(env);
+  const r = await repair(env, id, { title: "Leak", urgency: "urgent", quote: 300 });
+  assert.ok(r.id);
+});

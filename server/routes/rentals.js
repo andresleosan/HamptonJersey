@@ -369,7 +369,7 @@ const supplierGuard = (env, value, cur) => value.supplier_id != null && value.su
 const until0089 = handler => async ctx => {
   const copy = ctx.request.clone();
   try { return await handler(ctx); } catch (e) {
-    if (!suppliersReady(ctx.env) || !/no such (column|table)/i.test(String(e?.message))) throw e;
+    if (!suppliersReady(ctx.env) || !/no such (column|table)|has no column named/i.test(String(e?.message))) throw e;
     return handler({ ...ctx, request: copy, env: { ...ctx.env, ADM12_SUPPLIERS_READY: "0" } });
   }
 };
