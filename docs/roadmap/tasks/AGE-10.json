@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "M07 · Reconciliación 7-nov: Preparar fotos aptas para presentación privada: propias o versiones sin marca facilitadas o autorizadas para compartir. Conservar originales, procedencia, permiso y fecha en la ficha interna; si solo hay fotos con marca, tarea para obtener versión adecuada. No eliminar marcas automáticamente ni republicar anuncios ajenos en la web pública por este flujo. Sustituye la condición histórica de ocultar hasta acordar comisión; esta no bloquea la visita. Depende de: SPR-03, AGE-04. Aceptación: Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura.",
+  "falta": "M07 · Reconciliación 7-nov: Preparar fotos aptas para presentación privada: propias o versiones sin marca facilitadas o autorizadas para compartir. Conservar originales, procedencia, permiso y fecha en la ficha interna; si solo hay fotos con marca, tarea para obtener versión adecuada. No eliminar marcas automáticamente ni republicar anuncios ajenos en la web pública por este flujo. Sustituye la condición histórica de ocultar hasta acordar comisión; esta no bloquea la visita. Depende de: SPR-03, AGE-04. Aceptación: Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura. Traído de SPR-08 (15-nov): Adverts enlaza a cada anuncio pero no muestra ni guarda sus fotografías; el permiso y la captura de imágenes de anuncios ajenos siguen aquí.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297",
@@ -46,5 +46,6 @@
     "advertisers-directory",
     "private-presentation"
   ],
-  "nextStep": "Gestionar originales, permiso e imágenes aptas para presentación privada sin quitar marcas automáticamente."
+  "nextStep": "Gestionar originales, permiso e imágenes aptas para presentación privada sin quitar marcas automáticamente.",
+  "actualizado": "2026-11-15"
 }
