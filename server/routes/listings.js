@@ -21,6 +21,7 @@ import { documentsReady, reconcileDocuments } from '../listing-documents.js';
 import noteRoutes, { sectionsOn } from '../property-notes.js';
 import provenanceRoutes, { provenanceReady, listProvenance } from '../listing-provenance.js';
 import captureRoutes from '../property-captures.js';
+import privateMediaRoutes from '../private-media.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -572,4 +573,5 @@ export default [
   ...noteRoutes, // SPR-08: they answer 404 until SPR08_SECTIONS_READY and migration 0079
   ...provenanceRoutes, // BUS-07: 404 until BUS07_PROVENANCE_READY; linking also needs migration 0081 and BUS-10
   ...captureRoutes, // SPR-03: switched off until SPR03_CAPTURE_READY and migration 0084
+  ...privateMediaRoutes, // AGE-10: switched off until AGE10_PHOTOS_READY and migration 0085
 ];

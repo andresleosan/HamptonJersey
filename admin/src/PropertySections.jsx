@@ -5,6 +5,7 @@ import { stageOf } from "../../server/viewing-cycle.js";
 import { CONFIRMATION } from "./ConfirmedAvailability.jsx";
 import { Listing } from "./MarketInventory.jsx";
 import PropertyCapture from "./PropertyCapture.jsx";
+import PrivateMediaReview from "./PrivateMediaReview.jsx";
 
 // SPR-08: the property's viewings, the team's notes about it and its adverts, for staff only. The editor shows these
 // cards only once the server reports sections_enabled (SPR08_SECTIONS_READY and migration 0079). Viewings and adverts
@@ -221,5 +222,6 @@ export default function PropertySections({ listingId, listing, sources }) {
     <PropertyNotes listingId={listingId} />
     <PropertyAdverts listingId={listingId} listing={listing} sources={sources} />
     <PropertyCapture listingId={listingId} />
+    <PrivateMediaReview listingId={listingId} />
   </>;
 }
