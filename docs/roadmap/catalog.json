@@ -14986,9 +14986,9 @@
       "origen": "plan",
       "fase": "F1-B",
       "estado": "parcial",
-      "responsable": "desarrollo",
+      "responsable": "Luis",
       "hecho": "Construido 15-nov (30560c9), apagado y sin migración. Papelera: Listings muestra, con EST19_TRASH_READY, las fichas cuya confirmación vigente para su operación dice no disponible (EST-15/EST-16), con fecha de entrada (confirmed_at), motivo, alcance y, por ficha, cuántas fotos borraría la purga, cuándo (seis meses naturales en hora Jersey, recorte a fin de mes) y cuántos archivos conserva; leerla no borra nada. Restaurar es registrar con evidencia una confirmación «available» con el formulario de EST-16, que la saca de la papelera. Purga: con EST19_PURGE_READY una persona pulsa «Delete N due photos»; en la web, nunca en el reloj (sin R2), relee los candidatos en el servidor y borra como mucho 20 fotos y sus miniaturas (40 objetos en una llamada a R2), primero, en un lote D1 que vuelve a comprobar todas las protecciones, un evento listing.photos_purged por ficha (ids borrados y fecha de entrada, sin datos personales) y el DELETE … RETURNING de las filas media; después borra en R2 solo las claves devueltas que ninguna fila ni captura usa ya. Si R2 falla quedan archivos huérfanos, anotados en un evento listing.photo_files_left por ficha, nunca un borrado sin comprobar (revisión 15-nov, 283fe46). Solo purga fotos (kind photo) de origen external con archivo propio; conserva planos, documentos, archivos con nombre de documento (regla DOCUMENT_NAME de server/visibility.js), privados PUB-11, fotos propias de Hampton y subidas, la portada, archivos compartidos por otra fila, blobs de capturas SPR-03, fotos con decisión AGE-10 y todo lo de fichas publicadas o con venta en curso, oferta abierta, tenencia activa o cierre de alquiler PUB-16 sin resolver. No toca la ficha, sus confirmaciones, capturas, consultas, visitas, identidad de mercado ni personas.",
-      "falta": "Encender: EST19_TRASH_READY (no borra, autorizado por CONTINUIDAD) y EST19_PURGE_READY, que borra archivos de producción y solo puede encender Luis (CONTINUIDAD, «No autorizado»: borrado de datos reales). Hasta que Luis la encienda y se compruebe un primer lote real, el criterio «al cumplir seis meses se borran solo archivos acordados» no está comprobado en producción. La purga es a petición del equipo, no automática: el reloj no tiene R2 (decisión de la sesión 15-nov).",
+      "falta": "Encender EST19_PURGE_READY (Luis) y comprobar un primer lote real. La papelera (EST19_TRASH_READY=1) ya está encendida desde el 15-nov-2026.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
@@ -15008,7 +15008,8 @@
         "Decisión 15-nov · ficha publicada = uso activo: D10 («sin uso activo»). Venta in_progress, oferta pending/countered, tenencia por tenancy_origins sin ended_on pasado y cierre PUB-16 sin resolver = alquiler o venta en curso (instrucción de la sesión).",
         "Decisión 15-nov · entrada = confirmed_at de la confirmación no disponible vigente; una nueva confirmación no disponible reinicia el plazo (más conservador). Fuente: ficha EST-19 (traído de EST-15).",
         "Decisión 15-nov · retención legal: el plan no fija ninguna para fotos; la de 5 años (V14) es de ventas y contactos y la purga no toca esas filas. Confirmaciones de disponibilidad: se conservan (la purga no borra fichas). BUS-10/BUS-07: la purga no borra market_properties, observaciones ni listing_market_links, así que no aplica retirarlos.",
-        "Revisión independiente 15-nov sin fallos graves; corregidas la carrera lectura/borrado y los documentos con kind photo (283fe46). tests/server/est-19-trash.test.mjs 11/11, photo-purge-policy 4/4, spr-03-captures 12, media-* 83, listing-history 30; tests/est19-trash.e2e.cjs PASS a 1280 y 390."
+        "Revisión independiente 15-nov sin fallos graves; corregidas la carrera lectura/borrado y los documentos con kind photo (283fe46). tests/server/est-19-trash.test.mjs 11/11, photo-purge-policy 4/4, spr-03-captures 12, media-* 83, listing-history 30; tests/est19-trash.e2e.cjs PASS a 1280 y 390.",
+        "15-nov-2026: publicada en 2d319fa (bebb518, 91ac3fe, db063ce); papelera encendida (EST19_TRASH_READY=1, no borra); purga apagada para Luis; npm test 2790/2790; tests/est19-trash.e2e.cjs pasa a 1280 y 390; dos pasadas de revisión independiente sin graves (apagado sin SQL ni R2; deadline() idéntico en 1,5 M de instantes; 13 cambios inyectados entre lectura y lote sin borrado indebido; regla de documentos sin excluir fotos válidas en 95.055 nombres)."
       ],
       "modulo": "M12",
       "deps": [
@@ -15067,14 +15068,14 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "",
+      "externalBlocker": "Luis: decidir si encender EST19_PURGE_READY (borra archivos de producción).",
       "resources": [
         "market-inventory",
         "availability-contract",
         "media-private",
         "jobs-clock"
       ],
-      "nextStep": "Integrar 30560c9 en main y publicar; encender EST19_TRASH_READY y comprobar la lista real; añadir a COLA-LUIS encender EST19_PURGE_READY tras revisar la vista previa de la papelera en producción, y comprobar el primer lote (filas media, objetos R2 y evento listing.photos_purged).",
+      "nextStep": "Cuando Luis encienda EST19_PURGE_READY, comprobar el primer lote real (filas media, objetos R2 y evento listing.photos_purged) y cerrar.",
       "actualizado": "2026-11-15"
     },
     {
@@ -16260,7 +16261,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "New repair y Update en la vivienda: urgencia (Emergency, Urgent, Routine), proveedor, presupuesto, estados hasta Done, aprobación obligatoria por encima del límite del propietario y coste a su liquidación; las emergencias abiertas encabezan Repairs en To do, suman en el contador y crean la tarea urgente «Emergency repair» en Inbox. Construido y apagado (ADM12_SUPPLIERS_READY, migración aditiva 0089): directorio mínimo de proveedores con contacto y estado (Suppliers en Repairs de la vivienda; archivar, nunca borrar), proveedor elegido del directorio que rellena el contratista sin tocar el texto antiguo, y aprobación del propietario anotada a mano por el equipo con importe, dónde consta y fecha; una cotización por encima de lo aprobado u otro proveedor del directorio piden aprobarla otra vez, un coste final por encima anota la nueva aprobación en el mismo paso, corregir el texto del contratista no la retira y una emergencia no se salta el límite. Apagado, las reglas son las de antes (762d5f3).",
-      "falta": "Aplicar 0089 y encender ADM12_SUPPLIERS_READY (aditiva e interruptor sin envíos: autorizados por CONTINUIDAD), y comprobar el recorrido en producción. Queda el componente propio case-access y el formulario limitado para que el inquilino reporte una incidencia (plan Tareas 1 y 3): necesita las capacidades de ADM-18 aplicadas en producción (0046 y 0049, pendientes), una clave privada para los códigos (Luis), el envío del código por correo (AUT-17) y la decisión de Luis de abrir un formulario que recoge datos del público. La clasificación por IA y WhatsApp quedan fuera de esta fase (diseño tp03-lifecycle).",
+      "falta": "case-access y formulario limitado del inquilino (plan Tareas 1 y 3): necesita clave HMAC y decisión de abrir el formulario público (Luis), AUT-17 para enviar el código, y 0046 y 0049 revisadas y aplicadas. Directorio y aprobación manual ya encendidos el 15-nov-2026.",
       "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "admin/src/RentalDialogs.jsx:299-334",
@@ -16276,7 +16277,8 @@
         "Decisión: 0089 no depende de 0045, 0046 ni 0049 (comprobado aplicando todas las migraciones salvo esas tres); el componente case-access sí dependerá de 0046 (capacidades de ADM-18). Fuente: server/case-capabilities.js y plan ADM-18.",
         "Decisión: la aprobación se anota en Awaiting approval → Approved y debe cubrir la cotización o el coste; fuera de ese paso sus datos no se pueden cambiar. Un coste final por encima de lo aprobado que supera el límite pide anotar la nueva aprobación en el mismo paso (no queda atascada ni se borra en silencio). Fuente: plan Tarea 2 «subir el presupuesto por encima de lo aprobado exige otra revisión» y diseño tp03-lifecycle «Cambio de quote/cost que supera aprobado invalida autorización anterior».",
         "Decisión: otro proveedor del directorio retira la aprobación; corregir el texto libre del contratista no. Fuente: plan Tarea 2 (wrong_supplier_approval_not_reusable) y revisión independiente del 15-nov.",
-        "Decisión: apagado, ADM-12 no cambia nada: el guion de 48 peticiones de reparación (scratchpad, diff-off) da respuestas idénticas a 762d5f3. Al retirar o volver a pedir la aprobación se limpian siempre sus cuatro campos; encendido sin 0089 funciona como apagado."
+        "Decisión: apagado, ADM-12 no cambia nada: el guion de 48 peticiones de reparación (scratchpad, diff-off) da respuestas idénticas a 762d5f3. Al retirar o volver a pedir la aprobación se limpian siempre sus cuatro campos; encendido sin 0089 funciona como apagado.",
+        "15-nov-2026: parte manual publicada y encendida (2d319fa; 0089 aplicada tras marcador Time Travel; ADM12_SUPPLIERS_READY=1): directorio de proveedores y aprobación del propietario anotada; dos pasadas de revisión: la primera halló tres graves (dos con el interruptor apagado: coste final y errata del contratista retiraban la aprobación; datos viejos al apagar), corregidos y verificados idénticos a 762d5f3 en 48 peticiones; la segunda, un 500 al crear con el interruptor encendido sin 0089, corregido con prueba. Falta case-access (formulario del inquilino): clave HMAC y decisión de Luis, AUT-17 y migraciones 0046/0049 revisadas."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -16305,7 +16307,7 @@
         "tenant-portal",
         "messages-contract"
       ],
-      "nextStep": "Aplicar 0089, encender ADM12_SUPPLIERS_READY y verificar Suppliers y la aprobación en producción; después construir apagado case-access (plan Tarea 1) cuando 0046/0049 estén revisadas.",
+      "nextStep": "Cuando Luis dé la clave y decida el formulario, revisar 0046/0049 y construir case-access.",
       "actualizado": "2026-11-15"
     },
     {

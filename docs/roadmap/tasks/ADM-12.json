@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "New repair y Update en la vivienda: urgencia (Emergency, Urgent, Routine), proveedor, presupuesto, estados hasta Done, aprobación obligatoria por encima del límite del propietario y coste a su liquidación; las emergencias abiertas encabezan Repairs en To do, suman en el contador y crean la tarea urgente «Emergency repair» en Inbox. Construido y apagado (ADM12_SUPPLIERS_READY, migración aditiva 0089): directorio mínimo de proveedores con contacto y estado (Suppliers en Repairs de la vivienda; archivar, nunca borrar), proveedor elegido del directorio que rellena el contratista sin tocar el texto antiguo, y aprobación del propietario anotada a mano por el equipo con importe, dónde consta y fecha; una cotización por encima de lo aprobado u otro proveedor del directorio piden aprobarla otra vez, un coste final por encima anota la nueva aprobación en el mismo paso, corregir el texto del contratista no la retira y una emergencia no se salta el límite. Apagado, las reglas son las de antes (762d5f3).",
-  "falta": "Aplicar 0089 y encender ADM12_SUPPLIERS_READY (aditiva e interruptor sin envíos: autorizados por CONTINUIDAD), y comprobar el recorrido en producción. Queda el componente propio case-access y el formulario limitado para que el inquilino reporte una incidencia (plan Tareas 1 y 3): necesita las capacidades de ADM-18 aplicadas en producción (0046 y 0049, pendientes), una clave privada para los códigos (Luis), el envío del código por correo (AUT-17) y la decisión de Luis de abrir un formulario que recoge datos del público. La clasificación por IA y WhatsApp quedan fuera de esta fase (diseño tp03-lifecycle).",
+  "falta": "case-access y formulario limitado del inquilino (plan Tareas 1 y 3): necesita clave HMAC y decisión de abrir el formulario público (Luis), AUT-17 para enviar el código, y 0046 y 0049 revisadas y aplicadas. Directorio y aprobación manual ya encendidos el 15-nov-2026.",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "admin/src/RentalDialogs.jsx:299-334",
@@ -23,7 +23,8 @@
     "Decisión: 0089 no depende de 0045, 0046 ni 0049 (comprobado aplicando todas las migraciones salvo esas tres); el componente case-access sí dependerá de 0046 (capacidades de ADM-18). Fuente: server/case-capabilities.js y plan ADM-18.",
     "Decisión: la aprobación se anota en Awaiting approval → Approved y debe cubrir la cotización o el coste; fuera de ese paso sus datos no se pueden cambiar. Un coste final por encima de lo aprobado que supera el límite pide anotar la nueva aprobación en el mismo paso (no queda atascada ni se borra en silencio). Fuente: plan Tarea 2 «subir el presupuesto por encima de lo aprobado exige otra revisión» y diseño tp03-lifecycle «Cambio de quote/cost que supera aprobado invalida autorización anterior».",
     "Decisión: otro proveedor del directorio retira la aprobación; corregir el texto libre del contratista no. Fuente: plan Tarea 2 (wrong_supplier_approval_not_reusable) y revisión independiente del 15-nov.",
-    "Decisión: apagado, ADM-12 no cambia nada: el guion de 48 peticiones de reparación (scratchpad, diff-off) da respuestas idénticas a 762d5f3. Al retirar o volver a pedir la aprobación se limpian siempre sus cuatro campos; encendido sin 0089 funciona como apagado."
+    "Decisión: apagado, ADM-12 no cambia nada: el guion de 48 peticiones de reparación (scratchpad, diff-off) da respuestas idénticas a 762d5f3. Al retirar o volver a pedir la aprobación se limpian siempre sus cuatro campos; encendido sin 0089 funciona como apagado.",
+    "15-nov-2026: parte manual publicada y encendida (2d319fa; 0089 aplicada tras marcador Time Travel; ADM12_SUPPLIERS_READY=1): directorio de proveedores y aprobación del propietario anotada; dos pasadas de revisión: la primera halló tres graves (dos con el interruptor apagado: coste final y errata del contratista retiraban la aprobación; datos viejos al apagar), corregidos y verificados idénticos a 762d5f3 en 48 peticiones; la segunda, un 500 al crear con el interruptor encendido sin 0089, corregido con prueba. Falta case-access (formulario del inquilino): clave HMAC y decisión de Luis, AUT-17 y migraciones 0046/0049 revisadas."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -52,6 +53,6 @@
     "tenant-portal",
     "messages-contract"
   ],
-  "nextStep": "Aplicar 0089, encender ADM12_SUPPLIERS_READY y verificar Suppliers y la aprobación en producción; después construir apagado case-access (plan Tarea 1) cuando 0046/0049 estén revisadas.",
+  "nextStep": "Cuando Luis dé la clave y decida el formulario, revisar 0046/0049 y construir case-access.",
   "actualizado": "2026-11-15"
 }
