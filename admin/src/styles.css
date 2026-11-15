@@ -245,6 +245,9 @@ fieldset.plain{border:0;padding:0;margin:0;min-width:0}
 .match-states dt{flex:none;width:76px;color:var(--stone);font-size:12px;line-height:21px} .match-states dd{display:block;margin:0;min-width:0;overflow-wrap:anywhere}
 .result{font-weight:600} .result.meets{color:var(--ok)} .result.fails{color:var(--err)} .result.unknown{color:var(--stone)}
 .match-actions,.reasons{margin:4px 0 0;gap:8px;align-items:center}
+/* AGE-03: an enquiry, on a match card and on the property */
+.enquiry{display:grid;gap:10px;min-width:0;margin-top:6px;padding-top:12px;border-top:1px solid var(--line)} .enquiry p,.enquiry .inline{margin:0}
+.enquiry .inline{align-items:center} .enquiry textarea{min-height:200px} .enquiry address{font-style:normal;overflow-wrap:anywhere}
 @media (max-width:600px){.match{grid-template-columns:1fr;padding:12px}.match-photo{aspect-ratio:2/1}}
 .review{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start}
 .review-who{padding:16px;display:grid;gap:8px} .review-who p,.review-who h2{margin:0} .review-who h2{overflow-wrap:anywhere}

@@ -1,14 +1,10 @@
-import { CRITERIA } from "../../site/requirements.js";
 import { useEffect, useRef, useState } from "react";
 import { AVAILABILITY, fmtDate, priceText } from "./format.js";
 import { REJECT_REASONS } from "../../server/applicants.js";
-import { unknownMusts } from "../../server/candidate-state.js";
+import { CHECK_LABEL, unknownMusts } from "../../server/candidate-state.js";
 import { DISAGREE, provenance } from "./ConfirmedAvailability.jsx";
+import { ENQUIRY, KIND, VIA, MatchEnquiry } from "./Enquiries.jsx";
 
-// The checks of server/matching.js evaluate(), by key.
-const CHECK_LABEL = { ...Object.fromEntries(Object.entries(CRITERIA).map(([k,[label]])=>[k,label])), budget: "Budget", bedrooms: "Bedrooms", bathrooms: "Bathrooms", area: "Area", housing: "Housing",
-  pets: "Pets", parking: "Parking", furnished: "Furnished", outdoor: "Outdoor", type: "Type",
-  kind: "Property or business", use: "Use", floor_area: "Floor area", purchase: "Purchase price", rent: "Rent", premium: "Premium", expenses: "Running costs" };
 const RESULT = { meets: "Meets", fails: "Fails", unknown: "Unknown" };
 export const REASON_LABEL = Object.fromEntries(REJECT_REASONS);
 export const hasPetRefusal = match => match.pets_refused === true;
@@ -33,11 +29,14 @@ const CONFIRMED = { not_confirmed: ["neutral", "Not confirmed"], confirmed: ["po
 // The Review queue also passes: shortcuts (shows each button's key, which the queue itself listens for), rejecting and
 // onRejecting (it opens the reasons on R), and children (more actions, after Reject).
 // onClarify(approved): approves or withdraws a clarification enquiry about the must-haves the property does not answer.
-export default function MatchCard({ match, onReview, onClarify, busy, disabled = null, shortcuts = false, rejecting: shown, onRejecting,
+// onEnquiry(match): AGE-03, after the shared enquiry of this match was prepared, joined, changed or recorded as sent.
+export default function MatchCard({ match, onReview, onClarify, onEnquiry, busy, disabled = null, shortcuts = false, rejecting: shown, onRejecting,
   children, legacy = false }) {
   const l = match.listing, title = l.title;
   const states = match.states, asked = match.clarification, outdated = states.decision === "approved_outdated";
-  const confirmation = match.availability;
+  // AGE-03: undefined while it is off; null: no enquiry covers this match now.
+  const confirmation = match.availability, enquiry = match.enquiry;
+  const [enquiring, setEnquiring] = useState(false);
   const labels = keys => keys.map(k => CHECK_LABEL[k] ?? k).join(", "), unknown = labels(unknownMusts(match.checks));
   const by = `${match.reviewed_by ? ` by ${match.reviewed_by}` : ""}${match.reviewed_at ? ` · ${fmtDate(match.reviewed_at)}` : ""}`;
   const [own, setOwn] = useState(false);
@@ -78,7 +77,10 @@ export default function MatchCard({ match, onReview, onClarify, busy, disabled =
               : confirmation && ` · ${provenance(confirmation)}`}
             <span className="muted"> · {l.archived_at ? "Listing archived" : `Listed as ${AVAILABILITY[l.availability] ?? l.availability ?? "not stated"}`}</span></dd></div>
         <div><dt>Enquiry</dt>
-          <dd>{asked ? <><span className="badge attention">Clarification approved</span>{` · ${labels(asked.keys ?? [])} by ${asked.by} · ${fmtDate(asked.at)}`}
+          <dd>{enquiry ? <><span className={`badge ${ENQUIRY[enquiry.status]?.[0] ?? "neutral"}`}>{ENQUIRY[enquiry.status]?.[1] ?? enquiry.status}</span>
+              {` · ${KIND[enquiry.kind] ?? enquiry.kind}`}{enquiry.sent_at ? ` · ${fmtDate(enquiry.sent_at)} by ${(VIA[enquiry.sent_via] ?? enquiry.sent_via).toLowerCase()}`
+                : <span className="muted"> · Not sent yet: it waits for a person to send it</span>}</>
+            : asked ? <><span className="badge attention">Clarification approved</span>{` · ${labels(asked.keys ?? [])} by ${asked.by} · ${fmtDate(asked.at)}`}
               <span className="muted"> · Not sent yet</span></>
             : <><span className="badge neutral">Not sent</span>
               {unknown && match.status !== "rejected" && <span className="muted"> · {unknown} to clarify: asking needs its own approval and shortlists nothing</span>}</>}</dd></div>
@@ -109,7 +111,11 @@ export default function MatchCard({ match, onReview, onClarify, busy, disabled =
         {onClarify && match.status !== "rejected" && (asked || unknown) && <button type="button" className="btn ghost sm" disabled={off}
           title={why} onClick={() => { if (!busy) onClarify(!asked); }}>
           {asked ? "Withdraw clarification" : "Approve clarification"}<span className="sr"> for {title}</span></button>}
+        {enquiry !== undefined && (enquiry || (!off && (states.decision === "approved" || asked))) && <button type="button" className="btn ghost sm"
+          aria-expanded={enquiring} onClick={() => setEnquiring(v => !v)}>
+          {enquiry && (enquiry.kind === "general" || states.decision !== "approved") ? "View enquiry" : "Prepare enquiry"}<span className="sr"> for {title}</span></button>}
       </div>
+      {enquiring && enquiry !== undefined && <MatchEnquiry match={match} onChange={onEnquiry} />}
       {rejecting && match.status === "found" && <div className="inline reasons" role="group" aria-label={`Why reject ${title}?`}
         onKeyDown={e => { if (e.key === "Escape") { e.preventDefault(); cancel(); } }}>
         <span className="muted" aria-hidden="true">Why?</span>

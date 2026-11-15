@@ -156,7 +156,8 @@ export default function Review() {
         : m ? <div className="review">
           <Summary a={q.applicant} />
           <MatchCard key={m.id} match={m} busy={busy} shortcuts rejecting={rejecting} onRejecting={setRejecting}
-            onReview={r => act(r.status, r.reject_reason)} onClarify={clarify}>
+            onReview={r => act(r.status, r.reject_reason)} onClarify={clarify}
+            onEnquiry={card => card && setQ(s => ({ ...s, match: card }))}>
             <button type="button" className="btn ghost sm" aria-keyshortcuts="S" onClick={() => act("skip")}>
               Skip<span className="sr"> {m.listing.title}</span><kbd aria-hidden="true">S</kbd></button>
           </MatchCard>

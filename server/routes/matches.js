@@ -12,6 +12,7 @@ import { COVER_ID, HAS_PUBLIC_PHOTO } from "./listings.js";
 import { candidateState, unknownMusts } from "../candidate-state.js";
 import availabilityRoutes, { confirmationReader } from "../availability-confirmations.js";
 import { notConfirmedUnavailable } from "../property-facts.js";
+import consultationRoutes, { enquiryReader } from "../consultations.js";
 
 const REASONS = REJECT_REASONS.map(([v]) => v);
 // The reviews a match in each status may get; back to found is Undo.
@@ -43,7 +44,8 @@ const CARD = `${EVAL_APPLICANT} AS eval_applicant, ${EVAL_LISTING} AS eval_listi
   "published", "archived_at", "updated_at"], [`'cover_id', ${COVER_ID}`, `'has_public_photo', ${HAS_PUBLIC_PHOTO}`])} AS listing`;
 export const MATCHES_SQL = `SELECT ${CARD} FROM matches m JOIN listings l ON l.id = m.listing_id JOIN applicants a ON a.id = m.applicant_id`;
 // confirmationOf (EST-16): the confirmed availability in force for a listing, if any; matchCards supplies it.
-export const matchCard = (m, confirmationOf = () => undefined) => {
+// enquiriesOf (AGE-03): the enquiries a match joined; absent while AGE-03 is off.
+export const matchCard = (m, confirmationOf = () => undefined, enquiriesOf) => {
   const {eval_applicant,eval_listing,area_preference_rank,decision_current,clarification:asked,...card} = m;
   const a = JSON.parse(eval_applicant), listing = JSON.parse(eval_listing), r = evaluate(a,listing);
   card.ranking_version=a.match_ranking_version;
@@ -51,8 +53,12 @@ export const matchCard = (m, confirmationOf = () => undefined) => {
   // EST-13: the candidate's four states, each from its own facts; the clarification still standing, if any.
   // EST-16: availability comes from the confirmation's own record (date, source, channel, scope), shown with it.
   const clarification = asked ? JSON.parse(asked) : undefined, confirmation = confirmationOf(card.listing);
-  const states = requirements_status => ({states:candidateState({status:card.status,requirements_status,decision_current,clarification,confirmation}),
-    ...(clarification ? {clarification} : {}), ...(confirmation ? {availability:confirmation} : {})});
+  // AGE-03: the enquiry that covers this match now. A general one counts while the approval stands, a clarification
+  // while its own approval does; an enquiry joined under an approval that no longer stands says nothing of the match.
+  const joined = enquiriesOf?.(card.id), approved = card.status === 'shortlisted' && !!decision_current;
+  const consultation = joined?.find(c => c.kind === 'general' && approved) ?? joined?.find(c => c.kind === 'clarification' && clarification);
+  const states = requirements_status => ({states:candidateState({status:card.status,requirements_status,decision_current,clarification,confirmation,consultation}),
+    ...(clarification ? {clarification} : {}), ...(confirmation ? {availability:confirmation} : {}), ...(joined ? {enquiry:consultation ?? null} : {})});
   if(card.status==='rejected'){
     const requirements_status=['meets','pending','alternative','excluded'][card.requirements_rank];
     return {...card,checks:JSON.parse(card.checks),requirements_status,...states(requirements_status)};
@@ -72,11 +78,12 @@ export const matchCard = (m, confirmationOf = () => undefined) => {
     requirements_status, requirements_rank:r.requirements_rank, ...states(requirements_status),
     ...(refresh ? {requirements_refresh_needed:true} : {})};
 };
-// The cards of these rows, each with the confirmation in force for its listing: one read for all of them, and none
-// while EST-16 is off.
+// The cards of these rows, each with the confirmation in force for its listing and the enquiries it joined: one read
+// of each for all of them, and none while EST-16 or AGE-03 is off.
 export async function matchCards(env, rows) {
-  const confirmationOf = await confirmationReader(env, rows.map(row => JSON.parse(row.listing).id));
-  return rows.map(row => matchCard(row, confirmationOf));
+  const [confirmationOf, enquiriesOf] = await Promise.all([confirmationReader(env, rows.map(row => JSON.parse(row.listing).id)),
+    enquiryReader(env, rows.map(row => row.id))]);
+  return rows.map(row => matchCard(row, confirmationOf, enquiriesOf));
 }
 
 // The review queue: the found matches of active searches (spec §5), from matches m JOIN applicants a.
@@ -94,6 +101,13 @@ export const CLARIFICATION_APPROVED = `m.status <> 'rejected' AND ${activeSql("a
 // EST-15: a property whose confirmation in force says not available is not asked about, whatever its match says.
 // Appended to APPROVED and CLARIFICATION_APPROVED wherever they are read ("" while EST15_UNAVAILABILITY_READY is off). From matches m.
 export const availableToAsk = env => notConfirmedUnavailable(env, "m.listing_id", "(SELECT operation FROM listings WHERE id = m.listing_id)");
+// AGE-03: what each kind of enquiry may start from, join and go out for. An approval given before the property left the
+// offer approves no enquiry about it.
+const ENQUIRY_GATES = { general: `${APPROVED} AND ${STILL_OFFERED}`, clarification: CLARIFICATION_APPROVED, asked: CLARIFICATION,
+  card: async (env, id) => {
+    const row = await env.DB.prepare(`${MATCHES_SQL} WHERE m.id = ?`).bind(id).first();
+    return row ? (await matchCards(env, [row]))[0] : null;
+  } };
 const QUEUE_COUNT_SQL = `SELECT COUNT(*) AS n FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE ${QUEUED}`;
 // The search shown next to the match, its JSON lists as lists; from applicants a JOIN contacts c.
 const LISTS = ["requirement_priorities", "household_children_ages", "property_types", "outdoor", "pets", "parishes_wanted", "parishes_excluded"];
@@ -310,4 +324,5 @@ export default [
   ["POST", /^\/admin\/matches\/recalculate$/, recalculate, true],
   ["GET", /^\/admin\/review$/, next, true],
   ...availabilityRoutes, // EST-16: they answer { enabled: false } or 404 until EST16_AVAILABILITY_READY and migration 0072
+  ...consultationRoutes(ENQUIRY_GATES), // AGE-03: { enabled: false } or 404 until AGE03_ENQUIRIES_READY and migration 0077
 ];

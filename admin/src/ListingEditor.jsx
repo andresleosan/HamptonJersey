@@ -8,6 +8,7 @@ import MediaManager from "./MediaManager.jsx";
 import ListingDocuments from "./ListingDocuments.jsx";
 import HouseRules from "./HouseRules.jsx";
 import ConfirmedAvailability from "./ConfirmedAvailability.jsx";
+import ListingEnquiries from "./Enquiries.jsx";
 import { listingCriteria, listingCompleteness } from "./listing-completeness.js";
 import Research from "./Research.jsx";
 import { setUnsaved } from "./unsaved.js";
@@ -662,6 +663,8 @@ export default function ListingEditor({ id, onChange, guide = false }) {
       <HouseRules listingId={id} occupancy={l.occupancy} />
       {/* EST-16: recorded on its own; renders nothing until the server reports confirmed availability enabled. */}
       <ConfirmedAvailability listingId={id} listing={l} />
+      {/* AGE-03: the shared enquiries about this property; renders nothing until the server reports them enabled. */}
+      <ListingEnquiries listingId={id} />
 
       {/* Spec §1: every offer on the listing with what became of it, newest first; they are answered in Sales. */}
       {forSale && <section id="s-offers" className="card" aria-labelledby="h-offers">
