@@ -66,6 +66,72 @@ const FOLLOW_UP = { category: "task", title: "Agency needs more information", re
   + "answering an enquiry about this property. Open the property: its Enquiries section has what was recorded. Reply to them, then record "
   + "their next answer there." };
 const short = (v, max) => (typeof v === "string" && v.trim().length <= max ? v.trim() : "");
+
+// AGE-08 (AGE08_CALL_TASKS_READY, read alike by the website and the clock; no migration): an enquiry sent (recorded by
+// hand, or by email once the provider took it) with no useful answer two working dates later, Monday to Friday at the
+// same Jersey time it was sent, gets one Inbox task to call the advertiser. The clock creates it (callPass); a useful
+// answer or a cancellation closes it. No useful answer (no_answer) or a request for more information leaves that same
+// task open: one call per enquiry, never a chain of reminders. No bank holidays: neither the plan nor the architecture
+// lists them. The numbers are never copied into the task, an event or a log: the task says how many the directory has,
+// and the property's Enquiries section lists them as the directory has them now (an AGE-14 removal included).
+export const callsReady = env => env?.AGE08_CALL_TASKS_READY === "1";
+const JERSEY = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Jersey", year: "numeric", month: "2-digit", day: "2-digit",
+  hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
+// The Jersey wall clock at an instant, written as if it were UTC.
+const wall = ms => { const p = Object.fromEntries(JERSEY.formatToParts(new Date(ms)).map(x => [x.type, Number(x.value)]));
+  return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second, ms % 1000); };
+// The second Monday-to-Friday date after the Jersey date it was sent, at the same Jersey time. Clocks change on a
+// Sunday, so the time always exists on the day due: its offset is the one in force then.
+export function callDue(sentAt) {
+  const ms = Date.parse(sentAt);
+  let local = wall(ms);
+  for (let n = 0; n < 2;) { local += 864e5; if (new Date(local).getUTCDay() % 6) n++; } // 0 Sunday, 6 Saturday
+  const guess = local - (wall(ms) - ms);
+  return new Date(local - (wall(guess) - guess)).toISOString();
+}
+const callKey = c => `consultation:${c.operation_id}:call`;
+const CALL_DONE = "A useful answer was recorded or the enquiry was cancelled, so no call is needed.";
+// The task as the directory is now: an agency or an entity by name, a private advertiser never; how many numbers it has.
+function callTask(c) {
+  const contacts = c.suppressed_at || !c.details ? null : JSON.parse(c.details).contacts;
+  const phones = contacts?.flatMap(p => p.phones ?? []).length ?? 0, who = contacts && c.kind !== "individual" ? c.name : "the advertiser";
+  const late = "No useful answer two working days after this enquiry was sent.";
+  return { taskKey: callKey(c), category: "task", title: `Call ${who} about ${c.title} (${c.listing_id})`.slice(0, 200),
+    reason: !contacts ? `${late} The advertiser's personal data was removed from the directory, so there is no number to call. Open the `
+      + "property: record their answer there if one comes, or cancel the enquiry."
+      : phones ? `${late} Open the property: its Enquiries section has the ${phones} phone ${phones === 1 ? "number" : "numbers"} of ${who} in the `
+        + "directory, the text sent and where to record their answer. A useful answer closes this task."
+      : `${late} The directory has no phone number for ${who}: add one in Advertisers or reach them another way, then record their answer in `
+        + "the property's Enquiries section." };
+}
+// The clock's part: each enquiry still waiting whose call is due gets its task, or the task follows the directory. A task
+// already as it would be is not written again, so a tick writes nothing new; one a person marked done stays done.
+export async function callPass(env, isoNow) {
+  if (!callsReady(env)) return;
+  let results;
+  try {
+    ({ results } = await env.DB.prepare(`SELECT c.id, c.listing_id, c.operation_id, c.sent_at, l.title, a.name, a.kind, a.details, a.suppressed_at,
+        n.title AS task_title, n.task_reason FROM consultations c JOIN listings l ON l.id = c.listing_id LEFT JOIN advertisers a ON a.id = c.advertiser_id
+        LEFT JOIN notifications n ON n.task_key = 'consultation:' || c.operation_id || ':call'
+      WHERE c.status IN ('sent', 'awaiting_response') AND c.sent_at IS NOT NULL`).all());
+  } catch (e) { if (missing(e)) return; throw e; }
+  for (const c of results) {
+    const due = callDue(c.sent_at), t = callTask(c);
+    if (due > isoNow || (t.title === c.task_title && t.reason === c.task_reason)) continue;
+    await env.DB.batch([
+      env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data) SELECT ?, 'system', 'listing', ?, 'consultation.call_due',
+        json_object('version', 1, 'consultation_id', ?) WHERE EXISTS (SELECT 1 FROM consultations WHERE id = ? AND status IN ('sent', 'awaiting_response'))
+        AND NOT EXISTS (SELECT 1 FROM notifications WHERE task_key = ? AND title = ? AND task_reason = ?)`)
+        .bind(isoNow, c.listing_id, c.id, c.id, t.taskKey, t.title, t.reason),
+      ...taskStatements(env, { ...t, dueAt: due, eventId: null, target: { kind: "listing", id: c.listing_id }, actor: "system", preserveDone: true },
+        { ifInserted: true })]);
+  }
+}
+// The call task of an enquiry while it is open, to close with what closes the enquiry's wait.
+const callDone = async (env, c) => {
+  const n = await env.DB.prepare("SELECT title FROM notifications WHERE task_key = ? AND resolved_at IS NULL").bind(callKey(c)).first();
+  return n ? [{ taskKey: callKey(c), title: n.title, reason: CALL_DONE, resolved: true }] : [];
+};
 // A contact is referred to by a digest of its name and email, never by a copy: one that is renamed, given another
 // address or removed no longer answers to it, and the enquiry waits for a person to choose again.
 const contactKey = c => sha256(JSON.stringify([c.name, c.email].map(v => String(v ?? "").trim().toLowerCase())));
@@ -230,6 +296,8 @@ export function enquiries(gates) {
         from: c.response_from, scope: c.response_scope, evidence_ref: c.response_evidence_ref, by: c.response_by, recorded_at: c.response_recorded_at } : null } : {}),
       ...(answers ? { can_answer: ANSWERABLE.includes(status), can_cancel: CANCELLABLE.includes(status) && !ids.length }
         : status === "awaiting_response" ? { can_cancel: !ids.length } : {}),
+      // AGE-08: when the call to the advertiser is (or was) due, while it waits for a useful answer.
+      ...(callsReady(env) && ANSWERABLE.includes(status) && sent_at ? { call_due_at: callDue(sent_at) } : {}),
       ...(send ? { contact, approval: c.approved_revision === revision ? { by: c.approved_by, at: c.approved_at } : null, email_ref: c.email_ref,
         ...(c.status === "queued" ? { held: sendReady(env) ? await emailStop(env, true) : "Sending enquiries by email was switched off here. It "
           + "stops only once it is off for the clock too: then it returns to manual sending. Return it to manual now to be sure." } : {}) } : {}),
@@ -538,7 +606,8 @@ export function enquiries(gates) {
         + "If they spoke of the whole property, record it for the whole property.");
     const status = confirms || outcome === "answered" ? "answered" : "awaiting_response";
     const mine = { sql: " AND EXISTS (SELECT 1 FROM consultations WHERE id = ? AND response_operation_id = ?)", args: [c.id, body.operation_id] };
-    const task = await followUp(env, c, outcome === "more_info" ? { reopen: true } : { resolved: true });
+    const task = [...await followUp(env, c, outcome === "more_info" ? { reopen: true } : { resolved: true }),
+      ...(status === "answered" ? await callDone(env, c) : [])];
     // Who confirmed it, as EST-16 names it: a private advertiser is the owner, any other the agency or entity advertising it.
     const kind = confirms && (await env.DB.prepare("SELECT kind FROM advertisers WHERE id = ?").bind(c.advertiser_id).first())?.kind;
     await env.DB.batch([
@@ -568,7 +637,8 @@ export function enquiries(gates) {
     if (c.status === "cancelled") return json({ consultation: await detail(env, c) }); // the same click again
     if (!CANCELLABLE.includes(c.status)) fail(409, "This enquiry can no longer be cancelled. Reload to see it.");
     if (c.revision !== body.revision) fail(409, CHANGED);
-    const task = [...(c.status === "manual_pending" ? [{ resolved: true }] : []), ...await followUp(env, c, { resolved: true })];
+    const task = [...(c.status === "manual_pending" ? [{ resolved: true }] : []), ...await followUp(env, c, { resolved: true }),
+      ...await callDone(env, c)];
     await env.DB.batch(step(env, c, admin, "cancelled", "status = 'cancelled'", [], { task: task.length ? task : null, when: ` AND NOT ${counts("1")}` }));
     const after = await one(env, id);
     if (after.status !== "cancelled") fail(409, "An approved match still counts for this enquiry, so it cannot be cancelled. Reload to see it.");

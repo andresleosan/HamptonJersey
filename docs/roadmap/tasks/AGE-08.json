@@ -6,14 +6,23 @@
   "fase": "F2",
   "estado": "pendiente",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "M06 · Reconciliación 7-nov: Tras dos días desde el envío real sin respuesta útil, crear una única tarea de llamada con propiedad, anunciante, mensaje, historial, clientes y todos los teléfonos identificados. Una respuesta que llega antes de llamar actualiza o resuelve la tarea según lo confirmado. Registrar disponible, no disponible o inconcluso; una llamada sin contestar no prueba indisponibilidad. Sustituye el antiguo encadenamiento de recordatorios por correo. Naturales/laborables, hora y fines de semana siguen pendientes de decisión; conservar estadísticas de respuesta como mejora separada. Depende de: AGE-05, AGE-06, AGE-04, AUT-07, NOT-11. Aceptación: Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: llamada a los dos días sin respuesta. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): llamadas. Traído de BUS-06 (14-nov): la tarea de llamada lee anunciantes y teléfonos del directorio AGE-04 (GET /admin/advertisers?property_id=); el inventario de mercado no guarda contactos. Traído de AGE-03 (15-nov): la llamada a los dos días parte de consultations.sent_at, que hoy solo existe con envío anotado; los teléfonos se leen del directorio por advertiser_id. Traído de AGE-05 (15-nov): el plazo de dos días laborables cuenta desde consultations.sent_at, que en correo es la hora en que el proveedor aceptó (o la del intento, si una persona confirmó un resultado incierto); queued, needs_review y manual_pending no lo inician. La consulta guarda solo la referencia del contacto (contact_key). Traído de AGE-06 (15-nov): crear la llamada a dos fechas laborables lunes-viernes desde sent_at de consultas en sent/awaiting_response; su resultado se registra con POST /admin/consultations/:id/response (AGE-06) y una respuesta útil la invalida.",
+  "hecho": "Construida tras AGE08_CALL_TASKS_READY (sin migración): el reloj crea una sola tarea «Call <anunciante> about <propiedad>» a las dos fechas laborables (lunes-viernes, misma hora de Jersey) desde sent_at de consultas sent/awaiting_response; dice cuántos teléfonos hay y lleva a la sección Enquiries de la propiedad, que los lista todos del directorio con el texto enviado y el formulario de respuesta de AGE-06. Una respuesta útil (available/unavailable/answered) o la cancelación la cierran; no_answer y more_info la dejan abierta. Nada se envía.",
+  "falta": "Integrar en main, añadir AGE08_CALL_TASKS_READY = \"1\" en wrangler.toml y jobs/wrangler.toml (no envía nada: autorizado) y comprobar en producción que una consulta vencida genera una sola tarea. Historial en la ficha SPR-02 (EST-18): el evento consultation.call_due ya existe con ids; su presentación es de SPR-02/EST-18.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:295",
     "docs/roadmap/ESTADO.md:10",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): cómputo de la llamada ya decidido."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): cómputo de la llamada ya decidido.",
+    "Decisión: se construye sobre el envío manual de AGE-03 (sent_at anotado), que ya existe; el correo AGE-05 apagado no hace falta (regla de componentes, SKILL §2).",
+    "Decisión: plazo = segunda fecha lunes-viernes posterior a la fecha de Jersey del envío, a la misma hora de Jersey (plan maestro vigente, «Búsqueda, visitas y publicación propias»); envío en fin de semana cuenta desde el lunes.",
+    "Decisión: sin festivos de Jersey; ni el plan maestro ni la arquitectura los definen (SKILL §4.5).",
+    "Decisión: una sola tarea por consulta; no_answer o more_info no la cierran ni reprograman otra (arquitectura §M06: «no cadena de recordatorios»; una llamada sin contestar no prueba indisponibilidad).",
+    "Decisión: los teléfonos no se copian en la tarea, eventos ni logs; la tarea dice cuántos hay y la sección Enquiries los lee en vivo del directorio, así una supresión AGE-14 no deja copias. Un anunciante particular no se nombra en el Inbox (\"the advertiser\").",
+    "Decisión: la pausa general (outbound) no aplica: la tarea no envía nada.",
+    "Decisión: cálculo en JS (server/consultations.js callPass, desde server/jobs.js) con taskStatements de NOT-01, no en el SQL de notification-reconcile, porque la hora de Jersey con cambio de horario no cabe en SQLite.",
+    "Pruebas 15-nov: tests/server/age-08-call-tasks.test.mjs 9/9 (viernes 16:00 → martes 16:00, cambios de hora de octubre y marzo, sábado, domingo, antes del plazo, dos ticks, Done humano, respuesta útil antes/después, no_answer/more_info, cancelación, sin teléfonos, particular, suprimido, reloj, interruptor igual en ambos wrangler.toml); age-03, age-05, age-06, jobs, advertisers, notification*, age-14-* en verde.",
+    "Navegador 15-nov: tests/age08-call-tasks.e2e.cjs en contenedor aislado a 1280 y 390: tarea en Inbox → Open property → tres teléfonos con enlaces tel:, respuesta útil cierra la tarea, anunciante sin teléfonos lo dice, nada enviado."
   ],
   "modulo": "M06",
   "deps": [
@@ -71,6 +80,6 @@
     "jobs-clock",
     "notifications-schema"
   ],
-  "nextStep": "Crear una única llamada pendiente a los dos días laborables (lunes a viernes, misma hora de Jersey) contados desde el envío real y sin respuesta útil.",
+  "nextStep": "Integrar, encender AGE08_CALL_TASKS_READY en web y reloj, y verificar la primera tarea de llamada en el Inbox.",
   "actualizado": "2026-11-15"
 }

@@ -6,6 +6,7 @@ import { enquiryEmailCheck, enquiryEmailPass } from "./consultation-email.js";
 import { receiveEmail } from "./email-inbound.js";
 import { weeklyInsightsPass } from './weekly-insights.js';
 import { notificationsPass } from "./notification-reconcile.js";
+import { callPass } from "./consultations.js";
 import { rentalClosureEnabled } from './rental-closure.js';
 import { processExpiredRentalClosures } from './rental-closure-job.js';
 import { followupReady, saleFollowupPass } from './sale-followup.js';
@@ -23,6 +24,8 @@ export default {
     await demandRetentionPass(env, ts); // Separate claim, outcome and retry from the existing retention pass.
     try { await notificationsPass(env, now()); }
     catch { console.error('Notification pass failed'); } // No source/customer data in operational logs.
+    try { await callPass(env, now()); } // AGE-08: the call task of an enquiry with no useful answer two working days on.
+    catch { console.error('Enquiry call pass failed'); }
     try { await weeklyInsightsPass(env, now()); }
     catch { console.error('Weekly Insights pass failed'); }
     if (followupReady(env)) { // OFE-06: the weekly internal sale review, off until the team sets day and time.

@@ -70,6 +70,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       // AGE-06 records answers to enquiries (AGE-03) as EST-16 confirmations that EST-15 propagates: the four on.
       ...(process.env.E2E_SCRIPT === "tests/age06-responses.e2e.cjs" ? { AGE03_ENQUIRIES_READY: "1", EST16_AVAILABILITY_READY: "1",
         EST15_UNAVAILABILITY_READY: "1", AGE06_RESPONSES_READY: "1" } : {}),
+      // AGE-08 calls about enquiries sent (AGE-03) and closes the call with an answer (AGE-06): the five on.
+      ...(process.env.E2E_SCRIPT === "tests/age08-call-tasks.e2e.cjs" ? { AGE03_ENQUIRIES_READY: "1", EST16_AVAILABILITY_READY: "1",
+        EST15_UNAVAILABILITY_READY: "1", AGE06_RESPONSES_READY: "1", AGE08_CALL_TASKS_READY: "1" } : {}),
       // SAP-02/SAP-03/EST-04 count what EST-16's confirmations and AGE-03's enquiries say, so its test has the three on.
       ...(process.env.E2E_SCRIPT === "tests/sap02-match-counts.e2e.cjs"
         ? { SAP02_COUNTS_READY: "1", EST16_AVAILABILITY_READY: "1", AGE03_ENQUIRIES_READY: "1" } : {}),

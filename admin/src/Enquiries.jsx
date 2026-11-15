@@ -102,6 +102,22 @@ function Answer({ c, id, match, onChange }) {
   </form>;
 }
 
+// AGE-08: two working days after it was sent with no useful answer, the Inbox has a task to call the advertiser: every
+// number the directory has for them, as it has them now. Before then, when that will be.
+function CallDue({ c }) {
+  const r = c.recipient, phones = r.removed ? [] : r.contacts.flatMap(p => p.phones.map(t => ({ ...t, who: p.name })));
+  if (Date.parse(c.call_due_at) > Date.now())
+    return <p className="muted">If no useful answer is recorded by {fmtDate(c.call_due_at)}, the Inbox gets a task to call them.</p>;
+  return <div className="fields-group" role="group" aria-label={`Call about enquiry ${c.id}`}>
+    <p className="req-note">No useful answer two working days after it was sent (call due {fmtDate(c.call_due_at)}). Call them, then record their
+      answer below.</p>
+    {phones.length ? <p>{phones.map((t, i) => <span key={i}>{i > 0 && <br />}{[t.who, t.label].filter(Boolean).join(" · ")}{" "}
+      <a href={`tel:${t.number.replace(/[^\d+]/g, "")}`}>{t.number}</a></span>)}</p>
+      : <p className="muted">{r.removed ? "Their personal data was removed from the directory, so there is no number to call."
+        : <>The directory has no phone number for them. Add one in <a href="#/advertisers">Advertisers</a>.</>}</p>}
+  </div>;
+}
+
 export function EnquiryView({ c, advertisers, match, household, onChange, send }) {
   const id = `enq-${c.id}${match ? `-${match.id}` : ""}`, pending = c.status === "manual_pending", r = c.recipient;
   const gone = r.removed || r.unlinked; // another recipient must be chosen
@@ -171,6 +187,7 @@ export function EnquiryView({ c, advertisers, match, household, onChange, send }
       <div className="inline"><button type="button" className="btn ghost sm" disabled={busy} onClick={() => checked(true)}>It was sent</button>
         <button type="button" className="btn ghost sm" disabled={busy} onClick={() => checked(false)}>It was not sent</button></div>
     </div>}
+    {c.call_due_at && <CallDue c={c} />}
     {c.blocked && <p className="req-note" role="alert">{c.blocked}</p>}
     <div><strong>Recipient</strong>
       {r.removed ? <p className="muted">Personal data removed from the directory.</p> : <address>{r.name}
