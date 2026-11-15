@@ -4,7 +4,7 @@ import { acceptDirectoryManifest, claimSourcePage, closeInventoryRun, createInve
 import { getSourceAccess, reviewSourceAccess } from '../market-source-policy.js';
 import { manualScopeAllows, prepareManualObservationPage } from '../market-manual-contract.js';
 import { ingestManualObservationPage } from '../market-observation-ingest.js';
-import { decideIdentity, readIdentityReview, readMarketHomes, undoIdentityDecision } from '../market-identity.js';
+import { decideIdentity, readIdentityReview, readMarketHomesPage, undoIdentityDecision } from '../market-identity.js';
 import { marketHomeFacts, marketMatchingEnabled } from '../match-store.js';
 import { activeSql } from '../applicants.js';
 
@@ -147,17 +147,16 @@ async function identityUndo({ request, env, admin }) {
 }
 
 // BUS-03: the homes of the common inventory, newest reading first, 25 a page, each with its adverts, the facts they
-// agree on, the listing a person linked it to (BUS-07, which is matched instead) and what every active search made of
-// it at its last full run, with what it does not meet. One read of the inventory and one of the page's results.
-// Absent unless market matching is on.
+// agree on, the listing a person linked it to (BUS-07, which is matched instead) and every active home search that kept
+// a result for it (meets, to confirm or alternative), with what it does not meet. The page is worked out in SQL; the
+// inventory is never read whole. Absent unless market matching is on.
 const HOMES_PAGE = 25;
-const homeId = h => JSON.stringify([h.key, h.operation]);
 function homeCursor(raw) {
   if (raw === null) return null;
   try {
     if (raw.length > 8192 || !/^[A-Za-z0-9_-]+$/.test(raw)) throw new Error();
     const c = JSON.parse(decodeURIComponent(atob(raw.replace(/-/g, '+').replace(/_/g, '/'))));
-    if (Array.isArray(c) && c.length === 2 && c.every(v => typeof v === 'string' && v.length <= 4096) && encodeCursor(c) === raw) return c;
+    if (Array.isArray(c) && c.length === 3 && c.every(v => typeof v === 'string' && v.length <= 4096) && encodeCursor(c) === raw) return c;
   } catch { /* refused below */ }
   fail(400, 'Invalid inventory cursor');
 }
@@ -165,26 +164,23 @@ async function marketHomes({ request, env }) {
   if (!marketMatchingEnabled(env)) fail(404, 'Not found');
   const query = new URL(request.url).searchParams;
   if ([...query.keys()].some(k => k !== 'after') || query.getAll('after').length > 1) fail(400, 'Invalid inventory request');
-  const after = homeCursor(query.get('after'));
-  const { homes, open_sources, truncated } = await readMarketHomes(env);
-  const listed = homes.map(h => ({ ...h, observed_at: h.publications.map(p => p.observed_at).filter(Boolean).sort().at(-1) ?? '' }))
-    .sort((x, y) => y.observed_at.localeCompare(x.observed_at) || (homeId(x) < homeId(y) ? -1 : 1))
-    .filter(h => !after || h.observed_at < after[0] || (h.observed_at === after[0] && homeId(h) > after[1]));
-  const page = listed.slice(0, HOMES_PAGE), last = page.at(-1);
-  const { results } = await primary(env.DB).prepare(`SELECT m.home_key,m.operation,m.applicant_id,c.name,m.result,m.score,m.checks,
-      m.observed_at,m.evaluated_at FROM market_matches m JOIN applicants a ON a.id=m.applicant_id JOIN contacts c ON c.id=a.contact_id
-    WHERE ${activeSql('a')} AND (m.home_key,m.operation) IN (SELECT json_extract(value,'$[0]'),json_extract(value,'$[1]') FROM json_each(?))
-    ORDER BY m.requirements_rank,m.score DESC,m.applicant_id`).bind(JSON.stringify(page.map(h => [h.key, h.operation]))).all();
-  return json({ summary: { open_sources, truncated },
-    homes: page.map(h => {
+  const { homes, open_sources, more } = await readMarketHomesPage(env, homeCursor(query.get('after')), HOMES_PAGE);
+  const { results } = homes.length ? await primary(env.DB).prepare(`SELECT m.home_key,m.operation,m.applicant_id,c.name,m.result,
+      m.score,m.checks,m.observed_at,m.changed_at FROM market_matches m JOIN applicants a ON a.id=m.applicant_id
+      JOIN contacts c ON c.id=a.contact_id WHERE ${activeSql('a')} AND a.search_category='residential'
+      AND (m.home_key,m.operation) IN (SELECT json_extract(value,'$[0]'),json_extract(value,'$[1]') FROM json_each(?))
+    ORDER BY m.requirements_rank,m.score DESC,m.applicant_id`).bind(JSON.stringify(homes.map(h => [h.home, h.operation]))).all() : { results: [] };
+  const last = homes.at(-1);
+  return json({ summary: { open_sources },
+    homes: homes.map(h => {
       const { facts, disagree } = marketHomeFacts(h);
       // A home linked to a listing is matched through the listing; a result from before the link is not shown.
-      const searches = h.listing_id ? [] : results.filter(r => r.home_key === h.key && r.operation === h.operation)
+      const searches = h.listing_id ? [] : results.filter(r => r.home_key === h.home && r.operation === h.operation)
         .map(({ home_key, operation, checks, ...r }) => ({ ...r, checks: JSON.parse(checks).filter(c => c.result !== 'meets') }));
-      return { key: h.key, operation: h.operation, listing_id: h.listing_id, observed_at: h.observed_at || null, facts, disagree,
+      return { key: h.home, operation: h.operation, listing_id: h.listing_id, observed_at: h.observed_at, facts, disagree,
         publications: h.publications, searches };
     }),
-    next: listed.length > HOMES_PAGE ? encodeCursor([last.observed_at, homeId(last)]) : null });
+    next: more ? encodeCursor([last.observed_at ?? '', last.home, last.operation]) : null });
 }
 
 export default [

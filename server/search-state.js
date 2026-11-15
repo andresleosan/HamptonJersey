@@ -29,15 +29,16 @@ const track = recompute => async (env, applicantId, ...rest) => {
   await write(env, `INSERT INTO applicant_search_runs (applicant_id, last_attempt_at)
     SELECT a.id, ? FROM applicants a WHERE a.id = ? AND ${APPLICABLE}
     ON CONFLICT(applicant_id) DO UPDATE SET last_attempt_at = excluded.last_attempt_at`, at, applicantId);
-  const finish = (column, market) => write(env,
-    `UPDATE applicant_search_runs SET ${column} = ?${market ? ", market_state = ?, market_homes = ?" : ""}
-     WHERE applicant_id = ? AND last_attempt_at = ?`, now(), ...(market ? [market.state, market.homes] : []), applicantId, at);
+  const finish = column => write(env,
+    `UPDATE applicant_search_runs SET ${column} = ? WHERE applicant_id = ? AND last_attempt_at = ?`, now(), applicantId, at);
   let out;
   try { out = await recompute(env, applicantId, ...rest); } catch (e) { await finish("last_failure_at"); throw e; }
-  // A commercial search has no market part: its success clears an earlier one rather than keep it.
-  const market = engine.marketMatchingEnabled(env) ? out?.market ?? { state: null, homes: null } : null;
-  if (out?.reason !== "not_applicable") await (out?.completed === false || out?.reason
-    ? finish("last_failure_at") : finish("last_success_at", market));
+  if (out?.reason !== "not_applicable") await finish(out?.completed === false || out?.reason ? "last_failure_at" : "last_success_at");
+  // BUS-01: the market part of a success, in its own write after it, so its columns (0083) are never needed for the
+  // record above. A commercial search has none: its success clears an earlier one rather than keep it.
+  if (engine.marketMatchingEnabled(env) && out?.completed !== false && !out?.reason) await write(env,
+    "UPDATE applicant_search_runs SET market_state = ?, market_homes = ? WHERE applicant_id = ? AND last_attempt_at = ?",
+    out?.market?.state ?? null, out?.market?.homes ?? null, applicantId, at);
   return out;
 };
 export const recomputeForApplicant = track(engine.recomputeForApplicant);
@@ -65,10 +66,6 @@ const read = async (env, sql, ...args) => {
   try { return (await env.DB.prepare(sql).bind(...args).all()).results; } catch { return null; }
 };
 const shown = (rows, ts) => new Map(rows.map(r => [r.id, searchRunState(r.recorded == null ? null : r, ts)]));
-// BUS-01, the record: what the search covers, and what the market part of its last success did (null: none yet).
-const MARKET_RUN = `${RUN}, r.market_state, r.market_homes`;
-const covered = (state, r) => ({ ...state, scope: "listings_and_market",
-  market: r.market_state ? { state: r.market_state, homes: r.market_homes } : null });
 
 // SAP-01, the list: the active home searches with no match at all (a rejected match is a match), by applicant id.
 export async function searchRunsWithoutMatch(env) {
@@ -79,10 +76,14 @@ export async function searchRunsWithoutMatch(env) {
 // The record: an active search's last run, with or without matches.
 export async function searchRunFor(env, applicant) {
   if (!isActive(applicant)) return null;
-  const market = engine.marketMatchingEnabled(env);
-  const rows = await read(env, `SELECT a.id, ${market ? MARKET_RUN : RUN} FROM applicants a
-    LEFT JOIN applicant_search_runs r ON r.applicant_id = a.id WHERE a.id = ?`, applicant.id);
+  const rows = await read(env, `SELECT a.id, ${RUN} FROM applicants a LEFT JOIN applicant_search_runs r ON r.applicant_id = a.id
+    WHERE a.id = ?`, applicant.id);
   if (!rows?.length) return null;
   const state = shown(rows, now()).get(applicant.id);
-  return market ? covered(state, rows[0]) : state;
+  // BUS-01: what the search covers, read apart; without its columns (0083) the record reads as before.
+  const market = engine.marketMatchingEnabled(env) &&
+    await read(env, "SELECT market_state, market_homes FROM applicant_search_runs WHERE applicant_id = ?", applicant.id);
+  if (!market) return state;
+  const m = market[0];
+  return { ...state, scope: "listings_and_market", market: m?.market_state ? { state: m.market_state, homes: m.market_homes } : null };
 }

@@ -2,12 +2,13 @@
 // evaluate() decides every rule; this file only gates the candidates, stores all passing candidates,
 // with the applicant.matched event and the applicant's matched Inbox notice, in one batch.
 import { now, fail, HttpError } from "./http.js";
-import { activeSql, isActive, OPTIONS } from "./applicants.js";
+import { activeSql, isActive } from "./applicants.js";
 import { evaluate } from "./matching.js";
 import { areaPreferenceRank } from "./requirements.js";
 import {searchProgressEnabled,beginFullCheck,fullCheckGuard,fullCheckSuccessStatement,finishFullCheckFailure} from './search-progress.js';
 import { notConfirmedUnavailable } from "./property-facts.js";
-import { readMarketHomes, plain } from "./market-identity.js";
+import { readMarketCandidates } from "./market-identity.js";
+import { parsePriorities } from "../site/requirements.js";
 
 // Listings that may be offered: archived listings are excluded. The applicant's operation is evaluate()'s first filter.
 const candidates = (use, operations) => `archived_at IS NULL AND matchable = 1 AND use = '${use}' AND availability IN ('for_sale','to_let','lease')
@@ -25,66 +26,80 @@ const candidatesFor = (env, a) => (commercial(a) ? COMMERCIAL_SQL : CANDIDATES_S
 const operationFor = a => (commercial(a) && a.search_operation === 'transfer' ? 'business' : LISTING_OPERATION[a.operation]);
 
 // BUS-01: with BUS01_MARKET_MATCHING_READY (and BUS10's identity, which decides what one home is), a residential search
-// also crosses the homes of the common market inventory. Off, nothing of it is read or written.
+// also crosses the homes of the common market inventory, after its listings and apart from them: nothing of the market
+// can stop, undo or delay saving the listings' matches or the search's record (EST-01). Off, nothing of it is read.
 export const marketMatchingEnabled = env => env?.BUS01_MARKET_MATCHING_READY === '1' && env?.BUS10_IDENTITY_READY === '1';
-const PARISH = new Map(OPTIONS.parishes.map(([p]) => [plain(p), p]));
+// At most this many homes are evaluated per search, the best fitting first (readMarketCandidates); more leaves the
+// market part 'incomplete'. It also bounds the rows a run writes: changed results plus withdrawn ones, each ≤ this.
+export const MARKET_HOMES_LIMIT = 50;
 // The check each fact answers, to say which ones the adverts disagree on.
 const FACT_CHECK = { parish: 'area', bedrooms: 'bedrooms', bathrooms: 'bathrooms', price: 'budget', pets: 'pets', parking: 'parking' };
-const FACT = { parish: p => p.parish == null ? null : PARISH.get(plain(p.parish)) ?? null };
 const ON_ADVERT = 'Stated on the advert';
-// A market home as evaluate() reads a listing, from its adverts' normalised readings only. A fact counts when a dated
-// reading states it and no other states otherwise; adverts that disagree leave it unknown (disagree names it). Nothing
-// the adverts do not state is assumed: housing category, tenure, type, outdoor space, furniture and availability stay
-// unknown, and an advert is never a confirmation that the home is available (EST-16 covers listings only).
-export function marketHomeFacts(home) {
-  const dated = home.publications.filter(p => p.observed_at), facts = {}, disagree = [];
-  for (const field of Object.keys(FACT_CHECK)) {
-    const said = new Map(dated.map(FACT[field] ?? (p => p[field] ?? null)).filter(v => v != null).map(v => [JSON.stringify(v), v]));
-    facts[field] = said.size === 1 ? [...said.values()][0] : null;
-    if (said.size > 1) disagree.push(field);
-  }
-  const { price, pets, parking } = facts, rent = home.operation === 'rent' && price;
+// A home as readMarketCandidates/readMarketHomesPage aggregate it, as evaluate() reads a listing. Nothing the adverts do
+// not state is assumed: housing category, tenure, type, outdoor space, furniture and availability stay unknown, and an
+// advert is never a confirmation that the home is available (EST-16 covers listings only).
+export function marketHomeFacts(h) {
+  const price = h.price ? JSON.parse(h.price) : null;
+  const facts = { parish: h.parish === '?' ? null : h.parish ?? null, bedrooms: h.bedrooms ?? null, bathrooms: h.bathrooms ?? null,
+    price: price && { amount_minor: price[0], currency: price[1], period: price[2] },
+    pets: h.pets == null ? null : !!h.pets, parking: h.parking == null ? null : !!h.parking };
+  const disagree = Object.keys(FACT_CHECK).filter(f => h[`${f}_disagree`]);
+  const { pets, parking } = facts, rent = h.operation === 'rent' && facts.price;
   const policy = { ...(pets != null && { pets: pets ? 'yes' : 'no' }),
     ...(parking != null && { parking: parking ? { kind: 'minimum', value: 1 } : { kind: 'exact', value: 0 } }) };
-  return { disagree, facts, row: { id: home.key, operation: home.operation, candidate: 1, use: 'residential', archived_at: null,
+  return { disagree, facts, row: { id: h.home, operation: h.operation, candidate: 1, use: 'residential', archived_at: null,
     availability: null, parish: facts.parish, bedrooms: facts.bedrooms, bathrooms: facts.bathrooms,
-    sale_price: home.operation === 'sale' && price ? price.amount_minor / 100 : null, rent: rent ? price.amount_minor / 100 : null,
-    rent_period: rent ? price.period : null, currency: price?.currency ?? null,
+    sale_price: h.operation === 'sale' && price ? price[0] / 100 : null, rent: rent ? price[0] / 100 : null,
+    rent_period: rent ? price[2] : null, currency: price?.[1] ?? null,
     feat_pets: policy.pets ?? null, feat_parking: parking == null ? null : parking ? 1 : 0,
     feat_evidence: JSON.stringify({ ...Object.fromEntries(Object.keys(policy).map(k => [k, ON_ADVERT])), _requirements: { version: 1, ...policy } }),
     feat_furnished: null, feat_outdoor: null, feat_type: null, tenure_type: null, housing_category: null, restriction: null,
     premium: null, interior_area_sqft: null, property_type: null } };
 }
-// One search against one market home, as market_matches keeps it.
-function marketResult(a, home) {
-  const { row, disagree } = marketHomeFacts(home), r = evaluate(a, row), unsure = new Set(disagree.map(f => FACT_CHECK[f]));
-  return { k: home.key, o: home.operation, r: r.requirements_status, s: r.score, q: r.requirements_rank,
-    c: r.checks.map(c => unsure.has(c.key) && c.result === 'unknown' ? { ...c, evidence: 'The adverts disagree' } : c),
-    t: home.publications.map(p => p.observed_at).filter(Boolean).sort().at(-1) ?? null };
+// One search against one market home, as market_matches keeps it (checks as their JSON text, compared as such).
+function marketResult(a, h) {
+  const { row, disagree } = marketHomeFacts(h), r = evaluate(a, row), unsure = new Set(disagree.map(f => FACT_CHECK[f]));
+  return { k: h.home, o: h.operation, r: r.requirements_status, s: r.score, q: r.requirements_rank, t: h.observed_at ?? null,
+    c: JSON.stringify(r.checks.map(c => unsure.has(c.key) && c.result === 'unknown' ? { ...c, evidence: 'The adverts disagree' } : c)) };
 }
-// The market part of a full run: the homes of the search's operation that are not linked to a listing (BUS-07: the
-// listing is matched instead), each evaluated. A failed read stores nothing and keeps the earlier results; no open
-// source is recorded as such, never as 0 homes.
-async function marketPart(env, a) {
-  let inventory;
-  try { inventory = await readMarketHomes(env); }
-  catch { console.error('Market inventory not read'); return { state: 'failed', homes: 0, rows: null }; }
-  const homes = inventory.homes.filter(h => h.operation === operationFor(a) && h.listing_id === null);
-  return { state: !inventory.open_sources ? 'no_source' : inventory.truncated ? 'incomplete' : 'searched', homes: homes.length,
-    rows: homes.map(h => marketResult(a, h)) };
-}
-// Replaces the search's market results in its run's batch, guarded like its matches; 100 homes per statement keep each
-// JSON binding far below D1's limit. ponytail: the adverts are not fenced like listings are; an advert read meanwhile
-// is evaluated by the next full run.
-function marketWrites(guarded, search, a, market, ts) {
-  if (!market?.rows) return [];
-  const out = [guarded(`DELETE FROM market_matches WHERE applicant_id=? AND ${search}`, a.id)];
-  for (let i = 0; i < market.rows.length; i += 100) out.push(guarded(`INSERT INTO market_matches(applicant_id,home_key,operation,
-      result,score,requirements_rank,checks,observed_at,evaluated_at)
-    SELECT ?,json_extract(value,'$.k'),json_extract(value,'$.o'),json_extract(value,'$.r'),json_extract(value,'$.s'),
-      json_extract(value,'$.q'),json_extract(value,'$.c'),json_extract(value,'$.t'),? FROM json_each(?) WHERE ${search}`,
-    a.id, ts, JSON.stringify(market.rows.slice(i, i + 100))));
-  return out;
+const pairKey = (home, operation) => JSON.stringify([home, operation]);
+// The market part of a search's full run, once its listings are saved. Only results other than excluded are kept, and
+// only those that changed are written; a result is withdrawn when its home was evaluated again and fits no more, or is
+// gone (all of them when no source is open). Any failure, the table missing included, writes nothing and reads 'failed'.
+// ponytail: the adverts are not fenced like listings are; an advert read meanwhile is evaluated by the next full run.
+async function matchMarket(env, a) {
+  try {
+    const legacy = !parsePriorities(a.requirement_priorities);
+    const [{ homes, open_sources }, { results: stored }] = await Promise.all([
+      readMarketCandidates(env, { operation: operationFor(a), excluded: a.parishes_excluded, top: a.budget_stretch ?? a.budget_max,
+        legacy: legacy && { bedrooms_min: a.bedrooms_min, bedrooms_max: a.bedrooms_max, bathrooms_min: a.bathrooms_min },
+        limit: MARKET_HOMES_LIMIT + 1 }),
+      env.DB.prepare('SELECT home_key,operation,result,score,requirements_rank,checks,observed_at FROM market_matches WHERE applicant_id=?')
+        .bind(a.id).all()]);
+    const capped = homes.length > MARKET_HOMES_LIMIT, evaluated = homes.slice(0, MARKET_HOMES_LIMIT).map(h => marketResult(a, h));
+    const kept = evaluated.filter(r => r.r !== 'excluded'), seen = new Set(evaluated.map(r => pairKey(r.k, r.o)));
+    const before = new Map(stored.map(m => [pairKey(m.home_key, m.operation), m])), fits = new Set(kept.map(r => pairKey(r.k, r.o)));
+    const changed = kept.filter(r => { const m = before.get(pairKey(r.k, r.o));
+      return !m || m.result !== r.r || m.score !== r.s || m.requirements_rank !== r.q || m.checks !== r.c || m.observed_at !== r.t; });
+    // While the limit leaves homes unread, only the results of homes evaluated now can be withdrawn.
+    const gone = stored.filter(m => !fits.has(pairKey(m.home_key, m.operation)) && (!capped || seen.has(pairKey(m.home_key, m.operation))))
+      .slice(0, MARKET_HOMES_LIMIT).map(m => [m.home_key, m.operation]);
+    const search = `EXISTS (SELECT 1 FROM applicants x WHERE x.id=? AND x.updated_at=? AND x.match_inputs_revision=? AND ${activeSql('x')})`;
+    const guard = [a.id, a.updated_at, a.match_inputs_revision];
+    const writes = [
+      ...(changed.length ? [env.DB.prepare(`INSERT INTO market_matches(applicant_id,home_key,operation,result,score,requirements_rank,
+          checks,observed_at,changed_at)
+        SELECT ?,json_extract(value,'$.k'),json_extract(value,'$.o'),json_extract(value,'$.r'),json_extract(value,'$.s'),
+          json_extract(value,'$.q'),json_extract(value,'$.c'),json_extract(value,'$.t'),? FROM json_each(?) WHERE ${search}
+        ON CONFLICT(applicant_id,home_key,operation) DO UPDATE SET result=excluded.result,score=excluded.score,
+          requirements_rank=excluded.requirements_rank,checks=excluded.checks,observed_at=excluded.observed_at,changed_at=excluded.changed_at`)
+        .bind(a.id, now(), JSON.stringify(changed), ...guard)] : []),
+      ...(gone.length ? [env.DB.prepare(`DELETE FROM market_matches WHERE applicant_id=? AND (home_key,operation) IN
+          (SELECT json_extract(value,'$[0]'),json_extract(value,'$[1]') FROM json_each(?)) AND ${search}`)
+        .bind(a.id, JSON.stringify(gone), ...guard)] : [])];
+    if (writes.length) await env.DB.batch(writes);
+    return { state: !open_sources ? 'no_source' : capped ? 'incomplete' : 'searched', homes: evaluated.length };
+  } catch { console.error('Market matching not recorded'); return { state: 'failed', homes: 0 }; }
 }
 
 // Keep each JSON binding below D1's 2,000,000-byte string limit, including the larger event payload form.
@@ -250,6 +265,8 @@ export async function recomputeForApplicantWithStatus(env, applicantId, actor, r
   try {
     const outcome=await recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket);
     if(!outcome.completed)await recordFailure();
+    // BUS-01: only once the listings are saved, in its own batch; matchMarket never throws.
+    else if(marketMatchingEnabled(env)&&!commercial(a))outcome.market=await matchMarket(env,a);
     return outcome;
   } catch(error) {
     await recordFailure();
@@ -269,7 +286,6 @@ async function recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket) {
   const encoded=encodeMatchSnapshot(listings);
   if(encoded.issue)return {created:0,completed:false,reason:encoded.issue};
   const versions=encoded.json;
-  const market=marketMatchingEnabled(env)&&!commercial(a)?await marketPart(env,a):null;
   const { stmts, search, guarded, newEventIndex } = writesFor(env, a, listings.map(l => result(a, l)), byListing(stored), actor, now(),!!ticket);
   // The event's count is computed inside this transaction before the corresponding inserts. Read it directly:
   // D1's metadata can include trigger writes, and a SELECT preserves changes() for the following notice statement.
@@ -294,7 +310,6 @@ async function recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket) {
   stmts.unshift(env.DB.prepare(`UPDATE applicants SET updated_at=CASE WHEN ${snapshot} AND ${initialSearch} THEN updated_at END WHERE id=?`)
     .bind(...snapshotArgs,a.id));
   if(createdIndex!==null)createdIndex++;
-  stmts.push(...marketWrites(guarded,search,a,market,now()));
   stmts.push(guarded(`UPDATE applicants SET match_ranking_version=1 WHERE id=? AND NOT EXISTS
     (SELECT 1 FROM json_each(?) v LEFT JOIN listings l ON l.id=json_extract(v.value,'$.id')
     WHERE l.id IS NULL OR COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=l.id),0)<>json_extract(v.value,'$.version')) AND ${search}`,a.id,versions));
@@ -344,7 +359,7 @@ async function recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket) {
   if(!Number.isSafeInteger(created)||created<0) fail(503,`Match insertion count unavailable. ${MATCH_RESULT_UNKNOWN_MESSAGE}`);
   const direct=written?.[completion]?.results?.[0]?.direct_changes;
   if (!Number.isSafeInteger(direct) || (direct !== 0 && direct !== 1)) fail(503,MATCH_RESULT_UNKNOWN_MESSAGE);
-  return {created,completed:direct===1,...(market&&{market:{state:market.state,homes:market.homes}})};
+  return {created,completed:direct===1};
 }
 
 export async function recomputeForApplicant(env, applicantId, actor, restoreNotice = false) {

@@ -8,7 +8,7 @@ const When = ({ at }) => <time dateTime={at} title={fmtDate(at)}>{fmtAgo(at)}</t
 // BUS-01: what the last search covered. Without market matching (no scope), Hampton's saved listings only; with it,
 // what the market part of its last completed search did. No open source is said as such, never as an empty market.
 const MARKET = { searched: "Hampton's listings and the market inventory",
-  incomplete: "Hampton's listings and part of the market inventory: not every listing could be read",
+  incomplete: "Hampton's listings and the best-fitting part of the market inventory: more homes than one search compares",
   no_source: "Hampton's saved listings: no market source was open", failed: "Hampton's saved listings: the market inventory could not be read" };
 export const searchScope = run => run.scope !== "listings_and_market" ? "Hampton's saved listings only"
   : MARKET[run.market?.state] ?? "Hampton's listings and the market inventory";

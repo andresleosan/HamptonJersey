@@ -112,23 +112,22 @@ export default function MarketInventory() {
 // A listing seen on a site is never shown as confirmed availability.
 const homesValid = data => data && Array.isArray(data.homes) && data.summary && (data.next === null || typeof data.next === "string");
 const RESULT = { meets: ["positive", "Meets stated must-haves"], pending: ["attention", "To confirm"],
-  alternative: ["neutral", "Alternative"], excluded: ["neutral", "Outside search criteria"] };
+  alternative: ["neutral", "Alternative"] };
 const FACT_LABEL = { parish: "parish", bedrooms: "bedrooms", bathrooms: "bathrooms", price: "price", pets: "pets", parking: "parking" };
 const notMet = c => `${CHECK_LABEL[c.key] ?? c.key} ${c.result === "fails" ? "not met" : "to confirm"}${c.evidence ? ` (${c.evidence})` : ""}`;
 function Homes() {
   const [pages, setPages] = useState([null]), after = pages.at(-1);
-  // No timer: this reading goes through the whole inventory, so it reloads on return to the tab.
+  // No timer: it reloads on return to the tab.
   const [state, retry] = usePage(pathAfter("/admin/market/homes", after), homesValid, 0);
   if (state.error?.status === 404) return null;
   return <section aria-labelledby="a-market-homes">
     <h3 id="a-market-homes">Homes found</h3>
-    <p className="muted">Every home of the market inventory with its listings, and how each active search compared at its last search. A listing seen on a site does not confirm that the home is available.</p>
+    <p className="muted">Every home of the market inventory with its listings, and the active searches it suits, needs details confirmed for, or is an alternative to, as of their last search. A listing seen on a site does not confirm that the home is available.</p>
     <LoadState state={state} retry={retry} />
     {state.data && <>
       {!state.data.summary.open_sources ? <p>No market source is open now, so no home could be read. This does not mean the market is empty.</p>
         : state.data.homes.length ? <ul aria-label="Homes found">{state.data.homes.map(h => <Home key={h.key + h.operation} h={h} />)}</ul>
         : <p>No homes recorded yet from the open sources.</p>}
-      {state.data.summary.truncated && <p className="muted">Not every listing could be read, so some homes are missing here and searches did not see them.</p>}
       <PageControls previous={pages.length > 1} next={state.data.next} onPrevious={() => setPages(p => p.slice(0, -1))}
         onNext={() => setPages(p => [...p, state.data.next])} noun="Homes found" />
     </>}
@@ -147,8 +146,8 @@ function Home({ h }) {
     {h.searches.length ? <ul aria-label="Searches compared">{h.searches.map(s => <li key={s.applicant_id}>
       <a href={`#/applicants/${s.applicant_id}`}>{s.name}</a> <span className={`badge ${RESULT[s.result][0]}`}>{RESULT[s.result][1]}</span>
       {s.checks.length > 0 && ` · ${s.checks.map(notMet).join("; ")}`}
-      <span className="muted"> · Compared {fmtDate(s.evaluated_at)}</span></li>)}</ul>
-      : !h.listing_id && <p className="muted">No active search has been compared with this home yet.</p>}
+      <span className="muted"> · Since {fmtDate(s.changed_at)}</span></li>)}</ul>
+      : !h.listing_id && <p className="muted">No active search has this home as a match, a home to confirm or an alternative.</p>}
   </li>;
 }
 

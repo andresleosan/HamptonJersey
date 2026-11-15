@@ -56,7 +56,7 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    const applicant=(await post('applicants',{name,email:`applicant-${width}@example.test`,phone:`07797 00${width}`,source:'phone',
     operation:'rent',budget_max:2000,bedrooms_min:2,parishes_wanted:[parish]},201)).id;
    assert.deepEqual(d1(`SELECT result,COUNT(*) AS n FROM market_matches WHERE applicant_id=${applicant} GROUP BY result ORDER BY result`),
-    [{result:'excluded',n:2},{result:'pending',n:2}]);
+    [{result:'pending',n:2}]);
    const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
    await page.setViewportSize({width,height:900});
    const fits=async where=>assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),`no sideways scroll: ${where} at ${width}`);
@@ -67,8 +67,8 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    // Wait for the list with this search's results, never for a count read while the old one is still on screen.
    await assert.doesNotReject(page.waitForFunction(([who,where])=>{
      const list=[...document.querySelectorAll('ul')].find(ul=>ul.getAttribute('aria-label')==='Homes found');
-     return (list?[...list.children].filter(li=>li.textContent.includes(where)&&li.textContent.includes(who)).length:0)===2;},[name,parish],{timeout:15000}),
-    `two homes compared with ${name} at ${width}`);
+     return (list?[...list.children].filter(li=>li.textContent.includes(where)&&li.textContent.includes(who)).length:0)===1;},[name,parish],{timeout:15000}),
+    `the shared home compared with ${name} at ${width}`);
    const homes=section.getByRole('list',{name:'Homes found'}).locator(':scope > li').filter({hasText:`Rent · ${parish} · 2 bedrooms`});
    const shared=homes.filter({hasText:'£1,500.00 per month'}),dear=homes.filter({hasText:'£3,500.00 per month'});
    assert.equal(await shared.count(),1);assert.equal(await dear.count(),1);
@@ -76,8 +76,8 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    await shared.getByText(/Availability not confirmed/).waitFor();
    const mine=list=>list.getByRole('list',{name:'Searches compared'}).getByRole('listitem').filter({hasText:name});
    await mine(shared).getByText('To confirm',{exact:true}).waitFor();
-   await mine(dear).getByText('Outside search criteria',{exact:true}).waitFor();
-   assert.match(await mine(dear).innerText(),/Budget not met \(£3,500 a month, over £2,000\)/);
+   // Over this search's top: never kept, so listed with no search.
+   await dear.getByText('No active search has this home as a match, a home to confirm or an alternative.').waitFor();
    assert.equal(await mine(shared).getByRole('link',{name}).getAttribute('href'),`#/applicants/${applicant}`);
    // The listings behind a home, each with its source and link, on request.
    await shared.getByText('2 listings').click();
@@ -93,7 +93,7 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    await page.close();
   }
   assert.deepEqual(d1('SELECT market_state,market_homes FROM applicant_search_runs WHERE market_state IS NOT NULL ORDER BY applicant_id'),
-   [{market_state:'searched',market_homes:4},{market_state:'searched',market_homes:4}]);
+   [{market_state:'searched',market_homes:2},{market_state:'searched',market_homes:2}]);
   assert.deepEqual(errors,[]);
  }finally{await browser.close();}
  console.log('BUS-01/BUS-03 market matching: registered search crosses the inventory, homes found with listings and results, record scope, 1280/390 PASS');

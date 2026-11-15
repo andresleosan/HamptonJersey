@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { makeEnv, seedListing, call, adminCookie } from './helpers.mjs';
 import { normalizeObservation } from '../../server/market-extraction.js';
-import { marketHomeFacts } from '../../server/match-store.js';
+import { marketHomeFacts, MARKET_HOMES_LIMIT } from '../../server/match-store.js';
 import { recomputeForApplicant } from '../../server/search-state.js';
 import { evaluate } from '../../server/matching.js';
 
@@ -15,8 +15,8 @@ const ok = (r, status = 200) => { assert.equal(r.status, status, JSON.stringify(
 const req = async (env, method, path, body) => call(env, method, path, { body, cookie: await adminCookie() });
 const rows = (env, sql, ...a) => env.DB.raw.prepare(sql).all(...a).map(r => ({ ...r }));
 
-function world({ on = true, open = true } = {}) {
-  const env = makeEnv(), db = env.DB.raw;
+function world({ on = true, open = true, schema = {} } = {}) {
+  const env = makeEnv(schema), db = env.DB.raw;
   Object.assign(env, { EST01_SEARCH_STATE_READY: '1', BUS10_IDENTITY_READY: '1', MARKET_INVENTORY_READY: '1', BUS07_PROVENANCE_READY: '1' });
   if (on) env.BUS01_MARKET_MATCHING_READY = '1';
   seedListing(env, { id: 'HE-R001', title: 'Own flat', operation: 'rent', availability: 'to_let', rent: 1500, rent_period: 'month',
@@ -51,7 +51,7 @@ const sameHome = async (env, left, right) => ok(await req(env, 'POST', '/admin/m
 const linkListing = async (env, observation_id, lid = 'HE-R001') =>
   ok(await req(env, 'POST', `/admin/listings/${lid}/market-link`, { observation_id, operation_id: randomUUID() }), 201);
 const register = async (env, o = {}) => ok(await req(env, 'POST', '/admin/applicants', { name: 'Jane Le Brocq', email: `j${++env.seq}@example.je`,
-  phone: '07797 123456', source: 'phone', operation: 'rent', budget_max: 2000, bedrooms_min: 2, ...o }), 201).id;
+  phone: `07797 ${100000 + env.seq}`, source: 'phone', operation: 'rent', budget_max: 2000, bedrooms_min: 2, ...o }), 201).id;
 const market = (env, applicant) => rows(env, 'SELECT * FROM market_matches WHERE applicant_id=? ORDER BY home_key', applicant)
   .map(r => ({ ...r, checks: JSON.parse(r.checks) }));
 const runOf = (env, applicant) => env.DB.raw.prepare('SELECT * FROM applicant_search_runs WHERE applicant_id=?').get(applicant);
@@ -106,34 +106,37 @@ test('a registration crosses each market home once, never one linked to a listin
   assert.deepEqual(run.market, { state: 'searched', homes: 2 });
 });
 
-test('a fact the adverts disagree on stays unknown, and an undated reading counts for nothing', () => {
-  const base = { operation: 'rent', bathrooms: 1, observed_at: AT, price: { amount_minor: 150000, currency: 'GBP', period: 'month' } };
-  const { row, disagree } = marketHomeFacts({ key: 'h', operation: 'rent', publications: [
-    { ...base, parish: 'St. Helier', bedrooms: 2, pets: true, parking: null },
-    { ...base, parish: 'Saint Helier', bedrooms: 3, pets: null, parking: false },
-    { ...base, observed_at: null, bathrooms: 4, pets: false } ] });
-  assert.deepEqual(disagree, ['bedrooms']);
-  assert.equal(row.parish, 'St Helier');
-  assert.equal(row.bedrooms, null);
-  assert.equal(row.bathrooms, 1);
-  assert.deepEqual([row.rent, row.rent_period, row.currency, row.sale_price], [1500, 'month', 'GBP', null]);
-  assert.deepEqual([row.feat_pets, row.feat_parking], ['yes', 0]);
-  // Nothing the adverts do not state is assumed.
-  for (const k of ['housing_category', 'tenure_type', 'feat_type', 'feat_furnished', 'feat_outdoor', 'availability']) assert.equal(row[k], null, k);
-  // A parish that is not one of the twelve is not a parish.
-  assert.equal(marketHomeFacts({ key: 'h', operation: 'rent', publications: [{ ...base, parish: 'Jersey' }] }).row.parish, null);
-  // Prices that differ are unknown.
-  const prices = marketHomeFacts({ key: 'h', operation: 'rent', publications: [base, { ...base, price: { ...base.price, amount_minor: 160000 } }] });
-  assert.deepEqual([prices.row.rent, prices.disagree], [null, ['price']]);
-  // evaluate() reads the home as it reads a listing: every stated must-have met is a full match, an unanswered one is not.
+test('a fact the adverts of one home disagree on stays unknown, a parish outside the twelve included', async () => {
+  const env = world();
+  const pair = async (left, right) => sameHome(env, advert(env, 'agency-a', ...left), advert(env, 'agency-b', ...right));
+  await pair(['X-1', { parish: 'St. Helier', bedrooms: 2, pets: true }], ['X-2', { parish: 'Saint Helier', bedrooms: 3, parking: false }]);
+  await pair(['G-1', { parish: 'St Helier' }], ['G-2', { parish: 'Gorey Village' }]);
+  await pair(['P-1', {}], ['P-2', { amount: 160000 }]);
+  advert(env, 'agency-a', 'J-1', { parish: 'Jersey' });
+  const { homes } = ok(await req(env, 'GET', '/admin/market/homes'));
+  const home = key => homes.find(h => h.publications.some(p => p.external_key === key));
+  const x = home('X-1');
+  assert.deepEqual(x.disagree, ['bedrooms']);
+  assert.deepEqual(x.facts, { parish: 'St Helier', bedrooms: null, bathrooms: 1, pets: true, parking: false,
+    price: { amount_minor: 150000, currency: 'GBP', period: 'month' } });
+  assert.deepEqual([home('G-1').facts.parish, home('G-1').disagree], [null, ['parish']]);
+  assert.deepEqual([home('P-1').facts.price, home('P-1').disagree], [null, ['price']]);
+  // A parish that is not one of the twelve is not a parish, and alone it disagrees with nothing.
+  assert.deepEqual([home('J-1').facts.parish, home('J-1').disagree], [null, []]);
+  // evaluate() reads the home as it reads a listing; nothing the adverts do not state is assumed.
+  const row = { home: 'h', operation: 'rent', parish: 'St Helier', bedrooms: 2, bathrooms: 1, price: '[150000,"GBP","month"]',
+    pets: 1, parking: 0, observed_at: AT };
+  const facts = marketHomeFacts(row).row;
+  assert.deepEqual([facts.rent, facts.rent_period, facts.currency, facts.sale_price, facts.feat_pets, facts.feat_parking],
+    [1500, 'month', 'GBP', null, 'yes', 0]);
+  for (const k of ['housing_category', 'tenure_type', 'feat_type', 'feat_furnished', 'feat_outdoor', 'availability']) assert.equal(facts[k], null, k);
   const must = { operation: 'rent', budget_max: 2000, bedrooms_min: 2, area_answer: 'any', pets: '[{"kind":"none"}]',
     requirement_priorities: JSON.stringify({ version: 1, values: { budget: 'must', bedrooms: 'must', area: 'must' }, unknown: [] }) };
-  const home = { key: 'h', operation: 'rent', publications: [{ ...base, parish: 'St Helier', bedrooms: 2 }] };
-  assert.equal(evaluate(must, marketHomeFacts(home).row).requirements_status, 'meets');
-  assert.equal(evaluate({ ...must, pets: null }, marketHomeFacts(home).row).requirements_status, 'pending');
+  assert.equal(evaluate(must, facts).requirements_status, 'meets');
+  assert.equal(evaluate({ ...must, pets: null }, facts).requirements_status, 'pending');
 });
 
-test('each result is kept with what it does not meet: disagreement, over budget and pets refused', async () => {
+test('what fits is kept with what it does not meet; an excluded home is not kept', async () => {
   const env = world();
   advert(env, 'agency-a', 'X-1', { bedrooms: 2 });
   advert(env, 'agency-b', 'X-2', { bedrooms: 3 });
@@ -142,14 +145,14 @@ test('each result is kept with what it does not meet: disagreement, over budget 
   const [x1, x2] = rows(env, "SELECT id FROM market_observations WHERE external_key IN ('X-1','X-2') ORDER BY external_key").map(r => r.id);
   await sameHome(env, x1, x2);
   const applicant = await register(env, { pets: [{ kind: 'dog', count: 1 }] });
-  const found = market(env, applicant), by = key => found.find(m => m.home_key.includes(`"${key}"`));
-  const disputed = found.find(m => !m.home_key.startsWith('['));
+  const found = market(env, applicant);
+  assert.equal(found.length, 1);
+  const [disputed] = found;
+  assert.ok(!disputed.home_key.startsWith('['));
   assert.deepEqual([check(disputed, 'bedrooms').result, check(disputed, 'bedrooms').evidence], ['unknown', 'The adverts disagree']);
   assert.notEqual(disputed.result, 'meets');
-  assert.equal(by('OVER').result, 'excluded');
-  assert.equal(check(by('OVER'), 'budget').result, 'fails');
-  assert.equal(by('NOPETS').result, 'excluded');
-  assert.equal(check(by('NOPETS'), 'pets').result, 'fails');
+  // Over budget never reached evaluate() (a hard filter for this search); refused pets were evaluated and excluded.
+  assert.equal(runOf(env, applicant).market_homes, 2);
 });
 
 test('no open source is recorded as such, not as an empty market, and a closed source takes its homes out', async () => {
@@ -211,7 +214,7 @@ test('the inventory screen: one page of homes with their adverts and every searc
   const applicant = await register(env);
   assert.equal((await call(env, 'GET', '/admin/market/homes')).status, 401);
   const d = ok(await req(env, 'GET', '/admin/market/homes'));
-  assert.deepEqual(d.summary, { open_sources: 2, truncated: false });
+  assert.deepEqual(d.summary, { open_sources: 2 });
   assert.equal(d.next, null);
   assert.equal(d.homes.length, 5);
   const merged = d.homes.find(h => h.publications.length === 2);
@@ -225,9 +228,8 @@ test('the inventory screen: one page of homes with their adverts and every searc
   assert.ok(['meets', 'pending'].includes(merged.searches[0].result));
   // Only what is not met is listed for a search.
   assert.equal(merged.searches[0].checks.some(c => c.result === 'meets'), false);
-  const over = d.homes.find(h => h.publications[0].external_key === 'OVER');
-  assert.equal(over.searches[0].result, 'excluded');
-  assert.deepEqual(over.searches[0].checks.find(c => c.key === 'budget').result, 'fails');
+  // An excluded home is listed with no search.
+  assert.deepEqual(d.homes.find(h => h.publications[0].external_key === 'OVER').searches, []);
   // The home linked to a listing says so and is matched through it; a home for sale was not a rent search's.
   const linked = d.homes.find(h => h.publications[0].external_key === 'D-1');
   assert.deepEqual([linked.listing_id, linked.searches], ['HE-R001', []]);
@@ -282,5 +284,65 @@ test('regression: Matches, Review, the list and the record answer the same off, 
   assert.ok(before.out['found 1'].matches.length > 0);
   assert.deepEqual(off.out, before.out);
   assert.deepEqual(on.out, before.out);
-  assert.deepEqual([before.market, off.market, on.market], [0, 0, 4]);
+  // The second search's £1,700 top leaves the £1,800 home out.
+  assert.deepEqual([before.market, off.market, on.market], [0, 0, 3]);
+});
+
+test('on before migration 0083, the listings, the record and every reader work as before', async () => {
+  const env = world({ schema: { through: 82 } });
+  advert(env, 'agency-a', 'A-1');
+  const applicant = await register(env);
+  assert.deepEqual(rows(env, 'SELECT listing_id FROM matches WHERE applicant_id=?', applicant), [{ listing_id: 'HE-R001' }]);
+  const r = runOf(env, applicant);
+  assert.ok(r.last_success_at >= r.last_attempt_at && r.last_failure_at === null);
+  const run = ok(await req(env, 'GET', `/admin/applicants/${applicant}`)).search_run;
+  assert.deepEqual(run, { state: 'searched', at: r.last_success_at, last_success_at: r.last_success_at });
+  ok(await req(env, 'POST', `/admin/applicants/${applicant}/matches/recalculate`));
+  ok(await req(env, 'POST', '/admin/matches/recalculate', { phase: 'applicants', after: null }));
+  // A registration on the website too.
+  globalThis.fetch = async () => new Response(JSON.stringify({ success: true, hostname: 'hampton.test' }));
+  assert.equal((await call(env, 'POST', '/applicants', { body: { operation: 'rent', name: 'Web Applicant', email: 'web@example.je',
+    phone: '+447797654321', budget_max: 2000, bedrooms_min: 2, parishes_wanted: ['St Helier'], preferred_channel: 'whatsapp',
+    privacy: true, marketing: false, turnstile: 'tok' } })).status, 201);
+  assert.equal(rows(env, "SELECT COUNT(*) AS n FROM matches WHERE listing_id='HE-R001'")[0].n, 2);
+});
+
+test('cost: with 2,000 adverts a search evaluates and writes at most the limit, and a run with nothing new writes nothing', async () => {
+  const env = world();
+  const parishes = ['St Helier', 'Grouville', 'St Brelade', 'Trinity', 'Gorey Village'];
+  for (let i = 0; i < 2000; i++) advert(env, i % 2 ? 'agency-a' : 'agency-b', `K-${i}`, { operation: i % 5 ? 'rent' : 'sale',
+    parish: parishes[i % 5], bedrooms: 1 + (i % 4), amount: (100000 + (i % 30) * 10000) * (i % 5 ? 1 : 300) });
+  const priorities = JSON.stringify({ version: 1, values: { budget: 'must', bedrooms: 'must' }, unknown: [] });
+  const legacy = await register(env, { budget_max: 1200, bedrooms_min: 4 });
+  const wide = await register(env, { budget_max: 4000, bedrooms_min: 1, budget_stretch: null });
+  env.DB.raw.prepare('UPDATE applicants SET requirement_priorities=? WHERE id=?').run(priorities, wide);
+  const writes = [], batch = env.DB.batch.bind(env.DB);
+  env.DB.batch = stmts => { if (stmts.some(s => /market_matches/.test(s.sql))) writes.push(stmts.length); return batch(stmts); };
+  for (const id of [legacy, wide]) {
+    await recomputeForApplicant(env, id, 'system');
+    const r = runOf(env, id);
+    assert.ok(r.market_homes <= MARKET_HOMES_LIMIT, `${r.market_homes} evaluated`);
+    assert.ok(market(env, id).length <= MARKET_HOMES_LIMIT);
+  }
+  // The search without priorities reads only homes that can fit it; the wide one reaches the limit and says so.
+  assert.equal(runOf(env, legacy).market_state, 'searched');
+  assert.ok(runOf(env, legacy).market_homes > 0 && runOf(env, legacy).market_homes < MARKET_HOMES_LIMIT);
+  assert.deepEqual([runOf(env, wide).market_state, runOf(env, wide).market_homes], ['incomplete', MARKET_HOMES_LIMIT]);
+  assert.ok(writes.every(n => n <= 2), JSON.stringify(writes));
+  writes.length = 0;
+  const before = rows(env, 'SELECT * FROM market_matches ORDER BY applicant_id,home_key');
+  for (const id of [legacy, wide]) await recomputeForApplicant(env, id, 'system');
+  assert.deepEqual(writes, []);
+  assert.deepEqual(rows(env, 'SELECT * FROM market_matches ORDER BY applicant_id,home_key'), before);
+});
+
+test('a search that is closed or turns commercial is not shown on the inventory screen', async () => {
+  const env = world();
+  advert(env, 'agency-a', 'A-1');
+  const [first, second] = [await register(env), await register(env)];
+  const names = async () => ok(await req(env, 'GET', '/admin/market/homes')).homes[0].searches.map(s => s.applicant_id);
+  assert.deepEqual((await names()).sort(), [first, second].sort());
+  env.DB.raw.prepare("UPDATE applicants SET archived_at=? WHERE id=?").run(AT, first);
+  env.DB.raw.prepare("UPDATE applicants SET search_category='commercial' WHERE id=?").run(second);
+  assert.deepEqual(await names(), []);
 });

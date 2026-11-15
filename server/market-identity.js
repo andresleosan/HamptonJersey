@@ -1,4 +1,5 @@
 import { HttpError } from './http.js';
+import { OPTIONS } from './applicants.js';
 import { mergePropertyIdentitiesCore, readPropertyIdentityCore, resolvePropertyIdentityCore,
   undoPropertyIdentityDecisionCore, keptApart, primary, uuid } from './internal/market-identity-core.js';
 
@@ -20,7 +21,7 @@ const conflict = message => { throw new HttpError(409, message); };
 const READ = 2000, SHOWN = 50;
 const MAIN = { sale: 'sale_price', rent: 'rent', business: 'business_price' };
 // "St. Helier", "Saint Helier" and "st helier" compare equal; nothing is guessed beyond spelling.
-export const plain = text => typeof text === 'string' ? text.toLowerCase().replace(/\bsaint\b/g, 'st').replace(/[^a-z0-9]+/g, ' ').trim() : '';
+const plain = text => typeof text === 'string' ? text.toLowerCase().replace(/\bsaint\b/g, 'st').replace(/[^a-z0-9]+/g, ' ').trim() : '';
 
 function price(n) {
   const terms = (n.financial_terms ?? []).filter(t => t.kind === MAIN[n.operation] && t.amount_minor != null && t.currency);
@@ -246,37 +247,96 @@ export const readLinkedPublications = gated(async (env, links) => {
   return out;
 });
 
-// BUS-01 / BUS-03: every home of the common inventory, one per operation: a home BUS-10's decisions stand for (its root
-// and every home joined to it) and each advert nobody decided on yet as its own home, each with its adverts at their
-// latest reading from a source open now. listing_id: the Hampton listing a person linked the home to (BUS-07), whose
-// own matching then counts for it. open_sources 0 means nothing could be read, which is not an empty market; truncated
-// means not every advert was read. Reading writes nothing.
-export const readMarketHomes = gated(async env => {
-  const db = primary(env.DB);
-  const [latest, linked, aliases, links, open] = await db.batch([
-    db.prepare(`${LATEST} ORDER BY source_ref,channel_id,external_key LIMIT ?`).bind(READ + 1),
-    db.prepare(`SELECT a.source_ref,a.channel_id,a.external_key,l.operation,io.property_id
-      FROM market_listings l JOIN market_observations a ON a.id=l.anchor_observation_id
-      JOIN market_identity_observations io ON io.observation_id=a.id`),
-    db.prepare('SELECT source_property_id,target_property_id FROM market_identity_aliases'),
-    db.prepare(`SELECT k.listing_id,k.property_id FROM listing_market_links k WHERE k.action='link'
-      AND NOT EXISTS (SELECT 1 FROM listing_market_links u WHERE u.undoes=k.id) ORDER BY k.created_at,k.id`),
-    db.prepare(`SELECT COUNT(*) AS n FROM market_sources s LEFT JOIN market_directory_manifests m ON m.revision=s.directory_revision
-      WHERE s.access_status IN ('allowed','manual_only') AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
-      AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND (s.source_kind='internal' OR m.status='accepted')`),
+
+// BUS-01 / BUS-03: the homes of the common inventory, one per operation, worked out in SQL so that a search or a page
+// reads a few rows, never the whole inventory. A home is a root BUS-10's decisions stand for, or an advert nobody
+// decided on yet (its own home); its adverts are their latest reading from a source open now. A fact counts when the
+// dated readings that state it agree; <fact>_disagree when they do not. A parish outside the twelve reads '?', so it
+// disagrees with any other. listing_id: the Hampton listing a person linked the home to (BUS-07), matched instead.
+const NORMAL = c => `trim(replace(replace(replace(replace(' '||lower(${c})||' ','.',' '),'-',' '),' saint ',' st '),'  ',' '))`;
+const PARISHES = `(VALUES ${OPTIONS.parishes.map(([p]) => `('${p.toLowerCase()}','${p}')`).join(',')})`;
+const N = path => `json_extract(lt.normalized_json,'$.${path}')`;
+const MONTHLY_KNOWN = `lt.op='rent' AND ${N('monthly_rent_minor')} IS NOT NULL`;
+// As publication() reads it: the one stated term of the operation, a rent as its monthly figure when known.
+const PRICE = `(SELECT CASE WHEN COUNT(*)=1 THEN json_array(CASE WHEN ${MONTHLY_KNOWN} THEN ${N('monthly_rent_minor')}
+    ELSE MAX(json_extract(t.value,'$.amount_minor')) END,MAX(json_extract(t.value,'$.currency')),
+    CASE WHEN ${MONTHLY_KNOWN} THEN 'month' ELSE MAX(json_extract(t.value,'$.period')) END) END
+  FROM json_each(lt.normalized_json,'$.financial_terms') t
+  WHERE json_extract(t.value,'$.kind')=CASE lt.op WHEN 'sale' THEN 'sale_price' WHEN 'rent' THEN 'rent' ELSE 'business_price' END
+    AND json_extract(t.value,'$.amount_minor') IS NOT NULL AND json_extract(t.value,'$.currency') IS NOT NULL)`;
+const agree = f => `CASE WHEN COUNT(DISTINCT CASE WHEN observed_at IS NOT NULL THEN ${f} END)=1
+    THEN MAX(CASE WHEN observed_at IS NOT NULL THEN ${f} END) END AS ${f},
+  COUNT(DISTINCT CASE WHEN observed_at IS NOT NULL THEN ${f} END)>1 AS ${f}_disagree`;
+const HOMES = `WITH RECURSIVE
+  up(start,id) AS (SELECT property_id,property_id FROM market_identity_observations
+    UNION SELECT up.start,a.target_property_id FROM market_identity_aliases a JOIN up ON a.source_property_id=up.id),
+  roots(start,id) AS (SELECT start,id FROM up WHERE NOT EXISTS (SELECT 1 FROM market_identity_aliases a WHERE a.source_property_id=up.id)),
+  parishes(k,v) AS ${PARISHES},
+  decided AS (SELECT a.source_ref,a.channel_id,a.external_key,l.operation,io.property_id
+    FROM market_listings l JOIN market_observations a ON a.id=l.anchor_observation_id
+    JOIN market_identity_observations io ON io.observation_id=a.id),
+  adverts AS MATERIALIZED (SELECT lt.id,lt.source_ref,lt.channel_id,lt.external_key,lt.listing_url,lt.normalized_json,lt.op AS operation,
+      ${N('observed_at')} AS observed_at,
+      CASE WHEN ${N('fields.parish')} IS NOT NULL THEN COALESCE((SELECT v FROM parishes WHERE k=${NORMAL(N('fields.parish'))}),'?') END AS parish,
+      ${N('fields.bedrooms')} AS bedrooms,${N('fields.bathrooms')} AS bathrooms,${N('fields.pets')} AS pets,${N('fields.parking')} AS parking,
+      ${PRICE} AS price,COALESCE(r.id,json_array(lt.source_ref,lt.channel_id,lt.external_key,lt.op)) AS home
+    FROM (SELECT l.*,json_extract(l.normalized_json,'$.operation') AS op FROM (${LATEST}) l) lt
+    LEFT JOIN decided d ON d.source_ref=lt.source_ref AND d.channel_id=lt.channel_id AND d.external_key=lt.external_key AND d.operation=lt.op
+    LEFT JOIN roots r ON r.start=d.property_id),
+  homes AS MATERIALIZED (SELECT home,operation,MAX(observed_at) AS observed_at,COUNT(*) AS adverts,
+      ${['parish', 'bedrooms', 'bathrooms', 'pets', 'parking', 'price'].map(agree).join(',')},
+      (SELECT k.listing_id FROM listing_market_links k JOIN roots r ON r.start=k.property_id WHERE r.id=adverts.home
+        AND k.action='link' AND NOT EXISTS (SELECT 1 FROM listing_market_links u WHERE u.undoes=k.id)
+        ORDER BY k.created_at DESC LIMIT 1) AS listing_id
+    FROM adverts GROUP BY home,operation)`;
+const OPEN_SOURCES = `SELECT COUNT(*) AS n FROM market_sources s LEFT JOIN market_directory_manifests m ON m.revision=s.directory_revision
+  WHERE s.access_status IN ('allowed','manual_only') AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+    AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND (s.source_kind='internal' OR m.status='accepted')`;
+// The monthly figure in GBP a budget is compared with, as evaluate() reads it; NULL when it cannot be compared.
+const MONTHLY = `CASE WHEN json_extract(price,'$[1]')='GBP' THEN CASE WHEN operation<>'rent' THEN json_extract(price,'$[0]')/100.0
+  WHEN json_extract(price,'$[2]')='month' THEN json_extract(price,'$[0]')/100.0
+  WHEN json_extract(price,'$[2]')='year' THEN json_extract(price,'$[0]')/1200.0 END END`;
+
+// BUS-01: the homes a search may be offered, best fitting first, at most limit. Left out here only what evaluate()
+// would exclude anyway: another operation, a home linked to a listing, an excluded parish and, for a search without
+// priorities (where they are hard filters), a stated price over its top, rooms outside its range. open_sources 0: no
+// source is open, which is not an empty market. Reading writes nothing.
+export const readMarketCandidates = gated(async (env, { operation, excluded, legacy, top, limit }) => {
+  const db = primary(env.DB), hard = legacy ?? {};
+  const [homes, open] = await db.batch([
+    db.prepare(`${HOMES} SELECT * FROM (SELECT h.*,${MONTHLY} AS monthly FROM homes h) WHERE operation=? AND listing_id IS NULL
+      AND (parish IS NULL OR parish NOT IN (SELECT value FROM json_each(?)))
+      ${legacy ? `AND NOT (monthly IS NOT NULL AND ? IS NOT NULL AND monthly>?)
+      AND NOT (bedrooms IS NOT NULL AND ((? IS NOT NULL AND bedrooms<?) OR (? IS NOT NULL AND bedrooms>?)))
+      AND NOT (bathrooms IS NOT NULL AND ? IS NOT NULL AND bathrooms<?)` : ''}
+      ORDER BY (monthly IS NULL OR ? IS NULL OR monthly<=?) DESC,observed_at DESC,home,operation LIMIT ?`)
+      .bind(operation, excluded ?? '[]', ...(legacy ? [top, top, hard.bedrooms_min, hard.bedrooms_min, hard.bedrooms_max,
+        hard.bedrooms_max, hard.bathrooms_min, hard.bathrooms_min] : []), top, top, limit),
+    db.prepare(OPEN_SOURCES),
   ]);
-  const key = p => JSON.stringify([p.source_ref, p.channel_id, p.external_key, p.operation]);
-  const own = new Map(linked.results.map(row => [key(row), row.property_id]));
-  const parent = new Map(aliases.results.map(a => [a.source_property_id, a.target_property_id]));
-  const root = id => { while (parent.has(id)) id = parent.get(id); return id; };
-  const listingOf = new Map(links.results.map(k => [root(k.property_id), k.listing_id]));
-  const homes = new Map();
-  // Pets and parking as the reading states them (BUS-09 keeps only true, false or not said), for matching only.
-  for (const row of latest.results.slice(0, READ)) {
-    const f = JSON.parse(row.normalized_json).fields ?? {}, p = { ...publication(row), pets: f.pets ?? null, parking: f.parking ?? null };
-    const home = own.has(key(p)) ? root(own.get(key(p))) : key(p), id = JSON.stringify([home, p.operation]);
-    if (!homes.has(id)) homes.set(id, { key: home, operation: p.operation, listing_id: listingOf.get(home) ?? null, publications: [] });
-    homes.get(id).publications.push(p);
+  return { homes: homes.results, open_sources: open.results[0].n };
+});
+
+// BUS-03: a page of homes, newest reading first, with their adverts as publication() shows them. after: the last
+// home of the previous page as [observed_at, home, operation]. Reading writes nothing.
+export const readMarketHomesPage = gated(async (env, after, limit) => {
+  const db = primary(env.DB), [at, home, operation] = after ?? [null, null, null];
+  const [page, open] = await db.batch([
+    db.prepare(`${HOMES} SELECT * FROM homes WHERE ? IS NULL OR COALESCE(observed_at,'')<? OR (COALESCE(observed_at,'')=?
+      AND (home>? OR (home=? AND operation>?))) ORDER BY COALESCE(observed_at,'') DESC,home,operation LIMIT ?`)
+      .bind(at, at, at, home, home, operation, limit + 1),
+    db.prepare(OPEN_SOURCES),
+  ]);
+  const shown = page.results.slice(0, limit), pubs = new Map();
+  if (shown.length) {
+    const { results } = await db.prepare(`${HOMES} SELECT * FROM adverts WHERE (home,operation) IN
+      (SELECT json_extract(value,'$[0]'),json_extract(value,'$[1]') FROM json_each(?)) ORDER BY observed_at DESC,id`)
+      .bind(JSON.stringify(shown.map(h => [h.home, h.operation]))).all();
+    for (const row of results) {
+      const key = JSON.stringify([row.home, row.operation]);
+      pubs.set(key, [...(pubs.get(key) ?? []), publication(row)]);
+    }
   }
-  return { homes: [...homes.values()], open_sources: open.results[0].n, truncated: latest.results.length > READ };
+  return { homes: shown.map(h => ({ ...h, publications: pubs.get(JSON.stringify([h.home, h.operation])) ?? [] })),
+    open_sources: open.results[0].n, more: page.results.length > limit };
 });
