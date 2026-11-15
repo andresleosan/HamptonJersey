@@ -5,7 +5,8 @@ import { setUnsaved } from "./unsaved.js";
 import { Received, money, useFieldErrors } from "./Sales.jsx";
 import { Assign, GAS, KIND, MarkStep, REPAIR_STATUS, SERVICE, URGENCY, checkState, pence } from "./Rentals.jsx";
 import { CancelMoveOut, ChangeRent, CorrectCharge, DETAILS, EditPayment, EditTenancy, EndTenancy, NewTenancy, RecordNotice, RecordPayment,
-  Renew, RepairDialog, NEXT_DAY, UnassignPayment, UpdateCheck, needsApproval, rentLine } from "./RentalDialogs.jsx";
+  Renew, RepairDialog, NEXT_DAY, UnassignPayment, UpdateCheck, needsApproval, rentLine, NoticeDraft, ReverseWriteOff, WriteOff,
+  arrearsDraft } from "./RentalDialogs.jsx";
 import { FromLetAgreed, TenancyRecords, useOriginReady } from "./RentalOrigin.jsx";
 import { OUTCOME, TenancyExit } from "./TenancyExit.jsx";
 import { TenancyInspections } from "./RentalInspection.jsx";
@@ -28,7 +29,7 @@ const toBody = f => ({ address: f.address.trim() || null, parish: f.parish || nu
 const MovePayment = ({ d, p, onDone, ...rest }) => <Assign payment={p} from={d.tenancy} onDone={m => onDone(m.text)} {...rest} />;
 const DIALOGS = { payment: RecordPayment, rent: ChangeRent, renew: Renew, notice: RecordNotice, end: EndTenancy, charge: CorrectCharge,
   edit: EditTenancy, check: UpdateCheck, repair: RepairDialog, cancelEnd: CancelMoveOut, editPayment: EditPayment,
-  unassign: UnassignPayment, move: MovePayment, suppliers: Suppliers };
+  unassign: UnassignPayment, move: MovePayment, suppliers: Suppliers, writeOff: WriteOff, reverseWriteOff: ReverseWriteOff };
 const day = iso => fmtDay(jerseyToday(new Date(iso)));
 const FINAL = ["done", "cancelled"];
 const TONE = { reported: "active", awaiting_approval: "attention", approved: "active", in_progress: "active", done: "positive", cancelled: "neutral" };
@@ -261,7 +262,7 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline }) {
     {err ? <p role="alert" className="err">{err} <button type="button" className="btn ghost sm" onClick={load}>Try again</button></p>
       : <p>Loading tenancy…</p>}</section>;
   const t = d.tenancy, a = d.arrears, today = jerseyToday(), ended = !!t.ended_on && t.ended_on <= today, full = t.service === "full";
-  const act = (kind, extra) => () => open(kind, { d, ...extra });
+  const act = (kind, extra) => () => open(kind, { d, ...extra }), draft = d.writeoffs && arrearsDraft(d, today);
   const more = rows => rows.length > SHORT && <button type="button" className="linkish" aria-expanded={all} onClick={() => setAll(x => !x)}>
     {all ? "Show the newest only" : `Show all ${rows.length} (last 24 months)`}</button>;
   return <section className="card tenancy" id={`tenancy-${id}`} tabIndex={-1} aria-labelledby={h}>
@@ -290,7 +291,8 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline }) {
     </dl>
     {full && <div className="owed">
       <p className="balance"><span className="muted">Balance</span><strong className="num">{pence(Math.abs(d.balance))}</strong>
-        <span className="muted">{d.balance > 0 ? "owed" : d.balance < 0 ? "in credit" : "nothing owed"}</span></p>
+        <span className="muted">{d.balance > 0 ? "owed" : d.balance < 0 ? "in credit" : "nothing owed"}</span>
+        {d.writeoffs && d.balance > 0 && <button type="button" className="btn ghost sm" onClick={act("writeOff")}>Write off<span className="sr"> rent owed</span></button>}</p>
       <div className="late">{!a ? !ended && <p>Not late.</p> : a.days_late === 0 ? <p>Rent due today, not late yet.</p> : <>
         <p><strong className="err">{a.days_late} days late</strong> since {fmtDay(a.oldest_unpaid_on)}</p>
         {a.done.map(s => <p key={s.step} className="muted">{ARREARS_STEPS.find(x => x[1] === s.step)[2]} done {day(s.done_at)}{s.note && `: ${s.note}`}</p>)}
@@ -299,6 +301,15 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline }) {
             next_step: a.next_step, tenant_name: t.tenant_name, address: t.address, payment_ref: t.payment_ref, balance: d.balance, days_late: a.days_late } })}>
             Mark done<span className="sr">: {a.next_step.label}</span></button></p>}</>}</div>
     </div>}
+    {/* ADM-09 (d.writeoffs: its switch): the step's text to send by hand, and the write-offs with their reversal. */}
+    {draft && <NoticeDraft text={draft} id={`arrears-draft-${id}`} title={`${a.next_step.label} draft`} label="Text to send"
+      badge={a.next_step.step === "letter" ? "Draft · not validated by a lawyer" : "Draft · nothing is sent from the app"}
+      file={`${t.payment_ref}-${a.next_step.step}.txt`} />}
+    {d.writeoffs?.length > 0 && <><h3>Written off</h3><ul className="plain-list">{d.writeoffs.map(w => <li key={w.id}>
+      <span>{pence(w.amount)} written off {fmtDay(w.written_off_on)}<span className="muted cell-note">{w.reason}{w.reversed_on
+        && ` · Reversed ${fmtDay(w.reversed_on)}: ${w.reversal_reason}`}</span></span>
+      {!w.reversed_on && <span className="ctl"><button type="button" className="btn ghost sm" onClick={act("reverseWriteOff", { w })}>
+        Reverse<span className="sr"> the write-off of {pence(w.amount)}</span></button></span>}</li>)}</ul></>}
     <div className="ctl">
       <button type="button" className="btn sm" onClick={act("payment")}>Record payment</button>
       {!ended && <button type="button" className="btn ghost sm" onClick={act("rent")}>Change rent</button>}
@@ -406,6 +417,8 @@ const EVENT = {
       v.cover === "unknown" ? ", not recorded whether the 2025 rules apply" : ""}`}`,
   "charge.edited": d => `Charge due ${fmtDay(d.due_on)} corrected from ${pence(d.before)} to ${pence(d.after)}`,
   "arrears.step_done": d => `${ARREARS_STEPS.find(x => x[1] === d.step)?.[2]} marked done${d.note ? `: ${d.note}` : ""}`,
+  "charge.written_off": d => `${pence(d.amount)} of rent written off`,
+  "charge.writeoff_reversed": d => `Write-off of ${pence(d.amount)} reversed: owed again`,
   "payment.recorded": d => `${KIND[d.kind]} payment of ${pence(d.amount)} recorded`,
   "payment.updated": ({ amount, after: { tenancy_id, ...rest }, from, to }) => {
     const now = Object.entries(rest).map(([k, v]) => PAID[k](v));

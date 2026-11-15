@@ -2,7 +2,7 @@ import { fail, now } from './http.js';
 import { realDate, jerseyToday } from './viewings.js';
 import { FINANCIAL_BALANCE_CTES } from './arrears-policy.js';
 import { ARREARS_STEPS } from './rentals.js';
-import { OWED_SQL } from './routes/rent.js';
+import { owedOf } from './routes/rent.js';
 
 // NOT-05's grace period, shared by the tab below and the internal projection: app_settings 'missing_payments'
 // {grace_days 0..30, revision >= 1}; without the row, DEFAULT_GRACE at revision 0. It only decides when a debt shows:
@@ -68,7 +68,7 @@ const LIMIT = 200;
 export const missingPaymentsReady = env => env?.NOT05_MISSING_PAYMENTS_READY === '1';
 export async function missingPayments(env, today = jerseyToday()) {
   const [settings, owed] = (await env.DB.batch([env.DB.prepare(POLICY),
-    env.DB.prepare(`WITH ${OWED_SQL} SELECT a.tenancy_id, a.rental_id, r.address, t.tenant_name, t.payment_ref, t.ended_on, a.balance,
+    env.DB.prepare(`WITH ${owedOf(env)} SELECT a.tenancy_id, a.rental_id, r.address, t.tenant_name, t.payment_ref, t.ended_on, a.balance,
       a.oldest_unpaid_on, a.days_late, a.due_step, a.next_step, COUNT(*) OVER () AS n, SUM(a.balance) OVER () AS total
       FROM arrears a JOIN tenancies t ON t.id = a.tenancy_id JOIN rentals r ON r.id = a.rental_id
       WHERE a.balance > 0 AND a.oldest_unpaid_on IS NOT NULL AND a.days_late >= ${GRACE_SQL}

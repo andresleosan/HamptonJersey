@@ -4,7 +4,7 @@ import { fmtDate, fmtDay, fmtDayMonth } from "./format.js";
 import { Modal, money, pounds, useFieldErrors } from "./Sales.jsx";
 import { KIND, REPAIR_STATUS, URGENCY, pence } from "./Rentals.jsx";
 import { Estimated } from "./LegalTerms.jsx";
-import { LEGAL, ONE_OFF, REPAIR_NEXT, earliestMoveOut, initialTermBeyondThreeYears, parseMoney, regimeOf, rentAssistant,
+import { ARREARS_STEPS, LEGAL, ONE_OFF, REPAIR_NEXT, earliestMoveOut, initialTermBeyondThreeYears, parseMoney, regimeOf, rentAssistant,
   validateTenancyOperation } from "../../server/rentals.js";
 import { jerseyToday } from "../../server/viewings.js";
 
@@ -139,20 +139,80 @@ const noticeDraft = (t, current, rent, on, help, legal, today) => [
     : "The legal periods are validated and the tenancy is recorded under the 2025 rules.",
   "No notice letter template validated by a Jersey lawyer exists yet. Nothing is sent from the app.",
 ].join("\n");
-// The clipboard needs the browser's permission: without it the text is selected instead.
-function NoticeDraft({ text }) {
+// The clipboard needs the browser's permission: without it the text is selected instead. ADM-09 reuses it for the
+// arrears drafts (id, title, badge, label; file: a Download button that saves the text, to print or post).
+export function NoticeDraft({ text, id = "cr-notice", title = "Notice draft", badge = "Draft · not a notice letter",
+  label = "Facts of this change", file }) {
   const box = useRef(null), [said, setSaid] = useState("");
   const copy = async () => {
     try { await navigator.clipboard.writeText(text); setSaid("Draft copied."); }
     catch { box.current?.select(); setSaid("Draft selected: copy it with your keyboard."); }
   };
-  return <section className="assistant view-form" aria-labelledby="h-notice">
-    <h3 id="h-notice">Notice draft</h3>
-    <p><span className="badge neutral">Draft · not a notice letter</span></p>
-    <label>Facts of this change<textarea ref={box} id="cr-notice" readOnly rows={text.split("\n").length + 2} value={text} /></label>
+  const download = () => {
+    const a = Object.assign(document.createElement("a"), { download: file,
+      href: URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" })) });
+    a.click(); URL.revokeObjectURL(a.href); setSaid("Draft downloaded.");
+  };
+  return <section className="assistant view-form" aria-labelledby={`h-${id}`}>
+    <h3 id={`h-${id}`}>{title}</h3>
+    <p><span className="badge neutral">{badge}</span></p>
+    <label>{label}<textarea ref={box} id={id} readOnly rows={text.split("\n").length + 2} value={text} /></label>
     <div className="inline"><button type="button" className="btn ghost sm" onClick={copy}>Copy draft</button>
+      {file && <button type="button" className="btn ghost sm" onClick={download}>Download draft</button>}
       <span role="status" className="muted">{said}</span></div>
   </section>;
+}
+
+// ADM-09 (d.writeoffs: its switch): what the tenant is sent at the reminder steps and with the formal letter, as a draft
+// to copy or download. Nothing is sent from the app (email is AUT-17's), and no letter template validated by a Jersey
+// lawyer exists yet (ADM-17), so the letter says it is a draft. Dates carry the year: the text leaves the screen.
+const ASK = ref => `Please pay by bank transfer quoting ${ref}, or contact us to agree how it will be paid.`;
+const DRAFTS = {
+  reminder: (t, a, owed) => ["DRAFT · Friendly reminder", `Rent reminder · ${t.payment_ref} · ${t.address}`, "",
+    `Dear ${t.tenant_name},`, "", `This is a friendly reminder that the rent due on ${fmtDayMonth(a.oldest_unpaid_on)} has not reached us yet: ${owed} is owed.`,
+    `${ASK(t.payment_ref)} If you have already paid, thank you, and please disregard this message.`],
+  firm: (t, a, owed) => ["DRAFT · Firm reminder", `Rent overdue · ${t.payment_ref} · ${t.address}`, "",
+    `Dear ${t.tenant_name},`, "", `The rent due on ${fmtDayMonth(a.oldest_unpaid_on)} is now ${a.days_late} days late and ${owed} is owed.`,
+    `Please pay it now. ${ASK(t.payment_ref)}`],
+  letter: (t, a, owed, today) => ["DRAFT · not validated by a lawyer · check it before it is sent", "", fmtDayMonth(today), t.tenant_name,
+    t.address, "", `Rent arrears · payment reference ${t.payment_ref}`, "", `Dear ${t.tenant_name},`, "",
+    `Our records show ${owed} of rent unpaid on this tenancy. The oldest unpaid rent fell due on ${fmtDayMonth(a.oldest_unpaid_on)}, ${a.days_late} days ago.`,
+    ...(a.done.length ? [`We have already contacted you: ${a.done.map(s => `${ARREARS_STEPS.find(x => x[1] === s.step)[2].toLowerCase()} on ${
+      fmtDayMonth(jerseyToday(new Date(s.done_at)))}`).join("; ")}.`] : []),
+    ASK(t.payment_ref), "If the arrears are not settled, we may take further steps under the tenancy agreement.", "",
+    "Yours sincerely,", "[Name]", "Hampton"],
+};
+export const arrearsDraft = ({ tenancy: t, balance, arrears: a }, today) => DRAFTS[a?.next_step?.step]?.(t, a, pence(balance), today)
+  .join("\n") ?? null;
+
+// ADM-09 (its switch): rent Hampton gives up, the oldest unpaid charge first. It is no payment, the charges stay and it
+// can be reversed; a payment or charge meanwhile (financial_revision) is a 409 and the page reloads.
+export function WriteOff({ d: { tenancy: t, balance }, onClose, onDone, onRefused }) {
+  const a = useForm("wo", { amount: asPounds(balance), reason: "" }, async f => {
+    const amount = toPence(f.amount, "amount") ?? (() => { throw fieldError("amount", "Enter an amount"); })();
+    await api(`/admin/tenancies/${t.id}/writeoffs`, { method: "POST",
+      body: { amount, reason: f.reason.trim() || null, financial_revision: t.financial_revision } });
+    return `${pence(amount)} written off for ${t.tenant_name}.`;
+  }, onDone, onRefused);
+  return <Sheet title="Write off rent" a={a} button="Write off" danger onClose={onClose}>
+    <Who t={t} />
+    <p>{pence(balance)} owed. A write-off is not a payment: the charges stay, the oldest unpaid ones are reduced first, and
+      it can be reversed.</p>
+    {a.field("amount", "Amount (£)", { inputMode: "decimal" })}
+    {a.field("reason", "Reason", { textarea: true, maxLength: 300, placeholder: "e.g. Agreed with the landlord after the tenant left" })}
+  </Sheet>;
+}
+export function ReverseWriteOff({ d: { tenancy: t }, w, onClose, onDone, onRefused }) {
+  const a = useForm("rw", { reason: "" }, async f => {
+    await api(`/admin/tenancies/${t.id}/writeoffs/${w.id}/reverse`, { method: "POST",
+      body: { reason: f.reason.trim() || null, financial_revision: t.financial_revision } });
+    return `Write-off of ${pence(w.amount)} reversed: it is owed again.`;
+  }, onDone, onRefused);
+  return <Sheet title="Reverse write-off" a={a} button="Reverse" onClose={onClose}>
+    <Who t={t} />
+    <p>{pence(w.amount)} written off {fmtDay(w.written_off_on)}: {w.reason}. Reversing it makes it owed again.</p>
+    {a.field("reason", "Reason", { textarea: true, maxLength: 300, placeholder: "e.g. Written off by mistake" })}
+  </Sheet>;
 }
 export function ChangeRent({ d: { tenancy: t, assistant, current_rent, legal, law }, onClose, onDone, onRefused }) {
   const policy = assistant.cover ? law : null, usable = v => !!v && (!policy || !!v.source);

@@ -5,10 +5,12 @@ import { readFileSync, readdirSync } from "node:fs";
 const MIG = new URL("../../migrations/", import.meta.url);
 export const T0 = "2026-10-07T10:00:00.000Z";
 
-export function makeDb({ through = Infinity } = {}) {
+// skip: migration numbers left out, like a database where they are not applied yet.
+export function makeDb({ through = Infinity, skip = [] } = {}) {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON;");
-  for (const f of readdirSync(MIG).filter(f => f.endsWith(".sql") && Number(f.slice(0, 4)) <= through).sort()) db.exec(readFileSync(new URL(f, MIG), "utf8"));
+  for (const f of readdirSync(MIG).filter(f => f.endsWith(".sql") && Number(f.slice(0, 4)) <= through
+    && !skip.includes(Number(f.slice(0, 4)))).sort()) db.exec(readFileSync(new URL(f, MIG), "utf8"));
   // The migrations seed no admin (0001); the tests' own two, fictitious.
   db.exec(`INSERT INTO admins (email, added_by, added_at) VALUES ('admin@example.test', 'setup', '${T0}'),
     ('colleague@example.test', 'setup', '${T0}')`);

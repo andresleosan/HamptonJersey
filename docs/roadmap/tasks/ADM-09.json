@@ -6,8 +6,8 @@
   "fase": "F5-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (Friendly reminder, Firm reminder, Call the tenant, Tell the landlord, Formal letter), con Mark done y nota; un pago que cubre la deuda cierra la secuencia. Se construyó una autoridad financiera interna con ajustes, saldo FIFO y control por caso; permanece desconectada de las rutas actuales y sin ejecutar migración remota en esta sesión. La consulta del estado remoto fue denegada. Se preparó una lectura interna por tenancy que reúne saldo, atrasos y movimientos con autorización transaccional; continúa sin ruta activa ni conciliación global. Se preparó una lectura interna de hasta diez contratos autorizados y un refuerzo de ciclo de vida de permisos, todavía sin conectar a rutas.",
-  "falta": "Unificar primero detalle, lista, contador y conciliación existentes con la autoridad financiera y sus permisos por caso; después completar escritura de deuda perdida y secuencia configurable. Los avisos reales y la carta siguen sujetos a correo y validación correspondiente. No activar ajustes mientras existan cálculos incompatibles. La propuesta 0049 requiere revisar su efecto sobre permisos existentes y definir retención/supresión antes de cualquier aplicación; su estado remoto no se conoce. Traído de NOT-05: aplicar ajustes y write-offs (0045) también a la pestaña Missing payments, para que una deuda saldada con el depósito o condonada salga de ella, y la autorización por caso sensitive_finance. Traído de ADM-17 (14-nov): la secuencia +1/+5/+7/+10/+14 (ARREARS_STEPS) sigue en código y sin rótulo de validación; si pasa a ser configurable, reutilizar legal_settings (migración 0063). Traído de ADM-20 (15-nov): cualquier cargo nuevo que no sea renta debe pasar por validateTenancyOperation (operación charge) antes de escribirse.",
+  "hecho": "El bloque Arrears muestra deuda, días de retraso desde el cobro impagado más antiguo y el paso que toca (+1 Friendly reminder, +5 Firm reminder, +7 Call the tenant, +10 Tell the landlord, +14 Formal letter), con Mark done y nota como registro manual del aviso hecho; un pago que cubre la deuda cierra la secuencia. El Inbox abre una tarea «Arrears: <paso>» en cada hito (notificationsPass del reloj). Con ADM09_ARREARS_READY (apagado; necesita 0045): borrador del texto de cada paso dirigido al inquilino (recordatorios +1 y +5 y carta formal +14, esta marcada «not validated by a lawyer») para copiar o descargar; nada se envía. Write-off de deuda perdida como ajustes inmutables (nunca un pago ni un cargo borrado), del cargo impagado más antiguo al más nuevo, con motivo obligatorio y control por financial_revision (un pago entretanto da 409 y no escribe nada); reversión del write-off entero, una sola vez. Con el interruptor, detalle, lista y total de Rentals, contador de la barra, Missing payments e Inbox leen la misma deuda neta de write-offs. Un cargo con write-off no se borra (mover collect_from o la salida da error de campo) ni se corrige por debajo de lo amortizado. Apagado, cargos, pagos, contratos, pasos, Rentals, Missing payments y el Inbox responden igual con y sin 0045 (prueba diferencial). Los lectores internos con permisos por caso (arrears-policy, finance-workspace, finance-cases, finance-summary) siguen sin conectar.",
+  "falta": "Aplicar 0045 (aditiva) en D1 hampton y encender ADM09_ARREARS_READY en wrangler.toml y jobs/wrangler.toml a la vez; después comprobar el recorrido en producción con lecturas. Solo eso es de ADM-09. Trasladado: el envío real de recordatorios y carta por correo, a AUT-17; la plantilla validada de la carta formal, a ADM-17 (abogado); el permiso fino sensitive_finance por caso, a ADM-18. ADM-09 no usa 0046 ni 0049. Traído de ADM-20 (15-nov): cualquier cargo nuevo que no sea renta debe pasar por validateTenancyOperation (operación charge) antes de escribirse.",
   "bloqueo": "Correo (AUT-17) · JFSC/abogado",
   "evidencia": [
     "admin/src/Rentals.jsx:86-95",
@@ -26,7 +26,21 @@
     "docs/superpowers/plans/2026-11-13-adm-09-not-05-workspace-ledger.md",
     "server/finance-cases.js",
     "tests/server/adm-18-case-lifecycle.test.mjs",
-    "docs/superpowers/plans/2026-11-13-adm-18-case-lifecycle-finance-ledger.md"
+    "docs/superpowers/plans/2026-11-13-adm-18-case-lifecycle-finance-ledger.md",
+    "server/routes/rent.js:59-86 (amountOf, arrearsOf, owedOf: la deuda neta de write-offs solo con ADM09_ARREARS_READY)",
+    "server/routes/rent.js:186 (apagado, el detalle no expone financial_revision de 0045)",
+    "server/routes/rent.js:627-694 (writeOff, reverseWriteOff, writtenOff) y :1033-1037 (writeoffRoutes)",
+    "server/api.js:84 · server/notification-reconcile.js:66 · server/missing-payments.js:71",
+    "admin/src/RentalDialogs.jsx:142-216 (NoticeDraft reutilizado, arrearsDraft, WriteOff, ReverseWriteOff)",
+    "admin/src/RentalDetail.jsx:304-312",
+    "tests/server/adm-09-writeoffs.test.mjs (6 pruebas: diferencial apagado con y sin 0045, FIFO, 409, reversión, cargos protegidos, interruptor igual en web y reloj): 6/6 PASS; regresión focal de rentas, pagos, contratos, atrasos, Missing payments, Inbox y jobs: 415/415 PASS",
+    "tests/adm09-arrears.e2e.cjs: PASS a 1280 y 390 el 15-nov (contenedor aislado sin red, datos ficticios; no acredita producción)",
+    "Decisión: acceso con la sesión de equipo (currentAdmin), no sensitive_finance por caso. Fuente: encargo del 15-nov (0046/0049 no se aplican); el permiso fino queda para ADM-18 y Luis.",
+    "Decisión: carta formal como borrador «not validated by a lawyer». Fuente: no existe plantilla validada (ADM-17/PRE-33); patrón de ADM-15 y ADM-17.",
+    "Decisión: secuencia fija en código (ARREARS_STEPS). Fuente: título +1/+5/+7/+10/+14 y skill §4.5 (lo más simple y reversible); configurarla se propone como mejora con legal_settings (0063).",
+    "Decisión: write-off FIFO por due_on e id, con fecha de hoy en Jersey, y reversión completa. Fuente: spec 2026-11-10-tp03-finance-design (FIFO, ajustes inmutables, reversal única) y guardas de 0045.",
+    "Decisión: el motivo queda en charge_adjustments y fuera de rental_events. Fuente: spec TP03 (eventos con IDs y estado mínimo).",
+    "Decisión: sin 0090. Fuente: encargo (crearla solo si se usa); ningún lector conectado necesita la revisión por pasos de atraso."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -55,6 +69,6 @@
     "email-pipeline",
     "legal-parameters"
   ],
-  "nextStep": "Unificar lectores y permisos, revisar concurrencia y retención y después construir los flujos operativos de ajustes y avisos.",
+  "nextStep": "Aplicar solo 0045 en D1 hampton con marcador de Time Travel, añadir ADM09_ARREARS_READY = \"1\" a los dos wrangler.toml, desplegar y comprobar con GET el detalle de un contrato (writeoffs y financial_revision presentes) y Missing payments.",
   "actualizado": "2026-11-15"
 }

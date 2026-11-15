@@ -1,7 +1,7 @@
 import {fail} from './http.js';
 import {jerseyToday} from './viewings.js';
 import {ARREARS_STEPS,COMPLIANCE,CALENDAR,LEGAL} from './rentals.js';
-import {ARREARS_SQL,DEADLINES,checksSql,ensureChecks,RENEWAL,ensureCharges} from './routes/rent.js';
+import {arrearsOf,DEADLINES,checksSql,ensureChecks,RENEWAL,ensureCharges} from './routes/rent.js';
 import {WAITING,waitingCutoff} from './routes/sales.js';
 import {TO_CONFIRM} from './listing.js';
 import {taskStatements} from './notification-tasks.js';
@@ -25,7 +25,7 @@ const deadlineRows=legal=>DEADLINES.map(([key,label,from,period,done])=>{const d
   json_object('tenancy_id',t.id,'deadline','${key}'),${quote(label+' overdue')},date(t.${from},'+${days} days')||'T00:00:00.000Z','normal',json_array(t.${from}${changed}),'rental',CAST(t.rental_id AS TEXT)
   FROM tenancies t JOIN rentals r ON r.id=t.rental_id WHERE r.archived_at IS NULL AND t.${from} IS NOT NULL AND t.${done} IS NULL AND date(t.${from},'+${days} days')<?1`;}).join('\nUNION ALL ');
 // ADM-11 (calendar: its switch): the calendar's checks come through the same rows and the same 'check' notices.
-const pendingSql=(legal,calendar)=>`${ARREARS_SQL},pending_deadlines(${columns}) AS MATERIALIZED (${deadlineRows(legal)}),rental_pending(${columns}) AS MATERIALIZED (
+const pendingSql=(legal,calendar,arrears)=>`${arrears},pending_deadlines(${columns}) AS MATERIALIZED (${deadlineRows(legal)}),rental_pending(${columns}) AS MATERIALIZED (
   SELECT 'arrears',CAST(a.tenancy_id AS TEXT),a.oldest_unpaid_on||':'||a.next_step,'rental',CAST(a.rental_id AS TEXT),
     json_object('tenancy_id',a.tenancy_id),${stepLabel},${stepDue},'normal',json_array(a.oldest_unpaid_on,a.next_step),'rental',CAST(a.rental_id AS TEXT)
     FROM arrears a JOIN rentals r ON r.id=a.rental_id WHERE a.next_step IS NOT NULL AND r.archived_at IS NULL
@@ -63,7 +63,7 @@ const reentry=`(o.active=0 OR (o.kind='repair' AND EXISTS(SELECT 1 FROM events x
 export async function notificationsPass(env,isoNow) {
   if(typeof isoNow!=='string'||!Number.isFinite(Date.parse(isoNow))||new Date(isoNow).toISOString()!==isoNow)fail(400,'Use a processing UTC time');
   const args=[jerseyToday(new Date(isoNow)),null,isoNow,waitingCutoff(isoNow)],calendar=calendarReady(env);
-  const {periods}=await readLegal(env),PENDING=pendingSql(periods,calendar);
+  const {periods}=await readLegal(env),PENDING=pendingSql(periods,calendar,arrearsOf(env));
   if(calendar)await env.DB.batch(ensureChecks(env,periods,args[0]));
   const q=(sql,...extra)=>env.DB.prepare(sql).bind(...args,...extra);
   const [,cursorRead,selection]=await env.DB.batch([

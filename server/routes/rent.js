@@ -56,14 +56,21 @@ export function ensureCharges(env, today, tenancyId = null, staleBefore = null) 
 // The running total (window) is only taken for tenancies that owe something, the rest are two indexed sums.
 // NOT-05's Missing payments reads the same CTEs over every full-service tenancy (OWED_SQL): one that ended still owes,
 // even after its property moved to let-only (an ended tenancy that was collected, collect_from set).
+// ADM-09 (adjusted: its switch, ADM09_ARREARS_READY, with migration 0045): a charge counts net of what was written off
+// on it by `date` (reversals add it back). Off, the charge's amount as before.
+export const arrearsReady = env => env?.ADM09_ARREARS_READY === "1";
+const NET = (x = "x.") => `SUM(CASE ${x}kind WHEN 'writeoff' THEN ${x}amount_pence ELSE -${x}amount_pence END)`;
+const amountOf = (adjusted, c = "c", date = "?1") => adjusted
+  ? `(${c}.amount - COALESCE((SELECT ${NET()} FROM charge_adjustments x WHERE x.charge_id = ${c}.id AND x.effective_on <= ${date}), 0))`
+  : `${c}.amount`;
 const DUE_STEP = `CASE ${ARREARS_STEPS.toReversed().map(([d, k]) => `WHEN days_late >= ${d} THEN '${k}'`).join(" ")} END`;
-const arrearsSql = running => `a_t AS (SELECT t.id, t.rental_id FROM tenancies t JOIN rentals r ON r.id = t.rental_id
+const arrearsSql = (running, adjusted = false) => `a_t AS (SELECT t.id, t.rental_id FROM tenancies t JOIN rentals r ON r.id = t.rental_id
     WHERE ${running ? "r.service = 'full' AND (t.ended_on IS NULL OR t.ended_on > ?1)"
       : "(r.service = 'full' OR (t.ended_on <= ?1 AND t.collect_from IS NOT NULL))"} AND (?2 IS NULL OR t.id = ?2)),
   a_bal AS MATERIALIZED (SELECT id AS tenancy_id, rental_id,
-    COALESCE((SELECT SUM(c.amount) FROM charges c WHERE c.tenancy_id = a_t.id AND c.due_on <= ?1), 0) AS due,
+    COALESCE((SELECT SUM(${amountOf(adjusted)}) FROM charges c WHERE c.tenancy_id = a_t.id AND c.due_on <= ?1), 0) AS due,
     COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.tenancy_id = a_t.id AND p.kind = 'rent'), 0) AS paid FROM a_t),
-  a_run AS (SELECT c.tenancy_id, c.due_on, b.paid, SUM(c.amount) OVER (PARTITION BY c.tenancy_id ORDER BY c.due_on, c.kind
+  a_run AS (SELECT c.tenancy_id, c.due_on, b.paid, SUM(${amountOf(adjusted)}) OVER (PARTITION BY c.tenancy_id ORDER BY c.due_on, c.kind
     ROWS UNBOUNDED PRECEDING) AS run FROM a_bal b CROSS JOIN charges c ON c.tenancy_id = b.tenancy_id AND c.due_on <= ?1
     WHERE b.due > b.paid),
   a_old AS (SELECT tenancy_id, MIN(due_on) AS oldest FROM a_run WHERE run > paid GROUP BY tenancy_id),
@@ -73,6 +80,10 @@ const arrearsSql = running => `a_t AS (SELECT t.id, t.rental_id FROM tenancies t
     AND x.charge_due_on = a.oldest_unpaid_on AND x.step = a.due_step) THEN a.due_step END AS next_step
     FROM (SELECT *, ${DUE_STEP} AS due_step FROM a_late) a)`;
 export const ARREARS_SQL = arrearsSql(true), OWED_SQL = arrearsSql(false);
+const NET_ARREARS = arrearsSql(true, true), NET_OWED = arrearsSql(false, true);
+// The CTEs each reader uses: net of write-offs with ADM-09's switch.
+export const arrearsOf = env => arrearsReady(env) ? NET_ARREARS : ARREARS_SQL;
+export const owedOf = env => arrearsReady(env) ? NET_OWED : OWED_SQL;
 const STEP = Object.fromEntries(ARREARS_STEPS.map(([days, step, label]) => [step, { days, step, label }]));
 
 // R10, R13: the tenancy's own deadlines, from its dates (no rows): [key, label, from, period, done]. period: its key
@@ -127,7 +138,7 @@ const STALE = "NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'rentals_count
 export const refreshRentalsCount = (env, legal = LEGAL) => {
   const today = jerseyToday(), staleBefore = new Date(Date.now() - COUNT_MS).toISOString();
   return [ensureCharges(env, today, null, staleBefore), env.DB.prepare(`INSERT INTO app_settings (key, value, updated_at)
-  WITH ${ARREARS_SQL} SELECT 'rentals_count', json_object('n',
+  WITH ${arrearsOf(env)} SELECT 'rentals_count', json_object('n',
     (SELECT COUNT(*) FROM arrears WHERE next_step IS NOT NULL)
     + (SELECT COUNT(*) ${checksSql(calendarReady(env))} AND (c.expires_on IS NULL OR c.expires_on < ?1))
     + (SELECT COALESCE(SUM(${pending("< ?1", legal).join(" + ")}), 0) FROM tenancies t JOIN rentals r ON r.id = t.rental_id
@@ -154,21 +165,26 @@ export async function detail(env, id) {
   id = Number(id);
   const legal = await readLegal(env), { periods } = legal, law = await tenancyLaw(env, legal);
   const today = jerseyToday(), since = addMonths(today, -24), q = (sql, ...b) => env.DB.prepare(sql).bind(...b);
-  const [, [tenancy], charges, payments, [{ balance }], [setting], [late], steps, [now_], [law_history] = []] = (await env.DB.batch([
+  const net = arrearsReady(env);
+  const [, [tenancy], charges, payments, [{ balance }], [setting], [late], steps, [now_], ...more] = (await env.DB.batch([
     ensureCharges(env, today, id),
     q(TENANCY_SQL, id),
     q("SELECT id, due_on, amount, kind, edited FROM charges WHERE tenancy_id = ? AND due_on >= ? ORDER BY due_on DESC, kind",
       id, since),
     q("SELECT * FROM payments WHERE tenancy_id = ? AND received_on >= ? ORDER BY received_on DESC, id DESC", id, since),
-    q(`SELECT (SELECT COALESCE(SUM(amount), 0) FROM charges WHERE tenancy_id = ?1 AND due_on <= ?2)
+    q(`SELECT (SELECT COALESCE(SUM(${amountOf(net, "charges", "?2")}), 0) FROM charges WHERE tenancy_id = ?1 AND due_on <= ?2)
       - (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE tenancy_id = ?1 AND kind = 'rent') AS balance`, id, today),
     q("SELECT value FROM app_settings WHERE key = 'rpi'"),
-    q(`WITH ${ARREARS_SQL} SELECT * FROM arrears`, today, id),
+    q(`WITH ${arrearsOf(env)} SELECT * FROM arrears`, today, id),
     q("SELECT charge_due_on, step, done_at, done_by, note FROM arrears_steps WHERE tenancy_id = ? ORDER BY done_at", id),
     q(`SELECT ${rentNow("?2")} AS rent FROM tenancies t WHERE t.id = ?1`, id, today),
+    ...(net ? [q(WRITEOFFS, id)] : []),
     ...(law ? [lawHistory(env, id)] : []),
   ])).map(r => r.results);
   if (!tenancy) fail(404, "Tenancy not found");
+  // ADM-09: the revision a write-off must still find; off, the tenancy reads as before 0045.
+  if (!net) delete tenancy.financial_revision;
+  const writeoffs = net ? more.shift() : null, [[law_history] = []] = more;
   const arrears = late?.oldest_unpaid_on ? { oldest_unpaid_on: late.oldest_unpaid_on, days_late: late.days_late,
     next_step: STEP[late.next_step] ?? null,
     done: steps.filter(x => x.charge_due_on === late.oldest_unpaid_on).map(({ charge_due_on, ...x }) => x) } : null;
@@ -179,7 +195,7 @@ export async function detail(env, id) {
   return { tenancy, current_rent: now_.rent, charges, payments, balance, arrears,
     assistant: { ...rentAssistant(tenancy, rpi, today, periods, rentReviewReady(env) ? law : null), rpi },
     deadlines: deadlines(tenancy, today, periods), earliest_move_out: notice ? earliestMoveOut(tenancy, notice, periods) : null,
-    ...legalLabel(legal), ...(law ? { law, law_history } : {}) };
+    ...legalLabel(legal), ...(law ? { law, law_history } : {}), ...(net ? { writeoffs } : {}) };
 }
 
 const getTenancy = async ({ env, params: [id] }) => json(await detail(env, id));
@@ -339,6 +355,9 @@ async function updateTenancy({ request, env, admin, params: [id] }) {
     : cur.ended_on && to >= cur.ended_on ? "Use a date before the move-out" : null;
   if (why) errors.collect_from ??= why;
   if (opening && !collects) errors.opening_balance ??= NOT_COLLECTED;
+  if (moved && !errors.collect_from) Object.assign(errors, await writtenOff(env, "collect_from",
+    "Rent due before this date was written off, so it stays: use an earlier date",
+    "c.tenancy_id = ? AND c.kind = 'rent' AND c.edited = 0 AND c.due_on < ?", cur.id, to));
   if (Object.keys(errors).length) return fieldErrors(errors);
   const checked = lawCheck(law, { operation: "update", tenancy: { ...cur, ...r.value }, before: cur,
     history: law && await lawHistory(env, cur.id).first() }, body);
@@ -365,6 +384,10 @@ async function updateCharge({ request, env, admin, params: [id] }) {
   const load = () => env.DB.prepare("SELECT c.*, t.rental_id FROM charges c JOIN tenancies t ON t.id = c.tenancy_id WHERE c.id = ?")
     .bind(Number(id)).first();
   const c = (await load()) ?? fail(404, "Charge not found");
+  // ADM-09: never below the most ever written off on it (0045's guard, which keeps each write-off valid).
+  const { peak } = arrearsReady(env) ? await env.DB.prepare(`SELECT MAX(run) AS peak FROM (SELECT ${NET("")}
+    OVER (ORDER BY effective_on, id ROWS UNBOUNDED PRECEDING) AS run FROM charge_adjustments WHERE charge_id = ?)`).bind(c.id).first() : {};
+  if (amount < peak) return fieldErrors({ amount: `${gbp(peak)} of this charge was written off: enter at least that` });
   // ADM-20: a charge raised by hand on a tenancy the 2025 rules cover (or may cover) is declared as no premium; the
   // write holds only while the tenancy is still as it was checked.
   const law = await tenancyLaw(env), t = law && await loadTenancy(env, c.tenancy_id);
@@ -505,6 +528,9 @@ async function endTenancy({ request, env, admin, params: [id] }) {
   if (ended_on && ended_on < cur.start_on) f.err("ended_on", "Use the start date or later");
   else if (ended_on && cur.ended_on && ended_on < today) f.err("ended_on", `Use ${today} or a later date`);
   else if (ended_on && next && ended_on > next) f.err("ended_on", `The next tenancy starts on ${next}: use that date or earlier`);
+  else if (ended_on) Object.assign(errors, await writtenOff(env, "ended_on",
+    "Rent due from this date was written off, so it stays: use a later date",
+    "c.tenancy_id = ? AND c.kind = 'rent' AND c.due_on >= ?", cur.id, ended_on));
   if (Object.keys(errors).length) return fieldErrors(errors);
   if (ended_on === cur.ended_on) return json(await detail(env, cur.id));
   const ts = now(), from = "tenancy_id = ? AND kind = 'rent' AND due_on >= ?";
@@ -574,7 +600,7 @@ async function markStep({ request, env, admin, params: [id, due_on, step] }) {
   const cur = await loadTenancy(env, id), today = jerseyToday();
   const check = async () => {
     const [, [a], [done]] = (await env.DB.batch([ensureCharges(env, today, cur.id),
-      env.DB.prepare(`WITH ${ARREARS_SQL} SELECT * FROM arrears`).bind(today, cur.id),
+      env.DB.prepare(`WITH ${arrearsOf(env)} SELECT * FROM arrears`).bind(today, cur.id),
       env.DB.prepare("SELECT 1 FROM arrears_steps WHERE tenancy_id = ? AND charge_due_on = ? AND step = ?")
         .bind(cur.id, due_on, step)])).map(r => r.results);
     if (a?.oldest_unpaid_on !== due_on) fail(409, "This is not the oldest unpaid charge. Reload to see the arrears");
@@ -585,7 +611,7 @@ async function markStep({ request, env, admin, params: [id, due_on, step] }) {
   try {
     await env.DB.batch([
       env.DB.prepare(`INSERT INTO arrears_steps (tenancy_id, charge_due_on, step, done_at, done_by, note)
-        WITH ${ARREARS_SQL} SELECT tenancy_id, ?3, ?4, ?5, ?6, ?7 FROM arrears
+        WITH ${arrearsOf(env)} SELECT tenancy_id, ?3, ?4, ?5, ?6, ?7 FROM arrears
         WHERE oldest_unpaid_on = ?3 AND days_late >= ?8 ON CONFLICT DO NOTHING`)
         .bind(today, cur.id, due_on, step, now(), admin, note, s.days),
       ensureChanged(env),
@@ -597,6 +623,75 @@ async function markStep({ request, env, admin, params: [id, due_on, step] }) {
   }
   return json(await detail(env, cur.id));
 }
+
+// ADM-09 (its switch, migration 0045): rent owed that Hampton gives up, written off as immutable adjustments on the
+// charges (never a payment, never a charge deleted), the oldest unpaid charge first, each row inside its unpaid part
+// (0045's guard checks it again). The batch holds only while the tenancy's financial_revision is the one the page
+// showed: a payment, charge or write-off meanwhile is a 409 and nothing is written. A reversal adds a whole write-off
+// back, once. Its rows share an id: `wo:<id>:<n>`, and `rv:<id>:<n>` for the reversal. The reason stays on the rows,
+// out of the history.
+const WRITEOFFS = `SELECT substr(x.operation_id, 4, 36) AS id, MIN(x.effective_on) AS written_off_on,
+  SUM(CASE x.kind WHEN 'writeoff' THEN x.amount_pence END) AS amount, MAX(CASE x.kind WHEN 'writeoff' THEN x.reason END) AS reason,
+  MAX(CASE x.kind WHEN 'writeoff' THEN x.created_by END) AS created_by, MAX(CASE x.kind WHEN 'reversal' THEN x.effective_on END) AS reversed_on,
+  MAX(CASE x.kind WHEN 'reversal' THEN x.reason END) AS reversal_reason
+  FROM charge_adjustments x JOIN charges c ON c.id = x.charge_id WHERE c.tenancy_id = ? GROUP BY 1 ORDER BY MIN(x.id) DESC`;
+// The unpaid part of each charge due by ?2, oldest first, as 0045's guard works it out (rent paid by ?2).
+const UNPAID = `WITH c AS (SELECT c.id, c.due_on, ${amountOf(true, "c", "?2")} AS net FROM charges c WHERE c.tenancy_id = ?1 AND c.due_on <= ?2),
+  r AS (SELECT id, due_on, net, SUM(net) OVER (ORDER BY due_on, id ROWS UNBOUNDED PRECEDING) AS run FROM c),
+  p AS (SELECT COALESCE(SUM(amount), 0) AS paid FROM payments WHERE tenancy_id = ?1 AND kind = 'rent' AND received_on <= ?2)
+  SELECT r.id, min(r.net, r.run - p.paid) AS unpaid FROM r, p WHERE r.run > p.paid ORDER BY r.due_on, r.id`;
+const MONEY_CHANGED = "The balance changed meanwhile. Reload to see it";
+const gbp = p => `£${(p / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 })}`;
+
+async function adjust({ request, env, admin, params: [tid, wid] }, kind, rows, plan) {
+  const cur = await loadTenancy(env, tid), today = jerseyToday(), ts = now(), b = asObject(await readJson(request));
+  const errors = {}, reason = fields(b, errors).text("reason", 300);
+  if (!reason) errors.reason ??= kind === "writeoff" ? "Say why this rent is written off" : "Say why the write-off is reversed";
+  const [, [{ financial_revision: rev }], found] = (await env.DB.batch([ensureCharges(env, today, cur.id),
+    env.DB.prepare("SELECT financial_revision FROM tenancies WHERE id = ?").bind(cur.id), rows(env, cur, today, wid)])).map(r => r.results);
+  if (b.financial_revision !== rev) fail(409, MONEY_CHANGED);
+  const parts = plan(cur, found, b, errors);
+  if (Object.keys(errors).length) return fieldErrors(errors);
+  const id = kind === "writeoff" ? crypto.randomUUID() : wid;
+  try {
+    await env.DB.batch([...parts.rows.flatMap((x, i) => [env.DB.prepare(`INSERT INTO charge_adjustments (charge_id, amount_pence,
+      kind, original_adjustment_id, effective_on, reason, created_at, created_by, operation_id)
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE (SELECT financial_revision FROM tenancies WHERE id = ?) = ?`)
+      .bind(x.charge_id, x.amount, kind, x.original ?? null, today, reason, ts, admin, `${kind === "writeoff" ? "wo" : "rv"}:${id}:${i}`,
+        cur.id, rev + i), ensureChanged(env)]),
+      rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: parts.type,
+        data: { writeoff: id, amount: parts.rows.reduce((s, x) => s + x.amount, 0), charges: parts.rows.length } })]);
+  } catch (e) {
+    const now_ = await env.DB.prepare("SELECT financial_revision FROM tenancies WHERE id = ?").bind(cur.id).first();
+    if (now_?.financial_revision !== rev) fail(409, MONEY_CHANGED);
+    throw e;
+  }
+  return json(await detail(env, cur.id));
+}
+
+// A tenancy with no rent charge (let-only) has nothing owed to write off.
+const writeOff = req => adjust(req, "writeoff", (env, t, today) => env.DB.prepare(UNPAID).bind(t.id, today), (t, found, b, errors) => {
+  const owed = found.reduce((s, x) => s + x.unpaid, 0);
+  if (!Number.isInteger(b.amount) || b.amount < 1 || b.amount > owed)
+    errors.amount = owed ? `Enter an amount from £0.01 to ${gbp(owed)}` : "No rent is owed to write off";
+  let left = Number.isInteger(b.amount) ? b.amount : 0;
+  const rows = found.map(x => { const amount = Math.min(left, x.unpaid); left -= amount; return { charge_id: x.id, amount }; });
+  return { type: "charge.written_off", rows: rows.filter(x => x.amount > 0) };
+});
+
+const reverseWriteOff = req => adjust(req, "reversal",
+  (env, t, today, wid) => env.DB.prepare(`SELECT x.id, x.charge_id, x.amount_pence, EXISTS (SELECT 1 FROM charge_adjustments r
+    WHERE r.original_adjustment_id = x.id) AS reversed FROM charge_adjustments x JOIN charges c ON c.id = x.charge_id
+    WHERE c.tenancy_id = ? AND x.kind = 'writeoff' AND substr(x.operation_id, 4, 36) = ? ORDER BY x.id`).bind(t.id, wid),
+  (t, found) => {
+    if (!found.length) fail(404, "Write-off not found");
+    if (found.some(x => x.reversed)) fail(409, "This write-off is already reversed");
+    return { type: "charge.writeoff_reversed", rows: found.map(x => ({ charge_id: x.charge_id, amount: x.amount_pence, original: x.id })) };
+  });
+
+// With ADM-09's switch: the field error when a change would delete a charge with a write-off (`where` over charges c).
+const writtenOff = async (env, field, msg, where, ...b) => arrearsReady(env) && await env.DB.prepare(`SELECT 1 FROM charges c
+  WHERE ${where} AND EXISTS (SELECT 1 FROM charge_adjustments x WHERE x.charge_id = c.id)`).bind(...b).first() ? { [field]: msg } : {};
 
 const NOT_FULL = "Only full management tenancies take rent payments";
 // A full-service tenancy's id (SQL) or NULL: the guard of every write that gives a payment a tenancy.
@@ -772,7 +867,7 @@ const MARKS = ["arrears", "compliance", "renewals", "repairs"];
 // to decide, an open repair. Binds ?1 today, ?2 service, ?3 the search (LIKE) or NULL, ?4 a mark or NULL. q searches
 // address, landlord, and any tenant's name or payment reference.
 const has = col => `${col} LIKE ?3 ESCAPE '\\'`;
-const LIST = (archived, inspections, legal, calendar) => `WITH x AS (SELECT r.id, r.address, r.parish, r.service, r.landlord_id, l.name AS landlord_name,
+const LIST = (archived, inspections, legal, calendar, net) => `WITH x AS (SELECT r.id, r.address, r.parish, r.service, r.landlord_id, l.name AS landlord_name,
     r.archived_at, t.id AS tenancy_id, t.tenant_name, t.payment_ref, ${rentNow("?1")} AS rent,
     CASE WHEN r.service = 'full' THEN t.id END AS full_id,
     r.archived_at IS NULL AND (EXISTS (SELECT 1 FROM compliance_items c WHERE c.rental_id = r.id
@@ -788,8 +883,8 @@ const LIST = (archived, inspections, legal, calendar) => `WITH x AS (SELECT r.id
     WHERE r.archived_at IS ${archived ? "NOT " : ""}NULL AND (?2 IS NULL OR r.service = ?2)
     AND (?3 IS NULL OR ${has("r.address")} OR ${has("l.name")} OR EXISTS (SELECT 1 FROM tenancies x
       WHERE x.rental_id = r.id AND (${has("x.tenant_name")} OR ${has("x.payment_ref")})))),
-  y AS (SELECT *, (SELECT COALESCE(SUM(c.amount), 0) FROM charges c WHERE c.tenancy_id = full_id AND c.due_on <= ?1) AS due,
-    (SELECT COALESCE(SUM(c.amount), 0) FROM charges c WHERE c.tenancy_id = full_id AND c.due_on = ?1) AS today,
+  y AS (SELECT *, (SELECT COALESCE(SUM(${amountOf(net)}), 0) FROM charges c WHERE c.tenancy_id = full_id AND c.due_on <= ?1) AS due,
+    (SELECT COALESCE(SUM(${amountOf(net)}), 0) FROM charges c WHERE c.tenancy_id = full_id AND c.due_on = ?1) AS today,
     (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.tenancy_id = full_id AND p.kind = 'rent') AS paid FROM x),
   z AS (SELECT *, CASE WHEN full_id IS NOT NULL THEN due - paid END AS balance, due - today > paid AS arrears FROM y)
   SELECT id, address, parish, service, landlord_id, landlord_name, archived_at, tenancy_id, tenant_name, payment_ref, rent,
@@ -813,12 +908,12 @@ async function overview({ request, env }) {
   if (!["", "0", "1"].includes(archived)) fail(400, "Invalid archived");
   const today = jerseyToday(), s = (sql, ...b) => env.DB.prepare(sql).bind(today, ...b);
   const visits = inspectionsReady(env), legal = await readLegal(env), { periods } = legal, calendar = calendarReady(env);
-  const list = s(LIST(archived === "1", visits, periods, calendar), service, q && `%${q.replace(/[\\%_]/g, "\\$&")}%`, filter);
+  const list = s(LIST(archived === "1", visits, periods, calendar, arrearsReady(env)), service, q && `%${q.replace(/[\\%_]/g, "\\$&")}%`, filter);
   if (p.get("list") === "1") return json({ rentals: (await list.all()).results.map(marks) });
   if (calendar) await env.DB.batch(ensureChecks(env, periods, today));
   const [, owing, checks, dues, renewals, repairs, unmatched, rentals, [totals], inspections = []] = (await env.DB.batch([
     ensureCharges(env, today),
-    s(`WITH ${ARREARS_SQL} SELECT a.tenancy_id, a.rental_id, r.address, t.tenant_name, t.payment_ref, a.balance,
+    s(`WITH ${arrearsOf(env)} SELECT a.tenancy_id, a.rental_id, r.address, t.tenant_name, t.payment_ref, a.balance,
       a.oldest_unpaid_on, a.days_late, a.next_step FROM arrears a JOIN tenancies t ON t.id = a.tenancy_id
       JOIN rentals r ON r.id = a.rental_id WHERE a.next_step IS NOT NULL OR a.balance > 0
       ORDER BY a.days_late DESC, r.address COLLATE NOCASE`, null),
@@ -934,4 +1029,9 @@ export default [
   ["POST", /^\/admin\/payments$/, createPayment, true],
   ["PUT", /^\/admin\/payments\/(\d+)$/, updatePayment, true],
   ["POST", /^\/admin\/payments\/import$/, importPayments, true],
+];
+// ADM-09: mounted by server/api.js only with ADM09_ARREARS_READY (migration 0045).
+export const writeoffRoutes = [
+  ["POST", /^\/admin\/tenancies\/(\d+)\/writeoffs$/, writeOff, true],
+  ["POST", /^\/admin\/tenancies\/(\d+)\/writeoffs\/([0-9a-f-]{36})\/reverse$/, reverseWriteOff, true],
 ];
