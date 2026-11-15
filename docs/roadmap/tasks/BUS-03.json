@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "La tabla matches guarda, por aplicante, cada casa encontrada con su puntuación, sus comprobaciones y su estado. La pestaña Matches (Found, Shortlisted, Rejected) y Review la muestran con foto, precio, parroquia, dormitorios, baños y cada requisito como Meets, Fails o Unknown, con su evidencia.",
-  "falta": "M02/M04 · Reconciliación 7-nov: Añadir propiedades comunes y todas sus publicaciones, URLs, fuentes, anunciantes, operación y fechas; conservar las tarjetas y revisiones existentes. Incorporar resultados completos, pendientes de dato y alternativas internas sin mezclarlos. Depende de: BUS-06, BUS-10, BUS-12.",
+  "falta": "M02/M04 · Reconciliación 7-nov: Añadir propiedades comunes y todas sus publicaciones, URLs, fuentes, anunciantes, operación y fechas; conservar las tarjetas y revisiones existentes. Incorporar resultados completos, pendientes de dato y alternativas internas sin mezclarlos. Depende de: BUS-06, BUS-10, BUS-12. Traído de SPR-07 (15-nov): casas del inventario común sin ficha propia en el seguimiento, con fuente, estado, precio, parroquia, dormitorios, baños y disponibilidad; su confirmación (EST-16 solo cubre listings) y su alcance por anunciante o publicación (EST-15: reutilizar o borrar server/est-15-scoped-unavailability.js); mostrarlas en la tarjeta SPR-01.",
   "bloqueo": "",
   "evidencia": [
     "migrations/0009_matches.sql:27-38",
@@ -56,5 +56,6 @@
     "matching-contract",
     "research-ui"
   ],
-  "nextStep": "Ampliar la pantalla al inventario común con procedencia y grupos separados de completos, pendientes y alternativas."
+  "nextStep": "Ampliar la pantalla al inventario común con procedencia y grupos separados de completos, pendientes y alternativas.",
+  "actualizado": "2026-11-15"
 }

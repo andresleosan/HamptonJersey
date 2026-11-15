@@ -134,3 +134,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [AGE-05] `contact_key` es un SHA-256 sin sal de nombre y email, vinculable a la persona, y AGE-14 no lo borra al suprimir al anunciante (mismo criterio que `email_suppressions`) · revisión independiente 15-nov · 15-nov-2026
 - [AGE-05] El remitente del reloj se da por bueno con `email_worker.ready` aunque su `AGE05_SEND_READY` esté apagado (se permite encolar y el siguiente tick lo devuelve); las 24 h cuentan desde que se encola, no desde la aprobación · segunda revisión 15-nov · 15-nov-2026
 - [ANA-05] Actualizar `docs/qa/ana-05-aggregate-evidence.md` (aún describe los hitos como not_integrated); usar `tenancy_origins.applicant_id` como hito Agreed en alquiler con un índice aditivo · 15-nov-2026
+- [SPR-02] Mostrar en el History de la ficha los enlaces y desenlaces de BUS-07 y las fuentes leídas (hoy solo en Adverts) · 15-nov-2026
+- [BUS-07] Marcar como «Hampton» una ficha importada que Hampton pase a comercializar en exclusiva; buscador en «Choose a market advert» (hoy los 50 más parecidos de los 2.000 últimos); las HE-C y HE-I importadas sin fotos salen como Hampton · 15-nov-2026
+- [SPR-07] El equivalente mensual del alquiler está repetido en `listing-provenance.js` y `listing-filters.js`: dejarlo en `server/listing-pricing.js` · 15-nov-2026
