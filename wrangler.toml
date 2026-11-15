@@ -80,6 +80,8 @@ PUB16_TIMED_CLOSURE_READY = "1"
 EST19_TRASH_READY = "0"
 # EST-19: a person deletes, a batch per click, the external reference photos due six months after a property entered the trash (no migration; needs EST19_TRASH_READY). Deletes production files: only Luis switches it on.
 EST19_PURGE_READY = "0"
+# ADM-12: repair suppliers directory and the landlord's approval recorded by the team (migration 0089). Sends nothing.
+ADM12_SUPPLIERS_READY = "0"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
