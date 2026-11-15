@@ -96,6 +96,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       // AGE-12 presents AGE-10's suitable photos of SPR-03's capture on a client's private link.
       ...(process.env.E2E_SCRIPT === "tests/age12-private-presentation.e2e.cjs" ? { AGE12_PRESENTATIONS_READY: "1", AGE10_PHOTOS_READY: "1",
         SPR03_CAPTURE_READY: "1", EST16_AVAILABILITY_READY: "1", SAP02_COUNTS_READY: "1" } : {}),
+      // EST-19: the trash of properties confirmed not available and the six-month photo purge, both tested on.
+      ...(process.env.E2E_SCRIPT === "tests/est19-trash.e2e.cjs" ? { EST16_AVAILABILITY_READY: "1", EST15_UNAVAILABILITY_READY: "1",
+        EST19_TRASH_READY: "1", EST19_PURGE_READY: "1" } : {}),
       // NOT-08/NOT-09: Inbox tabs and one-click actions over AGE-06/AGE-08's enquiry tasks and AUT-19's proposals.
       ...(process.env.E2E_SCRIPT === "tests/not0809-inbox-actions.e2e.cjs" ? { NOT0809_INBOX_READY: "1", AGE03_ENQUIRIES_READY: "1",
         EST16_AVAILABILITY_READY: "1", EST15_UNAVAILABILITY_READY: "1", AGE06_RESPONSES_READY: "1", AGE08_CALL_TASKS_READY: "1",

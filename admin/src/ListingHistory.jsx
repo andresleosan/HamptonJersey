@@ -9,7 +9,7 @@ const ACTION = {created:'Property created',updated:'Property updated',published:
   archived:'Property archived',restored:'Property restored',confirmed:'Availability confirmed by staff',availability_changed:'Availability changed',
   featured_changed:'Featured position changed',cover_changed:'Cover changed',recalculated:'Derived features recalculated',deleted:'Property deleted',
   review_requested:'Review requested',review_returned:'Returned to draft',captured:'Shared record captured',
-  photo_reviewed:'Photo reviewed for clients'};
+  photo_reviewed:'Photo reviewed for clients',photos_purged:'Reference photos removed after six months not available'};
 const RELATED = {'match.reviewed':'Match reviewed','viewing.requested':'Viewing requested','viewing.booked':'Viewing booked',
   'viewing.confirmed':'Viewing confirmed','viewing.rescheduled':'Viewing rescheduled','viewing.cancelled':'Viewing cancelled',
   'viewing.completed':'Viewing completed','viewing.no_show':'Viewing missed','offer.recorded':'Offer recorded',

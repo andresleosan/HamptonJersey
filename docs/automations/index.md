@@ -29,7 +29,7 @@ Inventario hecho el 14-nov-2026 leyendo `server/jobs.js`, `jobs/wrangler.toml`, 
 
 - **Pause all outbound** (AUT-11) y los **modos Draft/Approve/Auto** (AUT-10): son controles de las automatizaciones, no automatizaciones. Sus pruebas están en `tests/server/hermes.test.mjs`, `tests/server/automations.test.mjs` y `tests/server/aut-10-*.test.mjs`.
 - **Salud de fichas** (`LISTING_HEALTH_READY`), **Widen criteria** y el **recálculo de matches**: se calculan al abrir una pantalla o al guardar un cambio, sin reloj ni cola propios.
-- **Política de purga de fotos** (`server/property-photo-purge.js`): cálculo sintético sin productor ni tarea dueña identificada; tendrá ficha cuando exista su tarea.
+- **Purga de fotos de la papelera** (EST-19, `server/property-photo-purge.js`): no es automática; una persona la lanza desde Listings, por lotes, con `EST19_PURGE_READY`. Sin reloj ni cola propios.
 - **Chat web** (MSG-02): respuesta humana desde el panel, sin automatización; su borrado a los 30 días está en `retention_daily`.
 
 ## Registro de propósitos de IA

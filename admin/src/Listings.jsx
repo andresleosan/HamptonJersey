@@ -5,6 +5,7 @@ import { OPTIONS } from "../../server/applicants.js";
 import { ON_MARKET } from "../../server/listing.js";
 import NewProperty from "./NewProperty.jsx";
 import WithdrawalDialog from './WithdrawalDialog.jsx';
+import Trash from "./Trash.jsx";
 import { OPERATION_FILTER, bedsRange, passesExtra, bedsLabel, bathsLabel, daysAgo } from "./listing-filters.js";
 
 // ADM-04: To confirm is the published listings on the market that nobody has confirmed lately (the server's to_confirm).
@@ -152,6 +153,7 @@ export default function Listings({ onChange }) {
       : tab === "to_confirm" ? <p>No listings to confirm. A listing on the website asks for a call to its owner 3 months after its last confirmation, or 1 month for a rental.</p>
       : <><p>No {TABS.find(([k]) => k === tab)[1].toLowerCase()} listings.</p>
         {tab !== "archived" && <button type="button" className="btn sm" onClick={() => setCreating(true)}>Add new property</button>}</>}</div>}
+    <Trash />
     {withdrawal&&<WithdrawalDialog listing={withdrawal} onClose={()=>setWithdrawal(null)} onSaved={async result=>{
       setWithdrawal(null);setMsg({ok:true,text:result.listing.published
         ?`${withdrawal.title}: currently visible on the website. Review its latest state.`:`${withdrawal.title}: hidden from the website.`});await load();onChange?.();

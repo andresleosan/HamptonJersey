@@ -6,7 +6,7 @@ import {LISTING_DETAIL_FIELDS,PROPERTY_CONDITION_LABELS} from './listing-details
 import { physicalValue, normalizeFeatureOverrides } from './listing-physical.js';
 
 const ACTIONS = ['created','updated','published','unpublished','archived','restored','confirmed',
-  'availability_changed','featured_changed','cover_changed','recalculated','deleted','review_requested','review_returned','captured','photo_reviewed'];
+  'availability_changed','featured_changed','cover_changed','recalculated','deleted','review_requested','review_returned','captured','photo_reviewed','photos_purged'];
 const SOURCES = ['panel','queue','sales','media','recalculate'];
 const FREE = ['title','property_type','country','location','road_name','tenure','price_text','summary','description','tour_url','specs','feat_evidence',
   'building_name_or_number','postcode','developer_name','public_address_publication','content_tags','video_url',...COMPLIANCE_FIELDS];
