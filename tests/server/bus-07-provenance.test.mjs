@@ -42,11 +42,12 @@ function world({ on = true, identity = true, availability = false } = {}) {
   return env;
 }
 // One advert as the manual upload stores it, normalised by the real normaliser.
-function advert(env, source, key, { amount = 150000, seen = AT, parish = 'St Helier', bedrooms = 2 } = {}) {
+function advert(env, source, key, { amount = 150000, seen = AT, parish = 'St Helier', bedrooms = 2, operation = 'rent' } = {}) {
   const seq = ++env.seq, page = id(1000 + seq), observation = id(2000 + seq);
-  const normalized = normalizeObservation({ country_code: 'JE', territory_evidence: 'Address on the listing: Jersey', operation: 'rent',
-    observed_at: seen, title: 'Two bedroom flat', parish, bedrooms, bathrooms: 1,
-    financial_terms: [{ kind: 'rent', amount_minor: amount, currency: 'GBP', period: 'month' }] });
+  const normalized = normalizeObservation({ country_code: 'JE', territory_evidence: 'Address on the listing: Jersey', operation,
+    observed_at: seen, title: 'Two bedroom flat', parish, bedrooms, bathrooms: 1, financial_terms: [operation === 'sale'
+      ? { kind: 'sale_price', amount_minor: amount, currency: 'GBP', period: 'sale' }
+      : { kind: 'rent', amount_minor: amount, currency: 'GBP', period: 'month' }] });
   env.DB.raw.prepare(`INSERT INTO market_pages(id,run_id,source_ref,channel_id,page_key,content_sha256,exhausted,observed_at,
     committed_at,committed_by,lease_token,lease_generation,policy_version) VALUES(?,?,?,'site',?,?,0,?,?,'fixture','fixture',1,1)`)
     .run(page, id(100), source, `page-${seq}`, 'b'.repeat(64), seen, seen);
@@ -210,6 +211,72 @@ test('without BUS-10 the source still reads, and linking is absent', async () =>
   assert.equal(d.linking, false);
   assert.equal(d.provenance.kind, 'hampton');
   assert.equal((await linkTo(env, randomUUID())).status, 404);
+});
+
+// Review 15-nov: an advert that already has a home (an earlier link, or a BUS-10 decision) is linked only while its
+// source is open now: allowed, review in date and its current directory accepted. Nothing is written otherwise.
+test('a link needs the advert\'s source open now, even when the advert already has a home', async () => {
+  const env = world(), db = env.DB.raw;
+  const a = advert(env, 'agency-a', 'A-1');
+  ok(await unlink(env, ok(await linkTo(env, a), 201).link.id));
+  const rows = () => count(env, 'listing_market_links');
+  const refused = async why => {
+    const before = [rows(), count(env, 'market_properties')];
+    assert.equal((await linkTo(env, a)).status, 409, why);
+    assert.deepEqual([rows(), count(env, 'market_properties')], before, `${why}: nothing written`);
+  };
+  db.prepare("UPDATE market_sources SET policy_version=policy_version+1, access_status='denied' WHERE source_ref='agency-a'").run();
+  await refused('source denied');
+  db.prepare("UPDATE market_sources SET policy_version=policy_version+1, access_status='allowed', review_due_at='2001-01-01T00:00:00.000Z' WHERE source_ref='agency-a'").run();
+  await refused('review out of date');
+  db.prepare("UPDATE market_sources SET policy_version=policy_version+1, review_due_at='2999-01-01T00:00:00.000Z' WHERE source_ref='agency-a'").run();
+  ok(await unlink(env, ok(await linkTo(env, a), 201).link.id));
+  // Closed between the first check and the write: the write's own guard refuses it.
+  const prepare = env.DB.prepare.bind(env.DB);
+  env.DB.prepare = sql => {
+    if (/^\s*INSERT INTO listing_market_links/.test(sql) && /'link'/.test(sql))
+      db.prepare("UPDATE market_sources SET policy_version=policy_version+1, access_status='paused' WHERE source_ref='agency-a'").run();
+    return prepare(sql);
+  };
+  await refused('source paused during the link');
+  env.DB.prepare = prepare;
+  db.prepare("UPDATE market_sources SET policy_version=policy_version+1, access_status='allowed' WHERE source_ref='agency-a'").run();
+  db.prepare("UPDATE market_directory_manifests SET status='revoked' WHERE revision='rev'").run();
+  await refused('directory revoked');
+});
+
+test('a link needs the advert to offer the listing\'s operation', async () => {
+  const env = world();
+  const sale = advert(env, 'agency-a', 'S-1', { operation: 'sale', amount: 50000000 });
+  assert.equal((await linkTo(env, sale)).status, 409);
+  assert.equal(count(env, 'listing_market_links'), 0);
+});
+
+test('a business counts a change of its rent and of its premium, each on its own', async () => {
+  const env = world(), cookie = await adminCookie();
+  seedListing(env, { id: 'HE-C002', title: 'Shop', use: 'commercial', operation: 'business', availability: 'for_sale', sale_price: null,
+    premium: 50000, rent: 30000, rent_period: 'year', tenure_type: 'leasehold', published: 0 });
+  const save = async patch => {
+    const { updated_at } = env.DB.raw.prepare("SELECT updated_at FROM listings WHERE id='HE-C002'").get();
+    ok(await call(env, 'PUT', '/admin/listings/HE-C002', { cookie, body: { updated_at, ...patch } }));
+  };
+  await save({ rent: 2500, rent_period: 'month' });
+  assert.equal((await list(env)).byId['HE-C002'].material_change_at, null, 'the same rent per month');
+  await save({ rent: 3000 });
+  assert.ok((await list(env)).byId['HE-C002'].material_change_at, 'a higher rent');
+  const shop = { operation: 'business', premium: 50000, rent: 36000, rent_period: 'year' };
+  assert.equal(materialChange({ before: { rent: 30000 }, after: { rent: 36000 } }, shop), true);
+  assert.equal(materialChange({ before: { premium: 40000 }, after: { premium: 50000 } }, shop), true);
+  assert.equal(materialChange({ before: { premium: 40000, rent: 36000 }, after: { premium: 50000, rent: 26000 } }, shop), true, 'never summed');
+});
+
+test('an advertiser whose personal data was removed (AGE-14) does not make a listing co-listed', async () => {
+  const env = world();
+  const a = await directory(env, ['HE-R001']);
+  assert.equal((await list(env)).byId['HE-R001'].provenance.kind, 'co_listed');
+  run(env, 'UPDATE advertisers SET suppressed_at = ? WHERE id = ?', AT, a.id);
+  assert.equal((await list(env)).byId['HE-R001'].provenance.kind, 'hampton');
+  assert.equal(ok(await provenance(env)).provenance.kind, 'hampton');
 });
 
 // The app's only ways to write to an agency are AGE-03's enquiry (and AGE-05's email of it): no other module queues

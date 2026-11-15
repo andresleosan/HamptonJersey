@@ -190,8 +190,28 @@ export const undoIdentityDecision = gated(async (env, input, actor) => {
   return { decision_id: id, action: 'reopen' };
 });
 
+// BUS-07: an advert of this operation whose source is open now, by the rule BUS-10's decisions use
+// (internal/market-identity-core.js): allowed or manual only with evidence and retention, review in date, read by a run
+// of its kind and, for an external source, its current directory accepted; never one its source withdrew.
+// Binds: the observation id, then the operation.
+export const OPEN_ADVERT = `EXISTS (SELECT 1 FROM market_observations o
+  JOIN market_sources s ON s.source_ref=o.source_ref AND s.channel_id=o.channel_id
+  JOIN market_pages p ON p.id=o.page_id AND p.source_ref=o.source_ref AND p.channel_id=o.channel_id
+  JOIN market_runs r ON r.id=p.run_id
+  LEFT JOIN market_directory_manifests m ON m.revision=s.directory_revision
+  WHERE o.id=? AND json_extract(o.normalized_json,'$.operation')=? AND o.deleted_tombstone=0
+    AND json_extract(o.normalized_json,'$.country_code')='JE' AND json_type(o.normalized_json,'$.territory_evidence')='text'
+    AND length(trim(json_extract(o.normalized_json,'$.territory_evidence')))>0
+    AND s.access_status IN ('allowed','manual_only') AND s.evidence_ref IS NOT NULL AND s.retention_ref IS NOT NULL
+    AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now') AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')
+    AND ((r.kind='own_pilot' AND s.source_kind='internal') OR
+      (r.kind IN ('initial','daily') AND s.source_kind='external' AND m.status='accepted'))
+    AND NOT EXISTS (SELECT 1 FROM market_observations old WHERE old.source_ref=o.source_ref
+      AND old.channel_id=o.channel_id AND old.external_key=o.external_key AND old.deleted_tombstone=1))`;
+
 // BUS-07: the home of the advert a person chose to link a Hampton listing to (a provisional one is opened for an
-// advert nobody has decided on yet, as above). The source must be open now; nothing else is written.
+// advert nobody has decided on yet, as above). The caller checks OPEN_ADVERT before and again in its own write,
+// because an advert that already has a home is returned here without its source being read.
 export const homeOfObservation = gated(async (env, observationId, actor) => {
   if (!uuid(observationId)) bad();
   const { property, root } = await listingHome(env, primary(env.DB), observationId, actor);

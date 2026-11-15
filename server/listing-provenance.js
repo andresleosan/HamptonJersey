@@ -9,7 +9,7 @@
 // The link (migration 0081, and BUS10_IDENTITY_READY) is a person's decision, undone by another row. It merges no home,
 // changes no listing, match or observation and says nothing about availability: EST-16 remains the confirmation.
 import { json, fail, readJson, now } from './http.js';
-import { homeOfObservation, readLinkedPublications, readMarketPublications } from './market-identity.js';
+import { OPEN_ADVERT, homeOfObservation, readLinkedPublications, readMarketPublications } from './market-identity.js';
 import { availabilityReady, confirmationReader } from './availability-confirmations.js';
 import { listingAmount } from './listing-pricing.js';
 
@@ -34,9 +34,9 @@ function originStatements(env, ids) {
   return [
     env.DB.prepare(`SELECT listing_id,id,name,photo_permission FROM (
         SELECT j.value AS listing_id,a.id,a.name,json_extract(a.details,'$.photo_permission') AS photo_permission
-          FROM advertisers a JOIN json_each(a.details,'$.listing_ids') j
+          FROM advertisers a JOIN json_each(a.details,'$.listing_ids') j WHERE a.suppressed_at IS NULL
         UNION SELECT s.property_id,a.id,a.name,json_extract(a.details,'$.photo_permission') FROM advertisers a
-          JOIN json_each(a.details,'$.source_ids') j JOIN research_sources s ON s.source_id=j.value)
+          JOIN json_each(a.details,'$.source_ids') j JOIN research_sources s ON s.source_id=j.value WHERE a.suppressed_at IS NULL)
       WHERE 1${only('listing_id')} ORDER BY listing_id,name COLLATE NOCASE,id`).bind(...(ids ?? [])),
     env.DB.prepare(`SELECT listing_id,provider,rights_status,COUNT(*) AS photos FROM media
       WHERE origin='upload' AND created_by='import' AND provider IS NOT NULL${only('listing_id')}
@@ -45,7 +45,8 @@ function originStatements(env, ids) {
 }
 const byListing = rows => rows.reduce((m, r) => m.set(r.listing_id, [...(m.get(r.listing_id) ?? []), r]), new Map());
 
-// "Hampton", or "Co-listed" with who advertises it: the directory's advertisers when there are any, else the agency
+// "Hampton", or "Co-listed" with who advertises it: the directory's advertisers when there are any (one whose personal
+// data was removed, AGE-14, no longer counts, as for AGE-03's recipients), else the agency
 // the import named (or none recorded). basis says which.
 function provenanceOf(id, advertisers = [], photos = []) {
   const agencies = [...new Set(photos.map(p => p.provider))];
@@ -57,17 +58,18 @@ function provenanceOf(id, advertisers = [], photos = []) {
 
 // SPR-07: a change of price or availability, from the before and after the history keeps. A period change that keeps
 // the monthly equivalent (£24,000 a year to £2,000 a month) is not one; a save that changed neither is not one.
+// A business has two prices compared each on its own, never summed: its premium and its rent per month.
 const PER_MONTH = { week: 52 / 12, year: 1 / 12 };
-const pence = l => {
-  const amount = l.operation === 'rent' ? (l.rent == null ? null : l.rent * (PER_MONTH[l.rent_period] ?? 1)) : listingAmount(l);
-  return amount == null ? null : Math.round(amount * 100);
-};
+const pence = amount => amount == null ? null : Math.round(amount * 100);
+const monthlyRent = l => l.rent == null ? null : l.rent * (PER_MONTH[l.rent_period] ?? 1);
+const prices = l => JSON.stringify(l.operation === 'rent' ? [pence(monthlyRent(l))]
+  : l.operation === 'business' ? [pence(l.premium), pence(monthlyRent(l))] : [pence(listingAmount(l))]);
 export function materialChange(data, current) {
   const before = data?.before, after = data?.after;
   if (!before || !after) return true; // an older event without its values: it named a price or availability field
   if (Object.hasOwn(after, 'availability') && before.availability !== after.availability) return true;
   const was = { ...current, ...before }, is = { ...current, ...after };
-  return pence(was) !== pence(is) || (was.currency ?? null) !== (is.currency ?? null);
+  return prices(was) !== prices(is) || (was.currency ?? null) !== (is.currency ?? null);
 }
 const MATERIAL = ['availability', 'sale_price', 'rent', 'rent_period', 'premium', 'operation', 'currency'];
 
@@ -153,20 +155,29 @@ async function link({ request, env, admin, params: [id] }) {
   if (!UUID.test(body?.observation_id ?? '') || !UUID.test(body?.operation_id ?? '')) fail(400, 'Choose an advert and try again');
   const same = row => row.action === 'link' && row.evidence_observation_id === body.observation_id;
   if (await replayed(env, body.operation_id, admin, id, same)) return answer(env, id);
+  // The advert's source is open now and it offers the listing's operation: asked before anything is opened, and again
+  // in the link's own write, since an advert that already has a home is not read again by homeOfObservation.
+  const listing = await env.DB.prepare('SELECT operation FROM listings WHERE id=?').bind(id).first();
+  if (!listing) fail(404, 'Listing not found');
+  const closed = 'This advert cannot be linked: its source is not open now, or it is not for this listing\'s operation. Reload and choose another.';
+  if (!(await env.DB.prepare(`SELECT ${OPEN_ADVERT} AS open`).bind(body.observation_id, listing.operation).first()).open) fail(409, closed);
   const { property_id } = await homeOfObservation(env, body.observation_id, admin);
   let done;
   try {
     done = await env.DB.prepare(`INSERT INTO listing_market_links(id,operation_id,action,listing_id,property_id,evidence_observation_id,actor,created_at)
-      SELECT ?,?,'link',l.id,?,?,?,? FROM listings l WHERE l.id=? AND EXISTS (SELECT 1 FROM admins WHERE email=?)
-        AND NOT EXISTS (SELECT 1 FROM listing_market_links k WHERE k.listing_id=l.id AND ${STANDING})`)
-      .bind(crypto.randomUUID(), body.operation_id, property_id, body.observation_id, admin, now(), id, admin).run();
+      SELECT ?,?,'link',l.id,?,?,?,? FROM listings l WHERE l.id=? AND l.operation=? AND EXISTS (SELECT 1 FROM admins WHERE email=?)
+        AND ${OPEN_ADVERT} AND NOT EXISTS (SELECT 1 FROM listing_market_links k WHERE k.listing_id=l.id AND ${STANDING})`)
+      .bind(crypto.randomUUID(), body.operation_id, property_id, body.observation_id, admin, now(), id, listing.operation, admin,
+        body.observation_id, listing.operation).run();
   } catch (e) {
     if (unique(e) && await replayed(env, body.operation_id, admin, id, same)) return answer(env, id);
     throw e;
   }
   if (!done.meta.changes) {
     if (!(await env.DB.prepare('SELECT 1 FROM listings WHERE id=?').bind(id).first())) fail(404, 'Listing not found');
-    fail(409, 'This listing is already linked to a market home. Reload to see it.');
+    if (await env.DB.prepare(`SELECT 1 FROM listing_market_links k WHERE k.listing_id=? AND ${STANDING}`).bind(id).first())
+      fail(409, 'This listing is already linked to a market home. Reload to see it.');
+    fail(409, closed);
   }
   return answer(env, id, 201);
 }

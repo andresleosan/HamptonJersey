@@ -20,7 +20,8 @@
     "tests/bus07-provenance.e2e.cjs: lista a 1280 y 390, filtros Source y 7 días, pasa el 15-nov",
     "Decisión: Checked conserva confirmed_at editorial; Confirmed es EST-16 y Seen on the web la observación. Fuente: plan SPR-07 tarea 3.",
     "Decisión: cambio material = precio mensual equivalente, moneda, operación o disponibilidad, leído del historial. Fuente: plan SPR-07 tarea 2.",
-    "Decisión: las casas de mercado sin ficha propia van a BUS-03 (pantalla de casas encontradas). Fuente: skill §3."
+    "Decisión: las casas de mercado sin ficha propia van a BUS-03 (pantalla de casas encontradas). Fuente: skill §3.",
+    "Revisión independiente 15-nov, corregido: en un negocio cuentan por separado el cambio de premium y el de alquiler (por su equivalente mensual), sin sumarlos. Prueba por la ruta real en tests/server/bus-07-provenance.test.mjs (11/11)."
   ],
   "modulo": "M02",
   "deps": [

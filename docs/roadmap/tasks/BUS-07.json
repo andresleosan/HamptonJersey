@@ -23,7 +23,10 @@
     "Decisión: procedencia derivada y corregible en el directorio AGE-04, sin tabla propia. Fuente: skill §4 punto 5 y regla OF_PROPERTY de server/consultations.js.",
     "Decisión: el enlace guarda la casa del anuncio elegido y lee su raíz al vuelo, para seguir las decisiones de BUS-10 y sus deshacer. Fuente: migraciones 0050 y 0068; reconciliación 7-nov M02 («enlazar catálogo propio sin republicar terceros»).",
     "Decisión: autorizaciones históricas = rights_status de las fotos importadas y photo_permission del directorio, mostradas tal cual, sin permiso nuevo. Fuente: falta de BUS-07 y AGE-10.",
-    "Decisión: comisión fuera de la app. Fuente: reconciliación 7-nov M02."
+    "Decisión: comisión fuera de la app. Fuente: reconciliación 7-nov M02.",
+    "Revisión independiente 15-nov, corregido: el enlace exige que la fuente del anuncio esté abierta ahora (permitida, revisión vigente, directorio aceptado) aunque el anuncio ya tenga casa, comprobado antes y en la propia escritura (OPEN_ADVERT, regla de acceso de BUS-10), y que su operación sea la de la ficha; si no, 409 sin escribir.",
+    "Revisión independiente 15-nov, corregido: un anunciante suprimido (AGE-14) ya no marca la ficha como co-listed, igual que AGE-03 lo excluye.",
+    "tests/server/bus-07-provenance.test.mjs: 11/11 el 15-nov (fuente denegada, vencida, pausada durante el enlace y directorio revocado; operación distinta; anunciante suprimido); tests/bus07-provenance.e2e.cjs vuelve a pasar a 1280 y 390."
   ],
   "modulo": "M02",
   "deps": [
