@@ -26,7 +26,11 @@ export const candidateState = ({ status, requirements_status, decision_current, 
   decision: status === "found" ? "undecided" : status === "rejected" ? "rejected" : decision_current ? "approved" : "approved_outdated",
   availability: availabilityState(confirmation),
   // AGE-03: prepared while it waits to be sent by a person, sent_manually once someone records having sent it; the
-  // app itself sends nothing (AGE-05) and what the advertiser answers is AGE-06's. Without one, only an approved
-  // clarification waits.
-  enquiry: consultation?.status === "sent" ? "sent_manually" : consultation ? "prepared" : clarification ? "clarification_approved" : "not_sent",
+  // app itself sends nothing (AGE-05). Without one, only an approved clarification waits.
+  // AGE-06: awaiting_response once an answer said nothing useful, and answered_* once a person recorded what the
+  // advertiser confirmed (answered alone: a clarification answered, or the outcome is not read while AGE-06 is off).
+  enquiry: consultation?.status === "answered" ? ANSWERED[consultation.response_outcome] ?? "answered"
+    : consultation?.status === "awaiting_response" ? "awaiting_response"
+    : consultation?.status === "sent" ? "sent_manually" : consultation ? "prepared" : clarification ? "clarification_approved" : "not_sent",
 });
+const ANSWERED = { available: "answered_available", unavailable: "answered_unavailable" };

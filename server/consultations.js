@@ -10,11 +10,17 @@
 // accepted it. While that pipeline is off nothing is queued and the enquiry stays to send manually.
 // A match counts for an enquiry while it still passes its gate: a resolved search or an approval that no longer
 // stands leaves without a write, and the enquiry stays open for the others.
+// AGE-06 (migration 0082, AGE06_RESPONSES_READY): a person records what the advertiser answered to an enquiry that was
+// sent, by whatever channel. Available or not available is written in the same batch as a confirmation of EST-16
+// (server/availability-confirmations.js), which EST-15 propagates: nothing here writes a match. An answer that says
+// nothing useful keeps it waiting (awaiting_response); one that asks for more opens a follow-up task. Answered, it takes
+// no new match: the next one starts another enquiry. What the advertiser said of one household stays on that match.
+// An enquiry that no match counts for any more can be cancelled.
 // Off (AGE03_ENQUIRIES_READY) or before the migration, nothing is read and every card says Not sent.
 import { json, fail, readJson, now, sha256 } from "./http.js";
 import { instant, unavailabilityReady, notConfirmedUnavailable } from "./property-facts.js";
 import { serviceReady, readEmailSettings, emailAddress } from "./email.js";
-import { confirmationReader } from "./availability-confirmations.js";
+import { confirmationReader, availabilityReady, confirmationStatements, propagate, REASONS } from "./availability-confirmations.js";
 import { taskStatements } from "./notification-tasks.js";
 import { CHECK_LABEL } from "./candidate-state.js";
 
@@ -24,6 +30,10 @@ export const sendReady = env => env?.AGE05_SEND_READY === "1" && enquiriesReady(
 // On only with migration 0080 as well; before it every answer and every write is as AGE-03 left them.
 const migrated = env => env.DB.prepare("SELECT contact_key FROM consultations LIMIT 0").all().then(() => true, () => false);
 const sending = async env => sendReady(env) && migrated(env);
+// AGE-06 needs EST-16 to write what an answer confirms; on only with migration 0082 as well.
+export const responsesReady = env => env?.AGE06_RESPONSES_READY === "1" && enquiriesReady(env) && availabilityReady(env);
+const answering = async env => responsesReady(env)
+  && env.DB.prepare("SELECT response_outcome FROM consultations LIMIT 0").all().then(() => true, () => false);
 // An approval to send lasts this long in the queue: an email that has not left by then goes back to a person.
 const QUEUE_LIMIT = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-24 hours')";
 const missing = e => /no such table/.test(e?.message ?? "");
@@ -49,6 +59,13 @@ const QUEUED_TASK = { category: "task", title: "Enquiry email queued", reason: "
 const NOT_WAITING = "This enquiry is no longer waiting to be sent. Reload to see it.";
 const NO_EMAIL = "Choose a contact with an email address first. By phone or in person, send it yourself and record it.";
 const BY_HAND = "send it yourself and record it below.";
+// AGE-06. answered: a clarification answered, which confirms no availability. The last two keep it waiting.
+const OUTCOMES = ["available", "unavailable", "answered", "more_info", "no_answer"], SCOPES = ["property", "operation"];
+const ANSWERABLE = ["sent", "awaiting_response"], CANCELLABLE = ["manual_pending", "sent", "awaiting_response"];
+const FOLLOW_UP = { category: "task", title: "Agency needs more information", reason: "The advertiser asked for more information before "
+  + "answering an enquiry about this property. Open the property: its Enquiries section has what was recorded. Reply to them, then record "
+  + "their next answer there." };
+const short = (v, max) => (typeof v === "string" && v.trim().length <= max ? v.trim() : "");
 // A contact is referred to by a digest of its name and email, never by a copy: one that is renamed, given another
 // address or removed no longer answers to it, and the enquiry waits for a person to choose again.
 const contactKey = c => sha256(JSON.stringify([c.name, c.email].map(v => String(v ?? "").trim().toLowerCase())));
@@ -89,8 +106,10 @@ export function enquiryText({ listing: l, asks = true, occupants = null, keys })
 export async function enquiryReader(env, ids) {
   if (!enquiriesReady(env)) return undefined;
   if (!ids.length) return () => [];
+  // AGE-06: what was answered and, for this match only, what was said of its own household.
+  const more = await answering(env) ? ", c.response_outcome, c.response_at, cm.response_note" : "";
   try {
-    const { results } = await env.DB.prepare(`SELECT cm.match_id, c.id, c.kind, c.status, c.sent_at, c.sent_via FROM consultation_matches cm
+    const { results } = await env.DB.prepare(`SELECT cm.match_id, c.id, c.kind, c.status, c.sent_at, c.sent_via${more} FROM consultation_matches cm
       JOIN consultations c ON c.id = cm.consultation_id WHERE cm.match_id IN (${ids.map(() => "?").join(", ")}) AND c.status <> 'cancelled'
       ORDER BY c.id DESC`).bind(...ids).all();
     return id => results.filter(r => r.match_id === id).map(({ match_id, ...c }) => c);
@@ -203,8 +222,13 @@ export function enquiries(gates) {
         ? "The household stated, the property's details or its confirmed availability changed since this text was written. Save changes to update it before sending."
         : "The must-haves to clarify, or the property's details, changed since this text was written. Save changes to update it before sending.") : null;
     const { id, kind, status, revision, listing_id, operation, body: text, occupants, prepared_by, prepared_at, sent_at, sent_via, sent_by, sent_evidence_ref } = c;
+    // AGE-06: the latest answer recorded, and what may be done now. Never what was said of one household.
+    const answers = responsesReady(env) && "response_outcome" in c;
     return { id, kind, status, revision, listing_id, operation, text, asks_availability: !!c.asks_availability, occupants,
       recipient: to, prepared_by, prepared_at, sent_at, sent_via, sent_by, sent_evidence_ref, matches: ids.length, blocked,
+      ...(answers || c.response_outcome ? { response: c.response_outcome ? { outcome: c.response_outcome, at: c.response_at, via: c.response_via,
+        from: c.response_from, scope: c.response_scope, evidence_ref: c.response_evidence_ref, by: c.response_by, recorded_at: c.response_recorded_at } : null } : {}),
+      ...(answers ? { can_answer: ANSWERABLE.includes(status), can_cancel: CANCELLABLE.includes(status) && !ids.length } : {}),
       ...(send ? { contact, approval: c.approved_revision === revision ? { by: c.approved_by, at: c.approved_at } : null, email_ref: c.email_ref,
         ...(c.status === "queued" ? { held: sendReady(env) ? await emailStop(env, true) : "Sending enquiries by email was switched off here. It "
           + "stops only once it is off for the clock too: then it returns to manual sending. Return it to manual now to be sure." } : {}) } : {}),
@@ -337,12 +361,13 @@ export function enquiries(gates) {
 
   // AGE-05. One step of an enquiry's email, written once whoever asks: the enquiry as it was read moves on (set), an
   // event names it and its email by their ids only (data), and its Inbox task follows (task, over the manual one).
-  const step = (env, c, actor, type, set, args = [], { data, task, when = "" } = {}) => [
-    env.DB.prepare(`UPDATE consultations SET ${set} WHERE id = ? AND revision = ? AND status = ?${when}`).bind(...args, c.id, c.revision, c.status),
+  // AGE-06: task may be a list, each with its own taskKey (the follow-up) or the enquiry's.
+  const step = (env, c, actor, type, set, args = [], { data, task, when = "", whenArgs = [] } = {}) => [
+    env.DB.prepare(`UPDATE consultations SET ${set} WHERE id = ? AND revision = ? AND status = ?${when}`).bind(...args, c.id, c.revision, c.status, ...whenArgs),
     env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data) SELECT ?, ?, 'listing', ?, ?, ? WHERE changes() = 1`)
       .bind(now(), actor, c.listing_id, `consultation.${type}`, JSON.stringify({ version: 1, consultation_id: c.id, consultation_revision: c.revision, ...data })),
-    ...(task ? taskStatements(env, { ...TASK, ...task, taskKey: `consultation:${c.operation_id}`, eventId: null,
-      target: { kind: "listing", id: c.listing_id }, actor }, { ifInserted: true }) : [])];
+    ...(task ? taskStatements(env, [].concat(task).map(t => ({ ...TASK, taskKey: `consultation:${c.operation_id}`, ...t, eventId: null,
+      target: { kind: "listing", id: c.listing_id }, actor })), { ifInserted: true }) : [])];
   // Back to a person, unsent: a new version that nobody approved, with no email of its own, and its Inbox task open again.
   const back = (env, c, actor, reason, when, extra) => step(env, c, actor, "email_not_sent",
     "status = 'manual_pending', revision = revision + 1, email_ref = NULL, sent_by = NULL", [],
@@ -462,6 +487,80 @@ export function enquiries(gates) {
     }
   }
 
+  // AGE-06. The follow-up task an answer asking for more information opened, while it is open: closed by what comes next.
+  const followUp = async (env, c, task) => { const taskKey = `consultation:${c.operation_id}:reply`;
+    return task.reopen || await env.DB.prepare("SELECT 1 FROM notifications WHERE task_key = ? AND resolved_at IS NULL").bind(taskKey).first()
+      ? [{ ...FOLLOW_UP, taskKey, ...task }] : []; };
+
+  // AGE-06. A person records what the advertiser answered (or what was said in a call) to an enquiry that was sent: when,
+  // how, who answered, what it said, what it covers and where the proof is kept. Available or not available is a
+  // confirmation of EST-16 from the advertiser, written in the same batch only if the answer is, and propagated by
+  // EST-15 as any other. It is about the property: case_notes keeps what was said of one household on its match only.
+  async function respond({ request, env, admin, params: [id] }) {
+    const body = await readJson(request), ts = now(), fields = {}, outcome = body?.outcome;
+    if (!UUID.test(body?.operation_id ?? "") || !Number.isSafeInteger(body.revision)) fail(400, "Invalid format");
+    const c = await one(env, id);
+    if (c.response_operation_id === body.operation_id) return json({ consultation: await detail(env, c) }); // the same click again
+    if (!ANSWERABLE.includes(c.status)) fail(409, "Only an enquiry that was sent can have an answer recorded. Reload to see it.");
+    if (c.revision !== body.revision) fail(409, CHANGED);
+    const confirms = outcome === "available" || outcome === "unavailable", on = unavailabilityReady(env);
+    if (!OUTCOMES.includes(outcome) || (outcome === "answered" && c.kind !== "clarification")) fields.outcome = "Choose what they answered";
+    try {
+      if (instant(body.answered_at) > ts) fields.answered_at = "Choose a date and time that is not in the future";
+      // To the minute, as the panel gives it: an answer does not come before the enquiry was sent.
+      else if (body.answered_at.slice(0, 16) < c.sent_at.slice(0, 16)) fields.answered_at = "Choose a date and time after the enquiry was sent";
+    } catch { fields.answered_at = "Enter the date and time of the answer"; }
+    if (!VIA.includes(body.via)) fields.via = "Choose how they answered";
+    const from = short(body.answered_by, 120), evidence = short(body.evidence_ref, 300), notes = body.case_notes ?? [];
+    if (!from) fields.answered_by = "Say who answered, in 120 characters or fewer";
+    if (!evidence) fields.evidence_ref = "Say where the proof is kept, in 300 characters or fewer";
+    if (confirms && !SCOPES.includes(body.scope)) fields.scope = "Choose what it covers";
+    if (on && outcome === "unavailable" && !REASONS.includes(body.reason)) fields.reason = "Choose why it is not available";
+    if (!Array.isArray(notes) || notes.length > 20 || notes.some(n => !Number.isSafeInteger(n?.match_id) || !short(n.note, 300))
+      || new Set(notes.map(n => n.match_id)).size !== notes.length) fields.case_notes = "Write each household's note once, in 300 characters or fewer";
+    else if (notes.length) {
+      const counted = (await env.DB.prepare(`SELECT cm.match_id FROM ${LINKS} WHERE cm.consultation_id = ? AND ${live}`).bind(c.id).all())
+        .results.map(r => r.match_id);
+      if (notes.some(n => !counted.includes(n.match_id))) fields.case_notes = "A note is only for a match of this enquiry that still counts";
+    }
+    if (Object.keys(fields).length) return json({ error: "Please check the highlighted fields.", fields }, 400);
+    const status = confirms || outcome === "answered" ? "answered" : "awaiting_response";
+    const mine = { sql: " AND EXISTS (SELECT 1 FROM consultations WHERE id = ? AND response_operation_id = ?)", args: [c.id, body.operation_id] };
+    const task = await followUp(env, c, outcome === "more_info" ? { reopen: true } : { resolved: true });
+    // Who confirmed it, as EST-16 names it: a private advertiser is the owner, any other the agency or entity advertising it.
+    const kind = confirms && (await env.DB.prepare("SELECT kind FROM advertisers WHERE id = ?").bind(c.advertiser_id).first())?.kind;
+    await env.DB.batch([
+      ...step(env, c, admin, "response_recorded", `status = ?, response_outcome = ?, response_at = ?, response_via = ?, response_from = ?,
+        response_scope = ?, response_evidence_ref = ?, response_by = ?, response_recorded_at = ?, response_operation_id = ?`,
+      [status, outcome, body.answered_at, body.via, from, confirms ? body.scope : null, evidence, admin, ts, body.operation_id],
+      { data: { outcome, via: body.via, ...(confirms && { scope: body.scope }) }, task: task.length ? task : null,
+        when: " AND response_operation_id IS ?", whenArgs: [c.response_operation_id] }),
+      ...notes.map(n => env.DB.prepare(`UPDATE consultation_matches SET response_note = ? WHERE consultation_id = ? AND match_id = ?${mine.sql}`)
+        .bind(short(n.note, 300), c.id, n.match_id, ...mine.args)),
+      ...(confirms ? confirmationStatements(env, c.listing_id, { status: outcome, confirmed_at: body.answered_at,
+        source: kind === "individual" ? "owner" : "agency", channel: body.via, evidence_ref: evidence, scope: body.scope,
+        reason: on && outcome === "unavailable" ? body.reason : null }, admin, ts, mine) : [])]);
+    const after = await one(env, id);
+    if (after.response_operation_id !== body.operation_id) fail(409, CHANGED);
+    if (confirms) await propagate(env, c.listing_id, admin);
+    return json({ consultation: await detail(env, after) });
+  }
+
+  // AGE-06. An enquiry that no match counts for any more, waiting to be sent or for an answer, is closed with its tasks.
+  async function cancel({ request, env, admin, params: [id] }) {
+    const body = await readJson(request);
+    if (!Number.isSafeInteger(body?.revision)) fail(400, "Invalid format");
+    const c = await one(env, id);
+    if (c.status === "cancelled") return json({ consultation: await detail(env, c) }); // the same click again
+    if (!CANCELLABLE.includes(c.status)) fail(409, "This enquiry can no longer be cancelled. Reload to see it.");
+    if (c.revision !== body.revision) fail(409, CHANGED);
+    const task = [...(c.status === "manual_pending" ? [{ resolved: true }] : []), ...await followUp(env, c, { resolved: true })];
+    await env.DB.batch(step(env, c, admin, "cancelled", "status = 'cancelled'", [], { task: task.length ? task : null, when: ` AND NOT ${counts("1")}` }));
+    const after = await one(env, id);
+    if (after.status !== "cancelled") fail(409, "An approved match still counts for this enquiry, so it cannot be cancelled. Reload to see it.");
+    return json({ consultation: await detail(env, after) });
+  }
+
   // Off, or before migration 0077: reads answer { enabled: false } and writes 404, as if the routes were not there.
   const guarded = (handler, read) => async ctx => {
     const off = () => (read ? json({ enabled: false }) : fail(404, "Not found"));
@@ -471,6 +570,8 @@ export function enquiries(gates) {
   // AGE-05's own routes are not there until its switch, EST-15 and migration 0080 are. Those that only close what was
   // queued or left unconfirmed (closing) stay after it is switched off: nothing new can be sent through them.
   const sends = (handler, closing) => guarded(async ctx => (await (closing ? migrated(ctx.env) : sending(ctx.env)) ? handler(ctx) : fail(404, "Not found")));
+  // AGE-06's routes are not there until its switch, EST-16 and migration 0082 are.
+  const answers = handler => guarded(async ctx => (await answering(ctx.env) ? handler(ctx) : fail(404, "Not found")));
   return { settle, claimable, routes: [
     ["GET", /^\/admin\/matches\/(\d+)\/consultation$/, guarded(context, true), true],
     ["POST", /^\/admin\/matches\/(\d+)\/consultation$/, guarded(prepare), true],
@@ -481,6 +582,8 @@ export function enquiries(gates) {
     ["POST", /^\/admin\/consultations\/(\d+)\/send-email$/, sends(sendEmail), true],
     ["POST", /^\/admin\/consultations\/(\d+)\/email-outcome$/, sends(outcome, true), true],
     ["POST", /^\/admin\/consultations\/(\d+)\/return-to-manual$/, sends(giveBack, true), true],
+    ["POST", /^\/admin\/consultations\/(\d+)\/response$/, answers(respond), true],
+    ["POST", /^\/admin\/consultations\/(\d+)\/cancel$/, answers(cancel), true],
   ] };
 }
 export default gates => enquiries(gates).routes;

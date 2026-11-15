@@ -9,7 +9,12 @@ import { provenance } from "./ConfirmedAvailability.jsx";
 // AGE-05: when the server also reports send (AGE05_SEND_READY and migration 0080), a person chooses the advertiser's
 // contact and may approve and queue one email for exactly that version. Without it, nothing below changes.
 export const ENQUIRY = { manual_pending: ["attention", "To send manually"], sent: ["positive", "Sent manually"],
-  queued: ["attention", "Queued by email"], needs_review: ["attention", "Awaiting email check"] };
+  queued: ["attention", "Queued by email"], needs_review: ["attention", "Awaiting email check"],
+  awaiting_response: ["attention", "Awaiting a useful answer"], answered: ["positive", "Answered"], cancelled: ["neutral", "Cancelled"] };
+// AGE-06: what the advertiser answered. answered: a clarification answered, which confirms no availability.
+export const OUTCOME = { available: "Available", unavailable: "Not available", answered: "Clarification answered",
+  more_info: "Needs more information from us", no_answer: "No useful answer (automatic reply, unclear or no reply)" };
+const REASON = { sold: "Sold", let: "Let", under_offer: "Under offer", withdrawn: "Withdrawn by the owner", other: "Other" };
 export const VIA = { phone: "Phone", email: "Email", in_person: "In person", message: "Message" };
 export const KIND = { general: "Availability enquiry", clarification: "Clarification enquiry" };
 const many = n => `${n} approved ${n === 1 ? "match" : "matches"}`;
@@ -45,6 +50,58 @@ function EnquiryText({ id, text, label = "Text to send" }) {
 // One enquiry: who it goes to, what it says, and what a person may still do with it. advertisers: the recipients to
 // choose from. match and household: the card it is shown on and the size of that search's household, if it has one.
 // onChange(consultation, match): after a change saved here. send (AGE-05): { email_stop } once sending is switched on.
+// AGE-06: record what the advertiser answered to an enquiry that was sent. On a match card (match), it may also keep a
+// note of what was said about that search's own household only.
+function Answer({ c, id, match, onChange }) {
+  const blank = () => ({ outcome: "", answered_at: localNow(), via: "", answered_by: "", scope: "property", reason: "", evidence_ref: "", note: "" });
+  const [f, setF] = useState(blank), [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
+  const operation = useRef(crypto.randomUUID()); // one id for this answer, retries included
+  useEffect(() => { operation.current = crypto.randomUUID(); }, [c.status, c.response?.recorded_at]);
+  const confirms = f.outcome === "available" || f.outcome === "unavailable";
+  const field = k => ({ id: `${id}-a-${k}`, value: f[k], onChange: e => { setF(x => ({ ...x, [k]: e.target.value })); setErrors(({ [k]: _, ...x }) => x); },
+    "aria-invalid": errors[k] ? true : undefined, "aria-describedby": errors[k] ? `${id}-ae-${k}` : undefined });
+  const error = k => errors[k] && <small id={`${id}-ae-${k}`} className="err">{errors[k]}</small>;
+  const submit = async e => {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true); setMsg(null);
+    const at = new Date(f.answered_at), note = f.note.trim();
+    try {
+      const d = await api(`/admin/consultations/${c.id}/response`, { method: "POST", body: { operation_id: operation.current, revision: c.revision,
+        outcome: f.outcome, answered_at: Number.isFinite(at.getTime()) ? at.toISOString() : "", via: f.via, answered_by: f.answered_by,
+        evidence_ref: f.evidence_ref, ...(confirms && { scope: f.scope }), ...(f.outcome === "unavailable" && { reason: f.reason }),
+        ...(match && note && { case_notes: [{ match_id: match.id, note }] }) } });
+      setErrors({}); setF(blank()); onChange?.(d.consultation);
+    } catch (err) {
+      const fields = err.data?.fields ?? {};
+      setErrors({ ...fields, ...(fields.case_notes && { note: fields.case_notes }) }); setMsg({ text: err.message });
+    } finally { setBusy(false); }
+  };
+  const outcomes = Object.entries(OUTCOME).filter(([k]) => k !== "answered" || c.kind === "clarification");
+  return <form className="fields-group" onSubmit={submit} aria-label={`Record the answer to enquiry ${c.id}`} noValidate>
+    <p><strong>Record the answer</strong> <span className="muted">· by email, phone, in person or message, once you have it</span></p>
+    <div className="grid2">
+      <label>What they answered<select {...field("outcome")}><option value="">Choose…</option>
+        {outcomes.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>{error("outcome")}</label>
+      {f.outcome === "unavailable" && <label>Why it is not available<select {...field("reason")}><option value="">Choose…</option>
+        {Object.entries(REASON).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>{error("reason")}</label>}
+      {confirms && <label>It covers<select {...field("scope")}><option value="property">The whole property</option>
+        <option value="operation">Only this operation</option></select>{error("scope")}</label>}
+      <label>Answered on (your time zone)<input type="datetime-local" max={localNow()} {...field("answered_at")} />{error("answered_at")}</label>
+      <label>How they answered<select {...field("via")}><option value="">Choose…</option>
+        {Object.entries(VIA).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>{error("via")}</label>
+      <label>Who answered<input maxLength={120} autoComplete="off" placeholder="e.g. Lettings desk" {...field("answered_by")} />{error("answered_by")}</label>
+    </div>
+    <label>Evidence reference<input maxLength={300} autoComplete="off" placeholder="e.g. Inbox, 15 Nov, 11:05, or call log" {...field("evidence_ref")} />{error("evidence_ref")}</label>
+    {match && <label>Said about this search only (optional)<textarea maxLength={300} rows={2} {...field("note")} />{error("note")}</label>}
+    <p className="muted">{confirms ? "This records a confirmation from the advertiser for the property, as on its Availability card. It does not accept "
+      + "any client's own conditions or confirm a viewing." : "Say where the proof is kept; do not paste the message."}
+      {match && " A note about this search stays on this match and is not shown for the property or any other search."}</p>
+    <div className="inline"><button className="btn sm" disabled={busy}>Record answer</button></div>
+    {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
+  </form>;
+}
+
 export function EnquiryView({ c, advertisers, match, household, onChange, send }) {
   const id = `enq-${c.id}${match ? `-${match.id}` : ""}`, pending = c.status === "manual_pending", r = c.recipient;
   const gone = r.removed || r.unlinked; // another recipient must be chosen
@@ -94,6 +151,12 @@ export function EnquiryView({ c, advertisers, match, household, onChange, send }
         <span className="muted"> · Reference: {emailRef}</span></p>
       : c.sent_at && <p>Sent {fmtDate(c.sent_at)} by {(VIA[c.sent_via] ?? c.sent_via).toLowerCase()} · recorded by {c.sent_by}
         <span className="muted"> · Evidence: {c.sent_evidence_ref}</span></p>}
+    {c.response && <p>Answer: <strong>{OUTCOME[c.response.outcome] ?? c.response.outcome}</strong>
+      {` · ${fmtDate(c.response.at)} by ${(VIA[c.response.via] ?? c.response.via).toLowerCase()} · from ${c.response.from}`}
+      {c.response.scope && ` · covers ${c.response.scope === "operation" ? "this operation" : "the whole property"}`}
+      {` · recorded by ${c.response.by}`}<span className="muted"> · Evidence: {c.response.evidence_ref}</span></p>}
+    {c.status === "answered" && <p className="muted">Answered: it takes no new match. A match approved from now on starts a new enquiry,
+      which reuses the availability confirmed.</p>}
     {c.status === "queued" && <div className="fields-group" role="group" aria-label={`Queued email of enquiry ${c.id}`}>
       <p role="status">Email queued{mail && ` for ${mail}`} by {c.sent_by}. It is checked again just before it leaves, and goes back to you if it has not
         left within a day. <span className="muted">Reference: {emailRef}</span></p>
@@ -154,6 +217,11 @@ export function EnquiryView({ c, advertisers, match, household, onChange, send }
           <span className="muted">Only after you have sent it. Say where the proof is kept; do not paste the message.</span></div>
       </form>
     </>}
+    {c.can_answer && <Answer c={c} id={id} match={c.joined ? match : null} onChange={d => { setMsg({ ok: true, text: "Answer recorded." }); onChange?.(d); }} />}
+    {c.can_cancel && <div className="inline"><button type="button" className="btn ghost sm" disabled={busy} onClick={() => confirm("Cancel this "
+      + "enquiry? No approved match counts for it now. Its Inbox tasks are closed and nothing is sent.") && run(() => api(`/admin/consultations/${c.id}/cancel`,
+      { method: "POST", body: { revision: c.revision } }), "Enquiry cancelled.")}>Cancel enquiry</button>
+      <span className="muted">No approved match counts for it now.</span></div>}
     {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
   </div>;
 }

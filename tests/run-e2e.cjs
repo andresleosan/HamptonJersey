@@ -67,6 +67,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       // and no clock Worker in the fixture: an enquiry can be queued and nothing is ever sent.
       ...(process.env.E2E_SCRIPT === "tests/age05-send.e2e.cjs" ? { AGE03_ENQUIRIES_READY: "1", EST16_AVAILABILITY_READY: "1",
         EST15_UNAVAILABILITY_READY: "1", AGE05_SEND_READY: "1", EMAIL_SERVICE_READY: "true" } : {}),
+      // AGE-06 records answers to enquiries (AGE-03) as EST-16 confirmations that EST-15 propagates: the four on.
+      ...(process.env.E2E_SCRIPT === "tests/age06-responses.e2e.cjs" ? { AGE03_ENQUIRIES_READY: "1", EST16_AVAILABILITY_READY: "1",
+        EST15_UNAVAILABILITY_READY: "1", AGE06_RESPONSES_READY: "1" } : {}),
       // SAP-02/SAP-03/EST-04 count what EST-16's confirmations and AGE-03's enquiries say, so its test has the three on.
       ...(process.env.E2E_SCRIPT === "tests/sap02-match-counts.e2e.cjs"
         ? { SAP02_COUNTS_READY: "1", EST16_AVAILABILITY_READY: "1", AGE03_ENQUIRIES_READY: "1" } : {}),

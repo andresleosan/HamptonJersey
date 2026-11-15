@@ -3,7 +3,7 @@ import { AVAILABILITY, fmtDate, priceText } from "./format.js";
 import { REJECT_REASONS } from "../../server/applicants.js";
 import { CHECK_LABEL, unknownMusts } from "../../server/candidate-state.js";
 import { DISAGREE, provenance } from "./ConfirmedAvailability.jsx";
-import { ENQUIRY, KIND, VIA, MatchEnquiry } from "./Enquiries.jsx";
+import { ENQUIRY, KIND, OUTCOME, VIA, MatchEnquiry } from "./Enquiries.jsx";
 
 const RESULT = { meets: "Meets", fails: "Fails", unknown: "Unknown" };
 export const REASON_LABEL = Object.fromEntries(REJECT_REASONS);
@@ -79,7 +79,9 @@ export default function MatchCard({ match, onReview, onClarify, onEnquiry, busy,
         <div><dt>Enquiry</dt>
           <dd>{enquiry ? <><span className={`badge ${ENQUIRY[enquiry.status]?.[0] ?? "neutral"}`}>{ENQUIRY[enquiry.status]?.[1] ?? enquiry.status}</span>
               {` · ${KIND[enquiry.kind] ?? enquiry.kind}`}{enquiry.sent_at ? ` · ${fmtDate(enquiry.sent_at)} by ${(VIA[enquiry.sent_via] ?? enquiry.sent_via).toLowerCase()}`
-                : <span className="muted"> · Not sent yet: it waits for a person to send it</span>}</>
+                : <span className="muted"> · Not sent yet: it waits for a person to send it</span>}
+              {enquiry.response_outcome && ` · ${OUTCOME[enquiry.response_outcome] ?? enquiry.response_outcome}, ${fmtDate(enquiry.response_at)}`}
+              {enquiry.response_note && <><br /><span className="muted">Said about this search only: </span>{enquiry.response_note}</>}</>
             : asked ? <><span className="badge attention">Clarification approved</span>{` · ${labels(asked.keys ?? [])} by ${asked.by} · ${fmtDate(asked.at)}`}
               <span className="muted"> · Not sent yet</span></>
             : <><span className="badge neutral">Not sent</span>
@@ -113,7 +115,7 @@ export default function MatchCard({ match, onReview, onClarify, onEnquiry, busy,
           {asked ? "Withdraw clarification" : "Approve clarification"}<span className="sr"> for {title}</span></button>}
         {enquiry !== undefined && (enquiry || (!off && (states.decision === "approved" || asked))) && <button type="button" className="btn ghost sm"
           aria-expanded={enquiring} onClick={() => setEnquiring(v => !v)}>
-          {enquiry && (enquiry.kind === "general" || states.decision !== "approved") ? "View enquiry" : "Prepare enquiry"}<span className="sr"> for {title}</span></button>}
+          {enquiry && enquiry.status !== "answered" && (enquiry.kind === "general" || states.decision !== "approved") ? "View enquiry" : "Prepare enquiry"}<span className="sr"> for {title}</span></button>}
       </div>
       {enquiring && enquiry !== undefined && <MatchEnquiry match={match} onChange={onEnquiry} />}
       {rejecting && match.status === "found" && <div className="inline reasons" role="group" aria-label={`Why reject ${title}?`}

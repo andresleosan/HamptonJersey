@@ -16,7 +16,7 @@ import { jerseyNow } from "./viewings.js";
 export const availabilityReady = env => env?.EST16_AVAILABILITY_READY === "1";
 const STATUSES = ["available", "unavailable", "unknown"], SOURCES = ["owner", "agency", "other"];
 const CHANNELS = ["phone", "email", "in_person", "message"], SCOPES = ["property", "operation"];
-const REASONS = ["sold", "let", "under_offer", "withdrawn", "other"]; // EST-15: the CHECK of migration 0076
+export const REASONS = ["sold", "let", "under_offer", "withdrawn", "other"]; // EST-15: the CHECK of migration 0076
 // Every stored confirmation counts: a date in the future is refused when recording, and nothing expires.
 const EVER = "9999-12-31T23:59:59.999Z";
 const missing = e => /no such table/.test(e?.message ?? "");
@@ -121,29 +121,37 @@ function viewingTasks(env, id, admin, ts) {
   ];
 }
 
-// Adds one confirmation. The same one sent again by the same person (a retried click) is not added twice.
+// The statements that add one confirmation v (as validate gives it) of listing id and, with EST-15, its viewing tasks.
+// The same one sent again by the same person (a retried click) is not added twice. guard: SQL, with its arguments,
+// that must also hold for it to be added (AGE-06: the answer it comes from was recorded in the same batch).
+export function confirmationStatements(env, id, v, admin, ts, guard = { sql: "", args: [] }) {
+  const on = unavailabilityReady(env), operation = v.scope === "operation" ? 1 : 0;
+  const same = [v.status, v.confirmed_at, v.source, v.channel, v.evidence_ref, admin, ...(on ? [v.reason] : [])];
+  // The operation is the listing's own at this moment, read in the same statement.
+  return [env.DB.prepare(`INSERT INTO availability_confirmations (listing_id, operation, status, confirmed_at, source,
+      channel, evidence_ref, recorded_by${on ? ", reason" : ""}, recorded_at)
+    SELECT l.id, CASE WHEN ? THEN l.operation END, ?, ?, ?, ?, ?, ?,${on ? " ?," : ""} ? FROM listings l WHERE l.id = ?
+      AND NOT EXISTS (SELECT 1 FROM availability_confirmations c WHERE c.listing_id = l.id
+        AND c.operation IS CASE WHEN ? THEN l.operation END AND c.status = ? AND c.confirmed_at = ? AND c.source = ?
+        AND c.channel = ? AND c.evidence_ref = ? AND c.recorded_by = ?${on ? " AND c.reason IS ?" : ""})${guard.sql}`)
+    .bind(operation, ...same, ts, id, operation, ...same, ...guard.args), ...(on ? viewingTasks(env, id, admin, ts) : [])];
+}
+// EST-15: the listing's matches follow what is in force now, on a repeated click too (it repairs a failed recompute).
+export const propagate = (env, id, admin) => unavailabilityReady(env) && afterSave(recomputeForListing, env, id, admin);
+
+// Adds one confirmation.
 async function record({ request, env, admin, params: [id] }) {
   if (!availabilityReady(env)) fail(404, "Not found");
   const on = unavailabilityReady(env), ts = now(), r = validate(await readJson(request), ts, on);
   if (r.errors) return json({ error: "Please check the highlighted fields.", fields: r.errors }, 400);
-  const v = r.value, operation = v.scope === "operation" ? 1 : 0;
-  const same = [v.status, v.confirmed_at, v.source, v.channel, v.evidence_ref, admin, ...(on ? [v.reason] : [])];
   let done;
   try {
-    // The operation is the listing's own at this moment, read in the same statement.
-    done = await env.DB.batch([env.DB.prepare(`INSERT INTO availability_confirmations (listing_id, operation, status, confirmed_at, source,
-        channel, evidence_ref, recorded_by${on ? ", reason" : ""}, recorded_at)
-      SELECT l.id, CASE WHEN ? THEN l.operation END, ?, ?, ?, ?, ?, ?,${on ? " ?," : ""} ? FROM listings l WHERE l.id = ?
-        AND NOT EXISTS (SELECT 1 FROM availability_confirmations c WHERE c.listing_id = l.id
-          AND c.operation IS CASE WHEN ? THEN l.operation END AND c.status = ? AND c.confirmed_at = ? AND c.source = ?
-          AND c.channel = ? AND c.evidence_ref = ? AND c.recorded_by = ?${on ? " AND c.reason IS ?" : ""})`)
-      .bind(operation, ...same, ts, id, operation, ...same), ...(on ? viewingTasks(env, id, admin, ts) : [])]);
+    done = await env.DB.batch(confirmationStatements(env, id, r.value, admin, ts));
   } catch (e) {
     if (missing(e)) fail(404, "Not found");
     throw e;
   }
-  // EST-15: the listing's matches follow what is in force now, on a repeated click too (it repairs a failed recompute).
-  if (on) await afterSave(recomputeForListing, env, id, admin);
+  await propagate(env, id, admin);
   return answer(env, id, done[0].meta.changes ? 201 : 200, on ? { notified: done[3].results[0].notified } : {});
 }
 
