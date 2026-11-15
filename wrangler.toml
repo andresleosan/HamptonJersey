@@ -56,6 +56,8 @@ ADM15_RENT_REVIEW_READY = "1"
 # AGE-05: enquiry emails to advertisers. Off until Luis switches on AUT-17; keep equal in jobs/wrangler.toml
 # (a test checks it). To stop, switch off in jobs/wrangler.toml too: the clock sends what is queued.
 AGE05_SEND_READY = "0"
+# ANA-05: per-search milestones in Insights from offers, sales and search state (no migration).
+SEARCH_MILESTONES_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

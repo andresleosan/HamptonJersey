@@ -770,7 +770,7 @@
       "preferredSlot": "vps",
       "priority": 120,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -7444,7 +7444,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 303,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [

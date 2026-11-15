@@ -4,10 +4,10 @@
   "titulo": "Cambios de criterios confirmados por el equipo; pausa pendiente de definición",
   "origen": "plan",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "El selector Stage de la ficha permite poner la búsqueda en Paused con Apply. Widen criteria (BUS-17) enseña cuántas casas más saldrían y «Use this» solo rellena el formulario. Los cambios materiales exigen confirmación en servidor y panel. Las propuestas de AUT-19 se confirman por el mismo guardado (commit): mismo evento applicant.updated, misma confirmación, misma subida de versión y mismo recálculo. 15-nov: prueba de recorrido completo con AUT-19 encendida, en servidor y en navegador a 1280 y 390: ver Widen y pulsar Use this no cambian la búsqueda, sus coincidencias, su historial ni su estado activo; solo proponer y confirmar la cambia. Sin código nuevo de producto.",
-  "falta": "Publicar en main las dos pruebas del recorrido. La pausa o retirada de la búsqueda queda fuera por su propia definición y por el plan maestro vigente; no bloquea.",
+  "hecho": "El selector Stage de la ficha permite poner la búsqueda en Paused con Apply. Widen criteria (BUS-17) enseña cuántas casas más saldrían y «Use this» solo rellena el formulario. Los cambios materiales exigen confirmación en servidor y panel. Las propuestas de AUT-19 se confirman por el mismo guardado (commit): mismo evento applicant.updated, misma confirmación, misma subida de versión y mismo recálculo. 15-nov: prueba de recorrido completo con AUT-19 encendida, en servidor y en navegador a 1280 y 390: ver Widen y pulsar Use this no cambian la búsqueda, sus coincidencias, su historial ni su estado activo; solo proponer y confirmar la cambia. Sin código nuevo de producto. Cerrada el 15-nov-2026 sin código nuevo: con AUT-19 encendida, la propuesta confirmada y el guardado directo pasan por el mismo contrato de confirmación, y ver o usar una alternativa no cambia nada hasta confirmar. La pausa o retirada de la búsqueda queda fuera por la propia definición de la tarea y el plan maestro.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "admin/src/ApplicantDetail.jsx:288-293",
@@ -24,7 +24,8 @@
     "server/routes/applicants.js: los únicos UPDATE de criterios están en commit; archivo, search_state y Sales no tocan criterios; Hermes entra solo por proposeCriteria (sin aplicar).",
     "tests/server/applicants-public.test.mjs: un registro duplicado del público no cambia la búsqueda.",
     "Decisión: no se construye nada nuevo porque el contrato ya se cumplía (fuente: ficha SAP-10 y criterio de hecho de la skill, sección 3).",
-    "Decisión: la pausa o retirada queda fuera sin decisión pendiente (fuente: plan maestro vigente, adaptación del 14-nov en CONTINUIDAD-AVANZAR.md)."
+    "Decisión: la pausa o retirada queda fuera sin decisión pendiente (fuente: plan maestro vigente, adaptación del 14-nov en CONTINUIDAD-AVANZAR.md).",
+    "Cierre 15-nov-2026: pruebas tests/server/sap10-criteria-route.test.mjs (2/2) y tests/sap10-widen-proposal.e2e.cjs a 1280 y 390; npm test 2675/2675; revisión independiente del lote sin hallazgos sobre SAP-10."
   ],
   "modulo": "M10",
   "deps": [
@@ -66,6 +67,6 @@
     "applicants-ui",
     "search-lifecycle"
   ],
-  "nextStep": "Integrar en main las pruebas del recorrido y cerrar por aceptación propia.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

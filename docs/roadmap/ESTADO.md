@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+15-nov-2026 · **ANA-05 y SAP-10 hechas:** Insights muestra por búsqueda los hitos reales (oferta, acordada, completada, búsqueda cerrada) con su fuente y su última fecha, y «Not recorded» donde no hay fuente, nunca cero; y queda demostrado que ningún cambio de criterios se aplica sin la confirmación del empleado, tampoco desde una propuesta o una alternativa. Progreso 113 → 115 de 211.
+
 15-nov-2026 · **AGE-05 construida y apagada (pendiente de Luis):** las consultas a agencias pueden salir por correo cuando se active el correo de la app: se elige el contacto concreto del anunciante, una persona aprueba esa versión exacta y el envío se revalida en el último momento; si algo cambia, vuelve a envío manual. Apagar el interruptor frena lo que esté en cola, el equipo puede retirar un correo retenido y una aprobación caduca a las 24 h. Hoy no sale nada: el correo y este interruptor los enciende Luis. Migración 0080. Progreso sin cambio: 113 de 211.
 
 15-nov-2026 · **ADM-15 activada (pendiente del abogado):** en Rentals › Change rent el asistente decide con la fecha de acuerdo y el ámbito del contrato, el RPI se registra con su fuente y fecha de publicación (sin fuente no hay tope), cada cambio de renta guarda el RPI y el tope usados, y aparece un borrador de aviso para copiar, rotulado como borrador y «internal only» mientras los plazos no estén validados. Falta la plantilla de carta validada por un abogado de Jersey, ya en la cola. Progreso sin cambio: 113 de 211.
