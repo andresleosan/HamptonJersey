@@ -195,6 +195,18 @@ test("with a write-off, lowering an earlier charge cannot turn the written-off r
   }
 });
 
+test("with credit after a write-off, raising a charge, saving it unchanged or a reversed write-off never block an edit", async () => {
+  const e = env(), id = await tenancy(e), older = rows(e, "SELECT id FROM charges WHERE due_on = ?", ago(20))[0].id;
+  await req(e, "POST", "/admin/payments", { tenancy_id: id, received_on: T, amount: 150000 });
+  const wo = await writeOff(e, id, { amount: 150000 });
+  await req(e, "POST", "/admin/payments", { tenancy_id: id, received_on: T, amount: 10000 }); // £100 credit
+  assert.equal((await req(e, "PUT", `/admin/charges/${older}`, { amount: 155000 })).status, 200, "raising a due charge");
+  assert.equal((await req(e, "PUT", `/admin/charges/${older}`, { amount: 155000 })).status, 200, "saving it unchanged");
+  const rev = await reverse(e, id, wo.data.writeoffs[0].id);
+  assert.equal(rev.status, 200, JSON.stringify(rev.data));
+  assert.equal((await req(e, "PUT", `/admin/charges/${older}`, { amount: 100000 })).status, 200, "nothing stays written off");
+});
+
 test("the website and the clock share the switch, so the Inbox follows the same balance as the panel", () => {
   const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^ADM09_ARREARS_READY = "([01])"$/m)?.[1] ?? "0";
   assert.equal(flag("wrangler.toml"), flag("jobs/wrangler.toml"));

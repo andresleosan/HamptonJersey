@@ -388,12 +388,16 @@ async function updateCharge({ request, env, admin, params: [id] }) {
   // guard), and on a tenancy with write-offs a lower charge may not leave the written-off rent as credit.
   const w = await adjustments(env.DB.prepare(`SELECT (SELECT MAX(run) FROM (SELECT ${NET("")} OVER (ORDER BY effective_on, id
       ROWS UNBOUNDED PRECEDING) AS run FROM charge_adjustments WHERE charge_id = ?1)) AS peak,
-    EXISTS (SELECT 1 FROM charge_adjustments x JOIN charges c ON c.id = x.charge_id WHERE c.tenancy_id = ?2) AS adjusted,
+    (SELECT COALESCE(${NET()}, 0) FROM charge_adjustments x JOIN charges c ON c.id = x.charge_id WHERE c.tenancy_id = ?2) AS adjusted,
     (SELECT COALESCE(SUM(${amountOf(true, "c", "?3")}), 0) FROM charges c WHERE c.tenancy_id = ?2 AND c.due_on <= ?3)
     - (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE tenancy_id = ?2 AND kind = 'rent') AS balance`)
     .bind(c.id, c.tenancy_id, jerseyToday()));
   if (w && amount < w.peak) return fieldErrors({ amount: `${gbp(w.peak)} of this charge was written off: enter at least that` });
-  const left = w?.adjusted && c.due_on <= jerseyToday() ? w.balance - (c.amount - amount) : 0;
+  // Only lowering a charge due by today, while some rent stays written off net: the written-off rent the edit would turn
+  // into credit (credit beyond what is written off came from payments, and stays allowed).
+  const asCredit = b => Math.min(Math.max(-b, 0), w.adjusted);
+  const left = w?.adjusted > 0 && amount < c.amount && c.due_on <= jerseyToday()
+    ? asCredit(w.balance) - asCredit(w.balance - (c.amount - amount)) : 0;
   if (left < 0) return fieldErrors({ amount: `This leaves ${gbp(-left)} more written off than owed: reverse the write-off first` });
   // ADM-20: a charge raised by hand on a tenancy the 2025 rules cover (or may cover) is declared as no premium; the
   // write holds only while the tenancy is still as it was checked.
