@@ -12,6 +12,7 @@ import { json, fail, readJson, now } from "./http.js";
 import { instant, resolveCommercialFacts, unavailabilityReady, standsUnavailable } from "./property-facts.js";
 import { afterSave, recomputeForListing } from "./match-store.js";
 import { jerseyNow } from "./viewings.js";
+import { settleCaptures } from "./property-captures.js";
 
 export const availabilityReady = env => env?.EST16_AVAILABILITY_READY === "1";
 const STATUSES = ["available", "unavailable", "unknown"], SOURCES = ["owner", "agency", "other"];
@@ -137,7 +138,13 @@ export function confirmationStatements(env, id, v, admin, ts, guard = { sql: "",
     .bind(operation, ...same, ts, id, operation, ...same, ...guard.args), ...(on ? viewingTasks(env, id, admin, ts) : [])];
 }
 // EST-15: the listing's matches follow what is in force now, on a repeated click too (it repairs a failed recompute).
-export const propagate = (env, id, admin) => unavailabilityReady(env) && afterSave(recomputeForListing, env, id, admin);
+// SPR-03: first, the latest confirmation recorded, if it says available, captures the property once (here and through
+// an enquiry's answer, AGE-06, which calls this too). If that fails, the capture stays queued and its "Check files
+// again" finishes it; nothing of the confirmation is undone.
+export async function propagate(env, id, admin) {
+  await settleCaptures(env, { listingId: id, admin }).catch(e => console.error("SPR-03 capture", e?.message));
+  return unavailabilityReady(env) && afterSave(recomputeForListing, env, id, admin);
+}
 
 // Adds one confirmation.
 async function record({ request, env, admin, params: [id] }) {

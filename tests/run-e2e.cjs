@@ -86,6 +86,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       // BUS-07 reads BUS-10's homes, EST-16's confirmations and SPR-08's Adverts card, so its test has the four on.
       ...(process.env.E2E_SCRIPT === "tests/bus07-provenance.e2e.cjs" ? { BUS07_PROVENANCE_READY: "1", BUS10_IDENTITY_READY: "1",
         EST16_AVAILABILITY_READY: "1", SPR08_SECTIONS_READY: "1" } : {}),
+      // SPR-03 captures from EST-16's confirmation and shows its record in SPR-08's sections.
+      ...(process.env.E2E_SCRIPT === "tests/spr03-capture.e2e.cjs" ? { SPR03_CAPTURE_READY: "1", EST16_AVAILABILITY_READY: "1",
+        SPR08_SECTIONS_READY: "1", BUS07_PROVENANCE_READY: "0" } : {}),
       SESSION_SECRET: randomBytes(32).toString('hex'),
       TURNSTILE_SITE_KEY: example.TURNSTILE_SITE_KEY,
       TURNSTILE_SECRET: example.TURNSTILE_SECRET,

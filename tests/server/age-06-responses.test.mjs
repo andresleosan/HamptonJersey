@@ -322,3 +322,16 @@ test("a clarification is answered for its one match, without confirming availabi
   const c = await card(env, ana, ASK);
   assert.deepEqual([c.states.enquiry, c.states.availability, c.enquiry.response_note], ["answered", "not_confirmed", "Two parking spaces included"]);
 });
+
+test("SPR-03: an available answer for an enquiry shared by two households captures the property once", async () => {
+  const env = world();
+  env.SPR03_CAPTURE_READY = "1";
+  const { id } = await sentEnquiry(env, ["Ana Le Gros", "Ben Carter"]);
+  const answerOnce = answer();
+  ok(await respond(env, id, answerOnce));
+  ok(await respond(env, id, answerOnce)); // the same click again
+  const captures = rows(env, "SELECT listing_id, state, json_extract(data, '$.confirmation.source') AS source FROM property_captures");
+  assert.deepEqual(captures, [{ listing_id: HOME, state: "partial", source: "agency" }], "no photo: partial, never complete");
+  assert.deepEqual(rows(env, "SELECT title FROM notifications WHERE task_key LIKE 'work:capture:%'"),
+    [{ title: "Open property record: capture partial (no photos)" }]);
+});

@@ -54,6 +54,11 @@ export function makeBucket() {
       return o && { body: o.body, httpEtag: '"test"', writeHttpMetadata: h => o.type && h.set("content-type", o.type) };
     },
     async delete(keys) { for (const k of [].concat(keys)) store.delete(k); },
+    async head(key) {
+      const o = store.get(key);
+      return o && { size: typeof o.body === "string" ? new TextEncoder().encode(o.body).length : o.body.byteLength,
+        httpEtag: '"test"', httpMetadata: { contentType: o.type } };
+    },
   };
 }
 

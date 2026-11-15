@@ -8,7 +8,7 @@ import './listing-history.css';
 const ACTION = {created:'Property created',updated:'Property updated',published:'Property published',unpublished:'Property unpublished',
   archived:'Property archived',restored:'Property restored',confirmed:'Availability confirmed by staff',availability_changed:'Availability changed',
   featured_changed:'Featured position changed',cover_changed:'Cover changed',recalculated:'Derived features recalculated',deleted:'Property deleted',
-  review_requested:'Review requested',review_returned:'Returned to draft'};
+  review_requested:'Review requested',review_returned:'Returned to draft',captured:'Shared record captured'};
 const RELATED = {'match.reviewed':'Match reviewed','viewing.requested':'Viewing requested','viewing.booked':'Viewing booked',
   'viewing.confirmed':'Viewing confirmed','viewing.rescheduled':'Viewing rescheduled','viewing.cancelled':'Viewing cancelled',
   'viewing.completed':'Viewing completed','viewing.no_show':'Viewing missed','offer.recorded':'Offer recorded',
