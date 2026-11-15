@@ -6,8 +6,8 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Cada alta (web o panel), cada cambio de requisitos y cada restauración cruza al aplicante al momento con las fichas de Hampton ofrecidas a aplicantes. Lo encontrado sale en su pestaña Matches, en Review y como aviso Matched en Inbox.",
-  "falta": "M03/M04 · Reconciliación 7-nov: Ampliar el cruce inicial al inventario común y activar la búsqueda con fecha y responsable. Separar candidatos con datos pendientes de coincidencias completas. El inventario funciona también sin clientes nuevos; no requiere exclusivamente Places.je. Depende de: BUS-06, BUS-12, EST-09. Aceptación: El alta cruza la base disponible, informa del estado real y deja visibles los esenciales sin responder. Traído de EST-01 (14-nov): al arrancar la búsqueda contra el inventario común de mercado, registrar su intento y resultado junto al de EST-01 (server/search-state.js); hoy la hora de última búsqueda cubre solo las fichas guardadas de Hampton, y falta de fuente o error no debe leerse como 0 anuncios. Traído de BUS-10 (15-nov): ofrecer a evaluate() las casas del inventario común usando la lectura homes de GET /admin/market/identity (los anuncios sin unir son cada uno su casa); mostrar en la tarjeta de match la fuente, el canal y la fecha de observación. Un dato sin evidencia fechada entra como desconocido. Traído de REG-12 (15-nov): el acuse público dice «we look for suitable properties»; al ampliar la búsqueda al inventario común, mantenerlo cierto sin prometer disponibilidad ni cifras. Traído de BUS-07 (15-nov): ofrecer al cruce las casas del inventario común; una ficha enlazada por BUS-07 (listing_market_links) no debe proponerse dos veces.",
+  "hecho": "Cada alta (web o panel), cada cambio de requisitos y cada restauración cruza al aplicante al momento con las fichas de Hampton ofrecidas a aplicantes. Lo encontrado sale en su pestaña Matches, en Review y como aviso Matched en Inbox. Construido (15-nov, tras BUS01_MARKET_MATCHING_READY, apagado): la misma búsqueda completa cruza también cada casa del inventario común (una por casa y operación, anuncios sin unir como su propia casa) con evaluate(), sin proponer aparte las casas enlazadas a una ficha (BUS-07), y guarda cada resultado (cumple, por confirmar, alternativa, excluida) con sus comprobaciones en market_matches (0083). EST-01 registra en la misma ejecución el estado del mercado (searched, incomplete, no_source, failed) y cuántas casas cruzó; la ficha del aplicante dice «Hampton's listings and the market inventory» o, apagado, «Hampton's saved listings only».",
+  "falta": "Aplicar 0083 en producción y encender BUS01_MARKET_MATCHING_READY (necesita BUS10_IDENTITY_READY, ya encendido); comprobar el recorrido con la primera carga real de Luis en el inventario. Las búsquedas comerciales (BUS-12) no cruzan aún el mercado: las observaciones no dicen su uso.",
   "bloqueo": "",
   "evidencia": [
     "server/routes/public.js:120-122",
@@ -16,7 +16,13 @@
     "server/routes/applicants.js:364",
     "server/match-store.js:10-11",
     "server/match-store.js:110-129",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "15-nov: server/match-store.js (marketHomeFacts, marketPart, marketWrites), server/market-identity.js (readMarketHomes), migrations/0083_market_matches.sql, interruptor BUS01_MARKET_MATCHING_READY.",
+    "15-nov decisión: tabla hermana market_matches en vez de columna en matches, porque matches.listing_id es NOT NULL con clave ajena a listings; ningún lector actual de matches cambia. Fuente: encargo del lote (forma mínima) y migración aditiva de CONTINUIDAD.",
+    "15-nov decisión: un dato que los anuncios de una misma casa contradicen queda unknown con evidencia «The adverts disagree»; sin fecha de observación no cuenta. Fuente: plan BUS-01 (unknown nunca cumple) y encargo.",
+    "15-nov decisión: sin episodios ni runs paginados del plan; cada búsqueda completa reemplaza sus resultados de mercado y no hay revisión humana de casas de mercado todavía. Fuente: skill sección 4 punto 5 (lo más simple y reversible) y modo ponytail del encargo.",
+    "15-nov pruebas: node --test tests/server/bus-01-market-matching.test.mjs 10/10 (incluye regresión: Matches, Review, lista y ficha idénticas apagado, apagado con inventario y encendido); match-store 14, matches 16, match-pages 6, bus-12-matching 4, commercial-evaluation 8, est01-search-state 11, sap02-match-counts 6, bus-07-provenance 11, bus-10-* 81, candidate-state 7, est-13-versions 5, applicants-public 16, todas en verde.",
+    "15-nov navegador: tests/bus01-market-matching.e2e.cjs en el contenedor aislado, 1280 y 390, PASS (alta en el panel cruza el inventario, Homes found y frase de la ficha)."
   ],
   "modulo": "M03/M04",
   "deps": [
@@ -59,6 +65,6 @@
     "market-inventory",
     "notifications-schema"
   ],
-  "nextStep": "Ampliar el cruce inicial al inventario común y registrar activación y datos pendientes de la búsqueda.",
+  "nextStep": "Aplicar 0083, encender BUS01_MARKET_MATCHING_READY y comprobar con la primera carga real del inventario.",
   "actualizado": "2026-11-15"
 }

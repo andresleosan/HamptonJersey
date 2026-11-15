@@ -6,8 +6,8 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "La tabla matches guarda, por aplicante, cada casa encontrada con su puntuación, sus comprobaciones y su estado. La pestaña Matches (Found, Shortlisted, Rejected) y Review la muestran con foto, precio, parroquia, dormitorios, baños y cada requisito como Meets, Fails o Unknown, con su evidencia.",
-  "falta": "M02/M04 · Reconciliación 7-nov: Añadir propiedades comunes y todas sus publicaciones, URLs, fuentes, anunciantes, operación y fechas; conservar las tarjetas y revisiones existentes. Incorporar resultados completos, pendientes de dato y alternativas internas sin mezclarlos. Depende de: BUS-06, BUS-10, BUS-12. Traído de SPR-07 (15-nov): casas del inventario común sin ficha propia en el seguimiento, con fuente, estado, precio, parroquia, dormitorios, baños y disponibilidad; su confirmación (EST-16 solo cubre listings) y su alcance por anunciante o publicación (EST-15: reutilizar o borrar server/est-15-scoped-unavailability.js); mostrarlas en la tarjeta SPR-01.",
+  "hecho": "La tabla matches guarda, por aplicante, cada casa encontrada con su puntuación, sus comprobaciones y su estado. La pestaña Matches (Found, Shortlisted, Rejected) y Review la muestran con foto, precio, parroquia, dormitorios, baños y cada requisito como Meets, Fails o Unknown, con su evidencia. Construido (15-nov, tras BUS01_MARKET_MATCHING_READY, apagado): market_matches (0083) guarda por búsqueda y casa del inventario común su resultado (cumple, por confirmar, alternativa o excluida) y sus comprobaciones, sin tocar matches. Automations › Market inventory › Homes found (GET /admin/market/homes, una lectura paginada de 25) muestra cada casa sin ficha propia con operación, parroquia, dormitorios, baños, precio, fecha en que se vio anunciada y «Availability not confirmed», sus publicaciones con fuente, canal, referencia, URL y fecha, la ficha a la que está enlazada (BUS-07) y, por cada búsqueda activa, su resultado con lo que no cumple o falta confirmar.",
+  "falta": "Aplicar 0083 en producción y encender BUS01_MARKET_MATCHING_READY; comprobar la pantalla con la primera carga real de Luis. Los resultados de mercado aún no salen en la pestaña Matches ni en Review del aplicante (MatchCard, de AGE-03/AGE-06): hoy se ven por casa en Homes found. El anunciante es la fuente del anuncio; el anunciante dentro de un portal no se normaliza todavía (BUS-09).",
   "bloqueo": "",
   "evidencia": [
     "migrations/0009_matches.sql:27-38",
@@ -15,7 +15,12 @@
     "admin/src/ApplicantDetail.jsx:379-408",
     "admin/src/Review.jsx:135-142",
     "server/matching.js:115-183",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "15-nov: migrations/0083_market_matches.sql, server/routes/market-inventory.js (marketHomes), admin/src/MarketInventory.jsx (Homes, Home), interruptor BUS01_MARKET_MATCHING_READY.",
+    "15-nov decisión: la pantalla va en Automations › Market inventory junto a la revisión de duplicados, en vez del navegador #/market del plan, y reutiliza Listing y los estilos existentes. Fuente: encargo del lote y DESIGN.md (usar clases existentes).",
+    "15-nov decisión: por búsqueda solo se listan las comprobaciones no cumplidas o por confirmar; los resultados completos, pendientes, alternativas y excluidos llevan cada uno su badge (positive, attention, neutral). Fuente: plan BUS-03 tarea 3 y DESIGN.md «Badges de estado».",
+    "15-nov pruebas: tests/server/bus-01-market-matching.test.mjs 10/10 (pantalla: 401 sin sesión, sin correos ni teléfonos, páginas de 25 con cursor validado, casa enlazada sin resultados aparte).",
+    "15-nov navegador: tests/bus01-market-matching.e2e.cjs en el contenedor aislado, 1280 y 390 sin desplazamiento lateral, PASS."
   ],
   "modulo": "M02/M04",
   "deps": [
@@ -56,6 +61,6 @@
     "matching-contract",
     "research-ui"
   ],
-  "nextStep": "Ampliar la pantalla al inventario común con procedencia y grupos separados de completos, pendientes y alternativas.",
+  "nextStep": "Aplicar 0083, encender BUS01_MARKET_MATCHING_READY y revisar Homes found con la primera carga real.",
   "actualizado": "2026-11-15"
 }
