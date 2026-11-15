@@ -159,3 +159,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [BUS-01] `evaluate()` lanza un error si `parishes_excluded` no es JSON válido y hace fallar también el cruce con fichas propias (preexistente) · tercera ronda 15-nov · 15-nov-2026
 - [AGE-08] Con la tarea de llamada ya marcada hecha, cada cambio del directorio (teléfonos, nombre) añade un evento `consultation.call_due` y reescribe el motivo (la tarea sigue hecha; una vez por cambio) · segunda revisión 15-nov · 15-nov-2026
 - [AGE-08] La prueba «A person marks it done» simula el Done con un UPDATE directo (closed_by_source=1); usar la API real para cubrir el camino de una persona · segunda revisión 15-nov · 15-nov-2026
+- [SPR-03] Copiar los originales a una clave propia de captura (hoy apunta al r2_key de media: si alguien borra la foto, su descarga dice «not found») · 15-nov-2026
+- [SPR-03] Barrido de capturas queued en el reloj (si la comprobación de archivos falla justo tras confirmar, solo se termina con «Check files again») · 15-nov-2026
+- [SPR-03] Tomar las lecturas vigentes de la casa BUS-07 (hoy guarda solo la observación enlazada como evidencia) · 15-nov-2026

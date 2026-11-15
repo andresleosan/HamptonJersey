@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Luis",
   "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones, observaciones y registro transaccional. Desde el panel (Automations, tras el interruptor): un admin acepta el manifiesto privado del directorio comprobando su huella, que el servidor verifica; todos los canales entran pendientes. Se abre una tanda, se suben a mano hasta 10 anuncios por envío para cada canal revisado como manual, y se pausa o se cierra la tanda para empezar la siguiente. La cobertura muestra por canal qué se ha leído: un canal no leído dice por qué y nunca cuenta como vacío. Una revisión posterior del manifiesto mueve sus canales y conserva las decisiones ya revisadas. El candidato privado real (237 canales, 141 fuentes) pasa la aceptación en una base local.",
-  "falta": "Solo falta la evidencia de captura real, que hace Luis con su sesión: cargar el directorio privado en el panel, abrir una tanda y subir el primer lote real de un canal revisado. Activada el 14-nov-2026 (0043 aplicada, MARKET_INVENTORY_READY=1). El recorrido automático por lectores está en BUS-08 y BUS-09. Traído de BUS-12 (14-nov): cuando el inventario de mercado se cruce con búsquedas comerciales, usar su normalización de términos; hoy solo se evalúan fichas propias.",
+  "falta": "Solo falta la evidencia de captura real, que hace Luis con su sesión: cargar el directorio privado en el panel, abrir una tanda y subir el primer lote real de un canal revisado. Activada el 14-nov-2026 (0043 aplicada, MARKET_INVENTORY_READY=1). El recorrido automático por lectores está en BUS-08 y BUS-09. Traído de BUS-12 (14-nov): cuando el inventario de mercado se cruce con búsquedas comerciales, usar su normalización de términos; hoy solo se evalúan fichas propias. Traído de SPR-03 (15-nov): cuando un anuncio confirmado tenga URLs de fotos de una fuente permitida, entregarlas como filas «link-only» de la captura SPR-03 para que se descarguen (hoy quedan blocked y la captura partial).",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/ESTADO.md:9",
@@ -89,5 +89,5 @@
     "advertisers-contract"
   ],
   "nextStep": "Tras la primera carga real de Luis, comprobar la cobertura (fuentes no leídas como pendientes, nunca 0) y cerrar.",
-  "actualizado": "2026-11-14"
+  "actualizado": "2026-11-15"
 }
