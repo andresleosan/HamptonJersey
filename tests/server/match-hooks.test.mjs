@@ -181,7 +181,9 @@ test("listing detail lists its matched applicants; the list shows parish and fil
   run(env, "UPDATE applicants SET archived_at = ? WHERE id = ?", T0, c);
 
   const d = (await req(env, "GET", "/admin/listings/HE-R001")).data;
-  assert.deepEqual(d.matched_applicants, [
+  // BUS-18: with each search's EST-13 states; a shortlist nobody recorded approves nothing as it is now.
+  assert.deepEqual(d.matched_applicants.map(m => m.states.decision), ["approved_outdated", "undecided", "rejected"]);
+  assert.deepEqual(d.matched_applicants.map(({ states, ...m }) => m), [
     { match_id: id(c), applicant_id: c, name: "Ann Renouf", operation: "rent", stage: "new", search_state: "active", archived_at: T0, status: "shortlisted",
       score: 50 },
     { match_id: id(a), applicant_id: a, name: "Jane Le Brocq", operation: "rent", stage: "new", search_state: "active", archived_at: null, status: "found",

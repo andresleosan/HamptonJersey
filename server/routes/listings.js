@@ -73,7 +73,8 @@ async function list({ request, env }) {
 async function detail({ env, admin, params: [id] }) {
   const listing = await loadListing(env, id);
   const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
-  const [media, research, sources, facts, terms, issues, searches, matched, [interest], [queue], [details], [authorized], [stillExists], candidateRows] = (await env.DB.batch([
+  const { MATCHES_SQL, matchCards } = await matchesRoute();
+  const [media, research, sources, facts, terms, issues, searches, matched, [interest], [queue], [details], [authorized], [stillExists], candidateRows, cards] = (await env.DB.batch([
     q("SELECT * FROM media WHERE listing_id = ? ORDER BY position, id", id),
     q("SELECT * FROM research_properties WHERE property_id = ?", id),
     q("SELECT * FROM research_sources WHERE property_id = ? ORDER BY source_id", id),
@@ -83,8 +84,7 @@ async function detail({ env, admin, params: [id] }) {
     q("SELECT * FROM research_search_log WHERE property_id = ? ORDER BY date, search_id", id),
     q(`SELECT m.id AS match_id, m.applicant_id, c.name, a.operation, a.stage, a.search_state, a.archived_at, m.status, m.score
        FROM matches m JOIN applicants a ON a.id = m.applicant_id JOIN contacts c ON c.id = a.contact_id
-       WHERE m.listing_id = ?
-       ORDER BY CASE m.status WHEN 'shortlisted' THEN 0 WHEN 'found' THEN 1 ELSE 2 END, m.score DESC, m.id`, id),
+       WHERE m.listing_id = ? ${MATCHED_ORDER}`, id),
     interestStatement(env, id),
     q("SELECT id, status FROM drive_imports WHERE listing_id = ? AND status = 'review'", id),
     q(`SELECT d.building_name_or_number,d.postcode,l.property_condition,d.developer_name,d.public_address_snapshot,
@@ -93,6 +93,7 @@ async function detail({ env, admin, params: [id] }) {
     q('SELECT 1 AS authorized FROM admins WHERE email=?',admin),
     q('SELECT 1 AS present FROM listings WHERE id=?',id),
     researchDuplicateReviewStatement(env,id,admin),
+    q(`${MATCHES_SQL} WHERE m.id IN (SELECT m.id FROM matches m WHERE m.listing_id = ? ${MATCHED_ORDER} LIMIT ${STATES_LIMIT})`, id),
   ])).map(r => r.results);
   if (!authorized) fail(401, 'Please sign in to continue');
   if (!stillExists) fail(404, 'Listing not found');
@@ -111,7 +112,18 @@ async function detail({ env, admin, params: [id] }) {
       'public_address_snapshot','public_address_snapshot_hash','public_address_evidence_ref','public_address_reviewed_by','public_address_reviewed_at']
       .map(key => [key, details?.[key] ?? null])),
     media, research: research[0] ?? null, sources, facts, terms, issues, searches, duplicates, duplicate_review: duplicateReview,
-    matched_applicants: matched, active_interest: interest.n, queue: queue ?? null });
+    // BUS-18: each search's own candidate states (EST-13), read as its match card reads them.
+    matched_applicants: await withStates(matchCards(env, cards), matched), active_interest: interest.n, queue: queue ?? null });
+}
+
+// Imported when used: matches.js reads this module's COVER_ID as it loads.
+const matchesRoute = () => import('./matches.js');
+const MATCHED_ORDER = "ORDER BY CASE m.status WHEN 'shortlisted' THEN 0 WHEN 'found' THEN 1 ELSE 2 END, m.score DESC, m.id";
+// A card is about 2 KB read and parsed: the first 50 searches get their states, the rest none (the request stays cheap).
+const STATES_LIMIT = 50;
+async function withStates(cards, matched) {
+  const states = new Map((await cards).map(card => [card.id, card.states]));
+  return matched.map(m => ({ ...m, states: states.get(m.match_id) }));
 }
 
 const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);

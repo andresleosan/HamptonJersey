@@ -19,7 +19,7 @@ const many = (n, word) => (n == null ? null : `${n} ${word}${n === 1 ? "" : "s"}
 const EVALUATION = { meets: "Stated must-haves met", pending: "Requirements to confirm", alternative: "Alternative · requirements not met",
   excluded: "Outside search criteria" };
 // EST-16: confirmed only by a recorded confirmation, shown with its date and provenance (match.availability).
-const CONFIRMED = { not_confirmed: ["neutral", "Not confirmed"], confirmed: ["positive", "Confirmed"],
+export const CONFIRMED = { not_confirmed: ["neutral", "Not confirmed"], confirmed: ["positive", "Confirmed"],
   confirmed_unavailable: ["neutral", "Confirmed not available"] };
 
 // One match as spec §5 shows it: the listing, its score, each check with what the listing says, and the reviews its

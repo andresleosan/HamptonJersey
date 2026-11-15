@@ -18,6 +18,7 @@ import { OPTIONS, isActive } from "../../server/applicants.js";
 import { ON_MARKET, COMPLIANCE, COMPLIANCE_FIELDS } from "../../server/listing.js";
 import { jerseyToday } from "../../server/viewings.js";
 import { BuyerOffers } from "./Sales.jsx";
+import { CONFIRMED } from "./MatchCard.jsx";
 import HermesDraft from "./HermesDraft.jsx";
 import ViewingAvailability from "./ViewingAvailability.jsx";
 import ListingReview from './ListingReview.jsx';
@@ -70,6 +71,12 @@ const OCCUPANCY = { unknown: "Unknown", vacant: "Vacant", tenanted: "Tenanted" }
 const EVIDENCE = { unknown: "Unknown", provided: "Provided, not verified", verified: "Verified by staff", not_applicable: "Not applicable" };
 // Match status, with its badge tone (DESIGN.md "Badges de estado": Found and Rejected neutral, Shortlisted active).
 const MATCH_STATUS = { found: ["Found", "neutral"], shortlisted: ["Shortlisted", "active"], rejected: ["Rejected", "neutral"] };
+// BUS-18: the candidate's EST-13 states (server/candidate-state.js) in the match card's words.
+const EVALUATION = { complete: ["positive", "Stated must-haves met"], to_confirm: ["attention", "Requirements to confirm"],
+  not_met: ["attention", "Requirements not met"] };
+const ENQUIRY_STATE = { not_sent: ["neutral", "Not sent"], clarification_approved: ["attention", "Clarification approved"],
+  prepared: ["attention", "Prepared, not sent"], sent_manually: ["positive", "Sent manually"], awaiting_response: ["attention", "Awaiting a useful answer"],
+  answered_available: ["positive", "Answered: available"], answered_unavailable: ["neutral", "Answered: not available"], answered: ["positive", "Answered"] };
 // J2: the Jersey fields (server/listing.js ENUMS, labels in format.js); blank = not set (for restriction, none).
 // Housing category and restriction concern homes in Jersey (Control of Housing and Work Law).
 const jerseyHome = f => f.use === "residential" && f.country === "Jersey";
@@ -729,14 +736,21 @@ function MatchedApplicants({ rows, offered }) {
   const note = !offered && <p className="muted">This listing isn't offered to applicants.</p>;
   if (!rows.length) return note || <p className="muted">No applicants match this listing yet.</p>;
   return <>{note}
+    {rows.some(m => !m.states) && <p className="muted">States are shown for the first 50 searches. Open a search to see the states of the rest.</p>}
     <table className="list small matched">
-      <thead><tr><th scope="col">Applicant</th><th scope="col">Looking</th><th scope="col">Status</th><th scope="col">Score</th></tr></thead>
-      <tbody>{rows.map(m => { const [label, tone] = MATCH_STATUS[m.status] ?? [m.status, "neutral"];
+      <thead><tr><th scope="col">Applicant</th><th scope="col">Looking</th><th scope="col">Evaluation</th><th scope="col">Decision</th>
+        <th scope="col">Availability</th><th scope="col">Enquiry</th><th scope="col">Score</th></tr></thead>
+      <tbody>{rows.map(m => { const [label, tone] = MATCH_STATUS[m.status] ?? [m.status, "neutral"], s = m.states;
+        const badge = ([tone, text] = []) => text ? <span className={`badge ${tone}`}>{text}</span> : "—";
         return <tr key={m.match_id}>
           <td><a href={`#/applicants/${m.applicant_id}/matches`}>{m.name}</a>
             {!isActive(m) && <span className="muted"> · {m.archived_at ? "Archived" : m.search_state === "resolved" ? "Resolved" : "Needs review"}</span>}</td>
           <td>{OPERATION_LABEL[m.operation] ?? m.operation ?? "—"}</td>
-          <td><span className={`badge ${tone}`}>{label}</span></td>
+          <td data-label="Evaluation">{badge(EVALUATION[s?.evaluation])}</td>
+          <td data-label="Decision"><span className={`badge ${tone}`}>{label}</span>
+            {s?.decision === "approved_outdated" && <> <span className="badge attention">Approval out of date</span></>}</td>
+          <td data-label="Availability">{badge(CONFIRMED[s?.availability])}</td>
+          <td data-label="Enquiry">{badge(ENQUIRY_STATE[s?.enquiry])}</td>
           <td className="num">{m.score}</td>
         </tr>; })}</tbody>
     </table></>;

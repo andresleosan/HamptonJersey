@@ -6,14 +6,22 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "En cada ficha del catálogo, la sección Matched applicants lista los aplicantes que encajan, si buscan To Let o To Buy, su estado (Found, Shortlisted o Rejected) y su puntuación, con enlace a su pestaña Matches.",
-  "falta": "M02/M06 · Reconciliación 7-nov: Extender el seguimiento al inventario externo y separar cada búsqueda por operación. Mostrar evaluación y decisión del match, consulta común, disponibilidad, interés y visitas; la comisión se registra como gestión humana independiente. Depende de: BUS-10, AGE-03, EST-13.",
+  "hecho": "En cada ficha del catálogo, la sección Matched applicants lista los aplicantes que encajan, si buscan To Let o To Buy, su estado (Found, Shortlisted o Rejected) y su puntuación, con enlace a su pestaña Matches. 15-nov-2026, construida en rama (sin migración ni interruptor): cada búsqueda es su propia fila con los cuatro estados de EST-13 tal como los da su tarjeta de match: Evaluation (Stated must-haves met, Requirements to confirm, Requirements not met), Decision (Found, Shortlisted con «Approval out of date» si la aprobación ya no cubre la búsqueda y la ficha de hoy, Rejected), Availability (confirmación vigente de EST-16: Not confirmed, Confirmed, Confirmed not available) y Enquiry (consulta compartida de AGE-03 que cubre el match: Not sent, Clarification approved, Prepared, Sent manually, Awaiting a useful answer, Answered). GET /admin/listings/:id añade states a cada fila de matched_applicants con matchCards de server/routes/matches.js (misma lectura que la tarjeta, sin lógica nueva), solo para las 50 primeras búsquedas del orden de la lista; si hay más, la sección lo dice y el resto se abre desde la búsqueda. A 390 px cada estado lleva su etiqueta. Una búsqueda por fila: rechazar o aprobar una no cambia otra, y la búsqueda de alquiler de una persona no aparece en una casa en venta. Inventario externo: ya lo cubre Automations › Market inventory › Homes found (BUS-03): cada casa del mercado por operación con cada búsqueda activa, su resultado (Meets stated must-haves, To confirm, Alternative), lo que no cumple y «Availability not confirmed»; una casa del mercado no tiene decisión ni consulta propias hasta que BUS-07 la enlaza con una ficha, y entonces se sigue en la ficha. La consulta común de la propiedad y operación está en la sección Enquiries de la ficha (AGE-03). Datos personales: solo el nombre que ya mostraba la sección, en el panel con sesión.",
+  "falta": "Publicar en main y comprobar en producción con una lectura GET de una ficha con matches que cada fila trae states. Interés del cliente y visita por búsqueda son dimensiones de EST-14 y VIS-17 (anotado en sus fichas); la comisión se gestiona fuera de la aplicación (plan maestro).",
   "bloqueo": "",
   "evidencia": [
     "admin/src/ListingEditor.jsx:233-244",
     "admin/src/ListingEditor.jsx:270-285",
     "server/routes/listings.js:60-63",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "server/routes/listings.js: detail() añade states (EST-13) a matched_applicants con matchCards de server/routes/matches.js, importado al usarse (matches.js lee COVER_ID de listings.js al cargar y un import estático da ReferenceError).",
+    "admin/src/ListingEditor.jsx: MatchedApplicants con columnas Evaluation, Decision, Availability y Enquiry; admin/src/MatchCard.jsx exporta CONFIRMED; admin/src/styles.css etiqueta cada estado a 390 px.",
+    "Decisión: reutilizar matchCards en vez de una proyección nueva (server/property-followup.js del plan). Fuente: skill avanzar §5 (ponytail) y el propio plan («proyección sobre relaciones existentes sin duplicar»); así la ficha y la tarjeta del aplicante no pueden discrepar.",
+    "Decisión: estados solo para las 50 primeras búsquedas de la lista. Fuente: restricción global del plan BUS-18 (lista 50, JSON 128 KiB) y plan gratuito de Workers (10 ms de CPU). Medido en node en el VPS con 300 búsquedas sobre una ficha: matchCards de 300 tarjetas 4,2-4,8 ms de JS y unos 640 KB leídos; con el tope, GET de la ficha pasa de ~2,5 ms (sin estados) a ~4,5 ms incluyendo SQLite, y la lectura de tarjetas se limita a 50 filas por subconsulta (≈ 300 entradas de índice + 50 × (6 + eventos por búsqueda) filas, estimado con EXPLAIN QUERY PLAN: wrangler local no da rows_read). Homes found no cambia: con 2.000 anuncios sigue leyendo 25 casas por página.",
+    "Decisión: sin migración ni interruptor. Fuente: CONTINUIDAD-AVANZAR y la consigna del lote; es una lectura que añade un campo, y disponibilidad y consulta respetan ya los interruptores EST16_AVAILABILITY_READY y AGE03_ENQUIRIES_READY.",
+    "Decisión: el mercado externo no se reconstruye en la ficha. Fuente: migración 0083 (market_matches nunca guarda decisión ni disponibilidad) y Homes found de BUS-03; una casa enlazada por BUS-07 se sigue en su ficha.",
+    "Decisión: interés y visita por búsqueda no se muestran como «No»: no existen aún (EST-14, VIS-17). Fuente: spec 2026-11-08-l1-property-followup-design.md («Unknown no se convierte en No/0»). Comisión fuera de la aplicación: plan maestro, línea 68.",
+    "Comprobado en rama: tests/server/bus-18-property-followup.test.mjs 2/2 (falló antes por states ausente); match-hooks 11/11 (actualizada la igualdad exacta de matched_applicants); match-store 14/14, matches 16/16, match-pages 6/6, bus-01-market-matching 18/18, bus-10-identity 30/30, est-13-versions 5/5, sap02-match-counts 6/6, bus-10-research-review 15/15, listing 11/11, listings-list 2/2, reg07-pets-dom 5/5; scripts/check-release.mjs sin avisos; tests/bus18-property-followup.e2e.cjs pasa a 1280 y 390 en el contenedor aislado (cuatro búsquedas: aprobada, aprobación desfasada, sin decidir y rechazada; disponibilidad confirmada; sin desbordes; enlace por teclado a la búsqueda). Sin ejecutar: npm test completo, producción."
   ],
   "modulo": "M02/M06",
   "deps": [
@@ -54,5 +62,6 @@
     "matching-contract",
     "outreach-contract"
   ],
-  "nextStep": "Extender el seguimiento por propiedad a búsquedas externas y operaciones separadas, con consulta y disponibilidad trazables."
+  "nextStep": "Publicar el commit en main, comprobar en producción GET /admin/listings/<id> (matched_applicants[].states) y cerrar por aceptación propia.",
+  "actualizado": "2026-11-15"
 }
