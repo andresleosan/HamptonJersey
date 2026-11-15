@@ -149,3 +149,5 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [AGE-14] Al suprimir datos de un anunciante, vaciar también `consultations.response_from` (nombre de quien atendió, texto libre) · traído de AGE-06; AGE-14 ya está cerrada · 15-nov-2026
 - [NOT-01] Aviso de Inbox «respuesta útil recibida» cuando llegue sin persona (AUT-17); la registrada a mano en AGE-06 ya cierra las tareas · traído de AGE-06 · 15-nov-2026
 - [AGE-06] Exportar `REASON` de ConfirmedAvailability.jsx y quitar la copia en Enquiries.jsx; refrescar la tarjeta Availability de la ficha tras registrar una respuesta; mostrar la respuesta anterior del match junto al formulario de la nueva consulta; guardar `response_confirmation_id` · 15-nov-2026
+- [AGE-06] La fecha de la respuesta se compara al minuto con la del envío (una respuesta 58 s anterior se acepta) · a propósito · revisión independiente 15-nov · 15-nov-2026
+- [AGE-06] Con el interruptor apagado, repetir la cancelación de una consulta ya cancelada devuelve 404 en vez de 200 (si se pierde la respuesta, el panel muestra error aunque la cancelación se hizo) · segunda revisión 15-nov · 15-nov-2026
