@@ -92,3 +92,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [AUT-19] Nombrar al cliente en la lista del Inbox; filtro «Changes to confirm» en la lista de aplicantes; releer la propuesta al cambiar de pestaña · 15-nov-2026
 - [AUT-19] Caducidad de propuestas (hoy esperan indefinidamente; el plan antiguo proponía 24 h); archivar una búsqueda con propuesta pendiente cierra el aviso pero deja la propuesta · 15-nov-2026
 - [AUT-19] Prueba propia de cambio de operación y de búsquedas comerciales por propuesta; 404 en vez de 500 si el interruptor está encendido sin 0074; la casilla de confirmación se dibuja centrada sobre su texto · 15-nov-2026
+- [EST-16] Desempatar confirmaciones del mismo minuto (una corrección inmediata queda «disagree»); señalar cuando la confirmación vigente y el estado publicado discrepan · 15-nov-2026
+- [EST-16] Leer solo las últimas confirmaciones por ficha en las tarjetas y paginar el historial del editor; enlace «Confirm availability» desde la tarjeta · 15-nov-2026
+- [EST-16] Emitir un evento al registrar una confirmación (sin el texto de evidencia); actualizar las notas de `docs/roadmap/work/EST-16/` y el nombre de la prueba «no writer yet» · 15-nov-2026
