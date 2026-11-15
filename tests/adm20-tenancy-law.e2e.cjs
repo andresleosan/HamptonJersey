@@ -1,8 +1,8 @@
 // ADM-20, local synthetic fixture only (run through test:e2e:isolated with ADM20_TENANCY_LAW_READY=1 and
 // ADM17_LEGAL_TERMS_READY=1 from run-e2e.cjs): the 2025 tenancy rules in New tenancy, Edit details, Renew and Correct
 // charge. 1280 px works with the rules as estimated (every issue asks for the confirmation), then records them as
-// validated under Legal terms; 390 px works with them validated (a long initial term and a further fixed term are
-// refused, a sum added to what is owed is still declared, and a scope not known only asks). The server's own answers
+// validated under Legal terms; 390 px works with them validated (a long initial term and a further fixed term, from Renew
+// or from Edit details, are refused, a sum added to what is owed is still declared, and a scope not known only asks). The server's own answers
 // are in tests/server/adm-20-tenancy-law.test.mjs.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PW || 'playwright-core');
@@ -30,7 +30,7 @@ const fits = page => page.evaluate(() => document.documentElement.scrollWidth <=
   // The panel's fmtDay (admin/src/format.js): "Mon 14 Dec", with the year when it is not this one.
   const fmtDay = d => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
     ...(d.slice(0, 4) !== today.slice(0, 4) ? { year: 'numeric' } : {}) }).replace(',', '');
-  const start = `${today.slice(0, 8)}01`, long = addMonths(start, 37), limit = addMonths(start, 36), AGREED = '2026-05-01';
+  const start = `${today.slice(0, 8)}01`, long = addMonths(start, 37), within = addMonths(start, 24), AGREED = '2026-05-01';
   const browser = await chromium.launch({ executablePath: process.env.CHROME });
   try {
     for (const width of [1280, 390]) {
@@ -90,7 +90,7 @@ const fits = page => page.evaluate(() => document.documentElement.scrollWidth <=
         await add.click();
         await form.locator('#e-nt-end_on').waitFor();
         assert.equal((await request(page, `/admin/rentals/${rid}`)).data.tenancies.length, 0, 'a refused term saves nothing');
-        await form.locator('#nt-end_on').fill(limit); // its label now carries the refusal
+        await form.locator('#nt-end_on').fill(within); // its label now carries the refusal
         await form.locator('p.err[role=note]').waitFor({ state: 'detached' });
         await form.getByLabel('Owed today (£, optional)').fill('50.00');
         await form.getByText('a tenant must not be asked for a premium or key money', { exact: false }).waitFor();
@@ -103,9 +103,23 @@ const fits = page => page.evaluate(() => document.documentElement.scrollWidth <=
       await card.getByText(`Agreed ${fmtDay(AGREED)}: 2025 rules, within the tenancy law`, { exact: false }).waitFor();
       assert.equal(await card.locator('p.meta').getByText(LABEL, { exact: true }).count(), validated ? 0 : 1);
       const saved = (await request(page, `/admin/tenancies/${id}`)).data.tenancy;
-      assert.deepEqual([saved.regime, saved.agreement_on, saved.law_scope, saved.end_on], ['2025', AGREED, 'yes', validated ? limit : long]);
+      assert.deepEqual([saved.regime, saved.agreement_on, saved.law_scope, saved.end_on], ['2025', AGREED, 'yes', validated ? within : long]);
       assert.ok(await fits(page), `the property page fits at ${width}`);
       await shot(card, `adm20-tenancy-${width}.png`);
+
+      if (validated) {
+        // Edit details cannot lengthen the running term either: refused like Renew, with nothing to tick.
+        await card.getByRole('button', { name: 'Edit details', exact: true }).click();
+        const details = page.getByRole('dialog', { name: 'Tenancy details', exact: true });
+        await details.getByLabel('End of the fixed term').fill(addMonths(within, 6));
+        await details.getByText('this would be a further fixed term', { exact: false }).waitFor();
+        assert.equal(await details.getByRole('checkbox', { name: CONFIRM, exact: true }).count(), 0);
+        await details.getByRole('button', { name: 'Save', exact: true }).click();
+        await details.locator('#e-tf-end_on').waitFor();
+        assert.equal((await request(page, `/admin/tenancies/${id}`)).data.tenancy.end_on, within, 'a refused edit saves nothing');
+        await details.getByRole('button', { name: 'Cancel', exact: true }).click();
+        await details.waitFor({ state: 'hidden' });
+      }
 
       // Renew: a further fixed term.
       await card.getByRole('button', { name: 'Renew', exact: true }).click();
@@ -125,7 +139,7 @@ const fits = page => page.evaluate(() => document.documentElement.scrollWidth <=
       } else {
         await renew.locator('#e-rn-end_on').waitFor();
         assert.equal(await renew.getByRole('checkbox', { name: CONFIRM, exact: true }).count(), 0);
-        assert.equal((await request(page, `/admin/tenancies/${id}`)).data.tenancy.end_on, limit, 'a refused renewal saves nothing');
+        assert.equal((await request(page, `/admin/tenancies/${id}`)).data.tenancy.end_on, within, 'a refused renewal saves nothing');
         await renew.getByRole('radio', { name: 'Periodic', exact: true }).check();
         await renew.getByText('this would be a further fixed term', { exact: false }).waitFor({ state: 'detached' });
         await renew.getByRole('button', { name: 'Renew', exact: true }).click();

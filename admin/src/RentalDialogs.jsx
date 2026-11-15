@@ -71,8 +71,9 @@ const Sheet = ({ title, a, button, danger, lead, back = "Cancel", onClose, child
 const Who = ({ t }) => <p>{t.tenant_name} · {t.payment_ref}</p>;
 
 // ADM-20: what the 2025 rules say about the save being typed, worked out as the server will (validateTenancyOperation)
-// with law, the parameters in force (d.law; absent while its switch is off, and then nothing shows). A refused issue
-// reads as an error; the others need the box ticked, and the tick lapses when the issues change.
+// with law, the parameters in force (d.law; absent while its switch is off, and then nothing shows) and, for an edit
+// that brings the tenancy under the rules, d.law_history. A refused issue reads as an error; the others need the box
+// ticked, and the tick lapses when the issues change.
 const lawOf = (law, input) => (law ? validateTenancyOperation({ ...input, policy: law }) : { issues: [] });
 const lawKey = check => check.issues.filter(i => !i.blocks).map(i => i.code).join();
 // The request's share: the codes confirmed, when the box is ticked for the issues as they stand.
@@ -302,11 +303,11 @@ const fieldsOf = (a, keys, over = {}) => keys.map(k => <Fragment key={k}>{k === 
 // The tenancy's details (locked by updated_at), or one deadline's date (keys of one), or collect_from (P22). note: a line
 // under the tenant; over: [label, props] by key in place of the usual ones.
 export const DETAILS = ["tenant_name", "tenant_email", "tenant_phone", "occupants", "deposit", "deposit_received_on", "deposit_ref", "notes"];
-export function EditTenancy({ d: { tenancy: t, law }, keys, title, note, over, onClose, onDone, onRefused }) {
+export function EditTenancy({ d: { tenancy: t, law, law_history }, keys, title, note, over, onClose, onDone, onRefused }) {
   // ADM-20: the details also hold what decides the tenancy's rules.
   const shown = keys !== DETAILS ? keys : [...keys.slice(0, 4), ...(t.kind === "fixed" ? ["end_on"] : []),
     ...(law ? ["agreement_on", "law_scope"] : []), ...keys.slice(4)];
-  const check = f => lawOf(law, { operation: "update", tenancy: lawDraft(f, t), before: t });
+  const check = f => lawOf(law, { operation: "update", tenancy: lawDraft(f, t), before: t, history: law_history });
   const a = useForm("tf", toTenancyForm(t, shown), async f => {
     const body = toTenancyBody(f, shown), saved = toTenancyBody(toTenancyForm(t, shown), shown);
     const changed = shown.filter(k => body[k] !== saved[k]);

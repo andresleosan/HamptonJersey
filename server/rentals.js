@@ -66,20 +66,29 @@ const LAW_RULES = {
   second_term: () => "a tenancy has one initial fixed term and then runs on as periodic: this would be a further fixed term.",
   premium: () => "a tenant must not be asked for a premium or key money: confirm this sum is neither.",
 };
+const COVER = { no: 0, unknown: 1, yes: 2 };
 // One initial fixed term of up to initialTermYears and no premium or key money, for a save that sets the term (create,
 // update, renew; before: the tenancy as stored) or raises what is owed beyond the rent series (the opening balance, or
-// charge: {before, after} in pence). An issue blocks only when the tenancy is covered and the rules are validated; a
-// further term entered through an edit is a correction of the record, so it is confirmed, never blocked. Every other
-// issue needs its code in `confirmed`: the employee's express confirmation.
-export function validateTenancyOperation({ operation, tenancy, before = null, charge = null, policy, confirmed = [] }) {
+// charge: {before, after} in pence). A further fixed term is a term lengthened, or a periodic tenancy made fixed: by
+// Renew always, by an edit once the tenancy has started (before its start the end date is still the initial term being
+// corrected, within the limit). A save that brings the tenancy under the rules (from not covered, or from unknown to
+// covered) checks what is stored as if this save had entered it: its term, its opening balance and, from `history`
+// ({lengthened, raised}: its term lengthened after the start, a charge raised by hand), what was done while outside.
+// A long or further term blocks when the tenancy is covered and the rules are validated; every other issue needs its
+// code in `confirmed`: the employee's express confirmation.
+export function validateTenancyOperation({ operation, tenancy, before = null, charge = null, history = null, policy,
+  confirmed = [], today = jerseyToday() }) {
   const applies = lawApplies(tenancy, policy);
   if (applies === "no") return { allowed: true, applies, issues: [] };
-  const found = [], term = operation !== "charge" && tenancy.kind === "fixed"
-    && (!before || before.kind !== "fixed" || before.end_on !== tenancy.end_on);
-  if (term && initialTermBeyondThreeYears(tenancy.start_on, tenancy.end_on, policy.initialTermYears)) found.push(["long_term", "end_on", true]);
-  if (term && before && (before.kind !== "fixed" || tenancy.end_on > before.end_on)) found.push(["second_term", "end_on", operation === "renew"]);
-  if (charge ? charge.after > charge.before : (tenancy.opening_balance ?? 0) > (before?.opening_balance ?? 0))
-    found.push(["premium", charge ? "amount" : "opening_balance", false]);
+  const entering = !!before && COVER[applies] > COVER[lawApplies(before, policy)];
+  const found = [], fixed = operation !== "charge" && tenancy.kind === "fixed";
+  const longer = fixed && !!before && (before.kind !== "fixed" || tenancy.end_on > before.end_on);
+  if (fixed && (!before || entering || before.kind !== "fixed" || before.end_on !== tenancy.end_on)
+    && initialTermBeyondThreeYears(tenancy.start_on, tenancy.end_on, policy.initialTermYears)) found.push(["long_term", "end_on", true]);
+  if ((longer && (operation === "renew" || tenancy.start_on <= today)) || (fixed && entering && history?.lengthened))
+    found.push(["second_term", "end_on", true]);
+  if (charge ? charge.after > charge.before : (tenancy.opening_balance ?? 0) > (entering ? 0 : before?.opening_balance ?? 0)
+    || (entering && history?.raised)) found.push(["premium", charge ? "amount" : "opening_balance", false]);
   const strict = applies === "yes" && policy.status === "validated";
   const issues = found.map(([code, field, canBlock]) => ({ code, field, blocks: strict && canBlock,
     message: `${applies === "yes" ? "Under the 2025 rules " : "It is not recorded whether the 2025 rules apply to this tenancy. If they do, "}${

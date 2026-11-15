@@ -55,7 +55,8 @@ test("an initial fixed term of more than 3 years: confirmed while estimated, ref
     confirmed: ["long_term"] }).allowed, true);
 });
 
-test("a further fixed term: Renew is refused once validated; an edit of the term is a correction to confirm", () => {
+test("a further fixed term: refused once validated, from Renew and from an edit alike; only a tenancy not yet started is corrected", () => {
+  const today = "2026-11-15";
   const before = fixed("2026-06-01", "2027-06-01"), later = { ...before, end_on: "2028-06-01" };
   const renew = policy => validateTenancyOperation({ operation: "renew", tenancy: later, before, policy });
   assert.deepEqual([codes(renew(POLICY)), renew(POLICY).issues[0].blocks], [["second_term"], false]);
@@ -65,17 +66,55 @@ test("a further fixed term: Renew is refused once validated; an edit of the term
   // Periodic back to fixed is a further fixed term too.
   assert.deepEqual(codes(validateTenancyOperation({ operation: "renew", tenancy: later, before: { ...before, kind: "periodic", end_on: null },
     policy: POLICY })), ["second_term"]);
-  const edit = validateTenancyOperation({ operation: "update", tenancy: later, before, policy: VALIDATED });
-  assert.deepEqual([codes(edit), edit.issues[0].blocks, edit.allowed], [["second_term"], false, false]);
-  assert.equal(validateTenancyOperation({ operation: "update", tenancy: later, before, policy: VALIDATED, confirmed: ["second_term"] }).allowed, true);
+  // An edit that lengthens a term already running, or makes a periodic tenancy fixed, is the same further term.
+  const edit = policy => validateTenancyOperation({ operation: "update", tenancy: later, before, policy, today, confirmed: ["second_term"] });
+  assert.deepEqual([codes(edit(VALIDATED)), edit(VALIDATED).issues[0].blocks, edit(VALIDATED).allowed], [["second_term"], true, false]);
+  assert.deepEqual([edit(POLICY).issues[0].blocks, edit(POLICY).allowed], [false, true]);
+  const refixed = validateTenancyOperation({ operation: "update", tenancy: before, before: { ...before, kind: "periodic", end_on: null },
+    policy: VALIDATED, today, confirmed: ["second_term"] });
+  assert.deepEqual([codes(refixed), refixed.allowed], [["second_term"], false]);
+  // Before the tenancy starts its end date is still the initial term being corrected (within the limit); Renew never is.
+  assert.deepEqual(validateTenancyOperation({ operation: "update", tenancy: later, before, policy: VALIDATED, today: "2026-05-31" }).issues, []);
+  assert.deepEqual(codes(validateTenancyOperation({ operation: "update", tenancy: { ...before, end_on: "2029-06-02" }, before, policy: VALIDATED,
+    today: "2026-05-31" })), ["long_term"]);
+  assert.deepEqual(codes(validateTenancyOperation({ operation: "renew", tenancy: later, before, policy: VALIDATED, today: "2026-05-31" })), ["second_term"]);
   // A shorter term, or an edit that leaves the term alone (even a long one from before), raises nothing.
   assert.deepEqual(validateTenancyOperation({ operation: "update", tenancy: { ...before, end_on: "2027-01-01" }, before, policy: VALIDATED }).issues, []);
   const old = fixed("2026-06-01", "2031-06-01");
   assert.deepEqual(validateTenancyOperation({ operation: "update", tenancy: { ...old, tenant_phone: "x" }, before: old, policy: VALIDATED }).issues, []);
   // But an edit cannot stretch it past the limit.
   const stretched = validateTenancyOperation({ operation: "update", tenancy: { ...before, end_on: "2029-06-02" }, before, policy: VALIDATED,
-    confirmed: ["long_term", "second_term"] });
+    today, confirmed: ["long_term", "second_term"] });
   assert.deepEqual([stretched.allowed, codes(stretched)], [false, ["long_term", "second_term"]]);
+});
+
+test("a save that brings a tenancy under the rules checks its stored term and sums as if just entered", () => {
+  const today = "2026-11-15", long = fixed("2026-06-01", "2031-06-01", { opening_balance: 50000 });
+  const enter = (was, policy, over = {}) => validateTenancyOperation({ operation: "update", tenancy: long, before: { ...long, ...was },
+    policy, today, ...over });
+  // From not covered, or from not known, to covered: the term nobody touched in this save is refused once validated.
+  for (const was of [{ law_scope: "no" }, { agreement_on: "2026-01-01" }, { law_scope: "unknown" }, { agreement_on: null }]) {
+    const r = enter(was, VALIDATED, { confirmed: ["long_term", "premium"] });
+    assert.deepEqual([r.allowed, codes(r), r.issues.map(i => i.blocks)], [false, ["long_term", "premium"], [true, false]], JSON.stringify(was));
+    assert.equal(enter(was, POLICY).allowed, false);
+    assert.equal(enter(was, POLICY, { confirmed: ["long_term", "premium"] }).allowed, true);
+  }
+  // From not covered to not known: asked, never refused.
+  const maybe = validateTenancyOperation({ operation: "update", tenancy: { ...long, law_scope: "unknown" }, before: { ...long, law_scope: "no" },
+    policy: VALIDATED, today });
+  assert.deepEqual([maybe.allowed, codes(maybe), maybe.issues.some(i => i.blocks)], [false, ["long_term", "premium"], false]);
+  // Staying covered, or becoming less covered, examines nothing that this save leaves alone.
+  assert.deepEqual(enter({}, VALIDATED).issues, []);
+  assert.deepEqual(validateTenancyOperation({ operation: "update", tenancy: { ...long, law_scope: "unknown" }, before: long, policy: VALIDATED, today }).issues, []);
+  // What its history holds from while it was outside: a term lengthened after it started, a charge raised by hand.
+  const short = fixed("2026-06-01", "2028-06-01"), was = { ...short, law_scope: "no" };
+  const hist = history => validateTenancyOperation({ operation: "update", tenancy: short, before: was, policy: VALIDATED, today, history });
+  assert.deepEqual(hist({ lengthened: 0, raised: 0 }).issues, []);
+  assert.deepEqual([codes(hist({ lengthened: 1, raised: 0 })), hist({ lengthened: 1, raised: 0 }).issues[0].blocks], [["second_term"], true]);
+  assert.deepEqual(codes(hist({ lengthened: 0, raised: 1 })), ["premium"]);
+  // The history says nothing while the tenancy stays as covered as it was.
+  assert.deepEqual(validateTenancyOperation({ operation: "update", tenancy: short, before: short, policy: VALIDATED, today,
+    history: { lengthened: 1, raised: 1 } }).issues, []);
 });
 
 test("no premium or key money: any sum added beyond the rent series must be declared as neither", () => {
@@ -241,11 +280,7 @@ test("an existing tenancy keeps its label, charges and payments; recording its a
   await validate(env);
   const d = await req(env, "GET", `/admin/tenancies/${off.id}`);
   assert.deepEqual([d.data.tenancy.regime, d.data.tenancy.agreement_on, d.data.tenancy.law_scope], ["2011", null, "unknown"]);
-  // Not known is not "no": a further fixed term is asked about, and not "yes" either: validated rules do not refuse it.
-  const renew = body => req(env, "POST", `/admin/tenancies/${off.id}/renew`, { kind: "fixed", end_on: addMonths(M0, 24), ...body });
-  assert.deepEqual(Object.keys((await renew({})).data.fields), ["law_confirmed"]);
-  assert.equal((await renew({ law_confirmed: ["second_term"] })).status, 200);
-  assert.equal(lastEvent(env, off.id, "tenancy.renewed").law.applies, "unknown");
+  const renew = (body, id = off.id) => req(env, "POST", `/admin/tenancies/${id}/renew`, { kind: "fixed", end_on: addMonths(M0, 24), ...body });
   // The agreement date and scope recorded: the label follows the date, and the history says so.
   const cur = (await req(env, "GET", `/admin/tenancies/${off.id}`)).data.tenancy;
   const saved = await req(env, "PUT", `/admin/tenancies/${off.id}`, { agreement_on: "2026-05-01", law_scope: "yes", updated_at: cur.updated_at });
@@ -256,6 +291,108 @@ test("an existing tenancy keeps its label, charges and payments; recording its a
     { regime: "2025", agreement_on: "2026-05-01", law_scope: "yes" }]);
   assert.equal((await renew({ end_on: addMonths(M0, 30), law_confirmed: ["second_term"] })).status, 400); // now covered, and validated
   assert.deepEqual(money(), before);
+  // Not known is not "no": a further fixed term is asked about; and not "yes" either: validated rules do not refuse it.
+  const legacy = await created(env, { kind: "fixed", end_on: addMonths(M0, 12), agreement_on: null, law_scope: null, regime: "2011" });
+  assert.deepEqual(Object.keys((await renew({}, legacy.id)).data.fields), ["law_confirmed"]);
+  assert.equal((await renew({ law_confirmed: ["second_term"] }, legacy.id)).status, 200);
+  assert.equal(lastEvent(env, legacy.id, "tenancy.renewed").law.applies, "unknown");
+  // Recorded as covered afterwards, that further term is refused like any other.
+  const late = await put(env, legacy.id, { agreement_on: "2026-05-01", law_scope: "yes" });
+  assert.equal(late.status, 400);
+  assert.match(late.data.fields.end_on, /further fixed term/);
+});
+
+const put = async (env, id, body) => req(env, "PUT", `/admin/tenancies/${id}`,
+  { ...body, updated_at: one(env, "SELECT updated_at FROM tenancies WHERE id = ?", id).updated_at });
+const stored = (env, id) => one(env, "SELECT kind, end_on, agreement_on, law_scope, regime FROM tenancies WHERE id = ?", id);
+
+test("validated rules: a tenancy moved out of the rules and back, or recorded as covered later, does not carry a breach past them", async () => {
+  const env = on(), year = { kind: "fixed", end_on: addMonths(M0, 12) }, far = addMonths(M0, 120);
+  await validate(env);
+  // (a) The scope set to "no" with a ten-year term, then back to "yes".
+  const a = await created(env, year);
+  assert.equal((await put(env, a.id, { law_scope: "no", end_on: far })).status, 200);
+  const back = await put(env, a.id, { law_scope: "yes" });
+  assert.equal(back.status, 400);
+  assert.match(back.data.fields.end_on, /up to 3 years/);
+  assert.deepEqual([stored(env, a.id).law_scope, stored(env, a.id).end_on], ["no", far]);
+  // Brought within the limit while outside, it is still a term lengthened after it started.
+  assert.equal((await put(env, a.id, { end_on: addMonths(M0, 24) })).status, 200);
+  const within = await put(env, a.id, { law_scope: "yes", law_confirmed: ["second_term"] });
+  assert.equal(within.status, 400);
+  assert.match(within.data.fields.end_on, /further fixed term/);
+  // (b) The agreement date moved before the rules with the long term, then back.
+  const b = await created(env, year);
+  assert.equal((await put(env, b.id, { agreement_on: "2026-01-01", end_on: far })).status, 200);
+  assert.equal((await put(env, b.id, { agreement_on: "2026-05-01" })).status, 400);
+  assert.equal(stored(env, b.id).agreement_on, "2026-01-01");
+  // (c) Entered with nothing recorded and the long term confirmed, then recorded as covered.
+  const c = await created(env, { kind: "fixed", end_on: LONG, agreement_on: null, law_scope: null, regime: "2025", law_confirmed: ["long_term"] });
+  const covered = await put(env, c.id, { agreement_on: "2026-05-01", law_scope: "yes", law_confirmed: ["long_term"] });
+  assert.equal(covered.status, 400);
+  assert.match(covered.data.fields.end_on, /up to 3 years/);
+  // The same save may bring the term within the rules.
+  assert.equal((await put(env, c.id, { agreement_on: "2026-05-01", law_scope: "yes", end_on: addMonths(M0, 36) })).status, 200);
+  assert.equal(stored(env, c.id).law_scope, "yes");
+});
+
+test("estimated rules: coming under the rules asks again for the confirmation of the stored term and sums", async () => {
+  const env = on();
+  // An opening sum entered while outside the rules, then the scope set to "yes".
+  const t = await created(env, { law_scope: "no", opening_balance: 50000 });
+  assert.equal(one(env, "SELECT amount FROM charges WHERE tenancy_id = ? AND kind = 'opening'", t.id).amount, 50000);
+  assert.deepEqual(Object.keys((await put(env, t.id, { law_scope: "yes" })).data.fields), ["law_confirmed"]);
+  assert.equal(stored(env, t.id).law_scope, "no");
+  assert.equal((await put(env, t.id, { law_scope: "yes", law_confirmed: ["premium"] })).status, 200);
+  assert.deepEqual(lastEvent(env, t.id, "tenancy.updated").law, { status: "estimated", applies: "yes", confirmed: ["premium"] });
+  // A long term entered while outside.
+  const l = await created(env, { kind: "fixed", end_on: LONG, law_scope: "no" });
+  assert.deepEqual(Object.keys((await put(env, l.id, { law_scope: "yes" })).data.fields), ["law_confirmed"]);
+  assert.equal((await put(env, l.id, { law_scope: "yes", law_confirmed: ["long_term"] })).status, 200);
+  // A charge raised by hand while outside.
+  const r = await created(env, { law_scope: "no" });
+  const ch = one(env, "SELECT id, amount FROM charges WHERE tenancy_id = ? ORDER BY due_on LIMIT 1", r.id);
+  assert.equal((await req(env, "PUT", `/admin/charges/${ch.id}`, { amount: ch.amount + 5000 })).status, 200);
+  assert.deepEqual(Object.keys((await put(env, r.id, { law_scope: "yes" })).data.fields), ["law_confirmed"]);
+  assert.equal((await put(env, r.id, { law_scope: "yes", law_confirmed: ["premium"] })).status, 200);
+  // The tenancy page carries what the form needs to show those issues.
+  assert.deepEqual((await req(env, "GET", `/admin/tenancies/${r.id}`)).data.law_history, { lengthened: 0, raised: 1 });
+});
+
+test("validated rules: Edit details cannot lengthen a running fixed term or make a periodic tenancy fixed, as Renew cannot", async () => {
+  const env = on();
+  await validate(env);
+  const t = await created(env, { kind: "fixed", end_on: addMonths(M0, 12) });
+  const longer = await put(env, t.id, { end_on: addMonths(M0, 24), law_confirmed: ["second_term"] });
+  assert.equal(longer.status, 400);
+  assert.match(longer.data.fields.end_on, /further fixed term/);
+  assert.equal(stored(env, t.id).end_on, addMonths(M0, 12));
+  const p = await created(env);
+  assert.equal((await put(env, p.id, { kind: "fixed", end_on: addMonths(M0, 12), law_confirmed: ["second_term"] })).status, 400);
+  assert.equal(stored(env, p.id).kind, "periodic");
+  // A tenancy that has not started yet: its end date is still the initial term, corrected within the limit only.
+  const next = await created(env, { kind: "fixed", start_on: addMonths(M0, 1), end_on: addMonths(M0, 13) });
+  assert.equal((await put(env, next.id, { end_on: addMonths(M0, 38) })).status, 400);
+  assert.equal((await put(env, next.id, { end_on: addMonths(M0, 25) })).status, 200);
+});
+
+test("the confirmation counts only for the issues found; the label cannot contradict the agreement date; a charge is corrected from the amount read", async () => {
+  const env = on(), long = { kind: "fixed", end_on: LONG };
+  assert.deepEqual(Object.keys((await add(env, { ...long, law_confirmed: ["long_term", "second_term", "premium"] })).data.fields), ["law_confirmed"]);
+  assert.deepEqual(Object.keys((await add(env, { law_confirmed: ["premium"] })).data.fields), ["law_confirmed"]);
+  const t = await created(env, { ...long, law_confirmed: ["long_term"] });
+  const relabel = await put(env, t.id, { regime: "2011" });
+  assert.equal(relabel.status, 200);
+  assert.equal(stored(env, t.id).regime, "2025");
+  // Two corrections of one charge at once: the second is refused, not applied over an amount it never saw.
+  const c = one(env, "SELECT id, amount FROM charges WHERE tenancy_id = ? ORDER BY due_on LIMIT 1", t.id), batch = env.DB.batch.bind(env.DB);
+  let changed = false;
+  env.DB.batch = async statements => {
+    if (!changed) { changed = true; env.DB.raw.prepare("UPDATE charges SET amount = ? WHERE id = ?").run(c.amount - 50000, c.id); }
+    return batch(statements);
+  };
+  assert.equal((await req(env, "PUT", `/admin/charges/${c.id}`, { amount: c.amount - 10000 })).status, 409);
+  assert.equal(one(env, "SELECT amount FROM charges WHERE id = ?", c.id).amount, c.amount - 50000);
 });
 
 test("charges: an opening sum added later and a charge corrected upwards need the declaration; lowering one does not", async () => {
