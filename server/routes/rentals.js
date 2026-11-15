@@ -1,5 +1,5 @@
 import { json, fail, readJson, now } from "../http.js";
-import { validateLandlord, validateRental, validateRepair, COMPLIANCE, CALENDAR, ONE_OFF, TENANT, REPAIR_NEXT, addMonths,
+import { validateLandlord, validateRental, validateRepair, validateSupplier, suppliersReady, COMPLIANCE, CALENDAR, ONE_OFF, TENANT, REPAIR_NEXT, addMonths,
   complianceStatus } from "../rentals.js";
 import { fields, result } from "../sales.js";
 import { LOCK } from "./applicants.js";
@@ -177,7 +177,7 @@ const item = ([kind, label], row, today, periods) => ({ kind, label, years: peri
 // first; charges and payments are on the tenancy's own GET) and its last 100 events.
 async function getRental({ env, params: [id] }) {
   const q = sql => env.DB.prepare(sql).bind(Number(id)), legal = await readLegal(env), today = jerseyToday();
-  const [[rental], rows, repairs, tenancies, events, running] = (await env.DB.batch([q(RENTAL_SQL),
+  const [[rental], rows, repairs, tenancies, events, ...rest] = (await env.DB.batch([q(RENTAL_SQL),
     q("SELECT * FROM compliance_items WHERE rental_id = ?"),
     q("SELECT * FROM repairs WHERE rental_id = ? ORDER BY status IN ('done', 'cancelled'), id DESC"),
     q(`SELECT id, payment_ref, tenant_name, kind, regime, start_on, end_on, ended_on, rent, collect_from, notice_given_on,
@@ -185,12 +185,14 @@ async function getRental({ env, params: [id] }) {
     q("SELECT id, tenancy_id, at, actor, type, data FROM rental_events WHERE rental_id = ? ORDER BY at DESC, id DESC LIMIT 100"),
     ...(calendarReady(env) ? [env.DB.prepare(`SELECT deposit_received_on FROM tenancies WHERE rental_id = ? AND ${ACTIVE}`)
       .bind(Number(id), today)] : []),
+    ...(suppliersReady(env) ? [env.DB.prepare(SUPPLIERS_SQL)] : []), // ADM-12: the repair form's choices, archived ones too
   ])).map(r => r.results);
   if (!rental) fail(404, "Property not found");
   const law = await tenancyLaw(env, legal); // ADM-20: what New tenancy checks its dates and sums against
+  const running = calendarReady(env) ? rest[0] : undefined, suppliers = suppliersReady(env) ? rest.at(-1) : null;
   return json({ rental, compliance: checks(env, rental, rows, today, legal.periods, running), repairs, tenancies,
     events: events.map(e => ({ ...e, data: e.data == null ? null : JSON.parse(e.data) })), ...legalLabel(legal),
-    ...(law ? { law } : {}) });
+    ...(law ? { law } : {}), ...(suppliers ? { suppliers } : {}) });
 }
 
 // R3, R11: the property and its empty checks ("Not recorded") in one batch, for a landlord not archived.
@@ -317,27 +319,45 @@ const loadRepair = async (env, id) =>
 
 // R14, on the merged row (never the database's CHECK): done needs its date and cost (400); the status moves only as
 // REPAIR_NEXT allows, and a quote or cost (the larger) above the landlord's approval_limit goes ahead only once they
-// approved it (409). The approval is stamped on awaiting_approval → approved, and dropped when asked again or when the
-// quote goes up.
-function repairRules(cur, next, limit, ts) {
+// approved it (409). The approval is stamped on awaiting_approval → approved, and dropped when asked again, when the
+// quote or cost goes above what was approved, or when the contractor or supplier changes (ADM-12). suppliers (its
+// switch): the approval also records the amount agreed, where it is on record and the day, given only on that step.
+// An emergency skips none of this.
+const APPROVAL = { approved_amount: "Enter the amount the landlord approved", approval_ref: "Say where their approval is on record",
+  approved_on: "Enter the date they approved it" };
+const top = p => Math.max(p.quote ?? 0, p.cost ?? 0);
+function repairRules(cur, next, limit, ts, suppliers) {
   const errors = {};
   if (next.status === "done" && !next.done_on) errors.done_on = "Enter the date it was done";
   if (next.status === "done" && next.cost == null) errors.cost = "Enter the final cost";
+  const from = cur?.status ?? "reported", approving = from === "awaiting_approval" && next.status === "approved";
+  if (suppliers) for (const [k, msg] of Object.entries(APPROVAL)) {
+    if (!approving) next[k] = cur?.[k] ?? null;
+    else if (next[k] == null) errors[k] ??= msg;
+  }
+  if (suppliers && approving && next.approved_amount != null && top(next) > next.approved_amount)
+    errors.approved_amount ??= "The landlord approved less than the quote or cost";
   if (Object.keys(errors).length) return fieldErrors(errors);
-  const from = cur?.status ?? "reported";
   if (next.status !== from && !REPAIR_NEXT[from].includes(next.status))
     fail(409, `A repair can't go from ${from.replace("_", " ")} to ${next.status.replace("_", " ")}`);
-  if (next.status === "awaiting_approval" || (cur && next.quote > cur.quote)) next.approved_at = null;
-  if (from === "awaiting_approval" && next.status === "approved") next.approved_at = ts;
-  if (["approved", "in_progress", "done"].includes(next.status) && limit != null
-    && Math.max(next.quote ?? 0, next.cost ?? 0) > limit && !next.approved_at)
+  if (next.status === "awaiting_approval" || (cur?.approved_at && (top(next) > (cur.approved_amount ?? top(cur))
+    || next.contractor !== cur.contractor || next.supplier_id !== cur.supplier_id))) {
+    next.approved_at = null;
+    if (suppliers) for (const k in APPROVAL) next[k] = null;
+  }
+  if (approving) next.approved_at = ts;
+  if (["approved", "in_progress", "done"].includes(next.status) && limit != null && top(next) > limit && !next.approved_at)
     fail(409, `The quote or cost is above the landlord's approval limit of £${limit}: mark it Awaiting approval first`);
   return null;
 }
+// ADM-12: a supplier newly chosen must be in the directory and not archived.
+const badSupplier = async (env, value, cur) => value.supplier_id != null && value.supplier_id !== cur?.supplier_id
+  && !(await env.DB.prepare("SELECT 1 FROM suppliers WHERE id = ? AND archived_at IS NULL").bind(value.supplier_id).first())
+  && fieldErrors({ supplier_id: "Choose a supplier from the list" });
 
 // R14: a repair on a property not archived, on its running tenancy if it has one.
 async function createRepair({ request, env, admin, params: [id] }) {
-  const r = validateRepair(asObject(await readJson(request)));
+  const suppliers = suppliersReady(env), r = validateRepair(asObject(await readJson(request)), { suppliers });
   if (r.errors) return fieldErrors(r.errors);
   const state = () => env.DB.prepare(`SELECT r.id, r.archived_at, l.approval_limit, (SELECT t.id FROM tenancies t
     WHERE t.rental_id = r.id AND ${ACTIVE} ORDER BY t.start_on, t.id LIMIT 1) AS tenancy_id
@@ -346,7 +366,7 @@ async function createRepair({ request, env, admin, params: [id] }) {
   const archived = st => { if (st.archived_at) fail(409, "This property is archived"); };
   archived(s);
   const ts = now(), value = { status: "reported", ...r.value };
-  const bad = repairRules(null, value, s.approval_limit, ts);
+  const bad = repairRules(null, value, s.approval_limit, ts, suppliers) || await badSupplier(env, value);
   if (bad) return bad;
   const row = { ...value, rental_id: s.id, tenancy_id: s.tenancy_id, created_at: ts, created_by: admin, updated_at: ts,
     updated_by: admin };
@@ -368,19 +388,51 @@ async function createRepair({ request, env, admin, params: [id] }) {
 
 // R14: a form save (lock), so a status change meanwhile is a 409; each change is one repair.updated event.
 async function updateRepair({ request, env, admin, params: [id] }) {
-  const body = asObject(await readJson(request));
-  const r = validateRepair(body, { partial: true });
+  const body = asObject(await readJson(request)), suppliers = suppliersReady(env);
+  const r = validateRepair(body, { partial: true, suppliers });
   if (r.errors) return fieldErrors(r.errors);
   const cur = await env.DB.prepare(`SELECT p.*, l.approval_limit FROM repairs p JOIN rentals r ON r.id = p.rental_id
     JOIN landlords l ON l.id = r.landlord_id WHERE p.id = ?`).bind(Number(id)).first() ?? fail(404, "Repair not found");
   const { approval_limit, ...stored } = cur, next = { ...stored, ...r.value };
-  const bad = repairRules(stored, next, approval_limit, now());
+  const bad = repairRules(stored, next, approval_limit, now(), suppliers) || await badSupplier(env, r.value, stored);
   if (bad) return bad;
-  const value = { ...r.value, approved_at: next.approved_at };
+  const value = { ...r.value, approved_at: next.approved_at,
+    ...(suppliers ? Object.fromEntries(Object.keys(APPROVAL).map(k => [k, next[k]])) : {}) };
   await save(env, admin, "repairs", stored, body, value, (keys, of) => [rentalEvent(env, { rental_id: cur.rental_id,
     tenancy_id: cur.tenancy_id, actor: admin, type: "repair.updated", data: { repair_id: cur.id, before: of(stored),
       after: of(value) } })]);
   return json({ repair: await loadRepair(env, cur.id) });
+}
+
+// ADM-12: the supplier directory (its switch), by name; a supplier is archived, never deleted.
+const SUPPLIERS_SQL = "SELECT id, name, trade, phone, email, archived_at FROM suppliers ORDER BY name COLLATE NOCASE, id";
+const loadSupplier = async (env, id) =>
+  (await env.DB.prepare("SELECT * FROM suppliers WHERE id = ?").bind(Number(id)).first()) ?? fail(404, "Supplier not found");
+const supplierOn = handler => ctx => (suppliersReady(ctx.env) ? handler(ctx) : fail(404, "Not found"));
+async function listSuppliers({ env }) {
+  const { results } = await env.DB.prepare(SUPPLIERS_SQL.replace("ORDER BY", "ORDER BY archived_at IS NOT NULL,")).all();
+  return json({ suppliers: results });
+}
+async function createSupplier({ request, env, admin }) {
+  const r = validateSupplier(asObject(await readJson(request)));
+  if (r.errors) return fieldErrors(r.errors);
+  const { archived, ...value } = r.value, ts = now();
+  const row = { ...value, archived_at: archived ? ts : null, created_at: ts, created_by: admin, updated_at: ts, updated_by: admin };
+  const [res] = await env.DB.batch([
+    env.DB.prepare(`INSERT INTO suppliers (${Object.keys(row).join(", ")}) VALUES (${Object.keys(row).map(() => "?").join(", ")})`)
+      .bind(...Object.values(row)),
+    rentalEvent(env, { actor: admin, type: "supplier.created", data: value }, { supplier_id: "suppliers" }),
+  ]);
+  return json({ supplier: await loadSupplier(env, res.meta.last_row_id) }, 201);
+}
+async function updateSupplier({ request, env, admin, params: [id] }) {
+  const body = asObject(await readJson(request)), r = validateSupplier(body, { partial: true });
+  if (r.errors) return fieldErrors(r.errors);
+  const cur = await loadSupplier(env, id), { archived, ...value } = r.value;
+  if (archived != null) value.archived_at = archived ? cur.archived_at ?? now() : null;
+  await save(env, admin, "suppliers", cur, body, value, (keys, of) => [rentalEvent(env, { actor: admin,
+    type: "supplier.updated", data: { supplier_id: cur.id, before: of(cur), after: of(value) } })]);
+  return json({ supplier: await loadSupplier(env, cur.id) });
 }
 
 // R12, R29: a percentage from 0 to 30 with up to two decimals.
@@ -451,6 +503,9 @@ export default [
   ["PUT", /^\/admin\/rentals\/(\d+)\/compliance\/([a-z_]+)$/, updateCompliance, true],
   ["POST", /^\/admin\/rentals\/(\d+)\/repairs$/, createRepair, true],
   ["PUT", /^\/admin\/repairs\/(\d+)$/, updateRepair, true],
+  ["GET", /^\/admin\/suppliers$/, supplierOn(listSuppliers), true],
+  ["POST", /^\/admin\/suppliers$/, supplierOn(createSupplier), true],
+  ["PUT", /^\/admin\/suppliers\/(\d+)$/, supplierOn(updateSupplier), true],
   ["GET", /^\/admin\/settings\/(rpi|gst|csv-map)$/, getSetting, true],
   ["PUT", /^\/admin\/settings\/(rpi|gst|csv-map)$/, putSetting, true],
 ];

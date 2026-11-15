@@ -1869,8 +1869,10 @@ async function property(page, phone, noSideScroll) {
   await dlg.getByRole("button", {name: "Cancel"}).click();
   await update("awaiting_approval");
   await repair.locator(".badge", {hasText: "Awaiting approval"}).waitFor();
-  await update("approved");
-  await repair.getByText(/The landlord approved it/).waitFor();
+  // ADM-12 (ADM12_SUPPLIERS_READY): with its switch, the approval is recorded with where it is on record.
+  await update("approved", async d => { const g = d.getByRole("group", {name: "The landlord's approval"});
+    if (await g.count()) await g.getByLabel("Where it is on record").fill("Landlord's email"); });
+  await repair.getByText(/The landlord approved/).waitFor();
   await update("done", d => d.getByLabel("Final cost (£)").fill("780"));
   await repair.locator(".badge", {hasText: "Done"}).waitFor();
   assert.match(await repair.textContent(), /Island Heating[\s\S]*£780/);

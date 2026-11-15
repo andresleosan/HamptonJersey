@@ -247,8 +247,21 @@ export function validateTenancy(body, { partial = false, law = null } = {}) {
   return result(value, c.errors);
 }
 
+// ADM-12 (migration 0089): the supplier directory and the landlord's approval recorded with its details.
+export const suppliersReady = env => env?.ADM12_SUPPLIERS_READY === "1";
+export function validateSupplier(body, { partial = false } = {}) {
+  const c = check(body, partial), { b, value, has } = c;
+  if (has("name")) value.name = c.required("name", c.text("name", 120), "Enter a name");
+  if (has("trade")) value.trade = c.text("trade", 60);
+  if (has("phone")) value.phone = c.text("phone", 120);
+  if (has("email")) value.email = c.email("email");
+  if ("archived" in b) value.archived = c.yesNo("archived", "Choose yes or no");
+  return result(value, c.errors);
+}
+
 // R14: quote and cost in whole pounds; done_on not after today (Jersey). The routes own the status transitions.
-export function validateRepair(body, { partial = false, today = jerseyToday() } = {}) {
+// suppliers (ADM-12, its switch): also the supplier chosen and the approval's amount, evidence and date.
+export function validateRepair(body, { partial = false, today = jerseyToday(), suppliers = false } = {}) {
   const c = check(body, partial), { b, value, has } = c;
   if (has("title")) value.title = c.required("title", c.text("title", 120), "Enter a title");
   if (has("detail")) value.detail = c.text("detail", 2000);
@@ -260,6 +273,13 @@ export function validateRepair(body, { partial = false, today = jerseyToday() } 
   for (const k of ["quote", "cost"]) if (has(k)) value[k] = c.pounds(k);
   if (has("done_on")) value.done_on = c.date("done_on");
   if (value.done_on > today) c.err("done_on", "Use today or an earlier date");
+  if (suppliers) {
+    if (has("supplier_id")) value.supplier_id = c.int("supplier_id", 1, Number.MAX_SAFE_INTEGER, "Choose a supplier from the list");
+    if (has("approved_amount")) value.approved_amount = c.pounds("approved_amount");
+    if (has("approval_ref")) value.approval_ref = c.text("approval_ref", 200);
+    if (has("approved_on")) value.approved_on = c.date("approved_on");
+    if (value.approved_on > today) c.err("approved_on", "Use today or an earlier date");
+  }
   if (has("charge_landlord")) value.charge_landlord = !partial && b.charge_landlord === undefined ? 1
     : typeof b.charge_landlord === "boolean" ? Number(b.charge_landlord) : c.err("charge_landlord", "Choose yes or no");
   return result(value, c.errors);

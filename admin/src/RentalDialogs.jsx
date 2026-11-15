@@ -394,34 +394,56 @@ export function UpdateCheck({ rental, item: c, legal, onClose, onDone, onRefused
 // Awaiting approval, then Approved once they agree; the server refuses to go ahead before that.
 const REPAIR = ["title", "detail", "urgency", "contractor", "quote", "charge_landlord", "status", "cost", "done_on"];
 export const needsApproval = (p, limit) => limit != null && Math.max(p.quote ?? 0, p.cost ?? 0) > limit && !p.approved_at;
-export function RepairDialog({ rental, repair: p, onClose, onDone, onRefused }) {
+// ADM-12 (suppliers: the directory, only with its switch): the supplier chosen fills the contractor, and the landlord's
+// approval is recorded with its amount, where it is on record and the day, on Awaiting approval → Approved.
+export function RepairDialog({ rental, repair: p, suppliers, onClose, onDone, onRefused }) {
   const init = { title: p?.title ?? "", detail: p?.detail ?? "", urgency: p?.urgency ?? "routine", contractor: p?.contractor ?? "",
     quote: p?.quote?.toLocaleString("en-GB") ?? "", cost: p?.cost?.toLocaleString("en-GB") ?? "", charge_landlord: p ? p.charge_landlord === 1 : true,
-    status: p?.status ?? "reported", done_on: p?.done_on ?? jerseyToday() };
+    status: p?.status ?? "reported", done_on: p?.done_on ?? jerseyToday(), supplier_id: p?.supplier_id != null ? String(p.supplier_id) : "",
+    approved_amount: p?.quote?.toLocaleString("en-GB") ?? "", approval_ref: "", approved_on: jerseyToday() };
+  const recording = f => suppliers && p?.status === "awaiting_approval" && f.status === "approved";
   const a = useForm("rd", init, async f => {
     const body = { title: f.title.trim() || null, detail: f.detail.trim() || null, urgency: f.urgency, contractor: f.contractor.trim() || null,
-      quote: pounds(f.quote), charge_landlord: f.charge_landlord,
-      ...(p ? { status: f.status, updated_at: p.updated_at } : {}), ...(f.status === "done" ? { cost: pounds(f.cost), done_on: f.done_on || null } : {}) };
+      quote: pounds(f.quote), charge_landlord: f.charge_landlord, ...(suppliers ? { supplier_id: f.supplier_id ? Number(f.supplier_id) : null } : {}),
+      ...(p ? { status: f.status, updated_at: p.updated_at } : {}), ...(f.status === "done" ? { cost: pounds(f.cost), done_on: f.done_on || null } : {}),
+      ...(recording(f) ? { approved_amount: pounds(f.approved_amount), approval_ref: f.approval_ref.trim() || null, approved_on: f.approved_on || null } : {}) };
     await api(p ? `/admin/repairs/${p.id}` : `/admin/rentals/${rental.id}/repairs`, { method: p ? "PUT" : "POST", body });
     return p ? "Repair saved." : `Repair added: ${body.title}.`;
   }, onDone, onRefused);
-  // A higher quote asks the landlord again (the server drops the approval on save).
-  const f = a.f, quote = Number(pounds(f.quote)) || 0, approved = !(quote > (p?.quote ?? 0)) && p?.approved_at;
-  const above = needsApproval({ quote, cost: f.status === "done" ? Number(pounds(f.cost)) || 0 : p?.cost, approved_at: approved }, rental.approval_limit);
+  // A quote or cost above what was approved, or another contractor or supplier, asks the landlord again (the server drops
+  // the approval on save).
+  const f = a.f, quote = Number(pounds(f.quote)) || 0, cost = f.status === "done" ? Number(pounds(f.cost)) || 0 : p?.cost ?? 0;
+  const same = p && (f.contractor.trim() || null) === p.contractor && (!suppliers || (f.supplier_id ? Number(f.supplier_id) : null) === p.supplier_id);
+  const approved = same && Math.max(quote, cost) <= (p.approved_amount ?? Math.max(p.quote ?? 0, p.cost ?? 0)) && p.approved_at;
+  const above = needsApproval({ quote, cost, approved_at: approved }, rental.approval_limit);
+  const chosen = suppliers?.find(s => String(s.id) === f.supplier_id);
+  const pick = e => { const s = suppliers.find(x => String(x.id) === e.target.value);
+    a.setF(x => ({ ...x, supplier_id: e.target.value, contractor: s ? s.name : x.contractor })); };
   return <Sheet title={p ? "Update repair" : "New repair"} a={a} button={p ? "Save repair" : "Add repair"} onClose={onClose}>
     <p>{rental.address}</p>
     {a.field("title", "Title", { maxLength: 120, placeholder: "e.g. Boiler not heating water" })}
     {a.field("detail", "Detail (optional)", { textarea: true, maxLength: 2000 })}
     {a.radios("urgency", "Urgency", Object.entries(URGENCY))}
+    {suppliers && <div className="field"><label>Supplier (optional)<select id="rd-supplier_id" value={f.supplier_id} onChange={pick}
+      {...a.invalid("supplier_id")} aria-describedby={[chosen && "d-rd-supplier", a.invalid("supplier_id")["aria-describedby"]].filter(Boolean).join(" ") || undefined}>
+      <option value="">None from the directory</option>
+      {suppliers.filter(s => !s.archived_at || String(s.id) === init.supplier_id).map(s => <option key={s.id} value={s.id}>
+        {s.name}{s.trade ? `, ${s.trade}` : ""}{s.archived_at ? " (archived)" : ""}</option>)}</select>{a.error("supplier_id")}</label>
+      {chosen && <small id="d-rd-supplier" className="muted">{[chosen.phone, chosen.email].filter(Boolean).join(" · ") || "No contact recorded"}</small>}</div>}
     <div className="grid2">{a.field("contractor", "Contractor (optional)", { maxLength: 120 })}
       {a.field("quote", "Quote (£, optional)", { inputMode: "numeric" })}</div>
     {p && <label>Status<select value={f.status} onChange={a.set("status")} {...a.invalid("status")}>
       {[p.status, ...REPAIR_NEXT[p.status]].map(s => <option key={s} value={s}>{REPAIR_STATUS[s]}</option>)}</select>{a.error("status")}</label>}
     {f.status === "done" && <div className="grid2">{a.field("cost", "Final cost (£)", { inputMode: "numeric" })}
       {a.field("done_on", "Done on", { type: "date", max: jerseyToday() })}</div>}
-    {above && f.status !== "awaiting_approval" && <p className="warn" role="note">Above {rental.landlord_name}'s approval limit of {money(rental.approval_limit)}. Mark it
+    {above && f.status !== "awaiting_approval" && p?.status !== "awaiting_approval" && <p className="warn" role="note">Above {rental.landlord_name}'s approval limit of {money(rental.approval_limit)}. Mark it
       Awaiting approval and ask them; once they agree, mark it Approved.</p>}
-    {approved && <p className="muted">The landlord approved it {fmtDate(p.approved_at)}.</p>}
+    {recording(f) && <fieldset className="choices-set"><legend>The landlord's approval</legend>
+      <div className="grid2">{a.field("approved_amount", "Amount approved (£)", { inputMode: "numeric" })}
+        {a.field("approved_on", "Approved on", { type: "date", max: jerseyToday() })}</div>
+      {a.field("approval_ref", "Where it is on record", { maxLength: 200, placeholder: "e.g. Landlord's email of 3 Nov" })}</fieldset>}
+    {approved && <p className="muted">{p.approved_amount != null ? `The landlord approved up to ${money(p.approved_amount)} on ${
+      fmtDay(p.approved_on)} (${p.approval_ref}).` : `The landlord approved it ${fmtDate(p.approved_at)}.`}</p>}
     <label className="check"><input type="checkbox" checked={f.charge_landlord} onChange={a.set("charge_landlord")} />Charge the cost to the
       landlord (it goes on their statement the month it's done)</label>
   </Sheet>;

@@ -9,6 +9,7 @@ import { CancelMoveOut, ChangeRent, CorrectCharge, DETAILS, EditPayment, EditTen
 import { FromLetAgreed, TenancyRecords, useOriginReady } from "./RentalOrigin.jsx";
 import { OUTCOME, TenancyExit } from "./TenancyExit.jsx";
 import { TenancyInspections } from "./RentalInspection.jsx";
+import { Suppliers } from "./Suppliers.jsx";
 import { Estimated } from "./LegalTerms.jsx";
 import { OPTIONS } from "../../server/applicants.js";
 import { ARREARS_STEPS, COMPLIANCE, CALENDAR, LEGAL, lawApplies, regimeOf } from "../../server/rentals.js";
@@ -27,7 +28,7 @@ const toBody = f => ({ address: f.address.trim() || null, parish: f.parish || nu
 const MovePayment = ({ d, p, onDone, ...rest }) => <Assign payment={p} from={d.tenancy} onDone={m => onDone(m.text)} {...rest} />;
 const DIALOGS = { payment: RecordPayment, rent: ChangeRent, renew: Renew, notice: RecordNotice, end: EndTenancy, charge: CorrectCharge,
   edit: EditTenancy, check: UpdateCheck, repair: RepairDialog, cancelEnd: CancelMoveOut, editPayment: EditPayment,
-  unassign: UnassignPayment, move: MovePayment };
+  unassign: UnassignPayment, move: MovePayment, suppliers: Suppliers };
 const day = iso => fmtDay(jerseyToday(new Date(iso)));
 const FINAL = ["done", "cancelled"];
 const TONE = { reported: "active", awaiting_approval: "attention", approved: "active", in_progress: "active", done: "positive", cancelled: "neutral" };
@@ -162,7 +163,8 @@ export default function RentalDetail({ id, selection='', onChange }) {
 
         <section className="card" aria-labelledby="h-repairs">
           <div className="head"><h2 id="h-repairs">Repairs</h2>
-            {!archived && <button type="button" className="btn ghost sm" onClick={() => open("repair", {}, "repairs")}>New repair</button>}</div>
+            <span className="ctl">{data.suppliers && <button type="button" className="btn ghost sm" onClick={() => open("suppliers", {}, "repairs")}>Suppliers</button>}
+              {!archived && <button type="button" className="btn ghost sm" onClick={() => open("repair", {}, "repairs")}>New repair</button>}</span></div>
           {note("repairs")}
           {data.repairs.length ? <ul className="plain-list" id="repairs">{data.repairs.map(p => {
             const live = !FINAL.includes(p.status);
@@ -171,7 +173,8 @@ export default function RentalDetail({ id, selection='', onChange }) {
             return <li key={p.id} id={`repair-${p.id}`} tabIndex={-1} aria-current={!linked.error&&linked.repair===p.id?'location':undefined} className={live && p.urgency === "emergency" ? "overdue" : undefined}>
               <span><strong>{p.title}</strong><span className="meta">{(facts.length ? facts : [`Reported ${day(p.created_at)}`])
                 .map((fact, i) => <span key={i}>{fact}</span>)}</span>
-                {p.approved_at && <span className="muted cell-note">The landlord approved it {day(p.approved_at)}</span>}</span>
+                {p.approved_at && <span className="muted cell-note">{p.approved_amount != null
+                  ? `The landlord approved up to ${money(p.approved_amount)} on ${fmtDay(p.approved_on)}` : `The landlord approved it ${day(p.approved_at)}`}</span>}</span>
               <span className="ctl">{p.urgency === "emergency" ? <strong className="err">Emergency</strong>
                 : <span className={`badge ${p.urgency === "urgent" ? "attention" : "neutral"}`}>{URGENCY[p.urgency]}</span>}
                 <span className={`badge ${TONE[p.status]}`}>{REPAIR_STATUS[p.status]}</span>
@@ -230,7 +233,7 @@ export default function RentalDetail({ id, selection='', onChange }) {
         {archived ? "Restore property" : "Archive property"}</button>
     </div>
     {dialog?.kind === "step" && <MarkStep row={dialog.props.row} onClose={() => setDialog(null)} onDone={m => finish(dialog.where)(m.text)} onRefused={reload} />}
-    {Dialog && <Dialog {...dialog.props} rental={r} onClose={() => setDialog(null)} onDone={finish(dialog.where)} onRefused={reload} />}
+    {Dialog && <Dialog {...dialog.props} rental={r} suppliers={data.suppliers} onClose={() => setDialog(null)} onDone={finish(dialog.where)} onRefused={reload} />}
   </div>;
 }
 
