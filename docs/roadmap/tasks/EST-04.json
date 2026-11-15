@@ -4,10 +4,10 @@
   "titulo": "Estado In process: alguna casa espera a la agencia o al aplicante",
   "origen": "texto",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Queue marca In process cuando el aplicante tiene alguna casa Shortlisted; así sigue mientras SAP02_COUNTS_READY o AGE03_ENQUIRIES_READY estén apagados. 15-nov-2026, construido en rama y apagado (sin migración): con los dos encendidos, In process significa que alguna casa del aplicante espera a la agencia. Es decir, su match cuenta en una consulta abierta: preparada o registrada como enviada, sin respuesta ni cancelación. La lista muestra la etiqueta In process junto a Shortlisted y permite filtrar por ella. La etiqueta única antigua (queue) usa la misma regla. La ficha filtra las casas en espera con Waiting for agency.",
-  "falta": "Integrar en main, publicar y encender SAP02_COUNTS_READY. Con AGE-03 migrada (0077) y encendida, comprobar el recorrido real con lecturas.",
+  "hecho": "Queue marca In process cuando el aplicante tiene alguna casa Shortlisted; así sigue mientras SAP02_COUNTS_READY o AGE03_ENQUIRIES_READY estén apagados. 15-nov-2026, construido en rama y apagado (sin migración): con los dos encendidos, In process significa que alguna casa del aplicante espera a la agencia. Es decir, su match cuenta en una consulta abierta: preparada o registrada como enviada, sin respuesta ni cancelación. La lista muestra la etiqueta In process junto a Shortlisted y permite filtrar por ella. La etiqueta única antigua (queue) usa la misma regla. La ficha filtra las casas en espera con Waiting for agency. Cerrada el 15-nov-2026 (SAP02_COUNTS_READY=1 y AGE03_ENQUIRIES_READY=1): «In process» significa que alguna casa del aplicante cuenta en una consulta abierta a la agencia. La rama «espera al aplicante» no tiene fuente hasta el portal (AGE-12) y el interés del cliente (EST-14); la consulta deja de contar cuando AGE-06 permita registrar la respuesta.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/match-pages.js: regla WAITING y waitingSearches",
@@ -17,7 +17,8 @@
     "tests/sap02-match-counts.e2e.cjs: pasa a 1280 y 390 en el contenedor aislado (15-nov-2026), datos ficticios",
     "Decisión: In process = el match cuenta en una consulta abierta (prepared o sent_manually) según la puerta de AGE-03; una respuesta o una cancelación lo cierra. Fuente: arquitectura §4.1 original (matches en Waiting for agent confirmation) y encargo del lote 15-nov.",
     "Decisión: la rama «espera al aplicante» no se construye: no hay fuente hasta AGE-12 y EST-14. El contrato queda en server/match-pages.js (In process es cualquiera de las dos esperas). Fuente: plan maestro y §3 de la skill; frase trasladada a AGE-12, EST-14 y AGE-06.",
-    "Decisión: con la regla nueva, quien solo tiene Shortlisted y ninguna consulta queda como «No matches» en la etiqueta única antigua (B13: «todo lo demás»); la lista no enseña esa etiqueta, enseña Shortlisted. Fuente: spec F1-A B13 y EST-10."
+    "Decisión: con la regla nueva, quien solo tiene Shortlisted y ninguna consulta queda como «No matches» en la etiqueta única antigua (B13: «todo lo demás»); la lista no enseña esa etiqueta, enseña Shortlisted. Fuente: spec F1-A B13 y EST-10.",
+    "Cierre 15-nov-2026: publicada en b08d800; npm test 2632/2632, build y check:release; tests/sap02-match-counts.e2e.cjs y tests/est10-work-labels.e2e.cjs pasan; revisión independiente sin hallazgos graves (1.014 lecturas idénticas con los interruptores apagados; cero discrepancias entre lista, tarjetas, summary y filtros). Nadie deja de aparecer en el panel: ninguna pantalla usa la etiqueta única queue."
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
@@ -37,6 +38,6 @@
     "search-lifecycle",
     "outreach-contract"
   ],
-  "nextStep": "Publicar y encender SAP02_COUNTS_READY; comprobar In process cuando AGE-03 esté encendida.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

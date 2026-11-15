@@ -4,10 +4,10 @@
   "titulo": "Ficha de propiedad con secciones Viewings, Notes y Adverts",
   "origen": "plan",
   "fase": "—",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "La ficha ya tenía Details, Price, Description, Photos, Offers, Matched applicants, Research (solo lectura) y Active interest. 15-nov-2026, construida en rama y apagada (migración 0079 y SPR08_SECTIONS_READY): tres secciones internas en la ficha. Viewings of this property (solo lectura): las visitas de la casa, próximas y pasadas, con fecha, estado, quién la enseña, recordatorio y feedback de VIS-08, cada una enlazada a su detalle en Viewings. Notes (internal): añadir una nota con autor y fecha de la sesión, lista de más reciente a más antigua, y corregir o retirar la propia con historial de solo añadir; el texto no sale en la web, en las lecturas de la ficha ni en eventos. Adverts (solo lectura): las fuentes de la investigación importada una sola vez, con origen, fecha vista, estado y precio vistos, aviso cuando los precios difieren y la confirmación vigente de EST-16 junto a cada anuncio. Apagado o sin migrar, la ficha es la de antes.",
-  "falta": "Integrar en main, aplicar la migración 0079 (aditiva), encender SPR08_SECTIONS_READY y comprobar el recorrido en producción con lecturas. Trasladado a otras tareas: anuncios vivos del inventario de mercado al enlazar la ficha con su casa (BUS-07); estado y descargas de archivos capturados (SPR-03); columnas y filtros de la lista (SPR-07); fotografías (AGE-10).",
+  "hecho": "La ficha ya tenía Details, Price, Description, Photos, Offers, Matched applicants, Research (solo lectura) y Active interest. 15-nov-2026, construida en rama y apagada (migración 0079 y SPR08_SECTIONS_READY): tres secciones internas en la ficha. Viewings of this property (solo lectura): las visitas de la casa, próximas y pasadas, con fecha, estado, quién la enseña, recordatorio y feedback de VIS-08, cada una enlazada a su detalle en Viewings. Notes (internal): añadir una nota con autor y fecha de la sesión, lista de más reciente a más antigua, y corregir o retirar la propia con historial de solo añadir; el texto no sale en la web, en las lecturas de la ficha ni en eventos. Adverts (solo lectura): las fuentes de la investigación importada una sola vez, con origen, fecha vista, estado y precio vistos, aviso cuando los precios difieren y la confirmación vigente de EST-16 junto a cada anuncio. Apagado o sin migrar, la ficha es la de antes. Cerrada el 15-nov-2026: migración 0079 aplicada y SPR08_SECTIONS_READY=1. Las publicaciones vivas del inventario de mercado llegan a Adverts cuando BUS-07 enlace la ficha con su casa; la captura y las descargas son de SPR-03.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "admin/src/PropertySections.jsx (las tres secciones; solo las notas guardan)",
@@ -29,7 +29,9 @@
     "Decisión: tarjetas como las secciones vecinas, sin pestañas ni botón de informe al propietario. Fuente: encargo del lote (mismo patrón, solo import y montaje) y plan maestro (actividad solo interna).",
     "No comprobado: producción, WebKit y la ficha apagada en navegador con esta rama (apagado solo en prueba de servidor y en tests/property-viewings.e2e.cjs).",
     "docs/superpowers/plans/2026-11-08-spr-08-property-notes-viewings-adverts.md",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "Cierre 15-nov-2026: publicada en b08d800; npm test 2632/2632, build y check:release; 0079 (tabla de solo añadir, dos índices y trigger, aditiva) aplicada en producción tras marcador Time Travel; tests/spr08-listing-sections.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (el texto de las notas no sale por rutas públicas, History ni eventos; solo su autor corrige o retira).",
+    "Decisión 15-nov-2026 (ponytail): tarjetas en vez de pestañas y sin endpoint agregado; sin evento por nota; el texto de una nota retirada se conserva en la tabla sin devolverse (el plan pedía borrarlo): queda en MEJORAS."
   ],
   "modulo": "M02/M07",
   "deps": [
@@ -70,6 +72,6 @@
     "events-contract",
     "listing-editor"
   ],
-  "nextStep": "Integrar el commit, aplicar 0079, encender SPR08_SECTIONS_READY en wrangler.toml y comprobar la ficha con lecturas.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

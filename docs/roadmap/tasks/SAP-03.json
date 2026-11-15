@@ -4,10 +4,10 @@
   "titulo": "Ficha del aplicante con todas las casas encontradas y las confirmadas disponibles",
   "origen": "texto",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "La pestaña Matches agrupa Found, Shortlisted y Rejected; cada casa con foto, precio, parroquia, dormitorios, baños, puntuación y Meets / Fails / Unknown con su evidencia, y los botones Shortlist, Reject y Undo. 15-nov-2026, construido en rama y apagado (SAP02_COUNTS_READY, sin migración): sobre los grupos hay un filtro «Show matches» con All, Confirmed, Available, Confirmed not available y Waiting for agency, cada uno con su número. Muestra las mismas tarjetas dentro de su grupo, sin duplicarlas ni cambiar decisiones. Revisar una casa con el filtro puesto mueve la misma tarjeta y actualiza los números. Los números son los de la lista: la misma regla en el servidor.",
-  "falta": "Integrar en main, publicar y encender SAP02_COUNTS_READY; después comprobar el recorrido real con lecturas. Waiting for agency solo aparece con AGE03_ENQUIRIES_READY encendido.",
+  "hecho": "La pestaña Matches agrupa Found, Shortlisted y Rejected; cada casa con foto, precio, parroquia, dormitorios, baños, puntuación y Meets / Fails / Unknown con su evidencia, y los botones Shortlist, Reject y Undo. 15-nov-2026, construido en rama y apagado (SAP02_COUNTS_READY, sin migración): sobre los grupos hay un filtro «Show matches» con All, Confirmed, Available, Confirmed not available y Waiting for agency, cada uno con su número. Muestra las mismas tarjetas dentro de su grupo, sin duplicarlas ni cambiar decisiones. Revisar una casa con el filtro puesto mueve la misma tarjeta y actualiza los números. Los números son los de la lista: la misma regla en el servidor. Cerrada el 15-nov-2026 junto a SAP-02 (SAP02_COUNTS_READY=1): filtro «Show matches» sobre los grupos existentes, para no duplicar tarjetas.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/match-pages.js: pageMatches acepta only y devuelve summary",
@@ -16,7 +16,8 @@
     "tests/server/sap02-match-counts.test.mjs: 6 pruebas pasan (15-nov-2026); incluye la coherencia lista = ficha = contar tarjetas con 8 búsquedas en todos los estados, también con EST-15 encendido",
     "tests/sap02-match-counts.e2e.cjs: pasa a 1280 y 390 en el contenedor aislado (15-nov-2026), datos ficticios",
     "Decisión: Confirmed y Available del §5.2 son un filtro sobre los grupos existentes, no grupos nuevos: una casa confirmada sigue siendo Found o Shortlisted y otro grupo la duplicaría. Fuente: encargo del lote 15-nov («sin duplicar tarjetas») y M04 (estados separados).",
-    "Decisión: mismas definiciones que SAP-02 (confirmed, available, confirmed not available). Fuente: ficha SAP-02."
+    "Decisión: mismas definiciones que SAP-02 (confirmed, available, confirmed not available). Fuente: ficha SAP-02.",
+    "Cierre 15-nov-2026: publicada en b08d800; npm test 2632/2632, build y check:release; filtros comprobados en tests/sap02-match-counts.e2e.cjs a 1280 y 390; revisión independiente sin hallazgos graves (1.014 lecturas idénticas con los interruptores apagados; cero discrepancias entre lista, tarjetas, summary y filtros)."
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
@@ -37,6 +38,6 @@
     "matching-contract",
     "outreach-contract"
   ],
-  "nextStep": "Publicar y encender SAP02_COUNTS_READY; comprobar la ficha con lecturas.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

@@ -4,10 +4,10 @@
   "titulo": "Número de casas con match y cuántas están confirmadas, en la lista de aplicantes",
   "origen": "texto",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "15-nov-2026, construida en rama y apagada (SAP02_COUNTS_READY, sin migración). La columna Matches de la lista dice «12 found · 3 confirmed · 2 available» por búsqueda y, aparte, «N confirmed not available». Found cuenta los matches no rechazados. Confirmed, los que tienen una confirmación vigente de disponible (EST-16). Available, los confirmados que además están aprobados sobre la búsqueda y la ficha de hoy, con la búsqueda activa y la ficha aún ofrecida. Shortlisted sigue como etiqueta de trabajo y no cuenta como confirmada. El servidor lo calcula con una sola lectura agregada para toda la lista, desde las fichas que tienen confirmación. Con EST-16 apagado o sin confirmaciones dice «0 confirmed · 0 available». Apagada, la lista responde y se ve como antes («N found · M shortlisted»).",
-  "falta": "Integrar en main, publicar y encender SAP02_COUNTS_READY; después comprobar el recorrido real con lecturas.",
+  "hecho": "15-nov-2026, construida en rama y apagada (SAP02_COUNTS_READY, sin migración). La columna Matches de la lista dice «12 found · 3 confirmed · 2 available» por búsqueda y, aparte, «N confirmed not available». Found cuenta los matches no rechazados. Confirmed, los que tienen una confirmación vigente de disponible (EST-16). Available, los confirmados que además están aprobados sobre la búsqueda y la ficha de hoy, con la búsqueda activa y la ficha aún ofrecida. Shortlisted sigue como etiqueta de trabajo y no cuenta como confirmada. El servidor lo calcula con una sola lectura agregada para toda la lista, desde las fichas que tienen confirmación. Con EST-16 apagado o sin confirmaciones dice «0 confirmed · 0 available». Apagada, la lista responde y se ve como antes («N found · M shortlisted»). Cerrada el 15-nov-2026: sin migración; SAP02_COUNTS_READY=1.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/match-pages.js: reglas ONLY y candidateCounts (una lectura agregada)",
@@ -19,7 +19,8 @@
     "Decisión: confirmed = confirmación vigente de disponible, la misma regla de la tarjeta (availabilityState, EST-16). Fuente: plan maestro («una aprobación no confirma disponibilidad»).",
     "Decisión: available = confirmed + aprobación vigente (APPROVED, BUS-15) + ficha aún ofrecida; no implica envío al cliente. Fuente: encargo del lote 15-nov y plan maestro M04/M06.",
     "Decisión: lo confirmado no disponible no cuenta en confirmed ni en available y se ve aparte. Fuente: EST-15 y EST-16.",
-    "Decisión: isFullAvailableCandidate y search-coverage (traídos de BUS-12) no se conectan aquí: piden identidad de episodio, decisión del cliente y cobertura completa, que no tienen productor. Fuente: sus propios comentarios; frase trasladada a BUS-17."
+    "Decisión: isFullAvailableCandidate y search-coverage (traídos de BUS-12) no se conectan aquí: piden identidad de episodio, decisión del cliente y cobertura completa, que no tienen productor. Fuente: sus propios comentarios; frase trasladada a BUS-17.",
+    "Cierre 15-nov-2026: publicada en b08d800; npm test 2632/2632, build y check:release; tests/sap02-match-counts.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (1.014 lecturas idénticas con los interruptores apagados; cero discrepancias entre lista, tarjetas, summary y filtros)."
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
@@ -40,6 +41,6 @@
     "matching-contract",
     "outreach-contract"
   ],
-  "nextStep": "Publicar y encender SAP02_COUNTS_READY; comprobar la lista con lecturas.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

@@ -829,18 +829,25 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Número de casas con match y cuántas están confirmadas, en la lista de aplicantes",
    "origen": "texto",
    "fase": "F1-A",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "La columna Matches muestra «N found · M shortlisted» y enlaza a la pestaña Matches del aplicante.",
-   "falta": "Contar las confirmadas y las disponibles («12 found · 3 confirmed · 2 available»): Shortlisted es la preselección del equipo, no una disponibilidad confirmada, que no existe hasta EST-13. Traído de BUS-12 (14-nov): conectar isFullAvailableCandidate (server/search-eligibility.js) y el agregado de server/search-coverage.js; quedaron probados y sin consumidor.",
+   "hecho": "15-nov-2026, construida en rama y apagada (SAP02_COUNTS_READY, sin migración). La columna Matches de la lista dice «12 found · 3 confirmed · 2 available» por búsqueda y, aparte, «N confirmed not available». Found cuenta los matches no rechazados. Confirmed, los que tienen una confirmación vigente de disponible (EST-16). Available, los confirmados que además están aprobados sobre la búsqueda y la ficha de hoy, con la búsqueda activa y la ficha aún ofrecida. Shortlisted sigue como etiqueta de trabajo y no cuenta como confirmada. El servidor lo calcula con una sola lectura agregada para toda la lista, desde las fichas que tienen confirmación. Con EST-16 apagado o sin confirmaciones dice «0 confirmed · 0 available». Apagada, la lista responde y se ve como antes («N found · M shortlisted»). Cerrada el 15-nov-2026: sin migración; SAP02_COUNTS_READY=1.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "admin/src/Applicants.jsx:18",
-    "admin/src/Applicants.jsx:80-81",
-    "server/routes/applicants.js:68-71",
-    "migrations/0009_matches.sql:33"
+    "server/match-pages.js: reglas ONLY y candidateCounts (una lectura agregada)",
+    "server/routes/applicants.js: list() añade confirmed, available y unavailable por búsqueda",
+    "admin/src/Applicants.jsx: matchCounts y la línea «confirmed not available»",
+    "tests/server/sap02-match-counts.test.mjs: 6 pruebas pasan (15-nov-2026); incluye la coherencia lista = ficha = contar tarjetas con 8 búsquedas en todos los estados, también con EST-15 encendido",
+    "tests/sap02-match-counts.e2e.cjs: pasa a 1280 y 390 en el contenedor aislado (15-nov-2026), datos ficticios",
+    "Decisión: found = matches no rechazados (found + shortlisted). Fuente: arquitectura §5.2 («12 found · 3 confirmed · 2 available») y título de la tarea.",
+    "Decisión: confirmed = confirmación vigente de disponible, la misma regla de la tarjeta (availabilityState, EST-16). Fuente: plan maestro («una aprobación no confirma disponibilidad»).",
+    "Decisión: available = confirmed + aprobación vigente (APPROVED, BUS-15) + ficha aún ofrecida; no implica envío al cliente. Fuente: encargo del lote 15-nov y plan maestro M04/M06.",
+    "Decisión: lo confirmado no disponible no cuenta en confirmed ni en available y se ve aparte. Fuente: EST-15 y EST-16.",
+    "Decisión: isFullAvailableCandidate y search-coverage (traídos de BUS-12) no se conectan aquí: piden identidad de episodio, decisión del cliente y cobertura completa, que no tienen productor. Fuente: sus propios comentarios; frase trasladada a BUS-17.",
+    "Cierre 15-nov-2026: publicada en b08d800; npm test 2632/2632, build y check:release; tests/sap02-match-counts.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (1.014 lecturas idénticas con los interruptores apagados; cero discrepancias entre lista, tarjetas, summary y filtros)."
    ],
-   "actualizado": "2026-11-14"
+   "actualizado": "2026-11-15"
   },
   {
    "id": "SAP-03",
@@ -848,17 +855,22 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Ficha del aplicante con todas las casas encontradas y las confirmadas disponibles",
    "origen": "texto",
    "fase": "F1-A",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "La pestaña Matches agrupa Found, Shortlisted y Rejected; cada casa con foto, precio, parroquia, dormitorios, baños, puntuación y Meets / Fails / Unknown con su evidencia, y los botones Shortlist, Reject y Undo.",
-   "falta": "La lista de casas confirmadas y aún disponibles para el aplicante (grupos Confirmed y Available del §5.2), que depende de los estados de confirmación (EST-13).",
+   "hecho": "La pestaña Matches agrupa Found, Shortlisted y Rejected; cada casa con foto, precio, parroquia, dormitorios, baños, puntuación y Meets / Fails / Unknown con su evidencia, y los botones Shortlist, Reject y Undo. 15-nov-2026, construido en rama y apagado (SAP02_COUNTS_READY, sin migración): sobre los grupos hay un filtro «Show matches» con All, Confirmed, Available, Confirmed not available y Waiting for agency, cada uno con su número. Muestra las mismas tarjetas dentro de su grupo, sin duplicarlas ni cambiar decisiones. Revisar una casa con el filtro puesto mueve la misma tarjeta y actualiza los números. Los números son los de la lista: la misma regla en el servidor. Cerrada el 15-nov-2026 junto a SAP-02 (SAP02_COUNTS_READY=1): filtro «Show matches» sobre los grupos existentes, para no duplicar tarjetas.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "admin/src/ApplicantDetail.jsx:19-20",
-    "admin/src/ApplicantDetail.jsx:381-408",
-    "admin/src/MatchCard.jsx:31-71",
-    "server/routes/applicants.js:149-151"
-   ]
+    "server/match-pages.js: pageMatches acepta only y devuelve summary",
+    "server/routes/applicants.js: matchPage admite only con el interruptor encendido",
+    "admin/src/ApplicantMatches.jsx: filtro «Show matches»",
+    "tests/server/sap02-match-counts.test.mjs: 6 pruebas pasan (15-nov-2026); incluye la coherencia lista = ficha = contar tarjetas con 8 búsquedas en todos los estados, también con EST-15 encendido",
+    "tests/sap02-match-counts.e2e.cjs: pasa a 1280 y 390 en el contenedor aislado (15-nov-2026), datos ficticios",
+    "Decisión: Confirmed y Available del §5.2 son un filtro sobre los grupos existentes, no grupos nuevos: una casa confirmada sigue siendo Found o Shortlisted y otro grupo la duplicaría. Fuente: encargo del lote 15-nov («sin duplicar tarjetas») y M04 (estados separados).",
+    "Decisión: mismas definiciones que SAP-02 (confirmed, available, confirmed not available). Fuente: ficha SAP-02.",
+    "Cierre 15-nov-2026: publicada en b08d800; npm test 2632/2632, build y check:release; filtros comprobados en tests/sap02-match-counts.e2e.cjs a 1280 y 390; revisión independiente sin hallazgos graves (1.014 lecturas idénticas con los interruptores apagados; cero discrepancias entre lista, tarjetas, summary y filtros)."
+   ],
+   "actualizado": "2026-11-15"
   },
   {
    "id": "SAP-04",
@@ -1077,7 +1089,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "M07 · Reconciliación 7-nov: Al confirmar disponibilidad por correo útil o llamada registrada, enriquecer una ficha común con datos completos y fotos originales, URL, fecha y evidencia. Captura completa/parcial/fallida visible y reintentos sin duplicados; no afirmar éxito si falta algún archivo. Crear tarea Abrir ficha para revisar, corregir, ver incumplimientos/datos pendientes, abrir origen y descargar fotos individuales, selección o ZIP y datos en formato a concretar. La misma ficha sirve a varios clientes; las versiones aptas para el cliente se gestionan en AGE-10. Depende de: AGE-06, BUS-10, EST-13. Aceptación: Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: captura completa o parcial. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): captura. Traído de BUS-06 (14-nov): la descarga de fotos de anuncios de mercado espera a la disponibilidad confirmada; BUS-06 no guarda fotos.",
+   "falta": "M07 · Reconciliación 7-nov: Al confirmar disponibilidad por correo útil o llamada registrada, enriquecer una ficha común con datos completos y fotos originales, URL, fecha y evidencia. Captura completa/parcial/fallida visible y reintentos sin duplicados; no afirmar éxito si falta algún archivo. Crear tarea Abrir ficha para revisar, corregir, ver incumplimientos/datos pendientes, abrir origen y descargar fotos individuales, selección o ZIP y datos en formato a concretar. La misma ficha sirve a varios clientes; las versiones aptas para el cliente se gestionan en AGE-10. Depende de: AGE-06, BUS-10, EST-13. Aceptación: Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: captura completa o parcial. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): captura. Traído de BUS-06 (14-nov): la descarga de fotos de anuncios de mercado espera a la disponibilidad confirmada; BUS-06 no guarda fotos. Traído de SPR-08 (15-nov): mostrar en la ficha el estado de la captura (completa o parcial) y las descargas privadas de los archivos capturados, junto a Adverts.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:96",
@@ -1093,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "EST-13"
    ],
    "criterio_aceptacion": "Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos.",
-   "actualizado": "2026-11-14"
+   "actualizado": "2026-11-15"
   },
   {
    "id": "SPR-04",
@@ -1176,25 +1188,42 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Ficha de propiedad con secciones Viewings, Notes y Adverts",
    "origen": "plan",
    "fase": "—",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "La ficha ya tiene Details, Price, Description, Photos, Offers y Matched applicants; Active interest abre Viewings filtrado por esa casa, y Research (solo lectura) enseña las fuentes de la investigación importada con el estado, el precio y la fecha vistos, congelados.",
-   "falta": "M02/M07 · Reconciliación 7-nov: Las secciones Viewings dentro de la ficha, Notes internas y Adverts al día (todos los anuncios de la casa en cada fuente con su precio, para ver las bajadas). Relacionar todas las publicaciones/anunciantes con su origen, fecha y precio; mostrar confirmaciones, archivos completos/parciales y notas humanas. Se apoya en el directorio multifuente, sin bloqueo obligatorio por Places.je. Depende de: BUS-10, SPR-03, EST-18.",
+   "hecho": "La ficha ya tenía Details, Price, Description, Photos, Offers, Matched applicants, Research (solo lectura) y Active interest. 15-nov-2026, construida en rama y apagada (migración 0079 y SPR08_SECTIONS_READY): tres secciones internas en la ficha. Viewings of this property (solo lectura): las visitas de la casa, próximas y pasadas, con fecha, estado, quién la enseña, recordatorio y feedback de VIS-08, cada una enlazada a su detalle en Viewings. Notes (internal): añadir una nota con autor y fecha de la sesión, lista de más reciente a más antigua, y corregir o retirar la propia con historial de solo añadir; el texto no sale en la web, en las lecturas de la ficha ni en eventos. Adverts (solo lectura): las fuentes de la investigación importada una sola vez, con origen, fecha vista, estado y precio vistos, aviso cuando los precios difieren y la confirmación vigente de EST-16 junto a cada anuncio. Apagado o sin migrar, la ficha es la de antes. Cerrada el 15-nov-2026: migración 0079 aplicada y SPR08_SECTIONS_READY=1. Las publicaciones vivas del inventario de mercado llegan a Adverts cuando BUS-07 enlace la ficha con su casa; la captura y las descargas son de SPR-03.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "admin/src/ListingEditor.jsx:25-26",
-    "admin/src/ListingEditor.jsx:143",
-    "admin/src/App.jsx:99-100",
-    "admin/src/Research.jsx:21",
-    "migrations/0001_init.sql:71-75",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "admin/src/PropertySections.jsx (las tres secciones; solo las notas guardan)",
+    "admin/src/ListingEditor.jsx (import, montaje tras Enquiries y Research sin repetir Sources cuando está encendido)",
+    "server/property-notes.js (rutas GET/POST/PUT/DELETE /admin/listings/:id/notes y sectionsOn)",
+    "server/routes/listings.js (sections_enabled en el detalle y rutas de notas)",
+    "migrations/0079_property_notes.sql (aditiva: una tabla, dos índices y un trigger)",
+    "tests/server/spr-08-property-notes.test.mjs: 8 de 8 (apagado o sin migrar, autor y fecha de sesión, validación, corrección con versión, 409 si está obsoleta, 403 si no es el autor, retirada sin texto, sin texto en web, lecturas ni eventos, borrado con la ficha)",
+    "tests/spr08-listing-sections.e2e.cjs en contenedor aislado, 1280 y 390: pasó el 15-nov-2026 (visitas, notas por teclado, corrección, obsoleta, retirada, nota ajena, anuncios, confirmación y enlace a Viewings)",
+    "Pruebas focales sin fallos: listing*, pub-0*, property-viewings, vis-10-house-rules, est-16-availability, schema, to-confirm, seo, design y panel-design",
+    "Decisión: no había lista de visitas en la ficha; la sección Viewings existente es la política de reservas (VIS-18) y Active interest solo enlaza. Fuente: admin/src/ListingEditor.jsx.",
+    "Decisión: Viewings no añade lectura; compone las cuatro listas de /admin/viewings?tab=&listing_id= (server/routes/inbox.js) y muestra solo nombre, tipo, estado y negociador. Fuente: encargo del lote y plan SPR-08 (reutilizar viewing_requests, sin segunda agenda).",
+    "Decisión: notas en una tabla de solo añadir; corregir o retirar es una fila nueva que sustituye a la anterior y solo lo hace su autor; texto hasta 4000. Fuente: encargo del lote (historial como EST-16) y plan SPR-08, tarea 1.",
+    "Decisión: una nota retirada deja quién y cuándo; su texto no se devuelve más, pero la fila se conserva. Fuente: encargo del lote (solo añadir) y plan SPR-08 (delete_redacts_body); la purga queda en MEJORAS.",
+    "Decisión: ninguna nota escribe evento ni notificación; el rastro es la propia tabla. Fuente: encargo del lote (mínimo código, nunca en eventos con su texto) y plan SPR-08 (eventos sin cuerpo). El tramo de EST-18 deja de hacer falta.",
+    "Decisión: Adverts ordena por fecha vista y anunciante y avisa «Different prices seen» sin decir subida o bajada. Fuente: en los datos importados la fecha de la fuente es texto libre y la fecha vista es la del día de la importación.",
+    "Decisión: la confirmación de EST-16 se rotula «Property confirmed» junto a cada anuncio porque es de la propiedad u operación, no del anuncio. Fuente: server/availability-confirmations.js.",
+    "Decisión: sin lectura del inventario de mercado; ninguna tabla une listings con market_properties (migraciones 0050 y 0068) y la sección lo dice en pantalla. Fuente: ficha BUS-07.",
+    "Decisión: tarjetas como las secciones vecinas, sin pestañas ni botón de informe al propietario. Fuente: encargo del lote (mismo patrón, solo import y montaje) y plan maestro (actividad solo interna).",
+    "No comprobado: producción, WebKit y la ficha apagada en navegador con esta rama (apagado solo en prueba de servidor y en tests/property-viewings.e2e.cjs).",
+    "docs/superpowers/plans/2026-11-08-spr-08-property-notes-viewings-adverts.md",
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "Cierre 15-nov-2026: publicada en b08d800; npm test 2632/2632, build y check:release; 0079 (tabla de solo añadir, dos índices y trigger, aditiva) aplicada en producción tras marcador Time Travel; tests/spr08-listing-sections.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (el texto de las notas no sale por rutas públicas, History ni eventos; solo su autor corrige o retira).",
+    "Decisión 15-nov-2026 (ponytail): tarjetas en vez de pestañas y sin endpoint agregado; sin evento por nota; el texto de una nota retirada se conserva en la tabla sin devolverse (el plan pedía borrarlo): queda en MEJORAS."
    ],
    "modulo": "M02/M07",
    "deps": [
     "BUS-10",
     "SPR-03",
     "EST-18"
-   ]
+   ],
+   "actualizado": "2026-11-15"
   },
   {
    "id": "AGE-01",
@@ -1375,7 +1404,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "M06 · Reconciliación 7-nov: Vincular respuestas con la propiedad y la consulta, distinguir respuesta útil de acuse automático/ambigua y guardar evidencia, fuente y fecha. Confirmaciones humanas posteriores prevalecen ante anuncios antiguos; contradicciones van a revisión. El empleado puede registrar llamada disponible/no disponible/inconclusa, persona que confirma, alcance y condiciones. Repercutir disponibilidad y pendientes sobre matches y tareas relacionados; no inferir que una respuesta general acepta todos los hogares ni que confirma la visita. La IA, si se usa, extrae una propuesta revisable y no negocia comisión. Depende de: AGE-03, AGE-05, EST-13. Aceptación: Una respuesta automática mantiene pendiente; una llamada humana confirmada actualiza todas las gestiones afectadas sin cerrar búsquedas. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: respuesta útil recibida. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): consultas y respuesta útil. Traído de EST-16 (15-nov): registrar la respuesta de agencia o la llamada como confirmación en availability_confirmations y guardar aparte las condiciones por hogar (aplicante/caso); EST-16 solo guarda hechos generales de propiedad u operación. Traído de EST-15 (15-nov): una respuesta de agencia «no disponible» se registra como confirmación (POST /admin/listings/:id/availability, source agency, con motivo) para que EST-15 la propague; no escribir matches directamente. Traído de AGE-03 (15-nov): registrar la respuesta y cerrar la consulta (answered o cancelled); hoy una consulta enviada sigue abierta y los matches nuevos se unen a ella. Escribir en candidateState.enquiry los valores de respuesta; la respuesta de una familia no acredita las demás; permitir cancelar una consulta pendiente que se quedó sin matches vigentes y cerrar su tarea.",
+   "falta": "M06 · Reconciliación 7-nov: Vincular respuestas con la propiedad y la consulta, distinguir respuesta útil de acuse automático/ambigua y guardar evidencia, fuente y fecha. Confirmaciones humanas posteriores prevalecen ante anuncios antiguos; contradicciones van a revisión. El empleado puede registrar llamada disponible/no disponible/inconclusa, persona que confirma, alcance y condiciones. Repercutir disponibilidad y pendientes sobre matches y tareas relacionados; no inferir que una respuesta general acepta todos los hogares ni que confirma la visita. La IA, si se usa, extrae una propuesta revisable y no negocia comisión. Depende de: AGE-03, AGE-05, EST-13. Aceptación: Una respuesta automática mantiene pendiente; una llamada humana confirmada actualiza todas las gestiones afectadas sin cerrar búsquedas. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: respuesta útil recibida. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): consultas y respuesta útil. Traído de EST-16 (15-nov): registrar la respuesta de agencia o la llamada como confirmación en availability_confirmations y guardar aparte las condiciones por hogar (aplicante/caso); EST-16 solo guarda hechos generales de propiedad u operación. Traído de EST-15 (15-nov): una respuesta de agencia «no disponible» se registra como confirmación (POST /admin/listings/:id/availability, source agency, con motivo) para que EST-15 la propague; no escribir matches directamente. Traído de AGE-03 (15-nov): registrar la respuesta y cerrar la consulta (answered o cancelled); hoy una consulta enviada sigue abierta y los matches nuevos se unen a ella. Escribir en candidateState.enquiry los valores de respuesta; la respuesta de una familia no acredita las demás; permitir cancelar una consulta pendiente que se quedó sin matches vigentes y cerrar su tarea. Traído de EST-04 (15-nov): al registrar una respuesta la consulta pasa a answered y el match deja de contar en In process; decidir si needs_review sigue contando como espera. La tarjeta muestra hoy una consulta answered como «prepared» (candidate-state.js).",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297-299",
@@ -1452,7 +1481,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "M07 · Reconciliación 7-nov: Preparar fotos aptas para presentación privada: propias o versiones sin marca facilitadas o autorizadas para compartir. Conservar originales, procedencia, permiso y fecha en la ficha interna; si solo hay fotos con marca, tarea para obtener versión adecuada. No eliminar marcas automáticamente ni republicar anuncios ajenos en la web pública por este flujo. Sustituye la condición histórica de ocultar hasta acordar comisión; esta no bloquea la visita. Depende de: SPR-03, AGE-04. Aceptación: Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura.",
+   "falta": "M07 · Reconciliación 7-nov: Preparar fotos aptas para presentación privada: propias o versiones sin marca facilitadas o autorizadas para compartir. Conservar originales, procedencia, permiso y fecha en la ficha interna; si solo hay fotos con marca, tarea para obtener versión adecuada. No eliminar marcas automáticamente ni republicar anuncios ajenos en la web pública por este flujo. Sustituye la condición histórica de ocultar hasta acordar comisión; esta no bloquea la visita. Depende de: SPR-03, AGE-04. Aceptación: Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura. Traído de SPR-08 (15-nov): Adverts enlaza a cada anuncio pero no muestra ni guarda sus fotografías; el permiso y la captura de imágenes de anuncios ajenos siguen aquí.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297",
@@ -1464,7 +1493,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "SPR-03",
     "AGE-04"
    ],
-   "criterio_aceptacion": "Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura."
+   "criterio_aceptacion": "Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura.",
+   "actualizado": "2026-11-15"
   },
   {
    "id": "AGE-11",
@@ -1503,7 +1533,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "M08 · Reconciliación 7-nov: Construir acceso privado a las opciones presentadas con respuesta interesado, quiere visitarla, no encaja con motivo o necesita llamada. Reutilizar la solicitud y franjas previas; no repetir el formulario completo. El motivo de descarte no modifica MUST ni disponibilidad general. Cualquier cambio de criterios pasa por confirmación del empleado; pausa/retirada son decisiones adicionales abiertas. Conservar revocación y protección del enlace, y tratar descarga/borrado de datos según PRE-12. Depende de: AGE-10, REG-17, EST-13. Aceptación: Not for me solo afecta al match de ese cliente; pedir visita inicia coordinación, no una cita confirmada. Traído de VIS-04 (15-nov): el portal privado incluye el formulario del aplicante tras la visita (Proceed, Need more information o Not interested; motivo obligatorio para Not interested; nota de 500 caracteres como máximo). Sobre una visita completada sin respuesta escribe outcome, outcome_note, feedback_at y feedback_by = applicant; si el equipo ya anotó un resultado, se guarda aparte y la discrepancia queda visible, sin sobrescribir. Interruptor propio apagado: recoge datos del público y solo lo enciende Luis. Traído de REG-12 (15-nov): el estado y el resultado de la búsqueda visibles para el cliente van en el portal; el formulario público solo muestra el acuse genérico.",
+   "falta": "M08 · Reconciliación 7-nov: Construir acceso privado a las opciones presentadas con respuesta interesado, quiere visitarla, no encaja con motivo o necesita llamada. Reutilizar la solicitud y franjas previas; no repetir el formulario completo. El motivo de descarte no modifica MUST ni disponibilidad general. Cualquier cambio de criterios pasa por confirmación del empleado; pausa/retirada son decisiones adicionales abiertas. Conservar revocación y protección del enlace, y tratar descarga/borrado de datos según PRE-12. Depende de: AGE-10, REG-17, EST-13. Aceptación: Not for me solo afecta al match de ese cliente; pedir visita inicia coordinación, no una cita confirmada. Traído de VIS-04 (15-nov): el portal privado incluye el formulario del aplicante tras la visita (Proceed, Need more information o Not interested; motivo obligatorio para Not interested; nota de 500 caracteres como máximo). Sobre una visita completada sin respuesta escribe outcome, outcome_note, feedback_at y feedback_by = applicant; si el equipo ya anotó un resultado, se guarda aparte y la discrepancia queda visible, sin sobrescribir. Interruptor propio apagado: recoge datos del público y solo lo enciende Luis. Traído de REG-12 (15-nov): el estado y el resultado de la búsqueda visibles para el cliente van en el portal; el formulario público solo muestra el acuse genérico. Traído de EST-04 (15-nov): al registrar qué se presentó al cliente y su respuesta, añadir la rama «espera al aplicante» de In process en server/match-pages.js (junto a WAITING) y su filtro en la ficha; hoy In process solo cuenta la espera a la agencia.",
    "bloqueo": "",
    "evidencia": [
     "server/routes/public.js:178-186",
@@ -2659,7 +2689,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Luis respondió el 23-oct (A4): se comercializan con la agencia que tiene el encargo. Las fichas HE-R028 a HE-R285 entraron archivadas, la migración 0009 las ofrece a los aplicantes y su tarjeta dice «Not on website».",
-   "falta": "M02 · Reconciliación 7-nov: Vincular las fichas importadas con su anunciante, publicaciones y procedencia, y someter las consultas al circuito aprobado AGE-03. Conservar las autorizaciones históricas documentadas sin extenderlas a nuevas capturas. El reparto de comisión es una gestión humana separada y no bloquea inventario, contacto o visita; nuevas fotos siguen AGE-10. Depende de: BUS-10, AGE-04. Traído de BUS-10 (15-nov): enlazar las fichas propias y las 264 co-listed con su casa de mercado (hoy solo se unen observaciones del inventario; ninguna ficha listings entra en él) y añadir «fuentes leídas» al historial de la ficha (SPR-02, contrato EST-18).",
+   "falta": "M02 · Reconciliación 7-nov: Vincular las fichas importadas con su anunciante, publicaciones y procedencia, y someter las consultas al circuito aprobado AGE-03. Conservar las autorizaciones históricas documentadas sin extenderlas a nuevas capturas. El reparto de comisión es una gestión humana separada y no bloquea inventario, contacto o visita; nuevas fotos siguen AGE-10. Depende de: BUS-10, AGE-04. Traído de BUS-10 (15-nov): enlazar las fichas propias y las 264 co-listed con su casa de mercado (hoy solo se unen observaciones del inventario; ninguna ficha listings entra en él) y añadir «fuentes leídas» al historial de la ficha (SPR-02, contrato EST-18). Traído de SPR-08 (15-nov): al enlazar una ficha con su casa de mercado, sumar sus publicaciones vivas (fuente, precio y fecha observados) a la sección Adverts de la ficha (admin/src/PropertySections.jsx), que hoy solo lista las fuentes congeladas de la investigación importada.",
    "bloqueo": "",
    "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
@@ -3020,7 +3050,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "Construido el 6-nov-2026 (spec 2026-11-06, decisiones de Luis «1 1 1»). Con menos de 3 casas entre Found y Shortlisted (solo de casas que siguen en el mercado) y la búsqueda activa (Paused incluida), la pestaña Matches de la ficha enseña «Widen criteria»: presupuesto +10 % (sobre el estirado si lo hay; redondeado a £50 al mes o £1,000), la parroquia libre que más casas añade y un dormitorio menos, cada una con cuántas casas nuevas daría, con las mismas reglas del matching y sin contar las rechazadas. «Use this» rellena ese campo en Requirements sin guardar; el equipo lo habla con el aplicante y pulsa Save. Lo que no aplica se oculta. Se calcula al abrir la ficha, sin guardar nada. Se preparó y revisó un cálculo puro para 21 días y repetición a los 7 días en hora Jersey, sin crear tareas ni inferir disponibilidad. Se preparó un agregado puro que reconoce una opción completa fiable y conserva unknown cuando no puede acreditar el estado; sigue sin productor ni consumidor operativo.",
-   "falta": "M10 · Reconciliación 7-nov: La ampliación existente es solo una base parcial. Construir el reloj de 21 días sin coincidencia completa y una tarea interna con hasta 20 alternativas útiles, menos si no hay más. Cada alternativa explica requisitos satisfechos, incumplidos, pendientes y cambio concreto; distinguir restricciones del cliente de información o fuentes incompletas. El equipo elige qué tratar personalmente. No enviar top 20, mensajes de flexibilización ni aplicar criterios automáticamente; la búsqueda sigue activa. Quedan abiertas la comparación de diferencias, el reinicio del reloj y las revisiones posteriores. Depende de: EST-09, BUS-12, BUS-08, NOT-11. Aceptación: Al día 21 se crea una revisión interna explicable, sin correo al cliente ni cambio de criterios, y el día 22 continúa el matching. Para conectarlo faltan el predicado canónico de opción completa, identidad del episodio, una sola revisión abierta y protección transaccional del snapshot. Antes de iniciar ausencia, el consumidor debe acreditar cobertura completa y agregado triestado; false por candidato también puede significar datos insuficientes. El agregado aún no emite ausencia acreditada y necesita cobertura real, identidad del episodio y revalidación transaccional antes de conectarse. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: revisión interna del día 21. Auditoría del 14-nov-2026 contra el plan maestro vigente: hoy un match rechazado no se reabre nunca (server/match-store.js, salta los rechazados); falta el episodio Found nuevo por bajada de precio material. Traído de EST-16 (15-nov): la opción completa con disponibilidad confirmada que interrumpe la ausencia se lee de states.availability = confirmed.",
+   "falta": "M10 · Reconciliación 7-nov: La ampliación existente es solo una base parcial. Construir el reloj de 21 días sin coincidencia completa y una tarea interna con hasta 20 alternativas útiles, menos si no hay más. Cada alternativa explica requisitos satisfechos, incumplidos, pendientes y cambio concreto; distinguir restricciones del cliente de información o fuentes incompletas. El equipo elige qué tratar personalmente. No enviar top 20, mensajes de flexibilización ni aplicar criterios automáticamente; la búsqueda sigue activa. Quedan abiertas la comparación de diferencias, el reinicio del reloj y las revisiones posteriores. Depende de: EST-09, BUS-12, BUS-08, NOT-11. Aceptación: Al día 21 se crea una revisión interna explicable, sin correo al cliente ni cambio de criterios, y el día 22 continúa el matching. Para conectarlo faltan el predicado canónico de opción completa, identidad del episodio, una sola revisión abierta y protección transaccional del snapshot. Antes de iniciar ausencia, el consumidor debe acreditar cobertura completa y agregado triestado; false por candidato también puede significar datos insuficientes. El agregado aún no emite ausencia acreditada y necesita cobertura real, identidad del episodio y revalidación transaccional antes de conectarse. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: revisión interna del día 21. Auditoría del 14-nov-2026 contra el plan maestro vigente: hoy un match rechazado no se reabre nunca (server/match-store.js, salta los rechazados); falta el episodio Found nuevo por bajada de precio material. Traído de EST-16 (15-nov): la opción completa con disponibilidad confirmada que interrumpe la ausencia se lee de states.availability = confirmed. Traído de SAP-02 (15-nov): conectar isFullAvailableCandidate (server/search-eligibility.js) y el agregado de server/search-coverage.js cuando existan identidad de episodio, decisión del cliente y cobertura completa; los contadores de SAP-02 usan los estados de la tarjeta, no este predicado.",
    "bloqueo": "",
    "evidencia": [
     "server/widen.js",
@@ -3276,16 +3306,23 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Estado In process: alguna casa espera a la agencia o al aplicante",
    "origen": "texto",
    "fase": "F1-A",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "Queue marca In process cuando el aplicante tiene alguna casa Shortlisted.",
-   "falta": "Calcularlo con los matches en Waiting for agent confirmation o Waiting for applicant response (EST-13), que aún no existen; hoy solo refleja la preselección del equipo.",
+   "hecho": "Queue marca In process cuando el aplicante tiene alguna casa Shortlisted; así sigue mientras SAP02_COUNTS_READY o AGE03_ENQUIRIES_READY estén apagados. 15-nov-2026, construido en rama y apagado (sin migración): con los dos encendidos, In process significa que alguna casa del aplicante espera a la agencia. Es decir, su match cuenta en una consulta abierta: preparada o registrada como enviada, sin respuesta ni cancelación. La lista muestra la etiqueta In process junto a Shortlisted y permite filtrar por ella. La etiqueta única antigua (queue) usa la misma regla. La ficha filtra las casas en espera con Waiting for agency. Cerrada el 15-nov-2026 (SAP02_COUNTS_READY=1 y AGE03_ENQUIRIES_READY=1): «In process» significa que alguna casa del aplicante cuenta en una consulta abierta a la agencia. La rama «espera al aplicante» no tiene fuente hasta el portal (AGE-12) y el interés del cliente (EST-14); la consulta deja de contar cuando AGE-06 permita registrar la respuesta.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
-    "server/routes/applicants.js:64-67",
-    "migrations/0009_matches.sql:33",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:43"
-   ]
+    "server/match-pages.js: regla WAITING y waitingSearches",
+    "server/routes/applicants.js: queueSql, columna in_process y filtro work_label=in_process",
+    "admin/src/Applicants.jsx: etiqueta y filtro In process",
+    "tests/server/sap02-match-counts.test.mjs: 6 pruebas pasan (15-nov-2026); incluye la coherencia lista = ficha = contar tarjetas con 8 búsquedas en todos los estados, también con EST-15 encendido",
+    "tests/sap02-match-counts.e2e.cjs: pasa a 1280 y 390 en el contenedor aislado (15-nov-2026), datos ficticios",
+    "Decisión: In process = el match cuenta en una consulta abierta (prepared o sent_manually) según la puerta de AGE-03; una respuesta o una cancelación lo cierra. Fuente: arquitectura §4.1 original (matches en Waiting for agent confirmation) y encargo del lote 15-nov.",
+    "Decisión: la rama «espera al aplicante» no se construye: no hay fuente hasta AGE-12 y EST-14. El contrato queda en server/match-pages.js (In process es cualquiera de las dos esperas). Fuente: plan maestro y §3 de la skill; frase trasladada a AGE-12, EST-14 y AGE-06.",
+    "Decisión: con la regla nueva, quien solo tiene Shortlisted y ninguna consulta queda como «No matches» en la etiqueta única antigua (B13: «todo lo demás»); la lista no enseña esa etiqueta, enseña Shortlisted. Fuente: spec F1-A B13 y EST-10.",
+    "Cierre 15-nov-2026: publicada en b08d800; npm test 2632/2632, build y check:release; tests/sap02-match-counts.e2e.cjs y tests/est10-work-labels.e2e.cjs pasan; revisión independiente sin hallazgos graves (1.014 lecturas idénticas con los interruptores apagados; cero discrepancias entre lista, tarjetas, summary y filtros). Nadie deja de aparecer en el panel: ninguna pantalla usa la etiqueta única queue."
+   ],
+   "actualizado": "2026-11-15"
   },
   {
    "id": "EST-05",
@@ -3503,7 +3540,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "M08/M09 · Reconciliación 7-nov: Relacionar interés, descarte con motivo, visita, oferta y acuerdo con el match correcto. Conservar historial de pasos; un descarte de cliente no cambia criterios automáticamente ni vuelve no disponible la propiedad. Una visita realizada, oferta o acuerdo mantiene activa la búsqueda hasta EST-09. Depende de: EST-13, AGE-12, VIS-17. Traído de EST-13 (15-nov): añadir interés y espera del cliente como dimensión propia en candidateState (quinta dimensión de M06, no construida en EST-13). Traído de VIS-04 (15-nov): relacionar la respuesta de la visita (Proceed, Need more information, Not interested) con el paso del match (Viewed, Offer, Not interested con motivo); hoy el resultado vive solo en la visita y deja una tarea al equipo, sin cambiar ningún match.",
+   "falta": "M08/M09 · Reconciliación 7-nov: Relacionar interés, descarte con motivo, visita, oferta y acuerdo con el match correcto. Conservar historial de pasos; un descarte de cliente no cambia criterios automáticamente ni vuelve no disponible la propiedad. Una visita realizada, oferta o acuerdo mantiene activa la búsqueda hasta EST-09. Depende de: EST-13, AGE-12, VIS-17. Traído de EST-13 (15-nov): añadir interés y espera del cliente como dimensión propia en candidateState (quinta dimensión de M06, no construida en EST-13). Traído de VIS-04 (15-nov): relacionar la respuesta de la visita (Proceed, Need more information, Not interested) con el paso del match (Viewed, Offer, Not interested con motivo); hoy el resultado vive solo en la visita y deja una tarea al equipo, sin cambiar ningún match. Traído de EST-04 (15-nov): la dimensión de interés y espera del cliente en candidateState es la fuente de la rama «espera al aplicante» de In process.",
    "bloqueo": "",
    "evidencia": [
     "migrations/0009_matches.sql:33-35",
