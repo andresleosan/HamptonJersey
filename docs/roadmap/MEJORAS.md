@@ -162,3 +162,5 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [SPR-03] Copiar los originales a una clave propia de captura (hoy apunta al r2_key de media: si alguien borra la foto, su descarga dice «not found») · 15-nov-2026
 - [SPR-03] Barrido de capturas queued en el reloj (si la comprobación de archivos falla justo tras confirmar, solo se termina con «Check files again») · 15-nov-2026
 - [SPR-03] Tomar las lecturas vigentes de la casa BUS-07 (hoy guarda solo la observación enlazada como evidencia) · 15-nov-2026
+- [SPR-03] Pasada del reloj para capturas queued (más de 40 archivos o un head fallido): `settleQueuedCaptures` ya existe, pero el Worker hampton-jobs no tiene binding al bucket hampton-media; añadirlo amplía lo que el reloj puede tocar (decisión de Luis, mínimo privilegio). Hoy terminan con «Check files again» · segunda revisión 15-nov · 15-nov-2026
+- [SPR-03] La ficha muestra el estado guardado («checked …») hasta pulsar «Check files again»; el cierre de tareas de captura al pasar a no disponible no escribe evento en el historial · segunda revisión 15-nov · 15-nov-2026
