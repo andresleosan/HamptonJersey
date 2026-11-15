@@ -377,9 +377,10 @@ export function enquiries(gates) {
   // email waits or was tried. Still queued: checked again and, if blocked, taken out of the queue unsent. Accepted by
   // the provider: sent, at that time. Uncertain: it waits for a person and is never sent again. Rejected, cancelled
   // or gone: back to a person. An email being sent right now is left for the next pass.
+  // ponytail: 50 a pass, in the pipeline's own order: more than the 20 emails it dispatches on one tick.
   async function settle(env) {
     const { results } = await env.DB.prepare(`SELECT c.*, o.status AS email_status, o.updated_at AS email_at, o.error_code AS email_error
-      FROM consultations c LEFT JOIN outbound o ON o.ref = c.email_ref WHERE c.status = 'queued' ORDER BY c.id LIMIT 50`).all();
+      FROM consultations c LEFT JOIN outbound o ON o.ref = c.email_ref WHERE c.status = 'queued' ORDER BY o.id LIMIT 50`).all();
     for (const { email_status: status, email_at, email_error, ...c } of results) {
       if (status === "sending") continue;
       if (status !== "queued") await env.DB.batch(status === "accepted" ? emailed(env, c, "system", "sent_by_email", email_at)
