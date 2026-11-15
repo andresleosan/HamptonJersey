@@ -4,10 +4,10 @@
   "titulo": "Confirmación de alta y activación de búsqueda sin promesas de disponibilidad",
   "origen": "plan",
   "fase": "F0",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "El acuse del formulario dice que las búsquedas nuevas quedan activas al momento, qué hace el equipo después y que habrá contacto en un día laborable, sin prometer disponibilidad. Es idéntico para alta nueva, repetida, alquiler y compra a la vez, y comercial: la respuesta 201 {ok:true} y sus cabeceras no cambian aunque haya coincidencias o el contacto ya exista. Cada búsqueda nueva queda activa y con su primera búsqueda registrada (EST-01). En Requirements, «Details to confirm» muestra al equipo los esenciales pendientes: en residencial, imprescindibles sin respuesta y prioridades por confirmar; en comercial, lo que el motor compara y el cliente no dio (propiedad o negocio, zona, uso, precio según operación, periodo de renta, unidad de superficie). Cada aviso lleva al campo; al guardar el dato desaparece.",
-  "falta": "Publicar en main; sin migración ni interruptor. De otras tareas: BUS-01 amplía la búsqueda al inventario común; el correo de acuse es de AUT-17; el estado y resultado de la búsqueda visibles para el cliente son del portal (AGE-12).",
+  "hecho": "El acuse del formulario dice que las búsquedas nuevas quedan activas al momento, qué hace el equipo después y que habrá contacto en un día laborable, sin prometer disponibilidad. Es idéntico para alta nueva, repetida, alquiler y compra a la vez, y comercial: la respuesta 201 {ok:true} y sus cabeceras no cambian aunque haya coincidencias o el contacto ya exista. Cada búsqueda nueva queda activa y con su primera búsqueda registrada (EST-01). En Requirements, «Details to confirm» muestra al equipo los esenciales pendientes: en residencial, imprescindibles sin respuesta y prioridades por confirmar; en comercial, lo que el motor compara y el cliente no dio (propiedad o negocio, zona, uso, precio según operación, periodo de renta, unidad de superficie). Cada aviso lleva al campo; al guardar el dato desaparece. Cerrada el 15-nov-2026: sin migración ni interruptor. La búsqueda contra el inventario común es de BUS-01, el correo de acuse de AUT-17 y el estado visible para el cliente del portal (AGE-12).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "site/apply.js:9-18",
@@ -32,7 +32,8 @@
     "Decisión: se conserva «within one working day». Fuente: F0 §5 y §9, docs/roadmap/work/REG-12/2026-11-13-plazo-acuse.md.",
     "Decisión: el acuse no lee search_run; el matching corre tras responder y leerlo distinguiría alta nueva de repetida. Fuente: spec L1 :37.",
     "Decisión: esenciales comerciales = criterios que compara server/matching.js (BUS-12); sin move_in_date porque el motor no lo compara. Fuente: encargo del lote 15-nov y spec L1 :41.",
-    "Revisión independiente 15-nov-2026: el acuse afirmaba «New searches are active» también a quien comparte teléfono o email con otro contacto, caso que el sistema trata como repetición y no crea búsqueda. Texto corregido para que sea cierto en todos los casos sin revelar si el contacto existía: «A new search is active straight away… If any of your contact details were registered with us before, the team will review this request alongside the earlier searches first.»"
+    "Revisión independiente 15-nov-2026: el acuse afirmaba «New searches are active» también a quien comparte teléfono o email con otro contacto, caso que el sistema trata como repetición y no crea búsqueda. Texto corregido para que sea cierto en todos los casos sin revelar si el contacto existía: «A new search is active straight away… If any of your contact details were registered with us before, the team will review this request alongside the earlier searches first.»",
+    "Cierre 15-nov-2026: publicada en 62dfcf5; npm test 2603/2603, build y check:release; tests/reg12-registration.e2e.cjs pasa a 1280 y 390; revisión independiente: respuesta idéntica byte a byte para contacto nuevo y repetido en las nueve variantes; halló que el acuse era falso para quien comparte teléfono o email con otro contacto, corregido antes de publicar."
   ],
   "modulo": "M03",
   "deps": [
@@ -66,6 +67,6 @@
     "applicants-schema",
     "requirements-contract"
   ],
-  "nextStep": "Integrar en main, desplegar y comprobar el acuse público con una lectura de site/apply.js en producción.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

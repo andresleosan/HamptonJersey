@@ -4,10 +4,10 @@
   "titulo": "Indisponibilidad confirmada con alcance y propagación a gestiones",
   "origen": "plan",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Poner la ficha en Withdrawn, Sold o Under offer, archivarla o apagar Offer to applicants borra sus matches Found de todos los aplicantes, y los Shortlisted muestran la insignia de su disponibilidad. Construido el 15-nov tras EST15_UNAVAILABILITY_READY (necesita EST-16 encendida y la migración 0076): al registrar «Not available» en Confirmed availability se pide el motivo (vendida, alquilada, bajo oferta, retirada por el propietario, otro) y queda con fecha, origen, canal, evidencia, responsable y alcance (toda la propiedad o solo su operación). Mientras esa confirmación está vigente, la ficha no se propone como match nuevo para la operación afectada y sus Found se retiran igual que al pasar a Withdrawn; los Shortlisted se conservan con su decisión y la tarjeta dice «Confirmed not available». Cada visita futura Requested o Confirmed de la ficha recibe una tarea en el Inbox que abre la visita, una sola abierta por visita; no se cancela ninguna visita ni se envía nada a clientes. La ficha no cambia de estado publicado ni se archiva. Solo una confirmación posterior de una persona (Available o Unknown) vuelve a proponerla: guardar la ficha, recalcular, una búsqueda nueva o un anuncio no la reabren. Una confirmación de otra operación, una más antigua que la vigente o dos del mismo momento que se contradicen no excluyen nada. Apagado el interruptor todo funciona como antes. Queda además un cálculo puro por anunciante y publicación, desconectado.",
-  "falta": "Integrar en main, aplicar la migración 0076 (aditiva: una columna) y encender EST15_UNAVAILABILITY_READY en wrangler.toml; comprobar el recorrido en producción con lecturas. Trasladado a otras tareas: papelera y purga (EST-19); la consulta a agencias debe añadir availableToAsk a APPROVED y CLARIFICATION_APPROVED (AGE-03); la pasada diaria debe leer el mismo interruptor en jobs/wrangler.toml y abrir revisión, sin reabrir, si un anuncio sigue visible tras la confirmación (BUS-08); alcance por anunciante o publicación para casas del inventario de mercado (SPR-07).",
+  "hecho": "Poner la ficha en Withdrawn, Sold o Under offer, archivarla o apagar Offer to applicants borra sus matches Found de todos los aplicantes, y los Shortlisted muestran la insignia de su disponibilidad. Construido el 15-nov tras EST15_UNAVAILABILITY_READY (necesita EST-16 encendida y la migración 0076): al registrar «Not available» en Confirmed availability se pide el motivo (vendida, alquilada, bajo oferta, retirada por el propietario, otro) y queda con fecha, origen, canal, evidencia, responsable y alcance (toda la propiedad o solo su operación). Mientras esa confirmación está vigente, la ficha no se propone como match nuevo para la operación afectada y sus Found se retiran igual que al pasar a Withdrawn; los Shortlisted se conservan con su decisión y la tarjeta dice «Confirmed not available». Cada visita futura Requested o Confirmed de la ficha recibe una tarea en el Inbox que abre la visita, una sola abierta por visita; no se cancela ninguna visita ni se envía nada a clientes. La ficha no cambia de estado publicado ni se archiva. Solo una confirmación posterior de una persona (Available o Unknown) vuelve a proponerla: guardar la ficha, recalcular, una búsqueda nueva o un anuncio no la reabren. Una confirmación de otra operación, una más antigua que la vigente o dos del mismo momento que se contradicen no excluyen nada. Apagado el interruptor todo funciona como antes. Queda además un cálculo puro por anunciante y publicación, desconectado. Cerrada el 15-nov-2026: migración 0076 aplicada y EST15_UNAVAILABILITY_READY=1. La ficha no se archiva ni cambia de estado publicado y no se cancela ninguna visita: el equipo decide. La papelera es de EST-19, las respuestas de agencias de AGE-06 y las casas del inventario de mercado de SPR-07.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/property-facts.js: regla de la confirmación vigente en SQL (unavailabilityReady, standsUnavailable, notConfirmedUnavailable)",
@@ -31,7 +31,9 @@
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
     "server/est-15-scoped-unavailability.js",
     "tests/server/est-15-scoped-unavailability.test.mjs",
-    "docs/roadmap/work/EST-15/scoped-calculation-evidence.md"
+    "docs/roadmap/work/EST-15/scoped-calculation-evidence.md",
+    "Cierre 15-nov-2026: publicada en 62dfcf5; 0076 (un ADD COLUMN, aditiva) aplicada en producción tras marcador Time Travel y antes de encender; npm test 2603/2603; tests/est15-unavailability.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (265 sentencias SQL idénticas con el interruptor apagado; 6.000 casos aleatorios sin discrepancia entre la regla en SQL y la de la tarjeta; Shortlisted y Rejected intactos).",
+    "La puerta availableToAsk (server/routes/matches.js) deja fuera de las consultas a una ficha con indisponibilidad confirmada vigente; la usa AGE-03."
   ],
   "modulo": "M12",
   "deps": [
@@ -81,6 +83,6 @@
     "events-contract",
     "notifications-schema"
   ],
-  "nextStep": "Integrar el commit, aplicar 0076, encender EST15_UNAVAILABILITY_READY y comprobar con lecturas; después cerrar.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }
