@@ -149,6 +149,7 @@ test('A03: bounded indexed reads with 10000 property and 10000 unrelated events'
 import sys,json,sqlite3,base64,time
 d=json.load(sys.stdin)
 db=sqlite3.connect(':memory:'); db.deserialize(base64.b64decode(d['db']))
+db.execute('SELECT count(*) FROM sqlite_master').fetchall()  # load the schema first: count only the history query, not every table
 steps=[0]
 def tick():
  steps[0]+=1
