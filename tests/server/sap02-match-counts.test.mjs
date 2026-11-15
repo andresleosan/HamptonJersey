@@ -110,7 +110,7 @@ async function everyState(flags) {
   await prepare(env, id.ana, H6, agency);
   const asked = await prepare(env, id.ben, H5, agency, "clarification");
   ok(await req(env, "POST", `/admin/consultations/${asked.id}/manual-send`, { operation_id: randomUUID(), revision: asked.revision,
-    sent_at: "2026-11-10T09:30:00.000Z", via: "phone", evidence_ref: "Call note FIXTURE-EVIDENCE" }));
+    sent_at: new Date().toISOString(), via: "phone", evidence_ref: "Call note FIXTURE-EVIDENCE" }));
   const answered = await prepare(env, id.fay, H3, agency);
   run(env, "UPDATE consultations SET status = 'answered' WHERE id = ?", answered.id);
   // Afterwards: Cat's criteria change, Dee's search stops being active and H6 goes under offer.
