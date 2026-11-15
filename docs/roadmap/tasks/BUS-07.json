@@ -6,15 +6,24 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Luis respondió el 23-oct (A4): se comercializan con la agencia que tiene el encargo. Las fichas HE-R028 a HE-R285 entraron archivadas, la migración 0009 las ofrece a los aplicantes y su tarjeta dice «Not on website».",
-  "falta": "M02 · Reconciliación 7-nov: Vincular las fichas importadas con su anunciante, publicaciones y procedencia, y someter las consultas al circuito aprobado AGE-03. Conservar las autorizaciones históricas documentadas sin extenderlas a nuevas capturas. El reparto de comisión es una gestión humana separada y no bloquea inventario, contacto o visita; nuevas fotos siguen AGE-10. Depende de: BUS-10, AGE-04. Traído de BUS-10 (15-nov): enlazar las fichas propias y las 264 co-listed con su casa de mercado (hoy solo se unen observaciones del inventario; ninguna ficha listings entra en él) y añadir «fuentes leídas» al historial de la ficha (SPR-02, contrato EST-18). Traído de SPR-08 (15-nov): al enlazar una ficha con su casa de mercado, sumar sus publicaciones vivas (fuente, precio y fecha observados) a la sección Adverts de la ficha (admin/src/PropertySections.jsx), que hoy solo lista las fuentes congeladas de la investigación importada.",
+  "hecho": "Luis respondió el 23-oct (A4): se comercializan con la agencia que tiene el encargo. Las fichas HE-R028 a HE-R285 entraron archivadas, la migración 0009 las ofrece a los aplicantes y su tarjeta dice «Not on website». Construido el 15-nov-2026 (migración 0081, interruptor BUS07_PROVENANCE_READY apagado): cada ficha dice su procedencia, «Hampton» o «Co-listed · <anunciante>», derivada del directorio AGE-04 (listing_ids o source_ids, la misma regla que los destinatarios de AGE-03) o, sin él, de la importación del 8-oct (proveedor de sus fotos importadas o rango HE-R028–HE-R285); se corrige en Advertisers. La sección Adverts muestra esa procedencia, el permiso de fotos registrado tal cual (cubre solo esas fotos) y un enlace opcional con una casa del inventario de mercado, hecho y deshecho por una persona con quién y cuándo (listing_market_links, solo añadir), que suma los anuncios vivos de esa casa (fuente, precio y fecha observados) sin fusionar nada ni acreditar disponibilidad. Una prueba fija que solo AGE-03 contacta con la agencia.",
+  "falta": "Aplicar en producción la migración 0081 (aditiva), encender BUS07_PROVENANCE_READY y comprobar con GET la procedencia de las fichas importadas. El enlace con una casa de mercado solo podrá comprobarse en producción cuando el inventario tenga anuncios reales (BUS-06). El reparto de comisión es gestión humana fuera de la app y no bloquea.",
   "bloqueo": "",
   "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
     "migrations/0009_matches.sql:18",
     "admin/src/MatchCard.jsx:33-46",
     "scripts/import_agencies.py:176",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "server/listing-provenance.js",
+    "migrations/0081_listing_market_links.sql",
+    "admin/src/PropertySections.jsx (Source, permiso de fotos y Market home en Adverts)",
+    "tests/server/bus-07-provenance.test.mjs: 7/7 el 15-nov (apagado igual que antes, procedencia, enlace y deshacer, solo AGE-03)",
+    "tests/bus07-provenance.e2e.cjs: pasa a 1280 y 390 en el contenedor aislado el 15-nov",
+    "Decisión: procedencia derivada y corregible en el directorio AGE-04, sin tabla propia. Fuente: skill §4 punto 5 y regla OF_PROPERTY de server/consultations.js.",
+    "Decisión: el enlace guarda la casa del anuncio elegido y lee su raíz al vuelo, para seguir las decisiones de BUS-10 y sus deshacer. Fuente: migraciones 0050 y 0068; reconciliación 7-nov M02 («enlazar catálogo propio sin republicar terceros»).",
+    "Decisión: autorizaciones históricas = rights_status de las fotos importadas y photo_permission del directorio, mostradas tal cual, sin permiso nuevo. Fuente: falta de BUS-07 y AGE-10.",
+    "Decisión: comisión fuera de la app. Fuente: reconciliación 7-nov M02."
   ],
   "modulo": "M02",
   "deps": [
@@ -47,6 +56,6 @@
     "advertisers-contract",
     "listings-schema"
   ],
-  "nextStep": "Vincular las fichas importadas con anunciante y procedencia, conservando el alcance de permisos históricos.",
+  "nextStep": "Aplicar 0081, encender BUS07_PROVENANCE_READY y comprobar con GET /admin/listings la procedencia de las fichas importadas.",
   "actualizado": "2026-11-15"
 }
