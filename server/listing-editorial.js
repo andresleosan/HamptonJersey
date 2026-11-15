@@ -1,6 +1,6 @@
 import {fail,now,sha256} from './http.js';
 import {listingBatch,listingClock,updateListingEvent} from './listing-events.js';
-import {rentalClosureEnabled,unresolvedRentalClosure,startClosureGuard,startClosureStatements,correctionGuard,correctionStatements} from './rental-closure.js';
+import {rentalClosureEnabled,unresolvedRentalClosure,startClosureGuard,startClosureStatements,correctionGuard,correctionStatements,reopenStatements} from './rental-closure.js';
 
 export const editorialState = l => l.archived_at ? 'archived' : l.published ? 'published'
   : l.review_requested_at ? 'ready_for_review' : 'draft';
@@ -66,9 +66,11 @@ export async function recordRentalMarketingState(env,{id,command,actor}) {
   const allowed=c.action==='return_to_market'?['let_agreed','let']:c.action==='let'?['to_let','lease','not_stated','let_agreed']:['to_let','lease','not_stated'];
   if(listing.archived_at||!allowed.includes(listing.availability))fail(409,'The rental state changed. Reload before trying again.');
   const closure=timed ? await unresolvedRentalClosure(env,id) : null;
-  if(closure && closure.state!=='open')fail(409,'A previous rental withdrawal needs review before further marketing changes.');
+  // After a withdrawal only Return to market goes on: the listing stays unpublished and is published again as usual.
+  const reopening=timed && c.action==='return_to_market' && closure?.state==='withdrawn';
+  if(closure && closure.state!=='open' && !reopening)fail(409,'A previous rental withdrawal needs review before further marketing changes.');
   if(timed && c.action==='let' && closure)fail(409,'A rental closure is already recorded. Reload the listing.');
-  const starting=timed && c.action==='let', correcting=timed && c.action==='return_to_market' && !!closure;
+  const starting=timed && c.action==='let', correcting=timed && c.action==='return_to_market' && closure?.state==='open';
   const preconditions=starting ? [startClosureGuard(env,id,listing)] : correcting ? [correctionGuard(env,id,closure)] : [];
   const additional=[];
   for(const ref of c.evidence_refs){
@@ -96,6 +98,7 @@ export async function recordRentalMarketingState(env,{id,command,actor}) {
   if(starting) additional.push(...startClosureStatements(env,{id,closureId:await sha256(JSON.stringify([id,actor,c.request_id])),
     listing,appliedConfirmedAt:c.occurred_at}));
   if(correcting) additional.push(...correctionStatements(env,id,closure));
+  if(reopening) additional.push(...reopenStatements(env,id,closure));
   const patch=correcting ? {availability:closure.previous_availability,confirmed_at:closure.previous_confirmed_at}
     : {availability:starting?'let_agreed':c.action==='return_to_market'?'to_let':c.action,confirmed_at:c.occurred_at};
   try{return await updateListingEvent(env,{id,actor,source:'panel',action:'availability_changed',

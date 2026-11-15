@@ -1,13 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
 import {makeEnv,seedListing,seedMedia,adminCookie,call,T0} from './helpers.mjs';
 import * as jobs from '../../server/rental-closure-job.js';
 
-const proposal=readFileSync(new URL('../../docs/roadmap/work/PUB-16/rental-closure.proposed.sql',import.meta.url),'utf8');
 const get=(env,sql,...args)=>env.DB.raw.prepare(sql).get(...args);
 async function setup() {
-  const env=makeEnv(); env.DB.raw.exec(proposal);env.PUB16_TIMED_CLOSURE_READY='1';
+  const env=makeEnv(); env.PUB16_TIMED_CLOSURE_READY='1';
   seedListing(env,{operation:'rent',availability:'to_let',published:1});
   seedMedia(env,{kind:'document',public:0});
   const version=get(env,"SELECT updated_at FROM listings WHERE id='HE-R001'").updated_at;
@@ -140,4 +138,52 @@ test('a bounded page of repeated failures does not starve a later due closure',a
   const visibility=raw.prepare(`EXPLAIN QUERY PLAN SELECT closure_id FROM rental_closure_windows
     WHERE listing_id=? AND COALESCE(state,'') NOT IN ('corrected','withdrawn')`).all('HE-R027').map(row=>row.detail).join(' ');
   assert.match(visibility,/rental_closure_listing/);
+});
+
+// After the 24 hours: the other viewings of the property, booked before it was let or sold, each get one Inbox task.
+// Nothing is cancelled or sent: cancelling and telling the client is the team's until AUT-17 can send the notice.
+const TOMORROW=new Date(Date.now()+2*86400000).toISOString().slice(0,10);
+const viewing=(env,o={})=>String(env.DB.raw.prepare(`INSERT INTO viewing_requests(listing_id,kind,date,time,end_time,name,email,status,created_at)
+  VALUES('HE-R001','In person',?,'10:00','10:30',?,'client@example.test',?,?)`)
+  .run(o.date??TOMORROW,o.name??'Synthetic client',o.status??'confirmed',o.created_at??T0).lastInsertRowid);
+const tasks=env=>env.DB.raw.prepare(`SELECT e.entity_id AS viewing,n.title,n.category,n.action_required FROM notifications n
+  JOIN events e ON e.id=n.event_id WHERE e.type='viewing.property_closed' ORDER BY CAST(e.entity_id AS INTEGER)`).all().map(t=>({...t}));
+const task=(viewing,title)=>({viewing,title,category:'task',action_required:1});
+const untouched=env=>JSON.stringify(env.DB.raw.prepare('SELECT * FROM viewing_requests').all());
+
+test('24 hours after a rental is let, each upcoming viewing booked before it gets one task; nothing is cancelled or sent',async()=>{
+  const env=await setup(),w=get(env,"SELECT * FROM rental_closure_windows WHERE state='open'");
+  const a=viewing(env,{name:'Ana Synthetic'}),b=viewing(env,{status:'requested',name:'Ben Synthetic'});
+  viewing(env,{status:'cancelled'});viewing(env,{date:'2020-01-01'});viewing(env,{created_at:'2999-01-01T00:00:00.000Z'});
+  const before=untouched(env),changeClock=dbClock(env,new Date(Date.parse(w.due_at)-1).toISOString());
+  await jobs.processExpiredRentalClosures(env);assert.deepEqual(tasks(env),[]);
+  changeClock(w.due_at);await jobs.processExpiredRentalClosures(env);
+  assert.deepEqual(tasks(env),[task(a,'Property let, cancel the viewing: Ana Synthetic'),task(b,'Property let, cancel the viewing: Ben Synthetic')]);
+  await jobs.processExpiredRentalClosures(env);assert.equal(tasks(env).length,2,'once per viewing');
+  assert.equal(untouched(env),before);
+  assert.equal(get(env,"SELECT COUNT(*) AS n FROM notifications WHERE category IN ('viewing','new_applicant')").n,0);
+  // They reach the Inbox and open their viewing.
+  const inbox=await call(env,'GET','/admin/notifications?box=action&category=task',{cookie:await adminCookie()});
+  assert.deepEqual(inbox.data.notifications.filter(n=>n.title.startsWith('Property let')).map(n=>n.link).sort(),
+    [`#/viewings?viewing=${a}`,`#/viewings?viewing=${b}`]);
+});
+
+test('a corrected rental gives no viewing task',async()=>{
+  const env=await setup(),w=get(env,"SELECT * FROM rental_closure_windows WHERE state='open'");viewing(env);
+  env.DB.raw.prepare("UPDATE rental_closure_windows SET state='corrected',corrected_at=? WHERE closure_id=?").run(T0,w.closure_id);
+  dbClock(env,w.due_at);await jobs.processExpiredRentalClosures(env);assert.deepEqual(tasks(env),[]);
+});
+
+test('a completed sale gives the same tasks only 24 hours after it closed',async()=>{
+  const env=makeEnv();env.PUB16_TIMED_CLOSURE_READY='1';seedListing(env,{operation:'sale',availability:'sold',published:1});
+  env.DB.raw.exec('PRAGMA foreign_keys=OFF');
+  const closed='2026-10-08T10:00:00.000Z';
+  env.DB.raw.prepare(`INSERT INTO sales(listing_id,applicant_id,offer_id,price,status,closed_at,created_at,updated_at)
+    VALUES('HE-R001',1,1,500000,'completed',?,?,?)`).run(closed,T0,closed);
+  const v=viewing(env,{name:'Cal Synthetic'}),before=untouched(env);
+  const changeClock=dbClock(env,'2026-10-09T09:59:59.999Z');
+  await jobs.processExpiredRentalClosures(env);assert.deepEqual(tasks(env),[]);
+  changeClock('2026-10-09T10:00:00.000Z');await jobs.processExpiredRentalClosures(env);
+  assert.deepEqual(tasks(env),[task(v,'Property sold, cancel the viewing: Cal Synthetic')]);
+  assert.equal(untouched(env),before);
 });

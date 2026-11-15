@@ -1,10 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
 import {makeEnv,seedListing,seedMedia,adminCookie,call,T0} from './helpers.mjs';
 import {listingBatch} from '../../server/listing-events.js';
 
-const proposal=readFileSync(new URL('../../docs/roadmap/work/PUB-16/rental-closure.proposed.sql',import.meta.url),'utf8');
 const get=(env,sql,...args)=>env.DB.raw.prepare(sql).get(...args);
 const run=(env,sql,...args)=>env.DB.raw.prepare(sql).run(...args);
 const listing=env=>get(env,"SELECT * FROM listings WHERE id='HE-R001'");
@@ -12,7 +10,7 @@ const window=env=>get(env,"SELECT * FROM rental_closure_windows WHERE listing_id
 async function setup({enabled=true,...over}={}) {
   const env=makeEnv(); seedListing(env,{operation:'rent',availability:'to_let',published:1,viewings_enabled:1,...over});
   seedMedia(env,{kind:'document',public:0});
-  if(enabled){env.DB.raw.exec(proposal);env.PUB16_TIMED_CLOSURE_READY='1';}
+  if(enabled){env.PUB16_TIMED_CLOSURE_READY='1';}
   return {env,cookie:await adminCookie()};
 }
 const command=(env,over={})=>({request_id:crypto.randomUUID(),updated_at:listing(env).updated_at,
@@ -131,7 +129,7 @@ test('a correction crossing the boundary before its final write rolls everything
   assert.deepEqual({...window(env)},existing);assert.equal(get(env,'SELECT COUNT(*) AS n FROM events').n,events);
 });
 
-test('proposal prevents replacement of an open window with recursive triggers disabled',async()=>{
+test('the schema prevents replacement of an open window with recursive triggers disabled',async()=>{
   const {env,cookie}=await setup();assert.equal((await send(env,cookie,command(env))).status,200);
   const before={...window(env)};env.DB.raw.exec('PRAGMA recursive_triggers=OFF');
   assert.throws(()=>env.DB.raw.exec("INSERT OR REPLACE INTO rental_closure_windows SELECT * FROM rental_closure_windows WHERE listing_id='HE-R001'"),/already exists/);

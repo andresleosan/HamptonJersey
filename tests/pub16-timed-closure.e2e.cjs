@@ -1,31 +1,25 @@
-// Synthetic local-only fixture; execute exclusively with test:e2e:isolated.
+// Synthetic local-only fixture: E2E_PRODUCTION_READONLY=0 E2E_SCRIPT=tests/pub16-timed-closure.e2e.cjs npm run test:e2e:isolated
+// (run-e2e.cjs switches PUB16_TIMED_CLOSURE_READY on for it; migration 0087 is in the fixture's migrations).
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PW || 'playwright-core');
-const { mkdtempSync, readFileSync, writeFileSync, rmSync } = require('node:fs');
-const { tmpdir } = require('node:os');
+const { readFileSync } = require('node:fs');
 const { join, dirname } = require('node:path');
 const { parseEnv } = require('node:util');
 const { execFileSync } = require('node:child_process');
-const { startFixture } = require('./serve-e2e.cjs');
 
 (async () => {
   assert.equal(process.env.HAMPTON_E2E_ISOLATED, '1');
   assert.equal(process.env.E2E_PRODUCTION_READONLY, '0');
   assert.ok(process.env.E2E_PERSIST?.startsWith('/tmp/') && process.env.E2E_VARS?.startsWith('/tmp/'));
-  const temporary = mkdtempSync(join(tmpdir(), 'pub16-browser-'));
-  const varsFile = join(temporary, 'fixture.vars');
-  writeFileSync(varsFile, readFileSync(process.env.E2E_VARS, 'utf8') + '\nPUB16_TIMED_CLOSURE_READY=1\n', { mode: 0o600 });
-  const vars = parseEnv(readFileSync(varsFile, 'utf8'));
+  const vars = parseEnv(readFileSync(process.env.E2E_VARS, 'utf8'));
+  assert.equal(vars.PUB16_TIMED_CLOSURE_READY, '1');
   const wrangler = join(dirname(require.resolve('wrangler')), '..', 'bin', 'wrangler.js');
-  const execute = args => execFileSync(process.execPath, [wrangler, 'd1', 'execute', 'hampton', '--local',
-    '--persist-to', process.env.E2E_PERSIST, ...args], { stdio: 'pipe' });
-  const sql = statement => execute(['--command', statement]);
+  const sql = statement => execFileSync(process.execPath, [wrangler, 'd1', 'execute', 'hampton', '--local',
+    '--persist-to', process.env.E2E_PERSIST, '--command', statement], { stdio: 'pipe' });
   const { signSession, COOKIE } = await import('../server/auth.js');
-  let server, browser;
+  let browser;
   try {
-    execute(['--file', 'docs/roadmap/work/PUB-16/rental-closure.proposed.sql']);
-    server = await startFixture({ persist: process.env.E2E_PERSIST, varsFile, port: 0 });
-    const base = server.url;
+    const base = new URL(process.env.BASE);
     assert.ok(['127.0.0.1', 'localhost', '[::1]'].includes(base.hostname));
     browser = await chromium.launch({ executablePath: process.env.CHROME });
     for (const width of [1280, 390]) {
@@ -88,8 +82,32 @@ const { startFixture } = require('./serve-e2e.cjs');
         const pageResponse = await publicPage.goto(new URL('p/HE-R002', base).href);
         assert.equal(pageResponse.status(), 404);
         assert.ok(!(await publicPage.locator('body').innerText()).includes('Trinity rental'));
+        await publicPage.close();
+
+        // Withdrawn by the clock (synthetic), then Return to market from the panel: to let, still off the website
+        // until the team publishes it again.
+        sql(`UPDATE rental_closure_windows SET state='withdrawn',withdrawn_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE closure_id='expired-${width}';
+          UPDATE listings SET published=0 WHERE id='HE-R002';`);
+        await page.reload();
+        await form.locator('strong').filter({ hasText: 'Let agreed' }).waitFor();
+        await form.getByLabel('Marketing action').selectOption('return_to_market');
+        await form.getByLabel('Reason').selectOption('fell_through');
+        await form.getByLabel('Date of confirmation').fill(day);
+        await form.getByLabel('Recorded evidence').selectOption('source:PUB16-EVIDENCE');
+        await submit.click();
+        await page.getByRole('status').filter({ hasText: 'Rental marketing state recorded.' }).waitFor();
+        await form.locator('strong').filter({ hasText: 'To let' }).waitFor();
+        response = await anonymous.request.get(new URL('api/listings', base).href);
+        assert.ok(!(await response.json()).some(x => x.id === 'HE-R002'), 'reopened, not yet published');
+        sql("UPDATE listings SET published=1 WHERE id='HE-R002';");
+        response = await anonymous.request.get(new URL('api/listings', base).href);
+        const back = (await response.json()).find(x => x.id === 'HE-R002');
+        assert.ok(back && back.status !== 'Let agreed', 'published again, on the market');
+        assert.equal((await anonymous.newPage().then(p => p.goto(new URL('p/HE-R002', base).href))).status(), 200);
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
         assert.deepEqual(errors, []);
-        console.log(`PUB-16 ${width}px: correction and expired public visibility passed.`);
+        console.log(`PUB-16 ${width}px: correction, expired public visibility and reopening passed.`);
       } finally {
         await anonymous.close();
         await context.close();
@@ -97,7 +115,5 @@ const { startFixture } = require('./serve-e2e.cjs');
     }
   } finally {
     if (browser) await browser.close();
-    if (server) await server.close();
-    rmSync(temporary, { recursive: true, force: true });
   }
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

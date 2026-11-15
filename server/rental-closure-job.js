@@ -1,6 +1,7 @@
 import {updateListingEvent} from './listing-events.js';
 import {taskStatements} from './notification-tasks.js';
 import {rentalClosureEnabled} from './rental-closure.js';
+import {jerseyNow} from './viewings.js';
 
 const DB_NOW="strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 const key=id=>`pub16:withdrawal:${id}`;
@@ -86,5 +87,31 @@ export async function processExpiredRentalClosures(env) {
   const last=rows.length===25?rows.at(-1):null;
   await env.DB.prepare(`UPDATE rental_closure_cursor SET after_due=?,after_id=?,revision=revision+1
     WHERE singleton=1 AND revision=?`).bind(last?.due_at??null,last?.closure_id??null,cursor.revision).run();
+  await closedViewingTasks(env);
   return {processed:rows.length,withdrawn,failed};
+}
+
+// Luis: 24 hours after a rental is let (its window withdrawn, so not corrected) or a sale completes, the other viewings
+// of the property still to come, booked before it, get one Inbox task each, as EST-15 does. The team cancels and tells
+// the client: nothing is cancelled or sent here until AUT-17 can send that notice. Once per viewing, 50 per tick.
+const CLOSED='viewing.property_closed';
+function closedViewingTasks(env) {
+  const clock=jerseyNow(),upcoming=`v.status IN ('requested','confirmed') AND v.date||' '||COALESCE(v.end_time,v.time)>=?`;
+  return env.DB.batch([
+    env.DB.prepare(`WITH closed(listing_id,at,what) AS (
+        SELECT listing_id,opened_at,'let' FROM rental_closure_windows WHERE state='withdrawn'
+        UNION ALL SELECT s.listing_id,s.closed_at,'sold' FROM sales s JOIN listings l ON l.id=s.listing_id
+          WHERE s.status='completed' AND l.availability='sold' AND s.closed_at<=strftime('%Y-%m-%dT%H:%M:%fZ',${DB_NOW},'-24 hours'))
+      INSERT INTO events(at,actor,entity_type,entity_id,type,data)
+      SELECT ${DB_NOW},'system','viewing',CAST(v.id AS TEXT),'${CLOSED}',json_object('listing_id',v.listing_id,'closed',MIN(c.what))
+      FROM closed c JOIN viewing_requests v ON v.listing_id=c.listing_id AND v.created_at<c.at
+      WHERE ${upcoming} AND NOT EXISTS(SELECT 1 FROM events e WHERE e.entity_type='viewing'
+        AND e.entity_id=CAST(v.id AS TEXT) AND e.type='${CLOSED}')
+      GROUP BY v.id ORDER BY v.id LIMIT 50`).bind(`${clock.date} ${clock.time}`),
+    env.DB.prepare(`INSERT INTO notifications(event_id,category,title,action_required,created_at)
+      SELECT e.id,'task',CASE json_extract(e.data,'$.closed') WHEN 'let' THEN 'Property let' ELSE 'Property sold' END
+        ||', cancel the viewing: '||v.name,1,e.at
+      FROM viewing_requests v JOIN events e ON e.entity_type='viewing' AND e.entity_id=CAST(v.id AS TEXT) AND e.type='${CLOSED}'
+      WHERE ${upcoming} AND NOT EXISTS(SELECT 1 FROM notifications n WHERE n.event_id=e.id)`).bind(`${clock.date} ${clock.time}`),
+  ]);
 }

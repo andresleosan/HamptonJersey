@@ -1,6 +1,6 @@
 import { isPublicMedia, publicMediaTypeAllowed } from "./visibility.js";
 import { currentAdmin } from "./auth.js";
-import { rentalClosureEnabled, rentalClosureVisibleSql } from './rental-closure.js';
+import { rentalClosureEnabled, rentalClosureVisibleSql, noUnresolvedRentalClosureSql } from './rental-closure.js';
 import { PRIVATE_DOCS } from './listing-documents.js';
 
 const notFound = () => new Response("Not found", { status: 404, headers: { "cache-control": "private, no-store" } });
@@ -51,7 +51,8 @@ async function inspectPublicBody(body) {
 }
 
 const loadRow = (env, id) => env.DB.prepare(
-  `SELECT m.*, l.published, l.archived_at${rentalClosureEnabled(env) ? `, (${rentalClosureVisibleSql('l')}) AS closure_visible` : ''}
+  `SELECT m.*, l.published, l.archived_at${rentalClosureEnabled(env) ? `, (${rentalClosureVisibleSql('l')}) AS closure_visible,
+     (${noUnresolvedRentalClosureSql('l')}) AS closure_free` : ''}
    FROM media m JOIN listings l ON l.id = m.listing_id WHERE m.id = ?`).bind(id).first();
 const selectedKey = (row, thumb) => thumb && row.thumb_key ? row.thumb_key : row.r2_key;
 const cancelBody = async body => { if (body instanceof ReadableStream && !body.locked) await body.cancel().catch(() => {}); };
@@ -105,6 +106,8 @@ export async function serveMedia(request, env, id) {
   }
   headers.set("etag", obj.httpEtag);
   headers.set("x-content-type-options", "nosniff");
-  headers.set("cache-control", pub ? (rentalClosureEnabled(env) ? "no-store" : "public, max-age=86400") : "private, no-store");
+  // PUB-16: only a listing with a closure window is not cached. A copy from before the window expires before its deadline.
+  headers.set("cache-control", pub ? (rentalClosureEnabled(env) && latest.closure_free !== 1 ? "no-store" : "public, max-age=86400")
+    : "private, no-store");
   return new Response(body, { headers });
 }

@@ -1,24 +1,26 @@
-// PUB-16: this proposed schema is never read unless explicitly enabled after deployment review.
+// PUB-16: the schema of migration 0087 is never read unless PUB16_TIMED_CLOSURE_READY is on.
 export const rentalClosureEnabled = env => env.PUB16_TIMED_CLOSURE_READY === '1';
 const DB_NOW = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 const ABORT = `INSERT INTO listing_event_context(listing_id) SELECT NULL
   WHERE EXISTS(SELECT 1 FROM listing_event_context WHERE listing_id=?)`;
+// Corrected and reopened windows are over; any other state, even an unknown one, keeps the listing closed.
+const RESOLVED="('corrected','reopened')";
 
 export const unresolvedRentalClosure = (env,id) => env.DB.prepare(`SELECT * FROM rental_closure_windows
-  WHERE listing_id=? AND state IS NOT 'corrected'
+  WHERE listing_id=? AND COALESCE(state,'') NOT IN ${RESOLVED}
   ORDER BY CASE WHEN state='open' THEN 1 ELSE 0 END,opened_at DESC LIMIT 1`).bind(id).first();
 
 // A missing, invalid or expired deadline is never a reason to expose a pending closure.
-// A withdrawn window stays closed even if another writer republishes the listing: reopening
-// after withdrawal needs an explicitly designed and recorded transition that does not exist yet.
+// A withdrawn window stays closed even if another writer republishes the listing, until a person returns the rental
+// to market with evidence (reopenStatements): it is then unpublished and to let, and is published again as usual.
 export const rentalClosureVisibleSql = alias => `NOT EXISTS (SELECT 1 FROM rental_closure_windows w
-  WHERE w.listing_id=${alias}.id AND COALESCE(w.state,'')<>'corrected' AND
+  WHERE w.listing_id=${alias}.id AND COALESCE(w.state,'') NOT IN ${RESOLVED} AND
     (w.state IS NOT 'open' OR w.opened_at IS NULL OR w.due_at IS NULL
       OR w.opened_at IS NOT strftime('%Y-%m-%dT%H:%M:%fZ',w.opened_at,'+0 seconds')
       OR w.due_at IS NOT strftime('%Y-%m-%dT%H:%M:%fZ',w.opened_at,'+24 hours') OR w.due_at<=${DB_NOW}))`;
 
 export const noUnresolvedRentalClosureSql = alias => `NOT EXISTS (SELECT 1 FROM rental_closure_windows w
-  WHERE w.listing_id=${alias}.id AND COALESCE(w.state,'')<>'corrected')`;
+  WHERE w.listing_id=${alias}.id AND COALESCE(w.state,'') NOT IN ${RESOLVED})`;
 
 // Called inside updateListingEvent's transaction, after the operation context has been created. The snapshot
 // includes fields whose writers may deliberately leave updated_at untouched (notably confirmed_at).
@@ -36,7 +38,7 @@ export function startClosureStatements(env,{id,closureId,listing,appliedConfirme
     previous_availability,previous_published,previous_viewings_enabled,previous_confirmed_at,applied_confirmed_at,applied_updated_at)
     SELECT ?,?,(SELECT e.id FROM events e WHERE e.entity_type='listing' AND e.entity_id=c.listing_id
       AND CAST(json_extract(e.data,'$.revision') AS INTEGER)>c.previous_revision ORDER BY e.id DESC LIMIT 1),
-      'open',${DB_NOW},strftime('%Y-%m-%dT%H:%M:%fZ','now','+24 hours'),?,?,?,?,?,l.updated_at
+      'open',${DB_NOW},strftime('%Y-%m-%dT%H:%M:%fZ',${DB_NOW},'+24 hours'),?,?,?,?,?,l.updated_at
     FROM listing_event_context c JOIN listings l ON l.id=c.listing_id WHERE c.listing_id=?
       AND NOT EXISTS(SELECT 1 FROM rental_closure_windows w WHERE w.listing_id=c.listing_id AND w.state='open')`)
     .bind(closureId,id,listing.availability,listing.published,listing.viewings_enabled,listing.confirmed_at,appliedConfirmedAt,id);
@@ -64,4 +66,13 @@ export function correctionStatements(env,id,closure) {
     .bind(closure.closure_id,id,id);
   const guard=env.DB.prepare(`${ABORT} AND changes()=0`).bind(id);
   return [update,guard];
+}
+
+// Return to market after a withdrawal, in the same transaction as the listing's own change.
+export function reopenStatements(env,id,closure) {
+  const update=env.DB.prepare(`UPDATE rental_closure_windows SET state='reopened',reopened_at=${DB_NOW}
+    WHERE closure_id=? AND listing_id=? AND state='withdrawn'
+      AND EXISTS(SELECT 1 FROM listing_event_context WHERE listing_id=?)`)
+    .bind(closure.closure_id,id,id);
+  return [update,env.DB.prepare(`${ABORT} AND changes()=0`).bind(id)];
 }

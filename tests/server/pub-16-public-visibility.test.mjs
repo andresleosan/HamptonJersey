@@ -7,7 +7,6 @@ import {listingPage,sitemapResponse} from '../../server/seo.js';
 import {bookStatement} from '../../server/viewing-store.js';
 import {processExpiredRentalClosures} from '../../server/rental-closure-job.js';
 
-const proposal=readFileSync(new URL('../../docs/roadmap/work/PUB-16/rental-closure.proposed.sql',import.meta.url),'utf8');
 const photo=readFileSync(new URL('../fixtures/photo.jpg',import.meta.url));
 const get=(env,sql,...args)=>env.DB.raw.prepare(sql).get(...args);
 async function setup(enabled=true) {
@@ -15,7 +14,7 @@ async function setup(enabled=true) {
   seedMedia(env,{id:'A00001',kind:'photo',public:1,r2_key:'synthetic/photo.jpg',thumb_key:null,content_type:'image/jpeg'});
   seedMedia(env,{id:'A00002',kind:'document',public:0,r2_key:'synthetic/document.pdf'});
   await env.MEDIA.put('synthetic/photo.jpg',photo,{httpMetadata:{contentType:'image/jpeg'}});
-  if(enabled){env.DB.raw.exec(proposal);env.PUB16_TIMED_CLOSURE_READY='1';}
+  if(enabled){env.PUB16_TIMED_CLOSURE_READY='1';}
   return {env,cookie:await adminCookie()};
 }
 async function close(env,cookie) {
@@ -33,7 +32,7 @@ function dbClock(env,initial) {
 const media=env=>serveMedia(new Request('https://hampton.test/media/A00001'),env,'A00001');
 const page=env=>listingPage(new Request('https://hampton.test/p/HE-R001'),env,'HE-R001');
 
-test('gate off preserves the existing cache contract without consulting the proposed table',async()=>{
+test('gate off preserves the existing cache contract without consulting the closure table',async()=>{
   const {env}=await setup(false);
   assert.match((await call(env,'GET','/listings')).headers.get('cache-control'),/max-age=60/);
   assert.match((await media(env)).headers.get('cache-control'),/max-age=86400/);
@@ -68,8 +67,8 @@ test('if the deadline passes during asynchronous public projection, the response
   assert.equal(Array.isArray(result.data),false);
 });
 
-test('enabled mode without its proposed schema cannot expose an unchecked listing or media',async()=>{
-  const {env}=await setup(false);env.PUB16_TIMED_CLOSURE_READY='1';
+test('enabled mode without its schema (migration 0087) cannot expose an unchecked listing or media',async()=>{
+  const {env}=await setup(false);env.PUB16_TIMED_CLOSURE_READY='1';env.DB.raw.exec('DROP TABLE rental_closure_windows');
   const result=await call(env,'GET','/listings');assert.ok(result.status>=500);assert.equal(Array.isArray(result.data),false);
   await assert.rejects(()=>media(env));
 });
@@ -104,16 +103,27 @@ test('a withdrawn rental stays hidden and unbookable if an unrelated writer repu
   assert.equal(result.meta.changes,0);assert.equal(get(env,'SELECT COUNT(*) AS n FROM viewing_requests').n,0);
 });
 
-test('a withdrawn closure cannot be presented as a successful return without a reviewed reopening transition',async()=>{
+test('after withdrawal, Return to market reopens the rental unpublished; once published again it is public and a new let opens a new window',async()=>{
   const {env,cookie}=await setup(),closure=await close(env,cookie);dbClock(env,closure.due_at);
   assert.equal((await processExpiredRentalClosures(env)).withdrawn,1);
-  const before=get(env,"SELECT availability,published,updated_at FROM listings WHERE id='HE-R001'");
-  const response=await call(env,'POST','/admin/listings/HE-R001/rental-marketing',{cookie,body:{
-    request_id:'reopen-after-withdrawal',updated_at:before.updated_at,action:'return_to_market',
-    reason_code:'correction',occurred_at:T0,evidence_refs:['media:A00002']}});
-  assert.equal(response.status,409);
-  assert.deepEqual(get(env,"SELECT availability,published,updated_at FROM listings WHERE id='HE-R001'"),before);
-  assert.equal(get(env,"SELECT state FROM rental_closure_windows WHERE closure_id=?",closure.closure_id).state,'withdrawn');
+  const send=(request_id,action,reason_code)=>call(env,'POST','/admin/listings/HE-R001/rental-marketing',{cookie,body:{request_id,
+    updated_at:get(env,"SELECT updated_at FROM listings WHERE id='HE-R001'").updated_at,action,reason_code,occurred_at:T0,evidence_refs:['media:A00002']}});
+  // Only Return to market leaves a withdrawal; Let again is refused.
+  assert.equal((await send('let-after-withdrawal','let','completed')).status,409);
+  const response=await send('reopen-after-withdrawal','return_to_market','fell_through');
+  assert.equal(response.status,200,JSON.stringify(response.data));
+  assert.deepEqual({...get(env,"SELECT availability,published FROM listings WHERE id='HE-R001'")},{availability:'to_let',published:0});
+  const reopened=get(env,"SELECT state,withdrawn_at,reopened_at FROM rental_closure_windows WHERE closure_id=?",closure.closure_id);
+  assert.equal(reopened.state,'reopened');assert.ok(reopened.withdrawn_at&&reopened.reopened_at);
+  assert.deepEqual((await call(env,'GET','/listings')).data,[],'still unpublished: the team publishes it as usual');
+  env.DB.raw.exec("UPDATE listings SET published=1 WHERE id='HE-R001'");
+  assert.equal((await call(env,'GET','/listings')).data[0]?.id,'HE-R001');
+  assert.equal((await page(env)).status,200);
+  assert.match((await media(env)).headers.get('cache-control'),/max-age=86400/,'no window left: its photos are cached again');
+  // A used request id is not reused for another change, and a new letting starts its own window.
+  assert.equal((await send('reopen-after-withdrawal','return_to_market','fell_through')).status,409);
+  assert.equal((await send('second-let','let','completed')).status,200);
+  assert.equal(get(env,"SELECT COUNT(*) AS n FROM rental_closure_windows WHERE listing_id='HE-R001' AND state='open'").n,1);
 });
 
 test('an invalid deadline or unrecognized window state fails closed even before the original deadline',async()=>{

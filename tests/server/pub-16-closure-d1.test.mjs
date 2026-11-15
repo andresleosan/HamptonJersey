@@ -10,7 +10,6 @@ const require=createRequire(import.meta.url);
 const {Miniflare,convertV4MiniflareOptions}=require('miniflare');
 const {unstable_splitSqlQuery}=require('wrangler');
 const T0='2026-10-07T10:00:00.000Z',id='HE-R001',actor='admin@example.test';
-const proposal=new URL('../../docs/roadmap/work/PUB-16/rental-closure.proposed.sql',import.meta.url);
 const originalClock="strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 
 test('disposable D1: gated close, replay, correction, rollback, deadline and recovery',async()=>{
@@ -21,8 +20,6 @@ test('disposable D1: gated close, replay, correction, rollback, deadline and rec
     const DB=await mf.getD1Database('DB'),dir=new URL('../../migrations/',import.meta.url);
     const install=async file=>DB.batch(unstable_splitSqlQuery(readFileSync(file,'utf8')).map(sql=>DB.prepare(sql)));
     for(const file of readdirSync(dir).filter(name=>name.endsWith('.sql')).sort())await install(new URL(file,dir));
-    // The proposal is installed only in this disposable database, never in the migrations queue.
-    await install(proposal);
     await DB.prepare(`INSERT INTO listings(id,use,title,operation,availability,country,location,viewings_enabled,
       published,specs,created_at,updated_at,updated_by) VALUES(?,'residential','Synthetic rental','rent','to_let',
       'Jersey','St Saviour',1,1,'[]',?,?,'fixture')`).bind(id,T0,T0).run();
@@ -64,9 +61,15 @@ test('disposable D1: gated close, replay, correction, rollback, deadline and rec
     assert.equal((await processExpiredRentalClosures(env)).withdrawn,1);
     assert.equal((await row()).published,0);
     assert.equal((await DB.prepare("SELECT COUNT(*) AS n FROM events WHERE type='listing.unpublished'").first()).n,1);
-    await assert.rejects(execute(command('reopen',(await row()).updated_at,'return_to_market')),error=>error.status===409);
     await DB.prepare("UPDATE listings SET published=1,availability='to_let' WHERE id=?").bind(id).run();
     assert.equal((await readLive(env,id)).length,0,'an unrelated republication must not defeat withdrawal');
+    await DB.prepare("UPDATE listings SET published=0,availability='let_agreed' WHERE id=?").bind(id).run();
+    // Return to market reopens it, unpublished; published again as usual, it is public.
+    assert.equal((await execute(command('reopen',(await row()).updated_at,'return_to_market'))).changed,true);
+    assert.deepEqual([(await row()).availability,(await row()).published],['to_let',0]);
+    assert.equal((await DB.prepare('SELECT state FROM rental_closure_windows WHERE closure_id=?').bind(final.closure_id).first()).state,'reopened');
+    await DB.prepare("UPDATE listings SET published=1 WHERE id=?").bind(id).run();
+    assert.equal((await readLive(env,id)).length,1);
 
     for(const [other,mediaId,inconsistent] of [['HE-R002','A00002',true],['HE-R003','A00003',false]]){
       env.DB=DB;

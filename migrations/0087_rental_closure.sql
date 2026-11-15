@@ -1,9 +1,12 @@
--- PUB-16 proposal, NOT an active migration. Review lifecycle, permissions, retention and every public cache first.
+-- PUB-16: the 24-hour window after a rental is recorded as let (PUB16_TIMED_CLOSURE_READY). Additive.
+-- While open the listing shows Let agreed and the team can correct it; at due_at it leaves the website, and the clock
+-- withdraws it. A withdrawn window stays closed until a person returns the rental to market (reopened). Listing data,
+-- dates and availability only: no person's data.
 CREATE TABLE rental_closure_windows (
   closure_id TEXT PRIMARY KEY,
   listing_id TEXT NOT NULL,
   close_event_id INTEGER NOT NULL REFERENCES events(id),
-  state TEXT NOT NULL CHECK(state IN ('open','corrected','withdrawn')),
+  state TEXT NOT NULL CHECK(state IN ('open','corrected','withdrawn','reopened')),
   opened_at TEXT NOT NULL,
   due_at TEXT NOT NULL,
   previous_availability TEXT NOT NULL,
@@ -14,13 +17,15 @@ CREATE TABLE rental_closure_windows (
   applied_updated_at TEXT NOT NULL,
   corrected_at TEXT,
   withdrawn_at TEXT,
+  reopened_at TEXT,
   CHECK (strftime('%Y-%m-%dT%H:%M:%fZ',opened_at,'+0 seconds') IS NOT NULL
     AND opened_at=strftime('%Y-%m-%dT%H:%M:%fZ',opened_at,'+0 seconds')),
   CHECK (strftime('%Y-%m-%dT%H:%M:%fZ',opened_at,'+24 hours') IS NOT NULL
     AND due_at=strftime('%Y-%m-%dT%H:%M:%fZ',opened_at,'+24 hours')),
-  CHECK ((state='open' AND corrected_at IS NULL AND withdrawn_at IS NULL)
-      OR (state='corrected' AND corrected_at IS NOT NULL AND withdrawn_at IS NULL)
-      OR (state='withdrawn' AND corrected_at IS NULL AND withdrawn_at IS NOT NULL))
+  CHECK ((state='open' AND corrected_at IS NULL AND withdrawn_at IS NULL AND reopened_at IS NULL)
+      OR (state='corrected' AND corrected_at IS NOT NULL AND withdrawn_at IS NULL AND reopened_at IS NULL)
+      OR (state='withdrawn' AND corrected_at IS NULL AND withdrawn_at IS NOT NULL AND reopened_at IS NULL)
+      OR (state='reopened' AND corrected_at IS NULL AND withdrawn_at IS NOT NULL AND reopened_at IS NOT NULL))
 );
 CREATE UNIQUE INDEX rental_closure_one_open ON rental_closure_windows(listing_id) WHERE state='open';
 CREATE INDEX rental_closure_due ON rental_closure_windows(state,due_at,closure_id);
@@ -33,8 +38,10 @@ CREATE TRIGGER rental_closure_original_immutable BEFORE UPDATE OF
   closure_id,listing_id,close_event_id,opened_at,due_at,previous_availability,previous_published,
   previous_viewings_enabled,previous_confirmed_at,applied_confirmed_at,applied_updated_at ON rental_closure_windows
 BEGIN SELECT RAISE(ABORT,'rental closure original is immutable'); END;
+-- open -> corrected | withdrawn, and withdrawn -> reopened; corrected and reopened are final.
 CREATE TRIGGER rental_closure_terminal_immutable BEFORE UPDATE ON rental_closure_windows
-WHEN OLD.state<>'open' OR NEW.state NOT IN ('corrected','withdrawn')
+WHEN NOT ((OLD.state='open' AND NEW.state IN ('corrected','withdrawn'))
+  OR (OLD.state='withdrawn' AND NEW.state='reopened' AND NEW.withdrawn_at IS OLD.withdrawn_at))
 BEGIN SELECT RAISE(ABORT,'rental closure transition invalid'); END;
 
 -- A bounded round-robin cursor prevents a failing first page from starving later closures.
