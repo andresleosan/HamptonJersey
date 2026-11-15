@@ -49,7 +49,6 @@ const pendingSql=(legal,calendar,arrears,statements)=>`${arrears},pending_deadli
   UNION ALL SELECT 'repair',CAST(p.id AS TEXT),'current','rental',CAST(p.rental_id AS TEXT),
     json_patch('{}',json_object('tenancy_id',p.tenancy_id,'repair_id',p.id)),'Emergency repair',NULL,'urgent',json_array(p.status,p.urgency),'rental',CAST(p.rental_id AS TEXT)
     FROM repairs p JOIN rentals r ON r.id=p.rental_id WHERE r.archived_at IS NULL AND p.urgency='emergency' AND p.status NOT IN ('done','cancelled')
-  ${statements?statementRow:''}
 ),other_pending(${columns}) AS MATERIALIZED (
   SELECT 'payment',CAST(p.id AS TEXT),'current','payment',CAST(p.id AS TEXT),NULL,
     'Unmatched payment',NULL,'normal',json_array('unmatched'),'payment',CAST(p.id AS TEXT) FROM payments p WHERE p.tenancy_id IS NULL
@@ -61,7 +60,8 @@ const pendingSql=(legal,calendar,arrears,statements)=>`${arrears},pending_deadli
   UNION ALL SELECT 'listing',l.id,l.confirmed_at,'listing',l.id,NULL,'Confirm property availability',
     strftime('%Y-%m-%dT%H:%M:%fZ',l.confirmed_at,CASE l.operation WHEN 'rent' THEN '+1 month' ELSE '+3 months' END),
     'normal',json_array(l.confirmed_at,l.operation),'listing',l.id FROM listings l WHERE ${TO_CONFIRM.replace('?', '?3')}
-),raw_pending AS MATERIALIZED (SELECT * FROM rental_pending UNION ALL SELECT * FROM other_pending),
+),raw_pending AS MATERIALIZED (SELECT * FROM rental_pending UNION ALL SELECT * FROM other_pending
+  ${statements?statementRow:''}), -- ADM-10: here, not in rental_pending, which already holds D1's five compound terms
 pending AS MATERIALIZED (SELECT *,'queue:'||kind||':'||entity_id||':'||cycle AS task_key,${sortKey()} AS sort_key FROM raw_pending)`;
 
 const reentry=`(o.active=0 OR (o.kind='repair' AND EXISTS(SELECT 1 FROM events x
