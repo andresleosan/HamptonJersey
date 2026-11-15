@@ -95,7 +95,8 @@ export default function Applicants() {
           <button type="button" className="sort" onClick={toggleSort}>Applied<span aria-hidden="true">{sort === "newest" ? " ↓" : " ↑"}</span></button></th>
         <th scope="col">Stage</th><th scope="col">Work labels</th><th scope="col">Matches</th><th scope="col">Last contact</th><th scope="col">Assigned to</th></tr></thead>
       <tbody>{shown.map(a => <tr key={a.id}>
-        <td><a href={`#/applicants/${a.id}`}>{a.name}</a> <span className={`badge ${a.search_state === "active" ? "active" : a.search_state === "resolved" ? "positive" : "attention"}`}>{SEARCH_LABEL[a.search_state]}</span>{a.retention_review
+        <td><a href={`#/applicants/${a.id}`}>{a.name}</a> <span className={`badge ${a.search_state === "active" ? "active" : a.search_state === "resolved" ? "positive" : "attention"}`}>{SEARCH_LABEL[a.search_state]}</span>{a.criteria_proposal
+          && <> <span className="badge attention">Changes to confirm</span></>}{a.retention_review
           ? <> <span className="badge attention">Review retention</span></> : null}{a.expires_on
           && <> <span className="badge attention">Kept until {fmtDayMonth(a.expires_on, false)}</span></>}{list === "expiring"
           && a.archived_at && <> <span className="badge neutral">Archived</span></>}<div className="muted">{OPERATION_LABEL[a.operation]} · {a.search_category === "commercial" ? "Commercial or business" : "Home"}{a.email && ` · ${a.email}`}</div></td>

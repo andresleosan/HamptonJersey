@@ -1,7 +1,8 @@
 import {parsePriorities} from "../../site/requirements.js";
-import { json, fail, readJson, now } from "../http.js";
+import { json, fail, readJson, now, HttpError } from "../http.js";
 import { validateApplicant, normalizePhone, OPTIONS, QUEUES, SEARCH_STATES, activeSql, isActive } from "../applicants.js";
 import { logEvent, resolveNotices } from "../events.js";
+import { futureTaskStatements } from "../notification-events.js";
 import { afterSave, matchSnapshotMessage, MATCH_INCOMPLETE_MESSAGE, CANDIDATES_SQL, LISTING, LISTING_OPERATION } from "../match-store.js";
 // EST-01: the same recomputes, with each search's last run recorded around them.
 import { recomputeForApplicant, recomputeForApplicantWithStatus, firstSearch, searchRunsWithoutMatch, searchRunFor } from "../search-state.js";
@@ -164,7 +165,10 @@ async function list({ request, env }) {
     .bind(today, today, cutoff, ...args, ...(queue ? [queue] : [])).all();
   // SAP-01: while a search has no match, what its last search did (EST-01); absent when switched off.
   const runs = await searchRunsWithoutMatch(env);
-  return json({ applicants: runs ? results.map(a => (runs.has(a.id) ? { ...a, search_run: runs.get(a.id) } : a)) : results });
+  const listed = runs ? results.map(a => (runs.has(a.id) ? { ...a, search_run: runs.get(a.id) } : a)) : results;
+  // AUT-19: the searches with a proposal waiting to be confirmed; absent when switched off.
+  const waiting = await searchesWithProposal(env);
+  return json({ applicants: waiting?.size ? listed.map(a => (waiting.has(a.id) ? { ...a, criteria_proposal: true } : a)) : listed });
 }
 
 // E9: the day the contact's 12 months end, or none when a sale keeps it (E3) or an open offer does, for as long as it
@@ -202,10 +206,10 @@ async function detail({ env, params: [id] }) {
     q(RETENTION_SQL, jerseyToday(), contact.id),
     q(`SELECT listing_id,status,requirements_rank FROM matches WHERE applicant_id=?`,applicant.id),
   ])).map(r => r.results);
-  const search_run = await searchRunFor(env, applicant);
+  const search_run = await searchRunFor(env, applicant), criteria_proposal = await waitingProposal(env, applicant);
   return json({ applicant: parsed(applicant), contact, events: events.map(withData), viewings, duplicates: duplicates.map(withData),
     matchCounts:matchCounts(totals), retention: keptFor(retention), widen: await widenFor(env, applicant, pairs),
-    ...(search_run && { search_run }) });
+    ...(search_run && { search_run }), ...(criteria_proposal !== undefined && { criteria_proposal }) });
 }
 
 // Widen inspects lightweight global pairs, independently of the visible page.
@@ -299,11 +303,9 @@ async function create({ request, env, admin }) {
   return json({ id: newId }, 201);
 }
 
-async function update({ request, env, admin, params: [id] }) {
-  const body = asObject(await readJson(request));
-  if (typeof body.updated_at !== "string") fail(400, "Missing updated_at: reload the applicant");
-  const cur = await loadApplicant(env, id);
-  if (body.updated_at !== cur.updated_at) fail(409, stale("applicant"));
+// What a body would change in a stored search, without writing anything: { errors }, or the columns to set (next, keys),
+// the event's before/after (data), the body's fields that differ (changed) and the criteria among them.
+async function changesFor(env, cur, body) {
   // Archived searches are read only (D9); also keeps an edit from racing a permanent delete, which needs Archived.
   if (cur.archived_at) fail(409, "Restore this search to edit it");
   if (Object.hasOwn(body, "search_category") && body.search_category !== cur.search_category)
@@ -342,7 +344,7 @@ async function update({ request, env, admin, params: [id] }) {
       && !(await env.DB.prepare("SELECT 1 FROM admins WHERE email = ?").bind(assigned_to).first()))
       errors.assigned_to = "Choose someone with access to the panel";
   }
-  if (Object.keys(errors).length) return fieldErrors(errors);
+  if (Object.keys(errors).length) return { errors };
 
   const { source, ...search } = r.value.applicant;
   // Compare the submitted values with the stored answers, not the validator's inferred defaults.
@@ -380,31 +382,151 @@ async function update({ request, env, admin, params: [id] }) {
     next.requirement_priorities = JSON.stringify(priorities);
   }
   const { keys, data } = diff(cur, next);
-  if (!keys.length) return json({ applicant: parsed(cur) });
   const criteriaFields = keys.filter(k => (SEARCH_FIELDS.includes(k) || k === "household_total") && !["operation", "preferred_language", "viewing_availability"].includes(k));
   if ((cur.search_operation ?? cur.operation) !== (next.search_operation ?? next.operation ?? cur.search_operation ?? cur.operation)) criteriaFields.push("operation");
-  if (criteriaFields.length && body.criteria_confirmation?.confirmed !== true)
-    return fieldErrors({ criteria_confirmation: "Confirm the applicant agreed to these changes" });
+  return { next, keys, data, changed, criteriaFields, stage, assigned_to };
+}
 
+// Saves what changesFor worked out, on the version it was worked out from, then recalculates the matches once.
+// proposalId (AUT-19): the proposal this confirms, closed with its Inbox task in the same batch.
+async function commit(env, admin, cur, { next, keys, data, criteriaFields, stage, assigned_to }, proposalId) {
   const ts = nextVersion(cur.updated_at);
   if (criteriaFields.length) data.criteria_confirmation = { by: admin, at: ts, fields: criteriaFields };
   const leftNew = cur.stage === "new" && stage !== "new";
   try { await saveVersioned(env, [
     env.DB.prepare(`UPDATE applicants SET ${keys.map(k => `${k} = ?`).join(", ")}, updated_by = ?, ${LOCK} WHERE id = ?`)
-      .bind(...keys.map(k => next[k]), admin, body.updated_at, ts, cur.id),
+      .bind(...keys.map(k => next[k]), admin, cur.updated_at, ts, cur.id),
     ...logEvent(env, { actor: admin, entity_type: "applicant", entity_id: String(cur.id),
       type: keys.includes("stage") ? "applicant.stage_changed" : "applicant.updated", data }),
+    // A proposal decided since it was read has no status left to take: NOT NULL fails and the whole batch rolls back.
+    ...(proposalId ? [...proposalTask(env, cur.id, "resolved"), env.DB.prepare(`UPDATE criteria_proposals SET
+      status = CASE WHEN status = 'pending' THEN 'confirmed' END, decided_by = ?, decided_at = ? WHERE id = ?`).bind(admin, ts, proposalId)] : []),
     touch(env, cur.contact_id, ts),
     // Someone has picked it up: the new-applicant notice is done (§3.2).
     ...((keys.includes("assigned_to") && assigned_to) || leftNew
       ? [resolveNotices(env, { entity_type: "applicant", entity_id: String(cur.id), category: "new_applicant" }, admin)] : []),
-  ], "applicant", cur.id, body.updated_at); }
+  ], "applicant", cur.id, cur.updated_at); }
   catch (e) {
     if (/UNIQUE/i.test(String(e?.message))) fail(409, "This contact already has an active search for this operation.");
     throw e;
   }
   await afterSave(recomputeForApplicant, env, cur.id, admin);
   return json({ applicant: parsed(await loadApplicant(env, cur.id)) });
+}
+
+async function update({ request, env, admin, params: [id] }) {
+  const body = asObject(await readJson(request));
+  if (typeof body.updated_at !== "string") fail(400, "Missing updated_at: reload the applicant");
+  const cur = await loadApplicant(env, id);
+  if (body.updated_at !== cur.updated_at) fail(409, stale("applicant"));
+  const plan = await changesFor(env, cur, body);
+  if (plan.errors) return fieldErrors(plan.errors);
+  if (!plan.keys.length) return json({ applicant: parsed(cur) });
+  if (plan.criteriaFields.length && body.criteria_confirmation?.confirmed !== true)
+    return fieldErrors({ criteria_confirmation: "Confirm the applicant agreed to these changes" });
+  return commit(env, admin, cur, plan);
+}
+
+// AUT-19: a change of criteria dictated after talking to the client waits as a proposal: the search and its matches stay
+// as they are until an employee confirms it. Switched off, or without migration 0074, none of this is offered.
+export const proposalsReady = env => env?.AUT19_CRITERIA_PROPOSALS_READY === "1";
+const PROPOSABLE = SEARCH_FIELDS.filter(k => !["search_category", "preferred_language", "viewing_availability"].includes(k));
+const CHANGED = "The search changed after this proposal was made. Edit the proposal or discard it.";
+// Its Inbox task (NOT-01's producer contract), one per search: open while a proposal waits, closed when it is decided.
+// Bound to the event written just before it in the same batch.
+const proposalTask = (env, applicantId, phase) => futureTaskStatements(env, { work: "dictation", phase, episode: "criteria-proposal",
+  eventId: null, target: { kind: "applicant", id: String(applicantId) }, title: "Confirm proposed criteria changes",
+  reopen: phase === "pending" }, { ifInserted: true });
+// The proposal no longer describes the search: its criteria version moved, or a value it showed as "before" did.
+const outdated = (cur, p) => cur.match_inputs_revision !== p.base_revision
+  || JSON.stringify(parsed(pick(cur, Object.keys(JSON.parse(p.previous))))) !== p.previous;
+
+// The search's waiting proposal for the record (null: none), or the searches that have one for the list. undefined:
+// switched off or not migrated.
+async function waitingProposal(env, cur) {
+  if (!proposalsReady(env)) return undefined;
+  let p;
+  try { p = await env.DB.prepare("SELECT * FROM criteria_proposals WHERE applicant_id = ? AND status = 'pending'").bind(cur.id).first(); }
+  catch { return undefined; }
+  return p && { id: p.id, source: p.source, note: p.note, proposed_by: p.proposed_by, proposed_at: p.proposed_at,
+    stale: outdated(cur, p), changes: JSON.parse(p.changes), before: JSON.parse(p.previous), after: JSON.parse(p.proposed) };
+}
+const searchesWithProposal = env => (proposalsReady(env)
+  ? env.DB.prepare("SELECT applicant_id FROM criteria_proposals WHERE status = 'pending'").all()
+    .then(r => new Set(r.results.map(p => p.applicant_id)), () => undefined) : undefined);
+
+// The one door for a proposal: the panel's employee, or later a draft Hermes interprets (actor and source say which).
+// changes: only the criteria that change, as PUT takes them; note: where the change came from. A proposal already
+// waiting is replaced. Its before/after comes from the stored search, never from the caller, and it is only stored
+// while the search is still the version they were read from.
+export async function proposeCriteria(env, id, { changes, note }, actor, source = "staff") {
+  if (!proposalsReady(env)) fail(404, "Not found");
+  const patch = asObject(changes);
+  if (Object.keys(patch).some(k => !PROPOSABLE.includes(k))) fail(400, "Only search criteria can be proposed");
+  if (note != null && typeof note !== "string") fail(400, "Invalid note");
+  const origin = note?.trim() || null;
+  if (origin?.length > 200) return fieldErrors({ note: "Use 200 characters or fewer" });
+  const cur = await loadApplicant(env, id);
+  const plan = await changesFor(env, cur, patch);
+  if (plan.errors) return fieldErrors(plan.errors);
+  if (!plan.criteriaFields.length) fail(400, "These values are already saved");
+  const ts = now(), current = "FROM applicants WHERE id = ? AND updated_at = ?";
+  const results = await env.DB.batch([
+    env.DB.prepare(`UPDATE criteria_proposals SET status = 'discarded', decided_by = ?, decided_at = ?
+      WHERE applicant_id = ? AND status = 'pending' AND EXISTS (SELECT 1 ${current})`).bind(actor, ts, cur.id, cur.id, cur.updated_at),
+    env.DB.prepare(`INSERT INTO criteria_proposals (applicant_id, source, changes, previous, proposed, base_revision, note, proposed_by, proposed_at)
+      SELECT id, ?, ?, ?, ?, match_inputs_revision, ?, ?, ? ${current}`).bind(source, JSON.stringify(pick(patch, plan.changed)),
+      JSON.stringify(plan.data.before), JSON.stringify(plan.data.after), origin, actor, ts, cur.id, cur.updated_at),
+    // The history names the fields; their values and the note stay in the proposal.
+    ...logEvent(env, { actor, entity_type: "applicant", entity_id: String(cur.id), type: "applicant.criteria_proposed",
+      data: { fields: plan.keys, source } }, null, { ifInserted: true }),
+    ...proposalTask(env, cur.id, "pending"),
+    touch(env, cur.contact_id, ts),
+  ]);
+  if (!results[1].meta.changes) fail(409, stale("applicant"));
+  return json({ proposal: { id: results[1].meta.last_row_id } }, 201);
+}
+const propose = async ({ request, env, admin, params: [id] }) => proposeCriteria(env, id, asObject(await readJson(request)), admin);
+
+async function loadProposal(env, applicantId, id) {
+  if (!proposalsReady(env)) fail(404, "Not found");
+  const p = await env.DB.prepare("SELECT * FROM criteria_proposals WHERE id = ? AND applicant_id = ?").bind(Number(id), applicantId).first();
+  if (!p) fail(404, "Proposal not found");
+  if (p.status !== "pending") fail(409, `This proposal was already ${p.status}. Reload to see it.`);
+  return p;
+}
+
+// Applies exactly what was shown, on the version the employee is looking at; whoever is signed in confirms.
+async function confirmProposal({ request, env, admin, params: [id, proposalId] }) {
+  const body = asObject(await readJson(request));
+  if (typeof body.updated_at !== "string") fail(400, "Missing updated_at: reload the applicant");
+  const cur = await loadApplicant(env, id), p = await loadProposal(env, cur.id, proposalId);
+  if (body.updated_at !== cur.updated_at) fail(409, stale("applicant"));
+  if (outdated(cur, p)) fail(409, CHANGED);
+  const plan = await changesFor(env, cur, JSON.parse(p.changes));
+  if (plan.errors) return fieldErrors(plan.errors);
+  if (JSON.stringify(plan.data.before) !== p.previous) fail(409, CHANGED);
+  plan.data.proposal = { id: p.id, source: p.source, proposed_by: p.proposed_by, proposed_at: p.proposed_at };
+  try { return await commit(env, admin, cur, plan, p.id); }
+  catch (e) {
+    // Discarded or replaced between our read and our write: nothing was saved.
+    if (!(e instanceof HttpError)) await loadProposal(env, cur.id, p.id);
+    throw e;
+  }
+}
+
+async function discardProposal({ env, admin, params: [id, proposalId] }) {
+  const cur = await loadApplicant(env, id), p = await loadProposal(env, cur.id, proposalId), ts = now();
+  const results = await env.DB.batch([
+    env.DB.prepare("UPDATE criteria_proposals SET status = 'discarded', decided_by = ?, decided_at = ? WHERE id = ? AND status = 'pending'")
+      .bind(admin, ts, p.id),
+    ...logEvent(env, { actor: admin, entity_type: "applicant", entity_id: String(cur.id), type: "applicant.criteria_proposal_discarded",
+      data: { fields: Object.keys(JSON.parse(p.proposed)) } }, null, { ifInserted: true }),
+    ...proposalTask(env, cur.id, "resolved"),
+    touch(env, cur.contact_id, ts),
+  ]);
+  if (!results[0].meta.changes) await loadProposal(env, cur.id, p.id);
+  return json({ ok: true });
 }
 
 // The applicant's Offers tab (F3-C): their offers and sales, newest first.
@@ -585,6 +707,9 @@ export default [
   ["GET", /^\/admin\/applicants\/(\d+)\/offers$/, offers, true],
   ["PUT", /^\/admin\/applicants\/(\d+)$/, update, true],
   ["POST", /^\/admin\/applicants\/(\d+)\/search$/, setSearch, true],
+  ["POST", /^\/admin\/applicants\/(\d+)\/criteria-proposals$/, propose, true],
+  ["POST", /^\/admin\/applicants\/(\d+)\/criteria-proposals\/(\d+)\/confirm$/, confirmProposal, true],
+  ["POST", /^\/admin\/applicants\/(\d+)\/criteria-proposals\/(\d+)\/discard$/, discardProposal, true],
   ["DELETE", /^\/admin\/applicants\/(\d+)$/, remove, true],
   ["POST", /^\/admin\/applicants\/(\d+)\/(archive|restore)$/, setArchived, true],
   ["GET", /^\/admin\/contacts\/(\d+)$/, contactDetail, true],

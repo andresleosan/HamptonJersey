@@ -49,7 +49,8 @@ const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requi
   "applicant.matched": "New matches found", "offer.updated": "Offer changed", "offer.countered": "Seller countered",
   "offer.accepted": "Offer accepted", "offer.rejected": "Offer rejected", "offer.withdrawn": "Offer withdrawn",
   "sale.updated": "Sale file changed", "sale.completed": "Sale completed", "sale.fallen_through": "Sale fell through",
-  "applicant.search_resolved": "Search resolved", "applicant.search_reopened": "Search made active" };
+  "applicant.search_resolved": "Search resolved", "applicant.search_reopened": "Search made active",
+  "applicant.criteria_proposed": "Criteria changes proposed", "applicant.criteria_proposal_discarded": "Proposed criteria changes discarded" };
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" }, SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
 
 const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
@@ -71,6 +72,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const [lost, setLost] = useState(null), [confirmDel, setConfirmDel] = useState(""); // lost: the reason being typed
   const [decisionDirty, setDecisionDirty] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
+  const [origin, setOrigin] = useState(""); // AUT-19: where a proposed change came from, as typed
   // Stage and Assigned to as chosen but not yet applied (null = as stored): a select saves only on Apply or Enter,
   // so moving through its options with the arrow keys saves nothing.
   const [choice, setChoice] = useState({ stage: null, assigned_to: null });
@@ -199,6 +201,40 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     } finally { setBusy(false); }
   };
   const discard = () => { setConfirmation(null); setForm(toForm(a, c)); setErrors({}); setMsg(null); };
+
+  // AUT-19: the criteria changed in the form can wait as a proposal instead of being saved: the search and its matches
+  // stay as they are until someone confirms it. proposal: the one waiting (null: none; undefined: switched off).
+  const proposal = data.criteria_proposal;
+  const onlyCriteria = !contactChanged.length && searchChanged.every(k => criteriaChanged.includes(k));
+  const proposalStep = async (request, done) => {
+    if (busy) return;
+    detailGeneration.current++;
+    setBusy(true); setMsg(null);
+    try {
+      await request();
+      const d = await fetchDetail(); if (!d) return;
+      setForm(toForm(d.applicant, d.contact)); setErrors({}); setConfirmation(null); setOrigin(""); setMsg({ ok: true, text: done });
+      onChange?.(); // its Inbox task opened or closed
+      requestAnimationFrame(() => (document.getElementById("proposal-h") ?? tabs.current[cur])?.focus());
+    } catch (e) {
+      const fields = e.data?.fields || {};
+      setErrors(fields); setMsg({ text: e.message, stale: stale(e) });
+      if (Object.keys(fields).length) { focusError.current = true; if (cur !== "requirements") go("requirements"); }
+    } finally { setBusy(false); }
+  };
+  const proposals = `/admin/applicants/${id}/criteria-proposals`;
+  const proposeChanges = () => onlyCriteria && proposalStep(() => api(proposals, { method: "POST",
+    body: { changes: pick(body, criteriaChanged.filter(k => k !== "household_total")), note: origin } }),
+    "Proposal saved. Nothing changes until it is confirmed.");
+  const confirmProposal = () => proposalStep(() => api(`${proposals}/${proposal.id}/confirm`, { method: "POST", body: { updated_at: a.updated_at } }),
+    "Changes confirmed and saved. Matches recalculated.");
+  const discardProposal = () => proposalStep(() => api(`${proposals}/${proposal.id}/discard`, { method: "POST" }), "Proposal discarded. Nothing was changed.");
+  // To correct it: its values go into the form, unsaved; proposing them again replaces it.
+  const editProposal = () => {
+    setConfirmation(null); setErrors({}); setMsg(null);
+    setForm(f => ({ ...f, ...pick(toForm({ ...a, ...proposal.changes, ...(proposal.changes.operation && { search_operation: null }) }, c), SEARCH) }));
+    go("requirements", true);
+  };
   // W9: fills the one field in Requirements, unsaved; the team saves it after talking to the applicant.
   const applyWiden = w => {
     setConfirmation(null);
@@ -444,6 +480,22 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       archived={archived} lastWithdrawalId={lastWithdrawalId} marketingHistoryReady={marketingHistoryUsable}
       onCopy={copy} onConfirmMarketing={confirmMarketing} onDismiss={dismiss} />)}
 
+    {proposal && <section className="warn dup" aria-labelledby="proposal-h">
+      <h2 id="proposal-h" tabIndex={-1}>Proposed changes waiting for confirmation</h2>
+      <p className="muted">Proposed by {proposal.source === "hermes" ? "Hermes" : nameOf(proposal.proposed_by)} · {fmtAgo(proposal.proposed_at)}{proposal.note && ` · ${proposal.note}`}</p>
+      <dl className="changes">{Object.keys(proposal.after).map(k => <div key={k}><dt>{label(k)}</dt>
+        <dd><span className="sr">from </span>{value(k, proposal.before[k], nameOf)} <span aria-hidden="true">→</span><span className="sr"> to</span> {value(k, proposal.after[k], nameOf)}</dd></div>)}</dl>
+      <p>{proposal.stale ? "The search changed after this proposal was made, so it can no longer be confirmed. Edit the proposal to make it again, or discard it."
+        : "Nothing is saved until you confirm. Everything not listed here stays as it is."}</p>
+      {archived ? <p className="muted">Restore this search to confirm or edit the proposal.</p>
+        : dirty && <p className="muted">Save or discard your unsaved changes first.</p>}
+      <div className="inline">
+        {!proposal.stale && <button type="button" className="btn sm" disabled={busy || dirty || archived} onClick={confirmProposal}>Confirm changes</button>}
+        <button type="button" className="btn ghost sm" disabled={busy || dirty || archived} onClick={editProposal}>Edit proposal</button>
+        <button type="button" className="btn ghost sm" disabled={busy || dirty} onClick={discardProposal}>Discard proposal</button>
+      </div>
+    </section>}
+
     <div className="seg" role="tablist" aria-label="Applicant record" onKeyDown={onTabKey}>{tabList.map(([k, t]) =>
       <button key={k} ref={el => { tabs.current[k] = el; }} type="button" role="tab" id={`tab-${k}`} aria-selected={cur === k}
         aria-controls={`panel-${k}`} tabIndex={cur === k ? 0 : -1} onClick={() => go(k)}>{t}</button>)}</div>
@@ -481,6 +533,19 @@ export default function ApplicantDetail({ id, tab, onChange }) {
             aria-invalid={!!errors.criteria_confirmation} aria-describedby={errors.criteria_confirmation ? "criteria-confirm-error" : undefined} />
             I confirm the applicant agreed to these changes.</label>
           {errors.criteria_confirmation && <p id="criteria-confirm-error" className="err">{errors.criteria_confirmation}</p>}
+          {proposal !== undefined && <>
+            <p>Or leave them as a proposal for someone to confirm. Nothing is saved until then, and everything not listed here stays as it is.
+              {proposal && " It replaces the proposal already waiting."}</p>
+            <div className="inline">
+              <label>Where this came from (optional)<input value={origin} maxLength={200} placeholder="Call with client, 14 Nov"
+                onChange={e => { setOrigin(e.target.value); setErrors(x => ({ ...x, note: undefined })); }}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); proposeChanges(); } }}
+                aria-invalid={!!errors.note} aria-describedby={errors.note ? "proposal-note-error" : undefined} /></label>
+              <button type="button" className="btn ghost" disabled={busy || !onlyCriteria} onClick={proposeChanges}>Propose changes</button>
+            </div>
+            {errors.note && <p id="proposal-note-error" className="err">{errors.note}</p>}
+            {!onlyCriteria && <p className="muted">Save or discard your other changes before proposing these.</p>}
+          </>}
         </section>}
       </form>
     </div>
@@ -617,6 +682,9 @@ function Timeline({ events, viewings, matches, offers, by, nameOf }) {
     {h[1]?.length > 0 && <p className="meta">{(Array.isArray(h[1]) ? h[1] : [h[1]]).map((fact, i) => <span key={i}>{fact}</span>)}</p>}
     {["applicant.search_resolved", "applicant.search_reopened"].includes(e.type) && e.data?.reason && <p>{e.data.reason}</p>}
     {e.type === "applicant.created" && e.data && <p className="muted">{show("operation", e.data.operation)} · {show("source", e.data.source)}</p>}
+    {/* AUT-19: a proposal's events name its fields; the confirmed change says who proposed it. */}
+    {e.type.startsWith("applicant.criteria_propos") && e.data?.fields && <p className="meta">{e.data.fields.map(k => <span key={k}>{label(k)}</span>)}</p>}
+    {e.data?.proposal && <p className="muted">Proposed by {e.data.proposal.source === "hermes" ? "Hermes" : nameOf(e.data.proposal.proposed_by)}, confirmed by {by(e.actor)}</p>}
     {e.data?.after && <dl className="changes">{Object.keys(e.data.after).map(k => <div key={k}><dt>{label(k)}</dt>
       <dd><span className="sr">from </span>{value(k, e.data.before?.[k], nameOf)} <span aria-hidden="true">→</span><span className="sr"> to</span> {value(k, e.data.after[k], nameOf)}</dd></div>)}</dl>}
   </li> : <li key={`v${v.id}`}>
