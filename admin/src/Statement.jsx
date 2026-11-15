@@ -27,11 +27,14 @@ export default function Statement({ landlord, month }) {
     return () => { live = false; };
   }, [landlord, m, tick]);
 
-  const go = (l, mm) => { location.hash = `#/rentals/statements?${new URLSearchParams(Object.entries({ landlord: l, month: mm }).filter(([, v]) => v))}`; };
-  const t = data?.totals, options = landlords && data && !landlords.some(l => l.id === data.landlord.id) ? [...landlords, data.landlord] : landlords;
+  const [note, setNote] = useState(null), reload = n => { setNote(n); setTick(x => x + 1); };
+  const go = (l, mm) => { setNote(null); location.hash = `#/rentals/statements?${new URLSearchParams(Object.entries({ landlord: l, month: mm }).filter(([, v]) => v))}`; };
+  // ADM-10: once closed, the page shows the latest closed revision as it was closed (data.closed), not the live figures.
+  const doc = data?.closed?.statement ?? data, t = doc?.totals, options = landlords && data && !landlords.some(l => l.id === data.landlord.id) ? [...landlords, data.landlord] : landlords;
   return <section className="statement" aria-labelledby="t-statement">
     <div className="head"><h1 id="t-statement">Statement</h1>
       <div className="ctl"><a className="btn ghost" href="#/rentals">Back to rentals</a>
+        {data?.digest && <button type="button" className="btn ghost" onClick={() => download(doc)}>Download CSV</button>}
         <button type="button" className="btn" onClick={() => print()} disabled={!data}>Print</button></div></div>
     <form id="statement-form" className="filters" onSubmit={e => e.preventDefault()}>
       <label>Landlord<select value={landlord ?? ""} onChange={e => go(e.target.value, m)} disabled={!options}>
@@ -42,13 +45,15 @@ export default function Statement({ landlord, month }) {
     </form>
     <Gst onSaved={() => setTick(n => n + 1)} />
     {err && <p role="alert" className="err">{err}</p>}
+    {data?.digest && <Closing data={data} onDone={reload} />}
+    {note && <p role={note.ok ? "status" : "alert"} className={note.ok ? "ok" : "err"}>{note.text}</p>}
     {!landlord ? <p className="empty card">Choose a landlord to see their statement.</p> : !data ? !err && <p>Loading statement…</p>
     : <article id="statement" className="card">
-      <header className="statement-head"><h2>{data.landlord.name}</h2>
-        <p>Statement for {monthName(data.month)}</p><p>Hampton Estates</p>
-        {(data.landlord.email || data.landlord.phone) && <p className="muted">{[data.landlord.email, data.landlord.phone].filter(Boolean).join(" · ")}</p>}
+      <header className="statement-head"><h2>{doc.landlord.name}</h2>
+        <p>Statement for {monthName(doc.month)}{data.closed && ` · revision ${data.closed.revision}`}</p><p>Hampton Estates</p>
+        {(doc.landlord.email || doc.landlord.phone) && <p className="muted">{[doc.landlord.email, doc.landlord.phone].filter(Boolean).join(" · ")}</p>}
       </header>
-      {data.rentals.length ? data.rentals.map(r => <section key={r.id} className="statement-property" aria-labelledby={`sp-${r.id}`}>
+      {doc.rentals.length ? doc.rentals.map(r => <section key={r.id} className="statement-property" aria-labelledby={`sp-${r.id}`}>
         <h3 id={`sp-${r.id}`}>{r.address}</h3>
         <table className="lines"><tbody>
           <tr><th scope="row">Rent received</th><td className="num">{pence(r.rent_received)}</td></tr>
@@ -58,16 +63,74 @@ export default function Statement({ landlord, month }) {
         </tbody></table>
         {r.other_received > 0 && <p className="muted">Deposits and other money received: {pence(r.other_received)}. Held apart: no fee and
           not in the totals.</p>}
+        {r.written_off > 0 && <p className="muted">Rent written off this month: {pence(r.written_off)}. Never received: no fee and
+          not in the totals.</p>}
       </section>) : <p className="muted">No full management properties for this landlord.</p>}
-      <table className="lines totals" id="statement-totals"><caption>Totals for {monthName(data.month)}</caption><tbody>
+      <table className="lines totals" id="statement-totals"><caption>Totals for {monthName(doc.month)}</caption><tbody>
         <tr><th scope="row">Rent received</th><td className="num">{pence(t.rent)}</td></tr>
         <tr><th scope="row">Fees</th><td className="num">{less(t.fee)}</td></tr>
-        {t.gst != null && <tr><th scope="row">GST on fees ({data.gst_percent}%)</th><td className="num">{less(t.gst)}</td></tr>}
+        {t.gst != null ? <tr><th scope="row">GST on fees ({doc.gst_percent}%)</th><td className="num">{less(t.gst)}</td></tr>
+          : data.digest && <tr><th scope="row">GST on fees<span className="muted cell-note">GST not configured</span></th>
+            <td className="num">{pence(0)}</td></tr>}
         <tr><th scope="row">Repairs</th><td className="num">{less(t.repairs)}</td></tr>
         <tr className="net"><th scope="row">Net to landlord</th><td className="num">{pence(t.net)}</td></tr>
       </tbody></table>
     </article>}
   </section>;
+}
+
+// ADM-10: close the month as shown (a frozen revision), then mark it sent and paid to the landlord by hand. Sending
+// by email is AUT-17's. A revision whose figures changed afterwards stays as it was: the team closes the next one.
+function Closing({ data, onDone }) {
+  const [busy, setBusy] = useState(false), [msg, setMsg] = useState(null), c = data.closed;
+  const ended = data.month < jerseyToday().slice(0, 7), changed = c && c.source_digest !== data.digest;
+  const send = async (path, method, body, text) => {
+    if (busy) return;
+    setBusy(true); setMsg(null);
+    try { await api(path, { method, body }); onDone({ ok: true, text }); }
+    catch (x) { if (x.status === 409) onDone({ text: x.message }); else setMsg({ text: x.message }); }
+    finally { setBusy(false); }
+  };
+  const closeIt = () => send("/admin/statements", "POST", { landlord: data.landlord.id, month: data.month, digest: data.digest },
+    "Statement closed.");
+  const mark = what => send(`/admin/statement-runs/${c.id}/${what}`, "PUT", {}, `Marked ${what}.`);
+  return <section className="card statement-close" aria-labelledby="t-closing"><h2 id="t-closing">Month end</h2>
+    {!c ? <div className="inline"><p>{ended ? "Not closed yet." : "You can close this month once it has ended."}</p>
+      {ended && <button type="button" className="btn" onClick={closeIt} disabled={busy}>{busy ? "Closing…" : "Close statement"}</button>}</div>
+    : <>
+      <p>Closed {fmtDay(c.closed_at.slice(0, 10))} by {c.closed_by}: revision {c.revision}, net {pence(c.net_pence)}.</p>
+      {changed && <div className="warn to-confirm"><p>The figures changed after this statement was closed. The statement below
+        stays as it was closed.</p><button type="button" className="btn" onClick={closeIt} disabled={busy}>Close revision {c.revision + 1}</button></div>}
+      {["sent", "paid"].map(w => <div key={w} className="inline">{c[`${w}_on`]
+        ? <p>{w === "sent" ? "Sent to" : "Paid to"} the landlord on {fmtDay(c[`${w}_on`])} ({c[`${w}_by`]}).</p>
+        : <><p>{w === "sent" ? "Not sent yet." : "Not paid yet."}</p>
+          <button type="button" className="btn ghost" onClick={() => mark(w)} disabled={busy}>Mark as {w}</button></>}</div>)}
+      {data.runs.length > 1 && <ul className="plain-list">{data.runs.slice(1).map(r => <li key={r.id}>Revision {r.revision}: closed
+        {" "}{fmtDay(r.closed_at.slice(0, 10))}, net {pence(r.net_pence)}{r.sent_on && `, sent ${fmtDay(r.sent_on)}`}
+        {r.paid_on && `, paid ${fmtDay(r.paid_on)}`}</li>)}</ul>}
+    </>}
+    {msg && <p role="alert" className="err">{msg.text}</p>}
+  </section>;
+}
+
+// The statement shown, as CSV (RFC 4180, amounts in pence). Text that could start a spreadsheet formula gets an apostrophe.
+function download(doc) {
+  const cell = v => typeof v === "number" ? v : `"${String(v ?? "").replace(/^[=+\-@\t\r]/, "'$&").replaceAll('"', '""')}"`;
+  const rows = [["property", "line", "amount_pence"]];
+  for (const r of doc.rentals) {
+    rows.push([r.address, "rent_received", r.rent_received], [r.address, "fee", -r.fee]);
+    for (const x of r.repairs) rows.push([r.address, `repair: ${x.title}`, -x.cost]);
+    rows.push([r.address, "other_received_apart", r.other_received]);
+    if (r.written_off != null) rows.push([r.address, "written_off_apart", r.written_off]);
+  }
+  const t = doc.totals;
+  rows.push(["", "total_rent", t.rent], ["", "total_fee", -t.fee], ["", "gst_on_fees", -(t.gst ?? 0)], ["", "total_repairs", -t.repairs],
+    ["", "net_to_landlord", t.net]);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([rows.map(r => r.map(cell).join(",")).join("\r\n")], { type: "text/csv" }));
+  a.download = `statement-${doc.landlord.id}-${doc.month}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href));
 }
 
 // R29: GST on Hampton's fees, for every statement; 0 leaves the line out.

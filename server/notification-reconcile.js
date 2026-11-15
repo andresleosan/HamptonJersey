@@ -6,6 +6,7 @@ import {WAITING,waitingCutoff} from './routes/sales.js';
 import {TO_CONFIRM} from './listing.js';
 import {taskStatements} from './notification-tasks.js';
 import {readLegal,calendarReady} from './legal-terms.js';
+import {statementsReady} from './statements.js';
 
 // One shared definition is used for the grouped read and the INSERT's domain revalidation.
 // Parameters: Jersey date, optional tenancy (always NULL here), processing ISO, Waiting cutoff.
@@ -25,7 +26,14 @@ const deadlineRows=legal=>DEADLINES.map(([key,label,from,period,done])=>{const d
   json_object('tenancy_id',t.id,'deadline','${key}'),${quote(label+' overdue')},date(t.${from},'+${days} days')||'T00:00:00.000Z','normal',json_array(t.${from}${changed}),'rental',CAST(t.rental_id AS TEXT)
   FROM tenancies t JOIN rentals r ON r.id=t.rental_id WHERE r.archived_at IS NULL AND t.${from} IS NOT NULL AND t.${done} IS NULL AND date(t.${from},'+${days} days')<?1`;}).join('\nUNION ALL ');
 // ADM-11 (calendar: its switch): the calendar's checks come through the same rows and the same 'check' notices.
-const pendingSql=(legal,calendar,arrears)=>`${arrears},pending_deadlines(${columns}) AS MATERIALIZED (${deadlineRows(legal)}),rental_pending(${columns}) AS MATERIALIZED (
+// ADM-10 (statements: its switch, migration 0090): one task while a landlord with a full-management property from before
+// this month has no closed statement for last month. It resolves once every one is closed.
+const statementRow=`UNION ALL SELECT 'statement',m.month,m.month,'collection','landlord-statements:'||m.month,NULL,'Close landlord statements',
+    date(?1,'start of month')||'T00:00:00.000Z','normal',json_array(m.month),'collection','landlord-statements:'||m.month
+    FROM (SELECT strftime('%Y-%m',?1,'start of month','-1 month') AS month) m WHERE EXISTS(SELECT 1 FROM rentals r
+      WHERE r.service='full' AND r.archived_at IS NULL AND r.created_at<date(?1,'start of month')
+      AND NOT EXISTS(SELECT 1 FROM statement_runs s WHERE s.landlord_id=r.landlord_id AND s.month=m.month))`;
+const pendingSql=(legal,calendar,arrears,statements)=>`${arrears},pending_deadlines(${columns}) AS MATERIALIZED (${deadlineRows(legal)}),rental_pending(${columns}) AS MATERIALIZED (
   SELECT 'arrears',CAST(a.tenancy_id AS TEXT),a.oldest_unpaid_on||':'||a.next_step,'rental',CAST(a.rental_id AS TEXT),
     json_object('tenancy_id',a.tenancy_id),${stepLabel},${stepDue},'normal',json_array(a.oldest_unpaid_on,a.next_step),'rental',CAST(a.rental_id AS TEXT)
     FROM arrears a JOIN rentals r ON r.id=a.rental_id WHERE a.next_step IS NOT NULL AND r.archived_at IS NULL
@@ -39,6 +47,7 @@ const pendingSql=(legal,calendar,arrears)=>`${arrears},pending_deadlines(${colum
   UNION ALL SELECT 'repair',CAST(p.id AS TEXT),'current','rental',CAST(p.rental_id AS TEXT),
     json_patch('{}',json_object('tenancy_id',p.tenancy_id,'repair_id',p.id)),'Emergency repair',NULL,'urgent',json_array(p.status,p.urgency),'rental',CAST(p.rental_id AS TEXT)
     FROM repairs p JOIN rentals r ON r.id=p.rental_id WHERE r.archived_at IS NULL AND p.urgency='emergency' AND p.status NOT IN ('done','cancelled')
+  ${statements?statementRow:''}
 ),other_pending(${columns}) AS MATERIALIZED (
   SELECT 'payment',CAST(p.id AS TEXT),'current','payment',CAST(p.id AS TEXT),NULL,
     'Unmatched payment',NULL,'normal',json_array('unmatched'),'payment',CAST(p.id AS TEXT) FROM payments p WHERE p.tenancy_id IS NULL
@@ -63,7 +72,7 @@ const reentry=`(o.active=0 OR (o.kind='repair' AND EXISTS(SELECT 1 FROM events x
 export async function notificationsPass(env,isoNow) {
   if(typeof isoNow!=='string'||!Number.isFinite(Date.parse(isoNow))||new Date(isoNow).toISOString()!==isoNow)fail(400,'Use a processing UTC time');
   const args=[jerseyToday(new Date(isoNow)),null,isoNow,waitingCutoff(isoNow)],calendar=calendarReady(env);
-  const {periods}=await readLegal(env),PENDING=pendingSql(periods,calendar,arrearsOf(env));
+  const {periods}=await readLegal(env),PENDING=pendingSql(periods,calendar,arrearsOf(env),statementsReady(env));
   if(calendar)await env.DB.batch(ensureChecks(env,periods,args[0]));
   const q=(sql,...extra)=>env.DB.prepare(sql).bind(...args,...extra);
   const [,cursorRead,selection]=await env.DB.batch([

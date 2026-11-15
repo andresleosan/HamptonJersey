@@ -972,43 +972,6 @@ async function overview({ request, env }) {
     unmatched: totals.unmatched }, ...legalLabel(legal) });
 }
 
-// R15, R26, R29: a landlord's statement for a Jersey calendar month (dates are already Jersey days), per full-service
-// property: rent payments received in the month, the fee on them (fee_percent, to the penny), repairs done in the month
-// and charged to the landlord, and deposits or other money apart (no fee, not in the net). GST on the fees only when
-// gst_percent > 0. All in pence.
-async function statement({ request, env }) {
-  const p = new URL(request.url).searchParams, month = p.get("month") ?? "", id = Number(p.get("landlord"));
-  const errors = {};
-  if (!Number.isInteger(id) || id < 1) errors.landlord = "Choose a landlord";
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) errors.month = "Choose a month as YYYY-MM";
-  if (Object.keys(errors).length) return fieldErrors(errors);
-  const from = `${month}-01`, to = addMonths(from, 1), q = (sql, ...b) => env.DB.prepare(sql).bind(...b);
-  const received = kind => `COALESCE((SELECT SUM(p.amount) FROM payments p JOIN tenancies t ON t.id = p.tenancy_id
-    WHERE t.rental_id = r.id AND p.kind ${kind} AND p.received_on >= ?2 AND p.received_on < ?3), 0)`;
-  const [[landlord], [setting], lines, repairs] = (await env.DB.batch([
-    q("SELECT id, name, email, phone, archived_at FROM landlords WHERE id = ?", id),
-    q("SELECT value FROM app_settings WHERE key = 'gst_percent'"),
-    q(`SELECT r.id, r.address, r.fee_percent, r.archived_at, ${received("= 'rent'")} AS rent_received,
-      ${received("<> 'rent'")} AS other_received FROM rentals r WHERE r.landlord_id = ?1 AND r.service = 'full'
-      ORDER BY r.address COLLATE NOCASE, r.id`, id, from, to),
-    q(`SELECT p.id, p.rental_id, p.title, p.contractor, p.done_on, 100 * p.cost AS cost FROM repairs p
-      JOIN rentals r ON r.id = p.rental_id WHERE r.landlord_id = ?1 AND r.service = 'full' AND p.status = 'done'
-      AND p.charge_landlord = 1 AND p.done_on >= ?2 AND p.done_on < ?3 ORDER BY p.done_on, p.id`, id, from, to),
-  ])).map(r => r.results);
-  if (!landlord) fail(404, "Landlord not found");
-  // Rounding: each property's fee is rounded half-up to the penny (basis points); GST is rounded once, on the total fee.
-  const bp = pct => Math.round(pct * 100), gst_percent = setting ? JSON.parse(setting.value) : 0;
-  const rentals = lines.map(({ id: rid, address, fee_percent, archived_at, rent_received, other_received }) => ({
-    id: rid, address, fee_percent, archived_at, rent_received, fee: Math.round(rent_received * bp(fee_percent) / 10000),
-    repairs: repairs.filter(x => x.rental_id === rid).map(({ rental_id, ...x }) => x), other_received,
-  })).filter(r => !r.archived_at || r.rent_received || r.other_received || r.repairs.length); // archived: only with money
-  const sum = f => rentals.reduce((t, r) => t + f(r), 0);
-  const rent = sum(r => r.rent_received), fee = sum(r => r.fee), cost = sum(r => r.repairs.reduce((t, x) => t + x.cost, 0));
-  const gst = gst_percent > 0 ? Math.round(fee * bp(gst_percent) / 10000) : null;
-  return json({ landlord, month, gst_percent, rentals,
-    totals: { rent, fee, gst, repairs: cost, net: rent - fee - (gst ?? 0) - cost } });
-}
-
 // Assigning a payment (§4 Unmatched): tenancies by tenant, payment reference or address. Running ones (P4), and full ones
 // that ended in the last 12 months, since a former tenant may still be paying off a debt. At most 20, running first.
 async function findTenancies({ request, env }) {
@@ -1032,7 +995,6 @@ export default [
   },true],
   ["GET", /^\/admin\/rentals$/, overview, true],
   ["GET", /^\/admin\/tenancies$/, findTenancies, true],
-  ["GET", /^\/admin\/statements$/, statement, true],
   ["POST", /^\/admin\/rentals\/(\d+)\/tenancies$/, createTenancy, true],
   ["GET", /^\/admin\/tenancies\/(\d+)$/, getTenancy, true],
   ["PUT", /^\/admin\/tenancies\/(\d+)$/, updateTenancy, true],

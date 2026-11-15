@@ -444,7 +444,9 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .rent-import>.card{margin-top:16px} .rent-import .kv{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .rent-import .table-scroll .list{min-width:520px} .rent-import td.num{white-space:nowrap} .rent-import .import-rows{max-height:440px;overflow-y:auto}
 .statement .gst{display:grid;gap:4px;margin-bottom:16px} .statement .gst .inline,.statement .gst p{margin:0}
-.statement .card{display:grid;gap:20px;max-width:760px} .statement-head h2,.statement-head p{margin:0} .statement h3{font-size:16px;margin:0 0 4px}
+.statement .card{display:grid;gap:20px;max-width:760px}
+.statement .statement-close{gap:12px;margin-bottom:16px} .statement-close h2{margin:0} .statement-close p{margin:0}
+.statement-close .inline{align-items:center;margin:0} .statement-close .plain-list{margin:0} .statement-head h2,.statement-head p{margin:0} .statement h3{font-size:16px;margin:0 0 4px}
 .lines{width:100%;border-collapse:collapse} .lines tr{border-bottom:1px solid var(--line)}
 .lines th{text-align:left;font-weight:400;padding:6px 12px 6px 0} .lines td{text-align:right;white-space:nowrap;vertical-align:top;padding:6px 0}
 .lines caption{text-align:left;font-family:var(--display);font-size:16px;padding-bottom:4px}
@@ -491,7 +493,7 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 @page owner-report{size:A4;margin:16mm}
 /* Printing (the statement): only the page's content, black on white, without the bar, buttons or form controls. */
 @media print{*{color:#000!important;background:transparent!important;box-shadow:none!important}
-  .bar,.btn,button,form,input,select,textarea,.warn.paused{display:none!important}
+  .bar,.btn,button,form,input,select,textarea,.warn.paused,.statement-close{display:none!important}
   .page{max-width:none;padding:0} .card{border:0;padding:0} .lines tr{border-color:#999}
   /* The owner report: only its card, unfaded, blocks kept whole, the chart's bars in black. */
   .owner-report>.head,.owner-report .seg,.owner-report .screen-note{display:none!important}

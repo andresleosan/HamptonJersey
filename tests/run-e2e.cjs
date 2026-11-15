@@ -45,6 +45,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/adm12-repairs.e2e.cjs" ? { ADM12_SUPPLIERS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/not-05-missing-payments.e2e.cjs" ? { NOT05_MISSING_PAYMENTS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm09-arrears.e2e.cjs" ? { ADM09_ARREARS_READY: "1" } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/adm10-statements.e2e.cjs" ? { ADM10_STATEMENTS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/pub-11-documents.e2e.cjs" ? { PUB11_DOCUMENTS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/pub07-compliance.e2e.cjs" ? { PUB07_COMPLIANCE_READY: "1" } : {}),
       // PUB-01's guide points at every family's section, so its test has them on as in production.

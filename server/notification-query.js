@@ -11,7 +11,7 @@ export function taskTarget(value,manual=false) {
   if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!['kind','id',...(!manual||value.kind==='rental'?['context']:[])].includes(k)))fail(400,'Choose a task target');
   const kind=value.kind,id=String(value.id??'');
   if(!(manual?['applicant','viewing','rental']:['applicant','viewing','contact','listing','offer','sale','rental','payment','collection']).includes(kind))fail(400,'Invalid task target');
-  if(kind==='listing'?!/^HE-[A-Z]\d{3,}$/.test(id):kind==='collection'?id!=='unmatched-payments':!positive(id))fail(400,'Invalid task target');
+  if(kind==='listing'?!/^HE-[A-Z]\d{3,}$/.test(id):kind==='collection'?id!=='unmatched-payments'&&!/^landlord-statements:\d{4}-\d{2}$/.test(id):!positive(id))fail(400,'Invalid task target');
   const input=value.context;let context;
   if(input!=null){
     if(typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(k=>!CONTEXT[kind]?.includes(k)))fail(400,'Invalid task context');
@@ -46,7 +46,7 @@ export function targetExists(kind,id,context='NULL',owner=false) {
       AND (json_extract(${context},'$.compliance_kind') IS NULL OR EXISTS(SELECT 1 FROM compliance_items
         WHERE rental_id=${id} AND kind=json_extract(${context},'$.compliance_kind')))
     WHEN 'payment' THEN EXISTS(SELECT 1 FROM payments WHERE id=${id})
-    WHEN 'collection' THEN (${id}='unmatched-payments' OR EXISTS(SELECT 1 FROM weekly_insights wi WHERE ${id}='weekly-insights:'||wi.week_start)) ${owner ? `WHEN 'owner_request' THEN EXISTS(SELECT 1 FROM owner_requests WHERE id=${id})` : ''} ELSE 0 END)`;
+    WHEN 'collection' THEN (${id}='unmatched-payments' OR ${id} GLOB 'landlord-statements:[0-9][0-9][0-9][0-9]-[01][0-9]' OR EXISTS(SELECT 1 FROM weekly_insights wi WHERE ${id}='weekly-insights:'||wi.week_start)) ${owner ? `WHEN 'owner_request' THEN EXISTS(SELECT 1 FROM owner_requests WHERE id=${id})` : ''} ELSE 0 END)`;
 }
 
 export const sourceAllowsTarget=(kind,id,event='e')=>`((${event}.entity_type=${kind} AND ${event}.entity_id=${id})
@@ -117,6 +117,7 @@ export function noticeDto({source_type,source_entity_type,source_entity_id,raw_p
   else if(n.entity_type==='owner_request'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(n.entity_id))link=`#/owners/${n.entity_id}`;
   else if(weekly)link=`#/insights/weekly/${week}`;
   else if(n.entity_type==='collection'&&n.entity_id==='unmatched-payments')link='#/rentals?payments=unmatched';
+  else if(n.entity_type==='collection'&&/^landlord-statements:\d{4}-\d{2}$/.test(n.entity_id))link=`#/rentals/statements?month=${n.entity_id.slice(20)}`;
   const context=target_context?JSON.parse(target_context):null;
   if(link&&context){const params=new URLSearchParams();
     for(const [key,param] of [['tenancy_id','tenancy'],['repair_id','repair'],['compliance_kind','check'],['deadline','deadline'],['milestone','milestone']])

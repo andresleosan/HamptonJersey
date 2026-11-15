@@ -19,6 +19,7 @@ import insightRoutes from "./routes/insights.js";
 import saleRoutes from "./routes/sales.js";
 import rentalRoutes from "./routes/rentals.js";
 import rentRoutes, { arrearsReady, writeoffRoutes } from "./routes/rent.js";
+import statementRoutes, { closingRoutes, statementsReady } from "./statements.js";
 import reportRoutes from "./routes/report.js";
 import interestRoutes from "./routes/interest.js";
 import hermesRoutes, { hermesDoor } from "./routes/hermes.js";
@@ -46,7 +47,7 @@ import presentationRoutes from "./presentation-access.js";
 import trashRoutes from "./property-photo-purge.js";
 
 // [method, path regex, handler, requiresAdmin]
-const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes, ...trashRoutes];
+const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...statementRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes, ...trashRoutes];
 
 // waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
 // promise still runs, unawaited; pass only promises that never reject.
@@ -82,6 +83,7 @@ async function route(request, env, segments, waitUntil) {
     if (missingPaymentsReady(env)) routes = [...routes, ...missingPaymentRoutes]; // NOT-05: no migration
     if (legalTermsReady(env)) routes = [...routes, ...legalRoutes]; // ADM-17: saving needs migration 0063
     if (arrearsReady(env)) routes = [...routes, ...writeoffRoutes]; // ADM-09: needs migration 0045
+    if (statementsReady(env)) routes = [...routes, ...closingRoutes]; // ADM-10: needs migration 0090
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];
     for (const [m, re, handler, auth] of routes) {
