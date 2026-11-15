@@ -68,6 +68,8 @@ BUS01_MARKET_MATCHING_READY = "1"
 AGE08_CALL_TASKS_READY = "1"
 # SPR-03: a confirmation that says available captures one shared property record, its files and downloads (migration 0084, applied 15-nov-2026; needs EST16_AVAILABILITY_READY). Sends nothing.
 SPR03_CAPTURE_READY = "1"
+# AGE-10: the team marks which captured photos are fit for a private presentation, with their provenance (migration 0085; needs SPR03_CAPTURE_READY and EST16_AVAILABILITY_READY). Publishes and sends nothing.
+AGE10_PHOTOS_READY = "0"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
