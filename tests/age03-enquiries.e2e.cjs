@@ -206,15 +206,39 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    await fits('reused availability');await shot('reused');
    assert.deepEqual(enquiries().map(c=>[c.kind,c.listing_id,c.status]),[['general',lid(1),'sent'],['clarification',lid(2),'manual_pending'],['general',lid(2),'manual_pending']]);
    assert.deepEqual(d1(`SELECT COUNT(*) AS n FROM availability_confirmations WHERE listing_id='${lid(2)}'`),[{n:1}],'an enquiry confirms nothing');
+   // The agency stops advertising that home in the directory: its enquiry waits for another recipient and cannot be recorded as sent.
+   const directory=async listing_ids=>{
+    const a=(await (await ctx.request.get(base+'api/admin/advertisers?listing_id='+lid(1))).json()).advertisers.find(x=>x.name===agency);
+    await post(`/admin/advertisers/${a.id}`,{name:a.name,kind:a.kind,contacts:a.contacts,channels:a.channels,source_ids:a.source_ids,listing_ids,
+     commission:a.commission,photo_permission:a.photo_permission,version:a.version},200,'put');
+   };
+   await directory([lid(1)]);
+   await page.reload();
+   await settled('shortlisted',2);
+   await second.getByRole('button',{name:`View enquiry for ${home(2)}`,exact:true}).click();
+   await second.getByRole('alert').filter({hasText:'The recipient is no longer an advertiser of this property in the directory. Choose another recipient before sending.'}).waitFor();
+   assert.equal(await second.getByRole('button',{name:'Record as sent by me'}).isDisabled(),true,'not recorded as sent to a recipient that left the property');
+   await second.getByText(/^No advertiser of this property is in the directory with its contact details\./).waitFor();
+   const waiting=d1(`SELECT id,revision FROM consultations WHERE listing_id='${lid(2)}' AND kind='general'`)[0];
+   const refused=await ctx.request.post(base+`api/admin/consultations/${waiting.id}/manual-send`,{headers:{origin},data:{operation_id:`00000000-0000-4000-8000-9${String(width).padStart(11,'0')}`,
+    revision:waiting.revision,sent_at:new Date().toISOString(),via:'phone',evidence_ref:`Call note E2E-EVIDENCE ${width}`}});
+   assert.equal(refused.status(),409,await refused.text());
+   await fits('recipient left');await shot('recipient-left');
+   await directory([lid(1),lid(2)]);
+   await page.reload();
+   await settled('shortlisted',2);
+   await second.getByRole('button',{name:`View enquiry for ${home(2)}`,exact:true}).click();
+   await says(second.locator('div.enquiry address'),'recipient back',[agency,desk]);
+   assert.equal(await second.getByRole('button',{name:'Record as sent by me'}).isDisabled(),false);
    // Left as the next width expects the Inbox: both recorded as sent.
    for(const [i,pending] of d1(`SELECT id,revision FROM consultations WHERE listing_id='${lid(2)}' ORDER BY id`).entries())
     await post(`/admin/consultations/${pending.id}/manual-send`,{operation_id:`00000000-0000-4000-8000-${i}${String(width).padStart(11,'0')}`,revision:pending.revision,
-     sent_at:'2026-11-10T09:30:00.000Z',via:'phone',evidence_ref:`Call note E2E-EVIDENCE ${width}`});
+     sent_at:new Date().toISOString(),via:'phone',evidence_ref:`Call note E2E-EVIDENCE ${width}`});
    assert.deepEqual(tasks().map(t=>t.done),[1,1,1]);
    assert.deepEqual(d1('SELECT COUNT(*) AS n FROM outbound'),[{n:0}]);
    await page.close();
   }
   assert.deepEqual(errors,[]);
-  console.log('AGE-03 E2E passed: 1280/390, no enquiry before approval, proposed text without client data, household only when ticked, prepare, join, Inbox task to the property, record as sent with errors and by keyboard, resolved search unlinked, clarification enquiry from Review, confirmed availability reused.');
+  console.log('AGE-03 E2E passed: 1280/390, no enquiry before approval, proposed text without client data, household only when ticked, prepare, join, Inbox task to the property, record as sent with errors and by keyboard, resolved search unlinked, clarification enquiry from Review, confirmed availability reused, recipient that left the property blocked.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

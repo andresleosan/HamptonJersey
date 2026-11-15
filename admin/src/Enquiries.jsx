@@ -36,11 +36,12 @@ function EnquiryText({ id, text, label = "Text to send" }) {
 // onChange(consultation, match): after a change saved here.
 export function EnquiryView({ c, advertisers, match, household, onChange }) {
   const id = `enq-${c.id}${match ? `-${match.id}` : ""}`, pending = c.status === "manual_pending", r = c.recipient;
+  const gone = r.removed || r.unlinked; // another recipient must be chosen
   const [to, setTo] = useState(""), [stated, setStated] = useState(false);
   const [sent, setSent] = useState(() => ({ sent_at: localNow(), via: "", evidence_ref: "" }));
   const [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
   const operation = useRef(crypto.randomUUID()); // one id for this record of sending, retries included
-  useEffect(() => { setTo(r.removed ? "" : String(r.id)); setStated(!!c.occupants_from_this_match); setErrors({}); }, [c.id, c.revision, c.status]);
+  useEffect(() => { setTo(gone ? "" : String(r.id)); setStated(!!c.occupants_from_this_match); setErrors({}); }, [c.id, c.revision, c.status, gone]);
   const run = async (action, done) => {
     if (busy) return;
     setBusy(true); setMsg(null);
@@ -82,12 +83,12 @@ export function EnquiryView({ c, advertisers, match, household, onChange }) {
       <p className="muted">The app sends nothing. Copy the text, send it yourself, then record it below.</p>
       {advertisers.length ? <form className="fields-group" onSubmit={save} aria-label={`Change enquiry ${c.id}`}>
         <div className="grid2"><label>Recipient<select value={to} onChange={e => setTo(e.target.value)} required>
-          {r.removed && <option value="">Choose…</option>}<Options advertisers={advertisers} /></select></label></div>
+          {gone && <option value="">Choose…</option>}<Options advertisers={advertisers} /></select></label></div>
         {c.kind === "general" && household != null && <label className="check"><input type="checkbox" checked={stated} onChange={e => setStated(e.target.checked)} />
           State this search's household size ({people(household)}); nothing else about the client is included</label>}
         <div className="inline"><button className="btn ghost sm" disabled={!to}>Save changes</button>
           {keeps && <button type="button" className="btn ghost sm" onClick={drop} disabled={!to}>Remove household size</button>}</div>
-      </form> : r.removed && <NoRecipient />}
+      </form> : gone && <NoRecipient />}
       <form className="fields-group" onSubmit={record} aria-label={`Record enquiry ${c.id} as sent`} noValidate>
         <div className="grid2">
           <label>Sent on (your time zone)<input type="datetime-local" max={localNow()} {...field("sent_at")} />{error("sent_at")}</label>

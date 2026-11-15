@@ -57,7 +57,7 @@ async function advertiser(env, listing_ids = [MET, ASK, SHOP], name = "Fixture A
 }
 const prepare = (env, match, body, email) => req(env, "POST", `/admin/matches/${match}/consultation`,
   { operation_id: randomUUID(), kind: "general", ...body }, email);
-const sent = (o = {}) => ({ operation_id: randomUUID(), revision: 1, sent_at: "2026-11-10T09:30:00.000Z", via: "phone",
+const sent = (o = {}) => ({ operation_id: randomUUID(), revision: 1, sent_at: new Date().toISOString(), via: "phone",
   evidence_ref: "Call note FIXTURE-EVIDENCE", ...o });
 const markSent = (env, id, o, email) => req(env, "POST", `/admin/consultations/${id}/manual-send`, sent(o), email);
 // The card of a search for a listing, as its Matches tab gets it.
@@ -273,7 +273,9 @@ test("nothing is sent by the app: a person records having sent it, once, and the
   ok(await prepare(env, mb, { advertiser_id: agency }));
   assert.deepEqual(row(env, "SELECT status, sent_at, sent_by, sent_via FROM consultations"), { status: "manual_pending", sent_at: null, sent_by: null, sent_via: null });
 
-  for (const [bad, field] of [[{ via: "telepathy" }, "via"], [{ sent_at: "2999-01-01T00:00:00.000Z" }, "sent_at"], [{ evidence_ref: " " }, "evidence_ref"]]) {
+  // Neither in the future nor before the text it sent existed.
+  for (const [bad, field] of [[{ via: "telepathy" }, "via"], [{ sent_at: "2999-01-01T00:00:00.000Z" }, "sent_at"], [{ sent_at: "1900-01-01T00:00:00.000Z" }, "sent_at"],
+    [{ sent_at: new Date(Date.now() - 86400000).toISOString() }, "sent_at"], [{ evidence_ref: " " }, "evidence_ref"]]) {
     const r = await markSent(env, id, bad);
     assert.equal(r.status, 400, JSON.stringify(r.data));
     assert.ok(r.data.fields[field], field);
@@ -285,7 +287,7 @@ test("nothing is sent by the app: a person records having sent it, once, and the
   const mine = sent({ via: "email" });
   const done = ok(await req(env, "POST", `/admin/consultations/${id}/manual-send`, mine, OTHER)).consultation;
   assert.deepEqual([done.status, done.sent_at, done.sent_via, done.sent_by, done.sent_evidence_ref],
-    ["sent", "2026-11-10T09:30:00.000Z", "email", OTHER, "Call note FIXTURE-EVIDENCE"]);
+    ["sent", mine.sent_at, "email", OTHER, "Call note FIXTURE-EVIDENCE"]);
   // The same request again (a retried click) is the same action; a second person's is refused.
   assert.equal(ok(await req(env, "POST", `/admin/consultations/${id}/manual-send`, mine, OTHER)).consultation.status, "sent");
   const twice = await markSent(env, id);
@@ -400,4 +402,102 @@ test("migration 0077 only adds, and its rows never hold back the removal of a ma
   assert.match(ok(await req(env, "GET", `/admin/listings/${MET}/consultations`)).consultations[0].blocked, /No approved match/);
   run(env, "DELETE FROM listings WHERE id = ?", MET);
   assert.equal(row(env, "SELECT COUNT(*) AS n FROM consultations").n, 0);
+});
+
+// The advertiser as the directory saves it, with the properties it advertises.
+const relink = async (env, id, listing_ids) => {
+  const { advertiser: a } = ok(await req(env, "GET", `/admin/advertisers/${id}`));
+  return ok(await req(env, "PUT", `/admin/advertisers/${id}`, { name: a.name, kind: a.kind, contacts: a.contacts, channels: a.channels, source_ids: a.source_ids,
+    listing_ids, commission: a.commission, photo_permission: a.photo_permission, version: a.version }));
+};
+
+test("a recipient that is no longer an advertiser of the property is not sent to", async () => {
+  const env = world(), agency = await advertiser(env), ana = await searching(env, "Ana Le Gros"), m = await shortlist(env, ana);
+  const id = ok(await prepare(env, m, { advertiser_id: agency, include_occupants: true }), 201).consultation.id;
+  await relink(env, agency, [ASK, SHOP]);
+  const seen = ok(await req(env, "GET", `/admin/matches/${m}/consultation`));
+  assert.deepEqual(seen.advertisers, []);
+  assert.match(seen.consultation.blocked, /no longer an advertiser of this property/i);
+  assert.equal(seen.consultation.recipient.unlinked, true);
+  assert.match(ok(await req(env, "GET", `/admin/listings/${MET}/consultations`)).consultations[0].blocked, /no longer an advertiser/i);
+  const refused = await markSent(env, id);
+  assert.equal(refused.status, 409, JSON.stringify(refused.data));
+  assert.match(refused.data.error, /no longer an advertiser/i);
+  assert.deepEqual(row(env, "SELECT status, sent_at FROM consultations WHERE id = ?", id), { status: "manual_pending", sent_at: null });
+  assert.equal(row(env, "SELECT resolved_at FROM notifications WHERE task_key LIKE 'consultation:%'").resolved_at, null);
+  // Another advertiser of the property is chosen: a new version, which can go out.
+  const spare = await advertiser(env, [MET], "Second Fixture Agency");
+  const fixed = ok(await req(env, "PUT", `/admin/consultations/${id}`, { revision: 1, advertiser_id: spare })).consultation;
+  assert.deepEqual([fixed.revision, fixed.recipient.id, fixed.recipient.unlinked, fixed.blocked], [2, spare, undefined, null]);
+  assert.equal(ok(await markSent(env, id, { revision: 2 })).consultation.status, "sent");
+});
+
+test("a clarification approved again about other must-haves blocks its enquiry until the text is updated", async () => {
+  const env = world(), agency = await advertiser(env);
+  const ana = await searching(env, "Ana Le Gros", { bathrooms_min: 2,
+    requirement_priorities: JSON.stringify({ version: 1, values: { budget: "must", bedrooms: "must", parking: "must", bathrooms: "must" }, unknown: [] }) });
+  const m = matchId(env, ana, ASK), approve = approved => req(env, "PUT", `/admin/matches/${m}/clarification`, { approved });
+  ok(await approve(true));
+  const made = ok(await prepare(env, m, { kind: "clarification", advertiser_id: agency }), 201).consultation;
+  assert.ok(made.text.includes("Parking") && !made.text.includes("Bathrooms"));
+  // The property stops saying how many bathrooms it has: the clarification is withdrawn and approved again, about both.
+  ok(await approve(false));
+  run(env, "UPDATE listings SET bathrooms = NULL WHERE id = ?", ASK);
+  await recomputeForApplicant(env, ana, "system");
+  assert.deepEqual(ok(await approve(true)).match.clarification.keys.sort(), ["bathrooms", "parking"]);
+  const stale = ok(await req(env, "GET", `/admin/matches/${m}/consultation`)).consultation;
+  assert.deepEqual([stale.id, stale.joined, stale.text], [made.id, true, made.text]);
+  assert.match(stale.blocked, /must-haves to clarify.*Save changes/i);
+  const refused = await markSent(env, made.id);
+  assert.equal(refused.status, 409, JSON.stringify(refused.data));
+  assert.equal(row(env, "SELECT status FROM consultations WHERE id = ?", made.id).status, "manual_pending");
+  const fresh = ok(await req(env, "PUT", `/admin/consultations/${made.id}`, { revision: 1, advertiser_id: agency })).consultation;
+  assert.deepEqual([fresh.revision, fresh.blocked], [2, null]);
+  assert.ok(fresh.text.includes("Parking") && fresh.text.includes("Bathrooms"), fresh.text);
+  assert.ok(!/still available|viewing|household/i.test(fresh.text));
+  assert.equal(ok(await markSent(env, made.id, { revision: 2 })).consultation.status, "sent");
+});
+
+test("a household that changed, or whose search was deleted, blocks the enquiry until the text is updated", async () => {
+  const env = world(), agency = await advertiser(env);
+  const ana = await searching(env, "Ana Le Gros", { adults: 2, children: 3 }), ben = await searching(env, "Ben Carter");
+  const [ma, mb] = [await shortlist(env, ana), await shortlist(env, ben)];
+  const made = ok(await prepare(env, ma, { advertiser_id: agency, include_occupants: true }), 201).consultation;
+  ok(await prepare(env, mb, { advertiser_id: agency }));
+  assert.match(made.text, /household of 5 people/);
+  // Ana's household is now two people and her match is approved again on today's details.
+  run(env, "UPDATE applicants SET household_children = 0, household_total = 2 WHERE id = ?", ana);
+  if ((await card(env, ana)).states.decision !== "approved") {
+    ok(await req(env, "PUT", `/admin/matches/${ma}`, { status: "found", from: "shortlisted" }));
+    await shortlist(env, ana);
+  }
+  let seen = ok(await req(env, "GET", `/admin/matches/${ma}/consultation`)).consultation;
+  assert.deepEqual([seen.joined, seen.occupants, seen.matches], [true, 5, 2]);
+  assert.match(seen.blocked, /household stated.*Save changes/i);
+  assert.equal((await markSent(env, made.id)).status, 409);
+  seen = ok(await req(env, "PUT", `/admin/consultations/${made.id}`, { revision: 1, advertiser_id: agency })).consultation;
+  assert.deepEqual([seen.revision, seen.occupants, seen.blocked], [2, 2, null]);
+  assert.ok(/household of 2 people/.test(seen.text) && !/\b5\b/.test(seen.text), seen.text);
+
+  // Ana's search is deleted: the enquiry stays for Ben, blocked until the household it states is taken out.
+  run(env, "DELETE FROM applicants WHERE id = ?", ana);
+  seen = ok(await req(env, "GET", `/admin/listings/${MET}/consultations`)).consultations[0];
+  assert.deepEqual([seen.matches, seen.occupants], [1, 2]);
+  assert.match(seen.blocked, /household stated.*no longer part/i);
+  assert.equal((await markSent(env, made.id, { revision: 2 })).status, 409);
+  seen = ok(await req(env, "PUT", `/admin/consultations/${made.id}`, { revision: 2, advertiser_id: agency })).consultation;
+  assert.deepEqual([seen.revision, seen.occupants, seen.blocked], [3, null, null]);
+  assert.ok(!/household|people/i.test(seen.text));
+  assert.deepEqual(row(env, "SELECT occupants, occupants_match_id FROM consultations WHERE id = ?", made.id), { occupants: null, occupants_match_id: null });
+  assert.equal(ok(await markSent(env, made.id, { revision: 3 })).consultation.status, "sent");
+});
+
+test("a request id used for one property's enquiry is not accepted for another", async () => {
+  const env = world(), agency = await advertiser(env), ana = await searching(env, "Ana Le Gros");
+  const body = { operation_id: randomUUID(), kind: "general", advertiser_id: agency };
+  ok(await req(env, "POST", `/admin/matches/${await shortlist(env, ana, MET)}/consultation`, body), 201);
+  const reused = await req(env, "POST", `/admin/matches/${await shortlist(env, ana, ASK)}/consultation`, body);
+  assert.equal(reused.status, 409, JSON.stringify(reused.data));
+  assert.match(reused.data.error, /already used for another enquiry/i);
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM consultations").n, 1);
 });

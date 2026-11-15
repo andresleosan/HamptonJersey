@@ -67,33 +67,60 @@ export default function consultationRoutes(gates) {
     CASE WHEN a.search_category <> 'commercial' THEN COALESCE(a.household_total, a.household_adults + a.household_children) END AS occupants
     FROM matches m JOIN applicants a ON a.id = m.applicant_id JOIN listings l ON l.id = m.listing_id WHERE m.id = ?`).bind(Number(id)).first()
     ?? fail(404, "Match not found");
-  const household = m => (m.occupants >= 1 && m.occupants <= 40 ? m.occupants : null);
+  const household = m => (m?.occupants >= 1 && m.occupants <= 40 ? m.occupants : null);
   const scopeOf = (m, kind) => (kind === "general" ? `general:${m.listing_id}:${m.operation}` : `clarification:${m.id}`);
   const openOf = (env, scope) => env.DB.prepare(`SELECT * FROM consultations WHERE scope_key = ? AND ${OPEN}`).bind(scope).first();
   const one = async (env, id) => await env.DB.prepare("SELECT * FROM consultations WHERE id = ?").bind(Number(id)).first() ?? fail(404, "Enquiry not found");
   const confirmed = async (env, listing_id, operation) => (await confirmationReader(env, [listing_id]))({ id: listing_id, operation });
   // The advertisers of a property in the directory (AGE-04) whose personal data is still there (AGE-14).
+  // OF_PROPERTY: advertisers a advertises that property, itself or through one of its sources. Bind: the property, twice.
+  const OF_PROPERTY = `(EXISTS (SELECT 1 FROM json_each(a.details, '$.listing_ids') j WHERE j.value = ?) OR EXISTS
+    (SELECT 1 FROM json_each(a.details, '$.source_ids') j JOIN research_sources s ON s.source_id = j.value WHERE s.property_id = ?))`;
   const recipient = ({ id, name, kind, details }) => { const { contacts, channels } = JSON.parse(details); return { id, name, kind, contacts, channels }; };
-  const recipients = async (env, listing) => (await env.DB.prepare(`SELECT a.* FROM advertisers a WHERE EXISTS
-      (SELECT 1 FROM json_each(a.details, '$.listing_ids') j WHERE j.value = ?) OR EXISTS (SELECT 1 FROM json_each(a.details, '$.source_ids') j
-      JOIN research_sources s ON s.source_id = j.value WHERE s.property_id = ?) ORDER BY a.name COLLATE NOCASE, a.id LIMIT 50`)
-    .bind(listing, listing).all()).results.filter(a => !a.suppressed_at).map(recipient);
+  const recipients = async (env, listing) => (await env.DB.prepare(`SELECT a.* FROM advertisers a WHERE ${OF_PROPERTY}
+    ORDER BY a.name COLLATE NOCASE, a.id LIMIT 50`).bind(listing, listing).all()).results.filter(a => !a.suppressed_at).map(recipient);
+  // The household of a match that still counts for this enquiry, as it is now. undefined: the match does not count.
+  const caseOf = (env, c, matchId) => env.DB.prepare(`SELECT CASE WHEN a.search_category <> 'commercial' THEN COALESCE(a.household_total,
+    a.household_adults + a.household_children) END AS occupants FROM ${LINKS} WHERE cm.consultation_id = ? AND cm.match_id = ? AND ${live}`)
+    .bind(c.id, matchId).first();
+  // The text this enquiry would be given now: from the property, the availability confirmed and, by kind, the household
+  // stated (occupants) or the must-haves of the clarification standing for its match. null: no clarification stands.
+  async function proposed(env, c, occupants, confirmation) {
+    const listing = { ...await env.DB.prepare("SELECT id, title, location, country FROM listings WHERE id = ?").bind(c.listing_id).first(), operation: c.operation };
+    if (c.kind === "general") {
+      const asks = confirmation?.status !== "available";
+      return { text: enquiryText({ listing, asks, occupants }), asks: asks ? 1 : 0 };
+    }
+    const m = await env.DB.prepare(`SELECT ${gates.asked} AS asked FROM matches m JOIN applicants a ON a.id = m.applicant_id WHERE m.id = ?`)
+      .bind(Number(c.scope_key.split(":")[1])).first();
+    return m?.asked ? { text: enquiryText({ listing, keys: JSON.parse(m.asked).keys }), asks: 0 } : null;
+  }
 
   // An enquiry as the panel shows it. matches: how many still count. blocked: why it must not go out now (asked
   // again when a sending is recorded). With a match: whether it counts and whether its household is the one stated.
   async function detail(env, c, matchId) {
+    const pending = c.status === "manual_pending";
     const [{ results }, advertiser, confirmation] = await Promise.all([
       env.DB.prepare(`SELECT cm.match_id FROM ${LINKS} WHERE cm.consultation_id = ? AND ${live}`).bind(c.id).all(),
-      env.DB.prepare("SELECT * FROM advertisers WHERE id = ?").bind(c.advertiser_id).first(), confirmed(env, c.listing_id, c.operation)]);
-    const ids = results.map(r => r.match_id), removed = !advertiser || !!advertiser.suppressed_at;
-    const blocked = c.status !== "manual_pending" ? null
+      env.DB.prepare(`SELECT a.*, ${OF_PROPERTY} AS of_property FROM advertisers a WHERE a.id = ?`).bind(c.listing_id, c.listing_id, c.advertiser_id).first(),
+      confirmed(env, c.listing_id, c.operation)]);
+    const ids = results.map(r => r.match_id), removed = !advertiser || !!advertiser.suppressed_at, unlinked = pending && !removed && !advertiser.of_property;
+    // What the text would say now, with the household of its case as it is today: a text written from other facts waits.
+    const stated = pending && c.occupants_match_id && ids.includes(c.occupants_match_id);
+    const current = pending && await proposed(env, c, stated ? household(await caseOf(env, c, c.occupants_match_id)) : null, confirmation);
+    const blocked = !pending ? null
       : !ids.length ? "No approved match of an active search counts for this enquiry now, so it must not be sent."
-      : c.occupants_match_id && !ids.includes(c.occupants_match_id) ? "The household stated in this enquiry is no longer part of it. Remove it before sending."
+      : c.occupants_match_id && !stated ? "The household stated in this enquiry is no longer part of it. Save changes to take it out before sending."
       : confirmation?.status === "unavailable" ? UNAVAILABLE
-      : removed ? "The recipient's personal data was removed. Choose another recipient before sending." : null;
+      : removed ? "The recipient's personal data was removed. Choose another recipient before sending."
+      : unlinked ? "The recipient is no longer an advertiser of this property in the directory. Choose another recipient before sending."
+      : current && current.text !== c.body ? (c.kind === "general"
+        ? "The household stated, the property's details or its confirmed availability changed since this text was written. Save changes to update it before sending."
+        : "The must-haves to clarify, or the property's details, changed since this text was written. Save changes to update it before sending.") : null;
     const { id, kind, status, revision, listing_id, operation, body: text, occupants, prepared_by, prepared_at, sent_at, sent_via, sent_by, sent_evidence_ref } = c;
     return { id, kind, status, revision, listing_id, operation, text, asks_availability: !!c.asks_availability, occupants,
-      recipient: removed ? { id: c.advertiser_id, removed: true } : recipient(advertiser), prepared_by, prepared_at, sent_at, sent_via, sent_by,
+      recipient: removed ? { id: c.advertiser_id, removed: true } : { ...recipient(advertiser), ...(unlinked ? { unlinked: true } : {}) },
+      prepared_by, prepared_at, sent_at, sent_via, sent_by,
       sent_evidence_ref, matches: ids.length, blocked,
       ...(matchId == null ? {} : { joined: ids.includes(matchId), occupants_from_this_match: c.occupants_match_id === matchId }) };
   }
@@ -127,6 +154,8 @@ export default function consultationRoutes(gates) {
     const occupants = include ? household(m) : null, create = [];
     if (include && (kind !== "general" || !occupants)) fail(400, "This search has no household size to state in the enquiry.");
     if (!await openOf(env, scope)) {
+      if (await env.DB.prepare("SELECT 1 FROM consultations WHERE operation_id = ?").bind(body.operation_id).first())
+        fail(409, "That operation ID was already used for another enquiry.");
       if (!(await recipients(env, m.listing_id)).some(a => a.id === body.advertiser_id)) fail(400, "Choose a recipient among the advertisers of this property.");
       const text = enquiryText({ listing: { ...m, id: m.listing_id }, asks: availability?.status !== "available", occupants,
         keys: kind === "clarification" ? JSON.parse(m.asked).keys : undefined });
@@ -154,7 +183,8 @@ export default function consultationRoutes(gates) {
   }
 
   // Another recipient, or the one household stated (occupants_match_id: a match of the enquiry, null for none, absent
-  // to keep it), while it has not been sent: a new version of the text.
+  // to keep it while its match still counts and says its size), while it has not been sent: a new version, whose text
+  // is written again from the facts of today (the household as it is now, the must-haves of the clarification standing).
   async function update({ request, env, admin, params: [id] }) {
     const body = await readJson(request), given = body?.occupants_match_id;
     if (!Number.isSafeInteger(body?.revision) || !Number.isSafeInteger(body.advertiser_id) || (given != null && !Number.isSafeInteger(given)))
@@ -163,19 +193,16 @@ export default function consultationRoutes(gates) {
     if (c.status !== "manual_pending") fail(409, "This enquiry was already sent, so it can no longer be changed.");
     if (c.revision !== body.revision) fail(409, CHANGED);
     if (!(await recipients(env, c.listing_id)).some(a => a.id === body.advertiser_id)) fail(400, "Choose a recipient among the advertisers of this property.");
-    let occupants = null, text = c.body, asks = c.asks_availability;
-    if (c.kind === "general") {
-      if (caseId !== null) {
-        const chosen = await env.DB.prepare(`SELECT CASE WHEN a.search_category <> 'commercial' THEN COALESCE(a.household_total,
-          a.household_adults + a.household_children) END AS occupants FROM ${LINKS} WHERE cm.consultation_id = ? AND cm.match_id = ? AND ${live}`)
-          .bind(c.id, caseId).first();
-        if (!chosen) fail(409, "That match is not an approved match of this enquiry.");
-        occupants = household(chosen) ?? fail(400, "This search has no household size to state in the enquiry.");
-      }
-      const listing = await env.DB.prepare("SELECT id, title, location, country, operation FROM listings WHERE id = ?").bind(c.listing_id).first();
-      asks = (await confirmed(env, c.listing_id, c.operation))?.status === "available" ? 0 : 1;
-      text = enquiryText({ listing: { ...listing, operation: c.operation }, asks: !!asks, occupants });
-    } else if (caseId !== null) fail(400, "A clarification states no household.");
+    if (c.kind !== "general" && given != null) fail(400, "A clarification states no household.");
+    let occupants = null;
+    if (caseId != null) {
+      const chosen = await caseOf(env, c, caseId);
+      occupants = household(chosen);
+      // A case named in this request must count and say its size; one only kept from before is dropped if it no longer does.
+      if (given != null && !chosen) fail(409, "That match is not an approved match of this enquiry.");
+      if (given != null && !occupants) fail(400, "This search has no household size to state in the enquiry.");
+    }
+    const { text, asks } = await proposed(env, c, occupants, await confirmed(env, c.listing_id, c.operation)) ?? { text: c.body, asks: c.asks_availability };
     const { meta } = await env.DB.prepare(`UPDATE consultations SET advertiser_id = ?, body = ?, asks_availability = ?, occupants_match_id = ?,
       occupants = ?, prepared_by = ?, prepared_at = ?, revision = revision + 1 WHERE id = ? AND revision = ? AND status = 'manual_pending'`)
       .bind(body.advertiser_id, text, asks, occupants && caseId, occupants, admin, now(), c.id, c.revision).run();
@@ -198,6 +225,9 @@ export default function consultationRoutes(gates) {
     if (same(c)) return json({ consultation: await detail(env, c) }); // the same click again
     if (c.status !== "manual_pending") fail(409, "This enquiry was already recorded as sent. Reload to see it.");
     if (c.revision !== body.revision) fail(409, CHANGED);
+    // To the minute, as the panel gives it: a text is not sent before it was prepared.
+    if (body.sent_at.slice(0, 16) < c.prepared_at.slice(0, 16))
+      return json({ error: "Please check the highlighted fields.", fields: { sent_at: "Choose a date and time after this text was prepared" } }, 400);
     const { blocked } = await detail(env, c);
     if (blocked) fail(409, blocked);
     const counts = match => `EXISTS (SELECT 1 FROM ${LINKS} WHERE cm.consultation_id = consultations.id AND ${match} AND ${live})`;
