@@ -6,7 +6,10 @@ import { enquiryEmailCheck, enquiryEmailPass } from "./consultation-email.js";
 import { receiveEmail } from "./email-inbound.js";
 import { weeklyInsightsPass } from './weekly-insights.js';
 import { notificationsPass } from "./notification-reconcile.js";
-import { callPass } from "./consultations.js";
+import { enquiries } from "./consultations.js";
+import { ENQUIRY_GATES } from "./routes/matches.js";
+
+const { callPass } = enquiries(ENQUIRY_GATES); // AGE-08: which matches count for an enquiry, as its routes say
 import { rentalClosureEnabled } from './rental-closure.js';
 import { processExpiredRentalClosures } from './rental-closure-job.js';
 import { followupReady, saleFollowupPass } from './sale-followup.js';

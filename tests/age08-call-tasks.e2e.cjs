@@ -12,7 +12,8 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
 (async()=>{
  assert.equal(process.env.HAMPTON_E2E_ISOLATED,'1');assert.equal(process.env.E2E_PRODUCTION_READONLY,'0');
  const vars=parseEnv(readFileSync(process.env.E2E_VARS,'utf8')),{signSession,COOKIE}=await import('../server/auth.js');
- const {extractFeatures}=await import('../server/listing-features.js'),{callPass}=await import('../server/consultations.js');
+ const {extractFeatures}=await import('../server/listing-features.js'),{enquiries}=await import('../server/consultations.js');
+ const {callPass}=enquiries((await import('../server/routes/matches.js')).ENQUIRY_GATES);
  const {getPlatformProxy}=await import('wrangler');
  // --persist-to keeps its state under v3; the proxy takes that folder itself.
  const proxy=await getPlatformProxy({configPath:'wrangler.toml',persist:{path:join(process.env.E2E_PERSIST,'v3')}});

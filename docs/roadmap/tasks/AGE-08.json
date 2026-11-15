@@ -22,7 +22,11 @@
     "Decisión: la pausa general (outbound) no aplica: la tarea no envía nada.",
     "Decisión: cálculo en JS (server/consultations.js callPass, desde server/jobs.js) con taskStatements de NOT-01, no en el SQL de notification-reconcile, porque la hora de Jersey con cambio de horario no cabe en SQLite.",
     "Pruebas 15-nov: tests/server/age-08-call-tasks.test.mjs 9/9 (viernes 16:00 → martes 16:00, cambios de hora de octubre y marzo, sábado, domingo, antes del plazo, dos ticks, Done humano, respuesta útil antes/después, no_answer/more_info, cancelación, sin teléfonos, particular, suprimido, reloj, interruptor igual en ambos wrangler.toml); age-03, age-05, age-06, jobs, advertisers, notification*, age-14-* en verde.",
-    "Navegador 15-nov: tests/age08-call-tasks.e2e.cjs en contenedor aislado a 1280 y 390: tarea en Inbox → Open property → tres teléfonos con enlaces tel:, respuesta útil cierra la tarea, anunciante sin teléfonos lo dice, nada enviado."
+    "Navegador 15-nov: tests/age08-call-tasks.e2e.cjs en contenedor aislado a 1280 y 390: tarea en Inbox → Open property → tres teléfonos con enlaces tel:, respuesta útil cierra la tarea, anunciante sin teléfonos lo dice, nada enviado.",
+    "Corrección tras revisión independiente (15-nov): título y motivo se cortan por caracteres completos y se normalizan como los guarda keyText (trim, máx. 200/500 unidades UTF-16); con un corte en espacio o dentro de un emoji, 4 ticks dan 1 evento y ninguna fila nueva de historial (antes, 4 eventos).",
+    "Corrección: no hay llamada (y se cierra la abierta, evento consultation.call_closed) si la confirmación vigente de EST-16 dice no disponible para esa propiedad y operación, o si ningún match aprobado cuenta ya; misma regla de AGE-03/AGE-06 (counts y notConfirmedUnavailable de settle). Si vuelve a contar, el reloj reabre la tarea que él cerró.",
+    "Corrección: respond() y cancel() cierran la llamada con una sentencia por clave dentro del mismo batch (solo si la consulta quedó answered/cancelled), sin lectura previa; callDue devuelve null con un sent_at que no es fecha.",
+    "Pruebas tras la corrección: age-08-call-tasks 13/13; age-06-responses 12, age-03-consultations 15, jobs 10, notification-tasks 14, notification-reconcile 10, est-16-availability 9, age-05-send 21 en verde; tests/age08-call-tasks.e2e.cjs aislado a 1280 y 390 en verde."
   ],
   "modulo": "M06",
   "deps": [

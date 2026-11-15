@@ -84,54 +84,38 @@ const wall = ms => { const p = Object.fromEntries(JERSEY.formatToParts(new Date(
 // Sunday, so the time always exists on the day due: its offset is the one in force then.
 export function callDue(sentAt) {
   const ms = Date.parse(sentAt);
+  if (!Number.isFinite(ms)) return null; // not a date: no call, rather than a stopped pass or panel
   let local = wall(ms);
   for (let n = 0; n < 2;) { local += 864e5; if (new Date(local).getUTCDay() % 6) n++; } // 0 Sunday, 6 Saturday
   const guess = local - (wall(ms) - ms);
   return new Date(local - (wall(guess) - guess)).toISOString();
 }
 const callKey = c => `consultation:${c.operation_id}:call`;
-const CALL_DONE = "A useful answer was recorded or the enquiry was cancelled, so no call is needed.";
+// A task text as the Inbox stores it (server/notification-tasks.js keyText: trimmed, at most max UTF-16 units), cut
+// between whole characters: compared with what is stored, so a tick never rewrites a task that is already as it would be.
+const fit = (text, max) => { let out = ""; for (const ch of text) { if (out.length + ch.length > max) break; out += ch; } return out.trim(); };
+const CALL_STOP = "No approved match counts for this enquiry now, or the property was confirmed as not available, so no call is needed.";
 // The task as the directory is now: an agency or an entity by name, a private advertiser never; how many numbers it has.
 function callTask(c) {
   const contacts = c.suppressed_at || !c.details ? null : JSON.parse(c.details).contacts;
   const phones = contacts?.flatMap(p => p.phones ?? []).length ?? 0, who = contacts && c.kind !== "individual" ? c.name : "the advertiser";
   const late = "No useful answer two working days after this enquiry was sent.";
-  return { taskKey: callKey(c), category: "task", title: `Call ${who} about ${c.title} (${c.listing_id})`.slice(0, 200),
-    reason: !contacts ? `${late} The advertiser's personal data was removed from the directory, so there is no number to call. Open the `
+  return { taskKey: callKey(c), category: "task", title: fit(`Call ${who} about ${c.title} (${c.listing_id})`, 200),
+    reason: fit(!contacts ? `${late} The advertiser's personal data was removed from the directory, so there is no number to call. Open the `
       + "property: record their answer there if one comes, or cancel the enquiry."
       : phones ? `${late} Open the property: its Enquiries section has the ${phones} phone ${phones === 1 ? "number" : "numbers"} of ${who} in the `
         + "directory, the text sent and where to record their answer. A useful answer closes this task."
       : `${late} The directory has no phone number for ${who}: add one in Advertisers or reach them another way, then record their answer in `
-        + "the property's Enquiries section." };
+        + "the property's Enquiries section.", 500) };
 }
-// The clock's part: each enquiry still waiting whose call is due gets its task, or the task follows the directory. A task
-// already as it would be is not written again, so a tick writes nothing new; one a person marked done stays done.
-export async function callPass(env, isoNow) {
-  if (!callsReady(env)) return;
-  let results;
-  try {
-    ({ results } = await env.DB.prepare(`SELECT c.id, c.listing_id, c.operation_id, c.sent_at, l.title, a.name, a.kind, a.details, a.suppressed_at,
-        n.title AS task_title, n.task_reason FROM consultations c JOIN listings l ON l.id = c.listing_id LEFT JOIN advertisers a ON a.id = c.advertiser_id
-        LEFT JOIN notifications n ON n.task_key = 'consultation:' || c.operation_id || ':call'
-      WHERE c.status IN ('sent', 'awaiting_response') AND c.sent_at IS NOT NULL`).all());
-  } catch (e) { if (missing(e)) return; throw e; }
-  for (const c of results) {
-    const due = callDue(c.sent_at), t = callTask(c);
-    if (due > isoNow || (t.title === c.task_title && t.reason === c.task_reason)) continue;
-    await env.DB.batch([
-      env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data) SELECT ?, 'system', 'listing', ?, 'consultation.call_due',
-        json_object('version', 1, 'consultation_id', ?) WHERE EXISTS (SELECT 1 FROM consultations WHERE id = ? AND status IN ('sent', 'awaiting_response'))
-        AND NOT EXISTS (SELECT 1 FROM notifications WHERE task_key = ? AND title = ? AND task_reason = ?)`)
-        .bind(isoNow, c.listing_id, c.id, c.id, t.taskKey, t.title, t.reason),
-      ...taskStatements(env, { ...t, dueAt: due, eventId: null, target: { kind: "listing", id: c.listing_id }, actor: "system", preserveDone: true },
-        { ifInserted: true })]);
-  }
-}
-// The call task of an enquiry while it is open, to close with what closes the enquiry's wait.
-const callDone = async (env, c) => {
-  const n = await env.DB.prepare("SELECT title FROM notifications WHERE task_key = ? AND resolved_at IS NULL").bind(callKey(c)).first();
-  return n ? [{ taskKey: callKey(c), title: n.title, reason: CALL_DONE, resolved: true }] : [];
-};
+// In the batch that answers usefully or cancels an enquiry, after its event: its call task, if open, is closed with that
+// event. By key and by the enquiry as it is then, never by an earlier read, so a tick in between cannot leave it open.
+const LAST_EVENT = "(SELECT MAX(id) FROM events WHERE entity_type = 'listing' AND entity_id = ?4 AND json_extract(data, '$.consultation_id') = ?5)";
+const callClosed = (env, c, actor) => env.DB.prepare(`UPDATE notifications SET resolved_at = ?1, resolved_by = ?2, task_actor = ?2,
+    task_action = 'source_resolved', task_reason = ?3, event_id = ${LAST_EVENT}, source_version = ${LAST_EVENT}
+  WHERE task_key = ?6 AND resolved_at IS NULL AND target_deleted = 0
+    AND EXISTS (SELECT 1 FROM consultations WHERE id = ?5 AND status IN ('answered', 'cancelled'))`)
+  .bind(now(), actor, "A useful answer was recorded or the enquiry was cancelled, so no call is needed.", c.listing_id, c.id, callKey(c));
 // A contact is referred to by a digest of its name and email, never by a copy: one that is renamed, given another
 // address or removed no longer answers to it, and the enquiry waits for a person to choose again.
 const contactKey = c => sha256(JSON.stringify([c.name, c.email].map(v => String(v ?? "").trim().toLowerCase())));
@@ -556,6 +540,43 @@ export function enquiries(gates) {
     }
   }
 
+  // AGE-08. The clock's part: each enquiry still waiting whose call is due gets its task, or the task follows the
+  // directory. A task already as it would be is not written again, so a tick writes nothing new; one a person marked
+  // done stays done. An enquiry that no approved match counts for (the rule of AGE-03 and AGE-06), or whose property is
+  // confirmed as not available for its operation (EST-16, as settle reads it), gets no call, and one it had is closed;
+  // should that change back, the task the clock closed opens again.
+  const callLive = `(${counts("1")}${notConfirmedUnavailable(EST15_ON, "consultations.listing_id", "consultations.operation")})`;
+  async function callPass(env, isoNow) {
+    if (!callsReady(env)) return;
+    let results;
+    try {
+      ({ results } = await env.DB.prepare(`SELECT consultations.id, consultations.listing_id, consultations.operation_id, consultations.sent_at,
+          l.title, a.name, a.kind, a.details, a.suppressed_at, ${callLive} AS live,
+          n.title AS task_title, n.task_reason, n.resolved_at AS task_resolved_at, n.closed_by_source AS task_closed_by_source
+        FROM consultations JOIN listings l ON l.id = consultations.listing_id LEFT JOIN advertisers a ON a.id = consultations.advertiser_id
+          LEFT JOIN notifications n ON n.task_key = 'consultation:' || consultations.operation_id || ':call'
+        WHERE consultations.status IN ('sent', 'awaiting_response') AND consultations.sent_at IS NOT NULL`).all());
+    } catch (e) { if (missing(e)) return; throw e; }
+    const event = (c, type, when, args) => env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
+      SELECT ?, 'system', 'listing', ?, ?, json_object('version', 1, 'consultation_id', ?) WHERE EXISTS (SELECT 1 FROM consultations
+        WHERE id = ? AND status IN ('sent', 'awaiting_response') AND ${when})`).bind(isoNow, c.listing_id, type, c.id, c.id, ...args);
+    const project = d => taskStatements(env, { ...d, eventId: null, target: { kind: "listing", id: d.listing_id }, actor: "system" }, { ifInserted: true });
+    for (const c of results) {
+      const due = callDue(c.sent_at), key = callKey(c), open = c.task_title != null && c.task_resolved_at == null;
+      if (!c.live) {
+        if (open) await env.DB.batch([event(c, "consultation.call_closed", `NOT ${callLive} AND EXISTS (SELECT 1 FROM notifications
+          WHERE task_key = ? AND resolved_at IS NULL)`, [key]), ...project({ taskKey: key, category: "task", title: c.task_title, reason: CALL_STOP,
+          resolved: true, listing_id: c.listing_id })]);
+        continue;
+      }
+      const t = callTask(c);
+      if (!due || due > isoNow || (t.title === c.task_title && t.reason === c.task_reason)) continue;
+      await env.DB.batch([event(c, "consultation.call_due", `${callLive} AND NOT EXISTS (SELECT 1 FROM notifications WHERE task_key = ?
+          AND title = ? AND task_reason = ?)`, [key, t.title, t.reason]),
+        ...project({ ...t, dueAt: due, preserveDone: true, reopen: c.task_closed_by_source === 1 && c.task_resolved_at != null, listing_id: c.listing_id })]);
+    }
+  }
+
   // AGE-06. The follow-up task an answer asking for more information opened, while it is open: closed by what comes next.
   const followUp = async (env, c, task) => { const taskKey = `consultation:${c.operation_id}:reply`;
     return task.reopen || await env.DB.prepare("SELECT 1 FROM notifications WHERE task_key = ? AND resolved_at IS NULL").bind(taskKey).first()
@@ -606,8 +627,7 @@ export function enquiries(gates) {
         + "If they spoke of the whole property, record it for the whole property.");
     const status = confirms || outcome === "answered" ? "answered" : "awaiting_response";
     const mine = { sql: " AND EXISTS (SELECT 1 FROM consultations WHERE id = ? AND response_operation_id = ?)", args: [c.id, body.operation_id] };
-    const task = [...await followUp(env, c, outcome === "more_info" ? { reopen: true } : { resolved: true }),
-      ...(status === "answered" ? await callDone(env, c) : [])];
+    const task = await followUp(env, c, outcome === "more_info" ? { reopen: true } : { resolved: true });
     // Who confirmed it, as EST-16 names it: a private advertiser is the owner, any other the agency or entity advertising it.
     const kind = confirms && (await env.DB.prepare("SELECT kind FROM advertisers WHERE id = ?").bind(c.advertiser_id).first())?.kind;
     await env.DB.batch([
@@ -620,7 +640,8 @@ export function enquiries(gates) {
         .bind(short(n.note, 300), c.id, n.match_id, ...mine.args)),
       ...(confirms ? confirmationStatements(env, c.listing_id, { status: outcome, confirmed_at: body.answered_at,
         source: kind === "individual" ? "owner" : "agency", channel: body.via, evidence_ref: evidence, scope: body.scope,
-        reason: on && outcome === "unavailable" ? body.reason : null }, admin, ts, mine) : [])]);
+        reason: on && outcome === "unavailable" ? body.reason : null }, admin, ts, mine) : []),
+      callClosed(env, c, admin)]); // AGE-08: only once the enquiry is answered
     const after = await one(env, id);
     if (after.response_operation_id !== body.operation_id) fail(409, CHANGED);
     if (confirms) await propagate(env, c.listing_id, admin);
@@ -637,9 +658,9 @@ export function enquiries(gates) {
     if (c.status === "cancelled") return json({ consultation: await detail(env, c) }); // the same click again
     if (!CANCELLABLE.includes(c.status)) fail(409, "This enquiry can no longer be cancelled. Reload to see it.");
     if (c.revision !== body.revision) fail(409, CHANGED);
-    const task = [...(c.status === "manual_pending" ? [{ resolved: true }] : []), ...await followUp(env, c, { resolved: true }),
-      ...await callDone(env, c)];
-    await env.DB.batch(step(env, c, admin, "cancelled", "status = 'cancelled'", [], { task: task.length ? task : null, when: ` AND NOT ${counts("1")}` }));
+    const task = [...(c.status === "manual_pending" ? [{ resolved: true }] : []), ...await followUp(env, c, { resolved: true })];
+    await env.DB.batch([...step(env, c, admin, "cancelled", "status = 'cancelled'", [], { task: task.length ? task : null, when: ` AND NOT ${counts("1")}` }),
+      callClosed(env, c, admin)]);
     const after = await one(env, id);
     if (after.status !== "cancelled") fail(409, "An approved match still counts for this enquiry, so it cannot be cancelled. Reload to see it.");
     return json({ consultation: await detail(env, after) });
@@ -656,7 +677,7 @@ export function enquiries(gates) {
   const sends = (handler, closing) => guarded(async ctx => (await (closing ? migrated(ctx.env) : sending(ctx.env)) ? handler(ctx) : fail(404, "Not found")));
   // AGE-06's routes are not there until its switch, EST-16 and migration 0082 are.
   const answers = handler => guarded(async ctx => (await answering(ctx.env) ? handler(ctx) : fail(404, "Not found")));
-  return { settle, claimable, routes: [
+  return { settle, claimable, callPass, routes: [
     ["GET", /^\/admin\/matches\/(\d+)\/consultation$/, guarded(context, true), true],
     ["POST", /^\/admin\/matches\/(\d+)\/consultation$/, guarded(prepare), true],
     ["GET", /^\/admin\/listings\/(HE-[A-Z]\d{3,})\/consultations$/, guarded(forListing, true), true],

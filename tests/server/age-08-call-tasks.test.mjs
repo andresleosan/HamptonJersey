@@ -7,10 +7,12 @@ import { readFileSync } from "node:fs";
 import { makeEnv, seedListing, call, adminCookie, T0 } from "./listing-client.mjs";
 import { recomputeForApplicant } from "../../server/match-store.js";
 import { extractFeatures } from "../../server/listing-features.js";
-import { callDue, callPass } from "../../server/consultations.js";
+import { callDue, enquiries } from "../../server/consultations.js";
+import { ENQUIRY_GATES } from "../../server/routes/matches.js";
 import worker from "../../server/jobs.js";
 
 const ADMIN = "admin@example.test", HOME = "HE-R001";
+const { callPass } = enquiries(ENQUIRY_GATES);
 const run = (env, sql, ...args) => env.DB.raw.prepare(sql).run(...args);
 const rows = (env, sql, ...args) => env.DB.raw.prepare(sql).all(...args).map(r => ({ ...r }));
 const req = async (env, method, path, body) => call(env, method, path, { body, cookie: await adminCookie(ADMIN) });
@@ -29,8 +31,8 @@ const PHONES = [{ name: "Agency Desk", email: "desk@agency.example.test", phones
   { label: "Mobile", number: "07700 900001" }] }, { name: "Second Desk", email: "", phones: [{ label: "Office", number: "01534 000002" }] }];
 // Sent on a Friday at 16:00 in Jersey (GMT): the call is due on Tuesday at 16:00.
 const SENT = "2026-11-06T16:00:00.000Z", DUE = "2026-11-10T16:00:00.000Z", BEFORE = "2026-11-10T15:50:00.000Z";
-async function sentEnquiry(env, { kind = "agency", contacts = PHONES } = {}) {
-  const agency = ok(await req(env, "POST", "/admin/advertisers", { name: "Fixture Agency", kind, channels: [], source_ids: [], listing_ids: [HOME],
+async function sentEnquiry(env, { kind = "agency", contacts = PHONES, name = "Fixture Agency" } = {}) {
+  const agency = ok(await req(env, "POST", "/admin/advertisers", { name, kind, channels: [], source_ids: [], listing_ids: [HOME],
     commission: "", photo_permission: "", contacts }), 201).advertiser.id;
   const c = run(env, "INSERT INTO contacts (name, email, phone, last_activity_at, created_at, updated_at) VALUES ('Ana Le Gros', 'age08@example.test', "
     + "'+447700900299', ?, ?, ?)", T0, T0, T0);
@@ -64,6 +66,7 @@ test("due two working dates after it was sent, Monday to Friday, at the same Jer
     ["2026-03-27T16:00:00.000Z", "2026-03-31T15:00:00.000Z"], // Friday 16:00 GMT → Tuesday 16:00 BST (clocks go forward)
     ["2026-07-02T23:30:00.000Z", "2026-07-06T23:30:00.000Z"], // Friday 00:30 in Jersey (Thursday in UTC) → Tuesday 00:30
   ]) assert.equal(callDue(sent), due, sent);
+  for (const bad of [null, "", "not a date"]) assert.equal(callDue(bad), null, String(bad));
 });
 
 test("switched off, nothing is created and the enquiry shows no call", async () => {
@@ -160,4 +163,59 @@ test("the clock runs the pass on each tick", async t => {
 test("the website and the clock share the switch, so the panel and the Inbox agree", () => {
   const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^AGE08_CALL_TASKS_READY = "([01])"$/m)?.[1] ?? "0";
   assert.equal(flag("wrangler.toml"), flag("jobs/wrangler.toml"));
+});
+
+test("a long title cut at a space or inside an emoji is stored as the clock writes it: four ticks, one event, no new history", async () => {
+  // "Call " + name puts the 200th character on the space, or splits the emoji in two.
+  for (const name of [`${"A".repeat(194)} B`, `${"A".repeat(194)}\u{1F600}B`]) {
+    const env = world();
+    await sentEnquiry(env, { name });
+    const history = () => rows(env, "SELECT COUNT(*) AS n FROM notification_task_history")[0].n;
+    await callPass(env, DUE);
+    const after = history();
+    for (const at of ["2026-11-10T16:10:00.000Z", "2026-11-10T16:20:00.000Z", "2026-11-10T16:30:00.000Z"]) await callPass(env, at);
+    assert.equal(rows(env, "SELECT 1 FROM events WHERE type = 'consultation.call_due'").length, 1, name);
+    assert.equal(history(), after, name);
+    const [task] = calls(env);
+    assert.ok(task.title.length <= 200 && task.title === task.title.trim() && !task.title.includes("\uFFFD"), task.title);
+  }
+});
+
+test("no call when the property was confirmed not available elsewhere, or no approved match counts any more; an open one closes", async () => {
+  const unavailable = env => run(env, `INSERT INTO availability_confirmations (listing_id, status, reason, confirmed_at, source, channel, evidence_ref,
+    recorded_at, recorded_by) VALUES (?, 'unavailable', 'let', ?, 'owner', 'phone', 'Call note FIXTURE', ?, ?)`, HOME, "2026-11-09T10:00:00.000Z",
+    "2026-11-09T10:00:00.000Z", ADMIN);
+  const unmatch = (env, match) => req(env, "PUT", `/admin/matches/${match}`, { status: "found", from: "shortlisted" }).then(r => ok(r));
+  for (const [label, change] of [["not available", env => unavailable(env)], ["no match counts", (env, match) => unmatch(env, match)]]) {
+    const before = world(), first = await sentEnquiry(before);
+    await change(before, first.match);
+    await callPass(before, DUE);
+    assert.deepEqual(calls(before), [], `${label}: none created`);
+    const open = world(), second = await sentEnquiry(open);
+    await callPass(open, DUE);
+    await change(open, second.match);
+    for (const at of ["2026-11-10T16:10:00.000Z", "2026-11-10T16:20:00.000Z"]) await callPass(open, at);
+    assert.equal(calls(open).length, 1);
+    assert.notEqual(calls(open)[0].resolved_at, null, `${label}: closed`);
+    assert.equal(rows(open, "SELECT 1 FROM events WHERE type LIKE 'consultation.call_%'").length, 2, `${label}: one event to open, one to close`);
+  }
+});
+
+test("a call the clock closed because no match counted opens again once one does, and stays put after", async () => {
+  const env = world(), { match } = await sentEnquiry(env);
+  await callPass(env, DUE);
+  ok(await req(env, "PUT", `/admin/matches/${match}`, { status: "found", from: "shortlisted" }));
+  await callPass(env, "2026-11-10T16:10:00.000Z");
+  ok(await req(env, "PUT", `/admin/matches/${match}`, { status: "shortlisted", from: "found" }));
+  for (const at of ["2026-11-10T16:20:00.000Z", "2026-11-10T16:30:00.000Z"]) await callPass(env, at);
+  assert.deepEqual(calls(env).map(t => [t.resolved_at, /3 phone numbers/.test(t.task_reason)]), [[null, true]]);
+  assert.equal(rows(env, "SELECT 1 FROM events WHERE type LIKE 'consultation.call_%'").length, 3);
+});
+
+test("a sent date that is not a date is skipped, never stopping the pass or the panel", async () => {
+  const env = world(), { id } = await sentEnquiry(env);
+  run(env, "UPDATE consultations SET sent_at = 'not a date' WHERE id = ?", id);
+  await callPass(env, DUE);
+  assert.deepEqual(calls(env), []);
+  assert.equal((await view(env)).call_due_at, null);
 });
